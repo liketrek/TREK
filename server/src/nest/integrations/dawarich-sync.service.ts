@@ -345,9 +345,10 @@ export class DawarichSyncService {
    * What a stay is called. Its own name when Dawarich sent one. Otherwise the
    * reverse-geocoded points recorded during it name it (#3105): Dawarich sends
    * a placeholder for a visit without a place even when its points know the
-   * town. A name found earlier is kept while the visit is unchanged, and so is
-   * the finding that none of its points was geocoded; a stay whose points
-   * were not read yet keeps the placeholder, which the next run reads again.
+   * town. A name found earlier is kept while the visit is unchanged. A stay
+   * none of whose points was geocoded yet is read again on the next run, since
+   * Dawarich geocodes in the background and can lag behind by days; so is one
+   * whose points were not read yet, which keeps the placeholder meanwhile.
    */
   private async stayName(
     visit: { name: string; named: boolean; startedAt: string; endedAt: string },
@@ -356,7 +357,8 @@ export class DawarichSyncService {
     nameStay: StayNamer,
   ): Promise<string> {
     if (visit.named) return visit.name;
-    if (existing?.name && existing.source_hash === hash && !isPlaceholderName(existing.name)) return existing.name;
+    const kept = existing?.source_hash === hash ? existing.name : null;
+    if (kept && !isPlaceholderName(kept) && kept !== UNNAMED_STAY) return kept;
     const found = await nameStay(visit.startedAt, visit.endedAt);
     if (found === undefined) return STAY_NAME_PENDING;
     return found ?? UNNAMED_STAY;

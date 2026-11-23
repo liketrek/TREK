@@ -334,15 +334,15 @@ describe('DawarichSyncService, naming a stay Dawarich sends without a name (#310
     expect(listGeocodedPoints).not.toHaveBeenCalled();
   });
 
-  it('DAWARICH-SYNC-093: points without a geocode settle on "Unnamed stay" until the visit changes', async () => {
+  it('DAWARICH-SYNC-093: points without a geocode yet read "Unnamed stay", and are read again until Dawarich geocodes them', async () => {
     withVisits(nameless(904));
     await svc.syncUser(USER);
     expect((await only()).name).toBe('Unnamed stay');
-    listGeocodedPoints.mockClear();
 
+    listGeocodedPoints.mockResolvedValue([{ city: 'Cinisi', country_name: 'Italy' }]);
     await svc.syncUser(USER);
 
-    expect(listGeocodedPoints).not.toHaveBeenCalled();
+    expect((await only()).name).toBe('Cinisi, Italy');
   });
 
   it('DAWARICH-SYNC-094: points that could not be read keep the placeholder and are read on the next run', async () => {
