@@ -140,6 +140,24 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
     expect(await fc(attached, addonsOff).links(user, trip, '5', '9')).toEqual({ links: [{ id: 3 }] });
   });
 
+  it('while Documents is off, a write that attaches a loose file goes through', async () => {
+    const svc = fsvc({
+      getFileById: vi.fn().mockReturnValue({ id: 9 }),
+      isAttached: vi.fn().mockResolvedValue(false),
+      updateFile: vi.fn().mockReturnValue({ id: 9 }),
+      linkFile: vi.fn().mockReturnValue([{ id: 3 }]),
+      restWriter: vi.fn(),
+    } as Partial<FilesService>);
+    expect(await fc(svc, addonsOff).update(user, trip, '5', '9', { budget_item_id: 7 })).toEqual({ file: { id: 9 } });
+    expect(await fc(svc, addonsOff).link(user, trip, '5', '9', { reservation_id: 4 })).toEqual({
+      success: true,
+      links: [{ id: 3 }],
+    });
+    expect(
+      await rejected(fc(svc, addonsOff).update(user, trip, '5', '9', { description: 'x', place_id: null })),
+    ).toEqual({ status: 404, body: { error: 'Documents addon is not enabled' } });
+  });
+
   describe('POST / (upload)', () => {
     it('404 without trip access — upload keeps its own check so the body is read first', async () => {
       // The guard would answer before multer, and a response sent mid-upload destroys

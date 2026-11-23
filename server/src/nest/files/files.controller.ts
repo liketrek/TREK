@@ -18,7 +18,7 @@ import { StorageService } from '../storage/storage.service';
 import { AllowedFileTypesService } from './allowed-file-types.service';
 import { MAX_FILE_SIZE, BLOCKED_EXTENSIONS, isUploadTypeAllowed, isVideoExtension } from './files.constants';
 import { FileUploadDto, FileUpdateDto, FileLinkDto } from './files.dto';
-import { FilesService } from './files.service';
+import { FilesService, attachesFile } from './files.service';
 import {
   Body,
   Controller,
@@ -155,8 +155,9 @@ export class FilesController {
     }
   }
 
-  /** 404 for a file only the file manager shows, while the trip has Documents off. */
-  private async assertReachable(trip: TripAccess, file: TripFileRow) {
+  /** 404 for a file only the file manager shows, while the trip has Documents off and the request does not attach it. */
+  private async assertReachable(trip: TripAccess, file: TripFileRow, targets: Parameters<typeof attachesFile>[0] = {}) {
+    if (attachesFile(targets)) return;
     if (await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.DOCUMENTS)) return;
     if (await this.files.isAttached(file)) return;
     throw new HttpException({ error: addonOffMessage(ADDON_IDS.DOCUMENTS) }, 404);
@@ -274,7 +275,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
-    await this.assertReachable(trip, file);
+    await this.assertReachable(trip, file, body);
     await this.assertLinkTargets(tripId, {
       reservation_id: body.reservation_id,
       place_id: body.place_id,
@@ -409,7 +410,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
-    await this.assertReachable(trip, file);
+    await this.assertReachable(trip, file, body);
     await this.assertLinkTargets(tripId, {
       reservation_id: body.reservation_id,
       assignment_id: body.assignment_id,

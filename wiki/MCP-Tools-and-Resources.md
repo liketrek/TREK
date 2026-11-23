@@ -229,7 +229,7 @@ Requires `files:read` or `files:write`. Reading what is inside a document needs 
 |---|---|
 | `list_trip_files` | List a trip's documents: name, type, size, uploader, description, what they are linked to, starred and trash state. Pass `trash` to list the trash instead. |
 | `read_trip_file` | Read one document's contents. Text comes back as text, anything else base64, with an `encoding` field saying which. Files over 10 MB are refused; use the download link in the app. |
-| `upload_trip_file` | Add a document to a trip, base64-encoded, up to 10 MB (or the instance's upload limit if lower). The name needs an extension the file manager accepts. Optionally attach it to a booking or place right away. Needs the file upload right. |
+| `upload_trip_file` | Add a document to a trip, base64-encoded, up to 10 MB (or the instance's upload limit if lower). The name needs an extension the file manager accepts. Optionally attach it to a booking, place or expense right away. Needs the file upload right. |
 | `update_trip_file` | Set a file's description and the booking, place or expense (`budget_item_id`, a receipt) it belongs to. Pass null to detach. |
 | `link_trip_file` | Link a file to one more booking, place, day assignment or expense (`budget_item_id`, a receipt). |
 | `unlink_trip_file` | Remove one link. The file stays. |

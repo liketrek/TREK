@@ -16,12 +16,13 @@ import { FilesModule } from '../../../src/nest/files/files.module';
 import { FILE_CONTENT_MAX } from '../../../src/nest/files/files.service';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
 import { StorageService } from '../../../src/nest/storage/storage.service';
+import { makeBudgetItem } from '../../helpers/factories/budget';
 import { linkFile, makeTripFile } from '../../helpers/factories/files';
 import { makeDayAssignment } from '../../helpers/factories/itinerary';
 import { makePlace } from '../../helpers/factories/places';
 import { makeReservation } from '../../helpers/factories/reservations';
 import { countRows, findRow, findRows, updateRows } from '../../helpers/factories/rows';
-import { setAppSetting } from '../../helpers/factories/settings';
+import { setAppSetting, setTripAddon } from '../../helpers/factories/settings';
 import { addTripMember, makeDay, makeTrip } from '../../helpers/factories/trips';
 import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
@@ -674,6 +675,68 @@ describe('Tool: upload_trip_file', () => {
       expect(JSON.stringify(result.content)).toContain('does not belong to this trip');
     });
     expect(await countRows(orm, TripFiles)).toBe(0);
+  });
+
+  it('attaches a receipt to an expense in the upload itself', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const expense = await makeBudgetItem(orm, trip.id);
+    const foreignExpense = await makeBudgetItem(orm, (await makeTrip(orm, user.id)).id);
+    await withHarness(user.id, async (h) => {
+      const data = parseToolResult(
+        await h.client.callTool({
+          name: 'upload_trip_file',
+          arguments: { tripId: trip.id, filename: 'receipt.pdf', content: pdf, budget_item_id: expense.id },
+        }),
+      ) as any;
+      expect((await linkRows(data.file.id)).map((l) => l.budget_item_id)).toEqual([expense.id]);
+      const foreign = await h.client.callTool({
+        name: 'upload_trip_file',
+        arguments: { tripId: trip.id, filename: 'receipt.pdf', content: pdf, budget_item_id: foreignExpense.id },
+      });
+      expect(JSON.stringify(foreign.content)).toContain('does not belong to this trip (budget_item_id)');
+    });
+    expect(await countRows(orm, TripFiles)).toBe(1);
+  });
+
+  it('with Documents off, a loose upload can still be attached by the next call, and nothing else', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const expense = await makeBudgetItem(orm, trip.id);
+    const booking = await makeReservation(orm, trip.id);
+    await setTripAddon(orm, trip.id, 'documents', false);
+    await withHarness(user.id, async (h) => {
+      const upload = async () =>
+        (
+          parseToolResult(
+            await h.client.callTool({
+              name: 'upload_trip_file',
+              arguments: { tripId: trip.id, filename: 'ticket.pdf', content: pdf },
+            }),
+          ) as any
+        ).file.id as number;
+      const receipt = await upload();
+      const refused = await h.client.callTool({
+        name: 'update_trip_file',
+        arguments: { tripId: trip.id, fileId: receipt, description: 'Lunch' },
+      });
+      expect(JSON.stringify(refused.content)).toContain('Documents addon is not enabled');
+      const updated = await h.client.callTool({
+        name: 'update_trip_file',
+        arguments: { tripId: trip.id, fileId: receipt, budget_item_id: expense.id },
+      });
+      expect(updated.isError).toBeFalsy();
+      expect((await linkRows(receipt)).map((l) => l.budget_item_id)).toEqual([expense.id]);
+
+      const ticket = await upload();
+      const linked = await h.client.callTool({
+        name: 'link_trip_file',
+        arguments: { tripId: trip.id, fileId: ticket, reservation_id: booking.id },
+      });
+      expect(linked.isError).toBeFalsy();
+      const read = await h.client.callTool({ name: 'read_trip_file', arguments: { tripId: trip.id, fileId: ticket } });
+      expect(read.isError).toBeFalsy();
+    });
   });
 
   it('refuses a member once file_upload is owner-only', async () => {

@@ -34,7 +34,7 @@ Files also reach this tab from elsewhere: **Attach file** in a booking or transp
 
 The in-app AI assistant can keep a file you attach to the chat in Files (**Keep it in Files**), alone or together with a booking (**Keep the file with this booking**) or an expense.
 
-An AI assistant connected through MCP can add files too: the `upload_trip_file` tool uploads a document to a trip (and can attach it to a booking or a place in the same call) under the same type rules and the `file_upload` permission as the upload area, up to 10 MB per file (or the upload limit, if that is lower). See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
+An AI assistant connected through MCP can add files too: the `upload_trip_file` tool uploads a document to a trip (and can attach it to a booking, a place or an expense in the same call) under the same type rules and the `file_upload` permission as the upload area, up to 10 MB per file (or the upload limit, if that is lower). See [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
 
 ## Browsing and filtering
 

@@ -71,6 +71,22 @@ function isAttachedFile(file: TripFileRow, fileLinks: FileLinkTargetRow[]): bool
   return fileLinks.some((l) => l.reservation_id || l.assignment_id || l.place_id || l.budget_item_id);
 }
 
+/**
+ * Whether a write names a booking, place, stop or expense to attach the file to.
+ * Such a write makes a loose file one that belongs somewhere, so it goes through
+ * while the trip has Documents off.
+ */
+export function attachesFile(targets: {
+  reservation_id?: string | number | null;
+  assignment_id?: string | number | null;
+  place_id?: string | number | null;
+  budget_item_id?: string | number | null;
+}): boolean {
+  return [targets.reservation_id, targets.assignment_id, targets.place_id, targets.budget_item_id].some(
+    (id) => coerceLinkId(id) !== null,
+  );
+}
+
 export interface FileLink {
   file_id: number;
   reservation_id: number | null;
@@ -426,7 +442,12 @@ export class FilesService {
     tripId: string | number,
     upload: { originalname: string; mimetype: string; bytes: Buffer },
     uploadedBy: number,
-    opts: { place_id?: number | null; reservation_id?: number | null; description?: string | null },
+    opts: {
+      place_id?: number | null;
+      reservation_id?: number | null;
+      budget_item_id?: number | null;
+      description?: string | null;
+    },
   ) {
     const filename = await this.storeBytes(upload);
     return this.createFile(
