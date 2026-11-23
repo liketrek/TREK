@@ -17,25 +17,3 @@ export function tripAddonEnabled(
   const own = tripAddons?.find((addon) => addon.id === addonId);
   return own ? own.enabled : instanceEnabled;
 }
-
-/** The trip addon a core trip tab belongs to; a plugin page that replaces the tab follows it. */
-const TRIP_TAB_ADDON: Readonly<Record<string, string>> = {
-  listen: 'packing',
-  finanzplan: 'budget',
-  dateien: 'documents',
-  collab: 'collab',
-};
-
-/**
- * Whether a plugin's trip page shows on a trip. A page that replaces core tabs
- * stands in for them, so it shows while the addon of at least one of those tabs
- * is on for the trip; a page that replaces none (or only tabs no addon owns)
- * always shows.
- */
-export function pluginPageShown(
-  replaces: readonly string[] | undefined,
-  addonOn: (addonId: string) => boolean
-): boolean {
-  const owned = (replaces ?? []).flatMap((tab) => (TRIP_TAB_ADDON[tab] ? [TRIP_TAB_ADDON[tab]] : []));
-  return owned.length === 0 || owned.some(addonOn);
-}

@@ -71,7 +71,6 @@ import { TRIP_SPLASH_AFTER_MS } from '../../components/shared/useTripSplashBeats
 import { useFlightLiveSync } from '../../components/Planner/flightLive/useFlightLiveSync'
 import { useMailPrefillLink } from '../../components/MailIngest/useMailPrefillLink'
 import { usePlannerAddons } from './usePlannerAddons'
-import { pluginPageShown } from '../../utils/tripAddons'
 
 /**
  * The trip's roster from the server: the owner and the members. Null offline
@@ -214,8 +213,7 @@ export function useTripPlanner() {
   }, [])
 
 
-  // A plugin page that replaces a core tab follows that tab's addon on this trip.
-  const tripPagePlugins = allPlugins.filter(p => p.type === 'trip-page' && pluginPageShown(p.tripPage?.replaces, id => !!enabledAddons[id]))
+  const tripPagePlugins = allPlugins.filter(p => p.type === 'trip-page')
   const tripPluginIds = tripPagePlugins.map(p => p.id).join(',')
 
   // A trip-page plugin may replace core tabs while it's active (its manifest names

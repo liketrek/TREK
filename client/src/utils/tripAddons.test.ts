@@ -1,7 +1,7 @@
-// FE-UTIL-TRIPADDONS-001 to FE-UTIL-TRIPADDONS-003
+// FE-UTIL-TRIPADDONS-001 to FE-UTIL-TRIPADDONS-002
 import type { TripAddon } from '@trek/shared';
 import { describe, expect, it } from 'vitest';
-import { pluginPageShown, tripAddonEnabled } from './tripAddons';
+import { tripAddonEnabled } from './tripAddons';
 
 const addon = (id: string, enabled: boolean): TripAddon => ({
   id,
@@ -23,19 +23,5 @@ describe('tripAddonEnabled', () => {
     expect(tripAddonEnabled(null, 'tours', true)).toBe(true);
     expect(tripAddonEnabled(undefined, 'tours', false)).toBe(false);
     expect(tripAddonEnabled([], 'packing', false)).toBe(false);
-  });
-});
-
-describe('pluginPageShown', () => {
-  it('FE-UTIL-TRIPADDONS-003: a page that replaces core tabs shows while one of their addons is on', () => {
-    const on = (ids: string[]) => (id: string) => ids.includes(id);
-    expect(pluginPageShown(undefined, on([]))).toBe(true);
-    expect(pluginPageShown([], on([]))).toBe(true);
-    expect(pluginPageShown(['finanzplan'], on(['budget']))).toBe(true);
-    expect(pluginPageShown(['finanzplan'], on(['packing']))).toBe(false);
-    expect(pluginPageShown(['finanzplan', 'listen'], on(['packing']))).toBe(true);
-    expect(pluginPageShown(['dateien', 'collab'], on([]))).toBe(false);
-    // A tab no addon owns does not hide the page.
-    expect(pluginPageShown(['plan'], on([]))).toBe(true);
   });
 });

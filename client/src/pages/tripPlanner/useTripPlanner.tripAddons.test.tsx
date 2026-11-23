@@ -149,7 +149,7 @@ describe('useTripPlanner — the trip’s own addons', () => {
     expect(tabIds(result)).toContain('tour-planner');
   });
 
-  it('FE-TP-TRIPADDONS-004: a plugin page that replaces Costs follows the Costs addon of the trip', async () => {
+  it('FE-TP-TRIPADDONS-004: a plugin page that replaces Costs stays while the trip has Costs off', async () => {
     seedInstanceAddons(['budget']);
     usePluginStore.setState({
       plugins: [
@@ -162,7 +162,8 @@ describe('useTripPlanner — the trip’s own addons', () => {
 
     const { result } = await renderPlanner();
 
-    await waitFor(() => expect(tabIds(result)).not.toContain('plugin:ledger'));
+    await waitFor(() => expect(useTripAddonsStore.getState().trips['1:42']?.status).toBe('ready'));
+    expect(tabIds(result)).toContain('plugin:ledger');
     expect(tabIds(result)).toContain('plugin:notes');
     expect(tabIds(result)).not.toContain('finanzplan');
   });
