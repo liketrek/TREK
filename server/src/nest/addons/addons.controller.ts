@@ -1,3 +1,5 @@
+import type { User } from '../../types';
+import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { AddonsService } from './addons.service';
 import { Controller, Get, UseGuards } from '@nestjs/common';
@@ -16,7 +18,7 @@ export class AddonsController {
   constructor(private readonly addons: AddonsService) {}
 
   @Get()
-  async list() {
-    return this.addons.list();
+  async list(@CurrentUser() user: User) {
+    return this.addons.list(user.id);
   }
 }

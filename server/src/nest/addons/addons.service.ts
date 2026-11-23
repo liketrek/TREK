@@ -258,7 +258,8 @@ export class AddonsService {
     return { features: after, changed };
   }
 
-  async list() {
+  /** `userId` decides the wanderer flag for that user: allowed, and Tours on for them somewhere. */
+  async list(userId?: number) {
     const addonRows = await this.addons.listEnabled();
     // Photo providers surface only inside journeys, so with the journey addon
     // off they are unavailable no matter what their own rows say. Deriving that
@@ -280,7 +281,10 @@ export class AddonsService {
     return {
       collabFeatures: await this.getCollabFeatures(),
       bagTracking: (await this.getBagTracking()).enabled,
-      toursWanderer: await this.isWandererAvailable(),
+      toursWanderer:
+        userId === undefined
+          ? await this.isWandererAvailable()
+          : (await this.isWandererAllowed()) && (await this.isEnabledForUserAnywhere(userId, ADDON_IDS.TOURS)),
       toursHikingMap: (await this.isAddonEnabled(ADDON_IDS.TOURS)) && (await this.getToursHikingMap()).enabled,
       toursCycleMap: (await this.isAddonEnabled(ADDON_IDS.TOURS)) && (await this.getToursCycleMap()).enabled,
       // The same three options without the instance Tours switch: a trip may switch Tours on

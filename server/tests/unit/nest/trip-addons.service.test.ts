@@ -145,6 +145,18 @@ describe('TripAddonsService: routes without a trip', () => {
     expect(await addons.isEnabledAnywhere('roadtrip')).toBe(true);
   });
 
+  it('TRIPADDON-SVC-016: the feed offers wanderer to a user once a trip of theirs switched Tours on', async () => {
+    const { owner, trip } = await ownedTrip();
+    const { user: stranger } = await makeUser(orm());
+    await setAddonEnabled(orm(), 'tours', false);
+    await addons.updateToursWanderer(true);
+    expect((await addons.list(owner.id)).toursWanderer).toBe(false);
+    await svc.setTripOverride(trip.id, owner.id, 'tours', true);
+    expect((await addons.list(owner.id)).toursWanderer).toBe(true);
+    expect((await addons.list(stranger.id)).toursWanderer).toBe(false);
+    expect((await addons.list()).toursWanderer).toBe(false);
+  });
+
   it('TRIPADDON-SVC-013: tripsWithAddon keeps the trips the addon applies to, in their order, each as isEnabledForTrip says', async () => {
     const { owner, trip: off } = await ownedTrip();
     const on = await makeTrip(orm(), owner.id);

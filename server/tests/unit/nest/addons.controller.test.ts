@@ -1,5 +1,6 @@
 import { AddonsController } from '../../../src/nest/addons/addons.controller';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { User } from '../../../src/types';
 
 import { describe, it, expect, vi } from 'vitest';
 
@@ -20,8 +21,8 @@ describe('AddonsController (parity with the legacy GET /api/addons route)', () =
     const list = vi.fn().mockReturnValue(feed);
     const svc = makeService({ list } as Partial<AddonsService>);
 
-    expect(await new AddonsController(svc).list()).toBe(feed);
+    expect(await new AddonsController(svc).list({ id: 4 } as User)).toBe(feed);
     expect(list).toHaveBeenCalledTimes(1);
-    expect(list).toHaveBeenCalledWith();
+    expect(list).toHaveBeenCalledWith(4);
   });
 });
