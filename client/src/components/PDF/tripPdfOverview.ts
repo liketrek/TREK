@@ -75,15 +75,22 @@ export function coverRouteSvg(days: readonly CoverRouteDay[]): string {
   const lines = days.flatMap((d) => d.lines.filter((l) => l.length > 1).map((l) => ({ colour: d.colour, points: l })));
   const points = lines.flatMap((l) => l.points);
   if (!lines.length) return '';
-  const lats = points.map((p) => p[0]);
-  const midLat = (Math.min(...lats) + Math.max(...lats)) / 2;
-  const k = Math.cos((midLat * Math.PI) / 180);
-  const xs = points.map((p) => p[1] * k);
-  const ys = points.map((p) => -p[0]);
-  const minX = Math.min(...xs);
-  const minY = Math.min(...ys);
-  const w = Math.max(...xs) - minX;
-  const h = Math.max(...ys) - minY;
+  // A loop, not Math.min(...points): a long road trip passes the argument limit of a call.
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  for (const [lat, lng] of points) {
+    minLat = Math.min(minLat, lat);
+    maxLat = Math.max(maxLat, lat);
+    minLng = Math.min(minLng, lng);
+    maxLng = Math.max(maxLng, lng);
+  }
+  const k = Math.cos((((minLat + maxLat) / 2) * Math.PI) / 180);
+  const minX = minLng * k;
+  const minY = -maxLat;
+  const w = (maxLng - minLng) * k;
+  const h = maxLat - minLat;
   const scale = Math.min(
     w > 0 ? (ROUTE_W - 2 * ROUTE_PAD) / w : Infinity,
     h > 0 ? (ROUTE_H - 2 * ROUTE_PAD) / h : Infinity

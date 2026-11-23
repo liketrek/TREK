@@ -129,6 +129,17 @@ describe('the cover route and day band', () => {
     const d = /<path d="([^"]+)" stroke=/.exec(svg)?.[1] ?? '';
     expect(d.split('L').length).toBeLessThanOrEqual(1700);
   });
+
+  it('FE-PDFOVERVIEW-009: a trip of more points than a call takes arguments still draws its card', () => {
+    const days = Array.from({ length: 8 }, (_, day) => ({
+      colour: '#ff0000',
+      lines: [Array.from({ length: 100000 }, (_, i) => [45 + day + i / 100000, 7 + i / 50000] as [number, number])],
+    }));
+    const svg = coverRouteSvg(days);
+    expect(svg).toContain('<svg class="cover-route-svg"');
+    const numbers = (svg.match(/-?\d+\.\d/g) ?? []).map(Number);
+    for (const n of numbers) expect(n).toBeGreaterThanOrEqual(0);
+  });
 });
 
 describe('glanceHtml', () => {
