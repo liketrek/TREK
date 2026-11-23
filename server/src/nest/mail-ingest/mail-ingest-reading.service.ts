@@ -74,7 +74,8 @@ export class MailIngestReadingService {
     trips: readonly TripOption[];
     now: Date;
   }): Promise<MailReading> {
-    const { mail, machine, person, prefs, trips, now } = args;
+    const { mail, person, prefs, trips, now } = args;
+    const machine = args.machine.map(withTextReference);
     const skipped = await this.aiSkipped(person.id, prefs, now);
     const refs = trips.map((trip, i) => ({ trip, ref: `t${i + 1}` }));
     const reading = skipped
@@ -134,7 +135,7 @@ export class MailIngestReadingService {
       bookings.map((booking) => this.bookingImport.mapAiReservations(booking.reservations, 'mail')),
     );
     return bookings
-      .flatMap((booking, i) => mapped[i].map((item) => ({ booking, item })))
+      .flatMap((booking, i) => mapped[i].map((item) => ({ booking, item: withTextReference(item) })))
       .slice(0, MAIL_INGEST_LIMITS.storedBookings)
       .map(({ booking, item }) => {
         const match = machine.find((candidate) => sameBooking(candidate, item));
@@ -164,6 +165,12 @@ function fromMachine(item: BookingImportPreviewItem): MailDraft {
     imageOnly: false,
     disagrees: false,
   };
+}
+
+/** A reference a reader gave as a number, as the text it is. */
+function withTextReference(item: BookingImportPreviewItem): BookingImportPreviewItem {
+  const reference: unknown = item.confirmation_number;
+  return typeof reference === 'number' ? { ...item, confirmation_number: String(reference) } : item;
 }
 
 /** A booking as a hint for the AI: what it is, when, its reference and route, no more. */

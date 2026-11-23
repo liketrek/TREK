@@ -575,6 +575,30 @@ describe('what a mail names', () => {
     }
   });
 
+  it('keeps a booking that fails the shape in the inbox, and adds the others of the mail', async () => {
+    const user = await person();
+    const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    machine.mockResolvedValue([FLIGHT, { ...RETURN, title: '' }]);
+
+    const messageId = await forward(user.id, eml('half-read', 'Fwd: Your flights', BOTH));
+    expect(await findRow(orm(), MailIngestMessages, { id: messageId })).toMatchObject({ status: 'processed' });
+    const entries = await entriesOf(messageId);
+    expect(entries.map((entry) => [entry.resolution, entry.reason, entry.item_json === null])).toEqual([
+      ['auto_applied', null, false],
+      ['pending', 'missing_critical_field', true],
+    ]);
+    expect(await countRows(orm(), Reservations, { trip: trip.id })).toBe(1);
+  });
+
+  it('reads a reference given as a number as its text', async () => {
+    const user = await person();
+    const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    machine.mockResolvedValue([{ ...FLIGHT, confirmation_number: 482913 as unknown as string }]);
+
+    const [entry] = await entriesOf(await forward(user.id, eml('numbered', 'Fwd: Booking 482913', BOTH)));
+    expect(entry).toMatchObject({ resolution: 'auto_applied' });
+    expect(await findRow(orm(), Reservations, { trip: trip.id })).toMatchObject({ confirmation_number: '482913' });
+  });
 });
 
 describe('a mail that keeps failing', () => {

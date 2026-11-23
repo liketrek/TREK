@@ -295,7 +295,8 @@ export class MailIngestProcessService {
           messageId: message.id,
           userId: message.user_id,
           position: booking.position,
-          itemJson: encodeJson(MAIL_INGEST_ITEM, booking.draft.item),
+          // A booking that fails the shape waits as the mail alone, to be filled in by hand.
+          itemJson: booking.verdict.checks.schema === 'fail' ? null : encodeJson(MAIL_INGEST_ITEM, booking.draft.item),
           source: booking.draft.source,
           checksJson: encodeJson(MAIL_INGEST_CHECKS, booking.verdict.checks),
           uncertainFields: encodeJson(
