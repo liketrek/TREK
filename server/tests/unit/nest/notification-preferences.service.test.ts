@@ -461,7 +461,7 @@ describe('listed events follow the features that are on', () => {
     const all = { ...features };
     Object.assign(features, {
       isAddonEnabled: async (id: string) => id !== 'vacay' && id !== 'collections',
-      isWandererAvailable: async () => false,
+      isWandererAllowed: async () => false,
       enabledPhotoProviderIds: async () => ['immich'],
     });
     try {
@@ -497,6 +497,24 @@ describe('listed events follow the features that are on', () => {
       expect((await svc.getPreferencesMatrix(quiet.id, 'user')).event_types).not.toContain('collab_message');
       expect((await svc.getPreferencesMatrix(quiet.id, 'user')).event_types).not.toContain('packing_tagged');
       expect((await svc.getInstanceDefaults(admin.id)).event_types).not.toContain('collab_message');
+    } finally {
+      Object.assign(features, all);
+    }
+  });
+
+  it('NPREF-LIST-003b: the wanderer hints are listed for a user whose trip switched Tours on, as the watch sends them', async () => {
+    const { user: walker } = createUser(testDb);
+    const { user: quiet } = createUser(testDb);
+    const all = { ...features };
+    Object.assign(features, {
+      isAddonEnabled: async (id: string) => id !== 'tours',
+      isEnabledForUserAnywhere: async (userId: number, id: string) => id === 'tours' && userId === walker.id,
+    });
+    try {
+      expect((await svc.getPreferencesMatrix(walker.id, 'user')).event_types).toContain('wanderer_source_hint');
+      expect((await svc.getPreferencesMatrix(quiet.id, 'user')).event_types).not.toContain('wanderer_source_hint');
+      Object.assign(features, { isWandererAllowed: async () => false });
+      expect((await svc.getPreferencesMatrix(walker.id, 'user')).event_types).not.toContain('wanderer_source_hint');
     } finally {
       Object.assign(features, all);
     }

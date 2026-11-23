@@ -115,6 +115,7 @@ export function everyFeatureOn(
       | 'isEnabledForUserAnywhere'
       | 'isEnabledAnywhere'
       | 'isWandererAvailable'
+      | 'isWandererAllowed'
       | 'enabledPhotoProviderIds'
     >
   > = {},
@@ -124,6 +125,7 @@ export function everyFeatureOn(
     isEnabledForUserAnywhere: async () => true,
     isEnabledAnywhere: async () => true,
     isWandererAvailable: async () => true,
+    isWandererAllowed: async () => true,
     enabledPhotoProviderIds: async () => ['immich', 'synologyphotos'],
     ...overrides,
   } as unknown as AddonsService;

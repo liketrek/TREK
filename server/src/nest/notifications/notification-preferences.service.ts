@@ -139,7 +139,7 @@ export class NotificationPreferencesService {
       case 'synology_session_cleared':
         return photoProviders.includes('synologyphotos');
       case 'wanderer_source_hint':
-        return this.addons.isWandererAvailable();
+        return (await this.addons.isWandererAllowed()) && (await on(ADDON_IDS.TOURS));
       case 'flight_departed':
       case 'flight_delayed':
       case 'flight_landed':
