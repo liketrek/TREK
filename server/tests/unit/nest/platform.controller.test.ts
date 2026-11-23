@@ -1,6 +1,6 @@
 import { Photos } from '../../../src/db/entities/Photos.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
-import type { PublicMediaService } from '../../../src/nest/memories/public-media.service';
+import { RenditionPendingError, type PublicMediaService } from '../../../src/nest/memories/public-media.service';
 import {
   applyPlatformUploads,
   applyPlatformSpa,
@@ -101,6 +101,10 @@ function makeRes() {
       return this;
     }),
     setHeader: vi.fn(function (this: typeof res, k: string, v: string) {
+      this.headers[k] = v;
+      return this;
+    }),
+    set: vi.fn(function (this: typeof res, k: string, v: string) {
       this.headers[k] = v;
       return this;
     }),
@@ -398,6 +402,13 @@ describe('applyPlatformUploads', () => {
       const unwired = makeRes();
       await photoHandler(null)(ask, unwired, next);
       expect(unwired.statusCode).toBe(404);
+
+      renditionFor.mockRejectedValue(new RenditionPendingError());
+      const pending = makeRes();
+      await photoHandler()(ask, pending, next);
+      expect(pending.statusCode).toBe(503);
+      expect(pending.headers['Retry-After']).toBe('10');
+      expect(h.sendToResponse).not.toHaveBeenCalledWith('photos', 'photo-unclean.jpg', pending);
       expect(h.sendToResponse).not.toHaveBeenCalled();
     });
 
@@ -591,6 +602,17 @@ describe('applyPlatformUploads static mounts', () => {
     await handler({ method: 'GET', path: '/entry.jpg' }, makeRes(), entryNext);
     expect(entryNext).toHaveBeenCalledWith();
     expect(renditionFor).toHaveBeenCalledTimes(1);
+  });
+
+  it('a copy still being made is a 503 to come back to, never the stored object', async () => {
+    renditionFor.mockRejectedValue(new RenditionPendingError());
+    const next = vi.fn();
+    const res = makeRes();
+    await mount('/uploads/covers', publicMedia)({ method: 'GET', path: '/clip.mp4' }, res, next);
+    expect(res.statusCode).toBe(503);
+    expect(res.headers).toMatchObject({ 'Retry-After': '10', 'Cache-Control': 'no-store' });
+    expect(next).not.toHaveBeenCalled();
+    expect(h.sendToResponse).not.toHaveBeenCalled();
   });
 
   it('without PublicMediaService every mount serves nothing rather than the raw bytes', async () => {

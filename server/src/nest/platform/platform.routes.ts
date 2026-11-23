@@ -9,7 +9,13 @@ import type { UserSessionsRepository } from '../../db/repositories/UserSessions.
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { withRequestContext } from '../database/request-context';
-import type { PublicMediaService } from '../memories/public-media.service';
+import {
+  answerRenditionPending,
+  pendingOrNone,
+  RENDITION_PENDING,
+  RenditionPendingError,
+  type PublicMediaService,
+} from '../memories/public-media.service';
 import { StorageService } from '../storage/storage.service';
 import { StorageInvalidKeyError, StorageNotFoundError, type StorageCategory } from '../storage/storage.types';
 import { precompressedStatic } from './precompressed-static';
@@ -116,6 +122,10 @@ export function storageStaticHandler(
     return resolveServedName(name, serving)
       .then((served) => (served === null ? next() : storage.sendToResponse(category, served, res)))
       .catch((err: unknown) => {
+        if (err instanceof RenditionPendingError) {
+          answerRenditionPending(res);
+          return;
+        }
         // MISS contract: unknown object, invalid key ('' at the mount root,
         // '..', dot segments, control chars) → Nest 404 envelope.
         if (err instanceof StorageNotFoundError || err instanceof StorageInvalidKeyError) {
@@ -202,7 +212,11 @@ async function servePhoto(
   // A share link is no account: it gets the copy without the location, and a
   // photo that cannot be cleaned is not sent at all (fail closed, also when no
   // PublicMediaService was wired).
-  const rendition = publicMedia ? await publicMedia.renditionFor('photos', safeName).catch(() => null) : null;
+  const rendition = publicMedia ? await publicMedia.renditionFor('photos', safeName).catch(pendingOrNone) : null;
+  if (rendition === RENDITION_PENDING) {
+    answerRenditionPending(res);
+    return;
+  }
   if (!rendition) {
     res.status(404).send('Not found');
     return;

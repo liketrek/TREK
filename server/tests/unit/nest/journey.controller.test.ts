@@ -8,7 +8,7 @@ import type { JourneyPhotoLinksService } from '../../../src/nest/journey/journey
 import { JourneyPublicController } from '../../../src/nest/journey/journey-public.controller';
 import { JourneyController } from '../../../src/nest/journey/journey.controller';
 import type { JourneyService } from '../../../src/nest/journey/journey.service';
-import type { PublicMediaService } from '../../../src/nest/memories/public-media.service';
+import { RenditionPendingError, type PublicMediaService } from '../../../src/nest/memories/public-media.service';
 import type { StorageReleaseService } from '../../../src/nest/storage/storage-release.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
 import type { User } from '../../../src/types';
@@ -1343,6 +1343,24 @@ describe('JourneyPublicController', () => {
     // The location-free copy goes out, never the stored original.
     expect(renditionFor).toHaveBeenCalledWith('journey', 'photo.jpg');
     expect(storageSendToResponse).toHaveBeenCalledWith('journey', 'public/photo.jpg', res);
+  });
+
+  it('legacy photo proxy: a local file whose copy is still being made is a 503 to come back to', async () => {
+    storageExists.mockResolvedValue(true);
+    renditionFor.mockRejectedValueOnce(new RenditionPendingError());
+    const json = vi.fn();
+    const res = { set: vi.fn(), status: vi.fn(() => ({ json })) } as unknown as Response;
+    const s = svc({ validateShareTokenForAsset: vi.fn().mockReturnValue({ ownerId: 5 }) } as Partial<JourneyService>);
+    await new JourneyPublicController(s, storageStub, publicMediaStub).legacyPhoto(
+      'tok',
+      'local',
+      'clip.mp4',
+      'original',
+      res,
+    );
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.set).toHaveBeenCalledWith('Retry-After', '10');
+    expect(storageSendToResponse).not.toHaveBeenCalled();
   });
 
   it('legacy photo proxy: a local file that cannot be cleaned is a 404, not the original', async () => {

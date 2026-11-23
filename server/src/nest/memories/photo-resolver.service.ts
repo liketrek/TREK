@@ -5,7 +5,7 @@ import { StorageService } from '../storage/storage.service';
 import { fail, success, type AssetInfo, type ServiceResult } from './memories.helpers';
 import type { PhotoAssetRef } from './photo-provider';
 import { PhotoProviderRegistry } from './photo-provider.registry';
-import { PublicMediaService } from './public-media.service';
+import { answerRenditionPending, pendingOrNone, PublicMediaService, RENDITION_PENDING } from './public-media.service';
 import { ThumbnailService } from './thumbnail.service';
 import { TrekPhotoCacheService } from './trek-photo-cache.service';
 import { Injectable } from '@nestjs/common';
@@ -128,7 +128,11 @@ export class PhotoResolverService {
     if (!name || !(await this.storage.exists('journey', name).catch(() => false))) return false;
     let served = name;
     if (audience === 'public' && !name.startsWith('thumbs/')) {
-      const rendition = await this.publicMedia.renditionFor('journey', name).catch(() => null);
+      const rendition = await this.publicMedia.renditionFor('journey', name).catch(pendingOrNone);
+      if (rendition === RENDITION_PENDING) {
+        answerRenditionPending(res);
+        return true;
+      }
       if (!rendition) return false;
       served = rendition;
     }

@@ -4,7 +4,12 @@ import { RequireAddon } from '../addons/require-addon.decorator';
 import { Public } from '../auth-core/public.decorator';
 import { ResponseContract } from '../common/response-contract';
 import { rowId } from '../common/row-id.pipe';
-import { PublicMediaService } from '../memories/public-media.service';
+import {
+  answerRenditionPending,
+  pendingOrNone,
+  PublicMediaService,
+  RENDITION_PENDING,
+} from '../memories/public-media.service';
 import { StorageService } from '../storage/storage.service';
 import { JourneyService } from './journey.service';
 import { Controller, Get, HttpException, Param, Res, UseGuards } from '@nestjs/common';
@@ -108,7 +113,11 @@ export class JourneyPublicController {
       }
       // The copy without GPS and place tags, never the stored original; a file
       // that cannot be cleaned is not served at all.
-      const rendition = await this.publicMedia.renditionFor('journey', name).catch(() => null);
+      const rendition = await this.publicMedia.renditionFor('journey', name).catch(pendingOrNone);
+      if (rendition === RENDITION_PENDING) {
+        answerRenditionPending(res);
+        return;
+      }
       if (!rendition) {
         throw new HttpException({ error: 'Not found' }, 404);
       }

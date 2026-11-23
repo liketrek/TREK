@@ -18,7 +18,7 @@ import { PhotoProviderRegistry } from '../../../src/nest/memories/photo-provider
 import { PhotoResolverService } from '../../../src/nest/memories/photo-resolver.service';
 import { ImmichPhotoProvider } from '../../../src/nest/memories/providers/immich.provider';
 import { SynologyPhotoProvider } from '../../../src/nest/memories/providers/synology.provider';
-import type { PublicMediaService } from '../../../src/nest/memories/public-media.service';
+import { RenditionPendingError, type PublicMediaService } from '../../../src/nest/memories/public-media.service';
 import type { SynologyService } from '../../../src/nest/memories/synology.service';
 import type { ThumbnailService } from '../../../src/nest/memories/thumbnail.service';
 import type { TrekPhotoCacheService } from '../../../src/nest/memories/trek-photo-cache.service';
@@ -207,6 +207,23 @@ describe('streamPublicPhoto: what a share link gets', () => {
     expect(res.status).toHaveBeenCalledWith(404);
     expect(res.json).toHaveBeenCalledWith({ error: 'File not found' });
     expect(res.set).not.toHaveBeenCalled();
+  });
+
+  it('RESOLVE-036: a copy still being made is a 503 to come back to, not the thumbnail or the stored file', async () => {
+    const id = await insertPhoto({
+      provider: 'local',
+      file_path: 'journey/x.jpg',
+      thumbnail_path: 'journey/thumbs/h.jpg',
+    });
+    storage.exists.mockResolvedValue(true);
+    publicMedia.renditionFor.mockRejectedValue(new RenditionPendingError());
+    const res = makeRes();
+
+    await svc.streamPublicPhoto(res as never, 1, id, 'original');
+
+    expect(storage.sendToResponse).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.set).toHaveBeenCalledWith('Retry-After', '10');
   });
 
   it('RESOLVE-035: an immich original is asked for as the public rendition, and an owner still gets the original', async () => {

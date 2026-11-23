@@ -9,6 +9,7 @@ import { redactLocationInFile } from './media-redact';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
+import type { Response } from 'express';
 import { Jimp } from 'jimp';
 import crypto from 'node:crypto';
 import fsPromises from 'node:fs/promises';
@@ -22,6 +23,45 @@ const RENDITION_CATEGORIES: readonly ServedCategory[] = ['avatars', 'covers', 'j
 
 /** Image types Jimp both decodes and writes; it writes no metadata, so a re-encoded copy carries no location. */
 const REENCODABLE_EXTENSIONS = new Set(['.bmp', '.gif', '.jpeg', '.jpg', '.png', '.tif', '.tiff']);
+
+/**
+ * How long a request waits for a copy being made. A large video takes longer
+ * than a reverse proxy waits for the first byte, so past this the request is
+ * told to come back while the copy goes on being made.
+ */
+const RENDITION_WAIT_MS = 10_000;
+
+/** The copy of a name is still being made; the request is answered with {@link answerRenditionPending}. */
+export class RenditionPendingError extends Error {
+  constructor() {
+    super('The public copy is still being made');
+  }
+}
+
+/** What {@link pendingOrNone} reads a copy still being made as. */
+export const RENDITION_PENDING = Symbol('rendition pending');
+
+/** A refusal of `renditionFor` as a request reads it: RENDITION_PENDING while the copy is being made, else no copy. */
+export function pendingOrNone(err: unknown): typeof RENDITION_PENDING | null {
+  return err instanceof RenditionPendingError ? RENDITION_PENDING : null;
+}
+
+/** Answers a request whose copy is still being made: 503, come back in a while, nothing cached. */
+export function answerRenditionPending(res: Response): void {
+  res.set('Retry-After', String(RENDITION_WAIT_MS / 1000));
+  res.set('Cache-Control', 'no-store');
+  res.status(503).json({ error: 'The file is being prepared, try again shortly' });
+}
+
+/** `pending` if it settles within RENDITION_WAIT_MS, else a RenditionPendingError while it goes on. */
+function withinWait<T>(pending: Promise<T>): Promise<T> {
+  let timer: NodeJS.Timeout | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new RenditionPendingError()), RENDITION_WAIT_MS);
+    timer.unref();
+  });
+  return Promise.race([pending, late]).finally(() => clearTimeout(timer));
+}
 
 /** How many copies the sweep checks at once, so a large instance does not open thousands of handles. */
 const SWEEP_BATCH = 32;
@@ -59,7 +99,8 @@ export class PublicMediaService {
    * can be made safely (a movie or format that can be neither cleaned nor
    * re-encoded): the caller then serves nothing rather than the original. A
    * missing source throws StorageNotFoundError, an invalid name
-   * StorageInvalidKeyError.
+   * StorageInvalidKeyError, and a copy not made within RENDITION_WAIT_MS
+   * RenditionPendingError (it is still made, for a later request).
    */
   async renditionFor(category: ServedCategory, name: string): Promise<string | null> {
     if (name.startsWith(RENDITION_PREFIX)) return null;
@@ -77,7 +118,7 @@ export class PublicMediaService {
       pending = this.build(category, name, rendition).finally(() => this.inFlight.delete(key));
       this.inFlight.set(key, pending);
     }
-    return pending;
+    return withinWait(pending);
   }
 
   /**

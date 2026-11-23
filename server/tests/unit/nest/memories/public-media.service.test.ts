@@ -7,7 +7,7 @@
  */
 import { Journeys } from '../../../../src/db/entities/Journeys.entity';
 import { TrekPhotos } from '../../../../src/db/entities/TrekPhotos.entity';
-import { PublicMediaService } from '../../../../src/nest/memories/public-media.service';
+import { PublicMediaService, RenditionPendingError } from '../../../../src/nest/memories/public-media.service';
 import { StorageService } from '../../../../src/nest/storage/storage.service';
 import { StorageNotFoundError } from '../../../../src/nest/storage/storage.types';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
@@ -113,6 +113,30 @@ describe('renditionFor', () => {
     const both = await Promise.all([service.renditionFor('covers', 'b.jpg'), service.renditionFor('covers', 'b.jpg')]);
     expect(both).toEqual(['public/b.jpg', 'public/b.jpg']);
     expect(storage.put).toHaveBeenCalledTimes(1);
+  });
+
+  it('PMEDIA-006: a copy that takes longer than a request waits is refused as pending and finished for the next one', async () => {
+    write('journey', 'long.jpg', phonePhoto());
+    let release = () => {};
+    const held = new Promise<void>((resolve) => (release = resolve));
+    storage.withLocalFile.mockImplementationOnce(async (category, name, fn) => {
+      await held;
+      return fn(at(category, name));
+    });
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const first = expect(service.renditionFor('journey', 'long.jpg')).rejects.toBeInstanceOf(RenditionPendingError);
+      await vi.advanceTimersByTimeAsync(10_000);
+      await first;
+    } finally {
+      vi.useRealTimers();
+    }
+    expect(storage.put).not.toHaveBeenCalled();
+
+    release();
+    expect(await service.renditionFor('journey', 'long.jpg')).toBe('public/long.jpg');
+    expect(storage.put).toHaveBeenCalledTimes(1);
+    expect(await exifr.gps(fs.readFileSync(at('journey', 'public/long.jpg')))).toBeUndefined();
   });
 
   it('PMEDIA-003: refuses what it can neither clean nor re-encode, a copy by its own name, and a source that is gone', async () => {
