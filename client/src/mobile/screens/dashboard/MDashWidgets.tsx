@@ -10,7 +10,7 @@ import { useAddonStore } from '../../../store/addonStore'
 import { entityGradient } from '../../../utils/gradients'
 import { useCurrencyConverter } from '../../../components/Dashboard/useCurrencyConverter'
 import { useCollectionLists } from '../../../components/Dashboard/useCollectionLists'
-import { shortZone, useDashboardTimezones } from '../../../components/Dashboard/useDashboardTimezones'
+import { shortZone, useDashboardTimezones, zoneOptionLabel } from '../../../components/Dashboard/useDashboardTimezones'
 import { formatTime, splitReservationDateTime } from '../../../utils/formatters'
 import { normalizeAppearance, MOBILE_DASH_TOKENS, type MobileDashToken } from '@trek/shared'
 import { MOMENT_LABEL, upcomingKey, type UpcomingReservation } from '../../../pages/dashboard/dashboardModel'
@@ -231,7 +231,7 @@ function MTimezonesWidget(): React.ReactElement {
         >
           <option value="" disabled>{t('dashboard.tz.searchPlaceholder')}</option>
           {allZones.filter(z => !zones.includes(z)).map(z => (
-            <option key={z} value={z}>{z.replace(/_/g, ' ')}</option>
+            <option key={z} value={z}>{zoneOptionLabel(z)}</option>
           ))}
         </select>
       )}

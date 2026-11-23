@@ -25,7 +25,7 @@ import { IcsSubscribeModal } from '../components/Planner/IcsSubscribeModal'
 import CollectionsWidget from '../components/Dashboard/CollectionsWidget'
 import { useCurrencyConverter } from '../components/Dashboard/useCurrencyConverter'
 import { useDashboardPlugins } from '../components/Dashboard/useDashboardPlugins'
-import { shortZone, useDashboardTimezones } from '../components/Dashboard/useDashboardTimezones'
+import { shortZone, useDashboardTimezones, zoneOptionLabel } from '../components/Dashboard/useDashboardTimezones'
 import PluginWidgets from '../components/Plugins/PluginWidgets'
 import PluginFrame from '../components/Plugins/PluginFrame'
 import { TripCardBadges } from '../components/Plugins/TripCardBadges'
@@ -701,7 +701,7 @@ function TimezoneTool({ locale }: { locale: string }): React.ReactElement {
 
   const tzOptions = allZones
     .filter(z => !zones.includes(z))
-    .map(z => ({ value: z, label: z.replace(/_/g, ' '), searchLabel: z }))
+    .map(z => ({ value: z, label: zoneOptionLabel(z), searchLabel: `${z} ${zoneOptionLabel(z)}` }))
 
   return (
     <div className="tool">

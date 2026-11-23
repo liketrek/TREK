@@ -2,7 +2,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 
 import { useSettingsStore } from '../../store/settingsStore';
-import { shortZone, useDashboardTimezones } from './useDashboardTimezones';
+import { shortZone, useDashboardTimezones, zoneOptionLabel } from './useDashboardTimezones';
 
 const updateSetting = vi.fn<(key: string, value: unknown) => Promise<void>>();
 const home = Intl.DateTimeFormat().resolvedOptions().timeZone;
@@ -29,6 +29,22 @@ describe('shortZone', () => {
   it('FE-COMP-TZHOOK-001: keeps the city and spaces out underscores', () => {
     expect(shortZone('America/New_York')).toBe('New York');
     expect(shortZone('UTC')).toBe('UTC');
+  });
+});
+
+describe('Etc/GMT zones (#3175)', () => {
+  it('FE-COMP-TZHOOK-010: names an Etc/GMT zone by its real offset, which is the opposite of the sign in its id', () => {
+    expect(shortZone('Etc/GMT-4')).toBe('GMT+4');
+    expect(shortZone('Etc/GMT+4')).toBe('GMT-4');
+    expect(shortZone('Etc/GMT-14')).toBe('GMT+14');
+    expect(shortZone('Etc/GMT+0')).toBe('GMT');
+    expect(shortZone('Etc/UTC')).toBe('UTC');
+  });
+
+  it('FE-COMP-TZHOOK-011: the picker lists an Etc/GMT zone under its real offset and every other zone by its id', () => {
+    expect(zoneOptionLabel('Etc/GMT-4')).toBe('GMT+4');
+    expect(zoneOptionLabel('Etc/GMT+4')).toBe('GMT-4');
+    expect(zoneOptionLabel('America/New_York')).toBe('America/New York');
   });
 });
 

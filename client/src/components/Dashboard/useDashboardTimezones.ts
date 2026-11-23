@@ -28,10 +28,28 @@ const FALLBACK_ZONES = [
   'UTC',
 ];
 
+// Etc/GMT±N counts westward as positive (POSIX), so Etc/GMT-4 is four hours ahead of UTC.
+const ETC_GMT = /^Etc\/GMT([+-])(\d{1,2})$/;
+
+/** The real offset of an Etc/GMT zone (Etc/GMT-4 reads GMT+4), or null for any other zone. */
+function etcGmtLabel(tz: string): string | null {
+  const match = ETC_GMT.exec(tz);
+  if (!match) return null;
+  if (Number(match[2]) === 0) return 'GMT';
+  return `GMT${match[1] === '+' ? '-' : '+'}${match[2]}`;
+}
+
 /** The city part of a zone id, so America/New_York reads New York. */
 export function shortZone(tz: string): string {
+  const etc = etcGmtLabel(tz);
+  if (etc) return etc;
   const city = tz.split('/').pop() || tz;
   return city.replace(/_/g, ' ');
+}
+
+/** How the zone picker lists a zone: its id, with Etc/GMT zones under their real offset. */
+export function zoneOptionLabel(tz: string): string {
+  return etcGmtLabel(tz) ?? tz.replace(/_/g, ' ');
 }
 
 /**
