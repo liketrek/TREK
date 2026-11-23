@@ -323,13 +323,17 @@ export class FlightLivePollService {
     // One leg after the other, as every other sender in the codebase does: a notice writes its rows.
     await legs.reduce(async (previous, leg) => {
       await previous;
+      const delay = departureDelay(leg, state, now);
+      // Legs sharing the state can hold different schedules: a delay is news only where it is one.
+      const legEvents = events.filter((event) => event !== 'flight_delayed' || (delay ?? 0) >= DELAY_NOTICE_MIN);
+      if (legEvents.length === 0) return;
       const params: Record<string, string> = {
         flight: leg.flight_number,
         from: leg.origin.code,
         to: leg.destination.code,
         trip: leg.trip_title,
         tripId: String(leg.trip_id),
-        delay: String(Math.max(0, departureDelay(leg, state, now) ?? 0)),
+        delay: String(Math.max(0, delay ?? 0)),
       };
       try {
         const travelers = await this.states.listTravelerIds(leg.reservation_id);
@@ -337,7 +341,7 @@ export class FlightLivePollService {
           travelers.length === 0
             ? [{ scope: 'trip', targetId: leg.trip_id }]
             : travelers.map((userId) => ({ scope: 'user', targetId: userId }));
-        const sends = events.flatMap((event) => targets.map((target) => ({ event, ...target })));
+        const sends = legEvents.flatMap((event) => targets.map((target) => ({ event, ...target })));
         await sends.reduce(async (sent, payload) => {
           await sent;
           await this.notifications.send({ ...payload, actorId: null, params });

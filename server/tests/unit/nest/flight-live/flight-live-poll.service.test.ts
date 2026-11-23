@@ -71,7 +71,7 @@ afterAll(async () => {
   db.close();
 });
 
-async function seedFlight(title = 'Berlin') {
+async function seedFlight(title = 'Berlin', departs = '12:00') {
   const { user } = await makeUser(orm);
   const trip = await makeTrip(orm, user.id, { title });
   const flight = await makeReservation(orm, trip.id, {
@@ -89,7 +89,7 @@ async function seedFlight(title = 'Berlin') {
     lng: 8.5706,
     timezone: 'Europe/Berlin',
     local_date: '2026-07-01',
-    local_time: '12:00',
+    local_time: departs,
   });
   await makeReservationEndpoint(orm, flight.id, {
     role: 'to',
@@ -194,6 +194,21 @@ describe('FlightLivePollService.poll', () => {
     feed.lookup.mockResolvedValueOnce(seen(aircraft({ alt_baro: 30000, lat: 51.2, lon: 11, gs: 450 })));
     expect(await poll.poll(at(DEP + 30 * MIN))).toMatchObject({ asked: 1 });
     expect(notifications.send).not.toHaveBeenCalled();
+  });
+
+  it('FLPOLL-014: a delay is told only to the bookings whose own departure time it is late for', async () => {
+    const early = await seedFlight();
+    const later = await seedFlight('Berlin later', '12:30');
+    feed.lookup.mockResolvedValueOnce(seen(aircraft()));
+    await poll.poll(at(DEP + 20 * MIN));
+
+    const delayed = notifications.send.mock.calls
+      .map((call) => (call as unknown as [{ event: string; targetId: number; params: { delay: string } }])[0])
+      .filter((sent) => sent.event === 'flight_delayed');
+    expect(delayed.map((sent) => [sent.targetId, sent.params.delay])).toEqual([[early.trip.id, '20']]);
+    expect(notifications.send).toHaveBeenCalledWith(
+      expect.objectContaining({ event: 'flight_departed', scope: 'trip', targetId: later.trip.id }),
+    );
   });
 
   it('FLPOLL-005: landed is told once and the flight is asked about no more', async () => {
