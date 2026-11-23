@@ -123,6 +123,7 @@ The copy cannot be loaded over the migrated schema: it recreates TREK's tables, 
        WHERE c.relnamespace = current_schema()::regnamespace AND c.relkind IN ('r', 'p', 'v', 'm', 'S', 'f')
          AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = c.oid AND d.deptype IN ('e', 'a', 'i'))
      LOOP
+       CONTINUE WHEN NOT EXISTS (SELECT 1 FROM pg_class WHERE oid = r.name::oid);
        EXECUTE format('DROP %s IF EXISTS %s CASCADE',
          CASE r.relkind WHEN 'v' THEN 'VIEW' WHEN 'm' THEN 'MATERIALIZED VIEW' WHEN 'S' THEN 'SEQUENCE'
            WHEN 'f' THEN 'FOREIGN TABLE' ELSE 'TABLE' END, r.name);
@@ -131,6 +132,7 @@ The copy cannot be loaded over the migrated schema: it recreates TREK's tables, 
        WHERE p.pronamespace = current_schema()::regnamespace
          AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = p.oid AND d.deptype = 'e')
      LOOP
+       CONTINUE WHEN NOT EXISTS (SELECT 1 FROM pg_proc WHERE oid = r.sig::oid);
        EXECUTE format('DROP ROUTINE IF EXISTS %s CASCADE', r.sig);
      END LOOP;
      FOR r IN SELECT format('%I.%I', n.nspname, c.collname) AS name FROM pg_collation c
@@ -144,6 +146,7 @@ The copy cannot be loaded over the migrated schema: it recreates TREK's tables, 
        WHERE t.typnamespace = current_schema()::regnamespace AND t.typtype IN ('e', 'd', 'r')
          AND NOT EXISTS (SELECT 1 FROM pg_depend d WHERE d.objid = t.oid AND d.deptype IN ('e', 'i'))
      LOOP
+       CONTINUE WHEN NOT EXISTS (SELECT 1 FROM pg_type WHERE oid = r.name::oid);
        EXECUTE format('DROP TYPE IF EXISTS %s CASCADE', r.name);
      END LOOP;
    END
