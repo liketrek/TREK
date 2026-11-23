@@ -318,6 +318,27 @@ export function convertValue(value: SqliteValue, kind: ColumnKind, rules: Conver
   }
 }
 
+/**
+ * Columns TREK's code compares in the `'<id>.0'` text its services write
+ * (`legacyBoundIntegerText`). An install that got
+ * `reservations.accommodation_id` from legacy step 34 has it as INTEGER, so
+ * SQLite stored that text as the number and still matched it; the Postgres
+ * column is text and matches only the text.
+ */
+const LEGACY_ID_TEXT_COLUMNS = new Set(['reservations.accommodation_id']);
+
+/** Whether `table.column` of TREK's own schema holds ids in the `'<id>.0'` text. */
+export function holdsLegacyIdText(table: string, column: string): boolean {
+  return LEGACY_ID_TEXT_COLUMNS.has(`${table}.${column}`);
+}
+
+/** A whole number stored in such a column, as the `'<id>.0'` text it was written as; anything else as it is. */
+export function asLegacyIdText(value: SqliteValue): SqliteValue {
+  if (typeof value === 'bigint') return `${value}.0`;
+  if (typeof value === 'number' && Number.isInteger(value)) return `${value}.0`;
+  return value;
+}
+
 /** Whether an integer value read back would be beyond what TREK's Postgres driver reads (2^53). */
 export function beyondSafeInteger(value: PostgresValue): boolean {
   if (typeof value !== 'string' || !DECIMAL_INTEGER.test(value)) return false;

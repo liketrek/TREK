@@ -358,6 +358,34 @@ describe('moveSqliteToPostgres', () => {
     expect(pg.sequences.get('public.trips_id_seq')).toEqual({ value: '9007199254740993', called: true });
     expect(summary.warnings).toEqual(['trips holds 1 integer(s) beyond 2^53, which TREK refuses to read on Postgres.']);
   });
+
+  it("MOVE-038: a stay id an old install keeps as a number moves as the '<id>.0' text TREK compares it as", async () => {
+    pg = new FakePostgres([
+      ...SCHEMA,
+      {
+        name: 'reservations',
+        columns: [
+          { name: 'id', dataType: 'bigint', nullable: false },
+          { name: 'accommodation_id', dataType: 'text' },
+        ],
+        primaryKey: ['id'],
+        serial: ['id'],
+      },
+    ]);
+    orm = fakeMoveOrm(pg, { known: [M1, M2] });
+    // The column as legacy step 34 added it: INTEGER, so the '14.0' the services write is stored as 14.
+    sqlite(
+      path.join(dir, 'travel.db'),
+      `create table reservations (id integer primary key, accommodation_id integer);
+       insert into reservations values (1, '14.0'), (2, null), (3, 'abc');`,
+    );
+    await moveSqliteToPostgres(options());
+    expect(pg.rowsOf('"reservations"')).toEqual([
+      ['1', '14.0'],
+      ['2', null],
+      ['3', 'abc'],
+    ]);
+  });
 });
 
 describe('nothing is changed silently', () => {

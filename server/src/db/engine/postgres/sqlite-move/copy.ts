@@ -1,10 +1,12 @@
 import type { SqliteSource } from '../../sqlite/sqlite-source';
 import { FIX_IN_PLUGIN_DB, FIX_IN_SQLITE_FILE, MoveRefusal } from './refusal';
 import {
+  asLegacyIdText,
   beyondSafeInteger,
   canonicalFromPostgres,
   canonicalFromSource,
   convertValue,
+  holdsLegacyIdText,
   NUL_REASON,
   PLUGIN_RULES,
   TableChecksum,
@@ -326,8 +328,11 @@ export async function copyTable(
     return `row ${spec.primaryKey.map((name, index) => `${name}=${key(index)}`).join(', ')}`;
   };
 
+  const legacyIdText = spec.columns.map((column) => !spec.exact && holdsLegacyIdText(spec.source, column.name));
+
   /** One SQLite row as the values sent to Postgres, or null once a value was refused. */
-  const convertRow = (raw: unknown[]): PostgresValue[] | null => {
+  const convertRow = (read: unknown[]): PostgresValue[] | null => {
+    const raw = read.map((value, index) => (legacyIdText[index] ? asLegacyIdText(value as SqliteValue) : value));
     result.rows++;
     const values: PostgresValue[] = [];
     spec.columns.forEach((column, index) => {
