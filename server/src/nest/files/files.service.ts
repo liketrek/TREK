@@ -380,6 +380,12 @@ export class FilesService {
     return isAttachedFile(file, await this.fileLinksRepo.listForFiles([file.id]));
   }
 
+  /** `isAttached` for a file of the trip named by its id, trashed or not; false when the trip holds no such file. */
+  async isAttachedById(fileId: number, tripId: number): Promise<boolean> {
+    const file = await this.getFileById(fileId, tripId);
+    return file !== undefined && (await this.isAttached(file));
+  }
+
   /** `attachedOnly` leaves out the files only the file manager shows, for a trip that has Documents off. */
   async listFiles(tripId: string | number, showTrash: boolean, attachedOnly = false) {
     const tripIdNum = toRowId(tripId) ?? -1;

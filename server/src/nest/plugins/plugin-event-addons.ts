@@ -31,24 +31,37 @@ export function tripAddonOfEvent(event: string): string | null {
 
 type Deliver = (tripId: number, event: string, meta?: PluginEventMeta) => void;
 
+/** Whether a trip's file belongs to a booking, place, expense, note or message, which Documents does not gate. */
+type FileAttached = (fileId: number, tripId: number) => Promise<boolean>;
+
 /**
  * The plugin event sink with the trip's addons in front of it: an event of a
  * trip addon's family is handed on only once the addon is read as on for the
  * trip, any other event at once. An addon that cannot be read sends nothing,
  * since events are best-effort and a family the owner switched off must not
- * leak through a failed read.
+ * leak through a failed read. A file event passes with Documents off when its
+ * file is attached to something, since such a file stays readable then too.
  *
  * The reads run side by side, but a trip's events go out in the order they
  * were emitted: while one of them waits for its read, every later event of the
  * same trip queues behind it, a trip event included.
  */
-export function tripEventSink(addons: AddonsService, orm: MikroORM | undefined, deliver: Deliver): Deliver {
+export function tripEventSink(
+  addons: AddonsService,
+  orm: MikroORM | undefined,
+  deliver: Deliver,
+  fileAttached?: FileAttached,
+): Deliver {
   const queues = new Map<number, Promise<void>>();
   return (tripId, event, meta) => {
     const addonId = tripAddonOfEvent(event);
     const before = queues.get(tripId);
     if (!addonId && before === undefined) return deliver(tripId, event, meta);
-    const ask = () => (addonId ? addons.isEnabledForTrip(tripId, addonId) : Promise.resolve(true));
+    const fileId = event.startsWith('file:') ? meta?.entityId : undefined;
+    const ask = async () => {
+      if (!addonId || (await addons.isEnabledForTrip(tripId, addonId))) return true;
+      return fileId !== undefined && fileAttached !== undefined && (await fileAttached(fileId, tripId));
+    };
     const on = (orm && addonId ? withRequestContext(orm, ask) : ask()).catch(() => false);
     const queued = (before ?? Promise.resolve())
       .then(() => on)

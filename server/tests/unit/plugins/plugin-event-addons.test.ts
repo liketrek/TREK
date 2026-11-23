@@ -113,4 +113,31 @@ describe('the plugin event sink per trip', () => {
     sink(5, 'place:created', undefined);
     expect(deliver).toHaveBeenLastCalledWith(5, 'place:created', undefined);
   });
+
+  it('PEVADDON-006: with Documents off a file event goes out when its file is attached, in order', async () => {
+    const deliver = vi.fn();
+    const addons = { isEnabledForTrip: vi.fn(async () => false) } as unknown as AddonsService;
+    const attached = vi.fn(async (fileId: number) => {
+      if (fileId === 12) throw new Error('db gone');
+      return fileId === 10;
+    });
+    const sink = tripEventSink(addons, undefined, deliver, attached);
+    sink(5, 'file:created', { entity: 'file', entityId: 10 });
+    sink(5, 'file:updated', { entity: 'file', entityId: 11 });
+    sink(5, 'file:updated', { entity: 'file', entityId: 12 });
+    sink(5, 'file:deleted', undefined);
+    sink(5, 'budget:created', { entity: 'budget', entityId: 10 });
+    sink(5, 'file:deleted', { entity: 'file', entityId: 10 });
+    sink(5, 'place:created', undefined);
+    await settle();
+    await settle();
+    expect(deliver.mock.calls.map(([, event, meta]) => `${event} ${meta?.entityId ?? '-'}`)).toEqual([
+      'file:created 10',
+      'file:deleted 10',
+      'place:created -',
+    ]);
+    expect(attached).toHaveBeenCalledWith(10, 5);
+    expect(attached).not.toHaveBeenCalledWith(undefined, 5);
+    expect(attached).toHaveBeenCalledTimes(4);
+  });
 });

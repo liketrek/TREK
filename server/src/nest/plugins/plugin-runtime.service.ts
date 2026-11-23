@@ -67,6 +67,7 @@ import type { TrekRangeBypass } from './install/host-compat';
 import { keyFingerprint } from './signature-status';
 import { AuditService } from '../audit/audit.service';
 import { AddonsService } from '../addons/addons.service';
+import { FilesService } from '../files/files.service';
 import type { McpToolCapability, PluginDependency } from './install/manifest';
 import type { VersionMismatch, PluginDepRow } from './dependencies';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
@@ -284,16 +285,12 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // (task-2-fix-report.md's "Concerns").
     @Optional() private readonly orm?: MikroORM,
     // Plan 3j Task 0 (R-scheduler): the one path this codebase schedules a cron through
-    // (server/CLAUDE.md). `@Optional()` for the same reason `uow`/`orm` are — the wide
-    // hand-construction surface this class has across the test suite (plugin-host.ts,
-    // boot-registry-order.test.ts, settings-isolation.test.ts, plugin-runtime.boot-no-
-    // orm.test.ts) never passes a 9th positional arg; a hand-built instance without one
-    // simply never registers the sweep (no log — mirrors how an absent `hostFactory`/
-    // `registry` produces no boot-time log either, only a failure at first use, and
-    // registering nothing is exactly what happens today too whenever a test never lets
-    // the 30s interval actually fire). Nest always injects the real one in production
-    // (PluginsRuntimeModule imports SchedulingModule).
+    // (server/CLAUDE.md). `@Optional()` for the same reason `orm` is: a hand-built test
+    // instance without one never registers the sweep, as an absent `hostFactory`/`registry`
+    // logs nothing either. Nest always injects the real one (PluginsRuntimeModule imports SchedulingModule).
     @Optional() private readonly registrar?: CronRegistrarService,
+    // Lets a file event through while Documents is off when its file is attached; without it they wait for Documents.
+    @Optional() private readonly files?: FilesService,
   ) {}
 
   // Plan 3j Task 3: `discoverPlugins` composes `DiscoveryRepos` from the repositories
@@ -332,7 +329,8 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       applyStagedPluginTrees();
     });
     // Core trip events go to subscribed plugins, fire-and-forget, unless the trip has the event's addon off.
-    setPluginEventSink(tripEventSink(this.addons, this.orm, (t, e, m) => this.supervisor.deliverEvent(t, e, m)));
+    const attached = this.files && this.files.isAttachedById.bind(this.files);
+    setPluginEventSink(tripEventSink(this.addons, this.orm, (t, e, m) => this.supervisor.deliverEvent(t, e, m), attached));
     // Expose plugin notification channels to the (plain, non-Nest) notification
     // service. Pull-based: it calls this on every dispatch, so enabling or removing
     // a plugin takes effect immediately with nothing to invalidate.

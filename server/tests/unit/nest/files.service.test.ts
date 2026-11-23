@@ -393,6 +393,18 @@ describe('listFiles', () => {
     expect(receiptRow && (await svc.isAttached(receiptRow))).toBe(true);
     expect(looseRow && (await svc.isAttached(looseRow))).toBe(false);
   });
+
+  it('FILE-SVC-014d: isAttachedById answers for a trashed file too, and no for one of another trip', async () => {
+    const { user, trip } = seedTrip();
+    const other = seedTrip();
+    const receipt = await makeFile(trip.id, user.id, {}, { budget_item_id: await insertBudgetItem(trip.id, 'Dinner') });
+    const loose = await makeFile(trip.id, user.id);
+    await svc.softDeleteFile(receipt.id);
+
+    expect(await svc.isAttachedById(receipt.id, trip.id)).toBe(true);
+    expect(await svc.isAttachedById(loose.id, trip.id)).toBe(false);
+    expect(await svc.isAttachedById(receipt.id, other.trip.id)).toBe(false);
+  });
 });
 
 // ── receipts on an expense ────────────────────────────────────────────────────
