@@ -501,9 +501,14 @@ enum TrekServerStore {
     /// filled in with that server (previousURL). Raise both together.
     private static let serverCheck = 3
 
+    private static var rechecked = false
+
     /// Runs before the first bridge is built, so a server picked under an older
-    /// minimum is not loaded unchecked.
+    /// minimum is not loaded unchecked. Once per launch: the bridge that
+    /// restoreForOffline restarts must keep the server it put back.
     static func recheckAfterUpdate() {
+        guard !rechecked else { return }
+        rechecked = true
         let defaults = UserDefaults.standard
         guard defaults.integer(forKey: checkedKey) < serverCheck else { return }
         defaults.set(serverCheck, forKey: checkedKey)
