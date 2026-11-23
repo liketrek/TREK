@@ -82,7 +82,7 @@ describe('NativeImportSheet', () => {
   it('asks what a shared page is for, and keeps it among the links of the trip picked', async () => {
     render(<NativeImportSheet />);
     act(() => useSharedImportStore.getState().setFile(page(), link()));
-    expect(screen.getByText('What should TREK do with this link?')).toBeInTheDocument();
+    expect(await screen.findByText('What should TREK do with this link?')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Japan/ })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Save to the trip's links/ }));
@@ -96,7 +96,7 @@ describe('NativeImportSheet', () => {
   it('reads a booking from the page when that is asked for', async () => {
     render(<NativeImportSheet />);
     act(() => useSharedImportStore.getState().setFile(page(), link()));
-    fireEvent.click(screen.getByRole('button', { name: /Read a booking from it/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Read a booking from it/ }));
     fireEvent.click(await screen.findByRole('button', { name: /Japan/ }));
     expect(useSharedImportStore.getState().tripId).toBe(2);
     expect(navigate).toHaveBeenCalledWith('/trips/2');
@@ -156,6 +156,39 @@ describe('NativeImportSheet', () => {
     expect(await screen.findByText('Collab addon is not enabled')).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: /Past trip/ })).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByRole('button', { name: /Japan/ })).not.toBeInTheDocument());
+  });
+
+  it('waits for the trips’ own Collab before a page shared into a trip is read as a booking', async () => {
+    useAddonStore.setState({ addons: [], loaded: true });
+    let answer: () => void = () => {};
+    vi.spyOn(tripAddonsRepo, 'list').mockImplementation(
+      (tripId: number) =>
+        new Promise((resolve) => {
+          const own = [
+            { id: 'collab', name: 'Collab', icon: null, enabled: true, instanceEnabled: false, overridden: true },
+          ];
+          if (tripId === 2) answer = () => resolve(own);
+          else resolve([]);
+        })
+    );
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(page(), link(2)));
+    await waitFor(() => expect(tripAddonsRepo.list).toHaveBeenCalledWith(2));
+    expect(useSharedImportStore.getState().tripId).toBeNull();
+    expect(screen.queryByRole('button', { name: /Japan|Past trip/ })).not.toBeInTheDocument();
+
+    act(() => answer());
+    expect(await screen.findByText('What should TREK do with this link?')).toBeInTheDocument();
+    expect(useSharedImportStore.getState().tripId).toBeNull();
+  });
+
+  it('reads the Collab of a trip only while the app does not hold it already', async () => {
+    useTripAddonsStore.getState().publish(2, []);
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(page(), link()));
+    expect(await screen.findByText('What should TREK do with this link?')).toBeInTheDocument();
+    expect(tripAddonsRepo.list).toHaveBeenCalledTimes(1);
+    expect(tripAddonsRepo.list).toHaveBeenCalledWith(1);
   });
 
   it('stays closed with nothing shared', () => {

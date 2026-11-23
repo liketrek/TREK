@@ -48,11 +48,14 @@ interface StageInput {
   picked: LinkChoice | null;
   /** The share sheet's trip could not take the link: the trips are offered after all. */
   presetFailed: boolean;
+  /** Whether the trips and their Collaboration are read, so what a link may be for is known. */
+  settled: boolean;
 }
 
 /** Where the sheet stands for the shared item: what it asks, and what a tap on a trip does. */
-function stageOf({ file, link, collabOn, picked, presetFailed }: StageInput) {
+function stageOf({ file, link, collabOn, picked, presetFailed, settled }: StageInput) {
   if (!file || !link) return { choice: 'booking' as LinkChoice | null, asking: false, nowhere: false, showTrips: true };
+  if (!settled) return { choice: null, asking: false, nowhere: false, showTrips: false };
   const choices = linkChoicesOf(file, collabOn);
   const choice = picked ?? (choices.length === 1 ? choices[0] : null);
   const asking = choice == null && choices.length > 1;
@@ -67,11 +70,14 @@ function sheetTitle(t: (key: string) => string, asking: boolean, choice: LinkCho
   return choice === 'link' ? t('native.share.linkTrip') : t('native.share.title');
 }
 
-/** The trips to choose from, those still ahead first. */
-function useTripRows(open: boolean): TripRow[] {
-  const [trips, setTrips] = useState<TripRow[]>([]);
+const NO_TRIPS: TripRow[] = [];
+
+/** The trips to choose from, those still ahead first, and whether they are read yet. */
+function useTripRows(open: boolean): { trips: TripRow[]; loaded: boolean } {
+  const [rows, setRows] = useState<{ trips: TripRow[]; loaded: boolean }>({ trips: NO_TRIPS, loaded: false });
   useEffect(() => {
     if (!open) return;
+    let live = true;
     tripRepo.list().then(
       (data: { trips?: TripRow[] }) => {
         const today = new Date().toISOString().slice(0, 10);
@@ -80,33 +86,51 @@ function useTripRows(open: boolean): TripRow[] {
         list.sort(
           (a, b) => Number(ahead(b)) - Number(ahead(a)) || (a.start_date ?? '').localeCompare(b.start_date ?? '')
         );
-        setTrips(list);
+        if (live) setRows({ trips: list, loaded: true });
       },
-      () => setTrips([])
+      () => {
+        if (live) setRows({ trips: NO_TRIPS, loaded: true });
+      }
     );
+    return () => {
+      live = false;
+      setRows({ trips: NO_TRIPS, loaded: false });
+    };
   }, [open]);
-  return trips;
+  return rows;
 }
 
 /**
  * The trips a shared link may go to: those with Collaboration on, each by its
- * own list (the owner's choice, else the instance switch). The lists are read
- * once the sheet opens for a link, so a trip that switched Collaboration on is
- * offered while the instance has it off, and one that switched it off is not.
+ * own list (the owner's choice, else the instance switch). The lists the app
+ * does not hold yet are read once the sheet opens for a link, so a trip that
+ * switched Collaboration on is offered while the instance has it off, and one
+ * that switched it off is not. `settled` once every trip's list is read or
+ * could not be.
  */
-function useCollabTrips(trips: TripRow[], active: boolean): TripRow[] {
+function useCollabTrips(trips: TripRow[], active: boolean): { collabTrips: TripRow[]; settled: boolean } {
   const instanceOn = useAddonStore((s) => s.isEnabled('collab'));
   const load = useTripAddonsStore((s) => s.load);
   useEffect(() => {
     if (!active) return;
-    trips.forEach((trip) => void load(trip.id));
+    const held = useTripAddonsStore.getState();
+    trips.forEach((trip) => {
+      if (tripAddonsEntry(held, trip.id)?.status !== 'ready') void load(trip.id);
+    });
   }, [active, trips, load]);
-  const on = useTripAddonsStore(
+  const states = useTripAddonsStore(
     useShallow((state) =>
-      trips.map((trip) => tripAddonEnabled(tripAddonsEntry(state, trip.id)?.addons, 'collab', instanceOn))
+      trips.map((trip) => {
+        const entry = tripAddonsEntry(state, trip.id);
+        if (!entry || entry.status === 'loading') return 'waiting';
+        return tripAddonEnabled(entry.addons, 'collab', instanceOn) ? 'on' : 'off';
+      })
     )
   );
-  return trips.filter((_trip, i) => on[i]);
+  return {
+    collabTrips: trips.filter((_trip, i) => states[i] === 'on'),
+    settled: states.every((state) => state !== 'waiting'),
+  };
 }
 
 export default function NativeImportSheet(): React.ReactElement | null {
@@ -121,9 +145,9 @@ export default function NativeImportSheet(): React.ReactElement | null {
   const setFile = useSharedImportStore((s) => s.setFile);
   const instanceCollab = useAddonStore((s) => s.isEnabled('collab'));
   const open = !!file && tripId == null;
-  const trips = useTripRows(open);
-  const collabTrips = useCollabTrips(trips, open && !!link);
-  // Before the trips are known the instance switch decides, as it always did.
+  const { trips, loaded: tripsLoaded } = useTripRows(open);
+  const { collabTrips, settled } = useCollabTrips(trips, open && !!link);
+  // Without a trip of its own to ask, the instance switch decides, as it always did.
   const collabOn = trips.length === 0 ? instanceCollab : collabTrips.length > 0;
   // Both belong to the item they were made for, so a newly shared one starts afresh.
   const [pick, setPick] = useState<{ file: File; choice: LinkChoice } | null>(null);
@@ -137,6 +161,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
     collabOn,
     picked,
     presetFailed: failedFile != null && failedFile === file,
+    settled: tripsLoaded && settled,
   });
 
   // Once a trip is picked (here, or in the share sheet before the app opened), go to
