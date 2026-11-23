@@ -27,8 +27,8 @@
 # path). An existing database stays on the major it was created with: when
 # you update this file, keep your image tag and volume path. Moving to
 # another major needs pg_upgrade, or a dump and restore (a TREK backup
-# restored into a new, empty database works across majors), never just a
-# new image tag.
+# restored into a new, empty database of the same or a newer major), never
+# just a new image tag.
 services:
   db:
     image: postgres:18
