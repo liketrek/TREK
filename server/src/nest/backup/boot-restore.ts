@@ -1,4 +1,5 @@
-import { pgRestore, pgTablesInUse } from '../../db/engine/postgres/pg-tools';
+import { pgRestore, pgRestoreTarget, pgTablesInUse } from '../../db/engine/postgres/pg-tools';
+import { describeError } from '../common/describe-error';
 import { stageExtractedPluginTrees } from '../plugins/plugin-backup';
 import {
   checkBackupDatabase,
@@ -85,6 +86,18 @@ async function checkArchiveDatabase(plan: BootRestorePlan, staging: string): Pro
   return checkBackupDatabase(staging)?.error ?? null;
 }
 
+/**
+ * Refuses a Postgres restore the tools, the server or the role would refuse
+ * anyway (`pgRestoreTarget`), before the archive is unpacked.
+ */
+async function refuseRestoreTarget(target: { url: string; binDir: string | undefined }): Promise<void> {
+  try {
+    await pgRestoreTarget(target.url, target.binDir);
+  } catch (err) {
+    throw new BootRestoreError(`RESTORE_FROM_BACKUP: ${describeError(err)}`, { cause: err });
+  }
+}
+
 /** Puts the archive's database in place: renamed in beside the file, or loaded into Postgres in one transaction. */
 async function putDatabaseInPlace(plan: BootRestorePlan, staging: string): Promise<void> {
   if (plan.postgres) {
@@ -112,6 +125,8 @@ export async function restoreOnFirstBoot(plan: BootRestorePlan): Promise<BootRes
     throw new BootRestoreError(`RESTORE_FROM_BACKUP: no backup archive at ${plan.archive}`);
   }
 
+  if (plan.postgres) await refuseRestoreTarget(plan.postgres);
+
   console.log(`[restore] Restoring ${plan.archive} before the first start`);
   const staging = path.join(plan.dataDir, `restore-boot-${Date.now()}`);
   const refused = await extractBackupArchive(plan.archive, staging);
@@ -125,8 +140,17 @@ export async function restoreOnFirstBoot(plan: BootRestorePlan): Promise<BootRes
 
   // Storage reclaim drops what the restored database knew about its storage on
   // the start that follows, even when the backup is this installation's own.
-  markReclaimResetPending(plan.reclaimResetFile);
-  await putDatabaseInPlace(plan, staging);
+  let marked = false;
+  try {
+    markReclaimResetPending(plan.reclaimResetFile);
+    marked = true;
+    await putDatabaseInPlace(plan, staging);
+  } catch (err) {
+    // The next start extracts the archive again, so this one's copy must not stay behind.
+    fs.rmSync(staging, { recursive: true, force: true });
+    if (marked) fs.rmSync(plan.reclaimResetFile, { force: true });
+    throw err;
+  }
 
   // The key the archive's secrets were encrypted with. An ENCRYPTION_KEY in the
   // environment still wins over the file, exactly as on any other start.

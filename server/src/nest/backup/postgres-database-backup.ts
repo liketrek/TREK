@@ -1,6 +1,6 @@
 import type { DbSettings } from '../../app-config';
 import { postgresTarget, type DatabaseEngine } from '../../db/engine';
-import { pgDump, pgDumpMigrations, pgRestore } from '../../db/engine/postgres/pg-tools';
+import { pgDump, pgDumpMigrations, pgRestore, pgRestoreTarget } from '../../db/engine/postgres/pg-tools';
 import { unknownMigrations } from '../../db/known-migrations';
 import { DataPathsService } from '../app-config/data-paths.service';
 import { logWarn } from '../audit/audit-log.logger';
@@ -106,10 +106,20 @@ export class PostgresDatabaseBackup implements DatabaseBackupStrategy {
     await pgDump(url, target, binDir);
   }
 
-  /** Throws a DomainError (400) with the refusal when the archive cannot be restored here, before anything is replaced. */
+  /**
+   * Throws a DomainError (400) with the refusal when the archive cannot be
+   * restored here, before anything is replaced or copied: the dump's own
+   * checks, then the tools, the server and the role `pgRestore` would refuse.
+   */
   async verify(extractDir: string): Promise<void> {
-    const refusal = await checkPostgresDump(extractDir, this.connection.binDir);
+    const { url, binDir } = this.connection;
+    const refusal = await checkPostgresDump(extractDir, binDir);
     if (refusal) throw new DomainError(400, refusal);
+    try {
+      await pgRestoreTarget(url, binDir);
+    } catch (err) {
+      throw new DomainError(400, describeError(err));
+    }
   }
 
   /** A kept copy must be a dump this build can restore: a SQLite file a switch of engine left behind is refused. */

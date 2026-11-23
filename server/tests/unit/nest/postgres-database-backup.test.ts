@@ -136,6 +136,26 @@ describe('PostgresDatabaseBackup', () => {
     else expect(refused.message).toMatch(message);
   });
 
+  it.each([
+    {
+      id: 'PGBACKUP-002f',
+      server: { privileged: true },
+      message: /^TREK_DB_URL connects as a superuser or a member of a superuser role/,
+    },
+    {
+      id: 'PGBACKUP-002g',
+      server: { versionNum: '180001' },
+      message: /^pg_restore is version 17, older than the PostgreSQL 18 server/,
+    },
+  ])('$id: verify refuses what the restore itself would refuse, before a copy is kept', async ({ server, message }) => {
+    writeFileSync(path.join(extract, 'travel.pgdump'), 'dump');
+    installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations(KNOWN.slice(0, 3))] });
+    installFakeTool(bin, 'psql', { snippets: [answersSchema('public', 'public', server)] });
+    const refused = await refusal(backup.verify(extract));
+    expect(refused.status).toBe(400);
+    expect(refused.message).toMatch(message);
+  });
+
   it('PGBACKUP-003: keeps a dump of the database a restore replaces, or says it could not', async () => {
     vi.spyOn(console, 'log').mockImplementation(() => undefined);
     vi.spyOn(console, 'warn').mockImplementation(() => undefined);

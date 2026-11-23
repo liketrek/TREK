@@ -12,6 +12,7 @@ import {
   answersSchema,
   answersHistoryRows,
   answersTables,
+  failsWith,
   installFakeTool,
   listsMigrations,
   touches,
@@ -142,15 +143,21 @@ describe('restoreOnFirstBoot', () => {
      * known migration as the dump's history, or writes a restricted script.
      * Their arguments are pinned in pg-tools.test.ts.
      */
-    const postgresPlan = (archivePath: string, tables: string[] = [], historyRows = 0) => {
+    const postgresPlan = (
+      archivePath: string,
+      tables: string[] = [],
+      historyRows = 0,
+      server: Parameters<typeof answersSchema>[2] = {},
+      load = touches(path.join(root, 'loaded')),
+    ) => {
       const bin = path.join(root, 'bin');
       fs.mkdirSync(bin, { recursive: true });
       installFakeTool(bin, 'psql', {
         snippets: [
-          answersSchema(),
+          answersSchema('public', 'public', server),
           answersTables(tables),
           answersHistoryRows(historyRows),
-          touches(path.join(root, 'loaded')),
+          load,
         ],
       });
       const migration = [...knownMigrationNames()][0];
@@ -198,6 +205,32 @@ describe('restoreOnFirstBoot', () => {
       expect(await restoreOnFirstBoot(recorded)).toEqual({ restored: false, reason: 'database-exists' });
       expect(warn).toHaveBeenCalledWith(expect.stringContaining('the Postgres database (1 table(s))'));
       expect(loaded()).toBe(false);
+    });
+
+    const scratch = () => fs.readdirSync(dataDir).filter((f) => f.startsWith('restore-boot-'));
+
+    it('BOOT-RESTORE-004g: a restore the database refuses leaves neither the unpacked archive nor the reclaim marker', async () => {
+      const plan = postgresPlan(
+        await archive({ 'travel.pgdump': 'dump', 'uploads/a.jpg': 'jpeg' }),
+        [],
+        0,
+        {},
+        failsWith('psql: error: permission denied for schema public'),
+      );
+      await expect(restoreOnFirstBoot(plan)).rejects.toThrow('psql failed: psql: error: permission denied');
+      expect(scratch()).toEqual([]);
+      expect(fs.existsSync(reclaimResetFile)).toBe(false);
+    });
+
+    it('BOOT-RESTORE-004h: a role that could reach the database host is refused before the archive is unpacked', async () => {
+      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }), [], 0, { privileged: true });
+      await expect(restoreOnFirstBoot(plan)).rejects.toThrow(
+        /^RESTORE_FROM_BACKUP: TREK_DB_URL connects as a superuser/,
+      );
+      await expect(restoreOnFirstBoot(plan)).rejects.toBeInstanceOf(BootRestoreError);
+      expect(loaded()).toBe(false);
+      expect(scratch()).toEqual([]);
+      expect(fs.existsSync(reclaimResetFile)).toBe(false);
     });
 
     it('BOOT-RESTORE-004d: a SQLite backup is refused before anything is loaded, leaving no scratch', async () => {

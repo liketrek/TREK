@@ -173,6 +173,21 @@ async function writeRestoreScript(
 }
 
 /**
+ * The server a restore into the database at `url` loads into, once the
+ * checks that need no dump have passed: client tools with the CVE-2025-8714
+ * fix and not older than the server, and a role that could not reach the
+ * database host (`PRIVILEGED_ROLE_SQL`). Both restore paths ask it before
+ * they unpack or copy anything, and `pgRestore` asks it again.
+ */
+export async function pgRestoreTarget(url: string, binDir: string | undefined): Promise<PgServer> {
+  await refuseToolsWithoutRestrict(binDir);
+  const server = await pgServer(url, binDir);
+  if (server.privileged) throw new Error(PRIVILEGED_RESTORE_REFUSAL);
+  await refuseClientOlderThanServer(['pg_restore', 'psql'], binDir, server.major);
+  return server;
+}
+
+/**
  * Replaces the current schema of the database at `url` with the dump at
  * `source`, and the plugin data schemas with the dump's: pg_restore turns the
  * dump's objects in those schemas into a script beside it (anything else the
@@ -197,10 +212,7 @@ export async function pgRestore(
   binDir: string | undefined,
   maxScriptBytes: number,
 ): Promise<void> {
-  await refuseToolsWithoutRestrict(binDir);
-  const { schema, major, privileged } = await pgServer(url, binDir);
-  if (privileged) throw new Error(PRIVILEGED_RESTORE_REFUSAL);
-  await refuseClientOlderThanServer(['pg_restore', 'psql'], binDir, major);
+  const { schema, major } = await pgRestoreTarget(url, binDir);
   const workDir = fs.mkdtempSync(path.join(path.dirname(source), '.pg-restore-'));
   try {
     const clear = path.join(workDir, 'clear-schema.sql');
