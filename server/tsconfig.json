@@ -34,7 +34,8 @@
       "@modelcontextprotocol/sdk/server/auth/types": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/server/auth/types.js"],
       "@modelcontextprotocol/sdk/shared/auth": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/shared/auth.js"],
       "@modelcontextprotocol/sdk/client/index": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/client/index.js"],
-      "@modelcontextprotocol/sdk/inMemory": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/inMemory.js"]
+      "@modelcontextprotocol/sdk/inMemory": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/inMemory.js"],
+      "@modelcontextprotocol/sdk/types": ["../node_modules/@modelcontextprotocol/sdk/dist/cjs/types.js"]
     }
   },
   "include": ["src"],
