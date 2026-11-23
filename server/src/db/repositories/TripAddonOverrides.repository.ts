@@ -95,6 +95,18 @@ export class TripAddonOverridesRepository extends TrekRepository<TripAddonOverri
       .execute();
   }
 
+  /** Whether any trip at all switched the addon on for itself. */
+  async anyEnabled(addon_id: string): Promise<boolean> {
+    const row = await this.kysely<OverridesKyselyDB>()
+      .selectFrom('trip_addon_overrides')
+      .select('trip_id')
+      .where('addon_id', '=', addon_id)
+      .where('enabled', '=', 1)
+      .limit(1)
+      .executeTakeFirst();
+    return row !== undefined;
+  }
+
   /**
    * Whether any trip the user owns or is a member of switched the addon on for
    * itself. Routes without a trip (a library, a search across trips) open on

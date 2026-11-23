@@ -97,13 +97,15 @@ export class NotificationPreferencesService {
    * the provider, is a switch that never does anything. For one user's own
    * matrix a trip addon counts as on while it is on in any of their trips, so a
    * trip that switched Collab on lists its chat row although the instance has it off.
+   * For the admin's matrix it counts as on while it is on in any trip at all,
+   * since an admin-scoped event fires from whichever trip has it.
    */
-  private async listedEventTypes(userId?: number): Promise<NotifEventType[]> {
+  private async listedEventTypes(userId?: number, scope: 'user' | 'admin' = 'user'): Promise<NotifEventType[]> {
     const photoProviders = await this.addons.enabledPhotoProviderIds();
-    const read = (id: string): Promise<boolean> =>
-      userId !== undefined && TRIP_ADDON_IDS.has(id)
-        ? this.addons.isEnabledForUserAnywhere(userId, id)
-        : this.addons.isAddonEnabled(id);
+    const read = (id: string): Promise<boolean> => {
+      if (userId === undefined || !TRIP_ADDON_IDS.has(id)) return this.addons.isAddonEnabled(id);
+      return scope === 'admin' ? this.addons.isEnabledAnywhere(id) : this.addons.isEnabledForUserAnywhere(userId, id);
+    };
     // One read per addon, shared by the events that hang off it.
     const addonOn = new Map<string, Promise<boolean>>();
     const on = (id: string): Promise<boolean> => {
@@ -381,7 +383,7 @@ export class NotificationPreferencesService {
     // Filter event types by scope
     const event_types =
       scope === 'admin'
-        ? (await this.listedEventTypes(userId)).filter((e) => ADMIN_SCOPED_EVENTS.has(e))
+        ? (await this.listedEventTypes(userId, 'admin')).filter((e) => ADMIN_SCOPED_EVENTS.has(e))
         : (await this.listedEventTypes(userId)).filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
 
     return {

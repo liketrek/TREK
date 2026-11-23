@@ -132,6 +132,19 @@ describe('TripAddonsService: routes without a trip', () => {
     expect(await addons.isEnabledForUserAnywhere(owner.id, 'no_such_addon')).toBe(false);
   });
 
+  it('TRIPADDON-SVC-015: isEnabledAnywhere opens for any trip that switched the addon on, whoever owns it', async () => {
+    const { owner, trip } = await ownedTrip();
+    await setAddonEnabled(orm(), 'tours', false);
+    expect(await addons.isEnabledAnywhere('tours')).toBe(false);
+    await svc.setTripOverride(trip.id, owner.id, 'tours', true);
+    expect(await addons.isEnabledAnywhere('tours')).toBe(true);
+    await setAddonEnabled(orm(), 'vacay', false);
+    expect(await addons.isEnabledAnywhere('vacay')).toBe(false);
+    expect(await addons.isEnabledAnywhere('no_such_addon')).toBe(false);
+    await setAddonEnabled(orm(), 'roadtrip', true);
+    expect(await addons.isEnabledAnywhere('roadtrip')).toBe(true);
+  });
+
   it('TRIPADDON-SVC-013: tripsWithAddon keeps the trips the addon applies to, in their order, each as isEnabledForTrip says', async () => {
     const { owner, trip: off } = await ownedTrip();
     const on = await makeTrip(orm(), owner.id);

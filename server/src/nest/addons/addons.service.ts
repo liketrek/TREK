@@ -110,6 +110,15 @@ export class AddonsService {
     return this.tripOverrides.anyEnabledForUser(userId, addon.id);
   }
 
+  /** For what the whole install can raise: on for the instance, or for any trip that switched it on. */
+  async isEnabledAnywhere(addonId: string): Promise<boolean> {
+    const addon = await this.addons.findById(addonId);
+    if (!addon) return false;
+    if (addon.enabled) return true;
+    if (!isTripAddonRow(addon)) return false;
+    return this.tripOverrides.anyEnabled(addon.id);
+  }
+
   async getBagTracking() {
     const value = await readAppSetting(this.appSettings, 'bag_tracking_enabled');
     return { enabled: value === 'true' };

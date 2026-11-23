@@ -111,13 +111,18 @@ export function everyFeatureOn(
   overrides: Partial<
     Pick<
       AddonsService,
-      'isAddonEnabled' | 'isEnabledForUserAnywhere' | 'isWandererAvailable' | 'enabledPhotoProviderIds'
+      | 'isAddonEnabled'
+      | 'isEnabledForUserAnywhere'
+      | 'isEnabledAnywhere'
+      | 'isWandererAvailable'
+      | 'enabledPhotoProviderIds'
     >
   > = {},
 ): AddonsService {
   return {
     isAddonEnabled: async () => true,
     isEnabledForUserAnywhere: async () => true,
+    isEnabledAnywhere: async () => true,
     isWandererAvailable: async () => true,
     enabledPhotoProviderIds: async () => ['immich', 'synologyphotos'],
     ...overrides,

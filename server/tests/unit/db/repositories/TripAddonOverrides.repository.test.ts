@@ -130,4 +130,14 @@ describe('TripAddonOverridesRepository', () => {
     await deleteRows(t, Trips, { id: trip.id });
     expect(await countRows(t, TripAddonOverrides, { trip: trip.id })).toBe(0);
   });
+
+  it('TAOREPO-010: anyEnabled sees any trip that switched the addon on, and none that switched it off', async () => {
+    const { trip } = await ownerAndTrip();
+    const { trip: other } = await ownerAndTrip();
+    await repo.upsertOverride(trip.id, 'tours', false);
+    expect(await repo.anyEnabled('tours')).toBe(false);
+    await repo.upsertOverride(other.id, 'tours', true);
+    expect(await repo.anyEnabled('tours')).toBe(true);
+    expect(await repo.anyEnabled('roadtrip')).toBe(false);
+  });
 });
