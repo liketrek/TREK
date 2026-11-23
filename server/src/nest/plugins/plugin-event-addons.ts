@@ -49,7 +49,7 @@ export function tripEventSink(addons: AddonsService, orm: MikroORM | undefined, 
     const before = queues.get(tripId);
     if (!addonId && !before) return deliver(tripId, event, meta);
     const ask = () => (addonId ? addons.isEnabledForTrip(tripId, addonId) : Promise.resolve(true));
-    const on = orm && addonId ? withRequestContext(orm, ask) : ask();
+    const on = (orm && addonId ? withRequestContext(orm, ask) : ask()).catch(() => false);
     const queued = (before ?? Promise.resolve())
       .then(() => on)
       .then((open) => {

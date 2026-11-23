@@ -59,6 +59,34 @@ describe('the plugin event sink per trip', () => {
     expect(deliver).not.toHaveBeenCalled();
   });
 
+  it('PEVADDON-004b: a read that fails while an earlier event of the trip still waits is handled at once', async () => {
+    const deliver = vi.fn();
+    const unhandled = vi.fn();
+    process.on('unhandledRejection', unhandled);
+    try {
+      // A plain function, not vi.fn: a spy observes the promises it returns, which would handle the rejection itself.
+      const answers: Array<(on: boolean) => void> = [];
+      let reads = 0;
+      const addons = {
+        isEnabledForTrip: () =>
+          reads++ === 0
+            ? new Promise<boolean>((resolve) => answers.push(resolve))
+            : Promise.reject(new Error('db gone')),
+      } as unknown as AddonsService;
+      const sink = tripEventSink(addons, undefined, deliver);
+      sink(5, 'budget:updated', { v: 1 } as never);
+      sink(5, 'budget:updated', { v: 2 } as never);
+      await settle();
+      await settle();
+      expect(unhandled).not.toHaveBeenCalled();
+      answers[0](true);
+      await settle();
+      expect(deliver.mock.calls.map(([, , meta]) => meta)).toEqual([{ v: 1 }]);
+    } finally {
+      process.off('unhandledRejection', unhandled);
+    }
+  });
+
   it('PEVADDON-005: a trip keeps its emission order, though a later read answers first', async () => {
     const deliver = vi.fn();
     const answers: Array<(on: boolean) => void> = [];
