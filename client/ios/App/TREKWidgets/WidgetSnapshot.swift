@@ -327,7 +327,9 @@ struct WidgetSnapshot: Codable {
 
     /// A date as the app writes one, yyyy-MM-dd in the device's calendar day.
     static func key(_ date: Date) -> String {
-        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
