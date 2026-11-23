@@ -11,6 +11,7 @@ import { openFile } from '../../../../utils/fileDownload'
 import MCostSheet from '../sheets/MCostSheet'
 import { ReceiptPreviewModal } from '../../../../components/Budget/ReceiptPreviewModal'
 import { useCostsLedger } from '../../../../components/Budget/useCostsLedger'
+import { UNKNOWN_AMOUNT } from '../../../../components/Budget/CostsSummaryCard'
 import { useExpenseLinks } from '../../../../components/Budget/useExpenseLinks'
 import { useCostsMode } from '../../../../components/Budget/useCostsMode'
 import { CostsCurrencyPicker } from '../../../../components/Budget/CostsCurrencyPicker'
@@ -48,7 +49,7 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
   // The display and trip currencies, the server-computed settlement, totals,
   // filters and the ledger writes: the same ledger the desktop panel runs on.
   const {
-    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows, splitting, knownNames,
+    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows, balancesKnown, splitting, knownNames,
     search, setSearch, segment, setSegment, catFilter, setCatFilter, dayFilter, setDayFilter,
     totals, filtered, filteredSettlements, catBreakdown, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
     deleteExpense, undoSettlement: handleUndoSettlement, setBase, baseOptions,
@@ -170,8 +171,8 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
           </span>
           <div className="mt-2 text-[0.8125rem] font-bold text-m-ink">{t('costs.youOwe')}</div>
           <div className="font-geist text-[0.59375rem] text-m-faint">{t('costs.youOweSub')}</div>
-          <div className="mt-auto pt-1 font-geist text-[1.1875rem] font-extrabold tabular-nums" style={{ color: totals.owe > 0.5 ? STATUS_COLOR.danger : 'var(--m-ink)' }}>
-            {formatMoney(totals.owe, base, locale)}
+          <div className="mt-auto pt-1 font-geist text-[1.1875rem] font-extrabold tabular-nums" style={{ color: balancesKnown && totals.owe > 0.5 ? STATUS_COLOR.danger : 'var(--m-ink)' }}>
+            {balancesKnown ? formatMoney(totals.owe, base, locale) : UNKNOWN_AMOUNT}
           </div>
         </div>
         <div className="flex flex-1 flex-col rounded-2xl border border-[color:var(--m-rowbr)] bg-m-card p-[13px]">
@@ -180,8 +181,8 @@ export default function MCostsTab({ planner, shell }: MTabScreenProps) {
           </span>
           <div className="mt-2 text-[0.8125rem] font-bold text-m-ink">{t('costs.youreOwed')}</div>
           <div className="font-geist text-[0.59375rem] text-m-faint">{t('costs.youreOwedSub')}</div>
-          <div className="mt-auto pt-1 font-geist text-[1.1875rem] font-extrabold tabular-nums" style={{ color: totals.owed > 0.5 ? STATUS_COLOR.confirmed : 'var(--m-ink)' }}>
-            {formatMoney(totals.owed, base, locale)}
+          <div className="mt-auto pt-1 font-geist text-[1.1875rem] font-extrabold tabular-nums" style={{ color: balancesKnown && totals.owed > 0.5 ? STATUS_COLOR.confirmed : 'var(--m-ink)' }}>
+            {balancesKnown ? formatMoney(totals.owed, base, locale) : UNKNOWN_AMOUNT}
           </div>
         </div>
       </div>

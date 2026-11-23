@@ -45,7 +45,7 @@ import { AddRowButton, EditorField, INPUT, PillSelect, Segmented, TEXTAREA } fro
 import { CountPill, EYEBROW } from '../Planner/bookings/bookingParts'
 import CostsToolbar, { type CostsView } from './CostsToolbar'
 import CostsTable, { CostsTableSummary } from './CostsTable'
-import SummaryCard from './CostsSummaryCard'
+import SummaryCard, { UNKNOWN_AMOUNT } from './CostsSummaryCard'
 
 interface CostsPanelProps {
   tripId: number
@@ -74,7 +74,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   // Display/base currency, the trip's own, the settlement, totals, filters and
   // the ledger writes: the same ledger the phone tab runs on.
   const {
-    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, knownNames, splitting,
+    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, balancesKnown, knownNames, splitting,
     search, setSearch, segment: filter, setSegment: setFilter, catFilter, setCatFilter, dayFilter, setDayFilter,
     totals, filtered, filteredSettlements, catBreakdown, countedCount, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
     deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll, canSettle, setBase, baseOptions,
@@ -287,21 +287,23 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
       {/* ── Summary cards; with nothing to split (#2689) the total stands alone ── */}
       {!splitting ? <div style={{ marginBottom: 36 }}>{totalCard}</div> : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 36 }} className="costs-summary">
-        <SummaryCard label={t('costs.youOwe')} sub={t('costs.youOweSub')} amount={totals.owe} currency={base} locale={locale}
+        <SummaryCard label={t('costs.youOwe')} sub={t('costs.youOweSub')} amount={balancesKnown ? totals.owe : null} currency={base} locale={locale}
           icon={<ArrowDown size={18} />} tone="owe"
-          foot={totals.owe > 0.01
+          foot={!balancesKnown ? balancesUnknown()
+            : totals.owe > 0.01
             ? <FlowPills ids={(settlement?.flows || []).filter(f => f.from.user_id === me).map(f => f.to.user_id)} lead={t('costs.to')} Avatar={Avatar} name={personName} />
             : <span className="text-content-faint">{t('costs.allSettled')}</span>} />
-        <SummaryCard label={t('costs.youreOwed')} sub={t('costs.youreOwedSub')} amount={totals.owed} currency={base} locale={locale}
+        <SummaryCard label={t('costs.youreOwed')} sub={t('costs.youreOwedSub')} amount={balancesKnown ? totals.owed : null} currency={base} locale={locale}
           icon={<ArrowUp size={18} />} tone="owed"
-          foot={totals.owed > 0.01
+          foot={!balancesKnown ? balancesUnknown()
+            : totals.owed > 0.01
             ? <FlowPills ids={(settlement?.flows || []).filter(f => f.to.user_id === me).map(f => f.from.user_id)} lead={t('costs.from')} Avatar={Avatar} name={personName} />
             : <span className="text-content-faint">{t('costs.nothingOwed')}</span>} />
         <SummaryCard label={t('costs.outstanding')} sub={t('costs.outstandingSub')} amount={totals.outstanding} currency={base} locale={locale}
           icon={<AlertCircle size={18} />} tone="unfinished"
           foot={totals.outstandingCount > 0
             ? <span><b>{totals.outstandingCount}</b> {t('costs.outstandingItems', { count: totals.outstandingCount })}</span>
-            : !settlement?.flows?.length && <span className="text-content-faint">{t('costs.allSettled')}</span>} />
+            : balancesKnown && !settlement?.flows?.length && <span className="text-content-faint">{t('costs.allSettled')}</span>} />
         {totalCard}
       </div>)}
 
@@ -443,6 +445,11 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     </div>
   )
 
+  // The owe and owed cards say why their figure is missing instead of claiming zero.
+  function balancesUnknown() {
+    return <span className="text-content-faint">{t(settlementError ? 'common.unknownError' : 'common.loading')}</span>
+  }
+
   // Settle-up and Balances both come from the one settlement request, so they
   // share the notice that says the numbers are missing rather than zero.
   function loadFailed() {
@@ -521,13 +528,13 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', marginBottom: 10, background: '#dc262622', color: '#dc2626' }}><ArrowDown size={17} /></div>
             <div className="text-content" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('costs.youOwe')}</div>
             <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))' }}>{t('costs.youOweSub')}</div>
-            <div style={{ fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 12, display: 'flex', alignItems: 'baseline', color: '#dc2626' }}>{bigMoney(totals.owe, 16, 'var(--c-ink3)')}</div>
+            <div style={{ fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 12, display: 'flex', alignItems: 'baseline', color: '#dc2626' }}>{balancesKnown ? bigMoney(totals.owe, 16, 'var(--c-ink3)') : UNKNOWN_AMOUNT}</div>
           </div>
           <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
             <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', marginBottom: 10, background: '#16a34a22', color: '#16a34a' }}><ArrowUp size={17} /></div>
             <div className="text-content" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('costs.youreOwed')}</div>
             <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))' }}>{t('costs.youreOwedSub')}</div>
-            <div style={{ fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 12, display: 'flex', alignItems: 'baseline', color: '#16a34a' }}>{bigMoney(totals.owed, 16, 'var(--c-ink3)')}</div>
+            <div style={{ fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 12, display: 'flex', alignItems: 'baseline', color: '#16a34a' }}>{balancesKnown ? bigMoney(totals.owed, 16, 'var(--c-ink3)') : UNKNOWN_AMOUNT}</div>
           </div>
         </div>
 

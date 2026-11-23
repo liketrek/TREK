@@ -1,6 +1,9 @@
 import { currencyDecimals, currencyLocale, formatMoney } from '../../utils/formatters';
 import { fs } from '../shared/DialogShell';
 
+/** What a card shows for a balance that is still loading or could not be read. */
+export const UNKNOWN_AMOUNT = '…';
+
 /** A tone's colour, from the status tokens the booking cards use. */
 const TONE_COLOR = {
   owe: 'var(--danger)',
@@ -26,7 +29,7 @@ export default function SummaryCard({
 }: {
   label: string;
   sub: string;
-  amount: number;
+  amount: number | null;
   currency: string;
   locale: string;
   icon: React.ReactNode;
@@ -39,12 +42,15 @@ export default function SummaryCard({
   let parts: Intl.NumberFormatPart[] | null = null;
   try {
     const d = currencyDecimals(currency);
-    parts = new Intl.NumberFormat(currencyLocale(currency), {
-      style: 'currency',
-      currency: (currency || 'EUR').toUpperCase(),
-      minimumFractionDigits: d,
-      maximumFractionDigits: d,
-    }).formatToParts(amount || 0);
+    parts =
+      amount == null
+        ? null
+        : new Intl.NumberFormat(currencyLocale(currency), {
+            style: 'currency',
+            currency: (currency || 'EUR').toUpperCase(),
+            minimumFractionDigits: d,
+            maximumFractionDigits: d,
+          }).formatToParts(amount || 0);
   } catch {
     parts = null;
   }
@@ -92,7 +98,7 @@ export default function SummaryCard({
               </span>
             ))
           ) : (
-            <span>{formatMoney(amount, currency, locale)}</span>
+            <span>{amount == null ? UNKNOWN_AMOUNT : formatMoney(amount, currency, locale)}</span>
           )}
         </div>
         <div className="mt-auto flex flex-wrap items-center gap-1.5 text-content-muted" style={fs(12.5, 'body')}>

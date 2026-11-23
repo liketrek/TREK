@@ -1084,9 +1084,11 @@ describe('CostsPanel — settle up', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await screen.findByText('Balances')
-    // Settle up, Balances and Final budget all hang off the one failed request.
-    await waitFor(() => expect(screen.getAllByText('Unknown error')).toHaveLength(3))
+    // Settle up, Balances, Final budget and the owe and owed cards all hang off the one failed request.
+    await waitFor(() => expect(screen.getAllByText('Unknown error')).toHaveLength(5))
     expect(screen.queryByText("Everyone's square")).toBeNull()
+    expect(screen.queryByText("You're all settled up")).toBeNull()
+    expect(screen.queryByText('Nothing owed to you')).toBeNull()
   })
 
   it('FE-W5COSTS-013: the "you owe" card lists who I still have to pay', async () => {

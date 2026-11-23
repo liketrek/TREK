@@ -11,6 +11,7 @@ import type { TripStoreState } from '../../store/tripStore';
 import { useServerPing } from '../../sync/useServerPing';
 import type { BudgetItem, Trip } from '../../types';
 import { downloadBlob } from '../../utils/fileDownload';
+import { currencyDecimals } from '../../utils/formatters';
 import { localToday } from '../Planner/today';
 import { COST_CAT_META } from './costsCategories';
 import {
@@ -226,12 +227,22 @@ export function useCostsLedger({
   const activeSegment = splitting ? segment : 'all';
   // Names for people the expenses still name after they left the trip (#2604).
   const knownNames = useMemo(() => knownPersonNames(budgetItems, settlement), [budgetItems, settlement]);
+  // The owe and owed cards print in the display currency. Flows the server answered in
+  // the trip currency go over at the rate the read sent along; while a read runs, after
+  // one failed or in any other currency the balances are unknown, which is not zero.
+  const shownFlows = useMemo(() => {
+    if (settlementError || !settlement) return null;
+    if (settledIn === base) return flows;
+    if (settledIn !== tripCurrency || displayPerTrip == null) return null;
+    const unit = 10 ** currencyDecimals(base);
+    return flows.map((f) => ({ ...f, amount: Math.round(f.amount * displayPerTrip * unit) / unit }));
+  }, [settlementError, settlement, settledIn, base, tripCurrency, displayPerTrip, flows]);
+  const balancesKnown = shownFlows != null;
   // `ctx` carries the rates. They can land after the expenses, and without it in the
   // deps the cards kept the sums they were first added up with while the rows moved on.
-  // The owe and owed cards print in the display currency too, so they count the same flows.
   const totals = useMemo(
-    () => computeTotals(budgetItems, flowsInBase ? flows : [], ctx, shareOf, leftOutCats),
-    [budgetItems, flowsInBase, flows, ctx, shareOf, leftOutCats]
+    () => computeTotals(budgetItems, shownFlows ?? [], ctx, shareOf, leftOutCats),
+    [budgetItems, shownFlows, ctx, shareOf, leftOutCats]
   );
   const filtered = useMemo(
     () =>
@@ -355,6 +366,7 @@ export function useCostsLedger({
     settlementError,
     loadSettlement,
     flows,
+    balancesKnown,
     canSettle,
     splitting,
     knownNames,
