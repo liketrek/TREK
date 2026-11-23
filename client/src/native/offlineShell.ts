@@ -56,7 +56,7 @@ export function manifestFiles(manifest: unknown, language?: string): string[] {
  * (theme-boot.js, shell-guard.js). They block the first paint and come from
  * the public folder, which the build's manifest does not list.
  */
-export function pageScripts(doc: Document = document): string[] {
+function pageScripts(doc: Document = document): string[] {
   const files: string[] = [];
   doc.querySelectorAll<HTMLScriptElement>('script[src]').forEach((script) => {
     if (script.type === 'module') return;
