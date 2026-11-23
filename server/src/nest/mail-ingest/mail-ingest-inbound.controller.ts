@@ -15,10 +15,13 @@ import { mailIngestInboundResponseSchema, type MailIngestInboundResponse } from 
 import type { Request } from 'express';
 
 const TOO_LARGE = 'This mail is larger than the import takes';
+const TOO_SLOW = 'The mail took too long to arrive; send it again';
 /** Requests one address may post in a minute: a mail service delivers in bursts, never at this rate for long. */
 const REQUESTS_PER_MINUTE = 120;
-/** Bodies read at once, from all senders together: each may hold the import's largest mail in memory. */
+/** Memory all bodies being read may hold together, in the import's largest mails. */
 const MAX_BODIES_IN_FLIGHT = 4;
+/** How long one body may take to arrive; a mail service posts a whole mail in seconds. */
+const READ_DEADLINE_MS = 60_000;
 
 /**
  * `POST /api/mail-ingest/inbound`: the signed webhook a mail service posts
@@ -27,13 +30,14 @@ const MAX_BODIES_IN_FLIGHT = 4;
  * body is read up to the import's limit, and the signature over it decides.
  * Before a byte of the body is read, a request whose headers cannot carry a
  * valid signature is refused, each address has its share of requests a
- * minute, and only a few bodies are read at once; a sender told 429 tries
- * again. The JSON parsers leave a message/rfc822 body alone, so this route
+ * minute, and the bodies being read hold only a few of the largest mails in
+ * memory together; a sender told 429 tries again. A body that trickles in
+ * holds no share of that memory and is cut off after a minute. The JSON parsers leave a message/rfc822 body alone, so this route
  * reads the stream itself and nothing of the mail reaches the request log.
  */
 @Controller('api/mail-ingest/inbound')
 export class MailIngestInboundController {
-  private reading = 0;
+  private buffered = 0;
 
   constructor(
     private readonly webhook: MailIngestWebhookService,
@@ -64,32 +68,56 @@ export class MailIngestInboundController {
     return this.webhook.receive(secret, await this.readLimited(req), signed);
   }
 
-  /** The body, while fewer than {@link MAX_BODIES_IN_FLIGHT} others are being read. */
+  /** The body, while all bodies being read hold less than {@link MAX_BODIES_IN_FLIGHT} of the largest mails. */
   private async readLimited(req: Request): Promise<Buffer> {
-    if (this.reading >= MAX_BODIES_IN_FLIGHT) throw new DomainError(429, 'Too many mails at once; try again shortly');
-    this.reading += 1;
+    const maxBytes = this.webhook.maxBytes();
+    const budget = MAX_BODIES_IN_FLIGHT * maxBytes;
+    let held = 0;
     try {
-      return await readBody(req, this.webhook.maxBytes());
+      return await readBody(req, maxBytes, (bytes) => {
+        if (this.buffered + bytes > budget) return false;
+        this.buffered += bytes;
+        held += bytes;
+        return true;
+      });
     } finally {
-      this.reading -= 1;
+      this.buffered -= held;
     }
   }
 }
 
 /**
- * The request body, up to `maxBytes`. Past the limit the rest is drained
- * unread, so the sender gets the 413 rather than a reset connection.
+ * The request body, up to `maxBytes`, each chunk kept only once `take` grants
+ * its memory. Past the limit the rest is drained unread, so the sender gets
+ * the 413 rather than a reset connection; a refused chunk or a body still
+ * arriving at the deadline ends the read the same way.
  */
-function readBody(req: Request, maxBytes: number): Promise<Buffer> {
+function readBody(req: Request, maxBytes: number, take: (bytes: number) => boolean): Promise<Buffer> {
   if (Number(req.get('content-length')) > maxBytes) return Promise.reject(new DomainError(413, TOO_LARGE));
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = [];
     let size = 0;
-    req.on('data', (chunk: Buffer) => {
+    const stop = (error: Error) => {
+      clearTimeout(deadline);
+      req.removeListener('data', onData);
+      req.removeListener('end', onEnd);
+      req.resume();
+      reject(error);
+    };
+    const onData = (chunk: Buffer) => {
       size += chunk.length;
-      if (size <= maxBytes) chunks.push(chunk);
-    });
-    req.on('end', () => (size > maxBytes ? reject(new DomainError(413, TOO_LARGE)) : resolve(Buffer.concat(chunks))));
-    req.on('error', reject);
+      if (size > maxBytes) return;
+      if (!take(chunk.length)) stop(new DomainError(429, 'Too many mails at once; try again shortly'));
+      else chunks.push(chunk);
+    };
+    const onEnd = () => {
+      clearTimeout(deadline);
+      if (size > maxBytes) reject(new DomainError(413, TOO_LARGE));
+      else resolve(Buffer.concat(chunks));
+    };
+    const deadline = setTimeout(() => stop(new DomainError(408, TOO_SLOW)), READ_DEADLINE_MS);
+    req.on('data', onData);
+    req.on('end', onEnd);
+    req.on('error', stop);
   });
 }

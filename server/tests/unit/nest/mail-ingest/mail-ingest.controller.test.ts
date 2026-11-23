@@ -325,23 +325,50 @@ describe('POST /api/mail-ingest/inbound', () => {
     expect(webhook.receive).not.toHaveBeenCalled();
   });
 
-  it('reads only a few bodies at once, and tells the next sender to come back', async () => {
+  it('holds only a few of the largest mails in memory at once, and tells the next sender to come back', async () => {
     const inbound = controller();
     const slow = () => {
       const req = new PassThrough();
       Object.assign(req, { get: () => undefined, is: (type: string) => type });
       return req;
     };
-    const held = [slow(), slow(), slow(), slow()];
-    const pending = held.map((req) => inbound.receive(req as unknown as Request));
+    const quiet = [slow(), slow(), slow(), slow()];
+    const waiting = quiet.map((req) => inbound.receive(req as unknown as Request));
+    await new Promise((resolve) => setImmediate(resolve));
+    const meanwhile = request('Subject: x', { 'content-type': 'message/rfc822' });
+    expect(await inbound.receive(meanwhile)).toEqual({ accepted: true, duplicate: false });
+
+    const full = [slow(), slow(), slow(), slow()];
+    const pending = full.map((req) => inbound.receive(req as unknown as Request));
+    full.forEach((req) => req.write('0123456789'));
     await new Promise((resolve) => setImmediate(resolve));
     const fifth = await thrown(() => inbound.receive(request('Subject: x', { 'content-type': 'message/rfc822' })));
     expect(fifth).toEqual({ status: 429, body: { error: 'Too many mails at once; try again shortly' } });
-    held.forEach((req) => req.end('x'));
+    full.forEach((req) => req.end());
     await Promise.all(pending);
+    quiet.forEach((req) => req.end('x'));
+    await Promise.all(waiting);
     expect(await inbound.receive(request('Subject: x', { 'content-type': 'message/rfc822' }))).toEqual({
       accepted: true,
       duplicate: false,
     });
+  });
+
+  it('gives up on a body that is still arriving after a minute', async () => {
+    vi.useFakeTimers();
+    try {
+      const req = new PassThrough();
+      Object.assign(req, { get: () => undefined, is: (type: string) => type });
+      const pending = thrown(() => controller().receive(req as unknown as Request));
+      req.write('Sub');
+      await vi.advanceTimersByTimeAsync(60_000);
+      expect(await pending).toEqual({
+        status: 408,
+        body: { error: 'The mail took too long to arrive; send it again' },
+      });
+      expect(webhook.receive).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
