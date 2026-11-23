@@ -10,7 +10,6 @@ import GitHubPanel from '../components/Admin/GitHubPanel'
 import AddonManager from '../components/Admin/AddonManager'
 import PackingTemplateManager from '../components/Admin/PackingTemplateManager'
 import HelpAnchor from '../components/Help/HelpAnchor'
-import { getHelpContext } from '../help/registry'
 import AuditLogPanel from '../components/Admin/AuditLogPanel'
 import AdminMcpTokensPanel from '../components/Admin/AdminMcpTokensPanel'
 import AdminPluginsPanel from '../components/Admin/AdminPluginsPanel'
@@ -18,6 +17,7 @@ import AdminStoragePanel from '../components/Admin/storage/AdminStoragePanel'
 import { Users, Map, Briefcase, Shield, FileText, RotateCcw, Save, SlidersHorizontal, UserCog, Puzzle, Blocks, ShieldCheck, Compass, Bell, Database, ScrollText, KeyRound, GitBranch, Bug, HardDrive } from 'lucide-react'
 import PageSidebar, { type PageSidebarTab } from '../components/Layout/PageSidebar'
 import { useAdmin } from './admin/useAdmin'
+import { adminHelpId } from './admin/adminModel'
 import AdminUpdateBanner from './admin/AdminUpdateBanner'
 import AdminStatCard from './admin/AdminStatCard'
 import AdminUsersTab from './admin/AdminUsersTab'
@@ -88,8 +88,7 @@ function AdminPageDesktop(): React.ReactElement {
     })),
   ]
 
-  // Every tab is its own help screen; a tab without one falls back to the admin overview.
-  const helpId = getHelpContext(`admin-${activeTab}`) ? `admin-${activeTab}` : 'admin'
+  const helpId = adminHelpId(activeTab)
   return (
     <PageShell background="var(--bg-primary)">
       <HelpAnchor id={helpId} />

@@ -23,8 +23,16 @@ const GITHUB = 'Admin-GitHub-Releases'
 
 const guide = (
   id: string, context: string, icon: HelpGuide['icon'], size: HelpGuide['size'], steps: number, tips: number,
-  docs: HelpGuide['docs'], related: string[], result = false,
-): HelpGuide => ({ id, context, icon, size, steps, tips, media: { steps: true, result }, docs, related })
+  docs: HelpGuide['docs'], related: string[], result = false, route?: string,
+): HelpGuide => ({ id, context, icon, size, steps, tips, media: { steps: true, result }, docs, related, route })
+
+/**
+ * The settings screen is two tabs now, Security and Services, and both show its
+ * help. Its guides go to the Security tab, the ones about outside services to
+ * Services.
+ */
+export const ADMIN_TAB_HELP: Readonly<Record<string, string>> = { security: 'admin-settings', services: 'admin-settings' }
+const SERVICES_TAB = '/admin?tab=services'
 
 export const adminGuides: HelpGuide[] = [
   // Users
@@ -46,9 +54,9 @@ export const adminGuides: HelpGuide[] = [
   guide('auth-methods', 'admin-settings', 'lock', 'guide', 3, 2, { slug: SETTINGS, anchor: 'authentication-methods' }, ['oidc', 'admin-passkeys']),
   guide('admin-passkeys', 'admin-settings', 'fingerprint', 'quick', 2, 3, { slug: SETTINGS, anchor: 'passkey-login' }, ['auth-methods', 'passkeys']),
   guide('oidc', 'admin-settings', 'shield', 'guide', 2, 2, { slug: 'OIDC-SSO' }, ['auth-methods']),
-  guide('instance-keys', 'admin-settings', 'key', 'guide', 3, 4, { slug: SETTINGS, anchor: 'api-keys' }, ['places-transit', 'default-map']),
-  guide('places-transit', 'admin-settings', 'search', 'quick', 2, 2, { slug: SETTINGS, anchor: 'transit-provider' }, ['instance-keys']),
-  guide('file-types', 'admin-settings', 'fileInput', 'quick', 1, 1, { slug: SETTINGS, anchor: 'allowed-file-types' }, ['storage-backends']),
+  guide('instance-keys', 'admin-settings', 'key', 'guide', 3, 4, { slug: SETTINGS, anchor: 'api-keys' }, ['places-transit', 'default-map'], false, SERVICES_TAB),
+  guide('places-transit', 'admin-settings', 'search', 'quick', 2, 2, { slug: SETTINGS, anchor: 'transit-provider' }, ['instance-keys'], false, SERVICES_TAB),
+  guide('file-types', 'admin-settings', 'fileInput', 'quick', 1, 1, { slug: SETTINGS, anchor: 'allowed-file-types' }, ['storage-backends'], false, SERVICES_TAB),
   guide('rotate-jwt-secret', 'admin-settings', 'shield', 'quick', 2, 2, { slug: SETTINGS, anchor: 'danger-zone' }, ['edit-user', 'auth-methods']),
   // Addons
   guide('toggle-addon', 'admin-addons', 'sliders', 'quick', 2, 2, { slug: ADDONS }, ['install-plugin', 'document-providers']),

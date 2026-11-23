@@ -162,6 +162,8 @@ export interface HelpGuide {
   docs?: HelpDocLink
   /** An in-app route the guide can take the reader to; label is `help.guide.<id>.link`. */
   link?: string
+  /** Where "go there" opens when the guide's part of its screen sits elsewhere, under another tab. */
+  route?: string
   related?: string[]
 }
 

@@ -27,4 +27,12 @@ describe('HelpGuideView: links', () => {
     expect(screen.queryByRole('link', { name: /Open Appearance settings/ })).toBeNull()
     expect(screen.getByRole('link', { name: /Open in Help & Docs/ })).toHaveAttribute('href', '/help/My-Trips-Dashboard#per-trip-actions')
   })
+
+  it('takes an admin guide to the tab its settings sit under', () => {
+    const { unmount } = render(<HelpGuideView guide={getHelpGuide('instance-keys')!} />)
+    expect(screen.getByRole('link', { name: /^Go to/ })).toHaveAttribute('href', '/admin?tab=services')
+    unmount()
+    render(<HelpGuideView guide={getHelpGuide('auth-methods')!} />)
+    expect(screen.getByRole('link', { name: /^Go to/ })).toHaveAttribute('href', '/admin?tab=settings')
+  })
 })

@@ -38,7 +38,7 @@ export default function HelpGuideView({ guide }: { guide: HelpGuide }): React.Re
   const related = (guide.related ?? []).map(getHelpGuide).filter((g): g is HelpGuide => g !== null)
   const Icon = helpIcon(guide.icon)
   const ScreenIcon = screen ? helpIcon(screen.icon) : Icon
-  const screenRoute = useScreenRoute(screen?.route)
+  const screenRoute = useScreenRoute(guide.route ?? screen?.route)
 
   return (
     <div className="trek-help-view flex flex-col gap-6">

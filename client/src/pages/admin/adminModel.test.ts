@@ -1,7 +1,7 @@
 // FE-ADMMODEL-001 to -005: the invite status both admin user views show; -010 to -012 the users list.
 import { describe, expect, it } from 'vitest';
 
-import { formatLastActive, inviteMeta, inviteStatus, mergeSavedUser, type AdminUser } from './adminModel';
+import { adminHelpId, formatLastActive, inviteMeta, inviteStatus, mergeSavedUser, type AdminUser } from './adminModel';
 
 const NOW = new Date('2026-10-09T12:00:00Z');
 
@@ -104,5 +104,14 @@ describe('inviteMeta', () => {
     expect(inviteMeta({ used_count: 2, max_uses: 0, created_by_name: 'bob' }, t, 'en-US')).toBe(
       '2/∞ admin.invite.uses, admin.invite.createdBy bob'
     );
+  });
+});
+
+describe('adminHelpId', () => {
+  it('gives the Security and Services tabs the help of the settings they split, and an unknown tab the overview', () => {
+    expect(adminHelpId('security')).toBe('admin-settings');
+    expect(adminHelpId('services')).toBe('admin-settings');
+    expect(adminHelpId('users')).toBe('admin-users');
+    expect(adminHelpId('no-such-tab')).toBe('admin');
   });
 });
