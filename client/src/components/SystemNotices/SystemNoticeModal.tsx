@@ -567,7 +567,7 @@ function useSystemNoticeModal(notices: SystemNoticeDTO[]) {
   // Both buttons only render when the notice carries the matching cta.
   function handleCTA() { runCta(notice!.cta!); }
   function handleSecondaryCTA() { runCta(notice!.secondaryCta!); }
-  function handleTertiaryCTA() { runCta(notice!.tertiaryCta!); }
+  function handleTertiaryCTA() { if (notice?.tertiaryCta) runCta(notice.tertiaryCta); }
 
   function animatedDismissAll() {
     const sheet = sheetRef.current;

@@ -191,13 +191,12 @@
   color: oklch(1 0 0 / 0.75);
 }
 
-/* rtl-lint-disable-next-line: the map runs west to east in every language */
 .rn-vis-flight-from {
-  left: 12px; /* rtl-lint-disable */
+  inset-inline-start: 12px;
 }
 
 .rn-vis-flight-to {
-  right: 12px; /* rtl-lint-disable */
+  inset-inline-end: 12px;
 }
 
 .rn-vis-flight-live {
@@ -241,7 +240,8 @@
 .rn-vis-pdf-page {
   position: absolute;
   top: 14px;
-  left: 50%; /* rtl-lint-disable */
+  inset-inline: 0;
+  margin-inline: auto;
   display: flex;
   flex-direction: column;
   gap: 5px;
@@ -271,7 +271,7 @@
 .rn-vis-pdf-cover {
   padding: 0;
   overflow: hidden;
-  transform: translateX(-50%);
+  transform: none;
   animation: rn-cover 0.45s ease 0.15s both;
 }
 
@@ -313,33 +313,33 @@
 @keyframes rn-cover {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(6px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%);
+    transform: none;
   }
 }
 
 @keyframes rn-fan-back {
   from {
     opacity: 0;
-    transform: translateX(-50%) rotate(0);
+    transform: rotate(0);
   }
   to {
     opacity: 1;
-    transform: translateX(-104%) rotate(-12deg);
+    transform: translateX(-54%) rotate(-12deg);
   }
 }
 
 @keyframes rn-fan-mid {
   from {
     opacity: 0;
-    transform: translateX(-50%) rotate(0);
+    transform: rotate(0);
   }
   to {
     opacity: 1;
-    transform: translateX(4%) rotate(11deg);
+    transform: translateX(54%) rotate(11deg);
   }
 }
 
@@ -635,13 +635,13 @@
     stroke-dashoffset: 0;
   }
   .rn-vis-pdf-back {
-    transform: translateX(-104%) rotate(-12deg);
+    transform: translateX(-54%) rotate(-12deg);
   }
   .rn-vis-pdf-mid {
-    transform: translateX(4%) rotate(11deg);
+    transform: translateX(54%) rotate(11deg);
   }
   .rn-vis-pdf-cover {
-    transform: translateX(-50%);
+    transform: none;
   }
 }
 
@@ -683,13 +683,13 @@
 }
 
 [data-reduce-motion='true'] .rn-vis-pdf-back {
-  transform: translateX(-104%) rotate(-12deg);
+  transform: translateX(-54%) rotate(-12deg);
 }
 
 [data-reduce-motion='true'] .rn-vis-pdf-mid {
-  transform: translateX(4%) rotate(11deg);
+  transform: translateX(54%) rotate(11deg);
 }
 
 [data-reduce-motion='true'] .rn-vis-pdf-cover {
-  transform: translateX(-50%);
+  transform: none;
 }
