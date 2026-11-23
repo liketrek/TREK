@@ -248,11 +248,19 @@ describe('FilesRpc with Documents off for the trip', () => {
     ).toMatchObject({ code: 'RESOURCE_FORBIDDEN', message: 'the documents addon is disabled' });
   });
 
-  it('FILES-RPC-023 uploads and deletes stay open, a write on a loose file only when it attaches it', async () => {
+  it('FILES-RPC-023 deletes stay open, an upload or a write on a loose file only when it attaches it', async () => {
     const f = build({ documents: false, attached: false });
     const host = f.host('db:write:files');
     const create = { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x'), reservation_id: 4 } };
     expect((await host.dispatch(req('files.create', create), 42)).ok).toBe(true);
+    expect(
+      (
+        await host.dispatch(
+          req('files.create', { ...create, input: { ...create.input, reservation_id: undefined, place_id: 3 } }),
+          42,
+        )
+      ).ok,
+    ).toBe(true);
     expect((await host.dispatch(req('files.softDelete', { tripId: 1, fileId: 2 }), 42)).ok).toBe(true);
 
     const describeOnly = req('files.update', { tripId: 1, fileId: 2, input: { description: 'x' } });
@@ -271,6 +279,21 @@ describe('FilesRpc with Documents off for the trip', () => {
     expect((await host.dispatch(req('files.createLink', { tripId: 1, fileId: 2, opts: { place_id: 3 } }), 42)).ok).toBe(
       true,
     );
+  });
+
+  it('FILES-RPC-024 an upload that attaches nothing is refused, since the list would not show it', async () => {
+    const off = build({ documents: false });
+    const loose = req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x') } });
+    expect(await forbidden(off.host('db:write:files').dispatch(loose, 42))).toMatchObject({
+      code: 'RESOURCE_FORBIDDEN',
+      message: 'the documents addon is disabled: pass reservation_id or place_id to attach the uploaded file',
+    });
+    expect(off.storage.put).not.toHaveBeenCalled();
+    expect(off.files.createFile).not.toHaveBeenCalled();
+    expect(off.realtime.broadcast).not.toHaveBeenCalled();
+
+    const on = build({ documents: true });
+    expect((await on.host('db:write:files').dispatch(loose, 42)).ok).toBe(true);
   });
 });
 

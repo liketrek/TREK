@@ -51,7 +51,8 @@ type CreateInput = {
  *
  * Documents gates it the way it gates the REST routes: while the trip has it off,
  * the list leaves out the files only the file manager shows, and a call on such a
- * file is refused unless it attaches the file. Uploads and deletes stay open.
+ * file is refused unless it attaches the file. An upload has to attach its file
+ * then too, so a plugin never writes a file it cannot list. Deletes stay open.
  */
 @PluginController()
 export class FilesRpc {
@@ -127,7 +128,13 @@ export class FilesRpc {
       throw new BadParams('file exceeds the 10MB plugin upload cap');
     }
     await this.guards.requireTripEdit(tripId, actor, UPLOAD_ACTION);
-    return this.writeFile(tripId, input as unknown as CreateInput, actor);
+    const fields = input as unknown as CreateInput;
+    if (!attachesFile(fields) && !(await this.documentsOn(tripId))) {
+      throw new ForbiddenResource(
+        'the documents addon is disabled: pass reservation_id or place_id to attach the uploaded file',
+      );
+    }
+    return this.writeFile(tripId, fields, actor);
   }
 
   private async writeFile(tripId: number, input: CreateInput, actingUserId: number): Promise<unknown> {
