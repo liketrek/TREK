@@ -140,7 +140,6 @@ beforeAll(async () => {
       await createTestPluginsRepo(testDb),
       await createTestPluginUserErasureQueueRepo(testDb),
       { releaseValues: async () => [] } as never,
-      { handToTripOwners: async () => {} } as never,
     ),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
     realtime,

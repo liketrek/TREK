@@ -29,7 +29,6 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { pluginsDataRoot } from '../plugins/paths';
 import { enqueueHookUserDataErasures } from '../plugins/user-erasure-enqueue';
 import { StorageReleaseService } from '../storage/storage-release.service';
-import { TripTagsService } from '../tags/trip-tags.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 
@@ -76,7 +75,6 @@ export class UserCleanupService {
     @InjectRepository(PluginUserErasureQueue)
     private readonly pluginUserErasureQueueRepo: PluginUserErasureQueueRepository,
     private readonly release: StorageReleaseService,
-    private readonly tripTags: TripTagsService,
   ) {}
 
   /**
@@ -175,7 +173,7 @@ export class UserCleanupService {
     await this.tripMembersRepo.clearInvitedBy(userId); // UC4 — converted (Plan 4 Task 1)
     await this.budgetItemsRepo.clearPaidByUser(userId); // UC5 — Plan 3e Task 2, converted.
     await this.settlementsRepo.clearCreatedBy(userId);
-    await this.tripTags.handToTripOwners(userId);
+    await this.maintenance.handTripTagsToTripOwners(userId);
     await this.budget.removeUserFromBudgetItems(userId);
     await this.shareTokensRepo.deleteByCreator(userId); // UC6 — converted (Plan 3h Task 6)
     await this.journeyShareTokensRepo.deleteByCreatedBy(userId); // UC7 — converted (Plan 3g Task 4)

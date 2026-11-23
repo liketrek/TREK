@@ -39,8 +39,6 @@ import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
-import { TagsModule } from '../../../src/nest/tags/tags.module';
-import { TripTagsService } from '../../../src/nest/tags/trip-tags.service';
 import { budgetRepoArgs } from '../../helpers/budget-repos';
 import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
 import { createUser, createTrip } from '../../helpers/factories';
@@ -61,7 +59,6 @@ import {
 } from '../../helpers/share-repos';
 import { releaseNothing } from '../../helpers/storage-release';
 import { resetTestDb } from '../../helpers/test-db';
-import { createTestModule, type TestModule } from '../../helpers/test-module';
 import type { TestOrm } from '../../helpers/test-orm';
 import {
   createTestUnitOfWork,
@@ -100,7 +97,6 @@ vi.mock('../../../src/nest/plugins/paths', () => ({ pluginsDataRoot: () => dataR
 let em: EntityManager;
 let budget: BudgetService;
 let svc: UserCleanupService;
-let tagsModule: TestModule;
 /** What a deletion hands on: the avatar, released by its own suites. */
 const cleanupRelease = releaseNothing();
 beforeAll(async () => {
@@ -116,7 +112,6 @@ beforeAll(async () => {
     await createTestUnitOfWork(testDb),
     ...(await budgetRepoArgs(testDb)),
   );
-  tagsModule = await createTestModule({ db: testDb, imports: [TagsModule] });
   svc = new UserCleanupService(
     new MaintenanceRepository(em),
     budget,
@@ -137,7 +132,6 @@ beforeAll(async () => {
     await createTestPluginsRepo(testDb),
     await createTestPluginUserErasureQueueRepo(testDb),
     cleanupRelease,
-    tagsModule.get(TripTagsService),
   );
 });
 
@@ -181,8 +175,7 @@ beforeEach(async () => {
   dataRootRef.value = path.join(os.tmpdir(), 'trek-user-cleanup-absent');
 });
 
-afterAll(async () => {
-  await tagsModule.close();
+afterAll(() => {
   testDb.close();
 });
 
@@ -276,7 +269,6 @@ describe('erasePluginUserData', () => {
       await createTestPluginsRepo(slim),
       await createTestPluginUserErasureQueueRepo(slim),
       { releaseValues: async () => [] } as never,
-      { handToTripOwners: async () => {} } as never,
     );
 
     await expect(slimSvc.erasePluginUserData(1)).rejects.toThrow(/no such table: plugin_user_config/);
@@ -465,7 +457,6 @@ describe('deleteUserCompletely', () => {
           await createTestPluginsRepo(testDb),
           await createTestPluginUserErasureQueueRepo(testDb),
           cleanupRelease,
-          { handToTripOwners: async () => {} } as never,
         ).deleteUserCompletely(victim.id),
       ).rejects.toThrow('boom');
 

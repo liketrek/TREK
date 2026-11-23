@@ -47,11 +47,6 @@ export class TripTagsService {
     private readonly uow: UnitOfWork,
   ) {}
 
-  /** Before a user is deleted: the trip tags they created stay with each trip, under its owner. */
-  async handToTripOwners(userId: number): Promise<void> {
-    await this.tags.handTripTagsToTripOwners(userId);
-  }
-
   /** The REST caller of a tag write: its event skips the socket that made the request. */
   restWriter(tripId: string, user: User, socketId: string | undefined): TripWriter {
     return restTripWriter(this.realtime, tripId, user, socketId);
