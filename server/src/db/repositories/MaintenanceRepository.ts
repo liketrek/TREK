@@ -54,21 +54,4 @@ export class MaintenanceRepository {
         .execute(`DELETE FROM ${table} WHERE user_id = ?`, [userId], 'run', this.em.getTransactionContext());
     }
   }
-
-  /**
-   * Before a user is deleted: the trip tags they created pass to each trip's
-   * owner, so a tag the whole trip uses keeps its place_tags. The user's
-   * personal tags are left to the delete.
-   */
-  async handTripTagsToTripOwners(userId: number): Promise<void> {
-    this.validateRequestContext();
-    await this.em
-      .getConnection()
-      .execute(
-        'UPDATE tags SET user_id = (SELECT trips.user_id FROM trips WHERE trips.id = tags.trip_id) WHERE user_id = ? AND trip_id IS NOT NULL',
-        [userId],
-        'run',
-        this.em.getTransactionContext(),
-      );
-  }
 }

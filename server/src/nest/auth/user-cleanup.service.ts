@@ -173,7 +173,7 @@ export class UserCleanupService {
     await this.tripMembersRepo.clearInvitedBy(userId); // UC4 — converted (Plan 4 Task 1)
     await this.budgetItemsRepo.clearPaidByUser(userId); // UC5 — Plan 3e Task 2, converted.
     await this.settlementsRepo.clearCreatedBy(userId);
-    await this.maintenance.handTripTagsToTripOwners(userId);
+    await this.tripMembersRepo.handTripTagsToTripOwners(userId);
     await this.budget.removeUserFromBudgetItems(userId);
     await this.shareTokensRepo.deleteByCreator(userId); // UC6 — converted (Plan 3h Task 6)
     await this.journeyShareTokensRepo.deleteByCreatedBy(userId); // UC7 — converted (Plan 3g Task 4)
