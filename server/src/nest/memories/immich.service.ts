@@ -520,7 +520,7 @@ export class ImmichService {
     assetId: string,
     kind: 'thumbnail' | 'original',
     ownerUserId?: number,
-    opts?: { mediaType?: string | null; range?: string },
+    opts?: { mediaType?: string | null; range?: string; publicView?: boolean },
   ): Promise<void> {
     const effectiveUserId = ownerUserId ?? userId;
     const creds = await this.getImmichCredentials(effectiveUserId);
@@ -548,7 +548,10 @@ export class ImmichService {
       cacheControl = 'private, max-age=3600';
       timeout = undefined;
     } else {
-      url = `${creds.immich_url}/api/assets/${assetId}/thumbnail?size=fullsize`;
+      // Without a generated fullsize rendition Immich answers with the original file, GPS and all;
+      // its preview is re-encoded without the metadata, so that is what a share link gets.
+      const size = opts?.publicView ? 'preview' : 'fullsize';
+      url = `${creds.immich_url}/api/assets/${assetId}/thumbnail?size=${size}`;
       timeout = 30000;
     }
 

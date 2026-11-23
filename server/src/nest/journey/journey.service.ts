@@ -200,6 +200,7 @@ export class JourneyService {
    * between them with `provider === 'immich' ? … : trySynology()`, so a third
    * provider would have been handed to Synology and 404'd from inside its
    * parser. An unregistered provider is now told apart from a failing one.
+   * It goes to a share link's viewer, so the provider sends the public rendition.
    */
   streamProviderAsset(
     res: Response,
@@ -209,6 +210,6 @@ export class JourneyService {
   ): Promise<void> | null {
     const backend = this.providers.get(provider);
     if (!backend) return null;
-    return backend.streamAsset(res, ref, kind);
+    return backend.streamAsset(res, { ...ref, audience: 'public' }, kind);
   }
 }

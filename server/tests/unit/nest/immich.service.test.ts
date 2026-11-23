@@ -973,6 +973,23 @@ describe('streamImmichAsset', () => {
     expect(url).toContain('/api/assets/a1/thumbnail');
     expect((init.headers as Record<string, string>)['x-api-key']).toBe('owner-key');
   });
+
+  it('IMMICH-041e: a public view of an image asks for the preview rendition, an owner and a video keep theirs', async () => {
+    await seedUser(13, 'https://immich.example', 'owner-key');
+    safeFetch.mockResolvedValue(upstream({ contentType: 'image/jpeg', body: 'bytes' }));
+
+    await svc.streamImmichAsset(makeRes() as never, USER, 'a1', 'original', 13, { publicView: true });
+    await svc.streamImmichAsset(makeRes() as never, USER, 'a1', 'original', 13);
+    await svc.streamImmichAsset(makeRes() as never, USER, 'v1', 'original', 13, {
+      mediaType: 'video',
+      publicView: true,
+    });
+
+    const urls = safeFetch.mock.calls.map((call) => String(call[0]));
+    expect(urls[0]).toContain('/api/assets/a1/thumbnail?size=preview');
+    expect(urls[1]).toContain('/api/assets/a1/thumbnail?size=fullsize');
+    expect(urls[2]).toContain('/api/assets/v1/video/playback');
+  });
 });
 
 describe('collectAlbumSelection', () => {

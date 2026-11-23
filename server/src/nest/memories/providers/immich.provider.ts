@@ -23,6 +23,7 @@ export class ImmichPhotoProvider implements PhotoProvider {
     return this.immich.streamImmichAsset(res, ref.userId, ref.assetId, kind, ref.ownerId, {
       mediaType: ref.mediaType,
       range: ref.range,
+      publicView: ref.audience === 'public',
     });
   }
 

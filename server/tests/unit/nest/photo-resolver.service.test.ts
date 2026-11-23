@@ -209,6 +209,17 @@ describe('streamPublicPhoto: what a share link gets', () => {
     expect(res.set).not.toHaveBeenCalled();
   });
 
+  it('RESOLVE-035: an immich original is asked for as the public rendition, and an owner still gets the original', async () => {
+    const id = await insertPhoto({ provider: 'immich', asset_id: 'a1', owner_id: 5 });
+    const res = makeRes();
+
+    await svc.streamPublicPhoto(res as never, 5, id, 'original');
+    await svc.streamPhoto(res as never, 5, id, 'original');
+
+    const views = immich.streamImmichAsset.mock.calls.map((call) => (call[5] as { publicView?: boolean }).publicView);
+    expect(views).toEqual([true, false]);
+  });
+
   it('RESOLVE-034: an owner still gets the stored original', async () => {
     const id = await insertPhoto({ provider: 'local', file_path: 'journey/x.jpg' });
     storage.exists.mockResolvedValue(true);

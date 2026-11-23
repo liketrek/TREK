@@ -16,6 +16,7 @@ import { JourneyMapService } from '../../src/nest/journey/journey-map.service';
 import { JourneyShareService } from '../../src/nest/journey/journey-share.service';
 import { JourneyTracksMcp } from '../../src/nest/journey/journey-tracks.mcp';
 import { JourneyModule } from '../../src/nest/journey/journey.module';
+import { ImmichService } from '../../src/nest/memories/immich.service';
 import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
 import { createTestMikroOrmModule } from '../helpers/test-orm';
@@ -117,7 +118,9 @@ const { jsvc } = vi.hoisted(() => ({
 // journey hears about it after a provider add, never after an upload (#1587).
 const { backfillRun, backfillSchedule } = vi.hoisted(() => ({ backfillRun: vi.fn(), backfillSchedule: vi.fn() }));
 
-const { sharesvc } = vi.hoisted(() => ({ sharesvc: { getPublicJourney: vi.fn() } }));
+const { sharesvc } = vi.hoisted(() => ({
+  sharesvc: { getPublicJourney: vi.fn(), validateShareTokenForAsset: vi.fn() },
+}));
 
 // What the share service answers for a link with every section on: the route
 // answers under a strict @ResponseContract, so this is also the allow-list.
@@ -686,6 +689,26 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     const missing = await request(server).get('/api/public/journey/bad/map-layers');
     expect(missing.status).toBe(404);
     expect(missing.body).toEqual({ error: 'Not found' });
+  });
+
+  it('an Immich original behind an old share link is asked for as the public rendition', async () => {
+    sharesvc.validateShareTokenForAsset.mockResolvedValueOnce({ ownerId: 1 });
+    const stream = vi.mocked(ImmichService.prototype.streamImmichAsset);
+    stream.mockImplementationOnce(async (res) => {
+      res.status(204).end();
+    });
+
+    const res = await request(server).get('/api/public/journey/tok/photo/immich/a1/1/original');
+
+    expect(res.status).toBe(204);
+    expect(stream).toHaveBeenCalledWith(
+      expect.anything(),
+      1,
+      'a1',
+      'original',
+      1,
+      expect.objectContaining({ publicView: true }),
+    );
   });
 
   // ── GPX tracks: the route and get_journey_tracks read the same service ────

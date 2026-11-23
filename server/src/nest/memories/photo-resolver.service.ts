@@ -105,8 +105,9 @@ export class PhotoResolverService {
   /**
    * A public share's view. A local file goes out as its location-free copy
    * (PublicMediaService) and never as stored; one that cannot be cleaned falls
-   * back to the thumbnail TREK re-encoded itself, else a 404. Provider assets
-   * stream as for an owner.
+   * back to the thumbnail TREK re-encoded itself, else a 404. A provider is
+   * told the asset goes to the public, so it can send a rendition without the
+   * stored location in place of the original file.
    */
   async streamPublicPhoto(
     res: Response,
@@ -215,7 +216,7 @@ export class PhotoResolverService {
       );
       return;
     }
-    await provider.streamAsset(res, { ...ref, range }, kind);
+    await provider.streamAsset(res, { ...ref, range, audience }, kind);
   }
 
   /**
