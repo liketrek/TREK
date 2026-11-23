@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { screen, waitFor } from '@testing-library/react'
+import { act, screen, waitFor } from '@testing-library/react'
 import { render } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { useRef, useState } from 'react'
@@ -83,7 +83,9 @@ describe('NoteFormatToolbar', () => {
     for (const [i, item] of ['Breakfast', 'Lunch', 'Dinner'].entries()) {
       if (i > 0) await user.keyboard('{Enter}')
       await user.click(numbered)
-      await waitFor(() => expect(field().selectionStart).toBe(field().value.length))
+      // The toolbar puts the caret back one frame later; typing before that
+      // frame would have it jump into the middle of the word.
+      await act(() => new Promise<void>(resolve => requestAnimationFrame(() => resolve())))
       await user.keyboard(item)
     }
 
