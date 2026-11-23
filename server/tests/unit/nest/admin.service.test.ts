@@ -750,9 +750,8 @@ describe('updateAddon', () => {
       if (!flip.error) expect(flip.mcpAffected).toBe(false);
     }
 
-    // and the one this change put on the list carries the opposite verdict
-    const docsFlip = (await updateAddon('documents', { enabled: false })) as any;
-    if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(true);
+    // documents left the list once its file tools stayed on without it
+    expect(((await updateAddon('documents', { enabled: false })) as any).mcpAffected).toBe(false);
   });
 
   it('ADMIN-SVC-087 — refuses to enable a photo provider while journey is off', async () => {
