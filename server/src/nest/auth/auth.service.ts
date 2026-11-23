@@ -68,6 +68,7 @@ import {
   matchBackupCode,
   parseBackupCodeHashes,
   stripUserForClient,
+  appSettingsAudit,
 } from './auth.helpers';
 import {
   ADMIN_FORM_SETTING_KEYS,
@@ -777,25 +778,10 @@ export class AuthService {
     // A masked key sent back as its mask was not changed, and a secret's value never reaches the audit row.
     const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !isMaskEcho(k, body[k]));
 
-    const summary: Record<string, unknown> = {};
-    const smtpChanged = changedKeys.some(k => k.startsWith('smtp_'));
-    if (changedKeys.includes('notification_channels')) summary.notification_channels = body.notification_channels;
-    if (changedKeys.includes('admin_webhook_url')) summary.admin_webhook_url_updated = true;
-    if (changedKeys.some(k => k.startsWith('admin_ntfy_'))) summary.admin_ntfy_updated = true;
-    if (smtpChanged) summary.smtp_settings_updated = true;
-    if (changedKeys.includes('allow_registration')) summary.allow_registration = body.allow_registration;
-    if (changedKeys.includes('allowed_file_types')) summary.allowed_file_types_updated = true;
-    if (changedKeys.includes('require_mfa')) summary.require_mfa = body.require_mfa;
-    if (changedKeys.some(k => k.startsWith('mail_ingest_'))) summary.mail_ingest_settings_updated = true;
+    const { summary, debugDetails } = appSettingsAudit(changedKeys, body);
     // The mail import tools are listed only while it is on, and a session's tool list is fixed when it connects.
-    if (changedKeys.includes('mail_ingest_enabled') && (await readAppSetting(this.appSettings, 'mail_ingest_enabled')) !== mailImportBefore) {
-      invalidateMcpSessions();
-    }
-
-    const debugDetails: Record<string, unknown> = {};
-    for (const k of changedKeys) {
-      debugDetails[k] = MASKED_ADMIN_SETTING_KEYS.has(k) ? '***' : body[k];
-    }
+    const mailImportAfter = await readAppSetting(this.appSettings, 'mail_ingest_enabled');
+    if (changedKeys.includes('mail_ingest_enabled') && mailImportAfter !== mailImportBefore) invalidateMcpSessions();
 
     // The reminder crons read their enable gates and channels per tick, so a
     // notification-settings change takes effect at the next run — no restart.

@@ -145,6 +145,11 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
     return !!row;
   }
 
+  /** `id` while that stay is on the trip, else null: what a booking may link to. */
+  async idOnTrip(id: number | null, trip_id: number): Promise<number | null> {
+    return id && (await this.existsInTrip(id, trip_id)) ? id : null;
+  }
+
   /** RS38 — `SELECT check_in FROM day_accommodations WHERE id = ?`. */
   async getCheckIn(id: number): Promise<string | null | undefined> {
     const row = await this.qb('a')

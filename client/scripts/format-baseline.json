@@ -1507,7 +1507,6 @@
   "src/pages/admin/ProviderBlock.tsx",
   "src/pages/admin/TrekApiCard.tsx",
   "src/pages/admin/adminModel.ts",
-  "src/pages/admin/useAdmin.test.tsx",
   "src/pages/admin/useAdmin.ts",
   "src/pages/admin/useNotificationDefaults.ts",
   "src/pages/atlas/AtlasCountrySearch.tsx",
