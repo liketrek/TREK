@@ -85,7 +85,7 @@ export default function CollabChat({ tripId, currentUser }: CollabChatProps) {
 
           {/* Send */}
           {canEdit && (
-            <button type="button" onClick={handleSend} disabled={(!text.trim() && !imageFiles.length) || sending} style={{
+            <button type="button" onMouseDown={e => e.preventDefault()} onClick={handleSend} disabled={(!text.trim() && !imageFiles.length) || sending} style={{
               width: 34, height: 34, borderRadius: '50%', border: 'none',
               background: text.trim() || imageFiles.length ? 'var(--accent)' : 'var(--border-primary)',
               color: text.trim() || imageFiles.length ? 'var(--accent-text)' : 'var(--text-faint)', display: 'flex', alignItems: 'center', justifyContent: 'center',
