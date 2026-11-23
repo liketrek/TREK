@@ -19,6 +19,7 @@ import type {
 } from './types';
 import { ResourceTemplate as SdkResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
+import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types';
 
 import { z } from 'zod';
 
@@ -36,6 +37,43 @@ interface BoundEntry {
 function strictInputSchema(schema: ToolOptions['inputSchema']): unknown {
   if (schema === undefined || '_zod' in schema) return schema;
   return z.strictObject(schema);
+}
+
+/** The fields of an object schema by name; undefined for any other schema. */
+function shapeOf(schema: unknown): Record<string, z.ZodType> | undefined {
+  const shape = (schema as { shape?: unknown } | undefined)?.shape;
+  return shape && typeof shape === 'object' ? (shape as Record<string, z.ZodType>) : undefined;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * Runs the host's input mapper over what the SDK parsed. The SDK validated the
+ * fields before the mapper changed them, so each field it changed is validated
+ * again against its own schema: a name of nothing but dropped characters must
+ * fail its min(1) here as it does over REST, not reach the handler empty. A
+ * field the mapper left as it was is not parsed twice. The issues are worded
+ * as the SDK words its own.
+ */
+function mapValidated(
+  mapper: McpInputMapper,
+  input: unknown,
+  shape: Record<string, z.ZodType> | undefined,
+  refuse: (message: string) => McpError,
+): unknown {
+  const mapped = mapper(input);
+  if (mapped === input || !shape || !isRecord(input) || !isRecord(mapped)) return mapped;
+  const messages = Object.entries(mapped).flatMap(([key, value]) => {
+    const field = shape[key];
+    if (!field || value === input[key]) return [];
+    const result = field.safeParse(value);
+    if (result.success) return [];
+    return result.error.issues.map((issue) => `${issue.message} at ${[key, ...issue.path].map(String).join('.')}`);
+  });
+  if (messages.length > 0) throw refuse(messages.join('\n'));
+  return mapped;
 }
 
 export interface McpRegistryOptions {
@@ -380,10 +418,11 @@ export class McpRegistry {
     ctx: McpContext,
     opts?: McpAttachOptions,
   ): void {
+    const inputSchema = strictInputSchema(options.inputSchema);
     const config: Record<string, unknown> = {
       title: options.title,
       description: options.description,
-      inputSchema: strictInputSchema(options.inputSchema),
+      inputSchema,
       outputSchema: options.outputSchema,
       annotations: options.annotations,
       _meta: options._meta,
@@ -395,10 +434,12 @@ export class McpRegistry {
     const cb =
       options.inputSchema !== undefined
         ? (args: unknown, _extra: unknown) => {
+            const input = mapValidated(this.inputMapper, args, shapeOf(inputSchema), (message) => {
+              const text = `Input validation error: Invalid arguments for tool ${options.name}: ${message}`;
+              return new McpError(ErrorCode.InvalidParams, text);
+            });
             opts?.onInvoke?.({ kind: 'tool', name: options.name });
-            return invoke(opts, { kind: 'tool', name: options.name }, () =>
-              handler.call(instance, this.inputMapper(args), ctx),
-            );
+            return invoke(opts, { kind: 'tool', name: options.name }, () => handler.call(instance, input, ctx));
           }
         : (_extra: unknown) => {
             opts?.onInvoke?.({ kind: 'tool', name: options.name });
@@ -476,10 +517,12 @@ export class McpRegistry {
     const cb =
       argsSchema !== undefined
         ? (args: unknown, _extra: unknown) => {
+            const input = mapValidated(this.inputMapper, args, argsSchema, (message) => {
+              const text = `Invalid arguments for prompt ${options.name}: ${message}`;
+              return new McpError(ErrorCode.InvalidParams, text);
+            });
             opts?.onInvoke?.({ kind: 'prompt', name: options.name });
-            return invoke(opts, { kind: 'prompt', name: options.name }, () =>
-              handler.call(instance, this.inputMapper(args), ctx),
-            );
+            return invoke(opts, { kind: 'prompt', name: options.name }, () => handler.call(instance, input, ctx));
           }
         : (_extra: unknown) => {
             opts?.onInvoke?.({ kind: 'prompt', name: options.name });

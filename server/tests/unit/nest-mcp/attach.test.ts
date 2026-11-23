@@ -141,6 +141,21 @@ class WhenMcp {
   featureOn = false;
 }
 
+@McpController()
+class NamedMcp {
+  @Tool({ name: 'named_tool', inputSchema: { name: z.string().min(1), note: z.string().optional() } })
+  async namedTool(args: { name: string }, ctx: TestCtx) {
+    return { content: [{ type: 'text', text: JSON.stringify({ args, userId: ctx.userId }) }] };
+  }
+
+  @Prompt({ name: 'named_prompt', argsSchema: { topic: z.string().min(1) } })
+  async namedPrompt({ topic }: { topic: string }, ctx: TestCtx) {
+    return {
+      messages: [{ role: 'user' as const, content: { type: 'text' as const, text: `${topic} for ${ctx.userId}` } }],
+    };
+  }
+}
+
 const policy: McpAccessPolicy = ({ mode }, ctx) =>
   mode === 'write' ? (ctx as TestCtx).canWrite === true : (ctx as TestCtx).canRead === true;
 
@@ -248,6 +263,20 @@ describe('McpRegistry.attach', () => {
     const item = await harness.client.readResource({ uri: 'test://item/4!2' });
     expect(item.contents[0]).toMatchObject({ text: 'item 42 for 5' });
     expect(mapped).toEqual([{ name: 'tr!ek' }, { topic: 'pack!ing' }, { id: '4!2' }]);
+  });
+
+  it('validates a field again once the input mapper changed it, as REST validates the stripped value', async () => {
+    const inputMapper = (input: unknown) => JSON.parse(JSON.stringify(input).replaceAll('!', '')) as unknown;
+    harness = await createAttachHarness(createTestRegistry([new NamedMcp()], { inputMapper }), { userId: 5 });
+
+    const emptied = await harness.client.callTool({ name: 'named_tool', arguments: { name: '!!', note: 'ok' } });
+    expect(emptied.isError).toBe(true);
+    expect(textOf(emptied)).toMatch(/Invalid arguments for tool named_tool: .* at name/);
+    const kept = await harness.client.callTool({ name: 'named_tool', arguments: { name: 'tr!ek', note: '!' } });
+    expect(JSON.parse(textOf(kept))).toEqual({ args: { name: 'trek', note: '' }, userId: 5 });
+    await expect(harness.client.getPrompt({ name: 'named_prompt', arguments: { topic: '!' } })).rejects.toThrow(
+      /Invalid arguments for prompt named_prompt: .* at topic/,
+    );
   });
 
   it('serves fixed resources with (uri, ctx)', async () => {
