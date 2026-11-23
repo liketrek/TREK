@@ -86,6 +86,7 @@ The script:
    - `users` (per user): `maps_api_key`, `unsplash_api_key`, `amap_api_key`, `openweather_api_key`, `immich_api_key`, `synology_password`, `synology_sid`, `synology_did`, `airtrail_api_key`, `mfa_secret`
    - `settings` (per user): `webhook_url`, `ntfy_token`, `mapbox_access_token`, `carto_api_key`, `llm_api_key`
    - `dawarich_connections` (per user): `api_key`
+   - `wanderer_connections` (per user): `token`
    - `plugin_oauth_tokens`: `access_token`, `refresh_token` (per plugin and user)
    - `plugins.config` and `plugin_user_config.config`: every settings field a plugin's manifest marks `secret`, resolved per plugin and scope from `plugin_settings_fields`
    - `trip_album_links`: `passphrase`
@@ -95,14 +96,12 @@ The script:
    - `addons.config`: the instance-wide API key of the AI Parsing addon
    - `ai_connections`: `secrets` (the AI Assistant's API key or ChatGPT sign-in tokens; left out, the admin would have to enter the key again and every ChatGPT user would have to sign in anew)
 6. Reports counts of migrated, already-migrated, skipped (empty), and errored values.
-7. Writes the new key to `.encryption_key` (next to the SQLite file, or in the data directory on Postgres), when that file exists, so the file and the secrets agree again.
+7. Writes the new key to `.encryption_key` (next to the database file when `DB_PATH` names it, otherwise in the data directory, where the server reads it), when that file exists, so the file and the secrets agree again.
 
 After a successful migration:
 
 1. If you supply the key through `ENCRYPTION_KEY`, update it to the new value. (TREK refuses to start while the variable and the key file disagree.)
 2. Restart TREK.
-
-The rotation script does not cover the Wanderer access token. After a rotation, each user who connected Wanderer enters the token again in their settings; the rest of the connection is unaffected.
 
 If any secrets could not be migrated, the script exits with a non-zero status and the original database backup is retained.
 
