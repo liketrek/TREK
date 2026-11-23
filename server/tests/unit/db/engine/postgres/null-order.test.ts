@@ -16,6 +16,7 @@ import { describe, expect, it } from 'vitest';
 
 interface ProbeDB {
   trips: { id: number; start_date: string | null; title: string };
+  places: { id: number; trip_id: number };
 }
 
 const db = new Kysely<ProbeDB>({
@@ -39,7 +40,7 @@ describe('SQLite NULL order on Postgres', () => {
       .orderBy('id', 'asc')
       .compile();
     expect(compiled.sql).toBe(
-      'select "id" from "trips" order by "start_date" desc nulls last, "title" nulls first, "id" asc nulls first',
+      'select "id" from "trips" order by "start_date" desc nulls last, "title" nulls first, "id" asc',
     );
   });
 
@@ -61,6 +62,47 @@ describe('SQLite NULL order on Postgres', () => {
     const wrapped = withSqliteNullOrder(inner);
     expect(wrapped.createAdapter()).toBeInstanceOf(PostgresAdapter);
     expect(wrapped.createQueryCompiler()).toBeInstanceOf(SqliteNullOrderCompiler);
+  });
+
+  it('NULLORDER-005: the id of a table the FROM reads gets no position, so the primary key can serve the order', () => {
+    const own = db
+      .selectFrom('trips as t')
+      .leftJoin('places as p', 'p.trip_id', 't.id')
+      .select('t.id')
+      .orderBy('t.id', 'desc')
+      .orderBy('p.id')
+      .limit(10)
+      .compile();
+    expect(own.sql).toBe(
+      'select "t"."id" from "trips" as "t" left join "places" as "p" on "p"."trip_id" = "t"."id" ' +
+        'order by "t"."id" desc, "p"."id" nulls first limit $1',
+    );
+
+    // A bare id beside a join, or a selection named id, may be another table's or no id at all.
+    const joined = db
+      .selectFrom('trips')
+      .innerJoin('places', 'places.trip_id', 'trips.id')
+      .select('trips.id')
+      .orderBy('id', 'desc')
+      .compile();
+    expect(joined.sql).toMatch(/order by "id" desc nulls last$/);
+    const renamed = db.selectFrom('trips').select('title as id').orderBy('id').compile();
+    expect(renamed.sql).toBe('select "title" as "id" from "trips" order by "id" nulls first');
+
+    // A right join pads the FROM table with NULLs, a subquery's id is no table's key.
+    const padded = db
+      .selectFrom('trips')
+      .rightJoin('places', 'places.trip_id', 'trips.id')
+      .select('places.id')
+      .orderBy('trips.id')
+      .compile();
+    expect(padded.sql).toMatch(/order by "trips"\."id" nulls first$/);
+    const nested = db
+      .selectFrom((eb) => eb.selectFrom('trips').select('id').as('sub'))
+      .select('sub.id')
+      .orderBy('sub.id', 'desc')
+      .compile();
+    expect(nested.sql).toMatch(/order by "sub"\."id" desc nulls last$/);
   });
 
   it("NULLORDER-004: MikroORM's ORDER BY items get SQLite's NULL position unless they name one", () => {
