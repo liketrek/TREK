@@ -1,3 +1,4 @@
+import { QueryOrderNumeric } from '@mikro-orm/core';
 import { PostgreSqlPlatform } from '@mikro-orm/postgresql';
 
 import {
@@ -35,6 +36,8 @@ import {
  * gets no position: every `id` of TREK's schema is a primary key, so no NULL
  * sorts there, and a NULL position Postgres's btree does not hold in that
  * direction would keep the primary key from serving `ORDER BY id DESC LIMIT n`.
+ * MikroORM's `find` orders its entity's own primary key the way the btree holds
+ * it (`asc nulls last`, `desc nulls first`) for the same reason.
  */
 
 /** The NULL position SQLite gives an ORDER BY item of this direction. */
@@ -126,4 +129,27 @@ export class SqliteNullOrderPlatform extends PostgreSqlPlatform {
   override getOrderByExpression(column: string, direction: string, collation?: string): string[] {
     return super.getOrderByExpression(column, direction, collation).map(withSqliteNullPosition);
   }
+}
+
+/** Whether a MikroORM order direction is a bare `asc` or `desc`, with no NULL position of its own. */
+function plainDirection(direction: unknown): 'asc' | 'desc' | null {
+  if (direction === QueryOrderNumeric.ASC) return 'asc';
+  if (direction === QueryOrderNumeric.DESC) return 'desc';
+  const spelled = typeof direction === 'string' ? direction.trim().toLowerCase() : '';
+  return spelled === 'asc' || spelled === 'desc' ? spelled : null;
+}
+
+/**
+ * A `find` order with each bare direction on the entity's own primary key in
+ * the NULL position Postgres's btree holds: a key is never NULL, so the rows
+ * keep their order and the key's index can serve `ORDER BY id DESC LIMIT n`.
+ */
+export function withIndexedKeyOrder<O extends object>(primaryKeys: readonly string[], orderBy: O[]): O[] {
+  if (primaryKeys.length !== 1) return orderBy;
+  const [key] = primaryKeys;
+  return orderBy.map((item) => {
+    const direction = Object.hasOwn(item, key) ? plainDirection((item as Record<string, unknown>)[key]) : null;
+    if (!direction) return item;
+    return { ...item, [key]: direction === 'desc' ? 'desc nulls first' : 'asc nulls last' } as O;
+  });
 }

@@ -1,7 +1,14 @@
 import { nulFreeJson, stripNul, withNulFreeParameters } from '../../nul-free';
-import { SqliteNullOrderPlatform, withSqliteNullOrder } from './null-order';
-import { type Configuration, type TransformContext } from '@mikro-orm/core';
-import { PostgreSqlConnection, PostgreSqlDriver } from '@mikro-orm/postgresql';
+import { SqliteNullOrderPlatform, withIndexedKeyOrder, withSqliteNullOrder } from './null-order';
+import {
+  type Configuration,
+  type EntityMetadata,
+  type FindOptions,
+  type PopulateOptions,
+  type QueryOrderMap,
+  type TransformContext,
+} from '@mikro-orm/core';
+import { type AnyQueryBuilder, PostgreSqlConnection, PostgreSqlDriver } from '@mikro-orm/postgresql';
 
 /** `int8` (bigint), a `pg_type.oid`: every integer column and every `count(*)` on Postgres. */
 const INT8_OID = 20;
@@ -94,5 +101,15 @@ export class TrekPostgreSqlDriver extends PostgreSqlDriver {
     // connects and before the configuration reads the platform.
     (this as unknown as { connection: PostgreSqlConnection }).connection = new NumberTypesConnection(config);
     (this as unknown as { platform: TrekPostgreSqlPlatform }).platform = new TrekPostgreSqlPlatform();
+  }
+
+  /** `find`'s order, with its entity's primary key in the order its index holds (`null-order.ts`). */
+  protected override buildOrderBy<T extends object>(
+    qb: AnyQueryBuilder<T>,
+    meta: EntityMetadata<T>,
+    populate: PopulateOptions<T>[],
+    options: Pick<FindOptions<T>, 'strategy' | 'orderBy' | 'populateOrderBy'>,
+  ): QueryOrderMap<T>[] {
+    return withIndexedKeyOrder(meta.primaryKeys, super.buildOrderBy(qb, meta, populate, options));
   }
 }

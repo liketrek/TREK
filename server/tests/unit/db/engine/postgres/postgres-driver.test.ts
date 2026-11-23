@@ -3,10 +3,10 @@
  * (src/db/engine/postgres/postgres-driver.ts). Nothing here connects.
  */
 import { parseInt8, parseNumeric, TrekPostgreSqlDriver } from '../../../../../src/db/engine/postgres/postgres-driver';
-import { Configuration } from '@mikro-orm/core';
-import type { PostgreSqlConnection } from '@mikro-orm/postgresql';
+import { Configuration, defineEntity, p } from '@mikro-orm/core';
+import { MikroORM, type PostgreSqlConnection } from '@mikro-orm/postgresql';
 
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 type Parsers = { getTypeParser(oid: number): (text: string) => unknown };
 
@@ -43,5 +43,29 @@ describe('postgres driver', () => {
     expect(types.getTypeParser(20)('12')).toBe(12);
     expect(types.getTypeParser(1700)('12.5')).toBe(12.5);
     expect(types.getTypeParser(1114)('2026-01-01 00:00:00')).toBe('2026-01-01 00:00:00');
+  });
+
+  it("PGDRIVER-004: find orders the entity's own key the way its index holds it, every other column as SQLite does", async () => {
+    const Probe = defineEntity({
+      name: 'Probe',
+      tableName: 'probe',
+      properties: { id: p.integer().primary(), plugin_id: p.text(), ts: p.text().nullable() },
+    });
+    const orm = new MikroORM({
+      driver: TrekPostgreSqlDriver,
+      clientUrl: 'postgresql://u@localhost/trek',
+      entities: [Probe],
+    });
+    const execute = vi.spyOn(orm.em.getConnection(), 'execute').mockResolvedValue([]);
+    const em = orm.em.fork();
+    await em.findOne(Probe, { plugin_id: 'x' }, { orderBy: { id: 'desc' } });
+    await em.find(Probe, {}, { orderBy: [{ ts: 'desc' }, { id: 1 }], limit: 5 });
+    await em.find(Probe, {}, { orderBy: { id: 'desc nulls last' } });
+    const orders = execute.mock.calls.map(([query]) => String(query).replace(/^.* order by /, ''));
+    expect(orders).toEqual([
+      '"p0"."id" desc nulls first limit ?',
+      '"p0"."ts" desc nulls last, "p0"."id" asc nulls last limit ?',
+      '"p0"."id" desc nulls last',
+    ]);
   });
 });
