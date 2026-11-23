@@ -724,10 +724,14 @@ export function useTripPlanner() {
     return () => clearTimeout(timer)
   }, [isLoading])
 
+  // The store still holds the trip opened before until loadTrip runs after the first
+  // render, so that trip counts as loading too rather than showing under this one's id.
+  const opening = isLoading || (trip != null && trip.id !== tripId)
+
   return {
     tripId, navigate, toast, t, language, locale, settings, placesPhotosEnabled,
     trip, days, places, assignments, storedAssignments, packingItems, todoItems, categories, reservations, budgetItems, files,
-    selectedDayId, isLoading, tripActions, can, canUploadFiles,
+    selectedDayId, isLoading: opening, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, journalId: journal.openJournalId, tripAccommodations, setTripAccommodations,
     roadtripMode, toggleRoadtripMode, roadtripActive, roadtripFeedActive, roadtripRoutes, roadtripLineColors, roadtripMapLines, roadtripMapPlaces, collapsedRoadtripDays, toggleRoadtripDay, roadtripCorridor,

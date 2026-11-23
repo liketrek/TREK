@@ -1,4 +1,4 @@
-// FE-TP-TABLINK-001
+// FE-TP-TABLINK-001, FE-TP-OPEN-001
 import { act, renderHook, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 
@@ -106,5 +106,18 @@ describe('useTripPlanner — ?tab= while the planner is open', () => {
     await waitFor(() => expect(result.current.activeTab).toBe('collab'));
     expect(searchParams.has('tab')).toBe(false);
     expect(sessionStorage.getItem('trip-tab-42')).toBe('collab');
+  });
+});
+
+describe('useTripPlanner: opening another trip', () => {
+  it('FE-TP-OPEN-001: the trip still held from the one opened before counts as loading, not as this one', async () => {
+    useTripStore.setState({ trip: buildTrip({ id: 7, title: 'Rome' }), isLoading: false });
+    const { result } = renderHook(() => useTripPlanner(), { wrapper });
+    expect(result.current.isLoading).toBe(true);
+    await act(async () => {
+      await Promise.resolve();
+    });
+    act(() => useTripStore.setState({ trip: buildTrip({ id: 42, title: 'Kyoto' }) }));
+    expect(result.current.isLoading).toBe(false);
   });
 });
