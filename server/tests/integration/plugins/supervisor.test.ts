@@ -142,6 +142,30 @@ describe('PluginSupervisor — isolated runtime', () => {
     expect(events.some((e) => e.topic === '__log')).toBe(true);
   });
 
+  it('binds a Buffer a plugin passes to ctx.db as its bytes across the fork, in query, exec and tx', async () => {
+    const events: Array<{ topic: string; data: unknown }> = [];
+    sup = makeSupervisor(events);
+    writePlugin(
+      'binkeys',
+      `module.exports = {
+        async onLoad(ctx) {
+          await ctx.db.migrate('001', 'CREATE TABLE kv (k BLOB PRIMARY KEY, v TEXT)');
+          await ctx.db.exec('INSERT INTO kv (k, v) VALUES (?, ?)', Buffer.from([1, 0, 2]), 'exec');
+          await ctx.db.tx([{ sql: 'INSERT INTO kv (k, v) VALUES (?, ?)', args: [Buffer.from([3, 0, 4]), 'tx'] }]);
+          const rows = await ctx.db.query('SELECT v, hex(k) AS h FROM kv WHERE k IN (?, ?) ORDER BY v', Buffer.from([1, 0, 2]), Buffer.from([3, 0, 4]));
+          ctx.log.info('bin', { rows });
+        }
+      };`,
+    );
+
+    await sup.activate('binkeys', new Set(['db:own']), {});
+
+    expect(logMeta<{ rows: unknown[] }>(events, 'bin').rows).toEqual([
+      { v: 'exec', h: '010002' },
+      { v: 'tx', h: '030004' },
+    ]);
+  });
+
   it('dispatches invoke.hook + invoke.event across the fork (provider hooks + event subscriptions)', async () => {
     const events: Array<{ topic: string; data: unknown }> = [];
     sup = makeSupervisor(events);

@@ -39,9 +39,23 @@ export const str = (v: unknown, name: string): string => {
   return v;
 };
 
+/**
+ * A Buffer a plugin binds crosses the JSON IPC as its toJSON form,
+ * { type: 'Buffer', data: [bytes] }; it is bound as those bytes again.
+ */
+function reviveBuffer(v: unknown): unknown {
+  if (v === null || typeof v !== 'object' || Array.isArray(v)) return v;
+  const o = v as Record<string, unknown>;
+  if (o.type !== 'Buffer' || !Array.isArray(o.data) || Object.keys(o).length !== 2) return v;
+  const bytes: unknown[] = o.data;
+  return bytes.every((b) => Number.isInteger(b) && (b as number) >= 0 && (b as number) <= 255)
+    ? Buffer.from(bytes as number[])
+    : v;
+}
+
 export function asArgs(v: unknown): unknown[] {
   if (v == null) return [];
-  if (Array.isArray(v)) return v;
+  if (Array.isArray(v)) return v.map(reviveBuffer);
   throw new BadParams('args must be an array');
 }
 

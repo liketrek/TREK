@@ -1,5 +1,5 @@
 import { BadParams } from '../../../src/nest-rpc/rpc-errors';
-import { optionalRowIdParam, rowIdParam } from '../../../src/nest-rpc/rpc-params';
+import { asArgs, asTxOps, optionalRowIdParam, rowIdParam } from '../../../src/nest-rpc/rpc-params';
 
 import { describe, expect, it } from 'vitest';
 
@@ -22,5 +22,17 @@ describe('rowIdParam', () => {
     for (const value of [null, '0x5', '5e0', 1.5, '']) {
       expect(() => optionalRowIdParam(value, 'dayId'), String(value)).toThrow(new BadParams('dayId must be a number'));
     }
+  });
+});
+
+describe('asArgs', () => {
+  it('RPCPARAM-004: a Buffer that crossed the JSON IPC is bound as its bytes again, in query args and tx ops', () => {
+    const wire = JSON.parse(JSON.stringify([Buffer.from([1, 0, 255]), 'k', { type: 'Buffer', data: [1, 300] }]));
+    const [bytes, key, odd] = asArgs(wire);
+    expect(Buffer.isBuffer(bytes) && [...bytes]).toEqual([1, 0, 255]);
+    expect(key).toBe('k');
+    expect(odd).toEqual({ type: 'Buffer', data: [1, 300] });
+    const [op] = asTxOps([{ sql: 'SELECT ?', args: wire }]);
+    expect(Buffer.isBuffer(op?.args?.[0])).toBe(true);
   });
 });
