@@ -805,6 +805,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'Impossibile caricare i rilasci',
   'admin.github.by': 'da',
   'admin.github.support': 'Mi aiuta a continuare a sviluppare TREK',
+  'admin.github.supportMonthly': 'Supporta TREK ogni mese',
   'admin.update.available': 'Aggiornamento disponibile',
   'admin.update.text': 'TREK {version} è disponibile. Stai eseguendo {current}.',
   'admin.update.button': 'Vedi su GitHub',

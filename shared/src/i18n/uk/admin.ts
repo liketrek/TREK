@@ -819,6 +819,7 @@ const admin: TranslationStrings = {
   'admin.github.loadMore': 'Завантажити ще',
   'admin.github.loading': 'Завантаження...',
   'admin.github.support': 'Допомагає продовжувати розробку TREK',
+  'admin.github.supportMonthly': 'Підтримуйте TREK щомісяця',
   'admin.github.error': 'Не вдалося завантажити релізи',
   'admin.github.by': 'від',
   'admin.update.available': 'Доступне оновлення',

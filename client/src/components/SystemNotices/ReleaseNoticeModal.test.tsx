@@ -24,9 +24,9 @@ function releaseNotice(overrides: Partial<SystemNoticeDTO> = {}): SystemNoticeDT
       introKey: 'rel.intro',
       featuresLabelKey: 'rel.features.label',
       features: [
-        { iconName: 'Mountain', visual: 'tours', titleKey: 'rel.f1.title', bodyKey: 'rel.f1.body' },
-        { iconName: 'BookOpen', visual: 'studio', titleKey: 'rel.f2.title', bodyKey: 'rel.f2.body' },
-        { iconName: 'Sparkles', visual: 'assistant', titleKey: 'rel.f3.title', bodyKey: 'rel.f3.body' },
+        { iconName: 'Mail', visual: 'mail', titleKey: 'rel.f1.title', bodyKey: 'rel.f1.body' },
+        { iconName: 'Plane', visual: 'flight', titleKey: 'rel.f2.title', bodyKey: 'rel.f2.body' },
+        { iconName: 'FileText', visual: 'pdf', titleKey: 'rel.f3.title', bodyKey: 'rel.f3.body' },
       ],
       note: {
         eyebrowKey: 'rel.note.eyebrow',
@@ -85,9 +85,9 @@ describe('ReleaseNoticeModal', () => {
     renderModal();
     expect(screen.getByText('rel.f1.title')).toBeInTheDocument();
     expect(document.querySelectorAll('.rn-feature')).toHaveLength(3);
-    expect(document.querySelector('.rn-vis-tours')).not.toBeNull();
-    expect(document.querySelector('.rn-vis-studio')).not.toBeNull();
-    expect(document.querySelector('.rn-vis-assist')).not.toBeNull();
+    expect(document.querySelector('.rn-vis-mail')).not.toBeNull();
+    expect(document.querySelector('.rn-vis-flight')).not.toBeNull();
+    expect(document.querySelector('.rn-vis-pdf')).not.toBeNull();
   });
 
   it('FE-RN-004: splits the note body on the blank line into separate paragraphs', () => {
@@ -201,20 +201,19 @@ describe('ReleaseNoticeModal', () => {
     const n = releaseNotice();
     n.release!.features = [
       ...n.release!.features,
-      { iconName: 'LifeBuoy', visual: 'help', layout: 'wide', titleKey: 'rel.f4.title', bodyKey: 'rel.f4.body' },
+      { iconName: 'Search', visual: 'search', layout: 'wide', titleKey: 'rel.f4.title', bodyKey: 'rel.f4.body' },
     ];
     renderModal(n);
     const cards = document.querySelectorAll('.rn-feature');
     expect(cards).toHaveLength(4);
     expect(cards[3].classList.contains('rn-feature-wide')).toBe(true);
     expect([...cards].slice(0, 3).some((c) => c.classList.contains('rn-feature-wide'))).toBe(false);
-    // The help drawing: the help button and two rows of greetings, each written twice to loop.
+    // The search drawing: the field and its three results, the right place on top.
     const wide = cards[3];
-    expect(wide.querySelector('.rn-vis-help-q')).not.toBeNull();
-    expect(wide.querySelectorAll('.rn-vis-hello-row')).toHaveLength(2);
-    expect(wide.querySelectorAll('.rn-vis-hello').length % 2).toBe(0);
-    // The tours card lists the kinds of tour along its foot.
-    expect(cards[0].querySelectorAll('.rn-vis-tours-kind')).toHaveLength(5);
+    expect(wide.querySelector('.rn-vis-search-field')).not.toBeNull();
+    expect(wide.querySelectorAll('.rn-vis-search-row')).toHaveLength(3);
+    // The mail card ends on the booking it added, with its tick.
+    expect(cards[0].querySelector('.rn-vis-mail-row-new .rn-vis-mail-check')).not.toBeNull();
   });
 
   it('FE-RN-016: the close button belongs to the panel, not the note', () => {

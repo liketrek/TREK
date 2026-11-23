@@ -49,39 +49,43 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'נבנה יחד עם הקהילה',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'תמיכה ב-Ko-fi',
+  'system_notice.thank_you_support.cta_patreon': 'חודשי ב-Patreon',
   'system_notice.release_notes.eyebrow': 'העדכון הותקן',
-  'system_notice.release_notes.headline': 'קודם כל, המקום הנכון.',
+  'system_notice.release_notes.headline': 'פחות הקלדה, יותר טיולים.',
   'system_notice.release_notes.intro':
-    'חיפוש מקומות, חיפוש כתובות וניתוב פועלים עכשיו על השרתים של TREK עצמו, בחסות dataforest cloud, וכל TREK יכול לשתף את מה שהוא יודע על מקומות עם כל השאר.',
+    'הודעות הזמנה שתעבירו יגיעו ישר לטיול שלכם, TREK עוקב אחרי הטיסות שלכם בזמן אמת, וקובץ ה-PDF של הטיול חדש לגמרי. TREK רץ עכשיו גם על PostgreSQL.',
   'system_notice.release_notes.features_label': 'החידושים המרכזיים',
   'system_notice.release_notes.features_aside': 'ולא רק',
-  'system_notice.release_notes.feature_search_title': 'חיפוש מקומות שקולע',
-  'system_notice.release_notes.feature_search_body':
-    'ערים, איים, אתרים מפורסמים ושדות תעופה לפי הקוד שלהם מופיעים ראשונים, בתי קפה מגיעים מהסביבה שלכם, והצעות מופיעות תוך כדי הקלדה.',
-  'system_notice.release_notes.feature_share_title': 'פרטי מקומות, משותפים',
-  'system_notice.release_notes.feature_share_body':
-    'שתפו אתרים, שעות פתיחה ותמונות עם כל TREK, שדה אחר שדה, והמקומות השמורים שלכם מקבלים את מה שאחרים הוסיפו.',
-  'system_notice.release_notes.feature_routing_title': 'ניתוב מהיר יותר',
-  'system_notice.release_notes.feature_routing_body':
-    'יום שלם מנותב בבת אחת עם עד עשרים עצירות, מסלול איטי אחד כבר לא מעכב את השאר, ותחבורה ציבורית פונה לספק שני כשהראשון לא מוצא כלום.',
-  'system_notice.release_notes.footnote': 'ועוד רשימה ארוכה של שינויים קטנים בכל שאר TREK.',
+  'system_notice.release_notes.feature_mail_title': 'הודעות הזמנה מגיעות לטיול שלכם',
+  'system_notice.release_notes.feature_mail_body':
+    'העבירו אישור לכתובת האישית שלכם ו-TREK ימצא את הטיול שלכם, יבדוק ויוסיף את ההזמנה יחד עם המסמך שלה.',
+  'system_notice.release_notes.feature_flight_title': 'סטטוס טיסה בזמן אמת, בחינם',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK עוקב אחרי כל אחת מהטיסות שלכם ביום שלה: מצב, עיכוב, שני שדות התעופה ומפה עם המטוס, בלי מפתח API.',
+  'system_notice.release_notes.feature_pdf_title': 'PDF חדש לטיול',
+  'system_notice.release_notes.feature_pdf_body':
+    'שער עם המסלול שלכם, כל יום כציר זמן וכל ההזמנות שלכם עם הקודים שלהן, מוכן להדפסה או לשיתוף.',
+  'system_notice.release_notes.footnote':
+    'ועוד PostgreSQL, תוספים לכל טיול, תגיות על מקומות, עוד דרכים לנהל עלויות ורשימה ארוכה של שינויים קטנים.',
   'system_notice.release_notes.notes_label': 'הערות גרסה',
   'system_notice.release_notes.note_eyebrow': 'מילה מהמתחזק',
   'system_notice.release_notes.note_title': 'בזכותכם אני ממשיך לבנות את TREK.',
   'system_notice.release_notes.note_body':
-    'TREK התחיל ככלי קטן לטיולים שלי, שנכתב אחרי העבודה כי רציתי דרך טובה יותר לתכנן אותם. הוא אף פעם לא באמת הפסיק לגדול. כמעט כל מה שאתם משתמשים בו נבנה בשעות הלילה המאוחרות, בסופי שבוע, ברכבות, לצד עבודה במשרה מלאה, והיו לא מעט ערבים שבהם תהיתי בשקט אם מישהו בכלל יפתח אותו.',
+    'TREK התחיל ככלי קטן לטיולים שלי, שבניתי אחרי העבודה. כמעט כל מה שאתם משתמשים בו היום נולד בשעות הלילה המאוחרות, בסופי שבוע או ברכבות, לצד עבודה במשרה מלאה, ולא פעם תהיתי אם מישהו בכלל יפתח אותו.',
   'system_notice.release_notes.promise_label': 'ההבטחה',
   'system_notice.release_notes.promise_lead': 'TREK נשאר חינמי, לתמיד.',
   'system_notice.release_notes.promise_text': 'כל תכונה, כל עדכון, לכולם. בלי מסלולים בתשלום, בלי מנויים, בלי מלכודות.',
   'system_notice.release_notes.note_body_after':
-    'ואז אתם הגעתם. תוך כמה חודשים הייתם אלפים: כוכבים, דיווחי באגים, תרגומים לשפות שאני לא מדבר, בקשות משיכה מאנשים שמעולם לא פגשתי. אני עדיין בודק את המאגר דבר ראשון כל בוקר, וזה עדיין לא לגמרי מרגיש אמיתי.',
-  'system_notice.release_notes.note_closing': 'תודה שאתם כאן, מ-Maurice.',
-  'system_notice.release_notes.support_label': 'נשארים עצמאיים',
-  'system_notice.release_notes.support_lead': "בלי Google ושות'.",
+    'ואז הגעתם אתם, ותוך זמן קצר כבר באלפים: עם כוכבים, דיווחי באגים, תרגומים לשפות שאני לא מדבר ובקשות משיכה מאנשים שמעולם לא פגשתי. אני עדיין בודק את המאגר דבר ראשון כל בוקר, וזה עדיין לא לגמרי מרגיש אמיתי.',
+  'system_notice.release_notes.note_closing':
+    'תודה שאתם כאן. Maurice',
+  'system_notice.release_notes.support_label': 'בזכותכם',
+  'system_notice.release_notes.support_lead': 'TREK קיים רק בזכות תרומות.',
   'system_notice.release_notes.support_text':
-    'חיפוש מקומות, חיפוש כתובות וניתוב פועלים על השרתים של TREK עצמו, היום בחסות dataforest cloud. אני נלחם על זה כל יום, וכדי שזה יישאר כך אני צריך את התמיכה שלכם.',
+    'הן משלמות על השרתים ונותנות לי את הזמן להמשיך לבנות אותו. אפילו קפה אחד עוזר לשמור על TREK חינמי לכולם.',
   'system_notice.release_notes.cta_bmc': 'קנו לי קפה',
   'system_notice.release_notes.cta_kofi': 'תמיכה ב-Ko-fi',
+  'system_notice.release_notes.cta_patreon': 'חודשי ב-Patreon',
   'system_notice.pager.prev': 'ההודעה הקודמת',
   'system_notice.pager.next': 'ההודעה הבאה',
   'system_notice.pager.counter': '{current} / {total}',

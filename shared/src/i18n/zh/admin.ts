@@ -724,6 +724,7 @@ const admin: TranslationStrings = {
   'admin.github.loadMore': '加载更多',
   'admin.github.loading': '加载中...',
   'admin.github.support': '帮助我继续开发 TREK',
+  'admin.github.supportMonthly': '每月支持 TREK',
   'admin.github.error': '加载版本失败',
   'admin.github.by': '作者',
   'admin.update.available': '有可用更新',

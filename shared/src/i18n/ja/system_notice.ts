@@ -47,44 +47,48 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'コミュニティと一緒に作っています',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'Ko-fiで応援する',
+  'system_notice.thank_you_support.cta_patreon': 'Patreonで毎月応援',
   'system_notice.pager.prev': '前へ',
   'system_notice.pager.next': '次へ',
   'system_notice.pager.counter': '{current} / {total}',
   'system_notice.pager.goto': '通知{n}へ',
   'system_notice.pager.position': '{total}件中{current}件目',
   'system_notice.release_notes.eyebrow': 'アップデート完了',
-  'system_notice.release_notes.headline': '正しい場所を、いちばんに。',
+  'system_notice.release_notes.headline': '入力は少なく、旅はもっと。',
   'system_notice.release_notes.intro':
-    '場所の検索、住所の検索、ルート計算が、dataforest cloud の協賛のもと TREK 自身のサーバーで動くようになりました。さらに、どの TREK も場所について知っていることを、ほかのすべての TREK と共有できます。',
+    '転送した予約メールはあなたの旅行に届き、TREKがフライトをリアルタイムで追跡し、旅行のPDFも新しくなりました。TREKは PostgreSQL でも動くようになりました。',
   'system_notice.release_notes.features_label': '今回の目玉',
   'system_notice.release_notes.features_aside': 'ほんの一部です',
-  'system_notice.release_notes.feature_search_title': 'ちゃんと見つかる場所検索',
-  'system_notice.release_notes.feature_search_body':
-    '都市、島、名所、そしてコードで探す空港が最初に並び、カフェはあなたの周辺から見つかります。候補は入力しているそばから表示されます。',
-  'system_notice.release_notes.feature_share_title': '場所の詳細を、みんなで',
-  'system_notice.release_notes.feature_share_body':
-    'ウェブサイト、営業時間、写真を項目ごとにすべての TREK と共有できます。保存した場所には、ほかの人が追加した情報が自動で反映されます。',
-  'system_notice.release_notes.feature_routing_title': 'もっと速いルート計算',
-  'system_notice.release_notes.feature_routing_body':
-    '最大 20 か所の立ち寄り先がある一日も、まとめて一度にルート計算。遅いルートが一つあっても、ほかを待たせません。公共交通は、最初のプロバイダーで見つからなければ別のプロバイダーにも問い合わせます。',
-  'system_notice.release_notes.footnote': 'ほかにも、TREKのあちこちに細かな変更がたくさん入っています。',
+  'system_notice.release_notes.feature_mail_title': '予約メールが、あなたの旅行に届く',
+  'system_notice.release_notes.feature_mail_body':
+    '確認メールを自分専用のアドレスに転送すると、TREKがあなたの旅行を見つけて内容を確認し、書類つきで予約を追加します。',
+  'system_notice.release_notes.feature_flight_title': 'フライト状況をリアルタイムで、無料',
+  'system_notice.release_notes.feature_flight_body':
+    'TREKは、あなたの各フライトを当日に追跡します。状況、遅延、両方の空港、機体つきの地図まで、APIキーは不要です。',
+  'system_notice.release_notes.feature_pdf_title': '旅行PDFを一新',
+  'system_notice.release_notes.feature_pdf_body':
+    'あなたのルートを載せた表紙、1日ごとのタイムライン、すべての予約と予約番号まで。印刷にも共有にもそのまま使えます。',
+  'system_notice.release_notes.footnote':
+    'ほかにも、PostgreSQL 対応、旅行ごとのアドオン、場所へのタグ、費用を管理する方法の追加、そして多数の細かな改善があります。',
   'system_notice.release_notes.notes_label': 'リリースノート',
   'system_notice.release_notes.note_eyebrow': '開発者より',
   'system_notice.release_notes.note_title': 'あなたがいるから、TREKを作り続けています。',
   'system_notice.release_notes.note_body':
-    'TREKは、自分の旅のための小さなツールとして始まりました。もっといい計画の立て方が欲しくて、仕事のあとに書いたものです。それからずっと、大きくなり続けてきました。いま使っていただいている機能のほとんどは、本業のかたわら、深夜や週末、電車の中で作ったものです。こんなもの、誰かが開いてくれる日は来るのだろうか。そうひとりで考えた夜も、何度もありました。',
+    'TREK は、仕事のあとに自分の旅行のために作った小さなツールから始まりました。今使っているもののほとんどは、夜遅くや週末、電車の中で、フルタイムの仕事のかたわら形になったもので、誰かが開いてくれるのだろうかと何度も思いました。',
   'system_notice.release_notes.promise_label': '約束',
   'system_notice.release_notes.promise_lead': 'TREKは、ずっと無料です。',
   'system_notice.release_notes.promise_text':
     'すべての機能も、すべてのアップデートも、すべての人に。有料プランも、サブスクも、隠れた仕掛けもありません。',
   'system_notice.release_notes.note_body_after':
-    'そして、あなたが開いてくれました。数か月のうちに、それが何千人にもなりました。スター、バグ報告、私の話せない言語への翻訳、会ったこともない人からのプルリクエスト。今でも毎朝いちばんにリポジトリを確認していますが、まだ少し夢のように感じています。',
-  'system_notice.release_notes.note_closing': 'ここにいてくれて、ありがとう。Mauriceより',
-  'system_notice.release_notes.support_label': '独立したままで',
-  'system_notice.release_notes.support_lead': 'Google などに頼らずに。',
+    'そこにみなさんが来てくれて、やがて何千人にもなりました。スター、バグ報告、私が話せない言語への翻訳、会ったこともない人からのプルリクエスト。今でも毎朝いちばんにリポジトリを確認していて、まだ少し現実とは思えません。',
+  'system_notice.release_notes.note_closing':
+    'ここにいてくれて、ありがとう。Maurice',
+  'system_notice.release_notes.support_label': 'あなたのおかげです',
+  'system_notice.release_notes.support_lead': 'TREK は寄付のおかげで成り立っています。',
   'system_notice.release_notes.support_text':
-    '場所の検索、住所の検索、ルート計算は TREK 自身のサーバーで動いていて、今は dataforest cloud に協賛してもらっています。私はそのために毎日奮闘しています。この形を守り続けるには、あなたの応援が必要です。',
+    '寄付はサーバー代になり、開発を続ける時間を私にくれます。コーヒー1杯でも、TREK をみんなに無料のままにしておく力になります。',
   'system_notice.release_notes.cta_bmc': 'コーヒーをおごる',
   'system_notice.release_notes.cta_kofi': 'Ko-fiで応援する',
+  'system_notice.release_notes.cta_patreon': 'Patreonで毎月応援',
 };
 export default system_notice;

@@ -2,6 +2,7 @@ import { ArrowRight, Heart, Infinity as InfinityIcon, ShieldCheck, X } from 'luc
 import React from 'react';
 import { useTranslation } from '../../i18n/TranslationContext.js';
 import type { SystemNoticeDTO } from '../../store/systemNoticeStore.js';
+import { PATREON_PATH } from '../shared/PatreonIcon';
 import { ReleaseFeatureVisual } from './ReleaseNoticeVisuals.js';
 import './releaseNotice.css';
 
@@ -11,6 +12,7 @@ interface Props {
   onDismiss: () => void;
   onCTA: () => void;
   onSecondaryCTA: () => void;
+  onTertiaryCTA: () => void;
 }
 
 /** Lucide's coffee cup, drawn here so its three steam strokes can drift up in waves. */
@@ -74,7 +76,7 @@ function paragraphs(text: string): string[] {
  * generic modal's behaviour: the host hook still owns ESC, the scroll lock and
  * the dismissal, this component only draws.
  */
-export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecondaryCTA }: Props) {
+export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecondaryCTA, onTertiaryCTA }: Props) {
   const { t } = useTranslation();
   const release = notice.release;
   if (!release) return null;
@@ -208,6 +210,26 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
               </div>
             )}
             <div className="rn-support-buttons">
+              {notice.tertiaryCta && (
+                <button
+                  type="button"
+                  id={`notice-cta3-${notice.id}`}
+                  className="rn-support-btn rn-support-patreon"
+                  onClick={onTertiaryCTA}
+                >
+                  <svg
+                    className="rn-patreon"
+                    viewBox="0 0 24 24"
+                    width={16}
+                    height={16}
+                    fill="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path d={PATREON_PATH} />
+                  </svg>
+                  {t(notice.tertiaryCta.labelKey)}
+                </button>
+              )}
               {notice.cta && (
                 <button
                   type="button"

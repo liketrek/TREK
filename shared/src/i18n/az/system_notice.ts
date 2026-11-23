@@ -51,42 +51,46 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'İcma ilə birlikdə hazırlanır',
   'system_notice.thank_you_support.cta_bmc': 'Mənə qəhvə al',
   'system_notice.thank_you_support.cta_kofi': 'Ko-fi-da dəstəklə',
+  'system_notice.thank_you_support.cta_patreon': 'Patreon-da aylıq',
 
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Yeniləmə quraşdırıldı',
-  'system_notice.release_notes.headline': 'Əvvəlcə doğru yer.',
+  'system_notice.release_notes.headline': 'Az yazın, çox səyahət edin.',
   'system_notice.release_notes.intro':
-    'Məkan axtarışı, ünvan axtarışı və marşrutlaşdırma artıq dataforest cloud sponsorluğu ilə TREK-in öz serverlərində işləyir və hər TREK məkanlar haqqında bildiklərini digər bütün TREK-lərlə paylaşa bilir.',
+    'Yönləndirdiyiniz rezervasiya məktubları səyahətinizə düşür, TREK uçuşlarınızı canlı izləyir, səyahət PDF-i isə tamamilə yenidir. TREK artıq PostgreSQL üzərində də işləyir.',
   'system_notice.release_notes.features_label': 'Əsas yeniliklər',
   'system_notice.release_notes.features_aside': 'Bundan əlavə',
-  'system_notice.release_notes.feature_search_title': 'Dəqiq tapan məkan axtarışı',
-  'system_notice.release_notes.feature_search_body':
-    'Şəhərlər, adalar, görməli yerlər və kodu ilə axtarılan hava limanları birinci gəlir, kafelər ətrafınızdan seçilir, təkliflər isə siz yazdıqca görünür.',
-  'system_notice.release_notes.feature_share_title': 'Paylaşılan məkan təfərrüatları',
-  'system_notice.release_notes.feature_share_body':
-    'Veb saytları, iş saatlarını və fotoları sahə-sahə hər TREK ilə paylaşın, saxladığınız məkanlar isə başqalarının əlavə etdiklərini alır.',
-  'system_notice.release_notes.feature_routing_title': 'Daha sürətli marşrutlaşdırma',
-  'system_notice.release_notes.feature_routing_body':
-    'Bütöv bir gün iyirmiyə qədər dayanacaqla bir dəfəyə marşrutlanır, bir yavaş marşrut artıq digərlərini ləngitmir, ictimai nəqliyyat isə birinci provayder heç nə tapmayanda ikinci provayderə müraciət edir.',
-  'system_notice.release_notes.footnote': 'Bundan əlavə, TREK-in digər bölmələrində çoxsaylı kiçik dəyişikliklər var.',
+  'system_notice.release_notes.feature_mail_title': 'Rezervasiya məktubları səyahətinizə düşür',
+  'system_notice.release_notes.feature_mail_body':
+    'Təsdiqi şəxsi ünvanınıza yönləndirin, TREK səyahətinizi tapır, yoxlayır və rezervasiyanı sənədi ilə birlikdə əlavə edir.',
+  'system_notice.release_notes.feature_flight_title': 'Canlı uçuş statusu, pulsuz',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK hər uçuşunuzu həmin gün izləyir: vəziyyət, gecikmə, hər iki hava limanı və təyyarənin göründüyü xəritə, API açarı olmadan.',
+  'system_notice.release_notes.feature_pdf_title': 'Yeni səyahət PDF-i',
+  'system_notice.release_notes.feature_pdf_body':
+    'Marşrutunuzla örtük, hər gün zaman xətti kimi və bütün rezervasiyalarınız kodları ilə, çapa və ya paylaşmağa hazır.',
+  'system_notice.release_notes.footnote':
+    'Bunlarla yanaşı PostgreSQL, səyahət üzrə əlavələr, məkanlara etiketlər, xərcləri izləməyin daha çox yolu və kiçik dəyişikliklərin uzun siyahısı.',
   'system_notice.release_notes.notes_label': 'Buraxılış qeydləri',
   'system_notice.release_notes.note_eyebrow': 'Layihə rəhbərindən qeyd',
   'system_notice.release_notes.note_title': 'TREK-i inkişaf etdirməyə davam etməyimin səbəbi sizsiniz.',
   'system_notice.release_notes.note_body':
-    'TREK öz səyahətlərim üçün işdən sonra hazırladığım kiçik alət kimi başladı, çünki onları planlaşdırmaq üçün daha yaxşı üsul istəyirdim. O, böyüməyi heç vaxt dayandırmadı. İstifadə etdiyiniz demək olar ki, hər şey gecə saatlarında, həftə sonlarında, qatarlarda və tam iş günü ilə yanaşı hazırlanıb. Sakitcə düşünüb bunları kimsənin nə vaxtsa açıb istifadə edib-etməyəcəyini sorğuladığım çoxlu axşamlar olub.',
+    'TREK mənim öz səyahətlərim üçün kiçik bir alət kimi başladı, işdən sonra yazdım. Bu gün istifadə etdiyiniz demək olar ki, hər şey gecələr, həftə sonları və qatarlarda, tam ştatlı işin yanında ərsəyə gəldi və tez-tez düşünürdüm ki, kimsə onu açacaqmı.',
   'system_notice.release_notes.promise_label': 'Vəd',
   'system_notice.release_notes.promise_lead': 'TREK həmişə pulsuz qalacaq.',
   'system_notice.release_notes.promise_text':
     'Hər funksiya və hər yeniləmə hər kəs üçün olacaq. Ödənişli səviyyələr, abunəliklər və gizli şərtlər yoxdur.',
   'system_notice.release_notes.note_body_after':
-    'Sonra siz gəldiniz. Bir neçə ay ərzində minlərlə oldunuz: ulduzlar, xəta bildirişləri, bilmədiyim dillərə tərcümələr və heç vaxt görüşmədiyim insanlardan pull request-lər. Mən hələ də hər səhər ilk olaraq reyestri yoxlayıram və bunlar hələ də tamamilə real görünmür.',
-  'system_notice.release_notes.note_closing': 'Burada olduğunuz üçün təşəkkür edirəm. — Maurice',
-  'system_notice.release_notes.support_label': 'Müstəqil qalmaq',
-  'system_notice.release_notes.support_lead': 'Google və başqaları olmadan.',
+    'Sonra siz gəldiniz, tezliklə minlərlə: ulduzlarla, xəta hesabatları ilə, bilmədiyim dillərə tərcümələrlə və heç tanımadığım insanların pull request-ləri ilə. Hər səhər ilk işim repozitoriyaya baxmaqdır və bu, hələ də tam gerçək görünmür.',
+  'system_notice.release_notes.note_closing':
+    'Burada olduğunuz üçün təşəkkür edirəm. Maurice',
+  'system_notice.release_notes.support_label': 'Sizin sayənizdə mümkündür',
+  'system_notice.release_notes.support_lead': 'TREK yalnız ianələr sayəsində mövcuddur.',
   'system_notice.release_notes.support_text':
-    'Məkan axtarışı, ünvan axtarışı və marşrutlaşdırma TREK-in öz serverlərində işləyir, bu gün dataforest cloud sponsorluğu ilə. Mən bunun üçün hər gün mübarizə aparıram və belə qalması sizin dəstəyinizdən asılıdır.',
+    'Onlar serverlərin xərcini ödəyir və mənə onu inkişaf etdirməyə vaxt verir. Bir fincan qəhvə belə TREK-in hamı üçün pulsuz qalmasına kömək edir.',
   'system_notice.release_notes.cta_bmc': 'Mənə qəhvə al',
   'system_notice.release_notes.cta_kofi': 'Ko-fi-da dəstəklə',
+  'system_notice.release_notes.cta_patreon': 'Patreon-da aylıq',
   'system_notice.pager.prev': 'Əvvəlki bildiriş',
   'system_notice.pager.next': 'Növbəti bildiriş',
   'system_notice.pager.counter': '{current} / {total}',

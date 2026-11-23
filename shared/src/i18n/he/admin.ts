@@ -835,6 +835,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'טעינת הגרסאות נכשלה',
   'admin.github.by': 'על ידי',
   'admin.github.support': 'עוזר לי להמשיך לבנות את TREK',
+  'admin.github.supportMonthly': 'תמכו ב-TREK כל חודש',
   'admin.update.available': 'עדכון זמין',
   'admin.update.text': 'TREK {version} זמין. אתם מריצים את {current}.',
   'admin.update.button': 'צפייה ב-GitHub',

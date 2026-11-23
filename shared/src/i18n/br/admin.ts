@@ -771,6 +771,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'Falha ao carregar versões',
   'admin.github.by': 'por',
   'admin.github.support': 'Ajuda a continuar desenvolvendo o TREK',
+  'admin.github.supportMonthly': 'Apoie o TREK todo mês',
   'admin.update.available': 'Atualização disponível',
   'admin.update.text': 'O TREK {version} está disponível. Você está na {current}.',
   'admin.update.button': 'Ver no GitHub',

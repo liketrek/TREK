@@ -19,6 +19,7 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'Tvořeno společně s komunitou',
   'system_notice.thank_you_support.cta_bmc': 'Kup mi kávu',
   'system_notice.thank_you_support.cta_kofi': 'Podpořit na Ko-fi',
+  'system_notice.thank_you_support.cta_patreon': 'Měsíčně na Patreonu',
   'system_notice.pager.prev': 'Předchozí oznámení',
   'system_notice.pager.next': 'Další oznámení',
   'system_notice.pager.counter': '{current} / {total}',
@@ -56,38 +57,41 @@ const system_notice: TranslationStrings = {
     'Aktualizace 3.0.14 zjistila jeden nebo více konfliktů uživatelského jména nebo e-mailu způsobených mezerami na začátku nebo konci uložených hodnot. Dotčené účty byly automaticky přejmenovány. Zkontrolujte protokoly serveru na řádky začínající **[migration] WHITESPACE COLLISION** a zjistěte, které účty vyžadují kontrolu.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Aktualizace nainstalována',
-  'system_notice.release_notes.headline': 'Správné místo, hned napoprvé.',
+  'system_notice.release_notes.headline': 'Méně psaní, více cestování.',
   'system_notice.release_notes.intro':
-    'Hledání míst, hledání adres a plánování tras teď běží na vlastních serverech TREK, které sponzoruje dataforest cloud, a každý TREK může sdílet, co ví o místech, se všemi ostatními.',
+    'Rezervační e-maily, které přepošlete, skončí ve vaší cestě, TREK sleduje vaše lety živě a PDF cesty je úplně nové. TREK teď běží i na PostgreSQL.',
   'system_notice.release_notes.features_label': 'Hlavní novinky',
   'system_notice.release_notes.features_aside': 'Zdaleka ne všechno',
-  'system_notice.release_notes.feature_search_title': 'Hledání míst, které se trefí',
-  'system_notice.release_notes.feature_search_body':
-    'Města, ostrovy, památky a letiště podle kódu jsou na prvním místě, kavárny se hledají ve vašem okolí a návrhy se objevují už během psaní.',
-  'system_notice.release_notes.feature_share_title': 'Sdílené podrobnosti o místech',
-  'system_notice.release_notes.feature_share_body':
-    'Sdílejte weby, otevírací dobu a fotky se všemi TREK, pole po poli, a vaše uložená místa převezmou, co doplnili ostatní.',
-  'system_notice.release_notes.feature_routing_title': 'Rychlejší trasy',
-  'system_notice.release_notes.feature_routing_body':
-    'Celý den se naplánuje najednou až s dvaceti zastávkami, jedna pomalá trasa už nezdrží ostatní a veřejná doprava se zeptá druhého poskytovatele, když první nic nenajde.',
-  'system_notice.release_notes.footnote': 'A k tomu dlouhý seznam menších změn napříč zbytkem TREK.',
+  'system_notice.release_notes.feature_mail_title': 'E-maily s rezervacemi skončí ve vaší cestě',
+  'system_notice.release_notes.feature_mail_body':
+    'Přepošlete potvrzení na svou osobní adresu a TREK najde vaši cestu, zkontroluje e-mail a přidá rezervaci i s dokumentem.',
+  'system_notice.release_notes.feature_flight_title': 'Stav letu živě, zdarma',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK sleduje každý váš let v den odletu: stav, zpoždění, obě letiště a mapu s letadlem, bez API klíče.',
+  'system_notice.release_notes.feature_pdf_title': 'Nové PDF cesty',
+  'system_notice.release_notes.feature_pdf_body':
+    'Titulní strana s vaší trasou, každý den jako časová osa a všechny vaše rezervace s kódy, připravené k tisku i sdílení.',
+  'system_notice.release_notes.footnote':
+    'K tomu PostgreSQL, doplňky pro jednotlivé cesty, štítky u míst, další způsoby, jak hlídat výdaje, a dlouhý seznam menších změn.',
   'system_notice.release_notes.notes_label': 'Poznámky k vydání',
   'system_notice.release_notes.note_eyebrow': 'Slovo od autora',
   'system_notice.release_notes.note_title': 'Vy jste důvod, proč na TREK pořád pracuji.',
   'system_notice.release_notes.note_body':
-    'TREK začal jako malý nástroj pro mé vlastní cesty, psaný po práci, protože jsem je chtěl plánovat lépe. Vlastně nikdy nepřestal růst. Skoro všechno, co používáte, vzniklo pozdě v noci, o víkendech, ve vlacích, vedle práce na plný úvazek, a bylo spoustu večerů, kdy jsem se potichu ptal, jestli ho tam venku vůbec někdy někdo otevře.',
+    'TREK začal jako malý nástroj pro mé vlastní cesty, který jsem psal po práci. Skoro všechno, co dnes používáte, vzniklo pozdě v noci, o víkendech nebo ve vlaku vedle práce na plný úvazek a často jsem přemýšlel, jestli ho vůbec někdo otevře.',
   'system_notice.release_notes.promise_label': 'Slib',
   'system_notice.release_notes.promise_lead': 'TREK zůstane zdarma, navždy.',
   'system_notice.release_notes.promise_text':
     'Každá funkce, každá aktualizace, pro všechny. Žádné placené verze, žádná předplatná, žádné háčky.',
   'system_notice.release_notes.note_body_after':
-    'A pak jste ho otevřeli. Během pár měsíců vás byly tisíce: hvězdičky, hlášení chyb, překlady do jazyků, kterými nemluvím, pull requesty od lidí, které jsem nikdy nepotkal. Každé ráno se pořád nejdřív podívám do repozitáře a pořád mi to nepřijde úplně skutečné.',
-  'system_notice.release_notes.note_closing': 'Děkuji, že jste tady. Váš Maurice',
-  'system_notice.release_notes.support_label': 'Zůstat nezávislý',
-  'system_notice.release_notes.support_lead': 'Bez Google a spol.',
+    'Pak jste přišli vy, brzy po tisících: s hvězdičkami, hlášeními chyb, překlady do jazyků, kterými nemluvím, a pull requesty od lidí, které jsem nikdy nepotkal. Každé ráno stále jako první zkontroluji repozitář a pořád mi to nepřipadá docela skutečné.',
+  'system_notice.release_notes.note_closing':
+    'Děkuji, že jste tady. Maurice',
+  'system_notice.release_notes.support_label': 'Díky vám',
+  'system_notice.release_notes.support_lead': 'TREK existuje jen díky darům.',
   'system_notice.release_notes.support_text':
-    'Hledání míst, hledání adres a trasy běží na vlastních serverech TREK, dnes sponzorovaných společností dataforest cloud. Bojuji za to každý den a aby to tak zůstalo, potřebuji vaši podporu.',
+    'Platí z nich servery a dávají mi čas na jeho další vývoj. Pomůže i jedna káva, aby TREK zůstal zdarma pro všechny.',
   'system_notice.release_notes.cta_bmc': 'Kup mi kávu',
   'system_notice.release_notes.cta_kofi': 'Podpořit na Ko-fi',
+  'system_notice.release_notes.cta_patreon': 'Měsíčně na Patreonu',
 };
 export default system_notice;

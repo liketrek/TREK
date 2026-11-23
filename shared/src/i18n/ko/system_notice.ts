@@ -49,44 +49,48 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': '커뮤니티와 함께 만들어 갑니다',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'Ko-fi에서 후원하기',
+  'system_notice.thank_you_support.cta_patreon': 'Patreon에서 매달 후원하기',
   'system_notice.pager.prev': '이전 공지',
   'system_notice.pager.next': '다음 공지',
   'system_notice.pager.counter': '{current} / {total}',
   'system_notice.pager.goto': '{n}번 공지로 이동',
   'system_notice.pager.position': '공지 {current}/{total}',
   'system_notice.release_notes.eyebrow': '업데이트 완료',
-  'system_notice.release_notes.headline': '맞는 장소가, 먼저.',
+  'system_notice.release_notes.headline': '입력은 줄이고, 여행은 더 많이.',
   'system_notice.release_notes.intro':
-    '장소 검색, 주소 검색, 경로 안내가 이제 dataforest cloud의 후원으로 TREK 자체 서버에서 돌아갑니다. 그리고 모든 TREK이 장소에 대해 아는 것을 다른 모든 TREK과 나눌 수 있습니다.',
+    '전달한 예약 메일은 내 여행으로 들어가고, TREK이 내 항공편을 실시간으로 따라가며, 여행 PDF는 완전히 새로워졌습니다. 이제 TREK은 PostgreSQL에서도 실행됩니다.',
   'system_notice.release_notes.features_label': '이번 릴리스의 주역',
   'system_notice.release_notes.features_aside': '이게 전부는 아닙니다',
-  'system_notice.release_notes.feature_search_title': '제대로 찾아 주는 장소 검색',
-  'system_notice.release_notes.feature_search_body':
-    '도시, 섬, 명소, 코드로 찾는 공항이 먼저 나오고, 카페는 내 주변에서 찾아 줍니다. 입력하는 동안 바로 추천이 뜹니다.',
-  'system_notice.release_notes.feature_share_title': '장소 정보, 함께 나누기',
-  'system_notice.release_notes.feature_share_body':
-    '웹사이트, 영업시간, 사진을 항목별로 모든 TREK과 공유하세요. 저장한 장소에는 다른 사람들이 추가한 정보가 채워집니다.',
-  'system_notice.release_notes.feature_routing_title': '더 빨라진 경로 안내',
-  'system_notice.release_notes.feature_routing_body':
-    '경유지가 최대 20곳인 하루 일정도 한 번에 경로를 계산합니다. 느린 경로 하나가 나머지를 붙잡지 않고, 대중교통은 첫 번째 제공자가 찾지 못하면 두 번째 제공자에게 물어봅니다.',
-  'system_notice.release_notes.footnote': '그 밖에도 TREK 곳곳에 작은 변경이 많이 담겨 있습니다.',
+  'system_notice.release_notes.feature_mail_title': '예약 메일이 내 여행으로 들어갑니다',
+  'system_notice.release_notes.feature_mail_body':
+    '확인 메일을 내 전용 주소로 전달하면 TREK이 내 여행을 찾아 확인하고, 문서와 함께 예약을 추가합니다.',
+  'system_notice.release_notes.feature_flight_title': '실시간 항공편 상태, 무료',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK이 내 항공편을 당일에 따라갑니다. 상태, 지연, 두 공항, 항공기가 보이는 지도까지, API 키는 필요 없습니다.',
+  'system_notice.release_notes.feature_pdf_title': '새로워진 여행 PDF',
+  'system_notice.release_notes.feature_pdf_body':
+    '내 경로가 담긴 표지, 하루하루를 타임라인으로, 모든 예약을 코드와 함께 담아 바로 인쇄하거나 공유할 수 있습니다.',
+  'system_notice.release_notes.footnote':
+    '그 밖에 PostgreSQL, 여행별 애드온, 장소 태그, 더 다양한 비용 관리 방법, 그리고 많은 작은 개선이 있습니다.',
   'system_notice.release_notes.notes_label': '릴리스 노트',
   'system_notice.release_notes.note_eyebrow': '개발자의 한마디',
   'system_notice.release_notes.note_title': '여러분이 있어서 TREK을 계속 만듭니다.',
   'system_notice.release_notes.note_body':
-    'TREK은 제 여행을 위한 작은 도구로 시작했습니다. 여행을 더 잘 계획하고 싶어서 퇴근 후에 짬을 내 만들었습니다. 그 뒤로 사실상 한 번도 자라기를 멈춘 적이 없습니다. 여러분이 쓰는 거의 모든 기능은 풀타임 직장을 다니면서 늦은 밤에, 주말에, 기차 안에서 만들었고, 과연 누가 이걸 열어보기나 할까 조용히 생각하던 저녁도 많았습니다.',
+    'TREK은 퇴근 후에 제 여행을 위해 만든 작은 도구로 시작했습니다. 지금 여러분이 쓰는 거의 모든 기능은 늦은 밤, 주말, 기차 안에서, 정규직 일과 함께 만들어졌고, 과연 누가 열어 보기나 할까 자주 생각했습니다.',
   'system_notice.release_notes.promise_label': '약속',
   'system_notice.release_notes.promise_lead': 'TREK은 영원히 무료입니다.',
   'system_notice.release_notes.promise_text':
     '모든 기능, 모든 업데이트를 모두에게. 유료 등급도, 구독도, 숨겨진 조건도 없습니다.',
   'system_notice.release_notes.note_body_after':
-    '그런데 여러분이 열어주셨습니다. 몇 달 만에 수천 명이 찾아와 주셨습니다. 별, 버그 보고, 제가 할 줄 모르는 언어로 된 번역, 한 번도 만난 적 없는 분들의 풀 리퀘스트까지. 지금도 매일 아침 가장 먼저 저장소를 확인하는데, 아직도 잘 실감이 나지 않습니다.',
-  'system_notice.release_notes.note_closing': '함께해 주셔서 감사합니다. Maurice 드림',
-  'system_notice.release_notes.support_label': '독립을 지키며',
-  'system_notice.release_notes.support_lead': 'Google 같은 빅테크 없이.',
+    '그러다 여러분이 와 주셨고, 곧 수천 명이 되었습니다. 별, 버그 리포트, 제가 쓰지 못하는 언어로 된 번역, 만난 적 없는 분들의 풀 리퀘스트까지. 저는 지금도 매일 아침 가장 먼저 저장소를 확인하는데, 여전히 현실 같지 않습니다.',
+  'system_notice.release_notes.note_closing':
+    '함께해 주셔서 감사합니다. Maurice',
+  'system_notice.release_notes.support_label': '여러분 덕분입니다',
+  'system_notice.release_notes.support_lead': 'TREK은 후원 덕분에 존재합니다.',
   'system_notice.release_notes.support_text':
-    '장소 검색, 주소 검색, 경로 안내는 TREK 자체 서버에서 돌아가며, 지금은 dataforest cloud가 후원하고 있습니다. 저는 매일 이것을 위해 싸우고 있고, 이대로 지켜 나가려면 여러분의 후원이 필요합니다.',
+    '후원은 서버 비용이 되고, 제가 계속 개발할 시간을 만들어 줍니다. 커피 한 잔만으로도 TREK을 모두에게 무료로 지키는 데 큰 도움이 됩니다.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Ko-fi에서 후원하기',
+  'system_notice.release_notes.cta_patreon': 'Patreon에서 매달 후원하기',
 };
 export default system_notice;

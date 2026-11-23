@@ -806,6 +806,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'Releases konnten nicht geladen werden',
   'admin.github.by': 'von',
   'admin.github.support': 'Hilft mir, TREK weiterzuentwickeln',
+  'admin.github.supportMonthly': 'Unterstütze TREK jeden Monat',
   'admin.update.available': 'Update verfügbar',
   'admin.update.text': 'TREK {version} ist verfügbar. Du verwendest {current}.',
   'admin.update.button': 'Auf GitHub ansehen',

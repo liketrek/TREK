@@ -17,6 +17,7 @@ import { useTranslation } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { donationsShown } from '../../utils/donations';
 import { fs } from '../shared/DialogShell';
+import PatreonIcon, { PATREON_COLOR, PATREON_URL } from '../shared/PatreonIcon';
 import Section from './Section';
 import { StatusPill } from './settingsKit';
 
@@ -246,6 +247,13 @@ export default function AboutTab({ appVersion }: Props): React.ReactElement {
           {/* Not in the native apps, whose store rules allow no outside payment links. */}
           {donationsShown() && (
             <>
+              <LinkTile
+                href={PATREON_URL}
+                color={PATREON_COLOR}
+                icon={<PatreonIcon size={17} />}
+                title="Patreon"
+                hint={t('admin.github.supportMonthly')}
+              />
               <LinkTile
                 href="https://ko-fi.com/mauriceboe"
                 color={BRAND.kofi}

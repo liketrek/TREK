@@ -789,6 +789,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'Nepodařilo se načíst verze',
   'admin.github.by': 'od',
   'admin.github.support': 'Pomáhá udržovat vývoj TREK',
+  'admin.github.supportMonthly': 'Podpořte TREK každý měsíc',
   'admin.weather.title': 'Data o počasí',
   'admin.weather.badge': 'Od 24. března 2026',
   'admin.weather.description':

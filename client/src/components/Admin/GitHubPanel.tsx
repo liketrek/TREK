@@ -20,6 +20,7 @@ import { escapeReleaseHtml as escapeHtml, parseReleaseNotes } from '../../utils/
 import { fs } from '../shared/DialogShell';
 import { SETTINGS_BUTTON, SettingsCard, StatusPill } from '../Settings/settingsKit';
 import { useGithubReleases } from './useGithubReleases';
+import PatreonIcon, { PATREON_COLOR, PATREON_URL } from '../shared/PatreonIcon';
 
 const REPO = 'liketrek/TREK';
 
@@ -136,6 +137,13 @@ export default function GitHubPanel({ isPrerelease = false }: { isPrerelease?: b
   };
 
   const supportLinks: SupportLink[] = withoutDonationsInApp([
+    {
+      href: PATREON_URL,
+      brand: PATREON_COLOR,
+      icon: PatreonIcon,
+      title: 'Patreon',
+      hint: t('admin.github.supportMonthly'),
+    },
     {
       href: 'https://ko-fi.com/mauriceboe',
       brand: '#ff5e5b', // theme-lint-disable: Ko-fi brand colour

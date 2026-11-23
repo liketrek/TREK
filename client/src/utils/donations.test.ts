@@ -15,6 +15,7 @@ describe('isDonationLink', () => {
   it('knows the donation pages, their subdomains too', () => {
     expect(isDonationLink('https://ko-fi.com/mauriceboe')).toBe(true);
     expect(isDonationLink('https://www.BuyMeACoffee.com/mauriceboe')).toBe(true);
+    expect(isDonationLink('https://www.patreon.com/cw/mauriceboe')).toBe(true);
   });
 
   it('is false for anything else, a missing href or one that is no URL', () => {
@@ -41,9 +42,10 @@ describe('in the native app', () => {
 });
 
 describe('noticeAsksForDonation', () => {
-  it('looks at both buttons', () => {
+  it('looks at all three buttons', () => {
     expect(noticeAsksForDonation({ cta: { kind: 'link', href: 'https://ko-fi.com/x' } })).toBe(true);
     expect(noticeAsksForDonation({ secondaryCta: { kind: 'link', href: 'https://buymeacoffee.com/x' } })).toBe(true);
+    expect(noticeAsksForDonation({ tertiaryCta: { kind: 'link', href: 'https://www.patreon.com/x' } })).toBe(true);
     expect(noticeAsksForDonation({ cta: { kind: 'nav', href: '/settings' }, secondaryCta: null })).toBe(false);
     expect(noticeAsksForDonation({ cta: { kind: 'action' } })).toBe(false);
     expect(noticeAsksForDonation({})).toBe(false);

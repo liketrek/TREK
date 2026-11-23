@@ -19,6 +19,7 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'Dibangun bersama komunitas',
   'system_notice.thank_you_support.cta_bmc': 'Traktir Kopi',
   'system_notice.thank_you_support.cta_kofi': 'Dukung di Ko-fi',
+  'system_notice.thank_you_support.cta_patreon': 'Bulanan di Patreon',
   'system_notice.pager.prev': 'Pemberitahuan sebelumnya',
   'system_notice.pager.next': 'Pemberitahuan berikutnya',
   'system_notice.pager.counter': '{current} / {total}',
@@ -55,38 +56,41 @@ const system_notice: TranslationStrings = {
   'system_notice.v3014_whitespace_collision.body':
     'Pembaruan 3.0.14 mendeteksi satu atau lebih konflik nama pengguna atau email yang disebabkan oleh spasi di awal atau akhir nilai yang tersimpan. Akun yang terpengaruh telah diganti nama secara otomatis. Periksa log server untuk baris yang dimulai dengan **[migration] WHITESPACE COLLISION** guna mengidentifikasi akun mana yang perlu ditinjau.',
   'system_notice.release_notes.eyebrow': 'Pembaruan terpasang',
-  'system_notice.release_notes.headline': 'Tempat yang tepat, lebih dulu.',
+  'system_notice.release_notes.headline': 'Lebih sedikit mengetik, lebih banyak bepergian.',
   'system_notice.release_notes.intro':
-    'Pencarian tempat, pencarian alamat, dan perutean kini berjalan di server milik TREK sendiri, disponsori oleh dataforest cloud, dan setiap TREK bisa berbagi apa yang diketahuinya tentang tempat dengan semua TREK lainnya.',
+    'Email pemesanan yang Anda teruskan langsung masuk ke perjalanan Anda, TREK memantau penerbangan Anda secara langsung, dan PDF perjalanan benar-benar baru. TREK kini juga berjalan di PostgreSQL.',
   'system_notice.release_notes.features_label': 'Sorotan utama',
   'system_notice.release_notes.features_aside': 'Masih banyak lagi',
-  'system_notice.release_notes.feature_search_title': 'Pencarian tempat yang tepat sasaran',
-  'system_notice.release_notes.feature_search_body':
-    'Kota, pulau, landmark, dan bandara berdasarkan kodenya muncul lebih dulu, kafe diambil dari sekitar Anda, dan saran muncul saat Anda mengetik.',
-  'system_notice.release_notes.feature_share_title': 'Detail tempat, dibagikan',
-  'system_notice.release_notes.feature_share_body':
-    'Bagikan situs web, jam buka, dan foto dengan setiap TREK, kolom demi kolom, dan tempat tersimpan Anda ikut mendapatkan apa yang ditambahkan orang lain.',
-  'system_notice.release_notes.feature_routing_title': 'Perutean lebih cepat',
-  'system_notice.release_notes.feature_routing_body':
-    'Satu hari penuh dirutekan sekaligus dengan hingga dua puluh perhentian, satu rute yang lambat tidak lagi menahan yang lain, dan transportasi umum bertanya ke penyedia kedua saat yang pertama tidak menemukan apa pun.',
-  'system_notice.release_notes.footnote': 'Ditambah deretan panjang perubahan kecil di bagian TREK lainnya.',
+  'system_notice.release_notes.feature_mail_title': 'Email pemesanan masuk ke perjalanan Anda',
+  'system_notice.release_notes.feature_mail_body':
+    'Teruskan email konfirmasi ke alamat pribadi Anda, lalu TREK mencari perjalanan Anda, memeriksanya, dan menambahkan pemesanan beserta dokumennya.',
+  'system_notice.release_notes.feature_flight_title': 'Status penerbangan langsung, gratis',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK memantau setiap penerbangan Anda pada harinya: status, keterlambatan, kedua bandara, dan peta dengan pesawatnya, tanpa kunci API.',
+  'system_notice.release_notes.feature_pdf_title': 'PDF perjalanan baru',
+  'system_notice.release_notes.feature_pdf_body':
+    'Sampul dengan rute Anda, setiap hari sebagai lini masa, dan semua pemesanan Anda beserta kodenya, siap dicetak atau dibagikan.',
+  'system_notice.release_notes.footnote':
+    'Ditambah PostgreSQL, add-on per perjalanan, tag pada tempat, lebih banyak cara mencatat biaya, dan daftar panjang perubahan yang lebih kecil.',
   'system_notice.release_notes.notes_label': 'Catatan rilis',
   'system_notice.release_notes.note_eyebrow': 'Catatan dari maintainer',
   'system_notice.release_notes.note_title': 'Kalianlah alasan saya terus membangun TREK.',
   'system_notice.release_notes.note_body':
-    'TREK dimulai sebagai alat kecil untuk perjalanan saya sendiri, saya tulis sepulang kerja karena ingin cara yang lebih baik untuk merencanakannya. Sejak itu ia tidak pernah benar-benar berhenti tumbuh. Hampir semua yang kalian pakai dibangun larut malam, di akhir pekan, di kereta, di samping pekerjaan penuh waktu, dan tak sedikit malam saya diam-diam bertanya-tanya apakah akan ada orang di luar sana yang membukanya.',
+    'TREK bermula sebagai alat kecil untuk perjalanan saya sendiri, dibuat sepulang kerja. Hampir semua yang Anda pakai hari ini lahir larut malam, di akhir pekan, atau di kereta, di sela pekerjaan penuh waktu, dan saya sering bertanya-tanya apakah akan ada yang membukanya.',
   'system_notice.release_notes.promise_label': 'Janjinya',
   'system_notice.release_notes.promise_lead': 'TREK tetap gratis, selamanya.',
   'system_notice.release_notes.promise_text':
     'Setiap fitur, setiap pembaruan, untuk semua orang. Tanpa paket berbayar, tanpa langganan, tanpa syarat tersembunyi.',
   'system_notice.release_notes.note_body_after':
-    'Lalu kalian datang. Dalam beberapa bulan saja jumlah kalian sudah ribuan: bintang, laporan bug, terjemahan ke bahasa yang tidak saya kuasai, pull request dari orang-orang yang belum pernah saya temui. Sampai sekarang, hal pertama yang saya lakukan setiap pagi masih membuka repositori, dan rasanya masih belum sepenuhnya nyata.',
-  'system_notice.release_notes.note_closing': 'Terima kasih telah berada di sini. Salam hangat, Maurice.',
-  'system_notice.release_notes.support_label': 'Tetap independen',
-  'system_notice.release_notes.support_lead': 'Tanpa Google dan kawan-kawan.',
+    'Lalu Anda datang, tak lama kemudian ribuan: dengan bintang, laporan bug, terjemahan ke bahasa yang tidak saya kuasai, dan pull request dari orang yang belum pernah saya temui. Saya masih memeriksa repositori pertama kali setiap pagi, dan rasanya masih belum benar-benar nyata.',
+  'system_notice.release_notes.note_closing':
+    'Terima kasih sudah ada di sini. Maurice',
+  'system_notice.release_notes.support_label': 'Terwujud berkat Anda',
+  'system_notice.release_notes.support_lead': 'TREK hanya ada berkat donasi.',
   'system_notice.release_notes.support_text':
-    'Pencarian tempat, pencarian alamat, dan perutean berjalan di server milik TREK sendiri, saat ini disponsori oleh dataforest cloud. Saya memperjuangkannya setiap hari, dan agar tetap begitu, saya butuh dukungan Anda.',
+    'Donasi itu membayar server dan memberi saya waktu untuk terus membangunnya. Satu kopi saja sudah membantu menjaga TREK tetap gratis untuk semua orang.',
   'system_notice.release_notes.cta_bmc': 'Traktir aku kopi',
   'system_notice.release_notes.cta_kofi': 'Dukung di Ko-fi',
+  'system_notice.release_notes.cta_patreon': 'Bulanan di Patreon',
 };
 export default system_notice;

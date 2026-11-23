@@ -805,6 +805,7 @@ const admin: TranslationStrings = {
   'admin.github.error': '릴리스 불러오기 실패',
   'admin.github.by': '작성자',
   'admin.github.support': 'TREK 개발 지속에 도움이 됩니다',
+  'admin.github.supportMonthly': '매달 TREK 후원하기',
   'admin.update.available': '업데이트 사용 가능',
   'admin.update.text': 'TREK {version}이(가) 사용 가능합니다. 현재 {current}을(를) 실행 중입니다.',
   'admin.update.button': 'GitHub에서 보기',

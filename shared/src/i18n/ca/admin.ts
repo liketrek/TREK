@@ -391,6 +391,7 @@ const admin: TranslationStrings = {
   'admin.github.loadMore': 'Carregar més',
   'admin.github.loading': 'Carregant...',
   'admin.github.support': 'Ajuda a continuar desenvolupant TREK',
+  'admin.github.supportMonthly': 'Dona suport a TREK cada mes',
   'admin.github.error': "No s'han pogut carregar les versions",
   'admin.github.by': 'per',
   'admin.update.available': 'Actualització disponible',

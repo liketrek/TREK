@@ -873,6 +873,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'Nepodarilo sa načítať verzie',
   'admin.github.by': 'od',
   'admin.github.support': 'Pomáha mi ďalej rozvíjať TREK',
+  'admin.github.supportMonthly': 'Podporte TREK každý mesiac',
   'admin.update.available': 'Dostupná aktualizácia',
   'admin.update.text': 'TREK {version} je k dispozícii. Aktuálne používate {current}.',
   'admin.update.button': 'Zobraziť na GitHube',

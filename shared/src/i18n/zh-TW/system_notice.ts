@@ -19,6 +19,7 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': '與社群一起攜手打造',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': '在 Ko-fi 上支持我',
+  'system_notice.thank_you_support.cta_patreon': 'Patreon 按月支持',
   'system_notice.pager.prev': '上一則通知',
   'system_notice.pager.next': '下一則通知',
   'system_notice.pager.counter': '{current} / {total}',
@@ -55,38 +56,41 @@ const system_notice: TranslationStrings = {
     '3.0.14 版本升級偵測到一個或多個由儲存帳戶中前後空白字元引發的使用者名稱或電子郵件衝突。受影響的帳戶已自動重新命名。請檢查伺服器日誌中以 **[migration] WHITESPACE COLLISION** 開頭的行，以確認哪些帳戶需要審查。',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': '更新已安裝',
-  'system_notice.release_notes.headline': '對的地方，排在最前。',
+  'system_notice.release_notes.headline': '少打字，多旅行。',
   'system_notice.release_notes.intro':
-    '地點搜尋、地址搜尋和路線規劃現在都在 TREK 自己的伺服器上執行，由 dataforest cloud 贊助。而且每個 TREK 都能把它對地點的了解分享給所有其他 TREK。',
+    '你轉寄的預訂郵件會自動歸入你的行程，TREK 即時追蹤你的航班，行程 PDF 也全新設計。TREK 現在也能在 PostgreSQL 上執行。',
   'system_notice.release_notes.features_label': '本次重頭戲',
   'system_notice.release_notes.features_aside': '遠不止這些',
-  'system_notice.release_notes.feature_search_title': '一搜就準的地點搜尋',
-  'system_notice.release_notes.feature_search_body':
-    '城市、島嶼、地標，以及用代碼搜尋的機場排在最前，咖啡廳則從你身邊找起，邊打字邊出現建議。',
-  'system_notice.release_notes.feature_share_title': '地點資訊，大家共享',
-  'system_notice.release_notes.feature_share_body':
-    '把網站、營業時間和照片逐項分享給每一個 TREK，你儲存的地點也會自動補上其他人新增的資訊。',
-  'system_notice.release_notes.feature_routing_title': '更快的路線規劃',
-  'system_notice.release_notes.feature_routing_body':
-    '一整天最多二十個停靠點，一次就能規劃完成。一條慢路線不再拖累其他路線，大眾運輸在第一個服務商找不到結果時，會再詢問第二個。',
-  'system_notice.release_notes.footnote': '除此之外，TREK 的其他部分還有一長串小改動。',
+  'system_notice.release_notes.feature_mail_title': '預訂郵件自動歸入你的行程',
+  'system_notice.release_notes.feature_mail_body':
+    '把確認郵件轉寄到你的專屬地址，TREK 會找到你的行程、核對內容，並把預訂連同文件一起加進去。',
+  'system_notice.release_notes.feature_flight_title': '即時航班動態，免費',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK 會在航班當天追蹤你的每個航班：狀態、延誤、兩端機場，還有顯示飛機的地圖，無需 API 金鑰。',
+  'system_notice.release_notes.feature_pdf_title': '全新的行程 PDF',
+  'system_notice.release_notes.feature_pdf_body':
+    '封面帶著你的路線，每一天都是時間線，你的所有預訂連同訂位代碼一併收錄，可直接列印或分享。',
+  'system_notice.release_notes.footnote':
+    '此外還有 PostgreSQL、依行程啟用的附加元件、地點標籤、更多記錄費用的方式，以及一長串細節改進。',
   'system_notice.release_notes.notes_label': '版本說明',
   'system_notice.release_notes.note_eyebrow': '來自維護者的話',
   'system_notice.release_notes.note_title': '是你們讓我一直堅持做 TREK。',
   'system_notice.release_notes.note_body':
-    'TREK 最初只是我為自己的旅行做的小工具，下班後一點一點寫出來，只因為我想更好地規劃旅行。後來它就再也沒有停止成長。你用到的幾乎每一項功能，都是在全職工作之外，在深夜、週末和火車上做出來的。也有很多個晚上，我會默默地想，這世界上究竟會不會有人打開它。',
+    'TREK 最初只是我為自己的旅行做的一個小工具，是下班後做出來的。你今天用到的幾乎所有功能，都是在深夜、週末或火車上，在一份全職工作之外完成的，我常常想，到底會不會有人打開它。',
   'system_notice.release_notes.promise_label': '承諾',
   'system_notice.release_notes.promise_lead': 'TREK 永遠免費。',
   'system_notice.release_notes.promise_text':
     '每一項功能、每一次更新，都屬於每一個人。沒有付費方案，沒有訂閱，沒有任何套路。',
   'system_notice.release_notes.note_body_after':
-    '後來，你們真的來了。短短幾個月，就來了成千上萬的你們：有人按星標、回報 bug，有人把它翻譯成我不會說的語言，還有素未謀面的人送出 pull request。直到今天，我每天早上第一件事仍是打開儲存庫看看，而這一切還是有點不太真實。',
-  'system_notice.release_notes.note_closing': '謝謝你來到這裡，Maurice 敬上。',
-  'system_notice.release_notes.support_label': '保持獨立',
-  'system_notice.release_notes.support_lead': '不靠 Google 之流。',
+    '後來你們來了，很快就是成千上萬人：有星標，有問題回報，有翻譯成我不會的語言的譯文，還有素未謀面的人提交的 pull request。我至今每天早上第一件事還是看一眼儲存庫，仍然覺得不太真實。',
+  'system_notice.release_notes.note_closing':
+    '謝謝你來到這裡。Maurice',
+  'system_notice.release_notes.support_label': '因為有你',
+  'system_notice.release_notes.support_lead': 'TREK 全靠捐款才得以存在。',
   'system_notice.release_notes.support_text':
-    '地點搜尋、地址搜尋和路線規劃都在 TREK 自己的伺服器上執行，目前由 dataforest cloud 贊助。我每天都在為此努力，而要一直維持下去，需要你的支持。',
+    '這些捐款付了伺服器的費用，也讓我有時間繼續開發。哪怕一杯咖啡，也能幫 TREK 對所有人保持免費。',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': '在 Ko-fi 上支持我',
+  'system_notice.release_notes.cta_patreon': 'Patreon 按月支持',
 };
 export default system_notice;

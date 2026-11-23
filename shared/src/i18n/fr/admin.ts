@@ -810,6 +810,7 @@ const admin: TranslationStrings = {
   'admin.github.loadMore': 'Charger plus',
   'admin.github.loading': 'Chargement…',
   'admin.github.support': 'Aidez à poursuivre le développement de TREK',
+  'admin.github.supportMonthly': 'Soutenez TREK chaque mois',
   'admin.github.error': 'Impossible de charger les versions',
   'admin.github.by': 'par',
   'admin.update.available': 'Mise à jour disponible',

@@ -810,6 +810,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'リリースの読み込みに失敗しました',
   'admin.github.by': '作成者',
   'admin.github.support': 'TREKの開発を支援',
+  'admin.github.supportMonthly': '毎月 TREK を応援する',
   'admin.update.available': '更新があります',
   'admin.update.text': 'TREK {version} が利用可能です。現在は {current} を使用しています。',
   'admin.update.button': 'GitHubで見る',

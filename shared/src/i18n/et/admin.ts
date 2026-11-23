@@ -867,6 +867,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'Versioonide laadimine ebaõnnestus',
   'admin.github.by': 'autor',
   'admin.github.support': 'Aitab mul TREKi edasi arendada',
+  'admin.github.supportMonthly': 'Toeta TREKi igal kuul',
   'admin.update.available': 'Uuendus saadaval',
   'admin.update.text': 'TREK {version} on saadaval. Kasutad versiooni {current}.',
   'admin.update.button': 'Vaata GitHubis',

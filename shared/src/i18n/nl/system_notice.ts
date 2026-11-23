@@ -19,6 +19,7 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'Samen met de community gebouwd',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'Steun op Ko-fi',
+  'system_notice.thank_you_support.cta_patreon': 'Maandelijks op Patreon',
   'system_notice.pager.prev': 'Vorige melding',
   'system_notice.pager.next': 'Volgende melding',
   'system_notice.pager.counter': '{current} / {total}',
@@ -56,38 +57,41 @@ const system_notice: TranslationStrings = {
     'De 3.0.14-upgrade heeft één of meer conflicten in gebruikersnaam of e-mailadres gedetecteerd, veroorzaakt door spaties aan het begin of einde van opgeslagen waarden. Getroffen accounts zijn automatisch hernoemd. Controleer de serverlogboeken op regels die beginnen met **[migration] WHITESPACE COLLISION** om te achterhalen welke accounts moeten worden beoordeeld.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Update geïnstalleerd',
-  'system_notice.release_notes.headline': 'De juiste plek, eerst.',
+  'system_notice.release_notes.headline': 'Minder typen, meer reizen.',
   'system_notice.release_notes.intro':
-    'Plaatsen zoeken, adressen zoeken en routeplanning draaien nu op eigen servers van TREK, gesponsord door dataforest cloud, en elke TREK kan wat hij over plaatsen weet delen met alle andere.',
+    'Boekingsmails die je doorstuurt komen in je reis terecht, TREK volgt je vluchten live en de reis-PDF is helemaal nieuw. TREK draait nu ook op PostgreSQL.',
   'system_notice.release_notes.features_label': 'De hoogtepunten',
   'system_notice.release_notes.features_aside': 'Lang niet alles',
-  'system_notice.release_notes.feature_search_title': 'Plaatsen zoeken dat klopt',
-  'system_notice.release_notes.feature_search_body':
-    'Steden, eilanden, bezienswaardigheden en luchthavens op hun code komen eerst, cafés komen uit je omgeving en suggesties verschijnen terwijl je typt.',
-  'system_notice.release_notes.feature_share_title': 'Plaatsdetails, gedeeld',
-  'system_notice.release_notes.feature_share_body':
-    'Deel websites, openingstijden en foto’s met elke TREK, veld voor veld, en je opgeslagen plaatsen nemen over wat anderen hebben toegevoegd.',
-  'system_notice.release_notes.feature_routing_title': 'Snellere routes',
-  'system_notice.release_notes.feature_routing_body':
-    'Een hele dag wordt in één keer gepland met tot twintig stops, één trage route houdt de rest niet meer op en het openbaar vervoer vraagt een tweede aanbieder als de eerste niets vindt.',
-  'system_notice.release_notes.footnote': 'En daarnaast een lange lijst kleinere wijzigingen in de rest van TREK.',
+  'system_notice.release_notes.feature_mail_title': 'Boekingsmails komen in je reis terecht',
+  'system_notice.release_notes.feature_mail_body':
+    'Stuur een bevestiging door naar je persoonlijke adres en TREK vindt je reis, controleert de mail en voegt de boeking met het bijbehorende document toe.',
+  'system_notice.release_notes.feature_flight_title': 'Live vluchtstatus, gratis',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK volgt elk van je vluchten op de dag zelf: status, vertraging, beide luchthavens en een kaart met het vliegtuig, zonder API-sleutel.',
+  'system_notice.release_notes.feature_pdf_title': 'Een nieuwe reis-PDF',
+  'system_notice.release_notes.feature_pdf_body':
+    'Een omslag met je route, elke dag als tijdlijn en al je boekingen met hun codes, klaar om te printen of te delen.',
+  'system_notice.release_notes.footnote':
+    'Daarnaast PostgreSQL, add-ons per reis, labels op plaatsen, meer manieren om kosten bij te houden en een lange lijst kleinere wijzigingen.',
   'system_notice.release_notes.notes_label': 'Release notes',
   'system_notice.release_notes.note_eyebrow': 'Een woord van de maintainer',
   'system_notice.release_notes.note_title': 'Jij bent de reden dat ik aan TREK blijf bouwen.',
   'system_notice.release_notes.note_body':
-    'TREK begon als een klein hulpmiddel voor mijn eigen reizen, geschreven na werktijd omdat ik ze beter wilde kunnen plannen. Eigenlijk is het nooit gestopt met groeien. Bijna alles wat je gebruikt, is gebouwd laat op de avond, in het weekend, in de trein, naast een fulltime baan, en op heel wat avonden vroeg ik me stilletjes af of iemand daarbuiten het ooit zou openen.',
+    'TREK begon als een klein hulpmiddel voor mijn eigen reizen, gebouwd na het werk. Bijna alles wat je nu gebruikt, ontstond laat in de avond, in het weekend of in de trein, naast een fulltimebaan, en ik vroeg me vaak af of iemand het ooit zou openen.',
   'system_notice.release_notes.promise_label': 'De belofte',
   'system_notice.release_notes.promise_lead': 'TREK blijft gratis, voor altijd.',
   'system_notice.release_notes.promise_text':
     'Elke functie, elke update, voor iedereen. Geen betaalde versies, geen abonnementen, geen addertjes.',
   'system_notice.release_notes.note_body_after':
-    'En toen kwamen jullie. Binnen een paar maanden waren jullie met duizenden: sterren, bugmeldingen, vertalingen in talen die ik niet spreek, pull requests van mensen die ik nooit heb ontmoet. Nog altijd kijk ik elke ochtend als eerste in de repository, en het voelt nog steeds niet helemaal echt.',
-  'system_notice.release_notes.note_closing': 'Bedankt dat je er bent. Groetjes, Maurice.',
-  'system_notice.release_notes.support_label': 'Onafhankelijk blijven',
-  'system_notice.release_notes.support_lead': 'Zonder Google en co.',
+    'Toen kwamen jullie, al snel bij duizenden: met sterren, bugmeldingen, vertalingen in talen die ik niet spreek en pull requests van mensen die ik nooit heb ontmoet. Ik check elke ochtend nog steeds als eerste de repository, en het voelt nog steeds niet helemaal echt.',
+  'system_notice.release_notes.note_closing':
+    'Bedankt dat je er bent. Maurice',
+  'system_notice.release_notes.support_label': 'Mogelijk dankzij jou',
+  'system_notice.release_notes.support_lead': 'TREK bestaat alleen dankzij donaties.',
   'system_notice.release_notes.support_text':
-    'Plaatsen zoeken, adressen zoeken en routeplanning draaien op eigen servers van TREK, vandaag gesponsord door dataforest cloud. Daar vecht ik elke dag voor, en om het zo te houden is jouw steun nodig.',
+    'Daarmee betaal ik de servers en kan ik tijd vrijmaken om ermee verder te bouwen. Zelfs één kop koffie helpt om TREK gratis te houden voor iedereen.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Steun op Ko-fi',
+  'system_notice.release_notes.cta_patreon': 'Maandelijks op Patreon',
 };
 export default system_notice;

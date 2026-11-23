@@ -889,6 +889,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'Buraxılışları yükləmək mümkün olmadı',
   'admin.github.by': 'müəllif',
   'admin.github.support': 'TREK-i inkişaf etdirməyə davam etməyimə kömək edir',
+  'admin.github.supportMonthly': 'TREK-i hər ay dəstəkləyin',
   'admin.update.available': 'Yeniləmə mövcuddur',
   'admin.update.text': 'TREK {version} mövcuddur. Sizdə {current} işləyir.',
   'admin.update.button': 'GitHub-da bax',

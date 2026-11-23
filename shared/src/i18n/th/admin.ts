@@ -701,6 +701,7 @@ const admin: TranslationStrings = {
   'admin.github.error': 'ไม่สามารถโหลดรุ่นต่างๆ',
   'admin.github.by': 'โดย',
   'admin.github.support': 'ช่วยให้ฉันสร้าง TREK ต่อไป',
+  'admin.github.supportMonthly': 'สนับสนุน TREK ทุกเดือน',
   'admin.update.available': 'อัปเดตพร้อมใช้งาน',
   'admin.update.text': 'TREK {version} มีจำหน่ายแล้ว คุณกำลังวิ่ง {current}',
   'admin.update.button': 'ดูบน GitHub',
