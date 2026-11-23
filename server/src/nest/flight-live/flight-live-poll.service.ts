@@ -255,7 +255,12 @@ export class FlightLivePollService {
     const at = clock();
     const departed = prev.phase === 'airborne' || prev.departed_at !== null;
     const picked = answer.ok
-      ? pickAircraft(answer.aircraft, route, { now: at, siblings: head.siblings, departed })
+      ? pickAircraft(answer.aircraft, route, {
+          now: at,
+          siblings: head.siblings,
+          departed,
+          taxied: prev.phase === 'taxiing',
+        })
       : null;
     let next = answer.ok ? advance(prev, picked, route, at, answer.source) : failed(prev);
     next = closeIfOver({ ...next, next_poll_at: nextPollAt(next, route, at) }, route, at);

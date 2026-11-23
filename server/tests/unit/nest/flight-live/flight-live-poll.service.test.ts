@@ -236,6 +236,23 @@ describe('FlightLivePollService.poll', () => {
     expect(delays()).toEqual([]);
   });
 
+  it('FLPOLL-016: an aircraft first seen on the ground at the origin is taken as departed when it flies level away from the route', async () => {
+    await seedFlight();
+    feed.lookup.mockResolvedValueOnce(
+      seen(aircraft({ alt_baro: 'ground', gs: 10, baro_rate: null, lat: 50.035, lon: 8.56 })),
+    );
+    await poll.poll(at(DEP + 5 * MIN));
+    const sector = () => findRow(orm, FlightLiveStates, { callsign: 'DLH100', service_date: '2026-07-01' });
+    expect(await sector()).toMatchObject({ phase: 'taxiing' });
+
+    // South-west of Frankfurt, level and turning back over the field towards Berlin.
+    feed.lookup.mockResolvedValueOnce(
+      seen(aircraft({ alt_baro: 3000, baro_rate: 0, track: 45, lat: 49.95, lon: 8.4 })),
+    );
+    await poll.poll(at(DEP + 20 * MIN));
+    expect(await sector()).toMatchObject({ phase: 'airborne', departed_at: '2026-07-01 10:20:00' });
+  });
+
   it('FLPOLL-005: landed is told once and the flight is asked about no more', async () => {
     const { trip } = await seedFlight();
     feed.lookup.mockResolvedValueOnce(seen(aircraft()));

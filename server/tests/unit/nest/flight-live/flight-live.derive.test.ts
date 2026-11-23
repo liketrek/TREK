@@ -232,6 +232,44 @@ describe('pickAircraft and observe', () => {
     expect(next.departed_at).not.toBeNull();
   });
 
+  it('FLDER-024: after its scheduled time a late inbound aircraft holding or level near the origin is not taken for the leg', () => {
+    const at = (iso: string) => Date.parse(iso);
+    const mdw = { code: 'MDW', name: 'Chicago Midway', lat: 41.7868, lng: -87.7522, timezone: 'America/Chicago' };
+    const den = { code: 'DEN', name: 'Denver', lat: 39.8561, lng: -104.6737, timezone: 'America/Denver' };
+    const leg: ScheduledLeg = {
+      ...LEG,
+      callsign: 'SWA1234',
+      flight_number: 'WN 1234',
+      origin: mdw,
+      destination: den,
+      scheduled_departure: at('2026-07-01T14:45:00Z'),
+      scheduled_arrival: at('2026-07-01T17:15:00Z'),
+    };
+    const late = at('2026-07-01T15:10:00Z');
+    // East of Midway, on the side away from Denver, heading west back towards the field.
+    const inbound = (rates: Partial<FeedAircraft>) =>
+      ac({ hex: 'swa', flight: 'SWA1234', alt_baro: 5000, lat: 41.8, lon: -87.4, track: 270, ...rates });
+    const pick = (aircraft: FeedAircraft, taxied = false) =>
+      pickAircraft([aircraft], leg, { now: late, siblings: [], taxied })?.hex ?? null;
+
+    expect(pick(inbound({ baro_rate: null, geom_rate: null }))).toBeNull();
+    expect(pick(inbound({ baro_rate: 0 }))).toBeNull();
+    expect(pick(inbound({ baro_rate: -128 }))).toBeNull();
+    expect(pick(inbound({ baro_rate: 0, track: null }))).toBeNull();
+    const holding = advance(
+      emptyState('SWA1234', '2026-07-01', 'MDW', 'DEN'),
+      pickAircraft([inbound({ baro_rate: 0 })], leg, { now: late, siblings: [] }),
+      leg,
+      late,
+      'adsb.lol',
+    );
+    expect(holding).toMatchObject({ phase: 'scheduled', departed_at: null });
+
+    // Seen on the ground at Midway before, or climbing, it is the leg leaving.
+    expect(pick(inbound({ baro_rate: 0 }), true)).toBe('swa');
+    expect(pick(inbound({ baro_rate: 1200 }))).toBe('swa');
+  });
+
   it('FLDER-003: reads a report at its own time, on the ground at zero feet, the geometric height as a fallback', () => {
     const now = DEP;
     expect(observe(ac(), now)).toEqual({

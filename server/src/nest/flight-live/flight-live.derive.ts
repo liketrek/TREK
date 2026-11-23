@@ -175,7 +175,10 @@ function claimedBySibling(
  * runs late past this leg's scheduled departure as often as not. After the
  * scheduled time a departure may climb out away from the destination before it
  * turns, level at its first cleared altitude or with no vertical rate in the
- * feed, so one near the origin then is taken for the leg unless it descends.
+ * feed. One near the origin then is taken for the leg when it climbs, or when
+ * it neither descends nor could be arriving: it was on the ground at the origin
+ * before, or it flies away from the origin. A late inbound one holding or level
+ * on its approach does neither.
  */
 function stillInbound(
   ac: FeedAircraft,
@@ -184,13 +187,34 @@ function stillInbound(
   route: Route,
   now: number,
   departed: boolean,
+  taxied: boolean,
 ): boolean {
   if (departed || route.scheduled_departure === null || ac.alt_baro === 'ground') return false;
   if (kmTo(lat, lng, route.destination) < kmTo(route.origin.lat, route.origin.lng, route.destination)) return false;
   if (now < route.scheduled_departure) return true;
+  if (kmTo(lat, lng, route.origin) > 60) return true;
   const rate = finite(ac.baro_rate) ?? finite(ac.geom_rate);
-  const descending = rate !== null && rate < DESCENDING_FPM;
-  return descending || kmTo(lat, lng, route.origin) > 60;
+  if (rate !== null && rate < DESCENDING_FPM) return true;
+  if (rate !== null && rate > 0) return false;
+  return !taxied && !fliesAwayFrom(ac, lat, lng, route.origin);
+}
+
+/** Whether the aircraft's track points away from `airport`, within 90 degrees of the bearing from it. */
+function fliesAwayFrom(ac: FeedAircraft, lat: number, lng: number, airport: { lat: number; lng: number }): boolean {
+  const track = finite(ac.track);
+  if (track === null) return false;
+  const off = Math.abs(((track - bearingDeg(airport.lat, airport.lng, lat, lng) + 540) % 360) - 180);
+  return off < 90;
+}
+
+/** The initial great-circle bearing from the first point to the second, in degrees from north. */
+function bearingDeg(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLng = toRad(lng2 - lng1);
+  const y = Math.sin(dLng) * Math.cos(toRad(lat2));
+  const x =
+    Math.cos(toRad(lat1)) * Math.sin(toRad(lat2)) - Math.sin(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.cos(dLng);
+  return (Math.atan2(y, x) * 180) / Math.PI;
 }
 
 /**
@@ -204,7 +228,10 @@ function stillInbound(
 export function pickAircraft(
   aircraft: readonly FeedAircraft[],
   route: Route,
-  sectors: { now: number; siblings: readonly SiblingSector[]; departed?: boolean } = { now: 0, siblings: [] },
+  sectors: { now: number; siblings: readonly SiblingSector[]; departed?: boolean; taxied?: boolean } = {
+    now: 0,
+    siblings: [],
+  },
 ): FeedAircraft | null {
   let best: FeedAircraft | null = null;
   let bestScore = Number.POSITIVE_INFINITY;
@@ -212,7 +239,11 @@ export function pickAircraft(
     const lat = finite(ac.lat);
     const lng = finite(ac.lon);
     if (lat !== null && lng !== null && claimedBySibling(lat, lng, route, sectors.now, sectors.siblings)) continue;
-    if (lat !== null && lng !== null && stillInbound(ac, lat, lng, route, sectors.now, sectors.departed === true))
+    if (
+      lat !== null &&
+      lng !== null &&
+      stillInbound(ac, lat, lng, route, sectors.now, sectors.departed === true, sectors.taxied === true)
+    )
       continue;
     const score = lat === null || lng === null ? Number.MAX_VALUE : detourKm(lat, lng, route);
     if (best === null || score < bestScore) {
