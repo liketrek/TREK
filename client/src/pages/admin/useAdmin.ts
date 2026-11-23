@@ -42,6 +42,13 @@ const ADMIN_TAB_ALIASES: Record<string, string> = { settings: 'security' }
  */
 const MANAGED_HIDDEN = ['storage', 'github', 'backup', 'plugins']
 
+/** The tab a ?tab= value opens: an old name by its new one, anything unknown on users. */
+function tabFromParam(raw: string | null): string {
+  const asked = raw ? (ADMIN_TAB_ALIASES[raw] ?? raw) : null
+  const known = [...ADMIN_TAB_IDS, ...managedAdminTabs.map(tab => tab.id)]
+  return asked && known.includes(asked) ? asked : 'users'
+}
+
 /** How often the open users list asks again who is online and active. */
 const USERS_REFRESH_MS = 30_000
 
@@ -67,15 +74,17 @@ export function useAdmin() {
 
   // ?tab= makes a section linkable: a support reply, an onboarding mail or a
   // bookmark can point at the one panel it is about instead of at the top of a
-  // page with eleven of them. Read once for the initial value and written back
-  // on every change, so the address bar keeps saying where the reader is.
+  // page with eleven of them. Written back on every change, so the address bar
+  // keeps saying where the reader is, and followed when only it changes: a help
+  // guide links to another tab of the page the reader is already on.
   const [searchParams, setSearchParams] = useSearchParams()
-  const [activeTab, setActiveTabState] = useState<string>(() => {
-    const raw = searchParams.get('tab')
-    const asked = raw ? (ADMIN_TAB_ALIASES[raw] ?? raw) : null
-    const known = [...ADMIN_TAB_IDS, ...managedAdminTabs.map(tab => tab.id)]
-    return asked && known.includes(asked) ? asked : 'users'
-  })
+  const tabParam = searchParams.get('tab')
+  const [activeTab, setActiveTabState] = useState<string>(() => tabFromParam(tabParam))
+  const [followedParam, setFollowedParam] = useState(tabParam)
+  if (tabParam !== followedParam) {
+    setFollowedParam(tabParam)
+    setActiveTabState(tabFromParam(tabParam))
+  }
   const setActiveTab = useCallback((tab: string) => {
     setActiveTabState(tab)
     // replace, not push: eleven tabs would otherwise fill the back button with
