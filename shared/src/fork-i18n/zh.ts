@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../i18n/types';
 
 const fork: TranslationStrings = {
-  'dashboard.hero.dayUnitMany': '天',
   'costs.exchangeRates.title': '行程汇率',
   'costs.exchangeRates.description': '行程汇率是新支出和付款的默认值。除非在下方选中，否则已保存的汇率不会改变。',
   'costs.exchangeRates.notePlaceholder': '可选备注',

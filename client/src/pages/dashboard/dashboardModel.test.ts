@@ -1,4 +1,3 @@
-import { getDepartureTransport, zonedLocalDateTimeToEpoch } from './dashboardModel'
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { MOMENT_LABEL, daysUntil, fullDate, getTripStatus, sortTrips, localIsoToday } from './dashboardModel'
 
@@ -68,58 +67,5 @@ describe('dashboardModel: MOMENT_LABEL', () => {
   it('labels only the two moments of a stay', () => {
     expect(MOMENT_LABEL).toEqual({ checkin: 'day.checkIn', checkout: 'day.checkOut' })
     expect(MOMENT_LABEL.flight).toBeUndefined()
-  })
-})
-
-describe('dashboardModel — departure transport countdown', () => {
-  const booking = (over: Record<string, unknown>) =>
-    ({
-      id: 1,
-      title: 'Flight CX1',
-      type: 'flight',
-      status: 'confirmed',
-      reservation_time: null,
-      endpoints: [
-        {
-          role: 'from',
-          sequence: 0,
-          local_date: '2026-10-01',
-          local_time: '09:30',
-          timezone: 'Asia/Hong_Kong',
-          lat: 22.3,
-          lng: 114.2,
-        },
-      ],
-      ...over,
-    }) as never
-
-  it('resolves the first fully timed non-cancelled transport in its origin timezone', () => {
-    const now = Date.parse('2026-09-30T00:00:00Z')
-    const result = getDepartureTransport([booking({})], [], now)
-    expect(result).toMatchObject({ reservationId: 1, localTime: '09:30', timeZone: 'Asia/Hong_Kong' })
-    expect(result?.departureAt).toBe(Date.parse('2026-10-01T01:30:00Z'))
-  })
-
-  it('does not silently replace an incomplete first transport with a later one', () => {
-    const first = booking({
-      id: 1,
-      endpoints: [
-        { role: 'from', sequence: 0, local_date: '2026-10-01', local_time: null, timezone: 'Asia/Hong_Kong' },
-      ],
-    })
-    const later = booking({
-      id: 2,
-      endpoints: [
-        { role: 'from', sequence: 0, local_date: '2026-10-02', local_time: '10:00', timezone: 'Asia/Hong_Kong' },
-      ],
-    })
-    expect(getDepartureTransport([later, first], [], Date.parse('2026-09-30T00:00:00Z'))).toBeNull()
-  })
-
-  it('ignores a cancelled transport and rejects a DST gap', () => {
-    const cancelled = booking({ id: 1, status: 'cancelled' })
-    const active = booking({ id: 2 })
-    expect(getDepartureTransport([cancelled, active], [], Date.parse('2026-09-30T00:00:00Z'))?.reservationId).toBe(2)
-    expect(zonedLocalDateTimeToEpoch('2026-03-29', '02:30', 'Europe/Berlin')).toBeNull()
   })
 })

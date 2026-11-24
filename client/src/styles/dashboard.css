@@ -194,15 +194,6 @@
      row and the boarding pass as wide as that word, with the tools off the card. */
   grid-template-columns: minmax(0, 1fr);
 }
-@media (min-width: 768px) {
-  .trek-dash .hero-trip { height: auto; }
-  .trek-dash .hero-content {
-    position: relative;
-    inset: auto;
-    min-height: 520px;
-    grid-template-rows: auto 1fr auto auto;
-  }
-}
 .trek-dash .hero-top { display: flex; justify-content: space-between; align-items: start; }
 .trek-dash .hero-badge {
   display: inline-flex; align-items: center; gap: 8px;
@@ -814,67 +805,4 @@
 @media (max-width: 768px) {
   /* The bottom tab bar's centre "+" replaces the floating FAB on mobile */
   .trek-dash .fab-new-trip { display: none; }
-}
-
-.departure-countdown-board {
-  margin-top: 14px;
-  border: 1px solid color-mix(in srgb, var(--border-primary) 75%, transparent);
-  border-radius: 14px;
-  background: color-mix(in srgb, var(--bg-primary) 86%, transparent);
-  color: var(--ink);
-  padding: 12px 14px;
-}
-
-.departure-countdown-head,
-.departure-countdown-units {
-  display: flex;
-  align-items: center;
-}
-
-.departure-countdown-head {
-  justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 8px;
-  font-size: 0.72rem;
-}
-
-.departure-countdown-title {
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-}
-
-.departure-countdown-transport {
-  min-width: 0;
-  overflow: hidden;
-  color: var(--ink-2);
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.departure-countdown-units {
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.departure-countdown-unit {
-  display: flex;
-  min-width: 48px;
-  flex: 1;
-  flex-direction: column;
-  align-items: center;
-}
-
-.departure-countdown-number {
-  font-size: clamp(1.15rem, 2.5vw, 1.7rem);
-  font-weight: 750;
-  line-height: 1;
-}
-
-.departure-countdown-label {
-  margin-top: 4px;
-  color: var(--ink-2);
-  font-size: 0.56rem;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
 }

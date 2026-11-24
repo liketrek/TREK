@@ -44,11 +44,6 @@ const fork: TranslationStrings = {
   'legal.license': 'Read the license',
   'legal.source': 'Corresponding source',
   'legal.sourceDescription': 'Source code for this deployed build:',
-  'dashboard.hero.departureIn': 'Departure in',
-  'dashboard.hero.dayUnitMany': 'Days',
-  'dashboard.hero.hourUnit': 'Hours',
-  'dashboard.hero.minuteUnit': 'Minutes',
-  'dashboard.hero.secondUnit': 'Seconds',
   'members.identityTransfer.title': 'Does a Guest represent you?',
   'members.identityTransfer.description':
     'Transfer that Guest’s trip participation to your signed-in account. This cannot be undone.',

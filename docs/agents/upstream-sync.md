@@ -4,6 +4,16 @@ The repository includes the [TREK Upstream Upgrade skill](../../.agents/skills/t
 
 `origin` is the downstream fork and `upstream` is `https://github.com/liketrek/TREK.git`. Upgrade from official stable release tags, never from upstream `dev`. Record tag and commit signatures separately from release provenance. An unsigned release requires a recorded user acceptance and a pinned full commit SHA.
 
+## Planned v5.2.0 upgrade
+
+The feature branch `codex/upgrade-trek-v5.2.0` starts from `origin/dev`. Its guide records the planned changes and checks before implementation. [Full v5.2.0 assessment](../upgrades/v5.2.0-assessment.md)
+
+- **Visit duration.** Use upstream's Road Trip editor and keep the fork's duration input in the regular day planner. Both edit the same visit. Reconcile the older SQLite limit so seven-day stays work on upgraded installs.
+- **Costs.** Use the currency selected on the Costs page for debts and repayments. When conversion is needed, use the expense's saved rate for that pair, then the trip rate, then the system rate. Record the amount shown when the user confirms repayment.
+- **Dashboard and sessions.** Retire the exact departure countdown and use upstream’s trip-date display. Keep the dev deployment’s 30-day remembered login setting.
+- **Trip PDF.** Adopt the upstream layout and print each visit's duration and estimated arrival and departure times.
+- **Database.** Preserve existing fork SQLite data and migration history. Verify equivalent fork data on PostgreSQL, including a populated SQLite-to-PostgreSQL move.
+
 ## Release integration workflow
 
 1. Resolve the requested official release and full commit SHA; record the signature status and current fork tips. Use a read-only merge simulation for planning.
@@ -26,7 +36,6 @@ The v5.1.1 integration merges official `95d62b7a02f3209d927504f5d21b3efe5065d2bc
 - Ordered Common currency shortcuts with administrator inheritance and personal empty/reset semantics.
 - Guest identity transfer and the New-member identity check.
 - Upstream browser/native push. The custom Direct Web Push implementation is superseded; preserve its historical migration receipts. Push runtime code follows upstream v5.1.1 without fork enrollment or renewal guards.
-- Exact departure-transport countdown on desktop and mobile spotlights.
 - Mobile timeline day selection recovers after reload, a cleared selection, or a stale day id. The map permits an intentional All days selection; returning to the timeline restores the previous valid day or the closest valid focus day.
 - Recorded mobile payments use the upstream date-grouped ledger with frozen FX and the fork's edit/delete actions.
 - Traditional Chinese wording overlay and `zh-HK` detection.

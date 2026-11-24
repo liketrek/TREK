@@ -1,6 +1,4 @@
 import CurrencySelect from '../components/shared/CurrencySelect'
-import DepartureCountdownBoard from './dashboard/DepartureCountdownBoard'
-import type { DepartureTransport } from './dashboard/dashboardModel'
 import React from 'react'
 import { useTranslation } from '../i18n'
 import Navbar from '../components/Layout/Navbar'
@@ -105,7 +103,7 @@ function DashboardPageDesktop(): React.ReactElement {
   // useDashboard data hook; this component only renders what it returns.
   const {
     demoMode, locale, t, navigate,
-    spotlight, heroBundle, departure, stats, upcoming, gridTrips, isLoading,
+    spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
     loadError, retryLoad,
     tripFilter, setTripFilter, viewMode, toggleViewMode,
     showForm, setShowForm, editingTrip, setEditingTrip,
@@ -164,7 +162,6 @@ function DashboardPageDesktop(): React.ReactElement {
               <BoardingPassHero
                 trip={spotlight}
                 bundle={heroBundle}
-                departure={departure}
                 locale={locale}
                 onOpen={() => navigate(`/trips/${spotlight.id}`)}
                 onEdit={() => { setEditingTrip(spotlight); setShowForm(true) }}
@@ -331,8 +328,8 @@ function DashboardPageDesktop(): React.ReactElement {
 }
 
 // ── Boarding-pass hero ───────────────────────────────────────────────────────
-function BoardingPassHero({ trip, bundle, departure, locale, onOpen, onEdit, onCopy, onArchive, onDelete }: {
-  trip: DashboardTrip; bundle: HeroBundle | null; departure: DepartureTransport | null; locale: string; onOpen: () => void
+function BoardingPassHero({ trip, bundle, locale, onOpen, onEdit, onCopy, onArchive, onDelete }: {
+  trip: DashboardTrip; bundle: HeroBundle | null; locale: string; onOpen: () => void
   onEdit: () => void; onCopy: () => void; onArchive: () => void; onDelete: () => void
 }): React.ReactElement {
   const { t } = useTranslation()
@@ -472,7 +469,6 @@ function BoardingPassHero({ trip, bundle, departure, locale, onOpen, onEdit, onC
             <div className="hero-pass-inner">{passCells}</div>
           </div>
         </div>
-        {departure && <DepartureCountdownBoard departure={departure} />}
       </div>
     </div>
   )

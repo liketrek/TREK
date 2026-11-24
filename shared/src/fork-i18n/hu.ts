@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../i18n/types';
 
 const fork: TranslationStrings = {
-  'dashboard.hero.dayUnitMany': 'nap',
   'costs.exchangeRates.title': 'Az utazás árfolyamai',
   'costs.exchangeRates.notePlaceholder': 'Opcionális megjegyzés',
   'costs.exchangeRates.noMatchingItems': 'Nincs megfelelő meglévő tétel.',

@@ -1,5 +1,3 @@
-import DepartureCountdownBoard from '../../../pages/dashboard/DepartureCountdownBoard'
-import type { DepartureTransport } from '../../../pages/dashboard/dashboardModel'
 import React, { useEffect, useRef, useState } from 'react'
 import {
   Archive, ArchiveRestore, ArrowRight, Bell, CalendarDays, CalendarPlus, Copy,
@@ -54,7 +52,6 @@ export default function MDashboard(): React.ReactElement {
     showForm, setShowForm, editingTrip, setEditingTrip,
     deleteTrip, setDeleteTrip, copyTrip, setCopyTrip, applyCoverUpdate,
     handleCreate, handleUpdate, confirmDelete, handleArchive, handleUnarchive, confirmCopy,
-    departure,
   } = useDashboard()
 
   const user = useAuthStore(s => s.user)
@@ -290,7 +287,6 @@ export default function MDashboard(): React.ReactElement {
           <div className="contents min-w-0 split:block">
             {spotlight && (
               <MSpotlightCard
-                departure={departure}
                 trip={spotlight}
                 t={t}
                 onOpen={() => navigate(`/trips/${spotlight.id}`)}
@@ -354,8 +350,7 @@ export default function MDashboard(): React.ReactElement {
 }
 
 // ── Spotlight ────────────────────────────────────────────────────────────────
-function MSpotlightCard({ trip, t, onOpen, actions, departure }: {
-  departure: DepartureTransport | null
+function MSpotlightCard({ trip, t, onOpen, actions }: {
   trip: DashboardTrip
   t: (key: string, params?: Record<string, string | number>) => string
   onOpen: () => void
@@ -431,7 +426,6 @@ function MSpotlightCard({ trip, t, onOpen, actions, departure }: {
           <SpotlightPill icon={<MapPin size={11} strokeWidth={2.2} />} label={t('dashboard.hero.destinations', { count: places })} />
           <SpotlightPill icon={<Users size={11} strokeWidth={2.2} />} label={t('dashboard.hero.travelers', { count: people })} />
         </div>
-        {departure && <DepartureCountdownBoard departure={departure} compact />}
       </div>
     </div>
   )

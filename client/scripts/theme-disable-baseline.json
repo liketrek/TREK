@@ -72,7 +72,6 @@
   "mobile/screens/trip/sheets/MCostSheet.tsx": 1,
   "pages/AtlasPage.tsx": 1,
   "pages/admin/AdminUserModals.tsx": 1,
-  "pages/dashboard/DepartureCountdownBoard.tsx": 1,
   "pages/sharedTrip/SharedChrome.tsx": 4,
   "pages/sharedTrip/SharedMap.tsx": 2
 }

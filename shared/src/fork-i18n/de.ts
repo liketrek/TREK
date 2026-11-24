@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../i18n/types';
 
 const fork: TranslationStrings = {
-  'dashboard.hero.dayUnitMany': 'Tage',
   'costs.exchangeRates.title': 'Wechselkurse der Reise',
   'costs.exchangeRates.notePlaceholder': 'Optionale Notiz',
   'costs.exchangeRates.noMatchingItems': 'Keine passenden bestehenden Einträge.',

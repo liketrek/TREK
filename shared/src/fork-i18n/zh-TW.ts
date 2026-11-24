@@ -1,7 +1,6 @@
 import type { TranslationStrings } from '../i18n/types';
 
 const fork: TranslationStrings = {
-  'dashboard.hero.dayUnitMany': '天',
   'budget.exchangeRates.saved': '已儲存匯率。',
   'budget.exchangeRates.previewTitle': '選擇要更新的凍結項目',
   'budget.exchangeRates.applied': '已更新所選匯率。',
@@ -42,10 +41,6 @@ const fork: TranslationStrings = {
   'legal.license': '閱讀授權條款',
   'legal.source': '對應原始碼',
   'legal.sourceDescription': '此部署版本的原始碼：',
-  'dashboard.hero.departureIn': '距離出發',
-  'dashboard.hero.hourUnit': '小時',
-  'dashboard.hero.minuteUnit': '分鐘',
-  'dashboard.hero.secondUnit': '秒',
   'members.identityTransfer.title': '有訪客代表你嗎？',
   'members.identityTransfer.description': '將該訪客在旅程中的參與資料轉移至你的登入帳戶。此操作無法復原。',
   'members.identityTransfer.thisIsMe': '這是我',

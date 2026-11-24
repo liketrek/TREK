@@ -1,4 +1,3 @@
-import { getDepartureTransport } from './dashboardModel'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router'
 import { tripsApi, authApi, reservationsApi } from '../../api/client'
@@ -136,7 +135,7 @@ export function useDashboard() {
     if (!spotlight) { setHeroSnapshot(null); return }
     let cancelled = false
     tripsApi.bundle(spotlight.id)
-      .then((b: HeroBundle) => { if (!cancelled) setHeroSnapshot({ tripId: spotlight.id, bundle: { members: b.members || [], places: b.places || [], days: b.days || [], reservations: b.reservations || [] } }) })
+      .then((b: HeroBundle) => { if (!cancelled) setHeroSnapshot({ tripId: spotlight.id, bundle: { members: b.members || [], places: b.places || [] } }) })
       .catch(() => { if (!cancelled) setHeroSnapshot(null) })
     return () => { cancelled = true }
   }, [spotlight?.id])
@@ -240,7 +239,7 @@ export function useDashboard() {
     // cross-cutting
     demoMode, locale, t, navigate,
     // data + derived
-    spotlight, heroBundle, departure: heroBundle ? getDepartureTransport(heroBundle.reservations ?? [], heroBundle.days ?? []) : null, stats, upcoming, gridTrips, isLoading,
+    spotlight, heroBundle, stats, upcoming, gridTrips, isLoading,
     loadError: loadError || authCheckFailed, retryLoad,
     // Pull-to-refresh on mobile: the same quiet read, no loading state.
     refreshQuietly,
