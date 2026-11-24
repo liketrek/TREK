@@ -16,8 +16,6 @@ TREK has grown from a travel planner into a whole ecosystem for trips: plan toge
 &nbsp;
 <a href="https://play.google.com/store/apps/details?id=com.liketrek.trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/app/google-play-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/app/google-play-light.svg" /><img src="docs/app/google-play-light.svg" alt="Get TREK on Google Play, with a QR code" width="320" /></picture></a>
 
-<sub>The app connects to your own TREK server. <a href="https://github.com/liketrek/TREK/wiki/Native-Apps">How it works</a></sub>
-
 <br />
 
 <a href="https://demo.liketrek.com"><img alt="Demo" src="https://img.shields.io/badge/Demo-try-111827?style=for-the-badge" /></a>
