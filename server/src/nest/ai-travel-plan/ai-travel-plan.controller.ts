@@ -8,15 +8,18 @@ import { AiTravelPlanService } from './ai-travel-plan.service';
 import { ApplyTravelPlanDto } from './dto/apply-travel-plan.dto';
 import { CreateTravelPlanRevisionDto } from './dto/create-travel-plan-revision.dto';
 import { CreateTravelPlanDto } from './dto/create-travel-plan.dto';
+import { DestinationIdeasDto } from './dto/destination-ideas.dto';
 import { DiscardTravelPlanDto } from './dto/discard-travel-plan.dto';
 import { UndoTravelPlanDto } from './dto/undo-travel-plan.dto';
 import { Body, Controller, Get, Headers, HttpCode, Param, Post, Res, UseGuards } from '@nestjs/common';
 import {
+  destinationIdeasResponseSchema,
   travelPlanApplyResponseSchema,
   travelPlanDiscardResponseSchema,
   travelPlanResponseSchema,
   travelPlanRevisionResponseSchema,
   travelPlanUndoResponseSchema,
+  type DestinationIdeasResponse,
   type TravelPlanApplyResponse,
   type TravelPlanDiscardResponse,
   type TravelPlanResponse,
@@ -83,6 +86,17 @@ export class AiTravelPlanController {
       stop();
       stream.end();
     }
+  }
+
+  /**
+   * Pre-plan discovery: a short list of cities for a traveller with no
+   * destination in mind. It creates no plan and uses no generation quota.
+   * Declared before `:id` so the literal path is not read as a plan id.
+   */
+  @Post('destination-ideas')
+  @ResponseContract(destinationIdeasResponseSchema)
+  destinationIdeas(@CurrentUser() user: User, @Body() body: DestinationIdeasDto): Promise<DestinationIdeasResponse> {
+    return this.plans.destinationIdeas(user, body);
   }
 
   @Get(':id')

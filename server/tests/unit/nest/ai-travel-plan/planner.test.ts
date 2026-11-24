@@ -62,7 +62,8 @@ function draft(days: TravelPlanDraftDay[], warnings: TravelPlanDraft['warnings']
     summary: '',
     factsCheckedAt: '2026-04-01 00:00:00',
     days,
-    estimatedBudgetCny: { min: 0, max: 0, breakdown: {} },
+    estimatedBudgetCny: { min: 0, max: 0, breakdown: {}, breakdownMax: {}, assumptions: [] },
+    lodgingAreas: [],
     warnings,
   };
 }
@@ -264,7 +265,7 @@ describe('validateDraft', () => {
 
   it('warns when the known minimum exceeds the stated budget', () => {
     const value = draft([day('2026-05-01', [['09:00', '10:00']])]);
-    value.estimatedBudgetCny = { min: 300, max: 500, breakdown: {} };
+    value.estimatedBudgetCny = { min: 300, max: 500, breakdown: {}, breakdownMax: {}, assumptions: ['测试'] };
     const item = value.days[0]?.items[0];
     if (item) item.estimatedCostCny = { min: 300, max: 500 };
 
@@ -329,8 +330,14 @@ describe('validateDraft', () => {
 });
 
 describe('PlannerService', () => {
-  function service(provider: Record<string, ReturnType<typeof vi.fn>>): PlannerService {
-    return new PlannerService(provider as never);
+  function service(
+    provider: Record<string, ReturnType<typeof vi.fn>>,
+    weather: Record<string, ReturnType<typeof vi.fn>> = {
+      get: vi.fn(async () => ({ temp: 20, main: 'Clear', description: '晴', type: 'forecast' })),
+      getDetailed: vi.fn(),
+    },
+  ): PlannerService {
+    return new PlannerService({ searchLodging: vi.fn(async () => []), ...provider } as never, weather as never);
   }
 
   it('blocks when the destination cannot be resolved', async () => {
@@ -499,7 +506,8 @@ describe('PlannerService', () => {
     expect(outcome.draft.days[0]?.items[1]).toMatchObject({ arriveAt: '10:42', travelFromPrevious: { minutes: 12 } });
     expect(outcome.facts.filter((fact) => fact.kind === 'place')).toHaveLength(2);
     expect(outcome.facts).toContainEqual(expect.objectContaining({ kind: 'route', provider: 'routing-relay' }));
-    expect(outcome.draft.estimatedBudgetCny).toEqual({ min: 0, max: 0, breakdown: {} });
+    expect(outcome.draft.estimatedBudgetCny.min).toBeGreaterThan(0);
+    expect(outcome.draft.estimatedBudgetCny.assumptions.length).toBeGreaterThan(0);
   });
 
   it('keeps going with estimated legs and a warning when the router refuses', async () => {
@@ -786,6 +794,186 @@ describe('PlannerService', () => {
 
     expect(details[0]).toBe('地点1');
     expect(details[1]).toHaveLength(500);
+  });
+
+  it('records each day’s forecast and a weather fact', async () => {
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [candidate(1)]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
+
+    expect(outcome.draft.days[0]?.weather).toMatchObject({
+      provider: 'open-meteo',
+      kind: 'clear',
+      tempMin: 20,
+      tempMax: 20,
+      type: 'forecast',
+    });
+    expect(outcome.facts).toContainEqual(
+      expect.objectContaining({ kind: 'weather', provider: 'open-meteo', detail: expect.stringContaining('晴') }),
+    );
+  });
+
+  it('warns, but still plans, when the weather lookup fails', async () => {
+    const planner = service(
+      {
+        centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+        search: vi.fn(async () => [candidate(1)]),
+        route: vi.fn(async () => ({ ok: true, legs: [] })),
+      },
+      { get: vi.fn(async () => Promise.reject(new Error('offline'))), getDetailed: vi.fn() },
+    );
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days[0]?.weather).toBeNull();
+    expect(outcome.warnings).toContainEqual(expect.objectContaining({ code: 'weather_unavailable', severity: 'info' }));
+    expect(outcome.draft.days.flatMap((day) => day.items)).toHaveLength(1);
+  });
+
+  it('puts an indoor stop first on a rainy day', async () => {
+    const outdoor = candidate(1);
+    const museumBase = candidate(2);
+    const museum = {
+      ...museumBase,
+      name: '杭州博物馆',
+      category: '科教文化服务;博物馆',
+      place: { ...museumBase.place, name: '杭州博物馆', category: '科教文化服务;博物馆' },
+    };
+    const planner = service(
+      {
+        centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+        search: vi.fn(async () => [outdoor, museum]),
+        route: vi.fn(async () => ({ ok: true, legs: [] })),
+      },
+      {
+        get: vi.fn(async () => ({ temp: 18, main: 'Rain', description: '小雨', type: 'forecast' })),
+        getDetailed: vi.fn(),
+      },
+    );
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
+
+    expect(outcome.draft.days[0]?.items.map((item) => item.place.name)).toEqual(['杭州博物馆', '地点1']);
+  });
+
+  it('shows a climate reference beyond the forecast window without reordering', async () => {
+    const outdoor = candidate(1);
+    const museumBase = candidate(2);
+    const museum = {
+      ...museumBase,
+      name: '杭州博物馆',
+      category: '科教文化服务;博物馆',
+      place: { ...museumBase.place, name: '杭州博物馆', category: '科教文化服务;博物馆' },
+    };
+    const planner = service(
+      {
+        centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+        search: vi.fn(async () => [outdoor, museum]),
+        route: vi.fn(async () => ({ ok: true, legs: [] })),
+      },
+      {
+        get: vi.fn(async () => ({ temp: 26, main: 'Rain', description: '多雨', type: 'climate' })),
+        getDetailed: vi.fn(),
+      },
+    );
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
+
+    expect(outcome.draft.days[0]?.weather?.type).toBe('climate');
+    expect(outcome.draft.days[0]?.items.map((item) => item.place.name)).toEqual(['地点1', '杭州博物馆']);
+    expect(outcome.warnings.some((warning) => warning.code === 'weather_outdoor_risk')).toBe(false);
+    expect(outcome.facts).toContainEqual(
+      expect.objectContaining({ kind: 'weather', detail: expect.stringContaining('气候参考') }),
+    );
+  });
+
+  it('warns about the outdoor stops that remain on a risky day', async () => {
+    const planner = service(
+      {
+        centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+        search: vi.fn(async () => [candidate(1), candidate(2)]),
+        route: vi.fn(async () => ({ ok: true, legs: [] })),
+      },
+      {
+        get: vi.fn(async () => ({ temp: 18, main: 'Rain', description: '中雨', type: 'forecast' })),
+        getDetailed: vi.fn(),
+      },
+    );
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
+
+    expect(outcome.warnings).toContainEqual(
+      expect.objectContaining({
+        code: 'weather_outdoor_risk',
+        severity: 'warning',
+        message: expect.stringContaining('2026-05-01'),
+      }),
+    );
+    expect(outcome.draft.days[0]?.items).toHaveLength(2);
+  });
+
+  it('writes the lodging areas derived from real hotels', async () => {
+    const museum = candidate(1);
+    const hotelBase = candidate(2);
+    const hotel = {
+      ...hotelBase,
+      name: '西湖酒店',
+      category: '住宿服务;宾馆酒店',
+      rating: 4.6,
+      place: { ...hotelBase.place, name: '西湖酒店', category: '住宿服务;宾馆酒店', rating: 4.6 },
+    };
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [museum, hotel]),
+      searchLodging: vi.fn(async () => [hotel]),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
+
+    expect(outcome.draft.lodgingAreas).toHaveLength(1);
+    expect(outcome.draft.lodgingAreas[0]).toMatchObject({
+      name: '地点1周边',
+      hotelCount: 1,
+      sampleHotels: [expect.objectContaining({ rating: 4.6 })],
+    });
+  });
+
+  it('warns, but still plans, when the lodging search fails', async () => {
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search: vi.fn(async () => [candidate(1)]),
+      searchLodging: vi.fn(async () => Promise.reject(new Error('quota'))),
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    const outcome = await planner.plan({
+      userId: 1,
+      request: request({ startDate: '2026-05-01', endDate: '2026-05-01' }),
+    });
+
+    expect(outcome.draft.lodgingAreas).toEqual([]);
+    expect(outcome.warnings).toContainEqual(expect.objectContaining({ code: 'lodging_unavailable', severity: 'info' }));
+    expect(outcome.draft.days[0]?.items).toHaveLength(1);
   });
 });
 

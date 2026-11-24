@@ -149,7 +149,7 @@ export type TravelPlanUndoResponse = z.infer<typeof travelPlanUndoResponseSchema
  * `GET /api/ai-travel-plans/:id` returns the same plan once it is persisted.
  * ---------------------------------------------------------------------- */
 
-export const travelPlanStreamStageSchema = z.enum(['parsing', 'places', 'routing', 'scheduling', 'validating']);
+export const travelPlanStreamStageSchema = z.enum(['parsing', 'places', 'weather', 'routing', 'scheduling', 'validating']);
 
 export type TravelPlanStreamStage = z.infer<typeof travelPlanStreamStageSchema>;
 

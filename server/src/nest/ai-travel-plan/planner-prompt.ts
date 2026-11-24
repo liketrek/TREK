@@ -15,7 +15,7 @@ import {
 import { z } from 'zod';
 
 /** How long one parsing call may take before the planner gives up on it. */
-const PARSE_TIMEOUT_MS = 20_000;
+const PARSE_TIMEOUT_MS = 30_000;
 
 /** The structured request a model may extract from a sentence; nothing is required. */
 const parsedRequestSchema = z.object({

@@ -2,6 +2,8 @@ import { Loader2, PenLine, RotateCcw, Route, Sparkles, Trash2 } from 'lucide-rea
 import React from 'react';
 import TravelBriefForm from '../../components/AiTravelPlan/TravelBriefForm';
 import TravelDraftApplyCard from '../../components/AiTravelPlan/TravelDraftApplyCard';
+import TravelDraftBudget from '../../components/AiTravelPlan/TravelDraftBudget';
+import TravelDraftLodging from '../../components/AiTravelPlan/TravelDraftLodging';
 import TravelDraftMap from '../../components/AiTravelPlan/TravelDraftMap';
 import TravelDraftSources from '../../components/AiTravelPlan/TravelDraftSources';
 import TravelDraftTimeline from '../../components/AiTravelPlan/TravelDraftTimeline';
@@ -141,6 +143,10 @@ export default function AiTravelPlanPage(): React.ReactElement {
           <TravelBriefForm
             brief={vm.brief}
             disabled={vm.isBusy}
+            destinationIdeas={vm.destinationIdeas}
+            ideasPending={vm.ideasPending}
+            onSuggestDestinations={vm.suggestDestinations}
+            onPickDestinationIdea={vm.pickDestinationIdea}
             onChange={vm.updateBrief}
             onSubmit={() => {
               void vm.handleCreate();
@@ -152,8 +158,14 @@ export default function AiTravelPlanPage(): React.ReactElement {
               <DraftOverview vm={vm} />
 
               <TravelDraftMap draft={draft} navMode={navMode} onNavModeChange={setNavMode} />
-              {draft && draft.days.length > 0 && <TravelDraftTimeline days={draft.days} navMode={navMode} />}
-              {draft && <TravelDraftSources draft={draft} />}
+              {draft && (
+                <>
+                  <TravelDraftBudget budget={draft.estimatedBudgetCny} />
+                  {draft.days.length > 0 && <TravelDraftTimeline days={draft.days} navMode={navMode} />}
+                  <TravelDraftLodging areas={draft.lodgingAreas ?? []} />
+                  <TravelDraftSources draft={draft} />
+                </>
+              )}
               <TravelDraftWarnings warnings={plan.warnings} />
 
               {plan.status !== 'applied' && plan.status !== 'expired' && (

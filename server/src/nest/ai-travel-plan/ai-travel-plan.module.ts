@@ -12,6 +12,7 @@ import { RoutingRelayModule } from '../routing-relay/routing-relay.module';
 import { SettingsModule } from '../settings/settings.module';
 import { TripMembershipModule } from '../trip-membership/trip-membership.module';
 import { TripsModule } from '../trips/trips.module';
+import { WeatherModule } from '../weather/weather.module';
 import { AiTravelPlanController } from './ai-travel-plan.controller';
 import { AiTravelPlanService } from './ai-travel-plan.service';
 import { PlannerApplyService } from './planner-apply.service';
@@ -49,6 +50,7 @@ import { Module } from '@nestjs/common';
     AssignmentsDomainModule,
     RealtimeModule,
     SettingsModule,
+    WeatherModule,
   ],
   controllers: [AiTravelPlanController],
   providers: [

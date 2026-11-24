@@ -1,9 +1,15 @@
 import { dbNow } from '../../db/types';
+import { WeatherService } from '../weather/weather.service';
+import { estimateBudget } from './budget-estimator';
+import { cityTierOf } from './destination-catalog';
+import { recommendLodging } from './lodging-recommender';
 import { ADMIN_CATEGORIES, PlannerProvider, routeTransport, type PlannerCandidate } from './planner-provider';
+import { outdoorStopsAtRisk, reorderCandidatesForWeather, toDayWeather } from './weather-plan';
 import { Injectable } from '@nestjs/common';
 import type {
   TravelPlanBudget,
   TravelPlanCreateRequest,
+  TravelPlanDayWeather,
   TravelPlanDraft,
   TravelPlanDraftDay,
   TravelPlanDraftItem,
@@ -113,7 +119,10 @@ export interface PlanInput {
  */
 @Injectable()
 export class PlannerService {
-  constructor(private readonly provider: PlannerProvider) {}
+  constructor(
+    private readonly provider: PlannerProvider,
+    private readonly weather: WeatherService,
+  ) {}
 
   async plan(input: PlanInput): Promise<PlannerOutcome> {
     const { userId, request, onStage } = input;
@@ -142,6 +151,17 @@ export class PlannerService {
         },
       ]);
     }
+
+    const weatherPromise = Promise.all(
+      dates.map(async (date): Promise<[string, TravelPlanDayWeather | null]> => {
+        try {
+          const result = await this.weather.get(String(centre.lat), String(centre.lng), date, 'zh');
+          return [date, toDayWeather(result, checkedAt)];
+        } catch {
+          return [date, null];
+        }
+      }),
+    );
 
     const queries = buildQueries(request, input.extraQueries ?? []);
     const results = await Promise.all(
@@ -199,18 +219,37 @@ export class PlannerService {
       });
     }
 
+    onStage?.('weather');
+    const weatherByDate = new Map<string, TravelPlanDayWeather | null>(await weatherPromise);
+    const missingWeather = [...weatherByDate.values()].filter((weather) => weather === null).length;
+    if (missingWeather > 0) {
+      warnings.push({
+        code: 'weather_unavailable',
+        message: `有 ${missingWeather} 天的天气暂时没有取到，排程未考虑天气。`,
+        severity: 'info',
+      });
+    }
+    const scheduled = reorderCandidatesForWeather(selected, dates, weatherByDate);
+    const lodgingPromise = recommendLodging({
+      provider: this.provider,
+      userId,
+      destination: request.destination,
+      centre,
+      anchors: selected,
+    });
+
     const transport = routeTransport(request.transport);
     onStage?.('routing');
     const routed = await this.provider.route(
       userId,
-      selected.map((candidate) => ({ lat: candidate.place.lat, lng: candidate.place.lng })),
+      scheduled.map((candidate) => ({ lat: candidate.place.lat, lng: candidate.place.lng })),
       transport === 'walk' ? 'walk' : transport === 'drive' ? 'drive' : 'other',
     );
     let legs: TravelPlanLeg[];
     if (routed.ok) {
       legs = routed.legs;
     } else {
-      legs = estimatedLegs(selected, transport);
+      legs = estimatedLegs(scheduled, transport);
       warnings.push({
         code: 'route_unavailable',
         message: '路线服务暂时不可用，地点之间的交通时间按直线距离估算，请以实际路况为准。',
@@ -219,7 +258,15 @@ export class PlannerService {
     }
 
     onStage?.('scheduling');
-    const { days, skipped, closed, late } = scheduleDays(selected, legs, dates, request.pace);
+    const { days, skipped, closed, late } = scheduleDays(scheduled, legs, dates, request.pace);
+    for (const day of days) day.weather = weatherByDate.get(day.date) ?? null;
+    for (const risk of outdoorStopsAtRisk(days)) {
+      warnings.push({
+        code: 'weather_outdoor_risk',
+        message: `${risk.date} 天气可能影响户外地点（${risk.names.slice(0, 3).join('、')}${risk.names.length > 3 ? ' 等' : ''}），已尽量优先安排室内地点，请备好雨具或调整顺序。`,
+        severity: 'warning',
+      });
+    }
     if (skipped > 0) {
       warnings.push({
         code: 'places_skipped',
@@ -252,7 +299,10 @@ export class PlannerService {
       });
     }
 
-    const facts = buildFacts(selected, days, routed.ok, checkedAt);
+    const lodging = await lodgingPromise;
+    if (lodging.warning) warnings.push(lodging.warning);
+
+    const facts = buildFacts(scheduled, days, routed.ok, checkedAt);
     const summary = buildSummary(selected.length, days.length, routed.ok);
 
     onStage?.('validating');
@@ -261,7 +311,8 @@ export class PlannerService {
         summary,
         factsCheckedAt: checkedAt,
         days,
-        estimatedBudgetCny: emptyBudget(),
+        estimatedBudgetCny: estimateBudget(request, dates, cityTierOf(request.destination)),
+        lodgingAreas: lodging.areas,
         warnings: [],
       },
       facts,
@@ -684,6 +735,20 @@ function buildFacts(
     detail: truncate(`${candidate.place.name}${candidate.address ? `（${candidate.address}）` : ''}`, 500),
   }));
 
+  for (const day of days) {
+    if (!day.weather) continue;
+    const low = day.weather.tempMin;
+    const high = day.weather.tempMax;
+    const range = low !== null && high !== null ? `，${low}–${high}℃` : '';
+    const reference = day.weather.type === 'climate' ? '（气候参考）' : '';
+    facts.push({
+      kind: 'weather',
+      provider: 'open-meteo',
+      checkedAt,
+      detail: truncate(`${day.date}：${day.weather.description ?? '天气'}${range}${reference}。`, 500),
+    });
+  }
+
   if (!routed) return facts;
 
   for (const day of days) {
@@ -706,7 +771,7 @@ function buildSummary(places: number, days: number, routed: boolean): string {
   return [
     `已按你的需求检索到 ${places} 个真实地点，分布在 ${days} 天。`,
     routed ? '地点之间的交通时间来自路线服务。' : '路线服务不可用，交通时间为直线估算。',
-    '门票与消费价格尚未接入，预算不包含这些费用。',
+    '预算按规则估算，不含往返大交通与购物，实际以支付为准。',
   ].join('');
 }
 
@@ -717,6 +782,7 @@ function emptyOutcome(checkedAt: string, summary: string, warnings: TravelPlanWa
       factsCheckedAt: checkedAt,
       days: [],
       estimatedBudgetCny: emptyBudget(),
+      lodgingAreas: [],
       warnings: [],
     },
     facts: [],
@@ -725,7 +791,7 @@ function emptyOutcome(checkedAt: string, summary: string, warnings: TravelPlanWa
 }
 
 function emptyBudget(): TravelPlanBudget {
-  return { min: 0, max: 0, breakdown: {} };
+  return { min: 0, max: 0, breakdown: {}, breakdownMax: {}, assumptions: [] };
 }
 
 function clock(minutes: number): string {

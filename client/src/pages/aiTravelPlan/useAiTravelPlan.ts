@@ -8,6 +8,7 @@ import { useAiTravelPlanStore } from '../../store/aiTravelPlanStore';
 import type { Trip } from '../../types';
 import { useAiTravelPlanLifecycle } from './useAiTravelPlanLifecycle';
 import { useAiTravelPlanRequests } from './useAiTravelPlanRequests';
+import { useDestinationIdeas } from './useDestinationIdeas';
 
 /**
  * Everything the AI plan page does, outside JSX.
@@ -41,7 +42,7 @@ export function useAiTravelPlan() {
   const [applyTitle, setApplyTitle] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const trips = useTripChoices();
+  const tripOptions = useTripOptions();
 
   // A reload keeps only the id in the URL; the draft itself is the server's.
   const urlPlanId = Number(searchParams.get('plan'));
@@ -63,10 +64,7 @@ export function useAiTravelPlan() {
   const applyTripIdValue = applyTripId ?? (plan?.targetTripId ? String(plan.targetTripId) : '');
   const applyTitleValue = applyTitle ?? plan?.request.destination ?? '';
 
-  const tripOptions = useMemo(() => trips.map((trip) => ({ id: trip.id, title: trip.title })), [trips]);
-  const updateBrief = (patch: Partial<TravelBrief>) => {
-    setBrief((current) => ({ ...current, ...patch }));
-  };
+  const updateBrief = (patch: Partial<TravelBrief>) => setBrief((current) => ({ ...current, ...patch }));
 
   const clearUrl = () => setSearchParams({}, { replace: true });
   const resetApply = () => {
@@ -74,6 +72,11 @@ export function useAiTravelPlan() {
     setApplyTripId(null);
     setApplyTitle(null);
   };
+
+  const { destinationIdeas, ideasPending, suggestDestinations, pickDestinationIdea } = useDestinationIdeas(
+    brief,
+    updateBrief
+  );
 
   const requests = useAiTravelPlanRequests({
     t,
@@ -139,9 +142,19 @@ export function useAiTravelPlan() {
     applyTitle: applyTitleValue,
     setApplyTripId,
     setApplyTitle,
+    destinationIdeas,
+    ideasPending,
+    suggestDestinations,
+    pickDestinationIdea,
     ...requests,
     ...lifecycle,
   };
+}
+
+/** The trips an existing-trip apply can write into, as the apply card's options. */
+function useTripOptions(): Array<{ id: number; title: string }> {
+  const trips = useTripChoices();
+  return useMemo(() => trips.map((trip) => ({ id: trip.id, title: trip.title })), [trips]);
 }
 
 /** The trips an existing-trip apply can write into; the offline-aware repo the dashboard already reads. */

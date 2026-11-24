@@ -134,7 +134,7 @@ describe('travelPlanDraftSchema / plan response', () => {
     ]);
 
     expect(draft.days).toEqual([]);
-    expect(draft.estimatedBudgetCny).toEqual({ min: 0, max: 0, breakdown: {} });
+    expect(draft.estimatedBudgetCny).toEqual({ min: 0, max: 0, breakdown: {}, breakdownMax: {}, assumptions: [] });
     expect(draft.warnings).toHaveLength(1);
   });
 

@@ -1,4 +1,5 @@
 import { readCappedJson } from '../../utils/cappedFetch';
+import { safeFetch } from '../../utils/ssrfGuard';
 
 // Open-Meteo sits on the request path as a third party: without a deadline a hung
 // connection holds the caller until the socket gives up on its own. Every other
@@ -33,7 +34,10 @@ const MAX_WEATHER_BYTES = 1024 * 1024;
  * response, because the status and `reason` are what shape its error.
  */
 async function fetchOpenMeteo(url: string): Promise<{ response: Response; data: OpenMeteoForecast }> {
-  const response = await fetch(url, { signal: AbortSignal.timeout(WEATHER_TIMEOUT_MS) });
+  // safeFetch rather than the platform fetch: the guarded clients here honour
+  // HTTP_PROXY/HTTPS_PROXY (#1754), and a host that can only reach the internet
+  // through a proxy otherwise loses the weather after the connect deadline.
+  const response = await safeFetch(url, undefined, { timeoutMs: WEATHER_TIMEOUT_MS });
   const data = await readCappedJson<OpenMeteoForecast>(response, MAX_WEATHER_BYTES);
   if (!data) {
     throw new ApiError(502, 'Open-Meteo API error');

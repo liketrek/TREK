@@ -18,6 +18,7 @@ import { DomainError } from '../common/domain-error';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
+import { recommendDestinations } from './destination-recommender';
 import { PlanApplyClaimLostError, PlannerApplyService } from './planner-apply.service';
 import { logPlannerEvent, stageLogger, type PlannerLogFields, type PlannerMode } from './planner-log';
 import { PlannerProvider, routeTransport } from './planner-provider';
@@ -31,6 +32,8 @@ import {
   EDITABLE_TRAVEL_PLAN_STATUSES,
   emptyTravelPlanDraft,
   travelPlanStatusSchema,
+  type DestinationIdeaRequest,
+  type DestinationIdeasResponse,
   type TravelPlan,
   type TravelPlanApplyRequest,
   type TravelPlanApplyResponse,
@@ -55,6 +58,7 @@ const PLAN_TTL_DAYS = 7;
 const STAGE_MESSAGES: Record<TravelPlanStreamStage, string> = {
   parsing: '正在解析你的旅行需求…',
   places: '正在检索真实地点…',
+  weather: '正在核对目的地天气…',
   routing: '正在计算地点之间的交通…',
   scheduling: '正在排布每天的行程…',
   validating: '正在校验行程…',
@@ -65,6 +69,10 @@ const NO_REVISION_CHECKED_AT = '1970-01-01 00:00:00';
 
 /** `X-Idempotency-Key` limits, matching the global interceptor's. */
 const IDEMPOTENCY_KEY_MAX = 200;
+
+/** Discovery is cheap but map-checked; the same wishes reuse the answer briefly. */
+const DESTINATION_IDEAS_TTL_MS = 10 * 60 * 1000;
+const DESTINATION_IDEAS_CACHE_MAX = 100;
 
 /**
  * AI travel plans: the traveller's request, the planner's draft revisions, and
@@ -77,6 +85,8 @@ const IDEMPOTENCY_KEY_MAX = 200;
  */
 @Injectable()
 export class AiTravelPlanService {
+  private readonly destinationIdeasCache = new Map<string, { at: number; response: DestinationIdeasResponse }>();
+
   constructor(
     @InjectRepository(AiTravelPlans) private readonly plans: AiTravelPlansRepository,
     @InjectRepository(AiTravelPlanRevisions) private readonly revisions: AiTravelPlanRevisionsRepository,
@@ -89,6 +99,31 @@ export class AiTravelPlanService {
     private readonly provider: PlannerProvider,
     @Inject(TRAVEL_PLAN_ENGINE) private readonly engine: TravelPlanEngine,
   ) {}
+
+  /**
+   * Pre-plan discovery: rank the curated catalog against a few loose wishes,
+   * prove the shortlist on the map, and answer at most three cities. It
+   * creates no plan and never touches the generation quota.
+   */
+  async destinationIdeas(user: User, request: DestinationIdeaRequest): Promise<DestinationIdeasResponse> {
+    const key = JSON.stringify({
+      days: request.days ?? null,
+      budgetCny: request.budgetCny ?? null,
+      travelers: request.travelers ?? null,
+      month: request.month ?? null,
+      interests: [...request.interests].sort(),
+    });
+    const cached = this.destinationIdeasCache.get(key);
+    if (cached && Date.now() - cached.at < DESTINATION_IDEAS_TTL_MS) {
+      return { ...cached.response, cached: true };
+    }
+
+    const ideas = await recommendDestinations({ userId: user.id, request, provider: this.provider });
+    const response: DestinationIdeasResponse = { ideas, generatedAt: new Date().toISOString(), cached: false };
+    if (this.destinationIdeasCache.size >= DESTINATION_IDEAS_CACHE_MAX) this.destinationIdeasCache.clear();
+    this.destinationIdeasCache.set(key, { at: Date.now(), response });
+    return response;
+  }
 
   /** Generates revision 1 and stores the plan. Nothing touches a trip. */
   async create(user: User, request: TravelPlanCreateRequest): Promise<TravelPlanResponse> {

@@ -259,7 +259,7 @@ describe('PlannerRequestParser model-call line', () => {
       );
 
       const pending = parser.merge(7, request({ prompt: '杭州两天' }));
-      await vi.advanceTimersByTimeAsync(20_000);
+      await vi.advanceTimersByTimeAsync(30_000);
       await pending;
 
       expect(lastLine(warn)).toMatch(/outcome=timeout$/);

@@ -1,4 +1,6 @@
 import type {
+  DestinationIdeaRequest,
+  DestinationIdeasResponse,
   TravelPlanApplyRequest,
   TravelPlanApplyResponse,
   TravelPlanCreateRequest,
@@ -25,6 +27,9 @@ const GENERATION_TIMEOUT_MS = 180_000;
 /** Route recalculation asks each day's legs from the relay, which budgets 15 s per day. */
 const RECALCULATE_TIMEOUT_MS = 60_000;
 
+/** Discovery checks a handful of cities on the map; slower than a read, far cheaper than a plan. */
+const IDEAS_TIMEOUT_MS = 30_000;
+
 /**
  * AI travel plans (China MVP).
  *
@@ -44,6 +49,13 @@ export const aiTravelPlanApi = {
 
   /** The plan, its current draft and its revision history. */
   get: (id: number): Promise<TravelPlanResponse> => apiClient.get(`/ai-travel-plans/${id}`).then((r) => r.data),
+
+  /**
+   * Pre-plan discovery: a few cities worth planning when the traveller has not
+   * chosen one. No plan is created and no generation quota is used.
+   */
+  destinationIdeas: (data: DestinationIdeaRequest): Promise<DestinationIdeasResponse> =>
+    apiClient.post('/ai-travel-plans/destination-ideas', data, { timeout: IDEAS_TIMEOUT_MS }).then((r) => r.data),
 
   /** Appends a revision; `expectedRevision` makes a stale client a 409. */
   revise: (id: number, data: TravelPlanRevisionRequest): Promise<TravelPlanRevisionResponse> =>

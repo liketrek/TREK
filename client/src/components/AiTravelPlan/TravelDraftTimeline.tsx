@@ -1,5 +1,18 @@
-import type { TravelPlanDraftDay, TravelPlanLeg } from '@trek/shared';
-import { Banknote, Clock, MapPin, Navigation, Route } from 'lucide-react';
+import type { TravelPlanDayWeather, TravelPlanDraftDay, TravelPlanLeg } from '@trek/shared';
+import {
+  Banknote,
+  Clock,
+  Cloud,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  CloudSnow,
+  CloudSun,
+  MapPin,
+  Navigation,
+  Route,
+  Sun,
+} from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../i18n';
 import type { Translate } from './aiPlanModel';
@@ -40,6 +53,50 @@ function travelModeLabel(mode: TravelPlanLeg['mode'], t: Translate): string {
   }
 }
 
+/** The day icon follows the provider's coarse kind, not its free-text description. */
+function weatherIcon(kind: TravelPlanDayWeather['kind']): React.ReactElement {
+  switch (kind) {
+    case 'clear':
+      return <Sun size={12} />;
+    case 'clouds':
+      return <CloudSun size={12} />;
+    case 'rain':
+      return <CloudRain size={12} />;
+    case 'snow':
+      return <CloudSnow size={12} />;
+    case 'storm':
+      return <CloudLightning size={12} />;
+    case 'fog':
+      return <CloudFog size={12} />;
+    default:
+      return <Cloud size={12} />;
+  }
+}
+
+/** Forecast for the day; a climate row is labelled so it is not read as a forecast. */
+function DayWeather({ weather }: { weather: TravelPlanDayWeather }): React.ReactElement {
+  const { t } = useTranslation();
+  const low = weather.tempMin;
+  const high = weather.tempMax;
+  const range =
+    low !== null && high !== null
+      ? `${Math.round(low)}–${Math.round(high)}°C`
+      : high !== null
+        ? `${Math.round(high)}°C`
+        : null;
+  return (
+    <span
+      className="inline-flex items-center gap-1 rounded-lg border border-edge px-2 py-1 text-xs text-content-secondary"
+      title={weather.description ?? undefined}
+    >
+      {weatherIcon(weather.kind)}
+      {t(`planner.ai.weatherKind.${weather.kind}`)}
+      {range && <span className="tabular-nums">{range}</span>}
+      {weather.type === 'climate' && <span className="text-content-faint">· {t('planner.ai.weatherClimate')}</span>}
+    </span>
+  );
+}
+
 /** Day-by-day proposal: times, places, the leg from the previous stop and its price. */
 export default function TravelDraftTimeline({ days, navMode }: TravelDraftTimelineProps): React.ReactElement {
   const { t, locale } = useTranslation();
@@ -55,7 +112,8 @@ export default function TravelDraftTimeline({ days, navMode }: TravelDraftTimeli
                 {t('planner.dayN', { n: dayIndex + 1 })}
                 <span className="ms-2 font-normal text-content-muted">{formatDay(day.date, locale)}</span>
               </h3>
-              <div className="flex items-center gap-3">
+              <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                {day.weather && <DayWeather weather={day.weather} />}
                 <span className="text-xs text-content-muted">{t('planner.placeN', { n: day.items.length })}</span>
                 {navigationUrl && (
                   <a

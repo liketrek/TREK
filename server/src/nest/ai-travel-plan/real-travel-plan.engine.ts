@@ -13,7 +13,7 @@ import type { TravelPlanModelMeta, TravelPlanWarning } from '@trek/shared';
 
 const ENGINE_ID = 'nest-planner';
 
-const EMPTY_BUDGET = { min: 0, max: 0, breakdown: {} };
+const EMPTY_BUDGET = { min: 0, max: 0, breakdown: {}, breakdownMax: {}, assumptions: [] };
 
 /**
  * PLAN-06..10 bound behind the phase-1 seam.
@@ -50,6 +50,7 @@ export class RealTravelPlanEngine implements TravelPlanEngine {
           factsCheckedAt: dbNow(),
           days: [],
           estimatedBudgetCny: EMPTY_BUDGET,
+          lodgingAreas: [],
           warnings: [],
         },
         facts: [],
@@ -180,6 +181,7 @@ function failedOutcome(warnings: TravelPlanWarning[], modelMeta: TravelPlanModel
       factsCheckedAt: dbNow(),
       days: [],
       estimatedBudgetCny: EMPTY_BUDGET,
+      lodgingAreas: [],
       warnings: all,
     },
     facts: [],

@@ -577,7 +577,8 @@ export const AI_TRAVEL_PLAN_REVISION_DRAFT: JsonColumn<TravelPlanDraft> = {
     summary: '这一版草案已损坏，无法读取。',
     factsCheckedAt: '1970-01-01 00:00:00',
     days: [],
-    estimatedBudgetCny: { min: 0, max: 0, breakdown: {} },
+    estimatedBudgetCny: { min: 0, max: 0, breakdown: {}, breakdownMax: {}, assumptions: [] },
+    lodgingAreas: [],
     warnings: [],
   }),
 };

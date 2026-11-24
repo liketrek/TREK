@@ -60,7 +60,8 @@ function draft(): TravelPlanDraft {
       { date: '2026-05-01', items: [item('a'), item('b')] },
       { date: '2026-05-02', items: [item('c')] },
     ],
-    estimatedBudgetCny: { min: 0, max: 0, breakdown: {} },
+    estimatedBudgetCny: { min: 0, max: 0, breakdown: {}, breakdownMax: {}, assumptions: [] },
+    lodgingAreas: [],
     warnings: [],
   };
 }

@@ -1,6 +1,8 @@
+import type { DestinationIdea } from '@trek/shared';
 import { Sparkles } from 'lucide-react';
 import React from 'react';
 import { useTranslation } from '../../i18n';
+import DestinationIdeas from './DestinationIdeas';
 import { PACE_OPTIONS, TRANSPORT_OPTIONS, type TravelBrief } from './aiPlanModel';
 
 interface TravelBriefFormProps {
@@ -8,6 +10,11 @@ interface TravelBriefFormProps {
   disabled: boolean;
   onChange: (patch: Partial<TravelBrief>) => void;
   onSubmit: () => void;
+  /** Discovery is optional: the form works without it. */
+  destinationIdeas?: DestinationIdea[] | null;
+  ideasPending?: boolean;
+  onSuggestDestinations?: () => void;
+  onPickDestinationIdea?: (idea: DestinationIdea) => void;
 }
 
 const inputClass =
@@ -20,6 +27,10 @@ export default function TravelBriefForm({
   disabled,
   onChange,
   onSubmit,
+  destinationIdeas = null,
+  ideasPending = false,
+  onSuggestDestinations,
+  onPickDestinationIdea,
 }: TravelBriefFormProps): React.ReactElement {
   const { t } = useTranslation();
 
@@ -60,6 +71,15 @@ export default function TravelBriefForm({
             placeholder={t('planner.ai.destinationPlaceholder')}
             onChange={(event) => onChange({ destination: event.target.value })}
           />
+          {onSuggestDestinations && (
+            <DestinationIdeas
+              ideas={destinationIdeas}
+              pending={ideasPending}
+              disabled={disabled}
+              onSuggest={onSuggestDestinations}
+              onPick={(idea) => onPickDestinationIdea?.(idea)}
+            />
+          )}
         </div>
         <div>
           <label className={labelClass} htmlFor="ai-plan-origin">

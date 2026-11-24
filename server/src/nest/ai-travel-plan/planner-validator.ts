@@ -94,11 +94,10 @@ export function validateDraft(request: TravelPlanCreateRequest, draft: TravelPla
     }
   }
 
-  const priced = draft.days.some((day) => day.items.some((item) => item.estimatedCostCny !== null));
-  if (!priced) {
+  if (draft.estimatedBudgetCny.assumptions.length === 0) {
     warnings.push({
       code: 'price_unconfirmed',
-      message: '当前没有可用的门票与消费价格，预算仅供占位，请以现场为准。',
+      message: '这份草案还没有预算估算依据，费用仅供占位，请以现场为准。',
       severity: 'info',
     });
   }

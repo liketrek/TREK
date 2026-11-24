@@ -58,7 +58,8 @@ function emptyResult(warnings: TravelPlanWarning[] = EMPTY_WARNINGS): TravelPlan
       summary: '',
       factsCheckedAt: dbNow(),
       days: [],
-      estimatedBudgetCny: { min: 0, max: 0, breakdown: {} },
+      estimatedBudgetCny: { min: 0, max: 0, breakdown: {}, breakdownMax: {}, assumptions: [] },
+      lodgingAreas: [],
       warnings,
     },
     facts: [],
@@ -132,7 +133,8 @@ function dayResult(): TravelPlanEngineResult {
       summary: '西湖与龙井茶园的三天慢行。',
       factsCheckedAt: dbNow(),
       days: appliedDays,
-      estimatedBudgetCny: { min: 0, max: 0, breakdown: {} },
+      estimatedBudgetCny: { min: 0, max: 0, breakdown: {}, breakdownMax: {}, assumptions: [] },
+      lodgingAreas: [],
       warnings: [],
     },
   };
@@ -228,7 +230,13 @@ describe('create', () => {
       revisions: [{ version: 1, reason: null }],
     });
     expect(plan.draft?.days).toEqual([]);
-    expect(plan.draft?.estimatedBudgetCny).toEqual({ min: 0, max: 0, breakdown: {} });
+    expect(plan.draft?.estimatedBudgetCny).toEqual({
+      min: 0,
+      max: 0,
+      breakdown: {},
+      breakdownMax: {},
+      assumptions: [],
+    });
     expect(plan.warnings).toEqual([expect.objectContaining({ code: 'engine_not_configured', severity: 'warning' })]);
     expect(plan.request.prompt).toContain('西湖');
 
@@ -798,6 +806,24 @@ describe('recalculate traffic (real roads, same proposal)', () => {
       status: 409,
       body: { error: '草案还没有可重算的连续地点。', code: 'plan_no_legs' },
     });
+    expect(plannerProvider.route).not.toHaveBeenCalled();
+  });
+});
+
+describe('destination ideas', () => {
+  it('IDEA-001: answers three ideas without creating a plan, then reuses the short-lived cache', async () => {
+    const ownerId = await user();
+
+    const first = await service().destinationIdeas(ownerId, { days: 3, month: 11, travelers: 2, interests: [] });
+
+    expect(first.ideas).toHaveLength(3);
+    expect(first.cached).toBe(false);
+    expect(await findRow(orm(), AiTravelPlans, {})).toBeNull();
+
+    const second = await service().destinationIdeas(ownerId, { days: 3, month: 11, travelers: 2, interests: [] });
+
+    expect(second.cached).toBe(true);
+    expect(second.ideas).toEqual(first.ideas);
     expect(plannerProvider.route).not.toHaveBeenCalled();
   });
 });

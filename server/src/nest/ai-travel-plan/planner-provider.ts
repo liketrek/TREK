@@ -73,8 +73,30 @@ export class PlannerProvider {
 
   /** Real places for one query, normalised; throws only when the provider refused. */
   async search(userId: number, query: string, bias: { lat: number; lng: number }): Promise<PlannerCandidate[]> {
+    return this.searchByRadius(userId, query, bias, 50_000);
+  }
+
+  /**
+   * Lodging near a point. It deliberately skips `isVisitCategory`: a hotel is
+   * not a stop, but it is exactly what this search asks for.
+   */
+  async searchLodging(
+    userId: number,
+    query: string,
+    bias: { lat: number; lng: number },
+    radiusM = 5_000,
+  ): Promise<PlannerCandidate[]> {
+    return this.searchByRadius(userId, query, bias, radiusM);
+  }
+
+  private async searchByRadius(
+    userId: number,
+    query: string,
+    bias: { lat: number; lng: number },
+    radius: number,
+  ): Promise<PlannerCandidate[]> {
     const checkedAt = dbNow();
-    const { places } = await this.maps.searchPlaces(userId, query, 'zh', { ...bias, radius: 50_000 });
+    const { places } = await this.maps.searchPlaces(userId, query, 'zh', { ...bias, radius });
     return places
       .map((record) => toCandidate(record, checkedAt))
       .filter((candidate): candidate is PlannerCandidate => candidate !== null);
