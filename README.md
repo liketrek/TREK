@@ -12,6 +12,17 @@ TREK has grown from a travel planner into a whole ecosystem for trips: plan toge
 
 <br />
 
+<table>
+<tr>
+<td align="center"><a href="https://apps.apple.com/app/id6831237775"><img src="docs/app/qr-app-store.svg" alt="QR code for TREK on the App Store" width="120" /></a><br /><a href="https://apps.apple.com/app/id6831237775"><img alt="Download on the App Store" src="https://img.shields.io/badge/App_Store-iPhone_%26_iPad-111827?style=for-the-badge&logo=apple&logoColor=white" /></a></td>
+<td align="center"><a href="https://play.google.com/store/apps/details?id=com.liketrek.trek"><img src="docs/app/qr-google-play.svg" alt="QR code for TREK on Google Play" width="120" /></a><br /><a href="https://play.google.com/store/apps/details?id=com.liketrek.trek"><img alt="Get it on Google Play" src="https://img.shields.io/badge/Google_Play-Android-111827?style=for-the-badge&logo=googleplay&logoColor=white" /></a></td>
+</tr>
+</table>
+
+<sub>The app connects to your own TREK server. <a href="https://github.com/liketrek/TREK/wiki/Native-Apps">How it works</a></sub>
+
+<br />
+
 <a href="https://demo.liketrek.com"><img alt="Demo" src="https://img.shields.io/badge/Demo-try-111827?style=for-the-badge" /></a>
 &nbsp;
 <a href="https://hub.docker.com/r/mauriceboe/trek"><img alt="Docker" src="https://img.shields.io/badge/Docker-ready-2496ED?style=for-the-badge" /></a>
@@ -222,34 +233,9 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 
 ## Powered by [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek)
 
-<div align="center">
+<a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="36" /></picture></a>
 
-<br />
-
-<a href="https://cloud.dataforest.net/en?mtm_campaign=trek">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" />
-    <source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" />
-    <img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="60" />
-  </picture>
-</a>
-
-<br />
-<br />
-
-**Every TREK installation in the world searches through servers that [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) sponsors.**
-
-The place index with over 88 million places, the address search in every TREK language and the planet-wide routing all run on [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) in Frankfurt, Germany, free of charge for everyone who self-hosts TREK. Without this sponsorship, these services would not exist in this form.
-
-Thank you, [dataforest](https://cloud.dataforest.net/en?mtm_campaign=trek), for backing open source this generously. 💚
-
-<br />
-
-<a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><img alt="Visit dataforest cloud" src="https://img.shields.io/badge/Visit-dataforest_cloud-02C382?style=for-the-badge" /></a>
-
-Looking for a server for your own TREK? [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) is where TREK's own services live.
-
-</div>
+TREK's public services, the place index with over 88 million places, the address search in every TREK language and the planet-wide routing, run on [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) in Frankfurt, free of charge for everyone who self-hosts TREK. Thank you, dataforest, for backing open source this generously. 💚 Looking for a server for your own TREK? [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) is where TREK's own services live.
 
 <br />
 
