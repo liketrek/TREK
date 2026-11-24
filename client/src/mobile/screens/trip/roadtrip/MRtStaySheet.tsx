@@ -138,9 +138,9 @@ export default function MRtStaySheet({ planner, shell }: MTripSheetsProps) {
       } else {
         shell.closeSheet()
       }
-    } catch (err) {
+    } catch {
       setMinutes(stored)
-      planner.toast.error(err instanceof Error ? err.message : t('common.unknownError'))
+      planner.toast.error(t('common.unknownError'))
     } finally {
       setSaving(false)
     }

@@ -30,11 +30,11 @@ In a window narrower than 1024 px the tab stacks into one column: the total on a
 
 Costs is **multi-currency** (#551). Three settings are involved, and they do different jobs:
 
-- The **trip currency** (set in the trip's dialog on My Trips: the pencil on the trip card, **Edit Trip**) is the trip's accounting base. Every balance and settle-up is calculated in it.
+- The **trip currency** (set in the trip's dialog on My Trips: the pencil on the trip card, **Edit Trip**) is the trip's accounting base. Expense exchange rates are saved against it.
 - Each **expense** carries **its own currency**. Pick it in the expense dialog and enter what the receipt says (a $100 dinner on a rouble trip is `100 USD`). It is converted into the trip currency at a rate **frozen when you save it**, so a settled debt does not reopen when the market moves.
-- Your **display currency** (Settings → General → Language & region → **Display currency**) converts what you *read* (totals, balances, the ledger) into one currency. It changes nothing that is stored. Left on **Trip currency** (the default), each trip is shown in its own currency.
+- Your **display currency** (Settings → General → Language & region → **Display currency**) converts what you *read* (totals, balances, the ledger) into one currency. It sets the currency for a new suggested repayment. Existing payments keep their recorded amounts and currencies. Left on **Trip currency** (the default), each trip is shown in its own currency.
 
-The tab can also read one trip in another currency than your display currency, without changing Settings: the currency picker in the bar (on the phone and in a narrow window, beside the **Expenses** heading) converts every total, balance and settle-up of this trip into the currency you pick, say the one of the country you travel on to. Your display currency and the trip's own lead the list. The pick is kept per trip in this browser and changes nothing that is stored; picking your display currency again goes back to it. Settle-ups and payments recorded from the tab are made in the picked currency, and the CSV export adds its column in it.
+The tab can also read one trip in another currency than your display currency, without changing Settings: the currency picker in the bar (on the phone and in a narrow window, beside the **Expenses** heading) converts every total, balance and settle-up of this trip into the currency you pick, say the one of the country you travel on to. Your display currency and the trip's own lead the list. The browser remembers the choice per trip. Picking your display currency again restores your preference. Settle-ups and payments recorded from the tab are made in the picked currency, and the CSV export adds its column in it.
 
 For foreign expenses and payments, the editor shows the rate used to convert into the trip currency. The ledger shows both the original and converted amounts (`$100.00 → 7 668,71 ₽`).
 

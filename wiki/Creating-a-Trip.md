@@ -32,7 +32,7 @@ The same dialog changes the dates of an existing trip later. The day plans follo
 
 ### Currency
 
-The trip's currency, its **accounting base**. Every expense in the Costs tab is converted into it, and every balance and settle-up suggestion is calculated in it. The dialog pre-fills your own display currency (Settings > General > Language & region > *Display currency*); if you left that on **Trip currency**, it falls back to **EUR**. An administrator can preset the instance-wide value under Admin → **User Defaults**, which new users inherit until they pick their own. 165 currencies are available.
+The trip's currency, its **accounting base**. Exchange rates saved on expenses use this base. The Costs tab calculates debts and suggests repayments in its selected display currency. The dialog pre-fills your own display currency (Settings > General > Language & region > *Display currency*); if you left that on **Trip currency**, it falls back to **EUR**. An administrator can preset the instance-wide value under Admin → **User Defaults**, which new users inherit until they pick their own. 165 currencies are available.
 
 Pick the currency you will actually settle up in. It is not a cosmetic label, but it is not a one-way door either: you can change it later from the same dialog (with the `trip_edit` permission), and TREK re-bases the existing expenses so no money moves; see [Currencies → Changing the trip currency](Currencies#changing-the-trip-currency).
 

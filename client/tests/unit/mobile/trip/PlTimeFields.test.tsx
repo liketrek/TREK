@@ -197,7 +197,6 @@ describe('PlTimeFields', () => {
         planner={buildPlanner({ tours: [hike] } as never)}
         startTime={startTime}
         endTime={endTime}
-      stay={stay}
         onChange={vi.fn()}
         assignmentId={1}
         dayAssignments={[SELF]}

@@ -737,4 +737,3 @@ function PackingItemRow({ item, planner, currentUserId, canEdit, onEdit, onDelet
     </MSwipeRow>
   )
 }
-
