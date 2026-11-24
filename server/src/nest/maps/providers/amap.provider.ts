@@ -50,6 +50,29 @@ const AMAP_MAX_PHOTO_BYTES = 5 * 1024 * 1024;
 /** Shown with the image: Amap's terms ask for the source to be named, and it names no author. */
 const AMAP_PHOTO_ATTRIBUTION = '© 高德地图';
 
+/**
+ * The refusal codes that mean "ask again in a moment", not "you may not".
+ *
+ * 10021 is the concurrent-QPS cap, and a plan fires five place searches at
+ * once — the very first burst is exactly when it trips. 10045 is the overseas
+ * bucket's daily quota, which in practice clears within seconds (the same five
+ * searches were answered ten seconds later), so losing the day's stops over it
+ * is worse than waiting. 10003 is a genuine daily exhaustion and is not
+ * retried: another attempt only burns a budget the operator has to wait out.
+ * 10004/10019/10020 are Amap's other rate/quota spellings.
+ */
+const RETRYABLE_INFOCODES = new Set(['10004', '10019', '10020', '10021', '10045']);
+
+/** Waits before each retry of a rate-limit refusal; the last lets a burst drain. */
+const AMAP_RETRY_DELAYS_MS = [500, 1_500, 4_000];
+
+/** One retry for a transport failure (a proxy 502, a dropped connection). */
+const AMAP_TRANSPORT_RETRY_MS = 750;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 /** An Amap list field, or nothing. The envelope is checked; its arrays never were. */
 function asArray<T>(value: T[] | undefined | null): T[] {
   return Array.isArray(value) ? value : [];
@@ -121,6 +144,15 @@ interface AmapEnvelope {
   status?: string;
   info?: string;
   infocode?: string;
+}
+
+/** A refusal the retry loop can classify; every `fail` throws one. */
+interface AmapCallFailure extends Error {
+  status: number;
+  /** Amap's own verdict said the same request may be answered later. */
+  rateLimited: boolean;
+  /** The transport in front of Amap failed, so there is no Amap verdict. */
+  transport: boolean;
 }
 
 interface AmapTip {
@@ -305,12 +337,56 @@ export class AmapPlacesProvider implements PlacesProvider {
   }
 
   /**
-   * One call, with the body-carried verdict turned into a real error.
+   * One call, with the body-carried verdict turned into a real error, retried
+   * when Amap said "too many for the moment" rather than "no".
    *
-   * Through safeFetchFollow like every other outbound URL in the maps domain, so
-   * a proxied base cannot be pointed at something internal.
+   * The first plan after a restart fires five searches at once, and that burst
+   * is what trips the concurrency cap (10021) or briefly exhausts the overseas
+   * bucket (10045). Those refusals come back in milliseconds and never reach
+   * the caller's data, so backing off and asking again is what turns a plan of
+   * zero stops into a plan of real stops. A genuine daily exhaustion (10003) is
+   * not retried — see RETRYABLE_INFOCODES.
    */
   private async call<T extends AmapEnvelope>(path: string, params: Record<string, string>, label: string): Promise<T> {
+    return this.attempt<T>(path, params, label, 0, 0);
+  }
+
+  /** One attempt, plus the retries `call` allows; recursion keeps the loop lint-free. */
+  private async attempt<T extends AmapEnvelope>(
+    path: string,
+    params: Record<string, string>,
+    label: string,
+    rateRetries: number,
+    transportRetries: number,
+  ): Promise<T> {
+    try {
+      return await this.callOnce<T>(path, params, label);
+    } catch (error) {
+      const failure = error as Partial<AmapCallFailure>;
+      if (failure.rateLimited && rateRetries < AMAP_RETRY_DELAYS_MS.length) {
+        // Jitter keeps five concurrent searches from retrying in lockstep and
+        // tripping the same cap again. The next attempt logs its own
+        // `[Amap API] #N …` line, so the retry is visible without a new log.
+        const wait = (AMAP_RETRY_DELAYS_MS[rateRetries] ?? 0) + Math.floor(Math.random() * 250);
+        await sleep(wait);
+        return this.attempt<T>(path, params, label, rateRetries + 1, transportRetries);
+      }
+      // No verdict from Amap at all (a proxy 502, a dropped socket): one more
+      // attempt is cheap and survives a proxy restart. A timeout already spent
+      // its eight seconds and is not retried.
+      if ((failure.transport || error instanceof TypeError) && transportRetries < 1) {
+        await sleep(AMAP_TRANSPORT_RETRY_MS);
+        return this.attempt<T>(path, params, label, rateRetries, transportRetries + 1);
+      }
+      throw error;
+    }
+  }
+
+  private async callOnce<T extends AmapEnvelope>(
+    path: string,
+    params: Record<string, string>,
+    label: string,
+  ): Promise<T> {
     const url = this.url(path, params);
     amapApiCallCount++;
     // The key rides in the query string, so the label is logged without the URL —
@@ -326,7 +402,7 @@ export class AmapPlacesProvider implements PlacesProvider {
     if (!response.ok) {
       // A transport-level failure, i.e. the proxy in front of Amap rather than
       // Amap itself: Amap's own answers are always 200.
-      this.fail(label, response.status, `Amap ${label} failed with HTTP ${response.status}`);
+      this.fail(label, response.status, `Amap ${label} failed with HTTP ${response.status}`, { transport: true });
     }
 
     // Capped, like the places index client next door: the base URL is
@@ -344,17 +420,26 @@ export class AmapPlacesProvider implements PlacesProvider {
     if (data.status !== '1') {
       const infocode = data.infocode ?? '';
       const hint = AMAP_INFOCODE_HINTS[infocode] || data.info || 'Amap API error';
-      this.fail(label, statusForInfocode(infocode), `${hint} (infocode ${infocode || 'none'})`);
+      this.fail(label, statusForInfocode(infocode), `${hint} (infocode ${infocode || 'none'})`, {
+        rateLimited: RETRYABLE_INFOCODES.has(infocode),
+      });
     }
     return data;
   }
 
-  private fail(label: string, status: number, message: string): never {
+  private fail(
+    label: string,
+    status: number,
+    message: string,
+    options: { rateLimited?: boolean; transport?: boolean } = {},
+  ): never {
     console.error(
-      `[Maps] amap/${label} failed with ${status} userId=${this.credential.userId} keySource=${this.credential.source}`,
+      `[Maps] amap/${label} failed with ${status} userId=${this.credential.userId} keySource=${this.credential.source}: ${message}`,
     );
-    const err = new Error(message) as Error & { status: number };
+    const err = new Error(message) as AmapCallFailure;
     err.status = status;
+    err.rateLimited = options.rateLimited ?? false;
+    err.transport = options.transport ?? false;
     throw err;
   }
 

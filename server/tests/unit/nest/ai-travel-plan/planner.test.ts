@@ -12,6 +12,7 @@ import { PlannerProvider, routeTransport } from '../../../../src/nest/ai-travel-
 import { hasBlockingWarning, validateDraft } from '../../../../src/nest/ai-travel-plan/planner-validator';
 import { PlannerService } from '../../../../src/nest/ai-travel-plan/planner.service';
 import { RealTravelPlanEngine } from '../../../../src/nest/ai-travel-plan/real-travel-plan.engine';
+import { classifyPlaceEnvironment } from '../../../../src/nest/ai-travel-plan/weather-plan';
 import {
   travelPlanCreateRequestSchema,
   travelPlanRequestSchema,
@@ -375,6 +376,74 @@ describe('PlannerService', () => {
     const queries = search.mock.calls.map((call) => call[1]);
     expect(queries).toEqual(expect.arrayContaining(['杭州 景点', '杭州 博物馆', '杭州 公园']));
     expect(queries).not.toContain('杭州');
+  });
+
+  it('spends two search slots on indoor stops when the forecast is rainy', async () => {
+    const search = vi.fn(async (_userId: number, _query: string) => [candidate(1)]);
+    const planner = service(
+      {
+        centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+        search,
+        route: vi.fn(async () => ({ ok: true, legs: [] })),
+      },
+      {
+        get: vi.fn(async () => ({ temp: 18, main: 'Rain', description: '小雨', type: 'forecast' })),
+        getDetailed: vi.fn(),
+      },
+    );
+
+    await planner.plan({ userId: 1, request: request() });
+
+    // The shelter queries take the last two of the five slots, so the pool
+    // holds indoor stops before selection — still five searches, not seven.
+    expect(search.mock.calls.map((call) => call[1])).toEqual([
+      '杭州 景点',
+      '杭州 公园',
+      '杭州 博物馆',
+      '杭州 商场',
+      '杭州 展览馆',
+    ]);
+  });
+
+  it('never keeps more than two place searches in flight (the Amap QPS cap)', async () => {
+    let inFlight = 0;
+    let peak = 0;
+    const search = vi.fn(async (_userId: number, _query: string) => {
+      inFlight++;
+      peak = Math.max(peak, inFlight);
+      await new Promise((resolve) => setTimeout(resolve, 5));
+      inFlight--;
+      return [candidate(1)];
+    });
+    const planner = service(
+      {
+        centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+        search,
+        route: vi.fn(async () => ({ ok: true, legs: [] })),
+      },
+      {
+        get: vi.fn(async () => ({ temp: 18, main: 'Rain', description: '小雨', type: 'forecast' })),
+        getDetailed: vi.fn(),
+      },
+    );
+
+    await planner.plan({ userId: 1, request: request() });
+
+    expect(search).toHaveBeenCalledTimes(5);
+    expect(peak).toBeLessThanOrEqual(2);
+  });
+
+  it('keeps the clear-weather search budget on interests alone', async () => {
+    const search = vi.fn(async (_userId: number, _query: string) => [candidate(1)]);
+    const planner = service({
+      centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+      search,
+      route: vi.fn(async () => ({ ok: true, legs: [] })),
+    });
+
+    await planner.plan({ userId: 1, request: request() });
+
+    expect(search.mock.calls.map((call) => call[1])).toEqual(['杭州 景点', '杭州 公园', '杭州 博物馆']);
   });
 
   it('fills a single explicit interest with the discovery keywords', async () => {
@@ -866,6 +935,42 @@ describe('PlannerService', () => {
     expect(outcome.draft.days[0]?.items.map((item) => item.place.name)).toEqual(['杭州博物馆', '地点1']);
   });
 
+  it('gives each rainy day two indoor stops before the cap trims the pool', async () => {
+    // Indoor stops sit farther from the centre than the parks, so the old
+    // selection (the first `cap` of the nearest-neighbour order) filled both
+    // days with parks and never reached a museum.
+    const outdoor = [1, 2, 3, 4, 5, 6].map((id) => candidate(id));
+    const indoor = [10, 11, 12, 13, 14, 15].map((id) => {
+      const base = candidate(id);
+      return {
+        ...base,
+        category: '科教文化服务;博物馆',
+        place: { ...base.place, name: `博物馆${id}`, category: '科教文化服务;博物馆' },
+      };
+    });
+    const planner = service(
+      {
+        centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
+        search: vi.fn(async () => [...outdoor, ...indoor]),
+        route: vi.fn(async () => ({ ok: true, legs: [] })),
+      },
+      {
+        get: vi.fn(async () => ({ main: 'Rain', description: '小雨', type: 'forecast' })),
+        getDetailed: vi.fn(),
+      },
+    );
+
+    const outcome = await planner.plan({ userId: 1, request: request() });
+
+    expect(outcome.draft.days).toHaveLength(2);
+    for (const day of outcome.draft.days) {
+      const indoorStops = day.items.filter(
+        (item) => classifyPlaceEnvironment(item.place.category, item.place.name) === 'indoor',
+      );
+      expect(indoorStops).toHaveLength(2);
+    }
+  });
+
   it('shows a climate reference beyond the forecast window without reordering', async () => {
     const outdoor = candidate(1);
     const museumBase = candidate(2);
@@ -1101,6 +1206,29 @@ describe('PlannerProvider', () => {
     maps.geocodeQuery.mockResolvedValueOnce(null as never);
     maps.searchPlaces.mockRejectedValueOnce(new Error('quota') as never);
     expect(await provider.centre(1, '杭州')).toBeNull();
+  });
+
+  it('anchors the centre on the densest namesake cluster when no area record came back', async () => {
+    // The real first-plan failure: the OSM half was down, the index answered
+    // with a Kuala Lumpur airport named 杭州 first, and the geocoder returned
+    // that airport — every Amap search then ran around Malaysia and answered
+    // 10045 (USER_ABROAD_DAILY_QUERY_OVER_LIMIT).
+    const maps = {
+      geocodeQuery: vi.fn(async () => ({ lat: 3.09, lng: 101.7 })),
+      searchPlaces: vi.fn(async () => ({
+        places: [
+          { name: '杭州', lat: 3.09, lng: 101.7, category: 'airport' },
+          { name: '杭州', lat: 35.62, lng: 139.58, category: null },
+          { name: '杭州 Hangzhou', lat: 30.2768, lng: 120.1523, category: 'travel_service' },
+          { name: '杭州火车站', lat: 30.246, lng: 120.178, category: null },
+          { name: '杭州东', lat: 30.2938, lng: 120.2087, category: 'train_station' },
+        ],
+      })),
+    };
+    const provider = new PlannerProvider(maps as never, { ask: vi.fn() } as never);
+
+    expect(await provider.centre(1, '杭州')).toEqual({ lat: 30.2768, lng: 120.1523 });
+    expect(maps.geocodeQuery).not.toHaveBeenCalled();
   });
 
   it('refuses a one-point route, a non-200 answer and a summary without numbers', async () => {

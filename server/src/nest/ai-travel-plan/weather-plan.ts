@@ -101,7 +101,11 @@ export function weatherRisk(weather: TravelPlanDayWeather | null | undefined): W
   return 'none';
 }
 
-function prefersIndoor(weather: TravelPlanDayWeather | null): boolean {
+/**
+ * Whether a day should lean indoors. Exported so the search stage can ask for
+ * indoor stops before selection, instead of only reordering what was found.
+ */
+export function prefersIndoor(weather: TravelPlanDayWeather | null): boolean {
   if (!weather || weather.type === 'climate') return false;
   if (weather.kind === 'rain' || weather.kind === 'snow' || weather.kind === 'storm') return true;
   return (weather.tempMax ?? 0) >= 35;

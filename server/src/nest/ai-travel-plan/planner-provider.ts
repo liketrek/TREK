@@ -62,8 +62,15 @@ export class PlannerProvider {
     try {
       const found = await this.maps.searchPlaces(userId, destination, 'zh');
       const records = found.places.filter((record) => finite(record.lat) && finite(record.lng));
-      const hit = records.find((record) => isArea(record) && nameMatches(text(record.name), wanted));
+      const named = records.filter((record) => nameMatches(text(record.name), wanted));
+      const hit = named.find(isArea);
       if (hit) return { lat: Number(hit.lat), lng: Number(hit.lng) };
+      // No administrative record (the OSM half can be down while the business
+      // index answers): the densest cluster of same-named records is still a
+      // far better anchor than the geocoder's first hit, which can be a
+      // namesake on another continent ("杭州" is an airport in Kuala Lumpur).
+      const dense = densestRecord(named);
+      if (dense) return { lat: Number(dense.lat), lng: Number(dense.lng) };
     } catch {
       // Fall through to the geocoder; a provider refusal must not block a plan.
     }
@@ -167,6 +174,40 @@ function nameMatches(name: string | null, wanted: string): boolean {
   if (!name || !wanted) return false;
   const plain = name.replace(/\s+/g, '');
   return plain === wanted || plain.includes(wanted) || wanted.includes(plain);
+}
+
+/** How close two same-named records must be to count as the same settlement. */
+const CENTRE_CLUSTER_KM = 150;
+
+/**
+ * The same-named record with the most same-named neighbours, when at least two
+ * agree. Coordinates are the one thing about a namesake that needs no language
+ * to read, so this is what breaks the tie when no administrative record came
+ * back: a city's own records cluster, a same-named airport abroad sits alone.
+ */
+function densestRecord(records: Record<string, unknown>[]): Record<string, unknown> | null {
+  let best: Record<string, unknown> | null = null;
+  let bestNeighbours = 0;
+  for (const record of records) {
+    const neighbours = records.filter(
+      (other) =>
+        other !== record &&
+        distanceKm(Number(record.lat), Number(record.lng), Number(other.lat), Number(other.lng)) <= CENTRE_CLUSTER_KM,
+    ).length;
+    if (neighbours > bestNeighbours) {
+      best = record;
+      bestNeighbours = neighbours;
+    }
+  }
+  return bestNeighbours > 0 ? best : null;
+}
+
+/** Flat-earth distance in kilometres; exact enough at the cluster radius. */
+function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number): number {
+  const rad = Math.PI / 180;
+  const dLat = (aLat - bLat) * 111;
+  const dLng = (aLng - bLng) * 111 * Math.cos(((aLat + bLat) / 2) * rad);
+  return Math.hypot(dLat, dLng);
 }
 
 function toCandidate(record: Record<string, unknown>, checkedAt: string): PlannerCandidate | null {

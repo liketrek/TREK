@@ -417,10 +417,13 @@ describe('Amap error handling', () => {
     errorSpy.mockRestore();
   });
 
-  it('AMAP-021: turns quota exhaustion into a 429', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(amapError('10003')));
+  it('AMAP-021: turns quota exhaustion into a 429, without retrying an exhausted day', async () => {
+    const fetchSpy = vi.fn().mockResolvedValue(amapError('10003'));
+    vi.stubGlobal('fetch', fetchSpy);
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     await expect(provider().searchText('x')).rejects.toMatchObject({ status: 429 });
+    // A genuine daily exhaustion is not a burst: retrying it only burns quota.
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
     errorSpy.mockRestore();
   });
 
@@ -440,6 +443,64 @@ describe('Amap error handling', () => {
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     await expect(provider().searchText('x')).rejects.toMatchObject({ status: 502, message: /OUT_OF_SERVICE/ });
     errorSpy.mockRestore();
+  });
+
+  it('AMAP-024: retries a concurrency refusal and answers the retried result', async () => {
+    // The first plan after a restart fires five searches at once; the burst is
+    // what trips 10021 (CUQPS), and the same request a moment later is answered.
+    vi.useFakeTimers();
+    const fetchSpy = vi
+      .fn()
+      .mockResolvedValueOnce(amapError('10021', 'CUQPS_HAS_EXCEEDED_THE_LIMIT'))
+      .mockResolvedValueOnce(
+        ok({
+          pois: [
+            {
+              id: 'B000A83M61',
+              name: '天安门',
+              location: TIANANMEN_LOCATION,
+              type: '风景名胜;风景名胜相关;旅游景点',
+            },
+          ],
+        }),
+      );
+    vi.stubGlobal('fetch', fetchSpy);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+    try {
+      const pending = provider().searchText('天安门');
+      await vi.advanceTimersByTimeAsync(2_000);
+      const places = await pending;
+
+      expect(places.map((place) => place.name)).toEqual(['天安门']);
+      expect(fetchSpy).toHaveBeenCalledTimes(2);
+    } finally {
+      debugSpy.mockRestore();
+      errorSpy.mockRestore();
+      vi.useRealTimers();
+    }
+  });
+
+  it('AMAP-025: gives up after the retry budget when the rate-limit refusal persists', async () => {
+    vi.useFakeTimers();
+    const fetchSpy = vi.fn().mockResolvedValue(amapError('10045', 'USER_ABROAD_DAILY_QUERY_OVER_LIMIT'));
+    vi.stubGlobal('fetch', fetchSpy);
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const debugSpy = vi.spyOn(console, 'debug').mockImplementation(() => {});
+
+    try {
+      const pending = provider().searchText('西湖');
+      const assertion = expect(pending).rejects.toMatchObject({ status: 502, message: /USER_ABROAD/ });
+      await vi.advanceTimersByTimeAsync(10_000);
+      await assertion;
+      // One attempt plus the three scheduled retries, then the caller hears about it.
+      expect(fetchSpy).toHaveBeenCalledTimes(4);
+    } finally {
+      debugSpy.mockRestore();
+      errorSpy.mockRestore();
+      vi.useRealTimers();
+    }
   });
 });
 
@@ -1173,7 +1234,9 @@ describe('AmapPlacesProvider.photo', () => {
     const bytes = Buffer.from([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
     const fetchSpy = vi
       .fn()
-      .mockResolvedValueOnce(ok({ pois: [{ id: 'B1', photos: [{ url: 'https://store.is.autonavi.com/showpic/abc' }] }] }))
+      .mockResolvedValueOnce(
+        ok({ pois: [{ id: 'B1', photos: [{ url: 'https://store.is.autonavi.com/showpic/abc' }] }] }),
+      )
       .mockResolvedValueOnce(image(bytes));
     vi.stubGlobal('fetch', fetchSpy);
 
@@ -1209,7 +1272,12 @@ describe('AmapPlacesProvider.photo', () => {
     const refusing = vi
       .fn()
       .mockResolvedValueOnce(ok({ pois: [{ photos: [{ url: 'https://store.is.autonavi.com/showpic/x' }] }] }))
-      .mockResolvedValueOnce({ ok: false, status: 500, headers: { get: () => null }, arrayBuffer: async () => new ArrayBuffer(0) });
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        headers: { get: () => null },
+        arrayBuffer: async () => new ArrayBuffer(0),
+      });
     vi.stubGlobal('fetch', refusing);
     expect(await provider().photo(39.9, 116.4, '天安门')).toEqual({ kind: 'failed' });
 

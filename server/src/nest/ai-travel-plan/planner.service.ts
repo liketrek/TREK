@@ -4,7 +4,13 @@ import { estimateBudget } from './budget-estimator';
 import { cityTierOf } from './destination-catalog';
 import { recommendLodging } from './lodging-recommender';
 import { ADMIN_CATEGORIES, PlannerProvider, routeTransport, type PlannerCandidate } from './planner-provider';
-import { outdoorStopsAtRisk, reorderCandidatesForWeather, toDayWeather } from './weather-plan';
+import {
+  classifyPlaceEnvironment,
+  outdoorStopsAtRisk,
+  prefersIndoor,
+  reorderCandidatesForWeather,
+  toDayWeather,
+} from './weather-plan';
 import { Injectable } from '@nestjs/common';
 import type {
   TravelPlanBudget,
@@ -27,6 +33,28 @@ const QUERY_MAX = 80;
 
 /** Never ask a provider for more than this many place searches per plan. */
 const MAX_QUERIES = 5;
+
+/**
+ * How many place searches may be in flight at once.
+ *
+ * Amap's key is capped at a few concurrent queries per second, and the first
+ * plan after a restart used to fire all five at once: the burst tripped the
+ * cap (10021) and sometimes the whole overseas bucket (10045), and a plan of
+ * zero stops was the result even with retries. Two at a time stays under the
+ * cap while still finishing the five searches in a couple of seconds.
+ */
+const PLACE_SEARCH_CONCURRENCY = 2;
+
+/**
+ * Keywords that surface indoor stops on a rainy or very hot trip. They compete
+ * for the same five-search budget: the point is to have museums, malls and
+ * exhibition halls in the pool before selection trims it, not to add a sixth
+ * search to a key that is already rate-limited.
+ */
+const INDOOR_QUERY_KEYWORDS = ['商场', '展览馆'];
+
+/** Indoor stops each rainy or very hot day is guaranteed, when the pool has them. */
+const INDOOR_STOPS_PER_DAY = 2;
 
 /** Never schedule more places than this, whatever the pace. */
 const MAX_PLACES = 24;
@@ -86,6 +114,8 @@ const INTEREST_CATEGORY_PREFIXES: Record<string, string[]> = {
   公园: ['风景名胜', '体育休闲服务', 'park', 'garden'],
   美食: ['餐饮服务', 'restaurant', 'cafe', 'food'],
   购物: ['购物服务', 'shop', 'mall'],
+  商场: ['购物服务', 'shop', 'mall'],
+  展览馆: ['科教文化服务', 'museum', '展览馆'],
 };
 
 function matchesInterest(category: string | null, interest: string): boolean {
@@ -140,7 +170,6 @@ export class PlannerService {
       ]);
     }
 
-    onStage?.('places');
     const centre = await this.provider.centre(userId, request.destination);
     if (!centre) {
       return emptyOutcome(checkedAt, '目的地没能在地图供应商处解析。', [
@@ -163,25 +192,25 @@ export class PlannerService {
       }),
     );
 
-    const queries = buildQueries(request, input.extraQueries ?? []);
-    const results = await Promise.all(
-      queries.map(
-        async ({ query, interest }): Promise<{ candidates?: PlannerCandidate[]; warning?: TravelPlanWarning }> => {
-          try {
-            const places = await this.provider.search(userId, query, centre);
-            return { candidates: places.filter((candidate) => matchesInterest(candidate.category, interest)) };
-          } catch {
-            return {
-              warning: {
-                code: 'place_search_failed',
-                message: `地点检索「${query}」暂时失败，结果可能不完整。`,
-                severity: 'warning',
-              },
-            };
-          }
-        },
-      ),
-    );
+    // The forecast now decides what to search for, not just the order of what
+    // was found: waiting for it here is what lets a rainy trip ask for indoor
+    // stops at all. It is one short call, and it used to run concurrently with
+    // searches that could not use its answer.
+    onStage?.('weather');
+    const weatherByDate = new Map<string, TravelPlanDayWeather | null>(await weatherPromise);
+    const missingWeather = [...weatherByDate.values()].filter((weather) => weather === null).length;
+    if (missingWeather > 0) {
+      warnings.push({
+        code: 'weather_unavailable',
+        message: `有 ${missingWeather} 天的天气暂时没有取到，排程未考虑天气。`,
+        severity: 'info',
+      });
+    }
+    const indoorNeeded = dates.some((date) => prefersIndoor(weatherByDate.get(date) ?? null));
+
+    onStage?.('places');
+    const queries = buildQueries(request, input.extraQueries ?? [], indoorNeeded);
+    const results = await searchQueries(this.provider, userId, centre, queries);
     const candidates = results.flatMap((result) => result.candidates ?? []);
     for (const result of results) {
       if (result.warning) warnings.push(result.warning);
@@ -210,7 +239,7 @@ export class PlannerService {
     const perDay = request.pace === 'relaxed' ? 3 : request.pace === 'intensive' ? 5 : 4;
     const cap = Math.min(dates.length * perDay, MAX_PLACES);
     const ordered = nearestNeighbour(dedupe(nearby), centre);
-    const selected = ordered.slice(0, cap);
+    const selected = selectItinerary(ordered, cap, dates, weatherByDate, indoorNeeded);
     if (ordered.length > selected.length) {
       warnings.push({
         code: 'places_skipped',
@@ -219,16 +248,6 @@ export class PlannerService {
       });
     }
 
-    onStage?.('weather');
-    const weatherByDate = new Map<string, TravelPlanDayWeather | null>(await weatherPromise);
-    const missingWeather = [...weatherByDate.values()].filter((weather) => weather === null).length;
-    if (missingWeather > 0) {
-      warnings.push({
-        code: 'weather_unavailable',
-        message: `有 ${missingWeather} 天的天气暂时没有取到，排程未考虑天气。`,
-        severity: 'info',
-      });
-    }
     const scheduled = reorderCandidatesForWeather(selected, dates, weatherByDate);
     const lodgingPromise = recommendLodging({
       provider: this.provider,
@@ -350,9 +369,58 @@ interface PlaceQuery {
   interest: string;
 }
 
+/** One query's answer: candidates, or the warning that explains its absence. */
+interface PlaceSearchOutcome {
+  candidates?: PlannerCandidate[];
+  warning?: TravelPlanWarning;
+}
+
+/**
+ * Run the plan's place searches with a small concurrency cap.
+ *
+ * The cap exists for the provider's sake, not ours: a fresh plan used to fire
+ * all five searches at once, and the burst is what a QPS-limited key refuses.
+ * The workers pull from a shared queue (the index increment happens before the
+ * first await, so two workers never claim the same query) and recurse for the
+ * next one; results keep the query order the caller asked for.
+ */
+async function searchQueries(
+  provider: PlannerProvider,
+  userId: number,
+  centre: { lat: number; lng: number },
+  queries: PlaceQuery[],
+): Promise<PlaceSearchOutcome[]> {
+  const results: PlaceSearchOutcome[] = [];
+  let next = 0;
+
+  const worker = async (): Promise<void> => {
+    const index = next++;
+    const entry = queries[index];
+    if (!entry) return;
+    try {
+      const places = await provider.search(userId, entry.query, centre);
+      results[index] = {
+        candidates: places.filter((candidate) => matchesInterest(candidate.category, entry.interest)),
+      };
+    } catch {
+      results[index] = {
+        warning: {
+          code: 'place_search_failed',
+          message: `地点检索「${entry.query}」暂时失败，结果可能不完整。`,
+          severity: 'warning',
+        },
+      };
+    }
+    if (next < queries.length) await worker();
+  };
+
+  await Promise.all(Array.from({ length: Math.min(PLACE_SEARCH_CONCURRENCY, queries.length) }, () => worker()));
+  return results;
+}
+
 const DEFAULT_INTERESTS = ['景点', '公园', '博物馆'];
 
-function buildQueries(request: TravelPlanCreateRequest, extra: string[]): PlaceQuery[] {
+function buildQueries(request: TravelPlanCreateRequest, extra: string[], indoor = false): PlaceQuery[] {
   const destination = request.destination ?? '';
   // A single explicit interest ("景点") is one search and a thin pool; pair it
   // with the discovery defaults so a small city still yields a full itinerary.
@@ -361,8 +429,14 @@ function buildQueries(request: TravelPlanCreateRequest, extra: string[]): PlaceQ
   // The city name alone is never a query: Amap matches it against POI names and
   // fills the pool with the city's own offices, schools and hospitals. Every
   // query pairs the city with a keyword; extra revision keywords take the slots.
-  const keywords = [...interests, ...extra].slice(0, MAX_QUERIES);
-  const queries = keywords
+  const keywords = [...new Set([...interests, ...extra])];
+  // A rainy or hot trip trades its last interest slot for two shelter queries:
+  // the pool has to contain indoor stops before selection, or no amount of
+  // reordering can put one on the day.
+  const chosen = indoor
+    ? [...keywords.slice(0, MAX_QUERIES - INDOOR_QUERY_KEYWORDS.length), ...INDOOR_QUERY_KEYWORDS]
+    : keywords.slice(0, MAX_QUERIES);
+  const queries = chosen
     .map((keyword) => ({
       interest: keyword,
       query: `${destination} ${keyword}`.replace(/\s+/g, ' ').trim().slice(0, QUERY_MAX),
@@ -429,6 +503,62 @@ function nearestNeighbour(candidates: PlannerCandidate[], centre: { lat: number;
     current = { lat: picked.place.lat, lng: picked.place.lng };
   }
   return ordered;
+}
+
+/**
+ * Cut the capped itinerary out of the ordered pool.
+ *
+ * Without weather pressure this is simply the first `cap` stops. When a day
+ * needs shelter, that day's slice reserves room for indoor stops first, pulled
+ * from the nearest indoor places the pool still holds. Reordering alone could
+ * not do this: a rainy day whose four nearest stops were parks stayed a day of
+ * parks even when the pool held five museums. The day buckets mirror
+ * `scheduleDays`' own spread rule, so a stop taken for a day is a stop that day
+ * actually keeps.
+ */
+function selectItinerary(
+  ordered: PlannerCandidate[],
+  cap: number,
+  dates: string[],
+  weatherByDate: ReadonlyMap<string, TravelPlanDayWeather | null>,
+  indoorNeeded: boolean,
+): PlannerCandidate[] {
+  const limit = Math.min(cap, ordered.length);
+  if (!indoorNeeded || dates.length <= 1) return ordered.slice(0, limit);
+
+  const quota = dates.map(() => 0);
+  for (let index = 0; index < limit; index += 1) {
+    const day = Math.min(dates.length - 1, Math.floor((index * dates.length) / limit));
+    quota[day] = (quota[day] ?? 0) + 1;
+  }
+
+  const pool = [...ordered];
+  const selected: PlannerCandidate[] = [];
+  for (let day = 0; day < dates.length; day += 1) {
+    const size = quota[day] ?? 0;
+    if (size === 0) continue;
+    const wantsIndoor = prefersIndoor(weatherByDate.get(dates[day] ?? '') ?? null)
+      ? Math.min(INDOOR_STOPS_PER_DAY, size)
+      : 0;
+    let taken = 0;
+    if (wantsIndoor > 0) {
+      for (let index = 0; index < pool.length && taken < wantsIndoor;) {
+        const candidate = pool[index] as PlannerCandidate;
+        if (classifyPlaceEnvironment(candidate.category, candidate.place.name) === 'indoor') {
+          selected.push(candidate);
+          pool.splice(index, 1);
+          taken += 1;
+        } else {
+          index += 1;
+        }
+      }
+    }
+    while (taken < size && pool.length > 0) {
+      selected.push(pool.shift() as PlannerCandidate);
+      taken += 1;
+    }
+  }
+  return selected;
 }
 
 /** One provider opening-hours segment, already attributed to weekdays. */
