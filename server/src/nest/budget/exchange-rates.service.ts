@@ -124,6 +124,7 @@ export class ExchangeRatesService {
     return { ...metadata, rates, stale: Date.now() - fetched.getTime() >= SNAPSHOT_TTL };
   }
 
+  /** @txStandalone The provider snapshot cache is independent of the trip write using its quote. */
   private async fetchSnapshot(base: string): Promise<ExchangeRateSnapshot | null> {
     if (this.activeRequests === MAX_PROVIDER_CONCURRENCY) {
       await new Promise<void>((resolve) => this.waiters.push(resolve));

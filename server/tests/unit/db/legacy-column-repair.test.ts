@@ -11,7 +11,7 @@
  * and an install shaped like the one whose move to Postgres was refused
  * (`users` without `mfa_backup_codes` and `immich_access_token`) is upgraded.
  */
-import { migrateToHead } from '../../../src/db/legacy-baseline';
+import { BootstrapMigrator, migrateToHead } from '../../../src/db/legacy-baseline';
 import { Migration20200101046460_an_upgraded_install_gets_the_columns_its_history_skipped as Repair } from '../../../src/db/migrations/Migration20200101046460_an_upgraded_install_gets_the_columns_its_history_skipped';
 import { openLegacyFixture } from '../../helpers/legacy-fixture';
 import {
@@ -302,7 +302,7 @@ describe('the migration', () => {
       dbName: file,
     });
     try {
-      const migrator = migratorOf(orm);
+      const migrator = new BootstrapMigrator(orm.em);
       await migrateToHead(orm.em.getConnection(), migrator);
       const executed = new Set((await migrator.getExecuted()).map((row) => row.name));
       // The step that should have added the column is recorded, not run: the gap this closes.

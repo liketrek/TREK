@@ -52,6 +52,49 @@ interface Toaster {
   info: (message: string) => void;
 }
 
+function useCostsSettlement(tripId: number, base: string, tripCurrency: string) {
+  const [settlementRead, setSettlementRead] = useState<{
+    tripId: number;
+    requested: string;
+    response: CostsSettlementResponse;
+  } | null>(null);
+  const currentRead = settlementRead?.tripId === tripId ? settlementRead : null;
+  const settlement = currentRead?.response ?? null;
+  const settledIn = (settlement?.currency || currentRead?.requested)?.toUpperCase();
+  // Anchored on the trip currency's quote, the one the server books with (#2525).
+  const { convert, displayPerTrip } = useExchangeRates(base, tripCurrency);
+
+  // A failed settlement read leaves `settlement` null, which the views would
+  // otherwise present as "everyone is square", a balance claim we cannot make.
+  const [settlementError, setSettlementError] = useState(false);
+  // Only the latest read may land: an answer for the currency picked before would
+  // otherwise overwrite the one for the currency shown now.
+  const latestRead = useRef(0);
+  const displayRate = settledIn === base ? settlement?.display_rate : undefined;
+  // The browser's own figure for the display currency goes along, for the server to
+  // answer in it when it cannot fetch a quote itself.
+  const readSettlement = useCallback(() => {
+    const read = ++latestRead.current;
+    return budgetRepo
+      .settlement(tripId, base, base !== tripCurrency ? displayPerTrip : null)
+      .then((s: CostsSettlementResponse) => {
+        if (read !== latestRead.current) return;
+        setSettlementRead({ tripId, requested: base, response: s });
+        setSettlementError(false);
+      })
+      .catch(() => {
+        if (read === latestRead.current) setSettlementError(true);
+      });
+  }, [tripId, base, tripCurrency, displayPerTrip]);
+  const loadSettlement = useCallback(() => {
+    void readSettlement();
+  }, [readSettlement]);
+
+  const balancesKnown =
+    !settlementError && settledIn === base && (!settlement?.trip_currency || settlement.trip_currency === tripCurrency);
+  return { settlement, settlementError, balancesKnown, displayRate, convert, readSettlement, loadSettlement };
+}
+
 /**
  * The Costs ledger behind the desktop CostsPanel and the phone MCostsTab: the
  * display and trip currencies, the settlement the server nets the balances in,
@@ -104,25 +147,9 @@ export function useCostsLedger({
   const { base, usual, setBase, baseOptions } = useCostsCurrency(tripId, trip);
   // Pre-rework rows stored currency = NULL, meaning "the trip's own currency".
   const tripCurrency = (trip?.currency || usual).toUpperCase();
-  const [settlementRead, setSettlementRead] = useState<{
-    tripId: number;
-    requested: string;
-    response: CostsSettlementResponse;
-  } | null>(null);
-  const currentRead = settlementRead?.tripId === tripId ? settlementRead : null;
-  const settlement = currentRead?.response ?? null;
-  const settledIn = (settlement?.currency || currentRead?.requested)?.toUpperCase();
-  // Anchored on the trip currency's quote, the one the server books with (#2525).
-  const { convert, displayPerTrip } = useExchangeRates(base, tripCurrency);
-
-  // A failed settlement read leaves `settlement` null, which the views would
-  // otherwise present as "everyone is square", a balance claim we cannot make.
-  const [settlementError, setSettlementError] = useState(false);
-  // Only the latest read may land: an answer for the currency picked before would
-  // otherwise overwrite the one for the currency shown now.
-  const latestRead = useRef(0);
+  const { settlement, settlementError, balancesKnown, displayRate, convert, readSettlement, loadSettlement } =
+    useCostsSettlement(tripId, base, tripCurrency);
   const settling = useRef(false);
-  const displayRate = settledIn === base ? settlement?.display_rate : undefined;
   const ctx: CostsCtx = useMemo(
     () => ({
       me,
@@ -135,25 +162,6 @@ export function useCostsLedger({
     }),
     [me, tripCurrency, base, convert, displayRate]
   );
-
-  // The browser's own figure for the display currency goes along, for the server to
-  // answer in it when it cannot fetch a quote itself.
-  const readSettlement = useCallback(() => {
-    const read = ++latestRead.current;
-    return budgetRepo
-      .settlement(tripId, base, base !== tripCurrency ? displayPerTrip : null)
-      .then((s: CostsSettlementResponse) => {
-        if (read !== latestRead.current) return;
-        setSettlementRead({ tripId, requested: base, response: s });
-        setSettlementError(false);
-      })
-      .catch(() => {
-        if (read === latestRead.current) setSettlementError(true);
-      });
-  }, [tripId, base, tripCurrency, displayPerTrip]);
-  const loadSettlement = useCallback(() => {
-    void readSettlement();
-  }, [readSettlement]);
 
   // A payment, a split, a paid mark or a renamed or removed guest written
   // elsewhere (a fellow traveller, the assistant) moves the balances without
@@ -219,8 +227,6 @@ export function useCostsLedger({
   const countAllCats = useCallback(() => setLeftOutCats(new Set()), []);
 
   const shareOf = skipUnfinishedShares ? settledShareOf : myShareOf;
-  const balancesKnown =
-    !settlementError && settledIn === base && (!settlement?.trip_currency || settlement.trip_currency === tripCurrency);
   const flows = useMemo(() => (balancesKnown ? (settlement?.flows ?? []) : []), [settlement, balancesKnown]);
   const canSettle = canEdit && queuedWrites === 0 && flows.length > 0;
   const settledUp = balancesKnown && flows.length === 0;

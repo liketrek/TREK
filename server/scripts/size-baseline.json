@@ -3,11 +3,11 @@
   "scripts/generate-entities.ts": 2259,
   "src/db/repositories/Places.repository.ts": 1432,
   "src/db/repositories/Reservations.repository.ts": 1540,
-  "src/db/repositories/Trips.repository.ts": 1120,
+  "src/db/repositories/Trips.repository.ts": 1119,
   "src/db/repositories/Users.repository.ts": 1421,
   "src/nest/atlas/atlas.service.ts": 1166,
   "src/nest/auth/auth.service.ts": 1132,
-  "src/nest/budget/budget.service.ts": 1522,
+  "src/nest/budget/budget.service.ts": 1466,
   "src/nest/collections/collections.service.ts": 1414,
   "src/nest/doc-sync/doc-sync.service.ts": 1060,
   "src/nest/doc-sync/providers/synology-drive.client.ts": 1160,
@@ -15,6 +15,6 @@
   "src/nest/places/places.service.ts": 1546,
   "src/nest/plugins/plugin-runtime.service.ts": 1459,
   "src/nest/plugins/runtime/plugin-sdk.ts": 1081,
-  "src/nest/reservations/reservations.service.ts": 1160,
+  "src/nest/reservations/reservations.service.ts": 1154,
   "src/nest/vacay/vacay.service.ts": 1393
 }

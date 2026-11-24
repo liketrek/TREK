@@ -1,13 +1,5 @@
-/**
- * Unit tests for CalendarService. The cases moved 1:1 out of
- * tests/unit/nest/trips.service.test.ts together with the code they cover
- * (TRIP-SVC-001..002b, 020..027 and 048); the identifiers are unchanged so the
- * diff shows a move rather than a rewrite, and the assertions still pin the
- * emitted ICS byte for byte. Uses a real in-memory SQLite DB so the SQL runs.
- */
+/** CalendarService tests exercise generated ICS against a migrated SQLite fixture. */
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-// ── DB setup ──────────────────────────────────────────────
 
 vi.mock('../../../src/db/database', async () => {
 

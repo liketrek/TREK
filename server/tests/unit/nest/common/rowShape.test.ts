@@ -59,7 +59,6 @@ function makeRow(overrides: Partial<AssignmentWithPlaceRow> = {}): AssignmentWit
     tour_place_id: null,
     tour_route_geometry: null,
     tour_stage_key: null,
-    stay_minutes: null,
     ...overrides,
   };
 }

@@ -88,7 +88,8 @@ export type BudgetItemReceipt = z.infer<typeof budgetItemReceiptSchema>;
  * that to the trip base currency (NULL currency + rate 1 = base currency).
  * On a foreign row, rate 1 without recognized provenance is the legacy unfrozen
  * default. Explicit/trip/global/identity provenance makes 1 an intentional freeze.
- * Unfrozen rows appear under `unconverted` until a rate is applied.
+ * Settlement uses the trip or system quote for an unfrozen row when possible.
+ * Rows without a usable conversion appear under `unconverted`.
  */
 export const budgetItemSchema = z.object({
   id: z.number(),
@@ -220,15 +221,12 @@ export const budgetUpdatePayersRequestSchema = z.object({
 export type BudgetUpdatePayersRequest = z.infer<typeof budgetUpdatePayersRequestSchema>;
 
 /**
- * A persisted settle-up transfer (budget_settlements row): "from paid to" a
- * given amount, entered in the payer's display `currency`. `exchange_rate` is the
- * live rate frozen at settle time (units of that currency per 1 trip currency), so
- * a settled position stays balanced when live rates drift (#1445). Legacy rows
- * have currency = null / exchange_rate = 1 and convert with live rates. A row in
- * another currency with rate 1 and legacy/missing provenance was never frozen:
- * it is excluded and listed under `unconverted` until a rate is applied. Intentional
- * parity is recognized by provenance. New foreign writes require a rate. Creating
- * one marks a suggested flow as paid; deleting it (undo) brings the flow back.
+ * A settle-up transfer records the payer, recipient, amount and currency.
+ * A suggested repayment freezes its quote in units of its currency per unit
+ * of trip currency. Older payments without a currency count in the display
+ * currency. A foreign row with a legacy rate of 1 uses the available trip or
+ * system quote. Provenance distinguishes explicitly booked 1:1 rates. Rows
+ * without a usable conversion appear under `unconverted`.
  */
 export const budgetSettlementSchema = z.object({
   id: z.number(),

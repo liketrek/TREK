@@ -26,7 +26,7 @@ import { TripMembershipService } from '../trip-membership/trip-membership.servic
 import { BudgetWritesService } from './budget-writes.service';
 import { BudgetService } from './budget.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { COST_CATEGORY_HINT, exchangeRateWriteSchema, idSchema, sumMinor, toMinor } from '@trek/shared';
+import { COST_CATEGORY_HINT, budgetCreateSettlementRequestSchema, exchangeRateWriteSchema, idSchema, sumMinor, toMinor } from '@trek/shared';
 
 import { z } from 'zod';
 
@@ -635,7 +635,7 @@ export class BudgetMcp {
       "Record a settle-up payment: from_user_id paid to_user_id the given amount to settle shared expenses, optionally with a note. The amount is in the trip's base currency unless `currency` says otherwise. Use get_settlement_summary to find who owes whom. When recording an offered payment, pass its amount, the summary currency, and the flow exchange_rate if provided. Use the summary trip_currency as rate_base_currency.",
     inputSchema: {
       ...exchangeRateWriteSchema.shape,
-      rate_base_currency: z.string().regex(/^[A-Za-z]{3}$/).optional().describe('The summary trip_currency when reusing a quote'),
+      rate_base_currency: budgetCreateSettlementRequestSchema.shape.rate_base_currency.describe('Trip currency from the quote'),
       tripId: idSchema,
       from_user_id: idSchema.describe('User ID of the member who paid'),
       to_user_id: idSchema.describe('User ID of the member who received the payment'),
@@ -929,9 +929,6 @@ export class BudgetMcp {
       };
     }
     if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
-    // Resolve the trip currency + live rates like get_settlement_summary — the
-    // legacy resource called calculateSettlement(id) bare, silently netting a
-    // non-EUR trip in EUR with no FX conversion.
     const currency = await this.trips.getCurrency(id);
     const tripCurrency = currency || 'EUR';
     const effectiveBase = tripCurrency.toUpperCase();
