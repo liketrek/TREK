@@ -1,34 +1,30 @@
-import { db as testDb } from '../../../src/db/database';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
 import { Days } from '../../../src/db/entities/Days.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { inOrder } from '../../../src/nest/common/in-order';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
-import {
-  createUser,
-  createTrip,
-  createDay,
-  createPlace,
-  createDayAssignment,
-  addTripMember,
-} from '../../helpers/factories';
+import { makeDayAssignment } from '../../helpers/factories/itinerary';
+import { makePlace } from '../../helpers/factories/places';
 import { findRow, findRows } from '../../helpers/factories/rows';
 import { setAppSetting } from '../../helpers/factories/settings';
+import { addTripMember, makeDay, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
-let orm: TestOrm;
+let orm: MikroORM;
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   await invalidatePermissionsCache();
   delete process.env.DEMO_MODE;
@@ -36,8 +32,7 @@ beforeEach(async () => {
 afterAll(async () => {
   delete process.env.DEMO_MODE;
   await invalidatePermissionsCache();
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
   const h = await createMcpHarness({ realtime, userId, withResources: false });
@@ -53,13 +48,13 @@ const timing = {
   travel: [{ from: 'assignment:1', to: 'assignment:2', mode: 'walking', minutes: 25 }],
 };
 
-function fixture(email?: string) {
-  const { user } = createUser(testDb, email ? { email } : {});
-  const trip = createTrip(testDb, user.id);
-  const day = createDay(testDb, trip.id);
-  const place = createPlace(testDb, trip.id);
-  const assignment = createDayAssignment(testDb, day.id, place.id);
-  return { user, trip, day, assignment };
+async function fixture(email?: string) {
+  const { user } = await makeUser(orm, email ? { email } : {});
+  const trip = await makeTrip(orm, user.id);
+  const day = await makeDay(orm, trip.id);
+  const place = await makePlace(orm, trip.id);
+  const assignment = await makeDayAssignment(orm, day.id, place.id);
+  return { user, trip, day, place, assignment };
 }
 
 async function stored() {
@@ -71,14 +66,14 @@ async function stored() {
 
 for (const kind of ['day', 'stay'] as const) {
   const name = kind === 'day' ? 'set_day_timing' : 'set_assignment_stay';
-  const args = (f: ReturnType<typeof fixture>): Record<string, unknown> =>
+  const args = (f: Awaited<ReturnType<typeof fixture>>): Record<string, unknown> =>
     kind === 'day'
       ? { tripId: f.trip.id, dayId: f.day.id, ...timing }
       : { tripId: f.trip.id, assignmentId: f.assignment.id, stay_minutes: 90 };
 
   describe(`Tool: ${name}`, () => {
     it('persists an authorized write and broadcasts the saved entity', async () => {
-      const f = fixture();
+      const f = await fixture();
       await withHarness(f.user.id, async (h) => {
         const result = await h.client.callTool({ name, arguments: args(f) });
         expect(result.isError).not.toBe(true);
@@ -107,7 +102,7 @@ for (const kind of ['day', 'stay'] as const) {
 
     it('rejects demo writes without mutation or broadcast', async () => {
       process.env.DEMO_MODE = 'true';
-      const f = fixture('demo@nomad.app');
+      const f = await fixture('demo@nomad.app');
       const before = await stored();
       await withHarness(f.user.id, async (h) => {
         const result = await h.client.callTool({ name, arguments: args(f) });
@@ -119,8 +114,8 @@ for (const kind of ['day', 'stay'] as const) {
     });
 
     it('rejects a non-member even with a valid target id', async () => {
-      const f = fixture();
-      const { user: outsider } = createUser(testDb);
+      const f = await fixture();
+      const { user: outsider } = await makeUser(orm);
       const before = await stored();
       await withHarness(outsider.id, async (h) => {
         const result = await h.client.callTool({ name, arguments: args(f) });
@@ -132,9 +127,9 @@ for (const kind of ['day', 'stay'] as const) {
     });
 
     it('enforces day_edit independently of trip membership', async () => {
-      const f = fixture();
-      const { user: member } = createUser(testDb);
-      addTripMember(testDb, f.trip.id, member.id);
+      const f = await fixture();
+      const { user: member } = await makeUser(orm);
+      await addTripMember(orm, f.trip.id, member.id);
       await setAppSetting(orm, 'perm_day_edit', 'trip_owner');
       await invalidatePermissionsCache();
       const before = await stored();
@@ -148,8 +143,8 @@ for (const kind of ['day', 'stay'] as const) {
     });
 
     it.each(['foreign', 'missing'] as const)('rejects a %s entity without mutation or broadcast', async (target) => {
-      const f = fixture();
-      const otherTrip = createTrip(testDb, f.user.id);
+      const f = await fixture();
+      const otherTrip = await makeTrip(orm, f.user.id);
       const arguments_ = args(f);
       if (target === 'foreign') arguments_.tripId = otherTrip.id;
       else arguments_[kind === 'day' ? 'dayId' : 'assignmentId'] = 999999;
@@ -171,9 +166,9 @@ for (const kind of ['day', 'stay'] as const) {
             { enabled: 'true' },
             { travel: [{ from: 'a', to: 'b', mode: 'walking', minutes: -1 }] },
           ]
-        : [{ stay_minutes: -1 }, { stay_minutes: 1441 }, { stay_minutes: 1.5 }, { stay_minutes: '90' }];
+        : [{ stay_minutes: -1 }, { stay_minutes: 10_081 }, { stay_minutes: 1.5 }, { stay_minutes: '90' }];
     it.each(invalid)('validates MCP input %j before writing', async (invalidFields) => {
-      const f = fixture();
+      const f = await fixture();
       const before = await stored();
       await withHarness(f.user.id, async (h) => {
         const result = await h.client.callTool({ name, arguments: { ...args(f), ...invalidFields } });
@@ -187,8 +182,8 @@ for (const kind of ['day', 'stay'] as const) {
 }
 
 it('accepts zero stay and null restores the place default without changing the place', async () => {
-  const f = fixture();
-  const original = (await findRow(orm, Places, { id: f.assignment.place_id }))?.duration_minutes;
+  const f = await fixture();
+  const original = (await findRow(orm, Places, { id: f.place.id }))?.duration_minutes;
   await withHarness(f.user.id, async (h) => {
     await inOrder([0, null], async (stay_minutes) => {
       const result = await h.client.callTool({
@@ -202,5 +197,5 @@ it('accepts zero stay and null restores the place default without changing the p
       });
     });
   });
-  expect((await findRow(orm, Places, { id: f.assignment.place_id }))?.duration_minutes).toEqual(original);
+  expect((await findRow(orm, Places, { id: f.place.id }))?.duration_minutes).toEqual(original);
 });

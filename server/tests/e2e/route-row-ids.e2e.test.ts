@@ -91,6 +91,7 @@ const NOT_ROW_IDS: Record<string, string> = {
  * server declares itself.
  */
 const NOT_ROW_ID_FIELDS: Record<string, string> = {
+  'applyTripExchangeRateRequestSchema $.preview_id': 'an exchange-rate preview is identified by its generated UUID',
   spreadId: 'a photo book spread id is a generated string',
   spreadIds: 'a photo book spread id is a generated string',
   afterSpreadId: 'a photo book spread id is a generated string',
