@@ -6,6 +6,7 @@
 - [[Install: Helm|Install-Helm]]
 - [[Install: Proxmox VE (LXC)|Install-Proxmox]]
 - [[Install: Unraid|Install-Unraid]]
+- [[Install: TrueNAS SCALE|Install-TrueNAS-SCALE]]
 - [[Install: Portainer|Install-Portainer]]
 - [[Reverse Proxy|Reverse-Proxy]]
 - [[Environment Variables|Environment-Variables]]
@@ -56,6 +57,7 @@
 
 ## Travel Management
 - [[Reservations and Bookings|Reservations-and-Bookings]]
+- [[Booking Mail Import|Booking-Mail-Import]]
 - [[Transport: Flights, Trains, Cars|Transport-Flights-Trains-Cars]]
 - [[Accommodations]]
 - [[Costs|Budget-Tracking]]
@@ -126,6 +128,7 @@
 - [[Audit Log|Audit-Log]]
 
 ## Operations
+- [[Database: Postgres|Database-Postgres]]
 - [[Demo Mode|Demo-Mode]]
 - [[Encryption Key Rotation|Encryption-Key-Rotation]]
 - [[Internal Network Access|Internal-Network-Access]]

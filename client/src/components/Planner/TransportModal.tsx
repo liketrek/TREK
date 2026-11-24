@@ -12,7 +12,7 @@ import { toLocationPicks } from './locationPicks'
 import { useTranslation } from '../../i18n'
 import { useToast } from '../shared/Toast'
 import { useTripStore } from '../../store/tripStore'
-import { useAddonStore } from '../../store/addonStore'
+import { useTripAddonEnabled } from '../../store/tripAddonsStore'
 import type { Day, Place, Accommodation, Reservation, TripFile, AssignmentsMap } from '../../types'
 import { BookingNotesFilesCosts } from './BookingNotesFilesCosts'
 import { TravelerPicker } from './TravelerPicker'
@@ -20,6 +20,7 @@ import type { TripMember } from '../Budget/BudgetPanelMemberChips'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { BookingReviewDraft } from './parsedItemToDraft'
 import TransitSearchPanel from './TransitSearchPanel'
+import { getTransitDayPlaces } from './transitDayPlaces'
 import type { TransitPrefill } from './transitLeg'
 import { BookingDialogHeader, StatusPill } from './bookings/BookingDialogShell'
 import { DialogShell, DialogSection, DialogFooter, FooterSpacer, DialogButton, DeleteButton } from '../shared/DialogShell'
@@ -82,10 +83,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const toast = useToast()
   // The trip's places, offered by every location field of the manual tab (#2468).
   const locationPicks = useMemo(() => toLocationPicks(places), [places])
-  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
   const { id: tripId } = useParams<{ id: string }>()
+  const isBudgetEnabled = useTripAddonEnabled(Number(tripId), 'budget')
   // Set right before submitting when the user clicked "create/edit expense", so
   // the post-save handler knows to open the Costs editor for the saved booking.
   const expense = useBookingExpenseIntent(() => handleSubmit(), {
@@ -135,7 +136,10 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
         meta_seat: meta.seat || '',
       }),
     })
-  }, [isOpen, reservation, prefill, selectedDayId, budgetItems])
+    // Keyed only on what opens a different form. A store refresh while the dialog
+    // is open (a socket reconnect re-reads the trip, a fellow traveller's cost) must
+    // not reseed it and wipe what the user is typing (#3069).
+  }, [isOpen, reservation, prefill, selectedDayId])
 
   const handleSubmit = async (e?: React.FormEvent) => {
     e?.preventDefault()
@@ -284,22 +288,20 @@ export function TransportModal({ isOpen, onClose, onSave, reservation, days, sel
   const transitSearch = () => {
     const transitDay = days.find(d => d.id === Number(form.start_day_id))
     if (!transitDay) return <p className="m-0 text-content-faint" style={fs(13, 'body')}>{t('transit.pickDay')}</p>
-    // Quick picks offer the chosen day's itinerary, not the whole trip (#1460).
-    const dayPlaces = (assignments[String(transitDay.id)] || [])
-      .slice().sort((a, b) => a.order_index - b.order_index)
-      .map(a => places.find(p => p.id === a.place_id))
-      .filter((p): p is Place => p != null)
+    const dayPlaces = getTransitDayPlaces(transitDay.id, assignments, places)
+    const dayPrefill = transitDay.id === selectedDayId ? transitPrefill : null
     return (
       <TransitSearchPanel
+        key={transitDay.id}
         day={transitDay}
         days={days}
         places={dayPlaces}
         accommodations={accommodations}
         onAdd={(payload) => onSave(payload as Record<string, any> & { title: string })}
-        initialFrom={transitPrefill?.from ?? null}
-        initialTo={transitPrefill?.to ?? null}
-        initialTime={transitPrefill?.time ?? null}
-        walk={transitPrefill?.walk ?? null}
+        initialFrom={dayPrefill?.from ?? null}
+        initialTo={dayPrefill?.to ?? null}
+        initialTime={dayPrefill?.time ?? null}
+        walk={dayPrefill?.walk ?? null}
       />
     )
   }

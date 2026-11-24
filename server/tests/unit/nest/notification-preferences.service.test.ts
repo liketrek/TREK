@@ -156,14 +156,15 @@ describe('getPreferencesMatrix', () => {
     expect(event_types).not.toContain('version_available');
     // +1 for plugin_notification: users can mute host-mediated plugin notifications.
     // +1 for wanderer_source_hint: the hints of the user's own wanderer watch (WAN-02).
-    expect(event_types.length).toBe(13);
+    // +3 for flight_departed, flight_delayed and flight_landed (live flight status, on by default).
+    expect(event_types.length).toBe(16);
   });
 
   it('NPREF-005 — user scope excludes version_available for everyone including admins', async () => {
     const { user } = createAdmin(testDb);
     const { event_types } = await getPreferencesMatrix(user.id, 'admin', 'user');
     expect(event_types).not.toContain('version_available');
-    expect(event_types.length).toBe(13);
+    expect(event_types.length).toBe(16);
   });
 
   it('NPREF-005b — admin scope returns the admin-scoped events', async () => {
@@ -460,7 +461,7 @@ describe('listed events follow the features that are on', () => {
     const all = { ...features };
     Object.assign(features, {
       isAddonEnabled: async (id: string) => id !== 'vacay' && id !== 'collections',
-      isWandererAvailable: async () => false,
+      isWandererAllowed: async () => false,
       enabledPhotoProviderIds: async () => ['immich'],
     });
     try {
@@ -480,5 +481,84 @@ describe('listed events follow the features that are on', () => {
     } finally {
       Object.assign(features, all);
     }
+  });
+
+  it('NPREF-LIST-003: a trip addon a trip of the user switched on lists its rows for that user, not in the defaults', async () => {
+    const { user: chatty } = createUser(testDb);
+    const { user: quiet } = createUser(testDb);
+    const { user: admin } = createAdmin(testDb);
+    const all = { ...features };
+    Object.assign(features, {
+      isAddonEnabled: async (id: string) => id !== 'collab',
+      isEnabledForUserAnywhere: async (userId: number, id: string) => id === 'collab' && userId === chatty.id,
+    });
+    try {
+      expect((await svc.getPreferencesMatrix(chatty.id, 'user')).event_types).toContain('collab_message');
+      expect((await svc.getPreferencesMatrix(quiet.id, 'user')).event_types).not.toContain('collab_message');
+      expect((await svc.getPreferencesMatrix(quiet.id, 'user')).event_types).not.toContain('packing_tagged');
+      expect((await svc.getInstanceDefaults(admin.id)).event_types).not.toContain('collab_message');
+    } finally {
+      Object.assign(features, all);
+    }
+  });
+
+  it('NPREF-LIST-003b: the wanderer hints are listed for a user whose trip switched Tours on, as the watch sends them', async () => {
+    const { user: walker } = createUser(testDb);
+    const { user: quiet } = createUser(testDb);
+    const all = { ...features };
+    Object.assign(features, {
+      isAddonEnabled: async (id: string) => id !== 'tours',
+      isEnabledForUserAnywhere: async (userId: number, id: string) => id === 'tours' && userId === walker.id,
+    });
+    try {
+      expect((await svc.getPreferencesMatrix(walker.id, 'user')).event_types).toContain('wanderer_source_hint');
+      expect((await svc.getPreferencesMatrix(quiet.id, 'user')).event_types).not.toContain('wanderer_source_hint');
+      Object.assign(features, { isWandererAllowed: async () => false });
+      expect((await svc.getPreferencesMatrix(walker.id, 'user')).event_types).not.toContain('wanderer_source_hint');
+    } finally {
+      Object.assign(features, all);
+    }
+  });
+
+  it('NPREF-LIST-004: the admin matrix lists the paddle region request while any trip has Tours on, not only on a trip of the admin', async () => {
+    const { user: admin } = createAdmin(testDb);
+    const all = { ...features };
+    Object.assign(features, {
+      isAddonEnabled: async (id: string) => id !== 'tours',
+      isEnabledForUserAnywhere: async () => false,
+      isEnabledAnywhere: async (id: string) => id === 'tours',
+    });
+    try {
+      expect((await svc.getPreferencesMatrix(admin.id, 'admin', 'admin')).event_types).toContain(
+        'paddle_region_requested',
+      );
+      Object.assign(features, { isEnabledAnywhere: async () => false });
+      expect((await svc.getPreferencesMatrix(admin.id, 'admin', 'admin')).event_types).not.toContain(
+        'paddle_region_requested',
+      );
+    } finally {
+      Object.assign(features, all);
+    }
+  });
+
+  it('NPREF-LIST-002: the flight events are listed only while live flight status is on', async () => {
+    const flights = ['flight_departed', 'flight_delayed', 'flight_landed'];
+    const { user } = createUser(testDb);
+    expect((await svc.getPreferencesMatrix(user.id, 'user')).event_types).toEqual(expect.arrayContaining(flights));
+    setAppSetting(testDb, 'flight_live_enabled', 'false');
+    const { event_types } = await svc.getPreferencesMatrix(user.id, 'user');
+    for (const hidden of flights) expect(event_types).not.toContain(hidden);
+  });
+});
+
+describe('the mail import’s events follow its switch', () => {
+  it('NPREF-LIST-002: lists the mail booking events only while the import is on', async () => {
+    const { user } = createUser(testDb);
+    expect((await svc.getPreferencesMatrix(user.id, 'user')).event_types).not.toContain('mail_booking_added');
+    setAppSetting(testDb, 'mail_ingest_enabled', 'true');
+    const { event_types } = await svc.getPreferencesMatrix(user.id, 'user');
+    expect(event_types).toContain('mail_booking_added');
+    expect(event_types).toContain('mail_booking_pending');
+    expect(event_types).toContain('mail_ingest_paused');
   });
 });

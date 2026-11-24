@@ -53,7 +53,7 @@ export class AirtrailLinkService {
 
   async broadcastUpdated(tripId: number, reservationId: number): Promise<void> {
     try {
-      const reservation = await this.reads.getReservationWithJoins(reservationId);
+      const reservation = await this.reads.getReservationWithJoins(reservationId, tripId);
       if (reservation)
         this.realtime.broadcast(String(tripId), 'reservation:updated', { reservation } as never, undefined);
     } catch {
@@ -97,7 +97,7 @@ export class AirtrailLinkService {
     // 1:1 mapping to the AirTrail flight: pushing would rewrite that flight to the
     // full span, and the next pull would flatten the layover again. Detach — the
     // merge is a deliberate local restructuring, like a joined import (#1535).
-    const reservation = await this.reads.getReservationWithJoins(row.id);
+    const reservation = await this.reads.getReservationWithJoins(row.id, row.trip_id);
     if (!reservation) return;
     if (await this.hasLocalMultiLegShape(row.id, (reservation as { metadata?: string | null }).metadata)) {
       await this.detach(tripId, row.id);

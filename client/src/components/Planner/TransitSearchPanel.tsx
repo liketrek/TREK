@@ -8,7 +8,8 @@ import { transitApi } from '../../api/client'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
-import { getDayBookendHotels } from '../../utils/dayOrder'
+import { getDayBookendHotels, isDayInAccommodationRange } from '../../utils/dayOrder'
+import { orderTransitStaysByDate } from './transitStayOrder'
 import type { Day, Place, Accommodation, Reservation } from '../../types'
 import { useTripStore } from '../../store/tripStore'
 import { isCarrierTransport } from '../../utils/dayMerge'
@@ -110,7 +111,11 @@ function fmtDuration(seconds: number, t: (k: string, p?: Record<string, string |
 
 // ── quick picks ──────────────────────────────────────────────────────────────
 
-const MAX_QUICK_PICKS = 8
+const MAX_OTHER_DAY_STAYS = 8
+
+function pickedPlaceKey(p: PickedPlace): string {
+  return JSON.stringify([p.name.trim().toLowerCase(), p.lat, p.lng])
+}
 
 function stayPick(a: Accommodation): PickedPlace | null {
   return a.place_lat != null && a.place_lng != null && a.place_name ? { name: a.place_name, lat: a.place_lat, lng: a.place_lng } : null
@@ -143,28 +148,30 @@ export function dayBookingStops(day: Pick<Day, 'id' | 'date'>, reservations: Res
  * starts in and the one it ends in come first and are never cut, since most
  * connections of a day begin or end there (#2538); the day's airports and
  * stations follow and are not cut either (#1506); then the day's own located
- * places and the trip's other stays, up to MAX_QUICK_PICKS.
+ * places and remaining stays covering the day, without a limit. Only stays
+ * outside the selected day's range are capped, nearest in nights first.
  */
 export function buildQuickPicks(day: Day, days: Day[], places: Place[], accommodations: Accommodation[], bookingStops: PickedPlace[] = []): PickedPlace[] {
   const { morning, evening } = getDayBookendHotels(day, days, accommodations)
-  const dayStays = [morning, evening].filter((a): a is Accommodation => a != null)
+  const bookendStays = [morning, evening].filter((a): a is Accommodation => a != null)
+  const dayStays = accommodations.filter(a => isDayInAccommodationRange(day, a.start_day_id, a.end_day_id, days))
 
   const seen = new Set<string>()
   const unique = (p: PickedPlace | null): p is PickedPlace => {
     if (!p) return false
-    const k = `${p.name}:${p.lat}`
+    const k = pickedPlaceKey(p)
     if (seen.has(k)) return false
     seen.add(k)
     return true
   }
 
-  const stays = dayStays.map(stayPick).filter(unique)
+  const stays = bookendStays.map(stayPick).filter(unique)
   const stations = bookingStops.filter(unique)
-  const rest = [
-    ...places.map(p => (p.lat != null && p.lng != null ? { name: p.name, lat: p.lat, lng: p.lng } : null)),
-    ...accommodations.filter(a => !dayStays.includes(a)).map(stayPick),
-  ].filter(unique)
-  return [...stays, ...stations, ...rest.slice(0, MAX_QUICK_PICKS)]
+  const dayPlaces = places.map(p => (p.lat != null && p.lng != null ? { name: p.name, lat: p.lat, lng: p.lng } : null)).filter(unique)
+  const remainingDayStays = dayStays.map(stayPick).filter(unique)
+  const otherStays = orderTransitStaysByDate(day, days, accommodations.filter(a => !dayStays.includes(a)))
+    .map(stayPick).filter(unique).slice(0, MAX_OTHER_DAY_STAYS)
+  return [...stays, ...stations, ...dayPlaces, ...remainingDayStays, ...otherStays]
 }
 
 // ── from/to stop picker ──────────────────────────────────────────────────────
@@ -221,6 +228,8 @@ function StopPicker({ label, value, onPick, quickPicks, near, placeholder }: {
   const [results, setResults] = useState<TransitPlaceResult[]>([])
   const [open, setOpen] = useState(false)
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // Ignore lookups superseded by another query, a saved pick, or leaving this day.
+  const requestId = useRef(0)
   const rootRef = useRef<HTMLDivElement>(null)
   const fieldRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
@@ -235,21 +244,45 @@ function StopPicker({ label, value, onPick, quickPicks, near, placeholder }: {
     return () => document.removeEventListener('mousedown', close)
   }, [])
 
-  useEffect(() => () => { if (debounceRef.current) clearTimeout(debounceRef.current) }, [])
+  useEffect(() => () => {
+    requestId.current += 1
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+  }, [])
 
   const search = (q: string) => {
+    const id = ++requestId.current
     setText(q)
+    setResults([])
     onPick(null)
     if (debounceRef.current) clearTimeout(debounceRef.current)
-    if (q.trim().length < 2) { setResults([]); return }
+    if (q.trim().length < 2) return
     debounceRef.current = setTimeout(() => {
       transitApi.geocode(q, { lang: language, near: near || undefined })
-        .then((d: { results: TransitPlaceResult[] }) => setResults(d.results || []))
-        .catch(() => setResults([]))
+        .then((d: { results: TransitPlaceResult[] }) => { if (id === requestId.current) setResults(d.results || []) })
+        .catch(() => { if (id === requestId.current) setResults([]) })
     }, 300)
   }
 
   const display = value ? value.name : text
+  const query = text.trim().toLowerCase()
+  const saved = quickPicks.filter(p => p.name.toLowerCase().includes(query))
+  const seen = new Set(saved.map(pickedPlaceKey))
+  const external = results.filter(p => {
+    const key = pickedPlaceKey(p)
+    if (seen.has(key)) return false
+    seen.add(key)
+    return true
+  })
+  const suggestions: (PickedPlace & { area?: string | null })[] = value ? [] : [...saved, ...external]
+
+  const pick = (p: PickedPlace) => {
+    requestId.current += 1
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    onPick({ name: p.name, lat: p.lat, lng: p.lng })
+    setText('')
+    setResults([])
+    setOpen(false)
+  }
 
   return (
     <div ref={rootRef} style={{ position: 'relative', flex: 1, minWidth: 0 }}>
@@ -267,34 +300,23 @@ function StopPicker({ label, value, onPick, quickPicks, near, placeholder }: {
           style={{ border: 0, background: 'none', outline: 'none', fontSize: 'calc(13px * var(--fs-scale-body, 1))', width: '100%', fontFamily: 'inherit' }}
         />
       </div>
-      {open && listPos && (results.length > 0 || (!value && text.trim().length < 2 && quickPicks.length > 0)) && createPortal(
+      {open && listPos && suggestions.length > 0 && createPortal(
         // On the page rather than inside the dialog, so a dialog that scrolls or clips
         // its content cannot cut the list off before anything is typed.
         <div ref={listRef} className="bg-surface-card border border-edge z-[var(--z-toast)]" style={{ position: 'fixed', left: listPos.left, width: listPos.width, ...(listPos.above ? { bottom: listPos.bottom } : { top: listPos.top }), borderRadius: 10, boxShadow: 'var(--shadow-dropdown)', overflow: 'hidden', maxHeight: listPos.maxHeight, overflowY: 'auto' }}>
-          {results.length > 0
-            ? results.map((r, i) => (
-              <button type="button" key={i} onClick={() => { onPick({ name: r.name, lat: r.lat, lng: r.lng }); setText(''); setResults([]); setOpen(false) }}
-                className="text-content"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'start', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                <MapPin size={13} className="text-content-faint" style={{ flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {r.name}
-                  {r.area && <span className="ms-1.5 text-content-faint">{r.area}</span>}
-                </span>
-              </button>
-            ))
-            : quickPicks.map((p, i) => (
-              <button type="button" key={i} onClick={() => { onPick(p); setText(''); setOpen(false) }}
-                className="text-content"
-                style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'start', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
-                onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
-                onMouseLeave={e => e.currentTarget.style.background = 'none'}>
-                <MapPin size={13} className="text-content-faint" style={{ flexShrink: 0 }} />
-                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{p.name}</span>
-              </button>
-            ))}
+          {suggestions.map(r => (
+            <button type="button" key={pickedPlaceKey(r)} onClick={() => pick(r)}
+              className="text-content"
+              style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'start', padding: '8px 10px', border: 'none', background: 'none', cursor: 'pointer', fontFamily: 'inherit', fontSize: 'calc(13px * var(--fs-scale-body, 1))' }}
+              onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-hover)'}
+              onMouseLeave={e => e.currentTarget.style.background = 'none'}>
+              <MapPin size={13} className="text-content-faint" style={{ flexShrink: 0 }} />
+              <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {r.name}
+                {r.area && <span className="ms-1.5 text-content-faint">{r.area}</span>}
+              </span>
+            </button>
+          ))}
         </div>,
         document.body,
       )}

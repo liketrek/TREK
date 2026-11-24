@@ -13,7 +13,17 @@ import { logError, logInfo } from '../audit/audit-log.logger';
 import { UnitOfWork } from '../database/unit-of-work';
 import { JourneyRecordingPrepService, type PreparedJourney } from '../journey/journey-recording-prep.service';
 import { DawarichClient, DawarichError, type DawarichCreds, type DawarichVisitRaw } from './dawarich.client';
-import { distanceMeters, localDateOf, normalizeVisit, syncWindow, visitHash } from './dawarich.helpers';
+import {
+  distanceMeters,
+  isPlaceholderName,
+  localDateOf,
+  nameFromGeocodedPoints,
+  normalizeVisit,
+  STAY_NAME_PENDING,
+  syncWindow,
+  UNNAMED_STAY,
+  visitHash,
+} from './dawarich.helpers';
 import { DawarichService } from './dawarich.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
@@ -26,6 +36,29 @@ import {
 } from '@trek/shared';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Stays one run reads points for to name them. A first sync of a long trip
+ * can hold hundreds without a name; the rest wait for the next run rather than
+ * holding this one open (see `stayNamer`).
+ */
+const MAX_STAY_NAME_LOOKUPS = 100;
+
+/**
+ * Stays already read once without a name that one run reads again, from what
+ * the stays never read yet left of MAX_STAY_NAME_LOOKUPS.
+ */
+const MAX_UNNAMED_STAY_REREADS = 20;
+
+/**
+ * Names a stay from its points (`read`): the name, null when none of them was
+ * geocoded, undefined when they were not read this run. `unnamed` collects the
+ * stays read before without a name, read again once every other stay had its read.
+ */
+interface StayNamer {
+  read: (startedAt: string, endedAt: string) => Promise<string | null | undefined>;
+  unnamed: Array<{ id: number; startedAt: string; endedAt: string }>;
+}
 
 /** What one user's sync produced — plus whether it ran at all. */
 export interface DawarichSyncOutcome {
@@ -76,6 +109,12 @@ export class DawarichSyncService {
    * the same rows. A second request is answered with the truth: one is running.
    */
   private readonly inFlight = new Set<number>();
+
+  /**
+   * Per user, the last unnamed stay read again, so the next run goes on after
+   * it instead of asking about the same first MAX_UNNAMED_STAY_REREADS again.
+   */
+  private readonly lastUnnamedReread = new Map<number, number>();
 
   constructor(
     @InjectRepository(DawarichVisitSuggestions) private readonly suggestions: DawarichVisitSuggestionsRepository,
@@ -281,19 +320,96 @@ export class DawarichSyncService {
   ): Promise<{ created: number; updated: number; missing: number }> {
     const { visits } = await this.client.listVisits(creds, from, to);
 
+    const nameStay = this.stayNamer(creds);
     const seenIds = new Set<string>();
     let created = 0;
     let updated = 0;
     for (const raw of visits) {
-      const outcome = await this.upsertVisit(userId, tripId, raw, trips);
+      const outcome = await this.upsertVisit(userId, tripId, raw, trips, nameStay);
       if (!outcome) continue;
       seenIds.add(outcome.sourceVisitId);
       if (outcome.change === 'created') created++;
       else if (outcome.change === 'updated') updated++;
     }
+    await this.rereadUnnamed(userId, nameStay);
 
     const missing = await this.flagMissing(userId, tripId, from, to, seenIds);
     return { created, updated, missing };
+  }
+
+  /**
+   * Reads a stay's points for a name, for one run. A run reads at most
+   * MAX_STAY_NAME_LOOKUPS stays, and stops reading after the first failure,
+   * since an instance that did not answer one will not answer the rest either.
+   * Either way the stay is left for the next run, not given up on.
+   */
+  private stayNamer(creds: DawarichCreds): StayNamer {
+    let left = MAX_STAY_NAME_LOOKUPS;
+    const read = async (startedAt: string, endedAt: string) => {
+      if (left <= 0) return undefined;
+      left--;
+      try {
+        const points = await this.client.listGeocodedPoints(creds, new Date(startedAt), new Date(endedAt));
+        return nameFromGeocodedPoints(points);
+      } catch {
+        left = 0;
+        return undefined;
+      }
+    };
+    return { read, unnamed: [] };
+  }
+
+  /**
+   * The unnamed stays of a run read again with the budget the others left,
+   * at most MAX_UNNAMED_STAY_REREADS of them, so a Dawarich that geocodes
+   * nothing is not asked about the same stays in full on every run. Each run
+   * starts after the stay the last one stopped at, so every unnamed stay gets
+   * its turn even when the first ones never get a name.
+   *
+   * @txStandalone a name found later is a derived refresh of a stay already stored.
+   * @txIndependent one stay at a time after its network read.
+   */
+  private async rereadUnnamed(userId: number, nameStay: StayNamer): Promise<void> {
+    const after = this.lastUnnamedReread.get(userId) ?? 0;
+    const byId = [...nameStay.unnamed].sort((a, b) => a.id - b.id);
+    const turn = [...byId.filter((s) => s.id > after), ...byId.filter((s) => s.id <= after)];
+    // One after another: a read that finds the budget spent stops the rest.
+    await turn.slice(0, MAX_UNNAMED_STAY_REREADS).reduce<Promise<boolean>>(async (going, stay) => {
+      if (!(await going)) return false;
+      const found = await nameStay.read(stay.startedAt, stay.endedAt);
+      if (found === undefined) return false;
+      this.lastUnnamedReread.set(userId, stay.id);
+      if (found !== null) await this.suggestions.renameNewVisit(stay.id, found);
+      return true;
+    }, Promise.resolve(true));
+  }
+
+  /**
+   * What a stay is called. Its own name when Dawarich sent one. Otherwise the
+   * reverse-geocoded points recorded during it name it (#3105): Dawarich sends
+   * a placeholder for a visit without a place even when its points know the
+   * town. A name found earlier is kept while the visit is unchanged. A stay
+   * none of whose points was geocoded yet is read again at the end of a later
+   * run, since Dawarich geocodes in the background and can lag behind by days;
+   * one whose points were not read yet is read next run, keeping the
+   * placeholder meanwhile.
+   */
+  private async stayName(
+    visit: { name: string; named: boolean; startedAt: string; endedAt: string },
+    hash: string,
+    existing: { id: number; name: string | null; source_hash: string | null } | null,
+    nameStay: StayNamer,
+  ): Promise<string> {
+    if (visit.named) return visit.name;
+    const kept = existing?.source_hash === hash ? existing.name : null;
+    if (existing && kept === UNNAMED_STAY) {
+      nameStay.unnamed.push({ id: existing.id, startedAt: visit.startedAt, endedAt: visit.endedAt });
+      return kept;
+    }
+    if (kept && !isPlaceholderName(kept)) return kept;
+    const found = await nameStay.read(visit.startedAt, visit.endedAt);
+    if (found === undefined) return STAY_NAME_PENDING;
+    return found ?? UNNAMED_STAY;
   }
 
   /**
@@ -309,6 +425,7 @@ export class DawarichSyncService {
     tripId: number | null,
     raw: DawarichVisitRaw,
     trips: TripRow[],
+    nameStay: StayNamer,
   ): Promise<{ sourceVisitId: string; change: 'created' | 'updated' | 'unchanged' } | null> {
     const visit = normalizeVisit(raw);
     if (!visit) return null;
@@ -331,7 +448,7 @@ export class DawarichSyncService {
         user_id: userId,
         source_visit_id: visit.sourceVisitId,
         trip_id: ownerTripId,
-        name: visit.name,
+        name: await this.stayName(visit, hash, null, nameStay),
         lat: visit.lat,
         lng: visit.lng,
         started_at: visit.startedAt,
@@ -358,7 +475,7 @@ export class DawarichSyncService {
       // that includes the trip: a stay parked on a neighbour by an earlier
       // run moves to the trip whose dates hold it.
       await this.suggestions.updateNewVisit(existing.id, {
-        name: visit.name,
+        name: await this.stayName(visit, hash, existing, nameStay),
         lat: visit.lat,
         lng: visit.lng,
         started_at: visit.startedAt,
@@ -424,13 +541,15 @@ export class DawarichSyncService {
     trips: TripRow[],
   ): Promise<{ created: number; updated: number; truncated: boolean }> {
     const { visits, truncated } = await this.client.listVisits(creds, from, to);
+    const nameStay = this.stayNamer(creds);
     let created = 0;
     let updated = 0;
     for (const raw of visits) {
-      const outcome = await this.upsertVisit(userId, null, raw, trips);
+      const outcome = await this.upsertVisit(userId, null, raw, trips, nameStay);
       if (outcome?.change === 'created') created++;
       else if (outcome?.change === 'updated') updated++;
     }
+    await this.rereadUnnamed(userId, nameStay);
     return { created, updated, truncated };
   }
 

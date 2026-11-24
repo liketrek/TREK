@@ -303,6 +303,11 @@ export class DawarichVisitSuggestionsRepository extends TrekRepository<DawarichV
     );
   }
 
+  /** A name found for a stay nobody has acted on yet; a stay accepted or dismissed meanwhile keeps its own. */
+  async renameNewVisit(id: number, name: string): Promise<void> {
+    await this.nativeUpdate({ id, state: 'new' }, { name });
+  }
+
   /**
    * DSY6 — `syncTripWindow`'s existing, accepted/dismissed branch: `UPDATE
    * dawarich_visit_suggestions SET source_hash = ?, source_missing_at =

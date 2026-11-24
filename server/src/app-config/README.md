@@ -105,8 +105,10 @@ Every variable has exactly one owner, and the owner decides how it is read:
   `app.get(httpConfig.KEY)` for the pre-init Express layer). Today:
   `httpConfig` (TRUST_PROXY, HSTS_INCLUDE_SUBDOMAINS, HTTP_KEEP_ALIVE_TIMEOUT_MS),
   `storageConfig` (TREK_PLACE_PHOTO_DIR), `transitConfig` (TRANSIT_API_URL,
-  for TransitService) and `kitineraryConfig` (KITINERARY_EXTRACTOR_PATH and
-  PATH, for KitineraryExtractorService's binary probe). A module whose provider
+  for TransitService), `kitineraryConfig` (KITINERARY_EXTRACTOR_PATH and
+  PATH, for KitineraryExtractorService's binary probe), `servicesConfig`
+  (TREK_SERVICES and its hosts) and `mailIngestConfig` (MAIL_INGEST_*, for
+  MailIngestSettingsService, each over its stored setting). A module whose provider
   injects one imports `AppConfigModule`, so it also builds on its own in a test.
 - **`readEnv()` / `RuntimeEnvService`** (`derive.ts`): everything else, both
   the runtime-toggled values and the boot-stable ones that code outside a Nest
@@ -166,6 +168,7 @@ OIDC_*, SMTP_*, FORCE_HTTPS, COOKIE_SECURE,
 ALLOWED_ORIGINS, UNSPLASH_ACCESS_KEY, WEBAUTHN_*, TZ, ADMIN_EMAIL,
 TREK_DB_PRE_MIGRATE_SNAPSHOT(_KEEP) (read when a migration run starts; the
 legacy-upgrade suites set it per file),
+TREK_DB_IGNORE_SQLITE_FILE (read when a Postgres boot finds no TREK data),
 ADMIN_PASSWORD, IDEMPOTENCY_TTL_SECONDS, MCP_RATE_LIMIT (request-path check),
 LLM_TIMEOUT_MS, LLM_MAX_OUTPUT_TOKENS, NOMINATIM_URL, VAPID_* (resolved per use by the Web Push key
 service, which the notification suites build without the container).

@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Нова категорія',
   'mobileTrip.newReservation': 'Нове бронювання',
   'mobileTrip.notes': 'Нотатки',
-  'mobileTrip.onMap': 'На карті',
+  'mobileTrip.onMap': 'Мапа',
   'mobileTrip.profileDriving': 'На авто',
   'mobileTrip.profileWalking': 'Пішки',
   'mobileTrip.profileCycling': 'Велосипедом',

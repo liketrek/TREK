@@ -1,5 +1,5 @@
 import {
-  CheckCheck, Luggage, Package, FolderPlus, Download, Trash2, ListPlus, BookmarkPlus,
+  CheckCheck, Luggage, Package, FolderPlus, Download, ListPlus, BookmarkPlus,
 } from 'lucide-react'
 import type { PackingState } from './usePackingListPanel'
 import NameDialog from '../shared/NameDialog'
@@ -15,7 +15,7 @@ export function PackingHeader(S: PackingState) {
     addingCategory, newCatName, setNewCatName, handleAddNewCategory, setAddingCategory,
   } = S
   return (
-    <div style={{ padding: inlineHeader ? '20px 24px 16px' : '0 0 16px', flexShrink: 0, borderBottom: inlineHeader ? '1px solid rgba(0,0,0,0.06)' : undefined }}>
+    <div style={{ padding: inlineHeader ? '20px 24px 16px' : 0, flexShrink: 0, borderBottom: inlineHeader ? '1px solid rgba(0,0,0,0.06)' : undefined }}>
       <div style={{ display: 'flex', alignItems: inlineHeader ? 'flex-start' : 'center', justifyContent: 'space-between', gap: 14 }}>
         {inlineHeader ? (
           <div>
@@ -86,7 +86,7 @@ export function PackingHeader(S: PackingState) {
               <FolderPlus size={12} /> <span className="hidden sm:inline">{t('packing.saveAsTemplate')}</span>
             </button>
           )}
-          {bagTrackingEnabled && (
+          {inlineHeader && bagTrackingEnabled && (
             <button type="button" onClick={() => setShowBagModal(true)} className="xl:!hidden"
               style={{
                 display: 'flex', alignItems: 'center', gap: 5, padding: '5px 11px', borderRadius: 99,
@@ -101,8 +101,9 @@ export function PackingHeader(S: PackingState) {
         </div>
       </div>
 
-        {items.length > 0 && (
+        {inlineHeader && items.length > 0 && (
         // The phone's progress card: count and share on the left, the bar filling the rest.
+        // Under the Lists bar the progress sits in the view row and the clean-up in the Lists menu.
         <div className="hidden sm:block" style={{ marginTop: 14, marginBottom: 2, padding: '14px 18px', borderRadius: 16, background: 'var(--bg-card)', border: '1px solid var(--border-secondary)' }}>
           <div className="flex items-center" style={{ gap: 16 }}>
             {fortschritt === 100 ? (
@@ -166,17 +167,6 @@ export function PackingHeader(S: PackingState) {
               </div>
             </div>
 
-            {/* Under the Lists bar the clean-up sits with the count it clears. */}
-            {!inlineHeader && canEdit && abgehakt > 0 && (
-              <button type="button" onClick={handleClearChecked} style={{
-                display: 'inline-flex', alignItems: 'center', gap: 5, flexShrink: 0, padding: '5px 11px', borderRadius: 99,
-                border: 'none', background: 'rgba(239,68,68,0.1)', color: '#ef4444', cursor: 'pointer', fontFamily: 'inherit',
-                fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600,
-              }}>
-                <Trash2 size={13} strokeWidth={2.2} />
-                {t('packing.clearChecked', { count: abgehakt })}
-              </button>
-            )}
           </div>
         </div>
       )}

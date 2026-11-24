@@ -1,6 +1,7 @@
+import type { PluginDataStore } from '../../../db/engine/plugin-data';
 import type { PluginCapabilityAuditRepository } from '../../../db/repositories/PluginCapabilityAudit.repository';
 import { DailyBudget, DEFAULT_DAILY_BUDGET } from './daily-budget';
-import { PluginDataDb } from './plugin-data.service';
+import type { PluginDataBackend } from './plugin-data.backend';
 
 /**
  * Process-wide plugin host state, deliberately module-level (NOT a Nest
@@ -17,17 +18,22 @@ import { PluginDataDb } from './plugin-data.service';
  * to the database that no test can substitute.
  */
 
-const dataDbs = new Map<string, PluginDataDb>();
+const dataDbs = new Map<string, PluginDataStore>();
 
-export function getPluginDataDb(id: string): PluginDataDb {
+/**
+ * The open data store of plugin `id`, opened through `backend` (the one
+ * `PLUGIN_DATA` binds to the engine) when there is none or the cached one was
+ * closed.
+ */
+export function getPluginDataDb(id: string, backend: PluginDataBackend): PluginDataStore {
   let d = dataDbs.get(id);
   // A cached handle can be CLOSED without being evicted: the supervisor's terminal
   // failure paths (activation timeout / load-error / crash auto-disable) call
-  // rpcHost.dispose() → PluginDataDb.close() directly, never closePluginDataDb. A
+  // rpcHost.dispose() → the store's close() directly, never closePluginDataDb. A
   // plain admin re-enable would then reuse the closed handle and every db.* call
   // would throw 'database connection is not open'. Recreate when the handle is shut.
   if (!d || !d.isOpen()) {
-    d = new PluginDataDb(id);
+    d = backend.open(id);
     dataDbs.set(id, d);
   }
   return d;

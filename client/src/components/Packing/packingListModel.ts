@@ -1,3 +1,5 @@
+import type { PackingVisibility } from '@trek/shared';
+
 import type { PackingItem } from '../../types';
 import { PACKING_PLACEHOLDER_NAME } from './packingListPanel.constants';
 
@@ -123,4 +125,49 @@ export function isLastCustomItemInCategory(item: PackingItem, allItems: PackingI
 
 export function isPackingPlaceholder(item: Pick<PackingItem, 'name'>): boolean {
   return item.name === PACKING_PLACEHOLDER_NAME;
+}
+
+/** An item's sharing tier and, for the Shared-with tier, who it is shared with (#858). */
+export interface PackingSharing {
+  visibility: PackingVisibility;
+  recipientIds: number[];
+}
+
+/** The tier an item stands at, read the way the per-item sharing controls read it. */
+export function packingItemSharing(item: PackingItem): PackingSharing {
+  const recipientIds = (item.recipients || []).map((r) => r.user_id).sort((a, b) => a - b);
+  if (!item.is_private) return { visibility: 'common', recipientIds: [] };
+  return { visibility: recipientIds.length > 0 ? 'shared' : 'personal', recipientIds };
+}
+
+function sameSharing(a: PackingSharing, b: PackingSharing): boolean {
+  return a.visibility === b.visibility && a.recipientIds.join(',') === b.recipientIds.join(',');
+}
+
+/**
+ * A list's items split for moving the whole list to one tier (#2961). Only an
+ * item's owner may change its sharing, and an item nobody owns yet is claimed by
+ * whoever changes it, as with a single item; the rest stay as they are and are
+ * counted so the user can be told. The placeholder of an empty list is one of
+ * its items, so the list moves along with it.
+ */
+export function categorySharingSplit(
+  categoryItems: PackingItem[],
+  userId: number | null | undefined
+): { own: PackingItem[]; othersCount: number } {
+  const own = categoryItems.filter((i) => i.owner_id == null || i.owner_id === userId);
+  return { own, othersCount: categoryItems.length - own.length };
+}
+
+/** The tier all of these items already agree on, or null when they differ or there are none. */
+export function agreedSharing(items: PackingItem[]): PackingSharing | null {
+  if (items.length === 0) return null;
+  const first = packingItemSharing(items[0]);
+  return items.every((i) => sameSharing(packingItemSharing(i), first)) ? first : null;
+}
+
+/** The items that a move to `target` would actually change; those already there need no write. */
+export function itemsToReshare(items: PackingItem[], target: PackingSharing): PackingItem[] {
+  const wanted = { ...target, recipientIds: [...target.recipientIds].sort((a, b) => a - b) };
+  return items.filter((i) => !sameSharing(packingItemSharing(i), wanted));
 }

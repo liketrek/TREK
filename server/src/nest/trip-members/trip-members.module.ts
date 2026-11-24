@@ -1,6 +1,7 @@
 import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import { Users } from '../../db/entities/Users.entity';
+import { AddonsModule } from '../addons/addons.module';
 import { AuditModule } from '../audit/audit.module';
 import { AuthModule } from '../auth/auth.module';
 import { BudgetModule } from '../budget/budget.module';
@@ -35,6 +36,7 @@ import { Module } from '@nestjs/common';
     AuditModule,
     AuthModule,
     BudgetModule,
+    AddonsModule,
     MikroOrmModule.forFeature([Trips, TripMembers, Users]),
   ],
   controllers: [TripMembersController],

@@ -17,6 +17,18 @@ const br: NotificationLocale = {
       title: `Nova reserva: ${p.booking}`,
       body: `${p.actor} adicionou uma reserva "${p.booking}" (${p.type}) em "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} decolou`,
+      body: `${p.flight} de ${p.from} para ${p.to} está no ar.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} está atrasado`,
+      body: `${p.flight} de ${p.from} para ${p.to} está cerca de ${p.delay} minutos atrasado.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} pousou`,
+      body: `${p.flight} vindo de ${p.from} pousou em ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Lembrete: ${p.trip}`,
       body: `Sua viagem "${p.trip}" está chegando!`,
@@ -86,6 +98,21 @@ const br: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `“${p.tour}” em “${p.trip}” não pode mais ser verificada no wanderer. O passeio da sua viagem continua como está.`
             : `“${p.tour}” em “${p.trip}” pode ter mudado no wanderer. Abra o passeio e verifique a fonte para saber. Nada na viagem muda sozinho.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Adicionada de um e-mail: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} adicionou "${p.booking}" a "${p.trip}" a partir de um e-mail encaminhado.`
+          : `"${p.booking}" do seu e-mail encaminhado foi adicionada a "${p.trip}". Você pode desfazer isso no TREK por 7 dias.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Reservas encaminhadas para revisar',
+      body: `Reservas encaminhadas aguardando você no TREK: ${p.count}. Cada uma diz por que não foi adicionada sozinha.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Importação de e-mails pausada',
+      body: 'Por enquanto, o TREK não aceita e-mails de reserva encaminhados, então espere antes de encaminhá-los. Seus endereços continuam e voltam a funcionar quando a importação voltar, e as reservas já adicionadas continuam nas suas viagens.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

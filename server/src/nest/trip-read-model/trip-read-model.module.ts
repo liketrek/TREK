@@ -1,5 +1,6 @@
 import { Trips } from '../../db/entities/Trips.entity';
 import { AccommodationsModule } from '../accommodations/accommodations.module';
+import { AddonsModule } from '../addons/addons.module';
 import { BudgetModule } from '../budget/budget.module';
 import { CollabModule } from '../collab/collab.module';
 import { DaysModule } from '../days/days.module';
@@ -33,6 +34,7 @@ import { Module } from '@nestjs/common';
     PlacesModule,
     TodoModule,
     FilesModule,
+    AddonsModule,
   ],
   providers: [TripReadModelService],
   exports: [TripReadModelService],

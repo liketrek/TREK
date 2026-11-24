@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Museum & budaya',
   'poi.cat.nature': 'Alam & taman',
   'poi.cat.activities': 'Aktivitas',
+  'poi.cat.bakeries': 'Toko roti',
+  'poi.cat.groceries': 'Toko kelontong',
   'poi.pluginCategories': 'Kategori dari plugin',
   'map.showAllConnections': 'Tampilkan semua rute pemesanan',
   'map.hideAllConnections': 'Sembunyikan semua rute pemesanan',

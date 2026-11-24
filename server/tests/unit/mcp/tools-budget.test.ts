@@ -4,7 +4,6 @@
  * payment was made in (the rest of the settlement surface lives in
  * tools-budget-advanced.test.ts).
  */
-import { db as testDb } from '../../../src/db/database';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { BudgetItemMembers } from '../../../src/db/entities/BudgetItemMembers.entity';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
@@ -14,34 +13,26 @@ import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { invalidatePermissionsCache } from '../../../src/nest/permissions/permissions-cache';
-import {
-  createUser,
-  createTrip,
-  createBudgetItem,
-  createPlace,
-  createReservation,
-  addTripMember,
-} from '../../helpers/factories';
-import { addBudgetItemMember, addBudgetItemPayer } from '../../helpers/factories/budget';
+import { makeBudgetItem, addBudgetItemMember, addBudgetItemPayer } from '../../helpers/factories/budget';
+import { makePlace } from '../../helpers/factories/places';
+import { makeReservation } from '../../helpers/factories/reservations';
 import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { setAppSetting } from '../../helpers/factories/settings';
+import { addTripMember, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
   // Freezing the FX rate of a foreign currency is a real fetch to
@@ -55,16 +46,16 @@ beforeEach(() => {
   );
 });
 
-let orm: TestOrm;
+// The booted container's own ORM, the one the tools write through.
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 afterAll(async () => {
   vi.unstubAllGlobals();
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -81,11 +72,11 @@ function errorText(result: Awaited<ReturnType<McpHarness['client']['callTool']>>
   return text?.text ?? '';
 }
 
-function tripWithTwo() {
-  const { user } = createUser(testDb);
-  const { user: other } = createUser(testDb);
-  const trip = createTrip(testDb, user.id);
-  addTripMember(testDb, trip.id, other.id);
+async function tripWithTwo() {
+  const { user } = await makeUser(orm);
+  const { user: other } = await makeUser(orm);
+  const trip = await makeTrip(orm, user.id);
+  await addTripMember(orm, trip.id, other.id);
   return { user, other, trip };
 }
 
@@ -136,8 +127,8 @@ function stubRates(rates: Record<string, number>): void {
 
 describe('Tool: create_budget_item', () => {
   it('creates a budget item with all fields', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -159,8 +150,8 @@ describe('Tool: create_budget_item', () => {
   });
 
   it('defaults category to "Other" when not specified', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -172,8 +163,8 @@ describe('Tool: create_budget_item', () => {
   });
 
   it('broadcasts budget:created event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'create_budget_item',
@@ -186,8 +177,8 @@ describe('Tool: create_budget_item', () => {
   // Regression for #1244: a naive create must seed members so the client save-gate
   // (participants.size > 0) passes — the entry must be saveable, not member-less.
   it('defaults members to the trip owner when member_ids omitted (solo trip)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -202,10 +193,10 @@ describe('Tool: create_budget_item', () => {
   });
 
   it('defaults members to all trip members when member_ids omitted (multi-member)', async () => {
-    const { user } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, member.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -219,10 +210,10 @@ describe('Tool: create_budget_item', () => {
   });
 
   it('respects an explicit member_ids subset', async () => {
-    const { user } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await addTripMember(orm, trip.id, member.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -234,8 +225,8 @@ describe('Tool: create_budget_item', () => {
   });
 
   it('treats an explicit empty member_ids as a planning-only entry (no split)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -247,8 +238,8 @@ describe('Tool: create_budget_item', () => {
   });
 
   it('round-trips currency, expense_date, and payers', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -271,9 +262,9 @@ describe('Tool: create_budget_item', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -285,8 +276,8 @@ describe('Tool: create_budget_item', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -303,9 +294,9 @@ describe('Tool: create_budget_item', () => {
 
 describe('Tool: update_budget_item', () => {
   it('updates budget item fields', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id, { name: 'Old', category: 'Food', total_price: 50 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id, { name: 'Old', category: 'Food', total_price: 50 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_budget_item',
@@ -319,9 +310,9 @@ describe('Tool: update_budget_item', () => {
   });
 
   it('broadcasts budget:updated event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_budget_item',
@@ -332,8 +323,8 @@ describe('Tool: update_budget_item', () => {
   });
 
   it('returns error for item not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_budget_item',
@@ -344,10 +335,10 @@ describe('Tool: update_budget_item', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const item = await makeBudgetItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_budget_item',
@@ -364,9 +355,9 @@ describe('Tool: update_budget_item', () => {
 
 describe('Tool: delete_budget_item', () => {
   it('deletes an existing budget item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_budget_item',
@@ -379,9 +370,9 @@ describe('Tool: delete_budget_item', () => {
   });
 
   it('broadcasts budget:deleted event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'delete_budget_item', arguments: { tripId: trip.id, itemId: item.id } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'budget:deleted', expect.any(Object));
@@ -389,8 +380,8 @@ describe('Tool: delete_budget_item', () => {
   });
 
   it('returns error for item not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_budget_item',
@@ -401,10 +392,10 @@ describe('Tool: delete_budget_item', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const item = await makeBudgetItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_budget_item',
@@ -422,9 +413,9 @@ describe('Tool: delete_budget_item', () => {
 
 describe('Resource: trek://trips/{tripId}/budget', () => {
   it('returns budget items for a trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createBudgetItem(testDb, trip.id, { name: 'Hotel', category: 'Accommodation', total_price: 200 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeBudgetItem(orm, trip.id, { name: 'Hotel', category: 'Accommodation', total_price: 200 });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/budget` });
@@ -435,9 +426,9 @@ describe('Resource: trek://trips/{tripId}/budget', () => {
   });
 
   it('returns access denied for unauthorized trip', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/budget` });
@@ -454,7 +445,7 @@ describe('Resource: trek://trips/{tripId}/budget', () => {
 
 describe('Tool: create_budget_item (uneven split)', () => {
   it('persists what each member owes', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -478,7 +469,7 @@ describe('Tool: create_budget_item (uneven split)', () => {
   });
 
   it('refuses a split that does not add up to the total', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -499,7 +490,7 @@ describe('Tool: create_budget_item (uneven split)', () => {
   });
 
   it('measures the split against the payer sum, not the stated total', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -521,7 +512,7 @@ describe('Tool: create_budget_item (uneven split)', () => {
   });
 
   it('refuses a split that matches the stated total but not what the payers paid', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -542,8 +533,8 @@ describe('Tool: create_budget_item (uneven split)', () => {
   });
 
   it('refuses a member who is not on the trip', async () => {
-    const { user, trip } = tripWithTwo();
-    const { user: stranger } = createUser(testDb);
+    const { user, trip } = await tripWithTwo();
+    const { user: stranger } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -564,7 +555,7 @@ describe('Tool: create_budget_item (uneven split)', () => {
   });
 
   it('refuses members alongside member_ids', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -588,14 +579,14 @@ describe('Tool: create_budget_item (uneven split)', () => {
 
 describe('Tool: update_budget_item (uneven split)', () => {
   async function itemWithEqualSplit(tripId: number, userIds: number[]) {
-    const item = createBudgetItem(testDb, tripId, { name: 'Dinner', total_price: 100 });
+    const item = await makeBudgetItem(orm, tripId, { name: 'Dinner', total_price: 100 });
     for (const id of userIds) await addBudgetItemMember(orm, item.id, id, { paid: 0, amount: null });
     await updateRows(orm, BudgetItems, { id: item.id }, { persons: userIds.length });
     return item;
   }
 
   it('replaces the equal split with per-member amounts', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     const item = await itemWithEqualSplit(trip.id, [user.id, other.id]);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -619,7 +610,7 @@ describe('Tool: update_budget_item (uneven split)', () => {
   });
 
   it('measures the split against the stored total when the call does not restate it', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     const item = await itemWithEqualSplit(trip.id, [user.id, other.id]);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -643,7 +634,7 @@ describe('Tool: update_budget_item (uneven split)', () => {
   });
 
   it('refuses the same member twice', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     const item = await itemWithEqualSplit(trip.id, [user.id, other.id]);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -664,7 +655,7 @@ describe('Tool: update_budget_item (uneven split)', () => {
   });
 
   it('refuses members alongside member_ids', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     const item = await itemWithEqualSplit(trip.id, [user.id, other.id]);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -683,7 +674,7 @@ describe('Tool: update_budget_item (uneven split)', () => {
   });
 
   it('reports a missing item before it looks at the split', async () => {
-    const { user, trip } = tripWithTwo();
+    const { user, trip } = await tripWithTwo();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_budget_item',
@@ -701,9 +692,9 @@ describe('Tool: update_budget_item (uneven split)', () => {
 
 describe('Tool: update_budget_item (currency)', () => {
   it('changes the currency and freezes the rate at entry time', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id, { total_price: 100 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id, { total_price: 100 });
     stubRates({ USD: 1.1 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -718,9 +709,9 @@ describe('Tool: update_budget_item (currency)', () => {
   });
 
   it('clears the currency back to the trip currency', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id, { total_price: 100 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id, { total_price: 100 });
     await updateRows(orm, BudgetItems, { id: item.id }, { currency: 'USD', exchange_rate: 1.1 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -733,7 +724,7 @@ describe('Tool: update_budget_item (currency)', () => {
   });
 
   it('records and edits a note on the payment (#2340)', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({
@@ -760,9 +751,9 @@ describe('Tool: update_budget_item (currency)', () => {
   });
 
   it('refuses a currency that is not a code', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id, { total_price: 100 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id, { total_price: 100 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_budget_item',
@@ -776,9 +767,9 @@ describe('Tool: update_budget_item (currency)', () => {
 
 describe('Tool: update_budget_item (expense date)', () => {
   it('moves the expense to another date', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_budget_item',
@@ -790,9 +781,9 @@ describe('Tool: update_budget_item (expense date)', () => {
   });
 
   it('clears the expense date', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
     await updateRows(orm, BudgetItems, { id: item.id }, { expense_date: '2026-09-14' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -805,9 +796,9 @@ describe('Tool: update_budget_item (expense date)', () => {
   });
 
   it('refuses a date that is not a string', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeBudgetItem(orm, trip.id);
     await updateRows(orm, BudgetItems, { id: item.id }, { expense_date: '2026-09-14' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -826,9 +817,9 @@ describe('Tool: update_budget_item (expense date)', () => {
 
 describe('Budget tools: place link', () => {
   it('create_budget_item links the expense to a place on the trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Louvre' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -840,10 +831,10 @@ describe('Budget tools: place link', () => {
   });
 
   it('create_budget_item refuses a place from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const elsewhere = createTrip(testDb, user.id);
-    const place = createPlace(testDb, elsewhere.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const elsewhere = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, elsewhere.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -856,8 +847,8 @@ describe('Budget tools: place link', () => {
   });
 
   it('create_budget_item_with_members links the expense to a place on the trip', async () => {
-    const { user, other, trip } = tripWithTwo();
-    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+    const { user, other, trip } = await tripWithTwo();
+    const place = await makePlace(orm, trip.id, { name: 'Louvre' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item_with_members',
@@ -875,9 +866,9 @@ describe('Budget tools: place link', () => {
   });
 
   it('create_budget_item_with_members refuses a place from another trip', async () => {
-    const { user, trip } = tripWithTwo();
-    const elsewhere = createTrip(testDb, user.id);
-    const place = createPlace(testDb, elsewhere.id);
+    const { user, trip } = await tripWithTwo();
+    const elsewhere = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, elsewhere.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item_with_members',
@@ -903,9 +894,9 @@ describe('Budget tools: booking link on create', () => {
   }
 
   it('create_budget_item links the expense to a booking, which mirrors its total', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const booking = createReservation(testDb, trip.id, { title: 'Flight' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const booking = await makeReservation(orm, trip.id, { title: 'Flight' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -920,9 +911,9 @@ describe('Budget tools: booking link on create', () => {
   });
 
   it('create_budget_item adds a second expense to a booking, which then mirrors their sum', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const booking = createReservation(testDb, trip.id, { title: 'Flight' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const booking = await makeReservation(orm, trip.id, { title: 'Flight' });
     await withHarness(user.id, async (h) => {
       const add = (name: string, total_price: number) =>
         h.client.callTool({
@@ -936,10 +927,10 @@ describe('Budget tools: booking link on create', () => {
   });
 
   it('create_budget_item refuses a booking from another trip and writes nothing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const elsewhere = createTrip(testDb, user.id);
-    const foreign = createReservation(testDb, elsewhere.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const elsewhere = await makeTrip(orm, user.id);
+    const foreign = await makeReservation(orm, elsewhere.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -953,8 +944,8 @@ describe('Budget tools: booking link on create', () => {
   });
 
   it('create_budget_item_with_members links the expense to a booking', async () => {
-    const { user, other, trip } = tripWithTwo();
-    const booking = createReservation(testDb, trip.id, { title: 'Train' });
+    const { user, other, trip } = await tripWithTwo();
+    const booking = await makeReservation(orm, trip.id, { title: 'Train' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item_with_members',
@@ -973,9 +964,9 @@ describe('Budget tools: booking link on create', () => {
   });
 
   it('create_budget_item_with_members refuses a booking from another trip', async () => {
-    const { user, trip } = tripWithTwo();
-    const elsewhere = createTrip(testDb, user.id);
-    const foreign = createReservation(testDb, elsewhere.id);
+    const { user, trip } = await tripWithTwo();
+    const elsewhere = await makeTrip(orm, user.id);
+    const foreign = await makeReservation(orm, elsewhere.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item_with_members',
@@ -1010,11 +1001,11 @@ describe('Tool: update_budget_item (links)', () => {
   }
 
   it('links two expenses to one booking, which then mirrors their sum', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const booking = createReservation(testDb, trip.id, { title: 'Flight' });
-    const fare = createBudgetItem(testDb, trip.id, { name: 'Fare', total_price: 180 });
-    const luggage = createBudgetItem(testDb, trip.id, { name: 'Luggage', total_price: 35.5 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const booking = await makeReservation(orm, trip.id, { title: 'Flight' });
+    const fare = await makeBudgetItem(orm, trip.id, { name: 'Fare', total_price: 180 });
+    const luggage = await makeBudgetItem(orm, trip.id, { name: 'Luggage', total_price: 35.5 });
     await withHarness(user.id, async (h) => {
       const result = await update(h, { tripId: trip.id, itemId: fare.id, reservation_id: booking.id });
       expect((parseToolResult(result) as any).item.reservation_id).toBe(booking.id);
@@ -1039,11 +1030,11 @@ describe('Tool: update_budget_item (links)', () => {
   });
 
   it('refuses a booking from another trip, in the words the REST route uses, and writes nothing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const elsewhere = createTrip(testDb, user.id);
-    const foreign = createReservation(testDb, elsewhere.id);
-    const item = createBudgetItem(testDb, trip.id, { name: 'Fare' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const elsewhere = await makeTrip(orm, user.id);
+    const foreign = await makeReservation(orm, elsewhere.id);
+    const item = await makeBudgetItem(orm, trip.id, { name: 'Fare' });
     await withHarness(user.id, async (h) => {
       const result = await update(h, { tripId: trip.id, itemId: item.id, reservation_id: foreign.id, name: 'Renamed' });
       expect(result.isError).toBe(true);
@@ -1056,11 +1047,11 @@ describe('Tool: update_budget_item (links)', () => {
   });
 
   it('refuses a place from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const elsewhere = createTrip(testDb, user.id);
-    const foreign = createPlace(testDb, elsewhere.id);
-    const item = createBudgetItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const elsewhere = await makeTrip(orm, user.id);
+    const foreign = await makePlace(orm, elsewhere.id);
+    const item = await makeBudgetItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await update(h, { tripId: trip.id, itemId: item.id, place_id: foreign.id });
       expect(result.isError).toBe(true);
@@ -1070,10 +1061,10 @@ describe('Tool: update_budget_item (links)', () => {
   });
 
   it('links an expense to a place, and null lets go of it while the expense stays', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
-    const item = createBudgetItem(testDb, trip.id, { name: 'Tickets', total_price: 34 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Louvre' });
+    const item = await makeBudgetItem(orm, trip.id, { name: 'Tickets', total_price: 34 });
     await withHarness(user.id, async (h) => {
       await update(h, { tripId: trip.id, itemId: item.id, place_id: place.id });
       expect((await links(item.id)).place_id).toBe(place.id);
@@ -1087,11 +1078,11 @@ describe('Tool: update_budget_item (links)', () => {
   });
 
   it('null lets go of the booking, keeps the expense and takes its share off the booking price', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const booking = createReservation(testDb, trip.id);
-    const fare = createBudgetItem(testDb, trip.id, { total_price: 100 });
-    const extra = createBudgetItem(testDb, trip.id, { total_price: 20 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const booking = await makeReservation(orm, trip.id);
+    const fare = await makeBudgetItem(orm, trip.id, { total_price: 100 });
+    const extra = await makeBudgetItem(orm, trip.id, { total_price: 20 });
     await withHarness(user.id, async (h) => {
       await update(h, { tripId: trip.id, itemId: fare.id, reservation_id: booking.id });
       await update(h, { tripId: trip.id, itemId: extra.id, reservation_id: booking.id });
@@ -1106,11 +1097,11 @@ describe('Tool: update_budget_item (links)', () => {
   });
 
   it('moving an expense to another booking resyncs both', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const outbound = createReservation(testDb, trip.id, { title: 'Out' });
-    const inbound = createReservation(testDb, trip.id, { title: 'Back' });
-    const item = createBudgetItem(testDb, trip.id, { total_price: 75 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const outbound = await makeReservation(orm, trip.id, { title: 'Out' });
+    const inbound = await makeReservation(orm, trip.id, { title: 'Back' });
+    const item = await makeBudgetItem(orm, trip.id, { total_price: 75 });
     await withHarness(user.id, async (h) => {
       await update(h, { tripId: trip.id, itemId: item.id, reservation_id: outbound.id });
       await update(h, { tripId: trip.id, itemId: item.id, reservation_id: inbound.id });
@@ -1120,10 +1111,10 @@ describe('Tool: update_budget_item (links)', () => {
   });
 
   it('a new total on a linked expense reaches the booking price', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const booking = createReservation(testDb, trip.id);
-    const item = createBudgetItem(testDb, trip.id, { total_price: 50 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const booking = await makeReservation(orm, trip.id);
+    const item = await makeBudgetItem(orm, trip.id, { total_price: 50 });
     await updateRows(orm, BudgetItems, { id: item.id }, { reservation: booking.id });
     await withHarness(user.id, async (h) => {
       await update(h, { tripId: trip.id, itemId: item.id, total_price: 64.2 });
@@ -1132,10 +1123,10 @@ describe('Tool: update_budget_item (links)', () => {
   });
 
   it('a currency change alone on a linked expense re-names the booking price', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const booking = createReservation(testDb, trip.id);
-    const item = createBudgetItem(testDb, trip.id, { total_price: 50 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const booking = await makeReservation(orm, trip.id);
+    const item = await makeBudgetItem(orm, trip.id, { total_price: 50 });
     await updateRows(orm, BudgetItems, { id: item.id }, { reservation: booking.id });
     stubRates({ USD: 1.1 });
     await withHarness(user.id, async (h) => {
@@ -1153,7 +1144,7 @@ describe('Tool: update_budget_item (links)', () => {
 
 describe('Tool: create_settlement (currency)', () => {
   it('records the payment in the currency it was made in and freezes its rate', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     stubRates({ USD: 1.1 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -1169,7 +1160,7 @@ describe('Tool: create_settlement (currency)', () => {
   });
 
   it('books the payment in the trip currency when none is given', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_settlement',
@@ -1183,7 +1174,7 @@ describe('Tool: create_settlement (currency)', () => {
   });
 
   it('refuses a currency that is not a code', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     const before = await settlementCount(trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -1204,7 +1195,7 @@ describe('Tool: create_settlement (currency)', () => {
 
 describe('Tool: update_settlement (currency)', () => {
   it('changes the currency the payment was made in and freezes its rate', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({
@@ -1232,7 +1223,7 @@ describe('Tool: update_settlement (currency)', () => {
   });
 
   it('clears the currency back to the trip currency', async () => {
-    const { user, other, trip } = tripWithTwo();
+    const { user, other, trip } = await tripWithTwo();
     stubRates({ USD: 1.1 });
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
@@ -1270,9 +1261,9 @@ describe('Tool: update_settlement (currency)', () => {
 
 describe('Budget tools: a custom split cannot be certified against a total the row will not get', () => {
   it('refuses a payer who is not on the trip rather than storing an unbalanced split', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
     await withHarness(owner.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -1294,10 +1285,10 @@ describe('Budget tools: a custom split cannot be certified against a total the r
   });
 
   it('refuses an empty payer list under a non-zero split, because the stored total becomes zero', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: friend } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, friend.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: friend } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, friend.id);
     await withHarness(owner.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_budget_item',
@@ -1326,8 +1317,8 @@ describe('Budget tools: a custom split cannot be certified against a total the r
   });
 
   it('accepts an empty payer list when the split is empty too', async () => {
-    const { user: owner } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
     await withHarness(owner.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_budget_item',
@@ -1346,10 +1337,10 @@ describe('Budget tools: a custom split cannot be certified against a total the r
   });
 
   it('still certifies a split against the payer sum when every payer is on the trip', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: friend } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, friend.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: friend } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, friend.id);
     await withHarness(owner.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_budget_item',
@@ -1380,11 +1371,11 @@ describe('Budget tools: a custom split cannot be certified against a total the r
   // #2604: someone removed from the trip keeps their rows on the expense, and an
   // edit that sends them back must not be refused as if they were a stranger.
   it('certifies an edit that keeps someone who has left the trip on the expense (#2604)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: friend } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, friend.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: friend } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, friend.id);
     await withHarness(owner.id, async (h) => {
       const created = await h.client.callTool({
         name: 'create_budget_item',
@@ -1447,10 +1438,10 @@ describe('Budget tools: a custom split cannot be certified against a total the r
 
 /** A trip in `currency` with one unfrozen VND bill and one unfrozen VND transfer. */
 async function tripWithVndRows(currency: string) {
-  const { user, other, trip } = tripWithTwo();
+  const { user, other, trip } = await tripWithTwo();
   await updateRows(orm, Trips, { id: trip.id }, { currency });
   await deleteRows(orm, BudgetSettlements, { trip: trip.id });
-  const item = createBudgetItem(testDb, trip.id, { name: 'Pho', total_price: 8920000 });
+  const item = await makeBudgetItem(orm, trip.id, { name: 'Pho', total_price: 8920000 });
   await updateRows(orm, BudgetItems, { id: item.id }, { currency: 'VND', exchange_rate: 1 });
   await addBudgetItemMember(orm, item.id, user.id, { paid: 0 });
   await addBudgetItemMember(orm, item.id, other.id, { paid: 0 });
@@ -1469,7 +1460,7 @@ async function tripWithVndRows(currency: string) {
 describe('Tool: freeze_budget_rates', () => {
   it('refuses a demo user, a stranger and a member without budget_edit, writing nothing', async () => {
     const { other, trip, item, settlementId } = await tripWithVndRows('AUD');
-    const { user: stranger } = createUser(testDb);
+    const { user: stranger } = await makeUser(orm);
     const spy = vi.spyOn(BudgetService.prototype, 'freezeMissingRates');
     try {
       await withHarness(stranger.id, async (h) => {
@@ -1488,8 +1479,8 @@ describe('Tool: freeze_budget_rates', () => {
       await invalidatePermissionsCache();
 
       process.env.DEMO_MODE = 'true';
-      const { user: demo } = createUser(testDb, { email: 'demo@nomad.app' });
-      addTripMember(testDb, trip.id, demo.id);
+      const { user: demo } = await makeUser(orm, { email: 'demo@nomad.app' });
+      await addTripMember(orm, trip.id, demo.id);
       await withHarness(demo.id, async (h) => {
         const result = await h.client.callTool({ name: 'freeze_budget_rates', arguments: { tripId: trip.id } });
         expect(result.isError).toBe(true);

@@ -1,4 +1,4 @@
-// FE-PLANNER-BKFACTS-001 to FE-PLANNER-BKFACTS-022
+// FE-PLANNER-BKFACTS-001 to FE-PLANNER-BKFACTS-024
 import { describe, it, expect } from 'vitest';
 import { buildDay, buildReservation } from '../../../../tests/helpers/factories';
 import type { ReservationEndpoint } from '../../../types';
@@ -80,6 +80,26 @@ describe('bookingFacts: day', () => {
     const f = bookingFacts(buildReservation({ type: 'hotel', accommodation_start_day_id: 701, accommodation_end_day_id: 702 }), ctx());
     expect(f.day?.label).toBe('Arrival → dayplan.dayN#2');
     expect(f.isHotel).toBe(true);
+  });
+});
+
+describe('bookingFacts: hotel times', () => {
+  it('FE-PLANNER-BKFACTS-023: a hotel without times of its own shows the stay check-in and check-out', () => {
+    const f = bookingFacts(buildReservation({
+      type: 'hotel', accommodation_start_day_id: 701, accommodation_end_day_id: 702,
+      accommodation_check_in: '15:00', accommodation_check_in_end: '18:00', accommodation_check_out: '11:00',
+    }), ctx());
+    expect(cell(f, 'reservations.meta.checkIn')).toBe('15:00 → 18:00');
+    expect(cell(f, 'reservations.meta.checkOut')).toBe('11:00');
+  });
+
+  it('FE-PLANNER-BKFACTS-024: the booking own times win over the stay times', () => {
+    const f = bookingFacts(buildReservation({
+      type: 'hotel', metadata: JSON.stringify({ check_in_time: '14:00', check_out_time: '10:00' }),
+      accommodation_check_in: '15:00', accommodation_check_in_end: '18:00', accommodation_check_out: '11:00',
+    }), ctx());
+    expect(cell(f, 'reservations.meta.checkIn')).toBe('14:00');
+    expect(cell(f, 'reservations.meta.checkOut')).toBe('10:00');
   });
 });
 
@@ -209,5 +229,16 @@ describe('bookingFacts: codes, links and places', () => {
     const plain = bookingFacts(buildReservation({}), ctx());
     expect(plain).toMatchObject({ place: null, accommodation: null, url: null });
     expect(bookingFacts(buildReservation({ url: 'javascript:alert(1)' }), ctx()).url?.href).toBeNull();
+  });
+});
+
+describe('bookingFacts: seats of a flight with a stop', () => {
+  it('FE-PLANNER-BKFACTS-025: the Seat cell holds the seat booked only on the second leg', () => {
+    const r = buildReservation({
+      type: 'flight',
+      metadata: JSON.stringify({ class: 'Economy', legs: [{ from: 'MXP', to: 'IST' }, { from: 'IST', to: 'JFK', seat: '14C' }] }),
+    });
+    const facts = bookingFacts(r, ctx());
+    expect(cell(facts, 'reservations.meta.seat')).toBe('14C, Economy');
   });
 });

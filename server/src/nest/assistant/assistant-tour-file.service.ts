@@ -47,9 +47,9 @@ export class AssistantTourFileService implements AttachedFileReader {
     private readonly addons: AddonsService,
   ) {}
 
-  /** Refuses a route file where tours are off: nothing could take it in. */
-  async ensureReadable(_userId: number, _file: Express.Multer.File): Promise<void> {
-    if (!(await this.addons.isAddonEnabled(ADDON_IDS.TOURS))) {
+  /** Refuses a route file where Tours is off for the trip: nothing could take it in. */
+  async ensureReadable(_userId: number, tripId: number, _file: Express.Multer.File): Promise<void> {
+    if (!(await this.addons.isEnabledForTrip(tripId, ADDON_IDS.TOURS))) {
       throw aiRefusal('import_unavailable', 'Tours are not enabled on this server');
     }
   }

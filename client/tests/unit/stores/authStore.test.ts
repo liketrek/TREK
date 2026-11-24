@@ -3,6 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';
 import { useAuthStore } from '../../../src/store/authStore';
 import { useSystemNoticeStore } from '../../../src/store/systemNoticeStore';
+import { useMailIngestStore } from '../../../src/store/mailIngestStore';
 import { authApi } from '../../../src/api/client';
 import { resetAllStores } from '../../helpers/store';
 import { buildUser } from '../../helpers/factories';
@@ -575,6 +576,20 @@ describe('authStore', () => {
       const snapshot = JSON.parse(localStorage.getItem('trek_auth_snapshot') ?? '{}');
       expect(snapshot?.state?.isAuthenticated).toBe(false);
       expect(snapshot?.state?.user).toBeNull();
+    });
+  });
+
+  describe('FE-STORE-AUTH-MAIL-001: logout forgets the mail import', () => {
+    it('drops the forwarding address, the inbox and the badge count of the account that left', async () => {
+      useAuthStore.setState({ user: buildUser(), isAuthenticated: true });
+      useMailIngestStore.setState({ settings: { address: 'a@example.com' } as never, entries: [{ id: 1 }] as never, pending: 3 });
+
+      await useAuthStore.getState().logout();
+
+      const mail = useMailIngestStore.getState();
+      expect(mail.settings).toBeNull();
+      expect(mail.entries).toEqual([]);
+      expect(mail.pending).toBe(0);
     });
   });
 

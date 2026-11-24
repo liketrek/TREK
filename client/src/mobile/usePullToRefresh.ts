@@ -14,6 +14,25 @@ export type PullState = { distance: number; refreshing: boolean; armed: boolean 
 function refreshFailed(): void {}
 
 /**
+ * Whether the touch starts inside a box that scrolls on its own and is not at
+ * its top, such as the second column of the dashboard on an unfolded Duo or an
+ * iPad. That pull scrolls the box back up; it is no refresh of the page
+ * (TestFlight feedback: dragging the right column back up refreshed instead).
+ */
+export function insideScrolledBox(target: EventTarget | null, page: Element | null): boolean {
+  for (
+    let el = target instanceof Element ? target : null;
+    el && el !== page && el !== document.body;
+    el = el.parentElement
+  ) {
+    if (el.scrollTop <= 0 || el.scrollHeight <= el.clientHeight) continue;
+    const overflow = getComputedStyle(el).overflowY;
+    if (overflow === 'auto' || overflow === 'scroll') return true;
+  }
+  return false;
+}
+
+/**
  * Pull-to-refresh on a page whose scroller is the window, as the mobile
  * dashboard is. A downward drag that starts at the very top moves `contentRef`
  * down with resistance; past the threshold a light tick tells the finger that
@@ -23,6 +42,15 @@ function refreshFailed(): void {}
  * Writes the content's transform directly during the drag, so a pull costs no
  * React render per frame; `state` only changes at the edges (armed, refreshing).
  */
+/*
+ * The iOS app lets the page bounce at its ends (mobile.css), as every iOS list
+ * does. Only the pull down from the very top is this hook's: WebKit starts its
+ * own bounce on the first move, long before a pull is told from a scroll at 8 px,
+ * so a move that clearly heads down from the top is held from the first pixel.
+ * Everywhere else, the bottom of the page included, the bounce stays (TestFlight
+ * feedback: the screens with pull-to-refresh used not to bounce at all).
+ */
+
 export function usePullToRefresh(
   contentRef: RefObject<HTMLElement | null>,
   onRefresh: () => Promise<unknown>,
@@ -54,6 +82,7 @@ export function usePullToRefresh(
 
     const onStart = (e: TouchEvent) => {
       if (busy || e.touches.length !== 1 || scrolled() > 0 || hasOpenOverlay()) return;
+      if (insideScrolledBox(e.target, scrollerRef?.current ?? null)) return;
       start = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       pulling = false;
     };
@@ -63,6 +92,8 @@ export function usePullToRefresh(
       const dx = e.touches[0].clientX - start.x;
       const dy = e.touches[0].clientY - start.y;
       if (!pulling) {
+        // Clearly downward at the top: WebKit's bounce must not start under the pull.
+        if (dy > 0 && dy >= 2 * Math.abs(dx) && scrolled() <= 0 && e.cancelable) e.preventDefault();
         // Decide once: a sideways or upward start belongs to whatever is under the finger.
         if (Math.abs(dy) < 8 && Math.abs(dx) < 8) return;
         if (dy <= 0 || Math.abs(dx) > Math.abs(dy) || scrolled() > 0) {

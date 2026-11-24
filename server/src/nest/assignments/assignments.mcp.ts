@@ -13,12 +13,13 @@ import {
 import { DaysService } from '../days/days.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { AssignmentsService } from './assignments.service';
-import { assignmentStayRequestSchema, type AssignmentStayRequest } from '@trek/shared';
 import {
   idSchema,
   assignmentCreateRequestSchema,
   assignmentEndDayRequestSchema,
+  assignmentStayRequestSchema,
   type AssignmentEndDayRequest,
+  type AssignmentStayRequest,
 } from '@trek/shared';
 
 import { z } from 'zod';
@@ -39,27 +40,6 @@ export class AssignmentsMcp {
     private readonly days: DaysService,
     private readonly guards: McpToolGuardsService,
   ) {}
-
-  @Tool({
-    name: 'set_assignment_stay',
-    description:
-      'Set minutes spent at one visit. Null restores the place default. Fixed End determines the effective stay without deleting this preference.',
-    inputSchema: { tripId: idSchema, assignmentId: idSchema, ...assignmentStayRequestSchema.shape },
-    annotations: TOOL_ANNOTATIONS_WRITE,
-    access: { group: 'places', mode: 'write' },
-  })
-  async setAssignmentStay(
-    { tripId, assignmentId, stay_minutes }: AssignmentStayRequest & { tripId: number; assignmentId: number },
-    ctx: McpContext,
-  ) {
-    if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
-      return errorResult('Assignment not found.');
-    const assignment = await this.assignments.setStay(assignmentId, stay_minutes);
-    this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
-    return ok({ assignment });
-  }
 
   @Tool({
     name: 'assign_place_to_day',
@@ -120,6 +100,31 @@ export class AssignmentsMcp {
     if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
       return errorResult('Assignment not found.');
     const assignment = await this.assignments.setEndDay(assignmentId, end_day);
+    this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
+    return ok({ assignment });
+  }
+
+  @Tool({
+    name: 'set_assignment_stay',
+    description:
+      'Set the duration of one visit. Zero records a pass-through and null restores the place duration. A fixed end determines the effective stay without deleting the saved duration.',
+    inputSchema: {
+      tripId: idSchema,
+      assignmentId: idSchema,
+      ...assignmentStayRequestSchema.shape,
+    },
+    annotations: TOOL_ANNOTATIONS_WRITE,
+    access: { group: 'places', mode: 'write' },
+  })
+  async setAssignmentStay(
+    { tripId, assignmentId, stay_minutes }: AssignmentStayRequest & { tripId: number; assignmentId: number },
+    ctx: McpContext,
+  ) {
+    if (!(await this.assignments.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    if (!(await this.guards.hasTripPermission('day_edit', tripId, ctx.userId))) return permissionDenied();
+    if (!(await this.assignments.getAssignmentForTrip(assignmentId, tripId)))
+      return errorResult('Assignment not found.');
+    const assignment = await this.assignments.setStay(assignmentId, stay_minutes);
     this.guards.safeBroadcast(tripId, 'assignment:updated', { assignment });
     return ok({ assignment });
   }

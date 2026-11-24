@@ -173,6 +173,7 @@ export class UserCleanupService {
     await this.tripMembersRepo.clearInvitedBy(userId); // UC4 — converted (Plan 4 Task 1)
     await this.budgetItemsRepo.clearPaidByUser(userId); // UC5 — Plan 3e Task 2, converted.
     await this.settlementsRepo.clearCreatedBy(userId);
+    await this.tripMembersRepo.handTripTagsToTripOwners(userId);
     await this.budget.removeUserFromBudgetItems(userId);
     await this.shareTokensRepo.deleteByCreator(userId); // UC6 — converted (Plan 3h Task 6)
     await this.journeyShareTokensRepo.deleteByCreatedBy(userId); // UC7 — converted (Plan 3g Task 4)
@@ -189,9 +190,12 @@ export class UserCleanupService {
    * `task-1-review.md`'s "contract gaps"). Everything above it (UC1–UC10)
    * stays raw, per each method's own docstring.
    */
-  async deleteUserCompletely(userId: number): Promise<void> {
+  async deleteUserCompletely(userId: number, precondition?: () => Promise<void>): Promise<void> {
     const avatar = await this.usersRepo.getAvatar(userId);
     const photos = await this.uow.transactional(async () => {
+      // A caller's check that has to hold when the row goes (the last admin), read in
+      // the transaction that deletes, so no other write lands between the two.
+      if (precondition) await precondition();
       // The galleries of the journeys the user owns go with the cascade below, so
       // their photos are read first. A photo row none of the remaining trips and
       // journeys links goes too, as when one journey is deleted: left behind, it

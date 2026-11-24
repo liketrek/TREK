@@ -862,6 +862,35 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
   },
 
+  'collection-map-lock': {
+    guide: guide('collection-map-lock'),
+    start: p => openList(p, KYOTO),
+    steps: [
+      {
+        target: p => mapShell(p).getByTestId('map-lock-pill'),
+        act: async p => {
+          await mapShell(p).getByTestId('map-lock-pill').click()
+          await expect(mapShell(p).getByRole('button', { name: 'Let the map follow the selection' })).toBeVisible()
+          await blurFocus(p)
+          await settle(p)
+        },
+      },
+      {
+        target: p => placeRows(p).nth(1),
+        act: async p => {
+          await placeRows(p).nth(1).click()
+          await expect(detail(p)).toBeVisible()
+          // Locked, the map keeps the frame of the whole list, so every pin stays in view.
+          await pageReady(p)
+        },
+      },
+    ],
+    cleanup: async p => {
+      const unlock = mapShell(p).getByRole('button', { name: 'Let the map follow the selection' })
+      if (await unlock.count()) await unlock.click()
+    },
+  },
+
   'tour-collection-add-to-trip': {
     guide: guide('tour-collection-add-to-trip'),
     start: async p => {

@@ -454,7 +454,10 @@ describe('DocSyncJob and a provider switched off in the admin panel', () => {
   const paperless = fakeProvider('paperless');
   const nextcloud = fakeProvider('nextcloud');
 
-  const addons = { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService;
+  const addons = {
+    isAddonEnabled: vi.fn(() => true),
+    isEnabledForTrip: vi.fn(async () => true),
+  } as unknown as AddonsService;
   const registry = new DocumentProviderRegistry([paperless, nextcloud] as unknown as DocumentProvider[]);
   // Built in beforeAll: DocSyncConfigService and DocSyncService now take a
   // UnitOfWork, and createTestUnitOfWork is async — module-scope construction

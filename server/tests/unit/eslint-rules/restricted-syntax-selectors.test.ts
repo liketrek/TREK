@@ -140,7 +140,7 @@ declare const repo: { run(sql: string, params?: unknown[]): Promise<unknown>; ge
   // text slipping in under the exemption, a lower one means the pin (and at 0
   // the ignores entry) has to follow.
   const EXEMPT_SQL_STRINGS: Record<string, number> = {
-    'src/db/repositories/MaintenanceRepository.ts': 4,
+    'src/db/repositories/MaintenanceRepository.ts': 2,
     'src/db/seeders/AdminSeeder.ts': 2,
     'src/db/seeders/CategorySeeder.ts': 2,
   };
@@ -192,9 +192,83 @@ void safeFetch(url);`,
     }
   });
 
-  it('does not reach outside src/db', async () => {
+  const RAW_MESSAGE_PREFIX = 'Dialect SQL goes through';
+  const rawHits = (options: unknown[], code: string) =>
+    messages(
+      options,
+      `${SQL}\ndeclare function raw(s: string): unknown;\ndeclare const sql: (s: TemplateStringsArray) => unknown;\n${code}`,
+    ).filter((m) => m.startsWith(SQL_MESSAGE_PREFIX) || m.startsWith(RAW_MESSAGE_PREFIX));
+
+  // A service with SQLite-only SQL of its own: no repository, so the Postgres
+  // probe never sends it, and only a lane suite that happens to reach it would.
+  const SERVICE_SQL =
+    "void connection.execute('SELECT trip_id, group_concat(name, \\', \\') AS names, ifnull(SUM(cost), 0) AS total FROM places WHERE trip_id = ? GROUP BY trip_id', [1]);";
+
+  it.each([
+    'src/nest/trips/trip-stats.service.ts',
+    'src/nest/demo/demo-reset.job.ts',
+    'src/nest/auth/auth.guard.ts',
+    'src/nest/trips/trips.mcp.ts',
+    'src/utils/probe.ts',
+    'src/db/probe.ts',
+    'src/app-config/probe.ts',
+    'src/nest/plugins/host/plugin-audit.ts',
+  ])('refuses raw SQL in %s, outside the repositories', async (file) => {
+    const options = await selectorsFor(file);
+    expect(rawHits(options, SERVICE_SQL), file).toHaveLength(1);
+    expect(rawHits(options, "void raw('now()');"), file).toHaveLength(1);
+    expect(rawHits(options, 'void sql`select 1`;'), file).toHaveLength(1);
+    expect(rawHits(options, "void qb.execute('run'); void repo.get('key');"), file).toEqual([]);
+  });
+
+  // Where SQL may be spelled outside the repositories and seeders: the homes
+  // (each engine's own SQL, the migrations) and the boot-time lifecycle files,
+  // with the SQL strings each holds today. A count may only go down.
+  const SQL_HOMES = ['src/db/dialect/', 'src/db/engine/', 'src/db/migrations/'];
+  const LIFECYCLE_SQL_STRINGS: Record<string, number> = {
+    'src/db/email-case-index.ts': 3,
+    'src/db/legacy-baseline.ts': 3,
+    'src/db/migration-utils.ts': 6,
+    'src/db/pre-migrate-snapshot.ts': 3,
+  };
+
+  it('leaves out exactly the homes of raw SQL and the pinned lifecycle files, and keeps the other guards there', async () => {
+    const outside = filesUnder('src').filter(
+      (file) => !file.startsWith('src/db/repositories/') && !file.startsWith('src/db/seeders/'),
+    );
+    const walled = await Promise.all(
+      outside.map(async (file) => {
+        // A file ESLint ignores altogether (generated, gitignored) is linted by nothing.
+        if (await eslint.isPathIgnored(path.join(serverRoot, file))) return true;
+        const options = (await selectorsFor(file)) as { message?: string }[];
+        return options.some((o) => o.message?.startsWith(SQL_MESSAGE_PREFIX));
+      }),
+    );
+    const exempt = outside.filter((_file, i) => !walled[i]);
+    const unexpected = exempt.filter(
+      (file) => !SQL_HOMES.some((home) => file.startsWith(home)) && !(file in LIFECYCLE_SQL_STRINGS),
+    );
+    expect(unexpected).toEqual([]);
+    const lifecycle = Object.keys(LIFECYCLE_SQL_STRINGS);
+    const lifecycleOptions = await Promise.all(lifecycle.map((file) => selectorsFor(file)));
+    lifecycle.forEach((file, i) => {
+      expect(exempt, file).toContain(file);
+      expect(messages(lifecycleOptions[i], `${PRELUDE}\nvoid safeFetch(url);`), file).toContain(TIMEOUT);
+    });
+  });
+
+  it('holds each lifecycle file to the SQL strings it has today', async () => {
     const options = await selectorsFor('src/nest/memories/probe.service.ts');
-    expect(hits(options, "void connection.execute('SELECT 1');")).toEqual([]);
+    const counts: Record<string, number> = {};
+    for (const file of Object.keys(LIFECYCLE_SQL_STRINGS)) {
+      const source = fs.readFileSync(path.join(serverRoot, file), 'utf8');
+      counts[file] = messages(options, source).filter(
+        (m) => m.startsWith(SQL_MESSAGE_PREFIX) || m.startsWith(RAW_MESSAGE_PREFIX),
+      ).length;
+    }
+    expect(counts, 'new SQL text in a lifecycle file fails; after removing some, lower its pin').toEqual(
+      LIFECYCLE_SQL_STRINGS,
+    );
   });
 });
 

@@ -152,7 +152,7 @@ export function describeLegacyUpgrade(
     it(`${c.id}-005: a second bootstrap (a restart, or a restore of this file) baselines nothing and applies nothing`, async () => {
       const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
       try {
-        await runSchemaBootstrap(app.get(MikroORM));
+        await runSchemaBootstrap(app.get(MikroORM), { snapshot: true });
         const lines = logSpy.mock.calls.map((args) => args.map(String).join(' '));
         expect(
           lines.filter((line) => line.startsWith('[DB] Legacy install') || line.startsWith('[DB] Applying')),

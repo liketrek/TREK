@@ -8,6 +8,8 @@
     <string name="widget_today_description">خطة اليوم كخط زمني، مع الطقس والمحطة التالية.</string>
     <string name="widget_bookings_name">الحجوزات</string>
     <string name="widget_bookings_description">رحلاتك وقطاراتك وفنادقك وحجوزات المطاعم القادمة ومواعيدها.</string>
+    <string name="widget_flight_name">الرحلة</string>
+    <string name="widget_flight_description">رحلتك القادمة مباشرة: عد تنازلي للإقلاع، والطائرة في طريقها، والتأخير والوصول.</string>
     <string name="widget_todos_name">المهام</string>
     <string name="widget_todos_description">ما تبقى للرحلة، ومدى تقدم تجهيز الأمتعة.</string>
     <string name="widget_packing_name">قائمة الأمتعة</string>

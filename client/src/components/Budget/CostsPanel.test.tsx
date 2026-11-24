@@ -740,7 +740,7 @@ describe('CostsPanel — settlements in the ledger', () => {
     await user.click(await screen.findByRole('button', { name: 'Add payment' }))
     await user.type(await screen.findByPlaceholderText('0,00'), '25')
     // Bob paid me back in dollars — the server freezes the USD rate on write.
-    await user.click(screen.getByText(/^EUR/))
+    await user.click(within(screen.getByRole('dialog')).getByText(/^EUR/))
     await user.click(await screen.findByText(/^USD/))
     const addButtons = screen.getAllByRole('button', { name: 'Add payment' })
     await user.click(addButtons[addButtons.length - 1])
@@ -950,7 +950,7 @@ describe('CostsPanel — overview', () => {
 
     expect(await screen.findByText('No expenses yet. Add your first one.')).toBeInTheDocument()
     expect(screen.getByText('No expenses yet.')).toBeInTheDocument()
-    expect(screen.getByText("Everyone's square")).toBeInTheDocument()
+    expect(await screen.findByText("Everyone's square")).toBeInTheDocument()
   })
 
   it('FE-W5COSTS-007: an unknown currency falls back to a plainly formatted amount', async () => {
@@ -1083,9 +1083,9 @@ describe('CostsPanel — settle up', () => {
     render(<CostsPanel tripId={1} tripMembers={tripMembers} />)
 
     await screen.findByText('Balances')
-    // Settle up, Balances and Final budget all hang off the one failed request.
-    await waitFor(() => expect(screen.getAllByText('Unknown error')).toHaveLength(3))
-    expect(screen.queryByText("Everyone's square")).toBeNull()
+    await waitFor(() => expect(screen.getAllByText('Unknown error')).toHaveLength(5))
+    for (const gone of ["Everyone's square", "You're all settled up", 'Nothing owed to you'])
+      expect(screen.queryByText(gone)).toBeNull()
   })
 
   it('FE-W5COSTS-013: the "you owe" card lists who I still have to pay', async () => {
@@ -1450,7 +1450,7 @@ describe('CostsPanel — expense modal', () => {
 
     await user.type(screen.getByPlaceholderText('e.g. Dinner, souvenirs, gas…'), 'Diner')
     await user.type(screen.getAllByPlaceholderText('0,00')[0], '100')
-    await user.click(screen.getByText(/^EUR/))
+    await user.click(within(screen.getByRole('dialog')).getByText(/^EUR/))
     await user.click(await screen.findByText(/^USD/))
 
     expect(await screen.findByText('50,00 €')).toBeInTheDocument()
@@ -1778,20 +1778,15 @@ describe('CostsPanel — remaining paths', () => {
     expect(screen.getAllByText('XBT').length).toBeGreaterThanOrEqual(2)
   })
 
-  it('FE-W5COSTS-049: a solo trip defaults the payment counterpart to myself', async () => {
-    const user = userEvent.setup()
+  it('FE-W5COSTS-049: a solo trip offers no payment, there is nobody to pay (#2689)', async () => {
     server.use(
       http.get('/api/trips/1/budget', () => HttpResponse.json({ items: [] })),
       http.get('/api/trips/1/budget/settlement', () => HttpResponse.json({ balances: [], flows: [], settlements: [] })),
     )
     render(<CostsPanel tripId={1} tripMembers={[{ id: 1, username: 'alice', avatar_url: null }]} />)
 
-    await user.click(await screen.findByRole('button', { name: 'Add payment' }))
-    await user.type(await screen.findByPlaceholderText('0,00'), '10')
-
-    // From and To both resolve to me, so the transfer stays unsavable.
-    const submits = screen.getAllByRole('button', { name: 'Add payment' })
-    expect(submits[submits.length - 1]).toBeDisabled()
+    expect(await screen.findByRole('button', { name: 'Add expense' })).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Add payment' })).not.toBeInTheDocument()
   })
 
   it('FE-W5COSTS-050: the expense modal shows uploaded avatars and rejects over-precise input', async () => {
@@ -2295,20 +2290,14 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     ...over,
   })
 
-  it('FE-W5COSTS-079: a bill whose rate moved shows what was entered and what it was booked at', async () => {
-    mount([hotel()])
+  it('FE-W5COSTS-079: an expense in the selected currency reads as entered', async () => {
+    mount([hotel()]);
 
-    await screen.findByText('Aparthotel Silver')
-    // The entered amount was nowhere on the row, so $791.57 read as a wrong copy of
-    // the 801.76 in the dialog. The pill beside the line is the last step.
-    expect(screen.getByText(/^\$801\.76 → 685,26\s€$/)).toBeInTheDocument()
-    // Row total and payer chip stay the booked euros at today's rate, and so does what
-    // I lent: half of 685.26 EUR, the figure settle-up offers. Printing $400.88 here
-    // had Bob pay back more than he owed and reopened the trip.
-    expect(screen.getAllByText('$791.55')).toHaveLength(2)
-    expect(screen.getByText('you lent $395.77')).toBeInTheDocument()
-    expect(screen.queryByText('you lent $400.88')).toBeNull()
-  })
+    await screen.findByText('Aparthotel Silver');
+    expect(screen.getAllByText('$801.76')).toHaveLength(2);
+    expect(screen.getByText('you lent $400.88')).toBeInTheDocument();
+    expect(screen.queryByText(/^\$801\.76 →/)).toBeNull();
+  });
 
   it('FE-W5COSTS-087: a bill booked at today\'s rate reads exactly as typed everywhere on the page', async () => {
     mount([
@@ -2342,7 +2331,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
       await waitFor(() => expect(exported).toBeTruthy())
       const lines = (await exported!.text()).replace(/^\uFEFF/, '').split('\r\n')
       expect(lines[0]).toBe('Date;Name;Category;Amount;Currency;Amount (EUR);Amount (USD);Note')
-      expect(lines[1]).toMatch(/;801\.76;USD;685\.26;791\.55;$/)
+      expect(lines[1]).toMatch(/;801\.76;USD;685\.26;801\.76;$/)
     } finally {
       createObjURL.mockRestore(); revokeObjURL.mockRestore(); clickSpy.mockRestore()
     }
@@ -2355,13 +2344,10 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     ])
 
     await screen.findByText('Aparthotel Silver')
-    // 120 USD at 1.17 is 102.56 EUR, $118.47 today; with the hotel's $791.55 that is
-    // $910.02, on the day header and on the total spend card.
-    expect(screen.getByText(/^\$120\.00 → 102,56\s€$/)).toBeInTheDocument()
-    expect(screen.getByText('$910.02 spent')).toBeInTheDocument()
+    expect(screen.getByText('$921.76 spent')).toBeInTheDocument()
     // Label, its text block, the header row, then the card itself.
     const card = screen.getByText('Total trip spend').parentElement!.parentElement!.parentElement!
-    expect(card.textContent).toContain('$910.02')
+    expect(card.textContent).toContain('$921.76')
   })
 
   it('FE-W5COSTS-084: the totals follow the rates when they arrive after the expenses', async () => {
@@ -2393,7 +2379,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     expect(screen.getByText(/^100,00\s€ → \$115\.51$/)).toBeInTheDocument()
     // 1000 SEK at 10 per euro is 100 euro, then live to dollars in the pill.
     expect(screen.getByText(/^1\s000,00\skr → 100,00\s€$/)).toBeInTheDocument()
-    expect(screen.getByText('Awaiting conversion')).toBeInTheDocument()
+    expect(screen.getAllByText('$50.00').length).toBeGreaterThan(0)
     expect(screen.queryByText(/^\$50\.00 →/)).toBeNull()
   })
 
@@ -2408,10 +2394,11 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     })
 
     await screen.findByText('Aparthotel Silver')
-    expect(await screen.findByText(/\$400\.88 → 342,63\s€$/)).toBeInTheDocument()
+    await screen.findByText('$30.00')
+    expect(screen.queryByText(/\$400\.88 →/)).toBeNull()
     // The hotel's split chips can carry the same figure, so look past them to the payment.
     const outsideChips = (text: string) => screen.queryAllByText(text).filter(el => !el.closest('[data-testid="split-chip"]'))
-    expect(outsideChips('$395.77')).toHaveLength(1)
+    expect(outsideChips('$400.88')).toHaveLength(1)
     expect(outsideChips('$30.00')).toHaveLength(1)
     expect(screen.queryByText('$34.65')).toBeNull()
   })
@@ -2496,7 +2483,7 @@ describe('CostsPanel: a bill entered in the display currency (#2525)', () => {
     // Seeding the display currency here would label 100 euro as 100 dollars, and a
     // plain save would then store it that way.
     expect(screen.getByText(/^EUR/)).toBeInTheDocument()
-    expect(screen.queryByText(/^USD/)).toBeNull()
+    expect(within(screen.getByRole('dialog')).queryByText(/^USD/)).toBeNull()
 
     // Saving without touching anything keeps the 100 euro.
     await user.click(screen.getByRole('button', { name: 'Save' }))

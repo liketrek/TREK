@@ -53,6 +53,7 @@ import { buildPlaceImportService } from '../../helpers/place-import';
 import { UserCleanupService } from '../../../src/nest/auth/user-cleanup.service';
 import { TripMembersService } from '../../../src/nest/trip-members/trip-members.service';
 import { TripReadModelService } from '../../../src/nest/trip-read-model/trip-read-model.service';
+import { createTestAddonsService } from '../../helpers/test-addons';
 import { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import { accommodationsOver, makeAccommodationsService } from '../../helpers/accommodations-service';
 import { buildMapsService } from '../../helpers/maps-service';
@@ -283,7 +284,7 @@ beforeAll(async () => {
   // which comes out of its own module instead of a constructor call here.
   membership = await createTestModule({ db: testDb, imports: [TripMembershipModule] });
   svc = new TripsService(
-  new ReservationsService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), budgetSvc, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), accommodationsSvc, await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb)),
+  new ReservationsService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), budgetSvc, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), accommodationsSvc, await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestAddonsService(testDb)),
   daysSvc,
   new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
   budgetSvc,
@@ -301,7 +302,7 @@ beforeAll(async () => {
   { releaseValues: async () => [] } as never, // StorageReleaseService: the cover release has its own suite
   await createTestUnitOfWork(testDb),
   (await sharedTestOrm(testDb)).em,
-  new SettingsService(await createTestUnitOfWork(testDb), await createTestAppSettingsRepo(testDb), await createTestSettingsRepo(testDb), membership.get(TripMembershipService)),
+  new SettingsService(await createTestUnitOfWork(testDb), await createTestAppSettingsRepo(testDb), await createTestSettingsRepo(testDb), membership.get(TripMembershipService)), { copyOverrides: async () => {} } as never,
 );
   membersSvc = new TripMembersService(budgetSvc, new UserCleanupService(new MaintenanceRepository(dbsEm!), budgetSvc, await createTestUnitOfWork(testDb), await createTestUsersRepo(testDb), await createTestTripMembersRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestBudgetSettlementsRepo(testDb), await createTestJourneyShareTokensRepo(testDb), await createTestJourneysRepo(testDb), await createTestJourneyEntriesRepo(testDb), await createTestJourneyContributorsRepo(testDb), await createTestShareTokensRepo(testDb), await createTestPluginsRepo(testDb), await createTestPluginUserErasureQueueRepo(testDb), { releaseValues: async () => [] } as never), new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), await createTestUnitOfWork(testDb), await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb));
   readModelSvc = new TripReadModelService(
@@ -312,7 +313,7 @@ beforeAll(async () => {
   await createTestPackingCategoryAssigneesRepo(testDb), await createTestPackingTemplatesRepo(testDb), await createTestPackingTemplateCategoriesRepo(testDb),
   await createTestPackingTemplateItemsRepo(testDb), await createTestTripsRepo(testDb), await createTestTripMembersRepo(testDb),
   ),
-  new ReservationsService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), budgetSvc, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), accommodationsSvc, await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb)),
+  new ReservationsService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), budgetSvc, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), accommodationsSvc, await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestAddonsService(testDb)),
   new CollabService(
     // Plan 4 Task 2 — CollabService's own DatabaseService param is gone:
     // canAccessTrip now reads through the TripsRepository at the end.
@@ -332,19 +333,15 @@ beforeAll(async () => {
     // Plan 4 Task 2 — canAccessTrip is TripsRepository.findAccessible, in the same constructor slot.
     new TripAccessService(await createTestTripsRepo(testDb)),
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)),
-    realtime,
-    new EphemeralTokenService(),
-    coversFx.storage,
+    realtime, new EphemeralTokenService(), coversFx.storage,
     (await sharedTestOrm(testDb)).em,
     await createTestUnitOfWork(testDb),
-    await createTestTripFilesRepo(testDb),
-    await createTestFileLinksRepo(testDb),
-    await createTestReservationsRepo(testDb),
-    await createTestPlacesRepo(testDb),
-    await createTestDayAssignmentsRepo(testDb),
-    await createTestBudgetItemsRepo(testDb),
+    await createTestTripFilesRepo(testDb), await createTestFileLinksRepo(testDb),
+    await createTestReservationsRepo(testDb), await createTestPlacesRepo(testDb),
+    await createTestDayAssignmentsRepo(testDb), await createTestBudgetItemsRepo(testDb),
     { releaseValues: async () => [] } as never, // StorageReleaseService
   ),
+  await createTestAddonsService(testDb), // what the bundle sends follows the trip's addons
 );
 });
 
@@ -1502,7 +1499,7 @@ describe('TripsService wrapper helpers', () => {
     await insertRow(await orm(), PackingItems, { trip: trip.id, name: 'Secret', is_private: 1, owner: owner.id });
     await insertRow(await orm(), PackingItems, { trip: trip.id, name: 'Shared' });
 
-    const result = (await readModelSvc.bundle(String(trip.id), { user_id: owner.id }, viewer.id)) as any;
+    const result = (await readModelSvc.bundle(String(trip.id), { id: trip.id, user_id: owner.id }, viewer.id)) as any;
     expect(result.days).toHaveLength(2);
     expect(result.members.map((m: any) => m.id).sort()).toEqual([owner.id, viewer.id].sort());
     expect(result.packingItems.map((p: any) => p.name)).toEqual(['Shared']);

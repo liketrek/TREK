@@ -17,8 +17,12 @@ import type { HelpGuide } from '../../src/help/types'
  * not undo their changes one by one: the list is snapshotted once before the
  * first guide (`fixtures-trip-lists.ts`) and put back from that snapshot when
  * each packing guide starts and again when it ends. What lives outside the
- * items (a template, a bag, a list's assignees, a task) is removed by the
- * guide that made it.
+ * items (a template, a bag, a list's assignees, who brings or sees an item, a
+ * task) is removed by the guide that made it.
+ *
+ * A packing row shows only what is set; a click on its name opens the item's
+ * window, where every choice about the item lives. The list-wide actions sit
+ * in the menu behind the three dots next to Add list.
  */
 
 const guide = (id: string): HelpGuide => {
@@ -57,16 +61,23 @@ const OPEN_ITEM = 'Slip-on shoes for temples'
 /** A list with one open item, so Check All visibly finishes it. */
 const CHECK_ALL_LIST = 'Electronics'
 const CHECK_ALL_OPEN = 'eSIM activation code'
-/** Fully packed in the seed, so the Open filter hides its list. */
+/** Fully packed in the seed, so Hide packed hides its list. */
 const PACKED_ITEM = 'Passport'
 /** What the ordering guide moves: the third list onto the first, then the last item of that first list to its top. */
 const MOVED_LIST = 'Electronics'
 const FIRST_LIST = 'Documents'
 const MOVED_ITEM = 'Credit card and some yen'
 const TOP_ITEM = 'Passport'
+/** A to Z puts this one first in Clothing, where the seed has it in the middle. */
+const SORTED_LIST = 'Clothing'
+const SORTED_FIRST = 'Light layers'
 /** Packed in the seed; the counting guide unticks it and counts five pairs in. */
 const PIECES_ITEM = 'Merino socks'
 const PIECES = 5
+/** The item whose window the editing guide walks through; it gets a second bringer. */
+const EDIT_ITEM = 'Power bank'
+/** The list the whole-list sharing guide hands to one person. */
+const SHARE_LIST = 'Toiletries'
 /** The count in the label moves with what is ticked, so it is matched, not spelled. */
 const CLEAR_CHECKED = /^Remove \d+ checked$/
 
@@ -76,8 +87,8 @@ const CLEAR_CHECKED = /^Remove \d+ checked$/
 const cat = (page: Page, name: string): Locator =>
   page.getByText(name, { exact: true }).first().locator('xpath=ancestor::div[2]')
 /**
- * The head band of a card. The ⋯ has to be taken from here: every item row
- * carries a ⋯ of its own, so the card as a whole holds several of them.
+ * The head band of a card. The ⋯ has to be taken from here: the card's rows
+ * and its add field hold buttons of their own.
  */
 const catHeader = (page: Page, name: string): Locator => cat(page, name).locator('> div').first()
 const catMenu = (page: Page, name: string): Locator =>
@@ -91,48 +102,38 @@ const item = (page: Page, name: string): Locator =>
   page.locator('.packing-item-row').filter({ hasText: name }).first()
 /** A row's own grip is a bare draggable div, the first thing in the row. */
 const rowGrip = (page: Page, name: string): Locator => item(page, name).locator('div[draggable="true"]')
+/** The name of a row is the button that opens the item's window. */
+const itemName = (page: Page, name: string): Locator => item(page, name).locator('button[aria-haspopup="dialog"]')
+/** The item's window, portalled to <body>; only one is ever open. */
+const itemWindow = (page: Page): Locator => page.locator('div[role="dialog"].trek-menu-enter')
+/** The short list a pill of the window opens under its line. */
+const choiceList = (page: Page): Locator => itemWindow(page).locator('div.max-h-56')
+/** A line of the window found by its label, for the pill on it. */
+const windowLine = (page: Page, label: string): Locator =>
+  itemWindow(page).getByText(label, { exact: true }).locator('xpath=..')
 /** The two-column grid of list cards; its children are the cards, in order. */
 const listGrid = (page: Page): Locator =>
   page.locator('div.grid').filter({ has: page.locator('.packing-item-row') }).first()
 /** The only item of the list the first guide builds; its name changes mid-guide. */
 const onlyRow = (page: Page): Locator => cat(page, NEW_LIST).locator('.packing-item-row').first()
-/** An item's own ⋯, which holds Move to List, Sharing, Rename and Delete. */
-const rowMenu = (page: Page, name: string): Locator => item(page, name).locator('.packing-row-overflow button')
-/** The open item menu; Sharing is a whole line in it. */
-const rowMenuSharing = (page: Page): Locator =>
-  page.locator('.trek-menu-enter').getByRole('button', { name: /^Sharing/ })
-/**
- * The progress card's count and percentage. The total is a span of its own
- * that reads "/28"; the category badges hold "n/m" in one span, so they never match.
- */
-const progressCount = (page: Page): Locator =>
-  page.getByText(/^\/\d+$/).first().locator('xpath=ancestor::div[2]')
-/** The quantity badge is the first field among a row's inline actions while it has no counter. */
-const quantityField = (page: Page, name: string): Locator =>
-  item(page, name).locator('.packing-row-inline-actions input').first()
-/** The packed counter of a multi-piece item, named "3 of 5 packed". */
-const piecesCounter = (page: Page, name: string): Locator =>
-  item(page, name).getByRole('group', { name: / of \d+ packed$/ })
+/** The line beside Shared and My list that counts what is packed. */
+const progressLine = (page: Page): Locator => page.getByText(/^\d+ of \d+ packed$/).first().locator('xpath=..')
 /** The name dialog that Add list and Save as template open. */
 const nameDialog = (page: Page, confirm: string): Locator => page.getByRole('button', { name: confirm, exact: true })
-/** The sharing dropdown is portalled to <body>, so the hint's parent is the card itself. */
-const shareMenu = (page: Page): Locator =>
-  page.getByText('In the group pool, visible to everyone').locator('xpath=ancestor::div[1]')
-/** Its click-catcher, the only way back out of the menu once a name is ticked. */
-const shareOverlay = (page: Page): Locator => page.locator('div[role="presentation"][style*="z-index: 1099"]').last()
+/** The three dots next to Add list, and the menu they open. */
+const listsMenuButton = (page: Page): Locator =>
+  page.getByRole('button', { name: 'Add list' }).locator('xpath=..').getByRole('button', { name: 'Show more' })
+const listsMenu = (page: Page): Locator => page.getByRole('menu')
 /** The bulk-import dialog, a DialogShell whose head band carries its title. */
 const importCard = (page: Page): Locator =>
   page.getByRole('dialog').filter({ has: page.getByText('Import Packing List', { exact: true }) })
-/**
- * The bag picker of a row and the member picker of a bag both hang off the
- * body, so they are found by their caption rather than inside the row.
- */
-const bagPicker = (page: Page): Locator => page.locator('.trek-menu-enter').filter({ hasText: 'Bags' }).last()
+/** The whole-list sharing dialog, found by its footer button. */
+const listSharing = (page: Page): Locator =>
+  page.getByRole('dialog').filter({ has: page.getByRole('button', { name: 'Apply to list' }) })
+/** The member picker of a bag hangs off the body, so it is found by its caption. */
 const bagMemberPicker = (page: Page): Locator => page.locator('.trek-menu-enter').filter({ hasText: 'Assign members' }).last()
 /** The calendar a date field opens, a portal of its own. */
 const datePicker = (page: Page): Locator => page.getByRole('dialog', { name: 'Date picker' })
-/** The Export button's menu: print, Markdown and CSV. */
-const exportMenu = (page: Page): Locator => page.getByRole('menu')
 /** The printable page inside the preview, a srcdoc frame of its own. */
 const printFrame = (page: Page) => page.frameLocator('iframe[title^="Packing List"]')
 /** The bag sidebar: the innermost box holding the guide's bag and the weight summary below the cards. */
@@ -177,6 +178,35 @@ async function openTodos(page: Page): Promise<void> {
   await settle(page)
 }
 
+/** The three dots next to Add list, opened. */
+async function openListsMenu(page: Page): Promise<void> {
+  await listsMenuButton(page).click()
+  await expect(listsMenu(page)).toBeVisible()
+  await beat(page, 300)
+}
+
+/**
+ * The menu and the item window sit over a full-viewport catcher; a click in
+ * the corner closes either without touching what is under it.
+ */
+async function clickAside(page: Page): Promise<void> {
+  await page.mouse.click(20, VIEWPORT.height - 40)
+}
+
+/** Opens an item's window, with its row in the middle of the screen so the window has room below it. */
+async function openItem(page: Page, name: string): Promise<void> {
+  await item(page, name).evaluate(el => el.scrollIntoView({ block: 'center' }))
+  await itemName(page, name).click()
+  await expect(itemWindow(page)).toBeVisible()
+  await settle(page)
+}
+
+async function closeItem(page: Page): Promise<void> {
+  await itemWindow(page).getByRole('button', { name: 'Close', exact: true }).click()
+  await expect(itemWindow(page)).toHaveCount(0)
+  await settle(page)
+}
+
 // ── Putting the seed back ────────────────────────────────────────────────────
 
 /** The packing list as the seed and the fixtures left it, taken in beforeAll. */
@@ -198,6 +228,9 @@ async function startLists(page: Page): Promise<void> {
 interface PackingRow {
   id: number
   name: string
+  category: string | null
+  is_private?: number | boolean
+  contributors?: { user_id: number; username: string }[]
 }
 
 async function packingItems(page: Page): Promise<PackingRow[]> {
@@ -205,6 +238,24 @@ async function packingItems(page: Page): Promise<PackingRow[]> {
   const res = await page.request.get(`/api/trips/${tripId}/packing`)
   const body = (await res.json()) as { items?: PackingRow[] }
   return body.items ?? []
+}
+
+/** Puts items back into the group pool, the seed's tier for every item. */
+async function shareWithEveryone(page: Page, rows: PackingRow[]): Promise<void> {
+  const { tripId } = seededTrip()
+  for (const row of rows) {
+    await page.request.put(`/api/trips/${tripId}/packing/${row.id}/sharing`, { data: { visibility: 'common', recipient_ids: [] } })
+  }
+}
+
+/** Takes a member off the people who bring an item. */
+async function dropBringer(page: Page, itemName: string, username: string): Promise<void> {
+  const { tripId } = seededTrip()
+  const row = (await packingItems(page)).find(x => x.name === itemName)
+  if (!row) return
+  for (const c of (row.contributors ?? []).filter(x => x.username === username)) {
+    await page.request.delete(`/api/trips/${tripId}/packing/${row.id}/contributors/${c.user_id}`)
+  }
 }
 
 async function deleteTemplate(page: Page, name: string): Promise<void> {
@@ -266,7 +317,7 @@ const SCRIPTS: Record<string, GuideScript> = {
           await cat(p, NEW_LIST).getByRole('button', { name: 'Add item' }).click()
           const field = p.getByPlaceholder('Item name...')
           await typeInto(p, field, FIRST_ITEM)
-          // Enter renames the list's '...' row rather than adding a second one,
+          // Enter fills the list's empty row rather than adding a second one,
           // and leaves the field open; Escape is how it closes.
           await field.press('Enter')
           await expect(item(p, FIRST_ITEM)).toBeVisible({ timeout: 20_000 })
@@ -275,18 +326,19 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        prepare: async p => { await onlyRow(p).hover() },
-        // A click on the name renames it; the row has no pencil of its own.
-        target: p => onlyRow(p).getByRole('button', { name: FIRST_ITEM }),
+        prepare: async p => {
+          await onlyRow(p).locator('button[aria-haspopup="dialog"]').click()
+          await expect(itemWindow(p)).toBeVisible()
+          await settle(p)
+        },
+        // The name at the top of the window is the field the text means.
+        target: p => itemWindow(p).getByRole('textbox', { name: 'Rename' }),
         act: async p => {
-          await onlyRow(p).getByRole('button', { name: FIRST_ITEM }).click()
-          // While editing, the name is the row's first input; the quantity and
-          // the weight come after it.
-          const field = onlyRow(p).locator('input').first()
+          const field = itemWindow(p).getByRole('textbox', { name: 'Rename' })
           await typeInto(p, field, RENAMED_ITEM)
           await field.press('Enter')
           await expect(item(p, RENAMED_ITEM)).toBeVisible({ timeout: 20_000 })
-          await settle(p)
+          await closeItem(p)
         },
       },
       {
@@ -301,8 +353,11 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
+        // Shown on the first list: the new one is the last card on the page, and
+        // its menu would run past the bottom of the screen.
         prepare: async p => {
-          await catMenu(p, NEW_LIST).click()
+          await catHeader(p, FIRST_LIST).evaluate(el => el.scrollIntoView({ block: 'center' }))
+          await catMenu(p, FIRST_LIST).click()
           await expect(p.getByRole('button', { name: 'Delete List' })).toBeVisible()
           await beat(p, 300)
         },
@@ -310,14 +365,15 @@ const SCRIPTS: Record<string, GuideScript> = {
         // The pointer rests on the three dots that opened it, not on an entry.
         // Moved by coordinates: the menu's click-catcher covers the button.
         hover: async p => {
-          const b = await catMenu(p, NEW_LIST).boundingBox()
+          const b = await catMenu(p, FIRST_LIST).boundingBox()
           if (b) await p.mouse.move(b.x + b.width / 2, b.y + b.height / 2)
         },
         act: async p => {
-          // The menu sits over a full-viewport catcher; a click in the corner
-          // closes it without deleting the list the picture was just taken of.
-          await p.mouse.click(20, VIEWPORT.height - 40)
+          // A click in the corner closes the menu without deleting the list the picture was just taken of.
+          await clickAside(p)
           await expect(p.getByRole('button', { name: 'Delete List' })).toHaveCount(0)
+          // Back to the new list for the after-picture.
+          await cat(p, NEW_LIST).evaluate(el => el.scrollIntoView({ block: 'center' }))
           await settle(p)
         },
       },
@@ -326,6 +382,61 @@ const SCRIPTS: Record<string, GuideScript> = {
       const { tripId } = seededTrip()
       await resetPacking(p)
       await p.request.put(`/api/trips/${tripId}/packing/category-assignees/${encodeURIComponent(NEW_LIST)}`, { data: { user_ids: [] } })
+    },
+  },
+  'edit-packing-item': {
+    guide: guide('edit-packing-item'),
+    start: async p => {
+      await dropBringer(p, EDIT_ITEM, MEMBER)
+      await startLists(p)
+    },
+    steps: [
+      {
+        target: p => itemName(p, EDIT_ITEM),
+        act: p => openItem(p, EDIT_ITEM),
+      },
+      only(p => itemWindow(p).getByRole('textbox', { name: 'Rename' })),
+      {
+        prepare: async p => {
+          await windowLine(p, 'List').getByRole('button').click()
+          await expect(choiceList(p)).toBeVisible()
+          await settle(p)
+        },
+        target: choiceList,
+        // The pointer on another list, as if about to pick it.
+        hover: async p => { await choiceList(p).getByRole('button', { name: FIRST_LIST, exact: true }).hover() },
+        act: async p => {
+          // Shown, not picked: the item would leave its row and the window with it.
+          await windowLine(p, 'List').getByRole('button').click()
+          await expect(choiceList(p)).toHaveCount(0)
+          await settle(p)
+        },
+      },
+      {
+        prepare: async p => {
+          await windowLine(p, 'Brought by').getByRole('button').click()
+          await expect(choiceList(p)).toBeVisible()
+          await settle(p)
+        },
+        target: choiceList,
+        hover: async p => { await choiceList(p).getByRole('button', { name: MEMBER, exact: true }).hover() },
+        act: async p => {
+          await choiceList(p).getByRole('button', { name: MEMBER, exact: true }).click()
+          await expect(windowLine(p, 'Brought by')).toContainText(MEMBER, { timeout: 20_000 })
+          await windowLine(p, 'Brought by').getByRole('button').click()
+          await expect(choiceList(p)).toHaveCount(0)
+          await settle(p)
+        },
+      },
+      {
+        target: p => itemWindow(p).getByRole('button', { name: 'Delete', exact: true }),
+        // Shown, not pressed: the window closes with its cross.
+        act: closeItem,
+      },
+    ],
+    cleanup: async p => {
+      await dropBringer(p, EDIT_ITEM, MEMBER)
+      await resetPacking(p)
     },
   },
   'arrange-packing-list': {
@@ -355,10 +466,14 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        target: p => p.getByRole('button', { name: 'A to Z' }),
+        prepare: openListsMenu,
+        target: p => listsMenu(p).getByRole('button', { name: 'A to Z' }),
         act: async p => {
-          await p.getByRole('button', { name: 'A to Z' }).click()
-          await expect(p.getByRole('button', { name: 'A to Z' })).toHaveAttribute('aria-pressed', 'true')
+          await listsMenu(p).getByRole('button', { name: 'A to Z' }).click()
+          // The order is a switch with a tick; the menu stays open for the next one.
+          await clickAside(p)
+          await expect(listsMenu(p)).toHaveCount(0)
+          await expect(cat(p, SORTED_LIST).locator('.packing-item-row').first()).toContainText(SORTED_FIRST, { timeout: 20_000 })
           await settle(p)
         },
       },
@@ -375,17 +490,14 @@ const SCRIPTS: Record<string, GuideScript> = {
     start: startLists,
     steps: [
       {
-        // The grip is a div, so the tick box is the row's first button.
-        target: p => item(p, OPEN_ITEM).getByRole('button').first(),
+        target: p => item(p, OPEN_ITEM).locator('.packing-check'),
         act: async p => {
-          await item(p, OPEN_ITEM).getByRole('button').first().click()
+          await item(p, OPEN_ITEM).locator('.packing-check').click()
           await expect(item(p, OPEN_ITEM).locator('.packing-check')).toHaveAttribute('aria-pressed', 'true', { timeout: 20_000 })
           await settle(p)
         },
       },
-      // The count and the percentage, with the bar beside them: the whole card is
-      // wider than any frame and would lose both at its edges.
-      only(progressCount),
+      only(progressLine),
       {
         prepare: async p => {
           await catMenu(p, CHECK_ALL_LIST).click()
@@ -400,23 +512,27 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        target: p => p.getByRole('button', { name: 'Open', exact: true }),
+        prepare: openListsMenu,
+        target: p => listsMenu(p).getByRole('button', { name: 'Hide packed' }),
         act: async p => {
-          await p.getByRole('button', { name: 'Open', exact: true }).click()
+          await listsMenu(p).getByRole('button', { name: 'Hide packed' }).click()
+          await clickAside(p)
+          await expect(listsMenu(p)).toHaveCount(0)
           await expect(item(p, PACKED_ITEM)).toHaveCount(0, { timeout: 20_000 })
           await settle(p)
         },
       },
       {
-        target: p => p.getByRole('button', { name: CLEAR_CHECKED }),
+        prepare: openListsMenu,
+        target: p => listsMenu(p).getByRole('button', { name: CLEAR_CHECKED }),
         act: async p => {
           // A native window.confirm, which cannot be pictured. The step shows the
-          // button and answers the browser with Cancel: with the Open filter on,
-          // the screen looks the same either way, and the seed's ticked items
-          // (most of the list) stay where they are for the guides after this one.
+          // entry and answers the browser with Cancel: with the packed items
+          // hidden, the screen looks the same either way, and the seed's ticked
+          // items (most of the list) stay where they are for the guides after this one.
           p.once('dialog', d => { void d.dismiss() })
-          await p.getByRole('button', { name: CLEAR_CHECKED }).click()
-          await expect(p.getByRole('button', { name: CLEAR_CHECKED })).toBeVisible()
+          await listsMenu(p).getByRole('button', { name: CLEAR_CHECKED }).click()
+          await expect(listsMenu(p)).toHaveCount(0)
           await settle(p)
         },
       },
@@ -432,39 +548,34 @@ const SCRIPTS: Record<string, GuideScript> = {
     },
     steps: [
       {
-        prepare: async p => { await item(p, PIECES_ITEM).hover() },
-        target: p => quantityField(p, PIECES_ITEM),
+        target: p => itemName(p, PIECES_ITEM),
+        act: p => openItem(p, PIECES_ITEM),
+      },
+      {
+        target: p => itemWindow(p).getByRole('group', { name: 'Qty' }),
         act: async p => {
-          const field = quantityField(p, PIECES_ITEM)
+          const field = itemWindow(p).getByRole('group', { name: 'Qty' }).locator('input')
           await typeInto(p, field, String(PIECES))
           await field.press('Enter')
-          await expect(piecesCounter(p, PIECES_ITEM)).toHaveAccessibleName(`0 of ${PIECES} packed`, { timeout: 20_000 })
+          await expect(itemWindow(p).getByRole('group', { name: `0 of ${PIECES} packed` })).toBeVisible({ timeout: 20_000 })
           await settle(p)
         },
       },
       {
-        target: p => piecesCounter(p, PIECES_ITEM),
+        target: p => itemWindow(p).getByRole('group', { name: / of \d+ packed$/ }),
         act: async p => {
           for (let n = 1; n <= 3; n++) {
-            await item(p, PIECES_ITEM).getByRole('button', { name: 'Pack one more' }).click()
-            await expect(piecesCounter(p, PIECES_ITEM)).toHaveAccessibleName(`${n} of ${PIECES} packed`, { timeout: 20_000 })
+            await itemWindow(p).getByRole('button', { name: 'Pack one more' }).click()
+            await expect(itemWindow(p).getByRole('group', { name: `${n} of ${PIECES} packed` })).toBeVisible({ timeout: 20_000 })
           }
           await settle(p)
         },
       },
       {
-        // Partly packed: the counter in the accent, the tick box outlined in it.
+        // Partly packed: the count in the row, the tick box outlined in the accent.
+        prepare: closeItem,
         target: p => item(p, PIECES_ITEM),
-        act: async p => {
-          for (let n = 4; n <= PIECES; n++) {
-            await item(p, PIECES_ITEM).getByRole('button', { name: 'Pack one more' }).click()
-            await expect(piecesCounter(p, PIECES_ITEM)).toHaveAccessibleName(`${n} of ${PIECES} packed`, { timeout: 20_000 })
-          }
-          await expect(item(p, PIECES_ITEM).locator('.packing-check')).toHaveAttribute('aria-pressed', 'true', { timeout: 20_000 })
-          await settle(p)
-        },
       },
-      only(p => item(p, PIECES_ITEM)),
     ],
     cleanup: resetPacking,
   },
@@ -473,26 +584,32 @@ const SCRIPTS: Record<string, GuideScript> = {
     start: startLists,
     steps: [
       {
-        target: p => p.getByRole('button', { name: 'Apply template' }),
+        target: listsMenuButton,
         act: async p => {
-          await p.getByRole('button', { name: 'Apply template' }).click()
-          await expect(p.locator('.trek-menu-enter').last()).toBeVisible()
+          await openListsMenu(p)
           await settle(p)
         },
       },
       {
-        target: p => p.locator('.trek-menu-enter').last(),
+        prepare: async p => {
+          await listsMenu(p).getByRole('button', { name: 'Apply template' }).click()
+          await expect(listsMenu(p).getByRole('button', { name: new RegExp(`^${TEMPLATE.name}`) })).toBeVisible()
+          await settle(p)
+        },
+        target: p => listsMenu(p).getByRole('button', { name: new RegExp(`^${TEMPLATE.name}`) }),
         act: async p => {
-          await p.locator('.trek-menu-enter').last().getByRole('button', { name: new RegExp(`^${TEMPLATE.name}`) }).click()
+          await listsMenu(p).getByRole('button', { name: new RegExp(`^${TEMPLATE.name}`) }).click()
           await expect(cat(p, TEMPLATE.category)).toBeVisible({ timeout: 30_000 })
+          await expect(listsMenu(p)).toHaveCount(0)
           await settle(p)
         },
       },
       only(p => p.getByRole('button', { name: /^Shared/ })),
       {
-        target: p => p.getByRole('button', { name: 'Save as template' }),
+        prepare: openListsMenu,
+        target: p => listsMenu(p).getByRole('button', { name: 'Save as template' }),
         act: async p => {
-          await p.getByRole('button', { name: 'Save as template' }).click()
+          await listsMenu(p).getByRole('button', { name: 'Save as template' }).click()
           const field = p.getByPlaceholder('Template name')
           await typeInto(p, field, SAVED_TEMPLATE)
           await nameDialog(p, 'Save').click()
@@ -511,10 +628,10 @@ const SCRIPTS: Record<string, GuideScript> = {
     start: startLists,
     steps: [
       {
-        // An icon at the right end of the bar, named Import by its label and tooltip.
-        target: p => p.getByRole('button', { name: 'Import', exact: true }),
+        prepare: openListsMenu,
+        target: p => listsMenu(p).getByRole('button', { name: 'Import', exact: true }),
         act: async p => {
-          await p.getByRole('button', { name: 'Import', exact: true }).click()
+          await listsMenu(p).getByRole('button', { name: 'Import', exact: true }).click()
           await expect(importCard(p)).toBeVisible()
           await settle(p)
         },
@@ -555,19 +672,21 @@ const SCRIPTS: Record<string, GuideScript> = {
     start: startLists,
     steps: [
       {
-        target: p => p.getByRole('button', { name: 'Export', exact: true }),
+        target: listsMenuButton,
         act: async p => {
-          await p.getByRole('button', { name: 'Export', exact: true }).click()
-          await expect(exportMenu(p)).toBeVisible()
+          await openListsMenu(p)
           await settle(p)
         },
       },
       // The two file entries download at once; the step shows them, it does not press them.
-      only(exportMenu),
       {
-        target: p => exportMenu(p).getByRole('menuitem', { name: 'Print or save as PDF' }),
+        target: listsMenu,
+        hover: async p => { await listsMenu(p).getByRole('button', { name: 'CSV for import (.csv)' }).hover() },
+      },
+      {
+        target: p => listsMenu(p).getByRole('button', { name: 'Print or save as PDF' }),
         act: async p => {
-          await exportMenu(p).getByRole('menuitem', { name: 'Print or save as PDF' }).click()
+          await listsMenu(p).getByRole('button', { name: 'Print or save as PDF' }).click()
           await expect(printFrame(p).locator('h1')).toBeVisible({ timeout: 15_000 })
           // The page carries the app's own Poppins; the result picture waits for it.
           await printFrame(p).locator('body').evaluate(async () => { await document.fonts.ready })
@@ -577,7 +696,7 @@ const SCRIPTS: Record<string, GuideScript> = {
       // Pressing it opens the operating system's print dialog, which is not part
       // of the picture; the button is shown, not pressed. The result picture is the
       // preview itself.
-      only(p => p.getByRole('button', { name: 'Print or save as PDF' })),
+      only(p => p.getByRole('button', { name: 'Print or save as PDF' }).last()),
     ],
     cleanup: async p => {
       await p.getByRole('button', { name: 'Close', exact: true }).first().click()
@@ -598,24 +717,17 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        prepare: async p => {
-          await item(p, SHARED_ITEM).hover()
-          await rowMenu(p, SHARED_ITEM).click()
-          await expect(rowMenuSharing(p)).toBeVisible()
-          await beat(p, 300)
-        },
-        target: rowMenuSharing,
-        act: async p => {
-          await rowMenuSharing(p).click()
-          await expect(shareMenu(p)).toBeVisible()
-          await settle(p)
-        },
+        prepare: p => openItem(p, SHARED_ITEM),
+        // The whole line: its label and the three choices.
+        target: p => itemWindow(p).getByRole('radiogroup', { name: 'Visible to' }).locator('xpath=../..'),
       },
       {
-        target: shareMenu,
+        target: p => itemWindow(p).getByRole('radio', { name: 'Only me' }),
         act: async p => {
-          await shareMenu(p).getByRole('button', { name: /^Personal/ }).click()
+          await itemWindow(p).getByRole('radio', { name: 'Only me' }).click()
+          // The row leaves the shared list, and its window goes with it.
           await expect(item(p, SHARED_ITEM)).toHaveCount(0, { timeout: 20_000 })
+          await expect(itemWindow(p)).toHaveCount(0)
           await settle(p)
         },
       },
@@ -629,31 +741,80 @@ const SCRIPTS: Record<string, GuideScript> = {
       },
       {
         prepare: async p => {
-          await item(p, SHARED_ITEM).hover()
-          await rowMenu(p, SHARED_ITEM).click()
-          await rowMenuSharing(p).click()
-          await expect(shareMenu(p)).toBeVisible()
+          await openItem(p, SHARED_ITEM)
+          await itemWindow(p).getByRole('radio', { name: 'Selected' }).click()
+          await expect(choiceList(p)).toBeVisible()
+          await settle(p)
+        },
+        target: choiceList,
+        hover: async p => { await choiceList(p).getByRole('button', { name: MEMBER, exact: true }).hover() },
+        act: async p => {
+          await choiceList(p).getByRole('button', { name: MEMBER, exact: true }).click()
+          await expect(item(p, SHARED_ITEM).getByLabel('shared with 1')).toBeVisible({ timeout: 20_000 })
+          await closeItem(p)
+        },
+      },
+    ],
+    cleanup: async p => {
+      await shareWithEveryone(p, (await packingItems(p)).filter(x => x.name === SHARED_ITEM))
+      await resetPacking(p)
+    },
+  },
+  'share-packing-list': {
+    guide: guide('share-packing-list'),
+    start: async p => {
+      await shareWithEveryone(p, (await packingItems(p)).filter(x => x.category === SHARE_LIST))
+      await startLists(p)
+    },
+    steps: [
+      {
+        prepare: async p => {
+          await catMenu(p, SHARE_LIST).click()
+          await expect(p.getByRole('button', { name: 'Sharing for Whole List' })).toBeVisible()
           await beat(p, 300)
         },
-        target: p => shareMenu(p).getByRole('button', { name: MEMBER }),
+        target: p => p.getByRole('button', { name: 'Sharing for Whole List' }),
         act: async p => {
-          await shareMenu(p).getByRole('button', { name: MEMBER }).click()
-          // Ticking a name leaves the menu open on purpose; its catcher closes it,
-          // and the item menu under it has one of its own.
-          await shareOverlay(p).click({ position: { x: 5, y: 5 } })
-          await p.mouse.click(20, VIEWPORT.height - 40)
-          await expect(p.locator('.trek-menu-enter')).toHaveCount(0)
-          await expect(item(p, SHARED_ITEM).getByLabel('shared with 1')).toBeVisible({ timeout: 20_000 })
+          await p.getByRole('button', { name: 'Sharing for Whole List' }).click()
+          await expect(listSharing(p)).toBeVisible()
+          await settle(p)
+        },
+      },
+      {
+        // The box of the three tiers; the list starts on Shared, where the seed has it.
+        target: p => listSharing(p).getByRole('button', { name: /^Shared with/ }).locator('xpath=..'),
+        hover: async p => { await listSharing(p).getByRole('button', { name: /^Shared with/ }).hover() },
+        act: async p => {
+          await listSharing(p).getByRole('button', { name: /^Shared with/ }).click()
+          await expect(listSharing(p).getByRole('button', { name: MEMBER, exact: true })).toBeVisible()
+          await settle(p)
+        },
+      },
+      {
+        target: p => listSharing(p).getByRole('button', { name: MEMBER, exact: true }),
+        act: async p => {
+          await listSharing(p).getByRole('button', { name: MEMBER, exact: true }).click()
+          await expect(listSharing(p).getByRole('button', { name: MEMBER, exact: true })).toHaveAttribute('aria-pressed', 'true')
+          await settle(p)
+        },
+      },
+      {
+        target: p => listSharing(p).getByRole('button', { name: 'Apply to list' }),
+        act: async p => {
+          await listSharing(p).getByRole('button', { name: 'Apply to list' }).click()
+          await expect(listSharing(p)).toHaveCount(0, { timeout: 30_000 })
+          // The confirmation is a toast; the after-picture waits for it to go.
+          const done = p.getByText(`Sharing changed for "${SHARE_LIST}"`)
+          await expect(done).toBeVisible({ timeout: 20_000 })
+          await p.getByRole('button', { name: /^My list/ }).click()
+          await expect(cat(p, SHARE_LIST)).toBeVisible({ timeout: 20_000 })
+          await expect(done).toHaveCount(0, { timeout: 20_000 })
           await settle(p)
         },
       },
     ],
     cleanup: async p => {
-      const { tripId } = seededTrip()
-      const row = (await packingItems(p)).find(x => x.name === SHARED_ITEM)
-      if (row) {
-        await p.request.put(`/api/trips/${tripId}/packing/${row.id}/sharing`, { data: { visibility: 'common', recipient_ids: [] } })
-      }
+      await shareWithEveryone(p, (await packingItems(p)).filter(x => x.category === SHARE_LIST))
       await resetPacking(p)
     },
   },
@@ -666,35 +827,38 @@ const SCRIPTS: Record<string, GuideScript> = {
     },
     steps: [
       {
+        prepare: p => openItem(p, BAG_ITEM),
         // The weight field's placeholder really is a dash: it is the app's own
-        // string, not prose, so it is matched exactly as rendered.
-        target: p => item(p, BAG_ITEM).getByPlaceholder('—'),
+        // string, not prose, so it is matched exactly as rendered. The ring takes
+        // the whole pill, the grams with it.
+        target: p => itemWindow(p).getByPlaceholder('—').locator('xpath=..'),
         act: async p => {
-          const field = item(p, BAG_ITEM).getByPlaceholder('—')
+          const field = itemWindow(p).getByPlaceholder('—')
           await typeInto(p, field, '620')
+          await field.press('Enter')
           await expect(field).toHaveValue('620', { timeout: 20_000 })
           await settle(p)
         },
       },
       {
-        prepare: async p => { await item(p, BAG_ITEM).hover() },
-        // The circle is dashed with a parcel in it while the item is in no bag.
-        target: p => item(p, BAG_ITEM).locator('button:has(svg.lucide-package)'),
+        target: p => windowLine(p, 'Bag').getByRole('button'),
         act: async p => {
-          await item(p, BAG_ITEM).locator('button:has(svg.lucide-package)').click()
-          await expect(bagPicker(p).getByRole('button', { name: 'Add bag' })).toBeVisible()
+          await windowLine(p, 'Bag').getByRole('button').click()
+          await expect(itemWindow(p).getByPlaceholder('Add bag')).toBeVisible()
           await settle(p)
         },
       },
       {
-        target: p => bagPicker(p).getByRole('button', { name: 'Add bag' }),
+        // The line at the end of the bag list, with its round add button.
+        target: p => itemWindow(p).getByPlaceholder('Add bag').locator('xpath=..'),
         act: async p => {
-          await bagPicker(p).getByRole('button', { name: 'Add bag' }).click()
-          const field = bagPicker(p).getByPlaceholder('Bag name...')
+          const field = itemWindow(p).getByPlaceholder('Add bag')
           await typeInto(p, field, BAG)
           await field.press('Enter')
+          await expect(windowLine(p, 'Bag')).toContainText(BAG, { timeout: 30_000 })
+          // The window repeats Total weight and the bag's name, so it goes before the card is looked for.
+          await closeItem(p)
           await expect(bagSidebar(p)).toBeVisible({ timeout: 30_000 })
-          await expect(bagPicker(p)).toHaveCount(0)
           await settle(p)
         },
       },
@@ -722,7 +886,7 @@ const SCRIPTS: Record<string, GuideScript> = {
           await bagSidebar(p).locator('button[style*="dashed"]').first().click()
           await bagMemberPicker(p).getByRole('button', { name: MEMBER }).click()
           // The picker closes on a click anywhere beside it.
-          await p.mouse.click(20, VIEWPORT.height - 40)
+          await clickAside(p)
           await expect(bagSidebar(p).getByRole('button', { name: MEMBER })).toBeVisible({ timeout: 20_000 })
           // A bag with someone on it fills Per person at the foot of the card.
           await expect(p.getByText('Per person', { exact: true })).toBeVisible({ timeout: 20_000 })

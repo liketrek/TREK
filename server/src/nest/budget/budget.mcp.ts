@@ -16,10 +16,11 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { addonGate } from '../addons/addon-gate';
+import { addonGate, addonOffResource } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { DomainError } from '../common/domain-error';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { BudgetWritesService } from './budget-writes.service';
@@ -57,11 +58,6 @@ const splitMembersSchema = z
   .describe(
     'Unequal split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Ask the user; do not guess.',
   );
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 function formatCents(cents: number): string {
   return (cents / 100).toFixed(2);
@@ -636,9 +632,10 @@ export class BudgetMcp {
   @Tool({
     name: 'create_settlement',
     description:
-      "Record a settle-up payment: from_user_id paid to_user_id the given amount to settle shared expenses, optionally with a note. The amount is in the trip's base currency unless `currency` says otherwise. Use get_settlement_summary first to find who owes whom and how much. A foreign currency requires an explicit exchange_rate or an available trip or global quote.",
+      "Record a settle-up payment: from_user_id paid to_user_id the given amount to settle shared expenses, optionally with a note. The amount is in the trip's base currency unless `currency` says otherwise. Use get_settlement_summary to find who owes whom. When recording an offered payment, pass its amount, the summary currency, and the flow exchange_rate if provided. Use the summary trip_currency as rate_base_currency.",
     inputSchema: {
       ...exchangeRateWriteSchema.shape,
+      rate_base_currency: z.string().regex(/^[A-Za-z]{3}$/).optional().describe('The summary trip_currency when reusing a quote'),
       tripId: idSchema,
       from_user_id: idSchema.describe('User ID of the member who paid'),
       to_user_id: idSchema.describe('User ID of the member who received the payment'),
@@ -678,6 +675,7 @@ export class BudgetMcp {
       amount,
       currency,
       exchange_rate,
+      rate_base_currency,
       exchange_rate_note,
       settled_at,
       note,
@@ -688,6 +686,7 @@ export class BudgetMcp {
       amount: number;
       currency?: string | null;
       exchange_rate?: number;
+      rate_base_currency?: string;
       exchange_rate_note?: string | null;
       settled_at?: string | null;
       note?: string | null;
@@ -698,7 +697,7 @@ export class BudgetMcp {
     if (!(await this.guards.hasTripPermission('budget_edit', tripId, ctx.userId))) return permissionDenied();
     const settlement = await this.budget.createSettlement(
       tripId,
-      { from_user_id, to_user_id, amount, currency, exchange_rate, exchange_rate_note, settled_at, note },
+      { from_user_id, to_user_id, amount, currency, exchange_rate, rate_base_currency, exchange_rate_note, settled_at, note },
       ctx.userId,
     );
     if (!settlement) return errorResult('Settlement not found.');
@@ -848,7 +847,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'read' },
   })
   async tripBudgetResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -860,6 +859,7 @@ export class BudgetMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
     const items = await this.budget.listBudgetItems(id);
     return {
       contents: [
@@ -881,7 +881,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'read' },
   })
   async tripBudgetPerPersonResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -893,6 +893,7 @@ export class BudgetMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
     // In the trip currency, each share at the rate its expense was booked at (#2525).
     const summary = await this.budget.perPersonSummary(id);
     return {
@@ -915,7 +916,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'read' },
   })
   async tripBudgetSettlementResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -927,6 +928,7 @@ export class BudgetMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
     // Resolve the trip currency + live rates like get_settlement_summary — the
     // legacy resource called calculateSettlement(id) bare, silently netting a
     // non-EUR trip in EUR with no FX conversion.

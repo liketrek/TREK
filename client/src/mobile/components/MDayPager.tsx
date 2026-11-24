@@ -4,16 +4,22 @@ import { tickHaptic } from '../../native/haptics';
 import { pagesFor, type PagerItem } from './dayPagerPages';
 
 /**
- * Pages through the trip's days the way a native pager does: the previous,
- * current and next day sit side by side in a horizontal scroll-snap strip, so
- * the finger drags real paper, the neighbour slides in with it, and the
- * browser's compositor owns the gesture. Momentum, rubber-banding at the first
+ * Pages through the trip's days the way a native pager does: every day is a
+ * page of a horizontal scroll-snap strip (dayPagerPages.ts), the current one
+ * and two on either side drawn, so the finger drags real paper, the neighbour
+ * slides in with it, and swipes made while the last one still snaps carry on
+ * as far as the trip goes. The browser's compositor owns the gesture. Momentum, rubber-banding at the first
  * and last day, axis locking against the vertical scroll and the swallowed tap
  * after a swipe are all the platform's own, in the PWA and the app alike.
  *
- * The day only changes once the strip has come to rest on a neighbour. Then
- * the selection moves, the window of three shifts by one and the strip is put
- * back on the centre page before the next paint, so nothing visibly jumps.
+ * The phone ticks as soon as another page becomes the nearer one, the moment
+ * the swipe is decided, not once the snap has settled, which on iOS comes
+ * a good while later. The day only changes once the strip has come to rest on
+ * another page. Then
+ * the selection moves and the days around it draw their content. The days
+ * around the page a swipe is heading for draw theirs as soon as it becomes the
+ * nearer one, so a run of quick swipes that never rests finds them drawn
+ * instead of blank until the snap lands (#3067).
  * Keys follow the day ids, so the page that slid in keeps its state (scroll
  * position, fetched route and weather) as it becomes the current one.
  *
@@ -66,8 +72,14 @@ export default function MDayPager({
 }: MDayPagerProps) {
   const stripRef = useRef<HTMLDivElement>(null);
   const [announcement, setAnnouncement] = useState('');
-  const pages = pagesFor(days, selectedDayId);
-  const windowKey = pages.map((p) => p.key).join(',');
+  /** The page a swipe last headed for. It stays after the landing, so swiping
+   *  back over the same days finds them drawn too. */
+  const [focusDayId, setFocusDayId] = useState<number | null>(null);
+  const pages = pagesFor(days, selectedDayId, focusDayId);
+  // Which page is current belongs in the key: on a trip of up to five days a
+  // chip tap can keep the same pages, and the strip then stayed on the old day
+  // while the rail already showed the new one.
+  const windowKey = pages.map((p) => (p.active ? `*${p.key}` : p.key)).join(',');
 
   // The handlers below are attached once, so they read the props through here.
   const latest = useRef({ days, onSelectDay, describeDay, selectedDayId, onPreview });
@@ -87,7 +99,7 @@ export default function MDayPager({
     if (Math.abs(offset) > 0.5) strip.scrollLeft += offset;
   }, []);
 
-  // Before paint whenever the window moves: a landed swipe or a chip tap.
+  // Before paint whenever the window or its current page moves: a landed swipe or a chip tap.
   useLayoutEffect(() => {
     requested.current = null;
     recentre();
@@ -110,10 +122,9 @@ export default function MDayPager({
     let previewed: number | null = null;
 
     // The nearer page while the strip moves: a page past the middle is where the
-    // swipe will land unless the finger turns back.
+    // swipe will land unless the finger turns back. Ticks as it changes to
+    // another day, so the finger feels the detent while it is still moving.
     const preview = () => {
-      const notify = latest.current.onPreview;
-      if (!notify) return;
       const left = strip.getBoundingClientRect().left;
       let nearest: HTMLElement | null = null;
       let distance = Infinity;
@@ -130,7 +141,12 @@ export default function MDayPager({
       const next = dayId != null && Number.isFinite(dayId) ? dayId : null;
       if (next === previewed) return;
       previewed = next;
-      notify(next);
+      if (next !== null) {
+        // Draw ahead of the finger: the days around this one, before it lands.
+        setFocusDayId(next);
+        tickHaptic();
+      }
+      latest.current.onPreview?.(next);
     };
 
     const settle = () => {
@@ -148,7 +164,6 @@ export default function MDayPager({
       requested.current = dayId;
       previewed = null;
       const s = latest.current;
-      tickHaptic();
       s.onSelectDay(dayId);
       const index = s.days.findIndex((d) => d.id === dayId);
       if (index >= 0) setAnnouncement(s.describeDay(index, s.days.length));
@@ -209,7 +224,7 @@ export default function MDayPager({
             aria-hidden={page.active ? undefined : true}
             className={`relative w-full flex-none snap-center snap-always ${inFlow ? '' : 'h-full'}`}
           >
-            {renderDay(page.dayId, page.active)}
+            {page.near ? renderDay(page.dayId, page.active) : null}
           </div>
         ))}
       </div>

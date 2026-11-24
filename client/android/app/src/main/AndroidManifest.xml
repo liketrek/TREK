@@ -143,6 +143,15 @@
             <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_bookings" />
         </receiver>
         <receiver
+            android:name=".widget.FlightWidgetReceiver"
+            android:label="@string/widget_flight_name"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data android:name="android.appwidget.provider" android:resource="@xml/widget_flight" />
+        </receiver>
+        <receiver
             android:name=".widget.TodosWidgetReceiver"
             android:label="@string/widget_todos_name"
             android:exported="false">

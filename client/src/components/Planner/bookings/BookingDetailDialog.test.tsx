@@ -1,4 +1,4 @@
-// FE-PLANNER-BKDETAIL-001 to FE-PLANNER-BKDETAIL-013
+// FE-PLANNER-BKDETAIL-001 to FE-PLANNER-BKDETAIL-014
 import { render, screen, waitFor, within } from '../../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -10,6 +10,8 @@ import { useAuthStore } from '../../../store/authStore';
 import { useTripStore } from '../../../store/tripStore';
 import { usePluginStore } from '../../../store/pluginStore';
 import { useSettingsStore } from '../../../store/settingsStore';
+import { legKey, useFlightLiveStore } from '../../../store/flightLiveStore';
+import type { FlightLiveLeg } from '@trek/shared';
 import type { Reservation, ReservationEndpoint } from '../../../types';
 import BookingDetailHost, { type BookingDetailHostProps } from './BookingDetailHost';
 
@@ -114,6 +116,19 @@ describe('BookingDetailDialog', () => {
     expect(screen.getByText('Segment codes')).toBeInTheDocument();
     expect(screen.getByText('FRA → MUC')).toBeInTheDocument();
     expect(screen.getByText('#SEG2')).toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-BKDETAIL-015: a flight with a stop shows the seat booked on its second leg, once, under that leg', () => {
+    const r = buildReservation({
+      title: 'MXP to JFK', type: 'flight',
+      metadata: JSON.stringify({ class: 'Economy', legs: [{ from: 'MXP', to: 'IST' }, { from: 'IST', to: 'JFK', seat: '14C' }] }),
+    });
+    renderDetail(r);
+    const dialog = screen.getByRole('dialog', { name: 'MXP to JFK' });
+    expect(within(dialog).getByText('14C')).toBeInTheDocument();
+    expect(within(dialog).getByText('Seat IST → JFK')).toBeInTheDocument();
+    // The tile stands for it; the field grid does not repeat it.
+    expect(within(dialog).queryByText('14C, Economy')).toBeNull();
   });
 
   it('FE-PLANNER-BKDETAIL-006: place, accommodation, linked stop, link, travelers and notes', () => {
@@ -223,5 +238,26 @@ describe('BookingDetailDialog', () => {
     renderDetail(r);
     expect(screen.getByText('3:00 PM')).toBeInTheDocument();
     expect(screen.queryByText('15:00')).not.toBeInTheDocument();
+  });
+
+  it('FE-PLANNER-BKDETAIL-014: a followed flight long over has no live card and keeps its time tiles', () => {
+    const r = buildReservation({
+      id: 960, title: 'LH 716', type: 'flight', day_id: 1301, reservation_time: '2025-06-01T08:00', reservation_end_time: '2025-06-01T12:30',
+      endpoints: [ep({ role: 'from', name: 'Frankfurt', code: 'FRA' }), ep({ role: 'to', sequence: 1, name: 'Haneda', code: 'HND' })],
+    });
+    const past: FlightLiveLeg = {
+      reservation_id: 960, leg_index: 0, callsign: 'DLH716', flight_number: 'LH 716', service_date: '2025-06-01',
+      origin: { code: 'FRA', name: 'Frankfurt', lat: 50.03, lng: 8.57, timezone: 'Europe/Berlin' },
+      destination: { code: 'HND', name: 'Haneda', lat: 35.55, lng: 139.78, timezone: 'Asia/Tokyo' },
+      phase: 'scheduled', scheduled_departure: '2025-06-01T06:00:00Z', scheduled_arrival: '2025-06-01T17:30:00Z',
+      departed_at: null, landed_at: null, estimated_arrival: null, departure_delay_min: null, arrival_delay_min: null,
+      progress: null, distance_total_km: null, distance_remaining_km: null, position: null, aircraft: null,
+      last_seen_at: null, fetched_at: '2025-06-01T05:00:00Z', stale: false, source: 'adsb.lol',
+    };
+    useFlightLiveStore.setState({ trips: { 1: { enabled: true, attribution: null, legs: { [legKey(960, 0)]: past } } } });
+    renderDetail(r);
+    const dialog = screen.getByRole('dialog', { name: 'LH 716' });
+    expect(within(dialog).getByText('08:00')).toBeInTheDocument();
+    expect(within(dialog).getByText('12:30')).toBeInTheDocument();
   });
 });

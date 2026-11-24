@@ -37,7 +37,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Ühendus',
   'reservations.layover.layover': 'Vahepeatus',
   'reservations.needsReview': 'Vaata üle',
-  'reservations.needsReviewHint': 'Lennujaama ei õnnestunud automaatselt tuvastada — kinnita asukoht.',
+  'reservations.needsReviewHint':
+    'Osa andmeid täideti automaatselt ja neid ei saanud kindlalt lugeda. Palun kontrolli need üle.',
+  'reservations.reviewConfirm': 'Tundub õige',
+  'reservations.reviewConfirmHint': 'Klõpsa, et märkida kontrollituks.',
+  'reservations.reviewConfirmed': 'Märgitud kontrollituks',
   'reservations.searchLocation': 'Otsi jaama, sadamat, aadressi…',
   'reservations.meta.trainNumber': 'Rongi nr',
   'reservations.meta.platform': 'Platvorm',

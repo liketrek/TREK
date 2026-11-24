@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Danh mục mới',
   'mobileTrip.newReservation': 'Đặt chỗ mới',
   'mobileTrip.notes': 'Ghi chú',
-  'mobileTrip.onMap': 'Trên bản đồ',
+  'mobileTrip.onMap': 'Bản đồ',
   'mobileTrip.profileDriving': 'Lái xe',
   'mobileTrip.profileWalking': 'Đi bộ',
   'mobileTrip.profileCycling': 'Đạp xe',

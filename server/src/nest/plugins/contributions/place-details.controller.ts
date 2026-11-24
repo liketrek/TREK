@@ -1,6 +1,7 @@
 import { Places } from '../../../db/entities/Places.entity';
 import type { PlacesRepository } from '../../../db/repositories/Places.repository';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { toRowId } from '../../common/row-id';
 import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
@@ -80,9 +81,9 @@ export class PlaceDetailsController {
     @Req() req: Request & { user?: { id: number } },
   ): Promise<{ providers: ProviderResult[] }> {
     if (!pluginsEnabled()) return { providers: [] };
-    const placeId = Number(placeIdRaw);
+    const placeId = toRowId(placeIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(placeId) || userId == null) return { providers: [] };
+    if (placeId === null || userId == null) return { providers: [] };
 
     // The place must belong to a trip the caller can access — same gate as a read.
     const tripId = await this.places.findTripId(placeId); // CT7 — Plan 3j

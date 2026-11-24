@@ -58,16 +58,16 @@ export function useSettlementForm({
   // Seeded with the transfer's own currency decimals, so a reopened 4,90 reads
   // "4.90" and not "4.9" (#2175), and a JPY transfer gets no fake decimals.
   const [amount, setAmount] = useState<string>(() =>
-    seed ? amountToInputString(seed.amount, (seed.currency || base).toUpperCase()) : ''
+    seed ? amountToInputString(seed.amount, (seed.currency || tripCurrency).toUpperCase()) : ''
   );
-  const [currency, setCurrency] = useState<string>(() => (seed?.currency || base).toUpperCase());
+  const [currency, setCurrency] = useState<string>(() => (seed ? seed.currency || tripCurrency : base).toUpperCase());
   const [day, setDay] = useState(() => (seed ? settlementDate(seed) : localToday()));
   const [note, setNote] = useState(seed?.note || '');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (!open) return;
-    const cur = (editing?.currency || base).toUpperCase();
+    const cur = (editing ? editing.currency || tripCurrency : base).toUpperCase();
     setFromId(editing?.from_user_id ?? me);
     setToId(editing?.to_user_id ?? people.find((p) => p.id !== me)?.id ?? me);
     setAmount(editing ? amountToInputString(editing.amount, cur) : '');
@@ -75,14 +75,14 @@ export function useSettlementForm({
     setDay(editing ? settlementDate(editing) : localToday());
     setNote(editing?.note || '');
     setSaving(false);
-  }, [open, editing, me, base, people]);
+  }, [open, editing, me, base, tripCurrency, people]);
 
   const amt = Number.parseFloat(amount.replace(',', '.')) || 0;
   const rate = useItemExchangeRate(
     tripId,
     currency,
     tripCurrency,
-    editing ? { ...editing, currency: editing.currency || base } : null,
+    editing ? { ...editing, currency: editing.currency || tripCurrency } : null,
     open !== false
   );
   const valid = rate.valid && amt > 0 && fromId !== toId && !!day;

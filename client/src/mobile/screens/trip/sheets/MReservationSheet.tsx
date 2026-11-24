@@ -3,7 +3,7 @@ import { Link2, Ticket } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MWalletButton from '../../../components/MWalletButton'
 import { MBookingCodeStatus, MBookingNotes, MBookingTravelers } from './MBookingFields'
-import { useAddonStore } from '../../../../store/addonStore'
+import { useTripAddonEnabled } from '../../../../store/tripAddonsStore'
 import { useTranslation } from '../../../../i18n'
 import CustomSelect from '../../../../components/shared/CustomSelect'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
@@ -59,7 +59,7 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
   } = planner
   const { locale } = useTranslation()
 
-  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
+  const isBudgetEnabled = useTripAddonEnabled(tripId, 'budget')
 
   const {
     form, setForm, set, isSaving, setIsSaving, pendingFiles, setPendingFiles, travelerIds, setTravelerIds, toggleTraveler,
@@ -185,13 +185,13 @@ export default function MReservationSheet({ planner, onOpenExpense }: MReservati
       <FormSheetHeader
         icon={Ticket}
         title={res ? t('reservations.editTitle') : t('reservations.newTitle')}
+        // A saved booking goes into the phone's wallet (in the iOS and Android apps).
+        trailing={<MWalletButton tripId={tripId} reservationId={savedId(res)} onError={toast.error} compact />}
         onClose={handleClose}
         closeLabel={t('common.close')}
       />
 
       <FormSheetBody>
-        {/* A saved booking goes into Apple Wallet (iOS app only). */}
-        <MWalletButton tripId={tripId} reservationId={savedId(res)} onError={toast.error} className="mb-1 mt-2 flex" />
 
         {/* BOOKING TYPE */}
         <Eyebrow className="mb-[6px] mt-2 uppercase">{t('reservations.bookingType')}</Eyebrow>

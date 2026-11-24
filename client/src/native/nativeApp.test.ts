@@ -5,29 +5,39 @@ import { StatusBar, Style } from '@capacitor/status-bar';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { closeTopOverlay } from '../mobile/overlayStack';
 import { isEffectivelyOffline } from '../sync/networkMode';
-import { checkAppUpdate } from './capabilities';
+import { checkAppUpdate, hasNativeFeature } from './capabilities';
 import { installNativeGeolocation } from './geolocation';
+import { prepareKeyboardFields } from './keyboardFields';
 import { scrollToTop, startNativeApp } from './nativeApp';
 import { keepOfflineShellFresh } from './offlineShell';
-import { isNativeApp, isNativeIos } from './platform';
+import { isNativeAndroid, isNativeApp, isNativeIos } from './platform';
+import { openPushTarget } from './push';
+import { trackTouchInput } from './touchInput';
 
-vi.mock('@capacitor/app', () => ({ App: { addListener: vi.fn(), minimizeApp: vi.fn() } }));
+vi.mock('@capacitor/app', () => ({
+  App: { addListener: vi.fn(), minimizeApp: vi.fn(), getLaunchUrl: vi.fn(async () => undefined) },
+}));
 vi.mock('@capacitor/keyboard', () => ({
   Keyboard: { setAccessoryBarVisible: vi.fn(), addListener: vi.fn(async () => ({ remove: vi.fn() })) },
 }));
 vi.mock('@capacitor/splash-screen', () => ({ SplashScreen: { hide: vi.fn() } }));
 vi.mock('@capacitor/status-bar', () => ({ StatusBar: { setStyle: vi.fn() }, Style: { Dark: 'DARK', Light: 'LIGHT' } }));
-vi.mock('./platform', () => ({ isNativeApp: vi.fn(), isNativeIos: vi.fn() }));
+vi.mock('./platform', () => ({ isNativeApp: vi.fn(), isNativeIos: vi.fn(), isNativeAndroid: vi.fn() }));
 vi.mock('./offlineShell', () => ({ keepOfflineShellFresh: vi.fn() }));
 vi.mock('../sync/networkMode', () => ({ isEffectivelyOffline: vi.fn() }));
 vi.mock('./capabilities', () => ({
   checkAppUpdate: vi.fn(async () => false),
   loadNativeCapabilities: vi.fn(async () => ({})),
+  hasNativeFeature: vi.fn(() => false),
 }));
 vi.mock('./geolocation', () => ({ installNativeGeolocation: vi.fn() }));
 vi.mock('./sharedFiles', () => ({ startSharedFiles: vi.fn(async () => {}) }));
 vi.mock('./push', () => ({ startNativePush: vi.fn(async () => {}), openPushTarget: vi.fn() }));
 vi.mock('../mobile/overlayStack', () => ({ closeTopOverlay: vi.fn(() => false) }));
+vi.mock('./touchInput', () => ({ trackTouchInput: vi.fn() }));
+vi.mock('./quickActions', () => ({ startQuickActions: vi.fn() }));
+vi.mock('./imageFade', () => ({ fadeInImages: vi.fn() }));
+vi.mock('./keyboardFields', () => ({ prepareKeyboardFields: vi.fn() }));
 
 function backButtonHandler(): (event: { canGoBack: boolean }) => void {
   const call = vi.mocked(App.addListener).mock.calls.find(([name]) => name === 'backButton');
@@ -40,9 +50,13 @@ beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(isNativeApp).mockReturnValue(true);
   vi.mocked(isNativeIos).mockReturnValue(false);
+  vi.mocked(isNativeAndroid).mockReturnValue(false);
   vi.mocked(isEffectivelyOffline).mockReturnValue(false);
   vi.mocked(keepOfflineShellFresh).mockResolvedValue();
+  vi.mocked(hasNativeFeature).mockReturnValue(false);
   document.documentElement.classList.remove('dark');
+  document.documentElement.removeAttribute('data-native-app');
+  document.documentElement.removeAttribute('data-native-ios');
 });
 
 afterEach(() => {
@@ -55,6 +69,20 @@ describe('startNativeApp', () => {
     startNativeApp();
     expect(App.addListener).not.toHaveBeenCalled();
     expect(StatusBar.setStyle).not.toHaveBeenCalled();
+    expect(document.documentElement.hasAttribute('data-native-app')).toBe(false);
+    expect(trackTouchInput).not.toHaveBeenCalled();
+    expect(prepareKeyboardFields).not.toHaveBeenCalled();
+  });
+
+  it('marks <html> so a long press selects no text in the app', () => {
+    startNativeApp();
+    expect(document.documentElement.hasAttribute('data-native-app')).toBe(true);
+  });
+
+  it('follows finger or pointer for hover, press and focus, and fits the keyboard to each field', () => {
+    startNativeApp();
+    expect(trackTouchInput).toHaveBeenCalledTimes(1);
+    expect(prepareKeyboardFields).toHaveBeenCalledTimes(1);
   });
 
   it("Android's back gesture closes an open sheet before it leaves the page", () => {
@@ -126,18 +154,19 @@ describe('startNativeApp', () => {
     startNativeApp();
     expect(keepOfflineShellFresh).not.toHaveBeenCalled();
     vi.advanceTimersByTime(15_000);
-    expect(keepOfflineShellFresh).toHaveBeenCalled();
+    expect(vi.mocked(keepOfflineShellFresh).mock.calls[0]?.[2]).toBe(false);
   });
 
-  it('skips the refresh while offline, and never on Android', () => {
-    vi.mocked(isNativeIos).mockReturnValue(true);
-    vi.mocked(isEffectivelyOffline).mockReturnValue(true);
+  it('refreshes it on Android too, into the store of the app', () => {
+    vi.mocked(isNativeAndroid).mockReturnValue(true);
     startNativeApp();
     vi.advanceTimersByTime(15_000);
-    expect(keepOfflineShellFresh).not.toHaveBeenCalled();
+    expect(vi.mocked(keepOfflineShellFresh).mock.calls[0]?.[2]).toBe(true);
+  });
 
-    vi.mocked(isNativeIos).mockReturnValue(false);
-    vi.mocked(isEffectivelyOffline).mockReturnValue(false);
+  it('skips the refresh while offline', () => {
+    vi.mocked(isNativeIos).mockReturnValue(true);
+    vi.mocked(isEffectivelyOffline).mockReturnValue(true);
     startNativeApp();
     vi.advanceTimersByTime(15_000);
     expect(keepOfflineShellFresh).not.toHaveBeenCalled();
@@ -170,5 +199,39 @@ describe('startNativeApp', () => {
     await Promise.resolve();
     expect(report).not.toHaveBeenCalled();
     vi.unstubAllGlobals();
+  });
+
+  it('follows the link a widget tap launched the app with, once per launch', async () => {
+    sessionStorage.clear();
+    vi.mocked(App.getLaunchUrl).mockResolvedValue({ url: 'com.liketrek.trek://navigate/trips/5?tab=listen' });
+    startNativeApp();
+    await vi.waitFor(() => expect(openPushTarget).toHaveBeenCalledWith('/trips/5?tab=listen'));
+    // A reload of the page in the same launch does not follow it again.
+    vi.mocked(openPushTarget).mockClear();
+    startNativeApp();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(openPushTarget).not.toHaveBeenCalled();
+  });
+
+  it('leaves widget links to the binary when it hands them over as quick actions', async () => {
+    sessionStorage.clear();
+    vi.mocked(hasNativeFeature).mockImplementation((feature) => feature === 'appLinks');
+    vi.mocked(App.getLaunchUrl).mockResolvedValue({ url: 'com.liketrek.trek://navigate/trips/5?tab=listen' });
+    startNativeApp();
+    await vi.waitFor(() => expect(hasNativeFeature).toHaveBeenCalledWith('appLinks'));
+    await Promise.resolve();
+    expect(App.getLaunchUrl).not.toHaveBeenCalled();
+    expect(vi.mocked(App.addListener).mock.calls.map(([name]) => String(name))).not.toContain('appUrlOpen');
+    expect(openPushTarget).not.toHaveBeenCalled();
+  });
+
+  it('leaves the start page alone for a launch without a TREK link', async () => {
+    sessionStorage.clear();
+    vi.mocked(App.getLaunchUrl).mockResolvedValue({ url: 'https://example.com/elsewhere' });
+    startNativeApp();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(openPushTarget).not.toHaveBeenCalled();
   });
 });

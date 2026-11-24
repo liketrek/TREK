@@ -166,6 +166,8 @@ To delete a booking, click the bin on its card or row, or **Delete** in the deta
 
 TREK can read booking confirmations, PDF tickets and wallet passes and turn them into bookings, using [KDE Itinerary](https://apps.kde.org/itinerary/). Every booking it finds opens in the normal editor for you to check before anything is saved.
 
+Booking mails can also be forwarded to TREK, which reads them and adds the booking to the right trip on its own; see [Booking Mail Import](Booking-Mail-Import).
+
 ### Supported formats
 
 | Format | Extension |
@@ -229,6 +231,8 @@ KDE Itinerary only recognises structured tickets. For confirmations it cannot re
 ## Import from AirTrail
 
 With the **AirTrail** integration addon enabled and your instance connected under **Settings → Integrations**, the **Transports** tab shows **Import from AirTrail** (the plane icon in the bar, or an **AirTrail** button on an empty tab). It lists the flights in your AirTrail account, with the ones inside the trip dates under *During this trip* and already selected. Each imported flight becomes a flight booking that stays in sync with AirTrail both ways.
+
+TREK talks to AirTrail 3.13 and later through its `/api/v1` routes and to older instances through the legacy routes; it finds out which on its own. AirTrail 3.13 checks the scopes of an API key, so a key created there needs `flight.read.own` (import, sync and **Test connection**), `flight.update.own` (changes made in TREK going back to AirTrail), `flight.passengers.manage.own` (a changed seat or passenger), `reference_data.read` (the airport, airline and aircraft codes of a change) and `profile.read` (a change to a flight without a passenger). A key created before 3.13 has every scope and needs nothing. A missing scope does not unlink a flight: the change is not sent, and the server log names the scope to add to the key.
 
 ### Connecting flights (layovers)
 

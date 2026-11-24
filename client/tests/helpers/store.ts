@@ -1,4 +1,5 @@
 import type { StoreApi } from 'zustand';
+import { useAddonStore, type CollabFeatures } from '../../src/store/addonStore';
 import { RESET_STORES } from './storeRegistry';
 
 // The state of each store in the registry when this module was first imported,
@@ -25,4 +26,18 @@ type DeepPartial<T> = T extends object ? { [P in keyof T]?: DeepPartial<T[P]> } 
 
 export function seedStore<T extends object>(store: Pick<StoreApi<T>, 'setState'>, state: DeepPartial<T>): void {
   store.setState(state as Partial<T>);
+}
+
+/**
+ * The instance's addons as the app read them from GET /api/addons: these on,
+ * every other off. A trip that names no addon of its own (the default MSW
+ * answer of GET /api/trips/:id/addons) then shows exactly these.
+ */
+export function seedInstanceAddons(ids: string[], collabFeatures?: Partial<CollabFeatures>): void {
+  useAddonStore.setState((state) => ({
+    addons: ids.map((id) => ({ id, name: id, type: 'trip', icon: '', enabled: true })),
+    loaded: true,
+    failed: false,
+    collabFeatures: { ...state.collabFeatures, ...collabFeatures },
+  }));
 }

@@ -80,7 +80,7 @@ describe('MAdminMcpTokensPanel', () => {
     await screen.findByText('No MCP tokens have been created yet');
   });
 
-  it('FE-MOB-MCPTOK-002: shows spinners while both requests are in flight', async () => {
+  it('FE-MOB-MCPTOK-002: shows placeholders while both requests are in flight', async () => {
     server.use(
       http.get('/api/admin/mcp-tokens', async () => {
         await new Promise(() => {});
@@ -93,7 +93,7 @@ describe('MAdminMcpTokensPanel', () => {
     );
     renderPanel();
 
-    expect(document.querySelectorAll('.animate-spin')).toHaveLength(2);
+    expect(document.querySelectorAll('[data-skeleton]')).toHaveLength(2);
     expect(screen.queryByText('No MCP tokens have been created yet')).not.toBeInTheDocument();
   });
 

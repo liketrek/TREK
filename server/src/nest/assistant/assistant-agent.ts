@@ -13,6 +13,8 @@ import { activityOf, foundPlacesOf, googleIdsOf, weatherDayOf, weatherOf } from 
 import type { TripCard } from './assistant-context';
 import { FOLLOW_UPS_ANSWER, followUpsOf } from './assistant-follow-ups';
 import { outputText } from './assistant-history';
+import { OPEN_TRIP_CHAT_TOOL } from './assistant-home';
+import { OPEN_JOURNEY_CHAT_TOOL } from './assistant-home-journeys';
 import { toolOutputForProvider } from './assistant-output';
 import { MAX_CARDS_PER_STEP, MAX_READS_PER_STEP, MAX_STEPS, MAX_WRITES_PER_STEP } from './assistant-tools.constants';
 import type { AssistantToolKind, ToolRun } from './assistant-tools.service';
@@ -197,6 +199,10 @@ const GO_ON =
   'Your last reply came back empty or was cut off. Carry on from where you were: answer, or make the calls now. ' +
   'If the plan is large, propose part of it now; after the user decided you continue with the rest.';
 
+/** The push for an empty step after the ask for the answer: no calls are open to it any more. */
+const ANSWER_NOW =
+  'Your last reply came back empty, and the user still sees no answer. Write your answer to them now, as text.';
+
 /**
  * Runs a read at once and records it: where it looks (streamed only), its
  * call and answer, and the cards its answer makes (its package's card first,
@@ -255,6 +261,51 @@ function uniqueCallId(call: AiToolCall, used: Set<string>, newId: () => string):
   return id;
 }
 
+/**
+ * The provider's own record of a step under the ids its calls go on with. A
+ * call whose id the thread had used already is renamed (uniqueCallId), and
+ * the record has to follow: Gemini finds a thought signature by the call's
+ * id, Anthropic and the Responses API pair each answer with the call of the
+ * same id, and a record left on the old id was refused on the next request
+ * that replayed it, which for the last step of an answer is every later
+ * message of the thread (#3094).
+ */
+function withRenamedCalls(state: AiProviderState | null, renamed: ReadonlyMap<string, string>): AiProviderState | null {
+  if (!state || renamed.size === 0) return state;
+  const idOf = (id: unknown) => (typeof id === 'string' ? (renamed.get(id) ?? id) : id);
+  if (state.adapter === 'anthropic-messages') {
+    return {
+      ...state,
+      blocks: state.blocks.map((block) => (block.type === 'tool_use' ? { ...block, id: idOf(block.id) } : block)),
+    };
+  }
+  if (state.adapter === 'openai-responses') {
+    return {
+      ...state,
+      items: state.items.map((item) =>
+        item.type === 'function_call' ? { ...item, call_id: idOf(item.call_id) } : item,
+      ),
+    };
+  }
+  return {
+    ...state,
+    signatures: Object.fromEntries(
+      Object.entries(state.signatures).map(([id, signature]) => [renamed.get(id) ?? id, signature]),
+    ),
+  };
+}
+
+/** The ids the step's calls were renamed from, to the ones they go on with; an id one of its calls kept stays. */
+function renamedCalls(received: readonly AiToolCall[], kept: readonly AiToolCall[]): Map<string, string> {
+  const keptIds = new Set(kept.map((call) => call.id));
+  const renamed = new Map<string, string>();
+  received.forEach((call, index) => {
+    const id = kept[index]?.id;
+    if (id && call.id !== id && !keptIds.has(call.id) && !renamed.has(call.id)) renamed.set(call.id, id);
+  });
+  return renamed;
+}
+
 /** What every step of one turn shares. */
 interface Turn {
   deps: AgentDeps;
@@ -272,6 +323,12 @@ interface Turn {
    * still gets its answer written (#2789); each is asked at most once.
    */
   askedForAnswer: boolean;
+  /**
+   * The next request may only be answered with text: the step after the ask
+   * for the answer. Claude Sonnet 5.5 offered its follow-ups again instead of
+   * writing, and the turn ended without an answer (#3016).
+   */
+  textOnlyNext: boolean;
   /** The chips of follow-ups offered before any answer, shown under the answer once it is written. */
   followUps: AssistantFollowUps | null;
 }
@@ -360,6 +417,9 @@ function searchParts(
 /** Streams one answer of the model; a failure or a stop ends the turn here, saved as far as it got. */
 async function streamAnswer(turn: Turn, rowId: number): Promise<StepAnswer | AgentOutcome> {
   const { deps, input, w, signal } = turn;
+  // Taken once: only the step right after the ask for the answer is held to text.
+  const textOnly = turn.textOnlyNext;
+  turn.textOnlyNext = false;
   const answer: StepAnswer = {
     text: '',
     received: [],
@@ -377,6 +437,7 @@ async function streamAnswer(turn: Turn, rowId: number): Promise<StepAnswer | Age
         tools: deps.tools.specs(),
         cacheKey: input.cacheKey,
         webSearch: deps.webSearch === true && deps.client.webSearch,
+        ...(textOnly ? { toolChoice: 'none' as const } : {}),
       },
       signal,
     );
@@ -535,6 +596,7 @@ function answeredAsk(call: AiToolCall): AssistantMessagePart {
 async function askForTheAnswer(turn: Turn, rowId: number, step: StepRecord & { asks: AiToolCall[] }): Promise<null> {
   const { asks, providerState } = step;
   turn.askedForAnswer = true;
+  turn.textOnlyNext = true;
   turn.followUps = followUpsOf(asks[asks.length - 1].args);
   const parts = [...step.parts, ...asks.map((call) => ({ ...answeredAsk(call), result: WRITE_THE_ANSWER }))];
   await turn.deps.store.saveStep(rowId, { parts, providerState }, 'complete');
@@ -546,6 +608,12 @@ async function askForTheAnswer(turn: Turn, rowId: number, step: StepRecord & { a
   return null;
 }
 
+/**
+ * The calls that only hand the conversation on, to a trip's or a journey's own
+ * chat: a card for the user, nothing the model reads further.
+ */
+const HANDOFF_TOOLS: ReadonlySet<string> = new Set([OPEN_TRIP_CHAT_TOOL, OPEN_JOURNEY_CHAT_TOOL]);
+
 /** One step of the turn: the outcome when the turn ends with it, null when the model is asked again. */
 async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
   const { deps, input, w, signal, history } = turn;
@@ -553,8 +621,9 @@ async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
   w.startStep();
   const answer = await streamAnswer(turn, rowId);
   if ('end' in answer) return answer;
-  const { text, providerState, cutOff } = answer;
+  const { text, cutOff } = answer;
   const all = answer.received.map((call) => ({ ...call, id: uniqueCallId(call, input.usedCallIds, deps.newId) }));
+  const providerState = withRenamedCalls(answer.providerState, renamedCalls(answer.received, all));
   // The follow-ups the model offers are the server's to answer: they never run, and alone they end the turn.
   const asks = all.filter((call) => call.name === ASSISTANT_FOLLOW_UPS_TOOL);
   const received = all.filter((call) => call.name !== ASSISTANT_FOLLOW_UPS_TOOL);
@@ -571,7 +640,14 @@ async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
   // An answer that offered follow-ups is finished, however it ends.
   const settled = asks.length > 0 && !empty;
   const announced = !settled && received.length === 0 && step === 0 && ANNOUNCED.test(text.trimEnd());
-  const push = empty || (!settled && received.length === 0 && cutOff) ? GO_ON : announced ? MAKE_THE_CALLS : null;
+  const push =
+    empty && turn.askedForAnswer
+      ? ANSWER_NOW
+      : empty || (!settled && received.length === 0 && cutOff)
+        ? GO_ON
+        : announced
+          ? MAKE_THE_CALLS
+          : null;
   // Follow-ups with no answer a second time end the turn: the model was already asked for the answer.
   const wordlessAgain = empty && asks.length > 0;
   if (push && !turn.nudged && !wordlessAgain) {
@@ -581,6 +657,12 @@ async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
     // An empty assistant message is one the providers refuse; only the push goes back.
     if (!empty) history.push({ role: 'assistant', text, toolCalls: [], providerState });
     history.push({ role: 'user', text: push });
+    // Once the answer was asked for, the push is held to text as well. Claude
+    // Sonnet 5.5 hands back the words it writes before a tool call as a hidden
+    // thinking block: with tools open again it answers, offers follow-ups once
+    // more, and the answer is lost a second time. The chips of the first offer
+    // are kept in turn.followUps.
+    if (turn.askedForAnswer) turn.textOnlyNext = true;
     return null;
   }
   if (empty) {
@@ -627,6 +709,19 @@ async function runStep(turn: Turn, step: number): Promise<AgentOutcome | null> {
     return outcomeOf(turn, 'aborted');
   }
   if (held.length > 0) return holdChanges(turn, rowId, { parts, providerState }, held);
+  // A step that wrote its answer and only handed the conversation on is the end of
+  // the turn. Asked once more after the card, the model wrote the same answer again.
+  if (text.trim() && received.every((call) => HANDOFF_TOOLS.has(call.name))) {
+    const followUps = asks.length > 0 ? followUpsOf(asks[asks.length - 1].args) : turn.followUps;
+    if (followUps) {
+      parts.push({ type: 'data-trek-follow-ups', data: followUps });
+      w.followUps(followUps);
+    }
+    await deps.store.saveStep(rowId, { parts, providerState }, 'complete');
+    w.finishStep();
+    finishTurn(turn, 'stop');
+    return outcomeOf(turn, 'stop');
+  }
   const { images, modelTexts } = collected;
   await carryOn(turn, rowId, { parts, providerState }, { text, calls, images, modelTexts });
   return null;
@@ -673,6 +768,7 @@ export async function runAgentLoop(
     knownPlaceIds,
     nudged: false,
     askedForAnswer: false,
+    textOnlyNext: false,
     followUps: null,
   };
   return stepsFrom(turn, 0);

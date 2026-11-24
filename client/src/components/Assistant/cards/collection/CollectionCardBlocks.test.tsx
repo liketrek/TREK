@@ -1,5 +1,5 @@
 /**
- * FE-AI-COLL-010 to FE-AI-COLL-017
+ * FE-AI-COLL-010 to FE-AI-COLL-017, FE-AI-COLL-040
  *
  * The answer cards of the collections as the chat draws them: a list's head
  * with its size, people and places per status, its saved places as rows
@@ -55,6 +55,17 @@ describe('collection answer cards', () => {
     expect(within(card).getByText('3')).toBeInTheDocument();
     fireEvent.click(within(card).getByRole('button', { name: /Open list/ }));
     expect(view.onOpen).toHaveBeenCalledWith({ kind: 'page', path: '/collections/12' });
+  });
+
+  it('FE-AI-COLL-040: the places to revisit have a pill of their own in the head, in the visited tone (#2567)', () => {
+    const list = { ...placesCard().list, counts: { idea: 3, want: 5, visited: 4, revisit: 7 } } as NonNullable<
+      ReturnType<typeof placesCard>['list']
+    >;
+    draw([placesCard({ list })]);
+    const card = screen.getByRole('region', { name: 'Saved places in Paris food' });
+    const pill = within(card).getByText('Want to revisit').parentElement as HTMLElement;
+    expect(within(pill).getByText('7')).toBeInTheDocument();
+    expect(within(card).getByText('Visited').parentElement?.className).toBe(pill.className);
   });
 
   it('FE-AI-COLL-011: a saved place shows its status, two labels and the rest counted, its rating and the trip having it', () => {

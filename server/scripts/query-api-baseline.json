@@ -34,7 +34,7 @@
     "src/db/repositories/RoadtripDayTracks.repository.ts": 1,
     "src/db/repositories/RoadtripPreferences.repository.ts": 1,
     "src/db/repositories/RoadtripVias.repository.ts": 6,
-    "src/db/repositories/Tags.repository.ts": 3,
+    "src/db/repositories/Tags.repository.ts": 2,
     "src/db/repositories/TodoItems.repository.ts": 2,
     "src/db/repositories/TripDocumentLinks.repository.ts": 5,
     "src/db/repositories/TripInviteTokens.repository.ts": 4,

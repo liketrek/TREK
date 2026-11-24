@@ -1,10 +1,10 @@
-// FE-NATIVE-HANDOFF-001 to FE-NATIVE-HANDOFF-008
+// FE-NATIVE-HANDOFF-001 to FE-NATIVE-HANDOFF-011
 import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
-import { requestHandoffCode } from '../../native/browserSignIn';
+import { rememberHandoffReturn, requestHandoffCode, signInWithPasskey } from '../../native/browserSignIn';
 import { useAuthStore } from '../../store/authStore';
 import { useNativeHandoff } from './useNativeHandoff';
 
@@ -13,7 +13,12 @@ vi.mock('react-router', async () => {
   const actual = await vi.importActual<typeof import('react-router')>('react-router');
   return { ...actual, useNavigate: () => mockNavigate };
 });
-vi.mock('../../native/browserSignIn', () => ({ HANDOFF_PATH: '/native-handoff', requestHandoffCode: vi.fn() }));
+vi.mock('../../native/browserSignIn', () => ({
+  HANDOFF_PATH: '/native-handoff',
+  rememberHandoffReturn: vi.fn(),
+  requestHandoffCode: vi.fn(),
+  signInWithPasskey: vi.fn(),
+}));
 
 const challenge = 'ab'.repeat(32);
 const realLocation = window.location;
@@ -85,6 +90,7 @@ describe('useNativeHandoff', () => {
     renderHandoff();
     expect(window.location.replace).toHaveBeenCalledWith('/api/auth/oidc/login?remember=1');
     expect(sessionStorage.getItem('oidc_redirect')).toBe(`/native-handoff?challenge=${challenge}`);
+    expect(rememberHandoffReturn).toHaveBeenCalledWith(`/native-handoff?challenge=${challenge}`);
   });
 
   it('FE-NATIVE-HANDOFF-005: waits while the session is still being checked', () => {
@@ -96,6 +102,7 @@ describe('useNativeHandoff', () => {
 
   it('FE-NATIVE-HANDOFF-006: only mints the code on the tap, then hands it to the app scheme', async () => {
     vi.mocked(requestHandoffCode).mockResolvedValue('c/1');
+    localStorage.setItem('trek_native_signin', String(Date.now()));
     const { result } = renderHandoff();
     expect(requestHandoffCode).not.toHaveBeenCalled();
 
@@ -105,6 +112,8 @@ describe('useNativeHandoff', () => {
 
     expect(requestHandoffCode).toHaveBeenCalledWith(challenge);
     expect(window.location.href).toBe('com.liketrek.trek://auth?code=c%2F1');
+    // Handed back: the browser registers its service worker again from here.
+    expect(localStorage.getItem('trek_native_signin')).toBeNull();
   });
 
   it('FE-NATIVE-HANDOFF-007: reports a failed hand-off', async () => {
@@ -128,5 +137,54 @@ describe('useNativeHandoff', () => {
         { replace: true }
       )
     );
+  });
+
+  describe('when the app asked for a passkey', () => {
+    const loadUser = vi.fn(async () => {
+      useAuthStore.setState({ isAuthenticated: true });
+    });
+
+    beforeEach(() => {
+      setSearch(`?challenge=${challenge}&start=passkey`);
+      useAuthStore.setState({ isAuthenticated: false, loadUser });
+      loadUser.mockClear();
+      vi.mocked(signInWithPasskey).mockReset().mockResolvedValue();
+    });
+
+    it('FE-NATIVE-HANDOFF-009: asks for the passkey itself instead of sending the user to the login', () => {
+      const { result } = renderHandoff();
+      expect(result.current.passkeyStep).toBe(true);
+      expect(mockNavigate).not.toHaveBeenCalled();
+    });
+
+    it('FE-NATIVE-HANDOFF-010: signs in with the passkey and goes straight back to the app', async () => {
+      vi.mocked(requestHandoffCode).mockResolvedValue('c1');
+      const { result } = renderHandoff();
+      await act(async () => {
+        await result.current.continueWithPasskey();
+      });
+      expect(signInWithPasskey).toHaveBeenCalled();
+      expect(loadUser).toHaveBeenCalled();
+      expect(requestHandoffCode).toHaveBeenCalledWith(challenge);
+      expect(window.location.href).toBe('com.liketrek.trek://auth?code=c1');
+    });
+
+    it('FE-NATIVE-HANDOFF-011: stays quiet when the prompt is dismissed and offers the full login on request', async () => {
+      vi.mocked(signInWithPasskey).mockRejectedValue(Object.assign(new Error('no'), { name: 'NotAllowedError' }));
+      const { result } = renderHandoff();
+      await act(async () => {
+        await result.current.continueWithPasskey();
+      });
+      expect(result.current.status).toBe('idle');
+      expect(requestHandoffCode).not.toHaveBeenCalled();
+
+      act(() => result.current.otherSignIn());
+      await waitFor(() =>
+        expect(mockNavigate).toHaveBeenCalledWith(
+          `/login?redirect=${encodeURIComponent(`/native-handoff?challenge=${challenge}`)}`,
+          { replace: true }
+        )
+      );
+    });
   });
 });

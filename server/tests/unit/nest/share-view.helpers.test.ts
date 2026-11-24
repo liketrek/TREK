@@ -11,6 +11,10 @@ const snapshot = () => ({
     2: [{ accommodation_id: null, place: { id: 10, image_url: 'a.jpg' } }],
   },
   dayNotes: { 1: [{ id: 1 }] },
+  days: [
+    { id: 1, day_number: 1, title: 'Louvre and lunch' },
+    { id: 2, day_number: 2, title: null },
+  ],
   places: [
     { id: 10, image_url: 'a.jpg' },
     { id: 20, image_url: 'b.jpg' },
@@ -28,6 +32,10 @@ describe('share view helpers (#1712)', () => {
     const out = travelOnly(snapshot(), new Set([20]));
     expect(out.assignments).toEqual({ 1: [{ accommodation_id: 5, place: { id: 20, image_url: 'b.jpg' } }] });
     expect(out.dayNotes).toEqual({});
+    expect(out.days).toEqual([
+      { id: 1, day_number: 1, title: null },
+      { id: 2, day_number: 2, title: null },
+    ]);
     expect(out.places.map((p) => p.id)).toEqual([20]);
     expect(out.reservations.map((r) => r.type)).toEqual(['flight', 'hotel', 'cable_car']);
   });
@@ -42,6 +50,7 @@ describe('share view helpers (#1712)', () => {
         .every((a) => a.place?.image_url === null),
     ).toBe(true);
     expect(out.reservations).toBe(data.reservations);
+    expect(out.days).toBe(data.days);
     expect(data.places[0].image_url).toBe('a.jpg');
   });
 });

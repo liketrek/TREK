@@ -2,48 +2,40 @@
  * Unit tests for MCP extra assignment/reservation tools:
  * move_assignment, get_assignment_participants, set_assignment_participants, reorder_reservations.
  */
-import { db as testDb } from '../../../src/db/database';
 import { AssignmentParticipants } from '../../../src/db/entities/AssignmentParticipants.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
-import {
-  createUser,
-  createTrip,
-  createDay,
-  createPlace,
-  createDayAssignment,
-  createReservation,
-} from '../../helpers/factories';
+import { makeDayAssignment } from '../../helpers/factories/itinerary';
+import { makePlace } from '../../helpers/factories/places';
+import { makeReservation } from '../../helpers/factories/reservations';
 import { findRow, insertRow } from '../../helpers/factories/rows';
+import { makeDay, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
 
-let orm: TestOrm;
+// The booted container's own ORM, the one the tools write through.
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -61,12 +53,12 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 describe('Tool: move_assignment', () => {
   it('moves assignment to a different day and broadcasts', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day1 = createDay(testDb, trip.id);
-    const day2 = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day1.id, place.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day1 = await makeDay(orm, trip.id);
+    const day2 = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day1.id, place.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -93,10 +85,10 @@ describe('Tool: move_assignment', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'move_assignment',
@@ -108,9 +100,9 @@ describe('Tool: move_assignment', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'move_assignment',
@@ -127,11 +119,11 @@ describe('Tool: move_assignment', () => {
 
 describe('Tool: get_assignment_participants', () => {
   it('returns empty participants array initially', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'get_assignment_participants',
@@ -144,9 +136,9 @@ describe('Tool: get_assignment_participants', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'get_assignment_participants',
@@ -163,11 +155,11 @@ describe('Tool: get_assignment_participants', () => {
 
 describe('Tool: set_assignment_participants', () => {
   it('sets participants and broadcasts', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_assignment_participants',
@@ -180,11 +172,11 @@ describe('Tool: set_assignment_participants', () => {
   });
 
   it('empty array clears participants', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
     // First set
     await insertRow(orm, AssignmentParticipants, { assignment: assignment.id, user: user.id });
     await withHarness(user.id, async (h) => {
@@ -198,9 +190,9 @@ describe('Tool: set_assignment_participants', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_assignment_participants',
@@ -217,10 +209,10 @@ describe('Tool: set_assignment_participants', () => {
 
 describe('Tool: reorder_reservations', () => {
   it('returns success and broadcasts reservation:positions', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const res1 = createReservation(testDb, trip.id, { title: 'Flight', type: 'flight' });
-    const res2 = createReservation(testDb, trip.id, { title: 'Hotel', type: 'hotel' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const res1 = await makeReservation(orm, trip.id, { title: 'Flight', type: 'flight' });
+    const res2 = await makeReservation(orm, trip.id, { title: 'Hotel', type: 'hotel' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'reorder_reservations',
@@ -239,10 +231,10 @@ describe('Tool: reorder_reservations', () => {
   });
 
   it("names the day under REST's day_id and keeps the dayId the tool always sent", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const res = createReservation(testDb, trip.id, { title: 'Train', type: 'train', day_id: day.id });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const res = await makeReservation(orm, trip.id, { title: 'Train', type: 'train', day: day.id });
     const positions = [{ id: res.id, day_plan_position: 3 }];
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -256,9 +248,9 @@ describe('Tool: reorder_reservations', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'reorder_reservations',

@@ -325,8 +325,9 @@ export class AssignmentsService {
    */
   async assignmentExistsInDay(id: string | number, dayId: string | number, tripId: string | number) {
     const rowId = toRowId(id);
-    if (rowId === null) return false;
-    return await this.dayAssignmentsRepo.existsInDay(rowId, dayId, tripId);
+    const day = toRowId(dayId);
+    if (rowId === null || day === null) return false;
+    return await this.dayAssignmentsRepo.existsInDay(rowId, day, tripId);
   }
 
   /** AS10 — `DayAssignmentsRepository.deleteById`. */
@@ -434,13 +435,6 @@ export class AssignmentsService {
   /** AS15 — `AssignmentParticipantsRepository.listWithDisplayName`, the same AS2/AS31 statement. */
   async getParticipants(assignmentId: string | number) {
     return await this.assignmentParticipantsRepo.listWithDisplayName(toRowId(assignmentId)!);
-  }
-
-  async setStay(id: string | number, minutes: number | null) {
-    const assignmentId = toRowId(id);
-    if (assignmentId === null) throw new Error('Assignment not found');
-    await this.dayAssignmentsRepo.setStay(assignmentId, minutes);
-    return await this.getAssignmentWithPlace(assignmentId);
   }
 
   /**
@@ -571,6 +565,18 @@ export class AssignmentsService {
     const idNum = toRowId(id)!;
     await this.dayAssignmentsRepo.setEndDay(idNum, endDay ? 1 : 0);
     return await this.getAssignmentWithPlace(idNum);
+  }
+
+  /**
+   * How long the drive stands at one visit (#3092). The stay used to be the place's
+   * alone, so the same place planned twice on a day could not be stopped at once and
+   * only driven past the other time. Null hands the visit back to the place's own
+   * `duration_minutes`. No auto-sort and no journey reconcile: a stay moves neither
+   * the day's order nor the skeleton mirror.
+   */
+  async setStay(id: number, stayMinutes: number | null) {
+    await this.dayAssignmentsRepo.setStayMinutes(id, stayMinutes);
+    return await this.getAssignmentWithPlace(id);
   }
 
   /**

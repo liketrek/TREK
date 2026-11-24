@@ -8,6 +8,7 @@ const shell = vi.hoisted(() => ({
   storeFinish: vi.fn(),
   storeRestore: vi.fn(),
   storeUnfinished: vi.fn(),
+  storeHeld: vi.fn(),
   addListener: vi.fn(),
 }));
 
@@ -32,6 +33,17 @@ describe('in-app purchase client', () => {
   it('names store products by the shared scheme', () => {
     expect(productIdFor('start', 'month')).toBe('cloud.start.monthly');
     expect(productIdFor('pro', 'year')).toBe('cloud.pro.yearly');
+  });
+
+  it('the fake client can play a store account that already holds a subscription', async () => {
+    localStorage.setItem('trek-iap-fake-held', '1');
+    try {
+      expect(await fakeIapClient.held()).toBe(true);
+      expect(await fakeIapClient.purchase('cloud.plus.monthly')).toEqual({ kind: 'subscribed' });
+    } finally {
+      localStorage.removeItem('trek-iap-fake-held');
+    }
+    expect(await fakeIapClient.held()).toBe(false);
   });
 
   it('the fake client yields a receipt for the product asked for', async () => {
@@ -100,6 +112,21 @@ describe('native client', () => {
     expect(await nativeIapClient.purchase('cloud.plus.monthly')).toEqual({ kind: 'failed' });
     shell.storePurchase.mockRejectedValue(new Error('boom'));
     expect(await nativeIapClient.purchase('cloud.plus.monthly')).toEqual({ kind: 'failed' });
+  });
+
+  it('says when the store account already holds a subscription, and buys nothing then', async () => {
+    shell.storePurchase.mockResolvedValue({ kind: 'subscribed' });
+    expect(await nativeIapClient.purchase('cloud.plus.monthly')).toEqual({ kind: 'subscribed' });
+    shell.storeHeld.mockResolvedValue({ held: true });
+    expect(await nativeIapClient.held()).toBe(true);
+    expect(shell.storeHeld).toHaveBeenCalledWith({ prefix: 'cloud.' });
+    shell.storeHeld.mockResolvedValue({ held: false });
+    expect(await nativeIapClient.held()).toBe(false);
+  });
+
+  it('a build without storeHeld counts as holding nothing; the purchase still guards', async () => {
+    shell.storeHeld.mockRejectedValue(new Error('not implemented'));
+    expect(await nativeIapClient.held()).toBe(false);
   });
 
   it('finishes by transaction id and swallows a failure', async () => {

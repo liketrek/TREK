@@ -22,18 +22,6 @@ export class CategoriesRepository extends TrekRepository<Categories> {
   }
 
   /**
-   * `share.service.ts:396` SH15 (`getSharedTripData`) — `SELECT * FROM
-   * categories`, no `ORDER BY` (unlike `list()` above, which adds `ORDER BY
-   * name ASC` for the authenticated `/api/categories` list — the legacy
-   * public-share statement never sorted). Unscoped by trip on purpose: "a
-   * shared global pool", the same statement the authed list reads from.
-   */
-  async listAllUnordered(): Promise<CategoryRow[]> {
-    const categories = await this.find({});
-    return categories.map((category) => toRow(category) as CategoryRow);
-  }
-
-  /**
    * PL33 (`PlacesService.importKmlPlaces`) — `SELECT id, name FROM
    * categories`, the id/name-only projection the KML importer folds into
    * `buildCategoryNameLookup` to resolve a folder name to a category id. No

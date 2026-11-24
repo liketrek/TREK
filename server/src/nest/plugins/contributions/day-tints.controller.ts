@@ -1,6 +1,7 @@
 import { Days } from '../../../db/entities/Days.entity';
 import type { DaysRepository } from '../../../db/repositories/Days.repository';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { toRowId } from '../../common/row-id';
 import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
@@ -174,10 +175,9 @@ export class DayTintsController {
     @Req() req: Request & { user?: { id: number } },
   ): Promise<{ tints: DayTint[] }> {
     if (!pluginsEnabled()) return { tints: [] };
-    const tripId = Number(tripIdRaw);
+    const tripId = toRowId(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId)))
-      return { tints: [] };
+    if (tripId === null || userId == null || !(await this.trips.findAccessible(tripId, userId))) return { tints: [] };
 
     const ids = this.hooks.providersOf('dayTintProvider');
     if (ids.length === 0) return { tints: [] };

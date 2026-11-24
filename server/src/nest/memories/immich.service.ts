@@ -21,6 +21,7 @@ import { PROVIDER_SELECT_ALL_MAX_PAGES } from '@trek/shared';
 import type { Response } from 'express';
 import fsPromises from 'node:fs/promises';
 import path from 'node:path';
+import { z } from 'zod';
 
 const ALBUM_PAGE_SIZE = 1000;
 const ALBUM_MAX_PAGES = 20;
@@ -72,6 +73,29 @@ export interface ImmichCreds {
  * the only thing the switch relaxes: the SSRF guard and the DNS pinning still
  * run on every hop.
  */
+/** What a public video's playback check reads of an Immich asset. */
+const videoExifSchema = z.object({
+  exifInfo: z
+    .object({
+      latitude: z.number().nullish(),
+      longitude: z.number().nullish(),
+      fileSizeInByte: z.number().nullish(),
+    })
+    .nullish(),
+});
+
+/** How long a public video's playback verdict holds, so every Range request of one viewing asks Immich once. */
+const PLAYBACK_VERDICT_TTL_MS = 5 * 60_000;
+const PLAYBACK_VERDICT_MAX = 500;
+
+/** A public video plays (`clear`), stays hidden (`located`), or Immich did not answer this time (`unknown`). */
+type PlaybackVerdict = 'clear' | 'located' | 'unknown';
+
+/** An Immich answer that may be different on the next try. */
+function transient(status: number): boolean {
+  return status >= 500 || status === 429;
+}
+
 function tlsOptions(allowInsecureTls: boolean): SafeFetchOptions {
   return { rejectUnauthorized: !allowInsecureTls };
 }
@@ -85,6 +109,8 @@ function tlsOptions(allowInsecureTls: boolean): SafeFetchOptions {
  */
 @Injectable()
 export class ImmichService {
+  private readonly playbackVerdicts = new Map<string, { verdict: PlaybackVerdict; until: number }>();
+
   constructor(
     private readonly audit: AuditService,
     private readonly access: MemoriesAccessService,
@@ -520,7 +546,7 @@ export class ImmichService {
     assetId: string,
     kind: 'thumbnail' | 'original',
     ownerUserId?: number,
-    opts?: { mediaType?: string | null; range?: string },
+    opts?: { mediaType?: string | null; range?: string; publicView?: boolean },
   ): Promise<void> {
     const effectiveUserId = ownerUserId ?? userId;
     const creds = await this.getImmichCredentials(effectiveUserId);
@@ -530,6 +556,13 @@ export class ImmichService {
     }
 
     const isVideo = opts?.mediaType === 'video';
+    if (kind === 'original' && isVideo && opts?.publicView) {
+      const verdict = await this.publicPlayback(effectiveUserId, creds, assetId);
+      if (verdict !== 'clear') {
+        handleServiceResult(response, verdict === 'unknown' ? fail('Upstream error', 502) : fail('Not found', 404));
+        return;
+      }
+    }
     const headers: Record<string, string> = { 'x-api-key': creds.immich_api_key };
     let url: string;
     let timeout: number | undefined;
@@ -548,7 +581,10 @@ export class ImmichService {
       cacheControl = 'private, max-age=3600';
       timeout = undefined;
     } else {
-      url = `${creds.immich_url}/api/assets/${assetId}/thumbnail?size=fullsize`;
+      // Without a generated fullsize rendition Immich answers with the original file, GPS and all;
+      // its preview is re-encoded without the metadata, so that is what a share link gets.
+      const size = opts?.publicView ? 'preview' : 'fullsize';
+      url = `${creds.immich_url}/api/assets/${assetId}/thumbnail?size=${size}`;
       timeout = 30000;
     }
 
@@ -560,6 +596,63 @@ export class ImmichService {
       cacheControl,
       tlsOptions(creds.allow_insecure_tls),
     );
+  }
+
+  /**
+   * The playback verdict of a public video, kept for a few minutes per owner
+   * and asset, since a player sends a Range request for every seek and chunk.
+   * Only an answer Immich actually gave is kept.
+   */
+  private async publicPlayback(userId: number, creds: ImmichCreds, assetId: string): Promise<PlaybackVerdict> {
+    const key = `${userId}:${creds.immich_url}:${assetId}`;
+    const now = Date.now();
+    const kept = this.playbackVerdicts.get(key);
+    if (kept && kept.until > now) return kept.verdict;
+    this.playbackVerdicts.delete(key);
+    const verdict = await this.playbackWithoutLocation(creds, assetId);
+    if (verdict === 'unknown') return verdict;
+    if (this.playbackVerdicts.size >= PLAYBACK_VERDICT_MAX) {
+      const oldest = this.playbackVerdicts.keys().next().value;
+      if (oldest !== undefined) this.playbackVerdicts.delete(oldest);
+    }
+    this.playbackVerdicts.set(key, { verdict, until: now + PLAYBACK_VERDICT_TTL_MS });
+    return verdict;
+  }
+
+  /**
+   * Whether Immich plays a video back without its recorded location: the asset
+   * has none, or Immich serves its own transcode, which it writes without the
+   * metadata, rather than the original file (told apart by the file's size).
+   * An answer Immich refused or did not understand counts as located; one it
+   * failed to give in time, or a server error, as unknown.
+   */
+  private async playbackWithoutLocation(creds: ImmichCreds, assetId: string): Promise<PlaybackVerdict> {
+    const tls = tlsOptions(creds.allow_insecure_tls);
+    const key = { 'x-api-key': creds.immich_api_key };
+    try {
+      const info = await safeFetch(
+        `${creds.immich_url}/api/assets/${assetId}`,
+        { headers: { ...key, Accept: 'application/json' }, signal: AbortSignal.timeout(10000) },
+        { ...tls, maxBytes: 1024 * 1024 },
+      );
+      if (!info.ok) return transient(info.status) ? 'unknown' : 'located';
+      const exifInfo = videoExifSchema.safeParse(await info.json()).data?.exifInfo;
+      if (!exifInfo) return 'located';
+      if (exifInfo.latitude == null && exifInfo.longitude == null) return 'clear';
+      const probe = await safeFetch(
+        `${creds.immich_url}/api/assets/${assetId}/video/playback`,
+        { headers: { ...key, Range: 'bytes=0-0' }, signal: AbortSignal.timeout(10000) },
+        { ...tls, maxBytes: 1024 * 1024 },
+      );
+      void probe.body?.cancel().catch(() => undefined);
+      if (!probe.ok) return transient(probe.status) ? 'unknown' : 'located';
+      const total =
+        /\/(\d+)$/.exec(probe.headers.get('content-range') ?? '')?.[1] ?? probe.headers.get('content-length');
+      const original = Number(exifInfo.fileSizeInByte);
+      return total !== null && original > 0 && Number(total) > 0 && Number(total) !== original ? 'clear' : 'located';
+    } catch {
+      return 'unknown';
+    }
   }
 
   // ── Albums ──────────────────────────────────────────────────────────────────

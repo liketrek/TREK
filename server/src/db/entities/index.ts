@@ -41,6 +41,7 @@ import { DocumentSyncItemsSchema } from './DocumentSyncItems.entity';
 import { ExchangeRateBatchPreviewsSchema } from './ExchangeRateBatchPreviews.entity';
 import { FerrataTilesSchema } from './FerrataTiles.entity';
 import { FileLinksSchema } from './FileLinks.entity';
+import { FlightLiveStatesSchema } from './FlightLiveStates.entity';
 import { ForkSchemaMigrationsSchema } from './ForkSchemaMigrations.entity';
 import { GlobalExchangeRateSnapshotsSchema } from './GlobalExchangeRateSnapshots.entity';
 import { GoogleApiUsageSchema } from './GoogleApiUsage.entity';
@@ -61,6 +62,11 @@ import { JourneyRecordingPrepSchema } from './JourneyRecordingPrep.entity';
 import { JourneyShareTokensSchema } from './JourneyShareTokens.entity';
 import { JourneyTripsSchema } from './JourneyTrips.entity';
 import { JourneysSchema } from './Journeys.entity';
+import { MailIngestAddressesSchema } from './MailIngestAddresses.entity';
+import { MailIngestCandidatesSchema } from './MailIngestCandidates.entity';
+import { MailIngestCursorSchema } from './MailIngestCursor.entity';
+import { MailIngestMessagesSchema } from './MailIngestMessages.entity';
+import { MailIngestPrefsSchema } from './MailIngestPrefs.entity';
 import { McpTokensSchema } from './McpTokens.entity';
 import { MigrationsSchema } from './Migrations.entity';
 import { NotificationChannelPreferencesSchema } from './NotificationChannelPreferences.entity';
@@ -141,6 +147,7 @@ import { ToursSchema } from './Tours.entity';
 import { TrekPhotoCacheMetaSchema } from './TrekPhotoCacheMeta.entity';
 import { TrekPhotoSignalsSchema } from './TrekPhotoSignals.entity';
 import { TrekPhotosSchema } from './TrekPhotos.entity';
+import { TripAddonOverridesSchema } from './TripAddonOverrides.entity';
 import { TripAlbumLinksSchema } from './TripAlbumLinks.entity';
 import { TripDocumentLinksSchema } from './TripDocumentLinks.entity';
 import { TripExchangeRatesSchema } from './TripExchangeRates.entity';
@@ -168,6 +175,7 @@ import { VacayYearsSchema } from './VacayYears.entity';
 import { VisitedCountriesSchema } from './VisitedCountries.entity';
 import { VisitedRegionsSchema } from './VisitedRegions.entity';
 import { WandererConnectionsSchema } from './WandererConnections.entity';
+import { WebPushSubscriptionsSchema } from './WebPushSubscriptions.entity';
 import { WebauthnChallengesSchema } from './WebauthnChallenges.entity';
 import { WebauthnCredentialsSchema } from './WebauthnCredentials.entity';
 
@@ -214,6 +222,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   ExchangeRateBatchPreviewsSchema,
   FerrataTilesSchema,
   FileLinksSchema,
+  FlightLiveStatesSchema,
   ForkSchemaMigrationsSchema,
   GlobalExchangeRateSnapshotsSchema,
   GoogleApiUsageSchema,
@@ -234,6 +243,11 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   JourneyShareTokensSchema,
   JourneyTripsSchema,
   JourneysSchema,
+  MailIngestAddressesSchema,
+  MailIngestCandidatesSchema,
+  MailIngestCursorSchema,
+  MailIngestMessagesSchema,
+  MailIngestPrefsSchema,
   McpTokensSchema,
   MigrationsSchema,
   NotificationChannelPreferencesSchema,
@@ -314,6 +328,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   TrekPhotoCacheMetaSchema,
   TrekPhotoSignalsSchema,
   TrekPhotosSchema,
+  TripAddonOverridesSchema,
   TripAlbumLinksSchema,
   TripDocumentLinksSchema,
   TripExchangeRatesSchema,
@@ -341,6 +356,7 @@ export const ALL_ENTITIES: readonly EntitySchema[] = [
   VisitedCountriesSchema,
   VisitedRegionsSchema,
   WandererConnectionsSchema,
+  WebPushSubscriptionsSchema,
   WebauthnChallengesSchema,
   WebauthnCredentialsSchema,
 ];

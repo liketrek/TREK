@@ -58,7 +58,7 @@ const help: TranslationStrings = {
   'help.ctx.dashboard.bullet.1':
     'Beszállókártya: a folyamatban lévő vagy a következő utazás a dátumokkal, az útitársakkal, a helyekkel és egy visszaszámlálóval. Kattints rá, és megnyílik az utazás. A jobb felső sarok négy gombjával szerkesztheted, duplikálhatod, archiválhatod vagy törölheted.',
   'help.ctx.dashboard.bullet.2':
-    'Utazási statisztika: meglátogatott országok, utazások, úton töltött napok és repült távolság, az összes utazásod alapján.',
+    'Utazási statisztika: meglátogatott országok, elöl a legutóbbiak zászlóival, utazások, úton töltött napok és repült távolság, az összes utazásod alapján.',
   'help.ctx.dashboard.bullet.3':
     'Utazáskártyák „Tervezett”, „Archivált” és „Befejezett” szűréssel, rácsos vagy listás nézetben. A fölöttük lévő keresőmező egyszerre keres az összes utazásodban, cím, dátum vagy az utazás egyik helye alapján. Az utazás szerkesztésére, duplikálására, archiválására és törlésére szolgáló gombok minden kártya fotójának jobb felső sarkában vannak.',
   'help.ctx.dashboard.bullet.4':
@@ -124,7 +124,7 @@ const help: TranslationStrings = {
   'help.guide.archive-trip.step.1': 'Kattints a kártya jobb felső sarkában lévő archiválás ikonra.',
   'help.guide.archive-trip.step.2': 'Ha újra látni szeretnéd, állítsd a kártyák fölötti szűrőt „Archivált” állásba.',
   'help.guide.archive-trip.step.3':
-    'Kattints a kártyán a „Visszaállítás” gombra: az utazás visszakerül a „Tervezett” csoportba, vagy a „Befejezett” csoportba, ha a dátumai már elmúltak.',
+    'Kattints a visszaállítás ikonra, ott, ahol az archiválás ikon volt: az utazás visszakerül a „Tervezett” csoportba, vagy a „Befejezett” csoportba, ha a dátumai már elmúltak.',
   'help.guide.archive-trip.result':
     'Az archivált utazások minden adata megmarad. Az irányítópulton és az összes utazást tartalmazó naptárfeedben viszont már nem jelennek meg.',
 
@@ -160,6 +160,8 @@ const help: TranslationStrings = {
     'Minden aktív utazás megjelenik a naptáradban, és automatikusan frissül. Az archivált és a több mint 90 napja véget ért utazások nem szerepelnek benne.',
   'help.guide.calendar-feed.tip.1':
     'Tartsd titokban a linket: aki ismeri, olvashatja a feedet. Ha mások is hozzájutottak, az „Újragenerálás” új linket ad, a régi pedig nem működik tovább. A „Kikapcsolás” teljesen megszünteti a linket.',
+  'help.guide.calendar-feed.tip.2':
+    'A „Napi összefoglaló események” naponta egy egész napos eseményt ad hozzá a nap helyeivel és az időpont nélküli jegyzetekkel. Kapcsold ki, ha csak a foglalásokat szeretnéd. A link ezzel együtt megváltozik, ezért iratkozz fel újra az újjal.',
 
   // widgets
   'help.guide.widgets.title': 'Az irányítópult widgetjeinek kiválasztása',
@@ -497,7 +499,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     'A számok automatikusan frissülnek, ahogy az utazásaidat tervezed. Itt semmit sem kell karbantartanod.',
   'help.guide.stats.tip.1':
-    'A városokat a TREK a cím szövegéből veszi, nem keresi ki. Ezért egy rövid cím, például „Osteria Francescana, Italy”, vagy egy prefektúrára végződő cím város helyett régióként is beszámíthat.',
+    'A városokat a szöveges címből olvassa ki a TREK, nem keresi ki. Kihagyja az országot, az irányítószámot és a régiót, és az előttük álló nevet veszi, így a „10178 Berlin” Berlinnek számít. Egy rövid cím, például „Osteria Francescana, Italy”, egyáltalán nem ad hozzá várost.',
   'help.guide.stats.tip.2':
     'A kézzel megjelölt országok beleszámítanak az „Ország” értékbe és a kontinensekbe, de utazást, helyet vagy napot nem adnak hozzá.',
   // dawarich-countries
@@ -536,7 +538,7 @@ const help: TranslationStrings = {
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Gyűjtemények',
   'help.ctx.collections.summary':
-    'A Gyűjtemények az utazásoktól független könyvtárad: elnevezett listák azokról a helyekről, amelyeket találtál, és meg szeretnél tartani, mindegyik „Ötlet”, „Szeretnék odamenni” vagy „Meglátogatva” állapottal, a Túrák bővítménnyel pedig az utazásokból mentett teljes túrák is. A helyek és a túrák másolatként kerülnek az utazásokba és onnan ki, soha nem kapcsolódnak össze, így egy lista és egy utazás sosem módosítja egymást.',
+    'A Gyűjtemények az utazásoktól független könyvtárad: elnevezett listák azokról a helyekről, amelyeket találtál, és meg szeretnél tartani, mindegyik „Ötlet”, „Szeretnék odamenni”, „Meglátogatva” vagy „Szeretnék visszamenni” állapottal, a Túrák bővítménnyel pedig az utazásokból mentett teljes túrák is. A helyek és a túrák másolatként kerülnek az utazásokba és onnan ki, soha nem kapcsolódnak össze, így egy lista és egy utazás sosem módosítja egymást.',
   'help.ctx.collections.bullet.1':
     'A bal oldali listaoszlopban a saját listáid, a veled megosztott listák, a még meg nem válaszolt meghívások és az „Összes mentett” látszik, amely a saját listáid teljes tartalmát egyesíti. Felül található az „Új lista” és a fájlimportálás.',
   'help.ctx.collections.bullet.2':
@@ -546,7 +548,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.4':
     'Helysorok: fotó, név és cím, címkék és kategória, jobb oldalon pedig az állapotjelző gomb. Egy kattintással a következő állapotra vált.',
   'help.ctx.collections.bullet.5':
-    'Jobb oldalon a térkép: minden koordinátával rendelkező helynek saját gombostűje van. A felső sávban található a „Térkép nagyítása” (teljes méretű térképnél „Lista megjelenítése”), a címkeszűrő a címkék kezelésére szolgáló gombbal, és a „Helyek keresése” mező. Egy gombostűre kattintva megnyílik az adott hely.',
+    'Jobb oldalon a térkép: minden koordinátával rendelkező helynek saját gombostűje van. A felső sávban található a „Térkép nagyítása” (teljes méretű térképnél „Lista megjelenítése”), a címkeszűrő a címkék kezelésére szolgáló gombbal, és a „Helyek keresése” mező. Egy gombostűre kattintva megnyílik az adott hely. A bal alsó sarokban, a térképstílus gomb fölött lévő lakat egy helyen tartja a térképet, miközben végigkattintod a helyeket.',
   'help.ctx.collections.bullet.6':
     'Részletlap: egy sorra kattintva megjelenik a borító, a kategória, az állapot, a csillagos értékelés, a címkék, a leírás és a linkek. A borítón lévő kamerával lecserélheted a fotót. Alul található a „Szerkesztés”, a „Másolás utazásba”, a navigációs gomb és az „Eltávolítás a listából”.',
   // create-list
@@ -595,17 +597,20 @@ const help: TranslationStrings = {
     'Egy utazás helylistájában a jelölési mód a „Mentés gyűjteménybe” lehetőséget kínálja, ha csak kézzel válogatott helyeket szeretnél menteni.',
   // place-status
   'help.guide.place-status.title': 'Hely állapotának beállítása',
-  'help.guide.place-status.goal': 'Kövesd nyomon, mi csak ötlet, mi került a szűkített listára, és hol jártál már.',
+  'help.guide.place-status.goal':
+    'Kövesd nyomon, mi csak ötlet, mi került a szűkített listára, hol jártál már, és hová szeretnél visszamenni.',
   'help.guide.place-status.step.1':
     'Kattints a hely sorának jobb végén lévő állapotcímkére. Az „Ötlet” helyett „Szeretnék odamenni” lesz.',
   'help.guide.place-status.step.2':
-    'Kattints rá még egyszer a „Meglátogatva” állapothoz, majd újra, hogy visszaálljon „Ötlet” állapotra.',
+    'Kattints rá még egyszer a „Meglátogatva” állapothoz, még egyszer a „Szeretnék visszamenni” állapothoz, majd újra, hogy visszaálljon „Ötlet” állapotra.',
   'help.guide.place-status.result':
     'Az állapotgomb és a színe azonnal megváltozik, és a lista fölötti állapotszűrő darabszámai is frissülnek.',
   'help.guide.place-status.tip.1':
     'Állapot csak a Gyűjteményekben létezik. Ha egy helyet utazásba másolsz, az állapota nem másolódik át.',
   'help.guide.place-status.tip.2':
     'Egy utazásból a „Mentés gyűjteménybe” a „Mentés listába” ablakot nyitja meg, minden olyan listánál egy állapotgombbal, amelyen a hely szerepel; a helyek panel kijelölősávjában pedig ott a „Megjelölés látogatottként a listáidban”.',
+  'help.guide.place-status.tip.3':
+    'A „Szeretnék visszamenni” olyan helyhez való, ahol már jártál, és még egyszer meg szeretnéd nézni. Továbbra is meglátogatottnak számít, ezért az utazásban a „Mindenhol látogatott” változatlanul hagyja.',
   // place-detail
   'help.guide.place-detail.title': 'Mentett hely megnyitása',
   'help.guide.place-detail.goal':
@@ -678,13 +683,13 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Lista exportálása fájlba',
   'help.guide.export-list.goal':
-    'Adj át egy listát valakinek egy másik TREK-szerveren, vagy nyisd meg egy térképalkalmazásban.',
+    'Adj át egy listát valakinek egy másik TREK-szerveren, nyisd meg egy térképalkalmazásban, vagy nézd meg a Google My Mapsben.',
   'help.guide.export-list.step.1': 'Kattints az „Exportálás” gombra a lista fejlécében.',
   'help.guide.export-list.step.2':
-    'Válaszd a „TREK-lista” formátumot, ha egy másik TREK-ben használnád a listát címkékkel és állapotokkal együtt, vagy a GPX-et az OsmAndhoz, az Organic Mapshez, Garmin eszközhöz és más, útpontokat kezelő alkalmazásokhoz.',
+    'Válaszd a „TREK-lista” formátumot, ha egy másik TREK-ben használnád a listát címkékkel és állapotokkal együtt, a GPX-et az OsmAndhoz, az Organic Mapshez, Garmin eszközhöz és más, útpontokat kezelő alkalmazásokhoz, vagy a KML-t a Google My Mapshez, hogy a helyeket a Google Térképen lásd.',
   'help.guide.export-list.result': 'A fájl letöltődik. Megosztott listát bármelyik tagja exportálhat.',
   'help.guide.export-list.tip.1':
-    'Koordináták nélküli hely nem lehet GPX-útpont; ezek kimaradnak, és a TREK jelzi, hány ilyen volt.',
+    'Koordináták nélküli hely nem lehet GPX-útpont vagy KML-gombostű; ezek kimaradnak, és a TREK jelzi, hány ilyen volt.',
   'help.guide.export-list.tip.2':
     'Az értékelések, a tagok és a feltöltött fotók szándékosan nem kerülnek az exportba; ezek ehhez a TREK-példányhoz tartoznak, nem a listához.',
   // import-file
@@ -720,6 +725,18 @@ const help: TranslationStrings = {
     'Írj a térkép fölötti „Helyek keresése” mezőbe, és használd a szűrőket ugyanúgy, mint bármelyik listán. A „Jelölés” itt is működik: több listán átívelően is áthelyezhetsz, duplikálhatsz, utazásba másolhatsz vagy törölhetsz.',
   'help.guide.all-saved.result':
     'Ebben a nézetben az összes mentett helyedet együtt látod. Itt nem adhatsz hozzá és nem importálhatsz helyeket, mert nincs egyetlen lista, amelybe bekerülhetnének.',
+  'help.guide.collection-map-lock.title': 'A térkép zárolása',
+  'help.guide.collection-map-lock.goal': 'Tartsd egy helyen a térképet, miközben végigkattintod a mentett helyeidet.',
+  'help.guide.collection-map-lock.step.1':
+    'Kattints a térkép bal alsó sarkában lévő lakatra, a térképstílus gomb fölött; ha fölé viszed az egeret, ezt látod: „Térképnézet zárolása”. A gomb felirata ezután: „A térkép kövesse a kijelölést”.',
+  'help.guide.collection-map-lock.step.2':
+    'Kattints egy helyre a listában vagy egy gombostűre a térképen. Megnyílik a részletlapja, a térkép pedig nem mozdul és nem nagyít rá.',
+  'help.guide.collection-map-lock.tip.1':
+    'Kattints újra a lakatra, amelynek a felirata most „A térkép kövesse a kijelölést”, és a térkép ismét az éppen megnyitott helyre ugrik. A lakat csak számítógépen érhető el; telefonon a térkép mindig követi a kijelölést.',
+  'help.guide.collection-map-lock.tip.2':
+    'Ezt a zárolást a böngésző megjegyzi, és ugyanaz, mint az utazás térképén: ha itt zárolod, az utazás térképe is zárolva marad.',
+  'help.guide.collection-map-lock.result':
+    'A térkép azon a részen marad, amelyet kiválasztottál, miközben egymás után nyitod meg a helyeket.',
   'help.guide.all-saved.tip.1':
     'A címkék és a mentett túrák egy-egy listához tartoznak, ezért az „Összes mentett” nézetben egyik sem érhető el.',
 
@@ -739,7 +756,7 @@ const help: TranslationStrings = {
     'Indíts naplót egy utazáshoz úgy, hogy az utazás helyei már javaslatként szerepeljenek benne.',
   'help.guide.create-journey.step.1': 'Kattints az „Új útinapló létrehozása” kártyára, ez a rács utolsó kártyája.',
   'help.guide.create-journey.step.2':
-    'Adj neki nevet, és ha szeretnéd, alcímet, majd jelöld be az utazásokat, amelyekhez tartozik. A számláló mutatja, hány hely kerül bele.',
+    'Adj neki nevet, és ha szeretnéd, alcímet, majd jelöld be az utazásokat, amelyekhez tartozik. Az alul lévő sor mutatja, hány hely kerül importálásra.',
   'help.guide.create-journey.step.3': 'Kattints az „Útinapló létrehozása” gombra.',
   'help.guide.create-journey.result':
     'Megnyílik a napló. A kapcsolt utazások minden helye javaslatként jelenik meg az idővonalon, minden olyan napnál egyszer, amelyre be van tervezve. Mindegyikhez írhatsz bejegyzést.',
@@ -750,7 +767,7 @@ const help: TranslationStrings = {
   'help.guide.open-journey.title': 'Útinapló megnyitása',
   'help.guide.open-journey.goal': 'Nyiss meg egy naplót, és nézd meg, hol nyílik meg.',
   'help.guide.open-journey.step.1':
-    'Kattints egy kártyára. Mindegyiken látszik a borító, a dátumok, valamint hogy hány bejegyzés, fotó és hely van az útinaplóban.',
+    'Kattints egy kártyára. Mindegyiken látszik a borító, az év, az állapot, valamint hogy hány bejegyzés, fotó és hely van az útinaplóban.',
   'help.guide.open-journey.result':
     'A folyamatban lévő útinapló a mai napnál nyílik meg, vagy ha mára még nincs bejegyzés, az utolsó korábbi bejegyzésnél. A befejezett útinapló az elején nyílik meg.',
   'help.guide.open-journey.tip.1':
@@ -776,7 +793,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-detail.bullet.3':
     'Idővonal: minden napnak saját része van a sorszámával, a helyek számával és egy + gombbal, amellyel bejegyzést adhatsz hozzá arra a napra. Alatta a bejegyzések kártyái fotókkal, hangulattal, időjárással és történettel, valamint az utazásokból származó szaggatott keretes javaslatkártyák, mindegyik egy × gombbal az elvetéshez.',
   'help.ctx.journey-detail.bullet.4':
-    'Térkép: a tetején lévő rétegsávval kapcsolhatod a „Terv” (üres gombostűk és az utazások szaggatott GPX-útvonalai), a „Rögzített” (a Dawarichból megtartott folytonos útvonalak), a „Bejegyzések” (a nap színeivel jelölt, időrendben vékony szaggatott vonallal összekötött gombostűk) és a „Fotók” réteget. A mellettük lévő (i) minden jelet elmagyaráz.',
+    'Térkép: a tetején lévő rétegsávval kapcsolhatod a „Terv” (üres gombostűk és az utazások szaggatott GPX-útvonalai), a „Rögzített” (a Dawarichból megtartott folytonos útvonalak), a „Bejegyzések” (a nap színeivel jelölt, időrendben vékony szaggatott vonallal összekötött gombostűk) és a „Fotók” réteget. A mellettük lévő (i) minden jelet elmagyaráz, a jobb felső sarokban lévő kerek gomb pedig műholdképekre vált.',
   'help.ctx.journey-detail.bullet.5':
     '„Útinapló beállításai” (⋯): borító, név és alcím, állapot, GPX-nyomvonalak, rögzített napok, helyek a fotókból, bejegyzésmezők, elvetett javaslatok, szinkronizált utazások, közreműködők és az, hogy egy utazás mely tagjai kapnak hozzáférést, nyilvános megosztás, archiválás és törlés.',
   'help.ctx.journey-detail.bullet.6':
@@ -792,7 +809,7 @@ const help: TranslationStrings = {
     'A jobb oldali oszlopban ellenőrizd a dátumot és az időpontot, keress helyszínt, vagy használd a jelenlegi pozíciódat, és válassz hangulatot és időjárást.',
   'help.guide.add-entry.step.4': 'Kattints a „Mentés” gombra.',
   'help.guide.add-entry.result':
-    'A bejegyzés a saját napjánál megjelenik az idővonalon, a térképen pedig gombostűként. A fejlécben lévő számok frissülnek.',
+    'A bejegyzés a saját napjánál megjelenik az idővonalon, a térképen pedig gombostűként, ha már van helyszíne. A fejlécben lévő számok frissülnek.',
   'help.guide.add-entry.tip.1':
     'Ha egy javaslatba írsz, ugyanazt a szerkesztőt használod, csak a hely már be van állítva.',
   'help.guide.add-entry.tip.2':
@@ -838,11 +855,11 @@ const help: TranslationStrings = {
   'help.guide.pros-cons.title': 'Értékelés hozzáadása',
   'help.guide.pros-cons.goal': 'Foglald össze a napot: mi volt nagyszerű, és mi nem.',
   'help.guide.pros-cons.step.1':
-    'A szerkesztőben a történet alatt találod az „Előnyök és hátrányok” részt. Írj egy pontot az „Előnyök” vagy a „Hátrányok” mezőbe, a következőhöz pedig használd a „Másik hozzáadása” gombot.',
+    'A szerkesztőben az „Előnyök és hátrányok” a jobb oldali oszlop tetején van. Írj egy pontot az „Előnyök” vagy a „Hátrányok” mezőbe, a következőhöz pedig használd a „Másik hozzáadása” gombot.',
   'help.guide.pros-cons.step.2':
     'Mentsd el. A kártyán a „Továbbiak” két rövid listában mutatja a történetet és az értékelést.',
   'help.guide.pros-cons.result':
-    'A felfelé és lefelé mutató hüvelykujjak a történet alatt jelennek meg, így gyorsan átláthatod őket.',
+    'A történet alatt az „Imádtam” és a „Lehetne jobb” egymás mellett sorolja fel a pontjaidat, mindegyiket a darabszámával.',
   'help.guide.pros-cons.tip.1':
     'Ha egy útinaplóban nem használsz értékelést, a részt az „Útinapló beállításai” alatt, „A bejegyzés mezői” résznél kapcsolhatod ki.',
   // search-journey
@@ -868,6 +885,21 @@ const help: TranslationStrings = {
     'A jobb oldali „Feltöltés” gombbal képeket adhatsz a galériához. Ha az Immich vagy a Synology csatlakoztatva van, a könyvtár nevét viselő gombbal onnan is választhatsz képeket.',
   'help.guide.gallery-map.result':
     'A gombostűk a napjuk színét kapják, és vékony szaggatott vonal köti össze őket időrendben. A térkép tetején lévő rétegsávval választhatod ki, mi jelenjen meg.',
+  'help.guide.album-date-range.title': 'Csak az utazás képeit kérd egy nagy albumból',
+  'help.guide.album-date-range.goal':
+    'Válaszd ki az utazásod fotóit egy Immich- vagy Synology-albumból, amely sokkal többet tartalmaz.',
+  'help.guide.album-date-range.step.1':
+    'Válts a „Galéria” nézetre, és kattints a fotótárad nevét viselő gombra, a „Feltöltés” mellett.',
+  'help.guide.album-date-range.step.2':
+    'Kattints az „Albumok” lehetőségre, majd az albumra. A fotók a készítés napja szerint vannak felsorolva.',
+  'help.guide.album-date-range.step.3':
+    'Az albumok alatt állítsd be a „Készítés időszaka” mezőt az első és az utolsó kívánt napra. Csak az ezekről a napokról származó fotók maradnak a rácson, és az „Összes kijelölése” is csak őket jelöli ki.',
+  'help.guide.album-date-range.tip.1':
+    'Az időszak megmarad, amikor másik albumot nyitsz meg, így több albumot is átnézhetsz ugyanahhoz az utazáshoz. A sor végén lévő × újra az egész albumot mutatja.',
+  'help.guide.album-date-range.tip.2':
+    'A választó tetején lévő „Hozzáadás” beállítás azt a bejegyzést választja ki, amelybe a fotók kerülnek; az „Új galéria” csak a galériába teszi őket.',
+  'help.guide.album-date-range.result':
+    'A „Hozzáadás” beteszi a kiválasztott fotókat az útinaplóba. Az ott már szereplő fotók halványak, pipával jelölve, így semmi sem kerül be kétszer.',
   'help.guide.gallery-map.tip.1':
     'Az utazás GPX-nyomvonalai szaggatott vonalként jelennek meg a térkép „Terv” rétegén. Az „Útinapló beállításai” ablakban „Az utazások összes GPX-nyomvonalának megjelenítése” beállítással kikapcsolhatod őket.',
   'help.guide.gallery-map.tip.2':
@@ -938,7 +970,7 @@ const help: TranslationStrings = {
   'help.guide.archive-journey.step.1':
     'A fejléc jobb felső sarkában kattints a ⋯ gombra, és megnyílik az „Útinapló beállításai” ablak.',
   'help.guide.archive-journey.step.2':
-    'Alul az „Út archiválása” lezárja az útinaplót, és archiváltként jelöli meg; az „Út visszaállítása” visszaállítja. A „Törlés” megerősítés után az összes bejegyzéssel és fotóval együtt törli.',
+    'Alul az „Út archiválása” lezárja az útinaplót, és archiváltként jelöli meg; az „Út visszaállítása” visszaállítja. A mellette lévő kuka megerősítés után az összes bejegyzéssel és fotóval együtt törli az útinaplót.',
   'help.guide.archive-journey.result':
     'Az archivált útinapló továbbra is olvasható és megosztható; csak már nem a mai napnál nyílik meg.',
   'help.guide.archive-journey.tip.1':
@@ -984,7 +1016,7 @@ const help: TranslationStrings = {
     'Egy kattintással készíts teljes első vázlatot a napló bejegyzéseiből és fotóiból.',
   'help.guide.studio-auto-layout.step.1': 'Kattints a felső sávban az „Automatikus elrendezés” gombra.',
   'help.guide.studio-auto-layout.step.2':
-    'Válaszd „A teljes könyv” lehetőséget: lecseréli az összes oldalt, a címet és az oldalbeállítást viszont megtartja. Az „Ez az oldal” csak a képernyőn látható oldalpárt építi újra. Ezt csak olyan oldalpárnál kínálja fel, amely egy bejegyzésből készült.',
+    'Válaszd „A teljes könyv” lehetőséget: lecseréli az összes oldalt, a címet és az oldalbeállítást viszont megtartja. Az „Ez az oldal” csak a képernyőn látható oldalpárt rendezi el másik kialakításban. Minden olyan oldalon működik, amelyet az „Automatikus elrendezés” készített, a borítót is beleértve.',
   'help.guide.studio-auto-layout.step.3':
     'Nézd végig az oldalsávot. Ha az előző változat jobban tetszett, a „Visszavonás” a teljes elrendezést visszaállítja.',
   'help.guide.studio-auto-layout.result':
@@ -999,13 +1031,13 @@ const help: TranslationStrings = {
   'help.guide.studio-pages.step.1':
     'Nyisd meg az Oldalak részt az oldalsávban. A miniatűrök sorrendben mutatják a könyvet: borító, első oldal, oldalpárok, utolsó oldal és hátsó borító. Az első és az utolsó oldal a borítójuk üres belső oldala mellett látszik, ahogy a bekötött könyv kinyílik.',
   'help.guide.studio-pages.step.2':
-    'Az alul lévő „Oldal hozzáadása” új oldalpárt szúr be az utolsó oldal elé. A két bélyegkép közötti + jellel az adott helyre szúrhatsz be egyet.',
+    'Az alul lévő „+ Oldal” új oldalpárt szúr be az utolsó oldal elé. A két bélyegkép közötti + jellel az adott helyre szúrhatsz be egyet.',
   'help.guide.studio-pages.step.3':
     'Ha egy bélyegkép fölé viszed az egeret, megjelennek a műveletei: „Előrébb”, „Hátrébb”, „Oldal duplikálása” és „Oldal törlése”. Egy bélyegképre kattintva az a kétoldalas nézet nyílik meg a munkaterületen.',
   'help.guide.studio-pages.result':
     'A borító, az első és az utolsó oldal, valamint a hátsó borító a helyén marad. Az új oldalpárok mindig ezek közé kerülnek.',
   'help.guide.studio-pages.tip.1':
-    'A felső sáv „Könyvnézet” gombja ívekként mutatja az egész könyvet, úgy, ahogyan bekötik majd.',
+    'Az oldalpár alatti nagyítósáv „Könyvnézet” gombja ívekként mutatja az egész könyvet, úgy, ahogyan bekötik majd.',
   'help.guide.studio-pages.tip.2':
     'Az „Oldalszámok” a „Tulajdonságok” panel „Dokumentum” részében kapcsolhatók be, amikor semmi sincs kijelölve.',
   // studio-layouts
@@ -1088,9 +1120,9 @@ const help: TranslationStrings = {
   'help.guide.studio-text-effects.goal': 'Adj egy címnek körvonalat, árnyékot, ívet vagy mintával kitöltött betűket.',
   'help.guide.studio-text-effects.step.1': 'Kattints egy szövegelemre az oldalon, hogy kijelöld.',
   'help.guide.studio-text-effects.step.2':
-    'A Tulajdonságokban nyisd meg az Effektek részt, hogy körvonalat, árnyékot vagy kiemelést adj hozzá, vagy színátmenettel vagy mintával töltsd ki a betűket. A Betűforma és elhelyezés ívbe hajlítja a sort, és a keretéhez igazítja.',
+    'A Tulajdonságokban nyisd meg az „Effektek” részt. A „Körvonal”, az „Éles árnyék” és a „Kiemelő sáv” szegélyt, árnyékot vagy kiemelést ad hozzá; az „Ív” a sort ívbe vagy körbe hajlítja; a „Betűk” fotóval, színátmenettel vagy mintával tölti ki őket.',
   'help.guide.studio-text-effects.tip.1':
-    'A Kerethez igazítás addig kicsinyíti a szöveget, amíg belefér a keretébe, így egy hosszú cím sosem lóg ki.',
+    'A „Betűforma és elhelyezés” alatti „Kerethez igazítás” kisebbre veszi a szavakat, ha a keret túl kicsi nekik, így egy hosszú cím sosem lóg ki.',
   'help.guide.studio-text-effects.result':
     'Az effekt a szöveggel együtt rajzolódik ki, nyomtatásban ugyanúgy, mint a képernyőn.',
   'help.guide.studio-background.title': 'Az oldal hátterének módosítása',
@@ -1123,7 +1155,7 @@ const help: TranslationStrings = {
   'help.guide.studio-properties.step.1':
     'Kattints egy elemre az oldalpáron. Megjelennek a méretezés és a forgatás fogópontjai; húzással mozgathatod az elemet.',
   'help.guide.studio-properties.step.2':
-    'A jobb oldali „Tulajdonságok” panel a kijelölt elem beállításait mutatja: helyzet és méret, „Vágás” a fókuszponttal, amely meghatározza, mi marad a keretben, „Kitöltés” vagy „Illesztés”, „Megjelenés” szűrők, „Sarokkerekítés”, „Keret” stílusa, rétegsorrend és „Zárolás”.',
+    'A jobb oldali „Tulajdonságok” panel a kijelölt elem beállításait mutatja a neve alatt: a térkép a forrását, a nézetét és a vonalát kínálja, a fotó a „Vágás” beállítást a fókuszponttal, a „Kitöltés” vagy „Illesztés” lehetőséget és a „Megjelenés” szűrőket. A helyzet, a rétegsorrend és a „Zárolás” minden elemnél ott van.',
   'help.guide.studio-properties.step.3':
     'A „Duplikálás” és a „Törlés” a tulajdonságpanel tetején található. A felső sáv „Visszavonás” gombjával ezek bármelyikét visszacsinálhatod.',
   'help.guide.studio-properties.result':
@@ -1164,7 +1196,7 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.step.1':
     'Amíg az oldalpár a munkaterületen van, kattints a nagyítósáv jobb végén az „Oldalpár letöltése” gombra. A fájl a tervet tartalmazza, a fotókat nem.',
   'help.guide.studio-spread-file.step.2':
-    'A másik könyvben nyisd meg a „Pages” részt, kattints az „Oldal hozzáadása” melletti „Importálás” gombra, majd válaszd ki a fájlt.',
+    'A másik könyvben nyisd meg a „Pages” részt, kattints a „+ Oldal” melletti „Importálás” gombra alul, majd válaszd ki a fájlt.',
   'help.guide.studio-spread-file.result':
     'Az oldalpár a kereteivel és szövegstílusaival együtt importálódik. Húzd a keretekbe az új útinapló fotóit.',
   'help.guide.studio-spread-file.tip.1':
@@ -1179,7 +1211,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.2':
     'Elsőként az „Általános” fül nyílik meg. Itt van a nyelv, a helynevek nyelve, a mértékegységek, az időformátum, a dátumformátum, a hét kezdőnapja és a megjelenítési pénznem, valamint az utazástérkép viselkedése. A „Megjelenés” fülön a téma, a színek, az olvashatóság, a szövegméret és az irányítópult-widgetek találhatók.',
   'help.ctx.settings.bullet.3':
-    'A „Térkép” fülön a térképmotort és a stílusát állítod be; az „Értesítések” fülön azt, melyik esemény melyik csatornára menjen; az „Integráció” fülön fotókönyvtárakat, az AirTrailt, a Dawarichot és a wanderert csatlakoztathatod, és itt vannak az API-kulcsok és az MCP is; az „Offline” fülön azt, mit tároljon ez az eszköz.',
+    'A „Térkép” fülön a térképmotort és a stílusát állítod be; az „Értesítések” fülön azt, melyik esemény melyik csatornára menjen; az „Integrációk” fülön megtalálod a foglalási e-mailekhez tartozó címedet, fotókönyvtárakat, az AirTrailt, a Dawarichot és a wanderert csatlakoztathatod, és itt vannak az API-kulcsok és az MCP is; az „Offline” fülön azt, mit tároljon ez az eszköz.',
   'help.ctx.settings.bullet.4':
     'A „Fiók” részben a profilod, a jelszavad, a kétlépcsős azonosítás, a jelkulcsok és a fiók törlésének lehetősége található.',
   'help.ctx.settings-display.title': 'Megjelenés',
@@ -1206,11 +1238,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Itt választod ki, melyik motor rajzolja az utazástervező és a napló térképeit, és milyen stílusban. A Leaflet a klasszikus raszteres térkép, a Mapbox GL saját tokennel 3D-s épületeket és domborzatot is mutat, a MapLibre GL token nélkül rajzol OpenFreeMap vektorcsempéket. Az Atlasz mindig a Leafletet használja.',
   'help.ctx.settings-map.bullet.1':
-    '„Térkép szolgáltató”: Leaflet, Mapbox GL („Kísérleti”) vagy MapLibre GL, mindegyik egy rövid leírással.',
+    '„Térkép szolgáltató”: Leaflet, Mapbox GL vagy MapLibre GL, mindegyik egy rövid leírással.',
   'help.ctx.settings-map.bullet.2':
     'Leafletnél „Térkép sablon” és „CARTO API-kulcs”; a két GL-motornál „Térkép stílus”, a Mapbox GL-nél pedig emellett „Mapbox hozzáférési token”.',
   'help.ctx.settings-map.bullet.3':
-    'Csak Mapbox GL-nél: „3D épületek és terep” és „Magas minőség mód”. A „Térkép mentése” gomb fölött élő előnézet látható. A „Térkép mentése” elmenti a választásodat.',
+    'Csak Mapbox GL-nél: „3D épületek és terep”, „Magas minőség mód” és „Érdekes helyek elrejtése”. A „Térkép mentése” gomb fölött élő előnézet látható. A „Térkép mentése” elmenti a választásodat.',
   'help.ctx.settings-notifications.title': 'Értesítések',
   'help.ctx.settings-notifications.summary':
     'Itt állíthatod be, hogyan ér el a TREK az alkalmazáson kívül. Felül egy táblázat dönti el, mi hová menjen: eseményenként egy sor, csatornánként egy oszlop. Alatta a webhook, az ntfy, az ezen az eszközön használt push és az esetleges plugincsatornák kártyái találhatók.',
@@ -1224,9 +1256,9 @@ const help: TranslationStrings = {
     '„Push értesítések ezen az eszközön”: a „Bekapcsolás ezen az eszközön” csak erre a böngészőre vonatkozik; a „Teszt küldése” egy próbaértesítést küld. A plugincsatornán a „Beállítás” gomb látszik, amíg be nem állítod.',
   'help.ctx.settings-integrations.title': 'Integrációk',
   'help.ctx.settings-integrations.summary':
-    'Minden, ami kívülről kapcsolódik a TREK-hez: fotókönyvtárak a naplóhoz, az AirTrail a repülésekhez, a Dawarich a ténylegesen bejárt helyekhez, a wanderer az útvonalakhoz, csak olvasható API-kulcsok más programokhoz és MCP az AI-kliensekhez. Egy másik szolgáltatáshoz csak akkor csatlakozhatsz, ha a rendszergazda bekapcsolta.',
+    'Minden, ami kívülről kapcsolódik a TREK-hez: a saját címed a foglalási e-mailekhez, fotókönyvtárak a naplóhoz, az AirTrail a repülésekhez, a Dawarich a ténylegesen bejárt helyekhez, a wanderer az útvonalakhoz, csak olvasható API-kulcsok más programokhoz és MCP az AI-kliensekhez. Egy másik szolgáltatáshoz csak akkor csatlakozhatsz, ha a rendszergazda bekapcsolta.',
   'help.ctx.settings-integrations.bullet.1':
-    'Immich és Synology Photos, AirTrail, Dawarich és wanderer: minden kártyán ott a cím és a kulcs, a „Mentés” és a „Kapcsolat tesztelése” gomb, valamint egy „Csatlakozva” vagy „Nincs kapcsolódva” jelvény.',
+    '„Foglalási e-mailek”, legfelül, ha az admin bekapcsolta az e-mail-importot: a továbbítási címed a kapcsolóival. Alatta az Immich és a Synology Photos, az AirTrail, a Dawarich és a wanderer: minden kártyán ott a cím és a kulcs, a „Mentés” és a „Kapcsolat tesztelése” gomb, valamint egy „Csatlakozva” vagy „Nincs kapcsolódva” jelvény.',
   'help.ctx.settings-integrations.bullet.2':
     'API kulcsok: csak olvasható kulcsok a nyilvános API-hoz, mindegyik az általad kiválasztott területekre korlátozva, a kimásolható „Végpont” címmel.',
   'help.ctx.settings-integrations.bullet.3':
@@ -1259,7 +1291,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.title': 'Nyelv, mértékegységek és pénznem beállítása',
   'help.guide.language-region.goal': 'Használd a TREK-et a saját nyelveden, a régiódban szokásos formátumokkal.',
   'help.guide.language-region.step.1':
-    'A „Nyelv és régió” részben válassz nyelvet a gombsorból („Nyelv”). A TREK azonnal átvált, minden eszközön, amelyen bejelentkezel.',
+    'A „Nyelv és régió” részben válassz nyelvet („Nyelv”) a listából; gépeléssel gyorsan megtalálhatsz egyet. A TREK azonnal átvált, minden eszközön, amelyen bejelentkezel.',
   'help.guide.language-region.step.2':
     'A „Helynevek” határozza meg, milyen nyelven jelenjenek meg a helykeresés eredményei, a javaslatok és a címek; az „Ugyanaz, mint az alkalmazás” a felület nyelvét követi.',
   'help.guide.language-region.result':
@@ -1341,7 +1373,7 @@ const help: TranslationStrings = {
   'help.guide.map-provider.step.2':
     'Leaflethez válassz „Térkép sablon” értéket, GL-motorhoz „Térkép stílus” értéket, vagy illeszd be a saját URL-edet. A Mapbox GL-hez „Mapbox hozzáférési token”, a CARTO-sablonokhoz „CARTO API-kulcs” kell; az egyes mezők alatti link megmutatja, hol szerezhetsz ilyet.',
   'help.guide.map-provider.step.3':
-    'Mapbox GL-nél kapcsold be a „3D épületek és terep” beállítást, és ha az eszközöd elég gyors, a „Magas minőség mód” beállítást is. Ellenőrizd az előnézetet, majd kattints a „Térkép mentése” gombra.',
+    'Mapbox GL-nél kapcsold be a „3D épületek és terep” beállítást, és ha az eszközöd elég gyors, a „Magas minőség mód” beállítást is. Az „Érdekes helyek elrejtése” kihagyja azokat a boltokat és látnivalókat, amelyeket a Mapbox magától címkéz. Ellenőrizd az előnézetet, majd kattints a „Térkép mentése” gombra.',
   'help.guide.map-provider.result':
     'Az utazástervező és a napló térképei a választott motort használják. Az Atlasz mindig a Leafletet használja.',
   'help.guide.map-provider.tip.1':
@@ -1398,7 +1430,7 @@ const help: TranslationStrings = {
   'help.guide.mcp-oauth.step.2':
     'Az „OAuth 2.1 kliensek” alatt kattints az „Új kliens” gombra, és válassz egy gyors előbeállítást, például Claude Desktop vagy Cursor, vagy töltsd ki magad az alkalmazás nevét, az átirányítási URI-kat és az engedélyezett hatóköröket; böngésző nélküli szerverhez válaszd a gépi klienst. Kattints a „Kliens regisztrálása” gombra, és másold ki a kliens titkát: csak egyszer jelenik meg.',
   'help.guide.mcp-oauth.step.3':
-    'Minden kliensnél ott a „Titok megújítása” és a „Kliens törlése”. Az „Aktív OAuth munkamenetek” a bejelentkezett klienseket sorolja fel, „Visszavonás” gombbal. A „Kliens konfiguráció” lenyitva egy kész kódrészletet mutat a JSON-t használó kliensekhez.',
+    'Minden kliensnél ott a „Titok megújítása” és a „Kliens törlése”. Ha egy kliens már bejelentkezett, az „Aktív OAuth munkamenetek” felsorolja, „Visszavonás” gombbal. A kliensek fölött a „Kliens konfiguráció” egy kész kódrészletet tartalmaz a JSON-t használó kliensekhez, „Másolás” gombbal.',
   'help.guide.mcp-oauth.result':
     'A kliens a nevedben olvashatja és módosíthatja azt, amit a jogosultságai engednek, és minden művelet a te neved alatt jelenik meg.',
   'help.guide.mcp-oauth.tip.1':
@@ -1410,9 +1442,9 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.goal':
     'Mentsd el az utazásaidat és a térképeiket erre az eszközre, mielőtt megszakad a kapcsolat.',
   'help.guide.offline-prepare.step.1':
-    'A „Mit tároljon offline” részben hagyd bekapcsolva a „Térképcsempék offline tárolása” beállítást, és kapcsold be azokat az utazásokat, amelyeket ezen az eszközön szeretnél elérni. Egy befejezett utazás csak akkor kerül tárolásra, ha bekapcsolod.',
+    'A jobb oldali „Mit tároljon offline” kártyán hagyd bekapcsolva a „Térképcsempék offline tárolása” beállítást, és kapcsold be azokat az utazásokat, amelyeket ezen az eszközön szeretnél elérni. Egy befejezett utazás csak akkor kerül tárolásra, ha bekapcsolod.',
   'help.guide.offline-prepare.step.2':
-    'Fent a „Felkészülés offline használatra” részben kattints a „Letöltés offline használatra” gombra. Ez letölti az utazások adatait, a dokumentumokat és a térképcsempéket, és jelzi, hány utazást tárolt.',
+    'Az „Offline mód” kártyán, a „Felkészülés offline használatra” alatt kattints a „Letöltés offline használatra” gombra. Ez letölti az utazások adatait, a dokumentumokat és a térképcsempéket, és jelzi, hány utazást tárolt.',
   'help.guide.offline-prepare.step.3':
     'Az „Offline mód kényszerítése” még egyszer letölt mindent, majd csak erről az eszközről működik, így indulás előtt ellenőrizheted, hogy minden megvan-e.',
   'help.guide.offline-prepare.result':
@@ -1492,17 +1524,17 @@ const help: TranslationStrings = {
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Adminisztráció',
   'help.ctx.admin.summary':
-    'A teljes TREK-példány beállításai, minden felhasználóra: ki és hogyan jelentkezhet be, mi van bekapcsolva, hol tárolódnak a fájlok, hogyan küld üzenetet a szerver, és hogyan készül a biztonsági mentés. Ezt az oldalt csak a rendszergazdák látják. Az oldalsáv a füleket „Felhasználók”, „Konfiguráció”, „Integrációk” és „Karbantartás” csoportba rendezi, és minden fül külön képernyő.',
+    'A teljes TREK-példány beállításai, minden felhasználóra: ki és hogyan jelentkezhet be, mi van bekapcsolva, hol tárolódnak a fájlok, hogyan küld üzenetet a szerver, és hogyan készül a biztonsági mentés. Ezt az oldalt csak a rendszergazdák látják. Az oldalsáv a füleket „Felhasználók”, „Konfiguráció” és „Karbantartás” csoportba rendezi, és minden fül külön képernyő.',
   'help.ctx.admin.bullet.1':
     'A fejléc jobb oldalán látod a felhasználók, utazások, helyek és fájlok számát. Alatta „Frissítés elérhető” sáv jelenik meg, ha új TREK-verzió jelent meg.',
   'help.ctx.admin.bullet.2':
-    '„Felhasználók” és „Alapértelmezett beállítások”: fiókok, meghívó linkek és jogosultságok, valamint azok a beállítások és az a térkép, amelyekkel egy új fiók indul.',
+    '„Felhasználók” és „Alapértékek”: fiókok, meghívó linkek és jogosultságok, valamint azok a beállítások és az a térkép, amelyekkel egy új fiók indul.',
   'help.ctx.admin.bullet.3':
-    '„Személyre szabás”, „Beállítások”, „Bővítmények”, „Pluginok” és „Tárhely”: csomagolási sablonok, kategóriák és iskolai szünetek; bejelentkezés, passkey-k, 2FA, API-kulcsok és keresőszolgáltatók; a funkciómodulok; külső fejlesztésű pluginek; a feltöltések tárolási helye.',
+    '„Biztonság”, „Szolgáltatások”, „Bővítmények” és „Testreszabás”: bejelentkezés, passkey-k, 2FA és egyszeri bejelentkezés; helykeresés, útvonaltervezés, API-kulcsok és fájltípusok; a funkciómodulok a beállításaikkal; csomagolási sablonok, kategóriák és iskolai szünetek.',
   'help.ctx.admin.bullet.4':
-    '„Értesítések”, „MCP hozzáférés” és GitHub: a felhasználók által választható csatornák és az alapértelmezett beállításaik, az AI-kliensek tokenjei és munkamenetei, valamint a kiadások története.',
+    '„Értesítések”, „MCP” és „Pluginok”: a felhasználók által választható csatornák és a rendszergazdaként kapott értesítések, az AI-kliensek tokenjei és munkamenetei, valamint a külső fejlesztésű pluginek.',
   'help.ctx.admin.bullet.5':
-    'Biztonsági mentés és audit: azonnali és ütemezett mentések, valamint a biztonsági szempontból fontos események naplója.',
+    '„Tárhely”, „Mentés”, „GitHub” és „Audit”: a feltöltések tárolási helye, azonnali és ütemezett mentések, a kiadások története, valamint a biztonsági szempontból fontos események naplója.',
   'help.ctx.admin-users.title': 'Felhasználók',
   'help.ctx.admin-users.summary':
     'A TREK összes fiókja a szerepkörrel, az e-mail-címmel és az utolsó aktivitás idejével, a meghívó linkek, amelyekkel zárt példányon is lehet regisztrálni, valamint az, hogy ki mit tehet az utazásokban.',
@@ -1514,13 +1546,13 @@ const help: TranslationStrings = {
     'Alatta a „Meghívó linkek”: regisztrációs linkek használati korláttal, lejárati idővel, és ha szeretnéd, egy utazással, amelyhez az új felhasználó a regisztrációkor csatlakozik.',
   'help.ctx.admin-users.bullet.4':
     'Alul a „Jogosultsági beállítások”: műveletenként megadhatod, ki végezheti el („Mindenki”, „Utazás tagjai”, „Utazás tulajdonosa” vagy „Csak adminisztrátor”). A mentéshez kattints a kártya tetején lévő „Mentés” gombra.',
-  'help.ctx.admin-defaults.title': 'Alapértelmezett beállítások',
+  'help.ctx.admin-defaults.title': 'Alapértékek',
   'help.ctx.admin-defaults.summary':
     'Itt állítod be, mivel induljon egy új fiók, hogy senkinek ne kelljen előbb beállítgatnia: színmód, mértékegységek, időformátum, dátumformátum, a hét kezdőnapja, megjelenítési pénznem és a foglalási kódok elrejtése, valamint a térkép, a kulcsai és az útvonaltervező szerverek.',
   'help.ctx.admin-defaults.bullet.1':
     'Bal oldalon az „Alapértelmezett felhasználói beállítások”: „Színmód”, „Hőmérséklet egység”, „Távolság egység”, „Időformátum”, „A hét kezdőnapja”, „Dátumformátum”, „Megjelenítési pénznem” és „Foglalási kódok elrejtése”.',
   'help.ctx.admin-defaults.bullet.2':
-    'Jobb oldalon a „Térkép”: „Térkép sablon”, „Megosztott CARTO-kulcs”, „Saját útvonaltervező” és „Saját Valhalla-példány”, egy előnézet, majd a „Térképmotor” a „Térképstílus”, a „Megosztott Mapbox-token”, a „3D épületek & domborzat” és a „Kiváló minőségű mód” beállítással.',
+    'Alattuk az „Útvonaltervezés”: „Útvonaltervező szolgáltatás”, „Saját útvonaltervező” és „Saját Valhalla-példány”. Jobb oldalon a „Térkép”: „Térkép sablon”, „Megosztott CARTO-kulcs”, egy előnézet, majd a „Térképmotor” a „Térképstílus”, a „Megosztott Mapbox-token”, a „3D épületek és terep” és a „Kiváló minőségű mód” beállítással.',
   'help.ctx.admin-config.title': 'Személyre szabás',
   'help.ctx.admin-config.summary':
     'Olyan beállítások, amelyek a példány minden utazására érvényesek: a csomagolási sablonok, a helyek és gyűjtemények kategóriái, valamint az iskolai szünetek katalógusa, amelyet a Vacay használ.',
@@ -1530,32 +1562,33 @@ const help: TranslationStrings = {
     'Kategóriák: a TREK-ben a helyinspektortól a Gyűjteményekig használt kategóriák neve, ikonja és színe, mindegyik egy előnézettel ellátott ablakban szerkeszthető.',
   'help.ctx.admin-config.bullet.3':
     'Iskolai szünetek: az országok és régiók katalógusa a szünetek időszakaival, amelyből a Vacay-ben bárki választhat.',
-  'help.ctx.admin-settings.title': 'Beállítások',
+  'help.ctx.admin-settings.title': 'Biztonság és szolgáltatások',
   'help.ctx.admin-settings.summary':
-    'Itt állítod be, hogyan jelentkezhetnek be a felhasználók, és milyen külső szolgáltatásokat használhat a szerver. Bal oldalon: „Hitelesítési módszerek”, „Passkey-bejelentkezés”, „Kétlépcsős hitelesítés (2FA) kötelezővé tétele” és „Egyszeri bejelentkezés (OIDC)”. Jobb oldalon: „Engedélyezett fájltípusok” és „API kulcsok” a kereső- és tömegközlekedési szolgáltatókkal. A „Veszélyzóna” alul található.',
+    'Itt állítod be, hogyan jelentkeznek be az emberek, és milyen külső szolgáltatásokat használ a szerver, két fülön. „Biztonság”: bal oldalon a „Hitelesítési módok” és a „Passkey-bejelentkezés”, jobb oldalon az „Egyszeri bejelentkezés (OIDC)” és a „Veszélyzóna”. „Szolgáltatások”: bal oldalon a helykeresés és az útvonaltervezés, jobb oldalon az „API kulcsok” és az „Engedélyezett fájltípusok”.',
   'help.ctx.admin-settings.bullet.1':
-    '„Hitelesítési módszerek”: jelszavas bejelentkezés, jelszavas regisztráció, és ha az OIDC be van állítva, SSO-bejelentkezés és automatikus SSO-fióklétrehozás. A „Kétlépcsős hitelesítés (2FA) kötelezővé tétele” külön kártyán található.',
+    '„Hitelesítési módok”: „Bejelentkezés jelszóval” és „Regisztráció jelszóval”, az SSO-sorok, ha az OIDC be van állítva („SSO-bejelentkezés”, „SSO Auto-Provisioning” és „Közvetlenül az SSO-ra”), majd a „Passkey-bejelentkezés engedélyezése” és a „2FA kötelezővé tétele”. Minden kapcsoló azonnal mentődik.',
   'help.ctx.admin-settings.bullet.2':
-    '„Passkey-bejelentkezés”: „Passkey-bejelentkezés engedélyezése”, a Relying Party ID (domain) és az „Engedélyezett origók”. „Egyszeri bejelentkezés (OIDC)”: „Megjelenítendő név”, Issuer URL, egy opcionális Discovery URL, „Kliens azonosító” és „Kliens titok”.',
+    '„Passkey-bejelentkezés”: a „Relying Party azonosító (domain)” és az „Engedélyezett origók”. „Egyszeri bejelentkezés (OIDC)”: „Megjelenítendő név”, „Kibocsátó URL”, egy opcionális „Discovery URL”, „Kliens azonosító” és „Kliens titok”.',
   'help.ctx.admin-settings.bullet.3':
-    'API kulcsok: az első a TREK Places API, amelyhez nem kell kulcs. Alatta a „Google Maps API kulcs” („Teszt” és „Mire használja a kulcsot” lehetőséggel), az Unsplash- és az Amap-kulcs, a kártya alján pedig egyetlen „Mentés” gomb.',
+    'A „Szolgáltatások” fülön a helykeresés és az útvonaltervezés: a TREK API, „Ajánlott alapértelmezés” jelöléssel, a „Mai keret” és a „Helyadatok megosztása” beállítással, majd a „Tömegközlekedési szolgáltató”, a „Helykeresési szolgáltató” és a „Helykeresési napló”.',
   'help.ctx.admin-settings.bullet.4':
-    'A „Tömegközlekedési szolgáltató” és a „Helykeresési szolgáltató” határozza meg, ki válaszol a tömegközlekedési és a helykeresésekre; a „Helykeresési napló” rögzíti, melyik találatot választották; az „Engedélyezett fájltípusok” korlátozza a feltöltéseket.',
+    '„API kulcsok”: a „Google Maps API kulcs” a „Teszt” és a „Mire használja a kulcsot” lehetőséggel, az Unsplash- és az Amap-kulcs, a kártya alján pedig egyetlen „Mentés” gomb. Az alatta lévő „Engedélyezett fájltípusok” korlátozza a feltöltéseket.',
   'help.ctx.admin-addons.title': 'Bővítmények',
   'help.ctx.admin-addons.summary':
-    'A TREK funkciómoduljai, mindegyik saját kapcsolóval: Csomagolás, Költségvetés, Dokumentumok, Vacay, Atlasz, Együttműködés, Útinaplók, Gyűjtemények, Autós út, MCP, AirTrail, Dawarich és az MI-elemzés. Kikapcsolt állapotban a menüpont, az útvonalak és az API mindenki számára eltűnik.',
+    'A TREK funkciómoduljai három kártyán: az „Utazás” az utazás füleihez, a „Globális” a főmenü szakaszaihoz, az „Integráció” pedig a külső szolgáltatásokhoz. Minden bővítménynek van kapcsolója; kikapcsolt állapotban a menüpont, az útvonalak és az API mindenki számára eltűnik.',
   'help.ctx.admin-addons.bullet.1':
-    'Minden bővítménynek saját csempéje van a kapcsolójával, és ha vannak beállításai, alsorokkal ezekhez.',
+    'Bővítményenként egy sor a kapcsolójával, és minden kártya fejlécében az, hogy hány bővítménye van bekapcsolva. A név melletti infójel megmondja, mit csinál a bővítmény.',
   'help.ctx.admin-addons.bullet.2':
-    'A fotó- és dokumentumszolgáltatók is csempeként jelennek meg itt, így az Immich vagy a Synology is elérhetővé tehető a felhasználók számára.',
-  'help.ctx.admin-addons.bullet.3': 'A „Poggyászkövetés” saját kapcsolót kapott a csempék alatt.',
+    'A beállítások a bővítményük alatt vannak, amíg be van kapcsolva: a „Poggyászkövetés” a „Listák” alatt, az „Együttműködés” funkciói, a dokumentumtárak a „Dokumentumok” alatt, a fotószolgáltatók az „Útinaplók” alatt, a wanderer és a térképrétegek pedig a „Túrák” alatt.',
+  'help.ctx.admin-addons.bullet.3':
+    'A fogaskerekes sorok beállítóablakot nyitnak, például a „Vízi adatok evezéshez” a „Túrák” alatt és az „E-mail-import beállítása” a „Foglalási e-mailek importja” alatt. Az élő járatállapot az „Utazás” kártya egyik sora.',
   'help.ctx.admin-plugins.title': 'Pluginok',
   'help.ctx.admin-plugins.summary':
     'Külső fejlesztésű pluginok, amelyek saját folyamatban futnak a TREK mellett, mindegyik a telepítéskor kért jogosultságokkal. Telepíthetsz a katalógusból, feltölthetsz egy csomagot, vagy plugin fejlesztése közben belinkelhetsz egy mappát.',
   'help.ctx.admin-plugins.bullet.1':
-    '„Telepítve” és „Felfedezés”, a „Pluginok keresése…” mezővel, valamint a „Típus”, az „Állapot” és a „Rendezés” szűrővel. Minden sorban látszik a verzió, az „Ellenőrizve”, „Aláírva” vagy aláíratlan jelzés, az, hogy mihez férhet hozzá a plugin, egy kapcsoló és egy ⋯ menü.',
+    '„Telepítve” és „Felfedezés”, a „Pluginok keresése…” mezővel, valamint a szűrővel típus, állapot és sorrend szerint. Minden sorban látszik a verzió, az, hogy mihez férhet hozzá a plugin, az „Ellenőrizve”, „Aláírva” vagy „Aláírás nélkül” jelzés, egy kapcsoló és egy ⋯ menü.',
   'help.ctx.admin-plugins.bullet.2':
-    'A kártya fejlécének két ikonja: a „Plugin feltöltése” .zip, .tgz vagy .tar.gz fájlt fogad (de egy .zip fájlt az oldalra is húzhatsz); az „Újraszkennelés” megtalálja a fejlesztéshez belinkelt pluginmappát.',
+    'A kártya fejlécének három ikonja: a „Így védjük a pluginokat” elmagyarázza, hogyan van elzárva egy plugin; a „Plugin feltöltése” .zip, .tgz vagy .tar.gz fájlt fogad (de egy .zip fájlt az oldalra is húzhatsz); az „Újraszkennelés” megtalálja a fejlesztéshez belinkelt pluginmappát.',
   'help.ctx.admin-plugins.bullet.3':
     'Engedélyezett hosztok pluginonként: azok a címek, amelyeket egy plugin elérhet, mert a kimenő kapcsolatok alapértelmezetten le vannak tiltva.',
   'help.ctx.admin-storage.title': 'Tárhely',
@@ -1566,17 +1599,19 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.2':
     '„Backendek”: név, típus, foglalt hely és tükrözési cél, „Teszt”, „Szerkesztés” és „Eltávolítás” gombbal. A „Számítás most” kiszámolja a tárolt adatok mennyiségét; a környezeti változóval megadott backend csak olvasható.',
   'help.ctx.admin-storage.bullet.3':
-    'Kategóriák: útidokumentumok, útinapló-fotók, borítók, profilképek, helyképek, a fotógyorsítótárak és a biztonsági mentések, mindegyik egy-egy backendhez rendelve.',
+    'Kategóriák: útidokumentumok, útinapló-fotók, borítók, profilképek, helyképek, a fotógyorsítótárak és a biztonsági mentések, mindegyik egy-egy backendhez rendelve, alul a „Módosítások mentése” gombbal.',
+  'help.ctx.admin-storage.bullet.4':
+    'Hivatkozás nélküli fájlok: amit az éjszakai ellenőrzés talált, és a TREK-ben már semmi sem használ, az „Ellenőrzés most” gombbal, valamint egy kapcsolóval, amely az egy hete használaton kívüli ilyen fájlokat törli.',
   'help.ctx.admin-notifications.title': 'Értesítések',
   'help.ctx.admin-notifications.summary':
     'Itt látod, milyen csatornákat kínál a példány a felhasználóinak, és melyeken kapsz értesítést adminként. A felhasználók a Beállítások alatt maguk választják ki a témáikat és URL-jeiket; te döntöd el, mi érhető el, és te állítod be az e-mailt.',
   'help.ctx.admin-notifications.bullet.1':
-    'Az „E-mail (SMTP)”, a Webhook, az Ntfy és a Web Push csatornának is van egy kapcsolója, amellyel elérhetővé teheted a felhasználóknak; az e-mailhez a szerverbeállítások is kellenek. Az alkalmazáson belüli értesítés mindig be van kapcsolva.',
+    '„Csatornák”: az „E-mail (SMTP)”, a Webhook, az Ntfy és a Web Push csatornának is van egy kapcsolója, amellyel elérhetővé teheted a felhasználóknak; az „In-App” mindig be van kapcsolva. A kapcsolók alatti „E-mail (SMTP)” rész tartalmazza a levelezőszerver beállításait.',
   'help.ctx.admin-notifications.bullet.2':
-    '„Utazási emlékeztetők”: küldjön-e a szerver emlékeztetőt az utazás kezdete előtt.',
+    '„Utazási emlékeztetők”, a „Csatornák” utolsó sora: küldjön-e a szerver emlékeztetőt az utazás kezdete előtt.',
   'help.ctx.admin-notifications.bullet.3':
-    '„Admin webhook”, „Admin Ntfy” és az „Értesítések” kártya: ide kerülnek az adminisztrátori események („Új verzió elérhető”, „Tárhely-replika hiba”, „Evezős régiót kértek”), mindegyikhez egy teszt gombbal.',
-  'help.ctx.admin-mcp-tokens.title': 'MCP hozzáférés',
+    '„Rendszergazdai értesítések”, jobb oldalon: „Admin webhook” és „Admin Ntfy”, mindegyik egy teszt gombbal, alattuk pedig, hogy melyik csatorna küldi az egyes adminisztrátori eseményeket („Új verzió elérhető”, „Tárhely-replika hiba”, „Evezős régiót kértek”).',
+  'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
     'Az AI-kliensek összes tokenje és OAuth-munkamenete ehhez a TREK-példányhoz, az összes felhasználónál. Bármelyiket visszavonhatod.',
   'help.ctx.admin-mcp-tokens.bullet.1':
@@ -1627,12 +1662,12 @@ const help: TranslationStrings = {
   'help.guide.edit-user.step.1':
     'Kattints a felhasználó sorában a ceruzára („Felhasználó szerkesztése”). Az ablak tetején a fiók e-mail-címe látszik.',
   'help.guide.edit-user.step.2':
-    'Módosítsd a felhasználónevet, az e-mail-címet vagy a szerepkört, vagy adj meg egy új jelszót (ha üresen hagyod, a jelenlegi marad), és kattints a „Mentés” gombra. Az alul található „Passkey-k visszaállítása” megerősítés után a fiók összes passkey-ét eltávolítja.',
+    'Módosítsd a felhasználónevet, az e-mail-címet vagy a szerepkört, vagy adj meg egy új jelszót (ha üresen hagyod, a jelenlegi marad), és kattints a „Mentés” gombra. Lejjebb a „Passkey-k visszaállítása” a fiók összes passkey-ét eltávolítja, a „2FA visszaállítása” pedig kikapcsolja a kétlépcsős hitelesítését, mindkettő megerősítés után.',
   'help.guide.edit-user.result':
     'A módosítás azonnal érvénybe lép. Új jelszó megadásakor a felhasználó minden eszközén kijelentkeztetésre kerül, így a régi munkamenet nem használható tovább.',
   'help.guide.edit-user.tip.1': 'Amíg te vagy az utolsó admin, nem veheted el magadtól az admin szerepkört.',
   'help.guide.edit-user.tip.2':
-    'A jelkulcsok visszaállítása után a jelszó megmarad; az illető a Beállítások „Fiók” részében adhat hozzá új jelkulcsokat.',
+    'A passkey-k vagy a 2FA visszaállítása megtartja a jelszót. Az illető a Beállítások, „Fiók” részben adhat hozzá új passkey-ket, a 2FA visszaállítása után pedig mindenhol kijelentkezik, és újra beállíthatja.',
   // invite-links
   'help.guide.invite-links.title': 'Meghívás linkkel',
   'help.guide.invite-links.goal':
@@ -1733,25 +1768,30 @@ const help: TranslationStrings = {
   // auth-methods
   'help.guide.auth-methods.title': 'A bejelentkezési módok meghatározása',
   'help.guide.auth-methods.goal':
-    'A jelszavas bejelentkezés, az SSO és a regisztráció be- vagy kikapcsolása, valamint a 2FA kötelezővé tétele.',
+    'A jelszavas bejelentkezés, a regisztráció, az SSO és a passkey-k be- vagy kikapcsolása, valamint a 2FA kötelezővé tétele.',
   'help.guide.auth-methods.step.1':
-    'A „Hitelesítési módszerek” részben kapcsold be vagy ki a jelszavas bejelentkezést és a jelszavas regisztrációt; minden kapcsoló azonnal érvénybe lép. Kikapcsolt regisztrációnál új fiók csak meghívó linkkel, SSO-val vagy a „Felhasználó létrehozása” gombbal jöhet létre.',
+    'A „Biztonság” fülön, a „Hitelesítési módok” részben kapcsold be vagy ki a „Bejelentkezés jelszóval” és a „Regisztráció jelszóval” beállítást; minden kapcsoló azonnal érvénybe lép. Kikapcsolt regisztrációnál új fiók csak meghívó linkkel, SSO-val vagy a „Felhasználó létrehozása” gombbal jöhet létre.',
   'help.guide.auth-methods.step.2':
-    'Az „SSO Login” és az „SSO Auto-Provisioning” használatához be kell állítani lent az „Egyszeri bejelentkezés (OIDC)” részt. Az automatikus létrehozás akkor hoz létre fiókot, amikor valaki először jelentkezik be SSO-val.',
+    'Ha az „Egyszeri bejelentkezés (OIDC)” be van állítva, három SSO-sor következik: „SSO-bejelentkezés”, „SSO Auto-Provisioning”, amely fiókot hoz létre, amikor valaki először jelentkezik be SSO-val, és „Közvetlenül az SSO-ra”.',
   'help.guide.auth-methods.step.3':
-    'Kapcsold be a „Kétlépcsős hitelesítés (2FA) kötelezővé tétele” beállítást: így mindenkinek, akinek még nincs 2FA-ja, be kell állítania a Beállításokban, mielőtt használhatná a TREK-et.',
+    'A „Passkey-bejelentkezés engedélyezése” passkey-ket kínál a bejelentkezési oldalon. Kapcsold be a „2FA kötelezővé tétele” beállítást: így mindenkinek, akinek még nincs 2FA-ja, be kell állítania a Beállításokban, mielőtt használhatná a TREK-et.',
   'help.guide.auth-methods.result':
     'A bejelentkezési oldal pontosan azokat a módokat kínálja, amelyeket bekapcsolva hagytál.',
   'help.guide.auth-methods.tip.1':
     'A TREK nem engedi kikapcsolni az utolsó bejelentkezési módot: a kapcsolója kiszürkül, az elemleírásban pedig ez áll: „Legalább egy bejelentkezési módnak engedélyezettnek kell maradnia.”',
   'help.guide.auth-methods.tip.2':
     'Ha a szerveren be van állítva az OIDC_ONLY, a jelszavas kapcsolók zárolva vannak, és egy megjegyzés jelzi ezt.',
+  'help.guide.auth-methods.tip.3':
+    'A „Közvetlenül az SSO-ra” csak akkor számít, ha a „Bejelentkezés jelszóval” ki van kapcsolva: bekapcsolva a látogatók rögtön az identitásszolgáltatódhoz kerülnek; kikapcsolva előbb a bejelentkezési oldalt látják az SSO-gombbal.',
   // oidc
   'help.guide.oidc.title': 'Egyszeri bejelentkezés beállítása',
   'help.guide.oidc.goal': 'Lehessen bejelentkezni a saját identitásszolgáltatótokkal.',
   'help.guide.oidc.step.1':
-    'Az „Egyszeri bejelentkezés (OIDC)” részben add meg a gomb „Megjelenítendő név” értékét, az Issuer URL-t, valamint a szolgáltatódtól kapott „Kliens azonosító” és „Kliens titok” értékét. A „Discovery URL (opcionális)” mezőt csak akkor töltsd ki, ha a szolgáltatód nem a szokásos címen teszi közzé, ahogy például az Authentik. Kattints a „Mentés” gombra.',
-  'help.guide.oidc.step.2': 'A „Hitelesítési módok” alatt kapcsold be az „SSO-bejelentkezés” lehetőséget.',
+    'A „Biztonság” fülön, az „Egyszeri bejelentkezés (OIDC)” részben add meg a gomb „Megjelenítendő név” értékét, a „Kibocsátó URL”-t, valamint a szolgáltatódtól kapott „Kliens azonosító” és „Kliens titok” értékét. A „Discovery URL (opcionális)” mezőt csak akkor töltsd ki, ha a szolgáltatód nem a szokásos címen teszi közzé, ahogy például az Authentik. Kattints a „Mentés” gombra.',
+  'help.guide.oidc.step.2':
+    'Töltsd újra az oldalt. A kártyán most „Konfigurálva” áll, a „Hitelesítési módok” pedig mutatja az „SSO-bejelentkezés”, az „SSO Auto-Provisioning” és a „Közvetlenül az SSO-ra” beállítást. Kapcsold be az „SSO-bejelentkezés” lehetőséget.',
+  'help.guide.oidc.step.3':
+    'Ha az SSO-t szeretnéd az egyetlen belépési móddá tenni, kapcsold ki a „Bejelentkezés jelszóval” beállítást. A „Közvetlenül az SSO-ra” bekapcsolva a látogatók rögtön a szolgáltatódhoz kerülnek; kapcsold ki, ha meg szeretnéd tartani a bejelentkezési oldalt az SSO-gombbal.',
   'help.guide.oidc.result':
     'A bejelentkezési oldalon megjelenik az SSO gomb; ha az „SSO automatikus fióklétrehozás” be van kapcsolva, az első alkalommal belépők automatikusan fiókot kapnak.',
   'help.guide.oidc.tip.1':
@@ -1763,9 +1803,9 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     'Google-fotók és -értékelések, Unsplash-borítók és Amap-keresés az egész példány számára.',
   'help.guide.instance-keys.step.1':
-    'Az „API kulcsok” részben a legfelső, a TREK Places API, kulcs nélkül is kezeli a helykeresést. A „Mi van benne” felsorolja, mit fed le, és mit nem.',
+    'A „Szolgáltatások” fülön a „Helykeresés és útvonaltervezés” kártya a TREK API-val kezdődik, „Ajánlott alapértelmezés” jelöléssel. Kulcs nélkül válaszol a helykeresésre, a címekre és az útvonaltervezésre, a „Mai keret” pedig megmutatja, mennyi maradt a napból.',
   'help.guide.instance-keys.step.2':
-    'Fotókhoz, értékelésekhez és nyitvatartáshoz illessz be egy „Google Maps API kulcs” értéket, és kattints a „Teszt” gombra; az eredmény „Csatlakozva” vagy „Érvénytelen”. Nyisd meg a „Mire használja a kulcsot” részt, és csak azt kapcsold be, amiért fizetni szeretnél: „Helyfotók”, „Hely automatikus kiegészítése”, „Hely részletei”, „Helyek gazdagítása” és „Keresés csak a Google-lel”, valamint állíts be egy „Napi korlát a Google-hívásokra” értéket.',
+    'Fotókhoz, értékelésekhez és nyitvatartáshoz illessz be egy „Google Maps API kulcs” értéket az „API kulcsok” alatt, és kattints a „Teszt” gombra; az eredmény „Csatlakozva” vagy „Érvénytelen”. A „Mire használja a kulcsot” alatt csak azt kapcsold be, amiért fizetni szeretnél: „Helyfotók”, „Hely automatikus kiegészítése”, „Hely részletei”, „Helyek gazdagítása” és „Keresés csak a Google-lel”, valamint állíts be egy „Napi korlát a Google-hívásokra” értéket.',
   'help.guide.instance-keys.step.3':
     'Illeszd be az Unsplash API-kulcsot a borítókereséshez és az Amap (高德地图) API-kulcsot a szárazföldi Kínában történő helykereséshez, majd kattints a kártya alján a „Mentés” gombra.',
   'help.guide.instance-keys.result':
@@ -1781,7 +1821,7 @@ const help: TranslationStrings = {
   'help.guide.places-transit.goal':
     'Válaszd ki, melyik szolgáltatás válaszoljon a helykeresésekre és a tömegközlekedési útvonaltervezésre.',
   'help.guide.places-transit.step.1':
-    'A „Tömegközlekedési szolgáltató” alatt választhatsz: „Transitous (ingyenes)”, amely kulcs nélkül működik, és Európában a legerősebb, vagy Google, amely a Google-kulcsot használja. A választás azonnal mentődik.',
+    'A „Szolgáltatások” fülön, a „Helykeresés és útvonaltervezés” kártyán a „Tömegközlekedési szolgáltató” alatt választhatsz: „Transitous (ingyenes)”, amely kulcs nélkül működik, és Európában a legerősebb, vagy Google, amely a Google-kulcsot használja. A választás azonnal mentődik.',
   'help.guide.places-transit.step.2':
     'A „Helykeresési szolgáltató” alatt választhatod ki, melyik szolgáltatást kérdezze a TREK, ha a TREK indexe és az OpenStreetMap nem talál semmit: „Automatikus” (Google, ha van kulcs, utána Amap), Google Places, Amap (高德地图) vagy OpenStreetMap.',
   'help.guide.places-transit.result':
@@ -1793,7 +1833,7 @@ const help: TranslationStrings = {
   'help.guide.file-types.title': 'Fájltípusok korlátozása',
   'help.guide.file-types.goal': 'Döntsd el, milyen kiterjesztésű fájlokat lehet feltölteni.',
   'help.guide.file-types.step.1':
-    'Az „Engedélyezett fájltípusok” részben szerkeszd a vesszővel elválasztott kiterjesztéslistát, vagy írj be * jelet, ha minden típust engedélyeznél, majd kattints a „Mentés” gombra.',
+    'A „Szolgáltatások” fülön, az „Engedélyezett fájltípusok” részben szerkeszd a vesszővel elválasztott kiterjesztéslistát, vagy írj be * jelet, ha minden típust engedélyeznél, majd kattints a „Mentés” gombra.',
   'help.guide.file-types.result':
     'Minden más típusú feltöltést a TREK egyértelmű üzenettel elutasít, a dokumentumoknál, az útinaplóban és a borítóknál is.',
   'help.guide.file-types.tip.1':
@@ -1802,9 +1842,9 @@ const help: TranslationStrings = {
   'help.guide.toggle-addon.title': 'Bővítmény be- vagy kikapcsolása',
   'help.guide.toggle-addon.goal': 'Tegyél elérhetővé mindenki számára egy funkciómodult, vagy távolítsd el.',
   'help.guide.toggle-addon.step.1':
-    'Kattints a bővítmény csempéjén a kapcsolóra. A menüpont mindenkinél azonnal megjelenik vagy eltűnik.',
+    'Keresd meg a bővítményt a kártyáján, „Utazás”, „Globális” vagy „Integráció”, és kattints a sorában lévő kapcsolóra. A menüpont mindenkinél azonnal megjelenik vagy eltűnik.',
   'help.guide.toggle-addon.step.2':
-    'Egyes csempékhez alsorok tartoznak a beállításokkal, például a „Poggyászkövetés” a „Listák” alatt vagy a fotószolgáltatók az „Útinaplók” alatt; ezek csak akkor látszanak, ha a bővítmény be van kapcsolva.',
+    'Amíg egy bővítmény be van kapcsolva, a beállításai behúzott sorokként követik, például a „Poggyászkövetés” a „Listák” alatt vagy a fotószolgáltatók az „Útinaplók” alatt. Az élő járatállapot, az „Utazás” kártya alján, élőben követi a lefoglalt járatokat.',
   'help.guide.toggle-addon.result':
     'Ha kikapcsolsz egy bővítményt, az adatai megmaradnak. Ha visszakapcsolod, az adatok újra megjelennek.',
   'help.guide.toggle-addon.tip.1': 'Az MCP kikapcsolásával eltűnik a végpont és az „Integrációk” tőle függő részei is.',
@@ -1815,11 +1855,11 @@ const help: TranslationStrings = {
   'help.guide.install-plugin.goal':
     'Telepíts egy külső fejlesztésű plugint, és add meg neki pontosan azokat a jogosultságokat, amelyeket kér.',
   'help.guide.install-plugin.step.1':
-    'Nyisd meg a „Felfedezés” lapot, keress egy plugint a „Pluginok keresése…” mezővel vagy a „Típus” szűrővel, és kattints a „Telepítés” gombra. Csomagfájlhoz kattints a „Plugin feltöltése” gombra (felhő ikon a kártya jobb felső sarkában), vagy húzd a .zip fájlt az oldalra.',
+    'Nyisd meg a „Felfedezés” lapot, keress egy plugint a „Pluginok keresése…” mezővel vagy a szűrővel, és kattints a „Telepítés” gombra. Csomagfájlhoz kattints a „Plugin feltöltése” gombra (felhő ikon a kártya jobb felső sarkában), vagy húzd a .zip fájlt az oldalra.',
   'help.guide.install-plugin.step.2':
     'A „Telepítve” alatt olvasd el a sort: mihez férhet hozzá a plugin, mely kiszolgálókhoz csatlakozik, és „Ellenőrizve” és „Aláírva” van-e. Ezután kapcsold be a „Plugin engedélyezése” beállítást; a sorban „Aktív” jelzés jelenik meg.',
   'help.guide.install-plugin.step.3':
-    'A sor ⋯ menüjében található az „Újraindítás”, a „Hibanapló megtekintése”, az „Engedélyezett kiszolgálók” és a „Verzióváltás…”, valamint a forrásra mutató linkek; a „Törlés” eltávolítja a plugint és az adatait. Ha újabb verzió érhető el, frissítésként jelenik meg a sorban, és ha új jogosultságokat kér, kikapcsolva marad, amíg jóvá nem hagyod őket.',
+    'A sor ⋯ menüjében található az „Újraindítás”, a „Példányszintű beállítások”, ha a pluginnek vannak, a „Hibanapló megtekintése”, az „Engedélyezett hosztok” és a „Verzióváltás…”, valamint a forrásra mutató linkek; a „Törlés” eltávolítja a plugint és az adatait. Ha újabb verzió érhető el, frissítésként jelenik meg a sorban, és ha új jogosultságokat kér, kikapcsolva marad, amíg jóvá nem hagyod őket.',
   'help.guide.install-plugin.result':
     'A plugin saját folyamatban fut. Amit hozzáad, például widgetek, térképrétegek vagy eszközök, ott jelenik meg, ahol a plugin meghatározza.',
   'help.guide.install-plugin.tip.1':
@@ -1835,7 +1875,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'A „Kategóriák” részben rendeld hozzá a feltöltések egyes típusait, például az „Útidokumentumok”, az „Útinapló-fotók” vagy a „Biztonsági mentések” kategóriát, egy-egy backendhez.',
   'help.guide.storage-backends.step.3':
-    'Kattints alul a „Módosítások mentése” gombra. Ha egy kategória mostantól máshová mutat, a TREK megkérdezi, hogy a „Meglévő objektumok áthelyezése” vagy a „Csak az új írások irányítása” legyen.',
+    'Kattints a „Kategóriák” alján a „Módosítások mentése” gombra. Ha egy kategória mostantól máshová mutat, a TREK megkérdezi, hogy a „Meglévő objektumok áthelyezése” vagy a „Csak az új írások irányítása” legyen.',
   'help.guide.storage-backends.result':
     'Az új feltöltések a hozzárendelt backendre kerülnek. Az áthelyezett fájlokat a TREK onnan szolgálja ki, ami pedig nem került áthelyezésre, az a régi helyén marad.',
   'help.guide.storage-backends.tip.1':
@@ -1847,11 +1887,11 @@ const help: TranslationStrings = {
   'help.guide.channels-instance.goal':
     'Döntsd el, mely csatornák közül választhatnak a felhasználók, és állítsd be az e-mailt.',
   'help.guide.channels-instance.step.1':
-    'A kártya fejlécében kapcsold be az „E-mail (SMTP)” kapcsolót, add meg az SMTP-kiszolgálót, az SMTP-portot, az SMTP-felhasználót, az SMTP-jelszót és a feladó címét, majd kattints a „Mentés” gombra. A „Teszt e-mail küldése” egy e-mailt küld neked. A „TLS-tanúsítvány ellenőrzésének kihagyása” csak saját tanúsítványt használó helyi levelezőszerverhez való.',
+    'A „Csatornák” kártyán kapcsold be az „E-mail (SMTP)” csatornát. Az alatta lévő „E-mail (SMTP)” részben add meg az SMTP-kiszolgálót, az SMTP-portot, az SMTP-felhasználót, az SMTP-jelszót és a feladó címét, majd kattints a „Mentés” gombra. A „Teszt e-mail küldése” egy e-mailt küld neked. A „TLS-tanúsítvány ellenőrzésének kihagyása” csak saját tanúsítványt használó helyi levelezőszerverhez való.',
   'help.guide.channels-instance.step.2':
-    'Kapcsold be a Webhook, az Ntfy és a Web Push csatornát, hogy elérhetők legyenek. A felhasználók ezután a Beállítások, Értesítések menüpontban adhatják meg a saját URL-jüket vagy témájukat, illetve eszközönként kapcsolhatják be a pusht.',
+    'Kapcsold be a Webhook, az Ntfy és a Web Push csatornát ugyanezen a kártyán, hogy elérhetők legyenek. A felhasználók ezután a Beállítások, Értesítések menüpontban adhatják meg a saját URL-jüket vagy témájukat, illetve eszközönként kapcsolhatják be a pusht.',
   'help.guide.channels-instance.step.3':
-    'Az „Utazási emlékeztetők” az utazás kezdete előtti emlékeztetőt kapcsolja be vagy ki; az alkalmazáson belüli értesítés mindig be van kapcsolva.',
+    'Az „Utazási emlékeztetők”, az utolsó sor, az utazás kezdete előtti emlékeztetőt kapcsolja be vagy ki; az „In-App” mindig be van kapcsolva.',
   'help.guide.channels-instance.result': 'Minden felhasználó „Értesítések” fülén a bekapcsolt csatornák jelennek meg.',
   'help.guide.channels-instance.tip.1':
     'Az adminisztrátori Ntfy kártyán megadott „Ntfy szerver URL” egyben a felhasználók alapértelmezett szervere is. A felhasználók ettől még saját szervert is megadhatnak.',
@@ -1862,7 +1902,7 @@ const help: TranslationStrings = {
   'help.guide.admin-channels.goal':
     'Kapj értesítést az új kiadásokról, a hibás tárhelytükrökről és az evezős régiókérésekről.',
   'help.guide.admin-channels.step.1':
-    'Az „Admin Ntfy” alatt add meg az adminisztrátori témát, és ha kell, az „Ntfy szerver URL” címet és egy hozzáférési tokent (opcionális); az „Admin webhook” alatt egy URL-t. Mindkét kártyán kattints a „Mentés” gombra.',
+    'A „Rendszergazdai értesítések” kártyán az „Admin webhook” alatt add meg egy URL-t, és kattints a saját „Mentés” gombjára. Az „Admin Ntfy” alatt add meg az „Admin téma” értékét, és ha kell, az „Ntfy szerver URL” címet és egy hozzáférési tokent (opcionális), majd kattints a „Mentés” gombra.',
   'help.guide.admin-channels.step.2':
     'Kattints a „Teszt Ntfy küldése” vagy a „Teszt webhook küldése” gombra, és nézd meg, megérkezik-e az üzenet.',
   'help.guide.admin-channels.result':
@@ -1952,6 +1992,65 @@ const help: TranslationStrings = {
     'Itt csak arról döntesz, hogy egy tárhely felkínálható-e. A cím és a hitelesítő adatok az adott utazáshoz tartoznak: ezeket az utazás tulajdonosa adja meg az utazás „Fájl” fülén, sosem az adminfelületen.',
   'help.guide.document-providers.tip.2':
     'A „Dokumentumok” kikapcsolásával minden tárhely is kikapcsol, és amíg a „Dokumentumok” ki van kapcsolva, egyetlen tárhelyet sem kapcsolhatsz be: a szerver ezt válaszolja: „Enable the Documents addon first”. A saját hálózatodon lévő tárhelyhez a szerveren az ALLOW_INTERNAL_NETWORK=true beállítás is szükséges.',
+  'help.guide.mail-import-setup.title': 'A foglalási e-mailek importálásának beállítása',
+  'help.guide.mail-import-setup.goal':
+    'Adj mindenkinek továbbítási címet, hogy a továbbított foglalási visszaigazolásokból foglalás legyen a megfelelő utazásban.',
+  'help.guide.mail-import-setup.step.1':
+    'A „Bővítmények” fülön, az „Integráció” kártyán kapcsold be a „Foglalási e-mailek importja” bővítményt. Ezen a TREK-en mostantól mindenki személyes továbbítási címet kap.',
+  'help.guide.mail-import-setup.step.2': 'Kattints az „E-mail-import beállítása” sorra, amely alatta jelenik meg.',
+  'help.guide.mail-import-setup.step.3':
+    'A „Hogyan érkezik a levél” alatt válaszd az „IMAP-postafiók” lehetőséget, és add meg a kiszolgálót, a portot, a titkosítást, a felhasználót, a jelszót és a mappát. Válaszd inkább a „Webhook” lehetőséget olyan levelezőszolgáltatóhoz, amely minden levelet a TREK-nek küld, vagy a „Csak feltöltés” lehetőséget, ha postafiók nélkül szeretnéd kipróbálni. Ezután állítsd be a „Címsablon” mezőt, vagyis a továbbítási címet egy helyőrzővel oda, ahová az egyes emberek kódja kerül, valamint az „AI-e-mailek személyenként és naponta” értéket.',
+  'help.guide.mail-import-setup.step.4':
+    'Kattints a „Mentés”, majd a „Kapcsolat tesztelése” gombra; az eredmény „Csatlakozva”, vagy megmondja, mi hibás. Lejjebb az ablak megmutatja, mikor olvasta utoljára a TREK a leveleket, és az elmúlt 24 óra leveleit: „Magától hozzáadva”, „Várakozik” és „Sikertelen”.',
+  'help.guide.mail-import-setup.result':
+    'Mindenki a Beállítások, Integrációk részben találja a saját továbbítási címét. A továbbított visszaigazolásból foglalás lesz a megfelelő utazásban, vagy ott vár, hogy a tulajdonosa megnézze.',
+  'help.guide.mail-import-setup.tip.1':
+    'Adj a TREK-nek egy külön postafiókot, amely fogadja a plusz címeket (trek+…@a-te-domained), ne személyeset. Az elolvasott levelek a TREK/processed mappába kerülnek.',
+  'help.guide.mail-import-setup.tip.2':
+    'A MAIL_INGEST_ előtaggal kezdődő környezeti változók felülírják az ablak mezőit. A saját hálózaton lévő levelezőszerverhez ezenkívül ALLOW_INTERNAL_NETWORK=true kell a szerveren.',
+  'help.guide.mail-import-setup.tip.3':
+    'Az „AI-e-mailek személyenként és naponta” azt korlátozza, hány géppel olvasható foglalási adat nélküli levelet olvas el az AI egy személynek naponta. E fölött már csak a géppel olvasható adatokat olvassa be.',
+  'help.guide.ai-setup.title': 'Az MI-asszisztens beállítása',
+  'help.guide.ai-setup.goal':
+    'Csatlakoztass egyszer egy MI-szolgáltatót, hogy ezen a TREK-en mindenki tervezhessen az asszisztenssel.',
+  'help.guide.ai-setup.step.1':
+    'A „Bővítmények” fülön, az „Integráció” kártyán keresd meg az MI csempét, és kapcsold be az „MI-asszisztens” kapcsolót. Az „MI-elemzés” és az „MCP” ugyanabban a csempében található.',
+  'help.guide.ai-setup.step.2': 'Kattints az „MI beállítása” gombra, ez a kapcsolók alatt megjelenő sor.',
+  'help.guide.ai-setup.step.3':
+    'A „Ki fizet” résznél válaszd ki, ki biztosítja a kapcsolatot: „Én fizetek, saját is engedélyezett”, „Én fizetek mindenkiért” vagy „Mindenki a saját fiókját használja”. Az alatta lévő sor megmondja, mit jelent a választásod.',
+  'help.guide.ai-setup.step.4':
+    'A „Kapcsolat mindenkinek” résznél válaszd az „API-kulcs beillesztése” lehetőséget, és illeszd be az Anthropic, az OpenAI, a Gemini vagy az OpenRouter kulcsát. A TREK kiírja, melyik szolgáltatót ismerte fel. Kattints a „Csatlakoztatás” gombra; a TREK mentés előtt ellenőrizteti a kulcsot a szolgáltatóval.',
+  'help.guide.ai-setup.step.5':
+    'A kapcsolat „Kapcsolódva” állapotot mutat. Válaszd ki a „Modell”-t, amellyel mindenki csevegni fog; csak az eszközöket használni tudó modellek jelennek meg. A „Módosítás” és a „Kapcsolat eltávolítása” alatta található.',
+  'help.guide.ai-setup.step.6':
+    'Az „MI-asszisztens” fülön add meg az „Üzenetek személyenként naponta” értékét arra az időre, amíg te fizetsz, azt, hogy meddig tartsa meg a „Csevegések megőrzése”, és hogy engedélyezett-e a „Webes keresés”. Minden módosítás azonnal mentődik.',
+  'help.guide.ai-setup.result':
+    'Az asszisztens gombja minden utazásban megjelenik. Ha engedélyezted, a felhasználók a Beállítások, Integrációk menüpontban a saját szolgáltatójukat is csatlakoztathatják.',
+  'help.guide.ai-setup.tip.1':
+    'A „Saját szerver” bármilyen OpenAI-kompatibilis címet elfogad, például az Ollamáét, nem kötelező kulccsal és a modell nevével. A „Bejelentkezés ChatGPT-vel” a saját ChatGPT-előfizetésedet osztja meg mindenkivel; ellenőrizd, hogy az előfizetésed ezt megengedi-e.',
+  'help.guide.ai-setup.tip.2':
+    'A „Mindenki a saját fiókját használja” esetén neked semmi sem kerül költségbe, és a napi korlát sem érvényes.',
+  'help.guide.ai-setup.tip.3':
+    'Az MI-elemzés ugyanezzel a kapcsolattal olvassa be a foglalásokat. Kapcsold be a csempében; a párbeszédablak saját füle pedig lehetővé teszi, hogy másik kapcsolatot használjon.',
+  'help.guide.ai-setup.tip.4':
+    'A webes keresés a ChatGPT-vel, az Anthropickal és az OpenRouterrel működik, a szolgáltató saját keresőjén keresztül, és a keresések csak ahhoz a szolgáltatóhoz jutnak el.',
+  'help.guide.paddle-water-data.title': 'Vízadatok betöltése evezős túrákhoz',
+  'help.guide.paddle-water-data.goal':
+    'Add meg az evezős túrákhoz egy régió duzzasztóit, zsilipjeit és evezési szabályait, és döntsd el, hogy a TREK magától töltsön-e be új régiókat.',
+  'help.guide.paddle-water-data.step.1':
+    'A „Bővítmények” fülön, amíg a „Túrák” be van kapcsolva, kattints a „Vízi adatok evezéshez” sorra, a „Túrák” alatti utolsó sorra. A mellette lévő szám a régiókat vagy a rád váró kéréseket mutatja.',
+  'help.guide.paddle-water-data.step.2':
+    'A „Régiók automatikus betöltése” alatt válaszd az „Automatikus”, a „Kérésre” vagy a „Ki” lehetőséget. Az „Automatikus” betölti azt a régiót, ahol valaki evezős túrát tervez, az „Az automatikusan betöltött legnagyobb régió” méretéig; ami ennél nagyobb, az a „Kért” alatt vár, ahol a „Betöltés” beolvassa, az „Elutasítás” pedig elveti.',
+  'help.guide.paddle-water-data.step.3':
+    'A „Régió hozzáadása” alatt keress egy régiót a Geofabrikban, például Oberpfalz, és kattints mellette a „Hozzáadás” gombra. A TREK a háttérben beolvassa; ha „Kész”, a sorában látod az objektumokat, az adatok dátumát és a vízi utak kilométereit. Az „Újraolvasás” frissíti, a „Régió eltávolítása” törli.',
+  'help.guide.paddle-water-data.result':
+    'A régión belüli evezős túrák megmutatják az akadályait, és követik a vízi utat, a TREK pedig havonta újra beolvassa az összes régiót.',
+  'help.guide.paddle-water-data.tip.1':
+    'A Geofabrikhoz csak a régió neve jut el, soha egy valaki által tervezett hely.',
+  'help.guide.paddle-water-data.tip.2':
+    'Egy régió beolvasása néhány percig tart, és közben memóriát használ; egy egész országhoz néhány gigabájt ideiglenes tárhely kell.',
+  'help.guide.paddle-water-data.tip.3':
+    'Az adminok „Evezős régiót kértek” értesítést kapnak, ha egy kérés vár. Az „Értesítések” fülön, a „Rendszergazdai értesítések” alatt választhatod ki, hová menjen.',
 
   // ── Screen: trip ──────────────────────────────────────────────────────────────────────
   'help.ctx.trip.title': 'Utazás',
@@ -1962,9 +2061,9 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.2':
     'A „Terv” fül három oszlopból áll: balra a napok, középen a térkép, jobbra a helyek. Az Autós út bővítménnyel a napok oszlopa egy „Nap” és „Autós út” kapcsolóval kezdődik, a Túrák bővítménnyel a helyek oszlopa egy „Hely” és „Túrák” kapcsolóval. A foglalások és a közlekedés a terv részei, a megállóknál és a megállók között jelennek meg; a fülek felsorolják őket.',
   'help.ctx.trip.bullet.3':
-    'A bal felső sarokban, az utazás neve melletti „Utazás beállításai” gomb megnyitja az utazás beállításait: „Személyek” (tagok és vendégek), „Megosztás” (a csak olvasható nyilvános link és a meghívó link) és „Napló”.',
+    'A bal felső sarokban, az utazás neve melletti „Utazás beállításai” gomb megnyitja az utazás beállításait: „Személyek” (tagok és vendégek), „Megosztás” (a csak olvasható nyilvános link és a meghívó link), „Napló”, „Bővítmények” az utazás tulajdonosának, és „Utazás szerkesztése”.',
   'help.ctx.trip.bullet.4':
-    'A címet, a dátumokat, a borítót és a pénznemet az „Utazásaim” oldalon szerkesztheted, az utazáskártya ceruza ikonjával. A bal felső sarokban az utazás nevére kattintva visszajutsz oda.',
+    'Az „Utazás beállításai” részben az „Utazás szerkesztése” módosítja a címet, a leírást, a dátumokat, a borítót és a pénznemet; az „Utazásaim” oldalon az utazáskártya ceruza ikonja ugyanezt az űrlapot nyitja meg. A bal felső sarokban az utazás nevére kattintva visszajutsz az „Utazásaim” oldalra.',
   'help.ctx.trip.bullet.5':
     'Az oszlop belső szélén lévő fül összecsukja az oszlopot, és a térkép kitölti a felszabadult helyet. Az összecsukott oszlop helyén a térkép felső sarkában egy kis csempe látszik: rákattintva újra megjelenik az oszlop. Az oszlop melletti vékony elválasztót húzva módosíthatod a szélességét.',
   'help.ctx.trip.bullet.6':
@@ -2016,9 +2115,9 @@ const help: TranslationStrings = {
   'help.guide.public-link.step.1':
     'Kattints az utazás neve melletti „Utazás beállításai” gombra, és bal oldalon válaszd a „Megosztás” lehetőséget.',
   'help.guide.public-link.step.2':
-    'A „Nyilvános link” kártyán kapcsold be, mit mutathat a link. A „Térkép és terv” mindig be van kapcsolva; a foglalások, a csomagolás, a költségek és a csevegés megjelenítéséről te döntesz.',
+    'A „Nyilvános link” kártyán az „Opciók” alatt kapcsold be, mit mutathat a link. A „Térkép és terv” mindig be van kapcsolva; a „Foglalások”, a „Csomagolás”, a „Költségek” és a „Csevegés” megjelenítéséről te döntesz.',
   'help.guide.public-link.step.3':
-    'Az „Opciók” alatt a „Csak utazás és szállás” kihagyja a programokat, a napi jegyzeteket és az üres napokat. A „Fotók nélkül” kihagyja a helyek fotóit.',
+    'Az utolsó két gomb azt módosítja, hogyan mutatja a link az utazást: a „Csak utazás és szállás” kihagyja a programokat, a napi jegyzeteket és az üres napokat, a „Fotók nélkül” pedig a helyek fotóit.',
   'help.guide.public-link.result':
     'Aki ismeri a linket, bejelentkezés nélkül látja a kiválasztott részeket, de semmit sem módosíthat.',
   'help.guide.public-link.tip.1':
@@ -2063,6 +2162,30 @@ const help: TranslationStrings = {
     'A visszavonás a tervre vonatkozik: helyek hozzáadása, hozzárendelése, eltávolítása, átrendezése, áthelyezése és rögzítése, nap kiürítése, útvonal-optimalizálás, helyek törlése, kategóriamódosítások és importálások.',
   'help.guide.undo-change.tip.2':
     'Újabb kattintással tovább léphetsz vissza: a TREK ezen az utazáson az utolsó 30 módosításodat tartja meg, a legújabbal kezdve, amíg el nem hagyod az utazást.',
+  'help.guide.trip-assistant.title': 'Tervezés az asszisztenssel',
+  'help.guide.trip-assistant.goal': 'Kérdezd az asszisztenst az utazásodról, és vedd fel a tervbe, amit javasol.',
+  'help.guide.trip-assistant.step.1':
+    'Kattints a tervező jobb alsó sarkában lévő, szikrákkal díszített kerek gombra. Az asszisztens egy kis ablakban nyílik meg a térkép fölött.',
+  'help.guide.trip-assistant.step.2':
+    'Írd be a kérdésedet az alsó mezőbe, például hogy hol vacsorázhatsz egy adott napon, és a nyílra kattintva küldd el. A javasolt kérdések egyikére is rákattinthatsz.',
+  'help.guide.trip-assistant.step.3':
+    'A válasz ismeri a terved. A javasolt módosítás először egy kártyán vár, amely megmutatja, mit vesz fel és melyik napra. Kattints az „Alkalmazás” gombra az átvételhez, vagy az „Elvetés” gombra, ha a terv maradjon úgy, ahogy van.',
+  'help.guide.trip-assistant.step.4':
+    'Ha az utazás minden résztvevőjének meg akarod mutatni a választ, kattints az alatta lévő megosztás ikonra. A súgószövege: „Megosztás az út csevegésében”.',
+  'help.guide.trip-assistant.step.5':
+    'Nézd át az üzenetet pontosan úgy, ahogy meg fog érkezni, az általad alkalmazott módosításokkal, majd kattints a „Megosztás” gombra.',
+  'help.guide.trip-assistant.result':
+    'A hely a terved megfelelő napján van, a válasz pedig az utazás csevegésében, az asszisztens jelölésével.',
+  'help.guide.trip-assistant.tip.1':
+    'Az „Alkalmazás” megnyomásáig semmi sem változik. Utána a módosítás melletti nyíl egy ideig visszavonja azt, a kártyán az „Előtte” és az „Utána” pedig a térképet mutatja a korábbi és a mostani állapotában.',
+  'help.guide.trip-assistant.tip.2':
+    'Egy válasz alatt az asszisztens javasol további kérdéseket. Írj @ jelet a mezőbe, hogy megnevezz egy napot, egy helyet vagy egy foglalást, vagy húzz egy foglalási visszaigazolást az ablakra, hogy beolvassa.',
+  'help.guide.trip-assistant.tip.3':
+    'A Ctrl+K (Macen ⌘K) megnyitja és bezárja az ablakot. A fejlécénél fogva mozgathatod, a szélét húzva átméretezheted. Bezáráskor a csevegés megmarad, a fejlécben a „Legutóbbi csevegések” pedig visszahozza a korábbiakat.',
+  'help.guide.trip-assistant.tip.4':
+    'Az „Útijegyzet”, a fejlécben lévő jegyzetfüzet, azt tartalmazza, mit tartson szem előtt az asszisztens minden javaslatánál ezen az utazáson, például a költségkeretet vagy a lassú tempót.',
+  'help.guide.trip-assistant.tip.5':
+    'A gomb csak akkor látszik, ha van beállított MI-kapcsolat: vagy az admin állította be mindenkinek, vagy te a Beállítások, Integrációk menüpontban. Az üzeneteid és az utazás általad olvasott adatai ahhoz a szolgáltatóhoz kerülnek.',
   'help.guide.clear-day.title': 'Nap kiürítése',
   'help.guide.clear-day.goal': 'Vedd le egyszerre az összes helyet egy napról, például ha elölről tervezed újra.',
   'help.guide.clear-day.step.1': 'Kattints jobb gombbal a nap fejlécére a tervben.',
@@ -2080,9 +2203,9 @@ const help: TranslationStrings = {
   'help.ctx.trip-places.bullet.2':
     'A „Hely/Tevékenység hozzáadása” egy keresett vagy beírt hely űrlapját nyitja meg. Ha egy nap meg van nyitva, a gombon „Új hely” áll, a mellette lévő „A naphoz” pedig egyenesen arra a napra hozza létre a helyet.',
   'help.ctx.trip-places.bullet.3':
-    'A mellette lévő ikongomb, a „Helyek importálása”, a „Lista importálás” lehetőséget kínálja a Google Mapsből vagy a Naver Mapsből megosztott listákhoz. Ha a rendszergazda kikapcsolta a Túrák bővítményt, a „Fájl importálása” is megjelenik a .gpx, .kml és .kmz fájlokhoz, és fájlt az oszlopra húzva is importálhatsz.',
+    'A mellette lévő ikongomb, a „Helyek importálása”, a „Fájl importálása” lehetőséget kínálja a .gpx, .kml és .kmz fájlokhoz, a „Lista importálás” lehetőséget pedig a Google Mapsből vagy a Naver Mapsből megosztott listákhoz. Fájlt az oszlopra húzva is importálhatsz. Ha a Túrák bővítmény be van kapcsolva, az útvonalat vagy nyomvonalat tartalmazó fájl a Túrák importálását nyitja meg, amely az egyes pontjait helyként is behozhatja.',
   'help.ctx.trip-places.bullet.4':
-    'Alattuk a „Keresés”, amely a leírásokban és jegyzetekben is keres, mellette pedig a „Jelölés” jelölőnégyzet. Az alatta lévő sorban vannak a szűrők: a „Megjelenítés” a „Mind”, a „Nem tervezett” és a „Tervezett” nézet között vált, mindegyiknél a darabszámmal. A címke gomb kategória, a csillag minimális értékelés, a földgömb (ha az utazás több országot vagy régiót érint) ország vagy régió szerint szűr, a „Rendezés” pedig a lista sorrendjét állítja be.',
+    'Alattuk a „Keresés”, amely a leírásokban és jegyzetekben is keres, mellette pedig a „Jelölés” jelölőnégyzet. Az alatta lévő sorban vannak a szűrők: a „Megjelenítés” a „Mind”, a „Nem tervezett” és a „Tervezett” nézet között vált, mindegyiknél a darabszámmal. A címke gomb kategória és az utazás címkéi, a csillag minimális értékelés, a földgömb (ha az utazás több országot vagy régiót érint) ország vagy régió szerint szűr, a „Rendezés” pedig a lista sorrendjét állítja be.',
   'help.ctx.trip-places.bullet.5':
     'Egy sorban a kép, a név és a leírás vagy a cím látszik, valamint egy csillag az átlagos értékeléssel, ha valaki már értékelte a helyet. Kattints rá a hely részleteiért, húzd egy napra, vagy kattints rá jobb gombbal (illetve a három pontra, „További lehetőségek”) a „Szerkesztés”, „+ Nap”, „Weboldal megnyitása”, Google Maps, „Mentés gyűjteménybe” és „Törlés” eléréséhez.',
   'help.ctx.trip-places.bullet.6':
@@ -2098,7 +2221,7 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.3':
     'A „Hely részletei” részben a „Válassz képet” alatt kattints egy képre, és az lesz a hely képe. A „Szöveg átvétele” bemásolja a leírást az űrlapba.',
   'help.guide.create-place.step.4':
-    'Ellenőrizd az űrlap mezőit. Csak az ablak tetején lévő név kötelező. Az alatta lévő „Kategória” gombbal az utazás egyik kategóriáját választhatod ki, a mellette lévő + gombbal újat hozhatsz létre. A „Cím”, a „Szélességi fok” és a „Hosszúsági fok” a keresésből jön, vagy te írod be. A „Leírás” és a „Jegyzetek” a saját szövegeidnek való. A „Weboldal” mezőbe a linket írhatod, a „Fájl” alatti „Csatolás” dokumentumot ad hozzá, a „Telefon”, az „E-mail” és a „Nyitvatartás hozzáadása” pedig azokhoz az adatokhoz való, amelyeket a keresés nem talált meg.',
+    'Ellenőrizd az űrlap mezőit. Csak az ablak tetején lévő név kötelező. Az alatta lévő „Kategória” gombbal az utazás egyik kategóriáját választhatod ki, a mellette lévő + gombbal újat hozhatsz létre. A „Cím”, a „Szélességi fok” és a „Hosszúsági fok” a keresésből jön, vagy te írod be. A „Címkék” alatt kattints azokra a címkékre, amelyeket a helynek viselnie kell. Az „A helyről” és a „Jegyzetek” fül között válthatsz a szövegmezőben a leírás és a saját jegyzeteid között. A „Weboldal” mezőbe a linket írhatod, a „Fájl” alatti „Csatolás” dokumentumot ad hozzá, a „Telefon”, az „E-mail” és a „Nyitvatartás hozzáadása” pedig azokhoz az adatokhoz való, amelyeket a keresés nem talált meg.',
   'help.guide.create-place.step.5':
     'Kattints a „Hozzáadás” gombra. Ha az utazásban már van azonos nevű vagy azonos helyen lévő hely, a TREK figyelmeztet, és a gomb felirata „Hozzáadás mindenképp” lesz.',
   'help.guide.create-place.result':
@@ -2132,7 +2255,7 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.2':
     'Írj a felül lévő „Keresés” mezőbe. A lista gépelés közben szűkül név, cím, leírás és jegyzetek alapján; a mezőben lévő x törli a keresést.',
   'help.guide.filter-places.step.3':
-    'A „Megjelenítés” melletti címkegomb felsorolja a kategóriákat: jelölj be egyet vagy többet, akár a „Nincs kategória” lehetőséget is. A gombon látszik, hány van bejelölve, a lista alján pedig a „Szűrő törlése” mindet eltávolítja.',
+    'A „Megjelenítés” melletti címkegomb felsorolja a kategóriákat, köztük a „Nincs kategória” lehetőséget, a „Címkék” alatt pedig az utazás címkéit. Jelölj be egyet vagy többet. A gombon látszik, hány van bejelölve, a lista alján pedig a „Szűrő törlése” mindet eltávolítja.',
   'help.guide.filter-places.step.4':
     'A mellette lévő csillaggal minimális értékelést állíthatsz be: az 5+, a 4+ és így tovább csak azokat a helyeket hagyja meg, amelyek átlagos értékelése legalább ennyi. Az értékelés nélküli helyek rejtve maradnak.',
   'help.guide.filter-places.result':
@@ -2148,12 +2271,12 @@ const help: TranslationStrings = {
   'help.guide.edit-place.step.1':
     'Kattints jobb gombbal a sorra, és válaszd a „Szerkesztés” lehetőséget, vagy kattints a sor végén a „További lehetőségek” gombra, vagy nyisd meg a helyet, és a részleteinél kattints a „Szerkesztés” gombra.',
   'help.guide.edit-place.step.2':
-    'A „Hely szerkesztése” ablakban módosítsd, amit kell: a nevet és a „Kategória” gombot az ablak tetején, a „Cím”, a „Szélességi fok”, a „Hosszúsági fok”, a „Leírás”, a „Jegyzetek”, a „Weboldal”, a „Telefon”, az „E-mail” mezőt és a nyitvatartást. Ha a hely pontosan egy napon szerepel, vagy egy napról nyitottad meg, az űrlapon a „Kezdés”, a „Befejezés” és a „Jegyzetek erre a napra” mező is megjelenik.',
+    'A „Hely szerkesztése” ablakban módosítsd, amit kell: a nevet és a „Kategória” gombot az ablak tetején, a „Cím”, a „Szélességi fok”, a „Hosszúsági fok”, a „Címkék”, az „A helyről” és a „Jegyzetek” alatti szövegeket, a „Weboldal”, a „Telefon”, az „E-mail” mezőt és a nyitvatartást. Ha a hely pontosan egy napon szerepel, vagy egy napról nyitottad meg, az űrlapon a „Kezdés” és a „Befejezés” mező is megjelenik, valamint egy harmadik szövegfül, például „Csak 2. nap”, az adott látogatásra szóló jegyzethez.',
   'help.guide.edit-place.step.3': 'Kattints a „Frissítés” gombra.',
   'help.guide.edit-place.result':
     'A módosítás mindenhol érvényes, ahol a hely szerepel: a listában, a térképen és minden napon, amelyre be van osztva.',
   'help.guide.edit-place.tip.1':
-    'A „Jegyzetek erre a napra” a helyhez csak azon az egy napon tartozik, a „Jegyzetek” viszont magához a helyhez.',
+    'A „Csak ... nap” alatti jegyzet a helyhez csak azon az egy napon tartozik; az „A helyről” és a „Jegyzetek” magához a helyhez.',
   'help.guide.edit-place.tip.2':
     'Ha a „Befejezés” a „Kezdés” előtt van, a „Frissítés” nem lehetséges; az „Időbeli átfedés:” csak figyelmeztet, hogy a nap egy másik megállója ugyanarra az időre esik.',
   // delete-place
@@ -2188,20 +2311,21 @@ const help: TranslationStrings = {
   // import-places-file
   'help.guide.import-places-file.title': 'Helyek importálása GPX, KML vagy KMZ fájlból',
   'help.guide.import-places-file.goal':
-    'Ha a Túrák bővítmény ki van kapcsolva, importáld helyekként a Google My Maps, a Google Earth vagy egy GPS-nyomkövető által exportált pontokat és útvonalakat.',
+    'Hozd be az utazás helyeiként azokat a gombostűket, amelyeket a Google My Maps, a Google Earth vagy egy GPS-eszköz exportált.',
   'help.guide.import-places-file.step.1':
-    'Kattints a hozzáadás gomb melletti ikongombra („Helyek importálása”), és válaszd a „Fájl importálása” lehetőséget, vagy ejtsd a fájlt bárhová a helyek oszlopában. Mindkettő csak akkor érhető el, ha a rendszergazda kikapcsolta a Túrák bővítményt.',
+    'Kattints a hozzáadás gomb melletti ikongombra („Helyek importálása”), válaszd a „Fájl importálása” lehetőséget, és válaszd ki a fájlt. A fájlt bárhová ejtheted a helyek oszlopában is.',
   'help.guide.import-places-file.step.2':
-    'Válaszd ki a fájlt, vagy húzd a mezőbe. GPX-nél jelöld be, mit importálsz: „Útpontok”, „Útvonalak”, „Nyomvonalak (útvonalgeometriával)”. KML-nél és KMZ-nél jelöld be a „Pontok (Placemarks)” és az „Útvonalak (LineStrings)” lehetőséget.',
+    'Ha a fájl útvonalat vagy nyomvonalat tartalmaz, megnyílik a Túrák importálása, mert a Túrák bővítmény bekapcsolt állapotában, ami az alapértelmezés, egy vonalból túra lesz. A „Pontok hozzáadása helyként”, alapból bekapcsolva, a fájl gombostűit is behozza az utazás helyeiként.',
   'help.guide.import-places-file.step.3':
-    'A mezőbe egyszerre több fájlt is húzhatsz, de csak .gpx, .kml és .kmz fájlt. Minden más fájltípust, illetve a 10 MB-nál nagyobb fájlokat az ablak elutasítja, és nem importálja.',
+    'A csak gombostűket tartalmazó fájl inkább a „Fájl importálása” ablakot nyitja meg, ahogy minden fájl is, ha a rendszergazda kikapcsolta a Túrákat. GPX-nél jelöld be, mit importálsz: „Útpontok”, „Útvonalak”, „Nyomvonalak (útvonalgeometriával)”. KML-nél és KMZ-nél jelöld be a „Pontok (Placemarks)” és az „Útvonalak (LineStrings)” lehetőséget. Legfeljebb 10 MB méretű .gpx, .kml és .kmz fájlokat fogad.',
   'help.guide.import-places-file.step.4':
     'Kattints az „Importálás” gombra. Egy üzenet jelzi, hány helyet importáltál. KML- vagy KMZ-fájlnál az ablak nyitva marad, és összefoglalja, mi jött létre, és mi maradt ki.',
   'help.guide.import-places-file.result':
-    'A helyek bekerültek a listába. A nyomvonalak sorában színes vonal látszik, a térképen megjelennek, és saját „Nyomvonalak” szűrőt kapnak.',
+    'A gombostűk az utazás helyei, a listában és a térképen, a „Nem tervezett” alatt, amíg egy napra nem teszed őket.',
   'help.guide.import-places-file.tip.1':
     'A túl nagy fájlt a TREK elutasítja, és megmutatja a méretkorlátot; exportáld újra fotók nélkül, vagy oszd fel.',
-  'help.guide.import-places-file.tip.2': 'A teljes importálást visszavonhatod a napok fölötti eszköztárból.',
+  'help.guide.import-places-file.tip.2':
+    'A „Fájl importálása” ablakban végzett importálást visszavonhatod a napok fölötti eszköztárból.',
   // import-places-list
   'help.guide.import-places-list.title': 'Megosztott Google Maps- vagy Naver Maps-lista importálása',
   'help.guide.import-places-list.goal': 'Helyek importálása megosztott lista linkjéből.',
@@ -2228,6 +2352,27 @@ const help: TranslationStrings = {
     'A „Legutóbb hozzáadott” kivételével minden rendezésnél kiemelve látszik a gomb, így rögtön tudod, hogy a lista más sorrendben van.',
   'help.guide.sort-places.tip.2':
     'A rendezés csak a listát módosítja. A napok megtartják a saját sorrendjüket, a böngésződ pedig megjegyzi a választott rendezést.',
+  'help.guide.place-tags.title': 'Helyek címkézése és szűrés címke szerint',
+  'help.guide.place-tags.goal':
+    'Adj a helyeknek további címkéket, például „Kihagyhatatlan” vagy „Esős nap”, mindegyiket saját színnel, és mutasd csak a címkével ellátott helyeket.',
+  'help.guide.place-tags.step.1':
+    'Nyisd meg a hely űrlapját: a sor menüjében a „Szerkesztés”, új helynél az „Új hely”. A „Címkék” alatt az utazás minden címkéje egy gomb. Kattints a címke nevére, hogy rákerüljön a helyre; a pipa jelzi, hogy be van kapcsolva.',
+  'help.guide.place-tags.step.2':
+    'Új címke létrehozásához írd be a nevét az „Új címke” mezőbe, és nyomj Entert, vagy kattints a végén lévő + jelre. A mező elején lévő pont előre kiválasztja a színét. A címke hozzáadódik az utazáshoz, és be van pipálva.',
+  'help.guide.place-tags.step.3':
+    'Egy címke átszínezéséhez kattints a színes pontjára: válassz egy színmintát, vagy nyisd meg az „Egyéni szín” lehetőséget a saját színedhez. A címke azonnal színt vált, az egész utazásban és mindenki számára.',
+  'help.guide.place-tags.step.4':
+    'Kattints a „Frissítés” gombra, új helynél a „Hozzáadás” gombra, hogy a hely a címkéivel együtt mentődjön.',
+  'help.guide.place-tags.step.5':
+    'A helyek oszlopában a „Megjelenítés” melletti címkegomb a „Címkék” alatt, a kategóriák után felsorolja az utazás címkéit. Jelölj be egyet, hogy csak az azt viselő helyeket lásd.',
+  'help.guide.place-tags.result':
+    'A lista és a térkép csak a bejelölt címkéjű helyeket mutatja. A lista alján a „Szűrő törlése” újra az összes helyet megmutatja.',
+  'help.guide.place-tags.tip.1':
+    'A címke sosem változtatja meg a jelölőt: az ikonja és a színe a térképen a kategóriáé marad. Egy helynek egy kategóriája és tetszőleges számú címkéje lehet.',
+  'help.guide.place-tags.tip.2':
+    'A címkék az utazáshoz tartoznak, nem hozzád. Minden tag ugyanazokat a címkéket látja, és mindenki hozzáadhatja őket és módosíthatja a színüket, aki szerkesztheti az utazás helyeit.',
+  'help.guide.place-tags.tip.3':
+    'Ha egy kategória és egy címke is be van jelölve, a helynek mindkettőnek meg kell felelnie. Ha két címke van bejelölve, elég az egyik.',
   'help.guide.place-by-hand.title': 'Olyan hely hozzáadása, amelyet a keresés nem talál',
   'help.guide.place-by-hand.goal':
     'Ha a helykereső nem talál semmit, add meg magad a helyet a telefonszámával, e-mail-címével és nyitvatartásával.',
@@ -2237,7 +2382,7 @@ const help: TranslationStrings = {
     'Kattints a „Kézi hozzáadás” gombra. A keresett szöveg lesz a név, az ablak pedig a kapcsolati mezőkhöz görget.',
   'help.guide.place-by-hand.step.3': 'Ha ismered, töltsd ki a „Telefon” és az „E-mail” mezőt.',
   'help.guide.place-by-hand.step.4':
-    'Kattints a „Nyitvatartás hozzáadása” gombra, és add meg, mikor nyit és mikor zár a hely az egyes napokon. A másolás gombbal az első nap nyitvatartása minden napra átkerül, egy nap kapcsolójával pedig „Zárva” állapotúra állíthatod.',
+    'Kattints a „Nyitvatartás hozzáadása” gombra, és add meg, mikor nyit és mikor zár a hely az egyes napokon. A másolás gombbal az első nap nyitvatartása minden napra átkerül, és minden naphoz tartozik egy kapcsoló az „Éjjel-nappal nyitva” és egy a „Zárva” állapothoz.',
   'help.guide.place-by-hand.step.5': 'Kattints a „Hozzáadás” gombra.',
   'help.guide.place-by-hand.result':
     'A hely bekerül a listába. A részleteinél a megadott telefonszám, e-mail-cím és nyitvatartás látszik, ugyanúgy, mint egy kereséssel talált helynél.',
@@ -2251,7 +2396,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-days.summary':
     'A terv bal oldali oszlopa: minden napnak saját kártyája van a megállókkal sorrendben, a jegyzetekkel, a nap foglalásaival és közlekedésével, valamint a megállók közötti útvonallal. Itt készül valójában az utazás terve.',
   'help.ctx.trip-days.bullet.1':
-    'A fejléc felül: balra az „Exportálás” (PDF, naptár, GPX); jobbra a visszavonás nyíl, a „Minden nap kibontása” / „Minden nap összecsukása”, a „Napok átrendezése”, és ha egy foglalásnak van megrajzolható útvonala, az „Összes foglalási útvonal megjelenítése”.',
+    'A fejléc felül: balra az „Exportálás” (PDF, naptár, GPX, KML); jobbra a visszavonás nyíl, a „Minden nap kibontása” / „Minden nap összecsukása”, a „Napok átrendezése”, és ha egy foglalásnak van megrajzolható útvonala, az „Összes foglalási útvonal megjelenítése”.',
   'help.ctx.trip-days.bullet.2':
     'Napkártya: egy csempe a nap számával és az időjárás-előrejelzéssel, a cím (amíg el nem nevezed, „1. nap”) és a dátum, alattuk pedig gombok az éjszakai szálláshoz (a bejelentkezés napján zöld, a kijelentkezés napján piros, amíg nincs megerősítve, szaggatott; a jegy ikonja megnyitja a foglalást) és a bérautóhoz. A fejlécre kattintva megnyitod a napot, a nyíllal összecsukod, a + gomb („Hozzáadás a naphoz”) pedig menüt nyit: „Hely hozzáadása ehhez a naphoz”, „Szállás hozzáadása”, „Közlekedés hozzáadása”, „Tömegközlekedés” és „Jegyzet hozzáadása”. A fejlécen jobb gombbal kattintva ugyanezt éred el, plusz a „Nap kiürítése” lehetőséget.',
   'help.ctx.trip-days.bullet.3':
@@ -2268,9 +2413,9 @@ const help: TranslationStrings = {
   'help.guide.read-day-plan.step.1':
     'A fejléc: egy csempe a nap sorszámával és az időjárás-előrejelzéssel, majd az „1. nap” vagy az általad adott cím és a dátum. Alattuk gombok az éjszakai szálláshoz (a bejelentkezés napján zöld, a kijelentkezés napján piros, amíg nincs megerősítve, szaggatott; a rajta lévő jegy ikon megnyitja a foglalást) és a bérautóhoz. A fejlécre kattintva megnyitod a napot (a részletpanel a térkép fölött nyílik meg). A jobb oldali + gomb („Hozzáadás a naphoz”) helyet, szállást, közlekedést, tömegközlekedési kapcsolatot vagy jegyzetet ad hozzá, a nyíl pedig összecsukja a kártyát.',
   'help.guide.read-day-plan.step.2':
-    'Egy megállónál látod a képét, a kategóriaikonját és a nevét, ha van „Kezdés” időpontja, akkor azt is, valamint a leírását. Alatta jelennek meg a „Jegyzetek erre a napra”. Ha a sor fölé viszed az egeret, megjelennek a vezérlők: a bal oldali fogantyúval húzhatod, a kép lakattá változik az útvonal-optimalizáláshoz, a jobb szélen pedig ott vannak a nyilak („Mozgatás felfelé”, „Mozgatás lefelé”), a „Foglalás hozzáadása” és a három pont („További lehetőségek”).',
+    'Egy megállónál látod a képét, a kategóriaikonját és a nevét, ha van „Kezdés” időpontja, akkor azt is, valamint a leírását. Alatta jelennek meg a „Jegyzetek erre a napra”. Ha a sor fölé viszed az egeret, megjelennek a vezérlők: a bal oldali fogantyúval húzhatod, a jobb szélen pedig ott vannak a nyilak („Mozgatás felfelé”, „Mozgatás lefelé”), a „Foglalás hozzáadása” és a három pont („További lehetőségek”). Ha a kép fölé viszed az egeret, lakattá változik az útvonal-optimalizáláshoz.',
   'help.guide.read-day-plan.step.3':
-    'A megállóhoz tartozó foglalás „Foglalás” jelvényként jelenik meg rajta, megerősítve zöld, függőben borostyánsárga színnel, az időponttal és a szolgáltatóval. Kattints a jelvényre a foglalás megnyitásához; a mellette lévő útvonalgomb megrajzolja az útvonalát. A közlekedésnek saját sora van, a típusa szerint színezve, az időponttal és az „Indulás” vagy „Érkezés” jelöléssel. Egy foglalásra kattintva megnyílnak a részletei; az ott található „Szerkesztés” gombbal módosíthatod.',
+    'A megállóhoz tartozó foglalás „Foglalás” jelvényként jelenik meg rajta, megerősítve zöld, függőben borostyánsárga színnel, az időponttal és a szolgáltatóval. Kattints a jelvényre a foglalás megnyitásához; ha a foglalásnak van útvonala, a mellette lévő útvonalgomb megrajzolja a térképen. A közlekedésnek saját sora van, a típusa szerint színezve, az időponttal és az „Indulás” vagy „Érkezés” jelöléssel. Egy foglalásra kattintva megnyílnak a részletei; az ott található „Szerkesztés” gombbal módosíthatod.',
   'help.guide.read-day-plan.step.4':
     'Ha az „Útvonal” be van kapcsolva, a két megálló közötti összekötő mutatja, mennyi ideig tart és milyen hosszú a szakasz a nap közlekedési módjával; rákattintva csak arra az egy szakaszra módosíthatod a módot.',
   'help.guide.read-day-plan.step.5':
@@ -2309,7 +2454,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Ha egy megállót másik napkártyára húzol, átkerül arra a napra, és lekerül a régiről.',
   'help.guide.reorder-stops.step.4':
-    'Ha egy megállónak rögzített időpontja van, és az áthelyezés felborítaná a nap sorrendjét, a TREK megkérdezi: „Időpont eltávolítása?”, mert az időpont határozza meg a megálló helyét. A „Megerősítés” törli az időpontot, így a megálló bárhová kerülhet. A „Mégse” változatlanul hagyja a napot.',
+    'Ha egy megállónak rögzített időpontja van, és az áthelyezés felborítaná a nap sorrendjét, a TREK megkérdezi: „Időpont eltávolítása?”, mert az időpont határozza meg a megálló helyét. Az „Időpont eltávolítása és áthelyezés” törli az időpontot, és oda teszi a megállót, ahová ejtetted. A „Mégse” változatlanul hagyja a napot.',
   'help.guide.reorder-stops.result': 'Az útvonal és a menetidők azonnal az új sorrendhez igazodnak.',
   'help.guide.reorder-stops.tip.1':
     'A rögzített időpontú foglalás az időpontjának megfelelő helyen marad. Ha a napján belül máshová ejted, visszaugrik. Ha egy másik napkártyára húzod, átkerül arra a napra.',
@@ -2320,7 +2465,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.goal':
     'Add meg, mikor kezdődik és mikor ér véget egy megálló, hogy a nap menetrendként működjön.',
   'help.guide.set-stop-times.step.1':
-    'Kattints jobb gombbal a megállóra, vagy kattints a három pontjára, és válaszd a „Szerkesztés” lehetőséget. Ha a napról nyitod meg az űrlapot, közvetlenül a helyszín alatt megjelenik a „Kezdés” és a „Befejezés” mező az adott napra.',
+    'Kattints jobb gombbal a megállóra, vagy kattints a három pontjára, és válaszd a „Szerkesztés” lehetőséget. Ha a napról nyitod meg az űrlapot, a helyszín és a címkék alatt megjelenik a „Kezdés” és a „Befejezés” mező az adott napra.',
   'help.guide.set-stop-times.step.2':
     'Add meg a „Kezdés” időpontot, és ha szeretnéd, a „Befejezés” időpontot is. Az „Időbeli átfedés:” figyelmeztetés jelzi, ha a nap egy másik időponthoz kötött megállójával átfedés van. Ha a befejezés a kezdés elé esik, a „Frissítés” gomb nem használható.',
   'help.guide.set-stop-times.step.3':
@@ -2330,9 +2475,9 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'Az időpont az adott napi megállóhoz tartozik; ugyanannak a helynek egy másik napon más időpontja lehet.',
   'help.guide.set-stop-times.tip.2':
-    'Időponthoz kötött megállót úgy mozgathatsz kézzel, hogy áthúzod. A TREK ekkor megkérdezi: „Időpont eltávolítása?”, és ha a „Megerősítés” gombra kattintasz, az időpont törlődik.',
+    'Időponthoz kötött megállót úgy mozgathatsz kézzel, hogy áthúzod. A TREK ekkor megkérdezi: „Időpont eltávolítása?”, és az „Időpont eltávolítása és áthelyezés” leveszi az időpontot, és áthelyezi.',
   'help.guide.set-stop-times.tip.3':
-    'Ugyanebben az űrlapban a „Jegyzetek erre a napra” mező olyan információkra való, amelyek csak erre a napra érvényesek, például egy asztalfoglalás vagy egy jegyszám.',
+    'Ugyanebben az űrlapban az „A helyről” és a „Jegyzetek” melletti „Csak ... nap” fül olyan jegyzetre való, amely csak erre a napra érvényes, például egy asztalfoglalás vagy egy jegyszám.',
   // remove-from-day
   'help.guide.remove-from-day.title': 'Megálló eltávolítása egy napról',
   'help.guide.remove-from-day.goal': 'Hely eltávolítása egy napról úgy, hogy az utazásban megmaradjon.',
@@ -2353,7 +2498,8 @@ const help: TranslationStrings = {
     'Vidd az egeret a megálló képe fölé, és kattints a lakatra: „Pozíció megtartása útvonal-optimalizálás során”.',
   'help.guide.lock-stop.step.2':
     'Az „Optimalizálás” ezután a többi megállót rendezi körülötte. A feloldáshoz kattints újra a lakatra („Kattints a feloldáshoz”).',
-  'help.guide.lock-stop.result': 'A képen megjelenik a lakat; a megálló megtartja a helyét, amíg fel nem oldod.',
+  'help.guide.lock-stop.result':
+    'A lakat a képen marad, a sor színezett lesz; a megálló megtartja a helyét, amíg fel nem oldod.',
   'help.guide.lock-stop.tip.1': 'A fix időpontú megállót az időpontja rögzíti; optimalizáláskor sosem mozdul el.',
   'help.guide.lock-stop.tip.2':
     'A zárolás csak az oldal újratöltéséig tart. Újratöltés után minden megálló ismét feloldott, csak az időponthoz kötött megállók maradnak rögzítve.',
@@ -2398,7 +2544,7 @@ const help: TranslationStrings = {
   'help.guide.manage-days.title': 'Napok hozzáadása, átrendezése és átnevezése',
   'help.guide.manage-days.goal': 'Magukat a napokat módosítsd, ne csak a rajtuk lévő helyeket.',
   'help.guide.manage-days.step.1':
-    'A napok az utazás dátumaiból adódnak. Ha az „Irányítópult” oldalon az utazás szerkesztőűrlapján módosítod a dátumokat, az elején vagy a végén napok kerülnek hozzá vagy kerülnek ki. Mielőtt egy tartalommal rendelkező nap törlődne, egy lista megmutatja, mely napok kerülnek ki, és mi van rajtuk.',
+    'A napok az utazás dátumaiból adódnak. Módosítsd őket az „Utazás beállításai” gombbal a tervező tetején, az „Utazás szerkesztése” alatt (vagy az „Irányítópult” oldalon az utazáskártya ceruzájával), és az elején vagy a végén napok kerülnek hozzá vagy kerülnek ki. Mielőtt egy tartalommal rendelkező nap törlődne, egy lista megmutatja, mely napok kerülnek ki, és mi van rajtuk.',
   'help.guide.manage-days.step.2':
     'A fejlécben a „Napok átrendezése” egy listát nyit meg: húzz egy napot a fogantyújánál, vagy használd a „Mozgatás felfelé” és a „Mozgatás lefelé” gombot, és a nap a helyeivel, jegyzeteivel és foglalásaival együtt mozog. A lista alatt a „Hozzáadás a következő dátummal” az utolsó dátummal rendelkező nap után illeszt be egy napot, és egy nappal meghosszabbítja az utazást; a „Dátum nélkül” dátum nélküli napot fűz a végére. Dátum nélküli utazásnál csak a „Nap hozzáadása” érhető el.',
   'help.guide.manage-days.step.3':
@@ -2417,7 +2563,7 @@ const help: TranslationStrings = {
   'help.guide.bookings-in-plan.goal':
     'Nézd meg, hol jelenik meg egy foglalás, miután létrejött, és melyik képernyőn hozhatod létre.',
   'help.guide.bookings-in-plan.step.1':
-    'A közlekedés (repülés, vonat, komp, busz, autó) a típusa szerint színezett sor az időponttal, indulás napján „Indulás”, érkezés napján „Érkezés” jelöléssel; a mellette lévő földgömb megnevezi az időzónát, az átszállásos repülés pedig szakaszonként egy sort kap. Tömegközlekedési kapcsolatnál a nyílra kattintva láthatod a járatokat. Egy sorra kattintva megnyílik a foglalás; az ott található „Szerkesztés” gombbal módosíthatod.',
+    'A közlekedés (repülés, vonat, komp, busz, autó) a típusa szerint színezett sor az időponttal, indulás napján „Indulás”, érkezés napján „Érkezés” jelöléssel; ha a foglalásnak van időzónája, az idő melletti földgömb fölé víve megnevezi, az átszállásos repülés pedig szakaszonként egy sort kap. Amíg egy járat úton van, bekapcsolt élő járatállapotnál a sora alatt egy sor megmondja, hogy áll, a késést is beleértve. Tömegközlekedési kapcsolatnál a nyílra kattintva láthatod a járatokat. Egy sorra kattintva megnyílik a foglalás; az ott található „Szerkesztés” gombbal módosíthatod.',
   'help.guide.bookings-in-plan.step.2':
     'A megállóhoz kapcsolt foglalás (például étterem vagy túra) „Foglalás” jelvényként jelenik meg a megállón, az időpontjával együtt. A jelvény megerősített foglalásnál zöld, függőben lévőnél borostyánsárga. Az a foglalás, amelyhez nap tartozik, de megálló nem, saját sort kap a napon.',
   'help.guide.bookings-in-plan.step.3':
@@ -2434,14 +2580,17 @@ const help: TranslationStrings = {
     'Ha egy időponttal rendelkező foglalást a napján belül máshová ejtesz, visszaugrik az időpontjának megfelelő helyre. Ha egy másik napkártyára húzod, átkerül arra a napra. Az időpontját a foglalás szerkesztésével módosíthatod.',
   // export-plan
   'help.guide.export-plan.title': 'A terv exportálása',
-  'help.guide.export-plan.goal': 'Exportáld a tervet dokumentumként, a naptáradba vagy GPS-eszközre.',
+  'help.guide.export-plan.goal':
+    'Exportáld a tervet dokumentumként, a naptáradba, GPS-eszközre vagy a Google My Mapsbe.',
   'help.guide.export-plan.step.1': 'Kattints a napok fölötti fejléc bal oldalán az „Exportálás” gombra.',
   'help.guide.export-plan.step.2':
-    '„Dokumentum”: a PDF megnyitja az összes nap nyomtatási nézetét a megállókkal, jegyzetekkel és foglalásokkal, az elején egy útvonal-áttekintő térképpel; a „Saját tervem PDF-ként” csak azt tartalmazza, amiben részt veszel. A nézetben az „Oldaltörés naponta” minden napot új oldalon kezd, a „Közlekedési jegyzetek” hozzáadja a közlekedéseid jegyzeteit, a „Mentés PDF-ként” pedig letölti.',
+    '„Dokumentum”: a PDF megnyitja az utazás dokumentumként készült előnézetét: egy borítót, egy áttekintést az útvonaltérképpel, minden napot és az összes foglalást, majd minden napot a megállóival, jegyzeteivel és foglalásaival. A „Saját tervem PDF-ként” csak azt tartalmazza, amiben részt veszel. Az előnézet fölötti kapcsolókkal választhatod ki, mi kerüljön bele: „Oldaltörés naponta”, „Nagy betűméret”, „Áttekintés”, „Fotók”, „Koordináták”, „Elérhetőség és nyitvatartás”, és a „Közlekedési jegyzetek”, ha a közlekedéseidnek vannak jegyzetei. A „Mentés PDF-ként” letölti.',
   'help.guide.export-plan.step.3':
     '„Naptár”: az „.ics letöltése” naptárfájlba menti a foglalásokat, a „Feliratkozás a naptárra” pedig olyan linket ad, amelyet a naptáralkalmazásod automatikusan frissít.',
   'help.guide.export-plan.step.4':
     '„Térképek és GPS (GPX)”: a „Teljes utazás” a helyeket, a napi útvonalakat és a nyomvonalakat exportálja, a „Csak a helyek” csak a pontokat, a „Napok útvonalként” pedig naponta egy útvonalat, offline térképekhez és GPS-eszközökhöz.',
+  'help.guide.export-plan.step.5':
+    'Google Térkép (KML): a „Helyek a Google My Maps számára” KML-fájlként menti az utazás helyeit. A My Mapsben importáld rétegként, hogy a saját Google-térképeden lásd őket.',
   'help.guide.export-plan.result': 'A fájl letöltődik; az utazásban semmi sem változik.',
   'help.guide.export-plan.tip.1':
     'Egyetlen napot az útvonalsávjából nyithatsz meg térképalkalmazásban: „Megnyitás a Google Térképben” vagy „Megnyitás a CoMaps-ben”.',
@@ -2457,13 +2606,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.1':
     'Kattints egy sorra a helyek oszlopában, egy megállóra egy napon belül vagy egy jelölőre a térképen, és a kártya megnyílik a térkép fölött. Ha egy napról nyitod meg, a kártya tudja, melyik megállóról van szó, és a megálló résztvevőit és foglalását is mutatja. A túrák (gyalogtúra, kerékpár- vagy lovastúra, séta a „Túrák” fülről) ehelyett a saját túrakártyájukat nyitják meg.',
   'help.ctx.trip-place.bullet.2':
-    'A fejlécben a kerek kép, a név és egy sorban a cím látszik, valamint címkék az ismert adatokról: nyitva van-e vagy zárva, a kategória, az időpont, az ár, a telefonszám, az e-mail-cím és a koordináták. A képre kattintva saját képet vagy a hely fájljai közül egy fotót használhatsz. A névre duplán kattintva átnevezheted a helyet. A jobb oldali X bezárja a kártyát. A kép, az átnevezés, a „Szerkesztés” és a „Törlés” csak azoknak az utazóknak érhető el, akik szerkeszthetik a helyeket.',
+    'A fejlécben a kerek kép, a név és egy sorban a cím látszik, valamint címkék az ismert adatokról: nyitva van-e vagy zárva, a kategória és a hely címkéi, az időpont, az ár, a telefonszám, az e-mail-cím és a koordináták. A címmel rendelkező, de koordináták nélküli hely ezt írja: „Nincsenek koordináták, ezért nincs a térképen”. A képre kattintva megnézheted a hely fotóit, a névre duplán kattintva pedig átnevezheted a helyet. Jobb oldalon a nyíl keskeny sávvá csukja a kártyát, az X pedig bezárja. Az átnevezés, a „Szerkesztés” és a „Törlés” csak azoknak az utazóknak érhető el, akik szerkeszthetik a helyeket.',
   'help.ctx.trip-place.bullet.3':
     'Alatta: az egyes utazók által adott csillagok, a leírás és a jegyzetek, valamint a „Jegyzetek erre a napra”, ha a megállóhoz tartozik ilyen.',
   'help.ctx.trip-place.bullet.4':
     'Ezután következik a „Nyitvatartás”, az „Útvonal színe”, az „Útvonal adatok” és a „Fájl”, ha vonatkoznak a helyre. A „Fájl” címsorában lévő „Feltöltés” gombbal a számítógépedről adhatsz hozzá fájlokat, a listában pedig az ehhez a megállóhoz rögzített és a foglalásához tartozó fájlok is látszanak, például a szállodai visszaigazolás. A pluginek alatta saját sorokat adhatnak hozzá.',
   'help.ctx.trip-place.bullet.5':
-    'Az alsó sor: „Hozzáadás a naphoz” vagy „Eltávolítás a napról”, ha egy nap meg van nyitva, majd „Navigáció” (vagy a térképalkalmazásod neve, ha a Beállításokban már választottál egyet), „Weboldal megnyitása” és „Mentés gyűjteménybe”. Jobb oldalon a piros kuka törli a helyet, a „Szerkesztés” pedig megnyitja az űrlapját.',
+    'Az alsó sor: „Hozzáadás a naphoz”, ha egy nap meg van nyitva, és a hely még nincs rajta, majd „Navigáció” (vagy a térképalkalmazásod neve, ha a Beállításokban már választottál egyet), és két ikon, a „Weboldal megnyitása” és a „Mentés gyűjteménybe”. Jobb oldalon a három pont tartalmazza az „Eltávolítás a napról” és a „Törlés” parancsot, a „Szerkesztés” pedig megnyitja a hely űrlapját, ahol a képét is módosíthatod.',
   'help.ctx.trip-place.bullet.6':
     'A keresésből kiválasztott helynél azt látod, amit a TREK indexe vagy az OpenStreetMap tud róla: a felső gombok között „Nyitott” vagy „Lezárva” állapotot, zöld vagy piros gyűrűvel a kép körül, a hely helyi ideje szerint; a telefonszámát, szintén gombként; lejjebb a „Nyitvatartás” részt, a sorban a mai nyitvatartással, kattintásra pedig az egész héttel; a weboldalát pedig a „Weboldal megnyitása” alatt. A Google-értékelés csak a Google-on keresztül talált helyeknél jelenik meg, Google-kulccsal rendelkező TREK-en. A hely űrlapján általad megadott nyitvatartás, telefonszám és e-mail felülírja a lekérdezett adatokat, és ezek határozzák meg a gyűrű színét is.',
   // read-place
@@ -2472,7 +2621,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.step.1':
     'A napok oszlopában kattints arra a megállóra, amelyet meg szeretnél nézni. A kártya megnyílik a térkép fölött, a megálló pedig kijelölve marad a napjában.',
   'help.guide.read-place.step.2':
-    'Felül: a kerek kép, a név és a cím egy sorban; az elemleírásban a teljes cím látszik. Az alattuk lévő gombok a hely helyi ideje szerint jelzik, hogy most „Nyitott” vagy „Lezárva”, és ennek megfelelően zöld vagy piros gyűrű veszi körül a képet. Ugyanitt látod a kategóriát, az időpontot, a telefonszámot és az e-mail-címet (kattintásra megnyílik a telefon- vagy a levelezőalkalmazásod), széles képernyőn pedig a pontos koordinátákat is. A jobb oldali X bezárja a kártyát.',
+    'Felül: a kerek kép, a név és a cím egy sorban; az elemleírásban a teljes cím látszik. Az alattuk lévő gombok a hely helyi ideje szerint jelzik, hogy most „Nyitott” vagy „Lezárva”, és ennek megfelelően zöld vagy piros gyűrű veszi körül a képet. Ugyanitt látod a kategóriát és a hely címkéit, az időpontot, a telefonszámot és az e-mail-címet (kattintásra megnyílik a telefon- vagy a levelezőalkalmazásod), széles képernyőn pedig a pontos koordinátákat is. A képre kattintva megnézheted a hely fotóit. Jobb oldalon a nyíl összecsukja a kártyát, az X pedig bezárja.',
   'help.guide.read-place.step.3':
     'Az „Értékelés” az első rész a fejléc alatt: az utazók által adott csillagok, az átlaguk és a szavazók száma. Amíg senki sem szavazott, a „Még nincs értékelve” felirat látszik.',
   'help.guide.read-place.step.4':
@@ -2489,6 +2638,22 @@ const help: TranslationStrings = {
     'Ha szerkesztheted a helyeket, a névre duplán kattintva az űrlap megnyitása nélkül átnevezheted a helyet. Az Enter ment, az Esc elveti a módosítást.',
   'help.guide.read-place.tip.3':
     'A kézzel beírt helynél csak az űrlapon megadott adatok látszanak. Kattints a „Szerkesztés” gombra, és töltsd ki magad a „Telefon”, az „E-mail” mezőt és a nyitvatartást, vagy válaszd ki a helyet a „Helyek keresése…” alatti javaslatok közül, és kattints a „Frissítés” gombra, hogy a TREK lekérdezze őket. A Google-értékeléshez Google-kulcs kell.',
+  'help.guide.fold-place-card.title': 'A kártya összecsukása az útból',
+  'help.guide.fold-place-card.goal': 'Tartsd kijelölve a helyet, miközben a körülötte lévő térképet nézed.',
+  'help.guide.fold-place-card.step.1':
+    'Nyiss meg egy helyet, és kattints a kártya jobb felső sarkában lévő nyílra, az X mellett. Az elemleírása: „Összecsukás”.',
+  'help.guide.fold-place-card.step.2':
+    'A kártya most egy keskeny sáv, rajta csak a kép és a név. A hely kijelölve marad, és a jelölője kiemelve, így nyugodtan mozgathatod és nagyíthatod a térképet körülötte.',
+  'help.guide.fold-place-card.step.3':
+    'Kattints újra a nyílra, amelynek a felirata most „Kibontás”, hogy a teljes kártya megnyíljon. Az X bezárja a kártyát, és megszünteti a hely kijelölését.',
+  'help.guide.fold-place-card.result':
+    'A térkép látható marad a kiválasztott hely körül, az egész kártya pedig egyetlen kattintásnyira van.',
+  'help.guide.fold-place-card.tip.1':
+    'Válassz egy másik helyet, és a kártyája teljes méretben nyílik meg. Csak az a hely marad összecsukva, amelyet összecsuktál.',
+  'help.guide.fold-place-card.tip.2':
+    'Az összecsukás nem bezárás: a hely kijelölve marad, és egy napról megnyitott megálló jelölve marad az adott napon.',
+  'help.guide.fold-place-card.tip.3':
+    'Az összecsukott sáv ott marad, ahol a kártya volt, a térkép alján, az oldalsó oszlopok között.',
   // rate-place
   'help.guide.rate-place.title': 'Hely értékelése',
   'help.guide.rate-place.goal': 'Értékeld a helyet saját csillagokkal, és nézd meg, mások hogyan értékelték.',
@@ -2511,20 +2676,22 @@ const help: TranslationStrings = {
   // place-image
   'help.guide.place-image.title': 'Saját kép beállítása egy helyhez',
   'help.guide.place-image.goal': 'Cseréld le az automatikus bélyegképet egy saját fotóra.',
-  'help.guide.place-image.step.1': 'Nyisd meg a helyet a helyek oszlopából.',
+  'help.guide.place-image.step.1':
+    'Nyisd meg a helyet, és kattints a kártya jobb alsó sarkában a „Szerkesztés” gombra. Megnyílik a hely űrlapja.',
   'help.guide.place-image.step.2':
-    'Vidd az egeret a fejlécben lévő kerek kép fölé: megjelenik egy kamera, az elemleírásban pedig ez áll: „Kép feltöltése”. Kattints rá, és válaszd ki a fájlt. Ha a helynek már vannak fotói a fájljai között, a TREK előbb megkérdezi, melyiket választod: „Feltöltés eszközről”, vagy az egyik kép a „Csatolt fájlokból” alatt.',
-  'help.guide.place-image.step.3': 'A kártya tetején most a te képed látszik, a sarkában egy kis piros X-szel.',
+    'A „Válassz képet”, a bal oldali részletek tetején, megmutatja a képeket, amelyek a helyhez tartozhatnak. Kattints a „Kép feltöltése” csempére, az elsőre, és válassz egy fájlt a számítógépedről.',
+  'help.guide.place-image.step.3':
+    'A csempén most a te képed látszik, körbevéve és pipával jelölve, a csempék alatti sor pedig ezt mondja: „A te képed”. Még semmi sincs mentve.',
   'help.guide.place-image.step.4':
-    'Ugyanez a kép jelenik meg a hely sorában a helyek oszlopában, és a jelölőjén a térképen.',
+    'Kattints a „Frissítés” gombra. A kártya tetején a te képed látszik, és a hely sorában a helyek oszlopában is.',
   'help.guide.place-image.result':
     'A képed mindenhol a hely képeként jelenik meg: a kártyán, a helyek oszlopában, a napi megállónál, a térképen a jelölőn és a megosztott utazásban is.',
   'help.guide.place-image.tip.1':
     'JPG, PNG, GIF és WebP formátumot tölthetsz fel, az iPhone-os HEIC képek pedig feltöltéskor automatikusan átalakulnak.',
   'help.guide.place-image.tip.2':
-    'A sarokban lévő X eltávolítja a képedet, és újra az automatikus kép jelenik meg. Maga a hely nem változik.',
+    'A csempék alatti sor végén lévő „Kép eltávolítása” a „Frissítés” gombra kattintás után kép nélkül hagyja a helyet. A „Mégse” megtartja a régit.',
   'help.guide.place-image.tip.3':
-    'Ha nem adtál meg képet, a TREK a hely koordinátái alapján keres egyet. Ha nem talál, a kategória ikonját mutatja. Képet csak azok az utazók állíthatnak be, akik szerkeszthetik a helyeket.',
+    'A többi csempe a hely jelenlegi képe, a hozzá csatolt fotók és a TREK által hozzá talált képek, mindegyik a forrásmegjelöléssel. A képet csak azok az utazók módosíthatják, akik szerkeszthetik a helyeket.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'A hely hozzáadása a megnyitott naphoz vagy eltávolítása róla',
   'help.guide.place-day-assign.goal': 'Használd a kártyán lévő gombot ahelyett, hogy a sort áthúznád a tervezőn.',
@@ -2533,13 +2700,13 @@ const help: TranslationStrings = {
   'help.guide.place-day-assign.step.2':
     'A helyek oszlopában kattints egy olyan helyre, amely nincs rajta az adott napon. Megnyílik a kártyája, és az alsó sorban megjelenik a „Hozzáadás a naphoz” gomb.',
   'help.guide.place-day-assign.step.3':
-    'Kattints a „Hozzáadás a naphoz” gombra. A megálló a nap végére kerül, a gomb felirata pedig „Eltávolítás a napról” lesz.',
+    'Kattints a „Hozzáadás a naphoz” gombra. A megálló a nap végére kerül, és a gomb eltűnik a sorból, mert a hely már rajta van a napon.',
   'help.guide.place-day-assign.step.4': 'A megálló most a napon van, a lista végén. Húzd fel a megfelelő helyre.',
   'help.guide.place-day-assign.step.5':
-    'Az „Eltávolítás a napról” ismét leveszi a megállót a napról, a kártyán pedig újra a „Hozzáadás a naphoz” gomb jelenik meg.',
+    'Ha újra le akarod venni, kattints a sor jobb oldalán a három pontra, és válaszd az „Eltávolítás a napról” lehetőséget. A „Hozzáadás a naphoz” visszatér.',
   'help.guide.place-day-assign.result': 'A megálló felkerül a napra, vagy lekerül róla. Maga a hely nem változik.',
   'help.guide.place-day-assign.tip.1':
-    'A gomb csak akkor látszik, ha egy nap meg van nyitva. Megnyitott nap nélkül nincs nap, amelyhez a helyet hozzá lehetne adni.',
+    'A „Hozzáadás a naphoz” csak akkor látszik, ha egy nap meg van nyitva, és a hely még nincs rajta. Megnyitott nap nélkül nincs nap, amelyhez a helyet hozzá lehetne adni.',
   'help.guide.place-day-assign.tip.2':
     'Ha egy megállót leveszel egy napról, a hely az utazásban és a helyek oszlopában marad. A „Törlés” mindenhonnan eltávolítja.',
   'help.guide.place-day-assign.tip.3':
@@ -2610,7 +2777,7 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.3':
     'Kattints arra, amelyiket használod. Ahol lehet, a TREK magát a helyet küldi át az alkalmazásnak, nem csak a koordinátáit, így a megfelelő bejárathoz jutsz.',
   'help.guide.place-navigation.step.4':
-    'A mellette lévő „Weboldal megnyitása” új lapon nyitja meg a hely saját weboldalát a nyitvatartással és a jegyekkel.',
+    'A mellette lévő ikon, a „Weboldal megnyitása”, új lapon nyitja meg a hely saját weboldalát a nyitvatartással és a jegyekkel.',
   'help.guide.place-navigation.result':
     'A térképalkalmazás a helynél nyílik meg, a weboldal új lapon, az utazásban pedig semmi sem változik. Ha a TREK alkalmazásként van telepítve, új lap helyett a térképalkalmazás nyílik meg.',
   'help.guide.place-navigation.tip.1':
@@ -2624,16 +2791,16 @@ const help: TranslationStrings = {
   'help.guide.place-to-collection.goal':
     'Mentsd el a következő utazásra azt a helyet, amelyet ezen az utazáson találtál.',
   'help.guide.place-to-collection.step.1':
-    'Nyisd meg a helyet, és a kártya alsó sorában kattints a „Mentés gyűjteménybe” gombra.',
+    'Nyisd meg a helyet, és a kártya alsó sorában kattints a „Mentés gyűjteménybe” gombra, a könyvjelző ikonra.',
   'help.guide.place-to-collection.step.2':
     'A „Mentés listába” az összes saját és veled megosztott listádat mutatja. A jobb oldalon kitöltött könyvjelző jelzi azokat a listákat, amelyeken a hely már szerepel.',
   'help.guide.place-to-collection.step.3': 'Kattints a listára. A hely azonnal bekerül.',
   'help.guide.place-to-collection.step.4':
-    'Zárd be az ablakot az X-szel: a kártyán lévő gombon most „Mentve” felirat áll.',
+    'Zárd be az ablakot az X-szel. A kártyán lévő könyvjelző most ki van töltve, és az elemleírása „Mentve”.',
   'help.guide.place-to-collection.result':
     'A hely a képével, a jegyzeteivel és a címével bekerült a listádba, készen a következő utazásra.',
   'help.guide.place-to-collection.tip.1':
-    'A gomb csak akkor látszik, ha a „Gyűjtemények” bővítmény be van kapcsolva; ezt az adminisztrátor a „Bővítmények” alatt kapcsolhatja be.',
+    'A könyvjelző csak akkor látszik, ha a „Gyűjtemények” bővítmény be van kapcsolva; ezt az adminisztrátor a „Bővítmények” alatt kapcsolhatja be.',
   'help.guide.place-to-collection.tip.2':
     'Egy hely egyszerre több listában is szerepelhet, mindegyikben más állapottal: az egyikben ötletként, a másikban meglátogatottként.',
   'help.guide.place-to-collection.tip.3':
@@ -2661,7 +2828,7 @@ const help: TranslationStrings = {
     'Az importálás minden hozzáadott nyomvonalnak saját színt ad, így két túra sosem lesz ugyanolyan színű.',
   // read-place
   'help.guide.read-place.step.7':
-    'Az alsó sorban azt látod, mit tehetsz innen: felveheted a helyet a megnyitott napra, vagy leveheted róla, megnyithatod térképalkalmazásban vagy a weboldalán, mentheted egy listába, jobb oldalon pedig törölheted (piros kuka) vagy szerkesztheted.',
+    'Az alsó sorban azt látod, mit tehetsz innen: a „Hozzáadás a naphoz” a megnyitott napra teszi a helyet, a „Navigáció” térképalkalmazásban nyitja meg, a két ikon pedig megnyitja a weboldalát és listába menti. Jobb oldalon a három pont tartalmazza az „Eltávolítás a napról” és a „Törlés” parancsot, a „Szerkesztés” pedig megnyitja a hely űrlapját.',
 
   // ── Screen: trip-files ────────────────────────────────────────────────────────────────
   'help.ctx.trip-files.title': 'Fájl',
@@ -2721,6 +2888,8 @@ const help: TranslationStrings = {
     'Egy bejelölt tételre újra kattintva megszünteted a kapcsolatot; maga a fájl megmarad. Offline állapotban a jegyzet és az új jelölések mentődnek, és a TREK akkor küldi el őket, amikor újra van kapcsolat; csak egy másik kapcsolat megszüntetéséhez kell internet.',
   'help.guide.files-link.tip.3':
     'Fordítva is működik: a helyhez vagy foglaláshoz csatolt dokumentum is szerepel ebben a listában, ugyanazzal a jelvénnyel a sorában.',
+  'help.guide.files-link.tip.4':
+    'Ha az utazás tulajdonosa kikapcsolja a „Dokumentumok” bővítményt ehhez az utazáshoz („Utazás beállításai”, „Bővítmények”), a „Fájl” fül eltűnik, de a foglaláshoz, helyhez vagy kiadáshoz kapcsolt dokumentum ott marad, és továbbra is megnyílik. Visszakapcsolva a fül újra minden fájlt mutat.',
   // files-star
   'help.guide.files-star.title': 'A fontos dokumentumok legyenek felül',
   'help.guide.files-star.goal':
@@ -2863,7 +3032,7 @@ const help: TranslationStrings = {
   'help.guide.day-weather.step.2':
     'A nagy szám a nap hőmérséklete. Mellette a napi minimum és maximum, valamint az időjárás szöveges leírása látszik.',
   'help.guide.day-weather.step.3':
-    'A tőle jobbra lévő címkék: a csapadék valószínűsége és várható mennyisége, a legerősebb szél, valamint a napkelte és a napnyugta.',
+    'A tőle jobbra lévő címkék: a csapadék valószínűsége és mennyisége, ha az előrejelzés tartalmazza, majd a legerősebb szél, valamint a napkelte és a napnyugta. Ha egy címke fölé viszed az egeret, látod, mit jelent.',
   'help.guide.day-weather.step.4':
     'Alul a nap óránkénti bontása, kétóránként: az időpont, az ikon, a hőmérséklet és a csapadék valószínűsége. Az 50 százalék feletti órák kék hátteret kapnak.',
   'help.guide.day-weather.result':
@@ -2888,6 +3057,8 @@ const help: TranslationStrings = {
     'Ha kiüríted a mezőt és mentesz, a nap neve újra „5. nap” lesz: név hiányában a sorszám látszik.',
   'help.guide.rename-day.tip.2':
     'A név a naphoz tartozik, nem a dátumhoz. Ha átrendezed a napokat, a név a nap minden más tartalmával együtt vándorol.',
+  'help.guide.rename-day.tip.3':
+    'Ha a Beállítások „Általános” részében be van kapcsolva a „Dátum elöl a napok fejlécében”, a dátum a nagy sor, a név pedig alatta áll. A ceruza ilyenkor a névnél van, a második sorban.',
   // add-accommodation
   'help.guide.add-accommodation.title': 'Éjszaka foglalása egy napra',
   'help.guide.add-accommodation.goal':
@@ -2904,7 +3075,7 @@ const help: TranslationStrings = {
     'Válaszd ki a szálláshelyet a „Szálloda kiválasztása” alatt. A lista fölötti „Kategória” egy kategóriára szűkíti a listát.',
   'help.guide.add-accommodation.step.6': 'Kattints a „Mentés” gombra.',
   'help.guide.add-accommodation.result':
-    'A szállás minden olyan napon látszik, amelyre vonatkozik, az elsőn „Bejelentkezés”, az utolsón „Kijelentkezés” jelzéssel. A bejelentkezés napján a szálláshely megálló lesz, így a térkép odáig megmutatja az útvonalat, a „Foglalások” fülön pedig megjelenik egy szállodafoglalás.',
+    'A szállás minden olyan napon látszik, amelyre vonatkozik, az elsőn „Bejelentkezés”, az utolsón „Kijelentkezés” jelzéssel, és a napok oszlopában ezeknek a napoknak a fejléce megnevezi a szállodát. A nap útvonala a térképen a szálláshelyig vezet, a „Foglalások” fülön pedig megjelenik egy szállodafoglalás.',
   'help.guide.add-accommodation.tip.1':
     'A választó azon a napon nyílik meg, ahonnan indítottad, a kijelentkezés a következő napra esik; mentés előtt mindkettőt módosíthatod.',
   'help.guide.add-accommodation.tip.2':
@@ -2967,7 +3138,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-map.bullet.4':
     'Ha a napok oszlopában egy nap meg van nyitva, a megállóin kis fehér jelvény mutatja, hányadikak az adott napon. Ha egy hely kétszer is szerepel a napon, mindkét száma látszik. A helylista fölötti szűrők („Megjelenítés”, a kategóriák és a minimális értékelés csillaga) a térkép gombostűit is szűrik.',
   'help.ctx.trip-map.bullet.5':
-    'A felső ikonsor a térkép látható részén keres: „Éttermek”, „Kávézók”, „Bárok és éjszakai élet”, „Szállás”, „Látnivalók”, „Múzeumok és kultúra”, „Természet és parkok” és „Programok”. A pluginek által hozzáadott kategóriák egy vékony elválasztó vonal után következnek. Ha a sor szélesebb a térképnél, az egérgörgővel oldalra görgetheted. A térkép mozgatása után a „Keresés ezen a területen” újra lefuttatja a keresést.',
+    'A felső ikonsor a térkép látható részén keres: „Éttermek”, „Kávézók”, „Bárok és éjszakai élet”, „Szállás”, „Látnivalók”, „Múzeumok és kultúra”, „Természet és parkok”, „Programok”, „Pékségek” és „Élelmiszerboltok”. A pluginek által hozzáadott kategóriák egy vékony elválasztó vonal után következnek. Ha a sor szélesebb a térképnél, az egérgörgővel oldalra görgetheted. A térkép mozgatása után a „Keresés ezen a területen” újra lefuttatja a keresést.',
   'help.ctx.trip-map.bullet.6':
     'A térképen bárhol jobb gombbal kattintva megnyílik a helyűrlap az adott pontra, a címmel már lekérdezve. A bal alsó sarokban két kerek gomb van: a lakat („Térképnézet zárolása”) a helyén tartja a térképnézetet, miközben napokra és helyekre kattintasz, az alatta lévő gomb („Váltás műholdas nézetre”) pedig a rajzolt térképet műholdképre cseréli.',
   'help.ctx.trip-map.bullet.7':
@@ -2982,7 +3153,7 @@ const help: TranslationStrings = {
   'help.guide.map-markers.step.2':
     'A gombostű a hely saját fotóját mutatja, ha van, egyébként a kategória színét és ikonját. A még függőben lévő foglalású szállás halványan, szaggatott gyűrűvel látszik. Ha egy gombostű fölé viszed az egeret, mellette kártya nyílik: ugyanaz a fotó nagyobban, a név és a cím, valamint az értékelés és a kategória, ha a helynek van ilyen.',
   'help.guide.map-markers.step.3':
-    'Kattints egy gombostűre, és a hely kártyája megnyílik a térkép alsó részén: felül a kép, a név és a cím, alatta a csillagok, a leírás és a fájlok, a foglaláshoz tartozókat is beleértve. Alul találod a műveleteket: „Hozzáadás a naphoz”, ha egy nap meg van nyitva (ha a hely már szerepel rajta, „Eltávolítás a napról”), „Navigáció”, „Weboldal megnyitása”, „Mentés gyűjteménybe” (ha már egy gyűjteményben van, „Mentve”), jobbra pedig a kuka és a „Szerkesztés”. A felső X vagy egy kattintás a térkép üres részére bezárja a kártyát.',
+    'Kattints egy gombostűre, és a hely kártyája megnyílik a térkép alsó részén: felül a kép, a név, a cím és a kategória, alatta a csillagok, a leírás, a jegyzetek, a résztvevők és a fájlok, a foglaláshoz tartozókat is beleértve. Alul találod a műveleteket: „Hozzáadás a naphoz”, ha egy nap meg van nyitva, és a hely még nincs rajta, „Navigáció”, a weboldal ikonja, ha a helynek van, és a könyvjelző, „Mentés gyűjteménybe” (ha már egy gyűjteményben van, „Mentve”). Jobb oldalon a „További lehetőségek” tartalmazza az „Eltávolítás a napról” és a „Törlés” parancsot, a „Szerkesztés” pedig megnyitja a hely űrlapját. A felső nyíl a fejlécéig összecsukja a kártyát; az X vagy egy kattintás a térkép üres részére bezárja.',
   'help.guide.map-markers.step.4':
     'Ha a napok oszlopában megnyitsz egy napot, a megállói sorszámot kapnak: a gombostű sarkában lévő kis fehér jelvény mutatja, hányadik a megálló a napon. Ha egy hely kétszer szerepel a napon, mindkét száma látszik. Ha nincs megnyitott nap, nincsenek számok, és a sarokban helyettük a hely értékelése látszik, ha van.',
   'help.guide.map-markers.step.5':
@@ -3000,7 +3171,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.goal':
     'Keress éttermet, látnivalót vagy szállodát a városnak a térképen látható részén, és vedd fel valamelyiket az utazásba.',
   'help.guide.map-nearby-places.step.1':
-    'A térkép tetején lévő ikonsor a kategóriakeresés: „Éttermek”, „Kávézók”, „Bárok és éjszakai élet”, „Szállás”, „Látnivalók”, „Múzeumok és kultúra”, „Természet és parkok” és „Programok”. A pluginek által hozzáadott kategóriák egy vékony elválasztó után következnek; ha egy ikon fölé viszed az egeret, megjelenik a neve.',
+    'A térkép tetején lévő ikonsor a kategóriakeresés: „Éttermek”, „Kávézók”, „Bárok és éjszakai élet”, „Szállás”, „Látnivalók”, „Múzeumok és kultúra”, „Természet és parkok”, „Programok”, „Pékségek” és „Élelmiszerboltok”. A pluginek által hozzáadott kategóriák egy vékony elválasztó után következnek; ha egy ikon fölé viszed az egeret, megjelenik a neve.',
   'help.guide.map-nearby-places.step.2':
     'Kattints egy kategóriára. A TREK ilyen típusú helyeket keres a térkép látható részén, és minden találathoz a kategória színével jelölt gombostűt tesz le. Egyszerre csak egy kategória lehet aktív: egy másikra kattintva lecseréled, az aktívra kattintva kikapcsolod.',
   'help.guide.map-nearby-places.step.3':
@@ -3008,7 +3179,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.4':
     'Ha egy gombostű fölé viszed az egeret, látod a találat nevét. Rákattintva megnyílik a hely űrlapja, már kitöltött adatokkal: a név az ablak tetején, a „Cím”, a „Szélességi fok” és a „Hosszúsági fok”, valamint a weboldal és a telefonszám, ha a keresés megtalálta őket.',
   'help.guide.map-nearby-places.step.5':
-    'Ellenőrizd a kitöltött adatokat, és egészítsd ki azzal, amit a keresés nem tudhatott. A név alatti kategóriagomb már be van állítva, ha az utazásnak van megfelelő kategóriája, például étteremnél az étterem; ha nincs, „Nincs kategória” látszik rajta, amíg nem választasz. Adj hozzá leírást („Leírás”) és saját jegyzeteket.',
+    'Ellenőrizd a kitöltött adatokat, és egészítsd ki azzal, amit a keresés nem tudhatott. A név alatti kategóriagomb már be van állítva, ha az utazásnak van megfelelő kategóriája, például étteremnél az étterem; ha nincs, „Nincs kategória” látszik rajta, amíg nem választasz. Írd le az „A helyről” mezőbe, miről szól a hely, a saját jegyzeteidet pedig a „Jegyzetek” mezőbe.',
   'help.guide.map-nearby-places.step.6':
     'Kattints a „Hozzáadás” gombra. Ha már van az utazásban azonos nevű vagy ugyanazon a ponton lévő hely, a TREK jelzi ezt, és a gomb felirata „Hozzáadás mindenképp” lesz.',
   'help.guide.map-nearby-places.result':
@@ -3027,7 +3198,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.2':
     'A „Szélességi fok” és a „Hosszúsági fok” már erre a pontra van beállítva. A TREK lekérdezi a koordinátákat, és a „Cím” mezőt az ott talált adattal tölti ki. Ha a lekérdezés nevet is talál, a TREK az ablak tetején a nevet is kitölti. Még semmi sincs elmentve, így javítsd ki, ami nem stimmel.',
   'help.guide.map-add-place.step.3':
-    'Az ablak tetején lévő mezőbe írj egy olyan nevet, amelyről felismered a helyet. Az alatta lévő gombbal válassz kategóriát; amíg nem választasz, „Nincs kategória” látszik rajta. Ezután add meg a tervhez szükséges további adatokat: „Leírás”, „Jegyzetek”, „Weboldal”.',
+    'Az ablak tetején lévő mezőbe írj egy olyan nevet, amelyről felismered a helyet. Az alatta lévő gombbal válassz kategóriát; amíg nem választasz, „Nincs kategória” látszik rajta. Ezután add meg a tervhez szükséges további adatokat: „A helyről”, „Jegyzetek”, „Weboldal”.',
   'help.guide.map-add-place.step.4':
     'Kattints a „Hozzáadás” gombra. A hely nem tervezettként kerül a listába akkor is, ha egy nap meg van nyitva: a jobb kattintás a térképen a helyszínt adja meg, nem a napot.',
   'help.guide.map-add-place.result':
@@ -3067,7 +3238,7 @@ const help: TranslationStrings = {
   'help.guide.map-whole-trip.tip.1':
     'A teljes táv néhány szakaszonként számolódik. Amíg utána … látszik, a szám csak részösszeg. Akkor végleges, amikor már minden szakasz ki van számolva.',
   'help.guide.map-whole-trip.tip.2':
-    'Ha az útvonaltervező nem tudja kiszámolni egy szakaszt, az egyenes vonal marad, és nem számít bele az összegbe. A kártya ezt jelzi is, így az összeg nem csökken figyelmeztetés nélkül.',
+    'Ha az útvonaltervező nem tudja kiszámolni egy szakaszt, az egyenes vonal marad, és nem számít bele az összegbe. A kártya ezt jelzi, a távolság mellett pedig „legalább” áll, így az összeg nem tűnik figyelmeztetés nélkül kisebbnek.',
   'help.guide.map-whole-trip.tip.3':
     'Ha egy napon kettőnél kevesebb helyhez kötött megálló van, és nincs autóút a szállásra vagy onnan, nincs kirajzolható útvonal, ezért a nap egyáltalán nem jelenik meg a kártyán.',
   // map-booking-routes
@@ -3079,7 +3250,7 @@ const help: TranslationStrings = {
   'help.guide.map-booking-routes.step.2':
     'Kattints rá, és a foglalás megjelenik a térképen: a repülés főköríves ívként, az autóút a valódi utak mentén, a vonat az állomásai láncaként. A megerősített foglalás folytonos, a függőben lévő szaggatott vonallal jelenik meg, az útvonal végein pedig kék címkék látszanak a közlekedési eszköz ikonjával.',
   'help.guide.map-booking-routes.step.3':
-    'Kattints egy végponti gombra, és megnyílnak a foglalás részletei: a színes fejlécben gombként az állapot, a típus és a napok, alatta a két végpont időpontja, majd a többi adat, alul pedig a „Térképen” gomb, amely újra kikapcsolja ezt az útvonalat, tömegközlekedési kapcsolatnál az „Útvonal módosítása”, a foglalást törlő kuka és a „Szerkesztés”. A fejlécben lévő X bezárja a részleteket.',
+    'Kattints egy végponti gombra, és megnyílnak a foglalás részletei: a színes fejlécben gombként az állapot, a típus, a napok és a foglalási kód, alatta a két végpont időpontja, majd a többi adat, alul pedig a „Térkép” gomb, amely újra kikapcsolja ezt az útvonalat, tömegközlekedési kapcsolatnál az „Útvonal módosítása”, a foglalást törlő kuka és a „Szerkesztés”. A fejlécben lévő X bezárja a részleteket.',
   'help.guide.map-booking-routes.step.4':
     'A napok fölötti eszköztár útvonal ikonja egyszerre az egész utazásra vonatkozik: az „Összes foglalási útvonal megjelenítése” minden olyan foglalást kirajzol, amelyhez útvonal tartozik.',
   'help.guide.map-booking-routes.step.5':
@@ -3182,7 +3353,7 @@ const help: TranslationStrings = {
   'help.guide.shared-links.tip.1':
     'Csak http vagy https kezdetű cím adható meg. Minden mást elutasít, és az ablak nyitva marad azzal, amit beírtál.',
   'help.guide.shared-links.tip.2':
-    'Elöl a rögzített linkek állnak, utánuk a legújabbak. A cím melletti kis ikon az oldal saját faviconja, amelyet magáról az oldalról töltünk be, így internetkapcsolat nélkül helyette egy egyszerű link ikon látszik a címkén.',
+    'Elöl a rögzített linkek állnak, utánuk a legújabbak. A cím melletti kis ikon az oldal saját faviconja, amelyet magáról az oldalról töltünk be. Amíg be nem töltődik, vagy ha az oldalnak nincs ilyen, a címke helyette egy egyszerű link ikont mutat.',
   'help.guide.shared-links.tip.3':
     'A „Linkek” saját kapcsolóval rendelkezik a „Bővítmények” alatt, az „Együttműködés” alatt, így a rendszergazda kikapcsolhatja a panelt a fül többi része nélkül.',
   // create-poll
@@ -3215,7 +3386,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.step.1':
     'Kattints a választott lehetőségre. A körében pipa jelenik meg, a lehetőség kiemelőszínű keretet kap, a mögötte lévő sáv pedig megnő.',
   'help.guide.vote-poll.step.2':
-    'Most már a teljes eredményt látod: a sáv az arányt mutatja, jobbra a százalék áll, a kis körök pedig azokat jelölik, akik ezt a lehetőséget választották, legfeljebb hármat.',
+    'Most már a teljes eredményt látod: a sáv az arányt mutatja, jobbra a százalék áll, a kis körök pedig azokat jelölik, akik ezt a lehetőséget választották. Hármat mutat; egy negyedik kör pluszjellel és egy számmal a többieket számolja.',
   'help.guide.vote-poll.step.3':
     'Meggondoltad magad? Kattints egy másik lehetőségre. „Többszörös választás” nélküli szavazásnál a szavazatod átkerül az új lehetőségre, nem adsz le egy másodikat.',
   'help.guide.vote-poll.step.4':
@@ -3225,7 +3396,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.tip.1':
     'A százalékok és az, hogy ki mire szavazott, csak akkor jelenik meg, ha már te is szavaztál, vagy ha a szavazás lezárult. A fejlécben lévő szavazatszámot mindenki látja.',
   'help.guide.vote-poll.tip.2':
-    'A szavazás sosem névtelen: ha egy lehetőségnél az egyik kör fölé viszed az egeret, látod, ki szavazott.',
+    'A szavazás sosem névtelen: ha egy lehetőségnél az egyik kör fölé viszed az egeret, látod, ki szavazott. A pluszos kör fölé víve az összes többi nevét látod.',
   // close-poll
   'help.guide.close-poll.title': 'Szavazás lezárása vagy törlése',
   'help.guide.close-poll.goal':
@@ -3248,13 +3419,13 @@ const help: TranslationStrings = {
   'help.guide.whats-next.step.1':
     'A kártya az utazás következő megállóit sorolja fel, legfeljebb nyolcat, időrendben, naponként egy címsor alatt: „Ma”, „Holnap” vagy a dátum, mellette a nap címével, ha van. A fejlécben látszik, hány megálló van.',
   'help.guide.whats-next.step.2':
-    'Minden megálló bal oldalán az időpontja látható: a kezdés, „-ig”, és ha van, a befejezés, vagy TBD, ha még nincs megadva időpont.',
+    'Minden megálló bal oldalán az időpontja látható: a kezdés, „-ig”, és ha van, a befejezés. A saját időpont nélküli szálloda a tartózkodás kezdőnapján a bejelentkezését mutatja. A TBD azt jelenti, hogy még nincs megadva időpont.',
   'help.guide.whats-next.step.3':
     'Mellette a név, a cím, valamint címkeként a megállón részt vevő személyek láthatók. Ha senki sincs a megállóhoz rendelve, az utazás összes tagja megjelenik.',
   'help.guide.whats-next.result':
     'A következő programok listája, csak olvasásra: a tervet követi, és itt semmit sem módosít.',
   'help.guide.whats-next.tip.1':
-    'Itt nincs mit beállítanod. Az időpontok a napi tervből származnak; ha ott módosítod őket, ez a lista azonnal frissül.',
+    'Itt nincs mit beállítanod. Az időpontok a napi tervből származnak, szállodánál pedig a foglalásából; ha ott módosítod őket, ez a lista azonnal frissül.',
   'help.guide.whats-next.tip.2':
     'Csak az jelenik meg, ami még hátravan: egy megálló lekerül a listáról, ha a kezdési ideje elmúlt, a mai, időpont nélküli megálló a nap végéig marad, az utazás végén pedig a panel üres.',
   'help.guide.whats-next.tip.3':
@@ -3291,15 +3462,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-lists.summary':
     'Két lista egy utazáshoz: a csomagolási lista, amelyen látszik, ki mit visz és mennyi a súlya, valamint a teendőlista mindarról, amit az utazás előtt és alatt el kell intézni. A fül akkor jelenik meg, ha a „Listák” bővítmény be van kapcsolva.',
   'help.ctx.trip-lists.bullet.1':
-    'A felső sávban a „Csomagolási lista” és a „Teendők” között válthatsz, és mindkettőnél látod a tételek számát; a sáv jobb szélén lévő gombok mindig az éppen megnyitotthoz tartoznak.',
+    'A felső sávban a „Csomagolási lista” és a „Teendők” között válthatsz, és mindkettőnél látod a tételek számát. A csomagolási listánál a sávban ott van a „Lista hozzáadása” és mellette a három pont; a teendőlistánál az „Új feladat”.',
   'help.ctx.trip-lists.bullet.2':
-    'A csomagolási lista kisebb listákra oszlik, például „Dokumentumok” vagy „Ruházat”, tetszőleges névvel. Minden lista egy kártya. A fejlécében van egy fogantyú, amellyel az egész listát máshová húzhatod, egy színes pont, egy „becsomagolt/összes” jelvény, egy három pontos menü az „Átnevezés”, az „Összes kipipálása”, az „Összes jelölés törlése” és a „Lista törlése” lehetőséggel, valamint egy nyíl, amellyel összecsukhatod a kártyát. A fenti sávban a „Lista hozzáadása” gombbal hozhatsz létre újat.',
+    'A csomagolási lista kisebb listákra oszlik, például „Dokumentumok” vagy „Ruházat”, tetszőleges névvel. Minden lista egy kártya. A fejlécében van egy fogantyú, amellyel az egész listát máshová húzhatod, egy színes pont, egy szaggatott kör, amellyel embereket jelölhetsz ki felelősnek, egy „becsomagolt/összes” jelvény, egy három pontos menü az „Átnevezés”, az „Összes kipipálása”, az „Összes jelölés törlése”, a „Megosztás az egész listára” és a „Lista törlése” lehetőséggel, valamint egy nyíl, amellyel összecsukhatod a kártyát.',
   'help.ctx.trip-lists.bullet.3':
-    'Egy sorban van egy fogantyú, egy jelölőnégyzet és egy név, utána annak a kis avatárja, aki a tételt hozza. Az egynél nagyobb mennyiségű tételeknél egy csomagolásszámláló is megjelenik, például 3/10, mínusz és plusz gombbal. Ezt követi a mennyiség kis jelvényként, és ha a „Poggyászkövetés” be van kapcsolva, a súly grammban és egy táskakör, végül a kuka és egy három pontos menü az „Áthelyezés listába”, „Megosztás”, „Átnevezés” és „Törlés” lehetőséggel. A sorban nem használt vezérlők halványak, amíg föléjük nem viszed az egeret.',
+    'Egy sorban a jelölőnégyzet, a név és csak az látszik, ami be van állítva: a mennyiség kettőtől felfelé, például ×3, a csomagolás közben a becsomagolt darabok, például 2/5, és annak a képe, aki hozza. Ha fölé viszed az egeret, megjelenik egy fogantyú a sor húzásához. Kattints a névre, hogy megnyisd a tétel ablakát a listájával, a mennyiségével, a becsomagolt darabokkal, a súllyal, a táskával, azzal, hogy ki hozza, és azzal, hogy ki látja.',
   'help.ctx.trip-lists.bullet.4':
-    'A „Megosztott” és a „Saját lista” két részre osztja a csomagolási listát: a mindenki által látott közös listára és a sajátodra. A mellettük lévő „Mind”, „Nyitott” és „Kész” az éppen megnyitottat szűri. A sor végén lévő „A-tól Z-ig” név szerint rendezi az egyes listák tételeit, egy újabb kattintással pedig visszatér a saját sorrendedhez. A fenti haladáskártya mutatja, mennyi van már becsomagolva.',
+    'A sáv alatti „Megosztott” és „Saját lista” két részre osztja a csomagolási listát: a mindenki által látott közös listára és a sajátodra. Annak a sornak a jobb oldalán egy sor számolja a becsomagolt tételeket abban a listában, amelyet éppen nézel, mellette egy keskeny sávval.',
   'help.ctx.trip-lists.bullet.5':
-    'A „Sablon alkalmazása” és a „Mentés sablonként” kitölti vagy elmenti a listát, így nem kell begépelned. Az utánuk következő két ikon, az „Exportálás” és az „Importálás”, nyomtatható formában, PDF-ként vagy fájlként exportálja a listát, illetve importál egyet. A haladáskártya jobb végén lévő piros gomb mutatja, hány tétel van kipipálva, és eltávolítja őket.',
+    'A „Lista hozzáadása” melletti három pont tartalmaz mindent, ami még van: „Sablon alkalmazása”, „Mentés sablonként”, „Importálás”, az exportálás három módja („Nyomtatás vagy mentés PDF-ként”, Markdown és CSV), „A-tól Z-ig”, „Becsomagoltak elrejtése” és alul az „Eltávolítás … kipipálva”.',
   'help.ctx.trip-lists.bullet.6':
     'A „Teendők” saját oldalsávval rendelkezik: itt van a haladáskártya, a „Mind”, „Saját feladataim”, „Lejárt” és „Kész” szűrő, listánként egy sor, alattuk pedig a „Lista hozzáadása”. A feladatok egy kártyán jelennek meg, amelynek fejlécében a szűrő neve és a rendezés („Prioritás” vagy „Határidő”) látszik. Egy feladatra kattintva a jobb oldali panelen nyílik meg. A sávban lévő „Új feladat” az „Új feladat” ablakot nyitja meg.',
   // packing-categories
@@ -3309,38 +3480,38 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.step.1':
     'Kattints a listák fölötti sávban a „Lista hozzáadása” gombra. Megnyílik egy kis ablak. Írd be a nevet a felső sávba, ahol a „Lista neve (pl. Ruházat)” felirat áll, majd kattints a „Hozzáadás” gombra.',
   'help.guide.packing-categories.step.2':
-    'Az új lista egy helykitöltő sorral indul, amelyben csak három halvány pont látszik. Kattints a sor alján a „Tétel hozzáadása” gombra, írd be a tételt a „Tétel neve...” mezőbe, és nyomj Entert: az első tétel a helykitöltő helyére kerül, a mező pedig nyitva marad a következőhöz.',
+    'Az új lista egy üres sorral indul, egy mezővel, amelyben három halvány pont látszik. Kattints a kártya alján a „Tétel hozzáadása” gombra, írd be a tételt a „Tétel neve...” mezőbe, és nyomj Entert: az első tétel az üres sor helyére kerül, a mező pedig nyitva marad a következőhöz.',
   'help.guide.packing-categories.step.3':
-    'Egy sort a nevére kattintva, vagy a jobb szélén lévő három pont „Átnevezés” parancsával nevezhetsz át.',
+    'Egy tétel átnevezéséhez kattints a nevére. Megnyílik az ablaka, felül a névvel mint mezővel: írd be az új nevet, és nyomj Entert.',
   'help.guide.packing-categories.step.4':
     'A lista felső sávjában lévő, személyt ábrázoló szaggatott körrel utazási tagokat rendelhetsz a listához. Válassz egy nevet. Ha újra el akarod távolítani az illetőt, kattints a megjelenő címkére.',
   'help.guide.packing-categories.step.5':
-    'A számláló melletti három pont további lehetőségeket kínál: „Átnevezés”, „Összes kipipálása”, „Összes jelölés törlése” és „Lista törlése”. A „Lista törlése” további kérdés nélkül törli a listát az összes tételével együtt. A jobb szélen lévő nyíllal összecsukhatod a listát.',
+    'A számláló melletti három pont további lehetőségeket kínál: „Átnevezés”, „Összes kipipálása”, „Összes jelölés törlése”, „Megosztás az egész listára” és „Lista törlése”. A „Lista törlése” további kérdés nélkül törli a listát az összes tételével együtt. A jobb szélen lévő nyíllal összecsukhatod a listát.',
   'help.guide.packing-categories.result':
     'Az új lista megjelenik a rácsban a tételeivel és a színes pontjával, a jelvénye pedig számolja, mi van már becsomagolva.',
   'help.guide.packing-categories.tip.1':
-    'Egy lista csak a tételei révén létezik. Ha törlöd az utolsó tételt, a sor helykitöltővé válik, így a lista megtartja a helyét és a színét; ha ezt a sort is törlöd, a lista törlődik.',
+    'Egy lista csak a tételei révén létezik. Ha törlöd az utolsó tételt, a sor üressé válik, így a lista megtartja a helyét és a színét; ha ezt a sort is törlöd, a lista törlődik.',
   'help.guide.packing-categories.tip.2':
-    'Ha valakit hozzárendelsz egy listához, csomagolási értesítést kap. Ez nem befolyásolja, ki látja a tételeket: ezt a sor hárompontos menüjében, a „Megosztás” alatt állíthatod be.',
+    'Ha valakit hozzárendelsz egy listához, csomagolási értesítést kap. Ez nem befolyásolja, ki látja a tételeket: ezt az egyes tételek ablakában a „Látható” alatt, vagy az egész listára a „Megosztás az egész listára” beállítással állíthatod be.',
   'help.guide.packing-categories.tip.3':
     'Két listának lehet ugyanaz a neve. A TREK a háttérben megkülönbözteti őket, így a nevek pontosan úgy maradnak, ahogy beírtad.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Kipipálás csomagolás közben',
   'help.guide.check-off-packing.goal':
-    'Jelöld be, mi van már a táskában, kövesd a folyamatjelzőt, és távolítsd el a bepakolt tételeket.',
+    'Jelöld be, mi van már a táskában, kövesd a haladást, és távolítsd el a bepakolt tételeket.',
   'help.guide.check-off-packing.step.1':
-    'Kattints a sor bal oldalán lévő négyzetre. A név áthúzottá válik, és a folyamatjelző frissül.',
+    'Kattints a sor bal oldalán lévő négyzetre. A név áthúzottá válik, és a becsomagolt tételek száma nő.',
   'help.guide.check-off-packing.step.2':
-    'A listák fölötti haladáskártya mutatja, hogy a lista összes tételéből mennyi van már becsomagolva: számként, százalékban és sávként.',
+    'A „Megosztott” és a „Saját lista” sorának jobb oldalán egy sor mondja meg, hány tétel van becsomagolva az éppen nézett lista összes tételéből, mellette egy keskeny sávval.',
   'help.guide.check-off-packing.step.3':
     'Egy teljes lista egyszerre is kipipálható: a fejlécében lévő hárompontos menüben megtalálod az „Összes kipipálása” és az „Összes jelölés törlése” lehetőséget.',
   'help.guide.check-off-packing.step.4':
-    'A „Megosztott” és a „Saját lista” melletti „Mind”, „Nyitott” és „Kész” szűri a rácsot. A „Nyitott” csak azt mutatja, ami még hiányzik, így a teljesen becsomagolt listák eltűnnek.',
+    'A „Lista hozzáadása” melletti három pontban a „Becsomagoltak elrejtése” csak azt mutatja, ami még hiányzik, így a teljesen becsomagolt lista el van rejtve. Amíg be van kapcsolva, egy pipa jelzi; kattints újra, hogy mindent láss.',
   'help.guide.check-off-packing.step.5':
-    'A haladáskártya jobb szélén lévő piros „Eltávolítás … kipipálva” gomb, benne a kipipált tételek számával, a böngésző egyetlen megerősítő kérdése után egyszerre törli az összeset.',
+    'Ugyanennek a menünek az alján az „Eltávolítás … kipipálva”, benne a kipipált tételek számával, a böngésző egyetlen megerősítő kérdése után egyszerre törli az összeset.',
   'help.guide.check-off-packing.result':
-    'Csak a nyitott tételek jelennek meg, a fenti sáv pedig mutatja, hol tartasz a csomagolással.',
-  'help.guide.check-off-packing.tip.1': 'A kipipált tétel is átnevezhető: kattints a nevére.',
+    'Csak a nyitott tételek jelennek meg, a fölöttük lévő sor pedig mutatja, hol tartasz a csomagolással.',
+  'help.guide.check-off-packing.tip.1': 'A kipipált tétel ablaka is megnyílik, ha a nevére kattintasz.',
   'help.guide.check-off-packing.tip.2':
     'Az „Összes kipipálása” és az „Összes jelölés törlése” egyszerre egy listára vonatkozik, és az adott lista saját hárompontos menüjéből érhető el.',
   'help.guide.check-off-packing.tip.3':
@@ -3349,18 +3520,18 @@ const help: TranslationStrings = {
   'help.guide.apply-packing-template.title': 'Csomagolási sablon alkalmazása',
   'help.guide.apply-packing-template.goal':
     'Adj egy kész listát az utazáshoz, és mentsd el ennek az utazásnak a listáját a következőre.',
-  'help.guide.apply-packing-template.step.1': 'Kattints a lista fölötti sávban a „Sablon alkalmazása” gombra.',
+  'help.guide.apply-packing-template.step.1':
+    'Kattints a lista fölötti sávban a „Lista hozzáadása” melletti három pontra.',
   'help.guide.apply-packing-template.step.2':
-    'Válassz egy sablont. Minden sorban látszik a sablon neve és a benne lévő tételek száma.',
+    'Kattints a „Sablon alkalmazása” gombra. Alatta megnyílnak a sablonok, mindegyik a nevével és a benne lévő tételek számával. Válassz egyet.',
   'help.guide.apply-packing-template.step.3':
     'A tételek abba a nézetbe kerülnek, amelyben éppen vagy: a „Megosztott” a mindenki által látott közös listára, a „Saját lista” a saját listádra teszi őket.',
   'help.guide.apply-packing-template.step.4':
-    'Ha ennek az utazásnak a listáját a következő útra is meg akarod tartani, kattints a „Mentés sablonként” gombra. Megnyílik egy kis ablak. Írj be egy nevet a felső mezőbe, ahol a „Sablon neve” felirat látszik, és kattints a „Mentés” gombra.',
+    'Ha ennek az utazásnak a listáját a következő útra is meg akarod tartani, kattints ugyanebben a menüben a „Mentés sablonként” gombra. Megnyílik egy kis ablak. Írj be egy nevet a felső mezőbe, ahol a „Sablon neve” felirat látszik, és kattints a „Mentés” gombra.',
   'help.guide.apply-packing-template.result': 'A sablon listái és tételei bekerülnek az utazásba a már meglévők mellé.',
   'help.guide.apply-packing-template.tip.1':
     'A sablon minden tételnél átmásolja a listát, a mennyiséget, a súlyt és a táskát, és létrehozza azokat a táskákat, amelyek még nincsenek meg az utazásban. A pipák nem másolódnak át, és a listán már szereplő tételek közül semmi sem törlődik.',
-  'help.guide.apply-packing-template.tip.2':
-    'A „Sablon alkalmazása” csak akkor érhető el, ha már létezik sablon. Sablon nélkül a gomb meg sem jelenik.',
+  'help.guide.apply-packing-template.tip.2': 'A „Sablon alkalmazása” csak akkor van a menüben, ha már létezik sablon.',
   'help.guide.apply-packing-template.tip.3':
     'A „Mentés sablonként” csak a példány adminisztrátorainak jelenik meg, és csak akkor, ha a listában vannak tételek. A megosztott tételeket és a saját tételeidet menti, egy másik tag privát tételeit soha.',
   // import-packing-list
@@ -3368,7 +3539,7 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.goal':
     'Egy máshol már meglévő listádat egy lépésben alakíthatod csomagolási tételekké.',
   'help.guide.import-packing-list.step.1':
-    'Kattints a lista fölötti sáv jobb szélén lévő, lefelé mutató nyilas ikonra („Importálás”).',
+    'Nyisd meg a „Lista hozzáadása” melletti három pontot, és kattints az „Importálás” gombra.',
   'help.guide.import-packing-list.step.2':
     'Soronként egy tétel: Kategória, Név, Súly g-ban (nem kötelező), Táska (nem kötelező), checked/unchecked (nem kötelező). A mezőben látható szürke minta mind a négy formátumot mutatja, a bal szélén lévő számok pedig a begépelt sorokat számolják. Markdown-lista is használható: a címsor adja a lista nevét, a "- [ ]" és a "- [x]" sorokból pedig tételek lesznek.',
   'help.guide.import-packing-list.step.3':
@@ -3386,9 +3557,9 @@ const help: TranslationStrings = {
   'help.guide.export-packing-list.goal':
     'Nyomtasd ki a listát, mentsd PDF-ként, vagy exportáld fájlként egy másik alkalmazásba vagy a következő utazáshoz.',
   'help.guide.export-packing-list.step.1':
-    'Kattints az „Exportálás” ikonra, a felfelé mutató nyílra a lista fölötti sávban, közvetlenül az „Importálás” előtt.',
+    'Kattints a lista fölötti sávban a „Lista hozzáadása” melletti három pontra.',
   'help.guide.export-packing-list.step.2':
-    'A „Markdown ellenőrzőlista (.md)” és a „CSV importáláshoz (.csv)” azonnal fájlba menti a listát.',
+    'A kimeneti lehetőségek a menü közepén vannak. A „Markdown ellenőrzőlista (.md)” és a „CSV importáláshoz (.csv)” azonnal fájlba menti a listát.',
   'help.guide.export-packing-list.step.3':
     'Kattints a „Nyomtatás vagy mentés PDF-ként” lehetőségre. Az előnézet oldalként mutatja a listát: felül az utazás, a dátumai és a csomagolás állása, alatta minden lista kártyaként, minden tétel mellett egy kipipálható négyzettel.',
   'help.guide.export-packing-list.step.4':
@@ -3399,35 +3570,72 @@ const help: TranslationStrings = {
     'A CSV az a formátum, amelyet az „Importálás” beolvas, a táskákkal együtt, így saját csomagolási sablonként is használhatod: importáld a következő utazásba.',
   'help.guide.export-packing-list.tip.2':
     'A Markdown-fájl ellenőrzőlistaként nyílik meg az Obsidianban, a Notionban vagy a GitHubon, és az „Importálás” gombbal újra be is töltheted.',
+  'help.guide.edit-packing-item.title': 'Tétel módosítása az ablakában',
+  'help.guide.edit-packing-item.goal':
+    'Nyiss meg egy tételt, és egy helyen módosítsd a nevét, a listáját, a mennyiségét vagy azt, hogy ki hozza.',
+  'help.guide.edit-packing-item.step.1':
+    'Kattints egy tétel nevére. A sornál megnyílik egy kis ablak a tétel minden adatával, mindegyik érték egy gombban.',
+  'help.guide.edit-packing-item.step.2':
+    'A felül lévő név egy mező: írd át, és nyomj Entert a tétel átnevezéséhez. A mellette lévő kereszt bezárja az ablakot.',
+  'help.guide.edit-packing-item.step.3':
+    'A „Lista” egy másik listába helyezi át a tételt: kattints rá, és válassz egyet. Az alatta lévő „Menny.” azt állítja be, hányat viszel.',
+  'help.guide.edit-packing-item.step.4':
+    'A „Hozza” megmutatja, ki hozza a közös tételt. Kattints rá, és jelöld be az utazás mindazon tagjait, akik szintén hozzák; egy névre kattintva másodszor az illetőt újra leveszed.',
+  'help.guide.edit-packing-item.step.5':
+    'Alul a „Törlés” azonnal eltávolítja a tételt. Az ablakot a kereszttel vagy bárhová mellé kattintva zárhatod be.',
+  'help.guide.edit-packing-item.result':
+    'A sor csak azt mutatja, ami be van állítva: a mennyiséget kettőtől felfelé, a csomagolás közben a becsomagolt darabokat, és azok képét, akik hozzák.',
+  'help.guide.edit-packing-item.tip.1': 'Minden módosítás menet közben mentődik. Nincs „Mentés” gomb.',
+  'help.guide.edit-packing-item.tip.2':
+    'Ha a „Poggyászkövetés” be van kapcsolva, az ablakban a tétel súlya és a táskája is szerepel. Lásd: A táskák lemérése.',
+  'help.guide.edit-packing-item.tip.3':
+    'Egy olyan közös tételnél, amelyet valaki más hoz, a „Törlés” fölötti „Másolás a listámra” privát másolatot készít neked.',
   // share-packing-item
-  'help.guide.share-packing-item.title': 'Ki látja a tételt, és ki hozza',
+  'help.guide.share-packing-item.title': 'Döntsd el, ki lát egy tételt',
   'help.guide.share-packing-item.goal':
     'Helyezz át egy tételt a csoport közös listája, a saját listád és azok között, akiknek viszed.',
   'help.guide.share-packing-item.step.1':
     'A listák fölött a „Megosztott” az a lista, amelyet mindenki lát, a „Saját lista” pedig a tiéd. Mindkettőnél látszik a tételek száma. A sajátod megtekintéséhez kattints a „Saját lista” elemre.',
   'help.guide.share-packing-item.step.2':
-    'A „Megosztott” nézetben nyisd meg egy sor végén a három pontot, és kattints a „Megosztás” lehetőségre.',
+    'A „Megosztott” nézetben kattints egy tétel nevére. Az ablakának alján a „Látható” három lehetőséget kínál: „Mind”, „Csak én” és „Kiválasztva”.',
   'help.guide.share-packing-item.step.3':
-    'Három szint közül választhatsz: „Megosztott”, ezt a csoportban mindenki látja; „Személyes”, ezt csak te látod; és „Megosztás vele…”, ahol kiválasztod, kiknek szól a tétel.',
-  'help.guide.share-packing-item.step.4':
-    'A „Személyes” tétel csak a „Saját lista” nézetben szerepel. Válts a „Saját lista” nézetre, hogy megtaláld.',
+    'Kattints a „Csak én” lehetőségre. A tétel kikerül a közös listából, és mostantól a saját listádon van, ahol csak te látod.',
+  'help.guide.share-packing-item.step.4': 'Válts a „Saját lista” nézetre, hogy megtaláld.',
   'help.guide.share-packing-item.step.5':
-    'Nyisd meg újra a „Megosztás” menüt, és a „Megosztás vele…” alatt jelölj be egy nevet. A tétel annak a személynek a listáján is megjelenik, a sorban pedig egy kis jelvény mutatja, hány emberrel van megosztva.',
-  'help.guide.share-packing-item.result': 'A tétel a választott szintre kerül, a sorban pedig látszik, ki hozza.',
+    'Nyisd meg újra, kattints a „Kiválasztva” lehetőségre, és jelölj be egy nevet. A tétel annak a személynek a listáján is megjelenik, a sorban pedig egy kis jelvény mutatja, hány emberrel van megosztva.',
+  'help.guide.share-packing-item.result':
+    'A tétel a saját listádon van, és a során lévő jelvény mutatja, hányan látják még veled együtt.',
   'help.guide.share-packing-item.tip.1':
-    'Egy tétel megosztását csak az módosíthatja, aki hozza. Akivel megosztottad, a saját „Saját lista” nézetében látja egy kis kéz jelvénnyel, amely fölé víve az egeret a neved jelenik meg. Ő is kipipálhatja.',
+    'Egy tétel láthatóságát csak az módosíthatja, akié a tétel. Akivel megosztottad, a saját „Saját lista” nézetében látja egy kis kéz jelvénnyel, amely fölé víve az egeret a neved jelenik meg. Ő is kipipálhatja.',
   'help.guide.share-packing-item.tip.2':
-    'Ha egy megosztott tételt más hoz, a hárompontos menüben a „Megosztás” helyett két másik lehetőség jelenik meg: az „Én is tudom hozni” téged is felvesz mellé, a „Másolás a listámra” pedig saját, privát másolatot készít.',
+    'Egy lista összes tételének egyszerre áthelyezéséhez használd a lista három pontjában a „Megosztás az egész listára” lehetőséget. Lásd: Egy egész lista megosztása.',
   'help.guide.share-packing-item.tip.3':
     'Az új tételek megosztása attól a nézettől függ, amelyben hozzáadod őket. A „Megosztott” nézetben hozzáadott tételek mindenkivel meg vannak osztva. A „Saját lista” nézetben hozzáadottak „Személyes” jelölést kapnak, kivéve ha a lista összes tétele ugyanazokkal az emberekkel van megosztva: ilyenkor az új tétel is meg lesz osztva velük.',
+  'help.guide.share-packing-list.title': 'Egy egész lista megosztása',
+  'help.guide.share-packing-list.goal':
+    'Egy listán lévő összes tételt egyszerre helyezd át a közös gyűjtőbe, a saját listádra vagy az általad kiválasztott személyekhez.',
+  'help.guide.share-packing-list.step.1':
+    'Nyisd meg a három pontot a lista fejlécében, és kattints a „Megosztás az egész listára” lehetőségre.',
+  'help.guide.share-packing-list.step.2':
+    'Az ablak megnevezi a listát, és három szintet kínál: „Közös”, a közös gyűjtőben mindenkinek; „Személyes”, csak neked; és „Megosztás vele…”, az általad kiválasztott embereknek. Azon a szinten indul, amelyen a tételek már vannak. Kattints a „Megosztás vele…” lehetőségre.',
+  'help.guide.share-packing-list.step.3': 'Jelöld be azokat, akiknek a lista szól.',
+  'help.guide.share-packing-list.step.4':
+    'Kattints az „Alkalmazás a listára” gombra. A listán lévő minden saját tételed arra a szintre kerül, és egy üzenet megerősíti.',
+  'help.guide.share-packing-list.result':
+    'A lista kikerült a közös nézetből, és a „Saját lista” nézetben van, minden soron egy jelvénnyel, amely azt mutatja, hány emberrel van megosztva.',
+  'help.guide.share-packing-list.tip.1':
+    'Csak a saját tételeid kerülnek át. A mások által hozzáadott tételek változatlanul maradnak, és az ablak ezt jelzi, ha a listán vannak ilyenek.',
+  'help.guide.share-packing-list.tip.2': 'Egy-egy tételt utólag is módosíthatsz, az ablakában a „Látható” alatt.',
   // packing-bags
   'help.guide.packing-bags.title': 'A táskák lemérése',
   'help.guide.packing-bags.goal':
     'Adj meg minden tételhez súlyt, oszd szét a tételeket táskákba, és tartsd minden táska súlyát a légitársaság korlátja alatt.',
-  'help.guide.packing-bags.step.1': 'Kattints a kör előtti súlyjelvényre, és add meg a tétel súlyát grammban.',
-  'help.guide.packing-bags.step.2': 'A súly utáni kör a tétel táskája. Kattints rá.',
+  'help.guide.packing-bags.step.1':
+    'Kattints egy tétel nevére az ablaka megnyitásához, és írd be a tétel súlyát grammban az „Összsúly” mezőbe.',
+  'help.guide.packing-bags.step.2':
+    'Alatta a „Táska” a „Nem hozzárendelt” értéket mutatja, amíg a tétel nincs egyik táskában sem. Kattints rá.',
   'help.guide.packing-bags.step.3':
-    'Ha még nincs táska, kattints a „Táska hozzáadása” gombra, írj be egy nevet, és nyomj Entert. A táska létrejön, és a tétel bele is kerül.',
+    'Alatta megnyílnak az utazás táskái. Ha még nincs egy sem, írj be egy nevet a lista végén lévő „Táska hozzáadása” mezőbe, és nyomj Entert. A táska létrejön, és a tétel bele is kerül.',
   'help.guide.packing-bags.step.4':
     'Amint létrejön egy táska, a listák jobb oldalán megjelenik a „Táskák” kártya. Minden táskánál látod a nevét, azt, hogy ki viszi, egy telítettségi sávot, a benne lévő tételek számát és a súlyát. A táskák alatt a „Nincs hozzárendelve” és az „Összsúly” következik, alatta a „Becsomagolva”: a már becsomagolt súly és egy vékony sáv az arányával.',
   'help.guide.packing-bags.step.5':
@@ -3437,7 +3645,7 @@ const help: TranslationStrings = {
   'help.guide.packing-bags.result':
     'A jobb oldali „Táskák” kártyán látod az egyes táskák súlyát a korláthoz képest, azt, ami egyik táskában sincs, hogy ki mit visz, és az összsúlyt azzal együtt, hogy mennyi van már becsomagolva.',
   'help.guide.packing-bags.tip.1':
-    'A súlymező, a táskakör és a „Táskák” kártya csak akkor érhető el, ha egy adminisztrátor a „Listák” bővítmény alatt bekapcsolta a „Poggyászkövetés” funkciót. Keskenyebb ablakban a táskákat ehelyett a haladáskártya fölötti „Táskák” gombbal nyithatod meg.',
+    'A súly és a táska a tétel ablakában és a „Táskák” kártya csak akkor érhető el, ha egy adminisztrátor a „Listák” bővítmény alatt bekapcsolta a „Poggyászkövetés” funkciót. Keskenyebb ablakban a táskákat ehelyett a „Lista hozzáadása” melletti három pontban a „Táskák” menüponttal nyithatod meg.',
   'help.guide.packing-bags.tip.2':
     'A táska súlyát a szerver minden tag tételeiből számolja, azokból is, amelyeket te nem látsz, így a szám a táska valódi súlya.',
   'help.guide.packing-bags.tip.3':
@@ -3486,15 +3694,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     'A sáv jobb végén lévő „Kézi foglalás” megnyitja az „Új foglalás” ablakot. Hatféle foglalást hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Vezetett túra”, „Parkolás” és „Egyéb”. A repülőjáratok, vonatok és egyéb közlekedési eszközök a „Közlekedés” fülön vannak, és itt sosem jelennek meg.',
   'help.ctx.trip-bookings.bullet.2':
-    'A „Kézi foglalás” előtti letöltés ikonnal („Foglalási visszaigazolások importálása”) visszaigazolásokat tölthetsz fel, amelyeket a TREK automatikusan feldolgoz: EML, PDF, PKPass, HTML vagy TXT, legfeljebb öt fájl, egyenként 10 MB-ig, valamint fotók, ha az AI-modell képeket is tud olvasni. Az ikon csak akkor jelenik meg, ha a szerver képes feldolgozni őket.',
+    'A „Kézi foglalás” előtti feltöltés ikonnal („Foglalási visszaigazolások importálása”) visszaigazolásokat tölthetsz fel, amelyeket a TREK automatikusan feldolgoz: EML, PDF, PKPass, HTML vagy TXT, legfeljebb öt fájl, egyenként 10 MB-ig, valamint fotók, ha az AI-modell képeket is tud olvasni. Az ikon csak akkor jelenik meg, ha a szerver képes feldolgozni őket. Ha az adminisztrátor bekapcsolta az e-mail-importot, ugyanez az ablak az utazásnak saját címet is ad, amelyre a foglalási e-maileket továbbíthatod.',
   'help.ctx.trip-bookings.bullet.3':
     'A „Keresés” a címekben, típusokban, helyekben, jegyzetekben, foglalási kódokban és utazókban keres. A mellette lévő tölcsér, a „Szűrő” „Állapot” és „Típus” szerint (típusonként darabszámmal), valamint „Utasok” szerint szűkíti a fület, ha egy foglaláshoz személyek is tartoznak. A tölcséren lévő szám mutatja, hány szűrő aktív.',
   'help.ctx.trip-bookings.bullet.4':
-    'A „Szűrő” utáni három ikonnal válthatsz a nézetek között: „Kártyák”, „Lista” és „Idővonal”. A mellettük lévő csúszkákkal („Nézet beállításai”) csoportosíthatod és rendezheted a kártyákat és a listát, vagy beállíthatod az idővonal sávjait; az ezt követő táblázat ikon („Exportálás táblázatként (CSV)”) fájlként letölti, amit a fül mutat. Alapból a kártyák „Megerősítve” és „Függőben” csoportba, a lista napok szerint rendeződik. Egy csoport címére kattintva összecsukhatod.',
+    'A „Szűrő” utáni három ikonnal válthatsz a nézetek között: „Kártyák”, „Lista” és „Idővonal”. A mellettük lévő csúszkákkal („Nézet beállításai”) csoportosíthatod és rendezheted a kártyákat és a listát, vagy beállíthatod az idővonal sávjait; az ezt követő letöltés ikon („Exportálás táblázatként (CSV)”) fájlként letölti, amit a fül mutat. Alapból a kártyák „Megerősítve” és „Függőben” csoportba, a lista napok szerint rendeződik. Egy csoport címére kattintva összecsukhatod.',
   'help.ctx.trip-bookings.bullet.5':
     'A kártya fejlécének színe az állapotot jelzi; benne van az állapotpont (kattintásra „Függőben” és „Megerősítve” között vált), a típus, a cím, a ceruza és a kuka. Alatta a foglalás meglévő adatai: „Dátum”, „Időpont”, „Foglalási kód”, „Bejelentkezés” és „Kijelentkezés”, „Helyszín / Cím”, „Szállás”, „Kapcsolódik” (a megálló a tervben), „Hivatkozás”, „Jegyzetek”, „Utasok”, „Fájl” és a kapcsolt költségek.',
   'help.ctx.trip-bookings.bullet.6':
-    'Egy kártyára, sorra vagy sávra kattintva megnyílnak a foglalás részletei, alul a „Térképen” gombbal (ha a foglaláshoz tartozik hely), a kukával és a „Szerkesztés” gombbal. Törlés előtt egyszer rákérdez („Foglalás törlése?”, és jelzi, ha költségek is törlődnek vele). Ezután a foglalás a kapcsolódó kiadásokkal együtt törlődik, szállásnál pedig az éjszakái is lekerülnek a napi tervről.',
+    'Egy kártyára, sorra vagy sávra kattintva megnyílnak a foglalás részletei, alul a „Térkép” gombbal (ha a foglaláshoz tartozik hely), a kukával és a „Szerkesztés” gombbal. Törlés előtt egyszer rákérdez („Foglalás törlése?”, és jelzi, ha költségek is törlődnek vele). Ezután a foglalás a kapcsolódó kiadásokkal együtt törlődik, szállásnál pedig az éjszakái is lekerülnek a napi tervről.',
   // booking-views
   'help.guide.booking-views.title': 'Nézetváltás és foglalás megnyitása',
   'help.guide.booking-views.goal':
@@ -3510,9 +3718,9 @@ const help: TranslationStrings = {
   'help.guide.booking-views.step.5':
     'Vidd az egeret egy sáv fölé, hogy lásd a napját, időpontjait és helyét, majd kattints rá a foglalás részleteinek megnyitásához. A „Kártyák” nézetben egy kártya és a „Lista” nézetben egy sor ugyanezt az ablakot nyitja meg.',
   'help.guide.booking-views.step.6':
-    'A részletes nézet fejlécében a cím, valamint címkék látszanak az állapothoz (kattintásra vált), a típushoz, a naphoz és a foglalási kódhoz, egy másolás gombbal. Alatta csempékként az időpontok, majd a hely, az utazók, a jegyzetek, a költségek és a fájlok, ha vannak, legalul pedig a „Térképen”, a kuka és a „Szerkesztés”.',
+    'A részletes nézet fejlécében a cím, valamint címkék látszanak az állapothoz (kattintásra vált), a típushoz, a naphoz és a foglalási kódhoz, egy másolás gombbal. Alatta csempékként az időpontok, majd a hely, az utazók, a jegyzetek, a költségek és a fájlok, ha vannak, legalul pedig a „Térkép”, a kuka és a „Szerkesztés”.',
   'help.guide.booking-views.result':
-    'A foglalás a részletes nézetében nyílik meg: a „Szerkesztés” megnyitja az űrlapját, a „Térképen” megmutatja a terven, a „Lezárás” vagy az Escape pedig visszavisz abba a nézetbe, ahonnan jöttél.',
+    'A foglalás a részletes nézetében nyílik meg: a „Szerkesztés” megnyitja az űrlapját, a „Térkép” megmutatja a terven, a „Lezárás” vagy az Escape pedig visszavisz abba a nézetbe, ahonnan jöttél.',
   'help.guide.booking-views.tip.1':
     'A „Nézet beállításai” (a nézetikonok utáni csúszkák ikon) alatt a „Kártyák” és a „Lista” nézetet a „Csoportosítás” és a „Rendezés” segítségével csoportosíthatod és rendezheted. Az „Idővonal” nézetben a „Típusonként külön sáv” és „A másik fül megjelenítése” érhető el. „A másik fül megjelenítése” a „Közlekedés” fül tételeit halványítva, egy vékony sávban mutatja felül. A „Nézet visszaállítása” visszaállítja az alapértékeket, és minden fül megjegyzi a nézetét ebben a böngészőben.',
   'help.guide.booking-views.tip.2':
@@ -3608,7 +3816,7 @@ const help: TranslationStrings = {
     'A „Meglévő fájl csatolása” az utazás azon dokumentumait kínálja fel, amelyek még nincsenek ennél a foglalásnál. Válassz egyet, és újbóli feltöltés nélkül csatolódik.',
   'help.guide.booking-files.step.4': 'Kattints a „Frissítés” gombra.',
   'help.guide.booking-files.result':
-    'A kártya és a részletnézet a „Fájl” alatt sorolja fel a dokumentumokat. Egy dokumentumra kattintva megnyithatod. A részletnézetben a lista fölötti „Megjelenítés a fájlokban” a „Fájl” fülre visz.',
+    'A kártya és a részletnézet a „Fájlok” alatt sorolja fel a dokumentumokat. Egy dokumentum nevére kattintva megnyithatod, a sora végén lévő letöltés ikonnal pedig elmentheted. A részletnézetben a lista fölötti „Megjelenítés a fájlokban” a „Fájlok” fülre visz.',
   'help.guide.booking-files.tip.1':
     'Ha a foglalást még most hozod létre, a dokumentum akkor töltődik fel, amikor a „Hozzáadás” gombra kattintasz. A feltöltéshez internetkapcsolat kell.',
   'help.guide.booking-files.tip.2':
@@ -3631,7 +3839,7 @@ const help: TranslationStrings = {
   'help.guide.booking-cost.result':
     'A kártya alján megjelenik az összeg, a foglalás űrlapján a költség a „Kapcsolt költségek” alatt szerepel, és ugyanez a költség a „Költségek” fülön is megjelenik, ehhez a foglaláshoz kapcsolva.',
   'help.guide.booking-cost.tip.1':
-    'A kategória a típustól függ: az étteremből „Étel és ital”, a szállásból „Szállás”, a parkolásból „Parkolás”, az eseményből és a túrából pedig egyaránt „Egyéb” lesz.',
+    'A kategória a típustól függ: az étteremből „Étel és ital”, a szállásból „Szállás”, a parkolásból „Parkolás”, az eseményből és a vezetett túrából „Programok” lesz, az egyébből pedig „Egyéb” marad.',
   'help.guide.booking-cost.tip.2':
     'Egy foglaláshoz több kiadás is tartozhat. A „Meglévő költség csatolása” azokat a kiadásokat kínálja fel a „Költségek” közül, amelyek még semmihez sem kapcsolódnak. Egy csatolt kiadásnál a „Leválasztás, a költség megmarad” megszünteti a kapcsolatot, de a kiadás a „Költségek” között marad, a kuka viszont törli.',
   'help.guide.booking-cost.tip.3':
@@ -3652,7 +3860,7 @@ const help: TranslationStrings = {
   'help.guide.filter-bookings.result':
     'A fül csak a kiválasztott elemeket mutatja, a „Kártyák”, a „Lista” és az „Idővonal” nézetben egyaránt, a szűrők pedig ennél az utazásnál a böngészőlap bezárásáig megmaradnak.',
   'help.guide.filter-bookings.tip.1':
-    'A „Típus” csak akkor jelenik meg, ha a fülön egynél több típus van, és csak a fülön szereplő típusokat sorolja fel. Ha tehát nincs túra a fülön, a „Típus” alatt nincs „Túra” lehetőség.',
+    'A „Típus” csak akkor jelenik meg, ha a fülön egynél több típus van, és csak a fülön szereplő típusokat sorolja fel. Ha tehát nincs vezetett túra a fülön, a „Típus” alatt nincs „Vezetett túra” lehetőség.',
   'help.guide.filter-bookings.tip.2':
     'Ha semmi sem felel meg a szűrőnek, a fülön a „Nincs a szűrőknek megfelelő találat” üzenet jelenik meg, közvetlenül alatta a „Szűrők visszaállítása” gombbal.',
   // import-booking-file
@@ -3660,7 +3868,7 @@ const help: TranslationStrings = {
   'help.guide.import-booking-file.goal':
     'A TREK olvassa ki a foglalást a szolgáltatótól kapott e-mailből vagy PDF-ből, hogy ne kelljen újra begépelned.',
   'help.guide.import-booking-file.step.1':
-    'Kattints a sávban a letöltés ikonra, a „Foglalási visszaigazolások importálása” gombra; a neve akkor jelenik meg, ha fölé viszed az egeret. Megnyílik az azonos nevű ablak.',
+    'Kattints a sávban a feltöltés ikonra, a „Foglalási visszaigazolások importálása” gombra; a neve akkor jelenik meg, ha fölé viszed az egeret. Megnyílik az azonos nevű ablak.',
   'help.guide.import-booking-file.step.2':
     'Húzd a visszaigazolásokat a mezőre, vagy kattints rá, és válaszd ki őket: EML, PDF, PKPass, HTML vagy TXT, legfeljebb öt fájl, egyenként 10 MB-ig, valamint fotók (JPG, PNG, WEBP), ha az AI-modell képeket is tud olvasni. A mezőben látod a kiválasztott fájlok nevét.',
   'help.guide.import-booking-file.step.3':
@@ -3716,7 +3924,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.summary':
     'Az utazás pénzügyei: minden kiadás egy dátum szerinti főkönyvben vagy táblázatban, azzal együtt, ki rögzítette, és kinek kell állnia, a nyugta pénznemében. A jobb oldali oszlop mutatja, kinek kit kell kifizetnie az egyenleg rendezéséhez.',
   'help.ctx.trip-costs.bullet.1':
-    'A felső sávban az utazás dátumai és azok az utazók látszanak, akik között a költségek megoszlanak. Itt található a „Költségek keresése…” mező, a „Szűrő” (a tölcsér), a „CSV exportálás” (a letöltés ikon) és a „Lista” / „Táblázat” kapcsoló is.',
+    'A felső sávban az utazás dátumai és azok az utazók látszanak, akik között a költségek megoszlanak. Itt található a „Költségek keresése…” mező, a „Szűrő” (a tölcsér), a „CSV exportálás” (a letöltés ikon), az a pénznem, amelyben az összegek látszanak, és a „Lista” / „Táblázat” kapcsoló.',
   'help.ctx.trip-costs.bullet.2':
     'A sáv jobb végén az „Elszámolás” egyszerre rögzíti az összes nyitott átutalást, a „Nyugta beolvasása” egy fotóból tölti ki a kiadást, ha az „MI-elemzés” bővítmény képes képeket olvasni, a „Költség hozzáadása” pedig megnyitja a szerkesztőt.',
   'help.ctx.trip-costs.bullet.3':
@@ -3724,7 +3932,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.bullet.4':
     'A főkönyv napok szerint csoportosít, a legújabbal kezdve, minden nap fejlécében a bejegyzések számával és az aznap elköltött összeggel. Egy sorban látod a kategóriát színes fülként, a nevet, a fizetők címkéit azzal, ki mennyit fizetett, alattuk a „Felosztás” résszel, minden utas részével (pipa jelöli, ki fizette már ki a sajátját), majd a jegyzetet és az összeget, valamint a „kölcsönadtál” vagy „kölcsönvettél” jelzést, ha a felosztás szerint mások tartoznak neked, vagy te tartozol.',
   'help.ctx.trip-costs.bullet.5':
-    'A jobb oldali oszlop az eredményeket mutatja: az „Elszámolás” felsorolja, ki kinek fizet, az „Egyenlegek” minden utazó többletét vagy hiányát, a „Végső költségvetés” azt, mennyibe kerül az utazás az egyes utazóknak, a „Kategóriánként” pedig azt, mire ment el a pénz.',
+    'A jobb oldali oszlop az eredményeket mutatja: az „Elszámolás” felsorolja, ki kinek fizet, az „Egyenlegek” minden utazó többletét vagy hiányát, a „Végső költségvetés” azt, mennyibe kerül az utazás az egyes utazóknak, a „Kategóriánként” pedig azt, mire ment el a pénz; egy kategóriára kattintva kihagyod az összesítésből. A „Költségek elosztása az utazók között”, az oszlop alján, kikapcsolja a fizetőket és az elszámolást egy olyan utazásnál, amelyhez csak a végösszegek kellenek.',
   'help.ctx.trip-costs.bullet.6':
     'A rögzített befizetés ugyanabban a főkönyvben külön sorként jelenik meg, mellette ceruzával és „Visszavonás” gombbal. A kiadásnál ceruza és kuka van, a kuka pedig törlés előtt rákérdez. A nyugtával rendelkező kiadás neve mellett „Nyugta” címke látható, amellyel megnyithatod a nyugtákat.',
   'help.ctx.trip-costs.bullet.7':
@@ -3739,7 +3947,7 @@ const help: TranslationStrings = {
   'help.guide.add-expense.step.3':
     'A név alatti címke a „Kategória”, amely „Étel és ital”, amíg mást nem választasz. Tizennégy kategória van, és nem módosíthatók. A fejléc a választott kategória színére vált, ahogy a sor színes füle és a „Kategóriánként” nézetben a sávja is.',
   'help.guide.add-expense.step.4':
-    'Írd be a nyugtán szereplő összeget a „Teljes összeg” mezőbe. A mellette lévő „Pénznem” kezdetben a „Költségek” megjelenítési pénzneme; ha módosítod, a szerkesztő mutatja az átváltott összeget. A „Nap” kezdetben a mai nap, és a kiadás a listában e nap alá kerül.',
+    'Írd be a nyugtán szereplő összeget a „Teljes összeg” mezőbe. A mellette lévő „Pénznem” az utazás saját pénznemével indul; ha másikat választasz, a szerkesztő a mezők alatt mutatja az átváltott összeget. A „Nap” kezdetben a mai nap, és a kiadás a listában e nap alá kerül.',
   'help.guide.add-expense.step.5':
     'A „Ki fizetett?” alatt kattints arra, aki ténylegesen fizetett. Alapból a „Te” van kiválasztva. A „Még senki sem fizetett” úgy rögzíti az összeget, hogy senki sem tartozik érte, a fejléc melletti kapcsolóban a „Többen fizettek” pedig több fizető között osztja meg a számlát.',
   'help.guide.add-expense.step.6':
@@ -3794,26 +4002,26 @@ const help: TranslationStrings = {
   'help.guide.split-expense.tip.3':
     '„Blokk” módban a „Teljes összeg” mezőt a TREK maga számolja ki, ezért a mező kiszürkül: a végösszeg a blokk tételeinek összege.',
   'help.guide.split-expense.tip.4':
-    'Egyéni felosztást százalékban is megadhatsz: állítsd a „Részek megadása mint” kapcsolót %-ra. A részek összegének 100 %-nak kell lennie, különben a kiadás nem menthető.',
+    'Egyéni felosztást százalékban vagy részekben is megadhatsz: a tipp melletti kis kapcsoló választja ki a pénznem jelét, a %-ot vagy a „Részek” lehetőséget. Százaléknál a részeknek együtt 100 %-ot kell kitenniük, mielőtt a kiadás mentődik.',
   // expense-currency
   'help.guide.expense-currency.title': 'Kiadás rögzítése más pénznemben',
   'help.guide.expense-currency.goal': 'Add meg a nyugtán szereplő összeget, az árfolyamot pedig a TREK elmenti.',
   'help.guide.expense-currency.step.1':
     'Nyisd meg a „Költség hozzáadása” ablakot. Írd be a nevet az ablak tetejére, az összeget pedig a „Teljes összeg” mezőbe pontosan úgy, ahogy a nyugtán szerepel, ne átváltva.',
   'help.guide.expense-currency.step.2':
-    'Nyisd meg az összeg melletti „Pénznem” listát, és válaszd ki a nyugta pénznemét. A lista a TREK által ismert összes kódot tartalmazza, és kereshető: írd be a háromjegyű kódot.',
+    'Nyisd meg az összeg melletti „Pénznem” listát; az új kiadás az utazás saját pénznemével indul. Válaszd ki a nyugta pénznemét: az utazás pénzneme és az, amelyben a „Költségek” látszanak, a lista tetején áll, és a háromjegyű kód beírásával a TREK által ismert összes többi között kereshetsz.',
   'help.guide.expense-currency.step.3':
     'A mezők alatt jelvények jelennek meg: a beírt összeg és a jelenlegi értéke, „élő árfolyam” jelöléssel. Ez csak előnézet, nem ez az érték kerül mentésre.',
   'help.guide.expense-currency.step.4':
     'Kattints az ablak alján a „Költség hozzáadása” gombra. Az árfolyam ekkor rögzül: a kiadás azt az értéket tartja meg, amennyi a bevitel napján volt.',
   'help.guide.expense-currency.step.5':
-    'A kiadáslistában a sor mindkét összeget mutatja a név alatt: a beírt összeget, egy nyilat és az utazás pénznemében számolt összeget. A „Költségek” fülön minden végösszeg, egyenleg és elszámolás a második összeggel számol.',
+    'A kiadáslistában a sor mindkét összeget mutatja a név alatt: a beírt összeget, egy nyilat és azt az összeget, amelyet abban a pénznemben látsz, amelyben a „Költségek” látszanak. A „Költségek” fülön minden végösszeg, egyenleg és elszámolás a második összeggel számol.',
   'help.guide.expense-currency.result':
     'A kiadás megtartja a beírt összeget és pénznemet. A kiadáslista mindkettőt mutatja, az utazás végösszegei és egyenlegei pedig az utazás pénznemében számolódnak.',
   'help.guide.expense-currency.tip.1':
     'Az árfolyam a mentéskor rögzül, így egy rendezett tartozás nem változik meg attól, hogy egy héttel később elmozdul az árfolyam. Új árfolyam csak akkor mentődik, ha módosítod a kiadás pénznemét.',
   'help.guide.expense-currency.tip.2':
-    'A Beállítások alatti „Megjelenítési pénznem” csak azt módosítja, hogyan látod az összegeket. A tárolt összegek sosem változnak. Ha üresen hagyod, minden utazás a saját pénznemében jelenik meg.',
+    'A Beállítások alatti „Megjelenítési pénznem” és egyetlen utazásnál a „Költségek” sávjában lévő pénznemválasztó csak azt módosítja, hogyan látod az összegeket. A tárolt összegek sosem változnak. Ha a megjelenítési pénznem üres, minden utazás a saját pénznemében jelenik meg.',
   'help.guide.expense-currency.tip.3':
     'Az utazás pénznemét magánál az utazásnál, az „Utazás szerkesztése” alatt állíthatod be, ehhez az „Utazás részleteinek szerkesztése” jogosultság kell. Ha módosítod, minden rögzített árfolyamot újraszámolunk az új pénznemre. Magukat az összegeket nem váltjuk át.',
   // filter-costs
@@ -3921,6 +4129,99 @@ const help: TranslationStrings = {
     'Az „Egyéni” vagy „Blokk” felosztású kiadásnak nincs egységes személyenkénti része, ezért a „Személyenként” és a „Fő / Nap” értéke üres marad.',
   'help.guide.costs-table.tip.3':
     'A fizetőket, a felosztást, a megjegyzést és a nyugtákat magában a kiadásban szerkesztheted: egy sor végén a „További lehetőségek” menüben megtalálod a „Szerkesztés” és a sor eltávolításához a „Törlés” lehetőséget.',
+  'help.guide.costs-show-in.title': 'A költségek megjelenítése másik pénznemben',
+  'help.guide.costs-show-in.goal':
+    'Olvasd egy utazás költségeit másik pénznemben, például abban az országban használatosban, ahová tovább utazol, anélkül, hogy bármi megváltozna, ami el van mentve.',
+  'help.guide.costs-show-in.step.1':
+    'A sávban, a „CSV exportálás” és a „Lista” / „Táblázat” kapcsoló között lévő pénznemválasztó mutatja, milyen pénznemben olvasod az összegeket. Vidd fölé az egeret, és ezt látod: „Összegek pénzneme”.',
+  'help.guide.costs-show-in.step.2':
+    'Kattints rá. A megjelenítési pénznemed és az utazás saját pénzneme a lista tetején áll, és három betű beírásával kereshetsz az összes többi között. Válassz egy pénznemet.',
+  'help.guide.costs-show-in.step.3':
+    'A kártyák, a költséglista minden sora és a jobb oldali oszlop most ebben a pénznemben van, a mai árfolyamon átváltva. Az „Elszámolás” is ebben kínálja az átutalásokat.',
+  'help.guide.costs-show-in.step.4':
+    'A visszatéréshez nyisd meg újra a választót, és válaszd a lista első elemét: a megjelenítési pénznemedet, vagy az utazás saját pénznemét, ha a Beállításokban nem adtál meg egyet.',
+  'help.guide.costs-show-in.result':
+    'A teljes „Költségek” fül az általad választott pénznemben mutatja az utazást. A kiadások megtartják azt az összeget és pénznemet, amelyben megadták őket.',
+  'help.guide.costs-show-in.tip.1':
+    'A választás csak ennél az utazásnál és csak ebben a böngészőben marad meg. A többi utazásnak, eszköznek és utazónak saját nézete marad.',
+  'help.guide.costs-show-in.tip.2':
+    'A Beállításokban megadott megjelenítési pénznemed változatlan marad. Ha a sávban újra kiválasztod, a Beállításokban később végzett módosítás ismét érvényes lesz erre az utazásra.',
+  'help.guide.costs-show-in.tip.3':
+    'Az új kiadás továbbra is az utazás saját pénznemében indul, bármilyen pénznemben mutatod az összegeket.',
+  'help.guide.leave-out-category.title': 'Kategória kihagyása az összesítésből',
+  'help.guide.leave-out-category.goal':
+    'Nézd meg, mennyibe került az utazás egyfajta kiadás nélkül, például a repülőjegyek nélkül.',
+  'help.guide.leave-out-category.step.1':
+    'A jobb oldali oszlop végén a „Kategóriánként” rangsorolja, mire ment el a pénz. A felső sor megmondja, mit tesz egy kattintás: „Válassz egy kategóriát, hogy kihagyd az összesítésből”.',
+  'help.guide.leave-out-category.step.2':
+    'Kattints egy kategóriára. A sora a helyén marad, halványan és áthúzva, a többi sáv újra arányosan méreteződik, a felső sor pedig most megnevezi a kihagyottat, mellette a „Minden beszámítása” gombbal.',
+  'help.guide.leave-out-category.step.3':
+    'A „Teljes utazási költség” kihagyja ezt a kategóriát, az alatta lévő „A te részed” és „Te fizettél” is. A kártya a kihagyottat is megnevezi.',
+  'help.guide.leave-out-category.step.4':
+    'Kattints a „Minden beszámítása” gombra, vagy újra a halvány sorra, és minden kategória ismét számít.',
+  'help.guide.leave-out-category.result':
+    'Az összesítések az utazást a kihagyott kategóriák nélkül mutatják, amíg újra be nem számítod őket.',
+  'help.guide.leave-out-category.tip.1':
+    'Ez csak egy nézet. Semmi sem mentődik, és a választás eltűnik, amikor elhagyod a „Költségek” fület.',
+  'help.guide.leave-out-category.tip.2':
+    'A tartozások érintetlenek maradnak: a „Tartozol”, a „Neked tartoznak”, a „Rendezetlen összeg”, az „Elszámolás” és az „Egyenlegek” továbbra is minden kategóriát beszámít.',
+  'help.guide.leave-out-category.tip.3':
+    'Több kategóriát is kihagyhatsz egyszerre. Egy sorra kattintva csak azt az egyet kapcsolod.',
+  'help.guide.split-by-shares.title': 'Számla felosztása éjszakák vagy részek szerint',
+  'help.guide.split-by-shares.goal':
+    'Oszd meg a kiadást egy arány szerint, például hogy ki hány éjszakát töltött ott, anélkül, hogy az összegeket magad számolnád ki.',
+  'help.guide.split-by-shares.step.1':
+    'Nyisd meg a kiadást a sora melletti ceruzával, és kattints az „Egyéni” lehetőségre a „Felosztás” melletti kapcsolóban.',
+  'help.guide.split-by-shares.step.2':
+    'Az alatta lévő tipp mellett egy kis kapcsoló választja ki, hogyan adod meg a felosztást: a pénznem jele az összegekhez, a % a százalékhoz, vagy a „Részek”. Kattints a „Részek” lehetőségre.',
+  'help.guide.split-by-shares.step.3':
+    'Minden bejelölt utazó kap egy mezőt, amely 1-ről indul. Írd be mindenkinek a részét, például a töltött éjszakák számát. Minden mező alatt gépelés közben frissül az összeg, amennyit ez kitesz.',
+  'help.guide.split-by-shares.step.4':
+    'A lista alatti jelvény ezt mutatja: „A felosztás megegyezik a végösszeggel”. Kattints az ablak alján a „Mentés” gombra.',
+  'help.guide.split-by-shares.result':
+    'A kiadás a részek arányában, centre pontosan oszlik fel, és a sora a „Felosztás” alatt megmutatja az egyes utazók részét.',
+  'help.guide.split-by-shares.tip.1':
+    'Aki 0 részen van, annak nincs tartozása ebből a kiadásból. Ha senkinek sincs része, az ablak ezt írja: „Adj részt legalább egy személynek”, és nem ment.',
+  'help.guide.split-by-shares.tip.2':
+    'Csak az összegek mentődnek, ezért a kiadás újra az összegekkel nyílik meg. Az arány módosításához válts újra a „Részek” lehetőségre.',
+  'help.guide.split-by-shares.tip.3':
+    'A százalék ugyanígy működik: válaszd a %-ot, és a százalékoknak együtt 100 %-ot kell kitenniük.',
+  'help.guide.link-receipt-file.title': 'Az utazás egy fájljának használata nyugtaként',
+  'help.guide.link-receipt-file.goal':
+    'Tegyél egy kiadásra egy dokumentumot, amely már az utazásban van, például egy utalványt vagy egy visszaigazolást, amely egyben a számla is, anélkül, hogy újra feltöltenéd.',
+  'help.guide.link-receipt-file.step.1':
+    'Kattints a kiadás sora melletti ceruzára. Megnyílik a szerkesztő, alul a „Nyugták és számlák” résszel.',
+  'help.guide.link-receipt-file.step.2':
+    'Kattints a „Csatolás” melletti link ikonra. Akkor látszik, ha az utazásban vannak olyan képek vagy PDF-ek, amelyek még nincsenek ezen a kiadáson. A lista a cím alatt nyílik meg, elöl a kiadás foglalásának fájljaival.',
+  'help.guide.link-receipt-file.step.3':
+    'Kattints a fájlra. A lista bezárul, és a fájl megjelenik a „Nyugták és számlák” alatt, egy kukával, amellyel újra leveheted.',
+  'help.guide.link-receipt-file.step.4':
+    'Kattints az ablak alján a „Mentés” gombra. A sorban a neve mellett most egy „Nyugta” jelvény látszik, amely megnyitja a fájlt.',
+  'help.guide.link-receipt-file.result':
+    'A kiadás nyugtaként viseli a fájlt. Semmi sem lett feltöltve: ugyanaz a fájl, mint a „Fájl” részben, és megtartja a többi kapcsolatát.',
+  'help.guide.link-receipt-file.tip.1':
+    'A nyugta melletti kuka csak a kiadásról veszi le. A fájl a „Fájl” részben marad.',
+  'help.guide.link-receipt-file.tip.2':
+    'Csak képeket és PDF-eket kínál fel, ugyanazokat a típusokat, amelyeket a „Csatolás” elfogad, és semmit, ami a kukában van.',
+  'help.guide.costs-totals-only.title': 'Csak egy utazás végösszegeinek követése',
+  'help.guide.costs-totals-only.goal':
+    'Kövesd, mennyibe kerül egy utazás, anélkül, hogy ki fizetett, ki kinek tartozik és az elszámolás szerepelne, például ha amúgy is mindent közösen intéztek.',
+  'help.guide.costs-totals-only.step.1':
+    'A „Költségek elosztása az utazók között” a jobb oldali oszlop alján lévő kapcsoló. Alapból be van kapcsolva, és a neve alatti sor megmondja, mit csinál.',
+  'help.guide.costs-totals-only.step.2':
+    'Kapcsold ki. A tartozás és követelés kártyái, az „Elszámolás”, az „Egyenlegek” és a „Végső költségvetés” eltűnnek, ahogy a fizetők és a felosztás is minden sorból. A „Teljes utazási költség” marad, alatta a kiadások számával.',
+  'help.guide.costs-totals-only.step.3':
+    'A „Kiadás hozzáadása” most a „Ki fizetett?” és a „Felosztás” nélküli szerkesztőt nyitja meg: egy kiadáshoz elég egy név, egy kategória, az összeg, a pénzneme és a napja.',
+  'help.guide.costs-totals-only.step.4':
+    'Kapcsold vissza a kapcsolót, amikor újra osztani szeretnél. Az előzőleg rögzített fizetők, felosztások és kifizetések úgy térnek vissza, ahogy voltak.',
+  'help.guide.costs-totals-only.result':
+    'A „Költségek” az utazás kiadásait mutatja napok szerint, kategóriák szerint és a táblázatban, anélkül, hogy bármi szerepelne arról, ki kinek tartozik.',
+  'help.guide.costs-totals-only.tip.1':
+    'A beállítás az utazáshoz tartozik, ezért minden utazó ugyanazt a „Költségek” nézetet látja. A kapcsolót csak az látja, aki szerkesztheti a költségeket.',
+  'help.guide.costs-totals-only.tip.2':
+    'A kikapcsolt kapcsolóval hozzáadott kiadás fizető és felosztás nélkül mentődik, így nem lesz belőle tartozás, ha később újra osztasz.',
+  'help.guide.costs-totals-only.tip.3':
+    'Ha az utazásban csak te vagy, nincs mit felosztani, ezért a „Költségek” magától csak a végösszegeket mutatja, és a kapcsoló nem látszik.',
 
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Közlekedés',
@@ -3933,11 +4234,11 @@ const help: TranslationStrings = {
   'help.ctx.trip-transports.bullet.3':
     'A fül a „Kártyák” nézetben nyílik meg: előbb a „Megerősítve”, aztán a „Függőben” csoport. Minden csoportot összecsukhatsz a címére kattintva. A tervezett tömegközlekedési kapcsolatoknak nincs állapota, ezért időrendben a megerősített utak között jelennek meg, hacsak a „Nézet beállításai” nem ad nekik saját csoportot „Automatikus tömegközlekedés” néven. A „Lista” napok szerint csoportosít, az „Idővonal” pedig az összes utat mutatja az utazás napjain.',
   'help.ctx.trip-transports.bullet.4':
-    'A kártya felső sávjának színe az állapotot jelzi: zöld a megerősített, borostyánsárga a függőben lévő, kék a tervezett csatlakozás. Ebben a sávban van az állapotpont, a típus, a cím, a ceruza és a kuka. Alatta: „Dátum”, „Időpont”, „Foglalási kód”, „Útvonal”, valamint a légitársaság és a járatszám, illetve a vonatszám, a vágány és az ülőhely. A kártyára kattintva megnyílnak a részletei.',
+    'A kártya felső sávjának színe az állapotot jelzi: zöld a megerősített, borostyánsárga a függőben lévő, kék a tervezett csatlakozás. Ebben a sávban van az állapotpont, a típus, a cím, a ceruza és a kuka. Alatta: „Dátum”, „Időpont”, „Foglalási kód”, „Útvonal”, valamint a légitársaság és a járatszám, illetve a vonatszám, a vágány és az ülőhely. A járat az indulása körül az élő „Állapot” értékét is mutatja. A kártyára kattintva megnyílnak a részletei.',
   'help.ctx.trip-transports.bullet.5':
     'Közlekedést a terven is létrehozhatsz: a nap fejlécében lévő + gomb („Hozzáadás a naphoz”), vagy a fejlécen jobb gombbal kattintva a „Közlekedés hozzáadása” és a „Tömegközlekedés” közül választhatsz. A két megálló közötti menetidő-összekötő ugyanezt a keresést nyitja meg arra az egy szakaszra.',
   'help.ctx.trip-transports.bullet.6':
-    'Ha egy közlekedésnek mindkét végpontja meg van adva, vonalat rajzol a térképre. Ezt a vonalat a napi tervben a sorának útvonal ikonjával vagy a részleteinél a „Térképen” lehetőséggel kapcsolhatod be. A napok fölötti eszköztár „Összes foglalási útvonal megjelenítése” gombja az egész utazás vonalait egyszerre kapcsolja be vagy ki.',
+    'Ha egy közlekedésnek mindkét végpontja meg van adva, vonalat rajzol a térképre. Ezt a vonalat a napi tervben a sorának útvonal ikonjával vagy a részleteinek alján a „Térkép” gombbal kapcsolhatod be. A napok fölötti eszköztár „Összes foglalási útvonal megjelenítése” gombja az egész utazás vonalait egyszerre kapcsolja be vagy ki.',
   // transports-list
   'help.guide.transports-list.title': 'A „Közlekedés” fül áttekintése',
   'help.guide.transports-list.goal': 'Értsd meg, mit mutat a lista, mielőtt bármit módosítanál rajta.',
@@ -3950,7 +4251,7 @@ const help: TranslationStrings = {
   'help.guide.transports-list.step.4':
     'Minden kártyán az összes részlet látható. A felső sáv „Megerősítve” állapotnál zöld, „Függőben” állapotnál borostyánsárga, és mutatja az állapotjelző pontot, a típust és a címet. Alatta a „Dátum” mutatja, mely napokra terjed ki, a dátumokkal együtt. Ezután következik az „Időpont”, a „Foglalási kód”, az „Útvonal” a típus ikonjával a megállók között, valamint a légitársaság és a járatszám, illetve a vonatszám, a vágány és az ülés. A részletek megnyitásához kattints a kártyára.',
   'help.guide.transports-list.step.5':
-    'Az állapotpontra kattintva az utat „Függőben” és „Megerősítve” állapot között váltod; az elemleírás megmondja, merre, például „Függőbe állítás”. A fejlécben lévő ceruza megnyitja a közlekedés űrlapját, a kuka pedig a „Foglalás törlése?” kérdés után törli; a kérdés felsorolja, mi törlődik, a kapcsolódó költségeket is beleértve.',
+    'Az állapotpontra kattintva az utat „Függőben” és „Megerősítve” állapot között váltod; az elemleírás megmondja, merre, például „Függőbe állítás”. A fejlécben lévő ceruza megnyitja a közlekedés űrlapját, a kuka pedig a „Foglalás törlése?” kérdés után törli; a kérdés megnevezi az utat, és jelzi, ha egy kapcsolódó költség is törlődik vele.',
   'help.guide.transports-list.result':
     'Minden kártyán látod, hogy az út le van-e foglalva, a sávval pedig bármikor szűrheted vagy rendezheted a listát.',
   'help.guide.transports-list.tip.1':
@@ -3985,7 +4286,7 @@ const help: TranslationStrings = {
   'help.guide.import-transport-file.goal':
     'A TREK olvassa ki a repülést, a vonatot vagy a kompot a szolgáltatótól kapott jegyből, te pedig mentés előtt ellenőrizd.',
   'help.guide.import-transport-file.step.1':
-    'A „Közlekedés” fül sávjában kattints a „Közlekedés” előtti letöltés ikonra („Foglalási visszaigazolások importálása”). Megnyílik az ilyen nevű ablak, ugyanaz, mint a „Foglalások” fülön. Üres fülön a középen lévő „Importálás fájlból” ugyanezt teszi.',
+    'A „Közlekedés” fül sávjában kattints a „Közlekedés” előtti feltöltés ikonra („Foglalási visszaigazolások importálása”). Megnyílik az ilyen nevű ablak, ugyanaz, mint a „Foglalások” fülön. Üres fülön a középen lévő „Importálás fájlból” ugyanezt teszi.',
   'help.guide.import-transport-file.step.2':
     'Húzd a jegyet a mezőre, vagy kattints rá, és válaszd ki a fájlt: EML, PDF, PKPass, HTML vagy TXT, legfeljebb öt fájl, egyenként 10 MB-ig, valamint jegyfotók (JPG, PNG, WEBP), ha a szervereden van AI-modell a feldolgozásukhoz. A mezőben látod a kiválasztott fájlok nevét.',
   'help.guide.import-transport-file.step.3':
@@ -4159,7 +4460,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-mode.tip.1':
     'A választást a fiókod utazásonként menti, így újratöltés után, másik böngészőben vagy másik eszközön is autós út nézetben nyílik meg az utazás.',
   'help.guide.roadtrip-mode.tip.2':
-    'A kapcsoló csak akkor jelenik meg, ha egy adminisztrátor az adminfelület „Bővítmények” részében bekapcsolta az „Autós út” bővítményt.',
+    'A kapcsoló csak akkor jelenik meg, ha az „Autós út” bővítmény be van kapcsolva az utazáshoz. Egy adminisztrátor az adminfelület „Bővítmények” részében kapcsolja be minden utazásra, az utazás tulajdonosa pedig az „Utazás beállításai” „Bővítmények” részében csak erre az utazásra be- vagy kikapcsolhatja.',
   'help.guide.roadtrip-mode.tip.3': 'Telefonon nincs kapcsoló: a bővítmény saját „Autós út” fület ad a „Terv” mellé.',
   // roadtrip-stops
   'help.guide.roadtrip-stops.title': 'Megállók útközben, és meddig maradsz',
@@ -4180,7 +4481,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stops.result':
     'A módosított megálló „Megálló” jelvényén megjelenik az új időtartam, és az utána következő összes érkezési idő ehhez igazodik. Ha egy megállót átállítottál egy típusra, majd vissza, ismét számozott úti cél lesz.',
   'help.guide.roadtrip-stops.tip.1':
-    'A tartózkodási idő a helyhez tartozik, nem egy látogatáshoz: ha egy hely két napon is szerepel, mindkét napon ugyanannyi ideig tart.',
+    'A tartózkodás a látogatáshoz tartozik: egy hely, amely két napon szerepel, mindkettőn saját tartózkodást tart meg, és az egyik módosítása a másikat nem érinti.',
   'help.guide.roadtrip-stops.tip.2':
     'Az útközbeni megállók a napi nézetben is megjelennek. Ha a „Vezetési beállítások” „Szervizmegállók” részében kikapcsolod a „Megjelenítés a Napok nézetben is” opciót, csak az „Autós út” nézetben maradnak.',
   'help.guide.roadtrip-stops.tip.3': 'Ugyanebben az ablakban a „Nincs tartózkodás” ismét eltávolítja az időt.',
@@ -4300,7 +4601,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.step.1':
     'Ha be van állítva a hatótáv, az oldalsó oszlopban egy sáv jelzi azt a szakaszt, ahol kifogy az üzemanyag vagy lemerül az akkumulátor: „Itt fogy ki a tank”, elektromos autónál „Itt fogy el az akkumulátor”. Alatta látod, hogy ez a szakasz mekkora részénél következik be.',
   'help.guide.roadtrip-refuel.step.2':
-    'A sávon lévő lámpa ikon a gomb: „Üzemanyag keresése”, elektromos autónál „Töltő keresése”. Az út mentén keres az adott pont előtt, és keresés közben a „Keresés az útvonal mentén…” felirat látszik.',
+    'A sáv végén lévő villogó benzinkút, elektromos autónál villám, a gomb: „Üzemanyag keresése”, vagy „Töltő keresése”. Az út mentén keres az adott pont előtt, és keresés közben a „Keresés az útvonal mentén…” felirat látszik.',
   'help.guide.roadtrip-refuel.step.3':
     'Legfeljebb három állomás jelenik meg, mindegyiknél az útvonaltól mért távolsággal és azzal, mekkora hatótávod maradna.',
   'help.guide.roadtrip-refuel.step.4':
@@ -4312,7 +4613,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.tip.2':
     'A keresés az út azon szakaszát nézi, amely a tank kiürülése előtt van, tartalékot is számol, és a kitérőt kétszer veszi figyelembe, így minden felkínált hely valóban elérhető.',
   'help.guide.roadtrip-refuel.tip.3':
-    'Ha nincs találat, kereshetsz újra: a lámpa felirata „Próbáld újra” lesz, mert a helykereső közös szolgáltatás, amely néha időtúllépéssel leáll.',
+    'Ha nincs találat, kereshetsz újra: a benzinkút felirata „Próbáld újra” lesz, mert a helykereső közös szolgáltatás, amely néha időtúllépéssel leáll.',
   // roadtrip-track
   'help.guide.roadtrip-track.title': 'Egy nap kövesse az importált nyomvonalat',
   'help.guide.roadtrip-track.goal':
@@ -4357,7 +4658,7 @@ const help: TranslationStrings = {
   'help.guide.tour-collection-add-to-trip.step.3':
     'Az „Útpontok” alatt az útpontos csempét választva a kezdőpont, a megállók és a végpont sorrendben kerülnek be, a „Csak a vonal” csempével pedig csak a mentett vonal.',
   'help.guide.tour-collection-manage.step.1':
-    'Nyiss meg egy listát. Minden mentett túránál látod a nehézségi fokát, a típusát, azt az utazást, amelyből mentették, a távolságát és a szintemelkedését, valamint azt, hány útpontja van. Ha az utazás nevére viszed az egeret, azt is látod, ki mentette.',
+    'Nyiss meg egy listát. Minden mentett túránál látod a nehézségi fokát vagy a típusát, azt az utazást, amelyből mentették, az idejét, a távolságát és a szintemelkedését, valamint azt, hány útpontja van. Ha az utazás nevére viszed az egeret, azt is látod, ki mentette.',
   'help.guide.entry-draft.step.1': 'A szerkesztő jobb oldali oszlopában kapcsold be a „Vázlat” kapcsolót.',
   'help.guide.journey-map-layers.step.3':
     'Kattints a térképen egy üres gombostűre vagy egy kis pontra. Egy kártya mutatja, mi az: egy tervezett hely a napjával, vagy egy tartózkodás a „Bejegyzés megnyitása” gombbal, amely a hozzá tartozó napi beszámolóhoz visz.',
@@ -4392,19 +4693,19 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.result':
     'Az új fiókok, és mindenki, aki még soha nem módosította ezeket a beállításokat, a te választásaidat látják.',
   'help.guide.own-routing-engine.goal':
-    'A napok és az autós utak útvonalát a saját OSRM- vagy Valhalla-szervered tervezze a nyilvánosak helyett.',
+    'A napok, az autós utak és a túrák útvonalát a saját OSRM- vagy Valhalla-szervered tervezze a TREK-szolgáltatások vagy a nyilvánosak helyett.',
   'help.guide.admin-passkeys.tip.1':
-    'Ha a TREK még nem tudja megállapítani a domaint, egy figyelmeztetés jelzi ezt, és a passkey-k rejtve maradnak, amíg be nem állítod az APP_URL-t vagy a Relying Party ID-t.',
+    'Ha a TREK még nem tudja megállapítani a domaint, egy figyelmeztetés a kapcsoló alatt jelzi ezt, és a passkey-k rejtve maradnak, amíg be nem állítod az APP_URL-t vagy a Relying Party ID-t.',
   'help.guide.rotate-jwt-secret.step.1':
-    'A „Beállítások” fül alján, a „Veszélyzóna” részben kattints a „JWT-titok cseréje” melletti „Megújítás” gombra.',
+    'A „Biztonság” fülön, alul jobbra a „Veszélyzóna” részben kattints a „JWT-titok cseréje” melletti „Megújítás” gombra.',
   'help.guide.storage-backends.tip.3':
     'A TREK a fotógyorsítótárakat újra le tudja tölteni, ezért a tükrözésük általában csak pazarolja a tárhelyet.',
   'help.guide.admin-channels.step.3':
-    'Az alatta lévő „Értesítések” kártyán eseményenként válaszd ki, mely csatornákon menjen ki az értesítés: „Új verzió elérhető”, „Tárhely-replika hiba” és „Evezős régiót kértek”. Minden kapcsoló azonnal mentődik.',
+    'Alattuk, ugyanazon a kártyán, eseményenként válaszd ki, mely csatornákon menjen ki az értesítés: „Új verzió elérhető”, „Tárhely-replika hiba” és „Evezős régiót kértek”. Minden kapcsoló azonnal mentődik.',
   'help.guide.notification-defaults.tip.1':
     'A „Ki” csak alapértelmezés, amelyet a felhasználók még bekapcsolhatnak; a „Tiltva” mindenkinél kikapcsolja.',
   'help.ctx.notifications.bullet.4':
-    'Az értesítés időpontja mellett az „Olvasottnak jelölés” (dupla pipa) és a „Törlés” (kuka) csak arra az egy értesítésre vonatkozik. A felül lévő „Összes olvasottnak jelölése” és „Összes törlése” a teljes listára.',
+    'Vidd az egeret egy értesítésre, és az időpontja helyén megjelenik az „Olvasottnak jelölés” (dupla pipa) vagy az „Olvasatlannak jelölés” (boríték), valamint a „Törlés” (kuka). A felül lévő „Összes olvasottnak jelölése” és „Összes törlése” a teljes listára vonatkozik.',
   'help.guide.read-notifications.tip.2':
     'A gomb nélküli értesítés csak tájékoztató jellegű. Olvasd el a panelen, és ott jelöld olvasottnak.',
   'help.guide.filter-notifications.result': 'A lista csak a még olvasatlan értesítéseket mutatja, a legújabbal kezdve.',
@@ -4439,6 +4740,27 @@ const help: TranslationStrings = {
     'A „Közlekedés” fülön kattints egy kártyára. A részletek a fül fölött nyílnak meg, a kártyáéval azonos színű fejléccel. A napi tervben a közlekedés sorára kattintva ugyanezek a részletek nyílnak meg.',
   'help.guide.export-transports-csv.tip.2':
     'A „Foglalások” fülön is ott van ugyanez az ikon, és külön fájlt készít, amelynek neve bookings.csv-re végződik.',
+  'help.guide.flight-live-status.title': 'Járat élő követése',
+  'help.guide.flight-live-status.goal':
+    'Nézd meg, hol van a járatod, késik-e, és mikor száll le, fiók és kulcs nélkül.',
+  'help.guide.flight-live-status.step.1':
+    'Az indulás előtt három órával a „Közlekedés” fülön a járat kártyáján megjelenik egy „Állapot” mező: „Tervezett”, „Indulásra kész”, „A levegőben” a leszállásig hátralévő idővel, vagy „Leszállt”. A késést mellette borostyánsárga vagy piros jelzés mutatja, és amíg a járat a levegőben van, a mező mentén egy vékony sáv töltődik.',
+  'help.guide.flight-live-status.step.2':
+    'Kattints a kártyára. A foglalás tetején lévő élő kártya megmutatja, hol tart a járat, mi következik, például „Leszáll 11 ó 50 perc múlva”, és jobb oldalon a késést, például „+25 perc”.',
+  'help.guide.flight-live-status.step.3':
+    'Alatta az „Indulás” és az „Érkezés” megmutatja mindkét repülőteret a kódjukkal és a városukkal, egy kis útvonaltérképen az úton lévő géppel. Minden időcsempe az éppen érvényes időt mutatja; ha eltér a tervtől, mellette áthúzva látszik a tervezett idő.',
+  'help.guide.flight-live-status.step.4':
+    'Amíg a járat a levegőben van, követi a „Magasság”, a „Sebesség” és a „Hátralévő” érték, a beállításaid mértékegységeiben, majd a „Repülőgép” a típusával és a lajstromjelével.',
+  'help.guide.flight-live-status.step.5':
+    'A „Terv” fülön a járat sora a napján ugyanezt mondja egy sorban az időpontjai alatt, a késéssel együtt.',
+  'help.guide.flight-live-status.result':
+    'Egy pillantással látod, hogy a járat időben van-e, és mikor száll le: a kártyáján, a foglalásában és a napi tervben.',
+  'help.guide.flight-live-status.tip.1':
+    'A pozíciók nyílt ADS-B adatokból származnak (adsb.lol, a legtöbb telepítésen adsb.fi is), kulcs és fiók nélkül. Csak a járat hívójelét kapják meg. Az admin az adminfelület „Bővítmények” részében, az „Utazás” kártyán, a „Foglalt járatok élő követése” beállítással kapcsolja be vagy ki a funkciót.',
+  'help.guide.flight-live-status.tip.2':
+    'A nyílt adat csak azt tudja, hol van a repülő. A kapu, a terminál és a poggyászszalag nem része, ezért ha szükséged van rájuk, add hozzá őket magad a foglaláshoz. A késések és az érkezési idő a pozíciókból számolt becslések.',
+  'help.guide.flight-live-status.tip.3':
+    'A TREK-nek a járatszám és mindkét repülőtér kell a követéshez. Az a járat, amelynek légitársasága másik hívójellel repül, vagy a közös járat nem biztos, hogy megtalálható; ilyenkor a foglalás megtartja a sima időpontjait.',
   'help.guide.group-sort-bookings.step.2':
     'A „Csoportosítás” alatt válaszd az „Állapot”, a „Nap”, a „Típus” vagy a „Nincs csoportosítás” lehetőséget. A fül azonnal ezekbe a csoportokba rendeződik.',
   'help.guide.export-bookings-csv.result':
@@ -4446,7 +4768,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.result':
     'A listák abban a sorrendben állnak, ahogy elrendezted őket, a tételek pedig A-tól Z-ig rendezve jelennek meg, amíg ezt ki nem kapcsolod. A saját sorrendedet a TREK ettől még megőrzi.',
   'help.guide.count-packed-pieces.step.2':
-    'A mennyiség előtt megjelenik egy számláló, például 0/5, mínusz és plusz gombbal. Minden darabnál, amely bekerül a táskába, kattints a pluszra.',
+    'A „Menny.” mezőbe írd be, hányat viszel, például 5, vagy kattints a plusz gombra, amíg a szám meg nem jelenik.',
   'help.guide.expense-receipts.step.4':
     'A főkönyvben a sor neve mellett megjelenik a „Nyugta” címke, több nyugta esetén zárójelben a számukkal. Kattints rá a nyugta megnyitásához.',
   'help.guide.final-budget.tip.3':
@@ -4725,7 +5047,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'A kártyán a „Bekapcsolva ezen az eszközön” felirat látszik, és a „Push” alatt bekapcsolt eseményekről akkor is kapsz értesítést, ha a TREK be van zárva.',
   'help.guide.connect-airtrail.step.1':
-    'Az „Integráció” részben keresd meg az AirTrailt, és add meg a „Példány URL-címe” mezőt és egy API-kulcsot. A kulcsot az AirTrailben hozhatod létre a Settings, Security menüpontban.',
+    'Az „Integráció” részben keresd meg az AirTrailt, és add meg a „Példány URL-címe” mezőt és egy API-kulcsot. A kulcsot az AirTrailben hozhatod létre a Settings, Security menüpontban. Ha a kulcsot az AirTrail 3.13-as vagy újabb verziójában hozod létre, olvasáshoz a(z) flight.read.own jogosultság kell. A módosítások visszaírásához ezek is kellenek: flight.update.own, flight.passengers.manage.own, reference_data.read és profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Az „Integráció” részben keresd meg a Dawarichot, és add meg „A példány címe” mezőt, valamint az API-kulcsot, amelyet a Dawarichban az Account, API key menüpontban találsz.',
   'help.guide.tour-connect-wanderer.step.1':
@@ -4736,7 +5058,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.tip.1':
     'A felhasználó saját beállítása a Beállításokban mindig elsőbbséget élvez; ezek az értékek mindenkire vonatkoznak, aki nem módosította az adott beállítást.',
   'help.guide.own-routing-engine.step.1':
-    'Az „Alapértelmezett beállítások” „Térkép” részében a „Saját útvonaltervező” alatt add meg az OSRM-szervered címét.',
+    'Az „Alapértékek” fülön az „Útvonaltervezés” kártya dönti el, ki számolja az útvonalakat. Az „Útvonaltervező szolgáltatás” alatt válaszd az „Automatikus”, a „TREK-szolgáltatások”, a „Nyilvános Valhalla (FOSSGIS)” vagy a „Saját Valhalla-példány” lehetőséget. A választás azonnal mentődik.',
   'help.guide.admin-passkeys.tip.2':
     'Ha később módosítod a domaint, a felhasználók által addig hozzáadott összes passkey használhatatlanná válik.',
   'help.guide.instance-keys.tip.4':
@@ -4767,7 +5089,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.goal':
     'Egy a hely fájljai között már meglévő fotót állíts be a hely képeként, újrafeltöltés nélkül.',
   'help.guide.place-image-from-file.tip.3':
-    'A képet csak azok az utazók módosíthatják, akik a helyeket is szerkeszthetik.',
+    'A képet csak azok az utazók módosíthatják, akik a helyeket is szerkeszthetik. A csempék alatti „Kép eltávolítása” újra leveszi.',
   'help.guide.place-own-hours.result':
     'A kártya a te telefonszámodat, e-mail-címedet és nyitvatartásodat mutatja, a kép körüli gyűrű pedig a te nyitvatartásod alapján zöld vagy piros.',
   'help.guide.confirm-stay-booking.step.4':
@@ -4787,7 +5109,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.tip.1':
     'Amíg az „A-tól Z-ig” be van kapcsolva, a tételeket nem húzhatod, a teljes listákat viszont igen.',
   'help.guide.count-packed-pieces.step.3':
-    'Amíg csak a darabok egy része van becsomagolva, a számláló a kiemelőszínedben jelenik meg, és a jelölőnégyzet is ilyen színű keretet kap. A mínuszra kattintva egy darabot kiveszel a számlálásból.',
+    'Alatta megjelenik a „Becsomagolva”: 0/5, mínusz és plusz gombbal. Minden darabnál, amely bekerül a táskába, kattints a pluszra, a mínusz pedig levesz egyet a számlálásból.',
   'help.guide.expense-receipts.step.5':
     'Az előnézet a nyugtát mutatja, felül „Megnyitás új lapon” és „Letöltés” gombbal. Több nyugta esetén a nyílbillentyűkkel lapozhatsz köztük, az Esc pedig bezárja az előnézetet.',
   'help.guide.files-sync-settings.step.3':
@@ -4829,13 +5151,31 @@ const help: TranslationStrings = {
   'help.guide.tour-detail-read.goal':
     'Lásd egy helyen mindazt, amit az utazás egy túráról tud: a napjait, a távolságát és a magassági adatait, a profilját és a forrását.',
   'help.guide.tour-detail-read.tip.1':
-    'A borostyánsárga „óvatosan használandó” jelvény azt jelzi, hogy az importált adatokban hiányosak a magassági vagy mérési értékek. Ezt tartsd szem előtt, amikor a szintemelkedést és a profilt nézed.',
+    'A borostyánsárga „Óvatosan használd” jelvény azt jelzi, hogy az importált adatokban hiányosak a magassági vagy mérési értékek. Ezt tartsd szem előtt, amikor a szintemelkedést és a profilt nézed.',
   'help.guide.tour-rename-colour.step.1':
     'Nyisd meg a túra kártyáját, és kattints a neve melletti ceruzára. A név szerkeszthető mezővé válik.',
   'help.guide.tour-take-along.goal':
     'Kérj útvonaltervet a túra kiindulópontjához, nyisd meg a túra weboldalát, vagy töltsd le az útvonalát GPX-fájlként.',
   'help.guide.tour-take-along.result':
     'A térképalkalmazásodban megvan az út a kiindulópontig, és GPX-fájlként a teljes útvonal is.',
+  'help.guide.tour-route-in-app.title': 'Egy túra útvonalának követése térképalkalmazásban',
+  'help.guide.tour-route-in-app.goal':
+    'Nyisd meg egy túra, séta, futás vagy kerékpártúra teljes útvonalát a Google Térképen, az Apple Térképen vagy a CoMapsben, hogy útközben vezessen rajta.',
+  'help.guide.tour-route-in-app.step.1':
+    'A jobb oldali oszlop tetején válts a „Helyek” nézetről a „Túrák” nézetre, majd kattints a túrára. A kártyája megnyílik a térkép fölött.',
+  'help.guide.tour-route-in-app.step.2':
+    'Kattints a kártya alján a „Térkép” gombra („Útvonal megnyitása térképalkalmazásban”). A „Navigáció” mellett áll, amely csak a kiindulóponthoz vezet.',
+  'help.guide.tour-route-in-app.step.3':
+    'Válaszd ki az alkalmazást. Új lapon vagy alkalmazásként nyílik meg, a túra útvonalával gyalog túrához, sétához vagy futáshoz, kerékpáron pedig kerékpártúrához.',
+  'help.guide.tour-route-in-app.result': 'A térképalkalmazásod végigvezet a túra útvonalán.',
+  'help.guide.tour-route-in-app.tip.1':
+    'Az alkalmazás legfeljebb tíz, a túra mentén elosztott pontot kap, köztük a kezdetét és a végét, és a köztük lévő utat maga tervezi meg. Kis ösvényeken az útja eltérhet a te vonaladtól, ezért a pontos útvonalhoz vidd magaddal a GPX-fájlt.',
+  'help.guide.tour-route-in-app.tip.2':
+    'A sítúrának, az evezős túrának és a lovastúrának nincs „Térkép” gombja: egy térképalkalmazás utakra terelné. Ezeket GPX-fájlként vidd magaddal.',
+  'help.guide.tour-route-in-app.tip.3':
+    'Az Apple Térképet Androidon nem kínálja fel. A CoMaps csak kezdetet és véget fogad el, ezért csak akkor kínálja fel, ha az útvonalhoz csak ennyi kell.',
+  'help.guide.tour-route-in-app.tip.4':
+    'A „Térkép” gomb attól fogva ott van, hogy a túrának van útvonala, azoknak a tagoknak is, akik az utazást csak olvashatják.',
   'help.guide.tour-copy-keep.tip.2':
     'A napi tervben a túra menüjének „Mentés gyűjteménybe” pontja ugyanezt az ablakot nyitja meg, így az útvonal ott is mentésre kerül.',
   'help.guide.tour-packing-link.step.3': 'Kattints a „Csatolás” gombra.',
@@ -4938,7 +5278,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ferrata-add.tip.4':
     'A kártyán a „Megtekintés az OpenStreetMapen” megnyitja a vasalt út saját adatait. Ha semmi sem tölthető be, a jelvény borostyánsárgára vált, az okot pedig az elemleírásban találod.',
   'help.guide.tour-run-plan.result':
-    'A futás „Az utazás túrái” között szerepel a „Futásidő (tervezett)” értékkel, a profilja és a tempója pedig vele együtt mentődik.',
+    'A futás „Az utazás túrái” között szerepel a „Futásidő” értékkel, a profilja és a tempója pedig vele együtt mentődik.',
   'help.guide.tour-run-ways.step.2':
     'A kártya tetején most látod, hogy a futás mekkora része burkolatlan, és melyik a legnehezebb besorolású ösvény rajta.',
   'help.ctx.trip-tour-walk.bullet.2':
@@ -4989,7 +5329,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Elkészült egy új evezős túra a hajóval, a víz típusával és a sebességgel, készen arra, hogy felvedd az első pontját a térképen.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Ahol hiányoznak a vízadatok, a TREK a példány beállításától függően vagy automatikusan letölti őket a régióra, vagy egy rendszergazdától kéri. A szakaszon ilyenkor a vízadatok betöltését jelző üzenet látszik, és amint megvannak az adatok, automatikusan megtörténik a tervezés, általában egy-három percen belül.',
+    'Ahol hiányoznak a vízadatok, a TREK a példány beállításától függően vagy automatikusan letölti őket a régióra, vagy egy rendszergazdától kéri. A régiókat az admin a „Vízi adatok evezéshez” alatt adja hozzá, amely a „Túrák” alatti sor az adminfelület „Bővítmények” fülén. A szakaszon ilyenkor a „Vízadatok betöltése” felirat látszik, és amint megvannak az adatok, automatikusan megtörténik a tervezés, általában egy-három percen belül.',
   'help.guide.tour-paddle-portage.step.2':
     'Válaszd az „Átemelés innentől” lehetőséget. A következő pontig tartó szakasz átemelés lesz, a szárazföldön megrajzolva.',
   'help.guide.tour-paddle-lock.title': 'Zsilip és várakozási idő hozzáadása',
@@ -5075,8 +5415,9 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.title': 'Plugin beállítása saját magadnak',
   'help.guide.default-user-settings.tip.2':
     'A „Megjelenítési pénznem” csak a megjelenítéshez váltja át az összegeket. A „Költségek” fülön rögzített összegek nem változnak.',
-  'help.guide.own-routing-engine.step.2':
-    'Ha az útvonalaknak el kell kerülniük az útdíjas utakat, az autópályákat vagy a kompokat, add meg a Valhalla címedet a „Saját Valhalla-példány” alatt. Minden mező akkor mentődik, amikor elhagyod; ezután indítsd újra a TREK-szervert, és töltsd újra az oldalt.',
+  'help.guide.own-routing-engine.step.2': 'A „Saját útvonaltervező” alatt add meg az OSRM-szervered címét.',
+  'help.guide.own-routing-engine.step.3':
+    'A „Saját Valhalla-példány” alatt add meg a Valhalláid címét, és az „Útvonaltervező szolgáltatás” alatt válaszd a „Saját Valhalla-példány” lehetőséget. Minden mező akkor mentődik, amikor elhagyod; ezután indítsd újra a TREK-szervert, és töltsd újra az oldalt.',
   'help.guide.admin-passkeys.tip.3':
     'Ha egy felhasználó elvesztette a passkey-it tároló eszközét, a „Felhasználó szerkesztése” ablakban a „Passkey-k visszaállítása” gombbal törölheted őket.',
   'help.guide.rotate-jwt-secret.result':
@@ -5086,7 +5427,7 @@ const help: TranslationStrings = {
   'help.guide.mark-notifications-read.goal':
     'Ha már láttad az újdonságokat, tüntesd el a kiemelést és a csengőn lévő számot.',
   'help.guide.delete-notifications.step.1':
-    'Kattints az értesítés időpontja melletti kukára („Törlés”), ha csak azt az egyet szeretnéd törölni.',
+    'Vidd az egeret egy értesítésre, és kattints a „Törlés” gombra, a kukára, amely az időpontja helyére lép, ha csak azt az egyet szeretnéd törölni.',
   'help.guide.notification-settings.step.2': 'Kattints a menüben a „Beállítások” pontra.',
   'help.guide.public-link.tip.3': 'Ha egy lehetőség fölé viszed az egeret, megtudod, mit rejt el.',
   'help.guide.link-journal.step.4':
@@ -5123,7 +5464,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.tip.2':
     'A TREK ebben a böngészőben megjegyzi az „A-tól Z-ig” beállítást, így a lista legközelebb is rendezve nyílik meg. Ez csak azt befolyásolja, amit te látsz, a többiek sorrendjét soha.',
   'help.guide.count-packed-pieces.step.4':
-    'Amint a számláló eléri a mennyiséget, a tétel automatikusan kipipálódik, és becsomagoltnak számít.',
+    'Zárd be az ablakot. Amíg csak a darabok egy része van becsomagolva, a sor mutatja a számot, például 3/5, és a négyzet kiemelőszínű keretet kap. Amint a szám eléri a mennyiséget, a tétel magától kipipálódik.',
   'help.guide.expense-receipts.result':
     'A nyugta a kiadással együtt mentődik: a sorában lévő címke megnyitja, a fájl pedig az utazás „Fájl” részében is megtalálható.',
   'help.guide.files-sync-settings.step.4':
@@ -5166,7 +5507,7 @@ const help: TranslationStrings = {
     'Rejtsd el a térképről azokat a túrákat, amelyekre most nincs szükséged, anélkül hogy bárki más számára megváltoznának.',
   'help.guide.tour-import-plan-tab.goal': 'Importálj egy GPX- vagy KML-nyomvonalat túraként a napok tervezése közben.',
   'help.ctx.trip-tour-detail.summary':
-    'Ez a kártya akkor nyílik meg a térkép fölött, amikor a „Terv” fülön kiválasztasz egy túrát: a napjai, az adatai és a profilja, a forrása, valamint a gombok, amelyekkel a telefonodra küldheted, lemásolhatod, gyűjteménybe mentheted vagy a csomagolási listához kapcsolhatod.',
+    'Ez a kártya akkor nyílik meg a térkép fölött, amikor a „Terv” fülön kiválasztasz egy túrát: a napjai, az adatai és a profilja, a forrása, valamint a gombok, amelyekkel a telefonodra küldheted, megnyithatod az útvonalát egy térképalkalmazásban, lemásolhatod, gyűjteménybe mentheted vagy a csomagolási listához kapcsolhatod.',
   'help.guide.tour-detail-read.step.1':
     'A jobb oldali oszlop tetején válts a „Hely” nézetről a „Túrák” nézetre, majd kattints egy túrára. A térkép fölött megnyílik a kártyája. A napon belüli sorára vagy a térképen a vonalára kattintva ugyanez a kártya nyílik meg.',
   'help.guide.tour-detail-read.tip.2':
@@ -5174,7 +5515,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.step.2':
     'Írd be az új nevet, és kattints a kerek pipa gombra, vagy nyomj Entert. Az Esc billentyűvel megtartod a régi nevet.',
   'help.guide.tour-take-along.step.1':
-    'Nyisd meg a túra kártyáját. A kártya alján lévő „Navigáció” egy térképalkalmazásban nyitja meg a túra kiindulópontját; ha több alkalmazásod van, előbb felsorolja őket. A kiindulópontig navigál, nem az útvonal mentén.',
+    'Nyisd meg a túra kártyáját. A kártya alján lévő „Navigáció” egy térképalkalmazásban nyitja meg a túra kiindulópontját; ha több alkalmazásod van, előbb felsorolja őket. A kiindulópontig navigál, nem az útvonal mentén; a mellette lévő „Térkép” az egész útvonalat átadja.',
   'help.guide.tour-copy-keep.title': 'Túra másolása vagy mentése gyűjteménybe',
   'help.guide.tour-copy-keep.tip.3':
     'A „Túrák” fülön a bal oldali oszlop tetején lévő könyvjelző ugyanezt teszi a megnyitott túrával. Ha a túrán mentetlen módosítások vannak, előbb mentést kér.',
@@ -5389,6 +5730,17 @@ const help: TranslationStrings = {
     'Ha egy napot a Dawarichból veszel át, a bejegyzései vázlatok lesznek. Megosztás előtt ellenőrizd a jelvényt.',
   'help.guide.journey-map-layers.result':
     'A térkép csak a kívánt rétegeket mutatja, és minden gombostű, pont és vonal jelentése kiolvasható a jelmagyarázatból.',
+  'help.guide.journey-satellite.title': 'Az útinapló megtekintése műholdképeken',
+  'help.guide.journey-satellite.goal': 'Cseréld le az útinapló alatti rajzolt térképet légifelvételekre, majd vissza.',
+  'help.guide.journey-satellite.step.1':
+    'Kattints a térkép jobb felső sarkában lévő kerek gombra: „Váltás műholdas nézetre”.',
+  'help.guide.journey-satellite.step.2':
+    'A gombostűid és az útvonalaid mostantól légifelvételeken látszanak. A gomb felirata „Váltás térkép nézetre”: kattints rá, hogy visszatérj a rajzolt térképhez.',
+  'help.guide.journey-satellite.tip.1':
+    'A megosztott linken is ott van ugyanez a gomb, így a látogatók magán a tájon követhetnek egy túrát vagy egy partszakaszt.',
+  'help.guide.journey-satellite.tip.2':
+    'A választás nem mentődik: a napló és a megosztott oldal mindig a rajzolt térképpel nyílik meg. A műholdképeken nincsenek utcanevek.',
+  'help.guide.journey-satellite.result': 'A térkép újra rajzolt, ugyanazokkal a rétegekkel bekapcsolva, mint korábban.',
   'help.guide.journey-keep-route.result':
     'A nap fejlécében megjelenik a távolság, az útvonal pedig folytonos vonalként látszik a térkép „Rögzített” rétegén az útinapló minden résztvevőjének. Megosztott linken csak akkor látszik, ha a „Rögzített útvonalak” be van kapcsolva.',
   'help.guide.journey-day-stays.result':
@@ -5423,7 +5775,7 @@ const help: TranslationStrings = {
   'help.guide.filter-notifications.goal':
     'Nézd át az összes értesítésedet, vagy csak azokat, amelyeket még nem olvastál.',
   'help.guide.mark-notifications-read.step.1':
-    'Kattints az értesítés időpontja melletti dupla pipára („Olvasottnak jelölés”), ha csak azt az egyet szeretnéd olvasottnak jelölni.',
+    'Vidd az egeret egy értesítésre, és kattints az „Olvasottnak jelölés” gombra, a dupla pipára, amely az időpontja helyére lép, ha csak azt az egyet szeretnéd olvasottnak jelölni.',
   'help.guide.delete-notifications.step.2':
     'A felül lévő „Összes törlése” egyszerre törli a teljes listát, miután egy ablakban megerősítetted.',
   'help.guide.notification-settings.step.3':
@@ -5439,7 +5791,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.tip.1':
     'A többnapos foglalás közbülső napjain lévő halvány sorokat nem lehet húzni, és az átszállásos repülés egyes szakaszait sem.',
   'help.guide.place-image-from-file.step.2':
-    'Kattints a fejlécben lévő kerek képre. Mivel a helyhez fotók tartoznak, egy kis ablak megkérdezi, honnan származzon a kép.',
+    'Kattints a jobb alsó sarokban a „Szerkesztés” gombra. Az űrlapon a „Válassz képet” alatt a helyhez csatolt fotók csempék a „Kép feltöltése” mellett.',
   'help.guide.place-own-hours.goal':
     'Írd a kártyára az általad ellenőrzött nyitvatartást, ha a lekérdezett adat hibás vagy hiányzik.',
   'help.guide.place-own-hours.tip.2':
@@ -5449,6 +5801,8 @@ const help: TranslationStrings = {
   'help.guide.confirm-stay-booking.tip.1': 'Ha újra a jelvényre kattintasz, a foglalás visszaáll „Függőben” állapotra.',
   'help.guide.map-markers.tip.4':
     'Ha a Beállítások > Megjelenés menüpont „Utazás és térkép” részében be van kapcsolva a „Kompakt jelölők a nem tervezett helyekhez”, a még egyik napon sem szereplő helyek kis pontként jelennek meg, fotó és értékelés nélkül. A kiválasztott hely mindig teljes méretben látszik.',
+  'help.guide.map-markers.tip.5':
+    'Mapbox GL esetén Standard stílussal a térkép a saját boltjait, éttermeit és látnivalóit is címkézi, amelyek nem az utazásod helyei. Kapcsold be az „Érdekes helyek elrejtése” beállítást a Beállítások > Térkép részben, majd kattints a „Térkép mentése” gombra, és csak a saját gombostűid emelkednek ki.',
   'help.guide.tour-map-lines.step.1':
     'Az utazás minden túrája a saját színével, vonalként jelenik meg a térképen, a kezdőpontjánál egy gombostűvel. Ha a túrának színt választottál, a vonal azt használja, egyébként a kategóriája színét.',
   'help.guide.car-stops.step.6': 'Kattints a „Hozzáadás” gombra.',
@@ -5513,9 +5867,9 @@ const help: TranslationStrings = {
   'help.guide.tour-detail-read.tip.3':
     'Egyes túráknál több adat is látszik: a városi sétánál a megállók, az evezős túránál az ellenőrzések és a szél, a már teljesített túránál a „Tényleges nyomvonal”, a listához kapcsolt túránál pedig a „Csomagolási lista”.',
   'help.guide.tour-rename-colour.step.3':
-    'Kattints a túra kerek csempéjének sarkában lévő színes pontra („Nyomvonal színe”). A fejléc alatt megnyílik a „Nyomvonal színe” rész.',
+    'Kattints a túra kerek csempéjének sarkában lévő színes pontra („Nyomvonal színe”). A fejléc alatt megnyílik egy színsor.',
   'help.guide.tour-take-along.step.2':
-    'Ha a túrának van weboldala, a mellette lévő gombon az oldal neve látszik (Komoot, AllTrails, Outdooractive vagy Wanderer), egyéb oldalaknál pedig „Weboldal”. A gomb új lapon nyitja meg az oldalt.',
+    'Ha a túrának van weboldala, a „Térkép” utáni gombon az oldal neve látszik (Komoot, AllTrails, Outdooractive vagy Wanderer), egyéb oldalaknál pedig „Weboldal”. A gomb új lapon nyitja meg az oldalt.',
   'help.guide.tour-copy-keep.goal':
     'Készíts egy túrából változatot ebben az utazásban, vagy mentsd el későbbi utazásokhoz az egyik gyűjteményedbe.',
   'help.guide.tour-copy-keep.tip.4':
@@ -5554,7 +5908,7 @@ const help: TranslationStrings = {
     'A bal oldali sáv tetején lévő „Túra neve” mezőben található a név. Új túránál az ott látható szürke szöveg, például „Névtelen gyalogtúra”, csak helykitöltő: írd be a sajátodat.',
   'help.guide.tour-save.title': 'Túra mentése',
   'help.guide.tour-save.tip.3':
-    'A mentés akkor sem működik, ha egy mezőben érvénytelen érték van, például olyan weboldal, amely nem érvényes cím. Ilyenkor a „Részletek” magától kinyílik, és megmutatja a hibát.',
+    'A mentés akkor sem működik, ha egy mezőben érvénytelen érték van, például olyan weboldal, amely nem érvényes cím, vagy ha egy nap gyaloglási ideje és szünetei együtt több mint 24 órát tesznek ki. Ilyenkor a „Részletek” magától kinyílik, és megmondja, mit tegyél.',
   'help.guide.tour-edit-saved.tip.1': 'Ha nem módosítottál a túrán, a „Mentés” gomb szürke marad.',
   'help.guide.tour-summary-profile.step.3':
     'Mozgasd a mutatót a „Magassági profil” mentén. Látod az adott pont távolságát és magasságát, a térképen pedig egy pont jelöli ugyanazt a helyet.',
@@ -5638,7 +5992,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-google-import.step.3':
     'Ellenőrizd a „Megállók a linkben” részt. Ha egy megállónak nincs pozíciója a linkben, a TREK megjelöli, és kihagyja.',
   'help.guide.tour-walk-check-off.step.1':
-    'A „Terv” fülön kattints a városi sétára a napján. A kártyája a térkép mellett nyílik meg.',
+    'A „Terv” fülön kattints a városi sétára a napján. A kártyája a térkép fölött nyílik meg.',
   'help.ctx.trip-tour-bike.title': 'Kerékpártúrák',
   'help.guide.tour-bike-profile.step.1':
     'A „Túrák” fülön kattints a bal oldali sáv tetején az „Új túra tervezése” gombra.',
@@ -5700,7 +6054,19 @@ const help: TranslationStrings = {
     'Ha már tudod, mikor utazol, nyisd meg az űrlapot a kártyán lévő ceruzával, és add meg a dátumokat. A megtervezett napjaid megtartják a sorrendjüket, és ebben a sorrendben kapják meg a dátumokat.',
   'help.guide.trip-reminder.goal': 'Kapj emlékeztetőt néhány nappal az indulás előtt.',
   'help.guide.upcoming-reservations.tip.2':
-    'A „Függőben” a még meg nem erősített foglalást jelöli. A lemondott foglalások és az archivált utazások nem jelennek meg.',
+    'A típusikonon lévő kis P a még meg nem erősített foglalást jelöli. A lemondott foglalások és az archivált utazások nem jelennek meg.',
+  'help.guide.travel-stats.title': 'Utazási statisztikád áttekintése',
+  'help.guide.travel-stats.goal': 'Nézd meg, hány országot, utazást, napot és repülést adnak ki együtt az utazásaid.',
+  'help.guide.travel-stats.step.1':
+    'Nézd meg a „Meglátogatott országok” kártyát a beszállókártya alatt. Minden elkezdődött utazás helyeinek és közlekedési foglalásainak országait számolja, és megmutatja a zászlóikat, elöl azokkal az országokkal, ahol legutóbb jártál.',
+  'help.guide.travel-stats.step.2':
+    'A mellette lévő kártyák az utazásaidat és a rajtuk megjelölt helyeket, az úton töltött napjaidat és a megtett repülőtávolságot számolják.',
+  'help.guide.travel-stats.result':
+    'A sor magától frissül, ahogy tervezel és utazol, az összes utazásodat figyelembe véve, az archiváltakat is.',
+  'help.guide.travel-stats.tip.1':
+    'Azok az országok, amelyeket az Atlaszban kézzel jelöltél meglátogatottnak, az utazásaidból származók után következnek. Ha az Atlaszban eltávolítasz egy országot, az itt is eltávolítva marad.',
+  'help.guide.travel-stats.tip.2':
+    'Minden kártyát elrejthetsz a Beállítások, Megjelenés, Irányítópult-widgetek részben. Ha mind a négy ki van kapcsolva, a sor eltűnik.',
   'help.guide.half-company-holiday.tip.1':
     'Az aznapra már rögzített szabadság fél napra csökken. Aki később rögzíti ezt a napot, csak 0,5 napot használ fel.',
   'help.guide.edit-holiday-calendar.goal':
@@ -5740,6 +6106,25 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.title': 'Névjegy',
   'help.guide.web-push-device.tip.3':
     'A pushhoz a TREK-et HTTPS-en keresztül kell megnyitni. Ha az értesítések le vannak tiltva, engedélyezd őket a böngésző beállításaiban, és próbáld újra.',
+  'help.guide.booking-mail-address.title': 'Foglalási e-mailek továbbítása a TREK-nek',
+  'help.guide.booking-mail-address.goal':
+    'Kapj saját címet a foglalási visszaigazolásokhoz, hogy a TREK minden foglalást a megfelelő utazáshoz adjon hozzá.',
+  'help.guide.booking-mail-address.step.1':
+    'Az „Integrációk” alatt a „Foglalási e-mailek” részben látod „A címed” mezőt. Kattints a mellette lévő másolás gombra. Tartsd magadnál a címet, mint egy jelszót.',
+  'help.guide.booking-mail-address.step.2':
+    'Továbbíts egy foglalási e-mailt erre a címre kézzel, a mellékletekkel együtt, vagy kövesd az „Automatikus átirányítás” lépéseit, hogy szabályt állíts be a Gmailben vagy az Outlookban.',
+  'help.guide.booking-mail-address.step.3':
+    'A „Foglalási e-mailek importálása” be- vagy kikapcsolja az importálást. Az „Olvasás AI-val” lehetővé teszi, hogy az AI olyan e-maileket is elolvasson, amelyekben nincsenek géppel olvasható foglalási adatok. A „Hozzáadás magától” a TREK számára biztos foglalást rögtön beteszi az utazásba.',
+  'help.guide.booking-mail-address.step.4':
+    'A „Függőben lévő foglalások” megnyitja a rád váró e-maileket, számmal, ha vannak ilyenek. Az „E-mail-fájl feltöltése” egy .eml formátumban mentett levelet olvas be.',
+  'help.guide.booking-mail-address.result':
+    'A továbbított e-mailek abba az utazásba kerülnek, amelynek a dátumai és helyei illenek a foglaláshoz, vagy a „Függőben lévő foglalások” alatt várnak az ellenőrzésedre.',
+  'help.guide.booking-mail-address.tip.1':
+    'A másolás melletti gomb, az „Új cím”, új címet ad. Kattints rá kétszer; a régi cím azonnal megszűnik működni, ezért a továbbítási szabályaidat is cseréld ki.',
+  'help.guide.booking-mail-address.tip.2':
+    'Egy utazásnak lehet saját címe is, a „Foglalások” fülön a „Foglalási visszaigazolások importálása” alatt. Az erre küldött levélnél a TREK-nek nem kell találgatnia.',
+  'help.guide.booking-mail-address.tip.3':
+    'A továbbított e-maileket legfeljebb 30 napig tároljuk titkosítva. A kártya csak akkor jelenik meg, ha az adminisztrátor bekapcsolta az e-mail-importot.',
   'help.guide.connect-airtrail.result':
     'A jelvényen „Csatlakozva” látszik, és az utazások „Közlekedés” fülén megjelenik az „Importálás az AirTrailből” lehetőség.',
   'help.guide.connect-dawarich.result':
@@ -5749,7 +6134,7 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.result':
     'A TREK figyeli az importált útvonalaidat, és szól, ha valamelyik megváltozhatott. A túra csak akkor változik, ha elfogadod a módosítást.',
   'help.guide.plugin-settings.step.1':
-    'A beállítások oldalsávjában nyisd meg a „Pluginok” részt. A „Bővítménybeállítások” alatt minden olyan pluginnek, amely beállítást kér tőled, saját kártyája van a mezőivel: töltsd ki őket, és kattints a „Mentés” gombra. A kártyán lévő műveletek megerősítés után futnak le.',
+    'A beállítások oldalsávjában nyisd meg a „Pluginok” részt. A „Bővítménybeállítások” alatt minden olyan pluginnek, amelynek vannak beállításai számodra, saját kártyája van: töltsd ki a mezőit, és kattints a „Mentés” gombra, vagy tedd meg a felkínált választásokat. A kártyán lévő műveletek megerősítés után futnak le.',
   'help.guide.profile.step.3': 'Kattints a kártya alján, jobb oldalon a „Mentés” gombra.',
   'help.guide.default-user-settings.title': 'Az új felhasználók alapbeállításainak megadása',
   'help.guide.own-routing-engine.tip.1':
@@ -5761,7 +6146,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Add meg, milyen értesítési beállításokkal induljon minden felhasználó, és tilts le teljesen egy csatornát egy adott eseménynél.',
   'help.ctx.notifications.summary':
-    'Az összes értesítés, amelyet a TREK az alkalmazáson belül megjelenített, a legújabbal kezdve: egy foglalás, amelyet valaki módosított, egy új üzenet egy utazás csevegésében, egy veled megosztott naptár. A jobb felső sarokban lévő csengő a legújabb tízet mutatja, ez az oldal az összeset.',
+    'Az összes értesítés, amelyet a TREK az alkalmazáson belül megjelenített, a legújabbal kezdve és napok szerint csoportosítva: egy foglalás, amelyet valaki módosított, egy új üzenet egy utazás csevegésében, egy késő járat, egy továbbított e-mailből származó foglalás. A jobb felső sarokban lévő csengő a legújabb tízet mutatja, ez az oldal az összeset.',
   'help.guide.read-notifications.step.1':
     'Kattints a jobb felső sarokban a csengőre. A rajta lévő piros szám az olvasatlan értesítések számát mutatja.',
   'help.guide.filter-notifications.step.1': 'Kattints a jobb felső sarokban a csengőre.',
@@ -5780,19 +6165,39 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.5':
     'Ha az utazás több országot vagy régiót is érint, a földgömbbel egy országra vagy azon belül egy régióra szűrheted a listát, mindegyiknél a darabszámmal. A „Szűrő törlése” visszaállítja a „Minden ország” nézetet.',
   'help.guide.import-places-file.tip.3':
-    'Ha a Túrák bővítmény be van kapcsolva (ez az alapértelmezés), a fájlt az oszlop tetején, a „Túrák” részben importálhatod a „GPX vagy KML importálása” gombbal, és a vonalai túrák lesznek. A fájlban lévő pontokat itt nem importálja a TREK, mert a túrák csak vonalakból állnak.',
+    'Ahol a Túrák ki van kapcsolva, a „Fájl importálása” ablakban bejelölt nyomvonal vagy útvonal önálló hely lesz: színes vonal látszik a sorában, megjelenik a térképen, és a „Megjelenítés” alatti „Nyomvonalak” megtalálja.',
   'help.guide.dawarich-stays.step.3':
-    'Ellenőrizd a nevet, az „Érkezés” és a „Távozás” időpontját, válassz napot, vagy hagyd a „Még nincs naphoz rendelve” értéken, ha szeretnéd, írj jegyzetet, majd kattints a „Hely hozzáadása” gombra.',
+    'Ellenőrizd a nevet, az „Érkezés” és a „Távozás” időpontját. Ha a tartózkodás az utazás egy napjára esik, a „Nap” már azt a napot mutatja; válassz másikat, vagy hagyd a „Még nincs naphoz rendelve” értéken. Ha szeretnéd, írj jegyzetet, majd kattints a „Hely hozzáadása” gombra.',
   'help.guide.leave-stop-off-route.result':
     'A megálló továbbra is a nap és a PDF része; amíg „Útvonalon kívül” jelölésű, az útvonal egyenesen az előtte lévő megállótól az utána következőig halad.',
   'help.guide.move-booking-day.tip.2':
     'A saját napján belül az időponttal rendelkező foglalás mindig visszaugrik az időpontjának megfelelő helyre.',
   'help.guide.place-image-from-file.step.3':
-    'A „Csatolt fájlokból” alatt kattints a kívánt fotóra. A fölötte lévő „Feltöltés eszközről” gombbal helyette új képet választhatsz a számítógépedről.',
+    'Kattints a kívánt fotóra. Körbe van véve, és pipa jelzi, a fájl neve pedig megjelenik a csempék alatt.',
   'help.guide.place-own-hours.step.1':
     'Nyisd meg a helyet, és kattints a kártya jobb alsó sarkában a „Szerkesztés” gombra. Megnyílik a hely űrlapja.',
   'help.guide.place-own-hours.tip.3':
     'Ha a „Nyitvatartás törlése”, majd a „Frissítés” gombra kattintasz, a kártyán újra az automatikusan talált nyitvatartás jelenik meg.',
+  'help.guide.place-off-map.title': 'Koordináták nélküli hely felvétele a térképre',
+  'help.guide.place-off-map.goal': 'Derítsd ki, miért nincs jelölője egy helynek, és adj neki egyet.',
+  'help.guide.place-off-map.step.1':
+    'A helyek oszlopában a hely neve melletti figyelmeztető gombostű azt jelenti, hogy van címe, de nincsenek koordinátái. Kattints a sorra.',
+  'help.guide.place-off-map.step.2':
+    'A kártya felül, a címkék között ezt mondja: „Nincsenek koordináták, ezért nincs a térképen”. Vidd fölé az egeret, hogy lásd, hogyan javíthatod.',
+  'help.guide.place-off-map.step.3':
+    'Kattints a jobb alsó sarokban a „Szerkesztés” gombra. A „Cím” alatt az űrlap ugyanezt írja: a hely addig nem jelenik meg a térképen, amíg nincsenek koordinátái.',
+  'help.guide.place-off-map.step.4':
+    'Írd be a hely „Szélességi fok” és „Hosszúsági fok” értékét, vagy illeszd be mindkettőt egyszerre a „Szélességi fok” mezőbe, vesszővel elválasztva. Az űrlap tetején rá is kereshetsz a helyre, és kiválaszthatod a javaslatok közül.',
+  'help.guide.place-off-map.step.5':
+    'Kattints a „Frissítés” gombra. A figyelmeztetés eltűnik, és a helynek jelölője lesz a térképen.',
+  'help.guide.place-off-map.result':
+    'A hely a jelölőjével a térképen van, és a megállói ugyanúgy tervezhetők útvonalra, mint bármelyik másiké.',
+  'help.guide.place-off-map.tip.1':
+    'Koordináták nélkül a helynek nincs jelölője és nincs útvonala a napján, és kevesebb térképalkalmazás tudja megnyitni.',
+  'help.guide.place-off-map.tip.2':
+    'Az a hely, amelynek se címe, se koordinátái nincsenek, például egy emlékeztető, érintetlen marad, és nem mutat figyelmeztetést.',
+  'help.guide.place-off-map.tip.3':
+    'Ha egy térképoldal linkjét illeszted a keresőmezőbe, az is kitölti a koordinátákat.',
   'help.guide.confirm-stay-booking.title': 'Szállásfoglalás megerősítése',
   'help.guide.confirm-stay-booking.tip.2':
     'Ugyanez a gomb minden foglalásnál működik, a nap „Foglalások” része alatt lévőknél is.',
@@ -5804,12 +6209,12 @@ const help: TranslationStrings = {
   'help.guide.car-stops.result':
     'Az autóút kártyaként jelenik meg a „Közlekedés” fülön és sorként a napján, a térképen pedig a vonala az átvételi helytől sorban minden megállón át a leadási helyig vezet.',
   'help.guide.transport-details.step.5':
-    'A részletek alján lévő „Térképen” gomb megmutatja az út vonalát, és a napján megnyitja a „Terv” fület. A jobb szélen lévő „Szerkesztés” megnyitja a teljes űrlapot, a mellette lévő kuka pedig megerősítés után törli az utat.',
+    'A részletek bal alsó sarkában lévő „Térkép” gomb megmutatja az út vonalát, és a napján megnyitja a „Terv” fület. A jobb szélen lévő „Szerkesztés” megnyitja a teljes űrlapot, a mellette lévő kuka pedig megerősítés után törli az utat.',
   'help.guide.export-transports-csv.step.1':
     'Ha csak egy részére van szükséged, előbb szűkítsd a listát. A „Keresés”, a „Szűrő” és a „Nézet beállításai” alatti rendezés is számít: a fájl azt tartalmazza, amit a fül mutat, ugyanabban a sorrendben.',
   'help.guide.group-sort-bookings.tip.1':
     'A „Kártyák” és a „Lista” nézetnek saját csoportosítása van: a „Kártyák” alapból állapot, a „Lista” nap szerint csoportosít. A „Nézet beállításai” gombon lévő pont jelzi, ha valami eltér az alapértelmezéstől, a panel alján lévő „Nézet visszaállítása” pedig visszaállítja az alapértelmezést.',
-  'help.guide.booking-on-map.step.2': 'Kattints a részletek alján a „Térképen” gombra.',
+  'help.guide.booking-on-map.step.2': 'Kattints a részletek alján a „Térkép” gombra.',
   'help.guide.export-bookings-csv.goal':
     'Exportáld az utazás foglalásait CSV-fájlként, amelyet Excelben, Numbersben vagy bármilyen más táblázatkezelőben megnyithatsz.',
   'help.guide.arrange-packing-list.goal':
@@ -5887,7 +6292,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-planner.bullet.6':
     'A nem mentett vázlat megmarad: ha újra megnyitod a „Túrák” fület, a TREK visszaállítja, „Nem mentett vázlat visszaállítva” jelöléssel. A „Vissza a túrákhoz” és az „Elveti” rákérdez, mielőtt elvetné a módosításokat.',
   'help.guide.tour-open-workspace.step.6':
-    'A bal alsó gombbal válthatsz a térképek között, kezdetben a „Térkép” és a „Műhold” között. Megnyitott túránál a típusához tartozó térképeket is kínálja, például Topo vagy „Túrázás”, valamint kapcsolókat, például a „Pontok elhelyezése” és a 3D.',
+    'A bal alsó gombbal válthatsz a térképek között: „Térkép”, „Topográfiai” és „Műhold”, és 3D-t is bekapcsolhatsz. Megnyitott túránál a típusához tartozó térképeket is kínálja, például „Túrázás”, valamint kapcsolókat, például a „Pontok elhelyezése” és a „Vasalt utak”.',
   'help.guide.tour-draw-route.step.1':
     'Kattints a bal oldali sáv tetején az „Új túra tervezése” gombra. A sáv „Új túra” nézetre vált, amely gyalogtúra, hacsak nem választasz másik típust.',
   'help.guide.tour-draw-route.tip.3':
@@ -5922,7 +6327,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.2':
     'A fájl minden nyomvonalából vagy útvonalából külön túra lesz. A nyomvonalakat a TREK soha nem fűzi össze.',
   'help.guide.tour-view-import.step.2':
-    'A bal oldali oszlop GPX-túraként mutatja: a „Túra összefoglalója” a távolsággal, a magassági adatokkal és a rögzített idővel, alatta a magassági profillal. A térképen a vonala látszik.',
+    'A bal oldali oszlop GPX-túraként mutatja: a „Túra összefoglalója” a távolsággal és a magassági adatokkal, valamint a rögzített idővel, ha a fájlban van, alatta a magassági profillal. A térképen a vonala látszik.',
   'help.guide.tour-plan-from-import.step.1':
     'Nyisd meg az importált túrát a „Túrák” fülön. A bal oldali „Szerkeszthető változat” kártyán kattints a „Szerkeszthető változat tervezése” gombra.',
   'help.guide.tour-plan-from-import.result':
@@ -5962,7 +6367,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'A „Burkolat” gombra kattintva ugyanezt az útvonalat aszerint nézheted meg, min jársz: az aszfalttól a földútig és a szikláig.',
   'help.guide.tour-hike-round.step.2':
-    'A térkép fölött megnyílik a „Körtúra” kártya. Ellenőrizd a kiindulópontot a „Kitől” alatt, és írd be a kívánt távolságot („Távolság”). A mellette lévő jelvény mutatja, milyen hosszúságú lehet egy körtúra.',
+    'A térkép fölött megnyílik a „Körtúra” kártya. Ellenőrizd a kiindulópontot a „Kitől” alatt, és írd be a kívánt távolságot („Távolság”). A mellette lévő jelvény mutatja, milyen hosszúságú köröket kínál majd hozzá a TREK.',
   'help.guide.tour-hike-compare-ways.title': 'Más útvonalak összehasonlítása a gyalogtúra egy szakaszára',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Ha az útvonaltervező nem ismer másik utat, a kártya jelzi ezt. Ha az útvonaltervező nem tudja követni a választott utat, a szakasz változatlan marad, és a kártya erről is tájékoztat.',
@@ -6105,6 +6510,8 @@ const help: TranslationStrings = {
     'Egy jelzés soha nem módosítja a túrát; hogy mi változott valójában, azt a túra forrásellenőrzése mutatja meg.',
   'help.guide.api-keys.tip.3':
     'A kulcsot Authorization: Bearer vagy X-API-Key fejlécben küldd a /api/v1 címre. Egy fiókhoz legfeljebb 10 kulcs tartozhat.',
+  'help.guide.api-keys.tip.4':
+    'Az ablakban a Ctrl+Enter, Macen a Cmd+Enter bármelyik mezőből létrehozza a kulcsot, ugyanúgy, mint a „Létrehozás” gombra kattintás.',
   'help.guide.plugin-settings.step.2':
     'A „Bővítmény-tevékenység” felsorolja a pluginek által a nevedben végzett összes műveletet, a legújabbal kezdve; a „Frissítés” betölti a legfrissebbeket.',
   'help.ctx.admin-github.bullet.3':
@@ -6114,9 +6521,9 @@ const help: TranslationStrings = {
   'help.guide.default-map.step.3':
     'Minden mező akkor mentődik, amikor elhagyod. A mező neve melletti „visszaállítás” link visszaállítja a TREK alapértelmezett értékét.',
   'help.guide.own-routing-engine.tip.2':
-    'Ha csak a saját útvonaltervező van beállítva, a nyilvános Valhallát sem használja a TREK. A mező melletti „visszaállítás” link újra kiüríti.',
+    'Ha csak a saját útvonaltervező van beállítva, és az „Útvonaltervező szolgáltatás” „Automatikus”, egyetlen Valhallát sem kérdez meg a TREK. A mező melletti „visszaállítás” link újra kiüríti.',
   'help.guide.admin-passkeys.step.1':
-    'A „Beállítások” fülön, a „Passkey-bejelentkezés” részben kapcsold be a „Passkey-bejelentkezés engedélyezése” beállítást.',
+    'A „Biztonság” fülön, a „Hitelesítési módok” részben kapcsold be a „Passkey-bejelentkezés engedélyezése” beállítást.',
   'help.guide.storage-backends.step.4':
     'A felül lévő „Egészség” felsorolja a tükörcélra sikertelenül írt adatokat. Ha a „Nincs rögzített replikahiba.” üzenet látszik, minden rendben van.',
   'help.guide.channels-instance.tip.3':
@@ -6126,7 +6533,7 @@ const help: TranslationStrings = {
   'help.ctx.notifications.bullet.1':
     'A jobb felső sarokban lévő csengő a még olvasatlan értesítések számát mutatja. Rákattintva a legújabb tízet látod, az alján lévő „Összes értesítés megtekintése” pedig erre az oldalra visz.',
   'help.guide.read-notifications.step.2':
-    'A panel a legújabb tíz értesítést sorolja fel. Mindegyikből kiderül, ki mit és hol csinált, az olvasatlanok háttere pedig színezett.',
+    'A panel a legújabb tíz értesítést sorolja fel, napok szerint csoportosítva. Mindegyikből kiderül, ki mit és hol csinált, az olvasatlanok pedig félkövérek, az időpontjuk mellett egy ponttal.',
   'help.guide.filter-notifications.step.2': 'A panel alján kattints az „Összes értesítés megtekintése” gombra.',
   'help.guide.mark-notifications-read.tip.1': 'Ha egy értesítést a gombjával nyitsz meg, az is olvasottnak jelöli.',
   'help.guide.delete-notifications.tip.2':
@@ -6144,7 +6551,7 @@ const help: TranslationStrings = {
     'Ez a lehetőség csak koordinátákkal rendelkező megállóknál érhető el, és csak erre a napra vonatkozik: ugyanaz a hely egy másik napon továbbra is az útvonal része.',
   'help.guide.move-booking-day.title': 'Foglalás áthelyezése másik napra',
   'help.guide.place-image-from-file.step.4':
-    'A fotó most már a hely képe. A sarkában lévő kis piros X-szel ismét eltávolíthatod.',
+    'Kattints a „Frissítés” gombra. A fotó mostantól a hely képe, a kártya tetején.',
   'help.guide.place-own-hours.step.2':
     'A „Weboldal” alatt töltsd ki a „Telefon” és az „E-mail” mezőt, ha ismered őket.',
   'help.guide.add-accommodation.tip.4':
@@ -6161,7 +6568,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.result':
     'A „Terv” fül az út napján van megnyitva, a vonala megjelenik a térképen, és a sorában lévő útvonal ikon be van kapcsolva.',
   'help.guide.export-transports-csv.step.2':
-    'Kattints a „Nézet beállításai” utáni táblázat ikonra („Exportálás táblázatként (CSV)”).',
+    'Kattints a „Nézet beállításai” utáni letöltés ikonra. Az elemleírása „Exportálás táblázatként (CSV)”, vagy ha keresés vagy szűrő van érvényben, azt mutatja, hány sort tartalmaz a fájl, például „A megjelenített 4 sorból 2 exportálása (CSV)”.',
   'help.guide.group-sort-bookings.title': 'Foglalások csoportosítása és rendezése',
   'help.guide.group-sort-bookings.tip.2':
     'Az „Idővonal” nézetben ugyanez a gomb a „Típusonként külön sáv” és „A másik fül megjelenítése” lehetőséget tartalmazza.',
@@ -6171,6 +6578,31 @@ const help: TranslationStrings = {
     'Ha a fülnek csak egy részét exportálnád, előbb szűkítsd a „Keresés” vagy a „Szűrő” segítségével. A fájl pontosan azt tartalmazza, amit a fül mutat.',
   'help.guide.import-booking-file.tip.4':
     'A visszaigazolás feldolgozásához internetkapcsolat kell. Offline állapotban az importálás jelzi ezt, és amikor a TREK újra online, próbáld újra.',
+  'help.guide.forward-booking-mail.title': 'Foglalási e-mail továbbítása az utazásnak',
+  'help.guide.forward-booking-mail.goal':
+    'Adj az utazásnak saját címet, továbbítsd rá a visszaigazolást, és fejezd be, amit a TREK nem tudott magától hozzáadni.',
+  'help.guide.forward-booking-mail.step.1':
+    'Kattints a sávban a feltöltés ikonra, „Foglalási visszaigazolások importálása”. A fájlmező alatt a „Vagy továbbítás e-mailben” az utazás saját címét tartalmazza.',
+  'help.guide.forward-booking-mail.step.2':
+    'Kattints a „Cím létrehozása ehhez az utazáshoz” gombra. Az erre küldött levél találgatás nélkül ebbe az utazásba kerül.',
+  'help.guide.forward-booking-mail.step.3':
+    'A cím megjelenik, mellette egy másolás gombbal. Másold ki, majd továbbítsd rá a foglalási e-mailt a levelezőprogramodból, a mellékletekkel együtt, kézzel vagy szabállyal. A TREK néhány percen belül beolvassa.',
+  'help.guide.forward-booking-mail.step.4':
+    'A TREK számára biztos foglalás magától bekerül az utazásba. Minden más rád vár: nyisd meg a neved alatti menüt a jobb felső sarokban, ahol egy szám jelzi a várakozó leveleket, és kattints a „Függőben lévő foglalások” gombra.',
+  'help.guide.forward-booking-mail.step.5':
+    'Minden bejegyzés megmutatja, mit olvasott a TREK, miért vár, és melyik utazáshoz érkezett. Az „E-mail megjelenítése” magát a levelet mutatja. Kattints a „Kitöltés kézzel” gombra.',
+  'help.guide.forward-booking-mail.step.6':
+    'Az „Új foglalás” megnyílik az utazásban a levélben talált adatokkal: a tárgy címként, a típus, a dátum és a megtalált foglalási kód. Ellenőrizd, javítsd, ami kell, és kattints a „Hozzáadás” gombra.',
+  'help.guide.forward-booking-mail.result':
+    'A foglalás a „Foglalások” fülön van, mint bármelyik másik, a bejegyzése pedig kikerült a „Függőben lévő foglalások” közül.',
+  'help.guide.forward-booking-mail.tip.1':
+    'A saját címed, a Beállítások, Integrációk, Foglalási e-mailek alatt, minden utazáshoz működik: a TREK azt az utazást választja, amelynek a dátumai és helyei illenek a foglaláshoz. Az utazás saját címe megspórolja ezt a találgatást.',
+  'help.guide.forward-booking-mail.tip.2':
+    'Ha azon a kártyán be van kapcsolva a „Hozzáadás magától”, a TREK számára biztos foglalás rögtön az utazásba kerül, és az erről szóló értesítés 7 napig kínálja a „Visszavonás” lehetőséget. Kikapcsolva minden foglalás a „Függőben lévő foglalások” alatt vár.',
+  'help.guide.forward-booking-mail.tip.3':
+    'Egy bejegyzést dokumentumként is megtarthatsz a „Mentés dokumentumként” gombbal, amely a levelet vagy a mellékleteit az utazás fájljai közé teszi, vagy elvethetsz az „Elvetés” gombbal.',
+  'help.guide.forward-booking-mail.tip.4':
+    'A cím a tiéd: az útitárs, aki szeretne egyet, létrehozza a sajátját. Az adminisztrátor az egész példányra kapcsolja be az e-mail-importot; addig a „Vagy továbbítás e-mailben” és a „Függőben lévő foglalások” nem látszik.',
   'help.guide.arrange-packing-list.step.1':
     'Fogd meg a lista fejlécének bal szélén, a színpont előtt lévő fogantyút, és ejtsd a listát egy másik kártyára. A célkártyát a kiemelőszíneddel rajzolt keret jelöli, és a lista az utazás minden résztvevőjénél átveszi annak a kártyának a helyét.',
   'help.guide.count-packed-pieces.title': 'Egy dolog több darabjának becsomagolása',
@@ -6182,6 +6614,8 @@ const help: TranslationStrings = {
     'Kattints a kiadás sora melletti ceruzára. Megnyílik a szerkesztő, alul a „Nyugták és számlák” résszel.',
   'help.guide.expense-receipts.tip.3':
     'A csatoláshoz internetkapcsolat és fájlfeltöltési jogosultság kell, mert a nyugtát a TREK az utazás egyik fájljaként tárolja.',
+  'help.guide.expense-receipts.tip.4':
+    'Az utazásban már meglévő fájlt, például egy foglalási visszaigazolást, amely egyben a számla is, nem kell újra feltölteni, hanem hozzákapcsolhatod: a „Csatolás” melletti link ikon felsorolja ezeket a fájlokat.',
   'help.guide.files-sync-settings.title': 'A dokumentumok szinkronizálási irányának kiválasztása',
   'help.guide.files-sync-settings.tip.1':
     'Az egyik sáv mindig bekapcsolva marad: ha az egyetlen még bekapcsolt sávra kattintasz, nem történik semmi.',
@@ -6192,6 +6626,8 @@ const help: TranslationStrings = {
     'Kattints a „Mentés” gombra. Az átnevezett vagy átszínezett kategória összes jegyzete egyszerre változik meg, minden tagnál. A „Mégse” elveti a módosításaidat.',
   'help.guide.trip-chat.tip.5':
     'A csevegés elsőként a legújabb üzeneteket mutatja. A tetején lévő „Korábbi üzenetek betöltése” betölti a régebbieket.',
+  'help.guide.trip-chat.tip.6':
+    'Az asszisztenstől származóként jelölt üzenet egy válasz, amelyet valaki az utazás asszisztensétől osztott meg az utazás csevegésében a „Megosztás” gombbal. Vidd fölé az egeret a jelölésnek, hogy lásd, ki osztotta meg.',
   'help.guide.roadtrip-reorder.result':
     'A megállók a beállított sorrendben vannak, és minden módosított napnál újraszámolódik a távolság, a vezetési idő és az érkezési idők.',
   'help.guide.roadtrip-overnight.goal':
@@ -6232,7 +6668,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.tip.1':
     'A név és a szín az utazáshoz tartozik, így az utazás minden résztvevője látja. Ha csak a saját térképeden rejtenél el egy túrát, anélkül hogy másoknál változna, használd a „Túrák” listában a szem ikont.',
   'help.guide.tour-take-along.tip.1':
-    'Fájlmegosztásra képes eszközön a GPX mellett megjelenik a „Megosztás” gomb, amellyel ugyanezt a fájlt közvetlenül egy másik alkalmazásnak küldheted.',
+    'A GPX melletti „Megosztás” ugyanezt a fájlt közvetlenül egy másik alkalmazásnak küldi fájlmegosztásra képes eszközön. Máshol egy rövid szöveget oszt meg a túráról, vagy kimásolja.',
   'help.guide.tour-copy-keep.step.2':
     'A másolat azonnal megnyílik az eredeti nevével, utána a (másolat) jelöléssel. A ceruzára kattintva saját nevet adhatsz neki.',
   'help.guide.tour-packing-link.title': 'Túra kapcsolása a csomagolási listához',
@@ -6271,7 +6707,7 @@ const help: TranslationStrings = {
   'help.guide.tour-save.step.1': 'Írj nevet a „Túra neve” mezőbe. Név nélkül a „Mentés” gomb szürke marad.',
   'help.guide.tour-edit-saved.title': 'Mentett túra módosítása',
   'help.guide.tour-edit-saved.tip.3':
-    'A sáv tetején lévő „GPX letöltése” és „Megőrzés gyűjteményben” a módosítások mentése után működik.',
+    'A sáv tetején lévő „GPX letöltése”, „Megosztás” és „Megőrzés gyűjteményben” a módosítások mentése után működik.',
   'help.guide.tour-summary-profile.tip.1': 'A kártya címére kattintva az egész összefoglalót összecsukhatod.',
   'help.guide.tour-list-manage.step.3': 'Válaszd ki a napot. A túra arra a napra kerül, és a sorában megjelenik a nap.',
   'help.guide.tour-delete.goal': 'Túra végleges eltávolítása az utazásból.',
@@ -6464,28 +6900,76 @@ const help: TranslationStrings = {
   'help.ctx.admin-defaults.bullet.3':
     'A beállított mező melletti „visszaállítás” link visszaállítja a TREK alapértelmezett értékét. A felhasználó saját beállítása mindig felülírja ezeket.',
   'help.ctx.admin-settings.bullet.5':
-    '„Veszélyzóna”: a „JWT-titok cseréje” minden felhasználót kijelentkeztet, téged is.',
+    '„Veszélyzóna”, a „Biztonság” fülön: a „JWT-titok cseréje” minden felhasználót kijelentkeztet, téged is.',
   'help.guide.default-user-settings.step.1':
     'Az „Alapértelmezett felhasználói beállítások” részben válaszd ki a „Színmód” („Világos”, „Sötét” vagy „Automatikus”), a „Hőmérséklet egység”, a „Távolság egység”, az „Időformátum”, „A hét kezdőnapja”, a „Dátumformátum” és a „Megjelenítési pénznem” értékét, valamint azt, hogy a „Foglalási kódok elrejtése” be vagy ki legyen kapcsolva. Minden választás azonnal mentődik.',
   'help.guide.admin-passkeys.step.2':
-    'Add meg a Relying Party ID (domain) értékét, például trek.example.org, és az „Engedélyezett origók” közé azokat a címeket, amelyeken a TREK-ed elérhető, majd kattints a „Mentés” gombra. Ha mindkettőt üresen hagyod, a TREK az APP_URL értékét használja.',
+    'A „Passkey-bejelentkezés” kártyán add meg a „Relying Party azonosító (domain)” értékét, például trek.example.org, és az „Engedélyezett origók” közé azokat a címeket, amelyeken a TREK-ed elérhető, majd kattints a „Mentés” gombra. Ha mindkettőt üresen hagyod, a TREK az APP_URL értékét használja.',
   'help.guide.rotate-jwt-secret.title': 'Mindenki kijelentkeztetése egyszerre',
   'help.guide.notification-defaults.step.2':
     'Egy cellára kattintva a következő állapotra váltasz: „Be”, „Ki”, „Tiltva”. Az elemleírás megnevezi a következő állapotot, és minden kattintás azonnal mentődik.',
   'help.ctx.notifications.bullet.2':
-    'A felül lévő „Mind” és „Olvasatlan” között válthatsz: az összes értesítés vagy csak a még nem olvasottak. Görgetés közben a lista továbbiakat tölt be.',
+    'A felül lévő „Mind” és „Olvasatlan” között válthatsz: az összes értesítés vagy csak a még nem olvasottak. A lista napok szerint csoportosított, a „Ma” van elöl, és görgetés közben továbbiakat tölt be.',
   'help.guide.read-notifications.step.3':
     'Kattints az értesítés alatti gombra, itt a „Vacay megtekintése” gombra, és megnyílik, amiről az értesítés szól. Ez olvasottnak is jelöli.',
   'help.guide.filter-notifications.step.3':
     'Az „Olvasatlan” gombra kattintva csak a még nem olvasott értesítéseket látod. A „Mind” újra az összeset mutatja.',
   'help.guide.mark-notifications-read.tip.2':
-    'Az olvasottnak jelölés csak a háttérszínt és a számlálót változtatja meg. Az értesítés a listában marad, amíg nem törlöd.',
+    'Az olvasottnak jelölés csak a félkövér szedést, a pontot és a számlálót szünteti meg. Az értesítés a listában marad, amíg nem törlöd, az „Olvasatlannak jelölés”, ugyanott a boríték, pedig újra újnak jelöli.',
   'help.guide.delete-notifications.result': 'Az értesítés lekerül a listáról és a csengőből.',
+  'help.guide.booking-mail-notifications.title': 'Válasz egy foglalási e-mailről szóló értesítésre',
+  'help.guide.booking-mail-notifications.goal':
+    'Nézd meg, mi lett a továbbított foglalási e-mailekkel, és döntsd el azokat, amelyeket a TREK nem tudott magától hozzáadni.',
+  'help.guide.booking-mail-notifications.step.1':
+    'Kattints a jobb felső sarokban lévő csengőre. Ha egy továbbított levélben olyan foglalások vannak, amelyeket a TREK nem tudott magától hozzáadni, itt jelzi.',
+  'help.guide.booking-mail-notifications.step.2':
+    'Az „Ellenőrizendő továbbított foglalások” megmondja, hányan várnak rád. Kattints alatta az „Áttekintés” gombra.',
+  'help.guide.booking-mail-notifications.step.3':
+    'A „Függőben lévő foglalások” megnyílik az összes várakozó bejegyzéssel: mit olvasott a TREK, miért vár, és melyik utazáshoz érkezett. A „Kitöltés kézzel” új foglalást nyit meg a levélben talált adatokkal, a kuka pedig elveti a bejegyzést.',
+  'help.guide.booking-mail-notifications.result':
+    'Minden továbbított foglalás vagy bekerül a saját utazásába, vagy a te döntésedre vár, és mindig tudod, melyik a helyzet.',
+  'help.guide.booking-mail-notifications.tip.1':
+    'A TREK által magától hozzáadott foglalás „Foglalás hozzáadva levélből” értesítésként érkezik, „Megtartás” és „Visszavonás” gombbal. A „Visszavonás” ismét kiveszi a foglalást az utazásból, a „Megtartás” ott hagyja.',
+  'help.guide.booking-mail-notifications.tip.2':
+    'A közös utazás többi résztvevője is értesül a levélből származó foglalásról, az „Utazás megtekintése” gombbal, amely megnyitja az utazás „Foglalások” fülét.',
+  'help.guide.booking-mail-notifications.tip.3':
+    'Az élőben követett járat „Járat felszállt”, „Járat leszállt” és, 15 perctől, „Járat késik” értesítést küld, mindegyiket „Utazás megtekintése” gombbal. Azokhoz mennek, akikhez a járat hozzá van rendelve, vagy az utazás összes tagjához. Bármelyiket kikapcsolhatod a Beállítások „Értesítések” részében.',
   'help.guide.notification-settings.result':
     'A Beállítások az „Értesítések” lapon van megnyitva, eseményenként és csatornánként egy kapcsolóval.',
   'help.guide.link-journal.goal': 'Mutasd meg az egyik útinaplódat az utazáson belül azoknak, akiket kiválasztasz.',
   'help.guide.link-journal.tip.3':
     'Később az „Utazás beállításai” „Napló” részében ott a „Hozzáférés szerkesztése”, a „Másik napló” és a „Leválasztás”. A leválasztás eltávolítja a fület; akiket magában a naplóban adtál hozzá, megtartják a hozzáférésüket.',
+  'help.guide.trip-addons.title': 'Bővítmények be- és kikapcsolása ehhez az utazáshoz',
+  'help.guide.trip-addons.goal':
+    'Kapcsolj be vagy ki egy funkciót, például a „Költségek” vagy az „Autós út” funkciót, csak egy utazáshoz.',
+  'help.guide.trip-addons.step.1':
+    'Kattints az „Utazás beállításai” gombra az utazás neve mellett, és válaszd a „Bővítmények” lehetőséget a bal oldalon. Ez a rész csak az utazás tulajdonosának érhető el.',
+  'help.guide.trip-addons.step.2':
+    'Kattints egy bővítmény kapcsolójára, hogy be- vagy kikapcsold ehhez az utazáshoz. A „Listák”, „Költségek”, „Dokumentumok”, „Együttműködés”, „Autós út” és „Túrák” szerepelnek, amennyiben a TREK-ed rendelkezik velük.',
+  'help.guide.trip-addons.step.3':
+    'A „Csak ez az utazás” jelzi azt a bővítményt, amelyet a TREK többi részétől eltérően állítottál be. Kapcsold vissza, hogy újra az adminisztrátor beállítását kövesse.',
+  'help.guide.trip-addons.result':
+    'Az utazás az általad választott bővítményeket mutatja mindenkinek: egy fül vagy a terv egy része megjelenik vagy eltűnik. A többi utazásod az adminisztrátor beállítását követi.',
+  'help.guide.trip-addons.tip.1':
+    'Egy bővítmény kikapcsolása elrejti, de semmit sem töröl. Kapcsold be újra, és minden ott van, ahol volt.',
+  'help.guide.trip-addons.tip.2':
+    'Egy bővítményt akkor is bekapcsolhatsz egy utazáshoz, ha az adminisztrátor mindenki másnál kikapcsolta.',
+  'help.guide.trip-addons.tip.3':
+    'A kapcsoló módosításához kapcsolat kell. Offline állapotban a TREK ezt jelzi, és a kapcsoló marad, ahogy volt.',
+  'help.guide.edit-trip-settings.title': 'Az utazás szerkesztése a tervezőből',
+  'help.guide.edit-trip-settings.goal':
+    'Módosítsd az utazás címét, dátumait, borítóját vagy pénznemét anélkül, hogy elhagynád az utazást.',
+  'help.guide.edit-trip-settings.step.1':
+    'Kattints az „Utazás beállításai” gombra az utazás neve mellett, és válaszd az „Utazás szerkesztése” lehetőséget a bal oldalon.',
+  'help.guide.edit-trip-settings.step.2':
+    'Módosítsd, amit kell: a borítóképet, a címet és a leírást, a dátumokat, a pénznemet vagy az emlékeztetőt.',
+  'help.guide.edit-trip-settings.step.3':
+    'Kattints a „Frissítés” gombra. Az „Utazás beállításai” bezárul, és az utazás rögtön mutatja a változást.',
+  'help.guide.edit-trip-settings.result': 'Az utazás mindenhol az új adatokat mutatja, minden résztvevőjének.',
+  'help.guide.edit-trip-settings.tip.1':
+    'Ha áthelyezed a kezdő dátumot, a TREK először megkérdezi, hogyan kövessék a foglalások. Ha az új dátumok miatt olyan napok esnek ki, amelyeken van valami, a megerősítés előtt felsorolja ezeket a napokat.',
+  'help.guide.edit-trip-settings.tip.2':
+    'Ugyanez az űrlap megnyílik az „Utazásaim” oldalról is az utazáskártya ceruzájával. Az „Utazás szerkesztése” csak azoknak jelenik meg, akik szerkeszthetik az utazást.',
   'help.guide.dawarich-stays.result':
     'A tartózkodásból az utazás egyik helye lett, a választott napon vagy a „Nem tervezett” helyek között, a panel pedig elintézettnek jelöli.',
   'help.ctx.trip-days.bullet.7': 'Amíg az utazás tart, a terv a mai napon nyílik meg, és odagörget.',
@@ -6496,7 +6980,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'A fotó lett a hely képe a kártyán, a helyek oszlopában, a napon és a térképen.',
   'help.guide.place-own-hours.step.3':
-    'Alattuk a „Nyitvatartás” a hetet mutatja, naponként egy sorral. Ha a TREK talált nyitvatartást a helyhez, az már ki van töltve; ha nem, előbb kattints a „Nyitvatartás hozzáadása” gombra. Írd be, mikor nyit és zár az egyes napokon, és azoknál a napoknál, amikor zárva van, kattints a „Lezárva” gombra.',
+    'Alattuk a „Nyitvatartás” a hetet mutatja, naponként egy sorral. Ha a TREK talált nyitvatartást a helyhez, az már ki van töltve; ha nem, előbb kattints a „Nyitvatartás hozzáadása” gombra. Írd be, mikor nyit és zár az egyes napokon. A nap jobb oldalán a 24h egész napos nyitvatartásként, a zárt ajtó pedig zártként jelöli.',
   'help.guide.add-accommodation.tip.5':
     'A GPX-nyomvonalakat és a túrák helyeit a TREK soha nem kínálja fel szálláshelyként, csak az utazás szokásos helyeit.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6508,22 +6992,23 @@ const help: TranslationStrings = {
   'help.guide.car-stops.tip.2':
     'A „Mozgatás felfelé” és a „Mozgatás lefelé” csak akkor jelenik meg, ha az autós útnak legalább két megállója van.',
   'help.guide.transport-details.title': 'Közlekedés megnyitása és a részletek használata',
-  'help.guide.transport-details.tip.1': 'Ha a vonal már látszik, a „Térképen” gombra újra kattintva kikapcsolod.',
+  'help.guide.transport-details.tip.1': 'Ha a vonal már látszik, a „Térkép” gombra újra kattintva kikapcsolod.',
   'help.guide.export-transports-csv.result':
     'A böngésződ elment egy fájlt az utazás nevével, például autumn-in-japan-transports.csv, minden út egy sorral: „Típus”, „Cím”, „Állapot”, „Kezdés”, „Befejezés”, „Kitől”, „Ki”, „Helyszín”, „Visszaigazolás” és „Jegyzetek”.',
   'help.guide.group-sort-bookings.goal':
     'Rendezd a kártyákat vagy a listát állapot, nap vagy típus szerint, a kívánt sorrendben.',
   'help.guide.booking-on-map.tip.1':
-    'A „Térképen” gomb csak olyan foglalásnál jelenik meg, amelyhez hely tartozik. Válassz egyet az űrlapon a „Hely / Tevékenység” alatt, és a gomb megjelenik.',
+    'A „Térkép” gomb csak olyan foglalásnál jelenik meg, amelyhez hely tartozik. Válassz egyet az űrlapon a „Hely / Tevékenység” alatt, és a gomb megjelenik.',
   'help.guide.export-bookings-csv.step.2':
     'Nyisd meg a nézetikonok utáni csúszkákat („Nézet beállításai”), és a „Rendezés” alatt válassz sorrendet. A sorok ezt követik, foglalásonként egy sorral, csoportok nélkül.',
   'help.guide.edit-booking.tip.4':
     'Ha már módosítottál valamit, az űrlapon kívülre kattintva vagy az Esc billentyűvel a TREK megkérdezi: „Elveted a módosításokat?” A „Szerkesztés folytatása” visszavisz az űrlaphoz.',
   'help.guide.arrange-packing-list.step.2':
-    'Egy listán belül a sor bal oldalán lévő fogantyúval feljebb vagy lejjebb húzhatod a tételt. A sor bal szélén megjelenő, kiemelőszínű vonal mutatja, hová kerül.',
+    'Egy listán belül vidd az egeret egy sor fölé: a bal végén megjelenik egy fogantyú, amellyel feljebb vagy lejjebb húzhatod a tételt. A sor bal szélén megjelenő, kiemelőszínű vonal mutatja, hová kerül.',
   'help.guide.count-packed-pieces.goal':
     'Adj meg egy tételhez mennyiséget, és jelöld a darabjait egyenként becsomagoltnak.',
-  'help.guide.count-packed-pieces.tip.3': 'Egy darabos tételnél nincs számláló, csak a jelölőnégyzet.',
+  'help.guide.count-packed-pieces.tip.3':
+    'Az egy darabos mennyiségnél nincs „Becsomagolva” sor, csak a jelölőnégyzet. A sor kettőtől felfelé mutatja a mennyiséget, például ×5.',
   'help.guide.expense-receipts.step.2':
     'Kattints a „Nyugták és számlák” melletti „Csatolás” gombra, és válaszd ki a fotót vagy a PDF-et; egyszerre többet is kiválaszthatsz. Minden fájl megjelenik a címsor alatt, egy kukával az eltávolításhoz.',
   'help.guide.files-sync-settings.goal':
@@ -6570,7 +7055,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-plan-tab.tip.1':
     'Az utazásban már szereplő nyomvonal „Már az utazásban van” jelölést kap, és nem importálódik kétszer.',
   'help.ctx.trip-tour-detail.bullet.4':
-    'Az alsó sor: „Hozzáadás a naphoz” vagy „Eltávolítás a napról”, ha egy nap meg van nyitva, „Navigáció” a kiindulópontig, a túra weboldala, GPX, „Megosztás”, ha az eszközöd tud fájlt megosztani, „Gyűjtemény” és „Másolás”.',
+    'Az alsó sor: „Hozzáadás a naphoz” vagy „Eltávolítás a napról”, ha egy nap meg van nyitva, „Navigáció” a kiindulópontig, „Térkép” az egész útvonalhoz egy térképalkalmazásban, a túra weboldala, GPX, „Megosztás”, „Gyűjtemény” és „Másolás”.',
   'help.guide.tour-detail-read.step.5':
     'Alatta az adatok következnek: „Távolság”, „Legkisebb tengerszint feletti magasság”, „Legnagyobb tengerszint feletti magasság”, „Szintemelkedés” és „Szintcsökkenés”, alattuk az idők, végül a magassági profil a túra vonalának színében.',
   'help.guide.tour-detail-read.result':
@@ -6702,7 +7187,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.step.4':
     'A lista tetején látod a meglátogatott megállók számát és a hátralévő gyaloglási időt. Egy megállónál a „Visszavonás” eltávolítja a jelölést.',
   'help.ctx.trip-tour-bike.bullet.2':
-    'A jobb oldali „Túra összefoglalója” a „Kerékpáros idő (becsült)” értéket mutatja, vagyis az útvonaltervező által a profilra számolt időt, az emelkedőkkel együtt. A szüneteket nem tartalmazza.',
+    'A jobb oldali „Túra összefoglalója” a „Kerékpáros idő” értéket mutatja, vagyis az útvonaltervező becslését a profilra, az emelkedőkkel együtt. A szüneteket nem tartalmazza.',
   'help.guide.tour-bike-profile.step.4':
     'Az „Útpontok” alatt kattints az „Út helyei” gombra, és válaszd ki a kiinduló- és a végpontot, itt a Hotel Alpenroyal, majd a Hotel Greif. Azt is megteheted, hogy ellenőrzöd, be van-e kapcsolva a „Pont hozzáadása”, és a térképre kattintasz. Két ponttól a TREK megtervezi az útvonalat.',
   'help.guide.tour-bike-profile.tip.5':
@@ -6760,7 +7245,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-gap.step.4':
     'Az „Útpontok” kártyán az áthidalás „Kézi, ellenőrizetlen” jelöléssel és a hosszával jelenik meg. Ha fölé viszed az egeret, elolvashatod, miért.',
   'help.guide.tour-horse-recorded.step.2':
-    'Megnyílik az „Importálás előnézete”, még semmi sincs mentve. Az „Importálás mint” alatt állítsd a „Túratípus” értékét „Lovastúra” lehetőségre. Három jelvény mutatja, mit tart meg az importálás, és mit nem számol ki.',
+    'Megnyílik az „Importálás előnézete”, még semmi sincs mentve. Az „Importálás mint” alatt válaszd a „Lovastúra” lehetőséget. Három jelvény mutatja, mit tart meg az importálás, és mit nem számol ki.',
   'help.guide.dateless-trip.goal': 'Kezdj el tervezni, még mielőtt tudnád, mikor utazol.',
   'help.guide.trip-reminder.step.3': 'Kattints a „Frissítés” gombra.',
   'help.guide.upcoming-reservations.goal':
@@ -6808,6 +7293,19 @@ const help: TranslationStrings = {
     'A „Hiba bejelentése” és a „Funkció javaslat” a projekt GitHub-oldalát nyitja meg, a Wiki a dokumentációt.',
   'help.guide.map-provider.tip.3':
     'GL-térképen jobb gombbal kattintva és húzva forgathatod és döntheted a térképet; a középső gombos kattintás helyet ad hozzá.',
+  'help.guide.map-hide-pois.title': 'A Mapbox által mutatott boltok és látnivalók elrejtése',
+  'help.guide.map-hide-pois.goal':
+    'Maradjon a térképen csak a saját helyeid, a Mapbox által magától hozzáadott címkék nélkül.',
+  'help.guide.map-hide-pois.step.1':
+    'A „Térkép szolgáltató” alatt válaszd a „Mapbox GL” lehetőséget, a „Térképstílus” alatt pedig egy Standard stílust: „Mapbox Standard” vagy „Standard Satellite”.',
+  'help.guide.map-hide-pois.step.2':
+    'Kapcsold be az „Érdekes helyek elrejtése” beállítást, majd kattints a „Térkép mentése” gombra.',
+  'help.guide.map-hide-pois.result':
+    'Az utazás és a napló térképe már nem jelöli a boltokat, éttermeket és látnivalókat a saját címkéivel, így csak a te gombostűid emelkednek ki.',
+  'help.guide.map-hide-pois.tip.1':
+    'Csak a Standard stílusoknál működik. A „Streets”, az „Outdoors” és a többi klasszikus stílus megtartja a címkéit.',
+  'help.guide.map-hide-pois.tip.2':
+    'A „Helyek felfedezése a térképen” az „Általános” részben továbbra is megtalálja a közeli helyeket, ha rákérdezel.',
   'help.guide.web-push-device.step.1':
     'A „Push értesítések ezen az eszközön” alatt kattints a „Bekapcsolás ezen az eszközön” gombra, és engedélyezd az értesítéseket, amikor a böngésző rákérdez. A „Teszt küldése” ellenőrzi, hogy megérkezik-e egy értesítés.',
   'help.guide.connect-airtrail.title': 'Az AirTrail-példányod csatlakoztatása',
@@ -6816,6 +7314,23 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.tip.3': 'A jobb oldali „Leválasztás” ismét eltávolítja a tokent.',
   'help.guide.tour-wanderer-watch.tip.3':
     'Hogy ezeket a jelzéseket milyen csatornákon kapod, azt az „Értesítések” alatt, a „wanderer: jelzések az útvonalaidról” sorban állíthatod be.',
+  'help.guide.connect-ai.title': 'Saját MI csatlakoztatása',
+  'help.guide.connect-ai.goal': 'Tervezz az asszisztenssel a saját MI-szolgáltatói fiókodon.',
+  'help.guide.connect-ai.step.1':
+    'Az „MI-asszisztens” kártyán válaszd ki, hogyan csatlakozol: a „Bejelentkezés ChatGPT-vel” a ChatGPT-előfizetésedet használja, az „API-kulcs beillesztése” pedig az Anthropic, az OpenAI, a Gemini vagy az OpenRouter kulcsát fogadja.',
+  'help.guide.connect-ai.step.2':
+    'Illeszd be a kulcsot. A TREK kiírja, melyik szolgáltatót ismerte fel, és azt is, mi kerül hozzá. Kattints a „Csatlakoztatás” gombra; a TREK előbb ellenőrizteti a kulcsot a szolgáltatóval.',
+  'help.guide.connect-ai.step.3':
+    'A kártyán ez áll: „Kapcsolódva” és a szolgáltató neve. Válaszd ki a kívánt „Modell”-t, majd kattints az „Asszisztens megnyitása” gombra, hogy a jelenlegi vagy a következő utazásodban elindulj.',
+  'help.guide.connect-ai.result': 'Az asszisztens a saját fiókodon fut, minden utazásodban.',
+  'help.guide.connect-ai.tip.1':
+    'A kártya csak akkor látszik, ha az admin bekapcsolta az asszisztenst vagy az MI-elemzést. Ha csak az admin csatlakoztathatja, ez áll rajta: „Ezt az adminod állítja be.”',
+  'help.guide.connect-ai.tip.2':
+    'Ha az admin biztosítja a kapcsolatot, a kártyán ez áll: „Az adminod biztosítja”, mellette pedig az, hogy ma hány üzenetet használtál fel. A „Saját szolgáltató csatlakoztatása” a sajátodat teszi a helyére, ha az admin engedi.',
+  'help.guide.connect-ai.tip.3':
+    'A „A térkép követi az asszisztenst” és a „Költségbecslés” azt változtatja meg, hogyan dolgozik az asszisztens az utazásaidban. A „Leválasztás” törli a kulcsodat; a csevegéseid megmaradnak.',
+  'help.guide.connect-ai.tip.4':
+    'Az MI-elemzés ugyanezzel a kapcsolattal olvassa be a foglalási fájlokat. Egy korábbi, személyes MI-elemzési beállítás külön kártyán marad alatta.',
   'help.guide.plugin-settings.tip.1':
     'Ezek a beállítások csak rád vonatkoznak; a többi tag a saját beállításait adja meg a pluginhez.',
   'help.guide.offline-conflicts.step.3':
@@ -6831,13 +7346,12 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.result':
     'Aki nem módosított egy cellát, a te választásoddal indul, a tiltott cellák pedig zárolva jelennek meg a beállításaiban.',
   'help.ctx.notifications.bullet.3':
-    'Minden értesítésből kiderül, ki mit és hol csinált. Az olvasatlanok háttere színezett. Az alatta lévő gomb, például „Utazás megtekintése” vagy „Vacay megtekintése”, odavisz, és olvasottnak jelöli az értesítést.',
+    'Minden értesítésből kiderül, ki mit és hol csinált. A csempéje mutatja, miről szól, a sarkában a küldő kezdőbetűjével. Az olvasatlanok félkövérek, egy ponttal. Az alatta lévő gomb, például „Utazás megtekintése” vagy „Vacay megtekintése”, odavisz, és olvasottnak jelöli az értesítést.',
   'help.guide.read-notifications.tip.1':
     'A csengő minden olyan képernyőn ott van, ahol a navigációs sáv is, és a száma magától frissül, amikor valami új érkezik.',
   'help.guide.filter-notifications.tip.1':
     'Lefelé görgetve az oldal betölti a régebbi értesítéseket, így az első képernyő után sem marad le semmi.',
-  'help.guide.mark-notifications-read.result':
-    'Egyik értesítés háttere sem színezett már, és a csengőn lévő piros szám eltűnt.',
+  'help.guide.mark-notifications-read.result': 'Egyik értesítés sem félkövér már, és a csengőn lévő piros szám eltűnt.',
   'help.guide.notification-settings.title': 'Mi küldjön értesítést',
   'help.guide.link-journal.step.1':
     'Kattints az utazás neve melletti „Utazás beállításai” gombra, és bal oldalon válaszd a „Napló” lehetőséget.',
@@ -6868,11 +7382,10 @@ const help: TranslationStrings = {
     'Offline állapotban a foglalás ezen az eszközön mentődik, és amint újra van kapcsolat, szinkronizálódik. Az új fájlokhoz internetkapcsolat kell, ezért távolítsd el őket, vagy mentsd később. Ha véletlenül az űrlapon kívülre kattintasz, vagy megnyomod az Esc billentyűt, a TREK megkérdezi: „Elveted a módosításokat?”, mielőtt bármi elveszne abból, amit beírtál.',
   'help.guide.booking-on-map.tip.2': 'A szállás az első éjszakájánál nyílik meg.',
   'help.guide.export-bookings-csv.step.3':
-    'Kattints a „Nézet beállításai” utáni táblázat ikonra („Exportálás táblázatként (CSV)”).',
+    'Kattints az „Exportálás táblázatként (CSV)” gombra, a „Nézet beállításai” utáni letöltés ikonra.',
   'help.guide.arrange-packing-list.step.3':
-    'A „Megosztott” és a „Saját lista” sorának jobb szélén lévő „A-tól Z-ig” név szerint rendezi az egyes listák tételeit, így gyorsan láthatod, rajta van-e már valami. Újabb kattintással visszatérhetsz a saját sorrendedhez.',
-  'help.guide.count-packed-pieces.step.1':
-    'Kattints egy sorban a mennyiségjelvényre (a kis szám, utána egy x-szel), írd be, hány darabot viszel, például 5, és nyomj Entert.',
+    'A „Lista hozzáadása” melletti három pontban az „A-tól Z-ig” név szerint rendezi az egyes listák tételeit, így gyorsan láthatod, rajta van-e már valami. Amíg be van kapcsolva, egy pipa jelzi; kattints újra, hogy visszatérj a saját sorrendedhez.',
+  'help.guide.count-packed-pieces.step.1': 'Kattints a tétel nevére. A sornál megnyílik az ablaka.',
   'help.guide.expense-receipts.step.3':
     'Kattints az ablak alján a „Mentés” gombra. A fájlok a kiadással együtt töltődnek fel, és az utazás „Fájl” részében is megjelennek.',
   'help.guide.files-sync-settings.step.1':
@@ -6886,6 +7399,22 @@ const help: TranslationStrings = {
     'A jegyzeteken az új nevek és színek látszanak, a „Jegyzetek” kártya pedig csak a kiválasztott kategóriát mutatja.',
   'help.guide.roadtrip-stops.tip.5':
     'Ha egy megállónak a napi tervben befejezési ideje van, addig tart. Az ablaka jelzi, mikor indul tovább az autó, a „Befejezési idő törlése” után pedig újra te adhatod meg a hosszát.',
+  'help.guide.roadtrip-stop-photo.title': 'Egy megálló fotójának megtekintése',
+  'help.guide.roadtrip-stop-photo.goal': 'Nézd meg egy megálló képét az úton, hogy eldönthesd, megéri-e a kitérőt.',
+  'help.guide.roadtrip-stop-photo.step.1':
+    'Kattints egy megállóra az útvonal mentén a sávban, vagy egy lefoglalt éjszaka helyére. A kártyája megnyílik a térkép fölött.',
+  'help.guide.roadtrip-stop-photo.step.2':
+    'Kattints a kártya alján a „Szerkesztés” gombra. Megnyílik a megálló ablaka, a neve előtt a hely képével; a kép nélküli megállónál a típusának ikonja látszik.',
+  'help.guide.roadtrip-stop-photo.step.3':
+    'Kattints a képre („Fotók megtekintése”), hogy a hely fotói teljes képernyőn megnyíljanak.',
+  'help.guide.roadtrip-stop-photo.result':
+    'A hely fotói kitöltik a képernyőt, és a nyilakkal végigléphetsz azokon, amelyeket a forrása ismer. Zárd be őket, hogy visszatérj az ablakhoz, ahol a „Mégse” úgy hagyja a megállót, ahogy volt.',
+  'help.guide.roadtrip-stop-photo.tip.1':
+    'A kép a hely saját képe, amelyet a hely űrlapján állítottál be. Ha nincs, a TREK azt a fotót mutatja, amelyet a forrása a helyhez ismer, ha a hely Google-ből vagy OpenStreetMapből származik.',
+  'help.guide.roadtrip-stop-photo.tip.2':
+    'Telefonon koppints egy megállóra az „Autós út” fülön: a lapja a név alatt a teljes szélességben mutatja a képet, és a rá koppintás megnyitja a fotókat.',
+  'help.guide.roadtrip-stop-photo.tip.3':
+    'Az „Az útvonalon” keresés találata még nincs az utazásban, ezért a „Hozzáadás megállóként” kép helyett a típusának ikonját mutatja.',
   'help.guide.roadtrip-reorder.tip.2':
     'A lefoglalt utak és a termináljaik ott maradnak, ahová a foglalás teszi őket; csak a helyeket lehet húzni.',
   'help.guide.roadtrip-overnight.step.2':
@@ -6941,7 +7470,7 @@ const help: TranslationStrings = {
   'help.guide.tour-origin-check.step.2':
     'Az „Importálva” az importálás napját mutatja. Az „Itt” a jelenlegi állapotot: „Ahogy importálva”, „Szerkesztve a TREK-ben” vagy „Újratervezve, a rögzített nyomvonal megőrizve”.',
   'help.ctx.trip-tour-planner.bullet.1':
-    'Ha a Túrák bővítmény be van kapcsolva, a „Túrák” fül az utazás fülsorában közvetlenül a „Terv” után található. A fül számítógépen és táblagépen érhető el; telefonon a túrákat a „Terv” fülön nézheted meg és rendelheted napokhoz, de nem rajzolhatod meg.',
+    'Ha a Túrák bővítmény be van kapcsolva az utazáshoz, a „Túrák” fül az utazás fülsorában közvetlenül a „Terv” után található; az utazás tulajdonosa az „Utazás beállításai” „Bővítmények” részében kapcsolhatja. A fül számítógépen és táblagépen érhető el; telefonon a túrákat a „Terv” fülön nézheted meg és rendelheted napokhoz, de nem rajzolhatod meg.',
   'help.guide.tour-open-workspace.step.1':
     'Kattints az utazás fülsorában, közvetlenül a „Terv” után a „Túrák” fülre. A térkép kitölti a képernyőt, mindkét oldalán egy-egy sávval.',
   'help.guide.tour-open-workspace.tip.2':
@@ -6981,7 +7510,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.5':
     'Magassági adatok nélküli fájlnál a „Nincsenek magasságok a fájlban” üzenet jelenik meg. A vonal és a távolság ettől még pontos, de a szintemelkedés és a szintcsökkenés ismeretlen marad.',
   'help.guide.tour-view-import.tip.2':
-    'A fejlécben lévő letöltés ikonnal ismét GPX-fájlként mentheted, a könyvjelzővel pedig gyűjteménybe.',
+    'A fejlécben lévő ikonokkal ismét GPX-fájlként töltheted le, megoszthatod, és gyűjteménybe mentheted.',
   'help.guide.tour-plan-from-import.step.4':
     'A túra az útpontjaival együtt megnyílik a szerkesztőben. Ha szeretnéd, módosítsd, majd kattints az oszlop alján a „Mentés” gombra.',
   'help.guide.tour-restore-recorded.step.1':
@@ -6991,7 +7520,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-over.tip.3':
     'A túra átvételéhez internetkapcsolat kell. Ha a szerkesztőben mentetlen módosítások vannak, a másolat ettől még bekerül a listába, de nem nyílik meg, így a munkád nyitva marad.',
   'help.guide.tour-import-wanderer.tip.1':
-    'A gomb akkor jelenik meg, ha a wanderer csatlakoztatva van a Beállítások, Integrációk menüpontban. Addig a lista a „Csatlakoztatás a beállításokban” lehetőséget kínálja.',
+    'A gomb akkor jelenik meg, ha a wanderer csatlakoztatva van a Beállítások, Integrációk menüpontban. Ha a kapcsolat később megszűnik, a lista a „Csatlakoztatás a beállításokban” lehetőséget kínálja.',
   'help.ctx.trip-tour-map.bullet.2':
     'A gombon belül az elválasztó után a túratípus kapcsolói következnek: túra szerkesztése közben a „Pontok elhelyezése”, gyalogtúránál a „Vasalt utak”, evezős túránál a „Hajózási jelek”, sítúránál pedig a sípályák. A végén lévő 3D a túrát háromdimenziós tájon mutatja.',
   'help.guide.tour-map-layers.step.3':
@@ -7052,7 +7581,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.3':
     'Az „Útpontok” alatti „Burkolat és utak” kártya megmutatja, milyen talajon halad az útvonal: a burkolatokat, az úttípusokat és az ismerten burkolatlan rész arányát. Egy sorra kattintva kiemelheted a hozzá tartozó szakaszokat a térképen.',
   'help.guide.tour-bike-profile.step.5':
-    'Nézd meg a jobb oldali „Túra összefoglalója” részben a „Kerékpáros idő (becsült)” értéket. Ha az információs pontja fölé viszed az egeret, látod, hogyan számolja a TREK.',
+    'Nézd meg a jobb oldali „Túra összefoglalója” részben a „Kerékpáros idő” értéket. Ha az információs pontja fölé viszed az egeret, látod, hogyan számolja a TREK.',
   'help.guide.tour-bike-surfaces.title': 'Egy kerékpártúra burkolatainak megtekintése',
   'help.guide.tour-bike-surfaces.tip.2':
     'Az „Országúti” profilnál a sávok fölötti figyelmeztetés jelzi, mekkora szakasz ismerten burkolatlan. A „Megjelenítés a térképen” megjelöli ezeket a szakaszokat.',

@@ -18,8 +18,11 @@ import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
 import { PermissionsService } from '../../src/nest/permissions/permissions.service';
 import { PlacePhotoCacheService } from '../../src/nest/place-photos/place-photo-cache.service';
 import { ShareModule } from '../../src/nest/share/share.module';
+import { makeBudgetItem } from '../helpers/factories/budget';
+import { makeDayAssignment, makeDayNote } from '../helpers/factories/itinerary';
+import { makeCategory, makePlace } from '../helpers/factories/places';
 import { deleteRows, findRow, insertRow } from '../helpers/factories/rows';
-import { makeTrip } from '../helpers/factories/trips';
+import { makeDay, makeTrip } from '../helpers/factories/trips';
 import { makeUser } from '../helpers/factories/users';
 import { createTestMikroOrmModule, createTestOrm, type TestOrm } from '../helpers/test-orm';
 import { TestUnitOfWorkModule } from '../helpers/test-uow';
@@ -160,6 +163,7 @@ describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
   });
 
   it('carries the narrowing options through to the public read (#1712)', async () => {
+    await makeDay(orm, tripId, { title: 'Museum day' });
     const created = await request(server)
       .post(`/api/trips/${tripId}/share-link`)
       .set('Cookie', sessionCookie(1))
@@ -169,6 +173,7 @@ describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
     const res = await request(server).get(`/api/shared/${created.body.token}`);
     expect(res.body.permissions).toEqual(expect.objectContaining({ share_travel_only: true, share_hide_images: true }));
     expect(res.body.dayNotes).toEqual({});
+    expect(res.body.days.map((d: { title: string | null }) => d.title)).toEqual([null]);
     const bad = await request(server)
       .post(`/api/trips/${tripId}/share-link`)
       .set('Cookie', sessionCookie(1))
@@ -185,6 +190,38 @@ describe('Share-link e2e (real auth guard + real SQL over temp SQLite)', () => {
     expect(res.status).toBe(200);
     expect(res.body.trip).toEqual(expect.objectContaining({ id: tripId, title: 'Trip' }));
     expect(res.body.permissions).toEqual(expect.objectContaining({ share_map: true, share_budget: false }));
+  });
+
+  it('public shared read sends days, notes, categories and costs as allow-lists', async () => {
+    const used = await makeCategory(orm, { name: 'Museums' });
+    await makeCategory(orm, { name: 'Private stash', user: 1 });
+    const day = await makeDay(orm, tripId, { title: 'Louvre day', notes: 'Owner day plan' });
+    const place = await makePlace(orm, tripId, { name: 'Louvre', category: used.id });
+    await makeDayAssignment(orm, day.id, place.id);
+    await makeDayNote(orm, day.id, tripId, { text: 'Meet at noon' });
+    await makeBudgetItem(orm, tripId, { name: 'Tickets', note: 'Card ending 4242', ticket_json: '{"seat":"12A"}' });
+    const created = await request(server)
+      .post(`/api/trips/${tripId}/share-link`)
+      .set('Cookie', sessionCookie(1))
+      .send({ share_budget: true });
+
+    const res = await request(server).get(`/api/shared/${created.body.token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.days).toEqual([{ id: day.id, day_number: day.day_number, date: null, title: 'Louvre day' }]);
+    expect(res.body.dayNotes[day.id]).toEqual([expect.objectContaining({ text: 'Meet at noon' })]);
+    expect(res.body.dayNotes[day.id][0]).not.toHaveProperty('trip_id');
+    expect(res.body.categories).toEqual([{ id: used.id, name: 'Museums', color: used.color, icon: used.icon }]);
+    expect(res.body.budget).toEqual([
+      {
+        id: expect.any(Number),
+        name: 'Tickets',
+        category: 'Transport',
+        total_price: 100,
+        currency: null,
+        exchange_rate: 1,
+      },
+    ]);
+    for (const secret of ['Owner day plan', '4242', '12A', 'Private stash']) expect(res.text).not.toContain(secret);
   });
 
   it('public shared read 404 for an invalid token', async () => {

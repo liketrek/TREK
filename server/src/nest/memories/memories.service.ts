@@ -28,7 +28,7 @@ export class MemoriesService {
   // ── Access check (reused by both provider asset routes) ──────────────────
   canAccessUserPhoto(
     requestingUserId: number,
-    ownerUserId: number,
+    ownerUserId: number | string,
     tripId: string,
     assetId: string,
     provider: string,
@@ -54,11 +54,11 @@ export class MemoriesService {
     return this.unified.addTripPhotos(tripId, userId, shared, selections, sid);
   }
 
-  setTripPhotoSharing(tripId: string, userId: number, photoId: number, shared: boolean) {
+  setTripPhotoSharing(tripId: string, userId: number, photoId: number | null, shared: boolean) {
     return this.unified.setTripPhotoSharing(tripId, userId, photoId, shared);
   }
 
-  removeTripPhoto(tripId: string, userId: number, photoId: number) {
+  removeTripPhoto(tripId: string, userId: number, photoId: number | null) {
     return this.unified.removeTripPhoto(tripId, userId, photoId);
   }
 

@@ -1,6 +1,8 @@
+import { ADDON_IDS } from '../../addons';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { AccommodationsService } from '../accommodations/accommodations.service';
+import { AddonsService } from '../addons/addons.service';
 import { BudgetService } from '../budget/budget.service';
 import { CollabService } from '../collab/collab.service';
 import { DaysService } from '../days/days.service';
@@ -37,6 +39,7 @@ export class TripReadModelService {
     private readonly places: PlacesService,
     private readonly todo: TodoService,
     private readonly files: FilesService,
+    private readonly addons: AddonsService,
   ) {}
 
   // ── Trip summary (used by MCP get_trip_summary tool) ──────────────────────
@@ -95,21 +98,31 @@ export class TripReadModelService {
 
   // ── Bundle / notifications (route helpers) ────────────────────────────────
 
-  /** Aggregates every trip sub-collection for offline caching (legacy /:id/bundle). */
-  async bundle(tripId: string, trip: { user_id: number }, viewerId: number) {
+  /**
+   * Aggregates every trip sub-collection for offline caching (legacy /:id/bundle).
+   *
+   * A section whose addon is off for this trip (Lists for packing and todos,
+   * Costs) goes out as an empty list rather than being left out, so a client
+   * that replaces its cache from the bundle drops what it may no longer show,
+   * and one that expects every key still finds it. With Documents off the files
+   * keep the ones a booking, place, expense, note or message carries.
+   */
+  async bundle(tripId: string, trip: { id: number; user_id: number }, viewerId: number) {
     const { days } = await this.days.list(tripId);
     const { owner, members } = await this.members.listMembers(tripId, trip.user_id);
+    const on = async (addonId: string) => this.addons.isEnabledForTrip(trip.id, addonId);
+    const packingOn = await on(ADDON_IDS.PACKING);
     return {
       trip,
       days,
       places: await this.places.list(String(tripId), {}),
       // Scope to the requesting member so other members' private packing items
       // (#858) never land in this viewer's offline cache.
-      packingItems: await this.packing.listItems(tripId, viewerId),
-      todoItems: await this.todo.listItems(tripId),
-      budgetItems: await this.budget.listBudgetItems(tripId),
+      packingItems: packingOn ? await this.packing.listItems(tripId, viewerId) : [],
+      todoItems: packingOn ? await this.todo.listItems(tripId) : [],
+      budgetItems: (await on(ADDON_IDS.BUDGET)) ? await this.budget.listBudgetItems(tripId) : [],
       reservations: await this.reservations.list(tripId),
-      files: await this.files.listFiles(tripId, false),
+      files: await this.files.listFiles(tripId, false, !(await on(ADDON_IDS.DOCUMENTS))),
       accommodations: await this.accommodations.list(tripId),
       members: [owner, ...(members || [])].filter(Boolean),
     };

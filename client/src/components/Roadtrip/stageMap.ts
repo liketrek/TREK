@@ -1,4 +1,5 @@
 import { dayColor } from './dayColors'
+import { carrierReservationIds } from '@trek/shared/roadtrip'
 import type { AccessSpur, RoadtripDay, RoadtripRoutes } from '@trek/shared/roadtrip'
 
 /**
@@ -50,15 +51,15 @@ export function stageMapData(
   }
   if (!routes.lines.length) return { ...EMPTY, placeIds: stagePlaceIds(stage), focusPoints: stagePoints(stage) }
 
-  // A stage is ONE day, so the drive into the next day is left off it.
+  // A stage is ONE day, so the drive in from the day before is left off it.
   //
-  // With "connect the days" on, that leg is drawn in the colour of the day it leaves, so
-  // on the whole-drive map it reads as that day carrying on. Filtering by day number
-  // alone therefore handed a stage a line that runs off it to a place the day never
-  // visits: on a phone, where the stage IS the map, that read as the day's own route and
-  // was the longest thing on screen. The desktop has the same connection, but it has it
-  // beside every other day, which is the view the setting exists for; here that view is
-  // the "all days" one, a tap away on the same map.
+  // With "connect the days" on, that leg is drawn as the day it arrives on, the day whose
+  // distance counts it. Filtering by day number alone therefore handed a stage a line
+  // that runs off it to a place the day never visits: on a phone, where the stage IS the
+  // map, that read as the day's own route and was the longest thing on screen. The
+  // desktop has the same connection, but it has it beside every other day, which is the
+  // view the setting exists for; here that view is the "all days" one, a tap away on the
+  // same map.
   const ofDay: number[] = []
   routes.lineDays.forEach((n, i) => { if (n === stage.dayNumber) ofDay.push(i) })
   const own = ofDay.filter(i => !routes.lineJoins?.[i])
@@ -86,6 +87,20 @@ export function stageMapData(
  */
 export function stagePlaceIds(stage: RoadtripDay): Set<number> {
   return new Set(stage.stops.filter(s => !s.automaticNight).map(s => s.placeId))
+}
+
+/**
+ * The bookings the map draws as arcs on ONE stage: the rides that seam this stage's
+ * drive, whatever day they were booked on, and of the ones switched on by hand only
+ * those that run on the stage's day. Taking the rides of the whole drive put a flight
+ * home across every stage before it, as if it were part of that day.
+ */
+export function stageConnectionIds(
+  stage: RoadtripDay,
+  switchedOn: readonly number[],
+  runsOnStageDay: (reservationId: number) => boolean,
+): number[] {
+  return [...new Set([...switchedOn.filter(runsOnStageDay), ...carrierReservationIds([stage])])]
 }
 
 /** The stage's stops as coordinates, for the fit. */

@@ -12,12 +12,14 @@
  * (`existsById` ignored) from the review's mutation table, none of which any other
  * suite killed.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { Days } from '../../../src/db/entities/Days.entity';
 import { PluginEntityMetadata } from '../../../src/db/entities/PluginEntityMetadata.entity';
 import { PluginScheduledTasks } from '../../../src/db/entities/PluginScheduledTasks.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
+import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { resetTestDb } from '../../helpers/test-db';
@@ -218,13 +220,15 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
   it('must-land 2: 130 concurrent PluginEntityMetadata.upsertValueCapped calls for the SAME (plugin, entity), 130 DIFFERENT new keys, never exceed the 100 cap', async () => {
     // The REAL repository method, raced through Promise.all — not a sequential loop —
     // so the exists+count+write really overlaps (task-7-review.md: live, 130 rows landed
-    // on a 100 cap before this fix). Red without `upsertValueCapped`'s
-    // `getEntityManager().transactional` wrap: the old three-separately-awaited-calls
-    // shape let every racer's stale `count < 100` read pass before any of their writes
-    // landed.
+    // on a 100 cap before this fix). Each call runs in a unit of work, as `MetaRpc#set`
+    // runs it: the three-separately-awaited-calls shape outside one let every racer's
+    // stale `count < 100` read pass before any of their writes landed.
     const repo = t.repo(PluginEntityMetadata);
+    const uow = new UnitOfWork(t.em, new SqliteEngine());
     const results = await Promise.all(
-      Array.from({ length: 130 }, (_, i) => repo.upsertValueCapped('capbomb', 'trip', 1, `k${i}`, String(i), 100)),
+      Array.from({ length: 130 }, (_, i) =>
+        uow.transactional(() => repo.upsertValueCapped('capbomb', 'trip', 1, `k${i}`, String(i), 100)),
+      ),
     );
     expect(results.filter(Boolean).length).toBe(100); // exactly 100 writes accepted
     expect(await repo.countForEntity('capbomb', 'trip', 1)).toBe(100); // never more than 100 rows
@@ -232,13 +236,17 @@ describe('R3J-PARITY (Plan 3j Task 7 fix wave, must-land 4c)', () => {
   });
 
   it('must-land 3: 130 concurrent PluginScheduledTasks.upsertTaskCapped calls for the SAME plugin, 130 DIFFERENT new names, never exceed the 100 cap', async () => {
+    // In a unit of work, as `HostSurfaceRpc#schedulerSet` runs it.
     const repo = t.repo(PluginScheduledTasks);
+    const uow = new UnitOfWork(t.em, new SqliteEngine());
     const due = Date.now() + 60_000;
     const results = await Promise.all(
       Array.from({ length: 130 }, (_, i) =>
-        repo.upsertTaskCapped(
-          { plugin_id: 'schedbomb', name: `t${i}`, due_at: due, payload: '1', every_ms: null },
-          100,
+        uow.transactional(() =>
+          repo.upsertTaskCapped(
+            { plugin_id: 'schedbomb', name: `t${i}`, due_at: due, payload: '1', every_ms: null },
+            100,
+          ),
         ),
       ),
     );

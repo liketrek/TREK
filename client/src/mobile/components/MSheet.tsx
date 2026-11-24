@@ -7,6 +7,7 @@ import { keepTabInside, useModalFocus } from './modalFocus'
 import { useSheetDrag } from './useSheetDrag'
 import { useOverlay } from '../overlayStack'
 import { tickHaptic } from '../../native/haptics'
+import { useNativeQuestion } from '../../native/useNativeQuestion'
 
 export type MSheetVariant = 'card' | 'bottom' | 'drawer'
 export type MSheetMaterial = 'glass' | 'bar-glass' | 'opaque'
@@ -108,14 +109,15 @@ const WIDE_REGION: Record<MSheetWideAnchor, string> = {
 // A form on a window as short as a phone on its side: a sheet the window's
 // full height, over the dock, as wide as a form reads well and no wider.
 const SHORT_FORM_REGION =
-  'short:inset-x-4 short:top-[max(env(safe-area-inset-top,0px),8px)] short:bottom-0 short:items-center short:justify-stretch'
+  'short:inset-x-4 short:top-[max(var(--m-safe-t,0px),8px)] short:bottom-0 short:items-center short:justify-stretch'
 const SHORT_FORM_BOX = 'short:max-w-[640px] short:flex-1'
 
 /** The region the sheet stands in, on a phone and on a wide window. */
 function regionClass(variant: MSheetVariant, anchor: MSheetWideAnchor = 'center', form = false): string {
   const base = 'pointer-events-none absolute flex flex-col'
   if (variant === 'drawer') return `${base} ${REGION.drawer}`
-  return `${base} ${REGION[variant]} ${WIDE_REGION[anchor]}${form ? ` ${SHORT_FORM_REGION}` : ''}`
+  // m-safe-trail: on a wide window the sheet keeps off the trailing side's safe area (a Duo's status capsule).
+  return `${base} m-safe-trail ${REGION[variant]} ${WIDE_REGION[anchor]}${form ? ` ${SHORT_FORM_REGION}` : ''}`
 }
 
 /** The sheet's own box inside the region: its width, and the arrow when it has one. */
@@ -153,6 +155,9 @@ const SHORT_FORM_SHAPE = 'm-form-sheet short:flex-1 short:border-b-0 short:[--m-
 // behind read through as sharp ghost text: the frosting it counted on is
 // dropped whenever an ancestor animates its opacity (the scrim fading in),
 // which WebKit and Chromium both do, so the fields floated over the list behind.
+// For the same reason the dim fades on a layer of its own, beside the sheet and
+// not around it: opacity multiplies down the tree, so a fading parent made even
+// the opaque sheet see-through for its first frames.
 const SURFACE = 'bg-[color:var(--m-sheetop)] border border-[color:var(--m-shbr)]'
 
 // The docked sheet rises from below the screen edge like a native sheet; the
@@ -185,6 +190,18 @@ export default function MSheet({
 }: MSheetProps) {
   const { t } = useTranslation()
   const { asking, markStart, requestClose, wouldAsk, keepEditing, discard, reset } = useDiscardGuard(discardGuard, onClose)
+  // In the app the system asks whether to throw the changes away; the card below is the browser's.
+  const askInSheet = useNativeQuestion(
+    asking,
+    {
+      title: t('common.unsavedTitle'),
+      message: t('common.unsavedMessage'),
+      confirmLabel: t('common.discard'),
+      cancelLabel: t('common.keepEditing'),
+      danger: true,
+    },
+    (yes) => (yes ? discard() : keepEditing()),
+  )
   const [rendered, setRendered] = useState(open)
   // Once the enter animation has played it is removed again: its forwards
   // fill would otherwise override the inline drag transform for good.
@@ -270,12 +287,17 @@ export default function MSheet({
     // has to fall back to document.body (sheet mounted in the same commit as
     // the shell).
     <div
-      className={`m-root fixed inset-0 z-[60] ${dimTransparent ? 'bg-transparent short:bg-[color:var(--m-dim)]' : 'bg-[color:var(--m-dim)]'} ${open ? 'm-fade-in' : 'm-fade-out'}`}
+      className="m-root fixed inset-0 z-[60]"
       role="presentation"
       onClick={(e) => {
         if (e.target === e.currentTarget) requestClose()
       }}
     >
+      <div
+        aria-hidden="true"
+        data-m-scrim=""
+        className={`pointer-events-none absolute inset-0 ${dimTransparent ? 'bg-transparent short:bg-[color:var(--m-dim)]' : 'bg-[color:var(--m-dim)]'} ${open ? 'm-fade-in' : 'm-fade-out'}`}
+      />
       <div className={regionClass(variant, wideAnchor, form)}>
         <div className={boxClass(variant, wideWidth, form)}>
           <PopoverArrow variant={variant} anchor={wideAnchor} />
@@ -305,7 +327,7 @@ export default function MSheet({
               />
             )}
             {children}
-            {asking && (
+            {asking && askInSheet && (
               <div className="absolute inset-0 z-10 grid place-items-center bg-[color:var(--m-dim)] p-5 backdrop-blur-[2px]">
                 <div role="alertdialog" aria-label={t('common.unsavedTitle')} className="w-full max-w-[320px] rounded-[22px] border border-[color:var(--m-shbr)] bg-[color:var(--m-sheetop)] p-5">
                   <div className="text-subtitle font-semibold text-m-ink">{t('common.unsavedTitle')}</div>

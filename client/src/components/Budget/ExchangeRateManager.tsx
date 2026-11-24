@@ -4,14 +4,15 @@ import {
   type ExchangeRateResolution,
   type TripExchangeRate,
 } from '@trek/shared';
-import { AlertTriangle, Trash2 } from 'lucide-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import { AlertTriangle, ArrowLeftRight, Trash2 } from 'lucide-react';
+import React, { useEffect, useId, useMemo, useState } from 'react';
 
 import { useTranslation } from '../../i18n';
 import { exchangeRateRepo } from '../../repo/budgetRepo';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useTripStore } from '../../store/tripStore';
 import CurrencySelect from '../shared/CurrencySelect';
+import { DialogHeader, DialogShell, DialogTile, NEUTRAL_TINT } from '../shared/DialogShell';
 import { NumericInput } from '../shared/NumericInput';
 import { useToast } from '../shared/Toast';
 import { chooseInitialRateCurrency } from './exchangeRateManagerModel';
@@ -451,5 +452,19 @@ function RateQuoteDetails({
       )}
       <p className="m-0 mt-2 text-content-faint">{t('costs.exchangeRates.frozenHint')}</p>
     </div>
+  );
+}
+
+export function ExchangeRateDialog(props: React.ComponentProps<typeof ExchangeRateManager> & { onClose: () => void }) {
+  const { onClose, ...manager } = props;
+  const { t } = useTranslation();
+  const titleId = useId();
+  return (
+    <DialogShell onClose={onClose} labelledBy={titleId} header={
+      <DialogHeader labelId={titleId} onClose={onClose} tint={NEUTRAL_TINT}
+        title={t('costs.exchangeRates.title')} tile={<DialogTile><ArrowLeftRight size={20} /></DialogTile>} />
+    }>
+      <ExchangeRateManager {...manager} />
+    </DialogShell>
   );
 }

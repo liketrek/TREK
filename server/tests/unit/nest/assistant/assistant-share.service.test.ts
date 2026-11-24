@@ -30,7 +30,7 @@ const db = createSnapshotTestDb();
 let t: TestModule;
 
 const addons = {
-  isAddonEnabled: vi.fn(async () => true),
+  isEnabledForTrip: vi.fn(async () => true),
   getCollabFeatures: vi.fn(async () => ({ chat: true, notes: true, polls: true })),
 };
 const collab = {
@@ -108,7 +108,7 @@ describe('AssistantShareService', () => {
   it('ASTSHR-003: refused while the collab addon or its chat is off', async () => {
     const c = await conversation();
     const share = () => shareAs(c.user, c.tripId, c.threadId, `msg-${c.answer.id}`);
-    addons.isAddonEnabled.mockResolvedValueOnce(false);
+    addons.isEnabledForTrip.mockResolvedValueOnce(false);
     await expect(share()).rejects.toMatchObject({ status: 403, message: 'Collab chat is off' });
     addons.getCollabFeatures.mockResolvedValueOnce({ chat: false, notes: true, polls: true });
     await expect(share()).rejects.toMatchObject({ status: 403, code: 'forbidden' });

@@ -1,4 +1,7 @@
+import { ADDON_IDS } from '../../../addons';
+import { AddonsService } from '../../addons/addons.service';
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { toRowId } from '../../common/row-id';
 import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
@@ -54,6 +57,13 @@ const VIEWS: ReadonlySet<string> = new Set([
   'files',
   'todos',
 ]);
+/** The views that belong to a trip addon: a trip that has it off gets no columns there. */
+const VIEW_ADDON: Readonly<Record<string, string>> = {
+  costs: ADDON_IDS.BUDGET,
+  packing: ADDON_IDS.PACKING,
+  todos: ADDON_IDS.PACKING,
+  files: ADDON_IDS.DOCUMENTS,
+};
 const TONES: ReadonlySet<string> = new Set(['default', 'success', 'warn', 'danger']);
 const MAX_COLUMNS = 20;
 const MAX_ACTIONS = 10;
@@ -139,6 +149,7 @@ export class ViewContributionsController {
   constructor(
     private readonly hooks: PluginHooks,
     private readonly trips: TripAccessService,
+    private readonly addons: AddonsService,
   ) {}
 
   @Get(':view/:tripId')
@@ -148,10 +159,12 @@ export class ViewContributionsController {
     @Req() req: Request & { user?: { id: number } },
   ): Promise<{ contributions: Contribution[] }> {
     if (!pluginsEnabled() || !VIEWS.has(view)) return { contributions: [] };
-    const tripId = Number(tripIdRaw);
+    const tripId = toRowId(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId)))
+    if (tripId === null || userId == null || !(await this.trips.findAccessible(tripId, userId)))
       return { contributions: [] };
+    const addonId = VIEW_ADDON[view];
+    if (addonId && !(await this.addons.isEnabledForTrip(tripId, addonId))) return { contributions: [] };
 
     const ids = this.hooks.providersOf('tableContributor');
     const perProvider = await Promise.all(

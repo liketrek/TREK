@@ -294,3 +294,19 @@ export interface CollectionGpxExport {
   /** Places left out because they have no coordinates. */
   omitted: number;
 }
+
+/**
+ * The list as KML for Google My Maps (#1866), as GET /:id/export/kml answers
+ * it: JSON around the document, like the GPX export, so the browser names the
+ * download and can say how many places had no coordinates.
+ */
+export const collectionKmlExportSchema = z.object({
+  /** The list's name, for the file name. */
+  name: z.string(),
+  kml: z.string(),
+  /** Places written as pins. */
+  pins: z.number().int().min(0),
+  /** Places left out because they have no coordinates. */
+  omitted: z.number().int().min(0),
+});
+export type CollectionKmlExport = z.infer<typeof collectionKmlExportSchema>;

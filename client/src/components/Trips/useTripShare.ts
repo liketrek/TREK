@@ -7,8 +7,9 @@ import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useTranslation } from '../../i18n'
 import { getApiErrorMessage } from '../../types'
-import { copyText } from '../../utils/clipboard'
+import { useCopied } from '../../hooks/useCopied'
 import { refusedOffline } from '../../utils/needsConnection'
+import { useTripAddons } from './useTripAddons'
 
 // The state behind the share dialog, shared by the desktop dialog and the one the
 // phone opens from its More sheet. The questions ("Remove this member?") are the
@@ -22,13 +23,13 @@ const DEFAULT_PERMS: SharePerms = {
   share_travel_only: false, share_hide_images: false,
 }
 
-/** What the link shows, one tab each. */
-export const SHARE_SECTIONS: { key: SharePerm; label: string; always?: boolean }[] = [
+/** What the link shows, one tab each; a tab of an addon only while the trip has that addon on. */
+const SHARE_SECTIONS: { key: SharePerm; label: string; always?: boolean; addon?: string }[] = [
   { key: 'share_map', label: 'share.permMap', always: true },
   { key: 'share_bookings', label: 'share.permBookings' },
-  { key: 'share_packing', label: 'share.permPacking' },
-  { key: 'share_budget', label: 'share.permBudget' },
-  { key: 'share_collab', label: 'share.permCollab' },
+  { key: 'share_packing', label: 'share.permPacking', addon: 'packing' },
+  { key: 'share_budget', label: 'share.permBudget', addon: 'budget' },
+  { key: 'share_collab', label: 'share.permCollab', addon: 'collab' },
 ]
 
 /** How the plan it shows is narrowed (#1712). */
@@ -36,20 +37,6 @@ export const SHARE_OPTIONS: { key: SharePerm; label: string }[] = [
   { key: 'share_travel_only', label: 'share.optTravelOnly' },
   { key: 'share_hide_images', label: 'share.optHideImages' },
 ]
-
-/** Copy text and show "Copied" for two seconds, the timer restarting on every copy. */
-function useCopied() {
-  const [copied, setCopied] = useState(false)
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
-  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
-  const copy = async (text: string | null) => {
-    if (!text || !(await copyText(text))) return
-    setCopied(true)
-    if (timer.current) clearTimeout(timer.current)
-    timer.current = setTimeout(() => setCopied(false), 2000)
-  }
-  return { copied, copy }
-}
 
 /** The public read-only link and what it may show. */
 export function useShareLink(tripId: number) {
@@ -59,6 +46,10 @@ export function useShareLink(tripId: number) {
   const { copied, copy } = useCopied()
   const toast = useToast()
   const { t } = useTranslation()
+  // A section of an addon the trip has off is not offered: the link would not show it
+  // anyway. Its stored choice stays and counts again once the addon is back on.
+  const tripAddons = useTripAddons(tripId)
+  const sections = SHARE_SECTIONS.filter(section => !section.addon || tripAddons.isEnabled(section.addon))
 
   useEffect(() => {
     shareApi.getLink(tripId).then(d => {
@@ -99,7 +90,7 @@ export function useShareLink(tripId: number) {
     } catch { toast.error(t('common.error')) }
   }
 
-  return { loading, url, perms, copied, create, setPerm, remove, copy: () => copy(url) }
+  return { loading, url, perms, sections, copied, create, setPerm, remove, copy: () => copy(url) }
 }
 
 /** The rotating link an existing user opens to join the trip (#1143). */

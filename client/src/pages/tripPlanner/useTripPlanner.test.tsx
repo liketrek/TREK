@@ -11,10 +11,10 @@ import { usePermissionsStore } from '../../store/permissionsStore'
 import { usePluginStore } from '../../store/pluginStore'
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
 import { useAddonStore } from '../../store/addonStore'
-import { resetAllStores, seedStore } from '../../../tests/helpers/store'
+import { resetAllStores, seedStore, seedInstanceAddons } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation, buildBudgetItem } from '../../../tests/helpers/factories'
 import {
-  addonsApi, authApi, tripsApi, assignmentsApi,
+  authApi, tripsApi, assignmentsApi,
   healthApi, airtrailApi, mapsApi, toursApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
@@ -143,7 +143,8 @@ beforeEach(() => {
   }) as unknown as typeof window.__addToast
   seedStore(useAuthStore, { user: buildUser({ id: 1 }), isAuthenticated: true, placesPhotosEnabled: false })
 
-  vi.spyOn(addonsApi, 'enabled').mockResolvedValue({ addons: [] })
+  // The instance's addon list has answered with none on, and the trip names none of its own.
+  seedInstanceAddons([])
   vi.spyOn(authApi, 'getAppConfig').mockResolvedValue({})
   vi.spyOn(healthApi, 'features').mockResolvedValue({ bookingImport: false, aiParsing: false })
   vi.spyOn(tripsApi, 'getMembers').mockResolvedValue({ owner: null, members: [] })
@@ -228,10 +229,7 @@ describe('useTripPlanner — bootstrap', () => {
   })
 
   it('FE-TP-HOOK-006: enabled addons and collab feature flags reach the returned state', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({
-      addons: [{ id: 'packing' }, { id: 'budget' }, { id: 'collab' }],
-      collabFeatures: { chat: true, notes: false, polls: false, whatsnext: true },
-    })
+    seedInstanceAddons(['packing', 'budget', 'collab'], { chat: true, notes: false, polls: false, whatsnext: true })
     seedTrip()
 
     const { result } = await renderPlanner()
@@ -296,15 +294,14 @@ describe('useTripPlanner — bootstrap', () => {
     expect(accommodationRepo.list).toHaveBeenCalledTimes(2)
   })
 
-  it('FE-TP-HOOK-012: the splash gate opens once the trip finished loading', async () => {
+  it('FE-TP-HOOK-012: a trip that opens at once never asks for the splash, and holds no minimum', async () => {
     vi.useFakeTimers()
     seedTrip()
 
     const { result } = await renderPlanner()
-    expect(result.current.splashDone).toBe(false)
 
     await act(async () => { vi.advanceTimersByTime(1600) })
-    expect(result.current.splashDone).toBe(true)
+    expect(result.current.slowOpen).toBe(false)
 
     vi.useRealTimers()
   })
@@ -337,7 +334,7 @@ describe('useTripPlanner — bootstrap', () => {
 
 describe('useTripPlanner — tabs', () => {
   it('FE-TP-HOOK-015: addon tabs appear only for enabled addons', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'packing' }, { id: 'documents' }] })
+    seedInstanceAddons(['packing', 'documents'])
     seedTrip()
 
     const { result } = await renderPlanner()
@@ -350,7 +347,7 @@ describe('useTripPlanner — tabs', () => {
   })
 
   it('FE-TP-HOOK-016: switching to the Costs tab loads the budget items and persists the tab', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'budget' }] })
+    seedInstanceAddons(['budget'])
     seedTrip()
     const { result } = await renderPlanner()
     await waitFor(() => expect(result.current.TRIP_TABS.map(t => t.id)).toContain('finanzplan'))
@@ -459,7 +456,7 @@ describe('useTripPlanner — tabs', () => {
   // ── ?tab= deep link (startup destination, shortcuts, wrapper apps) ──────────
 
   it('FE-TP-HOOK-104: ?tab= opens that tab on the very first render and clears the param', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'budget' }] })
+    seedInstanceAddons(['budget'])
     searchParams = new URLSearchParams('tab=finanzplan')
     seedTrip()
 
@@ -492,7 +489,7 @@ describe('useTripPlanner — tabs', () => {
 
   // The lazy loads live in handleTabChange, which a deep link never goes through.
   it('FE-TP-HOOK-107: starting on Costs still loads the budget items', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'budget' }] })
+    seedInstanceAddons(['budget'])
     searchParams = new URLSearchParams('tab=finanzplan')
     seedTrip()
 
@@ -502,7 +499,7 @@ describe('useTripPlanner — tabs', () => {
   })
 
   it('FE-TP-HOOK-108: starting on Files still loads the files', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'documents' }] })
+    seedInstanceAddons(['documents'])
     searchParams = new URLSearchParams('tab=dateien')
     seedTrip()
 
@@ -514,7 +511,7 @@ describe('useTripPlanner — tabs', () => {
   // enabledAddons is an optimistic guess until the feed answers, and 'collab'
   // is guessed off — evicting on that guess would drop a requested tab.
   it('FE-TP-HOOK-109: a requested collab tab survives until the addon feed answers', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'collab' }] })
+    seedInstanceAddons(['collab'])
     searchParams = new URLSearchParams('tab=collab')
     seedTrip()
 
@@ -526,7 +523,7 @@ describe('useTripPlanner — tabs', () => {
   })
 
   it('FE-TP-HOOK-110: but a tab whose addon really is off still falls back to plan', async () => {
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [] })
+    seedInstanceAddons([])
     searchParams = new URLSearchParams('tab=finanzplan')
     seedTrip()
 
@@ -617,7 +614,7 @@ describe('useTripPlanner — map derivations', () => {
       max_hiking_difficulty: 2, planned: false, caution: false,
     }
     useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true })
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'tours' }] })
+    seedInstanceAddons(['tours'])
     vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [tour] })
     seedTrip({
       places: [
@@ -1588,7 +1585,7 @@ describe('useTripPlanner — day plan CRUD', () => {
     const tourPlace = buildPlace({ id: 1, name: 'Ridge walk', tour_place_id: 1 })
     const ordinaryPlace = buildPlace({ id: 2, name: 'Ordinary place' })
     useAddonStore.setState({ addons: [{ id: 'tours', enabled: true } as never], loaded: true })
-    vi.mocked(addonsApi.enabled).mockResolvedValue({ addons: [{ id: 'tours' }] })
+    seedInstanceAddons(['tours'])
     vi.spyOn(toursApi, 'list').mockResolvedValue({ tours: [tour] })
     seedTrip({
       places: [tourPlace, ordinaryPlace],

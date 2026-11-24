@@ -92,7 +92,7 @@ export type DayCreateRequest = z.infer<typeof dayCreateRequestSchema>;
 
 /** Reorder whole days: the desired full sequence of this trip's day ids. */
 export const dayReorderRequestSchema = z.object({
-  orderedIds: z.array(z.number()),
+  orderedIds: z.array(z.number().int()),
 });
 export type DayReorderRequest = z.infer<typeof dayReorderRequestSchema>;
 

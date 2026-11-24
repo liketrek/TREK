@@ -114,7 +114,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': '여행 시작일이 변경되었습니다. 계획을 새 날짜에 어떻게 맞출까요?',
   'dashboard.dateShiftKeepBookings': '예약은 원래 날짜에 유지',
   'dashboard.dateShiftKeepBookingsDesc':
-    '일별 계획은 새 날짜로 이동하고, 예약과 숙박은 여행 기간에 포함되어 있는 한 원래 날짜에 그대로 유지됩니다.',
+    '추가한 날은 비어 있고 다른 것은 움직이지 않습니다. 여행 일정이 옮겨지면 일별 계획은 새 날짜로 이동하고, 예약과 숙박은 여행 기간에 포함되어 있는 한 원래 날짜에 그대로 유지됩니다.',
   'dashboard.dateShiftAll': '모두 이동',
   'dashboard.dateShiftAllDesc': '예약과 숙박을 포함한 전체 일정이 새 날짜로 이동합니다.',
   'dashboard.dateShiftHint':
@@ -217,5 +217,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Apple 캘린더 / Outlook에 추가',
   'dashboard.ics.copyManually': '또는 링크를 직접 복사',
   'dashboard.ics.pasteFromUrl': '“URL에서”에 붙여넣기',
+  'dashboard.ics.dayEvents': '일별 개요 일정',
+  'dashboard.ics.dayEventsHint':
+    '시간이 없는 장소와 메모를 담은 종일 일정을 하루마다 추가합니다. 이 설정을 바꾸면 링크가 바뀌므로 새 링크로 다시 구독하세요.',
 };
 export default dashboard;

@@ -13,6 +13,8 @@ import { TypeTile } from '../../components/Planner/bookings/bookingParts'
 import { typeInfo } from '../../components/Planner/bookings/bookingsModel'
 import { getNoteIcon } from '../../components/Planner/DayPlanSidebar.constants'
 import { noteSurface } from '../../components/Planner/noteSurface'
+import { SafeMarkdown } from '../../components/shared/SafeMarkdown'
+import { splitNoteTime } from '../../mobile/screens/trip/lib/dayNotes'
 import { useTranslation } from '../../i18n'
 import { useSettingsStore } from '../../store/settingsStore'
 import { getDisplayTimeForDay, getSpanPhase, type MergedItem } from '../../utils/dayMerge'
@@ -171,7 +173,7 @@ export function PlaceRow({ place, notes, number, category }: PlaceRowProps) {
       </span>
       <div className="min-w-0 flex-1 pt-0.5">
         <div className="flex min-w-0 items-start gap-2">
-          <span className="min-w-0 flex-1 font-semibold text-content" style={{ ...fs(13.5, 'body'), lineHeight: 1.3 }}>{place.name}</span>
+          <span className="min-w-0 flex-1 font-semibold text-content [overflow-wrap:anywhere]" style={{ ...fs(13.5, 'body'), lineHeight: 1.3 }}>{place.name}</span>
           {time && <TimePill className="mt-px">{time}</TimePill>}
         </div>
         <SharedPlaceDetails place={place} assignmentNotes={notes} />
@@ -208,9 +210,16 @@ function TransportRow({ r, dayId }: { r: SharedTransport; dayId: number }) {
   )
 }
 
+/**
+ * A day note. Its `time` column is not a time but the note's free detail line
+ * (#3082): only a leading HH:MM is a real time and gets the pill, the rest is
+ * the owner's text and wraps under the title, rendered as the planner renders it.
+ * In a pill, which never wraps, a sentence ran off the edge of the card.
+ */
 function NoteRow({ note }: { note: { id: number; text: string; time?: string | null; icon?: string | null; color?: string | null } }) {
   const skin = noteSurface(note.color)
   const Icon = getNoteIcon(note.icon)
+  const { time, detail } = splitNoteTime(note.time)
   return (
     <div className="flex items-start gap-2.5 rounded-xl px-2 py-2" style={{ background: skin.background, border: `1px solid ${skin.border}` }}>
       <span className="grid h-8 w-8 flex-none place-items-center rounded-[10px]" style={{ background: skin.iconBackground, color: skin.iconColor }}>
@@ -218,7 +227,16 @@ function NoteRow({ note }: { note: { id: number; text: string; time?: string | n
       </span>
       <div className="min-w-0 flex-1 pt-1">
         <div className="whitespace-pre-wrap text-content-secondary [overflow-wrap:anywhere]" style={fs(12.5, 'body')}>{note.text}</div>
-        {note.time && <div className="mt-1"><TimePill>{note.time}</TimePill></div>}
+        {(time || detail) && (
+          <div className="mt-1 flex min-w-0 flex-wrap items-start gap-1.5">
+            {time && <TimePill>{time}</TimePill>}
+            {detail && (
+              <div data-testid="shared-note-detail" className="collab-note-md min-w-0 flex-1 basis-40 text-content-muted [overflow-wrap:anywhere]" style={{ ...fs(11.5, 'body'), lineHeight: 1.4 }}>
+                <SafeMarkdown>{detail}</SafeMarkdown>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

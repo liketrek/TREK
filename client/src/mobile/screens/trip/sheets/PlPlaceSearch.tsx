@@ -110,7 +110,7 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onSuggest
             }
           }}
           onBlur={() => setTimeout(() => setSuggestions([]), 150)}
-          placeholder={t('places.mapsSearchPlaceholder')}
+          enterKeyHint="search" placeholder={t('places.mapsSearchPlaceholder')}
           className={`${FIELD_CLS} flex-1`}
         />
         <button

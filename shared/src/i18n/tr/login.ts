@@ -39,6 +39,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'İki faktörlü kimlik doğrulama',
   'login.mfaSubtitle': 'Kimlik doğrulayıcı uygulamanızdan 6 haneli kodu girin.',
   'login.mfaCodeLabel': 'Doğrulama kodu',
+  'login.mfaPlaceholder': '000000 veya XXXX-XXXX',
   'login.mfaCodeRequired': 'Kimlik doğrulayıcı uygulamanızdan kodu girin.',
   'login.mfaHint': "Google Authenticator'ı, Authy'yi veya başka bir TOTP uygulamasını açın.",
   'login.mfaBack': '← Oturum açmaya geri dön',

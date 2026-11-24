@@ -11,8 +11,17 @@ const pdf: TranslationStrings = {
     "iOS non può stampare dall'app nella schermata Home. Safari apre questo viaggio con l'esportazione pronta, lì puoi salvare il PDF.",
   'pdf.pageBreakPerDay': 'Interruzione di pagina per giorno',
   'pdf.transportNotes': 'Note sui trasporti',
+  'pdf.largeText': 'Testo grande',
   'pdf.mapTitle': 'Panoramica del percorso',
   'pdf.distanceLabel': 'Distanza',
   'pdf.mapCredit': 'Confini dei paesi: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Panoramica',
+  'pdf.showPhotos': 'Foto',
+  'pdf.showDetails': 'Contatti e orari',
+  'pdf.atAGlance': 'In sintesi',
+  'pdf.bookings': 'Prenotazioni e alloggi',
+  'pdf.day': 'Giorno',
+  'pdf.stay': 'Alloggio',
+  'pdf.plan': 'Programma',
 };
 export default pdf;

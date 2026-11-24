@@ -80,6 +80,7 @@ Logging out writes no row, and neither do the sessions a password change, a rese
 | `admin.user_delete` | User deleted by admin |
 | `admin.user_mfa_reset` | A user's MFA reset by admin |
 | `admin.user_passkeys_reset` | All of a user's passkeys removed by admin |
+| `admin.user_sso_unlink` | A user's SSO link removed by admin |
 | `admin.invite_create` | Invite link created |
 | `admin.invite_delete` | Invite link deleted |
 | `admin.permissions_update` | Instance permissions updated |

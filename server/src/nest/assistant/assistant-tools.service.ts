@@ -592,10 +592,13 @@ export class AssistantToolsService implements OnApplicationBootstrap {
       traceEntry('mcp', `${info.kind} ${info.name} user=${userId} client=assistant`, () =>
         withRequestContext(this.orm, call),
       );
+    // A trip chat is about its one trip: the addon gates ask that trip, so an
+    // addon the owner switched off for it is never offered (see addon-gate.ts).
+    const tripId = pin.arg === PINNED_ARG ? pin.id : undefined;
     await withRequestContext(this.orm, () =>
       this.registry.attach(
         server,
-        { userId, scopes: [...ASSISTANT_SCOPES], isStaticToken: false },
+        { userId, scopes: [...ASSISTANT_SCOPES], isStaticToken: false, ...(tripId === undefined ? {} : { tripId }) },
         { include: (kind, name) => kind === 'tool' && offer.include(name), around },
       ),
     );

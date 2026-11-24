@@ -22,7 +22,8 @@ export default function MSettingsMap() {
   const {
     managed, presets: tilePresets, canMapbox, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, cartoNeedsKey, mapboxStyle, setMapboxStyle, mapbox3d, setMapbox3d,
-    mapboxQuality, setMapboxQuality, previewPlaces, glPreview, webgl2Missing, save,
+    mapboxQuality, setMapboxQuality, hideBasemapPois, setHideBasemapPois, mapboxPreview, previewPlaces, glPreview,
+    webgl2Missing, save,
   } = useMapSettingsForm({ mirrorStyleBeforeSave: true })
   const [presetOpen, setPresetOpen] = useState(false)
   const [styleOpen, setStyleOpen] = useState(false)
@@ -153,13 +154,18 @@ export default function MSettingsMap() {
             <div className="mt-1">
               <MSetRow
                 label={t('settings.map3dBuildings')}
-                sub={t('settings.map3dHint')}
+                hint={t('settings.map3dHint')}
                 trailing={<MToggle checked={mapbox3d} onChange={setMapbox3d} ariaLabel={t('settings.map3dBuildings')} />}
               />
               <MSetRow
                 label={t('settings.mapHighQuality')}
-                sub={`${t('settings.mapHighQualityHint')} ${t('settings.mapHighQualityWarning')}`}
+                hint={`${t('settings.mapHighQualityHint')} ${t('settings.mapHighQualityWarning')}`}
                 trailing={<MToggle checked={mapboxQuality} onChange={setMapboxQuality} ariaLabel={t('settings.mapHighQuality')} />}
+              />
+              <MSetRow
+                label={t('settings.mapHidePois')}
+                hint={t('settings.mapHidePoisHint')}
+                trailing={<MToggle checked={hideBasemapPois} onChange={setHideBasemapPois} ariaLabel={t('settings.mapHidePois')} />}
               />
               <p className="rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] p-3 font-geist text-[0.625rem] leading-relaxed text-m-muted">
                 <strong className="text-m-ink">{t('settings.mapTipLabel')}</strong> {t('settings.mapTip')}
@@ -181,8 +187,9 @@ export default function MSettingsMap() {
               lat={PREVIEW_CENTER[0]}
               lng={PREVIEW_CENTER[1]}
               zoom={PREVIEW_ZOOM}
-              enable3d={provider === 'mapbox-gl' && mapbox3d}
-              quality={provider === 'mapbox-gl' && mapboxQuality}
+              enable3d={mapboxPreview.enable3d}
+              quality={mapboxPreview.quality}
+              hidePois={mapboxPreview.hidePois}
             />
           </Suspense>
           </ErrorBoundary>

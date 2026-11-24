@@ -224,7 +224,12 @@ const SCRIPTS: Record<string, GuideScript> = {
       only(p => stop(p, 'Arashiyama Bamboo Grove')),
       only(p => stop(p, 'Nishiki Market')),
       only(connector),
-      only(routeBar),
+      {
+        // Hovered on Route itself: the bar's centre is the Walking button, whose
+        // tooltip would stand over the ring.
+        target: routeBar,
+        hover: async p => { await routeBar(p).getByRole('button', { name: 'Route', exact: true }).hover() },
+      },
     ],
   },
   'place-onto-day': {
@@ -252,7 +257,16 @@ const SCRIPTS: Record<string, GuideScript> = {
         target: p => toOpenDay(p, SPARE.name),
       },
       only(p => p.getByRole('button', { name: 'Add place to this day' }).first()),
-      only(p => p.getByRole('button', { name: 'Add to the open day' })),
+      {
+        target: p => p.getByRole('button', { name: 'Add to the open day' }),
+        // The result shows the place as a stop on day 2, where step 1 dropped it,
+        // with the details panel of the open day out of the way.
+        act: async p => {
+          await closeDayDetails(p)
+          await stop(p, SPARE.name).evaluate(el => el.scrollIntoView({ block: 'center' }))
+          await settle(p)
+        },
+      },
     ],
     cleanup: p => deleteByName(p, SPARE.name),
   },
@@ -474,6 +488,8 @@ const SCRIPTS: Record<string, GuideScript> = {
       },
       {
         target: p => noteDialog(p).getByText('Icon', { exact: true }).locator('xpath=../..'),
+        // Pointed at the heading: the block's centre is an icon whose tooltip would stand in it.
+        hover: async p => { await noteDialog(p).getByText('Icon', { exact: true }).hover() },
         act: async p => {
           await noteDialog(p).getByRole('button', { name: 'Add', exact: true }).click()
           await expect(noteDialog(p)).toHaveCount(0)
@@ -528,7 +544,9 @@ const SCRIPTS: Record<string, GuideScript> = {
     guide: guide('manage-days'),
     start: p => openTrip(p),
     steps: [
-      only(p => dayHeader(p, 1)),
+      // The dates, and with them the days, are changed in the trip's edit form,
+      // which Trip settings at the top of the planner opens.
+      only(p => p.getByRole('button', { name: 'Trip settings' }).first()),
       {
         prepare: async p => {
           await p.getByRole('button', { name: 'Reorder days' }).click()
@@ -655,6 +673,7 @@ const SCRIPTS: Record<string, GuideScript> = {
       only(p => modal(p).getByText('Document', { exact: true }).locator('xpath=ancestor::section[1]')),
       only(p => modal(p).getByText('Calendar', { exact: true }).locator('xpath=ancestor::section[1]')),
       only(p => modal(p).getByText(/^Maps & GPS/).locator('xpath=ancestor::section[1]')),
+      only(p => modal(p).getByText(/^Google Maps/).locator('xpath=ancestor::section[1]')),
     ],
     cleanup: closeModal,
   },

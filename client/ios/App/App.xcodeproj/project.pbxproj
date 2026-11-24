@@ -37,6 +37,7 @@
 		512499AF65E091B2BBC9A7BB /* UniformTypeIdentifiers.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E45050B942C96E1ACCAB7CE9 /* UniformTypeIdentifiers.framework */; };
 		5480CCC12F42E9605044AB6B /* ShareHandoff.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56050CCA8DE4BEB4680D9E0B /* ShareHandoff.swift */; };
 		5A4D344328829E0F0B4D2B94 /* BookingsContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */; };
+		F11E0C0A9B7D4E2A8C3F5A01 /* FlightContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = F11E0C0A9B7D4E2A8C3F5A02 /* FlightContent.swift */; };
 		5BBE9EE02A47EC67C31F5E21 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D0A4B2C6C93971E884561CFA /* Localizable.strings */; };
 		612BB9680DC27BB8BF553060 /* TrekFamily.swift in Sources */ = {isa = PBXBuildFile; fileRef = A030A06726542A2D7F61C54B /* TrekFamily.swift */; };
 		634F4E63DC7C2A0027F0D118 /* Details.swift in Sources */ = {isa = PBXBuildFile; fileRef = F406A4A31BD875A880A7CA14 /* Details.swift */; };
@@ -51,6 +52,7 @@
 		81E4582AD7514CA1AF373E48 /* WatchSnapshot.swift in Sources */ = {isa = PBXBuildFile; fileRef = 842D54F96D80A1D1C4C21457 /* WatchSnapshot.swift */; };
 		84EB79E4B677229481809933 /* NotificationService.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A03A384FE54FAD1ED68E12DC /* NotificationService.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		8925D4B7322D6930F3C02959 /* TrekWatchLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 125A1BB381BBF7E58B8902FD /* TrekWatchLink.swift */; };
+		A1C3E5F70913B5D7F9E1A301 /* TrekClientIdentity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C3E5F70913B5D7F9E1A302 /* TrekClientIdentity.swift */; };
 		896952F864B35C647FF6910A /* WatchSample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10FB55D221F4BA18795F33B5 /* WatchSample.swift */; };
 		8FC5873BE6A8CB2AFB31A46A /* TripContent.swift in Sources */ = {isa = PBXBuildFile; fileRef = DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */; };
 		8FFB2B488E43AD339D0BB450 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 3A6054202DCC03D83C2C9602 /* Localizable.strings */; };
@@ -172,6 +174,7 @@
 		10FB55D221F4BA18795F33B5 /* WatchSample.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = WatchSample.swift; sourceTree = "<group>"; };
 		114C13FB91B554AE8DC4372B /* et */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = et; path = et.lproj/Localizable.strings; sourceTree = "<group>"; };
 		125A1BB381BBF7E58B8902FD /* TrekWatchLink.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekWatchLink.swift; sourceTree = "<group>"; };
+		A1C3E5F70913B5D7F9E1A302 /* TrekClientIdentity.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TrekClientIdentity.swift; sourceTree = "<group>"; };
 		12DE24E0B7E2E5F3564D952B /* he */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = he; path = he.lproj/Localizable.strings; sourceTree = "<group>"; };
 		1335F1EEB49D744B27A00F31 /* th */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = th; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
 		15884CA899CAD3FFD98BA927 /* hu */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = hu; path = hu.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -303,6 +306,7 @@
 		E5800E4ECECED54A47CDABAA /* tr */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = tr; path = tr.lproj/Localizable.strings; sourceTree = "<group>"; };
 		E6831E849332626BE8D54CEF /* ShareView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ShareView.swift; sourceTree = "<group>"; };
 		E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = BookingsContent.swift; sourceTree = "<group>"; };
+		F11E0C0A9B7D4E2A8C3F5A02 /* FlightContent.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FlightContent.swift; sourceTree = "<group>"; };
 		EAFBDD97043B34E4B64FDA86 /* pt-BR */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = "pt-BR"; path = "pt-BR.lproj/Localizable.strings"; sourceTree = "<group>"; };
 		EC8D1292C9FC6430C059960A /* nl */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.plist.strings; name = nl; path = nl.lproj/Localizable.strings; sourceTree = "<group>"; };
 		ECC80E1314B31ED2D2347411 /* ar */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = ar; path = ar.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -420,6 +424,7 @@
 				2FAD9762203C412B000D30F8 /* config.xml */,
 				50B271D01FEDC1A000F3C39B /* public */,
 				125A1BB381BBF7E58B8902FD /* TrekWatchLink.swift */,
+				A1C3E5F70913B5D7F9E1A302 /* TrekClientIdentity.swift */,
 			);
 			path = App;
 			sourceTree = "<group>";
@@ -535,6 +540,7 @@
 				DE6873D246AC6B8E2CB6C8B4 /* TripContent.swift */,
 				24B175DE91E1E6E850DB0285 /* TodayContent.swift */,
 				E6D2F4930E5F152C8090C4F8 /* BookingsContent.swift */,
+				F11E0C0A9B7D4E2A8C3F5A02 /* FlightContent.swift */,
 				AEF7DCAA1AEE67F1291668D1 /* TodosContent.swift */,
 			);
 			name = TREKWidgets;
@@ -823,6 +829,7 @@
 				7A1E00072C0000000000A007 /* TrekShellPlugin.swift in Sources */,
 				0C2D60A4950D7293E1F282CB /* TripDayAttributes.swift in Sources */,
 				8925D4B7322D6930F3C02959 /* TrekWatchLink.swift in Sources */,
+				A1C3E5F70913B5D7F9E1A301 /* TrekClientIdentity.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -845,6 +852,7 @@
 				8FC5873BE6A8CB2AFB31A46A /* TripContent.swift in Sources */,
 				9A175689CFCC630BE9BB9EE1 /* TodayContent.swift in Sources */,
 				5A4D344328829E0F0B4D2B94 /* BookingsContent.swift in Sources */,
+				F11E0C0A9B7D4E2A8C3F5A01 /* FlightContent.swift in Sources */,
 				F1E29B18C5B1E75A5BC01B57 /* TodosContent.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

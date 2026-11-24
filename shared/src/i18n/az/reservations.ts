@@ -43,7 +43,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.layover': 'Tranzit gözləmə',
 
   'reservations.needsReview': 'Yoxlayın',
-  'reservations.needsReviewHint': 'Hava limanını avtomatik uyğunlaşdırmaq mümkün olmadı — məkanı təsdiqləyin.',
+  'reservations.needsReviewHint': 'Bəzi məlumatlar avtomatik dolduruldu və dəqiq oxuna bilmədi. Xahiş edirik, yoxla.',
+  'reservations.reviewConfirm': 'Düzgün görünür',
+  'reservations.reviewConfirmHint': 'Yoxlanıldı kimi işarələmək üçün klik et.',
+  'reservations.reviewConfirmed': 'Yoxlanıldı kimi işarələndi',
   'reservations.searchLocation': 'Stansiya, liman və ya ünvan axtarın…',
 
   'reservations.meta.trainNumber': 'Qatar nömrəsi',

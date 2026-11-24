@@ -12,6 +12,7 @@ import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { AuthModule } from '../../src/nest/auth/auth.module';
+import { AuthService } from '../../src/nest/auth/auth.service';
 import { SessionRenewalInterceptor } from '../../src/nest/auth/session-renewal.interceptor';
 import { encrypt_api_key } from '../../src/nest/common/crypto/apiKeyCrypto';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
@@ -86,7 +87,9 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
     nest.useGlobalPipes(new ZodValidationPipe());
     // Mirror the production APP_INTERCEPTOR: sliding session renewal (#1927).
     // Inert for the harness's exp-less tokens and freshly issued logins.
-    nest.useGlobalInterceptors(new SessionRenewalInterceptor(moduleRef.get(SessionsService)));
+    nest.useGlobalInterceptors(
+      new SessionRenewalInterceptor(moduleRef.get(SessionsService), moduleRef.get(AuthService)),
+    );
     await nest.init();
     return nest;
   }
@@ -118,6 +121,28 @@ describe('Auth e2e (real auth guard + real service + real cookie service + temp 
     expect(res.body.version.length).toBeGreaterThan(0);
     // Unauthenticated → no permissions block.
     expect(res.body.permissions).toBeUndefined();
+  });
+
+  it('PUT /app-settings oidc_auto_redirect reaches the public app-config the login page reads (#2925)', async () => {
+    const admin = createUser(db as never, {
+      username: 'redirect-admin',
+      email: 'redirect-admin@example.test',
+      role: 'admin',
+    });
+    const autoRedirect = async () => (await request(server).get('/api/auth/app-config')).body.oidc_auto_redirect;
+    try {
+      expect(await autoRedirect()).toBe(true);
+
+      const res = await request(server)
+        .put('/api/auth/app-settings')
+        .set('Cookie', sessionCookie(admin.user.id))
+        .send({ oidc_auto_redirect: false });
+      expect(res.status).toBe(200);
+      expect(await readAppSetting(orm, 'oidc_auto_redirect')).toBe('false');
+      expect(await autoRedirect()).toBe(false);
+    } finally {
+      await deleteRows(orm, AppSettings, { key: 'oidc_auto_redirect' });
+    }
   });
 
   it('GET /me requires a session (401 without a cookie)', async () => {

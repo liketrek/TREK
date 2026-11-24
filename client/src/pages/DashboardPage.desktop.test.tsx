@@ -67,6 +67,8 @@ beforeEach(() => {
   vi.setSystemTime(new Date('2026-07-05T12:00:00Z'));
   installMatchMedia();
   resetAllStores();
+  // The currency tool waits for the saved pair (#3009); the page renders with settings in place.
+  useSettingsStore.setState({ isLoaded: true });
   seedStore(useAuthStore, { isAuthenticated: true, user: buildUser() });
   usePluginStore.setState({ plugins: [], loaded: true });
   onlyTrips([TRIP]);
@@ -203,7 +205,10 @@ describe('DashboardPage (desktop)', () => {
     // Only the unconfirmed one is marked.
     const pending = container.querySelectorAll('.upc-pending');
     expect(pending).toHaveLength(1);
-    expect(pending[0]).toHaveTextContent('Pending');
+    // A letter on the type icon's corner, the word as its name and tooltip.
+    expect(pending[0]).toHaveTextContent(/^P$/);
+    expect(pending[0]).toHaveAttribute('aria-label', 'Pending');
+    expect(pending[0].closest('.upc-type')).not.toBeNull();
   });
 
   it('FE-PAGE-DESKDASH-009: the currency tool converts and swaps the pair', async () => {

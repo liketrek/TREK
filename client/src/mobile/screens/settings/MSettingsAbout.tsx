@@ -1,12 +1,13 @@
 import { Bug, BookOpen, Coffee, ExternalLink, Heart, Info, Lightbulb } from 'lucide-react'
-import type { LucideIcon } from 'lucide-react'
+import type { ComponentType } from 'react'
 import { useTranslation } from '../../../i18n'
 import { MSetCard } from './MSettingsUi'
 import { withoutDonationsInApp } from '../../../utils/donations'
+import PatreonIcon, { PATREON_URL } from '../../../components/shared/PatreonIcon'
 
 interface AboutLink {
   href: string
-  icon: LucideIcon
+  icon: ComponentType<{ size?: number; strokeWidth?: number }>
   title: string
   sub: string
 }
@@ -16,6 +17,7 @@ export default function MSettingsAbout({ appVersion }: { appVersion: string }) {
   const { t } = useTranslation()
 
   const links: AboutLink[] = withoutDonationsInApp([
+    { href: PATREON_URL, icon: PatreonIcon, title: 'Patreon', sub: t('admin.github.supportMonthly') },
     { href: 'https://ko-fi.com/mauriceboe', icon: Coffee, title: 'Ko-fi', sub: t('admin.github.support') },
     { href: 'https://buymeacoffee.com/mauriceboe', icon: Heart, title: 'Buy Me a Coffee', sub: t('admin.github.support') },
     { href: 'https://discord.gg/NhZBDSd4qW', icon: Heart, title: 'Discord', sub: 'Join the community' },

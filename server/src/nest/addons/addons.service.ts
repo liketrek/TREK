@@ -4,6 +4,7 @@ import { Addons } from '../../db/entities/Addons.entity';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { PhotoProviderFields } from '../../db/entities/PhotoProviderFields.entity';
 import { PhotoProviders } from '../../db/entities/PhotoProviders.entity';
+import { TripAddonOverrides } from '../../db/entities/TripAddonOverrides.entity';
 import { Users } from '../../db/entities/Users.entity';
 import type { AddonsRepository } from '../../db/repositories/Addons.repository';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
@@ -12,12 +13,14 @@ import type {
   PhotoProviderFieldRow,
 } from '../../db/repositories/PhotoProviderFields.repository';
 import type { PhotoProvidersRepository, PhotoProviderRow } from '../../db/repositories/PhotoProviders.repository';
+import type { TripAddonOverridesRepository } from '../../db/repositories/TripAddonOverrides.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { readAppSetting } from '../common/app-settings.registry';
 import { getPhotoProviderConfig } from '../common/photo-provider-config';
 import { readTransitProvider, writeTransitProvider } from '../common/transit-provider';
 import { UnitOfWork } from '../database/unit-of-work';
 import { resolveApiKey, type ApiKeySource } from '../settings/instance-api-keys';
+import { isTripAddonRow } from './addons.constants';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type { TransitProvider } from '@trek/shared';
@@ -51,10 +54,69 @@ export class AddonsService {
     @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     @InjectRepository(Users) private readonly users: UsersRepository,
     private readonly uow: UnitOfWork,
+    @InjectRepository(TripAddonOverrides) private readonly tripOverrides: TripAddonOverridesRepository,
   ) {}
 
+  /** The instance switch alone. A trip-scoped surface asks isEnabledForTrip instead. */
   async isAddonEnabled(addonId: string): Promise<boolean> {
     return this.addons.isEnabled(addonId);
+  }
+
+  /**
+   * Whether an addon applies to one trip: the trip owner's choice for the trip
+   * when there is one, else the instance switch. Only addons of type `trip`
+   * can be chosen per trip; any other addon answers with the instance switch,
+   * and an unknown id is off. The caller has checked the trip is the user's.
+   */
+  async isEnabledForTrip(tripId: number, addonId: string): Promise<boolean> {
+    const addon = await this.addons.findById(addonId);
+    if (!addon) return false;
+    const instanceEnabled = !!addon.enabled;
+    if (!isTripAddonRow(addon)) return instanceEnabled;
+    return (await this.tripOverrides.findForTrip(tripId, addon.id)) ?? instanceEnabled;
+  }
+
+  /**
+   * The trips among `tripIds` the addon applies to, in their order: each
+   * trip's own choice, else the instance switch, as isEnabledForTrip answers
+   * for one. A surface that reads across trips (the tour library, the Atlas
+   * sums) narrows the user's trips with it, so a trip that switched the
+   * addon off shows nothing there. Two reads, whatever the number of trips.
+   */
+  async tripsWithAddon(tripIds: readonly number[], addonId: string): Promise<number[]> {
+    if (tripIds.length === 0) return [];
+    const addon = await this.addons.findById(addonId);
+    if (!addon) return [];
+    const instanceEnabled = !!addon.enabled;
+    if (!isTripAddonRow(addon)) return instanceEnabled ? [...tripIds] : [];
+    const chosen = new Map(
+      (await this.tripOverrides.listForTrips(tripIds, addon.id)).map((row) => [row.trip_id, row.enabled]),
+    );
+    return tripIds.filter((id) => chosen.get(id) ?? instanceEnabled);
+  }
+
+  /**
+   * For a surface without a trip (a tour library, a search across trips, an
+   * MCP tool list): open when the instance has the addon on, or when any trip
+   * the user owns or belongs to switched it on for itself. A trip that
+   * switched it off closes nothing here, the instance switch still holds for
+   * the user's other trips.
+   */
+  async isEnabledForUserAnywhere(userId: number, addonId: string): Promise<boolean> {
+    const addon = await this.addons.findById(addonId);
+    if (!addon) return false;
+    if (addon.enabled) return true;
+    if (!isTripAddonRow(addon)) return false;
+    return this.tripOverrides.anyEnabledForUser(userId, addon.id);
+  }
+
+  /** For what the whole install can raise: on for the instance, or for any trip that switched it on. */
+  async isEnabledAnywhere(addonId: string): Promise<boolean> {
+    const addon = await this.addons.findById(addonId);
+    if (!addon) return false;
+    if (addon.enabled) return true;
+    if (!isTripAddonRow(addon)) return false;
+    return this.tripOverrides.anyEnabled(addon.id);
   }
 
   async getBagTracking() {
@@ -126,8 +188,17 @@ export class AddonsService {
    * there, so a value stored before the install became managed must not keep it on.
    */
   async isWandererAvailable(): Promise<boolean> {
+    return (await this.isWandererAllowed()) && (await this.isAddonEnabled(ADDON_IDS.TOURS));
+  }
+
+  /**
+   * The wanderer sub-option alone: the admin allowed it under Tours and the install is not managed.
+   * It stays instance-wide and applies wherever Tours is on, the instance switch or a trip's own,
+   * so a route asks this beside AddonGuard or TripAddonGuard, which decide Tours.
+   */
+  async isWandererAllowed(): Promise<boolean> {
     if (readEnv().managed.enabled) return false;
-    return (await this.isAddonEnabled(ADDON_IDS.TOURS)) && (await this.getToursWanderer()).enabled;
+    return (await this.getToursWanderer()).enabled;
   }
 
   /**
@@ -187,7 +258,8 @@ export class AddonsService {
     return { features: after, changed };
   }
 
-  async list() {
+  /** `userId` decides the wanderer flag for that user: allowed, and Tours on for them somewhere. */
+  async list(userId?: number) {
     const addonRows = await this.addons.listEnabled();
     // Photo providers surface only inside journeys, so with the journey addon
     // off they are unavailable no matter what their own rows say. Deriving that
@@ -209,9 +281,19 @@ export class AddonsService {
     return {
       collabFeatures: await this.getCollabFeatures(),
       bagTracking: (await this.getBagTracking()).enabled,
-      toursWanderer: await this.isWandererAvailable(),
+      toursWanderer:
+        userId === undefined
+          ? await this.isWandererAvailable()
+          : (await this.isWandererAllowed()) && (await this.isEnabledForUserAnywhere(userId, ADDON_IDS.TOURS)),
       toursHikingMap: (await this.isAddonEnabled(ADDON_IDS.TOURS)) && (await this.getToursHikingMap()).enabled,
       toursCycleMap: (await this.isAddonEnabled(ADDON_IDS.TOURS)) && (await this.getToursCycleMap()).enabled,
+      // The same three options without the instance Tours switch: a trip may switch Tours on
+      // for itself, and the planner of that trip offers them once Tours is on there.
+      toursOptions: {
+        wanderer: await this.isWandererAllowed(),
+        hikingMap: (await this.getToursHikingMap()).enabled,
+        cycleMap: (await this.getToursCycleMap()).enabled,
+      },
       addons: [
         // The repository row carries every scalar column (description, config,
         // sort_order included); the legacy statement selected only these five,

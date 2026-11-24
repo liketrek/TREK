@@ -4,6 +4,7 @@ import type { Reservation } from '../../../types'
 import { useTranslation } from '../../../i18n'
 import { BlurredCode } from '../../shared/BookingCode'
 import { formatMoney } from '../../../utils/formatters'
+import { bookingSeats } from '../../../utils/flightLegs'
 import { TransitLegChips } from '../transitDisplay'
 import { displayTitle, parseMeta, type BookingGroup, type CostTotal } from './bookingsModel'
 import type { BookingFacts } from './bookingFacts'
@@ -82,7 +83,7 @@ function Row({ r, p, facts, files, costs, t, locale }: {
   const sub = facts.endpoints.length >= 2
     ? facts.endpoints.map(e => e.code || e.name).join(' → ')
     : facts.accommodation || facts.place || ''
-  const extras: string[] = [meta.airline && meta.flight_number ? `${meta.airline} ${meta.flight_number}` : meta.flight_number || meta.airline, meta.train_number, meta.seat, meta.platform].filter(Boolean)
+  const extras: string[] = [meta.airline && meta.flight_number ? `${meta.airline} ${meta.flight_number}` : meta.flight_number || meta.airline, meta.train_number, ...bookingSeats(r).map(s => s.seat), meta.platform].filter(Boolean)
 
   return (
     <div

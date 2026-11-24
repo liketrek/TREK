@@ -1,4 +1,4 @@
-// FE-PLANNER-TRANSPORTEP-001 to -021: the transport booking form both the desktop
+// FE-PLANNER-TRANSPORTEP-001 to -022: the transport booking form both the desktop
 // TransportModal and the phone's transport sheet save through.
 import { describe, expect, it } from 'vitest';
 
@@ -497,6 +497,28 @@ describe('buildTransportPayload', () => {
     );
     expect(payload.metadata).not.toHaveProperty('legs');
     expect(payload.reservation_time).toBeNull();
+  });
+
+  it('FE-PLANNER-TRANSPORTEP-022: a flight without airports keeps its day, times and flight details on save (#3070)', () => {
+    const payload = buildTransportPayload(
+      draft({
+        form: { ...EMPTY_TRANSPORT_FIELDS, title: 'Fly', type: 'flight', notes: 'only the notes changed' },
+        waypoints: [
+          { ...emptyWaypoint(1), depTime: '09:40', airline: 'Lufthansa', flight_number: 'LH 400', seat: '12A' },
+          { ...emptyWaypoint(2), arrTime: '11:30' },
+        ],
+      }),
+      days,
+      DESKTOP_SAVE
+    );
+    expect(payload).toMatchObject({
+      day_id: 1,
+      end_day_id: 2,
+      reservation_time: '2026-05-01T09:40',
+      reservation_end_time: '2026-05-02T11:30',
+      endpoints: [],
+    });
+    expect(payload.metadata).toEqual({ airline: 'Lufthansa', flight_number: 'LH 400', seat: '12A' });
   });
 
   it('FE-PLANNER-TRANSPORTEP-017: the desktop anchors a train on its raw rows, the phone on the picked stations', () => {

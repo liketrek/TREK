@@ -4,29 +4,26 @@
  * projection and the day-LIST projection.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb2 } from '../../src/db/database';
 import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip, createDay, createPlace } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { makePlace } from '../helpers/factories/places';
 import { findRow, updateRows } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeDay, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Read-path parity (day-LIST endpoint) — mirrors the harness in
 // tests/integration/assignments.test.ts verbatim.
 // ─────────────────────────────────────────────────────────────────────────────
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 describe('incoming_leg_transport_mode read-path parity', () => {
   let nestApp: INestApplication;
@@ -40,20 +37,19 @@ describe('incoming_leg_transport_mode read-path parity', () => {
   });
 
   beforeEach(async () => {
-    resetTestDb(testDb2);
+    await resetDatabase(orm);
     await resetRateLimits(nestApp);
   });
 
   afterAll(async () => {
     await nestApp.close();
-    testDb2.close();
   });
 
   it('round-trips incoming_leg_transport_mode through the day-LIST endpoint', async () => {
-    const { user } = createUser(testDb2);
-    const trip = createTrip(testDb2, user.id);
-    const day = createDay(testDb2, trip.id, { date: '2025-06-01' });
-    const place = createPlace(testDb2, trip.id, { name: 'Test Place' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { date: '2025-06-01' });
+    const place = await makePlace(orm, trip.id, { name: 'Test Place' });
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/assignments`)
@@ -77,10 +73,10 @@ describe('incoming_leg_transport_mode read-path parity', () => {
 
   describe('PUT /assignments/:id/transport direction', () => {
     it('defaults to outgoing (back-compat)', async () => {
-      const { user } = createUser(testDb2);
-      const trip = createTrip(testDb2, user.id);
-      const day = createDay(testDb2, trip.id, { date: '2025-06-01' });
-      const place = createPlace(testDb2, trip.id, { name: 'Test Place' });
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
+      const day = await makeDay(orm, trip.id, { date: '2025-06-01' });
+      const place = await makePlace(orm, trip.id, { name: 'Test Place' });
 
       const create = await request(app)
         .post(`/api/trips/${trip.id}/days/${day.id}/assignments`)
@@ -100,10 +96,10 @@ describe('incoming_leg_transport_mode read-path parity', () => {
     });
 
     it("direction: 'incoming' writes the incoming column", async () => {
-      const { user } = createUser(testDb2);
-      const trip = createTrip(testDb2, user.id);
-      const day = createDay(testDb2, trip.id, { date: '2025-06-01' });
-      const place = createPlace(testDb2, trip.id, { name: 'Test Place' });
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
+      const day = await makeDay(orm, trip.id, { date: '2025-06-01' });
+      const place = await makePlace(orm, trip.id, { name: 'Test Place' });
 
       const create = await request(app)
         .post(`/api/trips/${trip.id}/days/${day.id}/assignments`)
@@ -122,10 +118,10 @@ describe('incoming_leg_transport_mode read-path parity', () => {
     });
 
     it('rejects an invalid direction with 400', async () => {
-      const { user } = createUser(testDb2);
-      const trip = createTrip(testDb2, user.id);
-      const day = createDay(testDb2, trip.id, { date: '2025-06-01' });
-      const place = createPlace(testDb2, trip.id, { name: 'Test Place' });
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
+      const day = await makeDay(orm, trip.id, { date: '2025-06-01' });
+      const place = await makePlace(orm, trip.id, { name: 'Test Place' });
 
       const create = await request(app)
         .post(`/api/trips/${trip.id}/days/${day.id}/assignments`)
@@ -141,10 +137,10 @@ describe('incoming_leg_transport_mode read-path parity', () => {
     });
 
     it('outgoing and incoming leg modes on one stop persist independently', async () => {
-      const { user } = createUser(testDb2);
-      const trip = createTrip(testDb2, user.id);
-      const day = createDay(testDb2, trip.id, { date: '2025-06-01' });
-      const place = createPlace(testDb2, trip.id, { name: 'Test Place' });
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
+      const day = await makeDay(orm, trip.id, { date: '2025-06-01' });
+      const place = await makePlace(orm, trip.id, { name: 'Test Place' });
 
       const create = await request(app)
         .post(`/api/trips/${trip.id}/days/${day.id}/assignments`)

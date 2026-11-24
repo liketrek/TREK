@@ -65,6 +65,26 @@ describe('current release itinerary upgrade', () => {
       await orm.close(true);
     }
   });
+  it('widens the existing visit stay limit without losing assignments or foreign keys', async () => {
+    const { orm, db, boot } = await open('fork-v244-itinerary');
+    try {
+      const setStay = source(db, 'UPDATE day_assignments SET stay_minutes = ? WHERE id = 1');
+      const stay = source(db, 'SELECT stay_minutes FROM day_assignments WHERE id = 1').pluck();
+      expect(() => setStay.run(10_080)).toThrow(/CHECK constraint failed/i);
+      await boot();
+      for (const minutes of [null, 0, 1440, 10_080]) {
+        setStay.run(minutes);
+        expect(stay.get()).toBe(minutes);
+      }
+      expect(() => setStay.run(10_081)).toThrow(/CHECK constraint failed/i);
+      await boot();
+      expect(stay.get()).toBe(10_080);
+      expect(db.pragma('foreign_key_check')).toEqual([]);
+    } finally {
+      await orm.close(true);
+    }
+  });
+
   it('baselines the frozen night reseat step and preserves explicitly cleared visits and drawn roads', async () => {
     const { orm, db, boot, migrator } = await open('fork-v244-itinerary');
     try {

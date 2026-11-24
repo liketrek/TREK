@@ -38,6 +38,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Xác thực hai yếu tố',
   'login.mfaSubtitle': 'Nhập mã gồm 6 chữ số từ ứng dụng xác thực của bạn.',
   'login.mfaCodeLabel': 'Mã xác minh',
+  'login.mfaPlaceholder': '000000 hoặc XXXX-XXXX',
   'login.mfaCodeRequired': 'Nhập mã từ ứng dụng xác thực của bạn.',
   'login.mfaHint': 'Mở Google Authenticator, Authy hoặc ứng dụng TOTP khác.',
   'login.mfaBack': '← Quay lại đăng nhập',

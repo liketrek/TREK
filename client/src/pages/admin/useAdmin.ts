@@ -21,9 +21,16 @@ import { passwordErrorKey } from '../../utils/passwordError'
  * sidebar. Labels and icons stay in AdminPage; this is only the vocabulary.
  */
 const ADMIN_TAB_IDS = [
-  'users', 'defaults', 'config', 'settings', 'addons', 'plugins', 'storage',
+  'users', 'defaults', 'config', 'security', 'services', 'addons', 'plugins', 'storage',
   'notifications', 'mcp-tokens', 'github', 'backup', 'audit', 'dev-notifications',
 ]
+
+/**
+ * Tab ids that were renamed, so a bookmark, a wiki page or a mail that names the
+ * old one still lands. "Settings" was one tab for sign-in, services and the
+ * danger zone; it opens on security, where the danger zone went too.
+ */
+const ADMIN_TAB_ALIASES: Record<string, string> = { settings: 'security' }
 
 /**
  * The ones a managed install deliberately does not offer.
@@ -34,6 +41,13 @@ const ADMIN_TAB_IDS = [
  * because `managed` arrives with /app-config, after the first render.
  */
 const MANAGED_HIDDEN = ['storage', 'github', 'backup', 'plugins']
+
+/** The tab a ?tab= value opens: an old name by its new one, anything unknown on users. */
+function tabFromParam(raw: string | null): string {
+  const asked = raw ? (ADMIN_TAB_ALIASES[raw] ?? raw) : null
+  const known = [...ADMIN_TAB_IDS, ...managedAdminTabs.map(tab => tab.id)]
+  return asked && known.includes(asked) ? asked : 'users'
+}
 
 /** How often the open users list asks again who is online and active. */
 const USERS_REFRESH_MS = 30_000
@@ -60,14 +74,17 @@ export function useAdmin() {
 
   // ?tab= makes a section linkable: a support reply, an onboarding mail or a
   // bookmark can point at the one panel it is about instead of at the top of a
-  // page with eleven of them. Read once for the initial value and written back
-  // on every change, so the address bar keeps saying where the reader is.
+  // page with eleven of them. Written back on every change, so the address bar
+  // keeps saying where the reader is, and followed when only it changes: a help
+  // guide links to another tab of the page the reader is already on.
   const [searchParams, setSearchParams] = useSearchParams()
-  const [activeTab, setActiveTabState] = useState<string>(() => {
-    const asked = searchParams.get('tab')
-    const known = [...ADMIN_TAB_IDS, ...managedAdminTabs.map(tab => tab.id)]
-    return asked && known.includes(asked) ? asked : 'users'
-  })
+  const tabParam = searchParams.get('tab')
+  const [activeTab, setActiveTabState] = useState<string>(() => tabFromParam(tabParam))
+  const [followedParam, setFollowedParam] = useState(tabParam)
+  if (tabParam !== followedParam) {
+    setFollowedParam(tabParam)
+    setActiveTabState(tabFromParam(tabParam))
+  }
   const setActiveTab = useCallback((tab: string) => {
     setActiveTabState(tab)
     // replace, not push: eleven tabs would otherwise fill the back button with
@@ -145,6 +162,11 @@ export function useAdmin() {
   const [passwordRegistration, setPasswordRegistration] = useState<boolean>(true)
   const [oidcLogin, setOidcLogin] = useState<boolean>(true)
   const [oidcRegistration, setOidcRegistration] = useState<boolean>(true)
+  const [oidcAutoRedirect, setOidcAutoRedirect] = useState<boolean>(true)
+  // Live flight status (flight_live_enabled): on until an admin stores 'false'; the server leaves a never-set key out.
+  const [flightLive, setFlightLive] = useState<boolean>(true)
+  // FLIGHT_LIVE_ENABLED set on the server holds the switch; the form shows its value, locked.
+  const [flightLiveLocked, setFlightLiveLocked] = useState<boolean>(false)
   const [envOverrideOidcOnly, setEnvOverrideOidcOnly] = useState<boolean>(false)
   const [oidcConfigured, setOidcConfigured] = useState<boolean>(false)
   const [requireMfa, setRequireMfa] = useState<boolean>(false)
@@ -176,6 +198,8 @@ export function useAdmin() {
       setSmtpValues(r.data || {})
       if (r.data?.webauthn_rp_id) setWebauthnRpId(r.data.webauthn_rp_id)
       if (r.data?.webauthn_origins) setWebauthnOrigins(r.data.webauthn_origins)
+      setFlightLive(String(r.data?.flight_live_enabled ?? 'true') !== 'false')
+      setFlightLiveLocked(r.data?.env_override_flight_live_enabled != null)
       setSmtpLoaded(true)
     }).catch(() => setSmtpLoaded(true))
   }, [])
@@ -286,6 +310,7 @@ export function useAdmin() {
       setPasswordRegistration(config.password_registration ?? config.allow_registration ?? true)
       setOidcLogin(config.oidc_login ?? true)
       setOidcRegistration(config.oidc_registration ?? config.allow_registration ?? true)
+      setOidcAutoRedirect(config.oidc_auto_redirect ?? true)
       setEnvOverrideOidcOnly(config.env_override_oidc_only ?? false)
       setOidcConfigured(config.oidc_configured ?? false)
       if (config.require_mfa !== undefined) setRequireMfa(!!config.require_mfa)
@@ -600,7 +625,8 @@ export function useAdmin() {
     collabFeatures, setCollabFeatures,
     oidcConfig, setOidcConfig, savingOidc, setSavingOidc,
     passwordLogin, setPasswordLogin, passwordRegistration, setPasswordRegistration,
-    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration,
+    oidcLogin, setOidcLogin, oidcRegistration, setOidcRegistration, oidcAutoRedirect, setOidcAutoRedirect,
+    flightLive, setFlightLive, flightLiveLocked,
     envOverrideOidcOnly, setEnvOverrideOidcOnly, oidcConfigured, setOidcConfigured,
     requireMfa, setRequireMfa,
     passkeyLogin, setPasskeyLogin, passkeyConfigured,

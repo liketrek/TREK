@@ -29,10 +29,16 @@ export interface Purchase {
 /**
  * What a purchase attempt came to. `cancelled` is the customer backing out, not
  * an error; `pending` is a purchase waiting on someone else (Ask to Buy, a bank),
- * which a restore picks up once it goes through.
+ * which a restore picks up once it goes through. `subscribed` means the store
+ * account already holds a subscription: one per Apple ID or Google account, and
+ * a new one only once it has ended, so nothing was bought.
  */
 type PurchaseOutcome =
-  { kind: 'bought'; purchase: Purchase } | { kind: 'cancelled' } | { kind: 'pending' } | { kind: 'failed' };
+  | { kind: 'bought'; purchase: Purchase }
+  | { kind: 'cancelled' }
+  | { kind: 'pending' }
+  | { kind: 'failed' }
+  | { kind: 'subscribed' };
 
 export interface IapClient {
   /** Whether this build can take a payment. */
@@ -45,6 +51,12 @@ export interface IapClient {
   prices(productIds: string[]): Promise<Map<string, string>>;
   /** A test build (TestFlight, App Review), whose purchases cost nothing and may go ahead before the opening. */
   isSandbox(): Promise<boolean>;
+  /**
+   * Whether the store account already holds a delivered subscription. While it
+   * does, nothing can be bought: on the App Store another plan would change that
+   * subscription, on Google Play it would run beside it.
+   */
+  held(): Promise<boolean>;
   /** Runs the platform's purchase sheet for a product and resolves with what became of it. */
   purchase(productId: string): Promise<PurchaseOutcome>;
   /** Tells the store a purchase was delivered, once its instance exists. */
@@ -88,7 +100,16 @@ export const fakeIapClient: IapClient = {
   async isSandbox() {
     return true;
   },
+  async held() {
+    // `localStorage['trek-iap-fake-held'] = '1'` shows what a store account with a running subscription sees.
+    try {
+      return localStorage.getItem('trek-iap-fake-held') === '1';
+    } catch {
+      return false;
+    }
+  },
   async purchase(productId) {
+    if (await this.held()) return { kind: 'subscribed' };
     await new Promise((resolve) => setTimeout(resolve, 900));
     const nonce = String(Date.now());
     return {
@@ -160,10 +181,20 @@ export const nativeIapClient: IapClient = {
           },
         };
       }
-      if (result.kind === 'cancelled' || result.kind === 'pending') return { kind: result.kind };
+      if (result.kind === 'cancelled' || result.kind === 'pending' || result.kind === 'subscribed') {
+        return { kind: result.kind };
+      }
       return { kind: 'failed' };
     } catch {
       return { kind: 'failed' };
+    }
+  },
+  async held() {
+    try {
+      return (await TrekShell.storeHeld({ prefix: PRODUCT_PREFIX })).held === true;
+    } catch {
+      // A build without storeHeld: the purchase itself still refuses a second subscription.
+      return false;
     }
   },
   async finish(purchase) {

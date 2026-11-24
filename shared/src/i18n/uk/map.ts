@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'Музеї та культура',
   'poi.cat.nature': 'Природа та парки',
   'poi.cat.activities': 'Активності',
+  'poi.cat.bakeries': 'Пекарні',
+  'poi.cat.groceries': 'Продуктові магазини',
   'poi.pluginCategories': 'Категорії з плагінів',
   'map.showAllConnections': 'Показати всі маршрути бронювань',
   'map.hideAllConnections': 'Приховати всі маршрути бронювань',

@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Kategori baru',
   'mobileTrip.newReservation': 'Reservasi Baru',
   'mobileTrip.notes': 'Catatan',
-  'mobileTrip.onMap': 'Di peta',
+  'mobileTrip.onMap': 'Peta',
   'mobileTrip.profileDriving': 'Berkendara',
   'mobileTrip.profileWalking': 'Jalan kaki',
   'mobileTrip.profileCycling': 'Bersepeda',

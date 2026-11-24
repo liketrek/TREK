@@ -8,6 +8,7 @@ import {
   Fingerprint,
   RefreshCw,
   ShieldOff,
+  Unlink,
   UserCog,
   UserPlus,
 } from 'lucide-react';
@@ -114,8 +115,9 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
     rotatingJwt,
     handleCreateUser,
     handleSaveUser,
+    oidcConfigured,
   } = admin;
-  const { rotateJwt, resetPasskeys, resetMfa } = useAdminUserActions(admin, t);
+  const { rotateJwt, resetPasskeys, resetMfa, unlinkSso } = useAdminUserActions(admin, t);
   const [showCreatePw, setShowCreatePw] = React.useState(false);
   const [showEditPw, setShowEditPw] = React.useState(false);
   // The user whose passkeys wait for the admin's answer in the confirm dialog.
@@ -295,7 +297,6 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                     if (editingUser) setPasskeyResetUser(editingUser);
                   }}
                   className={`${SETTINGS_BUTTON_DANGER} flex-none`}
-                  style={fs(12.5, 'body')}
                 >
                   <Fingerprint size={14} /> {t('admin.passkey.reset')}
                 </button>
@@ -311,13 +312,19 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                     type="button"
                     onClick={() => setMfaResetUser(editingUser)}
                     className={`${SETTINGS_BUTTON_DANGER} flex-none`}
-                    style={fs(12.5, 'body')}
                   >
                     <ShieldOff size={14} /> {t('admin.mfa.reset')}
                   </button>
                 </div>
               </DialogSection>
             )}
+            <SsoUnlinkSection
+              user={editingUser}
+              me={currentUser}
+              ssoSetUp={oidcConfigured}
+              onUnlink={unlinkSso}
+              t={t}
+            />
           </>
         )}
       </DialogShell>
@@ -350,7 +357,6 @@ export default function AdminUserModals({ admin, t }: AdminUserModalsProps): Rea
                 target="_blank"
                 rel="noopener noreferrer"
                 className={SETTINGS_BUTTON}
-                style={fs(13, 'body')}
               >
                 <ExternalLink size={14} strokeWidth={2.1} className="flex-none" />
                 {t('admin.update.button')}
@@ -478,6 +484,56 @@ docker run -d --name trek \\
         title={t('admin.mfa.reset')}
         message={mfaResetUser ? t('admin.mfa.resetConfirm', { name: mfaResetUser.username }) : ''}
         confirmLabel={t('admin.mfa.reset')}
+        danger
+      />
+
+    </>
+  );
+}
+
+/**
+ * Removing a user's SSO link (#3065): its section in the edit dialog and the
+ * question before it. Offered only while SSO is set up, and never for the
+ * admin's own account.
+ */
+function SsoUnlinkSection({
+  user,
+  me,
+  ssoSetUp,
+  onUnlink,
+  t,
+}: {
+  user: { id: number; username: string } | null;
+  me: { id: number } | null | undefined;
+  ssoSetUp: boolean;
+  onUnlink: (user: { id: number }) => Promise<boolean>;
+  t: TranslationFn;
+}): React.ReactElement | null {
+  const [asking, setAsking] = React.useState(false);
+  if (!ssoSetUp || !user || user.id === me?.id) return null;
+  return (
+    <>
+      <DialogSection label={t('admin.sso.unlink')}>
+        <div className="flex flex-wrap items-center gap-3 rounded-[12px] border border-edge-faint bg-surface-secondary px-3.5 py-3">
+          <p className="m-0 min-w-0 flex-1 basis-52 leading-snug text-content-muted" style={fs(12, 'body')}>
+            {t('admin.sso.unlinkHint')}
+          </p>
+          <button
+            type="button"
+            onClick={() => setAsking(true)}
+            className={`${SETTINGS_BUTTON_DANGER} flex-none`}
+          >
+            <Unlink size={14} /> {t('admin.sso.unlink')}
+          </button>
+        </div>
+      </DialogSection>
+      <ConfirmDialog
+        isOpen={asking}
+        onClose={() => setAsking(false)}
+        onConfirm={() => void onUnlink(user)}
+        title={t('admin.sso.unlink')}
+        message={t('admin.sso.unlinkConfirm', { name: user.username })}
+        confirmLabel={t('admin.sso.unlink')}
         danger
       />
     </>

@@ -65,6 +65,7 @@ const KINDS: Record<string, AssistantToolKind> = {
   get_weather: 'read',
   get_place_details: 'read',
   create_place: 'write',
+  open_trip_chat: 'read',
 };
 
 /** What the fake tools answer, per tool; anything else fails. */
@@ -75,6 +76,7 @@ const ANSWERS: Record<string, unknown> = {
   },
   get_weather: { weather: { temp: 20, main: 'Clouds', description: 'cloudy', type: 'climate' } },
   get_place_details: { details: { name: 'Ginkaku-ji' } },
+  open_trip_chat: { offered: true },
 };
 
 function fakeTools() {
@@ -343,6 +345,55 @@ describe('runAgentLoop', () => {
     await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
     const assistant = t.requests[1].messages[1] as { toolCalls: Array<{ id: string }> };
     expect(assistant.toolCalls[0].id).toBe('call_id-1');
+  });
+
+  it('ASTAGT-006b: a renamed call keeps its thought signature and its record, for the next step and the stored row (#3094)', async () => {
+    const t = setup([
+      [
+        { type: 'tool-call', call: { id: 'call_0', name: 'list_places', args: {} } },
+        {
+          type: 'provider-state',
+          state: { adapter: 'openai-chat', model: 'gemini-3-flash', signatures: { call_0: 'sig-A' } },
+        },
+        { type: 'finish', reason: 'tool-calls' },
+      ],
+      [{ type: 'text-delta', delta: 'Found it' }],
+    ]);
+    t.input.usedCallIds.add('call_0');
+    await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+    const renamed = { adapter: 'openai-chat', model: 'gemini-3-flash', signatures: { 'call_id-1': 'sig-A' } };
+    expect(t.requests[1].messages[1]).toMatchObject({
+      role: 'assistant',
+      toolCalls: [{ id: 'call_id-1' }],
+      providerState: renamed,
+    });
+    expect(t.memory.saved[0].step.providerState).toEqual(renamed);
+
+    const anthropic = setup([
+      [
+        { type: 'tool-call', call: { id: 'toolu_1', name: 'list_places', args: {} } },
+        {
+          type: 'provider-state',
+          state: {
+            adapter: 'anthropic-messages',
+            blocks: [
+              { type: 'thinking', thinking: 'look', signature: 's' },
+              { type: 'tool_use', id: 'toolu_1', name: 'list_places', input: {} },
+            ],
+          },
+        },
+      ],
+      [{ type: 'text-delta', delta: 'Found it' }],
+    ]);
+    anthropic.input.usedCallIds.add('toolu_1');
+    await runAgentLoop(anthropic.deps, anthropic.input, anthropic.writer, new AbortController().signal);
+    expect(anthropic.memory.saved[0].step.providerState).toEqual({
+      adapter: 'anthropic-messages',
+      blocks: [
+        { type: 'thinking', thinking: 'look', signature: 's' },
+        { type: 'tool_use', id: 'call_id-1', name: 'list_places', input: {} },
+      ],
+    });
   });
 
   it('ASTAGT-007: stops after MAX_STEPS steps with max_steps', async () => {
@@ -830,6 +881,10 @@ describe('runAgentLoop', () => {
       ]);
       const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
       expect(outcome.end).toBe('stop');
+      // Only the step after the ask may not call a tool: a model offering follow-ups again has to write (#3016).
+      expect(t.requests[0].toolChoice).toBeUndefined();
+      expect(t.requests[1].toolChoice).toBe('none');
+      expect(t.requests[1].tools.length).toBeGreaterThan(0);
       const second = t.requests[1].messages;
       expect(second.at(-2)).toEqual({
         role: 'assistant',
@@ -858,6 +913,36 @@ describe('runAgentLoop', () => {
       const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
       expect(outcome).toMatchObject({ end: 'failed', code: 'empty_answer' });
       expect(t.requests).toHaveLength(2);
+    });
+
+    it('ASTAGT-047: the text-only request starts with the step after the ask, never before it (#3016)', async () => {
+      const t = setup([
+        [{ type: 'tool-call', call: { id: 'l1', name: 'list_places', args: {} } }],
+        [ask('toolu_9', ['More stops']), { type: 'finish', reason: 'tool-calls' }],
+        [
+          { type: 'text-delta', delta: 'Two stops so far.' },
+          { type: 'finish', reason: 'stop' },
+        ],
+      ]);
+      const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+      expect(outcome.end).toBe('stop');
+      expect(t.requests.map((request) => request.toolChoice)).toEqual([undefined, undefined, 'none']);
+    });
+
+    it('ASTAGT-050: an empty step after the ask gets a push that is text-only too, so offered follow-ups cannot hide the answer again', async () => {
+      const t = setup([
+        [ask('toolu_10', ['Stops on the drive']), { type: 'finish', reason: 'tool-calls' }],
+        [{ type: 'finish', reason: 'stop' }],
+        [
+          { type: 'text-delta', delta: 'You leave Lisbon on day 4.' },
+          { type: 'finish', reason: 'stop' },
+        ],
+      ]);
+      const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+      expect(outcome.end).toBe('stop');
+      expect(t.requests.map((request) => request.toolChoice)).toEqual([undefined, 'none', 'none']);
+      expect(t.requests[2].messages.at(-1)).toMatchObject({ role: 'user', text: expect.stringContaining('as text') });
+      expect(t.chunks).toContainEqual({ type: 'data-trek-follow-ups', data: { questions: ['Stops on the drive'] } });
     });
 
     it('ASTAGT-045: follow-ups with no answer after an announcing first answer are still asked for the answer', async () => {
@@ -1003,5 +1088,55 @@ describe('runAgentLoop', () => {
     ]);
     expect(JSON.stringify(t.chunks)).not.toContain('HM4X2');
     expect(JSON.stringify(t.memory.saved)).not.toContain('HM4X2');
+  });
+
+  it('ASTAGT-048: an answer that hands the talk on to a trip chat ends the turn; the model is not asked to answer twice', async () => {
+    const t = setup([
+      [
+        { type: 'text-delta', delta: 'Your next trip is Florida.' },
+        {
+          type: 'tool-call',
+          call: { id: 'toolu_h', name: 'open_trip_chat', args: { tripId: 1, question: 'Book the Uber' } },
+        },
+        { type: 'finish', reason: 'tool-calls' },
+      ],
+      [{ type: 'text-delta', delta: 'Your next trip is Florida.' }],
+    ]);
+    const outcome = await runAgentLoop(t.deps, t.input, t.writer, new AbortController().signal);
+    expect(outcome.end).toBe('stop');
+    expect(t.requests).toHaveLength(1);
+    expect(t.tools.call).toHaveBeenCalledTimes(1);
+    expect(t.memory.saved).toHaveLength(1);
+    expect(t.memory.saved[0].step.parts.map((part) => part.type)).toEqual(['text', 'tool-call']);
+  });
+
+  it('ASTAGT-049: a hand-on without any answer, or beside a read, still asks the model again', async () => {
+    const alone = setup([
+      [
+        {
+          type: 'tool-call',
+          call: { id: 'toolu_h', name: 'open_trip_chat', args: { tripId: 1, question: 'Book it' } },
+        },
+        { type: 'finish', reason: 'tool-calls' },
+      ],
+      [{ type: 'text-delta', delta: 'Go on in the trip chat.' }],
+    ]);
+    await runAgentLoop(alone.deps, alone.input, alone.writer, new AbortController().signal);
+    expect(alone.requests).toHaveLength(2);
+
+    const withRead = setup([
+      [
+        { type: 'text-delta', delta: 'Let me look.' },
+        { type: 'tool-call', call: { id: 'toolu_r', name: 'list_places', args: { tripId: 1 } } },
+        {
+          type: 'tool-call',
+          call: { id: 'toolu_h', name: 'open_trip_chat', args: { tripId: 1, question: 'Book it' } },
+        },
+        { type: 'finish', reason: 'tool-calls' },
+      ],
+      [{ type: 'text-delta', delta: 'Kinkaku-ji is on the list.' }],
+    ]);
+    await runAgentLoop(withRead.deps, withRead.input, withRead.writer, new AbortController().signal);
+    expect(withRead.requests).toHaveLength(2);
   });
 });

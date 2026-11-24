@@ -306,7 +306,7 @@ export function usePlaceFormOpeners(options: PlaceFormOpenersOptions) {
         setStopDraft({
           poi: { osm_id: place.osm_id ?? '', name: place.name, lat: place.lat, lng: place.lng, category, poi_type: category, address: place.address ?? null, website: place.website ?? null, phone: place.phone ?? null, opening_hours: null, cuisine: null, source: 'trek', offRouteKm: 0, alongKm: 0 },
           arrivalTime, dayId, dayNumber: days.find(day => day.id === dayId)?.day_number ?? 0, position: visit.order_index ?? 0,
-          editing: { placeId: place.id, stopType: place.stop_type ?? (stay ? 'hotel' : null), dwellMinutes: place.duration_minutes ?? 30, accommodationId: stay?.id, checkIn: stay?.check_in ?? '', checkOut: stay?.check_out ?? '' },
+          editing: { placeId: place.id, assignmentId: visit.id, stopType: place.stop_type ?? (stay ? 'hotel' : null), dwellMinutes: visit.stay_minutes ?? place.duration_minutes ?? 30, accommodationId: stay?.id, checkIn: stay?.check_in ?? '', checkOut: stay?.check_out ?? '' },
           ...(isOvernightCategory(category) ? { overnight: { ...overnightOptions(dayId), ...(stay ? { defaultEndDayId: stay.end_day_id } : {}) } } : {}),
         })
         return

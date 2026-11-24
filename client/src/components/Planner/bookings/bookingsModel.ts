@@ -103,12 +103,50 @@ export interface DaySpan {
 }
 
 /** The days a booking sits on. A hotel reads its stay from the accommodation, which is the source of truth for the range (#1383). */
+/**
+ * A hotel's check-in window and check-out: the booking's own metadata first,
+ * then the stay it is linked to. Times often live only on the stay, and the
+ * edit form already falls back the same way (reservationFormModel.ts).
+ */
+export function hotelStayTimes(
+  r: Reservation,
+  meta: { check_in_time?: string | null; check_in_end_time?: string | null; check_out_time?: string | null },
+): { checkIn: string | null; checkInEnd: string | null; checkOut: string | null } {
+  if (r.type !== 'hotel') {
+    return { checkIn: meta.check_in_time || null, checkInEnd: meta.check_in_end_time || null, checkOut: meta.check_out_time || null }
+  }
+  const checkIn = meta.check_in_time || r.accommodation_check_in || null
+  return {
+    checkIn,
+    // A window end belongs to the check-in it came with.
+    checkInEnd: meta.check_in_time ? meta.check_in_end_time || null : checkIn ? r.accommodation_check_in_end || null : null,
+    checkOut: meta.check_out_time || r.accommodation_check_out || null,
+  }
+}
+
 export function daySpan(r: Reservation, days: Day[]): DaySpan {
   const byId = (id?: number | null) => (id != null ? days.find(d => d.id === id) : undefined)
   if (r.type === 'hotel' && (r.accommodation_start_day_id || r.accommodation_end_day_id)) {
     return { start: byId(r.accommodation_start_day_id), end: byId(r.accommodation_end_day_id) }
   }
   return { start: byId(r.day_id), end: byId(r.end_day_id) }
+}
+
+/**
+ * The calendar dates a booking starts and ends on, as "YYYY-MM-DD", or null where it
+ * knows none: its own date first, then the local date of its first or last stop,
+ * then the date of the day it is linked to. A day-linked transport often carries
+ * only times, so its day stands in.
+ */
+export function bookingDates(r: Reservation, days: Day[]): { start: string | null; end: string | null } {
+  const span = daySpan(r, days)
+  const eps = (r.endpoints || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+  const from = eps.find(e => e.role === 'from')
+  const to = eps.find(e => e.role === 'to')
+  return {
+    start: splitReservationDateTime(r.reservation_time).date || from?.local_date || span.start?.date || null,
+    end: splitReservationDateTime(r.reservation_end_time).date || to?.local_date || span.end?.date || null,
+  }
 }
 
 /**

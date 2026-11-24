@@ -42,7 +42,7 @@ import {
   Req,
   UseGuards,
 } from '@nestjs/common';
-import { adminFeatureToggleResponseSchema } from '@trek/shared';
+import { adminFeatureToggleResponseSchema, adminSsoUnlinkResponseSchema } from '@trek/shared';
 
 import type { Request } from 'express';
 
@@ -154,6 +154,23 @@ export class AdminController {
       details: { targetUser: result.email },
     });
     return { success: true };
+  }
+
+  @Delete('users/:id/sso')
+  @ResponseContract(adminSsoUnlinkResponseSchema)
+  async unlinkUserSso(@CurrentUser() user: User, @Param('id') id: string, @Req() req: Request) {
+    const result = await this.admin.unlinkUserSso(id, user.id);
+    if (result.unlinked) {
+      await this.audit.writeAudit({
+        userId: user.id,
+        action: 'admin.user_sso_unlink',
+        resource: String(id),
+        ip: getClientIp(req),
+        details: { targetUser: result.email },
+      });
+      logInfo(`Admin ${user.email} removed the SSO link of user ${result.email}`);
+    }
+    return { success: true, unlinked: result.unlinked };
   }
 
   // ── Stats / permissions / audit ──

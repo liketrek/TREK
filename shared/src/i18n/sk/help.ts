@@ -60,7 +60,7 @@ const help: TranslationStrings = {
   'help.ctx.dashboard.bullet.1':
     'Palubný lístok: prebiehajúca alebo najbližšia cesta s dátumami, spolucestujúcimi, miestami a odpočítavaním. Kliknutím cestu otvoríte. Štyri tlačidlá v jeho pravom hornom rohu cestu upravia, duplikujú, archivujú alebo vymažú.',
   'help.ctx.dashboard.bullet.2':
-    'Cestovné štatistiky: navštívené krajiny, cesty, dni na cestách a nalietaná vzdialenosť zo všetkých vašich ciest.',
+    'Cestovné štatistiky: navštívené krajiny s vlajkami najnovších navrchu, cesty, dni na cestách a nalietaná vzdialenosť zo všetkých vašich ciest.',
   'help.ctx.dashboard.bullet.3':
     'Karty ciest, filtrované podľa Plánované, Archivované a Dokončené, zobrazené ako mriežka alebo zoznam. Vyhľadávacie pole nad nimi prehľadáva všetky vaše cesty naraz, podľa názvu, dátumu alebo miesta v ceste. Tlačidlá na úpravu, duplikovanie, archiváciu a vymazanie cesty sú v pravom hornom rohu fotky na každej karte.',
   'help.ctx.dashboard.bullet.4':
@@ -124,7 +124,7 @@ const help: TranslationStrings = {
   'help.guide.archive-trip.step.1': 'Kliknite na ikonu archivácie v pravom hornom rohu karty.',
   'help.guide.archive-trip.step.2': 'Ak ju chcete znova vidieť, prepnite filter nad kartami na Archivované.',
   'help.guide.archive-trip.step.3':
-    'Kliknutím na „Obnoviť“ na karte vrátite cestu medzi „Plánované“, alebo medzi „Dokončené“, ak jej dátumy už uplynuli.',
+    'Kliknutím na ikonu obnovenia, tam, kde bola ikona archivácie, vrátite cestu medzi „Plánované“, alebo medzi „Dokončené“, ak jej dátumy už uplynuli.',
   'help.guide.archive-trip.result':
     'Archivované cesty si ponechajú všetky údaje. Už sa však nezobrazujú na prehľade ani v kalendárovom kanáli všetkých ciest.',
 
@@ -158,6 +158,8 @@ const help: TranslationStrings = {
     'Každá aktívna cesta sa zobrazí vo vašom kalendári a sama sa aktualizuje. Archivované cesty a cesty, ktoré skončili pred viac ako 90 dňami, v ňom nie sú.',
   'help.guide.calendar-feed.tip.1':
     'Odkaz držte v tajnosti: kto ho má, môže kanál čítať. Ak sa dostal k iným ľuďom, Vygenerovať znova vám vytvorí nový odkaz a starý prestane fungovať. Vypnúť odkaz úplne odstráni.',
+  'help.guide.calendar-feed.tip.2':
+    'Udalosti s prehľadom dňa pridajú za každý deň jednu celodennú udalosť s jeho miestami a poznámkami bez času. Vypnite ich, ak chcete iba rezervácie. S tým sa mení aj odkaz, takže sa prihláste na odber znova s novým.',
 
   // widgets
   'help.guide.widgets.title': 'Výber widgetov na prehľade',
@@ -493,7 +495,7 @@ const help: TranslationStrings = {
     'Kontinenty ukazujú navštívené krajiny podľa kontinentu. Antarktída sa v rade objaví, až keď ju navštívite. Potom nasleduje vaša séria (po sebe idúce roky s aspoň jednou cestou) a počet ciest, ktoré ste absolvovali tento rok.',
   'help.guide.stats.result': 'Čísla sa aktualizujú automaticky, ako plánujete cesty. Nemusíte tu nič udržiavať.',
   'help.guide.stats.tip.1':
-    'Mestá sa berú z textu adresy, nevyhľadávajú sa. Krátka adresa ako „Osteria Francescana, Italy“ alebo adresa, ktorá končí prefektúrou, sa preto môže započítať ako región namiesto mesta.',
+    'Mestá sa čítajú z textu adresy, nevyhľadávajú sa. TREK preskočí krajinu, PSČ a región a vezme názov pred nimi, takže „10178 Berlin“ sa počíta ako Berlin. Krátka adresa ako „Osteria Francescana, Italy“ nepridá žiadne mesto.',
   'help.guide.stats.tip.2':
     'Krajiny, ktoré ste označili ručne, sa započítajú do Krajín a kontinentov, ale nepridajú žiadne cesty, miesta ani dni.',
 
@@ -531,7 +533,7 @@ const help: TranslationStrings = {
   // ── Screen: collections ────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Zbierky',
   'help.ctx.collections.summary':
-    'Zbierky sú vaša knižnica mimo akejkoľvek cesty: pomenované zoznamy miest, ktoré ste našli a chcete si ich ponechať, každé miesto so stavom Nápad, Chcem navštíviť alebo Navštívené, a ak je zapnuté Túry, aj celé túry, ktoré ste si uložili z cesty. Miesta a túry sa do ciest a z nich kopírujú, nikdy nie prepájajú, takže zoznam a cesta sa navzájom nikdy nemenia.',
+    'Zbierky sú vaša knižnica mimo akejkoľvek cesty: pomenované zoznamy miest, ktoré ste našli a chcete si ich ponechať, každé miesto so stavom Nápad, Chcem navštíviť, Navštívené alebo Chcem sa vrátiť, a ak je zapnuté Túry, aj celé túry, ktoré ste si uložili z cesty. Miesta a túry sa do ciest a z nich kopírujú, nikdy nie prepájajú, takže zoznam a cesta sa navzájom nikdy nemenia.',
   'help.ctx.collections.bullet.1':
     'Stĺpec zoznamov vľavo ukazuje vaše vlastné zoznamy, zoznamy zdieľané s vami, pozvánky, na ktoré ste ešte neodpovedali, a Všetko uložené, ktoré spája všetko zo zoznamov, ktoré vlastníte. Navrchu je Nový zoznam a import zo súboru.',
   'help.ctx.collections.bullet.2':
@@ -541,7 +543,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.4':
     'Riadky miest: fotka, názov a adresa, štítky a kategória a vpravo štítok stavu. Jedno kliknutie naň ho zmení na ďalší stav.',
   'help.ctx.collections.bullet.5':
-    'Mapa vpravo: špendlík pre každé miesto so súradnicami. Jej horná lišta obsahuje Zväčšiť mapu (Zobraziť zoznam, keď je mapa na celú plochu), filter štítkov s tlačidlom na správu štítkov a pole Hľadať miesta. Kliknutím na špendlík otvoríte dané miesto.',
+    'Mapa vpravo: špendlík pre každé miesto so súradnicami. Jej horná lišta obsahuje Zväčšiť mapu (Zobraziť zoznam, keď je mapa na celú plochu), filter štítkov s tlačidlom na správu štítkov a pole Hľadať miesta. Kliknutím na špendlík otvoríte dané miesto. Zámok vľavo dole, nad tlačidlom štýlu mapy, drží mapu na mieste, kým prechádzate miesta.',
   'help.ctx.collections.bullet.6':
     'Detail: kliknutím na riadok zobrazíte titulnú fotku, kategóriu, stav, hodnotenie hviezdičkami, štítky, popis a odkazy. Fotoaparátom na titulnej fotke fotku zmeníte. Dole sú tlačidlá „Upraviť“, „Kopírovať do cesty“, navigácia a „Odobrať zo zoznamu“.',
   // create-list
@@ -587,16 +589,20 @@ const help: TranslationStrings = {
     'V zozname miest v ceste môžete v režime výberu namiesto toho použiť Uložiť do zbierky a uložiť ručne vybranú skupinu miest.',
   // place-status
   'help.guide.place-status.title': 'Nastavenie stavu miesta',
-  'help.guide.place-status.goal': 'Sledujte, čo je len nápad, čo je v užšom výbere a kde ste už boli.',
+  'help.guide.place-status.goal':
+    'Sledujte, čo je len nápad, čo je v užšom výbere, kde ste už boli a kam sa chcete vrátiť.',
   'help.guide.place-status.step.1':
     'Kliknite na odznak stavu na pravom konci riadka miesta. Z „Nápad“ sa stane „Chcem navštíviť“.',
-  'help.guide.place-status.step.2': 'Ďalším kliknutím nastavíte Navštívené a ešte jedným sa vrátite na Nápad.',
+  'help.guide.place-status.step.2':
+    'Ďalším kliknutím nastavíte Navštívené, ešte jedným Chcem sa vrátiť a ďalším sa vrátite na Nápad.',
   'help.guide.place-status.result':
     'Štítok a jeho farba sa zmenia okamžite a počty vo filtri stavu nad zoznamom sa aktualizujú.',
   'help.guide.place-status.tip.1':
     'Stav existuje len v Zbierkach. Keď miesto skopírujete do cesty, jeho stav sa neprenesie.',
   'help.guide.place-status.tip.2':
     'Z cesty otvorí Uložiť do zbierky okno Uložiť do zoznamu so štítkom stavu pre každý zoznam, v ktorom miesto je, a lišta výberu v paneli miest má Označiť ako navštívené vo vašich zoznamoch.',
+  'help.guide.place-status.tip.3':
+    'Chcem sa vrátiť je pre miesto, kde ste už boli a chcete ho vidieť znova. Stále sa počíta ako navštívené, takže Navštívené všade v ceste ho nechá tak, ako je.',
   // place-detail
   'help.guide.place-detail.title': 'Otvorenie uloženého miesta',
   'help.guide.place-detail.goal':
@@ -664,13 +670,14 @@ const help: TranslationStrings = {
   'help.guide.share-list.tip.2': 'Pozývať a odoberať ľudí môže iba vlastník. Člen môže zdieľaný zoznam sám opustiť.',
   // export-list
   'help.guide.export-list.title': 'Export zoznamu do súboru',
-  'help.guide.export-list.goal': 'Pošlite zoznam niekomu na inom serveri TREK alebo ho otvorte v mapovej aplikácii.',
+  'help.guide.export-list.goal':
+    'Pošlite zoznam niekomu na inom serveri TREK, otvorte ho v mapovej aplikácii alebo si ho pozrite v Google My Maps.',
   'help.guide.export-list.step.1': 'V hlavičke zoznamu kliknite na „Exportovať“.',
   'help.guide.export-list.step.2':
-    'Vyberte Zoznam TREK, ak chcete zoznam použiť v inom TREK, aj so štítkami a stavom, alebo GPX pre OsmAnd, Organic Maps, Garmin a ďalšie aplikácie, ktoré čítajú body trasy.',
+    'Vyberte Zoznam TREK, ak chcete zoznam použiť v inom TREK, aj so štítkami a stavom, GPX pre OsmAnd, Organic Maps, Garmin a ďalšie aplikácie, ktoré čítajú body trasy, alebo KML pre Google My Maps, aby ste miesta videli v Google Maps.',
   'help.guide.export-list.result': 'Súbor sa stiahne. Exportovať môže ktorýkoľvek člen zdieľaného zoznamu.',
   'help.guide.export-list.tip.1':
-    'Miesto bez súradníc nemôže byť bodom GPX. Vynechá sa a TREK vám oznámi, koľko takých miest bolo.',
+    'Miesto bez súradníc nemôže byť bodom GPX ani špendlíkom KML. Vynechá sa a TREK vám oznámi, koľko takých miest bolo.',
   'help.guide.export-list.tip.2':
     'Hodnotenia, členovia a nahrané fotky sa zámerne neexportujú: patria k tejto inštancii TREK, nie k zoznamu.',
   // import-file
@@ -708,6 +715,17 @@ const help: TranslationStrings = {
     'Píšte do poľa Hľadať miesta nad mapou a filtre používajte ako v ktoromkoľvek zozname. Vybrať tu funguje tiež: presúvajte, duplikujte, kopírujte do cesty alebo mažte naprieč zoznamami.',
   'help.guide.all-saved.result':
     'Toto zobrazenie ukazuje všetky vaše uložené miesta spolu. Miesta tu pridávať ani importovať nemôžete, pretože neexistuje jeden zoznam, do ktorého by sa pridali.',
+  'help.guide.collection-map-lock.title': 'Zamknutie mapy',
+  'help.guide.collection-map-lock.goal': 'Nechajte mapu na mieste, kým prechádzate uložené miesta.',
+  'help.guide.collection-map-lock.step.1':
+    'Kliknite na zámok vľavo dole na mape, nad tlačidlom štýlu mapy. Keď na neho ukážete, zobrazí sa Uzamknúť zobrazenie mapy. Tlačidlo potom znie Nechať mapu sledovať výber.',
+  'help.guide.collection-map-lock.step.2':
+    'Kliknite na miesto v zozname alebo na špendlík na mape. Otvorí sa jeho podrobná karta a mapa sa k nemu už neposúva ani nepriblíži.',
+  'help.guide.collection-map-lock.tip.1':
+    'Kliknite na zámok znova, teraz Nechať mapu sledovať výber, a mapa sa opäť presunie na miesto, ktoré otvoríte. Zámok je len na počítači. V telefóne mapa vždy sleduje výber.',
+  'help.guide.collection-map-lock.tip.2':
+    'Tento prehliadač si zámok pamätá a je to ten istý zámok ako pri mape cesty: keď je zamknutý tu, mapa cesty zostane zamknutá tiež.',
+  'help.guide.collection-map-lock.result': 'Mapa zostáva na zvolenej časti, kým otvárate jedno miesto za druhým.',
   'help.guide.all-saved.tip.1': 'Štítky a uložené túry patria jednému zoznamu, preto sa v Všetko uložené neponúkajú.',
 
   // ── Screen: journey ───────────────────────────────────────────────────────
@@ -725,7 +743,7 @@ const help: TranslationStrings = {
   'help.guide.create-journey.goal': 'Založte k ceste denník, v ktorom už budú miesta z cesty ako návrhy.',
   'help.guide.create-journey.step.1': 'Kliknite na Vytvoriť nový cestovný denník, poslednú kartu v mriežke.',
   'help.guide.create-journey.step.2':
-    'Pomenujte ho a, ak chcete, pridajte podnadpis, potom zaškrtnite cesty, ku ktorým patrí. Počítadlo ukazuje, koľko miest sa pridá.',
+    'Pomenujte ho a, ak chcete, pridajte podnadpis, potom zaškrtnite cesty, ku ktorým patrí. Riadok dole ukazuje, koľko miest sa importuje.',
   'help.guide.create-journey.step.3': 'Kliknite na „Vytvoriť cestovný denník“.',
   'help.guide.create-journey.result':
     'Denník sa otvorí. Každé miesto z prepojených ciest je na časovej osi ako návrh, raz za každý deň, na ktorý je naplánované. Ku každému môžete napísať záznam.',
@@ -735,7 +753,7 @@ const help: TranslationStrings = {
   'help.guide.open-journey.title': 'Otvoriť cestovný denník',
   'help.guide.open-journey.goal': 'Otvorte denník a zistite, na ktorom mieste sa otvorí.',
   'help.guide.open-journey.step.1':
-    'Kliknite na kartu. Každá ukazuje obálku, dátumy a počet záznamov, fotiek a miest v cestovnom denníku.',
+    'Kliknite na kartu. Každá ukazuje obálku, rok, stav a počet záznamov, fotiek a miest v cestovnom denníku.',
   'help.guide.open-journey.result':
     'Prebiehajúci denník sa otvorí na dnešnom dni, alebo na poslednom zázname pred dneškom, ak dnes ešte nie je nič napísané. Dokončený denník sa otvorí na začiatku.',
   'help.guide.open-journey.tip.1':
@@ -761,7 +779,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-detail.bullet.3':
     'Časová os: jedna sekcia na deň s jeho číslom, počtom miest a tlačidlom + na pridanie záznamu v ten deň. Pod ňou sú karty záznamov s fotkami, náladou, počasím a príbehom a prerušované karty návrhov z ciest, každá s tlačidlom × na odmietnutie.',
   'help.ctx.journey-detail.bullet.4':
-    'Mapa: lišta vrstiev navrchu prepína Plán (prázdne špendlíky a prerušované trasy GPX z ciest), Zaznamenané (plné trasy uložené z Dawarich), Záznamy (špendlíky vo farbách dní, spojené v poradí podľa dátumu tenkou prerušovanou čiarou) a Fotky. Ikona (i) vedľa nich vysvetľuje každý symbol.',
+    'Mapa: lišta vrstiev navrchu prepína Plán (prázdne špendlíky a prerušované trasy GPX z ciest), Zaznamenané (plné trasy uložené z Dawarich), Záznamy (špendlíky vo farbách dní, spojené v poradí podľa dátumu tenkou prerušovanou čiarou) a Fotky. Ikona (i) vedľa nich vysvetľuje každý symbol a okrúhle tlačidlo v pravom hornom rohu prepína na satelitné snímky.',
   'help.ctx.journey-detail.bullet.5':
     '„Nastavenia cestovného denníka“ (⋯): titulný obrázok, názov a podnadpis, stav, stopy GPX, zaznamenané dni, miesta z fotiek, polia záznamu, odmietnuté návrhy, synchronizované cesty, prispievatelia a ktorí členovia cesty majú prístup, verejné zdieľanie, archivácia a vymazanie.',
   'help.ctx.journey-detail.bullet.6':
@@ -777,7 +795,7 @@ const help: TranslationStrings = {
     'V pravom stĺpci skontrolujte dátum a čas, vyhľadajte miesto alebo použite aktuálnu polohu a vyberte náladu a počasie.',
   'help.guide.add-entry.step.4': 'Kliknite na Uložiť.',
   'help.guide.add-entry.result':
-    'Záznam sa zobrazí pri svojom dni na časovej osi a ako špendlík na mape. Počty v hlavičke sa aktualizujú.',
+    'Záznam sa zobrazí pri svojom dni na časovej osi a ako špendlík na mape, keď už má miesto. Počty v hlavičke sa aktualizujú.',
   'help.guide.add-entry.tip.1': 'Keď píšete do návrhu, používate ten istý editor, len s už nastaveným miestom.',
   'help.guide.add-entry.tip.2':
     'Záznam s miestom ponúka Vynechať z trasy: záznam zostane v denníku, ale nezapočíta sa do vzdialenosti ani do krajín a v Studiu sa nezobrazí na mape.',
@@ -819,9 +837,10 @@ const help: TranslationStrings = {
   'help.guide.pros-cons.title': 'Pridanie hodnotenia',
   'help.guide.pros-cons.goal': 'Zhrňte deň tým, čo bolo skvelé a čo nie.',
   'help.guide.pros-cons.step.1':
-    'V editore nájdete pod príbehom Klady a zápory. Napíšte bod do poľa Klady alebo Zápory a pre ďalší použite Pridať ďalší.',
+    'V editore je Klady a zápory navrchu pravého stĺpca. Napíšte bod do poľa Klady alebo Zápory a pre ďalší použite Pridať ďalšie.',
   'help.guide.pros-cons.step.2': 'Uložte. Na karte Zobraziť viac otvorí príbeh a verdikt ako dva krátke zoznamy.',
-  'help.guide.pros-cons.result': 'Palec hore a palec dole sa zobrazia pod príbehom, kde ich hneď uvidíte.',
+  'help.guide.pros-cons.result':
+    'Pod príbehom uvádzajú Skvelé a Mohlo by byť lepšie vaše body vedľa seba, každý s počtom.',
   'help.guide.pros-cons.tip.1':
     'Ak cestovný denník hodnotenia nepoužíva, sekciu môžete vypnúť v časti „Polia záznamu“ v Nastaveniach cestovného denníka.',
   // search-journey
@@ -845,6 +864,21 @@ const help: TranslationStrings = {
     'Tlačidlom „Nahrať“ vpravo pridáte obrázky do galérie. Ak máte pripojený Immich alebo Synology, môžete obrázky vybrať aj odtiaľ cez tlačidlo s názvom knižnice.',
   'help.guide.gallery-map.result':
     'Špendlíky majú farbu svojho dňa a tenká prerušovaná čiara ich spája v poradí podľa dátumu. Lišta vrstiev navrchu mapy prepína, čo sa zobrazuje.',
+  'help.guide.album-date-range.title': 'Z veľkého albumu len vaša cesta',
+  'help.guide.album-date-range.goal':
+    'Vyberte fotky zo svojej cesty z albumu Immich alebo Synology, ktorý ich obsahuje oveľa viac.',
+  'help.guide.album-date-range.step.1':
+    'Prepnite na Galéria a kliknite na tlačidlo s názvom vašej knižnice fotiek, vedľa Nahrať.',
+  'help.guide.album-date-range.step.2':
+    'Kliknite na Albumy a potom na album. Jeho fotky sú zoradené podľa dňa, keď boli odfotené.',
+  'help.guide.album-date-range.step.3':
+    'Pod albumami nastavte Odfotené medzi na prvý a posledný deň, ktorý chcete. V mriežke zostanú len fotky z týchto dní a Vybrať všetko vyberie iba ich.',
+  'help.guide.album-date-range.tip.1':
+    'Rozsah zostane, keď otvoríte iný album, takže môžete prezrieť viac albumov pre tú istú cestu. Znak × na konci riadka zobrazí opäť celý album.',
+  'help.guide.album-date-range.tip.2':
+    'Pridať do navrchu výberu určuje záznam, do ktorého fotky pôjdu. Nová galéria ich vloží len do galérie.',
+  'help.guide.album-date-range.result':
+    'Pridať vloží vybrané fotky do cestovného denníka. Fotky, ktoré v ňom už sú, sú sivé a so zaškrtnutím, takže sa nič nepridá dvakrát.',
   'help.guide.gallery-map.tip.1':
     'Stopy GPX z cesty sa zobrazujú vo vrstve Plán na mape ako prerušované čiary. Zobraziť všetky GPX stopy z ciest v Nastavenia cestovného denníka ich vypne.',
   'help.guide.gallery-map.tip.2':
@@ -910,7 +944,7 @@ const help: TranslationStrings = {
   'help.guide.archive-journey.goal': 'Uzavrite dokončený cestovný denník, alebo ho natrvalo vymažte.',
   'help.guide.archive-journey.step.1': 'Kliknutím na ⋯ vpravo hore v záhlaví otvoríte Nastavenia cestovného denníka.',
   'help.guide.archive-journey.step.2':
-    'Dole „Archivovať cestu“ denník ukončí a označí ako archivovaný, „Obnoviť cestu“ ho obnoví. „Vymazať“ ho po potvrdení odstráni so všetkými záznamami a fotkami.',
+    'Dole „Archivovať cestu“ denník ukončí a označí ako archivovaný, „Obnoviť cestu“ ho obnoví. Kôš vedľa neho po potvrdení vymaže denník so všetkými záznamami a fotkami.',
   'help.guide.archive-journey.result':
     'Archivovaný denník si stále môžete prečítať aj zdieľať, len sa už neotvára na dnešnom dni.',
   'help.guide.archive-journey.tip.1':
@@ -953,7 +987,7 @@ const help: TranslationStrings = {
   'help.guide.studio-auto-layout.goal': 'Získajte jedným kliknutím kompletný prvý návrh zo záznamov a fotiek denníka.',
   'help.guide.studio-auto-layout.step.1': 'Na hornej lište kliknite na „Automatické rozloženie“.',
   'help.guide.studio-auto-layout.step.2':
-    'Vyberte Celá kniha: nahradí všetky strany, ale zachová váš názov aj nastavenie strán. Táto dvojstrana znova zostaví iba dvojstranu na obrazovke. Ponúka sa len pri dvojstrane, ktorá vznikla zo záznamu.',
+    'Vyberte Celá kniha: nahradí všetky strany, ale zachová váš názov aj nastavenie strán. Táto dvojstrana rozloží v inom dizajne iba dvojstranu na obrazovke. Funguje na každej strane, ktorú vytvorilo Automatické rozloženie, vrátane obálky.',
   'help.guide.studio-auto-layout.step.3':
     'Prezrite si panel strán. Ak sa vám predchádzajúca verzia páčila viac, Vrátiť späť zruší celé rozloženie.',
   'help.guide.studio-auto-layout.result':
@@ -968,13 +1002,13 @@ const help: TranslationStrings = {
   'help.guide.studio-pages.step.1':
     'V paneli otvorte Strany. Náhľady ukazujú knihu po poradí: obálka, prvá strana, dvojstrany, posledná strana a zadná obálka. Prvá a posledná strana sú nakreslené vedľa prázdnej vnútornej strany svojej obálky, tak ako sa viazaná kniha otvára.',
   'help.guide.studio-pages.step.2':
-    'Pridať dvojstranu dole vloží novú dvojstranu pred poslednú stranu. Znamienko + medzi dvoma náhľadmi vloží dvojstranu na túto pozíciu.',
+    '+ Strana dole vloží novú dvojstranu pred poslednú stranu. Znamienko + medzi dvoma náhľadmi vloží dvojstranu na túto pozíciu.',
   'help.guide.studio-pages.step.3':
     'Keď prejdete myšou nad náhľad, zobrazia sa jeho akcie: „Posunúť dopredu“, „Posunúť dozadu“, „Duplikovať dvojstranu“ a „Odstrániť dvojstranu“. Kliknutím na náhľad otvoríte danú dvojstranu na pracovnej ploche.',
   'help.guide.studio-pages.result':
     'Obálka, prvá a posledná strana a zadná obálka zostanú na svojom mieste. Nové dvojstrany sa vždy pridajú medzi ne.',
   'help.guide.studio-pages.tip.1':
-    '„Zobrazenie knihy“ na hornej lište ukáže celú knihu po hárkoch, tak ako bude zviazaná.',
+    'Zobrazenie knihy na lište priblíženia pod dvojstranou ukáže celú knihu po hárkoch, tak ako bude zviazaná.',
   'help.guide.studio-pages.tip.2': 'Čísla strán zapnete vo Vlastnosti v časti Dokument, keď nie je nič vybraté.',
   // studio-layouts
   'help.guide.studio-layouts.title': 'Použiť rozloženie na dvojstranu',
@@ -1054,9 +1088,9 @@ const help: TranslationStrings = {
   'help.guide.studio-text-effects.goal': 'Dajte nadpisu obrys, tieň, oblúk alebo písmená vyplnené vzorom.',
   'help.guide.studio-text-effects.step.1': 'Kliknutím na textový prvok na strane ho vyberiete.',
   'help.guide.studio-text-effects.step.2':
-    'Vo Vlastnostiach otvorte Efekty a pridajte obrys, tieň alebo zvýraznenie, alebo vyplňte písmená prechodom či vzorom. Veľkosť písmen a umiestnenie zakrivia riadok a prispôsobia ho rámčeku.',
+    'Vo Vlastnostiach otvorte Efekty. Obrys, Ostrý tieň a Zvýrazňovací pás pridajú okraj, tieň alebo zvýraznenie. Zakrivenie ohne riadok do oblúka alebo kruhu a Písmená ich vyplnia fotkou, prechodom alebo vzorom.',
   'help.guide.studio-text-effects.tip.1':
-    'Prispôsobiť rámčeku zmenšuje text, kým sa nezmestí do rámčeka, takže dlhý nadpis nikdy nepretečie.',
+    'Prispôsobiť rámčeku pod Veľkosť písmen a umiestnenie zmenší slová, keď je rámček na ne malý, takže dlhý nadpis nikdy nepretečie.',
   'help.guide.studio-text-effects.result': 'Efekt sa kreslí spolu s textom, v tlači rovnako ako na obrazovke.',
   'help.guide.studio-background.title': 'Zmena pozadia strany',
   'help.guide.studio-background.goal': 'Vyfarbite stranu farbou, prechodom alebo vzorom, alebo pod ňu položte fotku.',
@@ -1085,7 +1119,7 @@ const help: TranslationStrings = {
   'help.guide.studio-properties.step.1':
     'Kliknite na prvok na dvojstrane. Zobrazia sa úchyty na zmenu veľkosti a otáčanie. Ťahaním prvok presuniete.',
   'help.guide.studio-properties.step.2':
-    '„Vlastnosti“ vpravo zobrazujú nastavenia vybranej položky: polohu a veľkosť, „Orezať“ s ohniskom, ktoré určuje, čo zostane v zábere, „Vyplniť“ alebo „Prispôsobiť“, filtre „Vzhľad“, zaoblenie rohov, štýl rámčeka, poradie vrstiev a „Zamknúť“.',
+    'Vlastnosti vpravo zobrazujú pod názvom nastavenia toho, čo ste vybrali: mapa ponúka svoj zdroj, pohľad a čiaru, fotka Orezať s ohniskom, Vyplniť alebo Prispôsobiť a filtre Vzhľad. Poloha, poradie vrstiev a Zamknúť sú pri každom prvku.',
   'help.guide.studio-properties.step.3':
     'Duplikovať a Vymazať nájdete v hornej časti inšpektora. Vrátiť späť na hornej lište zruší ktorúkoľvek z týchto zmien.',
   'help.guide.studio-properties.result':
@@ -1127,7 +1161,7 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.step.1':
     'Keď je dvojstrana na pracovnej ploche, kliknite na Stiahnuť túto dvojstranu na pravom konci lišty priblíženia. Súbor obsahuje dizajn, nie fotky.',
   'help.guide.studio-spread-file.step.2':
-    'V druhej knihe otvorte Strany, kliknite na Importovať vedľa Pridať dvojstranu a vyberte súbor.',
+    'V druhej knihe otvorte Strany, kliknite na Importovať vedľa + Strana dole a vyberte súbor.',
   'help.guide.studio-spread-file.result':
     'Dvojstrana sa importuje aj s rámčekmi a štýlmi textu. Vložte do rámčekov fotky z nového denníka.',
   'help.guide.studio-spread-file.tip.1': 'Ak súbor nie je návrhom dvojstrany, TREK ho odmietne a uvedie dôvod.',
@@ -1141,7 +1175,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.2':
     'Všeobecné sa otvorí ako prvé. Obsahuje jazyk, jazyk názvov miest, jednotky, formát času, formát dátumu, začiatok týždňa a zobrazovanú menu, ako aj správanie mapy cesty. Vzhľad obsahuje motív, farby, čitateľnosť, veľkosť písma a widgety na prehľade.',
   'help.ctx.settings.bullet.3':
-    '„Mapa“ nastavuje mapový engine a jeho štýl; „Oznámenia“ určujú, ktoré udalosti idú na ktorý kanál; „Integrácie“ pripájajú knižnice fotiek, AirTrail, Dawarich a wanderer a nájdete tu aj kľúče API a MCP; „Offline“ určuje, čo si toto zariadenie ukladá.',
+    '„Mapa“ nastavuje mapový engine a jeho štýl; „Oznámenia“ určujú, ktoré udalosti idú na ktorý kanál; „Integrácie“ obsahujú vašu adresu pre e-maily s rezerváciami, pripájajú knižnice fotiek, AirTrail, Dawarich a wanderer a nájdete tu aj kľúče API a MCP; „Offline“ určuje, čo si toto zariadenie ukladá.',
   'help.ctx.settings.bullet.4':
     'Účet obsahuje váš profil, heslo, dvojfaktorové overenie, prístupové kľúče a možnosť zmazať účet.',
   'help.ctx.settings-display.title': 'Všeobecné',
@@ -1167,11 +1201,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Ktorý engine kreslí mapy plánovača ciest a denníka a v akom štýle. Leaflet je klasická rastrová mapa, Mapbox GL pridáva 3D budovy a terén s vlastným tokenom a MapLibre GL kreslí vektorové dlaždice OpenFreeMap bez tokenu. Atlas vždy používa Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Poskytovateľ mapy: Leaflet, Mapbox GL (Experimentálne) alebo MapLibre GL, každá možnosť s krátkym popisom.',
+    'Poskytovateľ mapy: Leaflet, Mapbox GL alebo MapLibre GL, každá možnosť s krátkym popisom.',
   'help.ctx.settings-map.bullet.2':
     'Šablóna mapy a CARTO API kľúč pre Leaflet, Štýl mapy pre oba GL enginy a k tomu Mapbox prístupový token pre Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
-    'Iba pre Mapbox GL: „3D budovy a terén“ a „Režim vysokej kvality“. Nad tlačidlom „Uložiť nastavenia mapy“ je živý náhľad. Týmto tlačidlom voľbu uložíte.',
+    'Iba pre Mapbox GL: „3D budovy a terén“, „Režim vysokej kvality“ a „Skryť body záujmu“. Nad tlačidlom „Uložiť nastavenia mapy“ je živý náhľad. Týmto tlačidlom voľbu uložíte.',
   'help.ctx.settings-notifications.title': 'Oznámenia',
   'help.ctx.settings-notifications.summary':
     'Ako vás TREK kontaktuje mimo aplikácie. Navrchu tabuľka s jedným riadkom pre každú udalosť a jedným stĺpcom pre každý kanál určuje, čo sa kam posiela. Pod ňou sú karty pre webhook, ntfy, push v tomto zariadení a všetky kanály z doplnkov.',
@@ -1185,9 +1219,9 @@ const help: TranslationStrings = {
     'Push oznámenia v tomto zariadení: Zapnúť pre toto zariadenie platí iba pre tento prehliadač. Odoslať test pošle testovacie oznámenie. Kanál z doplnku ukazuje Nastaviť, kým nie je nastavený.',
   'help.ctx.settings-integrations.title': 'Integrácie',
   'help.ctx.settings-integrations.summary':
-    'Všetko, čo sa zvonku pripája k TREK: knižnice fotiek pre denník, AirTrail pre lety, Dawarich pre to, kde ste naozaj boli, wanderer pre trasy, API kľúče len na čítanie pre iný softvér a MCP pre AI klientov. Pripojenie k inej službe sa zobrazí, až keď ho správca zapne.',
+    'Všetko, čo sa zvonku pripája k TREK: vaša vlastná adresa pre e-maily s rezerváciami, knižnice fotiek pre denník, AirTrail pre lety, Dawarich pre to, kde ste naozaj boli, wanderer pre trasy, API kľúče len na čítanie pre iný softvér a MCP pre AI klientov. Pripojenie k inej službe sa zobrazí, až keď ho správca zapne.',
   'help.ctx.settings-integrations.bullet.1':
-    'Immich a Synology Photos, AirTrail, Dawarich a wanderer: každá karta má svoju adresu a kľúč, tlačidlá Uložiť a Otestovať pripojenie a odznak Pripojené alebo Nepripojené.',
+    'E-maily s rezerváciami, navrchu, keď má správca zapnutý import e-mailov: vaša preposielacia adresa s jej prepínačmi. Pod nimi Immich a Synology Photos, AirTrail, Dawarich a wanderer: každá karta má svoju adresu a kľúč, tlačidlá Uložiť a Otestovať pripojenie a odznak Pripojené alebo Nepripojené.',
   'help.ctx.settings-integrations.bullet.2':
     'API kľúče: kľúče iba na čítanie pre verejné API, každý obmedzený na oblasti, ktoré zvolíte, s endpointom na skopírovanie.',
   'help.ctx.settings-integrations.bullet.3':
@@ -1220,7 +1254,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.title': 'Nastavenie jazyka, jednotiek a meny',
   'help.guide.language-region.goal': 'Používajte TREK vo svojom jazyku a s formátmi svojho regiónu.',
   'help.guide.language-region.step.1':
-    'Pod Jazyk a región vyberte Jazyk z radu čipov. TREK sa prepne okamžite, na každom zariadení, na ktorom ste prihlásený.',
+    'Pod Jazyk a región vyberte Jazyk zo zoznamu. Rýchlo ho nájdete písaním. TREK sa prepne okamžite, na každom zariadení, na ktorom ste prihlásený.',
   'help.guide.language-region.step.2':
     'Názvy miest určujú jazyk, v ktorom sa zobrazuje vyhľadávanie miest, návrhy a adresy. Rovnako ako aplikácia sa riadi jazykom rozhrania.',
   'help.guide.language-region.result':
@@ -1299,7 +1333,7 @@ const help: TranslationStrings = {
   'help.guide.map-provider.step.2':
     'Vyberte Šablóna mapy pre Leaflet alebo Štýl mapy pre GL engine, alebo vložte vlastnú URL. Mapbox GL potrebuje Mapbox prístupový token, šablóny CARTO potrebujú CARTO API kľúč. Odkaz pod každým poľom vedie na miesto, kde ho získate.',
   'help.guide.map-provider.step.3':
-    'Pri Mapbox GL zapnite „3D budovy a terén“ a ak je vaše zariadenie dosť výkonné, aj „Režim vysokej kvality“. Skontrolujte náhľad a kliknite na „Uložiť nastavenia mapy“.',
+    'Pri Mapbox GL zapnite „3D budovy a terén“ a ak je vaše zariadenie dosť výkonné, aj „Režim vysokej kvality“. Skryť body záujmu vynechá obchody a pamätihodnosti, ktoré Mapbox označuje sám. Skontrolujte náhľad a kliknite na „Uložiť nastavenia mapy“.',
   'help.guide.map-provider.result':
     'Mapy plánovača ciest a denníka používajú engine, ktorý ste vybrali. Atlas vždy používa Leaflet.',
   'help.guide.map-provider.tip.1': 'Bez tokenu použije Mapbox GL namiesto prázdnej mapy Leaflet.',
@@ -1354,7 +1388,7 @@ const help: TranslationStrings = {
   'help.guide.mcp-oauth.step.2':
     'Pod Klienti OAuth 2.1 kliknite na Nový klient a vyberte „Quick preset“, napríklad Claude Desktop alebo Cursor, alebo vyplňte Názov aplikácie, Presmerovacie URI a Povolené oprávnenia sami. Pre server bez prehliadača vyberte „Machine client“. Kliknite na Zaregistrovať klienta a skopírujte Tajný kľúč klienta: zobrazí sa iba raz.',
   'help.guide.mcp-oauth.step.3':
-    'Každý klient má tlačidlá „Obnoviť tajný kľúč“ a „Zmazať klienta“. „Aktívne relácie OAuth“ uvádza prihlásených klientov s možnosťou „Odvolať“. Po rozbalení „Konfigurácia klienta“ uvidíte hotový úryvok pre klientov, ktorí používajú JSON.',
+    'Každý klient má tlačidlá „Obnoviť tajný kľúč“ a „Zmazať klienta“. Keď sa klient prihlásil, „Aktívne relácie OAuth“ ho uvádza s tlačidlom „Odvolať“. Nad klientmi je „Konfigurácia klienta“ s hotovým úryvkom pre klientov, ktorí používajú JSON, s tlačidlom Kopírovať.',
   'help.guide.mcp-oauth.result':
     'Klient môže vo vašom mene čítať a meniť to, čo mu povoľujú jeho oprávnenia, a každá akcia sa zobrazí pod vaším menom.',
   'help.guide.mcp-oauth.tip.1':
@@ -1364,9 +1398,9 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.title': 'Príprava ciest na používanie offline',
   'help.guide.offline-prepare.goal': 'Uložte si cesty aj ich mapy do tohto zariadenia skôr, než prídete o pripojenie.',
   'help.guide.offline-prepare.step.1':
-    'Pod Čo ukladať offline nechajte zapnuté Ukladať mapové dlaždice offline a zapnite cesty, ktoré chcete mať v tomto zariadení. Dokončená cesta sa uloží, iba ak ju zapnete.',
+    'V karte „Čo ukladať offline“ vpravo nechajte zapnuté „Ukladať mapové dlaždice offline“ a zapnite cesty, ktoré chcete mať v tomto zariadení. Dokončená cesta sa uloží, iba ak ju zapnete.',
   'help.guide.offline-prepare.step.2':
-    'Späť navrchu kliknite pod Príprava na offline na Stiahnuť pre offline použitie. Načíta údaje ciest, dokumenty a mapové dlaždice a povie, koľko ciest uložil.',
+    'V karte „Offline režim“ kliknite pod „Príprava na offline“ na „Stiahnuť pre offline použitie“. Načíta údaje ciest, dokumenty a mapové dlaždice a povie, koľko ciest uložil.',
   'help.guide.offline-prepare.step.3':
     'Vynútiť offline režim stiahne všetko ešte raz a potom funguje iba z tohto zariadenia, takže pred odchodom môžete skontrolovať, či tam všetko je.',
   'help.guide.offline-prepare.result':
@@ -1442,17 +1476,17 @@ const help: TranslationStrings = {
   // ── Screen: admin (all tabs) ───────────────────────────────────────────────
   'help.ctx.admin.title': 'Správca',
   'help.ctx.admin.summary':
-    'Nastavenia celej inštancie TREK pre všetkých používateľov: kto sa smie prihlásiť a ako, čo je zapnuté, kde sa ukladajú súbory, ako server kontaktuje ľudí a ako sa zálohuje. Túto stránku vidia iba správcovia. Bočný panel zoskupuje karty pod Používatelia, Konfigurácia, Integrácie a Údržba a každá karta je samostatná obrazovka.',
+    'Nastavenia celej inštancie TREK pre všetkých používateľov: kto sa smie prihlásiť a ako, čo je zapnuté, kde sa ukladajú súbory, ako server kontaktuje ľudí a ako sa zálohuje. Túto stránku vidia iba správcovia. Bočný panel zoskupuje karty pod Používatelia, Konfigurácia a Údržba a každá karta je samostatná obrazovka.',
   'help.ctx.admin.bullet.1':
     'Záhlavie vpravo ukazuje počet používateľov, ciest, miest a súborov. Pod ním sa zobrazí banner Dostupná aktualizácia, keď je dostupné novšie vydanie TREK.',
   'help.ctx.admin.bullet.2':
-    'Používatelia a Predvolené nastavenia používateľa: účty, pozývacie odkazy a oprávnenia, a nastavenia a mapa, s ktorými nový účet začína.',
+    'Používatelia a Predvolené: účty, pozývacie odkazy a oprávnenia, a nastavenia a mapa, s ktorými nový účet začína.',
   'help.ctx.admin.bullet.3':
-    'Personalizácia, Nastavenia, Doplnky, Pluginy a Úložisko: šablóny balenia, kategórie a školské prázdniny; prihlásenie, prístupové kľúče, 2FA, API kľúče a poskytovatelia vyhľadávania; funkčné moduly; pluginy tretích strán; kam sa ukladajú nahrané súbory.',
+    'Zabezpečenie, Služby, Doplnky a Personalizácia: prihlásenie, prístupové kľúče, 2FA a jednotné prihlásenie; vyhľadávanie miest, smerovanie, API kľúče a typy súborov; funkčné moduly s ich možnosťami; šablóny balenia, kategórie a školské prázdniny.',
   'help.ctx.admin.bullet.4':
-    'Oznámenia, MCP prístup a GitHub: kanály, ktoré môžu používatelia vybrať, a predvolené hodnoty, s ktorými začínajú, tokeny a relácie AI klientov a história vydaní.',
+    'Oznámenia, MCP a Pluginy: kanály, ktoré môžu používatelia vybrať, a upozornenia, ktoré dostávate ako správca, tokeny a relácie AI klientov a pluginy tretích strán.',
   'help.ctx.admin.bullet.5':
-    'Zálohovanie a Audit: zálohy na požiadanie aj plánované zálohy a záznam udalostí dôležitých pre bezpečnosť.',
+    'Úložisko, Zálohovanie, GitHub a Audit: kam idú nahrané súbory, zálohy na požiadanie aj plánované zálohy, história vydaní a záznam udalostí dôležitých pre bezpečnosť.',
   'help.ctx.admin-users.title': 'Používatelia',
   'help.ctx.admin-users.summary':
     'Všetky účty v tomto TREK s rolou, e-mailom a časom poslednej aktivity, pozývacie odkazy, ktorými sa ľudia môžu zaregistrovať v uzavretej inštancii, a kto čo smie robiť v cestách.',
@@ -1464,13 +1498,13 @@ const help: TranslationStrings = {
     'Pozývacie odkazy nižšie: registračné odkazy s limitom použití, platnosťou a, ak chcete, aj cestou, ku ktorej sa nový používateľ pri registrácii pripojí.',
   'help.ctx.admin-users.bullet.4':
     'Nastavenia oprávnení dole: pri každej akcii určíte, kto ju smie robiť (Všetci, Členovia výletu, Vlastník výletu alebo Iba administrátor). Uložíte to tlačidlom Uložiť v hlavičke karty.',
-  'help.ctx.admin-defaults.title': 'Predvolené nastavenia používateľa',
+  'help.ctx.admin-defaults.title': 'Predvolené',
   'help.ctx.admin-defaults.summary':
     'S čím nový účet začína, aby ho nikto nemusel najprv nastavovať: farebný režim, jednotky, formát času, formát dátumu, začiatok týždňa, zobrazovaná mena a skryté rezervačné kódy, plus mapa, jej kľúče a smerovacie servery.',
   'help.ctx.admin-defaults.bullet.1':
     '„Predvolené nastavenia používateľa“ vľavo: Farebný režim, Jednotky teploty, Jednotky vzdialenosti, Formát času, Týždeň začína, Formát dátumu, Zobrazovaná mena a Skryť rezervačné kódy.',
   'help.ctx.admin-defaults.bullet.2':
-    'Mapa vpravo: Šablóna mapy, Zdieľaný kľúč CARTO, Vlastný smerovací server a Vlastná inštancia Valhalla, náhľad a potom Mapový engine so Štýl mapy, Zdieľaný token Mapbox, 3D budovy a terén a Režim vysokej kvality.',
+    'Smerovanie pod nimi: Smerovacia služba, Vlastný smerovací server a Vlastná inštancia Valhalla. Mapa vpravo: Šablóna mapy, Zdieľaný kľúč CARTO, náhľad a potom Mapový engine so Štýl mapy, Zdieľaný token Mapbox, 3D budovy a terén a Režim vysokej kvality.',
   'help.ctx.admin-config.title': 'Personalizácia',
   'help.ctx.admin-config.summary':
     'Nastavenia spoločné pre všetky cesty v inštancii: šablóny balenia, sada kategórií pre miesta a zbierky a katalóg školských prázdnin, ktorý používa Dovolenka (Vacay).',
@@ -1480,32 +1514,33 @@ const help: TranslationStrings = {
     'Kategórie: názov, ikona a farba kategórií používaných v celom TREK, od inšpektora miesta až po Zbierky. Každá sa upravuje v dialógu s náhľadom.',
   'help.ctx.admin-config.bullet.3':
     'Školské prázdniny: katalóg krajín a regiónov s obdobiami prázdnin, z ktorého si môže každý vyberať v Dovolenke (Vacay).',
-  'help.ctx.admin-settings.title': 'Nastavenia',
+  'help.ctx.admin-settings.title': 'Zabezpečenie a služby',
   'help.ctx.admin-settings.summary':
-    'Ako sa ľudia prihlasujú a ktoré externé služby smie server používať. Vľavo: Metódy overenia, Prihlásenie prístupovým kľúčom, Vyžadovať dvojfaktorové overenie (2FA) a Jednotné prihlásenie (OIDC). Vpravo: Povolené typy súborov a API kľúče s poskytovateľmi vyhľadávania a dopravy. Nebezpečná zóna je úplne dole.',
+    'Ako sa ľudia prihlasujú a ktoré externé služby server používa, na dvoch kartách. Zabezpečenie: Metódy overenia a Prihlásenie prístupovým kľúčom vľavo, Jednotné prihlásenie (OIDC) a Nebezpečná zóna vpravo. Služby: Vyhľadávanie miest a trasovanie vľavo, API kľúče a Povolené typy súborov vpravo.',
   'help.ctx.admin-settings.bullet.1':
-    'Metódy overenia: Prihlásenie heslom, Registrácia heslom a, keď je nastavené OIDC, Prihlásenie cez SSO a Automatické vytváranie účtov SSO. Vyžadovať dvojfaktorové overenie (2FA) má vlastnú kartu.',
+    'Metódy overenia: Prihlásenie heslom a Registrácia heslom, riadky SSO po nastavení OIDC (Prihlásenie cez SSO, Automatické vytváranie účtov SSO a Rovno na SSO), potom Povoliť prihlásenie prístupovým kľúčom a Vyžadovať 2FA. Každý prepínač sa uloží hneď.',
   'help.ctx.admin-settings.bullet.2':
-    'Prihlásenie prístupovým kľúčom: Povoliť prihlásenie prístupovým kľúčom, Relying Party ID (doména) a Povolené origins. Jednotné prihlásenie (OIDC): Zobrazované meno, URL vydavateľa (Issuer), voliteľná Discovery URL, ID klienta a Tajný kľúč klienta.',
+    'Prihlásenie prístupovým kľúčom: Relying Party ID (doména) a Povolené origins. Jednotné prihlásenie (OIDC): Zobrazované meno, URL vydavateľa (Issuer), voliteľná Discovery URL, ID klienta a Tajný kľúč klienta.',
   'help.ctx.admin-settings.bullet.3':
-    'API kľúče: ako prvé je TREK Places API, ktoré kľúč nepotrebuje. Pod ním je Google Maps API kľúč (s tlačidlom „Testovať“ a časťou „Na čo sa kľúč môže používať“), kľúč pre Unsplash a pre Amap a dole na karte jedno spoločné tlačidlo „Uložiť“.',
+    'Vyhľadávanie miest a trasovanie na karte Služby: TREK API, označené Odporúčaný predvolený zdroj, s Dnešný limit a Zdieľanie údajov o miestach, potom Poskytovateľ verejnej dopravy, Poskytovateľ vyhľadávania miest a Záznam vyhľadávania miest.',
   'help.ctx.admin-settings.bullet.4':
-    'Poskytovateľ verejnej dopravy a Poskytovateľ vyhľadávania miest určujú, kto odpovedá na vyhľadávanie dopravy a miest. Záznam vyhľadávania miest zaznamenáva, ktorý výsledok bol vybraný. Povolené typy súborov obmedzujú nahrávanie.',
+    'API kľúče: Google Maps API kľúč s Testovať a Na čo sa kľúč môže používať, kľúč pre Unsplash a pre Amap a jedno Uložiť dole na karte. Povolené typy súborov pod nimi obmedzujú nahrávanie.',
   'help.ctx.admin-addons.title': 'Doplnky',
   'help.ctx.admin-addons.summary':
-    'Funkčné moduly TREK, každý s prepínačom: Balenie, Rozpočet, Dokumenty, Dovolenka (Vacay), Atlas, Spolupráca, Cestovný denník, Zbierky, Cesta autom, MCP, AirTrail, Dawarich a Analýza pomocou AI. Vypnuté znamená, že položka v navigácii, príslušné stránky aj API zmiznú pre všetkých.',
+    'Funkčné moduly TREK v troch kartách: Cesta pre karty cesty, Globálne pre sekcie v hlavnej navigácii a Integrácia pre externé služby. Každý doplnok má prepínač. Vypnuté znamená, že položka v navigácii, príslušné stránky aj API zmiznú pre všetkých.',
   'help.ctx.admin-addons.bullet.1':
-    'Každý doplnok má vlastnú dlaždicu s prepínačom a, ak nejaké má, s riadkami pre svoje možnosti.',
+    'Jeden riadok na doplnok s jeho prepínačom a v hlavičke každej karty počet jej zapnutých doplnkov. Informačná značka vedľa názvu hovorí, čo doplnok robí.',
   'help.ctx.admin-addons.bullet.2':
-    'Poskytovatelia fotiek a dokumentov tu majú tiež svoje dlaždice, takže používateľom môžete ponúknuť napríklad Immich alebo Synology.',
-  'help.ctx.admin-addons.bullet.3': 'Sledovanie batožiny má vlastný prepínač pod dlaždicami.',
+    'Možnosti visia pod svojím doplnkom, kým je zapnutý: Sledovanie batožiny pod Zoznamy, funkcie Spolupráce, úložiská dokumentov pod Dokumenty, poskytovatelia fotiek pod Cestovný denník a wanderer a mapové vrstvy pod Túry.',
+  'help.ctx.admin-addons.bullet.3':
+    'Riadky s ozubeným kolieskom otvárajú dialóg nastavenia, napríklad Údaje o vodách pre vodákov pod Túry a Nastaviť import e-mailov pod Import e-mailov s rezerváciami. Živý stav letov je riadok karty Cesta.',
   'help.ctx.admin-plugins.title': 'Pluginy',
   'help.ctx.admin-plugins.summary':
     'Pluginy tretích strán, ktoré bežia vo vlastnom procese vedľa TREK, každý s oprávneniami, o ktoré požiadal pri inštalácii. Nainštalujte ich z katalógu, nahrajte balík alebo počas vývoja pluginu pripojte priečinok.',
   'help.ctx.admin-plugins.bullet.1':
-    'Nainštalované a Objaviť, s poľom Hľadať pluginy… a filtrami Typ, Stav a Zoradiť. Každý riadok ukazuje verziu, Skontrolované, Podpísané alebo Nepodpísané, k čomu môže plugin pristupovať, prepínač a ponuku ⋯.',
+    'Nainštalované a Objaviť, s Hľadať pluginy… a Filtrovať pre typ, stav a poradie. Každý riadok ukazuje verziu, k čomu môže plugin pristupovať, Skontrolované a Podpísané alebo Nepodpísané, prepínač a ponuku ⋯.',
   'help.ctx.admin-plugins.bullet.2':
-    'Dve ikony v hlavičke karty: „Nahrať plugin“ prijme .zip, .tgz alebo .tar.gz (alebo pretiahnite .zip na stránku); „Znovu prehľadať“ nájde priečinok pluginu prepojený na vývoj.',
+    'Tri ikony v hlavičke karty: Ako sú pluginy zabezpečené vysvetľuje, ako je plugin ohraničený; Nahrať plugin prijme .zip, .tgz alebo .tar.gz (alebo pretiahnite .zip na stránku); Znovu prehľadať nájde priečinok pluginu prepojený na vývoj.',
   'help.ctx.admin-plugins.bullet.3':
     'Povolení hostitelia pre každý plugin: adresy, ktoré plugin smie volať, pretože odchádzajúce pripojenia sú predvolene zablokované.',
   'help.ctx.admin-storage.title': 'Úložisko',
@@ -1516,16 +1551,19 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.2':
     'Backendy: názov, typ, využitie a „Mirrored to“, s tlačidlami Testovať, Upraviť a Odobrať. Vypočítať teraz spočíta, čo je uložené. Backend definovaný premennou prostredia je iba na čítanie.',
   'help.ctx.admin-storage.bullet.3':
-    'Kategórie: dokumenty ciest, fotky z cestovných denníkov, titulné fotky, profilové obrázky, obrázky miest, vyrovnávacie pamäte fotiek a zálohy, každá priradená k jednému úložisku.',
+    'Kategórie: dokumenty ciest, fotky z cestovných denníkov, titulné fotky, profilové obrázky, obrázky miest, vyrovnávacie pamäte fotiek a zálohy, každá priradená k jednému úložisku, s Uložiť zmeny dole.',
+  'help.ctx.admin-storage.bullet.4':
+    'Nepoužívané súbory: čo nočná kontrola našla a v TREK to už nič nepoužíva, s tlačidlom Skontrolovať teraz a prepínačom, ktorý takéto súbory vymaže, keď sú týždeň nepoužité.',
   'help.ctx.admin-notifications.title': 'Oznámenia',
   'help.ctx.admin-notifications.summary':
     'Kanály, ktoré inštancia ponúka používateľom, a tie, cez ktoré dostávate oznámenia vy ako administrátor. Používatelia si vlastné témy a URL nastavujú v „Nastaveniach“, vy rozhodujete, čo je k dispozícii, a nastavujete e-mail.',
   'help.ctx.admin-notifications.bullet.1':
-    'E-mail (SMTP), Webhook, Ntfy a Web Push majú každý prepínač, ktorým sa kanál ponúkne používateľom. E-mail potrebuje aj nastavenia servera. V aplikácii je vždy zapnuté.',
-  'help.ctx.admin-notifications.bullet.2': 'Pripomienky ciest: či server posiela pripomienku pred začiatkom cesty.',
+    'Kanály: E-mail (SMTP), Webhook, Ntfy a Web Push majú každý prepínač, ktorým sa kanál ponúkne používateľom. V aplikácii je vždy zapnuté. Sekcia E-mail (SMTP) pod prepínačmi obsahuje nastavenia poštového servera.',
+  'help.ctx.admin-notifications.bullet.2':
+    'Pripomienky ciest, posledný riadok Kanálov: či server posiela pripomienku pred začiatkom cesty.',
   'help.ctx.admin-notifications.bullet.3':
-    'Admin webhook, Admin Ntfy a karta Oznámenia: kam idú udalosti pre správcu (Nová verzia k dispozícii, Zlyhanie repliky úložiska, Vyžiadaný vodácky región), každé s tlačidlom na test.',
-  'help.ctx.admin-mcp-tokens.title': 'MCP prístup',
+    'Upozornenia pre správcu, vpravo: Admin webhook a Admin Ntfy, každé s tlačidlom na test, a pod nimi, ktorý kanál posiela každú udalosť pre správcu (Nová verzia k dispozícii, Zlyhanie repliky úložiska, Vyžiadaný vodácky región).',
+  'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
     'Všetky tokeny a OAuth relácie, ktoré majú AI klienti k tejto inštancii TREK, za všetkých používateľov. Ktorýkoľvek z nich môžete odvolať.',
   'help.ctx.admin-mcp-tokens.bullet.1':
@@ -1574,12 +1612,12 @@ const help: TranslationStrings = {
   'help.guide.edit-user.step.1':
     'V riadku používateľa kliknite na ceruzku (Upraviť používateľa). Dialóg ukazuje navrchu e-mail účtu.',
   'help.guide.edit-user.step.2':
-    'Zmeňte „Používateľské meno“, „E-mail“ alebo „Rola“, prípadne zadajte „Nové heslo“ (ak ho necháte prázdne, zostane súčasné), a kliknite na „Uložiť“. „Resetovať prístupové kľúče“ dole po potvrdení odstráni všetky prístupové kľúče účtu.',
+    'Zmeňte „Používateľské meno“, „E-mail“ alebo „Rola“, prípadne zadajte „Nové heslo“ (ak ho necháte prázdne, zostane súčasné), a kliknite na „Uložiť“. Pod tým „Resetovať prístupové kľúče“ po potvrdení odstráni všetky prístupové kľúče účtu a „Resetovať 2FA“ vypne jeho dvojfaktorové overenie.',
   'help.guide.edit-user.result':
     'Zmena sa použije hneď. Nové heslo osobu navyše odhlási na všetkých zariadeniach, takže stará relácia prestane fungovať.',
   'help.guide.edit-user.tip.1': 'Rolu správcu si nemôžete odobrať, kým ste posledným správcom.',
   'help.guide.edit-user.tip.2':
-    'Resetovanie prístupových kľúčov zachová heslo. Dotyčný si nové prístupové kľúče pridá v Nastavenia, Účet.',
+    'Resetovanie prístupových kľúčov alebo 2FA zachová heslo. Dotyčný si nové prístupové kľúče pridá v Nastavenia, Účet a po resete 2FA je všade odhlásený a môže si ho nastaviť znova.',
   // invite-links
   'help.guide.invite-links.title': 'Pozvať niekoho cez odkaz',
   'help.guide.invite-links.goal':
@@ -1671,24 +1709,30 @@ const help: TranslationStrings = {
     'Región, ktorý si už niekto vybral vo svojom kalendári Dovolenka (Vacay), sa nedá vymazať.',
   // auth-methods
   'help.guide.auth-methods.title': 'Určiť, ako sa ľudia prihlasujú',
-  'help.guide.auth-methods.goal': 'Zapnite alebo vypnite prihlásenie heslom, SSO a registráciu a vyžadujte 2FA.',
+  'help.guide.auth-methods.goal':
+    'Zapnite alebo vypnite prihlásenie heslom, registráciu, SSO a prístupové kľúče a vyžadujte 2FA.',
   'help.guide.auth-methods.step.1':
-    'Pod Metódy overenia zapnite alebo vypnite Prihlásenie heslom a Registrácia heslom. Každý prepínač platí okamžite. Pri vypnutej registrácii vznikajú nové účty len z pozývacích odkazov, cez SSO alebo cez Vytvoriť používateľa.',
+    'Na karte Zabezpečenie pod Metódy overenia zapnite alebo vypnite Prihlásenie heslom a Registrácia heslom. Každý prepínač platí okamžite. Pri vypnutej registrácii vznikajú nové účty len z pozývacích odkazov, cez SSO alebo cez Vytvoriť používateľa.',
   'help.guide.auth-methods.step.2':
-    'Prihlásenie cez SSO a Automatické vytváranie účtov SSO vyžadujú nastavené Jednotné prihlásenie (OIDC) nižšie. Automatické vytváranie založí účet, keď sa niekto prvýkrát prihlási cez SSO.',
+    'Keď je Jednotné prihlásenie (OIDC) nastavené, nasledujú tri riadky SSO: Prihlásenie cez SSO, Automatické vytváranie účtov SSO, ktoré založí účet, keď sa niekto prvýkrát prihlási cez SSO, a Rovno na SSO.',
   'help.guide.auth-methods.step.3':
-    'Zapnite „Vyžadovať dvojfaktorové overenie (2FA)“ a každý, kto 2FA nemá, si ho bude musieť nastaviť v „Nastaveniach“, kým bude môcť TREK používať.',
+    'Povoliť prihlásenie prístupovým kľúčom ponúka prístupové kľúče na prihlasovacej stránke. Zapnite Vyžadovať 2FA a každý, kto 2FA nemá, si ho bude musieť nastaviť v Nastaveniach, kým bude môcť TREK používať.',
   'help.guide.auth-methods.result': 'Prihlasovacia stránka ponúkne presne tie spôsoby, ktoré ste nechali zapnuté.',
   'help.guide.auth-methods.tip.1':
     'TREK nedovolí vypnúť poslednú metódu prihlásenia: jej prepínač zosivie a tooltip povie „At least one login method must remain enabled“.',
   'help.guide.auth-methods.tip.2':
     'Ak je na serveri nastavené OIDC_ONLY, prepínače hesla sú zamknuté a poznámka na to upozorní.',
+  'help.guide.auth-methods.tip.3':
+    'Rovno na SSO má význam, len keď je Prihlásenie heslom vypnuté: zapnuté posiela návštevníkov hneď k vášmu poskytovateľovi identity, vypnuté im najprv ukáže prihlasovaciu stránku s tlačidlom SSO.',
   // oidc
   'help.guide.oidc.title': 'Pripojenie jednotného prihlásenia',
   'help.guide.oidc.goal': 'Umožnite ľuďom prihlásiť sa cez vášho poskytovateľa identity.',
   'help.guide.oidc.step.1':
-    'Pod Jednotné prihlásenie (OIDC) zadajte Zobrazované meno pre tlačidlo, URL vydavateľa (Issuer), ID klienta a Tajný kľúč klienta od svojho poskytovateľa. Discovery URL (voliteľné) vyplňte iba vtedy, ak ju váš poskytovateľ nezverejňuje na obvyklej adrese, ako napríklad Authentik. Kliknite na Uložiť.',
-  'help.guide.oidc.step.2': 'Pod Metódy overenia zapnite Prihlásenie cez SSO.',
+    'Na karte Zabezpečenie zadajte pod Jednotné prihlásenie (OIDC) Zobrazované meno pre tlačidlo, URL vydavateľa (Issuer), ID klienta a Tajný kľúč klienta od svojho poskytovateľa. Discovery URL (voliteľné) vyplňte iba vtedy, ak ju váš poskytovateľ nezverejňuje na obvyklej adrese, ako napríklad Authentik. Kliknite na Uložiť.',
+  'help.guide.oidc.step.2':
+    'Načítajte stránku znova. Karta teraz hovorí Nastavené a Metódy overenia ukazujú Prihlásenie cez SSO, Automatické vytváranie účtov SSO a Rovno na SSO. Zapnite Prihlásenie cez SSO.',
+  'help.guide.oidc.step.3':
+    'Ak chcete, aby SSO bolo jediný spôsob prihlásenia, vypnite Prihlásenie heslom. So zapnutým Rovno na SSO idú návštevníci hneď k vášmu poskytovateľovi. Vypnite ho, ak má zostať prihlasovacia stránka s tlačidlom SSO.',
   'help.guide.oidc.result':
     'Na prihlasovacej stránke sa zobrazí tlačidlo SSO. So zapnutým „Automatickým vytváraním účtov SSO“ dostanú noví používatelia pri prvom prihlásení účet automaticky.',
   'help.guide.oidc.tip.1':
@@ -1700,9 +1744,9 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     'Zapnite pre celú inštanciu fotky a hodnotenia z Google, titulné fotky z Unsplash a vyhľadávanie cez Amap.',
   'help.guide.instance-keys.step.1':
-    'Pod API kľúče už TREK Places API navrchu vybavuje vyhľadávanie miest bez akéhokoľvek kľúča. Čo v tom je vypisuje, čo pokrýva a čo nie.',
+    'Na karte Služby začína karta Vyhľadávanie miest a trasovanie s TREK API, označeným Odporúčaný predvolený zdroj. Vybavuje vyhľadávanie miest, adresy a trasovanie bez kľúča a Dnešný limit ukazuje, čo z dňa zostáva.',
   'help.guide.instance-keys.step.2':
-    'Pre fotky, hodnotenia a otváracie hodiny vložte Google Maps API kľúč a kliknite na Testovať. Zobrazí sa Pripojené alebo Neplatný. Otvorte Na čo sa kľúč môže používať a zapnite len to, čo chcete mať spoplatnené: Fotografie miest, Automatické dopĺňanie miest, Podrobnosti o mieste, Obohatenie miest a Hľadať len cez Google, a nastavte Denný limit volaní Google.',
+    'Pre fotky, hodnotenia a otváracie hodiny vložte pod API kľúče Google Maps API kľúč a kliknite na Testovať. Zobrazí sa Pripojené alebo Neplatný. Pod Na čo sa kľúč môže používať zapnite len to, čo chcete mať spoplatnené: Fotografie miest, Automatické dopĺňanie miest, Podrobnosti o mieste, Obohatenie miest a Hľadať len cez Google, a nastavte Denný limit volaní Google.',
   'help.guide.instance-keys.step.3':
     'Vložte Unsplash API kľúč pre vyhľadávanie titulných obrázkov a Amap (高德地图) API kľúč pre vyhľadávanie miest v pevninskej Číne, potom kliknite dole v karte na Uložiť.',
   'help.guide.instance-keys.result':
@@ -1718,7 +1762,7 @@ const help: TranslationStrings = {
   'help.guide.places-transit.goal':
     'Vyberte službu, ktorá odpovedá na vyhľadávanie miest a požiadavky na trasy verejnej dopravy.',
   'help.guide.places-transit.step.1':
-    'Pod Poskytovateľ verejnej dopravy vyberte Transitous (zdarma), ktorý nepotrebuje kľúč a je najsilnejší v Európe, alebo Google, ktorý používa kľúč Google. Voľba sa uloží hneď.',
+    'Na karte Služby vyberte v karte Vyhľadávanie miest a trasovanie pod Poskytovateľ verejnej dopravy: Transitous (zdarma), ktorý nepotrebuje kľúč a je najsilnejší v Európe, alebo Google, ktorý používa kľúč Google. Voľba sa uloží hneď.',
   'help.guide.places-transit.step.2':
     'Pod Poskytovateľ vyhľadávania miest vyberte službu, ktorú sa TREK opýta, keď index TREK a OpenStreetMap nič nenájdu: Automaticky (Google, ak existuje kľúč, potom Amap), Google Places, Amap (高德地图) alebo OpenStreetMap.',
   'help.guide.places-transit.result':
@@ -1730,7 +1774,7 @@ const help: TranslationStrings = {
   'help.guide.file-types.title': 'Obmedzenie typov súborov',
   'help.guide.file-types.goal': 'Určte, aké prípony môžu mať nahrávané súbory.',
   'help.guide.file-types.step.1':
-    'Pod Povolené typy súborov upravte zoznam prípon oddelených čiarkami alebo zadajte * na povolenie všetkých typov a kliknite na Uložiť.',
+    'Na karte Služby pod Povolené typy súborov upravte zoznam prípon oddelených čiarkami alebo zadajte * na povolenie všetkých typov a kliknite na Uložiť.',
   'help.guide.file-types.result':
     'Nahrávanie iných typov súborov sa odmietne zrozumiteľnou správou, v dokumentoch, v denníku aj pri titulných obrázkoch.',
   'help.guide.file-types.tip.1':
@@ -1739,9 +1783,9 @@ const help: TranslationStrings = {
   'help.guide.toggle-addon.title': 'Zapnutie alebo vypnutie doplnku',
   'help.guide.toggle-addon.goal': 'Sprístupnite funkčný modul všetkým alebo ho odstráňte.',
   'help.guide.toggle-addon.step.1':
-    'Kliknite na prepínač na dlaždici doplnku. Položka v navigácii sa všetkým hneď zobrazí alebo zmizne.',
+    'Nájdite doplnok v jeho karte, Cesta, Globálne alebo Integrácia, a kliknite na prepínač v jeho riadku. Položka v navigácii sa všetkým hneď zobrazí alebo zmizne.',
   'help.guide.toggle-addon.step.2':
-    'Niektoré dlaždice majú riadky so svojimi možnosťami, napríklad „Sledovanie batožiny“ pod „Zoznamami“ alebo poskytovateľov fotiek pod „Cestovným denníkom“. Zobrazujú sa, len kým je doplnok zapnutý.',
+    'Kým je doplnok zapnutý, jeho možnosti nasledujú ako odsadené riadky, napríklad Sledovanie batožiny pod Zoznamy alebo poskytovatelia fotiek pod Cestovný denník. Živý stav letov, dole na karte Cesta, sleduje rezervované lety naživo.',
   'help.guide.toggle-addon.result':
     'Keď doplnok vypnete, jeho údaje sa zachovajú. Keď ho znova zapnete, údaje sa opäť zobrazia.',
   'help.guide.toggle-addon.tip.1': 'Vypnutím MCP sa odstráni endpoint aj sekcie Integrácie, ktoré od neho závisia.',
@@ -1760,15 +1804,71 @@ const help: TranslationStrings = {
     'Tu sa rozhoduje len o tom, či sa úložisko môže ponúkať. Adresa a prihlasovacie údaje patria k ceste a zadáva ich vlastník cesty v jej karte Súborov, nikdy nie v paneli správcu.',
   'help.guide.document-providers.tip.2':
     'Keď vypnete Dokumenty, vypnú sa aj všetky úložiská, a kým sú Dokumenty vypnuté, žiadne úložisko nezapnete: server odpovie „Najprv povoľte doplnok Dokumenty“. Úložisko vo vašej vlastnej sieti navyše vyžaduje na serveri ALLOW_INTERNAL_NETWORK=true.',
+  'help.guide.mail-import-setup.title': 'Nastavenie importu e-mailov s rezerváciami',
+  'help.guide.mail-import-setup.goal':
+    'Dajte každému preposielaciu adresu, aby sa potvrdenia rezervácií, ktoré pošle ďalej, stali rezerváciami v správnej ceste.',
+  'help.guide.mail-import-setup.step.1':
+    'Na karte Doplnky zapnite v karte Integrácia Import e-mailov s rezerváciami. Každý v tomto TREK teraz dostane osobnú preposielaciu adresu.',
+  'help.guide.mail-import-setup.step.2': 'Kliknite na Nastaviť import e-mailov, riadok, ktorý sa zobrazí pod ním.',
+  'help.guide.mail-import-setup.step.3':
+    'Pod Ako e-maily prichádzajú vyberte Schránka IMAP a zadajte Server, Port, Šifrovanie, Používateľ, Heslo a Priečinok. Pre poštovú službu, ktorá posiela každý e-mail do TREK, vyberte namiesto toho Webhook, alebo Iba nahrávanie na vyskúšanie bez schránky. Potom nastavte Šablóna adresy, teda preposielaciu adresu so zástupným znakom tam, kam príde kód každej osoby, a E-maily s AI na osobu a deň.',
+  'help.guide.mail-import-setup.step.4':
+    'Kliknite na Uložiť a potom na Otestovať pripojenie. Zobrazí sa Pripojené alebo čo zlyhalo. Pod tým dialóg ukazuje, kedy TREK naposledy čítal poštu, a e-maily za posledných 24 hodín: Pridané automaticky, Čaká a Zlyhalo.',
+  'help.guide.mail-import-setup.result':
+    'Každý nájde svoju preposielaciu adresu v Nastavenia, Integrácie. Preposlané potvrdenie sa stane rezerváciou v správnej ceste, alebo tam čaká, kým sa naň jej vlastník pozrie.',
+  'help.guide.mail-import-setup.tip.1':
+    'Dajte TREK vlastnú schránku, ktorá prijíma plus adresy (trek+…@vasa-domena), nie osobnú. Prečítané e-maily sa presunú do priečinka TREK/processed.',
+  'help.guide.mail-import-setup.tip.2':
+    'Premenné prostredia, ktoré začínajú MAIL_INGEST_, majú prednosť pred poľami v dialógu. Poštový server vo vašej vlastnej sieti potrebuje na serveri aj ALLOW_INTERNAL_NETWORK=true.',
+  'help.guide.mail-import-setup.tip.3':
+    'E-maily s AI na osobu a deň obmedzuje, koľko e-mailov bez strojovo čitateľných údajov o rezervácii prečíta AI pre jednu osobu za deň. Nad týmto limitom sa čítajú iba strojovo čitateľné údaje.',
+  'help.guide.ai-setup.title': 'Nastavenie AI asistenta',
+  'help.guide.ai-setup.goal': 'Raz pripojte poskytovateľa AI, aby mohol každý na tomto TREK plánovať s asistentom.',
+  'help.guide.ai-setup.step.1':
+    'Na karte Doplnky nájdite v karte Integrácia dlaždicu AI a zapnite AI asistent. Analýza pomocou AI a MCP sú v tej istej dlaždici.',
+  'help.guide.ai-setup.step.2': 'Kliknite na Nastaviť AI, riadok, ktorý sa zobrazí pod prepínačmi.',
+  'help.guide.ai-setup.step.3':
+    'Pod Kto platí vyberte, kto poskytuje pripojenie: Platím za všetkých, Platím ja, vlastné povolené alebo Každý používa vlastný účet. Riadok pod tým povie, čo váš výber znamená.',
+  'help.guide.ai-setup.step.4':
+    'Pod Pripojenie pre všetkých vyberte Vložiť API kľúč a vložte kľúč od Anthropic, OpenAI, Gemini alebo OpenRouter. TREK uvedie poskytovateľa, ktorého rozpoznal. Kliknite na Pripojiť; TREK kľúč pred uložením overí u poskytovateľa.',
+  'help.guide.ai-setup.step.5':
+    'Pripojenie sa zobrazí ako Pripojené. Vyberte Model, s ktorým budú všetci chatovať; v zozname sú len modely, ktoré vedia používať nástroje. Zmeniť a Odstrániť pripojenie sú pod ním.',
+  'help.guide.ai-setup.step.6':
+    'Na karte AI asistent nastavte Správy na osobu za deň, kým platíte vy, ako dlho sa majú Uchovávať chaty a či je povolené Vyhľadávanie na webe. Každá zmena sa uloží hneď.',
+  'help.guide.ai-setup.result':
+    'Tlačidlo asistenta sa zobrazí v každej ceste. Ak ste to povolili, ľudia si môžu pripojiť vlastného poskytovateľa v Nastavenia, Integrácie.',
+  'help.guide.ai-setup.tip.1':
+    'Vlastný server prijme akúkoľvek adresu kompatibilnú s OpenAI, napríklad Ollama, s voliteľným kľúčom a názvom modelu. Prihlásiť sa cez ChatGPT zdieľa váš vlastný plán ChatGPT so všetkými; skontrolujte, či to váš plán dovoľuje.',
+  'help.guide.ai-setup.tip.2': 'Pri Každý používa vlastný účet sa vám nič neúčtuje a denný limit sa neuplatňuje.',
+  'help.guide.ai-setup.tip.3':
+    'Analýza pomocou AI číta rezervácie cez rovnaké pripojenie. Zapnite ju v dlaždici a jej vlastná karta v dialógu jej umožní použiť iné.',
+  'help.guide.ai-setup.tip.4':
+    'Vyhľadávanie na webe funguje s ChatGPT, Anthropic a OpenRouter cez vlastné vyhľadávanie poskytovateľa a hľadané výrazy idú iba jemu.',
+  'help.guide.paddle-water-data.title': 'Načítanie údajov o vodách pre vodácke túry',
+  'help.guide.paddle-water-data.goal':
+    'Dajte vodáckym túram jazy, plavebné komory a pravidlá plavby v regióne a rozhodnite, či TREK načítava nové regióny sám.',
+  'help.guide.paddle-water-data.step.1':
+    'Na karte Doplnky, kým sú zapnuté Túry, kliknite na Údaje o vodách pre vodákov, posledný riadok pod Túry. Číslo vedľa neho počíta regióny alebo žiadosti, ktoré na vás čakajú.',
+  'help.guide.paddle-water-data.step.2':
+    'Pod Načítavať regióny automaticky vyberte Automaticky, Na žiadosť alebo Vypnuté. Automaticky načíta región, v ktorom niekto plánuje vodácku túru, až po Najväčší región načítavaný automaticky. Čokoľvek väčšie čaká pod Vyžiadané, kde Načítať región prečíta a Zamietnuť ho zahodí.',
+  'help.guide.paddle-water-data.step.3':
+    'Pod Pridať región vyhľadajte v Geofabrik región, napríklad Oberpfalz, a kliknite na Pridať vedľa neho. TREK ho číta na pozadí. Keď je Pripravený, jeho riadok ukazuje objekty, dátum údajov a kilometre vody. Načítať znova ho obnoví a Odstrániť región ho vymaže.',
+  'help.guide.paddle-water-data.result':
+    'Vodácke túry v regióne ukazujú jeho prekážky a sledujú vodu a TREK načíta každý región znova raz za mesiac.',
+  'help.guide.paddle-water-data.tip.1': 'Do Geofabrik ide len názov regiónu, nikdy miesto, ktoré niekto plánuje.',
+  'help.guide.paddle-water-data.tip.2':
+    'Čítanie regiónu trvá niekoľko minút a počas neho zaberá pamäť. Celá krajina potrebuje niekoľko gigabajtov dočasného miesta.',
+  'help.guide.paddle-water-data.tip.3':
+    'Správcovia dostanú upozornenie Vyžiadaný vodácky región, keď čaká žiadosť. Kam príde, vyberiete v Upozornenia pre správcu na karte Oznámenia.',
   // install-plugin
   'help.guide.install-plugin.title': 'Inštalácia pluginu',
   'help.guide.install-plugin.goal': 'Pridajte plugin tretej strany a udeľte mu presne tie oprávnenia, o ktoré žiada.',
   'help.guide.install-plugin.step.1':
-    'Otvorte Objaviť, nájdite doplnok cez Hľadať pluginy… alebo filter Typ a kliknite na Inštalovať. Pri súbore balíka kliknite na Nahrať plugin (ikona oblaku vpravo hore v karte) alebo pustite súbor .zip na stránku.',
+    'Otvorte Objaviť, nájdite plugin cez Hľadať pluginy… alebo Filtrovať a kliknite na Inštalovať. Pri súbore balíka kliknite na Nahrať plugin (ikona oblaku vpravo hore v karte) alebo pustite súbor .zip na stránku.',
   'help.guide.install-plugin.step.2':
     'Pod Nainštalované si prečítajte riadok: k čomu má plugin prístup, s ktorými hostiteľmi sa spája a či je Skontrolované a Podpísané. Potom zapnite Povoliť plugin. Riadok ukáže Aktívny.',
   'help.guide.install-plugin.step.3':
-    'Ponuka ⋯ pri riadku ponúka Reštartovať, Zobraziť protokol chýb, Povolení hostitelia a Zmeniť verziu…, plus odkazy na zdroj. Vymazať odinštaluje plugin aj s jeho dátami. Novšia verzia sa v riadku zobrazí ako aktualizácia a verzia, ktorá žiada nové oprávnenia, zostane vypnutá, kým ich neschválite.',
+    'Ponuka ⋯ pri riadku ponúka Reštartovať, Nastavenia inštancie, ak ich plugin má, Zobraziť protokol chýb, Povolení hostitelia a Zmeniť verziu…, plus odkazy na zdroj. Vymazať odinštaluje plugin aj s jeho dátami. Novšia verzia sa v riadku zobrazí ako aktualizácia a verzia, ktorá žiada nové oprávnenia, zostane vypnutá, kým ich neschválite.',
   'help.guide.install-plugin.result':
     'Doplnok beží vo vlastnom procese. Všetko, čo pridáva, napríklad widgety, mapové vrstvy alebo nástroje, sa zobrazí tam, kde to doplnok určí.',
   'help.guide.install-plugin.tip.1': '„Znovu prehľadať“ nájde priečinok doplnku prepojený na vývoj, aj keď nemá balík.',
@@ -1783,7 +1883,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'Pod Kategórie priraďte každý druh nahraných súborov, ako Dokumenty cesty, Fotky z cestovného denníka alebo Zálohy, k nejakému backendu.',
   'help.guide.storage-backends.step.3':
-    'Dole kliknite na „Uložiť zmeny“. Ak kategória teraz smeruje inam, TREK sa opýta, či má „Presunúť existujúce objekty“ alebo „Iba smerovať nové zápisy“.',
+    'Kliknite na „Uložiť zmeny“ dole v Kategórie. Ak kategória teraz smeruje inam, TREK sa opýta, či má „Presunúť existujúce objekty“ alebo „Iba smerovať nové zápisy“.',
   'help.guide.storage-backends.result':
     'Nové nahrávky idú do pridelenej služby úložiska. Presunuté súbory sa poskytujú odtiaľ a súbory, ktoré ste sa rozhodli nepresúvať, zostanú tam, kde boli.',
   'help.guide.storage-backends.tip.1':
@@ -1794,11 +1894,11 @@ const help: TranslationStrings = {
   'help.guide.channels-instance.title': 'Nastaviť kanály oznámení',
   'help.guide.channels-instance.goal': 'Určte, ktoré kanály si môžu používatelia vybrať, a nastavte e-mail.',
   'help.guide.channels-instance.step.1':
-    'V hlavičke karty zapnite E-mail (SMTP), zadajte SMTP Host, SMTP Port, SMTP User, SMTP Password a From Address a kliknite na Uložiť. Odoslať testovací e-mail pošle e-mail vám. Preskočiť kontrolu certifikátu TLS používajte iba pri lokálnom poštovom serveri s vlastným certifikátom.',
+    'V karte Kanály zapnite E-mail (SMTP). V sekcii E-mail (SMTP) pod ňou zadajte SMTP Host, SMTP Port, SMTP User, SMTP Password a From Address a kliknite na Uložiť. Odoslať testovací e-mail pošle e-mail vám. Preskočiť kontrolu certifikátu TLS používajte iba pri lokálnom poštovom serveri s vlastným certifikátom.',
   'help.guide.channels-instance.step.2':
-    'Zapnite Webhook, Ntfy a Web Push, aby ich bolo možné ponúknuť. Používatelia potom v Nastavenia, Oznámenia zadajú vlastnú URL alebo tému, alebo zapnú push pre jednotlivé zariadenia.',
+    'Zapnite Webhook, Ntfy a Web Push v tej istej karte, aby ste ich ponúkli. Používatelia potom v Nastavenia, Oznámenia zadajú vlastnú URL alebo tému, alebo zapnú push pre jednotlivé zariadenia.',
   'help.guide.channels-instance.step.3':
-    'Pripomienky ciest zapínajú pripomienku pred začiatkom cesty. V aplikácii je vždy zapnuté.',
+    'Pripomienky ciest, posledný riadok, zapínajú pripomienku pred začiatkom cesty. V aplikácii je vždy zapnuté.',
   'help.guide.channels-instance.result': 'Karta Oznámenia každého používateľa zobrazuje kanály, ktoré ste zapli.',
   'help.guide.channels-instance.tip.1':
     'URL servera Ntfy na karte Ntfy v administrácii je zároveň predvoleným serverom pre používateľov. Tí si stále môžu nastaviť vlastný.',
@@ -1809,7 +1909,7 @@ const help: TranslationStrings = {
   'help.guide.admin-channels.goal':
     'Dostávajte oznámenia o nových vydaniach, zlyhávajúcich zrkadlách úložiska a žiadostiach o vodácke regióny.',
   'help.guide.admin-channels.step.1':
-    'Pod Admin Ntfy zadajte Admin téma a podľa potreby URL servera Ntfy a Prístupový token (voliteľné). Pod Admin webhook zadajte URL. V každej karte kliknite na Uložiť.',
+    'V karte Upozornenia pre správcu zadajte pod Admin webhook URL a kliknite na jeho Uložiť. Pod Admin Ntfy zadajte Admin téma a podľa potreby URL servera Ntfy a Prístupový token (voliteľné) a kliknite na Uložiť.',
   'help.guide.admin-channels.step.2':
     'Kliknite na Odoslať testovacie ntfy alebo Odoslať testovací webhook a overte, že správa dorazí.',
   'help.guide.admin-channels.result':
@@ -1890,9 +1990,9 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.2':
     'Plán má tri stĺpce: dni vľavo, mapa uprostred, miesta vpravo. S doplnkom Cesta autom začína stĺpec dní prepínačom Dni a Cesta autom, s doplnkom Túry začína stĺpec miest prepínačom Miesta a Túry. Rezervácie a doprava sú súčasťou plánu, pri zastávke aj medzi zastávkami. Karty ich vypisujú.',
   'help.ctx.trip.bullet.3':
-    'Nastavenia cesty, štítok vedľa názvu cesty vľavo hore, otvoria nastavenia cesty: Ľudia (členovia a hostia), Zdieľanie (verejný odkaz len na čítanie a odkaz na pozvanie) a Denník.',
+    'Nastavenia cesty, štítok vedľa názvu cesty vľavo hore, otvoria nastavenia cesty: Ľudia (členovia a hostia), Zdieľanie (verejný odkaz len na čítanie a odkaz na pozvanie), Denník, Doplnky pre vlastníka cesty a Upraviť cestu.',
   'help.ctx.trip.bullet.4':
-    'Názov, dátumy, titulná fotka a mena sa upravujú v časti Moje cesty, ceruzkou na karte cesty. Názov cesty vľavo hore vás tam vráti.',
+    'Upraviť cestu v Nastaveniach cesty mení názov, popis, dátumy, titulnú fotku a menu. Ceruzka na karte cesty v Moje cesty otvorí ten istý formulár. Názov cesty vľavo hore vás vráti do Moje cesty.',
   'help.ctx.trip.bullet.5':
     'Záložkou na vnútornom okraji stĺpca stĺpec zbalíte a mapa využije uvoľnené miesto. Zbalený stĺpec zobrazí v hornom rohu mapy malú dlaždicu; kliknutím naň stĺpec znova zobrazíte. Ťahaním tenkého oddeľovača vedľa stĺpca zmeníte jeho šírku.',
   'help.ctx.trip.bullet.6': 'Šípka späť na paneli nástrojov dní vráti vaše posledné zmeny plánu, jednu po druhej.',
@@ -1939,9 +2039,9 @@ const help: TranslationStrings = {
   'help.guide.public-link.goal': 'Ukážte cestu ľuďom, ktorí ju nemajú upravovať.',
   'help.guide.public-link.step.1': 'Kliknite na Nastavenia cesty vedľa názvu cesty a vľavo vyberte Zdieľanie.',
   'help.guide.public-link.step.2':
-    'V karte Verejný odkaz zapnite, čo môže odkaz zobrazovať. Mapa a plán je zapnuté vždy, Rezervácie, Balenie, Náklady a Čet už závisia od vás.',
+    'V karte Verejný odkaz zapnite pod Možnosti, čo môže odkaz zobrazovať. Mapa a plán je zapnuté vždy, Rezervácie, Balenie, Náklady a Chat sú na vašej voľbe.',
   'help.guide.public-link.step.3':
-    'Pod Možnosti vynechá Len doprava a ubytovanie aktivity, poznámky ku dňom a prázdne dni. Bez fotiek vynechá fotky miest.',
+    'Posledné dva čipy menia, ako odkaz cestu zobrazuje: Len doprava a ubytovanie vynechá aktivity, poznámky ku dňom a prázdne dni a Bez fotiek vynechá fotky miest.',
   'help.guide.public-link.result': 'Každý, kto má odkaz, uvidí vybrané časti bez prihlásenia a nemôže nič zmeniť.',
   'help.guide.public-link.tip.1':
     'Odkaz nie je nikde zverejnený, ale otvoriť ho môže ktokoľvek, kto ho má. Chráňte ho ako heslo.',
@@ -1981,6 +2081,31 @@ const help: TranslationStrings = {
     'Vrátiť späť sa týka plánu: pridávania, priraďovania, odstraňovania, preraďovania, presúvania a zamykania miest, vyprázdnenia dňa, optimalizácie trasy, mazania miest, zmien kategórií a importov.',
   'help.guide.undo-change.tip.2':
     'Ďalším kliknutím sa vrátite ešte o krok späť: TREK si pamätá vašich posledných 30 zmien v tejto ceste, od najnovšej, kým cestu neopustíte.',
+  'help.guide.trip-assistant.title': 'Plánovanie s asistentom',
+  'help.guide.trip-assistant.goal':
+    'Opýtajte sa asistenta na svoju cestu a nechajte ho pridať do plánu to, čo navrhne.',
+  'help.guide.trip-assistant.step.1':
+    'Kliknite na okrúhle tlačidlo s iskrami vpravo dole v plánovači. Asistent sa otvorí v malom okne nad mapou.',
+  'help.guide.trip-assistant.step.2':
+    'Napíšte otázku do poľa dole, napríklad kde sa v daný deň navečerať, a odošlite ju kliknutím na šípku. Môžete kliknúť aj na jednu z navrhovaných otázok.',
+  'help.guide.trip-assistant.step.3':
+    'Odpoveď pozná váš plán. Zmena, ktorú navrhne, najprv čaká na karte a ukazuje, čo pridáva a do ktorého dňa. Kliknutím na Použiť ju prevezmete, kliknutím na Zahodiť nechajte plán tak, ako je.',
+  'help.guide.trip-assistant.step.4':
+    'Ak chcete odpoveď ukázať všetkým na ceste, kliknite pod ňou na ikonu zdieľania. Jej tooltip hovorí Zdieľať v chate výletu.',
+  'help.guide.trip-assistant.step.5':
+    'Skontrolujte správu presne tak, ako príde, so zmenami, ktoré ste použili, a kliknite na Zdieľať.',
+  'help.guide.trip-assistant.result':
+    'Miesto je vo vašom pláne v svojom dni a odpoveď je v chate výletu, označená ako od asistenta.',
+  'help.guide.trip-assistant.tip.1':
+    'Kým nekliknete na Použiť, nič sa nezmení. Potom šípka pri zmene ešte nejaký čas umožňuje vrátiť ju späť a Predtým a Potom na karte ukazujú mapu tak, ako bola a ako je teraz.',
+  'help.guide.trip-assistant.tip.2':
+    'Pod odpoveďou asistent ponúka otázky, ktoré sa môžete spýtať ďalej. Napíšte @ do poľa a pomenujte deň, miesto alebo rezerváciu, alebo pustite potvrdenie rezervácie na okno, aby ho asistent prečítal.',
+  'help.guide.trip-assistant.tip.3':
+    'Ctrl+K (⌘K na Macu) okno otvorí a zavrie. Presuniete ho potiahnutím za hlavičku a veľkosť zmeníte potiahnutím za okraj. Zatvorením sa chat zachová a Posledné chaty v hlavičke vrátia skoršie.',
+  'help.guide.trip-assistant.tip.4':
+    'Poznámky k ceste, zápisník v hlavičke, obsahujú to, čo má asistent pri každom návrhu na tejto ceste brať do úvahy, napríklad rozpočet alebo pomalé tempo.',
+  'help.guide.trip-assistant.tip.5':
+    'Tlačidlo sa zobrazí, až keď je nastavené pripojenie AI, buď správcom pre všetkých, alebo vami v Nastavenia, Integrácie. Vaše správy a údaje o ceste, ktoré asistent číta, idú tomuto poskytovateľovi.',
   'help.guide.clear-day.title': 'Vyprázdnenie dňa',
   'help.guide.clear-day.goal': 'Odstráňte z dňa všetky miesta naraz, napríklad ak ho chcete naplánovať od začiatku.',
   'help.guide.clear-day.step.1': 'V pláne kliknite pravým tlačidlom myši na hlavičku dňa.',
@@ -1998,9 +2123,9 @@ const help: TranslationStrings = {
   'help.ctx.trip-places.bullet.2':
     'Pridať miesto/aktivitu otvorí formulár pre miesto, ktoré vyhľadáte alebo zadáte. Pri otvorenom dni tlačidlo znie Nové miesto a Ku dňu vedľa neho vytvorí miesto rovno v tom dni.',
   'help.ctx.trip-places.bullet.3':
-    '„Importovať miesta“, ikonové tlačidlo vedľa, ponúka „Import zoznamu“ pre zoznam zdieľaný z Google Maps alebo Naver Maps. Ak správca doplnok Túry vypol, ponúka aj „Importovať súbor“ pre súbory .gpx, .kml a .kmz a súbor môžete pretiahnuť aj priamo na stĺpec.',
+    'Importovať miesta, ikonové tlačidlo vedľa, ponúka Importovať súbor pre súbory .gpx, .kml a .kmz a Import zoznamu pre zoznam zdieľaný z Google Maps alebo Naver Maps. Súbor môžete pustiť aj na stĺpec. So zapnutými Túrami súbor s trasou alebo stopou otvorí import Túr, ktorý dokáže jednotlivé body priniesť ako miesta.',
   'help.ctx.trip-places.bullet.4':
-    'Pod nimi je pole Hľadať, ktoré prehľadáva aj popisy a poznámky, a vedľa neho začiarkavacie políčko Vybrať. V riadku pod ním sú filtre: Zobraziť prepína medzi Všetky, Nezaradené a Plánované, každé s počtom. Tlačidlo štítka filtruje podľa kategórie, hviezda podľa minimálneho hodnotenia, glóbus (keď cesta zahŕňa viac ako jednu krajinu alebo región) podľa krajiny alebo regiónu a Zoradiť podľa určuje poradie zoznamu.',
+    'Pod nimi je Hľadať, ktoré prehľadáva aj popisy a poznámky, a vedľa neho začiarkavacie políčko Vybrať. V riadku pod ním sú filtre: Zobraziť prepína medzi Všetky, Nezaradené a Plánované, každé s počtom. Tlačidlo štítku filtruje podľa kategórie a podľa štítkov cesty, hviezda podľa minimálneho hodnotenia, glóbus (keď cesta zahŕňa viac ako jednu krajinu alebo región) podľa krajiny alebo regiónu a Zoradiť podľa určuje poradie zoznamu.',
   'help.ctx.trip-places.bullet.5':
     'Riadok ukazuje obrázok, názov a popis alebo adresu a hviezdu s priemerným hodnotením, keď niekto miesto ohodnotil. Kliknutím naň otvoríte podrobnosti miesta, potiahnutím ho presuniete na deň, alebo naň kliknite pravým tlačidlom (alebo kliknite na Ďalšie možnosti, jeho tri bodky) pre Upraviť, + Deň, Otvoriť webovú stránku, Google Maps, Uložiť do zbierky a Vymazať.',
   'help.ctx.trip-places.bullet.6':
@@ -2015,7 +2140,7 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.3':
     'V „Podrobnosti miesta“ kliknite na obrázok pod „Vybrať obrázok“ a stane sa obrázkom miesta. „Použiť tento text“ skopíruje popis do formulára.',
   'help.guide.create-place.step.4':
-    'Skontrolujte polia formulára. Názov v hlavičke dialógu je jediné povinné pole. Štítok Kategória pod ním vyberá jednu z kategórií cesty a + vedľa neho vytvorí novú. Adresa, Zemepisná šírka a Zemepisná dĺžka sa doplnia z vyhľadávania alebo ich zadáte sami. Popis a Poznámky sú na vlastný text. Webová stránka berie odkaz, Priložiť pod Súbory pridá dokument a Telefón, E-mail a Pridať otváracie hodiny sú na údaje, ktoré vyhľadávanie nenašlo.',
+    'Skontrolujte polia formulára. Názov v hlavičke dialógu je jediné povinné pole. Štítok Kategória pod ním vyberá jednu z kategórií cesty a + vedľa neho vytvorí novú. Adresa, Zemepisná šírka a Zemepisná dĺžka sa doplnia z vyhľadávania alebo ich zadáte sami. Pod Štítky kliknite na štítky, ktoré má miesto niesť. O mieste a Poznámky prepínajú textové pole medzi popisom a vašimi vlastnými poznámkami. Webová stránka berie odkaz, Priložiť pod Súbory pridá dokument a Telefón, E-mail a Pridať otváracie hodiny sú na údaje, ktoré vyhľadávanie nenašlo.',
   'help.guide.create-place.step.5':
     'Kliknite na „Pridať“. Ak už v ceste je miesto s rovnakým názvom alebo na rovnakej polohe, TREK zobrazí upozornenie a tlačidlo sa zmení na „Aj tak pridať“.',
   'help.guide.create-place.result':
@@ -2050,7 +2175,7 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.2':
     'Píšte do poľa Hľadať navrchu. Zoznam sa zužuje počas písania podľa názvu, adresy, popisu a poznámok. Krížikom v poli ho vymažete.',
   'help.guide.filter-places.step.3':
-    'Tlačidlo štítka vedľa Zobraziť vypisuje kategórie: zaškrtnite jednu alebo viac, vrátane Bez kategórie. Tlačidlo ukazuje, koľko je zaškrtnutých, a Vymazať filter na konci zoznamu zruší všetky.',
+    'Tlačidlo štítku vedľa Zobraziť vypisuje kategórie, medzi nimi Bez kategórie, a pod Štítky štítky cesty. Zaškrtnite jeden alebo viac. Tlačidlo ukazuje, koľko je zaškrtnutých, a Vymazať filter dole v zozname zruší všetky.',
   'help.guide.filter-places.step.4':
     'Hviezda vedľa nastavuje minimálne hodnotenie: 5+, 4+ a tak ďalej ponechajú iba miesta, ktorých priemerné hodnotenie je aspoň také vysoké. Miesta bez hodnotenia sa skryjú.',
   'help.guide.filter-places.result': 'Číslo pri Zobraziť ukazuje, koľko miest vyhovuje, a filtre sa kombinujú.',
@@ -2064,12 +2189,12 @@ const help: TranslationStrings = {
   'help.guide.edit-place.step.1':
     'Kliknite na riadok pravým tlačidlom a vyberte Upraviť, alebo kliknite na Ďalšie možnosti na konci riadku, alebo otvorte miesto a v jeho podrobnostiach kliknite na Upraviť.',
   'help.guide.edit-place.step.2':
-    'V okne „Upraviť miesto“ zmeňte, čo potrebujete: názov a „Kategória“ hore v dialógu, „Adresa“, „Zemepisná šírka“ a „Zemepisná dĺžka“, „Popis“, „Poznámky“, „Webová stránka“, „Telefón“, „E-mail“ a otváracie hodiny. Ak je miesto presne na jednom dni alebo ste ho otvorili z dňa, formulár má aj „Začiatok“, „Do“ a „Poznámky pre tento deň“.',
+    'V okne „Upraviť miesto“ zmeňte, čo potrebujete: názov a „Kategória“ hore v dialógu, „Adresa“, „Zemepisná šírka“ a „Zemepisná dĺžka“, „Štítky“, texty pod „O mieste“ a „Poznámky“, „Webová stránka“, „Telefón“, „E-mail“ a otváracie hodiny. Ak je miesto presne na jednom dni alebo ste ho otvorili z dňa, formulár má aj „Začiatok“, „Do“ a tretiu textovú kartu, napríklad „Len deň 2“, pre poznámku k tej jednej návšteve.',
   'help.guide.edit-place.step.3': 'Kliknite na „Aktualizovať“.',
   'help.guide.edit-place.result':
     'Zmena platí všade, kde sa miesto zobrazuje: v zozname, na mape aj v každom dni, v ktorom je.',
   'help.guide.edit-place.tip.1':
-    'Poznámky pre tento deň patria k miestu len v tom jednom dni. Poznámky patria k samotnému miestu.',
+    'Poznámka pod Len deň … patrí k miestu len v tom jednom dni. O mieste a Poznámky patria k samotnému miestu.',
   'help.guide.edit-place.tip.2':
     'Ak je Do pred Začiatok, Aktualizovať je zablokované. Časový prekryv s: len upozorní, že iná zastávka dňa má rovnaký čas.',
   // delete-place
@@ -2104,20 +2229,21 @@ const help: TranslationStrings = {
   // import-places-file
   'help.guide.import-places-file.title': 'Import miest zo súboru GPX, KML alebo KMZ',
   'help.guide.import-places-file.goal':
-    'Ak je doplnok Túry vypnutý, importujte ako miesta špendlíky a trasy, ktoré exportoval Google My Maps, Google Earth alebo GPS tracker.',
+    'Prineste špendlíky, ktoré exportoval Google My Maps, Google Earth alebo GPS zariadenie, ako miesta cesty.',
   'help.guide.import-places-file.step.1':
-    'Kliknite na Importovať miesta, ikonové tlačidlo vedľa tlačidla na pridanie, a vyberte Importovať súbor, alebo pustite súbor kamkoľvek na stĺpec miest. Oboje je dostupné len tam, kde správca vypol doplnok Túry.',
+    'Kliknite na Importovať miesta, ikonové tlačidlo vedľa tlačidla na pridanie, vyberte Importovať súbor a vyberte súbor. Súbor môžete pustiť aj kamkoľvek na stĺpec miest.',
   'help.guide.import-places-file.step.2':
-    'Vyberte súbor alebo ho pretiahnite do poľa. Pri GPX zaškrtnite, čo sa má importovať: „Trasové body“, „Trasy“, „Trasy GPS (s geometriou cesty)“. Pri KML a KMZ zaškrtnite „Body (Placemarks)“ a „Cesty (LineStrings)“.',
+    'Ak súbor obsahuje trasu alebo stopu, otvorí sa import Túr, pretože so zapnutými Túrami, čo je predvolené, sa z čiary stane túra. Pridať body ako miesta, predvolene zapnuté, prinesie aj špendlíky zo súboru ako miesta cesty.',
   'help.guide.import-places-file.step.3':
-    'Pole prijme naraz viac súborov, ale iba .gpx, .kml a .kmz. Iný druh súboru alebo súbor väčší ako 10 MB dialóg odmietne a neimportuje sa.',
+    'Súbor len so špendlíkmi otvorí namiesto toho Importovať súbor, rovnako ako každý súbor tam, kde správca vypol Túry. Pri GPX zaškrtnite, čo sa má importovať: Trasové body, Trasy, Trasy GPS (s geometriou cesty). Pri KML a KMZ zaškrtnite Body (Placemarks) a Cesty (LineStrings). Prijíma súbory .gpx, .kml a .kmz do 10 MB.',
   'help.guide.import-places-file.step.4':
     'Kliknite na Importovať. Správa uvedie, koľko miest sa importovalo. Pri súbore KML alebo KMZ zostane dialóg otvorený so súhrnom toho, čo sa vytvorilo a čo sa preskočilo.',
   'help.guide.import-places-file.result':
-    'Miesta sú v zozname. Stopa má na svojom riadku farebnú čiaru, kreslí sa na mape a dostane vlastný filter Stopy.',
+    'Špendlíky sú miestami cesty, v zozname aj na mape, pod Nezaradené, kým ich nedáte na deň.',
   'help.guide.import-places-file.tip.1':
     'Príliš veľký súbor TREK odmietne a uvedie limit veľkosti. Exportujte ho znova bez fotiek alebo ho rozdeľte.',
-  'help.guide.import-places-file.tip.2': 'Celý import môžete vrátiť späť z panela nástrojov nad dňami.',
+  'help.guide.import-places-file.tip.2':
+    'Import urobený cez Importovať súbor môžete vrátiť späť z panela nástrojov nad dňami.',
   // import-places-list
   'help.guide.import-places-list.title': 'Importovať zdieľaný zoznam z Google Maps alebo Naver Maps',
   'help.guide.import-places-list.goal': 'Importujte miesta z odkazu na zdieľaný zoznam.',
@@ -2144,6 +2270,27 @@ const help: TranslationStrings = {
     'Každé iné poradie ako Naposledy pridané zvýrazní tlačidlo, takže hneď vidíte, že je zoznam zoradený inak.',
   'help.guide.sort-places.tip.2':
     'Zoradenie mení len zoznam. Dni majú vlastné poradie a váš prehliadač si pamätá poradie, ktoré ste vybrali.',
+  'help.guide.place-tags.title': 'Označovanie miest štítkami a filtrovanie podľa štítku',
+  'help.guide.place-tags.goal':
+    'Dajte miestam ďalšie štítky, napríklad Nevynechať alebo Na daždivý deň, každý vo vlastnej farbe, a zobrazte len miesta so štítkom.',
+  'help.guide.place-tags.step.1':
+    'Otvorte formulár miesta, cez Upraviť v ponuke riadka alebo cez Nové miesto pri novom. Pod Štítky je každý štítok cesty pilulka. Kliknutím na názov štítka ho dáte miestu. Zaškrtnutie ukazuje, že je zapnutý.',
+  'help.guide.place-tags.step.2':
+    'Nový štítok vytvoríte tak, že jeho názov napíšete do Nový štítok a stlačíte Enter alebo + na jeho konci. Bodka na začiatku poľa najprv vyberie jeho farbu. Štítok sa pridá k ceste a zaškrtne.',
+  'help.guide.place-tags.step.3':
+    'Kliknutím na farebnú bodku štítka ho prefarbíte: vyberte vzorku alebo otvorte Vlastná farba pre vlastný odtieň. Štítok zmení farbu hneď, v celej ceste a pre všetkých.',
+  'help.guide.place-tags.step.4':
+    'Kliknutím na Aktualizovať, alebo Pridať pri novom mieste, uložíte miesto aj so štítkami.',
+  'help.guide.place-tags.step.5':
+    'V stĺpci miest tlačidlo štítku vedľa Zobraziť uvádza štítky cesty pod Štítky, za kategóriami. Zaškrtnutím jedného zobrazíte len miesta, ktoré ho majú.',
+  'help.guide.place-tags.result':
+    'Zoznam a mapa ukazujú len miesta so zaškrtnutým štítkom. Vymazať filter dole v zozname zobrazí opäť všetky miesta.',
+  'help.guide.place-tags.tip.1':
+    'Štítok nikdy nemení značku: jej ikona a farba na mape zostávajú podľa kategórie. Miesto má jednu kategóriu a ľubovoľný počet štítkov.',
+  'help.guide.place-tags.tip.2':
+    'Štítky patria ceste, nie vám. Každý člen vidí rovnaké štítky a každý, kto smie upravovať miesta cesty, ich môže pridávať a meniť im farbu.',
+  'help.guide.place-tags.tip.3':
+    'Pri zaškrtnutej kategórii a štítku musí miesto spĺňať obe. Pri dvoch zaškrtnutých štítkoch stačí jeden.',
   'help.guide.place-by-hand.title': 'Pridanie miesta, ktoré vyhľadávanie nepozná',
   'help.guide.place-by-hand.goal':
     'Ak vyhľadávanie miest nič nenájde, zadajte miesto sami aj s telefónom, e-mailom a otváracími hodinami.',
@@ -2153,7 +2300,7 @@ const help: TranslationStrings = {
     'Kliknite na Pridať ručne. Text, ktorý ste hľadali, sa stane názvom a dialóg sa posunie k poliam s kontaktmi.',
   'help.guide.place-by-hand.step.3': 'Ak ich poznáte, vyplňte „Telefón“ a „E-mail“.',
   'help.guide.place-by-hand.step.4':
-    'Kliknite na „Pridať otváracie hodiny“ a nastavte, kedy miesto v jednotlivé dni otvára a zatvára. Tlačidlo kopírovania nastaví všetkým dňom hodiny prvého dňa a prepínačom dňa ho označíte ako „Uzavreté“.',
+    'Kliknite na Pridať otváracie hodiny a nastavte, kedy miesto každý deň otvára a zatvára. Tlačidlo kopírovania nastaví všetkým dňom hodiny prvého dňa a každý deň má prepínač pre Otvorené nonstop a jeden pre Zatvorené.',
   'help.guide.place-by-hand.step.5': 'Kliknite na Pridať.',
   'help.guide.place-by-hand.result':
     'Miesto sa pridá do zoznamu. Jeho podrobnosti ukazujú telefón, e-mail a otváracie hodiny, ktoré ste zadali, rovnako ako pri mieste nájdenom vyhľadávaním.',
@@ -2167,7 +2314,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-days.summary':
     'Ľavý stĺpec plánu: pre každý deň jedna karta so zastávkami v poradí, poznámkami, rezerváciami a dopravou daného dňa a s trasou medzi zastávkami. Práve tu cestu naozaj plánujete.',
   'help.ctx.trip-days.bullet.1':
-    'Hlavička navrchu: vľavo Exportovať (PDF, kalendár, GPX), vpravo šípka späť, Rozbaliť všetky dni / Zbaliť všetky dni, Zmeniť poradie dní a Zobraziť všetky trasy rezervácií, akonáhle má nejaká rezervácia trasu na nakreslenie.',
+    'Hlavička navrchu: vľavo Exportovať (PDF, kalendár, GPX, KML), vpravo šípka späť, Rozbaliť všetky dni / Zbaliť všetky dni, Zmeniť poradie dní a Zobraziť všetky trasy rezervácií, akonáhle má nejaká rezervácia trasu na nakreslenie.',
   'help.ctx.trip-days.bullet.2':
     'Karta dňa: dlaždica s číslom dňa a predpoveďou, názov (Deň 1, kým ho nepomenujete) a dátum a pod nimi štítky pre nocľah (zelený pri príchode, červený pri odchode, prerušovaný, kým nie je potvrdený; jeho lístok otvorí rezerváciu) a pre prenajaté auto. Kliknutím na záhlavie deň otvoríte, šípka ho zbalí a + (Pridať k dňu) otvorí ponuku: Pridať miesto k tomuto dňu, Pridať ubytovanie, Pridať dopravu, Verejná doprava a Pridať poznámku. Pravé tlačidlo myši na záhlaví ponúka to isté plus Vyprázdniť deň.',
   'help.ctx.trip-days.bullet.3':
@@ -2184,9 +2331,9 @@ const help: TranslationStrings = {
   'help.guide.read-day-plan.step.1':
     'Záhlavie: dlaždica s číslom dňa a predpoveďou, potom Deň 1 alebo názov, ktorý ste dňu dali, a dátum. Pod nimi sú pilulky pre nocľah (zelená pri príchode, červená pri odchode, prerušovaná, kým nie je potvrdený; lístok na nej otvorí rezerváciu) a pre prenajaté auto. Kliknutím na záhlavie deň otvoríte (jeho panel s podrobnosťami sa otvorí nad mapou). Tlačidlo + vpravo (Pridať k dňu) pridá miesto, pobyt, dopravu, spojenie verejnou dopravou alebo poznámku a šípka kartu zbalí.',
   'help.guide.read-day-plan.step.2':
-    'Pri zastávke vidíte jej obrázok, ikonu kategórie a názov, potom čas, ak má „Začiatok“, a popis. Pod ňou sú „Poznámky pre tento deň“. Keď na riadok nabehnete myšou, objavia sa ovládacie prvky: úchytom vľavo ho presuniete, obrázok sa zmení na zámok pre optimalizáciu trasy a na pravom konci sú šípky („Posunúť nahor“, „Posunúť nadol“), „Pridať rezerváciu“ a tri bodky („Ďalšie možnosti“).',
+    'Pri zastávke vidíte jej obrázok, ikonu kategórie a názov, potom čas, ak má „Začiatok“, a popis. Pod ňou sú „Poznámky pre tento deň“. Keď na riadok nabehnete myšou, objavia sa ovládacie prvky: úchytom vľavo ho presuniete a na pravom konci sú šípky („Posunúť nahor“, „Posunúť nadol“), „Pridať rezerváciu“ a tri bodky („Ďalšie možnosti“). Ukážte na obrázok a zmení sa na zámok pre optimalizáciu trasy.',
   'help.guide.read-day-plan.step.3':
-    'Rezervácia pri zastávke sa na nej zobrazí ako odznak Rezervácia, zelený, keď je potvrdená, a oranžový, kým čaká na potvrdenie, s časom a dopravcom. Kliknutím na odznak rezerváciu otvoríte, tlačidlo trasy vedľa neho nakreslí jej trasu. Doprava má vlastný riadok, zafarbený podľa typu, s časom a údajom Odlet alebo Prílet. Kliknutím na rezerváciu otvoríte jej podrobnosti, tlačidlom Upraviť ju tam zmeníte.',
+    'Rezervácia pri zastávke sa na nej zobrazí ako odznak Rezervácia, zelený, keď je potvrdená, a oranžový, kým čaká na potvrdenie, s časom a dopravcom. Kliknutím na odznak rezerváciu otvoríte. Keď má rezervácia trasu, tlačidlo trasy vedľa neho ju nakreslí na mape. Doprava má vlastný riadok, zafarbený podľa typu, s časom a údajom Odlet alebo Prílet. Kliknutím na rezerváciu otvoríte jej podrobnosti, tlačidlom Upraviť ju tam zmeníte.',
   'help.guide.read-day-plan.step.4':
     'Ak je zapnuté Trasa, spojnica medzi dvoma zastávkami ukazuje, ako dlho úsek trvá a aký je dlhý, v režime cestovania daného dňa. Kliknutím naň zmeníte režim iba pre tento jeden úsek.',
   'help.guide.read-day-plan.step.5':
@@ -2224,7 +2371,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Ak zastávku potiahnete na kartu iného dňa, presunie sa tam a z pôvodného dňa zmizne.',
   'help.guide.reorder-stops.step.4':
-    'Ak má zastávka pevný čas a presun by porušil poradie dňa, TREK sa opýta Odobrať čas?, pretože čas určuje polohu zastávky. Potvrdiť čas odstráni, takže zastávku možno presunúť kamkoľvek. Zrušiť nechá deň, ako bol.',
+    'Ak má zastávka pevný čas a presun by porušil poradie dňa, TREK sa opýta Odobrať čas?, pretože čas určuje polohu zastávky. Odobrať čas a presunúť čas odstráni a zastávku dá tam, kam ste ju pustili. Zrušiť nechá deň, ako bol.',
   'help.guide.reorder-stops.result': 'Trasa aj časy presunov sa hneď prispôsobia novému poradiu.',
   'help.guide.reorder-stops.tip.1':
     'Rezervácia s pevným časom zostáva na mieste, ktoré zodpovedá jej času. Ak ju v rámci dňa presuniete inam, vráti sa späť. Ak ju pretiahnete na kartu iného dňa, presunie sa do toho dňa.',
@@ -2234,7 +2381,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.title': 'Nastavenie času zastávky',
   'help.guide.set-stop-times.goal': 'Určte, kedy zastávka začína a končí, aby sa deň čítal ako harmonogram.',
   'help.guide.set-stop-times.step.1':
-    'Kliknite na zastávku pravým tlačidlom alebo na jej tri bodky a vyberte „Upraviť“. Ak formulár otvoríte z dňa, nájdete v ňom hneď pod miestom polia „Začiatok“ a „Do“ pre tento deň.',
+    'Kliknite na zastávku pravým tlačidlom alebo na jej tri bodky a vyberte „Upraviť“. Ak formulár otvoríte z dňa, nájdete v ňom pod miestom a štítkami polia „Začiatok“ a „Do“ pre tento deň.',
   'help.guide.set-stop-times.step.2':
     'Zadajte Začiatok a, ak chcete, aj Do. Časový prekryv s: upozorní, že sa prekrýva iná zastávka dňa s časom. Ak je Do pred Začiatkom, Aktualizovať je zablokované.',
   'help.guide.set-stop-times.step.3':
@@ -2243,9 +2390,9 @@ const help: TranslationStrings = {
     'Zastávky s časom si ponechajú svoje miesto v poradí a zastávky bez času sa zoradia okolo nich.',
   'help.guide.set-stop-times.tip.1': 'Čas patrí k zastávke v danom dni. To isté miesto môže mať v inom dni iný čas.',
   'help.guide.set-stop-times.tip.2':
-    'Ak chcete zastávku s časom presunúť ručne, potiahnite ju. TREK sa opýta Odobrať čas? a po kliknutí na Potvrdiť sa čas odstráni.',
+    'Ak chcete zastávku s časom presunúť ručne, potiahnite ju. TREK sa opýta Odobrať čas? a Odobrať čas a presunúť čas odoberie a zastávku presunie.',
   'help.guide.set-stop-times.tip.3':
-    'Poznámky pre tento deň v tom istom formulári sú na informácie, ktoré platia len v tento deň, napríklad rezerváciu stola alebo číslo lístka.',
+    'Karta Len deň vedľa O mieste a Poznámky v tom istom formulári je na poznámku, ktorá platí len v tento deň, napríklad rezerváciu stola alebo číslo lístka.',
   // remove-from-day
   'help.guide.remove-from-day.title': 'Odobrať zastávku z dňa',
   'help.guide.remove-from-day.goal': 'Odstráňte miesto z dňa bez toho, aby ste ho vymazali z cesty.',
@@ -2264,7 +2411,8 @@ const help: TranslationStrings = {
     'Ukážte kurzorom na obrázok zastávky a kliknite na zámok: Zachovať pozíciu pri optimalizácii trasy.',
   'help.guide.lock-stop.step.2':
     'Optimalizovať teraz zoradí ostatné zastávky okolo nej. Zámok odomknete opätovným kliknutím naň (Kliknutím odomknete).',
-  'help.guide.lock-stop.result': 'Na obrázku sa zobrazí zámok a zastávka zostane na svojom mieste, kým ju neodomknete.',
+  'help.guide.lock-stop.result':
+    'Zámok zostane na obrázku a riadok je zafarbený. Zastávka zostane na svojom mieste, kým ju neodomknete.',
   'help.guide.lock-stop.tip.1':
     'Zastávku s pevným časom drží na mieste jej čas, pri optimalizácii sa nikdy nepresunie.',
   'help.guide.lock-stop.tip.2':
@@ -2308,7 +2456,7 @@ const help: TranslationStrings = {
   'help.guide.manage-days.title': 'Pridanie, presunutie a premenovanie dní',
   'help.guide.manage-days.goal': 'Upravte samotné dni, nielen miesta v nich.',
   'help.guide.manage-days.step.1':
-    'Dni vychádzajú z dátumov cesty. Zmeňte dátumy vo formulári na úpravu cesty v časti Prehľad a dni sa na začiatku alebo na konci pridajú či odstránia. Predtým, než sa odstráni deň s obsahom, zoznam ukáže, ktoré dni sa odstránia a čo na nich je.',
+    'Dni vychádzajú z dátumov cesty. Zmeňte ich cez Nastavenia cesty navrchu plánovača, pod Upraviť cestu (alebo ceruzkou na karte cesty na Prehľad), a dni sa na začiatku alebo na konci pridajú či odstránia. Predtým, než sa odstráni deň s obsahom, zoznam ukáže, ktoré dni sa odstránia a čo na nich je.',
   'help.guide.manage-days.step.2':
     'Zmeniť poradie dní v záhlaví otvorí zoznam: potiahnite deň za úchyt alebo použite Posunúť nahor a Posunúť nadol. Deň sa presunie spolu so svojimi miestami, poznámkami a rezerváciami. Pod zoznamom Pridať s ďalším dátumom pridá deň za posledný dátumový a predĺži cestu o jeden deň. Bez dátumu pripojí deň bez dátumu. Cesta bez dátumov má iba Pridať deň.',
   'help.guide.manage-days.step.3':
@@ -2326,7 +2474,7 @@ const help: TranslationStrings = {
   'help.guide.bookings-in-plan.goal':
     'Zistite, kde sa rezervácia zobrazí, keď už existuje, a na ktorej obrazovke sa vytvára.',
   'help.guide.bookings-in-plan.step.1':
-    'Doprava (let, vlak, trajekt, autobus, auto) je riadok zafarbený podľa typu, s časom a s Odlet v deň odchodu alebo Prílet v deň príchodu. Glóbus vedľa neho uvádza časové pásmo a let s medzipristátím má jeden riadok na každý úsek. Pri spojení verejnou dopravou zobrazíte linky kliknutím na šípku. Kliknutím na riadok otvoríte rezerváciu a Upraviť tam ju zmení.',
+    'Doprava (let, vlak, trajekt, autobus, auto) je riadok zafarbený podľa typu, s časom a s Odlet v deň odchodu alebo Prílet v deň príchodu. Keď má rezervácia časové pásmo, glóbus vedľa času ho po ukázaní pomenuje a let s medzipristátím má jeden riadok na každý úsek. Kým je let na ceste a je zapnutý živý stav letov, riadok pod ním hovorí, ako sa mu darí, vrátane meškania. Pri spojení verejnou dopravou zobrazíte linky kliknutím na šípku. Kliknutím na riadok otvoríte rezerváciu a Upraviť tam ju zmení.',
   'help.guide.bookings-in-plan.step.2':
     'Rezervácia prepojená so zastávkou (reštaurácia, prehliadka) sa na tejto zastávke zobrazí ako štítok Rezervácia s časom. Štítok je zelený, keď je rezervácia potvrdená, a jantárový, kým čaká. Rezervácia s dňom, ale bez zastávky, má v dni vlastný riadok.',
   'help.guide.bookings-in-plan.step.3':
@@ -2343,14 +2491,17 @@ const help: TranslationStrings = {
     'Ak rezerváciu s časom presuniete v rámci jej dňa inam, vráti sa na miesto podľa svojho času. Ak ju pretiahnete na kartu iného dňa, presunie sa do toho dňa. Čas zmeníte úpravou rezervácie.',
   // export-plan
   'help.guide.export-plan.title': 'Export plánu',
-  'help.guide.export-plan.goal': 'Exportujte plán ako dokument, do kalendára alebo do zariadenia GPS.',
+  'help.guide.export-plan.goal':
+    'Exportujte plán ako dokument, do kalendára, do zariadenia GPS alebo do Google My Maps.',
   'help.guide.export-plan.step.1': 'Kliknite na Exportovať vľavo v hornej lište nad dňami.',
   'help.guide.export-plan.step.2':
-    'Dokument: PDF otvorí tlačové zobrazenie všetkých dní so zastávkami, poznámkami a rezerváciami, na začiatku s mapou prehľadu trasy. Môj plán ako PDF ponechá len to, na čom sa zúčastňujete. V zobrazení začne Zalomenie strany pre každý deň každý deň na novej strane, Poznámky k doprave pridá poznámky k vašim dopravám a Uložiť ako PDF súbor stiahne.',
+    'Dokument: PDF otvorí náhľad cesty ako dokument: obálku, prehľad s mapou trasy, každý deň a všetky rezervácie, potom každý deň so zastávkami, poznámkami a rezerváciami. Môj plán ako PDF ponechá len to, na čom sa zúčastňujete. Prepínače nad náhľadom vyberajú, čo do neho pôjde: Zalomenie strany pre každý deň, Veľké písmo, Prehľad, Fotky, Súradnice, Kontakt a otváracie hodiny a Poznámky k doprave, keď majú vaše dopravy poznámky. Uložiť ako PDF ho stiahne.',
   'help.guide.export-plan.step.3':
     'Kalendár: Stiahnuť .ics uloží rezervácie ako súbor kalendára. Prihlásiť sa na odber kalendára poskytne odkaz, ktorý vaša kalendárová aplikácia obnovuje automaticky.',
   'help.guide.export-plan.step.4':
     'Mapy a GPS (GPX): Celá cesta exportuje miesta, trasy dní a stopy. Len miesta exportuje iba špendlíky. Dni ako trasy exportuje jednu trasu na deň, pre offline mapy a zariadenia GPS.',
+  'help.guide.export-plan.step.5':
+    'Google Maps (KML): Miesta pre Google My Maps uloží miesta cesty ako súbor KML. V My Maps ho importujte ako vrstvu, aby ste ich videli na vlastnej mape Google.',
   'help.guide.export-plan.result': 'Súbor sa stiahne a v ceste sa nič nezmení.',
   'help.guide.export-plan.tip.1':
     'Jeden deň otvoríte v mapovej aplikácii z jeho lišty trasy: Otvoriť v Mapách Google alebo Otvoriť v CoMaps.',
@@ -2366,13 +2517,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.1':
     'Kliknite na riadok v stĺpci miest, na zastávku v dni alebo na značku na mape a nad mapou sa otvorí karta. Ak ju otvoríte zo dňa, karta vie, o ktorú zastávku ide, a zobrazí aj jej účastníkov a rezerváciu. Túra (pešia túra, jazda alebo prechádzka z karty „Túry“) namiesto toho otvorí vlastnú kartu túry.',
   'help.ctx.trip-place.bullet.2':
-    'Záhlavie ukazuje okrúhly obrázok, názov, adresu v jednom riadku a štítky s tým, čo je známe: otvorené alebo zatvorené, kategória, čas, cena, telefónne číslo, e-mail a súradnice. Kliknutím na obrázok použijete vlastný alebo fotku zo súborov miesta. Dvojitým kliknutím na názov miesto premenujete. X vpravo kartu zatvorí. Obrázok, premenovanie, Upraviť a Vymazať sú dostupné iba cestujúcim, ktorí smú meniť miesta.',
+    'Záhlavie ukazuje okrúhly obrázok, názov, adresu v jednom riadku a štítky s tým, čo je známe: otvorené alebo zatvorené, kategória a štítky miesta, čas, cena, telefónne číslo, e-mail a súradnice. Miesto s adresou, ale bez súradníc hovorí Bez súradníc, preto nie je na mape. Kliknutím na obrázok uvidíte fotky miesta a dvojitým kliknutím na názov miesto premenujete. Vpravo šípka zloží kartu na úzky pruh a X ju zatvorí. Premenovanie, Upraviť a Vymazať sú dostupné iba cestujúcim, ktorí smú meniť miesta.',
   'help.ctx.trip-place.bullet.3':
     'Pod ňou: hviezdičky, ktoré miestu dal každý cestovateľ, popis a poznámky, a Poznámky pre tento deň, ak ich zastávka má.',
   'help.ctx.trip-place.bullet.4':
     'Potom nasledujú Otváracie hodiny, Farba trasy, Dáta trasy a Súborov, ak sa na dané miesto vzťahujú. Nahrať v nadpise Súborov pridá súbory z počítača. Zoznam ukazuje aj súbory pripnuté k tejto zastávke a súbory jej rezervácie, vrátane potvrdenia hotela. Pluginy môžu nižšie pridať vlastné riadky.',
   'help.ctx.trip-place.bullet.5':
-    'Riadok úplne dole: Pridať k dňu alebo Odobrať z dňa pri otvorenom dni, potom Navigácia (alebo názov vašej mapovej aplikácie, keď ste ju vybrali v Nastavenia), Otvoriť webovú stránku a Uložiť do zbierky. Vpravo červený kôš vymaže miesto a Upraviť otvorí jeho formulár.',
+    'Riadok úplne dole: Pridať k dňu, kým je otvorený deň a miesto v ňom ešte nie je, potom Navigácia (alebo názov vašej mapovej aplikácie, keď ste ju vybrali v Nastavenia) a dve ikony, Otvoriť webovú stránku a Uložiť do zbierky. Vpravo tri bodky obsahujú Odobrať z dňa a Vymazať a Upraviť otvorí formulár miesta, kde zmeníte aj jeho obrázok.',
   'help.ctx.trip-place.bullet.6':
     'Pri mieste vybranom z vyhľadávania vidíte, čo o ňom vie index TREK alebo OpenStreetMap: „Otvorené“ alebo „Uzavreté“ medzi štítkami hore so zeleným alebo červeným krúžkom okolo obrázka podľa miestneho času na danom mieste; telefónne číslo, tiež ako štítok; nižšie „Otváracie hodiny“ s dnešnými hodinami v riadku a po kliknutí s celým týždňom; a webovú stránku pod „Otvoriť webovú stránku“. Hodnotenie Google sa zobrazí iba pri mieste nájdenom cez Google, v TREK s kľúčom Google. Otváracie hodiny, telefónne číslo a e-mail, ktoré ste do formulára miesta zadali sami, nahradia vyhľadané údaje a určujú aj farbu krúžku.',
   // read-place
@@ -2381,7 +2532,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.step.1':
     'V stĺpci dní kliknite na zastávku, ktorú si chcete prečítať. Karta sa otvorí nad mapou a zastávka zostane v svojom dni označená.',
   'help.guide.read-place.step.2':
-    'Navrchu: okrúhly obrázok, názov a adresa v jednom riadku, celá adresa je v tooltipe. Štítky pod nimi ukazujú Otvorené alebo Zatvorené práve teraz podľa miestneho času miesta, a podľa toho má obrázok zelený alebo červený krúžok. Ukazujú aj kategóriu, čas, telefónne číslo a e-mail (kliknutím otvoríte aplikáciu na telefonovanie alebo poštu) a na širokej obrazovke presné súradnice. X vpravo kartu zatvorí.',
+    'Navrchu: okrúhly obrázok, názov a adresa v jednom riadku, celá adresa je v tooltipe. Štítky pod nimi ukazujú Otvorené alebo Zatvorené práve teraz podľa miestneho času miesta, a podľa toho má obrázok zelený alebo červený krúžok. Ukazujú aj kategóriu a štítky miesta, čas, telefónne číslo a e-mail (kliknutím otvoríte aplikáciu na telefonovanie alebo poštu) a na širokej obrazovke presné súradnice. Kliknutím na obrázok uvidíte fotky miesta. Vpravo šípka kartu zloží a X ju zatvorí.',
   'help.guide.read-place.step.3':
     'Hodnotenie je prvá sekcia pod hlavičkou: hviezdičky, ktoré miestu dal každý cestujúci, s priemerom a počtom hlasov. Kým nikto nehlasoval, zobrazuje sa Zatiaľ bez hodnotenia.',
   'help.guide.read-place.step.4':
@@ -2390,7 +2541,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.step.6':
     'Otváracie hodiny nižšie: riadok ukazuje hodiny dňa, ktorý si prezeráte. Kliknutím naň zobrazíte celý týždeň, pričom tento deň je tučne. Vedľa sú Súbory.',
   'help.guide.read-place.step.7':
-    'Riadok dole ukazuje, čo môžete odtiaľto robiť: dať miesto do otvoreného dňa alebo ho z neho odobrať, otvoriť ho v mapovej aplikácii alebo na jeho webe, uložiť ho do zoznamu a vpravo ho vymazať (červený kôš) alebo upraviť.',
+    'Riadok dole ukazuje, čo môžete odtiaľto robiť: Pridať k dňu dá miesto do otvoreného dňa, Navigácia ho otvorí v mapovej aplikácii a dve ikony otvoria jeho web a uložia ho do zoznamu. Vpravo tri bodky obsahujú Odobrať z dňa a Vymazať a Upraviť otvorí formulár miesta.',
   'help.guide.read-place.result':
     'Karta zostane otvorená, kým ju nezavriete krížikom X alebo nevyberiete iné miesto. Otváracie hodiny na celý týždeň zostanú rozbalené a zastávka, ku ktorej karta patrí, zostane v stĺpci dní označená.',
   'help.guide.read-place.tip.1':
@@ -2399,6 +2550,21 @@ const help: TranslationStrings = {
     'Ak môžete upravovať miesta, dvojitým kliknutím na názov miesto premenujete bez otvárania formulára. Enter zmenu uloží, Escape ju zruší.',
   'help.guide.read-place.tip.3':
     'Ručne zadané miesto má iba údaje zadané vo formulári. Kliknite na Upraviť a vyplňte Telefón, E-mail a otváracie hodiny sami, alebo vyberte miesto z návrhov pod Hľadať miesta… a kliknutím na Aktualizovať ich nechajte vyhľadať. Hodnotenie z Google vyžaduje kľúč Google.',
+  'help.guide.fold-place-card.title': 'Zloženie karty z cesty',
+  'help.guide.fold-place-card.goal': 'Nechajte miesto vybrané, kým sa pozeráte na mapu okolo neho.',
+  'help.guide.fold-place-card.step.1':
+    'Otvorte miesto a kliknite na šípku vpravo hore na karte, vedľa X. Jej tooltip znie Zbaliť.',
+  'help.guide.fold-place-card.step.2':
+    'Karta je teraz úzky pruh iba s obrázkom a názvom. Miesto zostáva vybrané a jeho značka zvýraznená, takže môžete mapu okolo neho posúvať a približovať.',
+  'help.guide.fold-place-card.step.3':
+    'Kliknutím na šípku znova, teraz Rozbaliť, otvoríte celú kartu. X kartu zatvorí a zruší výber miesta.',
+  'help.guide.fold-place-card.result':
+    'Mapa zostane viditeľná okolo vybraného miesta a celá karta je od vás vzdialená len jedno kliknutie.',
+  'help.guide.fold-place-card.tip.1':
+    'Vyberte iné miesto a jeho karta sa otvorí celá. Zložená zostane len tá, ktorú ste zložili.',
+  'help.guide.fold-place-card.tip.2':
+    'Zloženie nie je zatvorenie: miesto zostáva vybrané a zastávka, ktorú ste otvorili z dňa, zostáva v ňom označená.',
+  'help.guide.fold-place-card.tip.3': 'Zložený pruh zostáva tam, kde bola karta, dole na mape medzi bočnými stĺpcami.',
   // rate-place
   'help.guide.rate-place.title': 'Hodnotenie miesta',
   'help.guide.rate-place.goal': 'Dajte miestu vlastné hviezdičky a pozrite si hodnotenia ostatných.',
@@ -2420,19 +2586,21 @@ const help: TranslationStrings = {
   // place-image
   'help.guide.place-image.title': 'Pridať miestu vlastný obrázok',
   'help.guide.place-image.goal': 'Nahraďte automatickú miniatúru vlastnou fotkou.',
-  'help.guide.place-image.step.1': 'Otvorte miesto zo stĺpca miest.',
+  'help.guide.place-image.step.1':
+    'Otvorte miesto a kliknite vpravo dole na karte na Upraviť. Otvorí sa formulár miesta.',
   'help.guide.place-image.step.2':
-    'Ukážte na okrúhly obrázok v záhlaví: objaví sa fotoaparát a tooltip znie Nahrať obrázok. Kliknite naň a vyberte súbor. Ak má miesto medzi súbormi už nejaké fotky, TREK sa najprv opýta, čo chcete: Nahrať zo zariadenia, alebo jeden z obrázkov pod Z priložených súborov.',
-  'help.guide.place-image.step.3': 'V hornej časti karty je teraz váš obrázok s malým červeným X v rohu.',
+    'Vybrať obrázok, navrchu podrobností vľavo, ukazuje obrázky, ktoré môže miesto mať. Kliknite na Nahrať obrázok, prvú dlaždicu, a vyberte súbor z počítača.',
+  'help.guide.place-image.step.3':
+    'Dlaždica teraz ukazuje váš obrázok, orámovaný a zaškrtnutý, a riadok pod dlaždicami znie Tvoj obrázok. Zatiaľ nie je nič uložené.',
   'help.guide.place-image.step.4':
-    'Rovnaký obrázok sa zobrazí aj v riadku miesta v stĺpci miest a na jeho značke na mape.',
+    'Kliknite na Aktualizovať. Karta ukazuje váš obrázok navrchu a ukazuje ho aj riadok miesta v stĺpci miest.',
   'help.guide.place-image.result':
     'Váš obrázok sa používa pre miesto všade: na karte, v stĺpci miest, pri zastávke v dni, na značke na mape aj v zdieľanej ceste.',
   'help.guide.place-image.tip.1': 'Prijímajú sa JPG, PNG, GIF a WebP a HEIC z iPhonu sa pri nahrávaní skonvertuje.',
   'help.guide.place-image.tip.2':
-    'Krížikom v rohu svoj obrázok odstránite a znova sa zobrazí automatický. Samotné miesto sa nezmení.',
+    'Odobrať obrázok, na konci riadka pod dlaždicami, nechá miesto po kliknutí na Aktualizovať bez obrázka. Zrušiť ponechá starý.',
   'help.guide.place-image.tip.3':
-    'Ak ste nepridali obrázok, TREK ho vyhľadá podľa súradníc miesta. Ak nič nenájde, zobrazí ikonu kategórie. Obrázok môžu nastaviť len cestujúci, ktorí smú meniť miesta.',
+    'Ostatné dlaždice sú súčasný obrázok miesta, fotky k nemu pripojené a obrázky, ktoré pre neho TREK našiel, každý s uvedením autora. Obrázok môžu zmeniť len cestujúci, ktorí smú meniť miesta.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'Pridanie miesta do otvoreného dňa alebo jeho odobratie',
   'help.guide.place-day-assign.goal': 'Použite tlačidlo na karte namiesto ťahania riadka cez plánovač.',
@@ -2441,14 +2609,14 @@ const help: TranslationStrings = {
   'help.guide.place-day-assign.step.2':
     'V stĺpci miest kliknite na miesto, ktoré v tom dni nie je. Otvorí sa jeho karta a v spodnom riadku ponúkne „Pridať k dňu“.',
   'help.guide.place-day-assign.step.3':
-    'Kliknite na Pridať k dňu. Zastávka sa pridá na koniec dňa a tlačidlo sa zmení na Odobrať z dňa.',
+    'Kliknite na Pridať k dňu. Zastávka sa pridá na koniec dňa a tlačidlo z riadka zmizne, pretože miesto je teraz v tom dni.',
   'help.guide.place-day-assign.step.4':
     'Zastávka je teraz v dni, na konci zoznamu. Potiahnite ju nahor na správnu pozíciu.',
   'help.guide.place-day-assign.step.5':
-    '„Odobrať z dňa“ zastávku z dňa opäť odoberie a na karte sa znova zobrazí „Pridať k dňu“.',
+    'Ak ju chcete znova odobrať, kliknite na tri bodky vpravo v riadku a vyberte Odobrať z dňa. Pridať k dňu sa vráti.',
   'help.guide.place-day-assign.result': 'Zastávka sa pridá do dňa alebo sa z neho odoberie. Samotné miesto sa nezmení.',
   'help.guide.place-day-assign.tip.1':
-    'Tlačidlo existuje, len kým je otvorený nejaký deň. Bez otvoreného dňa nie je deň, do ktorého by sa miesto pridalo.',
+    'Pridať k dňu je k dispozícii, len kým je otvorený deň a miesto v ňom ešte nie je. Bez otvoreného dňa nie je deň, do ktorého by sa miesto pridalo.',
   'help.guide.place-day-assign.tip.2':
     'Keď zastávku z dňa odoberiete, miesto zostane v ceste aj v stĺpci miest. Všade ho odstránite len tlačidlom „Vymazať“.',
   'help.guide.place-day-assign.tip.3':
@@ -2515,7 +2683,7 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.3':
     'Kliknite na aplikáciu, ktorú používate. Kde sa dá, TREK do nej pošle samotné miesto, nielen jeho súradnice, takže dorazíte k správnemu vchodu.',
   'help.guide.place-navigation.step.4':
-    'Otvoriť webovú stránku vedľa neho otvorí na novej karte vlastnú webovú stránku miesta, s otváracími hodinami a lístkami.',
+    'Ikona vedľa, Otvoriť webovú stránku, otvorí na novej karte vlastnú webovú stránku miesta, s otváracími hodinami a lístkami.',
   'help.guide.place-navigation.result':
     'Mapová aplikácia sa otvorí na mieste, webová stránka sa otvorí na novej karte a nič v ceste sa nezmení. Ak je TREK nainštalovaný ako aplikácia, namiesto novej karty sa otvorí mapová aplikácia.',
   'help.guide.place-navigation.tip.1':
@@ -2527,15 +2695,17 @@ const help: TranslationStrings = {
   // place-to-collection
   'help.guide.place-to-collection.title': 'Uložiť miesto do jedného zo svojich zoznamov',
   'help.guide.place-to-collection.goal': 'Uložte si miesto, ktoré ste našli na tejto ceste, pre ďalšiu.',
-  'help.guide.place-to-collection.step.1': 'Otvorte miesto a v riadku dole na karte kliknite na „Uložiť do zbierky“.',
+  'help.guide.place-to-collection.step.1':
+    'Otvorte miesto a kliknite na Uložiť do zbierky, ikonu záložky v riadku dole na karte.',
   'help.guide.place-to-collection.step.2':
     'Uložiť do zoznamu ukazuje každý zoznam, ktorý vlastníte alebo zdieľate. Vyplnená záložka vpravo označuje zoznamy, ktoré toto miesto už obsahujú.',
   'help.guide.place-to-collection.step.3': 'Kliknite na zoznam. Miesto sa do neho hneď pridá.',
-  'help.guide.place-to-collection.step.4': 'Dialóg zatvorte pomocou X a tlačidlo v karte bude ukazovať Uložené.',
+  'help.guide.place-to-collection.step.4':
+    'Dialóg zatvorte pomocou X. Záložka na karte je teraz vyplnená a jej tooltip znie Uložené.',
   'help.guide.place-to-collection.result':
     'Miesto je vo vašom zozname aj s obrázkom, poznámkami a adresou, pripravené na ďalšiu cestu.',
   'help.guide.place-to-collection.tip.1':
-    'Tlačidlo je k dispozícii, len kým je zapnutý doplnok „Zbierky“, ktorý administrátor zapína v časti „Doplnky“.',
+    'Záložka je k dispozícii, len kým je zapnutý doplnok Zbierky, ktorý správca zapína v časti Doplnky.',
   'help.guide.place-to-collection.tip.2':
     'Miesto môže byť naraz vo viacerých zoznamoch, v každom s iným stavom: v jednom ako nápad, v inom ako navštívené.',
   'help.guide.place-to-collection.tip.3':
@@ -2604,7 +2774,7 @@ const help: TranslationStrings = {
   'help.guide.day-weather.step.2':
     'Veľké číslo je teplota dňa. Vedľa neho je minimum a maximum a slovný popis počasia.',
   'help.guide.day-weather.step.3':
-    'Pilulky vpravo od neho: pravdepodobnosť dažďa, jeho množstvo, najsilnejší vietor, východ a západ slnka.',
+    'Pilulky vpravo od neho: pravdepodobnosť dažďa a jeho množstvo, ak ich predpoveď má, potom najsilnejší vietor a východ a západ slnka. Keď ukážete na pilulku, uvidíte, čo znamená.',
   'help.guide.day-weather.step.4':
     'Dole je deň po hodinách, vždy každá druhá hodina: čas, ikona, teplota a pravdepodobnosť dažďa. Hodiny nad 50 percent sú podfarbené modrou.',
   'help.guide.day-weather.result':
@@ -2628,6 +2798,8 @@ const help: TranslationStrings = {
     'Ak pole vymažete a uložíte, deň sa opäť volá Deň 5: číslo sa zobrazí, keď deň nemá názov.',
   'help.guide.rename-day.tip.2':
     'Názov patrí dňu, nie jeho dátumu. Ak dni preusporiadate, názov sa presunie spolu so všetkým ostatným v tom dni.',
+  'help.guide.rename-day.tip.3':
+    'Keď je v Nastavenia pod Všeobecné zapnuté Dátum na začiatku nadpisov dní, dátum je veľký riadok a názov je pod ním. Ceruzka je potom vedľa názvu na druhom riadku.',
   // add-accommodation
   'help.guide.add-accommodation.title': 'Rezervovať nocľah k dňu',
   'help.guide.add-accommodation.goal':
@@ -2643,7 +2815,7 @@ const help: TranslationStrings = {
     'Vyberte objekt pod Vybrať ubytovanie. Kategória nad zoznamom ho zúži na jednu kategóriu.',
   'help.guide.add-accommodation.step.6': 'Kliknite na Uložiť.',
   'help.guide.add-accommodation.result':
-    'Pobyt sa zobrazí v každom dni, ktorý pokrýva, s check-inom v prvom a check-outom v poslednom. Ubytovanie sa stane zastávkou v deň check-inu, takže mapa ukáže trasu k nemu, a na karte „Rezervácie“ pribudne rezervácia hotela.',
+    'Pobyt sa zobrazí v každom dni, ktorý pokrýva, s check-inom v prvom a check-outom v poslednom, a hlavička každého z týchto dní v stĺpci dní pomenúva hotel. Trasa dňa na mape vedie k ubytovaniu a na karte Rezervácie pribudne rezervácia hotela.',
   'help.guide.add-accommodation.tip.1':
     'Výber sa otvorí na dni, z ktorého ste prišli, s odchodom (check-out) v nasledujúci deň. Oba dni môžete pred uložením zmeniť.',
   'help.guide.add-accommodation.tip.2':
@@ -2707,7 +2879,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-map.bullet.4':
     'Keď je v stĺpci dní otvorený deň, jeho zastávky majú malý biely odznak s poradovým číslom v tom dni. Miesto, ktoré je v dni dvakrát, ukazuje obe čísla. Filtre nad zoznamom miest („Zobraziť“, kategórie a hviezdička pre minimálne hodnotenie) filtrujú aj body na mape.',
   'help.ctx.trip-map.bullet.5':
-    'Rad ikon navrchu prehľadáva časť mapy, ktorú vidíte: Reštaurácie, Kaviarne, Bary a nočný život, Ubytovanie, Pamiatky, Múzeá a kultúra, Príroda a parky a Aktivity. Kategórie pridané doplnkom nasledujú za tenkou oddeľovacou čiarou. Ak je rad širší ako mapa, kolieskom myši ho posúvate do strán. Hľadať v tejto oblasti spustí hľadanie znova po posunutí mapy.',
+    'Rad ikon navrchu prehľadáva časť mapy, ktorú vidíte: Reštaurácie, Kaviarne, Bary a nočný život, Ubytovanie, Pamiatky, Múzeá a kultúra, Príroda a parky, Aktivity, Pekárne a Potraviny. Kategórie pridané doplnkom nasledujú za tenkou oddeľovacou čiarou. Ak je rad širší ako mapa, kolieskom myši ho posúvate do strán. Hľadať v tejto oblasti spustí hľadanie znova po posunutí mapy.',
   'help.ctx.trip-map.bullet.6':
     'Kliknite kdekoľvek na mape pravým tlačidlom a v tom bode sa otvorí formulár miesta s už vyhľadanou adresou. Vľavo dole sú dve okrúhle tlačidlá: zámok, Uzamknúť zobrazenie mapy, nechá zobrazenie mapy na mieste, kým prechádzate dni a miesta, a tlačidlo pod ním, Prepnúť na satelitné zobrazenie, nahradí nakreslenú mapu satelitnými snímkami.',
   'help.ctx.trip-map.bullet.7':
@@ -2722,7 +2894,7 @@ const help: TranslationStrings = {
   'help.guide.map-markers.step.2':
     'Špendlík ukazuje vlastnú fotku miesta, ak ju má, inak farbu kategórie s jej ikonou. Pobyt, ktorého rezervácia ešte čaká, je vyblednutý a má prerušovaný krúžok. Keď na špendlík nabehnete myšou, vedľa sa otvorí karta: tá istá fotka vo väčšom, názov a adresa a tiež hodnotenie a kategória, ak ich miesto má.',
   'help.guide.map-markers.step.3':
-    'Kliknite na špendlík a miesto sa otvorí v karte nad spodným okrajom mapy: navrchu obrázok, názov a adresa, potom hviezdičky, popis a súbory, vrátane súborov jeho rezervácie. Dole sú akcie: Pridať k dňu, kým je otvorený nejaký deň (Odobrať z dňa, ak už miesto v ňom je), Navigácia, Otvoriť webovú stránku, Uložiť do zbierky (Uložené, keď už v nejakej je) a vpravo kôš a Upraviť. Kartu zatvorí X navrchu alebo kliknutie na prázdne miesto mapy.',
+    'Kliknite na špendlík a miesto sa otvorí v karte nad spodným okrajom mapy: navrchu obrázok, názov, adresa a kategória, potom hviezdičky, popis, poznámky, kto sa zúčastňuje a súbory, vrátane súborov jeho rezervácie. Dole sú akcie: Pridať k dňu, kým je otvorený deň a miesto v ňom ešte nie je, Navigácia, ikona webu, ak ho miesto má, a záložka Uložiť do zbierky (Uložené, keď už v nejakej je). Vpravo Ďalšie možnosti obsahujú Odobrať z dňa a Vymazať a Upraviť otvorí formulár miesta. Šípka navrchu zloží kartu na jej hlavičku. Kartu zatvorí X alebo kliknutie na prázdne miesto mapy.',
   'help.guide.map-markers.step.4':
     'Keď otvoríte deň v stĺpci dní, jeho zastávky dostanú čísla: malý biely odznak v rohu špendlíka ukazuje poradie zastávky v dni. Miesto, ktoré je v dni dvakrát, má obe čísla. Keď nie je otvorený žiadny deň, čísla sa nezobrazujú a v rohu je namiesto nich hodnotenie miesta, ak nejaké má.',
   'help.guide.map-markers.step.5':
@@ -2740,7 +2912,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.goal':
     'Vyhľadajte reštaurácie, pamiatky alebo hotel v časti mesta zobrazenej na mape a jedno z nich pridajte do cesty.',
   'help.guide.map-nearby-places.step.1':
-    'Rad ikon navrchu mapy slúži na hľadanie podľa kategórií: Reštaurácie, Kaviarne, Bary a nočný život, Ubytovanie, Pamiatky, Múzeá a kultúra, Príroda a parky a Aktivity. Kategórie z pluginov nasledujú za tenkým oddeľovačom; názov ikony uvidíte, keď na ňu prejdete myšou.',
+    'Rad ikon navrchu mapy slúži na hľadanie podľa kategórií: Reštaurácie, Kaviarne, Bary a nočný život, Ubytovanie, Pamiatky, Múzeá a kultúra, Príroda a parky, Aktivity, Pekárne a Potraviny. Kategórie z pluginov nasledujú za tenkým oddeľovačom. Názov ikony uvidíte, keď na ňu prejdete myšou.',
   'help.guide.map-nearby-places.step.2':
     'Kliknite na kategóriu. TREK vyhľadá tento druh miest vo viditeľnej časti mapy a ku každému výsledku pridá špendlík vo farbe kategórie. Naraz môže byť zapnutá iba jedna kategória: kliknutím na inú ju nahradíte a kliknutím na aktívnu ju vypnete.',
   'help.guide.map-nearby-places.step.3':
@@ -2748,7 +2920,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.4':
     'Keď ukážete myšou na špendlík, zobrazí sa názov nájdeného miesta. Kliknutím naň sa otvorí formulár miesta s už vyplnenými údajmi: názov navrchu dialógu, Adresa, Zemepisná šírka a Zemepisná dĺžka a webová stránka a telefónne číslo, ak ich hľadanie našlo.',
   'help.guide.map-nearby-places.step.5':
-    'Skontrolujte, čo sa vyplnilo, a doplňte, čo vyhľadávanie vedieť nemohlo. Pilulka kategórie pod názvom je už nastavená, ak má cesta zodpovedajúcu kategóriu, napríklad reštaurácia pre reštauráciu. Inak ukazuje Bez kategórie, kým nejakú nevyberiete. Pridajte vlastný Popis a poznámky.',
+    'Skontrolujte, čo sa vyplnilo, a doplňte, čo vyhľadávanie vedieť nemohlo. Pilulka kategórie pod názvom je už nastavená, ak má cesta zodpovedajúcu kategóriu, napríklad reštaurácia pre reštauráciu. Inak ukazuje Bez kategórie, kým nejakú nevyberiete. Napíšte, o čom miesto je, pod O mieste a vlastné poznámky pod Poznámky.',
   'help.guide.map-nearby-places.step.6':
     'Kliknite na Pridať. Ak je v ceste už miesto s rovnakým názvom alebo na tom istom mieste, TREK vás upozorní a tlačidlo sa zmení na Aj tak pridať.',
   'help.guide.map-nearby-places.result':
@@ -2767,7 +2939,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.2':
     'Zemepisná šírka a Zemepisná dĺžka sú už nastavené na tento bod. TREK súradnice vyhľadá a do Adresa doplní, čo tam nájde. Ak vyhľadávanie nájde aj názov, TREK doplní aj názov v hornej časti dialógu. Nič sa ešte neuložilo, takže opravte všetko, čo je nesprávne.',
   'help.guide.map-add-place.step.3':
-    'Do poľa v hornej časti dialógu napíšte názov, podľa ktorého miesto spoznáte. Pod ním vyberte kategóriu zo štítka, na ktorom je „Bez kategórie“, kým nejakú nevyberiete. Potom doplňte ďalšie údaje pre plán: „Popis“, „Poznámky“, „Webová stránka“.',
+    'Do poľa v hornej časti dialógu napíšte názov, podľa ktorého miesto spoznáte. Pod ním vyberte kategóriu zo štítka, na ktorom je Bez kategórie, kým nejakú nevyberiete. Potom doplňte ďalšie údaje pre plán: O mieste, Poznámky, Webová stránka.',
   'help.guide.map-add-place.step.4':
     'Kliknite na „Pridať“. Miesto sa pridá do zoznamu ako nezaradené, aj keď je otvorený deň: kliknutie pravým tlačidlom na mapu určuje polohu, nie deň.',
   'help.guide.map-add-place.result': 'Miesto je v zozname aj na mape, pod Nezaradené, kým ho nezaradíte do dňa.',
@@ -2806,7 +2978,7 @@ const help: TranslationStrings = {
   'help.guide.map-whole-trip.tip.1':
     'Súčet sa počíta postupne, vždy po niekoľkých úsekoch. Kým je za ním …, ide len o čiastkový súčet. Konečný je, keď sú vypočítané všetky úseky.',
   'help.guide.map-whole-trip.tip.2':
-    'Ak smerovač úsek nedokáže vypočítať, úsek zostane priamou čiarou a nezapočíta sa. Karta to oznámi, aby celkový súčet nevyzeral nižší bez upozornenia.',
+    'Ak smerovač úsek nedokáže vypočítať, úsek zostane priamou čiarou a nezapočíta sa. Karta to oznámi a vzdialenosť sa potom uvádza ako minimálna, aby celkový súčet nevyzeral nižší bez upozornenia.',
   'help.guide.map-whole-trip.tip.3':
     'Deň s menej než dvoma zastávkami s polohou a bez jazdy do hotela alebo z hotela nemá čo nakresliť, preto sa na karte vôbec nezobrazí.',
   // map-booking-routes
@@ -2817,7 +2989,7 @@ const help: TranslationStrings = {
   'help.guide.map-booking-routes.step.2':
     'Kliknite naň a rezervácia sa zobrazí na mape: let ako oblúk po hlavnej kružnici, jazda autom po skutočných cestách, vlak ako reťaz jeho staníc. „Potvrdené“ sa kreslí plnou čiarou, „Čaká na potvrdenie“ prerušovanou a konce trasy označujú modré štítky s ikonou dopravného prostriedku.',
   'help.guide.map-booking-routes.step.3':
-    'Kliknite na koncovú pilulku a otvoria sa podrobnosti rezervácie: stav, typ a dni ako pilulky vo farebnej hlavičke, časy na oboch koncoch, ďalšie podrobnosti pod nimi a úplne dole Na mape, ktoré túto trasu zasa vypne, Zmeniť trasu pri spojení verejnou dopravou, kôš, ktorý rezerváciu vymaže, a Upraviť. X v hlavičke podrobnosti zavrie.',
+    'Kliknite na koncovú pilulku a otvoria sa podrobnosti rezervácie: stav, typ, dni a rezervačný kód ako pilulky vo farebnej hlavičke, časy na oboch koncoch, ďalšie podrobnosti pod nimi a úplne dole Mapa, ktoré túto trasu zasa vypne, Zmeniť trasu pri spojení verejnou dopravou, kôš, ktorý rezerváciu vymaže, a Upraviť. X v hlavičke podrobnosti zavrie.',
   'help.guide.map-booking-routes.step.4':
     'Ikona trasy na paneli nástrojov nad dňami funguje pre celú cestu naraz: „Zobraziť všetky trasy rezervácií“ nakreslí každú rezerváciu, ktorá má trasu.',
   'help.guide.map-booking-routes.step.5':
@@ -2870,11 +3042,11 @@ const help: TranslationStrings = {
   'help.ctx.trip-transports.bullet.3':
     'Záložka sa otvorí v zobrazení „Karty“: najprv „Potvrdené“, potom „Čaká na potvrdenie“. Každú sekciu zbalíte kliknutím na jej nadpis. Naplánované spojenia verejnou dopravou nemajú stav a zobrazujú sa medzi potvrdenými jazdami v časovom poradí, pokiaľ im v „Možnostiach zobrazenia“ nedáte vlastnú sekciu „Automatické spojenie MHD“. „Zoznam“ zoskupuje jazdy podľa dní a „Časová os“ ukazuje všetky jazdy naprieč dňami cesty.',
   'help.ctx.trip-transports.bullet.4':
-    'Horný pás karty má farbu podľa stavu: zelenú pri potvrdenej, oranžovú pri nepotvrdenej a modrú pri naplánovanom spojení. Je v ňom bodka stavu, typ, názov, ceruzka a kôš. Pod ním: „Dátum“, „Čas“, „Rezervačný kód“, „Trasa“ a letecká spoločnosť s číslom letu, prípadne číslo vlaku, nástupište a miesto. Kliknutím na kartu otvoríte jej podrobnosti.',
+    'Horný pás karty má farbu podľa stavu: zelenú pri potvrdenej, oranžovú pri nepotvrdenej a modrú pri naplánovanom spojení. Je v ňom bodka stavu, typ, názov, ceruzka a kôš. Pod ním: Dátum, Čas, Rezervačný kód, Trasa a letecká spoločnosť s číslom letu, prípadne číslo vlaku, nástupište a miesto. Okolo odletu karta letu ukazuje aj jeho živý Stav. Kliknutím na kartu otvoríte jej podrobnosti.',
   'help.ctx.trip-transports.bullet.5':
     'Dopravu môžete vytvoriť aj v pláne: tlačidlo + v záhlaví dňa (jeho tooltip znie Pridať k dňu), alebo pravý klik na záhlavie, ponúka Pridať dopravu a Verejná doprava. Spojnica s časom cesty medzi dvoma zastávkami otvorí rovnaké vyhľadávanie pre ten jeden úsek.',
   'help.ctx.trip-transports.bullet.6':
-    'Doprava s nastavenými oboma koncami nakreslí na mape čiaru. Ikona trasy v jej riadku v pláne dňa a Na mape v jej podrobnostiach túto čiaru zapnú. Zobraziť všetky trasy rezervácií na paneli nástrojov nad dňami zapína alebo vypína čiary celej cesty.',
+    'Doprava s nastavenými oboma koncami nakreslí na mape čiaru. Ikona trasy v jej riadku v pláne dňa a Mapa dole v jej podrobnostiach túto čiaru zapnú. Zobraziť všetky trasy rezervácií na paneli nástrojov nad dňami zapína alebo vypína čiary celej cesty.',
   // transports-list
   'help.guide.transports-list.title': 'Čítanie karty Doprava',
   'help.guide.transports-list.goal': 'Zistite, čo zoznam zobrazuje, skôr než v ňom niečo zmeníte.',
@@ -2887,7 +3059,7 @@ const help: TranslationStrings = {
   'help.guide.transports-list.step.4':
     'Každá karta ukazuje všetky podrobnosti. Pás hore je zelený pre Potvrdené a jantárový pre Čaká na potvrdenie a ukazuje bod stavu, typ a názov. Pod ním Dátum ukazuje dni, ktoré zahŕňa, s ich dátumami. Potom nasledujú Čas, Rezervačný kód, Trasa s ikonou typu medzi zastávkami a letecká spoločnosť s číslom letu, alebo číslo vlaku, nástupište a miesto. Kliknutím na kartu otvoríte jej podrobnosti.',
   'help.guide.transports-list.step.5':
-    'Kliknutím na bodku stavu prepnete jazdu medzi Čaká na potvrdenie a Potvrdené, tooltip hovorí, ktorým smerom, napríklad „Set to Pending“. Ceruzka v hlavičke otvorí formulár dopravy a kôš ju vymaže po otázke „Odstrániť rezerváciu?“, ktorá vypíše, čo sa vymaže, vrátane prepojených nákladov.',
+    'Kliknutím na bodku stavu prepnete jazdu medzi Čaká na potvrdenie a Potvrdené. Tooltip hovorí, ktorým smerom, napríklad Zmeniť na „Čaká na potvrdenie“. Ceruzka v hlavičke otvorí formulár dopravy a kôš ju vymaže po otázke Odstrániť rezerváciu?, ktorá pomenuje jazdu a povie, keď sa spolu s ňou vymaže aj prepojený náklad.',
   'help.guide.transports-list.result':
     'Na každej karte vidíte, či je jazda rezervovaná, a lištou môžete zoznam kedykoľvek filtrovať alebo zoradiť.',
   'help.guide.transports-list.tip.1':
@@ -2922,7 +3094,7 @@ const help: TranslationStrings = {
   'help.guide.import-transport-file.goal':
     'Nechajte TREK načítať let, vlak alebo trajekt z lístka od dopravcu a pred uložením ho skontrolujte.',
   'help.guide.import-transport-file.step.1':
-    'V lište karty Doprava kliknite na ikonu sťahovania pred Doprava, ktorej tooltip znie Importovať potvrdenia rezervácií. Otvorí sa dialóg s rovnakým názvom, taký istý ako v karte Rezervácie. Na prázdnej karte robí to isté Importovať zo súboru uprostred.',
+    'Na lište karty Doprava kliknite na ikonu nahrávania pred Doprava, ktorej tooltip znie Importovať potvrdenia rezervácií. Otvorí sa dialóg s rovnakým názvom, taký istý ako na karte Rezervácie. Na prázdnej karte robí to isté Importovať zo súboru uprostred.',
   'help.guide.import-transport-file.step.2':
     'Pretiahnite lístok do poľa, alebo naň kliknite a vyberte súbor: EML, PDF, PKPass, HTML a TXT, najviac päť súborov po 10 MB, a fotky lístka (JPG, PNG, WEBP), ak má váš server AI model, ktorý ich vie prečítať. V poli sa zobrazia názvy vybraných súborov.',
   'help.guide.import-transport-file.step.3':
@@ -3067,15 +3239,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     'Ručná rezervácia na pravom konci lišty otvorí Nová rezervácia. Vytvára šesť druhov rezervácií: Ubytovanie, Reštaurácia, Udalosť, Prehliadka so sprievodcom, Parkovanie a Iné. Lety, vlaky a ostatná doprava sú v záložke Doprava a tu sa nikdy nezobrazia.',
   'help.ctx.trip-bookings.bullet.2':
-    'Ikona sťahovania pred Ručná rezervácia, Importovať potvrdenia rezervácií, nahrá potvrdenia, aby ich TREK vedel prečítať automaticky: EML, PDF, PKPass, HTML alebo TXT, najviac päť súborov po 10 MB, a fotky, ak AI model číta obrázky. Ikona sa zobrazí, iba ak ich server vie čítať.',
+    'Ikona nahrávania pred Ručná rezervácia, Importovať potvrdenia rezervácií, nahrá potvrdenia, aby ich TREK vedel prečítať automaticky: EML, PDF, PKPass, HTML alebo TXT, najviac päť súborov po 10 MB, a fotky, ak AI model číta obrázky. Ikona sa zobrazí, iba ak ich server vie čítať. Tam, kde správca zapol import e-mailov, ten istý dialóg dáva ceste vlastnú adresu, na ktorú môžete preposielať e-maily s rezerváciami.',
   'help.ctx.trip-bookings.bullet.3':
     'Hľadať prehľadáva názvy, typy, miesta, poznámky, rezervačné kódy a cestujúcich. Filter, lievik vedľa neho, zúži kartu podľa Stav, podľa Typ s počtom pri každom a podľa Cestujúci, keď rezervácia uvádza ľudí. Číslo pri lieviku ukazuje, koľko filtrov je zapnutých.',
   'help.ctx.trip-bookings.bullet.4':
-    'Tri ikony za Filter prepínajú zobrazenie: Karty, Zoznam a Časová os. Možnosti zobrazenia, posuvníky vedľa nich, zoskupujú a triedia karty a zoznam alebo nastavujú dráhy časovej osi. Ikona tabuľky za nimi, Exportovať ako tabuľku (CSV), stiahne to, čo karta ukazuje, ako súbor. Predvolene sú karty zoskupené do Potvrdené a Čaká na potvrdenie a zoznam podľa dňa. Kliknutím na nadpis sekcie ju zbalíte.',
+    'Tri ikony za Filter prepínajú zobrazenie: Karty, Zoznam a Časová os. Možnosti zobrazenia, posuvníky vedľa nich, zoskupujú a triedia karty a zoznam alebo nastavujú dráhy časovej osi. Ikona sťahovania za nimi, Exportovať ako tabuľku (CSV), stiahne to, čo karta ukazuje, ako súbor. Predvolene sú karty zoskupené do Potvrdené a Čaká na potvrdenie a zoznam podľa dňa. Kliknutím na nadpis sekcie ju zbalíte.',
   'help.ctx.trip-bookings.bullet.5':
     'Karta má hlavičku zafarbenú podľa stavu, so stavovou bodkou (kliknutím prepínate medzi „Čaká na potvrdenie“ a „Potvrdené“), typom, názvom, ceruzkou a košom. Pod ňou sú údaje, ktoré rezervácia má: Dátum, Čas, Rezervačný kód, Check-in a Check-out, Miesto / Adresa, Ubytovanie, Prepojené s (zastávka v pláne), Odkaz, Poznámky, Cestujúci, Súbory a prepojené náklady.',
   'help.ctx.trip-bookings.bullet.6':
-    'Kliknutie na kartu, riadok alebo pruh otvorí detail rezervácie s Na mape (ak má rezervácia miesto), košom a Upraviť dole. Mazanie sa opýta raz (Odstrániť rezerváciu?, čo vám povie, ak sa spolu s ňou vymažú aj náklady). Potom sa rezervácia vymaže spolu s prepojenými výdavkami a pri ubytovaní sa jeho noci odstránia z plánu dňa.',
+    'Kliknutie na kartu, riadok alebo pruh otvorí detail rezervácie s Mapa (ak má rezervácia miesto), košom a Upraviť dole. Mazanie sa opýta raz (Odstrániť rezerváciu?, čo vám povie, ak sa spolu s ňou vymažú aj náklady). Potom sa rezervácia vymaže spolu s prepojenými výdavkami a pri ubytovaní sa jeho noci odstránia z plánu dňa.',
   // booking-views
   'help.guide.booking-views.title': 'Prepnutie zobrazenia a otvorenie rezervácie',
   'help.guide.booking-views.goal':
@@ -3091,9 +3263,9 @@ const help: TranslationStrings = {
   'help.guide.booking-views.step.5':
     'Ukážte na pruh a uvidíte jeho deň, časy a miesto, kliknutím naň otvoríte podrobnosti rezervácie. Karta v zobrazení Karty a riadok v zobrazení Zoznam otvoria to isté okno.',
   'help.guide.booking-views.step.6':
-    'V hlavičke podrobného zobrazenia je názov a štítky so stavom (kliknutím ho prepnete), typom, dňom a rezervačným kódom s tlačidlom na jeho skopírovanie. Pod ňou sú časy ako dlaždice, potom miesto, cestujúci, poznámky, náklady a súbory, ak ich rezervácia má, a úplne dole „Na mape“, kôš a „Upraviť“.',
+    'V hlavičke podrobného zobrazenia je názov a štítky so stavom (kliknutím ho prepnete), typom, dňom a rezervačným kódom s tlačidlom na jeho skopírovanie. Pod ňou sú časy ako dlaždice, potom miesto, cestujúci, poznámky, náklady a súbory, ak ich rezervácia má, a úplne dole Mapa, kôš a Upraviť.',
   'help.guide.booking-views.result':
-    'Rezervácia sa otvorí v podrobnom zobrazení: Upraviť otvorí jej formulár, Na mape ju zobrazí v pláne a Uzavrieť alebo Escape vás vráti do zobrazenia, z ktorého ste prišli.',
+    'Rezervácia sa otvorí v podrobnom zobrazení: Upraviť otvorí jej formulár, Mapa ju zobrazí v pláne a Zavrieť alebo Escape vás vráti do zobrazenia, z ktorého ste prišli.',
   'help.guide.booking-views.tip.1':
     'Možnosti zobrazenia, ikona posuvníkov za ikonami zobrazení, umožňujú zoskupiť a zoradiť Karty a Zoznam cez Zoskupiť podľa a Zoradiť podľa. V Časová os ponúkajú Samostatný pruh pre každý typ a Zobraziť druhú záložku. Zobraziť druhú záložku ukáže záznamy záložky Doprava stlmene v tenkom pruhu navrchu. Obnoviť zobrazenie vráti predvolené nastavenia a každá záložka si svoje zobrazenie pamätá v tomto prehliadači.',
   'help.guide.booking-views.tip.2':
@@ -3186,7 +3358,7 @@ const help: TranslationStrings = {
     'Prepojiť existujúci súbor ponúka dokumenty cesty, ktoré ešte nie sú pri tejto rezervácii. Vyberte jeden a priloží sa bez ďalšieho nahrávania.',
   'help.guide.booking-files.step.4': 'Kliknite na „Aktualizovať“.',
   'help.guide.booking-files.result':
-    'Karta aj detail uvádzajú dokumenty pod „Súbory“. Kliknutím dokument otvoríte. „Zobraziť v súboroch“ nad zoznamom v detaile vás prenesie na kartu „Súbory“.',
+    'Karta aj detail uvádzajú dokumenty pod Súbory. Kliknutím na názov dokumentu ho otvoríte, alebo ikonou sťahovania na konci jeho riadka ho uložíte. Zobraziť v súboroch nad zoznamom v detaile vás prenesie na kartu Súbory.',
   'help.guide.booking-files.tip.1':
     'Pri rezervácii, ktorú ešte vytvárate, sa dokument nahrá po kliknutí na Pridať. Nahrávanie vyžaduje pripojenie.',
   'help.guide.booking-files.tip.2':
@@ -3209,7 +3381,7 @@ const help: TranslationStrings = {
   'help.guide.booking-cost.result':
     'Karta ukazuje sumu dole, formulár rezervácie uvádza výdavok v časti Prepojené výdavky a ten istý výdavok sa zobrazuje na záložke Náklady, prepojený s touto rezerváciou.',
   'help.guide.booking-cost.tip.1':
-    'Kategória závisí od typu: „Reštaurácia“ sa zmení na „Jedlo a pitie“, „Ubytovanie“ na „Ubytovanie“, „Parkovanie“ na „Parkovanie“ a „Udalosť“ aj „Prehliadka“ na „Ostatné“.',
+    'Kategória závisí od typu: Reštaurácia sa zmení na Jedlo a pitie, Ubytovanie na Ubytovanie, Parkovanie na Parkovanie, Udalosť a Prehliadka so sprievodcom na Aktivity a Iné zostane Ostatné.',
   'help.guide.booking-cost.tip.2':
     'Rezervácia môže mať viac výdavkov. „Prepojiť existujúci výdavok“ ponúkne výdavky z „Nákladov“, ktoré ešte nie sú s ničím prepojené. Pri prepojenom výdavku „Odpojiť, výdavok ponechať“ zruší prepojenie a výdavok v „Nákladoch“ ponechá, kôš ho vymaže.',
   'help.guide.booking-cost.tip.3':
@@ -3230,7 +3402,7 @@ const help: TranslationStrings = {
   'help.guide.filter-bookings.result':
     'Karta ukazuje len to, čo ste vybrali, v zobrazeniach Karty, Zoznam aj Časová os, a filtre pre túto cestu zostanú, kým nezavriete kartu prehliadača.',
   'help.guide.filter-bookings.tip.1':
-    '„Typ“ sa zobrazí iba vtedy, keď sú na záložke rezervácie viacerých typov, a ponúka iba typy, ktoré na nej sú. Ak teda na záložke nie je žiadna prehliadka, „Typ“ nemá možnosť „Prehliadka“.',
+    'Typ sa zobrazí iba vtedy, keď je na karte viac typov rezervácií, a ponúka iba typy, ktoré na nej sú. Ak teda na karte nie je žiadna prehliadka so sprievodcom, Typ nemá možnosť Prehliadka so sprievodcom.',
   'help.guide.filter-bookings.tip.2':
     'Ak filtru nič nezodpovedá, záložka ukáže Týmto filtrom nič nezodpovedá a hneď pod tým Zrušiť filtre.',
   // import-booking-file
@@ -3238,7 +3410,7 @@ const help: TranslationStrings = {
   'help.guide.import-booking-file.goal':
     'Nechajte TREK načítať rezerváciu z e-mailu alebo PDF od poskytovateľa, aby ste ju nemuseli prepisovať.',
   'help.guide.import-booking-file.step.1':
-    'Kliknite na ikonu sťahovania na lište, „Importovať potvrdenia rezervácií“. Jej názov sa zobrazí, keď na ňu prejdete myšou. Otvorí sa rovnomenný dialóg.',
+    'Kliknite na ikonu nahrávania na lište, Importovať potvrdenia rezervácií. Jej názov sa zobrazí, keď na ňu prejdete myšou. Otvorí sa rovnomenný dialóg.',
   'help.guide.import-booking-file.step.2':
     'Potvrdenia pretiahnite do poľa alebo naň kliknite a vyberte ich: EML, PDF, PKPass, HTML a TXT, najviac päť súborov po 10 MB, a ak AI model vie čítať obrázky, aj fotky (JPG, PNG, WEBP). Vybrané súbory sa v poli zobrazia s názvom.',
   'help.guide.import-booking-file.step.3':
@@ -3293,15 +3465,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-lists.summary':
     'Dva zoznamy pre jednu cestu: zoznam vecí na balenie, s tým, kto čo prinesie a koľko to váži, a zoznam úloh so všetkým, čo sa musí stať pred cestou a počas nej. Záložka sa zobrazuje, kým je zapnutý doplnok Zoznamy.',
   'help.ctx.trip-lists.bullet.1':
-    'Tlačidlami „Zoznam vecí“ a „Úlohy“ na lište hore prepínate medzi oboma zoznamami a vidíte, koľko položiek každý obsahuje. Tlačidlá na pravom konci lišty patria k tomu, ktorý je práve otvorený.',
+    'Zoznam vecí a Úlohy na lište hore prepínajú medzi oboma zoznamami a počítajú, čo je v každom. Pri zozname vecí lišta obsahuje Pridať zoznam a vedľa neho tri bodky, pri zozname úloh Pridať novú úlohu.',
   'help.ctx.trip-lists.bullet.2':
-    'Zoznam vecí je rozdelený do zoznamov s ľubovoľným názvom, napríklad Dokumenty alebo Oblečenie. Každý zoznam je karta. V jej hlavičke je úchyt na presun celého zoznamu inam, farebná bodka, odznak so zbalenými z celkového počtu, tri bodky s možnosťami „Premenovať“, „Označiť všetko“, „Odznačiť všetko“ a „Odstrániť zoznam“ a šípka, ktorá kartu zbalí. „Pridať zoznam“ na lište nad nimi vytvorí nový.',
+    'Zoznam vecí je rozdelený do zoznamov s ľubovoľným názvom, napríklad Dokumenty alebo Oblečenie. Každý zoznam je karta. V jej hlavičke je úchyt na presun celého zoznamu inam, farebná bodka, prerušovaný krúžok na určenie ľudí, ktorí zoznam majú na starosti, odznak so zbalenými z celkového počtu, tri bodky s možnosťami Premenovať, Označiť všetko, Odznačiť všetko, Zdieľanie celého zoznamu a Odstrániť zoznam a šípka, ktorá kartu zbalí.',
   'help.ctx.trip-lists.bullet.3':
-    'Riadok má úchyt na presúvanie, políčko a názov, potom malý avatar osoby, ktorá položku vezme so sebou. Položka s množstvom nad jedna má aj počítadlo zabalených kusov, napríklad 3/10, s mínusom a plusom. Ďalej je množstvo ako malý odznak a, kým je zapnuté Sledovanie batožiny, hmotnosť v gramoch a kruh tašky, potom kôš a ponuka s tromi bodkami s Presunúť do zoznamu, Zdieľanie, Premenovať a Vymazať. Ovládacie prvky, ktoré riadok nepoužíva, sú stlmené, kým na ne neukážete myšou.',
+    'Riadok ukazuje svoje políčko, názov a len to, čo je nastavené: množstvo od dvoch vyššie, napríklad ×3, kusy zabalené počas balenia, napríklad 2/5, a obrázok toho, kto ju berie. Úchyt na presun riadka sa objaví, keď na neho ukážete. Kliknutím na názov otvoríte okno položky s jej zoznamom, množstvom, zabalenými kusmi, hmotnosťou, taškou, tým, kto ju berie, a tým, kto ju vidí.',
   'help.ctx.trip-lists.bullet.4':
-    'Zdieľané a Môj zoznam rozdeľujú zoznam vecí na dva: zoznam, ktorý vidia všetci, a váš vlastný. Všetky, Nezabalené a Hotovo vedľa nich zužujú práve otvorený zoznam. A až Z na konci riadka zobrazí položky každého zoznamu podľa názvu a druhé kliknutie sa vráti k vášmu vlastnému poradiu. Karta priebehu nad tým počíta, čo je zabalené.',
+    'Zdieľané a Môj zoznam pod lištou rozdeľujú zoznam vecí na dva: zoznam, ktorý vidia všetci, a váš vlastný. Vpravo v tom riadku sa nachádza riadok, ktorý počíta, čo je zabalené v zozname, na ktorý sa pozeráte, s tenkým pruhom vedľa.',
   'help.ctx.trip-lists.bullet.5':
-    '„Použiť šablónu“ a „Uložiť ako šablónu“ zoznam naplnia alebo uložia, aby ste ho nemuseli vypisovať. Dve ikony za nimi, „Exportovať“ a „Importovať“, exportujú zoznam na tlač, do PDF alebo do súboru a importujú zoznam. Červené tlačidlo na pravom konci karty s priebehom ukazuje, koľko položiek je odškrtnutých, a odstráni ich.',
+    'Tri bodky vedľa Pridať zoznam obsahujú všetko ostatné: Použiť šablónu, Uložiť ako šablónu, Importovať, tri spôsoby exportu (Vytlačiť alebo uložiť ako PDF, Markdown a CSV), A až Z, Skryť zbalené a úplne dole Odstrániť … označených.',
   'help.ctx.trip-lists.bullet.6':
     'Úlohy majú vlastný bočný panel: kartu s priebehom, filtre Všetko, Moje úlohy, Po termíne a Hotové, jeden riadok na zoznam a pod nimi Pridať zoznam. Úlohy sú v karte. Jej záhlavie ukazuje názov filtra a poradie, Priorita alebo Termín splnenia. Kliknutím na úlohu ju otvoríte v paneli vpravo. Pridať novú úlohu na lište otvorí dialóg Nová úloha.',
   // packing-categories
@@ -3311,66 +3483,63 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.step.1':
     'Kliknite na Pridať zoznam na lište nad zoznamami. Otvorí sa malý dialóg. Do jeho hornej časti, kde je „Názov zoznamu (napr. Oblečenie)“, napíšte názov a kliknite na Pridať.',
   'help.guide.packing-categories.step.2':
-    'Nový zoznam začína zástupným riadkom, ktorý ukazuje len tri bledé bodky. Kliknite na Pridať položku dole v riadku, napíšte položku do poľa Názov položky... a stlačte Enter: prvá položka nahradí zástupný riadok a pole zostane otvorené pre ďalšiu.',
+    'Nový zoznam začína prázdnym riadkom, poľom s tromi bledými bodkami. Kliknite na Pridať položku dole na karte, napíšte položku do poľa Názov položky... a stlačte Enter: prvá položka vyplní prázdny riadok a pole zostane otvorené pre ďalšiu.',
   'help.guide.packing-categories.step.3':
-    'Riadok premenujete kliknutím na jeho názov alebo cez „Premenovať“ v ponuke pod tromi bodkami na jeho pravom konci.',
+    'Položku premenujete kliknutím na jej názov. Otvorí sa jej okno s názvom navrchu ako poľom: napíšte nový názov a stlačte Enter.',
   'help.guide.packing-categories.step.4':
     'Prerušovaný krúžok s postavičkou v hornom páse zoznamu priradí k zoznamu členov cesty. Vyberte meno. Osobu znova odoberiete kliknutím na štítok, ktorý sa objaví.',
   'help.guide.packing-categories.step.5':
-    'Tri bodky vedľa počtu otvoria ďalšie možnosti: Premenovať, Označiť všetko, Odznačiť všetko a Odstrániť zoznam. Odstrániť zoznam vymaže zoznam aj všetky jeho položky bez ďalšej otázky. Šípka úplne vpravo zoznam zbalí.',
+    'Tri bodky vedľa počtu otvoria ďalšie možnosti: Premenovať, Označiť všetko, Odznačiť všetko, Zdieľanie celého zoznamu a Odstrániť zoznam. Odstrániť zoznam vymaže zoznam aj všetky jeho položky bez ďalšej otázky. Šípka úplne vpravo zoznam zbalí.',
   'help.guide.packing-categories.result':
     'Nový zoznam sa zobrazí v mriežke s položkami pod ním a farebnou bodkou a jeho odznak počíta, čo je už zabalené.',
   'help.guide.packing-categories.tip.1':
-    'Zoznam existuje iba vďaka svojim položkám. Keď vymažete poslednú položku, z riadka sa stane zástupný riadok, aby si zoznam zachoval pozíciu a farbu. Keď vymažete aj ten, zoznam sa vymaže.',
+    'Zoznam existuje iba vďaka svojim položkám. Keď vymažete poslednú položku, z riadka sa stane prázdny riadok, aby si zoznam zachoval pozíciu a farbu. Keď vymažete aj ten, zoznam sa vymaže.',
   'help.guide.packing-categories.tip.2':
-    'Keď niekoho priradíte k zoznamu, dostane oznámenie o balení. Nemení to, kto vidí položky. To sa nastavuje v časti Zdieľanie, v ponuke s tromi bodkami pri riadku.',
+    'Keď niekoho priradíte k zoznamu, dostane oznámenie o balení. Nemení to, kto vidí položky. To sa nastavuje v okne každej položky pod Viditeľné pre, alebo pre celý zoznam cez Zdieľanie celého zoznamu.',
   'help.guide.packing-categories.tip.3':
     'Dva zoznamy môžu mať rovnaký názov. TREK ich interne rozlišuje, takže názvy zostanú tak, ako ste ich napísali.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Odškrtávanie vecí pri balení',
-  'help.guide.check-off-packing.goal':
-    'Odškrtnite, čo už máte v taške, sledujte ukazovateľ priebehu a zabalené položky odstráňte.',
+  'help.guide.check-off-packing.goal': 'Odškrtnite, čo už máte v taške, sledujte priebeh a zabalené položky odstráňte.',
   'help.guide.check-off-packing.step.1':
-    'Kliknite na políčko vľavo v riadku. Názov sa prečiarkne a ukazovateľ priebehu sa aktualizuje.',
+    'Kliknite na políčko vľavo v riadku. Názov sa prečiarkne a počet zabalených položiek stúpne.',
   'help.guide.check-off-packing.step.2':
-    'Karta priebehu nad zoznamami ukazuje, koľko položiek je zabalených zo všetkých položiek zoznamu, ako číslo, ako percento aj ako pruh.',
+    'Vpravo v riadku so Zdieľané a Môj zoznam hovorí jeden riadok, koľko položiek je zabalených zo všetkých položiek v zozname, na ktorý sa pozeráte, s tenkým pruhom vedľa.',
   'help.guide.check-off-packing.step.3':
     'Celý zoznam označíte naraz cez tri bodky v jeho hlavičke: nájdete tam „Označiť všetko“ a „Odznačiť všetko“.',
   'help.guide.check-off-packing.step.4':
-    'Všetky, Otvorené a Hotovo vedľa Zdieľané a Môj zoznam filtrujú mriežku. Otvorené ukáže iba to, čo ešte chýba, takže úplne zabalený zoznam sa skryje.',
+    'Skryť zbalené, v ponuke s tromi bodkami vedľa Pridať zoznam, ukáže len to, čo ešte chýba, takže úplne zabalený zoznam sa skryje. Kým je zapnuté, označuje ho zaškrtnutie. Kliknutím naň uvidíte opäť všetko.',
   'help.guide.check-off-packing.step.5':
-    'Červené tlačidlo Odstrániť … začiarknuté na pravom konci karty priebehu, s počtom zaškrtnutých položiek v ňom, ich všetky naraz vymaže po jednom potvrdení z prehliadača.',
+    'Odstrániť … označených, dole v tej istej ponuke s počtom odškrtnutých položiek, ich všetky naraz vymaže po jednom potvrdení z prehliadača.',
   'help.guide.check-off-packing.result':
-    'Zobrazujú sa len otvorené položky a lišta hore ukazuje, koľko z balenia je hotové.',
-  'help.guide.check-off-packing.tip.1': 'Aj odškrtnutú položku môžete premenovať: kliknite na jej názov.',
+    'Zobrazujú sa len otvorené položky a riadok nad nimi ukazuje, koľko z balenia je hotové.',
+  'help.guide.check-off-packing.tip.1': 'Aj odškrtnutá položka otvorí svoje okno, keď kliknete na jej názov.',
   'help.guide.check-off-packing.tip.2':
     '„Označiť všetko“ a „Odznačiť všetko“ fungujú vždy pre jeden zoznam, cez tri bodky daného zoznamu.',
   'help.guide.check-off-packing.tip.3':
-    'Keď sú označené všetky položky, počítadlo nahradí Všetko je zabalené! a ukazovateľ sa zafarbí nazeleno.',
+    'Keď sú označené všetky položky, počet nahradí Všetko je zabalené! a pruh sa zafarbí nazeleno.',
   // apply-packing-template
   'help.guide.apply-packing-template.title': 'Použitie šablóny balenia',
   'help.guide.apply-packing-template.goal':
     'Pridajte do cesty hotový zoznam a zoznam z tejto cesty si uložte na ďalšiu.',
-  'help.guide.apply-packing-template.step.1': 'Kliknite na Použiť šablónu na lište nad zoznamom.',
+  'help.guide.apply-packing-template.step.1': 'Kliknite na tri bodky vedľa Pridať zoznam na lište nad zoznamom.',
   'help.guide.apply-packing-template.step.2':
-    'Vyberte šablónu. Každý riadok uvádza jej názov a počet položiek, ktoré obsahuje.',
+    'Kliknite na Použiť šablónu. Pod ňou sa otvoria šablóny, každá s názvom a počtom položiek, ktoré obsahuje. Vyberte jednu.',
   'help.guide.apply-packing-template.step.3':
     'Položky sa pridajú do zobrazenia, v ktorom práve ste: „Zdieľané“ ich pridá do spoločného zoznamu, ktorý vidia všetci, „Môj zoznam“ do vášho vlastného.',
   'help.guide.apply-packing-template.step.4':
-    'Ak si chcete zoznam z tejto cesty ponechať na ďalšiu, kliknite na „Uložiť ako šablónu“. Otvorí sa malý dialóg. Do horného poľa s textom „Názov šablóny“ napíšte názov a kliknite na „Uložiť“.',
+    'Ak si zoznam z tejto cesty chcete ponechať na ďalšiu, kliknite v tej istej ponuke na „Uložiť ako šablónu“. Otvorí sa malý dialóg. Do horného poľa s textom „Názov šablóny“ napíšte názov a kliknite na „Uložiť“.',
   'help.guide.apply-packing-template.result':
     'Zoznamy a položky zo šablóny sa pridajú do cesty vedľa toho, čo tam už bolo.',
   'help.guide.apply-packing-template.tip.1':
     'Šablóna skopíruje zoznam, množstvo, hmotnosť a tašku každej položky a vytvorí tašku, ktorú cesta ešte nemá. Odškrtnutia sa nekopírujú a nič, čo už je v zozname, sa neodstráni.',
-  'help.guide.apply-packing-template.tip.2':
-    'Použiť šablónu sa zobrazí, až keď existuje nejaká šablóna. Bez nej sa tlačidlo vôbec nezobrazí.',
+  'help.guide.apply-packing-template.tip.2': 'Použiť šablónu je v ponuke, až keď existuje nejaká šablóna.',
   'help.guide.apply-packing-template.tip.3':
     '„Uložiť ako šablónu“ vidí iba správca inštancie a iba vtedy, keď sú v zozname položky. Uloží spoločné položky a vaše vlastné položky, nikdy nie súkromné položky iného člena.',
   // import-packing-list
   'help.guide.import-packing-list.title': 'Vloženie celého zoznamu na balenie',
   'help.guide.import-packing-list.goal': 'Premeňte zoznam, ktorý už máte inde, na položky balenia naraz.',
-  'help.guide.import-packing-list.step.1':
-    'Kliknite na „Importovať“, ikonu so šípkou nadol na pravom konci lišty nad zoznamom.',
+  'help.guide.import-packing-list.step.1': 'Otvorte tri bodky vedľa Pridať zoznam a kliknite na Importovať.',
   'help.guide.import-packing-list.step.2':
     'Jedna položka na riadok: kategória, názov, hmotnosť v g (nepovinné), zavazadlo (nepovinné), checked/unchecked (nepovinné). Sivá ukážka v poli zobrazuje všetky štyri formáty a čísla na jej ľavom okraji počítajú napísané riadky. Funguje aj zoznam v Markdowne: nadpis určí názov zoznamu a z "- [ ]" a "- [x]" sa stanú položky.',
   'help.guide.import-packing-list.step.3':
@@ -3387,49 +3556,85 @@ const help: TranslationStrings = {
   'help.guide.export-packing-list.title': 'Tlač alebo export zoznamu vecí na balenie',
   'help.guide.export-packing-list.goal':
     'Vytlačte zoznam, uložte ho ako PDF alebo ho exportujte do súboru pre inú aplikáciu či ďalšiu cestu.',
-  'help.guide.export-packing-list.step.1':
-    'Kliknite na „Exportovať“, ikonu so šípkou nahor na lište nad zoznamom, hneď pred „Importovať“.',
+  'help.guide.export-packing-list.step.1': 'Kliknite na tri bodky vedľa Pridať zoznam na lište nad zoznamom.',
   'help.guide.export-packing-list.step.2':
-    'Kontrolný zoznam v Markdowne (.md) a CSV na import (.csv) uložia zoznam hneď ako súbor.',
+    'Spôsoby exportu sú uprostred ponuky. Kontrolný zoznam v Markdowne (.md) a CSV na import (.csv) uložia zoznam hneď ako súbor.',
   'help.guide.export-packing-list.step.3':
     'Kliknite na Vytlačiť alebo uložiť ako PDF. Náhľad zobrazí zoznam ako stranu: navrchu cestu, jej dátumy a koľko je zabalené, potom každý zoznam ako kartu, každú položku s políčkom na zaškrtnutie.',
   'help.guide.export-packing-list.step.4':
     'Pod náhľadom kliknite na „Vytlačiť alebo uložiť ako PDF“. Prehliadač otvorí dialóg tlače: vyberte tlačiareň, alebo „Uložiť ako PDF“, ak chcete súbor uložiť.',
   'help.guide.export-packing-list.result':
-    'Výtlačok aj súbory obsahujú zobrazenie, ktoré je otvorené, Zdieľané alebo Môj zoznam, s množstvami, hmotnosťami a zaškrtnutiami.',
+    'Výtlačok aj súbory obsahujú otvorené zobrazenie, Zdieľané alebo Môj zoznam, s množstvami, hmotnosťami a zaškrtnutiami.',
   'help.guide.export-packing-list.tip.1':
     'CSV je formát, ktorý číta Importovať, vrátane batožín, takže ho môžete použiť ako vlastnú šablónu balenia: importujte ho do ďalšej cesty.',
   'help.guide.export-packing-list.tip.2':
     'Súbor Markdown sa v Obsidiane, Notione alebo na GitHube otvorí ako kontrolný zoznam a cez „Importovať“ ho môžete znova načítať.',
+  'help.guide.edit-packing-item.title': 'Zmena položky v jej okne',
+  'help.guide.edit-packing-item.goal':
+    'Otvorte jednu položku a zmeňte jej názov, zoznam, množstvo alebo to, kto ju berie, všetko na jednom mieste.',
+  'help.guide.edit-packing-item.step.1':
+    'Kliknite na názov položky. V riadku sa otvorí malé okno so všetkým o položke, každá hodnota v pilulke.',
+  'help.guide.edit-packing-item.step.2':
+    'Názov navrchu je pole: prepíšte ho a stlačením Enter položku premenujete. Krížik vedľa neho okno zatvorí.',
+  'help.guide.edit-packing-item.step.3':
+    'Zoznam presunie položku do iného zoznamu: kliknite naň a vyberte. Počet pod ním určuje, koľko kusov beriete.',
+  'help.guide.edit-packing-item.step.4':
+    'Prinesie ukazuje, kto berie zdieľanú položku. Kliknite naň a zaškrtnite každého na ceste, kto ju berie tiež. Druhé kliknutie na meno túto osobu zasa odoberie.',
+  'help.guide.edit-packing-item.step.5':
+    'Odstrániť dole položku okamžite odstráni. Okno zatvoríte krížikom alebo kliknutím kamkoľvek vedľa.',
+  'help.guide.edit-packing-item.result':
+    'Riadok ukazuje len to, čo je nastavené: množstvo od dvoch vyššie, zabalené kusy počas balenia a obrázky toho, kto ju berie.',
+  'help.guide.edit-packing-item.tip.1': 'Každá zmena sa uloží, hneď ako ju urobíte. Tlačidlo Uložiť neexistuje.',
+  'help.guide.edit-packing-item.tip.2':
+    'Pri zapnutom Sledovanie batožiny má okno aj hmotnosť položky a jej tašku. Pozrite si Zvážiť batožinu.',
+  'help.guide.edit-packing-item.tip.3':
+    'Pri zdieľanej položke, ktorú berie niekto iný, Kopírovať do môjho zoznamu nad Odstrániť vytvorí súkromnú kópiu pre vás.',
   // share-packing-item
-  'help.guide.share-packing-item.title': 'Kto položku vidí a kto ju prinesie',
+  'help.guide.share-packing-item.title': 'Kto položku vidí',
   'help.guide.share-packing-item.goal':
     'Presúvajte položku medzi spoločným fondom skupiny, vlastným zoznamom a ľuďmi, pre ktorých ju beriete.',
   'help.guide.share-packing-item.step.1':
     'Nad zoznamami je Zdieľané zoznam, ktorý vidia všetci, a Môj zoznam je váš vlastný. Pri oboch je počet položiek. Kliknutím na Môj zoznam si pozriete svoj.',
   'help.guide.share-packing-item.step.2':
-    'Vráťte sa do časti „Zdieľané“, otvorte tri bodky na konci riadka a kliknite na „Zdieľanie“.',
+    'V Zdieľané kliknite na názov položky. Dole v jej okne má Viditeľné pre tri možnosti: Všetci, Iba ja a Výber.',
   'help.guide.share-packing-item.step.3':
-    'Sú tri úrovne: Zdieľané, viditeľné pre všetkých v skupine, Osobné, ktoré vidíte iba vy, a Zdieľať s…, kde vyberiete ľudí, pre ktorých je položka určená.',
-  'help.guide.share-packing-item.step.4':
-    'Osobná položka je len v Môj zoznam. Ak ju chcete nájsť, prepnite na Môj zoznam.',
+    'Kliknite na Iba ja. Položka opustí zdieľaný zoznam a je teraz na vašom vlastnom zozname, kde ju vidíte len vy.',
+  'help.guide.share-packing-item.step.4': 'Nájdete ju po prepnutí na Môj zoznam.',
   'help.guide.share-packing-item.step.5':
-    'Znova otvorte „Zdieľanie“ a v časti „Zdieľať s…“ zaškrtnite meno. Položka sa zobrazí aj v zozname tejto osoby a riadok dostane malý odznak s počtom ľudí, s ktorými ju zdieľate.',
-  'help.guide.share-packing-item.result': 'Položka je v úrovni, ktorú ste vybrali, a v riadku vidíte, kto ju prinesie.',
+    'Otvorte ju znova, kliknite na Výber a zaškrtnite meno. Položka sa zobrazí aj v zozname tejto osoby a riadok dostane malý odznak s počtom ľudí, s ktorými ju zdieľate.',
+  'help.guide.share-packing-item.result':
+    'Položka je na vašom vlastnom zozname a odznak na jej riadku ukazuje, koľko ľudí ju vidí s vami.',
   'help.guide.share-packing-item.tip.1':
-    'Zdieľanie položky môže meniť len človek, ktorý ju berie so sebou. Ten, s kým ste ju zdieľali, ju vidí vo svojom Môj zoznam s malým odznakom ruky, ktorý po ukázaní naň zobrazí vaše meno. Môže ju odškrtnúť.',
+    'Kto položku vidí, môže zmeniť iba jej vlastník. Ten, s kým ste ju zdieľali, ju vidí vo svojom Môj zoznam s malým odznakom ruky, ktorý po ukázaní naň zobrazí vaše meno. Môže ju odškrtnúť.',
   'help.guide.share-packing-item.tip.2':
-    'Pri zdieľanej položke, ktorú berie niekto iný, ponúka ponuka s tromi bodkami namiesto Zdieľanie dve iné položky: Môžem to vziať tiež, ktorá vás pridá vedľa neho, a Kopírovať do môjho zoznamu, ktorá vytvorí súkromnú kópiu pre vás.',
+    'Ak chcete presunúť všetky položky zoznamu naraz, použite Zdieľanie celého zoznamu v troch bodkách zoznamu. Pozrite si Zdieľanie celého zoznamu.',
   'help.guide.share-packing-item.tip.3':
     'Nové položky preberajú zdieľanie z pohľadu, v ktorom ich pridáte. Položky pridané v Zdieľané sú zdieľané so všetkými. Položky pridané v Môj zoznam sú Osobné, pokiaľ nie je každá položka toho zoznamu zdieľaná s tými istými ľuďmi: vtedy sa nová položka zdieľa aj s nimi.',
+  'help.guide.share-packing-list.title': 'Zdieľanie celého zoznamu',
+  'help.guide.share-packing-list.goal':
+    'Presuňte všetky položky jedného zoznamu naraz do spoločnej skupiny, na vlastný zoznam alebo ľuďom, ktorých vyberiete.',
+  'help.guide.share-packing-list.step.1':
+    'Otvorte tri bodky v hlavičke zoznamu a kliknite na Zdieľanie celého zoznamu.',
+  'help.guide.share-packing-list.step.2':
+    'Dialóg uvádza názov zoznamu a ponúka tri úrovne: Zdieľané, v spoločnej skupine pre všetkých, Osobné, len pre vás, a Zdieľať s…, ľudia, ktorých vyberiete. Začína na úrovni, ktorú položky už majú. Kliknite na Zdieľať s….',
+  'help.guide.share-packing-list.step.3': 'Zaškrtnite ľudí, pre ktorých je zoznam určený.',
+  'help.guide.share-packing-list.step.4':
+    'Kliknite na Použiť na zoznam. Každá vaša položka v zozname sa presunie na túto úroveň a správa to potvrdí.',
+  'help.guide.share-packing-list.result':
+    'Zoznam opustil zdieľané zobrazenie a je v Môj zoznam, s odznakom v každom riadku, ktorý počíta ľudí, s ktorými je zdieľaný.',
+  'help.guide.share-packing-list.tip.1':
+    'Presunú sa len vaše vlastné položky. Položky, ktoré pridali iní, zostávajú, ako sú, a dialóg to povie, ak ich zoznam má.',
+  'help.guide.share-packing-list.tip.2': 'Jednotlivú položku môžete neskôr stále zmeniť, v jej okne pod Viditeľné pre.',
   // packing-bags
   'help.guide.packing-bags.title': 'Zvážiť batožinu',
   'help.guide.packing-bags.goal':
     'Pridajte ku každej položke hmotnosť, roztrieďte položky do batožín a udržte každú batožinu pod limitom leteckej spoločnosti.',
-  'help.guide.packing-bags.step.1': 'Kliknite na odznak hmotnosti pred krúžkom a zadajte hmotnosť položky v gramoch.',
-  'help.guide.packing-bags.step.2': 'Krúžok za hmotnosťou označuje batožinu, do ktorej položka patrí. Kliknite naň.',
+  'help.guide.packing-bags.step.1':
+    'Kliknutím na názov položky otvorte jej okno a do Celková hmotnosť zadajte hmotnosť položky v gramoch.',
+  'help.guide.packing-bags.step.2':
+    'Taška pod ním ukazuje Nepriradené, kým položka nie je v žiadnej taške. Kliknite naň.',
   'help.guide.packing-bags.step.3':
-    'Ak ešte nemáte žiadne zavazadlo, kliknite na „Pridať zavazadlo“, napíšte názov a stlačte Enter. Zavazadlo sa vytvorí a položka sa doň vloží.',
+    'Pod ním sa otvoria tašky cesty. Ak ešte žiadna nie je, napíšte názov do Pridať zavazadlo na konci zoznamu a stlačte Enter. Taška sa vytvorí a položka sa do nej vloží.',
   'help.guide.packing-bags.step.4':
     'Karta Zavazadlá sa zobrazí vpravo od zoznamov, hneď ako existuje aspoň jedna taška. Každá taška ukazuje názov, kto ju nesie, pruh naplnenia, koľko položiek v nej je a jej hmotnosť. Pod taškami nasledujú Nepriradené a Celková hmotnosť, pod ňou Zabalené: už zabalená hmotnosť a tenký pruh s jej podielom.',
   'help.guide.packing-bags.step.5':
@@ -3439,7 +3644,7 @@ const help: TranslationStrings = {
   'help.guide.packing-bags.result':
     'Karta „Zavazadlá“ vpravo ukazuje hmotnosť každej batožiny oproti jej limitu, čo nie je v žiadnej batožine, čo nesie ktorá osoba a celkovú hmotnosť spolu s tým, koľko je už zbalené.',
   'help.guide.packing-bags.tip.1':
-    'Pole hmotnosti, krúžok tašky a karta Zavazadlá existujú len vtedy, keď má správca zapnuté Sledovanie batožiny v doplnku Zoznamy. V užšom okne sa tašky otvárajú tlačidlom Zavazadlá nad kartou priebehu.',
+    'Hmotnosť a taška v okne položky a karta Zavazadlá existujú len vtedy, keď má správca zapnuté Sledovanie batožiny v doplnku Zoznamy. V užšom okne sa tašky namiesto toho otvárajú cez Zavazadlá v troch bodkách vedľa Pridať zoznam.',
   'help.guide.packing-bags.tip.2':
     'Server počíta hmotnosť zavazadla z položiek všetkých členov vrátane tých, ktoré nevidíte, takže číslo zodpovedá skutočnej hmotnosti zavazadla.',
   'help.guide.packing-bags.tip.3':
@@ -3485,7 +3690,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.summary':
     'Financie cesty: všetky výdavky v prehľade podľa dátumu alebo v tabuľke, kto ich zadal a kto za ne dlhuje, v mene z účtenky. V pravom stĺpci vidíte, kto má komu koľko zaplatiť, aby ste boli vyrovnaní.',
   'help.ctx.trip-costs.bullet.1':
-    'Na lište hore sú dátumy cesty a cestujúci, medzi ktorých sa náklady delia. Nájdete tu aj „Hľadať výdavky…“, filter (lievik), „Exportovať CSV“ (ikona sťahovania) a prepínač „Zoznam“ / „Tabuľka“.',
+    'Na lište hore sú dátumy cesty a cestujúci, medzi ktorých sa náklady delia. Nájdete tu aj Hľadať výdavky…, filter (lievik), Exportovať CSV (ikona sťahovania), menu, v ktorej sa sumy zobrazujú, a prepínač Zoznam / Tabuľka.',
   'help.ctx.trip-costs.bullet.2':
     'Na jej pravom konci Vyrovnať zaznamená všetky otvorené prevody naraz, Naskenovať účtenku vyplní výdavok z fotky, ak doplnok Analýza pomocou AI vie čítať obrázky, a Pridať výdavok otvorí editor.',
   'help.ctx.trip-costs.bullet.3':
@@ -3493,7 +3698,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.bullet.4':
     'Kniha výdavkov je zoskupená podľa dní, od najnovšieho, a v záhlaví každého dňa je počet záznamov a koľko sa v ten deň minulo. Riadok ukazuje kategóriu ako farebnú záložku, názov, čipy platiteľov s tým, čo každý zaplatil, a pod nimi Rozdeliť s podielom každého cestujúceho (začiarknutie označuje, kto svoj podiel zaplatil), potom poznámku a sumu, a ešte „požičali ste“ alebo „ste si požičali“, ak z rozdelenia vyplýva, že vám ostatní dlhujú peniaze alebo vy dlžíte.',
   'help.ctx.trip-costs.bullet.5':
-    'V pravom stĺpci sú výsledky: „Vyrovnať“ uvádza, kto komu platí, „Zostatky“ ukazujú preplatok alebo nedoplatok každého cestujúceho, „Konečný rozpočet“ ukazuje, koľko cesta stojí každého z nich, a „Podľa kategórie“, za čo sa minuli peniaze.',
+    'V pravom stĺpci sú výsledky: Vyrovnať uvádza, kto komu platí, Zostatky ukazujú preplatok alebo nedoplatok každého cestujúceho, Konečný rozpočet ukazuje, koľko cesta stojí každého z nich, a Podľa kategórie, za čo sa minuli peniaze. Kliknutím na kategóriu ju vynecháte zo súčtov. Deliť náklady medzi cestujúcich dole v stĺpci vypína platiteľov a vyrovnávanie pri ceste, ktorá potrebuje len súčty.',
   'help.ctx.trip-costs.bullet.6':
     'Zaznamenaná platba je v tom istom prehľade ako samostatný riadok, vedľa nej je ceruzka a „Vrátiť späť“. Výdavok má ceruzku a kôš, a kôš sa pred vymazaním výdavku opýta. Výdavok s účtenkami má vedľa názvu štítok „Účtenka“, ktorý ich otvorí.',
   'help.ctx.trip-costs.bullet.7':
@@ -3508,7 +3713,7 @@ const help: TranslationStrings = {
   'help.guide.add-expense.step.3':
     'Pilulka pod názvom je Kategória, Jedlo a pitie, kým nevyberiete inú. Je ich štrnásť a nedajú sa meniť. Záhlavie prevezme farbu vybranej kategórie, rovnako aj záložka na riadku a jej pruh v Podľa kategórie.',
   'help.guide.add-expense.step.4':
-    'Sumu z účtenky zadajte do poľa „Celková suma“. „Mena“ vedľa neho je najprv nastavená na menu, v ktorej sa zobrazujú Náklady. Ak ju zmeníte, editor ukáže prepočítanú sumu. „Deň“ je najprv nastavený na dnešok a v zozname sa výdavok zaradí pod tento deň.',
+    'Sumu z účtenky zadajte do poľa Celková suma. Mena vedľa neho začína na mene samotnej cesty. Ak vyberiete inú, editor ukáže pod poľami prepočítanú sumu. Deň je najprv nastavený na dnešok a v zozname sa výdavok zaradí pod tento deň.',
   'help.guide.add-expense.step.5':
     'V časti Kto zaplatil? kliknite na osobu, ktorá skutočne zaplatila. Predvolene je vybraté Vy. Zatiaľ nikto nezaplatil zaznamená sumu bez toho, aby ju niekto dlhoval, a Platilo viacero ľudí v prepínači vedľa nadpisu rozdelí účet medzi viacerých platiteľov.',
   'help.guide.add-expense.step.6':
@@ -3563,26 +3768,26 @@ const help: TranslationStrings = {
   'help.guide.split-expense.tip.3':
     'Režim „Účtenka“ vypočíta „Celková suma“ sám a pole zosivie: celková suma je súčet riadkov účtenky.',
   'help.guide.split-expense.tip.4':
-    'Vlastné rozdelenie môžete zadať aj v percentách: prepnite Zadávať podiely ako na % a podiely musia dať spolu 100 %, inak sa výdavok neuloží.',
+    'Vlastné rozdelenie môžete zadať aj v percentách alebo v podieloch: malý prepínač vedľa nápovedy vyberá symbol meny, % alebo Podiely. V percentách musia podiely spolu dať 100 %, inak sa výdavok neuloží.',
   // expense-currency
   'help.guide.expense-currency.title': 'Zadanie výdavku v inej mene',
   'help.guide.expense-currency.goal': 'Zadajte sumu z účtenky a TREK uloží výmenný kurz.',
   'help.guide.expense-currency.step.1':
     'Otvorte Pridať výdavok. Hore v dialógu napíšte názov a do Celková suma zadajte sumu presne tak, ako je na bloku, nie prepočítanú.',
   'help.guide.expense-currency.step.2':
-    'Otvorte Mena vedľa sumy a vyberte menu z účtenky. Zoznam obsahuje každý kód, ktorý TREK pozná, a dá sa v ňom hľadať: napíšte tri písmená.',
+    'Otvorte Mena vedľa sumy. Nový výdavok začína na mene samotnej cesty. Vyberte menu z účtenky: mena cesty a mena, v ktorej sa zobrazujú Náklady, sú navrchu a každý ďalší kód, ktorý TREK pozná, nájdete napísaním troch písmen.',
   'help.guide.expense-currency.step.3':
     'Pod poľami sa objaví rad štítkov: zadaná suma a jej aktuálna hodnota, označená ako „aktuálny kurz“. Je to len náhľad, nie hodnota, ktorá sa uloží.',
   'help.guide.expense-currency.step.4':
     'V spodnej časti dialógu kliknite na „Pridať výdavok“. Kurz sa v tej chvíli zafixuje: výdavok si ponechá hodnotu z dňa, keď ste ho zadali.',
   'help.guide.expense-currency.step.5':
-    'V zozname výdavkov riadok pod názvom ukazuje obe sumy: to, čo ste zadali, šípku a sumu v mene cesty. Všetky súčty, zostatky a vyrovnania v záložke Náklady vychádzajú z druhej sumy.',
+    'V zozname výdavkov riadok pod názvom ukazuje obe sumy: to, čo ste zadali, šípku a sumu v mene, v ktorej sa zobrazujú Náklady. Všetky súčty, zostatky a vyrovnania na karte Náklady vychádzajú z druhej sumy.',
   'help.guide.expense-currency.result':
     'Výdavok si zachová sumu a menu, ktoré ste zadali. Zoznam výdavkov zobrazuje obe a súčty a zostatky cesty sa počítajú v mene cesty.',
   'help.guide.expense-currency.tip.1':
     'Kurz sa zafixuje pri uložení, takže vyrovnaný dlh sa nezmení, ani keď sa kurz o týždeň zmení. Nový kurz sa uloží iba vtedy, keď zmeníte menu výdavku.',
   'help.guide.expense-currency.tip.2':
-    'Zobrazovaná mena v Nastaveniach mení iba spôsob zobrazenia súm. Uložené sumy sa nikdy nezmenia. Ak je prázdna, každá cesta sa zobrazuje vo svojej vlastnej mene.',
+    'Zobrazovaná mena v Nastaveniach a výber meny na lište Náklady pre jednu cestu menia iba spôsob zobrazenia súm. Uložené sumy sa nikdy nezmenia. Ak je zobrazovaná mena prázdna, každá cesta sa zobrazuje vo svojej vlastnej mene.',
   'help.guide.expense-currency.tip.3':
     'Mena cesty sa nastavuje pri samotnej ceste, v časti Upraviť cestu, a vyžaduje oprávnenie Upraviť detaily výletu. Ak ju zmeníte, všetky zmrazené kurzy sa prepočítajú na novú menu. Samotné sumy sa neprevádzajú.',
   // filter-costs
@@ -3689,6 +3894,96 @@ const help: TranslationStrings = {
     'Výdavok rozdelený spôsobom Vlastné alebo Účtenka nemá jeden podiel na osobu, preto jeho Na osobu a Os. / deň zostanú prázdne.',
   'help.guide.costs-table.tip.3':
     'Platiteľov, rozdelenie, poznámku a účtenky upravíte priamo vo výdavku: „Ďalšie možnosti“ na konci riadka ponúkajú „Upraviť“ a „Vymazať“, ktorým riadok odstránite.',
+  'help.guide.costs-show-in.title': 'Zobrazenie nákladov v inej mene',
+  'help.guide.costs-show-in.goal':
+    'Čítajte náklady jednej cesty v inej mene, napríklad v mene krajiny, kam cestujete ďalej, bez zmeny čohokoľvek uloženého.',
+  'help.guide.costs-show-in.step.1':
+    'Výber meny na lište, medzi Exportovať CSV a prepínačom Zoznam / Tabuľka, ukazuje menu, v ktorej sa sumy čítajú. Ukážte naň a zobrazí sa Zobraziť sumy v.',
+  'help.guide.costs-show-in.step.2':
+    'Kliknite naň. Navrchu zoznamu je vaša zobrazovaná mena a mena samotnej cesty a môžete napísať tri písmená a hľadať v každej ďalšej. Vyberte menu.',
+  'help.guide.costs-show-in.step.3':
+    'Karty, každý riadok zoznamu výdavkov a pravý stĺpec sú teraz v tej mene, prepočítané dnešným kurzom. Vyrovnať ponúka prevody tiež v nej.',
+  'help.guide.costs-show-in.step.4':
+    'Ak sa chcete vrátiť, otvorte výber znova a vyberte prvú položku zoznamu: vašu zobrazovanú menu, alebo menu samotnej cesty, ak ste v Nastavenia žiadnu nenastavili.',
+  'help.guide.costs-show-in.result':
+    'Celá karta Náklady číta cestu v mene, ktorú ste vybrali. Výdavky si ponechávajú sumy a meny, v ktorých boli zadané.',
+  'help.guide.costs-show-in.tip.1':
+    'Voľba sa pamätá pre túto cestu iba v tomto prehliadači. Iné cesty, iné zariadenia a ostatní cestujúci si ponechávajú vlastné zobrazenie.',
+  'help.guide.costs-show-in.tip.2':
+    'Vaša zobrazovaná mena v Nastavenia zostáva, ako je. Keď ju na lište znova vyberiete, neskoršia zmena v Nastaveniach sa na túto cestu opäť uplatní.',
+  'help.guide.costs-show-in.tip.3':
+    'Nový výdavok stále začína v mene samotnej cesty, nech sú sumy zobrazené v akejkoľvek.',
+  'help.guide.leave-out-category.title': 'Vynechanie kategórie zo súčtov',
+  'help.guide.leave-out-category.goal': 'Pozrite, koľko cesta stála bez jedného druhu výdavkov, napríklad bez letov.',
+  'help.guide.leave-out-category.step.1':
+    'Podľa kategórie na konci pravého stĺpca radí, na čo sa minuli peniaze. Riadok navrchu hovorí, čo kliknutie urobí: Vyberte kategóriu, aby sa vynechala zo súčtov.',
+  'help.guide.leave-out-category.step.2':
+    'Kliknite na kategóriu. Jej riadok zostane na mieste, stlmený a prečiarknutý, ostatné pruhy sa prepočítajú a riadok navrchu teraz pomenúva, čo je vynechané, s Započítať všetko vedľa.',
+  'help.guide.leave-out-category.step.3':
+    'Celkové výdavky na cestu túto kategóriu vynechajú a rovnako aj Váš podiel a Zaplatili ste pod ním. Karta tiež pomenúva, čo je vynechané.',
+  'help.guide.leave-out-category.step.4':
+    'Kliknite na Započítať všetko, alebo znova na stlmený riadok, a každá kategória sa opäť počíta.',
+  'help.guide.leave-out-category.result':
+    'Súčty ukazujú cestu bez kategórií, ktoré ste vynechali, kým ich opäť nezapočítate.',
+  'help.guide.leave-out-category.tip.1':
+    'Je to len pohľad. Nič sa neukladá a voľba zmizne, keď opustíte kartu Náklady.',
+  'help.guide.leave-out-category.tip.2':
+    'To, čo sa dlhuje, zostáva celé: Dlhujete, Dlhujú vám, Nevyriešená suma, Vyrovnať a Zostatky stále počítajú každú kategóriu.',
+  'help.guide.leave-out-category.tip.3':
+    'Môžete vynechať viac kategórií naraz. Každé kliknutie na riadok prepne iba ten jeden.',
+  'help.guide.split-by-shares.title': 'Rozdelenie účtu podľa nocí alebo podielov',
+  'help.guide.split-by-shares.goal':
+    'Rozdeľte výdavok v pomere, napríklad podľa nocí, ktoré každý cestujúci strávil, bez toho, aby ste sumy počítali sami.',
+  'help.guide.split-by-shares.step.1':
+    'Otvorte výdavok ceruzkou vedľa jeho riadka a kliknite na Vlastné v prepínači vedľa Rozdeliť.',
+  'help.guide.split-by-shares.step.2':
+    'Vedľa nápovedy pod ním malý prepínač určuje, ako rozdelenie zadávate: symbol meny pre sumy, % pre percentá, alebo Podiely. Kliknite na Podiely.',
+  'help.guide.split-by-shares.step.3':
+    'Každý zaškrtnutý cestujúci dostane pole, ktoré začína na 1. Napíšte podiely každej osoby, napríklad noci, ktoré strávila. Pod každým poľom sa suma, ktorú to dáva, aktualizuje, ako píšete.',
+  'help.guide.split-by-shares.step.4':
+    'Odznak pod zoznamom ukazuje Rozdelenie sedí s celkom. Kliknite na Uložiť dole v dialógu.',
+  'help.guide.split-by-shares.result':
+    'Výdavok je rozdelený v pomere podielov, na cent presne, a jeho riadok ukazuje podiel každého cestujúceho pod Rozdeliť.',
+  'help.guide.split-by-shares.tip.1':
+    'Osoba s 0 podielmi za tento výdavok nič nedlhuje. Ak nemá podiel nikto, dialóg povie Dajte podiel aspoň jednej osobe a neuloží sa.',
+  'help.guide.split-by-shares.tip.2':
+    'Ukladajú sa len sumy, takže sa výdavok znova otvorí so sumami. Prepnite znova na Podiely, ak chcete zmeniť pomer.',
+  'help.guide.split-by-shares.tip.3': 'Percentá fungujú rovnako: vyberte % a percentá musia dať spolu 100 %.',
+  'help.guide.link-receipt-file.title': 'Použitie súboru cesty ako účtenky',
+  'help.guide.link-receipt-file.goal':
+    'Priraďte k výdavku dokument, ktorý cesta už má, napríklad poukaz alebo potvrdenie, ktoré je zároveň faktúrou, bez opätovného nahrávania.',
+  'help.guide.link-receipt-file.step.1':
+    'Kliknite na ceruzku vedľa riadka výdavku. Otvorí sa editor s Účtenky a faktúry blízko dolného okraja.',
+  'help.guide.link-receipt-file.step.2':
+    'Kliknite na ikonu odkazu vedľa Priložiť. Je tam, kým má cesta obrázky alebo PDF, ktoré ešte nie sú pri tomto výdavku. Zoznam sa otvorí pod nadpisom, najprv so súbormi rezervácie výdavku.',
+  'help.guide.link-receipt-file.step.3':
+    'Kliknite na súbor. Zoznam sa zatvorí a súbor je uvedený pod Účtenky a faktúry, s košom na jeho opätovné odobratie.',
+  'help.guide.link-receipt-file.step.4':
+    'Kliknite na Uložiť dole v dialógu. Riadok má teraz vedľa názvu čip Účtenka, ktorý súbor otvorí.',
+  'help.guide.link-receipt-file.result':
+    'Výdavok nesie súbor ako svoju účtenku. Nič sa nenahralo: je to ten istý súbor ako v Súbory a ponecháva si ďalšie prepojenia.',
+  'help.guide.link-receipt-file.tip.1': 'Kôš vedľa účtenky ju len odoberie z výdavku. Súbor zostáva v Súbory.',
+  'help.guide.link-receipt-file.tip.2':
+    'Ponúkajú sa len obrázky a PDF, rovnaké druhy, aké Priložiť berie, a nič, čo je v koši.',
+  'help.guide.costs-totals-only.title': 'Ponechanie len súčtov cesty',
+  'help.guide.costs-totals-only.goal':
+    'Sledujte, koľko cesta stojí, bez toho, kto platil, kto komu dlhuje a vyrovnania, napríklad keď sa všetko aj tak delí.',
+  'help.guide.costs-totals-only.step.1':
+    'Deliť náklady medzi cestujúcich je prepínač dole v pravom stĺpci. Je predvolene zapnutý a riadok pod jeho názvom hovorí, čo robí.',
+  'help.guide.costs-totals-only.step.2':
+    'Vypnite ho. Karty Dlhujete a Dlhujú vám, Vyrovnať, Zostatky a Konečný rozpočet zmiznú, rovnako ako platitelia a rozdelenie v každom riadku. Celkové výdavky na cestu zostanú, s počtom výdavkov pod nimi.',
+  'help.guide.costs-totals-only.step.3':
+    'Pridať výdavok teraz otvorí editor bez Kto zaplatil? a Rozdeliť: názov, kategória, suma, jej mena a jej deň je všetko, čo výdavok potrebuje.',
+  'help.guide.costs-totals-only.step.4':
+    'Prepínač zapnite znova, kedykoľvek chcete deliť. Platitelia, rozdelenia a platby zaznamenané predtým sa vrátia tak, ako boli.',
+  'help.guide.costs-totals-only.result':
+    'Náklady ukazujú výdavky cesty, podľa dní, podľa kategórií aj v tabuľke, bez čohokoľvek o tom, kto komu čo dlhuje.',
+  'help.guide.costs-totals-only.tip.1':
+    'Nastavenie patrí ceste, takže každý cestujúci vidí rovnaké Náklady. Prepínač vidí len ten, kto smie upravovať náklady.',
+  'help.guide.costs-totals-only.tip.2':
+    'Výdavok pridaný pri vypnutom prepínači sa uloží bez platiteľa a rozdelenia, takže sa nezmení na dlh, ak neskôr znova rozdelíte.',
+  'help.guide.costs-totals-only.tip.3':
+    'Pri ceste, na ktorej ste iba vy, nie je čo deliť, takže Náklady ukazujú samotné súčty a prepínač sa nezobrazuje.',
 
   // ── Screen: trip-files ────────────────────────────────────────────────────────────────
   'help.ctx.trip-files.title': 'Súbory',
@@ -3747,6 +4042,8 @@ const help: TranslationStrings = {
     'Opätovným kliknutím na označenú položku prepojenie odstránite, samotný súbor zostane. Offline sa poznámka a nové označenia uložia a odošlú, keď bude TREK znova online. Pripojenie vyžaduje iba odstránenie ďalšieho prepojenia.',
   'help.guide.files-link.tip.3':
     'Funguje to aj naopak: dokument priložený k miestu alebo rezervácii nájdete aj v tomto zozname, s rovnakým štítkom v riadku.',
+  'help.guide.files-link.tip.4':
+    'Ak vlastník cesty vypne pre túto cestu Dokumenty (Nastavenia cesty, Doplnky), karta Súbory zmizne, ale dokument prepojený s rezerváciou, miestom alebo výdavkom zostane pri nej a stále sa otvorí. Po opätovnom zapnutí karta ukáže opäť všetky súbory.',
   // files-star
   'help.guide.files-star.title': 'Dôležité dokumenty navrchu',
   'help.guide.files-star.goal':
@@ -3901,7 +4198,7 @@ const help: TranslationStrings = {
   'help.guide.shared-links.tip.1':
     'Prijíma sa iba adresa http alebo https. Čokoľvek iné sa odmietne a dialóg zostane otvorený s tým, čo ste napísali.',
   'help.guide.shared-links.tip.2':
-    'Pripnuté odkazy sú prvé, potom najnovšie. Malá ikona vedľa názvu je favicon stránky, načítaný priamo z nej, takže bez internetu čip namiesto neho ukáže obyčajnú ikonu odkazu.',
+    'Pripnuté odkazy sú prvé, potom najnovšie. Malá ikona vedľa názvu je favicon stránky, načítaný priamo z nej. Kým sa nenačíta, alebo keď ho stránka nemá, čip namiesto neho ukáže obyčajnú ikonu odkazu.',
   'help.guide.shared-links.tip.3':
     '„Odkazy“ majú v „Doplnkoch“ vlastný prepínač pod „Spoluprácou“, takže administrátor môže panel vypnúť bez vplyvu na zvyšok záložky.',
   // create-poll
@@ -3931,7 +4228,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.step.1':
     'Kliknite na možnosť, ktorú chcete. Jej krúžok sa označí fajkou, možnosť dostane rámček vo farbe zvýraznenia a pruh za ňou narastie.',
   'help.guide.vote-poll.step.2':
-    'Teraz vidíte celý výsledok: pruh ukazuje podiel, percento je vpravo a malé krúžky sú ľudia, ktorí zvolili túto možnosť, najviac traja.',
+    'Teraz vidíte celý výsledok: pruh ukazuje podiel, percento je vpravo a malé krúžky sú ľudia, ktorí zvolili túto možnosť. Zobrazení sú traja. Štvrtý krúžok s plusom a číslom počíta všetkých ostatných.',
   'help.guide.vote-poll.step.3':
     'Rozmysleli ste si to? Kliknite na inú možnosť. V ankete bez „Viac možností“ sa váš hlas presunie na novú možnosť, druhý hlas nepribudne.',
   'help.guide.vote-poll.step.4':
@@ -3941,7 +4238,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.tip.1':
     'Percentá a to, kto za čo hlasoval, sa zobrazia až potom, ako sami zahlasujete, alebo keď je anketa uzavretá. Počet hlasov v hlavičke vidí každý.',
   'help.guide.vote-poll.tip.2':
-    'Hlasovanie nikdy nie je anonymné: keď prejdete myšou nad niektorý z krúžkov pri možnosti, uvidíte meno toho, kto hlasoval.',
+    'Hlasovanie nikdy nie je anonymné: keď prejdete myšou nad niektorý z krúžkov pri možnosti, uvidíte meno toho, kto hlasoval. Keď prejdete nad krúžok s plusom, uvidíte mená všetkých ostatných.',
   // close-poll
   'help.guide.close-poll.title': 'Uzavretie ankety alebo jej odstránenie',
   'help.guide.close-poll.goal':
@@ -3964,12 +4261,12 @@ const help: TranslationStrings = {
   'help.guide.whats-next.step.1':
     'Karta uvádza najbližšie zastávky cesty, najviac osem, v časovom poradí pod nadpisom pre každý deň: Dnes, Zajtra alebo dátum, a vedľa neho názov dňa, ak ho deň má. V hlavičke je ich počet.',
   'help.guide.whats-next.step.2':
-    'Vľavo pri každej zastávke je jej čas: začiatok, do a koniec, ak ho zastávka má, alebo TBD, ak ešte nie je nastavený čas.',
+    'Vľavo pri každej zastávke je jej čas: začiatok, do a koniec, ak ho zastávka má. Hotel bez vlastného času ukazuje svoj príchod v deň, keď pobyt začína. TBD znamená, že ešte nie je nastavený čas.',
   'help.guide.whats-next.step.3':
     'Vedľa neho sú názov, adresa a ako čipy ľudia na tejto zastávke. Ak nie je k zastávke priradený nikto, uvedení sú všetci z cesty.',
   'help.guide.whats-next.result': 'Zoznam toho, čo vás čaká, len na čítanie: riadi sa plánom a nič tu ho nezmení.',
   'help.guide.whats-next.tip.1':
-    'Tu nič nenastavujete. Časy pochádzajú z plánu dňa, a keď ich tam zmeníte, tento zoznam sa hneď aktualizuje.',
+    'Tu nič nenastavujete. Časy pochádzajú z plánu dňa a pri hoteli z jeho rezervácie. Keď ich tam zmeníte, tento zoznam sa hneď aktualizuje.',
   'help.guide.whats-next.tip.2':
     'Zobrazuje sa iba to, čo vás ešte čaká: zastávka zo zoznamu zmizne, keď uplynie jej začiatok, dnešná zastávka bez času zostane do konca dňa a po skončení cesty je panel prázdny.',
   'help.guide.whats-next.tip.3':
@@ -4035,7 +4332,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-mode.tip.1':
     'Voľba sa ukladá pre každú cestu k vášmu účtu, takže po opätovnom načítaní, v inom prehliadači aj na inom zariadení sa cesta otvorí opäť v zobrazení cesty autom.',
   'help.guide.roadtrip-mode.tip.2':
-    'Prepínač sa zobrazí, až keď správca zapne doplnok „Cesta autom“ v časti Doplnky v administrácii.',
+    'Prepínač sa zobrazí, len kým je pre cestu zapnutý doplnok Cesta autom. Správca ho zapína pre každú cestu v časti Doplnky v administrácii a vlastník cesty ho môže zapnúť alebo vypnúť len pre túto cestu v Doplnky v Nastaveniach cesty.',
   'help.guide.roadtrip-mode.tip.3':
     'V telefóne prepínač nie je: doplnok pridá vlastnú kartu Cesta autom vedľa karty Plán.',
   // roadtrip-stops
@@ -4057,7 +4354,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stops.result':
     'Štítok Pobyt zastávky, ktorú ste zmenili, ukazuje novú dĺžku a každý nasledujúci čas príchodu sa posunie podľa toho. Zastávka, ktorú ste zmenili na iný druh a späť, je opäť očíslovaný cieľ.',
   'help.guide.roadtrip-stops.tip.1':
-    'Dĺžka pobytu patrí k miestu, nie k jednej návšteve: miesto naplánované na dva dni má v oboch dňoch rovnakú dĺžku pobytu.',
+    'Pobyt patrí k návšteve: miesto naplánované na dva dni si v každom z nich ponecháva vlastný pobyt a zmena jedného druhý nechá tak.',
   'help.guide.roadtrip-stops.tip.2':
     'Zastávky po ceste sa zobrazujú aj v „Dní“. Ak v „Nastavení jazdy“ v časti „Servisné zastávky“ vypnete „Zobraziť aj v Dňoch“, zostanú len v „Cesta autom“.',
   'help.guide.roadtrip-stops.tip.3': 'Bez pobytu v tom istom dialógu čas opäť odstráni.',
@@ -4175,7 +4472,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.step.1':
     'Ak je nastavený dojazd, bočný stĺpec ukazuje na úseku, kde dôjde palivo alebo batéria, pás: Tu dôjde palivo, alebo pri elektromobile Tu dôjde batéria. Pod ním vidíte, ako ďaleko v úseku to je.',
   'help.guide.roadtrip-refuel.step.2':
-    'Ikona lampy na páse je tlačidlo: Nájsť palivo, alebo Nájsť nabíjačku pri elektromobile. Hľadá pozdĺž cesty pred týmto bodom a počas hľadania ukazuje Hľadá sa pozdĺž trasy…',
+    'Blikajúce čerpadlo na konci pásu, pri elektromobile blesk, je tlačidlo: Nájsť palivo, alebo Nájsť nabíjačku. Hľadá pozdĺž cesty pred týmto bodom a počas hľadania ukazuje Hľadá sa pozdĺž trasy…',
   'help.guide.roadtrip-refuel.step.3':
     'Zobrazia sa najviac tri čerpacie stanice, každá so vzdialenosťou od trasy a dojazdom, ktorý by vám ešte zostal.',
   'help.guide.roadtrip-refuel.step.4':
@@ -4187,7 +4484,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.tip.2':
     'Vyhľadávanie prezerá cestu pred bodom, kde dôjde palivo, počíta s rezervou a obchádzku započíta dvakrát, takže každé ponúknuté miesto je naozaj dosiahnuteľné.',
   'help.guide.roadtrip-refuel.tip.3':
-    'Ak nie sú žiadne výsledky, môžete hľadať znova: lampa sa zmení na Skúsiť znova, pretože vyhľadávanie miest je zdieľaná služba, ktorej občas vyprší časový limit.',
+    'Ak nie sú žiadne výsledky, môžete hľadať znova: čerpadlo sa zmení na Skúsiť znova, pretože vyhľadávanie miest je zdieľaná služba, ktorej občas vyprší časový limit.',
   // roadtrip-track
   'help.guide.roadtrip-track.title': 'Prispôsobenie dňa importovanej stope',
   'help.guide.roadtrip-track.goal':
@@ -4229,7 +4526,7 @@ const help: TranslationStrings = {
   'help.guide.tour-collection-add-to-trip.step.3':
     'V časti „Trasové body“ vyberte dlaždicu s trasovými bodmi, ak chcete pridať štart, zastávky a cieľ v ich poradí, alebo „Len línia“, ak chcete pridať iba uloženú líniu.',
   'help.guide.tour-collection-manage.step.1':
-    'Otvorte zoznam. Pri každej uloženej túre vidíte jej náročnosť, typ, cestu, z ktorej bola uložená, vzdialenosť a prevýšenie a počet trasových bodov. Keď nabehnete myšou na názov cesty, uvidíte, kto túru uložil.',
+    'Otvorte zoznam. Pri každej uloženej túre vidíte jej náročnosť alebo typ, cestu, z ktorej bola uložená, jej čas, vzdialenosť a prevýšenie a počet trasových bodov. Keď nabehnete myšou na názov cesty, uvidíte, kto túru uložil.',
   'help.guide.entry-draft.step.1': 'V editore v pravom stĺpci zapnite „Koncept“.',
   'help.guide.journey-map-layers.step.3':
     'Kliknite na mape na prázdny špendlík alebo malú bodku. Karta ukáže, o čo ide: naplánované miesto a jeho deň, alebo pobyt s tlačidlom „Otvoriť záznam“, ktoré vás prenesie na dennú správu, ku ktorej patrí.',
@@ -4263,19 +4560,19 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.result':
     'Vaše voľby uvidia nové účty a všetci, ktorí tieto nastavenia nikdy nezmenili.',
   'help.guide.own-routing-engine.goal':
-    'Plánujte trasy dní a road tripov cez vlastný server OSRM alebo Valhalla namiesto verejných.',
+    'Plánujte trasy dní, road tripov a túr cez vlastný server OSRM alebo Valhalla namiesto služieb TREK alebo verejných.',
   'help.guide.admin-passkeys.tip.1':
-    'Ak TREK zatiaľ nevie určiť doménu, zobrazí upozornenie a prístupové kľúče zostanú skryté, kým nenastavíte APP_URL alebo Relying Party ID.',
+    'Ak TREK zatiaľ nevie určiť doménu, upozornenie pod prepínačom to povie a prístupové kľúče zostanú skryté, kým nenastavíte APP_URL alebo Relying Party ID.',
   'help.guide.rotate-jwt-secret.step.1':
-    'Dole na karte „Nastavenia“ v časti „Nebezpečná zóna“ kliknite na „Obnoviť“ pri položke „Obnoviť tajný kľúč JWT“.',
+    'Na karte Zabezpečenie kliknite dole vpravo pod Nebezpečná zóna na Obnoviť pri položke Obnoviť tajný kľúč JWT.',
   'help.guide.storage-backends.tip.3':
     'Cache fotiek si TREK vie stiahnuť znova, takže ich zrkadlenie zvyčajne len zaberá miesto.',
   'help.guide.admin-channels.step.3':
-    'V karte „Oznámenia“ nižšie vyberte pri každej udalosti, cez ktoré kanály sa pošle: „Nová verzia k dispozícii“, „Zlyhanie repliky úložiska“ a „Vyžiadaný vodácky región“. Každý prepínač sa uloží hneď.',
+    'Pod nimi v tej istej karte vyberte pri každej udalosti, cez ktoré kanály sa pošle: Nová verzia k dispozícii, Zlyhanie repliky úložiska a Vyžiadaný vodácky región. Každý prepínač sa uloží hneď.',
   'help.guide.notification-defaults.tip.1':
     '„Vypnuté“ je predvolená hodnota, ktorú si každý používateľ môže zapnúť; „Blokované“ ju vypne pre všetkých.',
   'help.ctx.notifications.bullet.4':
-    'Vedľa času každého oznámenia sú „Označiť ako prečítané“ (dvojité zaškrtnutie) a „Vymazať“ (kôš), ktoré platia iba pre toto oznámenie. „Označiť všetko ako prečítané“ a „Zmazať všetko“ hore platia pre celý zoznam.',
+    'Keď na oznámenie ukážete, jeho čas ustúpi tlačidlám Označiť ako prečítané (dvojité zaškrtnutie) alebo Označiť ako neprečítané (obálka) a Vymazať (kôš). Označiť všetko ako prečítané a Zmazať všetko hore platia pre celý zoznam.',
   'help.guide.read-notifications.tip.2':
     'Oznámenie bez tlačidla je iba informatívne. Prečítajte si ho v paneli a tam ho aj označte ako prečítané.',
   'help.guide.filter-notifications.result': 'V zozname je iba to, čo je ešte neprečítané, od najnovšieho.',
@@ -4308,6 +4605,26 @@ const help: TranslationStrings = {
     'Na karte „Doprava“ kliknite na kartu jazdy. Jej podrobnosti sa otvoria nad kartou, s hlavičkou v rovnakej farbe ako karta. Rovnaké podrobnosti otvorí aj riadok dopravy v pláne dňa.',
   'help.guide.export-transports-csv.tip.2':
     'Karta „Rezervácie“ má rovnakú ikonu a vytvorí vlastný súbor, ktorého názov končí na bookings.csv.',
+  'help.guide.flight-live-status.title': 'Sledovanie letu naživo',
+  'help.guide.flight-live-status.goal': 'Pozrite sa, kde je váš let, či mešká a kedy pristane, bez účtu a bez kľúča.',
+  'help.guide.flight-live-status.step.1':
+    'Od troch hodín pred odletom dostane karta letu na karte Doprava pole Stav: Plánovaný, Pripravené na odlet, Vo vzduchu s časom do pristátia, alebo Pristálo. Meškanie sa ukáže vedľa neho oranžovou alebo červenou a kým je let vo vzduchu, tenký pruh pozdĺž poľa sa napĺňa.',
+  'help.guide.flight-live-status.step.2':
+    'Kliknite na kartu. Živá karta navrchu rezervácie ukazuje, kde let stojí, čo príde ďalej, napríklad Pristane o 11 h 50 min, a vpravo meškanie, napríklad +25 min.',
+  'help.guide.flight-live-status.step.3':
+    'Pod tým ukazujú Odchod a Prílet obe letiská s kódmi a mestami na malej mape trasy s lietadlom na ceste. Každá časová dlaždica ukazuje čas, ktorý platí teraz. Ak sa líši od plánu, plánovaný čas je vedľa neho prečiarknutý.',
+  'help.guide.flight-live-status.step.4':
+    'Kým je let vo vzduchu, nasledujú Výška, Rýchlosť a Zostáva v jednotkách z vašich nastavení, potom Lietadlo s typom a registráciou.',
+  'help.guide.flight-live-status.step.5':
+    'V pláne riadok letu v jeho dni hovorí to isté jedným riadkom pod časmi, s meškaním vedľa.',
+  'help.guide.flight-live-status.result':
+    'Na prvý pohľad vidíte, či let letí načas a kedy pristane: na jeho karte, v rezervácii aj v pláne dňa.',
+  'help.guide.flight-live-status.tip.1':
+    'Polohy pochádzajú z otvorených údajov ADS-B (adsb.lol a na väčšine inštalácií aj adsb.fi), bez kľúča a bez účtu. Posiela sa im len volací znak letu. Správca túto funkciu zapína alebo vypína v časti Doplnky v administrácii, na karte Cesta, cez Sledovať rezervované lety naživo.',
+  'help.guide.flight-live-status.tip.2':
+    'Otvorené údaje poznajú len polohu lietadla. Brána, terminál a pás na batožinu v nich nie sú, preto ich v prípade potreby doplňte do rezervácie sami. Meškania a čas príletu sú odhady vypočítané z polôh.',
+  'help.guide.flight-live-status.tip.3':
+    'Na sledovanie letu TREK potrebuje číslo letu a obe letiská. Let, ktorého letecká spoločnosť lieta pod iným volacím znakom, alebo codeshare, sa nemusí nájsť. Rezervácia si potom ponechá obyčajné časy.',
   'help.guide.group-sort-bookings.step.2':
     'V časti „Zoskupiť podľa“ vyberte „Stav“, „Deň“, „Typ“ alebo „Bez zoskupenia“. Karta sa do týchto sekcií hneď roztriedi.',
   'help.guide.export-bookings-csv.result':
@@ -4315,7 +4632,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.result':
     'Zoznamy sú v poradí, do akého ste ich potiahli, a položky sú zoradené od A po Z, kým to nevypnete. TREK si vaše vlastné poradie stále pamätá.',
   'help.guide.count-packed-pieces.step.2':
-    'Pred množstvom sa objaví počítadlo: 0/5, s mínusom a plusom. Za každý kus, ktorý dáte do tašky, kliknite na plus.',
+    'Do Počet napíšte, koľko kusov beriete, napríklad 5, alebo klikajte na plus, kým sa nezobrazí číslo.',
   'help.guide.expense-receipts.step.4':
     'V prehľade má teraz riadok vedľa názvu štítok „Účtenka“, a ak je účteniek viac, aj ich počet v zátvorke. Kliknutím účtenku otvoríte.',
   'help.guide.final-budget.tip.3':
@@ -4591,7 +4908,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Karta ukazuje Zapnuté pre toto zariadenie a udalosti zapnuté pod Push vám prídu, aj keď je TREK zatvorený.',
   'help.guide.connect-airtrail.step.1':
-    'V časti Integrácie nájdite AirTrail a zadajte jeho URL inštancie a API kľúč. Kľúč vytvoríte v AirTrail v časti Nastavenia, Zabezpečenie.',
+    'V časti Integrácie nájdite AirTrail a zadajte jeho URL inštancie a API kľúč. Kľúč vytvoríte v AirTrail v časti Nastavenia, Zabezpečenie. Ak kľúč vytvoríte v AirTrail 3.13 alebo novšom, potrebuje oprávnenie flight.read.own na čítanie. Na zápis zmien späť potrebuje aj flight.update.own, flight.passengers.manage.own, reference_data.read a profile.read.',
   'help.guide.connect-dawarich.step.1':
     'V časti Integrácie nájdite Dawarich a zadajte jeho Adresu inštancie a API kľúč z Dawarich z časti Účet, API kľúč.',
   'help.guide.tour-connect-wanderer.step.1':
@@ -4602,7 +4919,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.tip.1':
     'Vlastná voľba používateľa v Nastavenia má vždy prednosť. Tieto hodnoty platia pre všetkých, ktorí dané nastavenie nezmenili.',
   'help.guide.own-routing-engine.step.1':
-    'V časti Mapa v Predvolené nastavenia používateľa zadajte pod Vlastný smerovací server adresu svojho servera OSRM.',
+    'Na karte Predvolené rozhoduje karta Trasy o tom, kto trasy počíta. Pod Smerovacia služba vyberte Automaticky, Služby TREK, Verejná Valhalla (FOSSGIS) alebo Vlastná inštancia Valhalla. Voľba sa uloží hneď.',
   'help.guide.admin-passkeys.tip.2':
     'Ak neskôr zmeníte doménu, všetky prístupové kľúče, ktoré ľudia už pridali, prestanú fungovať.',
   'help.guide.instance-keys.tip.4': 'Kľúč Amap musí byť kľúč Web 服务 (webová služba), nie kľúč JS API.',
@@ -4629,7 +4946,8 @@ const help: TranslationStrings = {
     'Riadok sa teraz zobrazí v novom dni, vo svojom čase. Ak chcete zmeniť aj čas, otvorte rezerváciu.',
   'help.guide.place-image-from-file.goal':
     'Použite fotku, ktorá už je medzi súbormi miesta, ako jeho obrázok, bez opätovného nahrávania.',
-  'help.guide.place-image-from-file.tip.3': 'Obrázok môžu zmeniť iba cestujúci, ktorí smú meniť miesta.',
+  'help.guide.place-image-from-file.tip.3':
+    'Obrázok môžu zmeniť iba cestujúci, ktorí smú meniť miesta. Odobrať obrázok pod dlaždicami ho znova odoberie.',
   'help.guide.place-own-hours.result':
     'Karta ukazuje vaše telefónne číslo, váš e-mail a vaše otváracie hodiny a krúžok okolo obrázka je zelený alebo červený podľa vašich hodín.',
   'help.guide.confirm-stay-booking.step.4':
@@ -4648,7 +4966,7 @@ const help: TranslationStrings = {
     'Stĺpce sú Typ, Názov, Stav, Začiatok, Koniec, Od, Do, Miesto, Potvrdenie a Poznámky.',
   'help.guide.arrange-packing-list.tip.1': 'Kým je zapnuté A až Z, položky sa nedajú ťahať, ale celé zoznamy áno.',
   'help.guide.count-packed-pieces.step.3':
-    'Kým je zabalená len časť kusov, počítadlo má farbu vášho akcentu a políčko obrys v tejto farbe. Kliknutím na mínus kus z počtu odoberiete.',
+    'Pod tým sa zobrazí Zbalené: 0/5, s mínusom a plusom. Za každý kus, ktorý dáte do tašky, kliknite na plus a mínusom kus z počtu odoberiete.',
   'help.guide.expense-receipts.step.5':
     'Náhľad ukazuje účtenku, navrchu s Otvoriť na novej karte a Stiahnuť. Ak je účteniek viac, medzi nimi sa pohybujete šípkami a Esc náhľad zatvorí.',
   'help.guide.files-sync-settings.step.3': 'Kliknutím na Nastavenia pod lištou toku zobrazíte ostatné voľby.',
@@ -4687,12 +5005,29 @@ const help: TranslationStrings = {
   'help.guide.tour-detail-read.goal':
     'Pozrite si všetky informácie o túre v ceste: jej dni, vzdialenosť a výšky, profil a zdroj.',
   'help.guide.tour-detail-read.tip.1':
-    'Oranžový štítok „use with caution“ znamená, že import má neúplné výšky alebo miery. Majte to na pamäti, keď čítate stúpanie a profil.',
+    'Oranžový štítok Používajte opatrne znamená, že import má neúplné výšky alebo miery. Majte to na pamäti, keď čítate stúpanie a profil.',
   'help.guide.tour-rename-colour.step.1':
     'Otvorte kartu túry a kliknite na ceruzku vedľa jej názvu. Názov sa zmení na pole.',
   'help.guide.tour-take-along.goal':
     'Získajte navigáciu na začiatok túry, otvorte jej stránku na webe alebo si stiahnite jej trasu ako súbor GPX.',
   'help.guide.tour-take-along.result': 'Cestu na začiatok máte vo svojej mapovej aplikácii a celú trasu ako súbor GPX.',
+  'help.guide.tour-route-in-app.title': 'Sledovanie trasy túry v mapovej aplikácii',
+  'help.guide.tour-route-in-app.goal':
+    'Otvorte celú trasu pešej túry, prechádzky, behu alebo cyklotúry v Google Maps, Apple Maps alebo CoMaps a nechajte sa po nej cestou viesť.',
+  'help.guide.tour-route-in-app.step.1':
+    'Navrchu pravého stĺpca prepnite z Miesta na Túry a kliknite na túru. Jej karta sa otvorí nad mapou.',
+  'help.guide.tour-route-in-app.step.2':
+    'Kliknite na Mapy dole na karte, Otvoriť trasu v mapovej aplikácii. Je vedľa Navigácia, ktorá vedie len na štart.',
+  'help.guide.tour-route-in-app.step.3':
+    'Vyberte aplikáciu. Otvorí sa na novej karte alebo ako aplikácia s trasou túry pešo pri pešej túre, prechádzke či behu a na bicykli pri cyklotúre.',
+  'help.guide.tour-route-in-app.result': 'Vaša mapová aplikácia vás povedie po trase túry.',
+  'help.guide.tour-route-in-app.tip.1':
+    'Aplikácia dostane až desať bodov rozmiestnených po túre, vrátane jej začiatku a konca, a cestu medzi nimi si naplánuje sama. Na malých chodníkoch sa jej cesta môže od vašej čiary líšiť, preto si na presnú trasu vezmite súbor GPX.',
+  'help.guide.tour-route-in-app.tip.2':
+    'Lyžiarska túra, vodácka túra alebo vychádzka na koni nemá tlačidlo Mapy: mapová aplikácia by ju poslala po cestách. Berte si ich so sebou ako súbor GPX.',
+  'help.guide.tour-route-in-app.tip.3':
+    'Apple Maps sa na Androide neponúka. CoMaps berie len štart a cieľ, preto sa ponúka iba vtedy, keď trasa nepotrebuje nič iné.',
+  'help.guide.tour-route-in-app.tip.4': 'Mapy sú tam, len čo má túra trasu, aj pre členov, ktorí smú cestu iba čítať.',
   'help.guide.tour-copy-keep.tip.2':
     'Uložiť do zbierky v ponuke túry v pláne dňa otvorí rovnaký dialóg, takže sa trasa uloží aj tam.',
   'help.guide.tour-packing-link.step.3': 'Kliknite na Pripojiť.',
@@ -4787,7 +5122,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ferrata-add.tip.4':
     'Zobraziť v OpenStreetMap na karte otvorí vlastné údaje ferraty. Odznak zoranžovie, keď sa nedá nič načítať, a dôvod je v tooltipe.',
   'help.guide.tour-run-plan.result':
-    'Beh je vypísaný v Túry tejto cesty s údajom Čas behu (plánovaný) a jeho profil a tempo sa uložia spolu s ním.',
+    'Beh je vypísaný v Túry tejto cesty s údajom Čas behu a jeho profil a tempo sa uložia spolu s ním.',
   'help.guide.tour-run-ways.step.2':
     'Navrchu karty teraz vidíte, koľko z behu vedie po nespevnenom povrchu, a najnáročnejší ohodnotený chodník na ňom.',
   'help.ctx.trip-tour-walk.bullet.2':
@@ -4838,7 +5173,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Nová vodácka túra s loďou, vodou a rýchlosťou, pripravená na prvý bod na mape.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Tam, kde chýbajú údaje o vode, ich TREK buď automaticky stiahne pre región, alebo o ne požiada správcu, podľa nastavenia inštancie. Úsek vtedy ukazuje „Loading the water data“ a naplánuje sa automaticky, keď údaje dorazia, zvyčajne do jednej až troch minút.',
+    'Tam, kde chýbajú údaje o vode, ich TREK buď automaticky stiahne pre región, alebo o ne požiada správcu, podľa nastavenia inštancie. Správca pridáva regióny v Údaje o vodách pre vodákov, riadku pod Túry na karte Doplnky v administrácii. Úsek vtedy ukazuje Načítavajú sa vodné dáta a naplánuje sa automaticky, keď údaje dorazia, zvyčajne do jednej až troch minút.',
   'help.guide.tour-paddle-portage.step.2':
     'Vyberte Odtiaľto loď preniesť. Úsek k ďalšiemu bodu sa zmení na prenášku, nakreslenú po súši.',
   'help.guide.tour-paddle-lock.title': 'Pridanie plavebnej komory a času čakania',
@@ -4918,8 +5253,9 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.title': 'Nastavenie doplnku pre seba',
   'help.guide.default-user-settings.tip.2':
     'Zobrazovaná mena iba prepočítava sumy na zobrazenie. Sumy zadané v Náklady sa nemenia.',
-  'help.guide.own-routing-engine.step.2':
-    'Pre trasy, ktoré sa vyhýbajú mýtu, diaľniciam alebo trajektom, zadajte adresu svojej Valhalla pod Vlastná inštancia Valhalla. Každé pole sa uloží, keď ho opustíte. Potom reštartujte server TREK a znova načítajte stránku.',
+  'help.guide.own-routing-engine.step.2': 'Pod Vlastný smerovací server zadajte adresu svojho servera OSRM.',
+  'help.guide.own-routing-engine.step.3':
+    'Pod Vlastná inštancia Valhalla zadajte adresu svojej Valhalla a ako Smerovacia služba vyberte Vlastná inštancia Valhalla. Každé pole sa uloží, keď ho opustíte. Potom reštartujte server TREK a znova načítajte stránku.',
   'help.guide.admin-passkeys.tip.3':
     'Ak používateľ stratil zariadenie so svojimi prístupovými kľúčmi, odstránite ich cez Resetovať prístupové kľúče v Upraviť používateľa.',
   'help.guide.rotate-jwt-secret.result':
@@ -4928,7 +5264,7 @@ const help: TranslationStrings = {
   'help.guide.filter-notifications.title': 'Zobrazenie všetkých oznámení alebo iba neprečítaných',
   'help.guide.mark-notifications-read.goal': 'Odstráňte zvýraznenie a číslo na zvončeku, keď ste videli, čo je nové.',
   'help.guide.delete-notifications.step.1':
-    'Kliknutím na Vymazať, kôš vedľa času oznámenia, odstránite iba toto jedno oznámenie.',
+    'Ukážte na oznámenie a kliknite na Vymazať, kôš, ktorý nahradí jeho čas, aby ste odstránili iba toto jedno.',
   'help.guide.notification-settings.step.2': 'V ponuke kliknite na Nastavenia.',
   'help.guide.public-link.tip.3': 'Keď ukážete myšou na voľbu, zobrazí sa, čo skrýva.',
   'help.guide.link-journal.step.4':
@@ -4964,7 +5300,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.tip.2':
     'TREK si A až Z pamätá v tomto prehliadači, takže sa zoznam otvorí zoradený aj nabudúce. Mení iba to, čo vidíte vy, nikdy nie poradie, ktoré vidia ostatní.',
   'help.guide.count-packed-pieces.step.4':
-    'Keď počítadlo dosiahne množstvo, položka sa automaticky odškrtne a počíta sa ako zabalená.',
+    'Zatvorte okno. Kým je zabalená len časť kusov, riadok ukazuje počet, napríklad 3/5, a políčko má obrys vo farbe vášho akcentu. Keď počet dosiahne množstvo, položka sa odškrtne sama.',
   'help.guide.expense-receipts.result':
     'Účtenka sa uloží s výdavkom: štítok na jeho riadku ju otvorí a súbor je aj v Súbory cesty.',
   'help.guide.files-sync-settings.step.4':
@@ -5007,7 +5343,7 @@ const help: TranslationStrings = {
     'Skryte z mapy túry, ktoré práve nepotrebujete, bez toho, aby sa tým pre niekoho zmenili.',
   'help.guide.tour-import-plan-tab.goal': 'Importujte stopu GPX alebo KML ako túru, kým plánujete dni.',
   'help.ctx.trip-tour-detail.summary':
-    'Karta, ktorá sa otvorí nad mapou, keď na karte Plán vyberiete túru: jej dni, miery a profil, odkiaľ pochádza, a tlačidlá, ktoré ju pošlú do telefónu, skopírujú, uložia do zbierky alebo prepoja so zoznamom vecí na balenie.',
+    'Karta, ktorá sa otvorí nad mapou, keď na karte Plán vyberiete túru: jej dni, miery a profil, odkiaľ pochádza, a tlačidlá, ktoré ju pošlú do telefónu, otvoria jej trasu v mapovej aplikácii, skopírujú ju, uložia do zbierky alebo prepoja so zoznamom vecí na balenie.',
   'help.guide.tour-detail-read.step.1':
     'Navrchu pravého stĺpca prepnite z Miesta na Túry a potom kliknite na túru. Jej karta sa otvorí nad mapou. Rovnakú kartu otvorí aj jej riadok v dni alebo jej čiara na mape.',
   'help.guide.tour-detail-read.tip.2':
@@ -5015,7 +5351,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.step.2':
     'Napíšte nový názov a kliknite na okrúhle tlačidlo so začiarknutím alebo stlačte Enter. Escape ponechá pôvodný názov.',
   'help.guide.tour-take-along.step.1':
-    'Otvorte kartu túry. Navigácia dole na karte otvorí začiatok túry v mapovej aplikácii a ak ich je viac, najprv ich ponúkne. Vedie vás na začiatok, nie po trase.',
+    'Otvorte kartu túry. Navigácia dole na karte otvorí začiatok túry v mapovej aplikácii a ak ich je viac, najprv ich ponúkne. Vedie vás na začiatok, nie po trase. Mapy vedľa odovzdajú celú trasu.',
   'help.guide.tour-copy-keep.title': 'Skopírovanie túry alebo jej uloženie do zbierky',
   'help.guide.tour-copy-keep.tip.3':
     'Na karte Túry robí to isté záložka navrchu ľavého stĺpca pre otvorenú túru. Ak má túra neuložené zmeny, najprv vás požiada, aby ste ju uložili.',
@@ -5109,7 +5445,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-plan.tip.1':
     'Nová pešia túra začína na T2 (Horská turistika). T3 pridá upozornenie, že takéto cesty môžu byť exponované a vyžadujú istú chôdzu a nesmie vám robiť problém výška.',
   'help.guide.tour-hike-trail-details.step.3':
-    'Odznaky to zhrnú: koľko trasy je Známe, Najvyšší známy stupeň a oddelene Limit trasy, s ktorým sa pešia túra plánovala.',
+    'Odznaky to zhrnú: koľko trasy je Známe, Najvyšší známy stupeň na nej a oddelene Limit trasovania, s ktorým sa pešia túra plánovala.',
   'help.guide.tour-hike-round.goal':
     'Nechajte TREK navrhnúť okruhy požadovanej dĺžky, ktoré začínajú v jednej zastávke pešej túry.',
   'help.guide.tour-hike-round.tip.2':
@@ -5221,6 +5557,17 @@ const help: TranslationStrings = {
     'Keď prevezmete deň z Dawarich, jeho záznamy sú koncepty. Pred zdieľaním skontrolujte, či majú odznak.',
   'help.guide.journey-map-layers.result':
     'Mapa ukazuje iba vrstvy, ktoré chcete, a každý špendlík, bodku a čiaru vysvetľuje legenda.',
+  'help.guide.journey-satellite.title': 'Cestovný denník na satelitných snímkach',
+  'help.guide.journey-satellite.goal': 'Vymeňte nakreslenú mapu pod cestovným denníkom za letecké snímky a späť.',
+  'help.guide.journey-satellite.step.1':
+    'Kliknite na okrúhle tlačidlo v pravom hornom rohu mapy, Prepnúť na satelitné zobrazenie.',
+  'help.guide.journey-satellite.step.2':
+    'Vaše špendlíky a trasy teraz ležia na leteckých snímkach. Tlačidlo znie Prepnúť na mapové zobrazenie: kliknutím sa vrátite na nakreslenú mapu.',
+  'help.guide.journey-satellite.tip.1':
+    'Zdieľaný odkaz má to isté tlačidlo, takže návštevníci môžu sledovať túru alebo pobrežie podľa samotnej krajiny.',
+  'help.guide.journey-satellite.tip.2':
+    'Voľba sa neukladá: denník aj zdieľaná stránka sa vždy otvoria na nakreslenej mape. Satelitné snímky nemajú názvy ulíc.',
+  'help.guide.journey-satellite.result': 'Mapa je opäť nakreslená, so zapnutými rovnakými vrstvami ako predtým.',
   'help.guide.journey-keep-route.result':
     'Záhlavie dňa ukazuje vzdialenosť a trasa je na vrstve Zaznamenané na mape nakreslená plnou čiarou pre každého v cestovnom denníku. Zdieľaný odkaz ju ukazuje, iba keď je zapnuté Zaznamenané trasy.',
   'help.guide.journey-day-stays.result':
@@ -5252,7 +5599,7 @@ const help: TranslationStrings = {
     'Pozrite sa, čo sa stalo vo vašich cestách, kým ste boli preč, a otvorte to priamo.',
   'help.guide.filter-notifications.goal': 'Prejdite všetky svoje oznámenia alebo iba tie, ktoré ste ešte neprečítali.',
   'help.guide.mark-notifications-read.step.1':
-    'Kliknutím na Označiť ako prečítané, dvojité začiarknutie vedľa času oznámenia, označíte iba toto jedno oznámenie.',
+    'Ukážte na oznámenie a kliknite na Označiť ako prečítané, dvojité začiarknutie, ktoré nahradí jeho čas, aby ste označili iba toto jedno.',
   'help.guide.delete-notifications.step.2':
     'Zmazať všetko navrchu vymaže celý zoznam naraz, keď to potvrdíte v dialógu.',
   'help.guide.notification-settings.step.3':
@@ -5268,7 +5615,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.tip.1':
     'Vyblednuté riadky v dňoch medzi dňami viacdňovej rezervácie sa ťahať nedajú, rovnako ani jeden úsek letu s medzipristátiami.',
   'help.guide.place-image-from-file.step.2':
-    'Kliknite na okrúhly obrázok v záhlaví. Keďže miesto má fotky, malé okno sa opýta, odkiaľ má obrázok pochádzať.',
+    'Kliknite vpravo dole na Upraviť. Pod Vybrať obrázok vo formulári sú fotky pripojené k miestu dlaždicami vedľa Nahrať obrázok.',
   'help.guide.place-own-hours.goal':
     'Zadajte na kartu hodiny, ktoré ste skutočne overili, keď vyhľadané hodiny nesedia alebo chýbajú.',
   'help.guide.place-own-hours.tip.2':
@@ -5278,6 +5625,8 @@ const help: TranslationStrings = {
   'help.guide.confirm-stay-booking.tip.1': 'Kliknutím na štítok znova sa rezervácia vráti na Čaká na potvrdenie.',
   'help.guide.map-markers.tip.4':
     'Ak je zapnuté Kompaktné značky pre nenaplánované miesta, v Nastavenia > Všeobecné pod Cestovanie a mapa, miesta, ktoré ešte nie sú v žiadnom dni, sa zobrazia ako malé bodky bez fotky a hodnotenia. Vybrané miesto sa vždy zobrazí celé.',
+  'help.guide.map-markers.tip.5':
+    'Pri Mapbox GL so štýlom Standard mapa sama označuje obchody, reštaurácie a pamätihodnosti, ktoré nie sú miestami vašej cesty. Zapnite Skryť body záujmu v Nastavenia > Mapa a kliknite na Uložiť nastavenia mapy, a vynikajú len vaše špendlíky.',
   'help.guide.tour-map-lines.step.1':
     'Každá túra cesty je na mape nakreslená ako čiara vo svojej farbe, so špendlíkom tam, kde začína. Ak ste pre túru vybrali farbu, použije sa. Inak má čiara farbu svojej kategórie.',
   'help.guide.car-stops.step.6': 'Kliknite na Pridať.',
@@ -5340,9 +5689,9 @@ const help: TranslationStrings = {
   'help.guide.tour-detail-read.tip.3':
     'Niektoré túry ukazujú viac: prechádzka mestom svoje zastávky, vodácka túra svoje kontroly a vietor, už absolvovaná túra svoju Skutočná trasa a túra prepojená so zoznamom svoj Zoznam vecí.',
   'help.guide.tour-rename-colour.step.3':
-    'Kliknite na farebnú bodku v rohu okrúhlej dlaždice túry, Farba stopy. Pod záhlavím sa otvorí sekcia Farba stopy.',
+    'Kliknite na farebnú bodku v rohu okrúhlej dlaždice túry, Farba stopy. Pod záhlavím sa otvorí rad farieb.',
   'help.guide.tour-take-along.step.2':
-    'Ak má túra webovú stránku, tlačidlo vedľa ukazuje názov stránky (Komoot, AllTrails, Outdooractive alebo Wanderer) alebo Webová stránka pri akejkoľvek inej. Stránku otvorí na novej karte.',
+    'Ak má túra webovú stránku, tlačidlo za Mapy ukazuje názov stránky (Komoot, AllTrails, Outdooractive alebo Wanderer) alebo Webová stránka pri akejkoľvek inej. Stránku otvorí na novej karte.',
   'help.guide.tour-copy-keep.goal':
     'Vytvorte variant túry v tejto ceste alebo ju uložte do jednej zo svojich zbierok pre neskoršie cesty.',
   'help.guide.tour-copy-keep.tip.4':
@@ -5380,7 +5729,7 @@ const help: TranslationStrings = {
     'Názov túry navrchu ľavého panela obsahuje názov. Pri novej túre je sivý text, napríklad Pešia túra bez názvu, len zástupný: napíšte vlastný názov.',
   'help.guide.tour-save.title': 'Uloženie túry',
   'help.guide.tour-save.tip.3':
-    'Uložiť nefunguje ani vtedy, keď niektoré pole obsahuje neplatnú hodnotu, napríklad webovú stránku, ktorá nie je adresou. Podrobnosti sa otvoria samy, aby ju ukázali.',
+    'Uložiť nefunguje ani vtedy, keď niektoré pole obsahuje neplatnú hodnotu, napríklad webovú stránku, ktorá nie je adresou, alebo keď čas chôdze a prestávky jedného dňa dávajú viac ako 24 hodín. Podrobnosti sa otvoria samy a povedia, čo robiť.',
   'help.guide.tour-edit-saved.tip.1': 'Uložiť zostáva sivé pri túre, ktorú ste nezmenili.',
   'help.guide.tour-summary-profile.step.3':
     'Posúvajte ukazovateľ po Výškový profil. Ukáže vzdialenosť a výšku v danom bode a bodka označí to isté miesto na mape.',
@@ -5461,7 +5810,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-google-import.step.3':
     'Skontrolujte Zastávky v odkaze. Zastávka, ktorá nemá v odkaze polohu, je označená a vynechaná.',
   'help.guide.tour-walk-check-off.step.1':
-    'Na karte Plán kliknite na prechádzku mestom v jej dni. Jej karta sa otvorí vedľa mapy.',
+    'Na karte Plán kliknite na prechádzku mestom v jej dni. Jej karta sa otvorí nad mapou.',
   'help.ctx.trip-tour-bike.title': 'Cyklotúry',
   'help.guide.tour-bike-profile.step.1': 'Na karte Túry kliknite na Naplánovať novú túru navrchu ľavého panela.',
   'help.guide.tour-bike-profile.tip.2':
@@ -5521,7 +5870,19 @@ const help: TranslationStrings = {
     'Keď už budete vedieť, kedy cestujete, otvorte formulár ceruzkou na karte a vyberte dátumy. Naplánované dni si zachovajú poradie a dátumy dostanú v rovnakom poradí.',
   'help.guide.trip-reminder.goal': 'Nechajte si pripomenúť cestu niekoľko dní pred odchodom.',
   'help.guide.upcoming-reservations.tip.2':
-    'Stav „Čaká na potvrdenie“ označuje rezerváciu, ktorá ešte nie je potvrdená. Zrušené rezervácie a archivované cesty sa tu nezobrazujú.',
+    'Malé P na ikone typu označuje rezerváciu, ktorá ešte nie je potvrdená. Zrušené rezervácie a archivované cesty sa tu nezobrazujú.',
+  'help.guide.travel-stats.title': 'Čítanie cestovných štatistík',
+  'help.guide.travel-stats.goal': 'Pozrite, koľko krajín, ciest, dní a letov dávajú všetky vaše cesty dokopy.',
+  'help.guide.travel-stats.step.1':
+    'Pozrite sa na Navštívené krajiny pod palubným lístkom. Počíta krajiny miest a dopravných rezervácií každej cesty, ktorá už začala, a ukazuje ich vlajky, najprv krajiny, ktoré ste navštívili naposledy.',
+  'help.guide.travel-stats.step.2':
+    'Karty vedľa počítajú vaše cesty a miesta na nich zakreslené, dni na cestách a nalietanú vzdialenosť.',
+  'help.guide.travel-stats.result':
+    'Riadok sa aktualizuje sám, ako plánujete a cestujete, zo všetkých vašich ciest vrátane archivovaných.',
+  'help.guide.travel-stats.tip.1':
+    'Krajiny, ktoré ste v Atlase označili ako navštívené ručne, nasledujú za tými z vašich ciest. Krajina, ktorú ste v Atlase odstránili, zostáva odstránená aj tu.',
+  'help.guide.travel-stats.tip.2':
+    'Každú kartu môžete skryť v Nastavenia, Vzhľad, Widgety na prehľade. Keď sú všetky štyri vypnuté, riadok zmizne.',
   'help.guide.half-company-holiday.tip.1':
     'Dovolenka, ktorá je na ten deň už zapísaná, sa skráti na pol dňa. Kto si ten deň zapíše neskôr, minie iba 0,5 dňa.',
   'help.guide.edit-holiday-calendar.goal':
@@ -5560,6 +5921,25 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.title': 'O aplikácii',
   'help.guide.web-push-device.tip.3':
     'Push oznámenia fungujú iba vtedy, keď máte TREK otvorený cez HTTPS. Ak sú oznámenia zablokované, povoľte ich v nastaveniach prehliadača a skúste to znova.',
+  'help.guide.booking-mail-address.title': 'Preposielanie e-mailov s rezerváciami do TREK',
+  'help.guide.booking-mail-address.goal':
+    'Získajte vlastnú adresu pre potvrdenia rezervácií, aby TREK pridal každú rezerváciu do správnej cesty.',
+  'help.guide.booking-mail-address.step.1':
+    'V Integrácie ukazujú E-maily s rezerváciami Tvoja adresa. Kliknite na tlačidlo kopírovania vedľa nej. Adresu si nechajte pre seba, ako heslo.',
+  'help.guide.booking-mail-address.step.2':
+    'Rezervačný e-mail na ňu prepošlite ručne, aj s prílohami, alebo podľa Preposielať automaticky nastavte pravidlo v Gmaile či Outlooku.',
+  'help.guide.booking-mail-address.step.3':
+    'Importovať e-maily s rezerváciami import zapína alebo vypína. Čítať pomocou AI nechá AI čítať e-maily bez strojovo čitateľných údajov o rezervácii. Pridávať automaticky vloží rezerváciu, ktorou si je TREK istý, rovno do jej cesty.',
+  'help.guide.booking-mail-address.step.4':
+    'Rezervácie čakajúce na schválenie otvoria e-maily, ktoré čakajú na vás, s číslom, ak nejaké sú. Nahrať súbor e-mailu načíta e-mail, ktorý ste uložili ako .eml.',
+  'help.guide.booking-mail-address.result':
+    'E-maily, ktoré preposielate, skončia v ceste, ktorej dátumy a miesta k rezervácii pasujú, alebo čakajú v Rezervácie čakajúce na schválenie, kým ich skontrolujete.',
+  'help.guide.booking-mail-address.tip.1':
+    'Tlačidlo vedľa kopírovania, Nová adresa, vám dá novú adresu. Kliknite naň dvakrát. Stará adresa prestane fungovať hneď, preto zmeňte aj pravidlá preposielania.',
+  'help.guide.booking-mail-address.tip.2':
+    'Cesta môže mať vlastnú adresu, na karte Rezervácie pod Importovať potvrdenia rezervácií. Pri e-maile poslanom na ňu TREK nemusí hádať.',
+  'help.guide.booking-mail-address.tip.3':
+    'Preposlané e-maily sa uchovávajú zašifrované najviac 30 dní. Karta sa zobrazí, až keď správca zapne import e-mailov.',
   'help.guide.connect-airtrail.result':
     'Odznak ukazuje „Pripojené“ a na karte „Doprava“ v ceste je k dispozícii „Import z AirTrail“.',
   'help.guide.connect-dawarich.result':
@@ -5569,7 +5949,7 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.result':
     'TREK kontroluje vaše importované trasy a upozorní vás, keď sa niektorá mohla zmeniť. Túra sa zmení iba vtedy, keď zmenu prijmete.',
   'help.guide.plugin-settings.step.1':
-    'V bočnom paneli nastavení otvorte „Pluginy“. V časti „Nastavenia doplnkov“ má každý plugin, ktorý od vás potrebuje nastavenia, vlastnú kartu s poľami: vyplňte ich a kliknite na „Uložiť“. Akcie na karte sa spustia až po potvrdení.',
+    'V bočnom paneli nastavení otvorte „Pluginy“. V časti „Nastavenia doplnkov“ má každý plugin, ktorý pre vás má nastavenia, vlastnú kartu: vyplňte jej polia a kliknite na „Uložiť“, alebo urobte voľby, ktoré ukazuje. Akcie na karte sa spustia až po potvrdení.',
   'help.guide.profile.step.3': 'Kliknite na „Uložiť profil“ vpravo v spodnej časti karty.',
   'help.guide.default-user-settings.title': 'Predvolené nastavenia pre nových používateľov',
   'help.guide.own-routing-engine.tip.1':
@@ -5580,7 +5960,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Určite, ako budú mať všetci používatelia oznámenia nastavené na začiatku, a úplne zablokujte kanál pre určitú udalosť.',
   'help.ctx.notifications.summary':
-    'Všetky oznámenia, ktoré vám TREK zobrazil v aplikácii, od najnovších: rezervácia, ktorú niekto zmenil, nová správa v čete cesty, kalendár, ktorý s vami niekto zdieľal. Zvonček vpravo hore ukazuje desať najnovších, táto stránka všetky.',
+    'Všetky oznámenia, ktoré vám TREK zobrazil v aplikácii, od najnovších a zoskupené podľa dňa: rezervácia, ktorú niekto zmenil, nová správa v chate cesty, let, ktorý mešká, rezervácia z preposlaného e-mailu. Zvonček vpravo hore ukazuje desať najnovších, táto stránka všetky.',
   'help.guide.read-notifications.step.1':
     'Kliknite na zvonček vpravo hore. Červené číslo na ňom ukazuje počet neprečítaných oznámení.',
   'help.guide.filter-notifications.step.1': 'Kliknite na zvonček vpravo hore.',
@@ -5598,19 +5978,37 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.5':
     'Keď cesta zahŕňa viac krajín alebo regiónov, glóbusom zúžite zoznam na jednu krajinu alebo jeden jej región; pri každom je uvedený počet. „Vymazať filter“ vráti zobrazenie na „Všetky krajiny“.',
   'help.guide.import-places-file.tip.3':
-    'Keď sú Túry zapnuté, čo je predvolené, súbor importujete cez Túry navrchu stĺpca tlačidlom „Importovať GPX alebo KML“ a jeho čiary sa stanú túrami. Body zo súboru sa tam neimportujú, pretože túry obsahujú iba čiary.',
+    'Tam, kde sú Túry vypnuté, sa stopa alebo trasa zaškrtnutá v Importovať súbor stane samostatným miestom: farebná čiara v jeho riadku, nakreslená na mape, a nájdete ju pod Zobraziť cez Trasy.',
   'help.guide.dawarich-stays.step.3':
-    'Skontrolujte názov, príchod a odchod, vyberte deň alebo nechajte „Zatiaľ bez dňa“, prípadne doplňte poznámky a kliknite na „Pridať miesto“.',
+    'Skontrolujte Názov, Príchod a Odchod. Keď pobyt spadá na deň cesty, Deň už ukazuje ten deň. Vyberte iný alebo nechajte Zatiaľ bez dňa. Ak chcete, doplňte Poznámky a kliknite na Pridať miesto.',
   'help.guide.leave-stop-off-route.result':
     'Zastávka zostáva súčasťou dňa aj PDF. Kým je označená „Mimo trasy“, trasa vedie priamo od predchádzajúcej zastávky k nasledujúcej.',
   'help.guide.move-booking-day.tip.2':
     'V rámci vlastného dňa sa rezervácia s časom vždy vráti na miesto podľa svojho času.',
   'help.guide.place-image-from-file.step.3':
-    'V časti „Z priložených súborov“ kliknite na požadovanú fotku. Cez „Nahrať zo zariadenia“ nad ňou môžete namiesto toho vybrať novú z počítača.',
+    'Kliknite na fotku, ktorú chcete. Je orámovaná a zaškrtnutá a pod dlaždicami sa zobrazí názov jej súboru.',
   'help.guide.place-own-hours.step.1':
     'Otvorte miesto a kliknite na „Upraviť“ vpravo dole na karte. Otvorí sa formulár miesta.',
   'help.guide.place-own-hours.tip.3':
     'Kliknite na „Odstrániť otváracie hodiny“ a potom na „Aktualizovať“; na karte sa znova zobrazia automaticky nájdené hodiny.',
+  'help.guide.place-off-map.title': 'Umiestnenie miesta bez súradníc na mape',
+  'help.guide.place-off-map.goal': 'Zistite, prečo miesto nemá značku, a dajte mu ju.',
+  'help.guide.place-off-map.step.1':
+    'Varovný špendlík vedľa názvu miesta v stĺpci miest znamená, že miesto má adresu, ale nie súradnice. Kliknite na riadok.',
+  'help.guide.place-off-map.step.2':
+    'Karta medzi pilulkami navrchu hovorí Bez súradníc, preto nie je na mape. Ukážte naň a uvidíte, ako to opraviť.',
+  'help.guide.place-off-map.step.3':
+    'Kliknite vpravo dole na Upraviť. Pod Adresa formulár hovorí to isté: miesto sa na mape nezobrazí, kým nebude mať súradnice.',
+  'help.guide.place-off-map.step.4':
+    'Napíšte Zemepisná šírka a Zemepisná dĺžka miesta, alebo vložte obe naraz do Zemepisná šírka, oddelené čiarkou. Miesto môžete aj vyhľadať navrchu formulára a vybrať z návrhov.',
+  'help.guide.place-off-map.step.5': 'Kliknite na Aktualizovať. Varovanie zmizne a miesto má na mape značku.',
+  'help.guide.place-off-map.result':
+    'Miesto je na mape so svojou značkou a jeho zastávky sa dajú trasovať ako každé iné.',
+  'help.guide.place-off-map.tip.1':
+    'Bez súradníc nemá miesto vo svojom dni značku ani trasu a menej mapových aplikácií ho vie otvoriť.',
+  'help.guide.place-off-map.tip.2':
+    'Miesto bez adresy aj súradníc, napríklad pripomienka, sa nechá tak a nezobrazí varovanie.',
+  'help.guide.place-off-map.tip.3': 'Odkaz z mapového webu vložený do vyhľadávacieho poľa tiež vyplní súradnice.',
   'help.guide.confirm-stay-booking.title': 'Potvrdenie rezervácie ubytovania',
   'help.guide.confirm-stay-booking.tip.2':
     'Rovnaký prepínač funguje v každej rezervácii, aj v rezerváciách v časti „Rezervácie“ v dni.',
@@ -5622,18 +6020,18 @@ const help: TranslationStrings = {
   'help.guide.car-stops.result':
     'Jazda je kartou na karte „Doprava“ a riadkom vo svojom dni. Jej čiara na mape vedie od vyzdvihnutia cez všetky zastávky v ich poradí až po vrátenie auta.',
   'help.guide.transport-details.step.5':
-    '„Na mape“ dole v podrobnostiach zobrazí čiaru presunu a otvorí plán v jeho dni. „Upraviť“ úplne vpravo otvorí celý formulár a košom vedľa presun po potvrdení vymažete.',
+    'Mapa vľavo dole v podrobnostiach zobrazí čiaru jazdy a otvorí plán v jej dni. Upraviť úplne vpravo otvorí celý formulár a kôš vedľa neho jazdu po potvrdení vymaže.',
   'help.guide.export-transports-csv.step.1':
     'Ak chcete iba časť zoznamu, najprv ho zúžte. Počíta sa hľadanie, filter aj zoradenie v „Možnostiach zobrazenia“: súbor obsahuje presne to, čo karta zobrazuje, v rovnakom poradí.',
   'help.guide.group-sort-bookings.tip.1':
     'Karty a Zoznam majú každý vlastné zoskupenie: Karty začínajú podľa stavu, Zoznam podľa dňa. Bodka pri „Možnostiach zobrazenia“ signalizuje, že sa niečo líši od predvoleného nastavenia, a „Obnoviť zobrazenie“ dole v paneli ho vráti.',
-  'help.guide.booking-on-map.step.2': 'Dole v podrobnostiach kliknite na „Na mape“.',
+  'help.guide.booking-on-map.step.2': 'Dole v podrobnostiach kliknite na Mapa.',
   'help.guide.export-bookings-csv.goal':
     'Exportujte rezervácie cesty do súboru CSV a otvorte ho v Exceli, Numbers alebo inom tabuľkovom programe.',
   'help.guide.arrange-packing-list.goal':
     'Presuňte celé zoznamy aj jednotlivé položky, kam potrebujete, alebo si zoznamy zoraďte podľa názvu.',
   'help.guide.check-off-packing.tip.4':
-    'Pri položke s množstvom väčším ako jedna môžete kusy odškrtávať aj po jednom. Pozrite si návod „Balenie viacerých kusov jednej veci“.',
+    'Pri položke s množstvom väčším ako jedna môžete kusy odškrtávať aj po jednom. Pozrite si Zabalenie viacerých kusov jednej veci.',
   'help.guide.count-packed-pieces.tip.1':
     'Zaškrtnutím políčka zbalíte všetky kusy naraz, zrušením zaškrtnutia ich všetky znova vybalíte.',
   'help.guide.expense-receipts.goal':
@@ -5703,7 +6101,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-planner.bullet.6':
     'Neuložený návrh sa zachová: keď kartu „Túry“ znova otvoríte, obnoví sa s označením „Neuložený návrh obnovený“. „Späť na túry“ a „Zahodiť“ sa pred zahodením zmien opýtajú.',
   'help.guide.tour-open-workspace.step.6':
-    'Prepínač vľavo dole mení mapu, na začiatku medzi „Mapa“ a „Satelit“. S otvorenou túrou ponúka mapy pre jej typ, napríklad Topo alebo Turistika, a prepínače ako „Pridávať body“ a 3D.',
+    'Prepínač vľavo dole mení mapu medzi Mapa, Topografická a Satelit a zapína 3D. S otvorenou túrou ponúka mapy pre jej typ, napríklad Turistika, a prepínače ako Pridávať body a Ferraty.',
   'help.guide.tour-draw-route.step.1':
     'Navrchu ľavého panela kliknite na „Naplánovať novú túru“. Panel sa prepne na „Nová túra“, a ak nezvolíte iný typ, pôjde o pešiu túru.',
   'help.guide.tour-draw-route.tip.3':
@@ -5736,7 +6134,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.2':
     'Každá stopa alebo trasa v súbore sa stane samostatnou túrou. Stopy sa nikdy nespájajú.',
   'help.guide.tour-view-import.step.2':
-    'Ľavý stĺpec ju zobrazí ako „Túra z GPX“: „Prehľad túry“ so vzdialenosťou, výškami a zaznamenaným časom a pod ním výškový profil. Na mape je jej čiara.',
+    'Ľavý stĺpec ju zobrazí ako túru z GPX: Prehľad túry s jej vzdialenosťou a výškami a zaznamenaným časom, ak ho súbor má, a pod ním výškový profil. Na mape je jej čiara.',
   'help.guide.tour-plan-from-import.step.1':
     'Na karte „Túry“ otvorte importovanú túru. V časti „Upraviteľná verzia“ vľavo kliknite na „Naplánovať upraviteľnú verziu“.',
   'help.guide.tour-plan-from-import.result':
@@ -5776,7 +6174,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Kliknite na „Povrch“ a uvidíte tú istú trasu podľa toho, po čom kráčate, od asfaltu po prírodný terén a skalu.',
   'help.guide.tour-hike-round.step.2':
-    'Nad mapou sa otvorí karta „Okružná túra“. Skontrolujte štart v poli „Od“ a zadajte požadovanú vzdialenosť. Štítok vedľa ukazuje rozsah dĺžok, aký okružná túra môže mať.',
+    'Nad mapou sa otvorí karta Okružná túra. Skontrolujte štart v poli Od a zadajte požadovanú Vzdialenosť. Štítok vedľa ukazuje dĺžky okruhov, ktoré TREK pre ňu ponúkne.',
   'help.guide.tour-hike-compare-ways.title': 'Porovnanie iných ciest pre úsek pešej túry',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Ak plánovač trás nepozná inú cestu, karta to oznámi. Ak plánovač nedokáže viesť trasu zvolenou cestou, úsek zostane bez zmeny a karta vás na to upozorní.',
@@ -5912,6 +6310,8 @@ const help: TranslationStrings = {
     'Upozornenie túru nikdy nezmení. Čo sa naozaj zmenilo, ukáže kontrola zdroja túry.',
   'help.guide.api-keys.tip.3':
     'Pošlite kľúč ako Authorization: Bearer alebo X-API-Key na /api/v1. Jeden účet môže mať najviac 10 kľúčov.',
+  'help.guide.api-keys.tip.4':
+    'V dialógu Ctrl+Enter, alebo Cmd+Enter na Macu, vytvorí kľúč z ľubovoľného poľa, rovnako ako kliknutie na Vytvoriť.',
   'help.guide.plugin-settings.step.2':
     'Aktivita doplnkov vypisuje každú akciu, ktorú doplnok urobil vo vašom mene, od najnovšej. Obnoviť načíta tie najnovšie.',
   'help.ctx.admin-github.bullet.3':
@@ -5921,9 +6321,9 @@ const help: TranslationStrings = {
   'help.guide.default-map.step.3':
     'Každé pole sa uloží, keď ho opustíte. Odkaz obnoviť vedľa názvu poľa vráti predvolenú hodnotu TREK.',
   'help.guide.own-routing-engine.tip.2':
-    'Ak je nastavený iba váš vlastný smerovací server, nepoužíva sa ani verejná Valhalla. Odkaz obnoviť vedľa poľa ho znova vyprázdni.',
+    'Ak je nastavený iba váš vlastný smerovací server a Smerovacia služba je na Automaticky, nepýta sa žiadna Valhalla. Odkaz obnoviť vedľa poľa ho znova vyprázdni.',
   'help.guide.admin-passkeys.step.1':
-    'Na karte Nastavenia zapnite pod Prihlásenie prístupovým kľúčom možnosť Povoliť prihlásenie prístupovým kľúčom.',
+    'Na karte Zabezpečenie pod Metódy overenia zapnite Povoliť prihlásenie prístupovým kľúčom.',
   'help.guide.storage-backends.step.4':
     'Zdravie navrchu vypisuje neúspešné zápisy na cieľ zrkadla. Ak sa zobrazuje Neboli zaznamenané žiadne zlyhania replík, všetko funguje.',
   'help.guide.channels-instance.tip.3':
@@ -5933,7 +6333,7 @@ const help: TranslationStrings = {
   'help.ctx.notifications.bullet.1':
     'Zvonček vpravo hore ukazuje počet oznámení, ktoré ste ešte neprečítali. Kliknutím naň zobrazíte desať najnovších a cez Zobraziť všetky oznámenia dole sa dostanete na túto stránku.',
   'help.guide.read-notifications.step.2':
-    'Panel vypisuje vašich desať najnovších oznámení. Každé uvádza, kto čo urobil a kde, a neprečítané majú zafarbené pozadie.',
+    'Panel vypisuje vašich desať najnovších oznámení zoskupených podľa dňa. Každé uvádza, kto čo urobil a kde, a neprečítané sú tučne a s bodkou vedľa času.',
   'help.guide.filter-notifications.step.2': 'Dole v paneli kliknite na Zobraziť všetky oznámenia.',
   'help.guide.mark-notifications-read.tip.1': 'Aj otvorenie oznámenia cez jeho tlačidlo ho označí ako prečítané.',
   'help.guide.delete-notifications.tip.2':
@@ -5951,7 +6351,7 @@ const help: TranslationStrings = {
     'Túto možnosť ponúka iba zastávka so súradnicami a nastavenie platí len pre tento deň: to isté miesto v inom dni sa do trasy stále zahŕňa.',
   'help.guide.move-booking-day.title': 'Presun rezervácie na iný deň',
   'help.guide.place-image-from-file.step.4':
-    'Fotka je teraz obrázkom miesta. Malým červeným X v jej rohu ju znova odstránite.',
+    'Kliknite na Aktualizovať. Fotka je teraz obrázkom miesta, navrchu na karte.',
   'help.guide.place-own-hours.step.2': 'Pod Webová stránka vyplňte Telefón a E-mail, ak ich poznáte.',
   'help.guide.add-accommodation.tip.4':
     'Rýchlejšie: + v záhlaví dňa, s tooltipom Pridať k dňu, obsahuje Pridať ubytovanie. Otvorí deň s už otvoreným týmto formulárom.',
@@ -5966,7 +6366,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.result':
     'Plán je otvorený na dni jazdy, jej čiara je nakreslená na mape a ikona trasy na jej riadku je zapnutá.',
   'help.guide.export-transports-csv.step.2':
-    'Kliknite na ikonu tabuľky za Možnosti zobrazenia, ktorej tooltip znie „Exportovať ako tabuľku (CSV)“.',
+    'Kliknite na ikonu sťahovania za Možnosti zobrazenia. Jej tooltip znie Exportovať ako tabuľku (CSV), alebo, keď platí vyhľadávanie alebo filter, koľko riadkov súbor obsahuje, napríklad Exportovať zobrazené riadky, 2 z 4 (CSV).',
   'help.guide.group-sort-bookings.title': 'Zoskupenie a zoradenie rezervácií',
   'help.guide.group-sort-bookings.tip.2':
     'V Časová os obsahuje to isté tlačidlo Samostatný pruh pre každý typ a Zobraziť druhú záložku.',
@@ -5976,6 +6376,31 @@ const help: TranslationStrings = {
     'Ak chcete exportovať len časť karty, najprv ju zúžte cez Hľadať alebo Filter. Súbor obsahuje presne to, čo karta ukazuje.',
   'help.guide.import-booking-file.tip.4':
     'Čítanie potvrdenia vyžaduje pripojenie. Offline Importovať na to upozorní a skúsite to znova, keď bude TREK opäť online.',
+  'help.guide.forward-booking-mail.title': 'Preposlanie e-mailu s rezerváciou do cesty',
+  'help.guide.forward-booking-mail.goal':
+    'Dajte ceste vlastnú adresu, pošlite na ňu potvrdenie a dokončite, čo TREK nevedel pridať sám.',
+  'help.guide.forward-booking-mail.step.1':
+    'Kliknite na ikonu nahrávania na lište, Importovať potvrdenia rezervácií. Pod poľom pre súbory obsahuje Alebo prepošli e-mailom vlastnú adresu cesty.',
+  'help.guide.forward-booking-mail.step.2':
+    'Kliknite na Vytvoriť adresu pre tento výlet. E-mail poslaný na ňu skončí v tejto ceste bez hádania.',
+  'help.guide.forward-booking-mail.step.3':
+    'Adresa sa zobrazí s tlačidlom kopírovania vedľa nej. Skopírujte ju a potom na ňu prepošlite rezervačný e-mail zo svojho poštového programu, aj s prílohami, ručne alebo pravidlom. TREK ho prečíta do niekoľkých minút.',
+  'help.guide.forward-booking-mail.step.4':
+    'Rezervácia, ktorou si je TREK istý, sa do cesty vloží sama. Všetko ostatné čaká na vás: otvorte ponuku pod svojím menom vpravo hore, kde číslo ukazuje čakajúce e-maily, a kliknite na Rezervácie čakajúce na schválenie.',
+  'help.guide.forward-booking-mail.step.5':
+    'Každá položka ukazuje, čo TREK prečítal, prečo čaká a pre akú cestu prišla. Zobraziť e-mail ukáže samotný e-mail. Kliknite na Vyplniť ručne.',
+  'help.guide.forward-booking-mail.step.6':
+    'V ceste sa otvorí Nová rezervácia s tým, čo e-mail obsahoval: predmet ako názov, typ, dátum a rezervačný kód, ktorý TREK našiel. Skontrolujte to, opravte, čo treba, a kliknite na Pridať.',
+  'help.guide.forward-booking-mail.result':
+    'Rezervácia je na karte Rezervácie ako každá iná a jej položka zmizla z Rezervácie čakajúce na schválenie.',
+  'help.guide.forward-booking-mail.tip.1':
+    'Vaša vlastná adresa v Nastavenia, Integrácie, E-maily s rezerváciami funguje pre každú cestu: TREK vyberie cestu, ktorej dátumy a miesta k rezervácii pasujú. Adresa cesty toto hádanie preskočí.',
+  'help.guide.forward-booking-mail.tip.2':
+    'So zapnutým Pridávať automaticky na tej karte sa rezervácia, ktorou si je TREK istý, vloží rovno do cesty a oznámenie o nej ponúka Vrátiť späť na 7 dní. Pri vypnutom každá rezervácia čaká v Rezervácie čakajúce na schválenie.',
+  'help.guide.forward-booking-mail.tip.3':
+    'Položku môžete aj ponechať ako dokument cez Uložiť ako dokument, ktorý vloží e-mail alebo jeho prílohy do súborov cesty, alebo ju zahodiť cez Zahodiť.',
+  'help.guide.forward-booking-mail.tip.4':
+    'Adresa je vaša: spolucestujúci, ktorý ju chce, si vytvorí vlastnú. Správca zapína import e-mailov pre celú inštanciu. Dovtedy Alebo prepošli e-mailom a Rezervácie čakajúce na schválenie nie sú.',
   'help.guide.arrange-packing-list.step.1':
     'Chyťte úchyt na ľavom konci záhlavia zoznamu, pred jeho farebnou bodkou, a pustite zoznam na inú kartu. Cieľovú kartu označí obrys vo farbe vášho akcentu a zoznam zaujme miesto tej karty pre všetkých účastníkov cesty.',
   'help.guide.count-packed-pieces.title': 'Zabalenie viacerých kusov jednej veci',
@@ -5987,6 +6412,8 @@ const help: TranslationStrings = {
     'Kliknite na ceruzku vedľa riadka výdavku. Editor sa otvorí na ňom, s Účtenky a faktúry blízko spodku.',
   'help.guide.expense-receipts.tip.3':
     'Priloženie vyžaduje pripojenie a oprávnenie nahrávať súbory, pretože sa účtenka ukladá ako jeden zo súborov cesty.',
+  'help.guide.expense-receipts.tip.4':
+    'Súbor, ktorý už v ceste je, napríklad potvrdenie rezervácie, ktoré je zároveň faktúrou, môžete pripojiť odkazom namiesto opätovného nahratia: ikona odkazu vedľa Priložiť vypíše tieto súbory.',
   'help.guide.files-sync-settings.title': 'Výber smeru synchronizácie dokumentov',
   'help.guide.files-sync-settings.tip.1':
     'Jeden pruh zostáva vždy zapnutý: kliknutie na jediný pruh, ktorý je ešte zapnutý, nič nezmení.',
@@ -5997,6 +6424,8 @@ const help: TranslationStrings = {
     'Kliknite na Uložiť. Všetky poznámky v premenovanej alebo prefarbenej kategórii sa zmenia naraz, pre každého člena. Zrušiť vaše zmeny zahodí.',
   'help.guide.trip-chat.tip.5':
     'Chat ukazuje najprv najnovšie správy. Načítať staršie správy navrchu chatu načíta staršie správy.',
+  'help.guide.trip-chat.tip.6':
+    'Správa označená ako od asistenta je odpoveď, ktorú niekto zdieľal od asistenta cesty cez Zdieľať v chate výletu. Keď ukážete na značku, uvidíte, kto ju zdieľal.',
   'help.guide.roadtrip-reorder.result':
     'Zastávky sú v poradí, ktoré ste nastavili, a vzdialenosť, čas jazdy a časy príchodu každého zmeneného dňa sa vypočítajú znova.',
   'help.guide.roadtrip-overnight.goal': 'Nájdite miesto na spanie na ceste a pridajte noc do jazdy ako rezerváciu.',
@@ -6036,7 +6465,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.tip.1':
     'Názov a farba patria ceste, takže ich vidí každý, kto v nej je. Ak chcete túru skryť len na svojej mape a nikomu inému ju nezmeniť, použite oko v zozname Túry.',
   'help.guide.tour-take-along.tip.1':
-    'Na zariadení, ktoré vie zdieľať súbory, sa vedľa GPX zobrazí Zdieľať a pošle ten istý súbor priamo inej aplikácii.',
+    'Zdieľať vedľa GPX pošle ten istý súbor priamo inej aplikácii na zariadení, ktoré vie zdieľať súbory. Inde zdieľa krátky text o túre alebo ho skopíruje.',
   'help.guide.tour-copy-keep.step.2':
     'Kópia sa otvorí hneď a má názov originálu a za ním (kópia). Kliknutím na ceruzku jej dajte vlastný názov.',
   'help.guide.tour-packing-link.title': 'Prepojenie túry so zoznamom vecí',
@@ -6072,7 +6501,7 @@ const help: TranslationStrings = {
   'help.guide.tour-save.step.1': 'Do Názov túry napíšte názov. Bez neho Uložiť zostáva sivé.',
   'help.guide.tour-edit-saved.title': 'Zmena uloženej túry',
   'help.guide.tour-edit-saved.tip.3':
-    'Stiahnuť GPX a Uložiť do zbierky v záhlaví panela fungujú, až keď sú zmeny uložené.',
+    'Stiahnuť GPX, Zdieľať a Uložiť do zbierky v záhlaví panela fungujú, až keď sú zmeny uložené.',
   'help.guide.tour-summary-profile.tip.1': 'Kliknutím na názov karty zbalíte celý prehľad.',
   'help.guide.tour-list-manage.step.3': 'Vyberte deň. Túra sa pridá do tohto dňa a jej riadok ukazuje deň.',
   'help.guide.tour-delete.goal': 'Odstráňte túru z cesty natrvalo.',
@@ -6261,29 +6690,78 @@ const help: TranslationStrings = {
     'Plugin funguje podľa vašich nastavení a každá akcia, ktorú pre vás vykoná, je uvedená pod Aktivita doplnkov.',
   'help.ctx.admin-defaults.bullet.3':
     'Odkaz obnoviť vedľa nastaveného poľa vráti predvolenú hodnotu TREK. Vlastné nastavenie používateľa má vždy prednosť pred týmito.',
-  'help.ctx.admin-settings.bullet.5': 'Nebezpečná zóna: Obnoviť tajný kľúč JWT odhlási všetkých používateľov, aj vás.',
+  'help.ctx.admin-settings.bullet.5':
+    'Nebezpečná zóna, na karte Zabezpečenie: Obnoviť tajný kľúč JWT odhlási všetkých používateľov, aj vás.',
   'help.guide.default-user-settings.step.1':
     'Pod Predvolené nastavenia používateľa vyberte Farebný režim (Svetlé, Tmavý alebo Automatické), Jednotky teploty, Jednotky vzdialenosti, Formát času, Týždeň začína, Formát dátumu, Zobrazovaná mena a či je Skryť rezervačné kódy zapnuté alebo vypnuté. Každá voľba sa uloží okamžite.',
   'help.guide.admin-passkeys.step.2':
-    'Zadajte Relying Party ID (doména), napríklad trek.example.org, a Povolené origins, na ktorých je váš TREK dostupný, a kliknite na Uložiť. Ak necháte obe polia prázdne, použije sa APP_URL.',
+    'V karte Prihlásenie prístupovým kľúčom zadajte Relying Party ID (doména), napríklad trek.example.org, a Povolené origins, na ktorých je váš TREK dostupný, a kliknite na Uložiť. Ak necháte obe polia prázdne, použije sa APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Odhlásenie všetkých naraz',
   'help.guide.notification-defaults.step.2':
     'Kliknutím na bunku ju prepnete na ďalší stav: Zapnuté, Vypnuté, Blokované. Tooltip uvádza ďalší stav a každé kliknutie sa uloží okamžite.',
   'help.ctx.notifications.bullet.2':
-    'Všetky a Neprečítané navrchu prepínajú medzi všetkými oznámeniami a len neprečítanými. Ďalšie sa načítajú pri rolovaní.',
+    'Všetky a Neprečítané navrchu prepínajú medzi všetkými oznámeniami a len neprečítanými. Zoznam je zoskupený podľa dňa, Dnes ako prvý, a ďalšie sa načítajú pri rolovaní.',
   'help.guide.read-notifications.step.3':
     'Kliknite na tlačidlo pod oznámením, Zobraziť Vacay, a otvorí sa to, čoho sa oznámenie týka. Zároveň sa označí ako prečítané.',
   'help.guide.filter-notifications.step.3':
     'Kliknutím na Neprečítané zobrazíte len oznámenia, ktoré ste ešte nečítali. Všetky znova ukáže všetky.',
   'help.guide.mark-notifications-read.tip.2':
-    'Označenie ako prečítané mení len farbu pozadia a počet. Oznámenie zostane v zozname, kým ho nevymažete.',
+    'Označenie ako prečítané len odoberie tučné písmo, bodku a počet. Oznámenie zostane v zozname, kým ho nevymažete, a Označiť ako neprečítané, obálka na tom istom mieste, ho zase urobí novým.',
   'help.guide.delete-notifications.result': 'Oznámenie zmizne zo zoznamu aj zo zvončeka.',
+  'help.guide.booking-mail-notifications.title': 'Odpoveď na oznámenie o e-maile s rezerváciou',
+  'help.guide.booking-mail-notifications.goal':
+    'Pozrite, čo sa stalo s e-mailami s rezerváciami, ktoré ste preposlali, a rozhodnite o tých, ktoré TREK nedokázal pridať sám.',
+  'help.guide.booking-mail-notifications.step.1':
+    'Kliknite na zvonček vpravo hore. Keď preposlaný e-mail obsahuje rezervácie, ktoré TREK nevedel pridať sám, oznámi vám to tam.',
+  'help.guide.booking-mail-notifications.step.2':
+    'Preposlané rezervácie na kontrolu hovoria, koľko ich na vás čaká. Pod tým kliknite na Skontrolovať.',
+  'help.guide.booking-mail-notifications.step.3':
+    'Rezervácie čakajúce na schválenie sa otvoria s každou čakajúcou položkou: čo TREK prečítal, prečo čaká a pre akú cestu prišla. Vyplniť ručne otvorí novú rezerváciu s tým, čo e-mail obsahoval, a kôš položku zahodí.',
+  'help.guide.booking-mail-notifications.result':
+    'Každá preposlaná rezervácia sa buď zaradí do svojej cesty, alebo počká na vaše rozhodnutie, a vždy viete, ktorá je ktorá.',
+  'help.guide.booking-mail-notifications.tip.1':
+    'Rezervácia, ktorú TREK pridal sám, príde ako Rezervácia pridaná z e-mailu s tlačidlami Ponechať a Vrátiť späť. Vrátiť späť rezerváciu z cesty znova odoberie, Ponechať ju tam nechá.',
+  'help.guide.booking-mail-notifications.tip.2':
+    'Ostatní ľudia na zdieľanej ceste sa o rezervácii z e-mailu tiež dozvedia, s tlačidlom Zobraziť výlet, ktoré otvorí jej kartu Rezervácie.',
+  'help.guide.booking-mail-notifications.tip.3':
+    'Let, ktorý TREK sleduje naživo, posiela Let odletel, Let pristál a od 15 minút meškania Let mešká, každé s tlačidlom Zobraziť výlet. Idú ľuďom, ktorým je let priradený, alebo všetkým na ceste. Každé z nich vypnete v Nastavenia pod Oznámenia.',
   'help.guide.notification-settings.result':
     'Nastavenia sa otvoria na Oznámenia, s prepínačom pre každú udalosť a kanál.',
   'help.guide.link-journal.goal':
     'Zobrazte jeden zo svojich denníkov z Cestovný denník priamo v ceste, ľuďom, ktorých si vyberiete.',
   'help.guide.link-journal.tip.3':
     'Neskôr má Denník v Nastavenia cesty možnosti Upraviť prístup, Zmeniť denník a Odpojiť. Odpojením zmizne karta. Ľudia, ktorých ste pridali priamo v denníku, si prístup ponechajú.',
+  'help.guide.trip-addons.title': 'Zapnutie a vypnutie doplnkov pre túto cestu',
+  'help.guide.trip-addons.goal':
+    'Zapnite alebo vypnite funkciu, napríklad Náklady alebo Cesta autom, len pre jednu cestu.',
+  'help.guide.trip-addons.step.1':
+    'Kliknite na Nastavenia cesty vedľa názvu cesty a vľavo vyberte Doplnky. Túto časť má len vlastník cesty.',
+  'help.guide.trip-addons.step.2':
+    'Kliknite na prepínač doplnku, aby ste ho pre túto cestu zapli alebo vypli. Uvedené sú Zoznamy, Náklady, Dokumenty, Spolupráca, Cesta autom a Túry, pokiaľ ich váš TREK má.',
+  'help.guide.trip-addons.step.3':
+    'Len tento výlet označuje doplnok, ktorý ste nastavili inak ako zvyšok TREK. Prepnite ho späť, aby opäť sledoval nastavenie správcu.',
+  'help.guide.trip-addons.result':
+    'Cesta ukazuje doplnky, ktoré ste vybrali, pre všetkých na nej: karta alebo časť plánu sa objaví, alebo zmizne. Vaše ostatné cesty si ponechajú nastavenie správcu.',
+  'help.guide.trip-addons.tip.1':
+    'Vypnutie doplnku ho len skryje a nič nevymaže. Zapnite ho znova a všetko je tam, kde bolo.',
+  'help.guide.trip-addons.tip.2':
+    'Doplnok môžete pre jednu cestu zapnúť, aj keď ho správca pre všetkých ostatných vypol.',
+  'help.guide.trip-addons.tip.3':
+    'Zmena prepínača vyžaduje pripojenie. Offline to TREK povie a prepínač nechá, ako bol.',
+  'help.guide.edit-trip-settings.title': 'Úprava cesty z plánovača',
+  'help.guide.edit-trip-settings.goal':
+    'Zmeňte názov, dátumy, titulnú fotku alebo menu cesty bez toho, aby ste cestu opustili.',
+  'help.guide.edit-trip-settings.step.1':
+    'Kliknite na Nastavenia cesty vedľa názvu cesty a vľavo vyberte Upraviť cestu.',
+  'help.guide.edit-trip-settings.step.2':
+    'Zmeňte, čo potrebujete: titulnú fotku, názov a popis, dátumy, menu alebo pripomienku.',
+  'help.guide.edit-trip-settings.step.3':
+    'Kliknite na Aktualizovať. Nastavenia cesty sa zatvoria a cesta okamžite ukáže zmenu.',
+  'help.guide.edit-trip-settings.result': 'Výlet zobrazuje nové údaje všade, pre všetkých jeho účastníkov.',
+  'help.guide.edit-trip-settings.tip.1':
+    'Ak posuniete dátum začiatku, TREK sa najprv opýta, ako majú rezervácie nasledovať. Ak nové dátumy odoberú dni, na ktorých niečo je, TREK ich pred potvrdením vypíše.',
+  'help.guide.edit-trip-settings.tip.2':
+    'Ten istý formulár sa otvorí z Moje cesty ceruzkou na karte cesty. Upraviť cestu vidia len ľudia, ktorí smú cestu upravovať.',
   'help.guide.dawarich-stays.result':
     'Pobyt je miesto cesty v dni, ktorý ste vybrali, alebo pod Nezaradené, a panel ho označí ako vybavený.',
   'help.ctx.trip-days.bullet.7': 'Kým cesta prebieha, plán sa otvorí na dnešnom dni a posunie sa k nemu.',
@@ -6293,7 +6771,7 @@ const help: TranslationStrings = {
     'Presuňte dopravu alebo rezerváciu na iný deň priamo z plánu, bez otvárania jej formulára.',
   'help.guide.place-image-from-file.result': 'Fotka je obrázok miesta na karte, v stĺpci miest, v dni a na mape.',
   'help.guide.place-own-hours.step.3':
-    'Otváracie hodiny pod nimi zobrazujú týždeň, jeden riadok na deň. Ak TREK pre miesto našiel hodiny, sú už vyplnené. Ak nie, kliknite najprv na Pridať otváracie hodiny. Napíšte, kedy sa každý deň otvára a zatvára, a v dni, keď je zatvorené, kliknite na Uzavreté.',
+    'Otváracie hodiny pod nimi zobrazujú týždeň, jeden riadok na deň. Ak TREK pre miesto našiel hodiny, sú už vyplnené. Ak nie, kliknite najprv na Pridať otváracie hodiny. Napíšte, kedy sa každý deň otvára a zatvára. Vpravo pri dni 24h označí, že je otvorené celý deň, a zatvorené dvere, že je zatvorené.',
   'help.guide.add-accommodation.tip.5':
     'Stopy GPX a miesta z túr sa ako ubytovanie nikdy nenavrhujú, len bežné miesta cesty.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6304,22 +6782,22 @@ const help: TranslationStrings = {
     'V záhlaví dňa, v ktorom preberáte auto, kliknite na +, ktorého tooltip znie Pridať k dňu, a vyberte Pridať dopravu.',
   'help.guide.car-stops.tip.2': 'Posunúť nahor a Posunúť nadol sa zobrazia, až keď má jazda dve zastávky alebo viac.',
   'help.guide.transport-details.title': 'Otvorenie dopravy a práca s jej podrobnosťami',
-  'help.guide.transport-details.tip.1': 'Na mape znova pri jazde s nakreslenou čiarou čiaru vypne.',
+  'help.guide.transport-details.tip.1': 'Mapa znova, pri jazde s nakreslenou čiarou, čiaru vypne.',
   'help.guide.export-transports-csv.result':
     'Prehliadač uloží súbor pomenovaný podľa cesty, napríklad autumn-in-japan-transports.csv, s jedným riadkom na jazdu: Typ, Názov, Stav, Začiatok, Do, Od, Do, Miesto, Potvrdenie a Poznámky.',
   'help.guide.group-sort-bookings.goal':
     'Usporiadajte karty alebo zoznam podľa stavu, dňa alebo typu, v poradí, aké chcete.',
   'help.guide.booking-on-map.tip.1':
-    'Na mape sa zobrazuje len pri rezervácii s miestom. Vyberte miesto vo formulári pod Miesto / Aktivita a tlačidlo sa objaví.',
+    'Mapa sa zobrazuje len pri rezervácii s miestom. Vyberte miesto vo formulári pod Miesto / Aktivita a tlačidlo sa objaví.',
   'help.guide.export-bookings-csv.step.2':
     'Otvorte Možnosti zobrazenia, posuvníky za ikonami zobrazení, a pod Zoradiť podľa vyberte poradie. Riadky ho dodržia, jeden riadok na rezerváciu a bez sekcií.',
   'help.guide.edit-booking.tip.4':
     'Ak ste niečo zmenili, kliknutie mimo formulára alebo Escape sa opýta Zahodiť zmeny? Pokračovať v úpravách vás vráti do formulára.',
   'help.guide.arrange-packing-list.step.2':
-    'V zozname chyťte úchyt vľavo od riadku a potiahnite položku nahor alebo nadol. Čiara vo farbe vášho akcentu na ľavom okraji riadku ukazuje, kam položka dopadne.',
+    'V zozname ukážte na riadok: vľavo sa objaví úchyt, ktorým položku potiahnete nahor alebo nadol. Čiara vo farbe vášho akcentu na ľavom okraji riadka ukazuje, kam položka dopadne.',
   'help.guide.count-packed-pieces.goal': 'Určte položke množstvo a označujte jej kusy ako zbalené jeden po druhom.',
   'help.guide.count-packed-pieces.tip.3':
-    'Pri množstve jedna sa počítadlo nezobrazuje, je tam len políčko na odškrtnutie.',
+    'Pri množstve jedna nie je riadok Zbalené, je tam len políčko. Riadok ukazuje množstvo, napríklad ×5, od dvoch vyššie.',
   'help.guide.expense-receipts.step.2':
     'Kliknite na Priložiť vedľa Účtenky a faktúry a vyberte fotku alebo PDF, môžete vybrať aj viac súborov naraz. Každý súbor je uvedený pod nadpisom a má kôš na odstránenie.',
   'help.guide.files-sync-settings.goal':
@@ -6363,7 +6841,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-plan-tab.tip.1':
     'Stopa, ktorá už v ceste je, je označená Už je v ceste a neimportuje sa dvakrát.',
   'help.ctx.trip-tour-detail.bullet.4':
-    'Riadok úplne dole: Pridať k dňu alebo Odobrať z dňa, kým je otvorený deň, Navigácia na štart, webová stránka túry, GPX, Zdieľať tam, kde vaše zariadenie vie zdieľať súbory, Zbierka a Kopírovať.',
+    'Riadok úplne dole: Pridať k dňu alebo Odobrať z dňa, kým je otvorený deň, Navigácia na štart, Mapy pre celú trasu v mapovej aplikácii, webová stránka túry, GPX, Zdieľať, Zbierka a Kopírovať.',
   'help.guide.tour-detail-read.step.5':
     'Nižšie sú údaje: Vzdialenosť, Minimálna nadmorská výška, Maximálna nadmorská výška, Stúpanie a Klesanie, pod nimi časy a výškový profil vo farbe čiary túry.',
   'help.guide.tour-detail-read.result':
@@ -6493,7 +6971,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.step.4':
     'Navrchu zoznamu je počet navštívených zastávok a zostávajúci čas chôdze. Vrátiť pri zastávke zruší jej označenie.',
   'help.ctx.trip-tour-bike.bullet.2':
-    'Prehľad túry vpravo ukazuje Čas jazdy (odhad), čas podľa smerovača pre daný profil vrátane stúpaní. Prestávky nie sú zahrnuté.',
+    'Prehľad túry vpravo ukazuje Čas jazdy, odhad smerovača pre profil vrátane stúpaní. Prestávky nie sú zahrnuté.',
   'help.guide.tour-bike-profile.step.4':
     'Pod Trasové body kliknite na Miesta cesty a vyberte štart a cieľ, tu Hotel Alpenroyal a potom Hotel Greif. Môžete tiež skontrolovať, či je zapnuté Pridať bod, a kliknúť na mapu. Od dvoch bodov TREK vypočíta trasu.',
   'help.guide.tour-bike-profile.tip.5':
@@ -6546,7 +7024,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-gap.step.4':
     'V karte Trasové body ukazuje most Ručne, neoverené, s jeho dĺžkou. Ukážte naň a prečítate si prečo.',
   'help.guide.tour-horse-recorded.step.2':
-    'Otvorí sa Náhľad importu a zatiaľ sa nič neuloží. Pod Importovať ako nastavte Typ túry na Vychádzka na koni. Tri odznaky ukazujú, čo import zachová a čo nevypočíta.',
+    'Otvorí sa Náhľad importu a zatiaľ sa nič neuloží. Pod Importovať ako vyberte Vychádzka na koni. Tri odznaky ukazujú, čo import zachová a čo nevypočíta.',
   'help.guide.dateless-trip.goal': 'Začnite plánovať ešte predtým, než viete, kedy pocestujete.',
   'help.guide.trip-reminder.step.3': 'Kliknite na Aktualizovať.',
   'help.guide.upcoming-reservations.goal':
@@ -6592,6 +7070,17 @@ const help: TranslationStrings = {
     'Nahlásiť chybu a Navrhnúť funkciu otvoria projekt na GitHube. Wiki otvorí dokumentáciu.',
   'help.guide.map-provider.tip.3':
     'Na mape GL otočíte a nakloníte mapu kliknutím pravým tlačidlom a ťahaním. Kliknutím stredným tlačidlom pridáte miesto.',
+  'help.guide.map-hide-pois.title': 'Skrytie obchodov a pamätihodností z Mapboxu',
+  'help.guide.map-hide-pois.goal': 'Nechajte na mape len svoje miesta, bez štítkov, ktoré Mapbox pridáva sám.',
+  'help.guide.map-hide-pois.step.1':
+    'Pod Poskytovateľ mapy vyberte Mapbox GL a pod Štýl mapy štýl Standard: Mapbox Standard alebo Standard Satellite.',
+  'help.guide.map-hide-pois.step.2': 'Zapnite Skryť body záujmu a potom kliknite na Uložiť nastavenia mapy.',
+  'help.guide.map-hide-pois.result':
+    'Mapy cesty a denníka už neoznačujú vlastné obchody, reštaurácie a pamätihodnosti, takže vynikajú len vaše špendlíky.',
+  'help.guide.map-hide-pois.tip.1':
+    'Funguje to iba so štýlmi Standard. Streets, Outdoors a ostatné klasické štýly si štítky ponechajú.',
+  'help.guide.map-hide-pois.tip.2':
+    'Objavovať miesta na mape v časti Všeobecné stále nájde miesta v okolí, keď o ne požiadate.',
   'help.guide.web-push-device.step.1':
     'Pod Push oznámenia v tomto zariadení kliknite na Zapnúť pre toto zariadenie a keď sa prehliadač opýta, povoľte oznámenia. Odoslať test overí, že oznámenie dorazí.',
   'help.guide.connect-airtrail.title': 'Pripojenie AirTrail',
@@ -6600,6 +7089,23 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.tip.3': 'Odpojiť vpravo token znova odstráni.',
   'help.guide.tour-wanderer-watch.tip.3':
     'Kanály pre tieto upozornenia si vyberiete v Oznámenia, v riadku wanderer: upozornenia k vašim trasám.',
+  'help.guide.connect-ai.title': 'Pripojenie vlastnej AI',
+  'help.guide.connect-ai.goal': 'Plánujte s asistentom cez vlastný účet u poskytovateľa AI.',
+  'help.guide.connect-ai.step.1':
+    'V karte AI asistent vyberte, ako sa pripojiť: Prihlásiť sa cez ChatGPT využije váš plán ChatGPT, Vložiť API kľúč prijme kľúč od Anthropic, OpenAI, Gemini alebo OpenRouter.',
+  'help.guide.connect-ai.step.2':
+    'Vložte svoj kľúč. TREK uvedie poskytovateľa, ktorého rozpoznal, a povie, čo sa mu odošle. Kliknite na Pripojiť; TREK najprv overí kľúč u poskytovateľa.',
+  'help.guide.connect-ai.step.3':
+    'Karta zobrazí Pripojené k a poskytovateľa. Vyberte Model, ktorý chcete, a kliknutím na Otvoriť asistenta začnete v aktuálnej alebo najbližšej ceste.',
+  'help.guide.connect-ai.result': 'Asistent beží na vašom vlastnom účte, v každej ceste.',
+  'help.guide.connect-ai.tip.1':
+    'Karta sa zobrazuje, len kým má správca zapnutého asistenta alebo Analýzu pomocou AI. Tam, kde ho môže pripojiť iba správca, je v nej Toto nastavuje váš administrátor.',
+  'help.guide.connect-ai.tip.2':
+    'Keď pripojenie poskytuje správca, karta zobrazí Poskytuje váš administrátor a koľko správ ste dnes využili. Pripojiť vlastného poskytovateľa nahradí jeho pripojenie vaším, ak to správca dovolí.',
+  'help.guide.connect-ai.tip.3':
+    'Mapa sleduje asistenta a Odhadovať náklady menia, ako asistent pracuje vo vašich cestách. Odpojiť odstráni váš kľúč; vaše chaty zostanú.',
+  'help.guide.connect-ai.tip.4':
+    'Analýza pomocou AI číta súbory s rezerváciami cez rovnaké pripojenie. Osobné nastavenie analýzy pomocou AI spred zmeny si ponecháva vlastnú kartu nižšie.',
   'help.guide.plugin-settings.tip.1': 'Tieto nastavenia sú len vaše. Ostatní členovia si plugin nastavujú sami.',
   'help.guide.offline-conflicts.step.3':
     'Zmeny, ktoré server stále odmieta, sa zobrazia pod Offline vyrovnávacia pamäť ako Neúspešné zmeny: Skúsiť znova ich odošle ešte raz, Zahodiť ponechá verziu zo servera.',
@@ -6614,13 +7120,12 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.result':
     'Každý, kto bunku nezmenil, vychádza z vašej voľby a blokované bunky sa v jeho nastaveniach zobrazia ako zamknuté.',
   'help.ctx.notifications.bullet.3':
-    'Každé oznámenie uvádza, kto čo urobil a kde. Neprečítané majú zafarbené pozadie. Tlačidlo pod oznámením, napríklad Zobraziť výlet alebo Zobraziť Vacay, vás tam zavedie a označí oznámenie ako prečítané.',
+    'Každé oznámenie uvádza, kto čo urobil a kde. Jeho dlaždica ukazuje, čoho sa týka, s iniciálou odosielateľa v rohu. Neprečítané sú tučne a s bodkou. Tlačidlo pod ním, napríklad Zobraziť výlet alebo Zobraziť Vacay, vás tam zavedie a označí oznámenie ako prečítané.',
   'help.guide.read-notifications.tip.1':
     'Zvonček je na každej obrazovke s navigačnou lištou a jeho číslo sa aktualizuje automaticky, keď príde niečo nové.',
   'help.guide.filter-notifications.tip.1':
     'Stránka dočítava staršie oznámenia pri rolovaní nadol, takže po prvej obrazovke nič nechýba.',
-  'help.guide.mark-notifications-read.result':
-    'Žiadne oznámenie už nemá zafarbené pozadie a červené číslo na zvončeku zmizlo.',
+  'help.guide.mark-notifications-read.result': 'Žiadne oznámenie už nie je tučné a červené číslo na zvončeku zmizlo.',
   'help.guide.notification-settings.title': 'Výber toho, o čom chcete dostávať oznámenia',
   'help.guide.link-journal.step.1': 'Kliknite na Nastavenia cesty vedľa názvu cesty a vľavo vyberte Denník.',
   'help.guide.dawarich-stays.tip.1':
@@ -6649,11 +7154,10 @@ const help: TranslationStrings = {
     'Offline sa rezervácia uloží v tomto zariadení a po pripojení sa synchronizuje. Nové súbory vyžadujú pripojenie, preto ich odstráňte alebo uložte neskôr. Ak omylom kliknete mimo formulára alebo stlačíte Escape, TREK sa opýta Zahodiť zmeny?, skôr než sa stratí čokoľvek, čo ste napísali.',
   'help.guide.booking-on-map.tip.2': 'Pobyt sa otvorí na svojej prvej noci.',
   'help.guide.export-bookings-csv.step.3':
-    'Kliknite na Exportovať ako tabuľku (CSV), ikonu tabuľky za Možnosti zobrazenia.',
+    'Kliknite na Exportovať ako tabuľku (CSV), ikonu sťahovania za Možnosti zobrazenia.',
   'help.guide.arrange-packing-list.step.3':
-    'A až Z úplne vpravo v riadku so Zdieľané a Môj zoznam zobrazí položky každého zoznamu podľa názvu, takže rýchlo uvidíte, či už niečo na zozname je. Ďalším kliknutím sa vrátite k vlastnému poradiu.',
-  'help.guide.count-packed-pieces.step.1':
-    'V riadku kliknite na odznak množstva, malé číslo s x za ním, zadajte, koľko kusov berieme so sebou, napríklad 5, a stlačte Enter.',
+    'A až Z v ponuke s tromi bodkami vedľa Pridať zoznam zobrazí položky každého zoznamu podľa názvu, takže rýchlo uvidíte, či už niečo na zozname je. Kým je zapnuté, označuje ho zaškrtnutie. Kliknutím naň sa vrátite k vlastnému poradiu.',
+  'help.guide.count-packed-pieces.step.1': 'Kliknite na názov položky. V riadku sa otvorí jej okno.',
   'help.guide.expense-receipts.step.3':
     'Dole v dialógu kliknite na Uložiť. Súbory sa nahrajú spolu s výdavkom a zobrazia sa aj v Súborov cesty.',
   'help.guide.files-sync-settings.step.1':
@@ -6667,6 +7171,22 @@ const help: TranslationStrings = {
     'Poznámky zobrazujú nové názvy a farby a karta Poznámky ukazuje len vybranú kategóriu.',
   'help.guide.roadtrip-stops.tip.5':
     'Zastávka s časom konca v pláne dňa trvá do tohto času. Jej dialóg uvádza, kedy jazda pokračuje, a Odstrániť čas konca vám umožní dĺžku znova nastaviť samostatne.',
+  'help.guide.roadtrip-stop-photo.title': 'Fotka zastávky',
+  'help.guide.roadtrip-stop-photo.goal': 'Pozrite si obrázok zastávky na ceste a rozhodnite sa, či sa odbočka oplatí.',
+  'help.guide.roadtrip-stop-photo.step.1':
+    'Kliknite na zastávku po ceste v paneli alebo na miesto rezervovanej noci. Jej karta sa otvorí nad mapou.',
+  'help.guide.roadtrip-stop-photo.step.2':
+    'Kliknite na Upraviť dole na karte. Otvorí sa dialóg zastávky s obrázkom miesta pred jej názvom. Zastávka bez obrázka tam ukazuje ikonu svojho druhu.',
+  'help.guide.roadtrip-stop-photo.step.3':
+    'Kliknite na obrázok, Zobraziť fotky, a fotky miesta sa otvoria na celú obrazovku.',
+  'help.guide.roadtrip-stop-photo.result':
+    'Fotky miesta vyplnia obrazovku a šípky prechádzajú ďalšie, ktoré jeho zdroj pozná. Zatvorte ich a vrátite sa do dialógu, kde Zrušiť nechá zastávku, ako bola.',
+  'help.guide.roadtrip-stop-photo.tip.1':
+    'Obrázok je vlastný obrázok miesta, ten, ktorý ste nastavili vo formulári miesta. Bez neho TREK ukáže fotku, ktorú má pre miesto jeho zdroj, ak pochádza z Google alebo OpenStreetMap.',
+  'help.guide.roadtrip-stop-photo.tip.2':
+    'V telefóne ťuknite na zastávku na karte Cesta autom: jej list ukáže obrázok na celú šírku pod názvom a ťuknutie naň otvorí fotky.',
+  'help.guide.roadtrip-stop-photo.tip.3':
+    'Nález z Pozdĺž trasy ešte nie je v ceste, takže Pridať ako zastávku ukazuje namiesto obrázka ikonu svojho druhu.',
   'help.guide.roadtrip-reorder.tip.2':
     'Rezervované jazdy a ich terminály zostanú tam, kam ich zaradí rezervácia. Ťahať sa dajú len miesta.',
   'help.guide.roadtrip-overnight.step.2':
@@ -6721,7 +7241,7 @@ const help: TranslationStrings = {
   'help.guide.tour-origin-check.step.2':
     'Importované uvádza deň importu. Tu uvádza aktuálny stav: Ako bolo importované, Upravené v TREK alebo Preplánované, zaznamenaná stopa zachovaná.',
   'help.ctx.trip-tour-planner.bullet.1':
-    'Túry sú v lište kariet cesty hneď za Plán, kým je zapnutý doplnok Túry. Karta je dostupná na počítači a tablete. V telefóne sa túry zobrazujú a zaraďujú do dní z karty Plán, ale nekreslia sa.',
+    'Túry sú v lište kariet cesty hneď za Plán, kým je pre cestu zapnutý doplnok Túry. Vlastník cesty ho môže prepnúť v Doplnky v Nastaveniach cesty. Karta je dostupná na počítači a tablete. V telefóne sa túry zobrazujú a zaraďujú do dní z karty Plán, ale nekreslia sa.',
   'help.guide.tour-open-workspace.step.1':
     'V lište kariet cesty kliknite na Túry, hneď za Plán. Mapa vyplní obrazovku a na oboch stranách je panel.',
   'help.guide.tour-open-workspace.tip.2':
@@ -6760,7 +7280,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.5':
     'Súbor bez výšok ukazuje V súbore nie sú výšky. Čiara a vzdialenosť sú stále správne, ale stúpanie a klesanie zostanú neznáme.',
   'help.guide.tour-view-import.tip.2':
-    'Ikona sťahovania v záhlaví import znova uloží ako súbor GPX a záložka ho uloží do zbierky.',
+    'Ikony v záhlaví ju znova stiahnu ako súbor GPX, zdieľajú ju a uložia do zbierky.',
   'help.guide.tour-plan-from-import.step.4':
     'Túra sa otvorí v editore aj s trasovými bodmi. Podľa potreby ju upravte a potom dole v stĺpci kliknite na Uložiť.',
   'help.guide.tour-restore-recorded.step.1':
@@ -6770,7 +7290,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-over.tip.3':
     'Prevzatie túry potrebuje pripojenie. Ak sú v editore neuložené zmeny, kópia sa do zoznamu aj tak pridá, ale neotvorí sa, aby vaša práca zostala otvorená.',
   'help.guide.tour-import-wanderer.tip.1':
-    'Tlačidlo sa zobrazí, keď je wanderer pripojený v Nastavenia, Integrácie. Dovtedy zoznam ponúka Pripojiť v nastaveniach.',
+    'Tlačidlo sa zobrazí, keď je wanderer pripojený v Nastavenia, Integrácie. Ak pripojenie neskôr prestane fungovať, zoznam ponúkne Pripojiť v nastaveniach.',
   'help.ctx.trip-tour-map.bullet.2':
     'Za oddeľovačom v pilulke nasledujú prepínače podľa typu túry: Pridávať body pri úprave túry, Ferraty pri pešej túre, Plavebné znaky pri vodáckej túre a zjazdovky pri lyžiarskej túre. 3D na konci zobrazí túru v trojrozmernej krajine.',
   'help.guide.tour-map-layers.step.3':
@@ -6831,7 +7351,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.3':
     'Karta Povrch a cesty pod Trasové body ukazuje, po čom trasa vedie: povrchy, druhy ciest a podiel, o ktorom je známe, že je nespevnený. Kliknutím na riadok zvýrazníte jeho úseky na mape.',
   'help.guide.tour-bike-profile.step.5':
-    'Prečítajte si Čas jazdy (odhad) v Prehľad túry vpravo. Ak ukážete na informačnú bodku vedľa neho, zobrazí sa, ako sa počíta.',
+    'Prečítajte si Čas jazdy v Prehľad túry vpravo. Ak ukážete na informačnú bodku vedľa neho, zobrazí sa, ako sa počíta.',
   'help.guide.tour-bike-surfaces.title': 'Zobrazenie povrchov cyklotúry',
   'help.guide.tour-bike-surfaces.tip.2':
     'Pri profile Cestný upozornenie nad stĺpcami uvádza, ako dlhý úsek je známy ako nespevnený. Zobraziť na mape tieto úseky označí.',

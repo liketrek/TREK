@@ -271,6 +271,13 @@ describe('MCollabChat', () => {
     expect(input).toHaveValue('')
   })
 
+  it('FE-MOB-CCHAT-038: the send button keeps the focus in the composer, so the keyboard stays open', async () => {
+    serveMessages([])
+    await renderChat()
+    fireEvent.change(screen.getByPlaceholderText('collab.chat.placeholder'), { target: { value: 'One more' } })
+    expect(fireEvent.mouseDown(screen.getByRole('button', { name: 'collab.chat.send' }))).toBe(false)
+  })
+
   it('FE-MOB-CCHAT-014: keeps the draft and toasts when sending fails', async () => {
     serveMessages([])
     serveSend(() => chatMsg(1), true)

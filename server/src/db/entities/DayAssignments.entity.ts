@@ -31,8 +31,8 @@ export class DayAssignments {
   accommodation_id?: number | null;
   route_excluded: number & Opt = 0;
   tour_stage_key?: string | null;
-  stay_minutes?: number | null;
   times_explicit: number & Opt = 0;
+  stay_minutes?: number | null;
   assignment_participants_collection = new Collection<AssignmentParticipants>(this);
   file_links_collection = new Collection<FileLinks>(this);
   reservations_collection = new Collection<Reservations>(this);
@@ -72,8 +72,8 @@ export const DayAssignmentsSchema = defineEntity({
     accommodation_id: p.integer().nullable().index('idx_day_assignments_accommodation_id'),
     route_excluded: p.integer().default(0),
     tour_stage_key: p.text().nullable(),
-    stay_minutes: p.integer().nullable(),
     times_explicit: p.integer().default(0),
+    stay_minutes: p.integer().nullable(),
     assignment_participants_collection: () => p.oneToMany(AssignmentParticipants).mappedBy('assignment').hidden(),
     file_links_collection: () => p.oneToMany(FileLinks).mappedBy('assignment').hidden(),
     reservations_collection: () => p.oneToMany(Reservations).mappedBy('assignment').hidden(),

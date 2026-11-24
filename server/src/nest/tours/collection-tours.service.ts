@@ -90,6 +90,8 @@ export class CollectionToursService {
     await this.assertCollectionsOn();
     await this.collections.assertCanEdit(userId, collectionId);
     if (!(await this.access.findAccessible(body.source_trip_id, userId))) throw tourNotFound();
+    // A trip with Tours off shows its tours nowhere, so it has none to keep either.
+    if (!(await this.addons.isEnabledForTrip(body.source_trip_id, ADDON_IDS.TOURS))) throw tourNotFound();
     const [trip] = await this.kept.targetTrips([body.source_trip_id]);
     if (!trip) throw tourNotFound();
     const id = await this.uow.transactional(async () => {
@@ -161,9 +163,13 @@ export class CollectionToursService {
     return row;
   }
 
-  /** Every trip the user can open, the newest first, each saying whether they may add a tour to it. */
+  /**
+   * Every trip the user can open that has Tours on, the newest first, each
+   * saying whether they may add a tour to it. A trip with Tours off refuses
+   * the take-over, so it is no target.
+   */
   private async targets(user: CollectionTourUser): Promise<CollectionTourTarget[]> {
-    const ids = await this.membership.listAccessibleTripIds(user.id);
+    const ids = await this.addons.tripsWithAddon(await this.membership.listAccessibleTripIds(user.id), ADDON_IDS.TOURS);
     const trips = new Map((await this.kept.targetTrips(ids)).map((trip) => [trip.id, trip]));
     const known = ids.flatMap((id) => {
       const trip = trips.get(id);

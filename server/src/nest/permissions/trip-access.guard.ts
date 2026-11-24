@@ -1,6 +1,7 @@
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { withRowId } from '../common/row-id';
 import { PermissionsService } from './permissions.service';
 import { EntityManager } from '@mikro-orm/core';
 import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
@@ -72,10 +73,11 @@ export class TripAccessGuard implements CanActivate {
     // undefined and turn a wiring mistake into a 500.
     if (!user) throw new HttpException({ error: 'Unauthorized' }, 401);
 
-    const tripId = Number((request.params as Record<string, string>)?.tripId);
-    const trip = Number.isFinite(tripId)
-      ? await this.em.getRepository(Trips).findAccessible(tripId, user.id)
-      : undefined;
+    // toRowId, not Number(): Number('0x1') and Number('1e0') are 1, so a spelling no
+    // client sends would reach trip 1 here while the handler binds the raw string,
+    // which SQLite matches against nothing and Postgres refuses or reads its own way.
+    const tripId = (request.params as Record<string, string>)?.tripId;
+    const trip = await withRowId(tripId, (id) => this.em.getRepository(Trips).findAccessible(id, user.id));
     // A trip the user may not see is reported as absent, never as forbidden: a 403
     // would confirm the id exists to someone who has no business knowing.
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);

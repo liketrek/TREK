@@ -2,8 +2,10 @@ import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { rowId } from '../common/row-id.pipe';
 import { withRequestContext } from '../database/request-context';
 import { TripAccessGuard } from '../permissions/trip-access.guard';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -63,7 +65,10 @@ import type { Request } from 'express';
  * where their documents are going.
  */
 @Controller('api/trips/:tripId/docsync')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+// AddonGuard first, on the instance switch alone: the document providers stay bound to it, so a trip
+// cannot open doc-sync while the instance has Documents off. TripAddonGuard then refuses a trip
+// whose owner switched Documents off for it.
+@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.DOCUMENTS, 'Documents')
 export class DocSyncController {
   private readonly logger = new Logger(DocSyncController.name);
@@ -208,11 +213,11 @@ export class DocSyncController {
   @HttpCode(200)
   async deleteConnection(
     @Param('tripId') tripId: string,
-    @Param('connectionId') connectionId: string,
+    @Param('connectionId', rowId('Connection not found')) connectionId: number,
     @CurrentUser() user: User,
   ) {
     await this.assertCanManage(tripId, user);
-    const conn = await this.config.getConnection(Number(connectionId));
+    const conn = await this.config.getConnection(connectionId);
     if (!conn || conn.trip_id !== Number(tripId)) throw new HttpException('Connection not found', 404);
     // Its bindings go with it (ON DELETE CASCADE), so read them first. Every
     // subscription TREK registered for one of them is taken down while the
@@ -238,12 +243,12 @@ export class DocSyncController {
   @Get('connections/:connectionId/scopes')
   async listScopes(
     @Param('tripId') tripId: string,
-    @Param('connectionId') connectionId: string,
+    @Param('connectionId', rowId('Connection not found')) connectionId: number,
     @CurrentUser() user: User,
     @Query('q') q?: string,
   ) {
     await this.assertCanManage(tripId, user);
-    const conn = await this.config.getConnection(Number(connectionId));
+    const conn = await this.config.getConnection(connectionId);
     if (!conn || conn.trip_id !== Number(tripId)) throw new HttpException('Connection not found', 404);
     const provider = this.registry.get(conn.provider_id);
     if (!provider) throw new HttpException('Provider not available', 400);
@@ -255,12 +260,12 @@ export class DocSyncController {
   @Post('connections/:connectionId/scopes')
   async createScope(
     @Param('tripId') tripId: string,
-    @Param('connectionId') connectionId: string,
+    @Param('connectionId', rowId('Connection not found')) connectionId: number,
     @CurrentUser() user: User,
     @Body() body: DocsyncScopeCreateDto,
   ) {
     await this.assertCanManage(tripId, user);
-    const conn = await this.config.getConnection(Number(connectionId));
+    const conn = await this.config.getConnection(connectionId);
     if (!conn || conn.trip_id !== Number(tripId)) throw new HttpException('Connection not found', 404);
     const provider = this.registry.get(conn.provider_id);
     if (!provider) throw new HttpException('Provider not available', 400);
@@ -343,13 +348,13 @@ export class DocSyncController {
   @HttpCode(200)
   async updateLink(
     @Param('tripId') tripId: string,
-    @Param('linkId') linkId: string,
+    @Param('linkId', rowId('Link not found')) linkId: number,
     @CurrentUser() user: User,
     @Body() body: DocsyncLinkUpdateDto,
     @Req() req: Request,
   ) {
     await this.assertCanManage(tripId, user);
-    const link = await this.config.getLink(Number(linkId));
+    const link = await this.config.getLink(linkId);
     if (!link || link.trip_id !== Number(tripId)) throw new HttpException('Link not found', 404);
     const updated = await this.config.updateLink(link.id, body);
     return await this.config.publicLink(updated ?? link, publicOrigin(req));
@@ -357,9 +362,13 @@ export class DocSyncController {
 
   @Delete('links/:linkId')
   @HttpCode(200)
-  async deleteLink(@Param('tripId') tripId: string, @Param('linkId') linkId: string, @CurrentUser() user: User) {
+  async deleteLink(
+    @Param('tripId') tripId: string,
+    @Param('linkId', rowId('Link not found')) linkId: number,
+    @CurrentUser() user: User,
+  ) {
     await this.assertCanManage(tripId, user);
-    const link = await this.config.getLink(Number(linkId));
+    const link = await this.config.getLink(linkId);
     if (!link || link.trip_id !== Number(tripId)) throw new HttpException('Link not found', 404);
 
     const conn = await this.config.getConnection(link.connection_id);
@@ -375,8 +384,12 @@ export class DocSyncController {
 
   @Post('links/:linkId/sync')
   @HttpCode(200)
-  async syncNow(@Param('tripId') tripId: string, @Param('linkId') linkId: string, @Body() body: DocsyncSyncNowDto) {
-    const link = await this.config.getLink(Number(linkId));
+  async syncNow(
+    @Param('tripId') tripId: string,
+    @Param('linkId', rowId('Link not found')) linkId: number,
+    @Body() body: DocsyncSyncNowDto,
+  ) {
+    const link = await this.config.getLink(linkId);
     if (!link || link.trip_id !== Number(tripId)) throw new HttpException('Link not found', 404);
     // An orphaned binding stays orphaned: its credential belongs to somebody who
     // is no longer on this trip. The run itself would stand down as well; this
@@ -413,12 +426,12 @@ export class DocSyncController {
   @HttpCode(200)
   async resolve(
     @Param('tripId') tripId: string,
-    @Param('itemId') itemId: string,
+    @Param('itemId', rowId('Item is not in conflict', 400)) itemId: number,
     @CurrentUser() user: User,
     @Body() body: DocsyncResolveConflictDto,
   ) {
     await this.assertCanManage(tripId, user);
-    const ok = await this.sync.resolveConflict(Number(itemId), body.keep, Number(tripId));
+    const ok = await this.sync.resolveConflict(itemId, body.keep, Number(tripId));
     if (!ok) throw new HttpException('Item is not in conflict', 400);
     return { success: true };
   }

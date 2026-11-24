@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
 import { AlertTriangle } from 'lucide-react'
-import { Eyebrow } from './PlSheetChrome'
+import { Eyebrow, FIELD_CLS } from './PlSheetChrome'
 import CustomTimePicker from '../../../../components/shared/CustomTimePicker'
+import { VisitStayInput } from '../../../../components/Planner/VisitStayInput'
 import { timeCollisions } from '../../../../components/Planner/PlaceFormModal.helpers'
 import type { Assignment } from '../../../../types'
 import { TourEndHint } from '../../../../components/Tours/TourDayTimeParts'
@@ -11,7 +12,8 @@ interface PlTimeFieldsProps {
   planner: TripPlanner
   startTime: string
   endTime: string
-  onChange: (field: 'place_time' | 'end_time', value: string) => void
+  stay?: string
+  onChange: (field: 'place_time' | 'end_time' | 'assignment_stay', value: string) => void
   /** The assignment whose times are being edited (times live per assignment). */
   assignmentId: number
   dayAssignments: Assignment[]
@@ -28,7 +30,7 @@ const WARNING_CLS =
  * places of the same day.
  */
 export default function PlTimeFields({
-  planner, startTime, endTime, onChange, assignmentId, dayAssignments, hasTimeError,
+  planner, startTime, endTime, stay, onChange, assignmentId, dayAssignments, hasTimeError,
 }: PlTimeFieldsProps) {
   const { t } = planner
   // Opened from the road trip tab, where the End of a visit is when the drive leaves it.
@@ -42,6 +44,7 @@ export default function PlTimeFields({
   )
   // TIME-02: a tour's end follows from its start and its time while none is typed.
   const assignment = dayAssignments.find(a => a.id === assignmentId)
+  const stayLabel = `${t('roadtrip.stop.stayShort')} (${t('roadtrip.limit.minutes')})`
   const tour = assignment ? planner.tours.find(item => item.place_id === assignment.place_id) : undefined
 
   return (
@@ -59,6 +62,18 @@ export default function PlTimeFields({
           )}
         </div>
       </div>
+      {assignment && (
+        <div className="mt-2">
+          <Eyebrow className="mb-[5px] uppercase">{stayLabel}</Eyebrow>
+          <VisitStayInput
+            assignment={assignment}
+            label={stayLabel}
+            value={stay}
+            onChange={value => onChange('assignment_stay', value)}
+            className={FIELD_CLS}
+          />
+        </div>
+      )}
       <TourEndHint start={startTime} end={endTime} assignment={assignment} tour={tour} mobile />
       {hasTimeError && (
         <div className={WARNING_CLS}>

@@ -1,4 +1,5 @@
 import { getRawConnection } from './database';
+import { withNulFreeParameters } from './nul-free';
 import { NulSafeSqlitePlatform } from './nul-safe-sqlite-platform';
 import type { Configuration } from '@mikro-orm/core';
 import type { SqlitePlatform } from '@mikro-orm/sql';
@@ -57,13 +58,14 @@ export function createBoundSqliteDriver(getHandle: () => Database.Database): typ
       (this as unknown as { database: Database.Database }).database = handle;
       // Delegate the compiler/adapter/introspector to a throwaway stock dialect
       // (stateless factories); only `createDriver()` needs the non-closing swap.
+      // Every parameter goes out without NUL, as on Postgres (`nul-free.ts`).
       const stock = new SqliteDialect(config);
-      return {
+      return withNulFreeParameters({
         createDriver: () => new NonClosingSqliteDriver(config),
         createQueryCompiler: () => stock.createQueryCompiler(),
         createAdapter: () => stock.createAdapter(),
         createIntrospector: (db) => stock.createIntrospector(db),
-      };
+      });
     }
   }
 

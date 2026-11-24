@@ -193,15 +193,6 @@ export class OauthService {
     const { valid, invalid } = validateScopes(allowedScopes);
     if (!valid) return { error: `Invalid scopes: ${invalid.join(', ')}`, status: 400 };
 
-    if (userId !== null) {
-      const count = await this.clients.countByUser(userId);
-      if (count >= 10) return { error: 'Maximum of 10 OAuth clients per user', status: 400 };
-    } else {
-      // Anonymous DCR clients: enforce a global cap to prevent unbounded registration abuse
-      const count = await this.clients.countAnonymous();
-      if (count >= 500) return { error: 'server_error', status: 503 };
-    }
-
     // Machine clients (client_credentials) must always be confidential — ignore isPublic for them.
     const isPublic = isMachineClient ? false : (options?.isPublic ?? false);
     const createdVia = options?.createdVia ?? 'settings_ui';
@@ -211,18 +202,34 @@ export class OauthService {
     const rawSecret = isPublic ? null : 'trekcs_' + randomBytes(24).toString('hex');
     const secretHash = rawSecret ? hashToken(rawSecret) : randomBytes(32).toString('hex');
 
-    const row = await this.clients.insertClient({
-      id,
-      user_id: userId,
-      name: name.trim(),
-      client_id: clientId,
-      client_secret_hash: secretHash,
-      redirect_uris: encodeJson(OAUTH_CLIENT_REDIRECT_URIS, redirectUris),
-      allowed_scopes: encodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, allowedScopes),
-      is_public: isPublic ? 1 : 0,
-      created_via: createdVia,
-      allows_client_credentials: isMachineClient ? 1 : 0,
+    // The cap is counted in the transaction that inserts, so two registrations at once
+    // cannot both pass it on the same count.
+    const inserted = await this.uow.transactional(async () => {
+      if (userId !== null) {
+        const count = await this.clients.countByUser(userId);
+        if (count >= 10) return { refused: { error: 'Maximum of 10 OAuth clients per user', status: 400 } };
+      } else {
+        // Anonymous DCR clients: enforce a global cap to prevent unbounded registration abuse
+        const count = await this.clients.countAnonymous();
+        if (count >= 500) return { refused: { error: 'server_error', status: 503 } };
+      }
+      return {
+        row: await this.clients.insertClient({
+          id,
+          user_id: userId,
+          name: name.trim(),
+          client_id: clientId,
+          client_secret_hash: secretHash,
+          redirect_uris: encodeJson(OAUTH_CLIENT_REDIRECT_URIS, redirectUris),
+          allowed_scopes: encodeJson(OAUTH_CLIENT_ALLOWED_SCOPES, allowedScopes),
+          is_public: isPublic ? 1 : 0,
+          created_via: createdVia,
+          allows_client_credentials: isMachineClient ? 1 : 0,
+        }),
+      };
     });
+    if ('refused' in inserted && inserted.refused) return inserted.refused;
+    const row = inserted.row;
 
     await this.audit.writeAudit({
       userId,
@@ -690,15 +697,11 @@ export class OauthService {
 
   async revokeSession(
     userId: number,
-    sessionId: number,
+    sessionId: number | string,
     ip?: string | null,
   ): Promise<{ error?: string; status?: number; success?: boolean }> {
-    // `sessionId` is already a `number` here — `oauth-api.controller.ts`'s
-    // `DELETE /api/oauth/sessions/:id` calls `Number(id)` before this method
-    // (byte-identical to the legacy route), so `toRowId` only guards against
-    // `NaN`/a non-safe-integer, never narrows a string shape (Task 7 review,
-    // B-I2/A-M2's "pre-coerced Number() seam" — see `row-id.ts`'s own
-    // docstring). This is full parity, not the accepted-narrowing shape.
+    // The path id as sent: Number() read '0x5' and '5e0' as session 5, so the
+    // route revoked a session by a spelling every other route answers 404 for.
     const id = toRowId(sessionId);
     if (id === null) return { error: 'Session not found', status: 404 };
 

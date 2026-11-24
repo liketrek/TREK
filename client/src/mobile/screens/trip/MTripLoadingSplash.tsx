@@ -11,13 +11,9 @@ import { useTripSplashBeats } from '../../../components/shared/useTripSplashBeat
  * progress dots track which beat is on. Under reduced motion it holds a single
  * frame (the real "loading photos" one) with no transitions.
  */
-/**
- * How long a trip may take to open before the splash comes up. The page
- * transition holds the page the trip was opened from for up to 800ms
- * (mobile/routeTransition.ts), so a trip that loads in that time slides in
- * whole, the way the dashboard slides back in on the way out, and the splash is
- * only for a slow connection.
- */
+// The page transition holds the page the trip was opened from for up to 350ms
+// (mobile/routeTransition.ts), so a trip that loads within TRIP_SPLASH_AFTER_MS
+// slides in whole, the way the dashboard slides back in on the way out.
 export const TRIP_SPLASH_AFTER_MS = 1000
 
 /**

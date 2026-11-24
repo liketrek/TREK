@@ -39,6 +39,8 @@ The all-trips feed merges every trip that qualifies into one calendar, sorted by
    - **Add to Apple Calendar / Outlook** is a `webcal://` link that your system passes to its default calendar app.
    - **Or copy a link manually** unfolds both addresses with a copy button each: the `https://` one for a *From URL* field, and the `webcal://` one.
 
+Above the buttons sits the **Day overview events** switch. It is on by default. Switched off, the links end in `?days=0`, and a calendar subscribed to such a link gets the trip, its timed stops and its bookings, but no all-day summary per day. The choice lives in the link, so a calendar you already subscribed keeps what it has: to change it, subscribe again with the new link and remove the old subscription. The one-off download takes the same parameter, `/api/trips/{id}/export.ics?days=0`.
+
 ![The Subscribe to calendar dialog once the feed is on: Add to Google Calendar, Add to Apple Calendar / Outlook and the manual links, with Regenerate and Turn off at its foot](assets/IcsSubscribe.png)
 
 The address is built from `APP_URL` when it is set; otherwise TREK uses the host you are browsing from. Behind a reverse proxy, set `APP_URL` so the link is one your calendar app can reach. See [Environment-Variables](Environment-Variables) and [Reverse-Proxy](Reverse-Proxy).
@@ -64,7 +66,7 @@ The feed carries the same events as the `.ics` download:
 
 - **The trip itself**: an all-day event from the trip's start to its end date, with the trip description.
 - **Timed stops**: one event per place in the day plan that has a time, titled with the place name, with its address as the location and its notes as the description. Times follow the place's own time zone. A stop with a start time but no end time lasts as long as the place's duration, when one is set; without a duration your calendar app picks its own default length. An end time you set always wins.
-- **A summary per day**: an all-day event for every day with untimed places or notes, titled with the day's title (or *Day N*), listing those places and notes.
+- **A summary per day**: an all-day event for every day with untimed places or notes, titled with the day's title (or *Day N*), listing those places and notes. Switch off **Day overview events** in the subscribe dialog to leave these out (see below).
 - **Bookings** of every type, transport included. Flights and other rides take their start and end from the departure and arrival points, each in its own time zone. A booking with no date that can be placed is left out.
 - **Connections**: a flight, train or cruise with several legs becomes one event per leg, titled *{title}: FRA → BER*, with each leg's own departure, arrival and segment reference, each in the time zone of its own stops, so the layover (or the stay in a port of call) shows as the gap between them. This needs a departure date and time on every leg; otherwise the booking stays one event.
 - **Accommodations**: an all-day event covering every night of the stay, from the arrival day to the departure day, so the hotel sits above those days rather than showing up once on the day you check in. The dates come from the trip days the stay is attached to, so reordering days moves the event with them.

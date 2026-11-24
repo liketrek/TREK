@@ -535,12 +535,15 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
   stayLabel: (chip: HotelChip) => string
 }) {
   const WeatherIcon = weatherIconFor(tl.weather?.main)
+  const [strip, setStrip] = useState<HTMLSpanElement | null>(null)
+  const stripFade = useEdgeFade(strip)
   return (
     <div className="flex items-center gap-1.5 border-b border-[color:var(--m-rowbr)] px-0.5 py-[9px]">
       {/* The one horizontal scroller inside the day pager. Nested scrolling is
           the browser's: while the chips overflow they pan first, and the pager
-          takes over at their end or when they fit. */}
-      <span className="flex min-w-0 items-center gap-1.5 overflow-x-auto">
+          takes over at their end or when they fit. The ends fade while more
+          waits behind them. */}
+      <span ref={setStrip} className={`flex min-w-0 items-center gap-1.5 overflow-x-auto ${edgeFadeClass(stripFade)}`}>
         {/* The same glass controls as the edit header's: a round one when the day
             is already named above it, a pill with the day's name otherwise. */}
         <button
@@ -559,20 +562,20 @@ function TimelineHeader({ tl, dayLabel, openLabel, weatherLabel, onOpenDay, onOp
             </>
           )}
         </button>
-        {/* A stay gives way before anything else in the header does: its name ends
-            in an ellipsis rather than under the edge or the weather (the chip's
-            label says it whole), and the time after it stays. */}
+        {/* A stay's name stands whole: two stays and the weather rarely fit a
+            phone, and a name cut to a letter or two said nothing, so the strip
+            scrolls instead of squeezing the chips. */}
         {tl.hotelChips.map(chip => (
           <button
             key={chip.key}
             type="button"
             onClick={() => onOpenStay(chip)}
             aria-label={stayLabel(chip)}
-            className={`${GLASS_CHIP} min-w-[4.5rem] shrink gap-[5px] px-2.5`}
+            className={`${GLASS_CHIP} gap-[5px] px-2.5`}
           >
             <HotelChipIcon variant={chip.variant} />
-            {/* Its own direction, so a Latin name in an Arabic header is cut at its end, not its start. */}
-            <span dir="auto" className="min-w-0 truncate">{chip.name}</span>
+            {/* Its own direction, so a Latin name reads the right way in an Arabic header. */}
+            <span dir="auto">{chip.name}</span>
             {chip.time && <span className="flex-none tabular-nums text-m-muted">{chip.time.slice(0, 5)}</span>}
           </button>
         ))}

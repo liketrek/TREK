@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Nueva categoría',
   'mobileTrip.newReservation': 'Nueva reserva',
   'mobileTrip.notes': 'Notas',
-  'mobileTrip.onMap': 'En el mapa',
+  'mobileTrip.onMap': 'Mapa',
   'mobileTrip.profileDriving': 'En coche',
   'mobileTrip.profileWalking': 'A pie',
   'mobileTrip.profileCycling': 'En bici',

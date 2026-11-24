@@ -95,12 +95,17 @@ export function photoUrl(p: { photo_id: number }, size: 'thumbnail' | 'original'
  * purpose rather than streaming the whole file, and an <img> pointed at it
  * shows the broken-image glyph (#2341). A provider clip is not one of these,
  * its poster comes from the provider whether or not a local path is recorded.
+ *
+ * A shared journey carries no storage keys, so the server answers the question
+ * itself there (`posterless`).
  */
 export function posterlessVideo(p: {
   media_type?: string | null;
   provider?: string | null;
   thumbnail_path?: string | null;
+  posterless?: boolean;
 }): boolean {
+  if (typeof p.posterless === 'boolean') return p.posterless;
   return p.media_type === 'video' && p.provider === 'local' && !p.thumbnail_path;
 }
 
@@ -124,6 +129,32 @@ export function photoLocalDay(asset: { takenAt?: string | null; localTakenAt?: s
   if (taken.length === 10) return taken;
   const parsed = new Date(taken);
   return Number.isNaN(parsed.getTime()) ? taken.slice(0, 10) : localIsoDate(parsed);
+}
+
+/**
+ * The photos taken between two calendar days, both ends included.
+ *
+ * An album comes back from the provider whole, and a shared one can hold years
+ * of somebody else's photos, so the picker narrows what it already has rather
+ * than asking again (#2859). The day is the one the grid files a photo under,
+ * so a photo never shows under a heading the range excludes. Either end may be
+ * empty for an open range; with both empty the list comes back untouched, same
+ * reference. A photo with no readable date has nothing to compare and is left
+ * out once a range is set. Ends given the wrong way round are read as the
+ * range they obviously mean.
+ */
+export function filterPhotosByDayRange<T extends { takenAt?: string | null; localTakenAt?: string | null }>(
+  photos: T[],
+  from: string,
+  to: string,
+): T[] {
+  if (!from && !to) return photos;
+  const [start, end] = from && to && from > to ? [to, from] : [from, to];
+  return photos.filter((photo) => {
+    const day = photoLocalDay(photo);
+    if (day === '__unknown__') return false;
+    return (!start || day >= start) && (!end || day <= end);
+  });
 }
 
 /**

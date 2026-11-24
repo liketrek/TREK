@@ -36,9 +36,10 @@ export function useTourStageLayers(
   const { mode } = tourPlanner;
   // MAP-01, BIK-06: a type's own map (OpenHikingMap for a hike, CyclOSM for a bike tour) while a
   // tour of that type is open, planned or viewed as it came in, never with no tour open, and only
-  // while the admin offers it.
-  const hikingMapAllowed = useAddonStore((state) => state.toursHikingMap);
-  const cycleMapAllowed = useAddonStore((state) => state.toursCycleMap);
+  // while the admin offers it. The options apply wherever Tours is on, the instance switch or the
+  // trip's own, and this stage only shows where it is.
+  const hikingMapAllowed = useAddonStore((state) => state.toursOptions.hikingMap);
+  const cycleMapAllowed = useAddonStore((state) => state.toursOptions.cycleMap);
   const tourOpen = mode.type !== 'neutral';
   const openType = mode.type === 'view-gpx' ? mode.tour.tour_type : tourPlanner.tourType;
   const layerSet = tourMapLayersFor(openType, {

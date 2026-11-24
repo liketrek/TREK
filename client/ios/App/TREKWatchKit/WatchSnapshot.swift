@@ -165,12 +165,18 @@ enum TrekDate {
         guard let iso, iso.count >= 10 else { return nil }
         let ymd = iso.prefix(10).split(separator: "-").compactMap { Int($0) }
         guard ymd.count == 3 else { return nil }
-        return Calendar.current.date(from: DateComponents(year: ymd[0], month: ymd[1], day: ymd[2]))
+        return gregorian().date(from: DateComponents(year: ymd[0], month: ymd[1], day: ymd[2]))
     }
 
     static func iso(_ date: Date) -> String {
-        let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        let parts = gregorian().dateComponents([.year, .month, .day], from: date)
         return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    private static func gregorian() -> Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        return calendar
     }
 
     /// yyyy-MM-dd and HH:mm as a moment, in `zone` when given, else here; midnight without a time.

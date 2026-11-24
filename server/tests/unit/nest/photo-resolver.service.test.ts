@@ -18,6 +18,7 @@ import { PhotoProviderRegistry } from '../../../src/nest/memories/photo-provider
 import { PhotoResolverService } from '../../../src/nest/memories/photo-resolver.service';
 import { ImmichPhotoProvider } from '../../../src/nest/memories/providers/immich.provider';
 import { SynologyPhotoProvider } from '../../../src/nest/memories/providers/synology.provider';
+import { RenditionPendingError, type PublicMediaService } from '../../../src/nest/memories/public-media.service';
 import type { SynologyService } from '../../../src/nest/memories/synology.service';
 import type { ThumbnailService } from '../../../src/nest/memories/thumbnail.service';
 import type { TrekPhotoCacheService } from '../../../src/nest/memories/trek-photo-cache.service';
@@ -71,6 +72,8 @@ const cache = {
 // Local bytes go through the storage facade (slice 3); the resolver only ever
 // addresses the 'journey' category with the 'journey/' prefix stripped.
 const storage = { exists: vi.fn(), sendToResponse: vi.fn(), stat: vi.fn(), withLocalFile: vi.fn() };
+// The location-free copies have their own suite; here a switch for made / refused.
+const publicMedia = { renditionFor: vi.fn() };
 
 // Real adapters over the stubbed services, and a real registry: the cases below
 // keep asserting on immich.streamImmichAsset/synology.streamSynologyAsset, so
@@ -111,6 +114,7 @@ beforeAll(async () => {
     cache as unknown as TrekPhotoCacheService,
     providers,
     storage as unknown as import('../../../src/nest/storage/storage.service').StorageService,
+    publicMedia as unknown as PublicMediaService,
   );
 });
 
@@ -131,11 +135,118 @@ beforeEach(async () => {
   cache.cacheKey.mockReturnValue('k');
   storage.exists.mockResolvedValue(false);
   storage.sendToResponse.mockResolvedValue(undefined);
+  publicMedia.renditionFor.mockImplementation(async (_category: string, name: string) => `public/${name}`);
 });
 
 afterAll(async () => {
   await t.close();
   testDb.close();
+});
+
+describe('streamPublicPhoto: what a share link gets', () => {
+  it('RESOLVE-030: a local original goes out as its location-free copy, never as stored', async () => {
+    const id = await insertPhoto({ provider: 'local', file_path: 'journey/x.jpg' });
+    storage.exists.mockResolvedValue(true);
+    const res = makeRes();
+
+    await svc.streamPublicPhoto(res as never, 1, id, 'original');
+
+    expect(publicMedia.renditionFor).toHaveBeenCalledWith('journey', 'x.jpg');
+    expect(storage.sendToResponse).toHaveBeenCalledWith('journey', 'public/x.jpg', res);
+    expect(storage.sendToResponse).not.toHaveBeenCalledWith('journey', 'x.jpg', res);
+  });
+
+  it('RESOLVE-031: a thumbnail TREK re-encoded goes out as is, an uploaded poster as its copy', async () => {
+    const thumbId = await insertPhoto({
+      provider: 'local',
+      file_path: 'journey/x.jpg',
+      thumbnail_path: 'journey/thumbs/h.jpg',
+    });
+    const posterId = await insertPhoto({
+      provider: 'local',
+      file_path: 'journey/clip.mp4',
+      thumbnail_path: 'journey/poster.jpg',
+      media_type: 'video',
+    });
+    storage.exists.mockResolvedValue(true);
+    const res = makeRes();
+
+    await svc.streamPublicPhoto(res as never, 1, thumbId, 'thumbnail');
+    await svc.streamPublicPhoto(res as never, 1, posterId, 'thumbnail');
+
+    expect(storage.sendToResponse).toHaveBeenCalledWith('journey', 'thumbs/h.jpg', res);
+    expect(storage.sendToResponse).toHaveBeenCalledWith('journey', 'public/poster.jpg', res);
+    expect(publicMedia.renditionFor).toHaveBeenCalledTimes(1);
+  });
+
+  it('RESOLVE-032: an original that cannot be cleaned is stood in for by the re-encoded thumbnail', async () => {
+    const id = await insertPhoto({
+      provider: 'local',
+      file_path: 'journey/x.heic',
+      thumbnail_path: 'journey/thumbs/h.jpg',
+    });
+    storage.exists.mockResolvedValue(true);
+    publicMedia.renditionFor.mockResolvedValue(null);
+    const res = makeRes();
+
+    await svc.streamPublicPhoto(res as never, 1, id, 'original');
+
+    expect(storage.sendToResponse).toHaveBeenCalledTimes(1);
+    expect(storage.sendToResponse).toHaveBeenCalledWith('journey', 'thumbs/h.jpg', res);
+  });
+
+  it('RESOLVE-033: with neither a clean copy nor a thumbnail the answer is a 404, not the stored file', async () => {
+    const id = await insertPhoto({ provider: 'local', file_path: 'journey/clip.mp4', media_type: 'video' });
+    storage.exists.mockResolvedValue(true);
+    publicMedia.renditionFor.mockRejectedValue(new Error('disk full'));
+    const res = makeRes();
+
+    await svc.streamPublicPhoto(res as never, 1, id, 'original');
+
+    expect(storage.sendToResponse).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(404);
+    expect(res.json).toHaveBeenCalledWith({ error: 'File not found' });
+    expect(res.set).not.toHaveBeenCalled();
+  });
+
+  it('RESOLVE-036: a copy still being made is a 503 to come back to, not the thumbnail or the stored file', async () => {
+    const id = await insertPhoto({
+      provider: 'local',
+      file_path: 'journey/x.jpg',
+      thumbnail_path: 'journey/thumbs/h.jpg',
+    });
+    storage.exists.mockResolvedValue(true);
+    publicMedia.renditionFor.mockRejectedValue(new RenditionPendingError());
+    const res = makeRes();
+
+    await svc.streamPublicPhoto(res as never, 1, id, 'original');
+
+    expect(storage.sendToResponse).not.toHaveBeenCalled();
+    expect(res.status).toHaveBeenCalledWith(503);
+    expect(res.set).toHaveBeenCalledWith('Retry-After', '10');
+  });
+
+  it('RESOLVE-035: an immich original is asked for as the public rendition, and an owner still gets the original', async () => {
+    const id = await insertPhoto({ provider: 'immich', asset_id: 'a1', owner_id: 5 });
+    const res = makeRes();
+
+    await svc.streamPublicPhoto(res as never, 5, id, 'original');
+    await svc.streamPhoto(res as never, 5, id, 'original');
+
+    const views = immich.streamImmichAsset.mock.calls.map((call) => (call[5] as { publicView?: boolean }).publicView);
+    expect(views).toEqual([true, false]);
+  });
+
+  it('RESOLVE-034: an owner still gets the stored original', async () => {
+    const id = await insertPhoto({ provider: 'local', file_path: 'journey/x.jpg' });
+    storage.exists.mockResolvedValue(true);
+    const res = makeRes();
+
+    await svc.streamPhoto(res as never, 1, id, 'original');
+
+    expect(publicMedia.renditionFor).not.toHaveBeenCalled();
+    expect(storage.sendToResponse).toHaveBeenCalledWith('journey', 'x.jpg', res);
+  });
 });
 
 describe('streamPhoto — dispatch', () => {

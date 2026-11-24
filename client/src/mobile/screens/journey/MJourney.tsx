@@ -10,6 +10,7 @@ import { usePullToRefresh } from '../../usePullToRefresh'
 import MPullIndicator from '../../components/MPullIndicator'
 import MGlassBar from '../../components/MGlassBar'
 import { useIsWide } from '../../../hooks/sizeClass'
+import MSkeleton from '../../components/MSkeleton'
 
 type JourneyListItem = Journey & {
   entry_count?: number
@@ -56,9 +57,7 @@ export default function MJourney() {
       <MPullIndicator state={pull} label={t('common.loading')} />
       <div ref={scrollRef} className="h-full overflow-y-auto px-4 pt-[calc(var(--m-safe-top,12px)+52px)] pb-[calc(var(--bottom-nav-h,84px)+16px)] wide:px-6 wide:pt-[calc(var(--m-safe-top,12px)+72px)] wide:[&>*]:mx-auto wide:[&>*]:max-w-[1040px]">
         {loading && list.length === 0 ? (
-          <div className="flex justify-center py-16">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-[color:var(--m-rowbr)] border-t-m-ink" />
-          </div>
+          <MSkeleton variant="cards" count={3} />
         ) : list.length === 0 ? (
           <div className="flex min-h-full flex-1 flex-col items-center justify-center px-6 py-10 text-center">
             <MDancingTrek scene="journey" className="mb-2" />

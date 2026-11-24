@@ -1,21 +1,17 @@
-import mikroOrmConfig from '../mikro-orm.config';
 import { withRequestContext } from '../nest/database/request-context';
 import { runDemoSeed } from './database';
 import { ensureEmailCaseIndex } from './email-case-index';
 import { BootstrapMigrator, migrateToHead, NO_SAFETY_NET } from './legacy-baseline';
 import { preMigrateSnapshot } from './pre-migrate-snapshot';
+import { warnAboutSchemaGaps } from './schema-gaps';
 import type { AnyEntity, EntityClass, EntityManager, EntitySchema, IDatabaseDriver, MikroORM } from '@mikro-orm/core';
 import type { SqlEntityManager } from '@mikro-orm/sql';
 import { MikroORM as SqliteMikroORM, type SqliteConnection } from '@mikro-orm/sqlite';
 
 /**
- * Schema ownership at startup.
- *
- * This replaces `createTables()` → `runMigrations()` → `runSeeds()`, which used
- * to run synchronously inside `database.ts::initDb()` at module load. The
- * migrator is async, so the work moved to `buildApp()`, which is the first place
- * in the boot with an await and still runs before anything reads the database
- * (`bootstrap.ts` resolves SettingsService right after).
+ * Schema ownership at startup. The migrator is async, so the schema is brought
+ * to head from `DatabaseLifecycle.open()`, which `buildApp()` calls before
+ * anything reads the database. Nothing runs at module load.
  */
 
 /**
@@ -35,8 +31,8 @@ export type AnyOrm = MikroORM<
  * Migrate to head, then seed. Safe to call again, both halves are idempotent.
  *
  * `snapshot: false` skips the pre-migration copy (`pre-migrate-snapshot.ts`).
- * Only the restore hook passes it: the file it migrates was just unpacked from
- * a backup archive, which is still there to go back to.
+ * Only the reopen after a restore passes it: the file it migrates was just
+ * unpacked from a backup archive, which is still there to go back to.
  */
 export async function runSchemaBootstrap(orm: AnyOrm, { snapshot = true }: { snapshot?: boolean } = {}): Promise<void> {
   const migrator = new BootstrapMigrator(orm.em as SqlEntityManager);
@@ -52,8 +48,19 @@ export async function runSchemaBootstrap(orm: AnyOrm, { snapshot = true }: { sna
     undefined,
     snapshot ? preMigrateSnapshot(connection) : NO_SAFETY_NET,
   );
+  await finishSchemaBootstrap(orm);
+}
+
+/**
+ * What every engine does once its schema is at head: the deferred index, the
+ * check for tables and columns the history left out, the seeders, the demo
+ * seed. Idempotent, like the migration step before it.
+ */
+export async function finishSchemaBootstrap(orm: AnyOrm): Promise<void> {
   // The one index a migration may have had to defer (see email-case-index.ts).
-  await ensureEmailCaseIndex(connection);
+  await ensureEmailCaseIndex(orm.em.getConnection());
+  // Names what the entities map and the database lacks (see schema-gaps.ts).
+  await warnAboutSchemaGaps(orm);
 
   const defaultSeeder = orm.config.get('seeder').defaultSeeder;
   if (defaultSeeder) await orm.seeder.seedString(defaultSeeder);
@@ -76,26 +83,4 @@ export async function runSchemaBootstrap(orm: AnyOrm, { snapshot = true }: { sna
   // restore path) returns to its caller, the same completion guarantee the
   // fully-synchronous version had by construction.
   await withRequestContext(orm, () => runDemoSeed());
-}
-
-/**
- * An ORM instance outside Nest, for the vitest global setup that builds the
- * schema snapshot. Production uses the container-owned one from
- * `MikroOrmModule.forRoot()` instead of creating a second.
- */
-export function createStandaloneOrm(): Promise<AnyOrm> {
-  return SqliteMikroORM.init({
-    ...mikroOrmConfig,
-    // Entity discovery is skipped deliberately. Migrations and seeders are raw
-    // SQL and need no metadata, and the global setup that calls this runs as ESM
-    // in vitest's main process, where discovering `*.entity.ts` fails on Node's
-    // extensionless import resolution.
-    entities: [],
-    entitiesTs: [],
-    discovery: { warnWhenNoEntities: false },
-    // The migrator's per-migration progress log is production boot output; the
-    // global setup already reports the snapshot in one line of its own, and a
-    // failing migration still throws.
-    migrations: { ...mikroOrmConfig.migrations, silent: true },
-  });
 }

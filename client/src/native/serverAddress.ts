@@ -1,3 +1,4 @@
+import { detectAuthGate, type AuthGate } from './authGate';
 import { DEMO_SERVER_URL } from './links';
 
 /**
@@ -5,14 +6,36 @@ import { DEMO_SERVER_URL } from './links';
  * can load, or a reason it cannot.
  */
 
-export type ProbeFailure = 'invalid' | 'unreachable' | 'notTrek' | 'tooOld';
-type ProbeResult = { ok: true; url: string; reason?: undefined } | { ok: false; reason: ProbeFailure; url?: undefined };
+export type ProbeFailure = 'invalid' | 'unreachable' | 'notTrek' | 'authGate' | 'clientCert' | 'tooOld';
+
+/**
+ * A proxy in front of the server asked for a client certificate (mutual TLS)
+ * and let the check through without one. `sent`: the app showed its stored
+ * certificate and the proxy refused it all the same.
+ */
+export interface ClientCertDemand {
+  host: string;
+  port: number;
+  sent: boolean;
+}
+
+type ProbeResult =
+  | { ok: true; url: string; reason?: undefined; gate?: undefined; cert?: undefined }
+  /**
+   * `authGate`: a sign-in page of the user's own stands in front of TREK
+   * (authGate.ts); `url` is the server address it guards. `clientCert`: a proxy
+   * wants a client certificate, `cert` says for which host and whether one was shown.
+   */
+  | { ok: false; reason: ProbeFailure; url?: string; gate?: AuthGate; cert?: ClientCertDemand };
 
 export interface ProbeResponse {
   status: number;
   data: unknown;
   /** The URL after redirects. */
   url: string;
+  headers?: Record<string, string>;
+  /** Whether the server asked for a client certificate, and whether the app showed one (native requests only). */
+  clientCert?: { requested: boolean; sent: boolean };
 }
 export type ProbeGet = (url: string) => Promise<ProbeResponse>;
 
@@ -20,10 +43,13 @@ const FEATURES_PATH = '/api/health/features';
 
 /**
  * The oldest server API this app can work with (`nativeApi` in the features
- * response). A server from before the field existed answers without it and is
- * accepted while the minimum is 1.
+ * response). 3 is TREK 5.1.4, whose UI follows a widget or Live Activity tap
+ * that starts the app; 2 was 5.1.3, the first server whose sign-in from the app
+ * does not end in the browser. A server without the field is older still. Raising it
+ * goes with SERVER_CHECK in TrekServerStore (iOS and Android), so a server the
+ * app remembers from before is checked against the new minimum once.
  */
-const MIN_NATIVE_API = 1;
+const MIN_NATIVE_API = 3;
 
 function normalize(raw: string): string | null {
   let parsed: URL;
@@ -49,6 +75,18 @@ export function candidateUrls(input: string): string[] {
   return candidates.filter((url): url is string => url !== null);
 }
 
+/**
+ * The host and port a client certificate added on the address screen, before
+ * any check, is kept for: the https address the typed text stands for. Null
+ * for nothing typed or a plain http address, which never gets a certificate.
+ */
+export function certificateTargetFor(input: string): { host: string; port: number } | null {
+  const https = candidateUrls(input).find((url) => url.startsWith('https://'));
+  if (!https) return null;
+  const url = new URL(https);
+  return { host: url.hostname.toLowerCase(), port: url.port ? Number(url.port) : 443 };
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null;
 }
@@ -57,7 +95,7 @@ function judge(response: ProbeResponse): ProbeResult {
   if (response.status !== 200 || !isRecord(response.data)) return { ok: false, reason: 'notTrek' };
   if (response.data.nativeApp === true) {
     const api = response.data.nativeApi;
-    if (typeof api === 'number' && api < MIN_NATIVE_API) return { ok: false, reason: 'tooOld' };
+    if (typeof api !== 'number' || api < MIN_NATIVE_API) return { ok: false, reason: 'tooOld' };
     // Follow a redirect (http to https, a canonical host) so the app loads the
     // address the server actually answers on.
     const base = response.url.endsWith(FEATURES_PATH) ? response.url.slice(0, -FEATURES_PATH.length) : null;
@@ -66,24 +104,68 @@ function judge(response: ProbeResponse): ProbeResult {
   return 'bookingImport' in response.data ? { ok: false, reason: 'tooOld' } : { ok: false, reason: 'notTrek' };
 }
 
-const FAILURE_RANK: Record<ProbeFailure, number> = { invalid: 0, unreachable: 1, notTrek: 2, tooOld: 3 };
+const FAILURE_RANK: Record<ProbeFailure, number> = {
+  invalid: 0,
+  unreachable: 1,
+  notTrek: 2,
+  authGate: 3,
+  clientCert: 4,
+  tooOld: 5,
+};
+
+/**
+ * A server that asked for a client certificate and did not answer with TREK:
+ * the TLS handshake failed (status 0, as nginx, Caddy and Traefik do), or the
+ * proxy answered with its own refusal (Cloudflare's 403, nginx's 400).
+ */
+function clientCertDemand(candidate: string, response: ProbeResponse): ClientCertDemand | null {
+  if (!response.clientCert?.requested) return null;
+  const url = new URL(candidate);
+  return { host: url.hostname.toLowerCase(), port: url.port ? Number(url.port) : 443, sent: response.clientCert.sent };
+}
+
+/**
+ * A gate that did not send the check to its sign-in page (an API path can get a
+ * bare 401 where a browser gets redirected) is asked once more for the start
+ * page, which is what the app's web view will load, to learn the host its
+ * sign-in lives on.
+ */
+async function withLoginHost(candidate: string, gate: AuthGate, get: ProbeGet): Promise<AuthGate> {
+  if (gate.loginHost || gate.kind === 'basic') return gate;
+  try {
+    const page = await get(candidate + '/');
+    const found = detectAuthGate(candidate + '/', page);
+    return found?.loginHost ? { ...gate, loginHost: found.loginHost } : gate;
+  } catch {
+    return gate;
+  }
+}
 
 export async function probeServer(input: string, get: ProbeGet): Promise<ProbeResult> {
   const candidates = candidateUrls(input);
   if (!candidates.length) return { ok: false, reason: 'invalid' };
 
-  let failure: ProbeFailure = 'unreachable';
+  let best: ProbeResult = { ok: false, reason: 'unreachable' };
   for (const candidate of candidates) {
-    let verdict: ProbeResult;
+    let response: ProbeResponse;
     try {
-      verdict = judge(await get(candidate + FEATURES_PATH));
+      response = await get(candidate + FEATURES_PATH);
     } catch {
       continue;
     }
+    const cert = clientCertDemand(candidate, response);
+    let verdict = response.status === 0 && !cert ? ({ ok: false, reason: 'unreachable' } as const) : judge(response);
     if (verdict.ok) return { ok: true, url: verdict.url || candidate };
-    if (FAILURE_RANK[verdict.reason] > FAILURE_RANK[failure]) failure = verdict.reason;
+    if (cert) {
+      verdict = { ok: false, reason: 'clientCert', url: candidate, cert };
+    } else if (verdict.reason === 'notTrek') {
+      const gate = detectAuthGate(candidate + FEATURES_PATH, response);
+      if (gate)
+        verdict = { ok: false, reason: 'authGate', url: candidate, gate: await withLoginHost(candidate, gate, get) };
+    }
+    if (!best.ok && FAILURE_RANK[verdict.reason] > FAILURE_RANK[best.reason]) best = verdict;
   }
-  return { ok: false, reason: failure };
+  return best;
 }
 
 /** The address screen's "Try the demo": the same probe, against the public demo server. */

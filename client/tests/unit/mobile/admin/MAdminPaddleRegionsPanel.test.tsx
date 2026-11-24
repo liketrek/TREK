@@ -1,4 +1,4 @@
-// FE-MOB-APAD-001 to FE-MOB-APAD-010: the paddle regions card of the phone admin, drawn from a
+// FE-MOB-APAD-001 to FE-MOB-APAD-011: the paddle regions row and sheet of the phone admin, drawn from a
 // controlled usePaddleRegionsAdmin (the hook has its own test).
 import type { PaddleRegion, PaddleRegionPending } from '@trek/shared';
 import { describe, expect, it, vi } from 'vitest';
@@ -39,7 +39,7 @@ const REQUEST: PaddleRegionPending = {
   declined: false,
 } as PaddleRegionPending;
 
-function show(overrides: Partial<Admin> = {}, search: Partial<Admin['search']> = {}) {
+function show(overrides: Partial<Admin> = {}, search: Partial<Admin['search']> = {}, { open = true } = {}) {
   const state: Admin = {
     toursOn: true,
     offline: false,
@@ -64,7 +64,14 @@ function show(overrides: Partial<Admin> = {}, search: Partial<Admin['search']> =
   };
   hook.usePaddleRegionsAdmin.mockReturnValue(state);
   render(<MAdminPaddleRegionsPanel />);
+  // The row under Tours opens the sheet that holds everything below.
+  if (state.toursOn && open) fireEvent.click(setupRow());
   return state;
+}
+
+/** The row under the Tours addon that opens the sheet, with its count beside the title. */
+function setupRow(): HTMLElement {
+  return screen.getAllByRole('button', { name: /^Paddle water data/ })[0];
 }
 
 describe('MAdminPaddleRegionsPanel', () => {
@@ -163,5 +170,21 @@ describe('MAdminPaddleRegionsPanel', () => {
     const question = screen.getByRole('dialog', { name: 'Remove region' });
     fireEvent.click(within(question).getByRole('button', { name: 'Remove' }));
     expect(state.confirmRemove).toHaveBeenCalled();
+  });
+
+  it('FE-MOB-APAD-011: the row counts the open requests before the regions, and opens the sheet only when tapped', () => {
+    show(
+      {
+        regions: [region(), region({ id: 'saale', name: 'Saale' })],
+        requests: [REQUEST, { ...REQUEST, id: 'x', declined: true }],
+      },
+      {},
+      { open: false }
+    );
+    expect(within(setupRow()).getByText('1')).toBeInTheDocument();
+    expect(within(setupRow()).queryByText('2')).toBeNull();
+    expect(screen.queryByTestId('paddle-region-row')).toBeNull();
+    fireEvent.click(setupRow());
+    expect(screen.getAllByTestId('paddle-region-row')).toHaveLength(2);
   });
 });

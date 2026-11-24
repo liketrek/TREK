@@ -24,10 +24,8 @@ const login: TranslationStrings = {
   'login.oidc.noEmail': 'ไม่ได้รับอีเมลจากผู้ให้บริการ',
   'login.oidc.tokenFailed': 'การตรวจสอบสิทธิ์ล้มเหลว',
   'login.oidc.invalidState': 'เซสชันไม่ถูกต้อง โปรดลองอีกครั้ง',
-  'login.oidc.emailNotVerified':
-    'ผู้ให้บริการลงชื่อเข้าใช้ยังไม่ได้ยืนยันที่อยู่อีเมลนี้ จึงไม่สามารถเชื่อมโยงกับบัญชีที่มีอยู่ได้',
-  'login.oidc.emailLinkBlocked':
-    'ไม่สามารถเชื่อมโยงการลงชื่อเข้าใช้นี้กับบัญชีที่มีอยู่ซึ่งใช้อีเมลนี้ได้ โปรดขอให้ผู้ดูแลระบบยืนยันที่อยู่อีเมล',
+  'login.oidc.emailNotVerified': 'ผู้ให้บริการลงชื่อเข้าใช้ยังไม่ได้ยืนยันที่อยู่อีเมลนี้ จึงไม่สามารถเชื่อมโยงกับบัญชีที่มีอยู่ได้',
+  'login.oidc.emailLinkBlocked': 'ไม่สามารถเชื่อมโยงการลงชื่อเข้าใช้นี้กับบัญชีที่มีอยู่ซึ่งใช้อีเมลนี้ได้ โปรดขอให้ผู้ดูแลระบบยืนยันที่อยู่อีเมล',
   'login.demoFailed': 'การเข้าสู่ระบบสาธิตล้มเหลว',
   'login.oidcSignIn': 'ลงชื่อเข้าใช้ด้วย {name}',
   'login.oidcOnly': 'การตรวจสอบรหัสผ่านถูกปิดใช้งาน โปรดลงชื่อเข้าใช้โดยใช้ผู้ให้บริการ SSO ของคุณ',
@@ -38,6 +36,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'การรับรองความถูกต้องด้วยสองปัจจัย',
   'login.mfaSubtitle': 'ป้อนรหัส 6 หลักจากแอปยืนยันตัวตนของคุณ',
   'login.mfaCodeLabel': 'รหัสยืนยัน',
+  'login.mfaPlaceholder': '000000 หรือ XXXX-XXXX',
   'login.mfaCodeRequired': 'ป้อนรหัสจากแอปยืนยันตัวตนของคุณ',
   'login.mfaHint': 'เปิด Google Authenticator, Authy หรือแอป TOTP อื่น',
   'login.mfaBack': '← กลับไปลงชื่อเข้าใช้',

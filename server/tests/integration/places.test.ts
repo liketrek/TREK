@@ -8,7 +8,6 @@
  * - PLACE-019: GPX bulk import tested here using the test fixture
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Addons } from '../../src/db/entities/Addons.entity';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
 import { Categories } from '../../src/db/entities/Categories.entity';
@@ -18,14 +17,16 @@ import { DomainError } from '../../src/nest/common/domain-error';
 import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
 import { PlacesService } from '../../src/nest/places/places.service';
 import { authCookie } from '../helpers/auth';
-import { createUser, createAdmin, createTrip, createPlace, addTripMember } from '../helpers/factories';
 import { makeBudgetItem } from '../helpers/factories/budget';
 import type { FactoryOrm } from '../helpers/factories/context';
-import { makeCategory, makeTag } from '../helpers/factories/places';
+import { makeCategory, makePlace, makeTag } from '../helpers/factories/places';
 import { countRows, findRow, findRows, updateRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
 import { spyOnRealtime, type RealtimeSpies } from '../helpers/fake-realtime';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -33,11 +34,6 @@ import type { Application } from 'express';
 import path from 'path';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll, type MockInstance } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 let nestApp: INestApplication;
 let app: Application;
@@ -62,7 +58,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   await invalidatePermissionsCache();
   // Re-attached per test: one describe below calls vi.restoreAllMocks() in its
@@ -74,7 +70,6 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -83,8 +78,8 @@ afterAll(async () => {
 
 describe('Create place', () => {
   it('PLACE-001 — POST /api/trips/:tripId/places creates place and returns 201', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places`)
@@ -97,8 +92,8 @@ describe('Create place', () => {
   });
 
   it('PLACE-001 — POST without name returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places`)
@@ -108,8 +103,8 @@ describe('Create place', () => {
   });
 
   it('PLACE-002 — name exceeding 200 characters is rejected', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places`)
@@ -119,9 +114,9 @@ describe('Create place', () => {
   });
 
   it('PLACE-007 — non-member cannot create a place', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places`)
@@ -131,8 +126,8 @@ describe('Create place', () => {
   });
 
   it('PLACE-016 — create place with category assigns it correctly', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const cat = await findRow(orm, Categories, {});
     if (!cat) throw new Error('the snapshot seeds no category');
 
@@ -152,10 +147,10 @@ describe('Create place', () => {
 
 describe('List places', () => {
   it('PLACE-003 — GET /api/trips/:tripId/places returns all places', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createPlace(testDb, trip.id, { name: 'Place A' });
-    createPlace(testDb, trip.id, { name: 'Place B' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makePlace(orm, trip.id, { name: 'Place A' });
+    await makePlace(orm, trip.id, { name: 'Place B' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/places`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -163,11 +158,11 @@ describe('List places', () => {
   });
 
   it('PLACE-003 — member can list places for a shared trip', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    createPlace(testDb, trip.id, { name: 'Shared Place' });
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    await makePlace(orm, trip.id, { name: 'Shared Place' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/places`).set('Cookie', authCookie(member.id));
     expect(res.status).toBe(200);
@@ -175,23 +170,23 @@ describe('List places', () => {
   });
 
   it('PLACE-007 — non-member cannot list places', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/places`).set('Cookie', authCookie(other.id));
     expect(res.status).toBe(404);
   });
 
   it('PLACE-017 — GET /api/trips/:tripId/places?category=X filters by category id', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const cats = (await findRows(orm, Categories)).slice(0, 2);
     expect(cats.length).toBeGreaterThanOrEqual(2);
 
-    createPlace(testDb, trip.id, { name: 'Hotel Alpha', category_id: cats[0].id });
-    createPlace(testDb, trip.id, { name: 'Hotel Beta', category_id: cats[0].id });
-    createPlace(testDb, trip.id, { name: 'Restaurant Gamma', category_id: cats[1].id });
+    await makePlace(orm, trip.id, { name: 'Hotel Alpha', category: cats[0].id });
+    await makePlace(orm, trip.id, { name: 'Hotel Beta', category: cats[0].id });
+    await makePlace(orm, trip.id, { name: 'Restaurant Gamma', category: cats[1].id });
 
     // The route filters by category_id, not name
     const res = await request(app)
@@ -209,9 +204,9 @@ describe('List places', () => {
 
 describe('Get place', () => {
   it('PLACE-004 — GET /api/trips/:tripId/places/:id returns place with tags', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Test Place' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Test Place' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/places/${place.id}`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -220,8 +215,8 @@ describe('Get place', () => {
   });
 
   it('PLACE-004 — GET non-existent place returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/places/99999`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
@@ -234,9 +229,9 @@ describe('Get place', () => {
 
 describe('Update place', () => {
   it('PLACE-005 — PUT /api/trips/:tripId/places/:id updates place details', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Old Name' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Old Name' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/places/${place.id}`)
@@ -248,8 +243,8 @@ describe('Update place', () => {
   });
 
   it('PLACE-005 — PUT returns 404 for non-existent place', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/places/99999`)
@@ -265,9 +260,9 @@ describe('Update place', () => {
 
 describe('Delete place', () => {
   it('PLACE-006 — DELETE /api/trips/:tripId/places/:id removes place', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
 
     const del = await request(app)
       .delete(`/api/trips/${trip.id}/places/${place.id}`)
@@ -280,11 +275,11 @@ describe('Delete place', () => {
   });
 
   it('PLACE-007 — member with default permissions can delete a place', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    const place = createPlace(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    const place = await makePlace(orm, trip.id);
 
     const res = await request(app)
       .delete(`/api/trips/${trip.id}/places/${place.id}`)
@@ -299,7 +294,7 @@ describe('Delete place', () => {
 
 describe('Tags', () => {
   it('PLACE-013 — GET /api/tags returns user tags', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     // Create a tag in DB
     await makeTag(orm, user.id, { name: 'Must-see' });
 
@@ -311,8 +306,8 @@ describe('Tags', () => {
   });
 
   it('PLACE-010/011 — POST place with tags associates them correctly', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // Pre-create a tag
     const tagResult = await makeTag(orm, user.id, { name: 'Romantic' });
     const tagId = tagResult.id;
@@ -332,7 +327,7 @@ describe('Tags', () => {
   });
 
   it('PLACE-012 — DELETE /api/tags/:id removes tag', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const tagResult = await makeTag(orm, user.id, { name: 'OldTag' });
     const tagId = tagResult.id;
 
@@ -350,8 +345,8 @@ describe('Tags', () => {
 
 describe('Update place tags', () => {
   it('PLACE-011 — PUT with tags array replaces existing tags', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const tag1Result = await makeTag(orm, user.id, { name: 'OldTag' });
     const tag2Result = await makeTag(orm, user.id, { name: 'NewTag' });
@@ -378,8 +373,8 @@ describe('Update place tags', () => {
   });
 
   it('PLACE-011 — PUT with empty tags array removes all tags', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const tagResult = await makeTag(orm, user.id, { name: 'RemovableTag' });
     const tagId = tagResult.id;
@@ -405,8 +400,8 @@ describe('Update place tags', () => {
 
 describe('Place notes', () => {
   it('PLACE-018 — Create a place with notes', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places`)
@@ -417,9 +412,9 @@ describe('Place notes', () => {
   });
 
   it('PLACE-018 — Update place notes via PUT', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'My Spot' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'My Spot' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/places/${place.id}`)
@@ -436,10 +431,10 @@ describe('Place notes', () => {
 
 describe('Search places', () => {
   it('PLACE-017 — GET ?search= filters places by name', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
-    createPlace(testDb, trip.id, { name: 'Arc de Triomphe' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makePlace(orm, trip.id, { name: 'Eiffel Tower' });
+    await makePlace(orm, trip.id, { name: 'Arc de Triomphe' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/places?search=Eiffel`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -448,8 +443,8 @@ describe('Search places', () => {
   });
 
   it('PLACE-017 — GET ?tag= filters by tag id', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const tagResult = await makeTag(orm, user.id, { name: 'Scenic' });
     const tagId = tagResult.id;
@@ -461,12 +456,29 @@ describe('Search places', () => {
       .send({ name: 'Scenic Place', tags: [tagId] });
     expect(createRes.status).toBe(201);
 
-    createPlace(testDb, trip.id, { name: 'Plain Place' });
+    await makePlace(orm, trip.id, { name: 'Plain Place' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/places?tag=${tagId}`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.places).toHaveLength(1);
     expect(res.body.places[0].name).toBe('Scenic Place');
+  });
+
+  it('PLACE-017c: GET ?category= or ?tag= with an id that is not a number matches nothing', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makePlace(orm, trip.id, { name: 'Somewhere' });
+
+    const queries = ['category=abc', 'tag=abc', 'category=1.5', 'tag=-1', 'category=0', 'tag=0'];
+    const responses = await Promise.all(
+      queries.map((query) =>
+        request(app).get(`/api/trips/${trip.id}/places?${query}`).set('Cookie', authCookie(user.id)),
+      ),
+    );
+    for (const [i, res] of responses.entries()) {
+      expect(res.status, queries[i]).toBe(200);
+      expect(res.body.places, queries[i]).toEqual([]);
+    }
   });
 });
 
@@ -476,7 +488,7 @@ describe('Search places', () => {
 
 describe('Categories', () => {
   it('PLACE-015 — GET /api/categories returns all categories', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).get('/api/categories').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(Array.isArray(res.body.categories)).toBe(true);
@@ -498,8 +510,8 @@ describe('Naver list import', () => {
   });
 
   it('POST /import/naver-list resolves shortlink, paginates, and creates places', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const folderId = 'a04c3f7a8dd24d42a8eb52d710a700cc';
 
     await updateRows(orm, Addons, { id: 'naver_list_import' }, { enabled: true });
@@ -560,8 +572,8 @@ describe('Naver list import', () => {
   });
 
   it('POST /import/naver-list returns 400 for invalid URL', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await updateRows(orm, Addons, { id: 'naver_list_import' }, { enabled: true });
 
@@ -575,8 +587,8 @@ describe('Naver list import', () => {
   });
 
   it('POST /import/naver-list returns 502 when Naver API is unavailable', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const folderId = 'abc123';
 
     await updateRows(orm, Addons, { id: 'naver_list_import' }, { enabled: true });
@@ -595,8 +607,8 @@ describe('Naver list import', () => {
   });
 
   it('POST /import/naver-list returns 400 when list is empty', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const folderId = 'abc123';
 
     await updateRows(orm, Addons, { id: 'naver_list_import' }, { enabled: true });
@@ -618,8 +630,8 @@ describe('Naver list import', () => {
   });
 
   it('POST /import/naver-list returns 400 when all items lack valid coordinates', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const folderId = 'abc123';
 
     await updateRows(orm, Addons, { id: 'naver_list_import' }, { enabled: true });
@@ -648,8 +660,8 @@ describe('Naver list import', () => {
   });
 
   it('POST /import/naver-list accepts canonical map.naver.com URL without redirect fetch', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const folderId = 'abc123';
 
     await updateRows(orm, Addons, { id: 'naver_list_import' }, { enabled: true });
@@ -682,8 +694,8 @@ describe('Naver list import', () => {
 
 describe('GPX Import', () => {
   it('PLACE-019 — POST /import/gpx with valid GPX file creates places', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places/import/gpx`)
@@ -695,8 +707,8 @@ describe('GPX Import', () => {
   });
 
   it('PLACE-019 — POST /import/gpx without file returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app).post(`/api/trips/${trip.id}/places/import/gpx`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(400);
@@ -709,8 +721,8 @@ describe('GPX Import', () => {
 
 describe('KML/KMZ Import', () => {
   it('PLACE-020 — POST /import/kml with valid KML creates places and returns summary', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await makeCategory(orm, { name: 'Museums', color: '#3b82f6', icon: 'Landmark', user: user.id });
 
@@ -734,8 +746,8 @@ describe('KML/KMZ Import', () => {
   });
 
   it('PLACE-021 — nested folders, empty placemark, and coordinates-only placemark are handled', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await makeCategory(orm, { name: 'Parks', color: '#22c55e', icon: 'Trees', user: user.id });
 
@@ -760,8 +772,8 @@ describe('KML/KMZ Import', () => {
   });
 
   it('PLACE-022 — malformed KML returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places/import/map`)
@@ -773,8 +785,8 @@ describe('KML/KMZ Import', () => {
   });
 
   it('PLACE-023 — non-UTF8 KML continues with warning', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const prefix = Buffer.from('<?xml version="1.0"?><kml><Document><Placemark><name>Caf');
     const invalidByte = Buffer.from([0xe9]); // invalid UTF-8 sequence when used standalone
@@ -795,8 +807,8 @@ describe('KML/KMZ Import', () => {
   });
 
   it('PLACE-024 — POST /import/kmz with valid KMZ creates places', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places/import/map`)
@@ -809,8 +821,8 @@ describe('KML/KMZ Import', () => {
   });
 
   it('PLACE-025 — invalid KMZ returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places/import/map`)
@@ -828,8 +840,8 @@ describe('KML/KMZ Import', () => {
 
 describe('GPX Import — edge cases', () => {
   it('PLACE-019c — GPX with no waypoints returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     // Minimal valid GPX with no waypoints, tracks, or routes
     const emptyGpx = Buffer.from(
@@ -851,8 +863,8 @@ describe('GPX Import — edge cases', () => {
 
 describe('Google Maps list import', () => {
   it('PLACE-020 — POST /import/google-list without url returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places/import/google-list`)
@@ -862,8 +874,8 @@ describe('Google Maps list import', () => {
   });
 
   it('PLACE-020b — POST /import/google-list success path returns 201 with places', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     importGoogleList.mockResolvedValueOnce({
       places: [{ id: 1, name: 'Mocked Place' } as any],
@@ -880,8 +892,8 @@ describe('Google Maps list import', () => {
   });
 
   it('PLACE-020c — POST /import/google-list returns service error status', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     // The service refuses by throwing a DomainError; the controller passes it through.
     importGoogleList.mockRejectedValueOnce(new DomainError(422, 'Invalid list URL'));
@@ -895,8 +907,8 @@ describe('Google Maps list import', () => {
   });
 
   it('PLACE-020d — POST /import/google-list thrown exception returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     importGoogleList.mockRejectedValueOnce(new Error('Network failure'));
 
@@ -914,9 +926,9 @@ describe('Google Maps list import', () => {
 
 describe('Place image search', () => {
   it('PLACE-021 — GET /:id/image returns photos on success', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Louvre' });
 
     searchPlaceImage.mockResolvedValueOnce({
       photos: [{ url: 'https://example.com/photo.jpg' }],
@@ -930,9 +942,9 @@ describe('Place image search', () => {
   });
 
   it('PLACE-021b — GET /:id/image returns service error status', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Tower' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Tower' });
 
     searchPlaceImage.mockRejectedValueOnce(new DomainError(404, 'No images found'));
 
@@ -944,9 +956,9 @@ describe('Place image search', () => {
   });
 
   it('PLACE-021c — GET /:id/image thrown exception returns 500', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Bridge' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Bridge' });
 
     searchPlaceImage.mockRejectedValueOnce(new Error('Unsplash down'));
 
@@ -963,11 +975,11 @@ describe('Place image search', () => {
 
 describe('Delete place — permission edge cases', () => {
   it('PLACE-022 — DELETE place by non-owner member when place_edit is trip_owner returns 403', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
-    const place = createPlace(testDb, trip.id, { name: 'Restricted Place' });
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    await addTripMember(orm, trip.id, member.id);
+    const place = await makePlace(orm, trip.id, { name: 'Restricted Place' });
 
     // Restrict place edits to trip owner only
     await setAppSetting(orm, 'perm_place_edit', 'trip_owner');
@@ -982,8 +994,8 @@ describe('Delete place — permission edge cases', () => {
 
 describe('Delete place — not found', () => {
   it('PLACE-023 — DELETE non-existent place returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app).delete(`/api/trips/${trip.id}/places/99999`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
@@ -999,9 +1011,9 @@ describe('Custom place image upload', () => {
   const FIXTURE_PDF = path.join(__dirname, '../fixtures/test.pdf');
 
   it('PLACE-026 — POST /:id/image stores the upload, then PUT image_url:null clears it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Snap' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Snap' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places/${place.id}/image`)
@@ -1024,9 +1036,9 @@ describe('Custom place image upload', () => {
   });
 
   it('PLACE-027 — uploading a non-image (PDF) is rejected', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Snap' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Snap' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/places/${place.id}/image`)
@@ -1047,19 +1059,20 @@ describe('Custom place image upload', () => {
 
 describe('H1 — trip id parsed once at the gate (rule 21)', () => {
   it("GET by the trip's hex-spelled id 404s — it does not read the real trip's place", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Spot' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Spot' });
     const hexTripId = '0x' + trip.id.toString(16);
 
     const res = await request(app).get(`/api/trips/${hexTripId}/places/${place.id}`).set('Cookie', authCookie(user.id));
+    // TripAccessGuard reads :tripId through toRowId, so the hex spelling is no trip.
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Place not found' });
+    expect(res.body).toEqual({ error: 'Trip not found' });
   });
 
   it('PUT with tags by the hex-spelled trip id 404s "Trip not found" (Task 9 fix wave: `verifyTripAccess` now gates BEFORE the place-id read, so the string changed from "Place not found") and leaves the tags untouched (H1 live: they used to be wiped)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const tagResult = await makeTag(orm, user.id, { name: 'Original' });
     const tagId = tagResult.id;
     const createRes = await request(app)
@@ -1083,9 +1096,9 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
   });
 
   it('PUT :id/rating by the hex-spelled trip id 404s "Trip not found" (Task 9 fix wave: was "Place not found" — see the PUT :id case above)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Rated' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Rated' });
     const hexTripId = '0x' + trip.id.toString(16);
 
     const res = await request(app)
@@ -1098,8 +1111,8 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
   });
 
   it('POST create by the hex-spelled trip id now 404s "Trip not found" (Task 9 fix wave, M1: `verifyTripAccess` gates with `toRowId` before `create()` is ever reached — the base 94c6efbbc 500 this test used to mirror was ruled a defect, not the contract to preserve, once the gate itself refuses the id)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const hexTripId = '0x' + trip.id.toString(16);
 
     const res = await request(app)
@@ -1112,9 +1125,9 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
   });
 
   it('DELETE :id by the hex-spelled trip id 404s, deletes nothing and broadcasts nothing, even with a linked expense (#1298)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Louvre' });
     await makeBudgetItem(orm, trip.id, { name: 'Tickets', total_price: 34, place: place.id });
     const hexTripId = '0x' + trip.id.toString(16);
     vi.mocked(broadcast).mockClear();
@@ -1123,16 +1136,16 @@ describe('H1 — trip id parsed once at the gate (rule 21)', () => {
       .delete(`/api/trips/${hexTripId}/places/${place.id}`)
       .set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Place not found' });
+    expect(res.body).toEqual({ error: 'Trip not found' });
     expect(await findRow(orm, Places, { id: place.id })).toBeTruthy();
     expect(await findRow(orm, BudgetItems, { place: place.id })).toBeTruthy();
     expect(broadcast).not.toHaveBeenCalled();
   });
 
   it('POST bulk-delete by the hex-spelled trip id now 404s "Trip not found" and deletes nothing (Task 9 fix wave: `verifyTripAccess` gates before `scopedIds`/`removeMany` ever run — was a 200 with `count: 0`)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Louvre' });
     await makeBudgetItem(orm, trip.id, { name: 'Tickets', total_price: 34, place: place.id });
     const hexTripId = '0x' + trip.id.toString(16);
     vi.mocked(broadcast).mockClear();
@@ -1177,8 +1190,8 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 
   describe.each(nonCanonicalShapes)('POST create — %s', (_label, spell) => {
     it('404s "Trip not found" and creates nothing', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
       const spelled = spell(trip.id);
 
       const res = await request(app)
@@ -1193,9 +1206,9 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 
   describe.each(nonCanonicalShapes)('PUT :id — %s', (_label, spell) => {
     it('404s "Trip not found" and leaves the place untouched', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
-      const place = createPlace(testDb, trip.id, { name: 'Untouched' });
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
+      const place = await makePlace(orm, trip.id, { name: 'Untouched' });
       const spelled = spell(trip.id);
 
       const res = await request(app)
@@ -1211,9 +1224,9 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 
   describe.each(nonCanonicalShapes)('POST bulk-delete — %s', (_label, spell) => {
     it('404s "Trip not found" and deletes nothing', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
-      const place = createPlace(testDb, trip.id, { name: 'Louvre' });
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
+      const place = await makePlace(orm, trip.id, { name: 'Louvre' });
       const spelled = spell(trip.id);
       vi.mocked(broadcast).mockClear();
 
@@ -1230,9 +1243,9 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 
   describe.each(nonCanonicalShapes)('POST bulk-update — %s', (_label, spell) => {
     it('404s "Trip not found" and updates nothing', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
-      const place = createPlace(testDb, trip.id, { name: 'Louvre', category_id: null });
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
+      const place = await makePlace(orm, trip.id, { name: 'Louvre', category: null });
       const spelled = spell(trip.id);
 
       const res = await request(app)
@@ -1246,9 +1259,9 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 
   describe.each(nonCanonicalShapes)('PUT :id/rating — %s', (_label, spell) => {
     it('404s "Trip not found" and writes no rating', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
-      const place = createPlace(testDb, trip.id, { name: 'Rated' });
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
+      const place = await makePlace(orm, trip.id, { name: 'Rated' });
       const spelled = spell(trip.id);
 
       const res = await request(app)
@@ -1263,8 +1276,8 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 
   describe.each(nonCanonicalShapes)('GET export.gpx — %s', (_label, spell) => {
     it('404s "Trip not found"', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
       const spelled = spell(trip.id);
 
       const res = await request(app).get(`/api/trips/${spelled}/places/export.gpx`).set('Cookie', authCookie(user.id));
@@ -1275,8 +1288,8 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 
   describe.each(nonCanonicalShapes)('POST import/gpx — %s', (_label, spell) => {
     it('404s "Trip not found" and imports nothing', async () => {
-      const { user } = createUser(testDb);
-      const trip = createTrip(testDb, user.id);
+      const { user } = await makeUser(orm);
+      const trip = await makeTrip(orm, user.id);
       const spelled = spell(trip.id);
 
       const res = await request(app)
@@ -1291,49 +1304,17 @@ describe('A-H1 / A-M1 / B-H1 — verifyTripAccess parses once with toRowId (Task
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
-// M1 / program rule 22 (task-4-review.md) — a NUL byte in a user string no
-// longer 500s: the platform override restores the legacy raw-bind's
-// byte-for-byte round-trip (base 94c6efbbc: 200/201; before this fix, every
-// ORM-converted statement 500'd on NUL).
+// Control characters in a user string round-trip on every engine. The NUL byte, which neither engine
+// stores, has its own suite: places-nul.test.ts.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('M1 — NUL-safe value quoting on the SQLite platform (rule 22)', () => {
-  it("GET ?search=%00 is 200, not 500 (status parity — SQLite's LIKE pattern matcher itself iterates its RHS as NUL-terminated, an independent SQLite limitation this platform fix does not touch, so a NUL search matches everything on BOTH trees, not nothing)", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createPlace(testDb, trip.id, { name: 'Spot' });
-
-    // A raw, pre-encoded `%00` in the URL — the review's exact literal
-    // request shape (`GET /api/trips/:id/places?search=%00`). `.query({...})`
-    // goes through superagent's own `qs` encoder, which is not guaranteed to
-    // round-trip a NUL character the same way; the literal query string is
-    // what Express/the route actually receives in production.
-    const res = await request(app).get(`/api/trips/${trip.id}/places?search=%00`).set('Cookie', authCookie(user.id));
-    expect(res.status).toBe(200);
-  });
-
-  it('POST create with a NUL in the name is 201 and the name round-trips byte-for-byte', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const name = 'nul\u0000name';
-
-    const res = await request(app)
-      .post(`/api/trips/${trip.id}/places`)
-      .set('Cookie', authCookie(user.id))
-      .send({ name });
-    expect(res.status).toBe(201);
-    expect(res.body.place.name).toBe(name);
-
-    const stored = await findRow(orm, Places, { id: res.body.place.id });
-    expect(stored?.name).toBe(name);
-  });
-
+describe('control characters in a place name', () => {
   it('fuzzes every 0x01-0x1F control character in a created place name: none 500 and every one round-trips', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
-    // 0x00 is covered by its own dedicated test above; this sweeps the rest
-    // of the control-character range the review's fuzz asked for.
+    // 0x00 is covered by places-nul.test.ts; this sweeps the rest
+    // of the control-character range.
     for (let code = 0x01; code <= 0x1f; code++) {
       const name = `ctrl${String.fromCharCode(code)}char`;
       const res = await request(app)

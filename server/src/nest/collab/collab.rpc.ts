@@ -3,7 +3,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { asPayload, optionalRowIdParam, rowIdParam } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { CollabService } from './collab.service';
 
@@ -31,37 +31,37 @@ export class CollabRpc {
 
   @PluginMethod('collab.listNotes', { permission: 'db:read:collab' })
   listNotes(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, async () => {
-      await this.requireCollabAddon();
-      return (await this.collab.listNotes(num(params.tripId, 'tripId'))) as unknown[];
+    return this.guards.tripRead(params, ctx, async (userId) => {
+      await this.requireCollabAddon(rowIdParam(params.tripId, 'tripId'), userId);
+      return (await this.collab.listNotes(rowIdParam(params.tripId, 'tripId'))) as unknown[];
     });
   }
 
   @PluginMethod('collab.listPolls', { permission: 'db:read:collab' })
   listPolls(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, async () => {
-      await this.requireCollabAddon();
-      return (await this.collab.listPolls(num(params.tripId, 'tripId'))) as unknown[];
+    return this.guards.tripRead(params, ctx, async (userId) => {
+      await this.requireCollabAddon(rowIdParam(params.tripId, 'tripId'), userId);
+      return (await this.collab.listPolls(rowIdParam(params.tripId, 'tripId'))) as unknown[];
     });
   }
 
   @PluginMethod('collab.listMessages', { permission: 'db:read:collab' })
   listMessages(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, async () => {
-      await this.requireCollabAddon();
-      const before = params.before != null ? num(params.before, 'before') : undefined;
-      return (await this.collab.listMessages(num(params.tripId, 'tripId'), before)) as unknown[];
+    return this.guards.tripRead(params, ctx, async (userId) => {
+      await this.requireCollabAddon(rowIdParam(params.tripId, 'tripId'), userId);
+      const before = params.before != null ? rowIdParam(params.before, 'before') : undefined;
+      return (await this.collab.listMessages(rowIdParam(params.tripId, 'tripId'), before)) as unknown[];
     });
   }
 
   @PluginMethod('collab.createNote', { permission: 'db:write:collab' })
   async createNote(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'collab note');
     const input = asPayload(params.input);
     if (typeof input.title !== 'string' || input.title.trim() === '') throw new BadParams('note title is required');
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
-    await this.requireCollabAddon();
+    await this.requireCollabAddon(tripId, actor);
     const note = await this.collab.createNote(String(tripId), actor, input as never);
     this.realtime.broadcast(tripId, 'collab:note:created', { note }, undefined);
     return note;
@@ -69,7 +69,7 @@ export class CollabRpc {
 
   @PluginMethod('collab.createPoll', { permission: 'db:write:collab' })
   async createPoll(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'collab poll');
     const input = asPayload(params.input);
     if (typeof input.question !== 'string' || input.question.trim() === '')
@@ -77,7 +77,7 @@ export class CollabRpc {
     if (!Array.isArray(input.options) || input.options.length < 2)
       throw new BadParams('a poll needs at least two options');
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
-    await this.requireCollabAddon();
+    await this.requireCollabAddon(tripId, actor);
     const poll = await this.collab.createPoll(String(tripId), actor, input as never);
     this.realtime.broadcast(tripId, 'collab:poll:created', { poll }, undefined);
     return poll;
@@ -85,15 +85,15 @@ export class CollabRpc {
 
   @PluginMethod('collab.votePoll', { permission: 'db:write:collab' })
   async votePoll(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'collab poll');
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
-    await this.requireCollabAddon();
+    await this.requireCollabAddon(tripId, actor);
     const result = await this.collab.votePoll(
       String(tripId),
-      String(num(params.pollId, 'pollId')),
+      String(rowIdParam(params.pollId, 'pollId')),
       actor,
-      num(params.optionIndex, 'optionIndex'),
+      rowIdParam(params.optionIndex, 'optionIndex'),
     );
     // The service reports its own validation failures rather than throwing.
     if (result.error) throw new BadParams(result.error);
@@ -103,21 +103,23 @@ export class CollabRpc {
 
   @PluginMethod('collab.createMessage', { permission: 'db:write:collab' })
   async createMessage(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'collab message');
     if (typeof params.text !== 'string' || params.text.trim() === '' || params.text.length > 4000) {
       throw new BadParams('message text is required (max 4000 chars)');
     }
     await this.guards.requireTripEdit(tripId, actor, COLLAB_EDIT_ACTION);
-    await this.requireCollabAddon();
-    const replyTo = typeof params.replyTo === 'number' ? params.replyTo : null;
+    await this.requireCollabAddon(tripId, actor);
+    // Left out or null is no reply; anything else must be a message id.
+    const replyTo = optionalRowIdParam(params.replyTo ?? undefined, 'replyTo') ?? null;
     const result = await this.collab.createMessage(String(tripId), actor, params.text, replyTo);
     if (result.error) throw new BadParams(result.error);
     this.realtime.broadcast(tripId, 'collab:message:created', { message: result.message }, undefined);
     return result.message;
   }
 
-  private async requireCollabAddon(): Promise<void> {
-    await this.guards.requireAddon(ADDON_IDS.COLLAB, 'collab');
+  /** Collab has to be on for the trip, the owner's choice or else the instance switch. */
+  private async requireCollabAddon(tripId: number, userId: number): Promise<void> {
+    await this.guards.requireAddon(ADDON_IDS.COLLAB, 'collab', { tripId, userId });
   }
 }

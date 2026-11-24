@@ -9,43 +9,40 @@
  * legacy registerResources fan-out anymore).
  */
 import { ADDON_IDS } from '../../../src/addons';
-import { db as testDb } from '../../../src/db/database';
 import { TodoCategoryAssignees } from '../../../src/db/entities/TodoCategoryAssignees.entity';
 import { TodoItems } from '../../../src/db/entities/TodoItems.entity';
-import { createUser, createTrip, createTodoItem } from '../../helpers/factories';
+import type { FactoryOrm } from '../../helpers/factories/context';
 import { findRow, insertRow } from '../../helpers/factories/rows';
 import { setAddonEnabled } from '../../helpers/factories/settings';
 import { makeTodoItem } from '../../helpers/factories/todos';
+import { makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
 });
 
-let orm: TestOrm;
+// The booted container's own ORM, the one the tools write through.
+let orm: FactoryOrm;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -63,8 +60,8 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 describe('Tool: list_todos', () => {
   it('returns empty list for a new trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_todos', arguments: { tripId: trip.id } });
       const data = parseToolResult(result) as any;
@@ -73,10 +70,10 @@ describe('Tool: list_todos', () => {
   });
 
   it('returns todos ordered by sort_order', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createTodoItem(testDb, trip.id, { name: 'First' });
-    createTodoItem(testDb, trip.id, { name: 'Second' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeTodoItem(orm, trip.id, { name: 'First' });
+    await makeTodoItem(orm, trip.id, { name: 'Second' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_todos', arguments: { tripId: trip.id } });
       const data = parseToolResult(result) as any;
@@ -86,9 +83,9 @@ describe('Tool: list_todos', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_todos', arguments: { tripId: trip.id } });
       expect(result.isError).toBe(true);
@@ -102,8 +99,8 @@ describe('Tool: list_todos', () => {
 
 describe('Tool: create_todo', () => {
   it('creates a todo item with all fields', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_todo',
@@ -126,8 +123,8 @@ describe('Tool: create_todo', () => {
   });
 
   it('creates a minimal todo item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_todo',
@@ -140,8 +137,8 @@ describe('Tool: create_todo', () => {
   });
 
   it('broadcasts todo:created event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_todo', arguments: { tripId: trip.id, name: 'Test' } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'todo:created', expect.any(Object));
@@ -149,9 +146,9 @@ describe('Tool: create_todo', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_todo', arguments: { tripId: trip.id, name: 'X' } });
       expect(result.isError).toBe(true);
@@ -160,8 +157,8 @@ describe('Tool: create_todo', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_todo', arguments: { tripId: trip.id, name: 'X' } });
       expect(result.isError).toBe(true);
@@ -175,9 +172,9 @@ describe('Tool: create_todo', () => {
 
 describe('Tool: update_todo', () => {
   it('updates todo name and category', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createTodoItem(testDb, trip.id, { name: 'Old name', category: 'General' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeTodoItem(orm, trip.id, { name: 'Old name', category: 'General' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_todo',
@@ -190,8 +187,8 @@ describe('Tool: update_todo', () => {
   });
 
   it('clears due_date when passed null', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const item = await makeTodoItem(orm, trip.id, { name: 'Task', checked: 0, sort_order: 0, due_date: '2025-01-01' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -204,9 +201,9 @@ describe('Tool: update_todo', () => {
   });
 
   it('broadcasts todo:updated event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createTodoItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeTodoItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_todo',
@@ -217,8 +214,8 @@ describe('Tool: update_todo', () => {
   });
 
   it('returns error for item not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_todo',
@@ -229,10 +226,10 @@ describe('Tool: update_todo', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const item = createTodoItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const item = await makeTodoItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_todo',
@@ -249,9 +246,9 @@ describe('Tool: update_todo', () => {
 
 describe('Tool: toggle_todo', () => {
   it('marks a todo as done', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createTodoItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeTodoItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'toggle_todo',
@@ -263,9 +260,9 @@ describe('Tool: toggle_todo', () => {
   });
 
   it('unchecks a done todo', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createTodoItem(testDb, trip.id, { checked: 1 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeTodoItem(orm, trip.id, { checked: 1 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'toggle_todo',
@@ -277,9 +274,9 @@ describe('Tool: toggle_todo', () => {
   });
 
   it('broadcasts todo:updated event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createTodoItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeTodoItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'toggle_todo', arguments: { tripId: trip.id, itemId: item.id, checked: true } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'todo:updated', expect.any(Object));
@@ -287,8 +284,8 @@ describe('Tool: toggle_todo', () => {
   });
 
   it('returns error for item not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'toggle_todo',
@@ -305,9 +302,9 @@ describe('Tool: toggle_todo', () => {
 
 describe('Tool: delete_todo', () => {
   it('deletes an existing todo item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createTodoItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeTodoItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_todo', arguments: { tripId: trip.id, itemId: item.id } });
       const data = parseToolResult(result) as any;
@@ -317,9 +314,9 @@ describe('Tool: delete_todo', () => {
   });
 
   it('broadcasts todo:deleted event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item = createTodoItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item = await makeTodoItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'delete_todo', arguments: { tripId: trip.id, itemId: item.id } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'todo:deleted', expect.any(Object));
@@ -327,8 +324,8 @@ describe('Tool: delete_todo', () => {
   });
 
   it('returns error for item not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_todo', arguments: { tripId: trip.id, itemId: 99999 } });
       expect(result.isError).toBe(true);
@@ -336,10 +333,10 @@ describe('Tool: delete_todo', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const item = createTodoItem(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const item = await makeTodoItem(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_todo', arguments: { tripId: trip.id, itemId: item.id } });
       expect(result.isError).toBe(true);
@@ -353,10 +350,10 @@ describe('Tool: delete_todo', () => {
 
 describe('Tool: reorder_todos', () => {
   it('reorders todo items', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const item1 = createTodoItem(testDb, trip.id, { name: 'First' });
-    const item2 = createTodoItem(testDb, trip.id, { name: 'Second' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const item1 = await makeTodoItem(orm, trip.id, { name: 'First' });
+    const item2 = await makeTodoItem(orm, trip.id, { name: 'Second' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'reorder_todos',
@@ -376,9 +373,9 @@ describe('Tool: reorder_todos', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'reorder_todos',
@@ -395,8 +392,8 @@ describe('Tool: reorder_todos', () => {
 
 describe('Tool: get_todo_category_assignees', () => {
   it('returns empty object for a new trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_todo_category_assignees', arguments: { tripId: trip.id } });
       const data = parseToolResult(result) as any;
@@ -411,8 +408,8 @@ describe('Tool: get_todo_category_assignees', () => {
 
 describe('Tool: set_todo_category_assignees', () => {
   it('sets category assignees and broadcasts', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_todo_category_assignees',
@@ -425,8 +422,8 @@ describe('Tool: set_todo_category_assignees', () => {
   });
 
   it('clears assignees when passed empty array', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     // Set then clear
     await insertRow(orm, TodoCategoryAssignees, { trip: trip.id, category_name: 'Booking', user: user.id });
     await withHarness(user.id, async (h) => {
@@ -441,8 +438,8 @@ describe('Tool: set_todo_category_assignees', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'set_todo_category_assignees',
@@ -478,20 +475,20 @@ describe('Todo tools — scope gating', () => {
   }
 
   it('registers all eight tools with null scopes (full access)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, null);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);
   });
 
   it('registers only the read tools with todos:read', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['todos:read']);
     for (const tool of READ_TOOLS) expect(names).toContain(tool);
     for (const tool of WRITE_TOOLS) expect(names).not.toContain(tool);
   });
 
   it('registers no todo tools for an unrelated scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['budget:read']);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).not.toContain(tool);
   });
@@ -504,8 +501,8 @@ describe('Todo tools — scope gating', () => {
 
 describe('Todo tools — packing addon gating', () => {
   it('registers nothing (tools or resource) when the packing addon is disabled', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await setAddonEnabled(orm, ADDON_IDS.PACKING, false);
     try {
       await withHarness(user.id, async (h) => {
@@ -526,10 +523,10 @@ describe('Todo tools — packing addon gating', () => {
 
 describe('Resource: trek://trips/{tripId}/todos', () => {
   it('returns the trip todos ordered by position', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createTodoItem(testDb, trip.id, { name: 'First' });
-    createTodoItem(testDb, trip.id, { name: 'Second' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeTodoItem(orm, trip.id, { name: 'First' });
+    await makeTodoItem(orm, trip.id, { name: 'Second' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/todos` });
       const items = parseResourceResult(result) as any[];
@@ -540,9 +537,9 @@ describe('Resource: trek://trips/{tripId}/todos', () => {
   });
 
   it('returns the access-denied payload for a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/todos` });
       expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });
@@ -550,7 +547,7 @@ describe('Resource: trek://trips/{tripId}/todos', () => {
   });
 
   it('returns the access-denied payload for a malformed trip id', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: 'trek://trips/not-a-number/todos' });
       expect(parseResourceResult(result)).toEqual({ error: 'Trip not found or access denied' });

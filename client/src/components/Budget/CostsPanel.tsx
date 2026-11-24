@@ -1,11 +1,10 @@
 import SettlementModal from './SettlementModal'
-import { ArrowLeftRight as RateIcon } from 'lucide-react'
-import ExchangeRateManager from './ExchangeRateManager'
-import ItemExchangeRateFields from './ItemExchangeRateFields'
+import { ExchangeRateDialog } from './ExchangeRateManager'
+import ItemExchangeRateFields, { ExpenseFxPreview } from './ItemExchangeRateFields'
 import CurrencySelect from '../shared/CurrencySelect'
-import { awaitingConversion } from './costsModel'
+import { awaitingDisplayConversion } from './costsModel'
 import { Fragment, useState, useMemo, useCallback, useId, type ReactNode } from 'react'
-import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, ChevronDown, Receipt, Paperclip, ScanLine, Users } from 'lucide-react'
+import { ArrowDown, ArrowUp, BarChart3, Plus, Search, ArrowRight, ArrowLeftRight, Check, RotateCcw, Pencil, Trash2, AlertCircle, Download, ChevronDown, Receipt, ScanLine, Users } from 'lucide-react'
 import { useTripStore } from '../../store/tripStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useToast } from '../shared/Toast'
@@ -19,7 +18,7 @@ import { useReceiptScan } from './useReceiptScan'
 import { ReceiptScanModal } from './ReceiptScanModal'
 import { SPLIT_COLORS } from './BudgetPanel.constants'
 import { finalBudgetFor, finalBudgetSources, formerParticipantRows, NOTE_MAX, paidByUser, readUserNote, settlementDate } from './CostsPanel.helpers'
-import { COST_CAT_META, COST_CATEGORY_LIST, catMeta } from './costsCategories'
+import { COST_CATEGORY_LIST, catMeta } from './costsCategories'
 import {
   baseTotal as baseTotalOf, booked as bookedAmount, isUnfinished as isUnfinishedModel, lineOf as lineOfModel, memberShareOf,
   myPaidOf as myPaidOfModel, paymentAmount, paymentLineOf, settledShareOf,
@@ -27,11 +26,16 @@ import {
 } from './costsModel'
 import { useCostsLedger } from './useCostsLedger'
 import { useExpenseLinks } from './useExpenseLinks'
-import { usePercentSplit, type CustomSplitUnit } from './usePercentSplit'
+import type { CustomSplitUnit } from './usePercentSplit'
 import { useExpenseForm } from './useExpenseForm'
 import { ReceiptPreviewModal } from './ReceiptPreviewModal'
+import { ExpenseReceiptsSection } from './ExpenseReceiptsSection'
 import { useExpenseDeleteConfirm } from './useExpenseDeleteConfirm'
 import { FlowPills } from './FlowPills'
+import { CostsSplitChips } from './CostsSplitChips'
+import { CostsModeCard } from './CostsModeCard'
+import { CostsCategoryBreakdown, LeftOutChip } from './CostsCategoryBreakdown'
+import { CostsCurrencyPicker } from './CostsCurrencyPicker'
 import type { BudgetParticipantFinal, ReceiptLine } from '@trek/shared'
 import type { BudgetItem, BudgetItemReceipt } from '../../types'
 import type { TripMember } from './BudgetPanelMemberChips'
@@ -44,10 +48,7 @@ import { AddRowButton, EditorField, INPUT, PillSelect, Segmented, TEXTAREA } fro
 import { CountPill, EYEBROW } from '../Planner/bookings/bookingParts'
 import CostsToolbar, { type CostsView } from './CostsToolbar'
 import CostsTable, { CostsTableSummary } from './CostsTable'
-import SummaryCard from './CostsSummaryCard'
-
-/** Split chips a row shows before the rest fold into "+N" (#1763). */
-const SPLIT_CHIP_MAX = 6
+import SummaryCard, { UNKNOWN_AMOUNT } from './CostsSummaryCard'
 
 interface CostsPanelProps {
   tripId: number
@@ -76,12 +77,12 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   // Display/base currency, the trip's own, the settlement, totals, filters and
   // the ledger writes: the same ledger the phone tab runs on.
   const {
-    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, knownNames,
+    me, base, tripCurrency, ctx, settlement, settlementError, loadSettlement, flows, balancesKnown, knownNames, splitting,
     search, setSearch, segment: filter, setSegment: setFilter, catFilter, setCatFilter, dayFilter, setDayFilter,
-    totals, filtered, filteredSettlements, catBreakdown, exportCsv: handleExportCsv,
-    deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll,
+    totals, filtered, filteredSettlements, catBreakdown, countedCount, leftOutLabel, toggleLeftOutCat, countAllCats, exportCsv: handleExportCsv,
+    deleteExpense: handleDelete, undoSettlement, settleFlow, settleAll, canSettle, setBase, baseOptions, settledUp,
   } = useCostsLedger({
-    tripId, trip, budgetItems, actions: { loadBudgetItems, deleteBudgetItem }, t, toast,
+    tripId, trip, budgetItems, memberCount: tripMembers.length, actions: { loadBudgetItems, deleteBudgetItem }, canEdit, t, toast,
     settlementOnTripChange: true, skipUnfinishedShares: true, csvCurrencyAsStored: true,
   })
   const curOf = useCallback((e: BudgetItem) => (e.currency || tripCurrency), [tripCurrency])
@@ -127,7 +128,6 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   // The bottom-nav "+" (?create=expense) and a link to one expense (?expense=<id>) open the expense modal.
   useExpenseLinks(tripId, budgetItems, e => { setEditing(e); setModalOpen(true) }, { create: true })
 
-  // ── derived expense maths (everything converted to the base currency) ────
   // Booked, not live: an expense entered in a foreign currency keeps the rate it was
   // entered at, which is the same rule the server settles by (#1335).
   const booked = useCallback((amount: number, e: BudgetItem) => bookedAmount(amount, e, ctx), [ctx])
@@ -168,7 +168,6 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     return groups
   }, [filtered, filteredSettlements, locale, t])
 
-  // ── filter dropdown options (category + single day) ──────────────────────
   const categoryOptions = useMemo(() => [
     { value: '', label: t('costs.filter.allCategories') },
     ...COST_CATEGORY_LIST.map(c => ({ value: c.key, label: t(c.labelKey), icon: <c.Icon size={14} style={{ color: c.color }} /> })),
@@ -205,7 +204,6 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     }
   }
 
-  // ── small presentational helpers ────────────────────────────────────────
   const Avatar = ({ id, size = 24 }: { id: number; size?: number }) => {
     const url = personById(id)?.avatar_url
     if (url) return <img src={url} alt="" style={{ width: size, height: size, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, display: 'block' }} />
@@ -238,6 +236,21 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     return <span dir="ltr" className="inline-flex items-baseline">{parts.map((p, i) => <span key={i} style={isBig(p) ? undefined : { fontSize: smallSize, fontWeight: 500, color: mutedColor }}>{p.value}</span>)}</span>
   }
 
+  // Who owes and who paid mean nothing with nothing to split (#2689); the count does.
+  const totalCard = (
+    <SummaryCard label={t('costs.totalSpend')} sub={t('costs.totalSpendSub')} amount={totals.totalSpend} currency={base} locale={locale}
+      icon={<BarChart3 size={18} />} tone="total"
+      foot={<>{splitting ? <>
+        <span className={CHIP}>{t('costs.yourShare')}<b className="text-content">{fmt0(totals.myShare)}</b></span>
+        <span className={CHIP}>{t('costs.youPaid')}<b className="text-content">{fmt0(totals.myPaid)}</b></span>
+      </> : <span className={CHIP}>{t('costs.expensesCount', { count: countedCount })}</span>}
+        {leftOutLabel && <LeftOutChip label={leftOutLabel} onCountAll={countAllCats} className={CHIP} />}</>} />
+  )
+
+  // Spend by category; a click leaves one out of the totals for a look without it (#2819).
+  const categoryBars = <CostsCategoryBreakdown rows={catBreakdown} leftOutLabel={leftOutLabel} fmt={v => fmt0(v)}
+    onToggle={toggleLeftOutCat} onCountAll={countAllCats} />
+
   // ── category + day filter controls (shared by both layouts) ──────────────
   // A prominent summary shown when a single day is selected: the day + its total.
   const dayFilterTotal = dayFilter ? filtered.reduce((a, e) => a + baseTotal(e), 0) : 0
@@ -257,21 +270,17 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
   return (
     <div className="costs-root" style={{ minHeight: '100%', background: 'var(--c-bg)', padding: isMobile ? '6px 14px 28px' : '24px 28px 48px' }}>
      {rateManagerOpen && (
-       <DialogShell onClose={() => setRateManagerOpen(false)} labelledBy="exchange-rates-title"
-         header={<DialogHeader labelId="exchange-rates-title" onClose={() => setRateManagerOpen(false)}
-           tint={NEUTRAL_TINT} title={t('costs.exchangeRates.title')} tile={<DialogTile><RateIcon size={20} /></DialogTile>} />}>
-         <ExchangeRateManager tripId={tripId} tripCurrency={tripCurrency}
-           usedCurrencies={[...budgetItems, ...settlement?.settlements ?? []].flatMap(item => item.currency ? [item.currency] : [])}
-           canEdit={canEdit} />
-       </DialogShell>
+       <ExchangeRateDialog tripId={tripId} tripCurrency={tripCurrency} canEdit={canEdit}
+         usedCurrencies={[...budgetItems, ...settlement?.settlements ?? []].flatMap(item => item.currency ? [item.currency] : [])}
+         onClose={() => setRateManagerOpen(false)} />
      )}
      {isMobile ? MobileBody() : (
      <div style={{ maxWidth: '100%', margin: '0 auto' }}>
-      <CostsToolbar dateMeta={dateMeta} people={people} me={me} colorFor={colorFor}
-        canEdit={canEdit} canSettle={(settlement?.flows || []).length > 0}
+      <CostsToolbar dateMeta={dateMeta} people={people} me={me} colorFor={colorFor} splitting={splitting}
+        canEdit={canEdit} canSettle={canSettle}
         onSettleAll={settleAll} onAddExpense={() => { setEditing(null); setModalOpen(true) }}
         onScanReceipt={receiptScan.offered ? receiptScan.open : undefined}
-        view={view} onView={setView} onExchangeRates={() => setRateManagerOpen(true)}
+        view={view} onView={setView} onExchangeRates={() => setRateManagerOpen(true)} currency={{ value: base, options: baseOptions, onChange: setBase }}
         filters={{
           query: search, onQuery: setSearch,
           owner: filter, onOwner: setFilter,
@@ -281,30 +290,26 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           onExport: handleExportCsv, canExport: budgetItems.length > 0,
         }} />
 
-      {/* ── Summary cards ── */}
+      {/* ── Summary cards; with nothing to split (#2689) the total stands alone ── */}
+      {!splitting ? <div style={{ marginBottom: 36 }}>{totalCard}</div> : (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 16, marginBottom: 36 }} className="costs-summary">
-        <SummaryCard label={t('costs.youOwe')} sub={t('costs.youOweSub')} amount={totals.owe} currency={base} locale={locale}
-          icon={<ArrowDown size={18} />} tone="owe"
+        <SummaryCard label={t('costs.youOwe')} sub={t('costs.youOweSub')} amount={balancesKnown ? totals.owe : null} currency={base} locale={locale}
+          icon={<ArrowDown size={18} />} tone="owe" failed={settlementError}
           foot={totals.owe > 0.01
-            ? <FlowPills ids={(settlement?.flows || []).filter(f => f.from.user_id === me).map(f => f.to.user_id)} lead={t('costs.to')} Avatar={Avatar} name={personName} />
+            ? <FlowPills ids={flows.filter(f => f.from.user_id === me).map(f => f.to.user_id)} lead={t('costs.to')} Avatar={Avatar} name={personName} />
             : <span className="text-content-faint">{t('costs.allSettled')}</span>} />
-        <SummaryCard label={t('costs.youreOwed')} sub={t('costs.youreOwedSub')} amount={totals.owed} currency={base} locale={locale}
-          icon={<ArrowUp size={18} />} tone="owed"
+        <SummaryCard label={t('costs.youreOwed')} sub={t('costs.youreOwedSub')} amount={balancesKnown ? totals.owed : null} currency={base} locale={locale}
+          icon={<ArrowUp size={18} />} tone="owed" failed={settlementError}
           foot={totals.owed > 0.01
-            ? <FlowPills ids={(settlement?.flows || []).filter(f => f.to.user_id === me).map(f => f.from.user_id)} lead={t('costs.from')} Avatar={Avatar} name={personName} />
+            ? <FlowPills ids={flows.filter(f => f.to.user_id === me).map(f => f.from.user_id)} lead={t('costs.from')} Avatar={Avatar} name={personName} />
             : <span className="text-content-faint">{t('costs.nothingOwed')}</span>} />
         <SummaryCard label={t('costs.outstanding')} sub={t('costs.outstandingSub')} amount={totals.outstanding} currency={base} locale={locale}
           icon={<AlertCircle size={18} />} tone="unfinished"
           foot={totals.outstandingCount > 0
             ? <span><b>{totals.outstandingCount}</b> {t('costs.outstandingItems', { count: totals.outstandingCount })}</span>
-            : !settlement?.flows?.length && <span className="text-content-faint">{t('costs.allSettled')}</span>} />
-        <SummaryCard label={t('costs.totalSpend')} sub={t('costs.totalSpendSub')} amount={totals.totalSpend} currency={base} locale={locale}
-          icon={<BarChart3 size={18} />} tone="total"
-          foot={<>
-            <span className={CHIP}>{t('costs.yourShare')}<b className="text-content">{fmt0(totals.myShare)}</b></span>
-            <span className={CHIP}>{t('costs.youPaid')}<b className="text-content">{fmt0(totals.myPaid)}</b></span>
-          </>} />
-      </div>
+            : settledUp && <span className="text-content-faint">{t('costs.allSettled')}</span>} />
+        {totalCard}
+      </div>)}
 
       {/* ── Main grid ── */}
       {/* The same four columns as the cards above: the ledger takes three, the
@@ -319,7 +324,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               <div className="text-content-faint" style={{ textAlign: 'center', padding: '60px 20px' }}>{t('costs.noMatch')}</div>
             ) : (
               <CostsTable items={filtered} base={base} canEdit={canEdit}
-                baseTotal={baseTotal} toBase={booked} awaitingConversion={(item) => awaitingConversion(item, tripCurrency)} currencyOf={curOf} fmt={v => fmt(v)} personName={personName}
+                baseTotal={baseTotal} toBase={booked} awaitingConversion={(item) => awaitingDisplayConversion(item, ctx)} currencyOf={curOf} fmt={v => fmt(v)} personName={personName}
                 onUpdate={updateFromTable} onAdd={addFromTable}
                 onOpen={e => { setEditing(e); setModalOpen(true) }} onDelete={deleteConfirm.askById} />
             )
@@ -355,8 +360,9 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         {/* sidebar */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* settle up */}
+          {splitting && <>
           <section aria-label={t('costs.settleUp')} className={SIDE_CARD}>
-            {sideHead(t('costs.settleUp'), <CountPill>{(settlement?.flows || []).length}</CountPill>, canEdit && (
+            {sideHead(t('costs.settleUp'), <CountPill>{flows.length}</CountPill>, canEdit && (
               <button type="button" onClick={() => setAddingPayment(true)}
                 className="inline-flex items-center gap-1 rounded-full bg-surface-card px-2.5 py-1 font-semibold text-content-muted shadow-sm hover:text-content" style={fs(11.5)}>
                 <Plus size={12} /> {t('costs.addPayment')}
@@ -368,7 +374,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           {/* balances */}
           <section aria-label={t('costs.balances')} className={SIDE_CARD}>
             {sideHead(t('costs.balances'))}
-            <div className="px-4 py-4">{BalancesList({ balances: settlement?.balances || [] })}</div>
+            <div className="px-4 py-4">{BalancesList({ balances: balancesKnown ? settlement?.balances || [] : [] })}</div>
           </section>
 
           {/* final budget */}
@@ -376,16 +382,18 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             {sideHead(t('costs.finalBudget'))}
             <div className="px-4 py-4">{FinalBudgetList()}</div>
           </section>
+          </>}
 
           {/* by category; the table view sums up four ways instead */}
           {view === 'table' ? (
-            <CostsTableSummary items={filtered} baseTotal={baseTotal} toBase={booked} fmt={v => fmt(v)} personName={personName} />
+            <CostsTableSummary items={filtered} baseTotal={baseTotal} toBase={booked} fmt={v => fmt(v)} personName={personName} splitting={splitting} />
           ) : (
             <section aria-label={t('costs.byCategory')} className={SIDE_CARD}>
               {sideHead(t('costs.byCategory'))}
-              <div className="px-4 py-4">{CategoryBreakdown()}</div>
+              <div className="px-4 py-4">{categoryBars}</div>
             </section>
           )}
+          <CostsModeCard trip={trip} memberCount={people.length} canEdit={canEdit} className={SIDE_CARD} />
         </div>
       </div>
       </div>)}
@@ -447,10 +455,9 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     return <div className="text-content-muted" style={{ textAlign: 'center', padding: '14px 8px', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))' }}>{t('common.unknownError')}</div>
   }
 
-  // ── shared settle-flow list ──────────────────────────────────────────────
   function SettleFlows() {
     if (settlementError) return loadFailed()
-    const flows = settlement?.flows || []
+    if (!balancesKnown) return <div className="text-center text-content-faint">{UNKNOWN_AMOUNT}</div>
     if (flows.length === 0) return (
       <div style={{ textAlign: 'center', padding: '14px 8px' }}>
         <div style={{ width: 46, height: 46, borderRadius: '50%', margin: '0 auto 10px', display: 'grid', placeItems: 'center', background: 'rgba(22,163,74,0.12)', color: '#16a34a' }}><Check size={22} /></div>
@@ -470,7 +477,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             </Tooltip>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
               <span className="text-content" style={{ fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 700 }}>{fmt(f.amount)}</span>
-              {canEdit && <button type="button" aria-label={`${t('costs.settle')}: ${transferLabel(f.from.user_id, f.to.user_id)}, ${fmt(f.amount)}`} onClick={() => settleFlow(f.from.user_id, f.to.user_id, f.amount)} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '7px 12px', borderRadius: 9, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>{t('costs.settle')}</button>}
+              {canSettle && <button type="button" aria-label={`${t('costs.settle')}: ${transferLabel(f.from.user_id, f.to.user_id)}, ${fmt(f.amount)}`} onClick={() => settleFlow(f.from.user_id, f.to.user_id, f.amount)} className="bg-[var(--text-primary)] text-[var(--bg-primary)]" style={{ padding: '7px 12px', borderRadius: 9, fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 600, border: 0, cursor: 'pointer', fontFamily: 'inherit' }}>{t('costs.settle')}</button>}
             </div>
           </div>
         ))}
@@ -494,10 +501,10 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         <section style={{ background: 'linear-gradient(135deg,#1f2937,#111827)', color: '#fff', borderRadius: 22, padding: '20px 20px 16px', boxShadow: '0 8px 24px -8px rgba(0,0,0,0.28)' }}>
           <div style={{ fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', textTransform: 'uppercase', letterSpacing: '0.12em', color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>{t('costs.totalSpend')}</div>
           <div style={{ fontSize: 'calc(44px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.04em', lineHeight: 1, marginTop: 8, display: 'flex', alignItems: 'baseline' }}>{bigMoney(totals.totalSpend, 24, 'rgba(255,255,255,0.6)')}</div>
-          <div style={{ display: 'flex', gap: 18, marginTop: 12, fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'rgba(255,255,255,0.6)', flexWrap: 'wrap' }}>
+          {splitting && <div style={{ display: 'flex', gap: 18, marginTop: 12, fontSize: 'calc(12px * var(--fs-scale-body, 1))', color: 'rgba(255,255,255,0.6)', flexWrap: 'wrap' }}>
             <span>{t('costs.yourShare')} <b style={{ color: '#fff', fontWeight: 600, marginInlineStart: 4 }}>{fmt0(totals.myShare)}</b></span>
             <span>{t('costs.youPaid')} <b style={{ color: '#fff', fontWeight: 600, marginInlineStart: 4 }}>{fmt0(totals.myPaid)}</b></span>
-          </div>
+          </div>}
           {canEdit && (
             <button type="button" onClick={() => { setEditing(null); setModalOpen(true) }} style={{ marginTop: 16, width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.16)', color: '#fff', padding: 13, borderRadius: 14, fontSize: 'calc(14px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
               <Plus size={17} /> {t('costs.addExpense')}
@@ -512,19 +519,20 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
           )}
         </section>
 
-        {/* Owe / Owed */}
+        {/* Owe / Owed, outstanding and settling up: only with something to split (#2689) */}
+        {splitting && <>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
           <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
             <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', marginBottom: 10, background: '#dc262622', color: '#dc2626' }}><ArrowDown size={17} /></div>
             <div className="text-content" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('costs.youOwe')}</div>
             <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))' }}>{t('costs.youOweSub')}</div>
-            <div style={{ fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 12, display: 'flex', alignItems: 'baseline', color: '#dc2626' }}>{bigMoney(totals.owe, 16, 'var(--c-ink3)')}</div>
+            <div style={{ fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 12, display: 'flex', alignItems: 'baseline', color: '#dc2626' }}>{balancesKnown ? bigMoney(totals.owe, 16, 'var(--c-ink3)') : UNKNOWN_AMOUNT}</div>
           </div>
           <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
             <div style={{ width: 34, height: 34, borderRadius: 10, display: 'grid', placeItems: 'center', marginBottom: 10, background: '#16a34a22', color: '#16a34a' }}><ArrowUp size={17} /></div>
             <div className="text-content" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{t('costs.youreOwed')}</div>
             <div className="text-content-faint" style={{ fontSize: 'calc(10.5px * var(--fs-scale-caption, 1))' }}>{t('costs.youreOwedSub')}</div>
-            <div style={{ fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 12, display: 'flex', alignItems: 'baseline', color: '#16a34a' }}>{bigMoney(totals.owed, 16, 'var(--c-ink3)')}</div>
+            <div style={{ fontSize: 'calc(27px * var(--fs-scale-title, 1))', fontWeight: 700, letterSpacing: '-0.03em', lineHeight: 1, marginTop: 12, display: 'flex', alignItems: 'baseline', color: '#16a34a' }}>{balancesKnown ? bigMoney(totals.owed, 16, 'var(--c-ink3)') : UNKNOWN_AMOUNT}</div>
           </div>
         </div>
 
@@ -543,18 +551,20 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         {/* Settle up */}
         <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14, gap: 8 }}>
-            <div className="text-content" style={{ fontSize: 'calc(19px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.02em', display: 'flex', alignItems: 'baseline', gap: 8 }}>{t('costs.settleUp')} <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500 }}>{(settlement?.flows || []).length}</span></div>
+            <div className="text-content" style={{ fontSize: 'calc(19px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.02em', display: 'flex', alignItems: 'baseline', gap: 8 }}>{t('costs.settleUp')} <span className="text-content-faint" style={{ fontSize: 'calc(12px * var(--fs-scale-body, 1))', fontWeight: 500 }}>{flows.length}</span></div>
             {canEdit && (
               <button type="button" onClick={() => setAddingPayment(true)} className="text-content-muted bg-surface-card border border-edge" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, padding: '6px 10px', borderRadius: 9, fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}><Plus size={13} /> {t('costs.addPayment')}</button>
             )}
           </div>
           {SettleFlows()}
         </div>
+        </>}
 
         {/* Expenses */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-            <div className="text-content" style={{ fontSize: 'calc(19px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.02em' }}>{t('costs.expenses')}</div>
+            <div className="text-content" style={{ fontSize: 'calc(19px * var(--fs-scale-subtitle, 1))', fontWeight: 700, letterSpacing: '-0.02em', marginInlineEnd: 'auto' }}>{t('costs.expenses')}</div>
+            <CostsCurrencyPicker value={base} options={baseOptions} onChange={setBase} />
             <Tooltip label={t('budget.exportCsv')}>
             <button type="button" onClick={handleExportCsv} aria-label={t('budget.exportCsv')} disabled={!budgetItems.length}
               className="bg-surface-card border border-edge text-content-muted disabled:opacity-40"
@@ -567,11 +577,11 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             <Search size={16} className="text-content-faint" />
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder={t('costs.searchPlaceholder')} className="text-content" style={{ border: 0, background: 'none', outline: 'none', fontSize: 'calc(14px * var(--fs-scale-body, 1))', width: '100%', fontFamily: 'inherit' }} />
           </div>
-          <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 11, padding: 3, gap: 2 }}>
+          {splitting && <div className="bg-surface-secondary" style={{ display: 'flex', borderRadius: 11, padding: 3, gap: 2 }}>
             {(['all', 'mine', 'owed'] as const).map(f => (
               <button type="button" key={f} onClick={() => setFilter(f)} className={filter === f ? 'bg-surface-card text-content' : 'text-content-muted'} style={{ flex: 1, padding: '8px 6px', fontSize: 'calc(12.5px * var(--fs-scale-body, 1))', fontWeight: 500, borderRadius: 8, border: 0, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>{t('costs.filter.' + f)}</button>
             ))}
-          </div>
+          </div>}
           <div style={{ display: 'flex', gap: 8 }}>
             <CustomSelect value={catFilter} onChange={v => setCatFilter(String(v))} options={categoryOptions} size="sm" style={{ flex: 1, minWidth: 0 }} />
             <CustomSelect value={dayFilter} onChange={v => setDayFilter(String(v))} options={dayOptions} size="sm" searchable style={{ flex: 1, minWidth: 0 }} />
@@ -592,23 +602,25 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               })}
         </div>
 
-        {/* Balances */}
+        {/* Balances and the final budget */}
+        {splitting && <>
         <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
           <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.balances')}</div>
-          {BalancesList({ balances: settlement?.balances || [] })}
+          {BalancesList({ balances: balancesKnown ? settlement?.balances || [] : [] })}
         </div>
 
-        {/* Final budget */}
         <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
           <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.finalBudget')}</div>
           {FinalBudgetList()}
         </div>
+        </>}
 
         {/* By category */}
         <div className={cardCls} style={{ borderRadius: 18, padding: 16 }}>
           <div className={labelCls} style={{ marginBottom: 14 }}>{t('costs.byCategory')}</div>
-          {CategoryBreakdown()}
+          {categoryBars}
         </div>
+        <CostsModeCard trip={trip} memberCount={people.length} canEdit={canEdit} className={`${cardCls} rounded-[18px]`} />
       </div>
     )
   }
@@ -646,9 +658,10 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
     const c = catMeta(e.category)
     const Icon = c.Icon
     const line = lineOf(e.total_price || 0, e, baseTotal(e))
-    const payers = (e.payers || []).filter(p => p.amount !== 0)
-    const net = round2(myPaidOf(e) - myShareOf(e))
-    const unfinished = isUnfinished(e)
+    // Payers, the split and what is still open say nothing with nothing to split (#2689).
+    const payers = splitting ? (e.payers || []).filter(p => p.amount !== 0) : []
+    const net = splitting ? round2(myPaidOf(e) - myShareOf(e)) : 0
+    const unfinished = splitting && isUnfinished(e)
     const note = readUserNote(e)
 
     // Fixed columns, identical on every row, so the eye can run down the list
@@ -738,7 +751,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
               ))}
             </div>
           )}
-          {SplitChips({ e })}
+          {splitting && <CostsSplitChips e={e} avatar={(id, size) => <Avatar id={id} size={size} />}
+            personName={personName} shareOf={shareOf} fmt={v => fmt(v)} />}
         </div>
 
         {/* The note, marked by a rule in the category colour instead of a box, so
@@ -748,7 +762,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         {/* The money, and what to do with it. */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, whiteSpace: 'nowrap' }}>
-            <span className="bg-surface-card border border-edge-faint text-content" style={{ display: 'inline-flex', alignItems: 'center', padding: isMobile ? '0' : '6px 13px', borderRadius: 999, border: isMobile ? 0 : undefined, background: isMobile ? 'none' : undefined, fontSize: isMobile ? 'calc(18px * var(--fs-scale-subtitle, 1))' : 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{awaitingConversion(e, tripCurrency) ? t('costs.exchangeRates.awaitingConversion') : fmt(baseTotal(e))}</span>
+            <span className="bg-surface-card border border-edge-faint text-content" style={{ display: 'inline-flex', alignItems: 'center', padding: isMobile ? '0' : '6px 13px', borderRadius: 999, border: isMobile ? 0 : undefined, background: isMobile ? 'none' : undefined, fontSize: isMobile ? 'calc(18px * var(--fs-scale-subtitle, 1))' : 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{awaitingDisplayConversion(e, ctx) ? t('costs.exchangeRates.awaitingConversion') : fmt(baseTotal(e))}</span>
             {!unfinished && (e.members || []).length > 0 && Math.abs(net) > 0.01 && (
               <span style={{ display: 'inline-flex', alignItems: 'center', padding: isMobile ? 0 : '2px 9px', borderRadius: 999, background: isMobile ? 'none' : (net > 0 ? 'rgba(22,163,74,0.13)' : 'rgba(220,38,38,0.13)'), fontSize: 'calc(11.5px * var(--fs-scale-caption, 1))', fontWeight: 600, color: net > 0 ? '#16a34a' : '#dc2626' }}>
                 {net > 0 ? t('costs.youLent', { amount: fmt(net) }) : t('costs.youBorrowed', { amount: fmt(-net) })}
@@ -758,39 +772,6 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
         </div>
       </div>
       {canEdit && RowActions({ onEdit: () => { setEditing(e); setModalOpen(true) }, onDelete: () => deleteConfirm.ask(e), deleteLabel: t('common.delete'), name: e.name })}
-      </div>
-    )
-  }
-
-  // Who an expense is split between and each one's part (#1763), so checking that
-  // the right people are in no longer means opening every expense. Quieter than
-  // the payer chips above, and capped so a large group cannot crowd the row.
-  function SplitChips({ e }: { e: BudgetItem }) {
-    const members = e.members || []
-    if (members.length === 0) return null
-    const shown = members.length > SPLIT_CHIP_MAX ? members.slice(0, SPLIT_CHIP_MAX - 1) : members
-    const rest = members.slice(shown.length)
-    const chip = 'inline-flex items-center gap-[5px] rounded-full bg-surface-tertiary text-content-secondary'
-    return (
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 5, marginTop: 6 }}>
-        <span className="text-content-faint" style={{ fontSize: 'calc(10px * var(--fs-scale-caption, 1))', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', marginInlineEnd: 2 }}>{t('costs.split')}</span>
-        {shown.map(m => {
-          const share = fmt(shareOf(e, m.user_id))
-          return (
-            <Tooltip key={m.user_id} label={t('costs.splitChipLabel', { name: personName(m.user_id), amount: share })}>
-            <span className={chip} data-testid="split-chip" style={{ paddingBlock: 2, paddingInline: '2px 8px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))' }}>
-              <Avatar id={m.user_id} size={16} />
-              <span style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>{share}</span>
-              {m.paid ? <Check size={11} strokeWidth={2.6} className="text-success" aria-label={t('costs.paid')} /> : null}
-            </span>
-            </Tooltip>
-          )
-        })}
-        {rest.length > 0 && (
-          <Tooltip label={rest.map(m => t('costs.splitChipLabel', { name: personName(m.user_id), amount: fmt(shareOf(e, m.user_id)) })).join(', ')}>
-          <span className={chip} style={{ padding: '2px 8px', fontSize: 'calc(11px * var(--fs-scale-caption, 1))', fontWeight: 700 }}>+{rest.length}</span>
-          </Tooltip>
-        )}
       </div>
     )
   }
@@ -840,7 +821,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
             so its amount lands on the same axis as every expense above it. */}
         {!isMobile && NoteCell({ note: s.note || '', noteKey: 's' + s.id, color: '#16a34a' })}
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, alignSelf: 'center' }}>
-          <span className="bg-surface-card border border-edge-faint text-content" style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 13px', borderRadius: 999, fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{awaitingConversion(s, tripCurrency) ? t('costs.exchangeRates.awaitingConversion') : fmt(settled(s))}</span>
+          <span className="bg-surface-card border border-edge-faint text-content" style={{ display: 'inline-flex', alignItems: 'center', padding: '6px 13px', borderRadius: 999, fontSize: 'calc(15px * var(--fs-scale-subtitle, 1))', fontWeight: 700, whiteSpace: 'nowrap', fontVariantNumeric: 'tabular-nums' }}>{awaitingDisplayConversion(s, ctx) ? t('costs.exchangeRates.awaitingConversion') : fmt(settled(s))}</span>
         </div>
       </div>
       {canEdit && (
@@ -902,7 +883,7 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
    */
   function FinalBudgetList() {
     if (settlementError) return loadFailed()
-    const finals = settlement?.finalBudgets || []
+    const finals = balancesKnown ? settlement?.finalBudgets || [] : []
     const rows = [
       ...people.map(p => finalBudgetFor(finals, p)),
       ...formerParticipantRows(people.map(p => p.id), finals, f => Math.abs(f.final) >= 0.005 || Math.abs(f.expenses) >= 0.005),
@@ -1009,36 +990,8 @@ export default function CostsPanel({ tripId, tripMembers = [] }: CostsPanelProps
       </div>
     )
   }
-
-  function CategoryBreakdown() {
-    // Categories net refunds against spend (#2176): a negative entry lowers its
-    // category's sum, and a category that nets negative keeps its own row,
-    // just without a bar, since the bars rank positive spend. Bars are scaled
-    // relative to the most expensive category (the top row fills the bar), not
-    // to the trip grand total, which makes the relative ranking readable.
-    if (catBreakdown.length === 0) return <div className="text-content-faint" style={{ fontSize: 'calc(12.5px * var(--fs-scale-body, 1))' }}>{t('costs.noCategories')}</div>
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {catBreakdown.map(row => {
-          const c = COST_CAT_META[row.key]
-          const v = row.amount; const pct = row.widthPct
-          return (
-            <div key={row.key} style={{ display: 'grid', gridTemplateColumns: 'auto 1fr auto', gap: 10, alignItems: 'center' }}>
-              <span style={{ width: 10, height: 10, borderRadius: 3, background: c.color }} />
-              <span className="text-content" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500 }}>{t(c.labelKey)}</span>
-              <span className="text-content-muted" style={{ fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600 }}>{fmt0(v)}</span>
-              <div className="bg-surface-secondary" style={{ gridColumn: '1 / -1', height: 5, borderRadius: 3, overflow: 'hidden', marginTop: -2 }}>
-                <span style={{ display: 'block', height: '100%', width: pct + '%', background: c.color, borderRadius: 3 }} />
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    )
-  }
 }
 
-// ── pure subcomponents ─────────────────────────────────────────────────────
 // ── Add / edit expense modal ───────────────────────────────────────────────
 export interface ExpensePrefill {
   name?: string
@@ -1062,18 +1015,19 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const titleId = useId()
   const {
     cat, currency, customAmounts, customBalanced, day, disableMultiPayer, each, enableMultiPayer, equalShares, fx, rate,
-    handleAddEmptyItem, handleCustomAmountChange, handleReceiptFileSelect, handleRemoveItem, handleRemovePendingReceipt,
+    handleAddEmptyItem, handleCustomAmountChange, handleLinkReceipt, handleReceiptFileSelect, handleRemoveItem, linkableFiles,
+    handleRemovePendingReceipt,
     handleRemoveReceipt, handleToggleItemParticipant, handleUpdateItemName, handleUpdateItemPrice, isTicketMode,
     multiPayer, name, nameOf, note, onPayerAmountChange, onTotalChange, participants, payerAmounts, payerId, payerIds,
     payersOk, pendingReceiptFiles, placeholderShares, previewReceipts: modalPreviewReceipts, receipts, save, saving,
-    setCat, setCurrency, setCustomAmounts, setDay, setName, setNote, setPayerId,
+    setCat, setCurrency, setDay, setName, setNote, setPayerId, showSplit, splitUnits: units,
     setPreviewReceipts: setModalPreviewReceipts, setSplitMode, splitMode, splitShortfall, splitSum, sym, ticketInfo,
     ticketItems, toggleParticipant, togglePayer, total, totalNum, tripCur, uploadingReceipt, valid,
   } = useExpenseForm({ tripId, base, people, me, editing, prefill, onSaved })
 
-  // The custom split typed as percentages instead of amounts (#1709).
-  const pct = usePercentSplit({ total: totalNum, participants, customAmounts, setCustomAmounts, currency })
-  const inPercent = splitMode === 'custom' && pct.unit === 'percent'
+  // A custom split typed as percentages (#1709) or shares (#1165), each field showing its amount.
+  const inUnits = splitMode === 'custom' && units.unit !== 'amount'
+  const inPercent = inUnits && units.unit === 'percent'
 
   const catInfo = catMeta(cat)
   const money = (v: number) => formatMoney(v, currency, locale)
@@ -1098,7 +1052,6 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const personName = (p: TripMember, on: boolean) => (
     <span className={`truncate font-medium ${on ? 'text-content' : 'text-content-faint'}`} style={fs(13.5, 'body')}>{nameOf(p)}</span>
   )
-  const excludedNote = <span />
   const modeHint = (text: string) => <p className="m-0 mb-2.5 text-content-faint" style={fs(12, 'body')}>{text}</p>
   // Figures sit in badges, so an amount never reads as part of the sentence beside it.
   const BADGE = 'inline-flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-[3px] font-geist font-semibold tabular-nums'
@@ -1110,7 +1063,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const payerSection = (
     <DialogSection
       label={t('costs.whoPaid')}
-      className={GROUP}
+      className={GROUP} tallAction
       action={(
         <Segmented<'one' | 'several'>
           label={t('costs.whoPaid')}
@@ -1168,7 +1121,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                         onValueChange={v => onPayerAmountChange(p.id, v)}
                         className={AMOUNT_INPUT} style={fs(13.5, 'body')} />
                     </div>
-                  ) : excludedNote}
+                  ) : <span />}
                 </div>
               )
             })}
@@ -1184,7 +1137,7 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
   const splitSection = (
     <DialogSection
       label={t('costs.split') || 'Split'}
-      className={GROUP}
+      className={GROUP} tallAction
       action={(
         <Segmented<'equally' | 'custom' | 'ticket'>
           label={t('costs.split') || 'Split'}
@@ -1200,14 +1153,15 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
     >
       {splitMode === 'custom' ? (
         <div className="mb-2.5 flex items-center justify-between gap-3">
-          <p className="m-0 min-w-0 text-content-faint" style={fs(12, 'body')}>{t(inPercent ? 'costs.splitHint.percent' : 'costs.splitHint.custom')}</p>
+          <p className="m-0 min-w-0 text-content-faint" style={fs(12, 'body')}>{t(inPercent ? 'costs.splitHint.percent' : inUnits ? 'costs.splitHint.shares' : 'costs.splitHint.custom')}</p>
           <Segmented<CustomSplitUnit>
             label={t('costs.splitUnit')}
-            value={pct.unit}
-            onChange={pct.setUnit}
+            value={units.unit}
+            onChange={units.setUnit}
             options={[
               { value: 'amount', label: sym(currency) },
               { value: 'percent', label: '%' },
+              { value: 'shares', label: t('costs.splitUnitShares') },
             ]}
           />
         </div>
@@ -1295,15 +1249,16 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
                     {personName(p, on)}
                     {p.is_guest && <GuestBadge size="xs" customTooltip />}
                   </button>
-                  {!on ? excludedNote : splitMode === 'equally' ? (
+                  {!on ? <span /> : splitMode === 'equally' ? (
                     <span className="text-end">{badge(money(equalShares[p.id] || 0))}</span>
-                  ) : inPercent ? (
+                  ) : inUnits ? (
                     <div className="flex flex-col items-end gap-0.5">
                       <div className={`${AMOUNT_BOX} w-full`}>
-                        <input type="text" inputMode="decimal" aria-label={`${nameOf(p)} %`} placeholder={pct.placeholderPercent} value={pct.percents[p.id] ?? ''}
-                          onChange={e => pct.onPercentChange(p.id, e.target.value)}
+                        <input type="text" inputMode="decimal" placeholder={units.placeholder}
+                          aria-label={inPercent ? `${nameOf(p)} %` : t('costs.splitSharesOf', { name: nameOf(p) })}
+                          value={units.entries[p.id] ?? ''} onChange={e => units.onEntryChange(p.id, e.target.value)}
                           className={AMOUNT_INPUT} style={fs(13.5, 'body')} />
-                        <span className="text-content-faint" style={fs(13, 'body')}>%</span>
+                        {inPercent && <span className="text-content-faint" style={fs(13, 'body')}>%</span>}
                       </div>
                       {customAmounts[p.id] && <span className="font-geist tabular-nums text-content-faint" style={fs(10.5)}>{money(Number.parseFloat(customAmounts[p.id]) || 0)}</span>}
                     </div>
@@ -1327,8 +1282,8 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
               </>
             ) : customBalanced ? (
               badge(<><Check size={12} strokeWidth={3} />{t('costs.splitBalanced')}</>, 'success')
-            ) : inPercent ? (
-              badge(<><AlertCircle size={12} strokeWidth={2.4} />{t('costs.splitPercentOff', { sum: String(Math.round(pct.percentSum * 100) / 100) })}</>, 'danger')
+            ) : inUnits ? (
+              badge(<><AlertCircle size={12} strokeWidth={2.4} />{inPercent ? t('costs.splitPercentOff', { sum: String(Math.round(units.percentSum * 100) / 100) }) : t('costs.splitSharesNone')}</>, 'danger')
             ) : (
               badge(<><AlertCircle size={12} strokeWidth={2.4} />{t(splitShortfall > 0 ? 'costs.splitSumUnder' : 'costs.splitSumOver', {
                 sum: money(splitSum),
@@ -1338,66 +1293,6 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
             )}
           </div>
         </>
-      )}
-    </DialogSection>
-  )
-
-  const receiptRow = 'flex items-center justify-between gap-2 rounded-[10px] border border-edge-faint bg-surface-secondary px-3 py-2'
-  const receiptsSection = (
-    <DialogSection
-      label={t('costs.receiptsTitle') || t('costs.receipts')}
-      className={GROUP}
-      action={(
-        <label className="inline-flex cursor-pointer items-center gap-1 rounded-full bg-surface-tertiary px-2.5 py-1 font-semibold text-content-muted hover:text-content" style={fs(11.5)}>
-          <input
-            type="file"
-            multiple
-            accept="image/*,application/pdf"
-            className="hidden"
-            onChange={e => {
-              handleReceiptFileSelect(e.target.files)
-              e.target.value = ''
-            }}
-          />
-          <Plus size={12} /> {t('costs.attach')}
-        </label>
-      )}
-    >
-      {uploadingReceipt && (
-        <div className="mb-2 text-content-faint" style={fs(12)}>{t('common.saving')}...</div>
-      )}
-      {receipts.length === 0 && pendingReceiptFiles.length === 0 ? (
-        <div className="py-1 text-content-faint" style={fs(12.5, 'body')}>{t('costs.noReceipts')}</div>
-      ) : (
-        <div className="flex flex-col gap-1.5">
-          {receipts.map((r, rIdx) => (
-            <div key={r.id} className={receiptRow}>
-              <button type="button" onClick={() => setModalPreviewReceipts({ receipts, initialIndex: rIdx })}
-                className="inline-flex min-w-0 items-center gap-2 text-start text-content hover:underline" style={fs(13, 'body')}>
-                <Receipt size={14} className="flex-shrink-0 text-content-faint" />
-                <span className="truncate">{r.original_name}</span>
-              </button>
-              <Tooltip label={t('costs.deleteReceipt')}>
-                <button type="button" onClick={() => handleRemoveReceipt(r.id)} aria-label={t('costs.deleteReceipt')} className="flex p-1 text-content-muted hover:text-danger">
-                  <Trash2 size={14} />
-                </button>
-              </Tooltip>
-            </div>
-          ))}
-          {pendingReceiptFiles.map((file, idx) => (
-            <div key={idx} className={receiptRow}>
-              <div className="inline-flex min-w-0 items-center gap-2" style={fs(13, 'body')}>
-                <Paperclip size={14} className="flex-shrink-0 text-content-faint" />
-                <span className="truncate text-content">{file.name}</span>
-              </div>
-              <Tooltip label={t('costs.deleteReceipt')}>
-                <button type="button" onClick={() => handleRemovePendingReceipt(idx)} aria-label={t('costs.deleteReceipt')} className="flex p-1 text-content-muted hover:text-danger">
-                  <Trash2 size={14} />
-                </button>
-              </Tooltip>
-            </div>
-          ))}
-        </div>
       )}
     </DialogSection>
   )
@@ -1457,32 +1352,21 @@ export function ExpenseModal({ tripId, base, people, me, editing, prefill, onClo
 
         <ItemExchangeRateFields rate={rate} currency={currency} tripCurrency={tripCur}
           t={t} locale={locale} />
-        {fx && (
-          <div className="flex flex-wrap items-center gap-1.5 text-content-faint" style={fs(12, 'body')}>
-            {badge(formatMoney(totalNum, currency, locale))}
-            {fx.inTrip != null && <>
-              <span>→</span>
-              {badge(formatMoney(fx.inTrip, tripCur, locale))}
-            </>}
-            {fx.shown != null && <>
-              <span>≈</span>
-              {badge(formatMoney(fx.shown, base, locale))}
-              <span>{t('costs.liveRate')}</span>
-            </>}
-          </div>
-        )}
+        <ExpenseFxPreview fx={fx} amount={totalNum} currency={currency} tripCurrency={tripCur} base={base} />
         </div>
 
-        {payerSection}
-        {splitSection}
+        {showSplit && payerSection}
+        {showSplit && splitSection}
 
-        {/* Side by side the two panels share one height. */}
         <div className={isMobile ? 'flex flex-col gap-5' : 'grid grid-cols-2 gap-3'}>
           <EditorField label={t('costs.note')} htmlFor="expense-note" className={GROUP}>
             <textarea id="expense-note" value={note} onChange={e => setNote(e.target.value)} rows={3}
               placeholder={t('costs.notePlaceholder')} maxLength={NOTE_MAX} className={`${TEXTAREA} resize-y`} />
           </EditorField>
-          {receiptsSection}
+          <ExpenseReceiptsSection className={GROUP} receipts={receipts} pendingFiles={pendingReceiptFiles} uploading={uploadingReceipt}
+            linkable={linkableFiles} onPick={handleReceiptFileSelect} onLink={handleLinkReceipt}
+            onPreview={index => setModalPreviewReceipts({ receipts, initialIndex: index })}
+            onRemove={handleRemoveReceipt} onRemovePending={handleRemovePendingReceipt} />
         </div>
       </DialogShell>
 

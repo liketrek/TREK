@@ -35,6 +35,8 @@ struct WidgetSnapshot: Codable {
     }
 
     struct Today: Codable {
+        /// The calendar day it is, yyyy-MM-dd (absent from an app that predates `days`).
+        var date: String?
         var dayLabel: String
         var stops: [Stop]
         /// 1-based position of today in the trip.
@@ -160,6 +162,38 @@ struct WidgetSnapshot: Codable {
         }
     }
 
+    /// The trip's next flight or the one in the air, for the flight widget.
+    /// Times are epoch seconds, so the widget moves its countdown and its
+    /// aircraft on with the clock between two snapshots; the clock times at
+    /// either airport come formatted, the widget has no zone data.
+    struct Flight: Codable {
+        var number: String
+        var from: String
+        var to: String
+        var fromCity: String?
+        var toCity: String?
+        var dep: Double
+        var arr: Double
+        /// Observed take-off.
+        var depActual: Double?
+        /// Before take-off: the planned departure plus the delay seen so far.
+        var depExpected: Double?
+        /// The feed saw the aircraft in the air when the app last looked.
+        var airborne: Bool?
+        /// Touchdown once landed, else the estimate while in the air.
+        var arrExpected: Double?
+        var landed: Bool?
+        var depTime: String
+        var arrTime: String
+        var arrTimeExpected: String?
+        /// Minutes late against the schedule, negative when early.
+        var delay: Int?
+        var aircraft: String?
+        /// When the feed last heard the aircraft.
+        var seen: Double?
+        var path: String
+    }
+
     struct Labels: Codable {
         var nextTrip: String
         var today: String
@@ -193,16 +227,36 @@ struct WidgetSnapshot: Codable {
         var votes: String?
         var noMessages: String?
         var departure: String?
+        var flight: String?
+        /// Contains "{time}", where the widget puts its running countdown.
+        var flightDeparts: String?
+        var flightInAir: String?
+        /// Contains "{time}".
+        var flightLands: String?
+        var flightLanded: String?
+        var flightOnTime: String?
+        /// Contains "{m}".
+        var flightLate: String?
+        /// Contains "{m}".
+        var flightEarly: String?
+        var flightEstimated: String?
+        /// Past the departure time with the aircraft not yet in the air.
+        var flightReady: String?
+        var noFlight: String?
     }
 
     var trip: Trip?
     var today: Today?
+    /// The trip's days from the day the app wrote this on, each with its date,
+    /// so the widget turns to the next day itself (see `on(_:)`).
+    var days: [Today]?
     var weather: Weather?
     var bookings: [Booking]?
     var todos: Todos?
     var packing: Packing?
     var atlas: Atlas?
     var collab: Collab?
+    var flight: Flight?
     var labels: Labels
 
     /// The dashboard's snapshot.
@@ -255,6 +309,28 @@ struct WidgetSnapshot: Codable {
         guard let trip, let start = WidgetSnapshot.day(trip.start), let end = WidgetSnapshot.day(trip.end),
               let days = WidgetSnapshot.daysBetween(start, end) else { return nil }
         return days + 1
+    }
+
+    /// The snapshot as it reads on `date`: that date's trip day out of `days`,
+    /// none before or after the trip, and only the bookings from that date on.
+    /// The app writes its snapshot only while it runs, so without this a widget
+    /// showed the day it last ran (TestFlight feedback: "stuck on day 1"). A
+    /// snapshot from an app without `days` reads as it was written.
+    func on(_ date: Date) -> WidgetSnapshot {
+        guard let days, !days.isEmpty else { return self }
+        let key = WidgetSnapshot.key(date)
+        var snapshot = self
+        if today?.date != key { snapshot.today = days.first { $0.date == key } }
+        snapshot.bookings = bookings?.filter { ($0.date ?? key) >= key }
+        return snapshot
+    }
+
+    /// A date as the app writes one, yyyy-MM-dd in the device's calendar day.
+    static func key(_ date: Date) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
     }
 
     static func daysBetween(_ from: Date, _ to: Date) -> Int? {

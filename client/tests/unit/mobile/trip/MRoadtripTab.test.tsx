@@ -899,11 +899,10 @@ describe('MRoadtripTab', () => {
       // The chips are the stop's, not stops: the count stays at two.
       expect(screen.getByText('roadtrip.day.stopCount:2')).toBeInTheDocument()
 
-      // A chip opens its booking in the editor, the way the place sheet opens a linked one.
+      // A chip opens its booking's detail sheet, the way the place sheet opens a linked one.
       fireEvent.click(screen.getByText('Tisch Bullerei'))
-      expect(p.setEditingReservation).toHaveBeenCalledWith(reservations[0])
-      expect(p.setShowReservationModal).toHaveBeenCalledWith(true)
-      expect(shell.openSheet).not.toHaveBeenCalled()
+      expect(shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: reservations[0].id })
+      expect(p.setShowReservationModal).not.toHaveBeenCalled()
     })
 
     it('FE-MOB-RTTAB-057: a transport chip goes to the transport sheet, and a table is not even a button for a member who may not edit bookings', () => {
@@ -992,9 +991,8 @@ describe('MRoadtripTab', () => {
         const editor = planner({ roadtripRoutes: routes({ days: [hotelStage()] }), reservations: [hotelBooking] })
         const first = renderTab(editor)
         fireEvent.click(screen.getByText('roadtrip.bookend.back'))
-        expect(editor.setEditingReservation).toHaveBeenCalledWith(hotelBooking)
-        expect(editor.setShowReservationModal).toHaveBeenCalledWith(true)
-        expect(first.shell.openSheet).not.toHaveBeenCalled()
+        expect(first.shell.openSheet).toHaveBeenCalledWith('transport', { reservationId: hotelBooking.id })
+        expect(editor.setShowReservationModal).not.toHaveBeenCalled()
         first.unmount()
 
         const dayEditor = planner({

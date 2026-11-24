@@ -373,6 +373,38 @@ describe('listFiles', () => {
     expect(files.find((f) => f.id === pinned.id).linked_assignment_ids).toEqual([stop.id]);
     expect(files.find((f) => f.id === bare.id).linked_assignment_ids).toEqual([]);
   });
+
+  it('FILE-SVC-014c: attachedOnly keeps the files a booking, place or expense carries and leaves out loose ones', async () => {
+    const { user, trip } = seedTrip();
+    const reservation = createReservation(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const item = await insertBudgetItem(trip.id, 'Dinner');
+    const onBooking = await makeFile(trip.id, user.id, {}, { reservation_id: reservation.id });
+    const onPlace = await makeFile(trip.id, user.id, {}, { place_id: place.id });
+    const receipt = await makeFile(trip.id, user.id, {}, { budget_item_id: item });
+    const loose = await makeFile(trip.id, user.id);
+
+    const files = (await svc.listFiles(trip.id, false, true)) as Record<string, unknown>[];
+    expect(files.map((f) => f.id).sort()).toEqual([onBooking.id, onPlace.id, receipt.id].sort());
+    const [receiptRow, looseRow] = await Promise.all([
+      svc.getFileById(receipt.id, trip.id),
+      svc.getFileById(loose.id, trip.id),
+    ]);
+    expect(receiptRow && (await svc.isAttached(receiptRow))).toBe(true);
+    expect(looseRow && (await svc.isAttached(looseRow))).toBe(false);
+  });
+
+  it('FILE-SVC-014d: isAttachedById answers for a trashed file too, and no for one of another trip', async () => {
+    const { user, trip } = seedTrip();
+    const other = seedTrip();
+    const receipt = await makeFile(trip.id, user.id, {}, { budget_item_id: await insertBudgetItem(trip.id, 'Dinner') });
+    const loose = await makeFile(trip.id, user.id);
+    await svc.softDeleteFile(receipt.id);
+
+    expect(await svc.isAttachedById(receipt.id, trip.id)).toBe(true);
+    expect(await svc.isAttachedById(loose.id, trip.id)).toBe(false);
+    expect(await svc.isAttachedById(receipt.id, other.trip.id)).toBe(false);
+  });
 });
 
 // ── receipts on an expense ────────────────────────────────────────────────────

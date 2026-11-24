@@ -125,9 +125,10 @@ describe('BudgetItemsMcp surface', () => {
       expect(options.name).toBe(name);
       expect(options.access).toEqual({ group: 'budget', mode: 'read' });
       expect(options.annotations).toMatchObject({ readOnlyHint: true, destructiveHint: false });
-      const enabled = vi.spyOn(t.get(AddonsService), 'isAddonEnabled').mockResolvedValue(false);
+      // Costs is a trip addon: the read is offered while the instance or any trip of the caller has it on.
+      const enabled = vi.spyOn(t.get(AddonsService), 'isEnabledForUserAnywhere').mockResolvedValue(false);
       expect(await options.when?.(ctx(1), mcp)).toBe(false);
-      expect(enabled).toHaveBeenCalledWith(ADDON_IDS.BUDGET);
+      expect(enabled).toHaveBeenCalledWith(1, ADDON_IDS.BUDGET);
       enabled.mockResolvedValue(true);
       expect(await options.when?.(ctx(1), mcp)).toBe(true);
     },

@@ -76,7 +76,7 @@ export default function MCollEditSheet({ target, onClose, onCreated, onRequestDe
             value={coverQuery}
             onChange={e => setCoverQuery(e.target.value)}
             onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void searchCover() } }}
-            placeholder={t('dashboard.unsplashSearchPlaceholder')}
+            enterKeyHint="search" placeholder={t('dashboard.unsplashSearchPlaceholder')}
             className={`${INPUT_CLS} min-w-0 flex-1`}
           />
           <button

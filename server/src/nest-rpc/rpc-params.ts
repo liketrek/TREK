@@ -1,3 +1,4 @@
+import { toRowId } from '../db/row-id';
 import { BadParams } from './rpc-errors';
 
 /**
@@ -15,14 +16,47 @@ export const num = (v: unknown, name: string): number => {
   return n;
 };
 
+/**
+ * A row id, or another whole number compared with an integer column (a list
+ * position, a pagination cursor): a safe integer or its decimal digits, read
+ * through toRowId. num() let '0x5', '5e0', 1.5 and 1e20 through,
+ * which SQLite matches against nothing while Postgres refuses the cast or reads
+ * the string its own way; a canonical numeric string still passes, as the
+ * published contract says. The refusal keeps num()'s message.
+ */
+export const rowIdParam = (v: unknown, name: string): number => {
+  const id = toRowId(v);
+  if (id === null) throw new BadParams(`${name} must be a number`);
+  return id;
+};
+
+/** rowIdParam for a param that may be left out: absent stays undefined, anything else must be a row id. */
+export const optionalRowIdParam = (v: unknown, name: string): number | undefined =>
+  v === undefined ? undefined : rowIdParam(v, name);
+
 export const str = (v: unknown, name: string): string => {
   if (typeof v !== 'string') throw new BadParams(`${name} must be a string`);
   return v;
 };
 
+/**
+ * A Buffer a plugin binds crosses the JSON IPC as its toJSON form,
+ * { type: 'Buffer', data: [bytes] }; it is bound as those bytes again.
+ */
+function reviveBuffer(v: unknown): unknown {
+  if (v === null || typeof v !== 'object' || Array.isArray(v)) return v;
+  const o = v as Record<string, unknown>;
+  if (o.type !== 'Buffer' || !Array.isArray(o.data) || Object.keys(o).length !== 2) return v;
+  const bytes: unknown[] = o.data;
+  return bytes.every((b) => Number.isInteger(b) && (b as number) >= 0 && (b as number) <= 255)
+    ? Buffer.from(bytes as number[])
+    : v;
+}
+
 export function asArgs(v: unknown): unknown[] {
   if (v == null) return [];
-  if (Array.isArray(v)) return v;
+  // The single-array bind form, args: [[a, b]], carries its Buffers one level down.
+  if (Array.isArray(v)) return v.map((a) => (Array.isArray(a) ? a.map(reviveBuffer) : reviveBuffer(a)));
   throw new BadParams('args must be an array');
 }
 

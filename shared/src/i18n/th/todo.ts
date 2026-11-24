@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'ลำดับความสำคัญ',
   'todo.detail.noPriority': 'ไม่มี',
   'todo.detail.create': 'สร้างงาน',
+  'todo.progressCount': 'เสร็จ {done} จาก {total}',
+  'todo.allDone': 'เสร็จทั้งหมด!',
+  'todo.filter.myShort': 'ของฉัน',
 };
 export default todo;

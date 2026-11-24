@@ -11,8 +11,17 @@ const pdf: TranslationStrings = {
     'Το iOS δεν μπορεί να εκτυπώσει από την εφαρμογή στην οθόνη Αφετηρίας. Το Safari ανοίγει αυτό το ταξίδι με έτοιμη την εξαγωγή, εκεί μπορείς να αποθηκεύσεις το PDF.',
   'pdf.pageBreakPerDay': 'Αλλαγή σελίδας ανά ημέρα',
   'pdf.transportNotes': 'Σημειώσεις μεταφορών',
+  'pdf.largeText': 'Μεγάλο κείμενο',
   'pdf.mapTitle': 'Επισκόπηση διαδρομής',
   'pdf.distanceLabel': 'Απόσταση',
   'pdf.mapCredit': 'Περιγράμματα χωρών: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Επισκόπηση',
+  'pdf.showPhotos': 'Φωτογραφίες',
+  'pdf.showDetails': 'Επικοινωνία και ωράριο',
+  'pdf.atAGlance': 'Με μια ματιά',
+  'pdf.bookings': 'Κρατήσεις και διαμονή',
+  'pdf.day': 'Ημέρα',
+  'pdf.stay': 'Διαμονή',
+  'pdf.plan': 'Πρόγραμμα',
 };
 export default pdf;

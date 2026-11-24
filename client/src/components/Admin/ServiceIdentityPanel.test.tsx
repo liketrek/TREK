@@ -39,11 +39,10 @@ describe('ServiceIdentityPanel', () => {
     const bar = screen.getByRole('progressbar', { name: 'admin.trekApi.quota.service.places' });
     expect(bar).toHaveAttribute('aria-valuenow', '2500');
     expect(bar).toHaveAttribute('aria-valuemax', '10000');
-    // What is left is the figure of the tile; used and the limit sit beside it as badges.
-    expect(screen.getByText('7,500')).toBeInTheDocument();
-    expect(screen.getByText('2,500')).toBeInTheDocument();
-    expect(screen.getByText('10,000')).toBeInTheDocument();
-    expect(screen.getByText('admin.trekApi.quota.limit')).toBeInTheDocument();
+    // One row per service: used of the limit beside the bar, what is left in its title.
+    const figure = screen.getByText('2,500').parentElement as HTMLElement;
+    expect(figure).toHaveTextContent('2,500 / 10,000');
+    expect(figure).toHaveAttribute('title', 'admin.trekApi.quota.remaining: 7,500');
     // The day starts again at the same time for every service, so it is said once, in the header.
     expect(screen.getAllByText('admin.trekApi.quota.resets')).toHaveLength(1);
     expect(screen.queryByText(/admin\.trekApi\.quota\.hint\./)).toBeNull();

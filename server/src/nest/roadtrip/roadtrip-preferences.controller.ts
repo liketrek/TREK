@@ -1,6 +1,6 @@
 import { ADDON_IDS } from '../../addons';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { RoadtripPreferencesService } from './roadtrip-preferences.service';
@@ -12,7 +12,7 @@ import { createZodDto } from 'nestjs-zod';
 export class PreferencesDto extends createZodDto(roadtripPreferencesUpdateSchema) {}
 
 @Controller('api/trips/:tripId/roadtrip/preferences')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.ROADTRIP, 'Road trip')
 export class RoadtripPreferencesController {
   constructor(private readonly preferences: RoadtripPreferencesService) {}

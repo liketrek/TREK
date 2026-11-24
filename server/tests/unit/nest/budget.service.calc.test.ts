@@ -383,7 +383,7 @@ describe('calculateSettlement', () => {
     expect(bob.balance).toBeCloseTo(-50, 2);
   });
 
-  it('#1335 a legacy row with the default rate stays out even when a live quote exists', async () => {
+  it('a legacy row uses a global quote when no exchange rate was frozen', async () => {
     await setupDb(
       [{ ...makeItem(1, 120), currency: 'USD', exchange_rate: 1 } as BudgetItem],
       [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
@@ -394,8 +394,8 @@ describe('calculateSettlement', () => {
       tripCurrency: 'EUR',
       rates: { EUR: 1, USD: 1.2 },
     });
-    expect(result.unconverted.item_ids).toEqual([1]);
-    expect(result.balances).toEqual([]);
+    expect(result.unconverted.item_ids).toEqual([]);
+    expect(result.flows.map((flow) => flow.amount)).toEqual([50]);
   });
 
   it('#1445 a settle-up transfer with a frozen currency+rate keeps the position balanced when rates drift', async () => {
@@ -1266,13 +1266,13 @@ describe('calculateSettlement: unconverted rows', () => {
     expect(result.flows.map((f) => f.amount)).toEqual([70.55]);
   });
 
-  it('baseRate never converts a row', async () => {
+  it('a bill in the selected currency keeps its amount when baseRate supplies the bridge', async () => {
     await setupDb(
       [{ ...makeItem(1, 100), currency: 'EUR', exchange_rate: 1 } as BudgetItem],
       [makeMember(1, 1, 'alice'), makeMember(1, 2, 'bob')],
       [makePayer(1, 1, 100, 'alice')],
     );
-    // 0.61 EUR per AUD would convert this bill arithmetically; it only relabels the result.
+    // The booking already used euros, so the flow can use the original euros.
     const result = await budget.calculateSettlement(1, {
       base: 'EUR',
       tripCurrency: 'AUD',
@@ -1280,8 +1280,8 @@ describe('calculateSettlement: unconverted rows', () => {
       baseRate: 0.61,
     });
     expect(result.currency).toBe('EUR');
-    expect(result.unconverted).toEqual({ item_ids: [1], settlement_ids: [], currencies: ['EUR'] });
-    expect(result.balances).toEqual([]);
+    expect(result.unconverted).toEqual({ item_ids: [], settlement_ids: [], currencies: [] });
+    expect(result.flows.map((flow) => flow.amount)).toEqual([50]);
   });
 });
 

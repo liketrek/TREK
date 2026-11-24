@@ -218,6 +218,39 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
   },
 
+  'tour-route-in-app': {
+    guide: guide('tour-route-in-app'),
+    // The hut trek: a hike, so the map apps follow it on foot.
+    start: async (p) => {
+      await openTourTrip(p, { day: null });
+      await toursTab(p).click();
+      await expect(row(p, TOUR_NAMES.hutToHut)).toBeVisible({ timeout: 30_000 });
+      await settle(p);
+    },
+    steps: [
+      {
+        target: (p) => row(p, TOUR_NAMES.hutToHut),
+        act: async (p) => {
+          await row(p, TOUR_NAMES.hutToHut).click();
+          await expect(head(p).getByRole('heading', { name: TOUR_NAMES.hutToHut, exact: true })).toBeVisible({
+            timeout: 30_000,
+          });
+          await settle(p);
+        },
+      },
+      {
+        target: (p) => footer(p).getByTestId('tour-route-apps'),
+        act: async (p) => {
+          await footer(p).getByTestId('tour-route-apps').click();
+          await expect(p.getByRole('menu')).toBeVisible();
+          await settle(p);
+        },
+      },
+      // No click: each entry hands the route to another app in a new tab.
+      only((p) => p.getByRole('menu')),
+    ],
+  },
+
   'tour-copy-keep': {
     guide: guide('tour-copy-keep'),
     start: async (p) => {

@@ -35,7 +35,7 @@ export function VisitTimingChips({
   const fixed = visitTimes(assignment);
   const clock = (value: string | null, offset = 0) =>
     value
-      ? `${formatClockTime(value, is12h)}${offset ? ` ${t('timing.dayOffset', { days: offset })}` : ''}`
+      ? `${formatClockTime(value, is12h)}${offset ? ` ${t('timing.dayOffset', { count: offset })}` : ''}`
       : t('timing.unknown');
   const arrival = clock(entry.arrival, entry.dayOffset);
   const departure = clock(entry.departure, entry.departureDayOffset ?? entry.dayOffset);

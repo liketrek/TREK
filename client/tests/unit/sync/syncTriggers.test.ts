@@ -11,6 +11,7 @@ const syncAll = vi.fn(() => Promise.resolve());
 const hydrate = vi.fn(() => Promise.resolve());
 const loadSettings = vi.fn(() => Promise.resolve());
 const reloadVisits = vi.fn();
+const loadTripAddons = vi.fn(() => Promise.resolve());
 
 let refetchCb: ((tripId: string) => void) | null = null;
 let preReconnect: (() => Promise<void>) | null = null;
@@ -36,6 +37,9 @@ vi.mock('../../../src/store/tripStore', () => ({
 vi.mock('../../../src/store/tourVisitStore', () => ({
   reloadTourVisits: (tripId: string) => reloadVisits(tripId),
 }));
+vi.mock('../../../src/store/tripAddonsStore', () => ({
+  useTripAddonsStore: { getState: () => ({ load: loadTripAddons }) },
+}));
 vi.mock('../../../src/store/settingsStore', () => ({
   useSettingsStore: { getState: () => ({ isLoaded: settingsLoaded, loadSettings }) },
 }));
@@ -50,7 +54,7 @@ const flushMicrotasks = async () => {
 };
 
 beforeEach(() => {
-  flush.mockClear(); syncAll.mockClear(); hydrate.mockClear(); loadSettings.mockClear(); reloadVisits.mockClear();
+  flush.mockClear(); syncAll.mockClear(); hydrate.mockClear(); loadSettings.mockClear(); reloadVisits.mockClear(); loadTripAddons.mockClear();
   refetchCb = null; preReconnect = null; reconnects = 0;
   settingsLoaded = false; authenticated = true;
   Object.defineProperty(navigator, 'onLine', { value: true, writable: true, configurable: true });
@@ -72,6 +76,12 @@ describe('syncTriggers', () => {
     registerSyncTriggers();
     refetchCb?.('7');
     expect(reloadVisits).toHaveBeenCalledWith('7');
+  });
+
+  it('the refetch after a reconnect reads the trip addons again, a switch pushed while the socket was down included', () => {
+    registerSyncTriggers();
+    refetchCb?.('7');
+    expect(loadTripAddons).toHaveBeenCalledWith(7);
   });
 
   it('also registers the pre-reconnect flush hook', () => {

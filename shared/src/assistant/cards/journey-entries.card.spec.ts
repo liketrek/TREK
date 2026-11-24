@@ -10,7 +10,7 @@ import { JOURNEY_CARD_LIMITS, journeyEntriesCardSchema, type JourneyEntryLook } 
 
 import { describe, expect, it } from 'vitest';
 
-// JRNCARD-001 to JRNCARD-006
+// JRNCARD-001 to JRNCARD-007
 
 function look(over: Partial<JourneyEntryLook> = {}): JourneyEntryLook {
   return {
@@ -28,7 +28,6 @@ function look(over: Partial<JourneyEntryLook> = {}): JourneyEntryLook {
     photoId: 7,
     video: false,
     photoCount: 4,
-    visibility: 'public',
     draft: false,
     fromTripPlace: false,
     dayIndex: 0,
@@ -54,6 +53,16 @@ describe('the journal entries card', () => {
     const parsed = trekCardSchema.parse(card([look(), look({ entryId: 13, photoId: null, dayIndex: 1 })]));
     expect(parsed.kind).toBe('journeyEntries');
     expect(journeyEntriesCardSchema.parse(parsed).entries).toHaveLength(2);
+  });
+
+  it('JRNCARD-007: a card stored while entries carried a visibility still reads, without it', () => {
+    // The field said "private" while the share link showed the entry; it is gone,
+    // and a conversation saved before keeps its cards.
+    const before = { ...look(), visibility: 'private' };
+    const stored = card([before]);
+    const parsed = journeyEntriesCardSchema.parse(stored);
+    expect(parsed.entries[0]).not.toHaveProperty('visibility');
+    expect(storedTrekCardSchema.parse(stored)).not.toBeNull();
   });
 
   it('JRNCARD-002: holds one to eight entries, a pending entry without an id among them', () => {

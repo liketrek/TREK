@@ -21,19 +21,22 @@ import { NumericInput } from '../shared/NumericInput';
 import { useToast } from '../shared/Toast';
 import { SYMBOLS } from './BudgetPanel.constants';
 import type { TripMember } from './BudgetPanelMemberChips';
-import type { CostsSettlement as Settlement } from './costsModel';
 import { NOTE_MAX } from './CostsPanel.helpers';
+import { type CostsSettlement } from './costsModel';
 import ItemExchangeRateFields from './ItemExchangeRateFields';
 import { useSettlementForm } from './useSettlementForm';
 
+/** The amount field's height, the same as the amount row of the expense dialog. */
 const FIELD_H = 40;
 
-// Add or edit a settle-up payment (from / to / amount / currency). Reachable inline
-// from the ledger row and from a manual "Add payment" button, so recording "I sent
-// money to X" works the same whether or not there's an outstanding expense behind it.
-// A transfer can be made in any currency — paying a rouble debt in euros is normal —
-// so it carries its own, defaulting to the display currency. The server freezes its
-// FX rate on write, the same way an expense's is frozen.
+/**
+ * Add or edit a settle-up payment (from / to / amount / currency). Reachable inline
+ * from the ledger row and from a manual "Add payment" button, so recording "I sent
+ * money to X" works the same whether or not there's an outstanding expense behind it.
+ * A transfer can be made in any currency (paying a rouble debt in euros is normal),
+ * so it carries its own, defaulting to the display currency. The server freezes its
+ * FX rate on write, the same way an expense's is frozen.
+ */
 export default function SettlementModal({
   tripId,
   people,
@@ -47,7 +50,7 @@ export default function SettlementModal({
   tripId: number;
   people: TripMember[];
   me: number;
-  editing: Settlement | null;
+  editing: CostsSettlement | null;
   currency: string;
   tripCurrency: string;
   onClose: () => void;

@@ -5,8 +5,8 @@
  */
 import 'reflect-metadata';
 
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { TRIP_PERMISSION_KEY, TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
 import { TourVisitsController } from '../../../src/nest/tours/tour-visits.controller';
@@ -30,9 +30,9 @@ describe('TourVisitsController', () => {
   it('TOUR-VISITS-CTL-001: sits behind the addon guard before auth and trip access; only a write needs day_edit', () => {
     expect(Reflect.getMetadata(PATH_METADATA, TourVisitsController)).toBe('api/trips/:tripId/tour-visits');
     expect(Reflect.getMetadata(GUARDS_METADATA, TourVisitsController)).toEqual([
-      AddonGuard,
       JwtAuthGuard,
       TripAccessGuard,
+      TripAddonGuard,
     ]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, TourVisitsController)).toEqual({ addonId: 'tours', label: 'Tours' });
     const routes = [

@@ -2,10 +2,11 @@ import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
+import { ParseRowIdPipe } from '../common/row-id.pipe';
 import { TripAccessGuard } from '../permissions/trip-access.guard';
 import { WalletPassService } from './wallet-pass.service';
 import { walletLanguage } from './wallet-pass.words';
-import { Controller, Get, Param, ParseIntPipe, Query, Res, UseGuards } from '@nestjs/common';
+import { Controller, Get, Param, Query, Res, UseGuards } from '@nestjs/common';
 import {
   googleWalletAvailabilityResponseSchema,
   googleWalletSaveResponseSchema,
@@ -32,8 +33,8 @@ export class WalletPassController {
   @Get(':id/wallet-pass')
   async pass(
     @CurrentUser() user: User,
-    @Param('tripId', ParseIntPipe) tripId: number,
-    @Param('id', ParseIntPipe) id: number,
+    @Param('tripId', ParseRowIdPipe) tripId: number,
+    @Param('id', ParseRowIdPipe) id: number,
     @Query('lang') lang: string | undefined,
     @Res() res: Response,
   ): Promise<void> {
@@ -53,8 +54,8 @@ export class WalletPassController {
   @ResponseContract(googleWalletSaveResponseSchema)
   async google(
     @CurrentUser() user: User,
-    @Param('tripId', ParseIntPipe) tripId: number,
-    @Param('id', ParseIntPipe) id: number,
+    @Param('tripId', ParseRowIdPipe) tripId: number,
+    @Param('id', ParseRowIdPipe) id: number,
     @Query('lang') lang: string | undefined,
   ): Promise<GoogleWalletSaveResponse> {
     return { saveUrl: await this.passes.googleSaveUrlFor(user.id, tripId, id, walletLanguage(lang)) };

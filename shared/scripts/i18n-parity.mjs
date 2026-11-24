@@ -95,8 +95,18 @@ export const NOT_PLURAL = [
   { key: 'help.center.step', because: 'the position of a step in a guide' },
   { key: 'help.center.stepOf', because: 'the position of a step in a guide' },
   { key: 'help.center.imageAlt', because: 'the position of a step in a guide' },
+  { key: 'flightLive.feet', because: 'a measured altitude with a unit symbol ("37,000 ft"), which does not inflect' },
+  { key: 'flightLive.meters', because: 'a measured altitude with a unit symbol ("11,278 m"), which does not inflect' },
+  { key: 'flightLive.mph', because: 'a measured speed with a unit symbol ("540 mph"), which does not inflect' },
+  { key: 'flightLive.kmh', because: 'a measured speed with a unit symbol ("870 km/h"), which does not inflect' },
+  { key: 'flightLive.mi', because: 'a measured distance with a unit symbol ("2,400 mi"), which does not inflect' },
+  { key: 'flightLive.km', because: 'a measured distance with a unit symbol ("3,900 km"), which does not inflect' },
+  { key: 'flightLive.legOf', because: 'the position of a flight in a booking with stopovers ("Flight 2 of 3")' },
   { key: 'native.widget.dayOf', because: 'the position of a day in the trip ("Day 2 of 5")' },
-  { key: 'native.widget.inDays', because: 'filled in by the native widget, which says "Tomorrow" for one day, so the number is always two or more' },
+  {
+    key: 'native.widget.inDays',
+    because: 'filled in by the native widget, which says "Tomorrow" for one day, so the number is always two or more',
+  },
   { key: 'system_notice.pager.goto', because: 'the position of a notice in the pager' },
   { key: 'tours.addedToDay', because: 'the number of the day a tour was added to' },
   { key: 'tours.planner.waypointLabel', because: 'the position of a waypoint on the tour' },
@@ -104,10 +114,13 @@ export const NOT_PLURAL = [
   { key: 'dawarich.duration.hours', because: 'a duration in a unit symbol (h), the same for any number' },
   { key: 'dawarich.duration.hoursMinutes', because: 'a duration in unit symbols (h, min), the same for any number' },
   { key: 'files.uploadErrorSize', because: 'a size limit in a unit symbol (MB), the same for any number' },
-  { key: 'native.plans.storage', because: 'a storage size in a unit symbol (GB), the same for any number' },
   {
-    key: 'native.plans.aiDocs',
-    because: 'a monthly document allowance, always in the tens, so no singular ever shows',
+    key: 'native.plans.photos',
+    because: 'an estimate of photos a plan holds, always in the thousands, so no singular ever shows',
+  },
+  {
+    key: 'native.plans.aiPerMonth',
+    because: 'a monthly document allowance before a unit ("25 / month"), always in the tens',
   },
 ];
 

@@ -57,16 +57,16 @@ beforeEach(() => {
 });
 
 describe('MJourney', () => {
-  it('FE-MOB-JLIST-001: shows a spinner while the first load is running', () => {
+  it('FE-MOB-JLIST-001: shows placeholders while the first load is running', () => {
     setup({ loading: true, journeys: [] });
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     expect(screen.queryByText('Other journeys')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-JLIST-002: shows the mascot empty state when there are no journeys', () => {
     setup();
     expect(screen.getByText('Create a new Journey')).toBeInTheDocument();
-    expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-JLIST-003: renders the active journey as hero with its counters', () => {

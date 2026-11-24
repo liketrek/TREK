@@ -1,12 +1,12 @@
-// FE-COSTS-CARD-001 to -002: the figure cards on top of the Costs panel
+// FE-COSTS-CARD-001 to -003: the figure cards on top of the Costs panel
 import { render, screen, within } from '../../../tests/helpers/render';
 import SummaryCard from './CostsSummaryCard';
 
-const card = (currency: string) => (
+const card = (currency: string, amount: number | null = 1234.5) => (
   <SummaryCard
     label="Total spend"
     sub="Everything the trip has cost"
-    amount={1234.5}
+    amount={amount}
     currency={currency}
     locale="en"
     icon={null}
@@ -28,5 +28,12 @@ describe('CostsSummaryCard', () => {
   it('FE-COSTS-CARD-002: falls back to the plain amount for a code Intl does not know', () => {
     render(card('EURO'));
     expect(screen.getByRole('region', { name: 'Total spend' })).toHaveTextContent('1,234.50 EURO');
+  });
+
+  it('FE-COSTS-CARD-003: an unknown amount shows no figure, not a zero', () => {
+    render(card('USD', null));
+    const region = screen.getByRole('region', { name: 'Total spend' });
+    expect(region).toHaveTextContent('…');
+    expect(region).not.toHaveTextContent('$0.00');
   });
 });

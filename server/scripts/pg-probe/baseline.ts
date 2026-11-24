@@ -11,9 +11,9 @@
  * `--update` lowers entries and drops the ones that reach zero or whose
  * method is gone; it never raises or adds one.
  *
- * Only statements Postgres refuses as SQL count here (SQLSTATE classes 42
- * and 0A, see `countsTowardRatchet`). A value the sample arguments got wrong
- * (class 22, a sample string in a date column) says nothing about the
+ * Statements Postgres refuses as SQL or over a value's type count here
+ * (SQLSTATE classes 42, 0A and 22, see `countsTowardRatchet`). A constraint
+ * the sample values break (class 23) or a timeout says nothing about the
  * dialect and is reported without being held.
  *
  * `uncovered` lists the methods whose SQL the probe did not see: the ones it
@@ -56,12 +56,16 @@ export interface BaselineVerdict {
 /**
  * Whether a refused statement counts toward the ratchet: SQLSTATE class 42
  * (syntax error, unknown function, operator or column, datatype mismatch)
- * and class 0A (feature not supported) are what a SQLite-only spelling gets.
- * Anything else (a data exception such as 22P02 or 22007, a constraint, a
- * timeout) comes from the sample values or the empty tables, not the SQL.
+ * and class 0A (feature not supported) are what a SQLite-only spelling gets,
+ * and class 22 (a data exception such as 22P02 or 22007) is a value of the
+ * wrong type reaching a column, which SQLite compares where Postgres refuses
+ * (a query-string id bound to an integer column). The sampler sends what
+ * each parameter declares, so a class 22 refusal is the code's, not the
+ * sample's. A constraint (class 23) or a timeout comes from the sample values
+ * or the empty tables, not the SQL.
  */
 export function countsTowardRatchet(code: string): boolean {
-  return /^(42|0A)/.test(code);
+  return /^(42|0A|22)/.test(code);
 }
 
 const METHOD_KEY = /^[A-Za-z_$][\w$]*\.[A-Za-z_$][\w$]*$/;

@@ -1,10 +1,12 @@
 import { type ReactNode } from 'react'
-import { Tag, Calendar, ExternalLink, ChevronDown, ChevronUp, Loader2, Heart, Coffee, Bug, Lightbulb, BookOpen } from 'lucide-react'
+import { Tag, Calendar, ExternalLink, ChevronDown, ChevronUp, Heart, Coffee, Bug, Lightbulb, BookOpen } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
 import { useGithubReleases } from '../../../components/Admin/useGithubReleases'
 import { escapeReleaseHtml as escapeHtml, parseReleaseNotes } from '../../../utils/releaseNotes'
 import { MAdminButton, MAdminCard } from './MAdminUi'
 import { withoutDonationsInApp } from '../../../utils/donations'
+import MSkeleton from '../../components/MSkeleton'
+import PatreonIcon, { PATREON_COLOR, PATREON_URL } from '../../../components/shared/PatreonIcon'
 
 const REPO = 'liketrek/TREK'
 
@@ -118,6 +120,7 @@ export default function MAdminGitHubPanel({ isPrerelease = false }: { isPrerelea
   )
 
   const cards: LinkCard[] = withoutDonationsInApp([
+    { href: PATREON_URL, color: PATREON_COLOR, icon: <span style={{ color: PATREON_COLOR }}><PatreonIcon size={17} /></span>, title: 'Patreon', sub: t('admin.github.supportMonthly') },
     { href: 'https://ko-fi.com/mauriceboe', color: '#ff5e5b', icon: <Coffee size={18} className="text-[#ff5e5b]" />, title: 'Ko-fi', sub: t('admin.github.support') },
     { href: 'https://buymeacoffee.com/mauriceboe', color: '#ffdd00', icon: <Heart size={18} className="text-[#ffdd00]" />, title: 'Buy Me a Coffee', sub: t('admin.github.support') },
     { href: 'https://discord.gg/NhZBDSd4qW', color: '#5865F2', icon: discordIcon, title: 'Discord', sub: 'Join the community' },
@@ -156,9 +159,7 @@ export default function MAdminGitHubPanel({ isPrerelease = false }: { isPrerelea
       {/* Loading / Error / Releases */}
       {loading ? (
         <MAdminCard>
-          <div className="flex items-center justify-center py-6">
-            <Loader2 className="h-6 w-6 animate-spin text-m-muted" />
-          </div>
+          <MSkeleton variant="rows" count={4} framed={false} />
         </MAdminCard>
       ) : error && releases.length === 0 ? (
         <MAdminCard>

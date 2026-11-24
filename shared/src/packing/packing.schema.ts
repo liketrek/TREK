@@ -102,33 +102,40 @@ export const packingCreateItemRequestSchema = z.object({
   checked: z.union([z.boolean(), z.number().int().min(0).max(1)]).optional(),
   // Same shapes as the update schema below (#2154) — the create route used to
   // strip these three silently, forcing a second write to set them.
-  weight_grams: z.number().nullable().optional(),
-  bag_id: z.number().nullable().optional(),
-  quantity: z.number().optional(),
+  weight_grams: z.number().int().nullable().optional(),
+  bag_id: z.number().int().nullable().optional(),
+  quantity: z.number().int().optional(),
   // Mark the new item private to its creator (#858, legacy flag).
   is_private: z.boolean().optional(),
   // Three-tier sharing (#858): which list the item belongs to, and — for 'shared' —
   // the people it covers ("taken care of by you").
   visibility: packingVisibilitySchema.optional(),
-  recipient_ids: z.array(z.number()).optional(),
+  recipient_ids: z.array(z.number().int()).optional(),
 });
 export type PackingCreateItemRequest = z.infer<typeof packingCreateItemRequestSchema>;
 
 // Re-set an item's sharing tier + the people a 'shared' item covers (#858).
 export const packingSetSharingRequestSchema = z.object({
   visibility: packingVisibilitySchema,
-  recipient_ids: z.array(z.number()).optional(),
+  recipient_ids: z.array(z.number().int()).optional(),
 });
 export type PackingSetSharingRequest = z.infer<typeof packingSetSharingRequestSchema>;
+
+// Who brings a Common item (#3098): without a body the caller pledges themselves,
+// with user_id anyone on the trip can be put down as a bringer.
+export const packingAddContributorRequestSchema = z.object({
+  user_id: z.number().int().positive().optional(),
+});
+export type PackingAddContributorRequest = z.infer<typeof packingAddContributorRequestSchema>;
 
 export const packingUpdateItemRequestSchema = z.object({
   name: z.string().optional(),
   // The legacy route accepted both boolean and 0/1 for checked — both stay valid.
   checked: z.union([z.boolean(), z.number().int().min(0).max(1)]).optional(),
   category: z.string().optional(),
-  weight_grams: z.number().nullable().optional(),
-  bag_id: z.number().nullable().optional(),
-  quantity: z.number().optional(),
+  weight_grams: z.number().int().nullable().optional(),
+  bag_id: z.number().int().nullable().optional(),
+  quantity: z.number().int().optional(),
   // Count packed pieces of a multi-piece item (#2296). Reaching the quantity
   // checks the item; null or 0 clears the count. Ticking `checked` resets it.
   packed_quantity: z.number().int().min(0).max(999).nullable().optional(),
@@ -143,7 +150,7 @@ export const packingImportRequestSchema = z.object({
 export type PackingImportRequest = z.infer<typeof packingImportRequestSchema>;
 
 export const packingReorderRequestSchema = z.object({
-  orderedIds: z.array(z.number()),
+  orderedIds: z.array(z.number().int()),
 });
 export type PackingReorderRequest = z.infer<typeof packingReorderRequestSchema>;
 
@@ -151,20 +158,20 @@ export const packingCreateBagRequestSchema = z.object({
   name: z.string().min(1),
   color: z.string().optional(),
   // Same shape as the update schema below (#2154) — POST used to strip it.
-  weight_limit_grams: z.number().nullable().optional(),
+  weight_limit_grams: z.number().int().nullable().optional(),
 });
 export type PackingCreateBagRequest = z.infer<typeof packingCreateBagRequestSchema>;
 
 export const packingUpdateBagRequestSchema = z.object({
   name: z.string().optional(),
   color: z.string().optional(),
-  weight_limit_grams: z.number().nullable().optional(),
-  user_id: z.number().nullable().optional(),
+  weight_limit_grams: z.number().int().nullable().optional(),
+  user_id: z.number().int().nullable().optional(),
 });
 export type PackingUpdateBagRequest = z.infer<typeof packingUpdateBagRequestSchema>;
 
 export const packingBagMembersRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type PackingBagMembersRequest = z.infer<typeof packingBagMembersRequestSchema>;
 
@@ -195,7 +202,7 @@ export const packingTemplatesResponseSchema = z.object({
 export type PackingTemplatesResponse = z.infer<typeof packingTemplatesResponseSchema>;
 
 export const packingCategoryAssigneesRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type PackingCategoryAssigneesRequest = z.infer<typeof packingCategoryAssigneesRequestSchema>;
 

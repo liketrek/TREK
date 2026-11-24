@@ -80,6 +80,9 @@ const { isAddonEnabledMock } = vi.hoisted(() => {
 // of behind an import path.
 const addonsStub = {
   isAddonEnabled: isAddonEnabledMock,
+  // The trip addons answer per user and per trip; this suite has no overrides, so both follow the switch.
+  isEnabledForUserAnywhere: isAddonEnabledMock,
+  isEnabledForTrip: isAddonEnabledMock,
   getCollabFeatures: () => ({ chat: true, notes: true, links: true, polls: true, whatsnext: true }),
 } as unknown as AddonsService;
 
@@ -417,6 +420,22 @@ describe('Prompt: trip-summary', () => {
     expect(text).toContain('Untitled');
     expect(text).toContain('?'); // start/end date fallback
     expect(text).toContain('EUR'); // currency fallback
+  });
+
+  it('leaves out the sections whose addon is off for the trip, the rest as before', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Lisbon' });
+    isAddonEnabledMock.mockImplementation((tripOrId: unknown, id?: string) =>
+      typeof tripOrId === 'number' && id !== undefined ? id === 'collab' : true,
+    );
+
+    const client = await buildServer(user.id);
+    const text = await invokePromptText(client, 'trip-summary', { tripId: trip.id });
+    expect(text).toContain('Lisbon');
+    expect(text).toContain('Reservations:');
+    expect(text).toContain('Collab Notes:');
+    expect(text).not.toContain('Packing:');
+    expect(text).not.toContain('Budget:');
   });
 });
 

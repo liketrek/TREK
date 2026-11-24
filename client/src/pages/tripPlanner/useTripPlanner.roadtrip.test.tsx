@@ -10,10 +10,10 @@ import { usePluginStore } from '../../store/pluginStore'
 import { usePermissionsStore } from '../../store/permissionsStore'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useBackgroundTasksStore } from '../../store/backgroundTasksStore'
-import { resetAllStores, seedStore } from '../../../tests/helpers/store'
+import { resetAllStores, seedStore, seedInstanceAddons } from '../../../tests/helpers/store'
 import { buildUser, buildTrip, buildDay, buildPlace, buildAssignment, buildReservation } from '../../../tests/helpers/factories'
 import {
-  addonsApi, accommodationsApi, authApi, tripsApi, healthApi, airtrailApi, mapsApi,
+  accommodationsApi, authApi, tripsApi, healthApi, airtrailApi, mapsApi,
 } from '../../api/client'
 import { accommodationRepo } from '../../repo/accommodationRepo'
 import { dayColor } from '../../components/Roadtrip/dayColors'
@@ -358,7 +358,7 @@ beforeEach(() => {
   // away instead of leaving a settings fetch behind that lands in the next test.
   sessionStorage.setItem('trip-roadtrip-42', '1')
   useSettingsStore.setState(s => ({ isLoaded: true, settings: { ...s.settings, planner_trip_views: { '42': { roadtrip: true } } } }))
-  vi.spyOn(addonsApi, 'enabled').mockResolvedValue({ addons: [{ id: 'roadtrip' }] } as never)
+  seedInstanceAddons(['roadtrip'])
 
   vi.spyOn(authApi, 'getAppConfig').mockResolvedValue({})
   vi.spyOn(healthApi, 'features').mockResolvedValue({ bookingImport: false, aiParsing: false })

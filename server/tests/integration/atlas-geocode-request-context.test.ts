@@ -20,14 +20,15 @@
  * the same timing, and nothing reaches the error log.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { PlaceRegions } from '../../src/db/entities/PlaceRegions.entity';
 import { PlaceRegionsRepository } from '../../src/db/repositories/PlaceRegions.repository';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip, createPlace } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { makePlace } from '../helpers/factories/places';
 import { findRow, findRows } from '../helpers/factories/rows';
-import { resetTestDb } from '../helpers/test-db';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -35,10 +36,6 @@ import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 vi.mock('../../src/nest/atlas/atlas-geo', async (orig) => {
   const actual = await orig<typeof import('../../src/nest/atlas/atlas-geo')>();
   return {
@@ -71,15 +68,14 @@ beforeAll(async () => {
 }, 60_000);
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('AT4/AT29 background geocode request context', () => {
   it('IIFE-CTX-AT4 — /stats IIFE writes place_regions after the response, no cannotUseGlobalContext', async () => {
-    resetTestDb(testDb);
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const p = createPlace(testDb, trip.id, { lat: 48.85, lng: 2.35 });
+    await resetDatabase(orm());
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
+    const p = await makePlace(orm(), trip.id, { lat: 48.85, lng: 2.35 });
     const res = await request(app).get('/api/addons/atlas/stats').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(await findRow(orm(), PlaceRegions, { place: p.id })).toBeNull();
@@ -92,11 +88,11 @@ describe('AT4/AT29 background geocode request context', () => {
   }, 15_000);
 
   it('IIFE-CTX-AT29 — /regions IIFE writes two places sequentially (2nd after ~2.4s)', async () => {
-    resetTestDb(testDb);
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const p1 = createPlace(testDb, trip.id, { lat: 48.85, lng: 2.35 });
-    const p2 = createPlace(testDb, trip.id, { lat: 43.3, lng: 5.4 });
+    await resetDatabase(orm());
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
+    const p1 = await makePlace(orm(), trip.id, { lat: 48.85, lng: 2.35 });
+    const p2 = await makePlace(orm(), trip.id, { lat: 43.3, lng: 5.4 });
     const res = await request(app).get('/api/addons/atlas/regions').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     await new Promise((r) => setTimeout(r, 3500));

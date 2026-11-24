@@ -8,6 +8,7 @@ import { buildSettings } from '../../../helpers/factories';
 import { useSettingsStore } from '../../../../src/store/settingsStore';
 import { useAddonStore } from '../../../../src/store/addonStore';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
+import { mailIngestRepo } from '../../../../src/repo/mailIngestRepo';
 import MAdminAddonManager from '../../../../src/mobile/screens/admin/MAdminAddonManager';
 
 interface AddonFixture {
@@ -63,7 +64,7 @@ afterEach(() => {
 });
 
 describe('MAdminAddonManager', () => {
-  it('FE-MOB-AADD-001: shows the spinner while addons load', async () => {
+  it('FE-MOB-AADD-001: shows the placeholders while addons load', async () => {
     server.use(
       http.get('/api/admin/addons', async () => {
         await delay(60);
@@ -72,9 +73,9 @@ describe('MAdminAddonManager', () => {
     );
     render(<MAdminAddonManager />);
 
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     await screen.findByText('No addons available');
-    expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-AADD-002: the header uses the light wordmark in light mode', async () => {
@@ -106,7 +107,7 @@ describe('MAdminAddonManager', () => {
     expect(await screen.findByText('No addons available')).toBeInTheDocument();
   });
 
-  it('FE-MOB-AADD-005: trip addons render with the section band, catalog label and type badge', async () => {
+  it('FE-MOB-AADD-005: trip addons render under the section band with their catalog label, no type badge of their own', async () => {
     server.use(addonsRoute([buildAddon({ id: 'packing', name: 'Packing', enabled: true })]));
     render(<MAdminAddonManager />);
 
@@ -114,7 +115,8 @@ describe('MAdminAddonManager', () => {
     // The band names the type and says what it means on a line of its own, no dash between them.
     expect(screen.getByText('Available as a tab within each trip')).toBeInTheDocument();
     expect(screen.getByText('Packing lists and to-do tasks for your trips')).toBeInTheDocument();
-    expect(screen.getAllByText('Trip')).toHaveLength(2);
+    // Only the band names the type: every row under it is of that type.
+    expect(screen.getAllByText('Trip')).toHaveLength(1);
     expect(screen.getByRole('switch', { name: 'Lists' })).toHaveAttribute('aria-checked', 'true');
   });
 
@@ -275,8 +277,8 @@ describe('MAdminAddonManager', () => {
     expect(screen.getByRole('switch', { name: 'Immich' })).toHaveAttribute('aria-checked', 'true');
     // Journey + three providers, and providers are not shown as top-level rows.
     expect(screen.getAllByRole('switch')).toHaveLength(4);
-    // The band and the addon's type badge both say Global.
-    expect(screen.getAllByText('Global')).toHaveLength(2);
+    // Only the band says Global.
+    expect(screen.getAllByText('Global')).toHaveLength(1);
   });
 
   it('FE-MOB-AADD-015: toggling a provider persists it and rolls back on failure', async () => {
@@ -413,8 +415,8 @@ describe('MAdminAddonManager', () => {
       expect(screen.getByRole('switch', { name: 'Nextcloud' })).toHaveAttribute('aria-checked', 'true');
       // Documents plus two providers, and neither provider carries a type badge of its own.
       expect(screen.getAllByRole('switch')).toHaveLength(3);
-      // The band and the addon's type badge.
-      expect(screen.getAllByText('Trip')).toHaveLength(2);
+      // The band alone names the type.
+      expect(screen.getAllByText('Trip')).toHaveLength(1);
     });
 
     it('FE-MOB-AADD-029: the shelf stays hidden while Documents is off', async () => {
@@ -569,5 +571,27 @@ describe('MAdminAddonManager', () => {
     expect(toggle).toHaveAttribute('aria-checked', 'false');
     await user.click(toggle);
     await waitFor(() => expect(puts).toEqual([{ enabled: true }]));
+  });
+
+  it('FE-MOB-AADD-038: live flight status is a row of the trip group, switched there and locked by the environment', async () => {
+    server.use(addonsRoute([buildAddon({ id: 'packing', name: 'Lists', type: 'trip', enabled: true })]));
+    const onToggle = vi.fn();
+    const { unmount } = render(<MAdminAddonManager flightLive={{ on: false, locked: false, managed: false, onToggle }} />);
+    await userEvent.click(await screen.findByRole('switch', { name: 'Follow booked flights live' }));
+    expect(onToggle).toHaveBeenCalledTimes(1);
+    unmount();
+
+    render(<MAdminAddonManager flightLive={{ on: true, locked: true, managed: false, onToggle }} />);
+    expect(await screen.findByRole('switch', { name: 'Follow booked flights live' })).toBeDisabled();
+  });
+
+  it('FE-MOB-AADD-039: the booking mail import is a row of the integration group whose setup opens in a sheet', async () => {
+    server.use(addonsRoute([buildAddon({ id: 'mcp', name: 'MCP', icon: 'Terminal', type: 'integration', enabled: false })]));
+    vi.spyOn(mailIngestRepo, 'adminSettings').mockResolvedValue({ mail_ingest_enabled: 'true' });
+    vi.spyOn(mailIngestRepo, 'adminStatus').mockRejectedValue(new Error('no status'));
+    render(<MAdminAddonManager mailImport />);
+    expect(await screen.findByText('Booking mail import')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Set up mail import' }));
+    expect(await screen.findByText('How mail arrives')).toBeInTheDocument();
   });
 });

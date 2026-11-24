@@ -3,24 +3,20 @@
  * list_help_topics, get_help_page, search_help, list_addons.
  */
 import { ADDON_IDS } from '../../../src/addons';
-import { db as testDb } from '../../../src/db/database';
 import { Addons } from '../../../src/db/entities/Addons.entity';
 import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
-import { createUser } from '../../helpers/factories';
+import { AddonsService } from '../../../src/nest/addons/addons.service';
+import { withRequestContext } from '../../../src/nest/database/request-context';
 import { findRow, updateRows } from '../../helpers/factories/rows';
-import { setAppSetting } from '../../helpers/factories/settings';
+import { setAddonEnabled, setAppSetting } from '../../helpers/factories/settings';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestAddonsService } from '../../helpers/test-addons';
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 // The wiki reader is stubbed at the module boundary, the way the weather tools
 // stub weather.impl: help.mcp.ts calls these functions directly, and the reader
@@ -97,8 +93,8 @@ function toolText(result: unknown): string {
   return content.find((c) => c.type === 'text')?.text ?? '';
 }
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   delete process.env.DEMO_MODE;
   wiki.getWikiIndex.mockReset();
@@ -121,22 +117,21 @@ beforeEach(() => {
     if (!page) throw new wiki.WikiNotFound(slug);
     return page;
   });
-  // resetTestDb leaves the addons table alone, so a case that flips a toggle
+  // resetDatabase leaves the addons table alone, so a case that flips a toggle
   // would otherwise leak into the next one.
-  for (const id of [ADDON_IDS.BUDGET, ADDON_IDS.PACKING, ADDON_IDS.COLLAB]) {
-    setAddonEnabled(testDb, id, true);
-  }
+  await Promise.all(
+    [ADDON_IDS.BUDGET, ADDON_IDS.PACKING, ADDON_IDS.COLLAB].map((id) => setAddonEnabled(orm, id, true)),
+  );
 });
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes?: string[] | null) {
@@ -154,7 +149,7 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>,
 
 describe('Tool: list_help_topics', () => {
   it('returns the sections the wiki reader parsed out of the sidebar', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_help_topics', arguments: {} });
       expect(result.isError).toBeFalsy();
@@ -166,7 +161,7 @@ describe('Tool: list_help_topics', () => {
 
   it('answers with a refusal instead of throwing when the reader fails', async () => {
     wiki.getWikiIndex.mockRejectedValue(new Error('ENOENT'));
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_help_topics', arguments: {} });
       expect(result.isError).toBe(true);
@@ -175,7 +170,7 @@ describe('Tool: list_help_topics', () => {
   });
 
   it('stays registered for a token holding an unrelated scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(
       user.id,
       async (h) => {
@@ -196,7 +191,7 @@ describe('Tool: list_help_topics', () => {
 
 describe('Tool: get_help_page', () => {
   it('returns a short page whole, with nothing left to fetch', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'get_help_page',
@@ -216,7 +211,7 @@ describe('Tool: get_help_page', () => {
   });
 
   it('refuses a slug this instance does not ship, and says where to look', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'get_help_page',
@@ -230,7 +225,7 @@ describe('Tool: get_help_page', () => {
 
   it('separates an unavailable reader from a missing page', async () => {
     wiki.getWikiPage.mockRejectedValue(new Error('socket hang up'));
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'get_help_page',
@@ -242,7 +237,7 @@ describe('Tool: get_help_page', () => {
   });
 
   it('caps a long page and hands back the offset to resume from', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'get_help_page',
@@ -258,7 +253,7 @@ describe('Tool: get_help_page', () => {
   });
 
   it('resumes from the offset the previous chunk reported', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'get_help_page',
@@ -273,7 +268,7 @@ describe('Tool: get_help_page', () => {
   });
 
   it('refuses an offset past the end of the page', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'get_help_page',
@@ -286,7 +281,7 @@ describe('Tool: get_help_page', () => {
 
   it('serves a demo account, the way the public REST route does', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@trek.app' });
+    const { user } = await makeUser(orm, { email: 'demo@trek.app' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'get_help_page',
@@ -305,7 +300,7 @@ describe('Tool: get_help_page', () => {
 
 describe('Tool: search_help', () => {
   it('hands the query and limit to the wiki search and returns its hits', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'search_help', arguments: { query: 'create trip', limit: 3 } });
       expect(result.isError).toBeFalsy();
@@ -317,7 +312,7 @@ describe('Tool: search_help', () => {
   });
 
   it('rejects an empty query before the search runs', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'search_help', arguments: { query: '' } });
       expect(result.isError).toBe(true);
@@ -327,7 +322,7 @@ describe('Tool: search_help', () => {
 
   it('reports an unavailable search instead of throwing', async () => {
     wiki.searchWiki.mockRejectedValue(new Error('ENOENT'));
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'search_help', arguments: { query: 'trip' } });
       expect(result.isError).toBe(true);
@@ -336,7 +331,7 @@ describe('Tool: search_help', () => {
   });
 
   it('stays registered for a token holding an unrelated scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(
       user.id,
       async (h) => {
@@ -354,7 +349,7 @@ describe('Tool: search_help', () => {
 
 describe('Tool: list_addons', () => {
   it('lists the enabled addons with the collab sub-features and bag tracking', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const row = await findRow(orm, Addons, { id: 'budget' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_addons', arguments: {} });
@@ -374,9 +369,9 @@ describe('Tool: list_addons', () => {
   });
 
   it('lists the enabled photo providers alongside the addons', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     // Providers ride the journey addon now; migration 84 seeds it off.
-    setAddonEnabled(testDb, ADDON_IDS.JOURNEY, true);
+    await setAddonEnabled(orm, ADDON_IDS.JOURNEY, true);
     // PhotoProviderSeeder seeds immich disabled by default (enabled: 0) — flip
     // it on the way the admin panel would, same idiom as setAddonEnabled above.
     await updateRows(orm, PhotoProviders, { id: 'immich' }, { enabled: 1 });
@@ -394,8 +389,8 @@ describe('Tool: list_addons', () => {
   });
 
   it('drops an addon the admin switched off, so absence means disabled', async () => {
-    setAddonEnabled(testDb, ADDON_IDS.BUDGET, false);
-    const { user } = createUser(testDb);
+    await setAddonEnabled(orm, ADDON_IDS.BUDGET, false);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_addons', arguments: {} });
       const data = parseToolResult(result) as AddonsPayload;
@@ -409,15 +404,15 @@ describe('Tool: list_addons', () => {
     // Written through the same service the admin panel writes through rather
     // than through a hand-rolled app_settings row, so the tool is checked
     // against the real writer and not against a restatement of it.
-    const addonsService = await createTestAddonsService(testDb);
-    const { user } = createUser(testDb);
+    const addonsService = (await bootTestApp(realtime)).get(AddonsService);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
-      await addonsService.updateCollabFeatures({ polls: false });
+      await withRequestContext(orm, () => addonsService.updateCollabFeatures({ polls: false }));
       const off = parseToolResult(await h.client.callTool({ name: 'list_addons', arguments: {} })) as AddonsPayload;
       expect(off.collabFeatures.polls).toBe(false);
       expect(off.collabFeatures.chat).toBe(true);
 
-      await addonsService.updateCollabFeatures({ polls: true });
+      await withRequestContext(orm, () => addonsService.updateCollabFeatures({ polls: true }));
       const on = parseToolResult(await h.client.callTool({ name: 'list_addons', arguments: {} })) as AddonsPayload;
       expect(on.collabFeatures.polls).toBe(true);
     });
@@ -425,7 +420,7 @@ describe('Tool: list_addons', () => {
 
   it('reports bag tracking once it is switched on', async () => {
     await setAppSetting(orm, 'bag_tracking_enabled', 'true');
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_addons', arguments: {} });
       const data = parseToolResult(result) as AddonsPayload;
@@ -434,7 +429,7 @@ describe('Tool: list_addons', () => {
   });
 
   it('stays registered for a token holding an unrelated scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(
       user.id,
       async (h) => {
@@ -449,7 +444,7 @@ describe('Tool: list_addons', () => {
 
   it('serves a demo account, the way the authenticated REST route does', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@trek.app' });
+    const { user } = await makeUser(orm, { email: 'demo@trek.app' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_addons', arguments: {} });
       expect(result.isError).toBeFalsy();

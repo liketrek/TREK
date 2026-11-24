@@ -7,6 +7,7 @@ import {
   mediaEnv, wandererUrl, wandererToken, allowWanderer, ensureWandererConnection, disconnectWanderer,
   ensureActivePlugin, removeSideloadedPlugin, parkOfflineChanges, clearParkedChanges,
 } from './fixtures-settings'
+import { mockOwnConnection, resetOwnConnection, AI_KEY } from './fixtures-assistant'
 import { settingsContext, settingsTabContexts, settingsGuides } from '../../src/help/contexts/settings'
 import type { HelpGuide } from '../../src/help/types'
 
@@ -18,7 +19,7 @@ import type { HelpGuide } from '../../src/help/types'
  * with, because settings is the last file of the run.
  *
  * The cards come from `components/Settings/settingsKit.tsx`: a <section> with an
- * <h2> in its head band, rows inside (`SettingRow`, a div with `px-3.5`), boxes
+ * <h2> in its head band, rows inside (`SettingRow`, a div with `px-4 py-3`), boxes
  * of rows (`SettingRows`, a div with `divide-y`). A stacked row puts its wide
  * control in a sibling below the label, so a row is found from its label by its
  * own div, never by the label's parent.
@@ -57,7 +58,7 @@ const label = (page: Page, sectionTitle: string | RegExp, text: string) =>
 const field = (page: Page, sectionTitle: string | RegExp, text: string) => label(page, sectionTitle, text).locator('xpath=..')
 /** A whole row (label, control and whatever the row holds below them) by its label. */
 const row = (page: Page, sectionTitle: string | RegExp, text: string) =>
-  label(page, sectionTitle, text).locator('xpath=ancestor::div[contains(@class,"px-3.5")][1]')
+  label(page, sectionTitle, text).locator('xpath=ancestor::div[contains(@class,"px-4") and contains(@class,"py-3")][1]')
 /** The box of rows a row sits in. */
 const rows = (page: Page, sectionTitle: string | RegExp, text: string) =>
   label(page, sectionTitle, text).locator('xpath=ancestor::div[contains(@class,"divide-y")][1]')
@@ -103,6 +104,24 @@ function totp(secretBase32: string): string {
 const only = (target: (p: Page) => Locator) => ({ target })
 
 /**
+ * The booking mail import, switched on the way an admin does it (the same
+ * settings the Bookings guides use), so the Booking mails card shows the
+ * person's own address. Off again in cleanup.
+ */
+async function mailImport(page: Page, on: boolean): Promise<void> {
+  const data = on
+    ? {
+        mail_ingest_enabled: true,
+        mail_ingest_transport: 'webhook',
+        mail_ingest_address_template: 'trips+{token}@example.com',
+        mail_ingest_webhook_secret: 'help-media-webhook-secret-for-the-pictures',
+      }
+    : { mail_ingest_enabled: false, mail_ingest_transport: 'off', mail_ingest_webhook_secret: '' }
+  const res = await page.request.put('/api/auth/app-settings', { data })
+  if (!res.ok()) throw new Error(`could not switch the mail import: ${res.status()} ${await res.text()}`)
+}
+
+/**
  * Save, wait for the card to say Connected, then Test connection and wait for
  * its answer: the order the connect guides tell the reader.
  */
@@ -121,11 +140,11 @@ const SCRIPTS: Record<string, GuideScript> = {
     start: opener('settings-display'),
     steps: [
       {
-        target: p => field(p, 'Startup', 'Start page').locator('xpath=..'),
+        target: p => row(p, 'Startup', 'Start page'),
         // The start tab only exists once the app opens on the active trip.
         act: async p => { await section(p, 'Startup').getByRole('button', { name: 'Active trip' }).click(); await settle(p) },
       },
-      only(p => field(p, 'Startup', 'Start tab').locator('xpath=..')),
+      only(p => row(p, 'Startup', 'Start tab')),
     ],
     cleanup: async p => { await section(p, 'Startup').getByRole('button', { name: 'Dashboard', exact: true }).click(); await settle(p) },
   },
@@ -207,6 +226,31 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
     cleanup: async p => { await p.reload(); await settle(p) },
   },
+  'map-hide-pois': {
+    guide: guide('map-hide-pois'),
+    start: opener('settings-map'),
+    steps: [
+      {
+        // Mapbox GL with its default style, Mapbox Standard; nothing is saved, the reload in cleanup drops it.
+        prepare: async p => {
+          const card = section(p, /^Map$/)
+          await card.getByRole('button', { name: /Mapbox GL/ }).click()
+          await settle(p)
+          // Mapbox GL starts on its default style, Mapbox Standard, the style the step names.
+          await expect(card.getByRole('button', { name: /^Mapbox Standard/ })).toBeVisible()
+        },
+        target: p => section(p, /^Map$/).getByText('Map Style', { exact: true }).first().locator('xpath=..'),
+      },
+      {
+        target: p => row(p, /^Map$/, 'Hide Points of Interest'),
+        act: async p => {
+          await row(p, /^Map$/, 'Hide Points of Interest').locator('button[aria-pressed]').click()
+          await settle(p)
+        },
+      },
+    ],
+    cleanup: async p => { await p.reload(); await settle(p) },
+  },
 
   // ── Notifications ────────────────────────────────────────────────────────
   'notification-channels': {
@@ -229,6 +273,23 @@ const SCRIPTS: Record<string, GuideScript> = {
   },
 
   // ── Integrations ─────────────────────────────────────────────────────────
+  'booking-mail-address': {
+    guide: guide('booking-mail-address'),
+    start: async p => {
+      await mailImport(p, true)
+      await openSettings(p, 'Integrations')
+      await expect(section(p, 'Booking mails').locator('code')).toBeVisible({ timeout: 20_000 })
+      await settle(p)
+    },
+    steps: [
+      // The address with its copy and New address buttons.
+      only(p => section(p, 'Booking mails').locator('code').locator('xpath=..')),
+      only(p => section(p, 'Booking mails').getByText('Forward automatically', { exact: true }).locator('xpath=..')),
+      only(p => rows(p, 'Booking mails', 'Import booking mails')),
+      only(p => section(p, 'Booking mails').getByRole('button', { name: /Pending bookings/ }).locator('xpath=..')),
+    ],
+    cleanup: async p => { await mailImport(p, false); await p.reload(); await settle(p) },
+  },
   'photo-providers': {
     guide: guide('photo-providers'),
     start: opener('settings-integrations'),
@@ -344,6 +405,43 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
     cleanup: p => disconnectWanderer(p.request),
   },
+  'connect-ai': {
+    guide: guide('connect-ai'),
+    // The key is never tested against a provider: fixtures-assistant.ts answers for the connection.
+    start: async p => {
+      await mockOwnConnection(p)
+      await openSettings(p, TAB_OF['settings-integrations'])
+      await expect(p.getByRole('group', { name: 'What would you like to chat with?' })).toBeVisible({ timeout: 20_000 })
+      await settle(p)
+    },
+    steps: [
+      {
+        target: p => p.getByRole('group', { name: 'What would you like to chat with?' }),
+        hover: async p => { await p.getByRole('button', { name: /^Paste an API key/ }).hover() },
+        act: async p => {
+          await p.getByRole('button', { name: /^Paste an API key/ }).click()
+          await expect(p.getByPlaceholder('Paste your key here')).toBeVisible()
+          await settle(p)
+        },
+      },
+      {
+        prepare: async p => {
+          await typeInto(p, p.getByPlaceholder('Paste your key here'), AI_KEY)
+          await expect(p.getByText('Detected: Anthropic')).toBeVisible()
+          await settle(p)
+        },
+        target: p => p.getByPlaceholder('Paste your key here').locator('xpath=ancestor::div[contains(@class,"gap-3")][1]'),
+        hover: async p => { await p.getByRole('button', { name: 'Connect', exact: true }).hover() },
+        act: async p => {
+          await p.getByRole('button', { name: 'Connect', exact: true }).click()
+          await expect(p.getByRole('button', { name: 'Open assistant' })).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      only(p => p.getByRole('button', { name: 'Open assistant' }).locator('xpath=ancestor::div[contains(@class,"divide-y")][1]')),
+    ],
+    cleanup: p => resetOwnConnection(p.request),
+  },
   'api-keys': {
     guide: guide('api-keys'),
     start: opener('settings-integrations'),
@@ -408,7 +506,8 @@ const SCRIPTS: Record<string, GuideScript> = {
     guide: guide('plugin-settings'),
     start: opener('settings-plugins'),
     steps: [
-      only(p => section(p, 'Plugin settings')),
+      // The first plugin's own card, which follows the Plugin settings heading card.
+      only(p => section(p, 'Plugin settings').locator('xpath=following::section[1]')),
       only(p => section(p, 'Plugin activity')),
     ],
   },

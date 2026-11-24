@@ -83,13 +83,15 @@ function guardsFor() {
     guards: new PluginGuards(
       db,
       { checkPermission: vi.fn(() => true) } as unknown as PermissionsService,
-      { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
+      { isAddonEnabled: vi.fn(() => true), isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService,
       { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
     ),
   };
 }
 
 const realtime = () => ({ broadcast: vi.fn() }) as never;
+/** Documents on for the trip, so the file writes below reach their service call. */
+const documentsOn = { isEnabledForTrip: vi.fn(async () => true) } as never;
 
 describe('optional fields fall back rather than reaching the service as undefined', () => {
   it('FALLBACK-001 a tag update without name or colour forwards undefined for both', async () => {
@@ -138,7 +140,7 @@ describe('optional fields fall back rather than reaching the service as undefine
       'p',
       ALL,
       makeDeps(),
-      createTestPluginRegistry([new FilesRpc(files, realtime(), {} as never, guards, {} as never)]),
+      createTestPluginRegistry([new FilesRpc(files, realtime(), {} as never, guards, {} as never, documentsOn)]),
     );
     await host.dispatch(req('files.createLink', { tripId: 1, fileId: 2, opts: {} }), 42);
     expect(createFileLink).toHaveBeenCalledWith(2, { reservation_id: null, assignment_id: null, place_id: null });
@@ -152,7 +154,7 @@ describe('optional fields fall back rather than reaching the service as undefine
       'p',
       ALL,
       makeDeps(),
-      createTestPluginRegistry([new FilesRpc(files, realtime(), {} as never, guards, {} as never)]),
+      createTestPluginRegistry([new FilesRpc(files, realtime(), {} as never, guards, {} as never, documentsOn)]),
     );
     await host.dispatch(
       req('files.update', { tripId: 1, fileId: 2, input: { reservation_id: null, place_id: 7 } }),
@@ -279,6 +281,7 @@ describe('service errors are translated into the RPC taxonomy', () => {
       {} as never,
       {} as never,
       em,
+      {} as never,
     );
     return new PluginRpcHost('p', ALL, makeDeps(), createTestPluginRegistry([rpc]));
   }
@@ -414,7 +417,7 @@ describe('every schema-validated method rejects a payload its schema refuses', (
       new PlacesRpc(anything, anything, realtime(), guards, anything),
       new DaysRpc(anything, realtime(), guards, anything),
       new PackingRpc(anything, realtime(), guards),
-      new TripsRpc(anything, anything, anything, anything, realtime(), guards, anything, anything, em),
+      new TripsRpc(anything, anything, anything, anything, realtime(), guards, anything, anything, em, anything),
       new AccommodationsRpc(anything, realtime(), guards),
       new ReservationsRpc(anything, realtime(), guards),
     ]);

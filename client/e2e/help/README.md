@@ -117,6 +117,15 @@ so look at three or four pictures from a subset run before starting it.
   each run rebuilds it under the servers of the others. Give each run its own
   `TREK_PLUGINS_DIR` and `TREK_PLUGINS_DATA_DIR` as well (the seed installs a
   plugin), and its own Vite `cacheDir` when it starts a Vite of its own.
+- More than three or four runs at once: build the client once (`npm run build`)
+  and set `E2E_WEB_PREVIEW=1` as well, so each run serves `dist/` with
+  `vite preview` instead of a dev server of its own. A dozen dev servers compiling
+  the app at the same time take the whole machine, and the login of the setup
+  step times out after 45 s. The pictures do not change: the guides drive the
+  same app.
+- A mocked outside service (a photo library, an AI provider) is answered with
+  `page.context().route`, not `page.route`: once the service worker of the built
+  app controls the page, its requests no longer pass a page route.
 - A plugin installed by a run lives in `server/data/plugins/`; the dev server
   imports it on its next restart. Guides that install one uninstall it in `cleanup`.
 - The trip's last day is the run day by construction (`e2e/dates.ts`: every

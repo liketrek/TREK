@@ -58,7 +58,7 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
         title={t('admin.tabs.users')}
         hint={<>{users.length} {t('admin.stats.users', { count: users.length })}</>}
         action={
-          <button type="button" onClick={() => setShowCreateUser(true)} className={SETTINGS_BUTTON_PRIMARY} style={fs(12.5, 'body')}>
+          <button type="button" onClick={() => setShowCreateUser(true)} className={SETTINGS_BUTTON_PRIMARY}>
             <UserPlus size={14} strokeWidth={2.1} />
             {t('admin.createUser')}
           </button>
@@ -146,7 +146,7 @@ export default function AdminUsersTab({ admin, t, locale }: AdminUsersTabProps):
         title={t('admin.invite.title')}
         hint={t('admin.invite.subtitle')}
         action={
-          <button type="button" onClick={() => setShowCreateInvite(true)} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+          <button type="button" onClick={() => setShowCreateInvite(true)} className={SETTINGS_BUTTON}>
             <Plus size={14} strokeWidth={2.2} />
             {t('admin.invite.create')}
           </button>

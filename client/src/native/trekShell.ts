@@ -13,9 +13,34 @@ import type { NativeCapabilities } from './capabilities';
  * worker.
  */
 export interface TrekShellPlugin {
-  getServer(): Promise<{ url: string | null }>;
-  /** Remembers the server and loads it. The current page is gone afterwards. */
-  setServer(options: { url: string }): Promise<void>;
+  /**
+   * `previousUrl`: the server this app remembered before an update asked for a
+   * newer one (SERVER_CHECK in TrekServerStore). Set only while no server is,
+   * so the address screen can check it again, pre-filled.
+   */
+  /**
+   * The server picked, the one before an update asked to check it again, and
+   * why its page did not load last time (taken once; builds before 5.1.4 leave
+   * it out).
+   */
+  getServer(): Promise<{ url: string | null; previousUrl?: string | null; failure?: string | null }>;
+  /**
+   * Remembers the server and loads it. The current page is gone afterwards.
+   * `signInHosts` are the hosts of a proxy's sign-in page in front of it
+   * (authGate.ts): only they may load in the web view besides the server.
+   * `welcome` is the one-time code of a TREK Cloud purchase: the first load
+   * opens the server's welcome page with it, which signs the buyer in. A build
+   * without this option ignores it and opens the server as usual.
+   * `labels` are the words of the bar the app shows over a proxy's sign-in page,
+   * or over an error page in place of the server's (a proxy's block page), in the
+   * user's language: the server's UI is not there to say them.
+   */
+  setServer(options: {
+    url: string;
+    signInHosts?: string[];
+    welcome?: string;
+    labels?: { signInHint: string; changeServer: string; errorPageHint?: string };
+  }): Promise<void>;
   /** Forgets the server and returns to the address screen. */
   resetServer(): Promise<void>;
   /** Loads the remembered server again, after it could not be reached. */
@@ -26,9 +51,20 @@ export interface TrekShellPlugin {
    * user closes the browser.
    */
   authenticate(options: { url: string; callbackScheme: string }): Promise<{ url: string }>;
-  /** iOS: stores the server's start page for a cold start without network. */
-  refreshOfflineCopy(): Promise<{ saved: boolean }>;
-  /** iOS: loads that copy under the server's origin. False when there is none. */
+  /**
+   * Android: a return to the sign-in scheme that found no authenticate() call
+   * waiting, because the app was started anew meanwhile. Handed out once, and
+   * only for two minutes, as long as the server keeps its code. Not in iOS builds, nor in Android builds before 5.1.4.
+   */
+  takeAuthCallback(): Promise<{ url: string | null }>;
+  /**
+   * Stores the server's start page for a start without the server. Android
+   * also downloads the build's `files` the copy does not hold yet (an Android
+   * build before the offline copy resolves `saved: false`); iOS keeps those in
+   * WebKit's HTTP cache instead and ignores them.
+   */
+  refreshOfflineCopy(options?: { files?: string[] }): Promise<{ saved: boolean; complete?: boolean }>;
+  /** Starts on that copy under the server's origin. False when there is none. */
   openOfflineCopy(): Promise<{ opened: boolean }>;
   /** What this binary offers the UI (native/capabilities.ts). Missing before shell API 2. */
   getCapabilities(): Promise<NativeCapabilities>;
@@ -75,6 +111,18 @@ export interface TrekShellPlugin {
     nextMinutes?: number;
     /** Android: each stop's colour (#rrggbb) for the Live Update's segments. */
     colors?: (string | null)[];
+    /** iOS: the day's flight near or in the air, drawn as a boarding pass; older binaries ignore it. */
+    flight?: {
+      number: string;
+      from: string;
+      to: string;
+      dep: number;
+      arr: number;
+      depTime: string;
+      arrTime: string;
+      delay?: number;
+      airborne?: boolean;
+    };
   }): Promise<{ running: boolean }>;
   endTripDay(): Promise<void>;
   /** Feature storeKit (iOS) or playBilling (Android): the store's price strings for the products it knows. */
@@ -86,7 +134,8 @@ export interface TrekShellPlugin {
    * Android `purchaseToken`, which the control plane verifies with Google Play.
    */
   storePurchase(options: { productId: string }): Promise<{
-    kind: 'bought' | 'cancelled' | 'pending' | 'failed';
+    /** `subscribed`: this store account already holds a delivered subscription, so nothing was bought. */
+    kind: 'bought' | 'cancelled' | 'pending' | 'failed' | 'subscribed';
     jws?: string;
     purchaseToken?: string;
     productId?: string;
@@ -96,8 +145,23 @@ export interface TrekShellPlugin {
   storeFinish(options: { transactionId: string }): Promise<void>;
   /** iOS, feature wallet: adds a .pkpass (base64) to Apple Wallet, or opens it there when it is already in. */
   addToWallet(options: { data: string }): Promise<{ result: 'added' | 'opened' | 'cancelled' }>;
+  /**
+   * Shows a file written to the app's cache (a file:// path) in the system's
+   * viewer: Quick Look on iOS, the app that views the type on Android. Feature
+   * "filePreview"; "unsupported" where nothing on the device shows the type.
+   */
+  previewFile(options: {
+    path: string;
+    mimeType: string;
+    title?: string;
+  }): Promise<{ result: 'shown' | 'unsupported' }>;
   /** iOS, feature storeKit: the newest active subscription under `prefix` on this Apple ID, if any. */
   storeRestore(options: { prefix: string }): Promise<{ jws?: string; transactionId?: string }>;
+  /**
+   * Whether this Apple ID or Google account holds a delivered subscription under
+   * `prefix`, read without asking for a password. Not in builds before 5.1.4.
+   */
+  storeHeld(options: { prefix: string }): Promise<{ held: boolean }>;
   /** Feature watch: what the Apple Watch app shows (native/watch.ts), as JSON, sent on through WatchConnectivity. */
   setWatchSnapshot(options: { json: string }): Promise<void>;
   /** Feature watch: the ticks the watch sent since the last call, oldest first (parsed by parseWatchActions). */
@@ -112,6 +176,33 @@ export interface TrekShellPlugin {
   addToGoogleWallet(options: { url: string }): Promise<{ result: 'opened' }>;
   /** Android, feature windowLayout: the window's size classes and a foldable's posture and hinge. */
   getWindowLayout(): Promise<NativeWindowLayout>;
+  /**
+   * Feature clientCertificate: a GET against the user's server for the address
+   * screen, made natively. It shows the stored client certificate to that server
+   * when asked and reports whether the server asked (`certRequested`) and got
+   * one (`certSent`). A failed connection resolves with status 0.
+   */
+  requestServer(options: { url: string; timeoutMs?: number }): Promise<NativeServerResponse>;
+  /**
+   * Feature clientCertificate: the stored client certificate, or null, and the
+   * last server that asked for one while the app ran (`served`: it got one).
+   */
+  clientCertificate(): Promise<{
+    certificate: ClientCertificateInfo | null;
+    request?: { host: string; port: number; served: boolean };
+  }>;
+  /**
+   * Feature clientCertificate: picks a .p12/.pfx file, asks for its password
+   * (with `labels`, the UI's words) until it opens, and keeps it for the server
+   * at host and port, replacing any other.
+   */
+  importClientCertificate(options: {
+    host: string;
+    port: number;
+    labels: ClientCertificateLabels;
+  }): Promise<ClientCertificateImport>;
+  /** Feature clientCertificate: forgets the stored client certificate. */
+  removeClientCertificate(): Promise<void>;
   addListener(
     event: 'windowLayout',
     listener: (payload: NativeWindowLayout) => void
@@ -135,6 +226,30 @@ export interface TrekShellPlugin {
     event: 'keyCommand',
     listener: (payload: { id: string }) => void
   ): Promise<{ remove: () => Promise<void> }>;
+  /** Feature quickActions (iOS): the actions a long press on the app icon shows, in the UI's language. */
+  setQuickActions(options: { items: NativeQuickAction[] }): Promise<void>;
+  /**
+   * Feature quickActions: the action the app was launched with, before the UI ran.
+   * With the feature appLinks also a widget or Live Activity tap, as its path.
+   */
+  takeQuickAction(): Promise<{ path: string | null }>;
+  /** Feature quickActions: an action chosen (with appLinks: a widget tapped) while the app was running. */
+  addListener(
+    event: 'quickAction',
+    listener: (payload: { path: string }) => void
+  ): Promise<{ remove: () => Promise<void> }>;
+}
+
+/** One quick action on the app icon: what it says, and the path in the UI it opens. */
+export interface NativeQuickAction {
+  /** Stable name, e.g. "newTrip". */
+  type: string;
+  title: string;
+  subtitle?: string;
+  /** 'add' or 'trip'. */
+  icon: 'add' | 'trip';
+  /** A path of this server's UI, starting with "/". */
+  path: string;
 }
 
 /** What Google Play Billing answers a restore with (Android, feature playBilling), beside iOS's `jws`. */
@@ -200,6 +315,47 @@ export type NativeLocationPayload =
       error?: undefined;
     }
   | { error: { code: number; message: string } };
+
+interface NativeServerResponse {
+  status: number;
+  data: unknown;
+  url: string;
+  headers?: Record<string, string>;
+  certRequested: boolean;
+  certSent: boolean;
+  /** host:port of the server that asked. */
+  certHost?: string;
+  /** Why the connection failed, when status is 0. */
+  error?: string;
+}
+
+export interface ClientCertificateInfo {
+  host: string;
+  port: number;
+  /** The certificate's common name. */
+  subject: string;
+  /** The issuer's common name. */
+  issuer: string;
+  /** Expiry, in milliseconds since 1970. */
+  notAfter: number;
+}
+
+export interface ClientCertificateLabels {
+  title: string;
+  message: string;
+  placeholder: string;
+  ok: string;
+  cancel: string;
+  wrongPassword: string;
+}
+
+export type ClientCertificateFailure = 'format' | 'no_key' | 'expired' | 'not_yet_valid' | 'store';
+
+export interface ClientCertificateImport {
+  result: 'imported' | 'cancelled' | 'failed';
+  failure?: ClientCertificateFailure;
+  certificate?: ClientCertificateInfo;
+}
 
 export const TrekShell = registerPlugin<TrekShellPlugin>('TrekShell');
 

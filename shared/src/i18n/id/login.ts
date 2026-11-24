@@ -38,6 +38,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Autentikasi dua faktor',
   'login.mfaSubtitle': 'Masukkan kode 6 digit dari aplikasi autentikator kamu.',
   'login.mfaCodeLabel': 'Kode verifikasi',
+  'login.mfaPlaceholder': '000000 atau XXXX-XXXX',
   'login.mfaCodeRequired': 'Masukkan kode dari aplikasi autentikator kamu.',
   'login.mfaHint': 'Buka Google Authenticator, Authy, atau aplikasi TOTP lainnya.',
   'login.mfaBack': '← Kembali ke halaman masuk',

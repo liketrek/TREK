@@ -17,6 +17,7 @@ import type {
   CollectionGpxExport,
   CollectionGpxReadRequest,
   CollectionGpxReadResult,
+  CollectionKmlExport,
   CollectionPlaceUpdateRequest,
   CollectionCopyToTripRequest,
   CollectionInviteRequest,
@@ -75,6 +76,9 @@ export const collectionsApi = {
     ax.get(`${base}/${id}/export/gpx`).then((r: AxiosResponse) => r.data),
   readGpx: (body: CollectionGpxReadRequest): Promise<CollectionGpxReadResult> =>
     ax.post(`${base}/gpx/read`, body satisfies CollectionGpxReadRequest).then((r: AxiosResponse) => r.data),
+  /** The same list as pins for Google My Maps (#1866). */
+  exportKml: (id: number): Promise<CollectionKmlExport> =>
+    ax.get(`${base}/${id}/export/kml`).then((r: AxiosResponse) => r.data),
   // Both answer with the bare collection, not a { collection } envelope — the
   // controller returns the service's `Collection` straight through, and the e2e
   // suite pins that shape. Declaring the envelope made createCollection() resolve

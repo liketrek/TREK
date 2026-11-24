@@ -16,25 +16,31 @@ import { TrekShell } from '../../native/trekShell';
 import { applyWatchActions, buildWatchSnapshot, publishWatch, takeWatchActions, watchActive } from '../../native/watch';
 import { onWatchListsChange } from '../../native/watchListChanges';
 import { bookingsAhead, packingSummary, todosSummary, tripPlace } from '../../native/widgetExtras';
+import { widgetFlight } from '../../native/widgetFlight';
 import { widgetCover, widgetWeather } from '../../native/widgetMedia';
 import { atlasSummary, collabSummary, packingDetail, type WidgetAtlas } from '../../native/widgetOnline';
 import {
   buildSnapshot,
+  liveDayDue,
+  liveFlightOf,
   pickTrip,
   publishWidgets,
-  todayOf,
+  snapshotDays,
   tripDayState,
   widgetTripChoices,
   widgetsActive,
-  withBookings,
   type TripWidgetSnapshot,
   type WidgetLabels,
 } from '../../native/widgets';
+import { cachedTripAddons } from '../../repo/tripAddonsRepo';
+import { instanceAddonOn, useAddonStore } from '../../store/addonStore';
 import { useAuthStore } from '../../store/authStore';
+import { useFlightLiveStore } from '../../store/flightLiveStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { useTripStore } from '../../store/tripStore';
-import type { Day, Place, TranslationFn, Trip } from '../../types';
+import type { Day, Place, Reservation, TranslationFn, Trip } from '../../types';
 import { formatTime } from '../../utils/formatters';
+import { tripAddonEnabled } from '../../utils/tripAddons';
 import { localDateStr } from '../../vacay/monthGrid';
 
 const REFRESH_MS = 15 * 60 * 1000;
@@ -71,6 +77,20 @@ function labels(t: TranslationFn): WidgetLabels {
     votes: t('native.widget.votes'),
     noMessages: t('native.widget.noMessages'),
     departure: t('native.widget.departure'),
+    flight: t('reservations.type.flight'),
+    flightDeparts: t('flightLive.departsIn'),
+    flightInAir: t('flightLive.airborne'),
+    flightLands: t('flightLive.landsIn'),
+    flightLanded: t('flightLive.landed'),
+    flightOnTime: t('flightLive.onTime'),
+    flightLate: t('flightLive.late'),
+    flightEarly: t('flightLive.early'),
+    flightEstimated: t('flightLive.estimated'),
+    flightReady: t('flightLive.taxiing'),
+    noFlight: t('flightLive.noFlight'),
+    durDaysHours: t('flightLive.durDaysHours'),
+    durHoursMinutes: t('flightLive.durHoursMinutes'),
+    durMinutes: t('flightLive.durMinutes'),
   };
 }
 
@@ -87,16 +107,47 @@ interface SyncContext {
   language: string;
   unit: string | undefined;
   time: (value: string) => string;
+  timeFormat: string;
 }
 
-async function tripExtras(trip: Trip, days: Day[], { today, language, unit, time }: SyncContext) {
-  const [places, reservations, todos, packing, memberRows] = await Promise.all([
+/**
+ * The trip's next or current flight for the flight widget, from the live
+ * states the server worked out (its schedule in UTC, the feed's position). Read
+ * fresh before the snapshot when the trip has flights and the device is online;
+ * offline the last states held in memory serve.
+ */
+async function flightOf(trip: Trip, reservations: Reservation[], path: string, context: SyncContext) {
+  if (!reservations.some((r) => r.type === 'flight')) return undefined;
+  await useFlightLiveStore.getState().load(trip.id);
+  const legs = Object.values(useFlightLiveStore.getState().trips[trip.id]?.legs ?? {});
+  return widgetFlight(legs, Date.now(), path, { locale: context.language, timeFormat: context.timeFormat });
+}
+
+/**
+ * Whether the trip has Lists and Collab on, from the list the device kept for it
+ * (the sync reads it with the trip). A trip it never read follows the instance,
+ * and while that is not known either the widgets show both, as they always did.
+ */
+async function tripSections(tripId: number): Promise<{ lists: boolean; collab: boolean }> {
+  const own = await cachedTripAddons(tripId);
+  const instance = useAddonStore.getState();
+  const on = (id: string) => tripAddonEnabled(own, id, instanceAddonOn(instance, id, true));
+  return { lists: on('packing'), collab: on('collab') };
+}
+
+async function tripExtras(trip: Trip, days: Day[], context: SyncContext) {
+  const { today, language, unit, time } = context;
+  const [places, reservations, todoRows, packingRows, memberRows, sections] = await Promise.all([
     offlineDb.places.where('trip_id').equals(trip.id).toArray(),
     offlineDb.reservations.where('trip_id').equals(trip.id).toArray(),
     offlineDb.todoItems.where('trip_id').equals(trip.id).toArray(),
     offlineDb.packingItems.where('trip_id').equals(trip.id).toArray(),
     offlineDb.tripMembers.where('tripId').equals(trip.id).toArray(),
+    tripSections(trip.id),
   ]);
+  // A trip with Lists off shows no todos or packing, on the widgets and the watch alike.
+  const todos = sections.lists ? todoRows : [];
+  const packing = sections.lists ? packingRows : [];
   const members = memberRows.length;
   const names = [trip.owner_username, ...memberRows.map((m) => m.username)].filter((n): n is string => !!n);
   const path = `/trips/${trip.id}`;
@@ -109,16 +160,19 @@ async function tripExtras(trip: Trip, days: Day[], { today, language, unit, time
     days.find((d) => (d.date ?? '').slice(0, 10) === weatherDate),
     places
   );
-  const [weather, cover, bags, collab] = await Promise.all([
+  const [weather, cover, bags, collab, flight] = await Promise.all([
     spot && inRange ? widgetWeather(spot, { date: weatherDate, lang: language, unit, place }) : Promise.resolve(null),
     widgetCover(trip.cover_image),
-    packingDetail(trip.id, packing),
-    collabSummary(
-      trip.id,
-      `/trips/${trip.id}?tab=collab`,
-      [...new Set(names)],
-      useAuthStore.getState().user?.id ?? null
-    ),
+    sections.lists ? packingDetail(trip.id, packing) : Promise.resolve(null),
+    sections.collab
+      ? collabSummary(
+          trip.id,
+          `/trips/${trip.id}?tab=collab`,
+          [...new Set(names)],
+          useAuthStore.getState().user?.id ?? null
+        )
+      : Promise.resolve(null),
+    flightOf(trip, reservations, path, context),
   ]);
   const packed = packingSummary(packing, `/trips/${trip.id}?tab=listen`);
   const dayDates = new Map(days.map((d) => [d.id, (d.date ?? '').slice(0, 10)]));
@@ -133,9 +187,10 @@ async function tripExtras(trip: Trip, days: Day[], { today, language, unit, time
       memberCount: members > 0 ? members + 1 : 0,
       weather,
       bookings: bookingsAhead(reservations, { dayDates, today, tripPath: path, formatTime: time }),
-      todos: todosSummary(todos, `${path}?tab=listen`),
+      todos: sections.lists ? todosSummary(todos, `${path}?tab=listen`) : undefined,
       packing: packed && bags ? { ...packed, ...bags } : packed,
       collab,
+      flight,
     },
   };
 }
@@ -156,11 +211,15 @@ export default function NativeWidgetsSync(): null {
     const tripSnapshot = async (trip: Trip | null, context: SyncContext, atlas: WidgetAtlas | null) => {
       const days = trip ? await offlineDb.days.where('trip_id').equals(trip.id).toArray() : [];
       const extra = trip ? await tripExtras(trip, days, context) : null;
-      const plain = trip
-        ? todayOf(trip, days, context.today, (n, m) => t('native.widget.dayOf', { n, m }), context.time)
-        : null;
-      const day = plain ? withBookings(plain, extra?.reservations ?? [], context.today, context.time) : null;
-      return { day, days, extra, snapshot: buildSnapshot(trip, day, labels(t), { ...extra?.extras, atlas }) };
+      // Today and the days after it: the widgets turn to the next day at midnight by themselves.
+      const { today: day, ahead } = snapshotDays(trip, days, {
+        reservations: extra?.reservations ?? [],
+        from: context.today,
+        dayLabel: (n, m) => t('native.widget.dayOf', { n, m }),
+        formatTime: context.time,
+      });
+      const snapshot = buildSnapshot(trip, day, labels(t), { ...extra?.extras, atlas, days: ahead });
+      return { day, days, extra, snapshot };
     };
 
     /** The hero trip in full for the watch, with the ticks from it applied so far. */
@@ -188,7 +247,13 @@ export default function NativeWidgetsSync(): null {
     const sync = async () => {
       const now = new Date();
       const today = localDateStr(now.getFullYear(), now.getMonth(), now.getDate());
-      const context: SyncContext = { today, language, unit, time: (value) => formatTime(value, language, timeFormat) };
+      const context: SyncContext = {
+        today,
+        language,
+        unit,
+        time: (value) => formatTime(value, language, timeFormat),
+        timeFormat: timeFormat || '24h',
+      };
       const trips = await offlineDb.trips.toArray();
       const hero = pickTrip(trips, today);
       // The countries do not depend on a trip: the atlas widget fills without one.
@@ -207,9 +272,13 @@ export default function NativeWidgetsSync(): null {
         });
       }
       if (cancelled) return;
-      const live = main.day
-        ? tripDayState(main.day, now.getHours() * 60 + now.getMinutes(), t('native.widget.dayDone'))
-        : null;
+      // The Live Activity from three hours before the day's first timed stop, not all day long.
+      const minutes = now.getHours() * 60 + now.getMinutes();
+      const flight = liveFlightOf(main.extra?.extras.flight, Math.round(now.getTime() / 1000));
+      const day =
+        main.day && liveDayDue(main.day, minutes) ? tripDayState(main.day, minutes, t('native.widget.dayDone')) : null;
+      // A flight near or in the air holds the activity as a boarding pass.
+      const live = day ? { ...day, ...(flight ? { flight } : {}) } : null;
       await publishWidgets(main.snapshot, live, choices);
       await publishToWatch(hero, main, today);
     };

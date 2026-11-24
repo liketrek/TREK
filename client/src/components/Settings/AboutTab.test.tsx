@@ -60,8 +60,9 @@ describe('AboutTab', () => {
   it('FE-COMP-ABOUT-009: all external links have rel="noopener noreferrer"', () => {
     render(<AboutTab appVersion="2.9.10" />);
     const links = document.querySelectorAll('a');
-    // Six tiles, and the sponsor panel: its logo, its button and the name in its title and body.
-    expect(links).toHaveLength(10);
+    // Seven tiles, and the sponsor panel: its logo, its button and the name in its title and body.
+    expect(links).toHaveLength(11);
+    expect(document.querySelector('a[href="https://www.patreon.com/cw/mauriceboe"]')).not.toBeNull();
     links.forEach((link) => {
       expect(link).toHaveAttribute('rel', 'noopener noreferrer');
     });

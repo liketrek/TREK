@@ -24,8 +24,9 @@ const SATELLITE_LAYER_ID = 'trip-satellite-raster';
 // Everything TREK draws on a GL map, so the satellite raster can be slipped underneath all
 // of it. `route-alt-` earns its place here: the roads offered for a leg are added before the
 // route source so they sit under the current route, which also puts them before the first
-// `trip-` layer, and anchoring the imagery there painted right over them.
-export const OWN_LAYER_PREFIXES = ['trip-', 'trek-', 'route-alt-'];
+// `trip-` layer, and anchoring the imagery there painted right over them. `journey-` is
+// the journey map's own: its tracks and the line between its entries (#2594).
+export const OWN_LAYER_PREFIXES = ['trip-', 'trek-', 'route-alt-', 'journey-'];
 
 /**
  * A GL map's zoom on the 256 px tile scale that raster tile URLs, their

@@ -34,8 +34,7 @@ const studioShapes: TranslationStrings = {
   'journey.studio.edge.torn': 'ฉีก',
   'journey.studio.edge.deckle': 'ขอบกระดาษทำมือ',
   'journey.studio.edgeSize': 'ความลึก',
-  'journey.studio.edgeUnavailable':
-    'รูปทรงนี้คงเส้นขอบที่วาดไว้ ขอบตัดได้กับรูปทรงกว้าง เช่น สี่เหลี่ยมผืนผ้า วงกลม และซุ้มโค้ง',
+  'journey.studio.edgeUnavailable': 'รูปทรงนี้คงเส้นขอบที่วาดไว้ ขอบตัดได้กับรูปทรงกว้าง เช่น สี่เหลี่ยมผืนผ้า วงกลม และซุ้มโค้ง',
   'journey.studio.wobble': 'วาดมือ',
   'journey.studio.lineCourseTitle': 'แนวเส้น',
   'journey.studio.lineCourse.straight': 'ตรง',
@@ -44,8 +43,7 @@ const studioShapes: TranslationStrings = {
   'journey.studio.lineBody.none': 'เรียบ',
   'journey.studio.lineBody.wave': 'คลื่น',
   'journey.studio.lineBody.zigzag': 'ซิกแซก',
-  'journey.studio.linePointsHint':
-    'ลากจุดบนหน้าเพื่อย้าย ดึงที่จับเล็กระหว่างสองจุดเพื่อเพิ่มจุด ดับเบิลคลิกที่จุดเพื่อลบ',
+  'journey.studio.linePointsHint': 'ลากจุดบนหน้าเพื่อย้าย ดึงที่จับเล็กระหว่างสองจุดเพื่อเพิ่มจุด ดับเบิลคลิกที่จุดเพื่อลบ',
   'journey.studio.lineEnds': 'ปลายเส้น',
   'journey.studio.lineStart': 'จุดเริ่ม',
   'journey.studio.lineEnd': 'จุดจบ',

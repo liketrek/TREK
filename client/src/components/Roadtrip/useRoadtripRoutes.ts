@@ -203,7 +203,6 @@ const asStop = (a: Assignment, ownerDayId: number, ownerIndex: number, accommoda
     night: stay !== undefined,
     bookedNightId: a.accommodation_id ?? null,
     dwellMinutes: visitStay(a),
-
     endDay: a.end_day === true,
     legMode: a.leg_transport_mode ?? null,
     incomingLegMode: a.incoming_leg_transport_mode ?? null,

@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import type { Map } from 'mapbox-gl'
 import type { GeoJSONSource } from 'mapbox-gl'
 import type { DawarichTrack } from '@trek/shared'
-import { DAWARICH_TRAIL_CASING, trailGeoJson, trailSegments } from './dawarichTrail'
+import { DAWARICH_TRAIL_CASING, DAWARICH_TRAIL_STROKE, trailGeoJson, trailSegments } from './dawarichTrail'
 
 /**
  * The recorded route on the GL renderer — the imperative twin of
@@ -67,7 +67,11 @@ export function useDawarichTrailGL(
           source: SOURCE,
           layout: { 'line-cap': 'round', 'line-join': 'round' },
           // theme-lint-disable — map paint
-          paint: { 'line-color': DAWARICH_TRAIL_CASING, 'line-width': 6, 'line-opacity': 0.55 },
+          paint: {
+            'line-color': DAWARICH_TRAIL_CASING,
+            'line-width': DAWARICH_TRAIL_STROKE.casingWidth,
+            'line-opacity': DAWARICH_TRAIL_STROKE.casingOpacity,
+          },
         },
         anchor,
       )
@@ -81,11 +85,11 @@ export function useDawarichTrailGL(
             // Per-day colour off the feature, with the same fallback the GPX
             // layer uses when a feature somehow carries none.
             'line-color': ['coalesce', ['get', 'color'], DAWARICH_TRAIL_CASING],
-            'line-width': 3,
-            'line-opacity': 0.85,
+            'line-width': DAWARICH_TRAIL_STROKE.width,
+            'line-opacity': DAWARICH_TRAIL_STROKE.opacity,
             // Dashed, so the recording is distinguishable from the planned
             // route without relying on colour alone.
-            'line-dasharray': [2, 1.6],
+            'line-dasharray': [...DAWARICH_TRAIL_STROKE.dashGL],
           },
         },
         anchor,

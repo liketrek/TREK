@@ -9,33 +9,20 @@
  * time under test here.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Addons } from '../../src/db/entities/Addons.entity';
-import { AuditLog } from '../../src/db/entities/AuditLog.entity';
-import { OauthClients } from '../../src/db/entities/OauthClients.entity';
-import { OauthConsents } from '../../src/db/entities/OauthConsents.entity';
-import { OauthTokens } from '../../src/db/entities/OauthTokens.entity';
-import { Users } from '../../src/db/entities/Users.entity';
-import { AuditService } from '../../src/nest/audit/audit.service';
-import { UnitOfWork } from '../../src/nest/database/unit-of-work';
-import { CimdClientResolver } from '../../src/nest/oauth/oauth-cimd';
+import { withRequestContext } from '../../src/nest/database/request-context';
 import { OauthService } from '../../src/nest/oauth/oauth.service';
-import { createUser } from '../helpers/factories';
 import { upsertRow } from '../helpers/factories/rows';
-import { createTestAddonsService } from '../helpers/test-addons';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import crypto from 'crypto';
 import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 vi.mock('../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/app-config')>();
@@ -50,13 +37,13 @@ vi.mock('../../src/mcp/sessionManager', () => ({
 
 // The consent controller writes pending codes through the container instance;
 // the SDK-mounted authorize path reads them back. The map is module-scoped in
-// oauth.pending-codes.ts, so a hand-built service instance shares it — the
+// oauth.pending-codes.ts, so the container's service instance shares it — the
 // same single-instance property the full auth-code loop below proves end-to-end.
 let containerSideOauth: OauthService;
 
 let nestApp: INestApplication;
 let app: Application;
-let t: TestOrm;
+let orm: MikroORM;
 
 function makePkce() {
   const verifier = crypto.randomBytes(32).toString('base64url');
@@ -65,7 +52,7 @@ function makePkce() {
 }
 
 async function setMcpEnabled(enabled: boolean) {
-  await upsertRow(t, Addons, {
+  await upsertRow(orm, Addons, {
     id: 'mcp',
     name: 'MCP',
     description: 'AI assistant integration',
@@ -89,28 +76,18 @@ async function registerClient(redirectUri = 'https://client.example.com/cb', sco
 beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
-  t = await createTestOrm(testDb);
-  containerSideOauth = new OauthService(
-    t.repo(OauthClients),
-    t.repo(OauthTokens),
-    t.repo(OauthConsents),
-    await createTestAddonsService(testDb),
-    new AuditService(t.repo(AuditLog), t.repo(Users)),
-    new UnitOfWork(t.em),
-    nestApp.get(CimdClientResolver),
-  );
+  orm = nestApp.get(MikroORM);
+  containerSideOauth = nestApp.get(OauthService);
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   await setMcpEnabled(true);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  await t.close();
-  testDb.close();
 });
 
 describe('GET /oauth/authorize — SDK authorizationHandler over trekOAuthProvider', () => {
@@ -266,7 +243,7 @@ describe('GET /oauth/authorize — SDK authorizationHandler over trekOAuthProvid
   });
 
   it('AUTHZ-008 — full loop: register → authorize → consent-written code → token exchange', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const clientId = await registerClient();
     const { verifier, challenge } = makePkce();
 
@@ -285,15 +262,17 @@ describe('GET /oauth/authorize — SDK authorizationHandler over trekOAuthProvid
     // 2. the consent controller writes the code through the container
     //    singleton; the module-scoped pending-code map is what lets the
     //    SDK-side exchange see it.
-    const code = await containerSideOauth.createAuthCode({
-      clientId,
-      userId: user.id,
-      redirectUri: 'https://client.example.com/cb',
-      scopes: ['trips:read'],
-      resource: 'https://trek.example.com/mcp',
-      codeChallenge: challenge,
-      codeChallengeMethod: 'S256',
-    });
+    const code = await withRequestContext(orm, () =>
+      containerSideOauth.createAuthCode({
+        clientId,
+        userId: user.id,
+        redirectUri: 'https://client.example.com/cb',
+        scopes: ['trips:read'],
+        resource: 'https://trek.example.com/mcp',
+        codeChallenge: challenge,
+        codeChallengeMethod: 'S256',
+      }),
+    );
     expect(code).toBeTruthy();
 
     // 3. token exchange through the public token endpoint

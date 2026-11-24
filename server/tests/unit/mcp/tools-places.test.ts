@@ -7,7 +7,6 @@
  * container's registry (tests/helpers/mcp-test-controllers.ts), so the assertions below
  * exercise the @Tool/@ResourceTemplate path instead of the deleted registrar.
  */
-import { db as testDb } from '../../../src/db/database';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { Categories } from '../../../src/db/entities/Categories.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
@@ -20,46 +19,36 @@ import { JourneyDomainService } from '../../../src/nest/journey/journey-domain.s
 import { MapsService } from '../../../src/nest/maps/maps.service';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { StorageService } from '../../../src/nest/storage/storage.service';
-import {
-  createUser,
-  createTrip,
-  createPlace,
-  createDay,
-  createDayAssignment,
-  createJourney,
-} from '../../helpers/factories';
 import { makeBudgetItem } from '../../helpers/factories/budget';
 import { makeTripFile } from '../../helpers/factories/files';
 import { makeDayAssignment } from '../../helpers/factories/itinerary';
-import { linkTripToJourney } from '../../helpers/factories/journeys';
+import { linkTripToJourney, makeJourney } from '../../helpers/factories/journeys';
+import { makePlace } from '../../helpers/factories/places';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { makeDay, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, parseResourceResult, type McpHarness } from '../../helpers/mcp-harness';
+import { resetDatabase } from '../../helpers/reset-database';
 import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
+
 // PlacesMcp and PlacesService both inject MapsService (search_place and the
 // import enrichment), so the geo calls are stubbed on the prototype — see
 // beforeEach — rather than through a module mock.
 
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-
 import { Readable } from 'node:stream';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 const { searchPlacesMock } = vi.hoisted(() => ({ searchPlacesMock: vi.fn() }));
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 /** Link a journey to a trip so journey-skeleton sync has a target. */
@@ -74,8 +63,8 @@ async function imageOf(placeId: number): Promise<string | null | undefined> {
   return (await findRow(orm, Places, { id: placeId }))!.image_url;
 }
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   searchPlacesMock.mockClear();
   vi.spyOn(MapsService.prototype, 'searchPlaces').mockImplementation(searchPlacesMock as never);
@@ -83,8 +72,7 @@ beforeEach(() => {
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -102,8 +90,8 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 describe('Tool: create_place', () => {
   it('creates a place with all fields', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const cat = (await findRow(orm, Categories, {}))!;
 
     await withHarness(user.id, async (h) => {
@@ -129,8 +117,8 @@ describe('Tool: create_place', () => {
   });
 
   it('creates a place with minimal fields', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -144,8 +132,8 @@ describe('Tool: create_place', () => {
   });
 
   it('persists image_url on the row (#37)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -159,8 +147,8 @@ describe('Tool: create_place', () => {
   });
 
   it('accepts the photo-proxy path the place picker hands out', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -176,8 +164,8 @@ describe('Tool: create_place', () => {
   // The marker builders assemble their HTML as a string, so the scheme pin is the
   // thing standing between a stored value and the DOM. Same contract as REST.
   it('refuses an image_url outside the four allowed shapes', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -192,8 +180,8 @@ describe('Tool: create_place', () => {
   });
 
   it('broadcasts place:created event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_place', arguments: { tripId: trip.id, name: 'Cafe' } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'place:created', expect.any(Object));
@@ -201,9 +189,9 @@ describe('Tool: create_place', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_place', arguments: { tripId: trip.id, name: 'Hack' } });
       expect(result.isError).toBe(true);
@@ -212,8 +200,8 @@ describe('Tool: create_place', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_place', arguments: { tripId: trip.id, name: 'X' } });
       expect(result.isError).toBe(true);
@@ -227,10 +215,10 @@ describe('Tool: create_place', () => {
 
 describe('Tool: set_place_image_from_file (#1242)', () => {
   it('refuses a file that is no picture, and one from another trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const other = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const other = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
     const pdf = (
       await makeTripFile(orm, trip.id, { filename: 'a.pdf', original_name: 'a.pdf', mime_type: 'application/pdf' })
     ).id;
@@ -254,9 +242,9 @@ describe('Tool: set_place_image_from_file (#1242)', () => {
 
 describe('Tool: update_place', () => {
   it('updates specific fields and preserves others', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Old Name' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Old Name' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -271,9 +259,9 @@ describe('Tool: update_place', () => {
   });
 
   it('takes an e-mail and structured opening hours, and null clears the hours (#2472)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Bakery' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Bakery' });
     const hours = [
       { closed: false, open: '08:00', close: '18:00' },
       ...Array.from({ length: 6 }, () => ({ closed: true })),
@@ -307,9 +295,9 @@ describe('Tool: update_place', () => {
   });
 
   it('moving a place drops the country Atlas cached for it, renaming it does not (#2527)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Hotel', lat: 48.8566, lng: 2.3522 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Hotel', lat: 48.8566, lng: 2.3522 });
     await insertRow(orm, PlaceRegions, {
       place: place.id,
       country_code: 'FR',
@@ -344,9 +332,9 @@ describe('Tool: update_place', () => {
   });
 
   it('broadcasts place:updated event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'update_place',
@@ -359,9 +347,9 @@ describe('Tool: update_place', () => {
   it('refuses a misspelt field instead of silently updating nothing', async () => {
     // An assistant wrote stopType for stop_type; the call used to come back as a
     // success with the place untouched, and the road trip never got its fuel stop.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Aral Bad Segeberg' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Aral Bad Segeberg' });
     await withHarness(user.id, async (h) => {
       const refused = await h.client.callTool({
         name: 'update_place',
@@ -382,9 +370,9 @@ describe('Tool: update_place', () => {
   });
 
   it('sets image_url on an existing place (#37)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Unpictured' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Unpictured' });
 
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
@@ -399,9 +387,9 @@ describe('Tool: update_place', () => {
   // The service reads image_url through a `!== undefined` sentinel, so null is the
   // only way to say "remove the picture" - an omitted field keeps the old one.
   it('clears image_url when null is passed, and leaves it alone when omitted', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Pictured' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Pictured' });
     await updateRows(orm, Places, { id: place.id }, { image_url: '/uploads/places/old.jpg' });
 
     await withHarness(user.id, async (h) => {
@@ -422,9 +410,9 @@ describe('Tool: update_place', () => {
   });
 
   it('refuses an image_url outside the four allowed shapes', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Pictured' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Pictured' });
     await updateRows(orm, Places, { id: place.id }, { image_url: 'https://cdn.example.com/keep.jpg' });
 
     await withHarness(user.id, async (h) => {
@@ -440,8 +428,8 @@ describe('Tool: update_place', () => {
   });
 
   it('returns error for place not found in trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'update_place', arguments: { tripId: trip.id, placeId: 99999 } });
       expect(result.isError).toBe(true);
@@ -449,10 +437,10 @@ describe('Tool: update_place', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const place = await makePlace(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'update_place',
@@ -469,10 +457,10 @@ describe('Tool: update_place', () => {
 
 describe('Tool: bulk_update_places', () => {
   it('applies the same field to many places in one call', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const a = createPlace(testDb, trip.id, { name: 'A' });
-    const b = createPlace(testDb, trip.id, { name: 'B' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const a = await makePlace(orm, trip.id, { name: 'A' });
+    const b = await makePlace(orm, trip.id, { name: 'B' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -487,10 +475,10 @@ describe('Tool: bulk_update_places', () => {
   });
 
   it('broadcasts place:updated for each updated place', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const a = createPlace(testDb, trip.id);
-    const b = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const a = await makePlace(orm, trip.id);
+    const b = await makePlace(orm, trip.id);
     await withHarness(user.id, async (h) => {
       broadcastMock.mockClear();
       await h.client.callTool({
@@ -503,10 +491,10 @@ describe('Tool: bulk_update_places', () => {
   });
 
   it('sets the same image_url on every listed place (#37)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const a = createPlace(testDb, trip.id, { name: 'A' });
-    const b = createPlace(testDb, trip.id, { name: 'B' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const a = await makePlace(orm, trip.id, { name: 'A' });
+    const b = await makePlace(orm, trip.id, { name: 'B' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -523,10 +511,10 @@ describe('Tool: bulk_update_places', () => {
   // A lone null still counts as a field, which is what makes "strip the pictures
   // off these eighty places" reachable in one call.
   it('strips the pictures off a batch when image_url is null', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const a = createPlace(testDb, trip.id, { name: 'A' });
-    const b = createPlace(testDb, trip.id, { name: 'B' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const a = await makePlace(orm, trip.id, { name: 'A' });
+    const b = await makePlace(orm, trip.id, { name: 'B' });
     await updateRows(orm, Places, { id: { $in: [a.id, b.id] } }, { image_url: 'https://cdn.example.com/old.jpg' });
 
     await withHarness(user.id, async (h) => {
@@ -542,9 +530,9 @@ describe('Tool: bulk_update_places', () => {
   });
 
   it('errors when no update fields are provided', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const a = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const a = await makePlace(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'bulk_update_places',
@@ -555,10 +543,10 @@ describe('Tool: bulk_update_places', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const place = await makePlace(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'bulk_update_places',
@@ -575,9 +563,9 @@ describe('Tool: bulk_update_places', () => {
 
 describe('Tool: delete_place', () => {
   it('deletes an existing place', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_place',
@@ -590,9 +578,9 @@ describe('Tool: delete_place', () => {
   });
 
   it('takes the linked expense with it and announces that too (#1298)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
     const { id: itemId } = await makeBudgetItem(orm, trip.id, { name: 'Tickets', total_price: 34, place: place.id });
 
     await withHarness(user.id, async (h) => {
@@ -603,9 +591,9 @@ describe('Tool: delete_place', () => {
   });
 
   it('broadcasts place:deleted event', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'delete_place', arguments: { tripId: trip.id, placeId: place.id } });
       expect(broadcastMock).toHaveBeenCalledWith(trip.id, 'place:deleted', expect.any(Object));
@@ -613,8 +601,8 @@ describe('Tool: delete_place', () => {
   });
 
   it('returns error for place not found', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_place', arguments: { tripId: trip.id, placeId: 99999 } });
       expect(result.isError).toBe(true);
@@ -622,10 +610,10 @@ describe('Tool: delete_place', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const place = createPlace(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const place = await makePlace(orm, trip.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'delete_place',
@@ -636,12 +624,12 @@ describe('Tool: delete_place', () => {
   });
 
   it('removes the linked journey skeleton when the place is deleted', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    createDayAssignment(testDb, day.id, place.id);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    await makeDayAssignment(orm, day.id, place.id);
+    const journey = await makeJourney(orm, user.id);
     await linkJourney(journey.id, trip.id);
     // Materialise the skeleton for the assigned place.
     await seedSkeleton(journey.id, trip.id, place.id, user.id, place.name);
@@ -660,10 +648,10 @@ describe('Tool: delete_place', () => {
 
 describe('Tool: create_and_assign_place', () => {
   it('creates a skeleton suggestion in a linked journey', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const journey = await makeJourney(orm, user.id);
     await linkJourney(journey.id, trip.id);
 
     await withHarness(user.id, async (h) => {
@@ -681,9 +669,9 @@ describe('Tool: create_and_assign_place', () => {
   });
 
   it('persists image_url on the place it creates (#37)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
 
     await withHarness(user.id, async (h) => {
       const result = parseToolResult(
@@ -703,7 +691,7 @@ describe('Tool: create_and_assign_place', () => {
 
 describe('Tool: search_place', () => {
   it('returns OSM results when no Google key is configured', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     searchPlacesMock.mockResolvedValue({
       source: 'openstreetmap',
       places: [
@@ -731,7 +719,7 @@ describe('Tool: search_place', () => {
   });
 
   it('returns google_place_id when Google Maps is configured', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     searchPlacesMock.mockResolvedValue({
       source: 'google',
       places: [
@@ -762,7 +750,7 @@ describe('Tool: search_place', () => {
   });
 
   it('returns error when place search fails', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     searchPlacesMock.mockRejectedValue(new Error('Search failed'));
 
     await withHarness(user.id, async (h) => {
@@ -774,7 +762,7 @@ describe('Tool: search_place', () => {
   // Without the bias a bare name resolves wherever the provider guesses, which is
   // how "Central Station" used to come back from the wrong continent (#32).
   it('forwards locationBias and lang to the provider', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     searchPlacesMock.mockResolvedValue({ source: 'google', places: [] });
 
     await withHarness(user.id, async (h) => {
@@ -797,7 +785,7 @@ describe('Tool: search_place', () => {
   });
 
   it('accepts a bias without an explicit radius', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     searchPlacesMock.mockResolvedValue({ source: 'google', places: [] });
 
     await withHarness(user.id, async (h) => {
@@ -816,7 +804,7 @@ describe('Tool: search_place', () => {
   });
 
   it('sends one search to Google alone when asked to, and refuses any other provider', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     searchPlacesMock.mockResolvedValue({ source: 'google', places: [] });
 
     await withHarness(user.id, async (h) => {
@@ -836,7 +824,7 @@ describe('Tool: search_place', () => {
   });
 
   it('refuses a locationBias that is missing a coordinate', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     searchPlacesMock.mockResolvedValue({ source: 'google', places: [] });
 
     await withHarness(user.id, async (h) => {
@@ -856,11 +844,11 @@ describe('Tool: search_place', () => {
 
 describe('Tool: list_places', () => {
   it('returns all places by default', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place1 = createPlace(testDb, trip.id, { name: 'Orphan Place' });
-    const place2 = createPlace(testDb, trip.id, { name: 'Assigned Place' });
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place1 = await makePlace(orm, trip.id, { name: 'Orphan Place' });
+    const place2 = await makePlace(orm, trip.id, { name: 'Assigned Place' });
+    const day = await makeDay(orm, trip.id);
     await makeDayAssignment(orm, day.id, place2.id);
 
     await withHarness(user.id, async (h) => {
@@ -871,11 +859,11 @@ describe('Tool: list_places', () => {
   });
 
   it('returns only unassigned places with assignment=unassigned', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const orphan = createPlace(testDb, trip.id, { name: 'Orphan Place' });
-    const assigned = createPlace(testDb, trip.id, { name: 'Assigned Place' });
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const orphan = await makePlace(orm, trip.id, { name: 'Orphan Place' });
+    const assigned = await makePlace(orm, trip.id, { name: 'Assigned Place' });
+    const day = await makeDay(orm, trip.id);
     await makeDayAssignment(orm, day.id, assigned.id);
 
     await withHarness(user.id, async (h) => {
@@ -890,11 +878,11 @@ describe('Tool: list_places', () => {
   });
 
   it('returns only assigned places with assignment=assigned', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const orphan = createPlace(testDb, trip.id, { name: 'Orphan Place' });
-    const assigned = createPlace(testDb, trip.id, { name: 'Assigned Place' });
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const orphan = await makePlace(orm, trip.id, { name: 'Orphan Place' });
+    const assigned = await makePlace(orm, trip.id, { name: 'Assigned Place' });
+    const day = await makeDay(orm, trip.id);
     await makeDayAssignment(orm, day.id, assigned.id);
 
     await withHarness(user.id, async (h) => {
@@ -909,10 +897,10 @@ describe('Tool: list_places', () => {
   });
 
   it('returns empty array when all places are assigned', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Only Place' });
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Only Place' });
+    const day = await makeDay(orm, trip.id);
     await makeDayAssignment(orm, day.id, place.id);
 
     await withHarness(user.id, async (h) => {
@@ -926,11 +914,11 @@ describe('Tool: list_places', () => {
   });
 
   it('composes with search filter', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const orphan = createPlace(testDb, trip.id, { name: 'Louvre Museum' });
-    const assigned = createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const orphan = await makePlace(orm, trip.id, { name: 'Louvre Museum' });
+    const assigned = await makePlace(orm, trip.id, { name: 'Eiffel Tower' });
+    const day = await makeDay(orm, trip.id);
     await makeDayAssignment(orm, day.id, assigned.id);
 
     await withHarness(user.id, async (h) => {
@@ -945,9 +933,9 @@ describe('Tool: list_places', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_places', arguments: { tripId: trip.id } });
       expect(result.isError).toBe(true);
@@ -961,9 +949,9 @@ describe('Tool: list_places', () => {
 
 describe('Tool: rate_place', () => {
   it("stores the acting user's vote and reports the aggregate", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Rated' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Rated' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -982,9 +970,9 @@ describe('Tool: rate_place', () => {
   });
 
   it('an omitted rating clears the vote', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Rated' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Rated' });
 
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'rate_place', arguments: { tripId: trip.id, placeId: place.id, rating: 5 } });
@@ -996,10 +984,10 @@ describe('Tool: rate_place', () => {
   });
 
   it('returns error for a place outside the trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const other = createTrip(testDb, user.id);
-    const place = createPlace(testDb, other.id, { name: 'Elsewhere' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const other = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, other.id, { name: 'Elsewhere' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -1017,12 +1005,12 @@ describe('Tool: rate_place', () => {
 
 describe('Tool: bulk_delete_places', () => {
   it('deletes the trip-scoped ids, skips foreign ones and broadcasts each', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const other = createTrip(testDb, user.id);
-    const a = createPlace(testDb, trip.id, { name: 'A' });
-    const b = createPlace(testDb, trip.id, { name: 'B' });
-    const foreign = createPlace(testDb, other.id, { name: 'Foreign' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const other = await makeTrip(orm, user.id);
+    const a = await makePlace(orm, trip.id, { name: 'A' });
+    const b = await makePlace(orm, trip.id, { name: 'B' });
+    const foreign = await makePlace(orm, other.id, { name: 'Foreign' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -1039,10 +1027,10 @@ describe('Tool: bulk_delete_places', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    const place = createPlace(testDb, trip.id, { name: 'Theirs' });
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    const place = await makePlace(orm, trip.id, { name: 'Theirs' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -1060,10 +1048,10 @@ describe('Tool: bulk_delete_places', () => {
 
 describe('Resource: trek://trips/{tripId}/places', () => {
   it('returns all places for a trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
-    createPlace(testDb, trip.id, { name: 'Louvre' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makePlace(orm, trip.id, { name: 'Eiffel Tower' });
+    await makePlace(orm, trip.id, { name: 'Louvre' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/places` });
@@ -1081,9 +1069,9 @@ describe('Resource: trek://trips/{tripId}/places', () => {
   // resource this was moved from, so it stays untested here.
 
   it('returns access denied for unauthorized trip', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.readResource({ uri: `trek://trips/${trip.id}/places` });
@@ -1099,8 +1087,8 @@ describe('Resource: trek://trips/{tripId}/places', () => {
 
 describe('Tool: import_places_from_url', () => {
   it('imports a google list, broadcasts each place and reports the count', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const spy = vi.spyOn(PlacesService.prototype, 'importGoogleList').mockResolvedValue({
       places: [
         { id: 1, name: 'A' },
@@ -1129,8 +1117,8 @@ describe('Tool: import_places_from_url', () => {
   it('sends a directions link to the directions importer, the same way the REST route does', async () => {
     // The parity that matters here is not the wire shape but the dispatch: a pasted
     // route has to reach the same importer through the tool as through the box.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const dir = vi.spyOn(PlacesService.prototype, 'importGoogleDirections').mockResolvedValue({
       places: [{ id: 7, name: 'Berlin' }] as never,
       listName: 'Berlin \u2192 Prague',
@@ -1153,8 +1141,8 @@ describe('Tool: import_places_from_url', () => {
   });
 
   it("surfaces the naver importer's refusal as a tool error", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const spy = vi
       .spyOn(PlacesService.prototype, 'importNaverList')
       .mockRejectedValue(new DomainError(400, 'List is empty or could not be read'));
@@ -1173,8 +1161,8 @@ describe('Tool: import_places_from_url', () => {
   // enrichImportedList guards on `opts?.enrich && opts.userId`, so without the
   // third argument the enrichment branch was structurally unreachable (#38).
   it('passes enrich and the calling user through to the google importer', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const spy = vi.spyOn(PlacesService.prototype, 'importGoogleList').mockResolvedValue({
       places: [],
       listName: 'Weekend',
@@ -1192,8 +1180,8 @@ describe('Tool: import_places_from_url', () => {
   });
 
   it('passes enrich through to the naver importer too', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const spy = vi.spyOn(PlacesService.prototype, 'importNaverList').mockResolvedValue({
       places: [],
       listName: 'Seoul',
@@ -1211,8 +1199,8 @@ describe('Tool: import_places_from_url', () => {
   });
 
   it('refuses a non-boolean enrich', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const spy = vi.spyOn(PlacesService.prototype, 'importGoogleList');
 
     await withHarness(user.id, async (h) => {
@@ -1227,9 +1215,9 @@ describe('Tool: import_places_from_url', () => {
   });
 
   it('returns access denied for non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'import_places_from_url',
@@ -1246,9 +1234,9 @@ describe('Tool: import_places_from_url', () => {
 
 describe('Tool: export_trip_gpx', () => {
   it('writes the trip places as waypoints and names the file after the trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Weekend' });
-    createPlace(testDb, trip.id, { name: 'Eiffel Tower', lat: 48.8584, lng: 2.2945 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Paris Weekend' });
+    await makePlace(orm, trip.id, { name: 'Eiffel Tower', lat: 48.8584, lng: 2.2945 });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'export_trip_gpx', arguments: { tripId: trip.id } });
@@ -1263,9 +1251,9 @@ describe('Tool: export_trip_gpx', () => {
   // Same gpxFilename as the REST route (#2165): the title's script survives in
   // the filename now — the header folding is the controller's job, not ours.
   it('keeps a non-ASCII trip title in the filename', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: '沖縄 4泊5日' });
-    createPlace(testDb, trip.id, { name: '首里城', lat: 26.217, lng: 127.719 });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: '沖縄 4泊5日' });
+    await makePlace(orm, trip.id, { name: '首里城', lat: 26.217, lng: 127.719 });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'export_trip_gpx', arguments: { tripId: trip.id } });
@@ -1276,13 +1264,13 @@ describe('Tool: export_trip_gpx', () => {
   });
 
   it('writes each planned day as a route through its stops in order', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Weekend' });
-    const first = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
-    const second = createPlace(testDb, trip.id, { name: 'Notre Dame', lat: 48.853, lng: 2.3499 });
-    const day = createDay(testDb, trip.id);
-    createDayAssignment(testDb, day.id, first.id);
-    createDayAssignment(testDb, day.id, second.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Paris Weekend' });
+    const first = await makePlace(orm, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
+    const second = await makePlace(orm, trip.id, { name: 'Notre Dame', lat: 48.853, lng: 2.3499 });
+    const day = await makeDay(orm, trip.id);
+    await makeDayAssignment(orm, day.id, first.id);
+    await makeDayAssignment(orm, day.id, second.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'export_trip_gpx', arguments: { tripId: trip.id } });
@@ -1293,13 +1281,13 @@ describe('Tool: export_trip_gpx', () => {
   });
 
   it('honours the three selection flags', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Weekend' });
-    const first = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
-    const second = createPlace(testDb, trip.id, { name: 'Notre Dame', lat: 48.853, lng: 2.3499 });
-    const day = createDay(testDb, trip.id);
-    createDayAssignment(testDb, day.id, first.id);
-    createDayAssignment(testDb, day.id, second.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Paris Weekend' });
+    const first = await makePlace(orm, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
+    const second = await makePlace(orm, trip.id, { name: 'Notre Dame', lat: 48.853, lng: 2.3499 });
+    const day = await makeDay(orm, trip.id);
+    await makeDayAssignment(orm, day.id, first.id);
+    await makeDayAssignment(orm, day.id, second.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -1313,9 +1301,9 @@ describe('Tool: export_trip_gpx', () => {
   });
 
   it('errors when every export type is switched off', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Weekend' });
-    createPlace(testDb, trip.id, { name: 'Eiffel Tower' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Paris Weekend' });
+    await makePlace(orm, trip.id, { name: 'Eiffel Tower' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -1329,8 +1317,8 @@ describe('Tool: export_trip_gpx', () => {
 
   // An empty document imports as nothing on the other end, so say so instead.
   it('errors when the trip has nothing to write', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Empty' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Empty' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'export_trip_gpx', arguments: { tripId: trip.id } });
@@ -1340,14 +1328,50 @@ describe('Tool: export_trip_gpx', () => {
   });
 
   it('returns access denied for a non-member', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
-    createPlace(testDb, trip.id, { name: 'Theirs' });
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
+    await makePlace(orm, trip.id, { name: 'Theirs' });
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'export_trip_gpx', arguments: { tripId: trip.id } });
       expect(result.isError).toBe(true);
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// export_trip_kml (#1866): the places as pins for Google My Maps
+// ---------------------------------------------------------------------------
+
+describe('Tool: export_trip_kml', () => {
+  it('writes the places as pins and names the file after the trip', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Paris Weekend' });
+    await makePlace(orm, trip.id, { name: 'Eiffel Tower', lat: 48.8584, lng: 2.2945 });
+
+    await withHarness(user.id, async (h) => {
+      const result = await h.client.callTool({ name: 'export_trip_kml', arguments: { tripId: trip.id } });
+      const data = parseToolResult(result) as { kml: string; filename: string };
+      expect(data.filename).toBe('Paris-Weekend.kml');
+      expect(data.kml).toContain('<name>Eiffel Tower</name>');
+      expect(data.kml).toContain('<coordinates>2.2945,48.8584</coordinates>');
+    });
+  });
+
+  it('errors when no place has coordinates, and for a non-member', async () => {
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const empty = await makeTrip(orm, user.id, { title: 'Empty' });
+    const theirs = await makeTrip(orm, other.id);
+    await makePlace(orm, theirs.id, { name: 'Theirs', lat: 1, lng: 1 });
+
+    await withHarness(user.id, async (h) => {
+      const nothing = await h.client.callTool({ name: 'export_trip_kml', arguments: { tripId: empty.id } });
+      expect(nothing.isError).toBe(true);
+      expect((nothing.content as { text: string }[])[0].text).toBe('Nothing to export.');
+      const denied = await h.client.callTool({ name: 'export_trip_kml', arguments: { tripId: theirs.id } });
+      expect(denied.isError).toBe(true);
     });
   });
 });
@@ -1358,8 +1382,8 @@ describe('Tool: export_trip_gpx', () => {
 
 describe('Tool: create_and_assign_place (failure paths)', () => {
   it('reports a missing day without writing the place', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -1373,9 +1397,9 @@ describe('Tool: create_and_assign_place (failure paths)', () => {
   });
 
   it('rolls the transaction back and reports failure when the place write throws', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
     const spy = vi.spyOn(PlacesService.prototype, 'create').mockImplementation(() => {
       throw new Error('db exploded');
     });
@@ -1415,14 +1439,14 @@ async function seedSkeleton(journeyId: number, tripId: number, placeId: number, 
 
 describe('journey hooks on the MCP delete paths', () => {
   it("delete_place leaves a foreign trip's journey skeleton alone", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const other = createTrip(testDb, user.id);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const other = await makeTrip(orm, user.id);
+    const journey = await makeJourney(orm, user.id);
     await linkJourney(journey.id, other.id);
-    const foreign = createPlace(testDb, other.id, { name: 'Theirs' });
-    const day = createDay(testDb, other.id);
-    createDayAssignment(testDb, day.id, foreign.id);
+    const foreign = await makePlace(orm, other.id, { name: 'Theirs' });
+    const day = await makeDay(orm, other.id);
+    await makeDayAssignment(orm, day.id, foreign.id);
     await seedSkeleton(journey.id, other.id, foreign.id, user.id, 'Theirs');
     expect(await skeletonFor(journey.id, foreign.id)).not.toBeNull();
 
@@ -1444,13 +1468,13 @@ describe('journey hooks on the MCP delete paths', () => {
   // the entry survived as an orphan instead of being removed. Asserting on the
   // entry count, not on source_place_id, is what tells the two apart.
   it('bulk_delete_places detaches the skeletons before the rows go', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const journey = await makeJourney(orm, user.id);
     await linkJourney(journey.id, trip.id);
-    const place = createPlace(testDb, trip.id, { name: 'Doomed' });
-    const day = createDay(testDb, trip.id);
-    createDayAssignment(testDb, day.id, place.id);
+    const place = await makePlace(orm, trip.id, { name: 'Doomed' });
+    const day = await makeDay(orm, trip.id);
+    await makeDayAssignment(orm, day.id, place.id);
     await seedSkeleton(journey.id, trip.id, place.id, user.id, 'Doomed');
     expect(await skeletonFor(journey.id, place.id)).not.toBeNull();
 
@@ -1472,14 +1496,14 @@ describe('journey hooks on the MCP delete paths', () => {
   // trip-scoped result), so this is a guard against the scoping regressing when
   // the hook moved ahead of the delete — not a fix for a live bug.
   it("bulk_delete_places leaves a foreign trip's skeleton alone", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const other = createTrip(testDb, user.id);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const other = await makeTrip(orm, user.id);
+    const journey = await makeJourney(orm, user.id);
     await linkJourney(journey.id, other.id);
-    const foreign = createPlace(testDb, other.id, { name: 'Theirs' });
-    const day = createDay(testDb, other.id);
-    createDayAssignment(testDb, day.id, foreign.id);
+    const foreign = await makePlace(orm, other.id, { name: 'Theirs' });
+    const day = await makeDay(orm, other.id);
+    await makeDayAssignment(orm, day.id, foreign.id);
     await seedSkeleton(journey.id, other.id, foreign.id, user.id, 'Theirs');
 
     await withHarness(user.id, async (h) => {
@@ -1501,12 +1525,12 @@ describe('journey hooks on the MCP delete paths', () => {
 describe('journey hooks on the MCP create and update paths', () => {
   /** A place planned on a day of a trip with a linked journey, and the skeleton entry made from it. */
   async function plannedWithSkeleton(placeName: string, skeletonTitle = placeName) {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id, { name: placeName });
-    createDayAssignment(testDb, day.id, place.id);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id, { name: placeName });
+    await makeDayAssignment(orm, day.id, place.id);
+    const journey = await makeJourney(orm, user.id);
     await linkJourney(journey.id, trip.id);
     await seedSkeleton(journey.id, trip.id, place.id, user.id, skeletonTitle);
     return { user, trip, day, place, journey };
@@ -1526,8 +1550,8 @@ describe('journey hooks on the MCP create and update paths', () => {
 
   it('MCP-PLACES-JRN-002: bulk_update_places carries a new time into the journey entry of every place', async () => {
     const { user, trip, day, place, journey } = await plannedWithSkeleton('Market');
-    const second = createPlace(testDb, trip.id, { name: 'Harbour' });
-    createDayAssignment(testDb, day.id, second.id);
+    const second = await makePlace(orm, trip.id, { name: 'Harbour' });
+    await makeDayAssignment(orm, day.id, second.id);
     await seedSkeleton(journey.id, trip.id, second.id, user.id, 'Harbour');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -1563,8 +1587,8 @@ describe('journey hooks on the MCP create and update paths', () => {
   });
 
   it('MCP-PLACES-JRN-004: create_place hands the new place to the journey hook, as POST /places does', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const hook = vi.spyOn(JourneyDomainService.prototype, 'onPlaceCreated');
     try {
       await withHarness(user.id, async (h) => {
@@ -1579,8 +1603,8 @@ describe('journey hooks on the MCP create and update paths', () => {
   });
 
   it('MCP-PLACES-JRN-005: update_place on a missing place sends nothing and runs no journey hook', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     const hook = vi.spyOn(JourneyDomainService.prototype, 'onPlaceUpdated');
     broadcastMock.mockClear();
     try {
@@ -1608,9 +1632,9 @@ describe('place tools and a website without a scheme (#2483)', () => {
   const websiteOf = async (placeId: number) => (await findRow(orm, Places, { id: placeId }))!.website;
 
   it('MCP-PLACES-2483-01: create_place, create_and_assign_place, update_place and bulk_update_places store https', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
 
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
@@ -1647,8 +1671,8 @@ describe('place tools and a website without a scheme (#2483)', () => {
   });
 
   it('MCP-PLACES-2483-02: a script link or another scheme is still refused and stores nothing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     await withHarness(user.id, async (h) => {
       for (const website of ['javascript:alert(1)', 'mailto:mairie@example.fr', 'Chapelle']) {
@@ -1665,7 +1689,7 @@ describe('place tools and a website without a scheme (#2483)', () => {
   });
 
   it('MCP-PLACES-2483-03: tools/list still describes the field as a plain capped string', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const { tools } = await h.client.listTools();
       for (const name of ['create_place', 'create_and_assign_place', 'update_place', 'bulk_update_places']) {

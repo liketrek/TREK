@@ -201,9 +201,12 @@ export class ReservationEndpointsRepository extends TrekRepository<ReservationEn
    * = ?) AND e.role IN ('from', 'to') AND COALESCE(t.start_date, t.end_date)
    * IS NOT NULL AND COALESCE(t.start_date, t.end_date) <= date('now') AND
    * ${TRAVELER_OWNS}`. `today` resolved by the caller once (`todayUtc()`),
-   * the `TripsRepository.activeTrip`/`lastStartedTrip` precedent.
+   * the `TripsRepository.activeTrip`/`lastStartedTrip` precedent. The row also
+   * carries `COALESCE(t.end_date, t.start_date) AS trip_last_date`, by which
+   * the dashboard orders the countries (#2648); an endpoint sits on one trip,
+   * so it adds no row to the DISTINCT.
    */
-  async listOwnedEndpointsForUser(userId: number, today: string): Promise<TravelerOwnedEndpointRow[]> {
+  async listOwnedEndpointsForUser(userId: number, today: string): Promise<TravelerOwnedEndpointWithTripDateRow[]> {
     const rows = await this.kysely<TravelerOwnedEndpointsWithTripsKyselyDB>()
       .selectFrom('reservation_endpoints as e')
       .innerJoin('reservations as r', 'r.id', 'e.reservation_id')
@@ -228,6 +231,7 @@ export class ReservationEndpointsRepository extends TrekRepository<ReservationEn
           .else(eb.fn.coalesce('r.reservation_time', 'r.reservation_end_time'))
           .end()
           .as('fallback_time'),
+        eb.fn.coalesce('t.end_date', 't.start_date').as('trip_last_date'),
       ])
       .distinct()
       .where((eb) => eb.or([eb('t.user_id', '=', userId), eb('tm.user_id', '=', userId)]))
@@ -236,7 +240,7 @@ export class ReservationEndpointsRepository extends TrekRepository<ReservationEn
       .where((eb) => eb(eb.fn.coalesce('t.start_date', 't.end_date'), '<=', today))
       .where((eb) => travelerOwnsExpr(eb, userId))
       .execute();
-    return rows as TravelerOwnedEndpointRow[];
+    return rows as TravelerOwnedEndpointWithTripDateRow[];
   }
 
   /**
@@ -316,6 +320,11 @@ export interface TravelerOwnedEndpointRow {
   reservation_type: string | null;
   reservation_status: string | null;
   fallback_time: string | null;
+}
+
+/** AT45's projection: AT6's, plus the last day of the trip the endpoint is on. */
+export interface TravelerOwnedEndpointWithTripDateRow extends TravelerOwnedEndpointRow {
+  trip_last_date: string | null;
 }
 
 /** {@link ReservationEndpointsRepository.listOwnedEndpointsForTrips}'s `reservation_endpoints`/`reservations`/`reservation_travelers` tables (`r` aliased for `travelerOwnsExpr`, R7). */

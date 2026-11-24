@@ -1,5 +1,5 @@
 /**
- * KML and KMZ in: the one place the XML library is configured for KML.
+ * KML and KMZ in, KML out: the one place the XML library is configured for KML.
  *
  * A KMZ is unpacked to its KML (doc.kml preferred, the decompressed size
  * capped), the bytes are decoded as UTF-8 (loosely, with a warning, when they
@@ -12,8 +12,13 @@
  * The Tours import reads the same document for its lines instead (IO-02):
  * every LineString and gx:Track, also inside a MultiGeometry or gx:MultiTrack,
  * as a line of its own, and a count of what it leaves out.
+ *
+ * Writing (#1866) is the other way round and only pins: places for Google My
+ * Maps, which takes a KML file as a layer, the one way to get a list of places
+ * into Google Maps without an API that writes its lists.
  */
 import { stripHtmlTags } from '../common/stripHtmlTags';
+import { coord } from './gpx.codec';
 import {
   KmlReadError,
   type KmlDocumentRead,
@@ -24,7 +29,7 @@ import {
   type ParsedKmlPlacemark,
 } from './place-import.types';
 
-import { XMLParser, XMLValidator } from 'fast-xml-parser';
+import { XMLBuilder, XMLParser, XMLValidator } from 'fast-xml-parser';
 import unzipper, { type File as ZipEntry } from 'unzipper';
 import { TextDecoder } from 'util';
 
@@ -424,4 +429,57 @@ export async function unpackKmzToKml(
     // A damaged entry fails while it inflates, not while the directory is read.
     throw new KmlReadError('archive_invalid', 'Invalid KMZ archive.');
   }
+}
+
+// ---------------------------------------------------------------------------
+// Writing (#1866)
+// ---------------------------------------------------------------------------
+
+const KML_NAMESPACE = 'http://www.opengis.net/kml/2.2';
+
+const kmlBuilder = new XMLBuilder({
+  ignoreAttributes: false,
+  attributeNamePrefix: '@_',
+  format: true,
+  indentBy: '  ',
+  suppressEmptyNode: true,
+});
+
+/** One pin as the export writes it. Text goes in as given: the caller has made it XML text (xml-text.ts). */
+export interface KmlPinOut {
+  name: string;
+  lat: number;
+  lng: number;
+  address?: string;
+  phone?: string;
+  description?: string;
+  /** Named values, which Google My Maps shows as the columns of the layer's table. */
+  data?: Array<{ name: string; value: string }>;
+}
+
+/**
+ * A KML 2.2 document of pins, each Placemark's elements in the order the
+ * schema gives them (name, address, phoneNumber, description, ExtendedData,
+ * then the Point), its coordinates longitude first as KML has them.
+ */
+export function writeKmlPins(documentName: string, pins: KmlPinOut[]): string {
+  return kmlBuilder.build({
+    '?xml': { '@_version': '1.0', '@_encoding': 'UTF-8' },
+    kml: {
+      '@_xmlns': KML_NAMESPACE,
+      Document: {
+        name: documentName,
+        Placemark: pins.map((pin) => ({
+          name: pin.name,
+          address: pin.address,
+          phoneNumber: pin.phone,
+          description: pin.description,
+          ExtendedData: pin.data?.length
+            ? { Data: pin.data.map((entry) => ({ '@_name': entry.name, value: entry.value })) }
+            : undefined,
+          Point: { coordinates: `${coord(pin.lng)},${coord(pin.lat)}` },
+        })),
+      },
+    },
+  });
 }

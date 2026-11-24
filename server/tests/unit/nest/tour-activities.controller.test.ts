@@ -6,8 +6,8 @@
  */
 import 'reflect-metadata';
 
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { TRIP_PERMISSION_KEY, TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
 import { TourActivitiesController } from '../../../src/nest/tours/tour-activities.controller';
@@ -32,9 +32,9 @@ describe('TourActivitiesController', () => {
       'api/trips/:tripId/tours/:placeId/activities',
     );
     expect(Reflect.getMetadata(GUARDS_METADATA, TourActivitiesController)).toEqual([
-      AddonGuard,
       JwtAuthGuard,
       TripAccessGuard,
+      TripAddonGuard,
     ]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, TourActivitiesController)).toEqual({ addonId: 'tours', label: 'Tours' });
   });

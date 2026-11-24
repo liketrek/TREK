@@ -1,6 +1,7 @@
 import { ADDON_IDS } from '../../addons';
 import { McpController, Prompt, type McpContext } from '../../nest-mcp';
 import { addonGate } from '../addons/addon-gate';
+import { addonOffMessage } from '../addons/addons.constants';
 import { AddonsService } from '../addons/addons.service';
 import { tripIdPromptArg } from '../mcp-shared/prompt-args';
 import { PackingService } from '../packing/packing.service';
@@ -9,6 +10,12 @@ import { TripsService } from './trips.service';
 
 const budgetAddonOn = addonGate(ADDON_IDS.BUDGET);
 const packingAddonOn = addonGate(ADDON_IDS.PACKING);
+
+/** A prompt's answer while its addon is off for the trip it names. */
+function addonOffPrompt(addonId: string) {
+  const text = `${addonOffMessage(addonId)}.`;
+  return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text } }] };
+}
 
 /**
  * The two cross-domain prompts, relocated from budget.mcp.ts / packing.mcp.ts
@@ -47,6 +54,7 @@ export class TripPromptsMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(tripId, ADDON_IDS.BUDGET))) return addonOffPrompt(ADDON_IDS.BUDGET);
     const summary = await this.readModel.getTripSummary(tripId, ctx.userId);
     if (!summary) {
       return { messages: [{ role: 'user' as const, content: { type: 'text' as const, text: 'Trip not found.' } }] };
@@ -105,6 +113,7 @@ export class TripPromptsMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(tripId, ADDON_IDS.PACKING))) return addonOffPrompt(ADDON_IDS.PACKING);
     // Hide other members' private items (#858) from the requesting user.
     const items = await this.packing.listItems(tripId, ctx.userId);
     if (!items.length) {

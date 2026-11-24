@@ -156,7 +156,9 @@ describe('demo addon policy across the hourly reset', () => {
     vi.spyOn(fs, 'existsSync').mockImplementation(((p: fs.PathLike) => String(p) === BASELINE) as typeof fs.existsSync);
     // The stand-in swap brings back a baseline whose shelf an admin had changed.
     const database = {
+      archiveEntry: 'travel.db',
       canSnapshot: () => true,
+      checkCopy: vi.fn(async () => null),
       checkpoint: vi.fn(async () => undefined),
       replace: vi.fn(async () => {
         await scramble();

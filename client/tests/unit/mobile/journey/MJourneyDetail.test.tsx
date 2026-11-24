@@ -265,9 +265,9 @@ describe('MJourneyDetail', () => {
     expect(document.querySelector('.h-\\[196px\\]')).not.toBeInTheDocument();
   });
 
-  it('FE-MOB-JDET-001: shows a spinner while the journey is loading', () => {
+  it('FE-MOB-JDET-001: shows placeholders while the journey is loading', () => {
     setup({ loading: true, current: null });
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     expect(screen.queryByTestId('journey-map')).not.toBeInTheDocument();
   });
 

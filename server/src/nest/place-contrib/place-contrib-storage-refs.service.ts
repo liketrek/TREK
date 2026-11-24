@@ -18,7 +18,7 @@ export class PlaceContribStorageRefsService extends StorageReclaimSource {
   protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
     const rows = await this.em
       .getRepository(PlaceContribOutbox)
-      .find(likeAny<PlaceContribOutbox>(['value'], containing), { fields: ['value'] });
+      .find(likeAny<PlaceContribOutbox>(this.em.getPlatform(), ['value'], containing), { fields: ['value'] });
     return rows.map((row) => row.value);
   }
 }

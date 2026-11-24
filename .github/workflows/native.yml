@@ -10,6 +10,13 @@ permissions:
 #
 # Unsigned on purpose: signing and store uploads need secrets that fork PRs do
 # not get, and belong in a release workflow of their own.
+#
+# package-lock.json is not a trigger: every dependency bump touches it, and a
+# Mac build per bump only held the queue. The shells link nothing but the
+# @capacitor/* packages, all declared in client/package.json, and a Dependabot
+# bump of one of them raises the range there too, so it still runs. The client
+# typecheck and the watch and widget snapshot tests run in test.yml on every
+# change under client/.
 on:
   pull_request:
     paths:
@@ -24,7 +31,6 @@ on:
       - 'client/scripts/check-store-metadata.mjs'
       - 'client/fastlane/**'
       - 'client/package.json'
-      - 'package-lock.json'
       - 'shared/src/i18n/*/native.ts'
       - '.github/workflows/native.yml'
   workflow_dispatch:
@@ -60,7 +66,7 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - uses: actions/setup-java@v5
+      - uses: actions/setup-java@v6
         with:
           distribution: temurin
           java-version: 21
@@ -90,18 +96,20 @@ jobs:
           retention-days: 14
 
   ios:
-    runs-on: macos-15
+    runs-on: xcode-27
     timeout-minutes: 40
     steps:
       - uses: actions/checkout@v6
 
-      # App Store uploads must be built with Xcode 26; the image's default is older.
-      - name: Select Xcode 26
+      # The iOS 27.1 SDK, on the xcode-27 image: an app built against an older SDK
+      # runs letterboxed on the inner display of an iPhone Duo.
+      - name: Select Xcode 27.1
         run: |
-          XCODE=$(ls -d /Applications/Xcode_26*.app | sort -V | tail -1)
-          test -n "$XCODE"
+          XCODE=/Applications/Xcode_27.1.app
+          test -d "$XCODE"
           sudo xcode-select -s "$XCODE"
           xcodebuild -version
+          xcodebuild -showsdks | grep iphoneos27.1
 
       - name: Check the property lists
         run: plutil -lint client/ios/App/App/Info.plist client/ios/ExportOptions.plist client/ios/App/NotificationService/Info.plist client/ios/App/NotificationService/NotificationService.entitlements client/ios/App/App/App.entitlements client/ios/App/TREKWidgets/Info.plist client/ios/App/TREKWidgets/TREKWidgets.entitlements client/ios/App/TREKWidgets/*.lproj/Localizable.strings client/ios/App/ShareExtension/Info.plist client/ios/App/ShareExtension/ShareExtension.entitlements client/ios/App/ShareExtension/*.lproj/Localizable.strings client/ios/App/TREKWatch/Info.plist client/ios/App/TREKWatch/TREKWatch.entitlements client/ios/App/TREKWatch/*.lproj/Localizable.strings client/ios/App/TREKWatchWidgets/Info.plist client/ios/App/TREKWatchWidgets/TREKWatchWidgets.entitlements
@@ -179,34 +187,6 @@ jobs:
           name: widget-previews
           path: client/ios/WidgetPreviews/out
           retention-days: 14
-
-  # The watch's half in the UI (client/src/native/watch.ts): the snapshot it
-  # builds and the ticks it takes back, typechecked and tested here as well,
-  # so a change to the bridge is checked next to the Swift that reads it.
-  watch-bridge:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - name: Install
-        run: npm ci --workspace=shared --workspace=client
-
-      - name: Build shared
-        run: npm run build --workspace=shared
-
-      - name: Typecheck the client
-        working-directory: client
-        run: npm run typecheck
-
-      - name: Test the widget and watch snapshots
-        working-directory: client
-        run: npx vitest run src/native/watch.test.ts src/native/widgets.test.ts src/native/widgetExtras.test.ts
 
   # The watch app on watchOS simulators in its screenshot mode (DemoMode.swift):
   # every screen on the largest and the smallest watch, the main ones in every

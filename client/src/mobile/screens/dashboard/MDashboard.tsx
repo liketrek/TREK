@@ -24,6 +24,8 @@ import MSegmented from '../../components/MSegmented'
 import MUserMenu from './MUserMenu'
 import { useMobileDashOrder, useMobileDashVisibility, MobileDashWidget } from './MDashWidgets'
 import MNewTripSheet from './MNewTripSheet'
+import MContextMenu from '../../components/MContextMenu'
+import { useLongPress } from '../../components/useLongPress'
 import type { MobileDashToken } from '@trek/shared'
 import { usePullToRefresh } from '../../usePullToRefresh'
 import MPullIndicator from '../../components/MPullIndicator'
@@ -59,6 +61,9 @@ export default function MDashboard(): React.ReactElement {
   const unread = useInAppNotificationStore(s => s.unreadCount)
   const fetchUnreadCount = useInAppNotificationStore(s => s.fetchUnreadCount)
   const [menuOpen, setMenuOpen] = useState(false)
+  // The trip a long press opened the menu for; kept while the menu slides away.
+  const [heldTrip, setHeldTrip] = useState<{ trip: DashboardTrip; open: boolean } | null>(null)
+  const holdTrip = (trip: DashboardTrip) => setHeldTrip({ trip, open: true })
   const { available: assistantAvailable, open: openAssistant } = useAssistantHomeLauncher()
   const [subOpen, setSubOpen] = useState(false)
   // The filter chips scroll when a language's words do not fit beside the two
@@ -194,6 +199,7 @@ export default function MDashboard(): React.ReactElement {
                 pluginBadges={badgesFor(trip.id)}
                 actions={actionsFor(trip, 'grid')}
                 onOpen={() => navigate(`/trips/${trip.id}`)}
+                onLongPress={() => holdTrip(trip)}
               />
             ))}
           </div>
@@ -209,6 +215,7 @@ export default function MDashboard(): React.ReactElement {
                 pluginBadges={badgesFor(trip.id)}
                 actions={actionsFor(trip, 'list')}
                 onOpen={() => navigate(`/trips/${trip.id}`)}
+                onLongPress={() => holdTrip(trip)}
               />
             ))}
           </div>
@@ -291,6 +298,7 @@ export default function MDashboard(): React.ReactElement {
                 t={t}
                 onOpen={() => navigate(`/trips/${spotlight.id}`)}
                 actions={actionsFor(spotlight, 'list')}
+                onLongPress={() => holdTrip(spotlight)}
               />
             )}
             <div style={{ order: dashOrder.indexOf('trips') }}>{renderBlock('trips')}</div>
@@ -308,6 +316,12 @@ export default function MDashboard(): React.ReactElement {
         </div>
       </div>
 
+      <MContextMenu
+        open={!!heldTrip?.open}
+        title={heldTrip?.trip.title ?? ''}
+        actions={heldTrip ? actionsFor(heldTrip.trip, 'list') : []}
+        onClose={() => setHeldTrip(h => (h ? { ...h, open: false } : h))}
+      />
       <MNewTripSheet
         open={showForm}
         trip={editingTrip}
@@ -350,12 +364,14 @@ export default function MDashboard(): React.ReactElement {
 }
 
 // ── Spotlight ────────────────────────────────────────────────────────────────
-function MSpotlightCard({ trip, t, onOpen, actions }: {
+function MSpotlightCard({ trip, t, onOpen, actions, onLongPress }: {
   trip: DashboardTrip
   t: (key: string, params?: Record<string, string | number>) => string
   onOpen: () => void
   actions: CardAction[]
+  onLongPress?: () => void
 }): React.ReactElement {
+  const press = useLongPress(onLongPress)
   const status = getTripStatus(trip)
   const ongoing = status === 'ongoing'
   const until = daysUntil(trip.start_date)
@@ -390,6 +406,7 @@ function MSpotlightCard({ trip, t, onOpen, actions }: {
 
   return (
     <div
+      {...press}
       role="button"
       tabIndex={0}
       onClick={onOpen}
@@ -517,12 +534,14 @@ function coverStyle(trip: DashboardTrip): React.CSSProperties {
     : { backgroundImage: entityGradient(trip.id) }
 }
 
-function MTripGridCard({ trip, locale, badge, pluginBadges, actions, onOpen }: {
+function MTripGridCard({ trip, locale, badge, pluginBadges, actions, onOpen, onLongPress }: {
   trip: DashboardTrip; locale: string; badge: string; pluginBadges: TripCardBadge[]
-  actions: CardAction[]; onOpen: () => void
+  actions: CardAction[]; onOpen: () => void; onLongPress?: () => void
 }): React.ReactElement {
+  const press = useLongPress(onLongPress)
   return (
     <div
+      {...press}
       role="button"
       tabIndex={0}
       onClick={onOpen}
@@ -550,13 +569,15 @@ function MTripGridCard({ trip, locale, badge, pluginBadges, actions, onOpen }: {
   )
 }
 
-function MTripListCard({ trip, locale, t, badge, pluginBadges, actions, onOpen }: {
+function MTripListCard({ trip, locale, t, badge, pluginBadges, actions, onOpen, onLongPress }: {
   trip: DashboardTrip; locale: string
   t: (key: string, params?: Record<string, string | number>) => string
-  badge: string; pluginBadges: TripCardBadge[]; actions: CardAction[]; onOpen: () => void
+  badge: string; pluginBadges: TripCardBadge[]; actions: CardAction[]; onOpen: () => void; onLongPress?: () => void
 }): React.ReactElement {
+  const press = useLongPress(onLongPress)
   return (
     <div
+      {...press}
       role="button"
       tabIndex={0}
       onClick={onOpen}

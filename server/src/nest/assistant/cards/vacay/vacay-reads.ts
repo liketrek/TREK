@@ -181,7 +181,7 @@ export function statsOf(value: unknown): VacayStatRow[] | null {
 }
 
 /**
- * A country's public holidays as `list_holidays` answers them (nager.at
+ * A country's public holidays as `list_holidays` answers them (Nager.Holidays
  * rows), narrowed to `region` the way the planner clears them: a holiday of
  * the whole country, or one of the region's own. A country that splits its
  * holidays by region gives nothing for a calendar without one.

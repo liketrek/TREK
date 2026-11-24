@@ -35,8 +35,9 @@ export const PLANNER_TOURS = {
 export const SPARE_DESCRIPTION = 'From the hut across the Cisles meadows and down to the Col Raiser gondola.';
 /** What the description reads after the "someone else saved it" write of the conflict guide. */
 export const REMOTE_DESCRIPTION = 'Mira: we take the gondola down, the last stretch is closed this week.';
-/** The query the drawing guide types into the map search; the hut is where its points lie. */
-export const SEARCH_QUERY = 'Rifugio Firenze';
+/** The query the drawing guide types into the map search; the hut is where its points lie. OSM names it
+ * "Ncisles - Regensburger - Firenze", and "Rifugio Firenze" alone finds other huts of the valley first. */
+export const SEARCH_QUERY = 'Regensburger Firenze';
 
 async function body<T>(
   res: { ok(): boolean; status(): number; text(): Promise<string>; json(): Promise<unknown> },
@@ -441,23 +442,32 @@ export async function centreOf(locator: Locator): Promise<{ x: number; y: number
 }
 
 /**
+ * RouteHitBand's path: transparent and 20 px wide. Its 'cursor-copy' class is
+ * not on the rendered path, so the band is found by its stroke instead.
+ */
+const ROUTE_BAND = '.leaflet-overlay-pane path[stroke="transparent"][stroke-width="20"]';
+
+/**
  * A spot on the drawn route, `share` of the way along its widest hit band:
  * the invisible band Leaflet lays along the line to take the click that adds
  * a shaping point.
  */
 export async function spotOnRoute(page: Page, share = 0.3): Promise<{ x: number; y: number }> {
-  const at = await page.evaluate((k) => {
-    const bands = Array.from(document.querySelectorAll('.leaflet-overlay-pane path.cursor-copy')) as SVGPathElement[];
-    const band = bands.sort((a, b) => b.getTotalLength() - a.getTotalLength())[0];
-    const ctm = band?.getScreenCTM();
-    if (!band || !ctm) return null;
-    const p = band.getPointAtLength(band.getTotalLength() * k);
-    const s = new DOMPoint(p.x, p.y).matrixTransform(ctm);
-    return { x: s.x, y: s.y };
-  }, share);
+  const at = await page.evaluate(
+    ({ k, sel }) => {
+      const bands = Array.from(document.querySelectorAll(sel)) as SVGPathElement[];
+      const band = bands.sort((a, b) => b.getTotalLength() - a.getTotalLength())[0];
+      const ctm = band?.getScreenCTM();
+      if (!band || !ctm) return null;
+      const p = band.getPointAtLength(band.getTotalLength() * k);
+      const s = new DOMPoint(p.x, p.y).matrixTransform(ctm);
+      return { x: s.x, y: s.y };
+    },
+    { k: share, sel: ROUTE_BAND }
+  );
   if (!at) throw new Error('no drawn route to click on');
   return at;
 }
 
 /** The drawn route's click band, for the ring: the widest one. */
-export const routeBand = (page: Page) => page.locator('.leaflet-overlay-pane path.cursor-copy').first();
+export const routeBand = (page: Page) => page.locator(ROUTE_BAND).first();

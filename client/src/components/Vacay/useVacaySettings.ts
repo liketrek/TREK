@@ -62,6 +62,8 @@ export function useVacaySettings({ language, loadCountries }: { language: string
   const weekendDays: number[] = plan?.weekend_days ? String(plan.weekend_days).split(',').map(Number) : [0, 6];
   const toggleWeekendDay = (day: number) => {
     const next = weekendDays.includes(day) ? weekendDays.filter((d) => d !== day) : [...weekendDays, day];
+    // An empty value falls back to Saturday and Sunday, so the last weekend day stays selected.
+    if (next.length === 0) return;
     updatePlan({ weekend_days: next.join(',') });
   };
 

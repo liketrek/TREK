@@ -84,6 +84,42 @@ type CollectionPlacesWriteKyselyDB = Pick<DB, 'collection_places'>;
 
 type CollectionPlaceLabelsKyselyDB = Pick<DB, 'collection_place_labels'>;
 
+type CollectionPlacesPageKyselyDB = Pick<DB, 'collection_places' | 'collection_place_labels'>;
+
+/** Which of a list's places a page holds (list_collection_places, #2647); every filter left out matches all. */
+interface CollectionPlacePageFilter {
+  status?: string;
+  labelId?: number;
+  unlabeled?: boolean;
+}
+
+/**
+ * A place's position in its list: the keys both a page and getCollection order
+ * by, in that order. A missing sort_order reads as the column default and a
+ * missing created_at as the earliest, so the order is total on every engine and
+ * a page can go on after any place.
+ */
+export interface CollectionPlacePosition {
+  sortOrder: number;
+  createdAt: string;
+  id: number;
+}
+
+/** A saved place as a page names it: the fields an agent finds it by, plus its position. */
+export interface CollectionPlacePageRow {
+  id: number;
+  name: string;
+  status: string;
+  address: string | null;
+  lat: number | null;
+  lng: number | null;
+  google_place_id: string | null;
+  website: string | null;
+  phone: string | null;
+  sort_key: number;
+  created_key: string;
+}
+
 /**
  * `collections` — the root of the collections cluster (Plan 3h Task 1, part
  * A). Owns every CL1-CL36 statement not moved to `CollectionMembersRepository`/
@@ -344,7 +380,9 @@ export class CollectionsRepository extends TrekRepository<Collections> {
    * CL16/CL17 (`getCollection`/`exportCollection`'s dup-text pair, collapsed
    * onto ONE repository method as the brief directs) — the same
    * `cp.*`/category-alias select as {@link findPlaceRowById}, scoped by
-   * `cp.collection_id` and ordered by `cp.sort_order, cp.created_at`.
+   * `cp.collection_id` and ordered by the place's position: `sort_order`,
+   * `created_at`, then `id`, so two places saved in the same second keep one
+   * order, the one list_collection_places pages through (#2647).
    */
   async listPlaceRows(collectionId: number): Promise<CollectionPlaceRow[]> {
     return await this.placesReadDb()
@@ -382,8 +420,99 @@ export class CollectionsRepository extends TrekRepository<Collections> {
         'c.icon as category_icon',
       ])
       .where('cp.collection_id', '=', collectionId)
-      .orderBy('cp.sort_order')
-      .orderBy('cp.created_at')
+      .orderBy((eb) => eb.fn.coalesce('cp.sort_order', eb.val(0)))
+      .orderBy((eb) => eb.fn.coalesce('cp.created_at', eb.val('')))
+      .orderBy('cp.id')
+      .execute();
+  }
+
+  /** The places of a list the filter matches, before any paging. */
+  private filteredPlaces(collectionId: number, filter: CollectionPlacePageFilter) {
+    const { status, labelId, unlabeled } = filter;
+    let query = this.kysely<CollectionPlacesPageKyselyDB>()
+      .selectFrom('collection_places as cp')
+      .where('cp.collection_id', '=', collectionId);
+    if (status !== undefined) query = query.where('cp.status', '=', status);
+    if (labelId !== undefined) {
+      query = query.where((eb) =>
+        eb.exists(
+          eb
+            .selectFrom('collection_place_labels as cpl')
+            .select('cpl.label_id')
+            .whereRef('cpl.collection_place_id', '=', 'cp.id')
+            .where('cpl.label_id', '=', labelId),
+        ),
+      );
+    }
+    if (unlabeled) {
+      query = query.where((eb) =>
+        eb.not(
+          eb.exists(
+            eb
+              .selectFrom('collection_place_labels as cpl')
+              .select('cpl.label_id')
+              .whereRef('cpl.collection_place_id', '=', 'cp.id'),
+          ),
+        ),
+      );
+    }
+    return query;
+  }
+
+  /** How many places of a list the filter matches (list_collection_places' total). */
+  async countPlacePage(collectionId: number, filter: CollectionPlacePageFilter): Promise<number> {
+    const row = await this.filteredPlaces(collectionId, filter)
+      .select((eb) => eb.fn.countAll<number>().as('n'))
+      .executeTakeFirstOrThrow();
+    return Number(row.n);
+  }
+
+  /**
+   * Up to `limit` places of a list the filter matches, in the list's order
+   * (listPlaceRows'), starting after the position `after` names: a keyset, so
+   * a place that stops matching between two pages moves none of the others.
+   */
+  async listPlacePage(
+    collectionId: number,
+    filter: CollectionPlacePageFilter,
+    after: CollectionPlacePosition | null,
+    limit: number,
+  ): Promise<CollectionPlacePageRow[]> {
+    let query = this.filteredPlaces(collectionId, filter);
+    if (after) {
+      query = query.where((eb) => {
+        const sortKey = eb.fn.coalesce('cp.sort_order', eb.val(0));
+        const createdKey = eb.fn.coalesce('cp.created_at', eb.val(''));
+        return eb.or([
+          eb(sortKey, '>', after.sortOrder),
+          eb.and([
+            eb(sortKey, '=', after.sortOrder),
+            eb.or([
+              eb(createdKey, '>', after.createdAt),
+              eb.and([eb(createdKey, '=', after.createdAt), eb('cp.id', '>', after.id)]),
+            ]),
+          ]),
+        ]);
+      });
+    }
+    return await query
+      .select((eb) => [
+        'cp.id',
+        'cp.name',
+        'cp.status',
+        'cp.address',
+        'cp.lat',
+        'cp.lng',
+        'cp.google_place_id',
+        'cp.website',
+        'cp.phone',
+        eb.fn.coalesce('cp.sort_order', eb.val(0)).as('sort_key'),
+        eb.fn.coalesce('cp.created_at', eb.val('')).as('created_key'),
+      ])
+      .orderBy('sort_key')
+      .orderBy('created_key')
+      .orderBy('cp.id')
+      .limit(limit)
       .execute();
   }
 

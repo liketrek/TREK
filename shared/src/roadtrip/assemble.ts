@@ -102,8 +102,8 @@ export function assembleRoadtrip({
 
   const lines: [number, number][][] = [];
   const lineDays: number[] = [];
-  // Parallel to `lines`: true where the line is the drive into the NEXT day, drawn in the
-  // leaving day's colour. See `lineJoins` on RoadtripRoutes.
+  // Parallel to `lines`: true where the line is the drive in from the PREVIOUS day, drawn
+  // as the day it arrives on. See `lineJoins` on RoadtripRoutes.
   const lineJoins: boolean[] = [];
   const segments: RouteSegment[] = [];
   const accessLines: RoadtripRoutes['accessLines'] = [];
@@ -114,18 +114,16 @@ export function assembleRoadtrip({
   let carryKm: number | null = 0;
 
   let previousStop: RoadtripStop | undefined;
-
-  let previousDayNumber: number | undefined;
   for (const chain of displayChains) {
     const routed = chain.stops.slice(0, -1).map((s, i) => legFor(s, chain.stops[i + 1]!));
 
-    const inboundAt = new Map<number, { seg: RouteSegment | undefined; line: [number, number][]; drawnAs: number }>();
+    const inboundAt = new Map<number, { seg: RouteSegment | undefined; line: [number, number][] }>();
     let arrivingLeg: RouteSegment | undefined;
     let arrivingLine: [number, number][] | undefined;
     let arrivingFrom: RoadtripStop | undefined;
     if (connectDays && !automaticSchedule) {
       for (const spill of chain.spills) {
-        inboundAt.set(spill.at, { seg: spill.leg, line: spill.line, drawnAs: spill.fromDayNumber });
+        inboundAt.set(spill.at, { seg: spill.leg, line: spill.line });
       }
 
       // No band for a night spent at one hotel: nothing is driven between the evening and
@@ -136,24 +134,27 @@ export function assembleRoadtrip({
           ? undefined
           : legFor(previousStop, first);
       if (joined) {
-        inboundAt.set(0, { seg: joined.seg, line: joined.line, drawnAs: previousDayNumber ?? chain.dayNumber });
+        inboundAt.set(0, { seg: joined.seg, line: joined.line });
         arrivingLeg = joined.seg;
         arrivingLine = joined.line;
         arrivingFrom = previousStop;
       }
     }
     previousStop = chain.stops[chain.stops.length - 1]! ?? previousStop;
-    previousDayNumber = chain.stops.length ? chain.dayNumber : previousDayNumber;
     for (let i = 0; i < chain.stops.length; i++) {
       const inbound = inboundAt.get(i);
       if (inbound) {
         if (inbound.line.length > 1) {
           lines.push(inbound.line);
-          lineDays.push(inbound.drawnAs);
-          // A spill carries its own `fromDayNumber` and a joined day the number of the day
-          // it left: either way, a line drawn as a day other than the one it runs in is
-          // the connection into this one.
-          lineJoins.push(inbound.drawnAs !== chain.dayNumber);
+          // Drawn as the day it arrives on, because that is the day whose figures count it
+          // (`distance` below adds every inbound leg) and under which the card shows it: the
+          // drive from yesterday's last stop and a stop reached after midnight alike. A day
+          // window builds the same connection as this day's own first leg, so it is drawn
+          // as this day too, and map and card agree whichever way the days end (#3123).
+          lineDays.push(chain.dayNumber);
+          // Either way the line leaves from another day's stop, so it is the connection
+          // into this one.
+          lineJoins.push(true);
         }
         if (inbound.seg) segments.push(inbound.seg);
       }

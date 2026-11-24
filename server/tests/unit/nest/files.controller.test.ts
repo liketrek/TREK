@@ -1,9 +1,13 @@
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { isDemoEmail } from '../../../src/nest/common/demo';
 import { DomainError } from '../../../src/nest/common/domain-error';
 import { FilesDownloadController } from '../../../src/nest/files/files-download.controller';
 import { FilesController } from '../../../src/nest/files/files.controller';
 import type { FilesService } from '../../../src/nest/files/files.service';
+import { TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
 import { PhotosController } from '../../../src/nest/photos/photos.controller';
 import type { PhotosService } from '../../../src/nest/photos/photos.service';
 import type { StorageService } from '../../../src/nest/storage/storage.service';
@@ -29,9 +33,13 @@ function fsvc(o: Partial<FilesService> = {}): FilesService {
 
 const storageStub = { put: vi.fn().mockResolvedValue(undefined) } as unknown as StorageService;
 
+/** Whether Documents applies to the trip: on, unless a test switches it off for its trip. */
+const addonsOn = { isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService;
+const addonsOff = { isEnabledForTrip: vi.fn(async () => false) } as unknown as AddonsService;
+
 /** Construct the controller with the standard env + storage stubs. */
-function fc(svc: FilesService): FilesController {
-  return new FilesController(svc, new RuntimeEnvService(), storageStub);
+function fc(svc: FilesService, addons: AddonsService = addonsOn): FilesController {
+  return new FilesController(svc, new RuntimeEnvService(), storageStub, addons);
 }
 
 function thrown(fn: () => unknown): { status: number; body: unknown } {
@@ -66,12 +74,88 @@ const trip = { id: 5, user_id: 42 } as never;
 
 // The 404 "Trip not found" cases moved to trip-access.guard.test.ts with the check.
 describe('FilesController (parity with the legacy /api/trips/:tripId/files route)', () => {
+  it('only the file manager routes ask the Documents addon of the trip in a guard', () => {
+    expect(Reflect.getMetadata(REQUIRE_ADDON, FilesController)).toEqual({ addonId: 'documents', label: 'Documents' });
+    const proto = FilesController.prototype;
+    for (const handler of [proto.star, proto.emptyTrash, proto.restore]) {
+      expect(Reflect.getMetadata('__guards__', handler)).toEqual([TripAccessGuard, TripAddonGuard]);
+    }
+    for (const handler of [
+      proto.list,
+      proto.update,
+      proto.remove,
+      proto.permanent,
+      proto.link,
+      proto.unlink,
+      proto.links,
+    ]) {
+      expect(Reflect.getMetadata('__guards__', handler)).toEqual([TripAccessGuard]);
+    }
+    // A guard on the multipart route would answer before multer read the body (ECONNRESET), so it checks inside.
+    expect(Reflect.getMetadata('__guards__', FilesController.prototype.upload)).toBeUndefined();
+  });
+
   it('GET / lists with the trash flag', async () => {
     const listFiles = vi.fn().mockReturnValue([{ id: 1 }]);
     expect(await fc(fsvc({ listFiles } as Partial<FilesService>)).list(user, trip, '5', 'true')).toEqual({
       files: [{ id: 1 }],
     });
-    expect(listFiles).toHaveBeenCalledWith('5', true);
+    expect(listFiles).toHaveBeenCalledWith('5', true, false);
+  });
+
+  it('GET / with Documents off lists only attached files and refuses the trash', async () => {
+    const listFiles = vi.fn().mockReturnValue([{ id: 1 }]);
+    const controller = fc(fsvc({ listFiles } as Partial<FilesService>), addonsOff);
+    expect(await controller.list(user, trip, '5')).toEqual({ files: [{ id: 1 }] });
+    expect(listFiles).toHaveBeenCalledWith('5', false, true);
+    expect(await rejected(controller.list(user, trip, '5', 'true'))).toEqual({
+      status: 404,
+      body: { error: 'Documents addon is not enabled' },
+    });
+  });
+
+  it('a file only the file manager shows answers 404 on its routes while Documents is off, an attached one does not', async () => {
+    const svc = fsvc({
+      getFileById: vi.fn().mockReturnValue({ id: 9 }),
+      isAttached: vi.fn().mockResolvedValue(false),
+      updateFile: vi.fn(),
+      linkFile: vi.fn(),
+      unlinkFile: vi.fn(),
+      getFileLinks: vi.fn(),
+      restWriter: vi.fn(),
+    } as Partial<FilesService>);
+    const off = { error: 'Documents addon is not enabled' };
+    expect(await rejected(fc(svc, addonsOff).update(user, trip, '5', '9', {}))).toEqual({ status: 404, body: off });
+    expect(await rejected(fc(svc, addonsOff).link(user, trip, '5', '9', {}))).toEqual({ status: 404, body: off });
+    expect(await rejected(fc(svc, addonsOff).unlink(user, trip, '5', '9', '3'))).toEqual({ status: 404, body: off });
+    expect(await rejected(fc(svc, addonsOff).links(user, trip, '5', '9'))).toEqual({ status: 404, body: off });
+    expect(svc.updateFile).not.toHaveBeenCalled();
+    expect(svc.unlinkFile).not.toHaveBeenCalled();
+
+    const attached = fsvc({
+      getFileById: vi.fn().mockReturnValue({ id: 9 }),
+      isAttached: vi.fn().mockResolvedValue(true),
+      getFileLinks: vi.fn().mockReturnValue([{ id: 3 }]),
+    } as Partial<FilesService>);
+    expect(await fc(attached, addonsOff).links(user, trip, '5', '9')).toEqual({ links: [{ id: 3 }] });
+  });
+
+  it('while Documents is off, a write that attaches a loose file goes through', async () => {
+    const svc = fsvc({
+      getFileById: vi.fn().mockReturnValue({ id: 9 }),
+      isAttached: vi.fn().mockResolvedValue(false),
+      updateFile: vi.fn().mockReturnValue({ id: 9 }),
+      linkFile: vi.fn().mockReturnValue([{ id: 3 }]),
+      restWriter: vi.fn(),
+    } as Partial<FilesService>);
+    expect(await fc(svc, addonsOff).update(user, trip, '5', '9', { budget_item_id: 7 })).toEqual({ file: { id: 9 } });
+    expect(await fc(svc, addonsOff).link(user, trip, '5', '9', { reservation_id: 4 })).toEqual({
+      success: true,
+      links: [{ id: 3 }],
+    });
+    expect(
+      await rejected(fc(svc, addonsOff).update(user, trip, '5', '9', { description: 'x', place_id: null })),
+    ).toEqual({ status: 404, body: { error: 'Documents addon is not enabled' } });
   });
 
   describe('POST / (upload)', () => {
@@ -86,6 +170,13 @@ describe('FilesController (parity with the legacy /api/trips/:tripId/files route
     });
 
     const file = { filename: 'a.pdf' } as Express.Multer.File;
+    it('stores the upload while Documents is off for the trip, so bookings, places and receipts still attach', async () => {
+      const createFile = vi.fn().mockReturnValue({ id: 9 });
+      const svc = fsvc({ verifyTripAccess: vi.fn().mockReturnValue({ id: 5, user_id: 1 }), createFile });
+      expect(await fc(svc, addonsOff).upload(user, '5', file, { reservation_id: '4' })).toEqual({ file: { id: 9 } });
+      expect(storageStub.put).toHaveBeenCalled();
+    });
+
     it('403 in demo mode for a demo email', async () => {
       process.env.DEMO_MODE = 'true';
       vi.mocked(isDemoEmail).mockReturnValue(true);
@@ -439,7 +530,7 @@ describe('FilesDownloadController', () => {
     const s = dsvc({
       authenticateDownload: vi.fn().mockRejectedValue(new DomainError(401, 'Authentication required')),
     });
-    expect(await rejected(new FilesDownloadController(s, dstor()).download(req, res, '5', '9'))).toEqual({
+    expect(await rejected(new FilesDownloadController(s, dstor(), addonsOn).download(req, res, '5', '9'))).toEqual({
       status: 401,
       body: { error: 'Authentication required' },
     });
@@ -448,45 +539,69 @@ describe('FilesDownloadController', () => {
   it('404 without trip access and 404 for an unknown file', async () => {
     expect(
       await rejected(
-        new FilesDownloadController(dsvc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) }), dstor()).download(
-          req,
-          res,
-          '5',
-          '9',
-        ),
+        new FilesDownloadController(
+          dsvc({ verifyTripAccess: vi.fn().mockReturnValue(undefined) }),
+          dstor(),
+          addonsOn,
+        ).download(req, res, '5', '9'),
       ),
     ).toEqual({ status: 404, body: { error: 'Trip not found' } });
     expect(
       await rejected(
-        new FilesDownloadController(dsvc({ getFileById: vi.fn().mockReturnValue(undefined) }), dstor()).download(
-          req,
-          res,
-          '5',
-          '9',
-        ),
+        new FilesDownloadController(
+          dsvc({ getFileById: vi.fn().mockReturnValue(undefined) }),
+          dstor(),
+          addonsOn,
+        ).download(req, res, '5', '9'),
       ),
     ).toEqual({ status: 404, body: { error: 'File not found' } });
   });
 
+  it('while Documents is off for the trip, serves an attached file and 404s one only the file manager shows', async () => {
+    const loose = dsvc({
+      verifyTripAccess: vi.fn().mockReturnValue({ id: 5, user_id: 1 }),
+      isAttached: vi.fn().mockResolvedValue(false),
+    } as Partial<FilesService>);
+    const storage = dstor();
+    expect(await rejected(new FilesDownloadController(loose, storage, addonsOff).download(req, res, '5', '9'))).toEqual(
+      {
+        status: 404,
+        body: { error: 'Documents addon is not enabled' },
+      },
+    );
+    expect(storage.sendToResponse).not.toHaveBeenCalled();
+
+    const attached = dsvc({
+      verifyTripAccess: vi.fn().mockReturnValue({ id: 5, user_id: 1 }),
+      isAttached: vi.fn().mockResolvedValue(true),
+    } as Partial<FilesService>);
+    await new FilesDownloadController(attached, storage, addonsOff).download(req, res, '5', '9');
+    expect(storage.sendToResponse).toHaveBeenCalled();
+  });
+
   it('404 when the object is gone from storage', async () => {
     const storage = dstor({ exists: vi.fn().mockResolvedValue(false) });
-    expect(await rejected(new FilesDownloadController(dsvc(), storage).download(req, res, '5', '9'))).toEqual({
-      status: 404,
-      body: { error: 'File not found' },
-    });
+    expect(await rejected(new FilesDownloadController(dsvc(), storage, addonsOn).download(req, res, '5', '9'))).toEqual(
+      {
+        status: 404,
+        body: { error: 'File not found' },
+      },
+    );
   });
 
   it('404 when the stored name is an invalid key (exists rejects)', async () => {
     const storage = dstor({ exists: vi.fn().mockRejectedValue(new Error('invalid storage key')) });
-    expect(await rejected(new FilesDownloadController(dsvc(), storage).download(req, res, '5', '9'))).toEqual({
-      status: 404,
-      body: { error: 'File not found' },
-    });
+    expect(await rejected(new FilesDownloadController(dsvc(), storage, addonsOn).download(req, res, '5', '9'))).toEqual(
+      {
+        status: 404,
+        body: { error: 'File not found' },
+      },
+    );
   });
 
   it('streams a regular file through storage with no wallet headers', async () => {
     const storage = dstor();
-    await new FilesDownloadController(dsvc(), storage).download(req, res, '5', '9');
+    await new FilesDownloadController(dsvc(), storage, addonsOn).download(req, res, '5', '9');
     expect(storage.exists).toHaveBeenCalledWith('files', 'x.pdf');
     expect(storage.sendToResponse).toHaveBeenCalledWith('files', 'x.pdf', res, undefined);
   });
@@ -494,7 +609,7 @@ describe('FilesDownloadController', () => {
   it('tolerates a stray prefixed row via basename(), same as the download controller', async () => {
     const storage = dstor();
     const s = dsvc({ getFileById: vi.fn().mockReturnValue({ filename: 'files/x.pdf', original_name: 'x.pdf' }) });
-    await new FilesDownloadController(s, storage).download(req, res, '5', '9');
+    await new FilesDownloadController(s, storage, addonsOn).download(req, res, '5', '9');
     expect(storage.sendToResponse).toHaveBeenCalledWith('files', 'x.pdf', res, undefined);
   });
 
@@ -503,7 +618,7 @@ describe('FilesDownloadController', () => {
     const s = dsvc({
       getFileById: vi.fn().mockReturnValue({ filename: 'pass.pkpass', original_name: 'BoardingPass.pkpass' }),
     });
-    await new FilesDownloadController(s, storage).download(req, res, '5', '9');
+    await new FilesDownloadController(s, storage, addonsOn).download(req, res, '5', '9');
     expect(storage.sendToResponse).toHaveBeenCalledWith('files', 'pass.pkpass', res, {
       contentType: 'application/vnd.apple.pkpass',
       disposition: 'inline; filename="BoardingPass.pkpass"',
@@ -515,7 +630,7 @@ describe('FilesDownloadController', () => {
     const s = dsvc({
       getFileById: vi.fn().mockReturnValue({ filename: 'passes.pkpasses', original_name: 'BoardingPasses.pkpasses' }),
     });
-    await new FilesDownloadController(s, storage).download(req, res, '5', '9');
+    await new FilesDownloadController(s, storage, addonsOn).download(req, res, '5', '9');
     expect(storage.sendToResponse).toHaveBeenCalledWith('files', 'passes.pkpasses', res, {
       contentType: 'application/vnd.apple.pkpasses',
       disposition: 'inline; filename="BoardingPasses.pkpasses"',
@@ -525,7 +640,7 @@ describe('FilesDownloadController', () => {
   it('falls back to the stored basename when a .pkpass has no original name', async () => {
     const storage = dstor();
     const s = dsvc({ getFileById: vi.fn().mockReturnValue({ filename: 'pass.pkpass', original_name: null }) });
-    await new FilesDownloadController(s, storage).download(req, res, '5', '9');
+    await new FilesDownloadController(s, storage, addonsOn).download(req, res, '5', '9');
     expect(storage.sendToResponse).toHaveBeenCalledWith('files', 'pass.pkpass', res, {
       contentType: 'application/vnd.apple.pkpass',
       disposition: 'inline; filename="pass.pkpass"',
@@ -540,7 +655,7 @@ describe('FilesDownloadController', () => {
     const s = dsvc({
       getFileById: vi.fn().mockReturnValue({ filename: 'pass.pkpass', original_name: '搭乗券.pkpass' }),
     });
-    await new FilesDownloadController(s, storage).download(req, res, '5', '9');
+    await new FilesDownloadController(s, storage, addonsOn).download(req, res, '5', '9');
     expect(storage.sendToResponse).toHaveBeenCalledWith('files', 'pass.pkpass', res, {
       contentType: 'application/vnd.apple.pkpass',
       disposition: 'inline; filename="download.pkpass"; filename*=UTF-8\'\'%E6%90%AD%E4%B9%97%E5%88%B8.pkpass',

@@ -5,6 +5,8 @@
 "widget.today.description" = "Der Tagesplan als Zeitleiste, mit dem Wetter und dem nächsten Stopp.";
 "widget.bookings.name" = "Buchungen";
 "widget.bookings.description" = "Deine nächsten Flüge, Züge, Hotels und Tische, und wann sie anstehen.";
+"widget.flight.name" = "Flug";
+"widget.flight.description" = "Dein nächster Flug live: Countdown bis zum Abflug, die Maschine unterwegs, Verspätung und Ankunft.";
 "widget.todos.name" = "To-dos";
 "widget.todos.description" = "Was für die Reise noch offen ist und wie weit das Packen ist.";
 "widget.packing.name" = "Packliste";

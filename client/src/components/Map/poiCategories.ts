@@ -1,4 +1,4 @@
-import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, Fuel, Zap, ParkingSquare, Tent, Binoculars, Mountain, Warehouse, Droplet, Toilet, Sandwich, Anchor, Sailboat, Wrench, Store, BatteryCharging, type LucideIcon } from 'lucide-react'
+import { Utensils, Coffee, Wine, BedDouble, Camera, Landmark, Trees, Ticket, Fuel, Zap, ParkingSquare, Tent, Binoculars, Mountain, Warehouse, Droplet, Toilet, Sandwich, Anchor, Sailboat, Wrench, Store, BatteryCharging, Croissant, ShoppingBasket, type LucideIcon } from 'lucide-react'
 import type { TourPoiCategory } from '@trek/shared'
 import { parsePluginPoiCategoryKey, type PluginPoiDetail } from '@trek/shared'
 // The road-trip kinds take their colour from the one place that defines it, so the
@@ -29,6 +29,9 @@ export const POI_CATEGORIES: PoiCategory[] = [
   { key: 'museum', labelKey: 'poi.cat.museums', Icon: Landmark, color: '#6366F1' },
   { key: 'nature', labelKey: 'poi.cat.nature', Icon: Trees, color: '#16A34A' },
   { key: 'activity', labelKey: 'poi.cat.activities', Icon: Ticket, color: '#F59E0B' },
+  // Where to stock up: the bread for the day, and a supermarket or village shop.
+  { key: 'bakery', labelKey: 'poi.cat.bakeries', Icon: Croissant, color: '#D97706' }, // theme-lint-disable: marker and pill paint, as the core pins above
+  { key: 'supermarket', labelKey: 'poi.cat.groceries', Icon: ShoppingBasket, color: '#0D9488' }, // theme-lint-disable: marker and pill paint, as the core pins above
 ]
 
 /**
@@ -70,6 +73,9 @@ export const TOUR_POI_LOOKS: Record<TourPoiCategory, PoiCategory> = {
   market: { key: 'market', labelKey: 'tours.poi.cat.market', Icon: Store, color: coreColor('shopping') },
   // BIK-07: the road trip's charging colour, so a charger reads as one on every map.
   ebike_charging: { key: 'ebike_charging', labelKey: 'tours.poi.cat.ebike_charging', Icon: BatteryCharging, color: SERVICE_COLORS.charging },
+  // Resupply on a multi-day hike, in the explore pill's own looks.
+  bakery: { key: 'bakery', labelKey: 'tours.poi.cat.bakery', Icon: Croissant, color: coreColor('bakery') },
+  supermarket: { key: 'supermarket', labelKey: 'tours.poi.cat.supermarket', Icon: ShoppingBasket, color: coreColor('supermarket') },
 }
 
 // A Map rather than an object, so a category named after an Object.prototype member

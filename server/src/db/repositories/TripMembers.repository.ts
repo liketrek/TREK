@@ -836,4 +836,20 @@ export class TripMembersRepository extends TrekRepository<TripMembers> {
   async clearInvitedBy(userId: number): Promise<void> {
     await this.nativeUpdate({ invitedByRef: userId }, { invitedByRef: null });
   }
+
+  /**
+   * Before a member's account is deleted: the trip tags they created pass to
+   * each trip's owner, so a tag the whole trip uses keeps its place_tags. The
+   * user's personal tags are left to the delete.
+   */
+  async handTripTagsToTripOwners(userId: number): Promise<void> {
+    await this.kysely<Pick<DB, 'tags' | 'trips'>>()
+      .updateTable('tags')
+      .set((eb) => ({
+        user_id: eb.selectFrom('trips').select('trips.user_id').whereRef('trips.id', '=', 'tags.trip_id'),
+      }))
+      .where('user_id', '=', userId)
+      .where('trip_id', 'is not', null)
+      .execute();
+  }
 }

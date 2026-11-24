@@ -2,6 +2,7 @@ import { UserAirtrailRepository } from '../../db/repositories/UserAirtrail.repos
 import { checkSsrf } from '../../utils/ssrfGuard';
 import { AuditService } from '../audit/audit.service';
 import { maybe_encrypt_api_key, decrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { UnitOfWork } from '../database/unit-of-work';
 import { AirtrailAuthError, AirtrailRequestError, type AirtrailCreds } from './airtrail.client';
 import { AirtrailClient } from './airtrail.client';
 import { normalizeFlight } from './airtrail.mapper';
@@ -34,10 +35,9 @@ interface UserConnRow {
  * `UserAirtrailRepository`'s (same `users` table) `getAirtrailConnRow`/`getAirtrailWriteEnabled`/
  * `setAirtrailSettingsWithKey`/`setAirtrailSettings`/`clearAirtrailApiKey`
  * methods (R7 — the repository sees only opaque, already-encrypted TEXT;
- * `maybe_encrypt_api_key`/`decrypt_api_key` stay here). `saveSettings` keeps
- * its pre-existing asymmetry with `DawarichService#saveSettings`
- * (Task 3): Dawarich wraps its writes in `uow.transactional`, this one does
- * not — preserved exactly, not "fixed" to match.
+ * `maybe_encrypt_api_key`/`decrypt_api_key` stay here). `saveSettings` writes
+ * in one `uow.transactional`, as `DawarichService#saveSettings` does: the new
+ * address and the key it may no longer carry change together or not at all.
  */
 @Injectable()
 export class AirtrailService {
@@ -45,6 +45,7 @@ export class AirtrailService {
     private readonly airtrailRepo: UserAirtrailRepository,
     private readonly audit: AuditService,
     private readonly client: AirtrailClient,
+    private readonly uow: UnitOfWork,
   ) {}
 
   private async readRow(userId: number): Promise<UserConnRow | undefined> {
@@ -119,26 +120,35 @@ export class AirtrailService {
     const provided = (apiKey || '').trim();
     const newKey = provided && provided !== KEY_MASK ? maybe_encrypt_api_key(provided) : undefined;
 
-    if (newKey !== undefined) {
-      await this.airtrailRepo.setAirtrailSettingsWithKey(
-        userId,
-        trimmedUrl || null,
-        newKey,
-        allowInsecureTls ? 1 : 0,
-        writeEnabled ? 1 : 0,
-      );
-    } else {
+    // A key belongs to the instance it was issued on, as in testConnection. A
+    // new host with the key field left masked or blank would otherwise send the
+    // old instance's key to the new one on the next sync, so the key goes with
+    // the host. A path edit on the same origin keeps it. An address cleared with
+    // no key left drops the key too: it would be a credential for no server.
+    const previousUrl = newKey === undefined ? ((await this.readRow(userId))?.airtrail_url ?? null) : null;
+    const dropKey = newKey === undefined && (!trimmedUrl || movedHost(previousUrl, trimmedUrl));
+
+    // The address and the key it may no longer carry change together, so no
+    // moment stores the new address beside the old key.
+    await this.uow.transactional(async () => {
+      if (newKey !== undefined) {
+        await this.airtrailRepo.setAirtrailSettingsWithKey(
+          userId,
+          trimmedUrl || null,
+          newKey,
+          allowInsecureTls ? 1 : 0,
+          writeEnabled ? 1 : 0,
+        );
+        return;
+      }
       await this.airtrailRepo.setAirtrailSettings(
         userId,
         trimmedUrl || null,
         allowInsecureTls ? 1 : 0,
         writeEnabled ? 1 : 0,
       );
-      // Clearing the URL with no key left makes the connection meaningless — drop the key too.
-      if (!trimmedUrl) {
-        await this.airtrailRepo.clearAirtrailApiKey(userId);
-      }
-    }
+      if (dropKey) await this.airtrailRepo.clearAirtrailApiKey(userId);
+    });
 
     return { success: true, warning };
   }

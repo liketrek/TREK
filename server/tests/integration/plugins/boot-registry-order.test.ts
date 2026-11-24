@@ -17,6 +17,7 @@
  * asserts the plugin still comes up clean.
  */
 import { db as testDb } from '../../../src/db/database';
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { Addons } from '../../../src/db/entities/Addons.entity';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
@@ -37,12 +38,14 @@ import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.enti
 import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
 import { Plugins } from '../../../src/db/entities/Plugins.entity';
 import { Settings } from '../../../src/db/entities/Settings.entity';
+import { TripAddonOverrides } from '../../../src/db/entities/TripAddonOverrides.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import { PluginRpcRegistry } from '../../../src/nest-rpc/rpc-kit/registry';
 import type { PluginRpcRegistryService } from '../../../src/nest-rpc/rpc-kit/registry.service';
 import { AddonsService } from '../../../src/nest/addons/addons.service';
 import { AuditService } from '../../../src/nest/audit/audit.service';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
+import { SqlitePluginDataBackend } from '../../../src/nest/plugins/host/plugin-data.backend';
 import { PluginRpcHostFactory } from '../../../src/nest/plugins/host/plugin-rpc-host.factory';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
 import { PluginRuntimeService } from '../../../src/nest/plugins/plugin-runtime.service';
@@ -130,6 +133,7 @@ describe('plugin boot vs registry scan ordering', () => {
     const hostFactory = new PluginRpcHostFactory(
       t.repo(PluginCapabilityAudit),
       registry as unknown as PluginRpcRegistryService,
+      new SqlitePluginDataBackend(),
     );
     const userSettings = new PluginUserSettingsService(
       (t as TestOrm).repo(PluginSettingsFields),
@@ -173,7 +177,7 @@ describe('plugin boot vs registry scan ordering', () => {
               (t as TestOrm).repo(NotificationChannelPreferences),
               // Plan 4 Task 4: `uow` is no longer `@Optional()` — ordered ahead
               // of `registry?`/`hostFactory?`, matching the real constructor.
-              new UnitOfWork((t as TestOrm).em),
+              new UnitOfWork((t as TestOrm).em, new SqliteEngine()),
               undefined,
               hostFactory,
               t?.orm,
@@ -255,6 +259,7 @@ describe('plugin boot vs registry scan ordering', () => {
       const hostFactory2 = new PluginRpcHostFactory(
         t2.repo(PluginCapabilityAudit),
         registry2 as unknown as PluginRpcRegistryService,
+        new SqlitePluginDataBackend(),
       );
       // Built directly on t2 (not createTestAddonsService's sharedTestOrm) so
       // its repositories share t2's allowGlobalContext: false ORM.
@@ -264,7 +269,8 @@ describe('plugin boot vs registry scan ordering', () => {
         t2.repo(PhotoProviderFields),
         t2.repo(AppSettings),
         t2.repo(Users),
-        new UnitOfWork(t2.em),
+        new UnitOfWork(t2.em, new SqliteEngine()),
+        t2.repo(TripAddonOverrides),
       );
       const auditLogRepo2 = t2.repo(AuditLog);
       const usersRepo2 = t2.repo(Users);
@@ -293,7 +299,7 @@ describe('plugin boot vs registry scan ordering', () => {
                 t2.repo(PluginCapabilityAudit),
                 t2.repo(Settings),
                 t2.repo(NotificationChannelPreferences),
-                new UnitOfWork(t2.em),
+                new UnitOfWork(t2.em, new SqliteEngine()),
                 undefined,
                 hostFactory2,
                 t2.orm,

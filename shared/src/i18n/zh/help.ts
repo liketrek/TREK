@@ -53,7 +53,8 @@ const help: TranslationStrings = {
     '仪表盘展示你的所有旅行。顶部做成登机牌样式的卡片显示正在进行或即将开始的旅行，下方一行统计你已经走过的旅程，下面的卡片则列出你正在计划、已归档或已结束的每一次旅行。',
   'help.ctx.dashboard.bullet.1':
     '登机牌：显示进行中或下一个旅行，包含日期、旅伴、地点和倒计时。点击即可打开旅行。右上角的四个按钮分别用于编辑、复制、归档和删除。',
-  'help.ctx.dashboard.bullet.2': '旅行统计：汇总你所有旅行中去过的国家、旅行次数、在途天数和飞行距离。',
+  'help.ctx.dashboard.bullet.2':
+    '旅行统计：汇总你所有旅行中去过的国家（最近去过的国旗排在最前）、旅行次数、在途天数和飞行距离。',
   'help.ctx.dashboard.bullet.3':
     '旅行卡片，可按“计划中”“已归档”和“已完成”筛选，以网格或列表显示。上方的搜索框会同时搜索你所有的旅行，可按标题、日期或旅行中的地点查找。编辑、复制、归档和删除旅行的按钮位于每张卡片照片的右上角。',
   'help.ctx.dashboard.bullet.4':
@@ -108,7 +109,8 @@ const help: TranslationStrings = {
   'help.guide.archive-trip.goal': '不删除旅行，只是先从旅行列表中收起来，以后随时可以恢复。',
   'help.guide.archive-trip.step.1': '点击卡片右上角的归档图标。',
   'help.guide.archive-trip.step.2': '把卡片上方的筛选切换为“已归档”，就能再次看到它。',
-  'help.guide.archive-trip.step.3': '点击卡片上的“恢复”，旅行会回到“计划中”；如果日期已过，则回到“已完成”。',
+  'help.guide.archive-trip.step.3':
+    '点击恢复图标（就在原来归档图标的位置），旅行会回到“计划中”；如果日期已过，则回到“已完成”。',
   'help.guide.archive-trip.result': '已归档的旅行会保留所有数据，只是不再显示在仪表盘和全部旅行的日历订阅中。',
 
   // delete-trip
@@ -137,6 +139,8 @@ const help: TranslationStrings = {
     '每个进行中的旅行都会出现在你的日历里，并自动更新。已归档的旅行和结束超过 90 天的旅行不会包含在内。',
   'help.guide.calendar-feed.tip.1':
     '请保密这个链接，任何拿到它的人都能读取订阅内容。如果链接已经泄露，点击“重新生成”会得到新链接，旧链接随即失效。“关闭”则会彻底移除链接。',
+  'help.guide.calendar-feed.tip.2':
+    '“每日概览事件”会为每一天添加一个全天事件，列出当天的地点和没有时间的备注。如果你只想要预订，就把它关掉。链接也会随之改变，所以请用新链接重新订阅。',
 
   // widgets
   'help.guide.widgets.title': '选择仪表盘组件',
@@ -404,7 +408,7 @@ const help: TranslationStrings = {
     '各大洲显示每个大洲已访问的国家数。去过南极洲后，它才会出现在这一行。再往后是你的连续纪录（至少有一次旅行的连续年数）和你今年的旅行次数。',
   'help.guide.stats.result': '数字会随着你规划旅行自动更新，这里不需要你维护任何内容。',
   'help.guide.stats.tip.1':
-    '城市是从地址文字中直接读取的，并不会再去查询。因此像“Osteria Francescana, Italy”这样的简短地址，或以县级行政区结尾的地址，可能会被算成地区而不是城市。',
+    '城市是从地址文字中读取的，并不会再去查询。TREK 会跳过国家、邮政编码和地区，取它们前面的名称，所以“10178 Berlin”会算作 Berlin。像“Osteria Francescana, Italy”这样的简短地址，则完全不会添加城市。',
   'help.guide.stats.tip.2': '手动标记的国家会计入“国家”和各大洲的统计，但不会增加旅行、地点或天数。',
   // dawarich-countries
   'help.guide.dawarich-countries.title': '根据你的记录添加国家',
@@ -439,7 +443,7 @@ const help: TranslationStrings = {
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': '收藏',
   'help.ctx.collections.summary':
-    '“收藏”是你在所有旅行之外的资料库：你发现并想留下的地点按名称整理成列表，每个地点的状态是“想法”“想去”或“已去过”；启用“游览”后，还可以存放你从旅行中保存下来的整条路线。地点和路线是复制进出旅行的，而不是链接，所以列表和旅行不会互相影响。',
+    '“收藏”是你在所有旅行之外的资料库：你发现并想留下的地点按名称整理成列表，每个地点的状态是“想法”“想去”“已去过”或“想再去”；启用“游览”后，还可以存放你从旅行中保存下来的整条路线。地点和路线是复制进出旅行的，而不是链接，所以列表和旅行不会互相影响。',
   'help.ctx.collections.bullet.1':
     '左侧的列表栏依次显示：你自己的列表、别人共享给你的列表、你还没回复的邀请，以及“全部已保存”（汇总你所有列表中的内容）。顶部是“新建列表”和文件导入。',
   'help.ctx.collections.bullet.2':
@@ -449,7 +453,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.4':
     '地点行：照片、名称和地址、标签和分类，以及右侧的状态标签。点一下标签，就会切换到下一个状态。',
   'help.ctx.collections.bullet.5':
-    '右侧的地图：每个有坐标的地点一个图钉。顶部栏有“展开地图”（地图占满后变成“显示列表”）、标签筛选和管理标签的按钮，以及“搜索地点”框。点击图钉会打开该地点。',
+    '右侧的地图：每个有坐标的地点一个图钉。顶部栏有“展开地图”（地图占满后变成“显示列表”）、标签筛选和管理标签的按钮，以及“搜索地点”框。点击图钉会打开该地点。左下角、地图样式按钮上方的挂锁，会在你逐个点开地点时让地图保持不动。',
   'help.ctx.collections.bullet.6':
     '详情页：点击一行可查看封面、分类、状态、星级评分、标签、描述和链接。封面上的相机图标用来更换照片。底部有“编辑”“复制到行程”、导航按钮和“从列表中移除”。',
   // create-list
@@ -485,13 +489,15 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.tip.2': '在旅行的地点列表中，选择模式下有“保存到收藏”，可以只保存手动挑选的一组地点。',
   // place-status
   'help.guide.place-status.title': '设置地点的状态',
-  'help.guide.place-status.goal': '记录哪些只是想法，哪些在候选名单里，以及你去过哪里。',
+  'help.guide.place-status.goal': '记录哪些只是想法，哪些在候选名单里，你去过哪里，以及想再去哪里。',
   'help.guide.place-status.step.1': '点击地点行最右侧的状态标签。“想法”会变成“想去”。',
-  'help.guide.place-status.step.2': '再点一次变为“已去过”，再点一次回到“想法”。',
+  'help.guide.place-status.step.2': '再点一次变为“已去过”，再点一次变为“想再去”，再点一次回到“想法”。',
   'help.guide.place-status.result': '状态标签及其颜色立即变化，列表上方状态筛选里的数量也会更新。',
   'help.guide.place-status.tip.1': '状态只存在于“收藏”中。把地点复制到旅行时，状态不会一起复制。',
   'help.guide.place-status.tip.2':
     '在旅行中，“保存到收藏”会打开“保存到列表”，地点所在的每个列表各有一个状态标签；地点面板的选择栏里有“在清单中标记为已去过”。',
+  'help.guide.place-status.tip.3':
+    '“想再去”用于你去过、还想再去看看的地点。它仍然算作已去过，所以旅行里的“在所有清单中标记”不会改动它。',
   // place-detail
   'help.guide.place-detail.title': '打开已保存的地点',
   'help.guide.place-detail.goal': '查看一个地点的全部信息和可以做的操作：编辑、复制到旅行、查找路线、移除。',
@@ -551,12 +557,12 @@ const help: TranslationStrings = {
   'help.guide.share-list.tip.2': '只有所有者可以邀请和移除成员；成员可以自己退出共享列表。',
   // export-list
   'help.guide.export-list.title': '把列表导出为文件',
-  'help.guide.export-list.goal': '把列表发给使用另一台 TREK 服务器的人，或在地图应用中打开。',
+  'help.guide.export-list.goal': '把列表发给使用另一台 TREK 服务器的人，在地图应用中打开，或在 Google My Maps 中查看。',
   'help.guide.export-list.step.1': '点击列表顶部区域的“导出”。',
   'help.guide.export-list.step.2':
-    '选“TREK 列表”，可在另一台 TREK 中使用，并保留标签和状态；选 GPX，则适用于 OsmAnd、Organic Maps、Garmin 以及其他能读取航点的应用。',
+    '选“TREK 列表”，可在另一台 TREK 中使用，并保留标签和状态；选 GPX，适用于 OsmAnd、Organic Maps、Garmin 以及其他能读取航点的应用；或选 KML，用于 Google My Maps，在 Google 地图中查看这些地点。',
   'help.guide.export-list.result': '文件会开始下载。共享列表的任何成员都可以导出。',
-  'help.guide.export-list.tip.1': '没有坐标的地点无法成为 GPX 航点，会被略过，TREK 会告诉你略过了多少个。',
+  'help.guide.export-list.tip.1': '没有坐标的地点无法成为 GPX 航点或 KML 图钉，会被略过，TREK 会告诉你略过了多少个。',
   'help.guide.export-list.tip.2':
     '评分、成员和上传的照片不会导出，这是有意为之：它们属于当前这个 TREK，而不属于列表本身。',
   // import-file
@@ -590,6 +596,17 @@ const help: TranslationStrings = {
     '在地图上方的“搜索地点”中输入内容，像在其他列表中一样使用筛选。“选择”在这里同样可用：可以跨列表移动、复制、复制到旅行或删除。',
   'help.guide.all-saved.result':
     '这个视图把你所有已保存的地点放在一起显示。这里不能添加或导入地点，因为没有一个确定的列表可以存放它们。',
+  'help.guide.collection-map-lock.title': '锁定地图',
+  'help.guide.collection-map-lock.goal': '在你逐个点开已保存的地点时，让地图保持不动。',
+  'help.guide.collection-map-lock.step.1':
+    '点击地图左下角、地图样式按钮上方的挂锁图标，悬停时显示“锁定地图视图”。按钮随即变为“让地图跟随所选内容”。',
+  'help.guide.collection-map-lock.step.2':
+    '点击列表中的一个地点或地图上的一个图钉。它的详情卡片会打开，地图不再平移或缩放到该地点。',
+  'help.guide.collection-map-lock.tip.1':
+    '再点一次挂锁（此时是“让地图跟随所选内容”），地图就会恢复为移动到你打开的地点。挂锁只在电脑上有，手机上地图始终会跟随。',
+  'help.guide.collection-map-lock.tip.2':
+    '这个浏览器会记住锁定状态，它和旅行地图上的锁是同一个：在这里锁定，旅行地图也会保持锁定。',
+  'help.guide.collection-map-lock.result': '你连续打开一个又一个地点时，地图始终停留在你选定的区域。',
   'help.guide.all-saved.tip.1': '标签和保存的路线属于某一个列表，所以“全部已保存”里没有这两项。',
 
   // ── Screen: journey ───────────────────────────────────────────────────────────────────
@@ -606,7 +623,7 @@ const help: TranslationStrings = {
   'help.guide.create-journey.goal': '为一次旅行新建一本日记，旅行中的地点会自动作为建议添加进来。',
   'help.guide.create-journey.step.1': '点击网格中最后一张卡片“创建新旅程”。',
   'help.guide.create-journey.step.2':
-    '给它起个名字，需要的话再加一个副标题，然后勾选它所属的旅行。计数器会显示将添加多少个地点。',
+    '给它起个名字，需要的话再加一个副标题，然后勾选它所属的旅行。底部一行会显示将导入多少个地点。',
   'help.guide.create-journey.step.3': '点击“创建旅程”。',
   'help.guide.create-journey.result':
     '旅程日志随即打开。所关联旅行的每个地点都会作为建议出现在时间线上，计划在哪几天就出现几次。你可以为每一条建议写一条日志。',
@@ -615,7 +632,8 @@ const help: TranslationStrings = {
   // open-journey
   'help.guide.open-journey.title': '打开旅程',
   'help.guide.open-journey.goal': '打开一本日记，了解它会定位到哪里。',
-  'help.guide.open-journey.step.1': '点击一张卡片。每张卡片都显示封面、日期，以及这个旅程包含多少条目、照片和地点。',
+  'help.guide.open-journey.step.1':
+    '点击一张卡片。每张卡片都显示封面、年份、状态，以及这个旅程包含多少条目、照片和地点。',
   'help.guide.open-journey.result':
     '进行中的旅程会打开到今天；如果今天还没写，就打开到今天之前的最后一条。已结束的旅程从头开始打开。',
   'help.guide.open-journey.tip.1': '除非你在“旅程设置”里另外指定，否则封面就是旅程的第一张照片。',
@@ -639,7 +657,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-detail.bullet.3':
     '“时间线”：每天一个分区，标有天数编号、地点数量，以及用于在当天添加条目的 +。其下是带照片、心情、天气和故事的条目卡片，以及来自旅行的虚线建议卡片，每张建议卡片都有一个用于忽略的 ×。',
   'help.ctx.journey-detail.bullet.4':
-    '地图：顶部的图层栏可切换“计划”（空心图钉和旅行的虚线 GPX 路线）、“记录”（来自 Dawarich 的实线路线）、“条目”（按当天颜色着色的图钉，按日期顺序用细虚线连接）和“照片”。旁边的 (i) 解释每种标记。',
+    '地图：顶部的图层栏可切换“计划”（空心图钉和旅行的虚线 GPX 路线）、“记录”（来自 Dawarich 的实线路线）、“条目”（按当天颜色着色的图钉，按日期顺序用细虚线连接）和“照片”。旁边的 (i) 解释每种标记，右上角的圆形按钮可切换到卫星影像。',
   'help.ctx.journey-detail.bullet.5':
     '“旅程设置”（⋯）：封面、名称和副标题、状态、GPX 轨迹、已记录的日子、根据照片定位的地点、条目字段、已忽略的建议、已同步的旅行、贡献者以及旅行中哪些成员可以加入、公开分享、归档和删除。',
   'help.ctx.journey-detail.bullet.6':
@@ -653,7 +671,7 @@ const help: TranslationStrings = {
   'help.guide.add-entry.step.3': '在右栏核对日期和时间，搜索地点或使用当前位置，再选择心情和天气。',
   'help.guide.add-entry.step.4': '点击“保存”。',
   'help.guide.add-entry.result':
-    '条目会出现在时间线中它所属的那一天，并在地图上显示为一枚图钉。页眉中的数量也会随之更新。',
+    '条目会出现在时间线中它所属的那一天，有了位置之后，也会在地图上显示为一枚图钉。页眉中的数量也会随之更新。',
   'help.guide.add-entry.tip.1': '在建议里写作用的是同一个编辑器，地点已经帮你填好。',
   'help.guide.add-entry.tip.2':
     '带地点的条目有“不计入路线”选项：条目仍保留在日志中，但不计入距离和国家数，也不会显示在工作室的地图上。',
@@ -691,9 +709,9 @@ const help: TranslationStrings = {
   'help.guide.pros-cons.title': '添加评价',
   'help.guide.pros-cons.goal': '用哪些很棒、哪些不太好来总结这一天。',
   'help.guide.pros-cons.step.1':
-    '在编辑器里，故事下方有“优缺点”。在“优点”或“缺点”中输入一条，再用“再添加一个”写下一条。',
+    '在编辑器里，“优缺点”位于右栏顶部。在“优点”或“缺点”中输入一条，再用“再添加一个”写下一条。',
   'help.guide.pros-cons.step.2': '点击“保存”。在卡片上，“显示更多”会把经过和评价展开成两个简短的列表。',
-  'help.guide.pros-cons.result': '点赞和差评会显示在故事下方，一眼就能看到。',
+  'help.guide.pros-cons.result': '在故事下方，“非常喜欢”和“有待改进”并排列出你的各条，每个都带有数量。',
   'help.guide.pros-cons.tip.1': '如果某个旅程不需要评价，可以在“旅程设置”的“记录字段”中关闭这一部分。',
   // search-journey
   'help.guide.search-journey.title': '在很长的日记里查找内容',
@@ -713,6 +731,17 @@ const help: TranslationStrings = {
   'help.guide.gallery-map.step.2':
     '右侧的“上传”可以向图库添加图片。如果已连接 Immich 或 Synology，会出现以相册库命名的按钮，可以从中选取照片。',
   'help.guide.gallery-map.result': '图钉带有当天的颜色，并按日期顺序用细虚线连接。地图顶部的图层栏可以切换绘制的内容。',
+  'help.guide.album-date-range.title': '只取大相册中属于这次旅行的照片',
+  'help.guide.album-date-range.goal': '从内容多得多的 Immich 或 Synology 相册里，挑出这次旅行的照片。',
+  'help.guide.album-date-range.step.1': '切换到“图库”，点击“上传”旁边、以你的照片库命名的按钮。',
+  'help.guide.album-date-range.step.2': '点击“相册”，再点击相册。照片按拍摄日期排列。',
+  'help.guide.album-date-range.step.3':
+    '在相册下方，把“拍摄日期范围”设为你要的第一天和最后一天。网格里只保留这些日子的照片，“全选”也只会选中它们。',
+  'help.guide.album-date-range.tip.1':
+    '打开另一个相册时，这个日期范围会保留，所以你可以为同一次旅行翻看多个相册。行末的 × 会重新显示整个相册。',
+  'help.guide.album-date-range.tip.2': '选择器顶部的“添加到”决定照片放进哪个条目；“新相册”则只放进图库。',
+  'help.guide.album-date-range.result':
+    '点击“添加”会把你选的照片放进旅程。已在旅程中的照片会变灰并带有勾，所以不会重复添加。',
   'help.guide.gallery-map.tip.1':
     '旅行的 GPX 轨迹以虚线显示在地图的“计划”图层上。“旅程设置”中的“显示所有行程的 GPX 轨迹”可以把它们关掉。',
   'help.guide.gallery-map.tip.2': '“图库”和“地图”都已分享时，带位置信息的图库照片也会显示在公开地图上。',
@@ -769,7 +798,7 @@ const help: TranslationStrings = {
   'help.guide.archive-journey.goal': '结束一段已完成的旅程，或将其永久删除。',
   'help.guide.archive-journey.step.1': '点击标题右上角的 ⋯，打开“旅程设置”。',
   'help.guide.archive-journey.step.2':
-    '在底部，“归档旅程”会结束该旅程并标记为已归档，“恢复旅程”可以把它恢复。“删除”会在确认后，连同所有记录和照片一起删除。',
+    '在底部，“归档旅程”会结束该旅程并标记为已归档，“恢复旅程”可以把它恢复。旁边的垃圾桶会在确认后，连同所有记录和照片一起删除该旅程。',
   'help.guide.archive-journey.result': '归档后的旅程仍可阅读和分享，只是不再默认打开到今天。',
   'help.guide.archive-journey.tip.1': '删除后无法撤销，但不会影响旅程之前关联的旅行。',
   'help.guide.archive-journey.tip.2': '封面、名称和副标题也在同一个对话框里，位于顶部。',
@@ -808,7 +837,7 @@ const help: TranslationStrings = {
   'help.guide.studio-auto-layout.goal': '一键根据日志里的条目和照片生成完整的初稿。',
   'help.guide.studio-auto-layout.step.1': '点击顶部栏中的 Auto layout。',
   'help.guide.studio-auto-layout.step.2':
-    '选择“整本书”：会替换所有页面，但保留你的标题和页面设置。“本页”只重建屏幕上显示的这个跨页，而且只有在由条目生成的跨页上才可用。',
+    '选择“整本书”：会替换所有页面，但保留你的标题和页面设置。“本页”只把屏幕上显示的这个跨页换成另一种设计。它适用于“自动排版”生成的每一页，包括封面。',
   'help.guide.studio-auto-layout.step.3': '翻看 Pages 侧栏。如果你更喜欢之前的版本，点击 Undo 即可撤销整个排版。',
   'help.guide.studio-auto-layout.result':
     '每条日志生成一个跨页，按顺序排列，照片、标题和文字都已放好。在你编辑之前，每个元素都与对应的日志保持关联并随之更新。',
@@ -821,11 +850,11 @@ const help: TranslationStrings = {
   'help.guide.studio-pages.step.1':
     '在侧栏打开页面。缩略图按顺序显示整本书：封面、第一页、各个跨页、最后一页和封底。第一页和最后一页画在各自封面内页空白面的旁边，就像装订好的书翻开时那样。',
   'help.guide.studio-pages.step.2':
-    '底部的“添加页面”会在最后一页之前添加一个新跨页。两张缩略图之间的 + 会在该位置插入一个跨页。',
+    '底部的“+ 页面”会在最后一页之前添加一个新跨页。两张缩略图之间的 + 会在该位置插入一个跨页。',
   'help.guide.studio-pages.step.3':
     '鼠标悬停在缩略图上，就能看到它的操作：“前移”“后移”“复制页面”和“删除页面”。点击缩略图，即可在工作台上打开该跨页。',
   'help.guide.studio-pages.result': '封面、第一页、最后一页和封底保持原位，新跨页总是添加到它们之间。',
-  'help.guide.studio-pages.tip.1': '顶部栏的“书籍视图”以成册的纸张形式显示整本书，也就是装订后的样子。',
+  'help.guide.studio-pages.tip.1': '跨页下方缩放栏中的“书本视图”以成册的纸张形式显示整本书，也就是装订后的样子。',
   'help.guide.studio-pages.tip.2': '页码在“属性”的“文档”下开启，此时不要选中任何对象。',
   // studio-layouts
   'help.guide.studio-layouts.title': '为跨页应用版式',
@@ -892,8 +921,9 @@ const help: TranslationStrings = {
   'help.guide.studio-text-effects.goal': '给标题加上描边、阴影、弧形，或者用图案填充文字。',
   'help.guide.studio-text-effects.step.1': '点击页面上的文字元素将其选中。',
   'help.guide.studio-text-effects.step.2':
-    '在属性中打开效果，添加描边、阴影或高亮，也可以用渐变或图案填充文字。位置可以把文字行弯成弧形，并让它适应文本框。',
-  'help.guide.studio-text-effects.tip.1': '适应会缩小文字直到放进文本框，所以很长的标题也不会溢出。',
+    '在“属性”中打开“效果”。“轮廓”“硬阴影”和“荧光笔色带”分别添加边缘、阴影或高亮；“弯曲”把文字行弯成弧形或圆形；“文字”可以用照片、渐变或图案填充文字。',
+  'help.guide.studio-text-effects.tip.1':
+    '“大小写与位置”下的“缩小以适应文本框”会在框太小时把文字变小，所以很长的标题也不会溢出。',
   'help.guide.studio-text-effects.result': '效果与文字一起绘制，印刷出来和屏幕上一样。',
   'help.guide.studio-background.title': '更改页面背景',
   'help.guide.studio-background.goal': '给页面涂上纯色、渐变或图案，或者在下面铺一张照片。',
@@ -919,7 +949,7 @@ const help: TranslationStrings = {
   'help.guide.studio-properties.step.1':
     '点击跨页上的一个元素。周围会出现用于调整大小和旋转的控制点，拖动元素即可移动。',
   'help.guide.studio-properties.step.2':
-    '右侧的 Properties 显示所选对象的设置：位置和大小、带焦点的 Crop（焦点决定画面中保留哪一部分）、Fill 或 Fit、Look 滤镜、Corner 圆角、“相框”样式、叠放顺序和 Lock。',
+    '右侧的“属性”会在名称下方显示所选对象的设置：地图提供来源、视图和线条，照片提供带焦点的“裁剪”、“填充”或“适应”以及“外观”滤镜。位置、叠放顺序和“锁定”对每个元素都有。',
   'help.guide.studio-properties.step.3': '“复制”和 Delete 位于检查器顶部。顶部栏的 Undo 可以撤销其中任何一项更改。',
   'help.guide.studio-properties.result':
     '页面上无法选中或移动已锁定的元素。这样在你调整其他元素时，已经完成的版面不会被误改。',
@@ -950,7 +980,7 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.goal': '把你喜欢的设计从一个旅程的书复制到另一个旅程。',
   'help.guide.studio-spread-file.step.1':
     '跨页在工作区中打开后，点击缩放条右端的“下载此跨页”。文件中只包含设计，不包含照片。',
-  'help.guide.studio-spread-file.step.2': '在另一本书中打开 Pages，点击“添加页面”旁边的“导入”，然后选择该文件。',
+  'help.guide.studio-spread-file.step.2': '在另一本书中打开“页面”，点击底部“+ 页面”旁边的“导入”，然后选择该文件。',
   'help.guide.studio-spread-file.result': '跨页会连同相框和文字样式一起导入。把新旅程的照片放进这些相框里即可。',
   'help.guide.studio-spread-file.tip.1': '如果文件不是跨页设计，TREK 会拒绝导入并说明原因。',
 
@@ -963,7 +993,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.2':
     '先打开的是“显示”。其中有 TREK 启动时打开的内容、语言、地点名称的语言、单位、时间格式、日期格式、每周起始日和显示货币，以及行程地图的行为。“外观”包含主题、颜色、可读性、文字大小和仪表盘组件。',
   'help.ctx.settings.bullet.3':
-    '“地图”设置地图引擎及其样式；“通知”设置哪些事件发送到哪个渠道；“集成”用于连接照片库、AirTrail、Dawarich 和 wanderer，也包含 API 密钥和 MCP；“离线”设置这台设备保存哪些内容。',
+    '“地图”设置地图引擎及其样式；“通知”设置哪些事件发送到哪个渠道；“集成”存放你的预订邮件地址，用于连接照片库、AirTrail、Dawarich 和 wanderer，也包含 API 密钥和 MCP；“离线”设置这台设备保存哪些内容。',
   'help.ctx.settings.bullet.4': '“账户”包含你的个人资料、密码、双因素认证、通行密钥，以及删除账号的选项。',
   'help.ctx.settings-display.title': '显示',
   'help.ctx.settings-display.summary':
@@ -987,12 +1017,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.title': '地图',
   'help.ctx.settings-map.summary':
     '行程规划器和旅程日志的地图用哪个引擎绘制，以及采用什么样式。Leaflet 是经典的栅格地图；Mapbox GL 用你自己的令牌增加 3D 建筑和地形；MapLibre GL 不需要令牌，绘制 OpenFreeMap 矢量瓦片。足迹始终使用 Leaflet。',
-  'help.ctx.settings-map.bullet.1':
-    '“地图提供商”：Leaflet、Mapbox GL（“实验性”）或 MapLibre GL，每个选项都有一行简短说明。',
+  'help.ctx.settings-map.bullet.1': '“地图提供商”：Leaflet、Mapbox GL或 MapLibre GL，每个选项都有一行简短说明。',
   'help.ctx.settings-map.bullet.2':
     'Leaflet 使用“地图模板”和“CARTO API 密钥”；两种 GL 引擎使用“地图样式”，Mapbox GL 另外还需要“Mapbox 访问令牌”。',
   'help.ctx.settings-map.bullet.3':
-    '仅限 Mapbox GL：3D 建筑和地形与高画质模式。“保存地图”上方有实时预览，点击“保存地图”才会保存你的选择。',
+    '仅限 Mapbox GL：“3D 建筑和地形”、“高画质模式”和“隐藏兴趣点”。“保存地图”上方有实时预览，点击“保存地图”才会保存你的选择。',
   'help.ctx.settings-notifications.title': '通知',
   'help.ctx.settings-notifications.summary':
     'TREK 在应用之外如何联系你。顶部的表格每个事件一行、每个渠道一列，决定什么内容发到哪里。下面是 webhook、ntfy、本设备推送以及各插件渠道的卡片。',
@@ -1004,9 +1033,9 @@ const help: TranslationStrings = {
     '此设备上的推送通知：“为此设备开启”只对当前浏览器有效；“发送测试”会发一条测试通知。插件渠道在配置好之前会显示“去配置”。',
   'help.ctx.settings-integrations.title': '集成',
   'help.ctx.settings-integrations.summary':
-    '所有从外部连接到 TREK 的内容：用于旅程日志的照片库、用于航班的 AirTrail、用于查看实际行踪的 Dawarich、用于路线的 wanderer、供其他软件使用的只读 API 密钥，以及供 AI 客户端使用的 MCP。与其他服务的连接，只有在管理员启用后才会显示。',
+    '所有从外部连接到 TREK 的内容：用于预订确认的专属地址、用于旅程日志的照片库、用于航班的 AirTrail、用于查看实际行踪的 Dawarich、用于路线的 wanderer、供其他软件使用的只读 API 密钥，以及供 AI 客户端使用的 MCP。与其他服务的连接，只有在管理员启用后才会显示。',
   'help.ctx.settings-integrations.bullet.1':
-    'Immich 和 Synology Photos、AirTrail、Dawarich 和 wanderer：每张卡片都有地址和密钥、“保存”和“测试连接”，以及“已连接”或“未连接”徽章。',
+    '“预订邮件”：管理员开启邮件导入后显示在最上方，包含你的转发地址和各个开关。其下是 Immich 和 Synology Photos、AirTrail、Dawarich 和 wanderer：每张卡片都有地址和密钥、“保存”和“测试连接”，以及“已连接”或“未连接”徽章。',
   'help.ctx.settings-integrations.bullet.2':
     'API 密钥：用于公共 API 的只读密钥，每个都限定在你选择的范围内，旁边还有可复制的端点。',
   'help.ctx.settings-integrations.bullet.3':
@@ -1037,7 +1066,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.title': '设置语言、单位和货币',
   'help.guide.language-region.goal': '用你的语言和所在地区的格式使用 TREK。',
   'help.guide.language-region.step.1':
-    '在“语言与地区”下，从一排标签中选择“语言”。TREK 会立即切换，你登录的每台设备上都会生效。',
+    '在“语言与地区”下，从列表中选择“语言”；输入文字可以快速找到。TREK 会立即切换，你登录的每台设备上都会生效。',
   'help.guide.language-region.step.2': '“地点名称”设置地点搜索、建议和地址所使用的语言，选“与应用相同”则跟随界面语言。',
   'help.guide.language-region.result':
     '日期、距离和金额会按你习惯的格式显示。在“费用”中，金额只是用你的显示货币来显示，录入的金额不会变。',
@@ -1099,7 +1128,7 @@ const help: TranslationStrings = {
   'help.guide.map-provider.step.2':
     '为 Leaflet 选择“地图模板”，或为 GL 引擎选择“地图样式”，也可以粘贴你自己的 URL。Mapbox GL 需要“Mapbox 访问令牌”，CARTO 模板需要“CARTO API 密钥”；每个字段下方的链接会告诉你从哪里获取。',
   'help.guide.map-provider.step.3':
-    '使用 Mapbox GL 时，打开“3D 建筑和地形”，如果设备性能足够，再打开“高画质模式”。查看预览后，点击“保存地图”。',
+    '使用 Mapbox GL 时，打开“3D 建筑和地形”，如果设备性能足够，再打开“高画质模式”。“隐藏兴趣点”会去掉 Mapbox 自动标注的商店和景点。查看预览后，点击“保存地图”。',
   'help.guide.map-provider.result': '行程规划和旅程日志的地图会使用你选的引擎，“足迹”始终使用 Leaflet。',
   'help.guide.map-provider.tip.1': '没有令牌时，Mapbox GL 会改用 Leaflet，而不是显示一张空白地图。',
   'help.guide.map-provider.tip.2': '你离线保存的地图瓦片，来自下载时正在使用的提供商。',
@@ -1144,7 +1173,7 @@ const help: TranslationStrings = {
   'help.guide.mcp-oauth.step.2':
     '在“OAuth 2.1 客户端”下，点击“新建客户端”，选择一个快速预设，例如 Claude Desktop 或 Cursor，也可以自己填写“应用程序名称”“重定向 URI”和“允许的权限范围”。没有浏览器的服务器请选“机器客户端”。点击“注册客户端”，并复制“客户端密钥”，它只显示一次。',
   'help.guide.mcp-oauth.step.3':
-    '每个客户端都有“轮换密钥”和“删除客户端”。“活跃的 OAuth 会话”列出已登录的客户端，并带有“撤销”。“客户端配置”可展开，显示适用于 JSON 客户端的现成代码片段。',
+    '每个客户端都有“轮换密钥”和“删除客户端”。客户端登录后，会出现在“活跃的 OAuth 会话”中，并带有“撤销”。在客户端上方，“客户端配置”提供适用于 JSON 客户端的现成代码片段，并带有“复制”。',
   'help.guide.mcp-oauth.result': '客户端可以以你的身份读取和修改其权限范围允许的内容，每一步操作都会记在你的名下。',
   'help.guide.mcp-oauth.tip.1': '权限范围用来限制客户端能做什么：在客户端需要更多权限之前，只给它读取权限。',
   'help.guide.mcp-oauth.tip.2': '管理员可以为整个实例关闭 MCP，关闭后这一部分不会显示。',
@@ -1152,9 +1181,9 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.title': '把旅行保存到离线使用',
   'help.guide.offline-prepare.goal': '在断网之前，先把你的旅行及其地图保存到这台设备上。',
   'help.guide.offline-prepare.step.1':
-    '在“要离线存储的内容”下，保持“离线存储地图瓦片”开启，并打开你想存到这台设备上的旅行。已结束的旅行只有在你打开开关后才会存储。',
+    '在右侧的“要离线存储的内容”卡片中，保持“离线存储地图瓦片”开启，并打开你想存到这台设备上的旅行。已结束的旅行只有在你打开开关后才会存储。',
   'help.guide.offline-prepare.step.2':
-    '回到顶部，在“为离线做准备”下，点击“下载以供离线使用”。它会获取旅行数据、文档和地图瓦片，并说明保存了多少个旅行。',
+    '在“离线模式”卡片的“为离线做准备”下，点击“下载以供离线使用”。它会获取旅行数据、文档和地图瓦片，并说明保存了多少个旅行。',
   'help.guide.offline-prepare.step.3':
     '“强制离线模式”会再下载一次，然后只在这台设备上工作，这样你出发前就能检查一切是否齐全。',
   'help.guide.offline-prepare.result': '旅行在没有网络时也能打开。你所做的更改会先存入队列，重新联网后自动发送。',
@@ -1221,15 +1250,16 @@ const help: TranslationStrings = {
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': '管理员',
   'help.ctx.admin.summary':
-    '整个 TREK 实例对所有用户生效的设置：谁可以登录、如何登录，启用了什么，文件存放在哪里，服务器如何联系用户，以及如何备份。只有管理员能看到这个页面。侧边栏把标签页分在“用户”“配置”“集成”和“维护”下，每个标签页是独立的一屏。',
+    '整个 TREK 实例对所有用户生效的设置：谁可以登录、如何登录，启用了什么，文件存放在哪里，服务器如何联系用户，以及如何备份。只有管理员能看到这个页面。侧边栏把标签页分在“用户”“配置”和“维护”下，每个标签页是独立的一屏。',
   'help.ctx.admin.bullet.1':
     '标题右侧统计用户、旅行、地点和文件的数量。其下方，当有更新的 TREK 版本发布时，会出现“有可用更新”横幅。',
-  'help.ctx.admin.bullet.2': '“用户”和“用户默认设置”：账户、邀请链接和权限，以及新账户初始使用的设置和地图。',
+  'help.ctx.admin.bullet.2': '“用户”和“默认值”：账户、邀请链接和权限，以及新账户初始使用的设置和地图。',
   'help.ctx.admin.bullet.3':
-    '个性化、设置、扩展、插件和存储：行李模板、分类和学校假期；登录、通行密钥、2FA、API 密钥和搜索源；功能模块；第三方插件；上传文件的存放位置。',
+    '“安全”“服务”“扩展”和“个性化”：登录、通行密钥、2FA 和单点登录；地点搜索、路径规划、API 密钥和文件类型；功能模块及其选项；行李模板、分类和学校假期。',
   'help.ctx.admin.bullet.4':
-    '通知、MCP 访问和 GitHub：用户可选的渠道及初始默认值、AI 客户端的令牌和会话，以及版本历史。',
-  'help.ctx.admin.bullet.5': '“备份”和“审计”：手动和定时备份，以及安全相关事件的日志。',
+    '“通知”“MCP”和“插件”：用户可选的渠道以及你作为管理员收到的提醒、AI 客户端的令牌和会话，以及第三方插件。',
+  'help.ctx.admin.bullet.5':
+    '“存储”“备份”“GitHub”和“审计”：上传文件的存放位置、手动和定时备份、版本历史，以及安全相关事件的日志。',
   'help.ctx.admin-users.title': '用户',
   'help.ctx.admin-users.summary':
     '此 TREK 上的所有账户，显示角色、邮箱和最后活跃时间，还有让人们在封闭实例上注册的邀请链接，以及谁能在旅行中做什么。',
@@ -1240,13 +1270,13 @@ const help: TranslationStrings = {
     '下方的“邀请链接”：带使用次数上限和有效期的注册链接，还可以指定新用户注册后加入的旅行。',
   'help.ctx.admin-users.bullet.4':
     '底部的“权限设置”：针对每个操作，设置谁可以执行（“所有人”“旅行成员”“旅行所有者”或“仅管理员”）。点击卡片顶部的“保存”来保存。',
-  'help.ctx.admin-defaults.title': '用户默认设置',
+  'help.ctx.admin-defaults.title': '默认值',
   'help.ctx.admin-defaults.summary':
     '新账户的初始设置，这样没有人需要先去设置：颜色模式、单位、时间格式、日期格式、每周起始日、显示货币和隐藏的预订码，以及地图、它的密钥和路径规划服务器。',
   'help.ctx.admin-defaults.bullet.1':
     '左侧的“用户默认设置”：颜色模式、温度单位、距离单位、时间格式、每周开始于、日期格式、显示货币和隐藏预订编号。',
   'help.ctx.admin-defaults.bullet.2':
-    '右侧的地图：“地图模板”、“共享 CARTO 密钥”、“自建路径规划服务”和“自建 Valhalla 实例”、预览，然后是“地图引擎”，其下有“地图样式”“共享 Mapbox 令牌”“3D 建筑与地形”和“高质量模式”。',
+    '其下是路径规划：“路线服务”“自建路径规划服务”和“自建 Valhalla 实例”。右侧的地图：“地图模板”、“共享 CARTO 密钥”、预览，然后是“地图引擎”，其下有“地图样式”“共享 Mapbox 令牌”“3D 建筑与地形”和“高质量模式”。',
   'help.ctx.admin-config.title': '个性化',
   'help.ctx.admin-config.summary':
     '实例上所有旅行共用的设置：行李模板、地点和收藏所用的分类集合，以及“假期”使用的学校假期目录。',
@@ -1254,31 +1284,33 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.2':
     '分类：TREK 中各处使用的分类的名称、图标和颜色，从地点检查器到“收藏”都会用到，每个分类都在带预览的对话框中编辑。',
   'help.ctx.admin-config.bullet.3': '“学校假期”：国家和地区及其假期时段的目录，所有人都可以在“假期”中选用。',
-  'help.ctx.admin-settings.title': '设置',
+  'help.ctx.admin-settings.title': '安全与服务',
   'help.ctx.admin-settings.summary':
-    '用户如何登录，以及服务器可以使用哪些外部服务。左侧：“登录方式”“通行密钥登录”“要求双因素身份验证（2FA）”和“单点登录 (OIDC)”。右侧：“允许的文件类型”，以及带有搜索和交通提供商的“API 密钥”。“危险区域”在底部。',
+    '用户如何登录，以及服务器使用哪些外部服务，分在两个标签页。“安全”：左侧是“登录方式”和“通行密钥登录”，右侧是“单点登录 (OIDC)”和“危险区域”。“服务”：左侧是地点搜索和路径规划，右侧是“API 密钥”和“允许的文件类型”。',
   'help.ctx.admin-settings.bullet.1':
-    '“登录方式”：“密码登录”“密码注册”，以及设置好 OIDC 之后的“SSO 登录”和“SSO 自动创建账户”。“要求双因素身份验证（2FA）”有单独的卡片。',
+    '“登录方式”：“密码登录”和“密码注册”，设置好 OIDC 之后的 SSO 行（“SSO 登录”“SSO 自动创建账户”和“直接跳转到 SSO”），然后是“启用通行密钥登录”和“要求 2FA”。每个开关都会立即保存。',
   'help.ctx.admin-settings.bullet.2':
-    '“通行密钥登录”：“启用通行密钥登录”、“Relying Party ID（域名）”和“允许的来源”。“单点登录 (OIDC)”：“显示名称”、“颁发者 URL”、可选的“Discovery URL（可选）”、“客户端 ID”和“客户端密钥”。',
+    '“通行密钥登录”：“Relying Party ID（域名）”和“允许的来源”。“单点登录 (OIDC)”：“显示名称”、“颁发者 URL”、可选的“Discovery URL（可选）”、“客户端 ID”和“客户端密钥”。',
   'help.ctx.admin-settings.bullet.3':
-    'API 密钥：TREK Places API 排在最前，不需要密钥。其下是 Google Maps API 密钥（带“测试”和“该密钥的用途”）、Unsplash 密钥和高德地图密钥，卡片底部有一个“保存”。',
+    '“服务”标签页上的地点搜索和路径规划：标有“推荐的默认来源”的 TREK API，带有“今日额度”和“分享地点详情”，然后是“公共交通数据源”“地点搜索源”和“地点搜索记录”。',
   'help.ctx.admin-settings.bullet.4':
-    '“公共交通数据源”和“地点搜索源”决定由谁来处理公共交通和地点搜索，“地点搜索记录”记录最终选中了哪个结果，“允许的文件类型”用来限制上传。',
+    '“API 密钥”：Google Maps API 密钥（带“测试”和“该密钥的用途”）、Unsplash 密钥和高德地图密钥，卡片底部有一个“保存”。其下的“允许的文件类型”用来限制上传。',
   'help.ctx.admin-addons.title': '扩展',
   'help.ctx.admin-addons.summary':
-    'TREK 的功能模块，每个模块都有一个开关：行李、预算、文档、假期、足迹、协作、旅程、收藏、公路旅行、MCP、AirTrail、Dawarich 和 AI 解析。关闭后，导航入口、路由和 API 对所有人都会被移除。',
-  'help.ctx.admin-addons.bullet.1': '每个扩展一张卡片，带有开关；有选项的扩展还会有对应的子行。',
+    'TREK 的功能模块，分在三张卡片里：“旅行”对应旅行的标签页，“全局”对应主导航中的各个部分，“集成”对应外部服务。每个扩展都有一个开关；关闭后，导航入口、路由和 API 对所有人都会被移除。',
+  'help.ctx.admin-addons.bullet.1':
+    '每个扩展一行，带有开关，每张卡片的标题处显示其中有多少个扩展已开启。名称旁边的信息标记说明该扩展的作用。',
   'help.ctx.admin-addons.bullet.2':
-    '照片服务和文档服务也以卡片形式显示在这里，这样就能把 Immich 或 Synology 提供给用户。',
-  'help.ctx.admin-addons.bullet.3': '“行李追踪”在卡片下方有自己的开关。',
+    '扩展开启时，它的选项挂在下面：“列表”下的“行李追踪”、“协作”的各项功能、“文档”下的文档存储、“旅程”下的照片服务，以及“游览”下的 wanderer 和地图图层。',
+  'help.ctx.admin-addons.bullet.3':
+    '带齿轮的行会打开设置对话框，例如“游览”下的“划桨水域数据”和“预订邮件导入”下的“设置邮件导入”。“实时航班状态”是“旅行”卡片中的一行。',
   'help.ctx.admin-plugins.title': '插件',
   'help.ctx.admin-plugins.summary':
     '第三方插件，在 TREK 旁边以独立进程运行，每个插件只拥有安装时申请的权限。你可以从目录安装、上传安装包，或者在开发插件时关联一个文件夹。',
   'help.ctx.admin-plugins.bullet.1':
-    '“已安装”和“发现”，带有“搜索插件…”以及“类型”“状态”和“排序”筛选。每行显示版本、“已审核”、“已签名”或“未签名”、插件可访问的内容、一个开关和一个 ⋯ 菜单。',
+    '“已安装”和“发现”，带有“搜索插件…”以及用于类型、状态和排序的“筛选”。每行显示版本、插件可访问的内容、“已审核”、“已签名”或“未签名”、一个开关和一个 ⋯ 菜单。',
   'help.ctx.admin-plugins.bullet.2':
-    '卡片标题处的两个图标：“上传插件”接受 .zip、.tgz 或 .tar.gz（也可以把 .zip 拖到页面上）；“重新扫描”会找到为开发而链接的插件文件夹。',
+    '卡片标题处的三个图标：“插件如何受到保护”说明插件如何被隔离；“上传插件”接受 .zip、.tgz 或 .tar.gz（也可以把 .zip 拖到页面上）；“重新扫描”会找到为开发而链接的插件文件夹。',
   'help.ctx.admin-plugins.bullet.3': '每个插件的“允许的主机”：插件可以访问的地址，因为对外连接默认是被禁止的。',
   'help.ctx.admin-storage.title': '存储',
   'help.ctx.admin-storage.summary':
@@ -1287,16 +1319,18 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.2':
     '“后端”：名称、类型、用量和“镜像到”，带有“测试”“编辑”和“移除”。“立即计算”会统计已存储的内容；由环境变量定义的后端是只读的。',
   'help.ctx.admin-storage.bullet.3':
-    '分类：行程文档、旅程照片、封面、头像、地点图片、照片缓存和备份，每一项都分配给一个后端。',
+    '分类：行程文档、旅程照片、封面、头像、地点图片、照片缓存和备份，每一项都分配给一个后端，底部有“保存更改”。',
+  'help.ctx.admin-storage.bullet.4':
+    '“未被引用的文件”：夜间检查发现的、TREK 里不再有任何地方使用的文件，带有“立即检查”，以及一个开关，用来删除闲置满一周的这类文件。',
   'help.ctx.admin-notifications.title': '通知',
   'help.ctx.admin-notifications.summary':
     '这里是实例向用户提供的通知渠道，以及你作为管理员接收通知的渠道。用户在“设置”里选择自己的主题和 URL；你决定提供哪些渠道，并配置邮件。',
   'help.ctx.admin-notifications.bullet.1':
-    '“电子邮件 (SMTP)”、Webhook、Ntfy 和“Web 推送”各有一个开关，决定是否向用户提供该渠道，电子邮件还需要填写服务器设置。“应用内通知”始终开启。',
-  'help.ctx.admin-notifications.bullet.2': '“行程提醒”：服务器是否在旅行开始前发送提醒。',
+    '渠道：“电子邮件 (SMTP)”、Webhook、Ntfy 和“Web 推送”各有一个开关，决定是否向用户提供该渠道；“应用内通知”始终开启。开关下方的“电子邮件 (SMTP)”部分是邮件服务器设置。',
+  'help.ctx.admin-notifications.bullet.2': '“行程提醒”，即“渠道”中的最后一行：服务器是否在旅行开始前发送提醒。',
   'help.ctx.admin-notifications.bullet.3':
-    '“管理员 Webhook”“管理员 Ntfy”和“通知”卡片：决定管理员事件（“有新版本可用”“存储副本故障”“划桨区域申请”）发送到哪里，每项各有一个测试按钮。',
-  'help.ctx.admin-mcp-tokens.title': 'MCP 访问',
+    '右侧的“管理员通知”：“管理员 Webhook”和“管理员 Ntfy”各有一个测试按钮，下方决定每个管理员事件（“有新版本可用”“存储副本故障”“划桨区域申请”）由哪些渠道发送。',
+  'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
     'AI 客户端在这个 TREK 上持有的所有令牌和 OAuth 会话，涵盖所有用户。你可以撤销其中任何一个。',
   'help.ctx.admin-mcp-tokens.bullet.1': '“OAuth 会话”：客户端、获得的权限范围、所有者和日期，垃圾桶图标可撤销该会话。',
@@ -1338,10 +1372,11 @@ const help: TranslationStrings = {
   'help.guide.edit-user.goal': '给某人改名、升级或降级其权限，或在对方忘记密码后帮他重新登录。',
   'help.guide.edit-user.step.1': '点击用户所在行的铅笔图标（“编辑用户”）。对话框顶部显示该账户的邮箱。',
   'help.guide.edit-user.step.2':
-    '修改“用户名”、“邮箱”或“角色”，或输入“新密码”（留空则保留当前密码），然后点击“保存”。底部的“重置通行密钥”在你确认后会移除该账户的所有通行密钥。',
+    '修改“用户名”、“邮箱”或“角色”，或输入“新密码”（留空则保留当前密码），然后点击“保存”。下方的“重置通行密钥”会在你确认后移除该账户的所有通行密钥，“重置双因素验证”则会关闭它的双因素验证。',
   'help.guide.edit-user.result': '修改会立即生效。设置新密码还会让这位用户在所有设备上退出登录，旧会话随即失效。',
   'help.guide.edit-user.tip.1': '只要你还是最后一位管理员，就不能取消自己的管理员角色。',
-  'help.guide.edit-user.tip.2': '重置通行密钥不会影响密码；对方可以在“设置”的“账户”里添加新的通行密钥。',
+  'help.guide.edit-user.tip.2':
+    '重置通行密钥或 2FA 不会影响密码。对方可以在“设置”的“账户”里添加新的通行密钥；重置 2FA 后，对方会在所有设备上退出登录，之后可以重新设置。',
   // invite-links
   'help.guide.invite-links.title': '通过链接邀请他人',
   'help.guide.invite-links.goal': '让某人在封闭的实例上自行注册，还可以顺便把他们加入某个旅行。',
@@ -1416,23 +1451,28 @@ const help: TranslationStrings = {
   'help.guide.school-holiday-catalog.tip.1': '已被某人选入其假期日历的地区无法删除。',
   // auth-methods
   'help.guide.auth-methods.title': '设置登录方式',
-  'help.guide.auth-methods.goal': '开启或关闭密码登录、SSO 和注册，并可以要求使用 2FA。',
+  'help.guide.auth-methods.goal': '开启或关闭密码登录、注册、SSO 和通行密钥，并可以要求使用 2FA。',
   'help.guide.auth-methods.step.1':
-    '在“登录方式”下，开启或关闭“密码登录”和“密码注册”，每个开关立即生效。关闭注册后，新账户只能通过邀请链接、SSO 或“创建用户”产生。',
+    '在“安全”标签页的“登录方式”下，开启或关闭“密码登录”和“密码注册”，每个开关立即生效。关闭注册后，新账户只能通过邀请链接、SSO 或“创建用户”产生。',
   'help.guide.auth-methods.step.2':
-    '“SSO 登录”和“SSO 自动创建账户”需要先在下方配置好“单点登录 (OIDC)”。自动创建账户会在某人首次通过 SSO 登录时为其创建账户。',
+    '设置好“单点登录 (OIDC)”后，会出现三个 SSO 行：“SSO 登录”、“SSO 自动创建账户”（在某人首次通过 SSO 登录时为其创建账户）和“直接跳转到 SSO”。',
   'help.guide.auth-methods.step.3':
-    '打开“要求双因素身份验证（2FA）”后，所有没设置 2FA 的人必须先在“设置”中完成设置，才能使用 TREK。',
+    '“启用通行密钥登录”会在登录页面提供通行密钥。打开“要求 2FA”后，所有没设置 2FA 的人必须先在“设置”中完成设置，才能使用 TREK。',
   'help.guide.auth-methods.result': '登录页面只会提供你保持开启的登录方式。',
   'help.guide.auth-methods.tip.1':
     'TREK 不允许你关掉最后一种登录方式：它的开关会变灰，提示显示“至少要保留一种登录方式”。',
   'help.guide.auth-methods.tip.2': '如果服务器上设置了 OIDC_ONLY，密码开关会被锁定，并有提示说明。',
+  'help.guide.auth-methods.tip.3':
+    '“直接跳转到 SSO”只在“密码登录”关闭时才有意义：开启时，访客会立刻前往你的身份提供商；关闭时，他们会先看到带有 SSO 按钮的登录页面。',
   // oidc
   'help.guide.oidc.title': '接入单点登录',
   'help.guide.oidc.goal': '让用户通过你的身份提供商登录。',
   'help.guide.oidc.step.1':
-    '在“单点登录 (OIDC)”下，输入按钮的“显示名称”、“颁发者 URL”，以及你的提供商给出的“客户端 ID”和“客户端密钥”。只有当提供商没有在常规地址发布时（例如 Authentik），才需要填写“Discovery URL（可选）”。点击“保存”。',
-  'help.guide.oidc.step.2': '在“登录方式”下开启“SSO 登录”。',
+    '在“安全”标签页的“单点登录 (OIDC)”下，输入按钮的“显示名称”、“颁发者 URL”，以及你的提供商给出的“客户端 ID”和“客户端密钥”。只有当提供商没有在常规地址发布时（例如 Authentik），才需要填写“Discovery URL（可选）”。点击“保存”。',
+  'help.guide.oidc.step.2':
+    '刷新页面。卡片现在显示“已配置”，“登录方式”中会出现“SSO 登录”“SSO 自动创建账户”和“直接跳转到 SSO”。打开“SSO 登录”。',
+  'help.guide.oidc.step.3':
+    '要让 SSO 成为唯一的登录方式，请关闭“密码登录”。开启“直接跳转到 SSO”后，访客会直接前往你的提供商；关闭它则保留带有 SSO 按钮的登录页面。',
   'help.guide.oidc.result': '登录页面会显示 SSO 按钮；开启“SSO 自动创建账户”后，首次登录的用户会自动获得账户。',
   'help.guide.oidc.tip.1': '服务商需要的重定向 URI，是你的 TREK 地址加上文档中给出的 OIDC 回调路径。',
   'help.guide.oidc.tip.2': '声明映射决定哪些 SSO 群组会成为管理员，详见文档中的 OIDC 页面。',
@@ -1440,9 +1480,9 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.title': '填写 API 密钥',
   'help.guide.instance-keys.goal': '为整个实例启用 Google 照片和评分、Unsplash 封面以及高德地图搜索。',
   'help.guide.instance-keys.step.1':
-    '在“API 密钥”下，顶部的 TREK Places API 无需密钥就能处理地点搜索。点击“里面有什么”可查看它涵盖和不涵盖的内容。',
+    '在“服务”标签页中，“地点搜索和路径规划”卡片以 TREK API 开头，标有“推荐的默认来源”。它无需密钥就能处理地点搜索、地址和路径规划，“今日额度”显示当天还剩多少。',
   'help.guide.instance-keys.step.2':
-    '要使用照片、评分和营业时间，粘贴 Google Maps API 密钥并点击“测试”，会显示“已连接”或“无效”。打开“该密钥的用途”，只开启你愿意计费的项目：“地点照片”“地点自动补全”“地点详情”“地点信息补充”和“仅使用 Google 搜索”，另外还可以设置“Google 调用每日上限”。',
+    '要使用照片、评分和营业时间，在“API 密钥”下粘贴 Google Maps API 密钥并点击“测试”，会显示“已连接”或“无效”。在“该密钥的用途”下，只开启你愿意计费的项目：“地点照片”“地点自动补全”“地点详情”“地点信息补充”和“仅使用 Google 搜索”，另外还可以设置“Google 调用每日上限”。',
   'help.guide.instance-keys.step.3':
     '粘贴用于封面搜索的“Unsplash API 密钥”，以及用于中国大陆地点搜索的“高德地图 API Key”，然后点击卡片底部的“保存”。',
   'help.guide.instance-keys.result':
@@ -1455,7 +1495,7 @@ const help: TranslationStrings = {
   'help.guide.places-transit.title': '选择搜索和公共交通服务商',
   'help.guide.places-transit.goal': '选择由哪个服务来处理地点搜索和公共交通路线请求。',
   'help.guide.places-transit.step.1':
-    '在“公共交通数据源”下选择：“Transitous（免费）”，无需密钥，在欧洲覆盖最好；或选择 Google，它使用 Google 密钥。选择会立即保存。',
+    '在“服务”标签页的“地点搜索和路径规划”卡片中，在“公共交通数据源”下选择：“Transitous（免费）”，无需密钥，在欧洲覆盖最好；或选择 Google，它使用 Google 密钥。选择会立即保存。',
   'help.guide.places-transit.step.2':
     '在“地点搜索源”下，选择当 TREK 索引和 OpenStreetMap 都找不到时去问哪个服务：“自动”（有密钥时用 Google，然后用高德地图）、Google Places、高德地图或 OpenStreetMap。',
   'help.guide.places-transit.result': 'TREK 中的所有搜索框和所有公共交通路线都会使用这个选择。',
@@ -1466,15 +1506,16 @@ const help: TranslationStrings = {
   'help.guide.file-types.title': '限制文件类型',
   'help.guide.file-types.goal': '决定上传的文件允许使用哪些扩展名。',
   'help.guide.file-types.step.1':
-    '在“允许的文件类型”下，编辑以逗号分隔的扩展名列表，或输入 * 允许所有类型，然后点击“保存”。',
+    '在“服务”标签页的“允许的文件类型”下，编辑以逗号分隔的扩展名列表，或输入 * 允许所有类型，然后点击“保存”。',
   'help.guide.file-types.result': '其他类型的上传会被拒绝并给出明确提示，文档、旅程日志和封面都是如此。',
   'help.guide.file-types.tip.1': '请保留列表中的图片类型：封面和旅程照片也按同一份列表检查。',
   // toggle-addon
   'help.guide.toggle-addon.title': '开启或关闭扩展',
   'help.guide.toggle-addon.goal': '让所有人都能使用某个功能模块，或者将其移除。',
-  'help.guide.toggle-addon.step.1': '点击扩展卡片上的开关。对应的导航项会立即对所有人显示或隐藏。',
+  'help.guide.toggle-addon.step.1':
+    '在“旅行”“全局”或“集成”卡片中找到该扩展，点击它那一行的开关。对应的导航项会立即对所有人显示或隐藏。',
   'help.guide.toggle-addon.step.2':
-    '有些卡片带有选项子行，比如“列表”下的“行李追踪”，或“旅程”下的照片服务。这些子行只在扩展开启时显示。',
+    '扩展开启时，它的选项会以缩进的行跟在后面，比如“列表”下的“行李追踪”，或“旅程”下的照片服务。“旅行”卡片底部的“实时航班状态”会实时跟踪已预订的航班。',
   'help.guide.toggle-addon.result': '关闭扩展时，它的数据会保留；重新开启后，数据会再次出现。',
   'help.guide.toggle-addon.tip.1': '关闭 MCP 会同时移除它的端点以及依赖它的“集成”部分。',
   'help.guide.toggle-addon.tip.2': 'Vacay、Atlas 和旅程是用户最常要求开启的扩展；文档需要有存储空间来保存上传的文件。',
@@ -1482,11 +1523,11 @@ const help: TranslationStrings = {
   'help.guide.install-plugin.title': '安装插件',
   'help.guide.install-plugin.goal': '添加第三方插件，并且只授予它所申请的权限。',
   'help.guide.install-plugin.step.1':
-    '打开“发现”，用“搜索插件…”或“类型”筛选找到插件，点击“安装”。如果有安装包文件，点击“上传插件”（卡片右上角的云图标），或直接把 .zip 拖到页面上。',
+    '打开“发现”，用“搜索插件…”或“筛选”找到插件，点击“安装”。如果有安装包文件，点击“上传插件”（卡片右上角的云图标），或直接把 .zip 拖到页面上。',
   'help.guide.install-plugin.step.2':
     '在“已安装”下，查看插件所在的行：插件可以访问什么、连接哪些主机，以及它是否“已审核”和“已签名”。然后打开“启用插件”，该行会显示“有效”。',
   'help.guide.install-plugin.step.3':
-    '该行的 ⋯ 菜单提供“重启”“查看错误日志”“允许的主机”和“更换版本…”，以及源码链接，“删除”会卸载插件并清除其数据。有新版本时，该行会显示为可更新，需要新权限的版本在你批准之前保持关闭。',
+    '该行的 ⋯ 菜单提供“重启”“实例设置”（插件有设置时）“查看错误日志”“允许的主机”和“更换版本…”，以及源码链接，“删除”会卸载插件并清除其数据。有新版本时，该行会显示为可更新，需要新权限的版本在你批准之前保持关闭。',
   'help.guide.install-plugin.result':
     '插件在自己的进程中运行。它添加的内容，比如小组件、地图图层或工具，会出现在插件指定的位置。',
   'help.guide.install-plugin.tip.1': '“重新扫描”可以找到为开发而链接、没有打包的插件文件夹。',
@@ -1499,7 +1540,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     '在“分类”下，把每一类上传内容，例如“行程文档”“旅程照片”或“备份”，分配给一个后端。',
   'help.guide.storage-backends.step.3':
-    '点击底部的“保存更改”。如果某个分类现在指向了别处，TREK 会询问是“移动现有对象”还是“仅路由新写入”。',
+    '点击“分类”底部的“保存更改”。如果某个分类现在指向了别处，TREK 会询问是“移动现有对象”还是“仅路由新写入”。',
   'help.guide.storage-backends.result':
     '新上传的文件会进入分配的后端。已移动的文件从新后端读取，你选择不移动的文件则留在原处。',
   'help.guide.storage-backends.tip.1': '通过环境变量配置的存储后端会显示出来，但不能在这里编辑。',
@@ -1509,10 +1550,10 @@ const help: TranslationStrings = {
   'help.guide.channels-instance.title': '配置通知渠道',
   'help.guide.channels-instance.goal': '决定用户可以选择哪些通知渠道，并设置电子邮件。',
   'help.guide.channels-instance.step.1':
-    '在卡片标题中打开“电子邮件 (SMTP)”，输入 SMTP Host、SMTP Port、SMTP User、SMTP Password 和发件地址，然后点击“保存”。“发送测试邮件”会给你发一封邮件。“跳过 TLS 证书检查”仅适用于使用自有证书的本地邮件服务器。',
+    '在“渠道”卡片中，打开“电子邮件 (SMTP)”。在下方的“电子邮件 (SMTP)”部分，输入 SMTP Host、SMTP Port、SMTP User、SMTP Password 和发件地址，然后点击“保存”。“发送测试邮件”会给你发一封邮件。“跳过 TLS 证书检查”仅适用于使用自有证书的本地邮件服务器。',
   'help.guide.channels-instance.step.2':
-    '打开“Webhook”“Ntfy”和“Web 推送”，即可向用户提供这些渠道。用户随后在“设置”的“通知”中输入自己的 URL 或主题，或按设备开启推送。',
-  'help.guide.channels-instance.step.3': '“行程提醒”控制旅行开始前的提醒；“应用内通知”始终开启。',
+    '在同一张卡片中打开“Webhook”“Ntfy”和“Web 推送”，即可向用户提供这些渠道。用户随后在“设置”的“通知”中输入自己的 URL 或主题，或按设备开启推送。',
+  'help.guide.channels-instance.step.3': '“行程提醒”（最后一行）控制旅行开始前的提醒；“应用内通知”始终开启。',
   'help.guide.channels-instance.result': '每位用户的“通知”标签页都会显示你开启的渠道。',
   'help.guide.channels-instance.tip.1':
     '“管理员 Ntfy”卡片中的“Ntfy 服务器 URL”也是用户的默认服务器，用户仍可填写自己的服务器。',
@@ -1521,7 +1562,7 @@ const help: TranslationStrings = {
   'help.guide.admin-channels.title': '在手机上接收管理员事件',
   'help.guide.admin-channels.goal': '及时收到新版本、存储镜像失败和划桨区域申请的通知。',
   'help.guide.admin-channels.step.1':
-    '在“管理员 Ntfy”下，填写“管理员主题”，需要时再填“Ntfy 服务器 URL”和“访问令牌（可选）”。在“管理员 Webhook”下，填写一个 URL。在每张卡片中点击“保存”。',
+    '在“管理员通知”卡片中，在“管理员 Webhook”下填写一个 URL 并点击它的“保存”。在“管理员 Ntfy”下，填写“管理员主题”，需要时再填“Ntfy 服务器 URL”和“访问令牌（可选）”，然后点击“保存”。',
   'help.guide.admin-channels.step.2': '点击“发送测试 Ntfy”或“发送测试 Webhook”，看消息是否送达。',
   'help.guide.admin-channels.result':
     '管理员事件会发给应用内的每位管理员，如果你开启了，也会发到管理员的 ntfy 主题和 webhook。',
@@ -1592,6 +1633,59 @@ const help: TranslationStrings = {
     '这里只决定是否可以提供某个存储服务。地址和凭据属于具体的旅行，由旅行所有者在旅行的“文件”标签页中填写，绝不会在管理面板里填写。',
   'help.guide.document-providers.tip.2':
     '关闭“文档”会同时关闭所有存储，“文档”关闭时也无法开启任何存储：服务器会提示“Enable the Documents addon first”。位于你自己网络内的存储，还需要在服务器上设置 ALLOW_INTERNAL_NETWORK=true。',
+  'help.guide.mail-import-setup.title': '设置预订邮件导入',
+  'help.guide.mail-import-setup.goal': '给每个人一个转发地址，让他们转发的预订确认邮件变成正确旅行中的预订。',
+  'help.guide.mail-import-setup.step.1':
+    '在“扩展”标签页的“集成”卡片中，打开“预订邮件导入”。这个 TREK 上的每个人都会得到一个专属转发地址。',
+  'help.guide.mail-import-setup.step.2': '点击其下出现的“设置邮件导入”行。',
+  'help.guide.mail-import-setup.step.3':
+    '在“邮件送达方式”下选择“IMAP 邮箱”，填写“服务器”“端口”“加密”“用户”“密码”和“文件夹”。如果邮件服务会把每封邮件推送给 TREK，请改选“Webhook”；只想试用而没有邮箱，则选“仅上传”。然后设置“地址模板”（转发地址，其中留一个占位符，用来放每个人的代码）以及“每人每天的 AI 邮件数”。',
+  'help.guide.mail-import-setup.step.4':
+    '点击“保存”，再点击“测试连接”；它会显示“已连接”或失败的原因。在下方，对话框会显示 TREK 上次读取邮件的时间，以及最近 24 小时的邮件：“自动添加”“等待中”和“失败”。',
+  'help.guide.mail-import-setup.result':
+    '每个人都能在“设置”的“集成”中找到自己的转发地址。转发的确认邮件会变成正确旅行中的预订，或者留在那里等它的主人查看。',
+  'help.guide.mail-import-setup.tip.1':
+    '给 TREK 一个专用邮箱，支持加号地址（trek+…@your-domain），不要用个人邮箱。读过的邮件会移到文件夹 TREK/processed。',
+  'help.guide.mail-import-setup.tip.2':
+    '以 MAIL_INGEST_ 开头的环境变量优先于对话框里的字段。位于你自己内网中的邮件服务器，还需要在服务器上设置 ALLOW_INTERNAL_NETWORK=true。',
+  'help.guide.mail-import-setup.tip.3':
+    '“每人每天的 AI 邮件数”限制 AI 每天为一个人读取多少封没有机器可读预订数据的邮件。超出后，只读取机器可读的数据。',
+  'help.guide.ai-setup.title': '设置 AI 助手',
+  'help.guide.ai-setup.goal': '只需连接一次 AI 服务商，这台 TREK 上的所有人都能用助手来规划旅行。',
+  'help.guide.ai-setup.step.1':
+    '在“扩展”标签页的“集成”卡片中找到 AI 图块，打开“AI 助手”开关。“AI 解析”和 MCP 也在同一个图块里。',
+  'help.guide.ai-setup.step.2': '点击开关下方出现的“设置 AI”。',
+  'help.guide.ai-setup.step.3':
+    '在“由谁付费”下选择由谁提供连接：“我付费，也允许自带”“我为所有人付费”或“每个人使用自己的账号”。下方的说明会告诉你这个选择意味着什么。',
+  'help.guide.ai-setup.step.4':
+    '在“所有人共用的连接”下选择“粘贴 API 密钥”，然后粘贴 Anthropic、OpenAI、Gemini 或 OpenRouter 的密钥。TREK 会显示识别出的服务商。点击“连接”，TREK 会先向服务商验证密钥，再保存。',
+  'help.guide.ai-setup.step.5':
+    '连接会显示为“已连接”。选择所有人聊天时使用的“模型”，列表中只有能使用工具的模型。“更改”和“移除连接”在它的下方。',
+  'help.guide.ai-setup.step.6':
+    '在“AI 助手”标签页中，设置由你付费时“每人每天的消息数”、对话要“保留对话”多久，以及是否允许“网页搜索”。每次修改都会立即保存。',
+  'help.guide.ai-setup.result':
+    '助手按钮会出现在每个旅行中。如果你允许，大家也可以在“设置”的“集成”中连接自己的服务商。',
+  'help.guide.ai-setup.tip.1':
+    '“自有服务器”支持任何兼容 OpenAI 的地址，例如 Ollama，可以选填密钥并填写模型名称。“使用 ChatGPT 登录”会把你自己的 ChatGPT 套餐分享给所有人，请先确认你的套餐允许这样做。',
+  'help.guide.ai-setup.tip.2': '选择“每个人使用自己的账号”时，不会向你收取任何费用，每日消息数限制也不适用。',
+  'help.guide.ai-setup.tip.3':
+    '“AI 解析”使用同一个连接来读取预订。在图块中打开它即可，对话框里它自己的标签页还能让它改用另一个连接。',
+  'help.guide.ai-setup.tip.4':
+    '网页搜索支持 ChatGPT、Anthropic 和 OpenRouter，使用服务商自带的搜索，搜索内容只会发送给该服务商。',
+  'help.guide.paddle-water-data.title': '为划桨路线加载水域数据',
+  'help.guide.paddle-water-data.goal': '给划桨路线提供某个区域的堰、船闸和划行规则，并决定 TREK 是否自动加载新区域。',
+  'help.guide.paddle-water-data.step.1':
+    '在“扩展”标签页中，“游览”开启时，点击“游览”下的最后一行“划桨水域数据”。旁边的数字是区域数量，或是等你处理的申请数量。',
+  'help.guide.paddle-water-data.step.2':
+    '在“自动加载区域”下选择“自动”“按申请”或“关闭”。“自动”会加载有人规划划桨路线的区域，最大不超过“自动加载的最大区域”；更大的区域会等在“已申请”下，点“加载”读取，点“拒绝”则放弃。',
+  'help.guide.paddle-water-data.step.3':
+    '在“添加区域”下，在 Geofabrik 中搜索区域，例如 Oberpfalz，然后点击旁边的“添加”。TREK 会在后台读取它；变为“就绪”后，它的行会显示对象数量、数据日期和水道的公里数。“重新读取”会刷新，“移除区域”会删除它。',
+  'help.guide.paddle-water-data.result':
+    '区域内的划桨路线会显示其中的障碍物并沿着水道走，TREK 每月会重新读取一次所有区域。',
+  'help.guide.paddle-water-data.tip.1': '发给 Geofabrik 的只有区域名称，绝不会包含任何人规划的地点。',
+  'help.guide.paddle-water-data.tip.2': '读取一个区域需要几分钟，运行期间会占用内存，整个国家则需要几 GB 的临时空间。',
+  'help.guide.paddle-water-data.tip.3':
+    '有申请在等待时，管理员会收到“划桨区域申请”提醒。在“通知”标签页的“管理员通知”下选择提醒发往哪里。',
 
   // ── Screen: trip ──────────────────────────────────────────────────────────────────────
   'help.ctx.trip.title': '旅行',
@@ -1602,9 +1696,9 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.2':
     '“计划”分为三栏：左侧是日期，中间是地图，右侧是地点。启用公路旅行扩展后，日期栏顶部有“天”和“公路旅行”开关；启用游览扩展后，地点栏顶部有“地点”和“游览”。预订和交通是计划的一部分，出现在站点处和站点之间；标签页会把它们列出来。',
   'help.ctx.trip.bullet.3':
-    '“旅行设置”是左上角旅行名称旁的标签，点击后打开旅行的设置：“成员”（成员和访客）、“分享中”（只读的公开链接和邀请链接）和“旅程日志”。',
+    '“旅行设置”是左上角旅行名称旁的标签，点击后打开旅行的设置：“成员”（成员和访客）、“分享”（只读的公开链接和邀请链接）、“旅程日志”、供旅行所有者使用的“附加组件”，以及“编辑旅行”。',
   'help.ctx.trip.bullet.4':
-    '标题、日期、封面和货币在“我的旅行”中编辑，使用旅行卡片上的铅笔图标。左上角的旅行名称会带你回到那里。',
+    '“旅行设置”中的“编辑旅行”可修改标题、描述、日期、封面和货币；“我的旅行”中旅行卡片上的铅笔图标打开的是同一个表单。左上角的旅行名称会带你回到“我的旅行”。',
   'help.ctx.trip.bullet.5':
     '栏内侧边缘的标签可以折叠该栏，地图会占用腾出的空间。折叠后，地图顶角会出现一个小图块，点击即可重新展开。拖动栏旁边的细分隔条可调整栏宽。',
   'help.ctx.trip.bullet.6': '日期工具栏中的撤销箭头可以逐步撤销你最近对计划所做的更改。',
@@ -1644,9 +1738,9 @@ const help: TranslationStrings = {
   'help.guide.public-link.goal': '把旅行展示给不该编辑它的人。',
   'help.guide.public-link.step.1': '点击旅行名称旁的“旅行设置”，在左侧选择“分享中”。',
   'help.guide.public-link.step.2':
-    '在“公开链接”卡片中，打开链接可以显示的内容。“地图与计划”始终开启，“预订”“行李”“费用”和“聊天”由你决定。',
+    '在“公开链接”卡片的“选项”下，打开链接可以显示的内容。“地图与计划”始终开启，“预订”“行李”“费用”和“聊天”由你决定。',
   'help.guide.public-link.step.3':
-    '在“选项”下，“仅交通和住宿”只会去掉活动、每日备注和空白日期，“不含照片”则去掉地点照片。',
+    '最后两个标签会改变链接显示旅行的方式：“仅交通和住宿”会去掉活动、每日备注和空白日期，“不含照片”则去掉地点照片。',
   'help.guide.public-link.result': '任何拿到链接的人无需登录就能看到你选定的部分，但不能修改任何内容。',
   'help.guide.public-link.tip.1': '这个链接不会公开列出，但任何拿到链接的人都能打开，所以要像保管密码一样保管它。',
   'help.guide.public-link.tip.2': '如果要给编辑权限，请改为把对方添加为成员。',
@@ -1681,6 +1775,27 @@ const help: TranslationStrings = {
     '撤销涵盖整个计划：添加、分配、移除、重新排序、移动和锁定地点，清空某一天，优化路线，删除地点，分类变更和导入。',
   'help.guide.undo-change.tip.2':
     '再次点击可继续往前回退：TREK 会保留你在此旅行中最近的 30 次更改，最新的在前，直到你离开该旅行。',
+  'help.guide.trip-assistant.title': '用助手规划旅行',
+  'help.guide.trip-assistant.goal': '向助手询问你的旅行，并让它把建议的内容直接加进行程。',
+  'help.guide.trip-assistant.step.1': '点击规划页右下角带有星光图标的圆形按钮。助手会在地图上方以小窗口打开。',
+  'help.guide.trip-assistant.step.2':
+    '在底部的输入框里输入你的问题，例如某一天去哪里吃晚饭，然后点击箭头发送。你也可以直接点击一个推荐问题。',
+  'help.guide.trip-assistant.step.3':
+    '助手了解你的行程。它建议的修改会先放在一张卡片里，显示将添加什么、添加到哪一天。点击“应用”采纳，或点击“放弃”保持行程不变。',
+  'help.guide.trip-assistant.step.4':
+    '想让旅行中的所有人都看到这条回答，请点击回答下方的分享图标。它的提示文字是“分享到行程聊天”。',
+  'help.guide.trip-assistant.step.5': '确认消息和即将发出的样子完全一致，包括你已应用的修改，然后点击“分享”。',
+  'help.guide.trip-assistant.result': '地点已添加到行程中对应的那一天，回答也出现在行程聊天里，并标明来自助手。',
+  'help.guide.trip-assistant.tip.1':
+    '在你点击“应用”之前不会有任何改动。应用之后，修改旁边的箭头可以在一段时间内撤销它，卡片中的“修改前”和“修改后”会显示地图改动前后的样子。',
+  'help.guide.trip-assistant.tip.2':
+    '每条回答下方，助手都会给出可以接着问的问题。在输入框中输入 @ 可以指定某一天、某个地点或某个预订，也可以把预订确认单拖到窗口上，让助手读取。',
+  'help.guide.trip-assistant.tip.3':
+    '按 Ctrl+K（Mac 上是 ⌘K）可以打开和关闭窗口。拖动标题栏可以移动窗口，拖动边缘可以调整大小。关闭窗口不会丢失对话，标题栏中的“最近的对话”可以找回之前的对话。',
+  'help.guide.trip-assistant.tip.4':
+    '标题栏里的笔记本图标是“行程备忘”，用来记录助手在这个旅行的每次建议中都要考虑的内容，例如预算或悠闲的节奏。',
+  'help.guide.trip-assistant.tip.5':
+    '只有设置好 AI 连接后才会显示这个按钮，可以由管理员为所有人设置，也可以由你在“设置”的“集成”中自己设置。你的消息和助手读取的旅行信息会发送给该服务商。',
   'help.guide.clear-day.title': '清空某一天',
   'help.guide.clear-day.goal': '一次性移除某一天的所有地点，比如想把这一天从头重新规划。',
   'help.guide.clear-day.step.1': '在计划中右键点击这一天的标题。',
@@ -1697,9 +1812,9 @@ const help: TranslationStrings = {
   'help.ctx.trip-places.bullet.2':
     '“添加地点/活动”会打开表单，用来搜索或手动输入地点。打开某一天时，按钮显示为“新地点”，旁边的“加入当天”会直接在那一天创建地点。',
   'help.ctx.trip-places.bullet.3':
-    '旁边的图标按钮“导入地点”提供“列表导入”，用于从 Google 地图或 Naver Maps 分享的列表。如果管理员关闭了游览扩展，还会提供“导入文件”，支持 .gpx、.kml 和 .kmz 文件，也可以把文件直接拖到这一栏上。',
+    '旁边的图标按钮“导入地点”提供“导入文件”（支持 .gpx、.kml 和 .kmz 文件）和“列表导入”（用于从 Google 地图或 Naver Maps 分享的列表）。也可以把文件直接拖到这一栏上。开启“游览”后，带路线或轨迹的文件会打开“游览”导入，它可以把其中的单个点作为地点导入。',
   'help.ctx.trip-places.bullet.4':
-    '下面是“搜索”（也会搜索描述和笔记），旁边是“选择”复选框。再下一行是筛选：“显示”可在“全部”“未规划”和“计划中”之间切换，每项都带有数量。标签按钮按分类筛选，星形按钮按最低评分筛选，地球图标（旅行涉及多个国家或地区时才出现）按国家或地区筛选，“排序方式”设置列表的顺序。',
+    '下面是“搜索”（也会搜索描述和笔记），旁边是“选择”复选框。再下一行是筛选：“显示”可在“全部”“未规划”和“计划中”之间切换，每项都带有数量。标签按钮按分类和旅行的标签筛选，星形按钮按最低评分筛选，地球图标（旅行涉及多个国家或地区时才出现）按国家或地区筛选，“排序方式”设置列表的顺序。',
   'help.ctx.trip-places.bullet.5':
     '每一行显示图片、名称、描述或地址，有人评分后还会显示带平均分的星星。点击它查看地点详情，把它拖到某一天，或右键点击它（也可以点“更多选项”，即它的三个点）使用“编辑”“+ 天”“打开网站”“Google 地图”“保存到收藏”和“删除”。',
   'help.ctx.trip-places.bullet.6':
@@ -1714,7 +1829,7 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.3':
     '在“地点详情”中，点击“选择图片”下的一张图片，把它设为该地点的图片。“使用此文本”会把描述复制到表单中。',
   'help.guide.create-place.step.4':
-    '检查表单中的字段。对话框顶部的名称是唯一必填项。名称下方的“分类”标签用来选择旅行中的一个分类，旁边的 + 可以新建分类。“地址”“纬度”和“经度”来自搜索，也可以手动输入。“描述”和“笔记”填你自己的文字。“网站”填链接，“文件”下的“附加”可以添加文档，“电话”“电子邮件”和“添加营业时间”用来补充搜索没有找到的信息。',
+    '检查表单中的字段。对话框顶部的名称是唯一必填项。名称下方的“分类”标签用来选择旅行中的一个分类，旁边的 + 可以新建分类。“地址”“纬度”和“经度”来自搜索，也可以手动输入。在“标签”下，点击地点应带有的标签。“关于地点”和“笔记”用来在描述和你自己的笔记之间切换文本框。“网站”填链接，“文件”下的“附加”可以添加文档，“电话”“电子邮件”和“添加营业时间”用来补充搜索没有找到的信息。',
   'help.guide.create-place.step.5':
     '点击“添加”。如果旅行中已经有同名或同一位置的地点，TREK 会显示警告，按钮也会变成“仍然添加”。',
   'help.guide.create-place.result': '地点会出现在列表和地图上，在放到某一天之前，它位于“未规划”下。',
@@ -1746,7 +1861,7 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.2':
     '在顶部的“搜索”中输入内容。列表会随着输入缩小，按名称、地址、描述和笔记匹配；点击输入框里的 x 可清空。',
   'help.guide.filter-places.step.3':
-    '“显示”旁边的标签按钮列出各个分类：勾选一个或多个，其中包括“无分类”。按钮上显示已勾选的数量，列表底部的“清除筛选”可以全部取消。',
+    '“显示”旁边的标签按钮列出各个分类（其中包括“无分类”），并在“标签”下列出旅行的标签。勾选一个或多个。按钮上显示已勾选的数量，列表底部的“清除筛选”可以全部取消。',
   'help.guide.filter-places.step.4':
     '旁边的星形按钮设置最低评分：5+、4+ 等只保留平均评分不低于该值的地点。没有评分的地点会被隐藏。',
   'help.guide.filter-places.result': '“显示”上的数字表示有多少个地点符合条件，各个筛选条件可以叠加使用。',
@@ -1760,10 +1875,10 @@ const help: TranslationStrings = {
   'help.guide.edit-place.step.1':
     '右键点击该行并选择“编辑”，或点击行末的“更多选项”，也可以打开该地点，在详情中点击“编辑”。',
   'help.guide.edit-place.step.2':
-    '在“编辑地点”中修改你需要的内容：对话框顶部的名称和“分类”标签，以及“地址”“纬度”和“经度”“描述”“笔记”“网站”“电话”“电子邮件”和营业时间。如果地点恰好安排在某一天，或你是从某一天打开它的，表单里还会有这一天的“开始”“结束”和“笔记”。',
+    '在“编辑地点”中修改你需要的内容：对话框顶部的名称和“分类”标签，“地址”“纬度”和“经度”，“标签”，“关于地点”和“笔记”下的文字，“网站”“电话”“电子邮件”和营业时间。如果地点恰好安排在某一天，或你是从某一天打开它的，表单里还会有“开始”和“结束”，以及第三个文字标签页（例如“仅第 2 天”），用来写只针对那一次到访的备注。',
   'help.guide.edit-place.step.3': '点击“更新”。',
   'help.guide.edit-place.result': '修改会应用到该地点出现的所有位置：列表、地图，以及它所在的每一天。',
-  'help.guide.edit-place.tip.1': '“当天备注”属于这个地点在那一天的安排；“备注”属于地点本身。',
+  'help.guide.edit-place.tip.1': '“仅第……天”下的备注属于这个地点在那一天的安排；“关于地点”和“笔记”属于地点本身。',
   'help.guide.edit-place.tip.2':
     '“结束”早于“开始”时无法点击“更新”；“时间冲突：”只是提醒你当天另一个停留点的时间与它相同。',
   // delete-place
@@ -1790,21 +1905,20 @@ const help: TranslationStrings = {
     '开启“收藏”扩展后，操作栏里会出现“在清单中标记为已去过”：它会把这些地点在其所属的收藏中标记为已去过。',
   // import-places-file
   'help.guide.import-places-file.title': '从 GPX、KML 或 KMZ 文件导入地点',
-  'help.guide.import-places-file.goal':
-    '如果“游览”扩展已关闭，可以把 Google 我的地图、Google 地球或 GPS 追踪器导出的图钉和路径作为地点导入。',
+  'help.guide.import-places-file.goal': '把 Google My Maps、Google 地球或 GPS 设备导出的图钉导入为旅行的地点。',
   'help.guide.import-places-file.step.1':
-    '点击“导入地点”，即添加按钮旁边的图标按钮，选择“导入文件”，或把文件拖到地点栏的任意位置。只有管理员关闭了“游览”扩展时，这两种方式才可用。',
+    '点击“导入地点”，即添加按钮旁边的图标按钮，选择“导入文件”，然后选择文件。你也可以把文件拖到地点栏的任意位置。',
   'help.guide.import-places-file.step.2':
-    '选择文件，或把它拖到框里。导入 GPX 时，勾选要导入的内容：“路点”“路线”“轨迹（含路径几何）”。导入 KML 和 KMZ 时，勾选“点（Placemarks）”和“路径（LineStrings）”。',
+    '如果文件里有路线或轨迹，会打开“游览”导入，因为开启“游览”（默认开启）时，线条会变成游览路线。“将这些点添加为地点”（默认开启）会把文件中的图钉也导入为旅行的地点。',
   'help.guide.import-places-file.step.3':
-    '这个框可以一次接收多个文件，但只接受 .gpx、.kml 和 .kmz。其他类型的文件，或超过 10 MB 的文件，会在对话框中被拒绝，不会导入。',
+    '只有图钉的文件会改为打开“导入文件”，管理员关闭了“游览”时，所有文件也都这样。导入 GPX 时，勾选要导入的内容：“路点”“路线”“轨迹（含路径几何）”。导入 KML 和 KMZ 时，勾选“点（Placemarks）”和“路径（LineStrings）”。支持最大 10 MB 的 .gpx、.kml 和 .kmz 文件。',
   'help.guide.import-places-file.step.4':
     '点击“导入”。会有消息说明导入了多少个地点。对于 KML 或 KMZ 文件，对话框会保持打开，并显示已创建和已跳过内容的摘要。',
   'help.guide.import-places-file.result':
-    '地点已在列表中。轨迹在它所在的行上带有彩色线条，会画在地图上，并有自己的“轨迹”筛选。',
+    '这些图钉成为旅行的地点，显示在列表和地图上，在你把它们放到某一天之前，位于“未规划”下。',
   'help.guide.import-places-file.tip.1':
     '文件太大会被拒绝，TREK 会显示大小上限。请去掉照片后重新导出，或者把文件拆开。',
-  'help.guide.import-places-file.tip.2': '可以在天数上方的工具栏中撤销整次导入。',
+  'help.guide.import-places-file.tip.2': '在“导入文件”中完成的导入，可以在天数上方的工具栏中撤销。',
   // import-places-list
   'help.guide.import-places-list.title': '导入共享的 Google Maps 或 Naver Maps 列表',
   'help.guide.import-places-list.goal': '通过共享列表的链接导入地点。',
@@ -1824,6 +1938,24 @@ const help: TranslationStrings = {
   'help.guide.sort-places.result': '列表会一直按你选的顺序显示地点，直到你换成别的排序。',
   'help.guide.sort-places.tip.1': '除“最近添加”以外的任何排序都会让按钮高亮，这样你一眼就能看出列表的排序方式变了。',
   'help.guide.sort-places.tip.2': '排序只改变列表。各天保持自己的顺序，浏览器会记住你选的排序方式。',
+  'help.guide.place-tags.title': '给地点加标签并按标签筛选',
+  'help.guide.place-tags.goal':
+    '给地点加上“必看”或“雨天备选”这样的额外标签，每个标签有自己的颜色，并只显示带有某个标签的地点。',
+  'help.guide.place-tags.step.1':
+    '打开地点的表单：在该行的菜单里选“编辑”，新地点则用“新建地点”。在“标签”下，旅行的每个标签都是一个小标签块。点击标签名称把它加到地点上；出现勾表示已加上。',
+  'help.guide.place-tags.step.2':
+    '要新建标签，在“新建标签”中输入名称，然后按 Enter 或点击末尾的 +。输入框开头的圆点可以先选好颜色。标签会加入旅行并自动勾选。',
+  'help.guide.place-tags.step.3':
+    '点击标签的颜色圆点可以改颜色：选一个色块，或打开“自定义颜色”选择你自己的颜色。标签颜色会立即改变，整个旅行里、对所有人都生效。',
+  'help.guide.place-tags.step.4': '点击“更新”（新地点则点“添加”），保存地点及其标签。',
+  'help.guide.place-tags.step.5':
+    '在地点栏中，“显示”旁边的标签按钮会在“标签”下、各个分类之后，列出旅行的标签。勾选其中一个，就只显示带有它的地点。',
+  'help.guide.place-tags.result': '列表和地图只显示带有所勾选标签的地点。列表底部的“清除筛选”会重新显示所有地点。',
+  'help.guide.place-tags.tip.1':
+    '标签从不改变标记：地图上它的图标和颜色仍由分类决定。一个地点只有一个分类，但可以有任意多个标签。',
+  'help.guide.place-tags.tip.2':
+    '标签属于旅行，而不是你个人。每位成员看到的标签相同，每个有权编辑旅行地点的人都可以添加标签并更改颜色。',
+  'help.guide.place-tags.tip.3': '同时勾选一个分类和一个标签时，地点必须两者都符合。勾选两个标签时，符合其中一个即可。',
   'help.guide.place-by-hand.title': '添加搜索找不到的地点',
   'help.guide.place-by-hand.goal': '地点搜索找不到时，自己输入地点，包括电话、电子邮件和营业时间。',
   'help.guide.place-by-hand.step.1':
@@ -1831,7 +1963,7 @@ const help: TranslationStrings = {
   'help.guide.place-by-hand.step.2': '点击“手动添加”。你搜索的文字会成为名称，对话框会滚动到联系方式字段。',
   'help.guide.place-by-hand.step.3': '如果知道，就填写“电话”和“电子邮件”。',
   'help.guide.place-by-hand.step.4':
-    '点击“添加营业时间”，为每一天设置开门和关门时间。复制按钮会把第一天的时间应用到每一天，某一天的开关会把它标为“已关闭”。',
+    '点击“添加营业时间”，为每一天设置开门和关门时间。复制按钮会把第一天的时间应用到每一天，每一天还有“24 小时营业”和“已关闭”各一个开关。',
   'help.guide.place-by-hand.step.5': '点击“添加”。',
   'help.guide.place-by-hand.result':
     '地点已加入列表。它的详情会显示你填写的电话、电子邮件和营业时间，和搜索到的地点一样。',
@@ -1845,7 +1977,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-days.summary':
     '计划的左栏：每天一张卡片，按顺序列出当天的停留点、备注、当天的预订和交通，以及停留点之间的路线。旅行就是在这里真正规划出来的。',
   'help.ctx.trip-days.bullet.1':
-    '顶部的标题栏：左侧是“导出”（PDF、日历、GPX）；右侧是撤销箭头、“展开所有日期”/“折叠所有日期”、“调整日期顺序”，以及在有预订带可绘制路线之后出现的“显示所有预订路线”。',
+    '顶部的标题栏：左侧是“导出”（PDF、日历、GPX、KML）；右侧是撤销箭头、“展开所有日期”/“折叠所有日期”、“调整日期顺序”，以及在有预订带可绘制路线之后出现的“显示所有预订路线”。',
   'help.ctx.trip-days.bullet.2':
     '日期卡片：带日期编号和天气预报的图块、标题（在你命名之前显示为“第 1 天”）和日期，下方是表示当晚住宿的标签（入住日为绿色，退房日为红色，未确认时为虚线；点票据图标可打开预订）以及租车的标签。点击标题打开这一天，箭头用来折叠，+（“添加到当天”）打开一个菜单：“添加地点到这一天”“添加住宿”“添加交通”“公共交通”和“添加备注”。右键点击标题可打开相同的菜单，另外还有“清空当天”。',
   'help.ctx.trip-days.bullet.3':
@@ -1862,9 +1994,9 @@ const help: TranslationStrings = {
   'help.guide.read-day-plan.step.1':
     '标题栏：带日期编号和天气预报的图块，然后是“第 1 天”或你起的标题，以及日期。下面是当晚住宿的标签（入住日为绿色，退房日为红色，未确认时为虚线，上面的票据图标可打开预订）和租车。点击标题栏可打开这一天（详情面板会在地图上方打开）。右侧的 +（“添加到当天”）可添加地点、住宿、交通、公交换乘或备注，箭头用来折叠卡片。',
   'help.guide.read-day-plan.step.2':
-    '每个站点显示图片、分类图标和名称，设置了“开始”时间后还有时间，以及描述。“当天备注”显示在它下方。鼠标移到该行上时会出现控件：左侧的手柄用来拖动，图片会变成用于路线优化的锁，右端是箭头（“上移”“下移”）、“添加预订”和三个点（“更多选项”）。',
+    '每个站点显示图片、分类图标和名称，设置了“开始”时间后还有时间，以及描述。“当天备注”显示在它下方。鼠标移到该行上时会出现控件：左侧的手柄用来拖动，右端是箭头（“上移”“下移”）、“添加预订”和三个点（“更多选项”）。把鼠标指向图片，它会变成用于路线优化的锁。',
   'help.guide.read-day-plan.step.3':
-    '站点上的预订以“预订”徽章显示，确认后为绿色，待确认时为琥珀色，并带有时间和承运方。点击徽章可打开预订，旁边的路线按钮会画出它的路线。交通有单独的一行，按类型着色，带有时间以及“出发”或“到达”。点击预订可打开详情，在详情里点“编辑”即可修改。',
+    '站点上的预订以“预订”徽章显示，确认后为绿色，待确认时为琥珀色，并带有时间和承运方。点击徽章可打开预订；预订有路线时，旁边的路线按钮会把它画在地图上。交通有单独的一行，按类型着色，带有时间以及“出发”或“到达”。点击预订可打开详情，在详情里点“编辑”即可修改。',
   'help.guide.read-day-plan.step.4':
     '开启“路线”后，两个站点之间的连接线会按当天的出行方式，显示这一段需要多久、有多远。点击它，可以只改这一段的出行方式。',
   'help.guide.read-day-plan.step.5':
@@ -1899,7 +2031,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.2': '或者使用鼠标悬停时站点右端的箭头（“上移”“下移”）：每点一次移动一步。',
   'help.guide.reorder-stops.step.3': '把停留点拖到另一天的卡片上，就能移到那一天，它会从原来那天移除。',
   'help.guide.reorder-stops.step.4':
-    '如果某个站点固定了时间，而移动会打乱当天的顺序，TREK 会询问“移除时间？”，因为时间决定了该站点的位置。点“确认”会去掉时间，站点就可以放到任何位置；点“取消”则保持当天原样。',
+    '如果某个站点固定了时间，而移动会打乱当天的顺序，TREK 会询问“移除时间？”，因为时间决定了该站点的位置。点“移除时间并移动”会去掉时间，并把站点放到你放下的位置；点“取消”则保持当天原样。',
   'help.guide.reorder-stops.result': '路线和行程时间会立即按新的顺序更新。',
   'help.guide.reorder-stops.tip.1':
     '固定了时间的预订会停在由其时间决定的位置，把它放到当天的其他位置，它会弹回原处。把它拖到另一天的卡片上，则会移到那一天。',
@@ -1909,15 +2041,16 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.title': '给停留点设置时间',
   'help.guide.set-stop-times.goal': '设定停留点的开始和结束时间，让这一天像一份时间表。',
   'help.guide.set-stop-times.step.1':
-    '右键点击停靠点，或点击它的三个点，然后选择“编辑”。从当天打开表单时，位置下方就是这一天的“开始”和“结束”。',
+    '右键点击停靠点，或点击它的三个点，然后选择“编辑”。从当天打开表单时，在位置和标签下方就是这一天的“开始”和“结束”。',
   'help.guide.set-stop-times.step.2':
     '填写“开始”，需要的话再填写“结束”。“时间冲突：”会提示当天另一个有时间的停靠点与它重叠。“结束”早于“开始”时，无法点击“更新”。',
   'help.guide.set-stop-times.step.3': '点击“更新”。停靠点会显示时间标签，并按时间移到当天的正确位置。',
   'help.guide.set-stop-times.result': '设了时间的停留点保持原来的位置，没设时间的停留点围绕它们排序。',
   'help.guide.set-stop-times.tip.1': '时间属于这一天的这个停留点；同一个地点在另一天可以设不同的时间。',
   'help.guide.set-stop-times.tip.2':
-    '要手动移动有时间的停留点，直接拖动它。TREK 会询问“移除时间？”，点击“确认”后时间就会被移除。',
-  'help.guide.set-stop-times.tip.3': '同一个表单里的“当天备注”适合记录只与这一天有关的信息，比如订位或票号。',
+    '要手动移动有时间的停留点，直接拖动它。TREK 会询问“移除时间？”，点击“移除时间并移动”会去掉时间并移动它。',
+  'help.guide.set-stop-times.tip.3':
+    '同一个表单里，“关于地点”和“笔记”旁边的“仅第 N 天”标签页，适合记录只与这一天有关的备注，比如订位或票号。',
   // remove-from-day
   'help.guide.remove-from-day.title': '把停靠点从某一天移除',
   'help.guide.remove-from-day.goal': '把地点从某一天移除，但不从旅行中删除。',
@@ -1932,7 +2065,7 @@ const help: TranslationStrings = {
   'help.guide.lock-stop.goal': '优化路线时，让某个停靠点保持在原来的位置。',
   'help.guide.lock-stop.step.1': '把鼠标移到停靠点的图片上，点击锁图标：“路线优化时保持位置”。',
   'help.guide.lock-stop.step.2': '“优化”会围绕它来排列其他停靠点。再次点击锁图标（“点击解锁”）即可解锁。',
-  'help.guide.lock-stop.result': '图片上会显示锁图标；在你解锁之前，这个停留点会一直保持原来的位置。',
+  'help.guide.lock-stop.result': '图片上会保留锁图标，这一行带有底色；在你解锁之前，这个停留点会一直保持原来的位置。',
   'help.guide.lock-stop.tip.1': '固定了时间的停留点由时间锁定，优化时绝不会移动。',
   'help.guide.lock-stop.tip.2':
     '锁定只在刷新页面前有效。刷新后，所有停留点都会恢复未锁定，只有设了时间的停留点保持固定。',
@@ -1969,7 +2102,7 @@ const help: TranslationStrings = {
   'help.guide.manage-days.title': '添加、调整顺序和重命名日期',
   'help.guide.manage-days.goal': '调整日期本身，而不只是日期里的地点。',
   'help.guide.manage-days.step.1':
-    '日期由旅行的日期决定。在仪表盘上打开旅行的编辑表单修改日期，开头或结尾的日期会相应增加或减少。删除有内容的日期之前，会先列出哪些日期将被删除以及其中有什么。',
+    '日期由旅行的日期决定。用计划页顶部的“旅行设置”，在“编辑旅行”下修改日期（或用仪表盘上旅行卡片的铅笔图标），开头或结尾的日期会相应增加或减少。删除有内容的日期之前，会先列出哪些日期将被删除以及其中有什么。',
   'help.guide.manage-days.step.2':
     '标题栏中的“调整日期顺序”会打开一个列表：拖动手柄移动某一天，或使用“上移”和“下移”，这一天会连同地点、备注和预订一起移动。列表下方，“添加下一个日期”会在最后一个有日期的日子之后添加一天，并把旅行延长一天；“无日期”会在末尾添加一个没有日期的日子。没有日期的旅行只有“添加一天”。',
   'help.guide.manage-days.step.3':
@@ -1986,7 +2119,7 @@ const help: TranslationStrings = {
   'help.guide.bookings-in-plan.title': '在计划中查看预订和交通',
   'help.guide.bookings-in-plan.goal': '了解预订创建后会显示在哪里，以及从哪个界面创建。',
   'help.guide.bookings-in-plan.step.1':
-    '交通（航班、火车、渡轮、巴士、汽车）显示为一行，按类型着色，带有时间，在出发当天标“出发”，在抵达当天标“到达”。旁边的地球图标标明时区，有中转的航班每一段一行。公共交通换乘可点击箭头展开线路。点击一行会打开预订，在那里点击“编辑”即可修改。',
+    '交通（航班、火车、渡轮、巴士、汽车）显示为一行，按类型着色，带有时间，在出发当天标“出发”，在抵达当天标“到达”。预订有时区时，时间旁边的地球图标在悬停时会显示时区名称，有中转的航班每一段一行。航班在途中且开启了实时航班状态时，它下方会有一行说明进展，包括延误。公共交通换乘可点击箭头展开线路。点击一行会打开预订，在那里点击“编辑”即可修改。',
   'help.guide.bookings-in-plan.step.2':
     '关联到某个停靠点的预订（餐厅、旅游团）会在该停靠点上显示为“预订”标签，并带有时间。已确认时标签为绿色，待确认时为琥珀色。有日期但没有关联停靠点的预订，会在当天单独占一行。',
   'help.guide.bookings-in-plan.step.3':
@@ -2002,14 +2135,16 @@ const help: TranslationStrings = {
     '把带时间的预订放到当天的其他位置，它会回到由其时间决定的位置。把它拖到另一天的卡片上，则会移到那一天。想改时间，请编辑这条预订。',
   // export-plan
   'help.guide.export-plan.title': '导出计划',
-  'help.guide.export-plan.goal': '把计划导出为文档，导出到日历，或导出到 GPS 设备。',
+  'help.guide.export-plan.goal': '把计划导出为文档、日历、GPS 设备或 Google My Maps。',
   'help.guide.export-plan.step.1': '点击日期上方标题栏左侧的“导出”。',
   'help.guide.export-plan.step.2':
-    '“文档：PDF”会打开每一天的打印视图，包含站点、备注和预订，开头是路线总览地图。“我的计划 PDF”只保留你参与的内容。在视图中，“每天分页”让每一天从新的一页开始，“交通备注”会加入你的交通备注，点击“保存为 PDF”即可下载。',
+    '“文档：PDF”会打开旅行的文档预览：封面、带路线地图的概览、每一天和所有预订，然后是每一天的站点、备注和预订。“我的计划 PDF”只保留你参与的内容。预览上方的开关选择包含的内容：“每天分页”“大字体”“概览”“照片”“坐标”“联系方式和营业时间”，以及你的交通带有备注时的“交通备注”。点击“保存为 PDF”即可下载。',
   'help.guide.export-plan.step.3':
     '“日历”：“下载 .ics”把预订保存为日历文件；“订阅日历”给出一个链接，日历应用会自动刷新它。',
   'help.guide.export-plan.step.4':
     '“地图与 GPS (GPX)”：“整趟行程”导出地点、每日路线和轨迹，“仅地点”只导出图钉，“按天生成路线”每天生成一条路线，适合离线地图和 GPS 设备。',
+  'help.guide.export-plan.step.5':
+    'Google 地图 (KML)：“用于 Google My Maps 的地点”会把旅行的地点保存为 KML 文件。在 My Maps 中把它作为图层导入，就能在你自己的 Google 地图上看到这些地点。',
   'help.guide.export-plan.result': '文件会被下载，旅行里的内容不会有任何变化。',
   'help.guide.export-plan.tip.1':
     '想在地图应用中打开单独某一天，可以使用它的路线栏：“在 Google Maps 中打开”或“在 CoMaps 中打开”。',
@@ -2023,13 +2158,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.1':
     '点击地点栏中的一行、某一天里的站点，或地图上的标记，卡片就会在地图上方打开。从某一天里打开时，卡片知道你指的是哪个站点，还会显示该站点的参与者和预订。路线（在“游览”标签页中创建的徒步、骑行或漫步）则会打开它自己的路线卡片。',
   'help.ctx.trip-place.bullet.2':
-    '顶部显示圆形图片、名称、单行地址，以及已知信息的标签：营业中或已关门、分类、时间、价格、电话、电子邮件和坐标。点击图片可换成你自己的图片或地点文件中的照片，双击名称可直接重命名，右侧的 X 用来关闭卡片。图片、重命名、“编辑”和“删除”只对有权修改地点的旅伴显示。',
+    '顶部显示圆形图片、名称、单行地址，以及已知信息的标签：营业中或已关门、分类和地点的标签、时间、价格、电话、电子邮件和坐标。有地址但没有坐标的地点，会改为显示“没有坐标，因此不在地图上”。点击图片可查看地点的照片，双击名称可重命名地点。右侧的箭头把卡片折叠成细长的栏，X 用来关闭卡片。重命名、“编辑”和“删除”只对有权修改地点的旅伴可用。',
   'help.ctx.trip-place.bullet.3':
     '再往下是：所有出行人给这个地点的评分、描述和备注，以及停靠点带有备注时显示的“当天备注”。',
   'help.ctx.trip-place.bullet.4':
     '接下来是“营业时间”“轨迹颜色”“轨迹数据”和“文件”，视情况显示。“文件”标题中的“上传”用来从你的电脑添加文件，列表里还会显示固定在此站点上的文件和它所属预订的文件，包括酒店的确认单。插件可以在下方添加自己的行。',
   'help.ctx.trip-place.bullet.5':
-    '底部一行：打开某一天时显示“添加到当天”或“从当天移除”，然后是“导航”（在“设置”中选好地图应用后，显示该应用的名称）、“打开网站”和“保存到收藏”。右侧，红色垃圾桶用来删除地点，“编辑”则打开它的表单。',
+    '底部一行：打开某一天且地点尚不在其中时显示“添加到当天”，然后是“导航”（在“设置”中选好地图应用后，显示该应用的名称），以及两个图标“打开网站”和“保存到收藏”。右侧，三个点里有“从当天移除”和“删除”，“编辑”会打开地点的表单，你也可以在那里更换图片。',
   'help.ctx.trip-place.bullet.6':
     '从搜索结果中选的地点会显示 TREK 索引或 OpenStreetMap 已知的信息：顶部标签中的“营业中”或“已关闭”，图片周围有绿色或红色圆环，依据地点当地时间判断；电话号码，同样是标签；更下方的“营业时间”，行内显示今天的时间，点击后展开整周；还有“打开网站”下的网站。Google 的评分只会出现在通过 Google 找到的地点上，且需要 TREK 配置了 Google 密钥。你自己在地点表单里填的营业时间、电话和电子邮件会取代查到的内容，也决定圆环的颜色。',
   // read-place
@@ -2038,7 +2173,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.step.1':
     '在天数栏中点击你想查看的停留点。卡片会在地图上方打开，该停留点在它所在的那一天里保持高亮。',
   'help.guide.read-place.step.2':
-    '顶部：圆形图片、名称和地址排在一行，悬停提示里是完整地址。下方的标签按地点当地时间显示现在是“营业中”还是“已关闭”，图片周围有对应的绿色或红色圆环。标签还显示分类、时间、电话和电子邮件（点击会交给手机或邮件应用打开），在宽屏上还有精确坐标。右侧的 X 用来关闭卡片。',
+    '顶部：圆形图片、名称和地址排在一行，悬停提示里是完整地址。下方的标签按地点当地时间显示现在是“营业中”还是“已关闭”，图片周围有对应的绿色或红色圆环。标签还显示分类和地点的标签、时间、电话和电子邮件（点击会交给手机或邮件应用打开），在宽屏上还有精确坐标。点击图片可查看地点的照片。右侧的箭头用来折叠卡片，X 用来关闭卡片。',
   'help.guide.read-place.step.3':
     '头部下方的第一部分是“评分”：显示每位旅行者给这个地点打的星，以及平均分和投票人数。还没有人投票时显示“暂无评分”。',
   'help.guide.read-place.step.4':
@@ -2054,6 +2189,17 @@ const help: TranslationStrings = {
     '如果你有权修改地点，双击名称即可直接重命名，无需打开表单。按回车保存，按 Esc 放弃更改。',
   'help.guide.read-place.tip.3':
     '手动输入的地点只有表单中填写的信息。点击“编辑”，自己填写“电话”“电子邮件”和营业时间，或者在“搜索地点…”下的建议中选中该地点，再点击“更新”来自动查询。Google 评分需要 Google 密钥。',
+  'help.guide.fold-place-card.title': '把卡片收起来',
+  'help.guide.fold-place-card.goal': '在查看周围地图时，保持地点处于选中状态。',
+  'help.guide.fold-place-card.step.1': '打开一个地点，点击卡片右上角、X 旁边的箭头。它的提示文字是“折叠”。',
+  'help.guide.fold-place-card.step.2':
+    '卡片现在变成一条细长的栏，只有图片和名称。地点仍处于选中状态，它的标记也保持高亮，所以你可以围绕它移动和缩放地图。',
+  'help.guide.fold-place-card.step.3': '再点一次箭头（此时是“展开”），整张卡片重新打开。X 则会关闭卡片并取消选中地点。',
+  'help.guide.fold-place-card.result': '选中的地点周围仍能看到地图，整张卡片只需点一下就能再展开。',
+  'help.guide.fold-place-card.tip.1': '选另一个地点，它的卡片会完整打开。只有你折叠过的那个地点保持折叠。',
+  'help.guide.fold-place-card.tip.2':
+    '折叠不等于关闭：地点仍处于选中状态，而且你从某一天打开的停靠点，在那一天里仍然保持标记。',
+  'help.guide.fold-place-card.tip.3': '折叠后的栏仍在卡片原来的位置，即地图底部、两侧栏之间。',
   // rate-place
   'help.guide.rate-place.title': '给地点评分',
   'help.guide.rate-place.goal': '给地点打上你自己的星，并查看其他人给它的评分。',
@@ -2071,29 +2217,32 @@ const help: TranslationStrings = {
   // place-image
   'help.guide.place-image.title': '给地点换上你自己的图片',
   'help.guide.place-image.goal': '用你自己的照片替换自动生成的缩略图。',
-  'help.guide.place-image.step.1': '从地点栏打开这个地点。',
+  'help.guide.place-image.step.1': '打开地点，点击卡片右下角的“编辑”。地点的表单随即打开。',
   'help.guide.place-image.step.2':
-    '把鼠标停在标题中的圆形图片上，会出现一个相机图标，提示文字是“上传图片”。点击它并选择文件。如果地点的文件中已有照片，TREK 会先让你选择：“从设备上传”，或“从附件中选择”下的某张图片。',
-  'help.guide.place-image.step.3': '卡片顶部现在显示你的图片，一角带有一个红色小 X。',
-  'help.guide.place-image.step.4': '同一张图片也会显示在地点栏里该地点的那一行，以及它在地图上的标记上。',
+    '左侧详情顶部的“选择图片”显示这个地点可以使用的图片。点击第一个图块“上传图片”，然后从你的电脑选择文件。',
+  'help.guide.place-image.step.3':
+    '图块现在显示你的图片，带有圆环和勾，图块下方的一行显示“你的图片”。目前还没有保存任何内容。',
+  'help.guide.place-image.step.4': '点击“更新”。卡片顶部会显示你的图片，地点栏里该地点的那一行也会显示。',
   'help.guide.place-image.result':
     '你的图片会在所有地方作为这个地点的图片使用：卡片、地点栏、当天的停留点、地图上的标记，以及共享的旅行。',
   'help.guide.place-image.tip.1': '支持 JPG、PNG、GIF 和 WebP，iPhone 的 HEIC 图片在上传时会自动转换。',
-  'help.guide.place-image.tip.2': '点击角上的 X 会移除你的图片，恢复显示自动匹配的图片。地点本身不受影响。',
+  'help.guide.place-image.tip.2':
+    '图块下方一行末尾的“移除图片”，在你点击“更新”后会让地点没有图片。点击“取消”则保留原来的图片。',
   'help.guide.place-image.tip.3':
-    '如果你没有添加图片，TREK 会根据地点的坐标查找一张，找不到时显示分类的图标。只有有权修改地点的旅伴才能设置图片。',
+    '其他图块是地点当前的图片、附加在它上面的照片，以及 TREK 为它找到的图片，每张都带有署名。只有有权修改地点的旅伴才能更换图片。',
   // place-day-assign
   'help.guide.place-day-assign.title': '把地点加到当前打开的那一天，或将其移除',
   'help.guide.place-day-assign.goal': '直接用卡片上的按钮操作，不用把行拖过整个规划器。',
   'help.guide.place-day-assign.step.1': '在天数栏中点击某一天的标题。这一天就成为当前展开的那天，卡片的操作都针对它。',
   'help.guide.place-day-assign.step.2':
     '在地点栏里点击一个不在那一天的地点。它的卡片会打开，底部那一行提供“添加到当天”。',
-  'help.guide.place-day-assign.step.3': '点击“添加到当天”。停留点会加到那一天的末尾，按钮变成“从当天移除”。',
+  'help.guide.place-day-assign.step.3':
+    '点击“添加到当天”。停留点会加到那一天的末尾，按钮会从这一行消失，因为地点现在已经在那一天了。',
   'help.guide.place-day-assign.step.4': '停留点现在已在这一天里，排在列表末尾。把它向上拖到合适的位置。',
-  'help.guide.place-day-assign.step.5': '“从当天移除”会把该停靠点再次从当天移除，卡片上又会显示“添加到当天”。',
+  'help.guide.place-day-assign.step.5': '要再次取下，点击该行右侧的三个点，选择“从当天移除”。“添加到当天”会重新出现。',
   'help.guide.place-day-assign.result': '停靠点会被加入当天或从当天移除，地点本身不受影响。',
   'help.guide.place-day-assign.tip.1':
-    '这个按钮只有在打开了某一天时才会出现。没有打开任何一天时，就没有可以添加地点的日期。',
+    '“添加到当天”只有在打开了某一天、且地点尚不在其中时才会出现。没有打开任何一天时，就没有可以添加地点的日期。',
   'help.guide.place-day-assign.tip.2':
     '如果把停留点从某一天移除，地点仍然留在旅行和地点栏里。“删除”才会把它从所有位置移除。',
   'help.guide.place-day-assign.tip.3':
@@ -2152,7 +2301,7 @@ const help: TranslationStrings = {
     '列表中是适合该地点的地图应用：Google 地图、Waze、Apple 地图、OpenStreetMap 和 CoMaps，在 Android 上还有“其他地图应用”。',
   'help.guide.place-navigation.step.3':
     '点击你常用的那个。只要可行，TREK 会把地点本身而不只是坐标交给该应用，这样你就能直接到达正确的入口。',
-  'help.guide.place-navigation.step.4': '旁边的“打开网站”会在新标签页中打开地点自己的网站，那里有营业时间和门票。',
+  'help.guide.place-navigation.step.4': '旁边的图标“打开网站”会在新标签页中打开地点自己的网站，那里有营业时间和门票。',
   'help.guide.place-navigation.result':
     '地图应用会定位到该地点，网站在新标签页中打开，旅行中的内容不会有任何改变。如果 TREK 已安装为应用，则由地图应用打开，而不是新标签页。',
   'help.guide.place-navigation.tip.1': 'Waze 会立即开始导航。其他应用只会打开这个地点，需要你再点一下才会开始导航。',
@@ -2163,13 +2312,13 @@ const help: TranslationStrings = {
   // place-to-collection
   'help.guide.place-to-collection.title': '把地点保存到你的某个列表',
   'help.guide.place-to-collection.goal': '把这次旅行中发现的地点保存下来，留给下一次旅行。',
-  'help.guide.place-to-collection.step.1': '打开该地点，点击卡片底部一行中的“保存到收藏”。',
+  'help.guide.place-to-collection.step.1': '打开该地点，点击卡片底部一行中的“保存到收藏”，即书签图标。',
   'help.guide.place-to-collection.step.2':
     '“保存到列表”会显示你拥有或共享的所有列表。右侧实心的书签标出已包含该地点的列表。',
   'help.guide.place-to-collection.step.3': '点击目标列表，地点会立即添加进去。',
-  'help.guide.place-to-collection.step.4': '点击 X 关闭对话框，卡片中的按钮会显示“已保存”。',
+  'help.guide.place-to-collection.step.4': '点击 X 关闭对话框。卡片中的书签现在是实心的，提示文字是“已保存”。',
   'help.guide.place-to-collection.result': '地点连同图片、备注和地址都已存入你的列表，可以留着下次旅行用。',
-  'help.guide.place-to-collection.tip.1': '只有开启了“收藏”扩展，才会有这个按钮；扩展由管理员在“扩展”中开启。',
+  'help.guide.place-to-collection.tip.1': '只有开启了“收藏”扩展，才会有这个书签；扩展由管理员在“扩展”中开启。',
   'help.guide.place-to-collection.tip.2':
     '一个地点可以同时在多个列表中，在每个列表里有不同的状态：在一个里是想法，在另一个里是已去过。',
   'help.guide.place-to-collection.tip.3':
@@ -2191,7 +2340,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.tip.3': '导入时，每条轨迹都会分配到各自的颜色，所以两段步行路线不会用同一种颜色。',
   // read-place
   'help.guide.read-place.step.7':
-    '底部一行是你可以在这里执行的操作：把地点放到当前打开的那一天或从中取下，在地图应用或它的网站上打开，保存到列表；右侧是删除（红色垃圾桶）或编辑。',
+    '底部一行是你可以在这里执行的操作：“添加到当天”会把地点放到当前打开的那一天，“导航”在地图应用中打开它，两个图标分别打开它的网站和把它保存到列表。右侧，三个点里有“从当天移除”和“删除”，“编辑”会打开地点的表单。',
 
   // ── Screen: trip-files ────────────────────────────────────────────────────────────────
   'help.ctx.trip-files.title': '文件',
@@ -2241,6 +2390,8 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.2':
     '再点一次已勾选的条目，就会取消这个关联，文件本身保留。离线时，笔记和新的勾选会先保存，TREK 重新联网后再发送；只有取消另一种关联才需要联网。',
   'help.guide.files-link.tip.3': '反过来也一样：附在某个地点或预订上的文档也会出现在这个列表中，行上带有同样的徽章。',
+  'help.guide.files-link.tip.4':
+    '如果旅行的所有者为这次旅行关闭了“文档”（“旅行设置”，“附加组件”），“文件”标签页会消失，但关联到预订、地点或支出的文档会继续留在它们那里，并且仍然可以打开。重新开启后，标签页会再次显示所有文件。',
   // files-star
   'help.guide.files-star.title': '把重要的文档放在最上面',
   'help.guide.files-star.goal': '标出真正会用到的那几份文档，这样在很长的列表里也能很快找到。',
@@ -2365,7 +2516,8 @@ const help: TranslationStrings = {
   'help.guide.day-weather.step.1':
     '“天气预报地点”表示这些数据对应哪个地点：当天的第一个停留点；如果当天没有停留点，则是你前一晚住的酒店。',
   'help.guide.day-weather.step.2': '大号数字是这一天的气温，旁边是最低和最高气温，以及用文字描述的天气状况。',
-  'help.guide.day-weather.step.3': '它右边的小标签依次是：降水概率、降水量、最大风力，以及日出和日落时间。',
+  'help.guide.day-weather.step.3':
+    '它右边的小标签依次是：有预报时的降水概率和降水量，然后是最大风力，以及日出和日落时间。把鼠标悬停在标签上，可以看到它代表什么。',
   'help.guide.day-weather.step.4':
     '最下方是当天的逐小时预报，每两小时一格：时间、图标、气温和降水概率。降水概率超过 50% 的时段会显示为蓝色。',
   'help.guide.day-weather.result':
@@ -2387,6 +2539,8 @@ const help: TranslationStrings = {
   'help.guide.rename-day.result': '新名称会取代面板中和天数栏卡片上的“第 5 天”，日期保持不变。',
   'help.guide.rename-day.tip.1': '如果清空输入框再保存，这一天就会重新叫“第 5 天”：没有名称时，显示的是序号。',
   'help.guide.rename-day.tip.2': '名称属于这一天，而不是这个日期。重新排列日期后，名称会和这一天的其他内容一起移动。',
+  'help.guide.rename-day.tip.3':
+    '在“设置”的“显示”中开启“每日标题中日期在前”后，日期是大号的那一行，名称在它下面。此时铅笔图标在第二行的名称旁边。',
   // add-accommodation
   'help.guide.add-accommodation.title': '为某一天预订住宿',
   'help.guide.add-accommodation.goal': '把酒店一次性加入计划，包括入住的天数、时间和确认号。',
@@ -2399,7 +2553,7 @@ const help: TranslationStrings = {
   'help.guide.add-accommodation.step.5': '在“选择住宿”下选择住处。列表上方的“分类”可以把范围缩小到一个分类。',
   'help.guide.add-accommodation.step.6': '点击“保存”。',
   'help.guide.add-accommodation.result':
-    '住宿会显示在它覆盖的每一天，第一天标“入住”，最后一天标“退房”。该住处会成为入住日的一个站点，因此地图上会显示前往那里的路线，“预订”标签页中也会出现一条酒店预订。',
+    '住宿会显示在它覆盖的每一天，第一天标“入住”，最后一天标“退房”，“日期”栏里这些日子的标题会写出酒店名称。当天地图上的路线通往该住处，“预订”标签页中也会出现一条酒店预订。',
   'help.guide.add-accommodation.tip.1':
     '选择器会以你进入时的那一天作为入住日，退房日是次日；保存之前，两者都可以修改。',
   'help.guide.add-accommodation.tip.2':
@@ -2458,7 +2612,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-map.bullet.4':
     '在日期栏中打开某一天后，该天的站点上会显示一个白色小徽章，标出它们在当天的编号；在当天出现两次的地点会显示两个编号。地点列表上方的筛选（“显示”、各分类以及用于设置最低评分的星形）同样会筛选地图上的图钉。',
   'help.ctx.trip-map.bullet.5':
-    '顶部的一排图标用来搜索你当前能看到的这部分地图：餐厅、咖啡馆、酒吧与夜生活、住宿、景点、博物馆与文化、自然与公园和活动。插件添加的分类排在细分隔线之后。这一排比地图宽时，可以用鼠标滚轮横向滚动。移动地图后，点击“搜索此区域”会重新搜索。',
+    '顶部的一排图标用来搜索你当前能看到的这部分地图：餐厅、咖啡馆、酒吧与夜生活、住宿、景点、博物馆与文化、自然与公园、活动、面包店和杂货店。插件添加的分类排在细分隔线之后。这一排比地图宽时，可以用鼠标滚轮横向滚动。移动地图后，点击“搜索此区域”会重新搜索。',
   'help.ctx.trip-map.bullet.6':
     '在地图上任意位置右键点击，会在该处打开地点表单，并已查好地址。左下角有两个圆形按钮：锁即“锁定地图视图”，在你逐日、逐个地点点击浏览时让地图视图保持不动。下面的“切换到卫星视图”则把绘制的地图换成卫星影像。',
   'help.ctx.trip-map.bullet.7':
@@ -2473,7 +2627,7 @@ const help: TranslationStrings = {
   'help.guide.map-markers.step.2':
     '如果地点有自己的照片，图钉就显示照片，否则显示分类颜色和分类图标。预订仍“待确认”的住宿会淡化显示，并带虚线圆环。鼠标移到图钉上，旁边会展开一张卡片：同一张照片（更大）、名称和地址，如果地点有评分和分类，也会一并显示。',
   'help.guide.map-markers.step.3':
-    '点击图钉，地点会在地图底部上方的卡片中打开：顶部是图片、名称和地址，然后是星级、描述和文件（包括它的预订的文件）。底部是可用的操作：打开某一天时有“添加到当天”（地点已在当天则是“从当天移除”）、“导航”、“打开网站”、“保存到收藏”（已在收藏里则显示“已保存”），右侧是垃圾桶和“编辑”。点击顶部的 X，或点地图的空白处，即可关闭。',
+    '点击图钉，地点会在地图底部上方的卡片中打开：顶部是图片、名称、地址和分类，然后是星级、描述、备注、参与者和文件（包括它的预订的文件）。底部是可用的操作：打开某一天且地点尚不在其中时有“添加到当天”、“导航”、地点有网站时的网站图标，以及书签“保存到收藏”（已在收藏里则显示“已保存”）。右侧，“更多选项”里有“从当天移除”和“删除”，“编辑”会打开地点表单。顶部的箭头把卡片折叠为只剩标题；点击 X，或点地图的空白处，即可关闭。',
   'help.guide.map-markers.step.4':
     '在天数栏中打开某一天，这一天的停靠点就会带上编号：图钉角上的白色小徽章表示该停靠点在当天的顺序。如果同一个地点在当天出现了两次，会同时显示两个编号。没有打开任何一天时不显示编号，图钉角上会改为显示地点的评分（如果有的话）。',
   'help.guide.map-markers.step.5':
@@ -2489,7 +2643,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.title': '在地图上查找周边地点',
   'help.guide.map-nearby-places.goal': '在地图当前显示的这片区域里搜索餐厅、景点或酒店，并把其中一个加入旅行。',
   'help.guide.map-nearby-places.step.1':
-    '地图顶部的一排图标是分类搜索：餐厅、咖啡馆、酒吧与夜生活、住宿、景点、博物馆与文化、自然与公园和活动。插件添加的分类排在细分隔线之后，把鼠标悬停在图标上可查看名称。',
+    '地图顶部的一排图标是分类搜索：餐厅、咖啡馆、酒吧与夜生活、住宿、景点、博物馆与文化、自然与公园、活动、面包店和杂货店。插件添加的分类排在细分隔线之后，把鼠标悬停在图标上可查看名称。',
   'help.guide.map-nearby-places.step.2':
     '点击一个分类。TREK 会在地图当前可见的范围内搜索这类地点，并为每个结果放一枚该分类颜色的图钉。一次只能选一个分类：点击另一个会替换当前的，再次点击已选中的则会关闭。',
   'help.guide.map-nearby-places.step.3':
@@ -2497,7 +2651,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.4':
     '把鼠标停在图钉上，可以看到搜索结果的名称。点击图钉，会打开地点表单并已填好信息：对话框顶部的名称、“地址”、“纬度”和“经度”，以及搜索到的网站和电话。',
   'help.guide.map-nearby-places.step.5':
-    '核对它填好的内容，再补充搜索无法得知的信息。如果旅行里有匹配的分类（例如餐厅对应餐厅），名称下的分类标签已经设好，否则显示“无分类”，直到你选一个。然后加上你自己的“描述”和笔记。',
+    '核对它填好的内容，再补充搜索无法得知的信息。如果旅行里有匹配的分类（例如餐厅对应餐厅），名称下的分类标签已经设好，否则显示“无分类”，直到你选一个。在“关于地点”下写下这个地点是什么，在“笔记”下写下你自己的笔记。',
   'help.guide.map-nearby-places.step.6':
     '点击“添加”。如果旅行中已经有同名或位于同一位置的地点，TREK 会提示你，按钮也会变成“仍然添加”。',
   'help.guide.map-nearby-places.result':
@@ -2515,7 +2669,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.2':
     '“纬度”和“经度”已经设为该位置。TREK 会查询这组坐标，并用查到的内容填写“地址”。如果查到了名称，也会填入对话框顶部的名称。目前还没有保存任何内容，所以有不对的地方可以直接修改。',
   'help.guide.map-add-place.step.3':
-    '在对话框顶部的输入框里输入一个你能认出的名称。再从下方的标签里选一个分类，选择前它显示“无分类”。然后补充计划需要的其他信息：“描述”“备注”“网站”。',
+    '在对话框顶部的输入框里输入一个你能认出的名称。再从下方的标签里选一个分类，选择前它显示“无分类”。然后补充计划需要的其他信息：“关于地点”“笔记”“网站”。',
   'help.guide.map-add-place.step.4':
     '点击“添加”。即使当前展开了某一天，这个地点也会作为未规划的地点加入列表：在地图上右键点击确定的是位置，而不是日期。',
   'help.guide.map-add-place.result': '这个地点会出现在列表和地图上，在你把它排到某一天之前，它位于“未规划”下。',
@@ -2549,7 +2703,7 @@ const help: TranslationStrings = {
   'help.guide.map-whole-trip.tip.1':
     '总数是分几段陆续算出来的。数字后面显示 … 时，它还只是部分合计；每一段都算完后才是最终结果。',
   'help.guide.map-whole-trip.tip.2':
-    '如果路线服务无法计算某一段，这一段会保持为直线，也不计入距离。卡片会告诉你这一点，这样总数偏低时不会没有提示。',
+    '如果路线服务无法计算某一段，这一段会保持为直线，也不计入距离。卡片会告诉你这一点，距离此时显示为“至少”，这样总数偏低时不会没有提示。',
   'help.guide.map-whole-trip.tip.3':
     '如果某一天已定位的停留点不足两个，也没有往返酒店的驾车路程，就没有路线可画，所以卡片里完全不会出现这一天。',
   // map-booking-routes
@@ -2560,7 +2714,7 @@ const help: TranslationStrings = {
   'help.guide.map-booking-routes.step.2':
     '点击它，预订就会显示在地图上：航班画成大圆弧，自驾沿着真实道路，火车则连成各个车站组成的线。“已确认”画实线，“待确认”画虚线，路线两端是带交通方式图标的蓝色胶囊标记。',
   'help.guide.map-booking-routes.step.3':
-    '点击路线一端的标签，预订详情随即打开：状态、类型和日期以标签形式显示在彩色标题栏中，下面是两端的时间和其他信息，底部有再次关闭此路线的“在地图上”、公共交通换乘上的“更改路线”、用于删除预订的垃圾桶，以及“编辑”。标题栏中的 X 用来关闭详情。',
+    '点击路线一端的标签，预订详情随即打开：状态、类型、日期和预订码作为标签显示在彩色标题栏中，下面是两端的时间和其他信息，底部有再次关闭此路线的“地图”、公共交通换乘上的“更改路线”、用于删除预订的垃圾桶，以及“编辑”。标题栏中的 X 用来关闭详情。',
   'help.guide.map-booking-routes.step.4':
     '天数栏上方工具栏里的路线图标可以一次操作整个旅行：“显示所有预订路线”会画出所有带路线的预订。',
   'help.guide.map-booking-routes.step.5':
@@ -2652,7 +2806,7 @@ const help: TranslationStrings = {
   'help.guide.shared-links.tip.1':
     '只接受 http 或 https 地址，其他的都会被拒绝，对话框保持打开，你输入的内容也不会丢失。',
   'help.guide.shared-links.tip.2':
-    '固定的链接排在最前面，然后是最新的。标题旁边的小图标是网站自己的图标，直接从该网站加载，所以没有网络时，标签会显示一个普通的链接图标。',
+    '固定的链接排在最前面，然后是最新的。标题旁边的小图标是网站自己的图标，直接从该网站加载。加载完成之前，或网站没有图标时，标签会显示一个普通的链接图标。',
   'help.guide.shared-links.tip.3':
     '“链接”在“扩展”中有自己的开关，位于“协作”下方，所以管理员可以关闭这个面板，而不影响标签页的其余部分。',
   // create-poll
@@ -2679,14 +2833,15 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.goal': '投票、查看大家的结果，并可以修改自己的投票。',
   'help.guide.vote-poll.step.1': '点击你想选的选项。它的圆圈里会出现对勾，选项加上强调色边框，后面的条形也会变长。',
   'help.guide.vote-poll.step.2':
-    '现在可以看到完整的结果：条形表示占比，百分比在右侧，小圆圈是选了该选项的人，最多显示三个。',
+    '现在可以看到完整的结果：条形表示占比，百分比在右侧，小圆圈是选了该选项的人。最多显示三个；第四个带加号和数字的圆圈，表示其余所有人。',
   'help.guide.vote-poll.step.3':
     '改主意了？点击另一个选项即可。在没有开启“多选”的投票中，你的票会转移到新选项上，而不是再多投一票。',
   'help.guide.vote-poll.step.4': '票数显示在问题下方的标签里。再次点击你已选的选项会撤回你的投票，票数也会随之减少。',
   'help.guide.vote-poll.result': '你选的选项会被勾上，条形显示大家的投票分布，圆圈显示谁选了哪个选项。',
   'help.guide.vote-poll.tip.1':
     '百分比和谁投了什么，要等你自己投过票或投票关闭后才会显示。头部的票数则所有人都能看到。',
-  'help.guide.vote-poll.tip.2': '投票从不匿名：把鼠标移到某个选项上的圆圈上，就能看到投票人的名字。',
+  'help.guide.vote-poll.tip.2':
+    '投票从不匿名：把鼠标移到某个选项上的圆圈上，就能看到投票人的名字。把鼠标移到加号圆圈上，可以看到其余所有人的名字。',
   // close-poll
   'help.guide.close-poll.title': '关闭或删除投票',
   'help.guide.close-poll.goal': '群组做出决定后结束投票，并删除不再需要的投票。',
@@ -2704,11 +2859,12 @@ const help: TranslationStrings = {
   'help.guide.whats-next.step.1':
     '这张卡片按时间顺序列出旅行接下来的停靠点，最多八个，按天分组，每天有一个标题：“今天”“明天”或具体日期，如果当天有标题，也会显示在旁边。头部会显示一共有几个。',
   'help.guide.whats-next.step.2':
-    '每个停靠点的左侧是它的时间：开始时间、“至”，以及有结束时间时的结束时间；还没有设置时间时显示 TBD。',
+    '每个停靠点的左侧是它的时间：开始时间、“至”，以及有结束时间时的结束时间。没有自己时间的酒店，会在住宿开始那天显示它的入住时间。TBD 表示尚未设置时间。',
   'help.guide.whats-next.step.3':
     '旁边是名称、地址，以及以标签形式显示的这个停靠点上的人。如果没有给这个停靠点指定人员，则会列出旅行中的所有人。',
   'help.guide.whats-next.result': '这是即将发生的事项清单，只读：它跟随计划变化，在这里做任何操作都不会改动计划。',
-  'help.guide.whats-next.tip.1': '这里无需设置任何内容。时间来自日程计划；你在日程中修改后，这份清单会立即更新。',
+  'help.guide.whats-next.tip.1':
+    '这里无需设置任何内容。时间来自日程计划，酒店的则来自它的预订；你在那里修改后，这份清单会立即更新。',
   'help.guide.whats-next.tip.2':
     '只列出尚未发生的内容：站点的开始时间一过就会从列表中消失，今天没有时间的站点会保留到当天结束，旅行结束后面板为空。',
   'help.guide.whats-next.tip.3':
@@ -2742,15 +2898,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-lists.summary':
     '一个旅行有两份清单：行李清单，记录谁带什么、有多重；待办清单，记录出发前和旅途中需要完成的所有事项。只要“列表”扩展开启，这个标签页就会显示。',
   'help.ctx.trip-lists.bullet.1':
-    '顶部栏里的“行李清单”和“待办事项”用于在两者之间切换，并分别显示各自的数量；栏右端的按钮对应当前打开的那一个。',
+    '顶部栏里的“行李清单”和“待办事项”用于在两者之间切换，并分别显示各自的数量。对于行李清单，栏里有“添加清单”和旁边的三个点；对于待办事项，则有“添加新任务”。',
   'help.ctx.trip-lists.bullet.2':
-    '行李清单按清单分组，例如“文档”或“衣物”，名称随你定。每个清单是一张卡片，标题栏有：用于把整个清单拖到其他位置的手柄、颜色圆点、“已打包数/总数”徽章、带有“重命名”“全部勾选”“取消全部勾选”和“删除清单”的三个点，以及折叠卡片的箭头。上方栏中的“添加清单”可以新建一个。',
+    '行李清单按清单分组，例如“文档”或“衣物”，名称随你定。每个清单是一张卡片，标题栏有：用于把整个清单拖到其他位置的手柄、颜色圆点、用来指定负责人的虚线圆圈、“已打包数/总数”徽章、带有“重命名”“全部勾选”“取消全部勾选”“整个清单的共享”和“删除清单”的三个点，以及折叠卡片的箭头。',
   'help.ctx.trip-lists.bullet.3':
-    '每一行依次是拖动手柄、勾选框和名称，然后是负责携带该物品的人的小头像。数量大于一的物品还有形如 3/10 的已打包计数器，带减号和加号。接着是小徽章形式的数量；开启“行李追踪”后，还有以克为单位的重量和表示包的圆圈，然后是垃圾桶和三个点菜单，菜单里有“移动到清单”“分享中”“重命名”和“删除”。一行中用不到的控件会保持暗淡，鼠标移上去才变亮。',
+    '每一行显示它的勾选框和名称，以及只显示已设置的内容：两件起显示的数量（如 ×3）、打包时已打包的件数（如 2/5），以及携带者的头像。鼠标指向该行时会出现用来拖动它的手柄。点击名称会打开物品的窗口，里面有它的清单、数量、已打包件数、重量、包、携带者和可见范围。',
   'help.ctx.trip-lists.bullet.4':
-    '“共享”和“我的清单”把行李清单分成两部分：所有人都能看到的清单，以及你自己的清单。旁边的“全部”“未完成”和“已完成”用来筛选当前打开的那个。行末的“按名称”会按名称顺序显示每个清单中的物品，再点一次则回到你自己的顺序。上方的进度卡片统计已打包的物品。',
+    '栏下方的“共享”和“我的清单”把行李清单分成两部分：所有人都能看到的清单，以及你自己的清单。这一行的右侧，一行文字统计你正在查看的清单中已打包多少，旁边有一条细进度条。',
   'help.ctx.trip-lists.bullet.5':
-    '“应用模板”和“保存为模板”让你不用手动输入，就能填好一份清单或把它存起来。后面的两个图标“导出”和“导入”，分别把清单导出为打印件、PDF 或文件，以及导入一份清单。进度卡片右端的红色按钮显示已勾选的物品数，点击即可把它们清除。',
+    '“添加清单”旁边的三个点包含其他所有操作：“应用模板”“保存为模板”“导入”、三种导出方式（“打印或另存为 PDF”、Markdown 和 CSV）、“按名称”“隐藏已打包”，以及最下面的“移除……已勾选”。',
   'help.ctx.trip-lists.bullet.6':
     '“待办事项”有自己的侧栏：进度卡片，“全部”“我的任务”“已逾期”“已完成”这几个筛选，每个清单一行，下面是“添加清单”。任务放在一张卡片里，标题栏显示筛选名称和排序方式“优先级”或“截止日期”。点击任务即可在右侧面板中打开。栏里的“新建任务”会打开“新任务”对话框。',
   // packing-categories
@@ -2759,54 +2915,56 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.step.1':
     '点击清单上方工具栏中的“添加清单”，会弹出一个小对话框。在顶部写着“清单名称（例如：衣物）”的位置输入名称，然后点击“添加”。',
   'help.guide.packing-categories.step.2':
-    '新清单一开始是一个只显示三个淡色圆点的占位行。点击该行底部的“添加项目”，在“物品名称...”中输入物品，然后按 Enter 键：第一个物品会取代占位行，输入框保持打开，方便你继续输入下一个。',
-  'help.guide.packing-categories.step.3': '点击行名即可重命名，也可以用行右端三点菜单里的“重命名”。',
+    '新清单一开始是一个空行，一个带三个淡色圆点的输入框。点击卡片底部的“添加项目”，在“物品名称...”中输入物品，然后按 Enter 键：第一个物品会填入这个空行，输入框保持打开，方便你继续输入下一个。',
+  'help.guide.packing-categories.step.3':
+    '要重命名物品，点击它的名称。它的窗口会打开，顶部的名称是一个输入框：输入新名称，然后按 Enter 键。',
   'help.guide.packing-categories.step.4':
     '清单顶部色带里带人像的虚线圆圈用来把旅行成员分配到这份清单。选一个名字；要再次移除这个人，点击出现的标签即可。',
   'help.guide.packing-categories.step.5':
-    '数量旁边的三个点提供更多选项：“重命名”“全部勾选”“取消全部勾选”和“删除清单”。“删除清单”会直接删除清单及其所有物品，不会再次确认。最右边的箭头用来折叠清单。',
+    '数量旁边的三个点提供更多选项：“重命名”“全部勾选”“取消全部勾选”“整个清单的共享”和“删除清单”。“删除清单”会直接删除清单及其所有物品，不会再次确认。最右边的箭头用来折叠清单。',
   'help.guide.packing-categories.result':
     '新清单会显示在网格里，物品列在下面，并带有颜色圆点，徽章显示已经打包了多少。',
   'help.guide.packing-categories.tip.1':
-    '清单是靠物品存在的。删除最后一个物品后，这一行会变成占位行，让清单保留原来的位置和颜色；再删除这一行，清单就被删除了。',
+    '清单是靠物品存在的。删除最后一个物品后，这一行会变成空行，让清单保留原来的位置和颜色；再删除这一行，清单就被删除了。',
   'help.guide.packing-categories.tip.2':
-    '把某人分配到一份清单后，他会收到一条行李通知。这不会改变谁能看到这些物品，那由每一行三个点菜单里的“共享”决定。',
+    '把某人分配到一份清单后，他会收到一条行李通知。这不会改变谁能看到这些物品，那由每个物品窗口中的“可见范围”决定，或用“整个清单的共享”对整个清单设置。',
   'help.guide.packing-categories.tip.3': '两份清单可以重名。TREK 在内部会区分它们，所以名称会保持你输入的样子。',
   // check-off-packing
   'help.guide.check-off-packing.title': '边打包边打勾',
-  'help.guide.check-off-packing.goal': '标记已装进包里的物品，查看进度条，并清除已打包的物品。',
-  'help.guide.check-off-packing.step.1': '点击一行左侧的方框。名称会被划掉，进度条随之更新。',
+  'help.guide.check-off-packing.goal': '标记已装进包里的物品，查看进度，并清除已打包的物品。',
+  'help.guide.check-off-packing.step.1': '点击一行左侧的方框。名称会被划掉，已打包的数量随之增加。',
   'help.guide.check-off-packing.step.2':
-    '清单上方的进度卡片以数字、百分比和进度条三种方式，显示已打包物品数量占清单全部物品的比例。',
+    '在“共享”和“我的清单”所在行的右侧，一行文字显示你正在查看的清单中，所有物品里已经打包了多少，旁边有一条细进度条。',
   'help.guide.check-off-packing.step.3': '要一次勾选整份清单：清单头部的三个点里有“全部勾选”和“取消全部勾选”。',
   'help.guide.check-off-packing.step.4':
-    '“共享”和“我的清单”旁边的“全部”“未完成”和“已完成”可以筛选网格。“未完成”只显示还缺的物品，所以已经全部装好的清单会被隐藏。',
+    '“添加清单”旁边三个点中的“隐藏已打包”只显示还缺的物品，所以已经全部装好的清单会被隐藏。开启时有一个勾；再点一次可看到全部。',
   'help.guide.check-off-packing.step.5':
-    '进度卡片右端红色的“移除……已勾选”按钮，里面带有已勾选物品的数量，在浏览器确认一次后，会一次性删除所有这些物品。',
-  'help.guide.check-off-packing.result': '只显示未完成的物品，上方的进度条显示行李已经收拾了多少。',
-  'help.guide.check-off-packing.tip.1': '已勾选的物品仍可重命名：点击它的名称即可。',
+    '同一个菜单底部的“移除……已勾选”，里面带有已勾选物品的数量，在浏览器确认一次后，会一次性删除所有这些物品。',
+  'help.guide.check-off-packing.result': '只显示未完成的物品，上方的一行显示行李已经收拾了多少。',
+  'help.guide.check-off-packing.tip.1': '已勾选的物品，点击它的名称仍可打开它的窗口。',
   'help.guide.check-off-packing.tip.2':
     '“全部勾选”和“取消全部勾选”每次只对一份清单生效，要从该清单自己的三点菜单里使用。',
   'help.guide.check-off-packing.tip.3': '所有物品都勾选后，计数会换成“全部打包完成！”，进度条变成绿色。',
   // apply-packing-template
   'help.guide.apply-packing-template.title': '应用行李模板',
   'help.guide.apply-packing-template.goal': '把现成的清单加到旅行中，并把这次旅行的清单保存下来，留给下一次使用。',
-  'help.guide.apply-packing-template.step.1': '点击清单上方工具栏中的“应用模板”。',
-  'help.guide.apply-packing-template.step.2': '选择一个模板。每一行会显示模板名称和包含的物品数量。',
+  'help.guide.apply-packing-template.step.1': '点击清单上方栏中“添加清单”旁边的三个点。',
+  'help.guide.apply-packing-template.step.2':
+    '点击“应用模板”。模板会在其下展开，每个都显示名称和包含的物品数量。选择一个。',
   'help.guide.apply-packing-template.step.3':
     '物品会加到你当前所在的视图：“已共享”加到所有人都能看到的共享清单，“我的清单”加到你自己的清单。',
   'help.guide.apply-packing-template.step.4':
-    '要把这次旅行的清单留给下次旅行用，请点击“保存为模板”。会打开一个小对话框，在顶部显示“模板名称”的输入框里输入名称，然后点击“保存”。',
+    '要把这次旅行的清单留给下次旅行用，请点击同一个菜单中的“保存为模板”。会打开一个小对话框，在顶部显示“模板名称”的输入框里输入名称，然后点击“保存”。',
   'help.guide.apply-packing-template.result': '模板里的清单和物品会加到旅行中，与原有的内容并存。',
   'help.guide.apply-packing-template.tip.1':
     '模板会带入每件物品的清单、数量、重量和包，并创建旅行中还没有的包。勾选状态不会带入，清单中已有的内容也不会被移除。',
-  'help.guide.apply-packing-template.tip.2': '只有存在模板时才会有“应用模板”。一个模板都没有时，这个按钮根本不会出现。',
+  'help.guide.apply-packing-template.tip.2': '只有存在模板时，菜单里才会有“应用模板”。',
   'help.guide.apply-packing-template.tip.3':
     '“保存为模板”只对实例管理员显示，而且只有清单中有物品时才会出现。它会保存共享物品和你自己的物品，绝不会保存其他成员的私人物品。',
   // import-packing-list
   'help.guide.import-packing-list.title': '粘贴整份行李清单',
   'help.guide.import-packing-list.goal': '把你在别处已有的清单，一次性变成行李物品。',
-  'help.guide.import-packing-list.step.1': '点击“导入”，也就是清单上方栏右端带向下箭头的图标。',
+  'help.guide.import-packing-list.step.1': '打开“添加清单”旁边的三个点，点击“导入”。',
   'help.guide.import-packing-list.step.2':
     '每行一个物品：类别、名称、重量（克，可选）、行李（可选）、checked/unchecked（可选）。输入框里的灰色示例展示了全部四种格式，左边缘的数字会统计你输入的行数。也可以使用 Markdown 列表：标题作为清单名称，“- [ ]”和“- [x]”会变成物品。',
   'help.guide.import-packing-list.step.3':
@@ -2821,8 +2979,9 @@ const help: TranslationStrings = {
   // export-packing-list
   'help.guide.export-packing-list.title': '打印或导出行李清单',
   'help.guide.export-packing-list.goal': '打印清单、存为 PDF，或导出成文件，供其他应用或下次旅行使用。',
-  'help.guide.export-packing-list.step.1': '点击“导出”，也就是清单上方栏中带向上箭头的图标，就在“导入”之前。',
-  'help.guide.export-packing-list.step.2': '“Markdown 清单 (.md)”和“用于导入的 CSV (.csv)”会直接把清单保存为文件。',
+  'help.guide.export-packing-list.step.1': '点击清单上方栏中“添加清单”旁边的三个点。',
+  'help.guide.export-packing-list.step.2':
+    '导出方式在菜单中间。“Markdown 清单 (.md)”和“用于导入的 CSV (.csv)”会直接把清单保存为文件。',
   'help.guide.export-packing-list.step.3':
     '点击“打印或另存为 PDF”。预览会把清单排成一页：顶部是旅行、日期和已打包的进度，下面每份清单是一张卡片，每件物品都带一个勾选框。',
   'help.guide.export-packing-list.step.4':
@@ -2833,31 +2992,59 @@ const help: TranslationStrings = {
     'CSV 就是“导入”能读取的格式，行李分组也包含在内，所以你可以把它当作自己的行李模板：下次旅行时直接导入即可。',
   'help.guide.export-packing-list.tip.2':
     'Markdown 文件在 Obsidian、Notion 或 GitHub 中会显示为勾选清单，也可以通过“导入”再导回来。',
+  'help.guide.edit-packing-item.title': '在窗口中修改物品',
+  'help.guide.edit-packing-item.goal': '打开一个物品，在同一处修改它的名称、清单、数量或由谁携带。',
+  'help.guide.edit-packing-item.step.1':
+    '点击物品的名称。行旁边会打开一个小窗口，包含这个物品的所有信息，每个值都是一个小标签块。',
+  'help.guide.edit-packing-item.step.2':
+    '顶部的名称是一个输入框：直接改写，按 Enter 即可重命名物品。旁边的叉用来关闭窗口。',
+  'help.guide.edit-packing-item.step.3': '“清单”可以把物品移到另一个清单：点击它并选择一个。其下的“数量”设置你带多少。',
+  'help.guide.edit-packing-item.step.4':
+    '“携带者”显示谁来带共享物品。点击它，勾选旅行中同样会带它的人；再点一次某个名字，就把那个人取消。',
+  'help.guide.edit-packing-item.step.5': '底部的“删除”会立即移除物品。用叉或点击窗口旁边的任意位置关闭窗口。',
+  'help.guide.edit-packing-item.result':
+    '这一行只显示已设置的内容：两件起显示的数量、打包时已打包的件数，以及携带者的头像。',
+  'help.guide.edit-packing-item.tip.1': '每次更改都会随改随存，没有“保存”按钮。',
+  'help.guide.edit-packing-item.tip.2': '开启“行李追踪”后，窗口里还有物品的重量和所在的包。见“称一称行李”。',
+  'help.guide.edit-packing-item.tip.3':
+    '在别人负责携带的共享物品上，“删除”上方的“复制到我的清单”会为你生成一份私人副本。',
   // share-packing-item
-  'help.guide.share-packing-item.title': '决定谁能看到物品、谁来带',
+  'help.guide.share-packing-item.title': '决定谁能看到物品',
   'help.guide.share-packing-item.goal': '把一件物品在小组共享池、你自己的清单和你替他们带的人之间移动。',
   'help.guide.share-packing-item.step.1':
     '清单上方，“已共享”是所有人都能看到的清单，“我的清单”是你自己的，两者各自显示物品数量。点击“我的清单”查看你自己的。',
-  'help.guide.share-packing-item.step.2': '回到“共享”，打开某一行末尾的三个点，点击“共享”。',
-  'help.guide.share-packing-item.step.3':
-    '共有三个级别：“共享”，组内所有人都能看到；“个人”，只有你自己能看到；“共享给…”，由你选择这件物品面向的人。',
-  'help.guide.share-packing-item.step.4': '“个人”物品只显示在“我的清单”中，切换到“我的清单”才能找到。',
+  'help.guide.share-packing-item.step.2':
+    '回到“共享”，点击某个物品的名称。在它窗口的底部，“可见范围”有三个选项：“全部”“仅自己”和“指定成员”。',
+  'help.guide.share-packing-item.step.3': '点击“仅自己”。物品会离开共享清单，现在在你自己的清单中，只有你能看到。',
+  'help.guide.share-packing-item.step.4': '切换到“我的清单”找到它。',
   'help.guide.share-packing-item.step.5':
-    '再次打开“分享中”，在“共享给…”下勾选一个名字。这件物品也会出现在对方的清单上，这一行会多出一个小徽章，显示共享了多少人。',
-  'help.guide.share-packing-item.result': '物品会归入你选的那一档，行上会显示由谁来带。',
+    '再次打开它，点击“指定成员”并勾选一个名字。这件物品也会出现在对方的清单上，这一行会多出一个小徽章，显示共享了多少人。',
+  'help.guide.share-packing-item.result': '物品在你自己的清单中，行上的徽章显示有多少人和你一起看到它。',
   'help.guide.share-packing-item.tip.1':
-    '只有带这件物品的人才能修改共享设置。被你共享的人会在自己的“我的清单”里看到它，旁边有一个小手徽章，鼠标悬停时会显示你的名字。他们可以勾选它。',
+    '只有物品的所有者才能修改谁能看到它。被你共享的人会在自己的“我的清单”里看到它，旁边有一个小手徽章，鼠标指向时会显示你的名字。他们可以勾选它。',
   'help.guide.share-packing-item.tip.2':
-    '在别人负责带的共享物品上，三点菜单里显示的不是“分享中”，而是另外两项：“我也可以带”，把你加到对方旁边；“复制到我的清单”，为你生成一份私人副本。',
+    '要一次移动清单中的所有物品，请使用清单三个点中的“整个清单的共享”。见“共享整个清单”。',
   'help.guide.share-packing-item.tip.3':
     '新物品沿用你添加时所在视图的分享设置。在“共享”中添加的物品会与所有人共享。在“我的清单”中添加的物品属于“个人”，除非该清单里的每件物品都与同一批人共享：这时新物品也会与他们共享。',
+  'help.guide.share-packing-list.title': '共享整个清单',
+  'help.guide.share-packing-list.goal': '一次性把一个清单中的所有物品移到团体共享池、你自己的清单，或你选定的人那里。',
+  'help.guide.share-packing-list.step.1': '打开清单标题处的三个点，点击“整个清单的共享”。',
+  'help.guide.share-packing-list.step.2':
+    '对话框会显示清单名称，并提供三个级别：“共享”，即所有人都能看到的团体共享池；“个人”，只有你自己；以及“共享给…”，由你选择的人。它默认停在物品当前所在的级别。点击“共享给…”。',
+  'help.guide.share-packing-list.step.3': '勾选这个清单面向的人。',
+  'help.guide.share-packing-list.step.4': '点击“应用到清单”。你在清单中的每个物品都会移到该级别，并显示一条消息确认。',
+  'help.guide.share-packing-list.result':
+    '清单离开了共享视图，出现在“我的清单”中，每一行上有一个徽章，显示与多少人共享。',
+  'help.guide.share-packing-list.tip.1':
+    '只有你自己的物品会移动。别人添加的物品保持不变，清单中有这类物品时，对话框会提示。',
+  'help.guide.share-packing-list.tip.2': '之后仍然可以单独修改某个物品，在它的窗口里的“可见范围”下。',
   // packing-bags
   'help.guide.packing-bags.title': '给行李称重',
   'help.guide.packing-bags.goal': '为每件物品填写重量，把物品分装到各个行李中，并确保每个行李都不超过航空公司的限额。',
-  'help.guide.packing-bags.step.1': '点击圆圈前面的重量标记，输入物品的重量，单位为克。',
-  'help.guide.packing-bags.step.2': '重量后面的圆圈表示这件物品所在的行李。点击它。',
+  'help.guide.packing-bags.step.1': '点击物品的名称打开它的窗口，在“总重量”中输入物品的重量，单位为克。',
+  'help.guide.packing-bags.step.2': '其下的“包”在物品不在任何包里时显示“未分配”。点击它。',
   'help.guide.packing-bags.step.3':
-    '如果还没有行李，点击“添加行李”，输入名称并按 Enter。行李创建后，物品会直接放进去。',
+    '旅行的行李会在其下展开。如果还没有，在列表末尾的“添加行李”中输入名称并按 Enter。行李创建后，物品会直接放进去。',
   'help.guide.packing-bags.step.4':
     '只要存在一个包，“行李”卡片就会出现在清单右侧。每个包显示名称、携带者、填充条、其中有多少物品及其重量。包的下方是“未分配”和“总重量”，再下面是“已打包”：已打包的重量，以及一条表示占比的细条。',
   'help.guide.packing-bags.step.5': '点击行李重量旁边的“设置限制”，按航空公司的标准以千克为单位输入限额。',
@@ -2866,7 +3053,7 @@ const help: TranslationStrings = {
   'help.guide.packing-bags.result':
     '右侧的“行李”卡片会显示每个包的重量和上限的对比、不在任何包里的物品、每个人携带的物品，以及总重量和其中已打包的部分。',
   'help.guide.packing-bags.tip.1':
-    '重量输入框、行李圆圈和“行李”卡片，只有在管理员于“列表”扩展下开启了“行李追踪”时才会出现。窗口较窄时，改为从进度卡片上方的“行李”按钮打开行李。',
+    '物品窗口中的重量和包，以及“行李”卡片，只有在管理员于“列表”扩展下开启了“行李追踪”时才会出现。窗口较窄时，改为从“添加清单”旁边三个点中的“行李”打开行李。',
   'help.guide.packing-bags.tip.2':
     '行李的重量由服务器汇总所有成员的物品计算得出，包括你看不到的物品，所以这个数字就是行李的实际重量。',
   'help.guide.packing-bags.tip.3':
@@ -2910,15 +3097,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '栏右端的“手动添加”会打开“新建预订”。可以创建六种预订：“住宿”“餐厅”“活动”“导览游”“停车”和“其他”。航班、火车和其他交通都在“交通”标签页，不会出现在这里。',
   'help.ctx.trip-bookings.bullet.2':
-    '“手动添加”前面的下载图标即“导入预订确认”，会上传确认文件，让 TREK 自动读取：EML、PDF、PKPass、HTML 或 TXT，最多五个文件，每个不超过 10 MB；如果 AI 模型能读取图片，还支持照片。只有服务器能读取这些文件时，才会显示这个图标。',
+    '“手动添加”前面的上传图标即“导入预订确认”，会上传确认文件，让 TREK 自动读取：EML、PDF、PKPass、HTML 或 TXT，最多五个文件，每个不超过 10 MB；如果 AI 模型能读取图片，还支持照片。只有服务器能读取这些文件时，才会显示这个图标。管理员开启邮件导入后，同一个对话框还会给旅行一个专属地址，用来转发预订邮件。',
   'help.ctx.trip-bookings.bullet.3':
     '“搜索”会查找标题、类型、地点、备注、预订码和出行人。旁边的漏斗“筛选”可以按“状态”、按“类型”（每种类型带有数量），以及在有预订指定了人员之后按“出行人”缩小这个标签页的范围。漏斗上的数字表示已开启的筛选数量。',
   'help.ctx.trip-bookings.bullet.4':
-    '“筛选”之后的三个图标用来切换视图：“卡片”、“列表”和“时间线”。旁边滑块形状的“视图选项”可以对卡片和列表分组、排序，或设置时间线的泳道；再往后的电子表格图标，即“导出为电子表格 (CSV)”，会把标签页当前显示的内容下载为文件。卡片默认按“已确认”和“待确认”分组，列表按日期分组。点击分区标题可以折叠该分区。',
+    '“筛选”之后的三个图标用来切换视图：“卡片”、“列表”和“时间线”。旁边滑块形状的“视图选项”可以对卡片和列表分组、排序，或设置时间线的泳道；再往后的下载图标，即“导出为电子表格 (CSV)”，会把标签页当前显示的内容下载为文件。卡片默认按“已确认”和“待确认”分组，列表按日期分组。点击分区标题可以折叠该分区。',
   'help.ctx.trip-bookings.bullet.5':
     '卡片的头部按状态着色，上面有状态圆点（点击可在“待确认”和“已确认”之间切换）、类型、标题、铅笔和垃圾桶。下面是这条预订包含的详细信息：“日期”“时间”“预订码”“入住”和“退房”“地点 / 地址”“住宿”“关联到”（计划中的停靠点）“链接”“备注”“出行人”“文件”，以及关联的费用。',
   'help.ctx.trip-bookings.bullet.6':
-    '点击卡片、行或条形，会打开预订的详情，底部有“在地图上”（预订有地点时）、垃圾桶和“编辑”。删除只会询问一次（“删除预订？”，如果关联的费用会一并删除，也会提示）。之后预订及其关联的支出都会被删除，如果是住宿，它的各晚也会从当天计划中移除。',
+    '点击卡片、行或条形，会打开预订的详情，底部有“地图”（预订有地点时）、垃圾桶和“编辑”。删除只会询问一次（“删除预订？”，如果关联的费用会一并删除，也会提示）。之后预订及其关联的支出都会被删除，如果是住宿，它的各晚也会从当天计划中移除。',
   // booking-views
   'help.guide.booking-views.title': '切换视图并打开预订',
   'help.guide.booking-views.goal': '以卡片、列表或时间线查看预订，并打开其中一条查看全部详细信息。',
@@ -2933,9 +3120,9 @@ const help: TranslationStrings = {
   'help.guide.booking-views.step.5':
     '把鼠标悬停在一根横条上，可以看到它的日期、时间和地点，点击它即可打开这条预订的详情。“卡片”中的一张卡片和“列表”中的一行，也会打开同一个弹窗。',
   'help.guide.booking-views.step.6':
-    '详情页的头部显示标题，以及状态（点击可切换）、类型、日期和预订码的标签，预订码旁有一个复制按钮。下面先是以方块显示的时间，然后是地点、出行人、备注、费用和文件（预订有这些内容时才显示），底部是“在地图上”、垃圾桶和“编辑”。',
+    '详情页的头部显示标题，以及状态（点击可切换）、类型、日期和预订码的标签，预订码旁有一个复制按钮。下面先是以方块显示的时间，然后是地点、出行人、备注、费用和文件（预订有这些内容时才显示），底部是“地图”、垃圾桶和“编辑”。',
   'help.guide.booking-views.result':
-    '预订会以详情视图打开：“编辑”打开它的表单，“在地图上”在计划中显示它，“关闭”或 Esc 键会回到你之前所在的视图。',
+    '预订会以详情视图打开：“编辑”打开它的表单，“地图”在计划中显示它，“关闭”或 Esc 键会回到你之前所在的视图。',
   'help.guide.booking-views.tip.1':
     '视图图标后面的滑块图标“视图选项”，可以用“分组依据”和“排序方式”为“卡片”和“列表”分组与排序。在“时间线”中，它提供“每种类型单独一行”和“同时显示另一个标签页”，后者会把“交通”标签页的条目以淡色显示在顶部的一条细行中。“重置视图”会恢复默认设置，每个标签页都会在这个浏览器中记住自己的视图。',
   'help.guide.booking-views.tip.2':
@@ -3018,7 +3205,7 @@ const help: TranslationStrings = {
     '“关联已有文件”列出这次旅行中还没有关联到这条预订的文档。选中一个，它就会被附加，无需再次上传。',
   'help.guide.booking-files.step.4': '点击“更新”。',
   'help.guide.booking-files.result':
-    '卡片和详情页在“文件”下列出这些文档，点击文档即可打开。详情页列表上方的“在文件中显示”会带你到“文件”标签页。',
+    '卡片和详情页在“文件”下列出这些文档。点击文档名称即可打开，或点击其行末的下载图标保存。详情页列表上方的“在文件中显示”会带你到“文件”标签页。',
   'help.guide.booking-files.tip.1': '对于还在创建中的预订，文档会在你点击“添加”时上传。上传需要联网。',
   'help.guide.booking-files.tip.2': '文档旁边的 X 移除的是关联，而不是文档本身。文档仍会保留在旅行的“文件”标签页中。',
   'help.guide.booking-files.tip.3':
@@ -3037,7 +3224,7 @@ const help: TranslationStrings = {
   'help.guide.booking-cost.result':
     '卡片底部会显示金额，这条预订的表单在“已关联支出”下列出这笔支出，同一笔支出也会出现在“费用”标签页中，并关联到这条预订。',
   'help.guide.booking-cost.tip.1':
-    '分类取决于类型：“餐厅”归为“餐饮”，“住宿”归为“住宿”，“停车”归为“停车”，“活动”和“旅游团”都归为“其他”。',
+    '分类取决于类型：“餐厅”归为“餐饮”，“住宿”归为“住宿”，“停车”归为“停车”，“活动”和“旅游团”归为“活动”，“其他”仍是“其他”。',
   'help.guide.booking-cost.tip.2':
     '一条预订可以有多笔支出。“关联已有支出”会列出“费用”里尚未关联任何内容的支出。对于已关联的支出，“取消关联，保留支出”会解除关联并把支出留在“费用”中，而垃圾桶会直接删除它。',
   'help.guide.booking-cost.tip.3': '只有“费用”扩展处于开启状态，表单中才会有“费用”，管理员在“扩展”中切换它。',
@@ -3063,7 +3250,7 @@ const help: TranslationStrings = {
   'help.guide.import-booking-file.title': '从确认单导入预订',
   'help.guide.import-booking-file.goal': '让 TREK 从服务商发来的邮件或 PDF 中读取预订信息，省得你再手动输入。',
   'help.guide.import-booking-file.step.1':
-    '点击工具栏里的下载图标“导入预订确认”，指向它时会显示名称。同名的对话框随即打开。',
+    '点击工具栏里的上传图标“导入预订确认”，指向它时会显示名称。同名的对话框随即打开。',
   'help.guide.import-booking-file.step.2':
     '把确认文件拖到框内，或点击后选择文件：支持 EML、PDF、PKPass、HTML 和 TXT，最多五个文件，每个不超过 10 MB；如果 AI 模型能读取图片，还支持照片（JPG、PNG、WEBP）。你选好的文件会显示在框内。',
   'help.guide.import-booking-file.step.3': '点击“导入”。对话框会立即关闭，因为读取在后台进行。',
@@ -3112,7 +3299,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.summary':
     '旅行的账目：每笔支出按日期记在账本或表格里，包括是谁录入的、谁要分摊，并按收据上的货币显示。右栏显示谁需要付钱给谁，才能结清账目。',
   'help.ctx.trip-costs.bullet.1':
-    '顶部栏显示旅行的日期和分摊费用的同行者，还包含“搜索支出…”、“筛选”（漏斗图标）、“导出 CSV”（下载图标）以及“列表”/“表格”切换。',
+    '顶部栏显示旅行的日期和分摊费用的同行者，还包含“搜索支出…”、“筛选”（漏斗图标）、“导出 CSV”（下载图标）、显示金额所用的货币以及“列表”/“表格”切换。',
   'help.ctx.trip-costs.bullet.2':
     '在它的右端，“结算”会一次记录所有未完成的转账，“扫描收据”会在“AI 解析”扩展能读取图片时，根据照片填好一笔支出，“添加支出”则打开编辑器。',
   'help.ctx.trip-costs.bullet.3':
@@ -3120,7 +3307,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.bullet.4':
     '账本按日期分组，最新的在前，每一天的标题显示它包含多少条记录和花了多少钱。每一行有以彩色标签显示的分类、名称、带有各自支付金额的付款人标签，下面是“分摊”，列出每位出行人的份额（勾号表示谁已付清自己的份额），再往后是备注和金额。如果分摊的结果是别人欠你钱或你欠别人钱，还会显示“你借出”或“你借入”。',
   'help.ctx.trip-costs.bullet.5':
-    '右侧一栏显示结果：“结算”列出谁该付给谁，“余额”显示每位出行人的盈余或欠款，“最终花费”显示这次旅行每个人各花了多少，“按分类”显示钱花在了哪些方面。',
+    '右侧一栏显示结果：“结算”列出谁该付给谁，“余额”显示每位出行人的盈余或欠款，“最终花费”显示这次旅行每个人各花了多少，“按分类”显示钱花在了哪些方面；点击一个分类会把它排除在合计之外。这一栏底部的“在旅伴之间分摊费用”，可以为只需要总额的旅行关闭付款人和结算。',
   'help.ctx.trip-costs.bullet.6':
     '已记录的付款会作为单独一行出现在同一账本中，旁边有铅笔图标和“撤销”。支出有铅笔和垃圾桶图标，点垃圾桶会先确认再删除。带收据的支出，名称旁边有“收据”标签，点击即可打开。',
   'help.ctx.trip-costs.bullet.7':
@@ -3135,7 +3322,7 @@ const help: TranslationStrings = {
   'help.guide.add-expense.step.3':
     '名称下方的标签是“分类”，在你另选之前是“餐饮”。共有十四种，不能更改。头部会变成你所选分类的颜色，行上的标签和“按分类”中的对应柱条也一样。',
   'help.guide.add-expense.step.4':
-    '在“总金额”中填入收据上的金额。旁边的“货币”默认是“费用”当前显示所用的货币；如果你改了货币，编辑器会显示换算后的金额。“日期”默认是今天，这笔支出会按这一天归入列表。',
+    '在“总金额”中填入收据上的金额。旁边的“货币”默认是旅行本身的货币；如果你选了别的货币，编辑器会在字段下方显示换算后的金额。“日期”默认是今天，这笔支出会按这一天归入列表。',
   'help.guide.add-expense.step.5':
     '在“谁支付的？”下，点击实际付钱的人。默认已选中“你”。选择“尚无人支付”只会记录金额，不会让任何人为此欠钱；标题旁边开关中的“多人支付”可以把账单分给多个付款人。',
   'help.guide.add-expense.step.6':
@@ -3185,25 +3372,25 @@ const help: TranslationStrings = {
     '“平均分摊”会精确到分：多出来的一分每笔支出都落在不同的人身上，不会总由同一个人出。',
   'help.guide.split-expense.tip.3': '“按账单明细”模式会自己计算“总金额”并将该字段置灰：总额就是收据各行的合计。',
   'help.guide.split-expense.tip.4':
-    '自定义分摊也可以按百分比输入：把“份额输入方式”切换为 %，各份额合计必须正好是 100%，支出才能保存。',
+    '自定义分摊也可以按百分比或按份数输入：提示文字旁的小切换器可选货币符号、% 或“份数”。按百分比时，各份额合计必须正好是 100 %，支出才能保存。',
   // expense-currency
   'help.guide.expense-currency.title': '用另一种货币录入支出',
   'help.guide.expense-currency.goal': '按收据上的货币填写金额，汇率由 TREK 帮你保存。',
   'help.guide.expense-currency.step.1':
     '打开“添加支出”。在对话框顶部输入名称，并在“总金额”中按收据上的原样填写金额，不要填换算后的金额。',
   'help.guide.expense-currency.step.2':
-    '打开金额旁边的“货币”，选择收据上的货币。列表包含 TREK 支持的所有货币代码，并且可以搜索：输入三个字母即可。',
+    '打开金额旁边的“货币”；新支出默认使用旅行本身的货币。选择收据上的货币：旅行的货币和“费用”所显示的货币排在顶部，输入三个字母即可搜索 TREK 支持的其他所有代码。',
   'help.guide.expense-currency.step.3':
     '字段下方会出现一排徽章：你输入的金额及其当前价值，标有“实时汇率”。这只是预览，不是最终保存的数值。',
   'help.guide.expense-currency.step.4': '点击对话框底部的“添加支出”。汇率会在此刻固定：这笔支出保留你录入当天的价值。',
   'help.guide.expense-currency.step.5':
-    '在账本中，这一行在名称下方显示两个金额：你输入的金额、一个箭头，以及折算成旅行货币后的金额。“费用”标签页上的所有合计、余额和结算都以第二个金额为准。',
+    '在账本中，这一行在名称下方显示两个金额：你输入的金额、一个箭头，以及折算成“费用”所显示货币后的金额。“费用”标签页上的所有合计、余额和结算都以第二个金额为准。',
   'help.guide.expense-currency.result':
     '支出会保留你输入的金额和货币。账本中两者都会显示，而旅行的合计和余额则按旅行的货币计算。',
   'help.guide.expense-currency.tip.1':
     '汇率在你保存时就固定下来，所以已结清的欠款不会因为下一周汇率变动而改变。只有修改这笔支出的货币时，才会保存新的汇率。',
   'help.guide.expense-currency.tip.2':
-    '“设置”中的“显示货币”只改变金额的显示方式，已保存的金额不会改变。如果留空，每个旅行都按它自己的货币显示。',
+    '“设置”中的“显示货币”，以及单个旅行“费用”栏里的货币选择器，只改变金额的显示方式，已保存的金额不会改变。如果“显示货币”留空，每个旅行都按它自己的货币显示。',
   'help.guide.expense-currency.tip.3':
     '行程货币在旅行本身中设置，位于“编辑旅行”下，需要“编辑旅行详情”权限。更改后，所有已固定的汇率都会按新货币重新计算，而金额本身不会被换算。',
   // filter-costs
@@ -3294,6 +3481,80 @@ const help: TranslationStrings = {
     '按“自定义金额”或“按账单明细”分摊的支出没有统一的人均份额，所以它的“人均”和“人日均”保持为空。',
   'help.guide.costs-table.tip.3':
     '付款人、分摊、备注和收据需要在支出详情中编辑：行末的“更多选项”里有“编辑”，以及用来删除这一行的“删除”。',
+  'help.guide.costs-show-in.title': '用另一种货币显示费用',
+  'help.guide.costs-show-in.goal':
+    '用另一种货币查看一次旅行的费用，例如你接下来要去的国家的货币，而不改变任何已保存的内容。',
+  'help.guide.costs-show-in.step.1':
+    '栏中“导出 CSV”和“列表”/“表格”切换之间的货币选择器，显示当前查看金额所用的货币。指向它，会显示“金额显示币种”。',
+  'help.guide.costs-show-in.step.2':
+    '点击它。你的显示货币和旅行本身的货币排在列表顶部，你还可以输入三个字母搜索其他所有货币。选择一种货币。',
+  'help.guide.costs-show-in.step.3':
+    '卡片、账本的每一行和右侧一栏现在都以该货币显示，按今天的汇率换算。“结算”给出的转账金额也使用它。',
+  'help.guide.costs-show-in.step.4':
+    '要回到原来的显示，再次打开选择器，选择列表中的第一项：你的显示货币；如果你没有在“设置”中设置，则是旅行本身的货币。',
+  'help.guide.costs-show-in.result': '整个“费用”标签页都以你选的货币显示这次旅行。各笔支出保持输入时的金额和货币。',
+  'help.guide.costs-show-in.tip.1':
+    '这个选择只保存在这个浏览器中，仅对这次旅行有效。其他旅行、其他设备和其他旅伴保留各自的视图。',
+  'help.guide.costs-show-in.tip.2':
+    '“设置”中的显示货币保持不变。你在栏里再次选中它之后，“设置”中以后的更改会重新应用到这次旅行。',
+  'help.guide.costs-show-in.tip.3': '无论金额以什么货币显示，新支出仍以旅行本身的货币开始。',
+  'help.guide.leave-out-category.title': '把某个分类排除在合计之外',
+  'help.guide.leave-out-category.goal': '看看不含某一类花费时旅行花了多少，例如不含机票。',
+  'help.guide.leave-out-category.step.1':
+    '右侧一栏末尾的“按分类”按花费用途给钱排名。顶部的一行说明点击会发生什么：选择一个类别即可将其排除在合计之外。',
+  'help.guide.leave-out-category.step.2':
+    '点击一个分类。它的行保持原位，变暗并加上删除线，其他条形重新按比例缩放，顶部的一行现在写明排除了什么，旁边是“全部计入”。',
+  'help.guide.leave-out-category.step.3':
+    '“行程总支出”会排除该分类，其下的“你的份额”和“你已支付”也一样。卡片同样会写明排除了什么。',
+  'help.guide.leave-out-category.step.4': '点击“全部计入”，或再次点击变暗的那一行，每个分类就又都计入了。',
+  'help.guide.leave-out-category.result': '合计显示不含你排除的分类的旅行，直到你把它们重新计入。',
+  'help.guide.leave-out-category.tip.1': '这只是一种视图。不会保存任何内容，离开“费用”标签页后选择就没了。',
+  'help.guide.leave-out-category.tip.2':
+    '欠款保持完整：“你欠款”“别人欠你”“未结算金额”“结算”和“余额”仍然计入每一个分类。',
+  'help.guide.leave-out-category.tip.3': '你可以同时排除多个分类。每次点击一行只切换那一个。',
+  'help.guide.split-by-shares.title': '按晚数或份数分摊账单',
+  'help.guide.split-by-shares.goal': '按某个比例分摊一笔支出，比如每位旅伴住的晚数，而不用自己计算金额。',
+  'help.guide.split-by-shares.step.1': '点击这一行旁边的铅笔打开支出，然后点击“分摊”旁边切换器中的“自定义金额”。',
+  'help.guide.split-by-shares.step.2':
+    '在其下提示文字旁边，有一个小切换器，用来选择分摊的输入方式：货币符号表示金额，% 表示百分比，或“份数”。点击“份数”。',
+  'help.guide.split-by-shares.step.3':
+    '每位已勾选的旅伴都有一个从 1 开始的输入框。输入每个人的份数，例如他们住了几晚。每个输入框下方，对应的金额会随着你的输入而更新。',
+  'help.guide.split-by-shares.step.4': '列表下方的徽章显示“分摊金额与总额相符”。点击对话框底部的“保存”。',
+  'help.guide.split-by-shares.result': '支出会按份数的比例分摊，精确到分，它的行会在“分摊”下显示每位旅伴的部分。',
+  'help.guide.split-by-shares.tip.1':
+    '份数为 0 的人，不需要为这笔支出付款。如果没有人有份数，对话框会提示“请至少为一人设定份数”，并且不会保存。',
+  'help.guide.split-by-shares.tip.2': '只保存金额，所以支出重新打开时显示的是金额。再次切换到“份数”，就能修改比例。',
+  'help.guide.split-by-shares.tip.3': '百分比的用法相同：选择 %，各百分比合计必须为 100 %。',
+  'help.guide.link-receipt-file.title': '把旅行文件当作收据',
+  'help.guide.link-receipt-file.goal':
+    '把旅行中已有的文档放到一笔支出上，例如同时也是发票的凭证或确认单，而不用再次上传。',
+  'help.guide.link-receipt-file.step.1': '点击这笔支出那一行旁边的铅笔。编辑器打开，靠近底部有“收据与发票”。',
+  'help.guide.link-receipt-file.step.2':
+    '点击“附加”旁边的链接图标。只要旅行里有尚未挂在这笔支出上的图片或 PDF，它就会出现。列表在标题下方展开，这笔支出所属预订的文件排在最前。',
+  'help.guide.link-receipt-file.step.3': '点击文件。列表关闭，文件列在“收据与发票”下，旁边有垃圾桶可以再把它移开。',
+  'help.guide.link-receipt-file.step.4':
+    '点击对话框底部的“保存”。这一行的名称旁边现在有一个“收据”标签，点击可以打开文件。',
+  'help.guide.link-receipt-file.result':
+    '这笔支出把该文件作为收据。没有上传任何东西：它和“文件”中的是同一个文件，并保留它的其他关联。',
+  'help.guide.link-receipt-file.tip.1': '收据旁边的垃圾桶只会把它从支出上移开。文件仍保留在“文件”中。',
+  'help.guide.link-receipt-file.tip.2': '只提供图片和 PDF，与“附加”接受的类型相同，回收站里的文件不会列出。',
+  'help.guide.costs-totals-only.title': '只保留旅行的总额',
+  'help.guide.costs-totals-only.goal':
+    '只记录旅行花了多少钱，而不记录谁付款、谁欠谁以及结算，例如你们本来就是一起承担所有费用的时候。',
+  'help.guide.costs-totals-only.step.1':
+    '“在旅伴之间分摊费用”是右侧一栏底部的开关。它默认开启，名称下方的一行说明了它的作用。',
+  'help.guide.costs-totals-only.step.2':
+    '把它关闭。欠款和被欠款的卡片、“结算”“余额”和“最终花费”都会消失，每一行的付款人和分摊也一样。“行程总支出”保留，下方显示支出笔数。',
+  'help.guide.costs-totals-only.step.3':
+    '“添加支出”现在打开的编辑器没有“谁支付的？”和“分摊”：名称、分类、金额、货币和日期，就是一笔支出所需的全部。',
+  'help.guide.costs-totals-only.step.4': '想分摊时随时把开关再打开。之前记录的付款人、分摊和付款都会恢复原样。',
+  'help.guide.costs-totals-only.result': '“费用”显示旅行的支出，按天、按分类和在表格中，没有任何谁欠谁的内容。',
+  'help.guide.costs-totals-only.tip.1':
+    '这个设置属于旅行，所以每位旅伴看到的“费用”都一样。只有有权编辑费用的人才能看到这个开关。',
+  'help.guide.costs-totals-only.tip.2':
+    '开关关闭时添加的支出，保存时没有付款人和分摊，所以以后再开启分摊时，它不会变成欠款。',
+  'help.guide.costs-totals-only.tip.3':
+    '在只有你一个人的旅行中，没有什么可分摊的，所以“费用”只显示总额，也不显示这个开关。',
 
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': '交通',
@@ -3306,11 +3567,11 @@ const help: TranslationStrings = {
   'help.ctx.trip-transports.bullet.3':
     '“卡片”是打开这个标签页时的默认视图：先是“已确认”，然后是“待确认”，点击各区标题可以折叠。规划好的公共交通换乘没有状态，会按时间顺序排在已确认的行程之间，除非你在“视图选项”里为它们单独设一个区，叫“自动公共交通”。“列表”按天分组，“时间线”把每段行程铺在旅行的各天上。',
   'help.ctx.trip-transports.bullet.4':
-    '卡片顶部的色带按状态着色：已确认为绿色，待确认为琥珀色，规划好的换乘为蓝色。色带上有状态圆点、类型、标题、铅笔和垃圾桶。下面是“日期”“时间”“预订码”“路线”，以及航空公司和航班号，或车次、站台和座位。点击卡片即可打开详情。',
+    '卡片顶部的色带按状态着色：已确认为绿色，待确认为琥珀色，规划好的换乘为蓝色。色带上有状态圆点、类型、标题、铅笔和垃圾桶。下面是“日期”“时间”“预订码”“路线”，以及航空公司和航班号，或车次、站台和座位。航班在起飞前后还会显示实时的“状态”。点击卡片即可打开详情。',
   'help.ctx.trip-transports.bullet.5':
     '也可以直接在计划中创建交通：点击当天标题栏中的 +（提示为“添加到当天”），或右键点击标题栏，会看到“添加交通”和“公共交通”。两个站点之间的行程时间连接线，则会针对这一段打开同样的搜索。',
   'help.ctx.trip-transports.bullet.6':
-    '两端都已设置的交通会在地图上画出一条线。日程里该交通那一行上的路线图标，以及它详情中的“在地图上”，都可以打开这条线。天数上方工具栏里的“显示所有预订路线”则一次打开或关闭整个旅行的线路。',
+    '两端都已设置的交通会在地图上画出一条线。日程里该交通那一行上的路线图标，以及它详情底部的“地图”，都可以打开这条线。天数上方工具栏里的“显示所有预订路线”则一次打开或关闭整个旅行的线路。',
   // transports-list
   'help.guide.transports-list.title': '看懂“交通”标签页',
   'help.guide.transports-list.goal': '在修改之前，先弄清楚这个列表显示的是什么。',
@@ -3323,7 +3584,7 @@ const help: TranslationStrings = {
   'help.guide.transports-list.step.4':
     '每张卡片都显示全部详细信息。顶部色带在“已确认”时为绿色，“待确认”时为琥珀色，上面有状态圆点、类型和标题。下面的“日期”显示它跨越的日子和具体日期，接着是“时间”“预订码”、在各站之间带有类型图标的“路线”，以及航空公司和航班号，或者车次、站台和座位。点击卡片即可打开详情。',
   'help.guide.transports-list.step.5':
-    '点击状态圆点，可以在“待确认”和“已确认”之间切换，悬停提示会说明切换方向，例如“设为待确认”。标题栏中的铅笔图标打开交通表单，垃圾桶在你回答“删除预订？”后将其删除，该提示会列出将被删除的内容，包括关联的费用。',
+    '点击状态圆点，可以在“待确认”和“已确认”之间切换，悬停提示会说明切换方向，例如“设为待确认”。标题栏中的铅笔图标打开交通表单，垃圾桶在你回答“删除预订？”后将其删除，该提示会写明是哪一段交通，并在关联的费用会一并删除时告诉你。',
   'help.guide.transports-list.result': '每张卡片都会显示这趟行程是否已订好，你也可以随时用工具栏来筛选或排序列表。',
   'help.guide.transports-list.tip.1':
     '这个标签页会记住你的设置：视图、分组和排序记在当前浏览器里，各次旅行折叠的区块也会分别记住，筛选条件则保留到你关闭这个浏览器标签页为止。',
@@ -3355,7 +3616,7 @@ const help: TranslationStrings = {
   'help.guide.import-transport-file.title': '从电子票导入航班',
   'help.guide.import-transport-file.goal': '让 TREK 从承运方发来的票据中读取航班、火车或渡轮信息，保存前再由你核对。',
   'help.guide.import-transport-file.step.1':
-    '在“交通”标签页的工具栏中，点击“交通”前面的下载图标，其提示文字是“导入预订确认”。同名对话框随即打开，与“预订”标签页中的相同。标签页为空时，中间的“从文件导入”作用一样。',
+    '在“交通”标签页的工具栏中，点击“交通”前面的上传图标，其提示文字是“导入预订确认”。同名对话框随即打开，与“预订”标签页中的相同。标签页为空时，中间的“从文件导入”作用一样。',
   'help.guide.import-transport-file.step.2':
     '把票据拖到框上，或点击框后选文件：支持 EML、PDF、PKPass、HTML 和 TXT，最多五个文件，每个不超过 10 MB；如果你的服务器有可读取照片的 AI 模型，还支持票据照片（JPG、PNG、WEBP）。框里会显示你所选文件的名称。',
   'help.guide.import-transport-file.step.3': '点击“导入”。对话框会立即关闭，文件在后台读取。',
@@ -3515,7 +3776,8 @@ const help: TranslationStrings = {
     '左栏显示驾驶行程，地图显示它的每一天。点击“天”可以直接切回计划，计划不会有任何变化。',
   'help.guide.roadtrip-mode.tip.1':
     '这个选择按旅行保存在你的账号里，所以刷新页面、换浏览器或换设备后，旅行依然以公路旅行视图打开。',
-  'help.guide.roadtrip-mode.tip.2': '只有管理员在管理后台的“扩展”中开启“公路旅行”扩展之后，才会显示这个切换。',
+  'help.guide.roadtrip-mode.tip.2':
+    '只有“公路旅行”扩展对这个旅行开启时才会显示这个切换。管理员在管理后台的“扩展”中为所有旅行开启它，旅行的所有者也可以在“旅行设置”的“附加组件”中，只为这个旅行开启或关闭它。',
   'help.guide.roadtrip-mode.tip.3': '手机上没有这个切换：该扩展会在“计划”旁边增加一个单独的“公路旅行”标签页。',
   // roadtrip-stops
   'help.guide.roadtrip-stops.title': '途中的停靠，以及停留多久',
@@ -3533,7 +3795,8 @@ const help: TranslationStrings = {
     '用滑块、减号和加号按钮，或者某个预设值来设置时长。“出发”会随之变化，而“到达”保持在驾驶抵达的时间。然后点击“保存”。',
   'help.guide.roadtrip-stops.result':
     '你修改过的停靠点，其“停留”标记会显示新的时长，之后每个到达时间也会相应顺延。如果把一个停靠点改成了某个类型又改了回来，它会重新成为带编号的目的地。',
-  'help.guide.roadtrip-stops.tip.1': '停留时长属于地点，而不是某一次到访：同一个地点安排在两天，两天的停留时长相同。',
+  'help.guide.roadtrip-stops.tip.1':
+    '停留时长属于这一次到访：同一个地点安排在两天，每天各有自己的停留时长，改其中一个不会影响另一个。',
   'help.guide.roadtrip-stops.tip.2':
     '途中停靠点也会显示在“天”下。在“驾驶设置”的“服务停靠点”里关闭“也显示于每日行程”，它们就只显示在“公路旅行”中。',
   'help.guide.roadtrip-stops.tip.3': '同一个对话框里的“不停留”会再次去掉停留时长。',
@@ -3633,7 +3896,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.step.1':
     '设置续航后，侧栏会在燃油或电量耗尽的路段上显示一条带：“此处将耗尽油量”，电动车则显示“电量将在此耗尽”。下方显示这个位置在该路段中走了多远。',
   'help.guide.roadtrip-refuel.step.2':
-    '带上的灯形图标就是按钮：“查找加油站”，电动车则是“查找充电站”。它会沿着该点之前的道路搜索，搜索期间显示“正在沿路线查找…”。',
+    '色带末端闪烁的加油泵图标（电动车则是闪电）就是按钮：“查找加油站”，电动车则是“查找充电站”。它会沿着该点之前的道路搜索，搜索期间显示“正在沿路线查找…”。',
   'help.guide.roadtrip-refuel.step.3': '最多显示三个加油站，每个都标明离路线多远，以及到达时还剩多少续航。',
   'help.guide.roadtrip-refuel.step.4':
     '候选项上的加号会把它添加为加油停靠点。“添加为停靠点”打开时，类型和时间已经填好，点击“添加”会把它放到路段上路线实际经过它的位置。',
@@ -3644,7 +3907,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.tip.2':
     '搜索只查看燃料耗尽点之前的路段，会预留余量，并把绕行距离按往返两次计算，所以提供的每个地点都确实能到达。',
   'help.guide.roadtrip-refuel.tip.3':
-    '如果没有结果，可以再搜索一次：提示灯会变成“重试”，因为地点搜索是共享服务，偶尔会超时。',
+    '如果没有结果，可以再搜索一次：加油泵会变成“重试”，因为地点搜索是共享服务，偶尔会超时。',
   // roadtrip-track
   'help.guide.roadtrip-track.title': '让某一天沿着导入的轨迹行驶',
   'help.guide.roadtrip-track.goal': '把你以 GPX 或 KML 轨迹导入的风景路线，用作某一天的驾驶路线。',
@@ -3681,7 +3944,7 @@ const help: TranslationStrings = {
   'help.guide.tour-collection-add-to-trip.step.3':
     '在“路点”下，选择带路点的图块，会按顺序带入起点、途经点和终点；选择“仅线路”则只带入保存的线路。',
   'help.guide.tour-collection-manage.step.1':
-    '打开一个列表。每条保存的路线都会显示难度、类型、保存自哪个旅行、距离和爬升，以及路点数量。把鼠标移到旅行名称上，可以看到是谁保存的。',
+    '打开一个列表。每条保存的路线都会显示难度或类型、保存自哪个旅行、用时、距离和爬升，以及路点数量。把鼠标移到旅行名称上，可以看到是谁保存的。',
   'help.guide.entry-draft.step.1': '在编辑器中，打开右侧栏的“草稿”开关。',
   'help.guide.journey-map-layers.step.3':
     '点击地图上的空心图钉或小圆点。卡片会告诉你它是什么：计划中的地点及其日期，或者一条停留记录，其中的“打开日记”会带你到它所属的当日记述。',
@@ -3707,16 +3970,16 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.tip.2': '“通知”下的插件渠道有一个“去配置”按钮，点击就会打开这个页面。',
   'help.guide.default-user-settings.result': '新账户，以及从未改过这些设置的所有人，都会使用你选的设置。',
   'help.guide.own-routing-engine.goal':
-    '让每日路线和公路旅行改走你自己运行的 OSRM 或 Valhalla 服务器，而不是公共服务器。',
+    '让每日路线、公路旅行和游览路线改走你自己运行的 OSRM 或 Valhalla 服务器，而不是 TREK 服务或公共服务器。',
   'help.guide.admin-passkeys.tip.1':
-    '如果 TREK 还无法确定域名，会显示警告，在你设置 APP_URL 或 Relying Party ID 之前，通行密钥会一直隐藏。',
-  'help.guide.rotate-jwt-secret.step.1': '在“设置”标签页底部的“危险区域”中，点击“轮换 JWT 密钥”旁边的“轮换”。',
+    '如果 TREK 还无法确定域名，开关下方会显示警告，在你设置 APP_URL 或 Relying Party ID 之前，通行密钥会一直隐藏。',
+  'help.guide.rotate-jwt-secret.step.1': '在“安全”标签页右下角的“危险区域”中，点击“轮换 JWT 密钥”旁边的“轮换”。',
   'help.guide.storage-backends.tip.3': 'TREK 可以重新下载照片缓存，所以镜像它们通常是浪费存储空间。',
   'help.guide.admin-channels.step.3':
-    '在下方的“通知”卡片中，为每个事件选择由哪些渠道发送：“有新版本可用”“存储副本故障”和“划桨区域申请”。每个开关都会立即保存。',
+    '在同一张卡片的下方，为每个事件选择由哪些渠道发送：“有新版本可用”“存储副本故障”和“划桨区域申请”。每个开关都会立即保存。',
   'help.guide.notification-defaults.tip.1': '“关闭”是默认值，每位用户仍可自行开启；“封锁”则对所有人关闭。',
   'help.ctx.notifications.bullet.4':
-    '每条通知时间旁边的“标为已读”（双勾）和“删除”（垃圾桶）只作用于这一条。顶部的“全部标为已读”和“全部删除”作用于整个列表。',
+    '把鼠标指向某条通知，它的时间会换成“标为已读”（双勾）或“标为未读”（信封），以及“删除”（垃圾桶）。顶部的“全部标为已读”和“全部删除”作用于整个列表。',
   'help.guide.read-notifications.tip.2': '没有按钮的通知只是提示信息。在面板中阅读，并在那里标为已读即可。',
   'help.guide.filter-notifications.result': '列表只显示仍未读的通知，最新的在前。',
   'help.guide.delete-notifications.title': '删除通知',
@@ -3743,14 +4006,33 @@ const help: TranslationStrings = {
     '在“交通”标签页中点击一张卡片。详情会盖在标签页上方，标题栏的颜色与卡片一致。当天计划中的交通行也会打开同样的详情。',
   'help.guide.export-transports-csv.tip.2':
     '“预订”标签页有同样的图标，导出的是它自己的文件，文件名以 bookings.csv 结尾。',
+  'help.guide.flight-live-status.title': '实时跟踪航班',
+  'help.guide.flight-live-status.goal': '无需账户和密钥，就能看到你的航班在哪里、是否晚点、几点降落。',
+  'help.guide.flight-live-status.step.1':
+    '从起飞前三小时起，“交通”标签页上航班的卡片会出现“状态”字段：“计划中”“准备起飞”“飞行中”（附带距离降落的时间），或“已降落”。延误会在旁边以琥珀色或红色显示，航班在空中时，字段下方的细条会逐渐填满。',
+  'help.guide.flight-live-status.step.2':
+    '点击卡片。预订顶部的实时卡片会显示航班的进展、接下来会发生什么（例如“11小时50分后降落”），以及右侧的延误（例如“+25分”）。',
+  'help.guide.flight-live-status.step.3':
+    '其下的“出发”和“到达”以代码和城市显示两个机场，并带有一张小地图，显示航线和正在途中的飞机。每个时间块显示当前有效的时间；与计划不同时，计划时间会以删除线显示在旁边。',
+  'help.guide.flight-live-status.step.4':
+    '航班在空中时，接着会显示“高度”“速度”和“剩余”（使用你设置中的单位），然后是“飞机”的型号和注册号。',
+  'help.guide.flight-live-status.step.5':
+    '在“计划”中，航班所在那一天的行里，时间下方有一行说明同样的内容，延误显示在旁边。',
+  'help.guide.flight-live-status.result':
+    '你一眼就能看出航班是否准点、几点降落：在它的卡片上、在它的预订里，以及在每日计划中。',
+  'help.guide.flight-live-status.tip.1':
+    '位置来自开放的 ADS-B 数据（adsb.lol，大多数安装中还有 adsb.fi），无需密钥和账户。发送给它们的只有航班的呼号。管理员可以在管理区域的“扩展”中，“旅行”卡片里的“实时跟踪已预订的航班”处开启或关闭这个功能。',
+  'help.guide.flight-live-status.tip.2':
+    '开放数据只知道飞机在哪里。登机口、航站楼和行李转盘不在其中，如有需要请自行添加到预订里。延误和到达时间是根据位置推算的估计值。',
+  'help.guide.flight-live-status.tip.3':
+    'TREK 需要航班号和两个机场才能跟踪航班。如果航空公司使用另一个呼号飞行，或者是代码共享航班，可能找不到；这时它的预订只保留普通的时间。',
   'help.guide.group-sort-bookings.step.2':
     '在“分组依据”下选择“状态”“日期”“类型”或“不分组”。标签页会立即按这些分区重新整理。',
   'help.guide.export-bookings-csv.result':
     '浏览器会下载一个以旅行和标签页命名的文件，例如 autumn-in-japan-bookings.csv，标签页显示的每个预订各占一行。',
   'help.guide.arrange-packing-list.result':
     '清单按你拖动后的顺序排列，物品按名称排序，直到你关闭排序为止。TREK 仍会保存你自己的顺序。',
-  'help.guide.count-packed-pieces.step.2':
-    '数量前会出现一个计数器，如 0/5，带减号和加号。每有一件放进包里，就点一次加号。',
+  'help.guide.count-packed-pieces.step.2': '在“数量”中输入要带的数量，例如 5，或点击加号直到显示该数字。',
   'help.guide.expense-receipts.step.4':
     '回到账本，这一行的名称旁边有“收据”标签，有多张时括号里显示数量。点击它即可打开收据。',
   'help.guide.final-budget.tip.3': '已离开旅行的人，只要还有款项没有结清，就会在“余额”和“最终花费”中保留一行。',
@@ -3989,7 +4271,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3': '卡片下方的“恢复默认”会把整个“外观”标签页恢复为初始设置。',
   'help.guide.web-push-device.result': '卡片显示“已为此设备开启”，在“推送”下开启的事件，即使 TREK 没有打开也会送达。',
   'help.guide.connect-airtrail.step.1':
-    '在“集成”下找到 AirTrail，输入它的“实例 URL”和一个 API 密钥。密钥在 AirTrail 的“设置”、“安全”中创建。',
+    '在“集成”下找到 AirTrail，输入它的“实例 URL”和一个 API 密钥。密钥在 AirTrail 的“设置”、“安全”中创建。若在 AirTrail 3.13 或更高版本中创建密钥，读取需要范围 flight.read.own。若要将更改写回，还需要 flight.update.own、flight.passengers.manage.own、reference_data.read 和 profile.read。',
   'help.guide.connect-dawarich.step.1':
     '在“集成”下找到 Dawarich，输入它的“实例地址”，以及在 Dawarich 的“账户”、“API 密钥”中获取的 API 密钥。',
   'help.guide.tour-connect-wanderer.step.1':
@@ -3999,7 +4281,7 @@ const help: TranslationStrings = {
   'help.guide.offline-conflicts.tip.2': '这个选择只对这台设备有效。',
   'help.guide.default-user-settings.tip.1': '用户在“设置”中自己的选择始终优先；这些默认值适用于所有没改过该设置的人。',
   'help.guide.own-routing-engine.step.1':
-    '在“用户默认设置”的“地图”下，于“自建路径规划服务”中输入你的 OSRM 服务器地址。',
+    '在“默认值”标签页中，“路线服务”卡片决定由谁来计算路线。在“路线服务”下选择“自动”“TREK 服务”“公共 Valhalla（FOSSGIS）”或“自建 Valhalla 实例”。选择会立即保存。',
   'help.guide.admin-passkeys.tip.2': '如果之后更改了域名，用户已添加的所有通行密钥都会失效。',
   'help.guide.instance-keys.tip.4': '高德地图的密钥必须是 Web 服务 (web service) 密钥，不能是 JS API 密钥。',
   'help.guide.rotate-jwt-secret.step.2': '阅读警告，然后点击“轮换并退出登录”。',
@@ -4020,7 +4302,7 @@ const help: TranslationStrings = {
   'help.guide.leave-stop-off-route.step.1': '右键点击该站点，或点击它的三个点，选择“从路线中排除”。',
   'help.guide.move-booking-day.step.3': '这一行现在出现在新的日期，保持它自己的时间。如果时间也要改，请打开这个预订。',
   'help.guide.place-image-from-file.goal': '把地点文件里已有的一张照片设为它的图片，不用重新上传。',
-  'help.guide.place-image-from-file.tip.3': '只有有权修改地点的旅伴才能更换图片。',
+  'help.guide.place-image-from-file.tip.3': '只有有权修改地点的旅伴才能更换图片。图块下方的“移除图片”可以再次移除它。',
   'help.guide.place-own-hours.result':
     '卡片显示你填的电话、电子邮件和营业时间，图片周围的圆环按你填的营业时间显示为绿色或红色。',
   'help.guide.confirm-stay-booking.step.4': '点击预订右上角的 X 关闭它。在“预订”下，住宿卡片现在显示“已确认”。',
@@ -4038,7 +4320,7 @@ const help: TranslationStrings = {
     '各列依次为类型、标题、状态、开始、结束、出发地、到达地、地点、确认号和笔记。',
   'help.guide.arrange-packing-list.tip.1': '开启“按名称”排序时，物品不能拖动，但整个清单仍然可以拖动。',
   'help.guide.count-packed-pieces.step.3':
-    '只打包了一部分时，计数器使用你的强调色，勾选框也带有同色轮廓。点击减号可以从计数中减去一件。',
+    '其下会出现“已打包”：0/5，带减号和加号。每有一件放进包里，就点一次加号；点减号可从计数中减去一件。',
   'help.guide.expense-receipts.step.5':
     '预览显示收据，顶部有“在新标签页中打开”和“下载”。有多张收据时，可以用方向键在它们之间切换，按 Esc 键关闭预览。',
   'help.guide.files-sync-settings.step.3': '点击流程栏下方的“设置”，显示其余选项。',
@@ -4073,10 +4355,27 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.title': '路线详情',
   'help.guide.tour-detail-read.goal': '查看旅行中关于一条路线的全部信息：日期、距离和高度、剖面以及来源。',
   'help.guide.tour-detail-read.tip.1':
-    '琥珀色的“谨慎使用”标签表示导入的数据中高度或测量值不完整。看爬升和剖面时请记住这一点。',
+    '琥珀色的“请谨慎使用”标签表示导入的数据中高度或测量值不完整。看爬升和剖面时请记住这一点。',
   'help.guide.tour-rename-colour.step.1': '打开路线的卡片，点击名称旁的铅笔图标。名称会变成输入框。',
   'help.guide.tour-take-along.goal': '导航到路线起点，在网页上打开路线页面，或把路线下载为 GPX 文件。',
   'help.guide.tour-take-along.result': '你的地图应用里有了前往起点的导航，同时也有了整条路线的 GPX 文件。',
+  'help.guide.tour-route-in-app.title': '在地图应用中沿着路线走',
+  'help.guide.tour-route-in-app.goal':
+    '在 Google 地图、Apple 地图或 CoMaps 中打开徒步、散步、跑步或骑行路线的完整路线，在路上获得导航。',
+  'help.guide.tour-route-in-app.step.1':
+    '在右侧一栏顶部，从“地点”切换到“游览”，然后点击路线。它的卡片会在地图上方打开。',
+  'help.guide.tour-route-in-app.step.2':
+    '点击卡片底部的“地图”，即“在地图应用中打开路线”。它位于只通往起点的“导航”旁边。',
+  'help.guide.tour-route-in-app.step.3':
+    '选择应用。它会在新标签页或应用中打开，徒步、散步和跑步按步行路线，骑行则按自行车路线。',
+  'help.guide.tour-route-in-app.result': '你的地图应用会沿着游览路线为你导航。',
+  'help.guide.tour-route-in-app.tip.1':
+    '应用会获得沿路线分布的最多十个点，其中包括起点和终点，并自己规划它们之间的路。在小路上，它规划的路线可能与你的线路不同，所以请带上 GPX 文件以获得精确路线。',
+  'help.guide.tour-route-in-app.tip.2':
+    '滑雪、划桨或骑马路线没有“地图”按钮：地图应用会让它们沿着公路走。请以 GPX 文件的形式带上它们。',
+  'help.guide.tour-route-in-app.tip.3':
+    'Android 上不提供 Apple 地图。CoMaps 只接受起点和终点，所以只有路线只需要这两点时才会提供。',
+  'help.guide.tour-route-in-app.tip.4': '只要路线有了线路，“地图”就会出现，对只能阅读旅行的成员也是如此。',
   'help.guide.tour-copy-keep.tip.2':
     '当天计划中路线菜单里的“保存到收藏”会打开同一个对话框，所以路线也会一并保存到那里。',
   'help.guide.tour-packing-link.step.3': '点击“链接”。',
@@ -4156,7 +4455,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ferrata-add.tip.4':
     '卡片上的“在 OpenStreetMap 中查看”会打开这条飞拉达自己的数据。什么都加载不出来时，徽章会变成琥珀色，原因写在悬停提示里。',
   'help.guide.tour-run-plan.result':
-    '这次跑步会列在“本次旅行的游览活动”下，带有“跑步时间（计划）”，它的配置和配速也会一并保存。',
+    '这次跑步会列在“本次旅行的游览活动”下，带有“跑步时间”，它的配置和配速也会一并保存。',
   'help.guide.tour-run-ways.step.2': '卡片顶部现在显示这次跑步有多少是未铺装路面，以及路线上难度最高的小径。',
   'help.ctx.trip-tour-walk.bullet.2':
     '“路点”按顺序列出站点。站点编号外的圆环表示“必去”（实线）或“可选”（虚线），小盾牌表示“受保护”，名称下方的标签显示停留多久。',
@@ -4197,7 +4496,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.4': '在“水域”下选择“河流”或“湖泊”。船和水域类型都选好之前，无法保存路线。',
   'help.guide.tour-paddle-setup.result': '一条新的划桨路线，已设好船、水域和速度，可以在地图上添加第一个点了。',
   'help.guide.tour-paddle-water-route.tip.1':
-    '水域数据缺失时，TREK 会根据实例的配置，自动下载该区域的数据，或向管理员申请。这一段随后会显示“正在加载水域数据”，数据就绪后自动规划，通常在一到三分钟内。',
+    '水域数据缺失时，TREK 会根据实例的配置，自动下载该区域的数据，或向管理员申请。管理员在管理区域“扩展”标签页上“游览”下的“划桨水域数据”一行中添加区域。这一段随后会显示“正在加载水域数据”，数据就绪后自动规划，通常在一到三分钟内。',
   'help.guide.tour-paddle-portage.step.2': '选择“从这里开始陆上搬运”。到下一个点的这一段会变成陆上搬运，画在陆地上。',
   'help.guide.tour-paddle-lock.title': '添加船闸及其等待时间',
   'help.guide.tour-paddle-lock.tip.3': '“移除船闸”位于打开的卡片底部，也在“更多操作”中。',
@@ -4261,14 +4560,15 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.step.1': '在 wanderer 卡片中，打开“检查我的路线是否有变化”。需要先保存好连接。',
   'help.guide.plugin-settings.title': '为自己设置插件',
   'help.guide.default-user-settings.tip.2': '“显示货币”只是换算后显示金额，在“费用”中录入的金额保持不变。',
-  'help.guide.own-routing-engine.step.2':
-    '如果要让路线避开收费路段、高速公路或渡轮，在“自建 Valhalla 实例”下输入你的 Valhalla 地址。每个字段在你离开时自动保存；然后重启 TREK 服务器并刷新页面。',
+  'help.guide.own-routing-engine.step.2': '在“自建路径规划服务”下，输入你的 OSRM 服务器地址。',
+  'help.guide.own-routing-engine.step.3':
+    '在“自建 Valhalla 实例”下，输入你的 Valhalla 地址，并把“路线服务”选为“自建 Valhalla 实例”。每个字段在你离开时自动保存；然后重启 TREK 服务器并刷新页面。',
   'help.guide.admin-passkeys.tip.3': '如果用户丢失了保存通行密钥的设备，可以在“编辑用户”中用“重置通行密钥”把它们移除。',
   'help.guide.rotate-jwt-secret.result': '新的签名密钥已生效，包括你在内的所有用户都必须重新登录。',
   'help.guide.read-notifications.title': '阅读你的通知',
   'help.guide.filter-notifications.title': '查看所有通知，或只看未读的',
   'help.guide.mark-notifications-read.goal': '看过新内容之后，去掉铃铛上的高亮和数字。',
-  'help.guide.delete-notifications.step.1': '点击“删除”，即通知时间旁的垃圾桶，只删除这一条。',
+  'help.guide.delete-notifications.step.1': '把鼠标指向某条通知，点击“删除”，即取代时间位置的垃圾桶，只删除这一条。',
   'help.guide.notification-settings.step.2': '在菜单中点击“设置”。',
   'help.guide.public-link.tip.3': '把鼠标移到某个选项上，可以看到它会隐藏什么内容。',
   'help.guide.link-journal.step.4': '阅读黄色提示：它会写明谁将第一次获得这本日志。然后点击“关联日志”。',
@@ -4299,7 +4599,8 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2': '各列用分号分隔，用 Excel 打开文件时重音符号不会乱码。',
   'help.guide.arrange-packing-list.tip.2':
     'TREK 会在这个浏览器里记住“按名称”，所以下次打开时清单同样是排好序的。它只改变你看到的顺序，不会改变其他人看到的顺序。',
-  'help.guide.count-packed-pieces.step.4': '计数器达到数量后，该物品会自动勾选，并计为已打包。',
+  'help.guide.count-packed-pieces.step.4':
+    '关闭窗口。只打包了一部分时，这一行显示计数，如 3/5，勾选框带有你的强调色轮廓。计数达到数量后，该物品会自动勾选。',
   'help.guide.expense-receipts.result': '收据随支出一起保存：点击该行上的标签即可打开，文件也在旅行的“文件”中。',
   'help.guide.files-sync-settings.step.4':
     '在“当文档被删除时”下，选择另一侧的副本如何处理。“两份副本都保留”会让文档服务中的副本留在原处。“移入回收站”则会在你于 TREK 中删除文档时，把它送到文档服务的回收站。',
@@ -4334,13 +4635,13 @@ const help: TranslationStrings = {
   'help.guide.tour-hide-on-map.goal': '把暂时不需要的路线从地图上隐藏，而不影响其他人看到的内容。',
   'help.guide.tour-import-plan-tab.goal': '规划日期的同时，把 GPX 或 KML 轨迹导入为路线。',
   'help.ctx.trip-tour-detail.summary':
-    '在“计划”标签页选择一条路线时，在地图上方打开的卡片：显示路线的日期、各项数据和剖面、来源，以及把它发送到手机、复制、保存到收藏或关联到行李清单的按钮。',
+    '在“计划”标签页选择一条路线时，在地图上方打开的卡片：显示路线的日期、各项数据和剖面、来源，以及把它发送到手机、在地图应用中打开路线、复制、保存到收藏或关联到行李清单的按钮。',
   'help.guide.tour-detail-read.step.1':
     '在右栏顶部，从“地点”切换到“游览”，然后点击一条路线。它的卡片会在地图上方打开。点击它在某一天里的那一行，或它在地图上的线条，会打开同一张卡片。',
   'help.guide.tour-detail-read.tip.2': '划桨游不显示高度，也没有剖面：它的点位于河岸上，高度会不准确。',
   'help.guide.tour-rename-colour.step.2': '输入新名称，点击圆形的勾选按钮，或按回车键。按 Esc 键则保留旧名称。',
   'help.guide.tour-take-along.step.1':
-    '打开路线的卡片。卡片底部的“导航”会在地图应用中打开路线的起点，有多个应用时会先列出这些应用。它带你到起点，而不是沿着路线走。',
+    '打开路线的卡片。卡片底部的“导航”会在地图应用中打开路线的起点，有多个应用时会先列出这些应用。它带你到起点，而不是沿着路线走；旁边的“地图”则把整条路线交给地图应用。',
   'help.guide.tour-copy-keep.title': '复制路线或把它保存到收藏',
   'help.guide.tour-copy-keep.tip.3':
     '在“游览”标签页中，左栏顶部的书签图标对当前打开的路线执行同样的操作。如果路线有未保存的更改，它会先要求你保存路线。',
@@ -4416,7 +4717,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-plan.tip.1':
     '新的徒步从 T2（“山地徒步”）开始。选择 T3 会出现警告，说明这类小路可能比较暴露，需要脚步稳健且不恐高。',
   'help.guide.tour-hike-trail-details.step.3':
-    '徽章做出汇总：路线有多少是“已知”的、“已知最高”等级，以及单独列出的、规划这次徒步时用的“路线上限”。',
+    '徽章做出汇总：路线有多少是“已知”的、其上的“已知最高”等级，以及单独列出的、规划这次徒步时用的“路线规划上限”。',
   'help.guide.tour-hike-round.goal': '让 TREK 从徒步的某个站点出发，推荐符合你想要长度的环线。',
   'help.guide.tour-hike-round.tip.2': '可输入 1 到 60 公里的距离，TREK 会提供与你输入的距离相差 20 % 以内的环线。',
   'help.guide.tour-hike-compare-ways.result':
@@ -4499,6 +4800,15 @@ const help: TranslationStrings = {
   'help.guide.tour-collection-manage.tip.1': '从列表中移除路线，不会影响你已经据此在旅行中创建的路线。',
   'help.guide.entry-draft.tip.2': '从 Dawarich 导入的一天，其条目会是草稿。分享之前请留意是否有这个徽章。',
   'help.guide.journey-map-layers.result': '地图只显示你想看的图层，每个图钉、圆点和线条的含义都可以在图例中查到。',
+  'help.guide.journey-satellite.title': '用卫星影像查看旅程',
+  'help.guide.journey-satellite.goal': '把旅程下方绘制的地图换成航拍影像，也可以换回来。',
+  'help.guide.journey-satellite.step.1': '点击地图右上角的圆形按钮“切换到卫星视图”。',
+  'help.guide.journey-satellite.step.2':
+    '你的图钉和路线现在叠在航拍影像上。按钮变为“切换到地图视图”，点击它即可回到绘制的地图。',
+  'help.guide.journey-satellite.tip.1': '分享链接里有同样的按钮，所以访客也能通过真实地貌来跟随一段徒步或一条海岸线。',
+  'help.guide.journey-satellite.tip.2':
+    '这个选择不会保存：日志和分享页面总是以绘制的地图打开。卫星影像上没有街道名称。',
+  'help.guide.journey-satellite.result': '地图重新绘制，开启的图层与之前相同。',
   'help.guide.journey-keep-route.result':
     '每日标题显示距离，路线以实线画在地图的“记录”图层上，旅程中的所有人都能看到。分享链接只有在开启“记录的路线”时才会显示它。',
   'help.guide.journey-day-stays.result':
@@ -4524,7 +4834,8 @@ const help: TranslationStrings = {
   'help.ctx.notifications.title': '通知',
   'help.guide.read-notifications.goal': '查看你不在的时候旅行中发生了什么，并直接跳转过去。',
   'help.guide.filter-notifications.goal': '浏览全部通知，或只看还没读过的。',
-  'help.guide.mark-notifications-read.step.1': '点击“标为已读”，即通知时间旁的双勾，只标记这一条。',
+  'help.guide.mark-notifications-read.step.1':
+    '把鼠标指向某条通知，点击“标为已读”，即取代时间位置的双勾，只标记这一条。',
   'help.guide.delete-notifications.step.2': '顶部的“全部删除”会在对话框要求你确认之后，一次清空整个列表。',
   'help.guide.notification-settings.step.3':
     '点击“设置”侧边栏中的“通知”。它的第一张卡片中每个事件占一行，“应用内通知”一列决定铃铛里显示什么。',
@@ -4537,7 +4848,7 @@ const help: TranslationStrings = {
   'help.guide.leave-stop-off-route.step.3': '要让它重新参与路线，打开同一个菜单，选择“重新加入路线”。',
   'help.guide.move-booking-day.tip.1': '跨多日预订中间那些日子上的淡色行不能拖动，有中转的航班的单独一段也不能拖动。',
   'help.guide.place-image-from-file.step.2':
-    '点击标题中的圆形图片。因为该地点有照片，会弹出一个小窗口，问你图片从哪里来。',
+    '点击右下角的“编辑”。在表单的“选择图片”下，附加在地点上的照片会作为图块，排在“上传图片”旁边。',
   'help.guide.place-own-hours.goal': '查到的时间有误或缺失时，把你实际核实过的营业时间放到卡片上。',
   'help.guide.place-own-hours.tip.2':
     '电话和电子邮件会以标签的形式显示在卡片标题中。点击其中一个，会交给你的手机或邮件应用打开。',
@@ -4546,6 +4857,8 @@ const help: TranslationStrings = {
   'help.guide.confirm-stay-booking.tip.1': '再点一次这个标签，预订就会回到“待确认”。',
   'help.guide.map-markers.tip.4':
     '在“设置”>“显示”的“旅行与地图”下开启“未规划地点使用紧凑标记”后，尚未安排到任何一天的地点会变成不带照片和评分的小圆点。你选中的地点始终完整显示。',
+  'help.guide.map-markers.tip.5':
+    '在使用 Standard 样式的 Mapbox GL 上，地图会自行标注商店、餐厅和景点，它们并不是你旅行里的地点。在“设置”>“地图”中打开“隐藏兴趣点”并点击“保存地图”，就只有你自己的图钉会突出显示。',
   'help.guide.tour-map-lines.step.1':
     '旅行中的每条游览路线，都会以自己颜色的线画在地图上，起点处有它的图钉。如果你给路线选了颜色，线条就用这个颜色，否则用它所属分类的颜色。',
   'help.guide.car-stops.step.6': '点击“添加”。',
@@ -4599,10 +4912,9 @@ const help: TranslationStrings = {
     '标题写明路线的名称，并用标签做了汇总：这是哪种路线、导入时的来源、计划用时、距离、爬升和下降。',
   'help.guide.tour-detail-read.tip.3':
     '有些路线会显示更多内容：城市漫步显示站点，划桨游显示检查项和风，已经完成的路线显示“实际轨迹”，关联了清单的路线显示“行李清单”。',
-  'help.guide.tour-rename-colour.step.3':
-    '点击路线圆形图块一角的彩色圆点，即“轨迹颜色”。“轨迹颜色”部分会在标题下方展开。',
+  'help.guide.tour-rename-colour.step.3': '点击路线圆形图块一角的彩色圆点，即“轨迹颜色”。一排颜色会在标题下方展开。',
   'help.guide.tour-take-along.step.2':
-    '如果路线有网页，旁边的按钮会显示网站名称（Komoot、AllTrails、Outdooractive 或 Wanderer），其他网站则显示“网站”。点击会在新标签页中打开该页面。',
+    '如果路线有网页，“地图”后面的按钮会显示网站名称（Komoot、AllTrails、Outdooractive 或 Wanderer），其他网站则显示“网站”。点击会在新标签页中打开该页面。',
   'help.guide.tour-copy-keep.goal': '在这个旅行中做一个路线的变体，或把它保存到你的某个收藏里，留给以后的旅行使用。',
   'help.guide.tour-copy-keep.tip.4':
     '只有收藏扩展开启时才有“收藏”。你只有阅读权限的列表无法选择；还没有任何列表时，对话框会提供“打开收藏”。',
@@ -4632,7 +4944,7 @@ const help: TranslationStrings = {
     '左侧导轨顶部的“游览名称”用来填写名称。新路线上，那里的灰色文字，例如“未命名的徒步活动”，只是占位提示，请输入你自己的名称。',
   'help.guide.tour-save.title': '保存路线',
   'help.guide.tour-save.tip.3':
-    '如果某个字段的值无效，例如网站不是一个有效地址，也无法“保存”。“详情”会自动展开，把它显示出来。',
+    '如果某个字段的值无效，例如网站不是一个有效地址，或者某一天的步行时间和休息加起来超过 24 小时，也无法“保存”。“详情”会自动展开，并告诉你该怎么做。',
   'help.guide.tour-edit-saved.tip.1': '对没有改动的路线，“保存”保持灰色。',
   'help.guide.tour-summary-profile.step.3':
     '沿着“海拔剖面图”移动鼠标指针。它会显示那一点的距离和高度，地图上也会有一个圆点标出同一位置。',
@@ -4694,7 +5006,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-sights.result': '这个景点成为漫步的一个站点，规划在你所选站点之间的路线上。',
   'help.guide.tour-walk-day-times.tip.2': '如果某个站点还没有设置停留时间，它之后的到达时间会显示为最早可能的时间。',
   'help.guide.tour-walk-google-import.step.3': '查看“链接中的站点”。链接里没有给出位置的站点会被标出并省略。',
-  'help.guide.tour-walk-check-off.step.1': '在“计划”标签页中，点击当天计划里的城市漫步。它的卡片会在地图旁边打开。',
+  'help.guide.tour-walk-check-off.step.1': '在“计划”标签页中，点击当天计划里的城市漫步。它的卡片会在地图上方打开。',
   'help.ctx.trip-tour-bike.title': '骑行路线',
   'help.guide.tour-bike-profile.step.1': '在“游览”标签页中，点击左侧导轨顶部的“规划新游览路线”。',
   'help.guide.tour-bike-profile.tip.2':
@@ -4745,7 +5057,18 @@ const help: TranslationStrings = {
   'help.guide.dateless-trip.tip.1':
     '确定出行时间后，点击卡片上的铅笔图标打开表单，选好日期。已规划的各天顺序不变，会按顺序依次填上日期。',
   'help.guide.trip-reminder.goal': '出发前几天收到提醒。',
-  'help.guide.upcoming-reservations.tip.2': '“待确认”表示预订尚未确认。已取消的预订和已归档的旅行不会列出。',
+  'help.guide.upcoming-reservations.tip.2':
+    '类型图标上的小字母 P 表示预订尚未确认。已取消的预订和已归档的旅行不会列出。',
+  'help.guide.travel-stats.title': '查看旅行统计',
+  'help.guide.travel-stats.goal': '看看你所有的旅行加起来去过多少个国家、走过多少次旅行、多少天和多少次飞行。',
+  'help.guide.travel-stats.step.1':
+    '看登机牌下方的“去过的国家”。它统计每个已经开始的旅行中，地点和交通预订所在的国家，并显示这些国家的国旗，最近去过的排在最前。',
+  'help.guide.travel-stats.step.2': '旁边的卡片统计你的旅行次数和其中标记的地点数、在途天数和飞行距离。',
+  'help.guide.travel-stats.result': '这一行会随着你的计划和出行自动更新，涵盖你所有的旅行，包括已归档的。',
+  'help.guide.travel-stats.tip.1':
+    '你在“足迹”中手动标记为已去过的国家，排在旅行带来的国家之后。在“足迹”中移除的国家，在这里也不会再出现。',
+  'help.guide.travel-stats.tip.2':
+    '每张卡片都可以在“设置”的“外观”的“仪表盘组件”中隐藏。四张全部关闭后，这一行就会消失。',
   'help.guide.half-company-holiday.tip.1': '当天已登记的休假会减为半天，之后再登记这一天的人也只占用 0.5 天。',
   'help.guide.edit-holiday-calendar.goal': '重命名、改颜色、移动或删除你添加的公共假日或学校假期日历。',
   'help.guide.person-color.title': '更改成员的颜色',
@@ -4774,6 +5097,23 @@ const help: TranslationStrings = {
   'help.guide.journey-auto-prepare.result': '关联的旅行进行期间，每天的停留记录会列在当天，随时可以“导入当天”。',
   'help.ctx.settings-about.title': '关于',
   'help.guide.web-push-device.tip.3': '推送需要通过 HTTPS 打开 TREK。如果通知被屏蔽，请在浏览器设置中允许后再试。',
+  'help.guide.booking-mail-address.title': '把预订邮件转发给 TREK',
+  'help.guide.booking-mail-address.goal': '获得专属的预订确认邮箱地址，让 TREK 把每个预订添加到正确的旅行中。',
+  'help.guide.booking-mail-address.step.1':
+    '在“集成”下，“预订邮件”显示“你的地址”。点击旁边的复制按钮。请像保管密码一样保管这个地址。',
+  'help.guide.booking-mail-address.step.2':
+    '手动把预订邮件（包括附件）转发到该地址，或者按“自动转发”的说明，在 Gmail 或 Outlook 中设置一条规则。',
+  'help.guide.booking-mail-address.step.3':
+    '“导入预订邮件”开启或关闭导入。“用 AI 读取”让 AI 读取没有机器可读预订数据的邮件。“自动添加”会把 TREK 有把握的预订直接放进对应的旅行。',
+  'help.guide.booking-mail-address.step.4':
+    '“待处理的预订”会打开等你处理的邮件，有待处理项时会显示数字。“上传邮件文件”读取你保存为 .eml 的邮件。',
+  'help.guide.booking-mail-address.result':
+    '你转发的邮件会进入日期和地点与预订相符的旅行，或者留在“待处理的预订”里等你核对。',
+  'help.guide.booking-mail-address.tip.1':
+    '复制按钮旁边的“新地址”会给你一个新地址。点两次；旧地址会立即失效，所以也要修改你的转发规则。',
+  'help.guide.booking-mail-address.tip.2':
+    '一个旅行可以有自己的专属地址，在它“预订”标签页的“导入预订确认”中。发到该地址的邮件无需猜测。',
+  'help.guide.booking-mail-address.tip.3': '转发的邮件最多加密保存 30 天。只有管理员开启邮件导入后，这张卡片才会出现。',
   'help.guide.connect-airtrail.result': '徽章显示“已连接”，旅行的“交通”标签页会提供“从 AirTrail 导入”。',
   'help.guide.connect-dawarich.result': '徽章显示“已连接”，行程规划、旅程日志和足迹就能使用 Dawarich 记录的内容。',
   'help.guide.tour-connect-wanderer.result':
@@ -4781,7 +5121,7 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.result':
     'TREK 会检查你导入的路线，在其中某条可能有变化时通知你。只有你接受变更，路线才会改变。',
   'help.guide.plugin-settings.step.1':
-    '在设置侧边栏中打开“插件”。“插件设置”下，每个需要你填写内容的插件都有一张带字段的卡片：填好后点击“保存”。卡片上的操作在你确认后执行。',
+    '在设置侧边栏中打开“插件”。“插件设置”下，每个为你提供设置的插件都有一张自己的卡片：填写字段并点击“保存”，或做出它显示的选择。卡片上的操作在你确认后执行。',
   'help.guide.profile.step.3': '点击卡片底部右侧的“保存资料”。',
   'help.guide.default-user-settings.title': '设置新用户的初始状态',
   'help.guide.own-routing-engine.tip.1': '公共 OSRM 服务器大约每秒只允许一个请求。规划一天够用，但公路旅行可能会偏慢。',
@@ -4790,7 +5130,7 @@ const help: TranslationStrings = {
     '如果只想让某一个人退出登录，请在“编辑用户”中给他设置“新密码”，这只会终止他的会话。',
   'help.guide.notification-defaults.goal': '决定所有用户的通知初始状态，并针对某个事件彻底屏蔽一个渠道。',
   'help.ctx.notifications.summary':
-    'TREK 在应用内向你显示的所有通知，最新的在前：别人修改的预订、旅行聊天中的新消息、与你共享的日历。右上角的铃铛显示最新的十条，此页面显示全部。',
+    'TREK 在应用内向你显示的所有通知，最新的在前，并按天分组：别人修改的预订、旅行聊天中的新消息、航班延误、来自转发邮件的预订。右上角的铃铛显示最新的十条，此页面显示全部。',
   'help.guide.read-notifications.step.1': '点击右上角的铃铛。铃铛上的红色数字是你尚未阅读的通知数量。',
   'help.guide.filter-notifications.step.1': '点击右上角的铃铛。',
   'help.guide.mark-notifications-read.step.2': '点击顶部的“全部标为已读”，一次把所有通知标为已读。',
@@ -4804,16 +5144,28 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.5':
     '旅行涉及多个国家或地区后，地球图标可以把列表缩小到某个国家，或其中的某个地区，每一项都带有数量。“清除筛选”会回到“所有国家”。',
   'help.guide.import-places-file.tip.3':
-    '“游览”功能开启时（默认开启），文件要通过栏顶部的“游览”和“导入 GPX 或 KML”导入，其中的线路会变成路线。文件中的图钉不会在那里导入，因为路线只包含线条。',
+    '关闭“游览”时，在“导入文件”中勾选的轨迹或路线会变成单独的地点：它所在的行上有彩色线条，画在地图上，在“显示”下的“轨迹”中可以找到它。',
   'help.guide.dawarich-stays.step.3':
-    '核对“名称”“到达”和“离开”，选择一天，或保持“尚未安排到某一天”，需要的话填写笔记，然后点击“添加地点”。',
+    '核对“名称”“到达”和“离开”。如果这次停留落在旅行的某一天，“日期安排”已经显示那一天；你可以选另一天，或保持“尚未安排到某一天”。需要的话填写笔记，然后点击“添加地点”。',
   'help.guide.leave-stop-off-route.result':
     '该站点仍属于当天，也仍在 PDF 中。标为“不在路线内”期间，路线会从它前一个站点直接通向后一个站点。',
   'help.guide.move-booking-day.tip.2': '在它所在的那一天内，带时间的预订总会回到由其时间决定的位置。',
-  'help.guide.place-image-from-file.step.3':
-    '在“从附件中选择”下，点击你想要的照片。上方的“从设备上传”则是从你的电脑选择新照片。',
+  'help.guide.place-image-from-file.step.3': '点击你想要的照片。它会出现圆环和勾，文件名显示在图块下方。',
   'help.guide.place-own-hours.step.1': '打开该地点，点击卡片右下角的“编辑”，地点的表单随即打开。',
   'help.guide.place-own-hours.tip.3': '点击“移除营业时间”，再点击“更新”，卡片就会重新显示自动查到的营业时间。',
+  'help.guide.place-off-map.title': '把没有坐标的地点放到地图上',
+  'help.guide.place-off-map.goal': '找出地点没有标记的原因，并给它加上标记。',
+  'help.guide.place-off-map.step.1': '在地点栏中，地点名称旁边的警告图钉表示它有地址但没有坐标。点击这一行。',
+  'help.guide.place-off-map.step.2': '卡片顶部的标签中写着“没有坐标，因此不在地图上”。把鼠标指向它，可以看到如何解决。',
+  'help.guide.place-off-map.step.3':
+    '点击右下角的“编辑”。表单在“地址”下也有同样的提示：地点在有坐标之前不会显示在地图上。',
+  'help.guide.place-off-map.step.4':
+    '输入地点的“纬度”和“经度”，或者用逗号隔开，把两个值一起粘贴到“纬度”中。你也可以在表单顶部搜索地点，并从建议中选择。',
+  'help.guide.place-off-map.step.5': '点击“更新”。警告消失，地点在地图上有了标记。',
+  'help.guide.place-off-map.result': '地点带着标记出现在地图上，它的停靠点也可以像其他地点一样规划路线。',
+  'help.guide.place-off-map.tip.1': '没有坐标的地点在当天没有标记也没有路线，能打开它的地图应用也更少。',
+  'help.guide.place-off-map.tip.2': '既没有地址也没有坐标的地点（例如一条提醒）不受影响，也不会显示警告。',
+  'help.guide.place-off-map.tip.3': '把地图网站上的链接粘贴到搜索框中，也会自动填好坐标。',
   'help.guide.confirm-stay-booking.title': '确认住宿的预订',
   'help.guide.confirm-stay-booking.tip.2': '同样的标签适用于所有预订，包括当天“预订”下的那些。',
   'help.guide.map-lock.tip.2':
@@ -4824,12 +5176,12 @@ const help: TranslationStrings = {
   'help.guide.car-stops.result':
     '这次行车是“交通”标签页上的一张卡片，也是当天的一行。它在地图上的线路从取车点出发，按顺序经过每个停靠点，直到还车。',
   'help.guide.transport-details.step.5':
-    '详情底部的“在地图上”会显示这段交通的线路，并跳转到它所在日期的“计划”。最右侧的“编辑”打开完整表单，旁边的垃圾桶在你确认后删除这段交通。',
+    '详情左下角的“地图”会显示这段交通的线路，并跳转到它所在日期的“计划”。最右侧的“编辑”打开完整表单，旁边的垃圾桶在你确认后删除这段交通。',
   'help.guide.export-transports-csv.step.1':
     '如果只想导出一部分，请先缩小列表范围。“搜索”“筛选”和“视图选项”下的排序都会生效：文件内容就是标签页显示的内容，顺序也与之相同。',
   'help.guide.group-sort-bookings.tip.1':
     '“卡片”和“列表”各自保留自己的分组：卡片默认按状态，列表默认按日期。“视图选项”上出现圆点，表示有设置与默认值不同，点击面板底部的“重置视图”即可恢复默认。',
-  'help.guide.booking-on-map.step.2': '点击详情底部的“在地图上”。',
+  'help.guide.booking-on-map.step.2': '点击详情底部的“地图”。',
   'help.guide.export-bookings-csv.goal': '把旅行的预订导出为 CSV 文件，可用 Excel、Numbers 或任何其他电子表格打开。',
   'help.guide.arrange-packing-list.goal': '把整个清单和单个物品移到想要的位置，或按名称顺序查看每个清单。',
   'help.guide.check-off-packing.tip.4': '数量大于一的物品，也可以逐件标记已打包的件数，详见“一种物品打包多件”。',
@@ -4893,7 +5245,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-planner.bullet.6':
     '未保存的草稿会保留：再次打开“游览”标签页时它会恢复，并标有“已恢复未保存的草稿”。“返回游览列表”和“放弃”在丢弃更改前都会先询问你。',
   'help.guide.tour-open-workspace.step.6':
-    '左下角的标签用来切换地图，起初是“地图”或“卫星影像”。打开路线后，它会提供该类型的地图，例如“地形图”或“徒步”，以及“放置点”和 3D 等开关。',
+    '左下角的标签用来在“地图”“地形图”和“卫星影像”之间切换地图，并开启 3D。打开路线后，它会提供该类型的地图，例如“徒步”，以及“放置点”和“飞拉达”等开关。',
   'help.guide.tour-draw-route.step.1':
     '点击左侧栏顶部的“规划新游览路线”。左侧栏会变成“新游览路线”，除非你选了其他类型，否则默认是徒步。',
   'help.guide.tour-draw-route.tip.3':
@@ -4920,7 +5272,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.title': '把 GPX、KML 或 KMZ 文件导入为路线',
   'help.guide.tour-import-gpx.tip.2': '文件中的每条轨迹或路线都会成为一条独立的路线，轨迹不会被合并。',
   'help.guide.tour-view-import.step.2':
-    '左栏将它显示为“GPX 游览路线”：“游览概览”中有距离、海拔和录制时间，下方是海拔剖面图。地图上显示它的线条。',
+    '左栏将它显示为“GPX 游览路线”：“游览概览”中有距离和海拔，文件里有录制时间时也会显示，下方是海拔剖面图。地图上显示它的线条。',
   'help.guide.tour-plan-from-import.step.1':
     '在“游览”标签页中打开导入的路线。在左侧的“可编辑版本”卡片中，点击“规划可编辑版本”。',
   'help.guide.tour-plan-from-import.result': '路线现在有了可拖动的路点，其“来源”显示为“已重新规划，记录的轨迹已保留”。',
@@ -4957,7 +5309,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     '点击“路面”，可以按所走的路面来查看同一条路线，从柏油路到自然地面和岩石。',
   'help.guide.tour-hike-round.step.2':
-    '“环线徒步”卡片会在地图上方打开。在“从”下核对起点，并输入想要的“距离”。旁边的标签显示环线可能的长度范围。',
+    '“环线徒步”卡片会在地图上方打开。在“从”下核对起点，并输入想要的“距离”。旁边的标签显示 TREK 会为它提供的环线长度。',
   'help.guide.tour-hike-compare-ways.title': '比较徒步某一路段的其他走法',
   'help.guide.tour-hike-compare-ways.tip.2':
     '如果路径规划器找不到其他路，卡片会说明。如果它无法沿用你选的路，该路段保持原样，卡片也会告诉你。',
@@ -5069,13 +5421,15 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.tip.1': '提示不会改动任何路线，路线的来源检查会显示究竟改了什么。',
   'help.guide.api-keys.tip.3':
     '把密钥以 Authorization: Bearer 或 X-API-Key 的形式发送到 /api/v1。一个账号最多可以有 10 个密钥。',
+  'help.guide.api-keys.tip.4':
+    '在对话框中，按 Ctrl+Enter（Mac 上按 Cmd+Enter）可在任意字段中创建密钥，效果与点击“创建”相同。',
   'help.guide.plugin-settings.step.2': '“插件活动”按时间从新到旧列出插件代你执行的所有操作，点击“刷新”可加载最新记录。',
   'help.ctx.admin-github.bullet.3': '关于：Ko-fi、Buy Me a Coffee、Discord、“报告错误”、“功能建议”和 Wiki。',
   'help.guide.default-user-settings.goal': '为每个账号预设合理的单位、颜色模式和货币，无需用户自己打开“设置”。',
   'help.guide.default-map.step.3': '每个字段在你离开它时自动保存。字段名称旁的重置链接会恢复 TREK 的默认值。',
   'help.guide.own-routing-engine.tip.2':
-    '只设置了你自己的路径规划服务时，也不会再使用公共 Valhalla。字段旁的重置链接可再次清空它。',
-  'help.guide.admin-passkeys.step.1': '在“设置”标签页的“通行密钥登录”下，打开“启用通行密钥登录”。',
+    '只设置了你自己的路径规划服务，且“路线服务”为“自动”时，不会去请求 Valhalla。字段旁的重置链接可再次清空它。',
+  'help.guide.admin-passkeys.step.1': '在“安全”标签页的“登录方式”下，打开“启用通行密钥登录”。',
   'help.guide.storage-backends.step.4':
     '顶部的“健康”会列出写入镜像目标失败的记录。如果显示“未记录任何副本故障”，说明一切正常。',
   'help.guide.channels-instance.tip.3': 'Web 推送需要 HTTPS。在 iPhone 和 iPad 上，用户要先把 TREK 添加到主屏幕。',
@@ -5084,7 +5438,7 @@ const help: TranslationStrings = {
   'help.ctx.notifications.bullet.1':
     '右上角的铃铛显示你尚未阅读的通知数量。点击它可查看最新的十条，底部的“查看所有通知”则通向此页面。',
   'help.guide.read-notifications.step.2':
-    '面板列出你最新的十条通知。每条都说明了谁在哪里做了什么，未读的背景带有底色。',
+    '面板按天分组，列出你最新的十条通知。每条都说明了谁在哪里做了什么，未读的以粗体显示，时间旁有一个圆点。',
   'help.guide.filter-notifications.step.2': '在面板底部点击“查看所有通知”。',
   'help.guide.mark-notifications-read.tip.1': '通过通知上的按钮打开它，也会把它标为已读。',
   'help.guide.delete-notifications.tip.2':
@@ -5099,7 +5453,7 @@ const help: TranslationStrings = {
   'help.guide.leave-stop-off-route.tip.1':
     '只有带坐标的站点才有这个选项，而且设置只对这一天有效，同一地点在另一天仍会参与路线规划。',
   'help.guide.move-booking-day.title': '把预订移到另一天',
-  'help.guide.place-image-from-file.step.4': '这张照片现在就是地点的图片。点击它角上的红色小 X 可再次移除。',
+  'help.guide.place-image-from-file.step.4': '点击“更新”。这张照片现在就是地点的图片，位于卡片顶部。',
   'help.guide.place-own-hours.step.2': '在“网站”下方，如果知道“电话”和“电子邮件”，就填上。',
   'help.guide.add-accommodation.tip.4':
     '更快的方法：当天标题中的 +（提示为“添加到当天”）里有“添加住宿”，它会打开当天，并直接展开这个表单。',
@@ -5112,7 +5466,8 @@ const help: TranslationStrings = {
   'help.guide.car-stops.tip.1': '没有单独的租车类型，租来的车和你自己的车都是“汽车”。',
   'help.guide.transport-details.result':
     '“计划”会在这段交通所在的日期打开，地图上画出它的线路，它那一行的路线图标也已开启。',
-  'help.guide.export-transports-csv.step.2': '点击“视图选项”后面的电子表格图标，其提示文字是“导出为电子表格 (CSV)”。',
+  'help.guide.export-transports-csv.step.2':
+    '点击“视图选项”后面的下载图标。它的提示文字是“导出为电子表格 (CSV)”；有搜索或筛选生效时，则会显示文件包含多少行，例如“导出显示的 4 行中的 2 行 (CSV)”。',
   'help.guide.group-sort-bookings.title': '对预订分组和排序',
   'help.guide.group-sort-bookings.tip.2': '在“时间线”中，同一个按钮里是“每种类型单独一行”和“同时显示另一个标签页”。',
   'help.guide.booking-on-map.result': '详情会关闭，“计划”标签页在预订所在的日期打开，并在地图上选中它的地点。',
@@ -5120,6 +5475,29 @@ const help: TranslationStrings = {
     '如果只想导出标签页的一部分，请先用“搜索”或“筛选”缩小范围。文件内容就是标签页当前显示的内容。',
   'help.guide.import-booking-file.tip.4':
     '读取确认文件需要联网。离线时，“导入”会提示这一点，等 TREK 重新联网后再试即可。',
+  'help.guide.forward-booking-mail.title': '把预订邮件转发到旅行',
+  'help.guide.forward-booking-mail.goal': '给旅行一个专属地址，把确认邮件转发过去，并完成 TREK 无法自动添加的部分。',
+  'help.guide.forward-booking-mail.step.1':
+    '点击栏中的上传图标“导入预订确认”。在文件框下方，“或通过邮件转发”里是旅行专属的地址。',
+  'help.guide.forward-booking-mail.step.2': '点击“为此旅行创建地址”。发到这个地址的邮件会直接进入这个旅行，无需猜测。',
+  'help.guide.forward-booking-mail.step.3':
+    '地址出现后，旁边有复制按钮。复制它，然后在你的邮件程序中把预订邮件（包括附件）转发过去，可以手动，也可以用规则。TREK 会在几分钟内读取。',
+  'help.guide.forward-booking-mail.step.4':
+    'TREK 有把握的预订会自动加入旅行。其余的会等你处理：打开右上角你名字下的菜单（数字表示等待处理的邮件数量），点击“待处理的预订”。',
+  'help.guide.forward-booking-mail.step.5':
+    '每个条目会显示 TREK 读到的内容、它在等待的原因，以及它对应的旅行。“查看邮件”显示邮件本身。点击“自己填写”。',
+  'help.guide.forward-booking-mail.step.6':
+    '“新建预订”会在旅行中打开，带有邮件里的内容：主题作为标题，以及找到的类型、日期和预订码。检查一下，改正需要改的地方，然后点击“添加”。',
+  'help.guide.forward-booking-mail.result':
+    '预订和其他预订一样出现在“预订”标签页，它的条目也从“待处理的预订”中消失了。',
+  'help.guide.forward-booking-mail.tip.1':
+    '你自己的地址（在“设置”的“集成”的“预订邮件”下）适用于每个旅行：TREK 会选出日期和地点与预订相符的旅行。旅行专属地址则省去这一猜测。',
+  'help.guide.forward-booking-mail.tip.2':
+    '在这张卡片中开启“自动添加”后，TREK 有把握的预订会直接进入旅行，相应通知提供 7 天内的“撤销”。关闭时，每个预订都会等在“待处理的预订”下。',
+  'help.guide.forward-booking-mail.tip.3':
+    '条目也可以用“保存为文档”保留为文档，这会把邮件或附件放进旅行的文件中，也可以用“丢弃”扔掉。',
+  'help.guide.forward-booking-mail.tip.4':
+    '这个地址是你自己的：同行的旅伴如果想要，可以创建自己的。管理员为整个实例开启邮件导入；在此之前，“或通过邮件转发”和“待处理的预订”都不会出现。',
   'help.guide.arrange-packing-list.step.1':
     '按住清单标题栏左端、颜色圆点前面的手柄，把清单拖到另一张卡片上。目标卡片会出现强调色的轮廓，清单随即取代那张卡片的位置，旅行中的每个人看到的都是这个顺序。',
   'help.guide.count-packed-pieces.title': '同一物品打包多件',
@@ -5128,6 +5506,8 @@ const help: TranslationStrings = {
     '由多人共同携带的包，其重量会在“每人”下平均分摊。这个重量带点状下划线，鼠标指向它时会显示相关说明。',
   'help.guide.expense-receipts.step.1': '点击支出所在行旁边的铅笔图标，编辑器随即打开，靠近底部就是“收据与发票”。',
   'help.guide.expense-receipts.tip.3': '附加收据需要联网，并且要有上传文件的权限，因为收据是作为旅行文件之一存储的。',
+  'help.guide.expense-receipts.tip.4':
+    '旅行里已有的文件，例如同时也是发票的预订确认，可以直接关联，而无需再次上传：“附加”旁边的链接图标会列出这些文件。',
   'help.guide.files-sync-settings.title': '选择文档的同步方向',
   'help.guide.files-sync-settings.tip.1': '总有一个方向保持开启，只剩一个方向开着时，再点它不会有任何效果。',
   'help.guide.manage-notes.title': '阅读、置顶和编辑笔记',
@@ -5135,6 +5515,8 @@ const help: TranslationStrings = {
   'help.guide.note-categories.step.5':
     '点击“保存”。重命名或改了颜色的分类下的所有笔记会立即跟着变化，对每位成员都一样。“取消”会放弃你的更改。',
   'help.guide.trip-chat.tip.5': '聊天先显示最新的消息，点击顶部的“加载更早的消息”可载入更早的消息。',
+  'help.guide.trip-chat.tip.6':
+    '标有“来自助手”的消息，是有人在旅行聊天中用“分享”从旅行助手分享的回答。把鼠标悬停在标记上，可以看到是谁分享的。',
   'help.guide.roadtrip-reorder.result':
     '站点按你设定的顺序排列，你调整过的每一天的距离、驾驶时间和到达时间都会重新计算。',
   'help.guide.roadtrip-overnight.goal': '在路上找个睡觉的地方，并把这一晚作为预订加到行程中。',
@@ -5169,7 +5551,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.tip.1':
     '名称和颜色属于旅行，所以其中的每个人都能看到。如果只想在自己的地图上隐藏某条路线，不影响其他人，请用“游览”列表中的眼睛图标。',
   'help.guide.tour-take-along.tip.1':
-    '在能分享文件的设备上，GPX 旁边会出现“分享”，可以把同一个文件直接发给另一个应用。',
+    'GPX 旁边的“分享”，在能分享文件的设备上会把同一个文件直接发给另一个应用。在其他设备上，它会分享一段关于路线的简短文字，或复制这段文字。',
   'help.guide.tour-copy-keep.step.2': '副本会立刻打开，名称是原名称加上（副本）。点击铅笔图标可以给它起个自己的名字。',
   'help.guide.tour-packing-link.title': '把路线关联到行李清单',
   'help.guide.tour-packing-link.tip.2':
@@ -5199,7 +5581,7 @@ const help: TranslationStrings = {
   'help.guide.tour-details-times.step.3': '填写“休息”，例如 0:45。休息时间会加到估算用时上。',
   'help.guide.tour-save.step.1': '在“游览名称”中输入名称。没有名称时，“保存”保持灰色。',
   'help.guide.tour-edit-saved.title': '修改已保存的路线',
-  'help.guide.tour-edit-saved.tip.3': '侧栏顶部的“下载 GPX”和“保存到收藏”要在更改保存之后才能使用。',
+  'help.guide.tour-edit-saved.tip.3': '侧栏顶部的“下载 GPX”、“分享”和“保存到收藏”要在更改保存之后才能使用。',
   'help.guide.tour-summary-profile.tip.1': '点击卡片自己的标题可以折叠整个概览。',
   'help.guide.tour-list-manage.step.3': '选择日期。路线会加到那一天，它所在的行上会显示该日期。',
   'help.guide.tour-delete.goal': '把路线从旅行中彻底删除。',
@@ -5357,25 +5739,63 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result': '插件会按你的设置运行，它代你执行的每个操作都会列在“插件活动”下。',
   'help.ctx.admin-defaults.bullet.3':
     '你设置过的字段旁边有重置链接，可恢复 TREK 自己的默认值。用户自己的设置始终优先于这些默认值。',
-  'help.ctx.admin-settings.bullet.5': '“危险区域”：“轮换 JWT 密钥”会让所有用户退出登录，包括你自己。',
+  'help.ctx.admin-settings.bullet.5': '“安全”标签页上的“危险区域”：“轮换 JWT 密钥”会让所有用户退出登录，包括你自己。',
   'help.guide.default-user-settings.step.1':
     '在“用户默认设置”下，选择“颜色模式”（浅色、深色或自动）、“温度单位”“距离单位”“时间格式”“每周开始于”“日期格式”“显示货币”，并设定“隐藏预订编号”是开还是关。每个选择都会立即保存。',
   'help.guide.admin-passkeys.step.2':
-    '填写“Relying Party ID（域名）”，例如 trek.example.org，再填写访问你的 TREK 所用的“允许的来源”，然后点击“保存”。两项都留空则使用 APP_URL。',
+    '在“通行密钥登录”卡片中，填写“Relying Party ID（域名）”，例如 trek.example.org，再填写访问你的 TREK 所用的“允许的来源”，然后点击“保存”。两项都留空则使用 APP_URL。',
   'help.guide.rotate-jwt-secret.title': '让所有人一次性退出登录',
   'help.guide.notification-defaults.step.2':
     '点击单元格，切换到下一个状态：开启、关闭、封锁。提示会写出下一个状态，每次点击都会立即保存。',
   'help.ctx.notifications.bullet.2':
-    '顶部的“全部”和“未读”用来在所有通知和仅未读通知之间切换。向下滚动时，列表会继续加载更多。',
+    '顶部的“全部”和“未读”用来在所有通知和仅未读通知之间切换。列表按天分组，“今天”在最前，向下滚动时会继续加载更多。',
   'help.guide.read-notifications.step.3':
     '点击通知下方的按钮，例如“查看假期”，即可打开通知所涉及的内容，同时也会把它标为已读。',
   'help.guide.filter-notifications.step.3': '点击“未读”，只看尚未阅读的通知。点击“全部”可再次显示所有通知。',
-  'help.guide.mark-notifications-read.tip.2': '标为已读只会改变底色和未读数量。通知会一直留在列表中，直到你删除它。',
+  'help.guide.mark-notifications-read.tip.2':
+    '标为已读只会去掉粗体、圆点和未读数量。通知会一直留在列表中，直到你删除它，同一位置的“标为未读”（信封）会让它重新变成新通知。',
   'help.guide.delete-notifications.result': '该通知已从列表和铃铛中消失。',
+  'help.guide.booking-mail-notifications.title': '处理预订邮件的通知',
+  'help.guide.booking-mail-notifications.goal': '查看你转发的预订邮件结果如何，并对 TREK 无法自动添加的预订做出决定。',
+  'help.guide.booking-mail-notifications.step.1':
+    '点击右上角的铃铛。如果转发的邮件里有 TREK 无法自行添加的预订，会在那里通知你。',
+  'help.guide.booking-mail-notifications.step.2': '“待审核的转发预订”会告诉你有多少在等你处理。点击它下面的“查看”。',
+  'help.guide.booking-mail-notifications.step.3':
+    '“待处理的预订”会打开，列出每个等待处理的条目：TREK 读到的内容、它在等待的原因，以及它对应的旅行。“自己填写”会用邮件里的内容新建一个预订，垃圾桶则丢弃这个条目。',
+  'help.guide.booking-mail-notifications.result':
+    '每封转发的预订邮件，要么自动归入对应的旅行，要么等你来决定，而且你总能知道是哪一种。',
+  'help.guide.booking-mail-notifications.tip.1':
+    'TREK 自动添加的预订会以“已从邮件添加预订”的形式通知你，带有“保留”和“撤销”。“撤销”会把预订再从旅行中移除，“保留”则让它留在那里。',
+  'help.guide.booking-mail-notifications.tip.2':
+    '共享旅行中的其他人，也会收到来自邮件的预订通知，带有“查看旅行”，它会打开旅行的“预订”标签页。',
+  'help.guide.booking-mail-notifications.tip.3':
+    'TREK 实时跟踪的航班会发出“航班已起飞”“航班已降落”，以及延误 15 分钟起的“航班延误”，每条都带有“查看旅行”。它们会发给该航班所指派的人，或旅行中的所有人。你可以在“设置”的“通知”下关闭其中任何一种。',
   'help.guide.notification-settings.result': '“设置”已打开“通知”，每个事件和渠道各有一个开关。',
   'help.guide.link-journal.goal': '在旅行内向你选定的人展示你的某本旅程日志。',
   'help.guide.link-journal.tip.3':
     '之后，“旅行设置”中的“旅程日志”提供“编辑访问权限”“更换日志”和“取消关联”。取消关联会移除这个标签页，你在日志本身中添加的人仍保留访问权限。',
+  'help.guide.trip-addons.title': '为此旅行开关附加组件',
+  'help.guide.trip-addons.goal': '只为一个旅行开启或关闭“费用”或“公路旅行”之类的功能。',
+  'help.guide.trip-addons.step.1': '点击旅行名称旁边的“旅行设置”，在左侧选择“附加组件”。只有旅行的所有者才有这个区域。',
+  'help.guide.trip-addons.step.2':
+    '点击某个附加组件的开关，即可为此旅行开启或关闭它。列出的有“列表”“费用”“文档”“协作”“公路旅行”和“游览”，以你的 TREK 所具备的为准。',
+  'help.guide.trip-addons.step.3':
+    '“仅此旅行”标记出你与 TREK 其余部分设置不同的附加组件。把它切换回去，就会重新跟随管理员的设置。',
+  'help.guide.trip-addons.result':
+    '旅行会为其中的所有人显示你选择的附加组件：某个标签页或计划中的某个部分会出现或消失。你的其他旅行保持管理员的设置。',
+  'help.guide.trip-addons.tip.1': '关闭附加组件只是把它隐藏，不会删除任何内容。再次开启，一切都回到原来的位置。',
+  'help.guide.trip-addons.tip.2': '即使管理员对其他人关闭了某个附加组件，你也可以只为一个旅行开启它。',
+  'help.guide.trip-addons.tip.3': '更改开关需要网络连接。离线时 TREK 会告知，并让开关保持原样。',
+  'help.guide.edit-trip-settings.title': '在计划页中编辑旅行',
+  'help.guide.edit-trip-settings.goal': '不离开旅行，就能修改标题、日期、封面或货币。',
+  'help.guide.edit-trip-settings.step.1': '点击旅行名称旁边的“旅行设置”，在左侧选择“编辑旅行”。',
+  'help.guide.edit-trip-settings.step.2': '修改你需要的内容：封面图片、标题和描述、日期、货币或提醒。',
+  'help.guide.edit-trip-settings.step.3': '点击“更新”。“旅行设置”会关闭，旅行立即显示更改。',
+  'help.guide.edit-trip-settings.result': '行程的新信息会在各处显示，所有参与者都能看到。',
+  'help.guide.edit-trip-settings.tip.1':
+    '如果你移动了开始日期，TREK 会先询问预订该如何跟着变动。如果新日期会去掉已有内容的日期，它会在你确认之前列出这些日期。',
+  'help.guide.edit-trip-settings.tip.2':
+    '同一个表单也可以从“我的旅行”中，通过旅行卡片上的铅笔图标打开。“编辑旅行”只对有权编辑旅行的人显示。',
   'help.guide.dawarich-stays.result':
     '这条停留记录成为旅行中的一个地点，位于你选择的那一天，或归入“未规划”，面板会把它标为已处理。',
   'help.ctx.trip-days.bullet.7': '旅行进行期间，计划会打开到今天并自动滚动到那里。',
@@ -5383,7 +5803,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.goal': '直接在计划里把交通或预订移到另一天，无需打开表单。',
   'help.guide.place-image-from-file.result': '这张照片会成为地点的图片，显示在卡片、地点栏、当天计划和地图上。',
   'help.guide.place-own-hours.step.3':
-    '下方的“营业时间”显示一周，每天一行。如果 TREK 已找到该地点的营业时间，会自动填好，否则请先点击“添加营业时间”。填写每天的开门和关门时间，不营业的日子点击“已关闭”。',
+    '下方的“营业时间”显示一周，每天一行。如果 TREK 已找到该地点的营业时间，会自动填好，否则请先点击“添加营业时间”。填写每天的开门和关门时间。在每天的右侧，“24h”表示全天营业，关门图标表示已关闭。',
   'help.guide.add-accommodation.tip.5': 'GPX 轨迹和路线地点永远不会作为住宿候选，只会提供旅行中的普通地点。',
   'help.guide.confirm-stay-booking.step.1':
     '打开你入住的那一天。在住宿卡片的“预订”下，可以看到这一晚的酒店预订，标有“待确认”或“已确认”。点击那个框。',
@@ -5392,20 +5812,19 @@ const help: TranslationStrings = {
   'help.guide.car-stops.step.1': '在你取车那一天的标题栏中，点击 +（提示为“添加到当天”），选择“添加交通”。',
   'help.guide.car-stops.tip.2': '行车至少有两个经停点后，才会出现“上移”和“下移”。',
   'help.guide.transport-details.title': '打开一段交通并使用它的详情',
-  'help.guide.transport-details.tip.1': '对已画出线路的行程，再次点击“在地图上”会关闭该线路。',
+  'help.guide.transport-details.tip.1': '对已画出线路的行程，再次点击“地图”会关闭该线路。',
   'help.guide.export-transports-csv.result':
     '浏览器会保存一个以旅行命名的文件，例如 autumn-in-japan-transports.csv，每段行程一行，包含类型、标题、状态、开始、结束、出发地、目的地、地点、确认号和笔记。',
   'help.guide.group-sort-bookings.goal': '按状态、日期或类型，用你想要的顺序排列卡片或列表。',
-  'help.guide.booking-on-map.tip.1':
-    '只有带地点的预订才有“在地图上”。在表单的“地点 / 活动”下选一个地点，按钮就会出现。',
+  'help.guide.booking-on-map.tip.1': '只有带地点的预订才有“地图”。在表单的“地点 / 活动”下选一个地点，按钮就会出现。',
   'help.guide.export-bookings-csv.step.2':
     '打开“视图选项”（视图图标后面的滑块图标），在“排序方式”下选择一种顺序。各行会按此排列，每个预订一行，不分区。',
   'help.guide.edit-booking.tip.4':
     '如果你改过内容，点击表单外面或按 Esc 键，会询问“放弃更改？”。点击“继续编辑”即可回到表单。',
   'help.guide.arrange-packing-list.step.2':
-    '在清单内部，行左侧的手柄可以上下拖动该物品。行左边缘的强调色线条显示它将落在哪里。',
+    '在清单内部，把鼠标指向某一行，它左端会出现手柄，可以上下拖动该物品。行左边缘的强调色线条显示它将落在哪里。',
   'help.guide.count-packed-pieces.goal': '给物品设置数量，并逐件标记已打包的件数。',
-  'help.guide.count-packed-pieces.tip.3': '数量为一时不显示计数器，只有勾选框。',
+  'help.guide.count-packed-pieces.tip.3': '数量为一时没有“已打包”一行，只有勾选框。数量从两件起会显示在行上，如 ×5。',
   'help.guide.expense-receipts.step.2':
     '点击“收据与发票”旁边的“附加”，选择照片或 PDF，也可以一次选择多个。每个文件都列在标题下，旁边有一个垃圾桶，用来移除它。',
   'help.guide.files-sync-settings.goal':
@@ -5444,7 +5863,7 @@ const help: TranslationStrings = {
     '隐藏只对你自己有效，并保存在此浏览器中对应这个旅行。路线、它的日期和颜色都不会变，其他人的地图上仍会显示这条路线。',
   'help.guide.tour-import-plan-tab.tip.1': '已在旅行中的轨迹会标为“已在行程中”，不会被重复导入。',
   'help.ctx.trip-tour-detail.bullet.4':
-    '底部一行：打开某一天时显示“添加到当天”或“从当天移除”，还有通往起点的“导航”、路线的网页、GPX、设备支持分享文件时的“分享”、“收藏”和“复制”。',
+    '底部一行：打开某一天时显示“添加到当天”或“从当天移除”，还有通往起点的“导航”、用于在地图应用中打开整条路线的“地图”、路线的网页、GPX、“分享”、“收藏”和“复制”。',
   'help.guide.tour-detail-read.step.5':
     '下方是各项测量数据：“距离”“最低海拔”“最高海拔”“累计爬升”和“累计下降”，再往下是时间，以及用路线颜色画出的海拔剖面图。',
   'help.guide.tour-detail-read.result':
@@ -5551,7 +5970,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.step.4':
     '列表顶部统计已去过的站点数量，并显示剩余的步行时间。点击站点上的“撤销”可取消它的标记。',
   'help.ctx.trip-tour-bike.bullet.2':
-    '右侧的“游览概览”给出“骑行时间（估算）”，这是路径规划器按所选配置并计入爬升算出的时间，不包含休息。',
+    '右侧的“游览概览”给出“骑行时间”，这是路径规划器按所选配置并计入爬升算出的预估时间，不包含休息。',
   'help.guide.tour-bike-profile.step.4':
     '在“路点”下，点击“行程地点”，选取起点和终点，这里先选 Hotel Alpenroyal，再选 Hotel Greif。也可以确认“添加地点”已开启，然后直接点击地图。有了两个点之后，TREK 就会算出路线。',
   'help.guide.tour-bike-profile.tip.5':
@@ -5599,7 +6018,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.tip.3': '搜索后又移动了地图？按钮会变成“搜索此视图”。视图过大时，会提示你先放大。',
   'help.guide.tour-horse-gap.step.4': '在“路点”卡片中，衔接处显示“手动，未经检查”及其长度。把鼠标指向它可以看到原因。',
   'help.guide.tour-horse-recorded.step.2':
-    '“导入预览”会打开，此时还没有保存任何内容。在“导入为”下，把“路线类型”设为“骑马游”。三个徽章会说明导入保留了什么，以及哪些内容没有计算。',
+    '“导入预览”会打开，此时还没有保存任何内容。在“导入为”下，选择“骑马游”。三个徽章会说明导入保留了什么，以及哪些内容没有计算。',
   'help.guide.dateless-trip.goal': '还不知道什么时候出发，也可以先开始规划。',
   'help.guide.trip-reminder.step.3': '点击“更新”。',
   'help.guide.upcoming-reservations.goal': '查看你所有旅行中接下来预订了什么，并打开对应的旅行。',
@@ -5631,6 +6050,14 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.title': '插件',
   'help.ctx.settings-about.bullet.2': '“报告错误”和“功能建议”会在 GitHub 上打开项目，Wiki 则通向文档。',
   'help.guide.map-provider.tip.3': '在 GL 地图上，右键拖动可以旋转和倾斜地图，点击鼠标中键可以添加地点。',
+  'help.guide.map-hide-pois.title': '隐藏 Mapbox 显示的商店和景点',
+  'help.guide.map-hide-pois.goal': '让地图只显示你自己的地点，不显示 Mapbox 自动添加的标注。',
+  'help.guide.map-hide-pois.step.1':
+    '在“地图提供商”下选择 Mapbox GL，并在“地图样式”下选择一个 Standard 样式：Mapbox Standard 或 Standard Satellite。',
+  'help.guide.map-hide-pois.step.2': '打开“隐藏兴趣点”，然后点击“保存地图”。',
+  'help.guide.map-hide-pois.result': '旅行地图和日志地图不再标注它们自带的商店、餐厅和景点，只有你的图钉会突出显示。',
+  'help.guide.map-hide-pois.tip.1': '只对 Standard 样式有效。Streets、Outdoors 和其他经典样式仍会保留标注。',
+  'help.guide.map-hide-pois.tip.2': '“显示”下的“在地图上探索地点”，在你需要时仍然可以找到附近的地点。',
   'help.guide.web-push-device.step.1':
     '在“此设备上的推送通知”下，点击“为此设备开启”，浏览器询问时选择允许通知。点击“发送测试”可确认能收到通知。',
   'help.guide.connect-airtrail.title': '连接你的 AirTrail',
@@ -5639,6 +6066,23 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.tip.3': '右侧的“断开连接”会再次移除令牌。',
   'help.guide.tour-wanderer-watch.tip.3':
     '这些提示通过哪些渠道送达，在“通知”中的“wanderer：关于你的路线的提示”这一行设置。',
+  'help.guide.connect-ai.title': '连接你自己的 AI',
+  'help.guide.connect-ai.goal': '用你自己的 AI 服务商账号，通过助手来规划旅行。',
+  'help.guide.connect-ai.step.1':
+    '在“AI 助手”卡片中选择连接方式：“使用 ChatGPT 登录”会用到你的 ChatGPT 套餐，“粘贴 API 密钥”则使用 Anthropic、OpenAI、Gemini 或 OpenRouter 的密钥。',
+  'help.guide.connect-ai.step.2':
+    '粘贴你的密钥。TREK 会显示识别出的服务商，并说明哪些内容会发送给它。点击“连接”，TREK 会先向服务商验证这个密钥。',
+  'help.guide.connect-ai.step.3':
+    '卡片会显示“已连接到”以及服务商名称。选择你想用的“模型”，再点击“打开助手”，即可在当前或下一个旅行中开始使用。',
+  'help.guide.connect-ai.result': '助手会使用你自己的账号，在每个旅行中都可以使用。',
+  'help.guide.connect-ai.tip.1':
+    '只有管理员开启了助手或“AI 解析”，这张卡片才会显示。如果只有管理员可以设置连接，卡片会显示“由你的管理员进行设置。”',
+  'help.guide.connect-ai.tip.2':
+    '管理员提供连接时，卡片会显示“由你的管理员提供”，以及你今天已用的消息数。如果管理员允许，点击“连接你自己的服务商”就可以换成你自己的。',
+  'help.guide.connect-ai.tip.3':
+    '“地图跟随助手”和“估算费用”会改变助手在你的旅行中的工作方式。“断开连接”会移除你的密钥，你的对话会保留。',
+  'help.guide.connect-ai.tip.4':
+    '“AI 解析”使用同一个连接来读取预订文件。你之前单独设置过的 AI 解析，会保留在下方自己的卡片里。',
   'help.guide.plugin-settings.tip.1': '这些设置只属于你自己，其他成员需要自己设置插件。',
   'help.guide.offline-conflicts.step.3':
     '服务器一直拒绝的更改会显示在“离线缓存”的“失败的更改”下：点击“重试”会再发送一次，点击“放弃”则保留服务器的版本。',
@@ -5651,10 +6095,10 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.result':
     '凡是没有改过单元格的用户，都会以你的选择作为起点，被封锁的单元格在他们的设置中显示为已锁定。',
   'help.ctx.notifications.bullet.3':
-    '每条通知都会说明谁在哪里做了什么，未读的带有底色。通知下方的按钮，例如“查看旅行”或“查看假期”，会带你过去，同时把它标为已读。',
+    '每条通知都会说明谁在哪里做了什么。它的图块显示通知所涉及的内容，角上是发送者的首字母。未读的以粗体显示并带有圆点。通知下方的按钮，例如“查看旅行”或“查看假期”，会带你过去，同时把它标为已读。',
   'help.guide.read-notifications.tip.1': '铃铛出现在每个带导航栏的页面上，有新通知时数字会自动更新。',
   'help.guide.filter-notifications.tip.1': '向下滚动时，页面会继续加载更早的通知，所以第一屏之后不会被截断。',
-  'help.guide.mark-notifications-read.result': '通知不再有底色，铃铛上的红色数字也消失了。',
+  'help.guide.mark-notifications-read.result': '不再有粗体显示的通知，铃铛上的红色数字也消失了。',
   'help.guide.notification-settings.title': '选择哪些内容会通知你',
   'help.guide.link-journal.step.1': '点击旅行名称旁的“旅行设置”，在左侧选择“旅程日志”。',
   'help.guide.dawarich-stays.tip.1':
@@ -5679,11 +6123,10 @@ const help: TranslationStrings = {
   'help.guide.create-booking.tip.4':
     '离线时，预订会保存在本设备上，重新联网后自动同步。新文件需要联网，所以请先移除它们，或稍后再保存。如果误点了表单外部，或按了 Esc 键，TREK 会先询问“放弃更改？”，不会直接丢掉你输入的内容。',
   'help.guide.booking-on-map.tip.2': '住宿会定位到它的第一晚。',
-  'help.guide.export-bookings-csv.step.3': '点击“导出为电子表格 (CSV)”，即“视图选项”后面的电子表格图标。',
+  'help.guide.export-bookings-csv.step.3': '点击“导出为电子表格 (CSV)”，即“视图选项”后面的下载图标。',
   'help.guide.arrange-packing-list.step.3':
-    '“共享”和“我的清单”所在行最右侧的“按名称”，会按名称顺序显示每个清单中的物品，方便你一眼看出某样东西是否已在其中。再点一次可回到你自己的排序。',
-  'help.guide.count-packed-pieces.step.1':
-    '点击行中的数量徽章，即后面带 x 的小数字，输入要带的数量，例如 5，然后按回车键。',
+    '“添加清单”旁边三个点中的“按名称”，会按名称顺序显示每个清单中的物品，方便你一眼看出某样东西是否已在其中。开启时有一个勾；再点一次可回到你自己的排序。',
+  'help.guide.count-packed-pieces.step.1': '点击物品的名称。它的窗口会在这一行旁边打开。',
   'help.guide.expense-receipts.step.3': '点击对话框底部的“保存”。文件会随支出一起上传，同时也会出现在旅行的“文件”中。',
   'help.guide.files-sync-settings.step.1':
     '点击工具栏最右端的“文档同步”。旅行已绑定时，你的文档服务卡片会在右侧打开。有多个文档服务时，点击左侧“当前行程”下你想用的那一个。',
@@ -5694,6 +6137,21 @@ const help: TranslationStrings = {
   'help.guide.note-categories.result': '笔记会使用新的名称和颜色，“笔记”卡片只显示你选中的分类。',
   'help.guide.roadtrip-stops.tip.5':
     '日程计划中带结束时间的站点会停留到那个时间。它的对话框会说明行车何时离开，点击“移除结束时间”可以重新自己设定时长。',
+  'help.guide.roadtrip-stop-photo.title': '查看停靠点的照片',
+  'help.guide.roadtrip-stop-photo.goal': '在途中查看停靠点的图片，判断是否值得绕路。',
+  'help.guide.roadtrip-stop-photo.step.1':
+    '点击栏中路上的一个停靠点，或某个已预订夜晚的地点。它的卡片会在地图上方打开。',
+  'help.guide.roadtrip-stop-photo.step.2':
+    '点击卡片底部的“编辑”。停靠点的对话框打开，地点的图片位于名称前面；没有图片的停靠点会显示它类型的图标。',
+  'help.guide.roadtrip-stop-photo.step.3': '点击图片“查看照片”，即可全屏打开地点的照片。',
+  'help.guide.roadtrip-stop-photo.result':
+    '地点的照片占满屏幕，箭头可以翻看其来源中的其他照片。关闭它们就回到对话框，点击“取消”会让停靠点保持原样。',
+  'help.guide.roadtrip-stop-photo.tip.1':
+    '图片是地点自己的图片，也就是你在地点表单中设置的那张。没有的话，如果地点来自 Google 或 OpenStreetMap，TREK 会显示其来源提供的照片。',
+  'help.guide.roadtrip-stop-photo.tip.2':
+    '在手机上，点按“公路旅行”标签页中的停靠点：它的面板会在名称下方以整个宽度显示图片，点按图片就能打开照片。',
+  'help.guide.roadtrip-stop-photo.tip.3':
+    '“路线途中”的搜索结果还不在旅行中，所以“添加为停靠点”显示的是它类型的图标，而不是图片。',
   'help.guide.roadtrip-reorder.tip.2': '已预订的交通及其枢纽停留在预订决定的位置，只有地点可以拖动。',
   'help.guide.roadtrip-overnight.step.2':
     '酒店显示床形图标，而不是加号。点击它，即“添加为过夜住宿”，会打开用于过夜的“添加为停靠点”。露营地则使用常规的“添加”。',
@@ -5736,7 +6194,7 @@ const help: TranslationStrings = {
   'help.guide.tour-origin-check.step.2':
     '“已导入”显示导入的日期。“此处”显示它现在的状态：“与导入时相同”“已在 TREK 中编辑”，或“已重新规划，记录的轨迹已保留”。',
   'help.ctx.trip-tour-planner.bullet.1':
-    '“游览扩展”开启时，“游览”位于旅行标签栏中“计划”之后。电脑和平板上有这个标签页，手机上则可以在“计划”标签页查看路线并安排到某一天，但不能绘制。',
+    '开启“游览”扩展时，“游览”位于旅行标签栏中“计划”之后；旅行的所有者可以在“旅行设置”的“附加组件”中开关它。电脑和平板上有这个标签页，手机上则可以在“计划”标签页查看路线并安排到某一天，但不能绘制。',
   'help.guide.tour-open-workspace.step.1': '点击旅行标签栏中“计划”之后的“游览”。地图占满屏幕，两侧各有一个侧栏。',
   'help.guide.tour-open-workspace.tip.2': '把 GPX、KML 或 KMZ 文件拖到此标签页的任意位置，即可将它们导入为旅行的路线。',
   'help.guide.tour-draw-route.step.4': '地图底部会出现“已放置点”。旁边的“撤销”可再次取消该点。',
@@ -5764,7 +6222,7 @@ const help: TranslationStrings = {
     '选择“导入 GPX 或 KML”，选取一个或多个 .gpx、.kml 或 .kmz 文件，每个最大 10 MB。',
   'help.guide.tour-import-gpx.tip.5':
     '没有海拔数据的文件会提示“文件中没有海拔”。线路和距离仍然正确，但累计爬升和累计下降无法得知。',
-  'help.guide.tour-view-import.tip.2': '标题栏中的下载图标可以把它再次保存为 GPX 文件，书签图标则把它保存到收藏中。',
+  'help.guide.tour-view-import.tip.2': '标题栏中的图标可以把它再次下载为 GPX 文件、分享它，并把它保存到收藏中。',
   'help.guide.tour-plan-from-import.step.4': '路线连同路点会在编辑器中打开。需要的话可以修改，然后点击栏底部的“保存”。',
   'help.guide.tour-restore-recorded.step.1':
     '在“本次旅行的游览活动”中，点击你重新规划过的路线。编辑器里的“录制的轨迹”卡片会说明，它录制时的轨迹仍然保留着。',
@@ -5773,7 +6231,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-over.tip.3':
     '“引入路线需要网络连接。”如果编辑器里有未保存的更改，副本仍会加入列表，但不会打开，这样你正在做的工作不会被覆盖。',
   'help.guide.tour-import-wanderer.tip.1':
-    '在“设置”的“集成”中连接了 wanderer 后，才会有这个按钮。在此之前，列表里显示“在设置中连接”。',
+    '在“设置”的“集成”中连接了 wanderer 后，才会有这个按钮。如果之后连接失效，列表里会显示“在设置中连接”。',
   'help.ctx.trip-tour-map.bullet.2':
     '标签中分隔线之后是与路线类型对应的开关：编辑路线时的“放置点”、徒步时的“飞拉达”、划桨游时的“航标”，以及滑雪路线时的雪道。末尾的 3D 会把路线显示在 3D 地貌上。',
   'help.guide.tour-map-layers.step.3':
@@ -5825,7 +6283,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.3':
     '“路点”下方的“路面与道路”卡片显示路线经过的地面情况：路面、道路类型，以及已知为未铺装路面的占比。点击一行，可以在地图上高亮对应路段。',
   'help.guide.tour-bike-profile.step.5':
-    '查看右侧“游览概览”中的“骑行时间（估算）”。把鼠标停在它的信息圆点上，可以看到它的计算方式。',
+    '查看右侧“游览概览”中的“骑行时间”。把鼠标停在它的信息圆点上，可以看到它的计算方式。',
   'help.guide.tour-bike-surfaces.title': '查看骑行路线经过什么路面',
   'help.guide.tour-bike-surfaces.tip.2':
     '在“公路”配置下，条形图上方的警告会说明已知有多长是未铺装路面。点击“在地图上显示”可标出这些路段。',

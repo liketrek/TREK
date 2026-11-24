@@ -51,9 +51,6 @@ const journey: TranslationStrings = {
   'journey.editor.bodyPlaceholder': 'この日のストーリーを書いてみよう…',
   'journey.editor.placePlaceholder': '場所（任意）',
   'journey.editor.tagsPlaceholder': 'タグ：穴場、最高の食事、また行きたい…',
-  'journey.visibility.private': '非公開',
-  'journey.visibility.shared': '共有',
-  'journey.visibility.public': '公開',
   'journey.emptyState.title': 'ここから物語が始まります',
   'journey.emptyState.subtitle': '場所にチェックインするか、最初の日記を書いてみましょう',
   'journey.frontpage.subtitle': '旅を、忘れられない物語に',
@@ -261,6 +258,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'アルバムがありません',
   'journey.picker.selectDate': '日付を選択',
   'journey.picker.search': '検索',
+  'journey.picker.takenBetween': '撮影期間',
   'journey.editor.uploadingProgress': 'アップロード中 {done}/{total}…',
   'journey.editor.uploadFailed': '写真のアップロードに失敗しました',
   'journey.editor.uploadPartialFailed':

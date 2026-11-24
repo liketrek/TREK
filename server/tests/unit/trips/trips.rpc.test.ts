@@ -3,7 +3,7 @@
  * the two cross-trip feeds, the roster, the update, the create and the two member
  * operations.
  *
- * Two things get their own cases. trips.update gates two individual FIELDS behind
+ * Two things get their own cases. trips.update gates three individual FIELDS behind
  * permissions of their own on top of trip_edit, and adding a member GRANTS TRIP
  * ACCESS, which is why it sits behind its own permission rather than any other write.
  */
@@ -17,6 +17,7 @@ import { PluginGuards } from '../../../src/nest-rpc/plugin-guards.service';
 import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
 import type { AccommodationsService } from '../../../src/nest/accommodations/accommodations.service';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import type { TripAddonsService } from '../../../src/nest/addons/trip-addons.service';
 import type { DaysService } from '../../../src/nest/days/days.service';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
 import { PluginRpcHost } from '../../../src/nest/plugins/host/rpc-host';
@@ -46,12 +47,22 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
 const ALL_TRIP_GRANTS = ['db:read:trips', 'db:write:trips', 'db:create:trips', 'db:write:members'];
 
 /** Trip 1 belongs to user 42. `allow` decides each individual permission check. */
-export function build(opts: { allow?: (action: string) => boolean; updateThrows?: Error; createThrows?: Error } = {}) {
+export function build(
+  opts: {
+    allow?: (action: string) => boolean;
+    updateThrows?: Error;
+    createThrows?: Error;
+    updateBoundaries?: unknown[];
+  } = {},
+) {
   const trips = {
     list: vi.fn(() => [{ id: 1, title: 'Japan' }]),
     update: vi.fn(() => {
       if (opts.updateThrows) throw opts.updateThrows;
-      return { updatedTrip: { id: 1, title: 'Japan' } };
+      return {
+        updatedTrip: { id: 1, title: 'Japan' },
+        ...(opts.updateBoundaries ? { boundaries: opts.updateBoundaries } : {}),
+      };
     }),
     create: vi.fn((userId: number) => {
       if (opts.createThrows) throw opts.createThrows;
@@ -131,7 +142,20 @@ export function build(opts: { allow?: (action: string) => boolean; updateThrows?
     { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
     { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
   );
-  const rpc = new TripsRpc(trips, reservations, days, membership, realtime, guards, accommodations, roster, em);
+  const tripAddons = { reattachJoinedMember: vi.fn(async () => undefined) } as unknown as TripAddonsService &
+    Record<string, ReturnType<typeof vi.fn>>;
+  const rpc = new TripsRpc(
+    trips,
+    reservations,
+    days,
+    membership,
+    realtime,
+    guards,
+    accommodations,
+    roster,
+    em,
+    tripAddons,
+  );
   const host = (...grants: string[]) =>
     new PluginRpcHost(
       'p',
@@ -139,7 +163,7 @@ export function build(opts: { allow?: (action: string) => boolean; updateThrows?
       makeDeps(),
       createTestPluginRegistry([rpc]),
     );
-  return { trips, reservations, days, accommodations, roster, membership, realtime, permissions, host };
+  return { trips, reservations, days, accommodations, roster, membership, realtime, permissions, tripAddons, host };
 }
 
 describe('TripsRpc reads', () => {
@@ -228,6 +252,7 @@ describe('TripsRpc reads', () => {
       f.accommodations,
       f.roster,
       em,
+      f.tripAddons,
     );
     const host = new PluginRpcHost('p', new Set(ALL_TRIP_GRANTS), makeDeps(), createTestPluginRegistry([rpc]));
 
@@ -271,9 +296,37 @@ describe('TripsRpc writes', () => {
     expect(res.error.message).toBe('no permission to change the cover of trip 1');
   });
 
-  it('TRIPS-RPC-008 a plain edit is unaffected by those two field permissions', async () => {
-    const f = build({ allow: (a) => a !== 'trip_archive' && a !== 'trip_cover_upload' });
+  it('TRIPS-RPC-008 a plain edit is unaffected by those field permissions', async () => {
+    const f = build({ allow: (a) => a !== 'trip_archive' && a !== 'trip_cover_upload' && a !== 'budget_edit' });
     expect((await f.host().dispatch(req('trips.update', { tripId: 1, input: { title: 'New' } }), 42)).ok).toBe(true);
+  });
+
+  it('TRIPS-RPC-022 switching the costs mode needs budget_edit on top of trip_edit', async () => {
+    const f = build({ allow: (a) => a !== 'budget_edit' });
+    const res = (await f
+      .host()
+      .dispatch(req('trips.update', { tripId: 1, input: { costs_mode: 'totals' } }), 42)) as RpcError;
+    expect(res.error).toMatchObject({
+      code: 'RESOURCE_FORBIDDEN',
+      message: 'no permission to change how trip 1 keeps its costs',
+    });
+    expect(f.trips.updateTrip).not.toHaveBeenCalled();
+  });
+
+  it('TRIPS-RPC-023 with budget_edit the costs mode reaches the service', async () => {
+    const f = build();
+    expect((await f.host().dispatch(req('trips.update', { tripId: 1, input: { costs_mode: 'totals' } }), 42)).ok).toBe(
+      true,
+    );
+    expect(f.trips.updateTrip).toHaveBeenCalledWith(1, 42, { costs_mode: 'totals' }, 'user');
+  });
+
+  it('TRIPS-RPC-024 road trip day boundaries that moved with their days go out with the trip (#3119)', async () => {
+    const boundaries = [{ day_number: 4, from_assignment_id: 8, to_assignment_id: null, fraction: 0.5 }];
+    const f = build({ updateBoundaries: boundaries });
+    const input = { start_date: '2026-05-09', end_date: '2026-05-14' };
+    expect((await f.host().dispatch(req('trips.update', { tripId: 1, input }), 42)).ok).toBe(true);
+    expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'roadtripBoundary:changed', { boundaries });
   });
 
   it('TRIPS-RPC-009 service errors map onto the right RPC codes', async () => {
@@ -329,6 +382,8 @@ describe('TripsRpc membership', () => {
     const f = build();
     expect((await f.host().dispatch(req('trips.addMember', { tripId: 1, userId: 7 }), 42)).ok).toBe(true);
     expect(f.membership.joinTripAsMember).toHaveBeenCalledWith(1, 7, 42);
+    // The joined member's MCP session is ended where the trip opened an addon, as REST, MCP and invites do.
+    expect(f.tripAddons.reattachJoinedMember).toHaveBeenCalledWith(1, 7);
     // The whole room hears it: a plugin has no socket to leave out.
     expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'member:added', {
       member: { id: 7, username: 'bob', role: 'member' },
@@ -340,6 +395,7 @@ describe('TripsRpc membership', () => {
     vi.mocked(f.membership.joinTripAsMember).mockResolvedValueOnce({ joined: false, tripId: 1 });
     expect((await f.host().dispatch(req('trips.addMember', { tripId: 1, userId: 7 }), 42)).ok).toBe(true);
     expect(f.roster.findMember).not.toHaveBeenCalled();
+    expect(f.tripAddons.reattachJoinedMember).not.toHaveBeenCalled();
     expect(f.realtime.broadcast).not.toHaveBeenCalled();
   });
 

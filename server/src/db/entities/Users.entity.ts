@@ -40,6 +40,10 @@ import { JourneyRecordedDays } from './JourneyRecordedDays.entity';
 import { JourneyRecordingPrep } from './JourneyRecordingPrep.entity';
 import { JourneyShareTokens } from './JourneyShareTokens.entity';
 import { Journeys } from './Journeys.entity';
+import { MailIngestAddresses } from './MailIngestAddresses.entity';
+import { MailIngestCandidates } from './MailIngestCandidates.entity';
+import { MailIngestMessages } from './MailIngestMessages.entity';
+import { MailIngestPrefs } from './MailIngestPrefs.entity';
 import { McpTokens } from './McpTokens.entity';
 import { NotificationChannelPreferences } from './NotificationChannelPreferences.entity';
 import { Notifications } from './Notifications.entity';
@@ -90,6 +94,7 @@ import { VacayUserYears } from './VacayUserYears.entity';
 import { VisitedCountries } from './VisitedCountries.entity';
 import { VisitedRegions } from './VisitedRegions.entity';
 import { WandererConnections } from './WandererConnections.entity';
+import { WebPushSubscriptions } from './WebPushSubscriptions.entity';
 import { WebauthnChallenges } from './WebauthnChallenges.entity';
 import { WebauthnCredentials } from './WebauthnCredentials.entity';
 
@@ -181,6 +186,10 @@ export class Users {
   journey_recording_prep_collection = new Collection<JourneyRecordingPrep>(this);
   journey_share_tokens_collection = new Collection<JourneyShareTokens>(this);
   journeys_collection = new Collection<Journeys>(this);
+  mail_ingest_addresses_collection = new Collection<MailIngestAddresses>(this);
+  mail_ingest_candidates_collection = new Collection<MailIngestCandidates>(this);
+  mail_ingest_messages_collection = new Collection<MailIngestMessages>(this);
+  mail_ingest_prefs_collection = new Collection<MailIngestPrefs>(this);
   mcp_tokens_collection = new Collection<McpTokens>(this);
   notification_channel_preferences_collection = new Collection<NotificationChannelPreferences>(this);
   notifications_collection = new Collection<Notifications>(this);
@@ -237,6 +246,7 @@ export class Users {
   visited_countries_collection = new Collection<VisitedCountries>(this);
   visited_regions_collection = new Collection<VisitedRegions>(this);
   wanderer_connections: Ref<WandererConnections> | null = null;
+  web_push_subscriptions_collection = new Collection<WebPushSubscriptions>(this);
   webauthn_challenges_collection = new Collection<WebauthnChallenges>(this);
   webauthn_credentials_collection = new Collection<WebauthnCredentials>(this);
 }
@@ -344,6 +354,10 @@ export const UsersSchema = defineEntity({
     journey_recording_prep_collection: () => p.oneToMany(JourneyRecordingPrep).mappedBy('user').hidden(),
     journey_share_tokens_collection: () => p.oneToMany(JourneyShareTokens).mappedBy('createdByRef').hidden(),
     journeys_collection: () => p.oneToMany(Journeys).mappedBy('user').hidden(),
+    mail_ingest_addresses_collection: () => p.oneToMany(MailIngestAddresses).mappedBy('user').hidden(),
+    mail_ingest_candidates_collection: () => p.oneToMany(MailIngestCandidates).mappedBy('user').hidden(),
+    mail_ingest_messages_collection: () => p.oneToMany(MailIngestMessages).mappedBy('user').hidden(),
+    mail_ingest_prefs_collection: () => p.oneToMany(MailIngestPrefs).mappedBy('user').hidden(),
     mcp_tokens_collection: () => p.oneToMany(McpTokens).mappedBy('user').hidden(),
     notification_channel_preferences_collection: () => p.oneToMany(NotificationChannelPreferences).mappedBy('user').hidden(),
     notifications_collection: () => p.oneToMany(Notifications).mappedBy('sender').hidden(),
@@ -400,6 +414,7 @@ export const UsersSchema = defineEntity({
     visited_countries_collection: () => p.oneToMany(VisitedCountries).mappedBy('user').hidden(),
     visited_regions_collection: () => p.oneToMany(VisitedRegions).mappedBy('user').hidden(),
     wanderer_connections: () => p.oneToOne(WandererConnections).ref().mappedBy('user').hidden(),
+    web_push_subscriptions_collection: () => p.oneToMany(WebPushSubscriptions).mappedBy('user').hidden(),
     webauthn_challenges_collection: () => p.oneToMany(WebauthnChallenges).mappedBy('user').hidden(),
     webauthn_credentials_collection: () => p.oneToMany(WebauthnCredentials).mappedBy('user').hidden(),
   },

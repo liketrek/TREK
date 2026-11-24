@@ -1,8 +1,8 @@
 /**
  * splitAfterSemicolons: where a plugin's exec() script is cut into statements, so
- * the time budget can be read between them (plugin-data.service.ts).
+ * the time budget can be read between them (src/db/engine/sqlite/plugin-data-store.ts).
  */
-import { splitAfterSemicolons } from '../../../src/nest/plugins/host/sql-script';
+import { splitAfterSemicolons } from '../../../src/db/engine/sqlite/sql-script';
 
 import { describe, expect, it } from 'vitest';
 

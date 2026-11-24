@@ -1,3 +1,4 @@
+import { rowIdInputSchema } from '../common/primitives.schema';
 import { assignmentPlaceSchema } from '../place/place.schema';
 import { stationKeySchema } from '../tours/tours.schema';
 
@@ -42,7 +43,7 @@ export const assignmentSchema = z.object({
   assignment_time: z.string().nullable().optional(),
   assignment_end_time: z.string().nullable().optional(),
   end_day: z.boolean().optional(),
-  stay_minutes: z.number().int().min(0).max(1440).nullable().optional(),
+  stay_minutes: z.number().int().min(0).max(10_080).nullable().optional(),
   times_explicit: z.boolean().optional(),
   // Per-segment travel mode (#1281): the transport mode of the leg LEAVING this
   // stop for the next one. null = inherit the day's default_transport_mode.
@@ -72,7 +73,7 @@ export const assignmentSchema = z.object({
 export type Assignment = z.infer<typeof assignmentSchema>;
 
 export const assignmentCreateRequestSchema = z.object({
-  place_id: z.union([z.number(), z.string()]),
+  place_id: rowIdInputSchema,
   notes: z.string().nullable().optional(),
   /**
    * MDT-02: puts one stage of a multi-day tour on the day instead of the whole
@@ -84,15 +85,15 @@ export const assignmentCreateRequestSchema = z.object({
 export type AssignmentCreateRequest = z.infer<typeof assignmentCreateRequestSchema>;
 
 export const assignmentReorderRequestSchema = z.object({
-  orderedIds: z.array(z.number()),
+  orderedIds: z.array(z.number().int()),
 });
 export type AssignmentReorderRequest = z.infer<typeof assignmentReorderRequestSchema>;
 
 export const assignmentMoveRequestSchema = z.object({
-  new_day_id: z.union([z.number(), z.string()]),
+  new_day_id: rowIdInputSchema,
   // The client api types this `number | null` (assignmentsApi.move) and the
   // legacy route accepted null (`orderIndex || 0`) — keep null on the wire.
-  order_index: z.number().nullable().optional(),
+  order_index: z.number().int().nullable().optional(),
 });
 export type AssignmentMoveRequest = z.infer<typeof assignmentMoveRequestSchema>;
 
@@ -106,6 +107,23 @@ export const assignmentEndDayRequestSchema = z.object({
   end_day: z.boolean(),
 });
 export type AssignmentEndDayRequest = z.infer<typeof assignmentEndDayRequestSchema>;
+
+/**
+ * PUT /:id/stay (#3092) — how long the drive stands at this one visit, in whole
+ * minutes, a week at most like the road trip's own stay bounds. Zero is a visit
+ * driven past without stopping; null hands the visit back to the stay its place
+ * carries (`places.duration_minutes`).
+ */
+export const assignmentStayRequestSchema = z.object({
+  stay_minutes: z.number().int().min(0).max(10_080).nullable(),
+});
+export type AssignmentStayRequest = z.infer<typeof assignmentStayRequestSchema>;
+
+/** What a write to one assignment answers with: the assignment as the day list reads it. */
+export const assignmentResponseSchema = z.object({
+  assignment: assignmentSchema,
+});
+export type AssignmentResponse = z.infer<typeof assignmentResponseSchema>;
 
 /**
  * PUT /:id/notes (#2163) — edit the per-assignment note after creation.
@@ -138,14 +156,6 @@ export const assignmentRouteRequestSchema = z.object({
 export type AssignmentRouteRequest = z.infer<typeof assignmentRouteRequestSchema>;
 
 export const assignmentParticipantsRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type AssignmentParticipantsRequest = z.infer<typeof assignmentParticipantsRequestSchema>;
-
-/** Duration belongs to this visit; null restores the place default. */
-export const assignmentStayRequestSchema = z.object({
-  stay_minutes: z.number().int().min(0).max(1440).nullable(),
-});
-export type AssignmentStayRequest = z.infer<typeof assignmentStayRequestSchema>;
-
-export const assignmentResponseSchema = z.object({ assignment: assignmentSchema });

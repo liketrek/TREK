@@ -5,6 +5,8 @@
 "widget.today.description" = "Kế hoạch hôm nay dạng dòng thời gian, kèm thời tiết và điểm dừng tiếp theo.";
 "widget.bookings.name" = "Đặt chỗ";
 "widget.bookings.description" = "Các chuyến bay, tàu, khách sạn và bàn sắp tới của bạn, cùng thời gian.";
+"widget.flight.name" = "Chuyến bay";
+"widget.flight.description" = "Chuyến bay tiếp theo trực tiếp: đếm ngược giờ khởi hành, máy bay đang bay, độ trễ và giờ đến.";
 "widget.todos.name" = "Việc cần làm";
 "widget.todos.description" = "Những gì còn lại cho chuyến đi và việc soạn hành lý đã tới đâu.";
 "widget.packing.name" = "Hành lý";

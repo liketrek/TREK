@@ -11,6 +11,7 @@ import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { AddonsService } from '../addons/addons.service';
 import { encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { toRowId } from '../common/row-id';
 import { UnitOfWork } from '../database/unit-of-work';
 import { NotificationsService } from '../notifications/notifications.service';
 import { TrekPhotoRegistrationService } from '../photos/trek-photo-registration.service';
@@ -202,7 +203,7 @@ export class UnifiedMemoriesService {
   async setTripPhotoSharing(
     tripId: string,
     userId: number,
-    photoId: number,
+    photoId: number | null,
     shared: boolean,
     sid?: string,
   ): Promise<ServiceResult<true>> {
@@ -210,6 +211,8 @@ export class UnifiedMemoriesService {
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
+    // null: the caller's toRowId refused the body's photo id.
+    if (photoId === null) return fail('Invalid photo_id', 400);
 
     try {
       await this.tripPhotos.setShared(tripId, userId, photoId, shared ? 1 : 0);
@@ -222,11 +225,17 @@ export class UnifiedMemoriesService {
     }
   }
 
-  async removeTripPhoto(tripId: string, userId: number, photoId: number, sid?: string): Promise<ServiceResult<true>> {
+  async removeTripPhoto(
+    tripId: string,
+    userId: number,
+    photoId: number | null,
+    sid?: string,
+  ): Promise<ServiceResult<true>> {
     const access = await this.trips.findAccessible(tripId, userId);
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
+    if (photoId === null) return fail('Invalid photo_id', 400);
 
     try {
       await this.uow.transactional(async () => {
@@ -299,13 +308,17 @@ export class UnifiedMemoriesService {
     if (!access) {
       return fail('Trip not found or access denied', 404);
     }
+    // A link id toRowId refuses names no link, so there is nothing to remove,
+    // as for an id no link has; bound raw, Postgres refused it with an error.
+    const link = toRowId(linkId);
+    if (link === null) return success(true);
 
     try {
-      const linkedPhotoIds = await this.tripPhotos.listPhotoIdsForAlbumLink(tripId, linkId);
+      const linkedPhotoIds = await this.tripPhotos.listPhotoIdsForAlbumLink(tripId, link);
 
       await this.uow.transactional(async () => {
-        await this.tripPhotos.deleteForAlbumLink(tripId, linkId);
-        await this.tripAlbumLinks.deleteScoped(linkId, tripId, userId);
+        await this.tripPhotos.deleteForAlbumLink(tripId, link);
+        await this.tripAlbumLinks.deleteScoped(link, tripId, userId);
         for (const photo_id of linkedPhotoIds) await this.photos.deleteIfOrphan(photo_id);
       });
 

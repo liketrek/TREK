@@ -53,10 +53,19 @@ interface Listed {
   mtimeMs: number;
 }
 
-async function make(opts: { text?: string | Error; listed?: Listed[]; failDelete?: string; failPut?: boolean } = {}) {
+interface MakeOpts {
+  text?: string | Error;
+  listed?: Listed[];
+  failDelete?: string;
+  failPut?: boolean;
+  attached?: Array<{ id: string; trip_id: number }>;
+  documents?: boolean;
+}
+
+async function make(opts: MakeOpts = {}) {
   const rows = {
     insertAttachment: vi.fn(async () => undefined),
-    listForThread: vi.fn(async () => []),
+    listForThread: vi.fn(async () => opts.attached ?? []),
     listObjectsOfThread: vi.fn(async () => [{ id: 'a1', storage_key: 'assistant/a1.pdf' }]),
     listCreatedBefore: vi.fn(async () => [
       { id: 'old1', storage_key: 'assistant/old1.pdf' },
@@ -90,6 +99,10 @@ async function make(opts: { text?: string | Error; listed?: Listed[]; failDelete
     }),
     fitText: vi.fn((text: string, compact: boolean) => (compact ? text.slice(0, 4) : text)),
   };
+  const keeper = {
+    keep: vi.fn(async () => ({ ok: true, value: { file: { id: 3 } } })),
+    keepsOn: vi.fn(async (_tripId: number) => opts.documents !== false),
+  };
   const moduleRef = await Test.createTestingModule({
     providers: [
       AssistantAttachmentsService,
@@ -99,11 +112,11 @@ async function make(opts: { text?: string | Error; listed?: Listed[]; failDelete
       { provide: MikroORM, useValue: {} },
       {
         provide: AssistantKeepFileService,
-        useValue: { keep: vi.fn(async () => ({ ok: true, value: { file: { id: 3 } } })) },
+        useValue: keeper,
       },
     ],
   }).compile();
-  return { service: moduleRef.get(AssistantAttachmentsService), rows, storage, llmParse };
+  return { service: moduleRef.get(AssistantAttachmentsService), rows, storage, llmParse, keeper };
 }
 
 describe('AssistantAttachmentsService', () => {
@@ -258,5 +271,18 @@ describe('AssistantAttachmentsService', () => {
     const cloud = await t.service.turnFor(7, 4, { kind: 'openai', model: 'gpt-5', host: 'api.openai.com' });
     expect(cloud.texts).toEqual(new Map([[SHARED, 'Casa Lisboa, HM4X2']]));
     expect(t.rows.listSharedTexts).toHaveBeenCalledWith(4, 7);
+    // A thread without files has nothing to keep and asks no addon.
+    expect(cloud.turn.keeps).toBe(false);
+    expect(t.keeper.keepsOn).not.toHaveBeenCalled();
+  });
+
+  it('ASTATT-012: a turn may keep its files only while their trip has Documents on', async () => {
+    const connection = { kind: 'openai', model: 'gpt-5', host: 'api.openai.com' } as const;
+    const attached = [{ id: SHARED, trip_id: 9 }];
+    const on = await make({ attached });
+    expect((await on.service.turnFor(7, 4, connection)).turn.keeps).toBe(true);
+    expect(on.keeper.keepsOn).toHaveBeenCalledWith(9);
+    const off = await make({ attached, documents: false });
+    expect((await off.service.turnFor(7, 4, connection)).turn.keeps).toBe(false);
   });
 });

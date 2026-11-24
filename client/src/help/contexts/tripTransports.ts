@@ -35,6 +35,7 @@ export const { context: tripTransportsContext, guides: tripTransportsGuides } = 
     ['edit-transport', 'pencil', 'quick', 4, 2, OPENING, ['transport-details', 'add-transport', 'transports-list', 'bookings-in-plan']],
     ['transport-on-map', 'map', 'guide', 5, 3, OVERLAY, ['transport-details', 'transports-list', 'day-route'], true],
     ['export-transports-csv', 'fileSpreadsheet', 'quick', 2, 2, { slug: BOOKINGS, anchor: 'exporting-as-csv' }, ['transports-list', 'filter-bookings']],
+    ['flight-live-status', 'plane', 'guide', 5, 3, { slug: TRANSPORT, anchor: 'live-flight-status' }, ['transport-details', 'import-transport-file', 'transports-list'], true],
     // Last: the guide connects an AirTrail in its start and takes the connection
     // away in its cleanup, so the hero and the guides before it keep a toolbar
     // without the AirTrail button.

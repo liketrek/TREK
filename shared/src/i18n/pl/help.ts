@@ -64,7 +64,7 @@ const help: TranslationStrings = {
   'help.ctx.dashboard.bullet.1':
     'Karta pokładowa: trwająca lub najbliższa podróż z datami, uczestnikami, miejscami i odliczaniem. Kliknij ją, żeby otworzyć podróż. Cztery przyciski w prawym górnym rogu służą do edycji, duplikowania, archiwizowania i usuwania.',
   'help.ctx.dashboard.bullet.2':
-    'Statystyki podróży: odwiedzone kraje, podróże, dni w drodze i przebyty samolotem dystans, ze wszystkich Twoich podróży.',
+    'Statystyki podróży: odwiedzone kraje, z flagami ostatnio odwiedzonych na początku, podróże, dni w drodze i przebyty samolotem dystans, ze wszystkich Twoich podróży.',
   'help.ctx.dashboard.bullet.3':
     'Karty podróży z filtrami „Zaplanowane”, „Zarchiwizowana” i „Zakończone”, w widoku siatki lub listy. Pole wyszukiwania nad nimi przeszukuje wszystkie twoje podróże naraz, według nazwy, daty lub miejsca w podróży. Przyciski do edycji, duplikowania, archiwizowania i usuwania podróży są w prawym górnym rogu zdjęcia na każdej karcie.',
   'help.ctx.dashboard.bullet.4':
@@ -128,7 +128,7 @@ const help: TranslationStrings = {
   'help.guide.archive-trip.step.1': 'Kliknij ikonę archiwum w prawym górnym rogu karty.',
   'help.guide.archive-trip.step.2': 'Aby znów ją zobaczyć, przełącz filtr nad kartami na „Zarchiwizowana”.',
   'help.guide.archive-trip.step.3':
-    'Kliknij „Przywróć” na karcie, a podróż wróci do „Zaplanowane” albo, jeśli jej daty już minęły, do „Zakończone”.',
+    'Kliknij ikonę przywracania, w miejscu, gdzie była ikona archiwizowania, żeby przywrócić podróż do „Zaplanowane” albo, jeśli jej daty już minęły, do „Zakończone”.',
   'help.guide.archive-trip.result':
     'Zarchiwizowane podróże zachowują wszystkie dane. Nie są już widoczne na pulpicie ani w kalendarzu ze wszystkimi podróżami.',
 
@@ -164,6 +164,8 @@ const help: TranslationStrings = {
     'Każda aktywna podróż pojawia się w Twoim kalendarzu i aktualizuje się automatycznie. Podróże zarchiwizowane i zakończone ponad 90 dni temu nie są uwzględniane.',
   'help.guide.calendar-feed.tip.1':
     'Nie udostępniaj tego linku: każdy, kto go ma, może odczytać kalendarz. Jeśli trafił do innych osób, „Wygeneruj ponownie” utworzy nowy link, a stary przestanie działać. „Wyłącz” całkowicie usuwa link.',
+  'help.guide.calendar-feed.tip.2':
+    '„Wydarzenia z podsumowaniem dnia” dodają jedno całodniowe wydarzenie na każdy dzień, z jego miejscami i notatkami bez godziny. Wyłącz je, jeśli chcesz mieć tylko rezerwacje. Razem z tym zmienia się link, więc zasubskrybuj kalendarz ponownie z nowym.',
 
   // widgets
   'help.guide.widgets.title': 'Wybierz widżety pulpitu',
@@ -490,7 +492,7 @@ const help: TranslationStrings = {
     'Kontynenty pokazują liczbę odwiedzonych krajów na każdym kontynencie. Antarktyda pojawia się w rzędzie dopiero po jej odwiedzeniu. Dalej jest Twoja seria (kolejne lata z co najmniej jedną podróżą) i liczba podróży w tym roku.',
   'help.guide.stats.result': 'Liczby aktualizują się same, gdy planujesz podróże. Nie musisz tu niczego uzupełniać.',
   'help.guide.stats.tip.1':
-    'Miasta są odczytywane z tekstu adresu, a nie wyszukiwane. Dlatego krótki adres, np. „Osteria Francescana, Italy”, albo adres kończący się prefekturą może zostać policzony jako region, a nie miasto.',
+    'Miasta są odczytywane z tekstu adresu, a nie wyszukiwane. TREK pomija kraj, kod pocztowy i region i bierze nazwę przed nimi, więc „10178 Berlin” liczy się jako Berlin. Krótki adres, np. „Osteria Francescana, Italy”, w ogóle nie dodaje miasta.',
   'help.guide.stats.tip.2':
     'Kraje oznaczone ręcznie liczą się do „Kraje” i do kontynentów, ale nie dodają podróży, miejsc ani dni.',
   // dawarich-countries
@@ -528,7 +530,7 @@ const help: TranslationStrings = {
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Kolekcje',
   'help.ctx.collections.summary':
-    'Kolekcje to Twoja biblioteka poza podróżami: nazwane listy miejsc, które znalazłeś i chcesz zachować, każde ze statusem Pomysł, Chcę odwiedzić lub Odwiedzone. Przy włączonych Wycieczkach trzymasz tu też całe wycieczki zachowane z podróży. Miejsca i wycieczki są kopiowane do podróży i z nich, a nie powiązane, więc lista i podróż nigdy nie zmieniają się nawzajem.',
+    'Kolekcje to Twoja biblioteka poza podróżami: nazwane listy miejsc, które znalazłeś i chcesz zachować, każde ze statusem Pomysł, Chcę odwiedzić, Odwiedzone lub Chcę wrócić. Przy włączonych Wycieczkach trzymasz tu też całe wycieczki zachowane z podróży. Miejsca i wycieczki są kopiowane do podróży i z nich, a nie powiązane, więc lista i podróż nigdy nie zmieniają się nawzajem.',
   'help.ctx.collections.bullet.1':
     'Kolumna list po lewej pokazuje Twoje listy, listy udostępnione Ci, zaproszenia, na które jeszcze nie odpowiedziałeś, oraz „Wszystkie zapisane”, czyli wszystko z Twoich list w jednym miejscu. Na górze są „Nowa lista” i import z pliku.',
   'help.ctx.collections.bullet.2':
@@ -538,7 +540,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.4':
     'Wiersze miejsc: zdjęcie, nazwa i adres, etykiety i kategoria, a po prawej pigułka statusu. Jedno kliknięcie w pigułkę zmienia status na następny.',
   'help.ctx.collections.bullet.5':
-    'Mapa po prawej: pinezka dla każdego miejsca ze współrzędnymi. Na górnym pasku jest „Powiększ mapę” („Pokaż listę”, gdy mapa zajmuje cały widok), filtr etykiet z przyciskiem do zarządzania etykietami i pole „Szukaj miejsc”. Kliknij pinezkę, żeby otworzyć miejsce.',
+    'Mapa po prawej: pinezka dla każdego miejsca ze współrzędnymi. Na górnym pasku jest „Powiększ mapę” („Pokaż listę”, gdy mapa zajmuje cały widok), filtr etykiet z przyciskiem do zarządzania etykietami i pole „Szukaj miejsc”. Kliknij pinezkę, żeby otworzyć miejsce. Kłódka w lewym dolnym rogu, nad przyciskiem stylu mapy, zostawia mapę w miejscu, gdy przeglądasz miejsca.',
   'help.ctx.collections.bullet.6':
     'Karta szczegółów: kliknij wiersz, aby zobaczyć okładkę, kategorię, status, ocenę w gwiazdkach, etykiety, opis i linki. Ikoną aparatu na okładce zmienisz zdjęcie. Na dole są „Edytuj”, „Kopiuj do podróży”, przycisk nawigacji i „Usuń z listy”.',
   // create-list
@@ -585,17 +587,20 @@ const help: TranslationStrings = {
     'Na liście miejsc w podróży tryb zaznaczania oferuje zamiast tego „Zapisz w kolekcji” dla ręcznie wybranych miejsc.',
   // place-status
   'help.guide.place-status.title': 'Ustawianie statusu miejsca',
-  'help.guide.place-status.goal': 'Pilnuj, co jest pomysłem, co jest na krótkiej liście i gdzie już byłeś.',
+  'help.guide.place-status.goal':
+    'Pilnuj, co jest pomysłem, co jest na krótkiej liście, gdzie już byłeś i dokąd chcesz wrócić.',
   'help.guide.place-status.step.1':
     'Kliknij plakietkę statusu na prawym końcu wiersza miejsca. „Pomysł” zmieni się w „Chcę odwiedzić”.',
   'help.guide.place-status.step.2':
-    'Kliknij ją ponownie, aby ustawić „Odwiedzone”, i jeszcze raz, aby wrócić do „Pomysł”.',
+    'Kliknij ją ponownie, aby ustawić „Odwiedzone”, jeszcze raz, aby ustawić „Chcę wrócić”, i jeszcze raz, aby wrócić do „Pomysł”.',
   'help.guide.place-status.result':
     'Plakietka i jej kolor zmieniają się od razu, a liczniki w filtrze statusu nad listą się aktualizują.',
   'help.guide.place-status.tip.1':
     'Status istnieje tylko w Kolekcjach. Gdy kopiujesz miejsce do podróży, jego status nie jest kopiowany.',
   'help.guide.place-status.tip.2':
     'W podróży „Zapisz w kolekcji” otwiera „Zapisz na liście” z pigułką statusu dla każdej listy, na której jest miejsce, a pasek zaznaczenia w panelu miejsc ma opcję „Oznacz jako odwiedzone na listach”.',
+  'help.guide.place-status.tip.3':
+    '„Chcę wrócić” jest dla miejsca, w którym już byłeś i chcesz je zobaczyć ponownie. Nadal liczy się jako odwiedzone, więc „Odwiedzone wszędzie” w podróży zostawia je bez zmian.',
   // place-detail
   'help.guide.place-detail.title': 'Otwieranie zapisanego miejsca',
   'help.guide.place-detail.goal':
@@ -666,13 +671,14 @@ const help: TranslationStrings = {
     'Tylko właściciel może zapraszać i usuwać osoby; członek może sam opuścić udostępnioną listę.',
   // export-list
   'help.guide.export-list.title': 'Wyeksportuj listę do pliku',
-  'help.guide.export-list.goal': 'Przekaż listę komuś na innym serwerze TREK albo otwórz ją w aplikacji z mapami.',
+  'help.guide.export-list.goal':
+    'Przekaż listę komuś na innym serwerze TREK, otwórz ją w aplikacji z mapami albo zobacz ją w Google My Maps.',
   'help.guide.export-list.step.1': 'Kliknij „Eksportuj” w nagłówku listy.',
   'help.guide.export-list.step.2':
-    'Wybierz „Lista TREK”, aby użyć listy na innym serwerze TREK razem z etykietami i statusem, albo GPX dla OsmAnd, Organic Maps, urządzeń Garmin i innych aplikacji obsługujących punkty trasy.',
+    'Wybierz „Lista TREK”, aby użyć listy na innym serwerze TREK razem z etykietami i statusem, GPX dla OsmAnd, Organic Maps, urządzeń Garmin i innych aplikacji obsługujących punkty trasy albo KML dla Google My Maps, aby zobaczyć miejsca w Google Maps.',
   'help.guide.export-list.result': 'Plik zostanie pobrany. Udostępnioną listę może wyeksportować każdy jej członek.',
   'help.guide.export-list.tip.1':
-    'Miejsce bez współrzędnych nie może być punktem trasy GPX, więc jest pomijane, a TREK informuje, ile ich było.',
+    'Miejsce bez współrzędnych nie może być punktem trasy GPX ani pinezką KML, więc jest pomijane, a TREK informuje, ile ich było.',
   'help.guide.export-list.tip.2':
     'Oceny, członkowie i przesłane zdjęcia celowo nie są eksportowane: należą do tej instancji TREK, a nie do listy.',
   // import-file
@@ -707,6 +713,18 @@ const help: TranslationStrings = {
     'Wpisz tekst w „Szukaj miejsc” nad mapą i korzystaj z filtrów jak na każdej liście. „Zaznacz” też tu działa: możesz przenosić, duplikować, kopiować do podróży i usuwać miejsca z różnych list.',
   'help.guide.all-saved.result':
     'W tym widoku zobaczysz wszystkie zapisane miejsca naraz. Nie można tu dodawać ani importować miejsc, bo nie ma jednej listy, do której by trafiły.',
+  'help.guide.collection-map-lock.title': 'Zablokuj mapę',
+  'help.guide.collection-map-lock.goal': 'Zostaw mapę w miejscu, gdy przeglądasz zapisane miejsca.',
+  'help.guide.collection-map-lock.step.1':
+    'Kliknij kłódkę w lewym dolnym rogu mapy, nad przyciskiem stylu mapy. Po najechaniu zobaczysz „Zablokuj widok mapy”. Przycisk będzie teraz brzmiał „Pozwól mapie podążać za zaznaczeniem”.',
+  'help.guide.collection-map-lock.step.2':
+    'Kliknij miejsce na liście albo pinezkę na mapie. Otworzy się jego karta, a mapa nie przesuwa się już ani nie przybliża do tego miejsca.',
+  'help.guide.collection-map-lock.tip.1':
+    'Kliknij kłódkę ponownie, teraz jako „Pozwól mapie podążać za zaznaczeniem”, a mapa znów będzie przechodzić do otwieranego miejsca. Kłódka jest tylko na komputerze, na telefonie mapa zawsze podąża za wyborem.',
+  'help.guide.collection-map-lock.tip.2':
+    'Ta przeglądarka pamięta blokadę, i to tę samą co na mapie podróży: zablokowana tutaj, zostaje zablokowana także na mapie podróży.',
+  'help.guide.collection-map-lock.result':
+    'Mapa zostaje na wybranym fragmencie, gdy otwierasz jedno miejsce po drugim.',
   'help.guide.all-saved.tip.1':
     'Etykiety i zapisane wycieczki należą do konkretnej listy, więc w „Wszystkie zapisane” nie są dostępne.',
 
@@ -725,7 +743,7 @@ const help: TranslationStrings = {
   'help.guide.create-journey.goal': 'Załóż dziennik do podróży, w którym jej miejsca od razu czekają jako propozycje.',
   'help.guide.create-journey.step.1': 'Kliknij „Utwórz nowy dziennik podróży”, ostatnią kartę w siatce.',
   'help.guide.create-journey.step.2':
-    'Nadaj dziennikowi nazwę i, jeśli chcesz, podtytuł, a potem zaznacz podróże, do których należy. Licznik pokazuje, ile miejsc zostanie dodanych.',
+    'Nadaj dziennikowi nazwę i, jeśli chcesz, podtytuł, a potem zaznacz podróże, do których należy. Linia na dole mówi, ile miejsc zostanie zaimportowanych.',
   'help.guide.create-journey.step.3': 'Kliknij „Utwórz dziennik podróży”.',
   'help.guide.create-journey.result':
     'Dziennik się otworzy. Każde miejsce z powiązanych podróży pojawi się na osi czasu jako propozycja, osobno dla każdego dnia, na który jest zaplanowane. Do każdej możesz napisać wpis.',
@@ -735,7 +753,7 @@ const help: TranslationStrings = {
   'help.guide.open-journey.title': 'Otwórz dziennik podróży',
   'help.guide.open-journey.goal': 'Otwórz dziennik i sprawdź, w którym miejscu się otwiera.',
   'help.guide.open-journey.step.1':
-    'Kliknij kartę. Każda pokazuje okładkę, daty oraz liczbę wpisów, zdjęć i miejsc w dzienniku.',
+    'Kliknij kartę. Każda pokazuje okładkę, rok, status oraz liczbę wpisów, zdjęć i miejsc w dzienniku.',
   'help.guide.open-journey.result':
     'Trwający dziennik otwiera się na dzisiejszym dniu, a jeśli na dziś nic jeszcze nie napisano, na ostatnim wcześniejszym wpisie. Zakończony dziennik otwiera się na początku.',
   'help.guide.open-journey.tip.1':
@@ -761,7 +779,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-detail.bullet.3':
     'Oś czasu: jedna sekcja na dzień, z jego numerem, liczbą miejsc i przyciskiem + do dodania wpisu w tym dniu. Niżej są karty wpisów ze zdjęciami, nastrojem, pogodą i opisem oraz karty sugestii z podróży, rysowane przerywaną linią, każda z × do odrzucenia.',
   'help.ctx.journey-detail.bullet.4':
-    'Mapa: pasek warstw na górze przełącza Plan (puste pinezki i przerywane trasy GPX z podróży), Nagrane (ciągłe trasy zachowane z Dawarich), Wpisy (pinezki w kolorach dni, połączone w kolejności dat cienką przerywaną linią) i Zdjęcia. Przycisk (i) obok wyjaśnia każdy symbol.',
+    'Mapa: pasek warstw na górze przełącza Plan (puste pinezki i przerywane trasy GPX z podróży), Nagrane (ciągłe trasy zachowane z Dawarich), Wpisy (pinezki w kolorach dni, połączone w kolejności dat cienką przerywaną linią) i Zdjęcia. Przycisk (i) obok wyjaśnia każdy symbol, a okrągły przycisk w prawym górnym rogu przełącza na zdjęcia satelitarne.',
   'help.ctx.journey-detail.bullet.5':
     '„Ustawienia dziennika podróży” (⋯): okładka, nazwa i podtytuł, status, ślady GPX, zapisane dni, miejsca ze zdjęć, pola wpisów, odrzucone sugestie, zsynchronizowane podróże, współtwórcy i to, którzy uczestnicy podróży mają dostęp, publiczne udostępnianie, archiwizacja i usuwanie.',
   'help.ctx.journey-detail.bullet.6':
@@ -777,7 +795,7 @@ const help: TranslationStrings = {
     'W prawej kolumnie sprawdź datę i godzinę, wyszukaj lokalizację lub użyj swojej bieżącej pozycji, a potem wybierz nastrój i pogodę.',
   'help.guide.add-entry.step.4': 'Kliknij Zapisz.',
   'help.guide.add-entry.result':
-    'Wpis pojawia się w swoim dniu na osi czasu i jako pinezka na mapie. Liczniki w nagłówku się aktualizują.',
+    'Wpis pojawia się w swoim dniu na osi czasu, a gdy ma lokalizację, także jako pinezka na mapie. Liczniki w nagłówku się aktualizują.',
   'help.guide.add-entry.tip.1':
     'Gdy piszesz w propozycji, korzystasz z tego samego edytora, a miejsce jest już ustawione.',
   'help.guide.add-entry.tip.2':
@@ -821,9 +839,10 @@ const help: TranslationStrings = {
   'help.guide.pros-cons.title': 'Dodawanie oceny',
   'help.guide.pros-cons.goal': 'Podsumuj dzień: co było świetne, a co nie.',
   'help.guide.pros-cons.step.1':
-    'W edytorze znajdź Zalety i wady pod opisem. Wpisz punkt w Zalety lub Wady i użyj Dodaj kolejne, aby dodać następny.',
+    'W edytorze „Zalety i wady” są u góry prawej kolumny. Wpisz punkt w „Zalety” lub „Wady” i użyj „Dodaj kolejne”, aby dodać następny.',
   'help.guide.pros-cons.step.2': 'Zapisz. Na karcie „Pokaż więcej” rozwija opis i werdykt jako dwie krótkie listy.',
-  'help.guide.pros-cons.result': 'Kciuk w górę i kciuk w dół pojawiają się pod opowieścią, więc od razu je widać.',
+  'help.guide.pros-cons.result':
+    'Pod opowieścią „Świetne” i „Mogłoby być lepiej” wyświetlają Twoje punkty obok siebie, każdy z liczbą.',
   'help.guide.pros-cons.tip.1':
     'Jeśli dziennik nie korzysta z werdyktów, możesz wyłączyć tę sekcję w „Pola wpisu” w „Ustawieniach dziennika podróży”.',
   // search-journey
@@ -847,6 +866,21 @@ const help: TranslationStrings = {
     '„Prześlij” po prawej dodaje zdjęcia do galerii. Jeśli masz połączone Immich lub Synology, przycisk z nazwą biblioteki pozwala wybrać zdjęcia stamtąd.',
   'help.guide.gallery-map.result':
     'Pinezki mają kolor swojego dnia i są połączone w kolejności dat cienką przerywaną linią. Pasek warstw u góry mapy określa, co jest pokazywane.',
+  'help.guide.album-date-range.title': 'Weź z dużego albumu tylko jedną podróż',
+  'help.guide.album-date-range.goal':
+    'Wybierz zdjęcia z podróży z albumu Immich lub Synology, który zawiera znacznie więcej.',
+  'help.guide.album-date-range.step.1':
+    'Przejdź do „Galerii” i kliknij przycisk z nazwą Twojej biblioteki zdjęć, obok „Prześlij”.',
+  'help.guide.album-date-range.step.2':
+    'Kliknij „Albumy”, a potem album. Jego zdjęcia są wyświetlane według dnia wykonania.',
+  'help.guide.album-date-range.step.3':
+    'Pod albumami ustaw „Zrobione między” na pierwszy i ostatni dzień, który chcesz. W siatce zostają tylko zdjęcia z tych dni, a „Zaznacz wszystko” obejmuje właśnie je.',
+  'help.guide.album-date-range.tip.1':
+    'Zakres zostaje po otwarciu innego albumu, więc możesz przejrzeć kilka albumów dla tej samej podróży. Znak × na końcu wiersza pokazuje cały album ponownie.',
+  'help.guide.album-date-range.tip.2':
+    '„Dodaj do” na górze okna wyboru określa wpis, do którego trafią zdjęcia. „Nowa galeria” umieszcza je tylko w galerii.',
+  'help.guide.album-date-range.result':
+    '„Dodaj” przenosi wybrane zdjęcia do dziennika. Zdjęcia, które już w nim są, są wyszarzone ze znacznikiem, więc nic nie zostanie dodane dwa razy.',
   'help.guide.gallery-map.tip.1':
     'Ślady GPX podróży są widoczne na warstwie „Plan” mapy jako linie przerywane. Wyłączysz je opcją „Pokaż wszystkie ślady GPX z podróży” w „Ustawieniach dziennika podróży”.',
   'help.guide.gallery-map.tip.2':
@@ -914,7 +948,7 @@ const help: TranslationStrings = {
   'help.guide.archive-journey.step.1':
     'Kliknij ⋯ w prawym górnym rogu nagłówka, żeby otworzyć „Ustawienia dziennika podróży”.',
   'help.guide.archive-journey.step.2':
-    'Na dole „Archiwizuj podróż” kończy dziennik i oznacza go jako zarchiwizowany, a „Przywróć podróż” go przywraca. „Usuń” po potwierdzeniu kasuje go razem ze wszystkimi wpisami i zdjęciami.',
+    'Na dole „Archiwizuj podróż” kończy dziennik i oznacza go jako zarchiwizowany, a „Przywróć podróż” go przywraca. Kosz obok po potwierdzeniu kasuje dziennik razem ze wszystkimi wpisami i zdjęciami.',
   'help.guide.archive-journey.result':
     'Zarchiwizowany dziennik nadal można czytać i udostępniać, po prostu nie otwiera się już na dzisiejszym dniu.',
   'help.guide.archive-journey.tip.1':
@@ -960,7 +994,7 @@ const help: TranslationStrings = {
     'Jednym kliknięciem uzyskaj kompletny pierwszy szkic z wpisów i zdjęć z dziennika.',
   'help.guide.studio-auto-layout.step.1': 'Kliknij „Auto layout” na górnym pasku.',
   'help.guide.studio-auto-layout.step.2':
-    'Wybierz „Cała książka”: zastępuje wszystkie strony, zachowując tytuł i ustawienia strony. „Ta strona” przebudowuje tylko widoczną rozkładówkę. Ta opcja jest dostępna tylko na rozkładówce utworzonej z wpisu.',
+    'Wybierz „Cała książka”: zastępuje wszystkie strony, zachowując tytuł i ustawienia strony. „Ta strona” układa tylko widoczną rozkładówkę na innym projekcie. Działa na każdej stronie, którą zrobił „Układ automatyczny”, łącznie z okładką.',
   'help.guide.studio-auto-layout.step.3':
     'Przejrzyj pasek stron. Jeśli poprzednia wersja podobała Ci się bardziej, „Cofnij” cofa cały układ.',
   'help.guide.studio-auto-layout.result':
@@ -975,13 +1009,13 @@ const help: TranslationStrings = {
   'help.guide.studio-pages.step.1':
     'Otwórz Strony na pasku bocznym. Miniatury pokazują książkę po kolei: okładka, pierwsza strona, rozkładówki, ostatnia strona i tylna okładka. Pierwsza i ostatnia strona są narysowane obok pustej wewnętrznej strony swojej okładki, tak jak otwiera się oprawiona książka.',
   'help.guide.studio-pages.step.2':
-    '„Dodaj stronę” na dole dodaje nową rozkładówkę przed ostatnią stroną. Znak + między dwiema miniaturami wstawia ją w tym miejscu.',
+    '„+ Strona” na dole dodaje nową rozkładówkę przed ostatnią stroną. Znak + między dwiema miniaturami wstawia ją w tym miejscu.',
   'help.guide.studio-pages.step.3':
     'Najedź na miniaturę, aby zobaczyć dostępne akcje: „Przenieś wcześniej”, „Przenieś później”, „Duplikuj stronę” i „Usuń stronę”. Kliknij miniaturę, aby otworzyć tę rozkładówkę na stole roboczym.',
   'help.guide.studio-pages.result':
     'Okładka, pierwsza i ostatnia strona oraz tył okładki zostają na swoich miejscach. Nowe rozkładówki zawsze trafiają między nie.',
   'help.guide.studio-pages.tip.1':
-    '„Widok książki” na górnym pasku pokazuje całą książkę jako arkusze, tak jak zostanie oprawiona.',
+    '„Widok książki” na pasku powiększenia pod rozkładówką pokazuje całą książkę jako arkusze, tak jak zostanie oprawiona.',
   'help.guide.studio-pages.tip.2':
     'Numery stron włączysz w panelu „Właściwości”, w sekcji „Dokument”, gdy nic nie jest zaznaczone.',
   // studio-layouts
@@ -1063,9 +1097,9 @@ const help: TranslationStrings = {
   'help.guide.studio-text-effects.goal': 'Nadaj nagłówkowi obrys, cień, łuk albo litery wypełnione wzorem.',
   'help.guide.studio-text-effects.step.1': 'Kliknij element tekstowy na stronie, aby go zaznaczyć.',
   'help.guide.studio-text-effects.step.2':
-    'We Właściwościach otwórz Efekty, aby dodać obrys, cień lub podświetlenie albo wypełnić litery gradientem lub wzorem. Wielkość liter i położenie wygina linię i dopasowuje ją do ramki.',
+    'We Właściwościach otwórz „Efekty”. „Kontur”, „Ostry cień” i „Pasek zakreślacza” dodają obrys, cień lub podświetlenie. „Wygięcie” zgina linię w łuk lub koło. „Litery” wypełnia je zdjęciem, gradientem lub wzorem.',
   'help.guide.studio-text-effects.tip.1':
-    'Dopasuj do ramki zmniejsza tekst, aż zmieści się w ramce, więc długi tytuł nigdy się nie wylewa.',
+    '„Dopasuj do ramki” w „Wielkość liter i położenie” zmniejsza słowa, gdy ramka jest dla nich za mała, więc długi tytuł nigdy się nie wylewa.',
   'help.guide.studio-text-effects.result': 'Efekt jest rysowany razem z tekstem, w druku tak samo jak na ekranie.',
   'help.guide.studio-background.title': 'Zmiana tła strony',
   'help.guide.studio-background.goal': 'Pomaluj stronę kolorem, gradientem lub wzorem albo połóż pod spodem zdjęcie.',
@@ -1094,7 +1128,7 @@ const help: TranslationStrings = {
   'help.guide.studio-properties.step.1':
     'Kliknij element na rozkładówce. Pojawią się uchwyty do zmiany rozmiaru i obrotu, a przeciągnięcie elementu go przesuwa.',
   'help.guide.studio-properties.step.2':
-    'Panel Properties po prawej pokazuje ustawienia zaznaczonego elementu: pozycję i rozmiar, Crop z punktem ostrości, który decyduje, co zostanie w kadrze, wypełnienie lub dopasowanie, filtry Look, zaokrąglenie narożników, styl ramki, kolejność warstw i Lock.',
+    'Panel Właściwości po prawej pokazuje ustawienia zaznaczonego elementu, pod jego nazwą: mapa oferuje swoje źródło, widok i linię, zdjęcie „Przytnij” z punktem ostrości, wypełnienie lub dopasowanie i filtry „Wygląd”. Pozycja, kolejność warstw i „Zablokuj” są dostępne dla każdego elementu.',
   'help.guide.studio-properties.step.3':
     '„Duplikuj” i „Usuń” są u góry inspektora. „Cofnij” na górnym pasku cofa każdą z tych zmian.',
   'help.guide.studio-properties.result':
@@ -1133,7 +1167,7 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.step.1':
     'Gdy rozkładówka jest w obszarze roboczym, kliknij „Pobierz tę rozkładówkę” na prawym końcu paska powiększenia. Plik zawiera projekt, ale nie zdjęcia.',
   'help.guide.studio-spread-file.step.2':
-    'W drugiej książce otwórz Pages, kliknij „Importuj” obok „Dodaj stronę” i wybierz plik.',
+    'W drugiej książce otwórz „Strony” i kliknij „Importuj” obok „+ Strona” na dole, a potem wybierz plik.',
   'help.guide.studio-spread-file.result':
     'Rozkładówka zostaje zaimportowana z ramkami i stylami tekstu. Przeciągnij do ramek zdjęcia z nowego dziennika.',
   'help.guide.studio-spread-file.tip.1': 'Jeśli plik nie jest projektem rozkładówki, TREK go odrzuci i poda powód.',
@@ -1147,7 +1181,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.2':
     'Najpierw otwierają się Preferencje. Znajdziesz tam język, język nazw miejsc, jednostki, format czasu, format daty, początek tygodnia i walutę wyświetlania, a także zachowanie mapy podróży. Wygląd obejmuje motyw, kolory, czytelność, wielkość tekstu i widżety panelu.',
   'help.ctx.settings.bullet.3':
-    '„Mapa” ustawia silnik mapy i jej styl; „Powiadomienia” określają, które zdarzenia trafiają na który kanał; „Integracje” łączą biblioteki zdjęć, AirTrail, Dawarich i wanderer, a także zawierają klucze API i MCP; „Offline” określa, co przechowuje to urządzenie.',
+    '„Mapa” ustawia silnik mapy i jej styl, „Powiadomienia” określają, które zdarzenia trafiają na który kanał, „Integracje” zawierają Twój adres do wiadomości z rezerwacjami, łączą biblioteki zdjęć, AirTrail, Dawarich i wanderer oraz mieszczą klucze API i MCP, a „Offline” określa, co przechowuje to urządzenie.',
   'help.ctx.settings.bullet.4':
     'Konto obejmuje Twój profil, hasło, uwierzytelnianie dwuskładnikowe, klucze dostępu i możliwość usunięcia konta.',
   'help.ctx.settings-display.title': 'Wygląd',
@@ -1173,11 +1207,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Który silnik rysuje mapy w planerze podróży i dzienniku oraz w jakim stylu. Leaflet to klasyczna mapa rastrowa, Mapbox GL dodaje budynki 3D i ukształtowanie terenu, ale wymaga własnego tokena, a MapLibre GL rysuje wektorowe kafelki OpenFreeMap bez tokena. Atlas zawsze korzysta z Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    '„Dostawca mapy”: Leaflet, Mapbox GL („Eksperymentalne”) lub MapLibre GL, każda opcja z krótkim opisem.',
+    '„Dostawca mapy”: Leaflet, Mapbox GL lub MapLibre GL, każda opcja z krótkim opisem.',
   'help.ctx.settings-map.bullet.2':
     '„Szablon mapy” i „Klucz API CARTO” dla Leaflet; „Styl mapy” dla obu silników GL, a dla Mapbox GL także „Token dostępu Mapbox”.',
   'help.ctx.settings-map.bullet.3':
-    'Tylko dla Mapbox GL: „Budynki 3D i teren” oraz „Tryb wysokiej jakości”. Nad przyciskiem „Zapisz mapę” widać podgląd na żywo. „Zapisz mapę” zapisuje wybór.',
+    'Tylko dla Mapbox GL: „Budynki 3D i teren”, „Tryb wysokiej jakości” i „Ukryj ciekawe miejsca”. Nad przyciskiem „Zapisz mapę” widać podgląd na żywo. „Zapisz mapę” zapisuje wybór.',
   'help.ctx.settings-notifications.title': 'Powiadomienia',
   'help.ctx.settings-notifications.summary':
     'Jak TREK kontaktuje się z Tobą poza aplikacją. U góry jest tabela z wierszem dla każdego zdarzenia i kolumną dla każdego kanału, która decyduje, co i gdzie jest wysyłane. Poniżej są karty webhooka, ntfy, powiadomień push na tym urządzeniu i kanałów wtyczek.',
@@ -1191,9 +1225,9 @@ const help: TranslationStrings = {
     '„Powiadomienia push na tym urządzeniu”: „Włącz na tym urządzeniu” dotyczy tylko tej przeglądarki, a „Wyślij test” wysyła powiadomienie testowe. Kanał wtyczki pokazuje „Skonfiguruj”, dopóki nie zostanie skonfigurowany.',
   'help.ctx.settings-integrations.title': 'Integracje',
   'help.ctx.settings-integrations.summary':
-    'Wszystko, co łączy TREK ze światem zewnętrznym: biblioteki zdjęć dla dziennika, AirTrail dla lotów, Dawarich dla miejsc, w których naprawdę byłeś, wanderer dla szlaków, klucze API tylko do odczytu dla innych programów i MCP dla klientów AI. Połączenie z inną usługą pojawia się dopiero wtedy, gdy administrator je włączy.',
+    'Wszystko, co łączy TREK ze światem zewnętrznym: Twój własny adres do wiadomości z rezerwacjami, biblioteki zdjęć dla dziennika, AirTrail dla lotów, Dawarich dla miejsc, w których naprawdę byłeś, wanderer dla szlaków, klucze API tylko do odczytu dla innych programów i MCP dla klientów AI. Połączenie z inną usługą pojawia się dopiero wtedy, gdy administrator je włączy.',
   'help.ctx.settings-integrations.bullet.1':
-    'Immich i Synology Photos, AirTrail, Dawarich i wanderer: każda karta ma pola na adres i klucz, przyciski „Zapisz” i „Testuj połączenie” oraz plakietkę „Połączono” lub „Nie połączono”.',
+    '„Wiadomości z rezerwacjami” u góry, gdy administrator ma włączony import wiadomości: Twój adres do przekazywania wraz z jego przełącznikami. Pod nim Immich i Synology Photos, AirTrail, Dawarich i wanderer: każda karta ma pola na adres i klucz, przyciski „Zapisz” i „Testuj połączenie” oraz plakietkę „Połączono” lub „Nie połączono”.',
   'help.ctx.settings-integrations.bullet.2':
     'Klucze API: klucze tylko do odczytu dla publicznego API, każdy ograniczony do wybranych obszarów, wraz z adresem endpointu do skopiowania.',
   'help.ctx.settings-integrations.bullet.3':
@@ -1226,7 +1260,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.title': 'Język, jednostki i waluta',
   'help.guide.language-region.goal': 'Korzystaj z TREK w swoim języku i z formatami typowymi dla Twojego regionu.',
   'help.guide.language-region.step.1':
-    'W sekcji Język i region wybierz Język z rzędu znaczników. TREK przełącza się od razu, na każdym urządzeniu, na którym jesteś zalogowany.',
+    'W sekcji „Język i region” wybierz „Język” z listy. Wpisz fragment nazwy, żeby szybko go znaleźć. TREK przełącza się od razu, na każdym urządzeniu, na którym jesteś zalogowany.',
   'help.guide.language-region.step.2':
     'Nazwy miejsc ustawiają język, którego używają wyszukiwanie miejsc, podpowiedzi i adresy. Tak jak aplikacja podąża za językiem interfejsu.',
   'help.guide.language-region.result':
@@ -1306,7 +1340,7 @@ const help: TranslationStrings = {
   'help.guide.map-provider.step.2':
     'Wybierz „Szablon mapy” dla Leaflet lub „Styl mapy” dla silnika GL albo wklej własny URL. Mapbox GL wymaga „Tokena dostępu Mapbox”, a szablony CARTO „Klucza API CARTO”; link pod każdym polem pokazuje, skąd go wziąć.',
   'help.guide.map-provider.step.3':
-    'W Mapbox GL włącz „Budynki 3D i teren”, a jeśli Twoje urządzenie jest wystarczająco wydajne, także „Tryb wysokiej jakości”. Sprawdź podgląd i kliknij „Zapisz mapę”.',
+    'W Mapbox GL włącz „Budynki 3D i teren” oraz, jeśli Twoje urządzenie jest wystarczająco wydajne, „Tryb wysokiej jakości”. „Ukryj ciekawe miejsca” pomija sklepy i atrakcje, które Mapbox podpisuje sam. Sprawdź podgląd i kliknij „Zapisz mapę”.',
   'help.guide.map-provider.result':
     'Planer podróży i mapy dziennika korzystają z wybranego silnika. Atlas zawsze korzysta z Leaflet.',
   'help.guide.map-provider.tip.1': 'Bez tokenu Mapbox GL przełącza się na Leaflet, zamiast pokazywać pustą mapę.',
@@ -1360,7 +1394,7 @@ const help: TranslationStrings = {
   'help.guide.mcp-oauth.step.2':
     'W sekcji Klienci OAuth 2.1 kliknij Nowy klient i wybierz gotowy szablon, na przykład Claude Desktop lub Cursor, albo samodzielnie wypełnij Nazwa aplikacji, URI przekierowania i Dozwolone uprawnienia. Dla serwera bez przeglądarki wybierz Machine client. Kliknij Zarejestruj klienta i skopiuj Sekret klienta: pokazuje się tylko raz.',
   'help.guide.mcp-oauth.step.3':
-    'Każdy klient ma przyciski „Odnów sekret” i „Usuń klienta”. „Aktywne sesje OAuth” pokazuje zalogowanych klientów z przyciskiem „Unieważnij”. Po rozwinięciu „Konfiguracja klienta” zobaczysz gotowy fragment dla klientów korzystających z JSON.',
+    'Każdy klient ma przyciski „Odnów sekret” i „Usuń klienta”. Gdy klient się zaloguje, „Aktywne sesje OAuth” wyświetla go z przyciskiem „Unieważnij”. Nad klientami „Konfiguracja klienta” zawiera gotowy fragment dla klientów korzystających z JSON, z przyciskiem „Kopiuj”.',
   'help.guide.mcp-oauth.result':
     'Klient może czytać i zmieniać to, na co pozwalają jego uprawnienia, w Twoim imieniu, a każda czynność pojawia się pod Twoim nazwiskiem.',
   'help.guide.mcp-oauth.tip.1':
@@ -1370,9 +1404,9 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.title': 'Korzystaj z podróży offline',
   'help.guide.offline-prepare.goal': 'Zapisz podróże i ich mapy na tym urządzeniu, zanim stracisz połączenie.',
   'help.guide.offline-prepare.step.1':
-    'W sekcji „Co przechowywać offline” zostaw włączone „Przechowuj kafelki mapy offline” i włącz podróże, które chcesz mieć na tym urządzeniu. Zakończona podróż jest zapisywana tylko wtedy, gdy ją włączysz.',
+    'Na karcie „Co przechowywać offline”, po prawej, zostaw włączone „Przechowuj kafelki mapy offline” i włącz podróże, które chcesz mieć na tym urządzeniu. Zakończona podróż jest zapisywana tylko wtedy, gdy ją włączysz.',
   'help.guide.offline-prepare.step.2':
-    'U góry, w sekcji „Przygotuj do trybu offline”, kliknij „Pobierz do użytku offline”. Pobierane są dane podróży, dokumenty i kafelki mapy, a na koniec zobaczysz, ile podróży zapisano.',
+    'Na karcie „Tryb offline”, w sekcji „Przygotuj do trybu offline”, kliknij „Pobierz do użytku offline”. Pobierane są dane podróży, dokumenty i kafelki mapy, a na koniec zobaczysz, ile podróży zapisano.',
   'help.guide.offline-prepare.step.3':
     '„Wymuś tryb offline” jeszcze raz pobiera dane, a potem działa wyłącznie na danych z tego urządzenia, więc przed wyjazdem możesz sprawdzić, czy wszystko jest na miejscu.',
   'help.guide.offline-prepare.result':
@@ -1451,17 +1485,17 @@ const help: TranslationStrings = {
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Administrator',
   'help.ctx.admin.summary':
-    'Ustawienia całej instancji TREK, wspólne dla wszystkich użytkowników: kto i jak może się logować, co jest włączone, gdzie są przechowywane pliki, jak serwer kontaktuje się z ludźmi i jak tworzone są kopie zapasowe. Tę stronę widzą tylko administratorzy. Pasek boczny dzieli karty na grupy „Użytkownicy”, „Konfiguracja”, „Integracje” i „Konserwacja”, a każda karta to osobny ekran.',
+    'Ustawienia całej instancji TREK, wspólne dla wszystkich użytkowników: kto i jak może się logować, co jest włączone, gdzie są przechowywane pliki, jak serwer kontaktuje się z ludźmi i jak tworzone są kopie zapasowe. Tę stronę widzą tylko administratorzy. Pasek boczny dzieli karty na grupy „Użytkownicy”, „Konfiguracja” i „Konserwacja”, a każda karta to osobny ekran.',
   'help.ctx.admin.bullet.1':
     'Po prawej stronie nagłówka widać liczbę użytkowników, podróży, miejsc i plików. Pod nim pojawia się baner „Dostępna aktualizacja”, gdy jest dostępne nowsze wydanie TREK.',
   'help.ctx.admin.bullet.2':
-    '„Użytkownicy” i „Domyślne ustawienia”: konta, linki zaproszeń i uprawnienia oraz ustawienia i mapa, z którymi startuje nowe konto.',
+    '„Użytkownicy” i „Domyślne”: konta, linki zaproszeń i uprawnienia oraz ustawienia i mapa, z którymi startuje nowe konto.',
   'help.ctx.admin.bullet.3':
-    'Personalizacja, Ustawienia, Dodatki, Wtyczki i Magazyn: szablony pakowania, kategorie i ferie szkolne; logowanie, klucze dostępu, 2FA, klucze API i dostawcy wyszukiwania; moduły funkcji; wtyczki zewnętrzne; miejsce zapisu przesłanych plików.',
+    '„Bezpieczeństwo”, „Usługi”, „Dodatki” i „Personalizacja”: logowanie, klucze dostępu, 2FA i logowanie jednokrotne; wyszukiwanie miejsc, wyznaczanie tras, klucze API i typy plików; moduły funkcji wraz z ich opcjami; szablony pakowania, kategorie i ferie szkolne.',
   'help.ctx.admin.bullet.4':
-    'Powiadomienia, Dostęp MCP i GitHub: kanały dostępne dla użytkowników i ich ustawienia początkowe, tokeny i sesje klientów AI oraz historia wydań.',
+    '„Powiadomienia”, „MCP” i „Wtyczki”: kanały, które mogą wybrać użytkownicy, i alerty, które dostajesz jako administrator, tokeny i sesje klientów AI oraz wtyczki zewnętrzne.',
   'help.ctx.admin.bullet.5':
-    'Backupy i Audit: kopie zapasowe na żądanie i według harmonogramu oraz dziennik zdarzeń związanych z bezpieczeństwem.',
+    '„Magazyn”, „Backupy”, „GitHub” i „Audyt”: miejsce zapisu przesłanych plików, kopie zapasowe na żądanie i według harmonogramu, historia wydań oraz dziennik zdarzeń związanych z bezpieczeństwem.',
   'help.ctx.admin-users.title': 'Użytkownicy',
   'help.ctx.admin-users.summary':
     'Wszystkie konta w tym TREK, z rolą, adresem e-mail i czasem ostatniej aktywności, linki zaproszeń, dzięki którym można rejestrować się w zamkniętej instancji, oraz uprawnienia w podróżach.',
@@ -1473,13 +1507,13 @@ const help: TranslationStrings = {
     'Poniżej „Linki zaproszeń”: linki rejestracyjne z limitem użyć, terminem ważności i opcjonalnie podróżą, do której nowy użytkownik dołączy po rejestracji.',
   'help.ctx.admin-users.bullet.4':
     'Na dole „Ustawienia uprawnień”: dla każdej akcji określasz, kto może ją wykonywać („Wszyscy”, „Członkowie podróży”, „Właściciel podróży” lub „Tylko admin”). Zmiany zapisujesz przyciskiem „Zapisz” u góry karty.',
-  'help.ctx.admin-defaults.title': 'Domyślne ustawienia',
+  'help.ctx.admin-defaults.title': 'Domyślne',
   'help.ctx.admin-defaults.summary':
     'Ustawienia, z którymi startuje nowe konto, żeby nikt nie musiał ich najpierw konfigurować: motyw, jednostki, format czasu, format daty, pierwszy dzień tygodnia, waluta wyświetlania i rozmywanie kodów rezerwacji, a także mapa, jej klucze i serwery wyznaczania tras.',
   'help.ctx.admin-defaults.bullet.1':
     '„Domyślne ustawienia użytkownika” po lewej: „Motyw”, „Jednostka temperatury”, „Jednostka odległości”, „Format czasu”, „Tydzień zaczyna się w”, „Format daty”, „Waluta wyświetlania” i „Rozmyj kody rezerwacji”.',
   'help.ctx.admin-defaults.bullet.2':
-    'Mapa po prawej: „Szablon mapy”, „Współdzielony klucz CARTO”, „Własny silnik tras” i „Własna instancja Valhalli”, podgląd, a dalej „Silnik map” ze „Styl mapy”, „Współdzielony token Mapbox”, „Budynki i teren 3D” oraz „Tryb wysokiej jakości”.',
+    'Pod nimi „Wyznaczanie tras”: „Usługa wyznaczania tras”, „Własny silnik tras” i „Własna instancja Valhalli”. Mapa po prawej: „Szablon mapy”, „Współdzielony klucz CARTO”, podgląd, a dalej „Silnik map” ze „Styl mapy”, „Współdzielony token Mapbox”, „Budynki i teren 3D” oraz „Tryb wysokiej jakości”.',
   'help.ctx.admin-config.title': 'Personalizacja',
   'help.ctx.admin-config.summary':
     'Ustawienia wspólne dla wszystkich podróży na serwerze: szablony pakowania, zestaw kategorii dla miejsc i kolekcji oraz katalog ferii szkolnych używany przez Urlopy.',
@@ -1489,32 +1523,33 @@ const help: TranslationStrings = {
     'Kategorie: nazwa, ikona i kolor kategorii używanych w całym TREK, od inspektora miejsca po Kolekcje. Każdą edytujesz w oknie z podglądem.',
   'help.ctx.admin-config.bullet.3':
     '„Ferie szkolne”: katalog krajów i regionów z terminami ferii, które każdy może wybrać w „Urlopy”.',
-  'help.ctx.admin-settings.title': 'Ustawienia',
+  'help.ctx.admin-settings.title': 'Bezpieczeństwo i usługi',
   'help.ctx.admin-settings.summary':
-    'Jak użytkownicy się logują i z jakich usług zewnętrznych może korzystać serwer. Po lewej: metody uwierzytelniania, „Logowanie kluczem dostępu”, „Wymagaj uwierzytelniania dwuskładnikowego (2FA)” i „Logowanie jednokrotne (OIDC)”. Po prawej: „Dozwolone typy plików” i „Klucze API” z dostawcami wyszukiwania i transportu publicznego. Na dole jest „Strefa zagrożenia”.',
+    'Jak użytkownicy się logują i z jakich usług zewnętrznych korzysta serwer, na dwóch kartach. „Bezpieczeństwo”: „Metody uwierzytelniania” i „Logowanie kluczem dostępu” po lewej, „Logowanie jednokrotne (OIDC)” i „Strefa zagrożenia” po prawej. „Usługi”: „Wyszukiwanie miejsc i wyznaczanie tras” po lewej, „Klucze API” i „Dozwolone typy plików” po prawej.',
   'help.ctx.admin-settings.bullet.1':
-    'Metody uwierzytelniania: Password Login, Password Registration oraz, po skonfigurowaniu OIDC, SSO Login i SSO Auto-Provisioning. „Wymagaj uwierzytelniania dwuskładnikowego (2FA)” ma osobną kartę.',
+    '„Metody uwierzytelniania”: „Logowanie hasłem” i „Rejestracja z hasłem”, wiersze SSO po skonfigurowaniu OIDC („Logowanie SSO”, „SSO Auto-Provisioning” i „Od razu do SSO”), a potem „Włącz logowanie kluczem dostępu” i „Wymagaj 2FA”. Każdy przełącznik zapisuje się od razu.',
   'help.ctx.admin-settings.bullet.2':
-    '„Logowanie kluczem dostępu”: „Włącz logowanie kluczem dostępu”, „Relying Party ID (domena)” i „Dozwolone origins”. „Logowanie jednokrotne (OIDC)”: „Wyświetlana nazwa”, „URL wystawcy”, opcjonalny adres URL discovery, „ID klienta” i „Sekret klienta”.',
+    '„Logowanie kluczem dostępu”: „Relying Party ID (domena)” i „Dozwolone origins”. „Logowanie jednokrotne (OIDC)”: „Wyświetlana nazwa”, „URL wystawcy”, opcjonalny adres URL discovery, „ID klienta” i „Sekret klienta”.',
   'help.ctx.admin-settings.bullet.3':
-    'Klucze API: na początku jest TREK Places API, które nie wymaga klucza. Pod nim znajdziesz „Klucz Google Maps API” (z przyciskami „Testuj” i „Do czego służy klucz”), klucz Unsplash i klucz Amap, a na dole karty jeden wspólny przycisk „Zapisz”.',
+    'Wyszukiwanie miejsc i wyznaczanie tras, na karcie „Usługi”: TREK API, oznaczone jako „Zalecane źródło domyślne”, z „Dzisiejszy limit” i „Udostępnianie danych miejsc”, a potem „Dostawca transportu publicznego”, „Dostawca wyszukiwania miejsc” i „Dziennik wyszukiwania miejsc”.',
   'help.ctx.admin-settings.bullet.4':
-    '„Dostawca transportu publicznego” i „Dostawca wyszukiwania miejsc” określają, kto obsługuje wyszukiwanie połączeń i miejsc. „Dziennik wyszukiwania miejsc” zapisuje, który wynik wybrano, a „Dozwolone typy plików” ogranicza przesyłane pliki.',
+    '„Klucze API”: „Klucz Google Maps API” z przyciskiem „Testuj” i „Do czego służy klucz”, klucz Unsplash i klucz Amap oraz jeden przycisk „Zapisz” na dole karty. „Dozwolone typy plików” pod nią ogranicza przesyłane pliki.',
   'help.ctx.admin-addons.title': 'Dodatki',
   'help.ctx.admin-addons.summary':
-    'Moduły funkcji TREK, każdy z własnym przełącznikiem: Pakowanie, Budżet, Dokumenty, Urlopy, Atlas, Współpraca, Dziennik podróży, Kolekcje, Podróż samochodowa, MCP, AirTrail, Dawarich i Analiza AI. Wyłączenie modułu usuwa dla wszystkich jego pozycję w nawigacji, ścieżki i API.',
+    'Moduły funkcji TREK na trzech kartach: „Podróż” dla zakładek podróży, „Globalne” dla sekcji w głównej nawigacji i „Integracja” dla usług zewnętrznych. Każdy dodatek ma przełącznik. Wyłączenie usuwa dla wszystkich jego pozycję w nawigacji, ścieżki i API.',
   'help.ctx.admin-addons.bullet.1':
-    'Każdy dodatek ma swój kafelek z przełącznikiem oraz, jeśli ma jakieś opcje, wierszami z tymi opcjami.',
+    'Jeden wiersz na dodatek z jego przełącznikiem, a w nagłówku każdej karty informacja, ile dodatków jest włączonych. Znak informacji obok nazwy mówi, do czego służy dodatek.',
   'help.ctx.admin-addons.bullet.2':
-    'Dostawcy zdjęć i dokumentów też mają tu swoje kafelki, więc możesz udostępnić użytkownikom na przykład Immich lub Synology.',
-  'help.ctx.admin-addons.bullet.3': '„Kontrola bagażu” ma własny przełącznik pod kafelkami.',
+    'Opcje wiszą pod swoim dodatkiem, dopóki jest włączony: „Kontrola bagażu” pod „Listy”, funkcje „Współpraca”, magazyny dokumentów pod „Dokumenty”, dostawcy zdjęć pod „Dziennik podróży” oraz wanderer i warstwy map pod „Wycieczki”.',
+  'help.ctx.admin-addons.bullet.3':
+    'Wiersze z kołem zębatym otwierają okno konfiguracji, na przykład „Dane wodne dla spływów” pod „Wycieczki” i „Skonfiguruj import wiadomości” pod „Import wiadomości z rezerwacjami”. Status lotu na żywo jest wierszem karty „Podróż”.',
   'help.ctx.admin-plugins.title': 'Wtyczki',
   'help.ctx.admin-plugins.summary':
     'Wtyczki innych firm, które działają we własnym procesie obok TREK, każda z uprawnieniami, o które poprosiła podczas instalacji. Zainstaluj je z katalogu, prześlij pakiet albo podłącz folder, gdy tworzysz własną wtyczkę.',
   'help.ctx.admin-plugins.bullet.1':
-    'Zainstalowane i Odkrywaj, z polem Szukaj wtyczek… oraz filtrami Typ, Status i Sortuj. Każdy wiersz pokazuje wersję, czy wtyczka jest Zweryfikowana, Podpisana lub Niepodpisana, do czego ma dostęp, przełącznik i menu ⋯.',
+    '„Zainstalowane” i „Odkrywaj”, z polem „Szukaj wtyczek…” i przyciskiem „Filtruj” dla typu, statusu i kolejności. Każdy wiersz pokazuje wersję, do czego wtyczka ma dostęp, „Zweryfikowana” oraz „Podpisana” lub „Niepodpisana”, przełącznik i menu ⋯.',
   'help.ctx.admin-plugins.bullet.2':
-    'Dwie ikony w nagłówku karty: „Prześlij wtyczkę” przyjmuje plik .zip, .tgz lub .tar.gz (możesz też upuścić .zip na stronę); „Skanuj ponownie” wykrywa folder wtyczki podlinkowany na potrzeby programowania.',
+    'Trzy ikony w nagłówku karty: „Jak zabezpieczone są pluginy” wyjaśnia, jak wtyczka jest odizolowana, „Prześlij wtyczkę” przyjmuje plik .zip, .tgz lub .tar.gz (możesz też upuścić .zip na stronę), a „Skanuj ponownie” wykrywa folder wtyczki podlinkowany na potrzeby programowania.',
   'help.ctx.admin-plugins.bullet.3':
     'Dozwolone hosty dla każdej wtyczki: adresy, z którymi wtyczka może się łączyć, bo połączenia wychodzące są domyślnie blokowane.',
   'help.ctx.admin-storage.title': 'Magazyn',
@@ -1525,17 +1560,19 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.2':
     '„Backendy”: nazwa, typ, zajętość i Mirrored to, z przyciskami „Testuj”, „Edytuj” i „Usuń”. „Oblicz teraz” liczy, ile danych jest przechowywanych; backend zdefiniowany zmienną środowiskową jest tylko do odczytu.',
   'help.ctx.admin-storage.bullet.3':
-    'Kategorie: dokumenty podróży, zdjęcia z dziennika, okładki, zdjęcia profilowe, obrazy miejsc, pamięć podręczna zdjęć i kopie zapasowe, każda przypisana do jakiegoś backendu.',
+    'Kategorie: dokumenty podróży, zdjęcia z dziennika, okładki, zdjęcia profilowe, obrazy miejsc, pamięć podręczna zdjęć i kopie zapasowe, każda przypisana do jakiegoś backendu, z przyciskiem „Zapisz zmiany” na dole.',
+  'help.ctx.admin-storage.bullet.4':
+    'Pliki bez powiązań: to, co nocna kontrola znalazła, a czego nic w TREK już nie używa, z przyciskiem „Sprawdź teraz” i przełącznikiem, który usuwa takie pliki po tygodniu nieużywania.',
   'help.ctx.admin-notifications.title': 'Powiadomienia',
   'help.ctx.admin-notifications.summary':
     'Kanały, które serwer udostępnia użytkownikom, oraz te, na które Ty jako administrator dostajesz powiadomienia. Użytkownicy wybierają własne tematy i adresy URL w „Ustawieniach”, a Ty decydujesz, co jest dostępne, i konfigurujesz e-mail.',
   'help.ctx.admin-notifications.bullet.1':
-    '„E-mail (SMTP)”, Webhook, Ntfy i Web Push mają osobne przełączniki, które udostępniają kanał użytkownikom. E-mail wymaga też ustawień serwera. Powiadomienia w aplikacji są zawsze włączone.',
+    'Kanały: „E-mail (SMTP)”, Webhook, Ntfy i Web Push mają osobne przełączniki, które udostępniają kanał użytkownikom. „In-App” jest zawsze włączone. Sekcja „E-mail (SMTP)” pod przełącznikami zawiera ustawienia serwera poczty.',
   'help.ctx.admin-notifications.bullet.2':
-    '„Przypomnienia o podróżach”: czy serwer wysyła przypomnienie przed rozpoczęciem podróży.',
+    '„Przypomnienia o podróżach”, ostatni wiersz sekcji „Kanały”: czy serwer wysyła przypomnienie przed rozpoczęciem podróży.',
   'help.ctx.admin-notifications.bullet.3':
-    'Webhook admina, Admin Ntfy i karta Powiadomienia: tu trafiają zdarzenia administracyjne (Nowa wersja dostępna, Awaria repliki magazynu, Prośba o region wodny), każdy kanał z przyciskiem testu.',
-  'help.ctx.admin-mcp-tokens.title': 'Dostęp MCP',
+    'Alerty administratora, po prawej: „Webhook admina” i „Ntfy administratora”, każdy z przyciskiem testu, a pod nimi to, który kanał wysyła każde zdarzenie administracyjne („Nowa wersja dostępna”, „Awaria repliki magazynu”, „Prośba o region wodny”).',
+  'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
     'Wszystkie tokeny i sesje OAuth, które klienci AI mają w tej instancji TREK, u wszystkich użytkowników. Każdy z nich możesz unieważnić.',
   'help.ctx.admin-mcp-tokens.bullet.1':
@@ -1584,12 +1621,12 @@ const help: TranslationStrings = {
   'help.guide.edit-user.step.1':
     'Kliknij ołówek (Edytuj użytkownika) w wierszu użytkownika. Na górze okna widać adres e-mail konta.',
   'help.guide.edit-user.step.2':
-    'Zmień „Nazwa użytkownika”, „E-mail” lub „Rola” albo wpisz „Nowe hasło” (zostaw puste, żeby zachować obecne) i kliknij „Zapisz”. „Zresetuj klucze dostępu” na dole po potwierdzeniu usuwa wszystkie klucze dostępu konta.',
+    'Zmień „Nazwa użytkownika”, „E-mail” lub „Rola” albo wpisz „Nowe hasło” (zostaw puste, żeby zachować obecne) i kliknij „Zapisz”. Niżej „Zresetuj klucze dostępu” usuwa wszystkie klucze dostępu konta, a „Zresetuj 2FA” wyłącza jego uwierzytelnianie dwuskładnikowe, każde po potwierdzeniu.',
   'help.guide.edit-user.result':
     'Zmiana działa od razu. Nowe hasło wylogowuje też użytkownika na wszystkich urządzeniach, więc stara sesja przestaje działać.',
   'help.guide.edit-user.tip.1': 'Nie możesz odebrać sobie roli administratora, jeśli jesteś ostatnim administratorem.',
   'help.guide.edit-user.tip.2':
-    'Reset kluczy dostępu zachowuje hasło. Użytkownik dodaje nowe klucze w Ustawienia, Konto.',
+    'Reset kluczy dostępu lub 2FA zachowuje hasło. Użytkownik dodaje nowe klucze dostępu w „Ustawienia”, „Konto”, a po resecie 2FA zostaje wylogowany wszędzie i może skonfigurować je ponownie.',
   // invite-links
   'help.guide.invite-links.title': 'Zaproś kogoś przez link',
   'help.guide.invite-links.goal':
@@ -1683,24 +1720,30 @@ const help: TranslationStrings = {
     'Nie można usunąć regionu, który ktoś już wybrał w swoim kalendarzu Urlopy.',
   // auth-methods
   'help.guide.auth-methods.title': 'Ustal, jak użytkownicy się logują',
-  'help.guide.auth-methods.goal': 'Włączaj i wyłączaj logowanie hasłem, SSO i rejestrację oraz wymagaj 2FA.',
+  'help.guide.auth-methods.goal':
+    'Włączaj i wyłączaj logowanie hasłem, rejestrację, SSO i klucze dostępu oraz wymagaj 2FA.',
   'help.guide.auth-methods.step.1':
-    'W sekcji Metody uwierzytelniania włącz lub wyłącz Password Login i Password Registration. Każdy przełącznik działa od razu. Przy wyłączonej rejestracji nowe konta powstają tylko z linków zaproszeń, przez SSO lub przyciskiem Utwórz użytkownika.',
+    'Na karcie „Bezpieczeństwo”, w sekcji „Metody uwierzytelniania”, włącz lub wyłącz „Logowanie hasłem” i „Rejestracja z hasłem”. Każdy przełącznik działa od razu. Przy wyłączonej rejestracji nowe konta powstają tylko z linków zaproszeń, przez SSO lub przyciskiem „Utwórz użytkownika”.',
   'help.guide.auth-methods.step.2':
-    'SSO Login i SSO Auto-Provisioning wymagają skonfigurowania „Logowania jednokrotnego (OIDC)” poniżej; automatyczne zakładanie kont tworzy konto, gdy ktoś po raz pierwszy zaloguje się przez SSO.',
+    'Po skonfigurowaniu „Logowanie jednokrotne (OIDC)” pojawiają się trzy wiersze SSO: „Logowanie SSO”, „SSO Auto-Provisioning”, które tworzy konto, gdy ktoś po raz pierwszy zaloguje się przez SSO, oraz „Od razu do SSO”.',
   'help.guide.auth-methods.step.3':
-    'Włącz „Wymagaj uwierzytelniania dwuskładnikowego (2FA)”, żeby każdy, kto nie ma 2FA, musiał je skonfigurować w „Ustawieniach”, zanim zacznie korzystać z TREK.',
+    '„Włącz logowanie kluczem dostępu” oferuje klucze dostępu na stronie logowania. Włącz „Wymagaj 2FA”, żeby każdy, kto nie ma 2FA, musiał je skonfigurować w „Ustawieniach”, zanim zacznie korzystać z TREK.',
   'help.guide.auth-methods.result': 'Strona logowania oferuje dokładnie te metody, które zostawiłeś włączone.',
   'help.guide.auth-methods.tip.1':
     'TREK nie pozwoli wyłączyć ostatniej metody logowania: jej przełącznik robi się szary, a podpowiedź informuje, że co najmniej jedna metoda logowania musi pozostać włączona.',
   'help.guide.auth-methods.tip.2':
     'Jeśli na serwerze ustawiono OIDC_ONLY, przełączniki logowania hasłem są zablokowane, a informuje o tym uwaga.',
+  'help.guide.auth-methods.tip.3':
+    '„Od razu do SSO” ma znaczenie tylko przy wyłączonym „Logowanie hasłem”: włączone kieruje odwiedzających od razu do Twojego dostawcy tożsamości, wyłączone pokazuje najpierw stronę logowania z przyciskiem SSO.',
   // oidc
   'help.guide.oidc.title': 'Łączenie logowania jednokrotnego (SSO)',
   'help.guide.oidc.goal': 'Pozwól użytkownikom logować się przez Twojego dostawcę tożsamości.',
   'help.guide.oidc.step.1':
-    'W sekcji „Logowanie jednokrotne (OIDC)” wpisz „Wyświetlaną nazwę” przycisku, „URL wystawcy”, „ID klienta” i „Sekret klienta” od swojego dostawcy. „Adres URL discovery (opcjonalnie)” wypełnij tylko wtedy, gdy dostawca nie publikuje go pod standardowym adresem, jak w przypadku Authentik. Kliknij „Zapisz”.',
-  'help.guide.oidc.step.2': 'Włącz „SSO Login” w sekcji „Authentication Methods”.',
+    'Na karcie „Bezpieczeństwo”, w sekcji „Logowanie jednokrotne (OIDC)”, wpisz „Wyświetlana nazwa” przycisku, „URL wystawcy”, „ID klienta” i „Sekret klienta” od swojego dostawcy. „Adres URL discovery (opcjonalnie)” wypełnij tylko wtedy, gdy dostawca nie publikuje go pod standardowym adresem, jak w przypadku Authentik. Kliknij „Zapisz”.',
+  'help.guide.oidc.step.2':
+    'Odśwież stronę. Karta pokazuje teraz „Skonfigurowano”, a „Metody uwierzytelniania” zawierają „Logowanie SSO”, „SSO Auto-Provisioning” i „Od razu do SSO”. Włącz „Logowanie SSO”.',
+  'help.guide.oidc.step.3':
+    'Żeby SSO było jedyną drogą logowania, wyłącz „Logowanie hasłem”. Przy włączonym „Od razu do SSO” odwiedzający trafiają od razu do Twojego dostawcy. Wyłącz je, żeby zachować stronę logowania z przyciskiem SSO.',
   'help.guide.oidc.result':
     'Na stronie logowania pojawia się przycisk SSO; gdy włączona jest opcja SSO Auto-Provisioning, nowi użytkownicy dostają konto automatycznie.',
   'help.guide.oidc.tip.1':
@@ -1712,9 +1755,9 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     'Dodaj zdjęcia i oceny z Google, okładki z Unsplash i wyszukiwanie Amap dla całej instancji.',
   'help.guide.instance-keys.step.1':
-    'W sekcji „Klucze API” na górze jest TREK Places API, które obsługuje wyszukiwanie miejsc bez klucza. „Co w tym jest” pokazuje, co obejmuje, a czego nie.',
+    'Na karcie „Usługi” karta „Wyszukiwanie miejsc i wyznaczanie tras” zaczyna się od TREK API, oznaczonego jako „Zalecane źródło domyślne”. Obsługuje ono wyszukiwanie miejsc, adresy i wyznaczanie tras bez klucza, a „Dzisiejszy limit” pokazuje, ile zostało z dnia.',
   'help.guide.instance-keys.step.2':
-    'Dla zdjęć, ocen i godzin otwarcia wklej Klucz Google Maps API i kliknij Testuj. Pojawi się Połączono albo Niepoprawny. Otwórz Do czego służy klucz i włącz tylko to, za co chcesz płacić: Zdjęcia miejsc, Autouzupełnianie miejsc, Szczegóły miejsca, Wzbogacanie miejsc oraz Szukaj tylko przez Google, a także Dzienny limit wywołań Google.',
+    'Dla zdjęć, ocen i godzin otwarcia wklej „Klucz Google Maps API” w sekcji „Klucze API” i kliknij „Testuj”. Pojawi się „Połączono” albo „Nieprawidłowy”. W „Do czego służy klucz” włącz tylko to, za co chcesz płacić: „Zdjęcia miejsc”, „Autouzupełnianie miejsc”, „Szczegóły miejsca”, „Wzbogacanie miejsc” oraz „Szukaj tylko przez Google”, a także „Dzienny limit” wywołań Google.',
   'help.guide.instance-keys.step.3':
     'Wklej Klucz API Unsplash do wyszukiwania okładek i Klucz API Amap (高德地图) do wyszukiwania miejsc w Chinach kontynentalnych, a potem kliknij Zapisz na dole karty.',
   'help.guide.instance-keys.result':
@@ -1730,7 +1773,7 @@ const help: TranslationStrings = {
   'help.guide.places-transit.goal':
     'Wybierz usługę, która obsługuje wyszukiwanie miejsc i wyznaczanie tras komunikacją publiczną.',
   'help.guide.places-transit.step.1':
-    'W sekcji „Dostawca transportu publicznego” wybierz „Transitous (bezpłatnie)”, który nie wymaga klucza i najlepiej sprawdza się w Europie, albo Google, który korzysta z klucza Google. Wybór zapisuje się od razu.',
+    'Na karcie „Usługi”, na karcie „Wyszukiwanie miejsc i wyznaczanie tras”, wybierz w „Dostawca transportu publicznego”: „Transitous (bezpłatnie)”, który nie wymaga klucza i najlepiej sprawdza się w Europie, albo Google, który korzysta z klucza Google. Wybór zapisuje się od razu.',
   'help.guide.places-transit.step.2':
     'W sekcji „Dostawca wyszukiwania miejsc” wybierz usługę, o którą TREK pyta, gdy indeks TREK i OpenStreetMap nic nie znajdą: „Automatycznie” (Google, jeśli jest klucz, potem Amap), Google Places, Amap (高德地图) lub OpenStreetMap.',
   'help.guide.places-transit.result':
@@ -1743,7 +1786,7 @@ const help: TranslationStrings = {
   'help.guide.file-types.title': 'Ograniczanie typów plików',
   'help.guide.file-types.goal': 'Zdecyduj, jakie rozszerzenia mogą mieć przesyłane pliki.',
   'help.guide.file-types.step.1':
-    'W sekcji „Dozwolone typy plików” zmień listę rozszerzeń oddzielonych przecinkami lub wpisz *, aby zezwolić na wszystkie typy, i kliknij „Zapisz”.',
+    'Na karcie „Usługi”, w sekcji „Dozwolone typy plików”, zmień listę rozszerzeń oddzielonych przecinkami lub wpisz *, aby zezwolić na wszystkie typy, i kliknij „Zapisz”.',
   'help.guide.file-types.result':
     'Pliki każdego innego typu są odrzucane z czytelnym komunikatem, w dokumentach, w dzienniku i przy okładkach.',
   'help.guide.file-types.tip.1':
@@ -1752,9 +1795,9 @@ const help: TranslationStrings = {
   'help.guide.toggle-addon.title': 'Włącz lub wyłącz dodatek',
   'help.guide.toggle-addon.goal': 'Udostępnij moduł funkcji wszystkim albo go wyłącz.',
   'help.guide.toggle-addon.step.1':
-    'Kliknij przełącznik na kafelku dodatku. Pozycja w nawigacji od razu pojawia się lub znika u wszystkich.',
+    'Znajdź dodatek na jego karcie, „Podróż”, „Globalne” lub „Integracja”, i kliknij przełącznik w jego wierszu. Pozycja w nawigacji od razu pojawia się lub znika u wszystkich.',
   'help.guide.toggle-addon.step.2':
-    'Niektóre kafelki mają wiersze z opcjami, na przykład „Kontrola bagażu” pod „Listy” albo dostawców zdjęć pod „Dziennik podróży”. Są widoczne tylko wtedy, gdy dodatek jest włączony.',
+    'Gdy dodatek jest włączony, jego opcje pojawiają się niżej jako wcięte wiersze, na przykład „Kontrola bagażu” pod „Listy” albo dostawcy zdjęć pod „Dziennik podróży”. Status lotu na żywo, na dole karty „Podróż”, śledzi zarezerwowane loty na żywo.',
   'help.guide.toggle-addon.result':
     'Gdy wyłączysz dodatek, jego dane zostają zachowane. Po ponownym włączeniu znów są widoczne.',
   'help.guide.toggle-addon.tip.1': 'Wyłączenie MCP usuwa endpoint i te sekcje Integracje, które od niego zależą.',
@@ -1764,11 +1807,11 @@ const help: TranslationStrings = {
   'help.guide.install-plugin.title': 'Zainstaluj wtyczkę',
   'help.guide.install-plugin.goal': 'Dodaj wtyczkę innej firmy i nadaj jej dokładnie te uprawnienia, o które prosi.',
   'help.guide.install-plugin.step.1':
-    'Otwórz „Odkrywaj”, znajdź wtyczkę za pomocą „Szukaj wtyczek…” lub filtra „Typ” i kliknij „Zainstaluj”. W przypadku pliku pakietu kliknij „Prześlij wtyczkę” (ikona chmury w prawym górnym rogu karty) albo upuść plik .zip na stronę.',
+    'Otwórz „Odkrywaj”, znajdź wtyczkę za pomocą „Szukaj wtyczek…” lub „Filtruj” i kliknij „Zainstaluj”. W przypadku pliku pakietu kliknij „Prześlij wtyczkę” (ikona chmury w prawym górnym rogu karty) albo upuść plik .zip na stronę.',
   'help.guide.install-plugin.step.2':
     'W sekcji Zainstalowane przeczytaj wiersz: do czego wtyczka ma dostęp, z jakimi hostami się łączy i czy jest Zweryfikowana i Podpisana. Potem włącz Włącz wtyczkę. Wiersz pokaże Aktywny.',
   'help.guide.install-plugin.step.3':
-    'Menu ⋯ w wierszu oferuje Uruchom ponownie, Pokaż dziennik błędów, Dozwolone hosty i Zmień wersję…, a także linki do źródła. Usuń odinstalowuje wtyczkę razem z jej danymi. Nowsza wersja pojawia się w wierszu jako aktualizacja, a wersja wymagająca nowych uprawnień pozostaje wyłączona, dopóki ich nie zatwierdzisz.',
+    'Menu ⋯ w wierszu oferuje „Uruchom ponownie”, „Ustawienia instancji”, jeśli wtyczka je ma, „Pokaż dziennik błędów”, „Dozwolone hosty” i „Zmień wersję…”, a także linki do źródła. „Usuń” odinstalowuje wtyczkę razem z jej danymi. Nowsza wersja pojawia się w wierszu jako aktualizacja, a wersja wymagająca nowych uprawnień pozostaje wyłączona, dopóki ich nie zatwierdzisz.',
   'help.guide.install-plugin.result':
     'Wtyczka działa we własnym procesie. Wszystko, co dodaje, na przykład widżety, warstwy mapy czy narzędzia, pojawia się tam, gdzie określa to wtyczka.',
   'help.guide.install-plugin.tip.1':
@@ -1784,7 +1827,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'W sekcji „Kategorie” przypisz każdy rodzaj przesyłanych plików, np. „Dokumenty podróży”, „Zdjęcia z dziennika podróży” lub „Kopie zapasowe”, do backendu.',
   'help.guide.storage-backends.step.3':
-    'Kliknij „Zapisz zmiany” na dole. Jeśli kategoria wskazuje teraz inne miejsce, TREK zapyta, czy wybrać „Przenieś istniejące obiekty”, czy „Przekieruj tylko nowe zapisy”.',
+    'Kliknij „Zapisz zmiany” na dole sekcji „Kategorie”. Jeśli kategoria wskazuje teraz inne miejsce, TREK zapyta, czy wybrać „Przenieś istniejące obiekty”, czy „Przekieruj tylko nowe zapisy”.',
   'help.guide.storage-backends.result':
     'Nowe pliki trafiają do przypisanego backendu. Przeniesione pliki są serwowane stamtąd, a te, których nie wybrano do przeniesienia, zostają tam, gdzie były.',
   'help.guide.storage-backends.tip.1':
@@ -1795,11 +1838,11 @@ const help: TranslationStrings = {
   'help.guide.channels-instance.title': 'Skonfiguruj kanały powiadomień',
   'help.guide.channels-instance.goal': 'Zdecyduj, które kanały mogą wybierać użytkownicy, i skonfiguruj e-mail.',
   'help.guide.channels-instance.step.1':
-    'Włącz „E-mail (SMTP)” w nagłówku karty, wpisz SMTP Host, SMTP Port, SMTP User, SMTP Password i From Address, a potem kliknij „Zapisz”. „Wyślij testowego e-maila” wysyła wiadomość do ciebie. „Pomiń sprawdzanie certyfikatu TLS” jest przeznaczone wyłącznie dla lokalnego serwera poczty z własnym certyfikatem.',
+    'Na karcie „Kanały” włącz „E-mail (SMTP)”. W sekcji „E-mail (SMTP)” poniżej wpisz SMTP Host, SMTP Port, SMTP User, SMTP Password i From Address, a potem kliknij „Zapisz”. „Wyślij testowego e-maila” wysyła wiadomość do Ciebie. „Pomiń sprawdzanie certyfikatu TLS” jest przeznaczone wyłącznie dla lokalnego serwera poczty z własnym certyfikatem.',
   'help.guide.channels-instance.step.2':
-    'Włącz Webhook, Ntfy i Web Push, żeby udostępnić je użytkownikom. Użytkownicy wpisują wtedy własny URL lub temat albo włączają push na każdym urządzeniu w „Ustawieniach”, w sekcji „Powiadomienia”.',
+    'Włącz Webhook, Ntfy i Web Push na tej samej karcie, żeby udostępnić je użytkownikom. Użytkownicy wpisują wtedy własny URL lub temat albo włączają push na każdym urządzeniu w „Ustawienia”, „Powiadomienia”.',
   'help.guide.channels-instance.step.3':
-    '„Przypomnienia o podróżach” włącza lub wyłącza przypomnienie przed rozpoczęciem podróży; „W aplikacji” jest zawsze włączone.',
+    '„Przypomnienia o podróżach”, ostatni wiersz, włącza lub wyłącza przypomnienie przed rozpoczęciem podróży. „In-App” jest zawsze włączone.',
   'help.guide.channels-instance.result':
     'W zakładce „Powiadomienia” każdego użytkownika widać kanały, które włączyłeś.',
   'help.guide.channels-instance.tip.1':
@@ -1811,7 +1854,7 @@ const help: TranslationStrings = {
   'help.guide.admin-channels.goal':
     'Dostawaj powiadomienia o nowych wersjach, awariach replik magazynu i prośbach o region wodny.',
   'help.guide.admin-channels.step.1':
-    'W sekcji Admin Ntfy wpisz Temat admina oraz w razie potrzeby URL serwera Ntfy i Token dostępu (opcjonalne). W sekcji Webhook admina wpisz adres URL. Na każdej karcie kliknij Zapisz.',
+    'Na karcie „Alerty administratora” wpisz adres URL w „Webhook admina” i kliknij jego „Zapisz”. W „Ntfy administratora” wpisz „Temat admina” oraz w razie potrzeby „URL serwera Ntfy” i „Token dostępu (opcjonalne)”, a potem kliknij „Zapisz”.',
   'help.guide.admin-channels.step.2':
     'Kliknij „Wyślij testowe Ntfy” lub „Wyślij testowy webhook”, aby sprawdzić, czy wiadomość dociera.',
   'help.guide.admin-channels.result':
@@ -1897,6 +1940,64 @@ const help: TranslationStrings = {
     'Tutaj rozstrzyga się tylko, czy dany magazyn może być oferowany. Adres i dane logowania należą do podróży i wpisuje je w jej zakładce Pliki właściciel podróży, nigdy w panelu administracyjnym.',
   'help.guide.document-providers.tip.2':
     'Wyłączenie Dokumentów wyłącza też wszystkie magazyny, a gdy Dokumenty są wyłączone, nie włączysz żadnego magazynu: serwer odpowie komunikatem „Enable the Documents addon first”. Magazyn w Twojej sieci lokalnej wymaga też ustawienia ALLOW_INTERNAL_NETWORK=true na serwerze.',
+  'help.guide.mail-import-setup.title': 'Skonfiguruj import wiadomości z rezerwacjami',
+  'help.guide.mail-import-setup.goal':
+    'Daj każdemu adres do przekazywania, żeby potwierdzenia rezerwacji, które przekazują, stawały się rezerwacjami we właściwej podróży.',
+  'help.guide.mail-import-setup.step.1':
+    'Na karcie „Dodatki”, w kafelku „Integracja”, włącz „Import wiadomości z rezerwacjami”. Każdy na tym TREK dostaje teraz osobisty adres do przekazywania.',
+  'help.guide.mail-import-setup.step.2':
+    'Kliknij „Skonfiguruj import wiadomości”, wiersz, który pojawia się pod spodem.',
+  'help.guide.mail-import-setup.step.3':
+    'W „Jak docierają wiadomości” wybierz „Skrzynka IMAP” i wpisz „Serwer”, „Port”, „Szyfrowanie”, „Użytkownik”, „Hasło” i „Folder”. Wybierz zamiast tego „Webhook” dla usługi pocztowej, która wysyła każdą wiadomość do TREK, albo „Tylko wgrywanie”, żeby wypróbować bez skrzynki. Potem ustaw „Szablon adresu”, czyli adres do przekazywania z symbolem zastępczym w miejscu kodu każdej osoby, oraz „Wiadomości z AI na osobę dziennie”.',
+  'help.guide.mail-import-setup.step.4':
+    'Kliknij „Zapisz”, a potem „Testuj połączenie”. Pojawi się „Połączono” albo informacja, co się nie powiodło. Poniżej okno pokazuje, kiedy TREK ostatnio odczytał pocztę, oraz wiadomości z ostatnich 24 godzin: „Dodane samodzielnie”, „Oczekujące” i „Nieudane”.',
+  'help.guide.mail-import-setup.result':
+    'Każdy znajdzie swój adres do przekazywania w „Ustawienia”, „Integracje”. Przekazane potwierdzenie staje się rezerwacją we właściwej podróży albo czeka tam, aż jego właściciel je sprawdzi.',
+  'help.guide.mail-import-setup.tip.1':
+    'Daj TREK własną skrzynkę, która przyjmuje adresy z plusem (trek+…@twoja-domena), a nie osobistą. Przeczytane wiadomości trafiają do folderu TREK/processed.',
+  'help.guide.mail-import-setup.tip.2':
+    'Zmienne środowiskowe zaczynające się od MAIL_INGEST_ mają pierwszeństwo przed polami w oknie. Serwer poczty w Twojej sieci wewnętrznej wymaga też ALLOW_INTERNAL_NETWORK=true na serwerze.',
+  'help.guide.mail-import-setup.tip.3':
+    '„Wiadomości z AI na osobę dziennie” ogranicza, ile wiadomości bez danych rezerwacji w formie odczytywalnej maszynowo AI odczyta dla jednej osoby każdego dnia. Powyżej limitu odczytywane są tylko dane odczytywalne maszynowo.',
+  'help.guide.ai-setup.title': 'Skonfiguruj asystenta AI',
+  'help.guide.ai-setup.goal': 'Połącz dostawcę AI raz, żeby wszyscy na tym serwerze TREK mogli planować z asystentem.',
+  'help.guide.ai-setup.step.1':
+    'Na karcie „Dodatki”, w sekcji „Integracja”, znajdź kafelek AI i włącz „Asystent AI”. „Analiza AI” i MCP są w tym samym kafelku.',
+  'help.guide.ai-setup.step.2': 'Kliknij „Skonfiguruj AI”, wiersz, który pojawia się pod przełącznikami.',
+  'help.guide.ai-setup.step.3':
+    'W polu „Kto płaci” wybierz, kto zapewnia połączenie: „Płacę, własne dozwolone”, „Płacę za wszystkich” albo „Każdy używa własnego konta”. Wiersz poniżej wyjaśnia, co oznacza Twój wybór.',
+  'help.guide.ai-setup.step.4':
+    'W sekcji „Połączenie dla wszystkich” wybierz „Wklej klucz API” i wklej klucz od Anthropic, OpenAI, Gemini lub OpenRouter. TREK pokaże nazwę rozpoznanego dostawcy. Kliknij „Połącz”; TREK sprawdzi klucz u dostawcy, zanim go zapisze.',
+  'help.guide.ai-setup.step.5':
+    'Połączenie będzie widoczne jako „Połączono”. Wybierz „Model”, z którym rozmawiają wszyscy; na liście są tylko modele, które potrafią używać narzędzi. Poniżej są „Zmień” i „Usuń połączenie”.',
+  'help.guide.ai-setup.step.6':
+    'Na karcie „Asystent AI” ustaw „Wiadomości na osobę dziennie”, gdy płacisz, czas, przez jaki mają być przechowywane czaty („Przechowuj czaty”), oraz czy dozwolone jest „Wyszukiwanie w sieci”. Każda zmiana zapisuje się od razu.',
+  'help.guide.ai-setup.result':
+    'Przycisk asystenta pojawia się w każdej podróży. Jeśli na to pozwoliłeś, każdy może połączyć własnego dostawcę w „Ustawieniach”, w sekcji „Integracje”.',
+  'help.guide.ai-setup.tip.1':
+    '„Własny serwer” przyjmuje dowolny adres zgodny z OpenAI, na przykład Ollama, z opcjonalnym kluczem i nazwą modelu. „Zaloguj się przez ChatGPT” udostępnia wszystkim Twój własny plan ChatGPT; sprawdź, czy Twój plan na to pozwala.',
+  'help.guide.ai-setup.tip.2':
+    'Przy opcji „Każdy używa własnego konta” nic nie obciąża Ciebie, a dzienny limit nie obowiązuje.',
+  'help.guide.ai-setup.tip.3':
+    'Analiza AI czyta rezerwacje przez to samo połączenie. Włącz ją w kafelku, a jej własna karta w oknie pozwala użyć innego połączenia.',
+  'help.guide.ai-setup.tip.4':
+    'Wyszukiwanie w sieci działa z ChatGPT, Anthropic i OpenRouter, przez wyszukiwarkę samego dostawcy, a wyszukiwania trafiają tylko do niego.',
+  'help.guide.paddle-water-data.title': 'Wczytaj dane wodne dla spływów',
+  'help.guide.paddle-water-data.goal':
+    'Daj spływom jazy, śluzy i zasady żeglugi w regionie oraz zdecyduj, czy TREK ma sam wczytywać nowe regiony.',
+  'help.guide.paddle-water-data.step.1':
+    'Na karcie „Dodatki”, gdy „Wycieczki” są włączone, kliknij „Dane wodne dla spływów”, ostatni wiersz pod „Wycieczki”. Liczba obok niego pokazuje regiony albo prośby, które na Ciebie czekają.',
+  'help.guide.paddle-water-data.step.2':
+    'W „Wczytuj regiony automatycznie” wybierz „Automatycznie”, „Na prośbę” albo „Wyłączone”. „Automatycznie” wczytuje region, w którym ktoś planuje spływ, do „Największy region wczytywany automatycznie”. Większy region czeka w „Prośby”, gdzie „Wczytaj” go odczytuje, a „Odrzuć” go odrzuca.',
+  'help.guide.paddle-water-data.step.3':
+    'W „Dodaj region” wyszukaj region w Geofabrik, na przykład Oberpfalz, i kliknij „Dodaj” obok niego. TREK odczytuje go w tle. Gdy jest „Gotowe”, jego wiersz pokazuje obiekty, datę danych i kilometry wód. „Wczytaj ponownie” go odświeża, a „Usuń region” usuwa.',
+  'help.guide.paddle-water-data.result':
+    'Spływy w obrębie regionu pokazują jego przeszkody i podążają za wodą, a TREK odczytuje każdy region ponownie raz w miesiącu.',
+  'help.guide.paddle-water-data.tip.1': 'Do Geofabrik trafia tylko nazwa regionu, nigdy miejsce, które ktoś planuje.',
+  'help.guide.paddle-water-data.tip.2':
+    'Odczyt regionu trwa kilka minut i w trakcie zajmuje pamięć, a cały kraj potrzebuje kilku gigabajtów miejsca tymczasowego.',
+  'help.guide.paddle-water-data.tip.3':
+    'Administratorzy dostają alert „Prośba o region wodny”, gdy prośba czeka. Wybierz, dokąd trafia, w „Alerty administratora” na karcie „Powiadomienia”.',
 
   // ── Screen: trip ──────────────────────────────────────────────────────────────────────
   'help.ctx.trip.title': 'Podróż',
@@ -1907,9 +2008,9 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.2':
     '„Plan” ma trzy kolumny: dni po lewej, mapę pośrodku i miejsca po prawej. Z dodatkiem „Podróż samochodowa” kolumna dni zaczyna się przełącznikiem „Dni” i „Podróż samochodowa”, a z dodatkiem „Wycieczki” kolumna miejsc zaczyna się od „Miejsca” i „Wycieczki”. Rezerwacje i transport są częścią planu, przy przystanku i między przystankami; na kartach znajdziesz ich zestawienie.',
   'help.ctx.trip.bullet.3':
-    '„Ustawienia podróży”, pigułka obok nazwy podróży w lewym górnym rogu, otwierają ustawienia podróży: „Osoby” (uczestnicy i goście), „Udostępnianie” (publiczny link tylko do odczytu i link zaproszenia) oraz „Dziennik”.',
+    '„Ustawienia podróży”, pigułka obok nazwy podróży w lewym górnym rogu, otwierają ustawienia podróży: „Osoby” (uczestnicy i goście), „Udostępnianie” (publiczny link tylko do odczytu i link zaproszenia), „Dziennik”, „Dodatki” dla właściciela podróży oraz „Edytuj podróż”.',
   'help.ctx.trip.bullet.4':
-    'Nazwę, daty, okładkę i walutę edytujesz w „Moich podróżach”, ołówkiem na karcie podróży. Nazwa podróży w lewym górnym rogu przenosi cię z powrotem do tej listy.',
+    '„Edytuj podróż” w „Ustawienia podróży” zmienia nazwę, opis, daty, okładkę i walutę. Ołówek na karcie podróży w „Moje podróże” otwiera ten sam formularz. Nazwa podróży w lewym górnym rogu przenosi Cię z powrotem do „Moje podróże”.',
   'help.ctx.trip.bullet.5':
     'Uchwyt na wewnętrznej krawędzi kolumny zwija ją, a mapa zajmuje zwolnione miejsce. Zwinięta kolumna jest widoczna jako mały kafelek w górnym rogu mapy: kliknij go, aby znów ją pokazać. Przeciągnij cienki separator obok kolumny, aby zmienić jej szerokość.',
   'help.ctx.trip.bullet.6': 'Strzałka cofania na pasku narzędzi dni cofa ostatnie zmiany w planie, jedną po drugiej.',
@@ -1958,9 +2059,9 @@ const help: TranslationStrings = {
   'help.guide.public-link.step.1':
     'Kliknij „Ustawienia podróży” obok nazwy podróży i wybierz „Udostępnianie” po lewej.',
   'help.guide.public-link.step.2':
-    'Na karcie Publiczny link włącz to, co link ma pokazywać. Mapa i plan są zawsze włączone, a Rezerwacje, Pakowanie, Koszty i Czat wybierasz sam.',
+    'Na karcie „Publiczny link”, w sekcji „Opcje”, włącz to, co link ma pokazywać. „Mapa i plan” są zawsze włączone, a „Rezerwacje”, „Lista pakowania”, „Koszty” i „Czat” wybierasz sam.',
   'help.guide.public-link.step.3':
-    'W sekcji Opcje Tylko podróż i noclegi pomija atrakcje, notatki do dni i puste dni. Bez zdjęć pomija zdjęcia miejsc.',
+    'Dwa ostatnie znaczniki zmieniają sposób, w jaki link pokazuje podróż: „Tylko podróż i noclegi” pomija atrakcje, notatki do dni i puste dni, a „Bez zdjęć” pomija zdjęcia miejsc.',
   'help.guide.public-link.result':
     'Każdy, kto ma link, widzi wybrane elementy bez logowania i nie może niczego zmienić.',
   'help.guide.public-link.tip.1':
@@ -2004,6 +2105,31 @@ const help: TranslationStrings = {
     '„Cofnij” dotyczy planu: dodawania, przypisywania, usuwania, zmiany kolejności, przenoszenia i blokowania miejsc, czyszczenia dnia, optymalizacji trasy, usuwania miejsc, zmian kategorii i importów.',
   'help.guide.undo-change.tip.2':
     'Klikaj dalej, aby cofać się dalej: TREK pamięta Twoje ostatnie 30 zmian w tej podróży, od najnowszej, dopóki z niej nie wyjdziesz.',
+  'help.guide.trip-assistant.title': 'Planuj z asystentem',
+  'help.guide.trip-assistant.goal':
+    'Zadawaj asystentowi pytania o swoją podróż i pozwól mu dodawać do planu to, co proponuje.',
+  'help.guide.trip-assistant.step.1':
+    'Kliknij okrągły przycisk z iskierkami w prawym dolnym rogu planera. Asystent otworzy się w małym oknie nad mapą.',
+  'help.guide.trip-assistant.step.2':
+    'Wpisz pytanie w polu na dole, na przykład gdzie zjeść kolację danego dnia, i kliknij strzałkę, żeby je wysłać. Możesz też kliknąć jedno z proponowanych pytań.',
+  'help.guide.trip-assistant.step.3':
+    'Odpowiedź uwzględnia Twój plan. Proponowana zmiana najpierw czeka na karcie, która pokazuje, co dodaje i do którego dnia. Kliknij „Zastosuj”, żeby ją przyjąć, albo „Odrzuć”, żeby plan został bez zmian.',
+  'help.guide.trip-assistant.step.4':
+    'Żeby pokazać odpowiedź wszystkim w podróży, kliknij ikonę udostępniania pod nią. Jej podpowiedź brzmi „Udostępnij na czacie podróży”.',
+  'help.guide.trip-assistant.step.5':
+    'Sprawdź wiadomość dokładnie w takiej postaci, w jakiej dotrze, wraz ze zmianami, które zastosowałeś, i kliknij „Udostępnij”.',
+  'help.guide.trip-assistant.result':
+    'Miejsce jest w planie w swoim dniu, a odpowiedź jest na czacie podróży, oznaczona jako pochodząca od asystenta.',
+  'help.guide.trip-assistant.tip.1':
+    'Nic się nie zmienia, zanim klikniesz „Zastosuj”. Potem strzałka obok zmiany przez jakiś czas ją cofa, a „Przed” i „Po” na karcie pokazują mapę taką, jaka była, i taką, jaka jest teraz.',
+  'help.guide.trip-assistant.tip.2':
+    'Pod odpowiedzią asystent proponuje kolejne pytania. Wpisz @ w polu, żeby wskazać dzień, miejsce lub rezerwację, albo upuść potwierdzenie rezerwacji na okno, żeby je odczytać.',
+  'help.guide.trip-assistant.tip.3':
+    'Ctrl+K (⌘K na Macu) otwiera i zamyka okno. Przeciągnij jego nagłówek, żeby je przesunąć, a krawędź, żeby zmienić rozmiar. Zamknięcie zachowuje czat, a „Ostatnie czaty” w nagłówku przywracają wcześniejsze.',
+  'help.guide.trip-assistant.tip.4':
+    '„Notatki podróży”, czyli notes w nagłówku, zawierają to, co asystent ma pamiętać przy każdej propozycji dla tej podróży, na przykład budżet albo spokojne tempo.',
+  'help.guide.trip-assistant.tip.5':
+    'Przycisk pojawia się dopiero po skonfigurowaniu połączenia z AI, przez administratora dla wszystkich albo przez Ciebie w „Ustawieniach”, w sekcji „Integracje”. Twoje wiadomości i szczegóły podróży, które asystent czyta, trafiają do tego dostawcy.',
   'help.guide.clear-day.title': 'Wyczyść dzień',
   'help.guide.clear-day.goal': 'Usuń naraz wszystkie miejsca z dnia, na przykład aby zaplanować go od nowa.',
   'help.guide.clear-day.step.1': 'Kliknij prawym przyciskiem myszy nagłówek dnia w planie.',
@@ -2021,9 +2147,9 @@ const help: TranslationStrings = {
   'help.ctx.trip-places.bullet.2':
     'Dodaj miejsce/atrakcję otwiera formularz dla miejsca, które wyszukujesz lub wpisujesz. Gdy otwarty jest jakiś dzień, przycisk nazywa się Nowe miejsce, a Do dnia obok niego tworzy miejsce od razu w tym dniu.',
   'help.ctx.trip-places.bullet.3':
-    '„Importuj miejsca”, przycisk z ikoną obok, oferuje „Import listy” dla listy udostępnionej z Google Maps lub Naver Maps. Jeśli administrator wyłączył dodatek „Wycieczki”, jest tam też „Importuj plik” dla plików .gpx, .kml i .kmz, a plik można upuścić na kolumnę.',
+    '„Importuj miejsca”, przycisk z ikoną obok, oferuje „Importuj plik” dla plików .gpx, .kml i .kmz oraz „Import listy” dla listy udostępnionej z Google Maps lub Naver Maps. Plik można też upuścić na kolumnę. Przy włączonych „Wycieczkach” plik z trasą lub śladem otwiera import wycieczek, który może wczytać jego pojedyncze punkty jako miejsca.',
   'help.ctx.trip-places.bullet.4':
-    'Pod nimi pole „Szukaj”, które przeszukuje też opisy i notatki, a obok pole wyboru „Zaznacz”. W wierszu pod spodem są filtry: „Pokaż” przełącza między „Wszystkie”, „Niezaplanowane” i „Zaplanowane”, każda opcja z liczbą. Przycisk z etykietą filtruje według kategorii, gwiazdka według minimalnej oceny, globus (gdy podróż obejmuje więcej niż jeden kraj lub region) według kraju lub regionu, a „Sortuj według” ustala kolejność listy.',
+    'Pod nimi pole „Szukaj”, które przeszukuje też opisy i notatki, a obok pole wyboru „Zaznacz”. W wierszu pod spodem są filtry: „Pokaż” przełącza między „Wszystkie”, „Niezaplanowane” i „Zaplanowane”, każda opcja z liczbą. Przycisk z etykietą filtruje według kategorii i tagów podróży, gwiazdka według minimalnej oceny, globus (gdy podróż obejmuje więcej niż jeden kraj lub region) według kraju lub regionu, a „Sortuj według” ustala kolejność listy.',
   'help.ctx.trip-places.bullet.5':
     'Wiersz pokazuje zdjęcie, nazwę oraz opis lub adres, a gdy ktoś oceni miejsce, także gwiazdkę ze średnią oceną. Kliknij wiersz, żeby zobaczyć szczegóły miejsca, przeciągnij go na dzień albo kliknij prawym przyciskiem myszy (lub kliknij „Więcej opcji”, czyli trzy kropki), żeby wybrać „Edytuj”, „+ Dzień”, „Otwórz stronę internetową”, Google Maps, „Zapisz w kolekcji” lub „Usuń”.',
   'help.ctx.trip-places.bullet.6':
@@ -2038,7 +2164,7 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.3':
     'W „Szczegółach miejsca” kliknij zdjęcie w sekcji „Wybierz zdjęcie”, żeby ustawić je jako obraz miejsca. „Użyj tego tekstu” kopiuje opis do formularza.',
   'help.guide.create-place.step.4':
-    'Sprawdź pola formularza. Nazwa u góry okna to jedyne wymagane pole. Pigułka „Kategoria” pod nią wybiera jedną z kategorii podróży, a + obok tworzy nową. „Adres”, „Szerokość” i „Długość” pochodzą z wyszukiwania albo wpisujesz je sam. „Opis” i „Notatki” są na twoje własne teksty. W pole „Strona internetowa” wpisz link, „Załącz” w sekcji „Pliki” dodaje dokument, a „Telefon”, „E-mail” i „Dodaj godziny otwarcia” służą do danych, których wyszukiwanie nie znalazło.',
+    'Sprawdź pola formularza. Nazwa u góry okna to jedyne wymagane pole. Pigułka „Kategoria” pod nią wybiera jedną z kategorii podróży, a + obok tworzy nową. „Adres”, „Szerokość” i „Długość” pochodzą z wyszukiwania albo wpisujesz je sam. W „Tagi” kliknij tagi, które miejsce ma nosić. „O miejscu” i „Notatki” przełączają pole tekstowe między opisem a Twoimi własnymi notatkami. W pole „Strona internetowa” wpisz link, „Załącz” w sekcji „Pliki” dodaje dokument, a „Telefon”, „E-mail” i „Dodaj godziny otwarcia” służą do danych, których wyszukiwanie nie znalazło.',
   'help.guide.create-place.step.5':
     'Kliknij „Dodaj”. Jeśli w podróży jest już miejsce o tej samej nazwie lub w tym samym punkcie, TREK wyświetli ostrzeżenie, a przycisk zmieni się na „Dodaj mimo to”.',
   'help.guide.create-place.result':
@@ -2073,7 +2199,7 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.2':
     'Wpisz tekst w polu „Szukaj” u góry. Lista zawęża się w trakcie pisania, według nazwy, adresu, opisu i notatek; x w polu je czyści.',
   'help.guide.filter-places.step.3':
-    'Przycisk z etykietą obok „Pokaż” wyświetla kategorie: zaznacz jedną lub kilka, w tym „Brak kategorii”. Przycisk pokazuje, ile kategorii jest zaznaczonych, a „Wyczyść filtr” na dole listy usuwa wszystkie.',
+    'Przycisk z etykietą obok „Pokaż” wyświetla kategorie, w tym „Brak kategorii”, a w „Tagi” tagi podróży. Zaznacz jedną lub kilka pozycji. Przycisk pokazuje, ile jest zaznaczonych, a „Wyczyść filtr” na dole listy usuwa je wszystkie.',
   'help.guide.filter-places.step.4':
     'Gwiazdka obok ustawia minimalną ocenę: 5+, 4+ itd. pokazuje tylko miejsca ze średnią oceną co najmniej na tym poziomie. Miejsca bez oceny są ukrywane.',
   'help.guide.filter-places.result': 'Liczba przy „Pokaż” mówi, ile miejsc pasuje. Filtry działają łącznie.',
@@ -2087,12 +2213,12 @@ const help: TranslationStrings = {
   'help.guide.edit-place.step.1':
     'Kliknij wiersz prawym przyciskiem i wybierz Edytuj, kliknij Więcej opcji na końcu wiersza albo otwórz miejsce i kliknij Edytuj w jego szczegółach.',
   'help.guide.edit-place.step.2':
-    'W oknie „Edytuj miejsce” zmień, co trzeba: nazwę i pigułkę „Kategoria” u góry okna, „Adres”, „Szerokość” i „Długość”, „Opis”, „Notatki”, „Strona internetowa”, „Telefon”, „E-mail” i godziny otwarcia. Jeśli miejsce jest przypisane do dokładnie jednego dnia albo otworzyłeś je z dnia, formularz ma też pola „Początek”, „Koniec” i „Notatki na ten dzień”.',
+    'W oknie „Edytuj miejsce” zmień, co trzeba: nazwę i pigułkę „Kategoria” u góry okna, „Adres”, „Szerokość” i „Długość”, „Tagi”, teksty w „O miejscu” i „Notatki”, „Strona internetowa”, „Telefon”, „E-mail” i godziny otwarcia. Jeśli miejsce jest przypisane do dokładnie jednego dnia albo otworzyłeś je z dnia, formularz ma też pola „Początek” i „Koniec” oraz trzecią kartę tekstu, na przykład „Tylko dzień 2”, na notatkę o tej jednej wizycie.',
   'help.guide.edit-place.step.3': 'Kliknij „Aktualizuj”.',
   'help.guide.edit-place.result':
     'Zmiana obowiązuje wszędzie, gdzie widać to miejsce: na liście, na mapie i we wszystkich dniach, w których się znajduje.',
   'help.guide.edit-place.tip.1':
-    '„Notatki na ten dzień” dotyczą miejsca tylko w tym jednym dniu, a „Notatki” dotyczą samego miejsca.',
+    'Notatka pod „Tylko dzień …” dotyczy miejsca tylko w tym jednym dniu, a „O miejscu” i „Notatki” dotyczą samego miejsca.',
   'help.guide.edit-place.tip.2':
     'Koniec wcześniejszy niż Początek blokuje Aktualizuj. Nakładanie się godzin z: tylko ostrzega, że inny przystanek tego dnia ma tę samą godzinę.',
   // delete-place
@@ -2127,20 +2253,21 @@ const help: TranslationStrings = {
   // import-places-file
   'help.guide.import-places-file.title': 'Zaimportuj miejsca z pliku GPX, KML lub KMZ',
   'help.guide.import-places-file.goal':
-    'Gdy dodatek Wycieczki jest wyłączony, zaimportuj jako miejsca pinezki i ścieżki wyeksportowane z Google My Maps, Google Earth lub lokalizatora GPS.',
+    'Wczytaj jako miejsca podróży pinezki wyeksportowane z Google My Maps, Google Earth lub urządzenia GPS.',
   'help.guide.import-places-file.step.1':
-    'Kliknij Importuj miejsca, przycisk z ikoną obok przycisku dodawania, i wybierz Importuj plik albo upuść plik w dowolnym miejscu kolumny miejsc. Obie możliwości są dostępne tylko wtedy, gdy administrator wyłączył dodatek Wycieczki.',
+    'Kliknij „Importuj miejsca”, przycisk z ikoną obok przycisku dodawania, wybierz „Importuj plik” i wskaż plik. Możesz też upuścić plik w dowolnym miejscu kolumny miejsc.',
   'help.guide.import-places-file.step.2':
-    'Wybierz plik lub przeciągnij go do pola. Dla GPX zaznacz, co zaimportować: „Punkty trasy”, „Trasy”, „Trasy GPS (ze śladem)”. Dla KML i KMZ zaznacz „Punkty (Placemarks)” i „Ścieżki (LineStrings)”.',
+    'Jeśli plik zawiera trasę lub ślad, otworzy się import wycieczek, bo przy włączonych „Wycieczkach”, co jest ustawieniem domyślnym, linia staje się wycieczką. „Dodaj punkty jako miejsca”, domyślnie włączone, wczytuje także pinezki z pliku jako miejsca podróży.',
   'help.guide.import-places-file.step.3':
-    'Pole przyjmuje kilka plików naraz, ale tylko .gpx, .kml i .kmz. Plik innego rodzaju albo większy niż 10 MB zostanie odrzucony w oknie i nie będzie zaimportowany.',
+    'Plik zawierający tylko pinezki otwiera zamiast tego „Importuj plik”, tak samo jak każdy plik, gdy administrator wyłączył „Wycieczki”. Dla GPX zaznacz, co zaimportować: „Punkty trasy”, „Trasy”, „Trasy GPS (ze śladem)”. Dla KML i KMZ zaznacz „Punkty (Placemarks)” i „Ścieżki (LineStrings)”. Przyjmowane są pliki .gpx, .kml i .kmz do 10 MB.',
   'help.guide.import-places-file.step.4':
     'Kliknij „Importuj”. Komunikat pokaże, ile miejsc zaimportowano. Przy pliku KML lub KMZ okno pozostaje otwarte z podsumowaniem tego, co utworzono, a co pominięto.',
   'help.guide.import-places-file.result':
-    'Miejsca są na liście. Ślad ma w swoim wierszu kolorową linię, jest widoczny na mapie i ma własny filtr „Ślady”.',
+    'Pinezki są miejscami podróży, na liście i na mapie, w „Niezaplanowane”, dopóki nie przypiszesz ich do dnia.',
   'help.guide.import-places-file.tip.1':
     'Za duży plik zostanie odrzucony, a TREK poda limit rozmiaru; wyeksportuj go ponownie bez zdjęć albo podziel na części.',
-  'help.guide.import-places-file.tip.2': 'Cały import możesz cofnąć z paska narzędzi nad dniami.',
+  'help.guide.import-places-file.tip.2':
+    'Import wykonany przez „Importuj plik” możesz cofnąć z paska narzędzi nad dniami.',
   // import-places-list
   'help.guide.import-places-list.title': 'Zaimportuj udostępnioną listę z Google Maps lub Naver Maps',
   'help.guide.import-places-list.goal': 'Zaimportuj miejsca z linku do udostępnionej listy.',
@@ -2166,6 +2293,27 @@ const help: TranslationStrings = {
     'Przy każdym sortowaniu innym niż „Ostatnio dodane” przycisk jest wyróżniony, więc od razu widać, że lista jest posortowana inaczej.',
   'help.guide.sort-places.tip.2':
     'Sortowanie zmienia tylko listę. Dni zachowują własną kolejność, a przeglądarka pamięta wybraną kolejność.',
+  'help.guide.place-tags.title': 'Taguj miejsca i filtruj według tagów',
+  'help.guide.place-tags.goal':
+    'Nadaj miejscom dodatkowe etykiety, takie jak „Warto zobaczyć” albo „Na deszczowy dzień”, każdą we własnym kolorze, i pokaż tylko miejsca z tagiem.',
+  'help.guide.place-tags.step.1':
+    'Otwórz formularz miejsca, przez „Edytuj” w menu wiersza albo „Nowe miejsce” dla nowego. W „Tagi” każdy tag podróży jest pigułką. Kliknij nazwę tagu, żeby dodać go do miejsca. Ptaszek pokazuje, że jest włączony.',
+  'help.guide.place-tags.step.2':
+    'Żeby utworzyć nowy tag, wpisz jego nazwę w „Nowy tag” i naciśnij Enter albo + na końcu pola. Kropka na początku pola pozwala najpierw wybrać jego kolor. Tag zostaje dodany do podróży i zaznaczony.',
+  'help.guide.place-tags.step.3':
+    'Kliknij kolorową kropkę tagu, żeby zmienić jego kolor: wybierz próbkę albo otwórz „Własny kolor”, żeby ustawić swój. Tag zmienia kolor od razu, w całej podróży i dla wszystkich.',
+  'help.guide.place-tags.step.4':
+    'Kliknij „Aktualizuj”, a dla nowego miejsca „Dodaj”, żeby zapisać miejsce z jego tagami.',
+  'help.guide.place-tags.step.5':
+    'W kolumnie miejsc przycisk tagu obok „Pokaż” wyświetla tagi podróży w sekcji „Tagi”, po kategoriach. Zaznacz jeden, żeby pokazać tylko miejsca, które go mają.',
+  'help.guide.place-tags.result':
+    'Lista i mapa pokazują tylko miejsca z zaznaczonym tagiem. „Wyczyść filtr” na dole listy znów pokazuje wszystkie miejsca.',
+  'help.guide.place-tags.tip.1':
+    'Tag nigdy nie zmienia znacznika: jego ikona i kolor na mapie pozostają takie jak kategorii. Miejsce ma jedną kategorię i dowolną liczbę tagów.',
+  'help.guide.place-tags.tip.2':
+    'Tagi należą do podróży, a nie do Ciebie. Każdy uczestnik widzi te same tagi, a każdy, kto może edytować miejsca podróży, może je dodawać i zmieniać ich kolor.',
+  'help.guide.place-tags.tip.3':
+    'Gdy zaznaczysz kategorię i tag, miejsce musi pasować do obu. Gdy zaznaczysz dwa tagi, wystarczy jeden z nich.',
   'help.guide.place-by-hand.title': 'Dodaj miejsce, którego wyszukiwarka nie zna',
   'help.guide.place-by-hand.goal':
     'Gdy wyszukiwarka niczego nie znajdzie, wpisz miejsce samodzielnie, z telefonem, e-mailem i godzinami otwarcia.',
@@ -2175,7 +2323,7 @@ const help: TranslationStrings = {
     'Kliknij „Dodaj ręcznie”. Wyszukiwany tekst stanie się nazwą, a okno przewinie się do pól kontaktowych.',
   'help.guide.place-by-hand.step.3': 'Jeśli znasz telefon i e-mail, wpisz je w polach „Telefon” i „E-mail”.',
   'help.guide.place-by-hand.step.4':
-    'Kliknij „Dodaj godziny otwarcia” i ustaw, kiedy miejsce jest otwierane i zamykane w poszczególne dni. Przycisk kopiowania ustawia wszystkim dniom godziny pierwszego dnia, a przełącznik dnia oznacza go jako „Zamknięta”.',
+    'Kliknij „Dodaj godziny otwarcia” i ustaw, kiedy miejsce jest otwierane i zamykane w poszczególne dni. Przycisk kopiowania ustawia wszystkim dniom godziny pierwszego dnia, a każdy dzień ma przełącznik „Otwarte całą dobę” i przełącznik „Zamknięte”.',
   'help.guide.place-by-hand.step.5': 'Kliknij „Dodaj”.',
   'help.guide.place-by-hand.result':
     'Miejsce zostaje dodane do listy. W jego szczegółach widać wpisany telefon, e-mail i godziny otwarcia, tak samo jak przy miejscu znalezionym przez wyszukiwarkę.',
@@ -2189,7 +2337,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-days.summary':
     'Lewa kolumna planu: osobna karta dla każdego dnia, a w niej przystanki w kolejności, notatki, rezerwacje i transport tego dnia oraz trasa między przystankami. To tutaj naprawdę planujesz podróż.',
   'help.ctx.trip-days.bullet.1':
-    'Nagłówek u góry: po lewej „Eksportuj” (PDF, kalendarz, GPX); po prawej strzałka cofania, „Rozwiń wszystkie dni” / „Zwiń wszystkie dni”, „Zmień kolejność dni” oraz „Pokaż wszystkie trasy rezerwacji”, gdy któraś rezerwacja ma trasę do narysowania.',
+    'Nagłówek u góry: po lewej „Eksportuj” (PDF, kalendarz, GPX, KML); po prawej strzałka cofania, „Rozwiń wszystkie dni” / „Zwiń wszystkie dni”, „Zmień kolejność dni” oraz „Pokaż wszystkie trasy rezerwacji”, gdy któraś rezerwacja ma trasę do narysowania.',
   'help.ctx.trip-days.bullet.2':
     'Karta dnia: kafelek z numerem dnia i prognozą pogody, tytuł („Dzień 1”, dopóki nie nadasz nazwy) i data, a pod nimi pigułki noclegu (zielona w dniu zameldowania, czerwona w dniu wymeldowania, przerywana, dopóki rezerwacja nie jest potwierdzona; ikona biletu otwiera rezerwację) i wynajętego samochodu. Kliknij nagłówek, żeby otworzyć dzień, strzałka go zwija, a + („Dodaj do dnia”) otwiera menu: „Dodaj miejsce do tego dnia”, „Dodaj zakwaterowanie”, „Dodaj transport”, „Transport publiczny” i „Dodaj notatkę”. Kliknięcie nagłówka prawym przyciskiem myszy daje te same opcje, a dodatkowo „Wyczyść dzień”.',
   'help.ctx.trip-days.bullet.3':
@@ -2206,9 +2354,9 @@ const help: TranslationStrings = {
   'help.guide.read-day-plan.step.1':
     'Nagłówek: kafelek z numerem dnia i prognozą, a obok Dzień 1 albo nadany przez Ciebie tytuł i data. Pod nimi są przyciski noclegu (zielony przy zameldowaniu, czerwony przy wymeldowaniu, przerywany, dopóki nocleg nie jest potwierdzony; bilet na nim otwiera rezerwację) oraz wynajętego samochodu. Kliknij nagłówek, aby otworzyć dzień (panel ze szczegółami otworzy się nad mapą). Przycisk + po prawej (Dodaj do dnia) dodaje miejsce, pobyt, transport, połączenie transportem publicznym lub notatkę, a strzałka zwija kartę.',
   'help.guide.read-day-plan.step.2':
-    'Przystanek pokazuje zdjęcie, ikonę kategorii i nazwę, potem godzinę, jeśli ma ustawiony „Początek”, oraz opis. Pod nim widać „Notatki na ten dzień”. Po najechaniu na wiersz pojawiają się przyciski: uchwyt po lewej służy do przeciągania, zdjęcie zmienia się w kłódkę do optymalizacji trasy, a na prawym końcu są strzałki („Przenieś w górę”, „Przenieś w dół”), „Dodaj rezerwację” i trzy kropki („Więcej opcji”).',
+    'Przystanek pokazuje zdjęcie, ikonę kategorii i nazwę, potem godzinę, jeśli ma ustawiony „Początek”, oraz opis. Pod nim widać „Notatki na ten dzień”. Po najechaniu na wiersz pojawiają się przyciski: uchwyt po lewej służy do przeciągania, a na prawym końcu są strzałki („Przenieś w górę”, „Przenieś w dół”), „Dodaj rezerwację” i trzy kropki („Więcej opcji”). Najedź na zdjęcie, a zmieni się w kłódkę do optymalizacji trasy.',
   'help.guide.read-day-plan.step.3':
-    'Rezerwacja przy przystanku jest na nim widoczna jako plakietka „Rezerwacja”, zielona po potwierdzeniu i bursztynowa, dopóki oczekuje, z godziną i przewoźnikiem. Kliknij plakietkę, żeby otworzyć rezerwację; przycisk trasy obok rysuje jej trasę. Transport ma własny wiersz w kolorze swojego typu, z godziną i informacją „Wylot” lub „Przylot”. Kliknij rezerwację, żeby otworzyć szczegóły; przyciskiem „Edytuj” możesz ją tam zmienić.',
+    'Rezerwacja przy przystanku jest na nim widoczna jako plakietka „Rezerwacja”, zielona po potwierdzeniu i bursztynowa, dopóki oczekuje, z godziną i przewoźnikiem. Kliknij plakietkę, żeby otworzyć rezerwację. Gdy rezerwacja ma trasę, przycisk trasy obok rysuje ją na mapie. Transport ma własny wiersz w kolorze swojego typu, z godziną i informacją „Wylot” lub „Przylot”. Kliknij rezerwację, żeby otworzyć szczegóły. „Edytuj” pozwala ją tam zmienić.',
   'help.guide.read-day-plan.step.4':
     'Gdy włączona jest „Trasa”, łącznik między dwoma przystankami pokazuje czas i długość odcinka w środku transportu wybranym dla dnia; kliknij go, żeby zmienić środek transportu tylko dla tego odcinka.',
   'help.guide.read-day-plan.step.5':
@@ -2246,7 +2394,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Przeciągnij przystanek na kartę innego dnia, aby go tam przenieść. Zniknie wtedy z poprzedniego dnia.',
   'help.guide.reorder-stops.step.4':
-    'Jeśli przystanek ma ustaloną godzinę, a przeniesienie zaburzyłoby kolejność dnia, TREK zapyta „Usunąć godzinę?”, bo to godzina wyznacza pozycję przystanku. „Potwierdź” usuwa godzinę, więc przystanek można przenieść w dowolne miejsce. „Anuluj” zostawia dzień bez zmian.',
+    'Jeśli przystanek ma ustaloną godzinę, a przeniesienie zaburzyłoby kolejność dnia, TREK zapyta „Usunąć godzinę?”, bo to godzina wyznacza pozycję przystanku. „Usuń godzinę i przenieś” usuwa godzinę i stawia przystanek tam, gdzie go upuściłeś. „Anuluj” zostawia dzień bez zmian.',
   'help.guide.reorder-stops.result': 'Trasa i czasy przejazdu od razu dostosowują się do nowej kolejności.',
   'help.guide.reorder-stops.tip.1':
     'Rezerwacja o stałej godzinie zostaje w miejscu wynikającym z tej godziny. Jeśli upuścisz ją gdzie indziej w tym samym dniu, wróci na swoje miejsce. Jeśli przeciągniesz ją na kartę innego dnia, przeniesie się do tego dnia.',
@@ -2256,7 +2404,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.title': 'Ustawianie godziny przystanku',
   'help.guide.set-stop-times.goal': 'Ustaw, kiedy przystanek się zaczyna i kończy, żeby dzień działał jak rozkład.',
   'help.guide.set-stop-times.step.1':
-    'Kliknij przystanek prawym przyciskiem myszy albo kliknij jego trzy kropki i wybierz „Edytuj”. Gdy otworzysz formularz z poziomu dnia, tuż pod lokalizacją znajdziesz pola „Początek” i „Koniec” dla tego dnia.',
+    'Kliknij przystanek prawym przyciskiem myszy albo kliknij jego trzy kropki i wybierz „Edytuj”. Gdy otworzysz formularz z poziomu dnia, pola „Początek” i „Koniec” dla tego dnia znajdziesz pod lokalizacją i tagami.',
   'help.guide.set-stop-times.step.2':
     'Wpisz „Początek” i, jeśli chcesz, „Koniec”. Komunikat „Nakładanie się godzin z:” ostrzega, że nakłada się inny przystanek z godziną w tym dniu. Gdy „Koniec” jest wcześniej niż „Początek”, przycisk „Aktualizuj” jest zablokowany.',
   'help.guide.set-stop-times.step.3':
@@ -2266,9 +2414,9 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'Godzina należy do przystanku w danym dniu; to samo miejsce w innym dniu może mieć inną godzinę.',
   'help.guide.set-stop-times.tip.2':
-    'Aby ręcznie przesunąć przystanek z godziną, przeciągnij go. TREK zapyta „Usunąć godzinę?”, a po kliknięciu „Potwierdź” godzina zostanie usunięta.',
+    'Aby ręcznie przesunąć przystanek z godziną, przeciągnij go. TREK zapyta „Usunąć godzinę?”, a „Usuń godzinę i przenieś” zdejmuje godzinę i przenosi przystanek.',
   'help.guide.set-stop-times.tip.3':
-    'Notatki na ten dzień w tym samym formularzu służą do informacji, które dotyczą tylko tego dnia, na przykład rezerwacji stolika albo numeru biletu.',
+    'Karta „Tylko dzień” obok „O miejscu” i „Notatki”, w tym samym formularzu, służy do notatki, która dotyczy tylko tego dnia, na przykład rezerwacji stolika albo numeru biletu.',
   // remove-from-day
   'help.guide.remove-from-day.title': 'Usuń przystanek z dnia',
   'help.guide.remove-from-day.goal': 'Usuń miejsce z dnia, nie usuwając go z podróży.',
@@ -2288,7 +2436,7 @@ const help: TranslationStrings = {
   'help.guide.lock-stop.step.2':
     '„Optymalizuj” układa teraz pozostałe przystanki wokół niego. Aby go odblokować, kliknij kłódkę jeszcze raz („Kliknij, aby odblokować”).',
   'help.guide.lock-stop.result':
-    'Na zdjęciu pojawia się kłódka, a przystanek zachowuje swoje miejsce, dopóki go nie odblokujesz.',
+    'Kłódka zostaje na zdjęciu, a wiersz jest przyciemniony. Przystanek zachowuje swoje miejsce, dopóki go nie odblokujesz.',
   'help.guide.lock-stop.tip.1':
     'Przystanek z ustaloną godziną jest zablokowany przez tę godzinę i nigdy nie zmienia miejsca podczas optymalizacji.',
   'help.guide.lock-stop.tip.2':
@@ -2332,7 +2480,7 @@ const help: TranslationStrings = {
   'help.guide.manage-days.title': 'Dodawanie dni, zmiana ich kolejności i nazw',
   'help.guide.manage-days.goal': 'Zmieniaj same dni, a nie tylko miejsca, które w nich są.',
   'help.guide.manage-days.step.1':
-    'Dni wynikają z dat podróży. Zmień daty w formularzu edycji podróży w „Panelu”, a dni zostaną dodane lub usunięte na początku lub na końcu. Zanim zostanie usunięty dzień z zawartością, zobaczysz listę usuwanych dni i tego, co w nich jest.',
+    'Dni wynikają z dat podróży. Zmień je w „Ustawienia podróży” u góry planera, w „Edytuj podróż” (albo ołówkiem na karcie podróży w „Panelu”), a dni zostaną dodane lub usunięte na początku lub na końcu. Zanim zostanie usunięty dzień z zawartością, lista pokaże usuwane dni i to, co w nich jest.',
   'help.guide.manage-days.step.2':
     '„Zmień kolejność dni” w nagłówku otwiera listę: przeciągnij dzień za uchwyt albo użyj „Przenieś w górę” i „Przenieś w dół”, a dzień przeniesie się razem z miejscami, notatkami i rezerwacjami. Pod listą opcja „Dodaj” z kolejną datą dodaje dzień po ostatnim dniu z datą i wydłuża podróż o jeden dzień, a „Bez daty” dodaje na końcu dzień bez daty. Podróż bez dat ma tylko „Dodaj dzień”.',
   'help.guide.manage-days.step.3':
@@ -2350,7 +2498,7 @@ const help: TranslationStrings = {
   'help.guide.bookings-in-plan.goal':
     'Sprawdź, gdzie pojawia się utworzona rezerwacja i na którym ekranie się ją tworzy.',
   'help.guide.bookings-in-plan.step.1':
-    'Transport (lot, pociąg, prom, autobus, samochód) to wiersz w kolorze zależnym od typu, z godziną oraz oznaczeniem Wylot w dniu odjazdu lub Przylot w dniu przybycia. Glob obok podaje strefę czasową, a lot z przesiadką ma po jednym wierszu na odcinek. Przy połączeniu transportem publicznym kliknij strzałkę, aby zobaczyć jego linie. Kliknij wiersz, a otworzy się rezerwacja, w której Edytuj pozwala ją zmienić.',
+    'Transport (lot, pociąg, prom, autobus, samochód) to wiersz w kolorze zależnym od typu, z godziną oraz oznaczeniem „Wylot” w dniu odjazdu lub „Przylot” w dniu przybycia. Gdy rezerwacja ma strefę czasową, glob obok godziny podaje ją po najechaniu, a lot z przesiadką ma po jednym wierszu na odcinek. Gdy lot trwa i włączony jest status lotu na żywo, linia pod nim mówi, jak mu idzie, łącznie z opóźnieniem. Przy połączeniu transportem publicznym kliknij strzałkę, aby zobaczyć jego linie. Kliknij wiersz, a otworzy się rezerwacja, w której „Edytuj” pozwala ją zmienić.',
   'help.guide.bookings-in-plan.step.2':
     'Rezerwacja powiązana z przystankiem (restauracja, wycieczka) jest widoczna przy nim jako plakietka „Rezerwacja” z godziną. Plakietka jest zielona po potwierdzeniu i bursztynowa, dopóki rezerwacja oczekuje. Rezerwacja przypisana do dnia, ale nie do przystanku, ma w tym dniu własny wiersz.',
   'help.guide.bookings-in-plan.step.3':
@@ -2367,14 +2515,17 @@ const help: TranslationStrings = {
     'Jeśli upuścisz rezerwację z godziną gdzie indziej w tym samym dniu, wróci w miejsce wynikające z jej godziny. Jeśli przeciągniesz ją na kartę innego dnia, przeniesie się do tego dnia. Aby zmienić godzinę, edytuj rezerwację.',
   // export-plan
   'help.guide.export-plan.title': 'Eksportowanie planu',
-  'help.guide.export-plan.goal': 'Wyeksportuj plan jako dokument, do kalendarza lub na urządzenie GPS.',
+  'help.guide.export-plan.goal':
+    'Wyeksportuj plan jako dokument, do kalendarza, na urządzenie GPS albo do Google My Maps.',
   'help.guide.export-plan.step.1': 'Kliknij „Eksportuj” po lewej stronie paska nad dniami.',
   'help.guide.export-plan.step.2':
-    'Dokument: PDF otwiera widok wydruku każdego dnia z przystankami, notatkami i rezerwacjami, zaczynając od mapy z przeglądem trasy. Mój plan jako PDF zostawia tylko to, w czym bierzesz udział. W tym widoku Podział strony dla każdego dnia zaczyna każdy dzień na nowej stronie, Notatki do transportu dodaje notatki do Twoich transportów, a Zapisz jako PDF pobiera plik.',
+    '„Dokument: PDF” otwiera podgląd podróży jako dokumentu: okładkę, przegląd z mapą trasy, każdy dzień i wszystkie rezerwacje, a potem każdy dzień z przystankami, notatkami i rezerwacjami. „Mój plan jako PDF” zostawia tylko to, w czym bierzesz udział. Przełączniki nad podglądem wybierają, co się w nim znajdzie: „Podział strony dla każdego dnia”, „Duży tekst”, „Przegląd”, „Zdjęcia”, „Współrzędne”, „Kontakt i godziny otwarcia” oraz „Notatki do transportu”, gdy Twoje transporty mają notatki. „Zapisz jako PDF” pobiera plik.',
   'help.guide.export-plan.step.3':
     'Kalendarz: Pobierz .ics zapisuje rezerwacje jako plik kalendarza, a Subskrybuj kalendarz daje link, który Twoja aplikacja kalendarza odświeża automatycznie.',
   'help.guide.export-plan.step.4':
     'Mapy i GPS (GPX): Cała podróż eksportuje miejsca, trasy dni i ślady. Tylko miejsca eksportuje same pinezki. Dni jako trasy eksportuje po jednej trasie na dzień, do map offline i urządzeń GPS.',
+  'help.guide.export-plan.step.5':
+    'Google Maps (KML): „Miejsca dla Google My Maps” zapisuje miejsca podróży jako plik KML. W My Maps zaimportuj go jako warstwę, żeby zobaczyć je na własnej mapie Google.',
   'help.guide.export-plan.result': 'Plik zostanie pobrany; w podróży nic się nie zmieni.',
   'help.guide.export-plan.tip.1':
     'Aby otworzyć pojedynczy dzień w aplikacji z mapami, użyj jego paska trasy: „Otwórz w Google Maps” albo „Otwórz w CoMaps”.',
@@ -2390,13 +2541,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.1':
     'Kliknij wiersz w kolumnie miejsc, przystanek w dniu lub znacznik na mapie, a nad mapą otworzy się karta. Jeśli otworzysz ją z dnia, karta wie, o który przystanek chodzi, i pokazuje też jego uczestników oraz rezerwację. Wycieczka (wędrówka, przejażdżka lub spacer z zakładki „Wycieczki”) otwiera zamiast tego własną kartę wycieczki.',
   'help.ctx.trip-place.bullet.2':
-    'W nagłówku jest okrągłe zdjęcie, nazwa, adres w jednym wierszu i etykiety ze znanymi informacjami: otwarte lub zamknięte, kategoria, godzina, cena, numer telefonu, e-mail i współrzędne. Kliknij zdjęcie, aby użyć własnego lub zdjęcia z plików miejsca. Kliknij dwukrotnie nazwę, aby ją zmienić. Krzyżyk po prawej zamyka kartę. Zmiana zdjęcia i nazwy, „Edytuj” oraz „Usuń” są dostępne tylko dla uczestników, którzy mogą edytować miejsca.',
+    'W nagłówku jest okrągłe zdjęcie, nazwa, adres w jednym wierszu i etykiety ze znanymi informacjami: otwarte lub zamknięte, kategoria i etykiety miejsca, godzina, cena, numer telefonu, e-mail i współrzędne. Miejsce z adresem, ale bez współrzędnych, pokazuje zamiast tego „Brak współrzędnych, więc nie ma na mapie”. Kliknij zdjęcie, aby zobaczyć zdjęcia miejsca, a dwukrotnie nazwę, aby ją zmienić. Po prawej strzałka zwija kartę do wąskiego paska, a X ją zamyka. Zmiana nazwy, „Edytuj” oraz „Usuń” są dostępne tylko dla uczestników, którzy mogą edytować miejsca.',
   'help.ctx.trip-place.bullet.3':
     'Poniżej: gwiazdki od każdego podróżnego, opis i notatki, a także „Notatki na ten dzień”, jeśli przystanek je ma.',
   'help.ctx.trip-place.bullet.4':
     'Dalej, o ile mają zastosowanie, są Godziny otwarcia, Kolor trasy, Statystyki trasy i Pliki. Prześlij w nagłówku Pliki dodaje pliki z komputera, a lista pokazuje też pliki przypięte do tego przystanku i do jego rezerwacji, także potwierdzenie hotelu. Wtyczki mogą dodać poniżej własne wiersze.',
   'help.ctx.trip-place.bullet.5':
-    'Dolny rząd: Dodaj do dnia lub Usuń z dnia, gdy dzień jest otwarty, potem Nawigacja (albo nazwa Twojej aplikacji z mapami, gdy wybierzesz ją w Ustawieniach), Otwórz stronę internetową i Zapisz w kolekcji. Po prawej czerwony kosz usuwa miejsce, a Edytuj otwiera jego formularz.',
+    'Dolny rząd: „Dodaj do dnia”, gdy dzień jest otwarty, a miejsca jeszcze w nim nie ma, potem „Nawigacja” (albo nazwa Twojej aplikacji z mapami, gdy wybierzesz ją w „Ustawieniach”) i dwie ikony, „Otwórz stronę internetową” i „Zapisz w kolekcji”. Po prawej trzy kropki zawierają „Usuń z dnia” i „Usuń”, a „Edytuj” otwiera formularz miejsca, w którym zmienisz też jego zdjęcie.',
   'help.ctx.trip-place.bullet.6':
     'Przy miejscu wybranym z wyszukiwania widać, co wiedzą o nim indeks TREK lub OpenStreetMap: „Otwarte” lub „Zamknięta” wśród pigułek u góry, z zieloną lub czerwoną obwódką wokół zdjęcia, według czasu lokalnego miejsca; numer telefonu, również jako pigułka; niżej „Godziny otwarcia” z dzisiejszymi godzinami w wierszu i całym tygodniem po kliknięciu; oraz stronę internetową pod „Otwórz stronę internetową”. Ocena Google jest widoczna tylko przy miejscu znalezionym przez Google, w TREK z kluczem Google. Godziny otwarcia, numer telefonu i e-mail wpisane przez ciebie w formularzu miejsca zastępują pobrane dane i decydują też o kolorze obwódki.',
   // read-place
@@ -2405,7 +2556,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.step.1':
     'W kolumnie dni kliknij przystanek, o którym chcesz się czegoś dowiedzieć. Nad mapą otworzy się karta, a przystanek pozostanie zaznaczony w swoim dniu.',
   'help.guide.read-place.step.2':
-    'U góry: okrągłe zdjęcie, nazwa i adres w jednym wierszu; podpowiedź pokazuje pełny adres. Pigułki pod spodem informują, czy miejsce jest teraz „Otwarte” czy „Zamknięta”, według czasu lokalnego miejsca, a zdjęcie ma odpowiednio zieloną lub czerwoną obwódkę. Pokazują też kategorię, godzinę, numer telefonu i e-mail (kliknij, żeby otworzyć aplikację telefonu lub poczty), a na szerokim ekranie także dokładne współrzędne. X po prawej zamyka kartę.',
+    'U góry: okrągłe zdjęcie, nazwa i adres w jednym wierszu; podpowiedź pokazuje pełny adres. Pigułki pod spodem informują, czy miejsce jest teraz „Otwarte” czy „Zamknięte”, według czasu lokalnego miejsca, a zdjęcie ma odpowiednio zieloną lub czerwoną obwódkę. Pokazują też kategorię i etykiety miejsca, godzinę, numer telefonu i e-mail (kliknij, żeby otworzyć aplikację telefonu lub poczty), a na szerokim ekranie także dokładne współrzędne. Kliknij zdjęcie, aby zobaczyć zdjęcia miejsca. Po prawej strzałka zwija kartę, a X ją zamyka.',
   'help.guide.read-place.step.3':
     'Ocena to pierwsza sekcja pod nagłówkiem: gwiazdki, które miejscu przyznał każdy uczestnik, ze średnią i liczbą głosów. Dopóki nikt nie zagłosował, widać Jeszcze nie oceniono.',
   'help.guide.read-place.step.4':
@@ -2422,6 +2573,22 @@ const help: TranslationStrings = {
     'Jeśli możesz edytować miejsca, kliknij dwukrotnie nazwę, aby zmienić ją bez otwierania formularza. Enter zapisuje zmianę, a Escape ją anuluje.',
   'help.guide.read-place.tip.3':
     'Miejsce wpisane ręcznie ma tylko dane podane w jego formularzu. Kliknij „Edytuj” i sam uzupełnij „Telefon”, „E-mail” i godziny otwarcia albo wybierz miejsce z podpowiedzi pod „Szukaj miejsc…” i kliknij „Aktualizuj”, aby wyszukać te dane. Ocena Google wymaga klucza Google.',
+  'help.guide.fold-place-card.title': 'Zwiń kartę, żeby nie zasłaniała',
+  'help.guide.fold-place-card.goal': 'Zostaw miejsce zaznaczone, gdy oglądasz mapę wokół niego.',
+  'help.guide.fold-place-card.step.1':
+    'Otwórz miejsce i kliknij strzałkę w prawym górnym rogu karty, obok X. Jej podpowiedź brzmi „Zwiń”.',
+  'help.guide.fold-place-card.step.2':
+    'Karta jest teraz wąskim paskiem tylko ze zdjęciem i nazwą. Miejsce zostaje zaznaczone, a jego znacznik podświetlony, więc możesz przesuwać i przybliżać mapę wokół niego.',
+  'help.guide.fold-place-card.step.3':
+    'Kliknij strzałkę ponownie, teraz „Rozwiń”, żeby otworzyć całą kartę. X zamyka kartę i odznacza miejsce.',
+  'help.guide.fold-place-card.result':
+    'Mapa pozostaje widoczna wokół wybranego miejsca, a cała karta jest oddalona o jedno kliknięcie.',
+  'help.guide.fold-place-card.tip.1':
+    'Wybierz inne miejsce, a jego karta otworzy się w całości. Zwinięte pozostaje tylko to miejsce, które zwinąłeś.',
+  'help.guide.fold-place-card.tip.2':
+    'Zwinięcie to nie zamknięcie: miejsce zostaje zaznaczone, a przystanek otwarty z dnia pozostaje w tym dniu oznaczony.',
+  'help.guide.fold-place-card.tip.3':
+    'Zwinięty pasek zostaje tam, gdzie była karta, na dole mapy między bocznymi kolumnami.',
   // rate-place
   'help.guide.rate-place.title': 'Ocenianie miejsca',
   'help.guide.rate-place.goal': 'Oceń miejsce w gwiazdkach i zobacz, jak ocenili je inni.',
@@ -2444,20 +2611,22 @@ const help: TranslationStrings = {
   // place-image
   'help.guide.place-image.title': 'Dodaj własne zdjęcie miejsca',
   'help.guide.place-image.goal': 'Zastąp automatyczną miniaturę własnym zdjęciem.',
-  'help.guide.place-image.step.1': 'Otwórz miejsce z kolumny miejsc.',
+  'help.guide.place-image.step.1':
+    'Otwórz miejsce i kliknij „Edytuj” w prawym dolnym rogu karty. Otworzy się formularz miejsca.',
   'help.guide.place-image.step.2':
-    'Najedź na okrągłe zdjęcie w nagłówku: pojawi się aparat, a podpowiedź brzmi Prześlij zdjęcie. Kliknij go i wybierz plik. Jeśli miejsce ma już zdjęcia wśród swoich plików, TREK najpierw zapyta, co wybrać: Prześlij z urządzenia albo jedno ze zdjęć w sekcji Z załączonych plików.',
-  'help.guide.place-image.step.3': 'U góry karty widać teraz Twoje zdjęcie z małym czerwonym X w rogu.',
+    '„Wybierz zdjęcie”, u góry szczegółów po lewej, pokazuje obrazy, które miejsce może mieć. Kliknij „Prześlij zdjęcie”, pierwszy kafelek, i wybierz plik z komputera.',
+  'help.guide.place-image.step.3':
+    'Kafelek pokazuje teraz Twoje zdjęcie, w obwódce i z ptaszkiem, a linia pod kafelkami brzmi „Twój obraz”. Nic nie jest jeszcze zapisane.',
   'help.guide.place-image.step.4':
-    'To samo zdjęcie pojawia się też w wierszu miejsca w kolumnie miejsc i na jego znaczniku na mapie.',
+    'Kliknij „Aktualizuj”. Karta pokazuje Twoje zdjęcie u góry, a wiersz miejsca w kolumnie miejsc też je pokazuje.',
   'help.guide.place-image.result':
     'Twoje zdjęcie jest używane dla miejsca wszędzie: na karcie, w kolumnie miejsc, przy przystanku w dniu, na znaczniku na mapie i w udostępnionej podróży.',
   'help.guide.place-image.tip.1':
     "Akceptowane są pliki JPG, PNG, GIF i WebP, a plik HEIC z iPhone'a jest konwertowany podczas przesyłania.",
   'help.guide.place-image.tip.2':
-    'Krzyżyk w rogu usuwa Twoje zdjęcie i przywraca automatyczne. Samo miejsce się nie zmienia.',
+    '„Usuń zdjęcie” na końcu linii pod kafelkami zostawia miejsce bez zdjęcia po kliknięciu „Aktualizuj”. „Anuluj” zachowuje stare.',
   'help.guide.place-image.tip.3':
-    'Jeśli nie dodasz zdjęcia, TREK wyszuka je na podstawie współrzędnych miejsca. Gdy nic nie znajdzie, pokaże ikonę kategorii. Zdjęcie mogą ustawić tylko uczestnicy, którzy mogą zmieniać miejsca.',
+    'Pozostałe kafelki to bieżące zdjęcie miejsca, zdjęcia do niego dołączone i obrazy, które TREK dla niego znalazł, każdy z podaniem autora. Zdjęcie mogą zmienić tylko uczestnicy, którzy mogą zmieniać miejsca.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'Dodaj miejsce do otwartego dnia lub je z niego usuń',
   'help.guide.place-day-assign.goal': 'Użyj przycisku na karcie zamiast przeciągać wiersz przez planer.',
@@ -2466,15 +2635,15 @@ const help: TranslationStrings = {
   'help.guide.place-day-assign.step.2':
     'W kolumnie miejsc kliknij miejsce, którego nie ma w tym dniu. Otworzy się jego karta, a w dolnym wierszu pojawi się „Dodaj do dnia”.',
   'help.guide.place-day-assign.step.3':
-    'Kliknij „Dodaj do dnia”. Przystanek zostanie dodany na końcu dnia, a przycisk zmieni się na „Usuń z dnia”.',
+    'Kliknij „Dodaj do dnia”. Przystanek zostanie dodany na końcu dnia, a przycisk zniknie z wiersza, bo miejsce jest już w tym dniu.',
   'help.guide.place-day-assign.step.4':
     'Przystanek jest teraz w dniu, na końcu listy. Przeciągnij go w górę, na właściwe miejsce.',
   'help.guide.place-day-assign.step.5':
-    '„Usuń z dnia” znów usuwa przystanek z dnia, a na karcie ponownie pojawia się „Dodaj do dnia”.',
+    'Aby je znów zdjąć, kliknij trzy kropki po prawej stronie wiersza i wybierz „Usuń z dnia”. „Dodaj do dnia” wraca.',
   'help.guide.place-day-assign.result':
     'Przystanek zostaje dodany do dnia lub z niego usunięty. Samo miejsce się nie zmienia.',
   'help.guide.place-day-assign.tip.1':
-    'Przycisk jest dostępny tylko wtedy, gdy dzień jest otwarty. Bez otwartego dnia nie ma dnia, do którego można dodać miejsce.',
+    '„Dodaj do dnia” jest dostępne tylko wtedy, gdy dzień jest otwarty, a miejsca jeszcze w nim nie ma. Bez otwartego dnia nie ma dnia, do którego można dodać miejsce.',
   'help.guide.place-day-assign.tip.2':
     'Gdy usuniesz przystanek z dnia, miejsce zostaje w podróży i w kolumnie miejsc. Opcja „Usuń” usuwa je wszędzie.',
   'help.guide.place-day-assign.tip.3':
@@ -2542,7 +2711,7 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.3':
     'Kliknij aplikację, której używasz. Jeśli to możliwe, TREK przekazuje do aplikacji samo miejsce, a nie tylko jego współrzędne, więc trafisz pod właściwe wejście.',
   'help.guide.place-navigation.step.4':
-    '„Otwórz stronę internetową” obok otwiera w nowej karcie stronę miejsca z godzinami otwarcia i biletami.',
+    'Ikona obok, „Otwórz stronę internetową”, otwiera w nowej karcie stronę miejsca z godzinami otwarcia i biletami.',
   'help.guide.place-navigation.result':
     'Aplikacja z mapami otwiera się na tym miejscu, strona internetowa w nowej karcie, a w podróży nic się nie zmienia. Jeśli TREK jest zainstalowany jako aplikacja, zamiast nowej karty otworzy się aplikacja z mapami.',
   'help.guide.place-navigation.tip.1':
@@ -2554,15 +2723,17 @@ const help: TranslationStrings = {
   // place-to-collection
   'help.guide.place-to-collection.title': 'Zapisz miejsce na jednej ze swoich list',
   'help.guide.place-to-collection.goal': 'Zapisz miejsce znalezione w tej podróży na następną.',
-  'help.guide.place-to-collection.step.1': 'Otwórz miejsce i kliknij „Zapisz w kolekcji” w dolnym wierszu karty.',
+  'help.guide.place-to-collection.step.1':
+    'Otwórz miejsce i kliknij „Zapisz w kolekcji”, ikonę zakładki w dolnym wierszu karty.',
   'help.guide.place-to-collection.step.2':
     '„Zapisz na liście” pokazuje wszystkie twoje i udostępnione ci listy. Wypełniona zakładka po prawej oznacza listy, które już zawierają to miejsce.',
   'help.guide.place-to-collection.step.3': 'Kliknij listę. Miejsce zostanie do niej od razu dodane.',
-  'help.guide.place-to-collection.step.4': 'Zamknij okno przyciskiem X, a przycisk na karcie zmieni się na „Zapisano”.',
+  'help.guide.place-to-collection.step.4':
+    'Zamknij okno przyciskiem X. Zakładka na karcie jest teraz wypełniona, a jej podpowiedź brzmi „Zapisano”.',
   'help.guide.place-to-collection.result':
     'Miejsce jest na Twojej liście razem ze zdjęciem, notatkami i adresem, gotowe na następną podróż.',
   'help.guide.place-to-collection.tip.1':
-    'Przycisk jest widoczny tylko wtedy, gdy włączony jest dodatek „Kolekcje”, który administrator włącza w „Dodatkach”.',
+    'Zakładka jest widoczna tylko wtedy, gdy włączony jest dodatek „Kolekcje”, który administrator włącza w „Dodatki”.',
   'help.guide.place-to-collection.tip.2':
     'Miejsce może być jednocześnie na kilku listach, na każdej z innym statusem: na jednej jako pomysł, na innej jako odwiedzone.',
   'help.guide.place-to-collection.tip.3':
@@ -2589,7 +2760,7 @@ const help: TranslationStrings = {
     'Każdy ślad dodany podczas importu dostaje własny kolor, więc dwa spacery nigdy nie mają tego samego koloru.',
   // read-place
   'help.guide.read-place.step.7':
-    'Dolny wiersz zawiera dostępne działania: dodanie miejsca do otwartego dnia lub usunięcie z niego, otwarcie go w aplikacji z mapami lub na jego stronie, zapisanie na liście, a po prawej usunięcie (czerwony kosz) lub edycję.',
+    'Dolny wiersz zawiera dostępne działania: „Dodaj do dnia” umieszcza miejsce w otwartym dniu, „Nawigacja” otwiera je w aplikacji z mapami, a dwie ikony otwierają jego stronę i zapisują je na liście. Po prawej trzy kropki zawierają „Usuń z dnia” i „Usuń”, a „Edytuj” otwiera formularz miejsca.',
 
   // ── Screen: trip-files ────────────────────────────────────────────────────────────────
   'help.ctx.trip-files.title': 'Pliki',
@@ -2648,6 +2819,8 @@ const help: TranslationStrings = {
     'Kliknij ponownie zaznaczony wpis, żeby usunąć to powiązanie; sam plik zostaje. Offline notatka i nowe zaznaczenia są zapisywane i wysyłane, gdy TREK znów będzie online; połączenia wymaga tylko usunięcie innego powiązania.',
   'help.guide.files-link.tip.3':
     'Działa to też w drugą stronę: dokument dołączony do miejsca lub rezerwacji również jest na tej liście, z taką samą plakietką w wierszu.',
+  'help.guide.files-link.tip.4':
+    'Jeśli właściciel podróży wyłączy „Dokumenty” dla tej podróży („Ustawienia podróży”, „Dodatki”), zakładka „Pliki” znika, ale dokument powiązany z rezerwacją, miejscem lub wydatkiem zostaje przy nim i nadal się otwiera. Po ponownym włączeniu zakładka znów pokazuje każdy plik.',
   // files-star
   'help.guide.files-star.title': 'Ważne dokumenty zawsze na górze',
   'help.guide.files-star.goal':
@@ -2789,7 +2962,7 @@ const help: TranslationStrings = {
   'help.guide.day-weather.step.2':
     'Duża liczba to temperatura w ciągu dnia. Obok widać temperaturę minimalną i maksymalną oraz opis pogody.',
   'help.guide.day-weather.step.3':
-    'Przyciski po jej prawej: szansa na deszcz, jego ilość, najsilniejszy wiatr oraz wschód i zachód słońca.',
+    'Pigułki po jej prawej: szansa na deszcz i jego ilość, gdy prognoza je zawiera, potem najsilniejszy wiatr oraz wschód i zachód słońca. Najedź na pigułkę, aby zobaczyć, co oznacza.',
   'help.guide.day-weather.step.4':
     'Na dole widać dzień godzina po godzinie, co dwie godziny: godzinę, ikonę, temperaturę i prawdopodobieństwo opadów. Godziny z prawdopodobieństwem powyżej 50 procent są zacieniowane na niebiesko.',
   'help.guide.day-weather.result':
@@ -2815,6 +2988,8 @@ const help: TranslationStrings = {
     'Jeśli wyczyścisz pole i zapiszesz, dzień znów będzie się nazywał „Dzień 5”: numer jest widoczny, gdy nie ma nazwy.',
   'help.guide.rename-day.tip.2':
     'Nazwa należy do dnia, a nie do jego daty. Jeśli zmienisz kolejność dni, nazwa przesunie się razem z całą resztą z tego dnia.',
+  'help.guide.rename-day.tip.3':
+    'Przy włączonej opcji „Data na początku nagłówków dni” w „Ustawienia”, „Wygląd” data jest dużą linią, a nazwa jest pod nią. Ołówek jest wtedy obok nazwy w tej drugiej linii.',
   // add-accommodation
   'help.guide.add-accommodation.title': 'Zarezerwuj nocleg w danym dniu',
   'help.guide.add-accommodation.goal':
@@ -2830,7 +3005,7 @@ const help: TranslationStrings = {
     'Wybierz obiekt w polu „Wybierz zakwaterowanie”. „Kategoria” nad listą zawęża ją do jednej kategorii.',
   'help.guide.add-accommodation.step.6': 'Kliknij Zapisz.',
   'help.guide.add-accommodation.result':
-    'Nocleg widać w każdym dniu, który obejmuje: „Zameldowanie” w pierwszym, „Wymeldowanie” w ostatnim. Obiekt staje się przystankiem w dniu zameldowania, więc mapa pokazuje dojazd do niego, a w zakładce „Rezerwacje” pojawia się rezerwacja hotelu.',
+    'Nocleg widać w każdym dniu, który obejmuje: „Zameldowanie” w pierwszym, „Wymeldowanie” w ostatnim, a nagłówek każdego z tych dni w kolumnie dni podaje nazwę hotelu. Trasa dnia na mapie prowadzi do obiektu, a w zakładce „Rezerwacje” pojawia się rezerwacja hotelu.',
   'help.guide.add-accommodation.tip.1':
     'Wybór otwiera się na dniu, z którego przechodzisz, z wymeldowaniem następnego dnia; przed zapisaniem możesz zmienić obie daty.',
   'help.guide.add-accommodation.tip.2':
@@ -2894,7 +3069,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-map.bullet.4':
     'Gdy w kolumnie dni otwarty jest dzień, jego przystanki mają małą białą plakietkę z numerem w tym dniu. Miejsce, które występuje w dniu dwa razy, ma oba numery. Filtry nad listą miejsc („Pokaż”, kategorie i gwiazdka z minimalną oceną) filtrują też pinezki na mapie.',
   'help.ctx.trip-map.bullet.5':
-    'Rząd ikon u góry przeszukuje widoczny fragment mapy: „Restauracje”, „Kawiarnie”, „Bary i życie nocne”, „Nocleg”, „Atrakcje”, „Muzea i kultura”, „Przyroda i parki” oraz „Atrakcje”. Kategorie dodane przez wtyczki są za cienką linią oddzielającą. Gdy rząd jest szerszy niż mapa, przewiniesz go w bok kółkiem myszy. „Szukaj w tym obszarze” ponawia wyszukiwanie po przesunięciu mapy.',
+    'Rząd ikon u góry przeszukuje widoczny fragment mapy: „Restauracje”, „Kawiarnie”, „Bary i życie nocne”, „Nocleg”, „Atrakcje”, „Muzea i kultura”, „Przyroda i parki”, „Aktywności”, „Piekarnie” i „Sklepy spożywcze”. Kategorie dodane przez wtyczki są za cienką linią oddzielającą. Gdy rząd jest szerszy niż mapa, przewiniesz go w bok kółkiem myszy. „Szukaj w tym obszarze” ponawia wyszukiwanie po przesunięciu mapy.',
   'help.ctx.trip-map.bullet.6':
     'Kliknij prawym przyciskiem w dowolnym miejscu mapy, aby otworzyć formularz miejsca w tym punkcie, z już wyszukanym adresem. W lewym dolnym rogu są dwa okrągłe przyciski: kłódka, Zablokuj widok mapy, zatrzymuje widok mapy w miejscu, gdy klikasz dni i miejsca, a przycisk pod nią, Przełącz na widok satelitarny, zamienia narysowaną mapę na zdjęcia satelitarne.',
   'help.ctx.trip-map.bullet.7':
@@ -2909,7 +3084,7 @@ const help: TranslationStrings = {
   'help.guide.map-markers.step.2':
     'Pinezka pokazuje zdjęcie miejsca, jeśli je ma, a w przeciwnym razie kolor i ikonę kategorii. Nocleg, którego rezerwacja wciąż oczekuje, jest wyblakły i ma przerywaną obwódkę. Po najechaniu na pinezkę obok otwiera się karta: to samo zdjęcie w większym rozmiarze, nazwa i adres, a także ocena i kategoria, jeśli miejsce je ma.',
   'help.guide.map-markers.step.3':
-    'Kliknij pinezkę, a miejsce otworzy się w karcie w dolnej części mapy: u góry zdjęcie, nazwa i adres, potem gwiazdki, opis i pliki, także te z rezerwacji. Na dole są działania: „Dodaj do dnia”, gdy dzień jest otwarty („Usuń z dnia”, jeśli miejsce już w nim jest), „Nawigacja”, „Otwórz stronę internetową”, „Zapisz w kolekcji” („Zapisano”, gdy miejsce jest już w kolekcji), a po prawej kosz i „Edytuj”. Kartę zamkniesz przyciskiem X u góry albo kliknięciem w pusty fragment mapy.',
+    'Kliknij pinezkę, a miejsce otworzy się w karcie w dolnej części mapy: u góry zdjęcie, nazwa, adres i kategoria, potem gwiazdki, opis, notatki, uczestnicy i pliki, także te z rezerwacji. Na dole są działania: „Dodaj do dnia”, gdy dzień jest otwarty, a miejsca jeszcze w nim nie ma, „Nawigacja”, ikona strony internetowej, jeśli miejsce ją ma, oraz zakładka „Zapisz w kolekcji” („Zapisano”, gdy miejsce jest już w kolekcji). Po prawej „Więcej opcji” zawiera „Usuń z dnia” i „Usuń”, a „Edytuj” otwiera formularz miejsca. Strzałka u góry zwija kartę do nagłówka, a X albo kliknięcie w pusty fragment mapy ją zamyka.',
   'help.guide.map-markers.step.4':
     'Otwórz dzień w kolumnie dni, a jego przystanki dostaną numery: mała biała plakietka w rogu pinezki pokazuje kolejność przystanku w dniu. Miejsce, które występuje w dniu dwa razy, ma oba numery. Gdy żaden dzień nie jest otwarty, numerów nie ma, a w rogu widać ocenę miejsca, jeśli ją ma.',
   'help.guide.map-markers.step.5':
@@ -2927,7 +3102,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.goal':
     'Wyszukaj restauracje, atrakcje lub hotel w tej części miasta, którą widać na mapie, i dodaj jedno z nich do podróży.',
   'help.guide.map-nearby-places.step.1':
-    'Rząd ikon u góry mapy to wyszukiwanie według kategorii: „Restauracje”, „Kawiarnie”, „Bary i życie nocne”, „Nocleg”, „Atrakcje”, „Muzea i kultura”, „Przyroda i parki” oraz „Atrakcje”. Kategorie dodane przez wtyczki są za cienkim separatorem. Najedź kursorem na ikonę, aby zobaczyć jej nazwę.',
+    'Rząd ikon u góry mapy to wyszukiwanie według kategorii: „Restauracje”, „Kawiarnie”, „Bary i życie nocne”, „Nocleg”, „Atrakcje”, „Muzea i kultura”, „Przyroda i parki”, „Aktywności”, „Piekarnie” i „Sklepy spożywcze”. Kategorie dodane przez wtyczki są za cienkim separatorem. Najedź kursorem na ikonę, aby zobaczyć jej nazwę.',
   'help.guide.map-nearby-places.step.2':
     'Kliknij kategorię. TREK wyszuka miejsca tego rodzaju w widocznej części mapy i dla każdego wyniku postawi pinezkę w kolorze kategorii. Naraz działa tylko jedna kategoria: kliknięcie innej ją zastępuje, a kliknięcie aktywnej ją wyłącza.',
   'help.guide.map-nearby-places.step.3':
@@ -2935,7 +3110,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.4':
     'Najedź kursorem na pinezkę, aby zobaczyć nazwę znalezionego miejsca. Kliknij pinezkę, a otworzy się formularz miejsca z już uzupełnionymi danymi: nazwą u góry okna, polami „Adres”, „Szerokość” i „Długość”, a także stroną internetową i numerem telefonu, jeśli wyszukiwanie je znalazło.',
   'help.guide.map-nearby-places.step.5':
-    'Sprawdź, co zostało wypełnione, i dodaj to, czego wyszukiwarka nie mogła wiedzieć. Kategoria pod nazwą jest już ustawiona, jeśli podróż ma pasującą kategorię, na przykład restauracja dla restauracji. W przeciwnym razie widać Brak kategorii, dopóki jej nie wybierzesz. Dodaj Opis i własne notatki.',
+    'Sprawdź, co zostało wypełnione, i dodaj to, czego wyszukiwarka nie mogła wiedzieć. Kategoria pod nazwą jest już ustawiona, jeśli podróż ma pasującą kategorię, na przykład restauracja dla restauracji. W przeciwnym razie widać „Brak kategorii”, dopóki jej nie wybierzesz. Opisz, o co chodzi w miejscu, w „O miejscu”, a własne notatki wpisz w „Notatki”.',
   'help.guide.map-nearby-places.step.6':
     'Kliknij „Dodaj”. Jeśli miejsce o tej samej nazwie lub w tym samym punkcie jest już w podróży, TREK Cię o tym poinformuje, a przycisk zmieni się na „Dodaj mimo to”.',
   'help.guide.map-nearby-places.result':
@@ -2954,7 +3129,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.2':
     'Pola „Szerokość” i „Długość” są już ustawione na ten punkt. TREK wyszukuje współrzędne i wypełnia pole „Adres” znalezionymi danymi. Jeśli wyszukiwanie znajdzie nazwę, TREK wpisze ją też u góry okna. Nic nie jest jeszcze zapisane, więc popraw wszystko, co się nie zgadza.',
   'help.guide.map-add-place.step.3':
-    'W polu u góry okna wpisz nazwę, po której rozpoznasz miejsce. Wybierz kategorię z plakietki pod spodem; dopóki jej nie wybierzesz, widnieje na niej „Brak kategorii”. Następnie dodaj inne szczegóły do planu: „Opis”, „Notatki”, „Strona internetowa”.',
+    'W polu u góry okna wpisz nazwę, po której rozpoznasz miejsce. Wybierz kategorię z pigułki pod spodem; dopóki jej nie wybierzesz, widnieje na niej „Brak kategorii”. Następnie dodaj inne szczegóły do planu: „O miejscu”, „Notatki”, „Strona internetowa”.',
   'help.guide.map-add-place.step.4':
     'Kliknij „Dodaj”. Miejsce trafia na listę jako niezaplanowane, nawet jeśli jakiś dzień jest otwarty: kliknięcie prawym przyciskiem na mapie ustala lokalizację, a nie dzień.',
   'help.guide.map-add-place.result':
@@ -2995,7 +3170,7 @@ const help: TranslationStrings = {
   'help.guide.map-whole-trip.tip.1':
     'Suma jest liczona po kilka odcinków naraz. Dopóki obok niej widać …, liczba jest tylko sumą częściową. Staje się ostateczna, gdy zostaną przeliczone wszystkie odcinki.',
   'help.guide.map-whole-trip.tip.2':
-    'Jeśli planer tras nie może wyznaczyć odcinka, odcinek pozostaje linią prostą i nie jest liczony. Karta o tym informuje, więc suma nie jest zaniżona bez ostrzeżenia.',
+    'Jeśli planer tras nie może wyznaczyć odcinka, odcinek pozostaje linią prostą i nie jest liczony. Karta o tym informuje, a dystans jest wtedy podany jako co najmniej, więc suma nie jest zaniżona bez ostrzeżenia.',
   'help.guide.map-whole-trip.tip.3':
     'Dzień z mniej niż dwoma przystankami ze współrzędnymi i bez dojazdu do hotelu lub z hotelu nie ma trasy do narysowania, więc w ogóle nie pojawia się na karcie.',
   // map-booking-routes
@@ -3007,7 +3182,7 @@ const help: TranslationStrings = {
   'help.guide.map-booking-routes.step.2':
     'Kliknij ją, a rezerwacja pojawi się na mapie: lot jako łuk po kole wielkim, przejazd samochodem po prawdziwych drogach, pociąg jako ciąg jego stacji. Rezerwacje „Potwierdzono” są rysowane linią ciągłą, „Oczekujące” przerywaną, a końce trasy to niebieskie plakietki z ikoną środka transportu.',
   'help.guide.map-booking-routes.step.3':
-    'Kliknij przycisk na końcu trasy, a otworzą się szczegóły rezerwacji: status, typ i dni w kolorowym nagłówku, godziny na obu końcach, pozostałe szczegóły niżej, a na dole Na mapie, które ponownie wyłącza tę trasę, Zmień trasę przy połączeniu transportem publicznym, kosz usuwający rezerwację i Edytuj. X w nagłówku zamyka szczegóły.',
+    'Kliknij przycisk na końcu trasy, a otworzą się szczegóły rezerwacji: status, typ, dni i kod rezerwacji jako pigułki w kolorowym nagłówku, godziny na obu końcach, pozostałe szczegóły niżej, a na dole „Mapa”, które ponownie wyłącza tę trasę, „Zmień trasę” przy połączeniu transportem publicznym, kosz usuwający rezerwację i „Edytuj”. X w nagłówku zamyka szczegóły.',
   'help.guide.map-booking-routes.step.4':
     'Ikona trasy na pasku narzędzi nad dniami działa dla całej podróży naraz: „Pokaż wszystkie trasy rezerwacji” rysuje każdą rezerwację, która ma trasę.',
   'help.guide.map-booking-routes.step.5':
@@ -3110,7 +3285,7 @@ const help: TranslationStrings = {
   'help.guide.shared-links.tip.1':
     'Akceptowany jest tylko adres http lub https. Inne są odrzucane, a okno pozostaje otwarte z wpisanym tekstem.',
   'help.guide.shared-links.tip.2':
-    'Najpierw są przypięte linki, potem najnowsze. Mała ikona obok tytułu to favicon strony, pobierany z niej samej, więc bez internetu plakietka pokazuje zwykłą ikonę linku.',
+    'Najpierw są przypięte linki, potem najnowsze. Mała ikona obok tytułu to favicon strony, pobierany z niej samej. Dopóki się nie wczyta albo gdy strona go nie ma, plakietka pokazuje zamiast niego zwykłą ikonę linku.',
   'help.guide.shared-links.tip.3':
     '„Linki” mają własny przełącznik w „Dodatkach”, pod „Współpracą”, więc administrator może wyłączyć ten panel bez zmieniania reszty zakładki.',
   // create-poll
@@ -3141,7 +3316,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.step.1':
     'Kliknij wybraną opcję. W jej kółku pojawi się znaczek wyboru, opcja dostanie ramkę w kolorze akcentu, a pasek za nią się wydłuży.',
   'help.guide.vote-poll.step.2':
-    'Teraz widzisz cały wynik: pasek pokazuje udział, procent jest po prawej, a małe kółka to osoby, które wybrały daną opcję, do trzech.',
+    'Teraz widzisz cały wynik: pasek pokazuje udział, procent jest po prawej, a małe kółka to osoby, które wybrały daną opcję. Widać trzy, a czwarte kółko z plusem i liczbą zlicza wszystkich pozostałych.',
   'help.guide.vote-poll.step.3':
     'Zmieniłeś zdanie? Kliknij inną opcję. W ankiecie bez „Wielokrotnego wyboru” Twój głos przeniesie się na nową opcję, zamiast dodać drugi.',
   'help.guide.vote-poll.step.4':
@@ -3151,7 +3326,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.tip.1':
     'Procenty i informacja, kto na co głosował, pojawiają się dopiero po oddaniu Twojego głosu lub po zamknięciu ankiety. Liczbę głosów w nagłówku widzą wszyscy.',
   'help.guide.vote-poll.tip.2':
-    'Głosowanie nigdy nie jest anonimowe: najedź na jedno z kółek przy opcji, aby zobaczyć imię osoby, która zagłosowała.',
+    'Głosowanie nigdy nie jest anonimowe: najedź na jedno z kółek przy opcji, aby zobaczyć imię osoby, która zagłosowała. Najedź na kółko z plusem, aby zobaczyć imiona wszystkich pozostałych.',
   // close-poll
   'help.guide.close-poll.title': 'Zamykanie lub usuwanie ankiety',
   'help.guide.close-poll.goal':
@@ -3173,13 +3348,13 @@ const help: TranslationStrings = {
   'help.guide.whats-next.step.1':
     'Karta pokazuje nadchodzące przystanki podróży, maksymalnie osiem, w kolejności czasowej, pogrupowane pod nagłówkami dni: „Dzisiaj”, „Jutro” albo data, a obok tytuł dnia, jeśli go ma. W nagłówku karty widać ich liczbę.',
   'help.guide.whats-next.step.2':
-    'Po lewej stronie każdego przystanku widać jego godzinę: początek, „do” i koniec, jeśli przystanek go ma, albo TBD, jeśli godzina nie jest jeszcze ustawiona.',
+    'Po lewej stronie każdego przystanku widać jego godzinę: początek, „do” i koniec, jeśli przystanek go ma. Hotel bez własnej godziny pokazuje swoje zameldowanie w dniu rozpoczęcia pobytu. TBD oznacza, że godzina nie jest jeszcze ustawiona.',
   'help.guide.whats-next.step.3':
     'Obok są nazwa, adres i, w formie chipów, osoby przypisane do przystanku. Jeśli nikt nie jest przypisany, widać wszystkich uczestników podróży.',
   'help.guide.whats-next.result':
     'Lista nadchodzących punktów tylko do odczytu: odzwierciedla plan i nic tutaj go nie zmienia.',
   'help.guide.whats-next.tip.1':
-    'Tutaj niczego nie ustawiasz. Godziny pochodzą z planu dnia; gdy je tam zmienisz, ta lista od razu się zaktualizuje.',
+    'Tutaj niczego nie ustawiasz. Godziny pochodzą z planu dnia, a w przypadku hotelu z jego rezerwacji. Gdy zmienisz je tam, ta lista od razu się zaktualizuje.',
   'help.guide.whats-next.tip.2':
     'Lista pokazuje tylko to, co jeszcze przed Tobą: przystanek znika, gdy minie jego godzina rozpoczęcia, dzisiejszy przystanek bez godziny zostaje do końca dnia, a po zakończeniu podróży panel jest pusty.',
   'help.guide.whats-next.tip.3':
@@ -3215,15 +3390,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-lists.summary':
     'Dwie listy do jednej podróży: lista rzeczy do spakowania, z informacją, kto co zabiera i ile to waży, oraz lista zadań ze wszystkim, co trzeba zrobić przed podróżą i w jej trakcie. Zakładka jest widoczna, gdy włączony jest dodatek „Listy”.',
   'help.ctx.trip-lists.bullet.1':
-    'Przyciski „Lista pakowania” i „Do zrobienia” na pasku u góry przełączają między obiema listami i pokazują liczbę pozycji na każdej. Przyciski na prawym końcu paska dotyczą listy, która jest otwarta.',
+    '„Lista pakowania” i „Do zrobienia” na pasku u góry przełączają między obiema listami i pokazują liczbę pozycji na każdej. Przy liście pakowania pasek zawiera „Dodaj listę” i trzy kropki obok niego, a przy liście zadań „Dodaj nowe zadanie”.',
   'help.ctx.trip-lists.bullet.2':
-    'Lista pakowania dzieli się na listy o dowolnych nazwach, np. „Dokumenty” albo „Ubrania”. Każda lista to osobna karta. W jej nagłówku jest uchwyt do przeciągania całej listy w inne miejsce, kolorowa kropka, plakietka ze spakowanymi przedmiotami z ogólnej liczby, trzy kropki z opcjami „Zmień nazwę”, „Zaznacz wszystko”, „Odznacz wszystko” i „Usuń listę” oraz strzałka zwijająca kartę. „Dodaj listę” na pasku powyżej tworzy nową listę.',
+    'Lista pakowania dzieli się na listy o dowolnych nazwach, np. „Dokumenty” albo „Ubrania”. Każda lista to osobna karta. W jej nagłówku jest uchwyt do przeciągania całej listy w inne miejsce, kolorowa kropka, przerywane kółko do przypisania osób odpowiedzialnych, plakietka ze spakowanymi przedmiotami z ogólnej liczby, trzy kropki z opcjami „Zmień nazwę”, „Zaznacz wszystko”, „Odznacz wszystko”, „Udostępnianie całej listy” i „Usuń listę” oraz strzałka zwijająca kartę.',
   'help.ctx.trip-lists.bullet.3':
-    'Wiersz zawiera uchwyt do przeciągania, pole wyboru i nazwę, a potem mały awatar osoby, która zabiera przedmiot. Przedmiot o ilości większej niż jeden ma też licznik spakowanych sztuk, np. 3/10, z minusem i plusem. Dalej jest ilość jako mała plakietka, a przy włączonej „Kontroli bagażu” także waga w gramach i kółko torby, potem kosz i menu trzech kropek z opcjami „Przenieś do listy”, „Udostępnianie”, „Zmień nazwę” i „Usuń”. Nieużywane w danym wierszu przyciski są przygaszone, dopóki na nie nie najedziesz.',
+    'Wiersz pokazuje pole wyboru, nazwę i tylko to, co jest ustawione: ilość od dwóch wzwyż, na przykład ×3, spakowane sztuki w trakcie pakowania, na przykład 2/5, oraz zdjęcie osoby, która go zabiera. Po najechaniu na wiersz pojawia się uchwyt do jego przeciągania. Kliknij nazwę, żeby otworzyć okno przedmiotu z jego listą, ilością, spakowanymi sztukami, wagą, torbą, osobą, która go zabiera, i tym, kto go widzi.',
   'help.ctx.trip-lists.bullet.4':
-    '„Udostępnione” i „Moja lista” dzielą listę pakowania na dwie części: listę widoczną dla wszystkich i twoją własną. „Wszystkie”, „Otwarte” i „Gotowe” obok zawężają tę, która jest otwarta. „Od A do Z” na końcu wiersza sortuje przedmioty każdej listy alfabetycznie, a ponowne kliknięcie przywraca twoją kolejność. Karta postępu powyżej pokazuje, ile jest spakowane.',
+    '„Wspólne” i „Moja lista” pod paskiem dzielą listę pakowania na dwie części: listę widoczną dla wszystkich i Twoją własną. Po prawej stronie tego wiersza linia pokazuje, ile jest spakowane na liście, na którą patrzysz, z wąskim paskiem obok.',
   'help.ctx.trip-lists.bullet.5':
-    '„Zastosuj szablon” i „Zapisz jako szablon” wypełniają listę lub ją zapisują, żebyś nie musiał jej wpisywać. Dwie ikony za nimi, „Eksportuj” i „Importuj”, eksportują listę jako wydruk, PDF lub plik oraz importują listę. Czerwony przycisk na prawym końcu karty postępu pokazuje, ile przedmiotów jest odhaczonych, i je usuwa.',
+    'Trzy kropki obok „Dodaj listę” zawierają całą resztę: „Zastosuj szablon”, „Zapisz jako szablon”, „Importuj”, trzy sposoby eksportu („Drukuj lub zapisz jako PDF”, Markdown i CSV), „Od A do Z”, „Ukryj spakowane” oraz na dole „Usuń … zaznaczone”.',
   'help.ctx.trip-lists.bullet.6':
     '„Do zrobienia” ma własny pasek boczny: kartę postępu, filtry „Wszystkie”, „Moje zadania”, „Przeterminowane” i „Gotowe”, po jednym wierszu na każdą listę i pod nimi „Dodaj listę”. Zadania są na karcie, której nagłówek pokazuje nazwę filtru i sortowanie: „Priorytet” lub „Termin”. Kliknij zadanie, aby otworzyć je w panelu po prawej. „Nowe zadanie” na pasku otwiera okno „Nowe zadanie”.',
   // packing-categories
@@ -3233,38 +3408,37 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.step.1':
     'Kliknij „Dodaj listę” na pasku nad listami. Otworzy się małe okno. Wpisz nazwę w górnym pasku, w polu „Nazwa listy (np. Odzież)”, i kliknij „Dodaj”.',
   'help.guide.packing-categories.step.2':
-    'Nowa lista zaczyna się od wiersza zastępczego, w którym widać tylko trzy blade kropki. Kliknij „Dodaj pozycję” na dole wiersza, wpisz przedmiot w polu „Nazwa przedmiotu...” i naciśnij Enter: pierwszy przedmiot zastąpi wiersz zastępczy, a pole pozostanie otwarte na kolejny.',
+    'Nowa lista zaczyna się od pustego wiersza, pola z trzema bladymi kropkami. Kliknij „Dodaj przedmiot” na dole karty, wpisz przedmiot w polu „Nazwa przedmiotu...” i naciśnij Enter: pierwszy przedmiot wypełni pusty wiersz, a pole pozostanie otwarte na kolejny.',
   'help.guide.packing-categories.step.3':
-    'Aby zmienić nazwę wiersza, kliknij ją albo wybierz „Zmień nazwę” w menu z trzema kropkami na prawym końcu wiersza.',
+    'Aby zmienić nazwę przedmiotu, kliknij ją. Otworzy się jego okno z nazwą u góry jako polem: wpisz nową nazwę i naciśnij Enter.',
   'help.guide.packing-categories.step.4':
     'Przerywane kółko z sylwetką w górnym pasku listy przypisuje do niej uczestników podróży. Wybierz imię. Aby usunąć tę osobę, kliknij plakietkę, która się pojawi.',
   'help.guide.packing-categories.step.5':
-    'Trzy kropki obok licznika otwierają więcej opcji: „Zmień nazwę”, „Zaznacz wszystko”, „Odznacz wszystko” i „Usuń listę”. „Usuń listę” usuwa listę i wszystkie jej przedmioty bez dodatkowego pytania. Strzałka na samym prawym końcu zwija listę.',
+    'Trzy kropki obok licznika otwierają więcej opcji: „Zmień nazwę”, „Zaznacz wszystko”, „Odznacz wszystko”, „Udostępnianie całej listy” i „Usuń listę”. „Usuń listę” usuwa listę i wszystkie jej przedmioty bez dodatkowego pytania. Strzałka na samym prawym końcu zwija listę.',
   'help.guide.packing-categories.result':
     'Nowa lista pojawia się w siatce razem z przedmiotami pod nią i kolorową kropką, a jej plakietka liczy, ile jest już spakowane.',
   'help.guide.packing-categories.tip.1':
-    'Lista istnieje tylko dzięki swoim przedmiotom. Gdy usuniesz ostatni, wiersz zmieni się w zastępczy, żeby lista zachowała swoje miejsce i kolor; gdy usuniesz i ten wiersz, lista zniknie.',
+    'Lista istnieje tylko dzięki swoim przedmiotom. Gdy usuniesz ostatni, wiersz zmieni się w pusty, żeby lista zachowała swoje miejsce i kolor. Gdy usuniesz i ten wiersz, lista zniknie.',
   'help.guide.packing-categories.tip.2':
-    'Gdy przypiszesz kogoś do listy, dostanie powiadomienie o pakowaniu. Nie zmienia to tego, kto widzi przedmioty. To ustawiasz w „Udostępnianie”, w menu trzech kropek wiersza.',
+    'Gdy przypiszesz kogoś do listy, dostanie powiadomienie o pakowaniu. Nie zmienia to tego, kto widzi przedmioty. To ustawiasz w oknie każdego przedmiotu w „Widoczne dla” albo dla całej listy w „Udostępnianie całej listy”.',
   'help.guide.packing-categories.tip.3':
     'Dwie listy mogą mieć tę samą nazwę. TREK rozróżnia je wewnętrznie, więc nazwy pozostają takie, jak je wpisałeś.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Odhaczanie rzeczy podczas pakowania',
-  'help.guide.check-off-packing.goal':
-    'Odhaczaj, co jest już w torbie, śledź pasek postępu i usuwaj spakowane przedmioty.',
+  'help.guide.check-off-packing.goal': 'Odhaczaj, co jest już w torbie, śledź postęp i usuwaj spakowane przedmioty.',
   'help.guide.check-off-packing.step.1':
-    'Kliknij pole po lewej stronie wiersza. Nazwa zostanie przekreślona, a pasek postępu się zaktualizuje.',
+    'Kliknij pole po lewej stronie wiersza. Nazwa zostanie przekreślona, a liczba spakowanych przedmiotów wzrośnie.',
   'help.guide.check-off-packing.step.2':
-    'Karta postępu nad listami pokazuje, ile przedmiotów jest spakowanych z wszystkich na liście: jako liczbę, jako procent i jako pasek.',
+    'Po prawej stronie wiersza z „Wspólne” i „Moja lista” linia mówi, ile przedmiotów jest spakowanych z wszystkich na liście, na którą patrzysz, z wąskim paskiem obok.',
   'help.guide.check-off-packing.step.3':
     'Aby odhaczyć całą listę naraz, użyj trzech kropek w jej nagłówku: znajdziesz tam „Zaznacz wszystko” i „Odznacz wszystko”.',
   'help.guide.check-off-packing.step.4':
-    '„Wszystkie”, „Otwarte” i „Gotowe” obok „Udostępniona” i „Moja lista” filtrują siatkę. „Otwarte” pokazuje tylko to, czego jeszcze brakuje, więc w pełni spakowana lista znika z widoku.',
+    '„Ukryj spakowane” w trzech kropkach obok „Dodaj listę” pokazuje tylko to, czego jeszcze brakuje, więc w pełni spakowana lista znika z widoku. Ptaszek oznacza, że jest włączone. Kliknij ponownie, aby zobaczyć wszystko.',
   'help.guide.check-off-packing.step.5':
-    'Czerwony przycisk „Usuń … zaznaczone” na prawym końcu karty postępu, z liczbą zaznaczonych przedmiotów, usuwa je wszystkie naraz po jednym potwierdzeniu w przeglądarce.',
+    '„Usuń … zaznaczone” na dole tego samego menu, z liczbą odhaczonych przedmiotów, usuwa je wszystkie naraz po jednym potwierdzeniu w przeglądarce.',
   'help.guide.check-off-packing.result':
-    'Widać tylko otwarte przedmioty, a pasek u góry pokazuje, jaka część pakowania jest już gotowa.',
-  'help.guide.check-off-packing.tip.1': 'Nazwę odhaczonego przedmiotu nadal możesz zmienić: kliknij ją.',
+    'Widać tylko otwarte przedmioty, a linia nad nimi pokazuje, jaka część pakowania jest już gotowa.',
+  'help.guide.check-off-packing.tip.1': 'Odhaczony przedmiot nadal otwiera swoje okno po kliknięciu jego nazwy.',
   'help.guide.check-off-packing.tip.2':
     '„Zaznacz wszystko” i „Odznacz wszystko” działają na jedną listę naraz, z menu trzech kropek tej listy.',
   'help.guide.check-off-packing.tip.3':
@@ -3272,26 +3446,26 @@ const help: TranslationStrings = {
   // apply-packing-template
   'help.guide.apply-packing-template.title': 'Zastosuj szablon pakowania',
   'help.guide.apply-packing-template.goal': 'Dodaj do podróży gotową listę i zapisz listę z tej podróży na następną.',
-  'help.guide.apply-packing-template.step.1': 'Kliknij „Zastosuj szablon” na pasku nad listą.',
-  'help.guide.apply-packing-template.step.2': 'Wybierz szablon. Każdy wiersz pokazuje jego nazwę i liczbę przedmiotów.',
+  'help.guide.apply-packing-template.step.1': 'Kliknij trzy kropki obok „Dodaj listę” na pasku nad listą.',
+  'help.guide.apply-packing-template.step.2':
+    'Kliknij „Zastosuj szablon”. Pod nim otworzą się szablony, każdy z nazwą i liczbą przedmiotów. Wybierz jeden.',
   'help.guide.apply-packing-template.step.3':
     'Przedmioty są dodawane do widoku, w którym jesteś: „Udostępniona” dodaje je do wspólnej listy, którą widzą wszyscy, a „Moja lista” do Twojej własnej listy.',
   'help.guide.apply-packing-template.step.4':
-    'Aby zachować listę z tej podróży na następną, kliknij „Zapisz jako szablon”. Otworzy się małe okno. Wpisz nazwę w polu u góry, w którym widnieje „Nazwa szablonu”, i kliknij „Zapisz”.',
+    'Aby zachować listę z tej podróży na następną, kliknij „Zapisz jako szablon” w tym samym menu. Otworzy się małe okno. Wpisz nazwę w polu u góry, w którym widnieje „Nazwa szablonu”, i kliknij „Zapisz”.',
   'help.guide.apply-packing-template.result':
     'Listy i przedmioty z szablonu zostają dodane do podróży, obok tego, co już w niej było.',
   'help.guide.apply-packing-template.tip.1':
     'Szablon kopiuje listę, ilość, wagę i torbę każdego przedmiotu oraz tworzy torbę, której podróż jeszcze nie ma. Zaznaczenia nie są kopiowane, a nic z tego, co już jest na liście, nie jest usuwane.',
   'help.guide.apply-packing-template.tip.2':
-    'Zastosuj szablon jest dostępne dopiero wtedy, gdy istnieje jakiś szablon. Bez niego przycisk w ogóle się nie pojawia.',
+    '„Zastosuj szablon” jest w menu dopiero wtedy, gdy istnieje jakiś szablon.',
   'help.guide.apply-packing-template.tip.3':
     '„Zapisz jako szablon” widzi tylko administrator instancji i tylko wtedy, gdy lista ma przedmioty. Zapisywane są wspólne przedmioty i Twoje własne, nigdy prywatne przedmioty innych członków.',
   // import-packing-list
   'help.guide.import-packing-list.title': 'Wklej całą listę rzeczy do spakowania',
   'help.guide.import-packing-list.goal':
     'Zamień listę, którą masz już gdzie indziej, w przedmioty do spakowania za jednym razem.',
-  'help.guide.import-packing-list.step.1':
-    'Kliknij „Importuj”, czyli ikonę ze strzałką w dół na prawym końcu paska nad listą.',
+  'help.guide.import-packing-list.step.1': 'Otwórz trzy kropki obok „Dodaj listę” i kliknij „Importuj”.',
   'help.guide.import-packing-list.step.2':
     'Jedna pozycja w wierszu: kategoria, nazwa, waga w g (opcjonalnie), torba (opcjonalnie), checked/unchecked (opcjonalnie). Szary przykład w polu pokazuje wszystkie cztery formaty, a numery przy lewej krawędzi liczą wpisane wiersze. Działa też lista w Markdown: nagłówek nadaje nazwę liście, a "- [ ]" i "- [x]" stają się pozycjami.',
   'help.guide.import-packing-list.step.3':
@@ -3308,49 +3482,85 @@ const help: TranslationStrings = {
   'help.guide.export-packing-list.title': 'Wydrukuj lub wyeksportuj listę rzeczy do spakowania',
   'help.guide.export-packing-list.goal':
     'Wydrukuj listę, zapisz ją jako PDF albo wyeksportuj do pliku dla innej aplikacji lub na następną podróż.',
-  'help.guide.export-packing-list.step.1':
-    'Kliknij „Eksportuj”, czyli ikonę ze strzałką w górę na pasku nad listą, tuż przed „Importuj”.',
+  'help.guide.export-packing-list.step.1': 'Kliknij trzy kropki obok „Dodaj listę” na pasku nad listą.',
   'help.guide.export-packing-list.step.2':
-    '„Lista kontrolna w Markdown (.md)” i „CSV do importu (.csv)” od razu zapisują listę jako plik.',
+    'Sposoby eksportu są w środku menu. „Lista kontrolna w Markdown (.md)” i „CSV do importu (.csv)” od razu zapisują listę jako plik.',
   'help.guide.export-packing-list.step.3':
     'Kliknij Drukuj lub zapisz jako PDF. Podgląd pokazuje listę jako stronę: na górze podróż, jej daty i ile jest spakowane, a niżej każdą listę jako kartę, a każdy przedmiot z polem do zaznaczenia.',
   'help.guide.export-packing-list.step.4':
     'Kliknij „Drukuj lub zapisz jako PDF” pod podglądem. Przeglądarka otworzy okno drukowania: wybierz drukarkę albo „Zapisz jako PDF”, aby zapisać plik.',
   'help.guide.export-packing-list.result':
-    'Wydruk i pliki zawierają otwarty widok, „Udostępniona” albo „Moja lista”, z ilościami, wagami i zaznaczeniami.',
+    'Wydruk i pliki zawierają otwarty widok, „Wspólne” albo „Moja lista”, z ilościami, wagami i zaznaczeniami.',
   'help.guide.export-packing-list.tip.1':
     'Plik CSV ma format, który odczytuje „Importuj”, razem z bagażami, więc możesz go używać jako własnego szablonu: zaimportuj go do następnej podróży.',
   'help.guide.export-packing-list.tip.2':
     'Plik Markdown otwiera się jako lista kontrolna w Obsidianie, Notion lub na GitHubie i możesz go ponownie zaimportować przyciskiem „Importuj”.',
+  'help.guide.edit-packing-item.title': 'Zmień przedmiot w jego oknie',
+  'help.guide.edit-packing-item.goal':
+    'Otwórz jeden przedmiot i zmień jego nazwę, listę, ilość albo to, kto go zabiera, wszystko w jednym miejscu.',
+  'help.guide.edit-packing-item.step.1':
+    'Kliknij nazwę przedmiotu. Przy wierszu otworzy się małe okno ze wszystkim o przedmiocie, każda wartość w pigułce.',
+  'help.guide.edit-packing-item.step.2':
+    'Nazwa u góry jest polem: wpisz nową i naciśnij Enter, żeby zmienić nazwę przedmiotu. Krzyżyk obok zamyka okno.',
+  'help.guide.edit-packing-item.step.3':
+    '„Lista” przenosi przedmiot na inną listę: kliknij ją i wybierz. „Ilość” pod nią ustawia, ile bierzesz.',
+  'help.guide.edit-packing-item.step.4':
+    '„Przyniesie” pokazuje, kto zabiera wspólny przedmiot. Kliknij to i zaznacz wszystkich z podróży, którzy go też zabierają. Drugie kliknięcie nazwiska znów odznacza tę osobę.',
+  'help.guide.edit-packing-item.step.5':
+    '„Usuń” na dole od razu usuwa przedmiot. Zamknij okno krzyżykiem albo kliknięciem w dowolnym miejscu obok.',
+  'help.guide.edit-packing-item.result':
+    'Wiersz pokazuje tylko to, co jest ustawione: ilość od dwóch wzwyż, spakowane sztuki w trakcie pakowania i zdjęcia osób, które go zabierają.',
+  'help.guide.edit-packing-item.tip.1': 'Każda zmiana zapisuje się od razu. Nie ma przycisku „Zapisz”.',
+  'help.guide.edit-packing-item.tip.2':
+    'Przy włączonym śledzeniu toreb okno ma też wagę przedmiotu i jego torbę. Zobacz „Zważ torby”.',
+  'help.guide.edit-packing-item.tip.3':
+    'Przy wspólnym przedmiocie, który zabiera ktoś inny, „Kopiuj do mojej listy” nad „Usuń” robi prywatną kopię dla Ciebie.',
   // share-packing-item
-  'help.guide.share-packing-item.title': 'Kto widzi przedmiot i kto go zabiera',
+  'help.guide.share-packing-item.title': 'Zdecyduj, kto widzi przedmiot',
   'help.guide.share-packing-item.goal':
     'Przenoś przedmiot między wspólną pulą grupy, swoją listą i osobami, dla których go zabierasz.',
   'help.guide.share-packing-item.step.1':
     'Nad listami Udostępniona to lista, którą widzą wszyscy, a Moja lista to Twoja własna. Każda pokazuje liczbę swoich przedmiotów. Kliknij Moja lista, aby zobaczyć swoją.',
   'help.guide.share-packing-item.step.2':
-    'W sekcji „Udostępniona” otwórz trzy kropki na końcu wiersza i kliknij „Udostępnianie”.',
+    'Wróć do „Wspólne” i kliknij nazwę przedmiotu. Na dole jego okna „Widoczne dla” ma trzy opcje: „Wszyscy”, „Tylko ja” i „Wybrane osoby”.',
   'help.guide.share-packing-item.step.3':
-    'Do wyboru są trzy poziomy: „Udostępniona”, widoczny dla wszystkich w grupie; „Osobiste”, widoczny tylko dla Ciebie; oraz „Udostępnij osobom…”, w którym wybierasz osoby, których dotyczy przedmiot.',
-  'help.guide.share-packing-item.step.4':
-    'Przedmiot „Osobiste” jest tylko na „Moja lista”. Przełącz się na „Moja lista”, aby go znaleźć.',
+    'Kliknij „Tylko ja”. Przedmiot opuszcza wspólną listę i jest teraz na Twojej własnej liście, gdzie widzisz go tylko Ty.',
+  'help.guide.share-packing-item.step.4': 'Przełącz się na „Moja lista”, aby go znaleźć.',
   'help.guide.share-packing-item.step.5':
-    'Ponownie otwórz „Udostępnianie” i zaznacz imię w sekcji „Udostępnij osobom…”. Przedmiot pojawi się też na liście tej osoby, a przy wierszu pojawi się mała plakietka z liczbą osób, którym go udostępniono.',
-  'help.guide.share-packing-item.result': 'Przedmiot jest na wybranym poziomie, a wiersz pokazuje, kto go zabiera.',
+    'Otwórz go ponownie, kliknij „Wybrane osoby” i zaznacz imię. Przedmiot pojawi się też na liście tej osoby, a przy wierszu pojawi się mała plakietka z liczbą osób, którym go udostępniono.',
+  'help.guide.share-packing-item.result':
+    'Przedmiot jest na Twojej własnej liście, a plakietka przy jego wierszu pokazuje, ile osób widzi go razem z Tobą.',
   'help.guide.share-packing-item.tip.1':
-    'Udostępnianie przedmiotu może zmienić tylko osoba, która go zabiera. Osoba, której go udostępniłeś, widzi go na swojej „Mojej liście” z małą plakietką z dłonią, która po najechaniu pokazuje Twoje imię. Może go odhaczyć.',
+    'Tylko właściciel przedmiotu może zmienić, kto go widzi. Osoba, której go udostępniłeś, widzi go na swojej „Moja lista” z małą plakietką z dłonią, która po najechaniu pokazuje Twoje imię. Może go odhaczyć.',
   'help.guide.share-packing-item.tip.2':
-    'Przy wspólnym przedmiocie, który przynosi ktoś inny, menu z trzema kropkami zamiast Udostępnianie pokazuje dwie inne pozycje: Ja też mogę to wziąć, która dopisuje Cię obok tej osoby, i Kopiuj do mojej listy, która tworzy prywatną kopię dla Ciebie.',
+    'Aby przenieść wszystkie przedmioty listy naraz, użyj „Udostępnianie całej listy” w trzech kropkach listy. Zobacz „Udostępnij całą listę”.',
   'help.guide.share-packing-item.tip.3':
     'Udostępnianie nowych przedmiotów zależy od widoku, w którym je dodajesz. Przedmioty dodane w „Udostępnione” są udostępnione wszystkim. Przedmioty dodane w „Moja lista” są „Osobiste”, chyba że każdy przedmiot tej listy jest udostępniony tym samym osobom: wtedy nowy przedmiot też jest im udostępniony.',
+  'help.guide.share-packing-list.title': 'Udostępnij całą listę',
+  'help.guide.share-packing-list.goal':
+    'Przenieś wszystkie przedmioty jednej listy do wspólnej puli, na własną listę albo do wybranych osób, za jednym razem.',
+  'help.guide.share-packing-list.step.1': 'Otwórz trzy kropki w nagłówku listy i kliknij „Udostępnianie całej listy”.',
+  'help.guide.share-packing-list.step.2':
+    'Okno podaje nazwę listy i oferuje trzy poziomy: „Wspólne”, w puli grupy dla wszystkich, „Osobiste”, tylko Ty, oraz „Udostępnij osobom…”, wybrane przez Ciebie osoby. Zaczyna na poziomie, który przedmioty już mają. Kliknij „Udostępnij osobom…”.',
+  'help.guide.share-packing-list.step.3': 'Zaznacz osoby, dla których jest lista.',
+  'help.guide.share-packing-list.step.4':
+    'Kliknij „Zastosuj do listy”. Każdy Twój przedmiot z listy przechodzi na ten poziom, a komunikat to potwierdza.',
+  'help.guide.share-packing-list.result':
+    'Lista opuściła widok wspólny i jest w „Moja lista”, a przy każdym wierszu jest odznaka z liczbą osób, którym jest udostępniona.',
+  'help.guide.share-packing-list.tip.1':
+    'Przenoszą się tylko Twoje przedmioty. Przedmioty dodane przez innych zostają bez zmian, a okno o tym informuje, gdy lista takie ma.',
+  'help.guide.share-packing-list.tip.2':
+    'Pojedynczy przedmiot można później nadal zmienić, w jego oknie w „Widoczne dla”.',
   // packing-bags
   'help.guide.packing-bags.title': 'Zważ bagaże',
   'help.guide.packing-bags.goal':
     'Przypisz wagę każdemu przedmiotowi, rozłóż przedmioty do bagaży i pilnuj, żeby każdy bagaż mieścił się w limicie linii lotniczej.',
-  'help.guide.packing-bags.step.1': 'Kliknij plakietkę wagi przed kółkiem i wpisz wagę przedmiotu w gramach.',
-  'help.guide.packing-bags.step.2': 'Kółko za wagą oznacza torbę, do której należy przedmiot. Kliknij je.',
+  'help.guide.packing-bags.step.1':
+    'Kliknij nazwę przedmiotu, żeby otworzyć jego okno, i wpisz wagę przedmiotu w gramach w polu „Waga całkowita”.',
+  'help.guide.packing-bags.step.2':
+    '„Torba” pod nim pokazuje „Nieprzypisane”, dopóki przedmiot nie jest w żadnej torbie. Kliknij to.',
   'help.guide.packing-bags.step.3':
-    'Jeśli nie masz jeszcze torby, kliknij „Dodaj torbę”, wpisz nazwę i naciśnij Enter. Torba zostanie utworzona, a przedmiot od razu do niej trafi.',
+    'Pod spodem otworzą się torby podróży. Jeśli nie ma jeszcze żadnej, wpisz nazwę w „Dodaj torbę” na końcu listy i naciśnij Enter. Torba zostanie utworzona, a przedmiot od razu do niej trafi.',
   'help.guide.packing-bags.step.4':
     'Karta „Torby” pojawia się po prawej stronie list, gdy tylko istnieje jakaś torba. Każda torba pokazuje nazwę, osobę, która ją niesie, pasek zapełnienia, liczbę przedmiotów i wagę. Pod torbami są „Nieprzypisane” i „Waga całkowita”, a niżej „Spakowane”: waga już spakowanych rzeczy i cienki pasek pokazujący jej udział.',
   'help.guide.packing-bags.step.5':
@@ -3360,7 +3570,7 @@ const help: TranslationStrings = {
   'help.guide.packing-bags.result':
     'Karta „Torby” po prawej pokazuje wagę każdej torby w stosunku do jej limitu, rzeczy spoza toreb, to, co niesie każda osoba, oraz łączną wagę z informacją, ile z niej jest już spakowane.',
   'help.guide.packing-bags.tip.1':
-    'Pole wagi, kółko torby i karta Torby istnieją tylko wtedy, gdy administrator włączył Kontrola bagażu w dodatku Listy. W węższym oknie torby otwierają się zamiast tego z przycisku Torby nad kartą postępu.',
+    'Waga i torba w oknie przedmiotu oraz karta „Torby” istnieją tylko wtedy, gdy administrator włączył „Kontrola bagażu” w dodatku „Listy”. W węższym oknie torby otwierają się zamiast tego z „Torby” w trzech kropkach obok „Dodaj listę”.',
   'help.guide.packing-bags.tip.2':
     'Serwer oblicza wagę bagażu na podstawie przedmiotów wszystkich członków, także tych, których nie widzisz, więc liczba pokazuje rzeczywistą wagę bagażu.',
   'help.guide.packing-bags.tip.3':
@@ -3408,15 +3618,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '„Rezerwacja ręczna” na prawym końcu paska otwiera „Nowa rezerwacja”. Można w ten sposób utworzyć sześć rodzajów rezerwacji: „Nocleg”, „Restauracja”, „Wydarzenie”, „Wycieczka z przewodnikiem”, parking i „Inne”. Loty, pociągi i inny transport są w zakładce „Transport” i nigdy się tu nie pojawiają.',
   'help.ctx.trip-bookings.bullet.2':
-    'Ikona pobierania przed „Rezerwacja ręczna”, czyli „Importuj potwierdzenia rezerwacji”, przesyła potwierdzenia, żeby TREK mógł je automatycznie odczytać: EML, PDF, PKPass, HTML lub TXT, maksymalnie pięć plików po 10 MB, a także zdjęcia, jeśli model AI odczytuje obrazy. Ikona jest widoczna tylko wtedy, gdy serwer potrafi je odczytać.',
+    'Ikona przesyłania przed „Rezerwacja ręczna”, czyli „Importuj potwierdzenia rezerwacji”, przesyła potwierdzenia, żeby TREK mógł je automatycznie odczytać: EML, PDF, PKPass, HTML lub TXT, maksymalnie pięć plików po 10 MB, a także zdjęcia, jeśli model AI odczytuje obrazy. Ikona jest widoczna tylko wtedy, gdy serwer potrafi je odczytać. Gdy administrator włączył import wiadomości, to samo okno daje podróży własny adres, na który można przekazywać wiadomości z rezerwacjami.',
   'help.ctx.trip-bookings.bullet.3':
     'Szukaj przeszukuje tytuły, rodzaje, miejsca, notatki, kody rezerwacji i uczestników. Filtruj, czyli lejek obok, zawęża zakładkę według Status, według Typ (z liczbą przy każdym) i według Podróżni, gdy rezerwacja wymienia osoby. Liczba na lejku pokazuje, ile filtrów jest aktywnych.',
   'help.ctx.trip-bookings.bullet.4':
-    'Trzy ikony za „Filtruj” przełączają widok: „Karty”, „Lista” i „Oś czasu”. „Opcje widoku”, czyli suwaki obok, grupują i sortują karty oraz listę albo ustawiają pasy osi czasu, a ikona arkusza za nimi, „Eksportuj jako arkusz kalkulacyjny (CSV)”, pobiera zawartość karty jako plik. Domyślnie karty są pogrupowane na „Potwierdzono” i „Oczekujące”, a lista według dni. Kliknij nagłówek sekcji, żeby ją zwinąć.',
+    'Trzy ikony za „Filtruj” przełączają widok: „Karty”, „Lista” i „Oś czasu”. „Opcje widoku”, czyli suwaki obok, grupują i sortują karty oraz listę albo ustawiają pasy osi czasu, a ikona pobierania za nimi, „Eksportuj jako arkusz kalkulacyjny (CSV)”, pobiera zawartość karty jako plik. Domyślnie karty są pogrupowane na „Potwierdzono” i „Oczekujące”, a lista według dni. Kliknij nagłówek sekcji, żeby ją zwinąć.',
   'help.ctx.trip-bookings.bullet.5':
     'Karta ma nagłówek w kolorze statusu, a w nim kropkę statusu (kliknięcie przełącza między „Oczekujące” i „Potwierdzono”), typ, tytuł, ołówek i kosz. Poniżej są szczegóły, które ma rezerwacja: Data, Czas, Kod rezerwacji, Zameldowanie i Wymeldowanie, Lokalizacja / Adres, Nocleg, Powiązano z (przystanek w planie), Link, Notatki, Podróżni, Pliki i powiązane koszty.',
   'help.ctx.trip-bookings.bullet.6':
-    'Kliknięcie karty, wiersza lub paska otwiera szczegóły rezerwacji, a na dole „Na mapie” (jeśli rezerwacja ma miejsce), kosz i „Edytuj”. Przed usunięciem pojawia się jedno pytanie („Usunąć rezerwację?”, z informacją, czy razem z nią zostaną usunięte koszty). Potem rezerwacja i powiązane z nią wydatki zostają usunięte, a w przypadku noclegu jego noce znikają z planu dnia.',
+    'Kliknięcie karty, wiersza lub paska otwiera szczegóły rezerwacji, a na dole „Mapa” (jeśli rezerwacja ma miejsce), kosz i „Edytuj”. Przed usunięciem pojawia się jedno pytanie („Usunąć rezerwację?”, z informacją, czy razem z nią zostaną usunięte koszty). Potem rezerwacja i powiązane z nią wydatki zostają usunięte, a w przypadku noclegu jego noce znikają z planu dnia.',
   // booking-views
   'help.guide.booking-views.title': 'Przełącz widok i otwórz rezerwację',
   'help.guide.booking-views.goal':
@@ -3432,9 +3642,9 @@ const help: TranslationStrings = {
   'help.guide.booking-views.step.5':
     'Najedź na pasek, aby zobaczyć jego dzień, godziny i miejsce, a potem kliknij go, aby otworzyć szczegóły rezerwacji. Karta w widoku Karty i wiersz w widoku Lista otwierają to samo okno.',
   'help.guide.booking-views.step.6':
-    'W nagłówku widoku szczegółów są tytuł i plakietki statusu (kliknięcie go zmienia), typu, dnia i kodu rezerwacji, z przyciskiem do kopiowania kodu. Niżej są godziny w kafelkach, potem miejsce, podróżni, notatki, koszty i pliki, jeśli rezerwacja je ma, a na samym dole „Na mapie”, kosz i „Edytuj”.',
+    'W nagłówku widoku szczegółów są tytuł i pigułki statusu (kliknięcie go zmienia), typu, dnia i kodu rezerwacji, z przyciskiem do kopiowania kodu. Niżej są godziny w kafelkach, potem miejsce, podróżni, notatki, koszty i pliki, jeśli rezerwacja je ma, a na samym dole „Mapa”, kosz i „Edytuj”.',
   'help.guide.booking-views.result':
-    'Rezerwacja otwiera się w widoku szczegółów: „Edytuj” otwiera jej formularz, „Na mapie” pokazuje ją w planie, a „Zamknij” lub Escape przenosi Cię z powrotem do poprzedniego widoku.',
+    'Rezerwacja otwiera się w widoku szczegółów: „Edytuj” otwiera jej formularz, „Mapa” pokazuje ją w planie, a „Zamknij” lub Escape przenosi Cię z powrotem do poprzedniego widoku.',
   'help.guide.booking-views.tip.1':
     '„Opcje widoku”, czyli ikona suwaków za ikonami widoków, pozwalają grupować i sortować widoki „Karty” i „Lista” za pomocą „Grupuj według” i „Sortuj według”. W widoku „Oś czasu” są tam opcje „Osobny pas dla każdego rodzaju” i „Pokaż drugą zakładkę”. „Pokaż drugą zakładkę” wyświetla wpisy z zakładki „Transport”, przygaszone, w wąskim pasie u góry. „Resetuj widok” przywraca ustawienia domyślne, a każda zakładka zapamiętuje swój widok w tej przeglądarce.',
   'help.guide.booking-views.tip.2':
@@ -3528,7 +3738,7 @@ const help: TranslationStrings = {
     'Podlinkuj przesłany plik pokazuje dokumenty podróży, których nie ma jeszcze przy tej rezerwacji. Wybierz jeden, a zostanie dołączony bez ponownego przesyłania.',
   'help.guide.booking-files.step.4': 'Kliknij „Aktualizuj”.',
   'help.guide.booking-files.result':
-    'Karta i widok szczegółów pokazują dokumenty w sekcji „Pliki”. Kliknij dokument, żeby go otworzyć. „Pokaż w plikach” nad listą w widoku szczegółów przenosi cię na kartę „Pliki”.',
+    'Karta i widok szczegółów pokazują dokumenty w sekcji „Pliki”. Kliknij nazwę dokumentu, żeby go otworzyć, albo ikonę pobierania na końcu jego wiersza, żeby go zapisać. „Pokaż w plikach” nad listą w widoku szczegółów przenosi Cię na kartę „Pliki”.',
   'help.guide.booking-files.tip.1':
     'Przy rezerwacji, którą dopiero tworzysz, dokument zostanie przesłany po kliknięciu „Dodaj”. Przesyłanie wymaga połączenia z internetem.',
   'help.guide.booking-files.tip.2':
@@ -3550,7 +3760,7 @@ const help: TranslationStrings = {
   'help.guide.booking-cost.result':
     'Karta pokazuje kwotę na dole, formularz rezerwacji wymienia wydatek w sekcji „Powiązane wydatki”, a ten sam wydatek pojawia się w zakładce „Koszty”, powiązany z tą rezerwacją.',
   'help.guide.booking-cost.tip.1':
-    'Kategoria zależy od typu: „Restauracja” trafia do „Jedzenie i napoje”, „Nocleg” do „Nocleg”, parking do kategorii parkingu, a „Wydarzenie” i „Wycieczka” do „Inne”.',
+    'Kategoria zależy od typu: „Restauracja” trafia do „Jedzenie i napoje”, „Nocleg” do „Nocleg”, parking do „Parking”, „Wydarzenie” i „Wycieczka z przewodnikiem” do „Aktywności”, a „Inne” zostaje „Inne”.',
   'help.guide.booking-cost.tip.2':
     'Rezerwacja może mieć kilka wydatków. „Powiąż istniejący wydatek” proponuje wydatki z „Kosztów”, które nie są jeszcze z niczym powiązane. Przy powiązanym wydatku „Odłącz, zachowaj wydatek” usuwa powiązanie i zostawia wydatek w „Kosztach”, a kosz go usuwa.',
   'help.guide.booking-cost.tip.3':
@@ -3571,7 +3781,7 @@ const help: TranslationStrings = {
   'help.guide.filter-bookings.result':
     'Zakładka pokazuje tylko to, co wybrałeś, tak samo w widokach Karty, Lista i Oś czasu. Filtry zostają dla tej podróży, dopóki nie zamkniesz karty przeglądarki.',
   'help.guide.filter-bookings.tip.1':
-    'Filtr „Typ” pojawia się tylko wtedy, gdy zakładka zawiera więcej niż jeden typ, i wymienia tylko typy z tej zakładki. Jeśli więc nie ma w niej wycieczki, w filtrze „Typ” nie będzie opcji „Wycieczka”.',
+    'Filtr „Typ” pojawia się tylko wtedy, gdy zakładka zawiera więcej niż jeden typ, i wymienia tylko typy z tej zakładki. Jeśli więc nie ma w niej wycieczki z przewodnikiem, w filtrze „Typ” nie będzie opcji „Wycieczka z przewodnikiem”.',
   'help.guide.filter-bookings.tip.2':
     'Jeśli nic nie pasuje do filtra, w zakładce pojawia się komunikat „Nic nie pasuje do tych filtrów”, a tuż pod nim „Wyczyść filtry”.',
   // import-booking-file
@@ -3579,7 +3789,7 @@ const help: TranslationStrings = {
   'help.guide.import-booking-file.goal':
     'Niech TREK odczyta rezerwację z e-maila lub pliku PDF od usługodawcy, żebyś nie musiał wpisywać jej ponownie.',
   'help.guide.import-booking-file.step.1':
-    'Kliknij ikonę pobierania na pasku, „Importuj potwierdzenia rezerwacji”; nazwa pojawia się po najechaniu. Otworzy się okno o tej samej nazwie.',
+    'Kliknij ikonę przesyłania na pasku, „Importuj potwierdzenia rezerwacji”. Nazwa pojawia się po najechaniu. Otworzy się okno o tej samej nazwie.',
   'help.guide.import-booking-file.step.2':
     'Upuść potwierdzenia na pole lub kliknij je i wybierz pliki: EML, PDF, PKPass, HTML i TXT, maksymalnie pięć plików po 10 MB, a także zdjęcia (JPG, PNG, WEBP), jeśli model AI obsługuje obrazy. Nazwy wybranych plików pojawią się w polu.',
   'help.guide.import-booking-file.step.3':
@@ -3635,7 +3845,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.summary':
     'Finanse podróży: wszystkie wydatki w rejestrze z datami lub w tabeli, z informacją, kto je wpisał i kto jest za nie winien, w walucie z paragonu. Prawa kolumna pokazuje, kto komu musi zapłacić, aby wyrównać rachunki.',
   'help.ctx.trip-costs.bullet.1':
-    'Pasek u góry pokazuje daty podróży i podróżnych, między których dzielone są koszty. Są na nim też „Szukaj wydatków…”, „Filtruj” (lejek), „Eksportuj CSV” (ikona pobierania) i przełącznik „Lista” / „Tabela”.',
+    'Pasek u góry pokazuje daty podróży i podróżnych, między których dzielone są koszty. Są na nim też „Szukaj wydatków…”, „Filtruj” (lejek), „Eksportuj CSV” (ikona pobierania), waluta, w której pokazywane są kwoty, i przełącznik „Lista” / „Tabela”.',
   'help.ctx.trip-costs.bullet.2':
     'Na prawym końcu paska „Rozlicz” zapisuje naraz wszystkie otwarte przelewy, „Zeskanuj paragon” wypełnia wydatek na podstawie zdjęcia, gdy dodatek „Analiza AI” potrafi odczytywać obrazy, a „Dodaj wydatek” otwiera edytor.',
   'help.ctx.trip-costs.bullet.3':
@@ -3643,7 +3853,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.bullet.4':
     'Księga jest pogrupowana według dni, od najnowszych, a nagłówek każdego dnia podaje liczbę wpisów i kwotę wydaną tego dnia. Wiersz pokazuje kategorię jako kolorową zakładkę, nazwę, znaczniki płacących z kwotami, które każdy zapłacił, pod nimi Podział z częścią każdego uczestnika (ptaszek oznacza, kto już zapłacił swoją), a dalej notatkę i kwotę. Gdy podział oznacza, że inni są Ci winni pieniądze albo Ty komuś, pojawia się też informacja o pożyczce.',
   'help.ctx.trip-costs.bullet.5':
-    'W prawej kolumnie są wyniki: „Rozlicz” pokazuje, kto komu ma zapłacić, „Salda” nadwyżkę lub niedobór każdego podróżnego, „Budżet końcowy” to, ile podróż kosztuje każdego z nich, a „Według kategorii” to, na co poszły pieniądze.',
+    'W prawej kolumnie są wyniki: „Rozlicz” pokazuje, kto komu ma zapłacić, „Salda” nadwyżkę lub niedobór każdego podróżnego, „Budżet końcowy” to, ile podróż kosztuje każdego z nich, a „Według kategorii” to, na co poszły pieniądze. Kliknięcie kategorii pomija ją w sumach. „Dziel koszty między podróżnych” na dole kolumny wyłącza płatników i rozliczenia w podróży, która potrzebuje tylko sum.',
   'help.ctx.trip-costs.bullet.6':
     'Zarejestrowana płatność pojawia się w tym samym zestawieniu jako osobny wiersz, z ołówkiem i przyciskiem „Cofnij” obok. Wydatek ma ołówek i kosz, a kosz pyta o potwierdzenie przed usunięciem wydatku. Wydatek z paragonami ma obok nazwy znacznik „Paragon”, który je otwiera.',
   'help.ctx.trip-costs.bullet.7':
@@ -3658,7 +3868,7 @@ const help: TranslationStrings = {
   'help.guide.add-expense.step.3':
     'Przycisk pod nazwą to Kategoria, domyślnie Jedzenie i napoje, dopóki nie wybierzesz innej. Jest ich czternaście i nie można ich zmieniać. Nagłówek przyjmuje kolor wybranej kategorii, podobnie jak zakładka w wierszu i jej słupek w Według kategorii.',
   'help.guide.add-expense.step.4':
-    'Wpisz kwotę z paragonu w polu „Łączna kwota”. Waluta obok jest początkowo ustawiona na walutę, w której wyświetlane są Koszty; jeśli ją zmienisz, edytor pokaże przeliczoną kwotę. Dzień jest początkowo ustawiony na dzisiaj i pod tym dniem wydatek pojawi się na liście.',
+    'Wpisz kwotę z paragonu w polu „Łączna kwota”. „Waluta” obok jest początkowo ustawiona na walutę samej podróży. Jeśli wybierzesz inną, edytor pokaże przeliczoną kwotę pod polami. „Dzień” jest początkowo ustawiony na dzisiaj i pod tym dniem wydatek pojawi się na liście.',
   'help.guide.add-expense.step.5':
     'W „Kto zapłacił?” kliknij osobę, która faktycznie zapłaciła. Domyślnie zaznaczone jest „Ty”. „Nikt jeszcze nie zapłacił” zapisuje kwotę, ale nikt nie jest z jej tytułu nic winien, a „Zapłaciło kilka osób” w przełączniku obok nagłówka dzieli rachunek między kilku płacących.',
   'help.guide.add-expense.step.6':
@@ -3713,26 +3923,26 @@ const help: TranslationStrings = {
   'help.guide.split-expense.tip.3':
     'Tryb „Paragon” sam oblicza „Łączną kwotę” i wyszarza to pole: suma to suma pozycji z paragonu.',
   'help.guide.split-expense.tip.4':
-    'Własny podział możesz też wpisać w procentach: ustaw „Wpisuj udziały jako” na %, a udziały muszą razem dawać 100 %, zanim wydatek się zapisze.',
+    'Własny podział możesz też wpisać w procentach lub w udziałach: mały przełącznik obok podpowiedzi wybiera symbol waluty, % albo „Udziały”. W procentach udziały muszą razem dawać 100 %, zanim wydatek się zapisze.',
   // expense-currency
   'help.guide.expense-currency.title': 'Wprowadź wydatek w innej walucie',
   'help.guide.expense-currency.goal': 'Wpisz kwotę z paragonu, a TREK zapisze kurs wymiany.',
   'help.guide.expense-currency.step.1':
     'Otwórz „Dodaj wydatek”. Wpisz nazwę u góry okna, a w polu „Łączna kwota” wpisz kwotę dokładnie taką jak na paragonie, bez przeliczania.',
   'help.guide.expense-currency.step.2':
-    'Otwórz „Waluta” obok kwoty i wybierz walutę z paragonu. Lista zawiera wszystkie kody znane TREK i można ją przeszukiwać: wpisz trzy litery kodu.',
+    'Otwórz „Waluta” obok kwoty. Nowy wydatek zaczyna się w walucie samej podróży. Wybierz walutę z paragonu: waluta podróży i ta, w której pokazywane są „Koszty”, stoją na górze, a każdy inny kod znany TREK znajdziesz, wpisując trzy litery.',
   'help.guide.expense-currency.step.3':
     'Pod polami pojawia się rząd plakietek: wpisana kwota i jej bieżąca wartość z oznaczeniem „kurs na żywo”. To tylko podgląd, a nie wartość, która zostanie zapisana.',
   'help.guide.expense-currency.step.4':
     'Kliknij „Dodaj wydatek” na dole okna. Kurs zostaje wtedy ustalony: wydatek zachowuje wartość z dnia, w którym go wpisałeś.',
   'help.guide.expense-currency.step.5':
-    'W rejestrze wiersz pokazuje pod nazwą obie kwoty: wpisaną, strzałkę i kwotę w walucie podróży. Wszystkie sumy, salda i rozliczenia w zakładce „Koszty” korzystają z tej drugiej kwoty.',
+    'W rejestrze wiersz pokazuje pod nazwą obie kwoty: wpisaną, strzałkę i kwotę w walucie, w której pokazywane są „Koszty”. Wszystkie sumy, salda i rozliczenia w zakładce „Koszty” korzystają z tej drugiej kwoty.',
   'help.guide.expense-currency.result':
     'Wydatek zachowuje kwotę i walutę, które wpisałeś. Rejestr pokazuje obie, a sumy i salda podróży są liczone w walucie podróży.',
   'help.guide.expense-currency.tip.1':
     'Kurs jest ustalany w chwili zapisu, więc rozliczony dług nie zmieni się, gdy tydzień później zmieni się kurs. Nowy kurs zostanie zapisany tylko wtedy, gdy zmienisz walutę wydatku.',
   'help.guide.expense-currency.tip.2':
-    '„Waluta wyświetlania” w Ustawieniach zmienia tylko sposób pokazywania kwot. Zapisane kwoty nigdy się nie zmieniają. Jeśli pole jest puste, każda podróż jest pokazywana we własnej walucie.',
+    '„Waluta wyświetlania” w „Ustawieniach” i wybór waluty na pasku „Koszty” dla jednej podróży zmieniają tylko sposób pokazywania kwot. Zapisane kwoty nigdy się nie zmieniają. Jeśli waluta wyświetlania jest pusta, każda podróż jest pokazywana we własnej walucie.',
   'help.guide.expense-currency.tip.3':
     'Walutę podróży ustawia się w samej podróży, w „Edytuj podróż”, i wymaga to uprawnienia „Edytowanie podróży”. Gdy ją zmienisz, wszystkie zapisane kursy zostaną przeliczone dla nowej waluty. Same kwoty nie są przeliczane.',
   // filter-costs
@@ -3839,6 +4049,97 @@ const help: TranslationStrings = {
     'Wydatek z podziałem Własny albo Paragon nie ma jednego udziału na osobę, więc jego pola Za osobę i Za osobę/dzień pozostają puste.',
   'help.guide.costs-table.tip.3':
     'Płacących, podział, notatkę i paragony edytujesz w samym wydatku: w „Więcej opcji” na końcu wiersza znajdziesz „Edytuj” oraz „Usuń”, które usuwa wiersz.',
+  'help.guide.costs-show-in.title': 'Pokaż koszty w innej walucie',
+  'help.guide.costs-show-in.goal':
+    'Czytaj koszty jednej podróży w innej walucie, na przykład kraju, do którego jedziesz dalej, bez zmiany czegokolwiek, co jest zapisane.',
+  'help.guide.costs-show-in.step.1':
+    'Wybór waluty na pasku, między „Eksportuj CSV” a przełącznikiem „Lista” / „Tabela”, pokazuje walutę, w której czytasz kwoty. Najedź na niego, a zobaczysz „Pokaż kwoty w”.',
+  'help.guide.costs-show-in.step.2':
+    'Kliknij go. Twoja waluta wyświetlania i waluta samej podróży stoją na górze listy, a wpisując trzy litery, wyszukasz każdą inną. Wybierz walutę.',
+  'help.guide.costs-show-in.step.3':
+    'Karty, każdy wiersz księgi i prawa kolumna są teraz w tej walucie, przeliczone po dzisiejszym kursie. „Rozlicz” też proponuje w niej przelewy.',
+  'help.guide.costs-show-in.step.4':
+    'Żeby wrócić, otwórz wybór ponownie i wybierz pierwszy wpis na liście: swoją walutę wyświetlania albo walutę samej podróży, jeśli nie ustawiłeś jej w „Ustawienia”.',
+  'help.guide.costs-show-in.result':
+    'Cała zakładka „Koszty” pokazuje podróż w wybranej przez Ciebie walucie. Wydatki zachowują kwoty i waluty, w jakich zostały wprowadzone.',
+  'help.guide.costs-show-in.tip.1':
+    'Wybór jest zapamiętany dla tej podróży tylko w tej przeglądarce. Inne podróże, inne urządzenia i pozostali podróżni mają swój własny widok.',
+  'help.guide.costs-show-in.tip.2':
+    'Twoja waluta wyświetlania w „Ustawienia” pozostaje bez zmian. Gdy wybierzesz ją ponownie na pasku, późniejsza zmiana w „Ustawienia” znów dotyczy tej podróży.',
+  'help.guide.costs-show-in.tip.3':
+    'Nowy wydatek nadal zaczyna się w walucie samej podróży, niezależnie od tego, w jakiej pokazywane są kwoty.',
+  'help.guide.leave-out-category.title': 'Pomiń kategorię w sumach',
+  'help.guide.leave-out-category.goal':
+    'Zobacz, ile kosztowała podróż bez jednego rodzaju wydatków, na przykład bez lotów.',
+  'help.guide.leave-out-category.step.1':
+    '„Według kategorii” na końcu prawej kolumny porządkuje, na co poszły pieniądze. Linia na górze mówi, co robi kliknięcie: wybierz kategorię, żeby pominąć ją w sumach.',
+  'help.guide.leave-out-category.step.2':
+    'Kliknij kategorię. Jej wiersz zostaje na miejscu, przyciemniony i przekreślony, pozostałe paski są przeskalowane, a linia na górze nazywa teraz to, co jest pominięte, z „Uwzględnij wszystko” obok.',
+  'help.guide.leave-out-category.step.3':
+    '„Łączne wydatki na podróż” pomijają tę kategorię, tak samo „Twój udział” i „Zapłaciłeś” pod nią. Karta też podaje, co jest pominięte.',
+  'help.guide.leave-out-category.step.4':
+    'Kliknij „Uwzględnij wszystko” albo ponownie przyciemniony wiersz, a każda kategoria znów się liczy.',
+  'help.guide.leave-out-category.result':
+    'Sumy pokazują podróż bez pominiętych kategorii, dopóki nie uwzględnisz ich z powrotem.',
+  'help.guide.leave-out-category.tip.1':
+    'To tylko widok. Nic nie jest zapisywane, a wybór znika, gdy opuścisz zakładkę „Koszty”.',
+  'help.guide.leave-out-category.tip.2':
+    'To, co jest należne, pozostaje w całości: „Jesteś winien”, „Należy ci się”, „Kwota nierozliczona”, „Rozlicz” i „Salda” nadal liczą każdą kategorię.',
+  'help.guide.leave-out-category.tip.3':
+    'Możesz pominąć kilka kategorii naraz. Każde kliknięcie wiersza przełącza tylko tę jedną.',
+  'help.guide.split-by-shares.title': 'Podziel rachunek według nocy lub udziałów',
+  'help.guide.split-by-shares.goal':
+    'Podziel wydatek w proporcji, na przykład według nocy spędzonych przez każdego podróżnego, bez samodzielnego wyliczania kwot.',
+  'help.guide.split-by-shares.step.1':
+    'Otwórz wydatek ołówkiem obok jego wiersza i kliknij „Własny” w przełączniku obok „Podział”.',
+  'help.guide.split-by-shares.step.2':
+    'Obok podpowiedzi pod nim mały przełącznik wybiera sposób wpisywania podziału: symbol waluty dla kwot, % dla procentów albo „Udziały”. Kliknij „Udziały”.',
+  'help.guide.split-by-shares.step.3':
+    'Każdy zaznaczony podróżny dostaje pole, które zaczyna się od 1. Wpisz udziały każdej osoby, na przykład noce, które spędziła. Pod każdym polem kwota, która z tego wynika, aktualizuje się w trakcie pisania.',
+  'help.guide.split-by-shares.step.4':
+    'Odznaka pod listą pokazuje „Podział zgadza się z sumą”. Kliknij „Zapisz” na dole okna.',
+  'help.guide.split-by-shares.result':
+    'Wydatek jest podzielony w proporcji udziałów, co do grosza, a jego wiersz pokazuje część każdego podróżnego w „Podział”.',
+  'help.guide.split-by-shares.tip.1':
+    'Osoba z 0 udziałami nie jest nic winna za ten wydatek. Gdy nikt nie ma udziału, okno mówi „Daj co najmniej jednej osobie udział” i nie zapisuje.',
+  'help.guide.split-by-shares.tip.2':
+    'Zapisywane są tylko kwoty, więc wydatek otwiera się ponownie z kwotami. Przełącz znów na „Udziały”, żeby zmienić proporcję.',
+  'help.guide.split-by-shares.tip.3': 'Procenty działają tak samo: wybierz %, a procenty muszą razem dawać 100 %.',
+  'help.guide.link-receipt-file.title': 'Użyj pliku podróży jako paragonu',
+  'help.guide.link-receipt-file.goal':
+    'Dodaj do wydatku dokument, który podróż już ma, taki jak voucher albo potwierdzenie będące zarazem fakturą, bez ponownego przesyłania.',
+  'help.guide.link-receipt-file.step.1':
+    'Kliknij ołówek obok wiersza wydatku. Otworzy się edytor z „Paragony i faktury” blisko dołu.',
+  'help.guide.link-receipt-file.step.2':
+    'Kliknij ikonę łącza obok „Załącz”. Jest ona dostępna, gdy podróż ma obrazy lub pliki PDF, których nie ma jeszcze przy tym wydatku. Lista otwiera się pod nagłówkiem, z plikami rezerwacji wydatku na początku.',
+  'help.guide.link-receipt-file.step.3':
+    'Kliknij plik. Lista się zamyka, a plik jest wypisany w „Paragony i faktury”, z koszem do ponownego odłączenia.',
+  'help.guide.link-receipt-file.step.4':
+    'Kliknij „Zapisz” na dole okna. Wiersz ma teraz obok nazwy znacznik „Paragon”, który otwiera plik.',
+  'help.guide.link-receipt-file.result':
+    'Wydatek niesie plik jako swój paragon. Nic nie zostało przesłane: to ten sam plik co w „Pliki” i zachowuje swoje pozostałe powiązania.',
+  'help.guide.link-receipt-file.tip.1': 'Kosz obok paragonu tylko odłącza go od wydatku. Plik zostaje w „Pliki”.',
+  'help.guide.link-receipt-file.tip.2':
+    'Oferowane są tylko obrazy i pliki PDF, te same rodzaje, które przyjmuje „Załącz”, i nic, co jest w koszu.',
+  'help.guide.costs-totals-only.title': 'Zachowaj tylko sumy podróży',
+  'help.guide.costs-totals-only.goal':
+    'Śledź, ile kosztuje podróż, bez tego, kto płacił, kto komu jest winien i rozliczeń, na przykład gdy i tak dzielicie wszystko.',
+  'help.guide.costs-totals-only.step.1':
+    '„Dziel koszty między podróżnych” to przełącznik na dole prawej kolumny. Jest domyślnie włączony, a linia pod jego nazwą mówi, co robi.',
+  'help.guide.costs-totals-only.step.2':
+    'Wyłącz go. Karty „winien” i „należy się”, „Rozlicz”, „Salda” i „Budżet końcowy” znikają, a także płatnicy i podział w każdym wierszu. „Łączne wydatki na podróż” zostają, z liczbą wydatków pod spodem.',
+  'help.guide.costs-totals-only.step.3':
+    '„Dodaj wydatek” otwiera teraz edytor bez „Kto zapłacił?” i „Podział”: nazwa, kategoria, kwota, jej waluta i dzień to wszystko, czego wydatek potrzebuje.',
+  'help.guide.costs-totals-only.step.4':
+    'Włącz przełącznik ponownie, kiedy zechcesz dzielić. Płatnicy, podziały i płatności zapisane wcześniej wracają takie, jakie były.',
+  'help.guide.costs-totals-only.result':
+    '„Koszty” pokazują wydatki podróży, według dni, według kategorii i w tabeli, bez niczego o tym, kto komu co jest winien.',
+  'help.guide.costs-totals-only.tip.1':
+    'To ustawienie należy do podróży, więc każdy podróżny widzi te same „Koszty”. Przełącznik widzi tylko ten, kto może edytować koszty.',
+  'help.guide.costs-totals-only.tip.2':
+    'Wydatek dodany przy wyłączonym przełączniku jest zapisywany bez płatnika i podziału, więc nie zamieni się w dług, jeśli później znów podzielisz koszty.',
+  'help.guide.costs-totals-only.tip.3':
+    'W podróży, w której jesteś tylko Ty, nie ma czego dzielić, więc „Koszty” pokazują same sumy, a przełącznik nie jest widoczny.',
 
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Transport',
@@ -3851,11 +4152,11 @@ const help: TranslationStrings = {
   'help.ctx.trip-transports.bullet.3':
     'Zakładka otwiera się w widoku „Karty”: najpierw „Potwierdzono”, potem „Oczekujące”. Każdą sekcję możesz zwinąć, klikając jej nagłówek. Zaplanowane połączenia komunikacji publicznej nie mają statusu i są wyświetlane wśród potwierdzonych przejazdów według czasu, chyba że w „Opcjach widoku” dostaną własną sekcję „Automatyczny transport publiczny”. Widok „Lista” grupuje przejazdy według dni, a „Oś czasu” pokazuje wszystkie przejazdy na tle dni podróży.',
   'help.ctx.trip-transports.bullet.4':
-    'Górny pasek karty ma kolor zależny od statusu: zielony dla potwierdzonych, bursztynowy dla oczekujących, niebieski dla zaplanowanego połączenia. Widać na nim kropkę statusu, typ, tytuł, ołówek i kosz. Pod nim są: data, godzina, kod rezerwacji, trasa oraz linia lotnicza i numer lotu albo numer pociągu, peron i miejsce. Kliknij kartę, aby otworzyć szczegóły.',
+    'Górny pasek karty ma kolor zależny od statusu: zielony dla potwierdzonych, bursztynowy dla oczekujących, niebieski dla zaplanowanego połączenia. Widać na nim kropkę statusu, typ, tytuł, ołówek i kosz. Pod nim są: data, godzina, kod rezerwacji, trasa oraz linia lotnicza i numer lotu albo numer pociągu, peron i miejsce. Wokół odlotu lot pokazuje też swój „Status” na żywo. Kliknij kartę, aby otworzyć szczegóły.',
   'help.ctx.trip-transports.bullet.5':
     'Transporty możesz też tworzyć w planie: przycisk + w nagłówku dnia (podpowiedź brzmi Dodaj do dnia) albo kliknięcie prawym przyciskiem nagłówka daje opcje Dodaj transport i Transport publiczny. Łącznik z czasem przejazdu między dwoma przystankami otwiera to samo wyszukiwanie dla tego jednego odcinka.',
   'help.ctx.trip-transports.bullet.6':
-    'Transport z ustawionymi oboma końcami rysuje linię na mapie. Ikona trasy w jego wierszu w planie dnia i opcja „Na mapie” w szczegółach włączają tę linię. „Pokaż wszystkie trasy rezerwacji” na pasku narzędzi nad dniami włącza lub wyłącza linie dla całej podróży.',
+    'Transport z ustawionymi oboma końcami rysuje linię na mapie. Ikona trasy w jego wierszu w planie dnia i „Mapa” na dole szczegółów włączają tę linię. „Pokaż wszystkie trasy rezerwacji” na pasku narzędzi nad dniami włącza lub wyłącza linie dla całej podróży.',
   // transports-list
   'help.guide.transports-list.title': 'Poznaj zakładkę Transport',
   'help.guide.transports-list.goal': 'Dowiedz się, co pokazuje lista, zanim cokolwiek na niej zmienisz.',
@@ -3868,7 +4169,7 @@ const help: TranslationStrings = {
   'help.guide.transports-list.step.4':
     'Każda karta pokazuje wszystkie szczegóły. Górny pasek jest zielony dla statusu „Potwierdzono” i bursztynowy dla „Oczekujące” i zawiera kropkę statusu, typ i tytuł. Pod nim „Data” pokazuje dni, które obejmuje transport, z ich datami. Dalej są „Czas”, „Kod rezerwacji”, „Trasa” z ikoną typu między przystankami oraz linia lotnicza i numer lotu albo numer pociągu, peron i miejsce. Kliknij kartę, aby otworzyć jej szczegóły.',
   'help.guide.transports-list.step.5':
-    'Kliknij kropkę statusu, żeby przełączyć przejazd między „Oczekujące” a „Potwierdzono”; podpowiedź pokazuje kierunek zmiany, np. „Ustaw na Oczekujące”. Ołówek w nagłówku otwiera formularz transportu, a kosz usuwa go po pytaniu „Usunąć rezerwację?”, które wymienia, co zostanie usunięte, łącznie z powiązanymi kosztami.',
+    'Kliknij kropkę statusu, żeby przełączyć przejazd między „Oczekujące” a „Potwierdzono”. Podpowiedź pokazuje kierunek zmiany, na przykład „Ustaw na Oczekujące”. Ołówek w nagłówku otwiera formularz transportu, a kosz usuwa go po pytaniu „Usunąć rezerwację?”, które podaje nazwę przejazdu i informuje, gdy razem z nim zostanie usunięty powiązany koszt.',
   'help.guide.transports-list.result':
     'Każda karta pokazuje, czy przejazd jest zarezerwowany, a pasek pozwala w każdej chwili przefiltrować lub posortować listę.',
   'help.guide.transports-list.tip.1':
@@ -3902,7 +4203,7 @@ const help: TranslationStrings = {
   'help.guide.import-transport-file.goal':
     'Niech TREK odczyta lot, pociąg lub prom z biletu od przewoźnika, a Ty sprawdź dane przed zapisaniem.',
   'help.guide.import-transport-file.step.1':
-    'Na pasku karty Transport kliknij ikonę pobierania przed przyciskiem Transport, której podpowiedź brzmi Importuj potwierdzenia rezerwacji. Otworzy się okno o tej nazwie, to samo, które ma karta Rezerwacje. Na pustej karcie to samo robi Importuj z pliku na środku.',
+    'Na pasku karty „Transport” kliknij ikonę przesyłania przed przyciskiem „Transport”, której podpowiedź brzmi „Importuj potwierdzenia rezerwacji”. Otworzy się okno o tej nazwie, to samo, które ma karta „Rezerwacje”. Na pustej karcie to samo robi „Importuj z pliku” na środku.',
   'help.guide.import-transport-file.step.2':
     'Upuść bilet na pole albo kliknij pole i wybierz plik: EML, PDF, PKPass, HTML i TXT, maksymalnie pięć plików po 10 MB, a także zdjęcia biletu (JPG, PNG, WEBP), jeśli twój serwer ma model AI, który je odczyta. W polu widać nazwy wybranych plików.',
   'help.guide.import-transport-file.step.3':
@@ -4075,7 +4376,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-mode.tip.1':
     'Wybór jest zapisany dla każdej podróży na Twoim koncie, więc po przeładowaniu, w innej przeglądarce lub na innym urządzeniu podróż znów otwiera się w widoku podróży samochodowej.',
   'help.guide.roadtrip-mode.tip.2':
-    'Przełącznik pojawia się dopiero wtedy, gdy administrator włączy dodatek „Podróż samochodowa” w sekcji „Dodatki” panelu administratora.',
+    'Przełącznik pojawia się tylko wtedy, gdy dodatek „Podróż samochodowa” jest włączony dla podróży. Administrator włącza go dla każdej podróży w „Dodatki” w panelu administratora, a właściciel podróży może go włączyć lub wyłączyć tylko dla tej podróży w „Dodatki” w „Ustawienia podróży”.',
   'help.guide.roadtrip-mode.tip.3':
     'Na telefonie nie ma przełącznika: dodatek dodaje własną zakładkę „Podróż samochodowa” obok zakładki „Plan”.',
   // roadtrip-stops
@@ -4096,7 +4397,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stops.result':
     'Plakietka „Postój” zmienionego przystanku pokazuje nową długość, a wszystkie późniejsze godziny przyjazdu przesuwają się odpowiednio. Przystanek, którego rodzaj zmieniłeś i przywróciłeś, znów jest ponumerowanym celem podróży.',
   'help.guide.roadtrip-stops.tip.1':
-    'Czas postoju należy do miejsca, a nie do jednej wizyty: miejsce zaplanowane na dwa dni ma ten sam czas postoju w obu dniach.',
+    'Czas postoju należy do wizyty: miejsce zaplanowane na dwa dni ma swój własny czas postoju w każdym z nich, a zmiana jednego nie rusza drugiego.',
   'help.guide.roadtrip-stops.tip.2':
     'Postoje po drodze są widoczne także w „Dniach”. Jeśli w „Ustawieniach jazdy”, w sekcji „Postoje serwisowe”, wyłączysz „Pokaż także w Dniach”, będą widoczne tylko w „Podróży samochodowej”.',
   'help.guide.roadtrip-stops.tip.3': '„Bez postoju” w tym samym oknie usuwa ustawiony czas.',
@@ -4214,7 +4515,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.step.1':
     'Gdy zasięg jest ustawiony, kolumna boczna pokazuje na odcinku pasek w miejscu, w którym kończy się paliwo lub energia: „Tu kończy się paliwo” albo, w samochodzie elektrycznym, „Tu kończy się bateria”. Pod nim widać, w którym miejscu odcinka to nastąpi.',
   'help.guide.roadtrip-refuel.step.2':
-    'Ikona lampki na pasku to przycisk: Znajdź paliwo albo Znajdź ładowarkę w samochodzie elektrycznym. Szuka wzdłuż drogi przed tym punktem i w trakcie wyszukiwania pokazuje Szukam wzdłuż trasy…',
+    'Migająca dystrybutorka paliwa na końcu paska, a przy samochodzie elektrycznym błyskawica, to przycisk: „Znajdź paliwo” albo „Znajdź ładowarkę”. Szuka wzdłuż drogi przed tym punktem i w trakcie wyszukiwania pokazuje „Szukam wzdłuż trasy…”.',
   'help.guide.roadtrip-refuel.step.3':
     'Wyświetlane są maksymalnie trzy stacje, każda z odległością od trasy i zasięgiem, jaki by Ci pozostał.',
   'help.guide.roadtrip-refuel.step.4':
@@ -4226,7 +4527,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.tip.2':
     'Wyszukiwanie sprawdza drogę przed punktem, w którym kończy się paliwo, uwzględnia rezerwę i liczy objazd podwójnie, więc każde proponowane miejsce jest naprawdę osiągalne.',
   'help.guide.roadtrip-refuel.tip.3':
-    'Jeśli nie ma wyników, możesz wyszukać ponownie: lampka zmienia się na „Spróbuj ponownie”, ponieważ wyszukiwanie miejsc to wspólna usługa, która czasem nie odpowiada na czas.',
+    'Jeśli nie ma wyników, możesz wyszukać ponownie: dystrybutor zmienia się na „Spróbuj ponownie”, ponieważ wyszukiwanie miejsc to wspólna usługa, która czasem nie odpowiada na czas.',
   // roadtrip-track
   'help.guide.roadtrip-track.title': 'Ustaw, aby dzień prowadził zaimportowanym śladem',
   'help.guide.roadtrip-track.goal':
@@ -4269,7 +4570,7 @@ const help: TranslationStrings = {
   'help.guide.tour-collection-add-to-trip.step.3':
     'W sekcji „Punkty trasy” wybierz kafelek z punktami, żeby dodać start, przystanki i koniec w ich kolejności, albo „Tylko linia”, żeby dodać samą zapisaną linię.',
   'help.guide.tour-collection-manage.step.1':
-    'Otwórz listę. Przy każdej zapisanej wycieczce widać stopień trudności, typ, podróż, z której ją zapisano, dystans, przewyższenie i liczbę punktów trasy. Najedź na nazwę podróży, żeby sprawdzić, kto ją zapisał.',
+    'Otwórz listę. Przy każdej zapisanej wycieczce widać stopień trudności lub typ, podróż, z której ją zapisano, czas, dystans, przewyższenie i liczbę punktów trasy. Najedź na nazwę podróży, żeby sprawdzić, kto ją zapisał.',
   'help.guide.entry-draft.step.1': 'W edytorze włącz „Szkic” w prawej kolumnie.',
   'help.guide.journey-map-layers.step.3':
     'Kliknij pustą pinezkę albo małą kropkę na mapie. Karta pokaże, co to jest: zaplanowane miejsce i jego dzień albo pobyt z przyciskiem „Otwórz wpis”, który prowadzi do relacji dnia, do której należy.',
@@ -4303,19 +4604,19 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.result':
     'Twoje ustawienia zobaczą nowe konta i wszyscy, którzy nigdy ich nie zmieniali.',
   'help.guide.own-routing-engine.goal':
-    'Wyznaczaj trasy dni i road tripów przez własny serwer OSRM lub Valhalla zamiast publicznych.',
+    'Wyznaczaj trasy dni, podróży samochodowych i wycieczek przez własny serwer OSRM lub Valhalla zamiast usług TREK albo publicznych.',
   'help.guide.admin-passkeys.tip.1':
-    'Jeśli TREK nie może jeszcze ustalić domeny, wyświetla ostrzeżenie, a klucze dostępu pozostają ukryte, dopóki nie ustawisz APP_URL lub Relying Party ID.',
+    'Jeśli TREK nie może jeszcze ustalić domeny, ostrzeżenie pod przełącznikiem o tym informuje, a klucze dostępu pozostają ukryte, dopóki nie ustawisz APP_URL lub Relying Party ID.',
   'help.guide.rotate-jwt-secret.step.1':
-    'Na dole karty „Ustawienia”, w sekcji „Strefa zagrożenia”, kliknij „Odnów” obok „Zmień sekret JWT”.',
+    'Na karcie „Bezpieczeństwo”, w sekcji „Strefa zagrożenia” w prawym dolnym rogu, kliknij „Odnów” obok „Zmień sekret JWT”.',
   'help.guide.storage-backends.tip.3':
     'TREK może ponownie pobrać pamięć podręczną zdjęć, więc jej replikowanie zwykle tylko zajmuje miejsce.',
   'help.guide.admin-channels.step.3':
-    'Na karcie „Powiadomienia” poniżej wybierz dla każdego zdarzenia kanały, którymi ma być wysyłane: „Nowa wersja dostępna”, „Awaria repliki magazynu” i „Prośba o region wodny”. Każdy przełącznik zapisuje się od razu.',
+    'Pod nimi, na tej samej karcie, wybierz dla każdego zdarzenia kanały, którymi ma być wysyłane: „Nowa wersja dostępna”, „Awaria repliki magazynu” i „Prośba o region wodny”. Każdy przełącznik zapisuje się od razu.',
   'help.guide.notification-defaults.tip.1':
     '„Wył.” to ustawienie domyślne, które każdy użytkownik może sam włączyć; „Zablokowane” wyłącza powiadomienie dla wszystkich.',
   'help.ctx.notifications.bullet.4':
-    'Obok godziny każdego powiadomienia „Oznacz jako przeczytane” (podwójny ptaszek) i „Usuń” (kosz) dotyczą tylko tego jednego. „Oznacz wszystkie jako przeczytane” i „Usuń wszystkie” u góry dotyczą całej listy.',
+    'Gdy najedziesz na powiadomienie, jego godzina ustępuje miejsca przyciskom „Oznacz jako przeczytane” (podwójny ptaszek) lub „Oznacz jako nieprzeczytane” (koperta) oraz „Usuń” (kosz). „Oznacz wszystkie jako przeczytane” i „Usuń wszystkie” u góry dotyczą całej listy.',
   'help.guide.read-notifications.tip.2':
     'Powiadomienie bez przycisku ma tylko charakter informacyjny. Przeczytaj je w panelu i tam oznacz jako przeczytane.',
   'help.guide.filter-notifications.result': 'Na liście zostają tylko nieprzeczytane powiadomienia, od najnowszych.',
@@ -4349,6 +4650,27 @@ const help: TranslationStrings = {
     'Na karcie „Transport” kliknij kartę przejazdu. Szczegóły otwierają się nad kartą, z nagłówkiem w tym samym kolorze co karta przejazdu. Te same szczegóły otwiera wiersz transportu w planie dnia.',
   'help.guide.export-transports-csv.tip.2':
     'Karta „Rezerwacje” ma tę samą ikonę i zapisuje osobny plik z końcówką bookings.csv.',
+  'help.guide.flight-live-status.title': 'Śledź lot na żywo',
+  'help.guide.flight-live-status.goal':
+    'Zobacz, gdzie jest Twój lot, czy jest opóźniony i kiedy wyląduje, bez konta i bez klucza.',
+  'help.guide.flight-live-status.step.1':
+    'Od trzech godzin przed odlotem karta lotu w zakładce „Transport” dostaje pole „Status”: „Planowany”, „Gotowy do odlotu”, „W powietrzu” z czasem do lądowania albo „Wylądował”. Opóźnienie jest pokazane obok na bursztynowo lub czerwono, a gdy lot trwa, cienki pasek wzdłuż pola się wypełnia.',
+  'help.guide.flight-live-status.step.2':
+    'Kliknij kartę. Karta na żywo u góry rezerwacji pokazuje, na jakim etapie jest lot, co będzie dalej, na przykład „Lądowanie za 11 h 50 min”, oraz opóźnienie po prawej, na przykład +25 min.',
+  'help.guide.flight-live-status.step.3':
+    'Niżej „Wylot” i „Przylot” pokazują oba lotniska z kodami i miastami, na małej mapie trasy z samolotem w drodze. Każdy kafelek z czasem pokazuje czas, który obowiązuje teraz. Gdy różni się od planu, planowany czas jest przekreślony obok.',
+  'help.guide.flight-live-status.step.4':
+    'Gdy lot trwa, następują „Wysokość”, „Prędkość” i „Pozostało” w jednostkach z Twoich ustawień, a potem „Samolot” z jego typem i rejestracją.',
+  'help.guide.flight-live-status.step.5':
+    'W planie wiersz lotu w jego dniu mówi to samo w linii pod godzinami, z opóźnieniem obok.',
+  'help.guide.flight-live-status.result':
+    'Od razu widzisz, czy lot jest na czas i kiedy wyląduje: na jego karcie, w rezerwacji i w planie dnia.',
+  'help.guide.flight-live-status.tip.1':
+    'Pozycje pochodzą z otwartych danych ADS-B (adsb.lol, a w większości instalacji także adsb.fi), bez klucza i bez konta. Wysyłany jest do nich tylko znak wywoławczy lotu. Administrator włącza lub wyłącza tę funkcję w obszarze administratora w „Dodatki”, w kafelku „Podróż”, opcją „Śledź zarezerwowane loty na żywo”.',
+  'help.guide.flight-live-status.tip.2':
+    'Otwarte dane wiedzą tylko, gdzie jest samolot. Bramka, terminal i taśma bagażowa nie są ich częścią, więc dodaj je do rezerwacji samodzielnie, jeśli ich potrzebujesz. Opóźnienia i godzina przylotu to szacunki wyliczone z pozycji.',
+  'help.guide.flight-live-status.tip.3':
+    'TREK potrzebuje numeru lotu i obu lotnisk, żeby śledzić lot. Lot linii, która lata pod innym znakiem wywoławczym, albo lot code-share może nie zostać znaleziony. Jego rezerwacja zachowuje wtedy same godziny.',
   'help.guide.group-sort-bookings.step.2':
     'W sekcji „Grupuj według” wybierz „Status”, „Dzień”, „Typ” lub „Bez grupowania”. Karta od razu dzieli się na odpowiednie sekcje.',
   'help.guide.export-bookings-csv.result':
@@ -4356,7 +4678,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.result':
     'Listy są w kolejności, w jakiej je przeciągnąłeś, a przedmioty są posortowane „Od A do Z”, dopóki tego nie wyłączysz. TREK nadal pamięta twoją własną kolejność.',
   'help.guide.count-packed-pieces.step.2':
-    'Przed ilością pojawia się licznik 0/5 z minusem i plusem. Kliknij plus za każdą sztukę, którą wkładasz do torby.',
+    'W „Ilość” wpisz, ile bierzesz, na przykład 5, albo klikaj plus, aż pojawi się ta liczba.',
   'help.guide.expense-receipts.step.4':
     'W zestawieniu wiersz ma teraz obok nazwy znacznik „Paragon”, a jeśli paragonów jest kilka, w nawiasie widać ich liczbę. Kliknij go, żeby otworzyć paragon.',
   'help.guide.final-budget.tip.3':
@@ -4638,7 +4960,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Karta pokazuje „Włączone na tym urządzeniu”, a zdarzenia włączone w kolumnie „Push” docierają do ciebie nawet wtedy, gdy TREK jest zamknięty.',
   'help.guide.connect-airtrail.step.1':
-    'W „Integracjach” znajdź AirTrail i wpisz „Adres URL instancji” oraz klucz API. Klucz utworzysz w AirTrail w „Settings”, „Security”.',
+    'W „Integracjach” znajdź AirTrail i wpisz „Adres URL instancji” oraz klucz API. Klucz utworzysz w AirTrail w „Settings”, „Security”. Jeśli tworzysz klucz w AirTrail 3.13 lub nowszym, do odczytu potrzebuje on zakresu flight.read.own. Do zapisywania zmian z powrotem potrzebuje też flight.update.own, flight.passengers.manage.own, reference_data.read i profile.read.',
   'help.guide.connect-dawarich.step.1':
     'W „Integracjach” znajdź Dawarich i wpisz „Adres instancji” oraz klucz API z Dawarich (w „Account”, „API key”).',
   'help.guide.tour-connect-wanderer.step.1':
@@ -4650,7 +4972,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.tip.1':
     'Własny wybór użytkownika w „Ustawieniach” zawsze ma pierwszeństwo; te wartości obowiązują wszystkich, którzy danego ustawienia nie zmienili.',
   'help.guide.own-routing-engine.step.1':
-    'W sekcji „Mapa” na karcie „Domyślne ustawienia” wpisz adres swojego serwera OSRM w polu „Własny silnik tras”.',
+    'Na karcie „Domyślne” karta „Wyznaczanie tras” decyduje, kto oblicza trasy. W „Usługa wyznaczania tras” wybierz „Automatycznie”, „Usługi TREK”, „Publiczna Valhalla (FOSSGIS)” albo „Własna instancja Valhalli”. Wybór zapisuje się od razu.',
   'help.guide.admin-passkeys.tip.2':
     'Jeśli później zmienisz domenę, wszystkie dodane już przez użytkowników klucze dostępu przestaną działać.',
   'help.guide.instance-keys.tip.4': 'Klucz Amap musi być kluczem typu Web 服务 (usługa webowa), a nie kluczem JS API.',
@@ -4678,7 +5000,8 @@ const help: TranslationStrings = {
     'Wiersz jest teraz w nowym dniu, o swojej godzinie. Jeśli chcesz też zmienić godzinę, otwórz rezerwację.',
   'help.guide.place-image-from-file.goal':
     'Ustaw jako obraz miejsca zdjęcie, które już jest w jego plikach, bez ponownego przesyłania.',
-  'help.guide.place-image-from-file.tip.3': 'Obraz mogą zmieniać tylko uczestnicy, którzy mają prawo do zmiany miejsc.',
+  'help.guide.place-image-from-file.tip.3':
+    'Obraz mogą zmieniać tylko uczestnicy, którzy mają prawo do zmiany miejsc. „Usuń zdjęcie” pod kafelkami znów je odłącza.',
   'help.guide.place-own-hours.result':
     'Karta pokazuje twój numer telefonu, e-mail i godziny otwarcia, a obwódka zdjęcia jest zielona lub czerwona zgodnie z twoimi godzinami.',
   'help.guide.confirm-stay-booking.step.4':
@@ -4698,7 +5021,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.tip.1':
     'Gdy włączone jest „Od A do Z”, nie możesz przeciągać przedmiotów, ale całe listy nadal tak.',
   'help.guide.count-packed-pieces.step.3':
-    'Dopóki spakowana jest tylko część sztuk, licznik ma twój kolor akcentu, a pole wyboru obwódkę w tym kolorze. Kliknij minus, żeby odjąć sztukę z licznika.',
+    'Pod spodem pojawia się „Spakowane” z licznikiem 0/5, minusem i plusem. Kliknij plus za każdą sztukę, którą wkładasz do torby, a minus, żeby odjąć sztukę z licznika.',
   'help.guide.expense-receipts.step.5':
     'Podgląd pokazuje paragon, a u góry przyciski „Otwórz w nowej karcie” i „Pobierz”. Przy kilku paragonach przełączasz się między nimi klawiszami strzałek, a Esc zamyka podgląd.',
   'help.guide.files-sync-settings.step.3': 'Kliknij „Ustawienia” pod paskiem przepływu, żeby zobaczyć pozostałe opcje.',
@@ -4739,12 +5062,30 @@ const help: TranslationStrings = {
   'help.guide.tour-detail-read.goal':
     'Zobacz wszystkie informacje o wycieczce zapisane w podróży: dni, dystans i wysokości, profil oraz źródło.',
   'help.guide.tour-detail-read.tip.1':
-    'Bursztynowa pigułka „używaj ostrożnie” oznacza, że import ma niepełne dane o wysokościach lub pomiarach. Weź to pod uwagę, patrząc na podejście i profil.',
+    'Bursztynowa pigułka „korzystaj ostrożnie” oznacza, że import ma niepełne dane o wysokościach lub pomiarach. Weź to pod uwagę, patrząc na podejście i profil.',
   'help.guide.tour-rename-colour.step.1':
     'Otwórz kartę wycieczki i kliknij ołówek obok nazwy. Nazwa zmieni się w pole edycji.',
   'help.guide.tour-take-along.goal':
     'Wyznacz dojazd na start wycieczki, otwórz jej stronę w internecie albo pobierz trasę jako plik GPX.',
   'help.guide.tour-take-along.result': 'Masz dojazd na start w aplikacji z mapami i całą trasę w pliku GPX.',
+  'help.guide.tour-route-in-app.title': 'Idź trasą wycieczki w aplikacji z mapami',
+  'help.guide.tour-route-in-app.goal':
+    'Otwórz całą trasę wędrówki, spaceru, biegu albo wycieczki rowerowej w Google Maps, Apple Maps lub CoMaps, żeby być po niej prowadzonym w drodze.',
+  'help.guide.tour-route-in-app.step.1':
+    'U góry prawej kolumny przełącz z „Miejsca” na „Wycieczki”, a potem kliknij wycieczkę. Jej karta otwiera się nad mapą.',
+  'help.guide.tour-route-in-app.step.2':
+    'Kliknij „Mapy” na dole karty, „Otwórz trasę w aplikacji map”. Znajduje się obok „Nawigacja”, która prowadzi tylko do startu.',
+  'help.guide.tour-route-in-app.step.3':
+    'Wybierz aplikację. Otwiera się w nowej karcie albo jako aplikacja, z trasą wycieczki pieszo dla wędrówki, spaceru lub biegu i rowerem dla wycieczki rowerowej.',
+  'help.guide.tour-route-in-app.result': 'Aplikacja z mapami prowadzi Cię trasą wycieczki.',
+  'help.guide.tour-route-in-app.tip.1':
+    'Aplikacja dostaje do dziesięciu punktów rozłożonych wzdłuż wycieczki, wśród nich jej start i koniec, a drogę między nimi planuje sama. Na małych ścieżkach jej droga może różnić się od Twojej linii, więc weź ze sobą plik GPX, żeby mieć dokładną trasę.',
+  'help.guide.tour-route-in-app.tip.2':
+    'Wycieczka narciarska, spływ albo przejażdżka konna nie ma przycisku „Mapy”: aplikacja z mapami poprowadziłaby ją drogami. Weź je ze sobą jako plik GPX.',
+  'help.guide.tour-route-in-app.tip.3':
+    'Apple Maps nie jest oferowane na Androidzie. CoMaps przyjmuje tylko start i koniec, więc jest oferowane tylko wtedy, gdy trasa potrzebuje wyłącznie tego.',
+  'help.guide.tour-route-in-app.tip.4':
+    '„Mapy” są dostępne, gdy tylko wycieczka ma trasę, także dla uczestników, którzy mogą podróż tylko czytać.',
   'help.guide.tour-copy-keep.tip.2':
     '„Zapisz w kolekcji” w menu wycieczki w planie dnia otwiera to samo okno, więc trasa też zostanie tam zapisana.',
   'help.guide.tour-packing-link.step.3': 'Kliknij „Podłącz”.',
@@ -4843,7 +5184,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ferrata-add.tip.4':
     '„Pokaż w OpenStreetMap” na karcie otwiera dane samej ferraty. Gdy nie da się nic wczytać, plakietka robi się bursztynowa, a przyczynę pokazuje podpowiedź.',
   'help.guide.tour-run-plan.result':
-    'Bieg jest na liście „Wycieczki w tej podróży” z polem „Czas biegu (planowany)”, a jego profil i tempo są zapisane razem z nim.',
+    'Bieg jest na liście „Wycieczki w tej podróży” z polem „Czas biegu”, a jego profil i tempo są zapisane razem z nim.',
   'help.guide.tour-run-ways.step.2':
     'U góry karty widać teraz, jaka część biegu prowadzi po nawierzchni nieutwardzonej, i najtrudniejszą sklasyfikowaną ścieżkę na trasie.',
   'help.ctx.trip-tour-walk.bullet.2':
@@ -4894,7 +5235,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Nowa wycieczka wioślarska z wybraną łodzią, wodą i prędkością, gotowa na pierwszy punkt na mapie.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Jeśli brakuje danych o wodach, TREK, zależnie od konfiguracji instancji, pobiera je dla regionu automatycznie albo prosi o nie administratora. Odcinek pokazuje wtedy „Wczytywanie danych o wodzie” i jest planowany automatycznie, gdy dane będą dostępne, zwykle w ciągu jednej do trzech minut.',
+    'Jeśli brakuje danych o wodach, TREK, zależnie od konfiguracji instancji, pobiera je dla regionu automatycznie albo prosi o nie administratora. Administrator dodaje regiony w „Dane wodne dla spływów”, wierszu pod „Wycieczki” na karcie „Dodatki” w obszarze administratora. Odcinek pokazuje wtedy „Wczytywanie danych wodnych” i jest planowany automatycznie, gdy dane będą dostępne, zwykle w ciągu jednej do trzech minut.',
   'help.guide.tour-paddle-portage.step.2':
     'Wybierz „Przenieś łódź od tego miejsca”. Odcinek do następnego punktu staje się przenoską, rysowaną po lądzie.',
   'help.guide.tour-paddle-lock.title': 'Dodawanie śluzy i czasu oczekiwania',
@@ -4979,8 +5320,9 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.title': 'Konfiguracja wtyczki na własne potrzeby',
   'help.guide.default-user-settings.tip.2':
     '„Waluta wyświetlania” przelicza kwoty tylko do wyświetlania. Kwoty wpisane w „Kosztach” się nie zmieniają.',
-  'help.guide.own-routing-engine.step.2':
-    'Jeśli chcesz tras omijających płatne drogi, autostrady lub promy, wpisz adres swojej Valhalli w polu „Własna instancja Valhalli”. Każde pole zapisuje się po jego opuszczeniu; potem zrestartuj serwer TREK i odśwież stronę.',
+  'help.guide.own-routing-engine.step.2': 'W „Własny silnik tras” wpisz adres swojego serwera OSRM.',
+  'help.guide.own-routing-engine.step.3':
+    'W „Własna instancja Valhalli” wpisz adres swojej Valhalli i wybierz „Własna instancja Valhalli” jako „Usługa wyznaczania tras”. Każde pole zapisuje się po jego opuszczeniu, a potem uruchom ponownie serwer TREK i odśwież stronę.',
   'help.guide.admin-passkeys.tip.3':
     'Jeśli użytkownik zgubił urządzenie ze swoimi kluczami dostępu, usuń je przyciskiem „Zresetuj klucze dostępu” w oknie „Edytuj użytkownika”.',
   'help.guide.rotate-jwt-secret.result':
@@ -4989,7 +5331,7 @@ const help: TranslationStrings = {
   'help.guide.filter-notifications.title': 'Wszystkie powiadomienia lub tylko nieprzeczytane',
   'help.guide.mark-notifications-read.goal': 'Usuń wyróżnienie i liczbę przy dzwonku, gdy już zobaczysz nowości.',
   'help.guide.delete-notifications.step.1':
-    'Kliknij „Usuń”, czyli kosz obok godziny powiadomienia, żeby usunąć tylko to jedno.',
+    'Najedź na powiadomienie i kliknij „Usuń”, czyli kosz, który zajmuje miejsce godziny, żeby usunąć tylko to jedno.',
   'help.guide.notification-settings.step.2': 'Kliknij „Ustawienia” w menu.',
   'help.guide.public-link.tip.3': 'Najedź na opcję, żeby sprawdzić, co ukrywa.',
   'help.guide.link-journal.step.4':
@@ -5026,7 +5368,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.tip.2':
     'TREK zapamiętuje „Od A do Z” w tej przeglądarce, więc następnym razem lista też otworzy się posortowana. Zmienia to tylko twój widok, nigdy kolejność widzianą przez innych.',
   'help.guide.count-packed-pieces.step.4':
-    'Gdy licznik osiągnie ilość, przedmiot zostaje automatycznie odhaczony i liczy się jako spakowany.',
+    'Zamknij okno. Dopóki spakowana jest tylko część sztuk, wiersz pokazuje licznik, na przykład 3/5, a pole wyboru ma obwódkę w Twoim kolorze akcentu. Gdy licznik osiągnie ilość, przedmiot zostaje odhaczony automatycznie.',
   'help.guide.expense-receipts.result':
     'Paragon jest zapisany razem z wydatkiem: otwiera go znacznik w wierszu, a plik jest też w „Plikach” podróży.',
   'help.guide.files-sync-settings.step.4':
@@ -5069,7 +5411,7 @@ const help: TranslationStrings = {
     'Ukryj na mapie niepotrzebne teraz wycieczki, nie zmieniając ich dla nikogo innego.',
   'help.guide.tour-import-plan-tab.goal': 'Zaimportuj ślad GPX lub KML jako wycieczkę podczas planowania dni.',
   'help.ctx.trip-tour-detail.summary':
-    'Karta, która otwiera się nad mapą po wybraniu wycieczki na karcie „Plan”: dni, parametry i profil, pochodzenie oraz przyciski do wysłania wycieczki na telefon, skopiowania, zapisania w kolekcji lub połączenia z listą pakowania.',
+    'Karta, która otwiera się nad mapą po wybraniu wycieczki na karcie „Plan”: dni, parametry i profil, pochodzenie oraz przyciski do wysłania wycieczki na telefon, otwarcia jej trasy w aplikacji z mapami, skopiowania, zapisania w kolekcji lub połączenia z listą pakowania.',
   'help.guide.tour-detail-read.step.1':
     'U góry prawej kolumny przełącz z „Miejsca” na „Wycieczki” i kliknij wycieczkę. Jej karta otworzy się nad mapą. Tę samą kartę otwiera wiersz wycieczki w dniu albo jej linia na mapie.',
   'help.guide.tour-detail-read.tip.2':
@@ -5077,7 +5419,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.step.2':
     'Wpisz nową nazwę i kliknij okrągły przycisk z ptaszkiem albo naciśnij Enter. Escape zachowuje starą nazwę.',
   'help.guide.tour-take-along.step.1':
-    'Otwórz kartę wycieczki. „Nawigacja” na dole karty otwiera punkt startowy wycieczki w aplikacji z mapami, a jeśli masz ich kilka, najpierw je wyświetla. Prowadzi do startu, a nie wzdłuż trasy.',
+    'Otwórz kartę wycieczki. „Nawigacja” na dole karty otwiera punkt startowy wycieczki w aplikacji z mapami, a jeśli masz ich kilka, najpierw je wyświetla. Prowadzi do startu, a nie wzdłuż trasy. „Mapy” obok przekazuje całą trasę.',
   'help.guide.tour-copy-keep.title': 'Kopiowanie wycieczki lub zapisanie jej w kolekcji',
   'help.guide.tour-copy-keep.tip.3':
     'Na karcie „Wycieczki” to samo dla otwartej wycieczki robi zakładka u góry lewej kolumny. Jeśli wycieczka ma niezapisane zmiany, pojawi się prośba o jej zapisanie.',
@@ -5173,7 +5515,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-plan.tip.1':
     'Nowa wędrówka zaczyna się od T2 („Turystyka górska”). Przy T3 pojawia się ostrzeżenie, że takie ścieżki mogą być eksponowane i wymagają pewnego kroku oraz odporności na lęk wysokości.',
   'help.guide.tour-hike-trail-details.step.3':
-    'Plakietki to podsumowują: jaka część trasy ma dane („Znane”), „Najwyższy znany” stopień, a osobno „Limit trasy”, z którym zaplanowano wędrówkę.',
+    'Plakietki to podsumowują: jaka część trasy jest „Znane”, „Najwyższy znany” stopień na niej oraz, osobno, „Limit wyznaczania trasy”, z którym zaplanowano wędrówkę.',
   'help.guide.tour-hike-round.goal':
     'Niech TREK zaproponuje pętle o wybranej długości, zaczynające się od jednego z przystanków wędrówki.',
   'help.guide.tour-hike-round.tip.2':
@@ -5289,6 +5631,17 @@ const help: TranslationStrings = {
     'Wpisy z dnia przejętego z Dawarich są szkicami. Zanim udostępnisz dziennik, sprawdź, czy nie mają tej plakietki.',
   'help.guide.journey-map-layers.result':
     'Mapa pokazuje tylko wybrane warstwy, a znaczenie każdej pinezki, kropki i linii wyjaśnia legenda.',
+  'help.guide.journey-satellite.title': 'Zobacz dziennik na zdjęciach satelitarnych',
+  'help.guide.journey-satellite.goal': 'Zamień narysowaną mapę pod dziennikiem na zdjęcia lotnicze i z powrotem.',
+  'help.guide.journey-satellite.step.1':
+    'Kliknij okrągły przycisk w prawym górnym rogu mapy, „Przełącz na widok satelitarny”.',
+  'help.guide.journey-satellite.step.2':
+    'Twoje pinezki i trasy leżą teraz na zdjęciach lotniczych. Przycisk zmienia się na „Przełącz na widok mapy”: kliknij go, żeby wrócić do narysowanej mapy.',
+  'help.guide.journey-satellite.tip.1':
+    'Udostępniony link ma ten sam przycisk, więc odwiedzający mogą śledzić wędrówkę albo linię brzegową po samym terenie.',
+  'help.guide.journey-satellite.tip.2':
+    'Wybór nie jest zapamiętywany: dziennik i udostępniona strona zawsze otwierają się na narysowanej mapie. Zdjęcia satelitarne nie mają nazw ulic.',
+  'help.guide.journey-satellite.result': 'Mapa jest znów narysowana, z tymi samymi warstwami włączonymi co wcześniej.',
   'help.guide.journey-keep-route.result':
     'Nagłówek dnia pokazuje dystans, a trasa jest rysowana ciągłą linią na warstwie „Nagrane” mapy, widocznej dla wszystkich uczestników dziennika. Udostępniony link pokazuje ją tylko wtedy, gdy włączone są „Nagrane trasy”.',
   'help.guide.journey-day-stays.result':
@@ -5323,7 +5676,7 @@ const help: TranslationStrings = {
   'help.guide.filter-notifications.goal':
     'Przejrzyj wszystkie powiadomienia albo tylko te, których jeszcze nie przeczytałeś.',
   'help.guide.mark-notifications-read.step.1':
-    'Kliknij „Oznacz jako przeczytane”, czyli podwójny ptaszek obok godziny powiadomienia, żeby oznaczyć tylko to jedno.',
+    'Najedź na powiadomienie i kliknij „Oznacz jako przeczytane”, czyli podwójny ptaszek, który zajmuje miejsce godziny, żeby oznaczyć tylko to jedno.',
   'help.guide.delete-notifications.step.2':
     '„Usuń wszystkie” u góry usuwa całą listę naraz, po potwierdzeniu w oknie dialogowym.',
   'help.guide.notification-settings.step.3':
@@ -5339,7 +5692,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.tip.1':
     'Wyblakłych wierszy w dniach pośrednich rezerwacji wielodniowej nie można przeciągać, podobnie jak pojedynczego odcinka lotu z przesiadkami.',
   'help.guide.place-image-from-file.step.2':
-    'Kliknij okrągłe zdjęcie w nagłówku. Ponieważ miejsce ma zdjęcia, małe okno zapyta, skąd wziąć obraz.',
+    'Kliknij „Edytuj” w prawym dolnym rogu. W „Wybierz zdjęcie” w formularzu zdjęcia dołączone do miejsca są kafelkami obok „Prześlij zdjęcie”.',
   'help.guide.place-own-hours.goal':
     'Wpisz na kartę sprawdzone przez siebie godziny, gdy pobrane są błędne lub ich brakuje.',
   'help.guide.place-own-hours.tip.2':
@@ -5349,6 +5702,8 @@ const help: TranslationStrings = {
   'help.guide.confirm-stay-booking.tip.1': 'Kliknij pigułkę ponownie, a rezerwacja wróci do stanu „Oczekujące”.',
   'help.guide.map-markers.tip.4':
     'Gdy włączone są „Kompaktowe znaczniki dla niezaplanowanych miejsc” (w „Ustawienia” > „Wygląd”, w sekcji „Podróże i mapa”), miejsca bez przypisanego dnia są małymi kropkami bez zdjęcia i oceny. Wybrane miejsce jest zawsze pokazywane w pełnej postaci.',
+  'help.guide.map-markers.tip.5':
+    'W Mapbox GL ze stylem Standard mapa podpisuje własne sklepy, restauracje i atrakcje, które nie są miejscami Twojej podróży. Włącz „Ukryj ciekawe miejsca” w „Ustawienia” > „Mapa” i kliknij „Zapisz mapę”, a wyróżniać się będą tylko Twoje pinezki.',
   'help.guide.tour-map-lines.step.1':
     'Każda wycieczka podróży jest na mapie linią w swoim kolorze, z pinezką w miejscu startu. Jeśli wybrałeś dla wycieczki kolor, linia go używa. W przeciwnym razie ma kolor swojej kategorii.',
   'help.guide.car-stops.step.6': 'Kliknij „Dodaj”.',
@@ -5414,9 +5769,9 @@ const help: TranslationStrings = {
   'help.guide.tour-detail-read.tip.3':
     'Niektóre wycieczki pokazują więcej: spacer po mieście swoje przystanki, spływ kontrole i wiatr, odbyta wycieczka „Rzeczywistą trasę”, a wycieczka powiązana z listą „Listę pakowania”.',
   'help.guide.tour-rename-colour.step.3':
-    'Kliknij kolorową kropkę w rogu okrągłego kafelka wycieczki, „Kolor śladu”. Pod nagłówkiem otworzy się sekcja „Kolor śladu”.',
+    'Kliknij kolorową kropkę w rogu okrągłego kafelka wycieczki, „Kolor śladu”. Pod nagłówkiem otworzy się rząd kolorów.',
   'help.guide.tour-take-along.step.2':
-    'Jeśli wycieczka ma stronę internetową, przycisk obok pokazuje nazwę serwisu (Komoot, AllTrails, Outdooractive lub Wanderer) albo „Strona internetowa” dla każdej innej. Otwiera stronę w nowej karcie.',
+    'Jeśli wycieczka ma stronę internetową, przycisk za „Mapy” pokazuje nazwę serwisu (Komoot, AllTrails, Outdooractive lub Wanderer) albo „Strona internetowa” dla każdej innej. Otwiera stronę w nowej karcie.',
   'help.guide.tour-copy-keep.goal':
     'Utwórz wariant wycieczki w tej podróży albo zapisz ją na przyszłe podróże w jednej ze swoich kolekcji.',
   'help.guide.tour-copy-keep.tip.4':
@@ -5454,7 +5809,7 @@ const help: TranslationStrings = {
     'Pole „Nazwa wycieczki” u góry lewego panelu zawiera nazwę. Przy nowej wycieczce szary tekst, np. „Wędrówka bez nazwy”, to tylko podpowiedź: wpisz własną nazwę.',
   'help.guide.tour-save.title': 'Zapisywanie wycieczki',
   'help.guide.tour-save.tip.3':
-    '„Zapisz” nie działa też wtedy, gdy któreś pole ma nieprawidłową wartość, np. strona internetowa nie jest adresem. Sekcja „Szczegóły” otworzy się wtedy automatycznie i pokaże błąd.',
+    '„Zapisz” nie działa też wtedy, gdy któreś pole ma nieprawidłową wartość, na przykład strona internetowa nie jest adresem, albo gdy czas marszu i przerwy jednego dnia dają razem ponad 24 godziny. Sekcja „Szczegóły” otworzy się automatycznie i powie, co zrobić.',
   'help.guide.tour-edit-saved.tip.1': '„Zapisz” pozostaje wyszarzone, dopóki nie zmienisz czegoś w wycieczce.',
   'help.guide.tour-summary-profile.step.3':
     'Przesuwaj kursor po „Profilu wysokościowym”. Zobaczysz dystans i wysokość w danym punkcie, a kropka zaznaczy to samo miejsce na mapie.',
@@ -5538,7 +5893,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-google-import.step.3':
     'Sprawdź „Przystanki w linku”. Przystanek bez lokalizacji w linku jest oznaczony i pominięty.',
   'help.guide.tour-walk-check-off.step.1':
-    'Na karcie „Plan” kliknij spacer po mieście w jego dniu. Jego karta otworzy się obok mapy.',
+    'Na karcie „Plan” kliknij spacer po mieście w jego dniu. Jego karta otworzy się nad mapą.',
   'help.ctx.trip-tour-bike.title': 'Wycieczki rowerowe',
   'help.guide.tour-bike-profile.step.1':
     'Na karcie „Wycieczki” kliknij „Zaplanuj nową wycieczkę” u góry lewego panelu.',
@@ -5599,7 +5954,19 @@ const help: TranslationStrings = {
     'Gdy już wiesz, kiedy jedziesz, otwórz formularz ołówkiem na karcie i wybierz daty. Zaplanowane dni zachowają swoją kolejność i dostaną daty po kolei.',
   'help.guide.trip-reminder.goal': 'Otrzymaj przypomnienie kilka dni przed wyjazdem.',
   'help.guide.upcoming-reservations.tip.2':
-    '„Oczekujące” oznacza rezerwację, która nie została jeszcze potwierdzona. Anulowane rezerwacje i zarchiwizowane podróże nie są tu uwzględniane.',
+    'Mała litera P na ikonie typu oznacza rezerwację, która nie została jeszcze potwierdzona. Anulowane rezerwacje i zarchiwizowane podróże nie są tu uwzględniane.',
+  'help.guide.travel-stats.title': 'Sprawdź statystyki podróży',
+  'help.guide.travel-stats.goal': 'Zobacz, ile krajów, podróży, dni i lotów składa się na wszystkie Twoje podróże.',
+  'help.guide.travel-stats.step.1':
+    'Spójrz na „Odwiedzone kraje” pod kartą pokładową. Liczą się kraje miejsc i rezerwacji transportu z każdej podróży, która już się rozpoczęła, a ich flagi pojawiają się od kraju odwiedzonego najpóźniej.',
+  'help.guide.travel-stats.step.2':
+    'Karty obok liczą Twoje podróże i zaznaczone na nich miejsca, dni w drodze oraz przebyty samolotem dystans.',
+  'help.guide.travel-stats.result':
+    'Wiersz sam się aktualizuje, gdy planujesz i podróżujesz, i obejmuje wszystkie Twoje podróże, także te zarchiwizowane.',
+  'help.guide.travel-stats.tip.1':
+    'Kraje, które w Atlasie oznaczyłeś jako odwiedzone ręcznie, pojawiają się po tych z Twoich podróży. Kraj usunięty w Atlasie pozostaje usunięty również tutaj.',
+  'help.guide.travel-stats.tip.2':
+    'Każdą kartę można ukryć w sekcji „Ustawienia”, „Wygląd”, „Widżety pulpitu”. Gdy wyłączysz wszystkie cztery, wiersz znika.',
   'help.guide.half-company-holiday.tip.1':
     'Urlop wpisany już na ten dzień zostaje skrócony do pół dnia. Kto wpisze ten dzień później, wykorzysta tylko 0,5 dnia.',
   'help.guide.edit-holiday-calendar.goal':
@@ -5638,6 +6005,25 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.title': 'O aplikacji',
   'help.guide.web-push-device.tip.3':
     'Powiadomienia push wymagają otwarcia TREK przez HTTPS. Jeśli powiadomienia są zablokowane, zezwól na nie w ustawieniach przeglądarki i spróbuj ponownie.',
+  'help.guide.booking-mail-address.title': 'Przekazuj wiadomości z rezerwacjami do TREK',
+  'help.guide.booking-mail-address.goal':
+    'Zdobądź własny adres na potwierdzenia rezerwacji, żeby TREK dodawał każdą rezerwację do właściwej podróży.',
+  'help.guide.booking-mail-address.step.1':
+    'W „Integracje” sekcja „Wiadomości z rezerwacjami” pokazuje „Twój adres”. Kliknij przycisk kopiowania obok niego. Trzymaj adres dla siebie, jak hasło.',
+  'help.guide.booking-mail-address.step.2':
+    'Przekaż na niego wiadomość z rezerwacją ręcznie, razem z załącznikami, albo skorzystaj z „Przekazuj automatycznie”, żeby ustawić regułę w Gmailu lub Outlooku.',
+  'help.guide.booking-mail-address.step.3':
+    '„Importuj wiadomości z rezerwacjami” włącza lub wyłącza import. „Odczytuj za pomocą AI” pozwala AI czytać wiadomości bez danych rezerwacji w formie odczytywalnej maszynowo. „Dodawaj samodzielnie” wstawia rezerwację, której TREK jest pewien, od razu do jej podróży.',
+  'help.guide.booking-mail-address.step.4':
+    '„Rezerwacje do zatwierdzenia” otwiera wiadomości, które czekają na Ciebie, z liczbą, gdy jakieś są. „Wgraj plik wiadomości” odczytuje wiadomość zapisaną jako .eml.',
+  'help.guide.booking-mail-address.result':
+    'Wiadomości, które przekażesz, trafiają do podróży, której daty i miejsca pasują do rezerwacji, albo czekają w „Rezerwacje do zatwierdzenia”, żebyś je sprawdził.',
+  'help.guide.booking-mail-address.tip.1':
+    'Przycisk obok kopiowania, „Nowy adres”, daje Ci nowy adres. Kliknij go dwa razy. Stary adres przestaje działać od razu, więc zmień też swoje reguły przekazywania.',
+  'help.guide.booking-mail-address.tip.2':
+    'Podróż może mieć własny adres, w zakładce „Rezerwacje” w sekcji „Importuj potwierdzenia rezerwacji”. Wiadomość na ten adres omija zgadywanie.',
+  'help.guide.booking-mail-address.tip.3':
+    'Przekazane wiadomości są przechowywane w postaci zaszyfrowanej przez najwyżej 30 dni. Karta pojawia się dopiero, gdy administrator włączy import wiadomości.',
   'help.guide.connect-airtrail.result':
     'Plakietka pokazuje „Połączono”, a zakładka „Transport” w podróży oferuje „Importuj z AirTrail”.',
   'help.guide.connect-dawarich.result':
@@ -5647,7 +6033,7 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.result':
     'TREK sprawdza zaimportowane szlaki i informuje Cię, gdy któryś mógł się zmienić. Wycieczka zmienia się dopiero wtedy, gdy zaakceptujesz zmianę.',
   'help.guide.plugin-settings.step.1':
-    'Otwórz „Wtyczki” na pasku bocznym ustawień. Pod nagłówkiem „Ustawienia wtyczek” każda wtyczka, która wymaga konfiguracji, ma kartę z polami: wypełnij je i kliknij „Zapisz”. Akcje na karcie uruchamiają się po potwierdzeniu.',
+    'Otwórz „Wtyczki” na pasku bocznym ustawień. Pod nagłówkiem „Ustawienia wtyczek” każda wtyczka, która ma dla Ciebie ustawienia, ma własną kartę: wypełnij jej pola i kliknij „Zapisz” albo dokonaj wyborów, które pokazuje. Akcje na karcie uruchamiają się po potwierdzeniu.',
   'help.guide.profile.step.3': 'Kliknij „Zapisz profil” po prawej stronie stopki karty.',
   'help.guide.default-user-settings.title': 'Ustawienia startowe dla nowych użytkowników',
   'help.guide.own-routing-engine.tip.1':
@@ -5659,7 +6045,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Ustal początkowe ustawienia powiadomień dla wszystkich użytkowników i całkowicie zablokuj wybrany kanał dla danego zdarzenia.',
   'help.ctx.notifications.summary':
-    'Wszystkie powiadomienia, które TREK wyświetlił Ci w aplikacji, od najnowszych: ktoś zmienił rezerwację, w czacie podróży jest nowa wiadomość, ktoś udostępnił Ci kalendarz. Dzwonek w prawym górnym rogu pokazuje dziesięć najnowszych, a ta strona wszystkie.',
+    'Wszystkie powiadomienia, które TREK wyświetlił Ci w aplikacji, od najnowszych i pogrupowane według dni: ktoś zmienił rezerwację, w czacie podróży jest nowa wiadomość, lot jest opóźniony, rezerwacja z przekazanej wiadomości. Dzwonek w prawym górnym rogu pokazuje dziesięć najnowszych, a ta strona wszystkie.',
   'help.guide.read-notifications.step.1':
     'Kliknij dzwonek w prawym górnym rogu. Czerwona liczba na nim to liczba nieprzeczytanych powiadomień.',
   'help.guide.filter-notifications.step.1': 'Kliknij dzwonek w prawym górnym rogu.',
@@ -5678,19 +6064,37 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.5':
     'Gdy podróż obejmuje więcej niż jeden kraj lub region, ikona globusa zawęża listę do jednego kraju lub do jednego regionu w nim, a przy każdym widać liczbę miejsc. „Wyczyść filtr” przywraca „Wszystkie kraje”.',
   'help.guide.import-places-file.tip.3':
-    'Gdy „Wycieczki” są włączone, co jest ustawieniem domyślnym, plik importujesz przez „Wycieczki” u góry kolumny, przyciskiem „Importuj GPX lub KML”, a jego linie stają się wycieczkami. Pinezek z pliku nie importuje się w ten sposób, bo wycieczki składają się tylko z linii.',
+    'Gdy „Wycieczki” są wyłączone, ślad lub trasa zaznaczone w „Importuj plik” stają się osobnym miejscem: kolorową linią w swoim wierszu, narysowaną na mapie, a „Trasy” w „Pokaż” je znajduje.',
   'help.guide.dawarich-stays.step.3':
-    'Sprawdź pola „Nazwa”, „Przyjazd” i „Wyjazd”, wybierz „Dzień” lub zostaw „Jeszcze bez przypisanego dnia”, w razie potrzeby dodaj „Notatki” i kliknij „Dodaj miejsce”.',
+    'Sprawdź pola „Nazwa”, „Przyjazd” i „Wyjazd”. Gdy pobyt przypada na dzień podróży, „Dzień” już go pokazuje. Wybierz inny albo zostaw „Jeszcze bez przypisanego dnia”. W razie potrzeby dodaj „Notatki” i kliknij „Dodaj miejsce”.',
   'help.guide.leave-stop-off-route.result':
     'Przystanek nadal należy do dnia i jest w PDF. Dopóki jest oznaczony jako „Poza trasą”, trasa biegnie prosto od poprzedniego przystanku do następnego.',
   'help.guide.move-booking-day.tip.2':
     'W obrębie swojego dnia rezerwacja z godziną zawsze wraca w miejsce wynikające z tej godziny.',
   'help.guide.place-image-from-file.step.3':
-    'W sekcji „Z załączonych plików” kliknij wybrane zdjęcie. Przycisk „Prześlij z urządzenia” nad nią pozwala zamiast tego wybrać nowe zdjęcie z komputera.',
+    'Kliknij wybrane zdjęcie. Dostaje obwódkę i ptaszek, a jego nazwa pliku pojawia się pod kafelkami.',
   'help.guide.place-own-hours.step.1':
     'Otwórz miejsce i kliknij „Edytuj” w prawym dolnym rogu karty. Otworzy się formularz miejsca.',
   'help.guide.place-own-hours.tip.3':
     'Kliknij „Usuń godziny otwarcia”, a potem „Aktualizuj”, aby na karcie znów wyświetlały się automatycznie znalezione godziny.',
+  'help.guide.place-off-map.title': 'Umieść na mapie miejsce bez współrzędnych',
+  'help.guide.place-off-map.goal': 'Dowiedz się, dlaczego miejsce nie ma znacznika, i dodaj go.',
+  'help.guide.place-off-map.step.1':
+    'W kolumnie miejsc pinezka z ostrzeżeniem obok nazwy miejsca oznacza, że ma adres, ale nie ma współrzędnych. Kliknij wiersz.',
+  'help.guide.place-off-map.step.2':
+    'Karta wśród pigułek na górze mówi „Brak współrzędnych, więc nie ma na mapie”. Najedź na nią, żeby zobaczyć, jak to naprawić.',
+  'help.guide.place-off-map.step.3':
+    'Kliknij „Edytuj” w prawym dolnym rogu. W „Adres” formularz mówi to samo: miejsce nie pojawi się na mapie, dopóki nie ma współrzędnych.',
+  'help.guide.place-off-map.step.4':
+    'Wpisz „Szerokość” i „Długość” miejsca albo wklej obie naraz do pola „Szerokość”, oddzielone przecinkiem. Możesz też wyszukać miejsce u góry formularza i wybrać je z podpowiedzi.',
+  'help.guide.place-off-map.step.5': 'Kliknij „Aktualizuj”. Ostrzeżenie znika, a miejsce ma znacznik na mapie.',
+  'help.guide.place-off-map.result':
+    'Miejsce jest na mapie ze swoim znacznikiem, a jego przystanki można układać w trasę jak każde inne.',
+  'help.guide.place-off-map.tip.1':
+    'Bez współrzędnych miejsce nie ma znacznika ani trasy w swoim dniu, a mniej aplikacji z mapami potrafi je otworzyć.',
+  'help.guide.place-off-map.tip.2':
+    'Miejsce bez adresu i bez współrzędnych, na przykład przypomnienie, zostaje w spokoju i nie pokazuje ostrzeżenia.',
+  'help.guide.place-off-map.tip.3': 'Link z serwisu mapowego wklejony w pole wyszukiwania też uzupełnia współrzędne.',
   'help.guide.confirm-stay-booking.title': 'Potwierdzanie rezerwacji noclegu',
   'help.guide.confirm-stay-booking.tip.2':
     'Ta sama pigułka działa w każdej rezerwacji, również w rezerwacjach w sekcji „Rezerwacje” danego dnia.',
@@ -5702,12 +6106,12 @@ const help: TranslationStrings = {
   'help.guide.car-stops.result':
     'Przejazd jest kartą w zakładce „Transport” i wierszem w swoim dniu, a jego linia na mapie biegnie od miejsca odbioru przez wszystkie przystanki po kolei aż do miejsca zwrotu.',
   'help.guide.transport-details.step.5':
-    '„Na mapie” na dole szczegółów pokazuje linię przejazdu i otwiera plan w jego dniu. „Edytuj” po prawej otwiera pełny formularz, a ikona kosza obok usuwa przejazd po potwierdzeniu.',
+    '„Mapa” w lewym dolnym rogu szczegółów pokazuje linię przejazdu i otwiera plan w jego dniu. „Edytuj” po prawej otwiera pełny formularz, a kosz obok usuwa przejazd po potwierdzeniu.',
   'help.guide.export-transports-csv.step.1':
     'Jeśli potrzebujesz tylko części listy, najpierw ją zawęź. Liczą się wyszukiwanie, „Filtruj” i sortowanie w „Opcje widoku”: plik zawiera to, co widać w zakładce, w tej samej kolejności.',
   'help.guide.group-sort-bookings.tip.1':
     '„Karty” i „Lista” mają osobne grupowanie: „Karty” zaczynają od statusu, „Lista” od dnia. Kropka przy „Opcje widoku” oznacza, że coś różni się od ustawień domyślnych, a „Resetuj widok” na dole panelu je przywraca.',
-  'help.guide.booking-on-map.step.2': 'Kliknij „Na mapie” na dole szczegółów.',
+  'help.guide.booking-on-map.step.2': 'Kliknij „Mapa” na dole szczegółów.',
   'help.guide.export-bookings-csv.goal':
     'Wyeksportuj rezerwacje podróży do pliku CSV, który otworzysz w Excelu, Numbers lub innym arkuszu kalkulacyjnym.',
   'help.guide.arrange-packing-list.goal':
@@ -5785,7 +6189,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-planner.bullet.6':
     'Niezapisany szkic nie przepada: po ponownym otwarciu zakładki „Wycieczki” zostaje przywrócony z oznaczeniem „Przywrócono niezapisany szkic”. „Wróć do wycieczek” i „Odrzuć” pytają o potwierdzenie, zanim odrzucą zmiany.',
   'help.guide.tour-open-workspace.step.6':
-    'Pigułka w lewym dolnym rogu przełącza mapę, początkowo między „Mapa” a „Satelita”. Przy otwartej wycieczce oferuje mapy dla jej rodzaju, np. Topo lub „Turystyka”, oraz przełączniki, np. „Ustawiaj punkty” i 3D.',
+    'Pigułka w lewym dolnym rogu przełącza mapę między „Mapa”, „Topograficzna” i „Satelita” oraz włącza 3D. Przy otwartej wycieczce oferuje mapy dla jej rodzaju, na przykład „Turystyka”, oraz przełączniki, takie jak „Ustawiaj punkty” i „Ferraty”.',
   'help.guide.tour-draw-route.step.1':
     'Kliknij „Zaplanuj nową wycieczkę” u góry lewego panelu. Panel zmienia się w „Nowa wycieczka”, domyślnie wędrówkę pieszą, chyba że wybierzesz inny rodzaj.',
   'help.guide.tour-draw-route.tip.3':
@@ -5820,7 +6224,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.2':
     'Każdy ślad lub trasa w pliku staje się osobną wycieczką. Ślady nigdy nie są łączone.',
   'help.guide.tour-view-import.step.2':
-    'Lewa kolumna pokazuje ją jako „Wycieczka GPX”: „Podsumowanie wycieczki” z dystansem, wysokościami i nagranym czasem, a pod nim profil wysokościowy. Na mapie widać jej linię.',
+    'Lewa kolumna pokazuje ją jako wycieczkę GPX: „Podsumowanie wycieczki” z dystansem i wysokościami oraz nagranym czasem, jeśli plik go zawiera, a pod nim profil wysokościowy. Na mapie widać jej linię.',
   'help.guide.tour-plan-from-import.step.1':
     'Otwórz zaimportowaną wycieczkę w zakładce „Wycieczki”. Na karcie „Wersja do edycji” po lewej kliknij „Zaplanuj wersję do edycji”.',
   'help.guide.tour-plan-from-import.result':
@@ -5860,7 +6264,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Kliknij „Nawierzchnia”, aby zobaczyć tę samą trasę według podłoża, od asfaltu po grunt naturalny i skałę.',
   'help.guide.tour-hike-round.step.2':
-    'Nad mapą otwiera się karta „Wędrówka w pętli”. Sprawdź punkt startowy w polu „Od” i wpisz żądany „Dystans”. Pigułka obok pokazuje możliwy zakres długości pętli.',
+    'Nad mapą otwiera się karta „Wędrówka w pętli”. Sprawdź punkt startowy w polu „Od” i wpisz żądany „Dystans”. Pigułka obok pokazuje długości pętli, które TREK zaproponuje dla tego dystansu.',
   'help.guide.tour-hike-compare-ways.title': 'Porównanie wariantów jednego odcinka wędrówki',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Jeśli algorytm nie zna innej drogi, karta o tym informuje. Jeśli nie może poprowadzić trasy wybraną drogą, odcinek pozostaje bez zmian, a karta Ci to zgłasza.',
@@ -6001,6 +6405,8 @@ const help: TranslationStrings = {
     'Podpowiedź nigdy nie zmienia wycieczki. Co faktycznie się zmieniło, pokazuje sprawdzenie źródła wycieczki.',
   'help.guide.api-keys.tip.3':
     'Przesyłaj klucz w nagłówku Authorization: Bearer lub X-API-Key do /api/v1. Jedno konto może mieć maksymalnie 10 kluczy.',
+  'help.guide.api-keys.tip.4':
+    'W oknie Ctrl+Enter, a na Macu Cmd+Enter, tworzy klucz z dowolnego pola, tak samo jak kliknięcie „Utwórz”.',
   'help.guide.plugin-settings.step.2':
     '„Aktywność wtyczek” pokazuje wszystkie działania wykonane przez wtyczki w Twoim imieniu, od najnowszych. „Odśwież” wczytuje najnowsze.',
   'help.ctx.admin-github.bullet.3':
@@ -6010,9 +6416,9 @@ const help: TranslationStrings = {
   'help.guide.default-map.step.3':
     'Każde pole zapisuje się, gdy je opuścisz. Link „przywróć” obok nazwy pola przywraca domyślną wartość TREK.',
   'help.guide.own-routing-engine.tip.2':
-    'Jeśli ustawisz tylko własny silnik tras, publiczna Valhalla również nie będzie używana. Link „przywróć” obok pola znów je czyści.',
+    'Gdy ustawisz tylko własny silnik tras, a „Usługa wyznaczania tras” jest na „Automatycznie”, żadna Valhalla nie jest odpytywana. Link „przywróć” obok pola znów je czyści.',
   'help.guide.admin-passkeys.step.1':
-    'W zakładce „Ustawienia”, w sekcji „Logowanie kluczem dostępu”, włącz „Włącz logowanie kluczem dostępu”.',
+    'Na karcie „Bezpieczeństwo”, w sekcji „Metody uwierzytelniania”, włącz „Włącz logowanie kluczem dostępu”.',
   'help.guide.storage-backends.step.4':
     'Sekcja „Zdrowie” u góry pokazuje nieudane zapisy do celu kopii lustrzanej. Komunikat „Nie odnotowano żadnych błędów replik” oznacza, że wszystko działa.',
   'help.guide.channels-instance.tip.3':
@@ -6022,7 +6428,7 @@ const help: TranslationStrings = {
   'help.ctx.notifications.bullet.1':
     'Dzwonek w prawym górnym rogu pokazuje liczbę nieprzeczytanych powiadomień. Kliknij go, aby zobaczyć dziesięć najnowszych, a przyciskiem „Pokaż wszystkie” na dole przejdziesz na tę stronę.',
   'help.guide.read-notifications.step.2':
-    'Panel pokazuje dziesięć najnowszych powiadomień. Każde mówi, kto, co i gdzie zrobił, a nieprzeczytane mają podświetlone tło.',
+    'Panel pokazuje dziesięć najnowszych powiadomień, pogrupowanych według dni. Każde mówi, kto, co i gdzie zrobił, a nieprzeczytane są pogrubione i mają kropkę obok godziny.',
   'help.guide.filter-notifications.step.2': 'Na dole panelu kliknij „Pokaż wszystkie”.',
   'help.guide.mark-notifications-read.tip.1':
     'Otwarcie powiadomienia jego przyciskiem również oznacza je jako przeczytane.',
@@ -6040,8 +6446,7 @@ const help: TranslationStrings = {
   'help.guide.leave-stop-off-route.tip.1':
     'Tę opcję ma tylko przystanek ze współrzędnymi, a ustawienie dotyczy wyłącznie tego dnia: to samo miejsce w innym dniu nadal jest uwzględniane w trasie.',
   'help.guide.move-booking-day.title': 'Przenoszenie rezerwacji na inny dzień',
-  'help.guide.place-image-from-file.step.4':
-    'Zdjęcie jest teraz obrazem miejsca. Kliknij mały czerwony krzyżyk w jego rogu, aby je usunąć.',
+  'help.guide.place-image-from-file.step.4': 'Kliknij „Aktualizuj”. Zdjęcie jest teraz obrazem miejsca, u góry karty.',
   'help.guide.place-own-hours.step.2': 'Pod polem „Strona internetowa” uzupełnij „Telefon” i „E-mail”, jeśli je znasz.',
   'help.guide.add-accommodation.tip.4':
     'Szybszy sposób: plus w nagłówku dnia z podpowiedzią „Dodaj do dnia” ma opcję „Dodaj zakwaterowanie”. Otwiera dzień z już otwartym tym formularzem.',
@@ -6058,7 +6463,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.result':
     'Plan jest otwarty na dniu przejazdu, jego linia jest widoczna na mapie, a ikona trasy w jego wierszu jest włączona.',
   'help.guide.export-transports-csv.step.2':
-    'Kliknij ikonę arkusza za „Opcje widoku”, z podpowiedzią „Eksportuj jako arkusz kalkulacyjny (CSV)”.',
+    'Kliknij ikonę pobierania za „Opcje widoku”. Jej podpowiedź brzmi „Eksportuj jako arkusz kalkulacyjny (CSV)” albo, gdy działa wyszukiwanie lub filtr, podaje, ile wierszy zawiera plik, na przykład „Eksportuj 2 z 4 widocznych wierszy (CSV)”.',
   'help.guide.group-sort-bookings.title': 'Grupowanie i sortowanie rezerwacji',
   'help.guide.group-sort-bookings.tip.2':
     'W widoku „Oś czasu” ten sam przycisk zawiera opcje „Osobny pas dla każdego rodzaju” i „Pokaż drugą zakładkę”.',
@@ -6068,6 +6473,31 @@ const help: TranslationStrings = {
     'Aby wyeksportować tylko część zakładki, najpierw zawęź ją za pomocą „Szukaj” lub „Filtruj”. Plik zawiera dokładnie to, co widać w zakładce.',
   'help.guide.import-booking-file.tip.4':
     'Odczytanie potwierdzenia wymaga połączenia z internetem. W trybie offline „Importuj” o tym informuje. Spróbuj ponownie, gdy TREK znów będzie online.',
+  'help.guide.forward-booking-mail.title': 'Przekaż wiadomość z rezerwacją do podróży',
+  'help.guide.forward-booking-mail.goal':
+    'Daj podróży własny adres, przekaż na niego potwierdzenie i dokończ to, czego TREK nie mógł dodać sam.',
+  'help.guide.forward-booking-mail.step.1':
+    'Kliknij ikonę przesyłania na pasku, „Importuj potwierdzenia rezerwacji”. Pod polem na pliki „Albo przekaż mailem” zawiera własny adres podróży.',
+  'help.guide.forward-booking-mail.step.2':
+    'Kliknij „Utwórz adres dla tej podróży”. Wiadomość wysłana na ten adres trafia do tej podróży bez zgadywania.',
+  'help.guide.forward-booking-mail.step.3':
+    'Adres pojawia się z przyciskiem kopiowania obok. Skopiuj go, a potem przekaż na niego wiadomość z rezerwacją ze swojego programu pocztowego, razem z załącznikami, ręcznie albo regułą. TREK odczyta ją w ciągu kilku minut.',
+  'help.guide.forward-booking-mail.step.4':
+    'Rezerwacja, której TREK jest pewien, trafia do podróży sama. Wszystko inne czeka na Ciebie: otwórz menu pod swoim imieniem w prawym górnym rogu, gdzie liczba pokazuje czekające wiadomości, i kliknij „Rezerwacje do zatwierdzenia”.',
+  'help.guide.forward-booking-mail.step.5':
+    'Każdy wpis pokazuje, co TREK odczytał, dlaczego wpis czeka i dla jakiej podróży przyszedł. „Pokaż wiadomość” pokazuje samą wiadomość. Kliknij „Uzupełnij samodzielnie”.',
+  'help.guide.forward-booking-mail.step.6':
+    '„Nowa rezerwacja” otwiera się w podróży z tym, co zawierała wiadomość: temat jako tytuł, typ, data i znaleziony kod rezerwacji. Sprawdź to, popraw, co trzeba, i kliknij „Dodaj”.',
+  'help.guide.forward-booking-mail.result':
+    'Rezerwacja jest w zakładce „Rezerwacje” jak każda inna, a jej wpis zniknął z „Rezerwacje do zatwierdzenia”.',
+  'help.guide.forward-booking-mail.tip.1':
+    'Twój własny adres, w „Ustawienia”, „Integracje”, „Wiadomości z rezerwacjami”, działa dla każdej podróży: TREK wybiera podróż, której daty i miejsca pasują do rezerwacji. Adres podróży omija to zgadywanie.',
+  'help.guide.forward-booking-mail.tip.2':
+    'Gdy na tej karcie włączone jest „Dodawaj samodzielnie”, rezerwacja, której TREK jest pewien, trafia od razu do podróży, a powiadomienie o niej oferuje „Cofnij” przez 7 dni. Gdy wyłączone, każda rezerwacja czeka w „Rezerwacje do zatwierdzenia”.',
+  'help.guide.forward-booking-mail.tip.3':
+    'Wpis można też zachować jako dokument przez „Zapisz jako dokument”, co umieszcza wiadomość lub jej załączniki w plikach podróży, albo usunąć przez „Odrzuć”.',
+  'help.guide.forward-booking-mail.tip.4':
+    'Adres jest Twój: współpodróżny, który chce własny, tworzy sobie swój. Administrator włącza import wiadomości dla całej instancji. Do tego czasu „Albo przekaż mailem” i „Rezerwacje do zatwierdzenia” się nie pojawiają.',
   'help.guide.arrange-packing-list.step.1':
     'Chwyć uchwyt na lewym końcu nagłówka listy, przed kolorową kropką, i upuść listę na inną kartę. Obramowanie w kolorze akcentu wskazuje kartę docelową, a lista zajmuje jej miejsce u wszystkich uczestników podróży.',
   'help.guide.count-packed-pieces.title': 'Pakowanie kilku sztuk jednej rzeczy',
@@ -6079,6 +6509,8 @@ const help: TranslationStrings = {
     'Kliknij ołówek obok wiersza wydatku. Otworzy się edytor wydatku z sekcją „Paragony i faktury” u dołu.',
   'help.guide.expense-receipts.tip.3':
     'Załączanie wymaga połączenia z internetem i uprawnień do przesyłania plików, bo paragon jest zapisywany jako jeden z plików podróży.',
+  'help.guide.expense-receipts.tip.4':
+    'Plik, który już jest w podróży, na przykład potwierdzenie rezerwacji będące zarazem fakturą, można powiązać zamiast przesyłać ponownie: ikona łącza obok „Załącz” wypisuje takie pliki.',
   'help.guide.files-sync-settings.title': 'Kierunek synchronizacji dokumentów',
   'help.guide.files-sync-settings.tip.1':
     'Jeden kierunek zawsze zostaje włączony: kliknięcie jedynego włączonego kierunku nic nie zmienia.',
@@ -6089,6 +6521,8 @@ const help: TranslationStrings = {
     'Kliknij „Zapisz”. Wszystkie notatki w kategorii, której zmieniono nazwę lub kolor, zmieniają się od razu u wszystkich członków. „Anuluj” odrzuca zmiany.',
   'help.guide.trip-chat.tip.5':
     'Czat najpierw pokazuje najnowsze wiadomości. „Załaduj starsze wiadomości” u góry czatu wczytuje wcześniejsze.',
+  'help.guide.trip-chat.tip.6':
+    'Wiadomość oznaczona jako od asystenta to odpowiedź, którą ktoś udostępnił z asystenta podróży przez „Udostępnij” w czacie podróży. Najedź na oznaczenie, żeby zobaczyć, kto ją udostępnił.',
   'help.guide.roadtrip-reorder.result':
     'Przystanki są w ustalonej kolejności, a dystans, czas jazdy i godziny przyjazdu w każdym zmienionym dniu zostają przeliczone.',
   'help.guide.roadtrip-overnight.goal': 'Znajdź nocleg po drodze i dodaj go do przejazdu jako rezerwację.',
@@ -6127,7 +6561,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.tip.1':
     'Nazwa i kolor należą do podróży, więc widzą je wszyscy uczestnicy. Aby ukryć wycieczkę tylko na swojej mapie, bez zmian u innych, użyj ikony oka na liście „Wycieczki”.',
   'help.guide.tour-take-along.tip.1':
-    'Na urządzeniu, które obsługuje udostępnianie plików, obok GPX pojawia się „Udostępnij”, który wysyła ten sam plik bezpośrednio do innej aplikacji.',
+    '„Udostępnij”, obok GPX, wysyła ten sam plik prosto do innej aplikacji na urządzeniu, które obsługuje udostępnianie plików. Gdzie indziej udostępnia krótki tekst o wycieczce albo go kopiuje.',
   'help.guide.tour-copy-keep.step.2':
     'Kopia otwiera się od razu, z nazwą oryginału i dopiskiem (kopia). Kliknij ołówek, aby nadać jej własną nazwę.',
   'help.guide.tour-packing-link.title': 'Powiązanie wycieczki z listą pakowania',
@@ -6165,7 +6599,7 @@ const help: TranslationStrings = {
     'Wpisz nazwę w polu „Nazwa wycieczki”. Bez niej przycisk „Zapisz” pozostaje nieaktywny.',
   'help.guide.tour-edit-saved.title': 'Zmiana zapisanej wycieczki',
   'help.guide.tour-edit-saved.tip.3':
-    '„Pobierz GPX” i „Zachowaj w kolekcji” w nagłówku panelu działają po zapisaniu zmian.',
+    '„Pobierz GPX”, „Udostępnij” i „Zachowaj w kolekcji” w nagłówku panelu działają po zapisaniu zmian.',
   'help.guide.tour-summary-profile.tip.1': 'Kliknij tytuł karty, aby zwinąć całe podsumowanie.',
   'help.guide.tour-list-manage.step.3':
     'Wybierz dzień. Wycieczka zostanie dodana do tego dnia, a jej wiersz pokaże ten dzień.',
@@ -6359,28 +6793,75 @@ const help: TranslationStrings = {
   'help.ctx.admin-defaults.bullet.3':
     'Link przywróć obok ustawionego pola przywraca domyślną wartość TREK. Własne ustawienie użytkownika zawsze ma pierwszeństwo przed tymi.',
   'help.ctx.admin-settings.bullet.5':
-    'Strefa zagrożenia: Zmień sekret JWT wylogowuje wszystkich użytkowników, Ciebie też.',
+    '„Strefa zagrożenia”, na karcie „Bezpieczeństwo”: „Zmień sekret JWT” wylogowuje wszystkich użytkowników, Ciebie też.',
   'help.guide.default-user-settings.step.1':
     'W sekcji Domyślne ustawienia użytkownika wybierz Motyw (Jasny, Ciemna lub Automatyczny), Jednostka temperatury, Jednostka odległości, Format czasu, Tydzień zaczyna się w, Format daty, Waluta wyświetlania oraz to, czy Rozmyj kody rezerwacji jest włączone, czy wyłączone. Każdy wybór zapisuje się od razu.',
   'help.guide.admin-passkeys.step.2':
-    'Wpisz Relying Party ID (domena), na przykład trek.example.org, oraz Dozwolone origins, pod którymi TREK jest dostępny, a potem kliknij Zapisz. Zostaw oba pola puste, aby użyć APP_URL.',
+    'Na karcie „Logowanie kluczem dostępu” wpisz „Relying Party ID (domena)”, na przykład trek.example.org, oraz „Dozwolone origins”, pod którymi TREK jest dostępny, a potem kliknij „Zapisz”. Zostaw oba pola puste, aby użyć APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Wyloguj wszystkich naraz',
   'help.guide.notification-defaults.step.2':
     'Kliknij komórkę, aby przełączyć ją na kolejny stan: Włączone, Wył., Zablokowane. Podpowiedź podaje następny stan, a każde kliknięcie zapisuje się od razu.',
   'help.ctx.notifications.bullet.2':
-    'Przyciski Wszystkie i Nieprzeczytane u góry przełączają widok między wszystkimi powiadomieniami a tylko tymi, których jeszcze nie przeczytałeś. Kolejne wczytują się podczas przewijania.',
+    'Przyciski „Wszystkie” i „Nieprzeczytane” u góry przełączają widok między wszystkimi powiadomieniami a tylko tymi, których jeszcze nie przeczytałeś. Lista jest pogrupowana według dni, najpierw „Dzisiaj”, a kolejne wczytują się podczas przewijania.',
   'help.guide.read-notifications.step.3':
     'Kliknij przycisk pod powiadomieniem, Zobacz Vacay tutaj, aby otworzyć to, czego dotyczy. Powiadomienie zostanie też oznaczone jako przeczytane.',
   'help.guide.filter-notifications.step.3':
     'Kliknij Nieprzeczytane, aby zobaczyć tylko powiadomienia, których jeszcze nie przeczytałeś. Wszystkie znów pokazuje wszystkie.',
   'help.guide.mark-notifications-read.tip.2':
-    'Oznaczenie jako przeczytane zmienia tylko kolor tła i licznik. Powiadomienie zostaje na liście, dopóki go nie usuniesz.',
+    'Oznaczenie jako przeczytane usuwa tylko pogrubienie, kropkę i licznik. Powiadomienie zostaje na liście, dopóki go nie usuniesz, a „Oznacz jako nieprzeczytane”, koperta w tym samym miejscu, znów robi z niego nowe.',
   'help.guide.delete-notifications.result': 'Powiadomienie znika z listy i z dzwonka.',
+  'help.guide.booking-mail-notifications.title': 'Odpowiedz na powiadomienie o wiadomości z rezerwacją',
+  'help.guide.booking-mail-notifications.goal':
+    'Zobacz, co się stało z przekazanymi wiadomościami z rezerwacjami, i zdecyduj o tych, których TREK nie mógł dodać sam.',
+  'help.guide.booking-mail-notifications.step.1':
+    'Kliknij dzwonek w prawym górnym rogu. Gdy przekazana wiadomość zawiera rezerwacje, których TREK nie mógł dodać sam, powiadomi Cię o tym tam.',
+  'help.guide.booking-mail-notifications.step.2':
+    '„Przekazane rezerwacje do sprawdzenia” mówi, ile czeka na Ciebie. Kliknij pod nim „Sprawdź”.',
+  'help.guide.booking-mail-notifications.step.3':
+    '„Rezerwacje do zatwierdzenia” otwiera się ze wszystkimi czekającymi wpisami: co TREK odczytał, dlaczego wpis czeka i dla jakiej podróży przyszedł. „Uzupełnij samodzielnie” otwiera nową rezerwację z tym, co zawierała wiadomość, a kosz odrzuca wpis.',
+  'help.guide.booking-mail-notifications.result':
+    'Każda przekazana rezerwacja trafia do swojej podróży albo czeka na Twoją decyzję, a Ty zawsze wiesz, która jest która.',
+  'help.guide.booking-mail-notifications.tip.1':
+    'Rezerwacja dodana przez TREK samodzielnie przychodzi jako „Rezerwacja dodana z wiadomości”, z „Zachowaj” i „Cofnij”. „Cofnij” usuwa rezerwację z podróży, „Zachowaj” ją tam zostawia.',
+  'help.guide.booking-mail-notifications.tip.2':
+    'Pozostałe osoby we wspólnej podróży też dowiadują się o rezerwacji z wiadomości, z „Zobacz podróż”, co otwiera jej zakładkę „Rezerwacje”.',
+  'help.guide.booking-mail-notifications.tip.3':
+    'Lot śledzony przez TREK na żywo wysyła „Lot wystartował”, „Lot wylądował” oraz, od 15 minut opóźnienia, „Lot opóźniony”, każde z „Zobacz podróż”. Trafiają do osób, którym przypisano lot, albo do wszystkich w podróży. Wyłączysz każde z nich w „Ustawienia”, w „Powiadomienia”.',
   'help.guide.notification-settings.result':
     'Otwierają się Ustawienia na karcie Powiadomienia, z przełącznikiem dla każdego zdarzenia i kanału.',
   'help.guide.link-journal.goal': 'Pokaż jeden ze swoich dzienników z Journey wewnątrz podróży, wybranym osobom.',
   'help.guide.link-journal.tip.3':
     'Później Dziennik w Ustawieniach podróży udostępnia Edytuj dostęp, Zmień dziennik i Odłącz. Odłączenie usuwa kartę, a osoby dodane w samym dzienniku zachowują dostęp.',
+  'help.guide.trip-addons.title': 'Przełączaj dodatki dla tej podróży',
+  'help.guide.trip-addons.goal':
+    'Włącz lub wyłącz funkcję, taką jak „Koszty” albo „Podróż samochodowa”, tylko dla jednej podróży.',
+  'help.guide.trip-addons.step.1':
+    'Kliknij „Ustawienia podróży” obok nazwy podróży i wybierz po lewej „Dodatki”. Tylko właściciel podróży ma ten obszar.',
+  'help.guide.trip-addons.step.2':
+    'Kliknij przełącznik dodatku, żeby włączyć go lub wyłączyć dla tej podróży. Na liście są „Listy”, „Koszty”, „Dokumenty”, „Współpraca”, „Podróż samochodowa” i „Wycieczki”, o ile Twój TREK je ma.',
+  'help.guide.trip-addons.step.3':
+    '„Tylko ta podróż” oznacza dodatek, który ustawiłeś inaczej niż w reszcie TREK. Przełącz go z powrotem, żeby znów podążał za ustawieniem administratora.',
+  'help.guide.trip-addons.result':
+    'Podróż pokazuje wybrane przez Ciebie dodatki, dla wszystkich w niej: zakładka lub część planu pojawia się albo znika. Twoje pozostałe podróże zachowują ustawienie administratora.',
+  'help.guide.trip-addons.tip.1':
+    'Wyłączenie dodatku tylko go ukrywa i niczego nie usuwa. Włącz go ponownie, a wszystko wróci na swoje miejsce.',
+  'help.guide.trip-addons.tip.2':
+    'Możesz włączyć dodatek dla jednej podróży, nawet gdy administrator wyłączył go wszystkim pozostałym.',
+  'help.guide.trip-addons.tip.3':
+    'Zmiana przełącznika wymaga połączenia. Offline TREK to zgłasza i zostawia przełącznik bez zmian.',
+  'help.guide.edit-trip-settings.title': 'Edytuj podróż z poziomu planera',
+  'help.guide.edit-trip-settings.goal': 'Zmień tytuł podróży, daty, okładkę lub walutę, nie wychodząc z podróży.',
+  'help.guide.edit-trip-settings.step.1':
+    'Kliknij „Ustawienia podróży” obok nazwy podróży i wybierz po lewej „Edytuj podróż”.',
+  'help.guide.edit-trip-settings.step.2':
+    'Zmień to, czego potrzebujesz: zdjęcie okładki, tytuł i opis, daty, walutę albo przypomnienie.',
+  'help.guide.edit-trip-settings.step.3':
+    'Kliknij „Aktualizuj”. „Ustawienia podróży” się zamykają, a podróż od razu pokazuje zmianę.',
+  'help.guide.edit-trip-settings.result': 'Podróż pokazuje nowe dane wszędzie, wszystkim jej uczestnikom.',
+  'help.guide.edit-trip-settings.tip.1':
+    'Jeśli przesuniesz datę rozpoczęcia, TREK najpierw zapyta, jak mają za nią podążać rezerwacje. Jeśli nowe daty odbierają dni, na których coś jest zaplanowane, TREK wypisze te dni przed potwierdzeniem.',
+  'help.guide.edit-trip-settings.tip.2':
+    'Ten sam formularz otwiera się z „Moje podróże” ołówkiem na karcie podróży. „Edytuj podróż” widzą tylko osoby, które mogą edytować podróż.',
   'help.guide.dawarich-stays.result':
     'Pobyt staje się miejscem podróży, w wybranym dniu albo w sekcji Niezaplanowane, a panel oznacza go jako załatwiony.',
   'help.ctx.trip-days.bullet.7': 'Gdy podróż trwa, plan otwiera się na dzisiejszym dniu i przewija się do niego.',
@@ -6391,7 +6872,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'Zdjęcie staje się obrazem miejsca na karcie, w kolumnie miejsc, w dniu i na mapie.',
   'help.guide.place-own-hours.step.3':
-    'Godziny otwarcia poniżej pokazują cały tydzień, jeden wiersz na dzień. Jeśli TREK znalazł godziny dla tego miejsca, są już wpisane. W przeciwnym razie najpierw kliknij Dodaj godziny otwarcia. Wpisz, o której każdego dnia miejsce się otwiera i zamyka, a przy dniu, w którym jest nieczynne, kliknij Zamknięta.',
+    '„Godziny otwarcia” poniżej pokazują cały tydzień, jeden wiersz na dzień. Jeśli TREK znalazł godziny dla tego miejsca, są już wpisane. W przeciwnym razie najpierw kliknij „Dodaj godziny otwarcia”. Wpisz, o której każdego dnia miejsce się otwiera i zamyka. Po prawej stronie dnia 24h oznacza, że jest otwarte całą dobę, a zamknięte drzwi, że jest zamknięte.',
   'help.guide.add-accommodation.tip.5':
     'Ślady GPX i miejsca z wycieczek nigdy nie są proponowane jako nocleg, tylko zwykłe miejsca podróży.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6404,20 +6885,21 @@ const help: TranslationStrings = {
     'Przenieś w górę i Przenieś w dół pojawiają się dopiero wtedy, gdy przejazd ma co najmniej dwa przystanki.',
   'help.guide.transport-details.title': 'Otwórz transport i korzystaj z jego szczegółów',
   'help.guide.transport-details.tip.1':
-    'Na mapie, kliknięte ponownie przy przejeździe z narysowaną linią, wyłącza tę linię.',
+    '„Mapa”, kliknięta ponownie przy przejeździe z narysowaną linią, wyłącza tę linię.',
   'help.guide.export-transports-csv.result':
     'Przeglądarka zapisze plik nazwany od podróży, na przykład autumn-in-japan-transports.csv, z jednym wierszem na przejazd: Type, Title, Status, Start, End, From, To, Location, Confirmation i Notes.',
   'help.guide.group-sort-bookings.goal': 'Ułóż karty lub listę według statusu, dnia albo typu, w wybranej kolejności.',
   'help.guide.booking-on-map.tip.1':
-    'Na mapie jest tylko przy rezerwacji z miejscem. Wybierz miejsce w polu Miejsce / Aktywność w formularzu, a przycisk się pojawi.',
+    '„Mapa” jest tylko przy rezerwacji z miejscem. Wybierz miejsce w polu „Miejsce / Aktywność” w formularzu, a przycisk się pojawi.',
   'help.guide.export-bookings-csv.step.2':
     'Otwórz Opcje widoku, czyli suwaki za ikonami widoków, i wybierz kolejność w Sortuj według. Wiersze ułożą się według niej, po jednym na rezerwację, bez sekcji.',
   'help.guide.edit-booking.tip.4':
     'Jeśli coś zmieniłeś, kliknięcie poza formularzem albo Escape wyświetli pytanie Odrzucić zmiany? Kontynuuj edycję wraca do formularza.',
   'help.guide.arrange-packing-list.step.2':
-    'Wewnątrz listy uchwyt po lewej stronie wiersza przeciąga ten przedmiot w górę lub w dół. Linia w kolorze akcentu przy lewej krawędzi wiersza pokazuje, gdzie przedmiot wyląduje.',
+    'Wewnątrz listy najedź na wiersz: na jego lewym końcu pojawia się uchwyt, który przeciąga ten przedmiot w górę lub w dół. Linia w kolorze akcentu przy lewej krawędzi wiersza pokazuje, gdzie przedmiot wyląduje.',
   'help.guide.count-packed-pieces.goal': 'Ustaw przedmiotowi ilość i odhaczaj spakowane sztuki jedna po drugiej.',
-  'help.guide.count-packed-pieces.tip.3': 'Przy ilości równej jeden licznika nie ma, jest tylko pole wyboru.',
+  'help.guide.count-packed-pieces.tip.3':
+    'Przy ilości równej jeden nie ma linii „Spakowane”, jest tylko pole wyboru. Wiersz pokazuje ilość, na przykład ×5, od dwóch wzwyż.',
   'help.guide.expense-receipts.step.2':
     'Kliknij Załącz obok Paragony i faktury i wybierz zdjęcie albo PDF. Możesz wybrać kilka plików naraz. Każdy plik jest wypisany pod nagłówkiem, z koszem do usunięcia.',
   'help.guide.files-sync-settings.goal':
@@ -6463,7 +6945,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-plan-tab.tip.1':
     'Ślad, który już jest w podróży, ma oznaczenie Już jest w podróży i nie zostanie zaimportowany drugi raz.',
   'help.ctx.trip-tour-detail.bullet.4':
-    'Dolny rząd: Dodaj do dnia lub Usuń z dnia, gdy otwarty jest dzień, Nawigacja do startu, strona internetowa wycieczki, GPX, Udostępnij tam, gdzie urządzenie potrafi udostępniać pliki, Kolekcja i Kopiuj.',
+    'Dolny rząd: „Dodaj do dnia” lub „Usuń z dnia”, gdy otwarty jest dzień, „Nawigacja” do startu, „Mapy” dla całej trasy w aplikacji z mapami, strona internetowa wycieczki, GPX, „Udostępnij”, „Kolekcja” i „Kopiuj”.',
   'help.guide.tour-detail-read.step.5':
     'Niżej są wartości: Dystans, Minimalna wysokość n.p.m., Maksymalna wysokość n.p.m., Suma podejść i Suma zejść, pod nimi czasy, a na końcu profil wysokościowy w kolorze linii wycieczki.',
   'help.guide.tour-detail-read.result':
@@ -6593,7 +7075,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.step.4':
     'Na górze listy widać liczbę odwiedzonych przystanków i pozostały czas marszu. Cofnij przy przystanku usuwa jego oznaczenie.',
   'help.ctx.trip-tour-bike.bullet.2':
-    'Podsumowanie wycieczki po prawej pokazuje Czas jazdy (szacowany), czyli czas obliczony przez router dla danego profilu, wraz z podjazdami. Przerwy nie są wliczone.',
+    'Podsumowanie wycieczki po prawej pokazuje „Czas jazdy”, czyli szacunek routera dla danego profilu, wraz z podjazdami. Przerwy nie są wliczone.',
   'help.guide.tour-bike-profile.step.4':
     'W sekcji Punkty trasy kliknij Miejsca podróży i wybierz start oraz koniec, tutaj Hotel Alpenroyal, a potem Hotel Greif. Możesz też sprawdzić, czy Dodaj punkt jest włączone, i klikać na mapie. Od dwóch punktów TREK wyznacza trasę.',
   'help.guide.tour-bike-profile.tip.5':
@@ -6646,7 +7128,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-gap.step.4':
     'Na karcie Punkty trasy most jest oznaczony Ręczny, niesprawdzony, wraz z długością. Najedź na niego, aby przeczytać dlaczego.',
   'help.guide.tour-horse-recorded.step.2':
-    'Otworzy się Podgląd importu i nic nie jest jeszcze zapisane. W sekcji Importuj jako ustaw Rodzaj wycieczki na Przejażdżka konna. Trzy plakietki informują, co import zachowuje, a czego nie wylicza.',
+    'Otworzy się „Podgląd importu” i nic nie jest jeszcze zapisane. W sekcji „Importuj jako” wybierz „Przejażdżka konna”. Trzy plakietki informują, co import zachowuje, a czego nie wylicza.',
   'help.guide.dateless-trip.goal': 'Zacznij planować, zanim wiesz, kiedy jedziesz.',
   'help.guide.trip-reminder.step.3': 'Kliknij Aktualizuj.',
   'help.guide.upcoming-reservations.goal':
@@ -6692,6 +7174,17 @@ const help: TranslationStrings = {
     'Zgłoś błąd i Zaproponuj funkcję otwierają projekt na GitHubie, a Wiki otwiera dokumentację.',
   'help.guide.map-provider.tip.3':
     'Na mapie GL kliknij prawym przyciskiem i przeciągnij, aby ją obracać i przechylać. Środkowy przycisk myszy dodaje miejsce.',
+  'help.guide.map-hide-pois.title': 'Ukryj sklepy i atrakcje pokazywane przez Mapbox',
+  'help.guide.map-hide-pois.goal': 'Zostaw na mapie tylko swoje miejsca, bez etykiet, które Mapbox dodaje sam.',
+  'help.guide.map-hide-pois.step.1':
+    'W „Dostawca mapy” wybierz Mapbox GL, a w „Styl mapy” styl Standard: Mapbox Standard albo Standard Satellite.',
+  'help.guide.map-hide-pois.step.2': 'Włącz „Ukryj ciekawe miejsca”, a potem kliknij „Zapisz mapę”.',
+  'help.guide.map-hide-pois.result':
+    'Mapy podróży i dziennika nie podpisują już własnych sklepów, restauracji i atrakcji, więc wyróżniają się tylko Twoje pinezki.',
+  'help.guide.map-hide-pois.tip.1':
+    'Działa to tylko w stylach Standard. Streets, Outdoors i pozostałe klasyczne style zachowują swoje etykiety.',
+  'help.guide.map-hide-pois.tip.2':
+    '„Odkrywaj miejsca na mapie” w sekcji „Wygląd” nadal znajduje miejsca w pobliżu, gdy o to poprosisz.',
   'help.guide.web-push-device.step.1':
     'W sekcji Powiadomienia push na tym urządzeniu kliknij Włącz na tym urządzeniu i zezwól na powiadomienia, gdy przeglądarka o to zapyta. Wyślij test sprawdza, czy powiadomienie dociera.',
   'help.guide.connect-airtrail.title': 'Połącz swój AirTrail',
@@ -6700,6 +7193,23 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.tip.3': 'Rozłącz po prawej stronie ponownie usuwa token.',
   'help.guide.tour-wanderer-watch.tip.3':
     'Kanały dla tych wskazówek wybierasz w Powiadomienia, w wierszu wanderer: wskazówki dotyczące twoich szlaków.',
+  'help.guide.connect-ai.title': 'Połącz własne AI',
+  'help.guide.connect-ai.goal': 'Planuj z asystentem na własnym koncie u dostawcy AI.',
+  'help.guide.connect-ai.step.1':
+    'Na karcie asystenta AI wybierz sposób połączenia: „Zaloguj się przez ChatGPT” korzysta z Twojego planu ChatGPT, a „Wklej klucz API” przyjmuje klucz od Anthropic, OpenAI, Gemini lub OpenRouter.',
+  'help.guide.connect-ai.step.2':
+    'Wklej swój klucz. TREK pokaże nazwę rozpoznanego dostawcy i napisze, co do niego trafia. Kliknij „Połącz”; TREK najpierw sprawdzi klucz u dostawcy.',
+  'help.guide.connect-ai.step.3':
+    'Na karcie pojawi się „Połączono z” i nazwa dostawcy. Wybierz „Model”, którego chcesz używać, i kliknij „Otwórz asystenta”, żeby zacząć w bieżącej lub najbliższej podróży.',
+  'help.guide.connect-ai.result': 'Asystent działa na Twoim własnym koncie, w każdej podróży.',
+  'help.guide.connect-ai.tip.1':
+    'Karta jest widoczna tylko wtedy, gdy administrator włączył asystenta lub analizę AI. Jeśli połączenie może ustawić tylko administrator, zobaczysz „Konfiguruje to Twój administrator”.',
+  'help.guide.connect-ai.tip.2':
+    'Gdy połączenie zapewnia administrator, na karcie widać „Zapewnia Twój administrator” oraz liczbę wiadomości wykorzystanych dziś. „Połącz własnego dostawcę” podstawia w jego miejsce Twojego, jeśli administrator na to pozwala.',
+  'help.guide.connect-ai.tip.3':
+    '„Mapa podąża za asystentem” i „Szacuj koszty” zmieniają sposób, w jaki asystent działa w Twoich podróżach. „Rozłącz” usuwa Twój klucz, a czaty zostają.',
+  'help.guide.connect-ai.tip.4':
+    'Analiza AI czyta pliki rezerwacji przez to samo połączenie. Osobna, wcześniej skonfigurowana analiza AI zachowuje własną kartę poniżej.',
   'help.guide.plugin-settings.tip.1':
     'Te ustawienia dotyczą tylko Ciebie. Inni członkowie konfigurują wtyczkę dla siebie.',
   'help.guide.offline-conflicts.step.3':
@@ -6715,13 +7225,13 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.result':
     'Każdy, kto nie zmienił danej komórki, zaczyna od Twojego wyboru, a zablokowane komórki są w jego ustawieniach pokazane jako zamknięte.',
   'help.ctx.notifications.bullet.3':
-    'Każde powiadomienie mówi, kto co zrobił i gdzie. Nieprzeczytane mają zabarwione tło. Przycisk pod powiadomieniem, na przykład Zobacz podróż lub Zobacz Vacay, przenosi Cię we właściwe miejsce i oznacza je jako przeczytane.',
+    'Każde powiadomienie mówi, kto co zrobił i gdzie. Jego kafelek pokazuje, czego dotyczy, z inicjałem nadawcy w rogu. Nieprzeczytane są pogrubione i mają kropkę. Przycisk pod powiadomieniem, na przykład „Zobacz podróż” lub „Zobacz Vacay”, przenosi Cię we właściwe miejsce i oznacza je jako przeczytane.',
   'help.guide.read-notifications.tip.1':
     'Dzwonek jest na każdym ekranie z paskiem nawigacji, a jego licznik odświeża się sam, gdy pojawia się coś nowego.',
   'help.guide.filter-notifications.tip.1':
     'Strona wczytuje starsze powiadomienia podczas przewijania w dół, więc po pierwszym ekranie nic nie jest ucięte.',
   'help.guide.mark-notifications-read.result':
-    'Żadne powiadomienie nie ma już zabarwionego tła, a czerwony licznik na dzwonku znika.',
+    'Żadne powiadomienie nie jest już pogrubione, a czerwony licznik na dzwonku znika.',
   'help.guide.notification-settings.title': 'Wybierz, o czym chcesz być powiadamiany',
   'help.guide.link-journal.step.1': 'Kliknij Ustawienia podróży obok nazwy podróży i wybierz Dziennik po lewej.',
   'help.guide.dawarich-stays.tip.1':
@@ -6753,11 +7263,10 @@ const help: TranslationStrings = {
     'Offline rezerwacja zapisuje się na tym urządzeniu i synchronizuje po powrocie online. Nowe pliki wymagają połączenia, więc usuń je albo zapisz później. Jeśli przez pomyłkę klikniesz poza formularzem lub naciśniesz Escape, TREK zapyta Odrzucić zmiany?, zanim cokolwiek z tego, co wpisałeś, przepadnie.',
   'help.guide.booking-on-map.tip.2': 'Pobyt otwiera się na swojej pierwszej nocy.',
   'help.guide.export-bookings-csv.step.3':
-    'Kliknij Eksportuj jako arkusz kalkulacyjny (CSV), czyli ikonę arkusza za Opcje widoku.',
+    'Kliknij „Eksportuj jako arkusz kalkulacyjny (CSV)”, czyli ikonę pobierania za „Opcje widoku”.',
   'help.guide.arrange-packing-list.step.3':
-    'Od A do Z na samym prawym końcu rzędu z Udostępnione i Moja lista pokazuje przedmioty z każdej listy w kolejności alfabetycznej, więc od razu widać, czy coś już na niej jest. Kliknij ponownie, aby wrócić do własnej kolejności.',
-  'help.guide.count-packed-pieces.step.1':
-    'Kliknij plakietkę z ilością w wierszu, czyli małą liczbę z x za nią, wpisz, ile bierzesz, na przykład 5, i naciśnij Enter.',
+    '„Od A do Z” w trzech kropkach obok „Dodaj listę” pokazuje przedmioty z każdej listy w kolejności alfabetycznej, więc od razu widać, czy coś już na niej jest. Ptaszek oznacza, że jest włączone. Kliknij ponownie, aby wrócić do własnej kolejności.',
+  'help.guide.count-packed-pieces.step.1': 'Kliknij nazwę przedmiotu. Przy wierszu otworzy się jego okno.',
   'help.guide.expense-receipts.step.3':
     'Kliknij Zapisz na dole okna. Pliki zostaną przesłane razem z wydatkiem i pojawią się także w Pliki podróży.',
   'help.guide.files-sync-settings.step.1':
@@ -6771,6 +7280,23 @@ const help: TranslationStrings = {
     'Notatki mają nowe nazwy i kolory, a karta Notatki pokazuje tylko wybraną kategorię.',
   'help.guide.roadtrip-stops.tip.5':
     'Przystanek z godziną zakończenia w planie dnia trwa do tej godziny. Jego okno podaje, kiedy przejazd rusza dalej, a Usuń godzinę zakończenia pozwala znów ustawić długość samodzielnie.',
+  'help.guide.roadtrip-stop-photo.title': 'Zobacz zdjęcie przystanku',
+  'help.guide.roadtrip-stop-photo.goal':
+    'Spójrz na zdjęcie przystanku na trasie, żeby zdecydować, czy warto nadłożyć drogi.',
+  'help.guide.roadtrip-stop-photo.step.1':
+    'Kliknij przystanek po drodze na pasku albo miejsce zarezerwowanego noclegu. Jego karta otwiera się nad mapą.',
+  'help.guide.roadtrip-stop-photo.step.2':
+    'Kliknij „Edytuj” na dole karty. Otworzy się okno przystanku ze zdjęciem miejsca przed jego nazwą. Przystanek bez zdjęcia pokazuje tam ikonę swojego rodzaju.',
+  'help.guide.roadtrip-stop-photo.step.3':
+    'Kliknij zdjęcie, „Pokaż zdjęcia”, żeby otworzyć zdjęcia miejsca na pełnym ekranie.',
+  'help.guide.roadtrip-stop-photo.result':
+    'Zdjęcia miejsca wypełniają ekran, a strzałki przechodzą przez pozostałe, które zna jego źródło. Zamknij je, żeby wrócić do okna, w którym „Anuluj” zostawia przystanek bez zmian.',
+  'help.guide.roadtrip-stop-photo.tip.1':
+    'Zdjęcie to własny obraz miejsca, ten ustawiony w formularzu miejsca. Bez niego TREK pokazuje zdjęcie, które jego źródło ma dla miejsca, jeśli pochodzi z Google lub OpenStreetMap.',
+  'help.guide.roadtrip-stop-photo.tip.2':
+    'Na telefonie dotknij przystanku w zakładce „Podróż samochodowa”: jego arkusz pokazuje zdjęcie na całą szerokość pod nazwą, a dotknięcie go otwiera zdjęcia.',
+  'help.guide.roadtrip-stop-photo.tip.3':
+    'Wynik z „Wzdłuż trasy” nie jest jeszcze w podróży, więc „Dodaj jako przystanek” pokazuje ikonę swojego rodzaju zamiast zdjęcia.',
   'help.guide.roadtrip-reorder.tip.2':
     'Zarezerwowane przejazdy i ich terminale zostają tam, gdzie umieszcza je rezerwacja. Przeciągać można tylko miejsca.',
   'help.guide.roadtrip-overnight.step.2':
@@ -6825,7 +7351,7 @@ const help: TranslationStrings = {
   'help.guide.tour-origin-check.step.2':
     'Zaimportowano podaje dzień importu. Tutaj pokazuje aktualny stan: Jak zaimportowano, Edytowano w TREK albo Przeplanowano, nagrany ślad zachowany.',
   'help.ctx.trip-tour-planner.bullet.1':
-    'Karta Wycieczki znajduje się na pasku kart podróży zaraz po Plan, gdy dodatek Wycieczki jest włączony. Jest dostępna na komputerze i tablecie. Na telefonie wycieczki można oglądać i dodawać do dni z karty Plan, ale nie można ich rysować.',
+    'Karta „Wycieczki” znajduje się na pasku kart podróży zaraz po „Plan”, gdy dodatek „Wycieczki” jest włączony dla podróży. Właściciel podróży może go przełączyć w „Dodatki” w „Ustawienia podróży”. Karta jest dostępna na komputerze i tablecie. Na telefonie wycieczki można oglądać i dodawać do dni z karty „Plan”, ale nie można ich rysować.',
   'help.guide.tour-open-workspace.step.1':
     'Kliknij Wycieczki na pasku kart podróży, zaraz po Plan. Mapa wypełni ekran, a po obu stronach będzie pasek.',
   'help.guide.tour-open-workspace.tip.2':
@@ -6864,7 +7390,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.5':
     'Plik bez wysokości pokazuje Brak wysokości w pliku. Linia i dystans są nadal poprawne, ale suma podejść i zejść pozostaje nieznana.',
   'help.guide.tour-view-import.tip.2':
-    'Ikona pobierania w nagłówku ponownie zapisuje import jako plik GPX, a zakładka zapisuje go w kolekcji.',
+    'Ikony w nagłówku ponownie pobierają ją jako plik GPX, udostępniają ją i zachowują w kolekcji.',
   'help.guide.tour-plan-from-import.step.4':
     'Wycieczka otworzy się w edytorze razem z punktami trasy. Zmień ją, jeśli chcesz, i kliknij Zapisz na dole kolumny.',
   'help.guide.tour-restore-recorded.step.1':
@@ -6874,7 +7400,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-over.tip.3':
     'Przejęcie wycieczki wymaga połączenia. Jeśli w edytorze są niezapisane zmiany, kopia i tak trafi na listę, ale się nie otworzy, żeby nie przeszkadzać w Twojej pracy.',
   'help.guide.tour-import-wanderer.tip.1':
-    'Przycisk pojawia się, gdy wanderer jest połączony w Ustawienia, Integracje. Wcześniej lista oferuje Połącz w ustawieniach.',
+    'Przycisk pojawia się, gdy wanderer jest połączony w „Ustawienia”, „Integracje”. Jeśli połączenie później przestanie działać, lista oferuje „Połącz w ustawieniach”.',
   'help.ctx.trip-tour-map.bullet.2':
     'Za separatorem na pasku są przełączniki zależne od rodzaju wycieczki: Ustawiaj punkty podczas edycji wycieczki, Ferraty na wędrówce, Znaki nawigacyjne na spływie i trasy narciarskie na wycieczce narciarskiej. 3D na końcu pokazuje wycieczkę na trójwymiarowym krajobrazie.',
   'help.guide.tour-map-layers.step.3':
@@ -6933,7 +7459,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.3':
     'Karta Nawierzchnia i drogi pod Punkty trasy pokazuje, po czym prowadzi trasa: nawierzchnie, rodzaje dróg i znany udział odcinków nieutwardzonych. Kliknij wiersz, aby podświetlić jego odcinki na mapie.',
   'help.guide.tour-bike-profile.step.5':
-    'Przeczytaj Czas jazdy (szacowany) w Podsumowanie wycieczki po prawej. Najedź na jego kropkę informacyjną, aby zobaczyć, jak jest obliczany.',
+    'Przeczytaj „Czas jazdy” w „Podsumowanie wycieczki” po prawej. Najedź na jego kropkę informacyjną, aby zobaczyć, jak jest obliczany.',
   'help.guide.tour-bike-surfaces.title': 'Zobacz nawierzchnie trasy rowerowej',
   'help.guide.tour-bike-surfaces.tip.2':
     'W profilu Szosa ostrzeżenie nad słupkami podaje, jaka część trasy jest nieutwardzona. Pokaż na mapie zaznacza te odcinki.',

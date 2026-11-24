@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { candidateUrls, probeDemo, probeServer, type ProbeResponse } from './serverAddress';
+import { candidateUrls, certificateTargetFor, probeDemo, probeServer, type ProbeResponse } from './serverAddress';
 
 const features = (
   url: string,
-  data: unknown = { bookingImport: false, aiParsing: false, nativeApp: true }
+  data: unknown = { bookingImport: false, aiParsing: false, nativeApp: true, nativeApi: 3 }
 ): ProbeResponse => ({ status: 200, data, url });
 
 describe('candidateUrls', () => {
@@ -24,15 +24,38 @@ describe('candidateUrls', () => {
   });
 });
 
+describe('certificateTargetFor', () => {
+  it('keeps a certificate for the https address the typed text stands for', () => {
+    expect(certificateTargetFor('Trek.Example.com')).toEqual({ host: 'trek.example.com', port: 443 });
+    expect(certificateTargetFor(' nas.local:8443/trek ')).toEqual({ host: 'nas.local', port: 8443 });
+    expect(certificateTargetFor('https://trek.example.com:443/')).toEqual({ host: 'trek.example.com', port: 443 });
+  });
+
+  it('has no target for a plain http address or nothing typed', () => {
+    expect(certificateTargetFor('http://nas.local:3001')).toBeNull();
+    expect(certificateTargetFor('')).toBeNull();
+    expect(certificateTargetFor('   ')).toBeNull();
+    expect(certificateTargetFor('ftp://trek.example.com')).toBeNull();
+  });
+});
+
 describe('probeServer', () => {
   it('accepts a server at the minimum native API version or above', async () => {
-    const data = { bookingImport: false, nativeApp: true, nativeApi: 1 };
-    const get = vi.fn().mockResolvedValue(features('https://trek.example.com/api/health/features', data));
-    expect(await probeServer('https://trek.example.com', get)).toEqual({ ok: true, url: 'https://trek.example.com' });
+    for (const nativeApi of [3, 4]) {
+      const data = { bookingImport: false, nativeApp: true, nativeApi };
+      const get = vi.fn().mockResolvedValue(features('https://trek.example.com/api/health/features', data));
+      expect(await probeServer('https://trek.example.com', get)).toEqual({ ok: true, url: 'https://trek.example.com' });
+    }
   });
 
   it('calls a server below the minimum native API version too old', async () => {
-    const data = { bookingImport: false, nativeApp: true, nativeApi: 0 };
+    const data = { bookingImport: false, nativeApp: true, nativeApi: 2 };
+    const get = vi.fn().mockResolvedValue(features('https://trek.example.com/api/health/features', data));
+    expect(await probeServer('https://trek.example.com', get)).toEqual({ ok: false, reason: 'tooOld' });
+  });
+
+  it('calls a server that speaks to the app but reports no native API version too old', async () => {
+    const data = { bookingImport: false, nativeApp: true };
     const get = vi.fn().mockResolvedValue(features('https://trek.example.com/api/health/features', data));
     expect(await probeServer('https://trek.example.com', get)).toEqual({ ok: false, reason: 'tooOld' });
   });
@@ -101,5 +124,93 @@ describe('probeDemo', () => {
     const get = vi.fn().mockResolvedValue(features('https://demo.liketrek.com/api/health/features'));
     expect(await probeDemo(get)).toEqual({ ok: true, url: 'https://demo.liketrek.com' });
     expect(get).toHaveBeenCalledWith('https://demo.liketrek.com/api/health/features');
+  });
+});
+
+describe('probeServer behind a sign-in proxy', () => {
+  it('reports the gate, the server it guards and the host its sign-in lives on', async () => {
+    const get = vi.fn().mockResolvedValue({
+      status: 200,
+      url: 'https://pangolin.example.com/auth/resource/3?redirect=https%3A%2F%2Ftrek.example.com',
+      data: '<html><title>Pangolin</title><form><input type="password"></form></html>',
+    } satisfies ProbeResponse);
+    expect(await probeServer('trek.example.com', get)).toEqual({
+      ok: false,
+      reason: 'authGate',
+      url: 'https://trek.example.com',
+      gate: { kind: 'pangolin', loginHost: 'pangolin.example.com' },
+    });
+  });
+
+  it('asks the start page for the sign-in host when the API path only got a 401', async () => {
+    const get = vi.fn(async (url: string): Promise<ProbeResponse> =>
+      url.endsWith('/api/health/features')
+        ? { status: 401, url, data: '<html>Authelia</html>' }
+        : {
+            status: 200,
+            url: 'https://auth.example.com/?rd=https%3A%2F%2Ftrek.example.com%2F',
+            data: '<html>Authelia</html>',
+          }
+    );
+    const result = await probeServer('https://trek.example.com', get);
+    expect(result).toMatchObject({ reason: 'authGate', gate: { kind: 'authelia', loginHost: 'auth.example.com' } });
+    expect(get).toHaveBeenCalledWith('https://trek.example.com/');
+  });
+
+  it('keeps calling an address that is simply something else not TREK', async () => {
+    const get = vi
+      .fn()
+      .mockResolvedValue({ status: 200, url: 'https://x.example.com/api/health/features', data: { hello: 1 } });
+    expect(await probeServer('https://x.example.com', get)).toEqual({ ok: false, reason: 'notTrek' });
+  });
+});
+
+describe('probeServer behind mutual TLS', () => {
+  const asked = (status: number, sent: boolean, data: unknown = ''): ProbeResponse => ({
+    status,
+    data,
+    url: 'https://trek.example.com/api/health/features',
+    clientCert: { requested: true, sent },
+  });
+
+  it('names a handshake the proxy broke off for want of a certificate, with the host to add one for', async () => {
+    const get = vi.fn().mockResolvedValue(asked(0, false));
+    expect(await probeServer('trek.example.com', get)).toEqual({
+      ok: false,
+      reason: 'clientCert',
+      url: 'https://trek.example.com',
+      cert: { host: 'trek.example.com', port: 443, sent: false },
+    });
+  });
+
+  it("names Cloudflare's 403 without a certificate the same way, port included", async () => {
+    const get = vi.fn().mockResolvedValue(asked(403, false, 'Access denied'));
+    const result = await probeServer('https://Trek.Example.com:8443', get);
+    expect(result.reason).toBe('clientCert');
+    expect(result.cert).toEqual({ host: 'trek.example.com', port: 8443, sent: false });
+  });
+
+  it('says the proxy refused the certificate the app showed', async () => {
+    const get = vi.fn().mockResolvedValue(asked(400, true, '400 The SSL certificate error'));
+    expect((await probeServer('https://trek.example.com', get)).cert?.sent).toBe(true);
+  });
+
+  it('connects where the proxy asked and TREK answered, with or without a certificate', async () => {
+    const trek = { bookingImport: false, nativeApp: true, nativeApi: 3 };
+    for (const sent of [true, false]) {
+      const get = vi.fn().mockResolvedValue(asked(200, sent, trek));
+      expect(await probeServer('https://trek.example.com', get)).toEqual({ ok: true, url: 'https://trek.example.com' });
+    }
+  });
+
+  it('keeps a failed connection without an ask unreachable, and ranks the ask above it', async () => {
+    const down = vi.fn().mockResolvedValue({ status: 0, data: '', url: 'https://trek.example.com' });
+    expect(await probeServer('https://trek.example.com', down)).toEqual({ ok: false, reason: 'unreachable' });
+
+    const mixed = vi
+      .fn()
+      .mockResolvedValueOnce(asked(0, false))
+      .mockResolvedValueOnce({ status: 0, data: '', url: 'http://trek.example.com' });
+    expect((await probeServer('trek.example.com', mixed)).reason).toBe('clientCert');
   });
 });

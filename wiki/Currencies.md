@@ -6,14 +6,14 @@ Trip, expense, and display currencies each do a different job. The **Common curr
 |---|---|---|---|
 | **Trip currency** | My Trips → pencil on the trip card (**Edit Trip**) | *What is this trip's money?* | Stored data: the base every balance is calculated in |
 | **Expense currency** | Costs → expense modal | *What currency did I actually pay in?* | Stored data: that one expense |
-| **Display currency** | Settings → General → Language & region | *What currency do I want to read?* | Presentation only, never the stored data |
+| **Display currency** | Settings → General → Language & region | *What currency do I want to read?* | Currency for reading costs and recording a suggested repayment |
 | **Common currencies** | Settings → General → Language & region | *Which currencies should appear first in menus?* | Menu order only |
 
 The short version: **the trip currency is the accounting base, the expense currency is the receipt, and the display currency is your reading glasses.**
 
 ## Trip currency
 
-Every trip has exactly one currency. It is set when you create the trip and can be changed later in the same dialog: on **My Trips**, click the pencil on the trip card (**Edit Trip**). This needs the `trip_edit` permission. The **Trip settings** pill beside the trip name in the planner does not hold the currency; it only holds People, Sharing and Journal. The new-trip dialog pre-fills it with **your display currency**, falling back to **EUR** when you have left that on *Trip currency*. A trip created through MCP or by a plugin without a currency gets the same value. This is the one moment the display currency touches stored data: it seeds the field, and from then on the trip's currency is its own.
+Every trip has exactly one currency. It is set when you create the trip and can be changed later in the same dialog: on **My Trips**, click the pencil on the trip card (**Edit Trip**), or in the planner open **Trip settings** and pick **Edit Trip** at the foot of its list. This needs the `trip_edit` permission. The new-trip dialog pre-fills it with **your display currency**, falling back to **EUR** when you have left that on *Trip currency*. A trip created through MCP or by a plugin without a currency gets the same value. This is the one moment the display currency touches stored data: it seeds the field, and from then on the trip's currency is its own.
 
 This is the trip's **accounting base**. It is not a cosmetic label:
 
@@ -61,11 +61,11 @@ To change the rates on existing expenses and payments, preview the changes, sele
 
 ## Display currency
 
-**Settings → General → Language & region → Display currency** is a **per-user, presentation-only** preference. It converts what you *read* in the Costs tab (totals, the category chart, balances, the settle-up amounts) into a single currency, so a trip with dollars, yen and roubles in it still adds up to one number you understand.
+**Settings → General → Language & region → Display currency** is a **per-user** preference. It converts what you *read* in the Costs tab (totals, the category chart, balances, the settle-up amounts) into a single currency, so a trip with dollars, yen and roubles in it still adds up to one number you understand.
 
 ![Settings, General tab: the Language & region card with Display currency set to Trip currency above the language, place names, units, time format and week start](assets/DisplayCurrency.png)
 
-It never changes what is stored. Two people looking at the same trip can read it in different currencies and both see correct, consistent balances.
+Changing this preference preserves existing transactions. Two people looking at the same trip can read it in different currencies and both see correct, consistent balances.
 
 It has two modes:
 
@@ -80,9 +80,9 @@ An administrator can set an instance-wide default (Admin → User Defaults), and
 
 > The **Currency** converter widget on the dashboard is a separate tool. It converts an amount between two currencies and has no effect on trips or stored costs. See [Dashboard-Widgets](Dashboard-Widgets).
 
-> Display conversion uses **live** rates, not the frozen ones: it is a view, and a view should reflect today. This is why a converted total can shift slightly day to day while the underlying balances stay rock steady.
+### Reading one trip in another currency
 
-An expense you enter in your display currency reads back exactly as you typed it on the day you enter it, on its row, in the totals and in the final budget, and paying the amount settle-up offers for it leaves both balances at zero. When the rate has moved since, the row shows the value the totals count, with what was entered and the trip-currency amount it was booked at underneath (`$801.76 → 685,26 €`).
+The Costs tab has a currency picker of its own (*Show amounts in*, in the bar). It reads that one trip in another currency, without touching the setting: useful when a trip moves on to another country and you want its totals in the new local currency. The pick is kept per trip in this browser only; your display currency and the trip's own sit at the top of the list, and picking your display currency again goes back to it. Confirming a suggested payment records the amount in the currency shown.
 
 ## Common currencies
 
@@ -90,20 +90,7 @@ Set up to ten shortcuts in **Settings → General → Language & region**. The s
 
 ## How they fit together
 
-An expense flows through all three:
-
-```
-    100 USD                  ≈ 7 668 ₽                    ≈ 87 €
-  ┌───────────┐   frozen   ┌───────────────┐    live    ┌───────────────┐
-  │  expense  │ ─────────► │     trip      │ ─────────► │    display    │
-  │ currency  │    rate    │   currency    │    rate    │   currency    │
-  └───────────┘  (at entry)└───────────────┘  (at read) └───────────────┘
-     what you              what the trip is             what you read,
-     actually paid         settled in  ← balances       if you asked for
-                                          live here     a display currency
-```
-
-Balances are always netted in the **trip currency** and converted to your display currency **once, at the end**, never per expense. That ordering is deliberate: netting in a moving display currency would let rounding drift shuffle a settled trip into phantom one-cent debts.
+On a yen trip, two people split a ¥5,000 expense. With HKD selected and a trip rate of HK$1 = ¥50, the repayment is HK$50. TREK uses the rate saved on an expense for that currency pair first, then the trip rate, then the system rate. Confirming the suggested payment records the quoted amount.
 
 ## The public share link
 

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
-  Bookmark, ChevronRight, ExternalLink, Map as MapIcon, Navigation, Paperclip,
+  Bookmark, ChevronRight, ExternalLink, Map as MapIcon, MapPinOff, Navigation, Paperclip,
   Pencil, Phone, Plus, Route, RouteOff, Sparkles, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
@@ -24,12 +24,14 @@ import { safeHttpUrl } from '../../../../utils/safeUrl'
 import { openFile } from '../../../../utils/fileDownload'
 import { filesForPlace } from '../../../../utils/placeFiles'
 import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
+import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
 import { getPlaceBookings } from '../../../../utils/dayMerge'
 import type { Assignment, Day, Reservation, TripMember } from '../../../../types'
 import PlacePhotoGallery from '../../../../components/Planner/PlacePhotoGallery'
 import { ActionCircle, Eyebrow, INNER_CLS } from './MTripSheetUi'
 import { FormSheetBody } from './PlSheetChrome'
+import { PlTagChips } from './PlTags'
 
 /**
  * Place inspector sheet (glass card), opened by the current place selection —
@@ -112,18 +114,11 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   )
   const openRes = (res: Reservation) => {
     if (!canOpenRes(res)) return
-    if (planner.TRANSPORT_TYPES.has(res.type)) {
-      planner.setEditingTransport(res)
-      planner.setTransportModalDayId(res.day_id ?? null)
-      planner.setTransportModalAutomated(false)
-      planner.setShowTransportModal(true)
-    } else {
-      planner.setEditingReservation(res)
-      planner.setShowReservationModal(true)
-    }
     // This sheet hangs off the place selection, not the sheet stack, so its own
-    // close() is what dismisses it — otherwise the editor opens on top of it.
+    // close() is what dismisses it; the booking's detail sheet then opens alone,
+    // with its pencil for editing, as on the desktop.
     close()
+    shell.openSheet('transport', { reservationId: res.id })
   }
 
   const participants = assignmentInDay?.participants || []
@@ -213,18 +208,27 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 </PlacePhotoGallery>
               </div>
               <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-1.5">
-                  <span dir="auto" className="min-w-0 truncate text-[1rem] font-bold leading-snug">{place.name}</span>
+                <div className="flex items-start gap-1.5">
+                  {/* The sheet is where a place is read in full, so its name wraps
+                      onto as many lines as it needs, as on the desktop (#3140). */}
+                  <span dir="auto" className="min-w-0 break-words text-[1rem] font-bold leading-snug [overflow-wrap:anywhere]">{place.name}</span>
                   {/* Accepted out of the traveller's own recordings — the same
                       mark the desktop inspector carries. */}
                   {place.source === 'dawarich' && (
-                    <span className="flex-none overflow-hidden rounded-[5px]">
+                    <span className="mt-[3px] flex-none overflow-hidden rounded-[5px]">
                       <DawarichIcon size={15} />
                     </span>
                   )}
                 </div>
                 {place.address && (
                   <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted"><bdi>{place.address}</bdi></div>
+                )}
+                {/* A typed address that never got coordinates: no marker, and the sheet says why (#2837). */}
+                {addressWithoutCoordinates(place) && (
+                  <div className="mt-[3px] flex items-center gap-1 text-caption font-semibold text-[color:var(--m-st-pending)]">
+                    <MapPinOff size={12} strokeWidth={2.2} aria-hidden="true" className="flex-none" />
+                    {t('places.noCoordinates')}
+                  </div>
                 )}
                 {/* The category under the name and address, as wide as its name:
                     squeezed under the photo it was cut to "Shoppi…". */}
@@ -234,6 +238,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                     <span dir="auto" className="truncate">{category.name}</span>
                   </span>
                 )}
+                <PlTagChips tags={place.tags} />
               </div>
               <button
                 type="button"
@@ -413,7 +418,6 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                       type="button"
                       onClick={() => openRes(res)}
                       disabled={!canOpenRes(res)}
-                      aria-label={canOpenRes(res) ? t('inspector.editRes') : undefined}
                       className={`flex w-full items-center gap-2 rounded-[14px] px-3 py-[10px] text-start ${INNER_CLS}`}
                     >
                       <span

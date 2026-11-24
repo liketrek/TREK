@@ -1,3 +1,4 @@
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { PasswordResetTokens } from '../../../../src/db/entities/PasswordResetTokens.entity';
 import type { PasswordResetTokensRepository } from '../../../../src/db/repositories/PasswordResetTokens.repository';
 import { dbNow } from '../../../../src/db/types';
@@ -124,6 +125,16 @@ describe('PasswordResetTokensRepository', () => {
       expect((await rawRow(target)).consumed_at).not.toBeNull();
       expect((await rawRow(other)).consumed_at).toBeNull();
     });
+
+    it('PWDRESETREPO-014: burns a token once: a second call finds it used and leaves the first stamp', async () => {
+      const { user } = createUser(testDb);
+      const target = await seedToken(user.id, hash('once'));
+
+      expect(await tokens.markConsumed(target)).toBe(true);
+      const stamped = (await rawRow(target)).consumed_at;
+      expect(await tokens.markConsumed(target)).toBe(false);
+      expect((await rawRow(target)).consumed_at).toBe(stamped);
+    });
   });
 
   describe('consumeAllLiveForUser', () => {
@@ -209,7 +220,7 @@ describe('PasswordResetTokensRepository', () => {
     it('PWDRESETREPO-011: findByTokenHash then markConsumed inside uow.transactional survives the closing flush (cannot fail by construction — see PWDRESETREPO-012 for the mutation-proved guard)', async () => {
       const { user } = createUser(testDb);
       const id = await seedToken(user.id, hash('survives'));
-      const uow = new UnitOfWork(t.em);
+      const uow = new UnitOfWork(t.em, new SqliteEngine());
 
       await uow.transactional(async () => {
         const found = await tokens.findByTokenHash(hash('survives'));
@@ -223,7 +234,7 @@ describe('PasswordResetTokensRepository', () => {
     it('PWDRESETREPO-012: findByTokenHash is the FIRST, wider read (it carries consumed_at); a narrower managed read follows; markConsumed still lands', async () => {
       const { user } = createUser(testDb);
       const id = await seedToken(user.id, hash('dshape'));
-      const uow = new UnitOfWork(t.em);
+      const uow = new UnitOfWork(t.em, new SqliteEngine());
 
       await uow.transactional(async () => {
         await tokens.findByTokenHash(hash('dshape')); // projection A — WIDE (carries consumed_at)
@@ -241,7 +252,7 @@ describe('PasswordResetTokensRepository', () => {
     it('PWDRESETREPO-013: same D-shape guard for consumeAllLiveForUser', async () => {
       const { user } = createUser(testDb);
       const id = await seedToken(user.id, hash('dshape-consume-all'));
-      const uow = new UnitOfWork(t.em);
+      const uow = new UnitOfWork(t.em, new SqliteEngine());
 
       await uow.transactional(async () => {
         await tokens.findByTokenHash(hash('dshape-consume-all')); // projection A — WIDE (carries consumed_at)

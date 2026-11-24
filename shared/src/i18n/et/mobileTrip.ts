@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Uus kategooria',
   'mobileTrip.newReservation': 'Uus broneering',
   'mobileTrip.notes': 'Märkmed',
-  'mobileTrip.onMap': 'Kaardil',
+  'mobileTrip.onMap': 'Kaart',
   'mobileTrip.profileDriving': 'Autoga',
   'mobileTrip.profileWalking': 'Jalgsi',
   'mobileTrip.profileCycling': 'Jalgrattaga',

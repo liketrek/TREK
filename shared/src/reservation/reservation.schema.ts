@@ -1,3 +1,4 @@
+import { rowIdInputSchema } from '../common/primitives.schema';
 import { RESERVATION_STATUSES, RESERVATION_TYPE_KEYS } from './reservation-types';
 
 import { z } from 'zod';
@@ -190,6 +191,10 @@ export const reservationSchema = z.object({
   accommodation_name: z.string().nullable().optional(),
   accommodation_start_day_id: z.number().nullable().optional(),
   accommodation_end_day_id: z.number().nullable().optional(),
+  // The stay's check-in window and check-out, for a hotel booking whose own metadata has none.
+  accommodation_check_in: z.string().nullable().optional(),
+  accommodation_check_in_end: z.string().nullable().optional(),
+  accommodation_check_out: z.string().nullable().optional(),
   day_positions: z.record(z.string(), z.number()).nullable().optional(),
   endpoints: z.array(reservationEndpointSchema).optional(),
   // Trip members / named guests this booking is for (#1517). Joined in listReservations.
@@ -271,7 +276,7 @@ export type ReservationUpdateRequest = z.infer<typeof reservationUpdateRequestSc
 
 /** Assign trip members/guests to a reservation (mirrors budget's PUT :id/members). */
 export const reservationTravelersRequestSchema = z.object({
-  user_ids: z.array(z.number()),
+  user_ids: z.array(z.number().int()),
 });
 export type ReservationTravelersRequest = z.infer<typeof reservationTravelersRequestSchema>;
 
@@ -279,15 +284,15 @@ export const reservationPositionsRequestSchema = z.object({
   // day_plan_position is optional on the wire: the legacy route never
   // validated position items, and an absent value binds NULL (clears the
   // stored position) — pinned by the server integration suite (RESV-006).
-  positions: z.array(z.object({ id: z.number(), day_plan_position: z.number().optional() })),
-  day_id: z.union([z.number(), z.string()]).nullable().optional(),
+  positions: z.array(z.object({ id: z.number().int(), day_plan_position: z.number().optional() })),
+  day_id: rowIdInputSchema.nullable().optional(),
 });
 export type ReservationPositionsRequest = z.infer<typeof reservationPositionsRequestSchema>;
 
 export const accommodationCreateRequestSchema = z.object({
-  place_id: z.union([z.number(), z.string()]),
-  start_day_id: z.union([z.number(), z.string()]),
-  end_day_id: z.union([z.number(), z.string()]),
+  place_id: rowIdInputSchema,
+  start_day_id: rowIdInputSchema,
+  end_day_id: rowIdInputSchema,
   check_in: z.string().nullable().optional(),
   check_in_end: z.string().nullable().optional(),
   check_out: z.string().nullable().optional(),
@@ -377,11 +382,36 @@ export type BookingImportPreviewItem = z.infer<typeof bookingImportPreviewItemSc
 export const bookingImportModeSchema = z.enum(['no-ai', 'fallback-on-empty', 'force-ai']);
 export type BookingImportMode = z.infer<typeof bookingImportModeSchema>;
 
+/**
+ * How the AI reading of one document ended:
+ *  - `ok`              it found at least one booking
+ *  - `empty`           it read the document and found none
+ *  - `no_text`         nothing to read: a scan, and no model that reads images
+ *  - `quota_exhausted` the TREK Cloud allowance for the period is used up (`QUOTA_SPENT`, `HARD_CAP`)
+ *  - `ai_disabled`     no AI reading is set up for this person
+ *  - `user_cap`        the person's own daily limit is reached
+ *  - `provider_error`  the provider refused or failed, or could not take this input
+ *  - `too_large`       the document is more than the model or the gate takes
+ */
+export const llmParseOutcomeSchema = z.enum([
+  'ok',
+  'empty',
+  'no_text',
+  'quota_exhausted',
+  'ai_disabled',
+  'user_cap',
+  'provider_error',
+  'too_large',
+]);
+export type LlmParseOutcome = z.infer<typeof llmParseOutcomeSchema>;
+
 /** Per-file AI report so the preview UI can offer "Try AI parsing" only where it applies. */
 export const bookingImportFileReportSchema = z.object({
   fileName: z.string(),
   aiAvailable: z.boolean(),
   aiUsed: z.boolean(),
+  /** How the AI reading ended; only where it ran. */
+  outcome: llmParseOutcomeSchema.optional(),
 });
 export type BookingImportFileReport = z.infer<typeof bookingImportFileReportSchema>;
 
@@ -398,8 +428,17 @@ export const bookingImportConfirmRequestSchema = z.object({
 });
 export type BookingImportConfirmRequest = z.infer<typeof bookingImportConfirmRequestSchema>;
 
+/**
+ * Why one confirmed item was not created: the trip already holds the booking
+ * an earlier import wrote under the same reference, or writing it failed.
+ */
+export const bookingImportFailureReasonSchema = z.enum(['duplicate', 'write_failed']);
+export type BookingImportFailureReason = z.infer<typeof bookingImportFailureReasonSchema>;
+
 export const bookingImportConfirmResponseSchema = z.object({
   created: z.array(reservationSchema),
+  /** The items that were not created, by their position in the request, each with its reason. */
+  failed: z.array(z.object({ index: z.number().int().nonnegative(), reason: bookingImportFailureReasonSchema })),
 });
 export type BookingImportConfirmResponse = z.infer<typeof bookingImportConfirmResponseSchema>;
 

@@ -1,6 +1,6 @@
 import type { Places } from '../entities/Places.entity';
 import { wrapOptionalLongitude } from '@trek/shared';
-import { absDifference, coalesceParam, columnRef, currentTimestamp, lowerTrim } from '../dialect/sql-functions';
+import { absDifference, coalesceParam, columnRef, currentTimestamp, ilike, lowerTrim } from '../dialect/sql-functions';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 import { tourPlaceTextPatch, type TourPlaceWrite } from './tour-place-write';
@@ -659,8 +659,8 @@ export class PlacesRepository extends TrekRepository<Places> {
    */
   async listForTrip(trip_id: string, filters: {
     searchPattern?: string;
-    category?: string;
-    tag?: string;
+    category?: number;
+    tag?: number;
     assignment?: 'all' | 'unassigned' | 'assigned';
   }): Promise<PlaceListRow[]> {
     const platform = this.getEntityManager().getPlatform();
@@ -680,15 +680,13 @@ export class PlacesRepository extends TrekRepository<Places> {
       .where('p.trip_id = ?', [trip_id]);
 
     if (filters.searchPattern) {
-      qb.andWhere(
-        "(p.name LIKE ? ESCAPE '\\' OR p.address LIKE ? ESCAPE '\\' OR p.description LIKE ? ESCAPE '\\')",
-        [filters.searchPattern, filters.searchPattern, filters.searchPattern],
-      );
+      const fields = ['p.name', 'p.address', 'p.description'];
+      qb.andWhere(ilike(platform, fields), fields.map(() => filters.searchPattern));
     }
-    if (filters.category) {
+    if (filters.category !== undefined) {
       qb.andWhere('p.category_id = ?', [filters.category]);
     }
-    if (filters.tag) {
+    if (filters.tag !== undefined) {
       qb.andWhere('p.id IN (SELECT place_id FROM place_tags WHERE tag_id = ?)', [filters.tag]);
     }
     if (filters.assignment === 'unassigned') {
@@ -1110,21 +1108,18 @@ export class PlacesRepository extends TrekRepository<Places> {
   }
 
   /**
-   * AT41 (`AtlasService#getTravelStats`) — `SELECT DISTINCT p.address,
-   * p.lat, p.lng, pr.region_name FROM places p JOIN trips t ON p.trip_id =
-   * t.id LEFT JOIN trip_members tm ON t.id = tm.trip_id LEFT JOIN
-   * place_regions pr ON pr.place_id = p.id WHERE t.user_id = ? OR tm.user_id
-   * = ?`. The resolved region rides along so `cityFromAddress` can tell the
-   * city apart from the region sitting right above it in the same address
-   * (#1115) — unchanged from the legacy projection.
+   * AT41 (`AtlasService#placeFootprint`): one row per place on a trip the user owns
+   * or is a member of. `p.id` keeps the DISTINCT to undoing the trip_members fan-out,
+   * so places sharing an address and coordinates stay apart (#3137). The resolved
+   * region rides along so `cityFromAddress` can skip it (#1115).
    */
-  async listAddressesForUser(user_id: number): Promise<{ address: string | null; lat: number | null; lng: number | null; region_name: string | null }[]> {
+  async listAddressesForUser(user_id: number): Promise<{ id: number; address: string | null; lat: number | null; lng: number | null; region_name: string | null }[]> {
     return await this.kysely<PlacesAddressesForUserKyselyDB>()
       .selectFrom('places as p')
       .innerJoin('trips as t', 't.id', 'p.trip_id')
       .leftJoin('trip_members as tm', 'tm.trip_id', 't.id')
       .leftJoin('place_regions as pr', 'pr.place_id', 'p.id')
-      .select(['p.address', 'p.lat', 'p.lng', 'pr.region_name'])
+      .select(['p.id', 'p.address', 'p.lat', 'p.lng', 'pr.region_name'])
       .distinct()
       .where((eb) => eb.or([eb('t.user_id', '=', user_id), eb('tm.user_id', '=', user_id)]))
       .execute();

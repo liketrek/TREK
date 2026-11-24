@@ -893,6 +893,7 @@ describe('POI_CATEGORY_TO_TREK', () => {
     // CW-05), each path checked against a live answer of the index.
     expect(Object.keys(POI_CATEGORY_TO_TREK).sort()).toEqual([
       'activity',
+      'bakery',
       'bar',
       'cafe',
       'campsite',

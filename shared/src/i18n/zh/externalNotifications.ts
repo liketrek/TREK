@@ -17,6 +17,18 @@ const zh: NotificationLocale = {
       title: `新预订：${p.booking}`,
       body: `${p.actor} 在"${p.trip}"中添加了预订"${p.booking}"（${p.type}）。`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight}已起飞`,
+      body: `从${p.from}飞往${p.to}的${p.flight}已在空中。`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight}延误`,
+      body: `从${p.from}飞往${p.to}的${p.flight}比计划晚约${p.delay}分钟。`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight}已降落`,
+      body: `从${p.from}出发的${p.flight}已降落在${p.to}。`,
+    }),
     trip_reminder: (p) => ({
       title: `旅行提醒：${p.trip}`,
       body: `你的旅行"${p.trip}"即将开始！`,
@@ -77,6 +89,21 @@ const zh: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `“${p.trip}”中的“${p.tour}”已无法在 wanderer 中检查。你旅行中的行程保持不变。`
             : `“${p.trip}”中的“${p.tour}”可能已在 wanderer 中变化。请打开行程并检查其来源。旅行中的内容不会自行改变。`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `从邮件添加：${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} 从转发的邮件中将“${p.booking}”添加到“${p.trip}”。`
+          : `你转发的邮件中的“${p.booking}”已添加到“${p.trip}”。7 天内可以在 TREK 中撤销。`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: '待查看的转发预订',
+      body: `TREK 中等待你处理的转发预订：${p.count}。每一条都说明了为什么没有自动添加。`,
+    }),
+    mail_ingest_paused: () => ({
+      title: '邮件导入已暂停',
+      body: 'TREK 暂时不接收转发的预订邮件，请先不要转发。你的地址会保留，导入恢复后即可再次使用，已添加的预订仍保留在你的行程中。',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

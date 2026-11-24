@@ -11,8 +11,17 @@ const pdf: TranslationStrings = {
     'iOS ではホーム画面のアプリから印刷できません。Safari でこの旅行をエクスポートの準備ができた状態で開き、そこで PDF を保存できます。',
   'pdf.pageBreakPerDay': '日ごとに改ページ',
   'pdf.transportNotes': '交通機関のメモ',
+  'pdf.largeText': '大きな文字',
   'pdf.mapTitle': 'ルート概要',
   'pdf.distanceLabel': '距離',
   'pdf.mapCredit': '国境線: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': '概要',
+  'pdf.showPhotos': '写真',
+  'pdf.showDetails': '連絡先と営業時間',
+  'pdf.atAGlance': '一覧',
+  'pdf.bookings': '予約と宿泊',
+  'pdf.day': '日目',
+  'pdf.stay': '宿泊',
+  'pdf.plan': '予定',
 };
 export default pdf;

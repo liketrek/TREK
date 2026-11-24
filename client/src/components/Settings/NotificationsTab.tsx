@@ -119,10 +119,10 @@ export default function NotificationsTab(): React.ReactElement {
               aria-label={t('settings.webhookUrl.label')}
               className={`${INPUT} min-w-[220px] flex-1`}
             />
-            <button type="button" onClick={testWebhookUrl} disabled={webhookTestDisabled} className={SETTINGS_BUTTON} style={fs(13, 'body')}>
+            <button type="button" onClick={testWebhookUrl} disabled={webhookTestDisabled} className={SETTINGS_BUTTON}>
               {t('settings.webhookUrl.test')}
             </button>
-            <button type="button" onClick={saveWebhookUrl} disabled={webhookSaving} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+            <button type="button" onClick={saveWebhookUrl} disabled={webhookSaving} className={SETTINGS_BUTTON_PRIMARY}>
               {t('common.save')}
             </button>
           </div>
@@ -164,17 +164,17 @@ export default function NotificationsTab(): React.ReactElement {
                 className={`${INPUT} flex-1`}
               />
               {ntfyTokenIsSet && (
-                <button type="button" onClick={clearNtfyToken} className={SETTINGS_BUTTON_DANGER} style={fs(13, 'body')}>
+                <button type="button" onClick={clearNtfyToken} className={SETTINGS_BUTTON_DANGER}>
                   {t('common.clear')}
                 </button>
               )}
             </div>
           </EditorField>
           <div className="flex flex-wrap items-center justify-end gap-2">
-            <button type="button" onClick={testNtfySettings} disabled={!ntfyTopic || ntfyTesting} className={SETTINGS_BUTTON} style={fs(13, 'body')}>
+            <button type="button" onClick={testNtfySettings} disabled={!ntfyTopic || ntfyTesting} className={SETTINGS_BUTTON}>
               {t('settings.ntfyUrl.test')}
             </button>
-            <button type="button" onClick={saveNtfySettings} disabled={ntfySaving} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+            <button type="button" onClick={saveNtfySettings} disabled={ntfySaving} className={SETTINGS_BUTTON_PRIMARY}>
               {t('common.save')}
             </button>
           </div>
@@ -198,7 +198,7 @@ export default function NotificationsTab(): React.ReactElement {
               {/* Unconfigured is the common case on first use — send them to where the
                   credentials actually live rather than just naming the place. */}
               {!ch.configured && ch.settingsPath && (
-                <Link to={ch.settingsPath} className={`${SETTINGS_BUTTON_PRIMARY} no-underline`} style={fs(13, 'body')}>
+                <Link to={ch.settingsPath} className={`${SETTINGS_BUTTON_PRIMARY} no-underline`}>
                   {t('settings.notificationPreferences.configure')}
                 </Link>
               )}
@@ -206,7 +206,6 @@ export default function NotificationsTab(): React.ReactElement {
                 onClick={() => testChannel(ch)}
                 disabled={!ch.configured || channelTesting === ch.id}
                 className={SETTINGS_BUTTON}
-                style={fs(13, 'body')}
               >
                 {t('settings.notificationPreferences.sendTest')}
               </button>

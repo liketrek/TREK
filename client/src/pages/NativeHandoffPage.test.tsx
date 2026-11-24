@@ -1,4 +1,4 @@
-// FE-NATIVE-HANDOFF-PAGE-001 to FE-NATIVE-HANDOFF-PAGE-004
+// FE-NATIVE-HANDOFF-PAGE-001 to FE-NATIVE-HANDOFF-PAGE-005
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '../../tests/helpers/render';
 import NativeHandoffPage from './NativeHandoffPage';
@@ -8,6 +8,9 @@ vi.mock('./nativeHandoff/useNativeHandoff', () => ({ useNativeHandoff: vi.fn() }
 
 const base = {
   valid: true,
+  passkeyStep: false,
+  continueWithPasskey: vi.fn(),
+  otherSignIn: vi.fn(),
   ready: true,
   userName: 'maria',
   status: 'idle' as const,
@@ -51,5 +54,15 @@ describe('NativeHandoffPage', () => {
     vi.mocked(useNativeHandoff).mockReturnValue({ ...base, valid: false, ready: false });
     render(<NativeHandoffPage />);
     expect(screen.getByText('Signing in did not work. Please try again.')).toBeInTheDocument();
+  });
+
+  it('FE-NATIVE-HANDOFF-PAGE-005: asks for the passkey itself when the app started a passkey sign-in', () => {
+    vi.mocked(useNativeHandoff).mockReturnValue({ ...base, passkeyStep: true, ready: false });
+    render(<NativeHandoffPage />);
+    const buttons = screen.getAllByRole('button');
+    fireEvent.click(buttons[0]);
+    expect(base.continueWithPasskey).toHaveBeenCalled();
+    fireEvent.click(buttons[1]);
+    expect(base.otherSignIn).toHaveBeenCalled();
   });
 });

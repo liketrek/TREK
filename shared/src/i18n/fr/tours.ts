@@ -97,6 +97,8 @@ const tours: TranslationStrings = {
   'tours.detail.descent': 'Dénivelé négatif',
   'tours.detail.navigationHint':
     "La navigation ouvre le point de départ du sentier ; elle ne vous guide pas le long de l'itinéraire.",
+  'tours.detail.openRoute': "Ouvrir l'itinéraire dans une app de cartes",
+  'tours.detail.mapsShort': 'Cartes',
   'tours.planner.title': 'Planifier une sortie',
   'tours.planner.newTour': 'Planifier une nouvelle sortie',
   'tours.planner.addTour': 'Ajouter une sortie',
@@ -753,6 +755,8 @@ const tours: TranslationStrings = {
   'tours.poi.cat.cafe': 'Salons de café',
   'tours.poi.cat.restaurant': 'Où manger',
   'tours.poi.cat.market': 'Marchés',
+  'tours.poi.cat.bakery': 'Boulangeries',
+  'tours.poi.cat.supermarket': 'Épiceries',
   'tours.walk.station.eyebrow': 'Étape',
   'tours.walk.station.unnamed': 'Étape sans nom',
   'tours.walk.station.name': 'Intitulé',

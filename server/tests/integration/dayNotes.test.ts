@@ -3,37 +3,35 @@
  * Covers NOTE-001 to NOTE-006.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip, createDay, addTripMember } from '../helpers/factories';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeDay, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
+let orm: MikroORM;
 
 beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -42,9 +40,9 @@ afterAll(async () => {
 
 describe('Create day note', () => {
   it('NOTE-001 — POST creates a day note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id, { date: '2025-06-01' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { date: '2025-06-01' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
@@ -56,9 +54,9 @@ describe('Create day note', () => {
   });
 
   it('NOTE-001 — POST without text returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
@@ -68,9 +66,9 @@ describe('Create day note', () => {
   });
 
   it('NOTE-002 — text exceeding 500 characters is rejected', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
@@ -80,8 +78,8 @@ describe('Create day note', () => {
   });
 
   it('NOTE-001 — POST on non-existent day returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days/99999/notes`)
@@ -97,9 +95,9 @@ describe('Create day note', () => {
 
 describe('List day notes', () => {
   it('NOTE-003 — GET returns notes for a day', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
 
     await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
@@ -116,10 +114,10 @@ describe('List day notes', () => {
   });
 
   it('NOTE-006 — non-member cannot list notes', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    const day = createDay(testDb, trip.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
+    const day = await makeDay(orm, trip.id);
 
     const res = await request(app)
       .get(`/api/trips/${trip.id}/days/${day.id}/notes`)
@@ -134,9 +132,9 @@ describe('List day notes', () => {
 
 describe('Update day note', () => {
   it('NOTE-004 — PUT updates a note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
@@ -154,9 +152,9 @@ describe('Update day note', () => {
   });
 
   it('NOTE-004 — PUT on non-existent note returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/days/${day.id}/notes/99999`)
@@ -172,9 +170,9 @@ describe('Update day note', () => {
 
 describe('Delete day note', () => {
   it('NOTE-005 — DELETE removes note', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
 
     const create = await request(app)
       .post(`/api/trips/${trip.id}/days/${day.id}/notes`)
@@ -195,9 +193,9 @@ describe('Delete day note', () => {
   });
 
   it('NOTE-005 — DELETE non-existent note returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
 
     const res = await request(app)
       .delete(`/api/trips/${trip.id}/days/${day.id}/notes/99999`)

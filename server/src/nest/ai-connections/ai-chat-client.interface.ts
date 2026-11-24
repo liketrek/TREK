@@ -54,6 +54,15 @@ export interface AiChatRequest {
   cacheKey?: string;
   /** Lets the model search the web with its provider's own search; a client without one ignores it. */
   webSearch?: boolean;
+  /**
+   * `none` asks for text only: the tools are still sent, so the tool calls
+   * already in the history stay valid, but the model may not call one.
+   * Absent means the model chooses (#3016). `required` makes it call one: the
+   * parsing read on a ChatGPT plan asks for that, through the Responses API;
+   * the Anthropic adapter, whose extended thinking refuses a forced tool,
+   * treats it as absent.
+   */
+  toolChoice?: 'auto' | 'none' | 'required';
 }
 
 /** A page the model's answer draws on, from its web search. */

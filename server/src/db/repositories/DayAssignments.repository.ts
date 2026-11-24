@@ -266,6 +266,8 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
     accommodation_id: number | null;
     /** MDT-02: one stage of a multi-day tour, by its starting stop's key; absent for the whole tour or a place. */
     tour_stage_key?: string | null;
+    /** #3092: the visit's own stay; absent or null reads the place's. */
+    stay_minutes?: number | null;
   }): Promise<number> {
     return await this.insert({
       day: input.day_id,
@@ -449,6 +451,14 @@ export class DayAssignmentsRepository extends TrekRepository<DayAssignments> {
   /** AS24 — `UPDATE day_assignments SET end_day = ? WHERE id = ?`. */
   async setEndDay(id: number, end_day: number): Promise<void> {
     await this.nativeUpdate({ id }, { end_day });
+  }
+
+  /**
+   * `UPDATE day_assignments SET stay_minutes = ? WHERE id = ?` (#3092). Null hands the
+   * visit back to the stay its place carries.
+   */
+  async setStayMinutes(id: number, stay_minutes: number | null): Promise<void> {
+    await this.nativeUpdate({ id }, { stay_minutes });
   }
 
   /** AS25 — `UPDATE day_assignments SET notes = ? WHERE id = ?`. */

@@ -7,10 +7,10 @@ import { usePermissionsStore } from '../../../../src/store/permissionsStore';
 import { useTripStore } from '../../../../src/store/tripStore';
 import { buildTrip, buildUser } from '../../../helpers/factories';
 import { server } from '../../../helpers/msw/server';
-import { render, screen, waitFor, within } from '../../../helpers/render';
-import { resetAllStores, seedStore } from '../../../helpers/store';
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render';
+import { resetAllStores, seedInstanceAddons, seedStore } from '../../../helpers/store';
 
-// FE-MOB-TSET-001 to FE-MOB-TSET-008: the phone's trip settings, on useTripShare.
+// FE-MOB-TSET-001 to FE-MOB-TSET-010: the phone's trip settings, on useTripShare and useTripAddonRows.
 
 const owner = buildUser({ id: 1, username: 'owner' });
 const alice = buildUser({ id: 2, username: 'alice' });
@@ -34,6 +34,11 @@ function roster(members: Row[]) {
   );
 }
 
+/** The sheet opens on its list of areas; a case about one opens it first. */
+async function openArea(name: 'People' | 'Sharing') {
+  fireEvent.click(await screen.findByRole('button', { name: new RegExp(`^${name}`) }));
+}
+
 function renderSheet(props: Partial<Parameters<typeof MTripSettingsSheet>[0]> = {}) {
   const onClose = vi.fn();
   const onMembersChanged = vi.fn();
@@ -54,6 +59,8 @@ beforeEach(() => {
   resetAllStores();
   seedStore(useAuthStore, { user: owner, isAuthenticated: true });
   seedStore(useTripStore, { trip: buildTrip({ id: 1, title: 'Japan 2026', user_id: owner.id }) });
+  // The instance has the three addons a link section belongs to; the trip names none of its own.
+  seedInstanceAddons(['packing', 'budget', 'collab']);
   roster([]);
   server.use(
     http.get('/api/trips/1/share-link', () => HttpResponse.json({ token: null })),
@@ -69,6 +76,7 @@ afterEach(() => {
 describe('MTripSettingsSheet', () => {
   it('FE-MOB-TSET-001: names the trip in its header and the owner with their badges', async () => {
     renderSheet();
+    await openArea('People');
     const sheet = screen.getByRole('dialog', { name: 'Trip settings' });
     expect(within(sheet).getByText('Japan 2026')).toBeInTheDocument();
     expect(await within(sheet).findByText('owner')).toBeInTheDocument();
@@ -87,6 +95,7 @@ describe('MTripSettingsSheet', () => {
       })
     );
     const { onMembersChanged } = renderSheet();
+    await openArea('People');
 
     await user.click(await screen.findByRole('button', { name: 'Remove access' }));
     const question = await screen.findByRole('dialog', { name: 'Remove access' });
@@ -109,6 +118,7 @@ describe('MTripSettingsSheet', () => {
       })
     );
     renderSheet();
+    await openArea('People');
 
     await user.click(await screen.findByRole('button', { name: 'Make owner' }));
     const question = await screen.findByRole('dialog', { name: 'Make owner' });
@@ -137,6 +147,7 @@ describe('MTripSettingsSheet', () => {
       })
     );
     renderSheet();
+    await openArea('People');
 
     expect(await screen.findByText('Grandma')).toBeInTheDocument();
     await user.type(screen.getByPlaceholderText('Guest name'), 'Grandpa');
@@ -174,6 +185,7 @@ describe('MTripSettingsSheet', () => {
       )
     );
     renderSheet();
+    await openArea('Sharing');
 
     expect(await screen.findByRole('button', { name: 'Bookings' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Costs' })).toHaveAttribute('aria-pressed', 'false');
@@ -191,11 +203,32 @@ describe('MTripSettingsSheet', () => {
       })
     );
     renderSheet();
+    await openArea('Sharing');
 
     await user.click(await screen.findByRole('button', { name: 'Packing' }));
     await user.click(screen.getByRole('button', { name: 'Create link' }));
     await waitFor(() => expect(body).toMatchObject({ share_map: true, share_packing: true }));
     expect(await screen.findByDisplayValue(/\/shared\/fresh$/)).toBeInTheDocument();
+  });
+
+  it('FE-MOB-TSET-006b: a section of an addon the trip switched off is not offered for the link', async () => {
+    seedStore(usePermissionsStore, { permissions: { share_manage: 'trip_owner' } });
+    server.use(
+      http.get('/api/trips/1/addons', () =>
+        HttpResponse.json({
+          tripId: 1,
+          addons: [
+            { id: 'budget', name: 'Costs', icon: null, enabled: false, instanceEnabled: true, overridden: true },
+          ],
+        })
+      )
+    );
+    renderSheet();
+    await openArea('Sharing');
+
+    expect(await screen.findByRole('button', { name: 'Packing' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Costs' })).not.toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Chat' })).toBeInTheDocument();
   });
 
   it('FE-MOB-TSET-007: the invite link is created and switched off again', async () => {
@@ -210,11 +243,21 @@ describe('MTripSettingsSheet', () => {
       })
     );
     renderSheet();
+    await openArea('Sharing');
 
     await user.click(await screen.findByRole('button', { name: 'Create invite link' }));
     expect(await screen.findByDisplayValue(/\/join\/join1$/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Disable' }));
     await waitFor(() => expect(removed).toBe(true));
+  });
+
+  it('FE-MOB-TSET-007b: opens on the list of areas and goes back to it from one', async () => {
+    renderSheet();
+    expect(screen.getByRole('navigation', { name: 'Trip settings' })).toBeInTheDocument();
+    await openArea('People');
+    expect(screen.queryByRole('navigation', { name: 'Trip settings' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Back' }));
+    expect(screen.getByRole('navigation', { name: 'Trip settings' })).toBeInTheDocument();
   });
 
   it('FE-MOB-TSET-008: closes through its close button', async () => {
@@ -224,5 +267,38 @@ describe('MTripSettingsSheet', () => {
       within(screen.getByRole('dialog', { name: 'Trip settings' })).getByRole('button', { name: 'Close' })
     );
     expect(onClose).toHaveBeenCalled();
+  });
+
+  it('FE-MOB-TSET-009: the owner switches the trip addons, and back to the instance setting', async () => {
+    const user = userEvent.setup();
+    const bodies: unknown[] = [];
+    const list = [
+      { id: 'packing', name: 'Packing', icon: 'ListChecks', enabled: true, instanceEnabled: true, overridden: false },
+      { id: 'tours', name: 'Tours', icon: 'Mountain', enabled: true, instanceEnabled: false, overridden: true },
+    ];
+    server.use(
+      http.get('/api/trips/1/addons', () => HttpResponse.json({ tripId: 1, addons: list })),
+      http.put('/api/trips/1/addons/:addonId', async ({ request }) => {
+        bodies.push(await request.json());
+        return HttpResponse.json({ tripId: 1, addons: list });
+      })
+    );
+    renderSheet();
+    fireEvent.click(await screen.findByRole('button', { name: /^Addons/ }));
+
+    expect(await screen.findByText('Lists')).toBeInTheDocument();
+    expect(screen.getByText('This trip only')).toBeInTheDocument();
+    await user.click(screen.getByRole('switch', { name: 'Lists' }));
+    await waitFor(() => expect(bodies).toEqual([{ enabled: false }]));
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Tours' })).toBeEnabled());
+    await user.click(screen.getByRole('switch', { name: 'Tours' }));
+    await waitFor(() => expect(bodies).toEqual([{ enabled: false }, { enabled: null }]));
+  });
+
+  it('FE-MOB-TSET-010: a member who is not the owner gets no Addons area', async () => {
+    seedStore(useAuthStore, { user: alice, isAuthenticated: true });
+    renderSheet();
+    expect(await screen.findByRole('button', { name: /^People/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Addons/ })).not.toBeInTheDocument();
   });
 });

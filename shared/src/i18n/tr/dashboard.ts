@@ -122,7 +122,7 @@ const dashboard: TranslationStrings = {
     'Bu seyahatin başlangıç tarihini değiştirdiniz. Planlarınız yeni tarihlere nasıl uyum sağlasın?',
   'dashboard.dateShiftKeepBookings': 'Rezervasyonları kendi tarihlerinde tut',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Gün planları yeni tarihlerle birlikte taşınır; rezervasyonlar ve konaklamalar ise seyahatin kapsamında kaldıkları sürece orijinal tarihlerinde kalır.',
+    'Eklenen günler boş kalır ve başka hiçbir şey yer değiştirmez. Seyahat kaydırılırsa gün planları yeni tarihlerle birlikte taşınır; rezervasyonlar ve konaklamalar ise seyahatin kapsamında kaldıkları sürece orijinal tarihlerinde kalır.',
   'dashboard.dateShiftAll': 'Her şeyi kaydır',
   'dashboard.dateShiftAllDesc': 'Rezervasyonlar ve konaklamalar dahil tüm plan yeni tarihlerle birlikte taşınır.',
   'dashboard.dateShiftHint':
@@ -236,5 +236,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Apple Takvim / Outlook’a ekle',
   'dashboard.ics.copyManually': 'Veya bağlantıyı elle kopyalayın',
   'dashboard.ics.pasteFromUrl': '“URL’den” alanına yapıştırın',
+  'dashboard.ics.dayEvents': 'Gün özeti etkinlikleri',
+  'dashboard.ics.dayEventsHint':
+    'Her gün için saati olmayan yerleri ve notları içeren tüm gün süren bir etkinlik. Bunu değiştirmek bağlantıyı değiştirir, bu yüzden yeni bağlantıyla yeniden abone ol.',
 };
 export default dashboard;

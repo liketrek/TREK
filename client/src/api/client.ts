@@ -112,7 +112,7 @@ apiClient.interceptors.request.use(
 )
 
 export function isAuthPublicPath(pathname: string): boolean {
-  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/legal']
+  const publicPaths = ['/login', '/register', '/forgot-password', '/reset-password', '/native-handoff', '/legal']
   const publicPrefixes = ['/shared/', '/public/']
   return publicPaths.includes(pathname) || publicPrefixes.some((p) => pathname.startsWith(p))
 }
@@ -488,7 +488,7 @@ export const packingApi = {
   reorder: (tripId: number | string, orderedIds: number[]) => apiClient.put(`/trips/${tripId}/packing/reorder`, { orderedIds } satisfies PackingReorderRequest).then(r => r.data),
   setSharing: (tripId: number | string, id: number, data: PackingSetSharingRequest) => apiClient.put(`/trips/${tripId}/packing/${id}/sharing`, data).then(r => r.data),
   clone: (tripId: number | string, id: number) => apiClient.post(`/trips/${tripId}/packing/${id}/clone`).then(r => r.data),
-  addContributor: (tripId: number | string, id: number) => apiClient.post(`/trips/${tripId}/packing/${id}/contributors`).then(r => r.data),
+  addContributor: (tripId: number | string, id: number, userId?: number) => apiClient.post(`/trips/${tripId}/packing/${id}/contributors`, userId == null ? undefined : { user_id: userId }).then(r => r.data),
   removeContributor: (tripId: number | string, id: number, userId: number) => apiClient.delete(`/trips/${tripId}/packing/${id}/contributors/${userId}`).then(r => r.data),
   getCategoryAssignees: (tripId: number | string) => apiClient.get(`/trips/${tripId}/packing/category-assignees`).then(r => r.data),
   setCategoryAssignees: (tripId: number | string, categoryName: string, userIds: number[]) => apiClient.put(`/trips/${tripId}/packing/category-assignees/${encodeURIComponent(categoryName)}`, { user_ids: userIds } satisfies PackingCategoryAssigneesRequest).then(r => r.data),

@@ -11,6 +11,7 @@ import {
   Puzzle,
   Settings2,
   SlidersHorizontal,
+  Smartphone,
   User,
 } from 'lucide-react'
 import { useTranslation } from '../../../i18n'
@@ -24,8 +25,11 @@ import MSettingsNotifications from './MSettingsNotifications'
 import MSettingsIntegrations from './MSettingsIntegrations'
 import MSettingsAccount from './MSettingsAccount'
 import MSettingsServer from './MSettingsServer'
+import MAppLockCard from './MAppLockCard'
+import MClientCertCard from './MClientCertCard'
+import { isNativeApp } from '../../../native/platform'
 import { useIsSplit } from '../../../hooks/sizeClass'
-import MSectionNav, { MSectionRow, SECTION_SCREEN, type MSection } from '../../components/MSectionNav'
+import MSectionNav, { MSectionList, SECTION_SCREEN, type MSection } from '../../components/MSectionNav'
 
 /**
  * Mobile settings screen: back + section-switcher pill on top, the section
@@ -36,22 +40,31 @@ import MSectionNav, { MSectionRow, SECTION_SCREEN, type MSection } from '../../c
 export default function MSettings() {
   const { t } = useTranslation()
   const navigate = useNavigate()
-  const { hasIntegrations, hasPlugins, appVersion, activeTab, setActiveTab, managed } = useSettings()
+  const { hasPlugins, appVersion, activeTab, setActiveTab, managed } = useSettings()
   const [dropOpen, setDropOpen] = useState(false)
   // With room for two panes the sections stand in a list of their own beside
   // the page, the way Settings on an iPad does, instead of behind a dropdown.
   const split = useIsSplit()
 
+  // Two groups, so it is clear what a setting reaches: the account's settings
+  // follow the user to every device; this device's stay on it (the server the
+  // app opens, the app lock, a client certificate, the offline copy).
+  const accountGroup = t('settings.groups.account')
+  const deviceGroup = t('settings.groups.device')
+  const app = isNativeApp()
   const tabs: MSection[] = [
-    { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal },
-    { id: 'appearance', label: t('settings.tabs.appearance'), icon: Palette },
-    { id: 'map', label: t('settings.tabs.map'), icon: Map },
-    { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell },
-    ...(hasIntegrations ? [{ id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug }] : []),
-    ...(hasPlugins && !managed ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Puzzle }] : []),
-    { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff },
-    { id: 'account', label: t('settings.tabs.account'), icon: User },
-
+    { id: 'display', label: t('settings.tabs.display'), icon: SlidersHorizontal, group: accountGroup },
+    { id: 'appearance', label: t('settings.tabs.appearance'), icon: Palette, group: accountGroup },
+    { id: 'map', label: t('settings.tabs.map'), icon: Map, group: accountGroup },
+    { id: 'notifications', label: t('settings.tabs.notifications'), icon: Bell, group: accountGroup },
+    // Always there, as on the desktop: API keys sit in this tab and need no addon.
+    { id: 'integrations', label: t('settings.tabs.integrations'), icon: Plug, group: accountGroup },
+    ...(hasPlugins && !managed
+      ? [{ id: 'plugins', label: t('settings.tabs.plugins'), icon: Puzzle, group: accountGroup }]
+      : []),
+    { id: 'account', label: t('settings.tabs.account'), icon: User, group: accountGroup },
+    ...(app ? [{ id: 'device', label: t('settings.tabs.device'), icon: Smartphone, group: deviceGroup }] : []),
+    { id: 'offline', label: t('settings.tabs.offline'), icon: CloudOff, group: deviceGroup },
   ]
 
   const active = tabs.find((tab) => tab.id === activeTab) || tabs[0]
@@ -98,17 +111,14 @@ export default function MSettings() {
       {/* Section dropdown, in flow (pushes the content down like the demo) */}
       {dropOpen && !split && (
         <div className="m-pop-in -mt-[6px] mb-3 rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[6px] shadow-[0_16px_40px_-20px_rgba(0,0,0,.4)]">
-          {tabs.map((tab) => (
-            <MSectionRow
-              key={tab.id}
-              section={tab}
-              active={tab.id === active.id}
-              onPick={() => {
-                setActiveTab(tab.id)
-                setDropOpen(false)
-              }}
-            />
-          ))}
+          <MSectionList
+            sections={tabs}
+            activeId={active.id}
+            onPick={(id) => {
+              setActiveTab(id)
+              setDropOpen(false)
+            }}
+          />
         </div>
       )}
 
@@ -116,11 +126,18 @@ export default function MSettings() {
       {active.id === 'appearance' && <MSettingsAppearance />}
       {active.id === 'map' && <MSettingsMap />}
       {active.id === 'notifications' && <MSettingsNotifications />}
-      {active.id === 'integrations' && hasIntegrations && <MSettingsIntegrations />}
+      {active.id === 'integrations' && <MSettingsIntegrations />}
       {/* Per-plugin settings still reuse the existing responsive tab. */}
-      {active.id === 'plugins' && <MSettingsPlugins />}
+      {active.id === 'plugins' && hasPlugins && !managed && <MSettingsPlugins />}
+      {/* Each card hides itself where it has nothing to offer; their own margins give way to one gap. */}
+      {active.id === 'device' && app && (
+        <div className="flex flex-col gap-3 [&>*]:m-0">
+          <MSettingsServer />
+          <MAppLockCard />
+          <MClientCertCard />
+        </div>
+      )}
       {active.id === 'offline' && <MSettingsOffline />}
-      {active.id === 'account' && <MSettingsServer />}
       {active.id === 'account' && <MSettingsAccount />}
       <p className="mt-8 text-center text-caption text-m-muted">
         <button type="button" onClick={() => void navigate('/legal')} className="underline">

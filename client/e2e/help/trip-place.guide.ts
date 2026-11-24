@@ -85,10 +85,25 @@ const weekday = (offset: number) => long(offset).split(',')[0]
 const hoursRow = (page: Page) => card(page).locator('button:has(svg.lucide-clock)')
 /** The hours block: the row and, once unfolded, the week in its place. */
 const hoursBox = (page: Page) => section(page, 'Opening Hours')
-/** The round picture in the head; its name says whether a picture of your own is set. */
-const avatar = (page: Page) => card(page).getByRole('button', { name: /^(Upload image|Change image)$/ })
-/** The popover the picture opens when the place has photos among its files. */
-const imageChooser = (page: Page) => page.getByRole('dialog', { name: 'Choose a picture' })
+/** Edit, the dark button at the right end of the card's footer. */
+const editButton = (page: Page) => footer(page).getByRole('button', { name: 'Edit', exact: true })
+/** Update, the place form's save button once the place exists. */
+const updateButton = (page: Page) => modal(page).getByRole('button', { name: 'Update', exact: true })
+/** The three dots of the footer: Remove from Day and Delete live there. */
+const moreButton = (page: Page) => footer(page).getByRole('button', { name: 'More options', exact: true })
+/** Pick a picture in the place form: the tiles and the credit line under them. */
+const picker = (page: Page) =>
+  modal(page).getByText('Pick a picture', { exact: true }).first().locator('xpath=ancestor::section[1]')
+/** The picker's first tile, which takes a picture from the device. */
+const uploadTile = (page: Page) => picker(page).getByRole('button', { name: 'Upload image', exact: true })
+/** The fold chevron in the card's head; its name follows the state. */
+const foldButton = (page: Page, name: 'Collapse' | 'Expand') => head(page).getByRole('button', { name, exact: true })
+/** The place the off-map guide puts in: an address a traveller typed, no pick from the search. */
+const OFF_MAP = { name: 'Ramen at Karasuma Oike', address: 'Karasuma Oike, Nakagyo Ward, Kyoto', lat: '35.0107', lng: '135.7596' }
+const NO_COORDINATES = 'No coordinates, so not on the map'
+/** The form's location block: the address with its hint, and the two coordinate fields. */
+const coordinates = (page: Page) => modal(page).getByRole('group', { name: 'Coordinates', exact: true })
+const locationPanel = (page: Page) => coordinates(page).locator('xpath=..')
 /** The place form's hours editor, found by its remove button (only there while editing). */
 const hoursEditor = (page: Page) =>
   modal(page).getByRole('button', { name: 'Remove opening hours' }).locator('xpath=ancestor::section[1]')
@@ -175,7 +190,7 @@ async function openStop(page: Page, name: string): Promise<void> {
 
 // ── The seed over the API, for the cleanups ──────────────────────────────────
 
-type ApiPlace = { id: number; name: string; lat?: number | null; lng?: number | null }
+type ApiPlace = { id: number; name: string; lat?: number | null; lng?: number | null; image_url?: string | null }
 type ApiAssignment = { id: number; place_id: number }
 
 async function tripPlaces(page: Page): Promise<ApiPlace[]> {
@@ -215,6 +230,28 @@ const closeModal = async (page: Page): Promise<void> => {
 }
 
 const only = (target: (p: Page) => Locator) => ({ target })
+
+/** Open the place's form from the card. */
+async function openEditor(page: Page): Promise<void> {
+  await editButton(page).click()
+  await expect(updateButton(page)).toBeVisible()
+  await settle(page)
+}
+
+/** Save the form and wait until the place carries a picture of its own. */
+async function saveWithPicture(page: Page, name: string): Promise<void> {
+  await updateButton(page).click()
+  await expect(modal(page)).toHaveCount(0, { timeout: 30_000 })
+  await expect.poll(async () => (await findPlace(page, name))?.image_url ?? null, { timeout: 30_000 }).toBeTruthy()
+  await settle(page)
+}
+
+async function removeOffMapPlace(page: Page): Promise<void> {
+  const { tripId } = seededTrip()
+  for (const place of (await tripPlaces(page)).filter(p => p.name === OFF_MAP.name)) {
+    await page.request.delete(`/api/trips/${tripId}/places/${place.id}`)
+  }
+}
 
 /**
  * Take a place out of every collection it sits in.
@@ -300,26 +337,70 @@ const SCRIPTS: Record<string, GuideScript> = {
       if (place) await p.request.delete(`/api/trips/${tripId}/places/${place.id}/rating`)
     },
   },
-  'place-image': {
-    guide: guide('place-image'),
-    start: p => openTrip(p, { day: null }),
+  'fold-place-card': {
+    guide: guide('fold-place-card'),
+    // From the stop, like the hero: the map then sits close enough that the
+    // highlighted marker is in the folded bar's picture.
+    start: async p => {
+      await openTrip(p, { day: null })
+      await selectDay(p, 1)
+      await openStop(p, 'Senso-ji Temple')
+    },
     steps: [
       {
-        target: p => row(p, 'Arashiyama Bamboo Grove'),
-        act: p => openPlace(p, 'Arashiyama Bamboo Grove'),
-      },
-      {
-        target: avatar,
+        target: p => foldButton(p, 'Collapse'),
         act: async p => {
-          await card(p).locator('input[accept*="image/jpeg"]').setInputFiles(await coverFixture())
-          await expect(card(p).getByRole('button', { name: 'Remove image' })).toBeVisible({ timeout: 30_000 })
+          await foldButton(p, 'Collapse').click()
+          await expect(foldButton(p, 'Expand')).toBeVisible()
+          await expect(footer(p)).toBeHidden()
           await settle(p)
         },
       },
-      only(head),
-      only(p => row(p, 'Arashiyama Bamboo Grove')),
+      {
+        // The map moved the way the step says, which brings the marker down to the bar.
+        prepare: async p => {
+          await p.mouse.move(960, 300)
+          await p.mouse.down()
+          await p.mouse.move(960, 450, { steps: 8 })
+          await p.mouse.move(960, 600, { steps: 8 })
+          await p.mouse.up()
+          await settle(p)
+        },
+        target: head,
+      },
+      {
+        target: p => foldButton(p, 'Expand'),
+        act: async p => {
+          await foldButton(p, 'Expand').click()
+          await expect(footer(p)).toBeVisible()
+        },
+      },
     ],
-    cleanup: p => patchPlace(p, 'Arashiyama Bamboo Grove', { image_url: null }),
+  },
+  'place-image': {
+    guide: guide('place-image'),
+    start: async p => {
+      await openTrip(p, { day: null })
+      await openPlace(p, 'Arashiyama Bamboo Grove')
+    },
+    steps: [
+      { target: editButton, act: openEditor },
+      {
+        target: uploadTile,
+        act: async p => {
+          await picker(p).locator('input[type="file"]').setInputFiles(await coverFixture())
+          await expect(uploadTile(p)).toHaveAttribute('aria-pressed', 'true', { timeout: 30_000 })
+          await settle(p)
+        },
+      },
+      // Pointed at the label, not a tile: a hovered tile puts its own credit under the grid.
+      { target: picker, hover: p => picker(p).getByText('Pick a picture', { exact: true }).hover() },
+      { target: updateButton, act: p => saveWithPicture(p, 'Arashiyama Bamboo Grove') },
+    ],
+    cleanup: async p => {
+      await closeModal(p)
+      await patchPlace(p, 'Arashiyama Bamboo Grove', { image_url: null })
+    },
   },
   'place-image-from-file': {
     guide: guide('place-image-from-file'),
@@ -337,27 +418,28 @@ const SCRIPTS: Record<string, GuideScript> = {
         target: p => section(p, 'Files'),
       },
       {
-        target: avatar,
-        act: async p => {
-          await avatar(p).click()
-          await expect(imageChooser(p)).toBeVisible()
-          // The thumbnails load as blobs one request later.
-          await expect(imageChooser(p).locator('img').first()).toBeVisible({ timeout: 20_000 })
+        prepare: async p => {
+          await openEditor(p)
+          // The attached photo's tile loads as a blob one request later.
+          await expect(picker(p).getByRole('button', { name: PHOTO_FILE, exact: true }).locator('img')).toBeVisible({ timeout: 20_000 })
           await settle(p)
         },
+        target: picker,
       },
       {
-        target: p => imageChooser(p).getByRole('button', { name: PHOTO_FILE, exact: true }),
+        target: p => picker(p).getByRole('button', { name: PHOTO_FILE, exact: true }),
         act: async p => {
-          await imageChooser(p).getByRole('button', { name: PHOTO_FILE, exact: true }).click()
-          await expect(imageChooser(p)).toHaveCount(0)
-          await expect(card(p).getByRole('button', { name: 'Remove image' })).toBeVisible({ timeout: 30_000 })
+          await picker(p).getByRole('button', { name: PHOTO_FILE, exact: true }).click()
+          await expect(picker(p).getByRole('button', { name: PHOTO_FILE, exact: true })).toHaveAttribute('aria-pressed', 'true')
           await settle(p)
         },
       },
-      only(head),
+      { target: updateButton, act: p => saveWithPicture(p, PHOTO_PLACE) },
     ],
-    cleanup: p => removePlacePhoto(p.request),
+    cleanup: async p => {
+      await closeModal(p)
+      await removePlacePhoto(p.request)
+    },
   },
   'place-own-hours': {
     guide: guide('place-own-hours'),
@@ -426,6 +508,61 @@ const SCRIPTS: Record<string, GuideScript> = {
       await patchPlace(p, HOURS_PLACE, { phone: '', email: '', opening_hours: '' })
     },
   },
+  'place-off-map': {
+    guide: guide('place-off-map'),
+    // Put in over the API before the trip opens, the way a traveller leaves it:
+    // a name and a typed address, never picked from the search.
+    start: async p => {
+      await removeOffMapPlace(p)
+      const { tripId } = seededTrip()
+      const res = await p.request.post(`/api/trips/${tripId}/places`, { data: { name: OFF_MAP.name, address: OFF_MAP.address } })
+      if (!res.ok()) throw new Error(`could not add ${OFF_MAP.name}: ${res.status()} ${await res.text()}`)
+      await openTrip(p, { day: null })
+    },
+    steps: [
+      {
+        target: p => row(p, OFF_MAP.name),
+        act: async p => {
+          await openPlace(p, OFF_MAP.name)
+          await expect(head(p).getByText(NO_COORDINATES)).toBeVisible()
+        },
+      },
+      // Hovered for the picture, which brings up the tooltip with the way out.
+      only(p => head(p).getByText(NO_COORDINATES)),
+      {
+        prepare: async p => {
+          await openEditor(p)
+          await expect(locationPanel(p).getByText(/has no coordinates yet/)).toBeVisible()
+        },
+        target: locationPanel,
+      },
+      {
+        // Filled before the picture: the step is about the two values going in.
+        prepare: async p => {
+          await typeInto(p, coordinates(p).getByLabel('Latitude', { exact: true }), OFF_MAP.lat)
+          await typeInto(p, coordinates(p).getByLabel('Longitude', { exact: true }), OFF_MAP.lng)
+          await expect(locationPanel(p).getByText(/has no coordinates yet/)).toHaveCount(0)
+          await settle(p)
+        },
+        target: coordinates,
+      },
+      {
+        target: updateButton,
+        act: async p => {
+          await updateButton(p).click()
+          await expect(modal(p)).toHaveCount(0, { timeout: 20_000 })
+          await expect(head(p).getByText(NO_COORDINATES)).toHaveCount(0)
+          // Picked again, so the map goes to the new marker for the result.
+          await closeCard(p)
+          await openPlace(p, OFF_MAP.name)
+        },
+      },
+    ],
+    cleanup: async p => {
+      await closeModal(p)
+      await removeOffMapPlace(p)
+    },
+  },
   'place-day-assign': {
     guide: guide('place-day-assign'),
     start: p => openTrip(p, { day: null }),
@@ -445,7 +582,8 @@ const SCRIPTS: Record<string, GuideScript> = {
         target: p => footer(p).getByRole('button', { name: 'Add to Day' }),
         act: async p => {
           await footer(p).getByRole('button', { name: 'Add to Day' }).click()
-          await expect(footer(p).getByRole('button', { name: 'Remove from Day' })).toBeVisible({ timeout: 20_000 })
+          await expect(stop(p, SPARE)).toBeVisible({ timeout: 20_000 })
+          await expect(footer(p).getByRole('button', { name: 'Add to Day' })).toHaveCount(0)
           await settle(p)
         },
       },
@@ -453,9 +591,15 @@ const SCRIPTS: Record<string, GuideScript> = {
       // last step's picture, and the arrow already says what to do.
       { target: p => stop(p, SPARE), dropTo: p => stop(p, 'Arashiyama Bamboo Grove') },
       {
-        target: p => footer(p).getByRole('button', { name: 'Remove from Day' }),
+        // Remove from Day waits behind the three dots, so the menu is open for the picture.
+        prepare: async p => {
+          await moreButton(p).click()
+          await expect(p.getByRole('menu').getByRole('button', { name: 'Remove from Day' })).toBeVisible()
+          await settle(p)
+        },
+        target: p => p.getByRole('menu').getByRole('button', { name: 'Remove from Day' }),
         act: async p => {
-          await footer(p).getByRole('button', { name: 'Remove from Day' }).click()
+          await p.getByRole('menu').getByRole('button', { name: 'Remove from Day' }).click()
           await expect(footer(p).getByRole('button', { name: 'Add to Day' })).toBeVisible({ timeout: 20_000 })
           await settle(p)
         },
@@ -623,6 +767,8 @@ const SCRIPTS: Record<string, GuideScript> = {
         act: async p => {
           await p.keyboard.press('Escape')
           await expect(p.getByRole('menu')).toHaveCount(0)
+          // Escape leaves the focus ring on Navigation, which the next picture would show.
+          await p.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
         },
       },
       only(p => footer(p).getByRole('button', { name: 'Open Website' })),

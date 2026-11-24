@@ -20,6 +20,7 @@ const assistantCollection: TranslationStrings = {
   'assistant.card.collection.moveTo': 'ย้ายไปที่ {name}',
   'assistant.card.collection.removed': 'นำออกจากรายการแล้ว',
   'assistant.card.collection.photo': 'รูปภาพ',
+  'assistant.card.collection.mapEntry': 'รายการบนแผนที่',
   'assistant.card.collection.places': 'สถานที่ที่บันทึกไว้ใน {name}',
   'assistant.card.collection.saved': 'สถานที่ที่บันทึกไว้',
   'assistant.card.collection.statusSet': 'เปลี่ยนสถานที่ที่บันทึกไว้ {count} แห่ง',

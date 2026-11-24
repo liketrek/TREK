@@ -93,7 +93,6 @@ const assistantTour: TranslationStrings = {
   'assistant.card.tour.problem.no_way_any': 'لا يوجد مسار يربط هذه النقاط',
   'assistant.card.tour.problem.point_off_the_way': 'النقطة {point} بعيدة جدًا عن أي مسار',
   'assistant.card.tour.problem.too_long': 'هذا الطريق أطول مما تغطيه رحلة مشي واحدة',
-  'assistant.card.tour.problem.ferry_only':
-    'لا يمكن الوصول إلى بعض المحطات إلا بالقارب، لذا رُسمت الجولة بخطوط مستقيمة',
+  'assistant.card.tour.problem.ferry_only': 'لا يمكن الوصول إلى بعض المحطات إلا بالقارب، لذا رُسمت الجولة بخطوط مستقيمة',
 };
 export default assistantTour;

@@ -8,6 +8,8 @@
     <string name="widget_today_description">แผนของวันนี้เป็นไทม์ไลน์ พร้อมสภาพอากาศและจุดหมายถัดไป</string>
     <string name="widget_bookings_name">การจอง</string>
     <string name="widget_bookings_description">เที่ยวบิน รถไฟ โรงแรม และร้านอาหารถัดไปของคุณ และเวลาของแต่ละรายการ</string>
+    <string name="widget_flight_name">เที่ยวบิน</string>
+    <string name="widget_flight_description">เที่ยวบินถัดไปแบบสด: นับถอยหลังถึงเวลาออกเดินทาง เครื่องบินระหว่างทาง ความล่าช้า และเวลาถึง</string>
     <string name="widget_todos_name">สิ่งที่ต้องทำ</string>
     <string name="widget_todos_description">สิ่งที่ยังค้างอยู่สำหรับทริป และความคืบหน้าการจัดกระเป๋า</string>
     <string name="widget_packing_name">จัดกระเป๋า</string>

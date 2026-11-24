@@ -92,7 +92,7 @@ export default function MVacay() {
   return (
     // h-dvh, not h-full: the shell stopped providing a definite height (#1809).
     <div className="relative h-dvh">
-      {/* Header */}
+      {/* Header, beside a corner element (a Duo's status capsule) upright */}
       <div className="absolute inset-x-4 z-[5] flex items-center gap-2 top-[var(--m-safe-top,12px)]">
         <MIconBtn onClick={() => v.setSheet('invite')} ariaLabel={t('vacay.inviteUser')}>
           <UserPlus size={16} strokeWidth={2} className="text-m-muted" />

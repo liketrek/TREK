@@ -1,4 +1,5 @@
 import { commonCurrencyListSchema } from '../settings/settings.schema';
+import { rowIdInputSchema } from '../common/primitives.schema';
 
 import { z } from 'zod';
 
@@ -42,12 +43,12 @@ export type AdminPermissionsRequest = z.infer<typeof adminPermissionsRequestSche
 export const adminInviteCreateRequestSchema = z.object({
   // string | number: the service parses with parseInt(String(x)), and the
   // admin UI sends numbers while older clients sent strings.
-  max_uses: z.union([z.number(), z.string()]).optional(),
+  max_uses: z.union([z.number().int(), z.string()]).optional(),
   expires_in_days: z.union([z.number(), z.string()]).optional(),
   role: z.enum(['user', 'admin']).optional(),
   // Optional trip binding (#1402): a user who registers via the link is
   // auto-added to this trip. Nullable/absent = a plain registration invite.
-  trip_id: z.union([z.number(), z.string()]).nullable().optional(),
+  trip_id: rowIdInputSchema.nullable().optional(),
 });
 export type AdminInviteCreateRequest = z.infer<typeof adminInviteCreateRequestSchema>;
 
@@ -61,6 +62,13 @@ export const adminFeatureToggleResponseSchema = z.object({
   enabled: z.boolean(),
 });
 export type AdminFeatureToggleResponse = z.infer<typeof adminFeatureToggleResponseSchema>;
+
+/** DELETE /api/admin/users/:id/sso (#3065): whether the account had an SSO link to remove. */
+export const adminSsoUnlinkResponseSchema = z.object({
+  success: z.literal(true),
+  unlinked: z.boolean(),
+});
+export type AdminSsoUnlinkResponse = z.infer<typeof adminSsoUnlinkResponseSchema>;
 
 /**
  * PUT /api/admin/google-quota (#1582): the most Google API calls TREK may make
@@ -183,7 +191,7 @@ export type AdminDefaultUserSettingsRequest = z.infer<typeof adminDefaultUserSet
 export const adminTestNotificationRequestSchema = z.object({
   event: z.string().optional(),
   scope: z.string().optional(),
-  targetId: z.number().optional(),
+  targetId: z.number().int().optional(),
   params: z.record(z.string(), z.unknown()).optional(),
   inApp: z.union([z.boolean(), z.record(z.string(), z.unknown())]).optional(),
 });

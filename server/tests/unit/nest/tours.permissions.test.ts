@@ -7,8 +7,8 @@
  */
 import 'reflect-metadata';
 
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { extractToken, verifyJwtAndLoadUser } from '../../../src/nest/auth-core/jwt-verify';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
@@ -95,7 +95,7 @@ function importFixture(canEdit: boolean, canAssign: boolean) {
   const controller = new ToursImportController(
     { importGpxAsTour } as unknown as ToursService,
     places as unknown as PlacesService,
-    { isAddonEnabled: vi.fn(async () => true) } as unknown as AddonsService,
+    { isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService,
   );
   return { controller, access, permission, importGpxAsTour };
 }
@@ -117,8 +117,12 @@ describe('Tours permission contract (mock-only, no DB)', () => {
     expect(legacyDatabaseAccess).not.toHaveBeenCalled();
   });
 
-  it('retains addon/JWT/trip guard order and exact write metadata', () => {
-    expect(Reflect.getMetadata(GUARDS_METADATA, ToursController)).toEqual([AddonGuard, JwtAuthGuard, TripAccessGuard]);
+  it('retains JWT/trip/addon guard order and exact write metadata', () => {
+    expect(Reflect.getMetadata(GUARDS_METADATA, ToursController)).toEqual([
+      JwtAuthGuard,
+      TripAccessGuard,
+      TripAddonGuard,
+    ]);
     expect(Reflect.getMetadata(GUARDS_METADATA, ToursImportController)).toEqual([JwtAuthGuard]);
     for (const handler of ['create', 'update'] as const) {
       expect(Reflect.getMetadata(TRIP_PERMISSION_KEY, ToursController.prototype[handler])).toBe('place_edit');
@@ -173,13 +177,8 @@ describe('Tours permission contract (mock-only, no DB)', () => {
     expect(test.importGpxAsTour).not.toHaveBeenCalled();
   });
 
-  it('preserves addon and JWT refusal without reaching trip resolution', async () => {
+  it('refuses without a session before trip resolution, and Tours off for the trip only after it', async () => {
     const test = fixture('create', true, true);
-    const addon = new AddonGuard(
-      { isAddonEnabled: vi.fn(async () => false) } as unknown as AddonsService,
-      new Reflector(),
-    );
-    await expectStatus(() => addon.canActivate(test.context), 404);
     const jwt = new JwtAuthGuard({ getRepository: vi.fn() } as unknown as EntityManager);
     vi.mocked(extractToken).mockReturnValue(null);
     await expectStatus(() => jwt.canActivate(test.context), 401);
@@ -187,5 +186,11 @@ describe('Tours permission contract (mock-only, no DB)', () => {
     vi.mocked(verifyJwtAndLoadUser).mockResolvedValue(null);
     await expectStatus(() => jwt.canActivate(test.context), 401);
     expect(test.access).not.toHaveBeenCalled();
+
+    expect(await test.guard.canActivate(test.context)).toBe(true);
+    const isEnabledForTrip = vi.fn(async () => false);
+    const addon = new TripAddonGuard({ isEnabledForTrip } as unknown as AddonsService, new Reflector());
+    await expectStatus(() => addon.canActivate(test.context), 404);
+    expect(isEnabledForTrip).toHaveBeenCalledWith(trip.id, 'tours');
   });
 });

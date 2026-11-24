@@ -1,10 +1,11 @@
 /**
  * keep_attached_file applied: the checks a Files upload runs (demo, trip,
- * rights, types, same-trip links), the bytes copied to a trip file of their
+ * the trip's Documents addon, rights, types, same-trip links), the bytes copied to a trip file of their
  * own, the rows written in one transaction, the broadcast after it, and a
  * second keep that answers the first file.
  */
 import { AssistantAttachments } from '../../../../src/db/entities/AssistantAttachments.entity';
+import { AddonsService } from '../../../../src/nest/addons/addons.service';
 import { AssistantKeepFileService } from '../../../../src/nest/assistant/assistant-keep-file.service';
 import { DemoService } from '../../../../src/nest/common/demo.service';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
@@ -28,6 +29,7 @@ const AT = { userId: 7, threadId: 4, tripId: 9 };
 interface Opts {
   demo?: boolean;
   trip?: boolean;
+  documents?: boolean;
   upload?: boolean;
   edit?: boolean;
   allowed?: string;
@@ -75,6 +77,8 @@ async function make(opts: Opts = {}) {
     ),
   };
   const uow = { transactional: vi.fn(async (fn: () => Promise<unknown>) => fn()) };
+  // The trip's Documents addon: what its owner chose, else the instance switch.
+  const addons = { isEnabledForTrip: vi.fn(async () => opts.documents !== false) };
   const moduleRef = await Test.createTestingModule({
     providers: [
       AssistantKeepFileService,
@@ -89,9 +93,10 @@ async function make(opts: Opts = {}) {
         useValue: { findAccessible: vi.fn(async () => (opts.trip === false ? undefined : { id: 9 })) },
       },
       { provide: UnitOfWork, useValue: uow },
+      { provide: AddonsService, useValue: addons },
     ],
   }).compile();
-  return { service: moduleRef.get(AssistantKeepFileService), rows, files, guards, uow, storage };
+  return { service: moduleRef.get(AssistantKeepFileService), rows, files, guards, uow, storage, addons };
 }
 
 describe('AssistantKeepFileService', () => {
@@ -153,6 +158,19 @@ describe('AssistantKeepFileService', () => {
       ok: false,
       value: 'You are not allowed to attach files to bookings, expenses or places on this trip.',
     });
+  });
+
+  it('ASTKEP-007: refused while the trip has Documents off, with the words the Files routes use', async () => {
+    const t = await make({ documents: false });
+    expect(await t.service.keep(AT, { attachmentId: ID })).toEqual({
+      ok: false,
+      value: 'Documents addon is not enabled',
+    });
+    expect(t.addons.isEnabledForTrip).toHaveBeenCalledWith(9, 'documents');
+    expect(t.rows.findInThread).not.toHaveBeenCalled();
+    expect(t.files.storeBytes).not.toHaveBeenCalled();
+    expect(await t.service.keepsOn(9)).toBe(false);
+    expect(await (await make()).service.keepsOn(9)).toBe(true);
   });
 
   it('ASTKEP-004: an attachment of no one here, a type Files refuses and a link off the trip are refused', async () => {

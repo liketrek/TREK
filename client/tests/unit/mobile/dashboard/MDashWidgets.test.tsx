@@ -43,6 +43,8 @@ function enableCollectionsAddon(enabled: boolean) {
 
 beforeEach(() => {
   resetAllStores();
+  // The converter waits for the saved pair (#3009); these widgets render with settings in place.
+  useSettingsStore.setState({ isLoaded: true });
   fxHandler();
   collectionsHandler([]);
 });
@@ -396,7 +398,10 @@ describe('MUpcomingWidget', () => {
       />,
     );
 
-    expect(screen.getByText('Sep 3 · 19:30 · Narita')).toBeInTheDocument();
+    // Date, time and place as badges of their own, no dots strung between them.
+    expect(screen.getByText('Sep 3')).toBeInTheDocument();
+    expect(screen.getByText('19:30')).toBeInTheDocument();
+    expect(screen.getByText('Narita')).toBeInTheDocument();
   });
 
   it('FE-MOB-DWID-030: an unparseable date degrades to the remaining parts', () => {
@@ -447,6 +452,8 @@ describe('MUpcomingWidget', () => {
       />,
     );
 
-    expect(screen.getAllByText('Pending')).toHaveLength(1);
+    // A letter on the icon's corner, with the word as its accessible name.
+    expect(screen.getAllByLabelText('Pending')).toHaveLength(1);
+    expect(screen.getByLabelText('Pending')).toHaveTextContent(/^P$/);
   });
 });

@@ -42,7 +42,6 @@ export default function ScopeGroupPicker({ selected, onChange }: Props): React.R
           type="button"
           onClick={toggleAll}
           className={`${SETTINGS_BUTTON} px-3 py-1.5`}
-          style={fs(12, 'body')}
         >
           {allSelected ? t('settings.oauth.modal.deselectAll') : t('settings.oauth.modal.selectAll')}
         </button>

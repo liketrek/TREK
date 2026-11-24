@@ -51,7 +51,7 @@ beforeEach(() => {
 });
 
 describe('MAdminPackingTemplateManager', () => {
-  it('FE-MOB-APKG-001: shows the spinner while templates load, then the empty state', async () => {
+  it('FE-MOB-APKG-001: shows the placeholders while templates load, then the empty state', async () => {
     server.use(
       http.get('/api/admin/packing-templates', async () => {
         await new Promise(r => setTimeout(r, 60));
@@ -60,12 +60,12 @@ describe('MAdminPackingTemplateManager', () => {
     );
     renderManager();
 
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     expect(screen.getByText('Packing Templates')).toBeInTheDocument();
     expect(screen.getByText('Create reusable packing lists for your trips')).toBeInTheDocument();
 
     await screen.findByText('No templates created yet');
-    expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).not.toBeInTheDocument();
   });
 
   it('FE-MOB-APKG-002: renders each template with its category and item counts', async () => {

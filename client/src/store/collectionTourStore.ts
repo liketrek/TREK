@@ -4,9 +4,21 @@ import { addListener, removeListener } from '../api/websocket';
 import { collectionToursRepo } from '../repo/collectionToursRepo';
 import { OnlineOnlyError } from '../repo/onlineOnly';
 import type { WebSocketEvent } from '../types';
+import { getApiErrorMessage } from '../utils/apiError';
 
-/** How far the open collection's tours are: asked for, there, or not to be had right now. */
-type CollectionTourStatus = 'idle' | 'loading' | 'ready' | 'error' | 'offline';
+/**
+ * How far the open collection's tours are: asked for, there, or not to be had
+ * right now; `off` while Tours is off for the user in every trip.
+ */
+type CollectionTourStatus = 'idle' | 'loading' | 'ready' | 'error' | 'offline' | 'off';
+
+/** The answer the server gives while Tours is on neither for the instance nor in any of the user's trips. */
+const TOURS_OFF = 'Tours addon is not enabled';
+
+function failureOf(err: unknown): CollectionTourStatus {
+  if (err instanceof OnlineOnlyError) return 'offline';
+  return getApiErrorMessage(err, '') === TOURS_OFF ? 'off' : 'error';
+}
 
 interface CollectionTourState {
   /** The collection the tours are read for. */
@@ -52,7 +64,7 @@ export const useCollectionTourStore = create<CollectionTourState>((set, get) => 
       const { tours } = await collectionToursRepo.list(collectionId);
       if (current()) set({ tours, status: 'ready' });
     } catch (err: unknown) {
-      if (current()) set({ status: err instanceof OnlineOnlyError ? 'offline' : 'error' });
+      if (current()) set({ status: failureOf(err) });
     }
   },
   remove: async (collectionId, tourId) => {

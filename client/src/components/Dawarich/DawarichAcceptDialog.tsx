@@ -19,6 +19,8 @@ export interface AcceptTargetOption {
   label: string
   /** Secondary half of the label — a day's date beside its number. */
   badge?: string
+  /** A day's ISO date, so the day the stay fell on can be preselected (#3068). */
+  date?: string
 }
 
 export interface DawarichAcceptDialogProps {
@@ -81,6 +83,14 @@ export default function DawarichAcceptDialog({
   // always describe the row the user just pressed rather than the previous one.
   const [seededFor, setSeededFor] = useState<number | null>(null)
 
+  // The stay already knows the date it was recorded on, so the day picker opens
+  // on the trip day that matches it (#3068). Without one it stays unplanned:
+  // a guessed day would be worse than none.
+  function dayOfStay(forTrip: number | '', localDate: string): number | '' {
+    if (typeof forTrip !== 'number' || !daysForTrip) return ''
+    return daysForTrip(forTrip).find(day => day.date === localDate)?.id ?? ''
+  }
+
   if (suggestion && seededFor !== suggestion.id) {
     setSeededFor(suggestion.id)
     setName(suggestion.name)
@@ -88,8 +98,9 @@ export default function DawarichAcceptDialog({
     setDate(suggestion.localDate)
     setTime(clockOf(suggestion.startedAt))
     setEndTime(clockOf(suggestion.endedAt))
-    setTripId(suggestion.tripId ?? (trips[0]?.id ?? ''))
-    setDayId('')
+    const seededTrip = suggestion.tripId ?? (trips[0]?.id ?? '')
+    setTripId(seededTrip)
+    setDayId(dayOfStay(seededTrip, suggestion.localDate))
     setJournalId(journals[0]?.id ?? '')
   }
 
@@ -272,7 +283,13 @@ export default function DawarichAcceptDialog({
               </span>
               <CustomSelect
                 value={tripId}
-                onChange={next => { setTripId(typeof next === 'number' ? next : ''); setDayId('') }}
+                onChange={next => {
+                  const nextTrip = typeof next === 'number' ? next : ''
+                  setTripId(nextTrip)
+                  // The old day belongs to the old trip; the new trip's own day
+                  // for the stay takes its place, if it has one.
+                  setDayId(dayOfStay(nextTrip, suggestion.localDate))
+                }}
                 options={trips.map(trip => ({ value: trip.id, label: trip.label }))}
                 placeholder={t('dawarich.accept.pickTrip')}
                 style={{ width: '100%' }}

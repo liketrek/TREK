@@ -10,8 +10,9 @@ type SetState = StoreApi<TripStoreState>['setState']
 type GetState = StoreApi<TripStoreState>['getState']
 
 export interface AssignmentsSlice {
-  setAssignmentStay: (tripId: number | string, dayId: number, assignmentId: number, minutes: number | null) => Promise<void>
   setAssignmentEndDay: (tripId: number | string, dayId: number, assignmentId: number, endDay: boolean) => Promise<void>
+  /** The stay of one visit (#3092); null reads the place's duration_minutes again. */
+  setAssignmentStay: (tripId: number | string, dayId: number, assignmentId: number, stayMinutes: number | null) => Promise<void>
   setAssignmentRouteExcluded: (tripId: number | string, dayId: number, assignmentId: number, excluded: boolean) => Promise<void>
   setAssignmentTimes: (tripId: number | string, dayId: number, assignmentId: number, times: AssignmentTimes) => Promise<void>
   setAssignmentNotes: (tripId: number | string, dayId: number, assignmentId: number, notes: string | null) => Promise<void>
@@ -26,17 +27,39 @@ export interface AssignmentsSlice {
   setAssignments: (assignments: AssignmentsMap) => void
 }
 
-export const createAssignmentsSlice = (set: SetState, get: GetState): AssignmentsSlice => ({
-  setAssignmentStay: async (tripId, dayId, assignmentId, minutes) => {
-    const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
-    if (!assignment || assignmentId < 0) throw new Error('Visit is not saved yet')
-    const apply = (stay: number | null | undefined) => set(state => ({ assignments: Object.fromEntries(
-      Object.entries(state.assignments).map(([key, items]) => [key, items.map(a => a.id === assignmentId ? { ...a, stay_minutes: stay } : a)]),
-    ) }))
-    apply(minutes)
-    try { apply((await assignmentRepo.setStay(tripId, assignment, minutes)).stay_minutes) }
-    catch (err) { apply(assignment.stay_minutes); throw err }
+/**
+ * One field of a saved visit on its day, written optimistically: shown at once, settled
+ * on what the save answers, and put back when the save is refused. `read` is how the
+ * field is read off a row, so an absent value settles the same way every time.
+ */
+async function writeVisitField<K extends keyof Assignment>(
+  set: SetState,
+  get: GetState,
+  { dayId, assignmentId, field, value, read, save }: {
+    dayId: number
+    assignmentId: number
+    field: K
+    value: Assignment[K]
+    read: (a: Assignment) => Assignment[K]
+    save: (assignment: Assignment) => Promise<Assignment>
   },
+): Promise<void> {
+  const key = String(dayId)
+  const assignment = get().assignments[key]?.find(a => a.id === assignmentId)
+  if (!assignment || assignmentId < 0) return
+  const apply = (next: Assignment[K]) => set(state => ({
+    assignments: { ...state.assignments, [key]: (state.assignments[key] || []).map(a => a.id === assignmentId ? { ...a, [field]: next } : a) },
+  }))
+  apply(value)
+  try {
+    apply(read(await save(assignment)))
+  } catch (err: unknown) {
+    apply(read(assignment))
+    throw err
+  }
+}
+
+export const createAssignmentsSlice = (set: SetState, get: GetState): AssignmentsSlice => ({
   setAssignmentEndDay: async (tripId, dayId, assignmentId, endDay) => {
     const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
     if (!assignment || assignmentId < 0) return
@@ -54,21 +77,14 @@ export const createAssignmentsSlice = (set: SetState, get: GetState): Assignment
       throw err
     }
   },
-  setAssignmentRouteExcluded: async (tripId, dayId, assignmentId, excluded) => {
-    const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
-    if (!assignment || assignmentId < 0) return
-    const apply = (value: boolean) => set(state => ({
-      assignments: { ...state.assignments, [String(dayId)]: (state.assignments[String(dayId)] || []).map(a => a.id === assignmentId ? { ...a, route_excluded: value } : a) },
-    }))
-    apply(excluded)
-    try {
-      const saved = await assignmentRepo.setRouteExcluded(tripId, assignment, excluded)
-      apply(saved.route_excluded === true)
-    } catch (err: unknown) {
-      apply(assignment.route_excluded === true)
-      throw err
-    }
-  },
+  setAssignmentStay: (tripId, dayId, assignmentId, stayMinutes) => writeVisitField(set, get, {
+    dayId, assignmentId, field: 'stay_minutes', value: stayMinutes, read: a => a.stay_minutes ?? null,
+    save: assignment => assignmentRepo.setStay(tripId, assignment, stayMinutes),
+  }),
+  setAssignmentRouteExcluded: (tripId, dayId, assignmentId, excluded) => writeVisitField(set, get, {
+    dayId, assignmentId, field: 'route_excluded', value: excluded, read: a => a.route_excluded === true,
+    save: assignment => assignmentRepo.setRouteExcluded(tripId, assignment, excluded),
+  }),
   setAssignmentTimes: async (tripId, dayId, assignmentId, times) => {
     const assignment = get().assignments[String(dayId)]?.find(a => a.id === assignmentId)
     if (!assignment || assignmentId < 0) return

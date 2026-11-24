@@ -1,4 +1,5 @@
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { toRowId } from '../../common/row-id';
 import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
@@ -39,9 +40,9 @@ export class TripWarningsController {
     @Req() req: Request & { user?: { id: number } },
   ): Promise<{ warnings: Warning[] }> {
     if (!pluginsEnabled()) return { warnings: [] };
-    const tripId = Number(tripIdRaw);
+    const tripId = toRowId(tripIdRaw);
     const userId = req.user?.id;
-    if (!Number.isFinite(tripId) || userId == null || !(await this.trips.findAccessible(tripId, userId)))
+    if (tripId === null || userId == null || !(await this.trips.findAccessible(tripId, userId)))
       return { warnings: [] };
 
     const ids = this.hooks.providersOf('warningProvider');

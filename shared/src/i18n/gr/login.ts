@@ -40,6 +40,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Έλεγχος ταυτότητας δύο παραγόντων',
   'login.mfaSubtitle': 'Εισάγετε τον 6ψήφιο κωδικό από την εφαρμογή authenticator σας.',
   'login.mfaCodeLabel': 'Κωδικός επαλήθευσης',
+  'login.mfaPlaceholder': '000000 ή XXXX-XXXX',
   'login.mfaCodeRequired': 'Εισάγετε τον κωδικό από την εφαρμογή authenticator σας.',
   'login.mfaHint': 'Ανοίξτε το Google Authenticator, Authy ή άλλη εφαρμογή TOTP.',
   'login.mfaBack': '← Πίσω στη σύνδεση',

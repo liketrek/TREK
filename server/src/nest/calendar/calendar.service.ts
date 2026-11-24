@@ -5,16 +5,21 @@ import { Trips } from '../../db/entities/Trips.entity';
 import { RESERVATION_METADATA } from '../../db/json-columns';
 import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
 import type { DaysRepository } from '../../db/repositories/Days.repository';
-import type { ReservationsRepository } from '../../db/repositories/Reservations.repository';
+import type {
+  CalendarReservationRow,
+  CalendarStopRow,
+  ReservationsRepository,
+} from '../../db/repositories/Reservations.repository';
 import type { TripsRepository } from '../../db/repositories/Trips.repository';
 import { decodeJson } from '../../utils/json-column';
 import { NotFoundError } from '../common/domain-errors';
-import { offsetMinutesAt, resolveTimeZone } from '../common/timezoneService';
+import { resolveTimeZone } from '../common/timezoneService';
 import { addDays } from '../days/days.service';
 import { ReservationsService } from '../reservations/reservations.service';
+import { buildVTimezone, isValidTimeZone } from './calendar-timezones.helpers';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
-import { isTransportReservationType } from '@trek/shared';
+import { isTransportReservationType, type TripCalendarQuery } from '@trek/shared';
 
 /** The VCALENDAR preamble every TREK calendar starts with, single-trip or merged. */
 export const CALENDAR_HEADER =
@@ -30,6 +35,17 @@ export interface TripCalendar {
   timezones: Map<string, string>;
   /** One complete BEGIN:VEVENT…END:VEVENT block each, unfolded, in emission order. */
   events: string[];
+}
+
+/** What a trip's calendar holds beyond the trip itself, its timed stops and its bookings. */
+export interface TripCalendarOptions {
+  /** The all-day summary per day with untimed stops or notes ("Day 1", ...). On unless set to false (#2602). */
+  dayEvents?: boolean;
+}
+
+/** The options a calendar request asks for: `days=0` leaves out the per-day summaries. */
+export function calendarOptionsFromQuery(query: TripCalendarQuery): TripCalendarOptions {
+  return { dayEvents: query.days !== '0' };
 }
 
 // ── ICS folding ─────────────────────────────────────────────────────────────
@@ -59,55 +75,6 @@ export function foldICS(ics: string): string {
   return ics.split('\r\n').map(foldLine).join('\r\n');
 }
 
-// ── ICS time-zone helpers ────────────────────────────────────────────────────
-// Timed events must carry an explicit IANA zone; a bare "YYYYMMDDTHHMMSS" is an
-// RFC 5545 "floating" time that clients render in the *subscriber's* zone (#1453).
-
-// A stored/plugin-provided timezone (e.g. a transport endpoint's `timezone`) is a
-// free string that need not be a real IANA zone. Intl.DateTimeFormat throws a
-// RangeError on an unknown zone, which — via buildVTimezone → offsetMinutesAt —
-// would crash the whole ICS export (and drop the trip from the all-trips feed).
-// Validate once so an invalid zone degrades to a floating local time instead.
-// Module-scoped on purpose (like the permissions/FX caches): the bridge instance
-// and the DI singleton share one cache.
-const _tzValidCache = new Map<string, boolean>();
-function isValidTimeZone(zone: string): boolean {
-  const cached = _tzValidCache.get(zone);
-  if (cached !== undefined) return cached;
-  let ok = false;
-  try {
-    new Intl.DateTimeFormat('en-US', { timeZone: zone });
-    ok = true;
-  } catch {
-    // Unknown/invalid zone → ok stays false.
-  }
-  // Bound the cache — the key is a free-form (plugin/importer-written) zone string,
-  // so cap distinct entries rather than growing for the process lifetime.
-  if (_tzValidCache.size >= 1000) _tzValidCache.clear();
-  _tzValidCache.set(zone, ok);
-  return ok;
-}
-
-/** An offset in minutes as iCalendar writes it: "+0200", "-0330". */
-function formatOffset(minutes: number): string {
-  const abs = Math.abs(minutes);
-  return `${minutes < 0 ? '-' : '+'}${String(Math.floor(abs / 60)).padStart(2, '0')}${String(abs % 60).padStart(2, '0')}`;
-}
-
-/** Midnight UTC of a YYYYMMDD date, or NaN when it is no date. */
-function utcDay(yyyymmdd: string): number {
-  return Date.parse(`${yyyymmdd.slice(0, 4)}-${yyyymmdd.slice(4, 6)}-${yyyymmdd.slice(6, 8)}T00:00:00Z`);
-}
-
-interface ZoneTransition {
-  /** The instant the new offset starts, ms since the epoch. */
-  at: number;
-  from: number;
-  to: number;
-}
-
-const DAY_MS = 86_400_000;
-
 /** Rows of several days, by day id; each day keeps the order the rows came in. */
 function groupByDay<T extends { day_id: number }>(rows: T[]): Map<number, T[]> {
   const byDay = new Map<number, T[]>();
@@ -131,83 +98,18 @@ function plusMinutes(date: string, time: string, minutes: number): { date: strin
   };
 }
 
-/** Ten years at most: a span longer than that is a typo, not a trip. */
-const MAX_SCAN_DAYS = 3660;
-
-/** Every offset change in [startMs, endMs), to the minute. */
-function zoneTransitions(zone: string, startMs: number, endMs: number): ZoneTransition[] {
-  const found: ZoneTransition[] = [];
-  const stop = Math.min(endMs, startMs + MAX_SCAN_DAYS * DAY_MS);
-  let before = offsetMinutesAt(zone, startMs);
-  for (let t = startMs; t < stop; t += DAY_MS) {
-    const after = offsetMinutesAt(zone, t + DAY_MS);
-    if (after === before) continue;
-    let lo = t;
-    let hi = t + DAY_MS;
-    while (hi - lo > 60_000) {
-      const mid = lo + Math.floor((hi - lo) / 120_000) * 60_000;
-      if (offsetMinutesAt(zone, mid) === before) lo = mid;
-      else hi = mid;
-    }
-    found.push({ at: hi, from: before, to: after });
-    before = after;
-  }
-  return found;
-}
-
-/** A local wall-clock time as iCalendar writes it, from an instant and the offset in force. */
-function localStamp(ms: number, offsetMinutes: number): string {
-  return new Date(ms + offsetMinutes * 60_000).toISOString().slice(0, 19).replace(/[-:]/g, '');
-}
-
-function observance(kind: 'STANDARD' | 'DAYLIGHT', dtstart: string, from: number, to: number, zone: string): string {
-  return (
-    `BEGIN:${kind}\r\n` +
-    `DTSTART:${dtstart}\r\n` +
-    `TZOFFSETFROM:${formatOffset(from)}\r\n` +
-    `TZOFFSETTO:${formatOffset(to)}\r\n` +
-    `TZNAME:${zone}\r\n` +
-    `END:${kind}\r\n`
-  );
-}
-
 /**
- * The zone's VTIMEZONE for the dates its events fall on (YYYYMMDD, inclusive).
- *
- * Smart clients replace it with their own IANA rules, but a client that reads
- * it literally shows every event at the offset written here. One fixed offset
- * put a June flight in Paris an hour off once the trip crossed the change to
- * summer time, so each change inside the span is written out as its own
- * observance, with the offset that held before it as the first one. A zone
- * without changes in the span, or a span with no readable date, keeps the one
- * fixed offset it always had.
+ * Where a timed stop ends. Without an end the event would have no length, and
+ * clients put their own default (mostly an hour) in its place, so a 20 minute
+ * stop came out as an hour (#2641). The place's duration says how long it lasts.
  */
-function buildVTimezone(zone: string, firstDay: string, lastDay: string): string {
-  const start = utcDay(firstDay);
-  const end = utcDay(lastDay);
-  let body: string;
-  if (Number.isNaN(start)) {
-    body = observance('STANDARD', '19700101T000000', 0, 0, zone);
-  } else {
-    // Whole calendar years around the events, so a client that expands the
-    // rules a little past the last event still finds the offset in force.
-    const from = Date.UTC(new Date(start).getUTCFullYear(), 0, 1);
-    const to = Date.UTC(new Date(Number.isNaN(end) ? start : Math.max(start, end)).getUTCFullYear() + 1, 0, 1);
-    const changes = zoneTransitions(zone, from, to);
-    const initial = offsetMinutesAt(zone, from);
-    if (changes.length === 0) {
-      const at = offsetMinutesAt(zone, start + DAY_MS / 2);
-      body = observance('STANDARD', '19700101T000000', at, at, zone);
-    } else {
-      const firstIsSummer = changes[0].to < changes[0].from;
-      body = observance(firstIsSummer ? 'DAYLIGHT' : 'STANDARD', '19700101T000000', initial, initial, zone);
-      for (const c of changes) {
-        body += observance(c.to > c.from ? 'DAYLIGHT' : 'STANDARD', localStamp(c.at, c.from), c.from, c.to, zone);
-      }
-    }
-  }
-  return `BEGIN:VTIMEZONE\r\nTZID:${zone}\r\n${body}END:VTIMEZONE\r\n`;
+function stopEnd(a: CalendarStopRow, date: string): { date: string; time: string } | null {
+  if (a.effective_end_time) return { date, time: a.effective_end_time };
+  const start = a.effective_time ?? '';
+  const minutes = a.effective_duration_minutes;
+  return minutes && minutes > 0 && /^\d{2}:\d{2}/.test(start) ? plusMinutes(date, start, minutes) : null;
 }
+
 /**
  * Everything TREK knows how to say in iCalendar. Moved out of TripsService
  * unchanged: same statements, same escaping, same folding, same VTIMEZONE
@@ -240,7 +142,7 @@ export class CalendarService {
    * because a user-supplied SUMMARY can legitimately contain the literal
    * "END:VEVENT". Handing out the parts removes the need to reassemble them.
    */
-  async buildTripCalendar(tripId: string | number): Promise<TripCalendar> {
+  async buildTripCalendar(tripId: string | number, options: TripCalendarOptions = {}): Promise<TripCalendar> {
     const trip = await this.tripsRepo.findRaw(tripId);
     if (!trip) throw new NotFoundError('Trip not found');
 
@@ -286,6 +188,9 @@ export class CalendarService {
     // used on, the span the VTIMEZONE has to cover. Populated by dtLine; emitted
     // once as VTIMEZONE blocks.
     const usedZones = new Map<string, { first: string; last: string }>();
+    // Off while the bookings are only looked at (see startsAtClock), so each zone
+    // is recorded once, in the order the events are emitted.
+    let recordZones = true;
 
     // Emit a DTSTART/DTEND line, attaching TZID when the event's zone is known so
     // subscribers see the time in TREK's zone. Falls back to a floating local time
@@ -295,8 +200,8 @@ export class CalendarService {
       if (zone && isValidTimeZone(zone) && /^\d{8}T\d{6}$/.test(val)) {
         const day = val.slice(0, 8);
         const span = usedZones.get(zone);
-        if (!span) usedZones.set(zone, { first: day, last: day });
-        else {
+        if (recordZones && !span) usedZones.set(zone, { first: day, last: day });
+        else if (recordZones && span) {
           if (day < span.first) span.first = day;
           if (day > span.last) span.last = day;
         }
@@ -318,85 +223,24 @@ export class CalendarService {
       events.push(ev);
     }
 
-    // Days with assignments and notes, read for all dated days at once.
+    // Days with their stops and notes, each read for all days at once.
     const days = await this.daysRepo.listByTrip(trip.id);
     const datedDayIds = days.filter((d) => d.date).map((d) => d.id);
     // A booked night puts a stop of its own on its check-in day, so the route
     // can reach the hotel. That stop is the booking, not a place the traveller
     // planned to visit, and the booking already comes through below as the
     // stay block or its check-in and check-out markers. Read here as well it
-    // would put the hotel on the day a second time.
-    const stopsByDay = groupByDay(await this.reservationsRepo.listCalendarStopsForDays(datedDayIds));
+    // would put the hotel on the day a second time. The stops of undated days
+    // are read too, since a booking linked to one takes its zone from it (#3150);
+    // those days are skipped when emitting.
+    const stops = await this.reservationsRepo.listCalendarStopsForDays(days.map((d) => d.id));
+    const stopsByDay = groupByDay(stops);
     const notesByDay = groupByDay(await this.dayNotesRepo.listByDayIds(datedDayIds));
-    for (const day of days) {
-      if (!day.date) continue;
-      const assignments = stopsByDay.get(day.id) ?? [];
-      const notes = notesByDay.get(day.id) ?? [];
-
-      const timed = assignments.filter((a) => a.effective_time);
-      const untimed = assignments.filter((a) => !a.effective_time);
-
-      // Timed assignments → individual events
-      for (const a of timed) {
-        const zone = resolveTimeZone(a.place_lat, a.place_lng);
-        let ev = `BEGIN:VEVENT\r\nUID:${uid(a.id, 'assign')}\r\nDTSTAMP:${now}\r\n`;
-        ev += dtLine('DTSTART', a.effective_time, zone, day.date + 'T00:00');
-        if (a.effective_end_time) {
-          ev += dtLine('DTEND', a.effective_end_time, zone, day.date + 'T00:00');
-        } else if (a.effective_duration_minutes && a.effective_duration_minutes > 0) {
-          // Without an end, calendar clients substitute their own duration (#2641).
-          const start = a.effective_time ?? '';
-          if (/^\d{2}:\d{2}/.test(start)) {
-            const stop = plusMinutes(day.date, start, a.effective_duration_minutes);
-            ev += dtLine('DTEND', stop.time, zone, stop.date + 'T00:00');
-          }
-        }
-        ev += `SUMMARY:${esc(a.place_name)}\r\n`;
-        let desc = '';
-        if (a.notes) desc += a.notes;
-        if (a.place_address) desc += (desc ? '\n' : '') + a.place_address;
-        if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
-        if (a.place_address) ev += `LOCATION:${esc(a.place_address)}\r\n`;
-        ev += `END:VEVENT\r\n`;
-        events.push(ev);
-      }
-
-      // Build all-day summary event if there are untimed activities or notes
-      if (untimed.length > 0 || notes.length > 0) {
-        const dayTitle = day.title || `Day ${day.day_number}`;
-        const endStr = fmtDate(addDays(day.date, 1));
-
-        let ev = `BEGIN:VEVENT\r\nUID:${uid(day.id, 'day')}\r\nDTSTAMP:${now}\r\n`;
-        ev += `DTSTART;VALUE=DATE:${fmtDate(day.date)}\r\nDTEND;VALUE=DATE:${endStr}\r\n`;
-        ev += `SUMMARY:${esc(dayTitle)}\r\n`;
-
-        let desc = '';
-        if (untimed.length > 0) {
-          desc += untimed
-            .map((a) => {
-              let line = `• ${a.place_name}`;
-              if (a.place_address) line += ` (${a.place_address})`;
-              if (a.notes) line += ` — ${a.notes}`;
-              return line;
-            })
-            .join('\n');
-        }
-        if (notes.length > 0) {
-          if (desc) desc += '\n\n';
-          desc +=
-            'Notes:\n' +
-            notes
-              .map((n) => {
-                const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
-                return line;
-              })
-              .join('\n');
-        }
-        if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
-        ev += `END:VEVENT\r\n`;
-        events.push(ev);
-      }
-    }
+    const stopById = new Map(stops.map((a) => [a.id, a]));
+    const linkedStop = (r: CalendarReservationRow) =>
+      r.assignment_id == null ? undefined : stopById.get(Number(r.assignment_id));
+    // The bookings whose event stands in for their linked stop, decided below.
+    const stopOfBooking = new Map<number, CalendarStopRow>();
 
     // Transport/flight reservations carry no top-level reservation_time; their
     // times live per endpoint (local_date + local_time) in reservation_endpoints.
@@ -417,6 +261,27 @@ export class CalendarService {
       if (!s) return null;
       const t = s.includes('T') ? s.split('T')[1] : s;
       return t && isTime(t) ? t : null;
+    };
+
+    // The one zone a set of stops agrees on, or null when they name none or several.
+    const soleZone = (list: CalendarStopRow[]): string | null => {
+      const zones = new Set(list.map((a) => resolveTimeZone(a.place_lat, a.place_lng)).filter((z) => z !== null));
+      return zones.size === 1 ? [...zones][0] : null;
+    };
+    const tripZone = soleZone(stops);
+    // A booking's own place gives its zone. One without, a restaurant booked
+    // against a plan stop, takes the stop's instead of floating (#3150). One
+    // with neither takes the zone its day's stops agree on, else the one the
+    // whole trip agrees on. A transport is left out of that guess: its two
+    // ends can sit in different zones, and its endpoints say which.
+    const placeZoneOf = (r: CalendarReservationRow): string | null => {
+      const stop = linkedStop(r);
+      const own =
+        resolveTimeZone(r.place_lat, r.place_lng) ?? (stop ? resolveTimeZone(stop.place_lat, stop.place_lng) : null);
+      if (own || isTransportReservationType(r.type)) return own;
+      const startDate = dateOf(r.reservation_time);
+      const dayId = r.day_id ?? days.find((d) => startDate && d.date === startDate)?.id;
+      return (dayId == null ? null : soleZone(stopsByDay.get(Number(dayId)) ?? [])) ?? tripZone;
     };
 
     // Per stay, the booking whose all-day block its two markers replace. Decided
@@ -500,8 +365,8 @@ export class CalendarService {
         const datePart = r.reservation_time.includes('T') ? r.reservation_time.split('T')[0] : r.reservation_time;
         if (!isDate(datePart)) return null; // time-only (relative "Day N" trips)
         if (r.reservation_time.includes('T')) {
-          // Hotels/restaurants: derive the zone from the linked place, if any.
-          const zone = resolveTimeZone(r.place_lat, r.place_lng);
+          // Hotels/restaurants: the zone of the booking's place, else its stop's.
+          const zone = placeZoneOf(r);
           let out = dtLine('DTSTART', r.reservation_time, zone);
           if (r.reservation_end_time) {
             const endDt = fmtDateTime(r.reservation_end_time, r.reservation_time);
@@ -589,7 +454,7 @@ export class CalendarService {
           ? { date: ep.local_date!, time: ep.local_time!, zone: ep.timezone || resolveTimeZone(ep.lat, ep.lng) }
           : null;
 
-      const placeZone = resolveTimeZone(r.place_lat, r.place_lng);
+      const placeZone = placeZoneOf(r);
       const start =
         fromEp(startEp) ??
         (() => {
@@ -681,10 +546,115 @@ export class CalendarService {
       if (r.location) return `LOCATION:${esc(r.location)}\r\n`;
       const ep = isTransportReservationType(r.type) ? endpointOf(r.id, side) : undefined;
       const name = ep?.name || ep?.code;
+      // A booking that replaced its plan stop is where the stop was (#3150), by
+      // its address or, for a place without one, by its name.
+      const stop = stopOfBooking.get(r.id);
+      const stopAddress = stop ? stop.place_address || stop.place_name : null;
+      if ((!ep || !name) && stopAddress) return `LOCATION:${esc(stopAddress)}\r\n`;
       if (!ep || !name) return '';
       const geo = Number.isFinite(ep.lat) && Number.isFinite(ep.lng) ? `GEO:${ep.lat};${ep.lng}\r\n` : '';
       return `LOCATION:${esc(name)}\r\n${geo}`;
     };
+
+    // A booking linked to a plan stop and the stop are one appointment (#3150).
+    // Where the booking starts at a clock on the stop's own day, its event wins
+    // and the stop is left out, as a booked night's stop is; the booking then
+    // carries what the stop said and it does not (place, zone, notes, end). A
+    // booking without a clock, or on another day, leaves the stop alone, since
+    // the stop is then the only record of the visit on its day.
+    const clockStartDate = (r: CalendarReservationRow): string | null => {
+      const split = windowSplit.get(r.id);
+      if (split) return split.start.time === null ? null : split.start.date;
+      const legs = legsOf(r);
+      if (legs) return legs[0].dep.date;
+      const lines = buildReservationTimeLines(r);
+      const start = lines ? /^DTSTART(?:;TZID=[^:]+)?:(\d{4})(\d{2})(\d{2})T/.exec(lines) : null;
+      return start ? `${start[1]}-${start[2]}-${start[3]}` : null;
+    };
+    recordZones = false;
+    for (const r of reservations) {
+      const stop = linkedStop(r);
+      const date = stop ? clockStartDate(r) : null;
+      if (stop && date && date === dayDate.get(Number(stop.day_id))) stopOfBooking.set(r.id, stop);
+    }
+    recordZones = true;
+    const replacedStops = new Set([...stopOfBooking.values()].map((a) => a.id));
+
+    // The stop's end for the booking that replaced it and records none, when
+    // both start at the same moment; without it the booking is only a point.
+    const borrowedEnd = (timeLines: string, a: CalendarStopRow): string => {
+      const start = /^DTSTART(?:;TZID=([^:]+))?:(\d{8}T\d{4})/.exec(timeLines);
+      const date = dayDate.get(Number(a.day_id));
+      if (!start || timeLines.includes('DTEND') || !date || !a.effective_time) return '';
+      if (start[2] !== `${fmtDate(date)}T${a.effective_time.slice(0, 5).replace(':', '')}`) return '';
+      const end = stopEnd(a, date);
+      return end ? dtLine('DTEND', end.time, start[1] || null, `${end.date}T00:00`) : '';
+    };
+
+    // Each dated day: its timed stops as events, the rest in one all-day summary.
+    for (const day of days) {
+      if (!day.date) continue;
+      const assignments = (stopsByDay.get(day.id) ?? []).filter((a) => !replacedStops.has(a.id));
+      const notes = notesByDay.get(day.id) ?? [];
+
+      const timed = assignments.filter((a) => a.effective_time);
+      const untimed = assignments.filter((a) => !a.effective_time);
+
+      // Timed assignments → individual events
+      for (const a of timed) {
+        const zone = resolveTimeZone(a.place_lat, a.place_lng);
+        let ev = `BEGIN:VEVENT\r\nUID:${uid(a.id, 'assign')}\r\nDTSTAMP:${now}\r\n`;
+        ev += dtLine('DTSTART', a.effective_time, zone, day.date + 'T00:00');
+        const end = stopEnd(a, day.date);
+        if (end) ev += dtLine('DTEND', end.time, zone, end.date + 'T00:00');
+        ev += `SUMMARY:${esc(a.place_name)}\r\n`;
+        let desc = '';
+        if (a.notes) desc += a.notes;
+        if (a.place_address) desc += (desc ? '\n' : '') + a.place_address;
+        if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
+        if (a.place_address) ev += `LOCATION:${esc(a.place_address)}\r\n`;
+        ev += `END:VEVENT\r\n`;
+        events.push(ev);
+      }
+
+      // Build all-day summary event if there are untimed activities or notes,
+      // unless the subscriber asked for a calendar without them: the summary
+      // sits above every day and can crowd out everything else there (#2602).
+      if (options.dayEvents !== false && (untimed.length > 0 || notes.length > 0)) {
+        const dayTitle = day.title || `Day ${day.day_number}`;
+        const endStr = fmtDate(addDays(day.date, 1));
+
+        let ev = `BEGIN:VEVENT\r\nUID:${uid(day.id, 'day')}\r\nDTSTAMP:${now}\r\n`;
+        ev += `DTSTART;VALUE=DATE:${fmtDate(day.date)}\r\nDTEND;VALUE=DATE:${endStr}\r\n`;
+        ev += `SUMMARY:${esc(dayTitle)}\r\n`;
+
+        let desc = '';
+        if (untimed.length > 0) {
+          desc += untimed
+            .map((a) => {
+              let line = `• ${a.place_name}`;
+              if (a.place_address) line += ` (${a.place_address})`;
+              if (a.notes) line += ` — ${a.notes}`;
+              return line;
+            })
+            .join('\n');
+        }
+        if (notes.length > 0) {
+          if (desc) desc += '\n\n';
+          desc +=
+            'Notes:\n' +
+            notes
+              .map((n) => {
+                const line = n.time ? `${n.time} — ${n.text}` : `• ${n.text}`;
+                return line;
+              })
+              .join('\n');
+        }
+        if (desc) ev += `DESCRIPTION:${esc(desc)}\r\n`;
+        ev += `END:VEVENT\r\n`;
+        events.push(ev);
+      }
+    }
 
     // Reservations as events
     for (const r of reservations) {
@@ -717,7 +687,8 @@ export class CalendarService {
       if (!timeLines) continue;
 
       let ev = `BEGIN:VEVENT\r\nUID:${uid(r.id, 'res')}\r\nDTSTAMP:${now}\r\n`;
-      ev += timeLines;
+      const stop = stopOfBooking.get(r.id);
+      ev += timeLines + (stop ? borrowedEnd(timeLines, stop) : '');
       ev += `SUMMARY:${esc(r.title)}\r\n`;
 
       const desc = describeReservation(r);
@@ -765,6 +736,8 @@ export class CalendarService {
       }
       if (meta.train_number) desc += `\nTrain: ${meta.train_number}`;
       if (r.notes) desc += `\n${r.notes}`;
+      const stopNotes = stopOfBooking.get(r.id)?.notes;
+      if (stopNotes && stopNotes !== r.notes) desc += (desc ? '\n' : '') + stopNotes;
       return desc;
     }
 
@@ -912,8 +885,11 @@ export class CalendarService {
   }
 
   /** One trip's calendar as a finished, foldable VCALENDAR document. */
-  async exportICS(tripId: string | number): Promise<{ ics: string; filename: string }> {
-    const cal = await this.buildTripCalendar(tripId);
+  async exportICS(
+    tripId: string | number,
+    options: TripCalendarOptions = {},
+  ): Promise<{ ics: string; filename: string }> {
+    const cal = await this.buildTripCalendar(tripId, options);
     const ics =
       CALENDAR_HEADER +
       `X-WR-CALNAME:${cal.calName}\r\n` +

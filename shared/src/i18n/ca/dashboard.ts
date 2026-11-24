@@ -195,7 +195,7 @@ const dashboard: TranslationStrings = {
     'Has canviat quan comença aquest viatge. Com han de seguir els teus plans les noves dates?',
   'dashboard.dateShiftKeepBookings': 'Mantén les reserves a les seves dates',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Els plans de cada dia es mouen amb les noves dates, mentre que les reserves i els allotjaments es mantenen a les seves dates originals sempre que aquestes segueixin formant part del viatge.',
+    'Els dies que afegeixis queden buits i res més es mou. Si el viatge es desplaça, els plans de cada dia es mouen amb les noves dates, mentre que les reserves i els allotjaments es mantenen a les seves dates originals sempre que aquestes segueixin formant part del viatge.',
   'dashboard.dateShiftAll': 'Mou-ho tot',
   'dashboard.dateShiftAllDesc': "Tot l'itinerari es mou amb les noves dates, incloses les reserves i els allotjaments.",
   'dashboard.dateShiftHint':
@@ -238,5 +238,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Afegeix a Calendari d’Apple / Outlook',
   'dashboard.ics.copyManually': 'O copia un enllaç manualment',
   'dashboard.ics.pasteFromUrl': 'enganxa’l a «Des d’URL»',
+  'dashboard.ics.dayEvents': 'Esdeveniments de resum del dia',
+  'dashboard.ics.dayEventsHint':
+    'Un esdeveniment de dia sencer per a cada dia amb els llocs i les notes sense hora. Canviar-ho canvia l’enllaç, així que torna a subscriure’t amb el nou.',
 };
 export default dashboard;

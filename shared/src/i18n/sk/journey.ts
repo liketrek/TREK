@@ -51,9 +51,6 @@ const journey: TranslationStrings = {
   'journey.editor.bodyPlaceholder': 'Vyrozprávajte príbeh tohto dňa...',
   'journey.editor.placePlaceholder': 'Miesto (voliteľné)',
   'journey.editor.tagsPlaceholder': 'Značky: skrytý klenot, najlepšie jedlo, musím sa vrátiť...',
-  'journey.visibility.private': 'Súkromný',
-  'journey.visibility.shared': 'Zdieľaný',
-  'journey.visibility.public': 'Verejný',
   'journey.emptyState.title': 'Váš príbeh sa začína tu',
   'journey.emptyState.subtitle': 'Odbavte sa na mieste alebo napíšte svoj prvý záznam do denníka',
   'journey.frontpage.subtitle': 'Premeňte svoje cesty na príbehy, na ktoré nikdy nezabudnete',
@@ -289,6 +286,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Nenašli sa žiadne albumy',
   'journey.picker.selectDate': 'Vyberte dátum',
   'journey.picker.search': 'Hľadať',
+  'journey.picker.takenBetween': 'Odfotené medzi',
   'journey.studio.title': 'TREK Studio', // same-as-en
   'journey.studio.open': 'Studio', // same-as-en
   'journey.studio.openAria': 'Otvoriť štúdio fotoknihy',

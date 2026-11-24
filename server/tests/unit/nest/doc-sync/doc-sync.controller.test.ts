@@ -270,23 +270,23 @@ async function storedPaperless(credentials: Record<string, string> = { api_token
 
 describe('who may change a trip binding', () => {
   it('lets the trip owner through', async () => {
-    await expect(controller.resolve(String(tripId), '1', owner, { keep: 'trek' })).resolves.toEqual({ success: true });
+    await expect(controller.resolve(String(tripId), 1, owner, { keep: 'trek' })).resolves.toEqual({ success: true });
   });
 
   it('lets an instance admin through on a trip they neither own nor joined', async () => {
-    await expect(controller.resolve(String(otherTripId), '1', admin, { keep: 'trek' })).resolves.toEqual({
+    await expect(controller.resolve(String(otherTripId), 1, admin, { keep: 'trek' })).resolves.toEqual({
       success: true,
     });
   });
 
   it('refuses a plain member with the message the client renders', async () => {
-    const err = await thrown(() => controller.resolve(String(tripId), '1', member, { keep: 'trek' }));
+    const err = await thrown(() => controller.resolve(String(tripId), 1, member, { keep: 'trek' }));
     expect(err.getStatus()).toBe(403);
     expect(err.message).toBe('Only the trip owner can change document sync');
   });
 
   it('answers 404 for a trip that does not exist, rather than the 403 that would confirm it', async () => {
-    const err = await thrown(() => controller.resolve('999999', '1', member, { keep: 'trek' }));
+    const err = await thrown(() => controller.resolve('999999', 1, member, { keep: 'trek' }));
     expect(err.getStatus()).toBe(404);
     expect(err.message).toBe('Trip not found');
   });
@@ -580,7 +580,7 @@ describe('removing a connection', () => {
       original_name: 'boarding.pdf',
     });
 
-    await expect(controller.deleteConnection(String(tripId), String(conn.id), owner)).resolves.toEqual({
+    await expect(controller.deleteConnection(String(tripId), conn.id, owner)).resolves.toEqual({
       success: true,
     });
     expect(await config.getConnection(conn.id)).toBeUndefined();
@@ -610,7 +610,7 @@ describe('removing a connection', () => {
     await controller.createLink(String(tripId), owner, linkBody(conn.id, { scopeKey: 'tag:3' }), makeReq());
     paperless.unregisterWebhook.mockClear();
 
-    await controller.deleteConnection(String(tripId), String(conn.id), owner);
+    await controller.deleteConnection(String(tripId), conn.id, owner);
 
     expect(paperless.unregisterWebhook.mock.calls.map((c) => c[1]).sort()).toEqual(['sub-7', 'sub-8']);
     expect(paperless.unregisterWebhook.mock.calls[0][0]).toMatchObject({
@@ -626,7 +626,7 @@ describe('removing a connection', () => {
     await controller.createLink(String(tripId), owner, linkBody(conn.id), makeReq({ host: 'trek.example' }));
     paperless.unregisterWebhook.mockResolvedValueOnce({ success: false, error: { code: 'unreachable' } } as never);
 
-    await expect(controller.deleteConnection(String(tripId), String(conn.id), owner)).resolves.toEqual({
+    await expect(controller.deleteConnection(String(tripId), conn.id, owner)).resolves.toEqual({
       success: true,
     });
     expect(await config.getConnection(conn.id)).toBeUndefined();
@@ -634,7 +634,7 @@ describe('removing a connection', () => {
 
   it('refuses a connection that belongs to a different trip', async () => {
     const conn = await storedPaperless();
-    const err = await thrown(() => controller.deleteConnection(String(otherTripId), String(conn.id), admin));
+    const err = await thrown(() => controller.deleteConnection(String(otherTripId), conn.id, admin));
     expect(err.getStatus()).toBe(404);
     expect(await config.getConnection(conn.id)).toBeTruthy();
     expect(realtime.broadcast).not.toHaveBeenCalled();
@@ -661,7 +661,7 @@ describe('removing a connection', () => {
     const second = await bind(conn.id, 'tag:2');
     await bind(cloud.data.id, 'folder:1');
 
-    await controller.deleteConnection(String(tripId), String(conn.id), owner);
+    await controller.deleteConnection(String(tripId), conn.id, owner);
 
     expect(realtime.broadcast.mock.calls).toEqual([
       [tripId, 'docsync:changed', { linkId: first, pulled: 0, pushed: 0 }],
@@ -678,7 +678,7 @@ describe('the scope picker', () => {
       data: [{ scopeKey: 'tag:1', label: 'Japan 2026', remoteRootId: '1', remoteRootPath: '/TREK/japan' }],
     } as never);
 
-    const res = await controller.listScopes(String(tripId), String(conn.id), owner, 'japan');
+    const res = await controller.listScopes(String(tripId), conn.id, owner, 'japan');
 
     expect(paperless.listScopes.mock.calls[0][1]).toBe('japan');
     expect(res).toMatchObject({ scopes: [{ scopeKey: 'tag:1' }] });
@@ -687,7 +687,7 @@ describe('the scope picker', () => {
   it('reports a provider failure in the body, so the picker can say why it is empty', async () => {
     const conn = await storedPaperless();
     paperless.listScopes.mockResolvedValueOnce({ success: false, error: { code: 'unauthorized' } } as never);
-    await expect(controller.listScopes(String(tripId), String(conn.id), owner)).resolves.toEqual({
+    await expect(controller.listScopes(String(tripId), conn.id, owner)).resolves.toEqual({
       scopes: [],
       error: 'unauthorized',
     });
@@ -700,14 +700,14 @@ describe('the scope picker', () => {
       ownerUser: Number(owner.id),
       base_url: 'https://papra.example.com',
     });
-    const err = await thrown(() => controller.listScopes(String(tripId), String(id), owner));
+    const err = await thrown(() => controller.listScopes(String(tripId), id, owner));
     expect(err.getStatus()).toBe(400);
     expect(err.message).toBe('Provider not available');
   });
 
   it('refuses a connection that belongs to a different trip', async () => {
     const conn = await storedPaperless();
-    const err = await thrown(() => controller.listScopes(String(otherTripId), String(conn.id), admin));
+    const err = await thrown(() => controller.listScopes(String(otherTripId), conn.id, admin));
     expect(err.getStatus()).toBe(404);
     expect(paperless.listScopes).not.toHaveBeenCalled();
   });
@@ -719,9 +719,10 @@ describe('the scope picker', () => {
       data: { scopeKey: 'tag:9', label: 'Norway', remoteRootId: '9', remoteRootPath: '/TREK/norway' },
     } as never);
 
-    await expect(
-      controller.createScope(String(tripId), String(conn.id), owner, { name: 'Norway' }),
-    ).resolves.toMatchObject({ scopeKey: 'tag:9', label: 'Norway' });
+    await expect(controller.createScope(String(tripId), conn.id, owner, { name: 'Norway' })).resolves.toMatchObject({
+      scopeKey: 'tag:9',
+      label: 'Norway',
+    });
     expect(paperless.createScope).toHaveBeenCalledWith(expect.objectContaining({ connectionId: conn.id }), 'Norway');
   });
 
@@ -729,9 +730,7 @@ describe('the scope picker', () => {
     // The connection comes from the path and nowhere else, so the path is what
     // has to match the trip the caller was admitted to.
     const conn = await storedPaperless();
-    const err = await thrown(() =>
-      controller.createScope(String(otherTripId), String(conn.id), admin, { name: 'Norway' }),
-    );
+    const err = await thrown(() => controller.createScope(String(otherTripId), conn.id, admin, { name: 'Norway' }));
     expect(err.getStatus()).toBe(404);
     expect(paperless.createScope).not.toHaveBeenCalled();
   });
@@ -739,7 +738,7 @@ describe('the scope picker', () => {
   it('turns a refused creation into a 400 carrying the provider code', async () => {
     const conn = await storedPaperless();
     paperless.createScope.mockResolvedValueOnce({ success: false, error: { code: 'forbidden' } } as never);
-    const err = await thrown(() => controller.createScope(String(tripId), String(conn.id), owner, { name: 'Norway' }));
+    const err = await thrown(() => controller.createScope(String(tripId), conn.id, owner, { name: 'Norway' }));
     expect(err.getStatus()).toBe(400);
     expect(err.message).toBe('forbidden');
   });
@@ -855,13 +854,7 @@ describe('changing a binding', () => {
       id: number;
     };
 
-    const res = (await controller.updateLink(
-      String(tripId),
-      String(created.id),
-      owner,
-      { syncEnabled: false },
-      makeReq(),
-    )) as {
+    const res = (await controller.updateLink(String(tripId), created.id, owner, { syncEnabled: false }, makeReq())) as {
       syncEnabled: boolean;
       direction: string;
       remoteLabel: string;
@@ -878,7 +871,7 @@ describe('changing a binding', () => {
       id: number;
     };
     const err = await thrown(() =>
-      controller.updateLink(String(otherTripId), String(created.id), admin, { syncEnabled: false }, makeReq()),
+      controller.updateLink(String(otherTripId), created.id, admin, { syncEnabled: false }, makeReq()),
     );
     expect(err.getStatus()).toBe(404);
     expect((await config.getLink(created.id))!.sync_enabled).toBe(1);
@@ -893,7 +886,7 @@ describe('a manual run', () => {
     };
     sync.syncLink.mockClear();
 
-    await controller.syncNow(String(tripId), String(created.id), { full: true });
+    await controller.syncNow(String(tripId), created.id, { full: true });
 
     expect(sync.syncLink.mock.calls[0][0]).toMatchObject({ id: created.id });
     expect(sync.syncLink.mock.calls[0][1]).toEqual({ full: true });
@@ -906,7 +899,7 @@ describe('a manual run', () => {
     };
     sync.syncLink.mockClear();
 
-    const err = await thrown(() => controller.syncNow(String(otherTripId), String(created.id), { full: false }));
+    const err = await thrown(() => controller.syncNow(String(otherTripId), created.id, { full: false }));
     expect(err.getStatus()).toBe(404);
     expect(sync.syncLink).not.toHaveBeenCalled();
   });
@@ -922,7 +915,7 @@ describe('a manual run', () => {
     sync.syncLink.mockClear();
     sync.isSwitchedOff.mockReturnValueOnce(true);
 
-    const err = await thrown(() => controller.syncNow(String(tripId), String(created.id), { full: false }));
+    const err = await thrown(() => controller.syncNow(String(tripId), created.id, { full: false }));
 
     expect(err.getStatus()).toBe(409);
     expect(err.getResponse()).toEqual({ error: 'provider_disabled' });
@@ -947,7 +940,7 @@ describe('a manual run', () => {
     sync.syncLink.mockClear();
     await deleteRows(t, TripMembers, { trip: tripId, user: member.id });
     try {
-      const err = await thrown(() => controller.syncNow(String(tripId), String(created.id), { full: false }));
+      const err = await thrown(() => controller.syncNow(String(tripId), created.id, { full: false }));
 
       expect(err.getStatus()).toBe(409);
       expect(sync.retryShelvedItems).not.toHaveBeenCalled();
@@ -997,7 +990,7 @@ describe('the document list', () => {
 describe('resolving a conflict', () => {
   it('refuses an item that is not in conflict rather than pretending it did something', async () => {
     sync.resolveConflict.mockResolvedValueOnce(false);
-    const err = await thrown(() => controller.resolve(String(tripId), '5', owner, { keep: 'provider' }));
+    const err = await thrown(() => controller.resolve(String(tripId), 5, owner, { keep: 'provider' }));
     expect(err.getStatus()).toBe(400);
     expect(err.message).toBe('Item is not in conflict');
   });
@@ -1025,7 +1018,7 @@ describe('removing a binding', () => {
       state: 'synced',
     });
 
-    const res = await controller.deleteLink(String(tripId), String(created.id), owner);
+    const res = await controller.deleteLink(String(tripId), created.id, owner);
 
     expect(res).toEqual({ success: true, documentsKept: true });
     expect(paperless.unregisterWebhook.mock.calls[0][1]).toBe('sub-7');
@@ -1040,7 +1033,7 @@ describe('removing a binding', () => {
     };
     realtime.broadcast.mockClear();
 
-    await controller.deleteLink(String(tripId), String(created.id), owner);
+    await controller.deleteLink(String(tripId), created.id, owner);
 
     expect(realtime.broadcast.mock.calls).toEqual([
       [tripId, 'docsync:changed', { linkId: created.id, pulled: 0, pushed: 0 }],
@@ -1053,7 +1046,7 @@ describe('removing a binding', () => {
       id: number;
     };
     realtime.broadcast.mockClear();
-    const err = await thrown(() => controller.deleteLink(String(otherTripId), String(created.id), admin));
+    const err = await thrown(() => controller.deleteLink(String(otherTripId), created.id, admin));
     expect(err.getStatus()).toBe(404);
     expect(await config.getLink(created.id)).toBeTruthy();
     expect(realtime.broadcast).not.toHaveBeenCalled();
@@ -1137,14 +1130,14 @@ describe('a manual run and the shelved rows', () => {
     };
     sync.retryShelvedItems.mockClear();
 
-    await controller.syncNow(String(tripId), String(created.id), { full: false });
+    await controller.syncNow(String(tripId), created.id, { full: false });
 
     expect(sync.retryShelvedItems).toHaveBeenCalledWith(created.id);
   });
 
   it('does not clear them for a link the caller does not own', async () => {
     sync.retryShelvedItems.mockClear();
-    await expect(controller.syncNow(String(tripId), '999999', { full: false })).rejects.toThrow();
+    await expect(controller.syncNow(String(tripId), 999999, { full: false })).rejects.toThrow();
     expect(sync.retryShelvedItems).not.toHaveBeenCalled();
   });
 });
@@ -1161,7 +1154,7 @@ describe('a manual run and the shelved rows', () => {
 describe('resolving a conflict carries its trip', () => {
   it('passes the trip from the URL to the service', async () => {
     sync.resolveConflict.mockClear();
-    await controller.resolve(String(tripId), '42', owner, { keep: 'trek' } as never);
+    await controller.resolve(String(tripId), 42, owner, { keep: 'trek' } as never);
     expect(sync.resolveConflict).toHaveBeenCalledWith(42, 'trek', tripId);
   });
 });

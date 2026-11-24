@@ -276,6 +276,26 @@ describe('TourPoiSearchService', () => {
     expect(result.pois[2]).not.toHaveProperty('charging');
   });
 
+  it('TOUR-POI-020: a hike restocks at bakeries and grocers, each asked of the map search by its own kind', async () => {
+    poisAlong.mockResolvedValue(
+      answer([
+        poi('node:1', 47.41, 11.1003, 'bakery', { name: 'Boulangerie du Village' }),
+        poi('node:2', 47.412, 11.1003, 'supermarket', { name: 'Épicerie' }),
+      ]),
+    );
+    const result = await service.search({
+      tour_type: 'hike',
+      categories: ['bakery', 'supermarket'],
+      corridor_m: 1000,
+      line: LINE,
+    });
+    expect(poisAlong.mock.calls[0]?.[0]).toEqual(['bakery', 'supermarket']);
+    expect(result.pois.map((found) => [found.name, found.category])).toEqual([
+      ['Boulangerie du Village', 'bakery'],
+      ['Épicerie', 'supermarket'],
+    ]);
+  });
+
   it('TOUR-POI-008: an unnamed place is kept and never merged with another unnamed one nearby', async () => {
     poisAlong.mockResolvedValue(
       answer([

@@ -23,8 +23,16 @@ const GITHUB = 'Admin-GitHub-Releases'
 
 const guide = (
   id: string, context: string, icon: HelpGuide['icon'], size: HelpGuide['size'], steps: number, tips: number,
-  docs: HelpGuide['docs'], related: string[], result = false,
-): HelpGuide => ({ id, context, icon, size, steps, tips, media: { steps: true, result }, docs, related })
+  docs: HelpGuide['docs'], related: string[], result = false, route?: string,
+): HelpGuide => ({ id, context, icon, size, steps, tips, media: { steps: true, result }, docs, related, route })
+
+/**
+ * The settings screen is two tabs now, Security and Services, and both show its
+ * help. Its guides go to the Security tab, the ones about outside services to
+ * Services.
+ */
+export const ADMIN_TAB_HELP: Readonly<Record<string, string>> = { security: 'admin-settings', services: 'admin-settings' }
+const SERVICES_TAB = '/admin?tab=services'
 
 export const adminGuides: HelpGuide[] = [
   // Users
@@ -36,23 +44,26 @@ export const adminGuides: HelpGuide[] = [
   // User Defaults
   guide('default-user-settings', 'admin-defaults', 'user', 'quick', 2, 2, { slug: DEFAULTS, anchor: 'default-user-settings' }, ['default-map']),
   guide('default-map', 'admin-defaults', 'map', 'guide', 3, 2, { slug: DEFAULTS, anchor: 'map' }, ['default-user-settings', 'own-routing-engine']),
-  guide('own-routing-engine', 'admin-defaults', 'route', 'quick', 2, 2, { slug: DEFAULTS, anchor: 'own-routing-engine' }, ['default-map']),
+  guide('own-routing-engine', 'admin-defaults', 'route', 'guide', 3, 2, { slug: DEFAULTS, anchor: 'own-routing-engine' }, ['default-map']),
   // Personalization
   guide('packing-templates', 'admin-config', 'library', 'guide', 3, 3, { slug: TEMPLATES }, ['categories'], true),
   guide('categories', 'admin-config', 'tags', 'quick', 2, 2, { slug: CATEGORIES }, ['packing-templates']),
   // Related across screens: the Vacay guide that switches these holidays on.
   guide('school-holiday-catalog', 'admin-config', 'graduationCap', 'quick', 2, 1, { slug: 'Vacay', anchor: 'manually-maintained-school-holidays' }, ['school-holidays', 'categories']),
   // Settings
-  guide('auth-methods', 'admin-settings', 'lock', 'guide', 3, 2, { slug: SETTINGS, anchor: 'authentication-methods' }, ['oidc', 'admin-passkeys']),
+  guide('auth-methods', 'admin-settings', 'lock', 'guide', 3, 3, { slug: SETTINGS, anchor: 'authentication-methods' }, ['oidc', 'admin-passkeys']),
   guide('admin-passkeys', 'admin-settings', 'fingerprint', 'quick', 2, 3, { slug: SETTINGS, anchor: 'passkey-login' }, ['auth-methods', 'passkeys']),
-  guide('oidc', 'admin-settings', 'shield', 'guide', 2, 2, { slug: 'OIDC-SSO' }, ['auth-methods']),
-  guide('instance-keys', 'admin-settings', 'key', 'guide', 3, 4, { slug: SETTINGS, anchor: 'api-keys' }, ['places-transit', 'default-map']),
-  guide('places-transit', 'admin-settings', 'search', 'quick', 2, 2, { slug: SETTINGS, anchor: 'transit-provider' }, ['instance-keys']),
-  guide('file-types', 'admin-settings', 'fileInput', 'quick', 1, 1, { slug: SETTINGS, anchor: 'allowed-file-types' }, ['storage-backends']),
+  guide('oidc', 'admin-settings', 'shield', 'guide', 3, 2, { slug: 'OIDC-SSO' }, ['auth-methods']),
+  guide('instance-keys', 'admin-settings', 'key', 'guide', 3, 4, { slug: SETTINGS, anchor: 'api-keys' }, ['places-transit', 'default-map'], false, SERVICES_TAB),
+  guide('places-transit', 'admin-settings', 'search', 'quick', 2, 2, { slug: SETTINGS, anchor: 'transit-provider' }, ['instance-keys'], false, SERVICES_TAB),
+  guide('file-types', 'admin-settings', 'fileInput', 'quick', 1, 1, { slug: SETTINGS, anchor: 'allowed-file-types' }, ['storage-backends'], false, SERVICES_TAB),
   guide('rotate-jwt-secret', 'admin-settings', 'shield', 'quick', 2, 2, { slug: SETTINGS, anchor: 'danger-zone' }, ['edit-user', 'auth-methods']),
   // Addons
   guide('toggle-addon', 'admin-addons', 'sliders', 'quick', 2, 2, { slug: ADDONS }, ['install-plugin', 'document-providers']),
   guide('document-providers', 'admin-addons', 'plug', 'quick', 2, 2, { slug: 'Document-Sync', anchor: 'switching-stores-on' }, ['toggle-addon', 'files-sync']),
+  guide('mail-import-setup', 'admin-addons', 'mailCheck', 'guide', 4, 3, { slug: 'Booking-Mail-Import', anchor: 'setting-it-up' }, ['booking-mail-address', 'forward-booking-mail', 'toggle-addon']),
+  guide('ai-setup', 'admin-addons', 'sparkles', 'guide', 6, 4, { slug: ADDONS }, ['connect-ai', 'trip-assistant', 'toggle-addon']),
+  guide('paddle-water-data', 'admin-addons', 'waves', 'guide', 3, 3, { slug: ADDONS, anchor: 'paddle-water-data' }, ['tour-paddle-water-route', 'admin-channels', 'toggle-addon']),
   // Plugins
   guide('install-plugin', 'admin-plugins', 'plug', 'guide', 3, 2, { slug: PLUGINS, anchor: 'installing-from-the-registry' }, ['toggle-addon']),
   // Storage
@@ -92,10 +103,11 @@ export const adminTabContexts: HelpContext[] = [
   tab('admin-users', 'user', 4, [{ slug: USERS }, { slug: 'Admin-Permissions' }]),
   tab('admin-defaults', 'map', 3, [{ slug: DEFAULTS }]),
   tab('admin-config', 'sliders', 3, [{ slug: CATEGORIES }, { slug: TEMPLATES }]),
-  tab('admin-settings', 'lock', 5, [{ slug: SETTINGS }, { slug: 'OIDC-SSO' }, { slug: 'Places-and-Search' }]),
-  tab('admin-addons', 'plug', 3, [{ slug: ADDONS }]),
+  // One screen for the Security and Services tabs; "go there" opens Security.
+  { ...tab('admin-settings', 'lock', 5, [{ slug: SETTINGS }, { slug: 'OIDC-SSO' }, { slug: 'Places-and-Search' }]), route: '/admin?tab=security' },
+  tab('admin-addons', 'plug', 3, [{ slug: ADDONS }, { slug: 'Booking-Mail-Import' }]),
   tab('admin-plugins', 'plug', 3, [{ slug: PLUGINS }]),
-  tab('admin-storage', 'download', 3, [{ slug: STORAGE }]),
+  tab('admin-storage', 'download', 4, [{ slug: STORAGE }]),
   tab('admin-notifications', 'bell', 4, [{ slug: ADMIN_NOTIFICATIONS }, { slug: NOTIFICATIONS }]),
   tab('admin-mcp-tokens', 'key', 2, [{ slug: MCP }]),
   tab('admin-github', 'bookOpen', 3, [{ slug: GITHUB }, { slug: 'Updating' }]),

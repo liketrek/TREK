@@ -180,16 +180,23 @@ describe('useDawarichTrailGL', () => {
     expect(gl.spies.addSource).toHaveBeenCalledWith(SOURCE, expect.objectContaining({ type: 'geojson' }))
 
     const [casingCall, lineCall] = gl.spies.addLayer.mock.calls
-    expect(casingCall[0].id).toBe(CASING_LAYER)
-    expect(casingCall[0].paint['line-color']).toBe(DAWARICH_TRAIL_CASING)
-    expect(casingCall[0].paint['line-width']).toBe(6)
-    expect(lineCall[0].id).toBe(LINE_LAYER)
+    if (!casingCall || !lineCall) throw new Error('expected the casing and the line layer')
+    type LayerSpec = { id: string; paint: Record<string, unknown> }
+    const casing = casingCall[0] as LayerSpec
+    const line = lineCall[0] as LayerSpec
+    expect(casing.id).toBe(CASING_LAYER)
+    expect(casing.paint['line-color']).toBe(DAWARICH_TRAIL_CASING)
+    expect(casing.paint['line-width']).toBe(7)
+    expect(casing.paint['line-opacity']).toBe(0.9)
+    expect(line.id).toBe(LINE_LAYER)
     // Per-feature colour, with the casing white as the fallback a feature
     // without one falls back to. The GPX layer uses the same shape.
-    expect(lineCall[0].paint['line-color']).toEqual(['coalesce', ['get', 'color'], DAWARICH_TRAIL_CASING])
+    expect(line.paint['line-color']).toEqual(['coalesce', ['get', 'color'], DAWARICH_TRAIL_CASING])
     // Dashed, so the recording is distinguishable from the planned route for
     // someone who cannot tell the two hues apart.
-    expect(lineCall[0].paint['line-dasharray']).toEqual([2, 1.6])
+    expect(line.paint['line-dasharray']).toEqual([2.5, 1.25])
+    expect(line.paint['line-width']).toBe(4)
+    expect(line.paint['line-opacity']).toBe(1)
 
     // Both go beneath the planned route's casing. The line is inserted second
     // and therefore ends up above its own casing and still below the plan.

@@ -8,6 +8,8 @@
     <string name="widget_today_description">今日の予定をタイムラインで、天気と次の予定とともに表示します。</string>
     <string name="widget_bookings_name">予約</string>
     <string name="widget_bookings_description">次のフライト、列車、ホテル、レストランとその日時。</string>
+    <string name="widget_flight_name">フライト</string>
+    <string name="widget_flight_description">次のフライトをライブで：出発までのカウントダウン、飛行中の機体、遅延と到着。</string>
     <string name="widget_todos_name">やること</string>
     <string name="widget_todos_description">旅行のために残っていることと、荷造りの進み具合。</string>
     <string name="widget_packing_name">持ち物</string>

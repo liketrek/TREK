@@ -7,8 +7,6 @@ import {
   Eye,
   EyeOff,
   Frown,
-  Globe,
-  Lock,
   type LucideIcon,
   MapPinCheck,
   Meh,
@@ -19,14 +17,13 @@ import {
   Snowflake,
   Sparkles,
   Sun,
-  Users,
 } from 'lucide-react';
 
 /**
  * How the states of a journal entry read in the chat, the way the journal
  * draws them: its moods with the glyphs of its tiles, its weathers, and the
- * words for what an update sets beyond the text (who sees the entry, its
- * kind, a draft, the route, a waved-away suggestion).
+ * words for what an update sets beyond the text (its kind, a draft, the
+ * route, a waved-away suggestion).
  */
 
 /** How a state is drawn: its glyph and the key of its name. */
@@ -55,12 +52,6 @@ const WEATHERS: Readonly<Record<string, EntryTone>> = {
   rainy: { Icon: CloudRain, labelKey: 'journey.weather.rainy' },
   stormy: { Icon: CloudLightning, labelKey: 'journey.weather.stormy' },
   cold: { Icon: Snowflake, labelKey: 'journey.weather.cold' },
-};
-
-const VISIBILITIES: Readonly<Record<string, EntryTone>> = {
-  private: { Icon: Lock, labelKey: 'journey.visibility.private' },
-  shared: { Icon: Users, labelKey: 'journey.visibility.shared' },
-  public: { Icon: Globe, labelKey: 'journey.visibility.public' },
 };
 
 const TYPES: Readonly<Record<string, EntryTone>> = {
@@ -119,7 +110,6 @@ export function flagOf(field: string | undefined, value: string): EntryTone | nu
 export function stateOf(field: string | undefined, value: string | null): EntryTone | null {
   if (field === 'mood') return moodOf(value);
   if (field === 'weather') return weatherOf(value);
-  if (field === 'visibility') return own(VISIBILITIES, value);
   if (field === 'type') return own(TYPES, value);
   return null;
 }

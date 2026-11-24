@@ -81,6 +81,7 @@ export interface SystemNotice {
   highlights?: Array<{ labelKey: string; iconName?: string }>;
   cta?: NoticeCta;
   secondaryCta?: NoticeCta;
+  tertiaryCta?: NoticeCta;
   /** Set to render the two-column release modal rather than the generic body. */
   release?: NoticeRelease;
   // Hide this notice on small/mobile viewports (evaluated client-side).

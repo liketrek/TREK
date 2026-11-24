@@ -39,7 +39,7 @@ vi.mock('../components/Journey/JournalBody', () => ({
 // ── Fixtures ─────────────────────────────────────────────────────────────────
 
 function photo(id: number): PublicEntry['photos'][number] {
-  return { id, entry_id: 1, photo_id: id * 10, caption: `caption ${id}`, provider: 'local' };
+  return { id, photo_id: id * 10, caption: `caption ${id}`, posterless: false };
 }
 
 function buildEntry(over: Partial<PublicEntry> = {}): PublicEntry {

@@ -7,6 +7,7 @@ import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { readImageHeader } from '../common/image-header';
 import { isManagedBlocked, MANAGED_FORBIDDEN_ERROR, ManagedForbidden } from '../common/managed';
 import { ResponseContract } from '../common/response-contract';
+import { toRowId } from '../common/row-id';
 import { JourneyAiPhotosService } from '../journey/journey-ai-photos.service';
 import { AssistantBookContext } from './assistant-book-context';
 import { AssistantRenderRegistry } from './assistant-render.registry';
@@ -39,8 +40,9 @@ const UPLOAD = {
 
 /** A positive integer route id, or null. */
 function routeId(value: string): number | null {
-  const id = Number(value);
-  return Number.isInteger(id) && id > 0 ? id : null;
+  // toRowId: Number() read '0x1' and '1e0' as 1.
+  const id = toRowId(value);
+  return id !== null && id > 0 ? id : null;
 }
 
 /**

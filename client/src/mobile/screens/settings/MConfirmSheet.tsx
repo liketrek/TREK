@@ -1,6 +1,7 @@
 import { ReactNode } from 'react'
 import { AlertTriangle, CircleHelp, Info } from 'lucide-react'
 import MSheet from '../../components/MSheet'
+import { useNativeQuestion } from '../../../native/useNativeQuestion'
 import { SHEET_DANGER, SHEET_PRIMARY, SHEET_SECONDARY } from '../trip/sheets/MTripSheetUi'
 
 interface MConfirmSheetProps {
@@ -37,8 +38,18 @@ export default function MConfirmSheet({
   children,
 }: MConfirmSheetProps) {
   const Icon = danger ? AlertTriangle : onConfirm ? CircleHelp : Info
+  // In the app a plain question goes to the system (native/nativeDialogs.ts); a
+  // notice, or one with a field or a list in it, stays this card.
+  const question =
+    onConfirm && confirmLabel && !children && typeof message === 'string'
+      ? { title, message, confirmLabel, cancelLabel, danger }
+      : null
+  const html = useNativeQuestion(open, question, (yes) => {
+    if (yes) onConfirm?.()
+    onClose()
+  })
   return (
-    <MSheet open={open} onClose={onClose} variant="card" material="glass" ariaLabel={title}>
+    <MSheet open={open && html} onClose={onClose} variant="card" material="glass" ariaLabel={title}>
       <div className="flex flex-none items-center gap-3 px-[18px] pt-4">
         <span
           className={`flex h-10 w-10 flex-none items-center justify-center rounded-[13px] bg-[color:var(--m-ic)] ${

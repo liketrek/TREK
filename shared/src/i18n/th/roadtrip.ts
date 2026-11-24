@@ -22,8 +22,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.charging.unknown': 'ไม่มีข้อมูลที่เชื่อถือได้',
   'roadtrip.charging.stale': 'สถานะล้าสมัย',
   'roadtrip.charging.prices': 'อัตราค่าบริการที่เผยแพร่',
-  'roadtrip.charging.note':
-    'เป็นอัตราที่เผยแพร่ ภาษี เงื่อนไข และค่าธรรมเนียมเพิ่มเติมอาจมีผล ราคาในบัตรชาร์จของคุณอาจต่างกัน',
+  'roadtrip.charging.note': 'เป็นอัตราที่เผยแพร่ ภาษี เงื่อนไข และค่าธรรมเนียมเพิ่มเติมอาจมีผล ราคาในบัตรชาร์จของคุณอาจต่างกัน',
   'roadtrip.charging.coverage': 'ข้อมูลเปิด ความครอบคลุมต่างกันตามภูมิภาคและผู้ให้บริการ',
   'roadtrip.charging.availability': 'ความพร้อมใช้งานและราคา',
   'roadtrip.import.title': 'นำเข้าเส้นทาง Google Maps',
@@ -41,8 +40,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.stops.section': 'จุดแวะบริการ',
   'roadtrip.stops.inDays': 'แสดงในหน้าวันด้วย',
   'roadtrip.stops.daysHint': 'เมื่อปิด จุดแวะบริการทั้งหมดจะแสดงเฉพาะใน Roadtrip',
-  'roadtrip.window.dragHint':
-    'ขณะออนไลน์ ลากจุดสิ้นสุดวันไปตามเส้นทางหรือไปยังสถานที่ คลิกขวาเพื่อคืนจุดสิ้นสุดอัตโนมัติ',
+  'roadtrip.window.dragHint': 'ขณะออนไลน์ ลากจุดสิ้นสุดวันไปตามเส้นทางหรือไปยังสถานที่ คลิกขวาเพื่อคืนจุดสิ้นสุดอัตโนมัติ',
   'roadtrip.window.resetBoundaries': 'คืนจุดสิ้นสุดวันอัตโนมัติ',
   'roadtrip.window.endHere': 'สิ้นสุดวันที่นี่',
   'roadtrip.window.endHereHint':
@@ -65,8 +63,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.window.departure': 'เดินทางต่อหลังจากแวะที่เหลือ เวลา {time}',
   'roadtrip.window.showPoint': 'แสดงบนแผนที่',
   'roadtrip.window.incomplete': 'ยังคำนวณช่วงพักรายวันไม่ได้จนกว่าจะมีเส้นทางเชื่อมต่อครบ',
-  'roadtrip.window.conflict':
-    'เวลาที่กำหนดขัดกับการขับรถและช่วงพักรายวัน เวลาที่กำหนดเองจะไม่เปลี่ยน แต่การจัดตารางอัตโนมัติถูกพักไว้',
+  'roadtrip.window.conflict': 'เวลาที่กำหนดขัดกับการขับรถและช่วงพักรายวัน เวลาที่กำหนดเองจะไม่เปลี่ยน แต่การจัดตารางอัตโนมัติถูกพักไว้',
   'roadtrip.window.tooLong': 'เวลาเดินทางเหล่านี้จะต้องใช้วันเพิ่มมากกว่า {count} วัน เลือกกรอบเวลารายวันที่นานขึ้น',
   'roadtrip.mode.roadtrip': 'โรดทริป',
   'roadtrip.mode.days': 'วัน',
@@ -128,8 +125,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.line.dayColors': 'สีแยกตามวัน',
   'roadtrip.line.hint': 'การขับรถเชื่อมต่อจะนับรวมในวันที่เดินทางถึง',
   'roadtrip.line.hotelBookends': 'เริ่มและจบแต่ละวันที่ที่พักของคุณ',
-  'roadtrip.line.hotelBookendsHint':
-    'หลังคืนที่จองไว้ วันนั้นจะเริ่มที่ที่พักนั้น และก่อนคืนที่จองไว้ วันนั้นจะจบที่ที่พักที่จองไว้สำหรับคืนนั้น',
+  'roadtrip.line.hotelBookendsHint': 'หลังคืนที่จองไว้ วันนั้นจะเริ่มที่ที่พักนั้น และก่อนคืนที่จองไว้ วันนั้นจะจบที่ที่พักที่จองไว้สำหรับคืนนั้น',
   'roadtrip.avoid.section': 'หลีกเลี่ยงเมื่อทำได้',
   'roadtrip.avoid.toll': 'ถนนเก็บค่าผ่านทาง',
   'roadtrip.avoid.motorway': 'ทางด่วน',
@@ -197,8 +193,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.poi.noMatch': 'ไม่พบ “{name}” ระหว่างทาง',
   'roadtrip.poi.noneMatchFilters': 'ไม่มีสิ่งใดระหว่างทางที่ตรงกับตัวกรองนี้',
   'roadtrip.poi.foundFiltered': 'พบ {count} จาก {total} แห่งระหว่างทาง',
-  'roadtrip.poi.truncated':
-    'มี {count} ช่วงที่ผลลัพธ์มากเกินกว่าจะแสดงได้ในครั้งเดียว จำกัดขอบเขตการค้นหาเพื่อดูส่วนที่เหลือ',
+  'roadtrip.poi.truncated': 'มี {count} ช่วงที่ผลลัพธ์มากเกินกว่าจะแสดงได้ในครั้งเดียว จำกัดขอบเขตการค้นหาเพื่อดูส่วนที่เหลือ',
   'roadtrip.poi.search': 'ค้นหา',
   'roadtrip.poi.searching': 'กำลังค้นหา {done} จาก {total}',
   'roadtrip.poi.capped': 'เส้นทางยาวมาก จึงค้นหาเฉพาะช่วงแรก',
@@ -239,8 +234,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.alt.otherEngineStandard': 'เวลาคำนวณโดยตัวคำนวณเส้นทางหลัก ไม่ใช่ตัวที่ใช้วางแผนช่วงนี้',
   'roadtrip.alt.avoidNotHeld': 'โรดทริปจะใช้เส้นทางนี้ก็ต่อเมื่อติ๊ก “{class}” ไว้ใน “{setting}” ในการตั้งค่า',
   'roadtrip.alt.checking': 'กำลังตรวจสอบเส้นทางนี้ด้วยตัวคำนวณเส้นทางของโรดทริป…',
-  'roadtrip.alt.standIn':
-    'ตัวคำนวณเส้นทางแบบหลีกเลี่ยงไม่ตอบสำหรับช่วงนี้ ตัวคำนวณเส้นทางหลักจึงวาดแทน กำลังถามอีกครั้ง',
+  'roadtrip.alt.standIn': 'ตัวคำนวณเส้นทางแบบหลีกเลี่ยงไม่ตอบสำหรับช่วงนี้ ตัวคำนวณเส้นทางหลักจึงวาดแทน กำลังถามอีกครั้ง',
   'roadtrip.day': 'วันที่ {number}',
   'roadtrip.quietDay.empty': 'ยังไม่มีจุดแวะ วางจุดแวะที่นี่',
   'roadtrip.quietDay.one': 'ตอนนี้มีเพียง {name} วางจุดแวะที่นี่',
@@ -320,8 +314,7 @@ const roadtrip: TranslationStrings = {
   'roadtrip.bookend.checkIn': 'เช็คอิน',
   'roadtrip.bookend.afterCheckOut': 'ออกหลังเช็คเอาท์',
   'roadtrip.bookend.noVia': 'ไม่มีจุดผ่านบนเส้นทางไปหรือกลับจากที่พักของคุณ ให้เพิ่มจุดแวะที่นั่นแทน',
-  'roadtrip.stay.untilHint':
-    'ออกเดินทางเวลา {time} เพราะการแวะนี้มีเวลาสิ้นสุด เปิดแล้วเลือกลบเวลาสิ้นสุดเพื่อกำหนดระยะเวลาพักแทน',
+  'roadtrip.stay.untilHint': 'ออกเดินทางเวลา {time} เพราะการแวะนี้มีเวลาสิ้นสุด เปิดแล้วเลือกลบเวลาสิ้นสุดเพื่อกำหนดระยะเวลาพักแทน',
 };
 
 export default roadtrip;

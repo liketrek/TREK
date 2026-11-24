@@ -28,15 +28,14 @@ function setup(props: Partial<ComponentProps<typeof PlFileAttach>> = {}) {
 }
 
 describe('PlFileAttach', () => {
-  it('FE-MOB-PLFILE-001: renders the files heading, the paste hint and the attach pill', () => {
+  it('FE-MOB-PLFILE-001: renders the files heading and the attach field', () => {
     setup()
     expect(screen.getByText('files.title')).toBeInTheDocument()
-    expect(screen.getByText('files.pasteHint')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'files.attach' })).toBeInTheDocument()
   })
 
-  it('FE-MOB-PLFILE-002: hideHint drops the paste subline but keeps the heading', () => {
-    setup({ hideHint: true })
+  it('FE-MOB-PLFILE-002: the phone shows no paste hint, a keyboard shortcut it has no use for', () => {
+    setup()
     expect(screen.getByText('files.title')).toBeInTheDocument()
     expect(screen.queryByText('files.pasteHint')).not.toBeInTheDocument()
   })

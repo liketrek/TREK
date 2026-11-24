@@ -1,5 +1,11 @@
+import { ADDON_IDS } from '../../addons';
+import type { TripFileRow } from '../../db/repositories/TripFiles.repository';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { addonOffMessage } from '../addons/addons.constants';
+import { AddonsService } from '../addons/addons.service';
+import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { logError } from '../audit/audit-log.logger';
 import { CurrentUser } from '../auth-core/current-user.decorator';
@@ -12,7 +18,7 @@ import { StorageService } from '../storage/storage.service';
 import { AllowedFileTypesService } from './allowed-file-types.service';
 import { MAX_FILE_SIZE, BLOCKED_EXTENSIONS, isUploadTypeAllowed, isVideoExtension } from './files.constants';
 import { FileUploadDto, FileUpdateDto, FileLinkDto } from './files.dto';
-import { FilesService } from './files.service';
+import { FilesService, attachesFile } from './files.service';
 import {
   Body,
   Controller,
@@ -116,12 +122,20 @@ export function filesUploadFileFilter(allowedTypes: AllowedFileTypesService): Op
 // socket destroyed, so the caller sees ECONNRESET instead of the 404. Refusing after
 // the body has been read costs the bandwidth but keeps the answer readable, which is
 // the behaviour every client already handles.
+//
+// Documents is a trip addon, and it is the file manager: while a trip has it off,
+// the list leaves out the files only the manager shows, and the trash, starring
+// and any route on such a file answer 404 "Documents addon is not enabled". A file
+// that belongs to a booking, place, expense, note or message stays reachable, and
+// uploads and deletes stay open so those features can attach and roll back.
 @UseGuards(JwtAuthGuard)
+@RequireAddon(ADDON_IDS.DOCUMENTS, 'Documents')
 export class FilesController {
   constructor(
     private readonly files: FilesService,
     private readonly env: RuntimeEnvService,
     private readonly storage: StorageService,
+    private readonly addons: AddonsService,
   ) {}
 
   // A file may only point at reservations/assignments/places/budget_items from its own trip.
@@ -141,6 +155,14 @@ export class FilesController {
     }
   }
 
+  /** 404 for a file only the file manager shows, while the trip has Documents off and the request does not attach it. */
+  private async assertReachable(trip: TripAccess, file: TripFileRow, targets: Parameters<typeof attachesFile>[0] = {}) {
+    if (attachesFile(targets)) return;
+    if (await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.DOCUMENTS)) return;
+    if (await this.files.isAttached(file)) return;
+    throw new HttpException({ error: addonOffMessage(ADDON_IDS.DOCUMENTS) }, 404);
+  }
+
   @UseGuards(TripAccessGuard)
   @Get()
   @ResponseContract(tripFilesResponseSchema)
@@ -150,7 +172,11 @@ export class FilesController {
     @Param('tripId') tripId: string,
     @Query('trash') trash?: string,
   ) {
-    return { files: await this.files.listFiles(tripId, trash === 'true') };
+    const documentsOn = await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.DOCUMENTS);
+    if (!documentsOn && trash === 'true') {
+      throw new HttpException({ error: addonOffMessage(ADDON_IDS.DOCUMENTS) }, 404);
+    }
+    return { files: await this.files.listFiles(tripId, trash === 'true', !documentsOn) };
   }
 
   @Post()
@@ -249,6 +275,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
+    await this.assertReachable(trip, file, body);
     await this.assertLinkTargets(tripId, {
       reservation_id: body.reservation_id,
       place_id: body.place_id,
@@ -264,7 +291,7 @@ export class FilesController {
     return { file: updated };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Patch(':id/star')
   @ResponseContract(tripFileResponseSchema)
   async star(
@@ -286,7 +313,7 @@ export class FilesController {
     return { file: updated };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Delete('trash/empty')
   @ResponseContract(fileTrashEmptyResponseSchema)
   async emptyTrash(@CurrentUser() user: User, @Trip() trip: TripAccess, @Param('tripId') tripId: string) {
@@ -341,7 +368,7 @@ export class FilesController {
     return { success: true };
   }
 
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   @Post(':id/restore')
   @HttpCode(200) // Express answers restore with res.json (200), not the POST-default 201.
   @ResponseContract(tripFileResponseSchema)
@@ -383,6 +410,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
+    await this.assertReachable(trip, file, body);
     await this.assertLinkTargets(tripId, {
       reservation_id: body.reservation_id,
       assignment_id: body.assignment_id,
@@ -423,6 +451,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
+    await this.assertReachable(trip, file);
     await this.files.unlinkFile(id, linkId, this.files.restWriter(tripId, user, socketId));
     return { success: true };
   }
@@ -440,6 +469,7 @@ export class FilesController {
     if (!file) {
       throw new HttpException({ error: 'File not found' }, 404);
     }
+    await this.assertReachable(trip, file);
     return { links: await this.files.getFileLinks(id) };
   }
 }

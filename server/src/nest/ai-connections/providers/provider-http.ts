@@ -65,7 +65,9 @@ export async function refusalOf(kind: AiConnectionKind, res: Response): Promise<
   logWarn(
     `[ai] ${kind} refused the request: HTTP ${res.status}${code ? ` (${code})` : ''}${param ? ` at ${param}` : ''}`,
   );
-  return providerFailure(kind, res.status, code);
+  const failure = providerFailure(kind, res.status, code);
+  failure.refusedParam = param;
+  return failure;
 }
 
 /** The field an error body names as refused (OpenAI's `param`, such as `input[12]`), when it is a bare path. */

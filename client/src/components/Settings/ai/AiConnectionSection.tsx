@@ -65,7 +65,7 @@ function OpenAssistantButton({ S }: { S: AiConnections }) {
   const { t } = useTranslation();
   if (!S.canOpen) return null;
   return (
-    <button type="button" onClick={S.openAssistant} className={SETTINGS_BUTTON_PRIMARY} style={fs(13, 'body')}>
+    <button type="button" onClick={S.openAssistant} className={SETTINGS_BUTTON_PRIMARY}>
       <MessageCircle size={14} strokeWidth={2.2} /> {t('assistant.connect.openAssistant')}
     </button>
   );
@@ -81,35 +81,18 @@ function OwnConnection({ S, own }: { S: AiConnections; own: AiConnectionView }) 
     <SettingRows>
       <ConnectionRow kind={own.kind} title={t('assistant.connect.connected', { provider })} detail={own.hint}>
         {repairMode ? (
-          <button
-            type="button"
-            onClick={() => S.repair(repairMode)}
-            className={SETTINGS_BUTTON_PRIMARY}
-            style={fs(13, 'body')}
-          >
+          <button type="button" onClick={() => S.repair(repairMode)} className={SETTINGS_BUTTON_PRIMARY}>
             {t(repairMode === 'chatgpt' ? 'assistant.errorAction.signIn' : 'assistant.errorAction.replaceKey')}
           </button>
         ) : (
           <OpenAssistantButton S={S} />
         )}
         {own.kind === 'chatgpt' && own.status === 'ok' ? (
-          <button
-            type="button"
-            onClick={() => void signOut()}
-            disabled={busy}
-            className={SETTINGS_BUTTON}
-            style={fs(13, 'body')}
-          >
+          <button type="button" onClick={() => void signOut()} disabled={busy} className={SETTINGS_BUTTON}>
             <LogOut size={14} strokeWidth={2} /> {t('assistant.connect.signOut')}
           </button>
         ) : (
-          <button
-            type="button"
-            onClick={askDisconnect}
-            disabled={busy}
-            className={SETTINGS_BUTTON_DANGER}
-            style={fs(13, 'body')}
-          >
+          <button type="button" onClick={askDisconnect} disabled={busy} className={SETTINGS_BUTTON_DANGER}>
             <Unplug size={14} strokeWidth={2} /> {t('assistant.connect.disconnect')}
           </button>
         )}
@@ -157,7 +140,7 @@ function InstanceConnection({ S }: { S: AiConnections }) {
       >
         <OpenAssistantButton S={S} />
         {S.status?.canConnectOwn && !S.panel && (
-          <button type="button" onClick={S.connectOwn} className={SETTINGS_BUTTON} style={fs(13, 'body')}>
+          <button type="button" onClick={S.connectOwn} className={SETTINGS_BUTTON}>
             {t('assistant.errorAction.connectOwn')}
           </button>
         )}
@@ -213,7 +196,7 @@ function LockedOwnConnection() {
         <SettingRow
           label={t('demo.lock.aiTitle')}
           control={
-            <button type="button" disabled className={SETTINGS_BUTTON} style={fs(13, 'body')}>
+            <button type="button" disabled className={SETTINGS_BUTTON}>
               {t('assistant.errorAction.connectOwn')}
             </button>
           }
@@ -230,7 +213,7 @@ function ConnectPanel({ S }: { S: AiConnections }) {
     <div className={`flex flex-col gap-3 ${S.view === 'setup' ? '' : 'border-t border-edge-faint pt-4'}`}>
       <AiConnectPanel key={S.panelMode ?? 'any'} scope="user" onConnected={S.onConnected} initialMode={S.panelMode} />
       {S.view !== 'setup' && (
-        <button type="button" onClick={S.closePanel} className={`${SETTINGS_BUTTON} self-start`} style={fs(13, 'body')}>
+        <button type="button" onClick={S.closePanel} className={`${SETTINGS_BUTTON} self-start`}>
           {t('common.cancel')}
         </button>
       )}
@@ -282,6 +265,7 @@ export default function AiConnectionSection({
 
   return (
     <Section
+      id="ai-connection"
       title={t(text.titleKey)}
       icon={Sparkles}
       hint={t(text.hintKey)}

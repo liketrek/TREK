@@ -38,7 +38,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Prípoj',
   'reservations.layover.layover': 'Medzipristátie',
   'reservations.needsReview': 'Skontrolovať',
-  'reservations.needsReviewHint': 'Letisko sa nepodarilo automaticky rozpoznať — potvrďte prosím miesto.',
+  'reservations.needsReviewHint':
+    'Niektoré údaje sa vyplnili automaticky a nedalo sa ich prečítať s istotou. Skontroluj ich prosím.',
+  'reservations.reviewConfirm': 'Súhlasí',
+  'reservations.reviewConfirmHint': 'Kliknutím označíš ako skontrolované.',
+  'reservations.reviewConfirmed': 'Označené ako skontrolované',
   'reservations.searchLocation': 'Hľadať stanicu, prístav, adresu…',
   'reservations.meta.trainNumber': 'Číslo vlaku',
   'reservations.meta.platform': 'Nástupište',

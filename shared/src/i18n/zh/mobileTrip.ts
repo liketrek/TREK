@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': '新建分类',
   'mobileTrip.newReservation': '新建预订',
   'mobileTrip.notes': '备注',
-  'mobileTrip.onMap': '在地图上',
+  'mobileTrip.onMap': '地图',
   'mobileTrip.profileDriving': '驾车',
   'mobileTrip.profileWalking': '步行',
   'mobileTrip.profileCycling': '骑行',

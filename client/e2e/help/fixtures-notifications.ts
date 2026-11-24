@@ -1,4 +1,6 @@
 import type { APIRequestContext } from '@playwright/test';
+import { createHmac } from 'node:crypto';
+import { day, mailHeaderDate } from '../dates';
 import { seededTrip } from './fixtures';
 import { asMember, PARTNER } from './fixtures-vacay';
 
@@ -155,4 +157,113 @@ export async function removeNotificationFixtures(api: APIRequestContext): Promis
       (n.title_key === SHARE_KEY && n.sender_username === PARTNER.username);
     if (ours) await api.delete(`${INBOX}/${n.id}`);
   }
+}
+
+// ── Booking mails ─────────────────────────────────────────────────────────────
+
+/** The notice a mail whose booking waits for the reader leaves under the bell. */
+export const MAIL_PENDING_TITLE = 'Forwarded bookings to review';
+const MAIL_PENDING_KEY = 'notif.mail_booking_pending.title';
+/** The media run's own webhook key; a mail service signs with the admin's. */
+const WEBHOOK_SECRET = 'help-media-webhook-secret-for-the-notifications';
+/** The forwarded mail, as Pending bookings lists it. */
+export const MAIL_SUBJECT = 'Your ryokan in Hakone';
+
+async function putAppSettings(api: APIRequestContext, data: Record<string, string | boolean>): Promise<void> {
+  await ok(await api.put('/api/auth/app-settings', { data }), 'could not save the mail import settings');
+}
+
+/**
+ * The mail import on, the way an admin switches it on, with the signed webhook
+ * as its transport so the fixture can deliver a mail itself, and the admin's
+ * own Read with AI off: no model answers in the media run and no extractor is
+ * needed, so the mail waits in Pending bookings and TREK sends the "Forwarded
+ * bookings to review" notice, which is what the guide shows. Then a plain text
+ * confirmation goes to the Japan trip's address, and the fixture waits for
+ * the notice.
+ */
+export async function ensureMailPendingNotice(api: APIRequestContext): Promise<void> {
+  await putAppSettings(api, {
+    mail_ingest_enabled: true,
+    mail_ingest_transport: 'webhook',
+    mail_ingest_address_template: 'trips+{token}@example.com',
+    mail_ingest_webhook_secret: WEBHOOK_SECRET,
+  });
+  await ok(
+    await api.patch('/api/mail-ingest/settings', { data: { ai_enabled: false } }),
+    'could not turn Read with AI off'
+  );
+  const { tripId } = seededTrip();
+  let found = (await (await api.get(`/api/trips/${tripId}/mail-ingest/address`)).json()) as {
+    address: { address: string } | null;
+  };
+  if (!found.address) {
+    await ok(
+      await api.post(`/api/trips/${tripId}/mail-ingest/address`, { data: {} }),
+      'could not create the trip address'
+    );
+    found = (await (await api.get(`/api/trips/${tripId}/mail-ingest/address`)).json()) as typeof found;
+  }
+  const to = found.address?.address;
+  if (!to) throw new Error('the trip has no mail address');
+  const raw = Buffer.from(
+    [
+      'From: Hakone Ginyu <stay@ginyu.example>',
+      `To: ${to}`,
+      `Subject: ${MAIL_SUBJECT}`,
+      `Date: ${mailHeaderDate(-28, '09:12', '+0900')}`,
+      'Message-ID: <gny-40218@ginyu.example>',
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      'Dear guest,',
+      '',
+      'thank you for choosing Hakone Ginyu. Your room with a private open-air bath is reserved.',
+      '',
+      `Check-in: ${day(-6)}, from 15:00`,
+      `Check-out: ${day(-5)}, until 11:00`,
+      'Guests: 2',
+      'Confirmation number: GNY-40218',
+      '',
+      'Hakone Ginyu, 100-1 Miyanoshita, Hakone, Kanagawa',
+      '',
+    ].join('\r\n')
+  );
+  const timestamp = String(Math.floor(Date.now() / 1000));
+  const signature = createHmac('sha256', WEBHOOK_SECRET).update(`${timestamp}\n${to}\n`).update(raw).digest('hex');
+  await ok(
+    await api.post('/api/mail-ingest/inbound', {
+      headers: {
+        'Content-Type': 'message/rfc822',
+        'X-Trek-Timestamp': timestamp,
+        'X-Trek-Recipient': to,
+        'X-Trek-Signature': `sha256=${signature}`,
+      },
+      data: raw,
+    }),
+    'the webhook refused the mail'
+  );
+  for (let i = 0; i < 90; i++) {
+    if ((await inbox(api)).some((n) => n.title_key === MAIL_PENDING_KEY && !n.is_read)) return;
+    await new Promise((res) => setTimeout(res, 1000));
+  }
+  throw new Error('no "Forwarded bookings to review" notification arrived');
+}
+
+/** Back to the seed: the waiting entry, the trip address, the notice and the import itself go. */
+export async function removeMailPendingNotice(api: APIRequestContext): Promise<void> {
+  const open = await api.get('/api/mail-ingest/inbox?status=open');
+  if (open.ok()) {
+    const { entries = [] } = (await open.json()) as { entries?: { id: number }[] };
+    for (const entry of entries) await api.post(`/api/mail-ingest/candidates/${entry.id}/discard`, { data: {} });
+  }
+  const { tripId } = seededTrip();
+  await api.delete(`/api/trips/${tripId}/mail-ingest/address`);
+  await api.patch('/api/mail-ingest/settings', { data: { ai_enabled: true } });
+  for (const n of await inbox(api)) if (n.title_key === MAIL_PENDING_KEY) await api.delete(`${INBOX}/${n.id}`);
+  await putAppSettings(api, {
+    mail_ingest_enabled: false,
+    mail_ingest_transport: 'off',
+    mail_ingest_webhook_secret: '',
+  });
 }

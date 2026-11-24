@@ -73,6 +73,15 @@ export class RoadtripDayBoundariesRepository extends TrekRepository<RoadtripDayB
   }
 
   /**
+   * RB4 for several days at once (`DaysService.followDayNumbers`) — `DELETE FROM
+   * roadtrip_day_boundaries WHERE trip_id = ? AND day_number IN (...)`.
+   */
+  async deleteForDays(trip_id: number, day_numbers: readonly number[]): Promise<void> {
+    if (day_numbers.length === 0) return;
+    await this.nativeDelete({ trip: trip_id, day_number: { $in: [...day_numbers] } });
+  }
+
+  /**
    * RB5 (`DaysService.shiftBoundariesBack`, the dated append) — `SELECT
    * day_number FROM roadtrip_day_boundaries WHERE trip_id = ? AND day_number
    * >= ? ORDER BY day_number DESC`.

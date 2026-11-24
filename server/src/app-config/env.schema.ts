@@ -9,6 +9,7 @@
  * listed here pass through untouched (Zod strips unknown keys, it does not
  * reject them).
  */
+import { DB_POOL_MAX_CEILING } from './db-settings';
 import {
   isP256PrivateKey,
   isServiceKeyShape,
@@ -51,6 +52,14 @@ const url = optionalWith((v) => {
     return false;
   }
 }, 'must be a valid URL (with protocol)');
+/** A Postgres connection URL: TREK_DB_URL names no other engine. */
+const postgresUrl = optionalWith((v) => {
+  try {
+    return ['postgres:', 'postgresql:'].includes(new URL(v).protocol);
+  } catch {
+    return false;
+  }
+}, 'must be a postgres:// or postgresql:// URL');
 const duration = optionalWith((v) => parseDurationMs(v) != null, 'must be a duration like "1h", "7d" or "30d"');
 const oneOf = (values: string[]) =>
   optionalWith((v) => values.includes(v.toLowerCase()), `must be one of: ${values.join(', ')}`);
@@ -111,6 +120,20 @@ export const envSchema = z.object({
   SMTP_FROM: anyString,
   SMTP_SKIP_TLS_VERIFY: boolStr,
 
+  // Booking mail import: each wins over its field in the admin dialog
+  MAIL_INGEST_TRANSPORT: oneOf(['off', 'imap', 'webhook', 'cloud']),
+  MAIL_INGEST_IMAP_HOST: anyString,
+  MAIL_INGEST_IMAP_PORT: integer(1, 65535, 'must be a port number (1-65535)'),
+  MAIL_INGEST_IMAP_TLS: oneOf(['tls', 'starttls']),
+  MAIL_INGEST_IMAP_USER: anyString,
+  MAIL_INGEST_IMAP_PASS: anyString,
+  MAIL_INGEST_IMAP_MAILBOX: anyString,
+  MAIL_INGEST_ADDRESS_TEMPLATE: optionalWith(
+    (v) => v.includes('{token}') && v.includes('@'),
+    'must hold {token} and an @, like trek+{token}@example.com',
+  ),
+  MAIL_INGEST_WEBHOOK_SECRET: optionalWith((v) => v.length >= 32, 'must be at least 32 characters'),
+
   // WebAuthn
   WEBAUTHN_RP_ID: anyString,
   WEBAUTHN_ORIGINS: anyString,
@@ -157,6 +180,11 @@ export const envSchema = z.object({
   Path: anyString,
 
   // Data / paths
+  // A Postgres database instead of the SQLite file. Its value is a secret (it
+  // carries the password), so it is masked in the boot report.
+  TREK_DB_URL: postgresUrl,
+  TREK_DB_POOL_MAX: integer(1, DB_POOL_MAX_CEILING),
+  TREK_DB_PG_BIN_DIR: anyString,
   TREK_DB_FILE: anyString,
   // The two SQLite pragmas are deliberately unvalidated: a typo here must fall
   // back and warn rather than abort boot, because reset-admin.js — the way out
@@ -170,6 +198,10 @@ export const envSchema = z.object({
   // or a misspelt "on" turn it off.
   TREK_DB_PRE_MIGRATE_SNAPSHOT: boolStr,
   TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP: integer(1, 100),
+  // Starts on an empty Postgres database although the data directory holds a
+  // SQLite install with accounts, which the boot otherwise refuses. Strict like
+  // the switch above: a misspelt value must not let the refusal through.
+  TREK_DB_IGNORE_SQLITE_FILE: boolStr,
   TREK_WIKI_DIR: anyString,
   TREK_PLACE_PHOTO_DIR: anyString,
   BACKUP_UPLOAD_LIMIT_MB: positiveNumber,
@@ -186,6 +218,7 @@ export const envSchema = z.object({
   GOOGLE_LIST_DATA_BASE: url,
   TREK_PLACES_URL: url,
   TREK_PLACES_ENABLED: boolStr,
+  FLIGHT_LIVE_ENABLED: boolStr,
   TREK_PLACES_CONTRIBUTE: oneOf(['off', 'admin']),
   TREK_SERVICES: oneOf(['auto', 'off']),
   TREK_SERVICES_KEY: optionalWith(isServiceKeyShape, 'must be a TREK services key (tk1.<kid>.<payload>.<signature>)'),

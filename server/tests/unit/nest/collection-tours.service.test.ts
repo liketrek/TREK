@@ -19,7 +19,7 @@ import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { addCollectionMember, makeCollection } from '../../helpers/factories/collections';
 import { makePlace } from '../../helpers/factories/places';
 import { countRows, deleteRows, findRow, findRows, updateRows } from '../../helpers/factories/rows';
-import { setAddonEnabled } from '../../helpers/factories/settings';
+import { setAddonEnabled, setTripAddon } from '../../helpers/factories/settings';
 import { addTourWaypoints, makeTour } from '../../helpers/factories/tours';
 import { addTripMember, makeTrip } from '../../helpers/factories/trips';
 import { makeUser } from '../../helpers/factories/users';
@@ -398,5 +398,18 @@ describe('CollectionToursService', () => {
         }),
       ),
     ).toEqual(off);
+  });
+
+  it('LIB3-SVC-013: a trip with Tours off has no tour to keep and is no target, the instance on', async () => {
+    const f = await fixture();
+    const tour = await keep(f);
+    vi.spyOn(t.get(PermissionsService), 'checkPermission').mockResolvedValue(true);
+    await setTripAddon(orm, f.alps.id, 'tours', false);
+    expect(
+      await refusal(service.save(f.owner.id, f.list.id, { source_trip_id: f.alps.id, source_place_id: f.ridge.id })),
+    ).toEqual({ status: 404, error: 'Tour not found' });
+    expect(await countRows(orm, CollectionTours)).toBe(1);
+    const detail = await service.detail({ id: f.owner.id, role: 'user' }, f.list.id, tour.id);
+    expect(detail.trips.map((trip) => trip.title).sort()).toEqual(['Away', 'Next']);
   });
 });

@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'فئة جديدة',
   'mobileTrip.newReservation': 'حجز جديد',
   'mobileTrip.notes': 'الملاحظات',
-  'mobileTrip.onMap': 'على الخريطة',
+  'mobileTrip.onMap': 'الخريطة',
   'mobileTrip.profileDriving': 'بالسيارة',
   'mobileTrip.profileWalking': 'سيرًا على الأقدام',
   'mobileTrip.profileCycling': 'بالدراجة',
@@ -100,8 +100,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtTruncated.other':
     'في {count} مقطع كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
   'mobileTrip.rtTruncated.zero': 'لم تتجاوز النتائج في أي مقطع ما تتسع له إجابة واحدة.',
-  'mobileTrip.rtTruncated.one':
-    'في مقطع واحد كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
+  'mobileTrip.rtTruncated.one': 'في مقطع واحد كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
   'mobileTrip.rtTruncated.two': 'في مقطعين كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',
   'mobileTrip.rtTruncated.few':
     'في {count} مقاطع كانت النتائج أكثر مما تتسع له إجابة واحدة. اختر أنواعًا أقل لرؤية الباقي.',

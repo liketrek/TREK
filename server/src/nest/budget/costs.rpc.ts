@@ -3,7 +3,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, schemaMessage, str } from '../../nest-rpc/rpc-params';
+import { rowIdParam, schemaMessage, str } from '../../nest-rpc/rpc-params';
 import { DomainError } from '../common/domain-error';
 import { RealtimeService } from '../realtime/realtime.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
@@ -49,9 +49,10 @@ export class CostsRpc {
 
   @PluginMethod('costs.getByTrip', { permission: 'db:read:costs' })
   async getByTrip(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    return await this.guards.tripRead(params, ctx, async () => {
-      await this.requireBudgetAddon();
-      return await this.budget.listBudgetItems(num(params.tripId, 'tripId'));
+    return await this.guards.tripRead(params, ctx, async (userId) => {
+      const tripId = rowIdParam(params.tripId, 'tripId');
+      await this.requireBudgetAddon(tripId, userId);
+      return await this.budget.listBudgetItems(tripId);
     });
   }
 
@@ -60,11 +61,14 @@ export class CostsRpc {
     // Cross-trip aggregate. The acting user is host-bound; a job or onLoad is refused
     // the same way tripRead refuses one.
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('cost reads require an authenticated user context');
-    await this.requireBudgetAddon();
     // The leaf membership read, not TripsService.list: TripsModule imports this
     // one, so injecting TripsService here would close a cycle. Same id set,
-    // same newest-first order.
-    const tripIds = await this.membership.listAccessibleTripIds(ctx.actingUserId);
+    // same newest-first order. A trip that has Costs off for itself is left out.
+    const tripIds = await this.guards.tripsWithAddon(
+      ADDON_IDS.BUDGET,
+      'costs',
+      await this.membership.listAccessibleTripIds(ctx.actingUserId),
+    );
     // Sequential, not Promise.all: the legacy flatMap read each trip's items one
     // after the other, in id order, and the output order is the contract here.
     const items: unknown[] = [];
@@ -74,9 +78,9 @@ export class CostsRpc {
 
   @PluginMethod('costs.create', { permission: 'db:write:costs' })
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     const parsed = budgetCreateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid cost: ${schemaMessage(parsed.error)}`);
     await this.requireCostEdit(tripId, actor);
@@ -91,17 +95,17 @@ export class CostsRpc {
 
   @PluginMethod('costs.update', { permission: 'db:write:costs' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const itemId = num(params.itemId, 'itemId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const itemId = rowIdParam(params.itemId, 'itemId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     const parsed = budgetUpdateItemRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid cost: ${schemaMessage(parsed.error)}`);
     await this.requireCostEdit(tripId, actor);
     await this.refuseForeignLinks(tripId, parsed.data);
     const before = parsed.data.reservation_id !== undefined ? await this.budget.getBudgetItem(itemId, tripId) : null;
     // update re-freezes the FX rate on a currency change, exactly like create.
-    // Plan 4 Task 8b (U6) — itemId is already a real row id (num() above);
+    // Plan 4 Task 8b (U6) — itemId is already a real row id (rowIdParam() above);
     // BudgetService.update's id param no longer needs the String() wrapper.
     const item = await this.costWrite(() => this.budget.update(itemId, tripId, parsed.data, actor));
     if (item == null) throw new ForbiddenResource(`no cost ${itemId} on trip ${tripId}`);
@@ -121,10 +125,10 @@ export class CostsRpc {
 
   @PluginMethod('costs.delete', { permission: 'db:write:costs' })
   async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const itemId = num(params.itemId, 'itemId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const itemId = rowIdParam(params.itemId, 'itemId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     await this.requireCostEdit(tripId, actor);
     // Plan 4 Task 8b (U6) — same drop of itemId's String() wrapper as update above.
     if (!(await this.budget.remove(itemId, String(tripId)))) {
@@ -136,35 +140,38 @@ export class CostsRpc {
 
   @PluginMethod('costs.listRates', { permission: 'db:read:costs' })
   async listRates(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    return this.guards.tripRead(params, ctx, async () => {
-      await this.requireBudgetAddon();
-      return this.exchangeRates.listTripExchangeRates(num(params.tripId, 'tripId'));
+    return this.guards.tripRead(params, ctx, async (actor) => {
+      const tripId = rowIdParam(params.tripId, 'tripId');
+      await this.requireBudgetAddon(tripId, actor);
+      return this.exchangeRates.listTripExchangeRates(tripId);
     });
   }
 
   @PluginMethod('costs.resolveRate', { permission: 'db:read:costs' })
   async resolveRate(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    return this.guards.tripRead(params, ctx, async () => {
-      await this.requireBudgetAddon();
+    return this.guards.tripRead(params, ctx, async (actor) => {
+      const tripId = rowIdParam(params.tripId, 'tripId');
+      await this.requireBudgetAddon(tripId, actor);
       return this.costWrite(() =>
-        this.exchangeRates.resolveExchangeRate(num(params.tripId, 'tripId'), str(params.currency, 'currency')),
+        this.exchangeRates.resolveExchangeRate(tripId, str(params.currency, 'currency')),
       );
     });
   }
 
   @PluginMethod('costs.listSettlements', { permission: 'db:read:costs' })
   async listSettlements(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    return this.guards.tripRead(params, ctx, async () => {
-      await this.requireBudgetAddon();
-      return this.budget.listSettlements(num(params.tripId, 'tripId'));
+    return this.guards.tripRead(params, ctx, async (actor) => {
+      const tripId = rowIdParam(params.tripId, 'tripId');
+      await this.requireBudgetAddon(tripId, actor);
+      return this.budget.listSettlements(tripId);
     });
   }
 
   @PluginMethod('costs.setRate', { permission: 'db:write:costs' })
   async setRate(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     await this.requireCostEdit(tripId, actor);
     const parsed = setTripExchangeRateRequestSchema.safeParse({
       exchange_rate: params.exchangeRate,
@@ -181,9 +188,9 @@ export class CostsRpc {
 
   @PluginMethod('costs.deleteRate', { permission: 'db:write:costs' })
   async deleteRate(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     await this.requireCostEdit(tripId, actor);
     const currency = str(params.currency, 'currency').toUpperCase();
     if (!(await this.costWrite(() => this.exchangeRates.deleteTripExchangeRate(tripId, currency)))) {
@@ -195,9 +202,9 @@ export class CostsRpc {
 
   @PluginMethod('costs.createSettlement', { permission: 'db:write:costs' })
   async createSettlement(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     await this.requireCostEdit(tripId, actor);
     const parsed = budgetCreateSettlementRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid settlement: ${schemaMessage(parsed.error)}`);
@@ -209,10 +216,10 @@ export class CostsRpc {
 
   @PluginMethod('costs.updateSettlement', { permission: 'db:write:costs' })
   async updateSettlement(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const settlementId = num(params.settlementId, 'settlementId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const settlementId = rowIdParam(params.settlementId, 'settlementId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     await this.requireCostEdit(tripId, actor);
     const parsed = budgetUpdateSettlementRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid settlement: ${schemaMessage(parsed.error)}`);
@@ -226,10 +233,10 @@ export class CostsRpc {
 
   @PluginMethod('costs.deleteSettlement', { permission: 'db:write:costs' })
   async deleteSettlement(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const settlementId = num(params.settlementId, 'settlementId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const settlementId = rowIdParam(params.settlementId, 'settlementId');
     const actor = this.requireCostActor(ctx);
-    await this.requireBudgetAddon();
+    await this.requireBudgetAddon(tripId, actor);
     await this.requireCostEdit(tripId, actor);
     if (!(await this.budget.deleteSettlement(settlementId, tripId))) {
       throw new ForbiddenResource(`no settlement ${settlementId} on trip ${tripId}`);
@@ -255,8 +262,8 @@ export class CostsRpc {
     return ctx.actingUserId;
   }
 
-  private async requireBudgetAddon(): Promise<void> {
-    await this.guards.requireAddon(ADDON_IDS.BUDGET, 'costs');
+  private async requireBudgetAddon(tripId: number, userId: number): Promise<void> {
+    await this.guards.requireAddon(ADDON_IDS.BUDGET, 'costs', { tripId, userId });
   }
 
   /** Trip access plus budget_edit, with the cost-specific refusal message. */

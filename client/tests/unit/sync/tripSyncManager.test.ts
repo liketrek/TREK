@@ -13,6 +13,8 @@ import { setAuthed } from '../../../src/sync/authGate';
 import { setTripPinned, setTripOfflineEnabled, _resetOfflinePrefs } from '../../../src/sync/offlinePrefs';
 import { offlineDb, clearAll, upsertTrip } from '../../../src/db/offlineDb';
 import { useAddonStore } from '../../../src/store/addonStore';
+import { tripAddonsEntry, useTripAddonsStore } from '../../../src/store/tripAddonsStore';
+import { tripAddonsRepo } from '../../../src/repo/tripAddonsRepo';
 import {
   buildTrip,
   buildDay,
@@ -21,6 +23,7 @@ import {
   buildTodoItem,
   buildBudgetItem,
   buildReservation,
+  buildTag,
   buildTripFile,
 } from '../../helpers/factories';
 
@@ -293,6 +296,27 @@ describe('tripSyncManager.syncAll — bundle upsert', () => {
     expect(meta!.lastSyncedAt).toBeGreaterThanOrEqual(before);
     expect(meta!.lastSyncedAt).toBeLessThanOrEqual(after);
   });
+
+  it("keeps the trip's own tags for offline, and a trip whose tags cannot be read still syncs", async () => {
+    const tag = buildTag({ id: 7, trip_id: 302, name: 'Monument' });
+    server.use(
+      http.get('/api/trips', () =>
+        HttpResponse.json({
+          trips: [buildTrip({ id: 302, end_date: dateOffset(5) }), buildTrip({ id: 303, end_date: dateOffset(5) })],
+        }),
+      ),
+      http.get('/api/trips/302/bundle', () => HttpResponse.json(makeBundle(302))),
+      http.get('/api/trips/303/bundle', () => HttpResponse.json(makeBundle(303))),
+      http.get('/api/trips/302/tags', () => HttpResponse.json({ tags: [tag] })),
+      http.get('/api/trips/303/tags', () => HttpResponse.json({ error: 'Trip not found' }, { status: 404 })),
+    );
+
+    expect(await tripSyncManager.syncAll()).toEqual({ status: 'done', trips: 2 });
+
+    expect((await offlineDb.tripTags.get(302))?.tags).toEqual([tag]);
+    expect(await offlineDb.tripTags.get(303)).toBeUndefined();
+    expect(await offlineDb.syncMeta.get(303)).toBeDefined();
+  });
 });
 
 describe('tripSyncManager.syncAll — tours', () => {
@@ -341,6 +365,66 @@ describe('tripSyncManager.syncAll — tours', () => {
 
     expect(await offlineDb.places.where('trip_id').equals(312).count()).toBe(1);
     expect(await offlineDb.syncMeta.get(312)).toBeDefined();
+  });
+
+  describe("the trip's own addons", () => {
+    const toursAddon = (enabled: boolean, instanceEnabled: boolean) => ({
+      id: 'tours', name: 'Tours', icon: 'Mountain', enabled, instanceEnabled, overridden: enabled !== instanceEnabled,
+    });
+    const serveAddons = (tripId: number, addons: unknown[]) =>
+      server.use(http.get(`/api/trips/${tripId}/addons`, () => HttpResponse.json({ tripId, addons })));
+
+    it('keeps the list for offline use and caches tours for a trip that switched them on', async () => {
+      // Off for the instance, on for this trip.
+      serveAddons(314, [toursAddon(true, false)]);
+      serve(314, () => HttpResponse.json({ tours: [tour] }));
+
+      await tripSyncManager.syncAll();
+
+      expect((await offlineDb.tripAddons.get(314))?.addons).toEqual([toursAddon(true, false)]);
+      expect(await offlineDb.tours.get(900)).toMatchObject({ trip_id: 314 });
+    });
+
+    it('does not ask for the tours of a trip that switched them off', async () => {
+      useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never });
+      serveAddons(315, [toursAddon(false, true)]);
+      const asked = serve(315, () => HttpResponse.json({ tours: [tour] }));
+
+      await tripSyncManager.syncAll();
+
+      expect(asked()).toBe(0);
+      expect(await offlineDb.tours.count()).toBe(0);
+    });
+
+    it('a push that lands while the list is on its way outlives the older answer, on screen and offline', async () => {
+      serve(317, () => HttpResponse.json({ tours: [] }));
+      server.use(
+        http.get('/api/trips/317/addons', async () => {
+          useTripAddonsStore.getState().publish(317, [toursAddon(true, false)]);
+          await tripAddonsRepo.remember(317, [toursAddon(true, false)]);
+          return HttpResponse.json({ tripId: 317, addons: [toursAddon(false, false)] });
+        }),
+      );
+
+      await tripSyncManager.syncAll();
+
+      expect(tripAddonsEntry(useTripAddonsStore.getState(), 317)?.addons).toEqual([toursAddon(true, false)]);
+      await vi.waitFor(async () =>
+        expect((await offlineDb.tripAddons.get(317))?.addons).toEqual([toursAddon(true, false)]),
+      );
+    });
+
+    it('follows the instance switch when the list cannot be read, and still stores the trip', async () => {
+      useAddonStore.setState({ addons: [{ id: 'tours', enabled: true }] as never });
+      server.use(http.get('/api/trips/316/addons', () => HttpResponse.json({ error: 'boom' }, { status: 500 })));
+      serve(316, () => HttpResponse.json({ tours: [tour] }));
+
+      await tripSyncManager.syncAll();
+
+      expect(await offlineDb.tripAddons.get(316)).toBeUndefined();
+      expect(await offlineDb.tours.get(900)).toMatchObject({ trip_id: 316 });
+      expect(await offlineDb.syncMeta.get(316)).toBeDefined();
+    });
   });
 
   // CW-03: a city walk shows how far it got offline, and its stops can be checked off there.

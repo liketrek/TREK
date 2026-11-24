@@ -4,5 +4,5 @@
     "rootDir": ".",
     "noEmit": true
   },
-  "include": ["scripts/generate-entities.ts", "scripts/generate-db-types.ts", "scripts/migrate-encryption.ts", "scripts/pg-probe.ts", "scripts/pg-probe/*.ts"]
+  "include": ["scripts/generate-entities.ts", "scripts/generate-db-types.ts", "scripts/generate-pg-baseline.ts", "scripts/generate-pg-migration.ts", "scripts/migrate-encryption.ts", "scripts/migrate-encryption-stores.ts", "scripts/pg-probe.ts", "scripts/pg-probe/*.ts"]
 }

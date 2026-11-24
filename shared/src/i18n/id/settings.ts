@@ -19,6 +19,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" wajib diisi',
   'settings.tabs.account': 'Akun',
   'settings.tabs.offline': 'Offline', // same-as-en
+  'settings.tabs.device': 'Aplikasi',
+  'settings.groups.account': 'Akun Anda',
+  'settings.groups.device': 'Perangkat ini',
   'settings.tabs.about': 'Tentang',
   'settings.map': 'Peta',
   'settings.mapTemplate': 'Template Peta',
@@ -63,6 +66,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + proyeksi globe untuk tepi yang lebih tajam dan tampilan dunia realistis.',
   'settings.mapHighQualityWarning': 'Dapat memengaruhi performa pada perangkat kelas bawah.',
+  'settings.mapHidePois': 'Sembunyikan tempat menarik',
+  'settings.mapHidePoisHint':
+    'Menyembunyikan toko, restoran, dan objek wisata yang ditandai Mapbox sendiri, agar hanya tempatmu yang menonjol. Hanya untuk gaya Standard.',
   'settings.mapTipLabel': 'Tips:',
   'settings.mapTip':
     'Klik kanan dan seret untuk memutar/memiringkan peta. Klik tengah untuk menambah tempat (klik kanan untuk rotasi).',
@@ -74,6 +80,8 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Untuk data cuaca. Gratis di openweathermap.org/api',
   'settings.keyPlaceholder': 'Masukkan key...',
   'settings.configured': 'Sudah dikonfigurasi',
+  'settings.notSetUp': 'Belum diatur',
+  'settings.mcp.appsConnected': '{count} aplikasi terhubung',
   'settings.saveKeys': 'Simpan Keys',
   'settings.display': 'Tampilan',
   'settings.colorMode': 'Mode Warna',
@@ -103,7 +111,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Notifikasi',
   'settings.notifyTripInvite': 'Undangan perjalanan',
   'settings.notifyBookingChange': 'Perubahan pemesanan',
+  'settings.notifyFlightDeparted': 'Penerbangan lepas landas',
+  'settings.notifyFlightDelayed': 'Penerbangan terlambat',
+  'settings.notifyFlightLanded': 'Penerbangan mendarat',
   'settings.notifyTripReminder': 'Pengingat perjalanan',
+  'settings.notifyMailBookingAdded': 'Pemesanan yang ditambahkan dari email',
+  'settings.notifyMailBookingPending': 'Pemesanan terusan yang perlu ditinjau',
+  'settings.notifyMailIngestPaused': 'Impor email dijeda',
   'settings.notifyTodoDue': 'Tugas jatuh tempo',
   'settings.notifyVacayInvite': 'Undangan Vacay fusion',
   'settings.notifyVacayShare': 'Berbagi kalender Vacay',
@@ -407,7 +421,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'URL Instans',
   'settings.airtrail.apiKey': 'Kunci API',
   'settings.airtrail.apiKeyPlaceholder': 'Kunci API Bearer',
-  'settings.airtrail.apiKeyHint': 'Dibuat di AirTrail pada Pengaturan → Keamanan. Disimpan terenkripsi.',
+  'settings.airtrail.apiKeyHint':
+    'Dibuat di AirTrail pada Pengaturan → Keamanan. Disimpan terenkripsi. Jika kamu membuat kunci di AirTrail 3.13 atau yang lebih baru, kunci memerlukan cakupan flight.read.own untuk membaca. Untuk menulis perubahan kembali, kunci juga memerlukan flight.update.own, flight.passengers.manage.own, reference_data.read, dan profile.read.',
   'settings.airtrail.allowInsecureTls': 'Izinkan sertifikat yang ditandatangani sendiri',
   'settings.airtrail.allowInsecureTlsHint': 'Aktifkan hanya untuk instans tepercaya di jaringanmu sendiri.',
   'settings.airtrail.writeBack': 'Tulis perubahan kembali ke AirTrail',

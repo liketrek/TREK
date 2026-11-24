@@ -78,17 +78,22 @@ function adminState(overrides: Partial<Admin> = {}, search: Partial<Admin['searc
   };
 }
 
-function show(overrides: Partial<Admin> = {}, search: Partial<Admin['search']> = {}) {
+/** The panel as the Tours shelf shows it: a setup row, opened into its dialog unless asked not to. */
+function show(overrides: Partial<Admin> = {}, search: Partial<Admin['search']> = {}, { open = true } = {}) {
   const state = adminState(overrides, search);
   hook.usePaddleRegionsAdmin.mockReturnValue(state);
-  return { state, ...render(<PaddleRegionsPanel />) };
+  const view = render(
+    <ul>
+      <PaddleRegionsPanel />
+    </ul>
+  );
+  if (open && state.toursOn) fireEvent.click(setupRow());
+  return { state, ...view };
 }
 
-/** The card's title row, where the number of regions sits beside the title. */
-function titleRow(): HTMLElement {
-  const row = screen.getByRole('heading', { name: 'Paddle water data' }).parentElement;
-  if (!row) throw new Error('no title row');
-  return row;
+/** The shelf row that opens the dialog, where the count of requests or regions sits beside the title. */
+function setupRow(): HTMLElement {
+  return screen.getAllByRole('button', { name: /^Paddle water data/ })[0];
 }
 
 function rowOf(name: string): HTMLElement {
@@ -100,7 +105,7 @@ function rowOf(name: string): HTMLElement {
 describe('PaddleRegionsPanel', () => {
   it('FE-ADMIN-PADDLEREG-001: renders nothing while the Tours addon is off', () => {
     const { container } = show({ toursOn: false, regions: [READY] });
-    expect(container).toBeEmptyDOMElement();
+    expect(container.querySelector('ul')).toBeEmptyDOMElement();
   });
 
   it('FE-ADMIN-PADDLEREG-002: shows the card with its hint, the attribution and the empty state', () => {
@@ -110,7 +115,7 @@ describe('PaddleRegionsPanel', () => {
     expect(screen.getByText(EMPTY)).toBeInTheDocument();
     expect(screen.getByText(ATTRIBUTION)).toBeInTheDocument();
     // No count beside the title while there is no region.
-    expect(titleRow()).toHaveTextContent(/^Paddle water data$/);
+    expect(setupRow()).toHaveTextContent(/^Paddle water data$/);
     const search = screen.getByRole('searchbox', { name: 'Add a region' });
     expect(search).toBeEnabled();
     expect(search).toHaveAttribute('placeholder', 'Search Geofabrik, for example Oberpfalz');
@@ -277,10 +282,29 @@ describe('PaddleRegionsPanel', () => {
     }
   });
 
-  it('FE-ADMIN-PADDLEREG-019: the title carries the number of regions', () => {
+  it('FE-ADMIN-PADDLEREG-019: the setup row carries the open requests, else the number of regions', () => {
     show({ regions: [READY, WAITING, FAILED_FIRST] });
-    expect(within(titleRow()).getByText('3')).toBeInTheDocument();
+    expect(within(setupRow()).getByText('3')).toBeInTheDocument();
     expect(screen.getAllByTestId('paddle-region-row')).toHaveLength(3);
+  });
+
+  it('FE-ADMIN-PADDLEREG-019b: an open request outranks the region count, a declined one does not count', () => {
+    const base = { bytes: 1, requested_by: 'elmo', requested_at: '2026-10-18T09:00:00Z' };
+    show(
+      {
+        regions: [READY, WAITING],
+        requests: [
+          { ...base, id: 'norway', name: 'Norway', reason: 'too_large', declined: true },
+          { ...base, id: 'saale', name: 'Saale', reason: 'limit', declined: false },
+        ],
+      },
+      {},
+      { open: false }
+    );
+    expect(within(setupRow()).getByText('1')).toBeInTheDocument();
+    expect(within(setupRow()).queryByText('2')).toBeNull();
+    // Closed until the row is opened.
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('FE-ADMIN-PADDLEREG-020: removing asks first, naming the region, and confirming hands it to the hook', () => {

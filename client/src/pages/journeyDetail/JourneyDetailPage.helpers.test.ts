@@ -5,6 +5,7 @@ import {
   entryForPlace,
   distanceBetweenGeoPoints,
   fetchRemainingProviderPages,
+  filterPhotosByDayRange,
   groupPhotosByDate,
   matchJourneyEntries,
   posterlessVideo,
@@ -259,6 +260,13 @@ describe('posterlessVideo (#2341)', () => {
     expect(posterlessVideo({ provider: 'local', thumbnail_path: null })).toBe(false);
     expect(posterlessVideo({ media_type: 'video', provider: 'immich', thumbnail_path: null })).toBe(false);
   });
+
+  it('takes the answer a shared journey sends, which carries no storage key', () => {
+    expect(posterlessVideo({ media_type: 'video', posterless: true })).toBe(true);
+    expect(posterlessVideo({ media_type: 'video', posterless: false })).toBe(false);
+    // The flag wins over the columns, so a public photo never needs them.
+    expect(posterlessVideo({ media_type: 'video', provider: 'local', thumbnail_path: null, posterless: false })).toBe(false);
+  });
 });
 
 describe('fetchRemainingProviderPages (#1587)', () => {
@@ -388,5 +396,35 @@ describe('sortByCaptureTimeAsc (#1587)', () => {
     const items = [{ id: 'b', takenAt: '2026-03-16T00:00:00Z' }, { id: 'a', takenAt: '2026-03-15T00:00:00Z' }];
     sortByCaptureTimeAsc(items);
     expect(items.map((i) => i.id)).toEqual(['b', 'a']);
+  });
+});
+
+describe('filterPhotosByDayRange (#2859)', () => {
+  const photos = [
+    { id: 'before', takenAt: '2026-03-09T12:00:00.000Z' },
+    { id: 'first', takenAt: '2026-03-10T08:00:00.000Z' },
+    // Taken late on the 12th by the photographer's wall clock, already the 13th in UTC.
+    { id: 'wallclock', takenAt: '2026-03-13T01:00:00.000Z', localTakenAt: '2026-03-12T21:00:00.000Z' },
+    { id: 'after', takenAt: '2026-03-13T09:00:00.000Z' },
+    { id: 'undated' },
+  ];
+  const ids = (list: { id: string }[]) => list.map((p) => p.id);
+
+  it('keeps the days between both ends, both included, by the day the grid files them under', () => {
+    expect(ids(filterPhotosByDayRange(photos, '2026-03-10', '2026-03-12'))).toEqual(['first', 'wallclock']);
+  });
+
+  it('reads an empty end as open', () => {
+    expect(ids(filterPhotosByDayRange(photos, '2026-03-12', ''))).toEqual(['wallclock', 'after']);
+    expect(ids(filterPhotosByDayRange(photos, '', '2026-03-09'))).toEqual(['before']);
+  });
+
+  it('reads ends given the wrong way round as the range they mean', () => {
+    expect(ids(filterPhotosByDayRange(photos, '2026-03-12', '2026-03-10'))).toEqual(['first', 'wallclock']);
+  });
+
+  it('is no filter at all without a range, and drops undated photos once there is one', () => {
+    expect(filterPhotosByDayRange(photos, '', '')).toBe(photos);
+    expect(ids(filterPhotosByDayRange(photos, '2000-01-01', '2100-01-01'))).not.toContain('undated');
   });
 });

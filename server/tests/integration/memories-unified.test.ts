@@ -6,15 +6,18 @@
  * No real HTTP is made — safeFetch is mocked to never be called.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { PhotoProviders } from '../../src/db/entities/PhotoProviders.entity';
 import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
 import { TripPhotos } from '../../src/db/entities/TripPhotos.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip, addTripMember, addTripPhoto, addAlbumLink } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { addAlbumLink, addTripPhoto } from '../helpers/factories/photos';
 import { findRow, findRows, updateRows } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits, setAddonEnabled } from '../helpers/test-db';
+import { setAddonEnabled } from '../helpers/factories/settings';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -24,10 +27,6 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vites
 
 // ── Hoisted DB mock ──────────────────────────────────────────────────────────
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 vi.mock('../../src/utils/ssrfGuard', async () => {
   const actual = await vi.importActual<typeof import('../../src/utils/ssrfGuard')>('../../src/utils/ssrfGuard');
   return {
@@ -64,10 +63,10 @@ async function requireTripPhoto(assetId: string, tripId: number) {
 }
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm());
   await resetRateLimits(nestApp);
   // Providers only count as enabled under an enabled journey addon (migration 84 seeds it off).
-  setAddonEnabled(testDb, 'journey', true);
+  await setAddonEnabled(orm(), 'journey', true);
   // The migrated snapshot seeds photo_providers.immich.enabled = 0 (an admin must
   // configure it before it's usable in production); the legacy test helper always
   // seeded it enabled, which is what these tests assume. Same convention
@@ -77,7 +76,6 @@ beforeEach(async () => {
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -93,14 +91,14 @@ function albumLinksUrl(tripId: number, linkId?: number) {
 
 describe('Unified photo management', () => {
   it('UNIFIED-001 — GET photos lists own + shared photos from other members', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm());
+    const { user: member } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id);
+    await addTripMember(orm(), trip.id, member.id);
 
     // owner has a private photo; member has a shared photo
-    addTripPhoto(testDb, trip.id, owner.id, 'asset-own', 'immich', { shared: false });
-    addTripPhoto(testDb, trip.id, member.id, 'asset-shared', 'immich', { shared: true });
+    await addTripPhoto(orm(), trip.id, owner.id, 'asset-own', 'immich', { shared: false });
+    await addTripPhoto(orm(), trip.id, member.id, 'asset-shared', 'immich', { shared: true });
 
     const res = await request(app).get(photosUrl(trip.id)).set('Cookie', authCookie(owner.id));
 
@@ -111,12 +109,12 @@ describe('Unified photo management', () => {
   });
 
   it("UNIFIED-002 — GET photos excludes other members' private photos", async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user: owner } = await makeUser(orm());
+    const { user: member } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id);
+    await addTripMember(orm(), trip.id, member.id);
 
-    addTripPhoto(testDb, trip.id, member.id, 'asset-private', 'immich', { shared: false });
+    await addTripPhoto(orm(), trip.id, member.id, 'asset-private', 'immich', { shared: false });
 
     const res = await request(app).get(photosUrl(trip.id)).set('Cookie', authCookie(owner.id));
 
@@ -126,9 +124,9 @@ describe('Unified photo management', () => {
   });
 
   it('UNIFIED-003 — GET photos returns 404 for non-member', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm());
+    const { user: stranger } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id);
 
     const res = await request(app).get(photosUrl(trip.id)).set('Cookie', authCookie(stranger.id));
 
@@ -136,8 +134,8 @@ describe('Unified photo management', () => {
   });
 
   it('UNIFIED-004 — POST photos adds photos from selections', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
 
     const res = await request(app)
       .post(photosUrl(trip.id))
@@ -156,8 +154,8 @@ describe('Unified photo management', () => {
   });
 
   it('UNIFIED-005 — POST photos with empty selections returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
 
     const res = await request(app).post(photosUrl(trip.id)).set('Cookie', authCookie(user.id)).send({ selections: [] });
 
@@ -165,8 +163,8 @@ describe('Unified photo management', () => {
   });
 
   it('UNIFIED-006 — POST photos with invalid provider returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
 
     const res = await request(app)
       .post(photosUrl(trip.id))
@@ -177,9 +175,9 @@ describe('Unified photo management', () => {
   });
 
   it('UNIFIED-007 — PUT photos/sharing toggles shared flag', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripPhoto(testDb, trip.id, user.id, 'asset-tog', 'immich', { shared: false });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
+    await addTripPhoto(orm(), trip.id, user.id, 'asset-tog', 'immich', { shared: false });
     const trekRef = await requireTripPhoto('asset-tog', trip.id);
 
     const res = await request(app)
@@ -193,9 +191,9 @@ describe('Unified photo management', () => {
   });
 
   it('UNIFIED-008 — PUT photos/sharing on non-member trip returns 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm());
+    const { user: stranger } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id);
 
     const res = await request(app)
       .put(`${photosUrl(trip.id)}/sharing`)
@@ -206,9 +204,9 @@ describe('Unified photo management', () => {
   });
 
   it('UNIFIED-009 — DELETE photos removes own photo', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripPhoto(testDb, trip.id, user.id, 'asset-del', 'immich');
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
+    await addTripPhoto(orm(), trip.id, user.id, 'asset-del', 'immich');
     const trekRef = await requireTripPhoto('asset-del', trip.id);
 
     const res = await request(app)
@@ -221,9 +219,9 @@ describe('Unified photo management', () => {
   });
 
   it('UNIFIED-009a — DELETE photos is held to the body contract, and still takes a numeric string', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripPhoto(testDb, trip.id, user.id, 'asset-contract', 'immich');
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
+    await addTripPhoto(orm(), trip.id, user.id, 'asset-contract', 'immich');
     const trekRef = await requireTripPhoto('asset-contract', trip.id);
 
     // A DELETE that reads a body validates it like any other write, so a
@@ -248,9 +246,9 @@ describe('Unified photo management', () => {
   });
 
   it('UNIFIED-010 — DELETE photos on non-member trip returns 404', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm());
+    const { user: stranger } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id);
 
     const res = await request(app)
       .delete(photosUrl(trip.id))
@@ -265,8 +263,8 @@ describe('Unified photo management', () => {
 
 describe('Unified album-link management', () => {
   it('UNIFIED-011 — POST album-links with missing provider returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
 
     const res = await request(app)
       .post(albumLinksUrl(trip.id))
@@ -277,8 +275,8 @@ describe('Unified album-link management', () => {
   });
 
   it('UNIFIED-012 — POST album-links with missing album_id returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
 
     const res = await request(app)
       .post(albumLinksUrl(trip.id))
@@ -289,8 +287,8 @@ describe('Unified album-link management', () => {
   });
 
   it('UNIFIED-013 — POST album-links duplicate link returns 409', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
 
     await request(app)
       .post(albumLinksUrl(trip.id))
@@ -306,9 +304,9 @@ describe('Unified album-link management', () => {
   });
 
   it('UNIFIED-014 — GET album-links only returns links for enabled providers', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-enabled');
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
+    await addAlbumLink(orm(), trip.id, user.id, 'immich', 'album-enabled');
 
     // Disable the immich provider
     await updateRows(orm(), PhotoProviders, { id: 'immich' }, { enabled: 0 });
@@ -322,15 +320,15 @@ describe('Unified album-link management', () => {
   });
 
   it('UNIFIED-021 — GET album-links reports no providers while the journey addon is off', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addAlbumLink(testDb, trip.id, user.id, 'immich', 'album-x');
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id);
+    await addAlbumLink(orm(), trip.id, user.id, 'immich', 'album-x');
 
-    setAddonEnabled(testDb, 'journey', false);
+    await setAddonEnabled(orm(), 'journey', false);
 
     const res = await request(app).get(albumLinksUrl(trip.id)).set('Cookie', authCookie(user.id));
 
-    setAddonEnabled(testDb, 'journey', true);
+    await setAddonEnabled(orm(), 'journey', true);
 
     expect(res.status).toBe(400); // provider rows still say enabled, journey off wins
   });

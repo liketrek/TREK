@@ -65,7 +65,7 @@ describe('PlaceFormModal', () => {
 
   it('FE-COMP-PLACEFORM-005: shows Description field', () => {
     render(<PlaceFormModal {...defaultProps} />);
-    expect(screen.getByPlaceholderText(/Short description/i)).toBeInTheDocument();
+    expect(screen.getByLabelText('Description')).toBeInTheDocument();
   });
 
   it('FE-COMP-PLACEFORM-006: shows Address field', () => {
@@ -1485,8 +1485,9 @@ describe('PlaceFormModal', () => {
 
     render(<PlaceFormModal {...defaultProps} onSave={onSave} categories={[cat]} />);
     await user.type(screen.getByPlaceholderText(/e\.g\. Eiffel Tower/i), 'Louvre');
-    await user.type(screen.getByPlaceholderText(/Short description/i), 'Glass pyramid');
-    await user.type(screen.getByPlaceholderText(/Personal notes/i), 'Book ahead');
+    await user.type(screen.getByLabelText('Description'), 'Glass pyramid');
+    await user.click(within(screen.getByRole('group', { name: 'Text to edit' })).getByRole('button', { name: 'Notes' }));
+    await user.type(screen.getByLabelText('Notes'), 'Book ahead');
     await user.type(screen.getByPlaceholderText(/Street, City, Country/i), 'Rue de Rivoli');
     await user.type(screen.getByPlaceholderText(/Longitude/i), '2.3376');
     await user.type(screen.getByPlaceholderText('https://...'), 'https://louvre.fr');
@@ -2437,16 +2438,13 @@ describe('PlaceFormModal on the dialog frame', () => {
     // The icon button beside it carries the same name.
     expect(within(screen.getByPlaceholderText('Search places...').closest('.flex') as HTMLElement).getByRole('button', { name: 'Search' })).toBeInTheDocument();
     expect(screen.getByLabelText('Name *')).toHaveValue('Louvre');
-    expect(screen.getByLabelText('Description')).toBe(screen.getByPlaceholderText(/Short description/i));
-    expect(screen.getByLabelText('Notes')).toBe(screen.getByPlaceholderText(/Personal notes/i));
     expect(screen.getByLabelText('Address')).toBe(screen.getByPlaceholderText(/Street, City, Country/i));
     expect(screen.getByLabelText('Notes for this day')).toBeInTheDocument();
     expect(screen.getByLabelText('Website')).toBe(screen.getByPlaceholderText('https://...'));
     const coords = screen.getByRole('group', { name: 'Coordinates' });
     expect(within(coords).getByPlaceholderText(/Latitude/i)).toBeInTheDocument();
     expect(within(coords).getByPlaceholderText(/Longitude/i)).toBeInTheDocument();
-    // Each Markdown field keeps its own formatting bar.
-    expect(screen.getAllByRole('toolbar')).toHaveLength(2);
+    expect(screen.getAllByRole('toolbar', { hidden: true })).toHaveLength(2);
   });
 
   it('FE-PLANNER-PLACEFORM-105: the new category field takes the focus when it opens', async () => {
@@ -2682,10 +2680,10 @@ describe('PlaceFormModal in the look of the booking editors', () => {
   it('FE-PLANNER-PLACEFORM-120: the formatting bars show their names in the shared tooltip, never the native one', async () => {
     const user = userEvent.setup();
     render(<PlaceFormModal {...defaultProps} />);
-    const bars = screen.getAllByRole('toolbar');
+    const bars = screen.getAllByRole('toolbar', { hidden: true });
     expect(bars).toHaveLength(2);
     for (const bar of bars) {
-      for (const button of within(bar).getAllByRole('button')) expect(button).not.toHaveAttribute('title');
+      for (const b of within(bar).getAllByRole('button', { hidden: true })) expect(b).not.toHaveAttribute('title');
     }
     await user.hover(within(bars[0]).getByRole('button', { name: 'Bold' }));
     expect(await screen.findByRole('tooltip')).toHaveTextContent('Bold');
@@ -2745,6 +2743,7 @@ describe('PlaceFormModal and the columns beside it', () => {
     const assignment = buildAssignment({ id: 123, day_id: 5, place, notes: 'Old note' });
     render(<PlaceFormModal {...defaultProps} onSave={onSave} place={place} assignmentId={123} dayAssignments={[assignment]} />);
 
+    await user.click(within(screen.getByRole('group', { name: 'Text to edit' })).getByRole('button', { name: /day/i }));
     const notes = screen.getByRole('textbox', { name: 'Notes for this day' });
     expect(notes).toHaveValue('Old note');
     await user.clear(notes);

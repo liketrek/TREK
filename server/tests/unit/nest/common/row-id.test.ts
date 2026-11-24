@@ -1,4 +1,4 @@
-import { toRowId } from '../../../../src/nest/common/row-id';
+import { toRowId, uriRowId, withRowId } from '../../../../src/nest/common/row-id';
 
 import { describe, it, expect } from 'vitest';
 
@@ -61,5 +61,32 @@ describe('toRowId', () => {
 
   it("ROWID-012: rejects a digits-only STRING one past MAX_SAFE_INTEGER (coverage: the string branch's own safe-integer check)", () => {
     expect(toRowId('9007199254740993')).toBeNull();
+  });
+});
+
+describe('withRowId', () => {
+  it('ROWID-013: reads with the parsed id', async () => {
+    expect(await withRowId('42', async (id) => id + 1)).toBe(43);
+  });
+
+  it('ROWID-014: answers undefined without reading for a spelling toRowId refuses', async () => {
+    let read = false;
+    const spellings = ['0x2a', '42e0', '42.0', '+42', '4_2', ' 42', 'abc', '99999999999999999999'];
+    const answers = await Promise.all(spellings.map((spelling) => withRowId(spelling, async () => ((read = true), 1))));
+    expect(answers).toEqual(spellings.map(() => undefined));
+    expect(read).toBe(false);
+  });
+});
+
+describe('uriRowId', () => {
+  it('ROWID-015: reads the first value of an MCP URI variable as a positive id', () => {
+    expect(uriRowId('7')).toBe(7);
+    expect(uriRowId(['8', '9'])).toBe(8);
+  });
+
+  it('ROWID-016: refuses zero and every spelling toRowId refuses, Number() read them as ids', () => {
+    for (const spelling of ['0', '0x7', '7e0', '7.0', '+7', '1e20', 'not-a-number']) {
+      expect(uriRowId(spelling)).toBeNull();
+    }
   });
 });

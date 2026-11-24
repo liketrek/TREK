@@ -24,7 +24,7 @@ import { NotificationsModule } from '../../src/nest/notifications/notifications.
 import { OidcModule } from '../../src/nest/oidc/oidc.module';
 import { RealtimeModule } from '../../src/nest/realtime/realtime.module';
 import { SettingsModule } from '../../src/nest/settings/settings.module';
-import { countRows, findRow, insertRow } from '../helpers/factories/rows';
+import { countRows, findRow, insertRow, updateRows } from '../helpers/factories/rows';
 import { readAppSetting } from '../helpers/factories/settings';
 import { makeTrip } from '../helpers/factories/trips';
 import { makeAdmin, makeUser } from '../helpers/factories/users';
@@ -260,6 +260,27 @@ describe('Admin e2e (real auth + admin guard + temp SQLite)', () => {
     expect((await request(server).get('/api/admin/oauth-sessions').set('Cookie', sessionCookie(1))).body).toEqual({
       sessions: [],
     });
+  });
+
+  it('DELETE /users/:id/sso clears the stored SSO identity, audits it, and is admin-only (#3065)', async () => {
+    const { user } = await makeUser(orm, { email: 'sso-moved@example.test', username: 'sso-moved' });
+    await updateRows(orm, Users, { id: user.id }, { oidc_sub: 'sub-old', oidc_issuer: 'https://idp.example.test' });
+
+    const denied = await request(server).delete(`/api/admin/users/${user.id}/sso`).set('Cookie', sessionCookie(2));
+    expect(denied.status).toBe(403);
+
+    const res = await request(server).delete(`/api/admin/users/${user.id}/sso`).set('Cookie', sessionCookie(1));
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ success: true, unlinked: true });
+    const row = await findRow(orm, Users, { id: user.id });
+    expect(row && { oidc_sub: row.oidc_sub ?? null, oidc_issuer: row.oidc_issuer ?? null }).toEqual({
+      oidc_sub: null,
+      oidc_issuer: null,
+    });
+    expect(await findRow(orm, AuditLog, { action: 'admin.user_sso_unlink', resource: String(user.id) })).not.toBeNull();
+
+    const self = await request(server).delete('/api/admin/users/1/sso').set('Cookie', sessionCookie(1));
+    expect(self.status).toBe(400);
   });
 
   it('404 on the dev-only test-notification outside development', async () => {

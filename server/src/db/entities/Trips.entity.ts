@@ -20,6 +20,9 @@ import { ExchangeRateBatchPreviews } from './ExchangeRateBatchPreviews.entity';
 import { InviteTokens } from './InviteTokens.entity';
 import { JourneyEntries } from './JourneyEntries.entity';
 import { JourneyTrips } from './JourneyTrips.entity';
+import { MailIngestAddresses } from './MailIngestAddresses.entity';
+import { MailIngestCandidates } from './MailIngestCandidates.entity';
+import { MailIngestMessages } from './MailIngestMessages.entity';
 import { PackingBags } from './PackingBags.entity';
 import { PackingCategoryAssignees } from './PackingCategoryAssignees.entity';
 import { PackingItems } from './PackingItems.entity';
@@ -29,9 +32,11 @@ import { Reservations } from './Reservations.entity';
 import { RoadtripDayBoundaries } from './RoadtripDayBoundaries.entity';
 import { RoadtripPreferences } from './RoadtripPreferences.entity';
 import { ShareTokens } from './ShareTokens.entity';
+import { Tags } from './Tags.entity';
 import { TodoCategoryAssignees } from './TodoCategoryAssignees.entity';
 import { TodoItems } from './TodoItems.entity';
 import { TourDrafts } from './TourDrafts.entity';
+import { TripAddonOverrides } from './TripAddonOverrides.entity';
 import { TripAlbumLinks } from './TripAlbumLinks.entity';
 import { TripDocumentLinks } from './TripDocumentLinks.entity';
 import { TripExchangeRates } from './TripExchangeRates.entity';
@@ -60,6 +65,7 @@ export class Trips {
   created_at?: string | null;
   updated_at?: string | null;
   reminder_sent_for?: string | null;
+  costs_mode: TTripsCostsMode & Opt = TripsCostsMode.SPLIT;
   assistant_attachments_collection = new Collection<AssistantAttachments>(this);
   assistant_threads_collection = new Collection<AssistantThreads>(this);
   budget_category_order_collection = new Collection<BudgetCategoryOrder>(this);
@@ -79,6 +85,10 @@ export class Trips {
   invite_tokens_collection = new Collection<InviteTokens>(this);
   journey_entries_collection = new Collection<JourneyEntries>(this);
   journey_trips_collection = new Collection<JourneyTrips>(this);
+  mail_ingest_addresses_collection = new Collection<MailIngestAddresses>(this);
+  mail_ingest_candidates_collection = new Collection<MailIngestCandidates>(this);
+  mail_ingest_candidates_collection1 = new Collection<MailIngestCandidates>(this);
+  mail_ingest_messages_collection = new Collection<MailIngestMessages>(this);
   packing_bags_collection = new Collection<PackingBags>(this);
   packing_category_assignees_collection = new Collection<PackingCategoryAssignees>(this);
   packing_items_collection = new Collection<PackingItems>(this);
@@ -88,9 +98,11 @@ export class Trips {
   roadtrip_day_boundaries_collection = new Collection<RoadtripDayBoundaries>(this);
   roadtrip_preferences_collection = new Collection<RoadtripPreferences>(this);
   share_tokens_collection = new Collection<ShareTokens>(this);
+  tags_collection = new Collection<Tags>(this);
   todo_category_assignees_collection = new Collection<TodoCategoryAssignees>(this);
   todo_items_collection = new Collection<TodoItems>(this);
   tour_drafts_collection = new Collection<TourDrafts>(this);
+  trip_addon_overrides_collection = new Collection<TripAddonOverrides>(this);
   trip_album_links_collection = new Collection<TripAlbumLinks>(this);
   trip_document_links_collection = new Collection<TripDocumentLinks>(this);
   trip_exchange_rates_collection = new Collection<TripExchangeRates>(this);
@@ -101,6 +113,13 @@ export class Trips {
   trip_members_collection = new Collection<TripMembers>(this);
   trip_photos_collection = new Collection<TripPhotos>(this);
 }
+
+export const TripsCostsMode = {
+  SPLIT: 'split',
+  TOTALS: 'totals',
+} as const;
+
+export type TTripsCostsMode = (typeof TripsCostsMode)[keyof typeof TripsCostsMode];
 
 export const TripsSchema = defineEntity({
   class: Trips,
@@ -128,6 +147,7 @@ export const TripsSchema = defineEntity({
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`).index('idx_trips_created_at'),
     updated_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     reminder_sent_for: p.text().nullable(),
+    costs_mode: p.enum(() => TripsCostsMode).default('split'),
     assistant_attachments_collection: () => p.oneToMany(AssistantAttachments).mappedBy('trip').hidden(),
     assistant_threads_collection: () => p.oneToMany(AssistantThreads).mappedBy('trip').hidden(),
     budget_category_order_collection: () => p.oneToMany(BudgetCategoryOrder).mappedBy('trip').hidden(),
@@ -147,6 +167,10 @@ export const TripsSchema = defineEntity({
     invite_tokens_collection: () => p.oneToMany(InviteTokens).mappedBy('trip').hidden(),
     journey_entries_collection: () => p.oneToMany(JourneyEntries).mappedBy('sourceTrip').hidden(),
     journey_trips_collection: () => p.oneToMany(JourneyTrips).mappedBy('trip').hidden(),
+    mail_ingest_addresses_collection: () => p.oneToMany(MailIngestAddresses).mappedBy('trip').hidden(),
+    mail_ingest_candidates_collection: () => p.oneToMany(MailIngestCandidates).mappedBy('suggestedTrip').hidden(),
+    mail_ingest_candidates_collection1: () => p.oneToMany(MailIngestCandidates).mappedBy('resolvedTrip').hidden(),
+    mail_ingest_messages_collection: () => p.oneToMany(MailIngestMessages).mappedBy('trip').hidden(),
     packing_bags_collection: () => p.oneToMany(PackingBags).mappedBy('trip').hidden(),
     packing_category_assignees_collection: () => p.oneToMany(PackingCategoryAssignees).mappedBy('trip').hidden(),
     packing_items_collection: () => p.oneToMany(PackingItems).mappedBy('trip').hidden(),
@@ -156,9 +180,11 @@ export const TripsSchema = defineEntity({
     roadtrip_day_boundaries_collection: () => p.oneToMany(RoadtripDayBoundaries).mappedBy('trip').hidden(),
     roadtrip_preferences_collection: () => p.oneToMany(RoadtripPreferences).mappedBy('trip').hidden(),
     share_tokens_collection: () => p.oneToMany(ShareTokens).mappedBy('trip').hidden(),
+    tags_collection: () => p.oneToMany(Tags).mappedBy('trip').hidden(),
     todo_category_assignees_collection: () => p.oneToMany(TodoCategoryAssignees).mappedBy('trip').hidden(),
     todo_items_collection: () => p.oneToMany(TodoItems).mappedBy('trip').hidden(),
     tour_drafts_collection: () => p.oneToMany(TourDrafts).mappedBy('trip').hidden(),
+    trip_addon_overrides_collection: () => p.oneToMany(TripAddonOverrides).mappedBy('trip').hidden(),
     trip_album_links_collection: () => p.oneToMany(TripAlbumLinks).mappedBy('trip').hidden(),
     trip_document_links_collection: () => p.oneToMany(TripDocumentLinks).mappedBy('trip').hidden(),
     trip_exchange_rates_collection: () => p.oneToMany(TripExchangeRates).mappedBy('trip').hidden(),

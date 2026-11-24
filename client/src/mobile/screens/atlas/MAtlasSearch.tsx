@@ -75,7 +75,7 @@ export default function MAtlasSearch({
               if (e.key === 'Escape') onClose()
               if (e.key === 'Enter' && rows.length > 0) onSelect(rows[0].code)
             }}
-            placeholder={t('atlas.searchCountry')}
+            enterKeyHint="search" placeholder={t('atlas.searchCountry')}
             className="min-w-0 flex-1 bg-transparent font-geist text-[0.9375rem] font-semibold text-m-ink outline-none placeholder:font-normal placeholder:text-m-faint"
           />
         </label>

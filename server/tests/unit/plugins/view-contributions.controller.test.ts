@@ -6,6 +6,7 @@
  * length/count caps.
  */
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { ViewContributionsController } from '../../../src/nest/plugins/contributions/view-contributions.controller';
 import type { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
 import { TripAccessService } from '../../../src/nest/trip-membership/trip-access.service';
@@ -23,7 +24,7 @@ vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const req = (id?: number) => ({ user: id === undefined ? undefined : { id } }) as any;
-function controller(invoke: (id: string) => unknown, providers = ['p1']) {
+function controller(invoke: (id: string) => unknown, providers = ['p1'], offForTrip: readonly string[] = []) {
   const runtime = {
     providersOf: vi.fn(() => providers),
     tableContributions: vi.fn(async (id: string) => invoke(id)),
@@ -32,6 +33,9 @@ function controller(invoke: (id: string) => unknown, providers = ['p1']) {
     c: new ViewContributionsController(
       runtime,
       new TripAccessService({ findAccessible: canAccessTrip } as unknown as TripsRepository),
+      {
+        isEnabledForTrip: vi.fn(async (_tripId: number, id: string) => !offForTrip.includes(id)),
+      } as unknown as AddonsService,
     ),
     runtime,
   };
@@ -151,5 +155,14 @@ describe('ViewContributionsController', () => {
     const out = (await c.get('reservations', '1', req(5))).contributions;
     expect(out.map((o) => o.id)).toEqual(['from-p1']);
     expect(runtime.tableContributions).toHaveBeenCalledWith('p1', 'reservations', 1, 5);
+  });
+
+  it('VIEWCONTRIB-ADDON: a view whose addon is off for the trip gets nothing, the other views still do', async () => {
+    const { c, runtime } = controller(() => [col()], ['p1'], ['budget', 'packing']);
+    const off = await Promise.all(['costs', 'packing', 'todos'].map((view) => c.get(view, '1', req(5))));
+    expect(off.map((answer) => answer.contributions)).toEqual([[], [], []]);
+    expect(runtime.tableContributions).not.toHaveBeenCalled();
+    expect((await c.get('files', '1', req(5))).contributions).toHaveLength(1);
+    expect((await c.get('reservations', '1', req(5))).contributions).toHaveLength(1);
   });
 });

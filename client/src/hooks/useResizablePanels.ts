@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 const MIN_SIDEBAR = 200
-const MAX_SIDEBAR = 520
 /**
  * The band where the desktop planner renders but two panels leave the map a
  * useless strip. Below 768 the phone shell takes over, so the squeeze lives
@@ -9,11 +8,19 @@ const MAX_SIDEBAR = 520
  * ~860 CSS px, where 340 + 300 of panel left the map 200 px (#2247).
  */
 const NARROW_QUERY = '(min-width: 768px) and (max-width: 1023px)'
-/** However wide a panel was dragged on a big screen, the map keeps this much. */
+/** However wide the panels are dragged, the map between them keeps this much... */
 const MIN_MAP = 360
+/** ...and on a big screen at least this share of the window, so it stays a map and not a strip. */
+const MIN_MAP_SHARE = 0.35
+/** Each panel floats 10 px off its side of the screen. */
+const SCREEN_MARGINS = 20
 
-function clampWidth(w: number, max: number = MAX_SIDEBAR): number {
+function clampWidth(w: number, max: number): number {
   return Math.max(MIN_SIDEBAR, Math.min(max, w))
+}
+
+function readWidth(key: string, fallback: number): number {
+  try { return Number.parseInt(localStorage.getItem(key) || '') || fallback } catch { return fallback }
 }
 
 /** Stores a dragged width and hands it back; a blocked storage only costs the memory of it. */
@@ -23,12 +30,16 @@ function remember(key: string, w: number): number {
 }
 
 export function useResizablePanels() {
-  const [leftWidth, setLeftWidth] = useState<number>(() => Number.parseInt(localStorage.getItem('sidebarLeftWidth') || '') || 340)
-  const [rightWidth, setRightWidth] = useState<number>(() => Number.parseInt(localStorage.getItem('sidebarRightWidth') || '') || 300)
+  const [leftWidth, setLeftWidth] = useState<number>(() => readWidth('sidebarLeftWidth', 340))
+  const [rightWidth, setRightWidth] = useState<number>(() => readWidth('sidebarRightWidth', 300))
   const [leftCollapsed, setLeftCollapsed] = useState(false)
   const [rightCollapsed, setRightCollapsed] = useState(false)
   const isResizingLeft = useRef(false)
   const isResizingRight = useRef(false)
+  // While a handle is held the panel follows the pointer 1:1. Its width transition
+  // stays for collapsing and opening, but during a drag it made the panel trail
+  // behind the map and its buttons, which move at once.
+  const [resizing, setResizing] = useState(false)
 
   const [narrow, setNarrow] = useState(
     () => typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches,
@@ -38,7 +49,7 @@ export function useResizablePanels() {
   // null is map-only. Deliberately separate from the two collapse flags, which stay
   // the wide-layout state — folding back to a wide window restores what was there.
   const [narrowPanel, setNarrowPanel] = useState<'left' | 'right' | null>('left')
-  const [maxPanel, setMaxPanel] = useState(Number.POSITIVE_INFINITY)
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== 'undefined' ? window.innerWidth : 1280))
 
   useEffect(() => {
     const mq = window.matchMedia(NARROW_QUERY)
@@ -48,22 +59,38 @@ export function useResizablePanels() {
     return () => mq.removeEventListener('change', handler)
   }, [])
 
-  // Only measured inside the narrow band: that is the only place the clamp can
-  // bite, and a resize listener on every planner mount is not worth the rest.
+  // The panels have no fixed ceiling: they may take whatever the window leaves
+  // after the map's share, so a wide screen gets a wide day plan.
   useEffect(() => {
-    if (!narrow) { setMaxPanel(Number.POSITIVE_INFINITY); return }
-    const measure = () => setMaxPanel(Math.max(MIN_SIDEBAR, window.innerWidth - MIN_MAP - 20))
+    const measure = () => setViewportWidth(window.innerWidth)
     measure()
     window.addEventListener('resize', measure)
     return () => window.removeEventListener('resize', measure)
-  }, [narrow])
+  }, [])
+
+  // What the layout actually shows. The collapse flags stay the caller's intent —
+  // handlePlaceClick reopening "both" must not re-crowd a narrow screen.
+  const leftHidden = narrow ? narrowPanel !== 'left' : leftCollapsed
+  const rightHidden = narrow ? narrowPanel !== 'right' : rightCollapsed
+
+  // Room both panels share. The day plan comes first: it keeps its width and the
+  // places list gets what is left, so a window that shrinks squeezes the right side.
+  const minMap = Math.max(MIN_MAP, Math.round(viewportWidth * MIN_MAP_SHARE))
+  const room = Math.max(MIN_SIDEBAR, viewportWidth - minMap - SCREEN_MARGINS)
+  const shownLeft = clampWidth(leftWidth, Math.max(MIN_SIDEBAR, room - (rightHidden ? 0 : MIN_SIDEBAR)))
+  const resizeMaxRight = Math.max(MIN_SIDEBAR, room - (leftHidden ? 0 : shownLeft))
+  const shownRight = clampWidth(rightWidth, resizeMaxRight)
+  const resizeMaxLeft = Math.max(MIN_SIDEBAR, room - (rightHidden ? 0 : shownRight))
+  // The drag listeners are bound once, so they read the live ceilings from here.
+  const maxRef = useRef({ dayPlan: resizeMaxLeft, places: resizeMaxRight })
+  useEffect(() => { maxRef.current = { dayPlan: resizeMaxLeft, places: resizeMaxRight } }, [resizeMaxLeft, resizeMaxRight])
 
   // A mouse drags through mousemove; a finger on a tablet sends touch events and
   // never a mousemove, which is why the handles used to be dead on an iPad (#1012).
   useEffect(() => {
     const moveTo = (clientX: number) => {
-      if (isResizingLeft.current) setLeftWidth(remember('sidebarLeftWidth', clampWidth(clientX - 10)))
-      if (isResizingRight.current) setRightWidth(remember('sidebarRightWidth', clampWidth(window.innerWidth - clientX - 10)))
+      if (isResizingLeft.current) setLeftWidth(remember('sidebarLeftWidth', clampWidth(clientX - 10, maxRef.current.dayPlan)))
+      if (isResizingRight.current) setRightWidth(remember('sidebarRightWidth', clampWidth(window.innerWidth - clientX - 10, maxRef.current.places)))
     }
     const onMove = (e: MouseEvent) => moveTo(e.clientX)
     const onTouchMove = (e: TouchEvent) => {
@@ -75,8 +102,10 @@ export function useResizablePanels() {
       moveTo(touch.clientX)
     }
     const onUp = () => {
+      if (!isResizingLeft.current && !isResizingRight.current) return
       isResizingLeft.current = false
       isResizingRight.current = false
+      setResizing(false)
       document.body.style.cursor = ''
       document.body.style.userSelect = ''
     }
@@ -94,19 +123,14 @@ export function useResizablePanels() {
     }
   }, [])
 
-  const startResizeLeft = () => { isResizingLeft.current = true; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none' }
-  const startResizeRight = () => { isResizingRight.current = true; document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none' }
+  const beginResize = () => { setResizing(true); document.body.style.cursor = 'col-resize'; document.body.style.userSelect = 'none' }
+  const startResizeLeft = () => { isResizingLeft.current = true; beginResize() }
+  const startResizeRight = () => { isResizingRight.current = true; beginResize() }
 
   // The handles are separators a keyboard can move too: an arrow key grows or
   // shrinks the panel by a step, from the width it shows right now.
-  const resizeMax = Math.max(MIN_SIDEBAR, Math.min(MAX_SIDEBAR, maxPanel))
-  const nudgeLeft = (delta: number) => setLeftWidth(remember('sidebarLeftWidth', clampWidth(Math.min(leftWidth, maxPanel) + delta, resizeMax)))
-  const nudgeRight = (delta: number) => setRightWidth(remember('sidebarRightWidth', clampWidth(Math.min(rightWidth, maxPanel) + delta, resizeMax)))
-
-  // What the layout actually shows. The collapse flags stay the caller's intent —
-  // handlePlaceClick reopening "both" must not re-crowd a narrow screen.
-  const leftHidden = narrow ? narrowPanel !== 'left' : leftCollapsed
-  const rightHidden = narrow ? narrowPanel !== 'right' : rightCollapsed
+  const nudgeLeft = (delta: number) => setLeftWidth(remember('sidebarLeftWidth', clampWidth(shownLeft + delta, resizeMaxLeft)))
+  const nudgeRight = (delta: number) => setRightWidth(remember('sidebarRightWidth', clampWidth(shownRight + delta, resizeMaxRight)))
 
   const toggleLeft = useCallback(() => {
     if (narrow) setNarrowPanel(p => (p === 'left' ? null : 'left'))
@@ -118,13 +142,13 @@ export function useResizablePanels() {
   }, [narrow])
 
   return {
-    // Clamped for the layout; the stored width is left alone, so a 520 px panel
-    // dragged on a desktop comes back untouched once there is room for it again.
-    leftWidth: Math.min(leftWidth, maxPanel),
-    rightWidth: Math.min(rightWidth, maxPanel),
+    // Clamped for the layout; the stored width is left alone, so a wide panel
+    // dragged on a big screen comes back untouched once there is room for it again.
+    leftWidth: shownLeft,
+    rightWidth: shownRight,
     leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrow,
-    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight,
-    resizeMin: MIN_SIDEBAR, resizeMax,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing,
+    resizeMin: MIN_SIDEBAR, resizeMaxLeft, resizeMaxRight,
   }
 }

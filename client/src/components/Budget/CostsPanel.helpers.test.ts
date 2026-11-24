@@ -347,13 +347,13 @@ describe('finalBudgetSources', () => {
 })
 
 describe('newExpenseSeed', () => {
-  it('starts a plain new expense on the base currency, today, with nothing to attach', () => {
+  it('starts a plain new expense on the fallback currency, today, with nothing to attach', () => {
     expect(newExpenseSeed(undefined, 'eur', [1, 2], '2026-09-24')).toEqual({
       currency: 'EUR', day: '2026-09-24', total: '', ticketItems: [], receiptFiles: [],
     })
   })
 
-  it('reads a booking price in the base currency, padded to its decimals', () => {
+  it('reads a booking price in the fallback currency, padded to its decimals', () => {
     expect(newExpenseSeed({ amount: 4.9 }, 'EUR', [], '2026-09-24').total).toBe('4.90')
   })
 

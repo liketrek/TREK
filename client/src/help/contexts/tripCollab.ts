@@ -34,6 +34,6 @@ export const { context: tripCollabContext, guides: tripCollabGuides } = defineSc
     ['vote-poll', 'thumbsUp', 'quick', 4, 2, { slug: POLLS, anchor: 'voting' }, ['create-poll', 'close-poll'], true],
     ['close-poll', 'lock', 'quick', 3, 2, { slug: POLLS, anchor: 'closing-a-poll-manually' }, ['create-poll', 'vote-poll']],
     ['whats-next', 'sparkles', 'quick', 3, 3, { slug: NEXT, anchor: 'what-it-shows' }, ['set-stop-times', 'read-day-plan']],
-    ['trip-chat', 'messages', 'guide', 6, 5, { slug: CHAT, anchor: 'sending-messages' }, ['write-note', 'add-member'], true],
+    ['trip-chat', 'messages', 'guide', 6, 6, { slug: CHAT, anchor: 'sending-messages' }, ['write-note', 'add-member'], true],
   ],
 })

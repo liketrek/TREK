@@ -3,7 +3,6 @@ import {
   compareCodeUnits,
   JOURNEY_CARD_LIMITS,
   journeyEntryTypeSchema,
-  journeyEntryVisibilitySchema,
   stripMarkdown,
   type JourneyEntriesCard,
   type JourneyEntryLook,
@@ -113,7 +112,6 @@ export function lookOf(value: unknown, source: LookSource = {}): JourneyEntryLoo
   if (!date) return null;
   const photos = Array.isArray(row.photos) ? row.photos.map(recordOf) : [];
   const type = journeyEntryTypeSchema.safeParse(row.type);
-  const visibility = journeyEntryVisibilitySchema.safeParse(row.visibility);
   const country = typeof row.country_code === 'string' ? row.country_code : '';
   const mood = typeof row.mood === 'string' ? row.mood.trim().toLowerCase() : '';
   const day = source.days?.indexOf(date) ?? -1;
@@ -131,7 +129,6 @@ export function lookOf(value: unknown, source: LookSource = {}): JourneyEntryLoo
     weather: lineOf(row, 'weather', JOURNEY_CARD_LIMITS.weather, source),
     ...coverOf(photos),
     photoCount: Math.min(photos.length, 1_000_000),
-    visibility: visibility.success ? visibility.data : 'private',
     draft: row.is_draft === true || row.is_draft === 1,
     fromTripPlace: positiveId(row.source_place_id) !== null && row.type !== 'skeleton',
     dayIndex: day >= 0 && day <= 9_999 ? day : null,

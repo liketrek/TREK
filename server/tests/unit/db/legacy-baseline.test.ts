@@ -111,7 +111,21 @@ const UNNUMBERED = [
   'Migration20200101046340_adopt_itinerary_timing',
   'Migration20200101046350_a_place_lies_on_the_real_world',
   'Migration20200101046360_a_new_install_starts_with_more_addons_on',
+  'Migration20200101046370_a_deleted_chat_message_keeps_no_text',
   'Migration20200101046370_retire_fork_web_push',
+  'Migration20200101046380_ireland_gained_its_counties',
+  'Migration20200101046390_a_trip_can_keep_its_costs_as_totals_only',
+  'Migration20200101046400_a_booked_flight_shows_where_it_is',
+  'Migration20200101046410_a_forwarded_booking_mail_lands_in_its_trip',
+  'Migration20200101046420_a_visit_keeps_its_own_stay',
+  'Migration20200101046430_a_paused_mail_import_can_tell_its_address_holders',
+  'Migration20200101046440_a_trip_owns_its_tags',
+  'Migration20200101046450_a_carried_over_half_day_stays_half',
+  'Migration20200101046460_an_upgraded_install_gets_the_columns_its_history_skipped',
+  'Migration20200101046480_an_address_changed_after_an_admin_made_the_account',
+  'Migration20200101046490_a_trip_can_switch_its_own_addons',
+  'Migration20200101046500_an_address_moved_before_an_admin_saved_the_account',
+  'Migration20200101046510_widen_visit_stay_limit',
 ];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.

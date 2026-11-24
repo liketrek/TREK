@@ -13,6 +13,7 @@ const files: TranslationStrings = {
   'files.subtitle.one': '{count} Datei für {trip}',
   'files.download': 'Herunterladen',
   'files.openError': 'Datei konnte nicht geöffnet werden',
+  'files.downloadError': 'Datei konnte nicht heruntergeladen werden',
   'files.downloadPdf': 'PDF herunterladen',
   'files.count': '{count} Dateien',
   'files.count.one': '{count} Datei',
@@ -40,7 +41,6 @@ const files: TranslationStrings = {
   'files.sourceBooking': 'Buchung',
   'files.sourceTransport': 'Transport', // same-as-en
   'files.attach': 'Anhängen',
-  'files.pasteHint': 'Du kannst auch Bilder aus der Zwischenablage einfügen (Strg+V)',
   'files.trash': 'Papierkorb',
   'files.trashEmpty': 'Papierkorb ist leer',
   'files.emptyTrash': 'Papierkorb leeren',

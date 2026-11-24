@@ -43,13 +43,7 @@ function HintsButton({ W }: { W: WandererWatchController }) {
   return (
     <Tooltip label={count ? t('wanderer.watch.hintsCount', { count }) : t('wanderer.watch.empty')}>
       <span className="inline-flex">
-        <button
-          type="button"
-          onClick={W.openHints}
-          disabled={count === 0}
-          className={`${SETTINGS_BUTTON} relative`}
-          style={fs(12.5, 'body')}
-        >
+        <button type="button" onClick={W.openHints} disabled={count === 0} className={`${SETTINGS_BUTTON} relative`}>
           <BellRing size={13} strokeWidth={2.2} />
           {t('wanderer.watch.hints')}
           {count > 0 && (

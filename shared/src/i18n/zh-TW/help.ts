@@ -54,7 +54,8 @@ const help: TranslationStrings = {
     '儀表板會顯示你所有的旅行。最上方外型像登機證的卡片，是正在進行或即將出發的旅行。下方一列會統計你目前為止的旅行成果，卡片則列出你正在規劃、已封存或已完成的每一趟旅行。',
   'help.ctx.dashboard.bullet.1':
     '登機證：進行中或下一趟旅行，附日期、旅伴、地點和倒數計時。點擊即可開啟旅行。右上角的四個按鈕可編輯、複製、封存或刪除旅行。',
-  'help.ctx.dashboard.bullet.2': '旅行統計：去過的國家、旅行次數、在外天數和飛行距離，涵蓋你所有的旅行。',
+  'help.ctx.dashboard.bullet.2':
+    '旅行統計：去過的國家（最近去過的國旗排在最前面）、旅行次數、在外天數和飛行距離，涵蓋你所有的旅行。',
   'help.ctx.dashboard.bullet.3':
     '旅行卡片，可依「計劃中」、「已歸檔」和「已完成」篩選，以網格或列表顯示。上方的搜尋框會一次搜尋所有旅行，可依標題、日期或其中的地點查找。編輯、複製、歸檔和刪除按鈕位於每張卡片照片的右上角。',
   'help.ctx.dashboard.bullet.4':
@@ -109,7 +110,8 @@ const help: TranslationStrings = {
   'help.guide.archive-trip.goal': '不用刪除旅行，先從旅行清單中收起來，之後隨時可以還原。',
   'help.guide.archive-trip.step.1': '點擊卡片右上角的封存圖示。',
   'help.guide.archive-trip.step.2': '把卡片上方的篩選切換為「已歸檔」，就能再次看到它。',
-  'help.guide.archive-trip.step.3': '點擊卡片上的「恢復」，旅行會回到「計劃中」；如果日期已過，則回到「已完成」。',
+  'help.guide.archive-trip.step.3':
+    '點選原本封存圖示所在位置的還原圖示，旅行會回到「計劃中」；如果日期已過，則回到「已完成」。',
   'help.guide.archive-trip.result':
     '歸檔的旅行會保留所有資料，只是不再顯示在儀表板，也不會出現在全部旅行的行事曆訂閱中。',
 
@@ -140,6 +142,8 @@ const help: TranslationStrings = {
     '所有進行中的旅行都會顯示在你的行事曆裡，並自動更新。已歸檔的旅行，以及結束超過 90 天的旅行不會包含在內。',
   'help.guide.calendar-feed.tip.1':
     '請妥善保管這個連結：任何拿到連結的人都能讀取訂閱內容。如果連結被別人拿到，點擊「重新產生」就會得到新連結，舊連結隨即失效。「關閉」則會完全移除連結。',
+  'help.guide.calendar-feed.tip.2':
+    '「每日概覽事件」會為每一天新增一個全天事件，內含當天的地點，以及沒有設定時間的備註。如果你只想看預訂，就把它關掉。連結會隨之改變，所以請用新的連結重新訂閱。',
 
   // widgets
   'help.guide.widgets.title': '選擇儀表板小工具',
@@ -409,7 +413,7 @@ const help: TranslationStrings = {
     '各大洲顯示每個大洲已造訪的國家數。去過南極洲之後，這一列才會出現南極洲。接著是你的連續紀錄（每年至少旅行一次的連續年數），以及你今年的旅行次數。',
   'help.guide.stats.result': '數字會隨著你規劃旅行自動更新，你不需要在這裡維護任何東西。',
   'help.guide.stats.tip.1':
-    '城市是從地址文字讀取的，並不會另外查詢。所以像「Osteria Francescana, Italy」這種簡短的地址，或是以縣級行政區結尾的地址，可能會被算成地區，而不是城市。',
+    '城市是從地址文字讀取的，並不會另外查詢。TREK 會略過國家、郵遞區號和地區，取它們前面的名稱，所以「10178 Berlin」會算作 Berlin。像「Osteria Francescana, Italy」這種簡短的地址則完全不會新增城市。',
   'help.guide.stats.tip.2': '手動標記的國家會計入「國家」和各大洲的統計，但不會增加旅行、地點或天數。',
   // dawarich-countries
   'help.guide.dawarich-countries.title': '從你的記錄新增國家',
@@ -444,7 +448,7 @@ const help: TranslationStrings = {
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': '收藏',
   'help.ctx.collections.summary':
-    '「收藏」是旅行之外的個人資料庫：你找到並想留著的地點會放進有名稱的清單，每個地點的狀態是「想法」、「想去」或「已造訪」；開啟遊程後，也可以放進你從旅行保存下來的整個遊程。地點和遊程是複製進出旅行的，不是連結，所以清單和旅行不會互相影響。',
+    '「收藏」是旅行之外的個人資料庫：你找到並想留著的地點會放進有名稱的清單，每個地點的狀態是「想法」、「想去」、「已造訪」或「想再去」；開啟遊程後，也可以放進你從旅行保存下來的整個遊程。地點和遊程是複製進出旅行的，不是連結，所以清單和旅行不會互相影響。',
   'help.ctx.collections.bullet.1':
     '左邊的清單欄會顯示你自己的清單、分享給你的清單、尚未回覆的邀請，以及「全部已儲存」（彙整你擁有的所有清單內容）。「新增清單」和檔案匯入在最上方。',
   'help.ctx.collections.bullet.2':
@@ -453,7 +457,7 @@ const help: TranslationStrings = {
     '地點上方的篩選列：用來新增地點的 +、「狀態」、「分類」、「評分」和「排序」下拉選單、「選擇」的核取方塊圖示，以及「從行程匯入」的雲端圖示。只有在畫面上沒有地圖時，才會出現標籤篩選。',
   'help.ctx.collections.bullet.4': '地點列：照片、名稱和位址、標籤和分類，右側是一鍵就能切換下一個狀態的狀態標籤。',
   'help.ctx.collections.bullet.5':
-    '右側的地圖：每個有座標的地點一枚圖釘。頂部列有「展開地圖」（地圖全開後為「顯示清單」）、標籤篩選與管理標籤的按鈕，以及「搜尋地點」框。點擊圖釘會開啟該地點。',
+    '右側的地圖：每個有座標的地點一枚圖釘。頂部列有「展開地圖」（地圖全開後為「顯示清單」）、標籤篩選與管理標籤的按鈕，以及「搜尋地點」框。點擊圖釘會開啟該地點。左下角、地圖樣式按鈕上方的掛鎖，會在你逐一點選地點時讓地圖維持原位。',
   'help.ctx.collections.bullet.6':
     '詳細資料頁：點擊某一列，可查看封面、分類、狀態、星級評分、標籤、描述和連結。封面上的相機可更換照片。底部有「編輯」、「複製到行程」、導航按鈕和「從清單中移除」。',
   // create-list
@@ -491,13 +495,15 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.tip.2': '在旅行的地點清單中，選擇模式提供「儲存到收藏」，可改為儲存一組手動挑選的地點。',
   // place-status
   'help.guide.place-status.title': '設定地點的狀態',
-  'help.guide.place-status.goal': '記錄哪些只是想法、哪些在候選名單上，以及你去過哪裡。',
+  'help.guide.place-status.goal': '記錄哪些只是想法、哪些在候選名單上、你去過哪裡，以及哪些地方想再去一次。',
   'help.guide.place-status.step.1': '點選地點列右端的狀態標籤。「想法」會變成「想去」。',
-  'help.guide.place-status.step.2': '再點一次變成「已造訪」，再點一次就回到「想法」。',
+  'help.guide.place-status.step.2': '再點一次是「已造訪」，再點一次是「想再去」，再點一次則回到「想法」。',
   'help.guide.place-status.result': '標籤和它的顏色會立即改變，清單上方狀態篩選中的數量也會跟著更新。',
   'help.guide.place-status.tip.1': '狀態只存在於「收藏」中。把地點複製到旅行時，不會一併複製狀態。',
   'help.guide.place-status.tip.2':
     '在旅行中，「儲存到收藏」會開啟「儲存到清單」，地點所在的每個清單各有一個狀態標籤；地點面板的選取列則有「在清單中標記為已造訪」。',
+  'help.guide.place-status.tip.3':
+    '「想再去」適用於你去過、還想再看一次的地方。它仍然算是去過，所以在旅行中使用「在所有清單中標記」時不會改動它。',
   // place-detail
   'help.guide.place-detail.title': '開啟已儲存的地點',
   'help.guide.place-detail.goal': '查看地點的所有資訊並進行操作：編輯、複製到旅行、找路、移除。',
@@ -556,12 +562,12 @@ const help: TranslationStrings = {
   'help.guide.share-list.tip.2': '只有擁有者可以邀請和移除成員；成員則可以自行退出共用的清單。',
   // export-list
   'help.guide.export-list.title': '把清單匯出成檔案',
-  'help.guide.export-list.goal': '把清單交給另一台 TREK 伺服器上的人，或用地圖應用程式開啟。',
+  'help.guide.export-list.goal': '把清單交給另一台 TREK 伺服器上的人、用地圖應用程式開啟，或在 Google My Maps 中查看。',
   'help.guide.export-list.step.1': '點選清單頂端區塊中的「匯出」。',
   'help.guide.export-list.step.2':
-    '要在另一個 TREK 中使用，請選「TREK 清單」，會連同標籤和狀態一起匯出；要在 OsmAnd、Organic Maps、Garmin 和其他能讀取航點的應用程式中使用，請選 GPX。',
+    '要在另一個 TREK 中使用，請選「TREK 清單」，會連同標籤和狀態一起匯出；要在 OsmAnd、Organic Maps、Garmin 和其他能讀取航點的應用程式中使用，請選 GPX；要在 Google My Maps 中查看，並在 Google Maps 中看到這些地點，請選 KML。',
   'help.guide.export-list.result': '檔案會開始下載。共用清單的任何成員都可以匯出。',
-  'help.guide.export-list.tip.1': '沒有座標的地點無法成為 GPX 航點，會被略過，TREK 也會告訴你略過了幾個。',
+  'help.guide.export-list.tip.1': '沒有座標的地點無法成為 GPX 航點或 KML 圖釘，會被略過，TREK 也會告訴你略過了幾個。',
   'help.guide.export-list.tip.2': '評分、成員和上傳的照片刻意不會匯出，因為它們屬於這個 TREK，而不是清單本身。',
   // import-file
   'help.guide.import-file.title': '從檔案匯入清單',
@@ -592,6 +598,17 @@ const help: TranslationStrings = {
     '在地圖上方的「搜尋地點」中輸入，並像在任何清單中一樣使用篩選器。「選擇」在這裡同樣可用：可跨清單移動、複製、複製到旅行或刪除。',
   'help.guide.all-saved.result':
     '這個檢視會把你儲存的所有地點放在一起。這裡無法新增或匯入地點，因為沒有明確的清單可以放入。',
+  'help.guide.collection-map-lock.title': '鎖定地圖',
+  'help.guide.collection-map-lock.goal': '點選已儲存的地點時，讓地圖維持在原本的位置。',
+  'help.guide.collection-map-lock.step.1':
+    '點選地圖左下角、地圖樣式按鈕上方的掛鎖圖示，滑鼠移上去會顯示「鎖定地圖視角」。按鈕之後會變成「讓地圖跟隨所選項目」。',
+  'help.guide.collection-map-lock.step.2':
+    '點選清單中的地點或地圖上的圖釘。詳細資料面板會開啟，但地圖不會再平移或縮放到該處。',
+  'help.guide.collection-map-lock.tip.1':
+    '再點一次掛鎖（此時顯示「讓地圖跟隨所選項目」），地圖就會恢復成移動到你開啟的地點。掛鎖只出現在電腦上，手機上的地圖一律會跟隨。',
+  'help.guide.collection-map-lock.tip.2':
+    '這個瀏覽器會記住鎖定狀態，而且和旅行地圖共用同一個鎖：在這裡鎖定，旅行地圖也會保持鎖定。',
+  'help.guide.collection-map-lock.result': '你一個接一個開啟地點時，地圖會停留在你選定的範圍。',
   'help.guide.all-saved.tip.1': '標籤和保存的遊程都屬於單一清單，所以「全部已儲存」中兩者都不提供。',
 
   // ── Screen: journey ───────────────────────────────────────────────────────────────────
@@ -608,7 +625,7 @@ const help: TranslationStrings = {
   'help.guide.create-journey.goal': '為旅行建立一本日記，旅行中的地點會先列為建議。',
   'help.guide.create-journey.step.1': '點選格線中的最後一張卡片「建立新旅程」。',
   'help.guide.create-journey.step.2':
-    '為旅程取個名稱，也可以加上副標題，然後勾選它所屬的旅行。計數器會顯示將加入多少個地點。',
+    '為旅程取個名稱，也可以加上副標題，然後勾選它所屬的旅行。底部那一行會顯示將匯入多少個地點。',
   'help.guide.create-journey.step.3': '點選「建立旅程」。',
   'help.guide.create-journey.result':
     '日誌會開啟。所連結旅行中的每個地點，都會以建議的形式出現在時間線上，排在幾天就各出現一次。你可以為每一則建議寫一則條目。',
@@ -617,7 +634,8 @@ const help: TranslationStrings = {
   // open-journey
   'help.guide.open-journey.title': '開啟旅程',
   'help.guide.open-journey.goal': '開啟一本日記，並了解它會從哪裡開始顯示。',
-  'help.guide.open-journey.step.1': '點選一張卡片。每張卡片都會顯示封面、日期，以及這段旅程有多少則紀錄、照片和地點。',
+  'help.guide.open-journey.step.1':
+    '點選一張卡片。每張卡片都會顯示封面、年份、狀態，以及這段旅程有多少則紀錄、照片和地點。',
   'help.guide.open-journey.result':
     '進行中的旅程會停在今天那一天；如果今天還沒寫，就停在今天之前的最後一則條目。已結束的旅程則從頭開始。',
   'help.guide.open-journey.tip.1': '除非你在「旅程設定」中另外指定，否則封面會用旅程的第一張照片。',
@@ -641,7 +659,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-detail.bullet.3':
     '時間線：每天一個區段，標示天數編號、地點數量，以及用來在當天新增條目的 +。下方是附有照片、心情、天氣和故事的條目卡片，以及來自旅行的虛線建議卡片，每張卡片都有一個用來忽略的 ×。',
   'help.ctx.journey-detail.bullet.4':
-    '地圖：頂部的圖層列可切換「計畫」（空心圖釘和旅行的虛線 GPX 路線）、「記錄」（從 Dawarich 保存的實線路線）、「條目」（以當天顏色標示的圖釘，依日期順序用細虛線連起來）和「照片」。旁邊的 (i) 會說明每個符號。',
+    '地圖：頂部的圖層列可切換「計畫」（空心圖釘和旅行的虛線 GPX 路線）、「記錄」（從 Dawarich 保存的實線路線）、「條目」（以當天顏色標示的圖釘，依日期順序用細虛線連起來）和「照片」。旁邊的 (i) 會說明每個符號，右上角的圓形按鈕則可切換為衛星影像。',
   'help.ctx.journey-detail.bullet.5':
     '「旅程設定」（⋯）：封面、名稱和副標題、狀態、GPX 軌跡、已記錄的日子、依照片定位的地點、條目欄位、已忽略的建議、已同步的旅行、貢獻者以及旅行允許誰加入、公開分享、封存和刪除。',
   'help.ctx.journey-detail.bullet.6':
@@ -654,7 +672,8 @@ const help: TranslationStrings = {
     '為條目取個標題，再寫下內文。文字上方的工具列可以用 Markdown 加入粗體、斜體、標題、引言、連結和清單。',
   'help.guide.add-entry.step.3': '在右欄中確認日期和時間，搜尋地點或使用你目前的位置，並選擇心情和天氣。',
   'help.guide.add-entry.step.4': '點選「儲存」。',
-  'help.guide.add-entry.result': '紀錄會出現在時間線上對應的日期，並在地圖上以圖釘顯示。頁首的數量也會隨之更新。',
+  'help.guide.add-entry.result':
+    '紀錄會出現在時間線上對應的日期，有了位置之後，也會在地圖上以圖釘顯示。頁首的數量也會隨之更新。',
   'help.guide.add-entry.tip.1': '從建議開始寫時，用的是同一個編輯器，地點也已經設定好了。',
   'help.guide.add-entry.tip.2':
     '有地點的條目會有「不計入路線」選項：條目仍留在日誌中，但不計入距離和國家數，也不會顯示在 Studio 的地圖上。',
@@ -692,9 +711,9 @@ const help: TranslationStrings = {
   'help.guide.pros-cons.title': '加上評價',
   'help.guide.pros-cons.goal': '用這一天哪裡很棒、哪裡不太好來作總結。',
   'help.guide.pros-cons.step.1':
-    '在編輯器中，故事下方有「優缺點」。在「優點」或「缺點」中輸入一項，再用「再新增一個」輸入下一項。',
+    '在編輯器中，「優缺點」位於右側欄位的頂端。在「優點」或「缺點」中輸入一項，再用「再新增一個」輸入下一項。',
   'help.guide.pros-cons.step.2': '儲存。在卡片上，「顯示更多」會把故事和評語展開成兩個簡短的列表。',
-  'help.guide.pros-cons.result': '讚與倒讚會顯示在故事下方，讓你一眼就能看到。',
+  'help.guide.pros-cons.result': '在故事下方，「非常喜歡」和「有待改進」會並排列出你的各項重點，並附上各自的數量。',
   'help.guide.pros-cons.tip.1': '如果旅程不需要評價，可以在「旅程設定」的「紀錄欄位」中關閉這個區塊。',
   // search-journey
   'help.guide.search-journey.title': '在很長的日誌中找東西',
@@ -715,6 +734,17 @@ const help: TranslationStrings = {
   'help.guide.gallery-map.step.2':
     '右側的「上傳」會把圖片加入相簿；如果已連接 Immich 或 Synology，會有一個以該相簿命名的按鈕，可從那裡挑選圖片。',
   'help.guide.gallery-map.result': '圖釘帶有當天的顏色，並按日期順序以細虛線相連；地圖頂部的圖層列可切換繪製的內容。',
+  'help.guide.album-date-range.title': '從大型相簿中只取這趟旅行的照片',
+  'help.guide.album-date-range.goal': '從內容很多的 Immich 或 Synology 相簿中，挑出屬於這趟旅行的照片。',
+  'help.guide.album-date-range.step.1': '切換到「圖庫」，點選「上傳」旁邊、顯示你照片庫名稱的按鈕。',
+  'help.guide.album-date-range.step.2': '點選「相簿」，再點選該相簿。裡面的照片會依拍攝日期列出。',
+  'help.guide.album-date-range.step.3':
+    '在相簿清單下方，把「拍攝日期範圍」設為你要的第一天和最後一天。網格中只會留下那幾天的照片，「全選」也只會選取這些照片。',
+  'help.guide.album-date-range.tip.1':
+    '開啟其他相簿時，日期範圍會保留，所以你可以為同一趟旅行翻找好幾本相簿。點選這一列最後的 ×，就會再次顯示整本相簿。',
+  'help.guide.album-date-range.tip.2': '選擇器頂端的「新增至」可選擇照片要放進哪一則日誌；選「新相簿」則只會放進圖庫。',
+  'help.guide.album-date-range.result':
+    '按「新增」會把你選的照片加入旅程。已經在旅程中的照片會變灰並打勾，所以不會重複加入。',
   'help.guide.gallery-map.tip.1':
     '旅行的 GPX 軌跡隨地圖的「計畫」圖層一起顯示，以虛線繪製；「旅程設定」中的「顯示所有行程的 GPX 軌跡」可將它們關閉。',
   'help.guide.gallery-map.tip.2': '當「圖庫」和「地圖」都已分享時，圖庫中帶有位置的照片也會顯示在公開地圖上。',
@@ -771,7 +801,7 @@ const help: TranslationStrings = {
   'help.guide.archive-journey.goal': '封存已結束的旅程，或永久刪除旅程。',
   'help.guide.archive-journey.step.1': '點擊標題右上角的 ⋯ 開啟「旅程設定」。',
   'help.guide.archive-journey.step.2':
-    '在底部，「封存旅程」會結束並將旅程標示為已封存，「還原旅程」則會把它還原。「刪除」經過確認後，會連同所有紀錄和照片一起移除。',
+    '在底部，「封存旅程」會結束並將旅程標示為已封存，「還原旅程」則會把它還原。旁邊的垃圾桶經過確認後，會連同所有紀錄和照片一起刪除旅程。',
   'help.guide.archive-journey.result': '封存的旅程仍然可以閱讀和分享，只是不會再停在今天這一天開啟。',
   'help.guide.archive-journey.tip.1': '刪除後無法復原，但不會影響旅程曾連結的旅行。',
   'help.guide.archive-journey.tip.2': '封面、名稱和副標題在同一個對話框的頂部。',
@@ -810,7 +840,7 @@ const help: TranslationStrings = {
   'help.guide.studio-auto-layout.goal': '只要點一下，就能根據日誌的條目和照片得到完整的第一版草稿。',
   'help.guide.studio-auto-layout.step.1': '點選頂部列的 Auto layout。',
   'help.guide.studio-auto-layout.step.2':
-    '選擇「整本書」：會取代所有頁面，但保留你的標題和頁面設定。「本頁」則只重建畫面上的這個跨頁，而且只有在由紀錄產生的跨頁上才能使用。',
+    '選擇「整本書」：會取代所有頁面，但保留你的標題和頁面設定。「本頁」則只把畫面上的這個跨頁換成另一種設計。它適用於「自動排版」產生的每一頁，包括封面。',
   'help.guide.studio-auto-layout.step.3': '瀏覽 Pages 側欄。如果你比較喜歡先前的版本，Undo 可以還原整個版面。',
   'help.guide.studio-auto-layout.result':
     '每則條目一個跨頁，依序排好，照片、標題和文字都已經放好。在你編輯元素之前，每個元素都會與條目連動，並隨條目更新。',
@@ -823,11 +853,11 @@ const help: TranslationStrings = {
   'help.guide.studio-pages.step.1':
     '在側欄開啟頁面。縮圖會依序顯示整本相簿：封面、第一頁、各個跨頁、最後一頁和封底。第一頁和最後一頁會畫在各自封面內頁空白面的旁邊，就像裝訂好的書翻開時那樣。',
   'help.guide.studio-pages.step.2':
-    '底部的「新增頁面」會在最後一頁之前加入新的跨頁。兩張縮圖之間的 + 則會在該位置插入一個。',
+    '底部的「+ 頁面」會在最後一頁之前加入新的跨頁。兩張縮圖之間的 + 則會在該位置插入一個。',
   'help.guide.studio-pages.step.3':
     '把游標移到縮圖上，就會看到它的操作：「前移」、「後移」、「複製頁面」和「刪除頁面」。點選縮圖，就能在工作區開啟那個跨頁。',
   'help.guide.studio-pages.result': '封面、第一頁、最後一頁和封底都會留在原位，新的跨頁一律加在它們之間。',
-  'help.guide.studio-pages.tip.1': '頂端列的「Book view」會以紙張的形式顯示整本相簿，也就是裝訂後的樣子。',
+  'help.guide.studio-pages.tip.1': '跨頁下方縮放列中的「書本檢視」會以紙張的形式顯示整本書，也就是裝訂後的樣子。',
   'help.guide.studio-pages.tip.2': '頁碼要在不選取任何物件的狀態下，到 Properties 的「文件」下開啟。',
   // studio-layouts
   'help.guide.studio-layouts.title': '為跨頁套用版面',
@@ -894,8 +924,9 @@ const help: TranslationStrings = {
   'help.guide.studio-text-effects.goal': '為標題加上外框、陰影、弧形，或是用圖案填滿文字。',
   'help.guide.studio-text-effects.step.1': '點選頁面上的文字元素將其選取。',
   'help.guide.studio-text-effects.step.2':
-    '在屬性中開啟效果，加入外框、陰影或醒目提示，也可以用漸層或圖案填滿文字。位置可以把文字行彎成弧形，並讓它符合文字框。',
-  'help.guide.studio-text-effects.tip.1': '符合會縮小文字直到放進文字框，所以很長的標題也不會溢出。',
+    '在「屬性」中開啟「效果」。「輪廓」、「硬陰影」和「螢光筆色帶」可加入邊緣、陰影或醒目提示；「彎曲」可把文字行彎成弧形或圓形；「文字」則可用照片、漸層或圖案填滿字母。',
+  'help.guide.studio-text-effects.tip.1':
+    '「大小寫與位置」下的「縮小以符合文字框」，會在文字框太小時縮小文字，所以很長的標題也不會溢出。',
   'help.guide.studio-text-effects.result': '效果會和文字一起繪製，印刷出來和螢幕上一樣。',
   'help.guide.studio-background.title': '變更頁面背景',
   'help.guide.studio-background.goal': '為頁面塗上純色、漸層或圖案，或是在底下鋪一張照片。',
@@ -920,7 +951,7 @@ const help: TranslationStrings = {
   'help.guide.studio-properties.goal': '用檢視面板移動、裁切、調整樣式和排列元素的上下層順序。',
   'help.guide.studio-properties.step.1': '點選跨頁上的元素。四周會出現調整大小和旋轉的控制點，拖曳元素即可移動。',
   'help.guide.studio-properties.step.2':
-    '右側的 Properties 會顯示所選物件的設定：位置和大小、Crop（焦點會決定哪些部分留在框內）、Fill 或 Fit、Look 濾鏡、Corner 圓角半徑、「相框」樣式、堆疊順序和 Lock。',
+    '右側的「屬性」會在名稱下方顯示你所選物件的設定：地圖提供來源、檢視和線條，照片則有帶焦點的「裁切」、「填滿」或「符合」，以及「外觀」濾鏡。每個元素都有位置、堆疊順序和「鎖定」。',
   'help.guide.studio-properties.step.3': '「複製」和 Delete 位於檢視器頂部。頂部列的 Undo 可以復原其中任何一項變更。',
   'help.guide.studio-properties.result':
     '鎖定的元素無法在頁面上選取或移動，這樣你處理其他元素時，就不會不小心弄亂已完成的版面。',
@@ -952,7 +983,8 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.goal': '把你喜歡的設計從一段旅程的書複製到另一段旅程。',
   'help.guide.studio-spread-file.step.1':
     '將跨頁放在工作區後，點選縮放列右端的「下載這個跨頁」。檔案裡只有設計，不包含照片。',
-  'help.guide.studio-spread-file.step.2': '在另一本書中開啟 Pages，點選「新增頁面」旁邊的「匯入」，然後選擇檔案。',
+  'help.guide.studio-spread-file.step.2':
+    '在另一本書中，開啟「頁面」，點選底部「+ 頁面」旁邊的「匯入」，然後選擇檔案。',
   'help.guide.studio-spread-file.result': '跨頁會連同其中的框和文字樣式一起匯入。再把新旅程的照片放進這些框裡即可。',
   'help.guide.studio-spread-file.tip.1': '如果檔案不是跨頁設計，TREK 會拒絕匯入並說明原因。',
 
@@ -965,7 +997,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.2':
     '預設會先開啟「顯示」，內有語言、地點名稱的語言、單位、時間格式、日期格式、每週起始日和顯示貨幣，以及旅行地圖的行為。「外觀」則包含主題、顏色、易讀性、文字大小和儀表板小工具。',
   'help.ctx.settings.bullet.3':
-    '「地圖」選擇引擎及其樣式；「通知」決定哪些事件傳送到哪個管道；「整合」連接相簿服務、AirTrail、Dawarich 和 wanderer，並管理 API 金鑰和 MCP；「離線」決定這台裝置保留哪些內容。',
+    '「地圖」選擇引擎及其樣式；「通知」決定哪些事件傳送到哪個管道；「整合」存放你的預訂郵件地址、連接相簿服務、AirTrail、Dawarich 和 wanderer，並管理 API 金鑰和 MCP；「離線」決定這台裝置保留哪些內容。',
   'help.ctx.settings.bullet.4': '「帳戶」包含你的個人資料、密碼、雙因素認證、Passkey，以及刪除帳號的選項。',
   'help.ctx.settings-display.title': '顯示',
   'help.ctx.settings-display.summary':
@@ -989,12 +1021,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.title': '地圖',
   'help.ctx.settings-map.summary':
     '旅行規劃器和日誌地圖由哪個引擎繪製，以及使用什麼樣式。Leaflet 是傳統的點陣地圖，Mapbox GL 搭配你自己的權杖可加入 3D 建築和地形，MapLibre GL 則無需權杖就能繪製 OpenFreeMap 向量圖磚。Atlas 一律使用 Leaflet。',
-  'help.ctx.settings-map.bullet.1':
-    '「地圖提供商」：Leaflet、Mapbox GL（「實驗性」）或 MapLibre GL，每個選項都有一行說明它是什麼。',
+  'help.ctx.settings-map.bullet.1': '「地圖提供商」：Leaflet、Mapbox GL或 MapLibre GL，每個選項都有一行說明它是什麼。',
   'help.ctx.settings-map.bullet.2':
     'Leaflet 使用「地圖模板」和「CARTO API 金鑰」；兩種 GL 引擎使用「地圖樣式」，Mapbox GL 另外需要「Mapbox 存取權杖」。',
   'help.ctx.settings-map.bullet.3':
-    '僅限 Mapbox GL：「3D 建築和地形」和「高畫質模式」。「儲存地圖」上方有即時預覽，按下「儲存地圖」才會儲存你的選擇。',
+    '僅限 Mapbox GL：「3D 建築和地形」、「高畫質模式」和「隱藏興趣點」。「儲存地圖」上方有即時預覽，按下「儲存地圖」才會儲存你的選擇。',
   'help.ctx.settings-notifications.title': '通知',
   'help.ctx.settings-notifications.summary':
     'TREK 在應用程式之外如何聯絡你。頂部的表格每個事件一列、每個管道一欄，用來決定什麼通知送到哪裡。表格下方是 Webhook、ntfy、此裝置上的推播，以及外掛管道的卡片。',
@@ -1008,9 +1039,9 @@ const help: TranslationStrings = {
     '「此裝置上的推播通知」：「為此裝置開啟」只涵蓋這個瀏覽器；「傳送測試」可試用。外掛管道在設定完成之前會顯示「前往設定」。',
   'help.ctx.settings-integrations.title': '整合',
   'help.ctx.settings-integrations.summary':
-    '所有從外部連接到 TREK 的項目：日誌用的相簿服務、航班用的 AirTrail、記錄你實際去向的 Dawarich、路線用的 wanderer、供其他軟體使用的唯讀 API 金鑰，以及供 AI 客戶端使用的 MCP。與其他服務的連線，必須由管理員開啟後才會顯示。',
+    '所有從外部連接到 TREK 的項目：你自己的預訂郵件地址、日誌用的相簿服務、航班用的 AirTrail、記錄你實際去向的 Dawarich、路線用的 wanderer、供其他軟體使用的唯讀 API 金鑰，以及供 AI 客戶端使用的 MCP。與其他服務的連線，必須由管理員開啟後才會顯示。',
   'help.ctx.settings-integrations.bullet.1':
-    'Immich 和 Synology Photos、AirTrail、Dawarich 和 wanderer：每張卡片都有位址和金鑰、「儲存」和「測試連線」，以及「已連線」或「未連線」徽章。',
+    '「預訂郵件」：管理員開啟郵件匯入後，會出現在最上方，內含你的轉寄地址和它的開關。其下是 Immich 和 Synology Photos、AirTrail、Dawarich 和 wanderer：每張卡片都有位址和金鑰、「儲存」和「測試連線」，以及「已連線」或「未連線」徽章。',
   'help.ctx.settings-integrations.bullet.2':
     '「API 金鑰」：公開 API 的唯讀金鑰，每把金鑰只限於你選定的範圍，並附有可複製的「端點」。',
   'help.ctx.settings-integrations.bullet.3':
@@ -1042,7 +1073,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.title': '設定語言、單位和貨幣',
   'help.guide.language-region.goal': '用你的語言使用 TREK，並採用你所在地區的格式。',
   'help.guide.language-region.step.1':
-    '在「語言與地區」下，從那一排標籤中選擇「語言」。TREK 會立刻切換，並套用到你登入的所有裝置。',
+    '在「語言與地區」下，從清單中選擇「語言」；輸入文字即可快速找到。TREK 會立刻切換，並套用到你登入的所有裝置。',
   'help.guide.language-region.step.2':
     '「地點名稱」設定地點搜尋、建議和位址使用的語言，「與 App 相同」則跟隨介面語言。',
   'help.guide.language-region.result':
@@ -1107,7 +1138,7 @@ const help: TranslationStrings = {
   'help.guide.map-provider.step.2':
     '為 Leaflet 選擇「地圖模板」，或為 GL 引擎選擇「地圖樣式」，也可以貼上你自己的 URL。Mapbox GL 需要「Mapbox 存取權杖」，CARTO 模板需要「CARTO API 金鑰」；每個欄位下方的連結會帶你到取得的地方。',
   'help.guide.map-provider.step.3':
-    '使用 Mapbox GL 時，開啟「3D 建築和地形」，裝置效能夠好的話也可以開啟「高畫質模式」。確認預覽效果後，點擊「儲存地圖」。',
+    '使用 Mapbox GL 時，開啟「3D 建築和地形」，裝置效能夠好的話也可以開啟「高畫質模式」。「隱藏興趣點」會省去 Mapbox 自行標示的商店和景點。確認預覽效果後，點選「儲存地圖」。',
   'help.guide.map-provider.result': '旅行規劃器和日誌的地圖會使用你選擇的引擎。Atlas 一律使用 Leaflet。',
   'help.guide.map-provider.tip.1': '沒有填入權杖時，Mapbox GL 會改用 Leaflet，不會顯示空白地圖。',
   'help.guide.map-provider.tip.2': '你離線儲存的地圖圖磚，來自下載當時使用中的提供商。',
@@ -1152,7 +1183,7 @@ const help: TranslationStrings = {
   'help.guide.mcp-oauth.step.2':
     '在「OAuth 2.1 客戶端」下，點擊「新增客戶端」，選擇快速預設（例如 Claude Desktop 或 Cursor），或自行填寫「應用程式名稱」、「重新導向 URI」和「允許的授權範圍」。沒有瀏覽器的伺服器請選擇「機器」客戶端。點擊「註冊客戶端」並複製「客戶端密鑰」，它只會顯示一次。',
   'help.guide.mcp-oauth.step.3':
-    '每個客戶端都有「輪換密鑰」和「刪除客戶端」；「活躍的 OAuth 工作階段」列出目前登入的項目，並附「撤銷」。「客戶端配置」會展開一段現成的設定片段，適用於接受 JSON 的客戶端。',
+    '每個客戶端都有「輪換密鑰」和「刪除客戶端」。客戶端登入後，「活躍的 OAuth 工作階段」會列出它，並附「撤銷」。客戶端上方的「客戶端配置」有一段現成的設定片段，適用於使用 JSON 的客戶端，並附「複製」。',
   'help.guide.mcp-oauth.result': '用戶端能以你的身分，讀取並修改其權限範圍允許的內容，每個動作都會記在你的名下。',
   'help.guide.mcp-oauth.tip.1': '「權限範圍」會限制用戶端能做的事：在用戶端需要更多權限之前，只給它讀取範圍就好。',
   'help.guide.mcp-oauth.tip.2': '管理員可以為整個實例關閉 MCP，關閉後就不會顯示這個區塊。',
@@ -1160,9 +1191,9 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.title': '讓旅行可離線使用',
   'help.guide.offline-prepare.goal': '在斷線之前，先把旅行和地圖存到這台裝置上。',
   'help.guide.offline-prepare.step.1':
-    '在「要離線儲存哪些內容」下，保持「離線儲存地圖瓦片」開啟，並開啟你想放在這台裝置上的旅行。已結束的旅行只有在你開啟後才會儲存。',
+    '在右側的「要離線儲存哪些內容」卡片中，保持「離線儲存地圖瓦片」開啟，並開啟你想放在這台裝置上的旅行。已結束的旅行只有在你開啟後才會儲存。',
   'help.guide.offline-prepare.step.2':
-    '回到頂部，在「準備離線使用」下，點擊「下載以供離線使用」。它會取得旅行資料、文件和地圖圖磚，並說明儲存了多少趟旅行。',
+    '在「離線模式」卡片的「準備離線使用」下，點選「下載以供離線使用」。它會取得旅行資料、文件和地圖瓦片，並說明儲存了多少趟旅行。',
   'help.guide.offline-prepare.step.3':
     '「強制離線模式」會再下載一次，然後只使用這台裝置運作，讓你在出發前確認一切都在。',
   'help.guide.offline-prepare.result': '即使沒有網路，旅行也能開啟。你所做的變更會先存進佇列，等重新連線後再送出。',
@@ -1228,15 +1259,16 @@ const help: TranslationStrings = {
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': '管理員',
   'help.ctx.admin.summary':
-    '每個人的 TREK 背後的執行個體：誰可以登入以及如何登入、開啟了什麼、檔案存放在哪裡、伺服器如何聯繫使用者，以及如何備份。只有管理員看得到這個頁面。側邊欄把分頁分組在「使用者」、「設定」、「整合」和「維護」下，每個分頁都是獨立的畫面。',
+    '整個 TREK 執行個體的設定，適用於所有使用者：誰可以登入以及如何登入、開啟了什麼、檔案存放在哪裡、伺服器如何聯繫使用者，以及如何備份。只有管理員看得到這個頁面。側邊欄把分頁分組在「使用者」、「設定」和「維護」下，每個分頁都是獨立的畫面。',
   'help.ctx.admin.bullet.1':
     '標題右側會統計使用者、旅行、地點和檔案的數量。其下方，當有較新的 TREK 版本發布時，會出現「有可用更新」橫幅。',
-  'help.ctx.admin.bullet.2': '「使用者」和「用戶預設設定」：帳戶、邀請連結和權限，以及新帳戶一開始使用的設定和地圖。',
+  'help.ctx.admin.bullet.2': '「使用者」和「預設值」：帳戶、邀請連結和權限，以及新帳戶一開始使用的設定和地圖。',
   'help.ctx.admin.bullet.3':
-    '「配置」、「設定」、「擴充套件」、「外掛」和「儲存」：行李範本、分類和學校假期；登入、Passkey、2FA、API 金鑰和搜尋服務；功能模組；第三方外掛；上傳檔案的存放位置。',
+    '「安全性」、「服務」、「擴充套件」和「配置」：登入、Passkey、2FA 和單點登入；地點搜尋、路線規劃、API 金鑰和檔案型別；功能模組與其選項；行李範本、分類和學校假期。',
   'help.ctx.admin.bullet.4':
-    '「通知」、「MCP 存取」和 GitHub：使用者可選用的管道及其預設值、AI 客戶端的權杖和工作階段，以及版本歷史。',
-  'help.ctx.admin.bullet.5': '「備份」和「審計日誌」：手動與排程備份，以及與安全相關的事件記錄。',
+    '「通知」、MCP 和「外掛」：使用者可選用的管道以及你身為管理員收到的通知、AI 客戶端的權杖和工作階段，以及第三方外掛。',
+  'help.ctx.admin.bullet.5':
+    '「儲存」、「備份」、GitHub 和「審計日誌」：上傳檔案的存放位置、手動與排程備份、版本歷史，以及與安全相關的事件記錄。',
   'help.ctx.admin-users.title': '使用者',
   'help.ctx.admin-users.summary':
     '這個 TREK 上的所有帳號及其角色、電子郵件和上次活動時間，讓人在封閉執行個體上註冊的邀請連結，以及誰可以在旅行中做什麼。',
@@ -1247,13 +1279,13 @@ const help: TranslationStrings = {
     '下方的「邀請連結」：有使用次數上限和到期時間的註冊連結，如果你願意，還可以指定新使用者到達時加入的旅行。',
   'help.ctx.admin-users.bullet.4':
     '底部的「許可權設定」：每個操作由誰可以執行（「所有人」、「旅行成員」、「旅行所有者」或「僅管理員」），用卡片標題中的「儲存」保存。',
-  'help.ctx.admin-defaults.title': '用戶預設設定',
+  'help.ctx.admin-defaults.title': '預設值',
   'help.ctx.admin-defaults.summary':
     '新帳戶一開始的設定，這樣就沒有人需要先自己設定：顏色模式、單位、時間格式、日期格式、每週起始日、顯示貨幣和模糊的預訂程式碼，還有地圖、其金鑰和路線規劃伺服器。',
   'help.ctx.admin-defaults.bullet.1':
     '左側是「用戶預設設定」：「顏色模式」、「溫度單位」、「距離單位」、「時間格式」、「每週開始於」、「日期格式」、「顯示貨幣」和「模糊預訂程式碼」。',
   'help.ctx.admin-defaults.bullet.2':
-    '右側的地圖設定：「地圖模板」、「共用的 CARTO 金鑰」、「自建路徑規劃服務」和「自建 Valhalla 執行個體」，接著是預覽，然後是「地圖引擎」，以及「地圖樣式」、「共用的 Mapbox 權杖」、「3D 建築物與地形」和「高品質模式」。',
+    '其下是路線規劃：「路線服務」、「自建路徑規劃服務」和「自建 Valhalla 執行個體」。右側的地圖設定：「地圖模板」、「共用的 CARTO 金鑰」、預覽，然後是「地圖引擎」，以及「地圖樣式」、「共用的 Mapbox 權杖」、「3D 建築物與地形」和「高品質模式」。',
   'help.ctx.admin-config.title': '配置',
   'help.ctx.admin-config.summary':
     '實例上所有旅行共用的設定：行李模板、地點和收藏用的分類組合，以及 Vacay 使用的學校假期目錄。',
@@ -1261,31 +1293,33 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.2':
     '分類：TREK 各處使用的分類的名稱、圖示和顏色，從地點檢視器到「收藏」都會用到，每個分類都在附預覽的對話方塊中編輯。',
   'help.ctx.admin-config.bullet.3': '「學校假期」：各國家和地區及其假期期間的目錄，所有人都可以在 Vacay 中選用。',
-  'help.ctx.admin-settings.title': '設定',
+  'help.ctx.admin-settings.title': '安全性與服務',
   'help.ctx.admin-settings.summary':
-    '人們如何進入，以及伺服器可以連到哪些服務。左側：驗證方式、「Passkey 登入」、「要求雙因素身份驗證（2FA）」和「單點登入 (OIDC)」。右側：「允許的檔案型別」以及「API 金鑰」，含搜尋和交通服務提供者。「危險區域」位於底部。',
+    '人們如何登入，以及伺服器使用哪些外部服務，分成兩個分頁。「安全性」：左側是「驗證方式」和「Passkey 登入」，右側是「單點登入 (OIDC)」和「危險區域」。「服務」：左側是地點搜尋與路線，右側是「API 金鑰」和「允許的檔案型別」。',
   'help.ctx.admin-settings.bullet.1':
-    '驗證方式：密碼登入、密碼註冊，設定 OIDC 之後還有 SSO 登入和 SSO 自動建立帳戶。「要求雙因素身份驗證（2FA）」有自己的卡片。',
+    '驗證方式：「密碼登入」和「密碼註冊」，設定 OIDC 之後還有 SSO 相關的列（「SSO 登入」、「SSO 自動建立帳戶」和「直接前往 SSO」），然後是「啟用 Passkey 登入」和「要求 2FA」。每個開關都會立刻儲存。',
   'help.ctx.admin-settings.bullet.2':
-    '「Passkey 登入」：「啟用 Passkey 登入」、「Relying Party ID（網域）」和「允許的來源」。「單點登入 (OIDC)」：「顯示名稱」、「頒發者 URL」、選填的「Discovery URL（選填）」、「客戶端 ID」和「客戶端密鑰」。',
+    '「Passkey 登入」：「Relying Party ID（網域）」和「允許的來源」。「單點登入 (OIDC)」：「顯示名稱」、「頒發者 URL」、選填的「Discovery URL（選填）」、「客戶端 ID」和「客戶端密鑰」。',
   'help.ctx.admin-settings.bullet.3':
-    '「API 金鑰」：最前面是 TREK Places API，不需要金鑰。其下依序是「Google Maps API 金鑰」（附「測試」和「該金鑰的用途」）、Unsplash 和高德地圖的金鑰，卡片底部只有一個「儲存」。',
+    '「服務」中的地點搜尋與路線：TREK API（標示為「推薦的預設來源」），附「今日額度」和「分享地點詳情」，接著是「公共運輸資料來源」、「地點搜尋來源」和「地點搜尋紀錄」。',
   'help.ctx.admin-settings.bullet.4':
-    '「公共運輸資料來源」和「地點搜尋來源」決定由誰負責大眾運輸和地點搜尋。「地點搜尋紀錄」會記下最後選了哪個結果。「允許的檔案型別」則限制可上傳的檔案。',
+    '「API 金鑰」：「Google Maps API 金鑰」（附「測試」和「該金鑰的用途」）、Unsplash 和高德地圖的金鑰，卡片底部只有一個「儲存」。其下的「允許的檔案型別」則限制可上傳的檔案。',
   'help.ctx.admin-addons.title': '擴充套件',
   'help.ctx.admin-addons.summary':
-    'TREK 的功能模組，每個都有開關：行李、費用、文件、Vacay、Atlas、Collab、旅程、收藏、公路旅行、MCP、AirTrail、Dawarich 和 AI 解析。關閉後，導覽項目、路由和 API 會對所有人移除。',
-  'help.ctx.admin-addons.bullet.1': '每個擴充套件一個圖塊，附有開關；如果有選項，圖塊下方還有對應的子列。',
+    'TREK 的功能模組分成三張卡片：「旅行」是旅行的分頁，「全域性」是主導覽中的各個區段，「整合」則是外部服務。每個擴充套件都有開關；關閉後，導覽項目、路由和 API 會對所有人移除。',
+  'help.ctx.admin-addons.bullet.1':
+    '每個擴充套件一列，附有開關，每張卡片標題列中會顯示其中有幾個擴充套件已開啟。名稱旁邊的資訊標記會說明該擴充套件的用途。',
   'help.ctx.admin-addons.bullet.2':
-    '相片提供者和文件提供者也會以圖塊的形式列在這裡，所以可以向使用者提供 Immich 或 Synology。',
-  'help.ctx.admin-addons.bullet.3': '「行李追蹤」在圖塊下方有自己的開關。',
+    '擴充套件開啟時，它的選項會掛在下方：「行李」下的「行李追蹤」、「協作」功能、「文件」下的文件儲存來源、「旅程」下的相片來源，以及「遊程」下的 wanderer 和地圖圖層。',
+  'help.ctx.admin-addons.bullet.3':
+    '有齒輪的列會開啟設定對話框，例如「遊程」下的「划槳水域資料」，以及「預訂郵件匯入」下的「設定郵件匯入」。「即時航班狀態」是「旅行」卡片中的一列。',
   'help.ctx.admin-plugins.title': '外掛',
   'help.ctx.admin-plugins.summary':
     '第三方外掛會在 TREK 旁以獨立程序執行，每個外掛只擁有安裝時申請的權限。你可以從目錄安裝、上傳套件，或在開發外掛時連結資料夾。',
   'help.ctx.admin-plugins.bullet.1':
-    '「已安裝」和「探索」，附有「搜尋外掛…」以及「型別」、「狀態」和「排序」篩選器。每一列顯示版本、「已審核」、「已簽署」或「未簽署」、外掛可存取的內容、一個開關和一個 ⋯ 選單。',
+    '「已安裝」和「探索」，附有「搜尋外掛…」以及用於類型、狀態和排序的「篩選」。每一列顯示版本、外掛可存取的內容、「已審核」、「已簽署」或「未簽署」、一個開關和一個 ⋯ 選單。',
   'help.ctx.admin-plugins.bullet.2':
-    '卡片標題列中的兩個圖示：「上傳外掛」接受 .zip、.tgz 或 .tar.gz（也可以把 .zip 拖放到頁面上）；「重新掃描」會載入為開發而連結的外掛資料夾。',
+    '卡片標題列中的三個圖示：「外掛如何受到保護」會說明外掛如何被限制；「上傳外掛」接受 .zip、.tgz 或 .tar.gz（也可以把 .zip 拖放到頁面上）；「重新掃描」會找出為開發而連結的外掛資料夾。',
   'help.ctx.admin-plugins.bullet.3': '每個外掛的「允許的主機」：外掛可以呼叫的位址，因為對外連線預設為封鎖。',
   'help.ctx.admin-storage.title': '儲存',
   'help.ctx.admin-storage.summary':
@@ -1294,16 +1328,18 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.2':
     '「後端」：名稱、型別、用量和「鏡像」目標，附「測試」、「編輯」和「移除」。「立即計算」會統計已儲存的內容；由環境變數定義的後端是唯讀的。',
   'help.ctx.admin-storage.bullet.3':
-    '「分類」：行程文件、旅程照片、封面、大頭貼、地點圖片、照片快取和備份，每一項都指派給一個後端。',
+    '「分類」：行程文件、旅程照片、封面、大頭貼、地點圖片、照片快取和備份，每一項都指派給一個後端，底部有「儲存變更」。',
+  'help.ctx.admin-storage.bullet.4':
+    '未被引用的檔案：夜間檢查發現 TREK 中已沒有任何地方使用的檔案，附有「立即檢查」，以及一個開關，可在這些檔案閒置一週後自動刪除。',
   'help.ctx.admin-notifications.title': '通知',
   'help.ctx.admin-notifications.summary':
     '這個實例向使用者提供的通知管道，以及你身為管理員會收到的通知管道。使用者在「設定」中自行選擇主題和 URL；你則決定有哪些管道，並設定電子郵件。',
   'help.ctx.admin-notifications.bullet.1':
-    '「電子郵件 (SMTP)」、Webhook、Ntfy 和「Web 推播」各有一個開關，用來決定是否把該管道開放給使用者；電子郵件還需要填寫伺服器設定。「應用程式內通知」一律開啟。',
-  'help.ctx.admin-notifications.bullet.2': '「行程提醒」：伺服器是否要在旅行開始前傳送提醒。',
+    '管道：「電子郵件 (SMTP)」、Webhook、Ntfy 和「Web 推播」各有一個開關，用來決定是否把該管道開放給使用者；「應用程式內」一律開啟。開關下方的「電子郵件 (SMTP)」區塊存放郵件伺服器設定。',
+  'help.ctx.admin-notifications.bullet.2': '「行程提醒」是「管道」的最後一列：伺服器是否要在旅行開始前傳送提醒。',
   'help.ctx.admin-notifications.bullet.3':
-    '「管理員 Webhook」、「管理員 Ntfy」和「通知」卡片：決定管理員事件（「有新版本可用」、「儲存複本故障」、「划槳區域申請」）送到哪裡，每個都有測試按鈕。',
-  'help.ctx.admin-mcp-tokens.title': 'MCP 存取',
+    '右側的「管理員通知」：「管理員 Webhook」和「管理員 Ntfy」各有一個測試按鈕，下方則決定每個管理員事件（「有新版本可用」、「儲存複本故障」、「划槳區域申請」）由哪個管道傳送。',
+  'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
     '所有使用者的 AI 用戶端在這個 TREK 上持有的每個權杖和 OAuth 工作階段。你可以撤銷其中任何一個。',
   'help.ctx.admin-mcp-tokens.bullet.1':
@@ -1347,10 +1383,11 @@ const help: TranslationStrings = {
   'help.guide.edit-user.goal': '重新命名使用者、升級或降級其角色，或在他們忘記密碼後協助他們重新登入。',
   'help.guide.edit-user.step.1': '點擊使用者那一列的鉛筆（「編輯使用者」）。對話方塊頂部會顯示該帳戶的電子郵件。',
   'help.guide.edit-user.step.2':
-    '修改「使用者名稱」、「郵箱」或「角色」，或輸入「新密碼」（留空則保留目前密碼），然後點擊「儲存」。底部的「重設 Passkey」在你確認後會移除該帳戶的所有 Passkey。',
+    '修改「使用者名稱」、「郵箱」或「角色」，或輸入「新密碼」（留空則保留目前密碼），然後點選「儲存」。下方的「重設 Passkey」會移除該帳戶的所有 Passkey，「重設雙因素驗證」則會關閉它的雙因素驗證，兩者都需要你確認後才會執行。',
   'help.guide.edit-user.result': '變更會立即生效。新密碼也會讓此人在所有裝置上登出，所以舊的工作階段會失效。',
   'help.guide.edit-user.tip.1': '只要你還是最後一位管理員，就無法移除自己的管理員角色。',
-  'help.guide.edit-user.tip.2': '重設 Passkey 不會影響密碼，對方可以到「設定」的「帳戶」新增新的 Passkey。',
+  'help.guide.edit-user.tip.2':
+    '重設 Passkey 或 2FA 都不會影響密碼。對方可以到「設定」的「帳戶」新增新的 Passkey；重設 2FA 後，對方會在所有地方被登出，之後可以重新設定。',
   // invite-links
   'help.guide.invite-links.title': '用連結邀請他人',
   'help.guide.invite-links.goal': '讓某人在封閉的實例上註冊，也可以視需要將對方加入某趟旅行。',
@@ -1427,23 +1464,28 @@ const help: TranslationStrings = {
   'help.guide.school-holiday-catalog.tip.1': '已被某人在其 Vacay 日曆中選用的地區無法刪除。',
   // auth-methods
   'help.guide.auth-methods.title': '決定登入方式',
-  'help.guide.auth-methods.goal': '開啟或關閉密碼登入、SSO 和註冊，並要求使用 2FA。',
+  'help.guide.auth-methods.goal': '開啟或關閉密碼登入、註冊、SSO 和 Passkey，並要求使用 2FA。',
   'help.guide.auth-methods.step.1':
-    '在「驗證方式」下，開啟或關閉「密碼登入」和「密碼註冊」，每個開關都會立即生效。關閉註冊後，新帳戶只能透過邀請連結、SSO 或「建立使用者」產生。',
+    '在「安全性」分頁的「驗證方式」下，開啟或關閉「密碼登入」和「密碼註冊」，每個開關都會立即生效。關閉註冊後，新帳戶只能透過邀請連結、SSO 或「建立使用者」產生。',
   'help.guide.auth-methods.step.2':
-    '「SSO Login」和「SSO Auto-Provisioning」需要先在下方設定「單點登入 (OIDC)」。自動佈建會在有人第一次透過 SSO 登入時建立帳號。',
+    '設定「單點登入 (OIDC)」之後，會多出三個 SSO 項目：「SSO 登入」、「SSO 自動建立帳戶」（會在有人第一次透過 SSO 登入時建立帳戶），以及「直接前往 SSO」。',
   'help.guide.auth-methods.step.3':
-    '開啟「要求雙因素身份驗證（2FA）」，讓所有尚未設定 2FA 的人必須先在「設定」中完成設定，才能使用 TREK。',
+    '「啟用 Passkey 登入」會在登入頁面提供 Passkey。開啟「要求 2FA」，讓所有尚未設定 2FA 的人必須先在「設定」中完成設定，才能使用 TREK。',
   'help.guide.auth-methods.result': '登入頁面只會提供你保持開啟的登入方式。',
   'help.guide.auth-methods.tip.1':
     'TREK 不會讓你關閉最後一種登入方式：它的開關會變灰，提示文字會顯示「至少要保留一種登入方式」。',
   'help.guide.auth-methods.tip.2': '伺服器設定了 OIDC_ONLY 時，密碼開關會被鎖定，並有說明提示。',
+  'help.guide.auth-methods.tip.3':
+    '「直接前往 SSO」只在「密碼登入」關閉時才有意義：開啟時，訪客會立刻前往你的身分提供者；關閉時，他們會先看到有 SSO 按鈕的登入頁面。',
   // oidc
   'help.guide.oidc.title': '設定單一登入',
   'help.guide.oidc.goal': '讓大家用你的身分提供者登入。',
   'help.guide.oidc.step.1':
-    '在「單點登入 (OIDC)」下，輸入按鈕的「顯示名稱」、「頒發者 URL」，以及來自你的供應商的「客戶端 ID」和「客戶端密鑰」。只有當你的供應商沒有在常用位址發布 Discovery URL 時（例如 Authentik），才填寫「Discovery URL（選填）」。點擊「儲存」。',
-  'help.guide.oidc.step.2': '在「Authentication Methods」下開啟「SSO Login」。',
+    '在「安全性」分頁的「單點登入 (OIDC)」下，輸入按鈕的「顯示名稱」、「頒發者 URL」，以及來自你的供應商的「客戶端 ID」和「客戶端密鑰」。只有當你的供應商沒有在常用位址發布 Discovery URL 時（例如 Authentik），才填寫「Discovery URL（選填）」。點選「儲存」。',
+  'help.guide.oidc.step.2':
+    '重新載入頁面。卡片現在會顯示「已配置」，「驗證方式」中也會出現「SSO 登入」、「SSO 自動建立帳戶」和「直接前往 SSO」。開啟「SSO 登入」。',
+  'help.guide.oidc.step.3':
+    '若要讓 SSO 成為唯一的登入方式，請關閉「密碼登入」。開啟「直接前往 SSO」時，訪客會立刻前往你的提供者；關閉它則會保留有 SSO 按鈕的登入頁面。',
   'help.guide.oidc.result':
     '登入頁面會顯示 SSO 按鈕；開啟「SSO Auto-Provisioning」後，首次登入的使用者會自動取得帳號。',
   'help.guide.oidc.tip.1': '你的提供者需要的重新導向 URI，是你的 TREK 位址加上文件中的 OIDC 回呼路徑。',
@@ -1452,9 +1494,9 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.title': '輸入 API 金鑰',
   'help.guide.instance-keys.goal': '為整個執行個體加入 Google 照片和評分、Unsplash 封面，以及高德地圖搜尋。',
   'help.guide.instance-keys.step.1':
-    '在「API 金鑰」下，最上面的 TREK Places API 不需要金鑰就能處理地點搜尋。「裡面有什麼」會列出它涵蓋與不涵蓋的內容。',
+    '在「服務」分頁的地點搜尋與路線卡片中，最前面是 TREK API，標示為「推薦的預設來源」。它不需要金鑰就能處理地點搜尋、地址和路線規劃，「今日額度」會顯示今天還剩多少。',
   'help.guide.instance-keys.step.2':
-    '若要使用照片、評分和營業時間，請貼上「Google Maps API 金鑰」並點擊「測試」，結果會顯示「已連線」或「無效」。開啟「該金鑰的用途」，只打開你願意付費的項目：「地點照片」、「地點自動補全」、「地點詳情」、「地點資訊補充」和「僅使用 Google 搜尋」，另外還可以設定「Google 呼叫每日上限」。',
+    '若要使用照片、評分和營業時間，請在「API 金鑰」下貼上「Google Maps API 金鑰」並點選「測試」，結果會顯示「已連線」或「無效」。在「該金鑰的用途」下，只打開你願意付費的項目：「地點照片」、「地點自動補全」、「地點詳情」、「地點資訊補充」和「僅使用 Google 搜尋」，另外還可以設定「Google 呼叫每日上限」。',
   'help.guide.instance-keys.step.3':
     '貼上用於搜尋封面的「Unsplash API 金鑰」，以及用於中國大陸地點搜尋的「高德地圖 API Key」，然後點擊卡片底部的「儲存」。',
   'help.guide.instance-keys.result':
@@ -1468,7 +1510,7 @@ const help: TranslationStrings = {
   'help.guide.places-transit.title': '選擇搜尋與大眾運輸的提供商',
   'help.guide.places-transit.goal': '選擇由哪個服務來回應地點搜尋和大眾運輸路線的請求。',
   'help.guide.places-transit.step.1':
-    '在「公共運輸資料來源」下，選擇「Transitous（免費）」（不需金鑰，在歐洲表現最佳），或使用 Google 金鑰的 Google。選擇會立即儲存。',
+    '在「服務」分頁的地點搜尋與路線卡片中，於「公共運輸資料來源」下選擇：「Transitous（免費）」（不需金鑰，在歐洲表現最佳），或使用 Google 金鑰的 Google。選擇會立即儲存。',
   'help.guide.places-transit.step.2':
     '在「地點搜尋來源」下，選擇當 TREK 索引和 OpenStreetMap 都找不到時要詢問誰：「自動」（有金鑰時用 Google，其次是高德地圖）、Google Places、高德地圖或 OpenStreetMap。',
   'help.guide.places-transit.result': 'TREK 中的每個搜尋框和每條大眾運輸路線，都會使用這個選擇。',
@@ -1479,15 +1521,16 @@ const help: TranslationStrings = {
   'help.guide.file-types.title': '限制檔案類型',
   'help.guide.file-types.goal': '決定上傳檔案可以使用哪些副檔名。',
   'help.guide.file-types.step.1':
-    '在「允許的檔案型別」下，編輯以逗號分隔的副檔名列表，或輸入 * 以允許所有類型，然後點擊「儲存」。',
+    '在「服務」分頁的「允許的檔案型別」下，編輯以逗號分隔的副檔名列表，或輸入 * 以允許所有類型，然後點選「儲存」。',
   'help.guide.file-types.result': '上傳其他類型的檔案時會被拒絕，並顯示清楚的訊息，不論是在文件、日誌或封面中都一樣。',
   'help.guide.file-types.tip.1': '請保留圖片類型：封面和旅程照片會依同一份清單檢查。',
   // toggle-addon
   'help.guide.toggle-addon.title': '開啟或關閉擴充套件',
   'help.guide.toggle-addon.goal': '讓所有人都能使用某個功能模組，或將它移除。',
-  'help.guide.toggle-addon.step.1': '點選擴充套件圖塊上的開關。導覽列中的項目會立即對所有人顯示或隱藏。',
+  'help.guide.toggle-addon.step.1':
+    '在「旅行」、「全域性」或「整合」卡片中找到該擴充套件，點選它那一列的開關。導覽列中的項目會立即對所有人顯示或隱藏。',
   'help.guide.toggle-addon.step.2':
-    '有些圖塊有選項的子列，例如「行李」下的「行李追蹤」，或「旅程」下的相片提供者，這些子列只有在擴充套件開啟時才會顯示。',
+    '擴充套件開啟時，它的選項會以縮排的列接在後面，例如「行李」下的「行李追蹤」，或「旅程」下的相片來源。「旅行」卡片底部的「即時航班狀態」會即時追蹤已預訂的航班。',
   'help.guide.toggle-addon.result': '關閉擴充套件時，它的資料會保留。重新開啟後，資料就會再次出現。',
   'help.guide.toggle-addon.tip.1': '關閉 MCP 會移除端點，以及依賴它的「整合」區段。',
   'help.guide.toggle-addon.tip.2':
@@ -1496,11 +1539,11 @@ const help: TranslationStrings = {
   'help.guide.install-plugin.title': '安裝外掛',
   'help.guide.install-plugin.goal': '新增第三方外掛，並只授予它所申請的權限。',
   'help.guide.install-plugin.step.1':
-    '開啟「探索」，用「搜尋外掛…」或「型別」篩選器找到外掛，然後點擊「安裝」。如果是套件檔案，請點擊「上傳外掛」（卡片右上角的雲端圖示），或把 .zip 檔拖放到頁面上。',
+    '開啟「探索」，用「搜尋外掛…」或「篩選」找到外掛，然後點選「安裝」。如果是套件檔案，請點選「上傳外掛」（卡片右上角的雲端圖示），或把 .zip 檔拖放到頁面上。',
   'help.guide.install-plugin.step.2':
     '在「已安裝」下查看該列：外掛可存取什麼、它連線的主機，以及它是否「已審核」和「已簽署」。接著開啟「啟用外掛」，該列會顯示「有效」。',
   'help.guide.install-plugin.step.3':
-    '該列的 ⋯ 選單提供「重新啟動」、「檢視錯誤日誌」、「允許的主機」和「更換版本…」，以及原始碼的連結。「刪除」會解除安裝外掛並刪除其資料。有較新的版本時，該列會顯示更新提示；要求新權限的版本，在你核准之前會維持關閉。',
+    '該列的 ⋯ 選單提供「重新啟動」、外掛有設定時的「執行個體設定」、「檢視錯誤日誌」、「允許的主機」和「更換版本…」，以及原始碼的連結。「刪除」會解除安裝外掛並刪除其資料。有較新的版本時，該列會顯示更新提示；要求新權限的版本，在你核准之前會維持關閉。',
   'help.guide.install-plugin.result':
     '外掛會在自己的程序中執行。它新增的內容，例如小工具、地圖圖層或工具，會出現在外掛指定的位置。',
   'help.guide.install-plugin.tip.1': '「重新掃描」可以找到為了開發而連結、但沒有套件的外掛資料夾。',
@@ -1513,7 +1556,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     '在「分類」下，將每種上傳類型指派給一個後端，例如「行程文件」、「旅程相片」或「備份」。',
   'help.guide.storage-backends.step.3':
-    '點擊底部的「儲存變更」。如果某個分類現在改指向別處，TREK 會詢問要「移動現有物件」還是「僅路由新寫入」。',
+    '點選「分類」底部的「儲存變更」。如果某個分類現在改指向別處，TREK 會詢問要「移動現有物件」還是「僅路由新寫入」。',
   'help.guide.storage-backends.result':
     '新的上傳會存到指派的後端。已移動的檔案從新位置提供，你選擇不移動的檔案則留在原處。',
   'help.guide.storage-backends.tip.1': '透過環境變數設定的後端會顯示出來，但無法在這裡編輯。',
@@ -1523,10 +1566,10 @@ const help: TranslationStrings = {
   'help.guide.channels-instance.title': '設定通知管道',
   'help.guide.channels-instance.goal': '決定使用者可以選擇哪些管道，並設定電子郵件。',
   'help.guide.channels-instance.step.1':
-    '在其卡片標題中開啟「電子郵件 (SMTP)」，輸入 SMTP Host、SMTP Port、SMTP User、SMTP Password 和寄件地址，然後點擊「儲存」。「傳送測試郵件」會寄一封信給你。「略過 TLS 憑證檢查」只適用於使用自有憑證的本機郵件伺服器。',
+    '在「管道」卡片中，開啟「電子郵件 (SMTP)」。在下方的「電子郵件 (SMTP)」區塊中，輸入 SMTP Host、SMTP Port、SMTP User、SMTP Password 和寄件地址，然後點選「儲存」。「傳送測試郵件」會寄一封信給你。「略過 TLS 憑證檢查」只適用於使用自有憑證的本機郵件伺服器。',
   'help.guide.channels-instance.step.2':
-    '開啟 Webhook、Ntfy 和「Web 推播」以供使用者選用。使用者隨後可在「設定」的「通知」中輸入自己的 URL 或主題，或為每台裝置開啟推播。',
-  'help.guide.channels-instance.step.3': '「行程提醒」開關控制旅行開始前的提醒；「應用程式內通知」一律開啟。',
+    '在同一張卡片中開啟 Webhook、Ntfy 和「Web 推播」以供使用者選用。使用者隨後可在「設定」的「通知」中輸入自己的 URL 或主題，或為每台裝置開啟推播。',
+  'help.guide.channels-instance.step.3': '最後一列的「行程提醒」控制旅行開始前的提醒；「應用程式內」一律開啟。',
   'help.guide.channels-instance.result': '每位使用者的「通知」分頁，都會顯示你開啟的管道。',
   'help.guide.channels-instance.tip.1':
     '「管理員 Ntfy」卡片中的「Ntfy 伺服器 URL」，同時也是使用者的預設伺服器。使用者仍可自行指定伺服器。',
@@ -1535,7 +1578,7 @@ const help: TranslationStrings = {
   'help.guide.admin-channels.title': '在手機上接收管理員事件',
   'help.guide.admin-channels.goal': '接收新版本、儲存鏡像失敗和划槳區域申請的通知。',
   'help.guide.admin-channels.step.1':
-    '在「管理員 Ntfy」下，輸入「管理員主題」，必要時再填入「Ntfy 伺服器 URL」和「存取權杖（選填）」。在「管理員 Webhook」下輸入 URL。每張卡片都要點擊「儲存」。',
+    '在「管理員通知」卡片中，於「管理員 Webhook」下輸入 URL，並點選它的「儲存」。在「管理員 Ntfy」下，輸入「管理員主題」，必要時再填入「Ntfy 伺服器 URL」和「存取權杖（選填）」，然後點選「儲存」。',
   'help.guide.admin-channels.step.2': '點選「傳送測試 Ntfy」或「傳送測試 Webhook」，確認訊息有送達。',
   'help.guide.admin-channels.result':
     '管理員事件會送達應用程式內的每位管理員，如果你開啟了，也會送到管理員的 ntfy 主題和 Webhook。',
@@ -1606,6 +1649,60 @@ const help: TranslationStrings = {
     '這裡只決定是否提供某個儲存服務。位址和憑證屬於個別旅行，由旅行所有者在該旅行的「檔案」分頁中輸入，絕不會在管理面板中輸入。',
   'help.guide.document-providers.tip.2':
     '關閉「文件」時，所有儲存庫也會一併關閉，而且「文件」關閉期間無法開啟任何儲存庫：伺服器會回應「Enable the Documents addon first」。位於你自己網路內的儲存庫，還需要在伺服器上設定 ALLOW_INTERNAL_NETWORK=true。',
+  'help.guide.mail-import-setup.title': '設定預訂郵件匯入',
+  'help.guide.mail-import-setup.goal': '為每個人提供一個轉寄地址，讓他們轉寄的預訂確認信變成正確旅行中的預訂。',
+  'help.guide.mail-import-setup.step.1':
+    '在「擴充套件」分頁的「整合」卡片中，開啟「預訂郵件匯入」。這個 TREK 上的每個人現在都會得到一個專屬的轉寄地址。',
+  'help.guide.mail-import-setup.step.2': '點選它下方出現的「設定郵件匯入」。',
+  'help.guide.mail-import-setup.step.3':
+    '在「郵件送達方式」中選擇「IMAP 信箱」，並填入「伺服器」、「連接埠」、「加密」、「使用者」、「密碼」和「資料夾」。如果使用會把每封郵件傳送給 TREK 的郵件服務，請改選 Webhook；只想在沒有信箱的情況下試用，則選「僅上傳」。接著設定「地址範本」（轉寄地址，其中用佔位符表示每個人的代碼），以及「每人每天的 AI 郵件數」。',
+  'help.guide.mail-import-setup.step.4':
+    '點選「儲存」，再點選「測試連線」；畫面會顯示「已連線」或失敗原因。下方會顯示 TREK 上次讀取郵件的時間，以及過去 24 小時的郵件：「自動加入」、「等待中」和「失敗」。',
+  'help.guide.mail-import-setup.result':
+    '每個人都能在「設定」的「整合」中找到自己的轉寄地址。轉寄的確認信會變成正確旅行中的預訂，或是留在那裡等它的主人查看。',
+  'help.guide.mail-import-setup.tip.1':
+    '請給 TREK 一個專用的信箱，且支援加號地址（trek+…@你的網域），不要用個人信箱。讀過的郵件會移到資料夾 TREK/processed。',
+  'help.guide.mail-import-setup.tip.2':
+    '以 MAIL_INGEST_ 開頭的環境變數優先於對話框中的欄位。如果郵件伺服器在你自己的網路中，伺服器上也需要設定 ALLOW_INTERNAL_NETWORK=true。',
+  'help.guide.mail-import-setup.tip.3':
+    '「每人每天的 AI 郵件數」限制 AI 每天為每個人讀取多少封沒有機器可讀預訂資料的郵件。超過上限後，只會讀取機器可讀的資料。',
+  'help.guide.ai-setup.title': '設定 AI 助理',
+  'help.guide.ai-setup.goal': '只要連結一次 AI 服務商，這個 TREK 上的所有人都能使用助理規劃旅行。',
+  'help.guide.ai-setup.step.1':
+    '在「擴充套件」分頁的「整合」卡片中找到 AI 項目，開啟「AI 助理」。AI 解析和 MCP 也在同一個項目裡。',
+  'help.guide.ai-setup.step.2': '點選「設定 AI」，它會出現在開關下方。',
+  'help.guide.ai-setup.step.3':
+    '在「由誰付費」下選擇由誰提供連結：「我付費，也允許自備」、「我替所有人付費」或「每個人使用自己的帳號」。下方一行會說明你的選擇代表什麼。',
+  'help.guide.ai-setup.step.4':
+    '在「所有人共用的連結」下選擇「貼上 API 金鑰」，並貼上 Anthropic、OpenAI、Gemini 或 OpenRouter 的金鑰。TREK 會顯示偵測到的服務商。點選「連結」，TREK 會先向服務商確認金鑰，才會儲存。',
+  'help.guide.ai-setup.step.5':
+    '連結會顯示為「已連線」。選擇所有人聊天時使用的「模型」，清單中只會列出可使用工具的模型。「變更」和「移除連結」就在下方。',
+  'help.guide.ai-setup.step.6':
+    '在「AI 助理」分頁中，設定由你付費時「每人每天的訊息數」、「保留對話」的時間，以及是否允許「網頁搜尋」。每項變更都會立即儲存。',
+  'help.guide.ai-setup.result':
+    '每趟旅行中都會出現助理按鈕。如果你允許，大家也可以在「設定」的「整合」中連結自己的服務商。',
+  'help.guide.ai-setup.tip.1':
+    '「自有伺服器」可使用任何相容 OpenAI 的位址，例如 Ollama，並可選填金鑰和模型名稱。「使用 ChatGPT 登入」會把你自己的 ChatGPT 方案分享給所有人，請先確認你的方案允許這樣做。',
+  'help.guide.ai-setup.tip.2': '選擇「每個人使用自己的帳號」時，不會向你收取任何費用，每日上限也不適用。',
+  'help.guide.ai-setup.tip.3':
+    'AI 解析會用同一個連結讀取預訂。在項目中開啟它即可；對話框裡它自己的分頁，則可以讓它改用另一個連結。',
+  'help.guide.ai-setup.tip.4':
+    '網頁搜尋支援 ChatGPT、Anthropic 和 OpenRouter，使用服務商自己的搜尋功能，搜尋內容只會傳送給該服務商。',
+  'help.guide.paddle-water-data.title': '載入划槳遊程的水域資料',
+  'help.guide.paddle-water-data.goal': '為划槳遊程提供某個地區的堰、船閘和划船規則，並決定 TREK 是否自動載入新地區。',
+  'help.guide.paddle-water-data.step.1':
+    '在「擴充套件」分頁中，「遊程」開啟的情況下，點選「遊程」下最後一列的「划槳水域資料」。旁邊的數字代表地區數量，或是等你處理的申請數量。',
+  'help.guide.paddle-water-data.step.2':
+    '在「自動載入區域」中選擇「自動」、「依申請」或「關閉」。「自動」會載入有人規劃划槳遊程的地區，大小上限為「自動載入的最大區域」；更大的區域會留在「已申請」，由你按「載入」讀取，或按「拒絕」捨棄。',
+  'help.guide.paddle-water-data.step.3':
+    '在「新增區域」中搜尋 Geofabrik 上的地區，例如 Oberpfalz，然後點選旁邊的「新增」。TREK 會在背景讀取；狀態變成「就緒」後，該列會顯示物件數量、資料日期和水域公里數。「重新讀取」會更新資料，「移除區域」則會將它刪除。',
+  'help.guide.paddle-water-data.result':
+    '區域內的划槳遊程會顯示障礙物並沿著水域前進，TREK 每個月會重新讀取所有區域一次。',
+  'help.guide.paddle-water-data.tip.1': '只有地區名稱會傳送給 Geofabrik，絕不會傳送任何人規劃的地點。',
+  'help.guide.paddle-water-data.tip.2':
+    '讀取一個區域需要幾分鐘，而且過程中會占用記憶體；整個國家則需要數 GB 的暫存空間。',
+  'help.guide.paddle-water-data.tip.3':
+    '有申請在等待時，管理員會收到「划槳區域申請」通知。你可以在「通知」分頁的「管理員通知」中選擇要送到哪裡。',
 
   // ── Screen: trip ──────────────────────────────────────────────────────────────────────
   'help.ctx.trip.title': '旅行',
@@ -1616,9 +1713,9 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.2':
     '「計畫」分為三欄：左邊是天數，中間是地圖，右邊是地點。啟用公路旅行擴充套件後，天數欄的開頭會有「天數」和「公路旅行」的切換；啟用遊程擴充套件後，地點欄的開頭會有「地點」和「遊程」。預訂和交通都在計畫裡面，位於停靠點上和停靠點之間；分頁則將它們列成清單。',
   'help.ctx.trip.bullet.3':
-    '「旅行設定」是左上角旅行名稱旁的標籤，會開啟旅行的設定：「成員」（成員和訪客）、「分享中」（唯讀的公開連結和邀請連結）以及「日誌」。',
+    '「旅行設定」是左上角旅行名稱旁的標籤，會開啟旅行的設定：「成員」（成員和訪客）、「分享中」（唯讀的公開連結和邀請連結）、「日誌」、供旅行擁有者使用的「擴充套件」，以及「編輯旅行」。',
   'help.ctx.trip.bullet.4':
-    '標題、日期、封面和貨幣在「我的旅行」中用旅行卡片上的鉛筆編輯。左上角的旅行名稱會帶你回到那裡。',
+    '「旅行設定」中的「編輯旅行」可變更標題、描述、日期、封面和貨幣；在「我的旅行」中，旅行卡片上的鉛筆會開啟同一個表單。左上角的旅行名稱會帶你回到「我的旅行」。',
   'help.ctx.trip.bullet.5':
     '欄位內側邊緣的分頁標籤可以收合該欄，地圖會使用騰出的空間。收合的欄位會在地圖頂角留下一個小方塊，點擊即可再次顯示。拖曳欄位旁的細分隔線可調整欄寬。',
   'help.ctx.trip.bullet.6': '天數工具列中的復原箭頭可以一步一步復原你最近對計畫所做的變更。',
@@ -1658,9 +1755,9 @@ const help: TranslationStrings = {
   'help.guide.public-link.goal': '讓不該編輯旅行的人也能看到旅行內容。',
   'help.guide.public-link.step.1': '點擊旅行名稱旁的「旅行設定」，然後在左側選擇「分享中」。',
   'help.guide.public-link.step.2':
-    '在「公開連結」卡片中，開啟連結可以顯示的內容。「地圖與計劃」一律開啟，「預訂」、「行李」、「費用」和「聊天」由你決定。',
+    '在「公開連結」卡片的「選項」下，開啟連結可以顯示的內容。「地圖與計劃」一律開啟，「預訂」、「行李」、「費用」和「聊天」由你決定。',
   'help.guide.public-link.step.3':
-    '在「選項」下，「僅交通與住宿」只會略過活動、每日筆記和空白的日子，「不含照片」則略過地點照片。',
+    '最後兩個標籤會改變連結顯示旅行的方式：「僅交通與住宿」只會略過活動、每日筆記和空白的日子，「不含照片」則略過地點照片。',
   'help.guide.public-link.result': '任何拿到連結的人都不用登入，就能看到你選的部分，而且無法更動任何內容。',
   'help.guide.public-link.tip.1': '這個連結不會公開列出，但任何拿到連結的人都能開啟。請像保管密碼一樣保管它。',
   'help.guide.public-link.tip.2': '如果要給予編輯權限，請改為把對方新增為成員。',
@@ -1696,6 +1793,27 @@ const help: TranslationStrings = {
     '復原涵蓋計畫：新增、指派、移除、重新排序、移動和鎖定地點、清空一天、最佳化路線、刪除地點、分類變更和匯入。',
   'help.guide.undo-change.tip.2':
     '再點一次可繼續往回復原：TREK 會保留你在這趟旅行最近的 30 次變更（最新的在前），直到你離開旅行為止。',
+  'help.guide.trip-assistant.title': '和助理一起規劃',
+  'help.guide.trip-assistant.goal': '向助理詢問你的旅行，並讓它把建議的內容加入行程。',
+  'help.guide.trip-assistant.step.1': '點選規劃頁面右下角帶有閃光圖示的圓形按鈕。助理會在地圖上方的小視窗中開啟。',
+  'help.guide.trip-assistant.step.2':
+    '在底部的輸入框輸入問題，例如某天要去哪裡吃晚餐，再點選箭頭送出。你也可以直接點選建議的問題。',
+  'help.guide.trip-assistant.step.3':
+    '助理的回答會參考你的行程。它建議的變更會先放在一張卡片裡，顯示要加入什麼、加到哪一天。點選「套用」就會採用，點選「捨棄」則維持原本的行程。',
+  'help.guide.trip-assistant.step.4':
+    '想讓旅行中的所有人看到這則回答，請點選回答下方的分享圖示。游標停在上面會顯示「分享到行程聊天室」。',
+  'help.guide.trip-assistant.step.5': '確認訊息會以怎樣的樣子送出，包含你已套用的變更，然後點選「分享」。',
+  'help.guide.trip-assistant.result': '地點已經加到行程中對應的那一天，回答也會出現在行程聊天室，並標示為來自助理。',
+  'help.guide.trip-assistant.tip.1':
+    '點選「套用」之前，行程不會有任何變動。套用後的一段時間內，變更旁的箭頭可以復原它，卡片中的「修改前」和「修改後」則會顯示地圖原本與現在的樣子。',
+  'help.guide.trip-assistant.tip.2':
+    '回答下方，助理會提供接下來可以問的問題。在輸入框中輸入 @ 可以指定某一天、某個地點或某筆預訂，也可以把預訂確認信拖曳到視窗上，讓助理讀取。',
+  'help.guide.trip-assistant.tip.3':
+    '按 Ctrl+K（Mac 上為 ⌘K）可以開啟或關閉視窗。拖曳視窗頂部可以移動，拉動邊緣可以調整大小。關閉後對話仍會保留，頂部的「最近的對話」可以找回先前的對話。',
+  'help.guide.trip-assistant.tip.4':
+    '「行程備忘」就是頂部的筆記本圖示，用來記下助理在這趟旅行的每項建議中都該留意的事，例如預算或悠閒的步調。',
+  'help.guide.trip-assistant.tip.5':
+    '必須先設定好 AI 連結，才會顯示這個按鈕，可以由管理員為所有人設定，也可以由你在「設定」的「整合」中設定。你的訊息和助理讀取的旅行資料，都會傳送給該服務商。',
   'help.guide.clear-day.title': '清空某一天',
   'help.guide.clear-day.goal': '一次移除某一天的所有地點，例如想從頭重新規劃那一天。',
   'help.guide.clear-day.step.1': '在計畫中，對當天的標題按右鍵。',
@@ -1713,9 +1831,9 @@ const help: TranslationStrings = {
   'help.ctx.trip-places.bullet.2':
     '「新增地點/活動」會開啟表單，讓你搜尋或手動輸入地點。展開某一天時，按鈕會變成「新地點」，旁邊的「加入當天」則直接在那一天建立地點。',
   'help.ctx.trip-places.bullet.3':
-    '旁邊的圖示按鈕「匯入地點」提供「列表匯入」，可用於從 Google 地圖或 Naver Maps 分享的清單。如果管理員已關閉遊程擴充套件，它還提供「匯入檔案」，支援 .gpx、.kml 和 .kmz 檔案，檔案也可以直接拖放到這一欄。',
+    '旁邊的圖示按鈕「匯入地點」提供「匯入檔案」（支援 .gpx、.kml 和 .kmz 檔案），以及「列表匯入」（用於從 Google Maps 或 Naver Maps 分享的清單）。檔案也可以直接拖放到這一欄。開啟遊程後，含有路線或軌跡的檔案會開啟遊程匯入，可以把其中的單一點位匯入為地點。',
   'help.ctx.trip-places.bullet.4':
-    '下方是「搜尋」，它也會搜尋描述和筆記，旁邊是「選擇」勾選框。再下一列是篩選器：「顯示」可切換「全部」、「未規劃」和「計畫」，每項都附數量。標籤按鈕依分類篩選，星星依最低評分篩選，地球儀（當旅行跨越多個國家或地區時才有）依國家或地區篩選，「排序方式」則決定列表的順序。',
+    '下方是「搜尋」，它也會搜尋描述和筆記，旁邊是「選擇」勾選框。再下一列是篩選器：「顯示」可切換「全部」、「未規劃」和「計畫」，每項都附數量。標籤按鈕依分類和旅行的標籤篩選，星星依最低評分篩選，地球儀（當旅行跨越多個國家或地區時才有）依國家或地區篩選，「排序方式」則決定列表的順序。',
   'help.ctx.trip-places.bullet.5':
     '一列顯示圖片、名稱和描述或位址，有人評分後還有帶平均評分的星星。點擊它可查看地點的詳細資訊，拖到某一天上，或按右鍵（或點擊三個點「更多選項」）來使用「編輯」、「+ 天」、「開啟網站」、Google 地圖、「儲存到收藏」和「刪除」。',
   'help.ctx.trip-places.bullet.6':
@@ -1730,7 +1848,7 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.3':
     '在「地點詳細資料」中，點擊「選擇圖片」下的一張圖片，將它設為地點的圖片。「使用此文字」會把描述複製到表單中。',
   'help.guide.create-place.step.4':
-    '檢查表單中的內容。對話方塊標題中的名稱是唯一必填的欄位。下方的「分類」標籤可選擇旅行的其中一個分類，旁邊的 + 可建立新分類。「位址」、「緯度」和「經度」來自搜尋，或手動輸入。「描述」和「筆記」由你自己填寫。「網站」填入連結，「檔案」下的「附加」可加入文件，「電話」、「電子郵件」和「新增營業時間」則填入搜尋沒有查到的資料。',
+    '檢查表單中的內容。對話方塊標題中的名稱是唯一必填的欄位。下方的「分類」標籤可選擇旅行的其中一個分類，旁邊的 + 可建立新分類。「地址」、「緯度」和「經度」來自搜尋，或手動輸入。在「標籤」下，點選這個地點要帶有的標籤。「關於地點」和「筆記」可切換文字欄位，分別填寫說明和你自己的筆記。「網站」填入連結，「檔案」下的「附加」可加入文件，「電話」、「電子郵件」和「新增營業時間」則填入搜尋沒有查到的資料。',
   'help.guide.create-place.step.5':
     '點選「新增」。如果旅行中已經有同名或位置相同的地點，TREK 會顯示警告，按鈕也會變成「仍要新增」。',
   'help.guide.create-place.result': '地點會出現在清單和地圖上，在你把它排到某一天之前，會顯示在「未規劃」之下。',
@@ -1762,7 +1880,7 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.2':
     '在頂部的「搜尋」中輸入。列表會隨著輸入縮小範圍，依名稱、位址、描述和筆記搜尋；欄位中的 x 可清除。',
   'help.guide.filter-places.step.3':
-    '「顯示」旁的標籤按鈕會列出分類：勾選一個或多個，其中包含「無分類」。按鈕上會顯示勾選了多少個，列表底部的「清除篩選」可全部移除。',
+    '「顯示」旁的標籤按鈕會列出分類（其中包含「無分類」），並在「標籤」下列出旅行的標籤。勾選一個或多個。按鈕上會顯示勾選了多少個，列表底部的「清除篩選」可全部移除。',
   'help.guide.filter-places.step.4':
     '旁邊的星星設定最低評分：5+、4+ 等只保留平均評分至少達到該值的地點。沒有人評過分的地點會被排除。',
   'help.guide.filter-places.result': '「顯示」上的數字代表符合條件的地點數量，各項篩選條件可以組合使用。',
@@ -1776,10 +1894,11 @@ const help: TranslationStrings = {
   'help.guide.edit-place.step.1':
     '對該列按右鍵並選擇「編輯」，或點擊該列末端的「更多選項」，也可以開啟地點後，在詳細資訊中點擊「編輯」。',
   'help.guide.edit-place.step.2':
-    '在「編輯地點」中修改你需要的內容：對話方塊頂部的名稱和「分類」標籤、「位址」、「緯度」和「經度」、「描述」、「筆記」、「網站」、「電話」、「電子郵件」以及營業時間。當地點剛好只在一天，或你是從某一天開啟它時，表單還會有該天的「開始」、「結束」和「筆記」。',
+    '在「編輯地點」中修改你需要的內容：對話方塊頂部的名稱和「分類」標籤、「地址」、「緯度」和「經度」、「標籤」、「關於地點」和「筆記」下的文字、「網站」、「電話」、「電子郵件」以及營業時間。當地點剛好只在一天，或你是從某一天開啟它時，表單還會有「開始」和「結束」，以及第三個文字分頁（例如「僅第 2 天」），用來記下那一次造訪的備註。',
   'help.guide.edit-place.step.3': '點選「更新」。',
   'help.guide.edit-place.result': '變更會套用到該地點出現的所有位置：清單、地圖，以及它所在的每一天。',
-  'help.guide.edit-place.tip.1': '「當天備註」是屬於這個地點在那一天的備註，「備註」則是屬於地點本身。',
+  'help.guide.edit-place.tip.1':
+    '「僅第…天」下的備註屬於這個地點在那一天的內容，「關於地點」和「筆記」則屬於地點本身。',
   'help.guide.edit-place.tip.2':
     '「結束」早於「開始」時，無法按「更新」；「時間衝突：」則只是提醒當天另一個停留點的時間與它相同。',
   // delete-place
@@ -1807,21 +1926,20 @@ const help: TranslationStrings = {
     '「收藏」擴充套件開啟時，操作列中會出現「在清單中標記為已造訪」：它會在這些地點所屬的收藏中，把它們標記為已造訪。',
   // import-places-file
   'help.guide.import-places-file.title': '從 GPX、KML 或 KMZ 檔案匯入地點',
-  'help.guide.import-places-file.goal':
-    '在遊程擴充套件關閉時，把 Google My Maps、Google Earth 或 GPS 追蹤器匯出的圖釘和路徑，匯入為地點。',
+  'help.guide.import-places-file.goal': '把 Google My Maps、Google Earth 或 GPS 裝置匯出的圖釘，匯入為旅行的地點。',
   'help.guide.import-places-file.step.1':
-    '點擊新增按鈕旁邊的圖示按鈕「匯入地點」，選擇「匯入檔案」，或把檔案拖放到地點欄的任何位置。只有管理員關閉了遊程擴充套件，才會有這兩個選項。',
+    '點選新增按鈕旁邊的圖示按鈕「匯入地點」，選擇「匯入檔案」，然後選擇檔案。你也可以把檔案拖放到地點欄的任何位置。',
   'help.guide.import-places-file.step.2':
-    '選擇檔案，或將它拖進方框。對於 GPX，勾選要匯入的內容：「路點」、「路線」、「軌跡（含路徑幾何）」。對於 KML 和 KMZ，勾選「點（Placemarks）」和「路徑（LineStrings）」。',
+    '如果檔案含有路線或軌跡，就會開啟遊程匯入，因為遊程預設是開啟的，線條會變成遊程。「將點新增為地點」預設為開啟，會把檔案中的圖釘也匯入為旅行的地點。',
   'help.guide.import-places-file.step.3':
-    '方框一次可接受多個檔案，但只限 .gpx、.kml 和 .kmz。任何其他類型的檔案，或超過 10 MB 的檔案，都會在對話方塊中被拒絕且不會匯入。',
+    '只有圖釘的檔案，以及管理員關閉遊程時的所有檔案，會改為開啟「匯入檔案」。對於 GPX，勾選要匯入的內容：「路點」、「路線」、「軌跡（含路徑幾何）」。對於 KML 和 KMZ，勾選「點（Placemarks）」和「路徑（LineStrings）」。可接受最大 10 MB 的 .gpx、.kml 和 .kmz 檔案。',
   'help.guide.import-places-file.step.4':
     '點擊「匯入」。訊息會說明匯入了多少地點。對於 KML 或 KMZ 檔案，對話方塊會保持開啟，並顯示建立了什麼、略過了什麼的摘要。',
   'help.guide.import-places-file.result':
-    '地點已進入列表。軌跡在其列上帶有彩色線條，會繪製在地圖上，並有自己的「軌跡」篩選。',
+    '這些圖釘會成為旅行的地點，出現在列表和地圖上，在你把它們安排到某一天之前，會列在「未規劃」下。',
   'help.guide.import-places-file.tip.1':
     '檔案太大會被拒絕，TREK 也會顯示大小上限；請去掉照片後重新匯出，或把檔案拆開。',
-  'help.guide.import-places-file.tip.2': '你可以從天數上方的工具列復原整次匯入。',
+  'help.guide.import-places-file.tip.2': '在「匯入檔案」中完成的匯入，可以從天數上方的工具列復原。',
   // import-places-list
   'help.guide.import-places-list.title': '匯入共用的 Google Maps 或 Naver Maps 清單',
   'help.guide.import-places-list.goal': '從共用清單的連結匯入地點。',
@@ -1841,6 +1959,25 @@ const help: TranslationStrings = {
   'help.guide.sort-places.result': '清單會依你選的順序顯示地點，直到你改選其他順序為止。',
   'help.guide.sort-places.tip.1': '只要排序不是「最近新增」，按鈕就會醒目標示，讓你一眼看出清單的排序方式不同。',
   'help.guide.sort-places.tip.2': '排序只會改變列表，各天仍保持自己的順序，你的瀏覽器也會記住你選的排序方式。',
+  'help.guide.place-tags.title': '為地點加上標籤並依標籤篩選',
+  'help.guide.place-tags.goal':
+    '為地點加上「必去」或「雨天備案」之類的額外標籤，每個標籤各有自己的顏色，並只顯示帶有某個標籤的地點。',
+  'help.guide.place-tags.step.1':
+    '開啟地點的表單：從該列選單選擇「編輯」，或用「新地點」建立新的。在「標籤」下，旅行中的每個標籤都是一顆膠囊。點選標籤名稱即可套用到這個地點，打勾表示已套用。',
+  'help.guide.place-tags.step.2':
+    '要建立新標籤，請在「新增標籤」中輸入名稱，然後按 Enter 或欄位末端的 +。欄位開頭的圓點可以先選擇顏色。標籤會加入旅行並自動打勾。',
+  'help.guide.place-tags.step.3':
+    '點選標籤的顏色圓點即可換色：選一個色票，或開啟「自訂顏色」選擇專屬的顏色。標籤會立刻變色，對整趟旅行的所有人都生效。',
+  'help.guide.place-tags.step.4': '點選「更新」（新地點則是「新增」），儲存地點與它的標籤。',
+  'help.guide.place-tags.step.5':
+    '在地點欄中，「顯示」旁邊的標籤按鈕會在分類之後，於「標籤」下列出旅行的標籤。勾選其中一個，就只會顯示帶有該標籤的地點。',
+  'help.guide.place-tags.result':
+    '清單和地圖只會顯示帶有所勾選標籤的地點。點選清單底部的「清除篩選」，就會再次顯示所有地點。',
+  'help.guide.place-tags.tip.1':
+    '標籤不會改變標記：地圖上的圖示和顏色仍然是分類的。一個地點只有一個分類，但可以有任意數量的標籤。',
+  'help.guide.place-tags.tip.2':
+    '標籤屬於旅行，而不是你個人。每位成員看到的標籤都一樣，所有能編輯旅行地點的人都可以新增標籤並變更顏色。',
+  'help.guide.place-tags.tip.3': '同時勾選一個分類和一個標籤時，地點必須兩者都符合。勾選兩個標籤時，符合其中一個即可。',
   'help.guide.place-by-hand.title': '新增搜尋找不到的地點',
   'help.guide.place-by-hand.goal': '地點搜尋找不到結果時，自行輸入地點，包括電話、電子郵件和營業時間。',
   'help.guide.place-by-hand.step.1':
@@ -1848,7 +1985,7 @@ const help: TranslationStrings = {
   'help.guide.place-by-hand.step.2': '點選「手動新增」。你搜尋的文字會成為名稱，對話框也會捲動到聯絡資料欄位。',
   'help.guide.place-by-hand.step.3': '如果知道，就填入「電話」和「電子郵件」。',
   'help.guide.place-by-hand.step.4':
-    '點選「新增營業時間」，設定地點每天的開門和關門時間。複製按鈕會把第一天的時間套用到每一天，每天的開關則可以把那一天標示為「公休」。',
+    '點選「新增營業時間」，設定地點每天的開門和關門時間。複製按鈕會把第一天的時間套用到每一天，每天各有「24 小時營業」和「已關閉」的開關。',
   'help.guide.place-by-hand.step.5': '點選「新增」。',
   'help.guide.place-by-hand.result':
     '地點會加入清單。它的詳細資料會顯示你輸入的電話、電子郵件和營業時間，就和搜尋找到的地點一樣。',
@@ -1862,7 +1999,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-days.summary':
     '計畫的左欄：每天一張卡片，依序列出當天的停留點、備註、預訂和交通，以及停留點之間的路線。旅行真正是在這裡規劃的。',
   'help.ctx.trip-days.bullet.1':
-    '頂部的標題列：左側是「匯出」（PDF、日曆、GPX）；右側是復原箭頭、「展開所有天數」／「收合所有天數」、「重新排序日期」，以及在有預訂可繪製路線時出現的「顯示所有預訂路線」。',
+    '頂部的標題列：左側是「匯出」（PDF、日曆、GPX、KML）；右側是復原箭頭、「展開所有天數」／「收合所有天數」、「重新排序日期」，以及在有預訂可繪製路線時出現的「顯示所有預訂路線」。',
   'help.ctx.trip-days.bullet.2':
     '每日卡片：一個帶有天數和天氣預報的方塊、標題（命名之前為「第 1 天」）和日期，其下是住宿的標籤（入住日為綠色，退房日為紅色，尚未確認時為虛線；它的票券可開啟預訂）以及租車的標籤。點擊標題可開啟當天，箭頭可將它收合，+（「新增到當天」）會開啟選單：「新增地點到這一天」、「新增住宿」、「新增交通」、「大眾運輸」和「新增備註」。在標題上按右鍵可得到相同的選項，另外還有「清空當天」。',
   'help.ctx.trip-days.bullet.3':
@@ -1879,9 +2016,9 @@ const help: TranslationStrings = {
   'help.guide.read-day-plan.step.1':
     '標題區：一個顯示天數和天氣預報的方塊，接著是「第 1 天」或你取的標題，以及日期。下方有住宿的標籤（入住日為綠色，退房日為紅色，尚未確認時為虛線，標籤上的票券可開啟預訂）和租車。點擊標題區可展開當天（詳細資訊面板會在地圖上方開啟）。右側的 +（「新增到當天」）可新增地點、住宿、交通、大眾運輸接駁或筆記，箭頭則用來收合卡片。',
   'help.guide.read-day-plan.step.2':
-    '一個停靠點：它的圖片、分類圖示和名稱，有「開始」時間時會顯示時間，然後是描述；「當天備註」顯示在下方。將游標移到該列上，控制項就會出現：左邊的握把用來拖曳，圖片會變成鎖頭用於路線最佳化，右端則有箭頭（「上移」、「下移」）、「新增預訂」和三個點（「更多選項」）。',
+    '一個停靠點：它的圖片、分類圖示和名稱，有「開始」時間時會顯示時間，然後是描述；「當天備註」顯示在下方。將游標移到該列上，控制項就會出現：左邊的握把用來拖曳，右端則有箭頭（「上移」、「下移」）、「新增預訂」和三個點（「更多選項」）。把游標移到圖片上，它會變成鎖頭，用於路線最佳化。',
   'help.guide.read-day-plan.step.3':
-    '停靠點上的預訂會以「預訂」徽章的形式附在它上面，確認後為綠色，待確認時為琥珀色，附其時間和承運方；點擊徽章可開啟預訂，旁邊的路線按鈕會繪製它的路線。交通是獨立的一列，依類型著色，附其時間以及「出發日期」或「到達日期」。點擊預訂會開啟詳細資訊；在那裡的「編輯」可修改它。',
+    '停靠點上的預訂會以「預訂」徽章的形式附在它上面，確認後為綠色，待確認時為琥珀色，附其時間和承運方；點選徽章可開啟預訂，如果預訂有路線，旁邊的路線按鈕會把它畫在地圖上。交通是獨立的一列，依類型著色，附其時間以及「出發」或「到達」。點選預訂會開啟詳細資訊；在那裡的「編輯」可修改它。',
   'help.guide.read-day-plan.step.4':
     '開啟「路線」後，兩個停靠點之間的連接線會依當天的交通方式顯示該段需要多久、有多遠；點擊它可以只為那一段更改交通方式。',
   'help.guide.read-day-plan.step.5':
@@ -1916,7 +2053,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.2': '或者使用游標所在停靠點右端的箭頭（「上移」、「下移」）：每點一次移動一格。',
   'help.guide.reorder-stops.step.3': '把停留點拖到另一天的卡片上，就會移到那一天，原來那天就不再有這個停留點。',
   'help.guide.reorder-stops.step.4':
-    '有固定時間的停靠點，在移動會破壞當天順序時會詢問「移除時間？」，因為時間決定了它的位置：「確認」會移除時間並讓它去任何地方，「取消」則保持當天原樣。',
+    '有固定時間的停靠點，在移動會破壞當天順序時，TREK 會詢問「移除時間？」，因為時間決定了停靠點的位置。「移除時間並移動」會移除時間，並把停靠點放在你放開的位置。「取消」則保持當天原樣。',
   'help.guide.reorder-stops.result': '路線和行車時間會立即依新的順序更新。',
   'help.guide.reorder-stops.tip.1':
     '有固定時間的預訂會停在它的時間所對應的位置。如果你把它放到當天的其他位置，它會自動移回去。如果把它拖到另一天的卡片上，它就會移到那一天。',
@@ -1926,16 +2063,16 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.title': '為停留點設定時間',
   'help.guide.set-stop-times.goal': '設定停留點的開始和結束時間，讓這一天像一份行程時間表。',
   'help.guide.set-stop-times.step.1':
-    '在停留點上按右鍵，或點選它的三個點，然後選擇「編輯」。從當天開啟表單時，位置欄正下方就有該天的「開始」和「結束」。',
+    '在停靠點上按右鍵，或點選它的三個點，然後選擇「編輯」。從當天開啟表單時，在位置和標籤的下方就有該天的「開始」和「結束」。',
   'help.guide.set-stop-times.step.2':
     '填寫「開始」，需要的話也填寫「結束」。「時間衝突：」會提醒你，當天另一個有時間的停留點與它重疊。「結束」早於「開始」時，無法按「更新」。',
   'help.guide.set-stop-times.step.3': '點選「更新」。停留點會出現時間標籤，並依時間移到當天正確的位置。',
   'help.guide.set-stop-times.result': '有設定時間的停留點會維持在順序中的位置，沒有時間的停留點則排在它們前後。',
   'help.guide.set-stop-times.tip.1': '時間是屬於那一天的停留點；同一個地點在另一天可以設定不同的時間。',
   'help.guide.set-stop-times.tip.2':
-    '要手動移動有時間的停留點，請直接拖曳它。TREK 會詢問「移除時間？」，按下「確認」後，時間就會被移除。',
+    '要手動移動有時間的停靠點，請直接拖曳它。TREK 會詢問「移除時間？」，「移除時間並移動」會把時間拿掉並移動它。',
   'help.guide.set-stop-times.tip.3':
-    '同一個表單中的「當天備註」，適合記錄只適用於這一天的資訊，例如餐廳訂位或票券編號。',
+    '同一個表單中，「關於地點」和「筆記」旁邊的「僅當天」分頁，適合記錄只適用於這一天的備註，例如餐廳訂位或票券編號。',
   // remove-from-day
   'help.guide.remove-from-day.title': '從某一天移除停留點',
   'help.guide.remove-from-day.goal': '從某一天移除地點，但不從旅行中刪除。',
@@ -1950,7 +2087,7 @@ const help: TranslationStrings = {
   'help.guide.lock-stop.goal': '最佳化路線時，讓停留點維持原本的位置。',
   'help.guide.lock-stop.step.1': '將滑鼠移到停留點的圖片上，點選鎖頭：「路線最佳化時保持位置」。',
   'help.guide.lock-stop.step.2': '接著「最佳化」會圍繞它排序其他停留點。再點一次鎖頭（「點選解鎖」）即可解鎖。',
-  'help.guide.lock-stop.result': '圖片上會顯示鎖頭；在你解除鎖定之前，這個停留點的位置都不會變動。',
+  'help.guide.lock-stop.result': '鎖頭會留在圖片上，該列也會帶有底色；在你解除鎖定之前，這個停靠點的位置都不會變動。',
   'help.guide.lock-stop.tip.1': '有固定時間的停留點會被它的時間鎖定，最佳化時不會被移動。',
   'help.guide.lock-stop.tip.2':
     '鎖定只維持到你重新載入頁面為止。重新載入後，所有停留點都會解除鎖定，只有設有時間的停留點仍然固定。',
@@ -1987,7 +2124,7 @@ const help: TranslationStrings = {
   'help.guide.manage-days.title': '新增、重新排序與重新命名天數',
   'help.guide.manage-days.goal': '調整天數本身，而不只是各天裡的地點。',
   'help.guide.manage-days.step.1':
-    '天數來自旅行的日期；在儀表板上旅行的編輯表單中修改日期，兩端就會新增或移除天數。在移除有內容的日子之前，會有一份清單說明哪幾天會被移除以及上面有什麼。',
+    '天數來自旅行的日期。在規劃頁面頂端的「旅行設定」中，於「編輯旅行」下修改日期（或用儀表板上旅行卡片的鉛筆），兩端就會新增或移除天數。在移除有內容的日子之前，會有一份清單說明哪幾天會被移除以及上面有什麼。',
   'help.guide.manage-days.step.2':
     '標題列中的「重新排序日期」會開啟一份列表：拖曳握把移動某一天，或使用「上移」和「下移」，這一天會連同它的地點、備註和預訂一起移動。列表下方，「新增」搭配下一個日期會在最後一個有日期的日子後加一天，並將旅行延長一天；「無日期」則附加一個沒有日期的日子。沒有日期的旅行只有「新增日期」。',
   'help.guide.manage-days.step.3':
@@ -2004,7 +2141,7 @@ const help: TranslationStrings = {
   'help.guide.bookings-in-plan.title': '看懂行程中的預訂與交通',
   'help.guide.bookings-in-plan.goal': '了解預訂建立之後會出現在哪裡，以及要從哪個畫面建立。',
   'help.guide.bookings-in-plan.step.1':
-    '交通（航班、火車、渡輪、公車、汽車）是依類型上色的一列，標有時間，並在出發當天顯示「出發日期」、抵達當天顯示「到達日期」。旁邊的地球儀標示時區，有中途停留的航班，每一段各佔一列。大眾運輸接駁可點擊箭頭展開路線。點擊某一列會開啟預訂，在那裡點擊「編輯」即可修改。',
+    '交通（航班、火車、渡輪、公車、汽車）是依類型上色的一列，標有時間，並在出發當天顯示「出發」、抵達當天顯示「到達」。如果預訂有時區，時間旁的地球儀在游標移上去時會顯示時區名稱，有中途停留的航班，每一段各佔一列。航班飛行期間，若已開啟即時航班狀態，下方會用一行說明目前的狀況，包括延誤。大眾運輸接駁可點選箭頭展開路線。點選某一列會開啟預訂，在那裡點選「編輯」即可修改。',
   'help.guide.bookings-in-plan.step.2':
     '連結到停留點的預訂（餐廳、旅遊團）會在該停留點上顯示為「預訂」標籤，並附上時間。已確認時是綠色，待確認時是琥珀色。有日期但沒有停留點的預訂，在當天會自成一列。',
   'help.guide.bookings-in-plan.step.3':
@@ -2020,14 +2157,16 @@ const help: TranslationStrings = {
     '如果你把有時間的預訂放到當天的其他位置，它會移回自己的時間所對應的位置。如果把它拖到另一天的卡片上，它就會移到那一天。要更改時間，請編輯該預訂。',
   // export-plan
   'help.guide.export-plan.title': '匯出計畫',
-  'help.guide.export-plan.goal': '把計畫匯出成文件、匯入行事曆，或存到 GPS 裝置。',
+  'help.guide.export-plan.goal': '把計畫匯出成文件、匯入行事曆、存到 GPS 裝置，或匯入 Google My Maps。',
   'help.guide.export-plan.step.1': '點擊天數上方標題列左側的「匯出」。',
   'help.guide.export-plan.step.2':
-    '「文件」：PDF 會開啟每一天的列印檢視，內含停靠點、筆記和預訂，開頭是路線總覽地圖。「我的計劃 PDF」則只保留你參與的部分。在檢視中，「每天分頁」會讓每一天從新的一頁開始，「交通備註」會加入你的交通備註，「儲存為 PDF」則下載檔案。',
+    '「文件：PDF」會以文件形式開啟旅行的預覽：封面、附路線地圖的概覽、每一天和所有預訂，然後是每一天的停靠點、筆記和預訂。「我的計劃 PDF」則只保留你參與的部分。預覽上方的開關可選擇要放入的內容：「每天分頁」、「大字體」、「概覽」、「照片」、「座標」、「聯絡方式與營業時間」，以及交通有備註時的「交通備註」。「儲存為 PDF」會下載檔案。',
   'help.guide.export-plan.step.3':
     '「行事曆」：「下載 .ics」會把預訂存成行事曆檔案；「訂閱行事曆」會提供連結，你的行事曆應用程式會自動更新。',
   'help.guide.export-plan.step.4':
     '「地圖與 GPS」(GPX)：「整趟行程」會匯出地點、每日路線和軌跡，「僅地點」只匯出圖釘，「按天產生路線」則每天一條路線，適合離線地圖和 GPS 裝置。',
+  'help.guide.export-plan.step.5':
+    'Google Maps（KML）：「用於 Google My Maps 的地點」會把旅行的地點儲存為 KML 檔案。在 My Maps 中把它匯入為圖層，就能在你自己的 Google 地圖上看到這些地點。',
   'help.guide.export-plan.result': '檔案會下載到你的裝置，旅行本身不會有任何變動。',
   'help.guide.export-plan.tip.1':
     '要用地圖應用程式開啟單獨一天，請使用它的路線列：「在 Google Maps 中開啟」或「在 CoMaps 中開啟」。',
@@ -2042,13 +2181,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.1':
     '點擊地點欄中的某一列、某一天內的停靠點，或地圖上的標記，卡片就會在地圖上方開啟。如果是從某一天開啟，卡片會知道你指的是哪個停靠點，也會顯示該停靠點的參與者和預訂。遊程（「遊程」分頁中的健行、騎行或散步）則會開啟自己的遊程卡片，而不是這張。',
   'help.ctx.trip-place.bullet.2':
-    '標題區有圓形圖片、名稱、單行位址，以及顯示已知資訊的標籤：營業中或已關閉、分類、時間、價格、電話號碼、電子郵件和座標。點擊圖片可改用你自己的圖片，或使用地點檔案中的照片。雙擊名稱可直接重新命名地點，右側的 X 可關閉卡片。圖片、重新命名、「編輯」和「刪除」只提供給有權修改地點的旅伴。',
+    '標題區有圓形圖片、名稱、單行地址，以及顯示已知資訊的標籤：營業中或已關閉、分類和地點的標籤、時間、價格、電話號碼、電子郵件和座標。有地址但沒有座標的地點，則會改為顯示「沒有座標，因此不在地圖上」。點選圖片可查看地點的照片，雙擊名稱可重新命名地點。右側的箭頭會把卡片摺成細長列，X 則會關閉它。重新命名、「編輯」和「刪除」只提供給有權修改地點的旅伴。',
   'help.ctx.trip-place.bullet.3':
     '再往下是：每位旅伴給這個地點的星數、描述和備註，以及停留點有備註時顯示的「當天備註」。',
   'help.ctx.trip-place.bullet.4':
     '接著依實際情況，會出現「營業時間」、「軌跡顏色」、「軌跡資料」和「檔案」。「檔案」標題中的「上傳」可從你的電腦新增檔案。列表也會顯示釘選在這個停靠點上的檔案，以及它的預訂檔案，包括旅館的確認文件。外掛可以在下方新增自己的列。',
   'help.ctx.trip-place.bullet.5':
-    '底部那一列：展開某一天時有「新增到當天」或「從當天移除」，接著是「導航」（在「設定」中選好地圖 App 後，會顯示該 App 的名稱）、「開啟網站」和「儲存到收藏」。右側的紅色垃圾桶用來刪除地點，「編輯」則開啟地點表單。',
+    '底部那一列：展開某一天且地點還不在當天時有「新增到當天」，接著是「導航」（在「設定」中選好地圖 App 後，會顯示該 App 的名稱），以及兩個圖示：「開啟網站」和「儲存到收藏」。右側的三個點中有「從當天移除」和「刪除」，「編輯」則開啟地點表單，你也可以在那裡更換圖片。',
   'help.ctx.trip-place.bullet.6':
     '從搜尋中選取的地點會帶有 TREK 索引或 OpenStreetMap 所知的資訊：標題標籤中的「開啟」或「已關閉」，圖片周圍有綠色或紅色外圈，依該地點自己的時間判定；電話號碼同樣是標籤；下方是「營業時間」，該列顯示當天的時段，整週的時段點擊後展開；網站在「開啟網站」後面。Google 的評分只會在透過 Google 找到的地點上顯示，且需要這個 TREK 有 Google 金鑰。你在地點表單中親自輸入的營業時間、電話號碼和電子郵件，優先於查詢到的內容，也會決定外圈的顏色。',
   // read-place
@@ -2057,7 +2196,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.step.1':
     '在天數欄中，點選你想查看的停留點。卡片會在地圖上方開啟，該停留點在它所屬的那一天中也會持續標示。',
   'help.guide.read-place.step.2':
-    '標題：圓形圖片、名稱和位址在同一行；提示文字包含完整位址。下方的標籤依地點自己的時間顯示現在是「開啟」還是「已關閉」，圖片周圍也有相應的綠色或紅色外圈。它們還包含分類、時間、電話號碼和電子郵件（點擊會交給你的手機或郵件應用程式），在寬螢幕上還有精確的座標。右側的 X 會再次關閉卡片。',
+    '頂部：圓形圖片、名稱和地址在同一行；提示文字會顯示完整地址。下方的標籤依地點當地時間顯示現在是「開啟」還是「已關閉」，圖片周圍也有相應的綠色或紅色外圈。它們還會顯示分類和地點的標籤、時間、電話號碼和電子郵件（點選會交給你的手機或郵件應用程式），在寬螢幕上還有精確的座標。點選圖片可查看地點的照片。右側的箭頭會摺起卡片，X 則會關閉它。',
   'help.guide.read-place.step.3':
     '標題下方的第一個區塊是「評分」：顯示每位旅伴給這個地點的星等，以及平均分數和投票人數。還沒有人投票時，會顯示「尚未評分」。',
   'help.guide.read-place.step.4':
@@ -2073,6 +2212,17 @@ const help: TranslationStrings = {
     '如果你有權修改地點，雙擊名稱就能直接重新命名，不必開啟表單。按 Enter 儲存，按 Escape 取消更改。',
   'help.guide.read-place.tip.3':
     '手動輸入的地點只有表單中填寫的資料。你可以點擊「編輯」，自行填寫「電話」、「電子郵件」和營業時間；也可以從「搜尋地點…」下的建議中選擇地點，再點擊「更新」讓系統查詢這些資料。Google 的評分需要 Google 金鑰。',
+  'help.guide.fold-place-card.title': '把卡片摺起來',
+  'help.guide.fold-place-card.goal': '讓地點保持選取，同時查看它周圍的地圖。',
+  'help.guide.fold-place-card.step.1': '開啟一個地點，點選卡片右上角 X 旁邊的箭頭。提示文字會顯示「折疊」。',
+  'help.guide.fold-place-card.step.2':
+    '卡片現在變成只有圖片和名稱的細長列。地點仍保持選取，標記也持續醒目顯示，所以你可以移動並縮放它周圍的地圖。',
+  'help.guide.fold-place-card.step.3':
+    '再點一次箭頭（現在顯示「展開」），就能開啟完整的卡片。X 會關閉卡片並取消選取地點。',
+  'help.guide.fold-place-card.result': '所選地點周圍的地圖仍然可見，整張卡片只需點一下就能展開。',
+  'help.guide.fold-place-card.tip.1': '選擇另一個地點時，它的卡片會完整開啟。只有你摺起的那個地點會維持摺起。',
+  'help.guide.fold-place-card.tip.2': '摺起不等於關閉：地點仍保持選取，從某一天開啟的停靠點也會繼續在那一天中標示。',
+  'help.guide.fold-place-card.tip.3': '摺起的列會停在卡片原本的位置，也就是地圖底部、兩側欄之間。',
   // rate-place
   'help.guide.rate-place.title': '為地點評分',
   'help.guide.rate-place.goal': '為地點打上自己的星等，也能看到其他人給的評分。',
@@ -2089,17 +2239,19 @@ const help: TranslationStrings = {
   // place-image
   'help.guide.place-image.title': '為地點放上你自己的圖片',
   'help.guide.place-image.goal': '用你自己的照片取代自動產生的縮圖。',
-  'help.guide.place-image.step.1': '從地點欄開啟這個地點。',
+  'help.guide.place-image.step.1': '開啟地點，點選卡片右下角的「編輯」。地點的表單會開啟。',
   'help.guide.place-image.step.2':
-    '將游標移到標題中的圓形圖片上：會出現相機圖示，提示文字顯示「上傳圖片」。點擊它並選擇你的檔案。如果地點的檔案中已有照片，TREK 會先請你選擇：「從裝置上傳」，或「從附加檔案選擇」下的其中一張圖片。',
-  'help.guide.place-image.step.3': '卡片頂端現在會顯示你的圖片，圖片角落有一個紅色的小 X。',
-  'help.guide.place-image.step.4': '同一張圖片也會顯示在地點欄中該地點的那一列，以及它在地圖上的標記。',
+    '左側詳細資料頂端的「選擇圖片」會顯示這個地點可以使用的圖片。點選第一個方塊「上傳圖片」，然後從你的電腦選擇檔案。',
+  'help.guide.place-image.step.3':
+    '方塊現在會顯示你的圖片，外面有圈圈並打勾，方塊下方那一行顯示「你的圖片」。尚未儲存任何內容。',
+  'help.guide.place-image.step.4': '點選「更新」。卡片頂端會顯示你的圖片，地點欄中該地點的那一列也會顯示它。',
   'help.guide.place-image.result':
     '你的圖片會在所有地方作為這個地點的圖片：卡片、地點欄、當天的停留點、地圖上的標記，以及分享出去的旅行。',
   'help.guide.place-image.tip.1': '支援 JPG、PNG、GIF 和 WebP，iPhone 的 HEIC 檔案則會在上傳時自動轉換。',
-  'help.guide.place-image.tip.2': '角落的 X 可以移除你的圖片，自動圖片就會重新顯示。地點本身不受影響。',
+  'help.guide.place-image.tip.2':
+    '方塊下方那一行末端的「移除圖片」，在你點選「更新」後會讓地點不再有圖片。「取消」則會保留舊的。',
   'help.guide.place-image.tip.3':
-    '如果你沒有加入圖片，TREK 會依地點座標查找一張，找不到時就改用分類的圖示。只有有權修改地點的旅伴才能設定圖片。',
+    '其他方塊是地點目前的圖片、附加在它上面的照片，以及 TREK 為它找到的圖片，每張都附有來源標示。只有有權修改地點的旅伴才能更改圖片。',
   // place-day-assign
   'help.guide.place-day-assign.title': '把地點加到目前開啟的日期，或從中移除',
   'help.guide.place-day-assign.goal': '使用卡片上的按鈕，不用把該列拖過整個規劃器。',
@@ -2107,12 +2259,14 @@ const help: TranslationStrings = {
     '在天數欄中點選某一天的標題。那一天就會成為展開的那一天，卡片的操作會套用到那一天。',
   'help.guide.place-day-assign.step.2':
     '在地點欄中點選一個還沒排進那一天的地點。它的卡片會開啟，底部那一列會出現「新增到當天」。',
-  'help.guide.place-day-assign.step.3': '點選「新增到當天」。停留點會加到那一天的最後，按鈕也會變成「從當天移除」。',
+  'help.guide.place-day-assign.step.3':
+    '點選「新增到當天」。停靠點會加到那一天的最後，由於地點現在已在那一天，按鈕也會從該列消失。',
   'help.guide.place-day-assign.step.4': '停留點現在已在那一天，排在清單最後。請把它往上拖到適當的位置。',
-  'help.guide.place-day-assign.step.5': '「從當天移除」會把停留點從那一天再次移除，卡片也會重新顯示「新增到當天」。',
+  'help.guide.place-day-assign.step.5':
+    '要再次移除，請點選該列右側的三個點，然後選擇「從當天移除」。「新增到當天」就會回來。',
   'help.guide.place-day-assign.result': '停留點會加入那一天，或從那一天移除。地點本身不會有任何變動。',
   'help.guide.place-day-assign.tip.1':
-    '這個按鈕只有在開啟某一天時才會出現。沒有開啟任何一天時，就沒有可以加入地點的日期。',
+    '「新增到當天」只有在開啟某一天、且地點還不在那一天時才會出現。沒有開啟任何一天時，就沒有可以加入地點的日期。',
   'help.guide.place-day-assign.tip.2':
     '如果你把停留點從某一天移除，地點仍會留在旅行和地點欄中。「刪除」才會把它從所有地方移除。',
   'help.guide.place-day-assign.tip.3':
@@ -2171,7 +2325,8 @@ const help: TranslationStrings = {
     '列表中是適用於這個地點的地圖 App：Google Maps、Waze、Apple Maps、OpenStreetMap 和 CoMaps，在 Android 上還有「其他地圖 App」。',
   'help.guide.place-navigation.step.3':
     '點選你常用的那一個。TREK 會盡可能把地點本身傳給該應用程式，而不只是座標，這樣你就能抵達正確的入口。',
-  'help.guide.place-navigation.step.4': '旁邊的「開啟網站」會在新分頁中開啟地點自己的網站，上面有營業時間和票券資訊。',
+  'help.guide.place-navigation.step.4':
+    '旁邊的圖示「開啟網站」會在新分頁中開啟地點自己的網站，上面有營業時間和票券資訊。',
   'help.guide.place-navigation.result':
     '地圖 App 會開啟該地點，網站則在新分頁中開啟，旅行中的任何內容都不會改變。如果 TREK 已安裝為 App，就會直接開啟地圖 App，而不是新分頁。',
   'help.guide.place-navigation.tip.1':
@@ -2183,14 +2338,14 @@ const help: TranslationStrings = {
   // place-to-collection
   'help.guide.place-to-collection.title': '把地點儲存到你的某份清單',
   'help.guide.place-to-collection.goal': '把這趟旅行中發現的地點存起來，留給下一趟旅行。',
-  'help.guide.place-to-collection.step.1': '開啟地點，點擊卡片底部那一列的「儲存到收藏」。',
+  'help.guide.place-to-collection.step.1': '開啟地點，點選卡片底部那一列的書籤圖示「儲存到收藏」。',
   'help.guide.place-to-collection.step.2':
     '「儲存到清單」會顯示你擁有或共享的每個清單。右側實心的書籤標記表示已包含此地點的清單。',
   'help.guide.place-to-collection.step.3': '點選那份清單。地點會立刻加入其中。',
-  'help.guide.place-to-collection.step.4': '用 X 關閉對話方塊，卡片中的按鈕會顯示「已儲存」。',
+  'help.guide.place-to-collection.step.4': '用 X 關閉對話方塊。卡片中的書籤現在是實心的，提示文字顯示「已儲存」。',
   'help.guide.place-to-collection.result': '地點會連同圖片、備註和地址一起存進你的清單，下次旅行就能直接使用。',
   'help.guide.place-to-collection.tip.1':
-    '這個按鈕只有在「收藏」擴充套件開啟時才會出現，管理員可以在「擴充套件」中開啟。',
+    '這個書籤只有在「收藏」擴充套件開啟時才會出現，管理員可以在「擴充套件」中開啟。',
   'help.guide.place-to-collection.tip.2':
     '一個地點可以同時放在多份清單中，並在每份清單中有各自的狀態：在一份是「想法」，在另一份是「已造訪」。',
   'help.guide.place-to-collection.tip.3':
@@ -2212,7 +2367,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.tip.3': '匯入時，每條軌跡都會分到自己的顏色，所以兩段步行路線不會是同一個顏色。',
   // read-place
   'help.guide.read-place.step.7':
-    '底部的一列是你可以從這裡做的事：把地點放到開啟的那一天或移除、在地圖應用程式或它的網站中開啟、儲存到清單，右側則是刪除（紅色垃圾桶）或編輯。',
+    '底部的一列是你可以從這裡做的事：「新增到當天」會把地點放到開啟的那一天，「導航」會在地圖應用程式中開啟它，兩個圖示則可開啟它的網站和儲存到清單。右側的三個點中有「從當天移除」和「刪除」，「編輯」則開啟地點表單。',
 
   // ── Screen: trip-files ────────────────────────────────────────────────────────────────
   'help.ctx.trip-files.title': '檔案',
@@ -2261,6 +2416,8 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.2':
     '再次點擊已勾選的項目會取消那個連結；檔案本身仍會保留。離線時，備註和新的勾選會等待，並在 TREK 重新上線後傳送；只有取消其他連結才需要網路連線。',
   'help.guide.files-link.tip.3': '反過來也行：附加在地點或預訂上的文件，同樣會出現在這份清單中，該列也會有相同的徽章。',
+  'help.guide.files-link.tip.4':
+    '如果旅行擁有者為這趟旅行關閉了「文件」（在「旅行設定」的「擴充套件」中），「檔案」分頁會消失，但連結到預訂、地點或支出的文件仍會保留在那裡，也還能開啟。重新開啟後，分頁會再次顯示所有檔案。',
   // files-star
   'help.guide.files-star.title': '把重要文件固定在最上面',
   'help.guide.files-star.goal': '在不斷變長的清單中，標出你真正會用到的幾份文件，方便快速找到。',
@@ -2385,7 +2542,8 @@ const help: TranslationStrings = {
   'help.guide.day-weather.step.1':
     '「Forecast for」會標明這些數字是針對哪個地點：當天的第一個停留點，或是沒有停留點的日子裡，你前一晚入住的飯店。',
   'help.guide.day-weather.step.2': '大數字是當天的氣溫，旁邊是最低溫和最高溫，以及以文字描述的天氣狀況。',
-  'help.guide.day-weather.step.3': '右邊的標籤依序是：降雨機率、降雨量、最大風速，以及日出和日落時間。',
+  'help.guide.day-weather.step.3':
+    '右邊的標籤依序是：降雨機率和降雨量（預報有提供時）、最大風速，以及日出和日落時間。把游標移到標籤上，就能看到它代表什麼。',
   'help.guide.day-weather.step.4':
     '最下方是逐小時的天氣，每兩小時一格：時間、圖示、氣溫和降雨機率。超過 50% 的時段會以藍色標示。',
   'help.guide.day-weather.result':
@@ -2408,6 +2566,8 @@ const help: TranslationStrings = {
   'help.guide.rename-day.tip.1': '如果清空欄位後儲存，這一天又會變回「第 5 天」：沒有名稱時，就會顯示編號。',
   'help.guide.rename-day.tip.2':
     '名稱屬於那一天，而不是它的日期。如果你重新排列天數，名稱會連同那一天的其他內容一起移動。',
+  'help.guide.rename-day.tip.3':
+    '如果在「設定」的「顯示」中開啟「每日標題中日期在前」，日期會是大字那一行，名稱則在它下方。此時鉛筆會在第二行的名稱旁邊。',
   // add-accommodation
   'help.guide.add-accommodation.title': '為某一天預訂住宿',
   'help.guide.add-accommodation.goal': '只要一次，就能把飯店加入行程，包括涵蓋的天數、時間和確認編號。',
@@ -2421,7 +2581,7 @@ const help: TranslationStrings = {
   'help.guide.add-accommodation.step.5': '在「選擇住宿」下選擇住處。列表上方的「分類」可縮小到單一分類。',
   'help.guide.add-accommodation.step.6': '點選「儲存」。',
   'help.guide.add-accommodation.result':
-    '住宿會顯示在它涵蓋的每一天，第一天標示「入住」，最後一天標示「退房」。該住處會成為入住日的一個停靠點，所以地圖會顯示前往那裡的路線，「預訂」分頁也會多出一筆旅館預訂。',
+    '住宿會顯示在它涵蓋的每一天，第一天標示「入住」，最後一天標示「退房」，天數欄中這些日子的標題也會寫出旅館名稱。當天在地圖上的路線會通往該住處，「預訂」分頁也會多出一筆旅館預訂。',
   'help.guide.add-accommodation.tip.1': '選擇器會從你開啟的那一天開始，退房日為隔天；儲存之前，兩個日期都可以修改。',
   'help.guide.add-accommodation.tip.2':
     '建立飯店時，請把它設為 Hotel 分類。這樣只要點一下清單上方的「分類」，就只會顯示你的飯店。',
@@ -2480,7 +2640,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-map.bullet.4':
     '在天數欄中開啟某一天後，該天的停靠點會帶有一個白色小徽章，顯示它在當天的編號。如果某個地點在當天出現兩次，就會顯示兩個編號。地點列表上方的篩選器（「顯示」、分類，以及代表最低評分的星星）也會同步篩選地圖上的圖釘。',
   'help.ctx.trip-map.bullet.5':
-    '頂部那一排圖示會搜尋你目前看得到的地圖範圍：「餐廳」、「咖啡廳」、「酒吧與夜生活」、「住宿」、「景點」、「博物館與文化」、「自然與公園」和「活動」。外掛新增的分類會排在一條細分隔線之後。當這一排比地圖還寬時，可用滑鼠滾輪橫向捲動。移動地圖後，點擊「搜尋此區域」會重新搜尋。',
+    '頂部那一排圖示會搜尋你目前看得到的地圖範圍：「餐廳」、「咖啡廳」、「酒吧與夜生活」、「住宿」、「景點」、「博物館與文化」、「自然與公園」、「活動」、「麵包店」和「雜貨」。外掛新增的分類會排在一條細分隔線之後。當這一排比地圖還寬時，可用滑鼠滾輪橫向捲動。移動地圖後，點選「搜尋此區域」會重新搜尋。',
   'help.ctx.trip-map.bullet.6':
     '在地圖上任何位置按右鍵，就能在該點開啟地點表單，位址已自動查好。左下角有兩個圓形按鈕：鎖頭「鎖定地圖視角」可在你逐一點選天數和地點時，讓地圖視角保持不動，下方的「切換到衛星檢視」則把繪製的地圖換成衛星影像。',
   'help.ctx.trip-map.bullet.7':
@@ -2495,7 +2655,7 @@ const help: TranslationStrings = {
   'help.guide.map-markers.step.2':
     '圖釘若地點本身有照片就使用該照片，否則使用分類顏色加分類圖示；預訂仍待確認的住宿會以淡色顯示，並帶有虛線外圈。將指標停在圖釘上，旁邊會開啟一張卡片：同一張照片但更大，加上名稱和位址，地點若有評分和分類也會一併顯示。',
   'help.guide.map-markers.step.3':
-    '點擊圖釘，地點會在地圖底部上方的卡片中開啟：標題中有圖片、名稱和位址，然後是星級、描述和檔案，其中也包括它的預訂。底部是接下來可以做的事：開啟某一天時的「新增到當天」（地點已在當天時則為「從當天移除」）、「導航」、「開啟網站」、「儲存到收藏」（已在收藏中時顯示「已儲存」），右側是垃圾桶和「編輯」。標題中的 X，或點擊地圖上的空白處，都會再次關閉它。',
+    '點選圖釘，地點會在地圖底部上方的卡片中開啟：頂部有圖片、名稱、地址和分類，然後是星級、描述、筆記、參與的人和檔案，其中也包括它的預訂檔案。底部是可以執行的動作：開啟某一天且地點還不在當天時的「新增到當天」、「導航」、地點有網站時的網站圖示，以及書籤「儲存到收藏」（已在收藏中時顯示「已儲存」）。右側的「更多選項」中有「從當天移除」和「刪除」，「編輯」則開啟地點表單。頂端的箭頭會把卡片摺到只剩標題；X，或點選地圖上的空白處，則會關閉它。',
   'help.guide.map-markers.step.4':
     '在天數欄開啟某一天，那天的停留點就會出現編號：圖釘角落的白色小徽章，就是該停留點在當天的順序。同一天出現兩次的地點會顯示兩個編號。沒有開啟任何一天時就沒有編號，如果地點有評分，角落會改為顯示評分。',
   'help.guide.map-markers.step.5':
@@ -2511,7 +2671,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.title': '在地圖上尋找附近的地點',
   'help.guide.map-nearby-places.goal': '在地圖上目前顯示的這一區搜尋餐廳、景點或飯店，並把其中一個加進旅行。',
   'help.guide.map-nearby-places.step.1':
-    '地圖頂部那一排圖示是分類搜尋：「餐廳」、「咖啡廳」、「酒吧與夜生活」、「住宿」、「景點」、「博物館與文化」、「自然與公園」和「活動」。外掛新增的分類會排在一條細分隔線之後。將游標移到圖示上可看到名稱。',
+    '地圖頂部那一排圖示是分類搜尋：「餐廳」、「咖啡廳」、「酒吧與夜生活」、「住宿」、「景點」、「博物館與文化」、「自然與公園」、「活動」、「麵包店」和「雜貨」。外掛新增的分類會排在一條細分隔線之後。將游標移到圖示上可看到名稱。',
   'help.guide.map-nearby-places.step.2':
     '點選一個分類。TREK 會在地圖目前可見的範圍內搜尋這類地點，並為每個結果放上該分類顏色的圖釘。一次只能選一個分類：點選另一個會取代目前的分類，再點選已啟用的分類則會關閉。',
   'help.guide.map-nearby-places.step.3':
@@ -2519,7 +2679,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.4':
     '將游標停在圖釘上，可看到搜尋找到的項目名稱。點擊圖釘會開啟地點表單，並已填入相關資料：對話方塊頂部的名稱、「位址」、「緯度」和「經度」，以及搜尋有找到時的網站與電話號碼。',
   'help.guide.map-nearby-places.step.5':
-    '檢查自動填入的內容，並補上搜尋無法得知的資料。如果旅行中有相符的分類（例如餐廳對應餐廳），名稱下方的分類標籤已經設好，否則會顯示「無分類」，直到你選擇一個。再加上你自己的描述和筆記。',
+    '檢查自動填入的內容，並補上搜尋無法得知的資料。如果旅行中有相符的分類（例如餐廳對應餐廳），名稱下方的分類標籤已經設好，否則會顯示「無分類」，直到你選擇一個。在「關於地點」中寫下這個地方是什麼，並在「筆記」中寫下你自己的筆記。',
   'help.guide.map-nearby-places.step.6':
     '點選「新增」。如果旅行中已有同名或位在相同位置的地點，TREK 會告訴你，按鈕也會變成「仍要新增」。',
   'help.guide.map-nearby-places.result':
@@ -2537,7 +2697,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.2':
     '「緯度」和「經度」已經設為該點。TREK 會查詢座標，並用查到的內容填入「地址」。如果查到名稱，TREK 也會填入對話框頂部的名稱。目前還沒有儲存任何內容，所以如有錯誤請自行更正。',
   'help.guide.map-add-place.step.3':
-    '在對話框頂端的欄位輸入一個你認得的名稱。從下方的標籤選一個分類，選取之前會顯示「無分類」。接著再補上其他想放進計畫的資訊：「描述」、「備註」和「網站」。',
+    '在對話框頂端的欄位輸入一個你認得的名稱。從下方的標籤選一個分類，選取之前會顯示「無分類」。接著再補上其他想放進計畫的資訊：「關於地點」、「筆記」和「網站」。',
   'help.guide.map-add-place.step.4':
     '點選「新增」。即使目前展開了某一天，這個地點也會以未規劃的狀態加入清單：在地圖上按右鍵設定的是位置，不是日期。',
   'help.guide.map-add-place.result': '地點會出現在清單和地圖上，在你把它排進某一天之前，會顯示在「未規劃」之下。',
@@ -2573,7 +2733,7 @@ const help: TranslationStrings = {
   'help.guide.map-whole-trip.tip.1':
     '總距離是一次計算幾段陸續得出的。只要後面還顯示 …，這個數字就只是部分的加總；等每一段都計算完成，才是最終數字。',
   'help.guide.map-whole-trip.tip.2':
-    '如果路線服務無法計算某一段，該段會維持為直線，也不會計入距離。卡片會說明這一點，所以總距離不會在沒有提示的情況下變少。',
+    '如果路線服務無法計算某一段，該段會維持為直線，也不會計入距離。卡片會說明這一點，距離也會顯示為「至少」，所以總距離不會在沒有提示的情況下變少。',
   'help.guide.map-whole-trip.tip.3':
     '如果某一天已定位的停留點不到兩個，也沒有往返飯店的車程，就沒有路線可畫，所以完全不會出現在卡片中。',
   // map-booking-routes
@@ -2584,7 +2744,7 @@ const help: TranslationStrings = {
   'help.guide.map-booking-routes.step.2':
     '點選它，這筆預訂就會顯示在地圖上：航班畫成大圓弧線，開車沿著實際道路，火車則串連各個車站。「已確認」畫成實線，「待確認」畫成虛線，路線兩端是帶有交通工具圖示的藍色膠囊標籤。',
   'help.guide.map-booking-routes.step.3':
-    '點擊路線末端的標籤，就會開啟預訂的詳細資訊：著色標題中以標籤顯示狀態、類型和天數，接著是兩端的時間，其餘細節在下方。底部有「在地圖上」（可再次關閉這條路線）、大眾運輸接駁上的「變更路線」、刪除預訂的垃圾桶，以及「編輯」。標題中的 X 可關閉詳細資訊。',
+    '點選路線末端的標籤，就會開啟預訂的詳細資訊：著色標題中以標籤顯示狀態、類型、天數和預訂碼，接著是兩端的時間，其餘細節在下方。底部有「地圖」（可再次關閉這條路線）、大眾運輸接駁上的「變更路線」、刪除預訂的垃圾桶，以及「編輯」。標題中的 X 可關閉詳細資訊。',
   'help.guide.map-booking-routes.step.4':
     '天數上方工具列中的路線圖示可以一次套用到整趟旅行：「顯示所有預訂路線」會畫出每一筆有路線的預訂。',
   'help.guide.map-booking-routes.step.5':
@@ -2677,7 +2837,7 @@ const help: TranslationStrings = {
   'help.guide.shared-links.tip.1':
     '只接受 http 或 https 位址，其他格式都會被拒絕，對話框會保持開啟，也會保留你輸入的內容。',
   'help.guide.shared-links.tip.2':
-    '釘選的連結排在最前面，其次是最新的。標題旁邊的小圖示是網站自己的圖示，直接從網站載入，所以沒有網路時，標籤會改為顯示一般的連結圖示。',
+    '已釘選的連結排在最前面，其次是最新的。標題旁邊的小圖示是網站自己的圖示，直接從網站載入。載入完成之前，或網站沒有圖示時，標籤會改為顯示一般的連結圖示。',
   'help.guide.shared-links.tip.3':
     '「連結」在「擴充套件」中，位於 Collab 下方，有自己獨立的開關，所以管理員可以關閉這個面板，而不影響分頁的其他部分。',
   // create-poll
@@ -2705,14 +2865,15 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.goal': '投票、查看大家的結果，也可以改票。',
   'help.guide.vote-poll.step.1': '點選你想選的選項。它的圓圈會出現勾號，選項會加上強調色外框，後面的長條也會變長。',
   'help.guide.vote-poll.step.2':
-    '現在可以看到完整結果：長條代表占比，右邊是百分比，小圓圈則是選了該選項的人，最多顯示三位。',
+    '現在可以看到完整結果：長條代表占比，右邊是百分比，小圓圈則是選了該選項的人。最多顯示三位；第四個帶有加號和數字的圓圈，則代表其餘所有的人。',
   'help.guide.vote-poll.step.3':
     '改變心意了？點選另一個選項即可。在沒有「多選」的投票中，你的票會移到新的選項，而不是再多投一票。',
   'help.guide.vote-poll.step.4': '票數會顯示在問題下方的標籤中。再次點選你已選的選項會收回你的票，票數也會減少。',
   'help.guide.vote-poll.result': '你選的選項會打勾，長條顯示群組的投票分布，圓圈則顯示誰選了哪個選項。',
   'help.guide.vote-poll.tip.1':
     '必須等你自己投過票，或投票關閉後，才會顯示百分比和每個人投了什麼。標題列上的票數則所有人都看得到。',
-  'help.guide.vote-poll.tip.2': '投票不是匿名的：把游標移到某個選項的圓圈上，就能看到投票者的名字。',
+  'help.guide.vote-poll.tip.2':
+    '投票不是匿名的：把游標移到某個選項的圓圈上，就能看到投票者的名字。把游標移到加號圓圈上，則能看到其餘所有人的名字。',
   // close-poll
   'help.guide.close-poll.title': '關閉或移除投票',
   'help.guide.close-poll.goal': '大家做出決定後結束投票，並刪除不再需要的投票。',
@@ -2730,11 +2891,12 @@ const help: TranslationStrings = {
   'help.guide.whats-next.step.1':
     '這張卡片會依時間順序列出旅行接下來的停留點，最多八個，並依日期分組，標題為「今天」「明天」或日期，如果那天有標題，也會顯示在旁邊。標題列會顯示總共有幾個。',
   'help.guide.whats-next.step.2':
-    '每個停留點的左邊是它的時間：開始時間、「至」，以及停留點有結束時間時的結束時間；還沒設定時間時則顯示 TBD。',
+    '每個停靠點的左邊是它的時間：開始時間、「至」，以及停靠點有結束時間時的結束時間。沒有自己時間的旅館，會在住宿開始的那一天顯示入住時間。TBD 表示還沒設定時間。',
   'help.guide.whats-next.step.3':
     '旁邊是名稱、地址，以及以標籤顯示的該停留點的參與者。如果沒有指派任何人，則會列出旅行中的所有人。',
   'help.guide.whats-next.result': '這是一份即將到來的項目清單，僅供閱讀：內容依照計畫而定，在這裡不能更動計畫。',
-  'help.guide.whats-next.tip.1': '你不需要在這裡設定任何東西。時間來自每日計畫，在那裡更改後，這份清單會立即更新。',
+  'help.guide.whats-next.tip.1':
+    '你不需要在這裡設定任何東西。時間來自每日計畫，旅館則來自它的預訂；在那裡更改後，這份清單會立即更新。',
   'help.guide.whats-next.tip.2':
     '只會列出還沒到的項目：停靠點的開始時間一過就會從列表移除，今天沒有時間的停靠點會保留到當天結束，旅行結束後面板就會是空的。',
   'help.guide.whats-next.tip.3':
@@ -2767,15 +2929,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-lists.summary':
     '一趟旅行有兩份清單：行李清單，記錄誰帶什麼以及重量；以及待辦清單，記錄出發前和旅途中需要完成的所有事項。只要「行李」擴充套件開啟，就會顯示這個分頁。',
   'help.ctx.trip-lists.bullet.1':
-    '頂端工具列的「行李清單」和「待辦事項」可在兩者之間切換，並顯示各自的項目數量；工具列右端的按鈕則屬於目前開啟的那一份清單。',
+    '頂端工具列的「行李清單」和「待辦事項」可在兩者之間切換，並顯示各自的項目數量。行李清單的工具列有「新增清單」和它旁邊的三個點；待辦事項則有「新增任務」。',
   'help.ctx.trip-lists.bullet.2':
-    '行李清單分成多個清單，例如文件、衣物，隨你命名。每個清單是一張卡片，標題列有握把可將整個清單拖到另一個位置、一個色點、一個已打包／總數徽章、三個點（含「重新命名」、「全部勾選」、「取消全部勾選」和「刪除清單」），以及一個收合卡片的箭頭。上方列中的「新增清單」可建立新清單。',
+    '行李清單分成多個清單，例如文件、衣物，隨你命名。每個清單是一張卡片，標題列有握把可將整個清單拖到另一個位置、一個色點、一個用來指派負責人的虛線圓圈、一個已打包／總數徽章、三個點（含「重新命名」、「全部勾選」、「取消全部勾選」、「整份清單的共用」和「刪除清單」），以及一個收合卡片的箭頭。',
   'help.ctx.trip-lists.bullet.3':
-    '一列包含握把、勾選框和名稱，然後以小頭像顯示誰負責攜帶。數量大於一的物品還會有已打包計數，例如 3/10，附減號和加號。接著是以小徽章顯示的數量，以及在「行李追蹤」開啟時的公克重量和行李袋圓圈，然後是垃圾桶和三個點，裡面有「移動到清單」、「分享中」、「重新命名」和「刪除」。這一列沒有用到的部分會保持淡色，直到你把指標移上去。',
+    '一列包含勾選框、名稱和已設定的內容：數量（兩個以上才顯示，例如 ×3）、打包時已裝的件數（例如 2/5），以及誰要帶的頭像。把游標移上去時，會出現可拖曳該列的握把。點選名稱可開啟物品的視窗，裡面有它的清單、數量、已打包件數、重量、行李袋、誰要帶，以及誰看得到。',
   'help.ctx.trip-lists.bullet.4':
-    '「已分享」和「我的清單」把行李清單分成兩份：大家都看得到的共用池，以及你自己的。旁邊的「全部」、「未支付」和「完成」會縮小目前開啟的那一份。一列末端的「依名稱」會按名稱順序顯示每個清單的物品，再點一次則回到你自己的順序。上方的進度卡片計算已打包的數量。',
+    '列下方的「共用」和「我的清單」把行李清單分成兩份：大家都看得到的清單，以及你自己的。那一列的右側有一行文字，計算你正在查看的清單中已打包的數量，旁邊還有一條細長的進度條。',
   'help.ctx.trip-lists.bullet.5':
-    '「應用模板」和「儲存為範本」可以套用或儲存清單，省去重新輸入的麻煩。後面的兩個圖示「匯出」和「匯入」，可以把清單匯出為列印稿、PDF 或檔案，也能匯入清單。進度卡片右端的紅色按鈕會顯示已勾選的物品數量，點選即可移除這些物品。',
+    '「新增清單」旁邊的三個點包含其他所有功能：「應用模板」、「儲存為範本」、「匯入」、三種匯出方式（「列印或儲存為 PDF」、Markdown 和 CSV）、「依名稱」、「隱藏已打包」，以及最底部的「移除…已勾選」。',
   'help.ctx.trip-lists.bullet.6':
     '「待辦事項」有自己的側邊欄：進度卡片、「全部」、「我的任務」、「已逾期」和「已完成」等篩選條件、每份清單各一列，最下面是「新增清單」。任務列在一張卡片中，卡片標題列顯示篩選名稱和排序方式「優先順序」或「到期日」。點選任務會在右側面板中開啟，工具列中的「新增任務」則會開啟「新任務」對話框。',
   // packing-categories
@@ -2784,55 +2946,56 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.step.1':
     '點選清單上方列中的「新增清單」。會開啟一個小對話框，在頂部標題區「清單名稱（例如：衣物）」的位置輸入名稱，然後點選「新增」。',
   'help.guide.packing-categories.step.2':
-    '新清單一開始有一個佔位列，上面只有三個淡淡的點。點選該列底部的「新增品項」，在「物品名稱...」中輸入物品並按 Enter：第一個物品會取代佔位列，輸入框則會保持開啟，讓你繼續輸入下一個。',
-  'help.guide.packing-categories.step.3': '點選分類名稱，或點選它右端三個點中的「重新命名」，就能為這一列改名。',
+    '新清單一開始有一個空白列，是一個帶有三個淡淡的點的欄位。點選卡片底部的「新增物品」，在「物品名稱...」中輸入物品並按 Enter：第一個物品會填入空白列，輸入框則會保持開啟，讓你繼續輸入下一個。',
+  'help.guide.packing-categories.step.3':
+    '要重新命名物品，請點選它的名稱。它的視窗會開啟，頂端的名稱是一個欄位：輸入新名稱並按 Enter。',
   'help.guide.packing-categories.step.4':
     '清單頂端色帶中帶有人形的虛線圓圈，可以把旅行成員指派到這份清單。選擇一個名字；要再移除那個人，請點選出現的標籤。',
   'help.guide.packing-categories.step.5':
-    '數量旁邊的三個點可以開啟更多選項：「重新命名」、「全部勾選」、「取消全部勾選」和「刪除清單」。「刪除清單」會直接刪除清單和其中所有物品，不會再次詢問。最右邊的箭頭可以收合清單。',
+    '數量旁邊的三個點可以開啟更多選項：「重新命名」、「全部勾選」、「取消全部勾選」、「整份清單的共用」和「刪除清單」。「刪除清單」會直接刪除清單和其中所有物品，不會再次詢問。最右邊的箭頭可以收合清單。',
   'help.guide.packing-categories.result':
     '新清單會出現在格狀排列中，物品列在下方，並附有顏色圓點，徽章則會顯示已打包的數量。',
   'help.guide.packing-categories.tip.1':
-    '清單是靠物品存在的。如果刪掉最後一個物品，那一列會變成佔位列，讓清單保留位置和顏色；把佔位列也刪掉，清單就會消失。',
+    '清單是靠物品存在的。如果刪掉最後一個物品，那一列會變成空白列，讓清單保留位置和顏色；把那一列也刪掉，清單就會消失。',
   'help.guide.packing-categories.tip.2':
-    '指派某人負責一份清單時，對方會收到打包通知。這不會改變誰能看到這些物品，那是在每一列三個點選單的「分享中」設定。',
+    '指派某人負責一份清單時，對方會收到打包通知。這不會改變誰能看到這些物品，那是在每個物品視窗的「可見範圍」設定，或是用「整份清單的共用」為整份清單設定。',
   'help.guide.packing-categories.tip.3': '兩份清單可以同名。TREK 會在內部區分它們，所以名稱會維持你輸入的樣子。',
   // check-off-packing
   'help.guide.check-off-packing.title': '邊打包邊打勾',
-  'help.guide.check-off-packing.goal': '標記已放進行李的物品，看著進度條前進，並移除已打包好的物品。',
-  'help.guide.check-off-packing.step.1': '點選該列左邊的方框。名稱會被劃掉，進度條也會更新。',
+  'help.guide.check-off-packing.goal': '標記已放進行李的物品，追蹤進度，並移除已打包好的物品。',
+  'help.guide.check-off-packing.step.1': '點選該列左邊的方框。名稱會被劃掉，已打包的物品數量也會增加。',
   'help.guide.check-off-packing.step.2':
-    '清單上方的進度卡片會以數字、百分比和進度條，顯示已打包的物品數量與清單中物品總數的比例。',
+    '在「共用」和「我的清單」那一列的右側，有一行文字顯示你正在查看的清單中，已打包的物品數量與全部物品數量，旁邊還有一條細長的進度條。',
   'help.guide.check-off-packing.step.3': '要一次勾選整份清單：標題列的三個點裡有「全部勾選」和「取消全部勾選」。',
   'help.guide.check-off-packing.step.4':
-    '「已分享」和「我的清單」旁邊的「全部」「未完成」和「完成」可以篩選格線。「未完成」只顯示還缺的東西，所以已經全部裝好的清單會被隱藏。',
+    '「新增清單」旁邊三個點中的「隱藏已打包」，只會顯示還缺的東西，所以已經全部裝好的清單會被隱藏。開啟時會有勾號標示；再點一次就會顯示全部。',
   'help.guide.check-off-packing.step.5':
-    '進度卡片右端的紅色「移除…已勾選」按鈕，裡面有已勾選物品的數量，在瀏覽器確認一次後會一次刪除它們全部。',
-  'help.guide.check-off-packing.result': '只會列出未完成的物品，上方的進度條則顯示打包完成了多少。',
-  'help.guide.check-off-packing.tip.1': '已打勾的物品仍可重新命名：點選它的名稱即可。',
+    '同一個選單最底部的「移除…已勾選」（裡面有已勾選物品的數量），在瀏覽器確認一次後會一次刪除它們全部。',
+  'help.guide.check-off-packing.result': '只會列出未完成的物品，上方的那一行則顯示打包完成了多少。',
+  'help.guide.check-off-packing.tip.1': '已打勾的物品，點選它的名稱仍會開啟它的視窗。',
   'help.guide.check-off-packing.tip.2':
     '「全部勾選」和「取消全部勾選」一次只作用於一份清單，請從該清單自己的三個點選單使用。',
   'help.guide.check-off-packing.tip.3': '所有物品都勾選後，計數會換成「全部打包完成！」，進度條也會變成綠色。',
   // apply-packing-template
   'help.guide.apply-packing-template.title': '套用行李模板',
   'help.guide.apply-packing-template.goal': '把現成的清單加到旅行中，並將這趟旅行的清單存起來，留給下一趟使用。',
-  'help.guide.apply-packing-template.step.1': '點選清單上方列中的「應用模板」。',
-  'help.guide.apply-packing-template.step.2': '選擇一個範本。每一行都會顯示範本名稱和包含多少個物品。',
+  'help.guide.apply-packing-template.step.1': '點選清單上方列中「新增清單」旁邊的三個點。',
+  'help.guide.apply-packing-template.step.2':
+    '點選「應用模板」。範本會在它下方展開，每個範本都會顯示名稱和包含多少個物品。選擇一個。',
   'help.guide.apply-packing-template.step.3':
     '物品會加到你目前所在的檢視：「已分享」會加到所有人都看得到的共用清單，「我的清單」則加到你自己的清單。',
   'help.guide.apply-packing-template.step.4':
-    '要把這趟旅行的清單留給下一趟，請點選「儲存為範本」。會開啟一個小對話框，在頂端顯示「範本名稱」的欄位輸入名稱，然後點選「儲存」。',
+    '要把這趟旅行的清單留給下一趟，請點選同一個選單中的「儲存為範本」。會開啟一個小對話框，在頂端顯示「範本名稱」的欄位輸入名稱，然後點選「儲存」。',
   'help.guide.apply-packing-template.result': '模板中的清單和物品會加入旅行，與原本已有的內容並存。',
   'help.guide.apply-packing-template.tip.1':
     '範本會帶入每個物品的清單、數量、重量和行李袋，並建立旅行中還沒有的行李袋。勾選狀態不會帶入，清單上已有的內容也不會被移除。',
-  'help.guide.apply-packing-template.tip.2':
-    '只有在已有模板時，才會出現「應用模板」。如果一個模板都沒有，這個按鈕根本不會顯示。',
+  'help.guide.apply-packing-template.tip.2': '只有在已有範本時，選單中才會出現「應用模板」。',
   'help.guide.apply-packing-template.tip.3':
     '「儲存為範本」只有實例管理員看得到，而且只在清單中有物品時才會出現。它會儲存共用的物品和你自己的物品，絕不會包含其他成員的私人物品。',
   // import-packing-list
   'help.guide.import-packing-list.title': '貼上整份行李清單',
   'help.guide.import-packing-list.goal': '把你在別處已有的清單，一次轉成行李物品。',
-  'help.guide.import-packing-list.step.1': '點選「匯入」，也就是清單上方工具列右端帶有向下箭頭的圖示。',
+  'help.guide.import-packing-list.step.1': '開啟「新增清單」旁邊的三個點，然後點選「匯入」。',
   'help.guide.import-packing-list.step.2':
     '每行一個物品：分類, 名稱, 重量（公克，選填）, 行李（選填）, checked/unchecked（選填）。方塊中的灰色範例列出了這四種格式，左邊的數字則是你輸入的行號。也可以使用 Markdown 清單：標題會成為清單名稱，「- [ ]」和「- [x]」則會變成物品。',
   'help.guide.import-packing-list.step.3':
@@ -2847,43 +3010,74 @@ const help: TranslationStrings = {
   // export-packing-list
   'help.guide.export-packing-list.title': '列印或匯出行李清單',
   'help.guide.export-packing-list.goal': '列印清單、存成 PDF，或匯出成檔案，供其他應用程式或下一趟旅行使用。',
-  'help.guide.export-packing-list.step.1': '點選清單上方工具列中帶有向上箭頭的「匯出」圖示，它就在「匯入」前面。',
-  'help.guide.export-packing-list.step.2': '「Markdown 清單 (.md)」和「用於匯入的 CSV (.csv)」會直接把清單存成檔案。',
+  'help.guide.export-packing-list.step.1': '點選清單上方列中「新增清單」旁邊的三個點。',
+  'help.guide.export-packing-list.step.2':
+    '匯出方式位於選單的中間。「Markdown 清單 (.md)」和「用於匯入的 CSV (.csv)」會直接把清單存成檔案。',
   'help.guide.export-packing-list.step.3':
     '點選「列印或儲存為 PDF」。預覽會把清單排成一頁：最上方是旅行、日期和已打包的數量，下方每份清單各是一張卡片，每件物品都有一個可勾選的方塊。',
   'help.guide.export-packing-list.step.4':
     '點選預覽下方的「列印或儲存為 PDF」。瀏覽器會開啟列印對話框：選擇印表機，或選擇「儲存為 PDF」來儲存成檔案。',
   'help.guide.export-packing-list.result':
-    '列印內容和檔案會包含目前開啟的檢視，也就是「已分享」或「我的清單」，並附上數量、重量和勾選狀態。',
+    '列印內容和檔案會包含目前開啟的檢視，也就是「共用」或「我的清單」，並附上數量、重量和勾選狀態。',
   'help.guide.export-packing-list.tip.1':
     'CSV 就是「匯入」讀取的格式，連行李也包含在內，所以你可以把它當作自己的行李範本：直接匯入到下一趟旅行。',
   'help.guide.export-packing-list.tip.2':
     'Markdown 檔案在 Obsidian、Notion 或 GitHub 中會顯示為待勾選的清單，也可以再用「匯入」匯入回來。',
+  'help.guide.edit-packing-item.title': '在視窗中變更物品',
+  'help.guide.edit-packing-item.goal': '開啟一個物品，在同一個地方變更它的名稱、清單、數量或誰要帶。',
+  'help.guide.edit-packing-item.step.1':
+    '點選物品名稱。該列旁會開啟一個小視窗，裡面有這個物品的所有資訊，每個值都在一顆膠囊中。',
+  'help.guide.edit-packing-item.step.2':
+    '頂端的名稱是一個欄位：直接輸入新名稱並按 Enter，就能重新命名物品。旁邊的叉叉會關閉視窗。',
+  'help.guide.edit-packing-item.step.3':
+    '「清單」可將物品移到另一份清單：點選它並選一份。它下方的「數量」則設定你要帶幾個。',
+  'help.guide.edit-packing-item.step.4':
+    '「攜帶者」會顯示誰要帶這個共用物品。點選它，並勾選旅行中也會帶它的每個人；再點一次名字，就會取消該人。',
+  'help.guide.edit-packing-item.step.5': '底部的「刪除」會立刻移除物品。點選叉叉或旁邊的任何地方，就能關閉視窗。',
+  'help.guide.edit-packing-item.result':
+    '該列只會顯示已設定的內容：數量（兩個以上才顯示）、打包時已裝的件數，以及誰要帶的頭像。',
+  'help.guide.edit-packing-item.tip.1': '每次變更都會即時儲存，沒有「儲存」按鈕。',
+  'help.guide.edit-packing-item.tip.2':
+    '開啟「行李追蹤」後，視窗中還會有物品的重量和它所在的行李。請參閱「為行李秤重」。',
+  'help.guide.edit-packing-item.tip.3':
+    '如果是別人要帶的共用物品，「刪除」上方的「複製到我的清單」會為你建立一份私人副本。',
   // share-packing-item
-  'help.guide.share-packing-item.title': '決定誰能看到物品、誰負責帶',
+  'help.guide.share-packing-item.title': '決定誰能看到物品',
   'help.guide.share-packing-item.goal': '在團體共用區、你自己的清單，以及你幫忙帶的人之間，調整物品的歸屬。',
   'help.guide.share-packing-item.step.1':
     '清單上方的「已分享」是所有人都看得到的清單，「我的清單」則是你自己的，兩者都會顯示物品數量。點選「我的清單」查看你自己的。',
-  'help.guide.share-packing-item.step.2': '回到「已分享」，開啟某一列末端的三個點，然後點選「分享中」。',
-  'help.guide.share-packing-item.step.3':
-    '共有三個層級：「已分享」，群組中的所有人都看得到；「個人」，只有你看得到；以及「共用給…」，由你挑選這件物品要給哪些人看。',
-  'help.guide.share-packing-item.step.4': '「個人」物品只會出現在「我的清單」中。請切換到「我的清單」來找到它。',
+  'help.guide.share-packing-item.step.2':
+    '回到「共用」，點選物品的名稱。在它視窗的底部，「可見範圍」有三個選項：「全部」、「僅自己」和「指定成員」。',
+  'help.guide.share-packing-item.step.3': '點選「僅自己」。物品會離開共用清單，現在位於只有你看得到的個人清單中。',
+  'help.guide.share-packing-item.step.4': '切換到「我的清單」就能找到它。',
   'help.guide.share-packing-item.step.5':
-    '再次開啟「分享中」，在「共用給…」下勾選一個名字。這件物品也會出現在對方的清單中，這一列也會多一個小徽章，顯示共用的人數。',
-  'help.guide.share-packing-item.result': '物品會歸入你選的層級，該列也會顯示由誰負責帶。',
+    '再次開啟它，點選「指定成員」並勾選一個名字。這件物品也會出現在對方的清單中，這一列也會多一個小徽章，顯示共用的人數。',
+  'help.guide.share-packing-item.result': '物品在你自己的清單中，該列上的徽章會顯示有多少人和你一起看到它。',
   'help.guide.share-packing-item.tip.1':
-    '只有負責帶這件物品的人，才能更改它的分享設定。被你分享的人會在自己的「我的清單」中看到這件物品，並附有小手徽章，游標移上去會顯示你的名字。對方也可以勾選這件物品。',
+    '只有擁有這件物品的人，才能更改誰看得到它。被你分享的人會在自己的「我的清單」中看到這件物品，並附有小手徽章，游標移上去會顯示你的名字。對方也可以勾選這件物品。',
   'help.guide.share-packing-item.tip.2':
-    '在別人負責帶的共用物品上，三點選單中不會有「分享中」，而是另外兩個選項：「我也可以帶」，會把你加到對方旁邊；「複製到我的清單」，則為你建立一份私人副本。',
+    '要一次移動清單中的所有物品，請使用清單三個點中的「整份清單的共用」。請參閱「共用整份清單」。',
   'help.guide.share-packing-item.tip.3':
     '新物品會沿用你新增時所在的檢視。在「已分享」中新增的會進入共用池。在「我的清單」中新增的屬於「個人」，除非該清單的每個物品都與同一批人共享：這時新物品也會與他們共享。',
+  'help.guide.share-packing-list.title': '共用整份清單',
+  'help.guide.share-packing-list.goal': '一次把某份清單的所有物品，移到團體共用區、你自己的清單，或你挑選的人。',
+  'help.guide.share-packing-list.step.1': '開啟清單標題中的三個點，點選「整份清單的共用」。',
+  'help.guide.share-packing-list.step.2':
+    '對話框會顯示清單名稱，並提供三個層級：「共用」（所有人都能在團體共用區看到）、「個人」（只有你），以及「共用給…」（你挑選的人）。一開始會停在物品目前所屬的層級。點選「共用給…」。',
+  'help.guide.share-packing-list.step.3': '勾選這份清單要分享給的人。',
+  'help.guide.share-packing-list.step.4': '點選「套用到清單」。清單中屬於你的每個物品都會移到該層級，並顯示訊息確認。',
+  'help.guide.share-packing-list.result':
+    '這份清單離開了共用檢視，移到「我的清單」，每一列都會有徽章，標示分享給了幾個人。',
+  'help.guide.share-packing-list.tip.1':
+    '只有你自己的物品會移動。其他人加入的物品維持原樣，清單中若有這類物品，對話框也會告訴你。',
+  'help.guide.share-packing-list.tip.2': '之後仍可以單獨變更某個物品，在它視窗中的「可見範圍」。',
   // packing-bags
   'help.guide.packing-bags.title': '為行李秤重',
   'help.guide.packing-bags.goal': '為每件物品加上重量，把物品分進各個行李，並讓每個行李都不超過航空公司的限額。',
-  'help.guide.packing-bags.step.1': '點選圓圈前方的重量徽章，輸入物品的重量，單位為公克。',
-  'help.guide.packing-bags.step.2': '重量後面的圓圈代表物品所屬的行李袋。點選它。',
+  'help.guide.packing-bags.step.1': '點選物品的名稱開啟它的視窗，在「總重量」中輸入物品的重量，單位為公克。',
+  'help.guide.packing-bags.step.2': '它下方的「行李」在物品不在任何行李袋時會顯示「未分配」。點選它。',
   'help.guide.packing-bags.step.3':
-    '如果還沒有行李袋，請點選「新增行李」，輸入名稱後按 Enter。行李袋建立後，物品會直接放進去。',
+    '旅行的行李袋會在它下方展開。如果還沒有行李袋，請在清單末端的「新增行李」中輸入名稱並按 Enter。行李袋建立後，物品會直接放進去。',
   'help.guide.packing-bags.step.4':
     '只要存在一個行李袋，「行李」卡片就會出現在清單右側。每個行李袋顯示其名稱、由誰攜帶、一條填充條、裡面有多少物品以及它的重量。行李袋下方是「未分配」和「總重量」，其下方是「已打包」：已打包的重量，以及一條顯示其占比的細長條。',
   'help.guide.packing-bags.step.5': '點選行李袋重量旁邊的「設定限制」，並依航空公司的標示，以公斤輸入限制。',
@@ -2892,7 +3086,7 @@ const help: TranslationStrings = {
   'help.guide.packing-bags.result':
     '右側的「行李」卡片會顯示每個行李袋的重量與上限、不在任何行李袋裡的物品、每個人攜帶的物品，以及總計和其中已打包的比例。',
   'help.guide.packing-bags.tip.1':
-    '重量欄位、行李袋圓圈和「行李」卡片，只有在管理員於「行李」擴充套件下開啟「行李追蹤」時才會出現。視窗比較窄時，行李袋則改由進度卡片上方的「行李」按鈕開啟。',
+    '物品視窗中的重量和行李袋，以及「行李」卡片，只有在管理員於「行李」擴充套件下開啟「行李追蹤」時才會出現。視窗比較窄時，行李袋則改由「新增清單」旁邊三個點中的「行李」開啟。',
   'help.guide.packing-bags.tip.2':
     '行李的重量由伺服器根據每位成員的物品計算，包括你看不到的物品，所以這個數字就是行李的實際重量。',
   'help.guide.packing-bags.tip.3':
@@ -2936,15 +3130,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '工具列右端的「手動新增」會開啟「新建預訂」。它可以建立六種預訂：「住宿」、「餐廳」、「活動」、「導覽行程」、「停車」和「其他」。航班、火車和其他交通請到「交通」分頁，不會出現在這裡。',
   'help.ctx.trip-bookings.bullet.2':
-    '「手動新增」前面的下載圖示「匯入訂位確認」會把確認信交給解析器：EML、PDF、PKPass、HTML 或 TXT，最多五個檔案，每個最大 10 MB，AI 模型可讀取圖片時也支援照片。只有在伺服器能讀取它們時才會有這個圖示。',
+    '「手動新增」前面的上傳圖示「匯入訂位確認」會上傳確認信，讓 TREK 自動讀取：EML、PDF、PKPass、HTML 或 TXT，最多五個檔案，每個最大 10 MB，AI 模型可讀取圖片時也支援照片。只有在伺服器能讀取它們時才會有這個圖示。管理員開啟郵件匯入後，同一個對話方塊還會給這趟旅行一個專屬地址，可以把預訂郵件轉寄過去。',
   'help.ctx.trip-bookings.bullet.3':
     '「搜尋」會查找標題、類型、地點、備註、預訂碼和出行成員。旁邊的漏斗「篩選」可依「狀態」、依「類型」（每項附有數量）縮小範圍；一旦有預訂指定了人員，還能依「出行成員」篩選。漏斗上的數字代表目前啟用的篩選條件數量。',
   'help.ctx.trip-bookings.bullet.4':
-    '「篩選」後面的三個圖示用來切換檢視：「卡片」、「清單」和「時間線」。「檢視選項」（旁邊的滑桿）會為卡片和清單分組與排序，或設定時間軸的泳道；它後面的試算表圖示「匯出為試算表 (CSV)」會把分頁顯示的內容下載為檔案。卡片預設依「已確認」和「待確認」分組，清單依日期分組，點擊區段標題可將它收合。',
+    '「篩選」後面的三個圖示用來切換檢視：「卡片」、「清單」和「時間線」。「檢視選項」（旁邊的滑桿）會為卡片和清單分組與排序，或設定時間線的泳道；它後面的下載圖示「匯出為試算表 (CSV)」會把分頁顯示的內容下載為檔案。卡片預設依「已確認」和「待確認」分組，清單依日期分組，點選區段標題可將它收合。',
   'help.ctx.trip-bookings.bullet.5':
     '卡片的標題列會依狀態著色，上面有狀態圓點（點一下就會在「待確認」和「已確認」之間切換）、類型、標題、鉛筆和垃圾桶。下方是預訂已有的詳細資料：「日期」「時間」「預訂碼」「入住」和「退房」「地點 / 地址」「住宿」「關聯到」（行程中的停留點）「連結」「備註」「出行成員」「檔案」，以及關聯的費用。',
   'help.ctx.trip-bookings.bullet.6':
-    '點擊卡片、一列或一條橫條會開啟預訂的詳細資訊，底部有「在地圖上」（預訂有地點時）、垃圾桶和「編輯」。刪除只會詢問一次（「刪除預訂？」，若有費用一併刪除會說明），然後預訂連同其關聯的支出一起消失，住宿也會把它的住宿夜從每日計畫中移除。',
+    '點選卡片、一列或一條橫條會開啟預訂的詳細資訊，底部有「地圖」（預訂有地點時）、垃圾桶和「編輯」。刪除只會詢問一次（「刪除預訂？」，若有費用一併刪除會說明），然後預訂連同其關聯的支出一起消失，住宿也會把它的住宿夜從每日計畫中移除。',
   // booking-views
   'help.guide.booking-views.title': '切換檢視並開啟預訂',
   'help.guide.booking-views.goal': '以卡片、清單或時間線查看預訂，並開啟其中一筆查看所有詳細資料。',
@@ -2959,9 +3153,9 @@ const help: TranslationStrings = {
   'help.guide.booking-views.step.5':
     '把游標移到橫條上，可以看到日期、時間和地點，再點一下就會開啟該預訂的詳細資料。「卡片」中的卡片和「清單」中的列，也會開啟同樣的彈出視窗。',
   'help.guide.booking-views.step.6':
-    '詳細檢視的標題列會顯示標題，以及狀態（點一下就會切換）、類型、日期和預訂碼的標籤，預訂碼旁有複製按鈕。下方先是以方塊顯示的時間，接著是地點、出行成員、備註、費用和檔案（預訂有的才會顯示），最底部是「在地圖上」、垃圾桶和「編輯」。',
+    '詳細檢視的標題列會顯示標題，以及狀態（點一下就會切換）、類型、日期和預訂碼的標籤，預訂碼旁有複製按鈕。下方先是以方塊顯示的時間，接著是地點、出行成員、備註、費用和檔案（預訂有的才會顯示），最底部是「地圖」、垃圾桶和「編輯」。',
   'help.guide.booking-views.result':
-    '預訂會在詳細檢視中開啟：「編輯」會開啟表單，「在地圖上」會在行程中顯示，「關閉」或 Esc 鍵則會回到你原本的檢視。',
+    '預訂會在詳細檢視中開啟：「編輯」會開啟表單，「地圖」會在計畫中顯示它，「關閉」或 Esc 鍵則會回到你原本的檢視。',
   'help.guide.booking-views.tip.1':
     '檢視圖示後方的滑桿圖示「檢視選項」，可以用「分組依據」和「排序方式」為「卡片」和「清單」分組與排序。在「時間線」中，它提供「每種類型單獨一列」和「同時顯示另一個分頁」。「同時顯示另一個分頁」會把「交通」分頁的項目以淡化的方式，顯示在頂部一條細窄的列中。「重設檢視」會恢復預設值，每個分頁都會在這個瀏覽器中記住自己的檢視。',
   'help.guide.booking-views.tip.2':
@@ -3044,7 +3238,7 @@ const help: TranslationStrings = {
     '「關聯已有檔案」會列出旅行中尚未附加到這筆預訂的文件。選一個就會附上，不必重新上傳。',
   'help.guide.booking-files.step.4': '點選「更新」。',
   'help.guide.booking-files.result':
-    '卡片和詳細資訊會在「檔案」下列出這些文件，點擊其中一個即可開啟。詳細資訊中列表上方的「在檔案中顯示」會帶你到「檔案」分頁。',
+    '卡片和詳細資訊會在「檔案」下列出這些文件。點選文件名稱即可開啟，點選該列末端的下載圖示則可儲存。詳細資訊中列表上方的「在檔案中顯示」會帶你到「檔案」分頁。',
   'help.guide.booking-files.tip.1':
     '在還在建立中的預訂上，文件會等待，並在你點擊「新增」的瞬間上傳。上傳需要網路連線。',
   'help.guide.booking-files.tip.2': '文件旁的 X 移除的是連結，不是文件本身。文件仍會保留在旅行的「檔案」分頁中。',
@@ -3064,7 +3258,7 @@ const help: TranslationStrings = {
   'help.guide.booking-cost.result':
     '卡片底部會顯示金額，預訂的表單會在「已關聯支出」下列出這筆支出，同一筆支出也會出現在「費用」分頁中，並連結到這筆預訂。',
   'help.guide.booking-cost.tip.1':
-    '分類會依類型而定：「餐廳」歸為「餐飲」，「住宿」歸為「住宿」，「停車」歸為「停車」，「活動」和「旅遊團」則都歸為「其他」。',
+    '分類會依類型而定：「餐廳」歸為「餐飲」，「住宿」歸為「住宿」，「停車」歸為「停車」，「活動」和「導覽行程」歸為「活動」，「其他」則維持「其他」。',
   'help.guide.booking-cost.tip.2':
     '一筆預訂可以有多筆支出。「關聯已有支出」會列出「費用」中尚未關聯到任何項目的支出。在已關聯的支出上，「取消關聯，保留支出」會解除關聯，但支出仍留在「費用」中，垃圾桶則會刪除該筆支出。',
   'help.guide.booking-cost.tip.3':
@@ -3085,14 +3279,14 @@ const help: TranslationStrings = {
   'help.guide.filter-bookings.result':
     '這個分頁只會顯示你所選的內容，在「卡片」、「清單」和「時間線」中都一樣。這些篩選條件會在這趟旅行中保留，直到你關閉瀏覽器分頁為止。',
   'help.guide.filter-bookings.tip.1':
-    '只有分頁中有不只一種類型時，才會顯示「類型」，而且只會列出該分頁中有的類型。所以如果分頁裡沒有任何旅遊團，「類型」裡就不會有「旅遊團」。',
+    '只有分頁中有不只一種類型時，才會顯示「類型」，而且只會列出該分頁中有的類型。所以如果分頁裡沒有任何導覽行程，「類型」裡就不會有「導覽行程」。',
   'help.guide.filter-bookings.tip.2':
     '如果沒有任何項目符合篩選條件，分頁會顯示「沒有符合這些篩選條件的項目」，正下方就是「重設篩選」。',
   // import-booking-file
   'help.guide.import-booking-file.title': '從確認單匯入預訂',
   'help.guide.import-booking-file.goal': '讓 TREK 從業者寄來的電子郵件或 PDF 讀取預訂資訊，你就不用再重新輸入。',
   'help.guide.import-booking-file.step.1':
-    '點選工具列中的下載圖示「匯入訂位確認」，把游標移上去就會顯示這個名稱。同名的對話框隨即開啟。',
+    '點選工具列中的上傳圖示「匯入訂位確認」，把游標移上去就會顯示這個名稱。同名的對話框隨即開啟。',
   'help.guide.import-booking-file.step.2':
     '把確認信拖放到方框上，或點擊方框選擇檔案。支援 EML、PDF、PKPass、HTML 和 TXT，最多五個檔案，每個 10 MB；如果 AI 模型能讀取圖片，也支援照片（JPG、PNG、WEBP）。你選擇的檔案會顯示在方框上。',
   'help.guide.import-booking-file.step.3': '點選「匯入」。對話框會立刻關閉，因為檔案是在背景讀取的。',
@@ -3141,7 +3335,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.summary':
     '旅行的花費：每筆支出都列在依日期排列的帳本或表格中，包括誰輸入的、誰要分攤，金額以收據上的貨幣顯示。右欄會顯示誰要付錢給誰，才能把帳結清。',
   'help.ctx.trip-costs.bullet.1':
-    '頂端的列顯示旅行日期，以及分攤費用的旅伴。此外還有「搜尋支出…」、「篩選」（漏斗圖示）、「匯出 CSV」（下載圖示），以及「清單」/「表格」切換。',
+    '頂端的列顯示旅行日期，以及分攤費用的旅伴。此外還有「搜尋支出…」、「篩選」（漏斗圖示）、「匯出 CSV」（下載圖示）、金額顯示所用的貨幣，以及「清單」/「表格」切換。',
   'help.ctx.trip-costs.bullet.2':
     '右端的「結清」可以一次記錄所有未結清的轉帳；當「AI 解析」擴充套件能讀取圖片時，「掃描收據」可以根據照片填好支出；「新增支出」則會開啟編輯器。',
   'help.ctx.trip-costs.bullet.3':
@@ -3149,7 +3343,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.bullet.4':
     '帳本依日期分組，最新的在前，每天的標題會顯示該天的項目數量和花費。每一列包含以彩色標籤顯示的分類、名稱、付款人標籤和各自付了多少，其下是「分攤」及每位出行成員的份額（勾號代表已付清自己的份額），然後是備註和金額。如果分攤的結果是別人欠你或你欠別人，還會顯示「你借出」或「你借入」。',
   'help.ctx.trip-costs.bullet.5':
-    '右欄顯示結果：「結清」列出誰要付給誰，「餘額」顯示每位旅伴的結餘或欠款，「最終花費」顯示這趟旅行每個人各花了多少，「按分類」則顯示錢花在哪些項目上。',
+    '右欄顯示結果：「結清」列出誰要付給誰，「餘額」顯示每位旅伴的結餘或欠款，「最終花費」顯示這趟旅行每個人各花了多少，「按分類」則顯示錢花在哪些項目上；點選某個分類，就會把它排除在合計之外。欄位底部的「在旅伴之間分攤費用」可以關閉付款人和結清功能，適合只需要合計的旅行。',
   'help.ctx.trip-costs.bullet.6':
     '已記錄的付款會作為獨立的一列出現在同一帳本中，旁邊有鉛筆和「復原」；支出有鉛筆和垃圾桶，垃圾桶會在刪除支出前先詢問。帶有收據的支出在名稱旁有「收據」標籤，點擊即可開啟。',
   'help.ctx.trip-costs.bullet.7':
@@ -3164,7 +3358,7 @@ const help: TranslationStrings = {
   'help.guide.add-expense.step.3':
     '名稱下方的標籤是「分類」，在你選別的分類之前，預設是「餐飲」。共有十四種，無法更改。標題列會換成你所選分類的顏色，該列上的標籤，以及「按分類」中的長條也一樣。',
   'help.guide.add-expense.step.4':
-    '把收據上的金額填入「總金額」。旁邊的「貨幣」一開始會是「費用」所顯示的貨幣；如果更改，編輯器會顯示換算後的金額。「日期」一開始是今天，這筆支出會在清單中歸入這一天。',
+    '把收據上的金額填入「總金額」。旁邊的「貨幣」一開始是旅行本身的貨幣；如果你選了其他貨幣，編輯器會在欄位下方顯示換算後的金額。「日期」一開始是今天，這筆支出會在清單中歸入這一天。',
   'help.guide.add-expense.step.5':
     '在「誰付的款？」下，點選實際付錢的人。「你」是預設選取的。「尚無人付款」只記錄金額，不會讓任何人欠這筆錢；標題旁開關中的「多人支付」則可以把帳單分給多位付款人。',
   'help.guide.add-expense.step.6':
@@ -3215,26 +3409,26 @@ const help: TranslationStrings = {
   'help.guide.split-expense.tip.3':
     '「Ticket」模式會自動算出「總金額」，並把該欄位設為灰色：總額就是收據上各品項的加總。',
   'help.guide.split-expense.tip.4':
-    '自訂分攤也可以用百分比輸入：把「份額輸入方式」切換成 %，各份額加起來必須是 100%，支出才能儲存。',
+    '自訂分攤也可以用百分比或份數輸入：提示旁邊的小開關可選擇貨幣符號、% 或「份數」。用百分比時，各份額加起來必須是 100 %，支出才能儲存。',
   // expense-currency
   'help.guide.expense-currency.title': '用其他貨幣輸入支出',
   'help.guide.expense-currency.goal': '輸入收據上的金額，TREK 會幫你記下匯率。',
   'help.guide.expense-currency.step.1':
     '開啟「新增支出」。在對話框頂部輸入名稱，並把收據上的金額原樣填入「總金額」，不要填換算後的金額。',
   'help.guide.expense-currency.step.2':
-    '開啟金額旁邊的「貨幣」，選擇收據上的貨幣。清單包含 TREK 認得的所有代碼，也可以搜尋：輸入三個字母即可。',
+    '開啟金額旁邊的「貨幣」；新增支出一開始會使用旅行本身的貨幣。選擇收據上的貨幣：旅行的貨幣和「費用」目前顯示所用的貨幣會排在最上方，你也可以輸入三個字母，搜尋 TREK 認得的其他所有代碼。',
   'help.guide.expense-currency.step.3':
     '欄位下方會出現一排徽章：你輸入的金額，以及它目前的價值，並標示「即時匯率」。這只是預覽，不是最後儲存的金額。',
   'help.guide.expense-currency.step.4':
     '點選對話框底部的「新增支出」。匯率會在這一刻固定下來：這筆支出會保留你輸入當天的價值。',
   'help.guide.expense-currency.step.5':
-    '在帳本中，該列的名稱下方會顯示兩個金額：你輸入的金額、一個箭頭，以及換算成旅行貨幣的金額。「費用」分頁上的所有合計、餘額和結算，都是用第二個金額計算的。',
+    '在帳本中，該列的名稱下方會顯示兩個金額：你輸入的金額、一個箭頭，以及換算成「費用」顯示所用貨幣的金額。「費用」分頁上的所有合計、餘額和結清，都是用第二個金額計算的。',
   'help.guide.expense-currency.result':
     '支出會保留你輸入的金額和貨幣。帳本會同時顯示兩者，而旅行的合計與餘額則以旅行的貨幣計算。',
   'help.guide.expense-currency.tip.1':
     '匯率會在你儲存時固定下來，所以已結清的欠款不會因為下週匯率變動而改變。只有更改這筆支出的貨幣時，才會記錄新的匯率。',
   'help.guide.expense-currency.tip.2':
-    '「設定」中的「顯示貨幣」只會改變金額的顯示方式，儲存的金額不會改變。如果留空，每趟旅行都會用它自己的貨幣顯示。',
+    '「設定」中的「顯示貨幣」，以及單一旅行在「費用」列中的貨幣選擇器，只會改變金額的顯示方式，儲存的金額不會改變。如果顯示貨幣是空的，每趟旅行都會用它自己的貨幣顯示。',
   'help.guide.expense-currency.tip.3':
     '旅行貨幣是在旅行本身設定的，位於「編輯旅行」下，並需要「編輯旅行詳情」權限。更改後，所有已固定的匯率都會依新貨幣重新計算，但金額本身不會被換算。',
   // filter-costs
@@ -3328,6 +3522,83 @@ const help: TranslationStrings = {
     '以「自訂」或「收據」分攤的支出，沒有統一的每人份額，所以它的「人均」和「人日均」會保持空白。',
   'help.guide.costs-table.tip.3':
     '付款人、分攤、備註和收據要在支出本身編輯：列末的「更多選項」裡有「編輯」，以及用來移除該列的「刪除」。',
+  'help.guide.costs-show-in.title': '以其他貨幣顯示費用',
+  'help.guide.costs-show-in.goal':
+    '用另一種貨幣查看一趟旅行的費用，例如你接下來要前往的國家的貨幣，而不會更動任何已儲存的資料。',
+  'help.guide.costs-show-in.step.1':
+    '工具列中、位於「匯出 CSV」和「清單／表格」切換之間的貨幣選擇器，會顯示目前用來閱讀金額的貨幣。把游標移上去，會顯示「金額顯示幣別」。',
+  'help.guide.costs-show-in.step.2':
+    '點選它。你的顯示貨幣和旅行本身的貨幣會排在清單最上方，你也可以輸入三個字母來搜尋其他貨幣。選擇一種貨幣。',
+  'help.guide.costs-show-in.step.3':
+    '卡片、帳目中的每一列和右側欄位現在都會以該貨幣顯示，並依今天的匯率換算。「結清」提供的轉帳金額也會用這種貨幣。',
+  'help.guide.costs-show-in.step.4':
+    '要回復的話，再次開啟選擇器，選擇清單的第一項：你的顯示貨幣；如果你沒有在「設定」中設定，則是旅行本身的貨幣。',
+  'help.guide.costs-show-in.result':
+    '整個「費用」分頁都會用你選擇的貨幣顯示這趟旅行。各筆支出仍保有當初輸入的金額和貨幣。',
+  'help.guide.costs-show-in.tip.1':
+    '這個選擇只會儲存在這個瀏覽器，且僅限這趟旅行。其他旅行、其他裝置和其他旅伴各自保有自己的檢視。',
+  'help.guide.costs-show-in.tip.2':
+    '你在「設定」中的顯示貨幣不會改變。當你在工具列中再次選擇它之後，之後在「設定」中的變更就會再次套用到這趟旅行。',
+  'help.guide.costs-show-in.tip.3': '不論金額以什麼貨幣顯示，新增支出時仍預設使用旅行本身的貨幣。',
+  'help.guide.leave-out-category.title': '把某個分類排除在合計之外',
+  'help.guide.leave-out-category.goal': '看看扣掉某一類花費（例如機票）之後，這趟旅行花了多少。',
+  'help.guide.leave-out-category.step.1':
+    '右側欄位最後的「按分類」會依金額高低列出花費用在哪裡。頂端那一行會說明點選的效果：選擇一個類別即可將其排除在合計之外。',
+  'help.guide.leave-out-category.step.2':
+    '點選一個分類。它那一列會留在原處，變暗並加上刪除線，其他長條會重新調整比例，頂端那一行會顯示被排除的項目，旁邊有「全部計入」。',
+  'help.guide.leave-out-category.step.3':
+    '「旅程總支出」會排除該分類，它下方的「你的分攤」和「你支付了」也一樣。卡片上也會標出被排除的項目。',
+  'help.guide.leave-out-category.step.4': '點選「全部計入」，或再點一次變暗的那一列，每個分類就會重新計入。',
+  'help.guide.leave-out-category.result': '合計會顯示扣掉你排除的分類之後的旅行花費，直到你重新計入為止。',
+  'help.guide.leave-out-category.tip.1':
+    '這只是一種檢視方式。不會儲存任何內容，你離開「費用」分頁後，這個選擇就會消失。',
+  'help.guide.leave-out-category.tip.2':
+    '欠款金額維持完整：「你欠款」、「你應收」、「未結算金額」、「結清」和「餘額」仍會計入每個分類。',
+  'help.guide.leave-out-category.tip.3': '你可以同時排除多個分類。每次點選某一列，只會切換那一個。',
+  'help.guide.split-by-shares.title': '依住宿晚數或份數分攤帳單',
+  'help.guide.split-by-shares.goal': '依比例分攤一筆支出，例如每位旅伴住了幾晚，不必自己計算金額。',
+  'help.guide.split-by-shares.step.1': '點選該列旁的鉛筆開啟支出，然後在「分攤」旁的切換中點選「自訂」。',
+  'help.guide.split-by-shares.step.2':
+    '在它下方的提示旁邊，有一個小開關可選擇輸入分攤的方式：貨幣符號代表金額、% 代表百分比，或是「份數」。點選「份數」。',
+  'help.guide.split-by-shares.step.3':
+    '每位已勾選的旅伴都會有一個從 1 開始的欄位。輸入每個人的份數，例如他們住的晚數。每個欄位下方會隨著你輸入，即時更新對應的金額。',
+  'help.guide.split-by-shares.step.4': '清單下方的徽章會顯示「分攤金額與總額相符」。點選對話框底部的「儲存」。',
+  'help.guide.split-by-shares.result': '支出會依份數的比例分攤，精確到分，該列也會在「分攤」下顯示每位旅伴的部分。',
+  'help.guide.split-by-shares.tip.1':
+    '份數為 0 的人，這筆支出不用付任何費用。如果沒有任何人有份數，對話框會顯示「請至少為一人設定份數」，且不會儲存。',
+  'help.guide.split-by-shares.tip.2':
+    '只有金額會被儲存，所以支出再次開啟時會顯示金額。若要調整比例，請再次切換到「份數」。',
+  'help.guide.split-by-shares.tip.3': '百分比的做法一樣：選擇 %，所有百分比加起來必須是 100 %。',
+  'help.guide.link-receipt-file.title': '把旅行中的檔案當作收據使用',
+  'help.guide.link-receipt-file.goal':
+    '把旅行中已有的文件放到一筆支出上，例如憑證或同時也是發票的確認信，不必重新上傳。',
+  'help.guide.link-receipt-file.step.1': '點選支出該列旁的鉛筆。編輯器會開啟，「收據與發票」位於靠近底部的位置。',
+  'help.guide.link-receipt-file.step.2':
+    '點選「附加」旁的連結圖示。只要旅行中有還沒附在這筆支出上的圖片或 PDF，就會出現這個圖示。清單會在標題下方展開，這筆支出所屬預訂的檔案會排在最前面。',
+  'help.guide.link-receipt-file.step.3':
+    '點選該檔案。清單會關閉，檔案會列在「收據與發票」下，旁邊有垃圾桶可再把它移除。',
+  'help.guide.link-receipt-file.step.4': '點選對話框底部的「儲存」。該列的名稱旁會出現「收據」標籤，點選即可開啟檔案。',
+  'help.guide.link-receipt-file.result':
+    '這筆支出把該檔案當作收據。沒有上傳任何東西：它和「檔案」中的是同一個檔案，也保留它的其他連結。',
+  'help.guide.link-receipt-file.tip.1': '收據旁的垃圾桶只會把它從這筆支出移除。檔案仍留在「檔案」中。',
+  'help.guide.link-receipt-file.tip.2': '只會提供圖片和 PDF，也就是「附加」接受的相同類型，而且不包含垃圾桶中的檔案。',
+  'help.guide.costs-totals-only.title': '只保留旅行的合計',
+  'help.guide.costs-totals-only.goal':
+    '只記錄一趟旅行花了多少，不管誰付款、誰欠誰和結清，例如你們本來就是一起分攤所有開銷時。',
+  'help.guide.costs-totals-only.step.1':
+    '「在旅伴之間分攤費用」是右側欄位底部的開關。預設為開啟，名稱下方的那一行說明了它的作用。',
+  'help.guide.costs-totals-only.step.2':
+    '把它關閉。欠款與應收的卡片、「結清」、「餘額」和「最終花費」都會消失，每一列上的付款人和分攤資訊也一樣。「旅程總支出」會保留，下方並顯示支出筆數。',
+  'help.guide.costs-totals-only.step.3':
+    '現在「新增支出」開啟的編輯器不會有「誰付的款？」和「分攤」：一筆支出只需要名稱、分類、金額、貨幣和日期。',
+  'help.guide.costs-totals-only.step.4': '想分攤時，隨時再把開關打開。之前記錄的付款人、分攤和付款都會恢復原樣。',
+  'help.guide.costs-totals-only.result': '「費用」會依日期、依分類和在表格中顯示這趟旅行的花費，不含任何誰欠誰的資訊。',
+  'help.guide.costs-totals-only.tip.1':
+    '這個設定屬於這趟旅行，所以每位旅伴看到的「費用」都一樣。只有可以編輯費用的人才看得到這個開關。',
+  'help.guide.costs-totals-only.tip.2':
+    '開關關閉時新增的支出，會在沒有付款人和分攤的情況下儲存，所以日後再次分攤時，它不會變成欠款。',
+  'help.guide.costs-totals-only.tip.3':
+    '如果旅行中只有你一個人，就沒有東西可分攤，所以「費用」只會單獨顯示合計，也不會顯示這個開關。',
 
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': '交通',
@@ -3340,11 +3611,11 @@ const help: TranslationStrings = {
   'help.ctx.trip-transports.bullet.3':
     '這個分頁預設以「卡片」檢視開啟：先列「已確認」，再列「待確認」，點選標題即可收合各區。規劃好的大眾運輸路線沒有狀態，會依時間順序排在已確認的交通之間，除非你在「檢視選項」中讓它們獨立成區，也就是「自動大眾運輸」。「清單」依天數分組，「時間線」則把整趟旅行每一天的交通全部列出。',
   'help.ctx.trip-transports.bullet.4':
-    '卡片頂端的色帶依狀態上色：已確認為綠色，待確認為琥珀色，規劃好的大眾運輸路線為藍色。色帶上有狀態圓點、類型、標題、鉛筆和垃圾桶。下方則是：「日期」、「時間」、「預訂碼」、「路線」，以及航空公司和航班編號，或是車次、月台和座位。點選卡片即可開啟詳細資料。',
+    '卡片頂端的色帶依狀態上色：已確認為綠色，待確認為琥珀色，規劃好的大眾運輸路線為藍色。色帶上有狀態圓點、類型、標題、鉛筆和垃圾桶。下方則是：「日期」、「時間」、「預訂碼」、「路線」，以及航空公司和航班編號，或是車次、月台和座位。航班在起飛前後，還會顯示即時的「狀態」。點選卡片即可開啟詳細資料。',
   'help.ctx.trip-transports.bullet.5':
     '你也可以直接在計畫中建立交通：當天標題中的 +（提示文字為「新增到當天」），或在標題上按右鍵，都有「新增交通」和「大眾運輸」。兩個停靠點之間的行程時間連接線，則會針對那一段開啟同樣的搜尋。',
   'help.ctx.trip-transports.bullet.6':
-    '兩端都已設定的交通，會在地圖上畫出一條線。每日計畫中該列的路線圖示，以及詳細資料中的「在地圖上」，可以開啟這條線。天數上方工具列的「顯示所有預訂路線」則可一次開啟或關閉整趟旅行的路線。',
+    '兩端都已設定的交通，會在地圖上畫出一條線。每日計畫中該列的路線圖示，以及詳細資料底部的「地圖」，可以開啟這條線。天數上方工具列的「顯示所有預訂路線」則可一次開啟或關閉整趟旅行的路線。',
   // transports-list
   'help.guide.transports-list.title': '看懂「交通」分頁',
   'help.guide.transports-list.goal': '在修改任何內容之前，先了解清單顯示的是什麼。',
@@ -3357,7 +3628,7 @@ const help: TranslationStrings = {
   'help.guide.transports-list.step.4':
     '每張卡片都會顯示完整的詳細資料。頂部的標題區在「已確認」時為綠色，「待確認」時為琥珀色，上面有狀態圓點、類型和標題。下方的「日期」顯示它橫跨的日子和日期。接著是「時間」「預訂碼」，以及站點之間帶有類型圖示的「路線」，還有航空公司和航班號，或車次、月台和座位。點選卡片即可開啟詳細資料。',
   'help.guide.transports-list.step.5':
-    '點擊狀態圓點可在「待確認」和「已確認」之間切換；提示文字會說明切換方向，例如「設為待確認」。標題列中的鉛筆會開啟交通的表單，垃圾桶則會在詢問「刪除預訂？」後刪除，該提示會說明哪些內容將消失，包括關聯的費用。',
+    '點選狀態圓點可在「待確認」和「已確認」之間切換；提示文字會說明切換方向，例如「設為待確認」。標題列中的鉛筆會開啟交通的表單，垃圾桶則會在詢問「刪除預訂？」後刪除，該提示會寫出這段行程的名稱，若有關聯的費用會一併刪除，也會說明。',
   'help.guide.transports-list.result': '每張卡片都會顯示這段交通是否已訂好，你也可以隨時用工具列篩選或排序清單。',
   'help.guide.transports-list.tip.1':
     '這個分頁會記住你的設定：檢視方式、分組和排序記在這個瀏覽器中，收合的區塊則依旅行分別記住，篩選條件會保留到你關閉瀏覽器分頁為止。',
@@ -3389,7 +3660,7 @@ const help: TranslationStrings = {
   'help.guide.import-transport-file.title': '從電子機票匯入航班',
   'help.guide.import-transport-file.goal': '讓 TREK 從承運商寄來的票券中讀取航班、火車或渡輪資訊，並在儲存前讓你檢查。',
   'help.guide.import-transport-file.step.1':
-    '在「交通」分頁的列中，點擊「交通」前面的下載圖示，提示文字為「匯入訂位確認」。同名的對話方塊隨即開啟，與「預訂」分頁的相同。分頁是空的時候，中間的「從檔案匯入」也有同樣的作用。',
+    '在「交通」分頁的列中，點選「交通」前面的上傳圖示，提示文字為「匯入訂位確認」。同名的對話方塊隨即開啟，與「預訂」分頁的相同。分頁是空的時候，中間的「從檔案匯入」也有同樣的作用。',
   'help.guide.import-transport-file.step.2':
     '將票券拖放到方框上，或點擊方框選擇檔案：支援 EML、PDF、PKPass、HTML 和 TXT，最多五個檔案，每個 10 MB；如果你的伺服器有 AI 模型可以讀取，也支援票券照片（JPG、PNG、WEBP）。你選擇的檔案會顯示在方框上。',
   'help.guide.import-transport-file.step.3': '點選「匯入」。對話框會立刻關閉，檔案則在背景讀取。',
@@ -3549,7 +3820,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-mode.tip.1':
     '這個選擇是依旅行儲存在你的帳號上，所以重新載入、換瀏覽器或換裝置後，旅行都會再次以公路旅行檢視開啟。',
   'help.guide.roadtrip-mode.tip.2':
-    '只有管理員在管理面板的「擴充套件」下開啟「公路旅行」擴充套件後，才會顯示這個切換。',
+    '只有這趟旅行開啟了「公路旅行」擴充套件時，才會顯示這個切換。管理員可在管理面板的「擴充套件」下為每趟旅行開啟它，旅行擁有者也可以在「旅行設定」的「擴充套件」中，只為這趟旅行開啟或關閉。',
   'help.guide.roadtrip-mode.tip.3': '手機上沒有切換開關：擴充套件會在「計畫」旁加上自己的「公路旅行」分頁。',
   // roadtrip-stops
   'help.guide.roadtrip-stops.title': '途中的停靠點，以及停留多久',
@@ -3567,7 +3838,8 @@ const help: TranslationStrings = {
     '用滑桿、減號和加號按鈕，或其中一個預設值來設定時間長度。「出發」會跟著調整，「抵達」則維持在行車到達的時間。然後點選「儲存」。',
   'help.guide.roadtrip-stops.result':
     '你修改的停靠點，其「停留」標記會顯示新的時間長度，之後每一個抵達時間也會跟著調整。如果你把停靠點改成其他類型，之後又改回來，它會恢復成有編號的目的地。',
-  'help.guide.roadtrip-stops.tip.1': '停留時間屬於地點，而不是某一次造訪：同一個地點排在兩天，兩天的停留時間會相同。',
+  'help.guide.roadtrip-stops.tip.1':
+    '停留時間屬於那一次造訪：同一個地點排在兩天，每一天都有自己的停留時間，更改其中一個不會影響另一個。',
   'help.guide.roadtrip-stops.tip.2':
     '途中停靠點也會顯示在「天」之下。若在「駕駛設定」的「服務停靠點」中關閉「也顯示於每日行程」，這些停靠點就只會留在「公路旅行」中。',
   'help.guide.roadtrip-stops.tip.3': '同一個對話框中的「不停留」可以再次移除停留時間。',
@@ -3671,7 +3943,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.step.1':
     '設定續航里程後，側欄會在燃料或電量耗盡的路段上顯示一條色帶：「此處將耗盡油量」，電動車則是「電量將在此耗盡」。下方會顯示它位於該路段的哪個位置。',
   'help.guide.roadtrip-refuel.step.2':
-    '色帶上的燈泡圖示就是按鈕：「尋找加油站」，電動車則是「尋找充電站」。它會沿著該點之前的道路搜尋，搜尋時會顯示「正在沿路線尋找…」。',
+    '色帶末端閃爍的加油機圖示（電動車則是閃電符號）就是按鈕：「尋找加油站」，電動車則是「尋找充電站」。它會沿著該點之前的道路搜尋，搜尋時會顯示「正在沿路線尋找…」。',
   'help.guide.roadtrip-refuel.step.3': '最多會顯示三個加油站，每個都會標示與路線的距離，以及到那裡時還剩多少續航里程。',
   'help.guide.roadtrip-refuel.step.4':
     '候選項目上的加號會把它新增為加油停靠點。「新增為停靠點」開啟時，類型和時間已事先填好，按「新增」會把它放到路段中路線實際經過它的位置。',
@@ -3682,7 +3954,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.tip.2':
     '搜尋只會看油量耗盡點之前的路段，並保留一點餘裕，繞路的距離也會算兩次，所以它提供的每個地點都確實到得了。',
   'help.guide.roadtrip-refuel.tip.3':
-    '如果沒有結果，可以再搜尋一次：燈號會變成「重試」，因為地點搜尋是共用的服務，有時會逾時。',
+    '如果沒有結果，可以再搜尋一次：加油機圖示會變成「重試」，因為地點搜尋是共用的服務，有時會逾時。',
   // roadtrip-track
   'help.guide.roadtrip-track.title': '讓某一天沿著匯入的軌跡行駛',
   'help.guide.roadtrip-track.goal': '把你匯入的 GPX 或 KML 軌跡中的風景路線，用在某一天的行駛上。',
@@ -3720,7 +3992,7 @@ const help: TranslationStrings = {
   'help.guide.tour-collection-add-to-trip.step.3':
     '在「路點」下，選擇包含路點的方塊可依序帶入起點、停靠點和終點，選擇「僅線路」則只保留已儲存的線路。',
   'help.guide.tour-collection-manage.step.1':
-    '開啟一個清單。每條保存的遊程會顯示其難度、類型、儲存來源的旅行、距離和爬升，以及保存的路點數量。將游標移到旅行名稱上可看到是誰保存的。',
+    '開啟一個清單。每條保存的遊程會顯示其難度或類型、儲存來源的旅行、時間、距離和爬升，以及航點數量。將游標移到旅行名稱上可看到是誰保存的。',
   'help.guide.entry-draft.step.1': '在編輯器中，開啟右欄的「草稿」。',
   'help.guide.journey-map-layers.step.3':
     '點擊地圖上的空心圖釘或小圓點。卡片會說明它是什麼：計劃的地點及其所在的日子，或是帶有「開啟日記」的停留點，點擊後會帶你到它所屬的當日記述。',
@@ -3746,16 +4018,16 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.tip.2': '「通知」下的外掛管道會透過「前往設定」帶你來到這裡。',
   'help.guide.default-user-settings.result': '新帳戶，以及所有從未更改這些設定的人，都會看到你的選擇。',
   'help.guide.own-routing-engine.goal':
-    '讓每日行程和公路旅行改用你自己架設的 OSRM 或 Valhalla 伺服器規劃路線，而不是公共伺服器。',
+    '讓每日行程、公路旅行和遊程改用你自己架設的 OSRM 或 Valhalla 伺服器規劃路線，而不是 TREK 服務或公共伺服器。',
   'help.guide.admin-passkeys.tip.1':
-    '如果目前還無法判斷出網域，會顯示警告，且在你設定 APP_URL 或 Relying Party ID 之前，Passkey 會保持隱藏。',
-  'help.guide.rotate-jwt-secret.step.1': '在「設定」分頁底部的「危險區域」下，點擊「輪替 JWT 密鑰」旁的「輪換」。',
+    '如果 TREK 目前還無法判斷出網域，開關下方會顯示警告，且在你設定 APP_URL 或 Relying Party ID 之前，Passkey 會保持隱藏。',
+  'help.guide.rotate-jwt-secret.step.1': '在「安全性」分頁右下角的「危險區域」下，點選「輪替 JWT 密鑰」旁的「輪換」。',
   'help.guide.storage-backends.tip.3': '照片快取可以重新取得，所以替它們建立鏡像通常只是浪費空間。',
   'help.guide.admin-channels.step.3':
-    '在下方的「通知」卡片中，依事件選擇由哪些管道傳送：「有新版本可用」、「儲存複本故障」和「划槳區域申請」。每個開關都會立即儲存。',
+    '在同一張卡片的下方，依事件選擇由哪些管道傳送：「有新版本可用」、「儲存複本故障」和「划槳區域申請」。每個開關都會立即儲存。',
   'help.guide.notification-defaults.tip.1': '「關閉」是預設值，每位使用者仍可自行開啟；「封鎖」則會對所有人關閉。',
   'help.ctx.notifications.bullet.4':
-    '每則通知時間旁邊的「標為已讀」（雙勾號）和「刪除」（垃圾桶）只作用於那一則。頂部的「全部標為已讀」和「全部刪除」則作用於整個列表。',
+    '把游標移到通知上，時間會換成「標為已讀」（雙勾號）或「標為未讀」（信封）和「刪除」（垃圾桶）。頂部的「全部標為已讀」和「全部刪除」則作用於整個列表。',
   'help.guide.read-notifications.tip.2': '沒有按鈕的通知只是消息。在面板中閱讀，並在那裡標為已讀即可。',
   'help.guide.filter-notifications.result': '列表只顯示尚未閱讀的內容，最新的在前。',
   'help.guide.delete-notifications.title': '刪除通知',
@@ -3783,14 +4055,33 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.1':
     '在「交通」分頁中，點擊一張卡片。詳細資訊會在分頁上方開啟，標題列的色調與卡片一致。每日計畫中的交通列開啟的是同樣的詳細資訊。',
   'help.guide.export-transports-csv.tip.2': '「預訂」分頁有相同的圖示，會寫出自己的檔案，檔名以 bookings.csv 結尾。',
+  'help.guide.flight-live-status.title': '即時追蹤航班',
+  'help.guide.flight-live-status.goal': '不需要帳號也不需要金鑰，就能看到你的航班在哪裡、是否延誤，以及何時降落。',
+  'help.guide.flight-live-status.step.1':
+    '從起飛前三小時開始，「交通」分頁中航班的卡片會出現「狀態」欄位：「預定」、「準備起飛」、「飛行中」（附上距離降落的時間）或「已降落」。延誤會以琥珀色或紅色顯示在旁邊，航班飛行期間，欄位旁的細長進度條會逐漸填滿。',
+  'help.guide.flight-live-status.step.2':
+    '點選卡片。預訂頂端的即時卡片會顯示航班目前的進度、接下來的狀況（例如「11 小時 50 分鐘後降落」），以及右側的延誤時間（例如 +25 分鐘）。',
+  'help.guide.flight-live-status.step.3':
+    '再往下，「出發」和「到達」會顯示兩座機場的代碼與城市，並附有一張小型航線地圖，飛機會在途中移動。每個時間方塊顯示目前有效的時間；如果與原定時間不同，原定時間會加上刪除線顯示在旁邊。',
+  'help.guide.flight-live-status.step.4':
+    '航班飛行期間，接著會顯示「高度」、「速度」和「剩餘」（單位依你的設定），然後是「飛機」的機型與註冊編號。',
+  'help.guide.flight-live-status.step.5':
+    '在行程計劃中，該航班當天的那一列，會在時間下方用一行顯示同樣的資訊，延誤時間則在旁邊。',
+  'help.guide.flight-live-status.result':
+    '你一眼就能看出航班是否準時、何時降落：在它的卡片上、預訂中，以及每日行程裡都看得到。',
+  'help.guide.flight-live-status.tip.1':
+    '位置來自開放的 ADS-B 資料（adsb.lol，大多數安裝環境也會使用 adsb.fi），不需要金鑰也不需要帳號。只會把航班呼號傳送給它們。管理員可在管理區的「擴充套件」中，於「旅行」卡片裡用「即時追蹤已預訂的航班」開啟或關閉此功能。',
+  'help.guide.flight-live-status.tip.2':
+    '開放資料只知道飛機在哪裡。登機門、航廈和行李轉盤不在其中，所以需要的話請自行加到預訂裡。延誤和抵達時間是依位置推算出來的估計值。',
+  'help.guide.flight-live-status.tip.3':
+    'TREK 需要航班號碼和兩座機場才能追蹤航班。如果航空公司使用其他呼號，或是共用班號的航班，可能找不到；這時預訂會維持單純的時間顯示。',
   'help.guide.group-sort-bookings.step.2':
     '在「分組依據」下，選擇「狀態」、「日期」、「類型」或「不分組」。分頁會立即依這些區段排序。',
   'help.guide.export-bookings-csv.result':
     '你的瀏覽器會下載一個以旅行和分頁命名的檔案，例如 autumn-in-japan-bookings.csv，分頁顯示的每筆預訂各佔一列。',
   'help.guide.arrange-packing-list.result':
     '清單會依你拖曳後的順序排列，物品則依「依名稱」排序，直到你關閉它為止。你自己的順序會保留在底層。',
-  'help.guide.count-packed-pieces.step.2':
-    '數量前面會出現一個計數器：0/5，附減號和加號。每放一件進行李袋就點一次加號。',
+  'help.guide.count-packed-pieces.step.2': '在「數量」中輸入你要帶幾件（例如 5），或是一直點加號，直到顯示該數字。',
   'help.guide.expense-receipts.step.4':
     '回到帳本，該列的名稱旁會有「收據」標籤，有多張時會在括號中顯示數量。點擊即可開啟收據。',
   'help.guide.final-budget.tip.3':
@@ -4026,7 +4317,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3': '卡片下方的「恢復預設」會讓整個「外觀」分頁恢復為出廠狀態。',
   'help.guide.web-push-device.result': '卡片會顯示「已為此裝置開啟」，在「推播」下開啟的事件即使 TREK 已關閉也會送達。',
   'help.guide.connect-airtrail.step.1':
-    '在「整合」下找到 AirTrail，輸入它的「執行個體網址」和 API 金鑰。金鑰需要在 AirTrail 的「設定」、「安全性」中建立。',
+    '在「整合」下找到 AirTrail，輸入它的「執行個體網址」和 API 金鑰。金鑰需要在 AirTrail 的「設定」、「安全性」中建立。若在 AirTrail 3.13 或更新版本中建立金鑰，讀取需要範圍 flight.read.own。若要將變更寫回，還需要 flight.update.own、flight.passengers.manage.own、reference_data.read 和 profile.read。',
   'help.guide.connect-dawarich.step.1':
     '在「整合」下找到 Dawarich，輸入它的「執行個體位址」，以及 Dawarich 中「帳戶」、「API 金鑰」裡的 API 金鑰。',
   'help.guide.tour-connect-wanderer.step.1':
@@ -4037,7 +4328,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.tip.1':
     '使用者自己在「設定」中的選擇永遠優先；這些預設值適用於所有尚未更改該設定的人。',
   'help.guide.own-routing-engine.step.1':
-    '在「用戶預設設定」的「地圖」下，於「自建路徑規劃服務」中輸入你的 OSRM 伺服器位址。',
+    '在「預設值」分頁中，「路線規劃」卡片決定由誰計算路線。在「路線服務」下選擇「自動」、「TREK 服務」、「公共 Valhalla（FOSSGIS）」或「自建 Valhalla 執行個體」。選擇會立即儲存。',
   'help.guide.admin-passkeys.tip.2': '之後更改網域，會讓人們已新增的所有 Passkey 失效。',
   'help.guide.instance-keys.tip.4': '高德地圖的金鑰必須是 Web 服务 (web service) 金鑰，而不是 JS API 金鑰。',
   'help.guide.rotate-jwt-secret.step.2': '閱讀警告，然後點擊「輪替並登出」。',
@@ -4058,7 +4349,7 @@ const help: TranslationStrings = {
   'help.guide.leave-stop-off-route.step.1': '在停靠點上按右鍵，或點擊它的三個點，然後選擇「從路線中排除」。',
   'help.guide.move-booking-day.step.3': '該列現在位於新的一天，時間保持不變；如果時間也要改，請開啟預訂修改。',
   'help.guide.place-image-from-file.goal': '把地點檔案中已有的照片設為它的圖片，不需要再次上傳。',
-  'help.guide.place-image-from-file.tip.3': '只有可以修改地點的旅伴才能更改圖片。',
+  'help.guide.place-image-from-file.tip.3': '只有可以修改地點的旅伴才能更改圖片。方塊下方的「移除圖片」可再次移除。',
   'help.guide.place-own-hours.result':
     '卡片會顯示你的電話號碼、電子郵件和營業時間，圖片周圍的外圈也依你的營業時間顯示綠色或紅色。',
   'help.guide.confirm-stay-booking.step.4': '用右上角的 X 關閉預訂。在「預訂」下，住宿的卡片現在顯示「已確認」。',
@@ -4076,7 +4367,7 @@ const help: TranslationStrings = {
     '欄位有「類型」、「標題」、「狀態」、「開始」、「結束」、「來自」、「到」、「地點」、「確認號」和「筆記」。',
   'help.guide.arrange-packing-list.tip.1': '「依名稱」開啟時，物品無法拖曳，但整個清單仍然可以。',
   'help.guide.count-packed-pieces.step.3':
-    '只有部分件數放進行李時，計數器會以你的強調色顯示，勾選框也會有同色外框。減號可以再把一件拿出來。',
+    '它下方會出現「已打包」：0/5，附減號和加號。每放一件進行李袋就點一次加號，減號則可從計數中拿掉一件。',
   'help.guide.expense-receipts.step.5':
     '預覽會顯示收據，標題中有「在新標籤頁中開啟」和「下載」。有多張收據時，可用方向鍵在它們之間切換，按 Esc 關閉。',
   'help.guide.files-sync-settings.step.3': '點擊流程列下方的「設定」，展開其餘選項。',
@@ -4111,10 +4402,27 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.title': '遊程詳細資訊',
   'help.guide.tour-detail-read.goal': '查看旅行對遊程所知的一切：它的日期、各項數據、剖面，以及它的來源。',
   'help.guide.tour-detail-read.tip.1':
-    '琥珀色的「謹慎使用」標籤表示匯入的資料帶有不完整的高度或數據。閱讀它的爬升和剖面時請記住這一點。',
+    '琥珀色的「請謹慎使用」標籤表示匯入的資料帶有不完整的高度或數據。閱讀它的爬升和剖面時請記住這一點。',
   'help.guide.tour-rename-colour.step.1': '開啟遊程的卡片，點擊名稱旁的鉛筆。名稱會變成輸入欄位。',
   'help.guide.tour-take-along.goal': '前往遊程的起點、在網頁上開啟它的頁面，或把它的路線存成 GPX 檔案帶走。',
   'help.guide.tour-take-along.result': '你的地圖應用程式中有前往起點的路線，並有整條路線的 GPX 檔案。',
+  'help.guide.tour-route-in-app.title': '在地圖應用程式中沿著遊程路線前進',
+  'help.guide.tour-route-in-app.goal':
+    '把健行、散步、跑步或單車遊程的完整路線，在 Google Maps、Apple Maps 或 CoMaps 中開啟，在路上沿著它導航。',
+  'help.guide.tour-route-in-app.step.1':
+    '在右側欄位頂端，從「地點」切換到「遊程」，然後點選該遊程。它的卡片會開啟在地圖上方。',
+  'help.guide.tour-route-in-app.step.2':
+    '點選卡片底部的「地圖」，也就是「在地圖應用程式中開啟路線」。它位於「導航」旁邊，而「導航」只會帶你到起點。',
+  'help.guide.tour-route-in-app.step.3':
+    '選擇應用程式。它會在新分頁或以應用程式開啟，健行、散步或跑步的遊程會以步行路線顯示，單車遊程則以單車路線顯示。',
+  'help.guide.tour-route-in-app.result': '你的地圖應用程式會沿著遊程的路線為你導航。',
+  'help.guide.tour-route-in-app.tip.1':
+    '應用程式最多會取得沿著遊程分布的十個點，包含起點和終點，並自行規劃它們之間的路線。在小路上，它規劃的路線可能和你的路線不同，所以請帶著 GPX 檔案以取得準確的路線。',
+  'help.guide.tour-route-in-app.tip.2':
+    '滑雪、划槳或騎馬的遊程沒有「地圖」按鈕：地圖應用程式會讓它們走在道路上。這些請以 GPX 檔案帶著走。',
+  'help.guide.tour-route-in-app.tip.3':
+    'Android 上不提供 Apple Maps。CoMaps 只接受一個起點和一個終點，所以只有在路線僅需要這兩點時才會提供。',
+  'help.guide.tour-route-in-app.tip.4': '只要遊程有路線，就會有「地圖」按鈕，只能閱讀旅行的成員也看得到。',
   'help.guide.tour-copy-keep.tip.2':
     '每日計畫中遊程選單裡的「儲存到收藏」會開啟同一個對話方塊，所以路線也會一併帶過去。',
   'help.guide.tour-packing-link.step.3': '點擊「連結」。',
@@ -4190,8 +4498,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ferrata-add.step.2': '在地圖上點擊一條飛拉達，點它的虛線或標誌。它的卡片會顯示名稱、等級和長度。',
   'help.guide.tour-ferrata-add.tip.4':
     '卡片上的「在 OpenStreetMap 中檢視」會開啟該飛拉達本身的資料。無法載入任何資料時，徽章會變成琥珀色，原因顯示在提示文字中。',
-  'help.guide.tour-run-plan.result':
-    '跑步會列在「這趟旅行的遊程」下，附「跑步時間（計畫）」，其設定檔和配速也一併保留。',
+  'help.guide.tour-run-plan.result': '跑步會列在「這趟旅行的遊程」下，附「跑步時間」，其設定檔和配速也一併保留。',
   'help.guide.tour-run-ways.step.2': '卡片標題現在會顯示跑步有多少比例是未鋪面，以及其中難度最高的路徑。',
   'help.ctx.trip-tour-walk.bullet.2':
     '「路點」依序列出停靠點。停靠點編號外圍的圓環表示「必去」（實線）或選填（虛線），小盾牌表示「受保護」，名稱下方的標籤顯示停留時間。',
@@ -4232,7 +4539,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.4': '在「水域」下選擇「河流」或「湖泊」。在船和水域都選定之前，遊程無法儲存。',
   'help.guide.tour-paddle-setup.result': '一條新的划槳遊程，附有船、水域和速度，可以在地圖上放置第一個點了。',
   'help.guide.tour-paddle-water-route.tip.1':
-    '缺少水域資料時，TREK 會依實例的設定自行取得該地區的資料，或向管理員索取。該路段會顯示「正在載入水域資料」，資料到位後會自行規劃，通常在一到三分鐘內完成。',
+    '缺少水域資料時，TREK 會依執行個體的設定自動下載該地區的資料，或向管理員索取。管理員可在管理區「擴充套件」分頁的「遊程」下，於「划槳水域資料」中新增地區。該路段會顯示「正在載入水域資料」，資料到位後會自動規劃，通常在一到三分鐘內完成。',
   'help.guide.tour-paddle-portage.step.2': '選擇「從這裡開始搬運船隻」。到下一個點的路段會成為搬運路段，繪製在陸地上。',
   'help.guide.tour-paddle-lock.title': '加入船閘及其等待時間',
   'help.guide.tour-paddle-lock.tip.3': '「移除船閘」位於開啟的卡片底部，也在「更多操作」中。',
@@ -4297,15 +4604,16 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.step.1': '在 wanderer 卡片中，開啟「檢查我的路線是否有變更」。這需要先儲存連線設定。',
   'help.guide.plugin-settings.title': '為自己設定外掛',
   'help.guide.default-user-settings.tip.2': '「顯示貨幣」只會換算顯示的金額。在「費用」中輸入的金額保持不變。',
-  'help.guide.own-routing-engine.step.2':
-    '若要避開收費站、高速公路或渡輪的路線，請在「自建 Valhalla 執行個體」下輸入你的 Valhalla 位址。每個欄位在你離開時儲存；然後重新啟動 TREK 伺服器並重新載入頁面。',
+  'help.guide.own-routing-engine.step.2': '在「自建路徑規劃服務」下，輸入你的 OSRM 伺服器位址。',
+  'help.guide.own-routing-engine.step.3':
+    '在「自建 Valhalla 執行個體」中輸入你的 Valhalla 位址，並把「路線服務」選為「自建 Valhalla 執行個體」。每個欄位在你離開時就會儲存；然後重新啟動 TREK 伺服器並重新載入頁面。',
   'help.guide.admin-passkeys.tip.3':
     '弄丟了存放 Passkey 的裝置的人，可以在「編輯使用者」中用「重設 Passkey」將它們移除。',
   'help.guide.rotate-jwt-secret.result': '新的簽署密鑰已就位，包括你在內的所有使用者都必須重新登入。',
   'help.guide.read-notifications.title': '閱讀你的通知',
   'help.guide.filter-notifications.title': '查看所有通知，或只看未讀的',
   'help.guide.mark-notifications-read.goal': '在看過新消息後，清除鈴鐺上的色調和數字。',
-  'help.guide.delete-notifications.step.1': '點擊通知時間旁的垃圾桶「刪除」，只會移除那一則。',
+  'help.guide.delete-notifications.step.1': '把游標移到通知上，點選取代時間位置的垃圾桶「刪除」，只會移除那一則。',
   'help.guide.notification-settings.step.2': '在選單中點擊「設定」。',
   'help.guide.public-link.tip.3': '將指標移到選項上，可以看到它省略了什麼。',
   'help.guide.link-journal.step.4': '閱讀黃色的提示：它會說明誰將首次獲得這本日誌。然後點擊「連結日誌」。',
@@ -4337,7 +4645,8 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2': '各欄以分號分隔，Excel 開啟檔案時重音符號會完整保留。',
   'help.guide.arrange-packing-list.tip.2':
     'TREK 會在這個瀏覽器中記住「依名稱」，所以下次列表開啟時也是排序好的。它只改變你看到的內容，不會改變其他人看到的順序。',
-  'help.guide.count-packed-pieces.step.4': '計數器達到數量後，物品會自動勾選，並算作已打包。',
+  'help.guide.count-packed-pieces.step.4':
+    '關閉視窗。只有部分件數放進行李時，該列會顯示計數（例如 3/5），勾選框也會有你的強調色外框。計數達到數量後，物品會自動勾選。',
   'help.guide.expense-receipts.result': '收據會與支出放在一起：其列上的標籤可開啟它，檔案也同時在旅行的「檔案」中。',
   'help.guide.files-sync-settings.step.4':
     '在「當文件被刪除時」下，選擇另一端的副本會怎麼處理。「兩份都保留」會讓儲存庫中的副本留在原處。「移到回收桶」會在文件於 TREK 中被刪除時，把它送到儲存庫的回收桶。',
@@ -4374,13 +4683,13 @@ const help: TranslationStrings = {
   'help.guide.tour-hide-on-map.goal': '把你現在不需要的遊程從地圖上清掉，而不為其他任何人更改它們。',
   'help.guide.tour-import-plan-tab.goal': '在規劃各天行程時，把 GPX 或 KML 軌跡匯入為遊程。',
   'help.ctx.trip-tour-detail.summary':
-    '在「計畫」分頁選擇遊程時，在地圖上方開啟的卡片：它的日期、各項數據和剖面、來源，以及把它帶到手機、複製、保存到收藏或連結到行李清單的按鈕。',
+    '在「計畫」分頁選擇遊程時，在地圖上方開啟的卡片：它的日期、各項數據和剖面、來源，以及把它帶到手機、在地圖應用程式中開啟路線、複製、保存到收藏或連結到行李清單的按鈕。',
   'help.guide.tour-detail-read.step.1':
     '在右欄頂部，從「地點」切換到「遊程」，然後點擊一條遊程。它的卡片會在地圖上方開啟。每日內該遊程的那一列，或它在地圖上的線條，開啟的是同一張卡片。',
   'help.guide.tour-detail-read.tip.2': '划槳遊程不顯示高度和剖面：它的點位於河岸上，所以高度不會反映真實情況。',
   'help.guide.tour-rename-colour.step.2': '輸入新名稱，並點擊圓形的勾選按鈕，或按 Enter。按 Escape 會保留舊名稱。',
   'help.guide.tour-take-along.step.1':
-    '開啟遊程的卡片。底部的「導航」會在地圖應用程式中開啟遊程的起點，有多個應用程式時會先列出它們。它帶你到起點，而不是沿著路線走。',
+    '開啟遊程的卡片。底部的「導航」會在地圖應用程式中開啟遊程的起點，有多個應用程式時會先列出它們。它帶你到起點，而不是沿著路線走；旁邊的「地圖」則會把整條路線交給地圖應用程式。',
   'help.guide.tour-copy-keep.title': '複製遊程，或把它保存到收藏',
   'help.guide.tour-copy-keep.tip.3':
     '在「遊程」分頁中，左欄頂部的書籤對開啟的遊程做同樣的事。遊程有未儲存的變更時，它會要求你先儲存遊程。',
@@ -4457,7 +4766,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-plan.tip.1':
     '新的健行從 T2（「山區健行」）開始。T3 會加上警告，說明這類小徑可能暴露在險境中，需要腳步穩健且不懼高。',
   'help.guide.tour-hike-trail-details.step.3':
-    '徽章會總結：路線有多少是「已知」、「已知最高」等級，以及另外列出的、健行規劃時採用的「路線上限」。',
+    '徽章會總結：路線有多少是「已知」、路線上的「已知最高」等級，以及另外列出的、健行規劃時採用的「路線上限」。',
   'help.guide.tour-hike-round.goal': '讓 TREK 從健行的某個停靠點出發，建議你想要長度的環線。',
   'help.guide.tour-hike-round.tip.2': '接受 1 到 60 公里的距離，並會提供與你的距離相差 20% 以內的環線。',
   'help.guide.tour-hike-compare-ways.result':
@@ -4542,6 +4851,15 @@ const help: TranslationStrings = {
   'help.guide.tour-collection-manage.tip.1': '從清單移除遊程，絕不會影響你已在旅行中據此建立的遊程。',
   'help.guide.entry-draft.tip.2': '從 Dawarich 匯入的一天會以草稿形式出現，所以在分享之前請留意徽章。',
   'help.guide.journey-map-layers.result': '地圖只顯示你想要的圖層，每個圖釘、圓點和線條都可以從圖例中看懂。',
+  'help.guide.journey-satellite.title': '用衛星影像查看旅程',
+  'help.guide.journey-satellite.goal': '把旅程下方的繪製地圖換成空拍影像，也可以換回來。',
+  'help.guide.journey-satellite.step.1': '點選地圖右上角的圓形按鈕「切換到衛星檢視」。',
+  'help.guide.journey-satellite.step.2':
+    '你的圖釘和路線現在會顯示在空拍影像上。按鈕會變成「切換到地圖檢視」，點一下就能回到繪製地圖。',
+  'help.guide.journey-satellite.tip.1': '分享連結也有同樣的按鈕，訪客可以直接從地形上跟著健行路線或海岸線看。',
+  'help.guide.journey-satellite.tip.2':
+    '這個選擇不會被儲存：日誌和分享頁面一律以繪製地圖開啟。衛星影像上沒有街道名稱。',
+  'help.guide.journey-satellite.result': '地圖恢復為繪製地圖，開啟的圖層和之前一樣。',
   'help.guide.journey-keep-route.result':
     '當天的標題會顯示距離，路線會以實線繪製在地圖的「記錄」圖層上，旅程中的所有人都看得到。分享連結只有在「記錄的路線」開啟時才會顯示它。',
   'help.guide.journey-day-stays.result':
@@ -4569,7 +4887,7 @@ const help: TranslationStrings = {
   'help.ctx.notifications.title': '通知',
   'help.guide.read-notifications.goal': '查看你不在時旅行中發生了什麼，並直接前往處理。',
   'help.guide.filter-notifications.goal': '瀏覽 TREK 告訴你的所有事，或只看你還沒讀的。',
-  'help.guide.mark-notifications-read.step.1': '點擊通知時間旁的雙勾號「標為已讀」，只標記那一則。',
+  'help.guide.mark-notifications-read.step.1': '把游標移到通知上，點選取代時間位置的雙勾號「標為已讀」，只標記那一則。',
   'help.guide.delete-notifications.step.2': '頂部的「全部刪除」會在視窗詢問你是否確定之後，一次清空整個清單。',
   'help.guide.notification-settings.step.3':
     '點擊「設定」側邊欄中的「通知」。它的第一張卡片每個事件各佔一列，「應用程式內通知」欄決定哪些會進入鈴鐺。',
@@ -4582,7 +4900,7 @@ const help: TranslationStrings = {
   'help.guide.leave-stop-off-route.step.3': '若要再次納入路線，開啟同一個選單並選擇「重新加入路線」。',
   'help.guide.move-booking-day.tip.1': '多日預訂中間幾天上淡色的列無法拖曳，有中途停留的航班的單一航段也不行。',
   'help.guide.place-image-from-file.step.2':
-    '點擊標題中的圓形圖片。由於地點有照片，會出現一個小視窗詢問圖片應該從哪裡來。',
+    '點選右下角的「編輯」。在表單的「選擇圖片」下，附加在地點上的照片會以方塊的形式排在「上傳圖片」旁邊。',
   'help.guide.place-own-hours.goal': '當查詢到的營業時間有誤或缺失時，把你實際確認過的時間放到卡片上。',
   'help.guide.place-own-hours.tip.2': '電話號碼和電子郵件會成為卡片標題中的標籤：點擊會交給你的手機或郵件應用程式。',
   'help.guide.edit-accommodation.tip.3':
@@ -4590,6 +4908,8 @@ const help: TranslationStrings = {
   'help.guide.confirm-stay-booking.tip.1': '再次點擊標籤，預訂會回到「待確認」。',
   'help.guide.map-markers.tip.4':
     '在「設定」的「顯示」> 旅行與地圖下開啟「未規劃地點使用精簡標記」後，尚未排入任何一天的地點會變成沒有照片或評分的小圓點。你選擇的地點一律完整顯示。',
+  'help.guide.map-markers.tip.5':
+    '在使用標準樣式的 Mapbox GL 上，地圖會標示本身的商店、餐廳和景點，這些並不是你旅行中的地點。在「設定」>「地圖」中開啟「隱藏興趣點」並點選「儲存地圖」，就只有你自己的圖釘會顯眼。',
   'help.guide.tour-map-lines.step.1':
     '旅行的每條遊程都以其顏色的線條繪製在地圖上，起點處有它的圖釘。為遊程選定的顏色優先；否則線條採用其分類的顏色。',
   'help.guide.car-stops.step.6': '點擊「新增」。',
@@ -4642,10 +4962,9 @@ const help: TranslationStrings = {
     '標題會寫出遊程的名稱，並用標籤總結：遊程的種類、匯入時它的來源、計劃花費的時間、距離、累計爬升和累計下降。',
   'help.guide.tour-detail-read.tip.3':
     '有些遊程帶有更多內容：城市散步有它的站點，划槳遊程有檢查項目和風況，已完成的遊程有它的「實際軌跡」，連結到清單的遊程有它的「行李清單」。',
-  'help.guide.tour-rename-colour.step.3':
-    '點擊遊程圓形方塊角落的彩色圓點「軌跡顏色」。「軌跡顏色」區段會在標題下方開啟。',
+  'help.guide.tour-rename-colour.step.3': '點選遊程圓形方塊角落的彩色圓點「軌跡顏色」。標題下方會展開一排顏色。',
   'help.guide.tour-take-along.step.2':
-    '遊程有網頁時，旁邊的按鈕會顯示網站的名稱（Komoot、AllTrails、Outdooractive 或 Wanderer），其他網站則顯示「網站」。它會在新分頁中開啟該頁面。',
+    '遊程有網頁時，「地圖」後面的按鈕會顯示網站的名稱（Komoot、AllTrails、Outdooractive 或 Wanderer），其他網站則顯示「網站」。它會在新分頁中開啟該頁面。',
   'help.guide.tour-copy-keep.goal': '在這趟旅行中製作遊程的變體，或把它保存到你的某個收藏中，供之後的旅行使用。',
   'help.guide.tour-copy-keep.tip.4':
     '「收藏」只在收藏擴充套件開啟時才有。你只能閱讀的清單無法選擇，還沒有任何清單時，對話方塊會提供「開啟收藏」。',
@@ -4675,7 +4994,7 @@ const help: TranslationStrings = {
     '左側欄頂部的「遊程名稱」存放名稱。新遊程中，那裡的灰色文字（例如「未命名的健行」）只是預留文字：請輸入你自己的名稱。',
   'help.guide.tour-save.title': '儲存遊程',
   'help.guide.tour-save.tip.3':
-    '「儲存」也會等待任何被它拒絕的欄位，例如不是位址的網站。「詳細資訊」會自動展開以顯示它。',
+    '如果欄位的值無效（例如不是位址的網站），或是某一天的步行時間加上休息超過 24 小時，「儲存」也無法使用。「詳細資訊」會自動展開並說明該怎麼做。',
   'help.guide.tour-edit-saved.tip.1': '沒有變更過的遊程，「儲存」會保持灰色。',
   'help.guide.tour-summary-profile.step.3':
     '將指標沿著「海拔剖面圖」移動。它會顯示該處的距離和高度，地圖上有一個圓點標出同一個位置。',
@@ -4736,7 +5055,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-sights.result': '這個景點成為散步的停靠點，規劃在你選擇的停靠點之間的路線中。',
   'help.guide.tour-walk-day-times.tip.2': '尚未設定停留時間的停靠點，會讓其後的到達時間顯示為最早時間。',
   'help.guide.tour-walk-google-import.step.3': '查看「連結中的站點」。連結沒有提供位置的停靠點會被標記並略過。',
-  'help.guide.tour-walk-check-off.step.1': '在「計畫」分頁中，點擊當天的城市散步。它的卡片會在地圖旁邊開啟。',
+  'help.guide.tour-walk-check-off.step.1': '在「計畫」分頁中，點選當天的城市散步。它的卡片會在地圖上方開啟。',
   'help.ctx.trip-tour-bike.title': '單車遊程',
   'help.guide.tour-bike-profile.step.1': '在「遊程」分頁中，點擊左側欄頂部的「規劃新遊程」。',
   'help.guide.tour-bike-profile.tip.2':
@@ -4789,7 +5108,18 @@ const help: TranslationStrings = {
   'help.guide.dateless-trip.tip.1':
     '確定出發時間後，點擊卡片上的鉛筆開啟表單，選好日期。你已規劃的天數會維持原有順序，並依序套用這些日期。',
   'help.guide.trip-reminder.goal': '在出發前幾天收到提醒。',
-  'help.guide.upcoming-reservations.tip.2': '「待確認」代表尚未確認的預訂。已取消的預訂和已封存的旅行不會列出。',
+  'help.guide.upcoming-reservations.tip.2':
+    '類型圖示上的小「P」代表尚未確認的預訂。已取消的預訂和已封存的旅行不會列出。',
+  'help.guide.travel-stats.title': '查看你的旅行統計',
+  'help.guide.travel-stats.goal': '看看你所有的旅行加起來去過幾個國家、幾趟旅行、幾天，以及搭過幾趟航班。',
+  'help.guide.travel-stats.step.1':
+    '在登機證下方找到「去過的國家」。它會統計所有已經出發的旅行中，地點和交通預訂所在的國家，並顯示各國國旗，最近去過的國家排在最前面。',
+  'help.guide.travel-stats.step.2': '旁邊的卡片會統計你的旅行次數和地圖上標示的地點、在外天數，以及你飛過的距離。',
+  'help.guide.travel-stats.result': '這一列會隨著你規劃和旅行自動更新，涵蓋你所有的旅行，包括已封存的。',
+  'help.guide.travel-stats.tip.1':
+    '你在 Atlas 中手動標記為已造訪的國家，會排在旅行中的國家之後。在 Atlas 中移除的國家，在這裡也不會出現。',
+  'help.guide.travel-stats.tip.2':
+    '每張卡片都可以在「設定」的「外觀」中，透過「儀表板小工具」隱藏。四張全部關閉時，這一列就會消失。',
   'help.guide.half-company-holiday.tip.1': '當天已登記的休假會縮減為半天。之後才登記那一天的人，也只會扣 0.5 天。',
   'help.guide.edit-holiday-calendar.goal': '重新命名、更改顏色、移動或刪除你新增的公共假期或學校假期日曆。',
   'help.guide.person-color.title': '更改某人的顏色',
@@ -4820,6 +5150,24 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.title': '關於',
   'help.guide.web-push-device.tip.3':
     '推播需要透過 HTTPS 開啟 TREK。如果通知被封鎖，請到瀏覽器設定中允許，然後再試一次。',
+  'help.guide.booking-mail-address.title': '把預訂郵件轉寄給 TREK',
+  'help.guide.booking-mail-address.goal': '取得專屬的預訂確認信地址，讓 TREK 把每筆預訂加到正確的旅行。',
+  'help.guide.booking-mail-address.step.1':
+    '在「整合」中，「預訂郵件」會顯示「你的地址」。點選旁邊的複製按鈕。請像對待密碼一樣，不要把這個地址告訴別人。',
+  'help.guide.booking-mail-address.step.2':
+    '你可以手動把預訂郵件連同附件轉寄到這個地址，也可以依照「自動轉寄」的說明，在 Gmail 或 Outlook 中設定規則。',
+  'help.guide.booking-mail-address.step.3':
+    '「匯入預訂郵件」可開啟或關閉匯入。「用 AI 讀取」會讓 AI 讀取沒有機器可讀預訂資料的郵件。「自動加入」會讓 TREK 把有把握的預訂直接放進對應的旅行。',
+  'help.guide.booking-mail-address.step.4':
+    '「待處理的預訂」會開啟正在等你處理的郵件，有待處理項目時會顯示數字。「上傳郵件檔案」可讀取你儲存為 .eml 的郵件。',
+  'help.guide.booking-mail-address.result':
+    '你轉寄的郵件會進入日期和地點符合該預訂的旅行，或是留在「待處理的預訂」等你確認。',
+  'help.guide.booking-mail-address.tip.1':
+    '複製按鈕旁邊的「新地址」會給你一個新地址。請點兩次；舊地址會立刻失效，所以也要更新你的轉寄規則。',
+  'help.guide.booking-mail-address.tip.2':
+    '每趟旅行也可以有自己的地址，位於該旅行「預訂」分頁的「匯入訂位確認」中。寄到這個地址的郵件不需要猜測。',
+  'help.guide.booking-mail-address.tip.3':
+    '轉寄的郵件最多會加密保存 30 天。只有管理員開啟郵件匯入後，這張卡片才會出現。',
   'help.guide.connect-airtrail.result': '徽章顯示「已連線」，旅行的「交通」分頁也會出現「從 AirTrail 匯入」。',
   'help.guide.connect-dawarich.result': '徽章顯示「已連線」，旅行規劃器、日誌和 Atlas 都能使用 Dawarich 記錄的內容。',
   'help.guide.tour-connect-wanderer.result':
@@ -4827,7 +5175,7 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.result':
     'TREK 會留意你匯入的路線，其中一條可能有變動時會通知你。你接受變更之後，遊程才會跟著改變。',
   'help.guide.plugin-settings.step.1':
-    '在設定側邊欄中開啟「外掛」。「外掛設定」下方，每個需要你提供設定的外掛都有一張卡片，上面有各項欄位：填寫後點擊「儲存」。卡片上的操作會在你確認後執行。',
+    '在設定側邊欄中開啟「外掛」。「外掛設定」下方，每個有設定要給你的外掛都有一張專屬卡片：填寫欄位並點選「儲存」，或做出它顯示的選擇。卡片上的「操作」會在你確認後執行。',
   'help.guide.profile.step.3': '點擊卡片底部右側的「儲存資料」。',
   'help.guide.default-user-settings.title': '設定新使用者的初始設定',
   'help.guide.own-routing-engine.tip.1':
@@ -4837,7 +5185,7 @@ const help: TranslationStrings = {
     '如果只想讓某一個人登出，請在「編輯使用者」中給他「新密碼」。這只會結束他的工作階段。',
   'help.guide.notification-defaults.goal': '決定每位使用者的通知一開始如何設定，並可針對某個事件完全封鎖某個管道。',
   'help.ctx.notifications.summary':
-    'TREK 在應用程式內通知你的所有內容，最新的在前：有人更改的預訂、旅行聊天室的新訊息、與你分享的日曆。右上角的鈴鐺顯示最新的十則，這個頁面則顯示全部。',
+    'TREK 在應用程式內通知你的所有內容，最新的在前，並依日期分組：有人更改的預訂、旅行聊天室的新訊息、航班延誤、來自轉寄郵件的預訂。右上角的鈴鐺顯示最新的十則，這個頁面則顯示全部。',
   'help.guide.read-notifications.step.1': '點擊右上角的鈴鐺。鈴鐺上的紅色數字是你尚未閱讀的通知數量。',
   'help.guide.filter-notifications.step.1': '點擊右上角的鈴鐺。',
   'help.guide.mark-notifications-read.step.2': '點擊頂部的「全部標為已讀」，一次把所有通知標為已讀。',
@@ -4851,16 +5199,29 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.5':
     '旅行涵蓋多個國家或地區後，地球儀可以把列表篩選成單一國家，或其中的某個地區，每一項都附有數量。「清除篩選」會回到「所有國家」。',
   'help.guide.import-places-file.tip.3':
-    '遊程開啟時（預設就是開啟），檔案要透過欄位頂部的「遊程」和「匯入 GPX 或 KML」來匯入，檔案中的線條會成為遊程。檔案中的圖釘不會在那裡匯入，因為遊程只包含線條。',
+    '遊程關閉時，在「匯入檔案」中勾選的軌跡或路線會成為獨立的地點：該列上有彩色線條，會繪製在地圖上，也可以在「顯示」下的「軌跡」中找到它。',
   'help.guide.dawarich-stays.step.3':
-    '確認「名稱」、「抵達」和「離開」，選擇「日期」或保持「尚未安排在任何一天」，需要的話加上「筆記」，然後點擊「新增地點」。',
+    '檢查「名稱」、「抵達」和「離開」。當停留時間落在旅行的某一天時，「日期」已經會顯示那一天；你可以改選其他天，或維持「尚未安排在任何一天」。需要的話可加上「筆記」，然後點選「新增地點」。',
   'help.guide.leave-stop-off-route.result':
     '這個停靠點仍屬於當天，也會出現在 PDF 中。標示為「不在路線內」期間，路線會直接從它前一個停靠點連到後一個。',
   'help.guide.move-booking-day.tip.2': '在所屬的那一天內，有時間的預訂一律會移回自己的時間所對應的位置。',
-  'help.guide.place-image-from-file.step.3':
-    '在「從附加檔案選擇」下，點擊你要的照片。如果想從電腦選一張新的，請點擊上方的「從裝置上傳」。',
+  'help.guide.place-image-from-file.step.3': '點選你要的照片。它會被圈起來並打勾，方塊下方會顯示它的檔案名稱。',
   'help.guide.place-own-hours.step.1': '開啟地點，點擊卡片右下角的「編輯」，地點的表單就會開啟。',
   'help.guide.place-own-hours.tip.3': '點擊「移除營業時間」，再點擊「更新」，卡片就會恢復顯示自動查到的營業時間。',
+  'help.guide.place-off-map.title': '把沒有座標的地點放到地圖上',
+  'help.guide.place-off-map.goal': '找出地點沒有標記的原因，並為它補上標記。',
+  'help.guide.place-off-map.step.1': '在地點欄中，地點名稱旁的警告圖釘表示它有地址但沒有座標。點選該列。',
+  'help.guide.place-off-map.step.2':
+    '卡片頂端的膠囊中會顯示「沒有座標，因此不在地圖上」。把游標移上去，就能看到如何修正。',
+  'help.guide.place-off-map.step.3':
+    '點選右下角的「編輯」。在「地址」下，表單也會說同樣的話：地點要有座標才會顯示在地圖上。',
+  'help.guide.place-off-map.step.4':
+    '輸入地點的「緯度」和「經度」，或用逗號分隔，一次貼到「緯度」中。你也可以在表單頂端搜尋該地點，並從建議中選擇。',
+  'help.guide.place-off-map.step.5': '點選「更新」。警告就會消失，地點也會在地圖上出現標記。',
+  'help.guide.place-off-map.result': '地點帶著標記出現在地圖上，它的停靠點也能像其他地點一樣規劃路線。',
+  'help.guide.place-off-map.tip.1': '沒有座標的地點在當天沒有標記也沒有路線，能開啟它的地圖應用程式也比較少。',
+  'help.guide.place-off-map.tip.2': '既沒有地址也沒有座標的地點（例如一則提醒）不會受影響，也不會顯示警告。',
+  'help.guide.place-off-map.tip.3': '把地圖網站的連結貼到搜尋欄，也會自動填入座標。',
   'help.guide.confirm-stay-booking.title': '確認住宿預訂',
   'help.guide.confirm-stay-booking.tip.2': '每一筆預訂都能用同樣的標籤，包括當天「預訂」下的那些。',
   'help.guide.map-lock.tip.2':
@@ -4871,16 +5232,16 @@ const help: TranslationStrings = {
   'help.guide.car-stops.result':
     '行車在「交通」分頁上是一張卡片，在它所屬的那一天是一列。它在地圖上的線條從取車處出發，依序經過每個停靠點，最後到還車處。',
   'help.guide.transport-details.step.5':
-    '詳細資訊底部的「在地圖上」會顯示該段行程的線條，並帶你到它所在那一天的「計畫」。最右邊的「編輯」會開啟完整表單，旁邊的垃圾桶會在你確認後刪除該段行程。',
+    '詳細資訊左下角的「地圖」會顯示該段行程的線條，並帶你到它所在那一天的「計畫」。最右邊的「編輯」會開啟完整表單，旁邊的垃圾桶會在你確認後刪除該段行程。',
   'help.guide.export-transports-csv.step.1':
     '如果只想匯出一部分，請先縮小列表範圍。「搜尋」、「篩選」和「檢視選項」下的排序都會生效：檔案內容和順序都與分頁上顯示的一致。',
   'help.guide.group-sort-bookings.tip.1':
     '「卡片」和「清單」各自保留自己的分組：卡片預設從「狀態」開始，清單從「日期」開始。「檢視選項」上的圓點表示有設定與預設不同，面板底部的「重設檢視」可恢復預設。',
-  'help.guide.booking-on-map.step.2': '點擊詳細資訊底部的「在地圖上」。',
+  'help.guide.booking-on-map.step.2': '點選詳細資訊底部的「地圖」。',
   'help.guide.export-bookings-csv.goal': '把旅行的預訂匯出為 CSV 檔，可用 Excel、Numbers 或其他試算表開啟。',
   'help.guide.arrange-packing-list.goal': '把整份清單和單一物品移到你想要的位置，或依名稱順序查看每份清單。',
   'help.guide.check-off-packing.tip.4':
-    '數量大於一的物品，也可以一件一件勾選已打包的件數。請參閱「一項物品打包多件」。',
+    '數量大於一的物品，也可以一件一件勾選已打包的件數。請參閱「同一項物品打包多件」。',
   'help.guide.count-packed-pieces.tip.1': '勾選方框會一次打包所有件數，取消勾選則會全部取消打包。',
   'help.guide.expense-receipts.goal': '把收據或發票與所屬的支出放在一起，並可隨時從帳本再次開啟。',
   'help.guide.expense-receipts.tip.2':
@@ -4942,7 +5303,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-planner.bullet.6':
     '未儲存的草稿會被保留：再次開啟「遊程」分頁時會自動還原，並標示「已還原尚未儲存的草稿」。「返回遊程清單」和「捨棄」在放棄變更前都會先詢問。',
   'help.guide.tour-open-workspace.step.6':
-    '左下角的標籤用來切換地圖，一開始是「地圖」或「衛星影像」。開啟遊程後，它會提供該類型的地圖，例如「地形圖」或「健行」，以及「放置點」和 3D 等開關。',
+    '左下角的標籤可在「地圖」、「地形圖」和「衛星影像」之間切換地圖，也可以開啟 3D。開啟遊程後，它會提供該類型的地圖，例如「健行」，以及「放置點」和「飛拉達」等開關。',
   'help.guide.tour-draw-route.step.1':
     '點擊左側欄頂部的「規劃新遊程」。側欄會變成「新遊程」，除非你另外選擇類型，否則預設是健行。',
   'help.guide.tour-draw-route.tip.3':
@@ -4968,7 +5329,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.title': '把 GPX、KML 或 KMZ 檔匯入為遊程',
   'help.guide.tour-import-gpx.tip.2': '檔案中的每條軌跡或路線都會成為各自獨立的遊程，軌跡不會被合併。',
   'help.guide.tour-view-import.step.2':
-    '左欄會以「GPX 遊程」顯示：「遊程摘要」附有距離、高度和錄製時間，下方是海拔剖面圖。地圖上會畫出它的線條。',
+    '左欄會以「GPX 遊程」顯示：「遊程摘要」附有距離和高度，檔案有錄製時間的話也會顯示，下方是海拔剖面圖。地圖上會畫出它的線條。',
   'help.guide.tour-plan-from-import.step.1':
     '在「遊程」分頁中開啟匯入的遊程，然後在左側的「可編輯版本」卡片中點擊「規劃可編輯版本」。',
   'help.guide.tour-plan-from-import.result': '遊程現在有可以拖曳的路點，「來源」顯示「已重新規劃，記錄的軌跡已保留」。',
@@ -5005,7 +5366,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     '點擊「路面」，就能依你走過的地面來看同一條路線，從柏油路到自然地面和岩石都有。',
   'help.guide.tour-hike-round.step.2':
-    '「環線健行」卡片會在地圖上方開啟。在「來自」下確認起點，並輸入你想要的「距離」。旁邊的標籤會顯示環線可能的長度範圍。',
+    '「環線健行」卡片會在地圖上方開啟。在「來自」下確認起點，並輸入你想要的「距離」。旁邊的標籤會顯示 TREK 能為它提供的環線長度。',
   'help.guide.tour-hike-compare-ways.title': '比較健行某一段的其他路線',
   'help.guide.tour-hike-compare-ways.tip.2':
     '如果路線規劃器找不到其他路線，卡片會告訴你。如果它無法沿著你選的路線走，該段會維持原樣，卡片也會告訴你。',
@@ -5119,14 +5480,16 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.tip.1': '提示不會改動任何遊程。遊程的來源檢查會顯示實際變更了什麼。',
   'help.guide.api-keys.tip.3':
     '將金鑰以 Authorization: Bearer 或 X-API-Key 的形式傳送到 /api/v1。一個帳號最多可持有 10 把金鑰。',
+  'help.guide.api-keys.tip.4':
+    '在對話框中，按 Ctrl+Enter（Mac 上為 Cmd+Enter）即可從任何欄位建立金鑰，效果和點選「建立」相同。',
   'help.guide.plugin-settings.step.2':
     '「外掛活動」會依時間由新到舊列出外掛代你執行的每個操作，點擊「重新整理」可載入最新內容。',
   'help.ctx.admin-github.bullet.3': '「關於」：Ko-fi、Buy Me a Coffee、Discord、「回報錯誤」、「功能建議」和 Wiki。',
   'help.guide.default-user-settings.goal': '為每個帳號預設合適的單位、顏色模式和貨幣，不用每個人自己開啟「設定」。',
   'help.guide.default-map.step.3': '每個欄位在你離開時就會儲存。欄位名稱旁的重設連結可恢復 TREK 的預設值。',
   'help.guide.own-routing-engine.tip.2':
-    '如果只設定了你自己的路徑規劃服務，也不會使用公用的 Valhalla。欄位旁的重設連結可再次清空它。',
-  'help.guide.admin-passkeys.step.1': '在「設定」分頁的「Passkey 登入」下，開啟「啟用 Passkey 登入」。',
+    '如果只設定了你自己的路徑規劃服務，且「路線服務」為「自動」，就不會詢問任何 Valhalla。欄位旁的重設連結可再次清空它。',
+  'help.guide.admin-passkeys.step.1': '在「安全性」分頁的「驗證方式」下，開啟「啟用 Passkey 登入」。',
   'help.guide.storage-backends.step.4':
     '頂部的「健康」會列出寫入鏡像目標失敗的紀錄。如果顯示「未記錄任何複本失敗。」，就表示一切正常。',
   'help.guide.channels-instance.tip.3': '「Web 推播」需要 HTTPS。在 iPhone 和 iPad 上，使用者要先把 TREK 加入主畫面。',
@@ -5135,7 +5498,7 @@ const help: TranslationStrings = {
   'help.ctx.notifications.bullet.1':
     '右上角的鈴鐺會顯示你尚未閱讀的通知數量。點擊它可看到最新的十則，底部的「檢視所有通知」則會前往這個頁面。',
   'help.guide.read-notifications.step.2':
-    '面板會列出你最新的十則通知。每一則都會說明誰在哪裡做了什麼，未讀的通知背景會帶有底色。',
+    '面板會列出你最新的十則通知，並依日期分組。每一則都會說明誰在哪裡做了什麼，未讀的通知會以粗體顯示，時間旁有一個圓點。',
   'help.guide.filter-notifications.step.2': '在面板底部，點擊「檢視所有通知」。',
   'help.guide.mark-notifications-read.tip.1': '透過按鈕開啟通知，也會把它標為已讀。',
   'help.guide.delete-notifications.tip.2':
@@ -5150,7 +5513,7 @@ const help: TranslationStrings = {
   'help.guide.leave-stop-off-route.tip.1':
     '只有帶座標的停靠點才有這個選項，而且設定只對當天有效：同一個地點在另一天仍會納入路線。',
   'help.guide.move-booking-day.title': '把預訂移到另一天',
-  'help.guide.place-image-from-file.step.4': '這張照片現在就是地點的圖片。點擊圖片角落的紅色小 X 可再次移除。',
+  'help.guide.place-image-from-file.step.4': '點選「更新」。這張照片現在就是地點的圖片，顯示在卡片頂端。',
   'help.guide.place-own-hours.step.2': '在「網站」下方，如果知道「電話」和「電子郵件」，請一併填入。',
   'help.guide.add-accommodation.tip.4':
     '更快的方法：當天標題中的 +（提示文字為「新增到當天」）裡有「新增住宿」。它會展開當天，並直接開啟這個表單。',
@@ -5163,7 +5526,8 @@ const help: TranslationStrings = {
   'help.guide.car-stops.tip.1': '沒有單獨的租車類型：租來的車和自己的車都是「汽車」。',
   'help.guide.transport-details.result':
     '「計畫」會在該行程所屬的那一天開啟，地圖上畫出它的線條，它那一列的路線圖示也會開啟。',
-  'help.guide.export-transports-csv.step.2': '點擊「檢視選項」後面的試算表圖示，它的提示文字是「匯出為試算表 (CSV)」。',
+  'help.guide.export-transports-csv.step.2':
+    '點選「檢視選項」後面的下載圖示。它的提示文字是「匯出為試算表 (CSV)」；如果正在搜尋或篩選，則會顯示檔案包含幾列，例如「匯出顯示的 4 列中的 2 列 (CSV)」。',
   'help.guide.group-sort-bookings.title': '為預訂分組和排序',
   'help.guide.group-sort-bookings.tip.2':
     '在「時間線」中，同一個按鈕裡有「每種類型單獨一列」和「同時顯示另一個分頁」。',
@@ -5172,6 +5536,30 @@ const help: TranslationStrings = {
     '如果只想匯出分頁的一部分，請先用「搜尋」或「篩選」縮小範圍。檔案內容會與分頁上顯示的完全一致。',
   'help.guide.import-booking-file.tip.4':
     '讀取確認信需要網路連線。離線時「匯入」會提示這一點，等 TREK 重新上線後再試一次即可。',
+  'help.guide.forward-booking-mail.title': '把預訂郵件轉寄到旅行',
+  'help.guide.forward-booking-mail.goal': '為旅行建立專屬地址，把確認信轉寄過去，並完成 TREK 無法自行加入的部分。',
+  'help.guide.forward-booking-mail.step.1':
+    '點選工具列中的上傳圖示「匯入訂位確認」。在檔案區塊下方，「或透過郵件轉寄」會顯示這趟旅行專屬的地址。',
+  'help.guide.forward-booking-mail.step.2':
+    '點選「為此旅行建立地址」。寄到這個地址的郵件會直接進入這趟旅行，不需要猜測。',
+  'help.guide.forward-booking-mail.step.3':
+    '地址會連同旁邊的複製按鈕一起出現。複製它，然後在你的郵件程式中把預訂郵件連同附件轉寄過去，可以手動，也可以用規則。TREK 會在幾分鐘內讀取。',
+  'help.guide.forward-booking-mail.step.4':
+    'TREK 有把握的預訂會自動加入旅行。其他的則等你處理：開啟右上角你名稱下方的選單（上面的數字代表等待中的郵件數量），然後點選「待處理的預訂」。',
+  'help.guide.forward-booking-mail.step.5':
+    '每個項目都會顯示 TREK 讀到的內容、等待的原因，以及它所屬的旅行。「查看郵件」會顯示郵件本身。點選「自己填寫」。',
+  'help.guide.forward-booking-mail.step.6':
+    '「新建預訂」會在旅行中開啟，並帶入郵件中的內容：以主旨作為標題，以及找到的類型、日期和訂位代碼。檢查一下，修正需要修正的地方，然後點選「新增」。',
+  'help.guide.forward-booking-mail.result':
+    '這筆預訂會和其他預訂一樣出現在「預訂」分頁，它的項目也已從「待處理的預訂」中移除。',
+  'help.guide.forward-booking-mail.tip.1':
+    '你自己的地址（位於「設定」的「整合」中的「預訂郵件」）適用於每趟旅行：TREK 會選出日期和地點符合該預訂的旅行。旅行專屬的地址則不需要這個猜測。',
+  'help.guide.forward-booking-mail.tip.2':
+    '在那張卡片中開啟「自動加入」後，TREK 有把握的預訂會直接放進旅行，通知中也會提供為期 7 天的「復原」。關閉時，每一筆預訂都會等在「待處理的預訂」。',
+  'help.guide.forward-booking-mail.tip.3':
+    '項目也可以用「儲存為文件」保留為文件（會把郵件或附件放進旅行的檔案），或用「捨棄」丟掉。',
+  'help.guide.forward-booking-mail.tip.4':
+    '這個地址是你專屬的：想要的旅伴可以自己建立。郵件匯入由管理員為整個執行個體開啟；在那之前，不會出現「或透過郵件轉寄」和「待處理的預訂」。',
   'help.guide.arrange-packing-list.step.1':
     '抓住清單標題列左端、色點前面的握把，把清單拖放到另一張卡片上。目標卡片會出現強調色外框，清單會取代那張卡片的位置，旅行中的所有人看到的都是這個順序。',
   'help.guide.count-packed-pieces.title': '同一項物品打包多件',
@@ -5180,6 +5568,8 @@ const help: TranslationStrings = {
     '由多人共同攜帶的行李袋，重量會在「每人」下平均分給每個人。這個重量帶有點狀底線，將游標指上去會顯示相關說明。',
   'help.guide.expense-receipts.step.1': '點擊該筆支出那一列旁的鉛筆。編輯器會開啟，底部附近有「收據與發票」。',
   'help.guide.expense-receipts.tip.3': '附加收據需要網路連線，也需要上傳檔案的權限，因為收據會作為旅行的檔案之一儲存。',
+  'help.guide.expense-receipts.tip.4':
+    '旅行中已有的檔案，例如同時也是發票的預訂確認信，可以直接連結，不必再上傳一次：點選「附加」旁的連結圖示，就會列出這些檔案。',
   'help.guide.files-sync-settings.title': '選擇文件的同步方向',
   'help.guide.files-sync-settings.tip.1': '至少會有一個方向保持開啟：點擊唯一還開著的方向不會有任何變化。',
   'help.guide.manage-notes.title': '閱讀、置頂和編輯筆記',
@@ -5188,6 +5578,8 @@ const help: TranslationStrings = {
   'help.guide.note-categories.step.5':
     '點擊「儲存」。重新命名或更改顏色的分類下的所有筆記會立刻一起改變，所有成員都會看到。「取消」會捨棄你的變更。',
   'help.guide.trip-chat.tip.5': '聊天室會先顯示最新的訊息。點擊聊天室頂部的「載入更早的訊息」，就會載入更早的訊息。',
+  'help.guide.trip-chat.tip.6':
+    '標示來自助理的訊息，是有人用旅行聊天室中的「分享」從旅行助理分享出來的回答。把游標移到標記上，就能看到是誰分享的。',
   'help.guide.roadtrip-reorder.result':
     '停靠點會依你設定的順序排列，你調整過的每一天的距離、行車時間和抵達時間都會重新計算。',
   'help.guide.roadtrip-overnight.goal': '在路上找個過夜的地方，並把這一晚以預訂的形式加入行車路線。',
@@ -5222,7 +5614,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.tip.1':
     '名稱和顏色屬於旅行，所以旅行中的每個人都看得到。如果只想在自己的地圖上隱藏某個遊程，又不影響其他人，請使用「遊程」列表中的眼睛。',
   'help.guide.tour-take-along.tip.1':
-    '在可以分享檔案的裝置上，GPX 旁邊會出現「分享」，可把同一個檔案直接傳給另一個 App。',
+    'GPX 旁邊的「分享」，在可以分享檔案的裝置上會把同一個檔案直接傳給另一個 App；在其他裝置上，則會分享一段關於遊程的簡短文字，或是複製它。',
   'help.guide.tour-copy-keep.step.2': '副本會立即開啟，名稱是原名稱加上（副本）。點擊鉛筆可以幫它改個自己的名稱。',
   'help.guide.tour-packing-link.title': '把遊程連結到行李清單',
   'help.guide.tour-packing-link.tip.2':
@@ -5252,7 +5644,7 @@ const help: TranslationStrings = {
   'help.guide.tour-details-times.step.3': '輸入「休息」時間，例如 0:45。這段時間會加到預估時間中。',
   'help.guide.tour-save.step.1': '在「遊程名稱」中輸入名稱。沒有名稱時，「儲存」會維持灰色。',
   'help.guide.tour-edit-saved.title': '修改已儲存的遊程',
-  'help.guide.tour-edit-saved.tip.3': '側欄標題中的「下載 GPX」和「保存到收藏」，要在變更儲存後才能使用。',
+  'help.guide.tour-edit-saved.tip.3': '側欄標題中的「下載 GPX」、「分享」和「保存到收藏」，要在變更儲存後才能使用。',
   'help.guide.tour-summary-profile.tip.1': '點擊卡片本身的標題，可收合整個摘要。',
   'help.guide.tour-list-manage.step.3': '選擇日期。遊程會加到那一天，該列也會顯示這一天。',
   'help.guide.tour-delete.goal': '把遊程從旅行中永久移除。',
@@ -5417,25 +5809,65 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result': '外掛會依你的設定運作，它代你執行的每個操作都會列在「外掛活動」下。',
   'help.ctx.admin-defaults.bullet.3':
     '你設定過的欄位旁邊有重設連結，可恢復 TREK 自己的預設值。使用者自己的設定一律優先於這裡的預設值。',
-  'help.ctx.admin-settings.bullet.5': '「危險區域」：「輪替 JWT 密鑰」會讓所有使用者登出，包括你自己。',
+  'help.ctx.admin-settings.bullet.5': '「安全性」中的「危險區域」：「輪替 JWT 密鑰」會讓所有使用者登出，包括你自己。',
   'help.guide.default-user-settings.step.1':
     '在「用戶預設設定」下，選擇「顏色模式」（「淺色」、「深色」或「自動」）、「溫度單位」、「距離單位」、「時間格式」、「每週開始於」、「日期格式」、「顯示貨幣」，以及「模糊預訂程式碼」要開啟還是關閉。每個選擇都會立即儲存。',
   'help.guide.admin-passkeys.step.2':
-    '輸入「Relying Party ID（網域）」（例如 trek.example.org），以及你的 TREK 對外使用的「允許的來源」，然後點擊「儲存」。兩者都留空的話，會使用 APP_URL。',
+    '在「Passkey 登入」卡片中，輸入「Relying Party ID（網域）」（例如 trek.example.org），以及你的 TREK 對外使用的「允許的來源」，然後點選「儲存」。兩者都留空的話，會使用 APP_URL。',
   'help.guide.rotate-jwt-secret.title': '一次讓所有人登出',
   'help.guide.notification-defaults.step.2':
     '點擊格子可切換到下一個狀態：開啟、「關閉」、「封鎖」。提示文字會顯示下一個狀態，每次點擊都會立即儲存。',
   'help.ctx.notifications.bullet.2':
-    '頂部的「全部」和「未讀」可在顯示所有通知和只顯示尚未閱讀的通知之間切換。捲動時列表會載入更多。',
+    '頂部的「全部」和「未讀」可在顯示所有通知和只顯示尚未閱讀的通知之間切換。列表依日期分組，「今天」排在最前面，捲動時會載入更多。',
   'help.guide.read-notifications.step.3':
     '點擊通知下方的按鈕（例如「查看 Vacay」），即可開啟通知所指的內容，同時也會把它標為已讀。',
   'help.guide.filter-notifications.step.3': '點擊「未讀」，只看尚未閱讀的通知。點擊「全部」則再次顯示所有通知。',
-  'help.guide.mark-notifications-read.tip.2': '標為已讀只會改變背景色和計數。通知仍會留在列表中，直到你刪除它。',
+  'help.guide.mark-notifications-read.tip.2':
+    '標為已讀只會取消粗體、圓點和計數。通知仍會留在列表中，直到你刪除它；同一位置的信封「標為未讀」可讓它再次變成新通知。',
   'help.guide.delete-notifications.result': '通知已從列表和鈴鐺中移除。',
+  'help.guide.booking-mail-notifications.title': '回應預訂郵件的通知',
+  'help.guide.booking-mail-notifications.goal': '查看你轉寄的預訂郵件後來怎麼了，並處理 TREK 無法自動加入的部分。',
+  'help.guide.booking-mail-notifications.step.1':
+    '點選右上角的鈴鐺。轉寄的郵件中如果有 TREK 無法自行加入的預訂，會在這裡通知你。',
+  'help.guide.booking-mail-notifications.step.2':
+    '「待審核的轉寄預訂」會告訴你有幾筆在等你處理。點選它下方的「查看」。',
+  'help.guide.booking-mail-notifications.step.3':
+    '「待處理的預訂」會列出每一筆等待中的項目：TREK 讀到的內容、等待的原因，以及它寄來所屬的旅行。「自己填寫」會用郵件中的內容開啟新的預訂，垃圾桶則會捨棄該項目。',
+  'help.guide.booking-mail-notifications.result':
+    '每封轉寄的預訂信件，不是直接進入對應的旅行，就是等你決定，而且你隨時都知道是哪一種。',
+  'help.guide.booking-mail-notifications.tip.1':
+    'TREK 自行加入的預訂會以「已從郵件新增預訂」通知你，附有「保留」和「復原」。「復原」會把預訂從旅行中移除，「保留」則讓它留在旅行裡。',
+  'help.guide.booking-mail-notifications.tip.2':
+    '共享旅行中的其他人也會收到來自郵件的預訂通知，並附有「查看旅行」，點選後會開啟該旅行的「預訂」分頁。',
+  'help.guide.booking-mail-notifications.tip.3':
+    'TREK 即時追蹤的航班會發送「航班已起飛」、「航班已降落」，以及誤點 15 分鐘起的「航班延誤」，每則都附有「查看旅行」。通知會送給該航班指派的人，或是旅行中的所有人。你可以在「設定」的「通知」中關閉其中任何一項。',
   'help.guide.notification-settings.result': '「設定」會開啟到「通知」，每個事件和管道各有一個開關。',
   'help.guide.link-journal.goal': '把你的某本 Journey 日誌顯示在旅行中，讓你指定的人查看。',
   'help.guide.link-journal.tip.3':
     '之後在旅行設定的「日誌」中，可以使用「編輯存取權限」、「更換日誌」和「取消關聯」。取消關聯會移除該分頁，但你在日誌本身加入的人仍保有存取權。',
+  'help.guide.trip-addons.title': '為這趟旅行切換擴充套件',
+  'help.guide.trip-addons.goal': '只針對一趟旅行，開啟或關閉「費用」或「公路旅行」等功能。',
+  'help.guide.trip-addons.step.1':
+    '點選旅行名稱旁的「旅行設定」，然後在左側選擇「擴充套件」。只有旅行的擁有者能使用這個區域。',
+  'help.guide.trip-addons.step.2':
+    '點選擴充套件的開關，就能為這趟旅行開啟或關閉它。會列出「行李」、「費用」、「文件」、「協作」、「公路旅行」和「遊程」，以你的 TREK 已有的為準。',
+  'help.guide.trip-addons.step.3':
+    '「僅此旅程」表示該擴充套件的設定和 TREK 其他部分不同。把它切換回去，就會再次沿用管理員的設定。',
+  'help.guide.trip-addons.result':
+    '這趟旅行會為所有成員顯示你選擇的擴充套件：分頁或行程的某個部分會出現或消失。你的其他旅行仍沿用管理員的設定。',
+  'help.guide.trip-addons.tip.1': '關閉擴充套件只是把它隱藏，不會刪除任何內容。再次開啟後，一切都會回到原來的樣子。',
+  'help.guide.trip-addons.tip.2': '即使管理員對其他人關閉了某個擴充套件，你也可以只為一趟旅行開啟它。',
+  'help.guide.trip-addons.tip.3': '變更開關需要網路連線。離線時，TREK 會告訴你，並讓開關維持原樣。',
+  'help.guide.edit-trip-settings.title': '在規劃頁面編輯旅行',
+  'help.guide.edit-trip-settings.goal': '不必離開旅行，就能變更旅行的標題、日期、封面或貨幣。',
+  'help.guide.edit-trip-settings.step.1': '點選旅行名稱旁的「旅行設定」，然後在左側選擇「編輯旅行」。',
+  'help.guide.edit-trip-settings.step.2': '變更你需要的內容：封面照片、標題和說明、日期、貨幣或提醒。',
+  'help.guide.edit-trip-settings.step.3': '點選「更新」。「旅行設定」會關閉，旅行會立刻顯示變更。',
+  'help.guide.edit-trip-settings.result': '行程的新資訊會在各處顯示，所有參與者都看得到。',
+  'help.guide.edit-trip-settings.tip.1':
+    '如果你移動了開始日期，TREK 會先詢問預訂該如何跟著調整。如果新的日期會讓已有內容的天數被移除，確認前會先列出這些天。',
+  'help.guide.edit-trip-settings.tip.2':
+    '你也可以在「我的旅行」中，點選旅行卡片上的鉛筆開啟同一個表單。「編輯旅行」只會顯示給可以編輯這趟旅行的人。',
   'help.guide.dawarich-stays.result':
     '這個停留點成為旅行的地點，位於你選擇的那一天或「未規劃」下，面板也會把它標示為已處理。',
   'help.ctx.trip-days.bullet.7': '旅行進行期間，計畫會開啟並自動捲動到今天。',
@@ -5443,7 +5875,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.goal': '直接在計畫中把交通或預訂移到另一天，不必開啟表單。',
   'help.guide.place-image-from-file.result': '這張照片就是地點的圖片，會顯示在卡片上、地點欄、當天的行程和地圖上。',
   'help.guide.place-own-hours.step.3':
-    '它們下方的「營業時間」以每天一列顯示整週。如果 TREK 找到了地點的營業時間，就會已經填好，否則請先點擊「新增營業時間」。輸入每天的開門和關門時間，不營業的日子則點擊「已關閉」。',
+    '它們下方的「營業時間」以每天一列顯示整週。如果 TREK 找到了地點的營業時間，就會已經填好，否則請先點選「新增營業時間」。輸入每天的開門和關門時間。每天的右側，「24h」代表全天營業，關閉的門則代表休息。',
   'help.guide.add-accommodation.tip.5': 'GPX 軌跡和遊程地點不會被當作住宿地點，只有旅行中一般的地點才可以。',
   'help.guide.confirm-stay-booking.step.1':
     '開啟入住的那一天。在住宿的卡片上，「預訂」下方是這一晚的旅館預訂，顯示「待確認」或「已確認」。點擊那個方塊。',
@@ -5452,20 +5884,21 @@ const help: TranslationStrings = {
   'help.guide.car-stops.step.1': '在取車那一天的標題中，點擊 +（提示文字為「新增到當天」），然後選擇「新增交通」。',
   'help.guide.car-stops.tip.2': '行車至少有兩個停靠點後，才會出現「上移」和「下移」。',
   'help.guide.transport-details.title': '開啟交通並使用詳細資訊',
-  'help.guide.transport-details.tip.1': '在已畫出線條的行程上再次點擊「在地圖上」，就會關閉該線條。',
+  'help.guide.transport-details.tip.1': '在已畫出線條的行程上再次點選「地圖」，就會關閉該線條。',
   'help.guide.export-transports-csv.result':
     '瀏覽器會儲存一個以旅行命名的檔案，例如 autumn-in-japan-transports.csv，每段行程佔一列，欄位有：類型、標題、狀態、開始、結束、來自、到、地點、確認號和筆記。',
   'help.guide.group-sort-bookings.goal': '依狀態、日期或類型，用你想要的順序排列卡片或清單。',
   'help.guide.booking-on-map.tip.1':
-    '只有含地點的預訂才有「在地圖上」。在表單的「地點 / 活動」下選一個地點，按鈕就會出現。',
+    '只有含地點的預訂才有「地圖」。在表單的「地點 / 活動」下選一個地點，按鈕就會出現。',
   'help.guide.export-bookings-csv.step.2':
     '開啟「檢視選項」（檢視圖示後面的滑桿圖示），在「排序方式」下選擇順序。各列會依此排列，每筆預訂一列，不分區段。',
   'help.guide.edit-booking.tip.4':
     '如果你已修改了內容，點擊表單外面或按 Escape，會先詢問「放棄變更？」。點擊「繼續編輯」就會回到表單。',
   'help.guide.arrange-packing-list.step.2':
-    '在清單內，抓住某一列左側的握把，就能把該物品向上或向下拖曳。該列左邊緣的強調色線條會顯示它將落在哪裡。',
+    '在清單內，把游標移到某一列上，左端會出現握把，可將該物品向上或向下拖曳。該列左邊緣的強調色線條會顯示它將落在哪裡。',
   'help.guide.count-packed-pieces.goal': '為物品設定數量，並逐件標記已打包的件數。',
-  'help.guide.count-packed-pieces.tip.3': '數量為一的物品不會顯示計數器，只有勾選框。',
+  'help.guide.count-packed-pieces.tip.3':
+    '數量為一的物品不會有「已打包」那一行，只有勾選框。數量兩個以上時，該列才會顯示數量（例如 ×5）。',
   'help.guide.expense-receipts.step.2':
     '點擊「收據與發票」旁邊的「附加」，選擇照片或 PDF，也可以一次選擇多個。每個檔案都會列在標題下方，旁邊有垃圾桶可移除。',
   'help.guide.files-sync-settings.goal':
@@ -5505,7 +5938,7 @@ const help: TranslationStrings = {
     '隱藏只對你自己有效，而且只儲存在這個瀏覽器、僅限這趟旅行：遊程、它的日期和顏色都不會改變，其他人的地圖上仍會看到這個遊程。',
   'help.guide.tour-import-plan-tab.tip.1': '已經在旅行中的軌跡會標示「已在旅程中」，不會重複匯入。',
   'help.ctx.trip-tour-detail.bullet.4':
-    '底部那一列有：開啟某一天時的「新增到當天」或「從當天移除」、前往起點的「導航」、遊程的網頁、GPX、裝置可分享檔案時出現的「分享」、「收藏」和「複製」。',
+    '底部那一列有：開啟某一天時的「新增到當天」或「從當天移除」、前往起點的「導航」、在地圖應用程式中開啟整條路線的「地圖」、遊程的網頁、GPX、「分享」、「收藏」和「複製」。',
   'help.guide.tour-detail-read.step.5':
     '下方是各項數據：「距離」、「最低海拔」、「最高海拔」、「累計爬升」和「累計下降」，再下面是時間，最後是以遊程線條顏色繪製的海拔剖面圖。',
   'help.guide.tour-detail-read.result':
@@ -5612,7 +6045,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.step.4':
     '列表頂部會統計已造訪的停靠點，並顯示剩餘的步行時間。點擊停靠點上的「復原」，可取消它的標記。',
   'help.ctx.trip-tour-bike.bullet.2':
-    '右側的「遊程摘要」會顯示「騎乘時間（估算）」，也就是路線規劃器依設定檔算出的時間，並已計入爬升。不含休息時間。',
+    '右側的「遊程摘要」會顯示「騎乘時間」，也就是路線規劃器依設定檔估算的時間，並已計入爬升。不含休息。',
   'help.guide.tour-bike-profile.step.4':
     '在「路點」下，點擊「行程地點」並選擇起點和終點，這裡是 Hotel Alpenroyal，接著是 Hotel Greif。你也可以確認「新增地點」已開啟，然後直接點擊地圖。有兩個點之後，TREK 就會計算路線。',
   'help.guide.tour-bike-profile.tip.5':
@@ -5663,7 +6096,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-gap.step.4':
     '在「路點」卡片中，銜接路段會顯示為「手動，未經檢查」，並附上長度。將游標移上去可看到原因。',
   'help.guide.tour-horse-recorded.step.2':
-    '「匯入預覽」隨即開啟，此時還沒有儲存任何內容。在「匯入為」下，將「路線類型」設為「騎馬遊」。三個徽章會說明匯入保留了哪些內容，以及哪些內容沒有計算。',
+    '「匯入預覽」隨即開啟，此時還沒有儲存任何內容。在「匯入為」下，選擇「騎馬遊」。三個徽章會說明匯入保留了哪些內容，以及哪些內容沒有計算。',
   'help.guide.dateless-trip.goal': '還不確定何時出發，也可以先開始規劃。',
   'help.guide.trip-reminder.step.3': '點擊「更新」。',
   'help.guide.upcoming-reservations.goal': '查看所有旅行中接下來預訂了什麼，並開啟預訂所屬的旅行。',
@@ -5695,6 +6128,15 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.title': '外掛',
   'help.ctx.settings-about.bullet.2': '「回報錯誤」和「功能建議」會在 GitHub 上開啟專案，Wiki 則開啟文件。',
   'help.guide.map-provider.tip.3': '在 GL 地圖上，按住右鍵拖曳可旋轉和傾斜地圖，按滑鼠中鍵可新增地點。',
+  'help.guide.map-hide-pois.title': '隱藏 Mapbox 顯示的商店和景點',
+  'help.guide.map-hide-pois.goal': '讓地圖只顯示你自己的地點，不要出現 Mapbox 自動加上的標籤。',
+  'help.guide.map-hide-pois.step.1':
+    '在「地圖提供商」中選擇 Mapbox GL，並在「地圖樣式」中選擇標準樣式：Mapbox Standard 或 Standard Satellite。',
+  'help.guide.map-hide-pois.step.2': '開啟「隱藏興趣點」，然後點選「儲存地圖」。',
+  'help.guide.map-hide-pois.result':
+    '旅行地圖和日誌地圖不再標示地圖本身的商店、餐廳和景點，只有你自己的圖釘會顯眼地呈現。',
+  'help.guide.map-hide-pois.tip.1': '這只對標準樣式有效。Streets、Outdoors 和其他經典樣式仍會保留標籤。',
+  'help.guide.map-hide-pois.tip.2': '「顯示」下的「在地圖上探索地點」在你要求時，仍然可以找到附近的地點。',
   'help.guide.web-push-device.step.1':
     '在「此裝置上的推播通知」下，點擊「為此裝置開啟」，並在瀏覽器詢問時允許通知。「傳送測試」可確認通知有沒有送達。',
   'help.guide.connect-airtrail.title': '連接你的 AirTrail',
@@ -5703,6 +6145,23 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.tip.3': '右側的「中斷連線」會再次移除權杖。',
   'help.guide.tour-wanderer-watch.tip.3':
     '這些提示要透過哪些管道通知你，請在「通知」中「wanderer：關於你的路線的提示」那一列設定。',
+  'help.guide.connect-ai.title': '連結你自己的 AI',
+  'help.guide.connect-ai.goal': '用你自己的 AI 服務商帳號，和助理一起規劃旅行。',
+  'help.guide.connect-ai.step.1':
+    '在「AI 助理」卡片中選擇連結方式：「使用 ChatGPT 登入」會使用你的 ChatGPT 方案；「貼上 API 金鑰」則使用 Anthropic、OpenAI、Gemini 或 OpenRouter 的金鑰。',
+  'help.guide.connect-ai.step.2':
+    '貼上你的金鑰。TREK 會顯示偵測到的服務商，並說明哪些內容會傳送給它。點選「連結」，TREK 會先向服務商確認這把金鑰是否有效。',
+  'help.guide.connect-ai.step.3':
+    '卡片會顯示「已連結」與服務商名稱。選好想用的「模型」，再點選「開啟助理」，就能在目前或下一趟旅行中開始使用。',
+  'help.guide.connect-ai.result': '助理會使用你自己的帳號，在每一趟旅行中運作。',
+  'help.guide.connect-ai.tip.1':
+    '只有在管理員開啟助理或 AI 解析時，才會出現這張卡片。如果只有管理員可以連結，卡片會顯示「由你的管理員設定。」',
+  'help.guide.connect-ai.tip.2':
+    '管理員提供連結時，卡片會顯示「由你的管理員提供」，以及你今天已使用的訊息數。若管理員允許，點選「連結你自己的服務商」就能改用你自己的。',
+  'help.guide.connect-ai.tip.3':
+    '「地圖跟隨助理」和「估算費用」會改變助理在你旅行中的運作方式。「中斷連結」會移除你的金鑰，但對話會保留。',
+  'help.guide.connect-ai.tip.4':
+    'AI 解析會用同一個連結讀取預訂檔案。以前設定過的個人 AI 解析，仍會保留在下方自己的卡片中。',
   'help.guide.plugin-settings.tip.1': '這些設定只屬於你自己，其他成員要各自設定外掛。',
   'help.guide.offline-conflicts.step.3':
     '伺服器一再拒絕的變更會顯示在「離線快取」下的「失敗的變更」：「重試」會再送出一次，「捨棄」則保留伺服器的版本。',
@@ -5715,10 +6174,10 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.result':
     '尚未更改格子的使用者，都會從你的設定開始；被封鎖的格子在他們的設定中會顯示為鎖定。',
   'help.ctx.notifications.bullet.3':
-    '每則通知都會說明誰在哪裡做了什麼，未讀的通知背景會帶有底色。通知下方的按鈕（例如「查看旅行」或「查看 Vacay」）會帶你過去，同時把通知標為已讀。',
+    '每則通知都會說明誰在哪裡做了什麼。它的圖塊會顯示通知相關的內容，角落有寄件者的姓名縮寫。未讀的通知會以粗體顯示並附有圓點。通知下方的按鈕（例如「查看旅行」或「查看 Vacay」）會帶你過去，同時把通知標為已讀。',
   'help.guide.read-notifications.tip.1': '鈴鐺會出現在每個有導覽列的畫面上，有新通知時，上面的數字會自動更新。',
   'help.guide.filter-notifications.tip.1': '往下捲動時，頁面會載入更早的通知，所以不會只顯示第一個畫面的內容。',
-  'help.guide.mark-notifications-read.result': '所有通知都不再有底色，鈴鐺上的紅色數字也消失了。',
+  'help.guide.mark-notifications-read.result': '所有通知都不再是粗體，鈴鐺上的紅色數字也消失了。',
   'help.guide.notification-settings.title': '選擇哪些事件要通知你',
   'help.guide.link-journal.step.1': '點擊旅行名稱旁的「旅行設定」，然後在左側選擇「日誌」。',
   'help.guide.dawarich-stays.tip.1':
@@ -5743,11 +6202,10 @@ const help: TranslationStrings = {
   'help.guide.create-booking.tip.4':
     '離線時，預訂會先儲存在這台裝置上，等重新上線後再同步。新增檔案需要網路連線，所以請先移除檔案，或晚點再儲存。如果不小心點到表單外面或按了 Escape，TREK 會先詢問「放棄變更？」，不會讓你輸入的內容直接消失。',
   'help.guide.booking-on-map.tip.2': '住宿會開啟到入住的第一晚。',
-  'help.guide.export-bookings-csv.step.3': '點擊「檢視選項」後面的試算表圖示「匯出為試算表 (CSV)」。',
+  'help.guide.export-bookings-csv.step.3': '點選「檢視選項」後面的下載圖示「匯出為試算表 (CSV)」。',
   'help.guide.arrange-packing-list.step.3':
-    '在「已分享」和「我的清單」那一列最右邊，點擊「依名稱」，會依名稱順序顯示每份清單的物品，方便你快速確認某樣東西是否已在清單上。再點一次就會回到你自己的順序。',
-  'help.guide.count-packed-pieces.step.1':
-    '點擊該列的數量徽章（後面帶 x 的小數字），輸入你要帶幾件（例如 5），然後按 Enter。',
+    '「新增清單」旁邊三個點中的「依名稱」，會依名稱順序顯示每份清單的物品，方便你快速確認某樣東西是否已在清單上。開啟時會有勾號標示；再點一次就會回到你自己的順序。',
+  'help.guide.count-packed-pieces.step.1': '點選物品的名稱。它的視窗會在該列旁開啟。',
   'help.guide.expense-receipts.step.3':
     '點擊對話方塊底部的「儲存」。檔案會隨支出一起上傳，也會出現在旅行的「檔案」中。',
   'help.guide.files-sync-settings.step.1':
@@ -5760,6 +6218,21 @@ const help: TranslationStrings = {
   'help.guide.note-categories.result': '筆記會顯示新的名稱和顏色，「筆記」卡片也只會顯示你選的分類。',
   'help.guide.roadtrip-stops.tip.5':
     '在每日計畫中有結束時間的停靠點，會停留到該時間為止。它的對話方塊會顯示行車何時離開，點擊「移除結束時間」就能重新自己設定停留時間。',
+  'help.guide.roadtrip-stop-photo.title': '查看停靠點的照片',
+  'help.guide.roadtrip-stop-photo.goal': '在路途中查看停靠點的圖片，判斷它值不值得繞路。',
+  'help.guide.roadtrip-stop-photo.step.1':
+    '點選側欄中途經的停靠點，或是已預訂過夜地點的地點。它的卡片會開啟在地圖上方。',
+  'help.guide.roadtrip-stop-photo.step.2':
+    '點選卡片底部的「編輯」。停靠點的對話框會開啟，名稱前面是該地點的圖片；沒有圖片的停靠點則會顯示它類型的圖示。',
+  'help.guide.roadtrip-stop-photo.step.3': '點選圖片「查看照片」，即可全螢幕開啟該地點的照片。',
+  'help.guide.roadtrip-stop-photo.result':
+    '該地點的照片會填滿螢幕，箭頭可瀏覽它的來源所知道的其他照片。關閉後會回到對話框，按「取消」會讓停靠點維持原樣。',
+  'help.guide.roadtrip-stop-photo.tip.1':
+    '圖片是地點本身的圖片，也就是你在地點表單中設定的那張。如果沒有，而且地點來自 Google 或 OpenStreetMap，TREK 會顯示它的來源提供的照片。',
+  'help.guide.roadtrip-stop-photo.tip.2':
+    '在手機上，點選「公路旅行」分頁中的停靠點：它的面板會在名稱下方以全寬顯示圖片，點選圖片就會開啟照片。',
+  'help.guide.roadtrip-stop-photo.tip.3':
+    '「路線途中」的搜尋結果還不在旅行中，所以「新增為停靠點」會顯示它類型的圖示，而不是圖片。',
   'help.guide.roadtrip-reorder.tip.2': '已預訂的行程及其站點會留在預訂決定的位置，只有地點可以拖曳。',
   'help.guide.roadtrip-overnight.step.2':
     '旅館顯示的是床鋪圖示，而不是加號。點擊它（「新增為過夜住宿」），就會開啟「新增為停靠點」來安排過夜。露營地則使用一般的「新增」。',
@@ -5804,7 +6277,7 @@ const help: TranslationStrings = {
   'help.guide.tour-origin-check.step.2':
     '「已匯入」顯示匯入的日期。「這裡」說明目前的狀態：「與匯入時相同」、「已在 TREK 中編輯」，或「已重新規劃，記錄的軌跡已保留」。',
   'help.ctx.trip-tour-planner.bullet.1':
-    '開啟遊程擴充套件後，「遊程」會出現在旅行分頁列中「計畫」的後面。這個分頁只在電腦和平板上提供，在手機上則可從「計畫」分頁查看遊程並排到各天，但不能繪製。',
+    '旅行開啟「遊程」擴充套件時，「遊程」會出現在旅行分頁列中「計畫」的後面；旅行擁有者可以在「旅行設定」的「擴充套件」中切換它。這個分頁只在電腦和平板上提供，在手機上則可從「計畫」分頁查看遊程並排到各天，但不能繪製。',
   'help.guide.tour-open-workspace.step.1': '點擊旅行分頁列中「計畫」後面的「遊程」。地圖會佔滿畫面，兩側各有一個側欄。',
   'help.guide.tour-open-workspace.tip.2':
     '把 GPX、KML 或 KMZ 檔案拖放到這個分頁的任何位置，就能將它們匯入為旅行的遊程。',
@@ -5834,7 +6307,7 @@ const help: TranslationStrings = {
     '選擇「匯入 GPX 或 KML」，然後選取一個或多個 .gpx、.kml 或 .kmz 檔案，每個檔案最大 10 MB。',
   'help.guide.tour-import-gpx.tip.5':
     '沒有高度資料的檔案會顯示「檔案中沒有海拔」。線條和距離仍然正確，但爬升和下降會維持未知。',
-  'help.guide.tour-view-import.tip.2': '標題中的下載圖示可再次將它儲存為 GPX 檔，書籤圖示則會把它保存到收藏中。',
+  'help.guide.tour-view-import.tip.2': '標題中的圖示可再次將它下載為 GPX 檔、分享它，以及把它保存到收藏中。',
   'help.guide.tour-plan-from-import.step.4':
     '遊程會連同路點在編輯器中開啟。需要的話可以修改，然後點擊欄位底部的「儲存」。',
   'help.guide.tour-restore-recorded.step.1':
@@ -5844,7 +6317,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-over.tip.3':
     '引入路線需要網路連線。如果編輯器中有未儲存的變更，副本仍會加入列表，但不會直接開啟，以免蓋掉你正在進行的編輯。',
   'help.guide.tour-import-wanderer.tip.1':
-    '要先在「設定」的「整合」中連接 wanderer，才會有這個按鈕。在那之前，列表會提供「在設定中連結」。',
+    '要先在「設定」的「整合」中連接 wanderer，才會有這個按鈕。如果之後連線失效，列表會提供「在設定中連結」。',
   'help.ctx.trip-tour-map.bullet.2':
     '標籤中分隔線之後是各遊程類型專用的開關：編輯遊程時的「放置點」、健行時的「飛拉達」、划槳遊程時的「航標」，以及滑雪遊程時的雪道。最後的 3D 會把遊程顯示在立體地形上。',
   'help.guide.tour-map-layers.step.3':
@@ -5896,7 +6369,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.3':
     '路點下方的「路面與道路」卡片會顯示路線經過的路況：路面、道路類型，以及已知為未鋪面的比例。點擊某一列，可在地圖上突顯對應的路段。',
   'help.guide.tour-bike-profile.step.5':
-    '查看右側「遊程摘要」中的「騎乘時間（估算）」。將游標停在它的資訊圓點上，可看到計算方式。',
+    '查看右側「遊程摘要」中的「騎乘時間」。將游標停在它的資訊圓點上，可看到計算方式。',
   'help.guide.tour-bike-surfaces.title': '查看單車遊程經過的路面',
   'help.guide.tour-bike-surfaces.tip.2':
     '在「公路」設定檔下，長條圖上方的警告會說明已知有多長是未鋪面。點擊「在地圖上顯示」可標出這些路段。',

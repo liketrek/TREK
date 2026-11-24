@@ -34,7 +34,7 @@ import { TripMembers } from '../../db/entities/TripMembers.entity';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { Categories } from '../../db/entities/Categories.entity';
 import { Trips } from '../../db/entities/Trips.entity';
-import type { PlacesRepository, PlaceListRow, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
+import type { PlacesRepository, PlaceWithTagsRow as PlaceWithTags } from '../../db/repositories/Places.repository';
 import type { TagsRepository } from '../../db/repositories/Tags.repository';
 import type { PlaceRatingsRepository } from '../../db/repositories/PlaceRatings.repository';
 import type { TripMembersRepository } from '../../db/repositories/TripMembers.repository';
@@ -73,6 +73,7 @@ import {
   type ListImportOptions,
   type ListImportResult,
   type PlaceImportResult,
+  placeListIdFilters,
 } from './places.helpers';
 
 type Trip = TripAccess;
@@ -210,16 +211,16 @@ export class PlacesService {
   }
 
   /**
-   * The subset of `tagIds` that someone on this trip owns. A tag has no trip of
-   * its own, only a `user_id`, so "belongs to this trip" resolves through the
-   * roster — which keeps the shared case working: a member tags a place, another
-   * member re-saves it and sends the id back, and the tag survives because its
-   * owner is still on the trip. Scoping to the caller instead would quietly strip
-   * a co-traveller's tag on every foreign edit.
+   * The subset of `tagIds` this trip may put on a place: the tags it owns, and the
+   * personal tags of anybody on its roster. A personal tag has no trip, only a
+   * `user_id`, so it resolves through the roster, which keeps the shared case
+   * working: a member tags a place, another re-saves it and sends the id back, and
+   * the tag survives because its owner is still on the trip. Scoping to the caller
+   * instead would quietly strip a co-traveller's tag on every foreign edit.
    *
-   * Off-roster ids drop silently. The place body is an open record, so an id can
-   * arrive from an older client that had no business knowing it existed, and the
-   * read-back join hands `tags.user_id` straight to the caller.
+   * Every other id drops silently, another trip's tag included. The place body is an
+   * open record, so an id can arrive from a client that had no business knowing it
+   * existed, and the read-back join hands the tag straight to the caller.
    */
   private async tagsOnTrip(tripId: string | number, tagIds: number[]): Promise<number[]> {
     const unique = [...new Set(tagIds)];
@@ -229,9 +230,9 @@ export class PlacesService {
     // precedent: each domain converts its own `DatabaseService`-delegated
     // callers as it lands.
     const roster = await this.tripMembersRepo.rosterUserIds(tripId);
-    // PL2 — `SELECT id, user_id FROM tags WHERE id IN (${…})`.
-    const owned = await this.tagsRepo.findByIds(unique);
-    return owned.filter(t => roster.has(t.user_id)).map(t => t.id);
+    // PL2 — `SELECT id, user_id, trip_id FROM tags WHERE id IN (${…})`.
+    const rows = await this.tagsRepo.findByIds(unique);
+    return rows.filter(t => (t.trip_id === null ? roster.has(t.user_id) : t.trip_id === Number(tripId))).map(t => t.id);
   }
 
   broadcast<E extends TrekWsTripEventName>(tripId: string, event: E, payload: TrekWsPayload<E>, socketId: string | undefined): void {
@@ -247,16 +248,13 @@ export class PlacesService {
     filters: { search?: string; category?: string; tag?: string; assignment?: 'all' | 'unassigned' | 'assigned' },
   ) {
     // ESCAPE so a `%` or `_` the user typed matches literally instead of
-    // acting as a LIKE wildcard (a bare '%' used to return the whole trip) —
-    // the coercion stays here (the service), the repository binds the
+    // acting as a LIKE wildcard (a bare `%` would match every place in the
+    // trip). The coercion stays here (the service); the repository binds the
     // already-built pattern verbatim (PL3).
     const searchPattern = filters.search ? `%${escapeLikePattern(filters.search)}%` : undefined;
-    const places: PlaceListRow[] = await this.placesRepo.listForTrip(tripId, {
-      searchPattern,
-      category: filters.category,
-      tag: filters.tag,
-      assignment: filters.assignment,
-    });
+    const ids = placeListIdFilters(filters);
+    if (!ids) return [];
+    const places = await this.placesRepo.listForTrip(tripId, { searchPattern, ...ids, assignment: filters.assignment });
 
     const placeIds = places.map(p => p.id);
     const tagsByPlaceId = await this.queryHelpers.loadTagsByPlaceIds(placeIds);

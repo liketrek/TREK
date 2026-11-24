@@ -13,6 +13,8 @@ const map: TranslationStrings = {
   'poi.cat.museums': 'מוזיאונים ותרבות',
   'poi.cat.nature': 'טבע ופארקים',
   'poi.cat.activities': 'פעילויות',
+  'poi.cat.bakeries': 'מאפיות',
+  'poi.cat.groceries': 'מכולות וסופרמרקטים',
   'poi.pluginCategories': 'קטגוריות מתוספים',
   'map.showAllConnections': 'הצגת כל מסלולי ההזמנות',
   'map.hideAllConnections': 'הסתרת כל מסלולי ההזמנות',

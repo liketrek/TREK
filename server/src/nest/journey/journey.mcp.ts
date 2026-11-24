@@ -14,6 +14,7 @@ import {
 import type { JourneyContributor } from '../../types';
 import { addonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { uriRowId } from '../common/row-id';
 import { JourneyDomainService } from './journey-domain.service';
 import { JourneyPhotoCaptureService } from './journey-photo-capture.service';
 import { JourneySettingsService } from './journey-settings.service';
@@ -35,6 +36,7 @@ import {
   type JourneyEntryVisibility,
   type JourneyReorderEntriesTool,
   type JourneyUpdateTool,
+  JOURNEY_ENTRY_VISIBILITY_DEPRECATED,
 } from '@trek/shared';
 
 import { z } from 'zod';
@@ -44,11 +46,6 @@ const journeyAddonOn = addonGate(ADDON_IDS.JOURNEY);
 
 function notFound(msg: string) {
   return { content: [{ type: 'text' as const, text: msg }], isError: true };
-}
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
 }
 
 function accessDenied(uri: string) {
@@ -76,12 +73,13 @@ function jsonContent(uri: string, data: unknown) {
 }
 
 /*
- * The entry types, visibilities and the verdict come from @trek/shared
- * (journey.schema.ts), where the assistant's cards read them too: a model that
- * invents "friends-only" would write a value nothing reads.
+ * The entry types and the verdict come from @trek/shared (journey.schema.ts),
+ * where the assistant's cards read them too: a model that invents "note" would
+ * write a value nothing reads. The entry's stored visibility is deprecated:
+ * still accepted so older callers are not refused, but read by nothing, and
+ * is_draft is what keeps an entry off the share link.
  */
 const ENTRY_TYPE = journeyEntryTypeSchema;
-const ENTRY_VISIBILITY = journeyEntryVisibilitySchema;
 const PROS_CONS = journeyEntryProsConsSchema;
 
 /**
@@ -382,9 +380,7 @@ export class JourneyMcp {
         .describe('Weather as the traveller recorded it (e.g. "sunny", "24C and windy")'),
       tags: z.array(z.string()).optional(),
       pros_cons: PROS_CONS.optional().describe('The verdict on the place: what was worth it and what was not'),
-      visibility: ENTRY_VISIBILITY.optional().describe(
-        'Stored with the entry, defaults to private. It does not decide the share link: every entry that is not a draft shows on the journey share link. Use is_draft to keep an entry to the contributors',
-      ),
+      visibility: journeyEntryVisibilitySchema.optional().describe(JOURNEY_ENTRY_VISIBILITY_DEPRECATED),
       type: ENTRY_TYPE.optional().describe(
         'Defaults to "entry"; "skeleton" is the stub TREK derives from a trip place and hides behind the hide-skeletons preference',
       ),
@@ -392,7 +388,9 @@ export class JourneyMcp {
       is_draft: z
         .boolean()
         .optional()
-        .describe('True keeps the entry a draft: contributors see it, the journey share link does not'),
+        .describe(
+          'True keeps the entry a draft: contributors see it, the journey share link does not. Every entry that is not a draft shows on the share link',
+        ),
     },
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     when: journeyAddonOn,
@@ -432,7 +430,7 @@ export class JourneyMcp {
   @Tool({
     name: 'update_journey_entry',
     description:
-      'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict, visibility, whether it is a draft, or whether it counts as a stop. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here. Answers with the entry and, under previous, what the changed fields held before.',
+      'Update an existing journey entry: its text, date, place, coordinates, weather, tags, verdict, whether it is a draft (is_draft, the one switch that keeps it off the share link), or whether it counts as a stop. Fields left out keep their value; pass null to clear one. To move an entry within its day use reorder_journey_entries rather than setting sort_order here. Answers with the entry and, under previous, what the changed fields held before.',
     inputSchema: { entryId: idSchema, ...journeyEntryUpdateToolSchema.shape },
     annotations: TOOL_ANNOTATIONS_WRITE,
     when: journeyAddonOn,
@@ -769,7 +767,7 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'read' },
   })
   async journeyDetailResource(uri: URL, { journeyId }: { journeyId: string | string[] }, ctx: McpContext) {
-    const id = parseId(journeyId);
+    const id = uriRowId(journeyId);
     if (id === null) return accessDenied(uri.href);
     const journey = await this.journey.getJourneyFull(id, ctx.userId);
     if (!journey) return accessDenied(uri.href);
@@ -785,7 +783,7 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'read' },
   })
   async journeyEntriesResource(uri: URL, { journeyId }: { journeyId: string | string[] }, ctx: McpContext) {
-    const id = parseId(journeyId);
+    const id = uriRowId(journeyId);
     if (id === null) return accessDenied(uri.href);
     if (!(await this.journey.canAccessJourney(id, ctx.userId))) return accessDenied(uri.href);
     return jsonContent(uri.href, await this.journey.listEntries(id, ctx.userId));
@@ -800,7 +798,7 @@ export class JourneyMcp {
     access: { group: 'journey', mode: 'read' },
   })
   async journeyContributorsResource(uri: URL, { journeyId }: { journeyId: string | string[] }, ctx: McpContext) {
-    const id = parseId(journeyId);
+    const id = uriRowId(journeyId);
     if (id === null) return accessDenied(uri.href);
     const journey = await this.journey.getJourneyFull(id, ctx.userId);
     if (!journey) return accessDenied(uri.href);

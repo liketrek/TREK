@@ -61,7 +61,9 @@ export class AirtrailSyncService {
     try {
       flights = await this.client.listFlights(creds);
     } catch (err) {
+      // A failed list detaches nothing. Without a full list, no flight is known to be deleted in AirTrail.
       if (err instanceof AirtrailAuthError) logError(`AirTrail sync: invalid API key for user ${uid}`);
+      else logError(`AirTrail sync for user ${uid}: ${err instanceof Error ? err.message : err}`);
       return 0;
     }
     const byId = new Map(flights.map((f) => [String(f.id), f]));

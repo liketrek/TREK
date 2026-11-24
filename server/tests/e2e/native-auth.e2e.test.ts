@@ -132,4 +132,14 @@ describe('Native sign-in hand-off e2e', () => {
     const blocked = await exchange({ code: 'nope', verifier });
     expect(blocked.status).toBe(429);
   });
+
+  it('NATIVE-E2E-006: the browser starts at a page under /api that forwards to the handoff page', async () => {
+    const res = await request(server).get(`/api/auth/native/start?challenge=${challenge}&start=oidc`);
+    expect(res.status).toBe(200);
+    expect(res.headers['content-type']).toMatch(/text\/html/);
+    expect(res.headers['cache-control']).toBe('no-store');
+    expect(res.text).toContain(`data-target="/native-handoff?challenge=${challenge}&amp;start=oidc"`);
+
+    expect((await request(server).get('/api/auth/native/start?challenge=nope')).status).toBe(400);
+  });
 });

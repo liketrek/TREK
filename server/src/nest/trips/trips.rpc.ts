@@ -6,8 +6,9 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { schemaMessage, rowIdParam } from '../../nest-rpc/rpc-params';
 import { AccommodationsService } from '../accommodations/accommodations.service';
+import { TripAddonsService } from '../addons/trip-addons.service';
 import { DomainError } from '../common/domain-error';
 import { DaysService } from '../days/days.service';
 import { RealtimeService } from '../realtime/realtime.service';
@@ -28,11 +29,12 @@ const TRIP_STR_LIMITS: Record<string, number> = { title: 200, description: 2000 
  * The trip surface a plugin may reach (#plugins), including the cross-trip feeds and
  * the member roster.
  *
- * Two things are specific to trips. updateTrip gates two individual FIELDS behind
+ * Two things are specific to trips. updateTrip gates three individual FIELDS behind
  * their own admin-configurable permissions, on top of trip_edit, so a plugin cannot
- * archive or re-cover a trip it may otherwise edit. And adding a member GRANTS TRIP
- * ACCESS, which is why it sits behind its own permission and the app's member_manage
- * right rather than being bundled with a lower-risk write.
+ * archive or re-cover a trip it may otherwise edit, nor switch how it keeps its costs.
+ * And adding a member GRANTS TRIP ACCESS, which is why it sits behind its own
+ * permission and the app's member_manage right rather than being bundled with a
+ * lower-risk write.
  */
 @PluginController()
 export class TripsRpc {
@@ -57,6 +59,7 @@ export class TripsRpc {
     // `.isOwner` used since Task 0b — `EntityManager` is `@Global()`, so no
     // module needs new wiring. Appended last, per this class's own convention.
     private readonly em: EntityManager,
+    private readonly tripAddons: TripAddonsService,
   ) {}
 
   @PluginMethod('trips.getById', { permission: 'db:read:trips' })
@@ -64,7 +67,7 @@ export class TripsRpc {
     return this.guards.tripRead(params, ctx, async () =>
       // db:read:trips is a read grant on the trip, not on the credential that
       // publishes it anonymously — see withoutFeedToken. RP1 — TripsRepository.findRaw.
-      withoutFeedToken(await this.em.getRepository(Trips).findRaw(num(params.tripId, 'tripId'))),
+      withoutFeedToken(await this.em.getRepository(Trips).findRaw(rowIdParam(params.tripId, 'tripId'))),
     );
   }
 
@@ -77,13 +80,15 @@ export class TripsRpc {
     return this.guards.tripRead(
       params,
       ctx,
-      async () => await this.em.getRepository(Places).listForTripOrdered(num(params.tripId, 'tripId')),
+      async () => await this.em.getRepository(Places).listForTripOrdered(rowIdParam(params.tripId, 'tripId')),
     );
   }
 
   @PluginMethod('trips.getReservations', { permission: 'db:read:trips' })
   getReservations(params: Record<string, unknown>, ctx: PluginRpcContext): unknown {
-    return this.guards.tripRead(params, ctx, async () => this.reservations.list(String(num(params.tripId, 'tripId'))));
+    return this.guards.tripRead(params, ctx, async () =>
+      this.reservations.list(String(rowIdParam(params.tripId, 'tripId'))),
+    );
   }
 
   @PluginMethod('trips.getDays', { permission: 'db:read:trips' })
@@ -93,7 +98,7 @@ export class TripsRpc {
     return this.guards.tripRead(
       params,
       ctx,
-      async () => ((await this.days.list(num(params.tripId, 'tripId'))) as { days: unknown[] }).days,
+      async () => ((await this.days.list(rowIdParam(params.tripId, 'tripId'))) as { days: unknown[] }).days,
     );
   }
 
@@ -102,7 +107,7 @@ export class TripsRpc {
     return this.guards.tripRead(
       params,
       ctx,
-      async () => (await this.accommodations.list(num(params.tripId, 'tripId'))) as unknown[],
+      async () => (await this.accommodations.list(rowIdParam(params.tripId, 'tripId'))) as unknown[],
     );
   }
 
@@ -133,26 +138,32 @@ export class TripsRpc {
     return this.guards.tripRead(
       params,
       ctx,
-      async () => await this.em.getRepository(TripMembers).listRawUsernameAndDisplayName(num(params.tripId, 'tripId')),
+      async () =>
+        await this.em.getRepository(TripMembers).listRawUsernameAndDisplayName(rowIdParam(params.tripId, 'tripId')),
     );
   }
 
   @PluginMethod('trips.update', { permission: 'db:write:trips' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'trip');
     const parsed = tripUpdateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid trip: ${schemaMessage(parsed.error)}`);
     this.guards.capStrings(parsed.data as Record<string, unknown>, TRIP_STR_LIMITS);
     await this.guards.requireTripEdit(tripId, actor, TRIP_EDIT_ACTION);
     const input = parsed.data as Record<string, unknown>;
-    // Two fields carry their own permissions on top of trip_edit, exactly as the REST
-    // controller gates them.
+    // Three fields carry their own permissions on top of trip_edit, exactly as the REST
+    // controller and update_trip gate them (tripUpdatePermissions).
     if ('is_archived' in input && !(await this.guards.canEditAs('trip_archive', tripId, actor))) {
       throw new ForbiddenResource(`no permission to archive trip ${tripId}`);
     }
     if ('cover_image' in input && !(await this.guards.canEditAs('trip_cover_upload', tripId, actor))) {
       throw new ForbiddenResource(`no permission to change the cover of trip ${tripId}`);
+    }
+    // The costs mode decides what Costs shows, so it belongs to whoever may edit the
+    // costs (#1714), not to whoever may edit the trip's details.
+    if ('costs_mode' in input && !(await this.guards.canEditAs('budget_edit', tripId, actor))) {
+      throw new ForbiddenResource(`no permission to change how trip ${tripId} keeps its costs`);
     }
     const role = await this.em.getRepository(Users).getRole(actor); // RP4 — UsersRepository.getRole
     try {
@@ -163,6 +174,8 @@ export class TripsRpc {
         role ?? 'user',
       );
       this.realtime.broadcast(tripId, 'trip:updated', { trip: result.updatedTrip });
+      if (result.boundaries)
+        this.realtime.broadcast(tripId, 'roadtripBoundary:changed', { boundaries: result.boundaries });
       return result.updatedTrip;
     } catch (e) {
       if (e instanceof ValidationError || (e instanceof DomainError && e.getStatus() === 400)) {
@@ -197,8 +210,8 @@ export class TripsRpc {
 
   @PluginMethod('trips.addMember', { permission: 'db:write:members' })
   async addMember(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const targetUserId = num(params.userId, 'userId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const targetUserId = rowIdParam(params.userId, 'userId');
     const actor = this.guards.requireActor(ctx, 'trip member');
     await this.guards.requireTripEdit(tripId, actor, MEMBER_MANAGE_ACTION);
     // RP5 — UsersRepository.findIdAndEmail (existence check only; the `email` field is unused here).
@@ -209,6 +222,7 @@ export class TripsRpc {
     // The open planners learn of the member as they do from REST and MCP. A
     // plugin has no socket of its own, so the whole room hears it.
     if (result.joined) {
+      await this.tripAddons.reattachJoinedMember(tripId, targetUserId);
       const member = await this.roster.findMember(tripId, targetUserId);
       if (member) this.realtime.broadcast(tripId, 'member:added', { member });
     }
@@ -217,8 +231,8 @@ export class TripsRpc {
 
   @PluginMethod('trips.removeMember', { permission: 'db:write:members' })
   async removeMember(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const targetUserId = num(params.userId, 'userId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const targetUserId = rowIdParam(params.userId, 'userId');
     const actor = this.guards.requireActor(ctx, 'trip member');
     await this.guards.requireTripEdit(tripId, actor, MEMBER_MANAGE_ACTION);
     // Never remove the OWNER through this path: that would orphan the trip.

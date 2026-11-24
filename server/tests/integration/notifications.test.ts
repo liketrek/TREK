@@ -6,16 +6,17 @@
  * in-app notification CRUD, and authentication.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { NotificationChannelPreferences } from '../../src/db/entities/NotificationChannelPreferences.entity';
 import { Notifications } from '../../src/db/entities/Notifications.entity';
 import { authCookie } from '../helpers/auth';
-import { createUser, createAdmin, disableNotificationPref } from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { disableNotificationPref } from '../helpers/factories/notifications';
 import { makeNotification } from '../helpers/factories/notifications';
 import { findRow, updateRows } from '../helpers/factories/rows';
 import { setUserSetting } from '../helpers/factories/settings';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeAdmin, makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -23,10 +24,6 @@ import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 // The two test-send endpoints must not reach a real SMTP server or URL. Since
 // the fold they are provider methods, so they are stubbed on the prototype
 // rather than by module path — everything else in the domain stays real.
@@ -52,18 +49,17 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm());
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Notification preferences', () => {
   it('NOTIF-001 — GET /api/notifications/preferences returns defaults', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).get('/api/notifications/preferences').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -71,7 +67,7 @@ describe('Notification preferences', () => {
   });
 
   it('NOTIF-001 — PUT /api/notifications/preferences updates settings', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     // The DTO ratchet enforces the matrix shape the client actually sends
     // ({ event: { channel: enabled } }); the pre-matrix flat notify_* body
@@ -92,7 +88,7 @@ describe('Notification preferences', () => {
 
 describe('In-app notifications', () => {
   it('NOTIF-008 — GET /api/notifications/in-app returns notifications array', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).get('/api/notifications/in-app').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -100,7 +96,7 @@ describe('In-app notifications', () => {
   });
 
   it('NOTIF-008 — GET /api/notifications/in-app/unread-count returns count', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).get('/api/notifications/in-app/unread-count').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -109,7 +105,7 @@ describe('In-app notifications', () => {
   });
 
   it('NOTIF-009 — PUT /api/notifications/in-app/read-all marks all read', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).put('/api/notifications/in-app/read-all').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -117,7 +113,7 @@ describe('In-app notifications', () => {
   });
 
   it('NOTIF-010 — DELETE /api/notifications/in-app/all deletes all notifications', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).delete('/api/notifications/in-app/all').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -125,14 +121,14 @@ describe('In-app notifications', () => {
   });
 
   it('NOTIF-011 — PUT /api/notifications/in-app/:id/read on non-existent returns 404', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).put('/api/notifications/in-app/99999/read').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
   });
 
   it('NOTIF-012 — DELETE /api/notifications/in-app/:id on non-existent returns 404', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).delete('/api/notifications/in-app/99999').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
@@ -145,7 +141,7 @@ describe('In-app notifications', () => {
 
 describe('GET /api/notifications/preferences — matrix format', () => {
   it('NROUTE-002 — returns preferences, channels, event_types, implemented_combos', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const res = await request(app).get('/api/notifications/preferences').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body).toHaveProperty('preferences');
@@ -161,28 +157,28 @@ describe('GET /api/notifications/preferences — matrix format', () => {
   });
 
   it('NROUTE-003 — regular user does not see version_available in event_types', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const res = await request(app).get('/api/notifications/preferences').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.event_types).not.toContain('version_available');
   });
 
   it('NROUTE-004 — user preferences endpoint excludes version_available even for admins', async () => {
-    const { user } = createAdmin(testDb);
+    const { user } = await makeAdmin(orm());
     const res = await request(app).get('/api/notifications/preferences').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.event_types).not.toContain('version_available');
   });
 
   it('NROUTE-004b — admin notification preferences endpoint returns version_available', async () => {
-    const { user } = createAdmin(testDb);
+    const { user } = await makeAdmin(orm());
     const res = await request(app).get('/api/admin/notification-preferences').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.event_types).toContain('version_available');
   });
 
   it('NROUTE-005 — all preferences default to true for new user with no stored prefs', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const res = await request(app).get('/api/notifications/preferences').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     const { preferences } = res.body;
@@ -196,7 +192,7 @@ describe('GET /api/notifications/preferences — matrix format', () => {
 
 describe('PUT /api/notifications/preferences — matrix format', () => {
   it('NROUTE-007 — disabling a preference persists and is reflected in subsequent GET', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const putRes = await request(app)
       .put('/api/notifications/preferences')
@@ -211,8 +207,8 @@ describe('PUT /api/notifications/preferences — matrix format', () => {
   });
 
   it('NROUTE-008 — re-enabling a preference restores default state', async () => {
-    const { user } = createUser(testDb);
-    disableNotificationPref(testDb, user.id, 'trip_invite', 'email');
+    const { user } = await makeUser(orm());
+    await disableNotificationPref(orm(), user.id, 'trip_invite', 'email');
 
     const res = await request(app)
       .put('/api/notifications/preferences')
@@ -231,8 +227,8 @@ describe('PUT /api/notifications/preferences — matrix format', () => {
   });
 
   it('NROUTE-009 — partial update does not affect other preferences', async () => {
-    const { user } = createUser(testDb);
-    disableNotificationPref(testDb, user.id, 'booking_change', 'email');
+    const { user } = await makeUser(orm());
+    await disableNotificationPref(orm(), user.id, 'booking_change', 'email');
 
     await request(app)
       .put('/api/notifications/preferences')
@@ -248,7 +244,7 @@ describe('PUT /api/notifications/preferences — matrix format', () => {
 
 describe('implemented_combos — in-app channel coverage', () => {
   it('NROUTE-010 — implemented_combos includes inapp for all event types', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const res = await request(app).get('/api/notifications/preferences').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     const { implemented_combos } = res.body as { implemented_combos: Record<string, string[]> };
@@ -271,7 +267,7 @@ describe('implemented_combos — in-app channel coverage', () => {
 
 describe('Notification test endpoints', () => {
   it('NOTIF-005 — POST /api/notifications/test-smtp requires admin', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     // Send the empty JSON body the client sends ({ email: undefined } →
     // {}): a completely body-less POST has no content-type, so the DTO pipe
@@ -282,14 +278,14 @@ describe('Notification test endpoints', () => {
   });
 
   it('NOTIF-006 — POST /api/notifications/test-webhook returns 400 when url is missing', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).post('/api/notifications/test-webhook').set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(400);
   });
 
   it('NOTIF-006b — POST /api/notifications/test-webhook returns 400 for invalid URL', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .post('/api/notifications/test-webhook')
@@ -299,7 +295,7 @@ describe('Notification test endpoints', () => {
   });
 
   it('NOTIF-005b — admin can call test-smtp and gets a result', async () => {
-    const { user } = createAdmin(testDb);
+    const { user } = await makeAdmin(orm());
 
     const res = await request(app)
       .post('/api/notifications/test-smtp')
@@ -311,7 +307,7 @@ describe('Notification test endpoints', () => {
   });
 
   it('NOTIF-006c — POST /api/notifications/test-webhook with valid URL calls testWebhook', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .post('/api/notifications/test-webhook')
@@ -323,7 +319,7 @@ describe('Notification test endpoints', () => {
   });
 
   it('NOTIF-007 — POST /api/notifications/test-ntfy returns 400 when no topic configured', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app).post('/api/notifications/test-ntfy').set('Cookie', authCookie(user.id)).send({});
 
@@ -332,7 +328,7 @@ describe('Notification test endpoints', () => {
   });
 
   it('NOTIF-008 — POST /api/notifications/test-ntfy with explicit topic returns 200', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .post('/api/notifications/test-ntfy')
@@ -344,7 +340,7 @@ describe('Notification test endpoints', () => {
   });
 
   it('NOTIF-009 — POST /api/notifications/test-ntfy falls back to user saved topic', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     await setUserSetting(orm(), user.id, 'ntfy_topic', 'saved-user-topic');
 
     const res = await request(app).post('/api/notifications/test-ntfy').set('Cookie', authCookie(user.id)).send({});
@@ -394,7 +390,7 @@ async function insertSimpleNotification(recipientId: number): Promise<number> {
 
 describe('POST /api/notifications/in-app/:id/respond', () => {
   it('NROUTE-011 — valid positive response returns success and updated notification', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const id = await insertBooleanNotification(user.id);
 
     const res = await request(app)
@@ -409,7 +405,7 @@ describe('POST /api/notifications/in-app/:id/respond', () => {
   });
 
   it('NROUTE-012 — invalid response value returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const id = await insertBooleanNotification(user.id);
 
     const res = await request(app)
@@ -421,7 +417,7 @@ describe('POST /api/notifications/in-app/:id/respond', () => {
   });
 
   it('NROUTE-013 — response on non-existent notification returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .post('/api/notifications/in-app/99999/respond')
@@ -432,7 +428,7 @@ describe('POST /api/notifications/in-app/:id/respond', () => {
   });
 
   it('NROUTE-014 — double response returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const id = await insertBooleanNotification(user.id);
 
     await request(app)
@@ -456,7 +452,7 @@ describe('POST /api/notifications/in-app/:id/respond', () => {
 
 describe('PUT /api/admin/notification-preferences', () => {
   it('NROUTE-015 — admin can disable email for version_available, persists in GET', async () => {
-    const { user } = createAdmin(testDb);
+    const { user } = await makeAdmin(orm());
 
     const putRes = await request(app)
       .put('/api/admin/notification-preferences')
@@ -472,7 +468,7 @@ describe('PUT /api/admin/notification-preferences', () => {
   });
 
   it('NROUTE-016 — non-admin is rejected with 403', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
 
     const res = await request(app)
       .put('/api/admin/notification-preferences')
@@ -489,7 +485,7 @@ describe('PUT /api/admin/notification-preferences', () => {
 
 describe('In-app notifications — CRUD with data', () => {
   it('NROUTE-017 — GET /in-app returns created notifications', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     await insertSimpleNotification(user.id);
     await insertSimpleNotification(user.id);
 
@@ -502,7 +498,7 @@ describe('In-app notifications — CRUD with data', () => {
   });
 
   it('NROUTE-018 — unread count reflects actual unread notifications', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     await insertSimpleNotification(user.id);
     await insertSimpleNotification(user.id);
 
@@ -513,7 +509,7 @@ describe('In-app notifications — CRUD with data', () => {
   });
 
   it('NROUTE-019 — mark-read on existing notification succeeds and decrements unread count', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const id = await insertSimpleNotification(user.id);
 
     const markRes = await request(app).put(`/api/notifications/in-app/${id}/read`).set('Cookie', authCookie(user.id));
@@ -527,7 +523,7 @@ describe('In-app notifications — CRUD with data', () => {
   });
 
   it('NROUTE-020 — mark-unread on a read notification succeeds', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const id = await insertSimpleNotification(user.id);
     // Mark read first
     await updateRows(orm(), Notifications, { id }, { is_read: 1 });
@@ -541,7 +537,7 @@ describe('In-app notifications — CRUD with data', () => {
   });
 
   it('NROUTE-021 — DELETE on existing notification removes it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const id = await insertSimpleNotification(user.id);
 
     const res = await request(app).delete(`/api/notifications/in-app/${id}`).set('Cookie', authCookie(user.id));
@@ -552,7 +548,7 @@ describe('In-app notifications — CRUD with data', () => {
   });
 
   it('NROUTE-022 — unread_only=true filter returns only unread notifications', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     const id1 = await insertSimpleNotification(user.id);
     await insertSimpleNotification(user.id);
     // Mark first one read

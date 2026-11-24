@@ -7,7 +7,8 @@ import { pagesFor } from './dayPagerPages';
 
 vi.mock('../../native/haptics', () => ({ tickHaptic: vi.fn() }));
 
-const DAYS = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }] as unknown as Day[];
+const DAYS = [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }, { id: 5 }, { id: 6 }] as unknown as Day[];
+const LONG = Array.from({ length: 10 }, (_, k) => ({ id: k + 1 })) as unknown as Day[];
 
 function setup(selectedDayId: number | null, over: Partial<Parameters<typeof MDayPager>[0]> = {}) {
   const onSelectDay = vi.fn();
@@ -39,17 +40,37 @@ beforeEach(() => {
 });
 
 describe('pagesFor', () => {
-  it('windows the selection with its neighbours', () => {
-    expect(pagesFor(DAYS, 2).map((p) => [p.dayId, p.active])).toEqual([
-      [1, false],
-      [2, true],
-      [3, false],
+  it('has a page for every day and draws the selection with two days on either side', () => {
+    expect(pagesFor(DAYS, 3).map((p) => [p.dayId, p.active, p.near])).toEqual([
+      [1, false, true],
+      [2, false, true],
+      [3, true, true],
+      [4, false, true],
+      [5, false, true],
+      [6, false, false],
     ]);
   });
 
-  it('has no page beyond the first and last day', () => {
-    expect(pagesFor(DAYS, 1).map((p) => p.dayId)).toEqual([1, 2]);
-    expect(pagesFor(DAYS, 4).map((p) => p.dayId)).toEqual([3, 4]);
+  it('keeps the same pages whichever day is selected, so a run of swipes never meets an end', () => {
+    expect(pagesFor(DAYS, 1).map((p) => p.key)).toEqual(pagesFor(DAYS, 6).map((p) => p.key));
+    expect(
+      pagesFor(DAYS, 6)
+        .filter((p) => p.near)
+        .map((p) => p.dayId)
+    ).toEqual([4, 5, 6]);
+  });
+
+  it('also draws the days around the page a swipe heads for, so a run of swipes never meets blank pages', () => {
+    const drawn = (focusDayId: number | null) =>
+      pagesFor(LONG, 1, focusDayId)
+        .filter((p) => p.near)
+        .map((p) => p.dayId);
+    expect(drawn(6)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
+    // Still only the selection's own window where nothing is previewed or the preview is gone.
+    expect(drawn(null)).toEqual([1, 2, 3]);
+    expect(drawn(99)).toEqual([1, 2, 3]);
+    // The focus never changes which page is current.
+    expect(pagesFor(LONG, 1, 6).find((p) => p.active)?.dayId).toBe(1);
   });
 
   it('keeps a page for a selection that points at no day, with the first day as the way back', () => {
@@ -67,20 +88,43 @@ describe('MDayPager', () => {
 
     expect(screen.getByText('page 2 live')).toBeInTheDocument();
     const pages = Array.from(strip.children) as HTMLElement[];
-    expect(pages.map((p) => p.hasAttribute('inert'))).toEqual([true, false, true]);
+    expect(pages.map((p) => p.hasAttribute('inert'))).toEqual([true, false, true, true, true, true]);
+    // Day 6 is three away: its page is there to swipe onto, its content is not drawn yet.
+    expect(screen.queryByText('page 6')).not.toBeInTheDocument();
     expect(pages[0]).toHaveAttribute('aria-hidden', 'true');
     expect(pages[1]).not.toHaveAttribute('aria-hidden');
   });
 
-  it('selects the neighbour the strip comes to rest on, with a detent and an announcement', () => {
+  it('selects the day the strip comes to rest on, with an announcement', () => {
     const { strip, onSelectDay } = setup(2);
 
     place(strip, 3);
     fireEvent(strip, new Event('scrollend'));
 
     expect(onSelectDay).toHaveBeenCalledWith(3);
+    expect(screen.getByRole('status')).toHaveTextContent('day 3 of 6');
+  });
+
+  it('ticks once as the swipe crosses to another day, while the strip still moves, not again as it lands', () => {
+    const { strip } = setup(2);
+
+    place(strip, 3, true);
+    fireEvent.scroll(strip);
+    fireEvent.scroll(strip);
     expect(tickHaptic).toHaveBeenCalledTimes(1);
-    expect(screen.getByRole('status')).toHaveTextContent('day 3 of 4');
+
+    place(strip, 3);
+    fireEvent(strip, new Event('scrollend'));
+    expect(tickHaptic).toHaveBeenCalledTimes(1);
+  });
+
+  it('a second swipe made during the snap carries on to the day after', () => {
+    const { strip, onSelectDay } = setup(2);
+
+    place(strip, 4);
+    fireEvent(strip, new Event('scrollend'));
+
+    expect(onSelectDay).toHaveBeenCalledWith(4);
   });
 
   it('previews the day a swipe heads for while the strip still moves, and takes it back', () => {
@@ -97,6 +141,19 @@ describe('MDayPager', () => {
     place(strip, 2, true);
     fireEvent.scroll(strip);
     expect(onPreview).toHaveBeenLastCalledWith(null);
+  });
+
+  it('draws the days ahead of a swipe while the strip still moves, before the selection lands', () => {
+    const { strip, onSelectDay } = setup(1);
+    expect(screen.queryByText('page 5')).not.toBeInTheDocument();
+
+    place(strip, 3, true);
+    fireEvent.scroll(strip);
+
+    expect(onSelectDay).not.toHaveBeenCalled();
+    expect(screen.getByText('page 1 live')).toBeInTheDocument();
+    expect(screen.getByText('page 5')).toBeInTheDocument();
+    expect(screen.queryByText('page 6')).not.toBeInTheDocument();
   });
 
   it('asks once, however many events report the same landing', () => {
@@ -143,7 +200,7 @@ describe('MDayPager', () => {
     }
   });
 
-  it('puts the strip back on the current page when the window moves', () => {
+  it('puts the strip on the current page when the selection moves', () => {
     const { strip, rerender, onSelectDay } = setup(2);
     // jsdom keeps no scroll offset, so give the strip one to move.
     let scrollLeft = 0;
@@ -167,6 +224,39 @@ describe('MDayPager', () => {
       <MDayPager
         days={DAYS}
         selectedDayId={3}
+        onSelectDay={onSelectDay}
+        describeDay={() => ''}
+        renderDay={(dayId) => <p>{`page ${dayId}`}</p>}
+      />
+    );
+
+    expect(strip.scrollLeft).toBe(390);
+  });
+
+  it('moves the strip to a day tapped inside the same window, as on a two-day trip', () => {
+    const twoDays = DAYS.slice(0, 2);
+    const { strip, rerender, onSelectDay } = setup(1, { days: twoDays });
+    let scrollLeft = 0;
+    Object.defineProperty(strip, 'scrollLeft', {
+      configurable: true,
+      get: () => scrollLeft,
+      set: (v) => {
+        scrollLeft = v;
+      },
+    });
+    // Both days are in the window either way; only the current page changes.
+    const realQuery = strip.querySelector.bind(strip);
+    vi.spyOn(strip, 'querySelector').mockImplementation((sel: string) => {
+      const el = realQuery(sel) as HTMLElement | null;
+      if (el && sel === '[data-page-active]') el.getBoundingClientRect = () => ({ left: 390 }) as DOMRect;
+      return el;
+    });
+    strip.getBoundingClientRect = () => ({ left: 0 }) as DOMRect;
+
+    rerender(
+      <MDayPager
+        days={twoDays}
+        selectedDayId={2}
         onSelectDay={onSelectDay}
         describeDay={() => ''}
         renderDay={(dayId) => <p>{`page ${dayId}`}</p>}

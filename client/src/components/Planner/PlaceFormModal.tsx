@@ -1,8 +1,8 @@
 import { useState, useEffect, useRef, useMemo, useCallback, useId, type ReactNode } from 'react'
 import type { PlaceClientOrigin, RoadtripStopType, TourListItem } from '@trek/shared'
-import NoteFormatToolbar from '../shared/NoteFormatToolbar'
 import { useAuthStore } from '../../store/authStore'
 import { useAddonStore } from '../../store/addonStore'
+import { useTripAddonEnabled } from '../../store/tripAddonsStore'
 import { useCanDo } from '../../store/permissionsStore'
 import { useTripStore } from '../../store/tripStore'
 import { useSettingsStore } from '../../store/settingsStore'
@@ -15,13 +15,17 @@ import { Tooltip } from '../shared/Tooltip'
 import { Search, RotateCcw, LocateFixed, PencilLine } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { PlaceContactFields } from './PlaceContactFields'
+import { PlaceFormLocation } from './PlaceFormLocation'
 import { weekFromPeriods } from './placeHours'
 import type { PlaceOpeningHours } from '@trek/shared'
 import {
-  DEFAULT_FORM, endsBeforeStart, findDuplicatePlace, formPin, mergeResult, parseCoordinatePair, placeEditForm, placeFormPayload,
-  prefillForm, type PlaceFormData, type PlacePrefill,
+  DEFAULT_FORM, endsBeforeStart, findDuplicatePlace, formPin, mergeResult, placeEditForm, placeFormPayload,
+  prefillForm, savedCategoryId, type PlaceFormData, type PlacePrefill,
 } from './PlaceFormModal.helpers'
 import { useNewCategory, usePlaceForm } from './usePlaceForm'
+import { usePlaceTags } from './usePlaceTags'
+import { PlaceFormTags } from './PlaceFormTags'
+import { PlaceFormTexts } from './PlaceFormTexts'
 import { usePlaceSearch } from './usePlaceSearch'
 import { guessCategoryId } from '@trek/shared'
 import { offersGoogleRetry } from '../../utils/placeSource'
@@ -30,16 +34,15 @@ import { useLocationBias } from '../../hooks/useLocationBias'
 import { BookingCostsSection } from './BookingCostsSection'
 import type { BookingExpenseRequest } from './BookingCostsSection.types'
 import type { Place, Category, Assignment, BudgetItem } from '../../types'
-import { NumericInput } from '../shared/NumericInput'
 import { formatDistance } from '../../utils/units'
 import ServiceStopSection from '../Roadtrip/ServiceStopSection'
 import { DEFAULT_SERVICE_KIND, serviceStopChoice, type ServiceStopMode } from '../Roadtrip/manualStop'
 import { STOP_KIND_BY_KEY } from '../Roadtrip/stopKinds'
 import { getCategoryIcon } from '../shared/categoryIcons'
 import {
-  DialogShell, DialogHeader, DialogTile, DialogSection, DialogFooter, FooterSpacer, DialogButton, NEUTRAL_TINT, fs,
+  DialogShell, DialogHeader, DialogTile, DialogFooter, FooterSpacer, DialogButton, NEUTRAL_TINT, fs,
 } from '../shared/DialogShell'
-import { EditorField, GRID_2, INPUT, LABEL, PANEL, TEXTAREA } from '../shared/dialogParts'
+import { EditorField, GRID_2, INPUT, LABEL, PANEL } from '../shared/dialogParts'
 import { SoftPill, tintOf } from './planParts'
 import { TimeSection } from './PlaceFormTimeSection'
 import { HeaderPills } from './PlaceFormHeaderPills'
@@ -48,11 +51,12 @@ import { usePlaceRefresh } from './usePlaceRefresh'
 
 // The submit payload mirrors the form, but lat/lng are parsed to numbers and
 // category_id is normalised, plus any files chosen before the place existed.
-export interface PlaceSubmitData extends Omit<PlaceFormData, 'lat' | 'lng' | 'category_id'> {
+export interface PlaceSubmitData extends Omit<PlaceFormData, 'lat' | 'lng' | 'category_id' | 'assignment_stay'> {
   lat: number | null
   lng: number | null
   category_id: string | null
   _pendingFiles?: File[]
+  stay_minutes?: number | null
   /**
    * Where a road-trip service stop belongs on the drive, worked out from the
    * coordinates being saved. Travels the same way `_pendingFiles` does: the planner
@@ -118,7 +122,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const tripObj = useTripStore((s) => s.trip)
   const canUploadFiles = can('file_upload', tripObj)
   const collectionsEnabled = useAddonStore((s) => s.isEnabled('collections'))
-  const isBudgetEnabled = useAddonStore((s) => s.isEnabled('budget'))
+  const isBudgetEnabled = useTripAddonEnabled(tripId, 'budget')
   const deleteBudgetItem = useTripStore((s) => s.deleteBudgetItem)
   const {
     form, setForm, autoFilledRef, pendingFiles, addFilesFromInput, removeFile, handlePaste, isSaving, setIsSaving,
@@ -128,6 +132,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   const image = usePlaceImageField({
     place, imageUrl: form.image_url, pendingImage, canUploadFiles, stageUpload, stageAttached, removeImage,
   })
+  const tagField = usePlaceTags({ tripId, place, tags: form.tags, setForm, t, toast })
   // The index the picked place came from, as its row named it, shown as a pill
   // in the head band. Null for a place typed by hand or taken from the saved list.
   const [pickedSource, setPickedSource] = useState<string | null>(null)
@@ -135,9 +140,10 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   // the next pick may replace it and a hand choice is never overwritten (#2282).
   const categoryGuessedRef = useRef(false)
   const guessedCategory = (result: Record<string, unknown>): string => {
-    const id = guessCategoryId(result, categories || [])
+    const saved = savedCategoryId(result, categories || []) // a collection's place keeps its own (#3074)
+    const id = saved ? null : guessCategoryId(result, categories || [])
     categoryGuessedRef.current = id != null
-    return id != null ? String(id) : ''
+    return saved ?? (id != null ? String(id) : '')
   }
   // The hours the details column looked up, as a week the contact block can take over (#2472).
   const [detailsHours, setDetailsHours] = useState<PlaceOpeningHours | null>(null)
@@ -219,6 +225,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
   }, [place, prefillCoords, isOpen, assignmentId])
 
   const places = useTripStore((s) => s.places)
+  const tripDays = useTripStore((s) => s.days)
   // Where the trip is happening — the hint that tells the search which of a
   // thousand identically named places is meant. Autocomplete wants a box, the
   // search wants a point; both are derived from the same places.
@@ -402,6 +409,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     categories,
     assignmentId,
     dayAssignments,
+    dayNumber: dayNumberOf(assignmentId, dayAssignments, tripDays),
     isMobile,
     collectionsEnabled,
     form,
@@ -450,6 +458,7 @@ function usePlaceFormModal(props: PlaceFormModalProps) {
     handlePaste,
     pickImage,
     image,
+    tagField,
     adoptDescription,
     hasTimeError,
     handleSubmit,
@@ -769,50 +778,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             )}
           </div>
 
-          {/* Where it is: what a pick, a pasted link or the map filled in, or typed by hand. */}
-          <div className={PANEL}>
-            <EditorField label={t('places.formAddress')} htmlFor={`${fieldId}-address`}>
-              <input
-                id={`${fieldId}-address`}
-                type="text"
-                value={form.address}
-                onChange={e => handleChange('address', e.target.value)}
-                placeholder={t('places.formAddressPlaceholder')}
-                className={INPUT}
-              />
-            </EditorField>
-            <div role="group" aria-label={t('collections.coordinates')} className={GRID_2}>
-              <EditorField label={t('places.formLatLabel')} htmlFor={`${fieldId}-lat`}>
-                <NumericInput
-                  id={`${fieldId}-lat`}
-                  mode="signed"
-                  value={form.lat}
-                  onValueChange={v => handleChange('lat', v)}
-                  onPaste={e => {
-                    // "48.85, 2.35" pasted into the latitude fills both halves.
-                    const pair = parseCoordinatePair(e.clipboardData.getData('text'))
-                    if (pair) {
-                      e.preventDefault()
-                      handleChange('lat', pair[0])
-                      handleChange('lng', pair[1])
-                    }
-                  }}
-                  placeholder={t('places.formLat')}
-                  className={INPUT}
-                />
-              </EditorField>
-              <EditorField label={t('places.formLngLabel')} htmlFor={`${fieldId}-lng`}>
-                <NumericInput
-                  id={`${fieldId}-lng`}
-                  mode="signed"
-                  value={form.lng}
-                  onValueChange={v => handleChange('lng', v)}
-                  placeholder={t('places.formLng')}
-                  className={INPUT}
-                />
-              </EditorField>
-            </div>
-          </div>
+          <PlaceFormLocation fieldId={fieldId} form={form} onChange={handleChange} warnWithoutCoordinates={!serviceStop} />
 
           {/* For a stop on a drive: the kind of stop, how long, and where it belongs.
               The category it replaces is gone from the head band too: refuelling is
@@ -834,13 +800,15 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             </div>
           )}
 
+          {/* Extra labels next to the one category, to filter the places by. Not for a
+              stop on a drive, which is not an activity anyone looks up by its tags. */}
+          {!serviceStop && <PlaceFormTags tags={S.tagField} t={t} />}
 
-          {/* The day in context: its times and its own note. Both live on the
-              day-assignment, not on the pool place (#2163), so they are only shown
-              when a single assignment is in context (itinerary edit, or a
-              single-assignment pool edit). Hidden when creating, and for unassigned
-              or multi-day pool edits where a single time is ambiguous and would not
-              persist. */}
+          {/* The day in context: its times. They live on the day-assignment, not on
+              the pool place (#2163), so they are only shown when a single assignment
+              is in context (itinerary edit, or a single-assignment pool edit). Hidden
+              when creating, and for unassigned or multi-day pool edits where a single
+              time is ambiguous and would not persist. */}
           {!!(place && S.assignmentId) && (
             <div className={PANEL}>
               <TimeSection
@@ -853,39 +821,25 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
                 tour={props.tour}
                 t={t}
               />
-              <EditorField label={t('places.assignmentNotes')} htmlFor={`${fieldId}-day-notes`}>
-                <textarea
-                  id={`${fieldId}-day-notes`}
-                  value={form.assignment_notes ?? ''}
-                  onChange={e => handleChange('assignment_notes', e.target.value)}
-                  rows={2}
-                  placeholder={t('places.assignmentNotesPlaceholder')}
-                  className={`${TEXTAREA} resize-y`}
-                />
-              </EditorField>
             </div>
           )}
 
-          <MarkdownField
-            id={`${fieldId}-description`}
-            label={t('places.formDescription')}
-            value={form.description}
-            onChange={v => handleChange('description', v)}
-            placeholder={t('places.formDescriptionPlaceholder')}
+          {/* Description, notes and the note for this day, one at a time. The day
+              note follows the times: only with a single assignment in context. */}
+          <PlaceFormTexts
+            fieldId={fieldId}
+            description={form.description}
+            notes={form.notes}
+            dayNotes={place && S.assignmentId ? (form.assignment_notes ?? "") : null}
+            dayNumber={S.dayNumber}
+            onChange={(field, value) => handleChange(field, value)}
+            t={t}
           />
 
-          {/* Notes — Markdown, same as the description, and rendered as such in the
-              inspector. The bar is how anyone finds that out. */}
-          <MarkdownField
-            id={`${fieldId}-notes`}
-            label={t('places.formNotes')}
-            value={form.notes}
-            onChange={v => handleChange('notes', v)}
-            placeholder={t('places.formNotesPlaceholder')}
-            maxLength={2000}
-          />
+          {!showDetails && <div className={PANEL}><PlaceImageSection image={S.image} onPickUrl={S.pickImage} t={t} /></div>}
 
-          {!showDetails && <PlaceImageSection image={S.image} onPickUrl={S.pickImage} t={t} />}
+          {/* Link, files and how to reach the place, in one card. */}
+          <div className={PANEL}>
           {/* The link and the files side by side, as on a booking. */}
           <div className={canUploadFiles ? GRID_2 : ''}>
             <EditorField label={t('places.formWebsite')} htmlFor={`${fieldId}-website`}>
@@ -919,6 +873,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
             suggestedHours={S.detailsHours}
             onChange={(field, value, origin) => handleChange(field, value, origin)}
           />
+          </div>
 
           {/* Costs — create / view the expense linked to this place (#1298).
               Same block, same flow as a booking: save first, then the editor.
@@ -926,6 +881,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
               Never for a stop on a drive: a petrol stop is not an activity with a budget
               line, and the fuel it buys is an expense of the trip rather than of a place. */}
           {S.isBudgetEnabled && !serviceStop && (
+            <div className={PANEL}>
             <BookingCostsSection
               placeId={place?.id ?? null}
               reservationId={null}
@@ -937,6 +893,7 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
               customTooltips
               whiteButtons
             />
+            </div>
           )}
         </form>
         {twoColumn && (
@@ -947,32 +904,9 @@ export default function PlaceFormModal(props: PlaceFormModalProps) {
   )
 }
 
-/** A Markdown field: its label, the formatting bar on the same line, the text under both. */
-function MarkdownField({ id, label, value, onChange, placeholder, maxLength }: {
-  id: string
-  label: string
-  value: string
-  onChange: (value: string) => void
-  placeholder: string
-  maxLength?: number
-}) {
-  const ref = useRef<HTMLTextAreaElement | null>(null)
-  return (
-    <DialogSection
-      className="min-w-0"
-      label={<label htmlFor={id}>{label}</label>}
-      action={<NoteFormatToolbar textareaRef={ref} onChange={onChange} compact customTooltips />}
-    >
-      <textarea
-        id={id}
-        ref={ref}
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        rows={3}
-        maxLength={maxLength}
-        placeholder={placeholder}
-        className={`${TEXTAREA} resize-y`}
-      />
-    </DialogSection>
-  )
+/** The number of the day the edited visit is on, for the day note's tab; null when it is not known. */
+function dayNumberOf(assignmentId: number | null, visits: Assignment[], days: { id: number; day_number?: number | null }[]): number | null {
+  if (!assignmentId) return null
+  const dayId = visits.find(visit => visit.id === assignmentId)?.day_id
+  return days.find(day => day.id === dayId)?.day_number ?? null
 }

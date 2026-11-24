@@ -24,6 +24,8 @@ TREK has grown from a travel planner into a whole ecosystem for trips: plan toge
 &nbsp;
 <a href="https://kanban.pakulat.org/shared/I4wxF6inOOMB0C6hH6kQm3efyNxFjwyI"><img alt="Roadmap" src="https://img.shields.io/badge/Roadmap-view-0EA5E9?style=for-the-badge" /></a>
 &nbsp;
+<a href="https://www.patreon.com/cw/mauriceboe"><img alt="Patreon" src="https://img.shields.io/badge/Patreon-monthly-141518?style=for-the-badge" /></a>
+&nbsp;
 <a href="https://ko-fi.com/mauriceboe"><img alt="Ko-fi" src="https://img.shields.io/badge/Ko--fi-support-FF5E5B?style=for-the-badge" /></a>
 &nbsp;
 <a href="https://www.buymeacoffee.com/mauriceboe"><img alt="BMAC" src="https://img.shields.io/badge/BMAC-support-FFDD00?style=for-the-badge" /></a>
@@ -146,7 +148,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 #### 🗺️ Atlas, Vacay and Collections
 
 - **Atlas**: countries and regions visited on [geoBoundaries](https://www.geoboundaries.org/) outlines, a bucket list, travel stats, and a tour activities tab with planned against recorded totals
-- **Vacay**: leave calendar with half days, public holidays from date.nager.at, school holidays for 16 European countries, company holidays, carry-over between years, and joint or read-only sharing
+- **Vacay**: leave calendar with half days, public holidays from [nagerholidays.com](https://nagerholidays.com), school holidays for 16 European countries, company holidays, carry-over between years, and joint or read-only sharing
 - **Collections** (off by default): a place library outside any trip with lists, labels, ratings, a status per place, cover images, GPX and file export, copy into a trip, and sharing by invite
 - **Dawarich** (off by default): link a Dawarich instance for recorded tracks, suggested stays and countries for the Atlas
 
@@ -276,6 +278,8 @@ Open `http://localhost:3000`, or `http://<server-ip>:3000` from another machine.
 
 `COOKIE_SECURE=false` is only for trying TREK over plain HTTP: without it the browser drops the session cookie and the login does not stick. Once TREK sits behind HTTPS (see [Reverse Proxy](#reverse-proxy)), remove it.
 
+**TrueNAS SCALE:** Install TREK directly from the Community catalog. See the [TrueNAS SCALE installation guide](https://github.com/liketrek/TREK/wiki/Install-TrueNAS-SCALE).
+
 > [!TIP]
 > **No server yet?** TREK's own public services run on [**dataforest cloud**](https://cloud.dataforest.net/en?mtm_campaign=trek), our infrastructure sponsor. A small seed is plenty for a TREK instance and is ready within a minute.
 
@@ -319,6 +323,11 @@ docker compose up -d
 See [Install with Docker Compose](https://github.com/liketrek/TREK/wiki/Install-Docker-Compose)
 for the full walkthrough.
 
+TREK stores its data in SQLite by default. Set `TREK_DB_URL` to run it on a PostgreSQL 14 to 18 database instead. The
+[`docker-compose.postgres.yml`](docker-compose.postgres.yml) example starts one beside TREK, and the
+[Postgres guide](https://github.com/liketrek/TREK/wiki/Database-Postgres) covers the requirements, the backups and
+how to move an existing SQLite install to Postgres with the command TREK ships for it.
+
 <br />
 
 <h2 id="helm-kubernetes">Helm (Kubernetes)</h2>
@@ -348,7 +357,7 @@ TREK then launches fullscreen with its own icon, just like a native app.
 ## Updating
 
 See [Updating](https://github.com/liketrek/TREK/wiki/Updating) — Docker Compose,
-Docker run, Helm, Portainer, Unraid and Proxmox, plus the encryption-key note.
+Docker run, Helm, Portainer, Unraid, TrueNAS SCALE and Proxmox, plus the encryption-key note.
 
 <br />
 
@@ -437,8 +446,9 @@ Every variable, its default and what it does: see
 
 The Atlas map's country and sub-national (province/county) boundaries come from
 [**geoBoundaries**](https://www.geoboundaries.org/) (Runfola et al., 2020), licensed
-[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). See [NOTICE.md](NOTICE.md)
-for full third-party attributions.
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/); Ireland's counties come from
+[**Tailte Éireann**](https://data-osi.opendata.arcgis.com/), also CC BY 4.0. See
+[NOTICE.md](NOTICE.md) for full third-party attributions.
 
 <br />
 

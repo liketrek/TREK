@@ -18,7 +18,9 @@ import type { Location, NavigationType } from 'react-router';
  */
 export type RouteTransitionKind = 'forward' | 'back' | 'tab';
 
-const SETTLE_MS = 800;
+// Short on purpose: while it waits the browser shows a frozen snapshot of the old
+// page, so on a slow connection a longer wait reads as the app hanging.
+const SETTLE_MS = 350;
 let skipNext = false;
 let current: ViewTransition | null = null;
 

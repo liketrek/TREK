@@ -17,7 +17,7 @@ import { server } from '../../../helpers/msw/server'
 import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 import { setSizeClass } from '../../../helpers/sizeClass'
 
-// FE-MOB-COSTT-001 to FE-MOB-COSTT-053
+// FE-MOB-COSTT-001 to FE-MOB-COSTT-059
 
 // The add/edit expense sheet is the shared desktop-sized form; the panel only
 // owns when it opens and what happens on save, so it is stubbed here.
@@ -242,18 +242,20 @@ describe('MCostsTab', () => {
     expect(up(screen.getByText('costs.youOwe'), 1).textContent).toContain('$0.00')
   })
 
-  it('FE-MOB-COSTT-010: survives a failing settlement request', async () => {
+  it('FE-MOB-COSTT-010: shows unknown balances when the settlement request fails', async () => {
     serveSettlement(null, true)
     render(<MCostsTab planner={planner()} shell={buildShell()} />)
     await waitFor(() => expect(settlementBases).toEqual(['USD']))
-    expect(screen.getByText('costs.everyoneSquare')).toBeInTheDocument()
+    expect(screen.queryByText('costs.everyoneSquare')).not.toBeInTheDocument()
     const settle = up(screen.getByText('costs.settleUp'), 3)
-    expect(within(settle).getAllByText('$0.00')).toHaveLength(3)
+    expect(within(settle).queryByText('$0.00')).not.toBeInTheDocument()
+    expect(within(settle).getByText('…')).toBeInTheDocument()
   })
 
   it('FE-MOB-COSTT-011: breaks the spend down by category, largest bar first', async () => {
     await renderTab()
-    const block = up(screen.getByText('costs.byCategory'), 1)
+    // The heading sits in its own row now, beside the way to count everything again (#2819).
+    const block = up(screen.getByText('costs.byCategory'), 2)
     const labels = within(block).getAllByText(/^costs\.cat\./).map(n => n.textContent)
     expect(labels).toEqual(['costs.cat.food', 'costs.cat.activities', 'costs.cat.shopping', 'costs.cat.transport'])
     expect(within(block).getByText('$60.00')).toBeInTheDocument()
@@ -765,12 +767,7 @@ describe('MCostsTab', () => {
     expect(update).toHaveBeenCalledTimes(1)
   })
 
-  it('FE-MOB-COSTT-045: a bill whose rate moved shows what was entered and what it was booked at (#2525)', async () => {
-    // A euro trip read in dollars, the bill entered in dollars at a frozen 1.17 to the
-    // euro while today the euro buys 1.1551. It is 685.26 EUR of trip money, $791.55
-    // today, and that is what settle-up offers too; the row now says where the
-    // 801.76 that was entered went instead of hiding it. Converted with the euro's own
-    // quote, not the dollar's separately rounded one.
+  it('FE-MOB-COSTT-045: expenses and payments in the selected currency read as entered', async () => {
     seedStore(useSettingsStore, { settings: { ...useSettingsStore.getState().settings, default_currency: 'USD' } })
     localStorage.setItem('trek_fx_USD', JSON.stringify({ rates: { USD: 1, EUR: 0.865706 }, ts: Date.now() }))
     localStorage.setItem('trek_fx_EUR', JSON.stringify({ rates: { EUR: 1, USD: 1.1551 }, ts: Date.now() }))
@@ -794,19 +791,16 @@ describe('MCostsTab', () => {
     await renderTab(planner({ trip: { ...TRIP, currency: 'EUR' } as Trip, budgetItems: [hotel] }))
 
     const card = cardOf('Aparthotel Silver')
-    expect(within(card).getByText(/^\$801\.76 → 685,26\s€$/)).toBeInTheDocument()
-    expect(within(card).getByText('$791.55')).toBeInTheDocument()
-    // Each share is half of the booked euros, the figure the balances net.
-    expect(within(card).getAllByText('$395.77')).toHaveLength(2)
-    expect(within(card).queryByText('$400.88')).toBeNull()
-    expect(up(screen.getByText('costs.totalSpend'), 1).textContent).toContain('$791.55')
-    expect(screen.getByText('costs.spent:$791.55')).toBeInTheDocument()
+    expect(within(card).queryByText(/^\$801\.76 →/)).toBeNull()
+    expect(within(card).getByText('$801.76')).toBeInTheDocument()
+    expect(within(card).getAllByText('$400.88')).toHaveLength(2)
+    expect(up(screen.getByText('costs.totalSpend'), 1).textContent).toContain('$801.76')
+    expect(screen.getByText('costs.spent:$801.76')).toBeInTheDocument()
 
     expect(screen.getAllByText('costs.payment')).toHaveLength(2)
     const paid = up(screen.getByText('Ada → costs.you'), 2)
-    expect(within(paid).getByText(/^\$400\.88 → 342,63\s€$/)).toBeInTheDocument()
+    expect(within(paid).getByText('$400.88')).toBeInTheDocument()
     expect(within(up(screen.getByText('Bob → costs.you'), 2)).getByText('$30.00')).toBeInTheDocument()
-    expect(screen.queryByText('$34.65')).toBeNull()
   })
 
   it('FE-MOB-COSTT-046: a bill booked at today\'s rate reads exactly as typed (#2525)', async () => {
@@ -951,6 +945,63 @@ describe('MCostsTab', () => {
     } finally {
       // Back to the prototype's reflected attribute.
       delete (document.documentElement as { dir?: string }).dir
+    }
+  })
+
+  it('FE-MOB-COSTT-056: a trip of one shows the total and the categories, nothing owed or to settle (#2689)', async () => {
+    serveSettlement({ balances: [], flows: [], settlements: [] })
+    const solo = planner({ tripMembers: [MEMBERS[0]] as unknown as TripPlanner['tripMembers'], budgetItems: [TAXI, SOUVENIR] })
+    render(<MCostsTab planner={solo} shell={buildShell()} />)
+    await waitFor(() => expect(settlementBases).toEqual(['USD']))
+    expect(screen.getByText('costs.totalSpend')).toBeInTheDocument()
+    expect(screen.getByText('costs.byCategory')).toBeInTheDocument()
+    for (const key of ['costs.yourShare', 'costs.youOwe', 'costs.outstanding', 'costs.settleUp', 'costs.finalBudget', 'costs.filter.mine', 'costs.unfinished']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument()
+    }
+    // The souvenirs nobody paid for are an expense like any other here.
+    expect(screen.getByText('Souvenirs')).toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-057: a trip that keeps totals only leaves out what is owed, and its switch turns splitting back on (#1714)', async () => {
+    const updateTrip = vi.fn(async () => TRIP)
+    useTripStore.setState({ updateTrip })
+    render(<MCostsTab planner={planner({ trip: { ...TRIP, costs_mode: 'totals' } as Trip })} shell={buildShell()} />)
+    await waitFor(() => expect(settlementBases).toEqual(['USD']))
+    for (const key of ['costs.youOwe', 'costs.settleUp', 'costs.finalBudget', 'costs.filter.mine', 'costs.unfinished']) {
+      expect(screen.queryByText(key)).not.toBeInTheDocument()
+    }
+    const toggle = screen.getByRole('button', { name: 'costs.mode.label' })
+    expect(toggle).toHaveAttribute('aria-pressed', 'false')
+    expect(screen.getByText('costs.mode.hintTotals')).toBeInTheDocument()
+    fireEvent.click(toggle)
+    await waitFor(() => expect(updateTrip).toHaveBeenCalledWith(7, { costs_mode: 'split' }))
+  })
+
+  it('FE-MOB-COSTT-058: a tapped category leaves the total and is named, and Count all brings it back (#2819)', async () => {
+    await renderTab()
+    const total = () => up(screen.getByText('costs.totalSpend'), 1)
+    const before = total().textContent
+    expect(screen.queryByText('costs.breakdown.countAll')).not.toBeInTheDocument()
+    fireEvent.click(screen.getAllByRole('button', { name: /^costs\.breakdown\.leaveOut:/ })[0])
+    expect(total().textContent).not.toBe(before)
+    expect(within(total()).getByText(/^costs\.breakdown\.leftOut:/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /^costs\.breakdown\.countIn:/ })).toHaveClass('opacity-45')
+    fireEvent.click(screen.getByText('costs.breakdown.countAll'))
+    expect(total().textContent).toBe(before)
+    expect(screen.queryByRole('button', { name: /^costs\.breakdown\.countIn:/ })).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-COSTT-059: the heading carries the currency the tab reads in, and a pick reads the balances again in it (#1683)', async () => {
+    localStorage.removeItem('trek:costs-currency:7')
+    try {
+      await renderTab()
+      const picker = screen.getByRole('button', { name: 'Show amounts in' })
+      expect(picker).toHaveTextContent('USD')
+      fireEvent.click(picker)
+      fireEvent.click(await screen.findByText(/^GBP\s/))
+      await waitFor(() => expect(settlementBases).toContain('GBP'))
+    } finally {
+      localStorage.removeItem('trek:costs-currency:7')
     }
   })
 })

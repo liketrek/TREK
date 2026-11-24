@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { shareFile } from '../../../src/native/nativeFiles';
+import { openNativeFile, shareFile } from '../../../src/native/nativeFiles';
 import { downloadBlob, downloadFile, openFile } from '../../../src/utils/fileDownload';
 
 vi.mock('../../../src/db/offlineDb', () => ({ getCachedBlob: vi.fn() }));
@@ -8,13 +8,14 @@ vi.mock('../../../src/native/nativeFiles', async () => {
   const actual = await vi.importActual<typeof import('../../../src/native/nativeFiles')>(
     '../../../src/native/nativeFiles'
   );
-  return { ...actual, shareFile: vi.fn() };
+  return { ...actual, shareFile: vi.fn(), openNativeFile: vi.fn() };
 });
 
 const pdf = new Blob(['%PDF'], { type: 'application/pdf' });
 
 beforeEach(() => {
   vi.mocked(shareFile).mockReset().mockResolvedValue();
+  vi.mocked(openNativeFile).mockReset().mockResolvedValue();
   vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: true, status: 200, blob: () => Promise.resolve(pdf) }));
 });
 
@@ -42,8 +43,9 @@ describe('fileDownload inside the native app', () => {
     expect(shareFile).toHaveBeenLastCalledWith(pdf, 'ticket A.pdf');
   });
 
-  it('opens files through the share sheet too, since there is no tab to open them in', async () => {
+  it('opens files in the system viewer, since there is no tab to open them in', async () => {
     await openFile('/api/trips/1/files/2/download');
-    expect(shareFile).toHaveBeenLastCalledWith(pdf, 'download');
+    expect(openNativeFile).toHaveBeenLastCalledWith(pdf, 'download');
+    expect(shareFile).not.toHaveBeenCalled();
   });
 });

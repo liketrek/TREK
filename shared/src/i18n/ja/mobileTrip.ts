@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': '新しいカテゴリ',
   'mobileTrip.newReservation': '新しい予約',
   'mobileTrip.notes': 'メモ',
-  'mobileTrip.onMap': '地図上',
+  'mobileTrip.onMap': '地図',
   'mobileTrip.profileDriving': '車',
   'mobileTrip.profileWalking': '徒歩',
   'mobileTrip.profileCycling': '自転車',

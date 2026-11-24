@@ -51,7 +51,7 @@ fallback that silently disables all checking if someone forgets to augment.
 `rpc-kit` needs none of that today. Extracting it would mean:
 
 1. `PluginRpcContext.data` becomes a generic parameter instead of importing
-   `PluginDataDb`.
+   `PluginDataStore`.
 2. The four envelope type imports (`KnownMethod`, `MethodPermission`, `HookKey`,
    `HookPermission`) become empty-interface augmentation points, with `AssertExact`
    guards in the server proving the augmentation still matches the tables.

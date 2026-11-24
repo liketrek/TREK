@@ -254,3 +254,57 @@ describe('DayPlanSidebar timed booking drop', () => {
     expect(onReorder).toHaveBeenCalledWith(10, [11, 12, 13, 14]);
   });
 });
+
+// #3041: Firefox sends dragstart while it handles the mouse move that starts the
+// drag, and delivers that move to the page right after. Taken as "the drag is over",
+// it dropped the drag data at pick-up, so a stop could only be moved by its arrows,
+// and the day list played its enter animation again.
+describe('DayPlanSidebar drag in Firefox', () => {
+  const renderDay = () => {
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' });
+    const stops = [buildPlace({ id: 1, name: 'Breakfast' }), buildPlace({ id: 2, name: 'Museum' })];
+    const assignments = {
+      '10': stops.map((place, i) => buildAssignment({ id: 11 + i, day_id: 10, order_index: i, place })),
+    };
+    const onReorder = vi.fn(async () => undefined);
+    const view = render(
+      <DayPlanSidebar {...makeDefaultProps({ days: [day], places: stops, assignments, onReorder })} />
+    );
+    const row = (text: string) => screen.getByText(text).closest('[draggable="true"]') as HTMLElement;
+    const list = view.container.querySelector('.scroll-container') as HTMLElement;
+    return { onReorder, row, list };
+  };
+  const dataTransfer = () => ({ setData: vi.fn(), effectAllowed: '', getData: vi.fn(() => '') });
+
+  it('FE-PLANNER-DAYPLAN-239: the mouse move that starts a drag, with the button still held, keeps the drag', async () => {
+    const { onReorder, row } = renderDay();
+    fireEvent.dragStart(row('Museum'), { dataTransfer: dataTransfer() });
+    // Firefox order: dragstart first, then the move that triggered it. The touch
+    // polyfill on hybrid laptops sends the same held-button moves throughout a drag.
+    fireEvent.mouseMove(document, { buttons: 1 });
+    expect(row('Museum').style.opacity).toBe('0.4');
+    fireEvent.dragOver(row('Breakfast'), { dataTransfer: dataTransfer() });
+    expect(row('Breakfast').style.borderTop).toContain('2px');
+    fireEvent.drop(row('Breakfast'), { dataTransfer: dataTransfer() });
+    await waitFor(() => expect(onReorder).toHaveBeenCalledWith(10, [12, 11]));
+  });
+
+  it('FE-PLANNER-DAYPLAN-240: a plain mouse move after a drag that never ended still clears it', () => {
+    const { row } = renderDay();
+    fireEvent.dragStart(row('Museum'), { dataTransfer: dataTransfer() });
+    fireEvent.dragOver(row('Breakfast'), { dataTransfer: dataTransfer() });
+    fireEvent.mouseMove(document, { buttons: 0 });
+    expect(row('Museum').style.opacity).toBe('1');
+    expect(row('Breakfast').style.borderTop).toBe('');
+  });
+
+  it('FE-PLANNER-DAYPLAN-241: the day list plays its enter animation once, not again when a drag ends', () => {
+    const { row, list } = renderDay();
+    expect(list.classList.contains('trek-stagger')).toBe(true);
+    fireEvent.dragStart(row('Museum'), { dataTransfer: dataTransfer() });
+    expect(list.classList.contains('trek-stagger')).toBe(false);
+    fireEvent.dragEnd(row('Museum'));
+    expect(row('Museum').style.opacity).toBe('1');
+    expect(list.classList.contains('trek-stagger')).toBe(false);
+  });
+});

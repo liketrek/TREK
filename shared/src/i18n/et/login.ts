@@ -38,6 +38,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Kaheastmeline autentimine',
   'login.mfaSubtitle': 'Sisesta oma autentimisrakenduse 6-kohaline kood.',
   'login.mfaCodeLabel': 'Kinnituskood',
+  'login.mfaPlaceholder': '000000 või XXXX-XXXX',
   'login.mfaCodeRequired': 'Sisesta autentimisrakenduse kood.',
   'login.mfaHint': 'Ava Google Authenticator, Authy või muu TOTP-rakendus.',
   'login.mfaBack': '← Tagasi sisselogimise juurde',

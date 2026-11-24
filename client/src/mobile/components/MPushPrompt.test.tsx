@@ -46,10 +46,12 @@ describe('MPushPrompt', () => {
   it('FE-MOB-PUSHPROMPT-001: a moment after signing in the app asks, and turning it on goes the settings card way', async () => {
     await renderAndWait();
     expect(screen.getByText('Turn on notifications?')).toBeInTheDocument();
-    expect(window.localStorage.getItem(PUSH_PROMPT_KEY)).not.toBeNull();
+    // Asked once answered, not once shown.
+    expect(window.localStorage.getItem(PUSH_PROMPT_KEY)).toBeNull();
 
     fireEvent.click(screen.getByRole('button', { name: 'Turn on' }));
     expect(env.toggle).toHaveBeenCalledTimes(1);
+    expect(window.localStorage.getItem(PUSH_PROMPT_KEY)).not.toBeNull();
     expect(screen.queryByText('Turn on notifications?')).not.toBeInTheDocument();
   });
 
@@ -75,6 +77,18 @@ describe('MPushPrompt', () => {
     await renderAndWait();
     expect(screen.queryByText('Turn on notifications?')).not.toBeInTheDocument();
     expect(window.localStorage.getItem(PUSH_PROMPT_KEY)).toBeNull();
+  });
+
+  it('FE-MOB-PUSHPROMPT-005: a prompt left unanswered asks again on the next launch', async () => {
+    const first = render(<MPushPrompt />);
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(PUSH_PROMPT_DELAY_MS);
+    });
+    expect(screen.getByText('Turn on notifications?')).toBeInTheDocument();
+    first.unmount();
+
+    await renderAndWait();
+    expect(screen.getByText('Turn on notifications?')).toBeInTheDocument();
   });
 
   it('FE-MOB-PUSHPROMPT-004: signed out, it waits', async () => {

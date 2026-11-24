@@ -85,7 +85,7 @@ function build(opts: { canEdit?: boolean; before?: Item | undefined; updated?: I
       ),
     } as unknown as TripsRepository,
     { checkPermission: vi.fn(() => opts.canEdit ?? true) } as unknown as PermissionsService,
-    { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
+    { isAddonEnabled: vi.fn(() => true), isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService,
     { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
   );
   const rpc = new PackingRpc(packing, realtime, guards);

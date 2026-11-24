@@ -215,12 +215,16 @@ describe('CollectionToursMcp', () => {
       if (entry?.kind !== 'tool') throw new Error(`${name} is no tool`);
       return entry.options;
     };
-    const enabled = vi.spyOn(t.get(AddonsService), 'isAddonEnabled').mockResolvedValue(true);
+    // Collections is an instance addon, Tours a trip addon that is on for the caller while the instance
+    // or any trip of theirs has it on.
+    const collections = vi.spyOn(t.get(AddonsService), 'isAddonEnabled').mockResolvedValue(true);
+    const tours = vi.spyOn(t.get(AddonsService), 'isEnabledForUserAnywhere').mockResolvedValue(true);
     const gate = options('listCollectionTours').when;
     expect(await gate?.(ctx(1), mcp)).toBe(true);
-    enabled.mockImplementation(async (id: string) => id !== 'collections');
+    collections.mockImplementation(async (id: string) => id !== 'collections');
     expect(await gate?.(ctx(1), mcp)).toBe(false);
-    enabled.mockImplementation(async (id: string) => id !== 'tours');
+    collections.mockResolvedValue(true);
+    tours.mockImplementation(async (_userId: number, id: string) => id !== 'tours');
     expect(await gate?.(ctx(1), mcp)).toBe(false);
 
     const allowed = (name: string, scopes: string[]) => {

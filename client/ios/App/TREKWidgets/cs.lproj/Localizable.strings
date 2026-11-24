@@ -5,6 +5,8 @@
 "widget.today.description" = "Plán dne jako časová osa, s počasím a další zastávkou.";
 "widget.bookings.name" = "Rezervace";
 "widget.bookings.description" = "Tvoje další lety, vlaky, hotely a stoly, a kdy tě čekají.";
+"widget.flight.name" = "Let";
+"widget.flight.description" = "Tvůj další let živě: odpočet do odletu, letadlo na cestě, zpoždění a přílet.";
 "widget.todos.name" = "Úkoly";
 "widget.todos.description" = "Co ještě zbývá k cestě a jak daleko je balení.";
 "widget.packing.name" = "Balení";

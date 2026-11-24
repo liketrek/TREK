@@ -17,6 +17,7 @@
  * version and session.
  */
 
+import { browserSignInRunning } from '../native/browserSignInFlag'
 import { reloadFresh } from './chunkReload'
 import { currentController, servingWorker } from './serviceWorkerShell'
 
@@ -198,6 +199,9 @@ function waitForTakeover(reg: ServiceWorkerRegistration, version: string): Promi
 export async function reconcileAppVersion(reported: unknown): Promise<void> {
   const version = asReleaseTag(reported)
   if (!version) return
+  // The app's sign-in runs in this browser: a reload now could land on an older
+  // version's worker that a tab still open keeps alive (native/browserSignInFlag).
+  if (browserSignInRunning()) return
 
   let storedVersion: string | null
   try {

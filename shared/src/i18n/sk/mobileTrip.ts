@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Nová kategória',
   'mobileTrip.newReservation': 'Nová rezervácia',
   'mobileTrip.notes': 'Poznámky',
-  'mobileTrip.onMap': 'Na mape',
+  'mobileTrip.onMap': 'Mapa',
   'mobileTrip.profileDriving': 'Autom',
   'mobileTrip.profileWalking': 'Pešo',
   'mobileTrip.profileCycling': 'Na bicykli',

@@ -1,6 +1,7 @@
 import { coalesceOverride, columnRef } from '../dialect/sql-functions';
 import type { DayAccommodations } from '../entities/DayAccommodations.entity';
 import type { DB } from '../kysely/db';
+import { accommodationIdMatches } from './_shared/reservation-accommodation';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -144,6 +145,11 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
     return !!row;
   }
 
+  /** `id` while that stay is on the trip, else null: what a booking may link to. */
+  async idOnTrip(id: number | null, trip_id: number): Promise<number | null> {
+    return id && (await this.existsInTrip(id, trip_id)) ? id : null;
+  }
+
   /** RS38 — `SELECT check_in FROM day_accommodations WHERE id = ?`. */
   async getCheckIn(id: number): Promise<string | null | undefined> {
     const row = await this.qb('a')
@@ -249,10 +255,13 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
    * parity keeps the duplicates, no `DISTINCT`.
    */
   async listForTripWithPlaceAndBooking(trip_id: number | string): Promise<DayAccommodationListRow[]> {
+    const platform = this.getEntityManager().getPlatform();
     const rows = await this.kysely<DayAccommodationListKyselyDB>()
       .selectFrom('day_accommodations as a')
       .leftJoin('places as p', 'p.id', 'a.place_id')
-      .leftJoin('reservations as r', 'r.accommodation_id', 'a.id')
+      .leftJoin('reservations as r', (join) =>
+        join.on((eb) => accommodationIdMatches(platform, eb, 'r.accommodation_id', 'a.id')),
+      )
       .selectAll('a')
       .select([
         'p.name as place_name',
@@ -469,6 +478,7 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
    * this table (see {@link DayAccommodationListKyselyDB}).
    */
   async listRoadtripStays(trip_id: number): Promise<RoadtripStayRow[]> {
+    const platform = this.getEntityManager().getPlatform();
     const rows = await this.kysely<RoadtripStaysKyselyDB>()
       .selectFrom('day_accommodations as a')
       .leftJoin('places as p', 'p.id', 'a.place_id')
@@ -485,7 +495,7 @@ export class DayAccommodationsRepository extends TrekRepository<DayAccommodation
         eb
           .selectFrom('reservations as r')
           .select((eb2) => eb2.fn.min<number | null>('r.id').as('m'))
-          .whereRef('r.accommodation_id', '=', 'a.id')
+          .where((eb2) => accommodationIdMatches(platform, eb2, 'r.accommodation_id', 'a.id'))
           .as('reservation_id'),
       ])
       .where('a.trip_id', '=', trip_id)

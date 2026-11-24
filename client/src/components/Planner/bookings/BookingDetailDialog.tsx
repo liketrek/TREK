@@ -21,10 +21,13 @@ import { copyText } from '../../../utils/clipboard'
 import { fmtTransitDuration } from '../transitDisplay'
 import { parseMeta, displayTitle } from './bookingsModel'
 import { stayStats, type BookingFacts } from './bookingFacts'
-import { AirTrailPill, BOX, Eyebrow, Field, FileRows, ReviewPill, TravelerChips, fs, toneOf } from './bookingParts'
+import { AirTrailPill, MailPill, BOX, Eyebrow, Field, FileRows, ReviewPill, TravelerChips, fs, toneOf } from './bookingParts'
 import { TransitLegs, transitSummary } from './transitParts'
 import { BookingDialogHeader, StatusPill, TypePill } from './BookingDialogShell'
 import { DeleteButton, DialogButton, DialogFooter, DialogSection as Section, DialogShell, FooterSpacer, PILL } from '../../shared/DialogShell'
+import FlightLiveCard from '../flightLive/FlightLiveCard'
+import { useFlightLiveCardLegs } from '../flightLive/useFlightLiveCard'
+import { bookingSeats, getFlightLegs, seatLabel } from '../../../utils/flightLegs'
 
 export interface BookingDetailDialogProps {
   r: Reservation
@@ -66,6 +69,10 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
   const tripCurrency = useTripStore(s => s.trip?.currency)
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
   const [renaming, setRenaming] = useState(false)
+  // A flight TREK follows live shows its live card instead of the plain time tiles;
+  // one long over or never seen by the feed has no card and keeps its tiles.
+  const liveLegs = useFlightLiveCardLegs(p.tripId, r.id)
+  const legTotal = liveLegs.length > 0 ? getFlightLegs(r).length : 0
   const [name, setName] = useState('')
   const meta = parseMeta(r)
   const tone = toneOf(r)
@@ -77,6 +84,7 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
   const subParts = [meta.airline, meta.flight_number, meta.train_number, facts.endpoints.length >= 2 ? facts.endpoints.map(e => e.code || e.name).join(' → ') : null].filter(Boolean)
   const sub = subParts.length ? subParts.join('  ') : null
 
+  const seats = bookingSeats(r)
   const stats: { value: string; label: string }[] = []
   if (facts.isHotel) {
     stats.push(...stayStats(facts, meta, t, locale))
@@ -84,14 +92,17 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
     const from = facts.endpoints[0]
     const to = facts.endpoints[facts.endpoints.length - 1]
     // Each tile formats its own time: a booking with only an end has no "start → end" line to cut up.
-    if (facts.startTime) stats.push({ value: formatTime(facts.startTime, locale, timeFormat), label: from?.name || t('reservations.start') })
-    if (facts.endTime) stats.push({ value: formatTime(facts.endTime, locale, timeFormat), label: to?.name || t('reservations.end') })
+    if (liveLegs.length === 0) {
+      if (facts.startTime) stats.push({ value: formatTime(facts.startTime, locale, timeFormat), label: from?.name || t('reservations.start') })
+      if (facts.endTime) stats.push({ value: formatTime(facts.endTime, locale, timeFormat), label: to?.name || t('reservations.end') })
+    }
     if (transit?.duration) stats.push({ value: fmtTransitDuration(transit.duration, t), label: t('transit.durationLabel') })
     if (transit && transit.legs.length > 0) stats.push({ value: String(transit.transfers), label: t('transit.transfersLabel') })
     // Under a minute of walking is not worth a tile.
     if (transit && transit.walk > 59) stats.push({ value: t('transit.min', { count: Math.round(transit.walk / 60) }), label: t('transit.walkLabel') })
     if (meta.platform) stats.push({ value: meta.platform, label: t('reservations.meta.platform') })
-    if (meta.seat) stats.push({ value: meta.seat, label: t('reservations.meta.seat') })
+    // Each leg's seat under its route on a booking with a stop, not just the first leg's.
+    for (const s of seats) stats.push({ value: s.seat, label: seatLabel(t('reservations.meta.seat'), s.route) })
   }
   // Cells already shown as a stat stay out of the field grid below.
   const shownAsStat = new Set([t('reservations.meta.platform'), t('reservations.meta.seat'), t('reservations.meta.checkIn'), t('reservations.meta.checkOut')])
@@ -101,6 +112,15 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
   const copyCode = async () => {
     if (await copyText(r.confirmation_number || '')) toast.success(t('common.copied'))
     else toast.error(t('reservations.copyFailed'))
+  }
+  // "Looks right": the person checked what an import could not read for sure.
+  const confirmReview = async () => {
+    try {
+      await updateReservation(p.tripId, r.id, { needs_review: 0 })
+      toast.success(t('reservations.reviewConfirmed'))
+    } catch {
+      toast.error(t('reservations.toast.updateError'))
+    }
   }
   const rename = async () => {
     const title = name.trim()
@@ -135,14 +155,16 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
               {facts.day.date && !facts.isHotel && <span className="font-medium text-content-muted">{facts.day.date}</span>}
             </span>
           )}
-          {!!r.needs_review && <ReviewPill pill />}
+          {!!r.needs_review && <ReviewPill pill onConfirm={p.canEdit ? () => void confirmReview() : undefined} />}
           <AirTrailPill r={r} pill />
+          <MailPill r={r} />
           {r.confirmation_number && (
-            <span className={`${PILL} gap-1 py-0.5 pe-1`}>
+            // The copy button rides in the pill's padding (-my-1), so this pill is as tall as its neighbours.
+            <span className={`${PILL} gap-1 pe-1`}>
               <BlurredCode className="font-geist tabular-nums">#{r.confirmation_number}</BlurredCode>
               <Tooltip label={t('reservations.copyCode')}>
                 <button type="button" onClick={copyCode} aria-label={t('reservations.copyCode')}
-                  className="grid h-6 w-6 place-items-center rounded-full text-content-faint hover:bg-surface-hover hover:text-content">
+                  className="-my-1 grid h-6 w-6 place-items-center rounded-full text-content-faint hover:bg-surface-hover hover:text-content">
                   <Copy size={12} strokeWidth={2} />
                 </button>
               </Tooltip>
@@ -174,6 +196,16 @@ export default function BookingDetailDialog(p: BookingDetailDialogProps) {
   return (
     <>
       <DialogShell onClose={p.onClose} labelledBy={titleId} blocked={blocked} header={header} footer={footer}>
+        {liveLegs.map(leg => (
+          <FlightLiveCard
+            key={leg.leg_index}
+            tripId={p.tripId}
+            reservationId={r.id}
+            legIndex={leg.leg_index}
+            legLabel={legTotal > 1 ? t('flightLive.legOf', { n: leg.leg_index + 1, total: legTotal }) : undefined}
+          />
+        ))}
+
         {stats.length > 0 && (
           <div className="flex gap-2">
             {stats.map((s, i) => (

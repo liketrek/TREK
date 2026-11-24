@@ -55,13 +55,13 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
     it('404 on update of a missing calendar', () => {
       const updateHolidayCalendar = vi.fn().mockReturnValue(null);
       return thrown(() =>
-        makeController({ ...planBase, updateHolidayCalendar }).updateHolidayCalendar(user, '9', {}),
+        makeController({ ...planBase, updateHolidayCalendar }).updateHolidayCalendar(user, 9, {}),
       ).then((r) => expect(r).toEqual({ status: 404, body: { error: 'Calendar not found' } }));
     });
 
     it('404 on delete of a missing calendar', () => {
       const deleteHolidayCalendar = vi.fn().mockReturnValue(false);
-      return thrown(() => makeController({ ...planBase, deleteHolidayCalendar }).deleteHolidayCalendar(user, '9')).then(
+      return thrown(() => makeController({ ...planBase, deleteHolidayCalendar }).deleteHolidayCalendar(user, 9)).then(
         (r) => expect(r).toEqual({ status: 404, body: { error: 'Calendar not found' } }),
       );
     });
@@ -144,7 +144,7 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
       expect(await makeController({ ...planBase, addYear }).addYear(user, { year: 2026 }, 'sock')).toEqual({
         years: [2026],
       });
-      expect(await makeController({ ...planBase, deleteYear }).deleteYear(user, '2026', 'sock')).toEqual({ years: [] });
+      expect(await makeController({ ...planBase, deleteYear }).deleteYear(user, 2026, 'sock')).toEqual({ years: [] });
     });
   });
 
@@ -224,13 +224,13 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
   describe('stats', () => {
     it('GET wraps stats', async () => {
       const getStats = vi.fn().mockReturnValue({ used: 5 });
-      expect(await makeController({ ...planBase, getStats }).stats(user, '2026')).toEqual({ stats: { used: 5 } });
+      expect(await makeController({ ...planBase, getStats }).stats(user, 2026)).toEqual({ stats: { used: 5 } });
     });
 
     it('403 on updateStats for a user not in the plan', () => {
       const getPlanUsers = vi.fn().mockReturnValue([{ id: 1 }]);
       return thrown(() =>
-        makeController({ ...planBase, getPlanUsers }).updateStats(user, '2026', {
+        makeController({ ...planBase, getPlanUsers }).updateStats(user, 2026, {
           vacation_days: 30,
           target_user_id: 99,
         }),
@@ -305,7 +305,7 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
 
     it('PUT /shares/:id forwards the socket id and the hidden flag', async () => {
       const setShareHidden = vi.fn().mockReturnValue(true);
-      expect(await makeController({ setShareHidden }).updateShare(user, '7', { hidden: true }, 'sock-1')).toEqual({
+      expect(await makeController({ setShareHidden }).updateShare(user, 7, { hidden: true }, 'sock-1')).toEqual({
         success: true,
       });
       expect(setShareHidden).toHaveBeenCalledWith(7, 1, true, 'sock-1');
@@ -313,20 +313,20 @@ describe('VacayController (parity with the legacy /api/addons/vacay route)', () 
 
     it('404 on PUT when the share is not toggleable by the caller', () => {
       const setShareHidden = vi.fn().mockReturnValue(false);
-      return thrown(() => makeController({ setShareHidden }).updateShare(user, '9', { hidden: true })).then((r) =>
+      return thrown(() => makeController({ setShareHidden }).updateShare(user, 9, { hidden: true })).then((r) =>
         expect(r).toEqual({ status: 404, body: { error: 'Share not found' } }),
       );
     });
 
     it('DELETE /shares/:id forwards the socket id', async () => {
       const removeShare = vi.fn().mockReturnValue(true);
-      expect(await makeController({ removeShare }).deleteShare(user, '7', 'sock-1')).toEqual({ success: true });
+      expect(await makeController({ removeShare }).deleteShare(user, 7, 'sock-1')).toEqual({ success: true });
       expect(removeShare).toHaveBeenCalledWith(7, 1, 'sock-1');
     });
 
     it('404 on DELETE of a foreign share', () => {
       const removeShare = vi.fn().mockReturnValue(false);
-      return thrown(() => makeController({ removeShare }).deleteShare(user, '9')).then((r) =>
+      return thrown(() => makeController({ removeShare }).deleteShare(user, 9)).then((r) =>
         expect(r).toEqual({ status: 404, body: { error: 'Share not found' } }),
       );
     });

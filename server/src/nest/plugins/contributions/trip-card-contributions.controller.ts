@@ -1,4 +1,5 @@
 import { JwtAuthGuard } from '../../auth-core/jwt-auth.guard';
+import { toRowId } from '../../common/row-id';
 import { TripAccessService } from '../../trip-membership/trip-access.service';
 import { pluginsEnabled } from '../kill-switch';
 import { PluginHooks } from '../plugin-hooks.service';
@@ -110,8 +111,8 @@ export class TripCardContributionsController {
     // are handed to any plugin.
     const requested = (tripIdsRaw ?? '')
       .split(',')
-      .map((s) => Number(s.trim()))
-      .filter((n) => Number.isInteger(n) && n > 0)
+      .map((s) => toRowId(s.trim()))
+      .filter((n): n is number => n !== null && n > 0)
       .slice(0, MAX_TRIP_IDS);
     const uniqueRequested = [...new Set(requested)];
     // Sequential, not `Promise.all` (Plan 3c Task 0b, task-0a-review-security.md

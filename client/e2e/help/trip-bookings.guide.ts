@@ -1,9 +1,10 @@
+import { createHmac } from 'node:crypto'
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import { captureGuide, captureHero, beat, typeInto, settle, VIEWPORT, type GuideScript } from './guide'
-import { day } from '../dates'
+import { day, mailHeaderDate } from '../dates'
 import { seededTrip, ensureBookingsFixtures, bookingPdfFixture, bookingEmlFixture, BOOKING_EML, HOTEL_TO_BOOK, UNATTACHED_FILE } from './fixtures'
-import { openTrip, modal, portalDialog, importSteps, importTask, dismissImportTask, deleteTripFiles } from './trip-shared'
-import { requireExtractor, allowEmlUploads } from './external'
+import { openTrip, modal, portalDialog, importDialog, importSteps, importTask, dismissImportTask, deleteTripFiles } from './trip-shared'
+import { requireExtractor, allowEmlUploads, toggleAddon } from './external'
 import { tripBookingsContext, tripBookingsGuides } from '../../src/help/contexts/tripBookings'
 import type { HelpGuide } from '../../src/help/types'
 
@@ -220,6 +221,116 @@ const closeModal = async (page: Page): Promise<void> => {
   }
 }
 
+// ── Booking mails ─────────────────────────────────────────────────────────────
+
+/** The trip's own address, under the drop box of the import dialog. */
+const forwardCard = (page: Page) => importDialog(page).getByText('Or forward by mail', { exact: true }).locator('xpath=..')
+/** The user menu button at the top right: avatar, name and chevron. */
+const userMenu = (page: Page) => page.getByRole('button').filter({ has: page.locator('span.max-w-40') }).first()
+/** Pending bookings in the user menu, with the count of waiting mails after its label. */
+const inboxEntryPoint = (page: Page) => page.getByRole('button', { name: /^Pending bookings/ })
+const mailInbox = (page: Page) => page.getByRole('dialog', { name: 'Pending bookings' })
+const inboxEntry = (page: Page) => mailInbox(page).getByRole('listitem').filter({ hasText: MAIL_SUBJECT }).first()
+
+const MAIL_SUBJECT = 'Your table at Kikunoi'
+/** What the guide saves: the title corrected in the form, the code TREK read from the mail. */
+const MAIL_BOOKING = { title: 'Dinner at Kikunoi', code: 'KKN-77310' }
+/** The media run's own webhook key; a mail service signs with the admin's. */
+const WEBHOOK_SECRET = 'help-media-webhook-secret-for-the-pictures'
+
+/**
+ * The mail import, switched on the way an admin does it, with the signed
+ * webhook as its transport so the guide can deliver a mail itself. The import
+ * dialog only opens where the server can read confirmations, so AI Parsing is
+ * on as well, while the person's own Read with AI is off: no model answers in
+ * the media run, and without it the mail waits in the inbox, which is the
+ * part of the flow the guide shows. Off again in cleanup, entries and the
+ * trip address with it.
+ */
+async function mailImportOn(page: Page, on: boolean): Promise<void> {
+  const api = page.request
+  const { tripId } = seededTrip()
+  if (on) {
+    await putAppSettings(page, {
+      mail_ingest_enabled: true,
+      mail_ingest_transport: 'webhook',
+      mail_ingest_address_template: 'trips+{token}@example.com',
+      mail_ingest_webhook_secret: WEBHOOK_SECRET,
+    })
+    await toggleAddon(api, 'llm_parsing', true)
+    await api.patch('/api/mail-ingest/settings', { data: { ai_enabled: false } })
+    return
+  }
+  const inbox = await api.get('/api/mail-ingest/inbox?status=open')
+  if (inbox.ok()) {
+    const { entries = [] } = (await inbox.json()) as { entries?: { id: number }[] }
+    for (const entry of entries) await api.post(`/api/mail-ingest/candidates/${entry.id}/discard`, { data: {} })
+  }
+  await api.delete(`/api/trips/${tripId}/mail-ingest/address`)
+  await api.patch('/api/mail-ingest/settings', { data: { ai_enabled: true } })
+  await toggleAddon(api, 'llm_parsing', false)
+  await putAppSettings(page, { mail_ingest_enabled: false, mail_ingest_transport: 'off', mail_ingest_webhook_secret: '' })
+}
+
+async function putAppSettings(page: Page, data: Record<string, string | boolean>): Promise<void> {
+  const res = await page.request.put('/api/auth/app-settings', { data })
+  if (!res.ok()) throw new Error(`could not save the mail import settings: ${res.status()} ${await res.text()}`)
+}
+
+/**
+ * Forward the restaurant's confirmation to the trip's address, the way a mail
+ * service hands a mail to TREK: raw, signed with the webhook key over the
+ * time, the recipient and every byte. Then wait until it was read and waits
+ * in the inbox. A plain text mail on purpose: nothing machine-readable in it,
+ * so the booking form starts from what the mail says in words.
+ */
+async function forwardMail(page: Page): Promise<void> {
+  const { tripId } = seededTrip()
+  const found = await page.request.get(`/api/trips/${tripId}/mail-ingest/address`)
+  const { address } = (await found.json()) as { address: { address: string } | null }
+  if (!address) throw new Error('the trip has no mail address after Create an address for this trip')
+  const raw = Buffer.from(
+    [
+      'From: Kikunoi Honten <reservations@kikunoi.example>',
+      `To: ${address.address}`,
+      `Subject: ${MAIL_SUBJECT}`,
+      `Date: ${mailHeaderDate(-30, '10:24', '+0900')}`,
+      'Message-ID: <kkn-77310@kikunoi.example>',
+      'MIME-Version: 1.0',
+      'Content-Type: text/plain; charset=utf-8',
+      '',
+      'Dear Ms Lindberg,',
+      '',
+      'thank you for your reservation at Kikunoi Honten. We look forward to welcoming you.',
+      '',
+      `Date: ${day(-3)}, 19:00`,
+      'Guests: 2',
+      `Reservation number: ${MAIL_BOOKING.code}`,
+      '',
+      'Kikunoi Honten, 459 Shimokawara-cho, Higashiyama-ku, Kyoto',
+      '',
+    ].join('\r\n'),
+  )
+  const timestamp = String(Math.floor(Date.now() / 1000))
+  const signature = createHmac('sha256', WEBHOOK_SECRET).update(`${timestamp}\n${address.address}\n`).update(raw).digest('hex')
+  const res = await page.request.post('/api/mail-ingest/inbound', {
+    headers: {
+      'Content-Type': 'message/rfc822',
+      'X-Trek-Timestamp': timestamp,
+      'X-Trek-Recipient': address.address,
+      'X-Trek-Signature': `sha256=${signature}`,
+    },
+    data: raw,
+  })
+  if (!res.ok()) throw new Error(`the webhook refused the mail: ${res.status()} ${await res.text()}`)
+  await expect
+    .poll(async () => {
+      const count = await page.request.get('/api/mail-ingest/inbox/count')
+      return count.ok() ? ((await count.json()) as { pending?: number }).pending ?? 0 : 0
+    }, { timeout: 90_000, intervals: [1000] })
+    .toBeGreaterThan(0)
+}
+
 const only = (target: (p: Page) => Locator) => ({ target })
 
 const SCRIPTS: Record<string, GuideScript> = {
@@ -290,7 +401,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         target: p => viewItem(p, 'Type'),
         act: async p => {
           await viewItem(p, 'Type').click()
-          await expect(sectionHead(p, 'Tour')).toBeVisible()
+          await expect(sectionHead(p, 'Guided tour')).toBeVisible()
           await settle(p)
         },
       },
@@ -309,10 +420,12 @@ const SCRIPTS: Record<string, GuideScript> = {
           await closeViewOptions(p)
           await settle(p)
         },
-        target: p => sectionHead(p, 'Tour'),
+        // The label: the heading itself spans the whole width, and a frame
+        // centred on it would cut the label off at the left.
+        target: p => sectionHead(p, 'Guided tour').getByText('Guided tour', { exact: true }),
         act: async p => {
-          await sectionHead(p, 'Tour').click()
-          await expect(sectionHead(p, 'Tour')).toHaveAttribute('aria-expanded', 'false')
+          await sectionHead(p, 'Guided tour').click()
+          await expect(sectionHead(p, 'Guided tour')).toHaveAttribute('aria-expanded', 'false')
           await expect(bookingCard(p, 'Kyoto Cycling Tour')).toHaveCount(0)
           await settle(p)
         },
@@ -489,9 +602,9 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        target: p => detail(p, VIEWED.title).getByRole('button', { name: 'On map', exact: true }),
+        target: p => detail(p, VIEWED.title).getByRole('button', { name: 'Map', exact: true }),
         act: async p => {
-          await detail(p, VIEWED.title).getByRole('button', { name: 'On map', exact: true }).click()
+          await detail(p, VIEWED.title).getByRole('button', { name: 'Map', exact: true }).click()
           await expect(detail(p, VIEWED.title)).toHaveCount(0)
           // The tab goes and the plan opens on the tour's day with its place selected.
           await expect(p.getByRole('heading', { name: 'Bookings', exact: true, level: 2 })).toHaveCount(0)
@@ -590,7 +703,9 @@ const SCRIPTS: Record<string, GuideScript> = {
           await expect(modal(p).getByRole('button', { name: UNATTACHED_FILE, exact: true })).toBeVisible()
           await beat(p, 300)
         },
-        target: p => modal(p).getByRole('button', { name: 'Link existing file' }).locator('xpath=..'),
+        // The list it opens above the button: what the reader picks from. The
+        // button's own box leaves the list out, since it floats over the form.
+        target: p => modal(p).getByRole('button', { name: UNATTACHED_FILE, exact: true }).locator('xpath=..'),
         act: async p => {
           await modal(p).getByRole('button', { name: UNATTACHED_FILE, exact: true }).click()
           await expect(modal(p).getByRole('button', { name: UNATTACHED_FILE, exact: true })).toHaveCount(0)
@@ -711,9 +826,9 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        target: p => filterMenu(p).getByRole('button', { name: /^Tour\b/ }),
+        target: p => filterMenu(p).getByRole('button', { name: /^Guided tour\b/ }),
         act: async p => {
-          await filterMenu(p).getByRole('button', { name: /^Tour\b/ }).click()
+          await filterMenu(p).getByRole('button', { name: /^Guided tour\b/ }).click()
           await expect(bookingCard(p, 'Haneda Airport P4')).toHaveCount(0)
           await expect(bookingCard(p, 'Kyoto Cycling Tour')).toBeVisible()
           await settle(p)
@@ -817,6 +932,89 @@ const SCRIPTS: Record<string, GuideScript> = {
       // attached stays behind in Files like any unlinked document.
       await deleteBookings(p, HOTEL_TO_BOOK.name)
       await deleteTripFiles(p, BOOKING_EML)
+    },
+  },
+  'forward-booking-mail': {
+    guide: guide('forward-booking-mail'),
+    start: async p => {
+      await mailImportOn(p, true)
+      await openBookings(p)
+    },
+    steps: [
+      {
+        target: p => p.getByRole('button', { name: 'Import booking confirmations', exact: true }),
+        act: async p => {
+          await p.getByRole('button', { name: 'Import booking confirmations', exact: true }).click()
+          await expect(importDialog(p)).toBeVisible()
+          await expect(forwardCard(p)).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: forwardCard,
+        act: async p => {
+          await forwardCard(p).getByRole('button', { name: 'Create an address for this trip' }).click()
+          await expect(forwardCard(p).locator('code')).toContainText('@', { timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        // The address and its copy button; copying itself needs a clipboard the headless browser lacks.
+        target: p => forwardCard(p).locator('code').locator('xpath=..'),
+        act: async p => {
+          await importDialog(p).getByRole('button', { name: 'Cancel', exact: true }).click()
+          await expect(importDialog(p)).toHaveCount(0)
+          await forwardMail(p)
+        },
+      },
+      {
+        prepare: async p => {
+          // A fresh page reads the waiting count, as anyone arriving later would.
+          await openBookings(p)
+          await userMenu(p).click()
+          await expect(inboxEntryPoint(p)).toBeVisible()
+          await expect(inboxEntryPoint(p)).toContainText('1')
+          await beat(p, 300)
+        },
+        target: inboxEntryPoint,
+        act: async p => {
+          await inboxEntryPoint(p).click()
+          await expect(inboxEntry(p)).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: inboxEntry,
+        act: async p => {
+          await inboxEntry(p).getByRole('button', { name: 'Fill in yourself' }).click()
+          await expect(mailInbox(p)).toHaveCount(0)
+          await expect(modal(p).getByRole('heading', { name: 'New Reservation' })).toBeVisible({ timeout: 20_000 })
+          await expect(codeBox(p)).toHaveValue(MAIL_BOOKING.code)
+          await settle(p)
+        },
+      },
+      {
+        prepare: async p => {
+          await typeInto(p, titleBox(p), MAIL_BOOKING.title)
+          await settle(p)
+        },
+        target: p => modal(p).getByRole('dialog'),
+        act: async p => {
+          await saveButton(p, 'Add').click()
+          await expect(modal(p)).toHaveCount(0, { timeout: 20_000 })
+          // Fill in yourself opens the trip without its tab; the result shows the booking where it belongs.
+          await openBookings(p)
+          await expect(bookingCard(p, MAIL_BOOKING.title)).toBeVisible({ timeout: 20_000 })
+          await bookingCard(p, MAIL_BOOKING.title).scrollIntoViewIfNeeded()
+          await settle(p)
+        },
+      },
+    ],
+    cleanup: async p => {
+      await closeModal(p)
+      await clearPanelState(p)
+      await deleteBookings(p, MAIL_BOOKING.title)
+      await mailImportOn(p, false)
     },
   },
   'edit-booking': {

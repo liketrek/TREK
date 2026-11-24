@@ -29,8 +29,7 @@ const studioPaint: TranslationStrings = {
   'journey.studio.paint.applyAll': 'ใช้กับทุกหน้า',
   'journey.studio.paint.appliedAll': 'ใช้กับทุกหน้าแล้ว',
   'journey.studio.paint.photoBackground': 'รูปเป็นพื้นหลัง',
-  'journey.studio.paint.photoBackgroundHint':
-    'วางรูปเต็มทั้งหน้ารวมระยะตัดตก และล็อกไว้ด้านหลังสุด เลือกอีกครั้งเพื่อเอาออก',
+  'journey.studio.paint.photoBackgroundHint': 'วางรูปเต็มทั้งหน้ารวมระยะตัดตก และล็อกไว้ด้านหลังสุด เลือกอีกครั้งเพื่อเอาออก',
   'journey.studio.paint.removePhotoBackground': 'เอารูปพื้นหลังออก',
   'journey.studio.paint.noPhotos': 'เพิ่มรูปในการเดินทางเพื่อใช้รูปหนึ่งเป็นพื้นหลัง',
   'journey.studio.pattern.checker': 'ตาหมากรุก',

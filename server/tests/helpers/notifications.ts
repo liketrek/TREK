@@ -108,11 +108,24 @@ export async function makeNotificationPreferencesService(
  * suite sees every event row unless it is about the narrowing itself.
  */
 export function everyFeatureOn(
-  overrides: Partial<Pick<AddonsService, 'isAddonEnabled' | 'isWandererAvailable' | 'enabledPhotoProviderIds'>> = {},
+  overrides: Partial<
+    Pick<
+      AddonsService,
+      | 'isAddonEnabled'
+      | 'isEnabledForUserAnywhere'
+      | 'isEnabledAnywhere'
+      | 'isWandererAvailable'
+      | 'isWandererAllowed'
+      | 'enabledPhotoProviderIds'
+    >
+  > = {},
 ): AddonsService {
   return {
     isAddonEnabled: async () => true,
+    isEnabledForUserAnywhere: async () => true,
+    isEnabledAnywhere: async () => true,
     isWandererAvailable: async () => true,
+    isWandererAllowed: async () => true,
     enabledPhotoProviderIds: async () => ['immich', 'synologyphotos'],
     ...overrides,
   } as unknown as AddonsService;

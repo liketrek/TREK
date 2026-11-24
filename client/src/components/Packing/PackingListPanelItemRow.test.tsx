@@ -1,4 +1,4 @@
-// FE-W5ROW-001 to FE-W5ROW-056
+// FE-W5ROW-001 to FE-W5ROW-030
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import type { ComponentProps } from 'react'
 import { http, HttpResponse } from 'msw'
@@ -9,17 +9,12 @@ import { buildUser, buildTrip, buildPackingItem } from '../../../tests/helpers/f
 import { useAuthStore } from '../../store/authStore'
 import { useTripStore } from '../../store/tripStore'
 import { ArtikelZeile } from './PackingListPanelItemRow'
-import type { PackingBag, PackingItem } from '../../types'
+import type { PackingItem } from '../../types'
 import type { TripMember } from './usePackingListPanel'
 
 type Props = ComponentProps<typeof ArtikelZeile>
 
 const toastSpy = vi.fn((_message: string, _type?: string, _duration?: number) => 0)
-
-const BAGS = [
-  { id: 7, name: 'Carry-on', color: '#10b981' },
-  { id: 8, name: 'Trolley', color: '#ec4899' },
-] as unknown as PackingBag[]
 
 const MEMBERS = [
   { id: 1, username: 'owner' },
@@ -41,36 +36,10 @@ function setup(overrides: Partial<Props> = {}) {
   return { ...utils, props }
 }
 
-/** The row's own overflow menu trigger (rendered but display:none on desktop). */
-function overflowTrigger(container: HTMLElement) {
-  return container.querySelector<HTMLButtonElement>('.packing-row-overflow button')!
-}
-
-/**
- * The overflow menu lives inside a display:none wrapper (it only shows on narrow
- * viewports), so every query against it has to opt into hidden elements.
- */
-function menu(container: HTMLElement) {
-  return within(container.querySelector<HTMLElement>('.trek-menu-enter')!)
-}
-
-function menuButton(container: HTMLElement, name: string) {
-  return menu(container).getByRole('button', { name, hidden: true })
-}
-
-function fieldOf(container: HTMLElement, label: string) {
-  return within(menu(container).getByText(label).parentElement!).getByRole('textbox', { hidden: true })
-}
-
-/** Opens the item menu and its Move to List entry. */
-function openMoveToList(container: HTMLElement) {
-  fireEvent.click(overflowTrigger(container))
-  fireEvent.click(menuButton(container, 'Move to List'))
-}
-
-function bagButton(container: HTMLElement) {
-  // The bag picker trigger is the round button right after the weight field.
-  return container.querySelectorAll<HTMLButtonElement>('button[style*="border-radius: 50%"]')[0]
+const row = (container: HTMLElement) => container.querySelector<HTMLElement>('.packing-item-row')!
+const openWindow = (name = 'Tent') => {
+  fireEvent.click(screen.getByText(name))
+  return within(screen.getByRole('dialog'))
 }
 
 beforeEach(() => {
@@ -86,7 +55,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('ArtikelZeile — basics', () => {
+describe('ArtikelZeile — at rest', () => {
   it('FE-W5ROW-001: renders the name and checks the item off', async () => {
     let body: Record<string, unknown> | null = null
     server.use(
@@ -105,302 +74,69 @@ describe('ArtikelZeile — basics', () => {
     await waitFor(() => expect(body).toMatchObject({ checked: true }))
   })
 
-  it('FE-W5ROW-002: a checked item is struck through and still renames on a click', () => {
+  it('FE-W5ROW-002: a checked item is struck through', () => {
     setup({ item: buildPackingItem({ id: 1, name: 'Tent', checked: 1 }) })
-    const label = screen.getByText('Tent')
-
-    expect(label).toHaveStyle({ textDecoration: 'line-through' })
-    fireEvent.click(label)
-
-    expect(screen.getByDisplayValue('Tent')).toBeInTheDocument()
+    expect(screen.getByText('Tent')).toHaveStyle({ textDecoration: 'line-through' })
   })
 
-  it('FE-W5ROW-003: the placeholder row edits from an empty field', () => {
-    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }) })
-
-    fireEvent.click(screen.getByText('...'))
-
-    const input = screen.getByPlaceholderText('...')
-    expect(input).toHaveValue('')
-  })
-
-  it('FE-W5ROW-004: a read-only row hides the quantity field and the action buttons', () => {
-    const { container } = setup({ canEdit: false })
-
-    expect(screen.queryByTitle('Rename')).toBeNull()
+  it('FE-W5ROW-003: the row holds no inline controls, only what is set', () => {
+    const { container } = setup()
+    expect(container.querySelectorAll('input')).toHaveLength(0)
     expect(screen.queryByTitle('Delete')).toBeNull()
-    expect(container.querySelector('.packing-row-overflow')).toBeNull()
-    fireEvent.click(screen.getByText('Tent'))
-    expect(screen.queryByDisplayValue('Tent')).toBeNull()
+    expect(screen.queryByText('×1')).toBeNull()
   })
 
-  it('FE-W5ROW-005: hovering the row lifts its background and brings its controls up', () => {
+  it('FE-W5ROW-004: an amount from two up reads as ×n', () => {
+    setup({ item: buildPackingItem({ id: 1, name: 'Socks', quantity: 5 }) })
+    expect(screen.getByText('×5')).toBeInTheDocument()
+  })
+
+  it('FE-W5ROW-005: a partly packed item shows the pieces packed instead of the amount', () => {
+    const { container } = setup({ item: buildPackingItem({ id: 1, name: 'Socks', quantity: 5, packed_quantity: 2 } as Partial<PackingItem>) })
+    expect(screen.getByText('2/5')).toBeInTheDocument()
+    expect(screen.queryByText('×5')).toBeNull()
+    expect(container.querySelector<HTMLElement>('.packing-check')?.getAttribute('style')).toContain('solid var(--accent)')
+  })
+
+  it('FE-W5ROW-006: hovering brings up the chevron, leaving puts it away', () => {
     const { container } = setup()
-    const row = container.querySelector<HTMLElement>('.packing-item-row')!
-    const actions = container.querySelector<HTMLElement>('.packing-row-overflow')!
-    expect(actions.style.opacity).toBe('0.4')
-
-    fireEvent.mouseEnter(row)
-    expect(row.style.background).toBe('var(--bg-secondary)')
-    expect(actions.style.opacity).toBe('1')
-
-    fireEvent.mouseLeave(row)
-    expect(row.style.background).toBe('transparent')
-    expect(actions.style.opacity).toBe('0.4')
+    const chevron = container.querySelector<SVGElement>('svg.lucide-chevron-right')!
+    expect(chevron.style.opacity).toBe('0')
+    fireEvent.mouseEnter(row(container))
+    expect(chevron.style.opacity).toBe('1')
+    expect(row(container).style.background).toBe('var(--bg-secondary)')
+    fireEvent.mouseLeave(row(container))
+    expect(chevron.style.opacity).toBe('0')
   })
 
-  it('FE-W5ROW-005b: keyboard focus inside the row counts as hovering it', () => {
-    const { container } = setup()
-    const actions = container.querySelector<HTMLElement>('.packing-row-overflow')!
-
-    fireEvent.focus(overflowTrigger(container))
-    expect(actions.style.opacity).toBe('1')
-
-    fireEvent.blur(overflowTrigger(container), { relatedTarget: document.body })
-    expect(actions.style.opacity).toBe('0.4')
-  })
-
-  it('FE-W5ROW-005c: the bag picker stays open when the pointer leaves and closes on a click beside it', () => {
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
-    const row = container.querySelector<HTMLElement>('.packing-item-row')!
-    fireEvent.click(bagButton(container))
-    expect(screen.getByRole('button', { name: 'Trolley' })).toBeInTheDocument()
-
-    fireEvent.mouseLeave(row)
-    expect(screen.getByRole('button', { name: 'Trolley' })).toBeInTheDocument()
-
-    // The picker and its click catcher open in a portal on the body.
-    fireEvent.click(Array.from(document.body.children).find(el => el.getAttribute('role') === 'presentation')!)
-    expect(screen.queryByRole('button', { name: 'Trolley' })).toBeNull()
+  it('FE-W5ROW-007: the hairline shows only on rows after the first and hides under the pointer', () => {
+    const { container } = setup({ divider: true })
+    expect(container.querySelector('.bg-edge-faint')).not.toBeNull()
+    fireEvent.mouseEnter(row(container))
+    expect(container.querySelector('.bg-edge-faint')).toBeNull()
   })
 })
 
-describe('ArtikelZeile — quantity', () => {
-  it('FE-W5ROW-005a: committing the inline quantity saves it', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1, quantity: 3 }) })
-      }),
-    )
-    const { container } = setup({ item: buildPackingItem({ id: 1, name: 'Tent', quantity: null } as Partial<PackingItem>) })
-
-    const qty = container.querySelector<HTMLInputElement>('.packing-row-inline-actions input')!
-    expect(qty).toHaveValue('1')
-    fireEvent.change(qty, { target: { value: '3' } })
-    fireEvent.blur(qty)
-
-    await waitFor(() => expect(body).toMatchObject({ quantity: 3 }))
-  })
-})
-
-describe('ArtikelZeile — renaming', () => {
-  it('FE-W5ROW-006: Enter commits the new name', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1, name: 'Tarp' }) })
-      }),
-    )
-    setup()
-    fireEvent.click(screen.getByText('Tent'))
-
-    const input = screen.getByDisplayValue('Tent')
-    fireEvent.change(input, { target: { value: '  Tarp  ' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-
-    await waitFor(() => expect(body).toMatchObject({ name: 'Tarp' }))
-  })
-
-  it('FE-W5ROW-007: blurring an emptied field restores the old name', async () => {
-    let called = false
-    server.use(http.put('/api/trips/1/packing/1', () => { called = true; return HttpResponse.json({ item: buildPackingItem() }) }))
-    setup()
-    fireEvent.click(screen.getByText('Tent'))
-
-    const input = screen.getByDisplayValue('Tent')
-    fireEvent.change(input, { target: { value: '   ' } })
-    fireEvent.blur(input)
-
-    await waitFor(() => expect(screen.queryByDisplayValue('Tent')).toBeNull())
-    expect(screen.getByText('Tent')).toBeInTheDocument()
-    expect(called).toBe(false)
-  })
-
-  it('FE-W5ROW-008: Escape discards the edit', () => {
-    setup()
-    fireEvent.click(screen.getByText('Tent'))
-
-    const input = screen.getByDisplayValue('Tent')
-    fireEvent.change(input, { target: { value: 'Tarp' } })
-    fireEvent.keyDown(input, { key: 'Escape' })
-
-    expect(screen.queryByDisplayValue('Tarp')).toBeNull()
-    expect(screen.getByText('Tent')).toBeInTheDocument()
-  })
-
-  it('FE-W5ROW-008a: a blanked placeholder row falls back to an empty field', async () => {
-    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }) })
-    fireEvent.click(screen.getByText('...'))
-
-    const input = screen.getByPlaceholderText('...')
-    fireEvent.change(input, { target: { value: 'Tent' } })
-    fireEvent.keyDown(input, { key: 'Escape' })
-    fireEvent.click(screen.getByText('...'))
-    expect(screen.getByPlaceholderText('...')).toHaveValue('')
-
-    fireEvent.change(screen.getByPlaceholderText('...'), { target: { value: '   ' } })
-    fireEvent.blur(screen.getByPlaceholderText('...'))
-
-    await waitFor(() => expect(screen.getByText('...')).toBeInTheDocument())
-  })
-
-  it('FE-W5ROW-008b: Enter on a filled placeholder row hands the typing on, a blur does not (#2825)', async () => {
-    server.use(http.put('/api/trips/1/packing/1', () => HttpResponse.json({ item: buildPackingItem({ id: 1, name: 'Tent' }) })))
-    const onPlaceholderFilled = vi.fn()
-    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }), onPlaceholderFilled })
-
-    fireEvent.click(screen.getByText('...'))
-    fireEvent.change(screen.getByPlaceholderText('...'), { target: { value: 'Tent' } })
-    fireEvent.blur(screen.getByPlaceholderText('...'))
-    await waitFor(() => expect(screen.queryByPlaceholderText('...')).toBeNull())
-    expect(onPlaceholderFilled).not.toHaveBeenCalled()
-
-    fireEvent.click(screen.getByText('...'))
-    fireEvent.change(screen.getByPlaceholderText('...'), { target: { value: 'Tent' } })
-    fireEvent.keyDown(screen.getByPlaceholderText('...'), { key: 'Enter' })
-    await waitFor(() => expect(onPlaceholderFilled).toHaveBeenCalledTimes(1))
-  })
-
-  it('FE-W5ROW-009: a failing rename surfaces a save error', async () => {
-    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    setup()
-    fireEvent.click(screen.getByText('Tent'))
-
-    fireEvent.change(screen.getByDisplayValue('Tent'), { target: { value: 'Tarp' } })
-    fireEvent.keyDown(screen.getByDisplayValue('Tarp'), { key: 'Enter' })
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
-  })
-})
-
-describe('ArtikelZeile — deleting', () => {
-  it('FE-W5ROW-010: the panel handler takes over when provided', async () => {
-    const onDelete = vi.fn(async () => {})
-    const { props } = setup({ onDelete })
-
-    fireEvent.click(screen.getByTitle('Delete'))
-
-    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(props.item))
-  })
-
-  it('FE-W5ROW-011: a standalone row deletes through the store', async () => {
-    let deleted = false
-    server.use(http.delete('/api/trips/1/packing/1', () => { deleted = true; return HttpResponse.json({ success: true }) }))
-    setup()
-
-    fireEvent.click(screen.getByTitle('Delete'))
-
-    await waitFor(() => expect(deleted).toBe(true))
-  })
-
-  it('FE-W5ROW-012: a failing standalone delete surfaces a delete error', async () => {
-    server.use(http.delete('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    setup()
-
-    fireEvent.click(screen.getByTitle('Delete'))
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to delete', 'error', undefined))
-  })
-
-  it('FE-W5ROW-013: the delete button turns red on hover', () => {
-    setup()
-    const remove = screen.getByTitle('Delete')
-
-    fireEvent.mouseEnter(remove)
-    expect(remove.style.color).toBe('rgb(239, 68, 68)')
-    fireEvent.mouseLeave(remove)
-    expect(remove.style.color).toBe('var(--text-faint)')
-  })
-})
-
-describe('ArtikelZeile — category picker', () => {
-  it('FE-W5ROW-014: picking another list moves the item', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1, category: 'Docs' }) })
-      }),
-    )
-    const { container } = setup()
-    openMoveToList(container)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Docs' }))
-
-    await waitFor(() => expect(body).toMatchObject({ category: 'Docs' }))
-    expect(screen.queryByRole('button', { name: 'Docs' })).toBeNull()
-  })
-
-  it('FE-W5ROW-015: picking the current list closes the picker without a request', async () => {
-    let called = false
-    server.use(http.put('/api/trips/1/packing/1', () => { called = true; return HttpResponse.json({ item: buildPackingItem() }) }))
-    const { container } = setup()
-    openMoveToList(container)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Gear' }))
-
-    await waitFor(() => expect(screen.queryByRole('button', { name: 'Docs' })).toBeNull())
-    expect(called).toBe(false)
-  })
-
-  it('FE-W5ROW-016: a failing move surfaces a generic error', async () => {
-    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    const { container } = setup()
-    openMoveToList(container)
-
-    fireEvent.click(screen.getByRole('button', { name: 'Docs' }))
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Error', 'error', undefined))
-  })
-
-  it('FE-W5ROW-017: an uncategorized item marks the default list as current', () => {
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Soap', category: null }),
-      categories: ['Other', 'Gear'],
-    })
-    openMoveToList(container)
-
-    expect(screen.getByRole('button', { name: 'Other' })).toHaveStyle({ background: 'var(--bg-tertiary)' })
-    expect(screen.getByRole('button', { name: 'Gear' })).not.toHaveStyle({ background: 'var(--bg-tertiary)' })
-  })
-})
-
-describe('ArtikelZeile — sharing badges', () => {
-  it('FE-W5ROW-018: an item somebody else brings shows their name in the TREK tooltip', async () => {
+describe('ArtikelZeile — badges', () => {
+  it('FE-W5ROW-008: an item somebody else takes care of shows their name in the tooltip', async () => {
     setup({
       item: buildPackingItem({ id: 1, name: 'Stove', is_private: 1, owner_id: 2, owner_username: 'Bob' } as Partial<PackingItem>),
       currentUserId: 1,
     })
-
     const badge = screen.getByLabelText('by Bob')
-    expect(badge).not.toHaveAttribute('title')
     fireEvent.mouseEnter(badge)
     expect(await screen.findByRole('tooltip')).toHaveTextContent('by Bob')
   })
 
-  it('FE-W5ROW-019: a nameless bringer degrades to an empty name', () => {
+  it('FE-W5ROW-009: a nameless owner degrades to an empty name', () => {
     setup({
       item: buildPackingItem({ id: 1, name: 'Stove', is_private: 1, owner_id: 2, owner_username: null } as Partial<PackingItem>),
       currentUserId: 1,
     })
-
     expect(screen.getByLabelText('by')).toBeInTheDocument()
   })
 
-  it('FE-W5ROW-020: an item shared by me counts its recipients', async () => {
+  it('FE-W5ROW-010: an item shared by me counts its recipients', async () => {
     setup({
       item: buildPackingItem({
         id: 1, name: 'Stove', is_private: 1, owner_id: 1,
@@ -408,13 +144,12 @@ describe('ArtikelZeile — sharing badges', () => {
       } as unknown as Partial<PackingItem>),
       currentUserId: 1,
     })
-
     expect(screen.getByLabelText('shared with 2')).toHaveTextContent('2')
     fireEvent.mouseEnter(screen.getByLabelText('shared with 2'))
     expect(await screen.findByRole('tooltip')).toHaveTextContent('shared with 2: alice, bob')
   })
 
-  it('FE-W5ROW-021: a common item names its bringer and counts co-bringers', async () => {
+  it('FE-W5ROW-011: a common item shows its bringer and counts the others', async () => {
     setup({
       item: buildPackingItem({
         id: 1, name: 'Stove', is_private: 0, owner_username: 'Bob',
@@ -422,9 +157,6 @@ describe('ArtikelZeile — sharing badges', () => {
       } as unknown as Partial<PackingItem>),
       currentUserId: 1,
     })
-
-    // The bringer's initial on an avatar, the co-bringers as a "+N" circle; the tooltip
-    // names everyone, each on a line of their own (#2782).
     const badge = screen.getByLabelText('brought by Bob, cleo')
     expect(badge).toHaveTextContent('B+1')
     fireEvent.mouseEnter(badge)
@@ -434,46 +166,130 @@ describe('ArtikelZeile — sharing badges', () => {
     expect(rows[1]).toHaveTextContent('cleo')
   })
 
-  it('FE-W5ROW-022: a bringer without co-bringers shows no counter', () => {
+  it('FE-W5ROW-012: co-bringers alone still show, without an owner', () => {
     setup({
-      item: buildPackingItem({ id: 1, name: 'Stove', is_private: 0, owner_username: 'Bob' } as Partial<PackingItem>),
-      currentUserId: 1,
-    })
-
-    expect(screen.getByLabelText('brought by Bob')).toHaveTextContent(/^B$/)
-  })
-
-  it('FE-W5ROW-023: the placeholder row carries no badges and no share control', () => {
-    setup({
-      item: buildPackingItem({ id: 1, name: '...', is_private: 0, owner_username: 'Bob' } as Partial<PackingItem>),
-      currentUserId: 1,
-      onSetSharing: () => {},
-      onClone: () => {},
-      onJoin: () => {},
-      onLeave: () => {},
-    })
-
-    expect(screen.queryByTitle('brought by Bob')).toBeNull()
-    expect(screen.queryByTitle('Sharing')).toBeNull()
-  })
-
-  it('FE-W5ROW-024: the share control is wired up for an editable item', () => {
-    const onSetSharing = vi.fn()
-    const { container } = setup({
-      currentUserId: 1,
+      item: buildPackingItem({ id: 1, name: 'Stove', is_private: 0, owner_id: null, owner_username: null, contributors: [{ user_id: 2, username: 'alice' }] } as unknown as Partial<PackingItem>),
       tripMembers: MEMBERS,
-      onSetSharing,
-      onClone: () => {},
-      onJoin: () => {},
-      onLeave: () => {},
     })
+    expect(screen.getByLabelText('brought by alice')).toHaveTextContent(/^a$/i)
+  })
 
-    // Sharing lives in the item menu, as a whole line to click.
-    fireEvent.click(overflowTrigger(container))
-    fireEvent.click(menu(container).getByText('Sharing').closest('button')!)
-    fireEvent.click(screen.getByText(/^Personal$/))
+  it('FE-W5ROW-013: a private item shows no bringer faces', () => {
+    setup({ item: buildPackingItem({ id: 1, name: 'Diary', is_private: 1, owner_id: 1, owner_username: 'owner' } as Partial<PackingItem>), currentUserId: 1 })
+    expect(screen.queryByLabelText(/brought by/)).toBeNull()
+  })
+})
 
-    expect(onSetSharing).toHaveBeenCalledWith(1, 'personal', [])
+describe('ArtikelZeile — the placeholder of a new list', () => {
+  it('FE-W5ROW-014: the placeholder row is typed into right away', () => {
+    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }) })
+    expect(screen.getByPlaceholderText('...')).toHaveValue('')
+    expect(screen.queryByRole('button', { name: '...' })).toBeNull()
+  })
+
+  it('FE-W5ROW-015: Escape and a blank blur leave the placeholder as it was', async () => {
+    let saved = false
+    server.use(http.put('/api/trips/1/packing/1', () => { saved = true; return HttpResponse.json({ item: buildPackingItem({ id: 1 }) }) }))
+    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }) })
+    const input = screen.getByPlaceholderText('...')
+
+    fireEvent.change(input, { target: { value: 'Tent' } })
+    fireEvent.keyDown(input, { key: 'Escape' })
+    expect(input).toHaveValue('')
+    fireEvent.change(input, { target: { value: '   ' } })
+    fireEvent.blur(input)
+
+    await waitFor(() => expect(input).toHaveValue(''))
+    expect(saved).toBe(false)
+  })
+
+  it('FE-W5ROW-016: Enter on a filled placeholder hands the typing on, a blur does not (#2825)', async () => {
+    server.use(http.put('/api/trips/1/packing/1', () => HttpResponse.json({ item: buildPackingItem({ id: 1, name: 'Tent' }) })))
+    const onPlaceholderFilled = vi.fn()
+    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }), onPlaceholderFilled })
+    const input = screen.getByPlaceholderText('...')
+
+    fireEvent.change(input, { target: { value: 'Tent' } })
+    fireEvent.blur(input)
+    await waitFor(() => expect(toastSpy).not.toHaveBeenCalled())
+    expect(onPlaceholderFilled).not.toHaveBeenCalled()
+
+    fireEvent.change(input, { target: { value: 'Tarp' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => expect(onPlaceholderFilled).toHaveBeenCalledTimes(1))
+  })
+
+  it('FE-W5ROW-017: a failing placeholder save surfaces a save error', async () => {
+    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
+    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }) })
+    const input = screen.getByPlaceholderText('...')
+    fireEvent.change(input, { target: { value: 'Tent' } })
+    fireEvent.keyDown(input, { key: 'Enter' })
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
+  })
+
+  it('FE-W5ROW-018: a read-only placeholder just shows its dots', () => {
+    setup({ item: buildPackingItem({ id: 1, name: '...', category: 'Gear' }), canEdit: false })
+    expect(screen.queryByPlaceholderText('...')).toBeNull()
+    expect(screen.getByText('...')).toBeInTheDocument()
+  })
+})
+
+describe('ArtikelZeile — the item window', () => {
+  it('FE-W5ROW-019: a click on the name opens the window and the row marks itself', () => {
+    const { container } = setup()
+    const trigger = screen.getByRole('button', { name: /Tent/ })
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+
+    const dialog = openWindow()
+    expect(dialog.getByDisplayValue('Tent')).toBeInTheDocument()
+    expect(trigger).toHaveAttribute('aria-expanded', 'true')
+    expect(row(container).style.boxShadow).toBe('inset 0 0 0 1px var(--border-primary)')
+  })
+
+  it('FE-W5ROW-020: the close button, the backdrop and Escape all close it', () => {
+    setup()
+    fireEvent.click(openWindow().getByRole('button', { name: 'Close' }))
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    openWindow()
+    fireEvent.click(document.querySelector('[role="presentation"]')!)
+    expect(screen.queryByRole('dialog')).toBeNull()
+
+    fireEvent.keyDown(openWindow().getByDisplayValue('Tent'), { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('FE-W5ROW-021: Delete in the window goes to the panel handler when there is one', async () => {
+    const onDelete = vi.fn(async () => {})
+    const { props } = setup({ onDelete })
+    fireEvent.click(openWindow().getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(props.item))
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('FE-W5ROW-022: a standalone row deletes through the store', async () => {
+    let deleted = false
+    server.use(http.delete('/api/trips/1/packing/1', () => { deleted = true; return HttpResponse.json({ success: true }) }))
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), packingItems: [buildPackingItem({ id: 1, name: 'Tent' })] })
+    setup()
+    fireEvent.click(openWindow().getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(deleted).toBe(true))
+  })
+
+  it('FE-W5ROW-023: a failing standalone delete surfaces a delete error', async () => {
+    server.use(http.delete('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
+    seedStore(useTripStore, { trip: buildTrip({ id: 1 }), packingItems: [buildPackingItem({ id: 1, name: 'Tent' })] })
+    setup()
+    fireEvent.click(openWindow().getByRole('button', { name: 'Delete' }))
+    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to delete', 'error', undefined))
+  })
+
+  it('FE-W5ROW-024: a read-only window shows the name as text and offers no delete', () => {
+    setup({ canEdit: false })
+    const dialog = openWindow()
+    expect(dialog.queryByRole('textbox')).toBeNull()
+    expect(dialog.queryByRole('button', { name: 'Delete' })).toBeNull()
   })
 })
 
@@ -494,583 +310,52 @@ describe('ArtikelZeile — drag handle', () => {
 
     fireEvent.dragStart(handle, { dataTransfer: dt() })
     expect(d.onStart).toHaveBeenCalledWith(1)
-
     fireEvent.dragEnd(handle)
     expect(d.onEnd).toHaveBeenCalled()
   })
 
-  it('FE-W5ROW-026: dragging over the row marks it as the drop target', () => {
+  it('FE-W5ROW-026: dragging over the row marks it, dropping reports the target', () => {
     const d = drag()
     const { container } = setup({ drag: d })
-    const row = container.querySelector<HTMLElement>('.packing-item-row')!
 
-    fireEvent.dragOver(row, { dataTransfer: dt() })
-
+    fireEvent.dragOver(row(container), { dataTransfer: dt() })
     expect(d.onOver).toHaveBeenCalledWith(1)
+    fireEvent.drop(row(container), { dataTransfer: dt() })
+    expect(d.onDrop).toHaveBeenCalledWith(1)
   })
 
   it('FE-W5ROW-027: leaving the row clears the drop target, but moving inside it does not', () => {
     const d = drag()
     const { container } = setup({ drag: d })
-    const row = container.querySelector<HTMLElement>('.packing-item-row')!
-    const leave = (relatedTarget: Node) =>
-      fireEvent(row, new MouseEvent('dragleave', { bubbles: true, relatedTarget }))
+    const leave = (relatedTarget: Node) => fireEvent(row(container), new MouseEvent('dragleave', { bubbles: true, relatedTarget }))
 
     leave(document.body)
     expect(d.onOver).toHaveBeenCalledWith(-1)
-
     d.onOver.mockClear()
     leave(screen.getByText('Tent'))
     expect(d.onOver).not.toHaveBeenCalled()
   })
 
-  it('FE-W5ROW-028: dropping on the row reports the target id', () => {
-    const d = drag()
-    const { container } = setup({ drag: d })
-
-    fireEvent.drop(container.querySelector<HTMLElement>('.packing-item-row')!, { dataTransfer: dt() })
-
-    expect(d.onDrop).toHaveBeenCalledWith(1)
-  })
-
-  it('FE-W5ROW-029: the dragged row fades and the hovered row shows an edge', () => {
+  it('FE-W5ROW-028: the dragged row fades and the hovered row shows an edge', () => {
     const { container } = setup({ drag: { ...drag(), isDragging: true, isOver: true } })
-    const row = container.querySelector<HTMLElement>('.packing-item-row')!
-
-    expect(row.style.opacity).toBe('0.4')
-    expect(row.style.boxShadow).toBe('inset 3px 0 0 0 var(--accent)')
+    expect(row(container).style.opacity).toBe('0.4')
+    expect(row(container).style.boxShadow).toBe('inset 3px 0 0 0 var(--accent)')
   })
 
-  it('FE-W5ROW-030: hovering the row brings the grip to full opacity', () => {
+  it('FE-W5ROW-029: the grip only shows under the pointer', () => {
     const { container } = setup({ drag: drag() })
-    const row = container.querySelector<HTMLElement>('.packing-item-row')!
     const handle = container.querySelector<HTMLElement>('div[draggable="true"]')!
-
-    expect(handle.style.opacity).toBe('0.35')
-    fireEvent.mouseEnter(row)
+    expect(handle.style.opacity).toBe('0')
+    fireEvent.mouseEnter(row(container))
     expect(handle.style.opacity).toBe('1')
   })
 
-  it('FE-W5ROW-031: a placeholder row is not draggable', () => {
-    const { container } = setup({ item: buildPackingItem({ id: 1, name: '...' }), drag: drag() })
-
+  it('FE-W5ROW-030: a placeholder or read-only row is not draggable, a sorted row keeps the grip column', () => {
+    const { container, unmount } = setup({ item: buildPackingItem({ id: 1, name: '...' }), drag: drag() })
     expect(container.querySelector('div[draggable="true"]')).toBeNull()
-  })
-})
-
-describe('ArtikelZeile — weight and bag', () => {
-  it('FE-W5ROW-032: entering a weight saves it in grams', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1 }) })
-      }),
-    )
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
-
-    fireEvent.change(container.querySelector('input[placeholder="—"]')!, { target: { value: '450' } })
-
-    await waitFor(() => expect(body).toMatchObject({ weight_grams: 450 }))
-  })
-
-  it('FE-W5ROW-033: clearing the weight stores null', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1 }) })
-      }),
-    )
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', weight_grams: 300 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-    })
-
-    fireEvent.change(container.querySelector('input[placeholder="—"]')!, { target: { value: '' } })
-
-    await waitFor(() => expect(body).toMatchObject({ weight_grams: null }))
-  })
-
-  it('FE-W5ROW-034: a failing weight save surfaces a save error', async () => {
-    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    const { container } = setup({ bagTrackingEnabled: true })
-
-    fireEvent.change(container.querySelector('input[placeholder="—"]')!, { target: { value: '450' } })
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
-  })
-
-  it('FE-W5ROW-035: a read-only row ignores weight edits and never opens the bag picker', async () => {
-    let called = false
-    server.use(http.put('/api/trips/1/packing/1', () => { called = true; return HttpResponse.json({ item: buildPackingItem() }) }))
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, canEdit: false })
-
-    const weight = container.querySelector<HTMLInputElement>('input[placeholder="—"]')!
-    expect(weight.readOnly).toBe(true)
-    fireEvent.change(weight, { target: { value: '450' } })
-    fireEvent.click(bagButton(container))
-
-    await waitFor(() => expect(screen.queryByRole('button', { name: /Carry-on/ })).toBeNull())
-    expect(called).toBe(false)
-  })
-
-  it('FE-W5ROW-036: picking a bag assigns it', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1 }) })
-      }),
-    )
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
-    fireEvent.click(bagButton(container))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Trolley' }))
-
-    await waitFor(() => expect(body).toMatchObject({ bag_id: 8 }))
-  })
-
-  it('FE-W5ROW-037: a failing bag assign surfaces a save error', async () => {
-    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
-    fireEvent.click(bagButton(container))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Trolley' }))
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
-  })
-
-  it('FE-W5ROW-038: only an assigned item offers the Unassigned entry, which clears the bag', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1 }) })
-      }),
-    )
-    const unassigned = setup({ bagTrackingEnabled: true, bags: BAGS })
-    fireEvent.click(bagButton(unassigned.container))
-    expect(screen.queryByRole('button', { name: 'Unassigned' })).toBeNull()
-    unassigned.unmount()
-
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 7 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-      bags: BAGS,
-    })
-    fireEvent.click(bagButton(container))
-    fireEvent.click(screen.getByRole('button', { name: 'Unassigned' }))
-
-    await waitFor(() => expect(body).toMatchObject({ bag_id: null }))
-  })
-
-  it('FE-W5ROW-039: a failing clear surfaces a save error', async () => {
-    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 7 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-      bags: BAGS,
-    })
-    fireEvent.click(bagButton(container))
-
-    fireEvent.click(screen.getByRole('button', { name: 'Unassigned' }))
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
-  })
-
-  it('FE-W5ROW-040: only the unselected bag entries react to hover', () => {
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 7 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-      bags: BAGS,
-    })
-    fireEvent.click(bagButton(container))
-    const selected = screen.getByRole('button', { name: 'Carry-on' })
-    const other = screen.getByRole('button', { name: 'Trolley' })
-
-    fireEvent.mouseEnter(other)
-    expect(other.style.background).toBe('var(--bg-tertiary)')
-    fireEvent.mouseLeave(other)
-    expect(other.style.background).toBe('none')
-
-    fireEvent.mouseEnter(selected)
-    fireEvent.mouseLeave(selected)
-    expect(selected.style.background).toBe('var(--bg-tertiary)')
-  })
-
-  it('FE-W5ROW-040a: hovering the selected bag entry leaves it untouched', () => {
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 7 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-      bags: BAGS,
-    })
-    fireEvent.click(bagButton(container))
-    const selected = screen.getByRole('button', { name: 'Carry-on' })
-
-    fireEvent.mouseEnter(selected)
-    expect(selected.style.background).toBe('var(--bg-tertiary)')
-    fireEvent.mouseLeave(selected)
-    expect(selected.style.background).toBe('var(--bg-tertiary)')
-  })
-
-  it('FE-W5ROW-040b: a bag id the trip no longer knows falls back to the neutral border', () => {
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 99 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-      bags: BAGS,
-    })
-
-    const trigger = bagButton(container)
-    expect(trigger.style.border).toBe('2.5px solid var(--border-primary)')
-    expect(trigger.style.background).toBe('var(--border-primary)30')
-  })
-
-  it('FE-W5ROW-041: creating a bag inline assigns it right away', async () => {
-    const created = { id: 12, name: 'Duffel', color: '#f97316' } as unknown as PackingBag
-    const onCreateBag = vi.fn(async () => created)
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1 }) })
-      }),
-    )
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, onCreateBag })
-    fireEvent.click(bagButton(container))
-    fireEvent.click(screen.getByText('Add bag'))
-
-    const input = screen.getByPlaceholderText('Bag name...')
-    fireEvent.change(input, { target: { value: ' Duffel ' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-
-    await waitFor(() => expect(onCreateBag).toHaveBeenCalledWith('Duffel'))
-    await waitFor(() => expect(body).toMatchObject({ bag_id: 12 }))
-  })
-
-  it('FE-W5ROW-042: Enter on a blank inline name creates nothing', () => {
-    const onCreateBag = vi.fn(async () => undefined)
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, onCreateBag })
-    fireEvent.click(bagButton(container))
-    fireEvent.click(screen.getByText('Add bag'))
-
-    fireEvent.keyDown(screen.getByPlaceholderText('Bag name...'), { key: 'Enter' })
-
-    expect(onCreateBag).not.toHaveBeenCalled()
-  })
-
-  it('FE-W5ROW-043: Escape cancels the inline bag form', () => {
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
-    fireEvent.click(bagButton(container))
-    fireEvent.click(screen.getByText('Add bag'))
-
-    fireEvent.keyDown(screen.getByPlaceholderText('Bag name...'), { key: 'Escape' })
-
-    expect(screen.queryByPlaceholderText('Bag name...')).toBeNull()
-    expect(screen.getByText('Add bag')).toBeInTheDocument()
-  })
-
-  it('FE-W5ROW-044: the inline confirm button creates the bag, and is inert while blank', async () => {
-    const created = { id: 13, name: 'Crate', color: '#f97316' } as unknown as PackingBag
-    const onCreateBag = vi.fn(async () => created)
-    server.use(http.put('/api/trips/1/packing/1', () => HttpResponse.json({ item: buildPackingItem({ id: 1 }) })))
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, onCreateBag })
-    fireEvent.click(bagButton(container))
-    fireEvent.click(screen.getByText('Add bag'))
-    const confirm = screen.getByPlaceholderText('Bag name...').nextElementSibling as HTMLButtonElement
-
-    fireEvent.click(confirm)
-    expect(onCreateBag).not.toHaveBeenCalled()
-
-    fireEvent.change(screen.getByPlaceholderText('Bag name...'), { target: { value: 'Crate' } })
-    fireEvent.click(confirm)
-
-    await waitFor(() => expect(onCreateBag).toHaveBeenCalledWith('Crate'))
-  })
-
-  it('FE-W5ROW-045: a rejected bag creation leaves the item unassigned', async () => {
-    const onCreateBag = vi.fn(async () => undefined)
-    let called = false
-    server.use(http.put('/api/trips/1/packing/1', () => { called = true; return HttpResponse.json({ item: buildPackingItem() }) }))
-    const { container } = setup({ bagTrackingEnabled: true, bags: [], onCreateBag })
-    fireEvent.click(bagButton(container))
-    fireEvent.click(screen.getByText('Add bag'))
-
-    const input = screen.getByPlaceholderText('Bag name...')
-    fireEvent.change(input, { target: { value: 'Duffel' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-
-    await waitFor(() => expect(onCreateBag).toHaveBeenCalled())
-    await waitFor(() => expect(screen.queryByPlaceholderText('Bag name...')).toBeNull())
-    expect(called).toBe(false)
-  })
-
-  it('FE-W5ROW-045a: a failing assign after an inline create surfaces a save error', async () => {
-    const created = { id: 14, name: 'Duffel', color: '#f97316' } as unknown as PackingBag
-    const onCreateBag = vi.fn(async () => created)
-    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, onCreateBag })
-    fireEvent.click(bagButton(container))
-    fireEvent.click(screen.getByText('Add bag'))
-
-    const input = screen.getByPlaceholderText('Bag name...')
-    fireEvent.change(input, { target: { value: 'Duffel' } })
-    fireEvent.keyDown(input, { key: 'Enter' })
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
-  })
-
-  it('FE-W5ROW-045b: the confirm button also reports a failing assign', async () => {
-    const created = { id: 15, name: 'Crate', color: '#f97316' } as unknown as PackingBag
-    const onCreateBag = vi.fn(async () => created)
-    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, onCreateBag })
-    fireEvent.click(bagButton(container))
-    fireEvent.click(screen.getByText('Add bag'))
-    const confirm = screen.getByPlaceholderText('Bag name...').nextElementSibling as HTMLButtonElement
-
-    fireEvent.change(screen.getByPlaceholderText('Bag name...'), { target: { value: 'Crate' } })
-    fireEvent.click(confirm)
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
-  })
-
-  it('FE-W5ROW-045c: the confirm button closes the form when creation is refused', async () => {
-    const onCreateBag = vi.fn(async () => undefined)
-    let called = false
-    server.use(http.put('/api/trips/1/packing/1', () => { called = true; return HttpResponse.json({ item: buildPackingItem() }) }))
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS, onCreateBag })
-    fireEvent.click(bagButton(container))
-    fireEvent.click(screen.getByText('Add bag'))
-    const confirm = screen.getByPlaceholderText('Bag name...').nextElementSibling as HTMLButtonElement
-
-    fireEvent.change(screen.getByPlaceholderText('Bag name...'), { target: { value: 'Crate' } })
-    fireEvent.click(confirm)
-
-    await waitFor(() => expect(screen.queryByPlaceholderText('Bag name...')).toBeNull())
-    expect(called).toBe(false)
-  })
-
-  it('FE-W5ROW-046: the Add bag entry highlights on hover', () => {
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
-    fireEvent.click(bagButton(container))
-    const add = screen.getByText('Add bag').closest('button')!
-
-    fireEvent.mouseEnter(add)
-    expect(add.style.background).toBe('var(--bg-tertiary)')
-    fireEvent.mouseLeave(add)
-    expect(add.style.background).toBe('none')
-  })
-})
-
-describe('ArtikelZeile — overflow menu', () => {
-  it('FE-W5ROW-047: the menu renames and closes', () => {
-    const { container } = setup()
-    fireEvent.click(overflowTrigger(container))
-
-    fireEvent.click(screen.getByText('Rename'))
-
-    expect(screen.getByDisplayValue('Tent')).toBeInTheDocument()
-    expect(screen.queryByText('Delete')).toBeNull()
-  })
-
-  it('FE-W5ROW-048: the menu deletes through the panel handler', async () => {
-    const onDelete = vi.fn(async () => {})
-    const { container, props } = setup({ onDelete })
-    fireEvent.click(overflowTrigger(container))
-
-    fireEvent.click(screen.getByText('Delete'))
-
-    await waitFor(() => expect(onDelete).toHaveBeenCalledWith(props.item))
-  })
-
-  it('FE-W5ROW-049: the scrim closes the menu', () => {
-    const { container, baseElement } = setup()
-    fireEvent.click(overflowTrigger(container))
-    expect(screen.getByText('Qty')).toBeInTheDocument()
-
-    fireEvent.click(baseElement.querySelector('div[style*="z-index: 1098"]')!)
-
-    expect(screen.queryByText('Qty')).toBeNull()
-  })
-
-  it('FE-W5ROW-050: the menu commits a new quantity', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1, quantity: 4 }) })
-      }),
-    )
-    const { container } = setup({ item: buildPackingItem({ id: 1, name: 'Tent', quantity: null } as Partial<PackingItem>) })
-    fireEvent.click(overflowTrigger(container))
-
-    const qty = fieldOf(container, 'Qty')
-    fireEvent.change(qty, { target: { value: '4' } })
-    fireEvent.blur(qty)
-
-    await waitFor(() => expect(body).toMatchObject({ quantity: 4 }))
-  })
-
-  it('FE-W5ROW-051: the menu saves a weight and reassigns the bag', async () => {
-    const bodies: Record<string, unknown>[] = []
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        bodies.push((await request.json()) as Record<string, unknown>)
-        return HttpResponse.json({ item: buildPackingItem({ id: 1 }) })
-      }),
-    )
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 7 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-      bags: BAGS,
-    })
-    fireEvent.click(overflowTrigger(container))
-
-    const weight = fieldOf(container, 'Total weight')
-    fireEvent.change(weight, { target: { value: '900' } })
-    await waitFor(() => expect(bodies[0]).toMatchObject({ weight_grams: 900 }))
-
-    // The first entry mirrors the current bag and clears it when tapped.
-    fireEvent.click(menu(container).getAllByRole('button', { name: 'Carry-on', hidden: true })[0])
-    await waitFor(() => expect(bodies[1]).toMatchObject({ bag_id: null }))
-
-    fireEvent.click(menuButton(container, 'Trolley'))
-    await waitFor(() => expect(bodies[2]).toMatchObject({ bag_id: 8 }))
-  })
-
-  it('FE-W5ROW-052: a failing menu weight or bag change surfaces a save error', async () => {
-    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
-    fireEvent.click(overflowTrigger(container))
-
-    fireEvent.change(fieldOf(container, 'Total weight'), { target: { value: '900' } })
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
-
-    toastSpy.mockClear()
-    fireEvent.click(menuButton(container, 'Trolley'))
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
-  })
-
-  it('FE-W5ROW-053: an unassigned item shows the Unassigned row without firing a request', async () => {
-    let called = false
-    server.use(http.put('/api/trips/1/packing/1', () => { called = true; return HttpResponse.json({ item: buildPackingItem() }) }))
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
-    fireEvent.click(overflowTrigger(container))
-
-    fireEvent.click(menuButton(container, 'Unassigned'))
-
-    await waitFor(() => expect(menu(container).getByText('Total weight')).toBeInTheDocument())
-    expect(called).toBe(false)
-  })
-
-  it('FE-W5ROW-053a: a failing clear from the menu surfaces a save error', async () => {
-    server.use(http.put('/api/trips/1/packing/1', () => new HttpResponse(null, { status: 500 })))
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', bag_id: 7 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-      bags: BAGS,
-    })
-    fireEvent.click(overflowTrigger(container))
-
-    fireEvent.click(menu(container).getAllByRole('button', { name: 'Carry-on', hidden: true })[0])
-
-    await waitFor(() => expect(toastSpy).toHaveBeenCalledWith('Failed to save', 'error', undefined))
-  })
-
-  it('FE-W5ROW-053b: clearing the menu weight stores null', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1 }) })
-      }),
-    )
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Tent', weight_grams: 400 } as Partial<PackingItem>),
-      bagTrackingEnabled: true,
-      bags: BAGS,
-    })
-    fireEvent.click(overflowTrigger(container))
-
-    fireEvent.change(fieldOf(container, 'Total weight'), { target: { value: '' } })
-
-    await waitFor(() => expect(body).toMatchObject({ weight_grams: null }))
-  })
-
-  it('FE-W5ROW-054: the menu list submenu moves the item and can be collapsed again', async () => {
-    let body: Record<string, unknown> | null = null
-    server.use(
-      http.put('/api/trips/1/packing/1', async ({ request }) => {
-        body = (await request.json()) as Record<string, unknown>
-        return HttpResponse.json({ item: buildPackingItem({ id: 1, category: 'Docs' }) })
-      }),
-    )
-    const { container } = setup()
-    fireEvent.click(overflowTrigger(container))
-
-    fireEvent.click(menuButton(container, 'Move to List'))
-    expect(menuButton(container, 'Docs')).toBeInTheDocument()
-
-    fireEvent.click(menuButton(container, 'Move to List'))
-    expect(menu(container).queryByRole('button', { name: 'Docs', hidden: true })).toBeNull()
-
-    fireEvent.click(menuButton(container, 'Move to List'))
-    fireEvent.click(menuButton(container, 'Docs'))
-
-    await waitFor(() => expect(body).toMatchObject({ category: 'Docs' }))
-  })
-
-  it('FE-W5ROW-054a: an uncategorized item marks the default list in the submenu', () => {
-    const { container } = setup({
-      item: buildPackingItem({ id: 1, name: 'Soap', category: null }),
-      categories: ['Other', 'Gear'],
-    })
-    fireEvent.click(overflowTrigger(container))
-    fireEvent.click(menuButton(container, 'Move to List'))
-
-    expect(menuButton(container, 'Other')).toHaveStyle({ background: 'var(--bg-tertiary)' })
-    expect(menuButton(container, 'Gear')).not.toHaveStyle({ background: 'var(--bg-tertiary)' })
-  })
-
-  it('FE-W5ROW-055: the menu carries its own share control', () => {
-    const onSetSharing = vi.fn()
-    const { container } = setup({
-      currentUserId: 1,
-      tripMembers: MEMBERS,
-      onSetSharing,
-      onClone: () => {},
-      onJoin: () => {},
-      onLeave: () => {},
-    })
-    fireEvent.click(overflowTrigger(container))
-
-    fireEvent.click(menu(container).getByText('Sharing').closest('button')!)
-    fireEvent.click(screen.getByText(/^Personal$/))
-
-    expect(onSetSharing).toHaveBeenCalledWith(1, 'personal', [])
-  })
-
-  it('FE-W5ROW-056: menu entries highlight on hover, the active one stays put', () => {
-    const { container } = setup({ bagTrackingEnabled: true, bags: BAGS })
-    fireEvent.click(overflowTrigger(container))
-    fireEvent.click(menuButton(container, 'Move to List'))
-    // "Gear" is the item's current list, so its submenu entry renders as active.
-    const active = menuButton(container, 'Gear')
-    const plain = menuButton(container, 'Carry-on')
-    const danger = menu(container).getByText('Delete').closest('button')!
-
-    fireEvent.mouseEnter(plain)
-    expect(plain.style.background).toBe('var(--bg-tertiary)')
-    fireEvent.mouseLeave(plain)
-    expect(plain.style.background).toBe('none')
-
-    fireEvent.mouseEnter(active)
-    fireEvent.mouseLeave(active)
-    expect(active.style.background).toBe('var(--bg-tertiary)')
-
-    fireEvent.mouseEnter(danger)
-    expect(danger.style.background).toBe('rgba(239, 68, 68, 0.1)')
+    unmount()
+    const sorted = setup()
+    expect(sorted.container.querySelector('div[draggable="true"]')).toBeNull()
+    expect(sorted.container.querySelector('span[aria-hidden][style*="width: 13px"]')).not.toBeNull()
   })
 })

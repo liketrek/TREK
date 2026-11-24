@@ -310,6 +310,32 @@ interface TrekGlMap {
   easeTo: (o: { bearing: number; pitch: number; duration: number }) => unknown
 }
 
+/** Turn the GL map to a bearing at once, and wait until it has painted it. */
+/**
+ * How far the compass guide turns the map. The vector labels stay level at any
+ * bearing, and the compass icon is drawn leaning 45° to the right, so at 35°
+ * the map read as north up and the arrow as upright. At 70° the coast lies
+ * visibly askew and the arrow leans the other way.
+ */
+const TURN = 70
+
+async function turnMap(page: Page, bearing: number): Promise<void> {
+  await page.evaluate(b => {
+    const m = (window as unknown as { __trek_map?: TrekGlMap }).__trek_map
+    if (!m) throw new Error('no GL map on the page')
+    m.easeTo({ bearing: b, pitch: 0, duration: 0 })
+  }, bearing)
+  await page.waitForFunction(b => {
+    const m = (window as unknown as { __trek_map?: TrekGlMap }).__trek_map
+    return !!m && Math.abs(m.getBearing() - b) < 0.5 && !m.isMoving()
+  }, bearing)
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))))
+}
+
+/** The GL map's bearing now. */
+const mapBearing = (page: Page): Promise<number> =>
+  page.evaluate(() => (window as unknown as { __trek_map?: TrekGlMap }).__trek_map?.getBearing() ?? 0)
+
 /** Wait until the GL map has its style, its tiles and a still camera. */
 async function glMapIdle(page: Page): Promise<void> {
   await page.waitForFunction(
@@ -369,6 +395,8 @@ let found = ''
 let tourOnDay: TourOnDay | null = null
 let line = { index: 0, x: 0, y: 0 }
 let clickedTour = ''
+/** Why the Dawarich connection could not be made (no media.env), for the one guide that needs it. */
+let dawarichMissing: Error | null = null
 
 const NEW_PLACE = 'Lunch stop'
 
@@ -421,6 +449,28 @@ const SCRIPTS: Record<string, GuideScript> = {
         // captureGuide hovers the target itself; this only makes sure the card
         // is up before the shot rather than a frame after it.
         prepare: async p => {
+          // The card asks for the full photo, not the pin's thumb, and for some
+          // seeded places the photo proxy answers nothing: the card then shows a
+          // broken image. Walk the reachable photo pins until one card shows its
+          // photo, and keep that pin for the steps after this one.
+          const total = await photoPins(p).count()
+          for (let i = 0; i < total; i++) {
+            const candidate = photoPins(p).nth(i)
+            try {
+              await candidate.hover({ timeout: 1500 })
+            } catch {
+              continue
+            }
+            if (!(await hoverCard(p).isVisible().catch(() => false))) continue
+            const loaded = await expect.poll(
+              () => hoverCard(p).locator('img').evaluateAll(imgs => imgs.length > 0 && imgs.every(img => (img as HTMLImageElement).complete && (img as HTMLImageElement).naturalWidth > 0)),
+              { timeout: 6_000 },
+            ).toBe(true).then(() => true, () => false)
+            if (!loaded) continue
+            await p.locator('#trek-map [data-help-pin]').evaluateAll(els => els.forEach(el => el.removeAttribute('data-help-pin')))
+            await candidate.evaluate(el => el.setAttribute('data-help-pin', ''))
+            break
+          }
           await markerPin(p).hover()
           await expect(hoverCard(p)).toBeVisible({ timeout: 10_000 })
         },
@@ -451,6 +501,13 @@ const SCRIPTS: Record<string, GuideScript> = {
           await settle(p)
         },
         target: p => badged(p, 1),
+        // The badge is the subject, not the pin's card: the pointer waits on
+        // an empty spot, so no hover card covers the numbers.
+        hover: async p => {
+          const box = await map(p).boundingBox()
+          if (!box) throw new Error('the map has no box')
+          await p.mouse.move(box.x + EMPTY.x, box.y + EMPTY.y)
+        },
       },
       {
         // Picture only, like the other drags in this family: HTML5 drag is what
@@ -726,7 +783,10 @@ const SCRIPTS: Record<string, GuideScript> = {
     // along the Shinkansen and the walks through the cities vanish under the
     // pins, so the map is framed on a day before the button is pressed;
     // nothing fits the map to the trail.
-    start: openOnTokyo,
+    start: async p => {
+      if (dawarichMissing) throw dawarichMissing
+      await openOnTokyo(p)
+    },
     steps: [
       {
         target: trailPill,
@@ -873,22 +933,28 @@ const SCRIPTS: Record<string, GuideScript> = {
       {
         // The turn itself is the map's own camera move rather than a synthetic
         // right-button drag: a drag has to start on bare canvas, and the pins,
-        // the two floating columns and the explore pill all sit over it. 35°
+        // the two floating columns and the explore pill all sit over it. 70°
         // is enough for the streets to lie visibly askew and the arrow to lean.
+        // A fit of the map to the day (MapLibre's fitBounds) also puts the
+        // bearing back to north, and one can still land after the turn while the
+        // trip's data settles: the earlier pictures caught the map upright for
+        // exactly that reason. So the turn is made again until it holds through
+        // a settle, and once more right before the shot.
         prepare: async p => {
-          await p.evaluate(() => {
-            const m = (window as unknown as { __trek_map?: TrekGlMap }).__trek_map
-            if (!m) throw new Error('no GL map on the page')
-            m.easeTo({ bearing: 35, pitch: 0, duration: 0 })
-          })
-          await p.waitForFunction(() => {
-            const m = (window as unknown as { __trek_map?: TrekGlMap }).__trek_map
-            return !!m && Math.abs(m.getBearing() - 35) < 0.5 && !m.isMoving()
-          })
-          await settle(p)
+          for (let attempt = 0; attempt < 4; attempt++) {
+            await turnMap(p, TURN)
+            await settle(p)
+            if (Math.abs((await mapBearing(p)) - TURN) < 0.5) break
+          }
         },
         target: compassPill,
-        // The loop: the map turning from north to the still's 35°, the arrow
+        hover: async p => {
+          await resetNorth(p).hover()
+          if (Math.abs((await mapBearing(p)) - TURN) >= 0.5) await turnMap(p, TURN)
+          // The arrow follows the bearing with a 100 ms transition.
+          await p.waitForTimeout(300)
+        },
+        // The loop: the map turning from north to the still's bearing, the arrow
         // leaning with it, and a pointer dragging sideways as a right-button
         // turn would. The camera is moved by the map's own API, a notch a
         // frame, for the reason the still's preparation gives.
@@ -915,7 +981,7 @@ const SCRIPTS: Record<string, GuideScript> = {
           for (let i = 0; i < 3; i++) await frame()
           for (let i = 1; i <= 14; i++) {
             await p.mouse.move(x + (120 * i) / 14, y)
-            await turnTo((35 * i) / 14)
+            await turnTo((TURN * i) / 14)
             await frame()
           }
           for (let i = 0; i < 4; i++) await frame()
@@ -952,7 +1018,13 @@ test.beforeAll(async ({ request }) => {
   tourOnDay = await ensureTourOnDay(request)
   // The recorded route: the addon on, the signed-in user connected to the
   // Dawarich from media.env, the synthetic recording of the trip uploaded.
-  await ensureDawarichConnection(request)
+  // Without media.env it cannot be made; the Dawarich guide then fails at its
+  // start with the reason, and every other guide of the file still runs.
+  try {
+    await ensureDawarichConnection(request)
+  } catch (err) {
+    dawarichMissing = err instanceof Error ? err : new Error(String(err))
+  }
 })
 
 test.afterAll(async ({ request }) => {

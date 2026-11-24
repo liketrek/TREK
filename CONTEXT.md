@@ -5,7 +5,7 @@ TREK coordinates shared trips, including the currencies used to record, settle, 
 ## Language
 
 **Trip currency**:
-The single accounting currency in which a trip's balances are netted.
+The reference currency for a trip and its stored exchange rates.
 _Avoid_: Base currency, accounting base
 
 **Expense currency**:
@@ -17,7 +17,7 @@ The currency of the original amount recorded for one settlement payment.
 _Avoid_: Settlement currency, transfer currency
 
 **Display currency**:
-A user's presentation-only currency for reading final totals and balances.
+The currency a user reads totals in. On the Costs page, the currency selected for the trip also denominates suggested repayments.
 _Avoid_: User currency, preferred currency
 
 **Common currency list**:

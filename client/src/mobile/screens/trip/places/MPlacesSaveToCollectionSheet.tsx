@@ -3,6 +3,7 @@ import MSheet from '../../../components/MSheet'
 import { TileHeader } from '../sheets/MTripSheetUi'
 import { useTranslation } from '../../../../i18n'
 import { useSaveTripPlacesToList } from '../../../../components/Collections/useSaveTripPlacesToList'
+import MSkeleton from '../../../components/MSkeleton'
 
 interface MPlacesSaveToCollectionSheetProps {
   open: boolean
@@ -39,14 +40,12 @@ export default function MPlacesSaveToCollectionSheet({ open, tripId, placeIds, o
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={t('common.search')}
+            enterKeyHint="search" placeholder={t('common.search')}
             className="mt-2 box-border w-full rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[13px] py-[10px] text-[0.8125rem] font-medium text-m-ink outline-none placeholder:text-m-faint"
           />
         )}
         {loading ? (
-          <div className="flex items-center justify-center py-10 text-m-faint">
-            <Loader2 size={20} className="animate-spin" />
-          </div>
+          <MSkeleton variant="rows" count={4} />
         ) : filtered.length === 0 ? (
           <p className="py-8 text-center font-geist text-[0.71875rem] text-m-faint">{t('collections.noOwnLists')}</p>
         ) : (

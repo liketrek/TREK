@@ -686,7 +686,7 @@ export class OidcService implements OnModuleDestroy {
       // provider, never this account under a new name.
       if (user.oidc_sub && user.oidc_issuer === config.issuer) {
         logWarn(
-          `[OIDC] Refused to link a sign-in to user ${user.id} by email: it is linked to another subject of this provider.`,
+          `[OIDC] Refused to link a sign-in to user ${user.id} by email: it is linked to another subject of this provider. If the provider changed the subject of the same person, an admin can remove the SSO link of this user in the admin panel.`,
         );
         return { error: 'email_link_blocked' };
       }
@@ -814,8 +814,14 @@ export class OidcService implements OnModuleDestroy {
     // the user INSERT. Without this, two parallel OIDC callbacks could
     // both pass the earlier SELECT-based check and each create a user.
     const inviteRaceError = new Error('invite_exhausted');
+    // The first account becomes the admin. The count above decided that outside any
+    // transaction, so it is read again in the one that inserts: two first sign-ins at
+    // once would otherwise both become admin. The one that lost starts over and is
+    // then an ordinary registration.
+    const firstUserRaceError = new Error('first_user_taken');
     try {
       const insertedId = await this.uow.transactional(async () => {
+        if (isFirstUser && (await this.usersRepo.countNonGuest()) > 0) throw firstUserRaceError;
         if (validInvite) {
           const updated = await this.inviteTokens.incrementUsedCount(validInvite.token);
           if (!updated) throw inviteRaceError;
@@ -852,6 +858,7 @@ export class OidcService implements OnModuleDestroy {
       // off this, so it has to be set here and nowhere else.
       return { user: toClientUser(created), created: true };
     } catch (err) {
+      if (err === firstUserRaceError) return this.findOrCreateUser(userInfo, config, inviteToken);
       if (err === inviteRaceError) {
         console.warn(
           `[OIDC] Invite token ${inviteToken?.slice(0, 8)}... exhausted — concurrent callback won the last slot`,
@@ -896,25 +903,30 @@ export class OidcService implements OnModuleDestroy {
     display_name?: string;
     discovery_url?: string;
   }): Promise<{ error?: string; status?: number; success?: boolean }> {
-    // Lockout prevention: can't remove OIDC config when password login is disabled
-    if ((data.issuer === '' || data.client_id === '') && !(await this.auth.resolveAuthToggles()).password_login) {
-      return {
-        error: 'Cannot remove SSO configuration while password login is disabled. Enable password login first.',
-        status: 400,
-      };
-    }
-
     const set = (key: string, val: string) => this.appSettings.setValue(key, val || '');
     // All five writes are one SSO config — a partial apply would leave the
     // instance with an issuer but no client id (or vice versa).
-    await this.uow.transactional(async () => {
+    const saved = await this.uow.transactional(async () => {
+      // Lockout prevention: can't remove OIDC config when password login is disabled.
+      // Read in the transaction that writes, so a concurrent save that switches
+      // password login off cannot slip between the check and the removal.
+      if ((data.issuer === '' || data.client_id === '') && !(await this.auth.resolveAuthToggles()).password_login) {
+        return false;
+      }
       await set('oidc_issuer', data.issuer ?? '');
       await set('oidc_client_id', data.client_id ?? '');
       if (data.client_secret !== undefined)
         await set('oidc_client_secret', maybe_encrypt_api_key(data.client_secret) ?? '');
       await set('oidc_display_name', data.display_name ?? '');
       await set('oidc_discovery_url', data.discovery_url ?? '');
+      return true;
     });
+    if (!saved) {
+      return {
+        error: 'Cannot remove SSO configuration while password login is disabled. Enable password login first.',
+        status: 400,
+      };
+    }
     return { success: true };
   }
 }

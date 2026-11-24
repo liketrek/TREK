@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'Yeni kategori',
   'mobileTrip.newReservation': 'Yeni Rezervasyon',
   'mobileTrip.notes': 'Notlar',
-  'mobileTrip.onMap': 'Haritada',
+  'mobileTrip.onMap': 'Harita',
   'mobileTrip.profileDriving': 'Araba',
   'mobileTrip.profileWalking': 'Yürüyüş',
   'mobileTrip.profileCycling': 'Bisiklet',

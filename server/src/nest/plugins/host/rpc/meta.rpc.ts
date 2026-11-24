@@ -14,7 +14,8 @@ import { PluginGuards } from '../../../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../../../nest-rpc/rpc-kit/types';
-import { num, str } from '../../../../nest-rpc/rpc-params';
+import { str, rowIdParam } from '../../../../nest-rpc/rpc-params';
+import { UnitOfWork } from '../../../database/unit-of-work';
 import { InjectRepository } from '@mikro-orm/nestjs';
 
 /** Core entities a plugin may attach its own db:meta to. */
@@ -57,6 +58,7 @@ export class MetaRpc {
     @InjectRepository(Days) private readonly days: DaysRepository,
     @InjectRepository(Reservations) private readonly reservations: ReservationsRepository,
     @InjectRepository(DayAccommodations) private readonly dayAccommodations: DayAccommodationsRepository,
+    private readonly uow: UnitOfWork,
   ) {}
 
   @PluginMethod('meta.get', { permission: 'db:meta' })
@@ -79,8 +81,11 @@ export class MetaRpc {
     const json = JSON.stringify(params.value ?? null);
     if (json.length > META_VALUE_MAX) throw new BadParams(`metadata value too large (>${META_VALUE_MAX} bytes)`);
     // MR2/MR3/MR4 — Plan 3j Task 7 fix (must-land 2): one atomic call, not
-    // three separately-awaited ones (task-7-review.md's concurrent-cap-bypass).
-    const written = await this.meta.upsertValueCapped(ctx.pluginId, entityType, entityId, key, json, META_KEYS_MAX);
+    // three separately-awaited ones (task-7-review.md's concurrent-cap-bypass),
+    // in a unit of work, whose write lock keeps it atomic on Postgres's pool too.
+    const written = await this.uow.transactional(() =>
+      this.meta.upsertValueCapped(ctx.pluginId, entityType, entityId, key, json, META_KEYS_MAX),
+    );
     if (!written) throw new BadParams(`too many metadata keys on this ${entityType} (max ${META_KEYS_MAX})`);
     return { key, value: params.value ?? null };
   }
@@ -121,7 +126,7 @@ export class MetaRpc {
     if (!META_ENTITY_TYPES.has(entityType)) {
       throw new BadParams(`invalid entityType "${entityType}" (${[...META_ENTITY_TYPES].join('|')})`);
     }
-    const entityId = num(params.entityId, 'entityId');
+    const entityId = rowIdParam(params.entityId, 'entityId');
     if (ctx.actingUserId === undefined) throw new ForbiddenResource('metadata requires an authenticated user context');
     const tripId = await this.entityTrip(entityType, entityId);
     if (tripId === undefined || !(await this.trips.findAccessible(tripId, ctx.actingUserId))) {

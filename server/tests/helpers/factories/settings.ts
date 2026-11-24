@@ -1,6 +1,7 @@
 import { Addons } from '../../../src/db/entities/Addons.entity';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { Settings } from '../../../src/db/entities/Settings.entity';
+import { TripAddonOverrides } from '../../../src/db/entities/TripAddonOverrides.entity';
 import type { FactoryOrm } from './context';
 import { findRow, upsertRow } from './rows';
 
@@ -33,10 +34,19 @@ export async function setAddonEnabled(orm: FactoryOrm, addonId: string, enabled:
   await upsertRow(orm, Addons, { id: addonId, name: addonId, type: 'global', enabled }, ['enabled']);
 }
 
-/** Collab's chat, notes, polls and next-up panels are opt-out app settings, not addon rows. */
+/**
+ * The trip owner's choice for one trip addon on one trip, the row
+ * `PUT /api/trips/:tripId/addons/:addonId` writes: on or off whatever the
+ * instance says.
+ */
+export async function setTripAddon(orm: FactoryOrm, tripId: number, addonId: string, enabled: boolean): Promise<void> {
+  await upsertRow(orm, TripAddonOverrides, { trip: tripId, addon: addonId, enabled: enabled ? 1 : 0 }, ['enabled']);
+}
+
+/** Collab's chat, notes, polls, links and next-up panels are opt-out app settings, not addon rows. */
 export async function setCollabFeature(
   orm: FactoryOrm,
-  feature: 'chat' | 'notes' | 'polls' | 'whatsnext',
+  feature: 'chat' | 'notes' | 'polls' | 'links' | 'whatsnext',
   enabled: boolean,
 ): Promise<void> {
   await setAppSetting(orm, `collab_${feature}_enabled`, enabled ? 'true' : 'false');

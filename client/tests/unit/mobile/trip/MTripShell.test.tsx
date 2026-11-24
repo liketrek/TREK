@@ -154,8 +154,8 @@ describe('MTripShell', () => {
     }
   })
 
-  it('FE-MOB-SHELL-002: the trip shows as soon as it has loaded, without the desktop splash minimum', () => {
-    renderShell({ splashDone: false } as Partial<TripPlanner>)
+  it('FE-MOB-SHELL-002: the trip shows as soon as it has loaded, whatever the desktop splash gate says', () => {
+    renderShell({ slowOpen: true } as Partial<TripPlanner>)
     expect(screen.getByTestId('map-area')).toBeInTheDocument()
   })
 
@@ -591,6 +591,15 @@ describe('MTripShell', () => {
     expect(shellApi.collabTab).toBe('polls')
     fireEvent.click(screen.getByRole('button', { name: 'collab.tabs.notes' }))
     expect(shellApi.collabTab).toBe('notes')
+  })
+
+  it('FE-MOB-SHELL-036b: a message notification opens the chat, not the collab part last open', () => {
+    const { planner, rerenderShell } = renderShell({ activeTab: 'collab' } as Partial<TripPlanner>)
+    fireEvent.click(screen.getByRole('button', { name: 'collab.tabs.notes' }))
+    expect(shellApi.collabTab).toBe('notes')
+    planner.tabLink = { tab: 'collab', seq: 1 }
+    rerenderShell()
+    expect(shellApi.collabTab).toBe('chat')
   })
 
   it('FE-MOB-SHELL-037: setTrTab from a slot routes through the planner and resets browse', () => {

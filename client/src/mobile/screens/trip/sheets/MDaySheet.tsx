@@ -111,19 +111,11 @@ export default function MDaySheet({ planner, shell }: MTripSheetsProps) {
     }
   }
 
+  // A booking opens its detail sheet, as on the desktop; its pencil edits it there.
   const openReservation = (r: Reservation) => {
     const isTransport = planner.TRANSPORT_TYPES.has(r.type)
-    if (isTransport && canEditDays) {
-      planner.setEditingTransport(r)
-      planner.setTransportModalDayId(r.day_id ?? null)
-      planner.setShowTransportModal(true)
-    } else if (!isTransport && canEditReservations) {
-      planner.setEditingReservation(r)
-      planner.setShowReservationModal(true)
-    } else {
-      return
-    }
-    shell.closeSheet()
+    if (isTransport ? !canEditDays : !canEditReservations) return
+    shell.openSheet('transport', { reservationId: r.id })
   }
 
   const planTransit = () => {

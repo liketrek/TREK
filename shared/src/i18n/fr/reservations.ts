@@ -37,7 +37,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.layover': 'Escale',
   'reservations.needsReview': 'Vérifier',
   'reservations.needsReviewHint':
-    "L'aéroport n'a pas pu être identifié automatiquement — veuillez confirmer l'emplacement.",
+    'Certaines informations ont été remplies automatiquement et n’ont pas pu être lues avec certitude. Merci de les vérifier.',
+  'reservations.reviewConfirm': 'C’est correct',
+  'reservations.reviewConfirmHint': 'Cliquez pour marquer comme vérifié.',
+  'reservations.reviewConfirmed': 'Marqué comme vérifié',
   'reservations.searchLocation': 'Rechercher une gare, un port, une adresse…',
   'reservations.meta.trainNumber': 'N° de train',
   'reservations.meta.platform': 'Quai',

@@ -5,6 +5,8 @@
 "widget.today.description" = "以時間軸顯示今天的計畫，附上天氣與下一站。";
 "widget.bookings.name" = "預訂";
 "widget.bookings.description" = "你接下來的航班、火車、飯店與餐廳，以及時間。";
+"widget.flight.name" = "航班";
+"widget.flight.description" = "即時查看下一班航班：起飛倒數、飛行中的飛機、延誤和抵達。";
 "widget.todos.name" = "待辦";
 "widget.todos.description" = "旅行還剩哪些事沒做，以及行李整理到哪一步。";
 "widget.packing.name" = "行李";

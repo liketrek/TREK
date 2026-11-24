@@ -133,14 +133,14 @@ describe('TourPackingMcp', () => {
       if (entry?.kind !== 'tool') throw new Error(`${name} is no tool`);
       return entry.options;
     };
-    const enabled = vi.spyOn(t.get(AddonsService), 'isAddonEnabled').mockResolvedValue(true);
+    const enabled = vi.spyOn(t.get(AddonsService), 'isEnabledForUserAnywhere').mockResolvedValue(true);
     const gates = ['getTourPacking', 'linkTourPacking', 'unlinkTourPacking'].map((name) => options(name).when);
     const open = () => Promise.all(gates.map((gate) => gate?.(ctx(1), mcp)));
     enabled.mockResolvedValue(true);
     expect(await open()).toEqual([true, true, true]);
-    enabled.mockImplementation(async (id: string) => id !== 'packing');
+    enabled.mockImplementation(async (_userId: number, id: string) => id !== 'packing');
     expect(await open()).toEqual([false, false, false]);
-    enabled.mockImplementation(async (id: string) => id !== 'tours');
+    enabled.mockImplementation(async (_userId: number, id: string) => id !== 'tours');
     expect(await open()).toEqual([false, false, false]);
 
     const allowed = (name: string, scopes: string[]) => {

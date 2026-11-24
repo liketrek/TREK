@@ -13,11 +13,33 @@ import java.time.LocalDate
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** The native side's own decisions, apart from the views. */
 class NativeLogicTest {
+    @Test
+    fun aRedirectAwayWhileTheServerLoadsIsTakenAsItsSignIn() {
+        val server = "https://trek.example.com"
+        // Authelia in front of the page, its check let through on /api.
+        assertEquals("auth.example.com", SignInRedirect.learnedHost(server, "https://auth.example.com/?rd=https%3A%2F%2Ftrek.example.com%2F", true, true, false))
+        assertEquals("auth.example.com:9091", SignInRedirect.learnedHost(server, "https://Auth.example.com:9091/", true, true, false))
+        // A link the user follows, a frame, or anything after the server's page has shown: the browser, as before.
+        assertNull(SignInRedirect.learnedHost(server, "https://auth.example.com/", true, false, false))
+        assertNull(SignInRedirect.learnedHost(server, "https://auth.example.com/", false, true, false))
+        assertNull(SignInRedirect.learnedHost(server, "https://auth.example.com/", true, true, true))
+        // The server's own host, another scheme, or a step down to plain http.
+        assertNull(SignInRedirect.learnedHost(server, "https://trek.example.com/login", true, true, false))
+        assertNull(SignInRedirect.learnedHost(server, "intent://auth.example.com/", true, true, false))
+        assertNull(SignInRedirect.learnedHost(server, "http://auth.example.com/", true, true, false))
+        assertEquals("auth.lan", SignInRedirect.learnedHost("http://trek.lan:3000", "http://auth.lan/", true, true, false))
+        assertNull(SignInRedirect.learnedHost(null, "https://auth.example.com/", true, true, false))
+        assertTrue(SignInRedirect.onServer(server, "https://TREK.example.com/dashboard"))
+        assertFalse(SignInRedirect.onServer(server, "https://auth.example.com/"))
+    }
+
     @Test
     fun pushesLandInTheChannelOfTheirEvent() {
         assertEquals(TrekPushService.CHANNEL_CHAT, TrekPushService.channelFor("collab_message"))

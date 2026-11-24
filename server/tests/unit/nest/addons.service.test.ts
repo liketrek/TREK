@@ -21,11 +21,13 @@
  * filter itself (the disabled row is excluded) alongside the boolean coercion
  * of the enabled row that remains.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { Addons } from '../../../src/db/entities/Addons.entity';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { PhotoProviderFields } from '../../../src/db/entities/PhotoProviderFields.entity';
 import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
 import { PlaceShadowPicks } from '../../../src/db/entities/PlaceShadowPicks.entity';
+import { TripAddonOverrides } from '../../../src/db/entities/TripAddonOverrides.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import type { AddonsRepository } from '../../../src/db/repositories/Addons.repository';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
@@ -195,7 +197,8 @@ beforeEach(() => {
     photoProviderFieldsRepo,
     appSettingsRepo,
     usersRepo,
-    new UnitOfWork(t.em),
+    new UnitOfWork(t.em, new SqliteEngine()),
+    t.repo(TripAddonOverrides),
   );
 });
 
@@ -434,6 +437,22 @@ describe('AddonsService addon/feature flags', () => {
     expect((await svc.list()).toursWanderer).toBe(false);
   });
 
+  it('the wanderer sub-option alone ignores the Tours switch, which a trip may decide for itself', async () => {
+    expect(await svc.isWandererAllowed()).toBe(false); // absent row: OFF
+    await svc.updateToursWanderer(true);
+    // Tours is off for the instance, yet the option holds wherever a trip switched Tours on.
+    expect(await svc.isWandererAllowed()).toBe(true);
+    expect(await svc.isWandererAvailable()).toBe(false);
+    const saved = process.env.TREK_MANAGED;
+    try {
+      process.env.TREK_MANAGED = '1';
+      expect(await svc.isWandererAllowed()).toBe(false);
+    } finally {
+      if (saved === undefined) delete process.env.TREK_MANAGED;
+      else process.env.TREK_MANAGED = saved;
+    }
+  });
+
   it('wanderer is never available on a managed install, whatever the stored switch says', async () => {
     const saved = process.env.TREK_MANAGED;
     try {
@@ -478,6 +497,16 @@ describe('AddonsService addon/feature flags', () => {
     expect((await svc.list()).toursCycleMap).toBe(false);
     // The two maps are switched apart.
     expect((await svc.list()).toursHikingMap).toBe(true);
+  });
+
+  it('lists the Tours options apart from the instance Tours switch, for a trip that switched Tours on itself', async () => {
+    // Tours is off for the instance: the combined flags say no, the options say what the admin chose.
+    expect((await svc.list()).toursOptions).toEqual({ wanderer: false, hikingMap: true, cycleMap: true });
+    expect((await svc.list()).toursHikingMap).toBe(false);
+    await svc.updateToursWanderer(true);
+    await svc.updateToursCycleMap(false);
+    expect((await svc.list()).toursOptions).toEqual({ wanderer: true, hikingMap: true, cycleMap: false });
+    expect((await svc.list()).toursWanderer).toBe(false);
   });
 
   it('the piste router under Tours is on until an admin switches it off', async () => {

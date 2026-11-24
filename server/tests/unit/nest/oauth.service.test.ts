@@ -11,6 +11,7 @@
 import { ADDON_IDS } from '../../../src/addons';
 import { getMcpSafeUrl } from '../../../src/app-config';
 import { db as testDb } from '../../../src/db/database';
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { OauthClients } from '../../../src/db/entities/OauthClients.entity';
 import { OauthConsents } from '../../../src/db/entities/OauthConsents.entity';
@@ -132,7 +133,7 @@ beforeAll(async () => {
     consentsRepo,
     addonsStub,
     new AuditService(auditLogRepo, usersRepo),
-    new UnitOfWork(t.em),
+    new UnitOfWork(t.em, new SqliteEngine()),
     cimdStub,
   );
 });
@@ -1446,7 +1447,7 @@ describe('module-scoped OAuth state', () => {
       consentsRepo,
       addonsStub,
       new AuditService(auditLogRepo, usersRepo),
-      new UnitOfWork(t.em),
+      new UnitOfWork(t.em, new SqliteEngine()),
       cimdStub,
     );
     expect((await secondInstance.consumeAuthCode(code))?.userId).toBe(42);

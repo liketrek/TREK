@@ -2,12 +2,13 @@
  * Unit tests for the search_places_via_plugins MCP tool (src/nest/plugins/
  * contributions/plugin-search.mcp.ts), the MCP counterpart of GET /api/plugin-search.
  */
-import { db as testDb } from '../../../src/db/database';
 import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import { createUser } from '../../helpers/factories';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -15,10 +16,6 @@ const { pluginsEnabled } = vi.hoisted(() => ({
   pluginsEnabled: vi.fn(() => true),
 }));
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 // The admin kill switch reads live env; drive it from the test instead of the process.
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
@@ -28,16 +25,22 @@ const broadcastMock = realtime.broadcastMock;
 const providersOfMock = vi.spyOn(PluginHooks.prototype, 'providersOf');
 const searchPlacesMock = vi.spyOn(PluginHooks.prototype, 'searchPlaces');
 
-beforeEach(() => {
-  resetTestDb(testDb);
+let orm: MikroORM;
+
+beforeAll(async () => {
+  orm = (await bootTestApp(realtime)).get(MikroORM);
+});
+
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastMock.mockClear();
   pluginsEnabled.mockReturnValue(true);
   providersOfMock.mockReset().mockReturnValue([]);
   searchPlacesMock.mockReset().mockResolvedValue([]);
 });
 
-afterAll(() => {
-  testDb.close();
+afterAll(async () => {
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -58,7 +61,7 @@ const call = async (h: McpHarness, args: Record<string, unknown>) =>
 
 describe('Tool: search_places_via_plugins', () => {
   it('returns what the providers found, with the rating open data cannot carry', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     providersOfMock.mockReturnValue(['guide']);
     searchPlacesMock.mockResolvedValue([
       { id: 'h1', name: 'Hotel Bellevue', lat: 46.5, lng: 6.6, rating: 4.6, address: 'Lakeside 1' },
@@ -84,7 +87,7 @@ describe('Tool: search_places_via_plugins', () => {
   });
 
   it('passes the bias and the limit through, and refuses a coordinate off the globe', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     providersOfMock.mockReturnValue(['guide']);
 
     await withHarness(user.id, async (h) => {
@@ -106,7 +109,7 @@ describe('Tool: search_places_via_plugins', () => {
   });
 
   it('answers with an empty list when no plugin provides an index, without asking one', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const payload = parseToolResult(await call(h, { query: 'hotel' })) as PlacesPayload;
       expect(payload.places).toEqual([]);
@@ -115,7 +118,7 @@ describe('Tool: search_places_via_plugins', () => {
   });
 
   it('answers with an empty list while the plugin runtime is switched off', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     pluginsEnabled.mockReturnValue(false);
     providersOfMock.mockReturnValue(['guide']);
 
@@ -127,7 +130,7 @@ describe('Tool: search_places_via_plugins', () => {
   });
 
   it('skips a provider that fails and still returns the other one', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     providersOfMock.mockReturnValue(['broken', 'guide']);
     searchPlacesMock.mockImplementation(async (pluginId: string) => {
       if (pluginId === 'broken') throw new Error('timed out');

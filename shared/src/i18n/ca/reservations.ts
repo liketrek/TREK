@@ -119,7 +119,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.layover': 'Escala',
   'reservations.needsReview': 'Revisa',
   'reservations.needsReviewHint':
-    "No s'ha pogut identificar l'aeroport automàticament — si us plau, confirma la ubicació.",
+    'Algunes dades s’han emplenat automàticament i no s’han pogut llegir amb seguretat. Si us plau, revisa-les.',
+  'reservations.reviewConfirm': 'És correcte',
+  'reservations.reviewConfirmHint': 'Fes clic per marcar-ho com a revisat.',
+  'reservations.reviewConfirmed': 'Marcat com a revisat',
   'reservations.searchLocation': 'Cerca estació, port, adreça...',
   'reservations.meta.trainNumber': 'Núm. de tren',
   'reservations.meta.platform': 'Andana',

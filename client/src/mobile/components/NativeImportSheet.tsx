@@ -6,16 +6,21 @@
  * A web page or a link is asked about first: kept among the trip's links
  * (Collaboration, Links), or read as a booking. A bare link, whose page the phone
  * could not read, can only be kept; with Collaboration off, a page can only be read.
+ * Collaboration counts per trip: a link goes only to a trip that has it on.
  */
 import { ChevronRight, FileText, Link2, ScanText } from 'lucide-react';
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
+import { useShallow } from 'zustand/react/shallow';
 import { useToast } from '../../components/shared/Toast';
 import { useTranslation } from '../../i18n';
 import { saveSharedLink, useSharedImportStore, type SharedLink } from '../../native/sharedFiles';
 import { tripRepo } from '../../repo/tripRepo';
 import { useAddonStore } from '../../store/addonStore';
+import { tripAddonsEntry, useTripAddonsStore } from '../../store/tripAddonsStore';
+import { getApiErrorMessage } from '../../utils/apiError';
 import { offlineOr } from '../../utils/needsConnection';
+import { tripAddonEnabled } from '../../utils/tripAddons';
 import { TileHeader } from '../screens/trip/sheets/MTripSheetUi';
 import MSheet from './MSheet';
 
@@ -43,11 +48,14 @@ interface StageInput {
   picked: LinkChoice | null;
   /** The share sheet's trip could not take the link: the trips are offered after all. */
   presetFailed: boolean;
+  /** Whether the trips and their Collaboration are read, so what a link may be for is known. */
+  settled: boolean;
 }
 
 /** Where the sheet stands for the shared item: what it asks, and what a tap on a trip does. */
-function stageOf({ file, link, collabOn, picked, presetFailed }: StageInput) {
+function stageOf({ file, link, collabOn, picked, presetFailed, settled }: StageInput) {
   if (!file || !link) return { choice: 'booking' as LinkChoice | null, asking: false, nowhere: false, showTrips: true };
+  if (!settled) return { choice: null, asking: false, nowhere: false, showTrips: false };
   const choices = linkChoicesOf(file, collabOn);
   const choice = picked ?? (choices.length === 1 ? choices[0] : null);
   const asking = choice == null && choices.length > 1;
@@ -62,11 +70,14 @@ function sheetTitle(t: (key: string) => string, asking: boolean, choice: LinkCho
   return choice === 'link' ? t('native.share.linkTrip') : t('native.share.title');
 }
 
-/** The trips to choose from, those still ahead first. */
-function useTripRows(open: boolean): TripRow[] {
-  const [trips, setTrips] = useState<TripRow[]>([]);
+const NO_TRIPS: TripRow[] = [];
+
+/** The trips to choose from, those still ahead first, and whether they are read yet. */
+function useTripRows(open: boolean): { trips: TripRow[]; loaded: boolean } {
+  const [rows, setRows] = useState<{ trips: TripRow[]; loaded: boolean }>({ trips: NO_TRIPS, loaded: false });
   useEffect(() => {
     if (!open) return;
+    let live = true;
     tripRepo.list().then(
       (data: { trips?: TripRow[] }) => {
         const today = new Date().toISOString().slice(0, 10);
@@ -75,12 +86,60 @@ function useTripRows(open: boolean): TripRow[] {
         list.sort(
           (a, b) => Number(ahead(b)) - Number(ahead(a)) || (a.start_date ?? '').localeCompare(b.start_date ?? '')
         );
-        setTrips(list);
+        if (live) setRows({ trips: list, loaded: true });
       },
-      () => setTrips([])
+      () => {
+        if (live) setRows({ trips: NO_TRIPS, loaded: true });
+      }
     );
+    return () => {
+      live = false;
+      setRows({ trips: NO_TRIPS, loaded: false });
+    };
   }, [open]);
-  return trips;
+  return rows;
+}
+
+const NOTHING_READ: ReadonlySet<number> = new Set();
+
+/**
+ * The trips a shared link may go to: those with Collaboration on, each by its
+ * own list (the owner's choice, else the instance switch). Every trip's list is
+ * read again once the sheet opens for a link, since a change made on a trip that
+ * is not open here never reaches this device, so a trip that switched
+ * Collaboration on is offered while the instance has it off, and one that
+ * switched it off is not. `settled` once each of those reads answered or failed;
+ * a later reload, a sync say, keeps the list held meanwhile and settles nothing again.
+ */
+function useCollabTrips(trips: TripRow[], active: boolean): { collabTrips: TripRow[]; settled: boolean } {
+  const instanceOn = useAddonStore((s) => s.isEnabled('collab'));
+  const load = useTripAddonsStore((s) => s.load);
+  const [read, setRead] = useState(NOTHING_READ);
+  useEffect(() => {
+    if (!active) return;
+    let live = true;
+    trips.forEach((trip) => {
+      void load(trip.id).then(() => {
+        if (live) setRead((done) => new Set(done).add(trip.id));
+      });
+    });
+    return () => {
+      live = false;
+      setRead(NOTHING_READ);
+    };
+  }, [active, trips, load]);
+  const states = useTripAddonsStore(
+    useShallow((state) =>
+      trips.map((trip) => {
+        if (!read.has(trip.id)) return 'waiting';
+        return tripAddonEnabled(tripAddonsEntry(state, trip.id)?.addons, 'collab', instanceOn) ? 'on' : 'off';
+      })
+    )
+  );
+  return {
+    collabTrips: trips.filter((_trip, i) => states[i] === 'on'),
+    settled: states.every((state) => state !== 'waiting'),
+  };
 }
 
 export default function NativeImportSheet(): React.ReactElement | null {
@@ -93,7 +152,12 @@ export default function NativeImportSheet(): React.ReactElement | null {
   const link = useSharedImportStore((s) => s.link);
   const chooseTrip = useSharedImportStore((s) => s.chooseTrip);
   const setFile = useSharedImportStore((s) => s.setFile);
-  const collabOn = useAddonStore((s) => s.isEnabled('collab'));
+  const instanceCollab = useAddonStore((s) => s.isEnabled('collab'));
+  const open = !!file && tripId == null;
+  const { trips, loaded: tripsLoaded } = useTripRows(open);
+  const { collabTrips, settled } = useCollabTrips(trips, open && !!link);
+  // Without a trip of its own to ask, the instance switch decides, as it always did.
+  const collabOn = trips.length === 0 ? instanceCollab : collabTrips.length > 0;
   // Both belong to the item they were made for, so a newly shared one starts afresh.
   const [pick, setPick] = useState<{ file: File; choice: LinkChoice } | null>(null);
   const [failedFile, setFailedFile] = useState<File | null>(null);
@@ -106,9 +170,8 @@ export default function NativeImportSheet(): React.ReactElement | null {
     collabOn,
     picked,
     presetFailed: failedFile != null && failedFile === file,
+    settled: tripsLoaded && settled,
   });
-  const open = !!file && tripId == null;
-  const trips = useTripRows(open);
 
   // Once a trip is picked (here, or in the share sheet before the app opened), go to
   // it; its planner opens the booking import with the file (MTripShell).
@@ -126,8 +189,9 @@ export default function NativeImportSheet(): React.ReactElement | null {
         setFile(null);
         void navigate(`/trips/${id}?tab=collab`);
       },
-      () => {
-        toast.error(offlineOr(t, t('common.error')));
+      (err: unknown) => {
+        // The server says why, such as a trip that has Collaboration off.
+        toast.error(offlineOr(t, getApiErrorMessage(err, t('common.error'))));
         savingRef.current = null;
         setFailedFile(file);
       }
@@ -138,7 +202,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
   const preset = link?.presetTripId ?? null;
   const applyPreset = useEffectEvent((id: number, use: LinkChoice) => {
     if (use === 'booking') chooseTrip(id);
-    else saveLink(id);
+    else if (failedFile !== file) saveLink(id);
   });
   useEffect(() => {
     if (preset != null && choice != null && file) applyPreset(preset, choice);
@@ -164,7 +228,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
             {t('native.share.linkUnsupported')}
           </p>
         )}
-        {showTrips && <TripPicker trips={trips} onPick={pickTrip} />}
+        {showTrips && <TripPicker trips={choice === 'link' ? collabTrips : trips} onPick={pickTrip} />}
       </div>
     </MSheet>
   );

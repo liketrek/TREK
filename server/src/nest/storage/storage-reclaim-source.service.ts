@@ -1,3 +1,4 @@
+import { lower } from '../../db/dialect/sql-functions';
 import { logWarn } from '../audit/audit-log.logger';
 import { StorageReclaimRegistryService } from './storage-reclaim-registry.service';
 import {
@@ -10,7 +11,7 @@ import {
   type StorageReferenceSourceId,
 } from './storage-reclaim.types';
 import type { ServedCategory } from './storage.types';
-import { EntityManager, type FilterQuery } from '@mikro-orm/core';
+import { EntityManager, type FilterQuery, type Platform } from '@mikro-orm/core';
 import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
 
 /**
@@ -29,7 +30,7 @@ import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
  * - `namedKeys` reads every value once for one category, fresh, for the
  *   question a pass asks right before it deletes;
  * - `referenced` reads only the rows whose value holds one of the keys' plain
- *   runs (`keySearchCore`, a `LIKE '%run%'` each, at most MAX_LIKE_TERMS per
+ *   runs (`keySearchCore`, a `LOWER(col) LIKE '%run%'` each, at most MAX_LIKE_TERMS per
  *   query, as many queries as the keys need), for the release queue. A key
  *   with no such run is answered from one whole read; the release queue never
  *   asks about such a key, it leaves it to the nightly pass.
@@ -113,17 +114,23 @@ const RUNS_PER_QUERY = 25;
  * The filter a source narrows its columns with: rows where one of `fields`
  * holds one of the runs, or every row where one of them is set when there are
  * none to narrow by. The runs are `[a-z0-9-]` only, so they need no LIKE
- * escaping; SQLite's LIKE ignores ASCII case, as the parser does. A filter
- * past MAX_LIKE_TERMS is refused rather than handed to SQLite.
+ * escaping. They are lowercase (`keySearchCore`), and the parser ignores case,
+ * so the column is lowercased before it is matched: `LOWER(col) LIKE '%run%'`
+ * finds a key spelled in any case on both engines, where a bare LIKE ignores
+ * ASCII case on SQLite only and would miss an uppercase spelling on Postgres,
+ * whose object the release would then delete. A filter past MAX_LIKE_TERMS is
+ * refused rather than handed to the database.
  */
 export function likeAny<T>(
+  platform: Platform,
   fields: ReadonlyArray<keyof T & string>,
   containing: readonly string[] | null,
 ): FilterQuery<T> {
   const terms =
     containing === null
       ? fields.map((field) => ({ [field]: { $ne: null } }))
-      : fields.flatMap((field) => containing.map((run) => ({ [field]: { $like: `%${run}%` } })));
+      : // like-exact: the column is lowercased and the runs are lowercase, so the match ignores case on both engines.
+        fields.flatMap((field) => containing.map((run) => ({ [lower(platform, field)]: { $like: `%${run}%` } })));
   if (terms.length > MAX_LIKE_TERMS) {
     logWarn(`[storage] a reference lookup asked for ${terms.length} LIKE terms, more than ${MAX_LIKE_TERMS}`);
     throw new Error(`a reference lookup may hold at most ${MAX_LIKE_TERMS} LIKE terms`);

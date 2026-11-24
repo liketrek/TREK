@@ -29,6 +29,13 @@ interface KeyboardEvents {
 /** The pane given room for the keyboard, and what its bottom padding was before. */
 let padded: { pane: HTMLElement; before: string } | null = null;
 
+/**
+ * The room at the end of a page that scrolls in no pane of its own, such as the
+ * login: as tall as the screen, it has nothing to scroll by, and padding on the
+ * body does not help while the keyboard plugin holds the body's height.
+ */
+let pageRoom: HTMLElement | null = null;
+
 function scrollingPane(field: HTMLElement): HTMLElement | null {
   for (let node = field.parentElement; node; node = node.parentElement) {
     const overflow = getComputedStyle(node).overflowY;
@@ -48,7 +55,14 @@ export function revealFocusedField(keyboardHeight: number, doc: Document = docum
 
   const pane = scrollingPane(field);
   if (!pane) {
-    field.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    if (!pageRoom) {
+      releaseRoom();
+      pageRoom = doc.createElement('div');
+      pageRoom.setAttribute('aria-hidden', 'true');
+      pageRoom.style.height = `${keyboardHeight}px`;
+      doc.body.appendChild(pageRoom);
+    }
+    view?.scrollBy({ top: box.bottom - (visibleBottom - AIR), behavior: 'smooth' });
     return;
   }
   if (!padded || padded.pane !== pane) {
@@ -61,13 +75,52 @@ export function revealFocusedField(keyboardHeight: number, doc: Document = docum
 
 /** Takes the room for the keyboard away again. */
 export function releaseRoom(): void {
+  pageRoom?.remove();
+  pageRoom = null;
   if (!padded) return;
   padded.pane.style.paddingBottom = padded.before;
   padded = null;
 }
 
+/**
+ * While the keyboard is up, a field can still move under it without a new
+ * keyboard event: a list that keeps its entry field open after Enter grows the
+ * new row above the field and pushes it down. Any change to the page while the
+ * keyboard is up asks again, at most once a frame, and a field still in view
+ * stays where it is.
+ */
+let watching: { observer: MutationObserver; view: Window; frame: number } | null = null;
+
+function watchWhileTyping(keyboardHeight: number, doc: Document): void {
+  stopWatching();
+  const view = doc.defaultView;
+  if (!view || typeof view.MutationObserver !== 'function') return;
+  const observer = new view.MutationObserver(() => {
+    if (!watching || watching.frame) return;
+    watching.frame = view.requestAnimationFrame(() => {
+      if (watching) watching.frame = 0;
+      revealFocusedField(keyboardHeight, doc);
+    });
+  });
+  watching = { observer, view, frame: 0 };
+  observer.observe(doc.body, { childList: true, subtree: true });
+}
+
+function stopWatching(): void {
+  if (!watching) return;
+  watching.observer.disconnect();
+  if (watching.frame) watching.view.cancelAnimationFrame(watching.frame);
+  watching = null;
+}
+
 /** Wires it to the keyboard of the app. */
-export function keepFieldInView(keyboard: KeyboardEvents): void {
-  void keyboard.addListener('keyboardDidShow', ({ keyboardHeight }) => revealFocusedField(keyboardHeight));
-  void keyboard.addListener('keyboardWillHide', () => releaseRoom());
+export function keepFieldInView(keyboard: KeyboardEvents, doc: Document = document): void {
+  void keyboard.addListener('keyboardDidShow', ({ keyboardHeight }) => {
+    revealFocusedField(keyboardHeight, doc);
+    watchWhileTyping(keyboardHeight, doc);
+  });
+  void keyboard.addListener('keyboardWillHide', () => {
+    stopWatching();
+    releaseRoom();
+  });
 }

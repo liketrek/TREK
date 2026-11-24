@@ -38,6 +38,9 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'עדיפות',
   'todo.detail.noPriority': 'ללא',
   'todo.detail.create': 'יצירת משימה',
+  'todo.progressCount': '{done} מתוך {total} הושלמו',
+  'todo.allDone': 'הכול הושלם!',
+  'todo.filter.myShort': 'שלי',
 };
 
 export default todo;

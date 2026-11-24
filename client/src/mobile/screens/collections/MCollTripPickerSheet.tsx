@@ -3,6 +3,7 @@ import type { TranslationFn } from '../../../types'
 import { useTripCopyPicker } from '../../../components/Collections/useTripCopyPicker'
 import MSheet from '../../components/MSheet'
 import { SheetHeader } from './MCollSheetKit'
+import MSkeleton from '../../components/MSkeleton'
 
 interface MCollTripPickerSheetProps {
   open: boolean
@@ -32,14 +33,12 @@ export default function MCollTripPickerSheet({ open, count, onCopy, onClose, t }
           <input
             value={search}
             onChange={e => setSearch(e.target.value)}
-            placeholder={t('collections.copyToTripSearch')}
+            enterKeyHint="search" placeholder={t('collections.copyToTripSearch')}
             className="min-w-0 flex-1 bg-transparent font-geist text-[0.78125rem] text-m-ink outline-none placeholder:text-m-faint"
           />
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-10 text-m-faint">
-            <Loader2 size={20} className="animate-spin" />
-          </div>
+          <MSkeleton variant="rows" count={4} />
         ) : filtered.length === 0 ? (
           <div className="py-10 text-center font-geist text-[0.78125rem] text-m-faint">{t('collections.noTrips')}</div>
         ) : (

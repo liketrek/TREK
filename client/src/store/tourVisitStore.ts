@@ -3,7 +3,7 @@ import { create } from 'zustand';
 import { addListener, removeListener } from '../api/websocket';
 import { tourVisitRepo } from '../repo/tourVisitRepo';
 import type { WebSocketEvent } from '../types';
-import { useAddonStore } from './addonStore';
+import { tripAddonEnabledNow } from './tripAddonsStore';
 
 /** A station's status on one day of its walk; a station not listed is planned. */
 export type VisitsByStation = Readonly<Record<string, TourVisitStatus>>;
@@ -94,7 +94,7 @@ export const useTourVisitStore = create<TourVisitState>((set, get) => ({
  */
 export function reloadTourVisits(tripId: number | string): void {
   const key = String(tripId);
-  if (useTourVisitStore.getState().tripId !== key || !useAddonStore.getState().isEnabled('tours')) return;
+  if (useTourVisitStore.getState().tripId !== key || !tripAddonEnabledNow(Number(tripId), 'tours')) return;
   useTourVisitStore
     .getState()
     .load(tripId)

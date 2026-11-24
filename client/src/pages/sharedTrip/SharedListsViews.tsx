@@ -56,7 +56,7 @@ export function SharedPackingView({ items }: { items: PackingItem[] }) {
                     {item.checked
                       ? <CheckCircle2 size={17} strokeWidth={2} className="flex-none text-success" aria-hidden />
                       : <Circle size={17} strokeWidth={2} className="flex-none text-content-faint" aria-hidden />}
-                    <span className={`min-w-0 flex-1 ${item.checked ? 'text-content-faint line-through' : 'text-content'}`} style={fs(13, 'body')}>{item.name}</span>
+                    <span className={`min-w-0 flex-1 [overflow-wrap:anywhere] ${item.checked ? 'text-content-faint line-through' : 'text-content'}`} style={fs(13, 'body')}>{item.name}</span>
                     {(item.quantity ?? 1) > 1 && <span className="font-geist font-semibold tabular-nums text-content-faint" style={fs(11)}>×{item.quantity}</span>}
                   </li>
                 ))}
@@ -145,7 +145,7 @@ export function SharedCostsView({ items, base, tripCurrency, convert }: CostsPro
                 return (
                   <li key={item.id} className="flex items-center gap-3 px-4 py-2.5">
                     <div className="min-w-0 flex-1">
-                      <div className="text-content" style={fs(13, 'body')}>{item.name}</div>
+                      <div className="text-content [overflow-wrap:anywhere]" style={fs(13, 'body')}>{item.name}</div>
                       {entered && <div className="font-geist tabular-nums text-content-faint" style={fs(11)}>{entered}</div>}
                     </div>
                     {!!item.total_price && <span className="font-geist font-semibold tabular-nums text-content" style={fs(13, 'body')}>{money(valueOf(item))}</span>}

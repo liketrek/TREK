@@ -12,6 +12,7 @@ import { Trips } from '../../../src/db/entities/Trips.entity';
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import type { TodoItemsRepository } from '../../../src/db/repositories/TodoItems.repository';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import type { NotificationsService } from '../../../src/nest/notifications/notifications.service';
 import { ReminderJobsService } from '../../../src/nest/notifications/reminder-jobs.service';
 import type { CronRegistrarService } from '../../../src/nest/scheduling/cron-registrar.service';
@@ -23,7 +24,9 @@ import {
   setNotificationChannels,
 } from '../../helpers/factories';
 import { findRow, updateRows } from '../../helpers/factories/rows';
+import { setTripAddon } from '../../helpers/factories/settings';
 import { notificationsStub } from '../../helpers/notifications';
+import { createTestAddonsService } from '../../helpers/test-addons';
 import { createTestAppSettingsRepo, createTestTripsRepo } from '../../helpers/test-uow';
 import { sharedTestOrm } from '../../helpers/test-uow';
 import { createTestTodoItemsRepo } from '../../helpers/todo-repos';
@@ -69,6 +72,7 @@ interface Registered {
 let appSettingsRepo: AppSettingsRepository;
 let tripsRepo: TripsRepository;
 let todoItemsRepo: TodoItemsRepository;
+let addonsSvc: AddonsService;
 
 function makeJobs(overrides: { notifications?: NotificationsService } = {}) {
   const registered: Registered[] = [];
@@ -94,6 +98,7 @@ function makeJobs(overrides: { notifications?: NotificationsService } = {}) {
     todoItemsRepo,
     overrides.notifications ?? notificationsStub(send),
     registrar as unknown as CronRegistrarService,
+    addonsSvc,
   );
   return { svc, registered, registrar, send };
 }
@@ -122,6 +127,7 @@ beforeAll(async () => {
   appSettingsRepo = await createTestAppSettingsRepo(testDb);
   tripsRepo = await createTestTripsRepo(testDb);
   todoItemsRepo = await createTestTodoItemsRepo(testDb);
+  addonsSvc = await createTestAddonsService(testDb);
 });
 
 beforeEach(() => {
@@ -255,6 +261,7 @@ describe('trip reminder tick', () => {
       { listDueForReminder: throwGone, claimReminder: throwGone } as unknown as TodoItemsRepository,
       broken,
       { isEnabled: () => true, register: () => true, unregister: () => {} } as unknown as CronRegistrarService,
+      addonsSvc,
     );
     await expect(svc.tripTick()).resolves.toBeUndefined();
     expect(logMock.logError).toHaveBeenCalledWith('Trip reminder check failed: db gone');
@@ -345,6 +352,19 @@ describe('todo reminder tick', () => {
     send.mockClear();
     await svc.todoTick();
     expect(send).not.toHaveBeenCalled();
+  });
+
+  it('RJOB-018: a trip that has Lists off is reminded of no todo, and the todo stays unclaimed', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Porto' });
+    const todo = createTodoItem(testDb, trip.id, { name: 'Book ferry' });
+    await setTodo(todo.id, { due_date: dayFromToday(1) });
+    await setTripAddon(await orm(), trip.id, 'packing', false);
+
+    const { svc, send } = makeJobs();
+    await svc.todoTick();
+    expect(send).not.toHaveBeenCalled();
+    expect(await remindedAtOf(todo.id)).toBeNull();
   });
 
   it('RJOB-009 — an assigned todo notifies the assignee (user scope)', async () => {

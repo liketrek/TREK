@@ -1,31 +1,36 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
+import { selectionHaptic } from '../../../../native/haptics'
 import type { LucideIcon } from 'lucide-react'
 import {
-  Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, HandHelping, Minus,
-  Download, FileSpreadsheet, FileText, LayoutTemplate, MoreHorizontal, Package, Pencil, Plus, Printer, RotateCcw, Save as SaveIcon,
-  Trash2, UserPlus, UserRound,
+  Briefcase, Check, CheckCheck, ChevronDown, ChevronUp, EyeOff, HandHelping,
+  Download, FileSpreadsheet, FileText, LayoutTemplate, ListPlus, MoreHorizontal, Package, Pencil, Plus, Printer, RotateCcw,
+  Save as SaveIcon, Share2, Trash2, UserRound, X,
 } from 'lucide-react'
 import MDancingTrek from '../../../components/MDancingTrek'
+import MSwipeRow, { type SwipeAction } from '../../../components/MSwipeRow'
+import MSheet from '../../../components/MSheet'
 import { useAuthStore } from '../../../../store/authStore'
 import { useAddonStore } from '../../../../store/addonStore'
-import type { PackingBag, PackingItem, TripMember } from '../../../../types'
+import type { PackingItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import MConfirmSheet from '../../settings/MConfirmSheet'
-import { FIELD_CLS } from '../sheets/PlSheetChrome'
+import { FIELD_CLS, FormSheetBody, FormSheetHeader } from '../sheets/PlSheetChrome'
 import { TabScroller } from './tabChrome'
 import { katColor, packedOf } from '../../../../components/Packing/packingListPanel.helpers'
 import {
-  formatWeight, groupPackingItems, isPackingPlaceholder,
+  groupPackingItems, isPackingPlaceholder,
   packingCategoryOrder, packingProgress, packingViewItems,
-  type PackingCategoryGroup, type PackingStatusFilter, type PackingView,
+  type PackingCategoryGroup, type PackingView,
 } from '../../../../components/Packing/packingListModel'
 import { usePackingBags } from '../../../../components/Packing/usePackingBags'
 import { usePackingTemplates } from '../../../../components/Packing/usePackingTemplates'
 import { usePackingCategoryAssignees, type CategoryAssignee } from '../../../../components/Packing/usePackingCategoryAssignees'
 import { usePackingItemActions } from '../../../../components/Packing/usePackingItemActions'
+import { usePackingCategorySharing } from '../../../../components/Packing/usePackingCategorySharing'
 import MBagsSheet from './MBagsSheet'
 import MPackItemSheet from './MPackItemSheet'
 import MPackingImportSheet from './MPackingImportSheet'
+import MPackingCategorySharingSheet from './MPackingCategorySharingSheet'
 import PackingPrintPreview from '../../../../components/Packing/PackingPrintPreview'
 import { usePackingExport } from '../../../../components/Packing/usePackingExport'
 import { packingBringerNames } from '../../../../components/Packing/packingBringers'
@@ -33,11 +38,11 @@ import { packingBringerNames } from '../../../../components/Packing/packingBring
 type ActionView = 'menu' | 'apply' | 'save'
 
 /**
- * Packing sub-tab (spec 03 §4.1-4.4): progress card, action menu (remove
- * checked / apply+save template / import), Shared|My-list + All|Open|Done
- * filters, and the category cards. Category-level state (rename/menu/assign/
- * add-item, bag picker) lives inside the row components below, mirroring how
- * the desktop `KategorieGruppe`/`ArtikelZeile` keep it local too.
+ * Packing sub-tab, shaped like the desktop list: a progress card with one "..."
+ * that opens every rarely used action in a sheet, the Shared | My list switch,
+ * and the category cards. A row shows its box, its name and only what is set;
+ * a tap on the name opens the item sheet with everything else, and a list's own
+ * actions open from its "..." as a sheet too, so nothing unfolds inside the page.
  */
 export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const { t, toast, tripId, packingItems: items, tripActions } = planner
@@ -50,10 +55,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
 
   const [view, setView] = useState<PackingView>('common')
   const packingExport = usePackingExport(tripId, view)
-  // Exporting changes nothing, so the menu is there for anyone with a list to take along.
-  const hasActions = canEdit || packingExport.hasItems
-  const [statusFilter, setStatusFilter] = useState<PackingStatusFilter>('all')
-  const [editMode, setEditMode] = useState(false)
+  const [hideDone, setHideDone] = useState(false)
   const [actionsOpen, setActionsOpen] = useState(false)
   const [actionView, setActionView] = useState<ActionView>('menu')
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({})
@@ -61,6 +63,8 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const [showBagsSheet, setShowBagsSheet] = useState(false)
   const [showImportSheet, setShowImportSheet] = useState(false)
   const [confirmClear, setConfirmClear] = useState(false)
+  const [menuCategory, setMenuCategory] = useState<string | null>(null)
+  const [renamingCategory, setRenamingCategory] = useState<string | null>(null)
   const [deleteCategoryTarget, setDeleteCategoryTarget] = useState<{ name: string; items: PackingItem[] } | null>(null)
 
   const closeActions = () => {
@@ -76,7 +80,7 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   const defaultCategory = t('packing.defaultCategory')
   const viewItems = useMemo(() => packingViewItems(items, view), [items, view])
   const categoryOrder = useMemo(() => packingCategoryOrder(viewItems, defaultCategory), [viewItems, defaultCategory])
-  const groups = useMemo(() => groupPackingItems(viewItems, statusFilter, defaultCategory), [viewItems, statusFilter, defaultCategory])
+  const groups = useMemo(() => groupPackingItems(viewItems, hideDone ? 'open' : 'all', defaultCategory), [viewItems, hideDone, defaultCategory])
   const progress = packingProgress(viewItems)
   const checkedCount = viewItems.filter(i => i.checked).length
 
@@ -88,137 +92,221 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
     actions: tripActions, t, toast, placeholderFrom: 'items',
   })
 
+  // A whole list to one sharing tier (#2961), the same hook as the desktop dialog.
+  const categorySharing = usePackingCategorySharing({
+    tripId, items, view, defaultCategory, currentUserId,
+    setPackingItemSharing: tripActions.setPackingItemSharing, t, toast,
+  })
+
   const toggleCategory = (cat: string) => setCollapsed(c => ({ ...c, [cat]: !c[cat] }))
-
-  const checkAllInCategory = async (catItems: PackingItem[]) => {
+  const setAllInCategory = async (catItems: PackingItem[], checked: boolean) => {
     try {
-      for (const item of catItems) if (!item.checked) await tripActions.togglePackingItem(tripId, item.id, true)
+      for (const item of catItems) if (!!item.checked !== checked) await tripActions.togglePackingItem(tripId, item.id, checked)
     } catch {
       toast.error(t('packing.toast.saveError'))
     }
   }
-  const uncheckAllInCategory = async (catItems: PackingItem[]) => {
-    try {
-      for (const item of catItems) if (item.checked) await tripActions.togglePackingItem(tripId, item.id, false)
-    } catch {
-      toast.error(t('packing.toast.saveError'))
-    }
-  }
-
-  // Two switches, each a segmented control of its own on its own track: whose
-  // list, and which items. As five loose pills in one row with two of them lit,
-  // they read as one control with two answers.
-  const filterTrackCls = 'flex min-w-0 gap-[2px] rounded-full bg-[color:var(--m-ic)] p-[3px] wide:flex-none'
-  const filterPillCls = (active: boolean) =>
-    `flex-1 whitespace-nowrap rounded-full px-2 py-[5px] text-center text-[0.71875rem] font-semibold wide:flex-none wide:px-[14px] ${
-      active ? 'bg-m-act text-m-actfg' : 'text-m-ink'
-    }`
 
   const trueEmpty = items.length === 0
   const viewEmpty = viewItems.length === 0
+  const menuGroup = menuCategory != null ? groups.find(g => g.category === menuCategory) : undefined
+  const run = (action: () => void) => () => { closeActions(); action() }
 
   return (
     <TabScroller wide="full">
-      {/* ── Progress card (spec §4.1) ── */}
-      <div className="rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop px-[14px] py-[13px]">
-        <div className="flex items-baseline gap-[7px]">
-          <span className="font-geist text-[1rem] font-extrabold tabular-nums text-m-ink">{progress.checked}/{progress.total}</span>
-          <span className="font-geist text-[0.625rem] font-bold text-m-faint">{progress.pct}%</span>
-          <div className="ms-auto flex items-center gap-[6px]">
-            {bagTrackingEnabled && (
-              <button
-                type="button"
-                onClick={() => setShowBagsSheet(true)}
-                className="flex items-center gap-[5px] rounded-full border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[11px] py-[6px] text-[0.71875rem] font-semibold text-m-ink"
-              >
-                <Briefcase size={11} strokeWidth={2} />
-                {t('packing.bags')}
-              </button>
-            )}
-            {canEdit && (
-              <button
-                type="button"
-                onClick={() => setEditMode(v => !v)}
-                aria-pressed={editMode}
-                className={`flex items-center gap-[5px] rounded-full px-[11px] py-[6px] text-[0.71875rem] font-semibold ${
-                  editMode ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
-                }`}
-              >
-                <Pencil size={12} strokeWidth={2} />
-                {editMode ? t('packing.editDone') : t('common.edit')}
-              </button>
-            )}
-            {hasActions && (
-              <button
-                type="button"
-                onClick={() => setActionsOpen(v => !v)}
-                aria-label={t('packing.actions')}
-                aria-expanded={actionsOpen}
-                className="flex h-[26px] w-[26px] flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
-              >
-                <MoreHorizontal size={13} strokeWidth={2} />
-              </button>
-            )}
+      {/* ── Progress card: the count, a slim bar and one button for the rest ── */}
+      <div className="flex items-center gap-3 rounded-2xl border border-m-rowbr bg-m-sheetop px-[14px] py-[12px]">
+        <div className="min-w-0 flex-1">
+          <div className="text-caption font-semibold tabular-nums text-m-ink">
+            {progress.total > 0 && progress.pct === 100
+              ? t('packing.allPacked')
+              : t('packing.packedCount', { packed: progress.checked, total: progress.total })}
+          </div>
+          <div className="mt-[7px] h-[5px] overflow-hidden rounded-full bg-m-ic">
+            <div className="h-full rounded-full bg-m-act" style={{ width: `${progress.pct}%` }} />
           </div>
         </div>
-        <div className="mt-[9px] h-[5px] overflow-hidden rounded-full bg-[color:var(--m-ic)]">
-          <div className="h-full rounded-full bg-m-act" style={{ width: `${progress.pct}%` }} />
-        </div>
+        <button
+          type="button"
+          onClick={() => setActionsOpen(true)}
+          aria-label={t('packing.actions')}
+          aria-haspopup="dialog"
+          className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-m-ic text-m-ink"
+        >
+          <MoreHorizontal size={17} strokeWidth={2.2} />
+        </button>
       </div>
 
-      {/* ── Action menu (spec §4.2) ── */}
-      {actionsOpen && hasActions && (
-        // On a wide window the menu drops from the button that opened it, at the
-        // width of a popover, instead of running across the whole page.
-        <div className="mt-[6px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px] wide:ms-auto wide:max-w-[380px]">
+      {/* ── Add list: in place under the card once asked for from the menu, or on an empty list ── */}
+      {canEdit && (addingCategory || trueEmpty) && (
+        addingCategory ? (
+          <div className="mt-[10px] flex items-center gap-1.5 rounded-[16px] border border-m-rowbr bg-m-card py-[5px] pe-[5px] ps-[14px]">
+            <input
+              type="text"
+              autoFocus
+              value={newCategoryName}
+              onChange={e => setNewCategoryName(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter') void addNewCategory()
+                if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') }
+              }}
+              placeholder={t('packing.newCategoryPlaceholder')}
+              aria-label={t('packing.newCategoryPlaceholder')}
+              className="min-w-0 flex-1 bg-transparent py-2 text-body text-m-ink outline-none placeholder:text-m-faint"
+            />
+            <button
+              type="button"
+              onClick={() => { setAddingCategory(false); setNewCategoryName('') }}
+              aria-label={t('common.cancel')}
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-full text-m-muted"
+            >
+              <X size={16} strokeWidth={2.2} />
+            </button>
+            <button
+              type="button"
+              onClick={addNewCategory}
+              disabled={!newCategoryName.trim()}
+              aria-label={t('common.add')}
+              className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg disabled:opacity-30"
+            >
+              <Plus size={17} strokeWidth={2.4} />
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setAddingCategory(true)}
+            className="mt-[10px] flex w-full items-center justify-center gap-[5px] rounded-full border-[1.5px] border-dashed border-m-trackoff py-[10px] text-caption font-semibold text-m-muted"
+          >
+            <Plus size={12} strokeWidth={2.2} />
+            {t('packing.addCategory')}
+          </button>
+        )
+      )}
+
+      {/* ── Whose list: the one switch above the lists ── */}
+      {!trueEmpty && (
+        <div className="mt-[10px] flex gap-[2px] rounded-full bg-m-ic p-[3px] wide:max-w-[360px]">
+          {(['common', 'personal'] as const).map(id => (
+            <button
+              key={id}
+              type="button"
+              aria-pressed={view === id}
+              onClick={() => setView(id)}
+              className={`flex-1 whitespace-nowrap rounded-full py-[6px] text-center text-caption font-semibold ${view === id ? 'bg-m-act text-m-actfg' : 'text-m-ink'}`}
+            >
+              {id === 'common' ? t('packing.viewCommon') : t('packing.viewPersonal')}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* ── Categories + items ── */}
+      {trueEmpty ? (
+        <div className="flex min-h-[60vh] flex-col items-center justify-center px-8 py-10 text-center">
+          <MDancingTrek scene="packing" className="mb-2" />
+          <p className="text-body font-medium text-m-muted">{t('packing.emptyTitle')}</p>
+        </div>
+      ) : viewEmpty ? (
+        <div className="px-[30px] py-[26px] text-center text-caption leading-relaxed text-m-faint">
+          {t('packing.personalEmptyHint')}
+        </div>
+      ) : groups.length === 0 ? (
+        <div className="px-[30px] py-[26px] text-center text-caption leading-relaxed text-m-faint">
+          {t('packing.emptyFiltered')}
+        </div>
+      ) : (
+        // Categories stand in columns on a wide window, as many as the page
+        // holds, each card whole in its column like a masonry board.
+        <div className="wide:mt-[10px] wide:columns-[300px] wide:gap-3">
+          {groups.map(group => (
+            <PackingCategoryCard
+              key={group.category}
+              group={group}
+              categoryOrder={categoryOrder}
+              open={!collapsed[group.category]}
+              onToggle={() => toggleCategory(group.category)}
+              canEdit={canEdit}
+              planner={planner}
+              currentUserId={currentUserId}
+              assignees={categoryAssignees[group.category] || []}
+              onOpenMenu={() => setMenuCategory(group.category)}
+              onRename={newName => renameCategory(group.category, newName)}
+              renameSignal={renamingCategory === group.category}
+              onRenamed={() => setRenamingCategory(null)}
+              onAddItem={name => addItemToCategory(group.category, name)}
+              onEditItem={id => setEditingItemId(id)}
+              onDeleteItem={deleteItem}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* ── The list's own actions, as a sheet ── */}
+      <MSheet open={menuGroup != null} onClose={() => setMenuCategory(null)} ariaLabel={t('packing.categoryOptions')}>
+        {menuGroup && (
+          <CategoryMenu
+            planner={planner}
+            group={menuGroup}
+            canEdit={canEdit}
+            assignees={categoryAssignees[menuGroup.category] || []}
+            tripMembers={tripMembers}
+            onClose={() => setMenuCategory(null)}
+            onRename={() => { setMenuCategory(null); setRenamingCategory(menuGroup.category) }}
+            onSetAssignees={userIds => setCategoryAssigneesFor(menuGroup.category, userIds)}
+            onCheckAll={() => { setMenuCategory(null); void setAllInCategory(menuGroup.items, true) }}
+            onUncheckAll={() => { setMenuCategory(null); void setAllInCategory(menuGroup.items, false) }}
+            onShare={() => { setMenuCategory(null); categorySharing.openFor(menuGroup.category) }}
+            onDelete={() => {
+              setMenuCategory(null)
+              setDeleteCategoryTarget({ name: menuGroup.category, items: items.filter(i => (i.category || defaultCategory) === menuGroup.category) })
+            }}
+          />
+        )}
+      </MSheet>
+
+      {/* ── Everything else the list does, as one sheet ── */}
+      <MSheet open={actionsOpen} onClose={closeActions} ariaLabel={t('packing.actions')}>
+        <FormSheetHeader title={t('packing.title')} onClose={closeActions} closeLabel={t('common.close')} />
+        <FormSheetBody>
           {actionView === 'menu' && (
             <>
-              {canEdit && checkedCount > 0 && (
-                <ActionRow
-                  icon={Trash2}
-                  label={t('packing.clearChecked', { count: checkedCount })}
-                  danger
-                  onClick={() => { setActionsOpen(false); setConfirmClear(true) }}
-                />
-              )}
-              {canEdit && templates.length > 0 && (
-                <ActionRow icon={LayoutTemplate} label={t('packing.applyTemplate')} onClick={() => setActionView('apply')} />
-              )}
-              {canEdit && isAdmin && items.length > 0 && (
-                <ActionRow icon={SaveIcon} label={t('packing.saveAsTemplate')} onClick={() => setActionView('save')} />
-              )}
-              {canEdit && (
-                <ActionRow icon={Download} label={t('packing.import')} onClick={() => { setActionsOpen(false); setShowImportSheet(true) }} />
-              )}
+              <ActionGroup>
+                {canEdit && <ActionRow icon={ListPlus} label={t('packing.addCategory')} onClick={run(() => setAddingCategory(true))} />}
+                {canEdit && templates.length > 0 && <ActionRow icon={LayoutTemplate} label={t('packing.applyTemplate')} onClick={() => setActionView('apply')} />}
+                {canEdit && isAdmin && items.length > 0 && <ActionRow icon={SaveIcon} label={t('packing.saveAsTemplate')} onClick={() => setActionView('save')} />}
+                {canEdit && <ActionRow icon={Download} label={t('packing.import')} onClick={run(() => setShowImportSheet(true))} />}
+              </ActionGroup>
               {packingExport.hasItems && (
-                <>
-                  <ActionRow icon={Printer} label={t('packing.exportPrint')} onClick={() => { setActionsOpen(false); void packingExport.openPrint() }} />
-                  <ActionRow icon={FileText} label={t('packing.exportMarkdown')} onClick={() => { setActionsOpen(false); packingExport.exportMarkdown() }} />
-                  <ActionRow icon={FileSpreadsheet} label={t('packing.exportCsv')} onClick={() => { setActionsOpen(false); void packingExport.exportCsv() }} />
-                </>
+                <ActionGroup>
+                  <ActionRow icon={Printer} label={t('packing.exportPrint')} onClick={run(() => void packingExport.openPrint())} />
+                  <ActionRow icon={FileText} label={t('packing.exportMarkdown')} onClick={run(() => packingExport.exportMarkdown())} />
+                  <ActionRow icon={FileSpreadsheet} label={t('packing.exportCsv')} onClick={run(() => void packingExport.exportCsv())} />
+                </ActionGroup>
               )}
+              <ActionGroup>
+                {!trueEmpty && (
+                  <ActionRow icon={EyeOff} label={t('packing.hideDone')} trailing={hideDone ? <Check size={15} strokeWidth={2.4} /> : undefined}
+                    onClick={() => setHideDone(v => !v)} />
+                )}
+                {bagTrackingEnabled && <ActionRow icon={Briefcase} label={t('packing.bags')} onClick={run(() => setShowBagsSheet(true))} />}
+                {canEdit && checkedCount > 0 && (
+                  <ActionRow icon={Trash2} label={t('packing.clearChecked', { count: checkedCount })} danger onClick={run(() => setConfirmClear(true))} />
+                )}
+              </ActionGroup>
             </>
           )}
           {actionView === 'apply' && (
-            <div className="p-[6px]">
+            <ActionGroup>
               {templates.map(tmpl => (
-                <button
-                  key={tmpl.id}
-                  type="button"
-                  onClick={() => applyTemplate(tmpl.id)}
-                  className="flex w-full items-center gap-[9px] rounded-[10px] px-[10px] py-[9px] text-start"
-                >
-                  <Package size={14} strokeWidth={2} className="flex-none text-m-muted" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[0.78125rem] font-semibold text-m-ink">{tmpl.name}</span>
-                    <span className="block font-geist text-[0.625rem] text-m-faint">{tmpl.item_count} {t('admin.packingTemplates.items', { count: tmpl.item_count })}</span>
-                  </span>
-                </button>
+                <ActionRow key={tmpl.id} icon={Package} label={tmpl.name}
+                  trailing={<span className="text-caption text-m-faint">{tmpl.item_count}</span>}
+                  onClick={() => applyTemplate(tmpl.id)} />
               ))}
-            </div>
+            </ActionGroup>
           )}
           {actionView === 'save' && (
-            <div className="flex items-center gap-2 p-[10px]">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 autoFocus
@@ -233,116 +321,14 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
                 onClick={saveAsTemplate}
                 disabled={!saveTemplateName.trim()}
                 aria-label={t('common.save')}
-                className="flex h-10 w-10 flex-none items-center justify-center rounded-[12px] bg-m-act text-m-actfg disabled:opacity-40"
+                className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg disabled:opacity-40"
               >
                 <Check size={15} strokeWidth={2.4} />
               </button>
             </div>
           )}
-        </div>
-      )}
-
-      {/* ── Add list — sits directly under the progress card (instead of at the
-           very bottom) so it's reachable without scrolling past every category.
-           Same dashed-pill style as before, just relocated. ── */}
-      {canEdit && (editMode || trueEmpty) && (
-        addingCategory ? (
-          <div className="mt-[10px] flex gap-2">
-            <input
-              type="text"
-              autoFocus
-              value={newCategoryName}
-              onChange={e => setNewCategoryName(e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') void addNewCategory()
-                if (e.key === 'Escape') { setAddingCategory(false); setNewCategoryName('') }
-              }}
-              placeholder={t('packing.newCategoryPlaceholder')}
-              className={`${FIELD_CLS} flex-1`}
-            />
-            <button
-              type="button"
-              onClick={addNewCategory}
-              disabled={!newCategoryName.trim()}
-              aria-label={t('common.add')}
-              className="flex h-10 w-10 flex-none items-center justify-center rounded-[12px] bg-m-act text-m-actfg disabled:opacity-40"
-            >
-              <Check size={15} strokeWidth={2.4} />
-            </button>
-          </div>
-        ) : (
-          <button
-            type="button"
-            onClick={() => setAddingCategory(true)}
-            className="mt-[10px] flex w-full items-center justify-center gap-[5px] rounded-full border-[1.5px] border-dashed border-[color:var(--m-trackoff)] py-[10px] font-geist text-[0.6875rem] font-semibold text-m-muted"
-          >
-            <Plus size={12} strokeWidth={2.2} />
-            {t('packing.addCategory')}
-          </button>
-        )
-      )}
-
-      {/* ── Filters (spec §4.3) ── */}
-      {!trueEmpty && (
-        <div className="mt-[10px] flex items-center gap-[10px]">
-          <div className={`${filterTrackCls} flex-[2]`}>
-            <button type="button" aria-pressed={view === 'common'} onClick={() => setView('common')} className={filterPillCls(view === 'common')}>{t('packing.viewCommon')}</button>
-            <button type="button" aria-pressed={view === 'personal'} onClick={() => setView('personal')} className={filterPillCls(view === 'personal')}>{t('packing.viewPersonal')}</button>
-          </div>
-          <div className={`${filterTrackCls} flex-[3]`}>
-            <button type="button" aria-pressed={statusFilter === 'all'} onClick={() => setStatusFilter('all')} className={filterPillCls(statusFilter === 'all')}>{t('packing.filterAll')}</button>
-            <button type="button" aria-pressed={statusFilter === 'open'} onClick={() => setStatusFilter('open')} className={filterPillCls(statusFilter === 'open')}>{t('packing.filterOpen')}</button>
-            <button type="button" aria-pressed={statusFilter === 'done'} onClick={() => setStatusFilter('done')} className={filterPillCls(statusFilter === 'done')}>{t('packing.filterDone')}</button>
-          </div>
-        </div>
-      )}
-
-      {/* ── Categories + items (spec §4.4) ── */}
-      {trueEmpty ? (
-        <div className="flex min-h-[60vh] flex-col items-center justify-center px-8 py-10 text-center">
-          <MDancingTrek scene="packing" className="mb-2" />
-          <p className="font-geist text-[0.8125rem] font-medium text-m-muted">{t('packing.emptyTitle')}</p>
-        </div>
-      ) : viewEmpty ? (
-        <div className="px-[30px] py-[26px] text-center font-geist text-[0.6875rem] leading-relaxed text-m-faint">
-          {t('packing.personalEmptyHint')}
-        </div>
-      ) : groups.length === 0 ? (
-        <div className="px-[30px] py-[26px] text-center font-geist text-[0.6875rem] leading-relaxed text-m-faint">
-          {t('packing.emptyFiltered')}
-        </div>
-      ) : (
-        // Categories stand in columns on a wide window, as many as the page
-        // holds, each card whole in its column like a masonry board.
-        <div className="wide:mt-[10px] wide:columns-[300px] wide:gap-3">
-        {groups.map(group => (
-          <PackingCategoryCard
-            key={group.category}
-            group={group}
-            categoryOrder={categoryOrder}
-            open={!collapsed[group.category]}
-            onToggle={() => toggleCategory(group.category)}
-            editMode={editMode}
-            canEdit={canEdit}
-            planner={planner}
-            currentUserId={currentUserId}
-            assignees={categoryAssignees[group.category] || []}
-            tripMembers={tripMembers}
-            onSetAssignees={userIds => setCategoryAssigneesFor(group.category, userIds)}
-            onRename={newName => renameCategory(group.category, newName)}
-            onCheckAll={() => checkAllInCategory(group.items)}
-            onUncheckAll={() => uncheckAllInCategory(group.items)}
-            onDeleteCategory={() => setDeleteCategoryTarget({ name: group.category, items: items.filter(i => (i.category || defaultCategory) === group.category) })}
-            onAddItem={name => addItemToCategory(group.category, name)}
-            onEditItem={id => setEditingItemId(id)}
-            onDeleteItem={deleteItem}
-            bagTrackingEnabled={bagTrackingEnabled}
-            bags={bags}
-            onCreateBag={createBag}
-          />
-        ))}
-        </div>
-      )}
+        </FormSheetBody>
+      </MSheet>
 
       <MBagsSheet
         planner={planner}
@@ -368,10 +354,15 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
         bagTrackingEnabled={bagTrackingEnabled}
         tripMembers={tripMembers}
         currentUserId={currentUserId}
+        categories={categoryOrder}
+        bags={bags}
+        onCreateBag={createBag}
+        onDelete={item => void deleteItem(item)}
         onClose={() => setEditingItemId(null)}
       />
 
       <MPackingImportSheet planner={planner} open={showImportSheet} onClose={() => setShowImportSheet(false)} />
+      <MPackingCategorySharingSheet sharing={categorySharing} tripMembers={tripMembers} currentUserId={currentUserId} t={t} />
       <PackingPrintPreview html={packingExport.printHtml} title={packingExport.printTitle} onClose={packingExport.closePrint} />
 
       <MConfirmSheet
@@ -405,73 +396,125 @@ export default function MPackingListTab({ planner }: { planner: TripPlanner }) {
   )
 }
 
-function ActionRow({ icon: Icon, label, onClick, danger = false }: {
+function ActionGroup({ children }: Readonly<{ children: ReactNode }>) {
+  return <div className="mb-3 flex flex-col overflow-hidden rounded-[16px] bg-m-ic empty:hidden">{children}</div>
+}
+
+function ActionRow({ icon: Icon, label, onClick, danger = false, trailing }: Readonly<{
   icon: LucideIcon
   label: string
   onClick: () => void
   danger?: boolean
-}) {
+  trailing?: ReactNode
+}>) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-[13px] py-[11px] text-start text-[0.78125rem] font-semibold last:border-b-0 ${
+      className={`flex w-full items-center gap-[11px] border-b border-m-rowbr px-[14px] py-[12px] text-start text-body font-medium last:border-b-0 ${
         danger ? 'text-[color:var(--m-st-danger)]' : 'text-m-ink'
       }`}
     >
-      <Icon size={14} strokeWidth={2} />
-      {label}
+      <Icon size={16} strokeWidth={2} className="flex-none" />
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {trailing}
     </button>
+  )
+}
+
+// ── A list's own menu ───────────────────────────────────────────────────
+
+function CategoryMenu({
+  planner, group, canEdit, assignees, tripMembers, onClose, onRename, onSetAssignees, onCheckAll, onUncheckAll, onShare, onDelete,
+}: Readonly<{
+  planner: TripPlanner
+  group: PackingCategoryGroup
+  canEdit: boolean
+  assignees: CategoryAssignee[]
+  tripMembers: TripMember[]
+  onClose: () => void
+  onRename: () => void
+  onSetAssignees: (userIds: number[]) => void
+  onCheckAll: () => void
+  onUncheckAll: () => void
+  onShare: () => void
+  onDelete: () => void
+}>) {
+  const { t } = planner
+  const toggleAssignee = (userId: number) => {
+    const assigned = assignees.some(a => a.user_id === userId)
+    onSetAssignees(assigned ? assignees.filter(a => a.user_id !== userId).map(a => a.user_id) : [...assignees.map(a => a.user_id), userId])
+  }
+  return (
+    <>
+      <FormSheetHeader title={group.category} onClose={onClose} closeLabel={t('common.close')} />
+      <FormSheetBody>
+        <ActionGroup>
+          {canEdit && <ActionRow icon={Pencil} label={t('packing.menuRename')} onClick={onRename} />}
+          <ActionRow icon={CheckCheck} label={t('packing.menuCheckAll')} onClick={onCheckAll} />
+          <ActionRow icon={RotateCcw} label={t('packing.menuUncheckAll')} onClick={onUncheckAll} />
+          {canEdit && <ActionRow icon={Share2} label={t('packing.menuShareCat')} onClick={onShare} />}
+        </ActionGroup>
+        {canEdit && (
+          <>
+            <div className="mb-[6px] ps-1 text-caption font-semibold text-m-muted">{t('packing.assignMembers')}</div>
+            <ActionGroup>
+              {tripMembers.length === 0
+                ? <div className="px-[14px] py-[12px] text-caption text-m-faint">{t('packing.noMembers')}</div>
+                : tripMembers.map(m => (
+                  <ActionRow key={m.id} icon={UserRound} label={m.username}
+                    trailing={assignees.some(a => a.user_id === m.id) ? <Check size={15} strokeWidth={2.4} /> : undefined}
+                    onClick={() => toggleAssignee(m.id)} />
+                ))}
+            </ActionGroup>
+            <ActionGroup>
+              <ActionRow icon={Trash2} label={t('packing.menuDeleteCat')} danger onClick={onDelete} />
+            </ActionGroup>
+          </>
+        )}
+      </FormSheetBody>
+    </>
   )
 }
 
 // ── Category card ───────────────────────────────────────────────────────
 
 function PackingCategoryCard({
-  group, categoryOrder, open, onToggle, editMode, canEdit, planner, currentUserId, assignees, tripMembers,
-  onSetAssignees, onRename, onCheckAll, onUncheckAll, onDeleteCategory, onAddItem, onEditItem, onDeleteItem,
-  bagTrackingEnabled, bags, onCreateBag,
-}: {
+  group, categoryOrder, open, onToggle, canEdit, planner, currentUserId, assignees,
+  onOpenMenu, onRename, renameSignal, onRenamed, onAddItem, onEditItem, onDeleteItem,
+}: Readonly<{
   group: PackingCategoryGroup
   categoryOrder: string[]
   open: boolean
   onToggle: () => void
-  editMode: boolean
   canEdit: boolean
   planner: TripPlanner
   currentUserId: number | null
   assignees: CategoryAssignee[]
-  tripMembers: TripMember[]
-  onSetAssignees: (userIds: number[]) => void
+  onOpenMenu: () => void
   onRename: (newName: string) => void
-  onCheckAll: () => void
-  onUncheckAll: () => void
-  onDeleteCategory: () => void
+  /** Rename was picked in the list's menu: the name turns into a field in place. */
+  renameSignal: boolean
+  onRenamed: () => void
   onAddItem: (name: string) => void
   onEditItem: (itemId: number) => void
   onDeleteItem: (item: PackingItem) => Promise<void>
-  bagTrackingEnabled: boolean
-  bags: PackingBag[]
-  onCreateBag: (name: string) => Promise<PackingBag | undefined>
-}) {
+}>) {
   const { t } = planner
-  const [renaming, setRenaming] = useState(false)
-  const [renameDraft, setRenameDraft] = useState(group.category)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [assignOpen, setAssignOpen] = useState(false)
+  const [renameDraft, setRenameDraft] = useState<string | null>(null)
   const [addingItem, setAddingItem] = useState(false)
   const [newItemName, setNewItemName] = useState('')
+  const renaming = renameDraft !== null || renameSignal
 
   const dot = katColor(group.category, categoryOrder)
   const checkedCount = group.items.filter(i => i.checked).length
 
   const commitRename = () => {
-    const trimmed = renameDraft.trim()
+    const trimmed = (renameDraft ?? group.category).trim()
     if (trimmed && trimmed !== group.category) onRename(trimmed)
-    else setRenameDraft(group.category)
-    setRenaming(false)
+    setRenameDraft(null)
+    onRenamed()
   }
-
   const submitAddItem = () => {
     const trimmed = newItemName.trim()
     if (!trimmed) return
@@ -480,99 +523,51 @@ function PackingCategoryCard({
   }
 
   return (
-    <div className="mt-[10px] overflow-hidden rounded-2xl border border-[color:var(--m-rowbr)] bg-m-sheetop wide:mb-[10px] wide:mt-0 wide:inline-block wide:w-full wide:break-inside-avoid wide:align-top">
-      {/* A <div role="button"> rather than a real <button type="button"> — the rename input and
-          the assign/menu triggers below are interactive elements a <button type="button"> may
-          not contain (invalid HTML); this stays keyboard-operable via onKeyDown. */}
-      <div
-        role="button"
-        tabIndex={0}
-        onClick={onToggle}
-        onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onToggle() } }}
-        aria-expanded={open}
-        className="flex w-full items-center gap-[8px] bg-[color:var(--m-ic)] px-[13px] py-[9px] text-start"
-      >
+    <div className="mt-[10px] overflow-hidden rounded-2xl border border-m-rowbr bg-m-sheetop wide:mb-[10px] wide:mt-0 wide:inline-block wide:w-full wide:break-inside-avoid wide:align-top">
+      <div className="flex w-full items-center gap-[8px] bg-m-ic py-[7px] pe-[8px] ps-[13px]">
         <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: dot }} />
         {renaming ? (
           <input
             type="text"
             autoFocus
-            value={renameDraft}
-            onClick={e => e.stopPropagation()}
+            value={renameDraft ?? group.category}
             onChange={e => setRenameDraft(e.target.value)}
             onBlur={commitRename}
             onKeyDown={e => {
-              e.stopPropagation()
               if (e.key === 'Enter') commitRename()
-              if (e.key === 'Escape') { setRenaming(false); setRenameDraft(group.category) }
+              if (e.key === 'Escape') { setRenameDraft(null); onRenamed() }
             }}
-            className="min-w-0 flex-1 border-b border-[color:var(--m-rowbr)] bg-transparent text-[0.875rem] font-bold text-m-ink outline-none"
+            aria-label={t('packing.menuRename')}
+            className="min-w-0 flex-1 border-b border-m-rowbr bg-transparent text-body font-bold text-m-ink outline-none"
           />
         ) : (
-          <span dir="auto" className="min-w-0 flex-1 truncate text-[0.875rem] font-bold text-m-ink">{group.category}</span>
-        )}
-        {editMode && (
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); setAssignOpen(v => !v) }}
-            aria-label={t('packing.assignMembers')}
-            className="flex-none text-m-faint"
-          >
-            <UserPlus size={13} strokeWidth={2} />
+          <button type="button" onClick={onToggle} aria-expanded={open} className="flex min-w-0 flex-1 items-center gap-[8px] text-start">
+            <span dir="auto" className="min-w-0 truncate text-body font-bold text-m-ink">{group.category}</span>
+            {assignees.length > 0 && (
+              <span className="flex flex-none" aria-label={assignees.map(a => a.username).join(', ')}>
+                {assignees.slice(0, 3).map(a => (
+                  <span key={a.user_id} aria-hidden className="-ms-1 flex h-[18px] w-[18px] items-center justify-center rounded-full border-2 border-m-sheetop bg-m-act text-[0.5625rem] font-bold uppercase text-m-actfg first:ms-0">
+                    {a.username[0]}
+                  </span>
+                ))}
+              </span>
+            )}
+            <span className="ms-auto flex-none whitespace-nowrap rounded-full bg-m-sheetop px-2 py-[2px] text-caption font-bold tabular-nums text-m-muted">
+              {checkedCount}/{group.items.length}
+            </span>
+            {open ? <ChevronUp size={14} strokeWidth={2} className="flex-none text-m-faint" /> : <ChevronDown size={14} strokeWidth={2} className="flex-none text-m-faint" />}
           </button>
         )}
-        <span className="flex-none whitespace-nowrap rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.59375rem] font-bold text-m-muted">
-          {checkedCount}/{group.items.length}
-        </span>
-        {editMode && (
-          <button
-            type="button"
-            onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
-            aria-label={t('packing.categoryOptions')}
-            className="flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
-          >
-            <MoreHorizontal size={12} strokeWidth={2} />
-          </button>
-        )}
-        {open ? <ChevronUp size={13} strokeWidth={2} className="flex-none text-m-faint" /> : <ChevronDown size={13} strokeWidth={2} className="flex-none text-m-faint" />}
+        <button
+          type="button"
+          onClick={onOpenMenu}
+          aria-label={t('packing.categoryOptions')}
+          aria-haspopup="dialog"
+          className="flex h-8 w-8 flex-none items-center justify-center rounded-full text-m-muted"
+        >
+          <MoreHorizontal size={16} strokeWidth={2} />
+        </button>
       </div>
-
-      {assignOpen && editMode && (
-        <div className="border-b border-[color:var(--m-rowbr)] bg-m-sheetop px-[13px] py-[10px]">
-          <div className="mb-[6px] font-geist text-[0.625rem] font-bold uppercase tracking-[.06em] text-m-faint">{t('packing.assignMembers')}</div>
-          {tripMembers.length === 0 ? (
-            <div className="font-geist text-[0.6875rem] text-m-faint">{t('packing.noMembers')}</div>
-          ) : (
-            <div className="flex flex-wrap gap-[6px]">
-              {tripMembers.map(m => {
-                const assigned = assignees.some(a => a.user_id === m.id)
-                return (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => onSetAssignees(assigned ? assignees.filter(a => a.user_id !== m.id).map(a => a.user_id) : [...assignees.map(a => a.user_id), m.id])}
-                    className={`flex items-center gap-[5px] rounded-full px-[10px] py-[5px] text-[0.71875rem] font-semibold ${
-                      assigned ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-muted'
-                    }`}
-                  >
-                    {m.username}
-                    {assigned && <Check size={11} strokeWidth={2.4} />}
-                  </button>
-                )
-              })}
-            </div>
-          )}
-        </div>
-      )}
-
-      {menuOpen && editMode && (
-        <div className="border-b border-[color:var(--m-rowbr)]">
-          <ActionRow icon={Pencil} label={t('packing.menuRename')} onClick={() => { setMenuOpen(false); setRenaming(true) }} />
-          <ActionRow icon={CheckCheck} label={t('packing.menuCheckAll')} onClick={() => { setMenuOpen(false); onCheckAll() }} />
-          <ActionRow icon={RotateCcw} label={t('packing.menuUncheckAll')} onClick={() => { setMenuOpen(false); onUncheckAll() }} />
-          <ActionRow icon={Trash2} label={t('packing.menuDeleteCat')} danger onClick={() => { setMenuOpen(false); onDeleteCategory() }} />
-        </div>
-      )}
 
       {open && (
         <div className="px-[13px] pb-[8px]">
@@ -582,52 +577,52 @@ function PackingCategoryCard({
               item={item}
               planner={planner}
               currentUserId={currentUserId}
-              editMode={editMode}
               canEdit={canEdit}
-              bagTrackingEnabled={bagTrackingEnabled}
-              bags={bags}
-              onCreateBag={onCreateBag}
               onEdit={() => onEditItem(item.id)}
               onDelete={() => onDeleteItem(item)}
             />
           ))}
 
-          {editMode && canEdit && (
-            addingItem ? (
-              <div className="flex items-center gap-[6px] py-[8px]">
-                <input
-                  type="text"
-                  autoFocus
-                  value={newItemName}
-                  onChange={e => setNewItemName(e.target.value)}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter') submitAddItem()
-                    if (e.key === 'Escape') { setAddingItem(false); setNewItemName('') }
-                  }}
-                  placeholder={t('packing.addItemPlaceholder')}
-                  className={`${FIELD_CLS} flex-1 py-[7px]`}
-                />
-                <button
-                  type="button"
-                  onClick={submitAddItem}
-                  disabled={!newItemName.trim()}
-                  aria-label={t('common.add')}
-                  className="flex h-8 w-8 flex-none items-center justify-center rounded-[10px] bg-m-act text-m-actfg disabled:opacity-40"
-                >
-                  <Plus size={14} strokeWidth={2.4} />
-                </button>
-              </div>
-            ) : (
+          {/* Like the desktop: the add row turns into the field in place, no frame. */}
+          {canEdit && (addingItem ? (
+            <div className="mt-[6px] flex items-center gap-[10px] rounded-[12px] bg-m-ic py-[5px] pe-[6px] ps-[11px]">
+              <span aria-hidden className="h-[22px] w-[22px] flex-none rounded-[7px] border-[1.5px] border-[color:var(--m-checkbr)]" />
+              <input
+                type="text"
+                autoFocus
+                value={newItemName}
+                onChange={e => setNewItemName(e.target.value)}
+                onBlur={() => { if (!newItemName.trim()) { setAddingItem(false); setNewItemName('') } }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') submitAddItem()
+                  if (e.key === 'Escape') { setAddingItem(false); setNewItemName('') }
+                }}
+                placeholder={t('packing.addItemPlaceholder')}
+                aria-label={t('packing.addItemPlaceholder')}
+                className="min-w-0 flex-1 bg-transparent py-[5px] text-body text-m-ink outline-none placeholder:text-m-faint"
+              />
               <button
                 type="button"
-                onClick={() => setAddingItem(true)}
-                className="flex items-center gap-[6px] py-[8px] font-geist text-[0.6875rem] font-semibold text-m-muted"
+                onClick={submitAddItem}
+                disabled={!newItemName.trim()}
+                aria-label={t('common.add')}
+                className={`flex h-7 w-7 flex-none items-center justify-center rounded-full ${newItemName.trim() ? 'bg-m-act text-m-actfg' : 'text-m-faint'}`}
               >
-                <Plus size={12} strokeWidth={2.2} />
-                {t('packing.addItem')}
+                <Plus size={14} strokeWidth={2.4} />
               </button>
-            )
-          )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setAddingItem(true)}
+              className="mt-[6px] flex w-full items-center gap-[10px] rounded-[12px] bg-m-ic px-[11px] py-[9px] text-start text-body font-medium text-m-faint"
+            >
+              <span aria-hidden className="flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] border-[1.5px] border-dashed border-current">
+                <Plus size={12} strokeWidth={2.4} />
+              </span>
+              {t('packing.addItem')}
+            </button>
+          ))}
         </div>
       )}
     </div>
@@ -636,63 +631,61 @@ function PackingCategoryCard({
 
 // ── Item row ────────────────────────────────────────────────────────────
 
-function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTrackingEnabled, bags, onCreateBag, onEdit, onDelete }: {
+function PackingItemRow({ item, planner, currentUserId, canEdit, onEdit, onDelete }: Readonly<{
   item: PackingItem
   planner: TripPlanner
   currentUserId: number | null
-  editMode: boolean
   canEdit: boolean
-  bagTrackingEnabled: boolean
-  bags: PackingBag[]
-  onCreateBag: (name: string) => Promise<PackingBag | undefined>
   onEdit: () => void
   onDelete: () => void
-}) {
+}>) {
   const { t, tripId, tripActions } = planner
-  const [bagPickerOpen, setBagPickerOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
-  const [creatingBag, setCreatingBag] = useState(false)
-  const [newBagName, setNewBagName] = useState('')
-
   const isPlaceholder = isPackingPlaceholder(item)
-  const bag = item.bag_id != null ? bags.find(b => b.id === item.bag_id) : undefined
 
-  // Sharing badges (#858) mirror ArtikelZeile: is_private + ownership split the
-  // three states, so exactly one (or none) ever applies.
+  // Sharing badges (#858) mirror the desktop row: is_private + ownership split
+  // the three states, so exactly one (or none) ever applies.
   const recipients = item.recipients || []
   const contributors = item.contributors || []
   const badgeSharedToMe = !!item.is_private && item.owner_id != null && item.owner_id !== currentUserId
   const badgeSharedByMe = !!item.is_private && item.owner_id === currentUserId && recipients.length > 0
-  const badgeBroughtBy = !item.is_private && item.owner_username ? item.owner_username : null
-  // Owner is shown as a compact avatar instead of the full username (saves space
-  // on the row). Resolve the picture from the trip members, falling back to the
-  // signed-in user for their own items, then to initials.
+  const bringerName = !item.is_private ? (item.owner_username || contributors[0]?.username || null) : null
+  const bringerId = item.owner_username ? item.owner_id : contributors[0]?.user_id
   const me = useAuthStore(s => s.user)
-  const ownerMember = planner.tripMembers.find(m => m.id === item.owner_id)
-  const ownerAvatarUrl = ownerMember?.avatar_url ?? (item.owner_id === me?.id ? me?.avatar_url ?? null : null)
+  const bringerMember = planner.tripMembers.find(m => m.id === bringerId)
+  const bringerAvatarUrl = bringerMember?.avatar_url ?? (bringerId === me?.id ? me?.avatar_url ?? null : null)
+  const moreBringers = item.owner_username ? contributors.length : Math.max(0, contributors.length - 1)
 
-  const toggle = () => tripActions.togglePackingItem(tripId, item.id, !item.checked)
+  const toggle = () => {
+    selectionHaptic()
+    return tripActions.togglePackingItem(tripId, item.id, !item.checked)
+  }
   // Multi-piece items count their pieces into the bag (#2296).
   const quantity = item.quantity || 1
   const packed = packedOf(item)
   const partlyPacked = !item.checked && packed > 0
 
-  const assignBag = async (bagId: number | null) => {
-    setBagPickerOpen(false)
-    try { await tripActions.updatePackingItem(tripId, item.id, { bag_id: bagId }) } catch { planner.toast.error(t('packing.toast.saveError')) }
-  }
-
-  const submitNewBag = async () => {
-    if (!newBagName.trim()) return
-    const created = await onCreateBag(newBagName.trim())
-    if (created) await assignBag(created.id)
-    setNewBagName('')
-    setCreatingBag(false)
-  }
+  // A swipe does what the item sheet does: tick it off, or edit and delete it.
+  const swipeTrailing: SwipeAction[] = canEdit && !isPlaceholder
+    ? [
+        { label: t('common.delete'), icon: Trash2, tone: 'danger', onAction: onDelete },
+        { label: t('common.edit'), icon: Pencil, tone: 'neutral', onAction: onEdit },
+      ]
+    : []
+  const swipeLeading: SwipeAction | undefined = isPlaceholder
+    ? undefined
+    : item.checked
+      ? { label: t('packing.filterOpen'), icon: RotateCcw, tone: 'neutral', onAction: () => void toggle() }
+      : { label: t('packing.filterDone'), icon: Check, tone: 'accent', onAction: () => void toggle() }
 
   return (
-    <>
-      <div className="flex items-center gap-[9px] border-t border-[color:var(--m-rowbr)] py-2 first:border-t-0">
+    <MSwipeRow
+      leading={swipeLeading}
+      trailing={swipeTrailing}
+      surface="bg-m-sheetop"
+      inset={4}
+      className="border-t border-m-rowbr first:border-t-0"
+    >
+      <div className="flex items-center gap-[10px] py-[9px]">
         <button
           type="button"
           onClick={toggle}
@@ -705,157 +698,43 @@ function PackingItemRow({ item, planner, currentUserId, editMode, canEdit, bagTr
           <Check size={12} strokeWidth={3} />
         </button>
 
-        <span className={`min-w-0 flex-1 truncate text-[0.8125rem] font-medium ${item.checked ? 'text-m-faint line-through opacity-45' : 'text-m-ink'}`}>
-          {isPlaceholder ? t('packing.addItemPlaceholder') : item.name}
-        </span>
-
-        {/* Sharing state is an icon, not a sentence (#1525): "Taken care of by
-            Alexander" spelled out took a third of the row away from the item
-            name. The full wording lives on the pill as its label. */}
-        {badgeSharedToMe && (
-          <span
-            className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] text-m-muted"
-            title={t('packing.takenCareOf', { name: item.owner_username || '' })}
-            aria-label={t('packing.takenCareOf', { name: item.owner_username || '' })}
-          >
-            <HandHelping size={11} strokeWidth={2.2} />
+        {/* The rest of the row opens the item sheet: everything about it lives there. */}
+        <button type="button" onClick={onEdit} aria-haspopup="dialog" aria-label={`${isPlaceholder ? t('packing.addItemPlaceholder') : item.name}, ${t('packing.editItem')}`} className="flex min-w-0 flex-1 items-center gap-[8px] rounded-[10px] text-start outline-none [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-m-act">
+          <span className={`min-w-0 flex-1 truncate text-body font-medium ${item.checked ? 'text-m-faint line-through opacity-45' : 'text-m-ink'}`}>
+            {isPlaceholder ? t('packing.addItemPlaceholder') : item.name}
           </span>
-        )}
-        {!badgeSharedToMe && badgeSharedByMe && (
-          <span
-            className="flex flex-none items-center gap-[2px] rounded-full bg-[color:var(--m-ic)] px-[5px] py-[3px] font-geist text-[0.59375rem] font-bold text-m-muted"
-            title={t('packing.sharedWithCount', { count: recipients.length })}
-            aria-label={t('packing.sharedWithCount', { count: recipients.length })}
-          >
-            <UserRound size={10} strokeWidth={2.2} />
-            {recipients.length}
-          </span>
-        )}
-        {!badgeSharedToMe && !badgeSharedByMe && badgeBroughtBy && (
-          <span className="flex flex-none items-center gap-[3px]" title={t('packing.broughtBy', { name: packingBringerNames(item) })} aria-label={t('packing.broughtBy', { name: packingBringerNames(item) })}>
-            {ownerAvatarUrl
-              ? <img src={ownerAvatarUrl} alt={item.owner_username || ''} className="h-5 w-5 flex-none rounded-full object-cover" />
-              : <span className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] font-geist text-[0.5625rem] font-bold text-m-muted">{(item.owner_username || '?')[0]?.toUpperCase()}</span>}
-            {contributors.length > 0 && (
-              <span className="font-geist text-[0.59375rem] font-bold text-m-faint">+{contributors.length}</span>
-            )}
-          </span>
-        )}
 
-        {quantity > 1 && (canEdit && !isPlaceholder ? (
-          <span
-            role="group"
-            aria-label={t('packing.packedCount', { packed, total: quantity })}
-            className={`flex flex-none items-center rounded-full font-geist text-[0.625rem] font-bold tabular-nums ${partlyPacked ? 'bg-[color:color-mix(in_srgb,var(--m-act)_14%,transparent)] text-m-ink' : 'bg-[color:var(--m-ic)] text-m-muted'}`}
-          >
-            <button type="button" aria-label={t('packing.packedLess')} disabled={packed <= 0} onClick={() => tripActions.setPackedCount(tripId, item.id, packed - 1)}
-              className="flex h-[22px] w-[22px] items-center justify-center disabled:opacity-30">
-              <Minus size={11} strokeWidth={2.6} />
-            </button>
-            <span className="min-w-[26px] text-center">{packed}/{quantity}</span>
-            <button type="button" aria-label={t('packing.packedMore')} disabled={packed >= quantity} onClick={() => tripActions.setPackedCount(tripId, item.id, packed + 1)}
-              className="flex h-[22px] w-[22px] items-center justify-center disabled:opacity-30">
-              <Plus size={11} strokeWidth={2.6} />
-            </button>
-          </span>
-        ) : (
-          <span className="flex-none rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.625rem] font-bold tabular-nums text-m-muted">
-            {partlyPacked ? `${packed}/${quantity}` : `${quantity}×`}
-          </span>
-        ))}
+          {partlyPacked && <span className="flex-none text-caption font-semibold tabular-nums text-m-muted">{packed}/{quantity}</span>}
+          {!partlyPacked && quantity > 1 && <span className="flex-none text-caption font-medium tabular-nums text-m-faint">×{quantity}</span>}
 
-        {/* A weight nobody entered is not worth a column: "— g" on every row
-            cost as much width as a real value (#1525). */}
-        {editMode && bagTrackingEnabled && item.weight_grams != null && (
-          <span className="flex-none font-geist text-[0.625rem] font-semibold tabular-nums text-m-faint">
-            {formatWeight(item.weight_grams)}
-          </span>
-        )}
-
-        {bagTrackingEnabled && (
-          <button
-            type="button"
-            onClick={() => { setMenuOpen(false); setBagPickerOpen(v => !v) }}
-            aria-label={t('packing.bags')}
-            className="h-[18px] w-[18px] flex-none rounded-full"
-            style={bag
-              ? { border: `2.5px solid ${bag.color}`, background: 'transparent' }
-              : { border: '2px dashed var(--m-faint)', opacity: 0.55 }}
-          />
-        )}
-
-        {/* Edit and delete moved behind one button (#1525): two round targets
-            plus their gaps were the widest thing on an edit-mode row, and
-            neither is used often enough to earn a permanent seat. */}
-        {editMode && canEdit && (
-          <button
-            type="button"
-            onClick={() => { setBagPickerOpen(false); setMenuOpen(v => !v) }}
-            aria-label={t('mobileTrip.more')}
-            aria-expanded={menuOpen}
-            className={`flex h-7 w-7 flex-none items-center justify-center rounded-full bg-[color:var(--m-ic)] ${menuOpen ? 'text-m-ink' : 'text-m-muted'}`}
-          >
-            <MoreHorizontal size={13} strokeWidth={2} />
-          </button>
-        )}
-      </div>
-
-      {menuOpen && editMode && canEdit && (
-        <div className="mb-[6px] ms-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
-          <button
-            type="button"
-            onClick={() => { setMenuOpen(false); onEdit() }}
-            className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-start text-[0.75rem] font-medium text-m-ink"
-          >
-            <Pencil size={12} strokeWidth={2} />
-            {t('common.edit')}
-          </button>
-          <button
-            type="button"
-            onClick={() => { setMenuOpen(false); onDelete() }}
-            className="flex w-full items-center gap-[9px] px-3 py-2 text-start text-[0.75rem] font-medium text-[color:var(--m-st-danger)]"
-          >
-            <Trash2 size={12} strokeWidth={2} />
-            {t('common.delete')}
-          </button>
-        </div>
-      )}
-
-      {bagPickerOpen && bagTrackingEnabled && (
-        <div className="mb-[6px] ms-[28px] overflow-hidden rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-glass)] backdrop-blur-[24px]">
-          <button type="button" onClick={() => assignBag(null)} className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-start text-[0.75rem] font-medium text-m-muted">
-            <span className="h-[9px] w-[9px] flex-none rounded-full border border-dashed border-[color:var(--m-faint)]" />
-            {t('packing.noBag')}
-          </button>
-          {bags.map(b => (
-            <button key={b.id} type="button" onClick={() => assignBag(b.id)} className="flex w-full items-center gap-[9px] border-b border-[color:var(--m-rowbr)] px-3 py-2 text-start text-[0.75rem] font-medium text-m-ink">
-              <span className="h-[9px] w-[9px] flex-none rounded-full" style={{ background: b.color }} />
-              {b.name}
-            </button>
-          ))}
-          {creatingBag ? (
-            <div className="flex items-center gap-[6px] p-[8px]">
-              <input
-                type="text"
-                autoFocus
-                value={newBagName}
-                onChange={e => setNewBagName(e.target.value)}
-                onKeyDown={e => { if (e.key === 'Enter') void submitNewBag(); if (e.key === 'Escape') { setCreatingBag(false); setNewBagName('') } }}
-                placeholder={t('packing.bagName')}
-                className={`${FIELD_CLS} flex-1 py-[6px] text-[0.75rem]`}
-              />
-              <button type="button" onClick={submitNewBag} disabled={!newBagName.trim()} aria-label={t('common.add')} className="flex h-7 w-7 flex-none items-center justify-center rounded-[9px] bg-m-act text-m-actfg disabled:opacity-40">
-                <Plus size={12} strokeWidth={2.4} />
-              </button>
-            </div>
-          ) : (
-            <button type="button" onClick={() => setCreatingBag(true)} className="flex w-full items-center gap-[7px] px-3 py-2 text-start font-geist text-[0.6875rem] font-semibold text-m-muted">
-              <Plus size={11} strokeWidth={2.2} />
-              {t('packing.addBag')}
-            </button>
+          {badgeSharedToMe && (
+            <span
+              className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-m-ic text-m-muted"
+              aria-label={t('packing.takenCareOf', { name: item.owner_username || '' })}
+            >
+              <HandHelping size={11} strokeWidth={2.2} />
+            </span>
           )}
-        </div>
-      )}
-    </>
+          {!badgeSharedToMe && badgeSharedByMe && (
+            <span
+              className="flex flex-none items-center gap-[2px] rounded-full bg-m-ic px-[6px] py-[3px] text-caption font-bold text-m-muted"
+              aria-label={t('packing.sharedWithCount', { count: recipients.length })}
+            >
+              <UserRound size={10} strokeWidth={2.2} />
+              {recipients.length}
+            </span>
+          )}
+          {!badgeSharedToMe && !badgeSharedByMe && bringerName && (
+            <span className="flex flex-none items-center gap-[3px]" aria-label={t('packing.broughtBy', { name: packingBringerNames(item) })}>
+              {bringerAvatarUrl
+                ? <img src={bringerAvatarUrl} alt="" className="h-5 w-5 flex-none rounded-full object-cover" />
+                : <span aria-hidden className="flex h-5 w-5 flex-none items-center justify-center rounded-full bg-m-ic text-[0.5625rem] font-bold text-m-muted">{bringerName[0]?.toUpperCase()}</span>}
+              {moreBringers > 0 && <span aria-hidden className="text-caption font-bold text-m-faint">+{moreBringers}</span>}
+            </span>
+          )}
+        </button>
+      </div>
+    </MSwipeRow>
   )
 }
+

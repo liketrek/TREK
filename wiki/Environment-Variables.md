@@ -236,6 +236,25 @@ optional (for unauthenticated relays).
 
 ---
 
+## Booking mail import
+
+How forwarded booking mails reach TREK ([Booking mail import](Booking-Mail-Import)). Every variable overrides its field
+in the admin dialog; unset, the dialog decides.
+
+| Variable                       | Description                                                                                                 | Default |
+|--------------------------------|-------------------------------------------------------------------------------------------------------------|---------|
+| `MAIL_INGEST_TRANSPORT`        | `off` (uploads only), `imap` or `webhook`.                                                                  | `off`   |
+| `MAIL_INGEST_IMAP_HOST`        | The mailbox TREK reads every two minutes. A host on your own network needs `ALLOW_INTERNAL_NETWORK=true`.   |         |
+| `MAIL_INGEST_IMAP_PORT`        | `993` for TLS, `143` for STARTTLS.                                                                          | `993`   |
+| `MAIL_INGEST_IMAP_TLS`         | `tls` (encrypted from the first byte) or `starttls`.                                                        | `tls`   |
+| `MAIL_INGEST_IMAP_USER`        | IMAP login.                                                                                                 |         |
+| `MAIL_INGEST_IMAP_PASS`        | IMAP password.                                                                                              |         |
+| `MAIL_INGEST_IMAP_MAILBOX`     | The folder the mails arrive in. Read mails move on to `TREK/processed`; nothing is deleted.                 | `INBOX` |
+| `MAIL_INGEST_ADDRESS_TEMPLATE` | The forwarding address, each person's token where `{token}` stands, e.g. `trek+{token}@example.com`.        |         |
+| `MAIL_INGEST_WEBHOOK_SECRET`   | The key the webhook sender signs each mail with (HMAC-SHA256), at least 32 characters.                      |         |
+
+---
+
 ## Web Push
 
 [Web Push](Notifications#web-push) signs every message with a VAPID key pair. None of these variables is needed:
@@ -365,6 +384,18 @@ When left at the default, using the transit feature makes the TREK **server** se
 
 ---
 
+## Live Flight Status
+
+Booked flights are followed live through the keyless open ADS-B networks adsb.lol and, on a self-hosted install, adsb.fi. See [Transport: Flights, Trains, Cars](Transport-Flights-Trains-Cars#live-flight-status).
+
+| Variable              | Description                                                                                                                                                                  | Default |
+|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
+| `FLIGHT_LIVE_ENABLED` | `false` switches live flight status off, `true` keeps it on; either way it wins over **Admin → Settings → Live flight status**, which then shows the value locked. Unset leaves the choice to the admin switch. | unset   |
+
+While on, the TREK **server** asks `api.adsb.lol` (and `opendata.adsb.fi` on a self-hosted install) for the callsign of each booked flight in its watch window, at most once a second and 200 times an hour. Nothing else about the trip or its travellers is sent.
+
+---
+
 ## Image Search (Unsplash)
 
 TREK can search [Unsplash](https://unsplash.com/) for **trip cover images** and **place images**. By default the server queries Unsplash's public web endpoint **without an API key**, so no configuration is needed on most installs.
@@ -476,11 +507,17 @@ through environment variables. `TREK_PLACE_PHOTO_DIR` below is unaffected.
 | `BACKUP_UPLOAD_LIMIT_MB`     | Maximum **compressed** size (in MB) of a restore-backup archive that may be uploaded. Raise it if your backups (which include the `uploads/` directory) exceed the default. Non-positive or invalid values abort startup. | `500`                   |
 | `RESTORE_FROM_BACKUP` | Path to a backup ZIP to restore on the **first** start, before any setup. Only acts while no database exists; afterwards it is ignored with a warning. A backup that fails the restore checks stops the start. See [Backups](Backups#restoring-on-a-new-install-before-setup). | none |
 | `BACKUP_MAX_DECOMPRESSED_MB` | Maximum **decompressed** size (in MB) of a restore-backup archive — the zip-bomb guard. Independent of `BACKUP_UPLOAD_LIMIT_MB` and enforced on both restore paths, so a restore that fits the upload cap can still be refused with `Backup exceeds the maximum decompressed size.` Raise both when restoring a very large instance. | `5120` (5 GB)          |
-| `TREK_DB_FILE`               | Explicit path of the database file. Unset, TREK uses `travel.db` in the data directory. | unset |
+| `TREK_DB_URL`                | Run TREK on a PostgreSQL database instead of the SQLite file: `postgres://user:password@host:5432/database` (or `postgresql://`). Needs PostgreSQL 14 to 18, an empty database of its own and a role that is not a superuser. Percent-encode special characters in the password. See [Database: Postgres](Database-Postgres). | unset (SQLite) |
+| `TREK_DB_POOL_MAX`           | Most connections TREK opens to the PostgreSQL database, from 1 to 100. Unused on SQLite. | `10` |
+| `TREK_DB_PG_BIN_DIR`         | Directory holding `pg_dump`, `pg_restore` and `psql`, which back up and restore a PostgreSQL database. Unset, TREK looks in `/usr/lib/postgresql/18` to `14` (`bin`), newest first, then `/usr/local/bin` and `/usr/bin`. Unused on SQLite. See [Database: Postgres](Database-Postgres#where-the-client-tools-are-found). | unset |
+| `TREK_DB_FILE`               | Explicit path of the SQLite database file. Unset, TREK uses `travel.db` in the data directory. Not used with `TREK_DB_URL`. | unset |
 | `TREK_DB_JOURNAL_MODE`       | SQLite [journal mode](https://sqlite.org/pragma.html#pragma_journal_mode): `DELETE`, `TRUNCATE`, `PERSIST`, `MEMORY`, `WAL` or `OFF`. Set `DELETE` when the data directory lives on network storage — see below. Values SQLite doesn't know log a warning and fall back. | `WAL`                   |
-| `TREK_DB_PRE_MIGRATE_SNAPSHOT` | Copy the database to `pre-migrate-<schema>-<time>.db` next to it before a startup applies pending migrations, so the previous image can be started on that copy again. If the copy cannot be written the startup refuses rather than migrate without one. Set `false` only to get past that when you cannot free space and have a backup of your own. See [Updating](Updating#database-migrations). | `true` |
+| `TREK_DB_PRE_MIGRATE_SNAPSHOT` | Copy the database to `pre-migrate-<schema>-<time>.db` next to it before a startup applies pending migrations, so the previous image can be started on that copy again. On PostgreSQL the copy is a `pg_dump` file, `pre-migrate-<schema>-<time>.pgdump`, and needs the client tools (see `TREK_DB_PG_BIN_DIR`). If the copy cannot be written the startup refuses rather than migrate without one. Set `false` only to get past that when you cannot free space and have a backup of your own. See [Updating](Updating#database-migrations). | `true` |
+| `TREK_DB_IGNORE_SQLITE_FILE` | With `TREK_DB_URL` set, TREK refuses to start on a Postgres database that holds no TREK data while the data directory holds a `travel.db` with accounts, because it would come up as a new, empty instance beside it. `true` starts anyway, with a warning. Move the install instead with the command in [Database: Postgres](Database-Postgres#moving-an-existing-install-to-postgres). Unused on SQLite. | `false` |
 | `TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP` | How many of those copies stay in the data directory, newest first (1 to 100). | `3` |
 | `TREK_DB_SYNCHRONOUS`        | SQLite [synchronous](https://sqlite.org/pragma.html#pragma_synchronous) level: `OFF`, `NORMAL`, `FULL` or `EXTRA`. The default follows the journal mode — `NORMAL` under WAL (what SQLite itself uses there), `FULL` otherwise, because a rollback journal at `NORMAL` can lose committed transactions on a power cut. | `NORMAL` / `FULL`       |
+
+With `TREK_DB_URL` set, the SQLite variables (`TREK_DB_FILE`, `TREK_DB_JOURNAL_MODE`, `TREK_DB_SYNCHRONOUS`) do not apply, and setting any of them alongside `TREK_DB_URL` stops the startup. The pre-migration copy settings (`TREK_DB_PRE_MIGRATE_SNAPSHOT` and `TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP`) apply to both engines. The [Database: Postgres](Database-Postgres) page covers the connection, SSL and backups on PostgreSQL.
 
 ### Running the database on network storage
 
@@ -500,7 +537,7 @@ from the next boot onward. The startup log prints what is actually in effect:
 [DB] journal_mode=DELETE, synchronous=FULL
 ```
 
-The maintenance tools that open the same file — `reset-admin.js` and `scripts/migrate-encryption.ts` — read the same two
+The maintenance tools that open the same file on SQLite, `reset-admin.js` and `scripts/migrate-encryption.ts`, read the same two
 variables, so run them with the same environment (`docker exec` into the container does this for you). Otherwise the
 next key rotation or admin reset would quietly switch the file back to WAL.
 

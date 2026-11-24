@@ -216,7 +216,7 @@ export function AssistantScreen({ tripId, tripTitle, hidden, hops, onOpenTripCha
         hidden={hidden}
         tabIndex={-1}
         onKeyDown={(e) => keepTabInside(e, sectionRef.current)}
-        className={`fixed inset-0 z-[var(--z-bar)] ${hidden ? 'hidden' : 'flex'} m-panel-in flex-col bg-[var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink outline-none wide:inset-auto wide:bottom-3 wide:end-3 wide:top-3 wide:w-[min(500px,calc(100vw-var(--m-rail-w,0px)-24px))] wide:overflow-hidden wide:rounded-[28px] wide:border wide:border-[color:var(--m-shbr)] wide:shadow-modal`}
+        className={`m-safe-trail fixed inset-0 z-[var(--z-bar)] ${hidden ? 'hidden' : 'flex'} m-panel-in flex-col bg-[var(--m-bg)] bg-[image:var(--m-scr)] text-m-ink outline-none wide:inset-auto wide:bottom-3 wide:end-3 wide:top-3 wide:w-[min(500px,calc(100vw-var(--m-rail-w,0px)-24px))] wide:overflow-hidden wide:rounded-[28px] wide:border wide:border-[color:var(--m-shbr)] wide:shadow-modal`}
         style={{ paddingBottom: `max(env(safe-area-inset-bottom, 0px), ${keyboard}px)` }}
       >
         <header className="flex flex-none items-center gap-2 px-4 pb-2 pt-[var(--m-safe-top,12px)] wide:pt-3">

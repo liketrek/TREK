@@ -152,6 +152,26 @@ describe('Atlas admin1 region bundle (#1217)', () => {
     }
   });
 
+  /*
+   * geoBoundaries has no county layer for Ireland: its ADM1 is the four provinces and
+   * its ADM2 the 166 local electoral areas, so Ireland showed four provinces next to
+   * a UK of counties (#2922). Ireland's regions come from Tailte Éireann's 26 counties
+   * instead, under their ISO 3166-2:IE codes.
+   */
+  it('ATLAS-BUNDLE-011 — Ireland ships its 26 counties, not the four provinces (#2922)', () => {
+    const ie = regions('IE') as unknown as { properties: { iso_3166_2: string; name: string; admin: string } }[];
+    const codes = ie.map((f) => f.properties.iso_3166_2).sort();
+    // ISO 3166-2:IE, Dublin, Cork, Galway and Limerick each one county (city and county together).
+    const iso =
+      'IE-CE IE-CN IE-CO IE-CW IE-D IE-DL IE-G IE-KE IE-KK IE-KY IE-LD IE-LH IE-LK ' +
+      'IE-LM IE-LS IE-MH IE-MN IE-MO IE-OY IE-RN IE-SO IE-TA IE-WD IE-WH IE-WW IE-WX';
+    expect(codes).toEqual(iso.split(' '));
+    const byCode = new Map(ie.map((f) => [f.properties.iso_3166_2, f.properties]));
+    expect(byCode.get('IE-D')?.name).toBe('Dublin');
+    expect(byCode.get('IE-TA')?.name).toBe('Tipperary');
+    expect(new Set(ie.map((f) => f.properties.admin))).toEqual(new Set(['Ireland']));
+  });
+
   it('ATLAS-BUNDLE-006 — China ships Guangdong Province, not Guangzhou Province', () => {
     const cn = (
       features as unknown as { properties: { iso_a2: string | null; name?: string; iso_3166_2: string } }[]

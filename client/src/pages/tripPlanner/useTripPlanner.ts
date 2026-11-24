@@ -10,7 +10,7 @@ import { useToast } from '../../components/shared/Toast'
 import { Map, Ticket, PackageCheck, Wallet, FolderOpen, Users, Train, Mountain, Route } from 'lucide-react'
 import { resolvePluginIcon } from '../../components/shared/PluginIcon'
 import { useTranslation } from '../../i18n'
-import { addonsApi, authApi, tripsApi, healthApi, placesApi } from '../../api/client'
+import { authApi, tripsApi, healthApi, placesApi } from '../../api/client'
 import { TRANSPORT_TYPES } from '../../utils/dayMerge'
 import { offlineDb } from '../../db/offlineDb'
 import { isEffectivelyOffline } from '../../sync/networkMode'
@@ -27,7 +27,6 @@ import { usePlaceSelection } from '../../hooks/usePlaceSelection'
 import { useTourPlaceIds } from '../../hooks/useTourPlaceIds'
 import { LinkedJournalIcon } from '../../components/Trips/LinkedJournalIcon'
 import { useTripJournal } from '../../components/Trips/useTripJournalLink'
-import { useAddonStore } from '../../store/addonStore'
 import { usePlannerHistory } from '../../hooks/usePlannerHistory'
 import { useIsTouch } from '../../hooks/useIsTouch'
 import { usePluginStore } from '../../store/pluginStore'
@@ -50,7 +49,7 @@ import { useTripRosterSync } from './useTripRosterSync'
 import { useDayAdd } from './useDayAdd'
 import { usePlannerDialogs } from './usePlannerDialogs'
 import { usePlaceDeepLink } from './usePlaceDeepLink'
-import { useAssistantDeepLink } from './useAssistantDeepLink'
+import { useAssistantDeepLink, useAssistantTabLink } from './useAssistantDeepLink'
 import { useAssistantCompareView, useAssistantMapLink } from './useAssistantMapLink'
 import { useAssistantPlaceDraft } from './useAssistantPlaceDraft'
 import { usePlannerMapView } from './usePlannerMapView'
@@ -68,6 +67,10 @@ import { usePlannerTripView } from './usePlannerTripView'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useIsWide } from '../../hooks/sizeClass'
 import { useRoadtripVias } from '../../components/Roadtrip/useRoadtripVias'
+import { TRIP_SPLASH_AFTER_MS } from '../../components/shared/useTripSplashBeats'
+import { useFlightLiveSync } from '../../components/Planner/flightLive/useFlightLiveSync'
+import { useMailPrefillLink } from '../../components/MailIngest/useMailPrefillLink'
+import { usePlannerAddons } from './usePlannerAddons'
 
 /**
  * The trip's roster from the server: the owner and the members. Null offline
@@ -119,6 +122,8 @@ export function useTripPlanner() {
   const todoItems = useTripStore(s => s.todoItems)
   const categories = useTripStore(s => s.categories)
   const reservations = useTripStore(s => s.reservations)
+  // Live flight states (status, position, delay) for the trip's flights, desktop and phone alike.
+  useFlightLiveSync(tripId, reservations.some(r => r.type === 'flight'))
   const budgetItems = useTripStore(s => s.budgetItems)
   const files = useTripStore(s => s.files)
   const selectedDayId = useTripStore(s => s.selectedDayId)
@@ -137,11 +142,10 @@ export function useTripPlanner() {
     else if (undone) toast.info(t('undo.done', { action: label ?? '' }))
   }, [undo, lastActionLabel, toast])
 
-  const [enabledAddons, setEnabledAddons] = useState<Record<string, boolean>>({ packing: true, budget: true, documents: true, collab: false, roadtrip: false, tours: false, dawarich: false })
-  // The values above are an optimistic guess until the addon feed answers. The
-  // tab guard below waits for this before evicting anything, so a tab we were
-  // asked to open ('collab' in particular, guessed off) survives the gap.
-  const [addonsLoaded, setAddonsLoaded] = useState<boolean>(false)
+  // The trip's addons, as its owner switched them or as the instance has them, live.
+  // The tab guard below waits for addonsLoaded before evicting anything, so a tab we
+  // were asked to open survives until the trip's list answered.
+  const { enabledAddons, addonsLoaded, collabFeatures, toursEnabled } = usePlannerAddons(tripId)
   // Road trip mode swaps the plan view's left rail (and later its map layer) for the
   // drive-first reading of the same trip. Remembered per trip on the account (#2639):
   // someone planning a road trip finds it again in another browser without it
@@ -180,7 +184,6 @@ export function useTripPlanner() {
       Object.entries(storedAssignments).map(([dayId, visits]) => [dayId, visits.filter(v => !hidden(v))]),
     )
   }, [roadtripMode, roadtripSettings.roadtrip_service_stops_in_days, storedAssignments])
-  const [collabFeatures, setCollabFeatures] = useState<{ chat: boolean; notes: boolean; links: boolean; polls: boolean; whatsnext: boolean }>({ chat: true, notes: true, links: true, polls: true, whatsnext: true })
   // Stays live in page-local state rather than the store, so store-level
   // refreshes (a stay booked or changed elsewhere, a remote trip date change,
   // reconnect hydration) nudge them, one read per burst (#1288).
@@ -207,12 +210,6 @@ export function useTripPlanner() {
   useTripRosterSync(tripId, refreshMembers)
 
   useEffect(() => {
-    addonsApi.enabled().then(data => {
-      const map: Record<string, boolean> = {}
-      data.addons.forEach(a => { map[a.id] = true })
-        setEnabledAddons({ packing: !!map.packing, budget: !!map.budget, documents: !!map.documents, collab: !!map.collab, roadtrip: !!map.roadtrip, tours: !!map.tours, dawarich: !!map.dawarich })
-      if (data.collabFeatures) setCollabFeatures(data.collabFeatures)
-    }).catch(() => {}).finally(() => setAddonsLoaded(true))
     authApi.getAppConfig().then(config => {
       if (config.allowed_file_types) setAllowedFileTypes(config.allowed_file_types)
     }).catch(() => {})
@@ -287,6 +284,12 @@ export function useTripPlanner() {
     if (tabId === 'dateien' && (!files || files.length === 0)) tripActions.loadFiles?.(tripId)
   }
 
+  // Notifications can open a tab while this trip is already mounted, on either layout.
+  // Each link it takes is counted, so the phone shell can open the right part of the tab.
+  const [tabLink, setTabLink] = useState<{ tab: string; seq: number } | null>(null)
+  const onTabLinked = useCallback((tab: string) => setTabLink(prev => ({ tab, seq: (prev?.seq ?? 0) + 1 })), [])
+  useAssistantTabLink({ searchParams, setSearchParams, activeTab, selectTab: handleTabChange, onLinked: onTabLinked })
+
   // handleTabChange is where a tab's lazy load and its session memory happen, and
   // the tab we *start* on never goes through it — neither a ?tab= deep link nor a
   // tab restored from a previous visit. Catch both up once per trip, or opening
@@ -302,10 +305,9 @@ export function useTripPlanner() {
   const {
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrow: narrowPanels,
-    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing, resizeMin, resizeMaxLeft, resizeMaxRight,
   } = useResizablePanels()
   const { selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment } = usePlaceSelection()
-  const toursEnabled = useAddonStore(state => state.isEnabled('tours'))
   const [toursMode, setToursMode] = useState(false)
   const previousToursModeRef = useRef(false)
   const { tours, toursLoading, tourDataReady, tourPlaceIds, reloadTourPlaceIds, invalidateTourPlaceIds, upsertTour } = useTourPlaceIds(tripId, toursEnabled)
@@ -558,7 +560,7 @@ export function useTripPlanner() {
   }, [])
 
   const {
-    stayDraft, setStayDraft, editRoadtripStay, setRoadtripStay, roadtripEndsDayAt, setRoadtripEndDay,
+    stayDraft, setStayDraft, editRoadtripStay, setRoadtripStay, roadtripEndsDayAt, setRoadtripEndDay, mayEditStay,
     saveStopDraft, saveStopDraftAsNight, confirmStayRelease, reorderRoadtripStop, moveRoadtripStopToDay,
     setRoadtripStopKind, setRoadtripStopFill,
   } = useRoadtripStopEdits({
@@ -651,6 +653,7 @@ export function useTripPlanner() {
     editingReservation, setEditingReservation, setShowReservationModal,
     editingTransport, setEditingTransport, setShowTransportModal, setTransportModalDayId,
   })
+  useMailPrefillLink({ searchParams, setSearchParams, loaded: !isLoading && trip?.id === tripId, startImportReview })
 
   // ── The plan's booking detail ───────────────────────────────────────────────
   // A click on a booking in the plan shows it first; the editor is one Edit away.
@@ -695,26 +698,44 @@ export function useTripPlanner() {
     ? { active: roadtripEndsDayAt(endDayStop), onToggle: () => setRoadtripEndDay(endDayStop) }
     : undefined
   const roadtripStay = roadtripActive && selectedPlace
-    ? inspectorStay(roadtripRoutes.days, endDayStop, selectedPlace, can('place_edit', trip) ? editRoadtripStay : undefined)
+    ? inspectorStay(roadtripRoutes.days, endDayStop, selectedPlace, mayEditStay(endDayStop?.assignmentId) ? editRoadtripStay : undefined)
     : undefined
 
   const mapTileUrl = useTileUrl(OFM_POSITRON)
 
   const fontStyle = { fontFamily: "var(--font-system)" }
 
-  // Splash screen — show for initial load + a brief moment for photos to start loading
-  const [splashDone, setSplashDone] = useState(false)
+  // The trip's form saves alike from its own dialog and from the trip settings (#2811).
+  const saveTrip = useCallback(async (data: Parameters<typeof tripActions.updateTrip>[1]) => {
+    await tripActions.updateTrip(tripId, data)
+    loadAccommodations()
+    toast.success(t('trip.toast.tripUpdated'))
+  }, [tripActions, tripId, loadAccommodations, toast, t])
+
+  // The splash only for a slow open, as on the phone (MTripOpening): a trip that
+  // loads within TRIP_SPLASH_AFTER_MS opens straight away, with no splash and no
+  // minimum on screen.
+  const [slowOpen, setSlowOpen] = useState(false)
+  // Every open is timed afresh: a trip opened after a slow one starts without the splash too.
+  const [wasLoading, setWasLoading] = useState(isLoading)
+  if (wasLoading !== isLoading) {
+    setWasLoading(isLoading)
+    if (isLoading) setSlowOpen(false)
+  }
   useEffect(() => {
-    if (!isLoading && trip) {
-      const timer = setTimeout(() => setSplashDone(true), 1500)
-      return () => clearTimeout(timer)
-    }
-  }, [isLoading, trip])
+    if (!isLoading) return
+    const timer = setTimeout(() => setSlowOpen(true), TRIP_SPLASH_AFTER_MS)
+    return () => clearTimeout(timer)
+  }, [isLoading])
+
+  // The store still holds the trip opened before until loadTrip runs after the first
+  // render, so that trip counts as loading too rather than showing under this one's id.
+  const opening = isLoading || (trip != null && trip.id !== tripId)
 
   return {
     tripId, navigate, toast, t, language, locale, settings, placesPhotosEnabled,
     trip, days, places, assignments, storedAssignments, packingItems, todoItems, categories, reservations, budgetItems, files,
-    selectedDayId, isLoading, tripActions, can, canUploadFiles,
+    selectedDayId, isLoading: opening, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, journalId: journal.openJournalId, tripAccommodations, setTripAccommodations,
     roadtripMode, toggleRoadtripMode, roadtripActive, roadtripFeedActive, roadtripRoutes, roadtripLineColors, roadtripMapLines, roadtripMapPlaces, collapsedRoadtripDays, toggleRoadtripDay, roadtripCorridor,
@@ -722,10 +743,10 @@ export function useTripPlanner() {
     dawarichTrailShown, toggleDawarichTrail, dawarichTrail, dawarichHiddenDates, dawarichEnabled: !!enabledAddons.dawarich,
     followTrack, roadtripViaCounts,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
-    TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
+    TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange, tabLink,
     leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrowPanels,
-    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing, resizeMin, resizeMaxLeft, resizeMaxRight,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
     toursEnabled, toursMode, setToursMode, tours, toursLoading, tourDataReady, tourPlaceIds,
     reloadTourPlaceIds, invalidateTourPlaceIds, upsertTour, selectedTour, tourStageStops,
@@ -783,7 +804,7 @@ export function useTripPlanner() {
     ...dayClear,
     handleSaveReservation, handleSaveTransport, handleDeleteReservation,
     selectedPlace, dayOrderMap, dayPlaces,
-    mapTileUrl, fontStyle, splashDone,
+    mapTileUrl, fontStyle, slowOpen, saveTrip,
     // The assistant on the map, handed to MapViewAuto whole by both shells.
     assistantMap,
   }

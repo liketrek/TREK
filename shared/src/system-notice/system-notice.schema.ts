@@ -107,6 +107,7 @@ export const systemNoticeDtoSchema = z.object({
   highlights: z.array(noticeHighlightSchema).optional(),
   cta: noticeCtaSchema.optional(),
   secondaryCta: noticeCtaSchema.optional(),
+  tertiaryCta: noticeCtaSchema.optional(),
   desktopOnly: z.boolean().optional(),
   dismissible: z.boolean(),
   release: noticeReleaseSchema.optional(),

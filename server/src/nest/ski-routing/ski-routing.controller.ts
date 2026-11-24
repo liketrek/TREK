@@ -1,6 +1,6 @@
 import { ADDON_IDS } from '../../addons';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
 import { TripAccessGuard } from '../permissions/trip-access.guard';
@@ -18,7 +18,7 @@ import type { Response } from 'express';
  * the areas are downloaded by id and searched here.
  */
 @Controller('api/trips/:tripId/ski')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class SkiRoutingController {
   constructor(private readonly routing: SkiRoutingService) {}

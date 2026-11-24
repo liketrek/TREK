@@ -51,7 +51,8 @@ export function buildBuiltinChannels({ mailer, webhook, ntfy, push }: BuiltinCha
     async sendToUser(userId, msg) {
       const email = await mailer.getUserEmail(userId);
       if (!email) return false;
-      return mailer.sendEmail(email, msg.title, msg.body, userId, msg.navigateTarget);
+      const manageTarget = ADMIN_SCOPED_EVENTS.has(msg.event) ? '/admin?tab=notifications' : undefined;
+      return mailer.sendEmail(email, msg.title, msg.body, userId, msg.navigateTarget, manageTarget);
     },
     async test(userId) {
       const email = await mailer.getUserEmail(userId);

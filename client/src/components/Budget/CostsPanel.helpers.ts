@@ -278,13 +278,14 @@ export function calculateTicketShares(items: TicketItem[]): { shares: Record<num
  * scanned receipt, which also brings its currency, day, lines and photo. Both
  * editors (the desktop modal and the phone sheet) seed from this one place.
  *
- * A prefill without a currency is in `base`, which is also what the currency
- * field starts on. Receipt lines seed the Ticket split, shared by everyone like
- * a line added by hand, while the split itself stays Equally until the person
- * switches.
+ * A prefill without a currency is in `fallbackCurrency`, which is also what the
+ * currency field starts on: the editors pass the trip's own currency, the one
+ * most expenses on the road are paid in (#2807). Receipt lines seed the Ticket
+ * split, shared by everyone like a line added by hand, while the split itself
+ * stays Equally until the person switches.
  */
-export function newExpenseSeed(prefill: ExpensePrefill | undefined, base: string, peopleIds: number[], today: string) {
-  const currency = (prefill?.currency || base).toUpperCase()
+export function newExpenseSeed(prefill: ExpensePrefill | undefined, fallbackCurrency: string, peopleIds: number[], today: string) {
+  const currency = (prefill?.currency || fallbackCurrency).toUpperCase()
   return {
     currency,
     day: prefill?.date || today,

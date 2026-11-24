@@ -26,6 +26,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'Двухфакторная аутентификация',
   'login.mfaSubtitle': 'Введите 6-значный код из приложения-аутентификатора.',
   'login.mfaCodeLabel': 'Код подтверждения',
+  'login.mfaPlaceholder': '000000 или XXXX-XXXX',
   'login.mfaCodeRequired': 'Введите код из приложения-аутентификатора.',
   'login.mfaHint': 'Откройте Google Authenticator, Authy или другое TOTP-приложение.',
   'login.mfaBack': '← Назад к входу',

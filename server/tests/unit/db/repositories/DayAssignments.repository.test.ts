@@ -3,6 +3,7 @@
  * assignment-with-place projection contract (built here, Task 3 consumes it
  * unchanged for AS1/AS3).
  */
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { DayAccommodations } from '../../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../../src/db/entities/DayAssignments.entity';
 import { Places } from '../../../../src/db/entities/Places.entity';
@@ -36,7 +37,7 @@ let uow: UnitOfWork;
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   assignments = t.repo(DayAssignments);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 beforeEach(() => {
   resetTestDb(testDb);
@@ -1047,6 +1048,31 @@ describe('DayAssignmentsRepository.insertAssignmentCopy (TP49)', () => {
       accommodation_id: null,
     });
   });
+
+  it("ASSIGNREPO-048: carries the visit's own stay_minutes, null when none is given (#3092)", async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id);
+    const copy = {
+      day_id: day.id,
+      place_id: place.id,
+      order_index: 0,
+      notes: null,
+      reservation_status: null,
+      reservation_notes: null,
+      reservation_datetime: null,
+      assignment_time: null,
+      assignment_end_time: null,
+      end_day: 0,
+    };
+
+    const withStay = await assignments.insertAssignmentCopy({ ...copy, stay_minutes: 90 });
+    const without = await assignments.insertAssignmentCopy(copy);
+
+    expect(await assignmentCols(withStay, 'stay_minutes')).toEqual({ stay_minutes: 90 });
+    expect(await assignmentCols(without, 'stay_minutes')).toEqual({ stay_minutes: null });
+  });
 });
 
 describe('DayAssignmentsRepository.setAccommodation (TP57)', () => {
@@ -1079,7 +1105,7 @@ const LEGACY_LIST_ROADTRIP_VISITS = `
   SELECT a.id, a.day_id, a.order_index, a.place_id, p.name, p.lat, p.lng,
     COALESCE(a.assignment_time, p.place_time) AS time,
     COALESCE(a.assignment_end_time, p.end_time) AS end_time,
-    p.duration_minutes, a.end_day,
+    COALESCE(a.stay_minutes, p.duration_minutes) AS duration_minutes, a.end_day,
     a.leg_transport_mode, a.incoming_leg_transport_mode, p.stop_type, p.fill_percent,
     a.accommodation_id, stay.id AS stay_id, stay.check_in, stay.check_out, checkout.day_number AS checkout_day
   FROM day_assignments a
@@ -1169,6 +1195,26 @@ describe('DayAssignmentsRepository.listRoadtripVisits (RPL2, roadtrip-plan.servi
       fill_percent: 80,
       duration_minutes: 45,
     });
+  });
+
+  it('ASSIGNREPO-036: two visits of one place keep their own stay, an unset one reads the place (#3092)', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const day = createDay(testDb, trip.id);
+    const place = createPlace(testDb, trip.id, { name: 'Viewpoint' });
+    await updateRows(t, Places, { id: place.id }, { duration_minutes: 45 });
+    const stopped = createDayAssignment(testDb, day.id, place.id, { order_index: 0 });
+    const passed = createDayAssignment(testDb, day.id, place.id, { order_index: 1 });
+
+    await withRequestContext(t.orm, () => assignments.setStayMinutes(passed.id, 0));
+
+    const visits = await assignments.listRoadtripVisits(trip.id);
+    expect(visits.map((v) => [v.id, v.duration_minutes])).toEqual([
+      [stopped.id, 45],
+      [passed.id, 0],
+    ]);
+    expect(await assignmentCols(stopped.id, 'stay_minutes')).toEqual({ stay_minutes: null });
+    expect((await findRow(t, Places, { id: place.id }))?.duration_minutes).toBe(45);
   });
 
   it('ASSIGNREPO-033: empty array for a trip with no assignments', async () => {

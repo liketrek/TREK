@@ -47,7 +47,6 @@ function look(over: Partial<JourneyEntryLook> = {}): JourneyEntryLook {
     photoId: 7,
     video: false,
     photoCount: 1,
-    visibility: 'private',
     draft: false,
     fromTripPlace: false,
     dayIndex: 0,
@@ -86,13 +85,15 @@ afterEach(() => {
 
 describe('the journal entries card', () => {
   it('FE-AI-JOURNEY-001: one entry reads as a row with its photo, facts, marks and text under the journal', () => {
-    const { container } = block([card([look({ visibility: 'public', draft: true, photoCount: 4, video: true })])]);
+    // A card stored while entries carried a visibility: it reads, and says nothing of it.
+    const stored = { ...look({ draft: true, photoCount: 4, video: true }), visibility: 'public' };
+    const { container } = block([card([stored])]);
     expect(screen.getByRole('region', { name: 'Journal entries' })).toBeInTheDocument();
     expect(screen.getByText('Sunset at the Spree')).toBeInTheDocument();
     expect(screen.getByText('14:30')).toBeInTheDocument();
     expect(screen.getByText('Berlin')).toBeInTheDocument();
     expect(screen.getByText('The light over the river was unreal.')).toBeInTheDocument();
-    expect(screen.getByText('Public')).toBeInTheDocument();
+    expect(screen.queryByText('Public')).toBeNull();
     expect(screen.getByText('Draft')).toBeInTheDocument();
     expect(screen.getByText('4 photos')).toBeInTheDocument();
     expect(screen.getByText('Opens with a video')).toBeInTheDocument();
@@ -225,13 +226,12 @@ describe('a change row of a journal entry', () => {
   }
 
   it('FE-AI-JOURNEY-008: a waiting delete shows the photo, the text and that it goes back to a suggestion; a receipt opens it', () => {
-    const entry = look({ fromTripPlace: true, visibility: 'shared' });
+    const entry = look({ fromTripPlace: true });
     const held = card([entry], { change: 'willDelete', tripJournal: true });
     const onOpen = vi.fn();
     const first = inView(<AssistantChangeCard items={[item('pending', held)]} />, { onOpen });
     expect(screen.getByText('Delete the journal entry')).toBeInTheDocument();
     expect(screen.getByText('The light over the river was unreal.')).toBeInTheDocument();
-    expect(screen.getByText('Shared')).toBeInTheDocument();
     expect(screen.getByText('Goes back to a suggestion')).toBeInTheDocument();
     expect(screen.getByText('Tue, Oct 21')).toBeInTheDocument();
     expect(screen.getByText('Museum Island')).toBeInTheDocument();
@@ -255,7 +255,6 @@ describe('a change row of a journal entry', () => {
       { op: 'change', labelKey: 'name', before: 'Sunset', after: 'Sunset at the Spree' },
       { op: 'change', labelKey: 'time', before: '14:30', after: '' },
       { op: 'change', labelKey: 'text', before: 'Old story', after: 'New story' },
-      { op: 'change', labelKey: 'field', field: 'visibility', before: 'private', after: 'public' },
       { op: 'change', labelKey: 'field', field: 'mood', before: 'good', after: '' },
       { op: 'change', labelKey: 'field', field: 'weather', before: 'sunny', after: 'Drizzle' },
       { op: 'change', labelKey: 'field', field: 'is_draft', before: '✓', after: '✗' },
@@ -267,8 +266,6 @@ describe('a change row of a journal entry', () => {
     expect(screen.getByText('14:30')).toHaveClass('line-through');
     expect(screen.getByText('Old story')).toHaveClass('line-through');
     expect(screen.getByText('New story')).toBeInTheDocument();
-    expect(screen.getByText('Private')).toHaveClass('line-through');
-    expect(screen.getByText('Public')).toBeInTheDocument();
     expect(screen.getByText('Good')).toHaveClass('line-through');
     expect(screen.getByText('Sunny')).toHaveClass('line-through');
     expect(screen.getByText('Drizzle')).toBeInTheDocument();

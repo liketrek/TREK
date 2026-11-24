@@ -1,7 +1,7 @@
 import { useEffect, useRef, useMemo, useId } from 'react'
 import { useParams } from 'react-router'
 import { useTripStore } from '../../store/tripStore'
-import { useAddonStore } from '../../store/addonStore'
+import { useTripAddonEnabled } from '../../store/tripAddonsStore'
 import CustomSelect from '../shared/CustomSelect'
 import { BookingCodeInput } from '../shared/BookingCode'
 import { buildAssignmentOptions } from './assignmentOptions'
@@ -71,7 +71,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   const fileInputRef = useRef(null)
   const titleId = useId()
 
-  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
+  const isBudgetEnabled = useTripAddonEnabled(Number(tripId), 'budget')
   const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
   // Set right before submit when the user clicked create/edit expense.
   const expense = useBookingExpenseIntent(() => handleSubmit(), {
@@ -132,8 +132,12 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
       setForm({ ...EMPTY_FORM, assignment_id: defaultAssignmentId ?? '' })
       setPendingFiles([])
     }
+    // Keyed only on what opens a different form. Days, places and stays are read
+    // when the form is seeded; a refresh of the trip while the dialog is open (a
+    // socket reconnect re-reads it) hands in new arrays of the same data and must
+    // not reseed it and wipe what the user is typing (#3069).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [reservation, prefill, isOpen, selectedDayId, defaultAssignmentId, days, places, accommodations])
+  }, [reservation, prefill, isOpen, selectedDayId, defaultAssignmentId])
 
   const handleSubmit = async (e?: { preventDefault?: () => void }) => {
     e?.preventDefault?.()

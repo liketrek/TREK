@@ -5,6 +5,9 @@ import {
   createTagRequestSchema,
   tagListResponseSchema,
   tagSchema,
+  tripTagCreateRequestSchema,
+  tripTagListResponseSchema,
+  tripTagResponseSchema,
 } from '@trek/shared';
 import { z } from 'zod';
 import { buildCategory, buildTag } from '../../factories';
@@ -20,6 +23,16 @@ export const tagsHandlers = [
     ({ body }) => ({
       tag: buildTag(body),
     })
+  ),
+
+  // The tags a trip owns: none unless a test serves its own.
+  contractHandler('get', '/api/trips/:tripId/tags', { response: tripTagListResponseSchema }, () => ({ tags: [] })),
+
+  contractHandler(
+    'post',
+    '/api/trips/:tripId/tags',
+    { request: tripTagCreateRequestSchema, response: tripTagResponseSchema },
+    ({ body, params }) => ({ tag: buildTag({ ...body, trip_id: Number(params.tripId) }) })
   ),
 
   contractHandler('get', '/api/categories', { response: categoryListResponseSchema }, () => ({

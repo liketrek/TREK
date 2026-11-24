@@ -2,15 +2,27 @@ import { formatClock, parseClock, type ScheduleEntry } from './roadtripModel'
 import type { RoadtripDay, RoadtripStop } from '@trek/shared/roadtrip'
 import type { StayDraft } from './RoadtripStayModal'
 import type { RoadtripStayControl } from './VisitControls'
+import type { Assignment } from '../../types'
+
+/**
+ * How long the drive stands at one visit: its own stay (#3092), else the one its place
+ * carries. A place planned twice can be stopped at once and only driven past the other
+ * time, and a visit nobody gave a length keeps reading the place, as every visit did
+ * before the stay moved onto it.
+ */
+export function stayOf(a: Pick<Assignment, 'stay_minutes' | 'place'>): number | null {
+  if (typeof a.stay_minutes === 'number') return a.stay_minutes
+  return typeof a.place?.duration_minutes === 'number' ? a.place.duration_minutes : null
+}
 
 /**
  * How long a stop is stood at, the way a stay badge shows it.
  *
- * For most stops that is the stay the place carries. A stop with a time set to leave it
- * is stood at from whenever the drive gets there until that time, so its stay is what
+ * For most stops that is the stay of the visit (`stayOf`). A stop with a time set to leave
+ * it is stood at from whenever the drive gets there until that time, so its stay is what
  * the schedule made of it and `until` says when it ends. The number is read here and
- * never written back to the place: the stay belongs to the place, the end time to one
- * visit of it, and a stored copy would be wrong the moment the arrival moved.
+ * never written back: the end time decides it, and a stored copy would be wrong the
+ * moment the arrival moved.
  */
 export interface StayReading {
   minutes: number | null

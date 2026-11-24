@@ -133,6 +133,10 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'JourneyPublicController.legacyPhoto',
   'JourneyPublicController.mapLayers',
   'JourneyPublicController.photo',
+  // The booking mail webhook. A mail service holds no session; the HMAC over
+  // the raw mail is the credential, and the route is a 404 unless the admin
+  // made the webhook the import's transport and set its secret.
+  'MailIngestInboundController.receive',
   // The MCP transport — bearer tokens are verified inside the handler.
   // The same documents under the resource URL, for clients that append the
   // well-known path to the server address they were handed.
@@ -146,6 +150,9 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   // The native app redeems a one-time code from the system browser here. The
   // code is only good together with the verifier the app kept to itself.
   'NativeAuthController.exchange',
+  // Where the app's sign-in in the system browser starts: a page that forwards
+  // to the handoff page and carries no credential.
+  'NativeAuthController.start',
   'OauthPublicController.revoke',
   'OauthPublicController.token',
   'OauthPublicController.userinfo',

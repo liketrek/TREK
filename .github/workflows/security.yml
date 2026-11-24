@@ -13,7 +13,7 @@ name: Security Scan
 #   - scout scans the built image, base image packages included. It needs
 #     the Docker Hub login, so it runs on PRs and pushes into main only and
 #     skips fork PRs. Whether the image builds at all is test.yml's
-#     docker-image job, which a red scan cannot hide.
+#     docker job, which a red scan cannot hide.
 on:
   pull_request:
     branches: [main, dev]
@@ -74,12 +74,12 @@ jobs:
           load: true
           tags: trek:scan
 
-      - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+      - uses: docker/login-action@8aa5831fb8d48d8f76594c7ddde61ae58019f550 # v4.8.0
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - uses: docker/scout-action@e7e2a72bf1485d10a58f30696b6c513b261ce4fa # v1.29.0
+      - uses: docker/scout-action@b265cd48f8a1451d2680815b3e8dc4ed65ee16e7 # v1.30.0
         with:
           command: cves
           image: trek:scan

@@ -218,13 +218,16 @@ describe('MPlanTimeline', () => {
         weatherTemp: 17,
       })
 
-      // The name gives way with an ellipsis; the time after it stays, with no dot between.
+      // The name stands whole, never cut to a few letters: the chip keeps its
+      // size and the strip scrolls instead. The time follows with no dot between.
       const sacher = screen.getByText('Hotel Sacher')
-      expect(sacher).toHaveClass('truncate', 'min-w-0')
-      // In an Arabic header a Latin name keeps its own direction, so the ellipsis lands at its end.
+      expect(sacher).not.toHaveClass('truncate')
+      // In an Arabic header a Latin name keeps its own direction.
       expect(sacher).toHaveAttribute('dir', 'auto')
       expect(sacher.closest('button')).toHaveTextContent('Hotel Sacher11:00')
-      expect(sacher.closest('button')).toHaveClass('shrink')
+      expect(sacher.closest('button')).toHaveClass('flex-none')
+      expect(sacher.closest('button')).not.toHaveClass('shrink')
+      expect(sacher.closest('button')?.parentElement).toHaveClass('overflow-x-auto')
       expect(screen.getByText('Ryokan Kyoto').closest('button')).toHaveTextContent('Ryokan Kyoto15:00')
       expect(screen.getByText('Capsule Tokyo')).toBeInTheDocument()
       expect(screen.getByText('17°')).toBeInTheDocument()

@@ -81,19 +81,30 @@ describe('hidesOnMiddleDay', () => {
 describe('getTransportRouteEndpoints', () => {
   const pickup = { role: 'from', lat: 48.1, lng: 11.5 }
   const dropoff = { role: 'to', lat: 52.5, lng: 13.4 }
+  // An overnight train spanning day 1 (departure) through day 3 (arrival).
+  const rental = { type: 'train', day_id: 1, end_day_id: 3, endpoints: [pickup, dropoff] }
   // A car rental spanning day 1 (pickup) through day 3 (drop-off).
-  const rental = { day_id: 1, end_day_id: 3, endpoints: [pickup, dropoff] }
+  const car = { ...rental, type: 'car' }
 
-  it('routes to the pickup only on the start day of a multi-day rental', () => {
+  it('routes to the departure only on the start day of a booking spanning days', () => {
     expect(getTransportRouteEndpoints(rental, 1)).toEqual({ from: { lat: 48.1, lng: 11.5 }, to: null })
   })
 
-  it('routes from the drop-off only on the end day', () => {
+  it('routes from the arrival only on the end day', () => {
     expect(getTransportRouteEndpoints(rental, 3)).toEqual({ from: null, to: { lat: 52.5, lng: 13.4 } })
   })
 
   it('adds no waypoints on the days in between (regression for #1210)', () => {
     expect(getTransportRouteEndpoints(rental, 2)).toEqual({ from: null, to: null })
+    expect(getTransportRouteEndpoints(car, 2)).toEqual({ from: null, to: null })
+  })
+
+  it('passes a rental the traveller drives through its pickup and its return', () => {
+    // The drive goes to the desk and on from it, and to the return and on from it.
+    expect(getTransportRouteEndpoints(car, 1)).toEqual({ from: { lat: 48.1, lng: 11.5 }, to: { lat: 48.1, lng: 11.5 } })
+    expect(getTransportRouteEndpoints(car, 3)).toEqual({ from: { lat: 52.5, lng: 13.4 }, to: { lat: 52.5, lng: 13.4 } })
+    const bike = { ...rental, type: 'bicycle' }
+    expect(getTransportRouteEndpoints(bike, 3)).toEqual({ from: { lat: 52.5, lng: 13.4 }, to: { lat: 52.5, lng: 13.4 } })
   })
 
   it('uses both endpoints for a single-day transport', () => {
@@ -190,6 +201,23 @@ describe('getTransportForDay', () => {
     const day2 = getTransportForDay({ reservations, dayId: 2, dayAssignmentIds: [], days })
     expect(day2).toHaveLength(1)
     expect(day2[0].__leg).toMatchObject({ index: 1, from: 'Frankfurt', to: 'München', train_number: 'ICE 500', platform: '9' })
+  })
+
+  it('gives each leg of a flight with a stop its own seat, the first leg the flat one when it has none', () => {
+    const flight = (legs: object[], seat?: string) => [{
+      id: 42, type: 'flight', day_id: 1, end_day_id: 1,
+      metadata: JSON.stringify({ ...(seat ? { seat } : {}), legs }),
+    }]
+    const legs = [
+      { from: 'MXP', to: 'IST', dep_day_id: 1, dep_time: '11:00', arr_day_id: 1, arr_time: '15:10' },
+      { from: 'IST', to: 'JFK', seat: '14C', dep_day_id: 1, dep_time: '17:05', arr_day_id: 1, arr_time: '20:40' },
+    ]
+    const rows = getTransportForDay({ reservations: flight(legs), dayId: 1, dayAssignmentIds: [], days })
+    expect(rows.map(r => r.__leg.seat)).toEqual([null, '14C'])
+    // A booking saved before legs had seats keeps its flat seat on the first leg only.
+    const unseated = [{ ...legs[0] }, { ...legs[1], seat: undefined }]
+    const legacy = getTransportForDay({ reservations: flight(unseated, '3A'), dayId: 1, dayAssignmentIds: [], days })
+    expect(legacy.map(r => r.__leg.seat)).toEqual(['3A', null])
   })
 
   it('leaves a single-leg train untouched (no __leg)', () => {

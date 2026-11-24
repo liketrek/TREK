@@ -87,20 +87,26 @@ describe('entrypoint script', () => {
   });
 
   // Under runAsUser: 1000 there is no privilege to drop and gosu cannot switch
-  // users, so the non-root branch has to exec Node itself before any chown or gosu.
-  it('starts Node directly, without chown or gosu, when not running as root', () => {
+  // users, so the non-root branch has to exec Node itself before any chown or privilege drop.
+  it('starts Node directly, without chown or a privilege drop, when not running as root', () => {
     const nonRootCheck = code.indexOf('if [ "$(id -u)" != "0" ]; then');
     expect(nonRootCheck).toBeGreaterThan(-1);
     const branchEnd = code.indexOf('\nfi\n', nonRootCheck);
     expect(branchEnd).toBeGreaterThan(nonRootCheck);
     const branch = code.slice(nonRootCheck, branchEnd);
     expect(branch).toContain('exec node --require tsconfig-paths/register dist/index.js');
-    expect(branch).not.toContain('gosu');
+    expect(branch).not.toContain('setpriv');
     expect(code.indexOf('chown')).toBeGreaterThan(branchEnd);
-    expect(code.indexOf('gosu')).toBeGreaterThan(branchEnd);
+    expect(code.indexOf('setpriv')).toBeGreaterThan(branchEnd);
   });
 
-  it('still drops to node through gosu when started as root', () => {
-    expect(source).toContain('exec gosu node node --require tsconfig-paths/register dist/index.js');
+  // gosu is Go: it changes the ids by signalling every runtime thread and spinning until
+  // each answers, so a host that drops that signal hung it at full CPU (#3135).
+  it('drops to node through setpriv, not gosu, when started as root', () => {
+    expect(source).toContain(
+      'exec setpriv --reuid=node --regid=node --init-groups -- node --require tsconfig-paths/register dist/index.js',
+    );
+    expect(source).toContain('export HOME=/home/node');
+    expect(source).not.toMatch(/^\s*exec gosu/m);
   });
 });

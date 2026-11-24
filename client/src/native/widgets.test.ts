@@ -15,10 +15,14 @@ vi.mock('./trekShell', () => ({
 import { TrekShell } from './trekShell';
 import {
   buildSnapshot,
+  liveDayDue,
   pickTrip,
   publishWidgets,
+  snapshotDays,
   todayOf,
+  tripDaysFrom,
   tripDayState,
+  WIDGET_DAYS_AHEAD,
   widgetTripChoices,
   withBookings,
 } from './widgets';
@@ -151,6 +155,40 @@ describe('todayOf and tripDayState', () => {
   });
 });
 
+describe('liveDayDue', () => {
+  const evening = {
+    tripTitle: 'T',
+    path: '/trips/1',
+    dayLabel: 'D',
+    stops: [
+      { name: 'Walk', time: null, minutes: null },
+      { name: 'Uber to the airport', time: '18:00', minutes: 18 * 60 },
+      { name: 'Flight', time: '21:00', minutes: 21 * 60 },
+    ],
+  };
+
+  it('keeps the lock screen free until three hours before the first timed stop', () => {
+    expect(liveDayDue(evening, 6 * 60 + 32)).toBe(false);
+    expect(liveDayDue(evening, 14 * 60 + 59)).toBe(false);
+    expect(liveDayDue(evening, 15 * 60)).toBe(true);
+  });
+
+  it('stays on through the day once it has started, until the day is done', () => {
+    expect(liveDayDue(evening, 19 * 60)).toBe(true);
+    expect(liveDayDue(evening, 23 * 60 + 30)).toBe(true);
+  });
+
+  it('starts from the earliest timed stop, wherever it stands in the list', () => {
+    const early = { ...evening, stops: [...evening.stops, { name: 'Breakfast', time: '08:00', minutes: 8 * 60 }] };
+    expect(liveDayDue(early, 5 * 60)).toBe(true);
+    expect(liveDayDue(early, 4 * 60 + 59)).toBe(false);
+  });
+
+  it('has nothing to show on a day without times', () => {
+    expect(liveDayDue({ ...evening, stops: [{ name: 'Walk', time: null, minutes: null }] }, 12 * 60)).toBe(false);
+  });
+});
+
 describe('publishWidgets', () => {
   it('writes the snapshot without the internal minutes and ends the activity on a day without times', async () => {
     const snapshot = buildSnapshot(
@@ -209,6 +247,96 @@ describe('the richer snapshot', () => {
     expect(today.stops[2]).toMatchObject({ time: '12:15', minutes: 735, symbol: 'tram.fill' });
     expect(today).toMatchObject({ index: 1, total: 2 });
     expect(withBookings(plain, [], '2026-11-06', (t) => t)).toBe(plain);
+  });
+
+  it('makes a stop of every leg of a flight with a stopover, and keeps a flight in the air ahead until it lands', () => {
+    const plain = todayOf(
+      trip(1, '2026-11-09', '2026-11-10'),
+      [day(5, 1, '2026-11-09', []), day(6, 2, '2026-11-10', [])],
+      '2026-11-09',
+      () => 'D',
+      (t) => t
+    );
+    if (!plain) throw new Error('the trip runs today');
+    const legs = [
+      { from: 'SNA', to: 'ATL', dep_day_id: 5, dep_time: '14:00', arr_day_id: 5, arr_time: '21:11' },
+      { from: 'ATL', to: 'ORF', dep_day_id: 5, dep_time: '22:40', arr_day_id: 6, arr_time: '00:31' },
+    ];
+    const today = withBookings(
+      plain,
+      [
+        { id: 1, trip_id: 1, title: 'Car', type: 'car', status: 'confirmed', reservation_time: '2026-11-09T13:00' },
+        {
+          id: 2,
+          trip_id: 1,
+          title: 'SNA → ATL → ORF',
+          type: 'flight',
+          status: 'confirmed',
+          reservation_time: '2026-11-09T14:00',
+          metadata: JSON.stringify({ legs }),
+        },
+      ] as never,
+      '2026-11-09',
+      (t) => t
+    );
+    expect(today.stops.map((s) => s.name)).toEqual(['Car', 'SNA → ATL', 'ATL → ORF']);
+    // In the air on the first leg, between the legs, and on the second leg past midnight.
+    expect(tripDayState(today, 16 * 60 + 22, 'done')).toMatchObject({ nextName: 'SNA → ATL', done: 1, total: 3 });
+    expect(tripDayState(today, 21 * 60 + 30, 'done')).toMatchObject({ nextName: 'ATL → ORF', done: 2 });
+    expect(tripDayState(today, 23 * 60 + 30, 'done')).toMatchObject({ nextName: 'ATL → ORF', done: 2 });
+  });
+
+  it('lands a leg without an arrival day on the day it leaves', () => {
+    const plain = todayOf(
+      trip(1, '2026-11-09', '2026-11-09'),
+      [day(5, 1, '2026-11-09', [])],
+      '2026-11-09',
+      () => 'D',
+      (t) => t
+    );
+    if (!plain) throw new Error('the trip runs today');
+    const legs = [
+      { from: 'SNA', to: 'ATL', dep_day_id: 5, dep_time: '08:00', arr_time: '10:00' },
+      { from: 'ATL', to: 'ORF', dep_day_id: 5, dep_time: '12:00', arr_time: '14:00' },
+    ];
+    const today = withBookings(
+      plain,
+      [
+        { id: 2, trip_id: 1, title: 'Hop', type: 'flight', status: 'confirmed', metadata: JSON.stringify({ legs }) },
+      ] as never,
+      '2026-11-09',
+      (t) => t
+    );
+    expect(tripDayState(today, 15 * 60, 'done')).toMatchObject({ nextName: 'done', done: 2 });
+  });
+
+  it('counts a booking with an end time as under way until it ends', () => {
+    const plain = todayOf(
+      trip(1, '2026-11-09', '2026-11-09'),
+      [day(5, 1, '2026-11-09', [])],
+      '2026-11-09',
+      () => 'D',
+      (t) => t
+    );
+    if (!plain) throw new Error('the trip runs today');
+    const today = withBookings(
+      plain,
+      [
+        {
+          id: 1,
+          trip_id: 1,
+          title: 'Tour',
+          type: 'tour',
+          status: 'confirmed',
+          reservation_time: '2026-11-09T10:00',
+          reservation_end_time: '2026-11-09T13:00',
+        },
+      ] as never,
+      '2026-11-09',
+      (t) => t
+    );
+    expect(tripDayState(today, 11 * 60, 'done')).toMatchObject({ nextName: 'Tour', done: 0 });
+    expect(tripDayState(today, 13 * 60 + 1, 'done')).toMatchObject({ nextName: 'done', done: 1 });
   });
 
   it('carries the extras and leaves out what is empty', () => {
@@ -278,5 +406,92 @@ describe('widgets set to a trip', () => {
     const calls = vi.mocked(TrekShell.setWidgetSnapshot).mock.calls.map(([options]) => options);
     expect(calls.map((c) => c.key)).toEqual([undefined, 'trip.2', 'trips']);
     expect(JSON.parse(calls[2].json)).toEqual([{ id: 2, title: 'Trip 2', start: '2026-12-01', end: '2026-12-05' }]);
+  });
+});
+
+describe('the days ahead, for a widget that turns the day itself', () => {
+  const tripDays = [
+    day(1, 1, '2026-11-06', [{ name: 'Museum', time: '09:00' }]),
+    day(2, 2, '2026-11-07', [{ name: 'Harbour', time: '10:00' }, { name: 'Market' }]),
+    day(3, 3, '2026-11-08', []),
+  ];
+  const label = (n: number, m: number) => `${n}/${m}`;
+
+  it('FE-NATIVE-WDAYS-001: carries every day from today on with its date, label and stops', () => {
+    const ahead = tripDaysFrom(trip(1, '2026-11-06', '2026-11-08'), tripDays, {
+      reservations: [],
+      from: '2026-11-07',
+      dayLabel: label,
+      formatTime: (t) => t,
+    });
+    expect(ahead.map((d) => [d.date, d.dayLabel, d.stops.map((s) => s.name)])).toEqual([
+      ['2026-11-07', '2/3', ['Harbour', 'Market']],
+      ['2026-11-08', '3/3', []],
+    ]);
+  });
+
+  it('FE-NATIVE-WDAYS-002: joins each day to the bookings of its own date', () => {
+    const reservations = [
+      { id: 1, type: 'restaurant', title: 'Dinner', status: 'confirmed', reservation_time: '2026-11-08T19:30' },
+    ] as never;
+    const ahead = tripDaysFrom(trip(1, '2026-11-06', '2026-11-08'), tripDays, {
+      reservations,
+      from: '2026-11-06',
+      dayLabel: label,
+      formatTime: (t) => t,
+    });
+    expect(ahead.find((d) => d.date === '2026-11-08')?.stops.map((s) => s.name)).toEqual(['Dinner']);
+    expect(ahead.find((d) => d.date === '2026-11-06')?.stops.map((s) => s.name)).toEqual(['Museum']);
+  });
+
+  it('FE-NATIVE-WDAYS-003: holds a month at most and nothing of a trip that is over', () => {
+    const long = Array.from({ length: 40 }, (_, i) =>
+      day(i + 1, i + 1, `2026-12-${String(i + 1).padStart(2, '0')}`, [])
+    ).map((d, i) => (i >= 31 ? { ...d, date: `2027-01-${String(i - 30).padStart(2, '0')}` } : d)) as Day[];
+    const t = trip(1, '2026-12-01', '2027-01-09');
+    expect(
+      tripDaysFrom(t, long, { reservations: [], from: '2026-12-01', dayLabel: label, formatTime: (x) => x })
+    ).toHaveLength(WIDGET_DAYS_AHEAD);
+    expect(
+      tripDaysFrom(t, long, { reservations: [], from: '2027-02-01', dayLabel: label, formatTime: (x) => x })
+    ).toEqual([]);
+  });
+
+  it('FE-NATIVE-WDAYS-004: the snapshot has today with its date and the days ahead, each held to 16 stops', () => {
+    const busy = day(
+      4,
+      1,
+      '2026-11-06',
+      Array.from({ length: 20 }, (_, i) => ({ name: `Stop ${i}` }))
+    );
+    const t = trip(1, '2026-11-06', '2026-11-06');
+    const ahead = tripDaysFrom(t, [busy], {
+      reservations: [],
+      from: '2026-11-06',
+      dayLabel: label,
+      formatTime: (x) => x,
+    });
+    const snapshot = buildSnapshot(t, ahead[0] ?? null, labels, { days: ahead });
+    expect(snapshot.today?.date).toBe('2026-11-06');
+    // Today stays whole, as the app has always written it; the days ahead keep their first 16.
+    expect(snapshot.today?.stops).toHaveLength(20);
+    expect(snapshot.days?.[0]).toMatchObject({ date: '2026-11-06', dayLabel: '1/1' });
+    expect(snapshot.days?.[0]?.stops).toHaveLength(16);
+  });
+
+  it('FE-NATIVE-WDAYS-005: a snapshot without days ahead leaves the field out', () => {
+    expect(buildSnapshot(trip(1, '2026-11-06', '2026-11-08'), null, labels, { days: [] })).not.toHaveProperty('days');
+  });
+
+  it('FE-NATIVE-WDAYS-006: today is the first day ahead while the trip runs today, none before it starts or without a trip', () => {
+    const options = { reservations: [], dayLabel: label, formatTime: (x: string) => x };
+    const t = trip(1, '2026-11-06', '2026-11-08');
+    const running = snapshotDays(t, tripDays, { ...options, from: '2026-11-07' });
+    expect(running.today?.date).toBe('2026-11-07');
+    expect(running.ahead).toHaveLength(2);
+    const before = snapshotDays(t, tripDays, { ...options, from: '2026-11-01' });
+    expect(before.today).toBeNull();
+    expect(before.ahead.map((d) => d.date)).toEqual(['2026-11-06', '2026-11-07', '2026-11-08']);
+    expect(snapshotDays(null, tripDays, { ...options, from: '2026-11-07' })).toEqual({ today: null, ahead: [] });
   });
 });

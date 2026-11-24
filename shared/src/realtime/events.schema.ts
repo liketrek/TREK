@@ -1,3 +1,5 @@
+import { tripAddonListSchema } from '../addons/trip-addons.schema';
+import { flightLiveLegSchema } from '../flight-live/flight-live.schema';
 import { roadtripDayBoundaryListSchema } from '../roadtrip/day-boundary.schema';
 import { roadtripPreferencesSchema } from '../roadtrip/preferences.schema';
 
@@ -64,6 +66,9 @@ export const TREK_WS_EVENTS = {
   'place:created': { scope: 'trip', payload: z.object({ place: entity }) },
   'place:updated': { scope: 'trip', payload: z.object({ place: entity }) },
   'place:deleted': { scope: 'trip', payload: z.object({ placeId: id }) },
+  // The trip's own tags changed (one added, renamed, recoloured or deleted): every
+  // client reads the list again and takes the change over into the places it holds.
+  'tripTags:changed': { scope: 'trip', payload: empty },
   // Invalidate the trip's Tours list; affected ids let peers exclude new Tours immediately.
   'tours:changed': { scope: 'trip', payload: z.object({ placeIds: idList.optional() }) },
   // CW-03: the stations of a city walk visited or skipped on one of its days, all of them as they are now.
@@ -223,6 +228,8 @@ export const TREK_WS_EVENTS = {
     scope: 'trip',
     payload: z.object({ reservationId: id, travelers: z.array(z.unknown()) }),
   },
+  // Live flight states of the trip that changed in the last poll (flight-live job).
+  'flight:live': { scope: 'trip', payload: z.object({ flights: z.array(flightLiveLegSchema) }) },
 
   // ── Accommodations ───────────────────────────────────────────────────────
   // DRIFT: `{ accommodation }` vs empty refetch ping `{}` (reservation cascade
@@ -298,6 +305,10 @@ export const TREK_WS_EVENTS = {
   'memories:updated': { scope: 'trip', payload: z.object({ userId: id }) },
 
   'roadtripPreferences:changed': { scope: 'trip', payload: z.object({ preferences: roadtripPreferencesSchema }) },
+
+  // The trip owner switched a trip addon on or off for this trip, or back to the
+  // instance setting: every trip addon as the trip now sees it.
+  'tripAddons:changed': { scope: 'trip', payload: z.object({ addons: tripAddonListSchema }) },
 
   // ── Notifications (user-scoped) ──────────────────────────────────────────
   'notification:new': { scope: 'user', payload: z.object({ notification: entity }) },
@@ -449,6 +460,14 @@ export const TREK_WS_EVENTS = {
       y: z.number().nullable(),
     }),
   },
+
+  // ── Mail import (user-scoped) ────────────────────────────────────────────
+  // The person's inbox of forwarded bookings changed: a mail was read, an entry
+  // decided. Carries the open count for the badge; an open inbox reads itself again.
+  'mailInbox:changed': { scope: 'user', payload: z.object({ pending: z.number().int().nonnegative() }) },
+  // The person's address or switches changed on another tab or device: the
+  // settings card reads them again. Content-free, since the address holds a secret.
+  'mailInbox:settings': { scope: 'user', payload: empty },
 
   // ── Booking import (user-scoped; push() injects jobId + tripId) ─────────
   'import:progress': {

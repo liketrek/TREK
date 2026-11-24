@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildPlace } from '../../tests/helpers/factories'
 import {
   RATING_FLOORS, countActivePlacesFilters, matchesCategoryFilter, matchesPlacesFilter,
-  matchesPoolFilter, matchesRatingFloor,
+  matchesPoolFilter, matchesRatingFloor, tagFilterKey, withoutTagFilters,
 } from './placesFilter'
 
 const NONE = new Set<string>()
@@ -66,5 +66,45 @@ describe('placesFilter', () => {
     expect(countActivePlacesFilters({ filter: 'planned', categoryFilters: NONE, ratingFilter: 'all' })).toBe(1)
     expect(countActivePlacesFilters({ filter: 'all', categoryFilters: new Set(['1', '2']), ratingFilter: 'all' })).toBe(1)
     expect(countActivePlacesFilters({ filter: 'tracks', categoryFilters: new Set(['1']), ratingFilter: 3 })).toBe(3)
+  })
+
+  it('FE-UTIL-PLFILTER-008: a ticked tag keeps the places that carry it, whatever their category', () => {
+    const monument = buildPlace({ category_id: 4, tags: [{ id: 7, name: 'Monument' }, { id: 8, name: 'Zone' }] })
+    const plain = buildPlace({ category_id: 4 })
+    const bare = buildPlace({ category_id: null, tags: [{ id: 8, name: 'Zone' }] })
+    expect(tagFilterKey(7)).toBe('tag:7')
+    expect(matchesCategoryFilter(monument, new Set(['tag:7']))).toBe(true)
+    expect(matchesCategoryFilter(plain, new Set(['tag:7']))).toBe(false)
+    expect(matchesCategoryFilter(bare, new Set(['tag:7']))).toBe(false)
+    // Several ticked tags: carrying one of them is enough.
+    expect(matchesCategoryFilter(bare, new Set(['tag:7', 'tag:8']))).toBe(true)
+    // A copy without an id (a row still being written) matches no tag.
+    expect(matchesCategoryFilter(buildPlace({ tags: [{ name: 'Zone' }] }), new Set(['tag:8']))).toBe(false)
+  })
+
+  it('FE-UTIL-PLFILTER-009: categories and tags ticked together both have to hold', () => {
+    const monument = buildPlace({ category_id: 4, tags: [{ id: 7, name: 'Monument' }] })
+    const other = buildPlace({ category_id: 5, tags: [{ id: 7, name: 'Monument' }] })
+    const untagged = buildPlace({ category_id: 4 })
+    const bare = buildPlace({ category_id: null, tags: [{ id: 7, name: 'Monument' }] })
+    const both = new Set(['4', 'tag:7'])
+    expect(matchesCategoryFilter(monument, both)).toBe(true)
+    expect(matchesCategoryFilter(other, both)).toBe(false)
+    expect(matchesCategoryFilter(untagged, both)).toBe(false)
+    expect(matchesCategoryFilter(bare, both)).toBe(false)
+    expect(matchesCategoryFilter(bare, new Set(['uncategorized', 'tag:7']))).toBe(true)
+    // The whole filter follows: the tag narrows the list and the map alike.
+    const state = { filter: 'all', categoryFilters: both, ratingFilter: 'all' as const }
+    expect(matchesPlacesFilter(monument, state, { plannedIds: null })).toBe(true)
+    expect(matchesPlacesFilter(untagged, state, { plannedIds: null })).toBe(false)
+    expect(countActivePlacesFilters(state)).toBe(1)
+  })
+
+  it('FE-UTIL-PLFILTER-010: a tag that is gone leaves the filter, and a filter without it stays the same set', () => {
+    const filters = new Set(['4', 'tag:7', 'tag:8'])
+    expect([...withoutTagFilters(filters, [7])]).toEqual(['4', 'tag:8'])
+    expect([...withoutTagFilters(filters, new Set([7, 8, 9]))]).toEqual(['4'])
+    expect(withoutTagFilters(filters, [9])).toBe(filters)
+    expect(withoutTagFilters(filters, [])).toBe(filters)
   })
 })

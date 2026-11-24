@@ -53,6 +53,7 @@ import { DomainError } from '../common/domain-error';
 import { MANAGED_FORBIDDEN_ERROR } from '../common/managed';
 import { validatePassword } from '../common/passwordPolicy';
 import { getPhotoProviderConfig } from '../common/photo-provider-config';
+import { toRowId } from '../common/row-id';
 import { DATABASE_BACKUP, type DatabaseBackupStrategy } from '../database/database-backup.interface';
 import { UnitOfWork } from '../database/unit-of-work';
 import { prepareLlmAddonConfigForWrite, maskLlmAddonConfig } from '../llm-parse/llm-config';
@@ -228,13 +229,14 @@ export class AdminService {
   }
 
   async updateUser(id: string, data: { username?: string; email?: string; role?: string; password?: string }) {
-    const userId = Number(id);
+    // toRowId, not Number(): '0x2' or '2e0' named user 2.
+    const userId = toRowId(id);
     const username = typeof data.username === 'string' ? data.username.trim() : data.username;
     const email = typeof data.email === 'string' ? data.email.trim() : data.email;
     const { role, password } = data;
-    const user = await this.users.findById(userId);
+    const user = userId === null ? undefined : await this.users.findById(userId);
 
-    if (!user) throw new DomainError(404, 'User not found');
+    if (!user || userId === null) throw new DomainError(404, 'User not found');
 
     if (role && !['user', 'admin'].includes(role)) {
       throw new DomainError(400, 'Invalid role');
@@ -259,19 +261,6 @@ export class AdminService {
       if (!pwCheck.ok) throw new DomainError(400, pwCheck.reason ?? '');
     }
     const passwordHash = password ? bcrypt.hashSync(password, BCRYPT_COST) : null;
-
-    // Don't let the admin UI demote the last remaining admin — that would leave the
-    // instance with no one able to manage it (and on OIDC-only setups, no recovery). #1274
-    // SECURITY: plain JS comparisons, deliberately never folded into a
-    // repository method's WHERE clause (R4) — two repository reads, one
-    // service-level `if`.
-    if (role && role !== 'admin') {
-      const currentRole = await this.users.getRole(userId);
-      if (currentRole === 'admin') {
-        const adminCount = await this.users.countAdmins();
-        if (adminCount <= 1) throw new DomainError(400, 'Cannot remove the last admin');
-      }
-    }
 
     // An admin sets a password for exactly one reason: the account is believed
     // compromised. Without bumping password_version, verifyJwtAndLoadUser keeps
@@ -299,6 +288,19 @@ export class AdminService {
     // call, never split across separate un-transacted repository calls.
     try {
       await this.uow.transactional(async () => {
+        // Don't let the admin UI demote the last remaining admin — that would leave the
+        // instance with no one able to manage it (and on OIDC-only setups, no recovery). #1274
+        // SECURITY: plain JS comparisons, deliberately never folded into a
+        // repository method's WHERE clause (R4) — two repository reads, one
+        // service-level `if`. Read in the transaction that demotes, so two admins
+        // demoting each other at once cannot both see the other one still counted.
+        if (role && role !== 'admin') {
+          const currentRole = await this.users.getRole(userId);
+          if (currentRole === 'admin') {
+            const adminCount = await this.users.countAdmins();
+            if (adminCount <= 1) throw new DomainError(400, 'Cannot remove the last admin');
+          }
+        }
         await this.users.applyAdminEdit(userId, patch);
 
         if (password) {
@@ -348,11 +350,15 @@ export class AdminService {
   async deleteUser(id: string, currentUserId: number) {
     // SECURITY: plain JS comparison, deliberately kept exactly here — never
     // folded into a repository method's WHERE clause (R4).
-    if (Number.parseInt(id) === currentUserId) {
+    // One parse for the check and the delete: parseInt('0x2') is 0 where
+    // Number('0x2') is 2, so the two used to disagree and an admin could
+    // delete their own account by spelling its id in hex.
+    const targetId = toRowId(id);
+    if (targetId === currentUserId) {
       throw new DomainError(400, 'Cannot delete own account');
     }
 
-    const userToDel = await this.users.findIdAndEmail(Number(id));
+    const userToDel = targetId === null ? undefined : await this.users.findIdAndEmail(targetId);
     if (!userToDel) throw new DomainError(404, 'User not found');
 
     await this.userCleanup.deleteUserCompletely(userToDel.id);
@@ -360,8 +366,10 @@ export class AdminService {
     return { email: userToDel.email };
   }
 
-  resetUserPasskeys(id: string) {
-    return this.passkeys.adminResetPasskeys(Number(id));
+  async resetUserPasskeys(id: string) {
+    const userId = toRowId(id);
+    if (userId === null) throw new DomainError(404, 'User not found');
+    return this.passkeys.adminResetPasskeys(userId);
   }
 
   /**
@@ -378,14 +386,14 @@ export class AdminService {
    * way to strip the second factor off the very account it came from.
    */
   async resetUserMfa(id: string, actingUserId: number): Promise<{ success?: boolean; email?: string }> {
-    const targetId = Number(id);
+    const targetId = toRowId(id);
     // SECURITY: plain JS comparison, deliberately kept exactly here — never
     // folded into a repository method's WHERE clause (R4).
     if (targetId === actingUserId) {
       throw new DomainError(400, 'Use Settings to change your own two-factor setup');
     }
-    const target = await this.users.findIdEmailMfaEnabled(targetId);
-    if (!target) throw new DomainError(404, 'User not found');
+    const target = targetId === null ? undefined : await this.users.findIdEmailMfaEnabled(targetId);
+    if (!target || targetId === null) throw new DomainError(404, 'User not found');
 
     // Same three columns disableMfa clears, so an admin reset and a self-service
     // disable leave the account in exactly one state rather than two; the
@@ -396,6 +404,35 @@ export class AdminService {
     });
 
     return { success: true, email: target.email };
+  }
+
+  /**
+   * Forget the SSO identity stored on another account (#3065).
+   *
+   * A sign-in that arrives with a different subject of the same provider is
+   * refused, because that is another person at the provider as far as TREK can
+   * tell. When the provider itself re-issued the subject (a migrated or rebuilt
+   * IdP, a changed `sub` format), the account owner is locked out and editing the
+   * email does not help. Clearing the link hands the decision to the admin: the
+   * next SSO sign-in links again under the same rules as a first one, so it still
+   * needs a verified email and an address the account did not set itself.
+   *
+   * Never for the caller themselves, for the same reason as resetUserMfa: a
+   * stolen admin session must not be able to loosen the login of the account it
+   * came from.
+   */
+  async unlinkUserSso(id: string, actingUserId: number): Promise<{ email: string; unlinked: boolean }> {
+    const targetId = toRowId(id);
+    // SECURITY: plain JS comparison, kept here like resetUserMfa's (R4).
+    if (targetId === actingUserId) {
+      throw new DomainError(400, 'You cannot remove the SSO link of your own account');
+    }
+    const target = targetId === null ? undefined : await this.users.findById(targetId);
+    if (!target || target.is_guest || targetId === null) throw new DomainError(404, 'User not found');
+    if (!target.oidc_sub && !target.oidc_issuer) return { email: target.email, unlinked: false };
+
+    await this.users.linkOidcIdentity(targetId, null, null);
+    return { email: target.email, unlinked: true };
   }
 
   // ── Stats ──────────────────────────────────────────────────────────────────

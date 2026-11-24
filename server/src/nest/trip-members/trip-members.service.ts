@@ -216,7 +216,7 @@ export class TripMembersService {
 
   /**
    * `tripId: number` (Plan 4 Task 8a — narrowed from `string | number`):
-   * every caller now passes an already-parsed id — `trips.rpc.ts`'s `num()`,
+   * every caller now passes an already-parsed id — `trips.rpc.ts`'s `rowIdParam()`,
    * `trips.mcp.ts`'s Zod-typed tool input, and `TripMembersController
    * .removeMember`'s own `toRowId` parse (added alongside this narrowing,
    * the route's one remaining raw-string caller).

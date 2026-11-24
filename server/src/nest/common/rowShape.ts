@@ -39,9 +39,10 @@ export function formatAssignmentWithPlace(
     notes: a.notes,
     assignment_time: a.assignment_time ?? null,
     assignment_end_time: a.assignment_end_time ?? null,
-    stay_minutes: a.stay_minutes ?? null,
     times_explicit: a.times_explicit === 1,
     end_day: a.end_day === 1,
+    // How long the drive stands at this visit (#3092); null reads the place's duration_minutes.
+    stay_minutes: a.stay_minutes ?? null,
     leg_transport_mode: a.leg_transport_mode ?? null,
     incoming_leg_transport_mode: a.incoming_leg_transport_mode ?? null,
     // Kept on the day but not driven to (#2532).

@@ -10,7 +10,15 @@ import { getApiErrorMessage } from '../../types'
 import { START_DESTINATION_ROUTE } from '../../utils/startDestination'
 import { passwordErrorKey } from '../../utils/passwordError'
 import { isNativeApp } from '../../native/platform'
-import { BrowserSignInCancelled, signInThroughBrowser, type BrowserSignInStart } from '../../native/browserSignIn'
+import {
+  BrowserSignInCancelled,
+  isHandoffReturn,
+  rememberHandoffReturn,
+  resumeBrowserSignIn,
+  signInThroughBrowser,
+  takeHandoffReturn,
+  type BrowserSignInStart,
+} from '../../native/browserSignIn'
 
 interface AppConfig {
   has_users: boolean
@@ -25,6 +33,8 @@ interface AppConfig {
   password_registration: boolean
   oidc_login: boolean
   oidc_registration: boolean
+  /** False when the admin wants the login page shown before the IdP; absent on servers from before #2925. */
+  oidc_auto_redirect?: boolean
   passkey_login?: boolean
   passkey_configured?: boolean
   env_override_oidc_only: boolean
@@ -47,6 +57,14 @@ function readCachedConfig(): AppConfig | null {
 
 const isOidcOnly = (config: AppConfig | null): boolean =>
   !!config && !config.password_login && config.oidc_login && config.oidc_configured
+
+/**
+ * Whether the login page leaves for the IdP by itself: an OIDC-only instance
+ * does, unless its admin turned that off to show the page and its SSO button
+ * first (#2925). A config without the field keeps the redirect.
+ */
+const redirectsToIdp = (config: AppConfig | null): boolean =>
+  isOidcOnly(config) && config?.oidc_auto_redirect !== false
 
 /**
  * Login data hook — owns the whole auth surface: login/register/demo, the MFA
@@ -80,7 +98,7 @@ export function useLogin() {
   const [cachedConfig] = useState(readCachedConfig)
   const [expectRedirect] = useState(() => {
     const params = new URLSearchParams(window.location.search)
-    return !isNativeApp() && isOidcOnly(cachedConfig) && !!cachedConfig?.has_users
+    return !isNativeApp() && redirectsToIdp(cachedConfig) && !!cachedConfig?.has_users
       && !params.get('invite') && !params.get('oidc_code') && !params.get('oidc_error')
   })
   const [idpRedirect, setIdpRedirect] = useState(false)
@@ -190,7 +208,7 @@ export function useLogin() {
             // and auto-redirecting to the IdP could loop if the proxy changed.
             // Not in the app: its WebView cannot host the IdP, and opening the
             // system browser uninvited on every launch would be worse than a button.
-            if (allowRedirect && !fromCache && !nativeApp && isOidcOnly(config) && config.has_users && !invite && !noRedirect) {
+            if (allowRedirect && !fromCache && !nativeApp && redirectsToIdp(config) && config.has_users && !invite && !noRedirect) {
               setIdpRedirect(true)
               window.location.href = IDP_LOGIN_URL
             }
@@ -221,7 +239,9 @@ export function useLogin() {
           // body is never read, so it can go without breaking SSO sign-in.
           if (ok && data.success === true) {
             await loadUser()
-            const savedRedirect = sessionStorage.getItem('oidc_redirect') || START_DESTINATION_ROUTE
+            // Taken either way, so a handoff left from an abandoned sign-in cannot catch a later one.
+            const handoffReturn = takeHandoffReturn()
+            const savedRedirect = sessionStorage.getItem('oidc_redirect') || handoffReturn || START_DESTINATION_ROUTE
             sessionStorage.removeItem('oidc_redirect')
             navigate(savedRedirect, { replace: true })
           } else {
@@ -248,7 +268,14 @@ export function useLogin() {
         email_link_blocked: t('login.oidc.emailLinkBlocked'),
       }
       setError(errorMessages[oidcError] || oidcError)
-      sessionStorage.removeItem('oidc_redirect')
+      // A round trip the app's sign-in started keeps its way back. The next SSO
+      // attempt from this page is a plain web login, and without the handoff page
+      // to return to it ends in the web app inside the app's browser sheet. The
+      // handoff page asks for a tap before it passes anything on, so keeping the
+      // path hands nothing over by itself; the copy is renewed for a slow retry.
+      const stashed = sessionStorage.getItem('oidc_redirect')
+      if (isHandoffReturn(stashed)) rememberHandoffReturn(stashed)
+      else sessionStorage.removeItem('oidc_redirect')
       window.history.replaceState({}, '', '/login')
       loadConfig(false)
       return
@@ -296,6 +323,23 @@ export function useLogin() {
     }
   }
 
+  // In the app: a sign-in the system browser finished while Android started the
+  // app anew. Its return waited natively; redeemed here, it signs the app in.
+  useEffect(() => {
+    if (!nativeApp) return
+    resumeBrowserSignIn()
+      .then(async (signedIn) => {
+        if (!signedIn) return
+        await loadUser({ silent: true })
+        setShowTakeoff(true)
+        void loadSettings()
+        setTimeout(() => {
+          void navigate(redirectTarget)
+        }, 2600)
+      })
+      .catch(() => setError(t('native.login.failed')))
+  }, [nativeApp, loadUser, loadSettings, navigate, redirectTarget, t])
+
   /** In the app: SSO and passkeys run in the system browser (native/browserSignIn.ts). */
   const handleBrowserSignIn = async (start?: BrowserSignInStart): Promise<void> => {
     setError('')
@@ -319,7 +363,7 @@ export function useLogin() {
   }
 
   const handlePasskeyLogin = async (): Promise<void> => {
-    if (nativeApp) return handleBrowserSignIn()
+    if (nativeApp) return handleBrowserSignIn('passkey')
     setError('')
     setIsLoading(true)
     try {

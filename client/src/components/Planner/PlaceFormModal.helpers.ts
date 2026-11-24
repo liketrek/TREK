@@ -1,4 +1,4 @@
-import type { Assignment, Place, PlaceFieldOrigins, RoadtripStopType } from '@trek/shared'
+import { visitTimes, type Assignment, type Place, type PlaceFieldOrigins, type RoadtripStopType } from '@trek/shared'
 import { originsAfterPick, resultOrigin } from './placeFieldOrigins'
 import { pendingImagePayload, type PendingImagePayload, type PendingPlaceImage } from './placeImageChoice'
 import type { PlaceDetailsSelection } from './PlaceDetailsColumn'
@@ -36,6 +36,7 @@ export interface PlaceFormData {
   // submit payload when unchanged, and useTripPlanner strips it off the place
   // update and PUTs it per assignment instead.
   assignment_notes?: string
+  assignment_stay?: string
   // What kind of stop on a drive this is, if any (#1797). Optional and absent from
   // DEFAULT_FORM for the same reason as image_url: a missing key writes nothing, and a
   // place created outside a road trip has no opinion about fuel stops.
@@ -47,6 +48,11 @@ export interface PlaceFormData {
   // Which shareable fields the user typed and which a pick or the details column filled
   // (placeFieldOrigins.ts). Rides along to the save as `fieldOrigins`; never shown.
   fieldOrigins?: PlaceFieldOrigins
+  // The ids of the place's tags, always the whole set, as the save takes them. Absent
+  // until one is ticked or unticked in the form (usePlaceTags): a missing key writes
+  // nothing, so a save that never touched the tags cannot undo a tag put on the place
+  // elsewhere in the meantime.
+  tags?: number[]
 }
 
 export function isGoogleMapsUrl(input: string): boolean {
@@ -113,7 +119,7 @@ export function placeEditForm(
   assignment: Assignment | null | undefined,
   extra: Partial<PlaceFormData> = {},
 ): PlaceFormData {
-  const timeSource = assignment?.place ?? place
+  const times = assignment ? visitTimes(assignment) : { start: place.place_time, end: place.end_time }
   return {
     name: place.name || '',
     description: place.description || '',
@@ -121,15 +127,15 @@ export function placeEditForm(
     lat: place.lat != null ? String(place.lat) : '',
     lng: place.lng != null ? String(place.lng) : '',
     category_id: place.category_id != null ? String(place.category_id) : '',
-    place_time: timeSource.place_time || '',
-    end_time: timeSource.end_time || '',
+    place_time: times.start || '',
+    end_time: times.end || '',
     notes: place.notes || '',
     transport_mode: place.transport_mode || 'walking',
     website: place.website || '',
     ...extra,
     // The day-specific note rides only with an assignment in context (#2163);
     // otherwise the key stays absent so submit never sends a notes write.
-    ...(assignment ? { assignment_notes: assignment.notes || '' } : {}),
+    ...(assignment ? { assignment_notes: assignment.notes || '', assignment_stay: String(assignment.stay_minutes ?? '') } : {}),
   }
 }
 
@@ -314,12 +320,13 @@ export function duplicateName(form: PlaceFormData, places: Parameters<typeof fin
 }
 
 /** The form as the save takes it: coordinates as numbers, an empty category as null. */
-export interface PlaceFormPayload extends Omit<PlaceFormData, 'lat' | 'lng' | 'category_id'> {
+export interface PlaceFormPayload extends Omit<PlaceFormData, 'lat' | 'lng' | 'category_id' | 'assignment_stay'> {
   lat: number | null
   lng: number | null
   category_id: string | null
   /** Files chosen before the place existed: uploaded once the save has given it an id. */
   _pendingFiles?: File[]
+  stay_minutes?: number | null
   /** A picture waiting to become the place's own: a file from the device, or an attached file's id. */
   _pendingImage?: PendingImagePayload
 }
@@ -334,14 +341,15 @@ export interface PlaceFormPayload extends Omit<PlaceFormData, 'lat' | 'lng' | 'c
 export function placeFormPayload<E extends object = object>(
   form: PlaceFormData,
   pendingFiles: File[],
-  assignment: Pick<Assignment, 'notes'> | null | undefined,
+  assignment: Pick<Assignment, 'notes' | 'stay_minutes'> | null | undefined,
   extra?: (lat: number | null, lng: number | null) => E,
   pendingImage: PendingPlaceImage | null = null,
 ): PlaceFormPayload & E {
   const lat = form.lat ? Number.parseFloat(form.lat) : null
   const lng = form.lng ? Number.parseFloat(form.lng) : null
+  const { assignment_stay, ...fields } = form
   const payload = {
-    ...form,
+    ...fields,
     lat,
     lng,
     category_id: form.category_id || null,
@@ -351,6 +359,10 @@ export function placeFormPayload<E extends object = object>(
   } as PlaceFormPayload & E
   if (!assignment || (form.assignment_notes ?? '') === (assignment.notes ?? '')) {
     delete payload.assignment_notes
+  }
+  if (assignment && assignment_stay !== undefined) {
+    const stay = assignment_stay === '' ? null : Number(assignment_stay)
+    if (stay !== (assignment.stay_minutes ?? null)) payload.stay_minutes = stay
   }
   return payload
 }
@@ -409,4 +421,16 @@ export function formPin(form: Pick<PlaceFormData, 'lat' | 'lng'>): { lat: number
   const lng = Number(form.lng)
   if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return null
   return { lat, lng }
+}
+
+/**
+ * The category a picked place already carries, as the form's value, when this server
+ * has it. A place saved in a collection keeps its category_id, and categories are the
+ * server's own, so it fits the trip as it stands. Guessing from the place's kind
+ * instead dropped it (#3074).
+ */
+export function savedCategoryId(result: Record<string, unknown>, categories: readonly { id: number }[]): string | null {
+  const id = result.category_id
+  if (typeof id !== 'number') return null
+  return categories.some(c => c.id === id) ? String(id) : null
 }

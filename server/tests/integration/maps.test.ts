@@ -6,24 +6,21 @@
  * input validation level. Full integration tests would require live external APIs.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { MapsService } from '../../src/nest/maps/maps.service';
 import { authCookie } from '../helpers/auth';
-import { createUser } from '../helpers/factories';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
 let nestApp: INestApplication;
 let app: Application;
+let orm: MikroORM;
 // Instance spies on the container's MapsService (permissions-migration
 // precedent) — the DI fold made the provider methods the outbound seam.
 // Defaults mirror the old module mock: bare resolves, except
@@ -41,6 +38,7 @@ let mapsService: {
 beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
   const maps = nestApp.get(MapsService);
   mapsService = {
     searchPlaces: vi.spyOn(maps, 'searchPlaces').mockResolvedValue(undefined as never),
@@ -55,13 +53,12 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Maps authentication', () => {
@@ -78,21 +75,21 @@ describe('Maps authentication', () => {
 
 describe('Maps validation', () => {
   it('MAPS-001 — POST /maps/search without query returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).post('/api/maps/search').set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(400);
   });
 
   it('MAPS-006 — GET /maps/reverse without lat/lng returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/maps/reverse').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(400);
   });
 
   it('MAPS-007 — POST /maps/resolve-url without url returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).post('/api/maps/resolve-url').set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(400);
@@ -101,7 +98,7 @@ describe('Maps validation', () => {
 
 describe('Maps SSRF protection', () => {
   it('MAPS-007 — POST /maps/resolve-url with internal IP is blocked', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     // SSRF: should be blocked by ssrfGuard
     const res = await request(app)
@@ -112,7 +109,7 @@ describe('Maps SSRF protection', () => {
   });
 
   it('MAPS-007 — POST /maps/resolve-url with loopback IP is blocked', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/maps/resolve-url')
@@ -124,7 +121,7 @@ describe('Maps SSRF protection', () => {
 
 describe('Maps happy paths (mocked service)', () => {
   it('MAPS-002 — POST /maps/search returns results from service', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.searchPlaces.mockResolvedValueOnce({
       results: [{ address: 'Paris, France', source: 'nominatim' }],
     } as any);
@@ -137,7 +134,7 @@ describe('Maps happy paths (mocked service)', () => {
   });
 
   it('MAPS-003 — GET /maps/details/:placeId returns place details', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.getPlaceDetails.mockResolvedValueOnce({
       name: 'Eiffel Tower',
       address: 'Champ de Mars, Paris',
@@ -152,7 +149,7 @@ describe('Maps happy paths (mocked service)', () => {
   });
 
   it('MAPS-004 — GET /maps/place-photo/:placeId returns photo url', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.getPlacePhoto.mockResolvedValueOnce({
       url: 'https://example.com/photo.jpg',
       source: 'wikimedia',
@@ -167,7 +164,7 @@ describe('Maps happy paths (mocked service)', () => {
   });
 
   it('MAPS-005 — GET /maps/reverse returns geocoded location', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.reverseGeocode.mockResolvedValueOnce({
       name: 'Eiffel Tower',
       address: 'Champ de Mars, Paris',
@@ -180,7 +177,7 @@ describe('Maps happy paths (mocked service)', () => {
   });
 
   it('MAPS-008 — POST /maps/resolve-url returns extracted coordinates', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.resolveGoogleMapsUrl.mockResolvedValueOnce({
       lat: 48.8584,
       lng: 2.2945,
@@ -197,7 +194,7 @@ describe('Maps happy paths (mocked service)', () => {
   });
 
   it('MAPS-002 — search service error propagates correct status', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const err = Object.assign(new Error('No API key'), { status: 503 });
     mapsService.searchPlaces.mockRejectedValueOnce(err);
 
@@ -210,7 +207,7 @@ describe('Maps happy paths (mocked service)', () => {
   });
 
   it('MAPS-003 — getPlaceDetails error returns 500', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.getPlaceDetails.mockRejectedValueOnce(new Error('External API failure'));
 
     const res = await request(app).get('/api/maps/details/some-place-id').set('Cookie', authCookie(user.id));
@@ -220,7 +217,7 @@ describe('Maps happy paths (mocked service)', () => {
   });
 
   it('MAPS-004 — getPlacePhoto error with status returns that status', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.getPlacePhoto.mockRejectedValueOnce(
       Object.assign(new Error('Photo provider unavailable'), { status: 503 }),
     );
@@ -236,7 +233,7 @@ describe('Maps happy paths (mocked service)', () => {
   // A photo-less place must answer 200 { photoUrl: null }: one 404 per place turns
   // a normal itinerary render into a 404 storm that fail2ban/CrowdSec bans (#1727).
   it('MAPS-004b — a place with no photo answers 200 with photoUrl null', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.getPlacePhoto.mockResolvedValueOnce({ photoUrl: null, attribution: null });
 
     const res = await request(app)
@@ -251,7 +248,7 @@ describe('Maps happy paths (mocked service)', () => {
   // request per place on the next trip render — the second half of the same ban
   // vector. Nothing to serve is an empty 204, not a 404.
   it('MAPS-004c — the bytes proxy answers 204 for a photo that is not cached', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/maps/place-photo/ChIJnot-cached/bytes').set('Cookie', authCookie(user.id));
 
@@ -260,7 +257,7 @@ describe('Maps happy paths (mocked service)', () => {
   });
 
   it('MAPS-005 — reverseGeocode error returns null values', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.reverseGeocode.mockRejectedValueOnce(new Error('Geocode failed'));
 
     const res = await request(app).get('/api/maps/reverse?lat=48.8584&lng=2.2945').set('Cookie', authCookie(user.id));
@@ -278,14 +275,14 @@ describe('Maps autocomplete', () => {
   });
 
   it('MAPS-010 — POST /maps/autocomplete without input returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).post('/api/maps/autocomplete').set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(400);
   });
 
   it('MAPS-011 — POST /maps/autocomplete with non-string input returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/maps/autocomplete')
@@ -295,7 +292,7 @@ describe('Maps autocomplete', () => {
   });
 
   it('MAPS-012 — POST /maps/autocomplete with invalid locationBias returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/maps/autocomplete')
@@ -305,7 +302,7 @@ describe('Maps autocomplete', () => {
   });
 
   it('MAPS-013 — POST /maps/autocomplete returns suggestions from service', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.autocompletePlaces.mockResolvedValueOnce({
       suggestions: [{ placeId: 'ChIJ1234', mainText: 'Paris', secondaryText: 'France' }],
       source: 'google',
@@ -323,7 +320,7 @@ describe('Maps autocomplete', () => {
   });
 
   it('MAPS-014 — POST /maps/autocomplete passes lang and locationBias to service', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.autocompletePlaces.mockResolvedValueOnce({
       suggestions: [],
       source: 'google',
@@ -348,7 +345,7 @@ describe('Maps autocomplete', () => {
   });
 
   it('MAPS-015 — autocomplete service error propagates correct status', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const err = Object.assign(new Error('Rate limited'), { status: 429 });
     mapsService.autocompletePlaces.mockRejectedValueOnce(err);
 
@@ -362,7 +359,7 @@ describe('Maps autocomplete', () => {
   });
 
   it('MAPS-016 — autocomplete service error without status returns 500', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     mapsService.autocompletePlaces.mockRejectedValueOnce(new Error('Unknown'));
 
     const res = await request(app)
@@ -374,7 +371,7 @@ describe('Maps autocomplete', () => {
   });
 
   it('MAPS-017 — POST /maps/autocomplete with input > 200 chars returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/maps/autocomplete')

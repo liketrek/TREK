@@ -1,7 +1,8 @@
+import { readFileSync } from 'node:fs'
 import { test, expect, type Locator, type Page } from '@playwright/test'
 import { captureGuide, captureHero, beat, typeInto, settle, VIEWPORT, type GuideScript } from './guide'
 import { day, long, short } from '../dates'
-import { seededTrip, ensureCostsFixtures } from './fixtures'
+import { seededTrip, ensureCostsFixtures, filesPdfFixture } from './fixtures'
 import { openTrip, modal } from './trip-shared'
 import { RAMEN, RECEIPT_FILE, receiptFixture, removeReceiptFiles } from './fixtures-trip-costs'
 import { tripCostsContext, tripCostsGuides } from '../../src/help/contexts/tripCosts'
@@ -30,7 +31,8 @@ const SEEDED_EUR = 'Flights FRA → HND'
 const BOOKING = 'LH716 FRA → HND'
 /** A seeded expense costs-table gives its days to. */
 const JR_PASS = 'JR Pass (14 days)'
-const DINNER = 'Kaiseki dinner in Gion'
+/** The dinner add-expense records; not the seed's Kaiseki dinner, which cleanup would delete with it. */
+const DINNER = 'Yakitori dinner in Pontocho'
 const UPGRADE = 'Shinkansen seat upgrade'
 const LUNCH = { name: 'Nishiki Market lunch', category: 'food', total_price: 4800, currency: 'JPY', expense_date: day(-4) }
 /** The row costs-table adds to Food & drink; the table names a new row this until it is renamed. */
@@ -38,6 +40,12 @@ const MATCHA = 'Matcha in Uji'
 const NEW_ROW = 'New Entry'
 /** Where the tab keeps the list/table choice (CostsPanel's COSTS_VIEW_KEY). */
 const VIEW_KEY = 'trek:costs-view'
+/** A stay split-by-shares divides by nights: three, three and two, so the shares come out even. */
+const MACHIYA = { name: 'Machiya stay in Kyoto', category: 'accommodation', total_price: 39000, currency: 'JPY', expense_date: day(-5) }
+/** The trip file link-receipt-file puts on the JR Pass; the voucher is the pass's invoice. */
+const VOUCHER = 'JR-Pass-voucher.pdf'
+/** Where useCostsCurrency keeps one trip's picked currency. */
+const SHOWN_IN_KEY = (tripId: number) => `trek:costs-currency:${tripId}`
 
 /** The Costs tab, waited out: its panel is lazy and its figures come from the server. */
 const openCosts = async (p: Page): Promise<void> => {
@@ -182,6 +190,36 @@ async function pickCurrency(page: Page, code: string): Promise<void> {
   await dropdown(page).locator('input').first().fill(code)
   await dropdown(page).getByRole('button', { name: new RegExp(`^${code}`) }).click()
   await expect(modal(page).getByRole('button', { name: new RegExp(`^${code}`) }).first()).toBeVisible()
+  await settle(page)
+}
+
+// ── The bar's currency picker and the sidebar's switches ─────────────────────
+const showIn = (page: Page) => page.getByRole('button', { name: 'Show amounts in', exact: true })
+const showInList = (page: Page) => page.getByRole('group', { name: 'Show amounts in', exact: true })
+const modeSwitch = (page: Page) => page.getByRole('button', { name: 'Split costs between travelers', exact: true })
+
+async function setCostsMode(page: Page, mode: 'split' | 'totals'): Promise<void> {
+  const { tripId } = seededTrip()
+  const res = await page.request.put(`/api/trips/${tripId}`, { data: { costs_mode: mode } })
+  if (!res.ok()) throw new Error(`could not set costs_mode ${mode}: ${res.status()} ${await res.text()}`)
+}
+
+/** The voucher as a trip file, uploaded once; the seed has no document of its own. */
+async function ensureVoucher(page: Page): Promise<void> {
+  const { tripId } = seededTrip()
+  const res = await page.request.get(`/api/trips/${tripId}/files`)
+  const { files = [] } = (await res.json()) as { files?: { original_name: string }[] }
+  if (files.some(f => f.original_name === VOUCHER)) return
+  const uploaded = await page.request.post(`/api/trips/${tripId}/files`, {
+    multipart: { file: { name: VOUCHER, mimeType: 'application/pdf', buffer: readFileSync(filesPdfFixture('JR-Pass-voucher')) } },
+  })
+  if (!uploaded.ok()) throw new Error(`could not upload ${VOUCHER}: ${uploaded.status()} ${await uploaded.text()}`)
+}
+
+/** Open the expense editor on a ledger row with its pencil. */
+async function editRow(page: Page, name: string): Promise<void> {
+  await rowActions(page, name).getByRole('button', { name: 'Edit' }).click()
+  await expect(nameBox(page)).toHaveValue(name)
   await settle(page)
 }
 
@@ -422,6 +460,90 @@ const SCRIPTS: Record<string, GuideScript> = {
     cleanup: p => deleteExpenses(p, UPGRADE),
   },
 
+  'split-by-shares': {
+    guide: guide('split-by-shares'),
+    start: async p => {
+      await createExpense(p, MACHIYA)
+      await openCosts(p)
+    },
+    steps: [
+      {
+        prepare: p => editRow(p, MACHIYA.name),
+        target: p => block(p, 'Split').getByRole('button', { name: 'Custom', exact: true }),
+        act: async p => {
+          await block(p, 'Split').getByRole('button', { name: 'Custom', exact: true }).click()
+          await expect(block(p, 'Split').getByRole('group', { name: 'Enter shares as' })).toBeVisible()
+          await settle(p)
+        },
+      },
+      {
+        target: p => block(p, 'Split').getByRole('group', { name: 'Enter shares as' }),
+        act: async p => {
+          await block(p, 'Split').getByRole('group', { name: 'Enter shares as' }).getByRole('button', { name: 'Shares', exact: true }).click()
+          await expect(block(p, 'Split').getByRole('textbox', { name: /^Shares for / })).toHaveCount(3)
+          await settle(p)
+        },
+      },
+      {
+        // Three nights, three nights, and jonas came a day later.
+        prepare: async p => {
+          const fields = block(p, 'Split').getByRole('textbox', { name: /^Shares for / })
+          await fields.nth(0).fill('3')
+          await fields.nth(1).fill('3')
+          await fields.nth(2).fill('2')
+          await expect(block(p, 'Split').getByText('Split matches total')).toBeVisible()
+          await settle(p)
+        },
+        target: p => block(p, 'Split').getByRole('textbox', { name: /^Shares for / }).first().locator('xpath=ancestor::div[contains(@class,"divide-y")][1]'),
+      },
+      {
+        target: p => modal(p).getByRole('button', { name: 'Save', exact: true }),
+        act: async p => {
+          await modal(p).getByRole('button', { name: 'Save', exact: true }).click()
+          await expect(modal(p)).toHaveCount(0)
+          await dropFocus(p)
+          await expect(expRow(p, MACHIYA.name)).toBeVisible()
+          await expRow(p, MACHIYA.name).evaluate(el => el.scrollIntoView({ block: 'center' }))
+          await settle(p)
+        },
+      },
+    ],
+    cleanup: async p => {
+      await closeModal(p)
+      await deleteExpenses(p, MACHIYA.name)
+    },
+  },
+
+  'costs-show-in': {
+    guide: guide('costs-show-in'),
+    start: openCosts,
+    steps: [
+      only(showIn),
+      {
+        prepare: async p => {
+          await showIn(p).click()
+          await expect(showInList(p)).toBeVisible()
+          await beat(p, 300)
+        },
+        target: showInList,
+        act: async p => {
+          await showInList(p).locator('input').first().fill('EUR')
+          await showInList(p).getByRole('button', { name: /^EUR/ }).click()
+          await expect(showIn(p)).toHaveText(/EUR/)
+          await expect(card(p, 'Total trip spend')).toHaveText(/€/, { timeout: 20_000 })
+          await settle(p)
+        },
+      },
+      only(p => p.locator('.costs-summary')),
+      // Ringed in its new state; the reader picks the first entry to go back.
+      only(showIn),
+    ],
+    cleanup: async p => {
+      const { tripId } = seededTrip()
+      await p.evaluate(key => { try { localStorage.removeItem(key) } catch { /* no storage: nothing to put back */ } }, SHOWN_IN_KEY(tripId))
+    },
+  },
+
   'expense-receipts': {
     guide: guide('expense-receipts'),
     start: async p => {
@@ -485,6 +607,62 @@ const SCRIPTS: Record<string, GuideScript> = {
       await closeModal(p)
       await deleteExpenses(p, RAMEN.name)
       await removeReceiptFiles(p.request)
+    },
+  },
+
+  'link-receipt-file': {
+    guide: guide('link-receipt-file'),
+    start: async p => {
+      await ensureVoucher(p)
+      await openCosts(p)
+    },
+    steps: [
+      {
+        target: p => rowActions(p, JR_PASS).getByRole('button', { name: 'Edit' }),
+        act: async p => {
+          await editRow(p, JR_PASS)
+          await expect(block(p, 'Receipts & Invoices')).toBeVisible()
+        },
+      },
+      {
+        // Opened for the picture, so the files it offers stand under the icon.
+        prepare: async p => {
+          await block(p, 'Receipts & Invoices').getByRole('button', { name: 'Link', exact: true }).click()
+          await expect(modal(p).getByRole('button', { name: VOUCHER })).toBeVisible()
+          await settle(p)
+        },
+        target: p => block(p, 'Receipts & Invoices').getByRole('button', { name: 'Link', exact: true }),
+        // Pointer on the offered file, so the icon's tooltip does not cover the list.
+        hover: async p => {
+          await modal(p).getByRole('button', { name: VOUCHER }).hover()
+        },
+      },
+      {
+        target: p => modal(p).getByRole('button', { name: VOUCHER }),
+        act: async p => {
+          await modal(p).getByRole('button', { name: VOUCHER }).click()
+          await expect(block(p, 'Receipts & Invoices').getByText(VOUCHER)).toBeVisible()
+          await settle(p)
+        },
+      },
+      {
+        target: p => modal(p).getByRole('button', { name: 'Save', exact: true }),
+        act: async p => {
+          await modal(p).getByRole('button', { name: 'Save', exact: true }).click()
+          await expect(modal(p)).toHaveCount(0, { timeout: 20_000 })
+          await dropFocus(p)
+          await expect(expRow(p, JR_PASS).getByRole('button', { name: 'View receipt' })).toBeVisible({ timeout: 20_000 })
+          await expRow(p, JR_PASS).evaluate(el => el.scrollIntoView({ block: 'center' }))
+          await settle(p)
+        },
+      },
+    ],
+    cleanup: async p => {
+      await closeModal(p)
+      const { tripId } = seededTrip()
+      for (const item of (await budgetItems(p)).filter(i => i.name === JR_PASS)) {
+        await p.request.put(`/api/trips/${tripId}/budget/${item.id}`, { data: { receipt_file_ids: [] } })
+      }
     },
   },
 
@@ -556,6 +734,31 @@ const SCRIPTS: Record<string, GuideScript> = {
       },
       // Clicking it would start a download; the button is what the step is about.
       only(p => p.getByRole('button', { name: 'Export CSV' })),
+    ],
+  },
+
+  'leave-out-category': {
+    guide: guide('leave-out-category'),
+    start: openCosts,
+    steps: [
+      only(p => card(p, 'By category')),
+      {
+        prepare: async p => {
+          await card(p, 'By category').getByRole('button', { name: 'Leave Transport out of the totals' }).click()
+          await expect(card(p, 'By category').getByRole('button', { name: 'Count all', exact: true })).toBeVisible()
+          await settle(p)
+        },
+        target: p => card(p, 'By category'),
+      },
+      only(p => card(p, 'Total trip spend')),
+      {
+        target: p => card(p, 'By category').getByRole('button', { name: 'Count all', exact: true }),
+        act: async p => {
+          await card(p, 'By category').getByRole('button', { name: 'Count all', exact: true }).click()
+          await expect(card(p, 'By category').getByText('Select a category to leave it out of the totals.')).toBeVisible()
+          await settle(p)
+        },
+      },
     ],
   },
 
@@ -636,6 +839,50 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
     ],
+  },
+
+  'costs-totals-only': {
+    guide: guide('costs-totals-only'),
+    start: openCosts,
+    steps: [
+      only(p => card(p, 'Split costs between travelers')),
+      {
+        prepare: async p => {
+          await modeSwitch(p).click()
+          await expect(modeSwitch(p)).toHaveAttribute('aria-pressed', 'false', { timeout: 15_000 })
+          await expect(card(p, 'Settle up')).toHaveCount(0)
+          await settle(p)
+        },
+        // The count under the total, which stands alone now; the frame around it
+        // shows the total and the ledger under it without payers or split. The
+        // card itself spans the whole width and would be cut at both sides.
+        target: p => card(p, 'Total trip spend').getByText(/^\d+ expenses?$/),
+      },
+      {
+        prepare: async p => {
+          await addExpense(p).click()
+          await expect(nameBox(p)).toBeVisible()
+          await expect(modal(p).getByText('Who paid?', { exact: true })).toHaveCount(0)
+          await settle(p)
+        },
+        // The editor itself, not the dimmed backdrop around it.
+        target: p => p.getByRole('dialog').last(),
+        act: closeModal,
+      },
+      {
+        target: p => card(p, 'Split costs between travelers'),
+        act: async p => {
+          await modeSwitch(p).click()
+          await expect(modeSwitch(p)).toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 })
+          await expect(card(p, 'Settle up')).toBeVisible()
+          await settle(p)
+        },
+      },
+    ],
+    cleanup: async p => {
+      await closeModal(p)
+      await setCostsMode(p, 'split')
+    },
   },
 
   'expense-from-booking': {

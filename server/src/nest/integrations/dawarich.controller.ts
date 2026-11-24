@@ -5,6 +5,7 @@ import { RequireAddon } from '../addons/require-addon.decorator';
 import { getClientIp } from '../audit/client-ip';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { toRowId } from '../common/row-id';
 import { DawarichSuggestionsService, AcceptError } from './dawarich-suggestions.service';
 import { DawarichSyncService } from './dawarich-sync.service';
 import { DawarichTracksService } from './dawarich-tracks.service';
@@ -267,16 +268,17 @@ function toHttp(err: unknown): HttpException {
 
 /** Ids are integers. `parseInt` would turn "12abc" into 12 and log a request nobody made. */
 function parseId(raw: string): number {
-  if (!/^\d+$/.test(raw)) throw new HttpException({ error: 'Invalid id' }, 400);
-  const id = Number(raw);
-  if (!Number.isSafeInteger(id) || id <= 0) throw new HttpException({ error: 'Invalid id' }, 400);
+  const id = toRowId(raw);
+  if (id === null || id <= 0) throw new HttpException({ error: 'Invalid id' }, 400);
   return id;
 }
 
 function parseOptionalId(raw: string | undefined, label: string): number | undefined {
   if (raw === undefined || raw === '') return undefined;
-  if (!/^\d+$/.test(raw)) throw new HttpException({ error: `Invalid ${label}` }, 400);
-  return Number(raw);
+  // toRowId: digits alone let a number past 2^53 through, which Postgres refuses as out of range.
+  const id = toRowId(raw);
+  if (id === null) throw new HttpException({ error: `Invalid ${label}` }, 400);
+  return id;
 }
 
 /** An unknown state is a 400 rather than a silently unfiltered list. */

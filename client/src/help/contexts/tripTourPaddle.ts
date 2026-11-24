@@ -40,7 +40,7 @@ export const { context: tripTourPaddleContext, guides: tripTourPaddleGuides } = 
       5,
       4,
       doc('paddle-legs-on-the-water'),
-      ['tour-paddle-setup', 'tour-paddle-portage'],
+      ['tour-paddle-setup', 'tour-paddle-portage', 'paddle-water-data'],
     ],
     [
       'tour-paddle-portage',

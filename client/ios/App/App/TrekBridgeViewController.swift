@@ -10,6 +10,7 @@ import WebKit
 class TrekBridgeViewController: CAPBridgeViewController {
     override func instanceDescriptor() -> InstanceDescriptor {
         let descriptor = super.instanceDescriptor()
+        TrekServerStore.recheckAfterUpdate()
         if let server = TrekServerStore.url {
             // The trailing slash matters: Capacitor treats every URL that starts
             // with this string as the app's own, and without it that would take
@@ -40,15 +41,343 @@ class TrekBridgeViewController: CAPBridgeViewController {
         // reachable" with a server that was there all along.
         if let webView, let inner = webView.navigationDelegate {
             let proxy = TrekNavigationProxy(inner: inner)
+            proxy.onErrorPage = { [weak self] error in self?.errorPageChanged(error) }
+            proxy.onPageShown = { [weak self] in self?.publishSafeArea(force: true) }
             navigationProxy = proxy
             webView.navigationDelegate = proxy
         }
+        guardBridgeMessages()
+        watchSignInPages()
         bridge?.registerPluginInstance(TrekShellPlugin())
         // WebKit's own swipe back slides away a screenshot of the whole page,
         // closes no sheet and takes every drag near the edge from the UI. The UI
         // draws its own (mobile/components/MEdgeBack.tsx, feature "edgeBack"):
         // the page follows the finger and an open sheet closes first.
         webView?.allowsBackForwardNavigationGestures = false
+        // A long press on a link would lift a preview of the page it points to,
+        // which no native list does; the press means "drag" or nothing here.
+        webView?.allowsLinkPreview = false
+        paintBehindWebView()
+    }
+
+    // MARK: - What shows where the web view does not reach
+
+    /// The UI reports its theme through StatusBar.setStyle (native/nativeApp.ts),
+    /// which lands here; the colour behind the web view follows it.
+    override func setNeedsStatusBarAppearanceUpdate() {
+        super.setNeedsStatusBarAppearanceUpdate()
+        paintBehindWebView()
+    }
+
+    /// Some iOS releases (27.0.x) lay the web view out below the status bar
+    /// instead of under it, and the strip above the page then showed this
+    /// view's black. It now carries the top colour of the screen background
+    /// (mobile.css --m-scr), so the strip reads as part of the page on every
+    /// release, and the rubber band at the ends shows the same colour.
+    private func paintBehindWebView() {
+        let dark: Bool
+        switch preferredStatusBarStyle {
+        case .lightContent: dark = true
+        case .darkContent: dark = false
+        default: dark = traitCollection.userInterfaceStyle == .dark
+        }
+        let color = dark
+            ? UIColor(red: 0x17 / 255, green: 0x17 / 255, blue: 0x1C / 255, alpha: 1)
+            : UIColor(red: 0xFB / 255, green: 0xFA / 255, blue: 0xF7 / 255, alpha: 1)
+        view.backgroundColor = color
+        webView?.scrollView.backgroundColor = color
+        webView?.underPageBackgroundColor = color
+    }
+
+    // MARK: - The safe area the page keeps clear of
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        publishSafeArea()
+    }
+
+    override func viewSafeAreaInsetsDidChange() {
+        super.viewSafeAreaInsetsDidChange()
+        publishSafeArea()
+    }
+
+    private var publishedSafeArea: UIEdgeInsets?
+
+    /// WebKit's env(safe-area-inset-*) is the window's safe area only where the
+    /// web view overlaps it. Where a release lays the web view out below the
+    /// status bar it reports 0, yet a camera in a corner can still reach into
+    /// the page. The part of the window's safe area (and of the status bar) that
+    /// falls inside the web view goes to the page as --trek-native-safe-*, which
+    /// mobile.css takes as a floor under env(), never in its place.
+    func publishSafeArea(force: Bool = false) {
+        guard let webView, let window = view.window else { return }
+        let frame = webView.convert(webView.bounds, to: window)
+        let safe = window.safeAreaInsets
+        let statusBar = window.windowScene?.statusBarManager?.statusBarFrame.height ?? 0
+        let insets = UIEdgeInsets(
+            top: max(0, max(safe.top, statusBar) - frame.minY),
+            left: max(0, safe.left - frame.minX),
+            bottom: max(0, safe.bottom - (window.bounds.maxY - frame.maxY)),
+            right: max(0, safe.right - (window.bounds.maxX - frame.maxX))
+        )
+        let corner = cornerElement(in: frame, window: window)
+        if corner != .zero, UIDevice.current.model == "iPhone", cornerWindowSizes.insert(sizeKey(window.bounds.size)).inserted {
+            setNeedsStatusBarAppearanceUpdate()
+        }
+        if !force, insets == publishedSafeArea, corner == publishedCorner { return }
+        publishedSafeArea = insets
+        publishedCorner = corner
+        let px = { (v: CGFloat) in "'\(Int(v.rounded(.up)))px'" }
+        let js = "(function(s){"
+            + "s.setProperty('--trek-native-safe-top',\(px(insets.top)));"
+            + "s.setProperty('--trek-native-safe-left',\(px(insets.left)));"
+            + "s.setProperty('--trek-native-safe-right',\(px(insets.right)));"
+            + "s.setProperty('--trek-native-safe-bottom',\(px(insets.bottom)));"
+            + "s.setProperty('--trek-native-corner-bottom',\(px(corner.top)));"
+            + "s.setProperty('--trek-native-corner-left',\(px(corner.left)));"
+            + "s.setProperty('--trek-native-corner-right',\(px(corner.right)));"
+            + "})(document.documentElement.style)"
+        webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
+    private var publishedCorner: UIEdgeInsets?
+
+    // MARK: - The status bar beside a corner element
+
+    /// The window sizes on which a corner element was seen. On an iPhone Duo
+    /// that element is the status capsule, so the app hides the status bar
+    /// there to take the capsule away; whatever still covers the corner stays
+    /// in the safe area the page keeps clear of. A size stays in the set
+    /// once seen: with the bar hidden the next measure may find no corner, and
+    /// showing the bar again would bring the capsule back and start over. The
+    /// folded and the unfolded display differ in size, so each keeps its own
+    /// answer, and a device without such an element never hides its bar. Only
+    /// on an iPhone: an iPad's window controls are such an element as well.
+    private var cornerWindowSizes = Set<String>()
+
+    private func sizeKey(_ size: CGSize) -> String {
+        "\(Int(size.width.rounded()))x\(Int(size.height.rounded()))"
+    }
+
+    override var prefersStatusBarHidden: Bool {
+        if super.prefersStatusBarHidden { return true }
+        guard let size = view.window?.bounds.size else { return false }
+        return cornerWindowSizes.contains(sizeKey(size))
+    }
+
+    /// An element in a top corner of the screen, such as the status capsule of
+    /// an iPhone Duo: how far down it reaches (top) and how wide it is on its
+    /// side (left/right), in the web view's coordinates; zero where there is
+    /// none. iOS 26 tells a corner apart from a whole edge: the safe area with
+    /// the corner avoided vertically reaches lower than the one avoiding it
+    /// horizontally, which in turn is wider on the corner's side. The page
+    /// counts it into its safe area (mobile.css): upright its content starts
+    /// below the element, on a wide window it leaves the element's side free.
+    private func cornerElement(in frame: CGRect, window: UIWindow) -> UIEdgeInsets {
+        guard #available(iOS 26.0, *) else { return .zero }
+        let vertical = view.edgeInsets(for: .safeArea(cornerAdaptation: .vertical))
+        let horizontal = view.edgeInsets(for: .safeArea(cornerAdaptation: .horizontal))
+        guard vertical.top > horizontal.top + 1 else { return .zero }
+        return UIEdgeInsets(
+            top: max(0, vertical.top - frame.minY),
+            left: max(0, horizontal.left - vertical.left - frame.minX),
+            bottom: 0,
+            right: max(0, horizontal.right - vertical.right - (window.bounds.maxX - frame.maxX))
+        )
+    }
+
+    // MARK: - A proxy's sign-in page
+
+    /// Over a proxy's sign-in page (Pangolin, authentik, ...) the server's UI is
+    /// not there, so nothing else leads back to the address screen, and a passkey
+    /// cannot work in a web view for a domain the app is not tied to. A bar says
+    /// so and offers to change the server; the keyboard gets room on that page,
+    /// which TREK's own script makes everywhere else (native/keepFieldInView.ts).
+    private var signInBar: UIView?
+    private var urlObservation: NSKeyValueObservation?
+    private var insetObservation: NSKeyValueObservation?
+    private var onSignInPage = false
+    /// Whether the main frame shows an error page in place of the server's (a 4xx
+    /// nobody else handled: a proxy's block page, a client certificate it refused).
+    private var onErrorPage = false
+    private var signInHint: UILabel?
+    private var keyboardUp = false
+    /// How far the keyboard reaches into the view while it is up.
+    private var keyboardRoom: CGFloat = 0
+    /// Whether the bottom inset is this controller's, so leaving the page puts it back.
+    private var ownsInset = false
+    private var bodyReset: DispatchWorkItem?
+
+    private func watchSignInPages() {
+        urlObservation = webView?.observe(\.url, options: [.initial, .new]) { [weak self] webView, _ in
+            let signIn = TrekServerStore.isSignInHost(webView.url)
+            DispatchQueue.main.async { self?.signInPageChanged(signIn) }
+        }
+        // The keyboard plugin zeroes the scroll inset on every frame change it
+        // makes, the last one a while after the keyboard is up. On a sign-in
+        // page the inset wanted here is put back each time.
+        insetObservation = webView?.scrollView.observe(\.contentInset, options: [.new]) { [weak self] _, _ in
+            DispatchQueue.main.async { self?.applyInset() }
+        }
+        let center = NotificationCenter.default
+        center.addObserver(self, selector: #selector(keyboardWillShow(_:)), name: UIResponder.keyboardWillShowNotification, object: nil)
+        center.addObserver(self, selector: #selector(keyboardWillHide), name: UIResponder.keyboardWillHideNotification, object: nil)
+    }
+
+    private func signInPageChanged(_ signIn: Bool) {
+        onSignInPage = signIn
+        if signIn && signInBar == nil { signInBar = makeSignInBar() }
+        updateSignInBar()
+    }
+
+    private func errorPageChanged(_ error: Bool) {
+        onErrorPage = error
+        if error && signInBar == nil { signInBar = makeSignInBar() }
+        updateSignInBar()
+    }
+
+    /// Out of the way while the keyboard is up: the form needs the room.
+    private func updateSignInBar() {
+        let labels = TrekServerStore.labels
+        signInHint?.text = onSignInPage
+            ? labels["signInHint"]
+                ?? "Passkeys and security keys do not work on this page in the app. Sign in with a password, or let the app through your proxy."
+            : labels["errorPageHint"] ?? "This page is not from TREK: the server or a proxy in front of it refused the app. Check your proxy or certificate, or change the server."
+        signInBar?.isHidden = !((onSignInPage || onErrorPage) && !keyboardUp)
+        applyInset()
+    }
+
+    /// On a sign-in page the page can scroll past what covers its end: the
+    /// keyboard while it is up, the bar otherwise. TREK's own pages are left alone.
+    private func applyInset() {
+        guard let scrollView = webView?.scrollView else { return }
+        let wanted: CGFloat
+        if onSignInPage || onErrorPage {
+            if keyboardUp {
+                wanted = keyboardRoom
+            } else if let bar = signInBar {
+                view.layoutIfNeeded()
+                wanted = max(0, view.bounds.height - bar.frame.minY)
+            } else {
+                wanted = 0
+            }
+            ownsInset = true
+        } else if ownsInset {
+            wanted = 0
+            ownsInset = false
+        } else {
+            return
+        }
+        if scrollView.contentInset.bottom != wanted { scrollView.contentInset.bottom = wanted }
+        if scrollView.verticalScrollIndicatorInsets.bottom != wanted { scrollView.verticalScrollIndicatorInsets.bottom = wanted }
+    }
+
+    /// The keyboard plugin also sizes the body to the area above the keyboard,
+    /// after the keyboard's animation and a further 0.2 s. On a sign-in page the
+    /// body gets its height back once that has run, so the button under the
+    /// keyboard can be scrolled into view through the inset above.
+    @objc private func keyboardWillShow(_ note: Notification) {
+        keyboardUp = true
+        if let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+            keyboardRoom = max(0, view.bounds.height - view.convert(frame, from: nil).minY)
+        }
+        bodyReset?.cancel()
+        if onSignInPage {
+            let duration = note.userInfo?[UIResponder.keyboardAnimationDurationUserInfoKey] as? Double ?? 0.25
+            let reset = DispatchWorkItem { [weak self] in
+                guard let self, self.onSignInPage, self.keyboardUp, let webView = self.webView else { return }
+                webView.evaluateJavaScript("document.body.style.height = ''", completionHandler: nil)
+                self.applyInset()
+            }
+            bodyReset = reset
+            DispatchQueue.main.asyncAfter(deadline: .now() + duration + 0.35, execute: reset)
+        }
+        updateSignInBar()
+    }
+
+    @objc private func keyboardWillHide() {
+        keyboardUp = false
+        bodyReset?.cancel()
+        updateSignInBar()
+    }
+
+    private func makeSignInBar() -> UIView {
+        let labels = TrekServerStore.labels
+        // The look of the app's own first screens: a white card with a sand edge,
+        // warm grey text and a dark button, over whatever page the proxy shows.
+        let bar = UIView()
+        bar.backgroundColor = UIColor(white: 1, alpha: 0.97)
+        bar.layer.cornerRadius = 18
+        bar.layer.cornerCurve = .continuous
+        bar.layer.borderWidth = 1
+        bar.layer.borderColor = UIColor(red: 0xEF / 255, green: 0xE4 / 255, blue: 0xD8 / 255, alpha: 1).cgColor
+        bar.layer.shadowColor = UIColor(red: 0x1F / 255, green: 0x1A / 255, blue: 0x17 / 255, alpha: 1).cgColor
+        bar.layer.shadowOpacity = 0.18
+        bar.layer.shadowRadius = 18
+        bar.layer.shadowOffset = CGSize(width: 0, height: 10)
+        bar.translatesAutoresizingMaskIntoConstraints = false
+
+        let hint = UILabel()
+        hint.text = labels["signInHint"]
+            ?? "Passkeys and security keys do not work on this page in the app. Sign in with a password, or let the app through your proxy."
+        hint.textColor = UIColor(red: 0x6B / 255, green: 0x5F / 255, blue: 0x57 / 255, alpha: 1)
+        hint.font = .preferredFont(forTextStyle: .footnote)
+        hint.adjustsFontForContentSizeCategory = true
+        hint.numberOfLines = 0
+        signInHint = hint
+        hint.translatesAutoresizingMaskIntoConstraints = false
+
+        var look = UIButton.Configuration.filled()
+        look.baseBackgroundColor = UIColor(red: 0x11 / 255, green: 0x18 / 255, blue: 0x27 / 255, alpha: 1)
+        look.baseForegroundColor = .white
+        look.cornerStyle = .fixed
+        look.background.cornerRadius = 12
+        look.contentInsets = NSDirectionalEdgeInsets(top: 9, leading: 14, bottom: 9, trailing: 14)
+        let change = UIButton(configuration: look)
+        change.setTitle(labels["changeServer"] ?? "Change server", for: .normal)
+        change.titleLabel?.font = .systemFont(ofSize: 15, weight: .semibold)
+        change.addTarget(self, action: #selector(changeServerFromSignIn), for: .touchUpInside)
+        change.translatesAutoresizingMaskIntoConstraints = false
+        change.setContentHuggingPriority(.required, for: .horizontal)
+        change.setContentCompressionResistancePriority(.required, for: .horizontal)
+
+        bar.addSubview(hint)
+        bar.addSubview(change)
+        view.addSubview(bar)
+        NSLayoutConstraint.activate([
+            bar.leadingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.leadingAnchor, constant: 12),
+            bar.trailingAnchor.constraint(equalTo: view.safeAreaLayoutGuide.trailingAnchor, constant: -12),
+            bar.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -8),
+            hint.leadingAnchor.constraint(equalTo: bar.leadingAnchor, constant: 14),
+            hint.topAnchor.constraint(equalTo: bar.topAnchor, constant: 10),
+            hint.bottomAnchor.constraint(equalTo: bar.bottomAnchor, constant: -10),
+            change.leadingAnchor.constraint(equalTo: hint.trailingAnchor, constant: 8),
+            change.trailingAnchor.constraint(equalTo: bar.trailingAnchor, constant: -12),
+            change.centerYAnchor.constraint(equalTo: bar.centerYAnchor),
+        ])
+        return bar
+    }
+
+    /// What resetServer does from the UI: forget the server, back to the address screen.
+    @objc private func changeServerFromSignIn() {
+        TrekServerStore.url = nil
+        view.window?.rootViewController = TrekBridgeViewController()
+    }
+
+    /// Kept alive here: the content controller holds it, but only for as long as it is registered.
+    private var messageGuard: TrekBridgeMessageGuard?
+
+    /// Capacitor answers bridge messages from any page in the web view. With a
+    /// proxy's sign-in page loading there, its messages are dropped before they
+    /// reach the plugins. Always in place: a sign-in host can also be learned
+    /// while the app runs (TrekSignInRedirect).
+    private func guardBridgeMessages() {
+        guard let handler = (bridge as? CapacitorBridge)?.webViewDelegationHandler,
+              let controller = webView?.configuration.userContentController else { return }
+        let guarded = TrekBridgeMessageGuard(inner: handler)
+        controller.removeScriptMessageHandler(forName: TrekBridgeMessageGuard.name)
+        controller.add(guarded, name: TrekBridgeMessageGuard.name)
+        messageGuard = guarded
     }
 
     /// A key command of the UI's (TrekKeyCommands) was pressed. The commands sit
@@ -137,12 +466,139 @@ enum TrekKeyCommands {
 enum TrekServerStore {
     private static let key = "TrekServerURL"
 
+    private static let failureKey = "TrekLastFailure"
+
+    /// Why the server's page did not load ("NSURLErrorDomain -1003"): the
+    /// address screen shows it small under its message, so a report carries
+    /// the cause. Taken once.
+    static func noteFailure(_ error: Error) {
+        let ns = error as NSError
+        UserDefaults.standard.set("\(ns.domain) \(ns.code)", forKey: failureKey)
+    }
+
+    static func takeFailure() -> String? {
+        let failure = UserDefaults.standard.string(forKey: failureKey)
+        UserDefaults.standard.removeObject(forKey: failureKey)
+        return failure
+    }
+
+    private static let previousKey = "TrekPreviousServerURL"
+
+    private static let checkedKey = "TrekServerCheck"
+
+    private static let labelsKey = "TrekShellLabels"
+
+    /// The words of the bar over a proxy's sign-in page, in the user's language,
+    /// as the address screen passed them (setServer's `labels`): the server's UI
+    /// is not there to say them. Empty keeps the English fallback.
+    static var labels: [String: String] {
+        get { UserDefaults.standard.dictionary(forKey: labelsKey) as? [String: String] ?? [:] }
+        set { UserDefaults.standard.set(newValue, forKey: labelsKey) }
+    }
+
+    /// The server API this build needs (MIN_NATIVE_API in serverAddress.ts).
+    /// A server remembered under a lower value is checked once more: the first
+    /// launch after an update that raised it puts the address screen back up,
+    /// filled in with that server (previousURL). Raise both together.
+    private static let serverCheck = 3
+
+    private static var rechecked = false
+
+    /// Runs before the first bridge is built, so a server picked under an older
+    /// minimum is not loaded unchecked. Once per launch: the bridge that
+    /// restoreForOffline restarts must keep the server it put back.
+    static func recheckAfterUpdate() {
+        guard !rechecked else { return }
+        rechecked = true
+        let defaults = UserDefaults.standard
+        guard defaults.integer(forKey: checkedKey) < serverCheck else { return }
+        defaults.set(serverCheck, forKey: checkedKey)
+        guard let server = url else { return }
+        // Not through `url`, which throws the offline copy away: it still belongs
+        // to this server, and is what the app starts on if the check cannot run.
+        defaults.removeObject(forKey: key)
+        defaults.removeObject(forKey: signInHostsKey)
+        defaults.set(server, forKey: previousKey)
+    }
+
+    /// The check an update asked for cannot run (the server is out of reach),
+    /// but there is a copy of its UI: the server goes back in place, unchecked
+    /// for now, and the check runs again on the next launch.
+    static func restoreForOffline() -> Bool {
+        let defaults = UserDefaults.standard
+        guard url == nil, let previous = previousURL,
+              FileManager.default.fileExists(atPath: offlineCopyURL.path) else { return false }
+        defaults.set(previous, forKey: key)
+        defaults.removeObject(forKey: previousKey)
+        defaults.set(0, forKey: checkedKey)
+        return true
+    }
+
+    /// The server an update asked to check again, until a server is set.
+    static var previousURL: String? {
+        UserDefaults.standard.string(forKey: previousKey)
+    }
+
+    private static let signInHostsKey = "TrekServerSignInHosts"
+
+    /// Setting the server drops the sign-in hosts of the one before it.
     static var url: String? {
         get { UserDefaults.standard.string(forKey: key) }
         set {
-            if let newValue { UserDefaults.standard.set(newValue, forKey: key) } else { UserDefaults.standard.removeObject(forKey: key) }
+            if let newValue {
+                UserDefaults.standard.set(newValue, forKey: key)
+                UserDefaults.standard.removeObject(forKey: previousKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: key)
+            }
+            UserDefaults.standard.removeObject(forKey: signInHostsKey)
             try? FileManager.default.removeItem(at: offlineCopyURL)
         }
+    }
+
+    /// The hosts of a sign-in page in front of the server (a proxy such as
+    /// Cloudflare Access or Pangolin), as the address screen found them. Only
+    /// these load in the web view besides the server, so the proxy's session
+    /// cookie is the web view's (TrekNavigationProxy), and none of them may
+    /// talk to the app (TrekBridgeMessageGuard).
+    static var signInHosts: Set<String> {
+        get { Set((UserDefaults.standard.stringArray(forKey: signInHostsKey) ?? []).map { $0.lowercased() }) }
+        set {
+            if newValue.isEmpty {
+                UserDefaults.standard.removeObject(forKey: signInHostsKey)
+            } else {
+                UserDefaults.standard.set(Array(newValue).sorted(), forKey: signInHostsKey)
+            }
+        }
+    }
+
+    /// Keeps one more sign-in host for the remembered server, as the web view met it (TrekSignInRedirect).
+    static func addSignInHost(_ host: String) {
+        var hosts = signInHosts
+        guard hosts.insert(host.lowercased()).inserted else { return }
+        signInHosts = hosts
+    }
+
+    /// Whether `url` is one of the sign-in hosts, matched on host or host:port.
+    static func isSignInHost(_ url: URL?) -> Bool {
+        guard let url, ["https", "http"].contains(url.scheme?.lowercased() ?? ""), let host = url.host?.lowercased() else { return false }
+        let hosts = signInHosts
+        if hosts.contains(host) { return true }
+        if let port = url.port { return hosts.contains("\(host):\(port)") }
+        return false
+    }
+
+    /// The one-time code of a TREK Cloud purchase (setServer's `welcome`). The
+    /// server's first page opens its welcome page with it once, which signs the
+    /// buyer in (TrekNavigationProxy). Kept in memory only, never on disk.
+    static var pendingWelcome: String?
+
+    /// The welcome page for the pending code, handed out once.
+    static func takeWelcomeURL() -> URL? {
+        guard let code = pendingWelcome, let server = url else { return nil }
+        pendingWelcome = nil
+        let base = server.hasSuffix("/") ? server : server + "/"
+        return URL(string: base + "api/managed/welcome#" + code)
     }
 
     static var offlineCopyURL: URL {
@@ -366,12 +822,48 @@ final class TrekTileSchemeHandler: NSObject, WKURLSchemeHandler {
     }
 }
 
+/// A sign-in page in front of the server that the address screen never saw.
+/// A proxy can let the app's check through (an Authelia or Authentik rule that
+/// bypasses /api) and still send the page itself to its sign-in. Handed to
+/// Safari, that sign-in leaves its session there and the app stays blank on
+/// every launch. So a redirect away from the server, while the server's first
+/// page is still loading, is taken as the proxy's sign-in: it loads in the web
+/// view and its host is kept, the way the address screen keeps the ones it saw.
+/// A link the user taps is no redirect, and once a page of the server has
+/// shown, nothing is learned any more.
+enum TrekSignInRedirect {
+    /// The host (host:port with an explicit port) to keep as a sign-in host, or nil.
+    static func learnedHost(server: String?, target: URL?, mainFrame: Bool, redirect: Bool, serverShown: Bool) -> String? {
+        guard mainFrame, redirect, !serverShown,
+              let server, let from = URL(string: server), let fromHost = from.host?.lowercased(),
+              let target, let toHost = target.host?.lowercased(),
+              let toScheme = target.scheme?.lowercased(), ["https", "http"].contains(toScheme) else { return nil }
+        // Never from https down to plain http: the sign-in would send a password in the clear.
+        if from.scheme?.lowercased() == "https", toScheme != "https" { return nil }
+        guard toHost != fromHost else { return nil }
+        if let port = target.port { return "\(toHost):\(port)" }
+        return toHost
+    }
+
+    /// Whether `url` is on the server's host, where the app's own pages come from.
+    static func onServer(server: String?, url: URL?) -> Bool {
+        guard let server, let host = URL(string: server)?.host?.lowercased() else { return false }
+        return url?.host?.lowercased() == host
+    }
+}
+
 /// Stands in front of Capacitor's navigation delegate and hands it everything
 /// but the failures of a navigation that another one replaced: a cancelled
 /// load (NSURLErrorCancelled) or an interrupted frame load (WebKit 102). Those
 /// are no fault, and Capacitor would answer them with its error page.
 final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
     private let inner: WKNavigationDelegate
+    /// A page of the server has shown since launch; from then on no sign-in host is learned (TrekSignInRedirect).
+    private var serverShown = false
+    /// Told on the main thread whether the main frame now shows an error page in place of the server's.
+    var onErrorPage: ((Bool) -> Void)?
+    /// Told when a page has finished loading: a new document starts without the safe area the controller handed the last one.
+    var onPageShown: (() -> Void)?
 
     init(inner: WKNavigationDelegate) {
         self.inner = inner
@@ -391,13 +883,133 @@ final class TrekNavigationProxy: NSObject, WKNavigationDelegate {
         (inner as AnyObject).responds(to: aSelector) ? inner : nil
     }
 
+    /// The sign-in page of a proxy in front of the server loads here instead of
+    /// in Safari, so its session is the web view's and every request carries it.
+    /// Only the hosts the address screen saw (TrekServerStore.signInHosts), and
+    /// only in the main frame; everything else is Capacitor's decision as before.
+    func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+        if navigationAction.targetFrame?.isMainFrame == true, TrekServerStore.isSignInHost(navigationAction.request.url) {
+            decisionHandler(.allow)
+            return
+        }
+        // WebKit asks again for every server redirect, as a navigation of type .other.
+        if let host = TrekSignInRedirect.learnedHost(
+            server: TrekServerStore.url,
+            target: navigationAction.request.url,
+            mainFrame: navigationAction.targetFrame?.isMainFrame == true,
+            redirect: navigationAction.navigationType == .other,
+            serverShown: serverShown
+        ) {
+            TrekServerStore.addSignInHost(host)
+            decisionHandler(.allow)
+            return
+        }
+        let selector = NSSelectorFromString("webView:decidePolicyForNavigationAction:decisionHandler:")
+        guard (inner as AnyObject).responds(to: selector) else {
+            decisionHandler(.allow)
+            return
+        }
+        inner.webView?(webView, decidePolicyFor: navigationAction, decisionHandler: decisionHandler)
+    }
+
+    /// After the server's first page, a pending welcome code opens the welcome
+    /// page once (TrekServerStore.takeWelcomeURL); it is on the server's origin.
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+        inner.webView?(webView, didFinish: navigation)
+        onPageShown?()
+        if TrekSignInRedirect.onServer(server: TrekServerStore.url, url: webView.url) {
+            serverShown = true
+            // The server's page is up: an earlier failure is no cause any more.
+            _ = TrekServerStore.takeFailure()
+        }
+        if let welcome = TrekServerStore.takeWelcomeURL() {
+            webView.load(URLRequest(url: welcome))
+        }
+    }
+
+    /// A proxy in front of the server asks for a client certificate (mutual TLS):
+    /// the stored one goes to the host and port it was imported for and nowhere
+    /// else (TrekClientIdentity). Every other challenge is Capacitor's as before.
+    func webView(_ webView: WKWebView, didReceive challenge: URLAuthenticationChallenge,
+                 completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void) {
+        if TrekClientIdentity.answer(challenge, completionHandler) {
+            let space = challenge.protectionSpace
+            TrekClientCertWatch.serverAsked(host: space.host, port: space.port) { [weak self, weak webView] in
+                guard let self, let webView else { return }
+                // Capacitor's own answer to a failed load: the address screen (errorPath).
+                TrekServerStore.noteFailure(URLError(.clientCertificateRejected))
+                self.inner.webView?(webView, didFailProvisionalNavigation: nil, withError: URLError(.clientCertificateRejected))
+            }
+            return
+        }
+        let selector = NSSelectorFromString("webView:didReceiveAuthenticationChallenge:completionHandler:")
+        guard (inner as AnyObject).responds(to: selector) else {
+            completionHandler(.performDefaultHandling, nil)
+            return
+        }
+        inner.webView?(webView, didReceive: challenge, completionHandler: completionHandler)
+    }
+
+    /// A proxy that asked the page for a client certificate, got none and
+    /// answered with its own refusal (Cloudflare's 403, nginx's 400) sends the
+    /// app to the address screen, which says so and offers to add one, rather
+    /// than leaving the proxy's error page up. Any other 4xx page is not TREK's,
+    /// which serves its UI for every path (a proxy's block page, a certificate it
+    /// refused): it stays up with the bar and its way out to another server.
+    func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
+                 decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+        if navigationResponse.isForMainFrame, let http = navigationResponse.response as? HTTPURLResponse,
+           http.statusCode >= 400, http.statusCode < 500, let asked = TrekClientIdentity.lastRequest, !asked.served,
+           let url = http.url, url.host?.lowercased() == asked.host, (url.port ?? 443) == asked.port {
+            decisionHandler(.cancel)
+            TrekServerStore.noteFailure(URLError(.clientCertificateRequired))
+            inner.webView?(webView, didFailProvisionalNavigation: nil, withError: URLError(.clientCertificateRequired))
+            return
+        }
+        if navigationResponse.isForMainFrame, let http = navigationResponse.response as? HTTPURLResponse {
+            let error = http.statusCode >= 400 && http.statusCode < 500
+            DispatchQueue.main.async { [weak self] in self?.onErrorPage?(error) }
+        }
+        let selector = NSSelectorFromString("webView:decidePolicyForNavigationResponse:decisionHandler:")
+        guard (inner as AnyObject).responds(to: selector) else {
+            decisionHandler(.allow)
+            return
+        }
+        inner.webView?(webView, decidePolicyFor: navigationResponse, decisionHandler: decisionHandler)
+    }
+
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) {
         if Self.isReplaced(error) { return }
+        TrekServerStore.noteFailure(error)
         inner.webView?(webView, didFail: navigation, withError: error)
     }
 
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) {
         if Self.isReplaced(error) { return }
+        TrekServerStore.noteFailure(error)
         inner.webView?(webView, didFailProvisionalNavigation: navigation, withError: error)
+    }
+}
+
+/// Stands in front of Capacitor's bridge message handler and drops what a
+/// proxy's sign-in page posts: that page loads in the web view (see
+/// TrekNavigationProxy), and Capacitor itself would hand its messages to the
+/// plugins whatever page they come from.
+final class TrekBridgeMessageGuard: NSObject, WKScriptMessageHandler {
+    static let name = "bridge"
+    private let inner: WKScriptMessageHandler
+
+    init(inner: WKScriptMessageHandler) {
+        self.inner = inner
+    }
+
+    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
+        let origin = message.frameInfo.securityOrigin
+        var components = URLComponents()
+        components.scheme = origin.protocol
+        components.host = origin.host
+        if origin.port != 0 { components.port = origin.port }
+        if TrekServerStore.isSignInHost(components.url) { return }
+        inner.userContentController(userContentController, didReceive: message)
     }
 }

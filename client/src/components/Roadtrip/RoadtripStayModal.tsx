@@ -29,8 +29,11 @@ export interface StayDraft {
 interface RoadtripStayModalProps {
   stop: StayDraft | null
   onClose: () => void
-  /** Zero clears it: the rail reads "no stay" and "nothing planned" as the same thing. */
-  onSave: (placeId: number, minutes: number) => Promise<void> | void
+  /**
+   * Zero clears it: the rail reads "no stay" and "nothing planned" as the same thing.
+   * The visit rides along, so the stay lands on it and not on every visit of the place.
+   */
+  onSave: (placeId: number, minutes: number, assignmentId?: number) => Promise<void> | void
 }
 
 /** The round minus and plus beside the number. */
@@ -59,10 +62,11 @@ const SLIDER = [
  * question the number is actually being chosen for: given when the drive arrives, when
  * does it leave again. Typing minutes into a box could never show that.
  *
- * The value is `places.duration_minutes`, which the schedule has read for years and
- * nothing has ever been able to write. Cleared as a zero rather than a null, because the
- * update statement folds a null into "leave it alone" — a null could give a stop a stay
- * but never take one away.
+ * The value is the visit's own stay (`day_assignments.stay_minutes`, #3092), so two
+ * visits of one place can last differently; a stop without a saved visit writes the
+ * place's `duration_minutes`, which a visit without a stay of its own reads. Cleared as a
+ * zero rather than a null, because a null would hand the visit back to the place's stay
+ * instead of taking the stay away.
  */
 export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripStayModalProps): React.ReactElement | null {
   const { t } = useTranslation()
@@ -89,7 +93,7 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
     setSaving(true)
     setError(null)
     try {
-      await onSave(stop.placeId, value)
+      await onSave(stop.placeId, value, stop.assignmentId)
       onClose()
     } catch (err) {
       setError(err instanceof Error ? err.message : t('common.unknownError'))

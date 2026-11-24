@@ -8,9 +8,11 @@
  */
 import { db as testDb } from '../../../src/db/database';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
+import { Categories } from '../../../src/db/entities/Categories.entity';
 import { CollabMessages } from '../../../src/db/entities/CollabMessages.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
+import { Days } from '../../../src/db/entities/Days.entity';
 import { PackingItems } from '../../../src/db/entities/PackingItems.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { ReservationDayPositions } from '../../../src/db/entities/ReservationDayPositions.entity';
@@ -40,6 +42,7 @@ import {
 import { deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
 import { setAppSetting, setUserSetting } from '../../helpers/factories/settings';
 import { shareServiceRepoArgs } from '../../helpers/share-repos';
+import { createTestAddonsService } from '../../helpers/test-addons';
 import { resetTestDb } from '../../helpers/test-db';
 import { createTestModule, type TestModule } from '../../helpers/test-module';
 import type { TestOrm } from '../../helpers/test-orm';
@@ -100,6 +103,7 @@ beforeAll(async () => {
     photoCacheStub,
     await createTestUnitOfWork(testDb),
     ...(await shareServiceRepoArgs(testDb)),
+    await createTestAddonsService(testDb),
   );
 });
 
@@ -462,7 +466,7 @@ describe('getSharedTripData', () => {
 
   it('SHARE-SVC-019b: travel and stays only keeps transport, hotels and the stay stops (#1712)', async () => {
     const { trip, token } = await seedSharedTrip({ share_travel_only: true });
-    const day = createDay(testDb, trip.id);
+    const day = createDay(testDb, trip.id, { title: 'Louvre and lunch' });
     const museum = createPlace(testDb, trip.id, { name: 'Museum' });
     const hotel = createPlace(testDb, trip.id, { name: 'Hotel' });
     const stay = createDayAccommodation(testDb, trip.id, hotel.id, day.id, day.id);
@@ -479,6 +483,9 @@ describe('getSharedTripData', () => {
     expect(data.dayNotes).toEqual({});
     expect(data.places.map((p: any) => p.name)).toEqual(['Hotel']);
     expect(data.reservations.map((r: any) => r.type).sort()).toEqual(['flight', 'hotel']);
+    // The server drops the title itself; the page falls back to "Day N".
+    expect(data.days).toEqual([{ id: day.id, day_number: day.day_number, date: null, title: null }]);
+    expect(JSON.stringify(data)).not.toContain('Louvre and lunch');
   });
 
   it('SHARE-SVC-019c: without photos drops every place image and refuses the photo route (#1712)', async () => {
@@ -913,6 +920,66 @@ describe('getSharedTripData redaction (#2320)', () => {
     expect(publicReservationMetadata({ airline: 'OS', legs: [null, 'x', { from: 'VIE', seat: '1A' }] })).toBe(
       JSON.stringify({ airline: 'OS', legs: [{ from: 'VIE' }] }),
     );
+  });
+
+  it('SHARE-SVC-047: days, day notes and the three lists travel as allow-lists; categories are the ones in use', async () => {
+    const { user, trip, token } = await seedSharedTrip();
+    const day = createDay(testDb, trip.id, { date: '2026-09-01', title: 'Paris' });
+    await updateRows(t, Days, { id: day.id }, { notes: 'Owner day plan' });
+    const used = await insertRow(t, Categories, { name: 'Museums', color: '#ff0000', icon: 'landmark' });
+    await insertRow(t, Categories, { name: 'Somebody else', user: user.id });
+    const place = createPlace(testDb, trip.id, { name: 'Louvre', category_id: used });
+    createDayAssignment(testDb, day.id, place.id);
+    createDayNote(testDb, day.id, trip.id, { text: 'Meet at noon', time: '12:00' });
+    await insertRow(t, BudgetItems, {
+      trip: trip.id,
+      name: 'Tickets',
+      category: 'activities',
+      total_price: 40,
+      note: 'Card ending 4242',
+      ticket_json: '{"seat":"12A"}',
+      paidByUser: user.id,
+    });
+    await insertRow(t, PackingItems, { trip: trip.id, name: 'Socks', owner: user.id, quantity: 3 });
+    await insertRow(t, CollabMessages, { trip: trip.id, user: user.id, text: 'Hello' });
+
+    const data = await svc.getSharedTripData(token);
+    if (!data) throw new Error('no shared payload');
+    expect(data.days).toEqual([{
+      id: day.id, day_number: day.day_number, date: '2026-09-01', title: 'Paris',
+      timing: { enabled: true, start: '09:00', travel: [] },
+    }]);
+    expect(Object.keys(data.dayNotes[day.id][0]).sort()).toEqual([
+      'color',
+      'day_id',
+      'icon',
+      'id',
+      'sort_order',
+      'text',
+      'time',
+    ]);
+    expect(data.dayNotes[day.id][0]).toEqual(expect.objectContaining({ text: 'Meet at noon', time: '12:00' }));
+    expect(data.categories).toEqual([{ id: used, name: 'Museums', color: '#ff0000', icon: 'landmark' }]);
+    expect(Object.keys(data.budget[0]).sort()).toEqual([
+      'category',
+      'currency',
+      'exchange_rate',
+      'id',
+      'name',
+      'total_price',
+    ]);
+    expect(data.packing).toEqual([expect.objectContaining({ name: 'Socks', quantity: 3, checked: 0 })]);
+    expect(Object.keys(data.packing[0]).sort()).toEqual([
+      'category',
+      'checked',
+      'id',
+      'name',
+      'quantity',
+      'sort_order',
+    ]);
+    expect(Object.keys(data.collab[0]).sort()).toEqual(['avatar', 'created_at', 'id', 'text', 'username']);
+    const body = JSON.stringify(data);
+    for (const secret of ['Owner day plan', '4242', '12A', 'Somebody else']) expect(body).not.toContain(secret);
   });
 });
 

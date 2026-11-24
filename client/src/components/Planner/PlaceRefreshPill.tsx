@@ -20,7 +20,8 @@ const LABEL: Record<RefreshField, string> = {
 /** A value as the list shows it: hours as one line per day, the rest as stored. */
 function shown(field: RefreshField, value: string, locale: string | undefined, t: Translate): string[] {
   if (!value) return [t('places.refresh.empty')];
-  if (field === 'opening_hours') return hoursLines(value, locale, t('places.hoursClosed')) ?? [value];
+  if (field === 'opening_hours')
+    return hoursLines(value, locale, t('places.hoursClosed'), t('places.hoursAllDay')) ?? [value];
   return [value];
 }
 

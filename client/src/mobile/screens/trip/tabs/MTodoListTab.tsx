@@ -1,14 +1,18 @@
-import { useState } from 'react'
-import { Calendar, Check, ChevronRight, Flag, Plus } from 'lucide-react'
+import { useState, type ReactNode } from 'react'
+import { selectionHaptic } from '../../../../native/haptics'
+import { Calendar, Check, Flag, MoreHorizontal, Pencil, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import MSheet from '../../../components/MSheet'
+import { FormSheetBody, FormSheetHeader } from '../sheets/PlSheetChrome'
 import MDancingTrek from '../../../components/MDancingTrek'
 import MChipStrip from '../../../components/MChipStrip'
+import MSwipeRow, { type SwipeAction } from '../../../components/MSwipeRow'
 import { useAuthStore } from '../../../../store/authStore'
 import { useTranslation } from '../../../../i18n'
 import { avatarSrc } from '../../../../utils/avatarSrc'
 import { formatDate } from '../../../../utils/formatters'
 import type { TodoItem, TripMember } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
-import { CardGrid, TabPanes } from './tabChrome'
+import { TabPanes } from './tabChrome'
 import MTodoSidebar from './MTodoSidebar'
 import { useIsSplit } from '../../../../hooks/sizeClass'
 import { PRIORITY_COLOR, PRIORITY_LABEL } from './listsModel'
@@ -18,14 +22,13 @@ import MTaskSheet from './MTaskSheet'
 import MarkdownText from '../../../../components/shared/MarkdownText'
 
 /**
- * To-do sub-tab (spec 03 §4.5-4.7): progress card with "New task", the
- * All|My|Overdue|Done + priority-sort filter row (extended with a category
- * rail — the demo leaves it out, but the audit at 03 §4.8 flags "Task
- * lists/category filter" as missing and to be added), and the task cards.
- * Add/Edit lives in `MTaskSheet`.
+ * To-do sub-tab, in the look of the packing list beside it: a progress card
+ * with a round "+" for a new task and a "..." for the order and the lists, the
+ * All|My|Overdue|Done switch in one tinted track, and the tasks as rows of one
+ * card. Add/Edit lives in `MTaskSheet`.
  */
 export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
-  const { t, tripId, todoItems: items, tripActions } = planner
+  const { t, toast, tripId, todoItems: items, tripActions } = planner
   const canEdit = planner.can('packing_edit', planner.trip)
   const currentUserId = useAuthStore(s => s.user?.id) ?? null
   const tripMembers = planner.tripMembers
@@ -36,6 +39,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
     useTodoView(items, currentUserId, { rankByStatus: true, pinToday: true })
   const [editingItemId, setEditingItemId] = useState<number | null>(null)
   const [creatingTask, setCreatingTask] = useState(false)
+  const [optionsOpen, setOptionsOpen] = useState(false)
   // With room for two panes the filters become a pane of their own (MTodoSidebar).
   const split = useIsSplit()
 
@@ -45,11 +49,23 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   const openCreate = () => { setEditingItemId(null); setCreatingTask(true) }
   const openEdit = (id: number) => { setCreatingTask(false); setEditingItemId(id) }
   const closeSheet = () => { setCreatingTask(false); setEditingItemId(null) }
-  const toggleItem = (id: number, checked: boolean) => tripActions.toggleTodoItem(tripId, id, checked)
+  const toggleItem = (id: number, checked: boolean) => {
+    selectionHaptic()
+    return tripActions.toggleTodoItem(tripId, id, checked)
+  }
+  // The task sheet deletes the same way, without asking first.
+  const deleteItem = (id: number) => {
+    tripActions.deleteTodoItem(tripId, id).catch(() => toast.error(t('common.error')))
+  }
 
   const filterPill = (active: boolean) =>
-    `flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full px-[11px] py-[6px] text-[0.71875rem] font-semibold ${
-      active ? 'bg-m-act text-m-actfg' : 'bg-[color:var(--m-ic)] text-m-ink'
+    `flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full px-[11px] py-[6px] text-caption font-semibold ${
+      active ? 'bg-m-act text-m-actfg' : 'bg-m-ic text-m-ink'
+    }`
+  // The switch above the list: segments in one track, like Shared | My list.
+  const segment = (on: boolean) =>
+    `flex flex-none items-center gap-[5px] whitespace-nowrap rounded-full px-[12px] py-[6px] text-caption font-semibold ${
+      on ? 'bg-m-act text-m-actfg' : 'text-m-ink'
     }`
 
   const filterLabel = (f: TodoSmartFilter) =>
@@ -81,26 +97,38 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   )
 
   const progressCard = (
-      /* ── Progress card (spec §4.5) ── */
-      <div className="rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-[14px] py-[13px]">
-        <div className="flex items-baseline gap-[7px]">
-          <span className="font-geist text-[1rem] font-extrabold tabular-nums text-m-ink">{counts.done}/{items.length}</span>
-          <span className="font-geist text-[0.625rem] font-bold text-m-faint">{pct}% {t('todo.completed')}</span>
-          {canEdit && (
-            <button
-              type="button"
-              onClick={openCreate}
-              className="ms-auto flex items-center gap-1 rounded-full bg-m-act px-[12px] py-[5px] text-[0.6875rem] font-semibold text-m-actfg"
-            >
-              <Plus size={11} strokeWidth={2.4} />
-              {t('todo.newItem')}
-            </button>
-          )}
+    // The packing list's card: how far along, a slim bar, the rest and the add.
+    <div className="flex items-center gap-[10px] rounded-2xl border border-m-rowbr bg-m-sheetop px-[14px] py-[12px]">
+      <div className="min-w-0 flex-1">
+        <div className="text-caption font-semibold tabular-nums text-m-ink">
+          {progressLabel(t, counts.done, items.length)}
         </div>
-        <div className="mt-[9px] h-[5px] overflow-hidden rounded-full bg-[color:var(--m-ic)]">
-          <div className="h-full rounded-full" style={{ width: `${pct}%`, background: 'var(--m-st-confirmed)' }} />
+        <div className="mt-[7px] h-[5px] overflow-hidden rounded-full bg-m-ic">
+          <div className="h-full rounded-full bg-m-act" style={{ width: `${pct}%` }} />
         </div>
       </div>
+      {items.length > 0 && !split && (
+        <button
+          type="button"
+          onClick={() => setOptionsOpen(true)}
+          aria-label={t('todo.sidebar.sortBy')}
+          aria-haspopup="dialog"
+          className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-m-ic text-m-ink"
+        >
+          <MoreHorizontal size={17} strokeWidth={2.2} />
+        </button>
+      )}
+      {canEdit && (
+        <button
+          type="button"
+          onClick={openCreate}
+          aria-label={t('todo.newItem')}
+          className="flex h-9 w-9 flex-none items-center justify-center rounded-full bg-m-act text-m-actfg"
+        >
+          <Plus size={18} strokeWidth={2.4} />
+        </button>
+      )}
+    </div>
   )
 
   return (
@@ -135,33 +163,24 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
         </div>
       )}
 
-      {/* ── Filters (spec §4.6) ── */}
+      {/* ── Which tasks: one track, like the packing list's switch ── */}
       {!split && items.length > 0 && (
-        <MChipStrip className="mt-[10px] items-center gap-[6px] whitespace-nowrap">
+        <MChipStrip className="mt-[10px] gap-[2px] whitespace-nowrap rounded-full bg-m-ic p-[3px]">
           {TODO_SMART_FILTERS.map(f => (
             <button
               key={f}
               type="button"
+              aria-pressed={active.kind === 'smart' && active.id === f}
               onClick={() => setActive({ kind: 'smart', id: f })}
-              className={filterPill(active.kind === 'smart' && active.id === f)}
+              className={segment(active.kind === 'smart' && active.id === f)}
             >
-              {filterLabel(f)}
-              <span className="font-geist text-[0.5625rem] opacity-70">{filterCount(f)}</span>
+              {f === 'my' ? t('todo.filter.myShort') : filterLabel(f)}
+              <span className="text-caption tabular-nums opacity-60">{filterCount(f)}</span>
             </button>
           ))}
-          {sortPills}
-          {categories.length > 0 && <span className="h-4 w-px flex-none bg-[color:var(--m-rowbr)]" />}
-          {categories.map(cat => (
-            <button
-              key={cat}
-              type="button"
-              onClick={() => setActive({ kind: 'category', name: cat })}
-              className={filterPill(active.kind === 'category' && active.name === cat)}
-            >
-              {cat}
-              <span className="font-geist text-[0.5625rem] opacity-70">{catCount(cat)}</span>
-            </button>
-          ))}
+          {active.kind === 'category' && (
+            <button type="button" aria-pressed onClick={() => setOptionsOpen(true)} className={segment(true)}>{active.name}</button>
+          )}
         </MChipStrip>
       )}
 
@@ -176,7 +195,7 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
           {t('todo.emptyFiltered')}
         </div>
       ) : (
-        <CardGrid>
+        <div className="mt-[10px] overflow-hidden rounded-2xl border border-m-rowbr bg-m-sheetop px-[13px] wide:mt-2">
           {rows.map(item => (
             <TaskCard
               key={item.id}
@@ -185,11 +204,37 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
               today={today}
               onToggle={toggleItem}
               onOpen={openEdit}
+              onDelete={canEdit ? deleteItem : undefined}
             />
           ))}
-        </CardGrid>
+        </div>
       )}
     </TabPanes>
+
+      {/* ── The order and the lists, as a sheet ── */}
+      <MSheet open={optionsOpen} onClose={() => setOptionsOpen(false)} ariaLabel={t('todo.sidebar.sortBy')}>
+        <FormSheetHeader title={t('todo.sidebar.sortBy')} onClose={() => setOptionsOpen(false)} closeLabel={t('common.close')} />
+        <FormSheetBody>
+          <div className="mb-3 flex flex-col overflow-hidden rounded-[16px] bg-m-ic">
+            <OptionRow icon={<Flag size={16} strokeWidth={2} />} label={t('todo.priority')} on={sortBy === 'priority'} onClick={() => toggleSort('priority')} />
+            <OptionRow icon={<Calendar size={16} strokeWidth={2} />} label={t('todo.detail.dueDate')} on={sortBy === 'due'} onClick={() => toggleSort('due')} />
+          </div>
+          {categories.length > 0 && (
+            <>
+              <div className="mb-[6px] ps-1 text-caption font-semibold text-m-muted">{t('todo.sidebar.categories')}</div>
+              <div className="flex flex-col overflow-hidden rounded-[16px] bg-m-ic">
+                {categories.map(cat => {
+                  const on = active.kind === 'category' && active.name === cat
+                  return (
+                    <OptionRow key={cat} label={cat} count={catCount(cat)} on={on}
+                      onClick={() => { setActive(on ? { kind: 'smart', id: 'all' } : { kind: 'category', name: cat }); setOptionsOpen(false) }} />
+                  )
+                })}
+              </div>
+            </>
+          )}
+        </FormSheetBody>
+      </MSheet>
 
       <MTaskSheet
         planner={planner}
@@ -204,14 +249,51 @@ export default function MTodoListTab({ planner }: { planner: TripPlanner }) {
   )
 }
 
-function TaskCard({ item, members, today, onToggle, onOpen }: {
+/** How far the list has come, in words: done once every task is. */
+function progressLabel(t: TripPlanner['t'], done: number, total: number): string {
+  return total > 0 && done === total ? t('todo.allDone') : t('todo.progressCount', { done, total })
+}
+
+function OptionRow({ icon, label, count, on, onClick }: Readonly<{ icon?: ReactNode; label: string; count?: number; on: boolean; onClick: () => void }>) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={on}
+      className="flex w-full items-center gap-[11px] border-b border-m-rowbr px-[14px] py-[12px] text-start text-body font-medium text-m-ink last:border-b-0">
+      {icon && <span className="flex flex-none">{icon}</span>}
+      <span className="min-w-0 flex-1 truncate">{label}</span>
+      {count != null && <span className="flex-none text-caption tabular-nums text-m-faint">{count}</span>}
+      {on && <Check size={15} strokeWidth={2.4} className="flex-none" />}
+    </button>
+  )
+}
+
+/** A swipe does what the card offers: tick it off, open it, or delete it. */
+function taskSwipeActions(
+  item: TodoItem,
+  t: (key: string) => string,
+  onToggle: (id: number, checked: boolean) => void,
+  onOpen: (id: number) => void,
+  onDelete?: (id: number) => void,
+): { leading: SwipeAction; trailing: SwipeAction[] } {
+  const leading: SwipeAction = item.checked
+    ? { label: t('todo.filter.open'), icon: RotateCcw, tone: 'neutral', onAction: () => onToggle(item.id, false) }
+    : { label: t('todo.filter.done'), icon: Check, tone: 'accent', onAction: () => onToggle(item.id, true) }
+  const trailing: SwipeAction[] = [
+    ...(onDelete ? [{ label: t('common.delete'), icon: Trash2, tone: 'danger' as const, onAction: () => onDelete(item.id) }] : []),
+    { label: t('common.edit'), icon: Pencil, tone: 'neutral', onAction: () => onOpen(item.id) },
+  ]
+  return { leading, trailing }
+}
+
+function TaskCard({ item, members, today, onToggle, onOpen, onDelete }: {
   item: TodoItem
   members: TripMember[]
   today: string
   onToggle: (id: number, checked: boolean) => void
   onOpen: (id: number) => void
+  /** Only for those who may edit the list. */
+  onDelete?: (id: number) => void
 }) {
-  const { locale } = useTranslation()
+  const { t, locale } = useTranslation()
   const done = !!item.checked
   const overdue = isTodoOverdue(item, today)
   const assignee = members.find(m => m.id === item.assigned_user_id)
@@ -223,59 +305,57 @@ function TaskCard({ item, members, today, onToggle, onOpen }: {
     ? (Number.isNaN(Date.parse(`${item.due_date}T00:00:00Z`)) ? item.due_date : formatDate(item.due_date, locale))
     : null
 
-  return (
-    <div className={`mt-2 flex items-start gap-[10px] rounded-2xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 py-[11px] ${done ? 'opacity-60' : ''}`}>
-      <button
-        type="button"
-        onClick={() => onToggle(item.id, !done)}
-        aria-label={item.name}
-        aria-pressed={done}
-        className={`mt-[1px] flex h-[19px] w-[19px] flex-none items-center justify-center rounded-[6px] border-[1.5px] ${
-          done ? 'border-m-act bg-m-act text-m-actfg' : 'border-[color:var(--m-checkbr)] text-transparent'
-        }`}
-      >
-        <Check size={12} strokeWidth={3} />
-      </button>
+  const { leading, trailing } = taskSwipeActions(item, t, onToggle, onOpen, onDelete)
 
-      <button type="button" onClick={() => onOpen(item.id)} className="flex min-w-0 flex-1 items-start gap-[8px] text-start">
-        <div className="min-w-0 flex-1">
-          <div className={`truncate text-[0.8125rem] font-semibold ${done ? 'text-m-faint line-through opacity-45' : 'text-m-ink'}`}>
-            {item.name}
-          </div>
-          {item.description && (
-            <MarkdownText clamp className="mt-[1px] font-geist text-[0.625rem] text-m-faint">{item.description}</MarkdownText>
-          )}
-          {(item.priority > 0 || item.due_date || assignee) && (
-            <div className="mt-[5px] flex flex-wrap items-center gap-[5px]">
-              {item.priority > 0 && (
-                <span className="inline-flex items-center gap-[3px] rounded-full bg-[color:var(--m-ic)] px-2 py-[2px] font-geist text-[0.59375rem] font-extrabold" style={{ color: prioColor }}>
-                  <Flag size={9} strokeWidth={2.5} />
-                  {PRIORITY_LABEL[item.priority]}
-                </span>
-              )}
-              {item.due_date && (
-                <span
-                  className={`inline-flex items-center gap-[3px] rounded-full px-2 py-[2px] font-geist text-[0.59375rem] font-bold ${
-                    overdue && !done ? 'bg-[rgba(214,39,59,.1)] text-[color:var(--m-st-danger)]' : 'bg-[color:var(--m-ic)] text-m-muted'
-                  }`}
-                >
-                  <Calendar size={9} strokeWidth={2.2} />
-                  {dueLabel}
-                </span>
-              )}
-              {assignee && (
-                <span className="inline-flex items-center gap-[4px] rounded-full bg-[color:var(--m-ic)] py-[2px] ps-[3px] pe-2 font-geist text-[0.59375rem] font-bold text-m-muted">
-                  <span className="flex h-[13px] w-[13px] flex-none items-center justify-center overflow-hidden rounded-full bg-m-act text-[0.4375rem] font-extrabold text-m-actfg">
-                    {avatarSrcUrl ? <img src={avatarSrcUrl} alt="" className="h-full w-full object-cover" /> : assignee.username[0]?.toUpperCase()}
-                  </span>
-                  {assignee.username}
-                </span>
-              )}
+  return (
+    <MSwipeRow leading={leading} trailing={trailing} surface="bg-m-sheetop" inset={4} className="border-t border-m-rowbr first:border-t-0">
+      <div className="flex items-start gap-[10px] py-[10px]">
+        <button
+          type="button"
+          onClick={() => onToggle(item.id, !done)}
+          aria-label={item.name}
+          aria-pressed={done}
+          className={`flex h-[22px] w-[22px] flex-none items-center justify-center rounded-[7px] border-[1.5px] ${
+            done ? 'border-m-act bg-m-act text-m-actfg' : 'border-[color:var(--m-checkbr)] text-transparent'
+          }`}
+        >
+          <Check size={12} strokeWidth={3} />
+        </button>
+
+        {/* The rest of the row opens the task sheet, like a packing row opens its item. */}
+        <button type="button" onClick={() => onOpen(item.id)} aria-haspopup="dialog"
+          className="flex min-w-0 flex-1 items-start gap-[8px] rounded-[10px] text-start outline-none [-webkit-tap-highlight-color:transparent] focus-visible:ring-2 focus-visible:ring-m-act">
+          <div className="min-w-0 flex-1">
+            <div className={`truncate pt-[1px] text-body font-medium ${done ? 'text-m-faint line-through opacity-45' : 'text-m-ink'}`}>
+              {item.name}
             </div>
+            {item.description && (
+              <MarkdownText clamp className="mt-[1px] text-caption text-m-faint">{item.description}</MarkdownText>
+            )}
+            {(item.priority > 0 || item.due_date) && (
+              <div className="mt-[3px] flex flex-wrap items-center gap-x-[10px] gap-y-[2px] text-caption font-semibold">
+                {item.priority > 0 && (
+                  <span className="inline-flex items-center gap-[3px]" style={{ color: prioColor }}>
+                    <Flag size={11} strokeWidth={2.4} />
+                    {PRIORITY_LABEL[item.priority]}
+                  </span>
+                )}
+                {item.due_date && (
+                  <span className={`inline-flex items-center gap-[3px] ${overdue && !done ? 'text-[color:var(--m-st-danger)]' : 'text-m-muted'}`}>
+                    <Calendar size={11} strokeWidth={2.2} />
+                    {dueLabel}
+                  </span>
+                )}
+              </div>
+            )}
+          </div>
+          {assignee && (
+            <span aria-label={assignee.username} className="mt-[1px] flex h-5 w-5 flex-none items-center justify-center overflow-hidden rounded-full bg-m-ic text-[0.5625rem] font-bold text-m-muted">
+              {avatarSrcUrl ? <img src={avatarSrcUrl} alt="" className="h-full w-full object-cover" /> : assignee.username[0]?.toUpperCase()}
+            </span>
           )}
-        </div>
-        <ChevronRight size={14} strokeWidth={2} className="mt-[2px] flex-none text-m-faint" />
-      </button>
-    </div>
+        </button>
+      </div>
+    </MSwipeRow>
   )
 }

@@ -52,6 +52,7 @@ describe('placeEditForm', () => {
       transport_mode: 'walking',
       website: 'https://louvre.fr',
       assignment_notes: 'Day note',
+      assignment_stay: '',
     });
   });
 
@@ -149,6 +150,17 @@ describe('placeFormPayload', () => {
     expect('assignment_notes' in placeFormPayload(form, [], { notes: 'Day note' })).toBe(false);
     expect(placeFormPayload(form, [], { notes: 'Old note' }).assignment_notes).toBe('Day note');
     expect('assignment_notes' in placeFormPayload({ ...form, assignment_notes: '' }, [], { notes: null })).toBe(false);
+  });
+
+  it('writes only changed visit durations and distinguishes zero from inheritance', () => {
+    const visit = { ...ASSIGNMENT, stay_minutes: 30 };
+    const visitForm = placeEditForm(PLACE, visit);
+    expect(visitForm.assignment_stay).toBe('30');
+    expect(placeFormPayload(visitForm, [], visit)).not.toHaveProperty('stay_minutes');
+    expect(placeFormPayload({ ...visitForm, assignment_stay: '45' }, [], visit).stay_minutes).toBe(45);
+    expect(placeFormPayload({ ...visitForm, assignment_stay: '0' }, [], visit).stay_minutes).toBe(0);
+    expect(placeFormPayload({ ...visitForm, assignment_stay: '' }, [], visit).stay_minutes).toBeNull();
+    expect(placeFormPayload(visitForm, [], null)).not.toHaveProperty('stay_minutes');
   });
 
   it("FE-PLANNER-PLFORMH-010: a shell's extras are built from the parsed coordinates", () => {

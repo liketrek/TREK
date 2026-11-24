@@ -31,7 +31,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.newCategory': 'קטגוריה חדשה',
   'mobileTrip.newReservation': 'הזמנה חדשה',
   'mobileTrip.notes': 'הערות',
-  'mobileTrip.onMap': 'על המפה',
+  'mobileTrip.onMap': 'מפה',
   'mobileTrip.profileDriving': 'נהיגה',
   'mobileTrip.profileWalking': 'הליכה',
   'mobileTrip.profileCycling': 'רכיבה',

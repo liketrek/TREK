@@ -28,7 +28,8 @@ export default function PluginPage(): React.ReactElement {
   return (
     <PageShell background="var(--bg-secondary)" navOffset="var(--nav-h, 56px)">
       <HelpAnchor id="settings-plugins" />
-      <div style={{ height: 'calc(100vh - var(--nav-h, 56px))' }}>
+      {/* The phone shell sets --plugin-page-h and its own insets (mobile.css). */}
+      <div data-plugin-page style={{ height: 'var(--plugin-page-h, calc(100vh - var(--nav-h, 56px)))' }}>
         <PluginFrame pluginId={pluginId} title={plugin?.name} fill surface="plugin-page" className="w-full h-full" />
       </div>
     </PageShell>

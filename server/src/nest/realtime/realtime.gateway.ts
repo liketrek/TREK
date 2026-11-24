@@ -7,6 +7,7 @@ import { User } from '../../types';
 import { logError } from '../audit/audit-log.logger';
 import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
 import { readAppSetting } from '../common/app-settings.registry';
+import { toRowId } from '../common/row-id';
 import { TripAccessService } from '../trip-membership/trip-access.service';
 import { JOURNEY_ACCESS, type JourneyAccess } from './journey-access.types';
 import {
@@ -190,9 +191,10 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     // `NaN` and throw (`no such column: NaN`), leaving this handler's
     // promise unanswered instead of the legacy `Access denied` frame. The
     // platform now renders a bound `NaN` as `NULL` too (`NulSafeSqlitePlatform`),
-    // so this guard is defence in depth, not the only fix.
-    const tripId = Number(message.tripId);
-    if (!Number.isFinite(tripId) || !(await this.trips.findAccessible(tripId, user.id))) {
+    // so this guard is defence in depth, not the only fix. toRowId, not
+    // Number(): '0x1' or '1e0' joined trip 1's room.
+    const tripId = toRowId(message.tripId);
+    if (tripId === null || !(await this.trips.findAccessible(tripId, user.id))) {
       return { type: 'error', message: 'Access denied' };
     }
     this.rooms.join(socket, tripId);
@@ -215,8 +217,8 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     const user = userOf(socket);
     if (!user || !message?.journeyId) return undefined;
 
-    const journeyId = Number(message.journeyId);
-    if (!Number.isFinite(journeyId) || !(await this.journeys.canAccessJourney(journeyId, user.id))) {
+    const journeyId = toRowId(message.journeyId);
+    if (journeyId === null || !(await this.journeys.canAccessJourney(journeyId, user.id))) {
       return { type: 'error', message: 'Access denied' };
     }
 

@@ -23,11 +23,11 @@ beforeEach(() => {
 });
 
 describe('MAtlas', () => {
-  it('FE-MOB-ATLASSCR-001: shows only a spinner while the atlas is loading', () => {
+  it('FE-MOB-ATLASSCR-001: shows only placeholders while the atlas is loading', () => {
     setAtlas({ loading: true });
     render(<MAtlas />);
 
-    expect(document.querySelector('.animate-spin')).toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).toBeInTheDocument();
     expect(screen.queryByText('atlas.bucketTab')).not.toBeInTheDocument();
   });
 
@@ -37,7 +37,7 @@ describe('MAtlas', () => {
     });
     render(<MAtlas />);
 
-    expect(document.querySelector('.animate-spin')).not.toBeInTheDocument();
+    expect(document.querySelector('[data-skeleton]')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'atlas.bucketTab' })).toBeInTheDocument();
     // Stats card labels come from the real translations via useTranslation.
     expect(screen.getByText('Countries')).toBeInTheDocument();

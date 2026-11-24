@@ -1,5 +1,5 @@
 /**
- * How TREK 5.1.1 registers with the TREK services.
+ * How TREK 5.2.0 registers with the TREK services.
  *
  * The issuer writes this file for each release and the release pipeline
  * commits it with the version bump. It is not edited by hand, and its layout
@@ -8,101 +8,100 @@
  */
 import type { DialectSelfCheck, RegistrationDialect } from './registration-dialect.types';
 
-import { createHash, pbkdf2Sync } from 'node:crypto';
+import { createHash, createHmac, pbkdf2Sync } from 'node:crypto';
 
-const DIALECT = 'uPqlvaOK1lTg';
-const REEF_FERN = Buffer.from('f8ae4b4d3888cd3120ee6bd281eba75f55647ea1a4523fcebfc586f9cb5391e9', 'hex');
+const DIALECT = 'MCC2i6oMga-k';
+const FLINT_AURORA = Buffer.from('e0bc92393c56a33c8046371de83c00b73975ec200058dcc1c08d07ef234a0997', 'hex');
+const CHERRY_FALCON = 'abcdefghijklmnopqrstuvwxyz234567';
 
-function citadel(input: Buffer, width: number): Buffer {
-  const out = Buffer.from(input);
-  for (let i = 0; i + width <= out.length; i += width) out.subarray(i, i + width).reverse();
-  return out;
-}
-
-function lichen(input: Buffer, start: number): Buffer {
-  const out = Buffer.from(input);
-  for (let offset = 0; offset < out.length; offset += 32) {
-    const counter = Buffer.alloc(2);
-    counter.writeUInt16LE((start + offset / 32) & 0xffff);
-    const block = createHash('sha256').update(REEF_FERN).update(counter).digest();
-    for (let j = offset; j < Math.min(offset + 32, out.length); j++) {
-      out.writeUInt8(out.readUInt8(j) ^ block.readUInt8(j - offset), j);
-    }
-  }
-  return out;
-}
-
-function dale(part: Buffer): Buffer {
-  const head = Buffer.alloc(2);
-  head.writeUInt16BE(part.length);
+function glacier(part: Buffer): Buffer {
+  const head = Buffer.alloc(4);
+  head.writeUInt32LE(part.length);
   return Buffer.concat([head, part]);
 }
 
-function sleet(value: number): Buffer {
-  const out = Buffer.alloc(8);
-  out.writeBigUInt64LE(BigInt(value));
-  return out;
-}
-
-function grove(a: Buffer, b: Buffer): Buffer {
+function lynx(a: Buffer, b: Buffer): Buffer {
   const parts: Buffer[] = [];
   for (let i = 0; i < Math.max(a.length, b.length); i++) parts.push(a.subarray(i, i + 1), b.subarray(i, i + 1));
   return Buffer.concat(parts);
 }
 
-function boulder(value: number): Buffer {
-  const out: number[] = [];
-  let rest = value;
-  do {
-    const low = rest % 128;
-    rest = Math.floor(rest / 128);
-    out.push(low | (Math.sign(rest) << 7));
-  } while (rest > 0);
-  return Buffer.from(out);
+function eagle(input: Buffer): string {
+  const bits = [...input].map((byte) => byte.toString(2).padStart(8, '0')).join('');
+  let out = '';
+  for (let i = 0; i < bits.length; i += 5) {
+    out += CHERRY_FALCON.charAt(parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2));
+  }
+  return out;
+}
+
+function rowan(part: Buffer): Buffer {
+  const head = Buffer.alloc(2);
+  head.writeUInt16BE(part.length);
+  return Buffer.concat([head, part]);
+}
+
+function saddle(alg: string, key: Buffer, data: Buffer): Buffer {
+  return createHmac(alg, key).update(data).digest();
+}
+
+function cedar(input: Buffer, size: number): Buffer {
+  const out = Buffer.alloc(size);
+  input.forEach((byte, i) => out.writeUInt8(out.readUInt8(i % size) ^ byte, i % size));
+  return out;
+}
+
+function alder(alg: string, size: number, data: Buffer): Buffer {
+  return createHash(alg, { outputLength: size }).update(data).digest();
+}
+
+function marsh(part: Buffer): Buffer {
+  const head = Buffer.alloc(2);
+  head.writeUInt16LE(part.length);
+  return Buffer.concat([head, part]);
 }
 
 export const registrationDialect: RegistrationDialect = {
   id: DIALECT,
-  releasedFor: '5.1.1',
-  createdAt: '2026-11-08',
+  releasedFor: '5.2.0',
+  createdAt: '2026-11-23',
   challengePath: `/v1/register/${DIALECT}/challenge`,
   registerPath: `/v1/register/${DIALECT}`,
   begin({ challenge, version, random }) {
-    const olive = Buffer.from(challenge.c, 'utf8');
-    const cactus = Buffer.from(version, 'utf8');
-    const cypress = createHash('sha256').update(olive).digest();
-    const creek = Buffer.concat([olive, cactus].map(dale));
-    const cairn = createHash('shake256', { outputLength: 0x15 }).update(creek).digest();
+    const cabin = Buffer.from(challenge.c, 'utf8');
+    const harrier = Buffer.from(version, 'utf8');
+    const quarry = createHash('sha256').update(cabin).digest();
+    const winter = Buffer.concat([marsh(FLINT_AURORA), marsh(harrier), marsh(cabin), marsh(random.subarray(3, 12))]);
+    const paddle = saddle('sha3-256', winter, FLINT_AURORA);
+    const cypress = Buffer.from(paddle.toString('hex'), 'utf8');
     return {
       work(nonce) {
-        const breeze = Buffer.from([0xe1]);
-        const summit = Buffer.concat([
-          cactus, breeze, random, breeze, olive, breeze, boulder(nonce), breeze, REEF_FERN,
-        ]);
-        const stamp = Buffer.from([
-          ...summit.subarray(0xb % summit.length), ...summit.subarray(0, 0xb % summit.length),
-        ]);
-        const ember = createHash('blake2b512').update(stamp).digest();
-        const dove = lichen(ember, 254);
-        const autumn = createHash('blake2b512').update(dove).digest();
-        return { password: autumn, salt: cairn };
+        const atlas = Buffer.concat([random, cabin, Buffer.from(nonce.toString(10)), harrier, FLINT_AURORA].map(rowan));
+        const blossom = pbkdf2Sync(atlas, quarry.subarray(22, 0x1e), 20, 0x15, 'sha512');
+        const arbor = lynx(blossom, FLINT_AURORA).subarray(0, blossom.length);
+        const coast = Buffer.from(arbor.subarray(0, 21));
+        const wave = alder('shake256', 0x40, coast);
+        return { password: wave, salt: cypress };
       },
       request(nonce) {
-        const barley = Buffer.concat([sleet(nonce), olive, cactus]);
-        const wren = grove(barley, cypress);
-        const chapel = citadel(wren, 4);
-        const lava = pbkdf2Sync(chapel, olive, 19, 29, 'sha256');
+        const basin = Buffer.concat([harrier, cabin, Buffer.from(`${nonce}`)].map(glacier));
+        const wave6 = Buffer.concat([harrier, basin]);
+        const wing = pbkdf2Sync(wave6, FLINT_AURORA.subarray(23, 0x1d), 0x1c, 0x1a, 'sha512');
+        const ivy = Buffer.from([
+          3, 0xe, 0x11, 0xf, 9, 0xa, 7, 18, 13, 4, 11, 5, 16, 8, 0, 6, 1, 12, 2, 19,
+        ].map((from) => wing.readUInt8(from)));
+        const grove = Buffer.concat([ivy, wing.subarray(20)]);
+        const dock = saddle('sha256', grove, random);
+        const pearl = cedar(dock, 0x14);
         return {
           body: {
-            pilgrim: {
-              harvest: version,
-              lindenQuartz: challenge.c,
-              plateauSorrel: nonce,
-              apple: 'nest-421',
-              harvestHollow: random.toString('hex'),
-            },
+            sierra_ridge: version,
+            paddle_mill: pearl.toString('hex'),
+            gorge_rowan: challenge.c,
+            birch_cape: nonce,
+            ash: eagle(random),
           },
-          headers: { 'X-TREK-Quill-Bramble': lava.toString('hex') },
+          headers: {},
         };
       },
     };
@@ -111,13 +110,13 @@ export const registrationDialect: RegistrationDialect = {
 
 /** Fixed inputs and what this module must make of them; TREK's tests and release job run it. */
 export const SELF_CHECK: DialectSelfCheck = {
-  challenge: { c: 'v1.selfcheck.uPqlvaOK1lTg', alg: 'scrypt', N: 16, r: 1, p: 1, bits: 0, expires_at: 1 },
-  version: '5.1.1',
+  challenge: { c: 'v1.selfcheck.MCC2i6oMga-k', alg: 'scrypt', N: 16, r: 1, p: 1, bits: 0, expires_at: 1 },
+  version: '5.2.0',
   random: '000102030405060708090a0b0c0d0e0f',
   nowSeconds: 1800000000,
   nonce: 41,
-  inputSha256: '51bf94954bef8fb0bd92426ffbd3a4301cc26aacc2f1392e36a3589c3d368eed',
-  saltSha256: 'f574427b733f5f3307704d8e967654cd8a2a1b7cf1ea37c79d682aed6253ab2d',
-  scrypt: '9603a88e384e7b6a99e79883351d9786ab5294bfe83bb9b80979ddba279d8515',
-  requestSha256: '30fb4cbca72c689c6b66ba741bd6432a112f0f424619b15ef621935c3dfddf6d',
+  inputSha256: '5840e0d3d6661feeb110032d6bd6ce71653bbaad6695c4919d5dc4a1c90d4887',
+  saltSha256: 'd6108d62280c10f09c6ed4b68c4ae18934b5c9bd1b0d2f97452cdc4d048bb8cc',
+  scrypt: '66520ede3f817fec6584440217987d2d5d810f0a1f2f6f05bb7108901ba12070',
+  requestSha256: '4a6a4228f493fcef6c185c910b2667cf08317c0ac693eba64ea850b32ee79980',
 };

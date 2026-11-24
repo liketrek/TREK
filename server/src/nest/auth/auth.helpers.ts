@@ -2,6 +2,7 @@ import { USER_MFA_BACKUP_CODES } from '../../db/json-columns';
 import { utcSuffix } from '../../db/types';
 import { User } from '../../types';
 import { decodeJson } from '../../utils/json-column';
+import { MASKED_ADMIN_SETTING_KEYS, type AppSettingKey } from '../common/app-settings.registry';
 import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 
 import bcrypt from 'bcryptjs';
@@ -139,4 +140,25 @@ export function parseBackupCodeHashes(raw: string | null | undefined): string[] 
 /** Where `plaintext` sits among a user's stored backup-code hashes, or -1 when it is none of them. */
 export function backupCodeIndex(plaintext: string, raw: string | null | undefined): number {
   return parseBackupCodeHashes(raw).findIndex((hash) => matchBackupCode(plaintext, hash));
+}
+
+/** What an admin settings save writes to the audit log: what changed, with every secret masked. */
+export function appSettingsAudit(
+  changedKeys: readonly AppSettingKey[],
+  body: Record<string, unknown>,
+): { summary: Record<string, unknown>; debugDetails: Record<string, unknown> } {
+  const changed = (prefix: string) => changedKeys.some((k) => k.startsWith(prefix));
+  const summary: Record<string, unknown> = {};
+  if (changedKeys.includes('notification_channels')) summary.notification_channels = body.notification_channels;
+  if (changedKeys.includes('admin_webhook_url')) summary.admin_webhook_url_updated = true;
+  if (changed('admin_ntfy_')) summary.admin_ntfy_updated = true;
+  if (changed('smtp_')) summary.smtp_settings_updated = true;
+  if (changedKeys.includes('allow_registration')) summary.allow_registration = body.allow_registration;
+  if (changedKeys.includes('allowed_file_types')) summary.allowed_file_types_updated = true;
+  if (changedKeys.includes('require_mfa')) summary.require_mfa = body.require_mfa;
+  if (changed('mail_ingest_')) summary.mail_ingest_settings_updated = true;
+  const debugDetails = Object.fromEntries(
+    changedKeys.map((k) => [k, MASKED_ADMIN_SETTING_KEYS.has(k) ? '***' : body[k]]),
+  );
+  return { summary, debugDetails };
 }

@@ -19,6 +19,9 @@ const settings: TranslationStrings = {
   'settings.plugins.requiredMissing': '"{field}" es obligatorio',
   'settings.tabs.account': 'Cuenta',
   'settings.tabs.offline': 'Sin conexión',
+  'settings.tabs.device': 'App', // same-as-en
+  'settings.groups.account': 'Tu cuenta',
+  'settings.groups.device': 'Este dispositivo',
   'settings.tabs.about': 'Acerca de',
   'settings.map': 'Mapa',
   'settings.mapTemplate': 'Plantilla del mapa',
@@ -65,6 +68,9 @@ const settings: TranslationStrings = {
   'settings.mapHighQualityHint':
     'Antialiasing + proyección global para bordes más nítidos y una vista realista del mundo.',
   'settings.mapHighQualityWarning': 'Puede afectar el rendimiento en dispositivos menos potentes.',
+  'settings.mapHidePois': 'Ocultar puntos de interés',
+  'settings.mapHidePoisHint':
+    'Oculta las tiendas, restaurantes y lugares de interés que Mapbox marca por su cuenta, para que solo destaquen tus lugares. Solo en los estilos Standard.',
   'settings.mapTipLabel': 'Consejo:',
   'settings.mapTip':
     'Clic derecho y arrastrar para rotar/inclinar el mapa. Clic central para añadir un lugar (el clic derecho está reservado para la rotación).',
@@ -76,6 +82,9 @@ const settings: TranslationStrings = {
   'settings.weatherKeyHint': 'Para datos meteorológicos. Gratis en openweathermap.org/api',
   'settings.keyPlaceholder': 'Introduce la clave...',
   'settings.configured': 'Configurado',
+  'settings.notSetUp': 'Sin configurar',
+  'settings.mcp.appsConnected': '{count} apps conectadas',
+  'settings.mcp.appsConnected.one': '{count} app conectada',
   'settings.saveKeys': 'Guardar claves',
   'settings.display': 'Visualización',
   'settings.colorMode': 'Modo de color',
@@ -106,7 +115,13 @@ const settings: TranslationStrings = {
   'settings.notifications': 'Notificaciones',
   'settings.notifyTripInvite': 'Invitaciones de viaje',
   'settings.notifyBookingChange': 'Cambios en reservas',
+  'settings.notifyFlightDeparted': 'Despegues',
+  'settings.notifyFlightDelayed': 'Retrasos de vuelos',
+  'settings.notifyFlightLanded': 'Aterrizajes',
   'settings.notifyTripReminder': 'Recordatorios de viaje',
+  'settings.notifyMailBookingAdded': 'Reservas añadidas desde correos',
+  'settings.notifyMailBookingPending': 'Reservas reenviadas por revisar',
+  'settings.notifyMailIngestPaused': 'Importación de correo en pausa',
   'settings.notifyTodoDue': 'Tarea próxima',
   'settings.notifyVacayInvite': 'Invitaciones de fusión Vacay',
   'settings.notifyVacayShare': 'Calendarios Vacay compartidos',
@@ -411,7 +426,8 @@ const settings: TranslationStrings = {
   'settings.airtrail.url': 'URL de la instancia',
   'settings.airtrail.apiKey': 'Clave de API',
   'settings.airtrail.apiKeyPlaceholder': 'Clave de API Bearer',
-  'settings.airtrail.apiKeyHint': 'Generada en AirTrail en Ajustes → Seguridad. Se almacena cifrada.',
+  'settings.airtrail.apiKeyHint':
+    'Generada en AirTrail en Ajustes → Seguridad. Se almacena cifrada. Si creas la clave en AirTrail 3.13 o posterior, necesita el ámbito flight.read.own para leer. Para escribir cambios de vuelta, también necesita flight.update.own, flight.passengers.manage.own, reference_data.read y profile.read.',
   'settings.airtrail.allowInsecureTls': 'Permitir certificados autofirmados',
   'settings.airtrail.allowInsecureTlsHint': 'Actívalo solo para una instancia de confianza en tu propia red.',
   'settings.airtrail.writeBack': 'Escribir cambios de vuelta en AirTrail',

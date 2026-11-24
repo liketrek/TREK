@@ -11,7 +11,7 @@ import type {
   Accommodation, Assignment, Day, DayNote, Place, Reservation, RouteSegment, TranslationFn,
 } from '../../../../src/types'
 
-// FE-MOB-PTLM-001 to FE-MOB-PTLM-060
+// FE-MOB-PTLM-001 to FE-MOB-PTLM-063
 
 const DAYS = [
   { id: 1, trip_id: 1, day_number: 1, date: '2026-05-01', title: null },
@@ -898,5 +898,61 @@ describe('planTimelineModel — chronology helpers', () => {
     const breakfast = placeItem(assignment(11, 0, place(101, 'Breakfast', 48.1, 16.1, '09:00')))
     expect(breaksChronology([breakfast, ...drawn], 2, getDisplayTimeForDay)).toBe(false)
     expect(breaksChronology([...drawn, breakfast], 2, getDisplayTimeForDay)).toBe(true)
+  })
+})
+
+describe('planTimelineModel: a rental car picked up or returned on the day', () => {
+  // A car hired on day 1 and returned on day 2 before an evening flight home: the
+  // traveller drives the car to the return desk, so that drive belongs to the day.
+  const MIRADOR = { lat: 27.756, lng: -15.571 }
+  const PICKUP = { lat: 27.95, lng: -15.4 }
+  const RETURN = { lat: 27.92, lng: -15.38 }
+  const LPA = { lat: 27.932, lng: -15.387 }
+  const MUC = { lat: 48.353, lng: 11.786 }
+  const endpoint = (role: 'from' | 'to', sequence: number, name: string, at: { lat: number; lng: number }) => ({
+    role, sequence, name, code: null, ...at, timezone: null, local_date: null, local_time: null,
+  })
+  const car = (dayId: number, endDayId: number) => buildReservation({
+    id: 71, type: 'car', title: 'Avis', day_id: dayId, end_day_id: endDayId,
+    reservation_time: '2026-05-01T10:00', reservation_end_time: '2026-05-02T17:00',
+    endpoints: [endpoint('from', 0, 'Avis pickup', PICKUP), endpoint('to', 1, 'Avis return', RETURN)],
+  })
+  const flightHome = buildReservation({
+    id: 72, type: 'flight', title: 'Home', day_id: 2, end_day_id: 2,
+    reservation_time: '2026-05-02T20:00', reservation_end_time: '2026-05-02T23:55',
+    endpoints: [endpoint('from', 0, 'LPA', LPA), endpoint('to', 1, 'MUC', MUC)],
+  })
+  const mirador = buildAssignment({ id: 31, day_id: 2, order_index: 0, place: place(931, 'Mirador de las Dunas', MIRADOR.lat, MIRADOR.lng) })
+
+  const planOf = (dayId: number, dayAssignments: Assignment[], reservations: Reservation[]) => {
+    const merged = getMergedItems({
+      dayAssignments,
+      dayNotes: [],
+      dayTransports: getTransportForDay({ reservations, dayId, dayAssignmentIds: dayAssignments.map(a => a.id), days: DAYS }),
+      dayId,
+    })
+    const runs = buildDayRouteRuns(dayId, {
+      days: DAYS, assignments: { [String(dayId)]: dayAssignments }, reservations, accommodations: [], optimizeFromAccommodation: false,
+    })
+    return { runs, rows: buildPlanRows({ merged, reservations, routeSegments: segmentsOf(runs), dayId }) }
+  }
+  const at = (p: { lat: number; lng: number }): [number, number] => [p.lat, p.lng]
+
+  it('FE-MOB-PTLM-062: on the return day the drive from the last stop to the return desk shows and is drawn', () => {
+    const { runs, rows } = planOf(2, [mirador], [car(1, 2), flightHome])
+    expect(rows.map(r => r.key)).toEqual(['pl-31', 'conn-pl-31', 'tr-71', 'tr-72'])
+    expect(connectors(rows).map(s => [s.from, s.to])).toEqual([[at(MIRADOR), at(RETURN)]])
+    // The map draws the same drive, ending at the return desk.
+    expect(runs.map(run => run.map(p => [p.lat, p.lng]))).toEqual([[at(MIRADOR), at(RETURN)]])
+  })
+
+  it('FE-MOB-PTLM-063: on the pickup day the drive away from the rental desk shows under the booking', () => {
+    const later = buildAssignment({ id: 32, day_id: 2, order_index: 0, place: place(932, 'Dunes', MIRADOR.lat, MIRADOR.lng, '12:00') })
+    const pickup = buildReservation({
+      ...car(2, 3), reservation_time: '2026-05-02T10:00', reservation_end_time: '2026-05-03T17:00',
+    })
+    const { rows } = planOf(2, [later], [pickup])
+    expect(rows.map(r => r.key)).toEqual(['tr-71', 'conn-tr-71', 'pl-32'])
+    expect(connectors(rows).map(s => [s.from, s.to])).toEqual([[at(PICKUP), at(MIRADOR)]])
   })
 })

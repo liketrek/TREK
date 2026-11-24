@@ -1,5 +1,5 @@
 import type { JourneyEntryLook } from '@trek/shared';
-import { CalendarDays, Globe, Images, MapPin, Play, Tag, ThumbsDown, ThumbsUp, Users } from 'lucide-react';
+import { CalendarDays, Images, MapPin, Play, Tag, ThumbsDown, ThumbsUp } from 'lucide-react';
 
 import { useTranslation } from '../../../../i18n';
 import { cardDateLabel, cardPlace } from '../../../Journey/journeyCard';
@@ -12,8 +12,8 @@ import { moodOf, weatherOf } from './journeyTones';
 /**
  * The pieces a journal entry is drawn from in the chat, the same in an
  * answer, a change row and a receipt: its photo, the facts of when and where
- * as the planner's badges, the marks of how it reads (shared, draft, mood,
- * weather, more photos) and the start of its text. Every fact wraps, none is
+ * as the planner's badges, the marks of how it reads (draft, mood, weather,
+ * more photos) and the start of its text. Every fact wraps, none is
  * cut.
  */
 
@@ -60,19 +60,6 @@ export function EntryWhen({ look }: { look: JourneyEntryLook }) {
         </SoftPill>
       )}
     </CardFacts>
-  );
-}
-
-/** Shared or public; nothing for a private entry. */
-function VisibilityMark({ visibility }: { visibility: JourneyEntryLook['visibility'] }) {
-  const { t } = useTranslation();
-  if (visibility === 'private') return null;
-  const shared = visibility === 'shared';
-  const Icon = shared ? Users : Globe;
-  return (
-    <SoftPill tone="info" icon={<Icon size={10} strokeWidth={2.2} aria-hidden="true" />}>
-      {shared ? t('journey.visibility.shared') : t('journey.visibility.public')}
-    </SoftPill>
   );
 }
 
@@ -129,17 +116,16 @@ function ListMarks({ look }: { look: JourneyEntryLook }) {
   );
 }
 
-/** How the entry reads: shared or public, a draft, its mood and weather, its photos past the first, its tags and verdict. */
+/** How the entry reads: a draft, its mood and weather, its photos past the first, its tags and verdict. */
 export function EntryMarks({ look }: { look: JourneyEntryLook }) {
   const { t } = useTranslation();
   const mood = moodOf(look.mood) !== null;
   const lists = (look.tags?.length ?? 0) > 0 || !!look.verdict;
-  if (look.visibility === 'private' && !look.draft && !mood && !look.weather && look.photoCount < 2 && !lists) {
+  if (!look.draft && !mood && !look.weather && look.photoCount < 2 && !lists) {
     return null;
   }
   return (
     <CardFacts>
-      <VisibilityMark visibility={look.visibility} />
       {look.draft && <SoftPill tone="warning">{t('journey.entry.draft')}</SoftPill>}
       <MoodMark id={look.mood} />
       <WeatherMark weather={look.weather} />

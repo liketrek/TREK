@@ -18,10 +18,12 @@ import type { Request } from 'express';
  * `/api/integrations/wanderer/watch` (WAN-02): the optional background watch
  * over the caller's own wanderer snapshots, beside the connection it runs on.
  * It reads and switches only the caller's own watch, and lists only the
- * caller's own hints.
+ * caller's own hints. It belongs to no one trip, so AddonGuard follows
+ * JwtAuthGuard and opens while Tours is on for the instance or any trip of
+ * the caller.
  */
 @Controller('api/integrations/wanderer/watch')
-@UseGuards(AddonGuard, JwtAuthGuard, WandererEnabledGuard)
+@UseGuards(JwtAuthGuard, AddonGuard, WandererEnabledGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class WandererWatchController {
   constructor(private readonly watch: WandererWatchService) {}

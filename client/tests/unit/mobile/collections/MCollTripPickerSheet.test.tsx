@@ -69,11 +69,11 @@ describe('MCollTripPickerSheet', () => {
     expect(screen.getByText('Sun, Mar 1, 2020')).toBeInTheDocument()
   })
 
-  it('FE-MOB-CTRIPP-004: the spinner holds the list until the trips arrive', async () => {
+  it('FE-MOB-CTRIPP-004: the placeholders holds the list until the trips arrive', async () => {
     let resolve!: (v: { trips: typeof TRIPS }) => void
     vi.mocked(tripsApi.list).mockReturnValue(new Promise(r => { resolve = r }))
     setup()
-    expect(document.querySelector('.animate-spin')).not.toBeNull()
+    expect(document.querySelector('[data-skeleton]')).not.toBeNull()
     expect(screen.queryByText('No trips yet')).not.toBeInTheDocument()
 
     resolve({ trips: TRIPS })

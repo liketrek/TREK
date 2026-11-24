@@ -1,18 +1,6 @@
 import { currencyDecimals, splitEqualShares, sumMinor, toMinor } from '@trek/shared';
 
 /**
- * Re-denominate whole trip-currency cents into whole display-currency cents
- * without losing or inventing one (#1382).
- *
- * Rounding every balance on its own lets the rounded set drift away from the sum
- * it came from: a squared-up trip viewed in another currency then shows a cent
- * that no payment flow can ever clear, and the drift moves whenever the live rate
- * does, money appearing without a single expense being touched. Rounding down
- * and handing the leftover to the largest fractions keeps Σ(converted) equal to
- * converted(Σ). `factor === 1` (the display currency IS the trip currency, the
- * common case) is the identity and never touches a float.
- */
-/**
  * Add money in whole cents, not in floats (#1964).
  *
  * A total that does not divide evenly is split into parts that are each exact
@@ -27,31 +15,6 @@ import { currencyDecimals, splitEqualShares, sumMinor, toMinor } from '@trek/sha
  */
 export function sumMoney(amounts: number[]): number {
   return sumMinor(amounts) / 100;
-}
-
-/**
- * Convert a set of trip cents to display cents so that they still add up: floor
- * each one, then hand the cents lost to flooring to the largest fractions. `total`
- * is what the set has to sum to. By default that is the rounded conversion of its
- * own sum; the rows behind a figure pass the figure's already allocated cents
- * instead, so a list nested under a line lands exactly on that line.
- *
- * `unit` is the smallest step the currency is shown in, in cents (100 for won or
- * yen, else 1). The ledger keeps hundredths, but a set handed out in hundredths of
- * a won and rounded one by one on screen stops adding up (#2604). In the trip's own
- * currency the remainders are integers, so booking what is offered clears it.
- */
-function allocateDisplayCents(cents: number[], factor: number, total?: number, unit = 1): number[] {
-  if (factor === 1 && unit === 1) return [...cents];
-  const exact = cents.map((c) => (c * factor) / unit);
-  const out = exact.map((v) => Math.floor(v));
-  const target = total === undefined ? Math.round((cents.reduce((a, c) => a + c, 0) * factor) / unit) : total / unit;
-  const drift = target - out.reduce((a, v) => a + v, 0);
-  const byFraction = exact
-    .map((v, i) => ({ i, frac: factor === 1 ? cents[i] - out[i] * unit : v - Math.floor(v) }))
-    .sort((a, b) => b.frac - a.frac || a.i - b.i);
-  for (let k = 0; k < drift && k < byFraction.length; k++) out[byFraction[k].i] += 1;
-  return unit === 1 ? out : out.map((v) => v * unit);
 }
 
 /**
@@ -151,59 +114,82 @@ function quoteRatio(rates: Record<string, number> | null, to: string, from: stri
   return rTo && rTo > 0 && rFrom && rFrom > 0 ? rTo / rFrom : null;
 }
 
-export function settlementFx(opts: {
+export interface SettlementRates {
   base?: string;
-  rates?: Record<string, number> | null;
   tripCurrency?: string;
+  tripRates?: Record<string, number>;
+  rates?: Record<string, number> | null;
   baseRate?: number;
-}) {
-  const requested = (opts.base || opts.tripCurrency || 'EUR').toUpperCase();
-  const tripCurrency = (opts.tripCurrency || requested).toUpperCase();
-  const rates = opts.rates ?? null;
-  // Net the whole settlement in the trip's canonical currency and convert the final
-  // totals to the display currency once, instead of netting in the (moving) display
-  // currency. Otherwise per-expense rounding shifts as live FX drifts and the greedy
-  // debt-simplifier reshuffles it into phantom third-party micro-flows (#1382). When
-  // the display currency IS the trip currency (the common case) every conversion below
-  // is the identity, so behaviour is unchanged.
-  // rates[X] = units of X per 1 base; the frozen exchange_rate is units of item-currency
-  // per 1 trip-currency. Pre-rework rows store currency = NULL = "the trip's own currency".
-  // Prefer the FX rate frozen at entry time (#1335): a settled expense keeps the rate
-  // it was booked at, so a later live-rate drift doesn't re-open it with a residual.
-  const converterFor = (itemCurrency: string | null | undefined, itemRate?: number | null, source?: string) =>
-    tripConverter(itemCurrency, itemRate, tripCurrency, source);
-  // trip-currency → display currency, applied once to the final netted totals.
-  // Held as a plain factor so it is exactly linear: the balances are converted as
-  // one set (allocateDisplayCents) rather than one at a time, which is what keeps
-  // them adding up to zero in whatever currency the viewer picked (#1382).
-  //
-  // `rates` may be quoted against any base; the ratio of the two quotes is the
-  // factor either way. Callers pass the trip currency's own quote (see settlement()),
-  // the one freezeForeignRate froze every entry rate from, so a bill entered today in
-  // the display currency converts back to exactly what was typed (#2525). Taken the
-  // other way round, from the display currency's quote, the two quotes are not exact
-  // inverses and 12,345.67 USD came back as 12,346.06.
-  //
-  // Without a quote, the caller's own figure for the pair (`baseRate`) stands in for
-  // the missing display quote, and for nothing else: a row with a currency of its own
-  // is never converted with it. Like a live quote, it also reads a legacy transfer
-  // without a currency, which is taken to be in the display currency. With neither,
-  // the answer stays in the trip currency and says so, rather than printing trip cents
-  // as the display currency.
-  const baseRate = opts.baseRate != null && Number.isFinite(opts.baseRate) && opts.baseRate > 0 ? opts.baseRate : null;
-  const quoted = requested === tripCurrency ? 1 : (quoteRatio(rates, requested, tripCurrency) ?? baseRate);
-  const currency = quoted === null ? tripCurrency : requested;
-  const displayFactor = quoted ?? 1;
-  // Every figure goes out in whole steps of that currency: whole won or yen (#2604).
-  const displayUnit = 10 ** Math.max(0, 2 - currencyDecimals(currency));
-  const toDisplay = (cents: number[], total?: number) => allocateDisplayCents(cents, displayFactor, total, displayUnit);
-  // Currencyless legacy transfers are interpreted in the current display base.
-  // New transfers record their currency and frozen rate when entered.
-  const settleConverterFor = (sCurrency?: string | null, sRate?: number | null, source?: string) =>
-    sCurrency
-      ? tripConverter(sCurrency, sRate, tripCurrency, source)
-      : // The inverse of the display factor, so such a transfer reads back as entered.
-        (amount: number) => amount / displayFactor;
+}
 
-  return { currency, displayFactor, toDisplay, converterFor, settleConverterFor };
+export function settlementFx(opts: SettlementRates, hasSelectedRows: boolean) {
+  const requested = (opts.base || opts.tripCurrency || 'EUR').toUpperCase();
+  const trip = (opts.tripCurrency || requested).toUpperCase();
+  const global = opts.rates ?? null;
+  const rateFor = (currency: string) => {
+    if (currency === trip) return 1;
+    const custom = opts.tripRates?.[currency];
+    return positiveRate(custom) ? custom : quoteRatio(global, currency, trip);
+  };
+  const bridge = rateFor(requested) ?? (positiveRate(opts.baseRate) ? opts.baseRate : null);
+  const currency = bridge !== null || hasSelectedRows ? requested : trip;
+  const displayUnit = 10 ** Math.max(0, 2 - currencyDecimals(currency));
+  const tripUnit = 10 ** Math.max(0, 2 - currencyDecimals(trip));
+  const displayRate = currency === trip ? 1 : bridge;
+  const convertRow = (rowCurrency: string | null | undefined, saved: number | null, source?: string, payment = false) => {
+    const from = rowCurrency?.trim().toUpperCase() || (payment ? currency : trip);
+    const booked = from !== trip && source !== 'identity' && isFrozenRate(saved, source) ? saved : null;
+    const fromRate = booked ?? rateFor(from) ?? (from === currency ? displayRate : null);
+    // The frozen quote only covers the row currency ↔ trip currency pair.
+    const toTrip = fromRate === null ? null : (amount: number) => amount / fromRate;
+    const direct = booked === null ? quoteRatio(global, currency, from) : null;
+    const toDisplay = from === currency ? (amount: number) => amount
+      : displayRate !== null && toTrip ? (amount: number) => toTrip(amount) * displayRate
+      : direct === null ? null : (amount: number) => amount * direct;
+    return { toTrip, toDisplay };
+  };
+  return { currency, trip, bridge: displayRate, displayUnit, tripUnit, convertRow };
+}
+
+// Allocate the shown units together so signed balances remain zero-sum.
+export function allocateShownUnits(cents: number[], unit: number, shownTotal?: number): number[] {
+  if (unit === 1) return cents;
+  const whole = cents.map((value) => Math.floor(value / unit));
+  const target = shownTotal === undefined
+    ? Math.round(cents.reduce((sum, value) => sum + value, 0) / unit)
+    : shownTotal / unit;
+  const remainder = target - whole.reduce((sum, value) => sum + value, 0);
+  const order = cents.map((value, i) => ({ i, frac: value - whole[i] * unit }))
+    .sort((a, b) => b.frac - a.frac || a.i - b.i);
+  for (let k = 0; k < remainder && k < order.length; k++) whole[order[k].i]++;
+  return whole.map((value) => value * unit);
+}
+
+type ParticipantBalance = { user_id: number; username: string; avatar_url: string | null; cents: number };
+type SettlementFlow = { from: Omit<ParticipantBalance, 'cents'>; to: Omit<ParticipantBalance, 'cents'>; amount: number; exchange_rate?: number };
+
+export function settlementFlows(ledger: ParticipantBalance[]): SettlementFlow[] {
+  const debtors = ledger.filter((p) => p.cents < 0).map((p) => ({ ...p, remaining: -p.cents }));
+  const creditors = ledger.filter((p) => p.cents > 0).map((p) => ({ ...p, remaining: p.cents }));
+  debtors.sort((a, b) => b.remaining - a.remaining);
+  creditors.sort((a, b) => b.remaining - a.remaining);
+
+  const flows: SettlementFlow[] = [];
+  let di = 0;
+  let ci = 0;
+  while (di < debtors.length && ci < creditors.length) {
+    const from = debtors[di];
+    const to = creditors[ci];
+    const transfer = Math.min(from.remaining, to.remaining);
+    flows.push({
+      from: { user_id: from.user_id, username: from.username, avatar_url: from.avatar_url },
+      to: { user_id: to.user_id, username: to.username, avatar_url: to.avatar_url },
+      amount: transfer / 100,
+    });
+    debtors[di].remaining -= transfer;
+    creditors[ci].remaining -= transfer;
+    if (debtors[di].remaining === 0) di++;
+    if (creditors[ci].remaining === 0) ci++;
+  }
+  return flows;
 }

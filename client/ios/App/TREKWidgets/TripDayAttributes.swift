@@ -16,6 +16,27 @@ struct TripDayAttributes: ActivityAttributes {
         /// Stops behind, out of the day's stops.
         var done: Int
         var total: Int
+        /// The day's flight while it is near or in the air, so the activity turns into
+        /// a boarding pass. Optional: a state written by an older app decodes without it.
+        var flight: Flight?
+    }
+
+    /// A flight the activity follows on its own between two updates: the system
+    /// runs the bar and the countdown from the two times.
+    struct Flight: Codable, Hashable {
+        var number: String
+        var from: String
+        var to: String
+        /// Take-off and touchdown, epoch seconds: observed or expected where known.
+        var dep: Double
+        var arr: Double
+        /// The clock at either airport, formatted by the app.
+        var depTime: String
+        var arrTime: String
+        /// Minutes late, for the colour of the arrival time.
+        var delay: Int?
+        /// In the air when the app last looked: the countdown runs to touchdown.
+        var airborne: Bool?
     }
 
     var tripTitle: String

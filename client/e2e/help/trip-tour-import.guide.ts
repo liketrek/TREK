@@ -180,7 +180,12 @@ const SCRIPTS: Record<string, GuideScript> = {
       await openTours(p);
     },
     steps: [
-      { target: (p) => tourRow(p, RECORDED_NAME), act: viewRecorded },
+      {
+        target: (p) => tourRow(p, RECORDED_NAME),
+        // On the name: the centre of the row is its time badge, whose tooltip would cover the next row.
+        hover: (p) => tourRow(p, RECORDED_NAME).getByText(RECORDED_NAME, { exact: true }).hover(),
+        act: viewRecorded,
+      },
       { target: (p) => railCard(p, RECORDED_NAME, 'Tour summary') },
       {
         target: (p) => importRail(p, RECORDED_NAME).getByRole('button', { name: 'Back to Tours' }),

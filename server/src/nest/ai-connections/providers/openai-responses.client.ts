@@ -111,7 +111,7 @@ function toolsOf(request: AiChatRequest, kind: AiConnectionKind): Record<string,
     });
   }
   if (request.webSearch) tools.push({ type: 'web_search' });
-  return tools.length > 0 ? { tools, tool_choice: 'auto', parallel_tool_calls: true } : {};
+  return tools.length > 0 ? { tools, tool_choice: request.toolChoice ?? 'auto', parallel_tool_calls: true } : {};
 }
 
 /** The pages an output message cites, as its text's URL annotations name them. */

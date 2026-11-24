@@ -6,7 +6,19 @@
  * calls this file makes. The plugin staging is the one seam stubbed, because
  * it moves trees under the plugin roots of the machine running the tests.
  */
+import { knownMigrationNames } from '../../../src/db/known-migrations';
 import { BootRestoreError, restoreOnFirstBoot } from '../../../src/nest/backup/boot-restore';
+import {
+  answersSchema,
+  answersHistoryRows,
+  answersTables,
+  failsWith,
+  installFakeTool,
+  listsMigrations,
+  listsSchemas,
+  touches,
+  writesRestrictedScript,
+} from '../../helpers/fake-pg-tools';
 
 import archiver from 'archiver';
 import Database from 'better-sqlite3';
@@ -123,6 +135,128 @@ describe('restoreOnFirstBoot', () => {
       restoreOnFirstBoot({ archive: path.join(root, 'nope.zip'), dbFile, dataDir, reclaimResetFile }),
     ).rejects.toBeInstanceOf(BootRestoreError);
     expect(fs.existsSync(dbFile)).toBe(false);
+  });
+
+  describe('on Postgres', () => {
+    /**
+     * Stand-in client tools (tests/helpers/fake-pg-tools.ts): psql lists
+     * `tables` and marks `loaded` when it runs a restore; pg_restore lists a
+     * known migration as the dump's history, or writes a restricted script.
+     * Their arguments are pinned in pg-tools.test.ts.
+     */
+    const postgresPlan = (
+      archivePath: string,
+      tables: string[] = [],
+      historyRows = 0,
+      server: Parameters<typeof answersSchema>[2] = {},
+      load = touches(path.join(root, 'loaded')),
+    ) => {
+      const bin = path.join(root, 'bin');
+      fs.mkdirSync(bin, { recursive: true });
+      installFakeTool(bin, 'psql', {
+        snippets: [
+          answersSchema('public', 'public', server),
+          answersTables(tables),
+          answersHistoryRows(historyRows),
+          load,
+        ],
+      });
+      const migration = [...knownMigrationNames()][0];
+      installFakeTool(bin, 'pg_restore', { snippets: [listsMigrations([migration]), writesRestrictedScript()] });
+      return {
+        archive: archivePath,
+        dbFile,
+        dataDir,
+        reclaimResetFile,
+        postgres: { url: 'postgres://trek:pw@db/trek', binDir: bin },
+      };
+    };
+    const loaded = () => fs.existsSync(path.join(root, 'loaded'));
+
+    it('BOOT-RESTORE-004b: a database holding tables is left alone, so a restart never rolls back', async () => {
+      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }), ['users', 'trips']);
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      expect(await restoreOnFirstBoot(plan)).toEqual({ restored: false, reason: 'database-exists' });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('the Postgres database (2 table(s))'));
+      expect(loaded()).toBe(false);
+    });
+
+    it("BOOT-RESTORE-004c: an empty database is loaded from the archive's dump, with its key and uploads", async () => {
+      const plan = postgresPlan(
+        await archive({ 'travel.pgdump': 'dump', '.encryption_key': 'b'.repeat(64), 'uploads/a.jpg': 'jpeg' }),
+      );
+      const out = await restoreOnFirstBoot(plan);
+      expect(out.restored).toBe(true);
+      expect(loaded()).toBe(true);
+      expect(fs.readFileSync(path.join(dataDir, '.encryption_key'), 'utf8')).toBe('b'.repeat(64));
+      expect(fs.existsSync(reclaimResetFile)).toBe(true);
+      expect(fs.existsSync(dbFile)).toBe(false);
+    });
+
+    it('BOOT-RESTORE-004e: a lone migration history that records nothing (a first boot cut short) is loaded over', async () => {
+      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }), ['mikro_orm_migrations']);
+      const out = await restoreOnFirstBoot(plan);
+      expect(out.restored).toBe(true);
+      expect(loaded()).toBe(true);
+    });
+
+    it('BOOT-RESTORE-004f: a migration history with rows is a database in use and left alone', async () => {
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      const recorded = postgresPlan(await archive({ 'travel.pgdump': 'dump' }), ['mikro_orm_migrations'], 3);
+      expect(await restoreOnFirstBoot(recorded)).toEqual({ restored: false, reason: 'database-exists' });
+      expect(warn).toHaveBeenCalledWith(expect.stringContaining('the Postgres database (1 table(s))'));
+      expect(loaded()).toBe(false);
+    });
+
+    const scratch = () => fs.readdirSync(dataDir).filter((f) => f.startsWith('restore-boot-'));
+
+    it('BOOT-RESTORE-004g: a restore the database refuses leaves neither the unpacked archive nor the reclaim marker', async () => {
+      const plan = postgresPlan(
+        await archive({ 'travel.pgdump': 'dump', 'uploads/a.jpg': 'jpeg' }),
+        [],
+        0,
+        {},
+        failsWith('psql: error: permission denied for schema public'),
+      );
+      await expect(restoreOnFirstBoot(plan)).rejects.toThrow('psql failed: psql: error: permission denied');
+      expect(scratch()).toEqual([]);
+      expect(fs.existsSync(reclaimResetFile)).toBe(false);
+    });
+
+    it('BOOT-RESTORE-004h: a role that could reach the database host is refused before the archive is unpacked', async () => {
+      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }), [], 0, { privileged: true });
+      await expect(restoreOnFirstBoot(plan)).rejects.toThrow(
+        /^RESTORE_FROM_BACKUP: TREK_DB_URL connects as a superuser/,
+      );
+      await expect(restoreOnFirstBoot(plan)).rejects.toBeInstanceOf(BootRestoreError);
+      expect(loaded()).toBe(false);
+      expect(scratch()).toEqual([]);
+      expect(fs.existsSync(reclaimResetFile)).toBe(false);
+    });
+
+    it('BOOT-RESTORE-004i: a dump from a newer server major is refused before anything is loaded, naming both', async () => {
+      const plan = postgresPlan(await archive({ 'travel.pgdump': 'dump' }));
+      const migration = [...knownMigrationNames()][0];
+      installFakeTool(plan.postgres.binDir, 'pg_restore', {
+        snippets: [listsSchemas([], '18.1'), listsMigrations([migration]), writesRestrictedScript()],
+      });
+      await expect(restoreOnFirstBoot(plan)).rejects.toThrow(
+        'The backup was dumped from PostgreSQL 18, newer than the PostgreSQL 17 server',
+      );
+      expect(loaded()).toBe(false);
+      expect(scratch()).toEqual([]);
+      expect(fs.existsSync(reclaimResetFile)).toBe(false);
+    });
+
+    it('BOOT-RESTORE-004d: a SQLite backup is refused before anything is loaded, leaving no scratch', async () => {
+      const plan = postgresPlan(await goodArchive());
+      await expect(restoreOnFirstBoot(plan)).rejects.toThrow(
+        'RESTORE_FROM_BACKUP: This backup holds a SQLite database, which cannot be restored into a Postgres database.',
+      );
+      expect(loaded()).toBe(false);
+      expect(fs.existsSync(reclaimResetFile)).toBe(false);
+      expect(fs.readdirSync(dataDir).filter((f) => f.startsWith('restore-boot-'))).toEqual([]);
+    });
   });
 
   it('BOOT-RESTORE-005: an archive without a database is refused and leaves no scratch behind', async () => {

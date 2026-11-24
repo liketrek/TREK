@@ -37,7 +37,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Connection',
   'reservations.layover.layover': 'Layover',
   'reservations.needsReview': 'Review',
-  'reservations.needsReviewHint': 'Airport could not be matched automatically — please confirm the location.',
+  'reservations.needsReviewHint':
+    'Some details were filled in automatically and could not be read for sure. Please check them.',
+  'reservations.reviewConfirm': 'Looks right',
+  'reservations.reviewConfirmHint': 'Click to mark it as checked.',
+  'reservations.reviewConfirmed': 'Marked as checked',
   'reservations.searchLocation': 'Search station, port, address…',
   'reservations.meta.trainNumber': 'Train No.',
   'reservations.meta.platform': 'Platform',

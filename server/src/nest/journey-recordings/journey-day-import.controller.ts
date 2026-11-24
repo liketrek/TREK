@@ -5,6 +5,7 @@ import { RequireAddon } from '../addons/require-addon.decorator';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
+import { rowId } from '../common/row-id.pipe';
 import { JourneyDayImportService } from './journey-day-import.service';
 import { dateParam } from './journey-recordings.controller';
 import { JourneyDayImportDto } from './journey-recordings.dto';
@@ -27,8 +28,12 @@ export class JourneyDayImportController {
   @Post(':date/stays/review')
   @HttpCode(200)
   @ResponseContract(journeyDayStaysSchema)
-  async review(@CurrentUser() user: User, @Param('id') id: string, @Param('date') date: string) {
-    return await this.dayImport.review(user.id, Number(id), dateParam(date));
+  async review(
+    @CurrentUser() user: User,
+    @Param('id', rowId('Journey not found')) id: number,
+    @Param('date') date: string,
+  ) {
+    return await this.dayImport.review(user.id, id, dateParam(date));
   }
 
   @Post(':date/stays/import')
@@ -36,11 +41,11 @@ export class JourneyDayImportController {
   @ResponseContract(journeyDayImportResultSchema)
   async takeOver(
     @CurrentUser() user: User,
-    @Param('id') id: string,
+    @Param('id', rowId('Journey not found')) id: number,
     @Param('date') date: string,
     @Body() body: JourneyDayImportDto,
     @Headers('x-socket-id') socketId?: string,
   ) {
-    return await this.dayImport.takeOver(user.id, Number(id), dateParam(date), body, socketId);
+    return await this.dayImport.takeOver(user.id, id, dateParam(date), body, socketId);
   }
 }

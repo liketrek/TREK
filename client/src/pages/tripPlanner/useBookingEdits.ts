@@ -57,6 +57,14 @@ export function useBookingEdits(options: BookingEditsOptions) {
   // by the global widget, so by then the state has remounted back to its default.
   // The value comes off the persisted job (#2076).
   const importKindRef = useRef<'transports' | 'bookings'>('bookings')
+  // Told when a booking of this review is saved, for the mail inbox entry it came from.
+  const importSavedRef = useRef<(() => void) | null>(null)
+
+  const importSaved = () => {
+    const saved = importSavedRef.current
+    importSavedRef.current = null
+    saved?.()
+  }
 
   // A save is done once the editor's own part (travellers, files) is done too:
   // only then does it say so and close. Until then the editor stays open, so a
@@ -109,6 +117,7 @@ export function useBookingEdits(options: BookingEditsOptions) {
         accommodationRepo.list(tripId).then(d => setTripAccommodations(d.accommodations || [])).catch(() => {})
       }
       await afterSave?.(r)
+      if (!editingReservation) importSaved()
       toast.success(t(editingReservation ? 'trip.toast.reservationUpdated' : 'trip.toast.reservationAdded'))
       setShowReservationModal(false)
       if (editingReservation) setEditingReservation(null)
@@ -132,6 +141,7 @@ export function useBookingEdits(options: BookingEditsOptions) {
         if (data.create_budget_entry) await tripActions.loadBudgetItems?.(tripId)
       }
       await afterSave?.(r)
+      if (!editingTransport) importSaved()
       toast.success(t(editingTransport ? 'trip.toast.reservationUpdated' : 'trip.toast.reservationAdded'))
       setShowTransportModal(false)
       setEditingTransport(null)
@@ -224,10 +234,12 @@ export function useBookingEdits(options: BookingEditsOptions) {
     items: BookingImportPreviewItem[],
     sourceFiles: File[] = [],
     kind: 'transports' | 'bookings' = 'bookings',
+    onSaved: (() => void) | null = null,
   ) => {
     if (!items.length) return
     importSourceFilesRef.current = sourceFiles
     importKindRef.current = kind
+    importSavedRef.current = onSaved
     importQueueRef.current = items.slice(1)
     setImportReviewActive(true)
     openImportItem(items[0])
@@ -288,6 +300,7 @@ export function useBookingEdits(options: BookingEditsOptions) {
       return
     }
     importQueueRef.current = []
+    importSavedRef.current = null
     setImportReviewActive(false)
     setShowReservationModal(false); setEditingReservation(null); setReservationPrefill(null)
     setShowTransportModal(false); setEditingTransport(null); setTransportPrefill(null); setTransportModalDayId(null)

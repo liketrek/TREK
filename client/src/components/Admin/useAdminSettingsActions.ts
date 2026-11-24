@@ -1,3 +1,4 @@
+import type { TransitKeySource, TransitProvider } from '@trek/shared';
 import { adminApi, authApi } from '../../api/client';
 import type { TranslationFn } from '../../types';
 import { getApiErrorMessage } from '../../types';
@@ -28,6 +29,9 @@ interface SettingsActionsHost {
   setPlacesEnrichEnabled: Flag;
   setPlaceShadowEnabledState: Flag;
   setPlaceShadowEnabled: Flag;
+  transitProvider: TransitProvider;
+  setTransitProviderState: (provider: TransitProvider) => void;
+  setTransitGoogleKeySource: (source: TransitKeySource) => void;
 }
 
 /**
@@ -86,9 +90,29 @@ export function useAdminSettingsActions(admin: SettingsActionsHost, t: Translati
     };
   };
 
+  /**
+   * The transit backend (#1699): shown at once, and back to the previous one with a
+   * word when the save fails, so a select that springs back does not read as broken.
+   * A pick of the provider already selected writes nothing: the route is audited.
+   */
+  const changeTransitProvider = async (value: string) => {
+    if (value === admin.transitProvider) return;
+    const next: TransitProvider = value === 'google' ? 'google' : 'transitous';
+    const previous = admin.transitProvider;
+    admin.setTransitProviderState(next);
+    try {
+      const saved = await adminApi.updateTransitProvider(next);
+      admin.setTransitGoogleKeySource(saved.googleKeySource);
+    } catch (err: unknown) {
+      admin.setTransitProviderState(previous);
+      toast.error(getApiErrorMessage(err, t('common.error')));
+    }
+  };
+
   return {
     saveOidc,
     saveFileTypes,
+    changeTransitProvider,
     togglePlacesPhotos: placeSwitch(admin.setPlacesPhotosEnabledState, admin.setPlacesPhotosEnabled, (enabled) =>
       adminApi.updatePlacesPhotos(enabled)
     ),

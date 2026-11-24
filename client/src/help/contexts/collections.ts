@@ -25,7 +25,7 @@ export const { context: collectionsContext, guides: collectionsGuides } = define
     ['create-list', 'plus', 'guide', 3, 1, LISTS, ['add-place', 'edit-list', 'import-from-trip'], true],
     ['add-place', 'mapPin', 'guide', 3, 2, ADDING, ['import-from-trip', 'place-detail'], true],
     ['import-from-trip', 'download', 'guide', 4, 2, ADDING, ['add-place', 'copy-to-trip'], true],
-    ['place-status', 'checkCircle', 'quick', 2, 2, { slug: COLLECTIONS, anchor: 'place-status' }, ['place-detail', 'filter-select'], true],
+    ['place-status', 'checkCircle', 'quick', 2, 3, { slug: COLLECTIONS, anchor: 'place-status' }, ['place-detail', 'filter-select'], true],
     ['place-detail', 'panelRight', 'quick', 2, 2, { slug: COLLECTIONS, anchor: 'place-detail' }, ['place-status', 'copy-to-trip', 'labels']],
     ['labels', 'tags', 'guide', 4, 2, { slug: COLLECTIONS, anchor: 'custom-labels' }, ['filter-select', 'place-detail'], true],
     ['filter-select', 'filter', 'guide', 3, 1, BULK, ['move-to-list', 'copy-to-trip', 'labels'], true],
@@ -37,6 +37,7 @@ export const { context: collectionsContext, guides: collectionsGuides } = define
     ['import-file', 'fileInput', 'guide', 3, 2, FILES, ['export-list', 'create-list'], true],
     ['edit-list', 'pencil', 'quick', 2, 1, LISTS, ['create-list'], true],
     ['all-saved', 'library', 'quick', 2, 1, LISTS, ['filter-select']],
+    ['collection-map-lock', 'lock', 'quick', 2, 2, { slug: 'Map-Features', anchor: 'map-lock' }, ['place-detail', 'all-saved'], true],
     // Last: the two guides that need the Tours addon and a kept tour.
     ['tour-collection-add-to-trip', 'copyPlus', 'guide', 4, 3, TOURS, ['tour-collection-manage', 'copy-to-trip'], true],
     ['tour-collection-manage', 'route', 'quick', 3, 3, TOURS, ['tour-collection-add-to-trip'], true],

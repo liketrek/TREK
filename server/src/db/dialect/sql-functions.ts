@@ -539,6 +539,20 @@ export function castInteger(platform: Platform, ref: string): RawQueryFragment &
 }
 
 /**
+ * Whether `text` is a date as `YYYY-MM-DD` that the calendar has: `2024-02-29`
+ * is one, `2024-02-30` and `2023-02-29` are not. A bound value either engine
+ * reads as a date goes through this first, since SQLite rolls an impossible
+ * day over into the next month while Postgres refuses it.
+ */
+export function isCalendarDate(text: string): boolean {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(text);
+  if (!match) return false;
+  const [, year, month, day] = match.map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+}
+
+/**
  * `ABS(JULIANDAY(<col>) - JULIANDAY(?))` — the legacy shape at
  * `reservations.service.ts:307` (RS11, `resolveDayIdFromTime`'s
  * nearest-day fallback: `ORDER BY ABS(JULIANDAY(date) - JULIANDAY(?)) ASC,
@@ -557,8 +571,16 @@ export function castInteger(platform: Platform, ref: string): RawQueryFragment &
  * comment documents; ordering by the EXPRESSION itself is what works).
  * Postgres measures the same distance in days from the epoch difference of
  * the two values cast to `timestamp`.
+ *
+ * `isoDate` must be a real calendar date ({@link isCalendarDate}): Postgres
+ * refuses to cast `2024-02-30` while SQLite's JULIANDAY rolls it over into
+ * March, so the two engines would answer it differently. Any other value is
+ * refused here, on both engines alike, and the caller checks first.
  */
 export function dayDistance(platform: Platform, ref: string, isoDate: string): RawQueryFragment & symbol {
+  if (!isCalendarDate(isoDate)) {
+    throw new Error(`sql-functions: dayDistance needs a calendar date (YYYY-MM-DD), got ${JSON.stringify(isoDate)}`);
+  }
   if (isSqlite(platform)) return raw(`ABS(JULIANDAY(${column(ref)}) - JULIANDAY(?))`, [isoDate]);
   if (isPostgres(platform)) {
     return raw(`ABS(EXTRACT(EPOCH FROM (CAST(${column(ref)} AS timestamp) - CAST(? AS timestamp))) / 86400)`, [
@@ -618,6 +640,17 @@ export function collateNoCase(platform: Platform, ref: string): RawQueryFragment
   if (isSqlite(platform)) return raw(`${column(ref)} COLLATE NOCASE`);
   if (isPostgres(platform)) return raw(`${column(ref)} COLLATE "nocase"`);
   return unsupported(platform);
+}
+
+/**
+ * A search that ignores case over `refs`: `(a LIKE ? ESCAPE '\' OR b LIKE ?
+ * ...)`, one bound pattern per column, the caller escaping `%`, `_` and `\`.
+ * SQLite's `LIKE` already ignores case (ASCII letters only); Postgres's is
+ * exact, so it gets `ILIKE`, which folds every letter.
+ */
+export function ilike(platform: Platform, refs: readonly string[]): string {
+  const operator = isSqlite(platform) ? 'LIKE' : isPostgres(platform) ? 'ILIKE' : unsupported(platform);
+  return `(${refs.map((ref) => `${column(ref)} ${operator} ? ESCAPE '\\'`).join(' OR ')})`;
 }
 
 /**

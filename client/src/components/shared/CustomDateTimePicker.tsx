@@ -9,6 +9,7 @@ import { useDateFormat } from '../../hooks/useDateFormat';
 import { useRemeasureSignal } from '../../hooks/useAnchoredPosition';
 import { useWeekStartDay } from '../../hooks/useWeekStartDay';
 import { leadingBlanks, weekdayLabels } from '../../utils/calendarWeek';
+import { selectionHaptic } from '../../native/haptics';
 
 function daysInMonth(year: number, month: number): number {
   return new Date(year, month + 1, 0).getDate();
@@ -178,6 +179,7 @@ export function CustomDatePicker({
     const d = String(day).padStart(2, '0');
     const iso = `${y}-${m}-${d}`;
     if (isOutOfRange(iso)) return;
+    if (iso !== value) selectionHaptic();
     onChange(iso);
     setOpen(false);
   };

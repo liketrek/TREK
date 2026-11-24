@@ -1,5 +1,6 @@
 import type { PackingTemplates } from '../entities/PackingTemplates.entity';
 import type { DB } from '../kysely/db';
+import { toRowId } from '../row-id';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -109,11 +110,10 @@ export class PackingTemplatesRepository extends TrekRepository<PackingTemplates>
    * `deletePackingTemplate`'s existence check). One method, five sites.
    */
   async findById(id: number | string): Promise<PackingTemplateRow | undefined> {
-    return await this.db()
-      .selectFrom('packing_templates')
-      .selectAll()
-      .where('id', '=', id as number)
-      .executeTakeFirst();
+    // A route id toRowId refuses is no template, on every engine.
+    const templateId = toRowId(id);
+    if (templateId === null) return undefined;
+    return await this.db().selectFrom('packing_templates').selectAll().where('id', '=', templateId).executeTakeFirst();
   }
 
   /**

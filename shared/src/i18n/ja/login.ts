@@ -38,6 +38,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': '二要素認証',
   'login.mfaSubtitle': '認証アプリの6桁コードを入力してください。',
   'login.mfaCodeLabel': '確認コード',
+  'login.mfaPlaceholder': '000000 または XXXX-XXXX',
   'login.mfaCodeRequired': '認証アプリのコードを入力してください。',
   'login.mfaHint': 'Google Authenticator、Authy などのTOTPアプリを開いてください。',
   'login.mfaBack': '← サインインに戻る',

@@ -19,8 +19,8 @@
  *   A method's "write units" are then counted over its body:
  *     - a call to a write, on a constructor-injected field (`this.trips.x()`)
  *       or on its own class (`this.x()`), is one unit;
- *     - a `.transactional(...)` call that holds any write is one unit, however
- *       many writes it holds;
+ *     - a `.transactional(...)` or `writeTransaction(...)` call that holds any
+ *       write is one unit, however many writes it holds;
  *     - a call to a method of another class that is itself reported counts as
  *       one unit here (the fault is reported once, where it lives);
  *     - a write inside a loop, or inside a callback handed to forEach/map/
@@ -343,7 +343,9 @@ export function analyse(classes) {
     const receiver = ts.isPropertyAccessExpression(callee)
       ? count(cls, callee.expression, covered)
       : count(cls, callee, covered);
-    if (method === 'transactional') {
+    // `writeTransaction(em, engine, fn)` (src/db/engine/write-transaction.ts) is the
+    // transaction `UnitOfWork.transactional` opens, for code outside the container.
+    if (method === 'transactional' || (ts.isIdentifier(callee) && callee.text === 'writeTransaction')) {
       let inner = 0;
       frames.push([]); // what runs inside is one unit, not a list of its own
       for (const arg of node.arguments) inner += count(cls, arg, true);

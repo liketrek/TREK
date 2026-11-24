@@ -41,8 +41,10 @@ export const { context: journalContext, guides: journalGuides } = defineScreen({
     ['add-on-day', 'calendar', 'quick', 2, 1, LONG, ['add-entry', 'search-journey']],
     ['pros-cons', 'thumbsUp', 'quick', 2, 1, ENTRIES, ['entry-fields', 'add-entry'], true],
     ['search-journey', 'search', 'quick', 3, 2, LONG, ['add-on-day', 'gallery-map']],
-    ['gallery-map', 'gallery', 'quick', 3, 2, { slug: JOURNEY, anchor: 'map-view' }, ['journey-map-layers', 'entry-photos', 'share-public']],
-    ['journey-map-layers', 'map', 'guide', 3, 2, { slug: JOURNEY, anchor: 'map-layers' }, ['gallery-map', 'journey-keep-route', 'photo-location']],
+    ['gallery-map', 'gallery', 'quick', 3, 2, { slug: JOURNEY, anchor: 'map-view' }, ['journey-map-layers', 'album-date-range', 'share-public']],
+    ['album-date-range', 'calendarRange', 'quick', 3, 2, { slug: JOURNEY, anchor: 'photo-order' }, ['gallery-map', 'entry-photos'], true],
+    ['journey-map-layers', 'map', 'guide', 3, 2, { slug: JOURNEY, anchor: 'map-layers' }, ['gallery-map', 'journey-satellite', 'journey-keep-route', 'photo-location']],
+    ['journey-satellite', 'globe', 'quick', 2, 2, { slug: JOURNEY, anchor: 'map-view' }, ['journey-map-layers', 'share-public'], true],
     // The four guides of a recorded day: they connect the Dawarich from media.env
     // in their start and take it off again in their cleanup.
     ['journey-keep-route', 'route', 'guide', 3, 2, { slug: JOURNEY, anchor: 'keeping-a-recorded-day' }, ['journey-take-over-day', 'journey-map-layers', 'map-dawarich-trail'], true],

@@ -1,4 +1,4 @@
-// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-109
+// FE-PLANNER-RESMODAL-001 to FE-PLANNER-RESMODAL-110
 import { render, screen, waitFor, fireEvent, within, act } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -1828,5 +1828,14 @@ describe('ReservationModal', () => {
       await waitFor(() => expect(onSave).toHaveBeenCalled());
       expect(onSave.mock.calls[0][0].confirmation_number).toBe('PNR-NEW');
     });
+  });
+
+  it('FE-PLANNER-RESMODAL-110: a refresh of the trip while the dialog is open keeps what the user typed (#3069)', async () => {
+    const { rerender } = render(<ReservationModal {...defaultProps} />);
+    const title = screen.getByPlaceholderText(/e\.g\. Lufthansa/i) as HTMLInputElement;
+    await userEvent.type(title, 'Le Jules Verne');
+    // A socket reconnect re-reads the trip: days, places and stays arrive as new arrays.
+    rerender(<ReservationModal {...defaultProps} days={[]} places={[]} accommodations={[]} />);
+    expect(title).toHaveValue('Le Jules Verne');
   });
 });

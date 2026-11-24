@@ -184,6 +184,12 @@ const SCRIPTS: Record<string, GuideScript> = {
         // The hut trek has three stages, so the day it is given asks how next.
         prepare: async (p) => {
           await hoverRow(p, TOUR_NAMES.hutToHut);
+          // The second menu opens at the Add to day button, which only shows while the row is
+          // hovered or focused. Choosing the day moves both away, so the button would have no box
+          // and the menu would open in the window's top left corner; kept in sight, it anchors there.
+          await tourRow(p, TOUR_NAMES.hutToHut)
+            .getByTestId('tour-action-row')
+            .evaluate((el) => ((el as HTMLElement).style.display = 'flex'));
           await tourRow(p, TOUR_NAMES.hutToHut).getByRole('button', { name: 'Add to day', exact: true }).click();
           await expect(dayMenu(p)).toBeVisible();
           await dayMenu(p)
@@ -196,7 +202,12 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
         target: dayMenu,
         // Nothing chosen: the hut trek keeps its days 4 to 6.
-        act: closeMenu,
+        act: async (p) => {
+          await closeMenu(p);
+          await tourRow(p, TOUR_NAMES.hutToHut)
+            .getByTestId('tour-action-row')
+            .evaluate((el) => (el as HTMLElement).style.removeProperty('display'));
+        },
       },
     ],
     cleanup: noDayTours,

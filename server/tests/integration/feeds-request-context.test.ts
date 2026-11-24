@@ -42,12 +42,13 @@
  * conversion regresses this.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Trips } from '../../src/db/entities/Trips.entity';
 import { Users } from '../../src/db/entities/Users.entity';
 import { CalendarService } from '../../src/nest/calendar/calendar.service';
-import { createTrip, createUser } from '../helpers/factories';
 import { updateRows } from '../helpers/factories/rows';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -56,27 +57,23 @@ import { randomUUID } from 'node:crypto';
 import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll, vi } from 'vitest';
 
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
 describe('Anonymous ICS feed routes run inside a request context', () => {
   let app: INestApplication;
+  let orm: MikroORM;
 
   beforeAll(async () => {
     app = await buildApp();
+    orm = app.get(MikroORM);
+    await resetDatabase(orm);
   });
 
   afterAll(async () => {
     await app.close();
-    testDb.close();
   });
 
   it('SEAM-FEED-001: GET /api/feed/trip/:token.ics for a VALID token performs a real repository read, inside the request, against the SAME MikroORM app.get(MikroORM) does', async () => {
-    const orm = app.get(MikroORM);
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Context-Proof Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Context-Proof Trip' });
     const token = randomUUID();
     await updateRows(app.get(MikroORM), Trips, { id: trip.id }, { feed_token: token });
 
@@ -125,8 +122,8 @@ describe('Anonymous ICS feed routes run inside a request context', () => {
    * regression of this shape.
    */
   it('SEAM-FEED-003 (mutation proof): a forced cannotUseGlobalContext throw inside the calendar builder degrades a VALID token to the SAME 404 body as a wrong one — the 404 alone cannot tell them apart', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Mutation-Proof Trip' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { title: 'Mutation-Proof Trip' });
     const token = randomUUID();
     await updateRows(app.get(MikroORM), Trips, { id: trip.id }, { feed_token: token });
 
@@ -172,9 +169,8 @@ describe('Anonymous ICS feed routes run inside a request context', () => {
    * silently swallowed".
    */
   it('SEAM-FEED-005: GET /api/feed/user/:token.ics for a VALID token performs a real repository read and the resulting event reaches the body, inside the request, against the SAME MikroORM app.get(MikroORM) does', async () => {
-    const orm = app.get(MikroORM);
-    const { user } = createUser(testDb);
-    createTrip(testDb, user.id, { title: 'User-Feed Context-Proof Trip' });
+    const { user } = await makeUser(orm);
+    await makeTrip(orm, user.id, { title: 'User-Feed Context-Proof Trip' });
     const token = randomUUID();
     await updateRows(app.get(MikroORM), Users, { id: user.id }, { feed_token: token });
 

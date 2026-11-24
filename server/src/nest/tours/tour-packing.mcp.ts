@@ -9,20 +9,15 @@ import {
   ok,
   type McpContext,
 } from '../../nest-mcp';
-import { addonGate, type HasAddons } from '../addons/addon-gate';
+import { allAddonsGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
 import { TourPackingLinkService } from './tour-packing-link.service';
 import { idSchema, tourPackingLinkRequestSchema, type TourPackingLinkRequest } from '@trek/shared';
 
-const toursOn = addonGate(ADDON_IDS.TOURS);
-const packingOn = addonGate(ADDON_IDS.PACKING);
-
 /** A tour's packing link reaches into Packing, so both addons have to be on. */
-async function tourPackingOn(ctx: McpContext, self: HasAddons): Promise<boolean> {
-  return (await toursOn(ctx, self)) && (await packingOn(ctx, self));
-}
+const tourPackingOn = allAddonsGate(ADDON_IDS.TOURS, ADDON_IDS.PACKING);
 
 const tourIds = {
   tripId: idSchema,

@@ -14,7 +14,7 @@ import React, { useState } from 'react'
 import { RefreshCw, Trash2, Database, CloudOff, Download, Check, GitMerge, Map as MapIcon, AlertTriangle } from 'lucide-react'
 import Section from './Section'
 import ToggleSwitch from './ToggleSwitch'
-import { SettingRow, SettingRows, SettingsHint, StatusPill, SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER } from './settingsKit'
+import { SettingRow, SettingRows, SettingsHint, StatusPill, SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SettingsColumns } from './settingsKit'
 import { useOfflineSettings, offlineNoticeKey, isOfflineNoticeWarning, offlineProgressLabel, offlineRowMeta } from './useOfflineSettings'
 import { useTranslation } from '../../i18n'
 import CustomSelect from '../shared/CustomSelect'
@@ -49,6 +49,10 @@ export default function OfflineTab(): React.ReactElement {
 
   return (
     <div>
+      {/* Two columns by length: what the mode does and what is cached on the
+          left, the per-trip choice of what to keep on the right. */}
+      <SettingsColumns
+        start={<>
       {/* Offline mode + prepare */}
       <Section title={t('settings.offline.mode.title')} icon={CloudOff}>
         <SettingRows>
@@ -71,7 +75,6 @@ export default function OfflineTab(): React.ReactElement {
                   onClick={runPrepare}
                   disabled={preparing || offline}
                   className={SETTINGS_BUTTON}
-                  style={fs(13, 'body')}
                 >
                   {preparing
                     ? <RefreshCw size={14} className="animate-spin" />
@@ -82,7 +85,6 @@ export default function OfflineTab(): React.ReactElement {
                   onClick={handleResync}
                   disabled={syncing || offline}
                   className={SETTINGS_BUTTON}
-                  style={fs(13, 'body')}
                 >
                   <RefreshCw size={14} className={syncing ? 'animate-spin' : undefined} />
                   {syncing ? t('settings.offline.resyncing') : t('settings.offline.resync')}
@@ -130,10 +132,10 @@ export default function OfflineTab(): React.ReactElement {
                   {t('settings.offline.conflicts.item', { name: conflictName(c) })}
                 </span>
                 <div className="flex flex-none gap-2">
-                  <button type="button" onClick={() => resolveConflict(c.id, true)} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+                  <button type="button" onClick={() => resolveConflict(c.id, true)} className={SETTINGS_BUTTON}>
                     {t('settings.offline.conflicts.keepMine')}
                   </button>
-                  <button type="button" onClick={() => resolveConflict(c.id, false)} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+                  <button type="button" onClick={() => resolveConflict(c.id, false)} className={SETTINGS_BUTTON}>
                     {t('settings.offline.conflicts.keepServer')}
                   </button>
                 </div>
@@ -163,41 +165,6 @@ export default function OfflineTab(): React.ReactElement {
         </Section>
       )}
 
-      {/* What to store offline */}
-      <Section title={t('settings.offline.storage.title')} icon={MapIcon}>
-        <SettingRows>
-          <SettingRow
-            label={t('settings.offline.storage.tiles')}
-            hint={t('settings.offline.storage.tilesHint')}
-            control={<ToggleSwitch on={prefs.cacheTiles} onToggle={handleToggleTiles} label={t('settings.offline.storage.tiles')} />}
-          />
-        </SettingRows>
-        {allTrips.length > 0 && (
-          <div>
-            <p className={EYEBROW} style={fs(10)}>{t('settings.offline.storage.tripsTitle')}</p>
-            <SettingRows>
-              {allTrips.map((trip) => {
-                const { on, dateEligible } = tripStorageState(trip)
-                return (
-                  <div key={trip.id} className="flex items-center justify-between gap-4 px-3.5 py-3">
-                    <div className="min-w-0">
-                      <div className="truncate font-medium text-content" style={fs(13, 'body')}>
-                        {trip.title}
-                      </div>
-                      <div className={on ? 'text-success' : 'text-content-faint'} style={fs(11.5)}>
-                        {on ? t('settings.offline.storage.tripOn') : t('settings.offline.storage.tripOff')}
-                        {!dateEligible && `. ${t('settings.offline.storage.tripFinished')}`}
-                      </div>
-                    </div>
-                    <ToggleSwitch on={on} onToggle={() => handleToggleTrip(trip)} label={trip.title} />
-                  </div>
-                )
-              })}
-            </SettingRows>
-          </div>
-        )}
-      </Section>
-
       {/* Cache stats + list + clear */}
       <Section
         title={t('settings.offline.cache.title')}
@@ -207,7 +174,6 @@ export default function OfflineTab(): React.ReactElement {
             onClick={() => setConfirmClear(true)}
             disabled={clearing || !canClear}
             className={SETTINGS_BUTTON_DANGER}
-            style={fs(12.5, 'body')}
           >
             <Trash2 size={14} />
             {t('settings.offline.clear')}
@@ -225,11 +191,11 @@ export default function OfflineTab(): React.ReactElement {
           <div className="flex flex-wrap items-center justify-between gap-3">
             <SettingsHint>{t('settings.offline.failed.hint')}</SettingsHint>
             <div className="flex gap-2">
-              <button type="button" onClick={() => void retryFailed()} disabled={offline} className={SETTINGS_BUTTON} style={fs(12.5, 'body')}>
+              <button type="button" onClick={() => void retryFailed()} disabled={offline} className={SETTINGS_BUTTON}>
                 <RefreshCw size={14} />
                 {t('settings.offline.failed.retry')}
               </button>
-              <button type="button" onClick={() => void discardFailed()} className={SETTINGS_BUTTON_DANGER} style={fs(12.5, 'body')}>
+              <button type="button" onClick={() => void discardFailed()} className={SETTINGS_BUTTON_DANGER}>
                 <Trash2 size={14} />
                 {t('settings.offline.failed.discard')}
               </button>
@@ -268,6 +234,44 @@ export default function OfflineTab(): React.ReactElement {
           </SettingRows>
         )}
       </Section>
+        </>}
+        end={<>
+      {/* What to store offline */}
+      <Section title={t('settings.offline.storage.title')} icon={MapIcon}>
+        <SettingRows>
+          <SettingRow
+            label={t('settings.offline.storage.tiles')}
+            hint={t('settings.offline.storage.tilesHint')}
+            control={<ToggleSwitch on={prefs.cacheTiles} onToggle={handleToggleTiles} label={t('settings.offline.storage.tiles')} />}
+          />
+        </SettingRows>
+        {allTrips.length > 0 && (
+          <div>
+            <p className={EYEBROW} style={fs(10)}>{t('settings.offline.storage.tripsTitle')}</p>
+            <SettingRows>
+              {allTrips.map((trip) => {
+                const { on, dateEligible } = tripStorageState(trip)
+                return (
+                  <div key={trip.id} className="flex items-center justify-between gap-4 px-3.5 py-3">
+                    <div className="min-w-0">
+                      <div className="truncate font-medium text-content" style={fs(13, 'body')}>
+                        {trip.title}
+                      </div>
+                      <div className={on ? 'text-success' : 'text-content-faint'} style={fs(11.5)}>
+                        {on ? t('settings.offline.storage.tripOn') : t('settings.offline.storage.tripOff')}
+                        {!dateEligible && `. ${t('settings.offline.storage.tripFinished')}`}
+                      </div>
+                    </div>
+                    <ToggleSwitch on={on} onToggle={() => handleToggleTrip(trip)} label={trip.title} />
+                  </div>
+                )
+              })}
+            </SettingRows>
+          </div>
+        )}
+      </Section>
+        </>}
+      />
 
       <ConfirmDialog
         isOpen={confirmClear}

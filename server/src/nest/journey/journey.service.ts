@@ -188,8 +188,9 @@ export class JourneyService {
   validateShareTokenForAsset(token: string, assetId: string) {
     return this.share.validateShareTokenForAsset(token, assetId);
   }
+  /** The public share's photo bytes: local files go out without their location. */
   streamPhoto(res: Response, ownerId: number, photoId: number, kind: 'thumbnail' | 'original') {
-    return this.photoResolver.streamPhoto(res, ownerId, photoId, kind);
+    return this.photoResolver.streamPublicPhoto(res, ownerId, photoId, kind);
   }
   /**
    * Stream a shared journey asset from whichever backend holds it.
@@ -199,6 +200,7 @@ export class JourneyService {
    * between them with `provider === 'immich' ? … : trySynology()`, so a third
    * provider would have been handed to Synology and 404'd from inside its
    * parser. An unregistered provider is now told apart from a failing one.
+   * It goes to a share link's viewer, so the provider sends the public rendition.
    */
   streamProviderAsset(
     res: Response,
@@ -208,6 +210,6 @@ export class JourneyService {
   ): Promise<void> | null {
     const backend = this.providers.get(provider);
     if (!backend) return null;
-    return backend.streamAsset(res, ref, kind);
+    return backend.streamAsset(res, { ...ref, audience: 'public' }, kind);
   }
 }

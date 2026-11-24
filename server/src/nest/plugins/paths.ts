@@ -127,6 +127,24 @@ export function serverCodeRoot(): string {
 }
 
 /**
+ * The network grant for a plugin child, on the Node versions that need one.
+ *
+ * Up to Node 24 `--permission` leaves the network alone. From Node 25 it covers the
+ * network too, and a child started without `--allow-net` gets ERR_ACCESS_DENIED on
+ * every lookup and connect, so no plugin can reach even a host it was granted (#3045).
+ * Node 24 exits with "bad option" when given the flag, so it is passed only where
+ * this Node knows it.
+ *
+ * This restores what Node 24 does and widens nothing: which hosts a plugin may reach
+ * is decided by the egress guard inside the child, from its granted `egress[]`.
+ */
+export function pluginNetPermissionArgs(
+  knownFlags: { has(flag: string): boolean } = process.allowedNodeEnvironmentFlags,
+): string[] {
+  return knownFlags.has('--allow-net') ? ['--allow-net'] : [];
+}
+
+/**
  * Node OS-level permission-model flags for a plugin child (#plugins, #2 security
  * hardening). `--permission` denies filesystem write, child_process, worker
  * threads and native addons outright; `--allow-fs-read` is scoped to exactly the
@@ -171,5 +189,6 @@ export function pluginPermissionArgs(pluginId: string): string[] {
     `--allow-fs-read=${path.join(codeRoot, '..', 'package.json')}`,
     // The plugin's own code, by REAL path (see pluginRealCodeDir).
     `--allow-fs-read=${pluginRealCodeDir(pluginId)}`,
+    ...pluginNetPermissionArgs(),
   ];
 }

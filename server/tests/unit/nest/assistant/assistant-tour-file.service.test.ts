@@ -37,15 +37,15 @@ function file(name: string): Express.Multer.File {
 
 async function make(tracks: TourFileTrack[], opts: { tours?: boolean; whole?: boolean } = {}) {
   const read = vi.fn(async () => ({ tracks, whole: opts.whole === true }));
-  const isAddonEnabled = vi.fn(async () => opts.tours !== false);
+  const isEnabledForTrip = vi.fn(async () => opts.tours !== false);
   const moduleRef = await Test.createTestingModule({
     providers: [
       AssistantTourFileService,
       { provide: TourFileReadService, useValue: { read } },
-      { provide: AddonsService, useValue: { isAddonEnabled } },
+      { provide: AddonsService, useValue: { isEnabledForTrip } },
     ],
   }).compile();
-  return { service: moduleRef.get(AssistantTourFileService), read, isAddonEnabled };
+  return { service: moduleRef.get(AssistantTourFileService), read, isEnabledForTrip };
 }
 
 describe('AssistantTourFileService', () => {
@@ -56,10 +56,10 @@ describe('AssistantTourFileService', () => {
   });
 
   it('AST-TOUR-FILE-002: refuses a route file where tours are off', async () => {
-    const { service, isAddonEnabled } = await make([], { tours: false });
-    await expect(service.ensureReadable(7, file('a.gpx'))).rejects.toBeInstanceOf(DomainError);
-    expect(isAddonEnabled).toHaveBeenCalledWith('tours');
-    await expect((await make([])).service.ensureReadable(7, file('a.gpx'))).resolves.toBeUndefined();
+    const { service, isEnabledForTrip } = await make([], { tours: false });
+    await expect(service.ensureReadable(7, 3, file('a.gpx'))).rejects.toBeInstanceOf(DomainError);
+    expect(isEnabledForTrip).toHaveBeenCalledWith(3, 'tours');
+    await expect((await make([])).service.ensureReadable(7, 3, file('a.gpx'))).resolves.toBeUndefined();
   });
 
   it('AST-TOUR-FILE-003: proposes one hike per track, the GPX text kept on the held call only', async () => {

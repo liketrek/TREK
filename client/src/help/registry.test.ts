@@ -245,11 +245,15 @@ describe('help on a managed install', () => {
       expect(reg.getHelpContext('admin-backup')).toBeNull()
       expect(reg.allHelpGuides().some(g => g.context === 'admin-storage')).toBe(false)
       expect(reg.getHelpGuide('files-sync')).toBeNull()
-      // Integrations follow whether the instance has them on.
+      // Integrations the operator offers follow whether the instance has them on.
       useAddonStore.setState({ addons: [] })
-      expect(reg.getHelpGuide('connect-dawarich')).toBeNull()
-      useAddonStore.setState({ addons: [{ id: 'dawarich', enabled: true } as never] })
-      expect(reg.getHelpGuide('connect-dawarich')).not.toBeNull()
+      expect(reg.getHelpGuide('mcp-oauth')).toBeNull()
+      useAddonStore.setState({ addons: [{ id: 'mcp', enabled: true } as never] })
+      expect(reg.getHelpGuide('mcp-oauth')).not.toBeNull()
+      // A server the reader would run themselves, and the AI the operator picks, are never offered there.
+      useAddonStore.setState({ addons: [{ id: 'dawarich', enabled: true }, { id: 'memories', enabled: true }] as never })
+      for (const id of ['connect-dawarich', 'album-date-range', 'photo-providers', 'ai-setup', 'trip-assistant', 'connect-ai'])
+        expect(reg.getHelpGuide(id), id).toBeNull()
       // What a hosted admin can still do keeps its guide.
       expect(reg.getHelpGuide('create-user')).not.toBeNull()
     } finally {

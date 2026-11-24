@@ -14,6 +14,7 @@
  * call, which is what keeps the runtime env-mutation semantics the test suite
  * depends on. Zod validation runs once at boot (env.schema.ts), never here.
  */
+import { DB_POOL_MAX_CEILING, DB_POOL_MAX_DEFAULT, type DbEngineSettings } from './db-settings';
 import { imageVersion } from './image-version';
 import {
   csvList,
@@ -110,6 +111,12 @@ export function deriveSession(raw: RawEnv) {
     durationRememberSeconds: Math.floor(rememberMs / 1000),
     idempotencyTtlSeconds: positiveNumberOr(raw.IDEMPOTENCY_TTL_SECONDS, DEFAULT_IDEMPOTENCY_TTL_SECONDS),
   };
+}
+
+/** A boolean variable as the stored settings spell it, or undefined when unset or not a boolean. */
+function flagText(raw: string | undefined): 'true' | 'false' | undefined {
+  const value = parseBool(raw);
+  return value === undefined ? undefined : value ? 'true' : 'false';
 }
 
 /**
@@ -313,6 +320,12 @@ export function deriveIntegrations(raw: RawEnv) {
      * request whose prompt plus cap overruns its context (#2677).
      */
     llmMaxOutputTokens: positiveIntOr(raw.LLM_MAX_OUTPUT_TOKENS, 0) || undefined,
+    /**
+     * The operator's word on live flight status, as the admin setting spells it
+     * ('true'/'false'), or undefined when unset or not a boolean: then the admin
+     * switch (`flight_live_enabled`) decides.
+     */
+    flightLiveEnabled: flagText(raw.FLIGHT_LIVE_ENABLED),
     // TRANSIT_API_URL, KITINERARY_EXTRACTOR_PATH and PATH are boot-stable and
     // read only by Nest providers, so the transitConfig and kitineraryConfig
     // tokens own them (boot-derive.ts).
@@ -337,9 +350,25 @@ export function deriveBackup(raw: RawEnv) {
   };
 }
 
+/** The database settings `readEnv().db` answers with. */
+export type DbSettings = ReturnType<typeof deriveDb>;
+
 export function deriveDb(raw: RawEnv) {
   const durability = resolveDurability(raw.TREK_DB_JOURNAL_MODE, raw.TREK_DB_SYNCHRONOUS);
+  const url = raw.TREK_DB_URL?.trim() || undefined;
+  const engine: DbEngineSettings = url
+    ? {
+        engine: 'postgres',
+        // The connection URL carries the password, so it is never logged (db/engine/redact-url.ts).
+        url,
+        poolMax: Math.min(positiveIntOr(raw.TREK_DB_POOL_MAX, DB_POOL_MAX_DEFAULT), DB_POOL_MAX_CEILING),
+      }
+    : { engine: 'sqlite' };
   return {
+    /** Which database this process runs on: Postgres when TREK_DB_URL names one, the SQLite file otherwise. */
+    ...engine,
+    /** Where pg_dump and pg_restore are; unset, the usual install directories are tried (never PATH). */
+    pgBinDir: raw.TREK_DB_PG_BIN_DIR?.trim() || undefined,
     trekDbFile: raw.TREK_DB_FILE,
     /** Resolved journal_mode — WAL unless the operator asked for something else (network storage needs DELETE/TRUNCATE). */
     journalMode: durability.journalMode,
@@ -355,6 +384,11 @@ export function deriveDb(raw: RawEnv) {
     preMigrateSnapshot: parseBool(raw.TREK_DB_PRE_MIGRATE_SNAPSHOT),
     /** How many pre-migration snapshots stay in the data dir, newest first. */
     preMigrateSnapshotKeep: Math.min(positiveIntOr(raw.TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP, 3), 100),
+    /**
+     * Start on Postgres although data/travel.db holds a SQLite install with
+     * accounts. Only an explicit true: anything else keeps the refusal.
+     */
+    ignoreSqliteFile: parseBool(raw.TREK_DB_IGNORE_SQLITE_FILE) === true,
   };
 }
 

@@ -2,7 +2,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { schemaMessage, rowIdParam } from '../../nest-rpc/rpc-params';
 import { JourneyDomainService } from '../journey/journey-domain.service';
 import { RealtimeService } from '../realtime/realtime.service';
 import type { OriginWriter } from './place-origins.helpers';
@@ -69,7 +69,7 @@ export class PlacesRpc {
 
   @PluginMethod('places.create', { permission: 'db:write:places' })
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'place');
     const parsed = placeCreateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid place: ${schemaMessage(parsed.error)}`);
@@ -85,8 +85,8 @@ export class PlacesRpc {
 
   @PluginMethod('places.update', { permission: 'db:write:places' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const placeId = num(params.placeId, 'placeId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const placeId = rowIdParam(params.placeId, 'placeId');
     const actor = this.guards.requireActor(ctx, 'place');
     const parsed = placeUpdateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid place: ${schemaMessage(parsed.error)}`);
@@ -107,8 +107,8 @@ export class PlacesRpc {
 
   @PluginMethod('places.delete', { permission: 'db:write:places' })
   async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const placeId = num(params.placeId, 'placeId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const placeId = rowIdParam(params.placeId, 'placeId');
     const actor = this.guards.requireActor(ctx, 'place');
     await this.guards.requireTripEdit(tripId, actor, PLACE_EDIT_ACTION);
     // Scope the id to the trip before anything else: onPlaceDeleted keys on the place

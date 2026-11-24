@@ -21,8 +21,7 @@ const assistantBudget: TranslationStrings = {
   'assistant.card.budget.together': 'รวม {amount}',
   'assistant.card.budget.markedPaid': '{amount} ทำเครื่องหมายว่าจ่ายแล้ว',
   'assistant.card.budget.receipts': 'ใบเสร็จ {count} ใบ',
-  'assistant.card.budget.leftOut':
-    'ค่าใช้จ่ายสกุลเงินต่างประเทศ {count} รายการไม่ได้รวมในยอดรวม: ยังไม่มีอัตราแลกเปลี่ยน',
+  'assistant.card.budget.leftOut': 'ค่าใช้จ่ายสกุลเงินต่างประเทศ {count} รายการไม่ได้รวมในยอดรวม: ยังไม่มีอัตราแลกเปลี่ยน',
   'assistant.card.budget.unconverted': 'รายการใน {currencies} จำนวน {count} รายการไม่ถูกนับ: ยังไม่มีอัตราแลกเปลี่ยน',
 };
 export default assistantBudget;

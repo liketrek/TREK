@@ -36,6 +36,7 @@ const login: TranslationStrings = {
   'login.mfaTitle': 'المصادقة الثنائية',
   'login.mfaSubtitle': 'أدخل الرمز المكون من 6 أرقام من تطبيق المصادقة.',
   'login.mfaCodeLabel': 'رمز التحقق',
+  'login.mfaPlaceholder': '000000 أو XXXX-XXXX',
   'login.mfaCodeRequired': 'أدخل الرمز من تطبيق المصادقة.',
   'login.mfaHint': 'افتح Google Authenticator أو Authy أو أي تطبيق TOTP آخر.',
   'login.mfaBack': '← العودة لتسجيل الدخول',
@@ -47,8 +48,7 @@ const login: TranslationStrings = {
   'login.forgotPassword': 'نسيت كلمة المرور؟',
   'login.rememberMe': 'تذكرني',
   'login.forgotPasswordTitle': 'إعادة تعيين كلمة المرور',
-  'login.forgotPasswordBody':
-    'أدخل عنوان البريد الإلكتروني المسجَّل. إذا كان الحساب موجودًا، سنرسل رابط إعادة التعيين.',
+  'login.forgotPasswordBody': 'أدخل عنوان البريد الإلكتروني المسجَّل. إذا كان الحساب موجودًا، سنرسل رابط إعادة التعيين.',
   'login.forgotPasswordSubmit': 'إرسال الرابط',
   'login.forgotPasswordSentTitle': 'تحقق من بريدك',
   'login.forgotPasswordSentBody':

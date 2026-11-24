@@ -21,6 +21,7 @@ import { PluginUserConfig } from '../../../src/db/entities/PluginUserConfig.enti
 import { PluginUserErasureQueue } from '../../../src/db/entities/PluginUserErasureQueue.entity';
 import { Plugins } from '../../../src/db/entities/Plugins.entity';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
+import { Tags } from '../../../src/db/entities/Tags.entity';
 import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { TripMembers } from '../../../src/db/entities/TripMembers.entity';
 import { TripPhotos } from '../../../src/db/entities/TripPhotos.entity';
@@ -40,6 +41,7 @@ import { RealtimeService } from '../../../src/nest/realtime/realtime.service';
 import { budgetRepoArgs, createTestExchangeRates } from '../../helpers/budget-repos';
 import { createTestBudgetSettlementsRepo } from '../../helpers/budget-repos';
 import { createUser, createTrip } from '../../helpers/factories';
+import { makePlace, makeTag, tagPlace } from '../../helpers/factories/places';
 import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { makeShareToken } from '../../helpers/factories/trips';
 import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
@@ -229,7 +231,7 @@ describe('erasePluginUserData', () => {
     }
   });
 
-  it('USER-CLEANUP-005: survives a slim schema without the plugin tables', async () => {
+  it('USER-CLEANUP-005: a plugin table missing from the schema fails the erasure instead of being skipped', async () => {
     const slim = new (require('better-sqlite3'))(':memory:');
     slim.exec('CREATE TABLE users (id INTEGER PRIMARY KEY)');
     // test-sql-allow: the slim database is hand-rolled without the migrated schema, so no entity can write its users row.
@@ -237,9 +239,10 @@ describe('erasePluginUserData', () => {
     // `erasePluginUserData`'s UC1 (this test's only call) DOES reach
     // `MaintenanceRepository` now (Plan 4 Task 4) — it needs a real
     // EntityManager bound to `slim` (MikroORM binds fine against a table-less
-    // connection; only the per-statement query against the missing
-    // plugin_user_config/plugin_oauth_tokens/plugin_oauth_state tables fails,
-    // caught by `deletePluginUserData`'s own try/catch). `tripMembersRepo`
+    // connection; only the query against the missing plugin_user_config table
+    // fails). The plugin tables come with the migrations on both engines, so
+    // that failure is a real one: it propagates and rolls the erasure back,
+    // rather than being skipped in a savepoint of its own. `tripMembersRepo`
     // (UC4), `budgetItemsRepo` (UC5's own method) and the Plan 3g Task 4
     // journey repositories (UC7-10) still never reach their tables from this
     // call — stubs are enough for those.
@@ -259,17 +262,15 @@ describe('erasePluginUserData', () => {
       // never touches it, but MikroORM's entity metadata does not require the
       // physical table to exist to construct the repository object itself).
       await createTestShareTokensRepo(slim),
-      // Plan 4 Task 8a: also real repositories, not stubs — `erasePluginUserData`
-      // DOES call into these two (UC2/UC3), and this test's whole point is that
-      // the query against the missing table throws and is caught, the same
-      // "table absent (slim schema)" outer try/catch as before, not a
-      // constructor-time failure.
+      // Plan 4 Task 8a: also real repositories, not stubs, for UC2/UC3; the
+      // erasure fails at UC1 before it reaches them, so the failure the test
+      // reads is the missing table's, not a constructor-time one.
       await createTestPluginsRepo(slim),
       await createTestPluginUserErasureQueueRepo(slim),
       { releaseValues: async () => [] } as never,
     );
 
-    await expect(slimSvc.erasePluginUserData(1)).resolves.toBeUndefined();
+    await expect(slimSvc.erasePluginUserData(1)).rejects.toThrow(/no such table: plugin_user_config/);
 
     slim.close();
   });
@@ -313,6 +314,23 @@ describe('deleteUserCompletely', () => {
       amount: settlement?.amount,
       created_by_user_id: settlement?.created_by_user_id,
     }).toEqual({ from_user_id: payer.id, to_user_id: owner.id, amount: 12.5, created_by_user_id: null });
+  });
+
+  it('USER-CLEANUP-013: deleting a member keeps the trip tags they created, on every place, under the trip owner', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb, { username: 'tagger' });
+    const trip = createTrip(testDb, owner.id);
+    await insertRow(orm, TripMembers, { trip: trip.id, user: member.id });
+    const tripTag = await makeTag(orm, member.id, { trip: trip.id, name: 'Beach' });
+    const personal = await makeTag(orm, member.id, { name: 'Mine' });
+    const place = await makePlace(orm, trip.id);
+    await tagPlace(orm, place.id, [tripTag.id]);
+
+    await svc.deleteUserCompletely(member.id);
+
+    expect((await findRow(orm, Tags, { id: tripTag.id }))?.user_id).toBe(owner.id);
+    expect(await findRow(orm, Tags, { id: personal.id })).toBeNull();
+    expect(await countRows(orm, Tags, { place_tags_inverse: place.id })).toBe(1);
   });
 
   it('USER-CLEANUP-007: deletes their journeys and the entries they authored elsewhere', async () => {

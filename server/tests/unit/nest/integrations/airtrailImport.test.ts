@@ -24,6 +24,7 @@ import { createUser, createTrip } from '../../../helpers/factories';
 import { findRow, findRows } from '../../../helpers/factories/rows';
 import { createTestBudgetItemsRepo } from '../../../helpers/files-repos';
 import { notificationsStub } from '../../../helpers/notifications';
+import { createTestAddonsService } from '../../../helpers/test-addons';
 import {
   createTestUnitOfWork,
   createTestAppSettingsRepo,
@@ -88,6 +89,7 @@ async function makeImportService(): Promise<AirtrailImportService> {
       await createTestUsersRepo(db),
       await createTestTripsRepo(db),
       await createTestBudgetItemsRepo(db),
+      await createTestAddonsService(db),
     ),
     { listFlights } as unknown as AirtrailClient,
     {

@@ -13,6 +13,7 @@ const api = vi.hoisted(() => ({
   updatePlacesDetails: vi.fn(),
   updatePlacesEnrich: vi.fn(),
   updatePlaceShadow: vi.fn(),
+  updateTransitProvider: vi.fn(),
 }));
 vi.mock('../../api/client', () => ({
   adminApi: {
@@ -22,6 +23,7 @@ vi.mock('../../api/client', () => ({
     updatePlacesDetails: api.updatePlacesDetails,
     updatePlacesEnrich: api.updatePlacesEnrich,
     updatePlaceShadow: api.updatePlaceShadow,
+    updateTransitProvider: api.updateTransitProvider,
   },
   authApi: { updateAppSettings: api.updateAppSettings },
 }));
@@ -51,6 +53,9 @@ function host(over: Record<string, unknown> = {}) {
     setPlacesEnrichEnabled: vi.fn(),
     setPlaceShadowEnabledState: vi.fn(),
     setPlaceShadowEnabled: vi.fn(),
+    transitProvider: 'transitous' as const,
+    setTransitProviderState: vi.fn(),
+    setTransitGoogleKeySource: vi.fn(),
     ...over,
   };
 }
@@ -139,5 +144,31 @@ describe('useAdminSettingsActions', () => {
     expect(admin.setPlacesAutocompleteEnabled).toHaveBeenCalledWith(false);
     expect(admin.setPlacesDetailsEnabledState).toHaveBeenCalledWith(false);
     expect(admin.setPlacesEnrichEnabled).toHaveBeenCalledWith(false);
+  });
+
+  it('FE-HOOK-ADMSETACT-T01: switching the transit backend shows it at once and keeps the key source the server reports', async () => {
+    api.updateTransitProvider.mockResolvedValueOnce({ provider: 'google', googleKeySource: 'instance' });
+    const { admin, actions } = mount();
+    await act(() => actions.changeTransitProvider('google'));
+    expect(admin.setTransitProviderState).toHaveBeenCalledWith('google');
+    expect(api.updateTransitProvider).toHaveBeenCalledWith('google');
+    expect(admin.setTransitGoogleKeySource).toHaveBeenCalledWith('instance');
+  });
+
+  it('FE-HOOK-ADMSETACT-T02: picking the backend already set writes nothing', async () => {
+    api.updateTransitProvider.mockClear();
+    const { admin, actions } = mount();
+    await act(() => actions.changeTransitProvider('transitous'));
+    expect(api.updateTransitProvider).not.toHaveBeenCalled();
+    expect(admin.setTransitProviderState).not.toHaveBeenCalled();
+  });
+
+  it('FE-HOOK-ADMSETACT-T03: a failed save puts the previous backend back and says why', async () => {
+    api.updateTransitProvider.mockRejectedValueOnce(new Error('down'));
+    const { admin, actions } = mount();
+    await act(() => actions.changeTransitProvider('google'));
+    expect(admin.setTransitProviderState).toHaveBeenNthCalledWith(1, 'google');
+    expect(admin.setTransitProviderState).toHaveBeenNthCalledWith(2, 'transitous');
+    expect(admin.toast.error).toHaveBeenCalled();
   });
 });

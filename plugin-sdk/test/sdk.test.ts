@@ -5,6 +5,7 @@ import path from 'node:path';
 import zlib from 'node:zlib';
 import { createRequire } from 'node:module';
 import { definePlugin, PLUGIN_API_VERSION, validateManifest, createMockHost, PermissionDenied } from '../src/index.js';
+import { PLUGIN_DATA_CAPS, PLUGIN_DATA_ERRORS, PLUGIN_SQL_NUL_REFUSAL, PLUGIN_VALUE_NUL_REFUSAL } from '../src/plugin-data-contract.js';
 import { isUnboundedRange } from '../src/manifest.js';
 import { scaffold } from '../src/cli/create.js';
 import { validatePluginDir } from '../src/cli/validate.js';
@@ -377,6 +378,31 @@ describe('createMockHost', () => {
     await expect(ctx.files.getContent(1, 99)).rejects.toThrow(/RESOURCE_FORBIDDEN/);
   });
 
+  it('with Documents off works only on attached files and needs a target to create one, like the real host', async () => {
+    const content = Buffer.from('x').toString('base64');
+    const { ctx } = createMockHost({
+      grants: ['db:read:files', 'db:read:files:content', 'db:write:files'],
+      actingUserId: 42,
+      documentsAddonEnabled: false,
+      trips: {
+        1: {
+          members: [42],
+          files: [
+            { id: 1, name: 'loose.pdf', content_base64: content },
+            { id: 2, name: 'ticket.pdf', reservation_id: 7, content_base64: content },
+          ],
+        },
+      },
+    });
+    expect((await ctx.files.list(1)).map((f) => f.id)).toEqual([2]);
+    await expect(ctx.files.getContent(1, 1)).rejects.toThrow(/documents addon is disabled/);
+    expect((await ctx.files.getContent(1, 2)).name).toBe('ticket.pdf');
+    await expect(ctx.files.create(1, { name: 'a.pdf', content_base64: content })).rejects.toThrow(/pass reservation_id or place_id/);
+    expect(await ctx.files.create(1, { name: 'b.pdf', content_base64: content, place_id: 3 })).toMatchObject({ place_id: 3 });
+    await expect(ctx.files.update(1, 1, { description: 'x' })).rejects.toThrow(/documents addon is disabled/);
+    expect(await ctx.files.update(1, 1, { reservation_id: 7 })).toMatchObject({ reservation_id: 7 });
+  });
+
   it('refuses costs when the permission is missing or the addon is disabled', async () => {
     const ungranted = createMockHost({ grants: [], actingUserId: 42, trips: { 1: { members: [42] } } });
     await expect(ungranted.ctx.costs.getByTrip(1)).rejects.toThrow(/PERMISSION_DENIED/);
@@ -506,9 +532,73 @@ describe('createMockHost', () => {
   it('db guards match the host: forbidden statements, tx control, op cap', async () => {
     const { ctx } = createMockHost({ grants: ['db:own'] });
     await expect(ctx.db.query('PRAGMA user_version')).rejects.toThrow(/not allowed/);
-    await expect(ctx.db.tx([{ sql: '  COMMIT' }])).rejects.toThrow(/transaction-control/);
-    await expect(ctx.db.tx([{ sql: '/* x */ROLLBACK' }])).rejects.toThrow(/transaction-control/);
+    await expect(ctx.db.tx([{ sql: '  COMMIT' }])).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.txControl));
+    await expect(ctx.db.tx([{ sql: '/* x */ROLLBACK' }])).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.txControl));
     await expect(ctx.db.tx(Array.from({ length: 101 }, () => ({ sql: 'SELECT 1' })))).rejects.toThrow(/at most 100/);
+  });
+
+  it('db refuses transaction control in every call and statement position, as TREK does on both engines', async () => {
+    const { ctx } = createMockHost({ grants: ['db:own'] });
+    const txControl = new Error(PLUGIN_DATA_ERRORS.txControl);
+    for (const sql of ['BEGIN', 'start transaction', 'End', 'ABORT', 'SAVEPOINT a', 'RELEASE a', '-- c\nCOMMIT']) {
+      await expect(ctx.db.query(sql)).rejects.toThrow(txControl);
+    }
+    await expect(ctx.db.exec('BEGIN; INSERT INTO kv VALUES (1); COMMIT;')).rejects.toThrow(txControl);
+    await expect(ctx.db.exec('INSERT INTO kv VALUES (1); /* x */ commit')).rejects.toThrow(txControl);
+    await expect(ctx.db.migrate('001', 'CREATE TABLE kv (k TEXT); COMMIT;')).rejects.toThrow(txControl);
+    await expect(ctx.db.tx([{ sql: 'SELECT 1' }, { sql: 'ROLLBACK' }])).rejects.toThrow(txControl);
+    // The words where they are no statement's verb run.
+    await expect(ctx.db.exec("SELECT CASE WHEN 1 THEN 'BEGIN; COMMIT' END; -- END")).resolves.toEqual({ changes: 0 });
+  });
+
+  it('db reads SQL in the dialect of the engine it emulates', async () => {
+    const txControl = new Error(PLUGIN_DATA_ERRORS.txControl);
+    const pg = createMockHost({ grants: ['db:own'], dbEngine: 'postgres' }).ctx;
+    // Postgres spellings TREK on Postgres runs: a cast with a precision, dollar quotes, escape strings.
+    await expect(pg.db.query('SELECT $1::numeric(10, 2) AS v', 1)).resolves.toEqual([]);
+    await expect(pg.db.exec("SELECT $$it's; COMMIT$$; SELECT $f$ROLLBACK$f$")).resolves.toEqual({ changes: 0 });
+    await expect(pg.db.exec("SELECT E'it\\'s; COMMIT'")).resolves.toEqual({ changes: 0 });
+    await expect(pg.db.exec('CREATE TRIGGER t AFTER INSERT ON kv FOR EACH ROW EXECUTE FUNCTION f(); END')).rejects.toThrow(txControl);
+    await expect(pg.db.exec("SELECT $$x$$; COMMIT")).rejects.toThrow(txControl);
+    await expect(pg.db.exec("SELECT E'a\\''; ROLLBACK")).rejects.toThrow(txControl);
+    // The SQLite mock keeps SQLite's reading: a named parameter before a parenthesis is refused.
+    const sqlite = createMockHost({ grants: ['db:own'] }).ctx;
+    await expect(sqlite.db.query('SELECT $a(1)')).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.parameterBeforeParenthesis));
+  });
+
+  it("db refuses NUL in the SQL, an argument or a migration id with the host's errors", async () => {
+    const { ctx } = createMockHost({ grants: ['db:own'] });
+    await expect(ctx.db.query("SELECT 'a\u0000'")).rejects.toThrow(PLUGIN_SQL_NUL_REFUSAL);
+    await expect(ctx.db.exec('INSERT INTO kv VALUES (?)', 'a\u0000b')).rejects.toThrow(PLUGIN_VALUE_NUL_REFUSAL);
+    await expect(ctx.db.query('SELECT 1 WHERE ? = 1', [{ k: '\u0000' }])).rejects.toThrow(PLUGIN_VALUE_NUL_REFUSAL);
+    await expect(ctx.db.tx([{ sql: 'INSERT INTO kv VALUES (?)', args: ['\u0000'] }])).rejects.toThrow(PLUGIN_VALUE_NUL_REFUSAL);
+    await expect(ctx.db.migrate('001\u0000', 'CREATE TABLE t (x)')).rejects.toThrow(PLUGIN_VALUE_NUL_REFUSAL);
+    // Binary data with a zero byte is a Buffer, which holds any byte.
+    await expect(ctx.db.exec('INSERT INTO raw VALUES (?)', Buffer.from([1, 0, 2]))).resolves.toEqual({ changes: 0 });
+  });
+
+  it("db refuses a call that breaks the contract with the host's exact words", async () => {
+    const tooLong = 'x'.repeat(PLUGIN_DATA_CAPS.maxSqlLength + 1);
+    const { ctx } = createMockHost({
+      grants: ['db:own'],
+      queryResults: { 'SELECT n FROM big': Array.from({ length: PLUGIN_DATA_CAPS.maxRows + 1 }, (_, n) => ({ n })) },
+    });
+    await expect(ctx.db.query(42 as never)).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.sqlNotString));
+    await expect(ctx.db.exec(tooLong)).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.sqlTooLong));
+    await expect(ctx.db.migrate('m', 'PRAGMA user_version')).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.statementNotAllowed));
+    await expect(ctx.db.query('SELECT n FROM big')).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.queryTooManyRows(PLUGIN_DATA_CAPS.maxRows)));
+    await expect(ctx.db.tx('nope' as never)).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.txNotArray));
+    await expect(ctx.db.tx([null as never])).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.sqlNotString));
+    const ops = Array.from({ length: PLUGIN_DATA_CAPS.maxTxOps + 1 }, () => ({ sql: 'SELECT 1' }));
+    await expect(ctx.db.tx(ops)).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.txTooManyOps(PLUGIN_DATA_CAPS.maxTxOps)));
+    // The host checks NUL before the statement type, so SQL breaking both is told about the NUL.
+    await expect(ctx.db.query("PRAGMA x = 'a\u0000'")).rejects.toThrow(new Error(PLUGIN_SQL_NUL_REFUSAL));
+  });
+
+  it('db.engine says SQLite unless the mock is told the host runs Postgres, and needs db:own', async () => {
+    await expect(createMockHost({ grants: ['db:own'] }).ctx.db.engine()).resolves.toBe('sqlite');
+    await expect(createMockHost({ grants: ['db:own'], dbEngine: 'postgres' }).ctx.db.engine()).resolves.toBe('postgres');
+    await expect(createMockHost({ grants: [] }).ctx.db.engine()).rejects.toThrow(/PERMISSION_DENIED/);
   });
 
   it('member writes need member_manage + protect the owner; users.getById serves only public fields', async () => {
@@ -780,6 +870,104 @@ describe('dev db bind shapes', () => {
       await expect(db.query('PRAGMA user_version')).rejects.toThrow(/not allowed/);
       await expect(db.exec("ATTACH DATABASE 'x' AS y")).rejects.toThrow(/not allowed/);
       await expect(db.migrate('001', 'PRAGMA journal_mode = OFF')).rejects.toThrow(/not allowed/);
+    } finally {
+      close();
+    }
+  });
+
+  it.runIf(hasNodeSqlite)('refuses transaction control in every call before anything runs, as TREK does on both engines', async () => {
+    const { createDevDb } = await import('../src/cli/dev.js');
+    const { db, close } = createDevDb(path.join(tmp, 'db.sqlite'));
+    const txControl = new Error(PLUGIN_DATA_ERRORS.txControl);
+    try {
+      await db.migrate('001', 'CREATE TABLE kv (k TEXT)');
+      await expect(db.query('/* x */ BEGIN')).rejects.toThrow(txControl);
+      await expect(db.query('START TRANSACTION')).rejects.toThrow(txControl);
+      await expect(db.exec("INSERT INTO kv VALUES ('a'); BEGIN; INSERT INTO kv VALUES ('b'); COMMIT;")).rejects.toThrow(txControl);
+      await expect(db.exec('COMMIT', 'x')).rejects.toThrow(txControl);
+      await expect(db.migrate('002', "INSERT INTO kv VALUES ('c');\n-- done\nEND")).rejects.toThrow(txControl);
+      await expect(db.tx([{ sql: "INSERT INTO kv VALUES ('d')" }, { sql: 'SAVEPOINT s' }])).rejects.toThrow(txControl);
+      expect(await db.query('SELECT count(*) AS n FROM kv')).toEqual([{ n: 0 }]);
+      // A trigger body's closing END and a CASE ... END run.
+      await db.exec("CREATE TRIGGER t AFTER INSERT ON kv BEGIN SELECT CASE WHEN 1 THEN 'x' END; END; INSERT INTO kv VALUES ('e');");
+      expect(await db.query('SELECT k FROM kv')).toEqual([{ k: 'e' }]);
+    } finally {
+      close();
+    }
+  });
+
+  it.runIf(hasNodeSqlite)('refuses a parameter name followed by "(", which node:sqlite reads past quotes and semicolons', async () => {
+    const { createDevDb } = await import('../src/cli/dev.js');
+    const { db, close } = createDevDb(path.join(tmp, 'db.sqlite'));
+    const refusal = new Error(PLUGIN_DATA_ERRORS.parameterBeforeParenthesis);
+    try {
+      await db.migrate('001', 'CREATE TABLE kv (k TEXT)');
+      // node:sqlite reads $a(')) as one parameter, so the COMMIT after it would run.
+      await expect(db.exec("INSERT INTO kv VALUES ($a(')); COMMIT; --')")).rejects.toThrow(refusal);
+      await expect(db.query("SELECT :a(')")).rejects.toThrow(refusal);
+      await expect(db.tx([{ sql: "SELECT @a::b(';')" }])).rejects.toThrow(refusal);
+      expect(await db.query('SELECT count(*) AS n FROM kv')).toEqual([{ n: 0 }]);
+      // A parameter with a space before the parenthesis, or none at all, is read as before.
+      await db.exec('INSERT INTO kv VALUES ($a)', { a: 'x' });
+      expect(await db.query('SELECT k FROM kv')).toEqual([{ k: 'x' }]);
+    } finally {
+      close();
+    }
+  });
+
+  it.runIf(hasNodeSqlite)('reads the body of an EXPLAIN CREATE TRIGGER as a trigger body', async () => {
+    const { createDevDb } = await import('../src/cli/dev.js');
+    const { db, close } = createDevDb(path.join(tmp, 'db.sqlite'));
+    try {
+      await db.migrate('001', 'CREATE TABLE kv (k TEXT)');
+      expect((await db.query('EXPLAIN CREATE TRIGGER t AFTER INSERT ON kv BEGIN SELECT 1; END')).length).toBeGreaterThan(0);
+      await db.query('EXPLAIN QUERY PLAN CREATE TEMP TRIGGER t AFTER INSERT ON kv BEGIN SELECT 1; END');
+      await expect(db.exec('EXPLAIN CREATE TRIGGER t AFTER INSERT ON kv BEGIN SELECT 1; END; COMMIT')).rejects.toThrow(
+        new Error(PLUGIN_DATA_ERRORS.txControl),
+      );
+    } finally {
+      close();
+    }
+  });
+
+  it.runIf(hasNodeSqlite)('refuses NUL in the SQL, an argument or a migration id, as TREK does on every engine', async () => {
+    const { createDevDb } = await import('../src/cli/dev.js');
+    const { db, close } = createDevDb(path.join(tmp, 'db.sqlite'));
+    try {
+      await db.migrate('001', 'CREATE TABLE kv (k TEXT PRIMARY KEY, v BLOB)');
+      await expect(db.exec("INSERT INTO kv VALUES ('a\u0000b', 'x')")).rejects.toThrow(PLUGIN_SQL_NUL_REFUSAL);
+      await expect(db.exec('INSERT INTO kv VALUES (?, ?)', ['a\u0000b', 'x'])).rejects.toThrow(PLUGIN_VALUE_NUL_REFUSAL);
+      await expect(db.exec('INSERT INTO kv VALUES (?, ?)', 'c', ['\u0000'])).rejects.toThrow(PLUGIN_VALUE_NUL_REFUSAL);
+      await expect(db.query('SELECT v FROM kv WHERE k = :k', { k: 'x\u0000' })).rejects.toThrow(PLUGIN_VALUE_NUL_REFUSAL);
+      await expect(db.migrate('002\u0000', 'CREATE TABLE more (x INTEGER)')).rejects.toThrow(PLUGIN_VALUE_NUL_REFUSAL);
+      expect(await db.query('SELECT count(*) AS n FROM kv')).toEqual([{ n: 0 }]);
+      // Binary data with a zero byte goes in as a Buffer.
+      await db.exec('INSERT INTO kv VALUES (?, ?)', 'b', Buffer.from([1, 0, 2]));
+      expect(await db.query('SELECT length(v) AS n FROM kv')).toEqual([{ n: 3 }]);
+    } finally {
+      close();
+    }
+  });
+
+  it.runIf(hasNodeSqlite)("refuses a call that breaks the contract with the host's exact words", async () => {
+    const { createDevDb } = await import('../src/cli/dev.js');
+    const { db, close } = createDevDb(path.join(tmp, 'db.sqlite'));
+    try {
+      await expect(db.query(42 as never)).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.sqlNotString));
+      await expect(db.exec('x'.repeat(PLUGIN_DATA_CAPS.maxSqlLength + 1))).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.sqlTooLong));
+      await expect(db.migrate('m', "ATTACH DATABASE 'x' AS y")).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.statementNotAllowed));
+      await expect(db.tx('nope' as never)).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.txNotArray));
+      await expect(db.tx([{ sql: 7 as never }])).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.sqlNotString));
+      const ops = Array.from({ length: PLUGIN_DATA_CAPS.maxTxOps + 1 }, () => ({ sql: 'SELECT 1' }));
+      await expect(db.tx(ops)).rejects.toThrow(new Error(PLUGIN_DATA_ERRORS.txTooManyOps(PLUGIN_DATA_CAPS.maxTxOps)));
+      // A batch is checked whole before anything runs: the insert ahead of the bad op never lands.
+      await db.migrate('001', 'CREATE TABLE kv (k TEXT)');
+      await expect(db.tx([{ sql: "INSERT INTO kv VALUES ('a')" }, { sql: 'PRAGMA user_version' }])).rejects.toThrow(
+        new Error(PLUGIN_DATA_ERRORS.statementNotAllowed),
+      );
+      await expect(db.tx([{ sql: 'INSERT INTO kv VALUES (?)', args: ['b'] }, { sql: 'SELECT k FROM kv' }])).resolves.toEqual({
+        results: [{ changes: 1 }, { rows: [{ k: 'b' }] }],
+      });
     } finally {
       close();
     }

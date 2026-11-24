@@ -13,65 +13,46 @@
  * unconditionally while REST and the plugin host gated; the port fixed that).
  */
 import { ADDON_IDS } from '../../../src/addons';
-import { db as testDb } from '../../../src/db/database';
 import { Addons } from '../../../src/db/entities/Addons.entity';
 import { CollectionLabels } from '../../../src/db/entities/CollectionLabels.entity';
 import { CollectionMembers } from '../../../src/db/entities/CollectionMembers.entity';
 import { CollectionPlaces } from '../../../src/db/entities/CollectionPlaces.entity';
 import { Collections } from '../../../src/db/entities/Collections.entity';
 import { Places } from '../../../src/db/entities/Places.entity';
-import { createUser, createTrip, createPlace, createCategory } from '../../helpers/factories';
 import { addCollectionMember } from '../../helpers/factories/collections';
+import { makeCategory, makePlace } from '../../helpers/factories/places';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
+import { makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 const { notifSend } = vi.hoisted(() => ({ notifSend: vi.fn().mockResolvedValue(undefined) }));
 
 const realtime = new FakeRealtimeService();
 const broadcastToUser = realtime.broadcastToUserMock;
 
-function clearCollections() {
-  testDb.exec(`
-    DELETE FROM collection_place_labels;
-    DELETE FROM collection_labels;
-    DELETE FROM collection_place_tags;
-    DELETE FROM collection_place_ratings;
-    DELETE FROM collection_places;
-    DELETE FROM collection_members;
-    DELETE FROM collections;
-    DELETE FROM place_tags;
-    DELETE FROM places;
-    DELETE FROM trip_members;
-    DELETE FROM trips;
-    DELETE FROM users;
-  `);
-}
-
 beforeAll(async () => {
   // The collections addon is seeded DISABLED by default and every tool rides
   // the `when:` addon gate (post-fold quirk fix) — enable it for the suite.
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
   await updateRows(orm, Addons, { id: ADDON_IDS.COLLECTIONS }, { enabled: true });
 });
 
-beforeEach(() => {
-  clearCollections();
+beforeEach(async () => {
+  await resetDatabase(orm);
   broadcastToUser.mockClear();
   notifSend.mockClear();
   delete process.env.DEMO_MODE;
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -88,7 +69,8 @@ function errorText(result: Awaited<ReturnType<McpHarness['client']['callTool']>>
   return text?.text ?? '';
 }
 
-let orm: TestOrm;
+// The booted container's own ORM, the one the tools write through.
+let orm: MikroORM;
 
 /** Seed a collection directly (owner_id row only — no service round trip). */
 function seedCollection(ownerId: number, name = 'List'): Promise<number> {
@@ -138,8 +120,8 @@ async function statusOf(placeId: number): Promise<string | undefined> {
 
 describe('Tool: list_collections', () => {
   it('lists owned collections plus incoming invites', async () => {
-    const { user } = createUser(testDb);
-    const { user: inviter } = createUser(testDb);
+    const { user } = await makeUser(orm);
+    const { user: inviter } = await makeUser(orm);
     await seedCollection(user.id, 'Mine');
     const invitedTo = await seedCollection(inviter.id, 'Theirs');
     await addMember(invitedTo, user.id, 'editor', 'pending');
@@ -156,7 +138,7 @@ describe('Tool: list_collections', () => {
 
 describe('Tool: get_collection', () => {
   it('returns the detail with places, labels and members', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const col = await seedCollection(user.id, 'Detail');
     await seedPlace(col, user.id, 'Louvre');
     await withHarness(user.id, async (h) => {
@@ -172,8 +154,8 @@ describe('Tool: get_collection', () => {
   });
 
   it('surfaces the 404 error text for an inaccessible collection', async () => {
-    const { user } = createUser(testDb);
-    const { user: owner } = createUser(testDb);
+    const { user } = await makeUser(orm);
+    const { user: owner } = await makeUser(orm);
     const col = await seedCollection(owner.id, 'Hidden');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_collection', arguments: { collectionId: col } });
@@ -185,10 +167,10 @@ describe('Tool: get_collection', () => {
 
 describe('Tool: available_collection_users', () => {
   it('is owner-only: owner 200, accepted member gets the bespoke error, stranger a 404 text', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const { user: invitable } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    const { user: invitable } = await makeUser(orm);
     const col = await seedCollection(owner.id, 'Members');
     await addMember(col, member.id);
 
@@ -226,8 +208,8 @@ describe('Tool: available_collection_users', () => {
 
 describe('Tool: find_place_in_collections', () => {
   it('names every visible list holding the place, with its per-list status and edit right', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
     const mine = await seedCollection(user.id, 'Paris');
     const shared = await seedCollection(other.id, 'Their museums');
     const hidden = await seedCollection(other.id, 'Not shared');
@@ -253,7 +235,7 @@ describe('Tool: find_place_in_collections', () => {
   });
 
   it('matches by coordinates within the dedup tolerance and not outside it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const col = await seedCollection(user.id, 'Rome');
     await seedPlace(col, user.id, 'Pantheon', { lat: 41.8986, lng: 12.4769 });
 
@@ -279,7 +261,7 @@ describe('Tool: find_place_in_collections', () => {
   });
 
   it('reports nothing for a name-only query, since a repeated name is not a match signal', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const col = await seedCollection(user.id, 'Coffee');
     await seedPlace(col, user.id, 'Starbucks', { lat: 47.6062, lng: -122.3321 });
 
@@ -297,13 +279,13 @@ describe('Tool: find_place_in_collections', () => {
 
 describe('Tool: get_collection_items', () => {
   it('MCP-COLL-ITEMS-001: reads saved places and labels by their ids with their lists, leaving out what the user cannot see', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
     const mine = await seedCollection(user.id, 'Paris');
     const shared = await seedCollection(other.id, 'Shared with me');
     const hidden = await seedCollection(other.id, 'Not shared');
     await addMember(shared, user.id, 'viewer');
-    const { user: invited } = createUser(testDb);
+    const { user: invited } = await makeUser(orm);
     await addMember(shared, invited.id, 'editor', 'pending');
     const louvre = await seedPlace(mine, user.id, 'Louvre', { status: 'want' });
     await seedPlace(mine, user.id, 'Not asked for');
@@ -342,7 +324,7 @@ describe('Tool: get_collection_items', () => {
   });
 
   it('MCP-COLL-ITEMS-002: an empty or unknown lookup answers empty lists; more than 50 places is refused', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const empty = parseToolResult(await h.client.callTool({ name: 'get_collection_items', arguments: {} }));
       expect(empty).toEqual({ lists: [], places: [], labels: [] });
@@ -361,7 +343,7 @@ describe('Tool: get_collection_items', () => {
 
 describe('Tool: create_collection / update_collection / delete_collection / reorder_collections', () => {
   it('create → update → reorder → delete round trip', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const created = parseToolResult(
         await h.client.callTool({ name: 'create_collection', arguments: { name: 'Italy' } }),
@@ -398,8 +380,8 @@ describe('Tool: create_collection / update_collection / delete_collection / reor
   });
 
   it('delete_collection is owner-only (bespoke 403 text) and update surfaces the viewer 403', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: viewer } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: viewer } = await makeUser(orm);
     const col = await seedCollection(owner.id, 'Guarded');
     await addMember(col, viewer.id, 'viewer');
     await withHarness(viewer.id, async (h) => {
@@ -418,7 +400,7 @@ describe('Tool: create_collection / update_collection / delete_collection / reor
 
   it('blocks demo user on writes', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_collection', arguments: { name: 'X' } });
       expect(result.isError).toBe(true);
@@ -432,7 +414,7 @@ describe('Tool: create_collection / update_collection / delete_collection / reor
 
 describe('Tool: save_place_to_collection', () => {
   it('saves a place and returns the duplicate marker on a re-save', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const col = await seedCollection(user.id, 'Dedup');
     await withHarness(user.id, async (h) => {
       const saved = parseToolResult(
@@ -459,7 +441,7 @@ describe('Tool: save_place_to_collection', () => {
 // search_place is saved with https here too.
 describe('Tool: save_place_to_collection and a website without a scheme (#2483)', () => {
   it('MCP-COLL-2483-01: stores https for a bare host and still refuses a script link', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const col = await seedCollection(user.id, 'Bretagne');
     const site = 'fr.wikipedia.org/wiki/Chapelle_Sainte-Barbe_du_Faouët';
     await withHarness(user.id, async (h) => {
@@ -485,11 +467,11 @@ describe('Tool: save_place_to_collection and a website without a scheme (#2483)'
 
 describe('Tool: save_trip_places_to_collection', () => {
   it('copies trip places, skipping duplicates', async () => {
-    const { user } = createUser(testDb);
-    createCategory(testDb);
-    const trip = createTrip(testDb, user.id);
-    const p1 = createPlace(testDb, trip.id, { name: 'Colosseum' });
-    const p2 = createPlace(testDb, trip.id, { name: 'Pantheon' });
+    const { user } = await makeUser(orm);
+    await makeCategory(orm);
+    const trip = await makeTrip(orm, user.id);
+    const p1 = await makePlace(orm, trip.id, { name: 'Colosseum' });
+    const p2 = await makePlace(orm, trip.id, { name: 'Pantheon' });
     const col = await seedCollection(user.id, 'From trip');
     await seedPlace(col, user.id, 'Pantheon'); // pre-existing → duplicate
     await withHarness(user.id, async (h) => {
@@ -507,7 +489,7 @@ describe('Tool: save_trip_places_to_collection', () => {
 
 describe('Tool: update_collection_place / set_collection_place_status / rate_collection_place', () => {
   it('updates fields, sets status, and stores/clears a rating', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const col = await seedCollection(user.id, 'P');
     const pid = await seedPlace(col, user.id, 'Gate');
     await withHarness(user.id, async (h) => {
@@ -523,6 +505,15 @@ describe('Tool: update_collection_place / set_collection_place_status / rate_col
         await h.client.callTool({ name: 'set_collection_place_status', arguments: { placeId: pid, status: 'want' } }),
       ) as { place: { status: string } };
       expect(status.place.status).toBe('want');
+
+      // #2567: "want to revisit" is stored as a status of its own.
+      const revisit = parseToolResult(
+        await h.client.callTool({
+          name: 'set_collection_place_status',
+          arguments: { placeId: pid, status: 'revisit' },
+        }),
+      ) as { place: { status: string } };
+      expect(revisit.place.status).toBe('revisit');
 
       const rated = parseToolResult(
         await h.client.callTool({ name: 'rate_collection_place', arguments: { placeId: pid, rating: 5 } }),
@@ -540,8 +531,8 @@ describe('Tool: update_collection_place / set_collection_place_status / rate_col
   });
 
   it('update_collection_place refuses an editor moving a place out of a shared list', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: editor } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: editor } = await makeUser(orm);
     const shared = await seedCollection(owner.id, 'Shared');
     await addMember(shared, editor.id, 'editor');
     const own = await seedCollection(editor.id, 'Mine');
@@ -556,6 +547,51 @@ describe('Tool: update_collection_place / set_collection_place_status / rate_col
     });
     expect((await findRow(orm, CollectionPlaces, { id: pid }))?.collection_id).toBe(shared);
   });
+
+  // #2646: the fields saving takes, through the same contract and checks as REST.
+  it('update_collection_place sets and clears provider ids, website, phone and price, and refuses a script link', async () => {
+    const { user } = await makeUser(orm);
+    const col = await seedCollection(user.id, 'Listings');
+    const pid = await seedPlace(col, user.id, 'Septime');
+    const update = (h: McpHarness, args: Record<string, unknown>) =>
+      h.client.callTool({ name: 'update_collection_place', arguments: { placeId: pid, ...args } });
+    await withHarness(user.id, async (h) => {
+      const set = parseToolResult(
+        await update(h, {
+          google_place_id: 'ChIJseptime',
+          osm_id: 'node/42',
+          website: 'septime-charonne.fr',
+          phone: '+33 1 43 67 38 29',
+          price: 55,
+          currency: 'EUR',
+        }),
+      ) as { place: Record<string, unknown> };
+      expect(set.place).toMatchObject({
+        name: 'Septime',
+        google_place_id: 'ChIJseptime',
+        osm_id: 'node/42',
+        website: 'https://septime-charonne.fr',
+        phone: '+33 1 43 67 38 29',
+        price: 55,
+        currency: 'EUR',
+      });
+
+      const refused = await update(h, { website: 'javascript:alert(1)' });
+      expect(refused.isError).toBe(true);
+      expect((refused.content as { text: string }[])[0].text).toContain('Invalid arguments');
+
+      const cleared = parseToolResult(await update(h, { website: null, phone: null, price: null })) as {
+        place: Record<string, unknown>;
+      };
+      expect(cleared.place).toMatchObject({
+        website: null,
+        phone: null,
+        price: null,
+        currency: 'EUR',
+        google_place_id: 'ChIJseptime',
+      });
+    });
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -568,11 +604,11 @@ describe('Tool: update_collection_place / set_collection_place_status / rate_col
 
 describe('Tool: set_collection_place_status_from_trip', () => {
   it('marks every saved copy of a trip place across the lists holding it', async () => {
-    const { user } = createUser(testDb);
-    createCategory(testDb);
-    const trip = createTrip(testDb, user.id);
-    const louvre = createPlace(testDb, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
-    const orsay = createPlace(testDb, trip.id, { name: "Musee d'Orsay", lat: 48.86, lng: 2.3266 });
+    const { user } = await makeUser(orm);
+    await makeCategory(orm);
+    const trip = await makeTrip(orm, user.id);
+    const louvre = await makePlace(orm, trip.id, { name: 'Louvre', lat: 48.8606, lng: 2.3376 });
+    const orsay = await makePlace(orm, trip.id, { name: "Musee d'Orsay", lat: 48.86, lng: 2.3266 });
     const paris = await seedCollection(user.id, 'Paris');
     const museums = await seedCollection(user.id, 'Museums');
     // Two different match signals: coordinates in one list, the source link the
@@ -601,11 +637,11 @@ describe('Tool: set_collection_place_status_from_trip', () => {
   });
 
   it('skips a list the user may only read instead of refusing the batch', async () => {
-    const { user } = createUser(testDb);
-    const { user: owner } = createUser(testDb);
-    createCategory(testDb);
-    const trip = createTrip(testDb, user.id);
-    const prado = createPlace(testDb, trip.id, { name: 'Prado', lat: 40.4138, lng: -3.6921 });
+    const { user } = await makeUser(orm);
+    const { user: owner } = await makeUser(orm);
+    await makeCategory(orm);
+    const trip = await makeTrip(orm, user.id);
+    const prado = await makePlace(orm, trip.id, { name: 'Prado', lat: 40.4138, lng: -3.6921 });
     const own = await seedCollection(user.id, 'Madrid');
     const readOnly = await seedCollection(owner.id, 'Their list');
     await addMember(readOnly, user.id, 'viewer');
@@ -627,11 +663,11 @@ describe('Tool: set_collection_place_status_from_trip', () => {
   });
 
   it('surfaces the 404 text for a trip the user cannot access, leaving statuses alone', async () => {
-    const { user } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    createCategory(testDb);
-    const trip = createTrip(testDb, stranger.id);
-    const place = createPlace(testDb, trip.id, { name: 'Alhambra', lat: 37.176, lng: -3.5881 });
+    const { user } = await makeUser(orm);
+    const { user: stranger } = await makeUser(orm);
+    await makeCategory(orm);
+    const trip = await makeTrip(orm, stranger.id);
+    const place = await makePlace(orm, trip.id, { name: 'Alhambra', lat: 37.176, lng: -3.5881 });
     const col = await seedCollection(user.id, 'Spain');
     const saved = await seedPlace(col, user.id, 'Alhambra', { lat: 37.176, lng: -3.5881 });
 
@@ -647,10 +683,10 @@ describe('Tool: set_collection_place_status_from_trip', () => {
   });
 
   it('refuses an empty place_ids, and falls back to idea on an unknown status like the REST contract', async () => {
-    const { user } = createUser(testDb);
-    createCategory(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Sagrada Familia', lat: 41.4036, lng: 2.1744 });
+    const { user } = await makeUser(orm);
+    await makeCategory(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Sagrada Familia', lat: 41.4036, lng: 2.1744 });
     const col = await seedCollection(user.id, 'Barcelona');
     const saved = await seedPlace(col, user.id, 'Sagrada Familia', { lat: 41.4036, lng: 2.1744, status: 'want' });
 
@@ -675,7 +711,7 @@ describe('Tool: set_collection_place_status_from_trip', () => {
 
 describe('Tool: delete_collection_place', () => {
   it('deletes a place; an unknown id surfaces the 404 text', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const col = await seedCollection(user.id, 'D');
     const pid = await seedPlace(col, user.id, 'Gone');
     await withHarness(user.id, async (h) => {
@@ -691,9 +727,9 @@ describe('Tool: delete_collection_place', () => {
 
 describe('Tool: copy_collection_places_to_trip', () => {
   it('copies saved places into a trip the user can edit', async () => {
-    const { user } = createUser(testDb);
-    createCategory(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    await makeCategory(orm);
+    const trip = await makeTrip(orm, user.id);
     const col = await seedCollection(user.id, 'Plan');
     const pid = await seedPlace(col, user.id, 'Trevi Fountain');
     await withHarness(user.id, async (h) => {
@@ -709,9 +745,9 @@ describe('Tool: copy_collection_places_to_trip', () => {
   });
 
   it('MCP-COLL-COPY-001: each copied place reaches every tab of the trip as place:created, the asking one included', async () => {
-    const { user } = createUser(testDb);
-    createCategory(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    await makeCategory(orm);
+    const trip = await makeTrip(orm, user.id);
     const col = await seedCollection(user.id, 'Plan');
     const pid = await seedPlace(col, user.id, 'Spanish Steps');
     realtime.broadcastMock.mockClear();
@@ -730,10 +766,10 @@ describe('Tool: copy_collection_places_to_trip', () => {
   });
 
   it('surfaces the 404 text for a trip the user cannot access', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    createCategory(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    await makeCategory(orm);
+    const trip = await makeTrip(orm, other.id);
     const col = await seedCollection(user.id, 'C');
     const pid = await seedPlace(col, user.id, 'X');
     realtime.broadcastMock.mockClear();
@@ -756,7 +792,7 @@ describe('Tool: copy_collection_places_to_trip', () => {
 
 describe('Label tools', () => {
   it('create → assign → update → unassign → delete a label', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const col = await seedCollection(user.id, 'DE');
     const pid = await seedPlace(col, user.id, 'Gate');
     await withHarness(user.id, async (h) => {
@@ -802,7 +838,7 @@ describe('Label tools', () => {
   });
 
   it('duplicate label name surfaces the 409 text', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const col = await seedCollection(user.id, 'DE');
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_collection_label', arguments: { collection_id: col, name: 'Berlin' } });
@@ -822,8 +858,8 @@ describe('Label tools', () => {
 
 describe('Sharing tools', () => {
   it('invite → accept → set role → remove member round trip', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: target } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: target } = await makeUser(orm);
     const col = await seedCollection(owner.id, 'Shared');
 
     await withHarness(owner.id, async (h) => {
@@ -866,8 +902,8 @@ describe('Sharing tools', () => {
   });
 
   it('invite errors come back as isError text (self-invite / not owner)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
     const col = await seedCollection(owner.id, 'OwnerOnly');
     await withHarness(owner.id, async (h) => {
       const self = await h.client.callTool({
@@ -888,8 +924,8 @@ describe('Sharing tools', () => {
   });
 
   it('accept without a pending invite → error text; decline and cancel clear the pending row', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: target } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: target } = await makeUser(orm);
     const col = await seedCollection(owner.id, 'Pending');
 
     await withHarness(target.id, async (h) => {
@@ -923,8 +959,8 @@ describe('Sharing tools', () => {
   });
 
   it('leave_collection: member leaves; the owner gets the bespoke 400 text', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
+    const { user: owner } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
     const col = await seedCollection(owner.id, 'Leavable');
     await addMember(col, member.id);
     await withHarness(member.id, async (h) => {
@@ -941,12 +977,150 @@ describe('Sharing tools', () => {
 });
 
 // ---------------------------------------------------------------------------
+// list_collection_places (#2647): a long list a compact page at a time, going
+// on from a cursor rather than an offset.
+// ---------------------------------------------------------------------------
+
+describe('Tool: list_collection_places', () => {
+  interface Page {
+    collection: { id: number; name: string };
+    labels: { id: number; name: string; color: string | null }[];
+    total: number;
+    places: Record<string, unknown>[];
+    next_cursor: string | null;
+  }
+
+  async function listPage(h: McpHarness, args: Record<string, unknown>): Promise<Page> {
+    const result = await h.client.callTool({ name: 'list_collection_places', arguments: args });
+    expect(result.isError).toBeFalsy();
+    // Compact on purpose: one line of JSON, however long the page.
+    expect(errorText(result)).not.toContain('\n');
+    return parseToolResult(result) as Page;
+  }
+
+  async function seedPlaces(colId: number, ownerId: number, count: number): Promise<number[]> {
+    // One after the other, so the ids follow the names.
+    return Array.from({ length: count }, (_, i) => i + 1).reduce<Promise<number[]>>(
+      async (done, n) => [...(await done), await seedPlace(colId, ownerId, `Spot ${n}`)],
+      Promise.resolve([]),
+    );
+  }
+
+  it('MCP-COLL-PAGE-001: pages through a list in its order, compact rows leaving out what a place lacks', async () => {
+    const { user } = await makeUser(orm);
+    const col = await seedCollection(user.id, 'Paris');
+    await seedPlaces(col, user.id, 4);
+    await seedPlace(col, user.id, 'Septime', { lat: 48.85, lng: 2.38, status: 'want', google_place_id: 'ChIJseptime' });
+    const food = await insertRow(orm, CollectionLabels, { collection: col, name: 'Food', color: '#e11d48' });
+
+    await withHarness(user.id, async (h) => {
+      const first = await listPage(h, { collectionId: col, limit: 2 });
+      expect(first.collection).toEqual({ id: col, name: 'Paris' });
+      expect(first.labels).toEqual([{ id: food, name: 'Food', color: '#e11d48' }]);
+      expect(first.total).toBe(5);
+      expect(first.places).toEqual([
+        { id: expect.any(Number), name: 'Spot 1', status: 'idea' },
+        { id: expect.any(Number), name: 'Spot 2', status: 'idea' },
+      ]);
+      expect(first.next_cursor).toEqual(expect.any(String));
+
+      const second = await listPage(h, { collectionId: col, limit: 2, cursor: first.next_cursor });
+      expect(second.places.map((p) => p.name)).toEqual(['Spot 3', 'Spot 4']);
+
+      const last = await listPage(h, { collectionId: col, limit: 2, cursor: second.next_cursor });
+      expect(last.places).toEqual([
+        {
+          id: expect.any(Number),
+          name: 'Septime',
+          status: 'want',
+          lat: 48.85,
+          lng: 2.38,
+          google_place_id: 'ChIJseptime',
+        },
+      ]);
+      expect(last.next_cursor).toBeNull();
+    });
+  });
+
+  it('MCP-COLL-PAGE-002: labelling each page while paging through the unlabeled places skips none', async () => {
+    const { user } = await makeUser(orm);
+    const col = await seedCollection(user.id, 'Long list');
+    const ids = await seedPlaces(col, user.id, 6);
+    const done = await insertRow(orm, CollectionLabels, { collection: col, name: 'Done' });
+
+    await withHarness(user.id, async (h) => {
+      const seen: unknown[] = [];
+      const totals: number[] = [];
+      // Page by page, each one labelled before the next is asked for.
+      const walk = async (cursor: string | null): Promise<void> => {
+        const page = await listPage(h, { collectionId: col, limit: 2, unlabeled: true, ...(cursor ? { cursor } : {}) });
+        totals.push(page.total);
+        seen.push(...page.places.map((p) => p.id));
+        const labelled = await h.client.callTool({
+          name: 'assign_collection_labels',
+          arguments: { label_ids: [done], place_ids: page.places.map((p) => p.id) },
+        });
+        expect(labelled.isError).toBeFalsy();
+        if (page.next_cursor) await walk(page.next_cursor);
+      };
+      await walk(null);
+      // An offset would have jumped from the second place straight to the fifth.
+      expect(seen).toEqual(ids);
+      expect(totals).toEqual([6, 4, 2]);
+
+      const labelled = await listPage(h, { collectionId: col, labelId: done });
+      expect(labelled.total).toBe(6);
+      expect(labelled.places.every((p) => (p.label_ids as number[]).includes(done))).toBe(true);
+    });
+  });
+
+  it('MCP-COLL-PAGE-003: filters by status, and refuses a foreign label, both label filters at once and a made-up cursor', async () => {
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const col = await seedCollection(user.id, 'Paris');
+    const elsewhere = await seedCollection(other.id, 'Theirs');
+    await seedPlace(col, user.id, 'Louvre', { status: 'visited' });
+    await seedPlace(col, user.id, 'Orsay', { status: 'revisit' });
+    const theirs = await insertRow(orm, CollectionLabels, { collection: elsewhere, name: 'Theirs' });
+    const mine = await insertRow(orm, CollectionLabels, { collection: col, name: 'Mine' });
+
+    await withHarness(user.id, async (h) => {
+      const revisit = await listPage(h, { collectionId: col, status: 'revisit' });
+      expect(revisit.total).toBe(1);
+      expect(revisit.places.map((p) => p.name)).toEqual(['Orsay']);
+
+      const call = (args: Record<string, unknown>) =>
+        h.client.callTool({ name: 'list_collection_places', arguments: { collectionId: col, ...args } });
+      const foreign = await call({ labelId: theirs });
+      expect(foreign.isError).toBe(true);
+      expect(errorText(foreign)).toBe('Label not found in this list');
+      expect(errorText(await call({ labelId: mine, unlabeled: true }))).toBe(
+        'Pass either labelId or unlabeled, not both',
+      );
+      expect(errorText(await call({ cursor: 'not-a-cursor' }))).toBe(
+        'Invalid cursor: pass the next_cursor of the page before',
+      );
+      expect((await call({ limit: 501 })).isError).toBe(true);
+
+      // A list the caller cannot see answers as if it did not exist.
+      const hidden = await h.client.callTool({
+        name: 'list_collection_places',
+        arguments: { collectionId: elsewhere },
+      });
+      expect(hidden.isError).toBe(true);
+      expect(errorText(hidden)).toBe('Collection not found');
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Scope gating (collections read/write, registration-time)
 // ---------------------------------------------------------------------------
 
 const READ_TOOLS = [
   'list_collections',
   'get_collection',
+  'list_collection_places',
   'get_collection_items',
   'available_collection_users',
   'find_place_in_collections',
@@ -987,21 +1161,21 @@ describe('Collection tools — scope gating', () => {
     }
   }
 
-  it('registers all 28 tools with null scopes (full access)', async () => {
-    const { user } = createUser(testDb);
+  it('registers all 29 tools with null scopes (full access)', async () => {
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, null);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).toContain(tool);
   });
 
   it('registers only the read tools with collections:read', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['collections:read']);
     for (const tool of READ_TOOLS) expect(names).toContain(tool);
     for (const tool of WRITE_TOOLS) expect(names).not.toContain(tool);
   });
 
   it('registers no collection tools for an unrelated scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const names = await listToolNames(user.id, ['budget:read']);
     for (const tool of [...READ_TOOLS, ...WRITE_TOOLS]) expect(names).not.toContain(tool);
   });
@@ -1016,7 +1190,7 @@ describe('Collection tools — scope gating', () => {
 
 describe('Collection tools — collections addon gating', () => {
   it('registers nothing when the collections addon is disabled', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await updateRows(orm, Addons, { id: ADDON_IDS.COLLECTIONS }, { enabled: false });
     try {
       await withHarness(user.id, async (h) => {

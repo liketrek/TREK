@@ -5,7 +5,8 @@ import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
-import { CalendarService } from '../calendar/calendar.service';
+import { TripCalendarQueryDto } from '../calendar/calendar.contract';
+import { CalendarService, calendarOptionsFromQuery } from '../calendar/calendar.service';
 import { contentDisposition } from '../common/content-disposition';
 import { isDemoWriteBlocked, DEMO_WRITE_ERROR } from '../common/demo-write';
 import { StorageReleaseService } from '../storage/storage-release.service';
@@ -225,6 +226,9 @@ export class TripsController {
         else logInfo(`${user.email} removed reminder for trip "${result.newTitle}"`);
       }
       this.trips.broadcast(id, 'trip:updated', { trip: result.updatedTrip }, socketId);
+      // To every screen, the saving one included: it holds the boundaries outside the trip.
+      if (result.boundaries)
+        this.trips.broadcast(id, 'roadtripBoundary:changed', { boundaries: result.boundaries }, undefined);
       return { trip: result.updatedTrip };
     } catch (e: unknown) {
       if (e instanceof NotFoundError) throw new HttpException({ error: e.message }, 404);
@@ -332,7 +336,7 @@ export class TripsController {
 
   @Get(':id/bundle')
   async bundle(@CurrentUser() user: User, @Param('id') id: string) {
-    const trip = (await this.trips.get(id, user.id)) as { user_id: number } | undefined;
+    const trip = (await this.trips.get(id, user.id)) as { id: number; user_id: number } | undefined;
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
@@ -340,12 +344,17 @@ export class TripsController {
   }
 
   @Get(':id/export.ics')
-  async exportIcs(@CurrentUser() user: User, @Param('id') id: string, @Res() res: Response) {
+  async exportIcs(
+    @CurrentUser() user: User,
+    @Param('id') id: string,
+    @Query() query: TripCalendarQueryDto,
+    @Res() res: Response,
+  ) {
     if (!(await this.trips.canAccessTrip(id, user.id))) {
       throw new HttpException({ error: 'Trip not found' }, 404);
     }
     try {
-      const { ics, filename } = await this.calendar.exportICS(id);
+      const { ics, filename } = await this.calendar.exportICS(id, calendarOptionsFromQuery(query));
       res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
       res.setHeader('Content-Disposition', contentDisposition(filename, 'attachment'));
       res.send(ics);

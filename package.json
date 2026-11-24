@@ -1,7 +1,7 @@
 {
   "name": "@trek/root",
   "private": true,
-  "version": "5.1.1",
+  "version": "5.2.0",
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
@@ -31,9 +31,11 @@
     "format": "npm run format --workspace=shared && npm run format --workspace=server && npm run format --workspace=client",
     "format:check": "npm run format:check --workspace=shared && npm run format:check --workspace=server && npm run format:check --workspace=client"
   },
+  "comment:devDependencies": "jsdom is the client's test DOM. It is listed here too so npm keeps one copy at the root: vitest's built-in jsdom environment resolves it from there, and with jsdom only in the client npm nested it under client/ where vitest cannot see it. Keep the two ranges equal.",
   "devDependencies": {
-    "concurrently": "^10.0.6",
-    "knip": "^6.38.0",
+    "concurrently": "^10.0.7",
+    "jsdom": "^29.1.1",
+    "knip": "^6.47.0",
     "unrun": "^0.3.1"
   },
   "comment:scarfSettings": "swagger-ui-dist ships @scarf/scarf install-time analytics; TREK sends no telemetry, so it stays off.",
@@ -42,8 +44,8 @@
   },
   "comment:overrides": "React and react-dom: one React 19 across the workspace, so the test renderer (@testing-library/react) and the app share one react-dom. Everything else is a security floor. npm reads overrides from the root package.json only, so a floor in a workspace package.json does nothing. A floor never crosses a major its dependents ask for (brace-expansion is pinned per line for that reason), and npm ls <name> shows whether it holds.",
   "overrides": {
-    "react": "19.3.0",
-    "react-dom": "19.3.0",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "@hono/node-server": "^1.19.13",
     "body-parser@^1.20.0": "^1.20.9",
     "body-parser@^2.0.0": "^2.4.0",
@@ -51,7 +53,7 @@
     "dompurify": "^3.4.17",
     "fast-uri": "^3.1.9",
     "file-type": "^21.3.4",
-    "hono": "^4.13.11",
+    "hono": "^4.13.18",
     "ip-address": "^10.7.4",
     "js-yaml@^5.0.0": "^5.4.1",
     "multer": "^2.5.0",

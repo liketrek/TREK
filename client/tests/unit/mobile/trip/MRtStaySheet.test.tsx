@@ -161,11 +161,11 @@ describe('MRtStaySheet', () => {
     expect(screen.queryByText('Leave')).not.toBeInTheDocument()
   })
 
-  it('FE-MOB-RTSTAY-012: saving writes the selected visit and the minutes, then hands back to the stop', async () => {
+  it('FE-MOB-RTSTAY-012: saving writes the minutes on the visit it was opened on, then hands back to the stop', async () => {
     const { planner, shell } = renderSheet()
     fireEvent.click(plus())
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(planner.setRoadtripStay).toHaveBeenCalledWith(202, 35, shell.sheet?.payload))
+    await waitFor(() => expect(planner.setRoadtripStay).toHaveBeenCalledWith(202, 35, 102))
     // Addressed by day and assignment, which is how 'rtstop' locates a row. Spreading this
     // sheet's own payload left it unable to resolve anything, so it drew nothing while still
     // counting as open, and the day swipe stayed blocked behind it.
@@ -182,7 +182,7 @@ describe('MRtStaySheet', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
 
-    await waitFor(() => expect(planner.setRoadtripStay).toHaveBeenCalledWith(202, 30, shell.sheet?.payload))
+    await waitFor(() => expect(planner.setRoadtripStay).toHaveBeenCalledWith(202, 30, undefined))
     expect(shell.closeSheet).toHaveBeenCalled()
     expect(shell.openSheet).not.toHaveBeenCalledWith('rtstop', expect.anything())
   })
@@ -193,7 +193,7 @@ describe('MRtStaySheet', () => {
     expect(planner.setRoadtripStay).not.toHaveBeenCalled()
     expect(value()).toHaveTextContent('0')
     fireEvent.click(screen.getByRole('button', { name: 'Save' }))
-    await waitFor(() => expect(planner.setRoadtripStay).toHaveBeenCalledWith(202, 0, shell.sheet?.payload))
+    await waitFor(() => expect(planner.setRoadtripStay).toHaveBeenCalledWith(202, 0, 102))
     expect(shell.openSheet).toHaveBeenCalledWith('rtstop', { dayId: 11, assignmentId: 102 })
   })
 
@@ -217,7 +217,7 @@ describe('MRtStaySheet', () => {
     expect(shell.openSheet).not.toHaveBeenCalled()
   })
 
-  it('FE-MOB-RTSTAY-016: without place_edit there is nothing to set the stay with', () => {
+  it('FE-MOB-RTSTAY-016: without the edit right there is nothing to set the stay with', () => {
     renderSheet({ can: vi.fn(() => false) })
     expect(minus()).toBeDisabled()
     expect(plus()).toBeDisabled()

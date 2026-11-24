@@ -176,6 +176,19 @@ const isEmptyDay = (day: DayGridDay, stays: readonly DayGridStay[]): boolean =>
   !day.hasPlanItems && !stays.some((s) => s.start_day_id === day.id || s.end_day_id === day.id);
 
 /**
+ * How many new days go before the first dated day so that every dated day keeps
+ * its date: the days between the new start and the first day's date. Zero when
+ * the first day lies before the new start or the dated days would not all fit
+ * into the range from there, which is when the plans have to move.
+ */
+function newDaysBefore(dated: readonly DayGridDay[], startDate: string, span: number): number {
+  const first = dated[0]?.date;
+  if (!first || first < startDate) return 0;
+  const lead = tripSpanDays(startDate, first) - 1;
+  return lead + dated.length <= span ? lead : 0;
+}
+
+/**
  * The day rows a trip gets for a range, the rule the server writes by
  * (TripsService.generateDays carries this plan out) and the trip dialog warns
  * by before it saves.
@@ -187,6 +200,13 @@ const isEmptyDay = (day: DayGridDay, stays: readonly DayGridStay[]): boolean =>
  * that are still over are dropped when empty and kept, undated, at the end when
  * not. A stay on a dropped dated day goes with that day, so it no longer keeps a
  * spare day it touched.
+ *
+ * With `keepDates` (bookings keep their dates, the trip dialog's default) a
+ * range that still holds every dated day leaves each of them on its date, and
+ * the new days go around them: a day added before the start is a new empty
+ * first day, not a reason to move every plan a day earlier (#3119). A range
+ * that does not hold them all (the trip moved or got shorter) falls back to
+ * the positional rule above.
  *
  * Without dates every day loses its date and the trip is held to `dayCount`
  * days (its current count when none is given): short of it, empty days are
@@ -200,8 +220,9 @@ export function planDayGrid(input: {
   startDate: string | null | undefined;
   endDate: string | null | undefined;
   dayCount?: number;
+  keepDates?: boolean;
 }): DayGridPlan {
-  const { days, stays, startDate, endDate, dayCount } = input;
+  const { days, stays, startDate, endDate, dayCount, keepDates = false } = input;
 
   if (!startDate || !endDate) {
     const ordered = [...days].sort(byDayNumber);
@@ -225,11 +246,15 @@ export function planDayGrid(input: {
   const undated = days.filter((day) => !day.date).sort(byDayNumber);
   const span = tripSpanDays(startDate, endDate);
 
+  const lead = keepDates ? newDaysBefore(dated, startDate, span) : 0;
+
   const rows: DayGridRow[] = [];
   let used = 0;
   for (let i = 0; i < span; i++) {
     const date = addIsoDays(startDate, i);
-    if (i < dated.length) rows.push({ id: dated[i]!.id, date });
+    const slot = i - lead;
+    if (slot < 0) rows.push({ id: null, date });
+    else if (slot < dated.length) rows.push({ id: dated[slot]!.id, date });
     else if (used < undated.length) rows.push({ id: undated[used++]!.id, date });
     else rows.push({ id: null, date });
   }

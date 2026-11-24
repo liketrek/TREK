@@ -87,6 +87,7 @@ describe('ImmichPhotoProvider', () => {
     expect(immich.streamImmichAsset).toHaveBeenCalledWith(res, 7, 'asset-1', 'original', 42, {
       mediaType: 'image',
       range: 'bytes=0-99',
+      publicView: false,
     });
 
     await immichProvider.fetchThumbnailBytes(ref);

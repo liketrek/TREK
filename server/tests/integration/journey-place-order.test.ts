@@ -17,26 +17,24 @@
  * that stubs a macrotask hop and does catch a detached hook today.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Addons } from '../../src/db/entities/Addons.entity';
 import { JourneyEntries } from '../../src/db/entities/JourneyEntries.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
 import { authCookie } from '../helpers/auth';
-import { createUser, createTrip, createPlace, createJourney, linkTripToJourney } from '../helpers/factories';
+import { linkTripToJourney, makeJourney } from '../helpers/factories/journeys';
+import { makePlace } from '../helpers/factories/places';
 import { findRow, insertRow, upsertRow } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -48,7 +46,7 @@ beforeAll(async () => {
   orm = nestApp.get(MikroORM);
 });
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   await invalidatePermissionsCache();
   // Enable the journey addon.
@@ -64,16 +62,15 @@ beforeEach(async () => {
 });
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('deleting a place detaches its journey entry ahead of the FK cascade', () => {
   it('annotates a filled entry with the removal note instead of leaving it silently orphaned', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Café de Flore' });
-    const journey = createJourney(testDb, user.id);
-    linkTripToJourney(testDb, journey.id, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Café de Flore' });
+    const journey = await makeJourney(orm, user.id);
+    await linkTripToJourney(orm, journey.id, trip.id);
 
     // A filled entry (not a bare skeleton) sourced from this place, the way
     // onPlaceDeleted documents: it survives the delete but gets detached and
@@ -115,11 +112,11 @@ describe('deleting a place detaches its journey entry ahead of the FK cascade', 
   });
 
   it('deletes a content-less skeleton outright rather than leaving an orphaned row behind', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const place = createPlace(testDb, trip.id, { name: 'Musée Rodin' });
-    const journey = createJourney(testDb, user.id);
-    linkTripToJourney(testDb, journey.id, trip.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const place = await makePlace(orm, trip.id, { name: 'Musée Rodin' });
+    const journey = await makeJourney(orm, user.id);
+    await linkTripToJourney(orm, journey.id, trip.id);
 
     const now = Date.now();
     const entryId = await insertRow(orm, JourneyEntries, {

@@ -288,6 +288,14 @@ describe('CollabChat', () => {
     expect(screen.getByText(/deleted/i)).toBeInTheDocument();
   });
 
+  it('FE-COMP-CHAT-038: the send button keeps the focus in the message field', async () => {
+    render(<CollabChat {...defaultProps} />);
+    await screen.findByText('Start the conversation');
+    fireEvent.change(screen.getByPlaceholderText('Type a message...'), { target: { value: 'One more' } });
+    const sendButton = screen.getAllByRole('button').find(b => b.querySelector('.lucide-arrow-up'));
+    expect(sendButton && fireEvent.mouseDown(sendButton)).toBe(false);
+  });
+
   it('FE-COMP-CHAT-020: send button is disabled when input is empty', async () => {
     render(<CollabChat {...defaultProps} />);
     await screen.findByText('Start the conversation');

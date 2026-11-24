@@ -11,6 +11,7 @@ import ActivityKit
 #endif
 import LocalAuthentication
 import PassKit
+import QuickLook
 import UIKit
 import WebKit
 
@@ -45,10 +46,18 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         CAPPluginMethod(name: "storePurchase", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "storeFinish", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "storeRestore", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "storeHeld", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "addToWallet", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setWatchSnapshot", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "takeWatchActions", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "setKeyCommands", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "setQuickActions", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "takeQuickAction", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "requestServer", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "clientCertificate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "importClientCertificate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "removeClientCertificate", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "previewFile", returnType: CAPPluginReturnPromise),
     ]
 
     /// What this binary offers the server's UI, raised with every native feature
@@ -60,7 +69,7 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     /// builds a snapshot for nothing; "wallet" only where Wallet can take a pass (an
     /// iPhone: an iPad has no Wallet app), so the UI offers no button that does nothing.
     static var features: [String] {
-        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands"]
+        var names = ["capabilities", "edgeBack", "tileCache", "biometricLock", "geolocation", "sharedFiles", "nativePush", "widgets", "liveActivity", "widgetTrips", "storeKit", "shareSheet", "keyCommands", "quickActions", "appLinks", "clientCertificate", "filePreview"]
         if canAddWalletPasses { names.append("wallet") }
         if TrekWatchLink.isAvailable { names.append("watch") }
         return names
@@ -84,6 +93,32 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         TrekWatchLink.shared.onAction = { [weak self] in self?.notifyListeners("watchAction", data: [:]) }
         TrekKeyCommands.onPress = { [weak self] id in
             self?.notifyListeners("keyCommand", data: ["id": id])
+        }
+        // Kept until a listener takes it: a tap while the page reloads reaches the new page.
+        TrekQuickActions.onOpen = { [weak self] path in
+            DispatchQueue.main.async { self?.notifyListeners("quickAction", data: ["path": path], retainUntilConsumed: true) }
+        }
+    }
+
+    // MARK: - Quick actions on the app icon
+
+    /// The app icon's quick actions, in the UI's language (TrekQuickActions).
+    @objc func setQuickActions(_ call: CAPPluginCall) {
+        let items = (call.getArray("items", JSObject.self) ?? []).compactMap { TrekQuickActions.Item(raw: $0) }
+        DispatchQueue.main.async {
+            TrekQuickActions.set(items)
+            call.resolve()
+        }
+    }
+
+    /// The quick action the app was launched with, before the UI was there to hear of it.
+    @objc func takeQuickAction(_ call: CAPPluginCall) {
+        DispatchQueue.main.async {
+            if let path = TrekQuickActions.take() {
+                call.resolve(["path": path])
+            } else {
+                call.resolve(["path": NSNull()])
+            }
         }
     }
 
@@ -139,7 +174,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
                 nextName: nextName,
                 nextTime: call.getString("nextTime"),
                 done: call.getInt("done") ?? 0,
-                total: call.getInt("total") ?? 0
+                total: call.getInt("total") ?? 0,
+                flight: TrekShellPlugin.activityFlight(call.getObject("flight"))
             )
             // Stale at the end of the day, so a forgotten one fades out on its own.
             let stale = Calendar.current.startOfDay(for: Date().addingTimeInterval(86_400))
@@ -157,6 +193,19 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         }
         #endif
         call.resolve(["running": false])
+    }
+
+    /// The day's flight the UI sent along (native/widgets.ts tripDayState), when complete.
+    @available(iOS 16.1, *)
+    static func activityFlight(_ raw: JSObject?) -> TripDayAttributes.Flight? {
+        guard let raw, let number = raw["number"] as? String, let from = raw["from"] as? String, let to = raw["to"] as? String,
+              let dep = (raw["dep"] as? NSNumber)?.doubleValue, let arr = (raw["arr"] as? NSNumber)?.doubleValue, arr > dep,
+              let depTime = raw["depTime"] as? String, let arrTime = raw["arrTime"] as? String else { return nil }
+        return TripDayAttributes.Flight(
+            number: number, from: from, to: to, dep: dep, arr: arr, depTime: depTime, arrTime: arrTime,
+            delay: (raw["delay"] as? NSNumber)?.intValue,
+            airborne: (raw["airborne"] as? Bool) ?? false
+        )
     }
 
     @objc func endTripDay(_ call: CAPPluginCall) {
@@ -315,7 +364,11 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     private var authSession: ASWebAuthenticationSession?
 
     @objc func getServer(_ call: CAPPluginCall) {
-        call.resolve(["url": TrekServerStore.url ?? NSNull()])
+        call.resolve([
+            "url": TrekServerStore.url ?? NSNull(),
+            "previousUrl": TrekServerStore.previousURL ?? NSNull(),
+            "failure": TrekServerStore.takeFailure() ?? NSNull(),
+        ])
     }
 
     @objc func setServer(_ call: CAPPluginCall) {
@@ -324,6 +377,14 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
             return
         }
         TrekServerStore.url = raw
+        let labels = (call.getObject("labels") ?? [:]).compactMapValues { $0 as? String }
+        if !labels.isEmpty { TrekServerStore.labels = labels }
+        // After the URL: setting it clears the hosts of the server before.
+        let hosts = (call.getArray("signInHosts", String.self) ?? []).filter { $0.range(of: "^[A-Za-z0-9.-]+(:[0-9]+)?$", options: .regularExpression) != nil }
+        TrekServerStore.signInHosts = Set(hosts.map { $0.lowercased() })
+        // A TREK Cloud purchase: the code that signs the buyer in, opened once after the first page.
+        let welcome = call.getString("welcome") ?? ""
+        TrekServerStore.pendingWelcome = welcome.range(of: "^[A-Za-z0-9_-]{43}$", options: .regularExpression) != nil ? welcome : nil
         call.resolve()
         restartBridge()
     }
@@ -396,7 +457,8 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
         }
         var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: 15)
         request.setValue("text/html", forHTTPHeaderField: "Accept")
-        URLSession.shared.dataTask(with: request) { data, response, _ in
+        // The app's session, so a server behind mutual TLS gets the client certificate.
+        TrekClientCertSessionDelegate.session.dataTask(with: request) { data, response, _ in
             guard let data, let http = response as? HTTPURLResponse, http.statusCode == 200,
                   http.value(forHTTPHeaderField: "Content-Type")?.hasPrefix("text/html") == true,
                   TrekServerStore.url == raw else {
@@ -415,6 +477,18 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     }
 
     @objc func openOfflineCopy(_ call: CAPPluginCall) {
+        // The server an update asked to check again, out of reach: back to it on
+        // its copy. The new bridge loads the server, fails, and this screen comes
+        // back with the server set, which then opens the copy below.
+        if TrekServerStore.url == nil {
+            if TrekServerStore.restoreForOffline() {
+                call.resolve(["opened": true])
+                restartBridge()
+            } else {
+                call.resolve(["opened": false])
+            }
+            return
+        }
         // With the trailing slash, like the bridge's serverURL: Capacitor only
         // keeps a navigation in the app when it starts with that exact string,
         // and hands anything else to Safari.
@@ -435,8 +509,123 @@ public class TrekShellPlugin: CAPPlugin, CAPBridgedPlugin, ASWebAuthenticationPr
     }
 }
 
+// MARK: - Client certificates (mutual TLS)
+
+extension TrekShellPlugin {
+    /// The address screen's check of a server, made natively so it notices
+    /// whether the server asks for a client certificate and can show the stored
+    /// one. A failed connection resolves with status 0 instead of rejecting.
+    @objc func requestServer(_ call: CAPPluginCall) {
+        guard let raw = call.getString("url"), let url = URL(string: raw),
+              ["https", "http"].contains(url.scheme?.lowercased() ?? ""), url.host != nil else {
+            call.reject("A http(s) URL is required")
+            return
+        }
+        let timeout = min(max(Double(call.getInt("timeoutMs") ?? 10000), 1000), 30000) / 1000
+        var request = URLRequest(url: url, cachePolicy: .reloadIgnoringLocalCacheData, timeoutInterval: timeout)
+        request.setValue("application/json, text/html;q=0.9, */*;q=0.8", forHTTPHeaderField: "Accept")
+        let delegate = TrekClientCertSessionDelegate.shared
+        var task: URLSessionDataTask?
+        task = TrekClientCertSessionDelegate.session.dataTask(with: request) { data, response, error in
+            let asked = task.flatMap { delegate.ask(for: $0) }
+            var result: [String: Any] = [
+                "certRequested": asked != nil,
+                "certSent": asked == true,
+                "url": response?.url?.absoluteString ?? raw,
+            ]
+            if asked != nil, let host = url.host?.lowercased() { result["certHost"] = "\(host):\(url.port ?? 443)" }
+            if let http = response as? HTTPURLResponse {
+                result["status"] = http.statusCode
+                let body = (data ?? Data()).prefix(512 * 1024)
+                result["data"] = String(data: body, encoding: .utf8) ?? ""
+                var headers: [String: String] = [:]
+                for (name, value) in http.allHeaderFields {
+                    if let name = name as? String, let value = value as? String { headers[name] = value }
+                }
+                result["headers"] = headers
+            } else {
+                result["status"] = 0
+                result["data"] = ""
+                if let error { result["error"] = (error as NSError).domain + ":" + String((error as NSError).code) }
+            }
+            call.resolve(result)
+        }
+        task?.resume()
+    }
+
+    /// The stored client certificate's details, and the last server that asked for one.
+    @objc func clientCertificate(_ call: CAPPluginCall) {
+        var result: [String: Any] = [:]
+        if let info = TrekClientIdentity.info() { result["certificate"] = info } else { result["certificate"] = NSNull() }
+        if let asked = TrekClientIdentity.lastRequest {
+            result["request"] = ["host": asked.host, "port": asked.port, "served": asked.served]
+        }
+        call.resolve(result)
+    }
+
+    @objc func removeClientCertificate(_ call: CAPPluginCall) {
+        TrekClientIdentity.remove()
+        call.resolve()
+    }
+
+    /// Picks a .p12/.pfx file, asks for its password until it opens or the user
+    /// gives up, and keeps it for the server at host and port.
+    @objc func importClientCertificate(_ call: CAPPluginCall) {
+        guard let host = call.getString("host"), host.range(of: "^[A-Za-z0-9.-]+$", options: .regularExpression) != nil else {
+            call.reject("A host is required")
+            return
+        }
+        let port = call.getInt("port") ?? 443
+        let labels = (call.getObject("labels") ?? [:]).compactMapValues { $0 as? String }
+        DispatchQueue.main.async { [weak self] in
+            guard let presenter = self?.bridge?.viewController else {
+                call.resolve(["result": "failed", "failure": TrekClientIdentity.Failure.store.rawValue])
+                return
+            }
+            TrekClientCertImporter(presenter: presenter, labels: labels, host: host, port: port) { result in
+                call.resolve(result)
+            }.start()
+        }
+    }
+}
+
 /// Positions and errors for the UI, shaped like the Geolocation API's, with the
 /// When-In-Use permission asked the first time.
+// MARK: - Quick Look
+
+extension TrekShellPlugin {
+    /// Kept while Quick Look shows a file: the controller holds its data source weakly.
+    /// One preview at a time, so a static: an extension cannot store per instance.
+    private static var previewSource: TrekFilePreviewSource?
+
+    /// Shows a file the UI wrote to the cache in Quick Look: a PDF to page through,
+    /// an image, a document, with the system's own share button. "unsupported" for
+    /// a file Quick Look cannot show, which the UI then hands to the share sheet.
+    @objc func previewFile(_ call: CAPPluginCall) {
+        guard let path = call.getString("path"), let url = URL(string: path), url.isFileURL,
+              FileManager.default.fileExists(atPath: url.path) else {
+            call.reject("a file in the app's cache is required", "INVALID")
+            return
+        }
+        DispatchQueue.main.async { [weak self] in
+            guard let self, let presenter = self.bridge?.viewController else {
+                call.reject("nothing to show the preview from", "UNAVAILABLE")
+                return
+            }
+            guard QLPreviewController.canPreview(url as QLPreviewItem) else {
+                call.resolve(["result": "unsupported"])
+                return
+            }
+            let source = TrekFilePreviewSource(url: url, title: call.getString("title"))
+            TrekShellPlugin.previewSource = source
+            let preview = QLPreviewController()
+            preview.dataSource = source
+            presenter.present(preview, animated: true)
+            call.resolve(["result": "shown"])
+        }
+    }
+}
+
 // MARK: - Apple Wallet
 
 extension TrekShellPlugin {
@@ -497,15 +686,34 @@ extension TrekShellPlugin {
     /// know are left out, so the shell offers only what can really be bought.
     @objc func storeProducts(_ call: CAPPluginCall) {
         let ids = call.getArray("ids", String.self) ?? []
-        // TestFlight, App Review and Xcode builds buy in the sandbox; their receipt says so.
-        let sandbox = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
         Task {
+            let sandbox = await Self.buysInSandbox()
             guard AppStore.canMakePayments, let products = try? await Product.products(for: ids) else {
                 call.resolve(["products": [], "sandbox": sandbox])
                 return
             }
             call.resolve(["products": products.map { ["id": $0.id, "displayPrice": $0.displayPrice] }, "sandbox": sandbox])
         }
+    }
+
+    /// Whether this build buys in the App Store sandbox: TestFlight, App Review and
+    /// Xcode builds do, and while TREK Cloud's orders are closed only they may buy.
+    /// The signed app transaction names its environment; the receipt's file name,
+    /// which App Review builds do not always carry, is only the fallback where the
+    /// app transaction is missing (iOS 15) or cannot be read.
+    static func buysInSandbox() async -> Bool {
+        let receiptSaysSandbox = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+        guard #available(iOS 16.0, *), let result = try? await AppTransaction.shared else {
+            return receiptSaysSandbox
+        }
+        // An unverified transaction still names the environment it was signed in;
+        // it only decides whether the button shows, the cloud checks every purchase itself.
+        let transaction: AppTransaction
+        switch result {
+        case .verified(let signed), .unverified(let signed, _):
+            transaction = signed
+        }
+        return transaction.environment != .production || receiptSaysSandbox
     }
 
     /// Feature storeKit: runs the App Store purchase sheet. Resolves with `kind`
@@ -519,6 +727,17 @@ extension TrekShellPlugin {
             return
         }
         Task {
+            // One subscription per Apple ID: another plan would change it, not add one.
+            // A held one that was delivered stops the purchase here. One that was paid
+            // but never set up is handed back as bought, so its instance is set up now.
+            if let held = await TrekStore.currentEntitlement(prefix: "cloud.") {
+                if await TrekStore.awaitingSetup(held) {
+                    call.resolve(["kind": "bought", "jws": held.jws, "transactionId": String(held.id), "productId": held.productId])
+                } else {
+                    call.resolve(["kind": "subscribed"])
+                }
+                return
+            }
             do {
                 guard let product = try await Product.products(for: [id]).first else {
                     call.resolve(["kind": "failed"])
@@ -575,6 +794,21 @@ extension TrekShellPlugin {
             call.resolve(["jws": found.jws, "transactionId": String(found.id)])
         }
     }
+
+    /// Feature storeKit: whether this Apple ID holds a delivered subscription under
+    /// `prefix`. Read from the entitlements on the device, so no password is asked;
+    /// while one runs, the shell offers no purchase.
+    @objc func storeHeld(_ call: CAPPluginCall) {
+        let prefix = call.getString("prefix") ?? "cloud."
+        Task {
+            guard let held = await TrekStore.currentEntitlement(prefix: prefix) else {
+                call.resolve(["held": false])
+                return
+            }
+            let awaiting = await TrekStore.awaitingSetup(held)
+            call.resolve(["held": !awaiting])
+        }
+    }
 }
 
 enum TrekStore {
@@ -605,17 +839,62 @@ enum TrekStore {
         }
     }
 
-    static func currentEntitlement(prefix: String) async -> (jws: String, id: UInt64)? {
-        var newest: (date: Date, jws: String, id: UInt64)?
+    typealias Held = (jws: String, id: UInt64, productId: String, firstPurchase: Bool)
+
+    /// The subscription this Apple ID holds under `prefix`, newest first. The
+    /// entitlements on the device come first; on a fresh install they can still
+    /// be empty while the subscription runs, so the status of the subscription
+    /// group, which StoreKit asks the App Store for, decides then.
+    static func currentEntitlement(prefix: String) async -> Held? {
+        var newest: (date: Date, held: Held)?
         for await result in Transaction.currentEntitlements {
             guard case .verified(let transaction) = result,
                   transaction.productID.hasPrefix(prefix),
                   transaction.revocationDate == nil else { continue }
             if newest == nil || transaction.purchaseDate > newest!.date {
-                newest = (transaction.purchaseDate, result.jwsRepresentation, transaction.id)
+                newest = (transaction.purchaseDate, held(result.jwsRepresentation, transaction))
             }
         }
-        return newest.map { ($0.jws, $0.id) }
+        if let newest { return newest.held }
+        return await subscriptionGroupHeld(prefix: prefix)
+    }
+
+    /// The plans the control plane sells (`cloud.<plan>.<monthly|yearly>`, as
+    /// productIdFor in iap.ts); one of them is enough to find their group.
+    private static let plans = ["start", "basis", "plus", "pro"]
+
+    private static func subscriptionGroupHeld(prefix: String) async -> Held? {
+        let ids = plans.flatMap { ["\(prefix)\($0).monthly", "\(prefix)\($0).yearly"] }
+        guard let products = try? await Product.products(for: ids),
+              let group = products.compactMap({ $0.subscription?.subscriptionGroupID }).first,
+              let statuses = try? await Product.SubscriptionInfo.status(for: group) else { return nil }
+        let running: [Product.SubscriptionInfo.RenewalState] = [.subscribed, .inGracePeriod, .inBillingRetryPeriod]
+        for status in statuses where running.contains(status.state) {
+            if case .verified(let transaction) = status.transaction, transaction.revocationDate == nil {
+                return held(status.transaction.jwsRepresentation, transaction)
+            }
+        }
+        return nil
+    }
+
+    private static func held(_ jws: String, _ transaction: Transaction) -> Held {
+        (jws: jws, id: transaction.id, productId: transaction.productID, firstPurchase: transaction.originalID == transaction.id)
+    }
+
+    /// A first purchase that was paid but whose instance was never set up: handed
+    /// back as bought so it is set up now. A renewal the device has not finished
+    /// yet is no such purchase; its subscription is running and counts as held.
+    static func awaitingSetup(_ held: Held) async -> Bool {
+        guard held.firstPurchase else { return false }
+        return await isUnfinished(held.id)
+    }
+
+    /// Paid but not delivered yet: the shell finishes a transaction once its instance exists.
+    static func isUnfinished(_ id: UInt64) async -> Bool {
+        for await result in Transaction.unfinished {
+            if case .verified(let transaction) = result, transaction.id == id { return true }
+        }
+        return false
     }
 }
 
@@ -837,5 +1116,28 @@ enum TrekSharedKeychain {
         q[kSecValueData as String] = data
         q[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlock
         return SecItemAdd(q as CFDictionary, nil) == errSecSuccess
+    }
+}
+
+/// The one file Quick Look shows, under the name the user knows it by.
+final class TrekFilePreviewSource: NSObject, QLPreviewControllerDataSource {
+    private let item: Item
+
+    init(url: URL, title: String?) {
+        item = Item(url: url, title: title)
+    }
+
+    func numberOfPreviewItems(in controller: QLPreviewController) -> Int { 1 }
+
+    func previewController(_ controller: QLPreviewController, previewItemAt index: Int) -> QLPreviewItem { item }
+
+    final class Item: NSObject, QLPreviewItem {
+        let previewItemURL: URL?
+        let previewItemTitle: String?
+
+        init(url: URL, title: String?) {
+            previewItemURL = url
+            previewItemTitle = title
+        }
     }
 }
