@@ -21,8 +21,8 @@ import { NumericInput } from '../shared/NumericInput';
 import { useToast } from '../shared/Toast';
 import { SYMBOLS } from './BudgetPanel.constants';
 import type { TripMember } from './BudgetPanelMemberChips';
-import { NOTE_MAX } from './CostsPanel.helpers';
 import { type CostsSettlement } from './costsModel';
+import { NOTE_MAX } from './CostsPanel.helpers';
 import ItemExchangeRateFields from './ItemExchangeRateFields';
 import { useSettlementForm } from './useSettlementForm';
 

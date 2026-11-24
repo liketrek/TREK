@@ -7,8 +7,8 @@ import CustomTimePicker from '../shared/CustomTimePicker';
 import { EditorField, GRID_2, INPUT } from '../shared/dialogParts';
 import { fs } from '../shared/DialogShell';
 import { TourEndHint } from '../Tours/TourDayTimeParts';
-import { VisitStayInput } from './VisitStayInput';
 import { timeCollisions, type PlaceFormData } from './PlaceFormModal.helpers';
+import { VisitStayInput } from './VisitStayInput';
 
 type Translate = (key: string, params?: Record<string, string | number>) => string;
 
@@ -87,12 +87,7 @@ export function TimeSection({
           />
         </EditorField>
       )}
-      <TourEndHint
-        start={form.place_time}
-        end={form.end_time}
-        assignment={assignment}
-        tour={tour}
-      />
+      <TourEndHint start={form.place_time} end={form.end_time} assignment={assignment} tour={tour} />
       {hasTimeError && (
         <div id={errorId} className={WARNING_BANNER} style={fs(12, 'body')}>
           <AlertTriangle size={13} className="mt-0.5 shrink-0" aria-hidden="true" />

@@ -49,7 +49,11 @@ export function useCostsCurrency(tripId: number, trip: Trip | null | undefined) 
   };
 
   // The usual currency and the trip's own lead the list, the two most read in.
-  const baseOptions = currencyOptions(base, [...(commonCurrencies ?? []), usual, (trip?.currency || usual).toUpperCase()]);
+  const baseOptions = currencyOptions(base, [
+    ...(commonCurrencies ?? []),
+    usual,
+    (trip?.currency || usual).toUpperCase(),
+  ]);
 
   return { base, usual, setBase, baseOptions };
 }

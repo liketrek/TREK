@@ -3,10 +3,11 @@ import { AlertTriangle, Hourglass, Minus, Plus, ArrowRight } from 'lucide-react'
 import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
 import { useTranslation } from '../../i18n/TranslationContext'
 import { useSettingsStore } from '../../store/settingsStore'
+import { NumericInput } from '../shared/NumericInput'
 import { formatDurationShort } from './roadtripModel'
 import { formatClockTime } from '../../utils/formatters'
 import { useLeaveMode, type LeaveMode } from './useLeaveMode'
-import { STAY_MAX as MAX, STAY_PRESETS as PRESETS, STAY_STEP as STEP, useStayDraft } from './useStayDraft'
+import { STAY_MAX as MAX, STAY_PRESETS as PRESETS, STAY_STEP as STEP, clampStay, useStayDraft } from './useStayDraft'
 
 /** The stop being given a length. */
 export interface StayDraft {
@@ -40,6 +41,7 @@ interface RoadtripStayModalProps {
 const STEP_BUTTON = 'grid h-9 w-9 place-items-center rounded-full bg-surface-card text-content-secondary shadow-sm transition-colors hover:text-content disabled:opacity-30'
 
 /** The slider's own track and thumb, drawn from tokens so both themes get it right. */
+const SHORT_STAY_MAX = 24 * 60
 const SLIDER = [
   'h-1.5 w-full cursor-pointer appearance-none rounded-full bg-surface-tertiary',
   '[&::-webkit-slider-thumb]:h-5 [&::-webkit-slider-thumb]:w-5',
@@ -56,11 +58,6 @@ const SLIDER = [
  * A road-trip idea rather than a property of the place: it is what pushes every later
  * arrival back, so it belongs beside the drive times rather than in the place form, which
  * is why this opens from the rail and nowhere else.
- *
- * Built around the number instead of around a field. The chosen length is the largest
- * thing on screen and updates as the slider moves, and under it the dialog answers the
- * question the number is actually being chosen for: given when the drive arrives, when
- * does it leave again. Typing minutes into a box could never show that.
  *
  * The value is the visit's own stay (`day_assignments.stay_minutes`, #3092), so two
  * visits of one place can last differently; a stop without a saved visit writes the
@@ -83,7 +80,7 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
 
   // Reopened on a different stop, so it starts from that stop's own value rather than
   // from whatever the last one was left on.
-  useEffect(() => { setMinutes(stop?.minutes ?? 0) }, [stop, setMinutes])
+  useEffect(() => { setMinutes(clampStay(stop?.minutes ?? 0)) }, [stop, setMinutes])
 
   if (!stop) return null
   if (leave.until) return <LeaveTime stop={stop} leave={leave} until={leave.until} is12h={is12h} onClose={onClose} />
@@ -143,16 +140,27 @@ export default function RoadtripStayModal({ stop, onClose, onSave }: RoadtripSta
             <Plus size={15} aria-hidden />
           </button>
         </div>
-        <input
-          type="range"
-          min={0}
-          max={MAX}
-          step={STEP}
-          value={minutes}
-          onChange={e => setMinutes(Number(e.target.value))}
-          aria-label={t('roadtrip.stay.custom')}
-          className={SLIDER}
-        />
+        <div className="flex items-center justify-center gap-3">
+          {minutes <= SHORT_STAY_MAX && (
+            <input
+              type="range"
+              min={0}
+              max={SHORT_STAY_MAX}
+              step={STEP}
+              value={minutes}
+              onChange={e => setMinutes(Number(e.target.value))}
+              aria-label={t('roadtrip.stay.custom')}
+              className={SLIDER}
+            />
+          )}
+          <NumericInput
+            aria-label={`${t('roadtrip.stop.stayShort')} (${t('roadtrip.limit.minutes')})`}
+            className="w-[5rem] shrink-0 rounded-lg border border-edge bg-surface-input px-2 py-1 text-center text-content tabular-nums"
+            value={minutes}
+            onValueChange={next => setMinutes(clampStay(Number(next)))}
+            disabled={saving}
+          />
+        </div>
         <div className="flex flex-wrap justify-center gap-1.5">
           {PRESETS.map(value => (
             <button

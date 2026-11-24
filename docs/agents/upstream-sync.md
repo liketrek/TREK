@@ -4,9 +4,9 @@ The repository includes the [TREK Upstream Upgrade skill](../../.agents/skills/t
 
 `origin` is the downstream fork and `upstream` is `https://github.com/liketrek/TREK.git`. Upgrade from official stable release tags, never from upstream `dev`. Record tag and commit signatures separately from release provenance. An unsigned release requires a recorded user acceptance and a pinned full commit SHA.
 
-## Planned v5.2.0 upgrade
+## v5.2.0 integration
 
-The feature branch `codex/upgrade-trek-v5.2.0` starts from `origin/dev`. Its guide records the planned changes and checks before implementation. [Full v5.2.0 assessment](../upgrades/v5.2.0-assessment.md)
+The feature branch `codex/upgrade-trek-v5.2.0` integrates the official release with the fork's `dev` history. The assessment records the original design decisions. The integration record tracks what was implemented and tested. [Assessment](../upgrades/v5.2.0-assessment.md) · [Integration record](../upgrades/v5.2.0.md)
 
 - **Visit duration.** Use upstream's Road Trip editor and keep the fork's duration input in the regular day planner. Both edit the same visit. Reconcile the older SQLite limit so seven-day stays work on upgraded installs.
 - **Costs.** Use the currency selected on the Costs page for debts and repayments. When conversion is needed, use the expense's saved rate for that pair, then the trip rate, then the system rate. Record the amount shown when the user confirms repayment.

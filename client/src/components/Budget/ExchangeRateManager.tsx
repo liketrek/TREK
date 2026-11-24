@@ -460,10 +460,23 @@ export function ExchangeRateDialog(props: React.ComponentProps<typeof ExchangeRa
   const { t } = useTranslation();
   const titleId = useId();
   return (
-    <DialogShell onClose={onClose} labelledBy={titleId} header={
-      <DialogHeader labelId={titleId} onClose={onClose} tint={NEUTRAL_TINT}
-        title={t('costs.exchangeRates.title')} tile={<DialogTile><ArrowLeftRight size={20} /></DialogTile>} />
-    }>
+    <DialogShell
+      onClose={onClose}
+      labelledBy={titleId}
+      header={
+        <DialogHeader
+          labelId={titleId}
+          onClose={onClose}
+          tint={NEUTRAL_TINT}
+          title={t('costs.exchangeRates.title')}
+          tile={
+            <DialogTile>
+              <ArrowLeftRight size={20} />
+            </DialogTile>
+          }
+        />
+      }
+    >
       <ExchangeRateManager {...manager} />
     </DialogShell>
   );

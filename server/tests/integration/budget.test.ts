@@ -48,12 +48,8 @@ function seedBookedExpense(tripId: number, reservationId: number, totalPrice: nu
 beforeEach(async () => {
   await resetDatabase(orm);
   await resetRateLimits(nestApp);
-  // GET /budget/settlement reaches ExchangeRatesService.getRates unconditionally
-  // (budget.service.ts settlement()), and that is a real fetch to
-  // api.frankfurter.dev with a 10 s abort. Without this stub the suite talks to
-  // the internet: slow, offline-dependent, and it makes the run take minutes
-  // longer on a machine that cannot reach it. Fail closed — every assertion here
-  // is single-currency, so rates never enter the arithmetic.
+  // The suite uses stored snapshots and trip defaults for FX. Keep the provider
+  // offline so a missing quote takes the fallback path deterministically.
   vi.stubGlobal(
     'fetch',
     vi.fn(async () => {
@@ -535,8 +531,8 @@ describe('Budget edit permission enforcement', () => {
 
 describe('fork exchange rates over REST', () => {
   it('persists intentional 1:1, ignores untrusted provenance, and applies a stored preview once', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { currency: 'EUR' });
     const cookie = authCookie(user.id);
     const costs = `/api/trips/${trip.id}/budget`;
     const rates = `/api/trips/${trip.id}/exchange-rates/CAD`;
@@ -571,7 +567,7 @@ describe('fork exchange rates over REST', () => {
 
     const summary = await request(app).get(`${costs}/settlement`).set('Cookie', cookie);
     expect(summary.status).toBe(200);
-    expect(summary.body.unconverted.item_ids).toEqual([legacyId]);
+    expect(summary.body.unconverted.item_ids).toEqual([]);
     expect((await findRow(orm, BudgetItems, { id: legacyId }))?.exchange_rate_source).toBe('legacy');
 
     const preview = async () => request(app).post(`${rates}/preview`).set('Cookie', cookie).send({ exchange_rate: 2 });
@@ -605,8 +601,8 @@ describe('fork exchange rates over REST', () => {
   });
 
   it('rejects an unquoted foreign expense and books reservation prices at the trip default', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { currency: 'EUR' });
     const cookie = authCookie(user.id);
     const base = `/api/trips/${trip.id}`;
     const missing = await request(app).post(`${base}/budget`).set('Cookie', cookie).send({
@@ -639,10 +635,10 @@ describe('fork exchange rates over REST', () => {
   });
 
   it('keeps historical currencyless payments in the display base and records new payments in the trip base', async () => {
-    const { user } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { currency: 'EUR' });
+    await addTripMember(orm, trip.id, member.id);
     const cookie = authCookie(user.id);
     const costs = `/api/trips/${trip.id}/budget`;
     const legacyId = await insertRow(orm, BudgetSettlements, {
@@ -677,10 +673,10 @@ describe('fork exchange rates over REST', () => {
   });
 
   it('rebases booked expenses, transfers and defaults together using the outgoing-currency bridge', async () => {
-    const { user } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    addTripMember(testDb, trip.id, member.id);
+    const { user } = await makeUser(orm);
+    const { user: member } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { currency: 'EUR' });
+    await addTripMember(orm, trip.id, member.id);
     const cookie = authCookie(user.id);
     const base = `/api/trips/${trip.id}`;
     const costs = `${base}/budget`;

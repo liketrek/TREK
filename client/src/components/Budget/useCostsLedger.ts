@@ -25,8 +25,8 @@ import {
   showsSplitting,
   type CostsCtx,
   type CostsSegment,
-  type CostsSettlementResponse,
   type CostsSettlementFlow,
+  type CostsSettlementResponse,
 } from './costsModel';
 import { knownPersonNames } from './CostsPanel.helpers';
 import { useCostsCurrency } from './useCostsCurrency';
@@ -123,11 +123,18 @@ export function useCostsLedger({
   const latestRead = useRef(0);
   const settling = useRef(false);
   const displayRate = settledIn === base ? settlement?.display_rate : undefined;
-  const ctx: CostsCtx = useMemo(() => ({
-    me, tripCurrency, displayCurrency: base,
-    convert: (amount, currency) =>
-      displayRate != null && currency?.toUpperCase() === tripCurrency ? amount * displayRate : convert(amount, currency),
-  }), [me, tripCurrency, base, convert, displayRate]);
+  const ctx: CostsCtx = useMemo(
+    () => ({
+      me,
+      tripCurrency,
+      displayCurrency: base,
+      convert: (amount, currency) =>
+        displayRate != null && currency?.toUpperCase() === tripCurrency
+          ? amount * displayRate
+          : convert(amount, currency),
+    }),
+    [me, tripCurrency, base, convert, displayRate]
+  );
 
   // The browser's own figure for the display currency goes along, for the server to
   // answer in it when it cannot fetch a quote itself.
@@ -214,7 +221,7 @@ export function useCostsLedger({
   const shareOf = skipUnfinishedShares ? settledShareOf : myShareOf;
   const balancesKnown =
     !settlementError && settledIn === base && (!settlement?.trip_currency || settlement.trip_currency === tripCurrency);
-  const flows = useMemo(() => balancesKnown ? settlement?.flows ?? [] : [], [settlement, balancesKnown]);
+  const flows = useMemo(() => (balancesKnown ? (settlement?.flows ?? []) : []), [settlement, balancesKnown]);
   const canSettle = canEdit && queuedWrites === 0 && flows.length > 0;
   const settledUp = balancesKnown && flows.length === 0;
   const splitting = useMemo(
@@ -295,18 +302,22 @@ export function useCostsLedger({
     }
   };
 
-  const recordQuotedFlow = (flow: CostsSettlementFlow) => budgetRepo.createSettlement(
-    tripId,
-    withFallbackFx({
-      from_user_id: flow.from.user_id,
-      to_user_id: flow.to.user_id,
-      amount: flow.amount,
-      currency: base,
-      ...(flow.exchange_rate === undefined ? {} : { exchange_rate: flow.exchange_rate }),
-      ...(settlement?.trip_currency ? { rate_base_currency: settlement.trip_currency } : {}),
-      settled_at: localToday(),
-    }, tripCurrency)
-  );
+  const recordQuotedFlow = (flow: CostsSettlementFlow) =>
+    budgetRepo.createSettlement(
+      tripId,
+      withFallbackFx(
+        {
+          from_user_id: flow.from.user_id,
+          to_user_id: flow.to.user_id,
+          amount: flow.amount,
+          currency: base,
+          ...(flow.exchange_rate === undefined ? {} : { exchange_rate: flow.exchange_rate }),
+          ...(settlement?.trip_currency ? { rate_base_currency: settlement.trip_currency } : {}),
+          settled_at: localToday(),
+        },
+        tripCurrency
+      )
+    );
 
   const settleQuotedFlows = async (quoted: CostsSettlementFlow[]) => {
     if (!canSettle || settling.current || quoted.length === 0) return;

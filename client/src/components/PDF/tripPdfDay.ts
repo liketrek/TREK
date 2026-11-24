@@ -5,8 +5,8 @@ import { getDisplayTimeForDay, getSpanPhase } from '../../utils/dayMerge';
 import { getFlightLegs, getTrainLegs, usesStationRoute } from '../../utils/flightLegs';
 import { formatMoney, splitReservationDateTime } from '../../utils/formatters';
 import type { TimingPlan } from '../Planner/timing/ItineraryTiming';
-import { pdfTimingChip } from './pdfTiming';
 import type { TransportLegDetail } from '../Planner/transportDetailModel';
+import { pdfTimingChip } from './pdfTiming';
 import { escHtml, hexColour, safeImg, shortDate, websiteHost } from './tripPdfHtml';
 import { bookingIcon, bookingTint, categoryIcon, glyph, noteIcon } from './tripPdfIcons';
 
@@ -256,7 +256,11 @@ function hoursOnDay(place: Partial<Place>, day: Day, ctx: PdfDayContext): string
   return [ctx.fmtTime(hours.open), ctx.fmtTime(hours.close)].filter(Boolean).join(' – ');
 }
 
-function placeFacts(place: Assignment['place'] & Partial<Place>, stay: number | null | undefined, ctx: PdfDayContext): string[] {
+function placeFacts(
+  place: Assignment['place'] & Partial<Place>,
+  stay: number | null | undefined,
+  ctx: PdfDayContext
+): string[] {
   const facts: string[] = [];
   const duration = durationLabel(stay ?? place.duration_minutes);
   if (duration) facts.push(`<span class="chip">${glyph('duration', 9)}${escHtml(duration)}</span>`);
@@ -305,7 +309,13 @@ function placeDetails(
 }
 
 /** A planned place on the day's timeline, numbered like the stops on the map. */
-export function placeItem(assignment: Assignment, number: number, day: Day, ctx: PdfDayContext, timing?: TimingPlan): string {
+export function placeItem(
+  assignment: Assignment,
+  number: number,
+  day: Day,
+  ctx: PdfDayContext,
+  timing?: TimingPlan
+): string {
   // The assignment carries a projection of its place; the rating, the e-mail, the
   // hours and the reservation note are only on the trip's own place.
   const place: Assignment['place'] & Partial<Place> = {

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, ArrowRight, Minus, Plus } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import MChip from '../../../components/MChip'
+import { NumericInput } from '../../../../components/shared/NumericInput'
 import type { MTripSheetsProps } from '../MTripShell'
 import { useTranslation } from '../../../../i18n'
 import { useSettingsStore } from '../../../../store/settingsStore'
@@ -190,12 +191,14 @@ export default function MRtStaySheet({ planner, shell }: MTripSheetsProps) {
                 <Minus size={17} strokeWidth={2.2} aria-hidden="true" />
               </button>
               <div className="flex min-w-[6rem] flex-col items-center">
-                <span
-                  aria-live="polite"
-                  className="text-[2.5rem] font-extrabold leading-none tabular-nums text-m-ink"
-                >
-                  {minutes}
-                </span>
+                <NumericInput
+                  aria-label={`${t('roadtrip.stop.stayShort')} (${t('roadtrip.limit.minutes')})`}
+                  className="w-[8rem] rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-2 py-1 text-center text-[2rem] font-extrabold leading-none tabular-nums text-m-ink"
+                  value={minutes}
+                  onValueChange={next => setMinutes(clampMinutes(Number(next)))}
+                  readOnly={!canEdit}
+                  disabled={saving}
+                />
                 <span className="mt-[7px] font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint">
                   {t('roadtrip.stay.custom')}
                 </span>

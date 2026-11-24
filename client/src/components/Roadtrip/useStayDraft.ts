@@ -10,19 +10,13 @@ import { formatClock, parseClock } from './roadtripModel';
  */
 export const STAY_PRESETS = [15, 30, 45, 60, 90, 120, 480, 720];
 
-/**
- * As far as a stay goes, in minutes: a full day. The drive no longer reads a check-out,
- * so this is the only place a night is given its hours, and a stay longer than a day is
- * a second day rather than a longer stop.
- */
-export const STAY_MAX = 24 * 60;
-
-const DAY_MINUTES = STAY_MAX;
+const DAY_MINUTES = 24 * 60;
+export const STAY_MAX = 7 * DAY_MINUTES;
 
 /** The step the slider and the two buttons move in. */
 export const STAY_STEP = 5;
 
-/** A stay as the phone keeps it: whole minutes between none and a full day. */
+/** An exact whole-minute stay within the visit limit. */
 export const clampStay = (value: number): number => Math.min(STAY_MAX, Math.max(0, Math.round(value)));
 
 /**
@@ -54,7 +48,7 @@ export interface StayDraftOptions {
 /**
  * The stay length being chosen for one road-trip stop, behind the desktop stay dialog
  * and the phone's stay sheet: the draft, the save in flight, the five minute steps that
- * never leave 0 to a full day, and the arrival and departure it makes. Each shell seeds
+ * stay within the visit limit, and the arrival and departure it makes. Each shell seeds
  * the draft when it opens and writes it its own way.
  */
 export function useStayDraft({ arrival, is12h, initial, wholeMinutes }: StayDraftOptions) {

@@ -158,6 +158,8 @@ describe('placeFormPayload', () => {
     expect(visitForm.assignment_stay).toBe('30');
     expect(placeFormPayload(visitForm, [], visit)).not.toHaveProperty('stay_minutes');
     expect(placeFormPayload({ ...visitForm, assignment_stay: '45' }, [], visit).stay_minutes).toBe(45);
+    expect(placeFormPayload({ ...visitForm, assignment_stay: '10080' }, [], visit).stay_minutes).toBe(10_080);
+    expect(placeEditForm(PLACE, { ...visit, stay_minutes: 10_080 }).assignment_stay).toBe('10080');
     expect(placeFormPayload({ ...visitForm, assignment_stay: '0' }, [], visit).stay_minutes).toBe(0);
     expect(placeFormPayload({ ...visitForm, assignment_stay: '' }, [], visit).stay_minutes).toBeNull();
     expect(placeFormPayload(visitForm, [], null)).not.toHaveProperty('stay_minutes');

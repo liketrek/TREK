@@ -297,7 +297,10 @@ describe('useCostsLedger: another currency for this trip (#1683)', () => {
     await act(async () => {
       await result.current.settleFlow(1, 2, 15);
     });
-    expect(createMock()).toHaveBeenCalledWith(7, expect.objectContaining({ amount: 15, currency: 'USD', exchange_rate: 1.25, rate_base_currency: 'EUR' }));
+    expect(createMock()).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ amount: 15, currency: 'USD', exchange_rate: 1.25, rate_base_currency: 'EUR' })
+    );
     localStorage.removeItem('trek:costs-currency:7');
   });
 

@@ -1,8 +1,8 @@
 import { useTranslation } from '../../i18n';
 import { formatMoney } from '../../utils/formatters';
 import { fs } from '../shared/DialogShell';
-import type { ExpenseFx } from './expenseFx';
 import { NumericInput } from '../shared/NumericInput';
+import type { ExpenseFx } from './expenseFx';
 import type { useItemExchangeRate } from './useItemExchangeRate';
 
 type RateController = ReturnType<typeof useItemExchangeRate>;
@@ -76,15 +76,21 @@ export default function ItemExchangeRateFields({
   );
 }
 
-export function ExpenseFxPreview({ fx, amount, currency, tripCurrency, base }: {
-  fx: ExpenseFx | null
-  amount: number
-  currency: string
-  tripCurrency: string
-  base: string
+export function ExpenseFxPreview({
+  fx,
+  amount,
+  currency,
+  tripCurrency,
+  base,
+}: {
+  fx: ExpenseFx | null;
+  amount: number;
+  currency: string;
+  tripCurrency: string;
+  base: string;
 }) {
-  const { t, locale } = useTranslation()
-  if (!fx) return null
+  const { t, locale } = useTranslation();
+  if (!fx) return null;
   const badge = (value: number, code: string) => (
     <span
       className="inline-flex items-center gap-1.5 whitespace-nowrap rounded-full bg-surface-tertiary px-2.5 py-[3px] font-geist font-semibold tabular-nums text-content-secondary"
@@ -92,12 +98,23 @@ export function ExpenseFxPreview({ fx, amount, currency, tripCurrency, base }: {
     >
       {formatMoney(value, code, locale)}
     </span>
-  )
+  );
   return (
     <div className="flex flex-wrap items-center gap-1.5 text-content-faint" style={fs(12, 'body')}>
       {badge(amount, currency)}
-      {fx.inTrip != null && <><span>→</span>{badge(fx.inTrip, tripCurrency)}</>}
-      {fx.shown != null && <><span>≈</span>{badge(fx.shown, base)}<span>{t('costs.liveRate')}</span></>}
+      {fx.inTrip != null && (
+        <>
+          <span>→</span>
+          {badge(fx.inTrip, tripCurrency)}
+        </>
+      )}
+      {fx.shown != null && (
+        <>
+          <span>≈</span>
+          {badge(fx.shown, base)}
+          <span>{t('costs.liveRate')}</span>
+        </>
+      )}
     </div>
-  )
+  );
 }

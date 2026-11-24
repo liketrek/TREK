@@ -1,6 +1,18 @@
-import type { BudgetParticipantFinal, BudgetSettlement, BudgetUnconverted, CostCategory, TripCostsMode } from '@trek/shared';
+import type {
+  BudgetParticipantFinal,
+  BudgetSettlement,
+  BudgetUnconverted,
+  CostCategory,
+  TripCostsMode,
+} from '@trek/shared';
 import { readDateFormat } from '../../hooks/useDateFormat';
-import { bookedInTrip, convertBooked, convertedLine, inDisplayCurrency, tripAmountOf } from '../../hooks/useExchangeRates';
+import {
+  bookedInTrip,
+  convertBooked,
+  convertedLine,
+  inDisplayCurrency,
+  tripAmountOf,
+} from '../../hooks/useExchangeRates';
 import type { BudgetItem } from '../../types';
 import { formatDisplayDate } from '../../utils/dateFormat';
 import { currencyDecimals } from '../../utils/formatters';
@@ -48,7 +60,9 @@ export function awaitingDisplayConversion(
   row: Pick<BudgetItem, 'currency' | 'exchange_rate' | 'exchange_rate_source'>,
   ctx: CostsCtx
 ): boolean {
-  return !inDisplayCurrency(row.currency, ctx.tripCurrency, ctx.displayCurrency) && awaitingConversion(row, ctx.tripCurrency);
+  return (
+    !inDisplayCurrency(row.currency, ctx.tripCurrency, ctx.displayCurrency) && awaitingConversion(row, ctx.tripCurrency)
+  );
 }
 
 export function booked(amount: number, e: BudgetItem, ctx: CostsCtx): number {
