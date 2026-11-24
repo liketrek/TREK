@@ -4,7 +4,7 @@ import { capImage, renderPdfPages } from './image-input';
 import { createLlmClient } from './llm-client.factory';
 import type { ResolvedLlmConfig } from './llm-config';
 import { LlmConfigResolver } from './llm-config.resolver';
-import { failureOutcome, foundOutcome } from './llm-outcome';
+import { failureOutcome, foundOutcome, isTransientLlmFailure } from './llm-outcome';
 import { LlmParseService } from './llm-parse.service';
 import type { LlmExtractionFile } from './llm-provider.interface';
 import {
@@ -67,11 +67,12 @@ export class MailReadService {
   async read(input: MailReadInput, userId: number, today: string): Promise<MailReading> {
     const texts = await attachmentTexts(input.attachments.slice(0, MAX_READ_ATTACHMENTS));
     const documentText = [input.subject ?? '', input.body, ...texts.map((part) => part.text)].join('\n');
-    const nothing = (outcome: LlmParseOutcome): MailReading => ({
+    const nothing = (outcome: LlmParseOutcome, transient = false): MailReading => ({
       outcome,
       bookings: [],
       documentText,
       imageOnly: false,
+      transient,
     });
 
     const config = await this.llmConfig.resolve(userId);
@@ -84,15 +85,20 @@ export class MailReadService {
       const text = fitTextWindow(mailReadText(input, [...texts, hintsPart(input.hints)]), windowFor(config)).text;
 
       if (config.provider === 'local') {
-        return { ...(await readLocally(config, imageOnly ? null : text, images)), documentText, imageOnly };
+        return {
+          ...(await readLocally(config, imageOnly ? null : text, images)),
+          documentText,
+          imageOnly,
+          transient: false,
+        };
       }
       const bookings = await this.readInCloud(config, input, text, images, today);
-      return { outcome: foundOutcome(bookings), bookings, documentText, imageOnly };
+      return { outcome: foundOutcome(bookings), bookings, documentText, imageOnly, transient: false };
     } catch (err) {
       // The provider and the error only: the mail's content stays out of the log.
       const reason = err instanceof Error ? err.message : String(err);
       logError(`[llm-parse] Mail read failed (provider=${config.provider}): ${reason}`);
-      return nothing(failureOutcome(err));
+      return nothing(failureOutcome(err), isTransientLlmFailure(err));
     }
   }
 

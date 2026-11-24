@@ -3,10 +3,12 @@
  * the listed trips can be chosen, a field name the contract does not know is
  * dropped, and a mail cannot close its own data tag.
  */
+import { UnreadableLlmResponse } from '../../../../src/nest/llm-parse/clients/openai-compatible.client';
 import {
   buildMailPrompt,
   MAIL_READ_JSON_SCHEMA,
   MAIL_READ_MAX_BOOKINGS,
+  MAIL_READ_USER_TEXT,
   mailReadText,
   readMailAnswer,
 } from '../../../../src/nest/llm-parse/mail-read';
@@ -39,6 +41,23 @@ describe('buildMailPrompt', () => {
 
   it('says so when there is no trip to choose', () => {
     expect(buildMailPrompt([], '2026-11-13')).toContain('(none: the person has no trip a booking could go to)');
+  });
+
+  /*
+   * Only the Anthropic client hands the model a tool. On the OpenAI-compatible
+   * json_object and no-format rungs the prompt alone says the shape, and it
+   * named a tool and never the "bookings" key: an answer under another key read
+   * as no booking and the mail was discarded.
+   */
+  it("names the answer's exact shape but not how to send it, so every provider reads it alike", () => {
+    const prompt = buildMailPrompt(TRIPS, '2026-11-13');
+    expect(prompt).toContain('{ "bookings": [ ... ] }');
+    expect(prompt).toContain('An email that holds no booking gets { "bookings": [] }.');
+    expect(prompt).not.toContain('emit_bookings');
+    // The Anthropic client adds "answer only by calling the tool"; nothing here may say otherwise.
+    expect(prompt).not.toMatch(/no prose|in text|only one JSON object|exactly one JSON object/i);
+    expect(MAIL_READ_USER_TEXT).toContain('{ "bookings": [ ... ] }');
+    expect(MAIL_READ_USER_TEXT).not.toContain('emit_bookings');
   });
 
   it('asks for a trip reference next to every booking', () => {
@@ -89,6 +108,18 @@ describe('readMailAnswer', () => {
     }));
     expect(readMailAnswer([{ kind: 'change', reservations: [], trip_ref: null }], TRIPS, identity)).toEqual([]);
     expect(readMailAnswer(many, TRIPS, identity)).toHaveLength(MAIL_READ_MAX_BOOKINGS);
+  });
+
+  it('throws on an answer whose entries are none of them bookings, and still reads an empty one as no booking', () => {
+    expect(() => readMailAnswer([flight, { '@type': 'LodgingReservation' }], TRIPS, identity)).toThrow(
+      UnreadableLlmResponse,
+    );
+    expect(() => readMailAnswer([{ reservations: 'none' }], TRIPS, identity)).toThrow(/shape other than the bookings/);
+    expect(readMailAnswer([], TRIPS, identity)).toEqual([]);
+    // One entry that reads as a booking is enough for the others to be skipped quietly.
+    expect(
+      readMailAnswer([flight, { kind: 'new_booking', reservations: [flight], trip_ref: null }], TRIPS, identity),
+    ).toHaveLength(1);
   });
 
   it('puts each reservation through the given normaliser', () => {

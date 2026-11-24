@@ -28,6 +28,8 @@ export interface MailReading {
   emptyReason: MailIngestReason | null;
   /** Everything the mail and its attachments say, for the in-text check. */
   documentText: string;
+  /** No booking, because the AI failed in a way that may pass: the mail is worth reading again later. */
+  transientFailure: boolean;
 }
 
 /** The outcomes of a reading that never reached a model. */
@@ -93,16 +95,19 @@ export class MailIngestReadingService {
           now.toISOString().slice(0, 10),
         );
     const documentText = reading?.documentText ?? `${mail.subject ?? ''}\n${mail.body}`;
-    const aiUsed = reading !== null && !NOT_SENT.has(reading.outcome);
+    const transient = reading?.transient === true;
+    // A request the provider failed in passing does not count against the person's daily limit.
+    const aiUsed = reading !== null && !NOT_SENT.has(reading.outcome) && !transient;
+    const read = { aiUsed, documentText, transientFailure: false };
 
     if (reading && reading.bookings.length > 0) {
       const tripIdOf = new Map(refs.map(({ trip, ref }) => [ref, trip.id]));
       const drafts = await this.fromAi(reading.bookings, machine, tripIdOf, reading.imageOnly);
-      return { drafts, aiUsed, emptyReason: null, documentText };
+      return { ...read, drafts, emptyReason: null };
     }
-    if (machine.length > 0) return { drafts: machine.map(fromMachine), aiUsed, emptyReason: null, documentText };
+    if (machine.length > 0) return { ...read, drafts: machine.map(fromMachine), emptyReason: null };
     const emptyReason = reading ? MAIL_INGEST_REASON_BY_LLM_OUTCOME[reading.outcome] : skipped;
-    return { drafts: [], aiUsed, emptyReason: emptyReason ?? 'not_a_booking', documentText };
+    return { ...read, drafts: [], emptyReason: emptyReason ?? 'not_a_booking', transientFailure: transient };
   }
 
   /** Why the AI does not read this mail: switched off, not set up, or the person's daily limit is reached. */

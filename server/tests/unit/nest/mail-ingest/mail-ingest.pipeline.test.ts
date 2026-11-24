@@ -682,6 +682,104 @@ describe('a mail that keeps failing', () => {
   });
 });
 
+/*
+ * A plain hotel mail met a provider "experiencing high demand": the reading
+ * failed in passing, the mail was settled at once with an empty inbox entry,
+ * and the attempt counted against the person's daily AI limit.
+ */
+describe('a mail the AI could not read for a moment', () => {
+  const HOUR_MS = 60 * 60 * 1000;
+  const busy = (): AiReading => ({
+    outcome: 'provider_error',
+    bookings: [],
+    documentText: BODY,
+    imageOnly: false,
+    transient: true,
+  });
+  const flightReading = (): AiReading => ({
+    outcome: 'ok',
+    documentText: BODY,
+    imageOnly: false,
+    transient: false,
+    bookings: [
+      {
+        kind: 'new_booking',
+        reservations: [{ '@type': 'FlightReservation' }] as never,
+        tripRef: 't1',
+        tripConfidence: 0.9,
+        uncertainFields: [],
+        suggestedNewTrip: null,
+      },
+    ],
+  });
+  const pendingNotice = expect.objectContaining({ event: 'mail_booking_pending' });
+
+  async function upload(userId: number, id: string): Promise<number> {
+    const taken = await intake().upload(eml(id), userId);
+    if (taken.status !== 'accepted') throw new Error('not taken in');
+    return taken.messageId;
+  }
+
+  it('is read again later, and waits in the inbox only after its last try, without counting against the limit', async () => {
+    const user = await person();
+    reader.isAvailable.mockResolvedValue(true);
+    machine.mockResolvedValue([]);
+    aiRead.mockResolvedValue(busy());
+    const messageId = await upload(user.id, 'busy');
+
+    expect(await job().tick(NOW)).toBe(1);
+    expect(await findRow(orm(), MailIngestMessages, { id: messageId })).toMatchObject({ status: 'queued', ai_used: 0 });
+    expect(await entriesOf(messageId)).toHaveLength(0);
+    expect(notifications.send).not.toHaveBeenCalledWith(pendingNotice);
+
+    expect(await job().tick(new Date(NOW.getTime() + HOUR_MS))).toBe(1);
+    expect(await findRow(orm(), MailIngestMessages, { id: messageId })).toMatchObject({ status: 'queued' });
+
+    expect(await job().tick(new Date(NOW.getTime() + 2 * HOUR_MS))).toBe(1);
+    expect(aiRead).toHaveBeenCalledTimes(3);
+    expect(await findRow(orm(), MailIngestMessages, { id: messageId })).toMatchObject({
+      status: 'processed',
+      reason: 'ai_provider_error',
+      ai_used: 0,
+    });
+    expect(await entriesOf(messageId)).toMatchObject([{ resolution: 'pending', reason: 'ai_provider_error' }]);
+    expect(notifications.send).toHaveBeenCalledWith(pendingNotice);
+  });
+
+  it('adds its booking once the AI answers on a later try', async () => {
+    const user = await person();
+    const trip = await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    reader.isAvailable.mockResolvedValue(true);
+    machine.mockResolvedValue([]);
+    aiRead.mockResolvedValueOnce(busy()).mockResolvedValueOnce(flightReading());
+    const messageId = await upload(user.id, 'later');
+
+    expect(await job().tick(NOW)).toBe(1);
+    expect(await job().tick(new Date(NOW.getTime() + HOUR_MS))).toBe(1);
+    expect(await findRow(orm(), MailIngestMessages, { id: messageId })).toMatchObject({
+      status: 'processed',
+      ai_used: 1,
+    });
+    expect(await entriesOf(messageId)).toMatchObject([{ resolution: 'auto_applied' }]);
+    expect(await countRows(orm(), Reservations, { trip: trip.id })).toBe(1);
+  });
+
+  it('is settled at once when its machine-readable data names the booking', async () => {
+    const user = await person();
+    await makeTrip(orm(), user.id, { start_date: '2030-03-01', end_date: '2030-03-10' });
+    reader.isAvailable.mockResolvedValue(true);
+    aiRead.mockResolvedValue(busy());
+    const messageId = await upload(user.id, 'machine');
+
+    expect(await job().tick(NOW)).toBe(1);
+    expect(await findRow(orm(), MailIngestMessages, { id: messageId })).toMatchObject({
+      status: 'processed',
+      ai_used: 0,
+    });
+    expect(await entriesOf(messageId)).toMatchObject([{ source: 'kitinerary', resolution: 'auto_applied' }]);
+  });
+});
+
 describe('what the person sees', () => {
   const inbox = () => t.get(MailIngestInboxService);
 

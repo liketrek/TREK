@@ -131,6 +131,40 @@ describe('MailReadService.read', () => {
     expect(lines.join(' | ')).not.toContain('ABC123');
   });
 
+  it('flags a failure that may pass, and no other, as worth trying again', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    extract.mockRejectedValue(new LlmRequestError('LLM request failed (503): high demand', 503, undefined));
+    expect(await service.read(input(), 1, '2026-11-13')).toMatchObject({
+      outcome: 'provider_error',
+      bookings: [],
+      transient: true,
+    });
+
+    extract.mockRejectedValue(new LlmRequestError('gate', 429, 'QUOTA_SPENT'));
+    expect(await service.read(input(), 1, '2026-11-13')).toMatchObject({
+      outcome: 'quota_exhausted',
+      transient: false,
+    });
+
+    extract.mockRejectedValue(new LlmRequestError('LLM request failed (401): bad key', 401, undefined));
+    expect(await service.read(input(), 1, '2026-11-13')).toMatchObject({ outcome: 'provider_error', transient: false });
+
+    extract.mockResolvedValue([{ kind: 'new_booking', reservations: [flight], trip_ref: 't1' }]);
+    expect(await service.read(input(), 1, '2026-11-13')).toMatchObject({ outcome: 'ok', transient: false });
+  });
+
+  it('reports an answer in another shape as a provider failure, not as a mail without a booking', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    extract.mockResolvedValue([flight]);
+    expect(await service.read(input(), 1, '2026-11-13')).toMatchObject({
+      outcome: 'provider_error',
+      bookings: [],
+      transient: false,
+    });
+    extract.mockResolvedValue([]);
+    expect((await service.read(input(), 1, '2026-11-13')).outcome).toBe('empty');
+  });
+
   it('reads through the local router without a trip choice', async () => {
     resolve.mockResolvedValue({ provider: 'local', model: 'qwen', vision: 'off' });
     routeExtraction.mockResolvedValue({ kiItems: [flight], warnings: [], outcome: 'ok' });

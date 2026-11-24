@@ -895,7 +895,7 @@ function priceRepeatedTotalOnce(items: ParsedBookingItem[]): ParsedBookingItem[]
  */
 function unmappableWarning(r: KiReservation, fileName: string, index: number): string {
   const reason = r.reservationFor ? 'no name in reservationFor' : 'no reservationFor';
-  return `Incomplete ${r['@type']} in ${fileName}[${index}] (${reason}) — skipped`;
+  return `Incomplete ${r['@type']} in ${fileName}[${index}] (${reason}), skipped`;
 }
 
 export function mapReservations(
@@ -933,7 +933,7 @@ export function mapReservations(
         item = mapEvent(r, source);
         break;
       default:
-        warnings.push(`Unknown type "${r['@type']}" in ${fileName}[${i}] — skipped`);
+        warnings.push(`Unknown type "${r['@type']}" in ${fileName}[${i}], skipped`);
         continue;
     }
 

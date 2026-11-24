@@ -1,6 +1,7 @@
 import { readEnv } from '../../../../src/app-config';
 import { AnthropicClient } from '../../../../src/nest/llm-parse/clients/anthropic.client';
 import { LlmContextOverflowError } from '../../../../src/nest/llm-parse/clients/context-overflow';
+import { LlmRequestError } from '../../../../src/nest/llm-parse/clients/llm-request-error';
 import { OpenAiCompatibleClient } from '../../../../src/nest/llm-parse/clients/openai-compatible.client';
 import type { LlmExtractionInput } from '../../../../src/nest/llm-parse/llm-provider.interface';
 import {
@@ -11,7 +12,7 @@ import {
   toReceiptRead,
 } from '../../../../src/nest/llm-parse/receipt-read';
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { afterEach, describe, it, expect, vi, beforeEach } from 'vitest';
 
 // The clients go through safeFetchLlm (SSRF guard: blocks the cloud-metadata
 // range, allows a local/LAN Ollama). Mock it here so the tests never do a real
@@ -32,8 +33,14 @@ function mockFetch(impl: (url: string, init: RequestInit) => Promise<Response> |
   return safeFetchLlmMock;
 }
 
-function jsonResponse(body: unknown, ok = true, status = 200): Response {
-  return { ok, status, json: async () => body, text: async () => JSON.stringify(body) } as unknown as Response;
+function jsonResponse(body: unknown, ok = true, status = 200, headers: Record<string, string> = {}): Response {
+  return {
+    ok,
+    status,
+    headers: new Headers(headers),
+    json: async () => body,
+    text: async () => JSON.stringify(body),
+  } as unknown as Response;
 }
 
 beforeEach(() => safeFetchLlmMock.mockReset());
@@ -148,7 +155,7 @@ describe('OpenAiCompatibleClient', () => {
       jsonResponse({ choices: [{ message: { content: '{"reservations":[{"@type":"Flig' }, finish_reason: 'length' }] }),
     );
     await expect(new OpenAiCompatibleClient().extract(baseInput)).rejects.toThrow(
-      /cut off at the 4096-token limit — raise LLM_MAX_OUTPUT_TOKENS/,
+      /cut off at the 4096-token limit. Raise LLM_MAX_OUTPUT_TOKENS/,
     );
   });
 
@@ -768,8 +775,9 @@ describe('AnthropicClient', () => {
   });
 
   it('throws on non-2xx', async () => {
-    mockFetch(() => jsonResponse({ error: 'bad' }, false, 500));
-    await expect(new AnthropicClient().extract(baseInput)).rejects.toThrow(/500/);
+    mockFetch(() => jsonResponse({ error: 'bad' }, false, 401));
+    await expect(new AnthropicClient().extract(baseInput)).rejects.toThrow(/401/);
+    expect(safeFetchLlmMock).toHaveBeenCalledTimes(1);
   });
 
   it('sends a native pdf as a base64 document block', async () => {
@@ -783,6 +791,128 @@ describe('AnthropicClient', () => {
     const body = JSON.parse((fetchFn.mock.calls[0][1] as RequestInit).body as string);
     const blocks = body.messages[0].content;
     expect(blocks.some((b: any) => b.type === 'document' && b.source.type === 'base64')).toBe(true);
+  });
+});
+
+/**
+ * A provider that is busy for a moment (a 503 "high demand", a rate limit, a
+ * timeout) used to fail the reading at once, and a forwarded mail ended in the
+ * inbox with nothing read. Each client now asks again, at most twice, within
+ * the one LLM_TIMEOUT_MS.
+ */
+describe('a passing failure is asked again', () => {
+  const okOpenAi = () => jsonResponse({ choices: [{ message: { content: '{"reservations":[{"@type":"X"}]}' } }] });
+  const okAnthropic = () =>
+    jsonResponse({
+      content: [{ type: 'tool_use', name: 'emit_reservations', input: { reservations: [{ '@type': 'X' }] } }],
+    });
+  const busy = (headers: Record<string, string> = {}) =>
+    jsonResponse({ error: { message: 'model is currently experiencing high demand' } }, false, 503, headers);
+
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  /** Runs the extraction with every wait it sets up passed at once; answers what it settled to. */
+  async function settle<T>(run: Promise<T>): Promise<{ value?: T; error?: unknown }> {
+    const outcome = run.then(
+      (value) => ({ value }),
+      (error: unknown) => ({ error }),
+    );
+    await vi.runAllTimersAsync();
+    return outcome;
+  }
+
+  it('reads the answer after a 503 on both clients', async () => {
+    const openai = vi.fn().mockResolvedValueOnce(busy()).mockResolvedValueOnce(okOpenAi());
+    mockFetch(openai);
+    expect((await settle(new OpenAiCompatibleClient().extract(baseInput))).value).toEqual([{ '@type': 'X' }]);
+    expect(openai).toHaveBeenCalledTimes(2);
+
+    const anthropic = vi.fn().mockResolvedValueOnce(busy()).mockResolvedValueOnce(okAnthropic());
+    mockFetch(anthropic);
+    expect((await settle(new AnthropicClient().extract(baseInput))).value).toEqual([{ '@type': 'X' }]);
+    expect(anthropic).toHaveBeenCalledTimes(2);
+  });
+
+  it('gives up after two retries with the last refusal', async () => {
+    mockFetch(() => busy());
+    const { error } = await settle(new AnthropicClient().extract(baseInput));
+    expect(error).toBeInstanceOf(LlmRequestError);
+    expect(error).toMatchObject({ status: 503 });
+    expect(safeFetchLlmMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries a rate limit, a timeout and a dropped connection, never a spent allowance', async () => {
+    const rateLimited = jsonResponse({ error: { code: 'rate_limit_error' } }, false, 429);
+    const flaky = vi
+      .fn()
+      .mockResolvedValueOnce(rateLimited)
+      .mockRejectedValueOnce(new DOMException('aborted', 'AbortError'))
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(okOpenAi());
+    mockFetch(flaky);
+    const { error } = await settle(new OpenAiCompatibleClient().extract(baseInput));
+    expect(error).toBeInstanceOf(TypeError);
+    expect(flaky).toHaveBeenCalledTimes(3);
+
+    mockFetch(() => jsonResponse({ error: 'spent', code: 'QUOTA_SPENT' }, false, 429));
+    const spent = await settle(new OpenAiCompatibleClient().extract(baseInput));
+    expect(spent.error).toMatchObject({ status: 429, code: 'QUOTA_SPENT' });
+    expect(safeFetchLlmMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('keeps the 400 ladder as it was: a refused shape is not a passing failure', async () => {
+    const fetchFn = mockFetch(() => jsonResponse({ error: 'response_format json_schema unsupported' }, false, 400));
+    await settle(new OpenAiCompatibleClient().extract(baseInput));
+    expect(fetchFn).toHaveBeenCalledTimes(3);
+  });
+
+  it('waits as long as Retry-After asks, in seconds or as a date, but no longer than five seconds', async () => {
+    const waits: number[] = [];
+    const realSetTimeout = globalThis.setTimeout;
+    const spy = vi.spyOn(globalThis, 'setTimeout').mockImplementation(((fn: () => void, ms?: number) => {
+      if (ms !== undefined && ms <= 5000) waits.push(ms);
+      return realSetTimeout(fn, ms);
+    }) as typeof setTimeout);
+    try {
+      const later = new Date(Date.now() + 4000).toUTCString();
+      mockFetch(
+        vi
+          .fn()
+          .mockResolvedValueOnce(busy({ 'retry-after': '2' }))
+          .mockResolvedValueOnce(busy({ 'retry-after': later }))
+          .mockResolvedValueOnce(okOpenAi()),
+      );
+      await settle(new OpenAiCompatibleClient().extract(baseInput));
+      expect(waits[0]).toBe(2000);
+      expect(waits[1]).toBeGreaterThan(1000);
+      expect(waits[1]).toBeLessThanOrEqual(2000);
+
+      waits.length = 0;
+      mockFetch(
+        vi
+          .fn()
+          .mockResolvedValueOnce(busy({ 'retry-after': '120' }))
+          .mockResolvedValueOnce(okOpenAi()),
+      );
+      await settle(new OpenAiCompatibleClient().extract(baseInput));
+      expect(waits).toEqual([5000]);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+
+  it('does not retry past the one timeout every try shares', async () => {
+    vi.stubEnv('LLM_TIMEOUT_MS', '1500');
+    try {
+      mockFetch(() => busy());
+      const { error } = await settle(new OpenAiCompatibleClient().extract(baseInput));
+      expect(error).toMatchObject({ status: 503 });
+      // The first wait (1 s) fits the 1.5 s, the second (2 s) does not.
+      expect(safeFetchLlmMock).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });
 

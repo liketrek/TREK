@@ -484,7 +484,7 @@ describe('kitinerary mapper: a rail ticket with changes (#2895)', () => {
     );
 
     expect(items).toEqual([]);
-    expect(warnings).toEqual(['Unknown type "constructor" in odd.json[0] — skipped']);
+    expect(warnings).toEqual(['Unknown type "constructor" in odd.json[0], skipped']);
   });
 });
 
@@ -547,7 +547,7 @@ describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)'
     );
 
     expect(items).toHaveLength(0);
-    expect(warnings).toEqual(['Incomplete LodgingReservation in airbnb.pdf[0] (no name in reservationFor) — skipped']);
+    expect(warnings).toEqual(['Incomplete LodgingReservation in airbnb.pdf[0] (no name in reservationFor), skipped']);
   });
 
   it('warns for a flight that carries no reservationFor at all', () => {
@@ -557,7 +557,7 @@ describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)'
     );
 
     expect(items).toHaveLength(0);
-    expect(warnings).toEqual(['Incomplete FlightReservation in ticket.eml[0] (no reservationFor) — skipped']);
+    expect(warnings).toEqual(['Incomplete FlightReservation in ticket.eml[0] (no reservationFor), skipped']);
   });
 
   it('names the type it could not map, TouristAttractionVisit included', () => {
@@ -566,9 +566,7 @@ describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)'
       'museum.pdf',
     );
 
-    expect(warnings[0]).toBe(
-      'Incomplete TouristAttractionVisit in museum.pdf[0] (no name in reservationFor) — skipped',
-    );
+    expect(warnings[0]).toBe('Incomplete TouristAttractionVisit in museum.pdf[0] (no name in reservationFor), skipped');
   });
 
   it('keeps the bookings it could map and warns only about the weak one', () => {
@@ -592,7 +590,7 @@ describe('kitinerary mapper — a recognised type that cannot be mapped (#2375)'
     );
 
     expect(items).toHaveLength(0);
-    expect(warnings).toEqual(['Unknown type "RocketLaunchReservation" in mars.eml[0] — skipped']);
+    expect(warnings).toEqual(['Unknown type "RocketLaunchReservation" in mars.eml[0], skipped']);
   });
 });
 

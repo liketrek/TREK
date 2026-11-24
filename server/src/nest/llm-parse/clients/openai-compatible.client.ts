@@ -5,6 +5,7 @@ import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.in
 import { isContextOverflow, LlmContextOverflowError } from './context-overflow';
 import { llmRequestError } from './llm-request-error';
 import { isNuExtractModel, buildNuExtractUserText, nuExtractToKiReservations } from './nuextract';
+import { sendWithRetry } from './transient-retry';
 
 /** The answer cap when LLM_MAX_OUTPUT_TOKENS is unset. */
 const DEFAULT_MAX_TOKENS = 4096;
@@ -148,8 +149,7 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
     };
     const tried = { tokenParam: false, temperature: false, jsonObject: false, noResponseFormat: false };
 
-    let res = await this.send(url, buildBody(shape), input.apiKey);
-    let detail = res.ok ? '' : await res.text().catch(() => '');
+    let { res, detail } = await this.send(url, buildBody(shape), input.apiKey);
 
     // A 400 is the server naming the parameter it dislikes. Apply every remedy it
     // names, and only when it names none fall back to json_object — the unchanged
@@ -183,8 +183,7 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
           tried.jsonObject = true;
         }
       }
-      res = await this.send(url, buildBody(shape), input.apiKey);
-      detail = res.ok ? '' : await res.text().catch(() => '');
+      ({ res, detail } = await this.send(url, buildBody(shape), input.apiKey));
     }
 
     if (!res.ok) {
@@ -203,31 +202,27 @@ export class OpenAiCompatibleClient implements LlmExtractionClient {
     // no hint that a setting would fix it (#2677). Same rule as the Anthropic client.
     if (data.choices?.[0]?.finish_reason === 'length') {
       throw new UnreadableLlmResponse(
-        `the answer was cut off at the ${maxTokens}-token limit — raise LLM_MAX_OUTPUT_TOKENS or import fewer bookings per document`,
+        `the answer was cut off at the ${maxTokens}-token limit. Raise LLM_MAX_OUTPUT_TOKENS or import fewer bookings per document`,
       );
     }
     const content = data.choices?.[0]?.message?.content;
     return nuextract ? parseNuExtract(content) : parseReservations(content, rootKey);
   }
 
-  private async send(url: string, body: unknown, apiKey?: string): Promise<Response> {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), readEnv().integrations.llmTimeoutMs);
-    try {
-      // baseUrl is user-configurable — guard it against pointing at the cloud
-      // metadata endpoint, while still allowing a local/LAN Ollama.
-      return await safeFetchLlm(url, {
+  private send(url: string, body: unknown, apiKey?: string) {
+    // baseUrl is user-configurable: guard it against pointing at the cloud
+    // metadata endpoint, while still allowing a local/LAN Ollama.
+    return sendWithRetry((signal) =>
+      safeFetchLlm(url, {
         method: 'POST',
-        signal: controller.signal,
+        signal,
         headers: {
           'content-type': 'application/json',
           ...(apiKey ? { authorization: `Bearer ${apiKey}` } : {}),
         },
         body: JSON.stringify(body),
-      });
-    } finally {
-      clearTimeout(timer);
-    }
+      }),
+    );
   }
 }
 

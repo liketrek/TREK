@@ -101,6 +101,8 @@ COPY --from=gosu-build /out/gosu /usr/local/bin/gosu
 ENV XDG_CACHE_HOME=/tmp/kf6-cache
 # Prevent Qt from probing for a display in headless containers.
 ENV QT_QPA_PLATFORM=offscreen
+# A UTF-8 locale, so Qt does not warn about the C locale on every extractor run.
+ENV LANG=C.UTF-8
 # Fixed path for both amd64 (static binary) and arm64 (symlink to apt binary).
 # Override with KITINERARY_EXTRACTOR_PATH if you install it elsewhere.
 ENV KITINERARY_EXTRACTOR_PATH=/usr/local/bin/kitinerary-extractor

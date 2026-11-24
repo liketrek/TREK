@@ -158,7 +158,7 @@ export class LlmParseService {
       );
       return {
         receipt: null,
-        warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+        warnings: [`${file.originalName}: AI parsing failed: ${err instanceof Error ? err.message : String(err)}`],
       };
     }
 
@@ -266,7 +266,7 @@ export class LlmParseService {
       console.error(`[llm-parse] Could not read "${file.originalName}":`, err instanceof Error ? err.message : err);
       return {
         kiItems: [],
-        warnings: [`${file.originalName}: could not read file — ${err instanceof Error ? err.message : String(err)}`],
+        warnings: [`${file.originalName}: could not read file: ${err instanceof Error ? err.message : String(err)}`],
         outcome: failureOutcome(err),
       };
     }
@@ -296,7 +296,7 @@ export class LlmParseService {
         );
         return {
           kiItems: [],
-          warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+          warnings: [`${file.originalName}: AI parsing failed: ${err instanceof Error ? err.message : String(err)}`],
           outcome: failureOutcome(err),
         };
       }
@@ -320,7 +320,7 @@ export class LlmParseService {
       );
       return {
         kiItems: [],
-        warnings: [`${file.originalName}: AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+        warnings: [`${file.originalName}: AI parsing failed: ${err instanceof Error ? err.message : String(err)}`],
         outcome: failureOutcome(err),
       };
     }

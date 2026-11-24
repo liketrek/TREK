@@ -135,10 +135,55 @@ describe('BookingImportService.preview', () => {
     const { svc } = make({
       kit: true,
       ai: true,
-      parse: async () => ({ kiItems: [], warnings: ['a.pdf: AI parsing failed — 429'], outcome: 'quota_exhausted' }),
+      parse: async () => ({ kiItems: [], warnings: ['a.pdf: AI parsing failed: 429'], outcome: 'quota_exhausted' }),
     });
     const res = await svc.preview([file()], 'fallback-on-empty', 1);
     expect(res.files).toEqual([{ fileName: 'a.pdf', aiAvailable: true, aiUsed: true, outcome: 'quota_exhausted' }]);
+  });
+
+  it('says no reservations were found only where the AI did not fail', async () => {
+    const failed = make({
+      kit: true,
+      ai: true,
+      extract: async () => [],
+      parse: async () => ({
+        kiItems: [],
+        warnings: ['a.pdf: AI parsing failed: LLM request failed (503): high demand'],
+        outcome: 'provider_error',
+      }),
+    });
+    expect((await failed.svc.preview([file()], 'fallback-on-empty', 1)).warnings).toEqual([
+      'a.pdf: AI parsing failed: LLM request failed (503): high demand',
+    ]);
+
+    const quiet = await Promise.all(
+      (['empty', undefined] as const).map((outcome) =>
+        make({
+          kit: true,
+          ai: true,
+          extract: async () => [],
+          parse: async () => ({ kiItems: [], warnings: [], ...(outcome && { outcome }) }),
+        }).svc.preview([file()], 'fallback-on-empty', 1),
+      ),
+    );
+    for (const res of quiet) expect(res.warnings).toEqual(['a.pdf: no reservations found']);
+
+    // The local router's warnings do not name the file, so the line that does stays.
+    const local = make({
+      kit: true,
+      ai: true,
+      extract: async () => [],
+      parse: async () => ({ kiItems: [], warnings: ['AI parsing failed: model not found'], outcome: 'provider_error' }),
+    });
+    expect((await local.svc.preview([file()], 'fallback-on-empty', 1)).warnings).toEqual([
+      'AI parsing failed: model not found',
+      'a.pdf: no reservations found',
+    ]);
+
+    const noAi = make({ kit: true, ai: false, extract: async () => [] });
+    expect((await noAi.svc.preview([file()], 'fallback-on-empty', 1)).warnings).toEqual([
+      'a.pdf: no reservations found',
+    ]);
   });
 
   it('fallback-on-empty: skips the LLM when kitinerary already found items', async () => {

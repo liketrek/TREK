@@ -60,4 +60,6 @@ export interface MailReading {
   documentText: string;
   /** Nothing but page images and photos went to the model, so no value can be checked against text. */
   imageOnly: boolean;
+  /** The reading failed in a way that may pass (a busy provider, a timeout): worth trying again later. */
+  transient: boolean;
 }

@@ -4,7 +4,7 @@ import { LlmRequestError } from '../../../../src/nest/llm-parse/clients/llm-requ
 import { ImageTooLargeError } from '../../../../src/nest/llm-parse/image-input';
 import type { LlmConfigResolver } from '../../../../src/nest/llm-parse/llm-config.resolver';
 import type { LlmLocalService } from '../../../../src/nest/llm-parse/llm-local.service';
-import { failureOutcome } from '../../../../src/nest/llm-parse/llm-outcome';
+import { failureOutcome, isTransientLlmFailure } from '../../../../src/nest/llm-parse/llm-outcome';
 import { LlmParseService } from '../../../../src/nest/llm-parse/llm-parse.service';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -441,7 +441,7 @@ describe('LlmParseService: a photo', () => {
     resolveLlmConfig.mockReturnValue(cfg({ vision: 'on' }));
     const res = await svc().parse({ buffer: pngClaiming(20000, 20000), originalName: 'ticket.png' }, 1);
     expect(res.kiItems).toEqual([]);
-    expect(res.warnings[0]).toMatch(/^ticket\.png: could not read file .*20000 x 20000 pixels/);
+    expect(res.warnings[0]).toMatch(/^ticket\.png: could not read file: .*20000 x 20000 pixels/);
     expect(extract).not.toHaveBeenCalled();
   });
 
@@ -517,7 +517,7 @@ describe('LlmParseService.readReceipt', () => {
     extract.mockRejectedValue(new Error('429'));
     const failed = await svc().readReceipt(file('r.jpg'), 1);
     expect(failed.receipt).toBeNull();
-    expect(failed.warnings[0]).toMatch(/AI parsing failed — 429/);
+    expect(failed.warnings[0]).toMatch(/AI parsing failed: 429/);
     extract.mockResolvedValue([]);
     expect(await svc().readReceipt(file('r.jpg'), 1)).toEqual({
       receipt: null,
@@ -753,5 +753,25 @@ describe('LlmParseService.parse outcome', () => {
     expect(failureOutcome(new LlmContextOverflowError('prompt is too long'))).toBe('too_large');
     expect(failureOutcome(new ImageTooLargeError('too many pixels'))).toBe('too_large');
     expect(failureOutcome('boom')).toBe('provider_error');
+  });
+
+  it('LLM-OUTCOME-006: a busy provider, a timeout and a dropped connection may pass; a spent allowance does not', () => {
+    for (const status of [408, 500, 502, 503, 504]) {
+      expect(isTransientLlmFailure(new LlmRequestError('x', status, undefined))).toBe(true);
+    }
+    expect(isTransientLlmFailure(new LlmRequestError('x', 429, undefined))).toBe(true);
+    expect(isTransientLlmFailure(new LlmRequestError('x', 429, 'rate_limit_error'))).toBe(true);
+    expect(isTransientLlmFailure(new LlmRequestError('x', 429, 'QUOTA_SPENT'))).toBe(false);
+    expect(isTransientLlmFailure(new LlmRequestError('x', 429, 'HARD_CAP'))).toBe(false);
+    for (const status of [400, 401, 403, 404, 413, 501]) {
+      expect(isTransientLlmFailure(new LlmRequestError('x', status, undefined))).toBe(false);
+    }
+    expect(isTransientLlmFailure(new DOMException('aborted', 'AbortError'))).toBe(true);
+    expect(isTransientLlmFailure(new DOMException('timed out', 'TimeoutError'))).toBe(true);
+    expect(isTransientLlmFailure(new TypeError('fetch failed'))).toBe(true);
+    expect(isTransientLlmFailure(new TypeError('x is not a function'))).toBe(false);
+    expect(isTransientLlmFailure(new LlmContextOverflowError('prompt is too long'))).toBe(false);
+    expect(isTransientLlmFailure(new Error('LLM request failed (503)'))).toBe(false);
+    expect(isTransientLlmFailure('boom')).toBe(false);
   });
 });

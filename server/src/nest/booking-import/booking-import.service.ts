@@ -210,6 +210,7 @@ export class BookingImportService {
       let kiItems: KiReservation[] = [];
       let aiUsed = false;
       let outcome: LlmParseOutcome | undefined;
+      let aiNamedFile = false;
 
       // Stage 1: kitinerary (skipped entirely when forcing AI, and for a photo,
       // which only a model can read).
@@ -219,7 +220,7 @@ export class BookingImportService {
           kiItems = await this.extractor.extract(file.buffer, file.originalname);
         } catch (err) {
           allWarnings.push(
-            `${file.originalname}: extraction failed — ${err instanceof Error ? err.message : String(err)}`,
+            `${file.originalname}: extraction failed: ${err instanceof Error ? err.message : String(err)}`,
           );
         }
       }
@@ -232,12 +233,17 @@ export class BookingImportService {
         kiItems = llm.kiItems;
         outcome = llm.outcome;
         allWarnings.push(...llm.warnings);
+        aiNamedFile = llm.warnings.some((w) => w.startsWith(`${file.originalname}:`));
       }
 
       fileReports.push({ fileName: file.originalname, aiAvailable, aiUsed, ...(outcome && { outcome }) });
 
       if (kiItems.length === 0) {
-        allWarnings.push(`${file.originalname}: no reservations found`);
+        // A failed AI reading that named the file has said why already.
+        const aiSaidWhy = aiNamedFile && outcome !== undefined && outcome !== 'ok' && outcome !== 'empty';
+        if (!aiSaidWhy) {
+          allWarnings.push(`${file.originalname}: no reservations found`);
+        }
       } else {
         const { items, warnings } = await this.mapAndLocate(kiItems, file.originalname, aiUsed, geoCache);
         allItems.push(...items);
@@ -274,7 +280,7 @@ export class BookingImportService {
         geoCache,
       );
       for (const name of missed) {
-        warnings.push(`${fileName}: could not locate "${name}" — set it manually before saving`);
+        warnings.push(`${fileName}: could not locate "${name}", set it manually before saving`);
       }
     }
     return { items, warnings };

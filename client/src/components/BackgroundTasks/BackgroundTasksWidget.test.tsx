@@ -40,7 +40,7 @@ beforeEach(() => {
 
 describe('BackgroundTasksWidget', () => {
   it('shows the warnings when a finished job produced no items', () => {
-    const warning = 'voucher.pdf: AI parsing failed — LLM request failed (400): response_format unsupported'
+    const warning = 'voucher.pdf: AI parsing failed: LLM request failed (400): response_format unsupported'
     useBackgroundTasksStore.setState({ tasks: [task({ warnings: [warning] })] })
     render(<BackgroundTasksWidget />)
     expect(screen.getByText('No reservations could be extracted from the uploaded files.')).toBeInTheDocument()
@@ -141,7 +141,7 @@ describe('BackgroundTasksWidget', () => {
    * disappeared on save.
    */
   it('shows the warnings on a job that did produce items', () => {
-    const warning = 'voucher.pdf: could not locate "Curbside Pickup Counter 7" — set it manually before saving'
+    const warning = 'voucher.pdf: could not locate "Curbside Pickup Counter 7", set it manually before saving'
     useBackgroundTasksStore.setState({
       tasks: [task({ items: [{ id: 1 } as never], warnings: [warning] })],
     })

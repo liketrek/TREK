@@ -348,7 +348,7 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
   } catch (err) {
     return {
       kiItems: [],
-      warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+      warnings: [`AI parsing failed: ${err instanceof Error ? err.message : String(err)}`],
       outcome: failureOutcome(err),
     };
   }
@@ -375,7 +375,7 @@ export async function routeImageExtraction(images: Buffer[], ctx: RouterContext)
   } catch (err) {
     return {
       kiItems: [],
-      warnings: [`AI parsing failed — ${err instanceof Error ? err.message : String(err)}`],
+      warnings: [`AI parsing failed: ${err instanceof Error ? err.message : String(err)}`],
       outcome: failureOutcome(err),
     };
   }

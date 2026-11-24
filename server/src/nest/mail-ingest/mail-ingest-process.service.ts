@@ -166,6 +166,11 @@ export class MailIngestProcessService {
     const read = await this.reading.read({ mail, machine, person, prefs, trips, now });
     const done = { ...outcome, aiUsed: read.aiUsed };
     if (read.drafts.length === 0) {
+      // A busy provider is asked again later; only after the last try does the mail wait in the inbox.
+      if (read.transientFailure && message.attempts < MAIL_INGEST_LIMITS.maxAttempts) {
+        await this.retryLater(message, now);
+        return;
+      }
       if (read.emptyReason === 'not_a_booking') {
         await this.messages.finish(message.id, { ...done, status: 'discarded', reason: 'not_a_booking' });
         return;
@@ -458,7 +463,7 @@ export class MailIngestProcessService {
   private async failed(message: MailIngestMessageRow, err: unknown, now: Date): Promise<void> {
     logError(`[mail-ingest] Reading mail ${message.id} failed: ${err instanceof Error ? err.message : String(err)}`);
     if (message.attempts < MAIL_INGEST_LIMITS.maxAttempts) {
-      await this.messages.retryLater(message.id, dbNow(new Date(now.getTime() + RETRY_STEP_MS * message.attempts)));
+      await this.retryLater(message, now);
       return;
     }
     await this.messages.finish(message.id, {
@@ -466,6 +471,11 @@ export class MailIngestProcessService {
       status: 'failed',
       reason: 'processing_failed',
     });
+  }
+
+  /** The mail goes back in the queue, to wait longer with each try. */
+  private async retryLater(message: MailIngestMessageRow, now: Date): Promise<void> {
+    await this.messages.retryLater(message.id, dbNow(new Date(now.getTime() + RETRY_STEP_MS * message.attempts)));
   }
 }
 

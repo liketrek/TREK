@@ -5,6 +5,7 @@ import type { LlmExtractionClient, LlmExtractionInput } from '../llm-provider.in
 import { isContextOverflow, LlmContextOverflowError } from './context-overflow';
 import { llmRequestError } from './llm-request-error';
 import { UnreadableLlmResponse } from './openai-compatible.client';
+import { sendWithRetry } from './transient-retry';
 
 /** The answer cap when LLM_MAX_OUTPUT_TOKENS is unset. */
 const DEFAULT_MAX_TOKENS = 8192;
@@ -65,28 +66,22 @@ export class AnthropicClient implements LlmExtractionClient {
       messages: [{ role: 'user', content }],
     };
 
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), readEnv().integrations.llmTimeoutMs);
-    let res: Response;
-    try {
-      // baseUrl is user-configurable — guard it against pointing at the cloud
-      // metadata endpoint, while still allowing a local/LAN gateway.
-      res = await safeFetchLlm(url, {
+    // baseUrl is user-configurable: guard it against pointing at the cloud
+    // metadata endpoint, while still allowing a local/LAN gateway.
+    const { res, detail } = await sendWithRetry((signal) =>
+      safeFetchLlm(url, {
         method: 'POST',
-        signal: controller.signal,
+        signal,
         headers: {
           'content-type': 'application/json',
           'x-api-key': input.apiKey ?? '',
           'anthropic-version': ANTHROPIC_VERSION,
         },
         body: JSON.stringify(body),
-      });
-    } finally {
-      clearTimeout(timer);
-    }
+      }),
+    );
 
     if (!res.ok) {
-      const detail = await res.text().catch(() => '');
       const refused = llmRequestError('Anthropic request failed', res.status, detail);
       // A gateway in front of a smaller model can run out of context (#2652, #2655).
       if (res.status === 400 && isContextOverflow(detail)) throw new LlmContextOverflowError(refused.message);
@@ -108,7 +103,7 @@ export class AnthropicClient implements LlmExtractionClient {
     // log: the #2375 symptom, on the provider the dropdown offers first.
     if (data.stop_reason === 'max_tokens') {
       throw new UnreadableLlmResponse(
-        `the answer was cut off at the ${maxTokens}-token limit — raise LLM_MAX_OUTPUT_TOKENS or import fewer bookings per document`,
+        `the answer was cut off at the ${maxTokens}-token limit. Raise LLM_MAX_OUTPUT_TOKENS or import fewer bookings per document`,
       );
     }
 

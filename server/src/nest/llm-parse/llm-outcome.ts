@@ -19,6 +19,23 @@ export function failureOutcome(err: unknown): LlmParseOutcome {
   return 'provider_error';
 }
 
+/** The statuses a provider answers with when it is busy or briefly down, not when the request is wrong. */
+const TRANSIENT_STATUSES = new Set([408, 500, 502, 503, 504]);
+
+/**
+ * Whether a failed request may well succeed when sent again shortly: a busy or
+ * briefly broken provider, a rate limit that is no spent Cloud allowance, a
+ * request that timed out or a connection that dropped.
+ */
+export function isTransientLlmFailure(err: unknown): boolean {
+  if (err instanceof LlmRequestError) {
+    if (err.status === 429) return err.code === undefined || !QUOTA_CODES.has(err.code);
+    return TRANSIENT_STATUSES.has(err.status);
+  }
+  if (err instanceof Error && (err.name === 'AbortError' || err.name === 'TimeoutError')) return true;
+  return err instanceof TypeError && /fetch failed/i.test(err.message);
+}
+
 /** A reading that found bookings or did not. */
 export function foundOutcome(items: readonly unknown[]): LlmParseOutcome {
   return items.length > 0 ? 'ok' : 'empty';

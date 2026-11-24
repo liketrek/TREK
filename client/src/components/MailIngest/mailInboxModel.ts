@@ -14,8 +14,9 @@ export type InboxAction = 'add' | 'choose' | 'file' | 'manual' | 'discard';
 const INFO_ONLY: ReadonlySet<MailIngestReason> = new Set(['forwarding_confirmation', 'newsletter', 'auto_reply']);
 
 /**
- * A passing AI failure is read again by the server on its own; an allowance
- * used up leaves the form and the document, so there is no "read again" here.
+ * The server reads a mail again after a passing AI failure and keeps it here
+ * only once its last try failed too; an allowance used up leaves the form and
+ * the document, so there is no "read again" here.
  */
 export function actionsOf(entry: MailIngestInboxEntry): InboxAction[] {
   const reason = entry.reason ?? entry.message.reason;
