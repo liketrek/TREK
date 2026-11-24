@@ -109,6 +109,15 @@ describe('RoadtripStayModal', () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled())
   })
 
+  it('reopens a stay longer than one day and saves exactly seven days', async () => {
+    const { onSave } = open({ minutes: 2880, assignmentId: 42 })
+    const minutes = screen.getByRole('textbox', { name: 'Stay (min)' })
+    expect(minutes).toHaveValue('2880')
+    fireEvent.change(minutes, { target: { value: '10080' } })
+    fireEvent.click(screen.getByRole('button', { name: /^save$/i }))
+    await waitFor(() => expect(onSave).toHaveBeenCalledWith(9, 10_080, 42))
+  })
+
   it('FE-STAYMODAL-010: clearing sends a zero, never a null', async () => {
     // The update statement folds a null into "leave it alone", so a null could
     // give a stop a stay and never take one away.

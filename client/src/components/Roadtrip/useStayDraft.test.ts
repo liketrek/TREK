@@ -6,18 +6,19 @@ import { describe, expect, it } from 'vitest';
 import { STAY_MAX, STAY_PRESETS, STAY_STEP, clampStay, stayPreview, useStayDraft } from './useStayDraft';
 
 describe('stay limits and preview', () => {
-  it('FE-ROADTRIP-STAYDRAFT-001: the presets, the step and a full day as the most a stay goes', () => {
+  it('FE-ROADTRIP-STAYDRAFT-001: the presets, the step and seven days as the most a stay goes', () => {
     expect(STAY_PRESETS).toEqual([15, 30, 45, 60, 90, 120, 480, 720]);
     expect(STAY_STEP).toBe(5);
-    expect(STAY_MAX).toBe(1440);
+    expect(STAY_MAX).toBe(10_080);
     expect(clampStay(-10)).toBe(0);
-    expect(clampStay(2000)).toBe(1440);
+    expect(clampStay(10_081)).toBe(10_080);
     expect(clampStay(42.5)).toBe(43);
   });
 
   it('FE-ROADTRIP-STAYDRAFT-002: the stay moves the departure and carries it past midnight', () => {
     expect(stayPreview('09:30', 90, false)).toEqual({ arrive: '09:30', leave: '11:00', carry: 0 });
     expect(stayPreview('23:00', 120, false)).toEqual({ arrive: '23:00', leave: '01:00', carry: 1 });
+    expect(stayPreview('23:00', STAY_MAX, false)).toEqual({ arrive: '23:00', leave: '23:00', carry: 7 });
     expect(stayPreview('13:00', 0, true)).toMatchObject({ arrive: '1:00 PM', leave: '1:00 PM' });
     expect(stayPreview(null, 30, false)).toBeNull();
     expect(stayPreview(undefined, 30, false)).toBeNull();
@@ -40,15 +41,15 @@ describe('useStayDraft', () => {
     expect(result.current.preview).toBeNull();
   });
 
-  it('FE-ROADTRIP-STAYDRAFT-004: a step never leaves none to a full day', () => {
+  it('FE-ROADTRIP-STAYDRAFT-004: a step stays between zero and seven days', () => {
     const { result } = renderHook(() => useStayDraft({ arrival: null, is12h: false, initial: 0, wholeMinutes: true }));
     act(() => result.current.nudge(-STAY_STEP));
     expect(result.current.minutes).toBe(0);
     act(() => result.current.nudge(STAY_STEP));
     expect(result.current.minutes).toBe(5);
-    act(() => result.current.setMinutes(1438));
+    act(() => result.current.setMinutes(10_078));
     act(() => result.current.nudge(STAY_STEP));
-    expect(result.current.minutes).toBe(1440);
+    expect(result.current.minutes).toBe(10_080);
   });
 
   it('FE-ROADTRIP-STAYDRAFT-005: only the phone rounds a stored fraction to whole minutes on a step', () => {

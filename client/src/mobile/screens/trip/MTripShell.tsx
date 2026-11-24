@@ -256,6 +256,8 @@ export default function MTripShell({
 
   const trTab = planner.activeTab
   const lastDayRef = useRef<number | null>(null)
+  const mapKeepsAllDays = (trTab === 'plan' && (view === 'map' || (split && mode === 'browse')))
+    || (trTab === 'roadtrip' && rtView === 'map')
   useEffect(() => {
     if (isLoading || days.length === 0) return
     const id = planner.selectedDayId
@@ -263,11 +265,11 @@ export default function MTripShell({
       lastDayRef.current = id
       return
     }
-    if (id == null && ((trTab === 'plan' && (view === 'map' || (split && mode === 'browse'))) || (trTab === 'roadtrip' && rtView === 'map'))) return
+    if (id == null && mapKeepsAllDays) return
     const previous = takeResumeDay(tripId) ?? lastDayRef.current
     const valid = previous != null && days.some(d => d.id === previous) ? previous : null
     planner.tripActions.setSelectedDay(valid ?? findFocusDayId(days) ?? days[0].id)
-  }, [isLoading, days, planner.selectedDayId, planner.tripActions, tripId, trTab, view, rtView, split, mode])
+  }, [isLoading, days, planner.selectedDayId, planner.tripActions, tripId, mapKeepsAllDays])
 
   // Swiping the day panel (#2051) can move the day well past the chips on
   // screen — the rail overflows from roughly six days on — so the active chip

@@ -4,20 +4,18 @@ Trip, expense, and display currencies each do a different job. The **Common curr
 
 | Setting | Where | Question it answers | Affects |
 |---|---|---|---|
-| **Trip currency** | My Trips → pencil on the trip card (**Edit Trip**) | *What is this trip's money?* | Stored data: the base every balance is calculated in |
+| **Trip currency** | My Trips → pencil on the trip card (**Edit Trip**) | *What is this trip's money?* | Accounting base for saved exchange rates |
 | **Expense currency** | Costs → expense modal | *What currency did I actually pay in?* | Stored data: that one expense |
 | **Display currency** | Settings → General → Language & region | *What currency do I want to read?* | Currency for reading costs and recording a suggested repayment |
 | **Common currencies** | Settings → General → Language & region | *Which currencies should appear first in menus?* | Menu order only |
 
-The short version: **the trip currency is the accounting base, the expense currency is the receipt, and the display currency is your reading glasses.**
-
 ## Trip currency
 
-Every trip has exactly one currency. It is set when you create the trip and can be changed later in the same dialog: on **My Trips**, click the pencil on the trip card (**Edit Trip**), or in the planner open **Trip settings** and pick **Edit Trip** at the foot of its list. This needs the `trip_edit` permission. The new-trip dialog pre-fills it with **your display currency**, falling back to **EUR** when you have left that on *Trip currency*. A trip created through MCP or by a plugin without a currency gets the same value. This is the one moment the display currency touches stored data: it seeds the field, and from then on the trip's currency is its own.
+Every trip has exactly one currency. It is set when you create the trip and can be changed later in the same dialog: on **My Trips**, click the pencil on the trip card (**Edit Trip**), or in the planner open **Trip settings** and pick **Edit Trip** at the foot of its list. This needs the `trip_edit` permission. The new-trip dialog pre-fills it with **your display currency**, falling back to **EUR** when you have left that on *Trip currency*. A trip created through MCP or by a plugin without a currency gets the same value. The trip keeps its own currency after creation.
 
-This is the trip's **accounting base**. It is not a cosmetic label:
+The trip currency serves as the **accounting base**.
 
-- Every balance, debt and settle-up suggestion is calculated in it.
+- Saved exchange rates are quoted against it. The Costs page calculates debts and suggested repayments in the selected display currency.
 - Every expense in another currency is converted **into it** and stored with the rate it was converted at.
 - It is what the Costs tab falls back to when nobody has expressed a display preference.
 
@@ -31,7 +29,7 @@ Changing it is **not** a relabelling: it is a re-basing, and TREK does the work 
 - Every frozen exchange rate is **re-anchored** to the new base, because a frozen rate is stored relative to the trip currency (see below).
 - **Place prices** are pinned the same way. A place price also inherits the trip's currency unless you gave it one of its own, so a €15 museum on a trip switching to JPY is stamped EUR rather than starting to read as ¥15.
 
-The numbers you typed are never rewritten. Each expense keeps its original amount, in its original currency, and its real-world value survives the switch. Only the base the balances are expressed in changes.
+The numbers you typed are never rewritten. Each expense keeps its original amount, in its original currency, and its real-world value survives the switch. Saved rates now use the new accounting base.
 
 ## Expense currency
 
@@ -47,7 +45,7 @@ TREK keeps a global snapshot of rates from [Frankfurter](https://frankfurter.dev
 
 ### Settle-up payments
 
-A payment recorded in **Settle Up** also carries its own currency, for the same reason: settling a rouble debt with a euro transfer is perfectly normal. Its rate is frozen at the moment you record it, exactly like an expense's, so the payment keeps cancelling the debt it was meant to cancel. A payment counts on the local day you give it, not on the day of the server.
+Confirming a suggested payment in **Settle Up** records the displayed amount and currency using the quoted rate. You can record a partial payment with the same quote. The payment counts on the local date you enter.
 
 ## Decimals and formats
 
@@ -55,7 +53,7 @@ Every currency is shown with its own number of decimals. Most use two. The Japan
 
 ## Trip exchange rates
 
-Open **Exchange rates** from the Costs header on desktop or the **More** menu on mobile. Every trip member can inspect the rates. Members with `budget_edit` can save or delete a trip default. Changing a default affects future transactions.
+Open **Exchange rates** from the Costs header on desktop or the **More** menu on mobile. Every trip member can inspect the rates. Members with `budget_edit` can save or delete a trip default. Changing a default affects future transactions and rows that still need a conversion rate. Expenses and payments with a saved rate keep it.
 
 To change the rates on existing expenses and payments, preview the changes, select the rows, and apply them. If the preview goes out of date, create a new one before applying it. You can also edit one transaction at a time.
 
@@ -108,7 +106,7 @@ Changing the trip currency requires `trip_edit`. Adding or editing expenses (and
 Fixed in v3.4.0 (#1543). The settlement was reading the trip currency incorrectly and treating every trip as EUR, which inflated balances on any non-EUR trip that had a foreign-currency expense. Upgrade; no data was damaged and nothing needs fixing by hand.
 
 **"The totals move slightly from day to day."**
-Display conversion uses the current global snapshot. The underlying balances and debts do not move.
+When a conversion uses the system rate, a newer snapshot can change the amount shown. Recorded payments keep their saved amounts and currencies.
 
 **"A foreign expense does not count in the balances or the total."**
 The expense has no usable exchange rate. If you can edit costs, enter a rate on the expense or use the trip exchange rate preview and apply the change. Opening Costs does not write a rate.

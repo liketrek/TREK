@@ -121,17 +121,15 @@ export function usePlaceEdits(options: PlaceEditsOptions) {
           if (stay_minutes !== undefined) {
             await tripActions.setAssignmentStay(tripId, Number(dayKey), editingAssignmentId, stay_minutes)
           }
-          if (place_time !== undefined || end_time !== undefined) {
-            const visit = assignments[dayKey].find(a => a.id === editingAssignmentId)
-            const current = requiredVisitTimes(visit)
-            const start = place_time === undefined ? current.start : place_time || null
-            const end = end_time === undefined ? current.end : end_time || null
-            if (start !== current.start || end !== current.end) {
-              await tripActions.setAssignmentTimes(tripId, Number(dayKey), editingAssignmentId, {
-                place_time: start,
-                end_time: end,
-              })
-            }
+          const visit = assignments[dayKey].find(a => a.id === editingAssignmentId)
+          const current = requiredVisitTimes(visit)
+          const start = place_time === undefined ? current.start : place_time || null
+          const end = end_time === undefined ? current.end : end_time || null
+          if (start !== current.start || end !== current.end) {
+            await tripActions.setAssignmentTimes(tripId, Number(dayKey), editingAssignmentId, {
+              place_time: start,
+              end_time: end,
+            })
           }
           // The form only includes assignment_notes when the user changed it, so
           // an untouched note never produces a PUT (#2163). '' clears like null.

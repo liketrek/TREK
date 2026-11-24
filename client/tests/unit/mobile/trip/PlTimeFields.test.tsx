@@ -26,6 +26,7 @@ const SELF = assignment(1, 'Museum', '10:00', '11:00')
 interface Options {
   startTime?: string
   endTime?: string
+  stay?: string
   dayAssignments?: Assignment[]
   hasTimeError?: boolean
   assignmentId?: number
@@ -34,6 +35,7 @@ interface Options {
 function setup({
   startTime = '10:00',
   endTime = '11:00',
+  stay,
   dayAssignments = [SELF],
   hasTimeError = false,
   assignmentId = 1,
@@ -44,6 +46,7 @@ function setup({
       planner={planner}
       startTime={startTime}
       endTime={endTime}
+      stay={stay}
       onChange={onChange}
       assignmentId={assignmentId}
       dayAssignments={dayAssignments}
@@ -78,6 +81,14 @@ describe('PlTimeFields', () => {
     const { end, onChange } = setup()
     fireEvent.change(end, { target: { value: '12:45' } })
     expect(onChange).toHaveBeenCalledWith('end_time', '12:45')
+  })
+
+  it('keeps a saved long stay and reports exact seven-day edits', () => {
+    const { onChange } = setup({ stay: '2880' })
+    const stayInput = screen.getByRole('textbox', { name: 'roadtrip.stop.stayShort (roadtrip.limit.minutes)' })
+    expect(stayInput).toHaveValue('2880')
+    fireEvent.change(stayInput, { target: { value: '10080' } })
+    expect(onChange).toHaveBeenCalledWith('assignment_stay', '10080')
   })
 
   // #2067 — the desktop twin (PlaceFormModal) has used CustomTimePicker for ages;
@@ -186,6 +197,7 @@ describe('PlTimeFields', () => {
         planner={buildPlanner({ tours: [hike] } as never)}
         startTime={startTime}
         endTime={endTime}
+      stay={stay}
         onChange={vi.fn()}
         assignmentId={1}
         dayAssignments={[SELF]}

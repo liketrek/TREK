@@ -57,7 +57,7 @@ The parameter is consumed on arrival and disappears from the address bar; switch
 
 ## Currency
 
-Your **display currency**: the currency you want to *read* amounts in on the Costs tab (totals, the category chart, balances, settle-up). It is presentation only: it never changes what is stored, and two members of the same trip can read it in different currencies and both see correct balances.
+Your **display currency** sets the currency used for totals, the category chart, balances, and suggested repayments on the Costs tab. Confirming a suggested repayment records it in the currency shown. Changing your preference preserves previously recorded transactions.
 
 | Option | Behaviour |
 |--------|-----------|
@@ -66,7 +66,7 @@ Your **display currency**: the currency you want to *read* amounts in on the Cos
 
 165 currencies are available. Conversion uses the current global snapshot, so a displayed total can shift when the snapshot refreshes while the trip's balances stay fixed.
 
-> This is **not** the trip's currency, which is set on the trip itself and is the base its balances are calculated in. The distinction matters, see [Currencies](Currencies).
+> The trip currency is set on the trip itself and provides the base for saved exchange rates. See [Currencies](Currencies).
 
 An administrator can set an instance-wide default in **Admin → User Defaults**. It is not only a starting value for new accounts: it is merged in every time your settings are loaded, so it applies to anyone whose own display currency is empty. Picking a specific currency of your own overrides it. **Trip currency** does not, because it stores an empty value that counts as "not set", so the admin default takes effect again on your next reload.
 
