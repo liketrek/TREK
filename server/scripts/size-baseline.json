@@ -13,7 +13,7 @@
   "src/nest/doc-sync/providers/synology-drive.client.ts": 1160,
   "src/nest/journey/journey-domain.service.ts": 1659,
   "src/nest/places/places.service.ts": 1546,
-  "src/nest/plugins/plugin-runtime.service.ts": 1459,
+  "src/nest/plugins/plugin-runtime.service.ts": 1458,
   "src/nest/plugins/runtime/plugin-sdk.ts": 1093,
   "src/nest/reservations/reservations.service.ts": 1163,
   "src/nest/vacay/vacay.service.ts": 1393

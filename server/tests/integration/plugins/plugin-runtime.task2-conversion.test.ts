@@ -573,3 +573,38 @@ describe('Plan 3j Task 2 — two racing ticks (scheduler claim/re-arm + erasure 
     }
   });
 });
+
+describe('onApplicationBootstrap: a plugin that cannot start keeps no stale active row', () => {
+  async function bootAndSettle(id: string, status: string) {
+    const rt = await buildRuntime();
+    await rt.onApplicationBootstrap();
+    await vi.waitFor(async () => expect((await pluginRow(id)).status).toBe(status), { timeout: 1000, interval: 25 });
+    await rt.onModuleDestroy();
+  }
+
+  it('BOOT-STATUS-001: new permissions awaiting consent leave the row in error with the reason', async () => {
+    const id = 'boot-widened';
+    // active from the last run; the stored manifest now declares db:read:users on top of the grant
+    await seedPlugin(id, { enabled: 1, permissions: '["db:own","db:read:users"]', granted_permissions: '["db:own"]' });
+    await updateRows(t, Plugins, { id }, { status: 'active' });
+
+    await bootAndSettle(id, 'error');
+
+    const row = await pluginRow(id);
+    expect(row.status).toBe('error');
+    expect(row.last_error).toBe(`plugin ${id} requests new permissions; explicit re-consent is required`);
+    expect(row.enabled).toBe(1);
+  });
+
+  it('BOOT-STATUS-002: a dependency refusal still turns the plugin off instead of marking it error', async () => {
+    const id = 'boot-api-too-new';
+    await seedPlugin(id, { enabled: 1, api_version: 999 });
+    await updateRows(t, Plugins, { id }, { status: 'active' });
+
+    await bootAndSettle(id, 'inactive');
+
+    const row = await pluginRow(id);
+    expect(row.status).toBe('inactive');
+    expect(row.enabled).toBe(0);
+  });
+});

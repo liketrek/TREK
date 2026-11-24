@@ -386,31 +386,25 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
         // own gate still refuses to spawn, so nothing boots into a broken state.
         order = enabledIds;
       }
-      // task-6-rereview.md I1: assertActivatable (inside activate) reads
-      // AddonsService.isAddonEnabled — repository-backed — so this boot loop needs
-      // the same request-context wrap every other D6 choke point got, or an
-      // enabled plugin with a non-empty requiredAddons throws cannotUseGlobalContext
-      // here, silently: the .catch below only reconciles PluginDependencyError /
-      // DependencyCycleError, and the outer try/catch around this whole block eats
-      // everything else.
-      // `activate()` itself stays unwrapped (its HTTP callers already run inside a
-      // request); only this boot-time call site needs it. Fail closed the same way
-      // the boot RULING (task-6-rereview.md §2) settled for CronRegistrarService.
-      // runOnBoot: no ORM means skip loudly and never call activate — never abort
-      // app.init() over a partially-wired test graph.
+      // activate() reads repositories, so this boot-time call site opens its own request
+      // context (its HTTP callers already run inside one). No ORM means skip loudly and
+      // never call activate, never abort app.init() over a partially-wired test graph.
       if (!this.orm) {
         // Plan 3j Task 2: `order`/`enabledIds` are always empty here now (see the
         // `installed = new Map()` note above) — the message can no longer name
         // specific plugins, only that boot skipped activation entirely.
         logError('PluginRuntimeService.onApplicationBootstrap: no MikroORM available — plugin activation skipped');
       } else {
+        const orm = this.orm;
         for (const id of order) {
-          withRequestContext(this.orm, () => this.activate(id)).catch((e) => {
+          withRequestContext(orm, () => this.activate(id)).catch((e) => {
             // A plugin whose required addon is off (or a dependency is missing) at boot
             // must not stay marked enabled — reconcile the row so the UI reflects reality.
             if (e instanceof PluginDependencyError || e instanceof DependencyCycleError) {
               this.deactivate(id).catch(() => {});
             }
+            // A refused re-consent never reaches the supervisor hook, which leaves last run's 'active' row.
+            if (e instanceof PluginConsentRequired) void this.markBootRefused(orm, id, e.message);
             /* other failures: status is persisted as error by the supervisor hook */
           });
         }
@@ -818,6 +812,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     await this.supervisor.disable(id);
     await this.activate(id);
     return true;
+  }
+
+  /** @txStandalone a status note on one plugin row that stands whatever the boot loop does. */
+  private async markBootRefused(orm: MikroORM, id: string, message: string): Promise<void> {
+    await withRequestContext(orm, () => this.plugins.updateStatusAndError(id, 'error', message)).catch(() => {});
   }
 
   async deactivate(id: string): Promise<void> {
