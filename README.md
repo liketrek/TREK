@@ -53,7 +53,7 @@ TREK has grown from a travel planner into a whole ecosystem for trips: plan toge
 ## What you get
 
 <details>
-<summary><picture><source media="(prefers-color-scheme: dark)" srcset="docs/app/all-features-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/app/all-features-light.svg" /><img src="docs/app/all-features-light.svg" alt="See all features" width="680" /></picture></summary>
+<summary><h3>See all features</h3></summary>
 
 <br />
 
