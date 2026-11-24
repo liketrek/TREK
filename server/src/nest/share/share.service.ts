@@ -1,5 +1,5 @@
+import { ADDON_IDS } from '../../addons';
 import { BudgetItems } from '../../db/entities/BudgetItems.entity';
-import { Categories } from '../../db/entities/Categories.entity';
 import { CollabMessages } from '../../db/entities/CollabMessages.entity';
 import { DayAssignments } from '../../db/entities/DayAssignments.entity';
 import { DayNotes } from '../../db/entities/DayNotes.entity';
@@ -10,7 +10,6 @@ import { Reservations } from '../../db/entities/Reservations.entity';
 import { ShareTokens } from '../../db/entities/ShareTokens.entity';
 import { Trips } from '../../db/entities/Trips.entity';
 import type { BudgetItemsRepository } from '../../db/repositories/BudgetItems.repository';
-import type { CategoriesRepository } from '../../db/repositories/Categories.repository';
 import type { CollabMessagesRepository } from '../../db/repositories/CollabMessages.repository';
 import type { DayAssignmentsRepository } from '../../db/repositories/DayAssignments.repository';
 import type { DayNotesRepository } from '../../db/repositories/DayNotes.repository';
@@ -21,11 +20,22 @@ import type { ReservationsRepository } from '../../db/repositories/Reservations.
 import type { ShareTokensRepository } from '../../db/repositories/ShareTokens.repository';
 import type { TripsRepository, TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { AddonsService } from '../addons/addons.service';
 import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { PlacePhotoCacheService } from '../place-photos/place-photo-cache.service';
 import { QueryHelpersService } from '../query-helpers/query-helpers.service';
 import { SettingsService } from '../settings/settings.service';
+import {
+  categoriesInUse,
+  publicBudgetItem,
+  publicCollabMessage,
+  publicDay,
+  publicDayNote,
+  publicPackingItem,
+  type PublicDay,
+  type PublicDayNote,
+} from './share-public.helpers';
 import { travelOnly, withoutImages } from './share-view.helpers';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
@@ -205,8 +215,8 @@ export class ShareService {
     @InjectRepository(Places) private readonly places: PlacesRepository,
     @InjectRepository(PackingItems) private readonly packingItems: PackingItemsRepository,
     @InjectRepository(BudgetItems) private readonly budgetItems: BudgetItemsRepository,
-    @InjectRepository(Categories) private readonly categories: CategoriesRepository,
     @InjectRepository(CollabMessages) private readonly collabMessages: CollabMessagesRepository,
+    private readonly addons: AddonsService,
   ) {}
 
   /** SH-AP1 — the same `TripsRepository.findAccessible` every other access-primitive call in this plan reuses. */
@@ -339,23 +349,28 @@ export class ShareService {
     const trip = await this.trips.findPublicForShare(tripId);
     if (!trip) return null;
 
+    // A section whose addon is off for this trip is not shared, whatever the
+    // link allows, and the page is told so through the same flags it reads.
+    const on = async (addonId: string) => this.addons.isEnabledForTrip(tripId, addonId);
     const permissions = {
       share_map: !!shareRow.share_map,
       share_bookings: !!shareRow.share_bookings,
-      share_packing: !!shareRow.share_packing,
-      share_budget: !!shareRow.share_budget,
-      share_collab: !!shareRow.share_collab,
+      share_packing: !!shareRow.share_packing && (await on(ADDON_IDS.PACKING)),
+      share_budget: !!shareRow.share_budget && (await on(ADDON_IDS.BUDGET)),
+      share_collab: !!shareRow.share_collab && (await on(ADDON_IDS.COLLAB)),
       share_travel_only: !!shareRow.share_travel_only,
       share_hide_images: !!shareRow.share_hide_images,
     };
 
     // Itinerary — days with assignments/notes, and the place pool
-    let days: any[] = [];
+    let days: PublicDay[] = [];
     let assignments: Record<number, any[]> = {};
-    let dayNotes: Record<number, any[]> = {};
+    let dayNotes: Record<number, PublicDayNote[]> = {};
     let places: any[] = [];
     if (permissions.share_map) {
-      days = await this.days.listByTrip(tripId);
+      // Number, date and title only: the day's own notes are the planner's, and
+      // the shared page never shows them.
+      days = (await this.days.listByTrip(tripId)).map(publicDay);
       const dayIds = days.map((d) => d.id);
 
       if (dayIds.length > 0) {
@@ -402,10 +417,10 @@ export class ShareService {
         assignments = byDay;
 
         const allNotes = await this.dayNotes.listByDayIds(dayIds);
-        const notesByDay: Record<number, any[]> = {};
+        const notesByDay: Record<number, PublicDayNote[]> = {};
         for (const n of allNotes) {
           if (!notesByDay[n.day_id]) notesByDay[n.day_id] = [];
-          notesByDay[n.day_id].push(n);
+          notesByDay[n.day_id].push(publicDayNote(n));
         }
         dayNotes = notesByDay;
       }
@@ -453,17 +468,21 @@ export class ShareService {
 
     // Packing — a public viewer is neither owner nor recipient, so only Common items
     // may surface; never a co-member's private/personal packing items (#858).
-    const packing = permissions.share_packing ? await this.packingItems.listPublicForShare(tripId) : [];
+    // The three lists below go out through their allow-lists (share-public.helpers):
+    // the rows carry owner ids, private notes and ticket data the page never reads.
+    const packing = permissions.share_packing
+      ? (await this.packingItems.listPublicForShare(tripId)).map(publicPackingItem)
+      : [];
 
     // Budget
-    const budget = permissions.share_budget ? await this.budgetItems.listPublicForShare(tripId) : [];
-
-    // Categories are a shared global pool (the authed /api/categories list is
-    // equally unscoped), so the public payload returns them all too.
-    const categories = await this.categories.listAllUnordered();
+    const budget = permissions.share_budget
+      ? (await this.budgetItems.listPublicForShare(tripId)).map(publicBudgetItem)
+      : [];
 
     // Collab messages (only if owner chose to share)
-    const collabMessages = permissions.share_collab ? await this.collabMessages.listPublicForShare(tripId) : [];
+    const collabMessages = permissions.share_collab
+      ? (await this.collabMessages.listPublicForShare(tripId)).map(publicCollabMessage)
+      : [];
 
     // Display currency the share owner sees in their Costs view. A public viewer has
     // no logged-in user, so the owner's per-user `default_currency` (with the admin
@@ -494,7 +513,7 @@ export class ShareService {
 
     // The owner's narrowing options (#1712) apply last, over what the flags
     // above already let through.
-    let view = { assignments, dayNotes, places, reservations };
+    let view = { assignments, days, dayNotes, places, reservations };
     if (permissions.share_travel_only) {
       const stayPlaceIds = new Set(await this.reservationsRepo.listPublicStayPlaceIdsForShare(tripId));
       view = travelOnly(view, stayPlaceIds);
@@ -505,9 +524,10 @@ export class ShareService {
       trip,
       baseCurrency,
       cartoApiKey,
-      categories,
+      // Only the categories of the places that went out, read after the narrowing
+      // above so a place the link hides does not leave its category behind.
+      categories: categoriesInUse(view.places, view.assignments),
       permissions,
-      days,
       ...view,
       accommodations,
       packing,

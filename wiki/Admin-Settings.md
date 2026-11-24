@@ -16,8 +16,9 @@ Decides which ways in are offered on the login page.
 | **Password Registration** | Allow new users to register with email and password. | On |
 | **SSO Login** | Allow users to sign in with SSO. | On |
 | **SSO Auto-Provisioning** | Automatically create accounts for new SSO users. | On |
+| **Go straight to SSO** | With password login off, send visitors to the identity provider at once. Off shows the login page with its SSO button first. | On |
 
-The two SSO rows only appear once OIDC is configured, that is, once an issuer and a client ID are known (from the **Single Sign-On (OIDC)** card or from the environment).
+The three SSO rows only appear once OIDC is configured, that is, once an issuer and a client ID are known (from the **Single Sign-On (OIDC)** card or from the environment).
 
 At least one login method must stay enabled. The switch that would remove the last way in is greyed out, and hovering it shows **At least one login method must remain enabled**. The server enforces the same rule: password login can only be switched off while SSO login is on and OIDC is configured.
 

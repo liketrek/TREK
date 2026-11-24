@@ -63,6 +63,17 @@ describe.skipIf(!inMonorepo)('parity with the host', () => {
   });
 });
 
+const serverDataContract = path.resolve(here, '../../server/src/db/engine/plugin-data-contract.ts');
+
+describe.skipIf(!fs.existsSync(serverDataContract))('parity with the host plugin database', () => {
+  it("the vendored ctx.db contract is byte-identical to the server's", () => {
+    // dev and the mock host hold ctx.db to the host's caps and refuse a call with the host's
+    // own words, NUL included; a drift would let a plugin pass here and fail in TREK.
+    const ours = fs.readFileSync(path.resolve(here, '../src/plugin-data-contract.ts'), 'utf8');
+    expect(ours.replace(/\r\n/g, '\n')).toBe(fs.readFileSync(serverDataContract, 'utf8').replace(/\r\n/g, '\n'));
+  });
+});
+
 describe.skipIf(!fs.existsSync(hostFrame))('parity with the host frame', () => {
   it('the session storage contract is one contract in all three copies', () => {
     // Nothing generates these: the limits are written out by hand in the SDK export

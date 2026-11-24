@@ -204,6 +204,32 @@ describe('tripStore', () => {
       expect(state.error).toBeNull();
     });
 
+    it('FE-TSTORE-005b: a trip with Lists switched off opens without its packing and todos', async () => {
+      server.use(
+        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
+        http.get('/api/trips/1/packing', () => HttpResponse.json({ error: 'Lists addon is not enabled' }, { status: 404 })),
+        http.get('/api/trips/1/todo', () => HttpResponse.json({ error: 'Lists addon is not enabled' }, { status: 404 })),
+      );
+
+      await useTripStore.getState().loadTrip(1);
+
+      const state = useTripStore.getState();
+      expect(state.trip?.id).toBe(1);
+      expect(state.packingItems).toEqual([]);
+      expect(state.todoItems).toEqual([]);
+      expect(state.error).toBeNull();
+    });
+
+    it('FE-TSTORE-005c: any other packing failure still fails the load, as before', async () => {
+      server.use(
+        http.get('/api/trips/1/days', () => HttpResponse.json({ days: [] })),
+        http.get('/api/trips/1/packing', () => HttpResponse.json({ error: 'boom' }, { status: 500 })),
+      );
+
+      await expect(useTripStore.getState().loadTrip(1)).rejects.toThrow();
+      expect(useTripStore.getState().trip).toBeNull();
+    });
+
     it('FE-TSTORE-006: falls back to the cached tags and categories when their endpoints fail', async () => {
       await offlineDb.tags.put(buildTag({ id: 31, name: 'Cached tag' }));
       await offlineDb.categories.put(buildCategory({ id: 32, name: 'Cached category' }));

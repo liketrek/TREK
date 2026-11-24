@@ -626,6 +626,8 @@
 /* Brand colours: Buy Me a Coffee and Ko-fi own these. */
 .rn-support-bmc  { --rn-btn: #ffdd00; color: #101013; } /* theme-lint-disable */
 .rn-support-kofi { --rn-btn: #ff5e5b; color: #ffffff; } /* theme-lint-disable */
+/* Patreon, the monthly one: a full row in Patreon's own black above the two. */
+.rn-support-patreon { --rn-btn: #141518; color: #ffffff; grid-column: 1 / -1; } /* theme-lint-disable */
 
 /* Narrow viewports: keep the proportions, drop the outer padding. */
 @media (max-width: 900px) {

@@ -12,7 +12,7 @@ export class VacayUserYears {
   plan_id!: number;
   year!: number;
   vacation_days?: number | null = 30;
-  carried_over?: number | null = 0;
+  carried_over?: number | null;
 }
 
 export const VacayUserYearsSchema = defineEntity({
@@ -27,6 +27,6 @@ export const VacayUserYearsSchema = defineEntity({
     plan_id: p.integer().persist(false).index('idx_vacay_user_years_plan_id'),
     year: p.integer(),
     vacation_days: p.integer().nullable(),
-    carried_over: p.integer().nullable(),
+    carried_over: p.double().nullable().defaultRaw(`0`),
   },
 });

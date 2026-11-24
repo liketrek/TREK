@@ -3,7 +3,7 @@ import { defineScreen } from '../defineScreen';
 /**
  * Help for the card a tour opens over the map on the Plan tab: reading it,
  * renaming it and giving its line a colour, taking it along (map app, its web
- * page, a GPX file), copying it or keeping it in a collection, the packing
+ * page, a GPX file), following its whole route in a map app, copying it or keeping it in a collection, the packing
  * list it points at, its files, the track it was actually done with and how
  * that compares with the plan, and where it came from. The route itself is
  * changed in the Tours tab, which has screens of its own.
@@ -39,7 +39,16 @@ export const { context: tripTourDetailContext, guides: tripTourDetailGuides } = 
       3,
       4,
       { slug: TOURS, anchor: 'tour-card-taking-a-tour-along' },
-      ['tour-detail-read', 'place-navigation'],
+      ['tour-route-in-app', 'tour-detail-read', 'place-navigation'],
+    ],
+    [
+      'tour-route-in-app',
+      'mapPinned',
+      'quick',
+      3,
+      4,
+      { slug: TOURS, anchor: 'tour-card-taking-a-tour-along' },
+      ['tour-take-along', 'tour-detail-read'],
     ],
     [
       'tour-copy-keep',

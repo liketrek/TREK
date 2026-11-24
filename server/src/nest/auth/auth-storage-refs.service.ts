@@ -17,7 +17,7 @@ export class AuthStorageRefsService extends StorageReclaimSource {
   protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
     const rows = await this.em
       .getRepository(Users)
-      .find(likeAny<Users>(['avatar'], containing), { fields: ['avatar'] });
+      .find(likeAny<Users>(this.em.getPlatform(), ['avatar'], containing), { fields: ['avatar'] });
     return rows.map((row) => row.avatar);
   }
 }

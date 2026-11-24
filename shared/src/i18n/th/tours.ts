@@ -7,8 +7,7 @@ const tours: TranslationStrings = {
   'tours.mode.label': 'มุมมองการเพิ่ม',
   'tours.title': 'ทัวร์',
   'tours.empty.title': 'ยังไม่มีทัวร์',
-  'tours.empty.body':
-    'วางแผนทัวร์หรือนำเข้าไฟล์ GPX หรือ KML เพื่อเริ่มต้น จองทัวร์พร้อมไกด์ไว้แล้วใช่ไหม? ให้เพิ่มไว้ในการจอง',
+  'tours.empty.body': 'วางแผนทัวร์หรือนำเข้าไฟล์ GPX หรือ KML เพื่อเริ่มต้น จองทัวร์พร้อมไกด์ไว้แล้วใช่ไหม? ให้เพิ่มไว้ในการจอง',
   'tours.addToDay': 'เพิ่มไปยังวัน',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'นำเข้าจาก GPX',
@@ -39,20 +38,17 @@ const tours: TranslationStrings = {
   'tours.conversion.intro':
     'รายการนำเข้าคือแทร็กที่บันทึกไว้ วางแผนเวอร์ชันที่แก้ไขได้: TREK จะดึงจุดควบคุมจากแทร็กนั้น คำนวณเส้นทางใหม่ และแสดงว่าผลลัพธ์ใกล้เคียงเพียงใด จะไม่มีอะไรเปลี่ยนจนกว่าคุณจะเลือก',
   'tours.conversion.replace': 'แทนที่รายการนำเข้า',
-  'tours.conversion.replaceHint':
-    'วางแผนทัวร์นี้ใหม่ในที่เดิม: วันและบันทึกจะยังคงอยู่ และแทร็กที่บันทึกไว้จะถูกเก็บไว้เพื่อให้คุณย้อนกลับไปได้',
+  'tours.conversion.replaceHint': 'วางแผนทัวร์นี้ใหม่ในที่เดิม: วันและบันทึกจะยังคงอยู่ และแทร็กที่บันทึกไว้จะถูกเก็บไว้เพื่อให้คุณย้อนกลับไปได้',
   'tours.conversion.adoptHint': 'วางแผนทัวร์ใหม่ข้างรายการนำเข้า ซึ่งจะยังคงเหมือนเดิม',
   'tours.conversion.replacing': 'เปิดในตัวแก้ไขแล้ว บันทึกเพื่อแทนที่รายการนำเข้า แทร็กที่บันทึกไว้ยังกู้คืนได้',
   'tours.recorded.title': 'แทร็กที่บันทึกไว้',
   'tours.recorded.hint': 'ทัวร์นี้ถูกวางแผนใหม่จากรายการนำเข้า แทร็กที่ใช้บันทึกทัวร์นี้ยังถูกเก็บไว้',
   'tours.recorded.restore': 'กู้คืนแทร็กที่บันทึกไว้',
   'tours.recorded.confirmTitle': 'กู้คืนแทร็กที่บันทึกไว้หรือไม่',
-  'tours.recorded.confirmBody':
-    'จุดแวะและเส้นที่คำนวณไว้จะถูกลบ และทัวร์จะแสดงแทร็กที่ใช้บันทึกอีกครั้ง วันและบันทึกจะยังคงอยู่',
+  'tours.recorded.confirmBody': 'จุดแวะและเส้นที่คำนวณไว้จะถูกลบ และทัวร์จะแสดงแทร็กที่ใช้บันทึกอีกครั้ง วันและบันทึกจะยังคงอยู่',
   'tours.recorded.restored': 'กู้คืนแทร็กที่บันทึกไว้แล้ว',
   'tours.recorded.failed': 'ไม่สามารถกู้คืนแทร็กที่บันทึกไว้ได้',
-  'tours.recorded.offline':
-    'การกู้คืนแทร็กที่บันทึกไว้ต้องใช้การเชื่อมต่อ และการเปลี่ยนแปลงที่รอส่งของทัวร์นี้จะถูกส่งก่อน',
+  'tours.recorded.offline': 'การกู้คืนแทร็กที่บันทึกไว้ต้องใช้การเชื่อมต่อ และการเปลี่ยนแปลงที่รอส่งของทัวร์นี้จะถูกส่งก่อน',
   'tours.conversion.analyze': 'วางแผนเวอร์ชันที่แก้ไขได้',
   'tours.conversion.analyzing': 'กำลังคำนวณเส้นทางผ่านจุดควบคุม {count} จุด…',
   'tours.conversion.failedTrack': 'แทร็กนี้สั้นเกินกว่าจะใช้วางแผนทัวร์ได้',
@@ -85,11 +81,12 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'ความสูงสะสมขาขึ้น',
   'tours.detail.descent': 'ความสูงสะสมขาลง',
   'tours.detail.navigationHint': 'การนำทางจะเปิดจุดเริ่มต้นทางเดิน ไม่ได้นำทางตามเส้นทางทัวร์',
+  'tours.detail.openRoute': 'เปิดเส้นทางในแอปแผนที่',
+  'tours.detail.mapsShort': 'แผนที่',
   'tours.planner.title': 'วางแผนทัวร์',
   'tours.planner.newTour': 'วางแผนทัวร์ใหม่',
   'tours.planner.addTour': 'เพิ่มทริป',
-  'tours.planner.addTourHint':
-    'วางแผนทริปใหม่ นำเข้าไฟล์ GPX หรือ KML หรือทริปเดินเท้าจาก Google Maps หรือรับทริปมาจากการเดินทางอื่น',
+  'tours.planner.addTourHint': 'วางแผนทริปใหม่ นำเข้าไฟล์ GPX หรือ KML หรือทริปเดินเท้าจาก Google Maps หรือรับทริปมาจากการเดินทางอื่น',
   'tours.planner.neutralTitle': 'วางแผนทัวร์',
   'tours.planner.neutralBody': 'เริ่มทัวร์ใหม่ แล้วคลิกแผนที่เพื่อวางจุดของเส้นทาง',
   'tours.planner.newTitle': 'ทัวร์ใหม่',
@@ -99,8 +96,7 @@ const tours: TranslationStrings = {
   'tours.planner.restored': 'กู้คืนฉบับร่างที่ยังไม่บันทึกแล้ว',
   'tours.planner.discardChanges': 'ยกเลิกการเปลี่ยนแปลง',
   'tours.planner.newTourConfirmTitle': 'เริ่มทัวร์ใหม่ไหม?',
-  'tours.planner.newTourConfirmBody':
-    'การเปลี่ยนแปลงของทัวร์นี้ที่ยังไม่บันทึกจะถูกทิ้ง ทัวร์ที่บันทึกแล้วจะไม่เปลี่ยนแปลง',
+  'tours.planner.newTourConfirmBody': 'การเปลี่ยนแปลงของทัวร์นี้ที่ยังไม่บันทึกจะถูกทิ้ง ทัวร์ที่บันทึกแล้วจะไม่เปลี่ยนแปลง',
   'tours.planner.newTourConfirm': 'ทิ้งแล้วเริ่มใหม่',
   'tours.planner.collapseElevation': 'ยุบกราฟระดับความสูง',
   'tours.planner.expandElevation': 'ขยายกราฟระดับความสูง',
@@ -122,8 +118,7 @@ const tours: TranslationStrings = {
   'tours.planner.walkingEstimated': 'เวลาเดินโดยประมาณ',
   'tours.planner.walkingEstimatedShort': 'เวลาโดยประมาณ',
   'tours.planner.walkingEstimatedInfoLabel': 'วิธีประมาณเวลาเดิน',
-  'tours.planner.walkingEstimatedInfo':
-    'คำนวณจากระยะทาง ทางขึ้น และทางลง ตามกฎเวลาเดินป่าทั่วไป (DIN 33466) ไม่รวมเวลาพัก',
+  'tours.planner.walkingEstimatedInfo': 'คำนวณจากระยะทาง ทางขึ้น และทางลง ตามกฎเวลาเดินป่าทั่วไป (DIN 33466) ไม่รวมเวลาพัก',
   'tours.planner.waypoints': 'จุดแวะ',
   'tours.planner.waypointLabel': 'จุดแวะ {n}',
   'tours.durationMinutes': '{count} นาที',
@@ -150,8 +145,7 @@ const tours: TranslationStrings = {
   'tours.planner.undo': 'เลิกทำการแก้ไขจุดแวะ',
   'tours.planner.redo': 'ทำซ้ำการแก้ไขจุดแวะ',
   'tours.planner.discardTitle': 'ทิ้งการเปลี่ยนแปลงทัวร์ที่ยังไม่บันทึกไหม?',
-  'tours.planner.discardBody':
-    'การแก้ไขที่ยังไม่บันทึกจะถูกทิ้ง ทัวร์ที่บันทึกแล้ว รวมถึงจุดแวะ ไฟล์ และการจัดลงวันจะไม่เปลี่ยนแปลง',
+  'tours.planner.discardBody': 'การแก้ไขที่ยังไม่บันทึกจะถูกทิ้ง ทัวร์ที่บันทึกแล้ว รวมถึงจุดแวะ ไฟล์ และการจัดลงวันจะไม่เปลี่ยนแปลง',
   'tours.planner.saved': 'บันทึกทัวร์แล้ว',
   'tours.planner.tripTours': 'ทัวร์ในทริปนี้',
   'tours.planner.safetyNote': 'การคำนวณเส้นทางเป็นตัวช่วยวางแผน ไม่ใช่การรับประกันความปลอดภัย',
@@ -226,8 +220,7 @@ const tours: TranslationStrings = {
   'tours.provenance.fileImport': 'นำเข้าจาก {format}',
   'tours.provenance.createdAt': 'สร้างเมื่อ',
   'tours.provenance.externalUpdated': 'มีการเปลี่ยนใน wanderer',
-  'tours.provenance.externalUpdatedHint':
-    'วันที่เปลี่ยนแปลงที่ wanderer แจ้งตอนนำเข้า เป็นเพียงข้อบ่งชี้ ไม่ใช่หลักฐานของเวอร์ชัน',
+  'tours.provenance.externalUpdatedHint': 'วันที่เปลี่ยนแปลงที่ wanderer แจ้งตอนนำเข้า เป็นเพียงข้อบ่งชี้ ไม่ใช่หลักฐานของเวอร์ชัน',
   'tours.provenance.localState': 'ที่นี่',
   'tours.provenance.plannedOver': 'วางแผนใหม่แล้ว เก็บเส้นทางที่บันทึกไว้',
   'tours.provenance.editedLocally': 'แก้ไขใน TREK แล้ว',
@@ -241,12 +234,10 @@ const tours: TranslationStrings = {
   'tours.provenance.state.not_connected': 'ยังไม่ได้เชื่อมต่อ wanderer',
   'tours.provenance.state.other_instance': 'เชื่อมต่อ wanderer อื่นอยู่',
   'tours.provenance.state.unknown': 'เปรียบเทียบไม่ได้',
-  'tours.provenance.body.unavailable':
-    'เส้นทางถูกลบหรือการเชื่อมต่อของคุณอ่านไม่ได้แล้ว ทัวร์นี้จะคงอยู่ตามที่นำเข้ามา',
+  'tours.provenance.body.unavailable': 'เส้นทางถูกลบหรือการเชื่อมต่อของคุณอ่านไม่ได้แล้ว ทัวร์นี้จะคงอยู่ตามที่นำเข้ามา',
   'tours.provenance.body.not_connected': 'เชื่อมต่อ wanderer ของคุณที่การตั้งค่า การผสานรวม เพื่อตรวจสอบแหล่งข้อมูล',
   'tours.provenance.body.other_instance': 'การเชื่อมต่อของคุณชี้ไปยังอินสแตนซ์อื่นที่ไม่ใช่ที่มาของทัวร์นี้',
-  'tours.provenance.body.unknown':
-    'การนำเข้านี้ไม่มีข้อมูลให้เปรียบเทียบ แต่คุณยังนำเส้นทางปัจจุบันเข้ามาเป็นสแนปช็อตใหม่ได้',
+  'tours.provenance.body.unknown': 'การนำเข้านี้ไม่มีข้อมูลให้เปรียบเทียบ แต่คุณยังนำเส้นทางปัจจุบันเข้ามาเป็นสแนปช็อตใหม่ได้',
   'tours.provenance.change.name': 'ชื่อ',
   'tours.provenance.change.description': 'คำอธิบาย',
   'tours.provenance.change.route': 'แนวเส้นทาง',
@@ -262,8 +253,7 @@ const tours: TranslationStrings = {
   'tours.filter.status': 'สถานะ',
   'tours.filter.source': 'แหล่งข้อมูล',
   'tours.filter.grade': 'ขีดจำกัดเส้นทาง',
-  'tours.filter.gradeHint':
-    'ความยากสูงสุดที่เส้นทางใช้ได้ตอนวางแผน ตามที่บันทึกไว้กับทัวร์ ไม่ใช่ความยากที่วัดได้บนเส้นทางจริง',
+  'tours.filter.gradeHint': 'ความยากสูงสุดที่เส้นทางใช้ได้ตอนวางแผน ตามที่บันทึกไว้กับทัวร์ ไม่ใช่ความยากที่วัดได้บนเส้นทางจริง',
   'tours.filter.type': 'ประเภท',
   'tours.filter.empty': 'ไม่มีทัวร์ที่ตรงกับตัวกรองเหล่านี้',
   'tours.filter.reset': 'รีเซ็ตตัวกรอง',
@@ -320,16 +310,12 @@ const tours: TranslationStrings = {
   'tours.walkImport.failed': 'ตอนนี้อ่านลิงก์ไม่ได้ ลองอีกครั้งในอีกสักครู่',
   'tours.walkImport.refusal.not_google_maps':
     'ใช้ลิงก์เส้นทางของ Google Maps คือลิงก์สั้นของ maps.app.goo.gl หรือลิงก์ google.com/maps/dir',
-  'tours.walkImport.refusal.not_a_route':
-    'ลิงก์ Google Maps นี้ไม่ใช่เส้นทาง วางแผนทริปเดินเท้าใน Google Maps แล้วแชร์เส้นทาง',
-  'tours.walkImport.refusal.not_walking':
-    'เส้นทางนี้ไม่ได้วางแผนเป็นการเดินเท้า เปลี่ยน Google Maps เป็นโหมดเดินแล้วแชร์เส้นทางอีกครั้ง',
-  'tours.walkImport.refusal.mode_unknown':
-    'ลิงก์ไม่ได้บอกชัดว่าเส้นทางนี้เป็นการเดินเท้า เลือกโหมดเดินใน Google Maps แล้วแชร์อีกครั้ง',
+  'tours.walkImport.refusal.not_a_route': 'ลิงก์ Google Maps นี้ไม่ใช่เส้นทาง วางแผนทริปเดินเท้าใน Google Maps แล้วแชร์เส้นทาง',
+  'tours.walkImport.refusal.not_walking': 'เส้นทางนี้ไม่ได้วางแผนเป็นการเดินเท้า เปลี่ยน Google Maps เป็นโหมดเดินแล้วแชร์เส้นทางอีกครั้ง',
+  'tours.walkImport.refusal.mode_unknown': 'ลิงก์ไม่ได้บอกชัดว่าเส้นทางนี้เป็นการเดินเท้า เลือกโหมดเดินใน Google Maps แล้วแชร์อีกครั้ง',
   'tours.walkImport.refusal.short_link_refused': 'ลิงก์สั้นนี้พาไปที่อื่นที่ไม่ใช่ Google Maps จึงไม่ได้ตามไป',
   'tours.walkImport.refusal.short_link_failed': 'ตอนนี้ตามลิงก์สั้นไม่ได้ ลองอีกครั้งหรือวางลิงก์แบบยาว',
-  'tours.walkImport.refusal.short_link_unknown':
-    'Google Maps ไม่รู้จักลิงก์สั้นนี้ แชร์เส้นทางจาก Google Maps อีกครั้ง',
+  'tours.walkImport.refusal.short_link_unknown': 'Google Maps ไม่รู้จักลิงก์สั้นนี้ แชร์เส้นทางจาก Google Maps อีกครั้ง',
   'tours.walkImport.refusal.too_few_stops': 'อ่านจุดแวะจากลิงก์นี้ได้ไม่ถึงสองจุด',
   'tours.walkImport.refusal.too_many_stops': 'เส้นทางนี้มีจุดแวะมากกว่าที่ทริปเดินเท้าหนึ่งทริปรับได้',
   'tours.provenance.takenOverFrom': 'นำมาจาก',
@@ -511,8 +497,7 @@ const tours: TranslationStrings = {
   'tours.run.timeEstimated': 'เวลาวิ่ง (ตามแผน)',
   'tours.run.timeEstimatedShort': 'เวลาวิ่ง',
   'tours.run.timeEstimatedInfoLabel': 'วิธีวางแผนเวลาวิ่ง',
-  'tours.run.timeEstimatedInfo':
-    'ระยะทาง × เพซของคุณเท่านั้น ไม่รวมทางขึ้น ทางลง และความยาก เป็นแผน ไม่ใช่เวลาที่บันทึกไว้',
+  'tours.run.timeEstimatedInfo': 'ระยะทาง × เพซของคุณเท่านั้น ไม่รวมทางขึ้น ทางลง และความยาก เป็นแผน ไม่ใช่เวลาที่บันทึกไว้',
   'tours.run.timeSum': '{distance} ที่เพซ {pace} เท่ากับ {time}',
   'tours.run.profile.trail': 'วิ่งเทรล',
   'tours.run.profileHint.trail': 'เน้นถนนในป่าและทางเดินธรรมชาติ จนถึงทางเดินบนภูเขา (T2)',
@@ -551,8 +536,7 @@ const tours: TranslationStrings = {
   'tours.bike.ways.loading': 'กำลังอ่านเส้นทางตลอดแนว…',
   'tours.bike.ways.offline': 'พื้นผิวและระดับความยากต้องใช้การเชื่อมต่อ',
   'tours.bike.ways.failed': 'อ่านเส้นทางตลอดแนวไม่ได้ ตัวเส้นทางไม่เปลี่ยนแปลง',
-  'tours.bike.ways.source':
-    'จาก OpenStreetMap ตามที่ระบบหาเส้นทางอ่าน ที่ใดข้อมูลไม่ระบุ พื้นผิวถือว่าไม่ทราบ ไม่ใช่ว่าดี',
+  'tours.bike.ways.source': 'จาก OpenStreetMap ตามที่ระบบหาเส้นทางอ่าน ที่ใดข้อมูลไม่ระบุ พื้นผิวถือว่าไม่ทราบ ไม่ใช่ว่าดี',
   'tours.bike.ways.showOnMap': 'แสดงบนแผนที่',
   'tours.bike.ways.unpavedBadge': 'ไม่ลาดยาง {share}',
   'tours.bike.ways.unpavedNotice': 'ทราบว่าเส้นทาง {length} เป็นทางไม่ลาดยาง',
@@ -617,11 +601,9 @@ const tours: TranslationStrings = {
   'tours.hike.surface.other': 'พื้นผิวอื่น',
   'tours.hike.surface.untagged': 'ไม่มีพื้นผิวใน OpenStreetMap',
   'tours.hike.surface.unclear': 'พื้นผิวไม่ชัดเจน',
-  'tours.hike.surface.untaggedTip':
-    'OpenStreetMap ไม่ได้บันทึกพื้นผิวของทางเหล่านี้ ระบบหาเส้นทางอาจสมมติขึ้นมา แต่นั่นไม่ใช่ค่าที่บันทึกไว้',
+  'tours.hike.surface.untaggedTip': 'OpenStreetMap ไม่ได้บันทึกพื้นผิวของทางเหล่านี้ ระบบหาเส้นทางอาจสมมติขึ้นมา แต่นั่นไม่ใช่ค่าที่บันทึกไว้',
   'tours.hike.surface.knownTip': 'ส่วนของเส้นทางที่ OpenStreetMap บันทึกพื้นผิวไว้ ที่เหลือไม่ทราบ',
-  'tours.hike.surface.source':
-    'พื้นผิวตามที่ OpenStreetMap บันทึก จัดเป็นกลุ่ม ไม่ใช้การตีความของระบบหาเส้นทางเอง ไม่ใช่การประเมินทาง',
+  'tours.hike.surface.source': 'พื้นผิวตามที่ OpenStreetMap บันทึก จัดเป็นกลุ่ม ไม่ใช้การตีความของระบบหาเส้นทางเอง ไม่ใช่การประเมินทาง',
   'tours.hike.way.path': 'ทางเดิน',
   'tours.hike.way.footway': 'ทางเท้า',
   'tours.hike.way.steps': 'บันได',
@@ -644,8 +626,7 @@ const tours: TranslationStrings = {
   'tours.copy.failed': 'คัดลอกทัวร์ไม่สำเร็จ',
   'tours.copy.offline': 'การบันทึกเป็นทัวร์ใหม่ต้องใช้การเชื่อมต่อ และการเปลี่ยนแปลงที่รอส่งของทัวร์นี้จะถูกส่งก่อน',
   'tours.gpxExport.action': 'ดาวน์โหลด GPX',
-  'tours.gpxExport.hint':
-    'ดาวน์โหลดทัวร์ที่บันทึกไว้เป็นไฟล์ GPX ทั้งเส้นทางพร้อมความสูงที่มี สำหรับแอปนำทางหรืออุปกรณ์ GPS',
+  'tours.gpxExport.hint': 'ดาวน์โหลดทัวร์ที่บันทึกไว้เป็นไฟล์ GPX ทั้งเส้นทางพร้อมความสูงที่มี สำหรับแอปนำทางหรืออุปกรณ์ GPS',
   'tours.gpxExport.saveFirst': 'บันทึกทัวร์ก่อนเพื่อดาวน์โหลดเป็น GPX',
   'tours.gpxExport.offline': 'การดาวน์โหลดไฟล์ GPX ต้องเชื่อมต่อกับเซิร์ฟเวอร์',
   'tours.gpxExport.noRoute': 'ทัวร์นี้ไม่มีเส้นทางที่บันทึกไว้ให้ส่งออก',
@@ -662,8 +643,7 @@ const tours: TranslationStrings = {
   'tours.gpxExport.shareDuration': 'ระยะเวลา: {time}',
   'tours.gpxExport.shareTrip': 'ทริป: {name}',
   'tours.revision.remoteTitle': 'ทัวร์นี้ถูกบันทึกจากที่อื่น',
-  'tours.revision.remoteBody':
-    'มีคนหรือคุณจากอุปกรณ์อื่นบันทึกไว้ระหว่างที่คุณแก้ไข การเปลี่ยนแปลงของคุณยังอยู่จนกว่าคุณจะตัดสินใจ',
+  'tours.revision.remoteBody': 'มีคนหรือคุณจากอุปกรณ์อื่นบันทึกไว้ระหว่างที่คุณแก้ไข การเปลี่ยนแปลงของคุณยังอยู่จนกว่าคุณจะตัดสินใจ',
   'tours.revision.loadNewer': 'โหลดฉบับใหม่กว่า',
   'tours.revision.loadNewerTitle': 'โหลดเวอร์ชันที่ใหม่กว่าหรือไม่',
   'tours.revision.loadNewerBody': 'การเปลี่ยนแปลงที่ยังไม่บันทึกของทัวร์นี้จะถูกทิ้ง',
@@ -735,15 +715,12 @@ const tours: TranslationStrings = {
   'tours.walk.stations': 'จุดแวะของทริป',
   'tours.walk.stationNumbered': 'จุดแวะที่ {number}',
   'tours.walk.ferry.gap': 'ไม่มีทางเชื่อม {from} กับ {to} ทั้งเดินเท้าและเรือข้ามฟาก',
-  'tours.walk.ferry.gapHint':
-    'เส้นทางที่วางไว้ก่อนหน้ายังอยู่บนแผนที่แบบจาง จนกว่าจะพบทาง ลองย้ายจุดแวะจุดใดจุดหนึ่งในสองจุดนี้',
+  'tours.walk.ferry.gapHint': 'เส้นทางที่วางไว้ก่อนหน้ายังอยู่บนแผนที่แบบจาง จนกว่าจะพบทาง ลองย้ายจุดแวะจุดใดจุดหนึ่งในสองจุดนี้',
   'tours.walk.ferry.pending': 'ไม่มีทางเดินเท้าระหว่าง {from} กับ {to}: ตรงนี้ตัวหาเส้นทางข้ามน้ำด้วยเรือข้ามฟาก',
-  'tours.walk.ferry.pendingHint':
-    'การข้ามฟากไม่นับเป็นเวลาเดิน หากจะบันทึก ให้รับเรือข้ามฟากนี้ หรือย้ายจุดแวะให้มีทางเดินเท้าเชื่อมกัน',
+  'tours.walk.ferry.pendingHint': 'การข้ามฟากไม่นับเป็นเวลาเดิน หากจะบันทึก ให้รับเรือข้ามฟากนี้ หรือย้ายจุดแวะให้มีทางเดินเท้าเชื่อมกัน',
   'tours.walk.ferry.accepted': 'เรือข้ามฟากจาก {from} ไป {to} รับไว้โดยตั้งใจ เวลาของเรือแยกจากเวลาเดิน',
   'tours.walk.ferry.accept': 'รับเรือข้ามฟาก',
-  'tours.walk.ferry.acceptTooLong':
-    'เส้นทางข้ามฟากนี้ยาวเกินกว่าจะเก็บเป็นช่วงเดียว เพิ่มจุดแวะระหว่างทางหรือย้ายจุดหนึ่ง',
+  'tours.walk.ferry.acceptTooLong': 'เส้นทางข้ามฟากนี้ยาวเกินกว่าจะเก็บเป็นช่วงเดียว เพิ่มจุดแวะระหว่างทางหรือย้ายจุดหนึ่ง',
   'tours.walk.ferry.show': 'แสดงการข้ามฟาก',
   'tours.walk.ferry.selectStop': 'เลือกจุดแวะ {number}',
   'tours.walk.ferry.time': 'ทางเรือ {time}',
@@ -763,14 +740,12 @@ const tours: TranslationStrings = {
   'tours.walk.remaining.unknown': 'ไม่ทราบเวลาที่เหลือ',
   'tours.walk.remaining.unclear': 'ลำดับไม่ชัดเจน',
   'tours.walk.remaining.fromStart': 'เวลาเดินจากจุดเริ่มต้น แบ่งตามระยะทางไปตามเส้นทาง ไม่รวมเวลาแวะพัก',
-  'tours.walk.remaining.fromStation':
-    'เวลาเดินจาก {name} ซึ่งเป็นจุดแวะล่าสุดที่ไปแล้ว แบ่งตามระยะทางไปตามเส้นทาง ไม่รวมเวลาแวะพัก',
+  'tours.walk.remaining.fromStation': 'เวลาเดินจาก {name} ซึ่งเป็นจุดแวะล่าสุดที่ไปแล้ว แบ่งตามระยะทางไปตามเส้นทาง ไม่รวมเวลาแวะพัก',
   'tours.walk.remaining.upperBound': 'มีจุดแวะข้างหน้าที่ถูกข้าม แต่เส้นทางยังผ่านจุดนั้นอยู่ จึงอาจใช้เวลาน้อยกว่านี้',
   'tours.walk.remaining.afterLast': 'ในนั้นมี {time} จากจุดแวะสุดท้ายไปจนจบทริป',
   'tours.walk.remaining.stays': 'เวลาแวะพักที่ยังเหลือ: {time}',
   'tours.walk.remaining.staysUnknown': 'จุดแวะที่ยังเปิดอยู่ {count} แห่งยังไม่มีเวลาแวะพัก',
-  'tours.walk.remaining.unclearHint':
-    'ยังมีจุดแวะก่อน {last} ที่ยังเปิดอยู่: {names} ทำเครื่องหมายว่าแวะแล้วหรือข้ามเพื่อดูเวลาที่เหลือ',
+  'tours.walk.remaining.unclearHint': 'ยังมีจุดแวะก่อน {last} ที่ยังเปิดอยู่: {names} ทำเครื่องหมายว่าแวะแล้วหรือข้ามเพื่อดูเวลาที่เหลือ',
   'tours.walk.remaining.routePending': 'ทริปยังไม่มีเส้นทาง จึงยังไม่ทราบเวลาที่เหลือ',
   'tours.walk.remaining.noWalkingTime': 'ทริปยังไม่มีเวลาเดิน จึงยังไม่ทราบเวลาที่เหลือ',
   'tours.walk.remaining.done': 'ทุกจุดแวะเสร็จแล้ว',
@@ -841,8 +816,7 @@ const tours: TranslationStrings = {
   'tours.poi.charging.access.none': 'ไม่เปิดให้สาธารณะใช้',
   'tours.poi.charging.capacity': 'ช่องชาร์จ',
   'tours.poi.charging.socketsUnknown': 'ไม่ระบุหัวปลั๊ก',
-  'tours.poi.charging.socketsUnknownHint':
-    'OpenStreetMap ไม่ได้ระบุว่ามีหัวปลั๊กแบบใด จึงไม่ทราบว่าที่ชาร์จของคุณใช้ได้หรือไม่',
+  'tours.poi.charging.socketsUnknownHint': 'OpenStreetMap ไม่ได้ระบุว่ามีหัวปลั๊กแบบใด จึงไม่ทราบว่าที่ชาร์จของคุณใช้ได้หรือไม่',
   'tours.poi.charging.ownCharger': 'เต้ารับไฟบ้านตามที่ OpenStreetMap ระบุ นำที่ชาร์จของคุณไปเอง',
   'tours.poi.charging.sourceHint': 'ตามที่ OpenStreetMap ระบุ ไม่ทราบว่าวันนี้ใช้งานได้หรือฟรีหรือไม่',
   'tours.poi.charging.fewMapped':
@@ -866,8 +840,7 @@ const tours: TranslationStrings = {
   'tours.paddle.timeEstimated': 'เวลาพาย (โดยประมาณ)',
   'tours.paddle.timeEstimatedShort': 'พายเรือ',
   'tours.paddle.timeEstimatedInfoLabel': 'วิธีประมาณเวลาพาย',
-  'tours.paddle.timeEstimatedInfo':
-    'ระยะทางหารด้วยความเร็วที่วางแผนไว้ บนน้ำนิ่ง ยังไม่รวมกระแสน้ำ ลม การแบกเรือ และประตูน้ำ',
+  'tours.paddle.timeEstimatedInfo': 'ระยะทางหารด้วยความเร็วที่วางแผนไว้ บนน้ำนิ่ง ยังไม่รวมกระแสน้ำ ลม การแบกเรือ และประตูน้ำ',
   'tours.planner.reverse': 'กลับทิศทาง',
   'tours.planner.returnToStart': 'กลับไปจุดเริ่มต้น',
   'tours.planner.alreadyLoop': 'ทริปนี้กลับไปจุดเริ่มต้นแล้ว',
@@ -893,8 +866,7 @@ const tours: TranslationStrings = {
   'tours.map.pisteWinterHike': 'เส้นทางเดินฤดูหนาวและรองเท้าเดินหิมะ',
   'tours.map.pisteSled': 'เส้นทางเลื่อนหิมะ',
   'tours.map.pisteLift': 'ลิฟต์และกระเช้า',
-  'tours.map.pisteStatic':
-    'เป็นข้อมูลแผนที่ ไม่ใช่รายงานสด ไม่ได้บอกว่าที่ใดเปิดหรือเตรียมลานแล้ว หรือเรื่องหิมะและหิมะถล่ม',
+  'tours.map.pisteStatic': 'เป็นข้อมูลแผนที่ ไม่ใช่รายงานสด ไม่ได้บอกว่าที่ใดเปิดหรือเตรียมลานแล้ว หรือเรื่องหิมะและหิมะถล่ม',
   'tours.map.pisteFullKey': 'คำอธิบายฉบับเต็มบน OpenSnowMap',
   'tours.import.previewTitle': 'ตัวอย่างการนำเข้า',
   'tours.import.previewHint': 'ยังไม่มีการบันทึกอะไร ตรวจสอบเส้นทางก่อน แล้วจึงนำเข้า',
@@ -1028,10 +1000,8 @@ const tours: TranslationStrings = {
     'สิ่งกีดขวางและจุดลงขึ้นเรือ {count} แห่งตลอดเส้นทาง จาก OpenStreetMap ณ {date} ข้อมูลอาจไม่ครบถ้วน โปรดตรวจสอบแหล่งน้ำด้วยตนเอง',
   'tours.paddle.obstacles.coveredEmpty':
     'ไม่มีสิ่งกีดขวางที่ทราบตลอดเส้นทาง (OpenStreetMap ณ {date}) อย่างไรก็ตาม โปรดตรวจสอบแหล่งน้ำด้วยตนเอง',
-  'tours.paddle.obstacles.partial':
-    'ข้อมูลสิ่งกีดขวางครอบคลุมเพียงบางส่วนของเส้นทาง (ณ {date}) โปรดตรวจสอบส่วนที่เหลือด้วยตนเอง',
-  'tours.paddle.obstacles.none':
-    'ไม่มีข้อมูลสิ่งกีดขวางสำหรับพื้นที่นี้ โปรดตรวจสอบฝาย ประตูน้ำ และจุดแบกเรือที่นี่ด้วยตนเอง',
+  'tours.paddle.obstacles.partial': 'ข้อมูลสิ่งกีดขวางครอบคลุมเพียงบางส่วนของเส้นทาง (ณ {date}) โปรดตรวจสอบส่วนที่เหลือด้วยตนเอง',
+  'tours.paddle.obstacles.none': 'ไม่มีข้อมูลสิ่งกีดขวางสำหรับพื้นที่นี้ โปรดตรวจสอบฝาย ประตูน้ำ และจุดแบกเรือที่นี่ด้วยตนเอง',
   'tours.paddle.obstacles.offline': 'หากไม่มีการเชื่อมต่อ TREK จะไม่โหลดข้อมูลสิ่งกีดขวาง โปรดตรวจสอบแหล่งน้ำด้วยตนเอง',
   'tours.paddle.obstacles.error': 'โหลดข้อมูลสิ่งกีดขวางไม่ได้ โปรดตรวจสอบแหล่งน้ำด้วยตนเอง',
   'tours.paddle.obstacle.kind.weir': 'ฝาย',
@@ -1046,8 +1016,7 @@ const tours: TranslationStrings = {
   'tours.paddle.obstacle.kind.slipway': 'ทางลาดลงน้ำ',
   'tours.paddle.obstacle.kind.portage': 'จุดแบกเรือ',
   'tours.paddle.obstacle.kind.access': 'กฎการพายเรือ',
-  'tours.paddle.obstacles.truncated':
-    'TREK แสดงเพียงบางส่วนของรายการที่นี่ พื้นที่นี้มีมากกว่านั้น โปรดตรวจสอบแหล่งน้ำด้วยตนเอง',
+  'tours.paddle.obstacles.truncated': 'TREK แสดงเพียงบางส่วนของรายการที่นี่ พื้นที่นี้มีมากกว่านั้น โปรดตรวจสอบแหล่งน้ำด้วยตนเอง',
   'tours.paddle.obstacles.dateUnknown': 'วันที่ไม่ทราบแน่ชัด',
   'tours.paddle.obstacleCard.onRoute': 'บนเส้นทางที่ระยะ',
   'tours.paddle.obstacleCard.near': 'ใกล้เส้นทาง',
@@ -1091,8 +1060,7 @@ const tours: TranslationStrings = {
   'tours.paddle.check.bans': 'มีข้อห้าม {count} รายการ',
   'tours.paddle.check.noneKnown': 'ไม่มีรายการที่ทราบ',
   'tours.paddle.check.notClearance': 'รายการตรวจสอบไม่ใช่การรับรองความปลอดภัยหรือการอนุญาตทางกฎหมาย',
-  'tours.paddle.check.bansInfo':
-    'OpenStreetMap บันทึกว่าที่นี่มีข้อห้ามหรือเป็นที่ดินส่วนบุคคล การตัดสินใจไม่ได้ยกเลิกข้อห้ามนั้น',
+  'tours.paddle.check.bansInfo': 'OpenStreetMap บันทึกว่าที่นี่มีข้อห้ามหรือเป็นที่ดินส่วนบุคคล การตัดสินใจไม่ได้ยกเลิกข้อห้ามนั้น',
   'tours.paddle.check.saveFirst': 'บันทึกทัวร์ก่อนเพื่อตรวจสอบ',
   'tours.paddle.check.unsaved': 'มีการเปลี่ยนแปลงที่ยังไม่ได้บันทึก รายการแสดงเส้นทางที่บันทึกไว้',
   'tours.paddle.check.stale': 'ณ {time} จะอัปเดตเมื่อออนไลน์',
@@ -1179,15 +1147,13 @@ const tours: TranslationStrings = {
   'tours.paddle.routeOnWater': 'วางแผนช่วงถัดไปบนผืนน้ำ',
   'tours.paddle.routeAllOnWater': 'วางแผนช่วงที่วาดด้วยมือบนผืนน้ำ',
   'tours.paddle.auto': 'ตรวจพบ',
-  'tours.paddle.autoHint':
-    'TREK วางจุดนี้ไว้ที่จุดแบกเรือหรือประตูน้ำที่พบระหว่างทาง หากคุณย้ายหรือแก้ไข จุดนี้จะเป็นของคุณ',
+  'tours.paddle.autoHint': 'TREK วางจุดนี้ไว้ที่จุดแบกเรือหรือประตูน้ำที่พบระหว่างทาง หากคุณย้ายหรือแก้ไข จุดนี้จะเป็นของคุณ',
   'tours.paddle.note.rapids': 'แก่งน้ำระดับ {grade}',
   'tours.paddle.note.pass': 'ช่องทางเรือแคนู',
   'tours.paddle.note.gap': 'ช่องว่างในข้อมูลแผนที่',
   'tours.paddle.note.rapidsHint': 'เส้นทางผ่านน้ำไหลแรงตรงนี้ สำรวจก่อนและแบกเรืออ้อมหากไม่แน่ใจ',
   'tours.paddle.note.gapHint': 'ข้อมูลแหล่งน้ำมีช่องว่างตรงนี้ เชื่อมด้วยเส้นตรง โปรดตรวจสอบในพื้นที่',
-  'tours.paddle.failed.not_on_water':
-    'ปลายด้านหนึ่งของช่วงนี้ไม่ได้อยู่บนแหล่งน้ำที่ TREK รู้จัก ย้ายไปไว้บนแม่น้ำหรือทะเลสาบ',
+  'tours.paddle.failed.not_on_water': 'ปลายด้านหนึ่งของช่วงนี้ไม่ได้อยู่บนแหล่งน้ำที่ TREK รู้จัก ย้ายไปไว้บนแม่น้ำหรือทะเลสาบ',
   'tours.paddle.failed.no_region': 'ยังไม่มีข้อมูลแหล่งน้ำสำหรับพื้นที่นี้ ผู้ดูแลระบบสามารถเพิ่มภูมิภาคได้',
   'tours.paddle.failed.building': 'ข้อมูลแหล่งน้ำของภูมิภาคนี้ยังเตรียมอยู่ ลองอีกครั้งในอีกไม่กี่นาที',
   'tours.paddle.failed.no_water_path': 'TREK ไม่พบเส้นทางบนผืนน้ำระหว่างจุดเหล่านี้',
@@ -1217,8 +1183,7 @@ const tours: TranslationStrings = {
   'tours.paddle.lakeStyle.shore': 'ใกล้ฝั่ง',
   'tours.paddle.lakeStyle.directHint': 'เส้นที่สั้นที่สุดข้ามผืนน้ำเปิด',
   'tours.paddle.lakeStyle.shoreHint': 'อยู่ใกล้ฝั่ง สำหรับวันที่มีลม: ยาวกว่าแต่แผ่นดินไม่เคยไกล',
-  'tours.paddle.wind.shoreAdvice':
-    'วันนี้ลมสูงสุด {mean} km/h กระโชก {gusts} km/h บนทะเลสาบการอยู่ใกล้ฝั่งอาจเป็นเส้นทางที่ดีกว่า',
+  'tours.paddle.wind.shoreAdvice': 'วันนี้ลมสูงสุด {mean} km/h กระโชก {gusts} km/h บนทะเลสาบการอยู่ใกล้ฝั่งอาจเป็นเส้นทางที่ดีกว่า',
   'tours.paddle.wind.shoreAdopt': 'วางแผนใกล้ฝั่ง',
   'tours.paddle.wind.shoreTaken': 'ทะเลสาบถูกวางแผนให้อยู่ใกล้ฝั่ง',
   'tours.paddle.status.unrouted': 'ยังไม่ได้วางแผน {count} ช่วง',
@@ -1228,8 +1193,7 @@ const tours: TranslationStrings = {
   'tours.planner.namePlaceholder.ski': 'ทริปสกีที่ไม่มีชื่อ',
   'tours.horse.time': 'เวลาขี่ม้า',
   'tours.horse.timeInfoLabel': 'ทำไมจึงไม่มีเวลาขี่ม้า',
-  'tours.horse.timeInfo':
-    'TREK ไม่คำนวณเวลาขี่ม้า เพราะจังหวะขึ้นอยู่กับม้าและผู้ขี่ หากต้องการ ให้กรอกเวลารวมที่วางแผนไว้เอง',
+  'tours.horse.timeInfo': 'TREK ไม่คำนวณเวลาขี่ม้า เพราะจังหวะขึ้นอยู่กับม้าและผู้ขี่ หากต้องการ ให้กรอกเวลารวมที่วางแผนไว้เอง',
   'tours.horse.routes.title': 'เส้นทางขี่ม้า',
   'tours.horse.routes.infoLabel': 'เกี่ยวกับเส้นทางขี่ม้า',
   'tours.horse.routes.info':
@@ -1261,8 +1225,7 @@ const tours: TranslationStrings = {
   'tours.horse.dialog.joinGapHint': 'ลากเป็นเส้นตรงและยังไม่ตรวจสอบ',
   'tours.horse.dialog.adopt': 'นำช่วงนี้มาใช้',
   'tours.horse.access.title': 'การเข้าถึงสำหรับม้า',
-  'tours.horse.access.note':
-    'ข้อมูลที่ OpenStreetMap บันทึกเป็น horse=* ตามเส้นทาง ข้อมูลอาจขาดหรือเก่า ให้ถือป้ายในพื้นที่เป็นหลัก',
+  'tours.horse.access.note': 'ข้อมูลที่ OpenStreetMap บันทึกเป็น horse=* ตามเส้นทาง ข้อมูลอาจขาดหรือเก่า ให้ถือป้ายในพื้นที่เป็นหลัก',
   'tours.horse.access.closedNotice': 'บางส่วนของช่วงนี้ถูกบันทึกว่าปิดหรือเป็นทางส่วนบุคคลสำหรับม้า',
   'tours.horse.access.value.designated': 'กำหนดให้ผู้ขี่ม้า',
   'tours.horse.access.value.yes': 'อนุญาต',
@@ -1286,8 +1249,7 @@ const tours: TranslationStrings = {
   'tours.horse.recorded.noTime': 'ไม่มีเวลาขี่ม้า',
   'tours.horse.recorded.noTimeInfo': 'TREK ไม่คำนวณเวลาขี่ม้าให้ทริปขี่ม้า จังหวะขึ้นอยู่กับม้าและผู้ขี่',
   'tours.horse.recorded.accessUnchecked': 'ยังไม่ตรวจสอบสิทธิ์ผ่าน',
-  'tours.horse.recorded.accessUncheckedInfo':
-    'การนำเข้าไม่ได้ตรวจสอบว่าขี่ม้าผ่านเส้นทางได้หรือไม่ ให้ถือป้ายในพื้นที่เป็นหลัก',
+  'tours.horse.recorded.accessUncheckedInfo': 'การนำเข้าไม่ได้ตรวจสอบว่าขี่ม้าผ่านเส้นทางได้หรือไม่ ให้ถือป้ายในพื้นที่เป็นหลัก',
   'tours.activity.label': 'เส้นทางจริง',
   'tours.activity.assign': 'เพิ่มเส้นทางจริง',
   'tours.activity.assignHint': 'เชื่อมเส้นทางที่คุณเดินจริง จากทริปนี้หรือจากไฟล์ GPX',
@@ -1433,7 +1395,6 @@ const tours: TranslationStrings = {
   'tours.planner.emptyHintPlacing': 'คลิกบนแผนที่เพื่อวางจุด เมื่อมีสองจุดขึ้นไป TREK จะคำนวณเส้นทาง',
   'tours.ski.drawStraight': 'วาดเป็นเส้นตรง',
   'tours.horse.routes.stale': 'รายการแสดงมุมมองที่ค้นหาไว้ ค้นหาอีกครั้งสำหรับมุมมองนี้',
-  'tours.horse.dialog.adoptGapHint':
-    'เชื่อมช่องว่างด้วยช่วงที่วาดเองก่อน หรือเลือกช่วงที่เริ่มตรงจุดที่เส้นทางของคุณสิ้นสุด',
+  'tours.horse.dialog.adoptGapHint': 'เชื่อมช่องว่างด้วยช่วงที่วาดเองก่อน หรือเลือกช่วงที่เริ่มตรงจุดที่เส้นทางของคุณสิ้นสุด',
 };
 export default tours;

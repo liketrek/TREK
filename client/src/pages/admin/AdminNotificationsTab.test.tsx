@@ -42,6 +42,28 @@ function card(heading: string | RegExp): HTMLElement {
   return screen.getByRole('heading', { name: heading }).closest<HTMLElement>('section')!;
 }
 
+/** The labels of the channels card's switch rows, top to bottom: its first block of rows, not the SMTP section under it. */
+function channelRows(): string[] {
+  const rows = card('Channels').querySelector('.divide-y');
+  if (!rows) throw new Error('the channels card has no rows');
+  return Array.from(rows.querySelectorAll('label'), l => l.textContent ?? '');
+}
+
+/** A channel's row in the channels card (label and hint left, switch right). */
+function channelRow(label: string): HTMLElement {
+  const row = within(card('Channels'))
+    .getAllByText(label)
+    .find(node => node.tagName === 'LABEL')
+    ?.closest<HTMLElement>('.flex-wrap');
+  if (!row) throw new Error(`no channel row for ${label}`);
+  return row;
+}
+
+/** A channel's switch: each row's switch carries the channel's name. */
+function channelSwitch(label: string): HTMLElement {
+  return within(channelRow(label)).getByRole('button', { name: label });
+}
+
 const EMAIL_ON: SmtpValues = { notification_channels: 'email', smtp_host: 'mail.example.com' };
 
 /**
@@ -68,11 +90,9 @@ describe('AdminNotificationsTab', () => {
   it('FE-ADMNOT-001: renders every channel panel plus the preference matrix', () => {
     renderTab();
 
+    // Every channel is a row of the channels card; the SMTP relay is a section of it.
+    expect(channelRows()).toEqual(['Email (SMTP)', 'Webhook', 'Ntfy', 'Web Push', 'In-App', 'Trip Reminders']);
     expect(screen.getByRole('heading', { name: 'Email (SMTP)' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: /^webhook$/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Ntfy' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'In-App' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Trip Reminders' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Admin Webhook' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Admin Ntfy' })).toBeInTheDocument();
     expect(screen.getByTestId('admin-notifications-panel')).toBeInTheDocument();
@@ -112,7 +132,7 @@ describe('AdminNotificationsTab', () => {
     );
     const admin = renderTab({ smtpValues: { notification_channels: 'webhook' } });
 
-    fireEvent.click(within(card('Email (SMTP)')).getAllByRole('button')[0]);
+    fireEvent.click(channelSwitch('Email (SMTP)'));
 
     await waitFor(() => expect(body).toEqual({ notification_channels: 'email,webhook' }));
     expect(replaySmtp(admin.setSmtpValues, 0).notification_channels).toBe('email,webhook');
@@ -128,7 +148,7 @@ describe('AdminNotificationsTab', () => {
     );
     renderTab({ smtpValues: { notification_channels: 'email' } });
 
-    fireEvent.click(within(card('Email (SMTP)')).getAllByRole('button')[0]);
+    fireEvent.click(channelSwitch('Email (SMTP)'));
 
     await waitFor(() => expect(body).toEqual({ notification_channels: 'none' }));
   });
@@ -143,7 +163,7 @@ describe('AdminNotificationsTab', () => {
     );
     renderTab({ smtpValues: { notification_channels: 'email, plugin-gotify' } });
 
-    fireEvent.click(within(card('Ntfy')).getAllByRole('button')[0]);
+    fireEvent.click(channelSwitch('Ntfy'));
 
     await waitFor(() => expect(body).toEqual({ notification_channels: 'email,ntfy,plugin-gotify' }));
   });
@@ -152,7 +172,7 @@ describe('AdminNotificationsTab', () => {
     server.use(http.put('/api/auth/app-settings', () => HttpResponse.json({}, { status: 500 })));
     const admin = renderTab({ smtpValues: { notification_channels: 'email' } });
 
-    fireEvent.click(within(card(/^webhook$/i)).getAllByRole('button')[0]);
+    fireEvent.click(channelSwitch('Webhook'));
 
     await waitFor(() => expect(admin.toast.error).toHaveBeenCalledWith('Error'));
     expect(replaySmtp(admin.setSmtpValues, 0).notification_channels).toBe('email,webhook');
@@ -269,7 +289,7 @@ describe('AdminNotificationsTab', () => {
     );
     const admin = renderTab({ smtpValues: { notify_trip_reminder: 'false' } });
 
-    fireEvent.click(within(card('Trip Reminders')).getByRole('button'));
+    fireEvent.click(channelSwitch('Trip Reminders'));
 
     await waitFor(() => expect(body).toEqual({ notify_trip_reminder: 'true' }));
     expect(admin.toast.success).toHaveBeenCalledWith('Trip reminders enabled');
@@ -280,7 +300,7 @@ describe('AdminNotificationsTab', () => {
     server.use(http.get('/api/auth/app-config', () => HttpResponse.json({})));
     const admin = renderTab({ smtpValues: {} });
 
-    fireEvent.click(within(card('Trip Reminders')).getByRole('button'));
+    fireEvent.click(channelSwitch('Trip Reminders'));
 
     await waitFor(() => expect(admin.toast.success).toHaveBeenCalledWith('Trip reminders disabled'));
     expect(replaySmtp(admin.setSmtpValues, 0).notify_trip_reminder).toBe('false');
@@ -290,7 +310,7 @@ describe('AdminNotificationsTab', () => {
     server.use(http.put('/api/auth/app-settings', () => HttpResponse.json({}, { status: 500 })));
     const admin = renderTab({ smtpValues: {} });
 
-    fireEvent.click(within(card('Trip Reminders')).getByRole('button'));
+    fireEvent.click(channelSwitch('Trip Reminders'));
 
     await waitFor(() => expect(admin.toast.error).toHaveBeenCalledWith('Error'));
     expect(replaySmtp(admin.setSmtpValues, 1).notify_trip_reminder).toBe('true');
@@ -565,21 +585,20 @@ describe('AdminNotificationsTab', () => {
     // single stack there instead of leaving half a grid row empty.
     renderTab({ managed: true });
 
-    expect(screen.getByRole('heading', { name: /^webhook$/i })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Trip Reminders' })).toBeInTheDocument();
+    expect(channelRows()).toEqual(['Webhook', 'Ntfy', 'Web Push', 'In-App', 'Trip Reminders']);
     expect(screen.queryByRole('heading', { name: 'Email (SMTP)' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Admin Webhook' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Admin Ntfy' })).not.toBeInTheDocument();
   });
 
-  it('FE-ADMNOT-044: Web Push has its own card after Ntfy, before In-App', () => {
+  it('FE-ADMNOT-044: Web Push has its own row after Ntfy, before In-App', () => {
     renderTab({ smtpValues: { notification_channels: 'email' } });
 
-    const headings = screen.getAllByRole('heading').map(h => h.textContent);
-    expect(headings.indexOf('Web Push')).toBe(headings.indexOf('Ntfy') + 1);
-    expect(headings.indexOf('In-App')).toBe(headings.indexOf('Web Push') + 1);
-    expect(within(card('Web Push')).getByText(/receive notifications on their phones/)).toBeInTheDocument();
-    expect(within(card('Web Push')).getByRole('button', { name: 'Web Push' })).toHaveAttribute('aria-pressed', 'false');
+    const rows = channelRows();
+    expect(rows.indexOf('Web Push')).toBe(rows.indexOf('Ntfy') + 1);
+    expect(rows.indexOf('In-App')).toBe(rows.indexOf('Web Push') + 1);
+    expect(within(channelRow('Web Push')).getByText(/receive notifications on their phones/)).toBeInTheDocument();
+    expect(channelSwitch('Web Push')).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('FE-ADMNOT-045: switching Web Push on adds push to the list and keeps the rest', async () => {
@@ -592,7 +611,7 @@ describe('AdminNotificationsTab', () => {
     );
     const admin = renderTab({ smtpValues: { notification_channels: 'email,plugin-gotify' } });
 
-    fireEvent.click(within(card('Web Push')).getByRole('button', { name: 'Web Push' }));
+    fireEvent.click(channelSwitch('Web Push'));
 
     await waitFor(() => expect(body).toEqual({ notification_channels: 'email,push,plugin-gotify' }));
     expect(replaySmtp(admin.setSmtpValues, 0).notification_channels).toBe('email,push,plugin-gotify');
@@ -608,7 +627,7 @@ describe('AdminNotificationsTab', () => {
     );
     renderTab({ smtpValues: { notification_channels: 'email,push' } });
 
-    const toggle = within(card('Web Push')).getByRole('button', { name: 'Web Push' });
+    const toggle = channelSwitch('Web Push');
     expect(toggle).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(toggle);
 

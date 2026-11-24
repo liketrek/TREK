@@ -39,7 +39,8 @@ const { db } = vi.hoisted(() => {
   // is_archived, reminder_days, the timestamps and added_at), so those are here too.
   tmp.exec(`CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL,
     title TEXT NOT NULL DEFAULT 'Trip', currency TEXT, is_archived INTEGER DEFAULT 0, reminder_days INTEGER DEFAULT 3,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    costs_mode TEXT NOT NULL DEFAULT 'split');`);
   tmp.exec(`CREATE TABLE trip_members (id INTEGER PRIMARY KEY AUTOINCREMENT, trip_id INTEGER NOT NULL,
     user_id INTEGER NOT NULL, added_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
   return { db: tmp };

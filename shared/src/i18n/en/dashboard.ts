@@ -123,7 +123,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'You changed when this trip starts. How should your plans follow the new dates?',
   'dashboard.dateShiftKeepBookings': 'Keep bookings on their dates',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Day plans move with the new dates, while reservations and accommodations stay on their original dates as long as those are still part of the trip.',
+    'Days you add stay empty and nothing else moves. If the trip moves, day plans move with the new dates, while reservations and accommodations stay on their original dates as long as those are still part of the trip.',
   'dashboard.dateShiftAll': 'Shift everything',
   'dashboard.dateShiftAllDesc':
     'The entire itinerary moves with the new dates, including reservations and accommodations.',
@@ -238,5 +238,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.addApple': 'Add to Apple Calendar / Outlook',
   'dashboard.ics.copyManually': 'Or copy a link manually',
   'dashboard.ics.pasteFromUrl': 'paste into “From URL”',
+  'dashboard.ics.dayEvents': 'Day overview events',
+  'dashboard.ics.dayEventsHint':
+    'An all-day event per day with its places and notes that have no time. Switching this changes the link, so subscribe again with the new one.',
 };
 export default dashboard;

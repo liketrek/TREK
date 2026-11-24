@@ -33,6 +33,7 @@ import { HttpException } from '@nestjs/common';
 import { resetTestDb } from '../../helpers/test-db';
 import { createUser, createTrip, createReservation, createBudgetItem, createPlace, createDay, createDayAccommodation, createDayAssignment, addTripMember } from '../../helpers/factories';
 import type { PermissionsService } from '../../../src/nest/permissions/permissions.service';
+import { withoutOrigin } from '../../../src/nest/reservations/reservation-origin.contract';
 import { ReservationsService, type UpdateReservationData } from '../../../src/nest/reservations/reservations.service';
 import { ReservationsReadService } from '../../../src/nest/reservations/reservations-read.service';
 import type { BudgetService } from '../../../src/nest/budget/budget.service';
@@ -46,7 +47,7 @@ const bridge = {
   resyncReservationDays: (tripId: string | number) => svc.resyncReservationDays(tripId),
   createReservation: (tripId: string | number, data: Parameters<ReservationsService['create']>[1]) => svc.create(tripId, data),
   getReservation: (id: string | number, tripId: string | number) => svc.getReservation(id, tripId),
-  getReservationWithJoins: (id: string | number) => svc.getReservationWithJoins(id),
+  getReservationWithJoins: (id: string | number, tripId: string | number) => svc.getReservationWithJoins(id, tripId),
   updateReservation: (
     id: string | number,
     tripId: string | number,
@@ -66,6 +67,8 @@ import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from 
 import { makeReservation } from '../../helpers/factories/reservations';
 import { makeTrip, readTripDays } from '../../helpers/factories/trips';
 import { makeUser } from '../../helpers/factories/users';
+import { setTripAddon } from '../../helpers/factories/settings';
+import { createTestAddonsService } from '../../helpers/test-addons';
 import { BudgetItems } from '../../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../../src/db/entities/DayAccommodations.entity';
 import { DayAssignments } from '../../../src/db/entities/DayAssignments.entity';
@@ -83,7 +86,7 @@ const broadcast = realtime.broadcastMock;
 let svc: ReservationsService;
 let orm: TestOrm;
 beforeAll(async () => {
-  svc = new ReservationsService(permissionsStub, budget as unknown as BudgetService, realtime, notificationsStub(notif.send), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), await makeAccommodationsService(testDb, realtime), await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb));
+  svc = new ReservationsService(permissionsStub, budget as unknown as BudgetService, realtime, notificationsStub(notif.send), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), await makeAccommodationsService(testDb, realtime), await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestAddonsService(testDb));
 });
 
 beforeEach(async () => {
@@ -121,6 +124,28 @@ describe('ReservationsService (DI-native, real SQL)', () => {
         endpoints: [],
         travelers: [],
       });
+    });
+
+    it('RESV-SVC-002b: an import records its origin with sync off; a booking without one keeps the defaults', async () => {
+      const { trip } = ownerTrip();
+      const { reservation: imported } = await svc.create(String(trip.id), {
+        title: 'LH 716',
+        type: 'flight',
+        external_source: 'import',
+        external_id: 'ABC123|flight|2030-05-01|FRA-NRT',
+        sync_enabled: false,
+      });
+      expect(imported).toMatchObject({ external_source: 'import', external_id: 'ABC123|flight|2030-05-01|FRA-NRT', sync_enabled: 0 });
+
+      // A source without a key is no origin: the row stays a hand-made booking.
+      const { reservation: plain } = await svc.create(String(trip.id), { title: 'Dinner', external_source: 'import' });
+      expect(plain).toMatchObject({ external_source: null, external_id: null, sync_enabled: 1 });
+    });
+
+    it('RESV-SVC-002c: withoutOrigin drops the origin a client body names and keeps everything else', () => {
+      expect(
+        withoutOrigin({ title: 'Dinner', external_source: 'airtrail', external_id: '7', sync_enabled: true, notes: 'x' }),
+      ).toEqual({ title: 'Dinner', notes: 'x' });
     });
 
     it('RESV-SVC-003: derives day_id from reservation_time for non-hotel bookings', async () => {
@@ -387,7 +412,7 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       expect(row.day_positions).toEqual({ [days[0].id]: 2 });
       expect(row.travelers).toHaveLength(1);
 
-      const single = (await svc.getReservationWithJoins(res.id))!;
+      const single = (await svc.getReservationWithJoins(res.id, trip.id))!;
       expect(single.accommodation_id).toBe(acc.id);
       expect(single.travelers).toHaveLength(1);
       expect(single.day_positions).toEqual({ [days[0].id]: 2 });
@@ -406,11 +431,14 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       const current = await svc.getReservation(String(moved.id), String(trip.id));
       const { reservation } = await svc.update(String(moved.id), String(trip.id), { notes: 'window seat' }, current as Parameters<ReservationsService['update']>[3]);
       expect(reservation.day_positions).toEqual({ [days[1].id]: 3.5 });
-      expect((await svc.getReservationWithJoins(untouched.id))?.day_positions).toBeNull();
+      expect((await svc.getReservationWithJoins(untouched.id, trip.id))?.day_positions).toBeNull();
     });
 
-    it('RESV-SVC-016: getReservationWithJoins returns undefined for a missing id', async () => {
-      expect(await svc.getReservationWithJoins(999)).toBeUndefined();
+    it('RESV-SVC-016: getReservationWithJoins returns undefined for a missing id or another trip', async () => {
+      const { trip } = ownerTrip();
+      const res = createReservation(testDb, trip.id);
+      expect(await svc.getReservationWithJoins(999, trip.id)).toBeUndefined();
+      expect(await svc.getReservationWithJoins(res.id, trip.id + 1)).toBeUndefined();
     });
   });
 
@@ -817,6 +845,22 @@ describe('ReservationsService (DI-native, real SQL)', () => {
       svc.announceCost(String(trip.id), out.costEvents, 'sock');
       expect(broadcast).toHaveBeenCalledWith(String(trip.id), 'budget:updated', { item: { id: item.id } }, 'sock');
     });
+
+    it('RESV-TX-008: with Costs off for the trip an edit leaves the linked cost as it is, cleared price and new type alike', async () => {
+      const { trip, res, item } = await linkedItem({ total_price: 100, category: 'other' });
+      await updateRows(orm, Reservations, { id: res.id }, { title: 'Old', type: 'other' });
+      await setTripAddon(orm, trip.id, 'budget', false);
+      const current = await svc.getReservation(String(res.id), String(trip.id));
+      if (!current) throw new Error('the booking was not written');
+
+      const out = await svc.updateWithCost(String(res.id), String(trip.id), { title: 'New', type: 'flight' } as never, current, { total_price: 0 });
+
+      expect(out.costEvents).toEqual([]);
+      expect(budget.deleteBudgetItem).not.toHaveBeenCalled();
+      expect(budget.updateBudgetItem).not.toHaveBeenCalled();
+      expect(await findRow(orm, BudgetItems, { id: item.id })).toMatchObject({ total_price: 100, category: 'other' });
+      expect(await findRow(orm, Reservations, { id: res.id })).toMatchObject({ title: 'New', type: 'flight' });
+    });
   });
 
   describe('createWithCost', () => {
@@ -840,6 +884,17 @@ describe('ReservationsService (DI-native, real SQL)', () => {
 
       expect(await countRows(orm, Reservations, { trip: trip.id })).toBe(0);
       expect(broadcast).not.toHaveBeenCalled();
+    });
+
+    it('RESV-TX-009: with Costs off for the trip the booking is written without its cost', async () => {
+      const { trip } = ownerTrip();
+      await setTripAddon(orm, trip.id, 'budget', false);
+
+      const out = await svc.createWithCost(String(trip.id), { title: 'Hotel', type: 'other' } as never, { total_price: 200 });
+
+      expect(out.reservation.id).toBeGreaterThan(0);
+      expect(out.costEvents).toEqual([]);
+      expect(budget.linkBudgetItemToReservation).not.toHaveBeenCalled();
     });
 
     it('RESV-TX-005: without a price there is no cost and no event', async () => {
@@ -1048,7 +1103,7 @@ describe('ReservationsService — the surface the deleted bridge exposed', () =>
   it('RESV-BRIDGE-006: getReservationWithJoins attaches endpoints + travelers', async () => {
     const { trip } = ownerTrip();
     const res = createReservation(testDb, trip.id);
-    expect(await bridge.getReservationWithJoins(res.id)).toMatchObject({ id: res.id, endpoints: [], travelers: [] });
+    expect(await bridge.getReservationWithJoins(res.id, trip.id)).toMatchObject({ id: res.id, endpoints: [], travelers: [] });
   });
 
   it('RESV-BRIDGE-007: updateReservation updates through the bridge', async () => {
@@ -1485,6 +1540,20 @@ describe('ReservationsService — referenced ids stay inside the trip', () => {
     const current = (await svc.getReservation(String(reservation.id), String(mine.id)))!;
     await svc.update(String(reservation.id), String(mine.id), { place_id: 999997 }, current);
     expect(await findRow(orm, Reservations, { id: reservation.id })).toMatchObject({ place_id: null });
+  });
+
+  it('RESV-SCOPE-014: a create naming a stay that is not on the trip stores no link, as an update does', async () => {
+    const { mine, theirs } = twoTrips();
+    const foreignPlace = createPlace(testDb, theirs.id);
+    const foreignDay = await findRow(orm, Days, { trip: theirs.id }) as { id: number };
+    const foreignAcc = createDayAccommodation(testDb, theirs.id, foreignPlace.id, foreignDay.id, foreignDay.id);
+
+    const dropped = async (accommodation_id: number) => {
+      const { reservation } = await svc.create(String(mine.id), { title: 'Hotel', type: 'hotel', accommodation_id });
+      expect(await findRow(orm, Reservations, { id: reservation.id })).toMatchObject({ accommodation_id: null });
+    };
+    await dropped(3000000000);
+    await dropped(foreignAcc.id);
   });
 
   it('RESV-SCOPE-011: a stay whose refs resolve to nothing is refused, never written and never dropped in silence', async () => {

@@ -119,6 +119,13 @@ describe('migrate-encryption.ts app_settings parity', () => {
     }
   });
 
+  // A forwarding address shows its token through token_enc; a stored mail is sealed in raw_eml_enc.
+  it('ROTPAR-016: rotates the address tokens and stored mails of the mail import', () => {
+    const section = script.slice(script.indexOf('--- mail_ingest:'), script.indexOf('--- addons:'));
+    expect(section).toContain("['mail_ingest_addresses', 'token_enc']");
+    expect(section).toContain("['mail_ingest_messages', 'raw_eml_enc']");
+  });
+
   it('ROTPAR-004: rotates every storage.backends secret field for s3', () => {
     const fields = storageSecretFields('s3');
     expect(fields.length).toBeGreaterThan(0);
@@ -424,6 +431,38 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     expect(output).toContain('All secrets successfully re-encrypted.');
   }, 30000);
 
+  // wanderer.service.ts stores the token with maybe_encrypt_api_key; missed by a
+  // rotation, the connection still reads as connected but calls go out without it.
+  it('ROTPAR-017: re-encrypts the wanderer token', () => {
+    const wanderer = fs.readFileSync(path.join(SERVER_ROOT, 'src', 'nest', 'wanderer', 'wanderer.service.ts'), 'utf8');
+    expect(wanderer).toContain('maybe_encrypt_api_key(typed)');
+    const seed = new Database(dbPath);
+    seed.exec(BASE_SCHEMA);
+    seed.exec('CREATE TABLE wanderer_connections (user_id INTEGER PRIMARY KEY, url TEXT NOT NULL, token TEXT)');
+    seed
+      .prepare('INSERT INTO wanderer_connections (user_id, url, token) VALUES (1, ?, ?)')
+      .run('https://wanderer.example', encryptWith('old-key', 'wanderer-token'));
+    seed.prepare("INSERT INTO wanderer_connections (user_id, url, token) VALUES (2, 'https://w2.example', NULL)").run();
+    seed.close();
+
+    execFileSync(process.execPath, ['--import', 'tsx', 'scripts/migrate-encryption.ts'], {
+      cwd: SERVER_ROOT,
+      env: { ...process.env, DB_PATH: dbPath },
+      input: ['old-key', 'new-key', 'yes', ''].join(String.fromCharCode(10)),
+      stdio: 'pipe',
+      encoding: 'utf8',
+    });
+
+    const after = new Database(dbPath, { readonly: true });
+    const rows = after.prepare('SELECT user_id, token FROM wanderer_connections ORDER BY user_id').all() as Array<{
+      user_id: number;
+      token: string | null;
+    }>;
+    after.close();
+    expect(decryptWith('new-key', String(rows[0].token))).toBe('wanderer-token');
+    expect(rows[1].token).toBeNull();
+  }, 30000);
+
   it('ROTPAR-013: re-encrypts the AI Parsing addon key and moves the key file to the new key', () => {
     const seed = new Database(dbPath);
     seed.exec(BASE_SCHEMA);
@@ -455,5 +494,58 @@ describe('migrate-encryption.ts rotates the stores the app writes', () => {
     after.close();
     // The server refuses an ENCRYPTION_KEY that disagrees with this file.
     expect(fs.readFileSync(keyFile, 'utf8')).toBe('new-key');
+  }, 30000);
+});
+
+describe('migrate-encryption.ts picks the SQLite file the server opens', () => {
+  let tmpDir: string;
+  let dbPath: string;
+
+  beforeEach(() => {
+    tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'trek-migrate-encryption-file-'));
+    dbPath = path.join(tmpDir, 'trek.db');
+    const seed = new Database(dbPath);
+    seed.exec(BASE_SCHEMA);
+    seed.close();
+  });
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  });
+
+  /** The script with `env` over the test's environment, minus both database variables; answers no at the prompt. */
+  function rotate(env: Record<string, string>): { status: number; output: string } {
+    const base = { ...process.env };
+    delete base.DB_PATH;
+    delete base.TREK_DB_FILE;
+    delete base.TREK_DB_URL;
+    try {
+      const stdout = execFileSync(process.execPath, ['--import', 'tsx', 'scripts/migrate-encryption.ts'], {
+        cwd: SERVER_ROOT,
+        env: { ...base, ...env },
+        input: ['old-key', 'new-key', 'no', ''].join(String.fromCharCode(10)),
+        stdio: 'pipe',
+        encoding: 'utf8',
+      });
+      return { status: 0, output: stdout };
+    } catch (err) {
+      const e = err as { status: number; stdout?: string; stderr?: string };
+      return { status: e.status, output: `${e.stdout ?? ''}${e.stderr ?? ''}` };
+    }
+  }
+
+  it('ROTPAR-018: works on the file TREK_DB_FILE names when DB_PATH is not set', () => {
+    const r = rotate({ TREK_DB_FILE: dbPath });
+    expect(r.output).toContain(`Database: ${dbPath}`);
+    expect(r.output).toContain('Aborted.');
+    expect(r.status).toBe(0);
+  }, 30000);
+
+  it('ROTPAR-019: refuses DB_PATH and TREK_DB_FILE naming different files before it asks for a key', () => {
+    const r = rotate({ TREK_DB_FILE: dbPath, DB_PATH: path.join(tmpDir, 'other.db') });
+    expect(r.status).toBe(1);
+    expect(r.output).toContain('DB_PATH and TREK_DB_FILE name different files');
+    expect(r.output).not.toContain('Old ENCRYPTION_KEY');
+    expect(fs.readdirSync(tmpDir)).toEqual(['trek.db']);
   }, 30000);
 });

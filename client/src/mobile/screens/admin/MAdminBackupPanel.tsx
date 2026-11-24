@@ -21,10 +21,7 @@ import { useTranslation } from '../../../i18n'
 import MChip from '../../components/MChip'
 import MToggle from '../../components/MToggle'
 import MConfirmSheet from '../settings/MConfirmSheet'
-import { MAdminButton, MAdminCard, MAdminCardHead, MAdminField, MAdminRow } from './MAdminUi'
-
-const SELECT_CLASS =
-  'h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none focus:border-[color:var(--m-faint)]'
+import { MAdminButton, MAdminCard, MAdminCardHead, MAdminField, MAdminRow, MAdminSelect } from './MAdminUi'
 
 export default function MAdminBackupPanel() {
   const {
@@ -219,23 +216,16 @@ export default function MAdminBackupPanel() {
                   label={t('backup.auto.hour')}
                   hint={serverTimezone ? t('backup.auto.hourHintTz', { format: is12h ? '12h' : '24h', timezone: serverTimezone }) : t('backup.auto.hourHint', { format: is12h ? '12h' : '24h' })}
                 >
-                  <select
+                  <MAdminSelect
+                    title={t('backup.auto.hour')}
                     value={String(autoSettings.hour)}
-                    onChange={e => handleAutoSettingsChange('hour', Number.parseInt(e.target.value, 10))}
-                    className={SELECT_CLASS}
-                  >
-                    {HOURS.map(h => {
-                      let label: string
-                      if (is12h) {
-                        const period = h >= 12 ? 'PM' : 'AM'
-                        const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
-                        label = `${h12}:00 ${period}`
-                      } else {
-                        label = `${String(h).padStart(2, '0')}:00`
-                      }
-                      return <option key={h} value={String(h)}>{label}</option>
+                    onChange={value => handleAutoSettingsChange('hour', Number.parseInt(value, 10))}
+                    options={HOURS.map(h => {
+                      if (!is12h) return { value: String(h), label: `${String(h).padStart(2, '0')}:00` }
+                      const h12 = h === 0 ? 12 : h > 12 ? h - 12 : h
+                      return { value: String(h), label: `${h12}:00 ${h >= 12 ? 'PM' : 'AM'}` }
                     })}
-                  </select>
+                  />
                 </MAdminField>
               )}
 
@@ -259,15 +249,12 @@ export default function MAdminBackupPanel() {
               {/* Day of month (for monthly) */}
               {autoSettings.interval === 'monthly' && (
                 <MAdminField label={t('backup.auto.dayOfMonth')} hint={t('backup.auto.dayOfMonthHint')}>
-                  <select
+                  <MAdminSelect
+                    title={t('backup.auto.dayOfMonth')}
                     value={String(autoSettings.day_of_month)}
-                    onChange={e => handleAutoSettingsChange('day_of_month', Number.parseInt(e.target.value, 10))}
-                    className={SELECT_CLASS}
-                  >
-                    {DAYS_OF_MONTH.map(d => (
-                      <option key={d} value={String(d)}>{String(d)}</option>
-                    ))}
-                  </select>
+                    onChange={value => handleAutoSettingsChange('day_of_month', Number.parseInt(value, 10))}
+                    options={DAYS_OF_MONTH.map(d => ({ value: String(d), label: String(d) }))}
+                  />
                 </MAdminField>
               )}
 

@@ -4,11 +4,13 @@
  * decides whose connection a user's assistant runs on, and the instance's
  * connection keeps a stored key only for the target it was saved for.
  *
- * Replaced: the model catalog (no provider is asked), the ChatGPT sign-in, the
- * addon switch, the demo check, the audit writer and AI parsing's config.
+ * Replaced: the model catalog (no provider is asked), the ChatGPT sign-in and
+ * its chat client, the addon switch, the demo check, the audit writer and AI parsing's config.
  */
 import { AiConnections } from '../../../../src/db/entities/AiConnections.entity';
 import { AddonsService } from '../../../../src/nest/addons/addons.service';
+import type { AiChatEvent, AiChatRequest } from '../../../../src/nest/ai-connections/ai-chat-client.interface';
+import { AiChatClientService } from '../../../../src/nest/ai-connections/ai-chat-client.service';
 import { AiConnectionsModule } from '../../../../src/nest/ai-connections/ai-connections.module';
 import { AiConnectionsService } from '../../../../src/nest/ai-connections/ai-connections.service';
 import { ChatgptAuthService } from '../../../../src/nest/ai-connections/chatgpt-auth.service';
@@ -42,6 +44,20 @@ const MODELS: AiModelInfo[] = [
 
 const catalog = { list: vi.fn(async (): Promise<AiModelInfo[]> => MODELS) };
 const chatgpt = { accessToken: vi.fn(async () => 'chatgpt-access') };
+/** What the plan's model answers a parsing read with, and what it was asked. */
+let planAnswer: AiChatEvent[] = [];
+const planAsked: AiChatRequest[] = [];
+const chatClients = {
+  chatgptPlan: vi.fn((_id: number, model: string, _token: string) => ({
+    kind: 'chatgpt' as const,
+    model,
+    webSearch: true,
+    async *stream(request: AiChatRequest) {
+      planAsked.push(request);
+      yield* planAnswer;
+    },
+  })),
+};
 const addons = { isAddonEnabled: vi.fn(async () => true) };
 const demo = { isDemoUserId: vi.fn(async () => false) };
 const audit = { writeAudit: vi.fn(async () => undefined) };
@@ -56,6 +72,7 @@ beforeAll(async () => {
     overrides: [
       { provide: ModelCatalogService, useValue: catalog },
       { provide: ChatgptAuthService, useValue: chatgpt },
+      { provide: AiChatClientService, useValue: chatClients },
       { provide: AddonsService, useValue: addons },
       { provide: DemoService, useValue: demo },
       { provide: AuditService, useValue: audit },
@@ -449,21 +466,85 @@ describe('the connection AI parsing shares', () => {
     });
   });
 
-  it('AICS-031: a ChatGPT plan or a connection with a problem is not lent to parsing', async () => {
+  it('AICS-031: a connection with a problem is not lent to parsing', async () => {
     const id = await user();
     const { em } = orm();
-    await em.fork().insert(AiConnections, {
-      scope: 'user',
-      user: id,
-      kind: 'chatgpt',
-      model: 'gpt-6.1-sol',
-      status: 'ok',
-    });
-    expect(await service().forParsing(id)).toBeNull();
-    await em.fork().nativeDelete(AiConnections, { user: id });
     await service().saveOwnKey(id, { kind: 'openai', apiKey: 'sk-proj-own-parse' });
     expect(await service().forParsing(id)).toMatchObject({ provider: 'openai', apiKey: 'sk-proj-own-parse' });
     await em.fork().nativeUpdate(AiConnections, { user: id }, { status: 'error' });
     expect(await service().forParsing(id)).toBeNull();
+  });
+});
+
+describe('a ChatGPT plan lent to AI parsing', () => {
+  const READ = {
+    system: 'Read bookings.',
+    text: 'LH 1166 FRA-LIS',
+    images: [{ mimeType: 'image/png' as const, data: 'cGFnZQ==' }],
+    shape: { name: 'record_reservations', description: 'Record them.', parameters: { type: 'object' } },
+  };
+
+  async function planUser(status = 'ok'): Promise<number> {
+    const id = await user();
+    await orm()
+      .em.fork()
+      .insert(AiConnections, { scope: 'user', user: id, kind: 'chatgpt', model: 'gpt-6.1-sol', status });
+    return id;
+  }
+
+  async function lent(id: number) {
+    const connection = await service().forParsing(id);
+    if (connection?.provider !== 'chatgpt') throw new Error('no ChatGPT plan was lent');
+    return connection;
+  }
+
+  beforeEach(() => {
+    planAnswer = [];
+    planAsked.length = 0;
+  });
+
+  it('AICS-032: the plan is lent as a reader that makes the model fill the shape as its one tool', async () => {
+    const id = await planUser();
+    const connection = await lent(id);
+    expect(connection).toMatchObject({ provider: 'chatgpt', model: 'gpt-6.1-sol' });
+    expect(chatgpt.accessToken).not.toHaveBeenCalled();
+
+    planAnswer = [
+      { type: 'tool-call', call: { id: 'c1', name: 'record_reservations', args: { reservations: [{ n: 1 }] } } },
+      { type: 'tool-call', call: { id: 'c2', name: 'record_reservations', args: { reservations: [{ n: 2 }] } } },
+      { type: 'finish', reason: 'tool-calls' },
+    ];
+    expect(await connection.read({ ...READ, signal: new AbortController().signal })).toEqual({
+      filled: { reservations: [{ n: 1 }] },
+    });
+    expect(chatgpt.accessToken).toHaveBeenCalledTimes(1);
+    expect(chatClients.chatgptPlan).toHaveBeenCalledWith(expect.any(Number), 'gpt-6.1-sol', 'chatgpt-access');
+    expect(planAsked[0]).toEqual({
+      system: 'Read bookings.',
+      messages: [{ role: 'user', text: 'LH 1166 FRA-LIS', images: READ.images }],
+      tools: [READ.shape],
+      toolChoice: 'required',
+    });
+  });
+
+  it('AICS-033: a model that called no tool answers with the text it wrote, whole', async () => {
+    const connection = await lent(await planUser());
+    planAnswer = [
+      { type: 'text-delta', delta: '{"reservations": ' },
+      { type: 'text-delta', delta: '[]}' },
+      { type: 'finish', reason: 'stop' },
+    ];
+    expect(await connection.read({ ...READ, signal: new AbortController().signal })).toEqual({
+      text: '{"reservations": []}',
+    });
+  });
+
+  it('AICS-034: a sign-in to renew lends nothing, and a refused token reaches the caller', async () => {
+    expect(await service().forParsing(await planUser('needs_reauth'))).toBeNull();
+    const connection = await lent(await planUser());
+    chatgpt.accessToken.mockRejectedValueOnce(new AiProviderError('needs_reauth', 401, false));
+    await expect(connection.read({ ...READ, signal: new AbortController().signal })).rejects.toBeInstanceOf(
+      AiProviderError,
+    );
   });
 });

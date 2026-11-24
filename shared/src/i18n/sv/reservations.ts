@@ -36,7 +36,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Anslutning',
   'reservations.layover.layover': 'Mellanlandning',
   'reservations.needsReview': 'Granska',
-  'reservations.needsReviewHint': 'Flygplatsen kunde inte matchas automatiskt – bekräfta platsen.',
+  'reservations.needsReviewHint':
+    'Vissa uppgifter fylldes i automatiskt och kunde inte läsas med säkerhet. Kontrollera dem.',
+  'reservations.reviewConfirm': 'Ser rätt ut',
+  'reservations.reviewConfirmHint': 'Klicka för att markera som kontrollerad.',
+  'reservations.reviewConfirmed': 'Markerad som kontrollerad',
   'reservations.searchLocation': 'Sök efter station, hamn, adress…',
   'reservations.meta.trainNumber': 'Tågnummer',
   'reservations.meta.platform': 'Plattform',
@@ -276,7 +280,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Exportera de {shown} av {total} visade raderna (CSV)',
   'reservations.wallet.add': 'Lägg till i Apple Wallet',
   'reservations.wallet.addGoogle': 'Lägg till i Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Wallet-kortet kunde inte skapas. Försök igen.',
   'reservations.wallet.undated': 'Ge bokningen ett datum först: Wallet visar kortet runt den tiden.',
 };

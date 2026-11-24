@@ -10,6 +10,7 @@ import { todoRepo } from '../repo/todoRepo'
 import { budgetRepo } from '../repo/budgetRepo'
 import { reservationRepo } from '../repo/reservationRepo'
 import { fileRepo } from '../repo/fileRepo'
+import { tripTagRepo } from '../repo/tripTagRepo'
 import { isEffectivelyOnline } from '../sync/networkMode'
 import { createPlacesSlice } from './slices/placesSlice'
 import { createAssignmentsSlice } from './slices/assignmentsSlice'
@@ -20,6 +21,7 @@ import { createTodoSlice } from './slices/todoSlice'
 import { createBudgetSlice } from './slices/budgetSlice'
 import { createReservationsSlice } from './slices/reservationsSlice'
 import { createFilesSlice } from './slices/filesSlice'
+import { createTripTagsSlice } from './slices/tripTagsSlice'
 import { handleRemoteEvent } from './slices/remoteEventHandler'
 import type {
   Trip, Day, Place, Assignment, DayNote, PackingItem, TodoItem,
@@ -36,6 +38,7 @@ import type { TodoSlice } from './slices/todoSlice'
 import type { BudgetSlice } from './slices/budgetSlice'
 import type { ReservationsSlice } from './slices/reservationsSlice'
 import type { FilesSlice } from './slices/filesSlice'
+import type { TripTagsSlice } from './slices/tripTagsSlice'
 import type { PlacesRatingFloor } from '../utils/placesFilter'
 
 /** The part of the world the trip's plan map shows, as its last move left it. */
@@ -63,7 +66,8 @@ export interface TripStoreState
     TodoSlice,
     BudgetSlice,
     ReservationsSlice,
-    FilesSlice {
+    FilesSlice,
+    TripTagsSlice {
   trip: Trip | null
   days: Day[]
   places: Place[]
@@ -119,6 +123,16 @@ export interface TripStoreState
   clearTripGone: () => void
 }
 
+/**
+ * What a section reads as when the trip has its addon switched off: the server
+ * answers 404 ("Lists addon is not enabled") for it, which is no reason to fail
+ * the whole trip. Any other failure is rethrown as before.
+ */
+function emptyWhenAddonOff<T>(err: unknown, empty: T): T {
+  if ((err as { response?: { status?: number } } | null)?.response?.status === 404) return empty
+  throw err
+}
+
 export const useTripStore = create<TripStoreState>((set, get) => ({
   trip: null,
   days: [],
@@ -152,7 +166,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
 
   // Clear every trip-scoped slice so switching trips (or losing access to one)
   // can never leave a previous trip's data visible. Global tags/categories are
-  // left intact. Called at the top of loadTrip.
+  // left intact; the trip's own tags go with it. Called at the top of loadTrip.
   resetTrip: () => set({
     trip: null,
     days: [],
@@ -164,6 +178,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     budgetItems: [],
     files: [],
     reservations: [],
+    tripTags: [],
     selectedDayId: null,
     placesFilter: 'all',
     placesCategoryFilter: new Set<string>(),
@@ -179,12 +194,13 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
     get().resetTrip()
     set({ isLoading: true, error: null })
     try {
-      const [tripData, daysData, placesData, packingData, todoData, budgetData, reservationsData, filesData, tagsData, categoriesData] = await Promise.all([
+      const [tripData, daysData, placesData, packingData, todoData, budgetData, reservationsData, filesData, tagsData, categoriesData, tripTagsData] = await Promise.all([
         tripRepo.get(tripId),
         dayRepo.list(tripId),
         placeRepo.list(tripId),
-        packingRepo.list(tripId),
-        todoRepo.list(tripId),
+        // A trip with Lists switched off answers 404 for both; the trip still opens, without them.
+        packingRepo.list(tripId).catch(err => emptyWhenAddonOff(err, { items: [] as PackingItem[] })),
+        todoRepo.list(tripId).catch(err => emptyWhenAddonOff(err, { items: [] as TodoItem[] })),
         // Budget / reservations / files are hydrated here too so the offline
         // path is uniform (no separate tab-gated effects). Non-fatal: a failure
         // in any of these must not blank the whole trip.
@@ -197,6 +213,9 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
         isEffectivelyOnline()
           ? categoriesApi.list().catch(() => offlineDb.categories.toArray().then(categories => ({ categories })))
           : offlineDb.categories.toArray().then(categories => ({ categories })),
+        // The trip's own tags, non-fatal like the three above: without them the
+        // places still show the tags they carry.
+        tripTagRepo.list(tripId).catch(() => ({ tags: [] as Tag[] })),
       ])
 
       const assignmentsMap: AssignmentsMap = {}
@@ -219,6 +238,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
         files: filesData.files,
         tags: tagsData.tags,
         categories: categoriesData.categories,
+        tripTags: tripTagsData.tags,
         isLoading: false,
       })
     } catch (err: unknown) {
@@ -241,6 +261,7 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
       get().loadBudgetItems(tripId),
       get().loadReservations(tripId),
       get().loadFiles(tripId),
+      get().loadTripTags(tripId),
     ])
     // Accommodations live in planner-local state, not this store — nudge the
     // planner to reload them too (e.g. a trip date change made while offline).
@@ -344,4 +365,5 @@ export const useTripStore = create<TripStoreState>((set, get) => ({
   ...createBudgetSlice(set, get),
   ...createReservationsSlice(set, get),
   ...createFilesSlice(set, get),
+  ...createTripTagsSlice(set, get),
 }))

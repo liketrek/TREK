@@ -5,6 +5,8 @@
 "widget.today.description" = "خطة اليوم كخط زمني، مع الطقس والمحطة التالية.";
 "widget.bookings.name" = "الحجوزات";
 "widget.bookings.description" = "رحلاتك وقطاراتك وفنادقك وحجوزات المطاعم القادمة ومواعيدها.";
+"widget.flight.name" = "الرحلة";
+"widget.flight.description" = "رحلتك القادمة مباشرة: عد تنازلي للإقلاع، والطائرة في طريقها، والتأخير والوصول.";
 "widget.todos.name" = "المهام";
 "widget.todos.description" = "ما تبقى للرحلة، ومدى تقدم تجهيز الأمتعة.";
 "widget.packing.name" = "قائمة الأمتعة";

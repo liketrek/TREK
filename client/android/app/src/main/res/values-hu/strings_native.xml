@@ -8,6 +8,8 @@
     <string name="widget_today_description">A nap terve idővonalon, az időjárással és a következő megállóval.</string>
     <string name="widget_bookings_name">Foglalások</string>
     <string name="widget_bookings_description">A következő járataid, vonataid, szállásaid és asztalfoglalásaid, és hogy mikor esedékesek.</string>
+    <string name="widget_flight_name">Járat</string>
+    <string name="widget_flight_description">A következő járatod élőben: visszaszámlálás az indulásig, a gép útközben, késés és érkezés.</string>
     <string name="widget_todos_name">Teendők</string>
     <string name="widget_todos_description">Ami még hátravan az utazáshoz, és hol tart a csomagolás.</string>
     <string name="widget_packing_name">Csomagolás</string>

@@ -3,23 +3,20 @@
  * Covers JOURNEY-INT-001 through JOURNEY-INT-020.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Addons } from '../../src/db/entities/Addons.entity';
 import { TrekPhotos } from '../../src/db/entities/TrekPhotos.entity';
 import { invalidatePermissionsCache } from '../../src/nest/permissions/permissions-cache';
+import { StorageService } from '../../src/nest/storage/storage.service';
 import { authCookie } from '../helpers/auth';
 import { jpegWithExif } from '../helpers/exif-jpeg';
-import {
-  createUser,
-  createAdmin,
-  createTrip,
-  createJourney,
-  createJourneyEntry,
-  addJourneyContributor,
-} from '../helpers/factories';
+import { addJourneyContributor, makeJourney, makeJourneyEntry } from '../helpers/factories/journeys';
 import { findRow, upsertRow } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { trackStoredObjects, type StoredObjects } from '../helpers/stored-objects';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -30,10 +27,6 @@ import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } 
 // ─────────────────────────────────────────────────────────────────────────────
 // Step 1: Bare in-memory DB — schema applied in beforeAll after mocks register
 // ─────────────────────────────────────────────────────────────────────────────
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 let nestApp: INestApplication;
 let app: Application;
@@ -45,7 +38,7 @@ beforeAll(async () => {
   orm = nestApp.get(MikroORM);
 });
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   await invalidatePermissionsCache();
   // Enable the journey addon
@@ -61,7 +54,6 @@ beforeEach(async () => {
 });
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -70,7 +62,7 @@ afterAll(async () => {
 
 describe('List journeys', () => {
   it('JOURNEY-INT-001 — GET /api/journeys returns 200 with empty list initially', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/journeys').set('Cookie', authCookie(user.id));
 
@@ -90,7 +82,7 @@ describe('List journeys', () => {
 
 describe('Create journey', () => {
   it('JOURNEY-INT-003 — POST /api/journeys creates a journey', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/journeys')
@@ -115,8 +107,8 @@ describe('Create journey', () => {
 
 describe('Get journey detail', () => {
   it('JOURNEY-INT-004 — GET /api/journeys/:id returns full detail', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id, { title: 'Iceland' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id, { title: 'Iceland' });
 
     const res = await request(app).get(`/api/journeys/${journey.id}`).set('Cookie', authCookie(user.id));
 
@@ -128,7 +120,7 @@ describe('Get journey detail', () => {
   });
 
   it('JOURNEY-INT-005 — GET /api/journeys/:id returns 404 for non-existent', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/journeys/99999').set('Cookie', authCookie(user.id));
 
@@ -142,8 +134,8 @@ describe('Get journey detail', () => {
 
 describe('Update journey', () => {
   it('JOURNEY-INT-006 — PATCH /api/journeys/:id updates journey', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id, { title: 'Draft' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id, { title: 'Draft' });
 
     const res = await request(app)
       .patch(`/api/journeys/${journey.id}`)
@@ -162,8 +154,8 @@ describe('Update journey', () => {
 
 describe('Delete journey', () => {
   it('JOURNEY-INT-007 — DELETE /api/journeys/:id deletes journey', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app).delete(`/api/journeys/${journey.id}`).set('Cookie', authCookie(user.id));
 
@@ -182,9 +174,9 @@ describe('Delete journey', () => {
 
 describe('Journey trips', () => {
   it('JOURNEY-INT-008 — POST /api/journeys/:id/trips links a trip', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const trip = createTrip(testDb, user.id, { title: 'Paris', start_date: '2026-06-01', end_date: '2026-06-05' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const trip = await makeTrip(orm, user.id, { title: 'Paris', start_date: '2026-06-01', end_date: '2026-06-05' });
 
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/trips`)
@@ -201,9 +193,9 @@ describe('Journey trips', () => {
   });
 
   it('JOURNEY-INT-009 — DELETE /api/journeys/:id/trips/:tripId unlinks trip', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const trip = createTrip(testDb, user.id, { title: 'Rome', start_date: '2026-07-01', end_date: '2026-07-03' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const trip = await makeTrip(orm, user.id, { title: 'Rome', start_date: '2026-07-01', end_date: '2026-07-03' });
 
     // Link via API first (avoids factory column mismatch)
     await request(app)
@@ -226,8 +218,8 @@ describe('Journey trips', () => {
 
 describe('Journey entries', () => {
   it('JOURNEY-INT-010 — POST /api/journeys/:id/entries creates an entry', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app).post(`/api/journeys/${journey.id}/entries`).set('Cookie', authCookie(user.id)).send({
       title: 'First day in Tokyo',
@@ -244,9 +236,9 @@ describe('Journey entries', () => {
   });
 
   it('JOURNEY-INT-011 — PATCH /api/journeys/entries/:id updates entry', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, {
       title: 'Original',
       entry_date: '2026-04-01',
     });
@@ -262,8 +254,8 @@ describe('Journey entries', () => {
   });
 
   it('JOURNEY-INT-010b — a timed entry goes where its time puts it in the day, an untimed one last (#2679)', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
     const post = (title: string, entry_time?: string) =>
       request(app)
         .post(`/api/journeys/${journey.id}/entries`)
@@ -281,8 +273,8 @@ describe('Journey entries', () => {
   });
 
   it('JOURNEY-INT-011b — a new time moves the entry, an unchanged one keeps a hand-made order (#2679)', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
     const post = async (title: string, entry_time: string) =>
       (
         await request(app)
@@ -315,9 +307,9 @@ describe('Journey entries', () => {
   });
 
   it('JOURNEY-INT-012 — DELETE /api/journeys/entries/:id deletes entry', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, {
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, {
       title: 'To delete',
       entry_date: '2026-04-02',
     });
@@ -335,9 +327,9 @@ describe('Journey entries', () => {
 
 describe('Journey contributors', () => {
   it('JOURNEY-INT-013 — POST /api/journeys/:id/contributors adds a contributor', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: contributor } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: contributor } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
 
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/contributors`)
@@ -354,10 +346,10 @@ describe('Journey contributors', () => {
   });
 
   it('JOURNEY-INT-014 — DELETE /api/journeys/:id/contributors/:userId removes contributor', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: contributor } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
-    addJourneyContributor(testDb, journey.id, contributor.id, 'editor');
+    const { user: owner } = await makeUser(orm);
+    const { user: contributor } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
+    await addJourneyContributor(orm, journey.id, contributor.id, 'editor');
 
     const res = await request(app)
       .delete(`/api/journeys/${journey.id}/contributors/${contributor.id}`)
@@ -378,8 +370,8 @@ describe('Journey contributors', () => {
 
 describe('Journey share link', () => {
   it('JOURNEY-INT-015 — GET /api/journeys/:id/share-link returns null initially', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app).get(`/api/journeys/${journey.id}/share-link`).set('Cookie', authCookie(user.id));
 
@@ -388,8 +380,8 @@ describe('Journey share link', () => {
   });
 
   it('JOURNEY-INT-016 — POST /api/journeys/:id/share-link creates a share link', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/share-link`)
@@ -411,10 +403,10 @@ describe('Journey share link', () => {
   });
 
   it('JOURNEY-INT-044 — a contributor cannot read the token, only the owner can', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: helper } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
-    addJourneyContributor(testDb, journey.id, helper.id, 'editor');
+    const { user: owner } = await makeUser(orm);
+    const { user: helper } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
+    await addJourneyContributor(orm, journey.id, helper.id, 'editor');
     await request(app)
       .post(`/api/journeys/${journey.id}/share-link`)
       .set('Cookie', authCookie(owner.id))
@@ -436,8 +428,8 @@ describe('Journey share link', () => {
   });
 
   it('JOURNEY-INT-044b — an owner with nothing published still gets 200 and a null link', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app).get(`/api/journeys/${journey.id}/share-link`).set('Cookie', authCookie(user.id));
 
@@ -446,8 +438,8 @@ describe('Journey share link', () => {
   });
 
   it('JOURNEY-INT-045 — a flag-only update leaves the other flags alone', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
     await request(app)
       .post(`/api/journeys/${journey.id}/share-link`)
       .set('Cookie', authCookie(user.id))
@@ -466,8 +458,8 @@ describe('Journey share link', () => {
   });
 
   it('JOURNEY-INT-017 — DELETE /api/journeys/:id/share-link deletes the share link', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     // Create first
     await request(app)
@@ -493,11 +485,11 @@ describe('Journey share link', () => {
 
 describe('Journey permissions', () => {
   it('JOURNEY-INT-018 — contributor (viewer) can read but non-member cannot', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: viewer } = createUser(testDb);
-    const { user: outsider } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id, { title: 'Private Journey' });
-    addJourneyContributor(testDb, journey.id, viewer.id, 'viewer');
+    const { user: owner } = await makeUser(orm);
+    const { user: viewer } = await makeUser(orm);
+    const { user: outsider } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id, { title: 'Private Journey' });
+    await addJourneyContributor(orm, journey.id, viewer.id, 'viewer');
 
     // Viewer can read
     const viewerRes = await request(app).get(`/api/journeys/${journey.id}`).set('Cookie', authCookie(viewer.id));
@@ -510,10 +502,10 @@ describe('Journey permissions', () => {
   });
 
   it('JOURNEY-INT-019 — non-owner cannot delete a journey', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: editor } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
-    addJourneyContributor(testDb, journey.id, editor.id, 'editor');
+    const { user: owner } = await makeUser(orm);
+    const { user: editor } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
+    await addJourneyContributor(orm, journey.id, editor.id, 'editor');
 
     // Editor can read
     const readRes = await request(app).get(`/api/journeys/${journey.id}`).set('Cookie', authCookie(editor.id));
@@ -535,10 +527,10 @@ describe('Journey permissions', () => {
 
 describe('Journey suggestions', () => {
   it('JOURNEY-INT-020 — GET /api/journeys/suggestions returns trip suggestions', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     // Create a recent trip so it shows up in suggestions
-    createTrip(testDb, user.id, {
+    await makeTrip(orm, user.id, {
       title: 'Recent Trip',
       start_date: '2026-03-01',
       end_date: '2026-03-05',
@@ -558,8 +550,8 @@ describe('Journey suggestions', () => {
 
 describe('Available trips', () => {
   it('JOURNEY-INT-021 — GET /api/journeys/available-trips returns user trips', async () => {
-    const { user } = createUser(testDb);
-    createTrip(testDb, user.id, { title: 'My Trip', start_date: '2026-05-01', end_date: '2026-05-03' });
+    const { user } = await makeUser(orm);
+    await makeTrip(orm, user.id, { title: 'My Trip', start_date: '2026-05-01', end_date: '2026-05-03' });
 
     const res = await request(app).get('/api/journeys/available-trips').set('Cookie', authCookie(user.id));
 
@@ -577,7 +569,7 @@ describe('Available trips', () => {
 
 describe('Create journey validation', () => {
   it('JOURNEY-INT-022 — POST /api/journeys returns 400 without title', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/journeys')
@@ -589,7 +581,7 @@ describe('Create journey validation', () => {
   });
 
   it('JOURNEY-INT-023 — POST /api/journeys returns 400 for blank title', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).post('/api/journeys').set('Cookie', authCookie(user.id)).send({ title: '   ' });
 
@@ -604,9 +596,9 @@ describe('Create journey validation', () => {
 
 describe('Provider photos', () => {
   it('JOURNEY-INT-024 — POST /api/journeys/entries/:id/provider-photos creates provider photo', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
 
     const res = await request(app)
       .post(`/api/journeys/entries/${entry.id}/provider-photos`)
@@ -620,9 +612,9 @@ describe('Provider photos', () => {
   });
 
   it('JOURNEY-INT-025 — POST /api/journeys/entries/:id/provider-photos returns 400 without required fields', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
 
     const res = await request(app)
       .post(`/api/journeys/entries/${entry.id}/provider-photos`)
@@ -634,11 +626,11 @@ describe('Provider photos', () => {
   });
 
   it('JOURNEY-INT-026 — POST /api/journeys/entries/:id/provider-photos returns 403 for viewer', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: viewer } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
-    addJourneyContributor(testDb, journey.id, viewer.id, 'viewer');
-    const entry = createJourneyEntry(testDb, journey.id, owner.id, { entry_date: '2026-04-01' });
+    const { user: owner } = await makeUser(orm);
+    const { user: viewer } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
+    await addJourneyContributor(orm, journey.id, viewer.id, 'viewer');
+    const entry = await makeJourneyEntry(orm, journey.id, owner.id, { entry_date: '2026-04-01' });
 
     const res = await request(app)
       .post(`/api/journeys/entries/${entry.id}/provider-photos`)
@@ -655,10 +647,10 @@ describe('Provider photos', () => {
 
 describe('Link photo to entry', () => {
   it('JOURNEY-INT-027 — POST /api/journeys/entries/:id/link-photo moves photo', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry1 = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
-    const entry2 = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-02' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry1 = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
+    const entry2 = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-02' });
 
     // Add a provider photo to entry1
     const photoRes = await request(app)
@@ -677,9 +669,9 @@ describe('Link photo to entry', () => {
   });
 
   it('JOURNEY-INT-028 — POST /api/journeys/entries/:id/link-photo returns 400 without photo_id', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
 
     const res = await request(app)
       .post(`/api/journeys/entries/${entry.id}/link-photo`)
@@ -697,9 +689,9 @@ describe('Link photo to entry', () => {
 
 describe('Update photo', () => {
   it('JOURNEY-INT-029 — PATCH /api/journeys/photos/:id updates caption and sort_order', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
 
     // Add a provider photo first
     const photoRes = await request(app)
@@ -718,7 +710,7 @@ describe('Update photo', () => {
   });
 
   it('JOURNEY-INT-030 — PATCH /api/journeys/photos/:id returns 404 for non-existent photo', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .patch('/api/journeys/photos/99999')
@@ -735,9 +727,9 @@ describe('Update photo', () => {
 
 describe('Delete photo (route)', () => {
   it('JOURNEY-INT-031 — DELETE /api/journeys/photos/:id deletes photo', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
 
     const photoRes = await request(app)
       .post(`/api/journeys/entries/${entry.id}/provider-photos`)
@@ -753,7 +745,7 @@ describe('Delete photo (route)', () => {
   });
 
   it('JOURNEY-INT-032 — DELETE /api/journeys/photos/:id returns 404 for non-existent', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).delete('/api/journeys/photos/99999').set('Cookie', authCookie(user.id));
 
@@ -767,10 +759,10 @@ describe('Delete photo (route)', () => {
 
 describe('Journey entries sub-routes', () => {
   it('JOURNEY-INT-033 — GET /api/journeys/:id/entries returns entries list', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    createJourneyEntry(testDb, journey.id, user.id, { title: 'Day 1', entry_date: '2026-04-01' });
-    createJourneyEntry(testDb, journey.id, user.id, { title: 'Day 2', entry_date: '2026-04-02' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    await makeJourneyEntry(orm, journey.id, user.id, { title: 'Day 1', entry_date: '2026-04-01' });
+    await makeJourneyEntry(orm, journey.id, user.id, { title: 'Day 2', entry_date: '2026-04-02' });
 
     const res = await request(app).get(`/api/journeys/${journey.id}/entries`).set('Cookie', authCookie(user.id));
 
@@ -779,9 +771,9 @@ describe('Journey entries sub-routes', () => {
   });
 
   it('JOURNEY-INT-034 — GET /api/journeys/:id/entries returns 404 for inaccessible journey', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: outsider } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: outsider } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
 
     const res = await request(app).get(`/api/journeys/${journey.id}/entries`).set('Cookie', authCookie(outsider.id));
 
@@ -789,8 +781,8 @@ describe('Journey entries sub-routes', () => {
   });
 
   it('JOURNEY-INT-035 — POST /api/journeys/:id/entries returns 400 without entry_date', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/entries`)
@@ -808,7 +800,7 @@ describe('Journey entries sub-routes', () => {
 
 describe('Update entry edge cases', () => {
   it('JOURNEY-INT-036 — PATCH /api/journeys/entries/:id returns 404 for non-existent entry', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .patch('/api/journeys/entries/99999')
@@ -819,7 +811,7 @@ describe('Update entry edge cases', () => {
   });
 
   it('JOURNEY-INT-037 — DELETE /api/journeys/entries/:id returns 404 for non-existent entry', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).delete('/api/journeys/entries/99999').set('Cookie', authCookie(user.id));
 
@@ -833,8 +825,8 @@ describe('Update entry edge cases', () => {
 
 describe('Trip link validation', () => {
   it('JOURNEY-INT-038 — POST /api/journeys/:id/trips returns 400 without trip_id', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/trips`)
@@ -846,11 +838,15 @@ describe('Trip link validation', () => {
   });
 
   it('JOURNEY-INT-039 — DELETE /api/journeys/:id/trips/:tripId returns 403 for non-owner', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: editor } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
-    addJourneyContributor(testDb, journey.id, editor.id, 'editor');
-    const trip = createTrip(testDb, owner.id, { title: 'Link Trip', start_date: '2026-06-01', end_date: '2026-06-03' });
+    const { user: owner } = await makeUser(orm);
+    const { user: editor } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
+    await addJourneyContributor(orm, journey.id, editor.id, 'editor');
+    const trip = await makeTrip(orm, owner.id, {
+      title: 'Link Trip',
+      start_date: '2026-06-01',
+      end_date: '2026-06-03',
+    });
 
     await request(app)
       .post(`/api/journeys/${journey.id}/trips`)
@@ -871,8 +867,8 @@ describe('Trip link validation', () => {
 
 describe('Contributor route validation', () => {
   it('JOURNEY-INT-040 — POST /api/journeys/:id/contributors returns 400 without user_id', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/contributors`)
@@ -884,10 +880,10 @@ describe('Contributor route validation', () => {
   });
 
   it('JOURNEY-INT-041 — PATCH /api/journeys/:id/contributors/:userId updates role', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: contrib } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
-    addJourneyContributor(testDb, journey.id, contrib.id, 'viewer');
+    const { user: owner } = await makeUser(orm);
+    const { user: contrib } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
+    await addJourneyContributor(orm, journey.id, contrib.id, 'viewer');
 
     const res = await request(app)
       .patch(`/api/journeys/${journey.id}/contributors/${contrib.id}`)
@@ -899,12 +895,12 @@ describe('Contributor route validation', () => {
   });
 
   it('JOURNEY-INT-042 — PATCH /api/journeys/:id/contributors/:userId returns 403 for non-owner', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: editor } = createUser(testDb);
-    const { user: target } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
-    addJourneyContributor(testDb, journey.id, editor.id, 'editor');
-    addJourneyContributor(testDb, journey.id, target.id, 'viewer');
+    const { user: owner } = await makeUser(orm);
+    const { user: editor } = await makeUser(orm);
+    const { user: target } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
+    await addJourneyContributor(orm, journey.id, editor.id, 'editor');
+    await addJourneyContributor(orm, journey.id, target.id, 'viewer');
 
     const res = await request(app)
       .patch(`/api/journeys/${journey.id}/contributors/${target.id}`)
@@ -921,8 +917,8 @@ describe('Contributor route validation', () => {
 
 describe('Share link update', () => {
   it('JOURNEY-INT-043 — POST /api/journeys/:id/share-link updates existing share link permissions', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     // Create initial share link
     const create = await request(app)
@@ -950,8 +946,8 @@ describe('Share link update', () => {
   });
 
   it('JOURNEY-INT-044 — journey PATCH /:id can update status', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app)
       .patch(`/api/journeys/${journey.id}`)
@@ -970,9 +966,9 @@ describe('Share link update', () => {
 
 describe('Provider photos — passphrase persistence', () => {
   it('JOURNEY-INT-046 — single mode with passphrase persists encrypted passphrase on trek_photos', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
 
     const res = await request(app)
       .post(`/api/journeys/entries/${entry.id}/provider-photos`)
@@ -991,9 +987,9 @@ describe('Provider photos — passphrase persistence', () => {
   });
 
   it('JOURNEY-INT-047 — batch mode with passphrase persists encrypted passphrase on all trek_photos rows', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-02' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-02' });
 
     const res = await request(app)
       .post(`/api/journeys/entries/${entry.id}/provider-photos`)
@@ -1015,9 +1011,9 @@ describe('Provider photos — passphrase persistence', () => {
 
 describe('Photo upload validation', () => {
   it('JOURNEY-INT-045 — POST /api/journeys/entries/:id/photos returns 400 without files', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
 
     const res = await request(app).post(`/api/journeys/entries/${entry.id}/photos`).set('Cookie', authCookie(user.id));
 
@@ -1037,14 +1033,30 @@ describe('Journey upload parity', () => {
   const FIXTURE_IMG = pathMod.join(__dirname, '../fixtures/small-image.jpg');
   const journeyDir = pathMod.join(__dirname, '../../uploads/journey');
 
-  afterAll(() => {
-    fsMod.rmSync(journeyDir, { recursive: true, force: true });
+  // Only what these tests store is removed: other suites share uploads/ and may run beside them.
+  let stored: StoredObjects;
+  beforeAll(() => {
+    stored = trackStoredObjects(nestApp.get(StorageService));
+  });
+  afterAll(async () => {
+    await stored.cleanup();
   });
 
+  /**
+   * The objects stored since `since` that still exist. Counting the files in
+   * uploads/journey would also count what a suite beside this one writes there.
+   */
+  async function stillStored(since: number): Promise<string[]> {
+    const storage = nestApp.get(StorageService);
+    const objects = stored.stored.slice(since);
+    const exists = await Promise.all(objects.map(({ category, name }) => storage.exists(category, name)));
+    return objects.filter((_, i) => exists[i]).map(({ name }) => name);
+  }
+
   it('JOURNEY-P01 — entry photo upload stores journey/<uuid> with a lowercased extension', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
 
     const res = await request(app)
       .post(`/api/journeys/entries/${entry.id}/photos`)
@@ -1058,9 +1070,9 @@ describe('Journey upload parity', () => {
   });
 
   it('JOURNEY-P02 — extensionless originalname falls back to .jpg (wildcard allowlist)', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
     // The admin allowlist rejects the empty extension before the filename
     // fallback can run; the wildcard makes the fallback reachable so it is
     // actually pinned here.
@@ -1075,9 +1087,9 @@ describe('Journey upload parity', () => {
   });
 
   it('JOURNEY-P03 — non-image entry upload is rejected 400', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-04-01' });
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-04-01' });
 
     const res = await request(app)
       .post(`/api/journeys/entries/${entry.id}/photos`)
@@ -1088,8 +1100,8 @@ describe('Journey upload parity', () => {
   });
 
   it('JOURNEY-P04 — gallery photo upload stores journey/<uuid> paths', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/gallery/photos`)
@@ -1100,11 +1112,11 @@ describe('Journey upload parity', () => {
   });
 
   it('JOURNEY-P05 — non-contributor gallery upload is 403 and the bytes are taken back off disk', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
 
-    const before = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
+    const since = stored.stored.length;
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/gallery/photos`)
       .set('Cookie', authCookie(other.id))
@@ -1113,13 +1125,13 @@ describe('Journey upload parity', () => {
     expect(res.body.error).toBe('Not allowed');
     // The commit runs before the permission answer is known, so the refusal has
     // to delete the object again. Nothing sweeps orphans.
-    const after = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
-    expect(after).toBe(before);
+    expect(stored.stored.length).toBeGreaterThan(since);
+    expect(await stillStored(since)).toEqual([]);
   });
 
   it('JOURNEY-P06 — video+poster upload: poster is ALWAYS stored as .jpg (stored-XSS pin)', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/gallery/video`)
@@ -1133,26 +1145,25 @@ describe('Journey upload parity', () => {
   });
 
   it('JOURNEY-P07 — poster-only video upload is 400 with no files left anywhere', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
-    const before = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
+    const since = stored.stored.length;
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/gallery/video`)
       .set('Cookie', authCookie(user.id))
       .attach('poster', fsMod.readFileSync(FIXTURE_IMG), { filename: 'poster.png', contentType: 'image/png' });
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('No video uploaded');
-    const after = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
-    expect(after).toBe(before);
+    expect(await stillStored(since)).toEqual([]);
   });
 
   it('JOURNEY-P08 — non-contributor video upload is 403 and BOTH files are removed', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
 
-    const before = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
+    const since = stored.stored.length;
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/gallery/video`)
       .set('Cookie', authCookie(other.id))
@@ -1160,13 +1171,14 @@ describe('Journey upload parity', () => {
       .attach('poster', fsMod.readFileSync(FIXTURE_IMG), { filename: 'poster.png', contentType: 'image/png' });
     expect(res.status).toBe(403);
     expect(res.body.error).toBe('Not allowed');
-    const after = fsMod.existsSync(journeyDir) ? fsMod.readdirSync(journeyDir).length : 0;
-    expect(after).toBe(before);
+    // The bytes were written before the refusal, and are gone again.
+    expect(stored.stored.length).toBeGreaterThan(since);
+    expect(await stillStored(since)).toEqual([]);
   });
 
   it('JOURNEY-P09 — cover upload stores journey/<uuid> into cover_image', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
 
     const res = await request(app)
       .post(`/api/journeys/${journey.id}/cover`)
@@ -1214,9 +1226,9 @@ describe('Journey upload parity', () => {
     }
 
     it('JOURNEY-P10: an entry photo stores the instant from DateTimeOriginal plus its offset, and its GPS', async () => {
-      const { user } = createUser(testDb);
-      const journey = createJourney(testDb, user.id);
-      const entry = createJourneyEntry(testDb, journey.id, user.id, { entry_date: '2026-05-30' });
+      const { user } = await makeUser(orm);
+      const journey = await makeJourney(orm, user.id);
+      const entry = await makeJourneyEntry(orm, journey.id, user.id, { entry_date: '2026-05-30' });
 
       const res = await request(app)
         .post(`/api/journeys/entries/${entry.id}/photos`)
@@ -1232,8 +1244,8 @@ describe('Journey upload parity', () => {
     });
 
     it('JOURNEY-P11: a gallery photo gets the same', async () => {
-      const { user } = createUser(testDb);
-      const journey = createJourney(testDb, user.id);
+      const { user } = await makeUser(orm);
+      const journey = await makeJourney(orm, user.id);
 
       const res = await request(app)
         .post(`/api/journeys/${journey.id}/gallery/photos`)
@@ -1248,8 +1260,8 @@ describe('Journey upload parity', () => {
     });
 
     it('JOURNEY-P12: zeros in the GPS block, as a receiver without a fix writes them, put no pin at 0,0', async () => {
-      const { user } = createUser(testDb);
-      const journey = createJourney(testDb, user.id);
+      const { user } = await makeUser(orm);
+      const journey = await makeJourney(orm, user.id);
 
       const res = await request(app)
         .post(`/api/journeys/${journey.id}/gallery/photos`)

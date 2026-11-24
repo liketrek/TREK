@@ -1,4 +1,4 @@
-// FE-PLANNER-DPTRANSPORT-001 to FE-PLANNER-DPTRANSPORT-021
+// FE-PLANNER-DPTRANSPORT-001 to FE-PLANNER-DPTRANSPORT-024
 import { render, screen, fireEvent, within } from '../../../tests/helpers/render'
 import userEvent from '@testing-library/user-event'
 import { resetAllStores, seedStore } from '../../../tests/helpers/store'
@@ -328,5 +328,30 @@ describe('DayPlanSidebarTransportDetailModal', () => {
     setTransportDetail.mockClear()
     await user.click(screen.getByRole('button', { name: 'Close' }))
     expect(setTransportDetail).toHaveBeenCalledWith(null)
+  })
+
+  // #3122: a transport holding only times showed them without the day they fall on.
+  it('FE-PLANNER-DPTRANSPORT-022: a booking holding only times names the date of its linked day', () => {
+    seedStore(useTripStore, { days: [{ id: 4, trip_id: 1, day_number: 2, date: '2025-06-16' }] as never })
+    const res = { ...flight(), day_id: 4, reservation_time: '09:15', reservation_end_time: '11:00', endpoints: [] } as Reservation
+    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
+    expect(screen.getByText('09:15 → 11:00').parentElement).toHaveTextContent(/Mon, Jun 16/)
+  })
+
+  it('FE-PLANNER-DPTRANSPORT-023: an overnight booking names the arrival date too', () => {
+    const res = { ...flight(), reservation_time: '2025-06-15T22:30:00', reservation_end_time: '2025-06-16T06:05:00' } as Reservation
+    render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
+    expect(screen.getByText('22:30 → 06:05').parentElement).toHaveTextContent(/Sun, Jun 15 → Mon, Jun 16/)
+  })
+
+  it('FE-PLANNER-DPTRANSPORT-024: in a right-to-left UI the overnight days read in order', () => {
+    document.documentElement.dir = 'rtl'
+    try {
+      const res = { ...flight(), reservation_time: '2025-06-15T22:30:00', reservation_end_time: '2025-06-16T06:05:00' } as Reservation
+      render(<DayPlanSidebarTransportDetailModal {...makeProps({ transportDetail: res })} />)
+      expect(screen.getByText('22:30 → 06:05').parentElement).toHaveTextContent('⁨Sun, Jun 15⁩ ← ⁨Mon, Jun 16⁩')
+    } finally {
+      document.documentElement.dir = ''
+    }
   })
 })

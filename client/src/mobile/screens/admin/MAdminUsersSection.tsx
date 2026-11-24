@@ -6,7 +6,7 @@ import MAdminPermissionsPanel from './MAdminPermissionsPanel'
 import MSheet from '../../components/MSheet'
 import MChip from '../../components/MChip'
 import MConfirmSheet from '../settings/MConfirmSheet'
-import { MAdminButton, MAdminCard, MAdminField, MAdminSheetFrame } from './MAdminUi'
+import { MAdminButton, MAdminCard, MAdminField, MAdminSelect, MAdminSheetFrame } from './MAdminUi'
 import MSkeleton from '../../components/MSkeleton'
 
 interface MAdminUsersSectionProps {
@@ -213,20 +213,15 @@ export default function MAdminUsersSection({ admin, t, locale }: MAdminUsersSect
             </MAdminField>
             {inviteTrips.length > 0 && (
               <MAdminField label={t('admin.invite.tripLabel')} hint={t('admin.invite.tripHint')}>
-                <select
-                  value={inviteForm.trip_id}
-                  onChange={(e) =>
-                    setInviteForm((f) => ({ ...f, trip_id: e.target.value === '' ? '' : Number(e.target.value) }))
-                  }
-                  className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none"
-                >
-                  <option value="">{t('admin.invite.tripNone')}</option>
-                  {inviteTrips.map((tr) => (
-                    <option key={tr.id} value={tr.id}>
-                      {tr.title}
-                    </option>
-                  ))}
-                </select>
+                <MAdminSelect
+                  title={t('admin.invite.tripLabel')}
+                  value={String(inviteForm.trip_id)}
+                  onChange={(value) => setInviteForm((f) => ({ ...f, trip_id: value === '' ? '' : Number(value) }))}
+                  options={[
+                    { value: '', label: t('admin.invite.tripNone') },
+                    ...inviteTrips.map((tr) => ({ value: String(tr.id), label: tr.title })),
+                  ]}
+                />
               </MAdminField>
             )}
           </div>

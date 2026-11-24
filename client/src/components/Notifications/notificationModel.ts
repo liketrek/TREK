@@ -9,6 +9,7 @@ import {
   MessageCircle,
   Mountain,
   Plane,
+  PlaneTakeoff,
   Sparkles,
   Ticket,
   TriangleAlert,
@@ -21,6 +22,7 @@ export type NotificationKind =
   | 'trip'
   | 'message'
   | 'booking'
+  | 'flight'
   | 'packing'
   | 'todo'
   | 'vacay'
@@ -36,6 +38,12 @@ const KIND_BY_TITLE: Record<string, NotificationKind> = {
   'notif.trip_reminder.title': 'trip',
   'notif.collab_message.title': 'message',
   'notif.booking_change.title': 'booking',
+  'notif.flight_departed.title': 'flight',
+  'notif.flight_delayed.title': 'flight',
+  'notif.flight_landed.title': 'flight',
+  'notif.mail_booking_added.title': 'booking',
+  'notif.mail_booking_pending.title': 'booking',
+  'notif.mail_ingest_paused.title': 'alert',
   'notif.packing_tagged.title': 'packing',
   'notif.todo_due.title': 'todo',
   'notif.vacay_invite.title': 'vacay',
@@ -59,6 +67,7 @@ export const KIND_LOOK: Record<NotificationKind, { icon: LucideIcon; tone: strin
   trip: { icon: Plane, tone: 'bg-info-soft text-info' },
   message: { icon: MessageCircle, tone: 'bg-success-soft text-success' },
   booking: { icon: Ticket, tone: 'bg-warning-soft text-warning' },
+  flight: { icon: PlaneTakeoff, tone: 'bg-info-soft text-info' },
   packing: { icon: Backpack, tone: 'bg-warning-soft text-warning' },
   todo: { icon: ListChecks, tone: 'bg-success-soft text-success' },
   vacay: { icon: CalendarDays, tone: 'bg-info-soft text-info' },

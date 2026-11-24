@@ -1,4 +1,4 @@
-// FE-TP-BOOKING-001 to FE-TP-BOOKING-016
+// FE-TP-BOOKING-001 to FE-TP-BOOKING-017
 //
 // Booking writes and the review before an import is saved, driven straight through
 // useBookingEdits. Every write goes to a recorded stand-in for the store's actions and
@@ -353,6 +353,27 @@ describe('useBookingEdits', () => {
     vi.mocked(accommodationsApi.list).mockResolvedValueOnce({} as never)
     act(() => { result.current.advanceImportReview() })
     await waitFor(() => expect(fixed.setTripAccommodations).toHaveBeenLastCalledWith([]))
+  })
+
+  it('FE-TP-BOOKING-017: a review started with a saved hook hears of the saved booking once, a skipped one never', async () => {
+    const { result } = renderEdits()
+    const onSaved = vi.fn()
+    act(() => { result.current.startImportReview(items(hotelItem), [], 'bookings', onSaved) })
+    await act(async () => { await result.current.handleSaveReservation({ title: 'Ryokan', type: 'hotel' } as never) })
+    expect(onSaved).toHaveBeenCalledTimes(1)
+    await act(async () => { await result.current.handleSaveReservation({ title: 'Ryokan', type: 'hotel' } as never) })
+    expect(onSaved).toHaveBeenCalledTimes(1)
+
+    const onTransport = vi.fn()
+    act(() => { result.current.startImportReview(items(flightItem), [], 'transports', onTransport) })
+    await act(async () => { await result.current.handleSaveTransport({ title: 'NRT to CDG', type: 'flight' }) })
+    expect(onTransport).toHaveBeenCalledTimes(1)
+
+    const onSkipped = vi.fn()
+    act(() => { result.current.startImportReview(items(hotelItem), [], 'bookings', onSkipped) })
+    act(() => { result.current.advanceImportReview() })
+    await act(async () => { await result.current.handleSaveReservation({ title: 'Other', type: 'hotel' } as never) })
+    expect(onSkipped).not.toHaveBeenCalled()
   })
 
   it('FE-TP-BOOKING-012: the bridge hands this trip\'s finished import to the review, from memory or from IndexedDB', async () => {

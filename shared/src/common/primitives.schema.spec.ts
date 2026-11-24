@@ -1,5 +1,12 @@
 import { paginationQuerySchema } from './pagination.schema';
-import { idSchema, idParamSchema, nonEmptyString, isoDateTime } from './primitives.schema';
+import {
+  idSchema,
+  idParamSchema,
+  isoDateTime,
+  nonEmptyString,
+  rowIdInputSchema,
+  rowIdStringSchema,
+} from './primitives.schema';
 
 import { describe, it, expect } from 'vitest';
 
@@ -14,6 +21,32 @@ describe('@trek/shared primitives', () => {
   it('idParamSchema coerces string params to a positive int', () => {
     expect(idParamSchema.parse('42')).toBe(42);
     expect(idParamSchema.safeParse('abc').success).toBe(false);
+  });
+
+  it('idParamSchema takes only the decimal spelling of an id, the rule the server reads ids with', () => {
+    expect(idParamSchema.parse('007')).toBe(7);
+    expect(idParamSchema.parse(42)).toBe(42);
+    for (const spelling of ['0x5', '5e0', '5.0', '+5', ' 5', '5 ', '1_000', '-5', '0', '', '99999999999999999999']) {
+      expect(idParamSchema.safeParse(spelling).success, spelling).toBe(false);
+    }
+    expect(idParamSchema.safeParse(1.5).success).toBe(false);
+    expect(idParamSchema.safeParse(2 ** 60).success).toBe(false);
+  });
+
+  it('rowIdInputSchema keeps an id as sent and refuses every spelling toRowId refuses', () => {
+    expect(rowIdInputSchema.parse(42)).toBe(42);
+    expect(rowIdInputSchema.parse('42')).toBe('42');
+    expect(rowIdInputSchema.parse('007')).toBe('007');
+    for (const spelling of ['0x5', '5e0', '5.0', '+5', ' 5', '5 ', '5_0', '-5', '', 'abc', '99999999999999999999']) {
+      expect(rowIdInputSchema.safeParse(spelling).success, spelling).toBe(false);
+      expect(rowIdStringSchema.safeParse(spelling).success, spelling).toBe(false);
+    }
+    expect(rowIdInputSchema.safeParse(1.5).success).toBe(false);
+    expect(rowIdInputSchema.safeParse(1e20).success).toBe(false);
+    expect(rowIdStringSchema.safeParse(5).success).toBe(false);
+    for (const value of ['0x5', 1.5, '99999999999999999999']) {
+      expect(rowIdInputSchema.safeParse(value).error?.issues[0]?.message, String(value)).toBe('Invalid id');
+    }
   });
 
   it('nonEmptyString trims and rejects empty', () => {

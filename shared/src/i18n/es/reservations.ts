@@ -119,7 +119,10 @@ const reservations: TranslationStrings = {
   'reservations.layover.layover': 'Escala',
   'reservations.needsReview': 'Revisar',
   'reservations.needsReviewHint':
-    'No se pudo identificar el aeropuerto automáticamente — por favor confirma la ubicación.',
+    'Algunos datos se rellenaron automáticamente y no se pudieron leer con seguridad. Por favor, revísalos.',
+  'reservations.reviewConfirm': 'Es correcto',
+  'reservations.reviewConfirmHint': 'Haz clic para marcarlo como revisado.',
+  'reservations.reviewConfirmed': 'Marcado como revisado',
   'reservations.searchLocation': 'Buscar estación, puerto, dirección...',
   'reservations.meta.trainNumber': 'N° de tren',
   'reservations.meta.platform': 'Andén',
@@ -278,7 +281,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Exportar las {shown} de {total} filas mostradas (CSV)',
   'reservations.wallet.add': 'Añadir a Apple Wallet',
   'reservations.wallet.addGoogle': 'Añadir a Google Wallet',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'No se pudo crear el pase de Wallet. Inténtalo de nuevo.',
   'reservations.wallet.undated': 'Primero ponle una fecha a la reserva: Wallet muestra el pase en torno a ese momento.',
 };

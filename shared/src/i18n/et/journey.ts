@@ -51,9 +51,6 @@ const journey: TranslationStrings = {
   'journey.editor.bodyPlaceholder': 'Jutusta selle päeva lugu...',
   'journey.editor.placePlaceholder': 'Asukoht (valikuline)',
   'journey.editor.tagsPlaceholder': 'Sildid: peidetud pärl, parim toit, tasub naasta...',
-  'journey.visibility.private': 'Privaatne',
-  'journey.visibility.shared': 'Jagatud',
-  'journey.visibility.public': 'Avalik',
   'journey.emptyState.title': 'Sinu lugu algab siit',
   'journey.emptyState.subtitle': 'Märgi kohalolek mõnes kohas või kirjuta esimene päevikusissekanne',
   'journey.frontpage.subtitle': 'Muuda oma reisid lugudeks, mida sa ei unusta',
@@ -284,6 +281,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Albumeid ei leitud',
   'journey.picker.selectDate': 'Vali kuupäev',
   'journey.picker.search': 'Otsi',
+  'journey.picker.takenBetween': 'Tehtud vahemikus',
   'journey.studio.title': 'TREK Studio', // same-as-en
   'journey.studio.open': 'Stuudio',
   'journey.studio.openAria': 'Ava fotoraamatu stuudio',

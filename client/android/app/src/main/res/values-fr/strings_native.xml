@@ -8,6 +8,8 @@
     <string name="widget_today_description">Le programme du jour en frise, avec la météo et la prochaine étape.</string>
     <string name="widget_bookings_name">Réservations</string>
     <string name="widget_bookings_description">Vos prochains vols, trains, hôtels et tables, et quand ils arrivent.</string>
+    <string name="widget_flight_name">Vol</string>
+    <string name="widget_flight_description">Votre prochain vol en direct : compte à rebours du départ, l’avion en route, retard et arrivée.</string>
     <string name="widget_todos_name">À faire</string>
     <string name="widget_todos_description">Ce qui reste à faire pour le voyage et où en sont les bagages.</string>
     <string name="widget_packing_name">Bagages</string>

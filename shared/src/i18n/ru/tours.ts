@@ -102,6 +102,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Набор высоты',
   'tours.detail.descent': 'Сброс высоты',
   'tours.detail.navigationHint': 'Навигация открывает начальную точку тропы, но не ведёт по маршруту.',
+  'tours.detail.openRoute': 'Открыть маршрут в картографическом приложении',
+  'tours.detail.mapsShort': 'Карты',
   'tours.planner.title': 'Спланировать тур',
   'tours.planner.newTour': 'Спланировать новый тур',
   'tours.planner.addTour': 'Добавить маршрут',

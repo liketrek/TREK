@@ -115,11 +115,29 @@ export async function waitForFlyover(page: Page): Promise<void> {
   await expect(playButton(page).or(pauseButton(page))).toBeVisible({ timeout: 120_000 });
 }
 
+/**
+ * Search again while the card says a kind could not be searched. The public
+ * Overpass servers answer 429 and 504 under load, and a picture of that banner
+ * teaches nothing; a calm try or two usually gets through.
+ */
+export async function searchAgainWhileUnavailable(page: Page): Promise<void> {
+  const banner = page.getByText(/^Could not be searched right now/).first();
+  // Two tries, 20 s apart: more does not fit the test's time, and a longer outage needs a later run.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (!(await banner.isVisible())) return;
+    await page.waitForTimeout(20_000);
+    await alongSearch(page).click();
+    await expect(alongSearch(page)).toHaveText(/Search again/, { timeout: 90_000 });
+    await page.waitForTimeout(1_000);
+  }
+}
+
 /** Ask "Along the tour" with what it starts with (the first three kinds, 500 m) and wait for the list. */
 export async function searchAlong(page: Page): Promise<void> {
   await alongCard(page).scrollIntoViewIfNeeded();
   await alongSearch(page).click();
   await expect(alongSearch(page)).toHaveText(/Search again/, { timeout: 90_000 });
+  await searchAgainWhileUnavailable(page);
   await expect(alongList(page), 'the search along the tour found nothing (Overpass or the places index)').toBeVisible();
 }
 

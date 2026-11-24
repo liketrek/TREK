@@ -44,7 +44,6 @@ const ENTRY_FIELDS = [
   'location_lng',
   'mood',
   'weather',
-  'visibility',
   'type',
   'is_draft',
   'tags',
@@ -52,7 +51,7 @@ const ENTRY_FIELDS = [
 ] as const;
 
 /** The states of an entry an update can set, each a row of its own when it changes. */
-const STATE_FIELDS = ['visibility', 'mood', 'weather', 'type', 'is_draft', 'stats_excluded', 'dismissed'] as const;
+const STATE_FIELDS = ['mood', 'weather', 'type', 'is_draft', 'stats_excluded', 'dismissed'] as const;
 const FLAG_FIELDS: ReadonlySet<string> = new Set(['is_draft', 'stats_excluded', 'dismissed']);
 
 /** The journal the open trip shows, as `get_trip_journal` answers. */

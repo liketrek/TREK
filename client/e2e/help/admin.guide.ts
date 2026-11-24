@@ -2,8 +2,9 @@ import { test, expect, type Page, type Locator } from '@playwright/test'
 import { clearNotices } from '../screenshots/shot'
 import { captureGuide, captureHero, dismissReleaseNotice, beat, typeInto, settle, VIEWPORT, type GuideScript } from './guide'
 import { ensureAdminFixtures, pluginPackage } from './fixtures'
-import { deleteUser, resetDefaults } from './fixtures-admin'
+import { clearOidc, configureOidc, deleteUser, putAppSettings, resetDefaults } from './fixtures-admin'
 import { toggleAddon } from './external'
+import { mockInstanceConnection, AI_KEY } from './fixtures-assistant'
 import { adminContext, adminTabContexts, adminGuides } from '../../src/help/contexts/admin'
 import type { HelpGuide } from '../../src/help/types'
 
@@ -16,14 +17,15 @@ import type { HelpGuide } from '../../src/help/types'
 
 const TAB_OF: Record<string, string> = {
   'admin-users': 'Users',
-  'admin-defaults': 'User Defaults',
+  'admin-defaults': 'Defaults',
   'admin-config': 'Personalization',
-  'admin-settings': 'Settings',
+  // One help screen for the two tabs the old Settings tab became; the hero shows Security.
+  'admin-settings': 'Security',
   'admin-addons': 'Addons',
   'admin-plugins': 'Plugins',
   'admin-storage': 'Storage',
   'admin-notifications': 'Notifications',
-  'admin-mcp-tokens': 'MCP Access',
+  'admin-mcp-tokens': 'MCP',
   'admin-github': 'GitHub',
   'admin-backup': 'Backup',
   'admin-audit': 'Audit',
@@ -35,24 +37,30 @@ const guide = (id: string): HelpGuide => {
   return g
 }
 
-const sidebar = (page: Page) => page.locator('nav').filter({ has: page.getByRole('button', { name: 'User Defaults' }) }).first()
+const sidebar = (page: Page) => page.locator('nav').filter({ has: page.getByRole('button', { name: 'Personalization' }) }).first()
 /** The nearest card around an element: the admin cards are rounded-xl or rounded-2xl boxes, or a <section>. */
 const cardOf = (el: Locator) => el.locator('xpath=ancestor::*[contains(@class,"rounded-xl") or contains(@class,"rounded-2xl") or self::section][1]')
 /** An admin card by the text of its h2. */
 const section = (page: Page, title: string | RegExp) => cardOf(page.locator('h2').filter({ hasText: title }).first())
-/** A provider block under Settings, a <section> headed by an h3. */
-const block = (page: Page, title: string) => page.locator('h3').filter({ hasText: new RegExp(`^${title}$`) }).first().locator('xpath=ancestor::section[1]')
+/** A block inside a card (a provider, a nested section), a <section> headed by an h3. */
+const block = (page: Page, title: string) => page.locator('h3').filter({ hasText: new RegExp(`^${title.replace(/[()]/g, '\\$&')}$`) }).first().locator('xpath=ancestor::section[1]')
+/** One settings row (label, hint, control) by its label. */
+const row = (scope: Locator, label: string) =>
+  scope.locator('label').filter({ hasText: new RegExp(`^${label}$`) }).first()
+    .locator('xpath=ancestor::div[contains(@class,"px-4") and contains(@class,"py-3")][1]')
 const modal = (page: Page) => page.locator('.trek-modal-backdrop').last()
+const dialogPanel = (page: Page) => modal(page).locator('> [role="presentation"], > div').first()
 /** A row of the user table by its username. */
 const userRow = (page: Page, username: string) => page.locator('table tbody tr').filter({ hasText: username }).first()
-/** A labelled field of the Map card on User Defaults: its label and everything under it. */
+/** A labelled field of the Map card on Defaults: its label and everything under it. */
 const mapField = (page: Page, label: string) => section(page, /^Map$/).locator('label').filter({ hasText: label }).first().locator('xpath=..')
 /** The Map engine row's label, which also holds its reset link once the engine is set. */
 const engineLabel = (page: Page) => section(page, /^Map$/).locator('label').filter({ hasText: 'Map engine' }).first()
-/** The TREK Places API card at the top of API Keys, found by its pill. */
-const trekApiCard = (page: Page) => page.getByText('Recommended default', { exact: true }).first().locator('xpath=ancestor::div[contains(@class,"rounded-[14px]")][1]')
-/** An addon tile by the addon's name. */
+/** The TREK API block at the top of Place search and routing, found by its pill. */
+const trekApiCard = (page: Page) => page.getByText('Recommended default', { exact: true }).first().locator('xpath=ancestor::section[1]')
+/** An addon row by the addon's name. */
 const tile = (page: Page, name: string) => page.locator('h4').filter({ hasText: new RegExp(`^${name}$`) }).first().locator('xpath=ancestor::article[1]')
+const authCard = (page: Page) => section(page, 'Authentication Methods')
 
 async function openAdmin(page: Page, tab: string): Promise<void> {
   await page.goto('/admin')
@@ -68,8 +76,29 @@ async function openAdmin(page: Page, tab: string): Promise<void> {
   await settle(page)
 }
 
-const opener = (contextId: string) => (page: Page) => openAdmin(page, TAB_OF[contextId])
+/**
+ * The release list comes from GitHub through the server, which gives up after
+ * eight seconds; a slow answer leaves "Failed to load releases" in the picture,
+ * so the tab is opened again until the list is there.
+ */
+async function openGithub(page: Page): Promise<void> {
+  for (let attempt = 0; attempt < 4; attempt++) {
+    await openAdmin(page, 'GitHub')
+    const details = section(page, 'Release History').getByRole('button', { name: 'Show details' }).first()
+    const failed = page.getByText('Failed to load releases', { exact: true })
+    await expect(details.or(failed).first()).toBeVisible({ timeout: 30_000 })
+    if (await details.isVisible()) return settle(page)
+  }
+  throw new Error('GitHub did not answer with the release list')
+}
+
+const opener = (contextId: string) => (page: Page) => contextId === 'admin-github' ? openGithub(page) : openAdmin(page, TAB_OF[contextId])
+const services = (page: Page) => openAdmin(page, 'Services')
 const only = (target: (p: Page) => Locator) => ({ target })
+/** The AI tile's settings dialog, named by its title. */
+const aiDialog = (page: Page) => page.getByRole('dialog').filter({ hasText: 'Set up AI' }).last()
+/** The admin's AI settings as the run found them, put back after the AI guide. */
+let aiSettingsBefore: unknown = null
 
 const SCRIPTS: Record<string, GuideScript> = {
   // ── Users ────────────────────────────────────────────────────────────────
@@ -92,7 +121,7 @@ const SCRIPTS: Record<string, GuideScript> = {
           await typeInto(p, modal(p).getByPlaceholder('Password'), 'Lena12345!')
           await beat(p, 300)
         },
-        target: p => modal(p).locator('> [role="presentation"], > div').first(),
+        target: p => dialogPanel(p),
       },
       {
         target: p => modal(p).getByRole('button', { name: 'Create User' }),
@@ -120,7 +149,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        target: p => modal(p).locator('> [role="presentation"], > div').first(),
+        target: p => dialogPanel(p),
         act: async p => {
           await modal(p).getByRole('button', { name: 'Cancel' }).click()
           await expect(modal(p)).toHaveCount(0)
@@ -146,7 +175,7 @@ const SCRIPTS: Record<string, GuideScript> = {
           await modal(p).getByRole('button', { name: '14d', exact: true }).click()
           await beat(p, 300)
         },
-        target: p => modal(p).locator('> [role="presentation"], > div').first(),
+        target: p => dialogPanel(p),
         act: async p => {
           await modal(p).getByRole('button', { name: 'Create & Copy' }).click()
           await expect(modal(p)).toHaveCount(0)
@@ -169,14 +198,14 @@ const SCRIPTS: Record<string, GuideScript> = {
     steps: [
       {
         prepare: async p => {
-          const row = section(p, 'Permission Settings').getByText('Delete trips', { exact: true }).locator('xpath=../..')
+          const permRow = row(section(p, 'Permission Settings'), 'Delete trips')
           // The select's trigger is the row's only button; its options are buttons too.
-          await row.locator('button').first().click()
+          await permRow.locator('button').first().click()
           await p.getByRole('button', { name: 'Admin only', exact: true }).last().click()
-          await expect(row.getByText('customized')).toBeVisible({ timeout: 10_000 })
+          await expect(permRow.getByText('customized')).toBeVisible({ timeout: 10_000 })
           await settle(p)
         },
-        target: p => section(p, 'Permission Settings').getByText('Delete trips', { exact: true }).locator('xpath=../..'),
+        target: p => row(section(p, 'Permission Settings'), 'Delete trips'),
       },
       {
         target: p => section(p, 'Permission Settings').getByRole('button', { name: 'Save', exact: true }),
@@ -189,7 +218,7 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
   },
 
-  // ── User Defaults ────────────────────────────────────────────────────────
+  // ── Defaults ─────────────────────────────────────────────────────────────
   'default-user-settings': {
     guide: guide('default-user-settings'),
     start: opener('admin-defaults'),
@@ -203,7 +232,9 @@ const SCRIPTS: Record<string, GuideScript> = {
           await expect(section(p, 'Default User Settings').locator('button').filter({ hasText: /^reset$/ })).toBeVisible({ timeout: 10_000 })
           await settle(p)
         },
-        target: p => section(p, 'Default User Settings').locator('label').filter({ hasText: 'Color Mode' }).locator('xpath=..'),
+        // The whole row: its name with the reset link, and the choice on the right.
+        target: p => section(p, 'Default User Settings').locator('label').filter({ hasText: 'Color Mode' }).first()
+          .locator('xpath=ancestor::div[contains(@class,"px-4") and contains(@class,"py-3")][1]'),
         act: async p => {
           await section(p, 'Default User Settings').locator('button').filter({ hasText: /^reset$/ }).first().click()
           await expect(section(p, 'Default User Settings').locator('button').filter({ hasText: /^reset$/ })).toHaveCount(0, { timeout: 10_000 })
@@ -249,6 +280,7 @@ const SCRIPTS: Record<string, GuideScript> = {
     // Typed, never committed: the field saves on blur only when the value changed,
     // and emptying it first leaves the saved value (none) as it was.
     steps: [
+      only(p => section(p, /^Routing$/)),
       {
         prepare: async p => {
           await typeInto(p, p.getByLabel('Own routing engine', { exact: true }), 'https://osrm.example.org')
@@ -319,7 +351,7 @@ const SCRIPTS: Record<string, GuideScript> = {
           await settle(p)
         },
         // The new category opens in a dialog, its name in the dialog's head.
-        target: p => modal(p).locator('> [role="presentation"], > div').first(),
+        target: p => dialogPanel(p),
         act: async p => {
           await modal(p).getByRole('button', { name: 'Cancel' }).click()
           await expect(p.getByPlaceholder('Category name')).toHaveCount(0)
@@ -358,7 +390,7 @@ const SCRIPTS: Record<string, GuideScript> = {
           await expect(modal(p).getByRole('textbox', { name: 'Holiday name' }).first()).toHaveValue('Autumn break', { timeout: 10_000 })
           await settle(p)
         },
-        target: p => modal(p).locator('> [role="presentation"], > div').first(),
+        target: p => dialogPanel(p),
         act: async p => {
           await modal(p).getByRole('button', { name: 'Cancel' }).click()
           await expect(modal(p)).toHaveCount(0)
@@ -367,23 +399,29 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
   },
 
-  // ── Settings ─────────────────────────────────────────────────────────────
+  // ── Security ─────────────────────────────────────────────────────────────
   'auth-methods': {
     guide: guide('auth-methods'),
-    start: opener('admin-settings'),
+    // The SSO rows exist only once OIDC is configured, so the guide sets an
+    // issuer and a client id up front and takes them away again afterwards.
+    start: async p => {
+      await configureOidc(p.request)
+      await openAdmin(p, 'Security')
+      await expect(row(authCard(p), 'SSO Login')).toBeVisible({ timeout: 10_000 })
+    },
     steps: [
-      only(p => section(p, 'Authentication Methods').getByText('Password Login', { exact: true }).locator('xpath=../..')),
-      // The SSO rows exist only once OIDC is configured; the run shows where that happens.
-      only(p => section(p, 'Single Sign-On (OIDC)')),
-      only(p => section(p, 'Require two-factor authentication (2FA)')),
+      only(p => row(authCard(p), 'Password Login')),
+      only(p => row(authCard(p), 'SSO Auto-Provisioning')),
+      only(p => row(authCard(p), 'Require 2FA')),
     ],
+    cleanup: p => clearOidc(p.request),
   },
   'admin-passkeys': {
     guide: guide('admin-passkeys'),
     start: opener('admin-settings'),
     steps: [
       // Not flipped: the switch saves at once, and the seed keeps passkeys off.
-      only(p => section(p, 'Passkey login').getByRole('button', { name: 'Enable passkey login' }).locator('xpath=ancestor::div[contains(@class,"divide-y")][1]')),
+      only(p => row(authCard(p), 'Enable passkey login')),
       only(p => section(p, 'Passkey login')),
     ],
   },
@@ -391,41 +429,36 @@ const SCRIPTS: Record<string, GuideScript> = {
     guide: guide('oidc'),
     start: opener('admin-settings'),
     steps: [
-      only(p => section(p, 'Single Sign-On (OIDC)')),
-      only(p => section(p, 'Authentication Methods')),
-    ],
-  },
-  'instance-keys': {
-    guide: guide('instance-keys'),
-    start: opener('admin-settings'),
-    steps: [
-      only(p => trekApiCard(p)),
       {
         prepare: async p => {
-          const details = p.locator('details').filter({ hasText: 'What the key may be used for' })
-          if (!(await details.evaluate(el => (el as HTMLDetailsElement).open))) await details.locator('summary').click()
-          await settle(p)
+          const card = section(p, 'Single Sign-On (OIDC)')
+          await typeInto(p, card.locator('#oidc-display-name'), 'Authentik')
+          await typeInto(p, card.locator('#oidc-issuer'), 'https://auth.example.org/application/o/trek/')
+          await typeInto(p, card.locator('#oidc-client-id'), 'trek')
+          await typeInto(p, card.locator('#oidc-client-secret'), 'a-long-client-secret')
+          await beat(p, 300)
         },
-        // The whole Google block: key, Test and the fold opened under it.
-        target: p => block(p, 'Google Maps API Key'),
+        target: p => section(p, 'Single Sign-On (OIDC)'),
+        hover: async p => { await section(p, 'Single Sign-On (OIDC)').getByRole('button', { name: 'Save', exact: true }).hover() },
+        act: async p => {
+          await section(p, 'Single Sign-On (OIDC)').getByRole('button', { name: 'Save', exact: true }).click()
+          await expect.poll(async () => {
+            const res = await p.request.get('/api/admin/oidc')
+            return ((await res.json()) as { client_id?: string }).client_id
+          }, { timeout: 10_000 }).toBe('trek')
+        },
       },
-      only(p => block(p, 'Unsplash API Key')),
+      {
+        // The card and the sign-in rows read the configuration when the page loads.
+        prepare: async p => {
+          await openAdmin(p, 'Security')
+          await expect(row(authCard(p), 'SSO Login')).toBeVisible({ timeout: 10_000 })
+        },
+        target: p => row(authCard(p), 'SSO Login'),
+      },
+      only(p => row(authCard(p), 'Go straight to SSO')),
     ],
-  },
-  'places-transit': {
-    guide: guide('places-transit'),
-    start: opener('admin-settings'),
-    steps: [
-      only(p => block(p, 'Transit Provider')),
-      only(p => block(p, 'Place search provider')),
-    ],
-  },
-  'file-types': {
-    guide: guide('file-types'),
-    start: opener('admin-settings'),
-    steps: [
-      only(p => section(p, 'Allowed File Types')),
-    ],
+    cleanup: p => clearOidc(p.request),
   },
   'rotate-jwt-secret': {
     guide: guide('rotate-jwt-secret'),
@@ -440,7 +473,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        target: p => modal(p).locator('> [role="presentation"], > div').first(),
+        target: p => dialogPanel(p),
         // Never confirmed: rotating would sign the run itself out.
         hover: async p => { await modal(p).getByRole('button', { name: 'Rotate & Log out' }).hover() },
         act: async p => {
@@ -448,6 +481,33 @@ const SCRIPTS: Record<string, GuideScript> = {
           await expect(modal(p)).toHaveCount(0)
         },
       },
+    ],
+  },
+
+  // ── Services ─────────────────────────────────────────────────────────────
+  'instance-keys': {
+    guide: guide('instance-keys'),
+    start: services,
+    steps: [
+      only(p => trekApiCard(p)),
+      // The whole Google block: key, Test and what the key may be used for under it.
+      only(p => block(p, 'Google Maps API Key')),
+      only(p => block(p, 'Unsplash API Key')),
+    ],
+  },
+  'places-transit': {
+    guide: guide('places-transit'),
+    start: services,
+    steps: [
+      only(p => block(p, 'Transit Provider')),
+      only(p => block(p, 'Place search provider')),
+    ],
+  },
+  'file-types': {
+    guide: guide('file-types'),
+    start: services,
+    steps: [
+      only(p => section(p, 'Allowed File Types')),
     ],
   },
 
@@ -475,11 +535,12 @@ const SCRIPTS: Record<string, GuideScript> = {
     guide: guide('document-providers'),
     start: opener('admin-addons'),
     steps: [
-      // The tile with its shelf: Documents is on in the seed, so the five rows are drawn.
+      // The row with its options: Documents is on in the seed, so the five stores are drawn.
       only(p => tile(p, 'Documents')),
       {
-        // The row's switch is a ToggleSwitch whose aria-label is the row's title.
-        target: p => tile(p, 'Documents').getByRole('button', { name: 'Nextcloud', exact: true }),
+        // The whole row, so its name is in the frame; the switch's aria-label is the row's title.
+        target: p => tile(p, 'Documents').getByRole('button', { name: 'Nextcloud', exact: true }).locator('xpath=ancestor::li[1]'),
+        hover: async p => { await tile(p, 'Documents').getByRole('button', { name: 'Nextcloud', exact: true }).hover() },
         act: async p => {
           const toggle = tile(p, 'Documents').getByRole('button', { name: 'Nextcloud', exact: true })
           await toggle.click()
@@ -490,6 +551,157 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
     // Back to the seed, where every store is off; the files run switches this one on for itself.
     cleanup: p => toggleAddon(p.request, 'nextcloud', false),
+  },
+  'mail-import-setup': {
+    guide: guide('mail-import-setup'),
+    start: opener('admin-addons'),
+    steps: [
+      {
+        target: p => tile(p, 'Booking mail import'),
+        act: async p => {
+          const toggle = tile(p, 'Booking mail import').getByRole('button', { name: 'Import booking mails' })
+          await toggle.click()
+          await expect(toggle).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 })
+          await expect(p.getByRole('button', { name: 'Set up mail import' })).toBeVisible({ timeout: 10_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: p => p.getByRole('button', { name: 'Set up mail import' }),
+        act: async p => {
+          await p.getByRole('button', { name: 'Set up mail import' }).click()
+          await expect(modal(p)).toBeVisible()
+          await settle(p)
+        },
+      },
+      {
+        // IMAP draws every field the step names; nothing is saved, so no mailbox is asked.
+        prepare: async p => {
+          await modal(p).getByRole('button', { name: 'Upload only' }).click()
+          await p.getByRole('button', { name: 'IMAP mailbox', exact: true }).last().click()
+          await expect(modal(p).locator('#mail-imap-host')).toBeVisible()
+          await typeInto(p, modal(p).locator('#mail-template'), 'trek+{token}@example.org')
+          await typeInto(p, modal(p).locator('#mail-imap-host'), 'imap.example.org')
+          await typeInto(p, modal(p).locator('#mail-imap-user'), 'trek@example.org')
+          await typeInto(p, modal(p).locator('#mail-imap-pass'), 'mailbox-password')
+          await beat(p, 300)
+        },
+        target: p => dialogPanel(p),
+      },
+      {
+        target: p => modal(p).getByRole('button', { name: 'Test connection' }).locator('xpath=..'),
+        hover: async p => { await modal(p).getByRole('button', { name: 'Save', exact: true }).hover() },
+        act: async p => {
+          await modal(p).getByRole('button', { name: 'Close', exact: true }).last().click()
+          // The setup asks before it drops what was typed.
+          await p.getByRole('button', { name: 'Discard', exact: true }).click()
+          await expect(modal(p)).toHaveCount(0)
+        },
+      },
+    ],
+    cleanup: p => putAppSettings(p.request, { mail_ingest_enabled: false }),
+  },
+  'ai-setup': {
+    guide: guide('ai-setup'),
+    // The key is never tested against a provider: fixtures-assistant.ts answers for the connection.
+    start: async p => {
+      const res = await p.request.get('/api/admin/ai/settings')
+      aiSettingsBefore = res.ok() ? await res.json() : null
+      await toggleAddon(p.request, 'ai_assistant', false)
+      await mockInstanceConnection(p)
+      await openAdmin(p, TAB_OF['admin-addons'])
+    },
+    steps: [
+      {
+        target: p => tile(p, 'AI'),
+        act: async p => {
+          const toggle = tile(p, 'AI').getByRole('button', { name: 'AI Assistant', exact: true })
+          await toggle.click()
+          await expect(toggle).toHaveAttribute('aria-pressed', 'true', { timeout: 10_000 })
+          await expect(tile(p, 'AI').getByRole('button', { name: 'Set up AI' })).toBeVisible({ timeout: 10_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: p => tile(p, 'AI').getByRole('button', { name: 'Set up AI' }),
+        act: async p => {
+          await tile(p, 'AI').getByRole('button', { name: 'Set up AI' }).click()
+          await expect(aiDialog(p).getByRole('radiogroup', { name: 'Who pays' })).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: p => aiDialog(p).getByRole('radiogroup', { name: 'Who pays' }).locator('xpath=..'),
+        hover: async p => { await aiDialog(p).getByRole('radio', { name: 'I pay, own allowed' }).hover() },
+        act: async p => {
+          await aiDialog(p).getByRole('radio', { name: 'I pay, own allowed' }).click()
+          await expect(aiDialog(p).getByRole('radio', { name: 'I pay, own allowed' })).toHaveAttribute('aria-checked', 'true')
+          await settle(p)
+        },
+      },
+      {
+        prepare: async p => {
+          await aiDialog(p).getByRole('button', { name: /^Paste an API key/ }).click()
+          await typeInto(p, aiDialog(p).getByPlaceholder('Paste your key here'), AI_KEY)
+          await expect(aiDialog(p).getByText('Detected: Anthropic')).toBeVisible()
+          await settle(p)
+        },
+        target: p => aiDialog(p).getByText('Connection for everyone', { exact: true }).locator('xpath=..'),
+        hover: async p => { await aiDialog(p).getByRole('button', { name: 'Connect', exact: true }).hover() },
+        act: async p => {
+          await aiDialog(p).getByRole('button', { name: 'Connect', exact: true }).click()
+          await expect(aiDialog(p).getByRole('button', { name: 'Remove connection' })).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: p => aiDialog(p).getByRole('button', { name: 'Remove connection' }).locator('xpath=ancestor::div[contains(@class,"p-3")][1]'),
+        act: async p => {
+          await aiDialog(p).getByRole('button', { name: 'AI Assistant', exact: true }).click()
+          await expect(aiDialog(p).getByText('Keep chats', { exact: true })).toBeVisible({ timeout: 10_000 })
+          await settle(p)
+        },
+      },
+      only(p => aiDialog(p).getByText('Keep chats', { exact: true }).locator('xpath=ancestor::div[contains(@class,"gap-4")][1]')),
+    ],
+    cleanup: async p => {
+      if (aiSettingsBefore) await p.request.put('/api/admin/ai/settings', { data: aiSettingsBefore })
+      await toggleAddon(p.request, 'ai_assistant', false)
+    },
+  },
+  'paddle-water-data': {
+    guide: guide('paddle-water-data'),
+    start: opener('admin-addons'),
+    steps: [
+      {
+        target: p => p.getByRole('button', { name: /^Paddle water data/ }),
+        act: async p => {
+          await p.getByRole('button', { name: /^Paddle water data/ }).click()
+          await expect(modal(p)).toBeVisible()
+          await expect(modal(p).getByTestId('paddle-auto-load')).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      only(p => modal(p).getByTestId('paddle-auto-load')),
+      {
+        // A search shows the hits with their Add; Geofabrik's list comes through the server.
+        prepare: async p => {
+          const field = modal(p).getByPlaceholder('Search Geofabrik, for example Oberpfalz')
+          await typeInto(p, field, 'Oberpfalz')
+          const hit = modal(p).getByRole('button', { name: 'Add', exact: true }).first()
+          const failed = modal(p).getByRole('alert')
+          await expect(hit.or(failed).first()).toBeVisible({ timeout: 30_000 })
+          // Without Geofabrik the field stays empty rather than showing an error.
+          if (!(await hit.isVisible())) await field.fill('')
+          await settle(p)
+        },
+        target: p => modal(p).getByPlaceholder('Search Geofabrik, for example Oberpfalz').locator('xpath=ancestor::div[contains(@class,"gap-2")][1]'),
+        act: async p => {
+          await modal(p).getByRole('button', { name: 'Close', exact: true }).last().click()
+          await expect(modal(p)).toHaveCount(0)
+        },
+      },
+    ],
   },
 
   // ── Plugins ──────────────────────────────────────────────────────────────
@@ -518,9 +730,9 @@ const SCRIPTS: Record<string, GuideScript> = {
       {
         target: p => p.getByTestId('plugin-row-menu-btn-trip-doctor').locator('xpath=ancestor::div[contains(@class,"group") and contains(@class,"px-3.5")][1]'),
         act: async p => {
-          const row = p.getByTestId('plugin-row-menu-btn-trip-doctor').locator('xpath=ancestor::div[contains(@class,"group") and contains(@class,"px-3.5")][1]')
-          await row.getByRole('button', { name: 'Enable plugin' }).click()
-          await expect(row.getByText('Active', { exact: true })).toBeVisible({ timeout: 30_000 })
+          const pluginRow = p.getByTestId('plugin-row-menu-btn-trip-doctor').locator('xpath=ancestor::div[contains(@class,"group") and contains(@class,"px-3.5")][1]')
+          await pluginRow.getByRole('button', { name: 'Enable plugin' }).click()
+          await expect(pluginRow.getByText('Active', { exact: true })).toBeVisible({ timeout: 30_000 })
           await settle(p)
         },
       },
@@ -555,7 +767,7 @@ const SCRIPTS: Record<string, GuideScript> = {
           await settle(p)
         },
         // The new backend opens in a dialog.
-        target: p => modal(p).locator('> [role="presentation"], > div').first(),
+        target: p => dialogPanel(p),
         act: async p => {
           await modal(p).getByRole('button', { name: 'Cancel' }).click()
           await expect(modal(p).getByText('Add backend', { exact: true })).toHaveCount(0)
@@ -573,19 +785,19 @@ const SCRIPTS: Record<string, GuideScript> = {
     guide: guide('channels-instance'),
     start: opener('admin-notifications'),
     steps: [
-      only(p => section(p, 'Email (SMTP)')),
-      only(p => section(p, /^Ntfy$/)),
-      only(p => section(p, 'Trip Reminders')),
+      only(p => block(p, 'Email (SMTP)')),
+      only(p => section(p, /^Channels$/).locator('div.divide-y').first()),
+      only(p => row(section(p, /^Channels$/), 'Trip Reminders')),
     ],
   },
   'admin-channels': {
     guide: guide('admin-channels'),
     start: opener('admin-notifications'),
     steps: [
-      only(p => section(p, 'Admin Ntfy')),
-      only(p => section(p, 'Admin Ntfy').getByRole('button', { name: 'Send test ntfy' })),
-      // The admin matrix: the card whose title is the tab's own name.
-      only(p => section(p, /^Notifications$/)),
+      only(p => section(p, 'Admin alerts')),
+      only(p => block(p, 'Admin Ntfy').getByRole('button', { name: 'Send test ntfy' })),
+      // The admin matrix at the foot of the same card.
+      only(p => section(p, 'Admin alerts').locator('div.overflow-x-auto').first()),
     ],
   },
   'notification-defaults': {
@@ -598,7 +810,7 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
   },
 
-  // ── MCP Access ───────────────────────────────────────────────────────────
+  // ── MCP ──────────────────────────────────────────────────────────────────
   'mcp-tokens-admin': {
     guide: guide('mcp-tokens-admin'),
     start: opener('admin-mcp-tokens'),
@@ -660,11 +872,11 @@ const SCRIPTS: Record<string, GuideScript> = {
         target: p => section(p, 'Auto-Backup').getByRole('button', { name: /^Enable auto-backup/ }).locator('xpath=ancestor::label[1]'),
         act: async p => {
           await section(p, 'Auto-Backup').getByRole('button', { name: /^Enable auto-backup/ }).click()
-          await expect(section(p, 'Auto-Backup').getByText('Interval', { exact: true })).toBeVisible({ timeout: 10_000 })
+          await expect(section(p, 'Auto-Backup').getByText('Interval', { exact: true }).first()).toBeVisible({ timeout: 10_000 })
           await settle(p)
         },
       },
-      only(p => section(p, 'Auto-Backup').getByText('Delete old backups after', { exact: true }).locator('xpath=..')),
+      only(p => row(section(p, 'Auto-Backup'), 'Delete old backups after')),
     ],
     cleanup: async p => {
       await section(p, 'Auto-Backup').getByRole('button', { name: /^Enable auto-backup/ }).click()

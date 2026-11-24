@@ -224,6 +224,6 @@ export class ReservationImportController {
 
     // The DTO asserts an array of objects and stops there, so the per-item shape
     // is still the service's to interpret — as it was before the contract landed.
-    return this.bookingImport.confirm(tripId, items as BookingImportPreviewItem[], socketId);
+    return this.bookingImport.confirm(tripId, user.id, items as BookingImportPreviewItem[], socketId);
   }
 }

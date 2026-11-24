@@ -143,3 +143,103 @@ describe('closeOnDone', () => {
     expect(document.activeElement).toBe(handled);
   });
 });
+
+describe('closeOnTapAway', () => {
+  function touch(target: Element, type: 'touchstart' | 'touchend', x: number, y: number) {
+    const e = new Event(type, { bubbles: true, cancelable: true });
+    const point = [{ clientX: x, clientY: y }];
+    Object.defineProperty(e, type === 'touchstart' ? 'touches' : 'changedTouches', { value: point });
+    if (type === 'touchend') Object.defineProperty(e, 'touches', { value: [] });
+    target.dispatchEvent(e);
+  }
+  /** A finger's tap as a web view sends it: the pointer, the touch, then the mouse it makes of it. */
+  function tap(target: Element, moveBy = 0, mouse = true) {
+    const pointer = new Event('pointerdown', { bubbles: true, cancelable: true });
+    if (target.dispatchEvent(pointer) === false) mouse = false;
+    touch(target, 'touchstart', 100, 100);
+    touch(target, 'touchend', 100, 100 + moveBy);
+    if (mouse && !moveBy) target.dispatchEvent(new MouseEvent('mousedown', { bubbles: true, cancelable: true }));
+  }
+  function sheet(): {
+    notes: HTMLTextAreaElement;
+    title: HTMLInputElement;
+    label: HTMLElement;
+    sign: HTMLButtonElement;
+    stop: () => void;
+  } {
+    document.body.innerHTML =
+      '<div><p id="label">Notes for this day</p><textarea id="notes"></textarea><input id="title">' +
+      '<button id="sign" type="button">±</button></div>';
+    const stop = prepareKeyboardFields(document);
+    return {
+      notes: document.getElementById('notes') as HTMLTextAreaElement,
+      title: document.getElementById('title') as HTMLInputElement,
+      label: document.getElementById('label') as HTMLElement,
+      sign: document.getElementById('sign') as HTMLButtonElement,
+      stop,
+    };
+  }
+
+  it('closes the keyboard of a textarea when the sheet beside it is tapped', () => {
+    const { notes, label, stop } = sheet();
+    notes.focus();
+    tap(label);
+    expect(document.activeElement).not.toBe(notes);
+    stop();
+  });
+
+  it('keeps it while the finger scrolls, taps the field itself or moves to another field', () => {
+    const { notes, title, label, stop } = sheet();
+    notes.focus();
+    tap(label, 40);
+    expect(document.activeElement).toBe(notes);
+    tap(notes);
+    expect(document.activeElement).toBe(notes);
+    tap(title);
+    expect(document.activeElement).toBe(notes);
+    stop();
+  });
+
+  it('keeps it for a button that cancels its mousedown or pointerdown to keep the field', () => {
+    vi.useFakeTimers();
+    const { notes, sign, label, stop } = sheet();
+    notes.focus();
+    const keep = (e: Event) => e.preventDefault();
+    sign.addEventListener('mousedown', keep);
+    tap(sign);
+    vi.runAllTimers();
+    expect(document.activeElement).toBe(notes);
+    sign.removeEventListener('mousedown', keep);
+    sign.addEventListener('pointerdown', keep);
+    tap(sign);
+    vi.runAllTimers();
+    expect(document.activeElement).toBe(notes);
+    tap(label);
+    expect(document.activeElement).not.toBe(notes);
+    stop();
+    vi.useRealTimers();
+  });
+
+  it('closes it on a plain button, and also when no mousedown follows the tap', () => {
+    vi.useFakeTimers();
+    const { notes, sign, label, stop } = sheet();
+    notes.focus();
+    tap(sign);
+    expect(document.activeElement).not.toBe(notes);
+    notes.focus();
+    tap(label, 0, false);
+    expect(document.activeElement).toBe(notes);
+    vi.runAllTimers();
+    expect(document.activeElement).not.toBe(notes);
+    stop();
+    vi.useRealTimers();
+  });
+
+  it('stops listening when told to', () => {
+    const { notes, label, stop } = sheet();
+    stop();
+    notes.focus();
+    tap(label);
+    expect(document.activeElement).toBe(notes);
+  });
+});

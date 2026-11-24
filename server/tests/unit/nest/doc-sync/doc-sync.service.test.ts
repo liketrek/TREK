@@ -283,11 +283,8 @@ const sqlTime = (modifier: string): string =>
   // test-sql-allow: the timestamp has to come from SQLite's own clock, the one CURRENT_TIMESTAMP compares against.
   (testDb.prepare("SELECT datetime('now', ?) AS t").get(modifier) as { t: string }).t;
 
-/**
- * The Documents addon. Every binding asks it before it runs, so a double that
- * always says yes would hide the one case worth a test.
- */
-const addons = { isAddonEnabled: vi.fn(() => true) };
+/** The Documents addon (instance, then trip). An always-yes double would hide the one case worth a test. */
+const addons = { isAddonEnabled: vi.fn(() => true), isEnabledForTrip: vi.fn(async (_t: number, _a: string) => true) };
 
 /** The admin's per-provider switch, which is a real row rather than a double. */
 const switchProvider = (id: string, on: boolean) =>
@@ -1070,14 +1067,16 @@ describe('DocSyncService', () => {
       expect(await itemRow(itemId)).toEqual(itemBefore);
     });
 
-    it('stands down the same way while the Documents addon is off', async () => {
+    it.each(['instance', 'trip'] as const)('stands down the same way with Documents off for the %s', async (where) => {
       const link = await makeLink();
       const before = await linkRow(link.id);
-      addons.isAddonEnabled.mockReturnValue(false);
+      if (where === 'instance') addons.isAddonEnabled.mockReturnValue(false);
+      else addons.isEnabledForTrip.mockResolvedValue(false);
 
       const res = await service.syncLink(link);
 
       expect(res.state).toBe('disabled');
+      if (where === 'trip') expect(addons.isEnabledForTrip).toHaveBeenCalledWith(link.trip_id, 'documents');
       expect(provider.list).not.toHaveBeenCalled();
       expect(await linkRow(link.id)).toEqual(before);
     });

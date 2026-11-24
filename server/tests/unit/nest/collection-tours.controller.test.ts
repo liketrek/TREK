@@ -8,6 +8,7 @@ import 'reflect-metadata';
 
 import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { DomainError } from '../../../src/nest/common/domain-error';
 import { TRIP_PERMISSION_KEY, TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
@@ -59,7 +60,7 @@ describe('CollectionToursController', () => {
     expect(Reflect.getMetadata(PATH_METADATA, CollectionToursController)).toBe(
       'api/addons/collections/:collectionId/tours',
     );
-    expect(Reflect.getMetadata(GUARDS_METADATA, CollectionToursController)).toEqual([AddonGuard, JwtAuthGuard]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, CollectionToursController)).toEqual([JwtAuthGuard, AddonGuard]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, CollectionToursController)).toEqual({ addonId: 'tours', label: 'Tours' });
     const proto = CollectionToursController.prototype;
     expect(route(proto, 'list')).toMatchObject({ path: '/', verb: RequestMethod.GET });
@@ -98,9 +99,9 @@ describe('CollectionTourTakeOverController', () => {
   it('LIB3-CTRL-004: is trip-scoped, needs place_edit and hands the body on', async () => {
     expect(Reflect.getMetadata(PATH_METADATA, CollectionTourTakeOverController)).toBe('api/trips/:tripId/tours');
     expect(Reflect.getMetadata(GUARDS_METADATA, CollectionTourTakeOverController)).toEqual([
-      AddonGuard,
       JwtAuthGuard,
       TripAccessGuard,
+      TripAddonGuard,
     ]);
     expect(route(CollectionTourTakeOverController.prototype, 'takeOver')).toEqual({
       path: 'from-collection',

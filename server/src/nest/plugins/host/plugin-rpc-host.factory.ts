@@ -3,7 +3,8 @@ import type { PluginCapabilityAuditRepository } from '../../../db/repositories/P
 import type { PluginRpcRegistry } from '../../../nest-rpc/rpc-kit/registry';
 import { PluginRpcRegistryService } from '../../../nest-rpc/rpc-kit/registry.service';
 import { appendAudit } from './plugin-audit';
-import { getPluginDataDb } from './plugin-host-state';
+import { PLUGIN_DATA, type PluginDataBackend } from './plugin-data.backend';
+import { closePluginDataDb, getPluginDataDb } from './plugin-host-state';
 import { PluginRpcHost } from './rpc-host';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Inject, Injectable } from '@nestjs/common';
@@ -27,7 +28,7 @@ export interface PluginCallRouter {
  * injected here and handed to the router as a closure. The domains now own their own
  * plugin surface — one `@PluginController()` provider per domain, discovered at boot
  * by PluginRpcRegistryService — so all that is left is the three things that are
- * genuinely per-plugin and belong to nobody else: the plugin's own sqlite handle, the
+ * genuinely per-plugin and belong to nobody else: the plugin's own data store, the
  * inter-plugin router bound with this plugin as the caller, and the audit sink.
  */
 @Injectable()
@@ -37,9 +38,18 @@ export class PluginRpcHostFactory {
     // Injected by its concrete token, held as the base class: a no-Nest test can then
     // hand in a createTestPluginRegistry() built from the instances it cares about.
     @Inject(PluginRpcRegistryService) private readonly registry: PluginRpcRegistry,
+    // Where a plugin's own data lives: a SQLite file, or a schema in TREK's Postgres database.
+    @Inject(PLUGIN_DATA) private readonly pluginData: PluginDataBackend,
   ) {}
 
+  /** Closes plugin `id`'s data store and deletes everything it stored (uninstall with "delete data"). */
+  async erasePluginData(id: string): Promise<void> {
+    closePluginDataDb(id);
+    await this.pluginData.erase(id);
+  }
+
   create(id: string, granted: ReadonlySet<string>, router: PluginCallRouter): PluginRpcHost {
+    const pluginData = this.pluginData;
     return new PluginRpcHost(
       id,
       granted,
@@ -51,10 +61,11 @@ export class PluginRpcHostFactory {
         // under the NEW one (every db.* call then throws 'database connection is not
         // open'). Resolving per call means the new host always uses the current, open
         // handle — getPluginDataDb recreates one the moment a stale dispose closes it.
-        // Safe because db.* is synchronous, so no call is ever mid-flight when a dispose
-        // from another tick closes the handle.
+        // On SQLite db.* is synchronous, so no call is ever mid-flight when a dispose
+        // from another tick closes the handle; on Postgres a close only stops new calls,
+        // and one already running finishes on its own pool connection.
         get data() {
-          return getPluginDataDb(id);
+          return getPluginDataDb(id, pluginData);
         },
         // The router binds this host's plugin id as the caller/source.
         callPlugin: (targetId, fn, args, actingUserId) => router.callPlugin(id, targetId, fn, args, actingUserId),

@@ -1,6 +1,7 @@
 import {
   deriveHttpBoot,
   deriveKitinerary,
+  deriveMailIngest,
   deriveServices,
   deriveStorage,
   deriveTransit,
@@ -234,6 +235,13 @@ describe('derivePlugins', () => {
 });
 
 describe('deriveIntegrations', () => {
+  it('reads FLIGHT_LIVE_ENABLED as the setting spells it, unset or unparseable as no word at all', () => {
+    expect(deriveIntegrations({}).flightLiveEnabled).toBeUndefined();
+    expect(deriveIntegrations({ FLIGHT_LIVE_ENABLED: 'off' }).flightLiveEnabled).toBe('false');
+    expect(deriveIntegrations({ FLIGHT_LIVE_ENABLED: ' YES ' }).flightLiveEnabled).toBe('true');
+    expect(deriveIntegrations({ FLIGHT_LIVE_ENABLED: 'maybe' }).flightLiveEnabled).toBeUndefined();
+  });
+
   it('pins unsplash trim, nominatim trim + default, overpass timeout', () => {
     expect(deriveIntegrations({ UNSPLASH_ACCESS_KEY: ' key ' }).unsplashAccessKey).toBe('key');
     expect(deriveIntegrations({}).nominatimUrl).toBe('https://nominatim.openstreetmap.org');
@@ -289,6 +297,23 @@ describe('deriveKitinerary (kitineraryConfig token)', () => {
     expect(deriveKitinerary({ PATH: ['/a', ' /b ', '', '/c'].join(sep) }).searchPath).toEqual(['/a', '/b', '/c']);
     expect(deriveKitinerary({ Path: ['/w1', '/w2'].join(sep) }).searchPath).toEqual(['/w1', '/w2']);
     expect(deriveKitinerary({}).searchPath).toEqual([]);
+  });
+});
+
+describe('deriveMailIngest (mailIngestConfig token)', () => {
+  it('leaves every value unset unless its variable holds one, trimmed', () => {
+    expect(Object.values(deriveMailIngest({}))).toEqual(Array(9).fill(null));
+    expect(deriveMailIngest({ MAIL_INGEST_IMAP_HOST: '  ', MAIL_INGEST_IMAP_PASS: ' s3cret ' })).toMatchObject({
+      imapHost: null,
+      imapPass: 's3cret',
+    });
+  });
+
+  it('reads the transport and the encryption in lower case', () => {
+    expect(deriveMailIngest({ MAIL_INGEST_TRANSPORT: 'IMAP', MAIL_INGEST_IMAP_TLS: 'StartTLS' })).toMatchObject({
+      transport: 'imap',
+      imapTls: 'starttls',
+    });
   });
 });
 
@@ -368,6 +393,43 @@ describe('deriveDb: the pre-migration snapshot', () => {
     expect(deriveDb({ TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP: '5' }).preMigrateSnapshotKeep).toBe(5);
     expect(deriveDb({ TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP: '0' }).preMigrateSnapshotKeep).toBe(3);
     expect(deriveDb({ TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP: '500' }).preMigrateSnapshotKeep).toBe(100);
+  });
+});
+
+describe('deriveDb: starting on Postgres beside a SQLite install', () => {
+  it('keeps the refusal unless TREK_DB_IGNORE_SQLITE_FILE is an explicit true', () => {
+    expect(deriveDb({}).ignoreSqliteFile).toBe(false);
+    expect(deriveDb({ TREK_DB_IGNORE_SQLITE_FILE: 'false' }).ignoreSqliteFile).toBe(false);
+    expect(deriveDb({ TREK_DB_IGNORE_SQLITE_FILE: 'yes' }).ignoreSqliteFile).toBe(true);
+    expect(deriveDb({ TREK_DB_IGNORE_SQLITE_FILE: 'true' }).ignoreSqliteFile).toBe(true);
+  });
+});
+
+describe('deriveDb: the engine', () => {
+  it('DB-ENGINE-001: SQLite unless TREK_DB_URL names a database', () => {
+    expect(deriveDb({})).toMatchObject({ engine: 'sqlite' });
+    expect(deriveDb({ TREK_DB_URL: '   ' })).toMatchObject({ engine: 'sqlite' });
+    expect(deriveDb({ TREK_DB_URL: ' postgres://u:p@db:5432/trek ' })).toMatchObject({
+      engine: 'postgres',
+      url: 'postgres://u:p@db:5432/trek',
+    });
+  });
+
+  it('DB-ENGINE-002: a pool of ten connections unless told otherwise, from 1 to 100', () => {
+    const poolMaxOf = (raw: Record<string, string>) => {
+      const db = deriveDb({ TREK_DB_URL: 'postgres://u:p@db:5432/trek', ...raw });
+      return db.engine === 'postgres' ? db.poolMax : null;
+    };
+    expect(deriveDb({ TREK_DB_URL: 'postgres://u:p@db:5432/trek' })).toMatchObject({ engine: 'postgres' });
+    expect(poolMaxOf({})).toBe(10);
+    expect(poolMaxOf({ TREK_DB_POOL_MAX: '25' })).toBe(25);
+    expect(poolMaxOf({ TREK_DB_POOL_MAX: '0' })).toBe(10);
+    expect(poolMaxOf({ TREK_DB_POOL_MAX: '500' })).toBe(100);
+  });
+
+  it('DB-ENGINE-003: no pool size on SQLite, which has no pool', () => {
+    expect(deriveDb({ TREK_DB_POOL_MAX: '25' })).toMatchObject({ engine: 'sqlite' });
+    expect(deriveDb({})).not.toHaveProperty('poolMax');
   });
 });
 

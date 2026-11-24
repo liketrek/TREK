@@ -24,16 +24,20 @@ import { Reflector } from '@nestjs/core';
 
 import { describe, it, expect, vi } from 'vitest';
 
-/** A context whose handler/class carry the decorator under test. */
-function ctxFor(handler: object, cls: object = class {}): ExecutionContext {
+/** A context whose handler/class carry the decorator under test, for a request with or without a user. */
+function ctxFor(handler: object, cls: object = class {}, user?: { id: number }): ExecutionContext {
   return {
     getHandler: () => handler,
     getClass: () => cls,
+    switchToHttp: () => ({ getRequest: () => ({ user }) }),
   } as unknown as ExecutionContext;
 }
 
-function addons(enabled: boolean): AddonsService {
-  return { isAddonEnabled: vi.fn(() => enabled) } as unknown as AddonsService;
+function addons(enabled: boolean, anywhere = false): AddonsService {
+  return {
+    isAddonEnabled: vi.fn(() => enabled),
+    isEnabledForUserAnywhere: vi.fn(() => enabled || anywhere),
+  } as unknown as AddonsService;
 }
 
 async function thrown(fn: () => unknown) {
@@ -104,6 +108,39 @@ describe('AddonGuard', () => {
       body: { error: 'AirTrail addon is not enabled' },
     });
     expect(svc.isAddonEnabled).toHaveBeenCalledWith(ADDON_IDS.AIRTRAIL);
+  });
+});
+
+describe('AddonGuard once the user is known', () => {
+  it('ADDON-GUARD-008: opens for a user one of whose trips switched the addon on, although the instance has it off', async () => {
+    const cls = decorated(ADDON_IDS.TOURS, 'Tours');
+    const svc = addons(false, true);
+    const guard = new AddonGuard(svc, new Reflector());
+
+    expect(await guard.canActivate(ctxFor(() => {}, cls, { id: 7 }))).toBe(true);
+    expect(svc.isEnabledForUserAnywhere).toHaveBeenCalledWith(7, ADDON_IDS.TOURS);
+    expect(svc.isAddonEnabled).not.toHaveBeenCalled();
+  });
+
+  it('ADDON-GUARD-009: stays shut for a user none of whose trips switched it on', async () => {
+    const cls = decorated(ADDON_IDS.ROADTRIP, 'Road trip');
+    const guard = new AddonGuard(addons(false, false), new Reflector());
+
+    expect(await thrown(() => guard.canActivate(ctxFor(() => {}, cls, { id: 7 })))).toEqual({
+      status: 404,
+      body: { error: 'Road trip addon is not enabled' },
+    });
+  });
+
+  it('ADDON-GUARD-010: without a user it reads the instance switch alone', async () => {
+    const cls = decorated(ADDON_IDS.TOURS, 'Tours');
+    const svc = addons(false, true);
+
+    expect(await thrown(() => new AddonGuard(svc, new Reflector()).canActivate(ctxFor(() => {}, cls)))).toEqual({
+      status: 404,
+      body: { error: 'Tours addon is not enabled' },
+    });
+    expect(svc.isEnabledForUserAnywhere).not.toHaveBeenCalled();
   });
 });
 

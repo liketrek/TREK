@@ -125,6 +125,55 @@ export interface RouteOverlayOptions {
   formatDistance: (km: number) => string
 }
 
+/** How far, in map pixels, a point may sit off the line its neighbours make before it is kept. */
+const SIMPLIFY_TOLERANCE = 0.35
+
+/**
+ * A run projected onto the map and thinned for drawing. A routed road carries a point
+ * every few metres: at the scale of a trip map that is tens of thousands of points, most
+ * rounding onto the same pixel, each drawn twice (casing and line) and drawn again by
+ * every viewer on every scroll, which made the page stutter. Points that round onto the
+ * one before are dropped, then every point closer than SIMPLIFY_TOLERANCE to the line
+ * through the points kept around it (Douglas-Peucker). The shape on paper is the same.
+ */
+export function drawnPoints(line: [number, number][], project: (lat: number, lng: number) => [number, number]): string {
+  const round = (n: number) => Math.round(n * 10) / 10
+  const pts: [number, number][] = []
+  for (const [lat, lng] of line) {
+    const [x, y] = project(lat, lng)
+    const point: [number, number] = [round(x), round(y)]
+    const prev = pts[pts.length - 1]
+    if (!prev || prev[0] !== point[0] || prev[1] !== point[1]) pts.push(point)
+  }
+  const keep = new Uint8Array(pts.length)
+  keep[0] = 1
+  keep[pts.length - 1] = 1
+  const ranges: [number, number][] = [[0, pts.length - 1]]
+  for (let range = ranges.pop(); range; range = ranges.pop()) {
+    const [from, to] = range
+    if (to - from < 2) continue
+    const [ax, ay] = pts[from]
+    const [bx, by] = pts[to]
+    const dx = bx - ax
+    const dy = by - ay
+    const length = Math.hypot(dx, dy)
+    let farthest = -1
+    let distance = 0
+    for (let i = from + 1; i < to; i++) {
+      const [px, py] = pts[i]
+      const d = length === 0 ? Math.hypot(px - ax, py - ay) : Math.abs(dy * px - dx * py + bx * ay - by * ax) / length
+      if (d > distance) {
+        distance = d
+        farthest = i
+      }
+    }
+    if (farthest < 0 || distance <= SIMPLIFY_TOLERANCE) continue
+    keep[farthest] = 1
+    ranges.push([from, farthest], [farthest, to])
+  }
+  return pts.filter((_, i) => keep[i]).map(p => p.join(',')).join(' ')
+}
+
 /**
  * The routes, their stops and the scale bar — everything drawn *over* the ground.
  *
@@ -138,7 +187,7 @@ export function buildRouteOverlay(days: TripOverviewDay[], opts: RouteOverlayOpt
   const drawn = days.filter(d => [...d.lines, ...(d.tourLines ?? [])].some(line => line.length > 1))
 
   const routes = drawn.flatMap(day => day.lines.filter(l => l.length > 1).map(line => {
-    const pts = line.map(([lat, lng]) => project(lat, lng).map(round).join(',')).join(' ')
+    const pts = drawnPoints(line, project)
     // The day's own darkened casing rather than a flat white one: it is what keeps a
     // warm colour readable over water and forest, and it matches what the map draws.
     return `<polyline points="${pts}" fill="none" stroke="${strokeColour(day.color.casing)}" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round"/>`
@@ -147,7 +196,7 @@ export function buildRouteOverlay(days: TripOverviewDay[], opts: RouteOverlayOpt
 
   // Where each run starts and ends — the stops, rather than every vertex of the road.
   const tours = drawn.flatMap(day => (day.tourLines ?? []).filter(line => line.length > 1).map(line => {
-    const pts = line.map(([lat, lng]) => project(lat, lng).map(round).join(',')).join(' ')
+    const pts = drawnPoints(line, project)
     return `<polyline points="${pts}" fill="none" stroke="#ffffff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>`
       + `<polyline points="${pts}" fill="none" stroke="#14805e" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"/>`
   }))

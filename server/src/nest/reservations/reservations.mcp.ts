@@ -4,6 +4,7 @@ import {
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   errorResult, ok,
 } from '../../nest-mcp';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { z } from 'zod';
 import { BudgetService } from '../budget/budget.service';
@@ -107,11 +108,6 @@ function resolveEndpointCoords(endpoints: TransportEndpoint[] | undefined): { en
   return { endpoints: out };
 }
 
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
-
 /** The linked cost a tool's price becomes: the entry the booking form sends for one. */
 function linkedCost(price: number | null | undefined, category: string | undefined) {
   return price != null && price > 0 ? { total_price: price, category } : undefined;
@@ -149,6 +145,23 @@ const legsSchema = z.array(z.strictObject(transportLegInputSchema.shape)).option
 );
 
 type MetaRecord = Record<string, unknown>;
+
+/**
+ * The stored metadata a legs-only update starts from, without the flat keys
+ * that only mirrored the stored first leg's own detail. Those are set again
+ * from the new legs; kept, a first leg's seat taken away stayed in the flat
+ * seat, and the planner, which reads that as the first leg's, brought it back.
+ * A flat value the first leg never had (an older booking) is the booking's own
+ * and stays.
+ */
+function withoutLegMirrors(stored: MetaRecord, type: string): MetaRecord {
+  const mirrored = type === 'flight' ? ['airline', 'flight_number', 'seat'] : ['train_number', 'platform', 'seat'];
+  const leg: unknown = Array.isArray(stored.legs) ? stored.legs[0] : null;
+  const firstLeg = leg && typeof leg === 'object' ? (leg as MetaRecord) : null;
+  return Object.fromEntries(
+    Object.entries(stored).filter(([key, value]) => !(firstLeg && mirrored.includes(key) && firstLeg[key] === value)),
+  );
+}
 
 /**
  * `reservations.metadata` as stored: a JSON string, or (from an old
@@ -621,7 +634,7 @@ export class ReservationsMcp {
     access: { group: 'reservations', mode: 'read' },
   })
   async tripReservationsResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.reservations.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [{
@@ -824,15 +837,15 @@ export class ReservationsMcp {
         type: resolvedType,
         // Endpoints the caller did not replace stay the geometry the legs run
         // over, so read them back (the row carries them) instead of guessing.
-        endpoints: resolvedEndpoints ?? ((await this.reservations.getReservationWithJoins(reservationId))?.endpoints ?? []).map(e => ({
+        endpoints: resolvedEndpoints ?? ((await this.reservations.getReservationWithJoins(reservationId, tripId))?.endpoints ?? []).map(e => ({
           role: e.role, sequence: e.sequence, name: e.name, code: e.code,
           lat: e.lat, lng: e.lng, timezone: e.timezone,
           local_time: e.local_time, local_date: e.local_date,
         })),
         // metadata keeps replacing wholesale when it is sent; a legs-only update
         // must not drop departure_airport / airtrail_ids / transit, so it merges
-        // into what is stored instead.
-        baseMetadata: metadata !== undefined ? { ...metadata } : { ...stored },
+        // into what is stored instead, less the first leg's mirrored detail.
+        baseMetadata: metadata !== undefined ? { ...metadata } : withoutLegMirrors(stored, resolvedType),
         previousLegs: Array.isArray(stored.legs) ? stored.legs as unknown[] : [],
         startDayId: start_day_id,
         endDayId: end_day_id,

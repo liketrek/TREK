@@ -1,7 +1,7 @@
 import { useEffect, useRef, useMemo, useId } from 'react'
 import { useParams } from 'react-router'
 import { useTripStore } from '../../store/tripStore'
-import { useAddonStore } from '../../store/addonStore'
+import { useTripAddonEnabled } from '../../store/tripAddonsStore'
 import CustomSelect from '../shared/CustomSelect'
 import { BookingCodeInput } from '../shared/BookingCode'
 import { buildAssignmentOptions } from './assignmentOptions'
@@ -71,7 +71,7 @@ export function ReservationModal({ isOpen, onClose, onSave, reservation, days, p
   const fileInputRef = useRef(null)
   const titleId = useId()
 
-  const isBudgetEnabled = useAddonStore(s => s.isEnabled('budget'))
+  const isBudgetEnabled = useTripAddonEnabled(Number(tripId), 'budget')
   const deleteBudgetItem = useTripStore(s => s.deleteBudgetItem)
   // Set right before submit when the user clicked create/edit expense.
   const expense = useBookingExpenseIntent(() => handleSubmit(), {

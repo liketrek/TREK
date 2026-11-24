@@ -89,6 +89,16 @@ const MANAGED_HIDDEN_GUIDES: ReadonlySet<string> = new Set([
   'oidc', 'instance-keys', 'places-transit', 'rotate-jwt-secret', 'own-routing-engine',
   'install-plugin', 'storage-backends', 'release-history', 'create-backup', 'auto-backup',
   'plugin-settings', 'files-sync', 'files-sync-settings', 'document-providers',
+  // The operator runs the booking mail relay on a managed install; the admin has no setup row.
+  'mail-import-setup',
+  // The operator picks the model a managed install talks to, and the server refuses the
+  // assistant and its setup there: Settings shows no AI connection card.
+  'connect-ai', 'ai-setup', 'trip-assistant',
+  // Immich, Synology Photos, AirTrail, Dawarich and wanderer connect to a server the reader
+  // runs; Settings offers none of these connections on a managed install, so neither do these.
+  'photo-providers', 'album-date-range', 'connect-airtrail', 'airtrail-import',
+  'connect-dawarich', 'dawarich-countries', 'dawarich-wishes', 'dawarich-stays', 'journey-day-stays', 'map-dawarich-trail',
+  'tour-connect-wanderer', 'tour-wanderer-watch', 'tour-import-wanderer',
 ])
 
 /**
@@ -98,21 +108,10 @@ const MANAGED_HIDDEN_GUIDES: ReadonlySet<string> = new Set([
  */
 const addonOn = (id: string) => (): boolean => useAddonStore.getState().isEnabled(id)
 const MANAGED_FEATURE_GUIDES: Readonly<Record<string, () => boolean>> = {
-  'connect-dawarich': addonOn('dawarich'),
-  'dawarich-countries': addonOn('dawarich'),
-  'dawarich-wishes': addonOn('dawarich'),
-  'dawarich-stays': addonOn('dawarich'),
-  'journey-day-stays': addonOn('dawarich'),
-  'map-dawarich-trail': addonOn('dawarich'),
-  'connect-airtrail': addonOn('airtrail'),
-  'airtrail-import': addonOn('airtrail'),
-  'photo-providers': addonOn('memories'),
   'mcp-oauth': addonOn('mcp'),
   'api-keys': addonOn('mcp'),
   'mcp-tokens-admin': addonOn('mcp'),
-  'tour-connect-wanderer': () => useAddonStore.getState().toursWanderer,
-  'tour-wanderer-watch': () => useAddonStore.getState().toursWanderer,
-  'tour-import-wanderer': () => useAddonStore.getState().toursWanderer,
+  'paddle-water-data': addonOn('tours'),
 }
 
 /** Read at call time: `managed` arrives with app-config, after the registry loaded. */

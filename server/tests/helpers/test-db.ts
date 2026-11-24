@@ -38,8 +38,9 @@ export { CAN_ACCESS_TRIP_SQL, buildDbMock } from './db-mock';
  * is present (categories, addons, the provider catalogues) plus the two
  * migration bookkeeping tables. Everything else in the schema is user data and
  * is derived from `sqlite_master` at reset time — see `resetTestDb`.
+ * `resetDatabase` (reset-database.ts) keeps the same tables on either engine.
  */
-const KEEP_TABLES = new Set([
+export const KEEP_TABLES: ReadonlySet<string> = new Set([
   // Seeded reference data (`seedDefaults` below re-seeds the first three).
   'categories',
   'addons',
@@ -57,7 +58,7 @@ const KEEP_TABLES = new Set([
   'mikro_orm_migrations',
 ]);
 
-const DEFAULT_CATEGORIES = [
+export const DEFAULT_CATEGORIES = [
   { name: 'Hotel', color: '#3b82f6', icon: '🏨' },
   { name: 'Restaurant', color: '#ef4444', icon: '🍽️' },
   { name: 'Attraction', color: '#8b5cf6', icon: '🏛️' },
@@ -70,7 +71,7 @@ const DEFAULT_CATEGORIES = [
   { name: 'Other', color: '#6366f1', icon: '📍' },
 ];
 
-const DEFAULT_ADDONS = [
+export const DEFAULT_ADDONS = [
   {
     id: 'packing',
     name: 'Packing List',
@@ -154,7 +155,7 @@ const DEFAULT_ADDONS = [
   },
 ];
 
-const DEFAULT_PHOTO_PROVIDERS = [
+export const DEFAULT_PHOTO_PROVIDERS = [
   { id: 'immich', name: 'Immich', enabled: 1 },
   { id: 'synologyphotos', name: 'Synology Photos', enabled: 1 },
 ];
@@ -182,7 +183,7 @@ export function setAddonEnabled(db: Database.Database, addonId: string, enabled:
 /** Collab's sub-feature flags are opt-out app_settings, not addon rows. */
 export function setCollabFeature(
   db: Database.Database,
-  feature: 'chat' | 'notes' | 'polls' | 'whatsnext',
+  feature: 'chat' | 'notes' | 'polls' | 'links' | 'whatsnext',
   enabled: boolean,
 ): void {
   db.prepare('INSERT OR REPLACE INTO app_settings (key, value) VALUES (?, ?)').run(

@@ -1,14 +1,14 @@
-// FE-ADMHOOK-001 to FE-ADMHOOK-058
+// FE-ADMHOOK-001 to FE-ADMHOOK-059
 import { http, HttpResponse } from 'msw';
 import React from 'react';
+import { MemoryRouter, useNavigate } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { MemoryRouter } from 'react-router';
 import { buildAdmin, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
 import { act, renderHook, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { TranslationProvider } from '../../i18n/TranslationContext';
 import { adminApi } from '../../api/client';
+import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAuthStore } from '../../store/authStore';
 
 import { useAdmin } from './useAdmin';
@@ -65,7 +65,7 @@ describe('useAdmin', () => {
   it('FE-ADMHOOK-001: loads users, stats and invites on mount', async () => {
     const { result } = await mountAdmin();
 
-    expect(result.current.users.map(u => u.username)).toEqual(['admin', 'alice']);
+    expect(result.current.users.map((u) => u.username)).toEqual(['admin', 'alice']);
     expect(result.current.stats).toMatchObject({ totalUsers: 2, totalTrips: 5, totalPlaces: 42, totalFiles: 8 });
     expect(result.current.invites).toEqual([]);
     expect(result.current.activeTab).toBe('users');
@@ -110,6 +110,7 @@ describe('useAdmin', () => {
           password_registration: false,
           oidc_login: false,
           oidc_registration: false,
+          oidc_auto_redirect: false,
           env_override_oidc_only: true,
           oidc_configured: true,
           require_mfa: 1,
@@ -126,6 +127,7 @@ describe('useAdmin', () => {
     expect(result.current.passwordRegistration).toBe(false);
     expect(result.current.oidcLogin).toBe(false);
     expect(result.current.oidcRegistration).toBe(false);
+    expect(result.current.oidcAutoRedirect).toBe(false);
     expect(result.current.envOverrideOidcOnly).toBe(true);
     expect(result.current.oidcConfigured).toBe(true);
     expect(result.current.requireMfa).toBe(true);
@@ -205,7 +207,11 @@ describe('useAdmin', () => {
         HttpResponse.json({ chat: false, notes: true, polls: false, whatsnext: true })
       ),
       http.get('/api/auth/app-settings', () =>
-        HttpResponse.json({ smtp_host: 'mail.test', webauthn_rp_id: 'trek.test', webauthn_origins: 'https://trek.test' })
+        HttpResponse.json({
+          smtp_host: 'mail.test',
+          webauthn_rp_id: 'trek.test',
+          webauthn_origins: 'https://trek.test',
+        })
       )
     );
 
@@ -250,9 +256,7 @@ describe('useAdmin', () => {
   });
 
   it('FE-ADMHOOK-013: handleToggleAuthSetting rolls back and toasts on failure', async () => {
-    server.use(
-      http.put('/api/auth/app-settings', () => HttpResponse.json({ error: 'locked' }, { status: 400 }))
-    );
+    server.use(http.put('/api/auth/app-settings', () => HttpResponse.json({ error: 'locked' }, { status: 400 })));
     const { result } = await mountAdmin();
 
     await act(async () => {
@@ -284,7 +288,7 @@ describe('useAdmin', () => {
     });
 
     expect(result.current.requireMfa).toBe(false);
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
   });
 
   it('FE-ADMHOOK-050: handleTogglePlacesGoogleOnly flips the switch and PUTs it', async () => {
@@ -351,7 +355,7 @@ describe('useAdmin', () => {
       await result.current.handleSaveWebauthn();
     });
 
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
     expect(result.current.savingWebauthn).toBe(false);
   });
 
@@ -393,7 +397,11 @@ describe('useAdmin', () => {
     server.use(
       http.get('/api/auth/me/settings', () =>
         HttpResponse.json({
-          settings: { maps_api_key: null, unsplash_api_key: 'unsplash-k', env_keys: { maps_api_key: 'PLACES_API_KEY' } },
+          settings: {
+            maps_api_key: null,
+            unsplash_api_key: 'unsplash-k',
+            env_keys: { maps_api_key: 'PLACES_API_KEY' },
+          },
         })
       )
     );
@@ -441,7 +449,7 @@ describe('useAdmin', () => {
       await result.current.handleSaveApiKeys();
     });
 
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
     expect(result.current.savingKeys).toBe(false);
   });
 
@@ -521,7 +529,7 @@ describe('useAdmin', () => {
       await result.current.handleCreateUser();
     });
 
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
     expect(result.current.users).toHaveLength(2);
   });
 
@@ -617,7 +625,12 @@ describe('useAdmin', () => {
   it('FE-ADMHOOK-032: handleDeleteInvite removes it from the list', async () => {
     server.use(
       http.get('/api/admin/invites', () =>
-        HttpResponse.json({ invites: [{ id: 5, token: 'a' }, { id: 6, token: 'b' }] })
+        HttpResponse.json({
+          invites: [
+            { id: 5, token: 'a' },
+            { id: 6, token: 'b' },
+          ],
+        })
       )
     );
     const { result } = await mountAdmin();
@@ -626,7 +639,7 @@ describe('useAdmin', () => {
       await result.current.handleDeleteInvite(5);
     });
 
-    expect(result.current.invites.map(i => i.id)).toEqual([6]);
+    expect(result.current.invites.map((i) => i.id)).toEqual([6]);
     expect(toastCalls).toContainEqual({ type: 'success', message: 'Invite link deleted' });
   });
 
@@ -653,7 +666,9 @@ describe('useAdmin', () => {
     act(() => result.current.copyInviteLink('tok-9'));
 
     expect(writeText).toHaveBeenCalledWith(`${window.location.origin}/register?invite=tok-9`);
-    await waitFor(() => expect(toastCalls).toContainEqual({ type: 'success', message: 'Invite link copied to clipboard' }));
+    await waitFor(() =>
+      expect(toastCalls).toContainEqual({ type: 'success', message: 'Invite link copied to clipboard' })
+    );
   });
 
   it('FE-ADMHOOK-035: handleEditUser seeds the edit form from the user', async () => {
@@ -738,7 +753,15 @@ describe('useAdmin', () => {
     server.use(
       http.put('/api/admin/users/:id', ({ params }) =>
         // The update answers with the account fields only.
-        HttpResponse.json({ user: { id: Number(params.id), username: 'alice2', email: 'a2@e.com', role: 'user', created_at: '2026-01-01 00:00:00' } })
+        HttpResponse.json({
+          user: {
+            id: Number(params.id),
+            username: 'alice2',
+            email: 'a2@e.com',
+            role: 'user',
+            created_at: '2026-01-01 00:00:00',
+          },
+        })
       )
     );
     const { result } = await mountAdmin();
@@ -775,7 +798,7 @@ describe('useAdmin', () => {
 
     expect(called).toBe(false);
     expect(result.current.editingUser).not.toBeNull();
-    expect(toastCalls.some(c => c.type === 'error')).toBe(true);
+    expect(toastCalls.some((c) => c.type === 'error')).toBe(true);
   });
 
   it('FE-ADMHOOK-038: handleSaveUser forwards a long enough password', async () => {
@@ -853,7 +876,7 @@ describe('useAdmin', () => {
     });
 
     expect(deletedId).toBe('2');
-    expect(result.current.users.map(u => u.username)).toEqual(['admin']);
+    expect(result.current.users.map((u) => u.username)).toEqual(['admin']);
     expect(toastCalls).toContainEqual({ type: 'success', message: 'User deleted' });
   });
 
@@ -867,7 +890,7 @@ describe('useAdmin', () => {
     });
 
     expect(confirmSpy).not.toHaveBeenCalled();
-    expect(result.current.users.map(u => u.username)).toEqual(['admin']);
+    expect(result.current.users.map((u) => u.username)).toEqual(['admin']);
   });
 
   it('FE-ADMHOOK-043: a failing delete surfaces the server error', async () => {
@@ -886,6 +909,11 @@ describe('useAdmin', () => {
   it('FE-ADMHOOK-046: opens on the tab the URL asks for', async () => {
     const { result } = await mountAdmin('/admin?tab=audit');
     expect(result.current.activeTab).toBe('audit');
+  });
+
+  it('opens the notifications tab from the admin email manage link', async () => {
+    const { result } = await mountAdmin('/admin?tab=notifications');
+    expect(result.current.activeTab).toBe('notifications');
   });
 
   /*
@@ -926,7 +954,10 @@ describe('useAdmin', () => {
 
     await act(() => result.current.saveDemoBaseline());
     expect(save).toHaveBeenCalledTimes(1);
-    expect(toastCalls).toContainEqual({ type: 'success', message: 'Baseline saved! Resets will restore to this state.' });
+    expect(toastCalls).toContainEqual({
+      type: 'success',
+      message: 'Baseline saved! Resets will restore to this state.',
+    });
 
     save.mockRejectedValueOnce({ response: { data: { error: 'Not a demo' } } });
     await act(() => result.current.saveDemoBaseline());
@@ -959,7 +990,12 @@ describe('useAdmin', () => {
   });
 
   it('FE-ADMHOOK-057: a collab feature toggle saves only that key', async () => {
-    vi.spyOn(adminApi, 'getCollabFeatures').mockResolvedValue({ chat: true, notes: true, polls: true, whatsnext: true });
+    vi.spyOn(adminApi, 'getCollabFeatures').mockResolvedValue({
+      chat: true,
+      notes: true,
+      polls: true,
+      whatsnext: true,
+    });
     const update = vi.spyOn(adminApi, 'updateCollabFeatures').mockResolvedValue({});
     const { result } = await mountAdmin();
     await waitFor(() => expect(result.current.collabFeatures.chat).toBe(true));
@@ -970,7 +1006,12 @@ describe('useAdmin', () => {
   });
 
   it('FE-ADMHOOK-058: a failed collab toggle rolls back its own key and keeps a later one', async () => {
-    vi.spyOn(adminApi, 'getCollabFeatures').mockResolvedValue({ chat: true, notes: true, polls: true, whatsnext: true });
+    vi.spyOn(adminApi, 'getCollabFeatures').mockResolvedValue({
+      chat: true,
+      notes: true,
+      polls: true,
+      whatsnext: true,
+    });
     let fail!: (e: unknown) => void;
     vi.spyOn(adminApi, 'updateCollabFeatures')
       .mockReturnValueOnce(new Promise((_, reject) => (fail = reject)))
@@ -988,5 +1029,27 @@ describe('useAdmin', () => {
       await pending;
     });
     expect(result.current.collabFeatures).toEqual({ chat: true, notes: false, polls: true, whatsnext: true });
+  });
+
+  it('FE-ADMHOOK-059: a link to another tab of the open admin page opens that tab', async () => {
+    const at = ({ children }: { children: React.ReactNode }) => (
+      <MemoryRouter initialEntries={['/admin?tab=security']}>
+        <TranslationProvider>{children}</TranslationProvider>
+      </MemoryRouter>
+    );
+    const { result } = renderHook(() => ({ admin: useAdmin(), navigate: useNavigate() }), { wrapper: at });
+    await waitFor(() => expect(result.current.admin.isLoading).toBe(false));
+    expect(result.current.admin.activeTab).toBe('security');
+
+    await act(async () => {
+      await result.current.navigate('/admin?tab=services');
+    });
+    expect(result.current.admin.activeTab).toBe('services');
+    await act(async () => {
+      await result.current.navigate('/admin?tab=settings');
+    });
+    expect(result.current.admin.activeTab).toBe('security');
+    act(() => result.current.admin.setActiveTab('audit'));
+    expect(result.current.admin.activeTab).toBe('audit');
   });
 });

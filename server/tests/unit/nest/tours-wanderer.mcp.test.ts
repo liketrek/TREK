@@ -31,7 +31,7 @@ const preview = vi.fn<ToursWandererService['preview']>();
 const importTrail = vi.fn<ToursWandererService['import']>();
 const checkSource = vi.fn<ToursWandererService['checkSource']>();
 const hasTripPermission = vi.fn<McpToolGuardsService['hasTripPermission']>();
-const isWandererAvailable = vi.fn<AddonsService['isWandererAvailable']>();
+const isWandererAllowed = vi.fn<AddonsService['isWandererAllowed']>();
 let t: TestModule;
 let mcp: ToursWandererMcp;
 const orm = () => t.get(MikroORM);
@@ -66,12 +66,12 @@ beforeAll(async () => {
     ],
   });
   mcp = t.get(ToursWandererMcp);
-  vi.spyOn(t.get(AddonsService), 'isWandererAvailable').mockImplementation(isWandererAvailable);
+  vi.spyOn(t.get(AddonsService), 'isWandererAllowed').mockImplementation(isWandererAllowed);
 });
 beforeEach(() => {
   resetTestDb(db);
   hasTripPermission.mockReset().mockResolvedValue(true);
-  isWandererAvailable.mockReset().mockResolvedValue(true);
+  isWandererAllowed.mockReset().mockResolvedValue(true);
   search.mockReset().mockResolvedValue({ trails: [TRAIL], total: 1, page: 1, pageSize: 20 });
   preview.mockReset().mockResolvedValue({
     trail: TRAIL,
@@ -190,7 +190,7 @@ describe('wanderer over MCP', () => {
     ]);
     const gate = options[0]?.when;
     expect(await gate?.(ctx(1), mcp)).toBe(true);
-    isWandererAvailable.mockResolvedValue(false);
+    isWandererAllowed.mockResolvedValue(false);
     expect(await gate?.(ctx(1), mcp)).toBe(false);
   });
 });

@@ -21,7 +21,7 @@ import { useAddPlaceToCollection } from './useAddPlaceToCollection'
  * scrolled, so it looked like the button had vanished (#1921). The negative
  * margins let its background cover the body's padding while it is stuck.
  */
-const STICKY_SEARCH = 'sticky top-0 z-20 -mx-6 -mt-5 bg-surface-card px-6 pb-1 pt-5'
+const STICKY_SEARCH = 'sticky top-0 z-20 -mx-6 -mt-5 bg-surface-card px-6 pb-4 pt-5'
 /** A chip of the category row; the picked one wears the category's own colour. */
 const CHIP = 'inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-semibold'
 const CHIP_OFF = 'border-edge-faint bg-surface-card text-content-muted hover:text-content'
@@ -97,29 +97,34 @@ export default function AddPlaceToCollectionModal({ isOpen, collectionId, collec
       {/* Search: picking a result fills the name and the location below. */}
       <div className={STICKY_SEARCH}>
         <div className="relative">
-          <div className="flex items-stretch gap-2">
-            <div className="relative min-w-0 flex-1">
-              <Search size={14} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-content-faint" aria-hidden="true" />
-              <input
-                autoFocus
-                ref={searchRef}
-                type="text"
-                value={query}
-                onChange={e => { setQuery(e.target.value); setNoResults(false) }}
-                onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void search() } }}
-                aria-label={t('collections.addPlaceSearch')}
-                placeholder={t('collections.addPlaceSearch')}
-                className={`${INPUT} ps-8`}
-              />
-            </div>
-            <DialogButton
-              variant="primary"
+          {/* One field: the search runs from a small button inside its end, dark
+              once there is something to look for, instead of a greyed-out button
+              of its own beside the field. */}
+          <div className="relative">
+            <Search size={14} className="pointer-events-none absolute start-3 top-1/2 -translate-y-1/2 text-content-faint" aria-hidden="true" />
+            <input
+              autoFocus
+              data-initial-focus
+              ref={searchRef}
+              type="text"
+              value={query}
+              onChange={e => { setQuery(e.target.value); setNoResults(false) }}
+              onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); void search() } }}
+              aria-label={t('collections.addPlaceSearch')}
+              placeholder={t('collections.addPlaceSearch')}
+              className={`${INPUT} pe-[104px] ps-8`}
+            />
+            <button
+              type="button"
               onClick={() => void search()}
               disabled={!query.trim() || searching}
-              icon={searching ? <Loader2 size={14} className="animate-spin" /> : <Search size={14} strokeWidth={2.2} />}
+              className={`absolute end-1.5 top-1/2 inline-flex h-7 -translate-y-1/2 items-center gap-1.5 rounded-lg border-0 px-2.5 text-caption font-semibold transition-colors ${
+                query.trim() ? 'cursor-pointer bg-accent text-accent-text' : 'cursor-default bg-transparent text-content-faint'
+              }`}
             >
+              {searching ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} strokeWidth={2.2} />}
               {t('common.search')}
-            </DialogButton>
+            </button>
           </div>
           {(results.length > 0 || noResults) && (
             <div

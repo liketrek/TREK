@@ -63,7 +63,8 @@ struct TrekTripProvider: AppIntentTimelineProvider {
     func snapshot(for configuration: SelectTripIntent, in context: Context) async -> TrekEntry {
         let stored = WidgetSnapshot.load(trip: configuration.trip?.id)
         let snapshot: WidgetSnapshot? = (stored?.trip != nil || !context.isPreview) ? stored : WidgetSnapshot.sample(running: false)
-        return TrekEntry(date: Date(), snapshot: snapshot)
+        let now = Date()
+        return TrekEntry(date: now, snapshot: snapshot?.on(now))
     }
 
     func timeline(for configuration: SelectTripIntent, in context: Context) async -> Timeline<TrekEntry> {

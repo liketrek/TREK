@@ -83,11 +83,22 @@ export function isCarrierTransport(r: { type?: string | null }): boolean {
 }
 
 /**
+ * Vehicles a traveller drives themselves. Picked up or returned on another day than the
+ * booking's other end, such a booking is a stop the day's drive passes through: you get to
+ * the rental desk and drive on from it, and you drive to the return and leave from there.
+ * Anything else that spans days is ridden, an overnight train or bus, so the day it starts
+ * only leaves from its departure and the day it ends only arrives at its destination.
+ */
+const SELF_DRIVEN_TYPES = new Set(['car', 'bicycle'])
+
+/**
  * The route waypoints a transport contributes on a given day, respecting multi-day spans.
- * A car rental (or any reservation whose span covers several days) is only routed to on its
- * pickup day (the departure endpoint) and from on its drop-off day (the arrival endpoint) — on
- * the days in between you simply hold the vehicle, so it adds no waypoints and must not pull the
- * route to those points. Single-day transports contribute both endpoints.
+ * A reservation whose span covers several days is routed to its departure on its first day
+ * and from its arrival on its last; a rental the traveller drives (SELF_DRIVEN_TYPES) is
+ * routed through its pickup and its return instead, so the drive to the rental desk, the one
+ * away from it and the one to the return all show. On the days in between you simply hold
+ * the vehicle, so it adds no waypoints and must not pull the route to those points.
+ * Single-day transports contribute both endpoints.
  */
 export function getTransportRouteEndpoints(
   r: any,
@@ -111,11 +122,12 @@ export function getTransportRouteEndpoints(
     if (legIdx != null) return point(ordered[role === 'from' ? legIdx : legIdx + 1])
     return point((r.endpoints || []).find((x: { role?: string }) => x.role === role))
   }
+  const passedThrough = SELF_DRIVEN_TYPES.has(r.type)
   switch (getSpanPhase(r, dayId)) {
     case 'start':
-      return { from: ep('from'), to: null }
+      return { from: ep('from'), to: passedThrough ? ep('from') : null }
     case 'end':
-      return { from: null, to: ep('to') }
+      return { from: passedThrough ? ep('to') : null, to: ep('to') }
     case 'middle':
       return { from: null, to: null }
     default:
@@ -156,7 +168,12 @@ function parseMultiLegs(r: any): any[] | null {
   // Defensive: recover metadata that was accidentally double-encoded by an earlier
   // bug (a JSON string of a JSON string) so already-saved bookings heal on read.
   if (typeof meta === 'string') { try { meta = JSON.parse(meta || '{}') } catch { meta = {} } }
-  if (meta && Array.isArray(meta.legs) && meta.legs.length > 1) return meta.legs
+  if (meta && Array.isArray(meta.legs) && meta.legs.length > 1) {
+    // The flat seat mirrors the first leg's, so a booking saved before legs had
+    // seats keeps it on its first leg (flightLegs' legSeat reads it the same way).
+    const flatSeat = typeof meta.seat === 'string' && meta.seat ? meta.seat : null
+    return meta.legs.map((l: Record<string, unknown> | null, i: number) => (i === 0 && flatSeat && !l?.seat ? { ...l, seat: flatSeat } : l))
+  }
   return null
 }
 
@@ -200,9 +217,10 @@ export function expandFlightLegsForDay(
         index: i, total: legs.length,
         from: leg.from ?? null, to: leg.to ?? null,
         airline: leg.airline ?? null, flight_number: leg.flight_number ?? null,
-        // Train legs carry their own per-leg detail; added only for trains so a
-        // flight's __leg object stays byte-identical to before.
-        ...(r.type === 'train' ? { train_number: leg.train_number ?? null, platform: leg.platform ?? null, seat: leg.seat ?? null } : {}),
+        // Each leg's own seat, a flight's too: it is saved per leg, and reading the
+        // booking's flat seat showed the first leg's on every leg.
+        seat: leg.seat ?? null,
+        ...(r.type === 'train' ? { train_number: leg.train_number ?? null, platform: leg.platform ?? null } : {}),
       },
     })
   })

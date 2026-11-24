@@ -3,7 +3,9 @@ import { captureGuide, captureHero, beat, typeInto, settle, dragLoop, VIEWPORT, 
 import { seededTrip, gpxFixture } from './fixtures'
 import { openTrip, modal, dialog, confirmDialog } from './trip-shared'
 import { disconnectDawarich } from './external'
-import { ensureDawarichStays, undoDawarichStays, setTours } from './fixtures-trip-places'
+import {
+  ensureDawarichStays, undoDawarichStays, setTours, pinsKmlFixture, KML_PINS, ensureGuideTags, removeGuideTags, NEW_TAG,
+} from './fixtures-trip-places'
 import { tripPlacesContext, tripPlacesGuides } from '../../src/help/contexts/tripPlaces'
 import type { HelpGuide } from '../../src/help/types'
 
@@ -11,10 +13,10 @@ import type { HelpGuide } from '../../src/help/types'
  * Actions for the places column of a trip, keyed by the ids in
  * `src/help/contexts/tripPlaces.ts`. They run on the seeded "Autumn in Japan"
  * with the Tours add-on on, as on every install: the column has the Places and
- * Tours switch, no Import file and no Tracks filter. The file import is
- * pictured with Tours off, and the Dawarich stays with a connection, each for
- * its own guide only; what a guide creates or switches it takes back again in
- * `cleanup`, so the next one starts the same.
+ * Tours switch and no Tracks filter, and Import file sends a file with a line
+ * to the Tours import first. The Dawarich stays are pictured with a connection
+ * for their own guide only; what a guide creates or switches it takes back
+ * again in `cleanup`, so the next one starts the same.
  */
 
 const guide = (id: string): HelpGuide => {
@@ -45,7 +47,7 @@ const head = (page: Page) =>
   page.getByRole('button', { name: 'Import Places' }).locator('xpath=ancestor::div[contains(@class,"flex-col")][1]')
 /** The list import's entry: List Import, Google List while Google is the only list provider. */
 const LIST_IMPORT = /^(Google List|List Import)$/
-/** The import button's menu: the list import, and Import file where Tours is off. */
+/** The import button's menu: Import file and the list import. */
 const importMenu = (page: Page) =>
   page.locator('.trek-popover-enter').filter({ has: page.getByRole('button', { name: LIST_IMPORT }) }).last()
 /** The Show dropdown (All, Unplanned, Planned; Tracks only with Tours off) and the list it opens. */
@@ -72,8 +74,30 @@ const importFileDialog = (page: Page) =>
   page.getByRole('dialog').filter({ has: page.locator('input[type="file"][accept*=".gpx"]') })
 /** ListImportModal, recognised by the link box. */
 const listImportDialog = (page: Page) => page.getByRole('dialog').filter({ has: page.getByPlaceholder(/goo\.gl|naver/) })
-/** The drop box of the file dialog: the dashed button that opens the file picker. */
-const dropBox = (page: Page) => importFileDialog(page).locator('button.border-dashed').first()
+/** The Tours import preview a file with a line opens, recognised by its points switch. */
+const tourPreview = (page: Page) => page.getByRole('dialog').filter({ has: page.getByTestId('gpx-preview-points') })
+/**
+ * Import file with Tours on: the Tours import's own file picker, a detached
+ * input, so the file goes in through the chooser it opens.
+ */
+async function pickImportFile(page: Page, file: string): Promise<void> {
+  const [chooser] = await Promise.all([
+    page.waitForEvent('filechooser'),
+    importMenu(page).getByRole('button', { name: 'Import file' }).click(),
+  ])
+  await chooser.setFiles(file)
+}
+/** The tag guide's place, and the places that carry Must see before it starts. */
+const TAGGED = 'Shibuya Crossing'
+const ALREADY_TAGGED = ['Senso-ji Temple', 'Kinkaku-ji']
+/** The group of tag pills in the place form. */
+const tagGroup = (page: Page) => modal(page).getByRole('group', { name: 'Tags', exact: true })
+/** The Tags card of the place form: the panel around the section with the pills. */
+const tagsCard = (page: Page) => tagGroup(page).locator('xpath=ancestor::section[1]/..')
+/** A tag's pill: its name button, which ticks it for the place. */
+const tagPill = (page: Page, name: string) => tagGroup(page).getByRole('button', { name, exact: true })
+const newTagField = (page: Page) => modal(page).getByRole('textbox', { name: 'New tag' })
+const palette = (page: Page) => modal(page).getByRole('group', { name: 'Colour of Rainy day' })
 /** The column itself: the header block around the search box. */
 const column = (page: Page) => searchBox(page).locator('xpath=ancestor::div[contains(@class,"scroll") or @data-places-sidebar][1]')
 
@@ -496,11 +520,7 @@ const SCRIPTS: Record<string, GuideScript> = {
   },
   'import-places-file': {
     guide: guide('import-places-file'),
-    // Import file is only in the menu of an install with the Tours add-on off.
-    start: async p => {
-      await setTours(p.request, false)
-      await openTrip(p)
-    },
+    start: p => openTrip(p),
     steps: [
       {
         prepare: async p => {
@@ -509,35 +529,125 @@ const SCRIPTS: Record<string, GuideScript> = {
           await beat(p, 300)
         },
         target: p => importMenu(p).getByRole('button', { name: 'Import file' }),
+        // A GPX with a track and two waypoints: the Tours import takes it first.
         act: async p => {
-          await importMenu(p).getByRole('button', { name: 'Import file' }).click()
-          await expect(importFileDialog(p)).toBeVisible()
+          await pickImportFile(p, gpxFixture('arashiyama-loop'))
+          await expect(tourPreview(p)).toBeVisible({ timeout: 30_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: p => p.getByTestId('gpx-preview-points'),
+        // Closing the preview stores nothing; the pins of the next step are what gets imported.
+        act: async p => {
+          await tourPreview(p).getByRole('button', { name: 'Cancel', exact: true }).click()
+          await expect(tourPreview(p)).toHaveCount(0)
+          await settle(p)
+        },
+      },
+      {
+        // A KML of pins only has no line for the Tours import, so Import file opens with it.
+        prepare: async p => {
+          await p.getByRole('button', { name: 'Import Places' }).click()
+          await expect(importMenu(p)).toBeVisible()
+          await pickImportFile(p, pinsKmlFixture())
+          await expect(importFileDialog(p).getByText('Points (Placemarks)')).toBeVisible({ timeout: 30_000 })
+          await settle(p)
+        },
+        target: importFileDialog,
+      },
+      {
+        target: p => importFileDialog(p).getByRole('button', { name: 'Import', exact: true }),
+        act: async p => {
+          await importFileDialog(p).getByRole('button', { name: 'Import', exact: true }).click()
+          // A KML answer keeps the dialog open with its summary; close it to show the new rows.
+          await expect(row(p, KML_PINS[0][0]).or(importFileDialog(p).getByText(/^Placemarks: /)).first())
+            .toBeVisible({ timeout: 60_000 })
+          if (await importFileDialog(p).isVisible().catch(() => false)) {
+            await importFileDialog(p).getByRole('button', { name: 'Cancel', exact: true }).click()
+            await expect(importFileDialog(p)).toHaveCount(0)
+          }
+          await expect(row(p, KML_PINS[0][0])).toBeVisible({ timeout: 20_000 })
+          await settle(p)
+        },
+      },
+    ],
+    cleanup: p => deleteByName(p, ...KML_PINS.map(([name]) => name)),
+  },
+  'place-tags': {
+    guide: guide('place-tags'),
+    start: async p => {
+      await ensureGuideTags(p.request, seededTrip().tripId, ALREADY_TAGGED)
+      await openTrip(p)
+    },
+    steps: [
+      {
+        prepare: async p => {
+          await row(p, TAGGED).click({ button: 'right' })
+          await menu(p).getByRole('button', { name: 'Edit' }).click()
+          await expect(modal(p).getByPlaceholder('e.g. Eiffel Tower')).toHaveValue(TAGGED)
+          await tagPill(p, 'Must see').click()
+          await expect(tagPill(p, 'Must see')).toHaveAttribute('aria-pressed', 'true')
+          await settle(p)
+        },
+        target: tagsCard,
+      },
+      {
+        prepare: async p => {
+          await typeInto(p, newTagField(p), NEW_TAG)
+          await settle(p)
+        },
+        target: p => newTagField(p).locator('xpath=..'),
+        act: async p => {
+          await newTagField(p).press('Enter')
+          await expect(tagPill(p, NEW_TAG)).toHaveAttribute('aria-pressed', 'true', { timeout: 15_000 })
           await settle(p)
         },
       },
       {
         prepare: async p => {
-          await importFileDialog(p).locator('input[type="file"]').setInputFiles(gpxFixture('arashiyama-loop'))
-          await expect(importFileDialog(p).getByText('Tracks (with path geometry)')).toBeVisible({ timeout: 15_000 })
+          await modal(p).getByRole('button', { name: 'Colour of Rainy day' }).click()
+          await expect(palette(p)).toBeVisible()
+          await beat(p, 300)
+        },
+        // The palette; the pill it colours sits right above it in the frame.
+        target: palette,
+        hover: p => palette(p).getByRole('button', { name: '#06b6d4' }).hover(),
+        act: async p => {
+          await palette(p).getByRole('button', { name: '#06b6d4' }).click()
+          await expect(palette(p)).toHaveCount(0)
           await settle(p)
         },
-        target: importFileDialog,
       },
-      only(dropBox),
       {
-        target: p => importFileDialog(p).getByRole('button', { name: 'Import', exact: true }),
+        target: p => modal(p).getByRole('button', { name: 'Update', exact: true }),
         act: async p => {
-          await importFileDialog(p).getByRole('button', { name: 'Import', exact: true }).click()
-          await expect(importFileDialog(p)).toHaveCount(0, { timeout: 30_000 })
-          await expect(row(p, 'Arashiyama loop')).toBeVisible({ timeout: 20_000 })
+          await modal(p).getByRole('button', { name: 'Update', exact: true }).click()
+          await expect(modal(p)).toHaveCount(0, { timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        prepare: async p => {
+          await categoryTrigger(p).click()
+          await expect(categoryList(p)).toBeVisible()
+          await categoryList(p).getByRole('button', { name: 'Must see', exact: true }).click()
+          await expect(categoryList(p).getByRole('button', { name: 'Clear filter' })).toBeVisible()
+          // The tags are at the foot of the list, under the categories.
+          await categoryList(p).evaluate(el => { el.scrollTop = el.scrollHeight })
+          await beat(p, 300)
+        },
+        target: categoryList,
+        // The list closes on a second click of its trigger; the filter stays.
+        act: async p => {
+          await categoryTrigger(p).click()
+          await expect(categoryList(p)).toHaveCount(0)
+          await expect(row(p, TAGGED)).toBeVisible()
           await settle(p)
         },
       },
     ],
-    cleanup: async p => {
-      await deleteByName(p, 'Arashiyama loop', 'Togetsukyo Bridge', 'Okochi Sanso Villa')
-      await setTours(p.request, true)
-    },
+    cleanup: p => removeGuideTags(p.request, seededTrip().tripId),
   },
   'import-places-list': {
     guide: guide('import-places-list'),
@@ -549,7 +659,6 @@ const SCRIPTS: Record<string, GuideScript> = {
           await expect(importMenu(p)).toBeVisible()
           await beat(p, 300)
         },
-        // With Tours on, the list import is the menu's only entry.
         target: p => importMenu(p).getByRole('button', { name: LIST_IMPORT }),
         act: async p => {
           await importMenu(p).getByRole('button', { name: LIST_IMPORT }).click()

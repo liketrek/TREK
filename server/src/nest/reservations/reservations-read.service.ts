@@ -59,9 +59,10 @@ export class ReservationsReadService {
     @InjectRepository(ReservationDayPositions) private readonly dayPositionsRepo: ReservationDayPositionsRepository,
   ) {}
 
-  async getReservationWithJoins(id: string | number): Promise<ReservationRow | undefined> {
+  /** The booking with its endpoints, travellers and day slots, or undefined when it is not one of this trip's. */
+  async getReservationWithJoins(id: string | number, tripId: string | number): Promise<ReservationRow | undefined> {
     // RR1
-    const row = await this.reservationsRepo.findWithJoins(id);
+    const row = await this.reservationsRepo.findWithJoins(id, tripId);
     if (!row) return undefined;
     const result: ReservationRow = { ...row };
     result.endpoints = await this.loadEndpoints(row.id);

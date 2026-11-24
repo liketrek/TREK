@@ -3,7 +3,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { asPayload, num } from '../../nest-rpc/rpc-params';
+import { asPayload, rowIdParam } from '../../nest-rpc/rpc-params';
 import { AtlasService, BucketItemExistsError } from './atlas.service';
 
 /**
@@ -100,7 +100,7 @@ export class AtlasRpc {
   @PluginMethod('atlas.deleteBucketItem', { permission: 'db:write:atlas' })
   async deleteBucketItem(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireAtlasUser(ctx, 'writes');
-    const itemId = num(params.itemId, 'itemId');
+    const itemId = rowIdParam(params.itemId, 'itemId');
     await this.requireAtlasAddon();
     if (!(await this.atlas.deleteBucketItem(userId, itemId))) {
       throw new ForbiddenResource(`no bucket item ${itemId} for this user`);

@@ -17,6 +17,18 @@ const en: NotificationLocale = {
       title: `Ny bokning: ${p.booking}`,
       body: `${p.actor} la till en ny ${p.type} "${p.booking}" till "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} har lyft`,
+      body: `${p.flight} från ${p.from} till ${p.to} är i luften.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} är försenat`,
+      body: `${p.flight} från ${p.from} till ${p.to} ligger cirka ${p.delay} minuter efter tidtabellen.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} har landat`,
+      body: `${p.flight} från ${p.from} har landat i ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Resepåminnelse: ${p.trip}`,
       body: `Din resa "${p.trip}" kommer snart!`,
@@ -83,6 +95,21 @@ const en: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `”${p.tour}” i ”${p.trip}” kan inte längre kontrolleras i wanderer. Turen i din resa förblir som den är.`
             : `”${p.tour}” i ”${p.trip}” kan ha ändrats i wanderer. Öppna turen och kontrollera dess källa. Inget i resan ändras av sig självt.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Tillagd från ett mejl: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} lade till "${p.booking}" i "${p.trip}" från ett vidarebefordrat mejl.`
+          : `"${p.booking}" från ditt vidarebefordrade mejl lades till i "${p.trip}". Du kan ångra det i TREK i 7 dagar.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Vidarebefordrade bokningar att granska',
+      body: `Vidarebefordrade bokningar som väntar på dig i TREK: ${p.count}. Vid varje står varför den inte lades till av sig själv.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Mejlimport pausad',
+      body: 'TREK tar inte emot vidarebefordrade bokningsmejl just nu, så vänta med att vidarebefordra dem. Dina adresser finns kvar och fungerar igen när importen är tillbaka, och bokningar som redan lagts till finns kvar i dina resor.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

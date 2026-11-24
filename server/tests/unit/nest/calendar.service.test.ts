@@ -30,10 +30,11 @@ import { ReservationsService } from '../../../src/nest/reservations/reservations
 import { ReservationsReadService } from '../../../src/nest/reservations/reservations-read.service';
 import { BudgetService } from '../../../src/nest/budget/budget.service';
 import { ExchangeRatesService } from '../../../src/nest/budget/exchange-rates.service';
-import { CalendarService, foldICS } from '../../../src/nest/calendar/calendar.service';
+import { CalendarService, calendarOptionsFromQuery, foldICS } from '../../../src/nest/calendar/calendar.service';
 import { CalendarModule } from '../../../src/nest/calendar/calendar.module';
 import { expectRegisteredProvider } from '../../helpers/module-providers';
 import { notificationsStub } from '../../helpers/notifications';
+import { createTestAddonsService } from '../../helpers/test-addons';
 import { accommodationsOver } from '../../helpers/accommodations-service';
 import { createTestUnitOfWork, createTestAppSettingsRepo, createTestReservationsRepo, createTestReservationEndpointsRepo, createTestReservationTravelersRepo, createTestReservationDayPositionsRepo, createTestDayAccommodationsRepo, createTestDaysRepo, createTestDayNotesRepo, createTestPlacesRepo, createTestDayAssignmentsRepo, createTestTripMembersRepo, createTestUsersRepo, createTestTripsRepo } from '../../helpers/test-uow';
 import { createTestBudgetItemsRepo } from '../../helpers/files-repos';
@@ -58,7 +59,7 @@ let orm: TestOrm;
 beforeAll(async () => {
   budgetSvc = new BudgetService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), new ExchangeRatesService(), realtime, await createTestUnitOfWork(testDb), ...(await budgetRepoArgs(testDb)));
   svc = new CalendarService(
-  new ReservationsService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), budgetSvc, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), await accommodationsOver(testDb, realtime), await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb)),
+  new ReservationsService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), budgetSvc, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), await accommodationsOver(testDb, realtime), await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestAddonsService(testDb)),
   await createTestTripsRepo(testDb), await createTestDaysRepo(testDb), await createTestDayNotesRepo(testDb), await createTestReservationsRepo(testDb),
 );
 });
@@ -1679,6 +1680,58 @@ describe('folded quirk branches', () => {
     // Date-only endpoint → all-day DTSTART for the transport.
     expect(ics).toContain('SUMMARY:Ferry');
     expect(ics).toContain('DTSTART;VALUE=DATE:20250603');
+  });
+});
+
+describe('per-day summaries (#2602)', () => {
+  async function tripWithEveryKindOfDay() {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Lisbon', start_date: '2025-06-02', end_date: '2025-06-03' });
+    // A dated trip comes with its days; the first one is the 2nd of June.
+    const [day] = await findRows(orm, Days, { trip: trip.id }, { id: 'asc' });
+    const untimed = createPlace(testDb, trip.id, { name: 'Untimed Spot' });
+    createDayAssignment(testDb, day.id, untimed.id);
+    createDayNote(testDb, day.id, trip.id, { text: 'Buy tram tickets' });
+    const timed = createPlace(testDb, trip.id, { name: 'Castle Visit' });
+    const assignment = createDayAssignment(testDb, day.id, timed.id);
+    await updateRows(orm, DayAssignments, { id: assignment.id }, { assignment_time: '10:00' });
+    return trip;
+  }
+
+  it('CAL-2602-001: are in the calendar by default', async () => {
+    const trip = await tripWithEveryKindOfDay();
+
+    const { ics } = await svc.exportICS(trip.id);
+
+    expect(ics).toContain('SUMMARY:Day 1');
+  });
+
+  it('CAL-2602-002: dayEvents false leaves them out and keeps the trip and its timed stops', async () => {
+    const trip = await tripWithEveryKindOfDay();
+
+    const { ics } = await svc.exportICS(trip.id, { dayEvents: false });
+
+    expect(ics).not.toContain('SUMMARY:Day 1');
+    expect(ics).not.toContain('Untimed Spot');
+    expect(ics).not.toContain('Buy tram tickets');
+    expect(ics).toContain('SUMMARY:Lisbon');
+    expect(ics).toContain('SUMMARY:Castle Visit');
+  });
+
+  it('CAL-2602-003: buildTripCalendar drops the same events for the feeds', async () => {
+    const trip = await tripWithEveryKindOfDay();
+
+    const all = await svc.buildTripCalendar(trip.id);
+    const lean = await svc.buildTripCalendar(trip.id, { dayEvents: false });
+
+    expect(lean.events).toHaveLength(all.events.length - 1);
+    expect(lean.events.some((event) => event.includes('UID:trek-day-'))).toBe(false);
+  });
+
+  it('CAL-2602-004: days=0 in the query turns them off, days=1 or nothing keeps them', () => {
+    expect(calendarOptionsFromQuery({ days: '0' })).toEqual({ dayEvents: false });
+    expect(calendarOptionsFromQuery({ days: '1' })).toEqual({ dayEvents: true });
+    expect(calendarOptionsFromQuery({})).toEqual({ dayEvents: true });
   });
 });
 

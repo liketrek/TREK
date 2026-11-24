@@ -10,6 +10,7 @@
  * which for a notification channel meant being dispatched to everyone with no credentials.
  */
 import { db as testDb } from '../../../src/db/database';
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
 import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
@@ -204,7 +205,7 @@ describe('a plugin channel label is bounded by the host', () => {
       t.repo(Settings),
       t.repo(NotificationChannelPreferences),
       // Plan 4 Task 4: `uow` is no longer `@Optional()`.
-      new UnitOfWork(t.em),
+      new UnitOfWork(t.em, new SqliteEngine()),
     );
     // Stand the plugin up as a granted, active notificationChannel provider.
     (rt as unknown as { supervisor: { running: Map<string, unknown> } }).supervisor.running.set('loud', {

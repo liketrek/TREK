@@ -10,6 +10,7 @@ import type { JourneyTrack } from '@trek/shared'
 import type { MapPhoto } from './journeyPhotoLayer'
 import type { JourneyMapLayerVisibility } from './journeyMapLayers'
 import type { JourneyMapMark } from './journeyMapMarks'
+import type { BaseLayer } from '../Map/MapLayerSwitcher'
 
 // Unified handle — both providers expose the same three methods.
 export type JourneyMapAutoHandle = JourneyMapHandle
@@ -57,6 +58,8 @@ interface Props {
   marks?: JourneyMapMark[]
   onMarksPick?: (marks: JourneyMapMark[]) => void
   plannedEntryIds?: ReadonlySet<string>
+  /** The reader's base layer (#2594), both renderers. */
+  baseLayer?: BaseLayer
 }
 
 function JourneyMapAuto({ ref, ...props }: Props) {

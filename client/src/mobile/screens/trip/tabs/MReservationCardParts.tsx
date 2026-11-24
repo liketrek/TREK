@@ -1,4 +1,4 @@
-import { FileText, type LucideIcon, Pencil, Trash2 } from 'lucide-react';
+import { Download, FileText, type LucideIcon, Pencil, Trash2 } from 'lucide-react';
 
 import type { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard';
 import type { useTranslation } from '../../../../i18n';
@@ -163,8 +163,20 @@ export function CardNotes({ notes }: { notes: string | null | undefined }) {
   );
 }
 
-/** Attached files, listed inside the card body button. */
-export function CardFiles({ files, card, t }: { files: ReturnType<typeof filesFor>; card: CardState; t: T }) {
+/**
+ * Attached files, under the card body button rather than inside it, so each row
+ * can hold two real buttons: the name opens the file, the icon at the end saves
+ * it (a PDF ticket that only opens in a viewer cannot be kept otherwise).
+ */
+export function CardFiles({
+  files,
+  card,
+  t,
+}: {
+  files: ReturnType<typeof filesFor>;
+  card: Pick<CardState, 'openFile' | 'downloadFile'>;
+  t: T;
+}) {
   if (files.length === 0) return null;
   return (
     <div className="mt-2">
@@ -172,21 +184,30 @@ export function CardFiles({ files, card, t }: { files: ReturnType<typeof filesFo
         {t('files.title')}
       </div>
       <div className="flex flex-col gap-1">
-        {/* A span with a button role, not a <button>: the whole card body
-            is already one, and buttons cannot nest. */}
         {files.map((f) => (
-          <span
+          <div
             key={f.id}
-            role="button"
-            tabIndex={0}
-            {...card.fileChip(f)}
-            className="flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]"
+            className="flex items-stretch overflow-hidden rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card"
           >
-            <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />
-            <span dir="auto" className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">
-              {f.original_name}
-            </span>
-          </span>
+            <button
+              type="button"
+              onClick={() => card.openFile(f)}
+              className="flex min-w-0 flex-1 items-center gap-[6px] py-[7px] pe-1 ps-[10px] text-start"
+            >
+              <FileText size={12} strokeWidth={2} className="flex-none text-m-muted" />
+              <span dir="auto" className="truncate font-geist text-[0.65625rem] font-semibold text-m-muted">
+                {f.original_name}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => card.downloadFile(f)}
+              aria-label={`${t('files.download')}: ${f.original_name}`}
+              className="grid w-9 flex-none place-items-center text-m-muted"
+            >
+              <Download size={13} strokeWidth={2} />
+            </button>
+          </div>
         ))}
       </div>
     </div>

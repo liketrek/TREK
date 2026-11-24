@@ -1,3 +1,5 @@
+import { tripTagCreateRequestSchema, tripTagUpdateRequestSchema } from '@trek/shared';
+
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
 
@@ -23,3 +25,10 @@ const tagBody = z.looseObject({ name: z.unknown().optional(), color: z.unknown()
 
 export class TagCreateDto extends createZodDto(tagBody) {}
 export class TagUpdateDto extends createZodDto(tagBody) {}
+
+/**
+ * The trip tag routes are new, so they take the shared contracts as written: the
+ * pipe trims the name, refuses an empty one and a colour that is not hex.
+ */
+export class TripTagCreateDto extends createZodDto(tripTagCreateRequestSchema) {}
+export class TripTagUpdateDto extends createZodDto(tripTagUpdateRequestSchema) {}

@@ -1,14 +1,15 @@
 import { ADDON_IDS } from '../../addons';
 import type { User } from '../../types';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
+import { ParseRowIdPipe } from '../common/row-id.pipe';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { TourActivityAssignDto } from './dto/tour-activity.dto';
 import { TourActivitiesService } from './tour-activities.service';
-import { Body, Controller, Delete, Headers, Param, ParseIntPipe, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Headers, Param, Put, UseGuards } from '@nestjs/common';
 import { tourDetailResponseSchema } from '@trek/shared';
 
 /**
@@ -20,7 +21,7 @@ import { tourDetailResponseSchema } from '@trek/shared';
  * Reading them is the tour's detail.
  */
 @Controller('api/trips/:tripId/tours/:placeId/activities')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class TourActivitiesController {
   constructor(private readonly activities: TourActivitiesService) {}
@@ -44,7 +45,7 @@ export class TourActivitiesController {
   async unassign(
     @Param('tripId') tripId: string,
     @Param('placeId') placeId: string,
-    @Param('activityId', ParseIntPipe) activityId: number,
+    @Param('activityId', ParseRowIdPipe) activityId: number,
     @Headers('x-socket-id') socketId?: string,
   ) {
     return await this.activities.unassign(tripId, placeId, activityId, socketId);

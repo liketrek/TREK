@@ -5,7 +5,6 @@
  * Rate limiting scenarios (AUTH-004, AUTH-018) are at the end of this file.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { AuditLog } from '../../src/db/entities/AuditLog.entity';
 import { BucketList } from '../../src/db/entities/BucketList.entity';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
@@ -42,30 +41,21 @@ import { VisitedCountries } from '../../src/db/entities/VisitedCountries.entity'
 import { VisitedRegions } from '../../src/db/entities/VisitedRegions.entity';
 import { dbNow } from '../../src/db/types';
 import { authCookie, authHeader } from '../helpers/auth';
-import {
-  createUser,
-  createAdmin,
-  createUserWithMfa,
-  createInviteToken,
-  createTrip,
-  createBudgetItem,
-  createJourney,
-  createJourneyEntry,
-  addJourneyContributor,
-  addTripPhoto,
-  createCategory,
-  createTag,
-  createTodoItem,
-  createMcpToken,
-  createBucketListItem,
-  createVisitedCountry,
-  createCollabNote,
-  addTripMember,
-} from '../helpers/factories';
+import { makeBucketListItem, markCountryVisited } from '../helpers/factories/atlas';
+import { makeBudgetItem } from '../helpers/factories/budget';
+import { makeCollabNote } from '../helpers/factories/collab';
+import { addJourneyContributor, makeJourney, makeJourneyEntry } from '../helpers/factories/journeys';
+import { addTripPhoto } from '../helpers/factories/photos';
+import { makeCategory, makeTag } from '../helpers/factories/places';
 import { findRow, insertRow, insertRowIgnoringConflict, updateRows } from '../helpers/factories/rows';
 import { setAppSetting, setUserSetting } from '../helpers/factories/settings';
+import { makeTodoItem } from '../helpers/factories/todos';
+import { makeInviteToken, makeMcpToken } from '../helpers/factories/tokens';
 import { makeShareToken } from '../helpers/factories/trips';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { addTripMember, makeTrip } from '../helpers/factories/trips';
+import { makeAdmin, makeUser, makeUserWithMfa } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import type { EntityClass, FilterQuery } from '@mikro-orm/core';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
@@ -73,15 +63,11 @@ import type { INestApplication } from '@nestjs/common';
 import type { Application } from 'express';
 import { authenticator } from 'otplib';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Step 1: Bare in-memory DB — schema applied in beforeAll after mocks register
 // ─────────────────────────────────────────────────────────────────────────────
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 let nestApp: INestApplication;
 let app: Application;
@@ -99,14 +85,13 @@ function rowOf<T extends object>(entity: EntityClass<T>, where: FilterQuery<T>) 
 }
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   // Reset rate limiter state between tests so they don't interfere
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -115,7 +100,7 @@ afterAll(async () => {
 
 describe('Login', () => {
   it('AUTH-001 — successful login returns 200, user object, and trek_session cookie', async () => {
-    const { user, password } = createUser(testDb);
+    const { user, password } = await makeUser(orm);
     const res = await request(app).post('/api/auth/login').send({ email: user.email, password });
     expect(res.status).toBe(200);
     expect(res.body.user).toBeDefined();
@@ -128,7 +113,7 @@ describe('Login', () => {
   });
 
   it('AUTH-002 — wrong password returns 401 with generic message', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).post('/api/auth/login').send({ email: user.email, password: 'WrongPass1!' });
     expect(res.status).toBe(401);
     expect(res.body.error).toContain('Invalid email or password');
@@ -197,7 +182,7 @@ describe('Registration', () => {
   });
 
   it('AUTH-008 — registration with duplicate email returns 409', async () => {
-    createUser(testDb, { email: 'taken@example.com' });
+    await makeUser(orm, { email: 'taken@example.com' });
     const res = await request(app).post('/api/auth/register').send({
       username: 'newuser',
       email: 'taken@example.com',
@@ -207,7 +192,7 @@ describe('Registration', () => {
   });
 
   it('AUTH-009 — registration disabled by admin returns 403', async () => {
-    createUser(testDb);
+    await makeUser(orm);
     await setAppSetting(orm, 'allow_registration', 'false');
     const res = await request(app).post('/api/auth/register').send({
       username: 'blocked',
@@ -219,9 +204,9 @@ describe('Registration', () => {
   });
 
   it('AUTH-010 — registration with valid invite token succeeds even when registration disabled', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     await setAppSetting(orm, 'allow_registration', 'false');
-    const invite = createInviteToken(testDb, { max_uses: 1, created_by: admin.id });
+    const invite = await makeInviteToken(orm, admin.id, { max_uses: 1 });
 
     const res = await request(app).post('/api/auth/register').send({
       username: 'invited',
@@ -236,9 +221,9 @@ describe('Registration', () => {
   });
 
   it('AUTH-011 — GET /api/auth/invite/:token with expired token returns 410', async () => {
-    const { user: admin } = createAdmin(testDb);
+    const { user: admin } = await makeAdmin(orm);
     const yesterday = new Date(Date.now() - 86_400_000).toISOString();
-    const invite = createInviteToken(testDb, { expires_at: yesterday, created_by: admin.id });
+    const invite = await makeInviteToken(orm, admin.id, { expires_at: yesterday });
 
     const res = await request(app).get(`/api/auth/invite/${invite.token}`);
     expect(res.status).toBe(410);
@@ -246,8 +231,8 @@ describe('Registration', () => {
   });
 
   it('AUTH-012 — GET /api/auth/invite/:token with exhausted token returns 410', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const invite = createInviteToken(testDb, { max_uses: 1, created_by: admin.id });
+    const { user: admin } = await makeAdmin(orm);
+    const invite = await makeInviteToken(orm, admin.id, { max_uses: 1 });
     // Mark as exhausted
     await updateRows(orm, InviteTokens, { id: invite.id }, { used_count: 1 });
 
@@ -257,8 +242,8 @@ describe('Registration', () => {
   });
 
   it('AUTH-013 — GET /api/auth/invite/:token for a never-expiring invite keeps expires_at present and null on the wire (rule 16, task-5-review F1/T1)', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const invite = createInviteToken(testDb, { max_uses: 3, created_by: admin.id });
+    const { user: admin } = await makeAdmin(orm);
+    const invite = await makeInviteToken(orm, admin.id, { max_uses: 3 });
     await updateRows(orm, InviteTokens, { id: invite.id }, { used_count: 1 });
 
     const res = await request(app).get(`/api/auth/invite/${invite.token}`);
@@ -297,7 +282,7 @@ describe('Registration — whitespace normalization', () => {
   });
 
   it('AUTH-REG-TRIM-3 — whitespace-padded username that trims to existing username returns 409', async () => {
-    createUser(testDb, { username: 'alice', email: 'alice@example.com' });
+    await makeUser(orm, { username: 'alice', email: 'alice@example.com' });
     const res = await request(app).post('/api/auth/register').send({
       username: '  alice  ',
       email: 'alice2@example.com',
@@ -307,7 +292,7 @@ describe('Registration — whitespace normalization', () => {
   });
 
   it('AUTH-REG-TRIM-4 — whitespace-padded email that trims to existing email returns 409', async () => {
-    createUser(testDb, { username: 'bob', email: 'bob@example.com' });
+    await makeUser(orm, { username: 'bob', email: 'bob@example.com' });
     const res = await request(app).post('/api/auth/register').send({
       username: 'bob2',
       email: '  bob@example.com  ',
@@ -357,7 +342,7 @@ describe('Registration / login — non-ASCII case folding (H1)', () => {
   });
 
   it('AUTH-NONASCII-3 — an ASCII-only account is unaffected (control)', async () => {
-    const { user, password } = createUser(testDb, { email: 'ROOT@example.com' });
+    const { user, password } = await makeUser(orm, { email: 'ROOT@example.com' });
     const login = await request(app).post('/api/auth/login').send({ email: user.email, password });
     expect(login.status).toBe(200);
   });
@@ -375,7 +360,7 @@ describe('Session', () => {
   });
 
   it('AUTH-014 — GET /api/auth/me with valid cookie returns safe user object', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).get('/api/auth/me').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.user.id).toBe(user.id);
@@ -385,7 +370,7 @@ describe('Session', () => {
   });
 
   it('AUTH-021 — user with must_change_password=1 sees the flag in their profile', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await updateRows(orm, Users, { id: user.id }, { must_change_password: 1 });
 
     const res = await request(app).get('/api/auth/me').set('Cookie', authCookie(user.id));
@@ -410,7 +395,7 @@ describe('App config', () => {
   });
 
   it('AUTH-028 — allow_registration is false after admin disables it', async () => {
-    createUser(testDb);
+    await makeUser(orm);
     await setAppSetting(orm, 'allow_registration', 'false');
     const res = await request(app).get('/api/auth/app-config');
     expect(res.status).toBe(200);
@@ -448,7 +433,7 @@ describe('Demo login', () => {
 
 describe('MFA', () => {
   it('AUTH-015 — POST /api/auth/mfa/setup returns secret and QR data URL', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).post('/api/auth/mfa/setup').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.secret).toBeDefined();
@@ -457,7 +442,7 @@ describe('MFA', () => {
   });
 
   it('AUTH-015 — POST /api/auth/mfa/enable with valid TOTP code enables MFA', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const setupRes = await request(app).post('/api/auth/mfa/setup').set('Cookie', authCookie(user.id));
     expect(setupRes.status).toBe(200);
@@ -472,7 +457,7 @@ describe('MFA', () => {
   });
 
   it('AUTH-016 — login with MFA-enabled account returns mfa_required + mfa_token', async () => {
-    const { user, password } = createUserWithMfa(testDb);
+    const { user, password } = await makeUserWithMfa(orm);
     const loginRes = await request(app).post('/api/auth/login').send({ email: user.email, password });
     expect(loginRes.status).toBe(200);
     expect(loginRes.body.mfa_required).toBe(true);
@@ -480,7 +465,7 @@ describe('MFA', () => {
   });
 
   it('AUTH-016 — POST /api/auth/mfa/verify-login with valid code completes login', async () => {
-    const { user, password, totpSecret } = createUserWithMfa(testDb);
+    const { user, password, totpSecret } = await makeUserWithMfa(orm);
 
     const loginRes = await request(app).post('/api/auth/login').send({ email: user.email, password });
     const { mfa_token } = loginRes.body;
@@ -497,7 +482,7 @@ describe('MFA', () => {
   });
 
   it('AUTH-017 — verify-login with invalid TOTP code returns 401', async () => {
-    const { user, password } = createUserWithMfa(testDb);
+    const { user, password } = await makeUserWithMfa(orm);
     const loginRes = await request(app).post('/api/auth/login').send({ email: user.email, password });
 
     const verifyRes = await request(app)
@@ -508,7 +493,7 @@ describe('MFA', () => {
   });
 
   it('AUTH-019 — disable MFA with valid password and TOTP code', async () => {
-    const { user, password, totpSecret } = createUserWithMfa(testDb);
+    const { user, password, totpSecret } = await makeUserWithMfa(orm);
 
     const disableRes = await request(app)
       .post('/api/auth/mfa/disable')
@@ -520,7 +505,7 @@ describe('MFA', () => {
 
   it('AUTH-019 — disable MFA with password and unused backup code', async () => {
     const { hashBackupCodeBcrypt } = await import('../../src/nest/auth/auth.helpers');
-    const { user, password } = createUserWithMfa(testDb);
+    const { user, password } = await makeUserWithMfa(orm);
     await updateRows(
       orm,
       Users,
@@ -543,7 +528,7 @@ describe('MFA', () => {
 
   it('AUTH-019 — reject invalid recovery code and incorrect password', async () => {
     const { hashBackupCodeBcrypt } = await import('../../src/nest/auth/auth.helpers');
-    const { user, password } = createUserWithMfa(testDb);
+    const { user, password } = await makeUserWithMfa(orm);
     await updateRows(
       orm,
       Users,
@@ -571,7 +556,7 @@ describe('MFA', () => {
 
 describe('Forced MFA policy', () => {
   it('AUTH-020 — non-MFA user is blocked (403 MFA_REQUIRED) when require_mfa is true', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setAppSetting(orm, 'require_mfa', 'true');
 
     // mfaPolicy checks Authorization: Bearer header
@@ -581,7 +566,7 @@ describe('Forced MFA policy', () => {
   });
 
   it('AUTH-020 — /api/auth/me and MFA setup endpoints are exempt from require_mfa', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setAppSetting(orm, 'require_mfa', 'true');
 
     const meRes = await request(app).get('/api/auth/me').set(authHeader(user.id));
@@ -592,7 +577,7 @@ describe('Forced MFA policy', () => {
   });
 
   it('AUTH-020 — MFA-enabled user passes through require_mfa policy', async () => {
-    const { user } = createUserWithMfa(testDb);
+    const { user } = await makeUserWithMfa(orm);
     await setAppSetting(orm, 'require_mfa', 'true');
 
     const res = await request(app).get('/api/trips').set(authHeader(user.id));
@@ -604,8 +589,8 @@ describe('Forced MFA policy', () => {
     // must block the deeper trip-scoped controllers (budget/packing/todo) too —
     // not only /api/trips. A regression that only guarded top-level paths would
     // leave every addon endpoint reachable without MFA.
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await setAppSetting(orm, 'require_mfa', 'true');
 
     for (const path of [
@@ -620,8 +605,8 @@ describe('Forced MFA policy', () => {
   });
 
   it('AUTH-020 — MFA-enabled user reaches nested Nest addon controllers under require_mfa', async () => {
-    const { user } = createUserWithMfa(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUserWithMfa(orm);
+    const trip = await makeTrip(orm, user.id);
     await setAppSetting(orm, 'require_mfa', 'true');
 
     const res = await request(app).get(`/api/trips/${trip.id}/budget`).set(authHeader(user.id));
@@ -635,7 +620,7 @@ describe('Forced MFA policy', () => {
 
 describe('Short-lived tokens', () => {
   it('AUTH-029 — POST /api/auth/ws-token returns a single-use token', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).post('/api/auth/ws-token').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(typeof res.body.token).toBe('string');
@@ -643,7 +628,7 @@ describe('Short-lived tokens', () => {
   });
 
   it('AUTH-030 — POST /api/auth/resource-token returns a single-use token', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .post('/api/auth/resource-token')
       .set('Cookie', authCookie(user.id))
@@ -660,7 +645,7 @@ describe('Short-lived tokens', () => {
 
 describe('Extended auth scenarios', () => {
   it('AUTH-031 — login succeeds with uppercased email (case-insensitive lookup)', async () => {
-    const { user, password } = createUser(testDb, { email: 'alice@example.com' });
+    const { user, password } = await makeUser(orm, { email: 'alice@example.com' });
 
     const res = await request(app).post('/api/auth/login').send({ email: 'ALICE@EXAMPLE.COM', password });
     expect(res.status).toBe(200);
@@ -668,7 +653,7 @@ describe('Extended auth scenarios', () => {
   });
 
   it('AUTH-032 — registration with duplicate username returns 409', async () => {
-    createUser(testDb, { username: 'alice' });
+    await makeUser(orm, { username: 'alice' });
 
     const res = await request(app)
       .post('/api/auth/register')
@@ -678,7 +663,7 @@ describe('Extended auth scenarios', () => {
 
   it('AUTH-033 — MFA backup code login succeeds and invalidates the used code', async () => {
     const { hashBackupCode, generateBackupCodes } = await import('../../src/nest/auth/auth.helpers');
-    const { user, password } = createUserWithMfa(testDb);
+    const { user, password } = await makeUserWithMfa(orm);
 
     // Generate and store backup codes on the MFA-enabled user
     const backupCodes = generateBackupCodes();
@@ -712,29 +697,29 @@ describe('Extended auth scenarios', () => {
 
 describe('Account deletion', () => {
   it('AUTH-040 — DELETE /auth/me succeeds when user has FK references', async () => {
-    const { user: admin } = createAdmin(testDb);
-    const { user: target } = createUser(testDb);
-    const { user: otherUser } = createUser(testDb);
-    const { user: thirdUser } = createUser(testDb);
+    const { user: admin } = await makeAdmin(orm);
+    const { user: target } = await makeUser(orm);
+    const { user: otherUser } = await makeUser(orm);
+    const { user: thirdUser } = await makeUser(orm);
 
     // trip_members.invited_by: target invited thirdUser to otherUser's trip
     // (trip survives deletion; only invited_by should become NULL)
-    const otherTrip = createTrip(testDb, otherUser.id);
+    const otherTrip = await makeTrip(orm, otherUser.id);
     await insertRow(orm, TripMembers, { trip: otherTrip.id, user: thirdUser.id, invitedByRef: target.id });
 
     // share_tokens.created_by: target created a share token for otherUser's trip
     await makeShareToken(orm, otherTrip.id, target.id, { token: 'tok-auth-test' });
 
     // budget_items.paid_by_user_id: target paid for an expense on otherUser's trip
-    const budgetItem = createBudgetItem(testDb, otherTrip.id);
+    const budgetItem = await makeBudgetItem(orm, otherTrip.id);
     await updateRows(orm, BudgetItems, { id: budgetItem.id }, { paidByUser: target.id });
 
     // journey_contributors: target is a contributor on otherUser's journey
-    const otherJourney = createJourney(testDb, otherUser.id);
-    addJourneyContributor(testDb, otherJourney.id, target.id);
+    const otherJourney = await makeJourney(orm, otherUser.id);
+    await addJourneyContributor(orm, otherJourney.id, target.id);
 
     // journey_entries: target authored an entry on otherUser's journey
-    createJourneyEntry(testDb, otherJourney.id, target.id);
+    await makeJourneyEntry(orm, otherJourney.id, target.id);
 
     // journey_share_tokens: target created a share token for otherUser's journey
     await insertRow(orm, JourneyShareTokens, {
@@ -768,8 +753,8 @@ describe('Account deletion', () => {
     await insertRow(orm, UserNoticeDismissals, { user: target.id, notice_id: 'test-notice', dismissed_at: Date.now() });
 
     // owned journey: target owns a journey with an entry (cascade-deletes on journey deletion)
-    const ownedJourney = createJourney(testDb, target.id);
-    createJourneyEntry(testDb, ownedJourney.id, target.id);
+    const ownedJourney = await makeJourney(orm, target.id);
+    await makeJourneyEntry(orm, ownedJourney.id, target.id);
 
     // trip_files.uploaded_by (SET NULL): target uploaded a file to otherUser's trip
     const fileId = await insertRow(orm, TripFiles, {
@@ -787,22 +772,22 @@ describe('Account deletion', () => {
     });
 
     // trip_photos.user_id (CASCADE): target added a photo to otherUser's trip
-    addTripPhoto(testDb, otherTrip.id, target.id, 'asset-tp-auth', 'immich');
+    await addTripPhoto(orm, otherTrip.id, target.id, 'asset-tp-auth', 'immich');
 
     // trips.user_id (CASCADE): target owns a trip
-    const ownedTrip = createTrip(testDb, target.id);
+    const ownedTrip = await makeTrip(orm, target.id);
 
     // trip_members.user_id (CASCADE): target is a member of otherUser's trip
-    addTripMember(testDb, otherTrip.id, target.id);
+    await addTripMember(orm, otherTrip.id, target.id);
 
     // categories.user_id (SET NULL): target created a category
-    const userCategory = createCategory(testDb, { user_id: target.id });
+    const userCategory = await makeCategory(orm, { user: target.id });
 
     // tags.user_id (CASCADE): target created a tag
-    const userTag = createTag(testDb, target.id);
+    const userTag = await makeTag(orm, target.id);
 
     // todo_items.assigned_user_id (SET NULL): target is assigned to a todo on otherUser's trip
-    const todoItem = createTodoItem(testDb, otherTrip.id);
+    const todoItem = await makeTodoItem(orm, otherTrip.id);
     await updateRows(orm, TodoItems, { id: todoItem.id }, { assignedUser: target.id });
 
     // packing_bags.user_id (SET NULL): target owns a packing bag on otherUser's trip
@@ -814,7 +799,7 @@ describe('Account deletion', () => {
     });
 
     // mcp_tokens.user_id (CASCADE): target has an MCP API token
-    createMcpToken(testDb, target.id);
+    await makeMcpToken(orm, target.id);
 
     // oauth_tokens/consents.user_id (CASCADE): target has tokens from otherUser's OAuth client
     await insertRow(orm, OauthClients, {
@@ -842,10 +827,10 @@ describe('Account deletion', () => {
     await insertRow(orm, VacayPlanMembers, { plan: otherVacayPlanId, user: target.id });
 
     // bucket_list.user_id (CASCADE): target has a bucket list item
-    createBucketListItem(testDb, target.id);
+    await makeBucketListItem(orm, target.id);
 
     // visited_countries.user_id (CASCADE): target has visited a country
-    createVisitedCountry(testDb, target.id, 'JP');
+    await markCountryVisited(orm, target.id, 'JP');
 
     // visited_regions.user_id (CASCADE): target has visited a region
     await insertRow(orm, VisitedRegions, {
@@ -859,10 +844,10 @@ describe('Account deletion', () => {
     const packTemplateId = await insertRow(orm, PackingTemplates, { name: 'My Template', createdByRef: target.id });
 
     // invite_tokens.created_by (CASCADE): target created an invite token
-    createInviteToken(testDb, { created_by: target.id });
+    await makeInviteToken(orm, target.id);
 
     // collab_notes.user_id (CASCADE): target authored a collab note on otherUser's trip
-    createCollabNote(testDb, otherTrip.id, target.id);
+    await makeCollabNote(orm, otherTrip.id, target.id);
 
     // settings.user_id (CASCADE): target has a user setting
     await setUserSetting(orm, target.id, 'theme', 'dark');
@@ -1004,14 +989,14 @@ describe('Rate limiting', () => {
 
 describe('MCP token management', () => {
   it('AUTH-034 — GET /auth/mcp-tokens returns empty list initially', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).get('/api/auth/mcp-tokens').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
     expect(res.body.tokens).toEqual([]);
   });
 
   it('AUTH-035 — POST /auth/mcp-tokens creates a token', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app)
       .post('/api/auth/mcp-tokens')
       .set('Cookie', authCookie(user.id))
@@ -1022,13 +1007,13 @@ describe('MCP token management', () => {
   });
 
   it('AUTH-036 — POST /auth/mcp-tokens without name returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).post('/api/auth/mcp-tokens').set('Cookie', authCookie(user.id)).send({});
     expect(res.status).toBe(400);
   });
 
   it('AUTH-037 — DELETE /auth/mcp-tokens/:id deletes the token', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const createRes = await request(app)
       .post('/api/auth/mcp-tokens')
       .set('Cookie', authCookie(user.id))
@@ -1045,7 +1030,7 @@ describe('MCP token management', () => {
   });
 
   it('AUTH-038 — DELETE /auth/mcp-tokens/:id returns 404 for non-existent', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).delete('/api/auth/mcp-tokens/99999').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
   });
@@ -1056,14 +1041,14 @@ describe('MCP token management', () => {
   });
 
   it('AUTH-040 — DELETE /auth/mcp-tokens/abc (non-numeric id) returns the legacy 404, not a 500 (Plan 3b Task 2 review, F1)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).delete('/api/auth/mcp-tokens/abc').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Token not found' });
   });
 
   it('AUTH-041 — DELETE /auth/api-tokens/abc (non-numeric id) returns the legacy 404, not a 500 (Plan 3b Task 2 review, F1)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).delete('/api/auth/api-tokens/abc').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Token not found' });

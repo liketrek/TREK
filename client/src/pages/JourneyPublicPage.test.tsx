@@ -576,8 +576,9 @@ describe('JourneyPublicPage', () => {
   // broken-image glyph on every shared layout (#2341).
   it('FE-PAGE-PUBLICJOURNEY-023: a shared clip without a poster is a black tile, with a poster its poster', async () => {
     const user = userEvent.setup();
-    const bare = { id: 200, entry_id: 20, photo_id: 200, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/a.mp4', thumbnail_path: null, media_type: 'video', caption: null };
-    const withPoster = { id: 201, entry_id: 21, photo_id: 201, provider: 'local', asset_id: null, owner_id: null, file_path: 'journey/b.mp4', thumbnail_path: 'journey/b.jpg', media_type: 'video', caption: null };
+    // The share link carries no storage key: the server says which clip has no poster.
+    const bare = { id: 200, photo_id: 200, media_type: 'video', caption: null, posterless: true };
+    const withPoster = { id: 201, photo_id: 201, media_type: 'video', caption: null, posterless: false };
     const entry = (id: number, photo: typeof bare) => ({
       id, title: `Clip ${id}`, story: null, entry_date: '2026-03-15', entry_time: null,
       location_name: null, location_lat: null, location_lng: null, mood: null, weather: null, pros_cons: null,
@@ -587,8 +588,8 @@ describe('JourneyPublicPage', () => {
       ...mockJourneyData,
       entries: [entry(20, bare), entry(21, withPoster)],
       gallery: [
-        { ...bare, journey_id: 1, shared: 1, sort_order: 0, created_at: 0 },
-        { ...withPoster, journey_id: 1, shared: 1, sort_order: 1, created_at: 0 },
+        { ...bare, lat: null, lng: null, taken_at: null },
+        { ...withPoster, lat: null, lng: null, taken_at: null },
       ],
       stats: { entries: 2, photos: 2, places: 0 },
     })));

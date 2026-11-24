@@ -48,8 +48,8 @@ describe('fast-xml-parser stays in place-import and the WebDAV client', () => {
     'src/nest/tours/tours.service.ts',
     'src/nest/maps/maps.service.ts',
     'src/db/repositories/Places.repository.ts',
-    // The driver's own homes and the plugin sandbox's database, which the
-    // driver wall leaves out, and the RPC kit, which restates the rule.
+    // The driver's own homes, which the driver wall leaves out, the plugin
+    // data directories, which it holds again, and the RPC kit, which restates the rule.
     'src/db/database.ts',
     'src/db/connection.ts',
     'src/db/orm-driver.ts',
@@ -72,8 +72,9 @@ describe('fast-xml-parser stays in place-import and the WebDAV client', () => {
   });
 
   it('keeps the services wall in the driver-exempt files and the driver wall in the RPC kit', async () => {
-    expect(await flags('src/nest/plugins/host/plugin-data.service.ts', SERVICES)).toBe(true);
-    expect(await flags('src/nest/plugins/host/plugin-data.service.ts', DRIVER)).toBe(false);
+    expect(await flags('src/db/connection.ts', SERVICES)).toBe(true);
+    expect(await flags('src/db/connection.ts', DRIVER)).toBe(false);
+    expect(await flags('src/nest/plugins/host/plugin-data.service.ts', DRIVER)).toBe(true);
     expect(await flags('src/nest-rpc/rpc-kit/registry.ts', DRIVER)).toBe(true);
   });
 

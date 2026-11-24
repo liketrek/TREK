@@ -40,7 +40,8 @@ const { db } = vi.hoisted(() => {
   // (is_archived, reminder_days and the two timestamps); the real schema has all four.
   tmp.exec(`CREATE TABLE trips (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, title TEXT, currency TEXT,
     is_archived INTEGER DEFAULT 0, reminder_days INTEGER DEFAULT 3,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP);`);
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    costs_mode TEXT NOT NULL DEFAULT 'split');`);
   // TripAccessGuard now reads TripsRepository.findAccessible directly
   // (Plan 3c Task 0b), a real join against trip_members.
   tmp.exec('CREATE TABLE trip_members (trip_id INTEGER NOT NULL, user_id INTEGER NOT NULL);');
@@ -60,6 +61,13 @@ const { db } = vi.hoisted(() => {
   // StorageRegistryService (behind StorageModule, now in this module chain) reads
   // this at onModuleInit.
   tmp.exec('CREATE TABLE app_settings (key TEXT PRIMARY KEY, value TEXT);');
+  // Documents is a trip addon: every files route asks whether it applies to its trip
+  // (the trip's own choice, else the instance switch), so both tables are here, Documents on.
+  tmp.exec(`CREATE TABLE addons (id TEXT PRIMARY KEY, name TEXT NOT NULL, description TEXT, type TEXT DEFAULT 'global',
+    icon TEXT, enabled INTEGER DEFAULT 0, config TEXT DEFAULT '{}', sort_order INTEGER DEFAULT 0);`);
+  tmp.exec("INSERT INTO addons (id, name, type, enabled) VALUES ('documents', 'Documents', 'trip', 1);");
+  tmp.exec(`CREATE TABLE trip_addon_overrides (trip_id INTEGER NOT NULL, addon_id TEXT NOT NULL, enabled INTEGER NOT NULL,
+    updated_at TEXT, PRIMARY KEY (trip_id, addon_id));`);
   return { db: tmp };
 });
 

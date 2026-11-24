@@ -10,6 +10,7 @@ import {
   TOOL_ANNOTATIONS_READONLY,
   ok,
 } from '../../nest-mcp';
+import { uriRowId } from '../common/row-id';
 import { UnitOfWork } from '../database/unit-of-work';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { PlacesService } from '../places/places.service';
@@ -22,11 +23,6 @@ import {
 } from '@trek/shared';
 
 import { z } from 'zod';
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 /**
  * Accommodation MCP surface. The four tools and the
@@ -355,7 +351,7 @@ export class AccommodationsMcp {
     access: { group: 'trips', mode: 'read' },
   })
   async tripAccommodationsResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.accommodations.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [

@@ -5,8 +5,8 @@
  */
 import 'reflect-metadata';
 
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { RESPONSE_CONTRACT_KEY } from '../../../src/nest/common/response-contract';
 import { TRIP_PERMISSION_KEY, TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
@@ -22,9 +22,9 @@ describe('TourSkiController', () => {
   it('TOUR-SKI-CTL-001: sits behind the addon guard before auth and trip access, and needs place_edit', () => {
     expect(Reflect.getMetadata(PATH_METADATA, TourSkiController)).toBe('api/trips/:tripId/tours/:placeId/ski');
     expect(Reflect.getMetadata(GUARDS_METADATA, TourSkiController)).toEqual([
-      AddonGuard,
       JwtAuthGuard,
       TripAccessGuard,
+      TripAddonGuard,
     ]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, TourSkiController)).toEqual({ addonId: 'tours', label: 'Tours' });
     const handler = TourSkiController.prototype.classify;

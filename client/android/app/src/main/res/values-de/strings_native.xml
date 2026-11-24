@@ -8,6 +8,8 @@
     <string name="widget_today_description">Der Tagesplan als Zeitleiste, mit dem Wetter und dem nächsten Stopp.</string>
     <string name="widget_bookings_name">Buchungen</string>
     <string name="widget_bookings_description">Deine nächsten Flüge, Züge, Hotels und Tische, und wann sie anstehen.</string>
+    <string name="widget_flight_name">Flug</string>
+    <string name="widget_flight_description">Dein nächster Flug live: Countdown bis zum Abflug, die Maschine unterwegs, Verspätung und Ankunft.</string>
     <string name="widget_todos_name">To-dos</string>
     <string name="widget_todos_description">Was für die Reise noch offen ist und wie weit das Packen ist.</string>
     <string name="widget_packing_name">Packliste</string>

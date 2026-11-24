@@ -111,7 +111,7 @@ export class ImmichMemoriesController {
       res.status(400).json({ error: 'Invalid asset ID' });
       return;
     }
-    if (!(await this.memories.canAccessUserPhoto(user.id, Number(ownerId), tripId, assetId, 'immich'))) {
+    if (!(await this.memories.canAccessUserPhoto(user.id, ownerId, tripId, assetId, 'immich'))) {
       res.status(403).json({ error: 'Forbidden' });
       return;
     }
@@ -135,7 +135,7 @@ export class ImmichMemoriesController {
       res.status(400).json({ error: 'Invalid asset ID' });
       return;
     }
-    if (!(await this.memories.canAccessUserPhoto(user.id, Number(ownerId), tripId, assetId, 'immich'))) {
+    if (!(await this.memories.canAccessUserPhoto(user.id, ownerId, tripId, assetId, 'immich'))) {
       res.status(403).json({ error: 'Forbidden' });
       return;
     }
@@ -154,7 +154,7 @@ export class ImmichMemoriesController {
       res.status(400).json({ error: 'Invalid asset ID' });
       return;
     }
-    if (!(await this.memories.canAccessUserPhoto(user.id, Number(ownerId), tripId, assetId, 'immich'))) {
+    if (!(await this.memories.canAccessUserPhoto(user.id, ownerId, tripId, assetId, 'immich'))) {
       res.status(403).json({ error: 'Forbidden' });
       return;
     }

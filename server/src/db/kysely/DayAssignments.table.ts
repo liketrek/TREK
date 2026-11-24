@@ -20,4 +20,5 @@ export interface DayAssignmentsTable {
   accommodation_id: InsertOptional<number | null>;
   route_excluded: InsertOptional<number>;
   tour_stage_key: InsertOptional<string | null>;
+  stay_minutes: InsertOptional<number | null>;
 }

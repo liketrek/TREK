@@ -1212,6 +1212,43 @@ describe('useLogin — the wait before the sign-in is known (#1167)', () => {
     expect(window.location.href).toBe('http://localhost/login');
   });
 
+  it('FE-LOGIN-HOOK-215: with the auto redirect turned off the page stays, with its SSO button (#2925)', async () => {
+    server.use(
+      http.get('/api/auth/app-config', () => HttpResponse.json({ ...oidcOnlyConfig(), oidc_auto_redirect: false })),
+    );
+    const { result } = renderLogin();
+    await ready(result);
+
+    expect(result.current.oidcOnly).toBe(true);
+    expect(result.current.redirectScreen).toBe(false);
+    expect(result.current.configWait).toBe(false);
+    expect(window.location.href).toBe('http://localhost/login');
+  });
+
+  it('FE-LOGIN-HOOK-216: a cached config with the auto redirect off announces no redirect while the probe is out', async () => {
+    const config = { ...oidcOnlyConfig(), oidc_auto_redirect: false };
+    localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(config));
+    const release = heldConfig(config);
+    const { result } = renderLogin();
+
+    expect(result.current.redirectScreen).toBe(false);
+    expect(result.current.configWait).toBe(true);
+
+    release();
+    await ready(result);
+    expect(result.current.redirectScreen).toBe(false);
+    expect(window.location.href).toBe('http://localhost/login');
+  });
+
+  it('FE-LOGIN-HOOK-217: a server from before the switch, with no field, keeps the redirect', async () => {
+    const config: Record<string, unknown> = { ...oidcOnlyConfig() };
+    delete config.oidc_auto_redirect;
+    server.use(http.get('/api/auth/app-config', () => HttpResponse.json(config)));
+    renderLogin();
+
+    await waitFor(() => expect(window.location.href).toBe('/api/auth/oidc/login?remember=1'));
+  });
+
   it('FE-LOGIN-HOOK-210: right after a sign-out the cached redirect is not announced', async () => {
     localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(oidcOnlyConfig()));
     const release = heldConfig(oidcOnlyConfig());

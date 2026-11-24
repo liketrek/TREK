@@ -116,6 +116,8 @@ export default {
         subtitle: ['calc(18px * var(--fs-scale-subtitle, 1))', '1.35'],
         body: ['calc(14px * var(--fs-scale-body, 1))', '1.5'],
         caption: ['calc(12px * var(--fs-scale-caption, 1))', '1.4'],
+        // Buttons and segmented controls on the settings pages: between caption and body.
+        control: ['calc(13px * var(--fs-scale-body, 1))', '1.3'],
       },
     },
   },

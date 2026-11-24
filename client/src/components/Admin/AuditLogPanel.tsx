@@ -68,14 +68,14 @@ export default function AuditLogPanel({ serverTimezone }: AuditLogPanelProps): R
       icon={ClipboardList}
       title={t('admin.tabs.audit')}
       hint={t('admin.audit.subtitle')}
-      badge={<StatusPill>{t('admin.audit.showing', { count: entries.length, total })}</StatusPill>}
+      // The count only once there is one: never "0 of 0" while the first page loads.
+      badge={total > 0 ? <StatusPill>{t('admin.audit.showing', { count: entries.length, total })}</StatusPill> : undefined}
       action={
         <button
           type="button"
           disabled={loading}
           onClick={() => loadFirstPage()}
           className={SETTINGS_BUTTON}
-          style={fs(12.5, 'body')}
         >
           <RefreshCw size={14} strokeWidth={2.2} className={loading ? 'animate-spin' : ''} />
           {t('admin.audit.refresh')}
@@ -91,7 +91,6 @@ export default function AuditLogPanel({ serverTimezone }: AuditLogPanelProps): R
             disabled={loading}
             onClick={() => loadMore()}
             className={SETTINGS_BUTTON}
-            style={fs(12.5, 'body')}
           >
             {t('admin.audit.loadMore')}
           </button>

@@ -62,7 +62,11 @@ vi.mock('../../src/db/database', async () => {
   };
 });
 
-const { isAddonEnabled } = vi.hoisted(() => ({ isAddonEnabled: vi.fn(() => true) }));
+const { isAddonEnabled, isEnabledForTrip } = vi.hoisted(() => ({
+  isAddonEnabled: vi.fn(() => true),
+  // What the owner chose for Documents on the trip; the instance switch above still has to be on.
+  isEnabledForTrip: vi.fn(async () => true),
+}));
 
 /**
  * The SSRF guard resolves DNS, and `paperless.example.com` does not exist. In
@@ -147,7 +151,7 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
       imports: [await TestUnitOfWorkModule.forRoot(db), await createTestMikroOrmModule(db), DocSyncModule],
     })
       .overrideProvider(AddonsService)
-      .useValue({ isAddonEnabled });
+      .useValue({ isAddonEnabled, isEnabledForTrip });
     const fakes = providers.map(([, id]) => fakeProvider(id));
     providers.forEach(([token], i) => {
       builder = builder.overrideProvider(token).useValue(fakes[i]);
@@ -185,6 +189,16 @@ describe('Document sync e2e (real guards + real services + temp SQLite)', () => 
 
   beforeEach(() => {
     isAddonEnabled.mockReturnValue(true);
+    isEnabledForTrip.mockResolvedValue(true);
+  });
+
+  it('answers 404 to a member of a trip that has Documents off for itself, the instance on', async () => {
+    isEnabledForTrip.mockResolvedValue(false);
+    const res = await request(server)
+      .get(`/api/trips/${tripId}/docsync/status`)
+      .set('Cookie', sessionCookie(ownerId))
+      .expect(404);
+    expect(res.body).toEqual({ error: 'Documents addon is not enabled' });
   });
 
   it('answers 404 rather than 401 when the addon is off, to everyone alike', async () => {

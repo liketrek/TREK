@@ -95,6 +95,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Desnivell positiu',
   'tours.detail.descent': 'Desnivell negatiu',
   'tours.detail.navigationHint': "La navegació obre el punt d'inici del sender; no guia al llarg de la ruta.",
+  'tours.detail.openRoute': 'Obre la ruta en una app de mapes',
+  'tours.detail.mapsShort': 'Mapes',
   'tours.planner.title': 'Planifica una excursió',
   'tours.planner.newTour': 'Planifica una nova excursió',
   'tours.planner.addTour': 'Afegeix una ruta',

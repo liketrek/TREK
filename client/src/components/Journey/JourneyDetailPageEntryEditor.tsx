@@ -465,8 +465,10 @@ export function EntryEditor({ entry, journeyId, tripDates, galleryPhotos, trips,
 
             <div className="flex min-h-[220px] flex-1 flex-col overflow-hidden rounded-[10px] border border-edge bg-surface-input focus-within:ring-2 focus-within:ring-[color:var(--text-primary)]">
               <MarkdownToolbar textareaRef={storyRef} onUpdate={setStory} />
+              {/* Written like a long text: Ctrl/Cmd+Enter stays with the story instead of saving the entry. */}
               <textarea
                 ref={storyRef}
+                data-keeps-ctrl-enter
                 value={story}
                 onChange={e => setStory(e.target.value)}
                 placeholder={t('journey.editor.writeStory')}

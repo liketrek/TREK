@@ -8,7 +8,6 @@
  * route performs, and what lands in the DB.
  */
 import { ADDON_IDS } from '../../../src/addons';
-import { db as testDb } from '../../../src/db/database';
 import { JourneyEntryPhotos } from '../../../src/db/entities/JourneyEntryPhotos.entity';
 import { JourneyPhotos } from '../../../src/db/entities/JourneyPhotos.entity';
 import { PhotoProviders } from '../../../src/db/entities/PhotoProviders.entity';
@@ -16,19 +15,17 @@ import { TrekPhotos } from '../../../src/db/entities/TrekPhotos.entity';
 import { ImmichService } from '../../../src/nest/memories/immich.service';
 import { PhotoCaptureBackfillService } from '../../../src/nest/memories/photo-capture-backfill.service';
 import { SynologyService } from '../../../src/nest/memories/synology.service';
-import { createUser, createJourney, createJourneyEntry, addJourneyContributor } from '../../helpers/factories';
+import { addJourneyContributor, makeJourney, makeJourneyEntry } from '../../helpers/factories/journeys';
 import { countRows, deleteRows, findRow, findRows, upsertRow } from '../../helpers/factories/rows';
+import { setAddonEnabled } from '../../helpers/factories/settings';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 const realtime = new FakeRealtimeService();
 const broadcastMock = realtime.broadcastMock;
@@ -60,7 +57,7 @@ const IMMICH_ASSET = {
 const SYNOLOGY_ASSET = { id: 's1', takenAt: '2026-07-02T10:00:00.000Z', lat: 48.1, lng: 11.6 };
 
 /**
- * photo_providers is seed data, so resetTestDb leaves it alone and a toggle
+ * photo_providers is seed data, so resetDatabase leaves it alone and a toggle
  * leaks into the next case. Every case states what it needs.
  */
 async function setProviderEnabled(id: string, enabled: boolean): Promise<void> {
@@ -72,8 +69,8 @@ async function removeProvider(id: string): Promise<void> {
 }
 
 beforeEach(async () => {
-  resetTestDb(testDb);
-  setAddonEnabled(testDb, ADDON_IDS.JOURNEY, true);
+  await resetDatabase(orm);
+  await setAddonEnabled(orm, ADDON_IDS.JOURNEY, true);
   await setProviderEnabled('immich', true);
   await setProviderEnabled('synologyphotos', true);
   broadcastMock.mockClear();
@@ -95,15 +92,14 @@ beforeEach(async () => {
   backfillRun.mockClear();
 });
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp(realtime)).get(MikroORM);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>, scopes?: string[] | null) {
@@ -121,7 +117,7 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>,
 
 describe('Tool: search_provider_photos', () => {
   it('searches Immich with the page and size coercion the REST route applies', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'search_provider_photos',
@@ -137,7 +133,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('turns a 1-based page into the offset Synology paginates by', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'search_provider_photos',
@@ -152,7 +148,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it("defaults Synology to its own page size, not Immich's", async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'search_provider_photos', arguments: { provider: 'synologyphotos' } });
       expect(synologySearch).toHaveBeenCalledWith(user.id, undefined, undefined, 0, 100, 0);
@@ -160,7 +156,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('tells Synology which zone the dates are meant in, so a tool call is fixable too', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'search_provider_photos',
@@ -174,7 +170,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('refuses a provider the admin has switched off, without calling it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setProviderEnabled('synologyphotos', false);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -188,7 +184,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('refuses a provider that is not in the provider table at all', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await removeProvider('synologyphotos');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -202,7 +198,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('passes the upstream refusal through verbatim', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     immichSearch.mockResolvedValue({ error: 'Immich not configured', status: 400 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'search_provider_photos', arguments: { provider: 'immich' } });
@@ -212,7 +208,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('rejects a page size past the cap instead of quietly clamping it', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'search_provider_photos',
@@ -224,7 +220,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('rejects an unknown provider name at the schema', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'search_provider_photos',
@@ -235,7 +231,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('is not registered when every photo provider is switched off', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setProviderEnabled('immich', false);
     await setProviderEnabled('synologyphotos', false);
     await withHarness(user.id, async (h) => {
@@ -247,8 +243,8 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('is not registered while the journey addon is off, however the provider rows read', async () => {
-    const { user } = createUser(testDb);
-    setAddonEnabled(testDb, ADDON_IDS.JOURNEY, false);
+    const { user } = await makeUser(orm);
+    await setAddonEnabled(orm, ADDON_IDS.JOURNEY, false);
     await withHarness(user.id, async (h) => {
       const names = (await h.client.listTools()).tools.map((t) => t.name);
       expect(names).not.toContain('search_provider_photos');
@@ -258,10 +254,10 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('refuses mid-session once the journey addon goes off, without calling the provider', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       // Registered while journey was on; the flip lands after session start.
-      setAddonEnabled(testDb, ADDON_IDS.JOURNEY, false);
+      await setAddonEnabled(orm, ADDON_IDS.JOURNEY, false);
       const result = await h.client.callTool({
         name: 'search_provider_photos',
         arguments: { provider: 'immich' },
@@ -273,7 +269,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('is registered again as soon as one provider is on', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setProviderEnabled('immich', true);
     await setProviderEnabled('synologyphotos', false);
     await withHarness(user.id, async (h) => {
@@ -282,7 +278,7 @@ describe('Tool: search_provider_photos', () => {
   });
 
   it('is not registered for a token without journey read access', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(
       user.id,
       async (h) => {
@@ -299,7 +295,7 @@ describe('Tool: search_provider_photos', () => {
 
 describe('Tool: list_provider_albums', () => {
   it('lists the Immich albums', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -313,7 +309,7 @@ describe('Tool: list_provider_albums', () => {
   });
 
   it('keeps the passphrase a shared Synology album needs to be opened again', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -326,7 +322,7 @@ describe('Tool: list_provider_albums', () => {
   });
 
   it('refuses a disabled provider', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setProviderEnabled('immich', false);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_provider_albums', arguments: { provider: 'immich' } });
@@ -336,7 +332,7 @@ describe('Tool: list_provider_albums', () => {
   });
 
   it('passes the upstream refusal through', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     synologyAlbums.mockResolvedValue({ success: false, error: { message: 'Synology not configured', status: 400 } });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -355,7 +351,7 @@ describe('Tool: list_provider_albums', () => {
 
 describe('Tool: list_provider_album_photos', () => {
   it('reads one Immich album', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -370,7 +366,7 @@ describe('Tool: list_provider_album_photos', () => {
   });
 
   it('forwards the passphrase to Synology', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'list_provider_album_photos',
@@ -381,7 +377,7 @@ describe('Tool: list_provider_album_photos', () => {
   });
 
   it('refuses a disabled provider', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await setProviderEnabled('synologyphotos', false);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -394,7 +390,7 @@ describe('Tool: list_provider_album_photos', () => {
   });
 
   it('passes an album that could not be fetched through as an error', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     immichAlbumPhotos.mockResolvedValue({ error: 'Failed to fetch album', status: 404 });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
@@ -442,9 +438,9 @@ async function entryPhotoRows(entryId: number) {
 
 describe('Tool: add_journey_provider_photos', () => {
   it('attaches provider assets to an entry and records them against the journey', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'add_journey_provider_photos',
@@ -473,9 +469,9 @@ describe('Tool: add_journey_provider_photos', () => {
   });
 
   it('adds to the gallery alone when no entry is named', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id);
     await withHarness(user.id, async (h) => {
       const data = parseToolResult(
         await h.client.callTool({
@@ -494,9 +490,9 @@ describe('Tool: add_journey_provider_photos', () => {
   });
 
   it('skips an asset that is already on the entry rather than duplicating it', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id);
     await withHarness(user.id, async (h) => {
       const args = { journeyId: journey.id, entryId: entry.id, provider: 'immich', asset_ids: ['dup-1'] };
       await h.client.callTool({ name: 'add_journey_provider_photos', arguments: args });
@@ -510,9 +506,9 @@ describe('Tool: add_journey_provider_photos', () => {
   });
 
   it('queues the capture backfill for what it actually attached', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'add_journey_provider_photos',
@@ -526,8 +522,8 @@ describe('Tool: add_journey_provider_photos', () => {
   it('tells the journey once the capture times have landed, exactly as the REST routes do', async () => {
     // Same shared rule as POST /api/journeys/:id/gallery/provider-photos: the
     // gallery re-sorts on the event instead of waiting for a reload (#1587).
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'add_journey_provider_photos',
@@ -544,11 +540,11 @@ describe('Tool: add_journey_provider_photos', () => {
   });
 
   it('refuses a contributor who may only read the journey', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: viewer } = createUser(testDb);
-    const journey = createJourney(testDb, owner.id);
-    const entry = createJourneyEntry(testDb, journey.id, owner.id);
-    addJourneyContributor(testDb, journey.id, viewer.id, 'viewer');
+    const { user: owner } = await makeUser(orm);
+    const { user: viewer } = await makeUser(orm);
+    const journey = await makeJourney(orm, owner.id);
+    const entry = await makeJourneyEntry(orm, journey.id, owner.id);
+    await addJourneyContributor(orm, journey.id, viewer.id, 'viewer');
     await withHarness(viewer.id, async (h) => {
       const result = await h.client.callTool({
         name: 'add_journey_provider_photos',
@@ -561,7 +557,7 @@ describe('Tool: add_journey_provider_photos', () => {
   });
 
   it('refuses a journey that does not exist', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'add_journey_provider_photos',
@@ -573,10 +569,10 @@ describe('Tool: add_journey_provider_photos', () => {
   });
 
   it('refuses an entry that belongs to another journey', async () => {
-    const { user } = createUser(testDb);
-    const mine = createJourney(testDb, user.id);
-    const other = createJourney(testDb, user.id);
-    const foreignEntry = createJourneyEntry(testDb, other.id, user.id);
+    const { user } = await makeUser(orm);
+    const mine = await makeJourney(orm, user.id);
+    const other = await makeJourney(orm, user.id);
+    const foreignEntry = await makeJourneyEntry(orm, other.id, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'add_journey_provider_photos',
@@ -590,9 +586,9 @@ describe('Tool: add_journey_provider_photos', () => {
 
   it('blocks the demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'add_journey_provider_photos',
@@ -604,9 +600,9 @@ describe('Tool: add_journey_provider_photos', () => {
   });
 
   it('refuses a batch past the per-call cap and writes nothing', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
-    const entry = createJourneyEntry(testDb, journey.id, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
+    const entry = await makeJourneyEntry(orm, journey.id, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'add_journey_provider_photos',
@@ -623,8 +619,8 @@ describe('Tool: add_journey_provider_photos', () => {
   });
 
   it('rejects a provider the journey could never resolve', async () => {
-    const { user } = createUser(testDb);
-    const journey = createJourney(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const journey = await makeJourney(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'add_journey_provider_photos',
@@ -636,15 +632,15 @@ describe('Tool: add_journey_provider_photos', () => {
   });
 
   it('is not registered while the journey addon is off', async () => {
-    const { user } = createUser(testDb);
-    setAddonEnabled(testDb, ADDON_IDS.JOURNEY, false);
+    const { user } = await makeUser(orm);
+    await setAddonEnabled(orm, ADDON_IDS.JOURNEY, false);
     await withHarness(user.id, async (h) => {
       expect((await h.client.listTools()).tools.map((t) => t.name)).not.toContain('add_journey_provider_photos');
     });
   });
 
   it('is not registered for a read-only journey token', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(
       user.id,
       async (h) => {

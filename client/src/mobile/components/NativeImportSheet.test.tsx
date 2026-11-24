@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor } from '../../../tests/helpers/render';
+import { ToastContainer } from '../../components/shared/Toast';
 import { saveSharedLink, useSharedImportStore } from '../../native/sharedFiles';
+import { tripAddonsRepo } from '../../repo/tripAddonsRepo';
 import { tripRepo } from '../../repo/tripRepo';
 import { useAddonStore } from '../../store/addonStore';
+import { useTripAddonsStore } from '../../store/tripAddonsStore';
 import NativeImportSheet from './NativeImportSheet';
 
 const navigate = vi.hoisted(() => vi.fn());
@@ -21,6 +24,9 @@ beforeEach(() => {
   navigate.mockReset();
   useSharedImportStore.setState({ file: null, tripId: null, link: null });
   useAddonStore.setState({ addons: [{ id: 'collab', enabled: true }] as never, loaded: true });
+  useTripAddonsStore.setState({ trips: {} });
+  // Every trip follows the instance switch unless a test says otherwise; answered at once, so no read outlives its test.
+  vi.spyOn(tripAddonsRepo, 'list').mockResolvedValue([]);
   vi.mocked(saveSharedLink).mockReset().mockResolvedValue();
   vi.spyOn(tripRepo, 'list').mockResolvedValue({
     trips: [
@@ -33,6 +39,15 @@ beforeEach(() => {
 
 const page = () => new File(['<html></html>'], 'hotel.html', { type: 'text/html' });
 const bareLink = () => new File(['https://hotel.example/stay'], 'link.url', { type: 'text/uri-list' });
+/** Trip 2's own Collab choice; trip 1 follows the instance. */
+const collabOnlyFor2 = (enabled: boolean) =>
+  vi
+    .spyOn(tripAddonsRepo, 'list')
+    .mockImplementation(async (tripId: number) =>
+      tripId === 2
+        ? [{ id: 'collab', name: 'Collab', icon: null, enabled, instanceEnabled: !enabled, overridden: true }]
+        : []
+    );
 const link = (presetTripId: number | null = null) => ({
   url: 'https://hotel.example/stay',
   title: 'Hotel Kanra',
@@ -67,7 +82,7 @@ describe('NativeImportSheet', () => {
   it('asks what a shared page is for, and keeps it among the links of the trip picked', async () => {
     render(<NativeImportSheet />);
     act(() => useSharedImportStore.getState().setFile(page(), link()));
-    expect(screen.getByText('What should TREK do with this link?')).toBeInTheDocument();
+    expect(await screen.findByText('What should TREK do with this link?')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Japan/ })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /Save to the trip's links/ }));
@@ -81,7 +96,7 @@ describe('NativeImportSheet', () => {
   it('reads a booking from the page when that is asked for', async () => {
     render(<NativeImportSheet />);
     act(() => useSharedImportStore.getState().setFile(page(), link()));
-    fireEvent.click(screen.getByRole('button', { name: /Read a booking from it/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Read a booking from it/ }));
     fireEvent.click(await screen.findByRole('button', { name: /Japan/ }));
     expect(useSharedImportStore.getState().tripId).toBe(2);
     expect(navigate).toHaveBeenCalledWith('/trips/2');
@@ -114,6 +129,92 @@ describe('NativeImportSheet', () => {
     expect(await screen.findByRole('button', { name: /Japan/ })).toBeEnabled();
     expect(navigate).not.toHaveBeenCalled();
     expect(useSharedImportStore.getState().file).not.toBeNull();
+  });
+
+  it('keeps a link in a trip that switched Collab on while the instance has it off, offering only that trip', async () => {
+    useAddonStore.setState({ addons: [], loaded: true });
+    collabOnlyFor2(true);
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(page(), link()));
+
+    fireEvent.click(await screen.findByRole('button', { name: /Save to the trip's links/ }));
+    expect(await screen.findByRole('button', { name: /Japan/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Past trip/ })).not.toBeInTheDocument();
+  });
+
+  it('leaves out a trip that switched Collab off, and shows why when the server refuses the link', async () => {
+    collabOnlyFor2(false);
+    vi.mocked(saveSharedLink).mockRejectedValue({ response: { data: { error: 'Collab addon is not enabled' } } });
+    render(
+      <>
+        <ToastContainer />
+        <NativeImportSheet />
+      </>
+    );
+    act(() => useSharedImportStore.getState().setFile(bareLink(), link(2)));
+
+    expect(await screen.findByText('Collab addon is not enabled')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Past trip/ })).toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('button', { name: /Japan/ })).not.toBeInTheDocument());
+  });
+
+  it('waits for the trips’ own Collab before a page shared into a trip is read as a booking', async () => {
+    useAddonStore.setState({ addons: [], loaded: true });
+    let answer: () => void = () => {};
+    vi.spyOn(tripAddonsRepo, 'list').mockImplementation(
+      (tripId: number) =>
+        new Promise((resolve) => {
+          const own = [
+            { id: 'collab', name: 'Collab', icon: null, enabled: true, instanceEnabled: false, overridden: true },
+          ];
+          if (tripId === 2) answer = () => resolve(own);
+          else resolve([]);
+        })
+    );
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(page(), link(2)));
+    await waitFor(() => expect(tripAddonsRepo.list).toHaveBeenCalledWith(2));
+    expect(useSharedImportStore.getState().tripId).toBeNull();
+    expect(screen.queryByRole('button', { name: /Japan|Past trip/ })).not.toBeInTheDocument();
+
+    act(() => answer());
+    expect(await screen.findByText('What should TREK do with this link?')).toBeInTheDocument();
+    expect(useSharedImportStore.getState().tripId).toBeNull();
+  });
+
+  it('reads every trip’s Collab again when it opens, so a switch this device missed counts', async () => {
+    useAddonStore.setState({ addons: [], loaded: true });
+    // The app still holds trip 2 as following the instance; its owner has since switched Collab on.
+    useTripAddonsStore.getState().publish(2, []);
+    collabOnlyFor2(true);
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(bareLink(), link()));
+    expect(await screen.findByRole('button', { name: /Japan/ })).toBeInTheDocument();
+    expect(tripAddonsRepo.list).toHaveBeenCalledWith(1);
+    expect(tripAddonsRepo.list).toHaveBeenCalledWith(2);
+  });
+
+  it('keeps the trips and does not save again when a list reloads after a refused link', async () => {
+    vi.mocked(saveSharedLink).mockRejectedValue(new Error('offline'));
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(bareLink(), link(2)));
+    expect(await screen.findByRole('button', { name: /Japan/ })).toBeInTheDocument();
+    expect(saveSharedLink).toHaveBeenCalledTimes(1);
+
+    let answer: () => void = () => {};
+    vi.spyOn(tripAddonsRepo, 'list').mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          answer = () => resolve([]);
+        })
+    );
+    await act(async () => {
+      void useTripAddonsStore.getState().load(1);
+    });
+    expect(screen.getByRole('button', { name: /Japan/ })).toBeInTheDocument();
+    await act(async () => answer());
+    expect(screen.getByRole('button', { name: /Japan/ })).toBeInTheDocument();
+    expect(saveSharedLink).toHaveBeenCalledTimes(1);
   });
 
   it('stays closed with nothing shared', () => {

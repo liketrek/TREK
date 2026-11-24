@@ -5,6 +5,7 @@ import { RequireAddon } from '../addons/require-addon.decorator';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
+import { rowId } from '../common/row-id.pipe';
 import { BookDesignSelectionDto } from './journey-book-design.dto';
 import { JourneyBookDesignService } from './journey-book-design.service';
 import { Body, Controller, Get, HttpCode, Param, Put, UseGuards } from '@nestjs/common';
@@ -27,8 +28,12 @@ export class JourneyBookDesignController {
 
   @Get(':designId')
   @ResponseContract(bookDesignDraftResponseSchema)
-  async draft(@CurrentUser() user: User, @Param('journeyId') journeyId: string, @Param('designId') designId: string) {
-    return this.designs.draftView(Number(journeyId), user.id, designId);
+  async draft(
+    @CurrentUser() user: User,
+    @Param('journeyId', rowId('Journey not found')) journeyId: number,
+    @Param('designId') designId: string,
+  ) {
+    return this.designs.draftView(journeyId, user.id, designId);
   }
 
   @Put(':designId/selection')
@@ -36,10 +41,10 @@ export class JourneyBookDesignController {
   @ResponseContract(bookDesignSelectionResponseSchema)
   async select(
     @CurrentUser() user: User,
-    @Param('journeyId') journeyId: string,
+    @Param('journeyId', rowId('Journey not found')) journeyId: number,
     @Param('designId') designId: string,
     @Body() body: BookDesignSelectionDto,
   ) {
-    return this.designs.select(Number(journeyId), user.id, designId, body.spreadIds);
+    return this.designs.select(journeyId, user.id, designId, body.spreadIds);
   }
 }

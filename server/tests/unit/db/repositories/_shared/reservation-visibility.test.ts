@@ -234,7 +234,7 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(t.em.getPlatform(), eb))
       .orderBy('a.id', 'asc')
       .execute();
     const legacy = testDb
@@ -260,7 +260,7 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(t.em.getPlatform(), eb))
       .execute();
     const legacy = testDb
       // test-sql-allow: the legacy string fragment is this parity harness's oracle and has to run as written.
@@ -290,7 +290,7 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(t.em.getPlatform(), eb))
       .execute();
     const legacy = testDb
       // test-sql-allow: the legacy string fragment is this parity harness's oracle and has to run as written.
@@ -322,7 +322,7 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(t.em.getPlatform(), eb))
       .execute();
     const legacy = testDb
       // test-sql-allow: the legacy string fragment is this parity harness's oracle and has to run as written.
@@ -351,7 +351,7 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(t.em.getPlatform(), eb))
       .execute();
     const legacy = testDb
       // test-sql-allow: the legacy string fragment is this parity harness's oracle and has to run as written.
@@ -386,7 +386,7 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(t.em.getPlatform(), eb))
       .orderBy('a.id', 'asc')
       .execute();
     const legacy = testDb
@@ -427,7 +427,7 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(t.em.getPlatform(), eb))
       .execute();
     const legacy = testDb
       // test-sql-allow: the legacy string fragment is this parity harness's oracle and has to run as written.
@@ -458,7 +458,7 @@ describe('reservation-visibility parity (RV2: publicStayExists vs publicStaySql)
       .selectFrom('day_accommodations as a')
       .select('a.id')
       .where('a.trip_id', '=', trip.id)
-      .where((eb) => publicStayExists(eb))
+      .where((eb) => publicStayExists(t.em.getPlatform(), eb))
       .execute();
     const legacy = testDb
       // test-sql-allow: the legacy string fragment is this parity harness's oracle and has to run as written.

@@ -27,6 +27,13 @@ beforeEach(() => {
   seedStore(useSettingsStore, { settings: buildSettings() });
 });
 
+/** The password field of the 2FA disable panel: the one beside the code field. */
+function mfaDisablePassword(): HTMLInputElement {
+  const input = screen.getByPlaceholderText('6-digit code').parentElement?.querySelector<HTMLInputElement>('input[type="password"]');
+  if (!input) throw new Error('no password field beside the 2FA code');
+  return input;
+}
+
 describe('AccountTab', () => {
   it('FE-COMP-ACCOUNT-001: renders without crashing', () => {
     render(<AccountTab />);
@@ -374,12 +381,9 @@ describe('AccountTab – MFA', () => {
       http.get('/api/auth/me', () => HttpResponse.json({ user: buildUser() })),
     );
     render(<><ToastContainer /><AccountTab /></>);
-    // When mfa_enabled + !oidcOnlyMode, there are 4 password inputs total:
-    // 3 in Change Password section + 1 in MFA disable section (last one)
-    const passwordInputs = document.querySelectorAll('input[type="password"]');
-    const mfaPasswordInput = passwordInputs[passwordInputs.length - 1] as HTMLInputElement;
-    await user.type(mfaPasswordInput, 'mypassword');
+    // The disable panel asks for the password right beside the code field.
     const codeInput = screen.getByPlaceholderText('6-digit code');
+    await user.type(mfaDisablePassword(), 'mypassword');
     await user.type(codeInput, '123456');
     await user.click(screen.getByRole('button', { name: 'Disable 2FA' }));
     expect(await screen.findByText('Two-factor authentication disabled')).toBeInTheDocument();
@@ -799,8 +803,7 @@ describe('AccountTab – MFA error paths', () => {
     );
     render(<><ToastContainer /><AccountTab /></>);
 
-    const passwordInputs = document.querySelectorAll('input[type="password"]');
-    await user.type(passwordInputs[passwordInputs.length - 1], 'mypassword');
+    await user.type(mfaDisablePassword(), 'mypassword');
     await user.type(screen.getByPlaceholderText('6-digit code'), '123456');
     await user.click(screen.getByRole('button', { name: 'Disable 2FA' }));
 

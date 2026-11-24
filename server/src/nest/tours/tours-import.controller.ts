@@ -37,8 +37,9 @@ const UPLOAD = { storage: memoryStorage(), limits: { fileSize: 10 * 1024 * 1024 
  * AddonGuard and TripAccessGuard: a guard answers before multer has read the
  * multipart body, and the client then sees ECONNRESET instead of the 404 or
  * 403. The handlers run the same checks in the same order once the upload is
- * drained, with the guards' own bodies: addon off 404, no trip access 404,
- * no 'place_edit' 403. PlacesController.importGpx is the sibling.
+ * drained, with the guards' own bodies: no trip access 404, Tours off for
+ * this trip 404, no 'place_edit' 403. PlacesController.importGpx is the
+ * sibling.
  */
 @Controller('api/trips/:tripId/tours')
 @UseGuards(JwtAuthGuard)
@@ -51,12 +52,12 @@ export class ToursImportController {
 
   /** The guards' checks, after the body is in, and the file they all need. */
   private async checkedFile(user: User, tripId: string, file: Express.Multer.File | undefined): Promise<Buffer> {
-    if (!(await this.addons.isAddonEnabled(ADDON_IDS.TOURS))) {
-      throw new HttpException({ error: 'Tours addon is not enabled' }, 404);
-    }
     const trip = await this.places.verifyTripAccess(tripId, user.id);
     if (!trip) {
       throw new HttpException({ error: 'Trip not found' }, 404);
+    }
+    if (!(await this.addons.isEnabledForTrip(trip.id, ADDON_IDS.TOURS))) {
+      throw new HttpException({ error: 'Tours addon is not enabled' }, 404);
     }
     if (!(await this.places.canEdit(trip, user))) {
       throw new HttpException({ error: 'No permission' }, 403);

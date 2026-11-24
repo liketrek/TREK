@@ -29,13 +29,13 @@ function walk(dir: string): string[] {
   });
 }
 
-/** Every addon id named by an addonGate(...) or collabFeatureGate(...) call. */
+/** Every addon id named by an addonGate(...), instanceAddonGate(...) or collabFeatureGate(...) call. */
 function gatedInSource(): { ids: Set<string>; where: Map<string, string[]> } {
   const ids = new Set<string>();
   const where = new Map<string, string[]>();
   for (const file of walk(SRC)) {
     const text = readFileSync(file, 'utf8');
-    for (const m of text.matchAll(/\baddonGate\(\s*ADDON_IDS\.([A-Z_]+)\s*\)/g)) {
+    for (const m of text.matchAll(/\b(?:addonGate|instanceAddonGate)\(\s*ADDON_IDS\.([A-Z_]+)\s*\)/g)) {
       const id = (ADDON_IDS as Record<string, string>)[m[1]];
       if (!id) continue;
       ids.add(id);
@@ -77,5 +77,6 @@ describe('MCP-gated addons', () => {
     const { ids } = gatedInSource();
     expect(ids.size).toBeGreaterThanOrEqual(5);
     expect(ids.has(ADDON_IDS.ROADTRIP)).toBe(true);
+    expect(ids.has(ADDON_IDS.DOCUMENTS)).toBe(true);
   });
 });

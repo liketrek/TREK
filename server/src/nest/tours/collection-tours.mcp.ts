@@ -11,7 +11,7 @@ import {
   ok,
   type McpContext,
 } from '../../nest-mcp';
-import { addonGate, type HasAddons } from '../addons/addon-gate';
+import { allAddonsGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TripAccessService } from '../trip-membership/trip-access.service';
@@ -28,13 +28,8 @@ import {
 const save = collectionTourSaveRequestSchema.shape;
 const takeOver = collectionTourTakeOverRequestSchema.shape;
 
-const toursOn = addonGate(ADDON_IDS.TOURS);
-const collectionsOn = addonGate(ADDON_IDS.COLLECTIONS);
-
 /** A kept tour is a tour that lives in a collection, so both addons have to be on. */
-async function keptToursOn(ctx: McpContext, self: HasAddons): Promise<boolean> {
-  return (await toursOn(ctx, self)) && (await collectionsOn(ctx, self));
-}
+const keptToursOn = allAddonsGate(ADDON_IDS.TOURS, ADDON_IDS.COLLECTIONS);
 
 /**
  * LIB-03: the whole tours a collection keeps, over the same service and the

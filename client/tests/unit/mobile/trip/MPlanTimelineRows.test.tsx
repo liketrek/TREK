@@ -327,6 +327,18 @@ describe('TransitRow', () => {
     expect(screen.getByText('transit.min:1 · transit.walkTo:Hotel')).toBeInTheDocument()
   })
 
+  it('FE-MOB-PLROW-046: the expanded legs show every stop name in full and each ride arrival time (#3139)', () => {
+    const { container } = render(<TransitRow {...base} open />)
+
+    const ride = screen.getByText('Shibuya Sta. → Asakusa Sta.')
+    expect(ride).not.toHaveClass('truncate')
+    expect(ride).toHaveClass('break-words')
+    expect(screen.getByText('transit.min:4 · transit.walkTo:Shibuya Sta.')).not.toHaveClass('truncate')
+    expect(screen.getByText('10:30')).toBeInTheDocument()
+    // the departure keeps its place beside the arrival
+    expect(container.textContent).toContain('10:05')
+  })
+
   it('FE-MOB-PLROW-024: tapping the header toggles the row', () => {
     const onToggle = vi.fn()
     render(<TransitRow {...base} open={false} onToggle={onToggle} />)

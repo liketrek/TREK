@@ -1,11 +1,12 @@
 import { ADDON_IDS } from '../../addons';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { ParseRowIdPipe } from '../common/row-id.pipe';
 import { RequirePermission, TripAccessGuard } from '../permissions/trip-access.guard';
 import { RealtimeService } from '../realtime/realtime.service';
 import { DayBoundariesService } from './day-boundaries.service';
-import { Body, Controller, Delete, Get, Headers, Param, ParseIntPipe, Put, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Param, Put, UseGuards } from '@nestjs/common';
 import { roadtripDayBoundarySchema } from '@trek/shared';
 
 import { createZodDto } from 'nestjs-zod';
@@ -13,7 +14,7 @@ import { createZodDto } from 'nestjs-zod';
 export class DayBoundaryDto extends createZodDto(roadtripDayBoundarySchema) {}
 
 @Controller('api/trips/:tripId/roadtrip/day-boundaries')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.ROADTRIP, 'Road trip')
 export class DayBoundariesController {
   constructor(
@@ -38,7 +39,7 @@ export class DayBoundariesController {
   @RequirePermission('day_edit')
   async remove(
     @Param('tripId') tripId: string,
-    @Param('dayNumber', ParseIntPipe) dayNumber: number,
+    @Param('dayNumber', ParseRowIdPipe) dayNumber: number,
     @Headers('x-socket-id') socketId?: string,
   ) {
     const boundaries = await this.boundaries.remove(tripId, dayNumber);

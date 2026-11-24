@@ -40,6 +40,7 @@ import { transferEndpointIds } from './transfer-endpoints';
 import { countryVisitDates } from './visit-dates';
 import { placeCountryResolver } from './place-countries';
 import { haversineKm } from '../common/geo';
+import { CountryVisits, latestPerCoordinate } from './atlas-visit-order';
 
 /** The part of a place that its cached region is derived from. */
 type LocatedPlace = Pick<PlaceRow, 'id' | 'lat' | 'lng' | 'address'>;
@@ -393,30 +394,10 @@ export class AtlasService {
       status: c.status,
     }));
 
-    const citySet = new Set<string>();
-    for (const place of places) {
-      if (place.address) {
-        const parts = place.address
-          .split(',')
-          .map((s: string) => s.trim())
-          .filter(Boolean);
-        // The last part is the country; the city is usually right before it, but a
-        // full formatted address can have a postal code sitting between them
-        // (e.g. "Bucharest, 010071, Romania"). Walk back from the country and take
-        // the first part that still has letters once digits/postal noise is stripped.
-        const candidates = parts.length >= 2 ? parts.slice(0, -1) : parts;
-        let city = '';
-        for (let i = candidates.length - 1; i >= 0; i--) {
-          const cleaned = candidates[i].replace(/[\d\-−〒]+/g, '').trim();
-          if (cleaned) {
-            city = cleaned.toLowerCase();
-            break;
-          }
-        }
-        if (city) citySet.add(city);
-      }
-    }
-    const totalCities = citySet.size;
+    // Places and cities come from the same count as the dashboard card and
+    // GET /api/v1/stats, so the three never show different totals (#3137).
+    const footprint = await this.placeFootprint(userId);
+    const totalCities = footprint.cities.length;
 
     // Countries the user explicitly removed. Only the zero-count passes below are
     // suppressed — a country with real places isn't removable in the UI anyway, and once
@@ -569,7 +550,7 @@ export class AtlasService {
       countries,
       stats: {
         totalTrips: trips.length,
-        totalPlaces: places.length,
+        totalPlaces: footprint.totalPlaces,
         totalCountries: visited.length,
         totalCountriesPlanned: planned.length,
         totalCountriesIdea: countries.length - visited.length - planned.length,
@@ -1045,42 +1026,55 @@ export class AtlasService {
       .map(([code]) => code);
   }
 
+  /**
+   * The places on every trip the user owns or is a member of, archived ones included,
+   * with the cities and coordinates derived from them. The one count behind the Atlas
+   * page, the dashboard card, GET /api/v1/stats and the MCP atlas tool (#3137).
+   *
+   * Every place counts once, even when two share an address and coordinates (the same
+   * hotel saved on two trips). A city is read with cityFromAddress, which skips the
+   * region named in the same address (#1115), and two spellings that differ only in
+   * case are one city; the first spelling seen is the one listed.
+   */
+  private async placeFootprint(
+    userId: number,
+  ): Promise<{ totalPlaces: number; cities: string[]; coords: { lat: number; lng: number }[] }> {
+    const places = await this.places.listAddressesForUser(userId); // AT41
+    const cities = new Map<string, string>();
+    const coords: { lat: number; lng: number }[] = [];
+    for (const p of places) {
+      // Explicit null checks: lat/lng of exactly 0 (equator / prime meridian)
+      // are valid coordinates a falsy check would drop.
+      if (p.lat != null && p.lng != null) coords.push({ lat: p.lat, lng: p.lng });
+      const city = cityFromAddress(p.address, (part) => KNOWN_COUNTRIES.has(part), p.region_name);
+      if (city && !cities.has(city.toLowerCase())) cities.set(city.toLowerCase(), city);
+    }
+    return { totalPlaces: places.length, cities: [...cities.values()], coords };
+  }
+
   async getTravelStats(userId: number) {
     const today = todayUtc();
-
-    // The resolved region rides along so cityFromAddress can tell the city apart from
-    // the region sitting right above it in the same address (#1115).
-    const places = await this.places.listAddressesForUser(userId); // AT41
+    const { totalPlaces, cities, coords } = await this.placeFootprint(userId);
 
     // Archived trips still count here, matching the places, countries and flight
     // distance widgets (which never filtered on is_archived) so the dashboard stats
     // stay consistent — archiving a trip no longer zeroes out trips/days.
     const tripStats = await this.trips.countTripsAndDaysForUser(userId); // AT42
 
-    const cities = new Set<string>();
-    const coords: { lat: number; lng: number }[] = [];
-
-    places.forEach(p => {
-      // Explicit null checks: lat/lng of exactly 0 (equator / prime meridian)
-      // are valid coordinates the former falsy check silently dropped.
-      if (p.lat != null && p.lng != null) coords.push({ lat: p.lat, lng: p.lng });
-      const cityPart = cityFromAddress(p.address, part => KNOWN_COUNTRIES.has(part), p.region_name);
-      if (cityPart) cities.add(cityPart);
-    });
-
     // Visited countries: the ones the user marked by hand, plus the countries of
-    // their places, resolved the way the Atlas map resolves them (#2875).
-    const countryCodes = new Set<string>();
-    const manualCountries = await this.visitedCountries.listCodesForUser(userId); // AT43
-    manualCountries.forEach(code => { if (code) countryCodes.add(code.toUpperCase()); });
+    // their places, resolved the way the Atlas map resolves them (#2875). Each
+    // reached country keeps the last day of its latest trip, for the order.
+    const manualCountries = (await this.visitedCountries.listCodesForUser(userId)) // AT43
+      .filter(Boolean)
+      .map(code => code.toUpperCase());
+    const visits = new CountryVisits();
 
     // Only trips that have already started count as visited — a country you have merely
     // booked a trip to isn't stamped in the passport yet, and one you jotted down without
     // any dates even less so (#1048). `today` is UTC, matching tripVisitStatus.
     const countryOf = placeCountryResolver();
     for (const place of await this.placeRegions.listStartedTripPlaceCountriesForUser(userId, today)) { // AT44
-      const code = countryOf(place, place.country_code);
-      if (code) countryCodes.add(code.toUpperCase());
+      visits.note(countryOf(place, place.country_code), place.trip_last_date);
     }
 
     // Transport bookings don't create a place row, so their geocoded endpoints never
@@ -1091,34 +1085,29 @@ export class AtlasService {
     // connection/layover (e.g. a plane change) the traveler never really visited (#1486),
     // and the same layover split over two bookings is recognised from its ground time
     // instead, because there it is stored as a legitimate 'to'/'from' pair (#1535).
-    const endpointRows: EndpointRow[] = await this.reservationEndpoints.listOwnedEndpointsForUser(userId, today); // AT45, TRAVELER_OWNS (#1966)
+    const endpointRows = await this.reservationEndpoints.listOwnedEndpointsForUser(userId, today); // AT45, TRAVELER_OWNS (#1966)
     const transfers = transferEndpointIds(
       endpointRows.filter(e => e.reservation_type === 'flight' && e.reservation_status !== 'cancelled')
     );
     // The DISTINCT no longer collapses per coordinate now that the endpoint id has to be
     // in the projection, so collapse here instead: getCountryFromCoords is a
-    // point-in-polygon scan and must stay at one run per coordinate.
-    const endpointCoords = new Map<string, { lat: number; lng: number }>();
-    for (const e of endpointRows) {
-      if (transfers.has(e.id)) continue;
-      endpointCoords.set(`${e.lat},${e.lng}`, { lat: e.lat, lng: e.lng });
-    }
-    for (const e of endpointCoords.values()) {
-      const code = getCountryFromCoords(e.lat, e.lng);
-      if (code) countryCodes.add(code.toUpperCase());
+    // point-in-polygon scan and must stay at one run per coordinate. The latest
+    // trip through a coordinate is the one its country is dated by.
+    for (const e of latestPerCoordinate(endpointRows.filter(e => !transfers.has(e.id)))) {
+      visits.note(getCountryFromCoords(e.lat, e.lng), e.trip_last_date);
     }
 
     // Countries the user removed in Atlas stay removed on the dashboard too, so the
     // passport card and the Atlas map agree (#1490).
-    for (const code of await this.getHiddenCountries(userId)) countryCodes.delete(code.toUpperCase());
+    const hidden = new Set([...(await this.getHiddenCountries(userId))].map(code => code.toUpperCase()));
 
     return {
-      countries: [...countryCodes],
-      cities: [...cities],
+      countries: visits.ordered(manualCountries).filter(code => !hidden.has(code)),
+      cities,
       coords,
       totalTrips: tripStats.trips || 0,
       totalDays: tripStats.days || 0,
-      totalPlaces: places.length,
+      totalPlaces,
       totalDistanceKm: await this.flightDistanceKm(userId),
     };
   }

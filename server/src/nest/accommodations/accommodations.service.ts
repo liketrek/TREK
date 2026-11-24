@@ -92,11 +92,15 @@ export interface DayAccommodation {
   notes: string | null;
 }
 
-/** The fields a stay write takes from its caller, before the required ones are checked. */
+/**
+ * The fields a stay write takes from its caller, before the required ones are
+ * checked. The refs are as sent (a number or its digits, or anything at all from
+ * the open update body); the write reads them with `stayRefs`.
+ */
 export interface StayInput {
-  place_id?: number;
-  start_day_id?: number;
-  end_day_id?: number;
+  place_id?: unknown;
+  start_day_id?: unknown;
+  end_day_id?: unknown;
   check_in?: string | null;
   check_in_end?: string | null;
   check_out?: string | null;
@@ -105,6 +109,26 @@ export interface StayInput {
 }
 
 const stayNotFound = () => new DomainError(404, 'Accommodation not found', { mcpMessage: 'Accommodation not found.' });
+
+const STAY_REFS = ['place_id', 'start_day_id', 'end_day_id'] as const;
+
+/**
+ * The place and day refs of a stay write, each read with toRowId; an absent one
+ * stays absent. A value it refuses ('0x1', '1e0', 1.5) is a 400 in the words the
+ * create schema answers it with, so the open update body, the MCP tool and the
+ * plugin RPC refuse it alike instead of binding it, which SQLite matches against
+ * nothing, Postgres 14 and 15 refuse and 16 and later read as row 1.
+ */
+function stayRefs(input: StayInput): { place_id?: number; start_day_id?: number; end_day_id?: number } {
+  const refs: { place_id?: number; start_day_id?: number; end_day_id?: number } = {};
+  for (const field of STAY_REFS) {
+    if (input[field] === undefined) continue;
+    const id = toRowId(input[field]);
+    if (id === null) throw new DomainError(400, `${field}: Invalid id`);
+    refs[field] = id;
+  }
+  return refs;
+}
 
 export interface CreateAccommodationData {
   place_id: number;
@@ -248,15 +272,14 @@ export class AccommodationsService {
   /** Book a night: the stay, its partner hotel reservation and the day stop it implies. */
   async createStay(tripId: string | number, input: StayInput, writer: TripWriter) {
     await this.gate(tripId, writer);
-    const { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } = input;
-    if (!place_id || !start_day_id || !end_day_id) {
+    const { check_in, check_in_end, check_out, confirmation, notes } = input;
+    if (!input.place_id || !input.start_day_id || !input.end_day_id) {
       throw new DomainError(400, 'place_id, start_day_id, and end_day_id are required');
     }
-    await this.requireStayRefs(tripId, place_id, start_day_id, end_day_id);
+    const refs = stayRefs(input) as Required<ReturnType<typeof stayRefs>>;
+    await this.requireStayRefs(tripId, refs.place_id, refs.start_day_id, refs.end_day_id);
     const result = await this.createAccommodation(tripId, {
-      place_id,
-      start_day_id,
-      end_day_id,
+      ...refs,
       check_in,
       check_in_end,
       check_out,
@@ -294,7 +317,8 @@ export class AccommodationsService {
     await this.gate(tripId, writer);
     const existing = await this.getAccommodation(id, tripId);
     if (!existing) throw stayNotFound();
-    const { place_id, start_day_id, end_day_id, check_in, check_in_end, check_out, confirmation, notes } = fields;
+    const { check_in, check_in_end, check_out, confirmation, notes } = fields;
+    const { place_id, start_day_id, end_day_id } = stayRefs(fields);
     await this.requireStayRefs(tripId, place_id, start_day_id, end_day_id);
     const result = await this.updateAccommodation(
       id,

@@ -11,23 +11,18 @@
  * fails here instead of slipping past the gate.
  */
 import { ADDON_IDS } from '../../../src/addons';
-import { db as testDb } from '../../../src/db/database';
 import { DEMO_UNGATED_WRITE_TOOLS, isDemoGatedTool, trekDemoToolGate } from '../../../src/mcp/nest-mcp-policy';
 import type { McpContext, McpRegistry, McpRegistryListing } from '../../../src/nest-mcp';
 import { withRequestContext } from '../../../src/nest/database/request-context';
-import { createUser, setAppSetting } from '../../helpers/factories';
+import { setAddonEnabled, setAppSetting } from '../../helpers/factories/settings';
+import { makeUser } from '../../helpers/factories/users';
 import { createMcpTestRegistry } from '../../helpers/mcp-test-controllers';
+import { resetDatabase } from '../../helpers/reset-database';
 import { bootTestApp } from '../../helpers/test-app';
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterEach, afterAll } from 'vitest';
-
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 const DEMO_REFUSAL = {
   content: [{ type: 'text', text: 'Write operations are disabled in demo mode.' }],
@@ -74,25 +69,27 @@ beforeAll(async () => {
   toolListings = registry.list().filter((entry) => entry.kind === 'tool');
 });
 
-beforeEach(() => {
-  resetTestDb(testDb);
-  for (const id of Object.values(ADDON_IDS)) setAddonEnabled(testDb, id, true);
+beforeEach(async () => {
+  await resetDatabase(orm);
+  await Promise.all(Object.values(ADDON_IDS).map((id) => setAddonEnabled(orm, id, true)));
   // The wanderer tools show only while wanderer is allowed under Tours.
-  setAppSetting(testDb, 'tours_wanderer_enabled', 'true');
+  await setAppSetting(orm, 'tours_wanderer_enabled', 'true');
+  // The mail import tools show only while the import is on.
+  await setAppSetting(orm, 'mail_ingest_enabled', 'true');
 });
 
 afterEach(() => {
   delete process.env.DEMO_MODE;
 });
 
-afterAll(() => {
-  testDb.close();
+afterAll(async () => {
+  await (await bootTestApp()).close();
 });
 
 describe('demo tool gate over the whole registry', () => {
   it('DEMOGATE-001: every write tool refuses the demo account with the canned body, before its handler', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
+    const { user: demo } = await makeUser(orm, { email: 'demo@trek.app' });
     const tools = await captureTools(registry, { userId: demo.id, scopes: null, isStaticToken: false });
 
     const writes = [...tools].filter(
@@ -105,7 +102,7 @@ describe('demo tool gate over the whole registry', () => {
 
   it('DEMOGATE-007: the write tools that never had a demo check stay open to the demo account', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
+    const { user: demo } = await makeUser(orm, { email: 'demo@trek.app' });
     const ctx: McpContext = { userId: demo.id, scopes: null, isStaticToken: false };
     const tools = await captureTools(registry, ctx);
     const gate = trekDemoToolGate(async () => true);
@@ -133,7 +130,7 @@ describe('demo tool gate over the whole registry', () => {
 
   it('DEMOGATE-002: no read-only tool is held back for the demo account', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
+    const { user: demo } = await makeUser(orm, { email: 'demo@trek.app' });
     const ctx: McpContext = { userId: demo.id, scopes: null, isStaticToken: false };
     const gate = trekDemoToolGate(async () => true);
     const tools = await captureTools(registry, ctx);
@@ -148,7 +145,7 @@ describe('demo tool gate over the whole registry', () => {
 
   it('DEMOGATE-003: an ordinary account reaches the write handlers in demo mode', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'alice@example.com' });
+    const { user } = await makeUser(orm, { email: 'alice@example.com' });
     const tools = await captureTools(registry, { userId: user.id, scopes: null, isStaticToken: false });
     // create_tag has no trip to check and no addon gate: it writes and answers.
     const result = (await tools.get('create_tag')?.call({ name: 'Mine' })) as {
@@ -160,14 +157,14 @@ describe('demo tool gate over the whole registry', () => {
   });
 
   it('DEMOGATE-004: outside demo mode the demo account is an ordinary account', async () => {
-    const { user: demo } = createUser(testDb, { email: 'demo@trek.app' });
+    const { user: demo } = await makeUser(orm, { email: 'demo@trek.app' });
     const tools = await captureTools(registry, { userId: demo.id, scopes: null, isStaticToken: false });
     const result = (await tools.get('create_tag')?.call({ name: 'Mine' })) as { isError?: boolean };
     expect(result.isError).toBeUndefined();
   });
 
   it('DEMOGATE-005: with every addon on, only the photo-library tools stay detached, so the sweep above covers the rest', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const tools = await captureTools(registry, { userId: user.id, scopes: null, isStaticToken: false });
     const missing = toolListings.map((t) => t.name).filter((name) => !tools.has(name));
     // These three wait for a connected Immich or Synology provider
@@ -176,7 +173,7 @@ describe('demo tool gate over the whole registry', () => {
   });
 
   it('DEMOGATE-006: the scope mode and the read-only annotation agree on every declarative tool', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const tools = await captureTools(registry, { userId: user.id, scopes: null, isStaticToken: false });
     const mismatched: string[] = [];
     for (const listing of toolListings) {

@@ -18,7 +18,7 @@ export class JourneyStorageRefsService extends StorageReclaimSource {
   protected async storedValues(containing: readonly string[] | null): Promise<Array<string | null | undefined>> {
     const rows = await this.em
       .getRepository(Journeys)
-      .find(likeAny<Journeys>(['cover_image'], containing), { fields: ['cover_image'] });
+      .find(likeAny<Journeys>(this.em.getPlatform(), ['cover_image'], containing), { fields: ['cover_image'] });
     return rows.map((row) => row.cover_image);
   }
 }

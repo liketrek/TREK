@@ -16,6 +16,7 @@ import { JourneyMapService } from '../../src/nest/journey/journey-map.service';
 import { JourneyShareService } from '../../src/nest/journey/journey-share.service';
 import { JourneyTracksMcp } from '../../src/nest/journey/journey-tracks.mcp';
 import { JourneyModule } from '../../src/nest/journey/journey.module';
+import { ImmichService } from '../../src/nest/memories/immich.service';
 import { PhotoCaptureBackfillService } from '../../src/nest/memories/photo-capture-backfill.service';
 import { StorageService } from '../../src/nest/storage/storage.service';
 import { createTestMikroOrmModule } from '../helpers/test-orm';
@@ -117,7 +118,60 @@ const { jsvc } = vi.hoisted(() => ({
 // journey hears about it after a provider add, never after an upload (#1587).
 const { backfillRun, backfillSchedule } = vi.hoisted(() => ({ backfillRun: vi.fn(), backfillSchedule: vi.fn() }));
 
-const { sharesvc } = vi.hoisted(() => ({ sharesvc: { getPublicJourney: vi.fn() } }));
+const { sharesvc } = vi.hoisted(() => ({
+  sharesvc: { getPublicJourney: vi.fn(), validateShareTokenForAsset: vi.fn() },
+}));
+
+// What the share service answers for a link with every section on: the route
+// answers under a strict @ResponseContract, so this is also the allow-list.
+const publicPhoto = {
+  id: 3,
+  photo_id: 30,
+  caption: null,
+  media_type: 'image',
+  width: 800,
+  height: 600,
+  duration_ms: null,
+  taken_at: null,
+  lat: null,
+  lng: null,
+  posterless: false,
+};
+const publicJourney = {
+  journey: {
+    title: 'J',
+    subtitle: null,
+    cover_image: null,
+    status: 'draft',
+    show_verdict: 1,
+    show_mood: 1,
+    show_weather: 1,
+  },
+  entries: [
+    {
+      id: 7,
+      type: 'entry',
+      entry_date: '2026-05-14',
+      entry_time: null,
+      sort_order: 0,
+      title: 'Venice',
+      story: null,
+      location_name: null,
+      location_lat: null,
+      location_lng: null,
+      country_code: null,
+      mood: null,
+      weather: null,
+      tags: [],
+      pros_cons: null,
+      photos: [publicPhoto],
+    },
+  ],
+  gallery: [publicPhoto],
+  stats: { entries: 1, photos: 1, places: 0 },
+  cartoApiKey: '',
+  permissions: { share_timeline: true, share_gallery: true, share_map: false, newest_first: false },
+};
 
 const { mapsvc } = vi.hoisted(() => ({ mapsvc: { mapLayers: vi.fn(), publicMapLayers: vi.fn() } }));
 
@@ -169,7 +223,7 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     server = app.getHttpServer();
     jsvc.listJourneys.mockReturnValue([journeyListRow]);
     jsvc.createJourney.mockReturnValue(journeyRow(9));
-    sharesvc.getPublicJourney.mockReturnValue({ id: 9 });
+    sharesvc.getPublicJourney.mockReturnValue(publicJourney);
   });
 
   beforeEach(() => {
@@ -442,7 +496,18 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
   it('public journey read is unguarded (200 with a valid token, no cookie)', async () => {
     const res = await request(server).get('/api/public/journey/tok');
     expect(res.status).toBe(200);
-    expect(res.body).toEqual({ id: 9 });
+    expect(res.body).toEqual(publicJourney);
+  });
+
+  it('public journey read refuses a storage key or an asset id in its answer (strict contract)', async () => {
+    // The payload used to spread whole rows; the contract is what keeps a
+    // column added to a read later from reaching the public.
+    sharesvc.getPublicJourney.mockReturnValueOnce({
+      ...publicJourney,
+      gallery: [{ ...publicPhoto, file_path: 'journey/abc.jpg', asset_id: 'abc' }],
+    });
+    const res = await request(server).get('/api/public/journey/tok');
+    expect(res.status).toBe(500);
   });
 
   it('public journey read still answers the addon gate when Journey is off', async () => {
@@ -624,6 +689,26 @@ describe('Journey e2e (real auth guard + temp SQLite)', () => {
     const missing = await request(server).get('/api/public/journey/bad/map-layers');
     expect(missing.status).toBe(404);
     expect(missing.body).toEqual({ error: 'Not found' });
+  });
+
+  it('an Immich original behind an old share link is asked for as the public rendition', async () => {
+    sharesvc.validateShareTokenForAsset.mockResolvedValueOnce({ ownerId: 1 });
+    const stream = vi.mocked(ImmichService.prototype.streamImmichAsset);
+    stream.mockImplementationOnce(async (res) => {
+      res.status(204).end();
+    });
+
+    const res = await request(server).get('/api/public/journey/tok/photo/immich/a1/1/original');
+
+    expect(res.status).toBe(204);
+    expect(stream).toHaveBeenCalledWith(
+      expect.anything(),
+      1,
+      'a1',
+      'original',
+      1,
+      expect.objectContaining({ publicView: true }),
+    );
   });
 
   // ── GPX tracks: the route and get_journey_tracks read the same service ────

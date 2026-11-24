@@ -69,6 +69,10 @@ export function useTripRangeGuard(): { checking: boolean; check: (trip: Pick<Tri
         startDate: range.newStart,
         endDate: range.newEnd,
         dayCount: range.dayCount,
+        // The rule the server lays the days out by when bookings keep their dates,
+        // the default either dialog saves with. Shifting everything moves no day
+        // that this keeps, so the dated days it removes are the same.
+        keepDates: true,
       })
       if (plan.removed.length === 0) return null
 

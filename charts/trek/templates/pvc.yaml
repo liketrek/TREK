@@ -11,7 +11,7 @@ metadata:
   {{- end }}
 spec:
   accessModes:
-    - ReadWriteOnce
+    {{- toYaml (.Values.persistence.data.accessModes | default (list "ReadWriteOnce")) | nindent 4 }}
   {{- with .Values.persistence.data.storageClassName }}
   storageClassName: {{ . | quote }}
   {{- end }}
@@ -33,7 +33,7 @@ metadata:
   {{- end }}
 spec:
   accessModes:
-    - ReadWriteOnce
+    {{- toYaml (.Values.persistence.uploads.accessModes | default (list "ReadWriteOnce")) | nindent 4 }}
   {{- with .Values.persistence.uploads.storageClassName }}
   storageClassName: {{ . | quote }}
   {{- end }}

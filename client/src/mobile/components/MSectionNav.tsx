@@ -22,7 +22,7 @@ interface MSectionRowProps {
 }
 
 /** One section of a settings-like screen, in its dropdown or in the list beside the page. */
-export function MSectionRow({ section, active, current = false, onPick }: MSectionRowProps) {
+function MSectionRow({ section, active, current = false, onPick }: MSectionRowProps) {
   return (
     <button
       type="button"

@@ -50,7 +50,7 @@ const region: PaddleRegion = {
 describe('PaddleObstaclesController', () => {
   it('PADCTL-001: GET api/paddle/obstacles sits behind the Tours addon ahead of the session check', () => {
     expect(Reflect.getMetadata(PATH_METADATA, PaddleObstaclesController)).toBe('api/paddle');
-    expect(Reflect.getMetadata(GUARDS_METADATA, PaddleObstaclesController)).toEqual([AddonGuard, JwtAuthGuard]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, PaddleObstaclesController)).toEqual([JwtAuthGuard, AddonGuard]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, PaddleObstaclesController)).toEqual({ addonId: 'tours', label: 'Tours' });
     const handler = PaddleObstaclesController.prototype.inBox;
     expect(Reflect.getMetadata(METHOD_METADATA, handler)).toBe(RequestMethod.GET);

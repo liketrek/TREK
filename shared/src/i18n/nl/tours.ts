@@ -95,6 +95,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Hoogtemeters omhoog',
   'tours.detail.descent': 'Hoogtemeters omlaag',
   'tours.detail.navigationHint': 'De navigatie opent het startpunt van het pad; ze begeleidt je niet langs de route.',
+  'tours.detail.openRoute': 'Route openen in een kaarten-app',
+  'tours.detail.mapsShort': 'Kaarten',
   'tours.planner.title': 'Een tocht plannen',
   'tours.planner.newTour': 'Nieuwe tocht plannen',
   'tours.planner.addTour': 'Tocht toevoegen',

@@ -561,6 +561,23 @@ describe('mutationQueue.flush: a write the server keeps failing on', () => {
     expect(await offlineDb.places.get(5)).toBeUndefined();
     expect(await mutationQueue.failedCount()).toBe(0);
   });
+
+  it.each([
+    { resource: 'packingItems', url: '/trips/1/packing/5', label: 'Packing' },
+    { resource: 'budgetItems', url: '/trips/1/budget/5', label: 'Costs' },
+    { resource: 'tripFiles', url: '/trips/1/files/5/permanent', label: 'Documents' },
+    { resource: undefined, url: '/trips/1/files/trash/empty', label: 'Documents' },
+  ])('parks a DELETE of $url that the $label addon being off refuses', async ({ resource, url, label }) => {
+    const id = generateUUID();
+    const entityId = resource ? 5 : undefined;
+    await mutationQueue.enqueue(makeMutation({ id, method: 'DELETE', url, body: undefined, resource, entityId }));
+
+    server.use(http.delete(`/api${url}`, () => HttpResponse.json({ error: `${label} addon is not enabled` }, { status: 404 })));
+    await mutationQueue.flush();
+
+    expect(await offlineDb.mutationQueue.get(id)).toMatchObject({ status: 'failed', attempts: 1 });
+    expect(await mutationQueue.failedCount()).toBe(1);
+  });
 });
 
 describe('mutationQueue: parked changes', () => {

@@ -1,6 +1,7 @@
 import { Trips } from '../../db/entities/Trips.entity';
 import type { TripAccess } from '../../db/repositories/Trips.repository';
 import type { User } from '../../types';
+import { withRowId } from '../common/row-id';
 import { TRIP_REQUEST_KEY } from './trip-access.guard';
 import { EntityManager } from '@mikro-orm/core';
 import { CanActivate, ExecutionContext, HttpException, Injectable, SetMetadata } from '@nestjs/common';
@@ -82,10 +83,9 @@ export class TripOwnerGuard implements CanActivate {
     // so a request never costs two lookups of the same trip.
     let trip = request[TRIP_REQUEST_KEY];
     if (!trip) {
-      const tripId = Number((request.params as Record<string, string>)?.[meta?.param ?? 'tripId']);
-      trip = Number.isFinite(tripId)
-        ? ((await this.em.getRepository(Trips).findAccessible(tripId, user.id)) ?? undefined)
-        : undefined;
+      // toRowId, as in TripAccessGuard: Number() read '0x1' and '1e0' as trip 1.
+      const tripId = (request.params as Record<string, string>)?.[meta?.param ?? 'tripId'];
+      trip = await withRowId(tripId, (id) => this.em.getRepository(Trips).findAccessible(id, user.id));
       if (trip) request[TRIP_REQUEST_KEY] = trip;
     }
     if (!trip) throw new HttpException({ error: 'Trip not found' }, 404);

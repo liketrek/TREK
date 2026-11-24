@@ -2,7 +2,7 @@ import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 import { visualizer } from 'rollup-plugin-visualizer';
-import { rtlTextAlias, plyrSpriteAlias } from './rtlTextAlias.js';
+import { plyrSpriteAlias } from './plyrSpriteAlias.js';
 import { withoutRuntimeFonts } from './bookFontPrecache.js';
 import { ICON_CHUNK } from './iconChunk.js';
 import { readFileSync } from 'node:fs';
@@ -303,7 +303,7 @@ export default defineConfig(({ mode }) => ({
       },
     }),
   ].filter(Boolean),
-  resolve: { alias: [rtlTextAlias, plyrSpriteAlias] },
+  resolve: { alias: [plyrSpriteAlias] },
   build: {
     // Pin the output level instead of inheriting whatever the current Vite default
     // is, so a toolchain bump can't silently change which browsers still work.

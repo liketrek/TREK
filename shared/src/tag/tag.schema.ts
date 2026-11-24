@@ -11,11 +11,17 @@ import { z } from 'zod';
  *
  * The bespoke 400 ("Tag name is required") and 404 ("Tag not found") messages are
  * reproduced in the controller so the bodies stay byte-identical.
+ *
+ * A tag can also belong to a trip (`trip_id` set, trip-tag.schema.ts). Those never
+ * show on /api/tags: they are the trip's, read and written under
+ * /api/trips/:tripId/tags.
  */
 
 export const tagSchema = z.object({
   id: z.number(),
   user_id: z.number(),
+  /** The trip the tag belongs to; null for a personal one. Absent on the compact rows a place list carries. */
+  trip_id: z.number().nullable().optional(),
   name: z.string(),
   color: z.string(),
   created_at: z.string().optional(),

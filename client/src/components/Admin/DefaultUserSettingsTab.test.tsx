@@ -395,10 +395,11 @@ describe('DefaultUserSettingsTab', () => {
     render(<DefaultUserSettingsTab />);
     await screen.findByText('3D buildings & terrain');
 
-    // 3D defaults to on, quality mode to off when neither is stored
-    const threeD = within(screen.getByText('3D buildings & terrain').closest('div') as HTMLElement);
+    // 3D defaults to on, quality mode to off when neither is stored. The row
+    // (label left, control right) holds the On/Off pair.
+    const threeD = within(screen.getByText('3D buildings & terrain').closest('.flex-wrap') as HTMLElement);
     expect(isActive(threeD.getByRole('button', { name: 'On' }))).toBe(true);
-    const quality = within(screen.getByText('High-quality mode').closest('div') as HTMLElement);
+    const quality = within(screen.getByText('High-quality mode').closest('.flex-wrap') as HTMLElement);
     expect(isActive(quality.getByRole('button', { name: 'Off' }))).toBe(true);
 
     await user.click(threeD.getByRole('button', { name: 'Off' }));

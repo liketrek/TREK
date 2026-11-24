@@ -4,7 +4,9 @@ import { UserSessions } from '../../db/entities/UserSessions.entity';
 import type { CarriedUserSessionRow } from '../../db/repositories/UserSessions.repository';
 import { dbNow } from '../../db/types';
 import { logError, logWarn } from '../audit/audit-log.logger';
-import type { DatabaseBackupStrategy } from '../database/database-backup.interface';
+import { describeError } from '../common/describe-error';
+import { DomainError } from '../common/domain-error';
+import type { DatabaseBackupRefusal, DatabaseBackupStrategy } from '../database/database-backup.interface';
 import { invalidatePermissionsCache } from '../permissions/permissions-cache';
 import { snapshotAllPluginDataDbs } from '../plugins/host/plugin-data.service';
 import { pluginsCodeRoot, pluginsDataRoot } from '../plugins/paths';
@@ -35,8 +37,6 @@ export interface BackupDeps {
   storage: StorageService;
   database: DatabaseBackupStrategy;
 }
-
-const describeError = (err: unknown): string => (err instanceof Error ? err.message : String(err));
 
 // The scratch and key directory. The database itself may live elsewhere
 // (TREK_DB_FILE); the database port knows where.
@@ -467,6 +467,12 @@ async function restoreCarriedSessions(rows: readonly CarriedUserSessionRow[]): P
   }
 }
 
+/** The restore route's refusal for a `verify` that threw one. Any other failure is not a refusal, and keeps propagating. */
+function refusalOf(err: unknown): DatabaseBackupRefusal {
+  if (err instanceof DomainError) return { error: err.publicMessage, status: err.getStatus() };
+  throw err;
+}
+
 export async function restoreFromZip({ storage, database }: BackupDeps, zipPath: string): Promise<RestoreResult> {
   const extractDir = path.join(dataDir, `restore-${Date.now()}`);
   let reinitFailed: unknown;
@@ -474,7 +480,7 @@ export async function restoreFromZip({ storage, database }: BackupDeps, zipPath:
     const refused = await extractBackupArchive(zipPath, extractDir);
     if (refused) return { success: false, ...refused };
 
-    const unreadable = database.verify(extractDir);
+    const unreadable = await database.verify(extractDir).then(() => null, refusalOf);
     if (unreadable) {
       fs.rmSync(extractDir, { recursive: true, force: true });
       return { success: false, ...unreadable };

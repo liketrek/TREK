@@ -973,6 +973,107 @@ describe('streamImmichAsset', () => {
     expect(url).toContain('/api/assets/a1/thumbnail');
     expect((init.headers as Record<string, string>)['x-api-key']).toBe('owner-key');
   });
+
+  it('IMMICH-041e: a public view of an image asks for the preview rendition, an owner and a video keep theirs', async () => {
+    await seedUser(13, 'https://immich.example', 'owner-key');
+    safeFetch.mockResolvedValue(upstream({ contentType: 'image/jpeg', body: 'bytes' }));
+
+    await svc.streamImmichAsset(makeRes() as never, USER, 'a1', 'original', 13, { publicView: true });
+    await svc.streamImmichAsset(makeRes() as never, USER, 'a1', 'original', 13);
+    await svc.streamImmichAsset(makeRes() as never, USER, 'v1', 'original', 13, { mediaType: 'video' });
+
+    const urls = safeFetch.mock.calls.map((call) => String(call[0]));
+    expect(urls[0]).toContain('/api/assets/a1/thumbnail?size=preview');
+    expect(urls[1]).toContain('/api/assets/a1/thumbnail?size=fullsize');
+    expect(urls[2]).toContain('/api/assets/v1/video/playback');
+  });
+
+  describe('a public video', () => {
+    const located = { exifInfo: { latitude: 38.1, longitude: 13.1, fileSizeInByte: 5000 } };
+    const playback = (total: number) => ({
+      ...upstream({ status: 206, contentType: 'video/mp4' }),
+      headers: { get: (h: string) => (h === 'content-range' ? `bytes 0-0/${total}` : null) },
+    });
+    const serve = (id: string, asset: unknown, total: number) =>
+      safeFetch.mockImplementation(async (url: string, init: { headers: Record<string, string> }) => {
+        if (url.endsWith(`/api/assets/${id}`)) return upstream({ json: asset });
+        if (init.headers.Range === 'bytes=0-0') return playback(total);
+        return upstream({ contentType: 'video/mp4', body: 'video' });
+      });
+    const played = () =>
+      safeFetch.mock.calls.some(
+        (call) => call[1].headers.Range !== 'bytes=0-0' && String(call[0]).includes('/video/playback'),
+      );
+    const checks = () =>
+      safeFetch.mock.calls.filter(
+        (call) => call[1].headers.Range === 'bytes=0-0' || !String(call[0]).includes('/video/playback'),
+      ).length;
+    const publicVideo = async (id: string, range?: string) => {
+      const res = makeRes();
+      await svc.streamImmichAsset(res as never, USER, id, 'original', 13, {
+        mediaType: 'video',
+        publicView: true,
+        range,
+      });
+      return res;
+    };
+
+    beforeEach(async () => {
+      await seedUser(13, 'https://immich.example', 'owner-key');
+    });
+
+    it('IMMICH-041f: plays a video with a location only from the transcode, never the original file', async () => {
+      serve('v1', located, 5000);
+      expect((await publicVideo('v1')).status).toHaveBeenCalledWith(404);
+      expect(played()).toBe(false);
+
+      safeFetch.mockClear();
+      serve('v2', located, 3200);
+      await publicVideo('v2');
+      expect(played()).toBe(true);
+
+      safeFetch.mockClear();
+      serve('v3', { exifInfo: { latitude: null, longitude: null, fileSizeInByte: 5000 } }, 5000);
+      await publicVideo('v3');
+      expect(played()).toBe(true);
+
+      safeFetch.mockClear();
+      serve('v4', {}, 3200);
+      expect((await publicVideo('v4')).status).toHaveBeenCalledWith(404);
+    });
+
+    it('IMMICH-041g: a seek reuses the verdict instead of asking Immich again', async () => {
+      serve('v10', located, 3200);
+      await publicVideo('v10');
+      await publicVideo('v10', 'bytes=1000-');
+      await publicVideo('v10', 'bytes=2000-');
+
+      expect(checks()).toBe(2);
+      expect(safeFetch.mock.calls.length - checks()).toBe(3);
+
+      safeFetch.mockClear();
+      serve('v11', located, 5000);
+      expect((await publicVideo('v11')).status).toHaveBeenCalledWith(404);
+      expect((await publicVideo('v11', 'bytes=1000-')).status).toHaveBeenCalledWith(404);
+      expect(checks()).toBe(2);
+      expect(played()).toBe(false);
+    });
+
+    it('IMMICH-041h: an Immich that fails or times out answers 502 for that request, not 404, and is asked again', async () => {
+      safeFetch.mockResolvedValue(upstream({ ok: false, status: 503 }));
+      const busy = await publicVideo('v20');
+      expect(busy.status).toHaveBeenCalledWith(502);
+      expect(played()).toBe(false);
+
+      safeFetch.mockRejectedValue(new Error('The operation was aborted due to timeout'));
+      expect((await publicVideo('v20', 'bytes=1000-')).status).toHaveBeenCalledWith(502);
+
+      safeFetch.mockReset();
+      serve('v20', located, 3200);
+      await publicVideo('v20', 'bytes=1000-');
+      expect(played()).toBe(true);
+    });
+  });
 });
 
 describe('collectAlbumSelection', () => {

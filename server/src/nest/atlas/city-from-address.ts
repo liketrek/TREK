@@ -13,6 +13,7 @@
  * know the region: `place_regions.region_name` is filled by the geocoder, so it can
  * simply be skipped. For the address above, with the region resolved as Tokyo, walking
  * back past Japan (country), 150-0002 (digits) and Tokyo (the region) lands on Shibuya.
+ * A city written beside its postcode ("10178 Berlin") counts without the postcode (#3137).
  *
  * This is still a heuristic over a formatted string. Structured `address.city` from the
  * geocoder would be exact, but the fast path for region resolution runs against bundled
@@ -23,6 +24,36 @@
 /** A part carrying digits is a postcode, a house number or a numbered district. */
 function hasDigits(part: string): boolean {
   return /\d/.test(part);
+}
+
+/**
+ * The postcodes geocoders write into the same part as the city: German, French or US
+ * five digits ("10178 Berlin", "NY 10118"), Japanese "150-0002", Dutch "1012 LG", British
+ * "SW1A 2AA" and Canadian "M5V 3L9". A house number ("Unter den Linden 77") or a numbered
+ * district ("Shibuya 2") is none of these and keeps its part out of the running.
+ */
+const POSTCODES = [
+  /\b\d{4}\s?[A-Z]{2}\b/g,
+  /\b[A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}\b/g,
+  /\b[A-Z]\d[A-Z]\s?\d[A-Z]\d\b/g,
+  /\b\d{3}-\d{4}\b/g,
+  /\b\d{4,}(?:-\d{4})?\b/g,
+];
+
+/**
+ * The name left in a part once its postcode is taken out, or null when the part holds
+ * no postcode or nothing but one. The short state or province code that stands beside
+ * a postcode ("NY 10118", "Roma RM", "ON M5V 3L9") goes with it.
+ */
+function besidePostcode(part: string): string | null {
+  let rest = part;
+  for (const pattern of POSTCODES) rest = rest.replace(pattern, ' ');
+  if (rest === part) return null;
+  rest = rest
+    .split(/\s+/)
+    .filter((word) => word && !/^[A-Z]{2}$/.test(word))
+    .join(' ');
+  return rest && !hasDigits(rest) && /\p{L}/u.test(rest) ? rest : null;
 }
 
 function normalize(value: string): string {
@@ -53,8 +84,8 @@ export function cityFromAddress(
 
   // Index 0 stays out of the running: geocoders lead with the place itself.
   for (let i = last; i >= 1; i--) {
-    const part = parts[i];
-    if (hasDigits(part)) continue;
+    const part = hasDigits(parts[i]) ? besidePostcode(parts[i]) : parts[i];
+    if (!part) continue;
     if (isKnownCountry(part)) continue;
     if (region && normalize(part) === region) continue;
     // Anything with no letter at all (stray punctuation, a lone dash) is not a name.

@@ -11,6 +11,7 @@
 import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { Tours } from '../../src/db/entities/Tours.entity';
+import { TripAddonOverrides } from '../../src/db/entities/TripAddonOverrides.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
 import { TrekExceptionFilter } from '../../src/nest/common/trek-exception.filter';
 import { ZodValidationPipe } from '../../src/nest/common/zod-validation.pipe';
@@ -23,7 +24,7 @@ import { ToursModule } from '../../src/nest/tours/tours.module';
 import { createSnapshotTestDb } from '../helpers/db-mock';
 import { makePlace } from '../helpers/factories/places';
 import { countRows, deleteRows, findRow, insertRows } from '../helpers/factories/rows';
-import { setAddonEnabled } from '../helpers/factories/settings';
+import { setAddonEnabled, setTripAddon } from '../helpers/factories/settings';
 import { makeTour } from '../helpers/factories/tours';
 import { addTripMember } from '../helpers/factories/trips';
 import { makeUser } from '../helpers/factories/users';
@@ -658,6 +659,30 @@ describe('Tours planned e2e (real guards + temp SQLite)', () => {
         .send({ source_trip_id: 6, source_place_id: source });
       expect(mismatched.status).toBe(404);
       expect(await countRows(orm, Places, { trip: 7 })).toBe(before);
+    });
+
+    it('a trip with Tours off is out of the library: not listed, previewed or taken over, its tours kept', async () => {
+      const ridge = await createViaApi(5);
+      await createViaApi(6, tourBody({ name: 'Valley walk' }));
+      await setTripAddon(orm, 5, 'tours', false);
+      try {
+        const all = await request(server).get('/api/tours/library').set('Cookie', sessionCookie(OWNER));
+        expect(all.body.tours.map((tour: { name: string }) => tour.name)).toEqual(['Valley walk']);
+        expect(all.body.trips).toEqual([{ id: 6, title: 'Other', tour_count: 1 }]);
+        const named = await request(server).get('/api/tours/library?trip_id=5').set('Cookie', sessionCookie(OWNER));
+        expect(named.body.tours).toEqual([]);
+        const preview = await request(server).get(`/api/tours/library/${ridge}`).set('Cookie', sessionCookie(OWNER));
+        expect(preview.status).toBe(404);
+        const taken = await request(server)
+          .post('/api/trips/6/tours/take-over')
+          .set('Cookie', sessionCookie(OWNER))
+          .send({ source_trip_id: 5, source_place_id: ridge });
+        expect(taken.status).toBe(404);
+        expect(taken.body).toEqual({ error: 'Tour not found' });
+      } finally {
+        await deleteRows(orm, TripAddonOverrides);
+      }
+      expect(await findRow(orm, Places, { id: ridge })).toMatchObject({ trip_id: 5 });
     });
 
     it('needs place_edit on the trip it writes into, the addon on, a session and a well-formed body', async () => {

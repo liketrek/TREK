@@ -545,11 +545,11 @@ describe('CityWalkMcp (CW-11)', () => {
     ]);
     expect(propose.description).toContain('stations_for_create');
     expect(create.description).toContain('route_pending');
-    const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');
+    const isEnabledForUserAnywhere = vi.fn(async (_userId: number, id: string) => id === 'tours');
     const gated = await Promise.all(
-      [propose, create].map((tool) => tool.when?.(ctx(1), { addons: { isAddonEnabled } })),
+      [propose, create].map((tool) => tool.when?.(ctx(1), { addons: { isEnabledForUserAnywhere } })),
     );
     expect(gated).toEqual([true, true]);
-    expect(isAddonEnabled).toHaveBeenCalledWith('tours');
+    expect(isEnabledForUserAnywhere).toHaveBeenCalledWith(1, 'tours');
   });
 });

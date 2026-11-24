@@ -43,7 +43,9 @@ export class GoogleApiUsageRepository extends TrekRepository<GoogleApiUsage> {
     await this.kysely<GoogleApiUsageKyselyDB>()
       .insertInto('google_api_usage')
       .values({ day, calls: 1 })
-      .onConflict((oc) => oc.column('day').doUpdateSet({ calls: (eb) => eb('calls', '+', 1) }))
+      // The target row's column is qualified: Postgres reads a bare name as
+      // ambiguous between it and `excluded` (42702).
+      .onConflict((oc) => oc.column('day').doUpdateSet({ calls: (eb) => eb(eb.ref('google_api_usage.calls'), '+', 1) }))
       .execute();
   }
 

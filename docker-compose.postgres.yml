@@ -1,0 +1,142 @@
+# TREK on a Postgres database instead of the SQLite file. See the wiki page
+# Database-Postgres for what this changes, the requirements and the backups.
+#
+# Needs Docker Compose 2.23.1 or newer, which reads the inline config
+# (configs.trek-db-role below). An older Compose, as some NAS bundles ship,
+# refuses the whole file with "Additional property content is not allowed".
+#
+# Set two passwords in a .env file beside this file (or in the shell) before
+# the first start:
+#   POSTGRES_ADMIN_PASSWORD=<a long random value>   the database's superuser, postgres
+#   POSTGRES_PASSWORD=<another long random value>   TREK's own role, trek
+# TREK connects as the role trek, which owns its database but is not a
+# superuser: a backup TREK restores is a SQL script run by that role, and a
+# superuser would let a crafted one run commands in the database container.
+# The superuser only creates that role, on the database's first start
+# (configs.trek-db-role below). TREK's password goes into TREK_DB_URL, so keep
+# it to URL-safe characters or percent-encode it. Without either password the
+# first start fails instead of creating a database nobody can reach.
+#
+# An install that started from an older version of this file runs TREK as the
+# superuser trek; the wiki page Database-Postgres ("Moving a compose install
+# off the superuser") shows how to move it to this layout.
+#
+# The database runs PostgreSQL 18. TREK supports 14 to 18: to run 14 to 17,
+# change the image tag and mount the volume at /var/lib/postgresql/data
+# instead, where those images keep their data (the 18 image refuses that
+# path). An existing database stays on the major it was created with: when
+# you update this file, keep your image tag and volume path. Moving to
+# another major needs pg_upgrade, or a dump and restore (a TREK backup
+# restored into a new, empty database of the same or a newer major), never
+# just a new image tag.
+services:
+  db:
+    image: postgres:18
+    container_name: trek-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-trek}
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_ADMIN_PASSWORD:-}
+      - TREK_DB_PASSWORD=${POSTGRES_PASSWORD:-}
+    configs:
+      - source: trek-db-role
+        target: /docker-entrypoint-initdb.d/10-trek-role.sh
+    security_opt:
+      - no-new-privileges:true
+    # No ports are published: only the trek service on the compose network reaches the database.
+    volumes:
+      # The path the postgres:18 image expects. Images 14 to 17 need
+      # /var/lib/postgresql/data here (see the top of this file).
+      - trek-pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+
+  app:
+    image: mauriceboe/trek:latest
+    container_name: trek
+    depends_on:
+      db:
+        condition: service_healthy
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      # dumb-init runs as root and forwards SIGTERM to node, which runs as the
+      # node user; signalling another user's process needs KILL. See docker-compose.yml.
+      - KILL
+    tmpfs:
+      - /tmp:noexec,nosuid,size=128m
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-} # Recommended. Generate with: openssl rand -hex 32.
+      - TZ=${TZ:-UTC}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-}
+      # The database URL, as the role trek. Its host is the service name above;
+      # sslmode=disable is right on the compose network. Use sslmode=verify-full
+      # with sslrootcert= for a database reached over a network you do not control.
+      - TREK_DB_URL=postgres://trek:${POSTGRES_PASSWORD:-}@db:5432/${POSTGRES_DB:-trek}?sslmode=disable
+      # Scale-out is not supported: keep one trek container (see Database-Postgres).
+    volumes:
+      - ./data:/app/data
+      - ./uploads:/app/uploads
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:$${PORT:-3000}/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+
+# Run once by the postgres image, on the database's first start, as the
+# superuser: creates the role trek, which owns TREK's database and its public
+# schema, so it can create TREK's tables and its collation there, and nothing
+# more. The password reaches psql as a variable, never spliced into the SQL.
+#
+# Outside Swarm, compose cannot set a config's file mode, so the file is not
+# executable and the image sources it into its own shell instead of running
+# it. All the work runs in a subshell, so set -eu and exit stay inside it,
+# and a failure there fails the database's first start either way.
+configs:
+  trek-db-role:
+    content: |
+      #!/bin/sh
+      (
+        set -eu
+        if [ -z "$${TREK_DB_PASSWORD:-}" ]; then
+          echo 'POSTGRES_PASSWORD (the password of the role trek) is not set.' >&2
+          exit 1
+        fi
+        psql -v ON_ERROR_STOP=1 --no-psqlrc --username "$$POSTGRES_USER" --dbname "$$POSTGRES_DB" \
+          --set=password="$$TREK_DB_PASSWORD" --set=database="$$POSTGRES_DB" <<'SQL'
+      CREATE ROLE trek LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD :'password';
+      ALTER DATABASE :"database" OWNER TO trek;
+      ALTER SCHEMA public OWNER TO trek;
+      SQL
+      )
+
+volumes:
+  trek-pgdata:

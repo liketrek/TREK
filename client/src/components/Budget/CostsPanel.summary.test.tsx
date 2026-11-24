@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { buildBudgetItem, buildTrip, buildUser } from '../../../tests/helpers/factories';
 import { server } from '../../../tests/helpers/msw/server';
-import { render, screen } from '../../../tests/helpers/render';
+import { render, screen, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -68,7 +68,10 @@ describe('CostsPanel: summary footers and won amounts (#2604)', () => {
   it('FE-COSTS-2604-002: with nothing left to settle the outstanding card still says so', async () => {
     mount([owedByBob()]);
     await screen.findByText('Museum');
-    expect(screen.getByRole('region', { name: 'Outstanding amount' })).toHaveTextContent("You're all settled up");
+    // Only once the settlement is read: until then nobody knows whether anything is left.
+    await waitFor(() =>
+      expect(screen.getByRole('region', { name: 'Outstanding amount' })).toHaveTextContent("You're all settled up")
+    );
   });
 
   it('FE-COSTS-2604-003: a single expense without a payer reads in the singular', async () => {

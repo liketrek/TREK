@@ -106,6 +106,9 @@ describe('DayAccommodationsRepository — fully seeded world', () => {
     const { trip, named, otherStay } = await seed();
     expect(await repo.existsInTrip(named.id, trip.id)).toBe(true);
     expect(await repo.existsInTrip(otherStay.id, trip.id)).toBe(false);
+    expect(await repo.idOnTrip(named.id, trip.id)).toBe(named.id);
+    expect(await repo.idOnTrip(otherStay.id, trip.id)).toBeNull();
+    expect(await repo.idOnTrip(null, trip.id)).toBeNull();
     expect(await repo.getCheckIn(named.id)).toBe('15:00');
     expect(await repo.getTripId(named.id)).toBe(trip.id);
     expect(await repo.getTripId(999999)).toBeUndefined();

@@ -29,6 +29,7 @@ import { PhotoProviderRegistry } from './photo-provider.registry';
 import { PhotoResolverService } from './photo-resolver.service';
 import { ImmichPhotoProvider } from './providers/immich.provider';
 import { SynologyPhotoProvider } from './providers/synology.provider';
+import { PublicMediaService } from './public-media.service';
 import { SynologyCaptureRepairJob } from './synology-capture-repair.job';
 import { SynologyMemoriesController } from './synology.controller';
 import { SynologyService } from './synology.service';
@@ -108,6 +109,7 @@ import { Module } from '@nestjs/common';
     UnifiedMemoriesService,
     PhotoResolverService,
     PhotoCaptureBackfillService,
+    PublicMediaService,
     ThumbnailService,
     TrekPhotoCacheService,
     TrekPhotoCacheJob,
@@ -127,6 +129,7 @@ import { Module } from '@nestjs/common';
     MemoriesAccessService,
     PhotoResolverService,
     PhotoCaptureBackfillService,
+    PublicMediaService,
     ImmichService,
     SynologyService,
     PhotoProviderRegistry,

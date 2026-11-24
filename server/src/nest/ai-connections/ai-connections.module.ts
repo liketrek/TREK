@@ -16,6 +16,7 @@ import { AiRefreshLock, InMemoryAiRefreshLock } from './ai-refresh-lock';
 import { AiSettingsService } from './ai-settings.service';
 import { AiUsageService } from './ai-usage.service';
 import { ChatgptAuthService } from './chatgpt-auth.service';
+import { ChatgptParsingReader } from './chatgpt-parsing.reader';
 import { ModelCatalogService } from './model-catalog.service';
 import { OpenrouterAuthService } from './openrouter-auth.service';
 import { MikroOrmModule } from '@mikro-orm/nestjs';
@@ -47,6 +48,7 @@ import { Module } from '@nestjs/common';
     AiUsageService,
     AiChatClientService,
     ChatgptAuthService,
+    ChatgptParsingReader,
     OpenrouterAuthService,
     ModelCatalogService,
     { provide: AiAuthFlowStore, useClass: InMemoryAiAuthFlowStore },

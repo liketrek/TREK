@@ -3,7 +3,6 @@
   "plugin-sdk/CLAUDE.md :: protocol/output-contract.ts",
   "plugin-sdk/CLAUDE.md :: scripts/validate-entry.mjs",
   "server/CLAUDE.md :: db/migrations.ts",
-  "server/CLAUDE.md :: host/plugin-data.service.ts",
   "server/CLAUDE.md :: host/rpc-host.ts",
   "server/CLAUDE.md :: pg-probe/arg-samples.ts",
   "server/CLAUDE.md :: pg-probe/recorder.ts",

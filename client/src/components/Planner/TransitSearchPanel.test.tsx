@@ -357,7 +357,7 @@ describe('TransitSearchPanel', () => {
     await user.click(fromInput)
     const picks = (await screen.findAllByRole('button', { name: /Hotel Adlon|Stop \d|Hostel/ })).map(b => b.textContent)
     expect(picks[0]).toBe('Hotel Adlon')
-    expect(picks.slice(1)).toEqual(['Stop 1', 'Stop 2', 'Stop 3', 'Stop 4', 'Stop 5', 'Stop 6', 'Stop 7', 'Stop 8'])
+    expect(picks.slice(1)).toEqual([...places.map(p => p.name), 'Later Hostel'])
 
     await user.click(screen.getByRole('button', { name: 'Hotel Adlon' }))
     expect(fromInput).toHaveValue('Hotel Adlon')
@@ -744,7 +744,7 @@ describe('quick picks from the bookings of the day (#1506)', () => {
     const places = Array.from({ length: 12 }, (_, i) => buildPlace({ id: 100 + i, name: `P${i}`, lat: 52 + i / 100, lng: 13 }))
     const picks = buildQuickPicks(day, [day], places as any, [], dayBookingStops(day, [flight] as any))
     expect(picks.slice(0, 2).map(p => p.name)).toEqual(['FRA', 'BER Airport'])
-    expect(picks).toHaveLength(2 + 8)
+    expect(picks).toHaveLength(2 + places.length)
   })
 })
 

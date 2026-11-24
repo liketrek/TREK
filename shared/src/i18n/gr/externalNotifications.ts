@@ -17,6 +17,18 @@ const gr: NotificationLocale = {
       title: `Νέα κράτηση: ${p.booking}`,
       body: `Ο/Η ${p.actor} πρόσθεσε μια νέα κράτηση "${p.booking}" (${p.type}) στο "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `Η πτήση ${p.flight} αναχώρησε`,
+      body: `Η πτήση ${p.flight} από ${p.from} προς ${p.to} είναι στον αέρα.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `Η πτήση ${p.flight} έχει καθυστέρηση`,
+      body: `Η πτήση ${p.flight} από ${p.from} προς ${p.to} έχει καθυστέρηση περίπου ${p.delay} λεπτών.`,
+    }),
+    flight_landed: (p) => ({
+      title: `Η πτήση ${p.flight} προσγειώθηκε`,
+      body: `Η πτήση ${p.flight} από ${p.from} προσγειώθηκε στο ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Υπενθύμιση ταξιδιού: ${p.trip}`,
       body: `Το ταξίδι σας "${p.trip}" πλησιάζει!`,
@@ -86,6 +98,21 @@ const gr: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `«${p.tour}» στο «${p.trip}» δεν ελέγχεται πια στο wanderer. Η διαδρομή στο ταξίδι σου μένει ως έχει.`
             : `«${p.tour}» στο «${p.trip}» ίσως άλλαξε στο wanderer. Άνοιξε τη διαδρομή και έλεγξε την πηγή της. Στο ταξίδι τίποτα δεν αλλάζει από μόνο του.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Προστέθηκε από email: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `Ο/Η ${p.actor} πρόσθεσε την κράτηση «${p.booking}» στο «${p.trip}» από προωθημένο email.`
+          : `Η κράτηση «${p.booking}» από το προωθημένο email σας προστέθηκε στο «${p.trip}». Μπορείτε να την αναιρέσετε στο TREK για 7 ημέρες.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Προωθημένες κρατήσεις για έλεγχο',
+      body: `Προωθημένες κρατήσεις σε αναμονή στο TREK: ${p.count}. Σε καθεμία αναφέρεται γιατί δεν προστέθηκε αυτόματα.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Η εισαγωγή email σε παύση',
+      body: 'Το TREK δεν δέχεται προς το παρόν προωθημένα email κρατήσεων, οπότε περίμενε πριν τα προωθήσεις. Οι διευθύνσεις σου μένουν και θα λειτουργήσουν ξανά όταν επιστρέψει η εισαγωγή, και οι κρατήσεις που έχουν ήδη προστεθεί μένουν στα ταξίδια σου.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useId, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X, RefreshCw, Calendar, Power } from 'lucide-react'
 import { SubscribeLinks } from './SubscribeLinks'
+import ToggleSwitch from '../Settings/ToggleSwitch'
 import { useIsPhone } from '../../mobile/useIsPhone'
 import { useTranslation } from '../../i18n'
 import { DialogButton, DialogFooter, DialogHeader, DialogShell, DialogTile, FooterSpacer, NEUTRAL_TINT, fs } from '../shared/DialogShell'
@@ -24,6 +25,31 @@ function absolutize(url: string): string {
   return url
 }
 
+// The feeds take days=0 to leave out the all-day summary every day with
+// untimed places or notes gets (#2602). The choice lives in the link itself,
+// so a calendar keeps what it subscribed to and the token stays one per trip.
+function withDayEvents(url: string, dayEvents: boolean): string {
+  if (!url || dayEvents) return url
+  return `${url}${url.includes('?') ? '&' : '?'}days=0`
+}
+
+/** The switch for those summaries, above the links it changes, on both shells. */
+function DayEventsSwitch({ on, onToggle }: { on: boolean; onToggle: () => void }) {
+  const { t } = useTranslation()
+  const hintId = useId()
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <div className="min-w-0">
+        <div className="text-body font-medium text-content">{t('dashboard.ics.dayEvents')}</div>
+        <p id={hintId} className="m-0 mt-0.5 text-caption leading-normal text-content-faint">
+          {t('dashboard.ics.dayEventsHint')}
+        </p>
+      </div>
+      <ToggleSwitch on={on} onToggle={onToggle} label={t('dashboard.ics.dayEvents')} describedBy={hintId} />
+    </div>
+  )
+}
+
 /**
  * Shared subscribe dialog for the per-trip and all-trips ICS feeds. Opening it
  * only *reads* the current token — it never mints one silently. The user
@@ -37,11 +63,13 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
   const [feedUrl, setFeedUrl] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
+  const [dayEvents, setDayEvents] = useState(true)
+  const toggleDayEvents = () => setDayEvents(on => !on)
   const isPhone = useIsPhone()
   const { t } = useTranslation()
   const titleId = useId()
 
-  const httpsUrl = feedUrl ? absolutize(feedUrl) : ''
+  const httpsUrl = feedUrl ? withDayEvents(absolutize(feedUrl), dayEvents) : ''
   const webcalUrl = httpsUrl ? httpsUrl.replace(/^https?:\/\//, 'webcal://') : ''
 
   const load = useCallback(async () => {
@@ -83,6 +111,8 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
         httpsUrl={httpsUrl}
         webcalUrl={webcalUrl}
         mutate={mutate}
+        dayEvents={dayEvents}
+        onToggleDayEvents={toggleDayEvents}
       />
     )
   }
@@ -158,6 +188,9 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
           </>
         ) : (
           <>
+            <div style={{ marginBottom: 16 }}>
+              <DayEventsSwitch on={dayEvents} onToggle={toggleDayEvents} />
+            </div>
             <SubscribeLinks httpsUrl={httpsUrl} webcalUrl={webcalUrl} />
 
             <div style={{ marginTop: 16, paddingTop: 12, borderTop: '1px solid var(--border-faint)', display: 'flex', gap: 8 }}>
@@ -208,7 +241,7 @@ export function IcsSubscribeModal({ endpoint, title, description, onClose }: Ics
 // A secondary footer button in the danger colour, for the switch that takes the link away.
 const TURN_OFF_BTN = 'inline-flex items-center gap-1.5 rounded-[10px] bg-surface-tertiary px-3.5 py-2 font-medium text-danger hover:bg-danger-soft disabled:cursor-default disabled:opacity-50'
 
-function DesktopSubscribeDialog({ titleId, title, description, onClose, loading, busy, feedUrl, httpsUrl, webcalUrl, mutate }: {
+function DesktopSubscribeDialog({ titleId, title, description, onClose, loading, busy, feedUrl, httpsUrl, webcalUrl, mutate, dayEvents, onToggleDayEvents }: {
   titleId: string
   title: string
   description: string
@@ -219,6 +252,8 @@ function DesktopSubscribeDialog({ titleId, title, description, onClose, loading,
   httpsUrl: string
   webcalUrl: string
   mutate: (method: 'POST' | 'PUT' | 'DELETE') => Promise<void>
+  dayEvents: boolean
+  onToggleDayEvents: () => void
 }) {
   const { t } = useTranslation()
   const header = (
@@ -255,6 +290,7 @@ function DesktopSubscribeDialog({ titleId, title, description, onClose, loading,
   } else {
     body = (
       <>
+        <DayEventsSwitch on={dayEvents} onToggle={onToggleDayEvents} />
         <SubscribeLinks httpsUrl={httpsUrl} webcalUrl={webcalUrl} />
         <p className={hint} style={fs(11.5)}>
           {t('dashboard.ics.manageHint')}

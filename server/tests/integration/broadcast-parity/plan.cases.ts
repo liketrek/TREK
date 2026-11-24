@@ -5,6 +5,7 @@ import type { ListImportResult } from '../../../src/nest/places/places.helpers';
 import { PlacesService } from '../../../src/nest/places/places.service';
 import { StorageService } from '../../../src/nest/storage/storage.service';
 import { makeDayAssignment } from '../../helpers/factories/itinerary';
+import { makeTag } from '../../helpers/factories/places';
 import { insertRow, updateRows } from '../../helpers/factories/rows';
 import type { CaseGroup, Scene } from './types';
 import { MikroORM } from '@mikro-orm/core';
@@ -22,6 +23,8 @@ const dayPlanPath = (s: Scene, day: 0 | 1 | 2) => `/api/trips/${s.trip.id}/days/
 /** The per-assignment routes of the scene's assignment. */
 const assignmentPath = (s: Scene) => `/api/trips/${s.trip.id}/assignments/${s.assignment.id}`;
 const dayNotesPath = (s: Scene) => `/api/trips/${s.trip.id}/days/${s.days[0].id}/notes`;
+/** The tags the scene's trip owns. */
+const tripTagsPath = (s: Scene) => `/api/trips/${s.trip.id}/tags`;
 const onAssignment = (s: Scene) => ({ tripId: s.trip.id, assignmentId: s.assignment.id });
 
 /** One waypoint, the smallest file the importer turns into a place. */
@@ -88,9 +91,25 @@ async function boundaryOnSecondDay(s: Scene, app: INestApplication): Promise<voi
   });
 }
 
+/** The tag a setup gave a scene's trip, by the scene's number. */
+const tripTagOf = new Map<number, number>();
+
+/** A tag of the scene's trip, for the cases that rename or delete one. */
+async function tripTag(s: Scene, app: INestApplication): Promise<void> {
+  const tag = await makeTag(app.get(MikroORM), s.owner.id, { trip: s.trip.id, name: 'Monument' });
+  tripTagOf.set(s.n, tag.id);
+}
+
+const tripTagId = (s: Scene): number => {
+  const id = tripTagOf.get(s.n);
+  if (id === undefined) throw new Error(`scene ${s.n} has no trip tag from its setup`);
+  return id;
+};
+
 /**
- * The planner: places, the day plan, days, day notes, categories, and the
- * collection places copied into a trip.
+ * The planner: places and the tags their trip owns, the day plan, days, day
+ * notes, categories, the collection places copied into a trip, and the trip
+ * addons its owner switches for it.
  */
 export const plan: CaseGroup = {
   name: 'plan',
@@ -214,6 +233,30 @@ export const plan: CaseGroup = {
       expect: ['place:updated', 'place:updated'],
     },
     {
+      tool: 'create_trip_tag',
+      args: (s) => ({ tripId: s.trip.id, name: 'Monument' }),
+      rest: { method: 'post', path: tripTagsPath, body: () => ({ name: 'Monument' }) },
+      expect: ['tripTags:changed'],
+    },
+    {
+      tool: 'update_trip_tag',
+      setup: tripTag,
+      args: (s) => ({ tripId: s.trip.id, tagId: tripTagId(s), name: 'Landmark' }),
+      rest: {
+        method: 'put',
+        path: (s) => `${tripTagsPath(s)}/${tripTagId(s)}`,
+        body: () => ({ name: 'Landmark' }),
+      },
+      expect: ['tripTags:changed'],
+    },
+    {
+      tool: 'delete_trip_tag',
+      setup: tripTag,
+      args: (s) => ({ tripId: s.trip.id, tagId: tripTagId(s) }),
+      rest: { method: 'delete', path: (s) => `${tripTagsPath(s)}/${tripTagId(s)}` },
+      expect: ['tripTags:changed'],
+    },
+    {
       tool: 'assign_place_to_day',
       needs: ['place'],
       args: (s) => ({ tripId: s.trip.id, dayId: s.days[1].id, placeId: s.place.id }),
@@ -225,6 +268,13 @@ export const plan: CaseGroup = {
       needs: ['assignment'],
       args: (s) => ({ ...onAssignment(s), end_day: true }),
       rest: { method: 'put', path: (s) => `${assignmentPath(s)}/end-day`, body: () => ({ end_day: true }) },
+      expect: ['assignment:updated'],
+    },
+    {
+      tool: 'set_assignment_stay',
+      needs: ['assignment'],
+      args: (s) => ({ ...onAssignment(s), stay_minutes: 15 }),
+      rest: { method: 'put', path: (s) => `${assignmentPath(s)}/stay`, body: () => ({ stay_minutes: 15 }) },
       expect: ['assignment:updated'],
     },
     {
@@ -405,6 +455,13 @@ export const plan: CaseGroup = {
         body: () => ({ transport_mode: 'walking' }),
       },
       expect: ['day:updated'],
+    },
+    {
+      // The owner switches costs off for the trip: every tab gets the trip's addon list.
+      tool: 'set_trip_addon',
+      args: (s) => ({ tripId: s.trip.id, addonId: 'budget', enabled: false }),
+      rest: { method: 'put', path: (s) => `/api/trips/${s.trip.id}/addons/budget`, body: () => ({ enabled: false }) },
+      expect: ['tripAddons:changed'],
     },
   ],
   exempt: [

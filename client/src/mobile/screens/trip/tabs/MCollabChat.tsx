@@ -217,6 +217,7 @@ export default function MCollabChat({ planner }: MCollabChatProps) {
             />
             <button
               type="button"
+              onMouseDown={e => e.preventDefault()}
               onClick={handleSend}
               disabled={(!text.trim() && !images.files.length) || sending}
               aria-label={t('collab.chat.send')}

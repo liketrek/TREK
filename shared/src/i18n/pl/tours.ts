@@ -102,6 +102,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Suma podejść',
   'tours.detail.descent': 'Suma zejść',
   'tours.detail.navigationHint': 'Nawigacja otwiera punkt początkowy szlaku; nie prowadzi wzdłuż trasy.',
+  'tours.detail.openRoute': 'Otwórz trasę w aplikacji map',
+  'tours.detail.mapsShort': 'Mapy',
   'tours.planner.title': 'Zaplanuj wycieczkę',
   'tours.planner.newTour': 'Zaplanuj nową wycieczkę',
   'tours.planner.addTour': 'Dodaj trasę',

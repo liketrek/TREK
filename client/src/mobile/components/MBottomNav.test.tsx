@@ -1,4 +1,4 @@
-// FE-COMP-MBOTTOMNAV-001 to FE-COMP-MBOTTOMNAV-008
+// FE-COMP-MBOTTOMNAV-001 to FE-COMP-MBOTTOMNAV-011
 
 vi.mock('../../api/websocket', () => ({
   connect: vi.fn(),
@@ -23,10 +23,18 @@ import { useAddonStore } from '../../store/addonStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser } from '../../../tests/helpers/factories';
 import { useAssistantStore } from '../../store/assistantStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import type { AiStatusResponse } from '@trek/shared';
 import MBottomNav from './MBottomNav';
 
 const currentUser = buildUser({ id: 1, username: 'testuser', email: 'test@example.com' });
+
+const vacay = { id: 'vacay', name: 'Vacay', type: 'global', icon: 'calendar', enabled: true };
+const atlas = { id: 'atlas', name: 'Atlas', type: 'global', icon: 'globe', enabled: true };
+const assistantAddon = { id: 'ai_assistant', name: 'AI assistant', type: 'integration', icon: 'sparkles', enabled: true };
+
+const withAssistant = () =>
+  useAssistantStore.setState({ status: { available: true } as AiStatusResponse, window: { open: false, minimized: false } });
 
 const withCollections = () =>
   seedStore(useAddonStore, {
@@ -38,6 +46,10 @@ beforeEach(() => {
   mockNavigate.mockClear();
   sessionStorage.clear();
   seedStore(useAuthStore, { user: currentUser, isAuthenticated: true });
+});
+
+afterEach(() => {
+  useAssistantStore.setState({ status: null, window: { open: false, minimized: false } });
 });
 
 describe('MBottomNav', () => {
@@ -100,14 +112,46 @@ describe('MBottomNav', () => {
     expect(screen.queryByRole('button', { name: 'New Trip' })).not.toBeInTheDocument();
   });
 
-  it('FE-COMP-MBOTTOMNAV-008: the More list leads with the assistant while it can run, and opens the home chat', async () => {
+  it('FE-COMP-MBOTTOMNAV-008: the assistant takes a free dock slot, so More does not hold it alone', async () => {
     const user = userEvent.setup();
-    useAssistantStore.setState({ status: { available: true } as AiStatusResponse, window: { open: false, minimized: false } });
+    withAssistant();
+    seedStore(useAddonStore, { addons: [atlas, assistantAddon] });
+    render(<MBottomNav />, { initialEntries: ['/atlas'] });
+    expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Assistant' }));
+    expect(useAssistantStore.getState().window).toEqual({ open: true, minimized: false });
+    expect(mockNavigate).not.toHaveBeenCalled();
+  });
+
+  it('FE-COMP-MBOTTOMNAV-009: with the dock full the assistant waits under More, and opens the home chat from there', async () => {
+    const user = userEvent.setup();
+    withAssistant();
+    seedStore(useAddonStore, { addons: [vacay, atlas, assistantAddon] });
     render(<MBottomNav />, { initialEntries: ['/atlas'] });
     await user.click(screen.getByRole('button', { name: 'More' }));
     await user.click(screen.getByRole('button', { name: 'Assistant' }));
     expect(useAssistantStore.getState().window).toEqual({ open: true, minimized: false });
     expect(mockNavigate).not.toHaveBeenCalled();
-    useAssistantStore.setState({ status: null, window: { open: false, minimized: false } });
+  });
+
+  it('FE-COMP-MBOTTOMNAV-010: the assistant goes where the settings put it', () => {
+    withAssistant();
+    seedStore(useAddonStore, { addons: [vacay, atlas, assistantAddon] });
+    seedStore(useSettingsStore, {
+      settings: { ...useSettingsStore.getState().settings, appearance: { mobileNav: { bar: ['assistant', 'atlas'], more: ['vacay'] } } },
+    });
+    render(<MBottomNav />, { initialEntries: ['/atlas'] });
+    expect(screen.getByRole('button', { name: 'Assistant' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Atlas' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Vacay' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'More' })).toBeInTheDocument();
+  });
+
+  it('FE-COMP-MBOTTOMNAV-011: no assistant entry while its addon is off', () => {
+    withAssistant();
+    seedStore(useAddonStore, { addons: [atlas, { ...assistantAddon, enabled: false }] });
+    render(<MBottomNav />, { initialEntries: ['/atlas'] });
+    expect(screen.queryByRole('button', { name: 'Assistant' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'More' })).not.toBeInTheDocument();
   });
 });

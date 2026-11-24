@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Prioritet',
   'todo.detail.noPriority': 'Heç biri',
   'todo.detail.create': 'Tapşırıq yarat',
+  'todo.progressCount': '{total} tapşırıqdan {done} tamamlandı',
+  'todo.allDone': 'Hamısı tamamlandı!',
+  'todo.filter.myShort': 'Mənim',
 };
 export default todo;

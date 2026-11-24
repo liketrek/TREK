@@ -37,17 +37,20 @@ export const settingsGuides: HelpGuide[] = [
   guide('readability', 'settings-appearance', 'eye', 'quick', 2, 3, { slug: APPEARANCE, anchor: 'readability' }, ['theme-scheme']),
   guide('dashboard-widgets', 'settings-appearance', 'layout', 'quick', 3, 2, { slug: APPEARANCE, anchor: 'dashboard-widgets' }, ['theme-scheme']),
   // Map
-  guide('map-provider', 'settings-map', 'map', 'guide', 3, 3, { slug: MAP, anchor: 'map-provider' }, ['travel-map-prefs', 'map-compass']),
+  guide('map-provider', 'settings-map', 'map', 'guide', 3, 3, { slug: MAP, anchor: 'map-provider' }, ['travel-map-prefs', 'map-hide-pois', 'map-compass']),
+  guide('map-hide-pois', 'settings-map', 'mapPinned', 'quick', 2, 2, { slug: MAP, anchor: 'map-provider' }, ['map-provider', 'map-markers']),
   // Notifications
   guide('notification-channels', 'settings-notifications', 'bell', 'guide', 3, 2, { slug: NOTIFICATIONS, anchor: 'notification-channels' }, ['web-push-device']),
   guide('web-push-device', 'settings-notifications', 'bellRing', 'quick', 2, 3, { slug: NOTIFICATIONS, anchor: 'web-push' }, ['notification-channels']),
   // Integrations, in the order of the cards on the tab
+  guide('booking-mail-address', 'settings-integrations', 'mailCheck', 'guide', 4, 3, undefined, ['forward-booking-mail', 'import-booking-file']),
   guide('photo-providers', 'settings-integrations', 'image', 'guide', 2, 2, { slug: 'Photo-Providers' }, ['api-keys']),
   guide('connect-airtrail', 'settings-integrations', 'plane', 'guide', 3, 2, undefined, ['airtrail-import'], 'result'),
   guide('connect-dawarich', 'settings-integrations', 'route', 'guide', 3, 2, { slug: 'Dawarich', anchor: 'setting-it-up' }, ['dawarich-stays', 'map-dawarich-trail', 'dawarich-countries'], 'result'),
   guide('tour-connect-wanderer', 'settings-integrations', 'mountain', 'guide', 3, 3, undefined, ['tour-wanderer-watch'], 'result'),
   guide('tour-wanderer-watch', 'settings-integrations', 'bellRing', 'quick', 2, 3, undefined, ['tour-connect-wanderer']),
-  guide('api-keys', 'settings-integrations', 'key', 'guide', 2, 3, { slug: 'Public-API', anchor: 'getting-a-key' }, ['mcp-oauth']),
+  guide('connect-ai', 'settings-integrations', 'sparkles', 'guide', 3, 4, undefined, ['trip-assistant', 'ai-setup'], 'result'),
+  guide('api-keys', 'settings-integrations', 'key', 'guide', 2, 4, { slug: 'Public-API', anchor: 'getting-a-key' }, ['mcp-oauth']),
   guide('mcp-oauth', 'settings-integrations', 'plug', 'guide', 3, 3, { slug: 'MCP-Setup' }, ['api-keys']),
   // Plugins
   guide('plugin-settings', 'settings-plugins', 'blocks', 'quick', 2, 2, { slug: PLUGINS, anchor: 'plugin-settings-actions' }, ['install-plugin']),

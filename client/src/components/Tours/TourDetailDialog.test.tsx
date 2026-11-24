@@ -411,4 +411,27 @@ describe('TourDetailDialog', () => {
     expect(screen.queryByTestId('paddle-check-summary')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /Paddling has risks/ })).not.toBeInTheDocument()
   })
+
+  it("#2812: offers the whole route in the map apps that follow one, in the tour's own mode", () => {
+    const open = vi.spyOn(window, 'open').mockImplementation(() => null)
+    render(<TourDetailDialog {...defaultProps} tour={{ ...tour, tour_type: 'bike' }} />)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open the route in a map app' }))
+    const menu = screen.getByRole('menu')
+    // Only the apps that follow a whole route: Waze and geo: lead to the start, which Navigation
+    // already does, and CoMaps would get the stops between as unrouted pins.
+    const names = Array.from(menu.querySelectorAll('[role="menuitem"]')).map(item => item.textContent)
+    expect(names).toContain('Google Maps')
+    expect(names).not.toContain('CoMaps')
+    expect(names).not.toContain('Waze')
+
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Google Maps' }))
+    // The ride goes by bike, with the stops along the line between its ends.
+    expect(open).toHaveBeenCalledWith(expect.stringContaining('&travelmode=bicycling'), '_blank', 'noopener,noreferrer')
+  })
+
+  it('#2812: a paddle tour is not handed to a map app, which would route it by road', () => {
+    render(<TourDetailDialog {...defaultProps} tour={{ ...tour, tour_type: 'kayak', paddle_check: paddleBench() }} />)
+    expect(screen.queryByRole('button', { name: 'Open the route in a map app' })).not.toBeInTheDocument()
+  })
 })

@@ -24,6 +24,8 @@ TREK has grown from a travel planner into a whole ecosystem for trips: plan toge
 &nbsp;
 <a href="https://kanban.pakulat.org/shared/I4wxF6inOOMB0C6hH6kQm3efyNxFjwyI"><img alt="Roadmap" src="https://img.shields.io/badge/Roadmap-view-0EA5E9?style=for-the-badge" /></a>
 &nbsp;
+<a href="https://www.patreon.com/cw/mauriceboe"><img alt="Patreon" src="https://img.shields.io/badge/Patreon-monthly-141518?style=for-the-badge" /></a>
+&nbsp;
 <a href="https://ko-fi.com/mauriceboe"><img alt="Ko-fi" src="https://img.shields.io/badge/Ko--fi-support-FF5E5B?style=for-the-badge" /></a>
 &nbsp;
 <a href="https://www.buymeacoffee.com/mauriceboe"><img alt="BMAC" src="https://img.shields.io/badge/BMAC-support-FFDD00?style=for-the-badge" /></a>
@@ -320,6 +322,11 @@ docker compose up -d
 
 See [Install with Docker Compose](https://github.com/liketrek/TREK/wiki/Install-Docker-Compose)
 for the full walkthrough.
+
+TREK stores its data in SQLite by default. Set `TREK_DB_URL` to run it on a PostgreSQL 14 to 18 database instead. The
+[`docker-compose.postgres.yml`](docker-compose.postgres.yml) example starts one beside TREK, and the
+[Postgres guide](https://github.com/liketrek/TREK/wiki/Database-Postgres) covers the requirements, the backups and
+how to move an existing SQLite install to Postgres with the command TREK ships for it.
 
 <br />
 

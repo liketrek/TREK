@@ -95,6 +95,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Stúpanie',
   'tours.detail.descent': 'Klesanie',
   'tours.detail.navigationHint': 'Navigácia otvorí začiatok túry; nevedie po trase.',
+  'tours.detail.openRoute': 'Otvoriť trasu v mapovej aplikácii',
+  'tours.detail.mapsShort': 'Mapy',
   'tours.planner.title': 'Naplánovať túru',
   'tours.planner.newTour': 'Naplánovať novú túru',
   'tours.planner.addTour': 'Pridať túru',

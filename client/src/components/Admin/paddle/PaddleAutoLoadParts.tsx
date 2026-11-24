@@ -107,7 +107,6 @@ function RequestRow({ request, admin }: { request: PaddleRegionPending; admin: A
             disabled={admin.busyId !== null}
             onClick={() => void admin.decline(request.id)}
             className={SETTINGS_BUTTON}
-            style={fs(12.5, 'body')}
           >
             {t('admin.paddleRegions.requests.decline')}
           </button>
@@ -117,7 +116,6 @@ function RequestRow({ request, admin }: { request: PaddleRegionPending; admin: A
           disabled={admin.busyId !== null}
           onClick={() => void admin.approve(request.id)}
           className={SETTINGS_BUTTON}
-          style={fs(12.5, 'body')}
         >
           {busy ? <Loader2 size={13} className="animate-spin" /> : <CloudDownload size={13} strokeWidth={2.2} />}
           {t('admin.paddleRegions.requests.approve')}

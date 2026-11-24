@@ -38,9 +38,15 @@ const req = (method: string, params: Record<string, unknown> = {}): RpcRequest =
 
 const b64 = (s: string) => Buffer.from(s).toString('base64');
 
-/** File 2 sits on trip 1, which belongs to user 42. */
+/** File 2 sits on trip 1, which belongs to user 42. `documents` is the trip's Documents switch, `attached` whether file 2 belongs to something. */
 function build(
-  opts: { file?: Record<string, unknown> | undefined; foreign?: string | null; allow?: (a: string) => boolean } = {},
+  opts: {
+    file?: Record<string, unknown> | undefined;
+    foreign?: string | null;
+    allow?: (a: string) => boolean;
+    documents?: boolean;
+    attached?: boolean;
+  } = {},
 ) {
   const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
   const files = {
@@ -61,7 +67,12 @@ function build(
     createFileLink: vi.fn(() => [{ file_id: 2 }]),
     updateFile: vi.fn((id: number) => ({ id })),
     softDeleteFile: vi.fn(),
+    isAttached: vi.fn(async () => opts.attached ?? false),
   } as unknown as FilesService & Record<string, ReturnType<typeof vi.fn>>;
+  const addons = {
+    isAddonEnabled: vi.fn(() => true),
+    isEnabledForTrip: vi.fn(async () => opts.documents ?? true),
+  } as unknown as AddonsService;
   const db = {
     findAccessible: vi.fn(async (tripId: number, userId: number) =>
       tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined,
@@ -77,12 +88,7 @@ function build(
   const permissions = {
     checkPermission: vi.fn((action: string) => (opts.allow ? opts.allow(action) : true)),
   } as unknown as PermissionsService;
-  const guards = new PluginGuards(
-    db,
-    permissions,
-    { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
-    usersRepo,
-  );
+  const guards = new PluginGuards(db, permissions, addons, usersRepo);
   const storage = {
     getStream: vi.fn(async () => ({
       stream: Readable.from(Buffer.from('hi')),
@@ -96,7 +102,7 @@ function build(
   // keep exercising that code rather than a stub of it.
   (files as unknown as { readContent: FilesService['readContent'] }).readContent =
     FilesService.prototype.readContent.bind({ getFileById: files.getFileById, storage } as unknown as FilesService);
-  const rpc = new FilesRpc(files, realtime, usersRepo, guards, storage);
+  const rpc = new FilesRpc(files, realtime, usersRepo, guards, storage, addons);
   const host = (...grants: string[]) =>
     new PluginRpcHost('p', new Set(grants), makeDeps(), createTestPluginRegistry([rpc]));
   return { files, realtime, permissions, storage, host };
@@ -107,7 +113,7 @@ describe('FilesRpc reads', () => {
     const f = build();
     const host = f.host('db:read:files');
     expect((await host.dispatch(req('files.list', { tripId: 1 }), 42)).ok).toBe(true);
-    expect(f.files.listFiles).toHaveBeenCalledWith(1, false);
+    expect(f.files.listFiles).toHaveBeenCalledWith(1, false, false);
     expect(((await host.dispatch(req('files.list', { tripId: 2 }), 42)) as RpcError).error.code).toBe(
       'RESOURCE_FORBIDDEN',
     );
@@ -219,6 +225,75 @@ describe('FilesRpc reads', () => {
       .dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcError;
     expect(res.error.message).toBe('file too large to read');
     expect(big.destroyed).toBe(true);
+  });
+});
+
+describe('FilesRpc with Documents off for the trip', () => {
+  const forbidden = async (res: Promise<unknown>) => ((await res) as RpcError).error;
+
+  it('FILES-RPC-022 lists only attached files and reads an attached one, a loose one is refused', async () => {
+    const attached = build({ documents: false, attached: true });
+    expect((await attached.host('db:read:files').dispatch(req('files.list', { tripId: 1 }), 42)).ok).toBe(true);
+    expect(attached.files.listFiles).toHaveBeenCalledWith(1, false, true);
+    const read = (await attached
+      .host('db:read:files:content')
+      .dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42)) as RpcResponse;
+    expect(read.result).toMatchObject({ name: 'visa.pdf', content_base64: b64('hi') });
+
+    const loose = build({ documents: false, attached: false });
+    expect(
+      await forbidden(
+        loose.host('db:read:files:content').dispatch(req('files.getContent', { tripId: 1, fileId: 2 }), 42),
+      ),
+    ).toMatchObject({ code: 'RESOURCE_FORBIDDEN', message: 'the documents addon is disabled' });
+  });
+
+  it('FILES-RPC-023 deletes stay open, an upload or a write on a loose file only when it attaches it', async () => {
+    const f = build({ documents: false, attached: false });
+    const host = f.host('db:write:files');
+    const create = { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x'), reservation_id: 4 } };
+    expect((await host.dispatch(req('files.create', create), 42)).ok).toBe(true);
+    expect(
+      (
+        await host.dispatch(
+          req('files.create', { ...create, input: { ...create.input, reservation_id: undefined, place_id: 3 } }),
+          42,
+        )
+      ).ok,
+    ).toBe(true);
+    expect((await host.dispatch(req('files.softDelete', { tripId: 1, fileId: 2 }), 42)).ok).toBe(true);
+
+    const describeOnly = req('files.update', { tripId: 1, fileId: 2, input: { description: 'x' } });
+    expect(await forbidden(host.dispatch(describeOnly, 42))).toMatchObject({ code: 'RESOURCE_FORBIDDEN' });
+    expect(
+      await forbidden(host.dispatch(req('files.createLink', { tripId: 1, fileId: 2, opts: {} }), 42)),
+    ).toMatchObject({ code: 'RESOURCE_FORBIDDEN' });
+    const unwritten = req('files.update', { tripId: 1, fileId: 2, input: { description: 'x', budget_item_id: 9 } });
+    expect(await forbidden(host.dispatch(unwritten, 42))).toMatchObject({ code: 'RESOURCE_FORBIDDEN' });
+    const unlinked = req('files.createLink', { tripId: 1, fileId: 2, opts: { budget_item_id: 9 } });
+    expect(await forbidden(host.dispatch(unlinked, 42))).toMatchObject({ code: 'RESOURCE_FORBIDDEN' });
+    expect(f.files.updateFile).not.toHaveBeenCalled();
+
+    const attach = req('files.update', { tripId: 1, fileId: 2, input: { reservation_id: 4 } });
+    expect((await host.dispatch(attach, 42)).ok).toBe(true);
+    expect((await host.dispatch(req('files.createLink', { tripId: 1, fileId: 2, opts: { place_id: 3 } }), 42)).ok).toBe(
+      true,
+    );
+  });
+
+  it('FILES-RPC-024 an upload that attaches nothing is refused, since the list would not show it', async () => {
+    const off = build({ documents: false });
+    const loose = req('files.create', { tripId: 1, input: { name: 'a.pdf', content_base64: b64('x') } });
+    expect(await forbidden(off.host('db:write:files').dispatch(loose, 42))).toMatchObject({
+      code: 'RESOURCE_FORBIDDEN',
+      message: 'the documents addon is disabled: pass reservation_id or place_id to attach the uploaded file',
+    });
+    expect(off.storage.put).not.toHaveBeenCalled();
+    expect(off.files.createFile).not.toHaveBeenCalled();
+    expect(off.realtime.broadcast).not.toHaveBeenCalled();
+
+    const on = build({ documents: true });
+    expect((await on.host('db:write:files').dispatch(loose, 42)).ok).toBe(true);
   });
 });
 
@@ -417,7 +492,7 @@ describe('FilesRpc writes', () => {
       const guards = new PluginGuards(
         db,
         { checkPermission: vi.fn(() => true) } as unknown as PermissionsService,
-        { isAddonEnabled: vi.fn(() => true) } as unknown as AddonsService,
+        { isAddonEnabled: vi.fn(() => true), isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService,
         // PluginGuards' own role lookup — unrelated to FL28's `usersRepo` below,
         // which is used for the demo-uploader email check.
         { getRole: vi.fn(async () => 'user') } as unknown as UsersRepository,
@@ -431,7 +506,14 @@ describe('FilesRpc writes', () => {
       const usersRepo = {
         getEmail: vi.fn(async (id: number) => (id === 9 ? 'demo@trek.app' : 'real@example.test')),
       } as unknown as UsersRepository;
-      const rpc = new FilesRpc(files, { broadcast: vi.fn() } as unknown as RealtimeService, usersRepo, guards, storage);
+      const rpc = new FilesRpc(
+        files,
+        { broadcast: vi.fn() } as unknown as RealtimeService,
+        usersRepo,
+        guards,
+        storage,
+        { isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService,
+      );
       const host = new PluginRpcHost('p', new Set(['db:write:files']), makeDeps(), createTestPluginRegistry([rpc]));
       const input = { name: 'a.pdf', content_base64: b64('x') };
       const denied = (await host.dispatch(req('files.create', { tripId: 1, input }), 9)) as RpcError;

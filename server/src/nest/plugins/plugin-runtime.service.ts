@@ -38,6 +38,7 @@ import { NotificationChannelPreferences } from '../../db/entities/NotificationCh
 import type { NotificationChannelPreferencesRepository } from '../../db/repositories/NotificationChannelPreferences.repository';
 import { pluginsEnabled } from './kill-switch';
 import { setPluginEventSink } from '../../plugin-event-sink';
+import { tripEventSink } from './plugin-event-addons';
 import { setUserDeletedSink } from '../../plugin-user-lifecycle';
 import { setPluginChannelSource, pluginChannelId } from '../notifications/channel-registry';
 import type { ChannelMessage, ExternalChannel } from '../notifications/notification-events';
@@ -53,7 +54,6 @@ import path from 'node:path';
 import { PluginRpcHostFactory } from './host/plugin-rpc-host.factory';
 import { closePluginDataDb } from './host/plugin-host-state';
 import { ForbiddenResource } from './host/rpc-host';
-import { removePluginData } from './host/plugin-data.service';
 import { isKnownPermission } from './protocol/envelope';
 import { discoverPlugins, type DiscoveryRepos } from './install/discovery';
 import { enqueueHookUserDataErasures } from './user-erasure-enqueue';
@@ -67,6 +67,7 @@ import type { TrekRangeBypass } from './install/host-compat';
 import { keyFingerprint } from './signature-status';
 import { AuditService } from '../audit/audit.service';
 import { AddonsService } from '../addons/addons.service';
+import { FilesService } from '../files/files.service';
 import type { McpToolCapability, PluginDependency } from './install/manifest';
 import type { VersionMismatch, PluginDepRow } from './dependencies';
 import { parseDependencies, disabledRequiredAddons, resolveDependencyState, enableOrder, findDependentsTransitive, DependencyCycleError } from './dependencies';
@@ -284,16 +285,12 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // (task-2-fix-report.md's "Concerns").
     @Optional() private readonly orm?: MikroORM,
     // Plan 3j Task 0 (R-scheduler): the one path this codebase schedules a cron through
-    // (server/CLAUDE.md). `@Optional()` for the same reason `uow`/`orm` are — the wide
-    // hand-construction surface this class has across the test suite (plugin-host.ts,
-    // boot-registry-order.test.ts, settings-isolation.test.ts, plugin-runtime.boot-no-
-    // orm.test.ts) never passes a 9th positional arg; a hand-built instance without one
-    // simply never registers the sweep (no log — mirrors how an absent `hostFactory`/
-    // `registry` produces no boot-time log either, only a failure at first use, and
-    // registering nothing is exactly what happens today too whenever a test never lets
-    // the 30s interval actually fire). Nest always injects the real one in production
-    // (PluginsRuntimeModule imports SchedulingModule).
+    // (server/CLAUDE.md). `@Optional()` for the same reason `orm` is: a hand-built test
+    // instance without one never registers the sweep, as an absent `hostFactory`/`registry`
+    // logs nothing either. Nest always injects the real one (PluginsRuntimeModule imports SchedulingModule).
     @Optional() private readonly registrar?: CronRegistrarService,
+    // Lets a file event through while Documents is off when its file is attached; without it they wait for Documents.
+    @Optional() private readonly files?: FilesService,
   ) {}
 
   // Plan 3j Task 3: `discoverPlugins` composes `DiscoveryRepos` from the repositories
@@ -331,9 +328,9 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       await this.supervisor.shutdownAll();
       applyStagedPluginTrees();
     });
-    // Forward core trip events to plugins that subscribed (events:subscribe). The
-    // sink is name-only + fire-and-forget, so it can never block a core broadcast.
-    setPluginEventSink((tripId, event, meta) => this.supervisor.deliverEvent(tripId, event, meta));
+    // Core trip events go to subscribed plugins, fire-and-forget, unless the trip has the event's addon off.
+    const attached = this.files && this.files.isAttachedById.bind(this.files);
+    setPluginEventSink(tripEventSink(this.addons, this.orm, (t, e, m) => this.supervisor.deliverEvent(t, e, m), attached));
     // Expose plugin notification channels to the (plain, non-Nest) notification
     // service. Pull-based: it calls this on every dispatch, so enabling or removing
     // a plugin takes effect immediately with nothing to invalidate.
@@ -436,7 +433,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
       // errors (each body is wrapped in try/catch); the .catch below is defense-in-
       // depth against a future regression, same shape as the pruneErrorLog call in
       // the onLog hook above.
-      void this.fireDueScheduled().catch(() => { /* fireDueScheduled already handles its own errors — this is a backstop */ });
+      void this.fireDueScheduled().catch(() => { /* a backstop: fireDueScheduled handles its own errors */ });
       void this.drainUserErasures();
     });
   }
@@ -1021,7 +1018,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     this.stopWatch(id);
     removePluginCodeEntry(dest); // drop any prior link — never follows into the author's source
     fs.mkdirSync(path.dirname(dest), { recursive: true });
-    fs.symlinkSync(sourceDir, dest, 'junction'); // Windows junction (no elevation); POSIX ignores the type -> dir symlink
+    fs.symlinkSync(sourceDir, dest, 'junction'); // Windows junction (no elevation); POSIX: a dir symlink
     await discoverPlugins(this.discoveryRepos); // registers/updates the row from the linked manifest, INACTIVE
     // Same as a sideload: the plugin has left the registry trust model, so a block that
     // described a refused REGISTRY update no longer describes the code that will run.
@@ -1091,7 +1088,11 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
     // leave a plugin without its row but with its settings, grants or tasks, which a
     // later plugin reusing the id would inherit. The data dir goes after the commit.
     await this.uow.transactional(() => this.dropPluginRows(id, deleteData));
-    if (deleteData) removePluginData(id);
+    // The plugin's own database (a SQLite file, or its schema on Postgres) and its data dir.
+    if (deleteData) {
+      if (!this.hostFactory) throw new Error('PluginRpcHostFactory not provided: it is what erases the plugin data');
+      await this.hostFactory.erasePluginData(id);
+    }
   }
 
   private async dropPluginRows(id: string, deleteData: boolean): Promise<void> {
@@ -1158,7 +1159,7 @@ export class PluginRuntimeService implements OnApplicationBootstrap, OnModuleDes
   invoke(id: string, method: string, params: Record<string, unknown>, actingUserId?: number): Promise<unknown> {
     return this.supervisor.invoke(id, method, params, { actingUserId });
   }
-  /** Ids of active plugins implementing a provider hook (e.g. 'placeDetailProvider'), or one optional function of it. */
+  /** Ids of active plugins implementing a provider hook ('placeDetailProvider'), or one optional function of it. */
   providersOf(hook: string, fn?: string): string[] {
     return this.supervisor.providersOf(hook, fn);
   }

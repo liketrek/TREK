@@ -129,7 +129,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': 'Zmenili ste začiatok tejto cesty. Ako sa majú vaše plány prispôsobiť novým termínom?',
   'dashboard.dateShiftKeepBookings': 'Ponechať rezervácie v pôvodných termínoch',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Denné plány sa posunú podľa nových termínov, zatiaľ čo rezervácie a ubytovania zostanú v pôvodných termínoch, pokiaľ sú stále súčasťou cesty.',
+    'Pridané dni zostanú prázdne a nič iné sa neposunie. Ak sa cesta posunie, denné plány sa posunú podľa nových termínov, zatiaľ čo rezervácie a ubytovania zostanú v pôvodných termínoch, pokiaľ sú stále súčasťou cesty.',
   'dashboard.dateShiftAll': 'Posunúť všetko',
   'dashboard.dateShiftAllDesc': 'Celý itinerár sa posunie podľa nových termínov vrátane rezervácií a ubytovaní.',
   'dashboard.dateShiftHint':
@@ -254,5 +254,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.pasteFromUrl': 'vložte do „Z adresy URL“',
   'dashboard.aiPlan': 'Naplánovať s AI',
   'dashboard.aiPlanSub': 'Opíšte cestu a skontrolujte návrh',
+  'dashboard.ics.dayEvents': 'Udalosti s prehľadom dňa',
+  'dashboard.ics.dayEventsHint':
+    'Celodenná udalosť pre každý deň s miestami a poznámkami bez času. Zmena tohto nastavenia zmení odkaz, preto sa prihláste na odber znova s novým odkazom.',
 };
 export default dashboard;

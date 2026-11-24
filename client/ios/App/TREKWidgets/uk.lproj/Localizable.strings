@@ -5,6 +5,8 @@
 "widget.today.description" = "План дня у вигляді стрічки часу, з погодою і наступною зупинкою.";
 "widget.bookings.name" = "Бронювання";
 "widget.bookings.description" = "Найближчі рейси, поїзди, готелі й столики та коли вони.";
+"widget.flight.name" = "Рейс";
+"widget.flight.description" = "Ваш наступний рейс наживо: відлік до вильоту, літак у дорозі, затримка й прибуття.";
 "widget.todos.name" = "Завдання";
 "widget.todos.description" = "Що ще лишилося зробити до подорожі і як просувається пакування.";
 "widget.packing.name" = "Пакування";

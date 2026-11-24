@@ -1,4 +1,4 @@
-import type { PluginDataDb } from '../../nest/plugins/host/plugin-data.service';
+import type { PluginDataStore } from '../../nest/plugins/host/plugin-data.service';
 import type { HookKey, HookPermission, KnownMethod, UnconditionalMethod } from '../../nest/plugins/protocol/envelope';
 
 /**
@@ -18,7 +18,7 @@ import type { HookKey, HookPermission, KnownMethod, UnconditionalMethod } from '
 export interface PluginRpcContext {
   readonly pluginId: string;
   readonly actingUserId: number | undefined;
-  readonly data: PluginDataDb;
+  readonly data: PluginDataStore;
   /**
    * The inter-plugin capabilities. PER HOST, like everything else on this context:
    * the router that backs them is created per plugin and binds THIS plugin as the

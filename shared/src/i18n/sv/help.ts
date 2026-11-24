@@ -58,7 +58,7 @@ const help: TranslationStrings = {
   'help.ctx.dashboard.bullet.1':
     'Boardingkort: den pågående eller nästa resan med datum, medresenärer, platser och en nedräkning. Klicka på kortet för att öppna resan. Med de fyra knapparna uppe till höger kan du redigera, duplicera, arkivera eller radera den.',
   'help.ctx.dashboard.bullet.2':
-    'Resestatistik: besökta länder, resor, dagar på resa och flugen sträcka, för alla dina resor sammanlagt.',
+    'Resestatistik: besökta länder, med flaggorna för de senaste först, resor, dagar på resa och flugen sträcka, för alla dina resor sammanlagt.',
   'help.ctx.dashboard.bullet.3':
     'Reskort, filtrerade efter Planerat, Arkiverad och Slutförd, som rutnät eller lista. Sökrutan ovanför söker bland alla dina resor samtidigt, på titel, datum eller en plats i resan. Knapparna för att redigera, duplicera, arkivera och radera en resa sitter i övre högra hörnet av kortets foto.',
   'help.ctx.dashboard.bullet.4':
@@ -122,7 +122,7 @@ const help: TranslationStrings = {
   'help.guide.archive-trip.step.1': 'Klicka på arkivikonen uppe till höger på kortet.',
   'help.guide.archive-trip.step.2': 'Ställ in filtret ovanför korten på ”Arkiverad” för att se resan igen.',
   'help.guide.archive-trip.step.3':
-    'Klicka på Återställ på kortet för att flytta tillbaka resan till Planerat, eller till Slutförd om datumen har passerat.',
+    'Klicka på återställningsikonen, där arkivikonen var, för att flytta tillbaka resan till Planerat, eller till Slutförd om datumen har passerat.',
   'help.guide.archive-trip.result':
     'Arkiverade resor behåller alla sina data. De visas inte längre i översikten eller i kalenderflödet för alla resor.',
 
@@ -156,6 +156,8 @@ const help: TranslationStrings = {
     'Varje aktiv resa visas i din kalender och uppdateras automatiskt. Arkiverade resor och resor som avslutades för mer än 90 dagar sedan ingår inte.',
   'help.guide.calendar-feed.tip.1':
     'Håll länken hemlig: alla som har den kan läsa flödet. Om andra har fått tag på den ger Skapa ny dig en ny länk, och den gamla slutar fungera. Stäng av tar bort länken helt.',
+  'help.guide.calendar-feed.tip.2':
+    'Dagsöversikt som händelser lägger till en heldagshändelse per dag med dagens platser och de anteckningar som saknar tid. Slå av det om du bara vill ha bokningarna. Länken ändras då också, så prenumerera igen med den nya.',
 
   // widgets
   'help.guide.widgets.title': 'Välj widgetar för översikten',
@@ -482,7 +484,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     'Siffrorna uppdateras automatiskt medan du planerar dina resor. Du behöver inte underhålla något här.',
   'help.guide.stats.tip.1':
-    'Städer läses från adresstexten och slås inte upp. En kort adress som ”Osteria Francescana, Italy”, eller en som slutar med en prefektur, kan därför räknas som en region i stället för en stad.',
+    'Städer läses från adresstexten och slås inte upp. TREK hoppar över landet, postnumret och regionen och tar namnet före dem, så ”10178 Berlin” räknas som Berlin. En kort adress som ”Osteria Francescana, Italy” ger ingen stad alls.',
   'help.guide.stats.tip.2':
     'Länder som du har markerat för hand räknas med i ”Länder” och i kontinenterna, men lägger inte till några resor, platser eller dagar.',
   // dawarich-countries
@@ -521,7 +523,7 @@ const help: TranslationStrings = {
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Samlingar',
   'help.ctx.collections.summary':
-    'Samlingar är ditt bibliotek utanför alla resor: namngivna listor med platser som du hittat och vill spara, där varje plats har statusen Idé, Vill besöka eller Besökt, och, när Turer är på, hela turer som du sparat från en resa. Platser och turer kopieras in i och ut ur resor, de länkas aldrig, så en lista och en resa påverkar aldrig varandra.',
+    'Samlingar är ditt bibliotek utanför alla resor: namngivna listor med platser som du hittat och vill spara, där varje plats har statusen Idé, Vill besöka, Besökt eller Vill tillbaka, och, när Turer är på, hela turer som du sparat från en resa. Platser och turer kopieras in i och ut ur resor, de länkas aldrig, så en lista och en resa påverkar aldrig varandra.',
   'help.ctx.collections.bullet.1':
     'Listkolumnen till vänster visar dina egna listor, listor som delas med dig, inbjudningar som du inte har svarat på ännu och Alla sparade, som samlar allt i listorna du äger. Ny lista och filimporten finns överst.',
   'help.ctx.collections.bullet.2':
@@ -531,7 +533,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.4':
     'Platsrader: foto, namn och adress, etiketter och kategori, och statuspillret till höger. Ett klick på pillret byter till nästa status.',
   'help.ctx.collections.bullet.5':
-    'Kartan till höger: en nål för varje plats med koordinater. Det övre fältet har Förstora karta (Visa lista när kartan är förstorad), etikettfiltret med knappen för att hantera etiketter och rutan Sök platser. Klicka på en nål för att öppna platsen.',
+    'Kartan till höger: en nål för varje plats med koordinater. Det övre fältet har Förstora karta (Visa lista när kartan är förstorad), etikettfiltret med knappen för att hantera etiketter och rutan Sök platser. Klicka på en nål för att öppna platsen. Hänglåset längst ned till vänster, ovanför knappen för kartstil, håller kartan där den är medan du klickar dig igenom platser.',
   'help.ctx.collections.bullet.6':
     'Detaljvy: klicka på en rad för omslag, kategori, status, stjärnbetyg, etiketter, beskrivning och länkar. Kameran på omslaget byter foto. Längst ned finns Redigera, Kopiera till resa, navigeringsknappen och Ta bort från lista.',
   // create-list
@@ -579,15 +581,19 @@ const help: TranslationStrings = {
     'I en resas platslista finns i stället Spara i samling i markeringsläget, för en handplockad uppsättning platser.',
   // place-status
   'help.guide.place-status.title': 'Ange en plats status',
-  'help.guide.place-status.goal': 'Håll koll på vad som är en idé, vad som står på kortlistan och var du har varit.',
+  'help.guide.place-status.goal':
+    'Håll koll på vad som är en idé, vad som står på kortlistan, var du har varit och vart du vill tillbaka.',
   'help.guide.place-status.step.1': 'Klicka på statusbrickan längst till höger på en platsrad. Idé blir Vill besöka.',
-  'help.guide.place-status.step.2': 'Klicka igen för ”Besökt” och en gång till för att gå tillbaka till ”Idé”.',
+  'help.guide.place-status.step.2':
+    'Klicka igen för ”Besökt”, en gång till för ”Vill tillbaka” och en gång till för att gå tillbaka till ”Idé”.',
   'help.guide.place-status.result':
     'Etiketten och dess färg ändras direkt, och antalen i statusfiltret ovanför listan uppdateras.',
   'help.guide.place-status.tip.1':
     'Status finns bara i ”Collections”. När du kopierar en plats till en resa kopieras inte statusen.',
   'help.guide.place-status.tip.2':
     'Från en resa öppnar Spara i samling dialogen Spara i lista med ett statuspiller för varje lista som platsen ligger i, och urvalsfältet i platspanelen har Markera som besökt i dina listor.',
+  'help.guide.place-status.tip.3':
+    'Vill tillbaka är till för en plats där du har varit och vill besöka igen. Den räknas fortfarande som besökt, så Besökt överallt i en resa lämnar den som den är.',
   // place-detail
   'help.guide.place-detail.title': 'Öppna en sparad plats',
   'help.guide.place-detail.goal':
@@ -657,13 +663,14 @@ const help: TranslationStrings = {
     'Bara ägaren kan bjuda in och ta bort personer. En medlem kan själv lämna en delad lista.',
   // export-list
   'help.guide.export-list.title': 'Exportera en lista som fil',
-  'help.guide.export-list.goal': 'Ge en lista till någon på en annan TREK-server, eller öppna den i en kartapp.',
+  'help.guide.export-list.goal':
+    'Ge en lista till någon på en annan TREK-server, öppna den i en kartapp eller se den i Google My Maps.',
   'help.guide.export-list.step.1': 'Klicka på Exportera högst upp i listan.',
   'help.guide.export-list.step.2':
-    'Välj TREK-lista om du vill använda listan i en annan TREK, med etiketter och status, eller GPX för OsmAnd, Organic Maps, en Garmin och andra appar som läser vägpunkter.',
+    'Välj TREK-lista om du vill använda listan i en annan TREK, med etiketter och status, GPX för OsmAnd, Organic Maps, en Garmin och andra appar som läser vägpunkter, eller KML för Google My Maps, för att se platserna i Google Maps.',
   'help.guide.export-list.result': 'Filen laddas ner. Alla medlemmar i en delad lista får exportera den.',
   'help.guide.export-list.tip.1':
-    'En plats utan koordinater kan inte bli en GPX-vägpunkt. Den utelämnas, och TREK berättar hur många det gällde.',
+    'En plats utan koordinater kan inte bli en GPX-vägpunkt eller en KML-nål. Den utelämnas, och TREK berättar hur många det gällde.',
   'help.guide.export-list.tip.2':
     'Betyg, medlemmar och uppladdade foton exporteras inte, med avsikt: de hör till den här TREK-instansen och inte till listan.',
   // import-file
@@ -700,6 +707,18 @@ const help: TranslationStrings = {
     'Skriv i Sök platser ovanför kartan och använd filtren som i vilken lista som helst. Välj fungerar också här: flytta, duplicera, kopiera till en resa eller radera över flera listor.',
   'help.guide.all-saved.result':
     'Den här vyn visar alla dina sparade platser tillsammans. Du kan inte lägga till eller importera platser här, eftersom det inte finns någon enskild lista att lägga dem i.',
+  'help.guide.collection-map-lock.title': 'Lås kartan',
+  'help.guide.collection-map-lock.goal': 'Håll kartan där den är medan du klickar dig igenom dina sparade platser.',
+  'help.guide.collection-map-lock.step.1':
+    'Klicka på hänglåset längst ned till vänster på kartan, ovanför knappen för kartstil. När du pekar på det står det Lås kartvyn. Knappen heter sedan Låt kartan följa markeringen.',
+  'help.guide.collection-map-lock.step.2':
+    'Klicka på en plats i listan eller en nål på kartan. Platsens detaljpanel öppnas, och kartan flyttas eller zoomar inte längre till den.',
+  'help.guide.collection-map-lock.tip.1':
+    'Klicka på hänglåset igen, som nu heter Låt kartan följa markeringen, så flyttar sig kartan åter till platsen du öppnar. Hänglåset finns bara på dator. På mobil följer kartan alltid med.',
+  'help.guide.collection-map-lock.tip.2':
+    'Webbläsaren kommer ihåg låset, och det är samma lås som på en resas karta: är det låst här är resans karta också låst.',
+  'help.guide.collection-map-lock.result':
+    'Kartan stannar kvar på den del du valde medan du öppnar en plats efter en annan.',
   'help.guide.all-saved.tip.1': 'Etiketter och sparade turer hör till en lista, så ingen av dem finns på Alla sparade.',
 
   // ── Screen: journey ───────────────────────────────────────────────────────────────────
@@ -716,7 +735,7 @@ const help: TranslationStrings = {
   'help.guide.create-journey.goal': 'Starta en dagbok för en resa, med resans platser redan tillagda som förslag.',
   'help.guide.create-journey.step.1': 'Klicka på ”Skapa en ny Journey”, det sista kortet i rutnätet.',
   'help.guide.create-journey.step.2':
-    'Ge den ett namn och, om du vill, en undertitel, och bocka sedan för de resor som den hör till. Räknaren visar hur många platser som läggs till.',
+    'Ge den ett namn och, om du vill, en undertitel, och bocka sedan för de resor som den hör till. Raden längst ned visar hur många platser som importeras.',
   'help.guide.create-journey.step.3': 'Klicka på Skapa Journey.',
   'help.guide.create-journey.result':
     'Dagboken öppnas. Varje plats i de länkade resorna visas i tidslinjen som ett förslag, en gång för varje dag den är planerad på. Du kan skriva ett inlägg för vart och ett.',
@@ -726,7 +745,7 @@ const help: TranslationStrings = {
   'help.guide.open-journey.title': 'Öppna en Journey',
   'help.guide.open-journey.goal': 'Öppna en dagbok och se var den öppnas.',
   'help.guide.open-journey.step.1':
-    'Klicka på ett kort. Varje kort visar omslaget, datumen och hur många inlägg, foton och platser Journeyn innehåller.',
+    'Klicka på ett kort. Varje kort visar omslaget, året, statusen och hur många inlägg, foton och platser Journeyn innehåller.',
   'help.guide.open-journey.result':
     'En Journey som pågår öppnas på dagens datum, eller på det senaste inlägget före idag om inget är skrivet för idag ännu. En avslutad Journey öppnas från början.',
   'help.guide.open-journey.tip.1':
@@ -752,7 +771,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-detail.bullet.3':
     'Tidslinje: ett avsnitt per dag med dagens nummer, antalet platser och ett + för att lägga till ett inlägg den dagen. Under finns inläggskorten med foton, humör, väder och berättelse, samt de streckade förslagskorten från resorna, var och ett med ett × för att avfärda det.',
   'help.ctx.journey-detail.bullet.4':
-    'Karta: lagerfältet överst växlar mellan Planering (ihåliga nålar och resornas streckade GPX-rutter), Inspelat (heldragna rutter som sparats från Dawarich), Inlägg (nålar i dagsfärger, förbundna i datumordning med en tunn streckad linje) och Foton. (i) bredvid förklarar varje symbol.',
+    'Karta: lagerfältet överst växlar mellan Planering (ihåliga nålar och resornas streckade GPX-rutter), Inspelat (heldragna rutter som sparats från Dawarich), Inlägg (nålar i dagsfärger, förbundna i datumordning med en tunn streckad linje) och Foton. (i) bredvid förklarar varje symbol, och den runda knappen i det övre högra hörnet växlar till satellitbilder.',
   'help.ctx.journey-detail.bullet.5':
     '”Journey Inställningar” (⋯): omslag, namn och undertitel, status, GPX-spår, inspelade dagar, platser från foton, inläggsfält, avvisade förslag, synkade resor, medverkande och vilka medlemmar i en resa som får åtkomst, offentlig delning, arkivering och radering.',
   'help.ctx.journey-detail.bullet.6':
@@ -768,7 +787,7 @@ const help: TranslationStrings = {
     'Kontrollera datum och tid i högra kolumnen, sök en plats eller använd din nuvarande position och välj ett humör och vädret.',
   'help.guide.add-entry.step.4': 'Klicka på Spara.',
   'help.guide.add-entry.result':
-    'Inlägget visas på sin dag i tidslinjen och som en nål på kartan. Siffrorna i sidhuvudet uppdateras.',
+    'Inlägget visas på sin dag i tidslinjen, och som en nål på kartan när det har en plats. Siffrorna i sidhuvudet uppdateras.',
   'help.guide.add-entry.tip.1': 'När du skriver i ett förslag använder du samma redigerare, med platsen redan angiven.',
   'help.guide.add-entry.tip.2':
     'Ett inlägg med en plats har valet Utelämna från rutten: inlägget finns kvar i dagboken, men räknas inte med i avståndet eller länderna och visas inte på kartan i Studio.',
@@ -810,9 +829,10 @@ const help: TranslationStrings = {
   'help.guide.pros-cons.title': 'Lägg till ett omdöme',
   'help.guide.pros-cons.goal': 'Sammanfatta en dag med vad som var bra och vad som inte var det.',
   'help.guide.pros-cons.step.1':
-    'I redigeraren hittar du För- och nackdelar under berättelsen. Skriv en punkt i Fördelar eller Nackdelar och använd Lägg till en till för nästa.',
+    'I redigeraren finns För- och nackdelar överst i högerkolumnen. Skriv en punkt i Fördelar eller Nackdelar och använd Lägg till en till för nästa.',
   'help.guide.pros-cons.step.2': 'Spara. På kortet fäller Visa mer ut berättelsen och omdömet som två korta listor.',
-  'help.guide.pros-cons.result': 'Tumme upp och tumme ner visas under berättelsen, så att du ser dem direkt.',
+  'help.guide.pros-cons.result':
+    'Under berättelsen listar Älskade det och Kan bli bättre dina punkter sida vid sida, var och en med sitt antal.',
   'help.guide.pros-cons.tip.1':
     'Om en Journey inte använder omdömen kan du stänga av avsnittet under Fält i inlägget i Journey Inställningar.',
   // search-journey
@@ -837,6 +857,20 @@ const help: TranslationStrings = {
     'Med ”Ladda upp” till höger lägger du till bilder i galleriet. Om Immich eller Synology är anslutet kan du välja bilder därifrån med en knapp som har bibliotekets namn.',
   'help.guide.gallery-map.result':
     'Nålarna har sin dags färg och förbinds i datumordning med en tunn streckad linje. Lagerfältet högst upp på kartan växlar vad som ritas.',
+  'help.guide.album-date-range.title': 'Hämta bara resan ur ett stort album',
+  'help.guide.album-date-range.goal':
+    'Plocka ut resans foton ur ett Immich- eller Synology-album som innehåller mycket mer.',
+  'help.guide.album-date-range.step.1':
+    'Växla till Album och klicka på knappen med namnet på ditt fotobibliotek, bredvid Ladda upp.',
+  'help.guide.album-date-range.step.2': 'Klicka på Album och sedan på albumet. Dess foton listas efter dagen de togs.',
+  'help.guide.album-date-range.step.3':
+    'Under albumen ställer du in Tagna mellan på den första och den sista dag du vill ha. Bara fotona från de dagarna blir kvar i rutnätet, och Välj alla tar bara dem.',
+  'help.guide.album-date-range.tip.1':
+    'Intervallet finns kvar när du öppnar ett annat album, så du kan titta igenom flera för samma resa. Med × i slutet av raden visas hela albumet igen.',
+  'help.guide.album-date-range.tip.2':
+    'Lägg till i överst i väljaren avgör vilket inlägg fotona hamnar i. Nytt album lägger dem bara i galleriet.',
+  'help.guide.album-date-range.result':
+    'Lägg till tar med de foton du valde i Journeyn. Foton som redan finns där är gråtonade med en bock, så inget läggs till två gånger.',
   'help.guide.gallery-map.tip.1':
     'En resas GPX-spår visas som streckade linjer i kartans lager Planering. Visa alla GPX-spår från resor i Journey Inställningar stänger av dem.',
   'help.guide.gallery-map.tip.2':
@@ -900,7 +934,7 @@ const help: TranslationStrings = {
   'help.guide.archive-journey.goal': 'Stäng en avslutad Journey eller radera en för gott.',
   'help.guide.archive-journey.step.1': 'Klicka på ⋯ uppe till höger i rubriken för att öppna Journey Inställningar.',
   'help.guide.archive-journey.step.2':
-    'Längst ner avslutar Arkivera Journey den och markerar den som arkiverad, och Återställ Journey återställer den. Radera tar bort den med alla inlägg och foton, efter en bekräftelse.',
+    'Längst ner avslutar Arkivera Journey den och markerar den som arkiverad, och Återställ Journey återställer den. Papperskorgen bredvid raderar Journeyn med alla inlägg och foton, efter en bekräftelse.',
   'help.guide.archive-journey.result':
     'En arkiverad journey går fortfarande att läsa och dela. Den öppnas bara inte längre på dagens datum.',
   'help.guide.archive-journey.tip.1':
@@ -944,7 +978,7 @@ const help: TranslationStrings = {
   'help.guide.studio-auto-layout.goal': 'Få ett komplett första utkast av dagbokens inlägg och foton med ett klick.',
   'help.guide.studio-auto-layout.step.1': 'Klicka på Auto layout i övre fältet.',
   'help.guide.studio-auto-layout.step.2':
-    'Välj ”Hela boken”: den ersätter alla sidor men behåller din titel och sidinställning. ”Detta uppslag” bygger bara om uppslaget på skärmen. Det alternativet finns bara på ett uppslag som skapades från ett inlägg.',
+    'Välj ”Hela boken”: den ersätter alla sidor men behåller din titel och sidinställning. ”Detta uppslag” lägger bara uppslaget på skärmen på en annan design. Det fungerar på varje sida som Automatisk layout gjorde, omslaget inräknat.',
   'help.guide.studio-auto-layout.step.3':
     'Titta igenom sidlisten. Om du föredrog den tidigare versionen ångrar ”Undo” hela layouten.',
   'help.guide.studio-auto-layout.result':
@@ -958,12 +992,13 @@ const help: TranslationStrings = {
   'help.guide.studio-pages.step.1':
     'Öppna Sidor i sidofältet. Miniatyrerna visar boken i ordning: omslag, första sidan, uppslag, sista sidan och baksida. Första och sista sidan ritas bredvid den tomma insidan av sitt omslag, så som den bundna boken öppnas.',
   'help.guide.studio-pages.step.2':
-    '”Lägg till uppslag” längst ner lägger till ett nytt uppslag före sista sidan. Plustecknet mellan två miniatyrer infogar ett på just den platsen.',
+    '+ Sida längst ner lägger till ett nytt uppslag före sista sidan. Plustecknet mellan två miniatyrer infogar ett på just den platsen.',
   'help.guide.studio-pages.step.3':
     'Håll pekaren över en miniatyr för att se dess åtgärder: Flytta tidigare, Flytta senare, Duplicera uppslag och Ta bort uppslag. Klicka på en miniatyr för att öppna uppslaget på arbetsytan.',
   'help.guide.studio-pages.result':
     'Omslaget, första och sista sidan och baksidan ligger kvar där de är. Nya uppslag läggs alltid in mellan dem.',
-  'help.guide.studio-pages.tip.1': 'Book view i den övre raden visar hela boken som ark, så som den kommer att bindas.',
+  'help.guide.studio-pages.tip.1':
+    'Bokvy i zoomfältet under uppslaget visar hela boken som ark, så som den kommer att bindas.',
   'help.guide.studio-pages.tip.2': 'Sidnummer slår du på under Dokument i Properties, när inget är markerat.',
   // studio-layouts
   'help.guide.studio-layouts.title': 'Använd en layout på ett uppslag',
@@ -1045,9 +1080,9 @@ const help: TranslationStrings = {
     'Ge en rubrik en kontur, en skugga, en kurva eller bokstäver fyllda med ett mönster.',
   'help.guide.studio-text-effects.step.1': 'Klicka på ett textelement på sidan för att markera det.',
   'help.guide.studio-text-effects.step.2':
-    'Öppna Effekter i Egenskaper för att lägga till en kontur, en skugga eller en markering, eller fyll bokstäverna med en toning eller ett mönster. Skiftläge och placering kröker raden och anpassar den till ramen.',
+    'Öppna Effekter i Egenskaper. Kontur, Hård skugga och Överstrykningsband lägger till en kant, en skugga eller en markering. Böjning kröker raden till en båge eller en cirkel. Bokstäver fyller dem med ett foto, en toning eller ett mönster.',
   'help.guide.studio-text-effects.tip.1':
-    'Anpassa till ramen krymper texten tills den ryms i ramen, så en lång rubrik aldrig rinner över.',
+    'Anpassa till ramen, under Skiftläge och placering, gör orden mindre när ramen är för liten för dem, så att en lång rubrik aldrig rinner över.',
   'help.guide.studio-text-effects.result': 'Effekten ritas tillsammans med texten, i tryck precis som på skärmen.',
   'help.guide.studio-background.title': 'Ändra sidbakgrunden',
   'help.guide.studio-background.goal':
@@ -1077,7 +1112,7 @@ const help: TranslationStrings = {
   'help.guide.studio-properties.step.1':
     'Klicka på ett element på uppslaget. Handtag för storlek och rotation visas. Dra elementet för att flytta det.',
   'help.guide.studio-properties.step.2':
-    'Properties till höger visar inställningarna för det markerade objektet: position och storlek, Crop med fokuspunkten som avgör vad som stannar kvar i ramen, fyllning eller anpassning, Look-filter, Corner-radie, ramstil, lagerordning och Lock.',
+    'Egenskaper till höger visar inställningarna för det du markerade, under dess namn: en karta erbjuder sin källa, vy och linje, ett foto Beskär med fokuspunkten, Fyll eller Anpassa och Utseende-filter. Position, lagerordning och Lås finns för varje element.',
   'help.guide.studio-properties.step.3':
     '”Duplicera” och ”Delete” finns högst upp i inspektören. ”Undo” i det övre fältet ångrar alla de här ändringarna.',
   'help.guide.studio-properties.result':
@@ -1115,7 +1150,7 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.step.1':
     'Med uppslaget på arbetsytan klickar du på ”Ladda ner det här uppslaget” längst till höger i zoomfältet. Filen innehåller designen, inte fotona.',
   'help.guide.studio-spread-file.step.2':
-    'I den andra boken öppnar du ”Pages” och klickar på ”Importera” bredvid ”Lägg till uppslag”. Välj sedan filen.',
+    'I den andra boken öppnar du ”Sidor” och klickar på ”Importera” bredvid ”+ Sida” längst ner. Välj sedan filen.',
   'help.guide.studio-spread-file.result':
     'Uppslaget importeras med sina ramar och textstilar. Släpp fotona från den nya Journey i ramarna.',
   'help.guide.studio-spread-file.tip.1': 'Om en fil inte är en uppslagsdesign avvisar TREK den och visar orsaken.',
@@ -1129,7 +1164,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.2':
     'Visning öppnas först. Där finns språk, språk för platsnamn, enheter, tidsformat, datumformat, veckostart och visningsvaluta, samt hur reskartan beter sig. Utseende innehåller tema, färger, läsbarhet, textstorlek och översiktswidgets.',
   'help.ctx.settings.bullet.3':
-    'Karta ställer in kartmotor och kartstil; Meddelanden styr vilka händelser som skickas till vilken kanal; Integrationer ansluter fotobibliotek, AirTrail, Dawarich och wanderer och innehåller API-nycklar och MCP; Offline styr vad som sparas på den här enheten.',
+    'Karta ställer in kartmotor och kartstil; Meddelanden styr vilka händelser som skickas till vilken kanal; Integrationer innehåller din adress för bokningsmejl, ansluter fotobibliotek, AirTrail, Dawarich och wanderer, och rymmer API-nycklar och MCP; Offline styr vad som sparas på den här enheten.',
   'help.ctx.settings.bullet.4':
     'Konto innehåller din profil, ditt lösenord, tvåfaktorsautentisering, inloggningsnycklar och möjligheten att radera ditt konto.',
   'help.ctx.settings-display.title': 'Visning',
@@ -1156,11 +1191,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-map.summary':
     'Vilken motor som ritar kartorna i reseplaneraren och i dagboken, och i vilken stil. Leaflet är den klassiska rasterkartan, Mapbox GL lägger till 3D-byggnader och terräng med din egen token, och MapLibre GL ritar vektorrutor från OpenFreeMap utan token. Atlas använder alltid Leaflet.',
   'help.ctx.settings-map.bullet.1':
-    'Kartleverantör: Leaflet, Mapbox GL (Experimentell) eller MapLibre GL, varje alternativ med en kort beskrivning.',
+    'Kartleverantör: Leaflet, Mapbox GL eller MapLibre GL, varje alternativ med en kort beskrivning.',
   'help.ctx.settings-map.bullet.2':
     'Kartmall och CARTO API-nyckel för Leaflet, Kartstil för de två GL-motorerna, samt Mapbox-åtkomsttoken för Mapbox GL.',
   'help.ctx.settings-map.bullet.3':
-    'Bara Mapbox GL: 3D-byggnader och terräng och Högkvalitetsläge. En liveförhandsvisning visas ovanför Spara karta. Spara karta sparar ditt val.',
+    'Bara Mapbox GL: 3D-byggnader och terräng, Högkvalitetsläge och Dölj intressepunkter. En liveförhandsvisning visas ovanför Spara karta. Spara karta sparar ditt val.',
   'help.ctx.settings-notifications.title': 'Meddelanden',
   'help.ctx.settings-notifications.summary':
     'Hur TREK kontaktar dig utanför appen. Överst avgör en tabell med en rad per händelse och en kolumn per kanal vad som skickas vart. Under den finns korten för webhook, ntfy, push på den här enheten och eventuella plugin-kanaler.',
@@ -1174,9 +1209,9 @@ const help: TranslationStrings = {
     'Push-meddelanden på den här enheten: Slå på för den här enheten gäller bara den här webbläsaren, och Skicka test skickar ett testmeddelande. En plugin-kanal visar Konfigurera tills den är inställd.',
   'help.ctx.settings-integrations.title': 'Integrationer',
   'help.ctx.settings-integrations.summary':
-    'Allt som ansluter till TREK utifrån: fotobibliotek för dagboken, AirTrail för flyg, Dawarich för var du faktiskt har varit, wanderer för leder, skrivskyddade API-nycklar för annan programvara och MCP för AI-klienter. En anslutning till en annan tjänst visas först när admin har slagit på den.',
+    'Allt som ansluter till TREK utifrån: din egen adress för bokningsmejl, fotobibliotek för dagboken, AirTrail för flyg, Dawarich för var du faktiskt har varit, wanderer för leder, skrivskyddade API-nycklar för annan programvara och MCP för AI-klienter. En anslutning till en annan tjänst visas först när admin har slagit på den.',
   'help.ctx.settings-integrations.bullet.1':
-    'Immich och Synology Photos, AirTrail, Dawarich och wanderer: varje kort har sin adress och nyckel, Spara och Testa anslutningen, och ett märke Ansluten eller Inte ansluten.',
+    'Bokningsmejl, överst när administratören har slagit på mejlimporten: din vidarebefordringsadress med sina reglage. Under det Immich och Synology Photos, AirTrail, Dawarich och wanderer: varje kort har sin adress och nyckel, Spara och Testa anslutningen, och ett märke Ansluten eller Inte ansluten.',
   'help.ctx.settings-integrations.bullet.2':
     'API Nycklar: skrivskyddade nycklar för det offentliga API:t, var och en begränsad till de områden du väljer, med Ändpunkt att kopiera.',
   'help.ctx.settings-integrations.bullet.3':
@@ -1209,7 +1244,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.title': 'Ställ in språk, enheter och valuta',
   'help.guide.language-region.goal': 'Använd TREK på ditt språk och med formaten i din region.',
   'help.guide.language-region.step.1':
-    'Under Språk och region väljer du ett Språk i raden med chips. TREK byter direkt, på alla enheter där du är inloggad.',
+    'Under Språk och region väljer du ett Språk i listan. Skriv för att hitta ett snabbt. TREK byter direkt, på alla enheter där du är inloggad.',
   'help.guide.language-region.step.2':
     'Platsnamn anger vilket språk som platssökning, förslag och adresser använder. Samma som appen följer gränssnittsspråket.',
   'help.guide.language-region.result':
@@ -1284,7 +1319,7 @@ const help: TranslationStrings = {
   'help.guide.map-provider.step.2':
     'Välj en Kartmall för Leaflet eller en Kartstil för en GL-motor, eller klistra in din egen URL. Mapbox GL kräver en Mapbox-åtkomsttoken och CARTO-mallar en CARTO API-nyckel. Länken under varje fält visar var du får en.',
   'help.guide.map-provider.step.3':
-    'Med Mapbox GL slår du på 3D-byggnader och terräng och, om din enhet är snabb nog, Högkvalitetsläge. Kontrollera förhandsvisningen och klicka sedan på Spara karta.',
+    'Med Mapbox GL slår du på 3D-byggnader och terräng och, om din enhet är snabb nog, Högkvalitetsläge. Dölj intressepunkter utelämnar butikerna och sevärdheterna som Mapbox märker ut av sig själv. Kontrollera förhandsvisningen och klicka sedan på Spara karta.',
   'help.guide.map-provider.result':
     'Reseplaneraren och dagbokens kartor använder motorn du valde. Atlas använder alltid Leaflet.',
   'help.guide.map-provider.tip.1': 'Utan token använder Mapbox GL Leaflet i stället för att visa en tom karta.',
@@ -1338,7 +1373,7 @@ const help: TranslationStrings = {
   'help.guide.mcp-oauth.step.2':
     'Under OAuth 2.1 Klienter klickar du på Ny klient och väljer en snabbförinställning som Claude Desktop eller Cursor, eller fyller själv i Programnamn, Omdirigerings-URI:er och Tillåtna tillämpningsområden. För en server utan webbläsare väljer du Machine client. Klicka på Registrera klient och kopiera Klient hemlighet: den visas bara en gång.',
   'help.guide.mcp-oauth.step.3':
-    'Varje klient har ”Rotera hemlighet” och ”Radera klient”. ”Aktiva OAuth-sessioner” listar de inloggade klienterna, med Återkalla. ”Klientkonfiguration” fälls ut och visar ett färdigt kodavsnitt för klienter som använder JSON.',
+    'Varje klient har ”Rotera hemlighet” och ”Radera klient”. När en klient har loggat in listar ”Aktiva OAuth-sessioner” den med Återkalla. Ovanför klienterna innehåller ”Klientkonfiguration” ett färdigt kodavsnitt för klienter som använder JSON, med Kopiera.',
   'help.guide.mcp-oauth.result':
     'Klienten kan läsa och ändra det som dess behörighetsområden tillåter, som du, och varje åtgärd visas under ditt namn.',
   'help.guide.mcp-oauth.tip.1':
@@ -1350,9 +1385,9 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.goal':
     'Spara dina resor och deras kartor på den här enheten innan du tappar anslutningen.',
   'help.guide.offline-prepare.step.1':
-    'Låt Lagra kartrutor offline vara på under Vad som ska lagras offline och slå på de resor du vill ha på den här enheten. En avslutad resa lagras bara om du slår på den.',
+    'I kortet Vad som ska lagras offline, till höger, låter du Lagra kartrutor offline vara på och slår på de resor du vill ha på den här enheten. En avslutad resa lagras bara om du slår på den.',
   'help.guide.offline-prepare.step.2':
-    'Tillbaka högst upp klickar du på Ladda ner för offlineanvändning under Förbered för offline. Det hämtar resedata, dokument och kartrutor och visar hur många resor som lagrades.',
+    'I kortet Offlineläge, under Förbered för offline, klickar du på Ladda ner för offlineanvändning. Det hämtar resedata, dokument och kartrutor och visar hur många resor som lagrades.',
   'help.guide.offline-prepare.step.3':
     'Tvinga offlineläge laddar ner allt en gång till och arbetar sedan bara från den här enheten, så att du kan kontrollera att allt finns där innan du åker.',
   'help.guide.offline-prepare.result':
@@ -1431,17 +1466,17 @@ const help: TranslationStrings = {
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Administration',
   'help.ctx.admin.summary':
-    'Inställningar för hela TREK-instansen, för alla användare: vem som får logga in och hur, vad som är påslaget, var filer lagras, hur servern når människor och hur den säkerhetskopieras. Bara administratörer ser den här sidan. Sidofältet grupperar flikarna under Användare, Konfiguration, Integrationer och Underhåll, och varje flik är en egen skärm.',
+    'Inställningar för hela TREK-instansen, för alla användare: vem som får logga in och hur, vad som är påslaget, var filer lagras, hur servern når människor och hur den säkerhetskopieras. Bara administratörer ser den här sidan. Sidofältet grupperar flikarna under Användare, Konfiguration och Underhåll, och varje flik är en egen skärm.',
   'help.ctx.admin.bullet.1':
     'Rubriken räknar användare, resor, platser och filer till höger. Under den visas en banner Uppdatering tillgänglig när det finns en nyare TREK-version.',
   'help.ctx.admin.bullet.2':
-    'Användare och Användarinställningar: konton, inbjudningslänkar och behörigheter, samt de inställningar och den karta som ett nytt konto startar med.',
+    'Användare och Standardvärden: konton, inbjudningslänkar och behörigheter, samt de inställningar och den karta som ett nytt konto startar med.',
   'help.ctx.admin.bullet.3':
-    'Anpassning, Inställningar, Tillägg, Plugin och Lagring: packmallar, kategorier och skollov, inloggning, inloggningsnycklar, 2FA, API-nycklar och sökleverantörer, funktionsmodulerna, plugin från tredje part och var uppladdningar lagras.',
+    'Säkerhet, Tjänster, Tillägg och Anpassning: inloggning, inloggningsnycklar, 2FA och enkel inloggning, platssökning, ruttplanering, API-nycklar och filtyper, funktionsmodulerna med sina alternativ, packmallar, kategorier och skollov.',
   'help.ctx.admin.bullet.4':
-    'Meddelanden, MCP Åtkomst och GitHub: kanalerna som användarna kan välja och standardvalen de börjar med, AI-klienternas token och sessioner samt versionshistoriken.',
+    'Meddelanden, MCP och Plugin: kanalerna som användarna kan välja och aviseringarna du får som administratör, AI-klienternas token och sessioner samt plugin från tredje part.',
   'help.ctx.admin.bullet.5':
-    'Säkerhetskopia och Revision: säkerhetskopior på begäran och enligt schema, samt loggen över säkerhetsrelevanta händelser.',
+    'Lagring, Säkerhetskopia, GitHub och Revision: var uppladdningar lagras, säkerhetskopior på begäran och enligt schema, versionshistoriken och loggen över säkerhetsrelevanta händelser.',
   'help.ctx.admin-users.title': 'Användare',
   'help.ctx.admin-users.summary':
     'Alla konton på den här TREK-instansen, med roll, e-post och senaste aktivitet, inbjudningslänkarna som låter personer registrera sig på en sluten instans samt vem som får göra vad i resor.',
@@ -1453,13 +1488,13 @@ const help: TranslationStrings = {
     'Inbjudningslänkar nedanför: registreringslänkar med en användningsgräns, ett utgångsdatum och, om du vill, en resa som den nya användaren går med i när hen registrerar sig.',
   'help.ctx.admin-users.bullet.4':
     'Behörighetsinställningar längst ned: för varje åtgärd, vem som får utföra den (Alla, Resedeltagare, Researrangör eller Admin endast). Klicka på Spara överst i kortet för att spara.',
-  'help.ctx.admin-defaults.title': 'Användarinställningar',
+  'help.ctx.admin-defaults.title': 'Standardvärden',
   'help.ctx.admin-defaults.summary':
     'Vad ett nytt konto startar med, så att ingen först behöver ställa in det: färgläge, enheter, tidsformat, datumformat, veckostart, visningsvaluta och blurrade bokningskoder, plus kartan, dess nycklar och ruttservrarna.',
   'help.ctx.admin-defaults.bullet.1':
     'Standardinställningar för användare till vänster: Färgläge, Temperaturenhet, Avståndsenhet, Tidsformat, Vecka börjar på, Datumformat, Visningsvaluta och Blurra bokningskoder.',
   'help.ctx.admin-defaults.bullet.2':
-    'Karta till höger: Kartmall, Delad CARTO-nyckel, Egen ruttmotor och Egen Valhalla-instans, en förhandsgranskning och sedan Kartmotor med Kartstil, Delat Mapbox-token, 3D-byggnader och terräng och Högkvalitetsläge.',
+    'Ruttplanering under dem: Ruttjänst, Egen ruttmotor och Egen Valhalla-instans. Karta till höger: Kartmall, Delad CARTO-nyckel, en förhandsgranskning och sedan Kartmotor med Kartstil, Delat Mapbox-token, 3D-byggnader och terräng och Högkvalitetsläge.',
   'help.ctx.admin-config.title': 'Anpassning',
   'help.ctx.admin-config.summary':
     'Inställningar som alla resor på instansen delar: packningsmallar, kategoriuppsättningen för platser och samlingar samt skollovskatalogen som Vacay använder.',
@@ -1469,32 +1504,33 @@ const help: TranslationStrings = {
     'Kategorier: namn, ikon och färg för kategorierna som används i hela TREK, från platsinspektören till Samlingar. Var och en redigeras i en dialog med förhandsgranskning.',
   'help.ctx.admin-config.bullet.3':
     'Skollov: katalogen med länder och regioner och deras lovperioder, som alla kan välja i Vacay.',
-  'help.ctx.admin-settings.title': 'Inställningar',
+  'help.ctx.admin-settings.title': 'Säkerhet och Tjänster',
   'help.ctx.admin-settings.summary':
-    'Hur människor loggar in och vilka externa tjänster servern får använda. Till vänster: Autentiseringsmetoder, Inloggningsnyckel, Kräv tvåfaktorsautentisering (2FA) och Enkel inloggning (OIDC). Till höger: Tillåtna filtyper och API Nycklar med sök- och kollektivtrafikleverantörerna. Farozon finns längst ned.',
+    'Hur människor loggar in, och vilka externa tjänster servern använder, på två flikar. Säkerhet: Autentiseringsmetoder och Inloggningsnyckel till vänster, Enkel inloggning (OIDC) och Farozon till höger. Tjänster: Platssökning och ruttplanering till vänster, API Nycklar och Tillåtna filtyper till höger.',
   'help.ctx.admin-settings.bullet.1':
-    'Autentiseringsmetoder: Inloggning med lösenord, Lösenordsregistrering och, när OIDC är konfigurerat, SSO Inloggning och SSO Automatisk konfigurering. Kräv tvåfaktorsautentisering (2FA) har ett eget kort.',
+    'Autentiseringsmetoder: Inloggning med lösenord och Lösenordsregistrering, SSO-raderna när OIDC är konfigurerat (SSO Inloggning, SSO Automatisk konfigurering och Direkt till SSO), därefter Aktivera inloggningsnyckel och Kräv 2FA. Varje reglage sparas direkt.',
   'help.ctx.admin-settings.bullet.2':
-    'Inloggningsnyckel: Aktivera inloggningsnyckel, Relying Party ID (domänen) och Allowed origins. Enkel inloggning (OIDC): Visningsnamn, Utfärdarens URL, en valfri Discovery-URL, Klient ID och Klient hemlighet.',
+    'Inloggningsnyckel: Relying Party ID (domänen) och Tillåtna ursprung. Enkel inloggning (OIDC): Visningsnamn, Utfärdarens URL, en valfri Discovery-URL, Klient ID och Klient hemlighet.',
   'help.ctx.admin-settings.bullet.3':
-    'API Nycklar: TREK Places API kommer först och behöver ingen nyckel. Under det finns Google Maps API Nyckel (med Test och Vad nyckeln används till), nycklarna för Unsplash och Amap, och en Spara längst ned i kortet.',
+    'Platssökning och ruttplanering, på Tjänster: TREK API, markerat Rekommenderad standardkälla, med Dagens kvot och Dela platsuppgifter, därefter Kollektivtrafikleverantör, Leverantör för platssökning och Logg över platssökningar.',
   'help.ctx.admin-settings.bullet.4':
-    'Kollektivtrafikleverantör och Leverantör för platssökning avgör vem som svarar på sökningar efter kollektivtrafik och platser. Logg över platssökningar registrerar vilket resultat som valdes. Tillåtna filtyper begränsar uppladdningar.',
+    'API Nycklar: Google Maps API Nyckel med Test och Vad nyckeln används till, nycklarna för Unsplash och Amap, och en Spara längst ned i kortet. Tillåtna filtyper, under det, begränsar uppladdningar.',
   'help.ctx.admin-addons.title': 'Tillägg',
   'help.ctx.admin-addons.summary':
-    'TREK:s funktionsmoduler, var och en med en strömbrytare: Packning, Budget, Dokument, Vacay, Atlas, Samarbete, Journey, Samlingar, Bilresa, MCP, AirTrail, Dawarich och AI-tolkningen. Av betyder att navigeringsposten, rutterna och API:et tas bort för alla.',
+    'TREK:s funktionsmoduler i tre kort: Resa för flikarna i en resa, Global för avsnitten i huvudnavigeringen och Integration för externa tjänster. Varje tillägg har ett reglage. Av betyder att navigeringsposten, rutterna och API:et tas bort för alla.',
   'help.ctx.admin-addons.bullet.1':
-    'En ruta per tillägg med dess reglage och, där det finns några, underrader för dess alternativ.',
+    'En rad per tillägg med sitt reglage, och i varje korts rubrik hur många av dess tillägg som är på. Infomärket bredvid ett namn säger vad tillägget gör.',
   'help.ctx.admin-addons.bullet.2':
-    'Fotoleverantörer och dokumentleverantörer visas också som rutor här, så att Immich eller Synology kan erbjudas användarna.',
-  'help.ctx.admin-addons.bullet.3': 'Spårning av väskor har ett eget reglage under rutorna.',
+    'Alternativen hänger under sitt tillägg medan det är på: Spårning av väskor under Listor, Samarbete-funktionerna, dokumentlagren under Dokument, fotoleverantörerna under Journey, och wanderer och kartlagren under Turer.',
+  'help.ctx.admin-addons.bullet.3':
+    'Rader med ett kugghjul öppnar en konfigurationsdialog, till exempel Vattendata för paddling under Turer och Konfigurera mejlimport under Import av bokningsmejl. Flygstatus live är en rad i kortet Resa.',
   'help.ctx.admin-plugins.title': 'Plugin',
   'help.ctx.admin-plugins.summary':
     'Tredjepartsplugins som körs i en egen process bredvid TREK, var och en med de behörigheter som den bad om vid installationen. Installera från katalogen, ladda upp ett paket eller länka en mapp medan du utvecklar ett plugin.',
   'help.ctx.admin-plugins.bullet.1':
-    'Installerat och Upptäck, med Sök plugins… och filtren Typ, Status och Sortera. Varje rad visar versionen, Granskad, Signerad eller Osignerad, vad pluginet får komma åt, ett reglage och en ⋯-meny.',
+    'Installerat och Upptäck, med Sök plugins… och Filtrera för typ, status och ordning. Varje rad visar versionen, vad pluginet får komma åt, Granskad och Signerad eller Osignerad, ett reglage och en ⋯-meny.',
   'help.ctx.admin-plugins.bullet.2':
-    'De två ikonerna i kortets huvud: ”Ladda upp plugin” tar emot .zip, .tgz eller .tar.gz (du kan också släppa en .zip på sidan); ”Skanna om” hittar en plugin-mapp som är länkad för utveckling.',
+    'De tre ikonerna i kortets huvud: ”Så skyddas plugins” förklarar hur ett plugin stängs in; ”Ladda upp plugin” tar emot .zip, .tgz eller .tar.gz (du kan också släppa en .zip på sidan); ”Skanna om” hittar en plugin-mapp som är länkad för utveckling.',
   'help.ctx.admin-plugins.bullet.3':
     'Tillåtna värdar per plugin: de adresser som ett plugin får anropa, eftersom utgående anslutningar är blockerade som standard.',
   'help.ctx.admin-storage.title': 'Lagring',
@@ -1505,17 +1541,19 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.2':
     'Backender: namn, typ, användning och Speglad till, med Test, Redigera och Ta bort. Beräkna nu räknar vad som är lagrat. En backend som definieras av en miljövariabel är skrivskyddad.',
   'help.ctx.admin-storage.bullet.3':
-    'Kategorier: resedokument, Journey-foton, omslag, profilbilder, platsbilder, fotocacharna och säkerhetskopior, var och en kopplad till en backend.',
+    'Kategorier: resedokument, Journey-foton, omslag, profilbilder, platsbilder, fotocacharna och säkerhetskopior, var och en kopplad till en backend, med Spara ändringar längst ned.',
+  'help.ctx.admin-storage.bullet.4':
+    'Filer utan koppling: vad den nattliga kontrollen hittade som inget i TREK längre använder, med Kontrollera nu och ett reglage som raderar sådana filer när de har varit oanvända i en vecka.',
   'help.ctx.admin-notifications.title': 'Meddelanden',
   'help.ctx.admin-notifications.summary':
     'Kanalerna som instansen erbjuder sina användare och de som du får som administratör. Användarna väljer själva sina ämnen och URL:er under Inställningar. Du bestämmer vad som finns och ställer in e-post.',
   'help.ctx.admin-notifications.bullet.1':
-    'E-post (SMTP), Webhook, Ntfy och Web Push har var sitt reglage som erbjuder kanalen till användarna. E-post kräver dessutom serverinställningar. I-App är alltid på.',
+    'Kanaler: E-post (SMTP), Webhook, Ntfy och Web Push har var sitt reglage som erbjuder kanalen till användarna. I-App är alltid på. Avsnittet E-post (SMTP) under reglagen innehåller mejlserverns inställningar.',
   'help.ctx.admin-notifications.bullet.2':
-    'Påminnelser inför resan: om servern skickar påminnelsen innan en resa börjar.',
+    'Påminnelser inför resan, sista raden i Kanaler: om servern skickar påminnelsen innan en resa börjar.',
   'help.ctx.admin-notifications.bullet.3':
-    'Webhook för administratörer, Admin Ntfy och kortet Meddelanden: vart admin-händelser (Ny version tillgänglig, Fel i lagringsreplik, Paddelregion efterfrågad) skickas, med en testknapp var.',
-  'help.ctx.admin-mcp-tokens.title': 'MCP Åtkomst',
+    'Adminaviseringar, till höger: Webhook för administratörer och Admin Ntfy med en testknapp var, och under dem vilken kanal som skickar varje admin-händelse (Ny version tillgänglig, Fel i lagringsreplik, Paddelregion efterfrågad).',
+  'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
     'Alla tokens och OAuth-sessioner som AI-klienter har för den här TREK-instansen, för alla användare. Du kan återkalla vilken som helst av dem.',
   'help.ctx.admin-mcp-tokens.bullet.1':
@@ -1563,13 +1601,13 @@ const help: TranslationStrings = {
   'help.guide.edit-user.step.1':
     'Klicka på pennan (Redigera användare) på användarens rad. Dialogen visar kontots e-postadress överst.',
   'help.guide.edit-user.step.2':
-    'Ändra Användarnamn, E-post eller Roll, eller skriv ett lösenord under ”Nytt lösenord” (lämna fältet tomt för att behålla det nuvarande), och klicka på Spara. ”Återställ inloggningsnycklar”, längst ned, tar bort alla inloggningsnycklar för kontot när du har bekräftat.',
+    'Ändra Användarnamn, E-post eller Roll, eller skriv ett lösenord under ”Nytt lösenord” (lämna fältet tomt för att behålla det nuvarande), och klicka på Spara. Under det tar ”Återställ inloggningsnycklar” bort alla inloggningsnycklar för kontot och ”Återställ 2FA” slår av dess tvåfaktorsautentisering, var och en när du har bekräftat.',
   'help.guide.edit-user.result':
     'Ändringen gäller direkt. Ett nytt lösenord loggar också ut personen på alla enheter, så att en gammal session slutar fungera.',
   'help.guide.edit-user.tip.1':
     'Du kan inte ta bort adminrollen från dig själv så länge du är den sista administratören.',
   'help.guide.edit-user.tip.2':
-    'Om du återställer inloggningsnycklar behålls lösenordet. Personen lägger till nya nycklar under Inställningar, Konto.',
+    'Om du återställer inloggningsnycklar eller 2FA behålls lösenordet. Personen lägger till nya nycklar under Inställningar, Konto, och efter en 2FA-återställning loggas personen ut överallt och kan ställa in det igen.',
   // invite-links
   'help.guide.invite-links.title': 'Bjud in någon med en länk',
   'help.guide.invite-links.goal':
@@ -1662,24 +1700,30 @@ const help: TranslationStrings = {
     'En region som någon redan har valt i sin Vacay-kalender kan inte raderas.',
   // auth-methods
   'help.guide.auth-methods.title': 'Bestäm hur människor loggar in',
-  'help.guide.auth-methods.goal': 'Slå på eller av lösenordsinloggning, SSO och registrering, och kräv 2FA.',
+  'help.guide.auth-methods.goal':
+    'Slå på eller av lösenordsinloggning, registrering, SSO och inloggningsnycklar, och kräv 2FA.',
   'help.guide.auth-methods.step.1':
-    'Under Autentiseringsmetoder slår du på eller av Inloggning med lösenord och Lösenordsregistrering. Varje reglage gäller direkt. När registreringen är av skapas nya konton bara via inbjudningslänkar, SSO eller Skapa användare.',
+    'På fliken Säkerhet, under Autentiseringsmetoder, slår du på eller av Inloggning med lösenord och Lösenordsregistrering. Varje reglage gäller direkt. När registreringen är av skapas nya konton bara via inbjudningslänkar, SSO eller Skapa användare.',
   'help.guide.auth-methods.step.2':
-    '”SSO Inloggning” och ”SSO Automatisk konfigurering” kräver att ”Enkel inloggning (OIDC)” är konfigurerat längre ner. Automatisk konfigurering skapar ett konto första gången någon loggar in via SSO.',
+    'När Enkel inloggning (OIDC) är konfigurerat följer tre SSO-rader: SSO Inloggning, SSO Automatisk konfigurering, som skapar ett konto första gången någon loggar in via SSO, och Direkt till SSO.',
   'help.guide.auth-methods.step.3':
-    'Slå på ”Kräv tvåfaktorsautentisering (2FA)” så måste alla som saknar 2FA ställa in det under Inställningar innan de kan använda TREK.',
+    'Aktivera inloggningsnyckel erbjuder inloggningsnycklar på inloggningssidan. Slå på Kräv 2FA så måste alla som saknar 2FA ställa in det under Inställningar innan de kan använda TREK.',
   'help.guide.auth-methods.result': 'Inloggningssidan erbjuder precis de metoder som du lät vara på.',
   'help.guide.auth-methods.tip.1':
     'TREK låter dig inte stänga av den sista inloggningsmetoden: dess reglage blir grått, och verktygstipset lyder Minst en inloggningsmetod måste förbli aktiverad.',
   'help.guide.auth-methods.tip.2':
     'Om OIDC_ONLY är satt på servern är lösenordsreglagen låsta, och en notering säger det.',
+  'help.guide.auth-methods.tip.3':
+    'Direkt till SSO spelar bara roll när Inloggning med lösenord är av: på skickas besökarna direkt till din identitetsleverantör, av ser de först inloggningssidan med sin SSO-knapp.',
   // oidc
   'help.guide.oidc.title': 'Anslut enkel inloggning',
   'help.guide.oidc.goal': 'Låt människor logga in med din identitetsleverantör.',
   'help.guide.oidc.step.1':
-    'Under Enkel inloggning (OIDC) anger du Visningsnamn för knappen samt Utfärdarens URL, Klient ID och Klient hemlighet från din leverantör. Fyll i Discovery-URL (valfritt) bara om din leverantör inte publicerar den på den vanliga adressen, som Authentik. Klicka på Spara.',
-  'help.guide.oidc.step.2': 'Slå på SSO Inloggning under Autentiseringsmetoder.',
+    'På fliken Säkerhet, under Enkel inloggning (OIDC), anger du Visningsnamn för knappen samt Utfärdarens URL, Klient ID och Klient hemlighet från din leverantör. Fyll i Discovery-URL (valfritt) bara om din leverantör inte publicerar den på den vanliga adressen, som Authentik. Klicka på Spara.',
+  'help.guide.oidc.step.2':
+    'Ladda om sidan. Kortet visar nu Inställd, och Autentiseringsmetoder visar SSO Inloggning, SSO Automatisk konfigurering och Direkt till SSO. Slå på SSO Inloggning.',
+  'help.guide.oidc.step.3':
+    'Om du vill göra SSO till den enda vägen in slår du av Inloggning med lösenord. Med Direkt till SSO på skickas besökarna direkt till din leverantör. Slå av det för att behålla inloggningssidan med SSO-knappen.',
   'help.guide.oidc.result':
     'Inloggningssidan visar SSO-knappen. När SSO Automatisk konfigurering är på får förstagångsanvändare ett konto automatiskt.',
   'help.guide.oidc.tip.1':
@@ -1691,9 +1735,9 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     'Lägg till Google-foton och betyg, Unsplash-omslag och Amap-sökning för hela instansen.',
   'help.guide.instance-keys.step.1':
-    'Under API Nycklar hanterar TREK Places API överst redan platssökning utan nyckel. Vad som ingår visar vad det täcker och vad det inte täcker.',
+    'På fliken Tjänster börjar kortet Platssökning och ruttplanering med TREK API, markerat Rekommenderad standardkälla. Det svarar på platssökning, adresser och ruttplanering utan nyckel, och Dagens kvot visar vad som är kvar av dagen.',
   'help.guide.instance-keys.step.2':
-    'För foton, betyg och öppettider klistrar du in en Google Maps API Nyckel och klickar på Test. Där står Ansluten eller Felaktig. Öppna Vad nyckeln används till och slå bara på det du vill ska debiteras: Plats Foton, Automatisk komplettering av plats, Platsinformation, Platsberikning och Sök bara med Google, samt en Daglig gräns för Google-anrop.',
+    'För foton, betyg och öppettider klistrar du in en Google Maps API Nyckel under API Nycklar och klickar på Test. Där står Ansluten eller Felaktig. Under Vad nyckeln används till slår du bara på det du vill ska debiteras: Plats Foton, Automatisk komplettering av plats, Platsinformation, Platsberikning och Sök bara med Google, samt en Daglig gräns för Google-anrop.',
   'help.guide.instance-keys.step.3':
     'Klistra in Unsplash API-nyckel för omslagssökning och Amap (高德地图) API-nyckel för platssökning i Kina (fastlandet) och klicka sedan på Spara längst ned i kortet.',
   'help.guide.instance-keys.result':
@@ -1708,7 +1752,7 @@ const help: TranslationStrings = {
   'help.guide.places-transit.goal':
     'Välj vilken tjänst som besvarar platssökningar och förfrågningar om kollektivtrafikrutter.',
   'help.guide.places-transit.step.1':
-    'Under Kollektivtrafikleverantör väljer du Transitous (gratis), som är nyckelfri och starkast i Europa, eller Google, som använder Google-nyckeln. Valet sparas direkt.',
+    'På fliken Tjänster, i kortet Platssökning och ruttplanering, väljer du under Kollektivtrafikleverantör: Transitous (gratis), som är nyckelfri och starkast i Europa, eller Google, som använder Google-nyckeln. Valet sparas direkt.',
   'help.guide.places-transit.step.2':
     'Under Leverantör för platssökning väljer du vilken tjänst TREK ska fråga när TREK-indexet och OpenStreetMap inte hittar något: Automatisk (Google om det finns en nyckel, sedan Amap), Google Places, Amap (高德地图) eller OpenStreetMap.',
   'help.guide.places-transit.result': 'Alla sökrutor och alla kollektivtrafikrutter i TREK använder det här valet.',
@@ -1720,7 +1764,7 @@ const help: TranslationStrings = {
   'help.guide.file-types.title': 'Begränsa filtyperna',
   'help.guide.file-types.goal': 'Bestäm vilka filändelser uppladdade filer får ha.',
   'help.guide.file-types.step.1':
-    'Under Tillåtna filtyper redigerar du den kommaseparerade listan med filändelser, eller anger * för att tillåta alla typer, och klickar på Spara.',
+    'På fliken Tjänster, under Tillåtna filtyper, redigerar du den kommaseparerade listan med filändelser, eller anger * för att tillåta alla typer, och klickar på Spara.',
   'help.guide.file-types.result':
     'Uppladdningar av alla andra typer avvisas med ett tydligt meddelande, i dokumenten, i dagboken och på omslagen.',
   'help.guide.file-types.tip.1': 'Behåll bildtyper i listan. Omslag och Journey-foton kontrolleras mot samma lista.',
@@ -1728,9 +1772,9 @@ const help: TranslationStrings = {
   'help.guide.toggle-addon.title': 'Slå på eller av ett tillägg',
   'help.guide.toggle-addon.goal': 'Gör en funktionsmodul tillgänglig för alla, eller ta bort den.',
   'help.guide.toggle-addon.step.1':
-    'Klicka på reglaget på tilläggets ruta. Menyvalet visas eller försvinner direkt för alla.',
+    'Hitta tillägget i sitt kort, Resa, Global eller Integration, och klicka på reglaget på dess rad. Menyvalet visas eller försvinner direkt för alla.',
   'help.guide.toggle-addon.step.2':
-    'Vissa rutor har underrader för sina alternativ, till exempel Spårning av väskor under Listor eller fotoleverantörerna under Journey. De visas bara när tillägget är på.',
+    'Medan ett tillägg är på följer dess alternativ som indragna rader, till exempel Spårning av väskor under Listor eller fotoleverantörerna under Journey. Flygstatus live, längst ned i kortet Resa, följer bokade flyg live.',
   'help.guide.toggle-addon.result':
     'När du stänger av ett tillägg behålls dess data. När du slår på det igen visas datan igen.',
   'help.guide.toggle-addon.tip.1':
@@ -1742,11 +1786,11 @@ const help: TranslationStrings = {
   'help.guide.install-plugin.goal':
     'Lägg till ett plugin från tredje part och ge det exakt de behörigheter det ber om.',
   'help.guide.install-plugin.step.1':
-    'Öppna Upptäck, hitta ett plugin med Sök plugins… eller filtret Typ och klicka på Installera. Har du en paketfil klickar du på Ladda upp plugin (molnikonen uppe till höger på kortet) eller släpper .zip-filen på sidan.',
+    'Öppna Upptäck, hitta ett plugin med Sök plugins… eller Filtrera och klicka på Installera. Har du en paketfil klickar du på Ladda upp plugin (molnikonen uppe till höger på kortet) eller släpper .zip-filen på sidan.',
   'help.guide.install-plugin.step.2':
     'Läs raden under Installerat: vad pluginet får komma åt, vilka värdar det ansluter till och om det är Granskad och Signerad. Slå sedan på Aktivera plugin. Raden visar då Aktiv.',
   'help.guide.install-plugin.step.3':
-    'Radens ⋯-meny erbjuder Starta om, Visa felloggen, Tillåtna värdar och Byt version…, samt länkarna till källan. Radera avinstallerar pluginet och dess data. En nyare version visas som en uppdatering på raden, och en version som ber om nya behörigheter förblir avstängd tills du godkänner dem.',
+    'Radens ⋯-meny erbjuder Starta om, Instansinställningar där pluginet har några, Visa felloggen, Tillåtna värdar och Byt version…, samt länkarna till källan. Radera avinstallerar pluginet och dess data. En nyare version visas som en uppdatering på raden, och en version som ber om nya behörigheter förblir avstängd tills du godkänner dem.',
   'help.guide.install-plugin.result':
     'Pluginet körs i en egen process. Allt det lägger till, till exempel widgetar, kartlager eller verktyg, visas där pluginet anger.',
   'help.guide.install-plugin.tip.1': 'Skanna om hittar en pluginmapp som är länkad för utveckling utan ett paket.',
@@ -1761,7 +1805,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'Koppla varje slags uppladdning, till exempel Resedokument, Journey-foton eller Säkerhetskopior, till en backend under Kategorier.',
   'help.guide.storage-backends.step.3':
-    'Klicka på Spara ändringar längst ned. Om en kategori nu pekar på en annan lagring frågar TREK om du vill Flytta befintliga objekt eller Dirigera bara nya skrivningar.',
+    'Klicka på Spara ändringar längst ned i Kategorier. Om en kategori nu pekar på en annan lagring frågar TREK om du vill Flytta befintliga objekt eller Dirigera bara nya skrivningar.',
   'help.guide.storage-backends.result':
     'Nya uppladdningar går till den tilldelade lagringen. Flyttade filer levereras därifrån, och det du valde att inte flytta ligger kvar där det var.',
   'help.guide.storage-backends.tip.1':
@@ -1772,11 +1816,11 @@ const help: TranslationStrings = {
   'help.guide.channels-instance.title': 'Konfigurera meddelandekanalerna',
   'help.guide.channels-instance.goal': 'Bestäm vilka kanaler användarna får välja och ställ in e-post.',
   'help.guide.channels-instance.step.1':
-    'Slå på E-post (SMTP) i rubriken på kortet, ange SMTP Host, SMTP Port, SMTP User, SMTP Password och From Address och klicka på Spara. Skicka ett testmejl skickar ett e-postmeddelande till dig. Hoppa över kontroll av TLS-certifikat är bara till för en lokal e-postserver med eget certifikat.',
+    'I kortet Kanaler slår du på E-post (SMTP). I avsnittet E-post (SMTP) nedanför anger du SMTP Host, SMTP Port, SMTP User, SMTP Password och From Address och klickar på Spara. Skicka ett testmejl skickar ett e-postmeddelande till dig. Hoppa över kontroll av TLS-certifikat är bara till för en lokal e-postserver med eget certifikat.',
   'help.guide.channels-instance.step.2':
-    'Slå på Webhook, Ntfy och Web Push för att erbjuda dem. Användarna anger sedan sin egen URL eller sitt eget ämne, eller slår på push per enhet, under Inställningar, Meddelanden.',
+    'Slå på Webhook, Ntfy och Web Push i samma kort för att erbjuda dem. Användarna anger sedan sin egen URL eller sitt eget ämne, eller slår på push per enhet, under Inställningar, Meddelanden.',
   'help.guide.channels-instance.step.3':
-    'Påminnelser inför resan slår på påminnelsen innan en resa börjar. I-App är alltid på.',
+    'Påminnelser inför resan, sista raden, slår på påminnelsen innan en resa börjar. I-App är alltid på.',
   'help.guide.channels-instance.result': 'Fliken ”Meddelanden” hos varje användare visar de kanaler du har slagit på.',
   'help.guide.channels-instance.tip.1':
     'Ntfy Server URL i kortet Admin Ntfy är också standardservern för användarna. Användarna kan fortfarande ange en egen server.',
@@ -1787,7 +1831,7 @@ const help: TranslationStrings = {
   'help.guide.admin-channels.goal':
     'Få meddelanden om nya utgåvor, misslyckade lagringsspeglingar och förfrågningar om paddelregioner.',
   'help.guide.admin-channels.step.1':
-    'Under Admin Ntfy anger du Admin Ämne och, om det behövs, Ntfy Server URL och en Åtkomsttoken (valfritt). Under Webhook för administratörer anger du en URL. Klicka på Spara i varje kort.',
+    'I kortet Adminaviseringar anger du en URL under Webhook för administratörer och klickar på dess Spara. Under Admin Ntfy anger du Admin Ämne och, om det behövs, Ntfy Server URL och en Åtkomsttoken (valfritt), och klickar på Spara.',
   'help.guide.admin-channels.step.2':
     'Klicka på Skicka test ntfy eller Skicka testwebhook för att se ett meddelande komma fram.',
   'help.guide.admin-channels.result':
@@ -1873,6 +1917,64 @@ const help: TranslationStrings = {
     'Här bestäms bara om ett lager får erbjudas. Adressen och inloggningsuppgifterna hör till en resa och anges i dess flik Filer av resans ägare, aldrig i adminpanelen.',
   'help.guide.document-providers.tip.2':
     'Om du stänger av Dokument stängs även alla lager av, och du kan inte slå på ett lager medan Dokument är av: servern svarar Enable the Documents addon first. Ett lager i ditt eget nätverk kräver också ALLOW_INTERNAL_NETWORK=true på servern.',
+  'help.guide.mail-import-setup.title': 'Konfigurera importen av bokningsmejl',
+  'help.guide.mail-import-setup.goal':
+    'Ge alla en vidarebefordringsadress, så att bokningsbekräftelserna de skickar vidare blir bokningar i rätt resa.',
+  'help.guide.mail-import-setup.step.1':
+    'På fliken Tillägg, i kortet Integration, slår du på Import av bokningsmejl. Alla på den här TREK-instansen får nu en personlig vidarebefordringsadress.',
+  'help.guide.mail-import-setup.step.2': 'Klicka på Konfigurera mejlimport, raden som visas under det.',
+  'help.guide.mail-import-setup.step.3':
+    'Under Hur mejl kommer in väljer du IMAP-brevlåda och anger Server, Port, Kryptering, Användare, Lösenord och Mapp. Välj i stället Webhook för en mejltjänst som skickar varje mejl till TREK, eller Endast uppladdning för att prova utan brevlåda. Ställ sedan in Adressmall, vidarebefordringsadressen med en platshållare där varje persons kod hamnar, och AI-mejl per person och dag.',
+  'help.guide.mail-import-setup.step.4':
+    'Klicka på Spara och sedan på Testa anslutning. Det står Ansluten eller vad som gick fel. Nedanför visar dialogen när TREK senast läste mejlen och mejlen från de senaste 24 timmarna: Tillagda automatiskt, Väntar och Misslyckade.',
+  'help.guide.mail-import-setup.result':
+    'Alla hittar sin vidarebefordringsadress under Inställningar, Integrationer. En vidarebefordrad bekräftelse blir en bokning i rätt resa, eller väntar där på att ägaren tittar på den.',
+  'help.guide.mail-import-setup.tip.1':
+    'Ge TREK en egen brevlåda som tar emot plusadresser (trek+…@din-domän), inte en personlig. Lästa mejl flyttas vidare till mappen TREK/processed.',
+  'help.guide.mail-import-setup.tip.2':
+    'Miljövariabler som börjar med MAIL_INGEST_ går före fälten i dialogen. En mejlserver i ditt eget nätverk kräver dessutom ALLOW_INTERNAL_NETWORK=true på servern.',
+  'help.guide.mail-import-setup.tip.3':
+    'AI-mejl per person och dag begränsar hur många mejl utan maskinläsbara bokningsuppgifter som en AI läser för en person per dag. Över gränsen läses bara de maskinläsbara uppgifterna.',
+  'help.guide.ai-setup.title': 'Konfigurera AI-assistenten',
+  'help.guide.ai-setup.goal':
+    'Anslut en AI-leverantör en gång, så att alla på den här TREK-instansen kan planera med assistenten.',
+  'help.guide.ai-setup.step.1':
+    'På fliken Tillägg hittar du AI-rutan i kortet Integration och slår på AI-assistent. AI-tolkning och MCP finns i samma ruta.',
+  'help.guide.ai-setup.step.2': 'Klicka på Konfigurera AI, raden som visas under reglagen.',
+  'help.guide.ai-setup.step.3':
+    'Under Vem betalar väljer du vem som tillhandahåller anslutningen: Jag betalar, eget tillåtet, Jag betalar för alla eller Alla använder sitt eget konto. Raden under förklarar vad ditt val innebär.',
+  'help.guide.ai-setup.step.4':
+    'Under Anslutning för alla väljer du Klistra in en API-nyckel och klistrar in en nyckel från Anthropic, OpenAI, Gemini eller OpenRouter. TREK visar vilken leverantör den känner igen. Klicka på Anslut; TREK kontrollerar nyckeln hos leverantören innan den sparas.',
+  'help.guide.ai-setup.step.5':
+    'Anslutningen visas som Ansluten. Välj den Modell som alla chattar med; bara modeller som kan använda verktyg listas. Ändra och Ta bort anslutningen finns under den.',
+  'help.guide.ai-setup.step.6':
+    'På fliken AI-assistent ställer du in Meddelanden per person och dag medan du betalar, hur länge chattar ska sparas under Spara chattar och om Webbsökning är tillåten. Varje ändring sparas direkt.',
+  'help.guide.ai-setup.result':
+    'Assistentknappen visas i varje resa. Om du har tillåtit det kan användarna ansluta sin egen leverantör under Inställningar, Integrationer.',
+  'help.guide.ai-setup.tip.1':
+    'Egen server tar vilken OpenAI-kompatibel adress som helst, till exempel Ollama, med en valfri nyckel och modellnamnet. Logga in med ChatGPT delar ditt eget ChatGPT-abonnemang med alla; kontrollera att ditt abonnemang tillåter det.',
+  'help.guide.ai-setup.tip.2':
+    'Med Alla använder sitt eget konto debiteras inget dig, och den dagliga gränsen gäller inte.',
+  'help.guide.ai-setup.tip.3':
+    'AI-tolkning läser bokningar med samma anslutning. Slå på den i rutan, och med dess egen flik i dialogen kan den använda en annan anslutning.',
+  'help.guide.ai-setup.tip.4':
+    'Webbsökning fungerar med ChatGPT, Anthropic och OpenRouter, genom leverantörens egen sökning, och sökningarna går bara till den leverantören.',
+  'help.guide.paddle-water-data.title': 'Läs in vattendata för paddelturer',
+  'help.guide.paddle-water-data.goal':
+    'Ge paddelturer en regions dammar, slussar och paddlingsregler, och bestäm om TREK läser in nya regioner själv.',
+  'help.guide.paddle-water-data.step.1':
+    'På fliken Tillägg, medan Turer är på, klickar du på Vattendata för paddling, sista raden under Turer. Ett tal bredvid räknar regionerna, eller förfrågningarna som väntar på dig.',
+  'help.guide.paddle-water-data.step.2':
+    'Under Läs in regioner automatiskt väljer du Automatisk, På begäran eller Av. Automatisk läser in regionen där någon planerar en paddeltur, upp till Största region som läses in automatiskt. Allt större väntar under Efterfrågade, där Läs in godkänner det och Avböj avvisar det.',
+  'help.guide.paddle-water-data.step.3':
+    'Under Lägg till en region söker du i Geofabrik efter en region, till exempel Oberpfalz, och klickar på Lägg till bredvid. TREK läser in den i bakgrunden. När den är Klar visar raden objekten, datumet för datan och kilometer vatten. Läs in igen uppdaterar den, och Ta bort region raderar den.',
+  'help.guide.paddle-water-data.result':
+    'Paddelturer inom regionen visar dess hinder och följer vattnet, och TREK läser in varje region på nytt en gång i månaden.',
+  'help.guide.paddle-water-data.tip.1': 'Bara regionens namn går till Geofabrik, aldrig en plats som någon planerar.',
+  'help.guide.paddle-water-data.tip.2':
+    'Att läsa in en region tar några minuter och minne medan det pågår, och ett helt land behöver några gigabyte tillfälligt utrymme.',
+  'help.guide.paddle-water-data.tip.3':
+    'Administratörer får aviseringen Paddelregion efterfrågad när en förfrågan väntar. Välj vart den går under Adminaviseringar på fliken Meddelanden.',
 
   // ── Screen: trip ──────────────────────────────────────────────────────────────────────
   'help.ctx.trip.title': 'Resa',
@@ -1883,9 +1985,9 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.2':
     'Planering har tre kolumner: dagarna till vänster, kartan i mitten och platserna till höger. Med tillägget Bilresa börjar dagkolumnen med ett reglage för Dagar och Bilresa, och med tillägget Turer börjar platskolumnen med Platser och Turer. Bokningar och transporter ingår i planen, vid stoppet och mellan stoppen. Flikarna listar dem.',
   'help.ctx.trip.bullet.3':
-    'Reseinställningar, pillret bredvid resans namn uppe till vänster, öppnar resans inställningar: Personer (medlemmar och gäster), Delar (den skrivskyddade offentliga länken och inbjudningslänken) och Dagbok.',
+    'Reseinställningar, pillret bredvid resans namn uppe till vänster, öppnar resans inställningar: Personer (medlemmar och gäster), Dela (den skrivskyddade offentliga länken och inbjudningslänken), Dagbok, Tillägg för resans ägare och Redigera resa.',
   'help.ctx.trip.bullet.4':
-    'Titel, datum, omslag och valuta redigeras från Mina resor, med pennan på reskortet. Resans namn uppe till vänster tar dig tillbaka dit.',
+    'Redigera resa i Reseinställningar ändrar titel, beskrivning, datum, omslag och valuta. Pennan på reskortet i Mina resor öppnar samma formulär. Resans namn uppe till vänster tar dig tillbaka till Mina resor.',
   'help.ctx.trip.bullet.5':
     'Fliken vid en kolumns innerkant fäller ihop kolumnen, och kartan använder det lediga utrymmet. En hopfälld kolumn visas som en liten ruta i kartans övre hörn. Klicka på den för att visa kolumnen igen. Dra den smala avdelaren bredvid en kolumn för att ändra dess bredd.',
   'help.ctx.trip.bullet.6': 'Ångra-pilen i dagarnas verktygsfält ångrar dina senaste ändringar i planen, en i taget.',
@@ -1933,9 +2035,9 @@ const help: TranslationStrings = {
   'help.guide.public-link.goal': 'Visa resan för personer som inte ska redigera den.',
   'help.guide.public-link.step.1': 'Klicka på Reseinställningar bredvid resans namn och välj Delar till vänster.',
   'help.guide.public-link.step.2':
-    'Slå på det som länken får visa i kortet Allmän länk. Karta & Plan är alltid på. Bokningar, Packning, Kostnader och Chatt väljer du själv.',
+    'Slå på det som länken får visa i kortet Allmän länk, under Alternativ. Karta & Plan är alltid på. Bokningar, Packning, Kostnader och Chatt väljer du själv.',
   'help.guide.public-link.step.3':
-    'Under Val utelämnar Endast resor och boenden aktiviteter, dagsanteckningar och tomma dagar. Utan foton utelämnar platsfotona.',
+    'De två sista brickorna ändrar hur länken visar resan: Endast resor och boenden utelämnar aktiviteter, dagsanteckningar och tomma dagar, och Utan foton utelämnar platsfotona.',
   'help.guide.public-link.result':
     'Alla som har länken ser de valda delarna utan att logga in och kan inte ändra något.',
   'help.guide.public-link.tip.1':
@@ -1977,6 +2079,30 @@ const help: TranslationStrings = {
     'Ångra gäller planen: att lägga till, tilldela, ta bort, ordna om, flytta och låsa platser, tömma en dag, optimera en rutt, radera platser, ändra kategorier och importera.',
   'help.guide.undo-change.tip.2':
     'Klicka igen för att gå längre bakåt: TREK sparar dina senaste 30 ändringar på den här resan, de nyaste först, tills du lämnar den.',
+  'help.guide.trip-assistant.title': 'Planera med assistenten',
+  'help.guide.trip-assistant.goal': 'Fråga assistenten om din resa och låt den lägga till sina förslag i planen.',
+  'help.guide.trip-assistant.step.1':
+    'Klicka på den runda knappen med gnistorna längst ned till höger i planeraren. Assistenten öppnas i ett litet fönster över kartan.',
+  'help.guide.trip-assistant.step.2':
+    'Skriv din fråga i rutan längst ned, till exempel var du kan äta middag en viss dag, och klicka på pilen för att skicka den. Du kan också klicka på någon av de föreslagna frågorna.',
+  'help.guide.trip-assistant.step.3':
+    'Svaret känner till din plan. En ändring som assistenten föreslår väntar först i ett kort som visar vad den lägger till och på vilken dag. Klicka på Tillämpa för att ta över den, eller på Förkasta för att låta planen vara som den är.',
+  'help.guide.trip-assistant.step.4':
+    'För att visa svaret för alla på resan klickar du på delningsikonen under det. Verktygstipset säger Dela i resans chatt.',
+  'help.guide.trip-assistant.step.5':
+    'Kontrollera meddelandet precis som det kommer att se ut, med de ändringar du har tillämpat, och klicka på Dela.',
+  'help.guide.trip-assistant.result':
+    'Platsen ligger på sin dag i din plan, och svaret finns i resans chatt, märkt som från assistenten.',
+  'help.guide.trip-assistant.tip.1':
+    'Ingenting ändras innan du klickar på Tillämpa. Efteråt ångrar pilen bredvid en ändring den under en tid, och Före och Efter i kortet visar kartan som den var och som den är nu.',
+  'help.guide.trip-assistant.tip.2':
+    'Under ett svar föreslår assistenten frågor att ställa härnäst. Skriv @ i rutan för att nämna en dag, en plats eller en bokning, eller släpp en bokningsbekräftelse på fönstret så läses den.',
+  'help.guide.trip-assistant.tip.3':
+    'Ctrl+K (⌘K på Mac) öppnar och stänger fönstret. Dra i dess överkant för att flytta det och dra i en kant för att ändra storlek. När du stänger sparas chatten, och Senaste chattar i överkanten hämtar tillbaka tidigare chattar.',
+  'help.guide.trip-assistant.tip.4':
+    'Resanteckningar, anteckningsboken i överkanten, innehåller det assistenten ska ha i åtanke för varje förslag på den här resan, till exempel en budget eller ett lugnt tempo.',
+  'help.guide.trip-assistant.tip.5':
+    'Knappen visas först när en AI-anslutning har konfigurerats, av admin för alla eller av dig under Inställningar, Integrationer. Dina meddelanden och de resuppgifter som assistenten läser skickas till den leverantören.',
   'help.guide.clear-day.title': 'Töm en dag',
   'help.guide.clear-day.goal':
     'Ta bort alla platser från en dag på en gång, till exempel för att planera dagen från början igen.',
@@ -1995,9 +2121,9 @@ const help: TranslationStrings = {
   'help.ctx.trip-places.bullet.2':
     'Lägg till plats/aktivitet öppnar formuläret för en plats som du söker efter eller skriver in. Medan en dag är öppen heter knappen Ny plats, och Till dagen bredvid skapar platsen direkt på den dagen.',
   'help.ctx.trip-places.bullet.3':
-    '”Importera platser”, ikonknappen bredvid, erbjuder ”Importera lista” för en lista som delats från Google Maps eller Naver Maps. Om en administratör har stängt av tillägget Turer finns även ”Importera fil” för .gpx-, .kml- och .kmz-filer, och du kan släppa en fil på kolumnen.',
+    '”Importera platser”, ikonknappen bredvid, erbjuder ”Importera fil” för .gpx-, .kml- och .kmz-filer och ”Importera lista” för en lista som delats från Google Maps eller Naver Maps. En fil kan också släppas på kolumnen. Med Turer på öppnar en fil med en rutt eller ett spår turimporten, som kan ta med sina enskilda punkter som platser.',
   'help.ctx.trip-places.bullet.4':
-    'Under dem finns Sök, som även söker i beskrivningar och noteringar, med rutan Välj bredvid. Raden under rymmer filtren: Visa växlar mellan Alla, Oplanerat och Planerat, var och en med sitt antal. Etikettknappen filtrerar på kategori, stjärnan på lägsta betyg, jordgloben (när resan omfattar mer än ett land eller en region) på land eller region, och Sortera efter styr listans ordning.',
+    'Under dem finns Sök, som även söker i beskrivningar och noteringar, med rutan Välj bredvid. Raden under rymmer filtren: Visa växlar mellan Alla, Oplanerat och Planerat, var och en med sitt antal. Etikettknappen filtrerar på kategori och på resans taggar, stjärnan på lägsta betyg, jordgloben (när resan omfattar mer än ett land eller en region) på land eller region, och Sortera efter styr listans ordning.',
   'help.ctx.trip-places.bullet.5':
     'En rad visar bild, namn och beskrivning eller adress, och en stjärna med genomsnittligt betyg när någon har betygsatt platsen. Klicka på raden för platsens detaljer, dra den till en dag, eller högerklicka på den (eller klicka på Fler alternativ, de tre prickarna) för Redigera, + Dag, Öppna hemsida, Google Maps, Spara i samling och Radera.',
   'help.ctx.trip-places.bullet.6':
@@ -2012,7 +2138,7 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.3':
     'Under Platsdetaljer klickar du på en bild under ”Välj en bild” för att göra den till platsens bild. ”Använd den här texten” kopierar beskrivningen till formuläret.',
   'help.guide.create-place.step.4':
-    'Kontrollera formulärets fält. Namnet högst upp i dialogen är det enda obligatoriska fältet. Kategoripillret under det väljer en av resans kategorier, och + bredvid skapar en ny. Adress, Latitud och Longitud kommer från sökningen, eller så skriver du in dem. Beskrivning och Noteringar är till för din egen text. Hemsida tar länken, Bifoga under Filer lägger till ett dokument, och Telefon, E-post och Lägg till öppettider är till för uppgifter som sökningen inte hittade.',
+    'Kontrollera formulärets fält. Namnet högst upp i dialogen är det enda obligatoriska fältet. Kategoripillret under det väljer en av resans kategorier, och + bredvid skapar en ny. Adress, Latitud och Longitud kommer från sökningen, eller så skriver du in dem. Under Taggar klickar du på de taggar som platsen ska ha. Om platsen och Noteringar växlar textfältet mellan beskrivningen och dina egna noteringar. Hemsida tar länken, Bifoga under Filer lägger till ett dokument, och Telefon, E-post och Lägg till öppettider är till för uppgifter som sökningen inte hittade.',
   'help.guide.create-place.step.5':
     'Klicka på Lägg till. Om en plats med samma namn eller på samma ställe redan finns i resan visar TREK en varning och knappen ändras till Lägg till ändå.',
   'help.guide.create-place.result':
@@ -2046,7 +2172,7 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.2':
     'Skriv i Sök högst upp. Listan begränsas medan du skriver, på namn, adress, beskrivning och noteringar. x i fältet rensar det.',
   'help.guide.filter-places.step.3':
-    'Etikettknappen bredvid Visa listar kategorierna: markera en eller flera, bland dem Ingen kategori. Knappen visar hur många som är markerade, och Rensa filter längst ned i listan tar bort alla.',
+    'Etikettknappen bredvid Visa listar kategorierna, bland dem Ingen kategori, och under Taggar resans taggar. Markera en eller flera. Knappen visar hur många som är markerade, och Rensa filter längst ned i listan tar bort alla.',
   'help.guide.filter-places.step.4':
     'Stjärnan bredvid anger ett lägsta betyg: 5+, 4+ och så vidare behåller bara platser vars genomsnittliga betyg är minst så högt. Platser utan betyg döljs.',
   'help.guide.filter-places.result': 'Siffran på Visa anger hur många platser som matchar, och filtren kombineras.',
@@ -2060,12 +2186,12 @@ const help: TranslationStrings = {
   'help.guide.edit-place.step.1':
     'Högerklicka på raden och välj Redigera, eller klicka på Fler alternativ i slutet av raden, eller öppna platsen och klicka på Redigera i dess detaljer.',
   'help.guide.edit-place.step.2':
-    'Ändra det du behöver i ”Redigera plats”: namnet och kategoripillret Kategori högst upp i dialogen, Adress, Latitud och Longitud, Beskrivning, Noteringar, Hemsida, Telefon, E-post och öppettiderna. Om platsen ligger på exakt en dag, eller om du öppnade den från en dag, har formuläret även Start, Slutar och ”Anteckningar för denna dag”.',
+    'Ändra det du behöver i ”Redigera plats”: namnet och kategoripillret högst upp i dialogen, Adress, Latitud och Longitud, Taggar, texterna under Om platsen och Noteringar, Hemsida, Telefon, E-post och öppettiderna. Om platsen ligger på exakt en dag, eller om du öppnade den från en dag, har formuläret även Börjar och Slutar, och en tredje textflik, till exempel Bara dag 2, för en anteckning om just det besöket.',
   'help.guide.edit-place.step.3': 'Klicka på Uppdatera.',
   'help.guide.edit-place.result':
     'Ändringen gäller överallt där platsen finns: i listan, på kartan och på varje dag den ligger på.',
   'help.guide.edit-place.tip.1':
-    'Anteckningar för denna dag hör till platsen just den dagen. Noteringar hör till själva platsen.',
+    'Anteckningen under Bara dag … hör till platsen just den dagen. Om platsen och Noteringar hör till själva platsen.',
   'help.guide.edit-place.tip.2':
     'Ett Slutar som ligger före starttiden blockerar Uppdatera. Tidsöverlappning med: varnar bara för att ett annat stopp samma dag har samma tid.',
   // delete-place
@@ -2100,20 +2226,21 @@ const help: TranslationStrings = {
   // import-places-file
   'help.guide.import-places-file.title': 'Importera platser från en GPX-, KML- eller KMZ-fil',
   'help.guide.import-places-file.goal':
-    'Om tillägget Turer är av: importera nålarna och spåren som Google My Maps, Google Earth eller en GPS-spårare har exporterat som platser.',
+    'Ta med nålarna som Google My Maps, Google Earth eller en GPS-enhet exporterade, som platser i resan.',
   'help.guide.import-places-file.step.1':
-    'Klicka på Importera platser, ikonknappen bredvid knappen för att lägga till, och välj Importera fil, eller släpp filen var som helst på platskolumnen. Båda finns bara där en administratör har stängt av tillägget Turer.',
+    'Klicka på Importera platser, ikonknappen bredvid knappen för att lägga till, välj Importera fil och välj filen. Du kan också släppa filen var som helst på platskolumnen.',
   'help.guide.import-places-file.step.2':
-    'Välj filen eller dra den till rutan. För GPX markerar du vad som ska importeras: Vägpunkter, Rutter, ”Spår (med spårgeometri)”. För KML och KMZ markerar du ”Punkter (platsmarkeringar)” och ”Stigar (LineStrings)”.',
+    'Om filen innehåller en rutt eller ett spår öppnas turimporten, eftersom en linje blir en tur när Turer är på, vilket är standard. Lägg till punkterna som platser, på som standard, tar också med filens nålar som platser i resan.',
   'help.guide.import-places-file.step.3':
-    'Rutan tar flera filer på en gång, men bara .gpx, .kml och .kmz. Alla andra filtyper, och filer över 10 MB, avvisas i dialogen och importeras inte.',
+    'En fil med bara nålar öppnar Importera fil i stället, liksom varje fil där en administratör har slagit av Turer. För en GPX markerar du vad som ska importeras: Vägpunkter, Rutter, ”Spår (med spårgeometri)”. För KML och KMZ markerar du ”Punkter (platsmarkeringar)” och ”Stigar (LineStrings)”. Den tar .gpx-, .kml- och .kmz-filer upp till 10 MB.',
   'help.guide.import-places-file.step.4':
     'Klicka på Importera. Ett meddelande visar hur många platser som importerades. För en KML- eller KMZ-fil förblir dialogen öppen med en sammanfattning av vad som skapades och vad som hoppades över.',
   'help.guide.import-places-file.result':
-    'Platserna finns i listan. Ett spår har en färgad linje på sin rad, ritas på kartan och får ett eget filter Spår.',
+    'Nålarna är platser i resan, i listan och på kartan, under Oplanerat tills du lägger dem på en dag.',
   'help.guide.import-places-file.tip.1':
     'En fil som är för stor avvisas, och TREK visar storleksgränsen. Exportera den igen utan foton, eller dela upp den.',
-  'help.guide.import-places-file.tip.2': 'Du kan ångra hela importen från verktygsfältet ovanför dagarna.',
+  'help.guide.import-places-file.tip.2':
+    'En import som gjorts i Importera fil kan ångras från verktygsfältet ovanför dagarna.',
   // import-places-list
   'help.guide.import-places-list.title': 'Importera en delad lista från Google Maps eller Naver Maps',
   'help.guide.import-places-list.goal': 'Importera platser från en länk till en delad lista.',
@@ -2140,6 +2267,27 @@ const help: TranslationStrings = {
     'Alla sorteringsordningar utom Senast tillagda markerar knappen, så att du direkt ser att listan är sorterad på ett annat sätt.',
   'help.guide.sort-places.tip.2':
     'Sorteringen ändrar bara listan. Dagarna behåller sin egen ordning, och webbläsaren kommer ihåg den ordning som du valde.',
+  'help.guide.place-tags.title': 'Tagga platser och filtrera på tagg',
+  'help.guide.place-tags.goal':
+    'Ge platser extra etiketter som Måste ses eller Regnig dag, var och en i sin egen färg, och visa bara platserna med en viss tagg.',
+  'help.guide.place-tags.step.1':
+    'Öppna platsens formulär, med Redigera i radens meny eller Ny plats för en ny. Under Taggar är varje tagg i resan ett piller. Klicka på en taggs namn för att sätta den på platsen. En bock visar att den är på.',
+  'help.guide.place-tags.step.2':
+    'Skapa en ny tagg genom att skriva dess namn i Ny tagg och trycka på Enter eller + i slutet. Pricken i början av fältet väljer först dess färg. Taggen läggs till i resan och bockas av.',
+  'help.guide.place-tags.step.3':
+    'Klicka på en taggs färgprick för att byta färg: välj en färgruta, eller öppna Egen färg för en färg som du själv väljer. Taggen byter färg direkt, i hela resan och för alla.',
+  'help.guide.place-tags.step.4':
+    'Klicka på Uppdatera, eller Lägg till för en ny plats, för att spara platsen med sina taggar.',
+  'help.guide.place-tags.step.5':
+    'I platskolumnen listar etikettknappen bredvid Visa resans taggar under Taggar, efter kategorierna. Bocka för en för att bara visa platserna som har den.',
+  'help.guide.place-tags.result':
+    'Listan och kartan visar bara platserna med den förbockade taggen. Rensa filter längst ned i listan visar alla platser igen.',
+  'help.guide.place-tags.tip.1':
+    'En tagg ändrar aldrig markören: dess ikon och färg på kartan förblir kategorins. En plats har en kategori och valfritt antal taggar.',
+  'help.guide.place-tags.tip.2':
+    'Taggar hör till resan, inte till dig. Alla medlemmar ser samma taggar, och alla som får redigera resans platser kan lägga till dem och ändra deras färg.',
+  'help.guide.place-tags.tip.3':
+    'Med en kategori och en tagg förbockade måste en plats matcha båda. Med två taggar förbockade räcker en av dem.',
   'help.guide.place-by-hand.title': 'Lägg till en plats som sökningen inte känner till',
   'help.guide.place-by-hand.goal':
     'Ange en plats själv, med telefonnummer, e-postadress och öppettider, när platssökningen inte hittar något.',
@@ -2149,7 +2297,7 @@ const help: TranslationStrings = {
     'Klicka på ”Lägg till själv”. Det du sökte efter blir namnet, och dialogen scrollar till kontaktfälten.',
   'help.guide.place-by-hand.step.3': 'Fyll i Telefon och E-post om du känner till dem.',
   'help.guide.place-by-hand.step.4':
-    'Klicka på Lägg till öppettider och ange när platsen öppnar och stänger varje dag. Kopieringsknappen ger alla dagar samma tider som den första, och en dags reglage markerar den som Stängd.',
+    'Klicka på Lägg till öppettider och ange när platsen öppnar och stänger varje dag. Kopieringsknappen ger alla dagar samma tider som den första, och varje dag har ett reglage för Öppet dygnet runt och ett för Stängd.',
   'help.guide.place-by-hand.step.5': 'Klicka på Lägg till.',
   'help.guide.place-by-hand.result':
     'Platsen läggs till i listan. Dess detaljer visar telefonnumret, e-postadressen och öppettiderna som du angav, precis som för en plats som sökningen hittade.',
@@ -2163,7 +2311,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-days.summary':
     'Planens vänstra kolumn: ett kort per dag med stoppen i ordning, noteringarna, dagens bokningar och transporter samt rutten mellan stoppen. Det är här resan faktiskt planeras.',
   'help.ctx.trip-days.bullet.1':
-    'Rubrikraden högst upp: Exportera (PDF, kalender, GPX) till vänster. Till höger finns ångra-pilen, Expandera alla dagar / Dölj alla dagar, Sortera om dagar och Visa alla bokningsvägar när en bokning har en rutt att rita.',
+    'Rubrikraden högst upp: Exportera (PDF, kalender, GPX, KML) till vänster. Till höger finns ångra-pilen, Expandera alla dagar / Dölj alla dagar, Sortera om dagar och Visa alla bokningsvägar när en bokning har en rutt att rita.',
   'help.ctx.trip-days.bullet.2':
     'Ett dagkort: en ruta med dagens nummer och prognosen, titeln (Dag 1 tills du ger dagen ett namn) och datumet, och under dem piller för nattens vistelse (grönt vid incheckning, rött vid utcheckning, streckat så länge den inte är bekräftad; biljettikonen öppnar bokningen) och för en hyrbil. Klicka på rubriken för att öppna dagen, vinkeln fäller ihop den, och + (Lägg till i denna dag) öppnar en meny: Lägg till plats den här dagen, Lägg till boende, Lägg till transport, Kollektivtrafik och Lägg till notering. Högerklickar du på rubriken får du samma meny, plus Töm dagen.',
   'help.ctx.trip-days.bullet.3':
@@ -2180,9 +2328,9 @@ const help: TranslationStrings = {
   'help.guide.read-day-plan.step.1':
     'Rubriken: en ruta med dagens nummer och prognosen, därefter Dag 1 eller titeln som du gav dagen, och datumet. Under dem finns etiketter för nattens boende (grönt vid incheckning, rött vid utcheckning, streckat så länge det inte är bekräftat; biljetten på den öppnar bokningen) och en hyrbil. Klicka på rubriken för att öppna dagen (detaljpanelen öppnas över kartan). Med + till höger (Lägg till i denna dag) lägger du till en plats, ett boende, en transport, en kollektivtrafikförbindelse eller en notering, och pilen viker ihop kortet.',
   'help.guide.read-day-plan.step.2':
-    'Ett stopp visar bild, kategoriikon och namn, sedan tiden när det har en Start, och beskrivningen. ”Anteckningar för denna dag” visas under det. När du håller pekaren över raden visas kontrollerna: med greppet till vänster drar du stoppet, bilden blir ett lås för ruttoptimering, och längst till höger finns pilarna (”Flytta upp”, ”Flytta ner”), ”Lägg till bokning” och de tre prickarna (”Fler alternativ”).',
+    'Ett stopp visar bild, kategoriikon och namn, sedan tiden när det har en Start, och beskrivningen. ”Anteckningar för denna dag” visas under det. När du håller pekaren över raden visas kontrollerna: med greppet till vänster drar du stoppet, och längst till höger finns pilarna (”Flytta upp”, ”Flytta ner”), ”Lägg till bokning” och de tre prickarna (”Fler alternativ”). Peka på bilden så blir den ett lås för ruttoptimering.',
   'help.guide.read-day-plan.step.3':
-    'En bokning vid ett stopp visas på stoppet som ett märke Bokning, grönt när den är bekräftad och gult så länge den är väntande, med tid och transportör. Klicka på märket för att öppna bokningen. Ruttknappen bredvid ritar dess rutt. En transport har en egen rad, färgad efter sin typ, med tid samt Avgång eller Ankomst. Klicka på en bokning för att öppna dess detaljer. Där ändrar du den med Redigera.',
+    'En bokning vid ett stopp visas på stoppet som ett märke Bokning, grönt när den är bekräftad och gult så länge den är väntande, med tid och transportör. Klicka på märket för att öppna bokningen. När bokningen har en rutt ritar ruttknappen bredvid den på kartan. En transport har en egen rad, färgad efter sin typ, med tid samt Avgång eller Ankomst. Klicka på en bokning för att öppna dess detaljer. Där ändrar du den med Redigera.',
   'help.guide.read-day-plan.step.4':
     'Med Rutt på visar förbindelsen mellan två stopp hur lång tid sträckan tar och hur lång den är, med dagens färdsätt. Klicka på den för att byta färdsätt för just den sträckan.',
   'help.guide.read-day-plan.step.5':
@@ -2221,7 +2369,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Dra stoppet till ett annat dagkort för att flytta det dit. Det tas bort från den gamla dagen.',
   'help.guide.reorder-stops.step.4':
-    'Om ett stopp har en fast tid och en flytt skulle bryta dagens ordning frågar TREK Ta bort tid?, eftersom tiden avgör stoppets plats. Godkänn tar bort tiden så att stoppet kan hamna var som helst. Avbryt lämnar dagen som den var.',
+    'Om ett stopp har en fast tid och en flytt skulle bryta dagens ordning frågar TREK Ta bort tid?, eftersom tiden avgör stoppets plats. Ta bort tid och flytta tar bort tiden och lägger stoppet där du släppte det. Avbryt lämnar dagen som den var.',
   'help.guide.reorder-stops.result': 'Rutten och restiderna uppdateras direkt efter den nya ordningen.',
   'help.guide.reorder-stops.tip.1':
     'En bokning med fast tid ligger kvar på den plats som tiden ger. Om du släpper den någon annanstans på dagen flyttas den tillbaka. Om du drar den till ett annat dagkort flyttas den till den dagen.',
@@ -2231,7 +2379,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.title': 'Ge ett stopp en tid',
   'help.guide.set-stop-times.goal': 'Ange när ett stopp börjar och slutar, så att dagen fungerar som ett schema.',
   'help.guide.set-stop-times.step.1':
-    'Högerklicka på stoppet, eller klicka på dess tre punkter, och välj Redigera. När du öppnar formuläret från dagen har det Börjar och Slutar för den dagen, direkt under platsen.',
+    'Högerklicka på stoppet, eller klicka på dess tre punkter, och välj Redigera. När du öppnar formuläret från dagen har det Börjar och Slutar för den dagen, under platsen och taggarna.',
   'help.guide.set-stop-times.step.2':
     'Ange ”Börjar” och, om du vill, ”Slutar”. ”Tidsöverlappning med:” varnar för att ett annat tidsatt stopp samma dag överlappar. Om ”Slutar” ligger före ”Börjar” går det inte att klicka på ”Uppdatera”.',
   'help.guide.set-stop-times.step.3':
@@ -2241,9 +2389,9 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'Tiden hör till stoppet på den dagen. Samma plats en annan dag kan ha en annan tid.',
   'help.guide.set-stop-times.tip.2':
-    'Om du vill flytta ett stopp med tid för hand drar du det. TREK frågar Ta bort tid?, och när du klickar på Godkänn tas tiden bort.',
+    'Om du vill flytta ett stopp med tid för hand drar du det. TREK frågar Ta bort tid?, och Ta bort tid och flytta tar bort tiden och flyttar det.',
   'help.guide.set-stop-times.tip.3':
-    'Anteckningar för denna dag i samma formulär är till för information som bara gäller den här dagen, till exempel en bordsbokning eller ett biljettnummer.',
+    'Fliken Bara dag bredvid Om platsen och Noteringar, i samma formulär, är till för en anteckning som bara gäller den här dagen, till exempel en bordsbokning eller ett biljettnummer.',
   // remove-from-day
   'help.guide.remove-from-day.title': 'Ta bort ett stopp från en dag',
   'help.guide.remove-from-day.goal': 'Ta bort en plats från en dag utan att radera den från resan.',
@@ -2261,7 +2409,8 @@ const help: TranslationStrings = {
     'Håll muspekaren över stoppets bild och klicka på låset: ”Behåll positionen under ruttoptimeringen”.',
   'help.guide.lock-stop.step.2':
     '”Optimera” sorterar nu de andra stoppen runt det. Klicka på låset igen (”Klicka för att låsa upp”) för att låsa upp det.',
-  'help.guide.lock-stop.result': 'Låset visas på bilden, och stoppet behåller sin plats tills du låser upp det.',
+  'help.guide.lock-stop.result':
+    'Låset ligger kvar på bilden och raden är färgtonad. Stoppet behåller sin plats tills du låser upp det.',
   'help.guide.lock-stop.tip.1': 'Ett stopp med fast tid är låst av sin tid och flyttas aldrig under optimeringen.',
   'help.guide.lock-stop.tip.2':
     'Låset gäller bara tills du laddar om sidan. Efter en omladdning är alla stopp upplåsta igen, och bara stopp med tid förblir fasta.',
@@ -2303,7 +2452,7 @@ const help: TranslationStrings = {
   'help.guide.manage-days.title': 'Lägg till, ordna om och byt namn på dagar',
   'help.guide.manage-days.goal': 'Ändra själva dagarna, inte bara platserna på dem.',
   'help.guide.manage-days.step.1':
-    'Dagarna följer resans datum. Ändra datumen i resans redigeringsformulär på Översikt, så läggs dagar till eller tas bort i början eller slutet. Innan en dag med innehåll tas bort visar en lista vilka dagar som försvinner och vad som ligger på dem.',
+    'Dagarna följer resans datum. Ändra dem med Reseinställningar högst upp i planeraren, under Redigera resa (eller med pennan på reskortet på Översikt), så läggs dagar till eller tas bort i början eller slutet. Innan en dag med innehåll tas bort visar en lista vilka dagar som försvinner och vad som ligger på dem.',
   'help.guide.manage-days.step.2':
     'Sortera om dagar i rubrikraden öppnar en lista: dra en dag i handtaget, eller använd Flytta upp och Flytta ner, så flyttas dagen med sina platser, anteckningar och bokningar. Under listan lägger Lägg till med nästa datum till en dag efter den sista dagen med datum och förlänger resan med en dag. Utan datum lägger till en dag utan datum. En resa utan datum har bara Lägg till dag.',
   'help.guide.manage-days.step.3':
@@ -2321,7 +2470,7 @@ const help: TranslationStrings = {
   'help.guide.bookings-in-plan.title': 'Läs bokningar och transporter i planen',
   'help.guide.bookings-in-plan.goal': 'Se var en bokning visas när den väl finns och vilken skärm som skapar den.',
   'help.guide.bookings-in-plan.step.1':
-    'En transport (flyg, tåg, färja, buss, bil) är en rad som är färgad efter sin typ, med tid och Avgång på dagen den avgår eller Ankomst på dagen den kommer fram. Jordgloben bredvid anger tidszonen, och ett flyg med mellanlandning får en rad per sträcka. För en kollektivtrafikförbindelse visar du dess linjer genom att klicka på pilen. Klicka på en rad så öppnas bokningen. Redigera där ändrar den.',
+    'En transport (flyg, tåg, färja, buss, bil) är en rad som är färgad efter sin typ, med tid och Avgång på dagen den avgår eller Ankomst på dagen den kommer fram. När bokningen har en tidszon anger en jordglob bredvid tiden den när du pekar på den, och ett flyg med mellanlandning får en rad per sträcka. Medan ett flyg är på väg, med flygstatus live påslagen, säger en rad under det hur det går, förseningen inräknad. För en kollektivtrafikförbindelse visar du dess linjer genom att klicka på pilen. Klicka på en rad så öppnas bokningen. Redigera där ändrar den.',
   'help.guide.bookings-in-plan.step.2':
     'En bokning som är kopplad till ett stopp (en restaurang, en rundtur) visas som en bricka med texten ”Bokning” på det stoppet, med sin tid. Brickan är grön när bokningen är bekräftad och bärnstensfärgad medan den väntar. En bokning med en dag men utan stopp har en egen rad i dagen.',
   'help.guide.bookings-in-plan.step.3':
@@ -2338,14 +2487,17 @@ const help: TranslationStrings = {
     'Om du släpper en bokning med tid någon annanstans på dagen flyttas den tillbaka till den plats som tiden ger. Om du drar den till ett annat dagkort flyttas den till den dagen. Om du vill ändra tiden redigerar du bokningen.',
   // export-plan
   'help.guide.export-plan.title': 'Exportera planen',
-  'help.guide.export-plan.goal': 'Exportera planen som ett dokument, till din kalender eller till en GPS.',
+  'help.guide.export-plan.goal':
+    'Exportera planen som ett dokument, till din kalender, till en GPS eller till Google My Maps.',
   'help.guide.export-plan.step.1': 'Klicka på Exportera längst till vänster i rubrikfältet ovanför dagarna.',
   'help.guide.export-plan.step.2':
-    'Dokument: PDF öppnar utskriftsvyn med varje dag, med stopp, anteckningar och bokningar, och inleds av en ruttöversiktskarta. Min plan som PDF tar bara med det du deltar i. I vyn startar Sidbrytning per dag varje dag på en ny sida, Anteckningar om transporter lägger till anteckningarna från dina transporter, och Spara som PDF laddar ner den.',
+    'Dokument: PDF öppnar förhandsvisningen av resan som ett dokument: ett omslag, en översikt med ruttkartan, varje dag och alla bokningar, sedan varje dag med sina stopp, anteckningar och bokningar. Min plan som PDF tar bara med det du deltar i. Reglagen ovanför förhandsvisningen avgör vad som tas med: Sidbrytning per dag, Stor text, Översikt, Foton, Koordinater, Kontakt och öppettider, och Anteckningar om transporter när dina transporter har anteckningar. Spara som PDF laddar ner den.',
   'help.guide.export-plan.step.3':
     'Kalender: Ladda ner .ics sparar bokningarna som en kalenderfil. Prenumerera på kalender ger en länk som din kalenderapp uppdaterar automatiskt.',
   'help.guide.export-plan.step.4':
     'Kartor och GPS (GPX): Hela resan exporterar platser, dagsrutter och spår. Bara platser exporterar nålarna. Dagar som rutter exporterar en rutt per dag, för offlinekartor och GPS-enheter.',
+  'help.guide.export-plan.step.5':
+    'Google Maps (KML): Platser för Google My Maps sparar resans platser som en KML-fil. Importera den som ett lager i My Maps för att se dem på din egen Google-karta.',
   'help.guide.export-plan.result': 'Filen laddas ner. Ingenting i resan ändras.',
   'help.guide.export-plan.tip.1':
     'För att öppna en enskild dag i en kartapp använder du dess ruttfält: ”Öppna i Google Maps” eller ”Öppna i CoMaps”.',
@@ -2361,13 +2513,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.1':
     'Klicka på en rad i platskolumnen, ett stopp inne i en dag eller en markör på kartan, så öppnas kortet över kartan. Om du öppnar det från en dag vet kortet vilket stopp du menar, och det visar också stoppets deltagare och bokning. En tur (en vandring, en ritt eller en promenad från fliken Turer) öppnar i stället ett eget turkort.',
   'help.ctx.trip-place.bullet.2':
-    'Rubriken visar den runda bilden, namnet, adressen på en rad och etiketter för det som är känt: öppen eller stängd, kategori, tid, pris, telefonnummer, e-post och koordinater. Klicka på bilden för att använda en egen eller ett foto från platsens filer. Dubbelklicka på namnet för att byta namn på platsen. X:et till höger stänger kortet. Bilden, namnbytet, Redigera och Radera är bara tillgängliga för resenärer som får ändra platser.',
+    'Rubriken visar den runda bilden, namnet, adressen på en rad och etiketter för det som är känt: öppen eller stängd, kategorin och platsens etiketter, tiden, priset, telefonnumret, e-postadressen och koordinaterna. En plats med adress men utan koordinater säger i stället Inga koordinater, så inte på kartan. Klicka på bilden för att se platsens foton, och dubbelklicka på namnet för att byta namn på platsen. Till höger fäller pilen ihop kortet till ett smalt fält och X stänger det. Namnbyte, Redigera och Radera är bara tillgängliga för resenärer som får ändra platser.',
   'help.ctx.trip-place.bullet.3':
     'Därunder: stjärnorna som varje resenär gav platsen, beskrivningen och noteringarna, samt ”Anteckningar för denna dag” när stoppet har några.',
   'help.ctx.trip-place.bullet.4':
     'Öppettider, Spårfärg, Spåra statistik och Filer kommer därefter, i den mån de gäller. Ladda upp i rubriken Filer lägger till filer från din dator, och listan visar även filerna som är fästa vid det här stoppet och de som hör till dess bokning, inklusive ett hotells bekräftelse. Plugin kan lägga till egna rader nedanför.',
   'help.ctx.trip-place.bullet.5':
-    'Raden längst ned: Lägg till i dagen eller Ta bort från dag medan en dag är öppen, därefter Navigering (eller namnet på din kartapp, när du har valt en i Inställningar), Öppna hemsida och Spara i samling. Till höger raderar den röda papperskorgen platsen och Redigera öppnar dess formulär.',
+    'Raden längst ned: Lägg till i dagen medan en dag är öppen och platsen inte ligger på den än, därefter Navigering (eller namnet på din kartapp, när du har valt en i Inställningar), och två ikoner, Öppna hemsida och Spara i samling. Till höger rymmer de tre punkterna Ta bort från dag och Radera, och Redigera öppnar platsens formulär, där du också byter dess bild.',
   'help.ctx.trip-place.bullet.6':
     'En plats som du har valt i sökningen visar vad TREK-indexet eller OpenStreetMap vet om den: Öppen eller Stängd bland pillren högst upp, med en grön eller röd ring runt bilden, utifrån platsens lokala tid; telefonnumret, också som ett piller; Öppettider längre ned, med dagens tider på raden och hela veckan efter ett klick; och hemsidan under ”Öppna hemsida”. Googles betyg visas bara på en plats som hittats via Google, i en TREK med Google-nyckel. Öppettider, telefonnummer och e-post som du själv har skrivit in i platsens formulär ersätter de uppslagna och avgör även ringens färg.',
   // read-place
@@ -2376,7 +2528,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.step.1':
     'Klicka på stoppet du vill läsa om i dagkolumnen. Kortet öppnas över kartan, och stoppet förblir markerat på sin dag.',
   'help.guide.read-place.step.2':
-    'Överst: den runda bilden, namnet och adressen på en rad. Verktygstipset visar hela adressen. Pillren under säger Öppen eller Stängd just nu, efter platsens lokala tid, med en grön eller röd ring runt bilden som motsvarar det. De visar också kategorin, tiden, telefonnumret och e-postadressen (klicka för att öppna telefon- eller e-postappen) och, på en bred skärm, de exakta koordinaterna. X till höger stänger kortet.',
+    'Överst: den runda bilden, namnet och adressen på en rad. Verktygstipset visar hela adressen. Pillren under säger Öppen eller Stängd just nu, efter platsens lokala tid, med en grön eller röd ring runt bilden som motsvarar det. De visar också kategorin och platsens etiketter, tiden, telefonnumret och e-postadressen (klicka för att öppna telefon- eller e-postappen) och, på en bred skärm, de exakta koordinaterna. Klicka på bilden för att se platsens foton. Till höger fäller pilen ihop kortet och X stänger det.',
   'help.guide.read-place.step.3':
     'Betyg är det första avsnittet under rubriken: stjärnorna som varje resenär gav platsen, med medelvärdet och hur många som har röstat. Det visar Inte betygsatt ännu så länge ingen har röstat.',
   'help.guide.read-place.step.4':
@@ -2393,6 +2545,22 @@ const help: TranslationStrings = {
     'Om du får ändra platser kan du dubbelklicka på namnet för att byta namn på platsen utan att öppna formuläret. Enter sparar, Escape avbryter ändringen.',
   'help.guide.read-place.tip.3':
     'En plats som skrivits in för hand har bara de uppgifter som angetts i formuläret. Klicka på Redigera och fyll i Telefon, E-post och öppettiderna själv, eller välj platsen bland förslagen under Sök platser… och klicka på Uppdatera för att hämta dem. Googles betyg kräver en Google-nyckel.',
+  'help.guide.fold-place-card.title': 'Fäll undan kortet',
+  'help.guide.fold-place-card.goal': 'Behåll en plats markerad medan du tittar på kartan runt den.',
+  'help.guide.fold-place-card.step.1':
+    'Öppna en plats och klicka på pilen uppe till höger på kortet, bredvid X. Verktygstipset lyder Dölj.',
+  'help.guide.fold-place-card.step.2':
+    'Kortet är nu ett smalt fält med bara bilden och namnet. Platsen förblir markerad och dess markör förblir framhävd, så att du kan flytta och zooma kartan runt den.',
+  'help.guide.fold-place-card.step.3':
+    'Klicka på pilen igen, som nu heter Expandera, för att öppna hela kortet. X stänger kortet och avmarkerar platsen.',
+  'help.guide.fold-place-card.result':
+    'Kartan förblir synlig runt den valda platsen, och hela kortet är ett klick bort.',
+  'help.guide.fold-place-card.tip.1':
+    'Välj en annan plats så öppnas dess kort helt. Bara platsen du fällde ihop förblir ihopfälld.',
+  'help.guide.fold-place-card.tip.2':
+    'Att fälla ihop är inte att stänga: platsen förblir markerad, och ett stopp som du öppnade från en dag förblir markerat i den dagen.',
+  'help.guide.fold-place-card.tip.3':
+    'Det hopfällda fältet stannar där kortet var, längst ned på kartan mellan sidokolumnerna.',
   // rate-place
   'help.guide.rate-place.title': 'Betygsätt en plats',
   'help.guide.rate-place.goal': 'Ge en plats dina egna stjärnor och se betygen som alla andra gav den.',
@@ -2415,20 +2583,22 @@ const help: TranslationStrings = {
   // place-image
   'help.guide.place-image.title': 'Sätt din egen bild på en plats',
   'help.guide.place-image.goal': 'Byt ut den automatiska miniatyrbilden mot ett eget foto.',
-  'help.guide.place-image.step.1': 'Öppna platsen från platskolumnen.',
+  'help.guide.place-image.step.1':
+    'Öppna platsen och klicka på Redigera längst ned till höger på kortet. Platsens formulär öppnas.',
   'help.guide.place-image.step.2':
-    'Peka på den runda bilden i rubriken: en kamera visas och verktygstipset lyder Ladda upp bild. Klicka på den och välj din fil. Om platsen redan har foton bland sina filer ber TREK dig först välja: Ladda upp från enhet, eller en av bilderna under Från bifogade filer.',
-  'help.guide.place-image.step.3': 'Överst på kortet visas nu din bild, med ett litet rött X i hörnet.',
+    'Välj en bild, överst bland detaljerna till vänster, visar bilderna som platsen kan ha. Klicka på Ladda upp bild, den första rutan, och välj en fil från din dator.',
+  'help.guide.place-image.step.3':
+    'Rutan visar nu din bild, med en ring och en bock, och raden under rutorna lyder Din bild. Inget är sparat än.',
   'help.guide.place-image.step.4':
-    'Samma bild visas också på platsens rad i platskolumnen och på dess markör på kartan.',
+    'Klicka på Uppdatera. Kortet visar din bild överst, och platsens rad i platskolumnen visar den också.',
   'help.guide.place-image.result':
     'Din bild används för platsen överallt: på kortet, i platskolumnen, på stoppet i dagen, på markören på kartan och i en delad resa.',
   'help.guide.place-image.tip.1':
     'JPG, PNG, GIF och WebP godtas, och en HEIC-bild från en iPhone konverteras när du laddar upp den.',
   'help.guide.place-image.tip.2':
-    'X i hörnet tar bort din bild, och den automatiska bilden visas igen. Själva platsen ändras inte.',
+    'Ta bort bild, i slutet av raden under rutorna, lämnar platsen utan bild när du klickar på Uppdatera. Avbryt behåller den gamla.',
   'help.guide.place-image.tip.3':
-    'Om du inte har lagt till någon bild söker TREK efter en utifrån platsens koordinater. Hittas ingen visas kategorins ikon. Bara resenärer som får ändra platser kan sätta en bild.',
+    'De andra rutorna är platsens nuvarande bild, fotona som är kopplade till den och bilderna som TREK hittade för den, var och en med sitt upphov. Bara resenärer som får ändra platser kan byta bilden.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'Lägg till platsen på den öppna dagen, eller ta bort den',
   'help.guide.place-day-assign.goal': 'Använd knappen på kortet i stället för att dra raden över planeraren.',
@@ -2437,14 +2607,14 @@ const help: TranslationStrings = {
   'help.guide.place-day-assign.step.2':
     'Klicka på en plats i platskolumnen som inte ligger på den dagen. Dess kort öppnas, och raden längst ner erbjuder Lägg till i dagen.',
   'help.guide.place-day-assign.step.3':
-    'Klicka på Lägg till i dagen. Stoppet läggs sist på dagen och knappen blir Ta bort från dag.',
+    'Klicka på Lägg till i dagen. Stoppet läggs sist på dagen, och knappen lämnar raden, eftersom platsen nu ligger på den dagen.',
   'help.guide.place-day-assign.step.4': 'Stoppet ligger nu på dagen, sist i listan. Dra det uppåt till rätt position.',
   'help.guide.place-day-assign.step.5':
-    'Ta bort från dag tar bort stoppet från dagen igen, och kortet visar Lägg till i dagen igen.',
+    'Om du vill ta bort den igen klickar du på de tre punkterna till höger på raden och väljer Ta bort från dag. Lägg till i dagen kommer tillbaka.',
   'help.guide.place-day-assign.result':
     'Stoppet läggs till på dagen eller tas bort från den. Själva platsen ändras inte.',
   'help.guide.place-day-assign.tip.1':
-    'Knappen finns bara medan en dag är öppen. Utan en öppen dag finns ingen dag att lägga platsen på.',
+    'Lägg till i dagen finns bara medan en dag är öppen och platsen inte ligger på den än. Utan en öppen dag finns ingen dag att lägga platsen på.',
   'help.guide.place-day-assign.tip.2':
     'Om du tar bort ett stopp från en dag finns platsen kvar i resan och i platskolumnen. Radera tar bort den överallt.',
   'help.guide.place-day-assign.tip.3':
@@ -2513,7 +2683,7 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.3':
     'Klicka på den du använder. Där det går skickar TREK själva platsen till appen och inte bara koordinaterna, så att du kommer till rätt entré.',
   'help.guide.place-navigation.step.4':
-    'Öppna hemsida bredvid öppnar platsens egen webbplats, med öppettider och biljetter, i en ny flik.',
+    'Ikonen bredvid, Öppna hemsida, öppnar platsens egen webbplats, med öppettider och biljetter, i en ny flik.',
   'help.guide.place-navigation.result':
     'Kartappen öppnas på platsen och hemsidan öppnas i en ny flik. Inget i resan ändras. Om TREK är installerat som app öppnas kartappen i stället för en ny flik.',
   'help.guide.place-navigation.tip.1':
@@ -2526,15 +2696,16 @@ const help: TranslationStrings = {
   'help.guide.place-to-collection.title': 'Spara en plats i en av dina listor',
   'help.guide.place-to-collection.goal': 'Spara en plats som du hittade på den här resan till nästa.',
   'help.guide.place-to-collection.step.1':
-    'Öppna platsen och klicka på ”Spara i samling” i raden längst ned på kortet.',
+    'Öppna platsen och klicka på ”Spara i samling”, bokmärkesikonen i raden längst ned på kortet.',
   'help.guide.place-to-collection.step.2':
     'Spara i lista visar alla listor du äger eller delar. Ett fyllt bokmärke till höger markerar de listor som redan innehåller platsen.',
   'help.guide.place-to-collection.step.3': 'Klicka på listan. Platsen läggs till i den direkt.',
-  'help.guide.place-to-collection.step.4': 'Stäng dialogen med X, så står det Sparad på knappen i kortet.',
+  'help.guide.place-to-collection.step.4':
+    'Stäng dialogen med X. Bokmärket på kortet är nu ifyllt, och dess verktygstips lyder Sparad.',
   'help.guide.place-to-collection.result':
     'Platsen ligger i din lista med bild, noteringar och adress, redo för nästa resa.',
   'help.guide.place-to-collection.tip.1':
-    'Knappen finns bara när tillägget Samlingar är på, vilket administratören slår på under Tillägg.',
+    'Bokmärket finns bara när tillägget Samlingar är på, vilket administratören slår på under Tillägg.',
   'help.guide.place-to-collection.tip.2':
     'En plats kan finnas i flera listor samtidigt, med olika status i varje: en idé i den ena, besökt i den andra.',
   'help.guide.place-to-collection.tip.3':
@@ -2561,7 +2732,7 @@ const help: TranslationStrings = {
     'Vid en import får varje spår som läggs till sin egen färg, så att två vandringar aldrig får samma färg.',
   // read-place
   'help.guide.read-place.step.7':
-    'Raden längst ned visar vad du kan göra härifrån: lägga platsen på den öppna dagen eller ta bort den därifrån, öppna den i en kartapp eller på dess hemsida, spara den i en lista och, till höger, radera den (den röda papperskorgen) eller redigera den.',
+    'Raden längst ned visar vad du kan göra härifrån: Lägg till i dagen lägger platsen på den öppna dagen, Navigering öppnar den i en kartapp, och de två ikonerna öppnar dess hemsida och sparar den i en lista. Till höger rymmer de tre punkterna Ta bort från dag och Radera, och Redigera öppnar platsens formulär.',
 
   // ── Screen: trip-files ────────────────────────────────────────────────────────────────
   'help.ctx.trip-files.title': 'Filer',
@@ -2619,6 +2790,8 @@ const help: TranslationStrings = {
     'Klicka på en markerad post igen för att ta bort den länken. Själva filen finns kvar. Offline sparas anteckningen och nya markeringar och skickas när TREK är online igen. Bara att ta bort ytterligare en länk kräver en anslutning.',
   'help.guide.files-link.tip.3':
     'Det fungerar också åt andra hållet: ett dokument som är bifogat en plats eller en bokning finns också i den här listan, med samma etikett på sin rad.',
+  'help.guide.files-link.tip.4':
+    'Om resans ägare slår av Dokument för den här resan (Reseinställningar, Tillägg) försvinner fliken Filer, men ett dokument som är länkat till en bokning, en plats eller en utgift stannar kvar där och går fortfarande att öppna. Slås det på igen visar fliken alla filer igen.',
   // files-star
   'help.guide.files-star.title': 'Ha de viktiga dokumenten överst',
   'help.guide.files-star.goal':
@@ -2758,7 +2931,7 @@ const help: TranslationStrings = {
   'help.guide.day-weather.step.2':
     'Den stora siffran är dagens temperatur. Bredvid den står lägsta och högsta temperaturen samt vädret i ord.',
   'help.guide.day-weather.step.3':
-    'Brickorna till höger om den visar risken för regn, hur mycket regn, den starkaste vinden samt soluppgång och solnedgång.',
+    'Brickorna till höger om den visar risken för regn och hur mycket som faller, när prognosen har det, därefter den starkaste vinden samt soluppgång och solnedgång. Håll pekaren över en bricka för att se vad den står för.',
   'help.guide.day-weather.step.4':
     'Längst ner ser du dagen timme för timme, varannan timme: tid, ikon, temperatur och risk för regn. En timme över 50 procent är skuggad blå.',
   'help.guide.day-weather.result':
@@ -2783,6 +2956,8 @@ const help: TranslationStrings = {
     'Om du tömmer fältet och sparar heter dagen Dag 5 igen: numret visas när det inte finns något namn.',
   'help.guide.rename-day.tip.2':
     'Namnet hör till dagen, inte till dess datum. Om du ändrar ordning på dagarna följer namnet med allt annat på den dagen.',
+  'help.guide.rename-day.tip.3':
+    'Med Datum först i dagsrubriker påslaget i Inställningar, under Visning, är datumet den stora raden och namnet står under. Pennan sitter då bredvid namnet på den andra raden.',
   // add-accommodation
   'help.guide.add-accommodation.title': 'Boka en natt på en dag',
   'help.guide.add-accommodation.goal':
@@ -2798,7 +2973,7 @@ const help: TranslationStrings = {
     'Välj boendet under Välj boende. Kategori ovanför listan begränsar listan till en kategori.',
   'help.guide.add-accommodation.step.6': 'Klicka på Spara.',
   'help.guide.add-accommodation.result':
-    'Vistelsen visas på varje dag den täcker, Incheckning på den första och Utcheckning på den sista. Boendet blir ett stopp på incheckningsdagen, så kartan visar vägen dit, och en hotellbokning visas på fliken Bokningar.',
+    'Vistelsen visas på varje dag den täcker, Incheckning på den första och Utcheckning på den sista, och rubriken för var och en av de dagarna i dagkolumnen anger hotellet. Dagens rutt på kartan går till boendet, och en hotellbokning visas på fliken Bokningar.',
   'help.guide.add-accommodation.tip.1':
     'Väljaren öppnas på dagen du kom från, med utcheckning dagen efter. Du kan ändra båda innan du sparar.',
   'help.guide.add-accommodation.tip.2':
@@ -2861,7 +3036,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-map.bullet.4':
     'När en dag är öppen i dagkolumnen visar dess stopp ett litet vitt märke med sitt nummer den dagen. En plats som förekommer två gånger på dagen visar båda sina nummer. Filtren ovanför platslistan (Visa, kategorierna och stjärnan för lägsta betyg) filtrerar också nålarna på kartan.',
   'help.ctx.trip-map.bullet.5':
-    'Ikonraden överst söker i den del av kartan som du ser: Restauranger, Kaféer, Barer och nattliv, Boende, Sevärdheter, Museer och kultur, Natur och parker och Aktiviteter. Kategorier som ett plugin lägger till kommer efter en tunn avdelare. När raden är bredare än kartan rullar du den i sidled med mushjulet. Sök i detta område kör sökningen igen när du har flyttat kartan.',
+    'Ikonraden överst söker i den del av kartan som du ser: Restauranger, Kaféer, Barer och nattliv, Boende, Sevärdheter, Museer och kultur, Natur och parker, Aktiviteter, Bagerier och Livsmedelsbutiker. Kategorier som ett plugin lägger till kommer efter en tunn avdelare. När raden är bredare än kartan rullar du den i sidled med mushjulet. Sök i detta område kör sökningen igen när du har flyttat kartan.',
   'help.ctx.trip-map.bullet.6':
     'Högerklicka var som helst på kartan för att öppna platsformuläret vid den punkten, med adressen redan uppslagen. Längst ned till vänster finns två runda knappar: låset, Lås kartvyn, behåller kartvyn där den är medan du klickar dig genom dagar och platser, och knappen under, Byt till satellitvy, byter den ritade kartan mot satellitbilder.',
   'help.ctx.trip-map.bullet.7':
@@ -2876,7 +3051,7 @@ const help: TranslationStrings = {
   'help.guide.map-markers.step.2':
     'En nål visar platsens eget foto om det finns, annars kategorifärgen med kategoriikonen. En vistelse vars bokning fortfarande väntar visas blekt, med en streckad ring. När du håller pekaren över en nål öppnas ett kort bredvid den: samma foto i större format, namnet och adressen, plus betyg och kategori om platsen har det.',
   'help.guide.map-markers.step.3':
-    'Klicka på en nål så öppnas platsen i ett kort över kartans nederkant: överst bilden, namnet och adressen, sedan stjärnorna, beskrivningen och filerna, även bokningens filer. Längst ned finns åtgärderna: Lägg till i dagen medan en dag är öppen (Ta bort från dag när platsen redan ligger på den), Navigering, Öppna hemsida, Spara i samling (Sparad när den redan ligger i en) och, till höger, papperskorgen och Redigera. X överst, eller ett klick på en tom del av kartan, stänger kortet.',
+    'Klicka på en nål så öppnas platsen i ett kort över kartans nederkant: överst bilden, namnet, adressen och kategorin, sedan stjärnorna, beskrivningen, anteckningarna, vem som deltar och filerna, även bokningens filer. Längst ned finns åtgärderna: Lägg till i dagen medan en dag är öppen och platsen inte ligger på den än, Navigering, hemsideikonen när platsen har en hemsida, och bokmärket Spara i samling (Sparad när den redan ligger i en). Till höger rymmer Fler alternativ Ta bort från dag och Radera, och Redigera öppnar platsformuläret. Pilen överst fäller ner kortet till dess rubrik. X, eller ett klick på en tom del av kartan, stänger det.',
   'help.guide.map-markers.step.4':
     'Öppna en dag i dagkolumnen, så får dess stopp nummer: den lilla vita brickan i nålens hörn visar stoppets position i dagen. En plats som förekommer två gånger på dagen visar båda sina nummer. När ingen dag är öppen finns inga nummer, och hörnet visar i stället platsens betyg, om den har något.',
   'help.guide.map-markers.step.5':
@@ -2894,7 +3069,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.goal':
     'Sök efter restauranger, sevärdheter eller ett hotell i den del av staden som kartan visar, och lägg till ett av dem i resan.',
   'help.guide.map-nearby-places.step.1':
-    'Raden med ikoner högst upp på kartan är kategorisökningen: Restauranger, Kaféer, Barer och nattliv, Boende, Sevärdheter, Museer och kultur, Natur och parker och Aktiviteter. Kategorier som ett plugin lägger till kommer efter en smal avdelare. Håll pekaren över en ikon för att se dess namn.',
+    'Raden med ikoner högst upp på kartan är kategorisökningen: Restauranger, Kaféer, Barer och nattliv, Boende, Sevärdheter, Museer och kultur, Natur och parker, Aktiviteter, Bagerier och Livsmedelsbutiker. Kategorier som ett plugin lägger till kommer efter en smal avdelare. Håll pekaren över en ikon för att se dess namn.',
   'help.guide.map-nearby-places.step.2':
     'Klicka på en kategori. TREK söker efter den sortens plats i den synliga delen av kartan och sätter en nål i kategorins färg för varje träff. Bara en kategori åt gången: om du klickar på en annan ersätter den den förra, och om du klickar på den aktiva stängs den av.',
   'help.guide.map-nearby-places.step.3':
@@ -2902,7 +3077,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.4':
     'Håll pekaren över en nål för att se namnet på det som sökningen hittade. Klicka på nålen så öppnas platsformuläret med uppgifterna redan ifyllda: namnet överst i dialogen, Adress, Latitud och Longitud samt hemsida och telefonnummer om sökningen hittade dem.',
   'help.guide.map-nearby-places.step.5':
-    'Kontrollera vad som fyllts i och lägg till det som sökningen inte kunde veta. Kategoriknappen under namnet är redan vald när resan har en passande kategori, till exempel restaurang för en restaurang. Annars står det Ingen kategori tills du väljer en. Lägg till en Beskrivning och egna anteckningar.',
+    'Kontrollera vad som fyllts i och lägg till det som sökningen inte kunde veta. Kategoriknappen under namnet är redan vald när resan har en passande kategori, till exempel restaurang för en restaurang. Annars står det Ingen kategori tills du väljer en. Skriv vad platsen handlar om under Om platsen, och dina egna anteckningar under Noteringar.',
   'help.guide.map-nearby-places.step.6':
     'Klicka på ”Lägg till”. Om en plats med samma namn eller på samma ställe redan finns i resan meddelar TREK det, och knappen ändras till ”Lägg till ändå”.',
   'help.guide.map-nearby-places.result':
@@ -2921,7 +3096,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.2':
     '”Latitud” och ”Longitud” är redan inställda på den punkten. TREK slår upp koordinaterna och fyller i ”Adress” med det som finns där. Om uppslagningen hittar ett namn fyller TREK också i namnet högst upp i dialogen. Inget är sparat än, så rätta det som är fel.',
   'help.guide.map-add-place.step.3':
-    'Skriv ett namn som du känner igen i fältet överst i dialogen. Välj en kategori på knappen under det, som visar Ingen kategori tills du väljer en. Lägg sedan till övriga uppgifter för planen: Beskrivning, Noteringar, Hemsida.',
+    'Skriv ett namn som du känner igen i fältet överst i dialogen. Välj en kategori på knappen under det, som visar Ingen kategori tills du väljer en. Lägg sedan till övriga uppgifter för planen: Om platsen, Noteringar, Hemsida.',
   'help.guide.map-add-place.step.4':
     'Klicka på Lägg till. Platsen läggs i listan som oplanerad, även när en dag är öppen: ett högerklick på kartan anger platsen, inte dagen.',
   'help.guide.map-add-place.result':
@@ -2961,7 +3136,7 @@ const help: TranslationStrings = {
   'help.guide.map-whole-trip.tip.1':
     'Totalen räknas ut några delsträckor i taget. Så länge … visas efter den är siffran bara en delsumma. Den är slutgiltig när alla delsträckor är beräknade.',
   'help.guide.map-whole-trip.tip.2':
-    'Om ruttmotorn inte kan beräkna en delsträcka förblir den en rak linje och räknas inte med. Kortet berättar det, så att totalen inte ser lägre ut utan förvarning.',
+    'Om ruttmotorn inte kan beräkna en delsträcka förblir den en rak linje och räknas inte med. Kortet berättar det, och sträckan står då som minst, så att totalen inte ser lägre ut utan förvarning.',
   'help.guide.map-whole-trip.tip.3':
     'En dag med färre än två stopp med position och utan körning till eller från hotellet har ingen rutt att rita, så den visas inte alls i kortet.',
   // map-booking-routes
@@ -2972,7 +3147,7 @@ const help: TranslationStrings = {
   'help.guide.map-booking-routes.step.2':
     'Klicka på den, så visas bokningen på kartan: ett flyg som en storcirkelbåge, en bilresa längs de verkliga vägarna och ett tåg som kedjan av sina stationer. Bekräftat ritas heldraget, Väntande streckat, och rutternas ändar är blå etiketter med transportens ikon.',
   'help.guide.map-booking-routes.step.3':
-    'Klicka på en ändpunktsknapp så öppnas bokningens detaljer: status, typ och dagar som etiketter i den färgade rubriken, tiderna i båda ändar, övriga uppgifter nedanför och längst ned På kartan, som slår av rutten igen, Ändra resväg för en kollektivtrafikförbindelse, papperskorgen som raderar bokningen och Redigera. X:et i rubriken stänger detaljerna.',
+    'Klicka på en ändpunktsknapp så öppnas bokningens detaljer: status, typ, dagar och bokningskoden som etiketter i den färgade rubriken, tiderna i båda ändar, övriga uppgifter nedanför och längst ned Karta, som slår av rutten igen, Ändra resväg för en kollektivtrafikförbindelse, papperskorgen som raderar bokningen och Redigera. X:et i rubriken stänger detaljerna.',
   'help.guide.map-booking-routes.step.4':
     'Ruttikonen i verktygsfältet ovanför dagarna gäller hela resan på en gång: Visa alla bokningsvägar ritar upp varje bokning som har en rutt.',
   'help.guide.map-booking-routes.step.5':
@@ -3075,7 +3250,7 @@ const help: TranslationStrings = {
   'help.guide.shared-links.tip.1':
     'Bara en http- eller https-adress godtas. Allt annat avvisas, och dialogen förblir öppen med det du skrev.',
   'help.guide.shared-links.tip.2':
-    'Fästa länkar kommer först, sedan de nyaste. Den lilla ikonen bredvid en titel är webbplatsens egen favicon, som hämtas från webbplatsen själv, så utan internet visar brickan en enkel länkikon i stället.',
+    'Fästa länkar kommer först, sedan de nyaste. Den lilla ikonen bredvid en titel är webbplatsens egen favicon, som hämtas från webbplatsen själv. Tills den har lästs in, eller när webbplatsen saknar en, visar brickan en enkel länkikon i stället.',
   'help.guide.shared-links.tip.3':
     'Länkar är ett eget reglage under Tillägg, nedanför Samarbete, så en admin kan stänga av panelen utan att röra resten av fliken.',
   // create-poll
@@ -3105,7 +3280,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.step.1':
     'Klicka på alternativet du vill ha. Dess cirkel får en bock, alternativet får en ram i accentfärgen och stapeln bakom det växer.',
   'help.guide.vote-poll.step.2':
-    'Nu ser du hela resultatet: stapeln visar andelen, procentsatsen står till höger, och de små cirklarna är personerna som valde det alternativet, upp till tre av dem.',
+    'Nu ser du hela resultatet: stapeln visar andelen, procentsatsen står till höger, och de små cirklarna är personerna som valde det alternativet. Tre visas. En fjärde cirkel med ett plus och ett tal räknar alla andra.',
   'help.guide.vote-poll.step.3':
     'Har du ångrat dig? Klicka på ett annat alternativ. I en omröstning utan Flera val flyttas din röst till det nya alternativet i stället för att en andra röst läggs till.',
   'help.guide.vote-poll.step.4':
@@ -3115,7 +3290,7 @@ const help: TranslationStrings = {
   'help.guide.vote-poll.tip.1':
     'Procentsatserna och vem som röstade på vad visas först när du själv har röstat, eller när omröstningen är stängd. Antalet röster i rubriken visas för alla.',
   'help.guide.vote-poll.tip.2':
-    'En röst är aldrig anonym: håll muspekaren över en av cirklarna vid ett alternativ för att se namnet på den som röstade.',
+    'En röst är aldrig anonym: håll muspekaren över en av cirklarna vid ett alternativ för att se namnet på den som röstade. Håll pekaren över pluscirkeln för att se namnen på alla andra.',
   // close-poll
   'help.guide.close-poll.title': 'Stäng en omröstning eller radera den',
   'help.guide.close-poll.goal':
@@ -3138,13 +3313,13 @@ const help: TranslationStrings = {
   'help.guide.whats-next.step.1':
     'Kortet listar resans kommande stopp, upp till åtta, i tidsordning, under en rubrik per dag: Idag, I morgon eller datumet, med dagens titel bredvid om den har en. Rubriken visar hur många det finns.',
   'help.guide.whats-next.step.2':
-    'Till vänster om varje stopp står dess tid: starttiden, ”till”, och sluttiden när stoppet har en, eller ”TBD” när ingen tid är satt än.',
+    'Till vänster om varje stopp står dess tid: starttiden, ”till”, och sluttiden när stoppet har en. Ett hotell utan egen tid visar sin incheckning på dagen vistelsen börjar. ”TBD” betyder att ingen tid är satt än.',
   'help.guide.whats-next.step.3':
     'Bredvid den står namnet, adressen och, som brickor, personerna på det stoppet. Om ingen är tilldelad stoppet listas alla i resan.',
   'help.guide.whats-next.result':
     'En lista över vad som komma skall, bara för läsning: den följer planen, och inget här ändrar den.',
   'help.guide.whats-next.tip.1':
-    'Du ställer inte in något här. Tiderna kommer från dagsplanen, och när du ändrar dem där uppdateras listan direkt.',
+    'Du ställer inte in något här. Tiderna kommer från dagsplanen, och för ett hotell från dess bokning. När du ändrar dem där uppdateras listan direkt.',
   'help.guide.whats-next.tip.2':
     'Bara det som ligger framför listas: ett stopp tas bort från listan när dess starttid har passerat, ett stopp i dag utan tid ligger kvar tills dagen är slut, och i slutet av en resa är panelen tom.',
   'help.guide.whats-next.tip.3':
@@ -3181,15 +3356,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-lists.summary':
     'Två listor för en resa: packlistan, med vem som tar med vad och hur mycket det väger, och uppgiftslistan med allt som ska göras före och under resan. Fliken visas medan tillägget ”Listor” är påslaget.',
   'help.ctx.trip-lists.bullet.1':
-    'Packlista och Att göra i fältet överst växlar mellan de två och räknar vad som finns i var och en. Knapparna längst till höger i fältet hör till den som är öppen.',
+    'Packlista och Att göra i fältet överst växlar mellan de två och räknar vad som finns i var och en. För packlistan har fältet Lägg till lista och de tre punkterna bredvid; för att-göra-listan har det Lägg till ny uppgift.',
   'help.ctx.trip-lists.bullet.2':
-    'Packlistan är indelad i listor, till exempel Dokument eller Kläder, med valfria namn. Varje lista är ett kort. I huvudet finns ett grepp för att dra hela listan till en annan plats, en färgprick, ett märke med packat av totalt, tre prickar med Byt namn, ”Markera alla”, ”Avmarkera alla” och ”Ta bort lista”, och en pil som fäller ihop kortet. ”Lägg till lista” i fältet ovanför skapar en ny.',
+    'Packlistan är indelad i listor, till exempel Dokument eller Kläder, med valfria namn. Varje lista är ett kort. I huvudet finns ett grepp för att dra hela listan till en annan plats, en färgprick, en streckad cirkel för att göra personer ansvariga för den, ett märke med packat av totalt, tre punkter med Byt namn, Markera alla, Avmarkera alla, Delning för hela listan och Ta bort lista, och en pil som fäller ihop kortet.',
   'help.ctx.trip-lists.bullet.3':
-    'En rad har ett handtag, en kryssruta och ett namn, därefter en liten avatar för den som tar med föremålet. Ett föremål med antal över ett får också en packad-räknare som 3/10 med minus och plus. Sedan kommer antalet som ett litet märke och, medan Spårning av väskor är på, vikten i gram och en väskcirkel, därefter papperskorgen och en meny med tre prickar med Flytta till lista, Delar, Byt namn och Radera. Kontroller som en rad inte använder är dämpade tills du håller pekaren över dem.',
+    'En rad visar sin ruta, sitt namn och bara det som är inställt: antalet från två och uppåt, till exempel ×3, de packade styckena medan du packar, till exempel 2/5, och bilden på den som tar med det. Ett grepp för att dra raden visas när du pekar på den. Klicka på namnet för att öppna föremålets fönster med dess lista, antal, packade stycken, vikt, väska, vem som tar med det och vem som ser det.',
   'help.ctx.trip-lists.bullet.4':
-    'Delad och Min lista delar upp packlistan i två: listan som alla ser och din egen. Alla, Öppen och Klar bredvid dem begränsar den lista som är öppen. A till Ö längst bort i raden visar varje listas föremål i namnordning, och ett andra klick går tillbaka till din egen ordning. Förloppskortet ovanför räknar vad som är packat.',
+    'Delad och Min lista under fältet delar upp packlistan i två: listan som alla ser och din egen. Till höger på den raden räknar en rad vad som är packat i listan du tittar på, med en smal stapel bredvid.',
   'help.ctx.trip-lists.bullet.5':
-    'Använd mall och Spara som mall fyller en lista eller sparar den, så att du slipper skriva den. De två ikonerna efter dem, Exportera och Importera, exporterar listan som utskrift, PDF eller fil och importerar en lista. Den röda knappen längst till höger på förloppskortet visar hur många föremål som är markerade och tar bort dem.',
+    'De tre punkterna bredvid Lägg till lista rymmer allt annat: Använd mall, Spara som mall, Importera, de tre sätten att exportera (Skriv ut eller spara som PDF, Markdown och CSV), A till Ö, Dölj packat och, längst ned, Ta bort … avbockade.',
   'help.ctx.trip-lists.bullet.6':
     'Att göra har en egen sidopanel: förloppskortet, filtren Alla, Mina uppgifter, Förfallen och Klar, en rad per lista och Lägg till lista under dem. Uppgifterna ligger i ett kort. Dess rubrik visar filtrets namn och sorteringen, Prioritet eller Förfallodag. Klicka på en uppgift för att öppna den i rutan till höger. Lägg till ny uppgift i fältet öppnar dialogrutan Ny uppgift.',
   // packing-categories
@@ -3199,67 +3374,67 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.step.1':
     'Klicka på ”Lägg till lista” i fältet ovanför listorna. En liten dialog öppnas. Skriv namnet i dess övre fält, där det står ”Listnamn (t.ex. Kläder)”, och klicka på ”Lägg till”.',
   'help.guide.packing-categories.step.2':
-    'Den nya listan börjar med en platshållarrad som bara visar tre svaga prickar. Klicka på ”Lägg till artikel” längst ner på raden, skriv föremålet i ”Föremålsnamn...” och tryck på Enter. Det första föremålet ersätter platshållaren, och fältet förblir öppet för nästa.',
+    'Den nya listan börjar med en tom rad, ett fält med tre svaga prickar. Klicka på ”Lägg till föremål” längst ner på kortet, skriv föremålet i ”Föremålsnamn...” och tryck på Enter: det första föremålet fyller den tomma raden, och fältet förblir öppet för nästa.',
   'help.guide.packing-categories.step.3':
-    'Byt namn på en rad genom att klicka på dess namn, eller med Byt namn bland de tre prickarna i radens högra ände.',
+    'Om du vill byta namn på ett föremål klickar du på dess namn. Dess fönster öppnas med namnet överst som ett fält: skriv det nya namnet och tryck på Enter.',
   'help.guide.packing-categories.step.4':
     'Den streckade cirkeln med en person i listans övre band tilldelar resemedlemmar till listan. Välj ett namn. Om du vill ta bort personen igen klickar du på brickan som visas.',
   'help.guide.packing-categories.step.5':
-    'De tre punkterna bredvid antalet öppnar fler alternativ: Byt namn, Markera alla, Avmarkera alla och Ta bort lista. Ta bort lista raderar listan och alla föremål i den utan att fråga igen. Pilen längst till höger fäller ihop listan.',
+    'De tre punkterna bredvid antalet öppnar fler alternativ: Byt namn, Markera alla, Avmarkera alla, Delning för hela listan och Ta bort lista. Ta bort lista raderar listan och alla föremål i den utan att fråga igen. Pilen längst till höger fäller ihop listan.',
   'help.guide.packing-categories.result':
     'Den nya listan visas i rutnätet med sina föremål under sig och sin färgprick, och dess bricka räknar det som redan är packat.',
   'help.guide.packing-categories.tip.1':
-    'En lista finns bara genom sina föremål. Om du raderar det sista föremålet blir raden en platshållare, så att listan behåller sin plats och sin färg. Om du raderar även den raden raderas listan.',
+    'En lista finns bara genom sina föremål. Om du raderar det sista föremålet blir raden en tom rad, så att listan behåller sin plats och sin färg. Om du raderar även den raden raderas listan.',
   'help.guide.packing-categories.tip.2':
-    'När du tilldelar någon en lista får personen ett packningsmeddelande. Det ändrar inte vem som kan se föremålen. Det ställer du in under ”Delar”, i menyn med de tre prickarna på en rad.',
+    'När du tilldelar någon en lista får personen ett packningsmeddelande. Det ändrar inte vem som kan se föremålen. Det ställer du in i varje föremåls fönster under Synlig för, eller för hela listan med Delning för hela listan.',
   'help.guide.packing-categories.tip.3':
     'Två listor kan ha samma namn. TREK håller isär dem internt, så namnen förblir som du skrev dem.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Bocka av medan du packar',
   'help.guide.check-off-packing.goal':
-    'Markera vad som ligger i väskan, följ förloppsstapeln och ta bort de packade föremålen.',
+    'Markera vad som ligger i väskan, följ förloppet och ta bort de packade föremålen.',
   'help.guide.check-off-packing.step.1':
-    'Klicka på rutan till vänster på en rad. Namnet stryks över och förloppsstapeln uppdateras.',
+    'Klicka på rutan till vänster på en rad. Namnet stryks över och antalet packade föremål ökar.',
   'help.guide.check-off-packing.step.2':
-    'Förloppskortet ovanför listorna visar hur många föremål som är packade av alla föremål på listan, som ett tal, som en procentsats och som en stapel.',
+    'Till höger på raden med Delad och Min lista säger en rad hur många föremål som är packade av alla föremål i listan du tittar på, med en smal stapel bredvid.',
   'help.guide.check-off-packing.step.3':
     'Om du vill markera en hel lista på en gång har de tre punkterna i dess rubrik Markera alla och Avmarkera alla.',
   'help.guide.check-off-packing.step.4':
-    '”Alla”, ”Öppen” och ”Klar” bredvid ”Delad” och ”Min lista” filtrerar rutnätet. ”Öppen” visar bara det som fortfarande saknas, så en lista som är helt packad döljs.',
+    'Dölj packat, i de tre punkterna bredvid Lägg till lista, visar bara det som fortfarande saknas, så en lista som är helt packad döljs. En bock markerar det medan det är på. Klicka på det igen för att se allt.',
   'help.guide.check-off-packing.step.5':
-    'Den röda knappen Ta bort … avbockade i högra änden av förloppskortet, med antalet avbockade föremål i, raderar alla på en gång efter en bekräftelse från webbläsaren.',
+    'Ta bort … avbockade, längst ned i samma meny med antalet avbockade föremål i, raderar alla på en gång efter en bekräftelse från webbläsaren.',
   'help.guide.check-off-packing.result':
-    'Bara öppna föremål listas, och stapeln ovanför visar hur mycket av packningen som är klar.',
-  'help.guide.check-off-packing.tip.1': 'Ett avbockat föremål går fortfarande att byta namn på: klicka på dess namn.',
+    'Bara öppna föremål listas, och raden ovanför dem visar hur mycket av packningen som är klar.',
+  'help.guide.check-off-packing.tip.1':
+    'Ett avbockat föremål öppnar fortfarande sitt fönster när du klickar på dess namn.',
   'help.guide.check-off-packing.tip.2':
     'Markera alla och Avmarkera alla gäller en lista i taget, från den listans egna tre punkter.',
   'help.guide.check-off-packing.tip.3':
-    'När alla föremål är markerade ersätts räknaren av Allt packat! och stapeln blir grön.',
+    'När alla föremål är markerade ersätts räkningen av Allt packat! och stapeln blir grön.',
   // apply-packing-template
   'help.guide.apply-packing-template.title': 'Använd en packningsmall',
   'help.guide.apply-packing-template.goal':
     'Lägg till en färdig lista i resan, och spara den här resans lista till nästa resa.',
-  'help.guide.apply-packing-template.step.1': 'Klicka på ”Använd mall” i fältet ovanför listan.',
+  'help.guide.apply-packing-template.step.1':
+    'Klicka på de tre punkterna bredvid Lägg till lista i fältet ovanför listan.',
   'help.guide.apply-packing-template.step.2':
-    'Välj en mall. Varje rad visar mallens namn och hur många föremål den innehåller.',
+    'Klicka på Använd mall. Mallarna öppnas under, var och en med sitt namn och hur många föremål den innehåller. Välj en.',
   'help.guide.apply-packing-template.step.3':
     'Föremålen läggs till i den vy du står i: Delad lägger dem i den delade listan som alla ser, Min lista lägger dem i din egen lista.',
   'help.guide.apply-packing-template.step.4':
-    'Om du vill spara den här resans lista till nästa resa klickar du på Spara som mall. En liten dialogruta öppnas. Skriv ett namn i fältet överst, där det står Mallnamn, och klicka på Spara.',
+    'Om du vill spara den här resans lista till nästa resa klickar du på Spara som mall i samma meny. En liten dialogruta öppnas. Skriv ett namn i fältet överst, där det står Mallnamn, och klicka på Spara.',
   'help.guide.apply-packing-template.result':
     'Mallens listor och föremål läggs till i resan, bredvid det som redan fanns där.',
   'help.guide.apply-packing-template.tip.1':
     'En mall kopierar varje föremåls lista, antal, vikt och väska, och skapar en väska som resan inte har ännu. Bockar kopieras inte, och inget som redan finns på listan tas bort.',
-  'help.guide.apply-packing-template.tip.2':
-    'Använd mall finns bara när det finns en mall. Utan mall visas inte knappen alls.',
+  'help.guide.apply-packing-template.tip.2': 'Använd mall finns bara i menyn när det finns en mall.',
   'help.guide.apply-packing-template.tip.3':
     'Spara som mall visas bara för en administratör av instansen, och bara medan listan har föremål. Den sparar de delade föremålen plus dina egna föremål, aldrig en annan medlems privata föremål.',
   // import-packing-list
   'help.guide.import-packing-list.title': 'Klistra in en hel packlista',
   'help.guide.import-packing-list.goal':
     'Gör om en lista som du redan har någon annanstans till packningsföremål på en gång.',
-  'help.guide.import-packing-list.step.1':
-    'Klicka på Importera, ikonen med nedåtpilen längst till höger i fältet ovanför listan.',
+  'help.guide.import-packing-list.step.1': 'Öppna de tre punkterna bredvid Lägg till lista och klicka på Importera.',
   'help.guide.import-packing-list.step.2':
     'Ett föremål per rad: Kategori, Namn, Vikt i g (valfritt), Väska (valfritt), checked/unchecked (valfritt). Det grå exemplet i rutan visar alla fyra formaten, och siffrorna längs vänsterkanten räknar raderna du skriver. En Markdown-lista fungerar också: en rubrik ger listan dess namn, och "- [ ]" och "- [x]" blir föremål.',
   'help.guide.import-packing-list.step.3':
@@ -3277,9 +3452,9 @@ const help: TranslationStrings = {
   'help.guide.export-packing-list.goal':
     'Skriv ut listan, spara den som PDF eller exportera den som fil för en annan app eller nästa resa.',
   'help.guide.export-packing-list.step.1':
-    'Klicka på Exportera, ikonen med uppåtpil i fältet ovanför listan, precis före Importera.',
+    'Klicka på de tre punkterna bredvid Lägg till lista i fältet ovanför listan.',
   'help.guide.export-packing-list.step.2':
-    'Checklista i Markdown (.md) och CSV för import (.csv) sparar listan som en fil direkt.',
+    'Sätten att exportera finns i mitten av menyn. Checklista i Markdown (.md) och CSV för import (.csv) sparar listan som en fil direkt.',
   'help.guide.export-packing-list.step.3':
     'Klicka på Skriv ut eller spara som PDF. Förhandsgranskningen visar listan som en sida: resan, dess datum och hur mycket som är packat överst, sedan varje lista som ett kort, med en ruta att bocka i för varje föremål.',
   'help.guide.export-packing-list.step.4':
@@ -3290,35 +3465,73 @@ const help: TranslationStrings = {
     'CSV-filen har det format som ”Importera” läser, inklusive väskor, så du kan använda den som en egen packningsmall: importera den till nästa resa.',
   'help.guide.export-packing-list.tip.2':
     'Markdown-filen öppnas som en checklista i Obsidian, Notion eller GitHub, och du kan importera den igen med Importera.',
+  'help.guide.edit-packing-item.title': 'Ändra ett föremål i dess fönster',
+  'help.guide.edit-packing-item.goal':
+    'Öppna ett föremål och ändra dess namn, lista, antal eller vem som tar med det, allt på ett ställe.',
+  'help.guide.edit-packing-item.step.1':
+    'Klicka på ett föremåls namn. Ett litet fönster öppnas vid raden med allt om föremålet, varje värde i ett piller.',
+  'help.guide.edit-packing-item.step.2':
+    'Namnet överst är ett fält: skriv över det och tryck på Enter för att byta namn på föremålet. Krysset bredvid stänger fönstret.',
+  'help.guide.edit-packing-item.step.3':
+    'Lista flyttar föremålet till en annan lista: klicka på den och välj en. Antal under den anger hur många du tar med.',
+  'help.guide.edit-packing-item.step.4':
+    'Tar med visar vem som tar med ett delat föremål. Klicka på det och bocka för alla på resan som också tar med det. Ett andra klick på ett namn tar bort personen igen.',
+  'help.guide.edit-packing-item.step.5':
+    'Radera längst ned tar bort föremålet direkt. Stäng fönstret med krysset eller med ett klick någonstans bredvid.',
+  'help.guide.edit-packing-item.result':
+    'Raden visar bara det som är inställt: antalet från två och uppåt, de packade styckena medan du packar och bilderna på dem som tar med det.',
+  'help.guide.edit-packing-item.tip.1': 'Varje ändring sparas när du gör den. Det finns ingen Spara-knapp.',
+  'help.guide.edit-packing-item.tip.2':
+    'Med Spårning av väskor på har fönstret också föremålets vikt och dess väska. Se Väg väskorna.',
+  'help.guide.edit-packing-item.tip.3':
+    'På ett delat föremål som någon annan tar med skapar Kopiera till min lista ovanför Radera en privat kopia åt dig.',
   // share-packing-item
-  'help.guide.share-packing-item.title': 'Bestäm vem som ser ett föremål och vem som tar med det',
+  'help.guide.share-packing-item.title': 'Bestäm vem som ser ett föremål',
   'help.guide.share-packing-item.goal':
     'Flytta ett föremål mellan gruppens gemensamma pool, din egen lista och de personer du tar med det åt.',
   'help.guide.share-packing-item.step.1':
     'Ovanför listorna är Delad listan som alla ser och Min lista din egen. Båda visar hur många föremål de har. Klicka på Min lista för att se din.',
   'help.guide.share-packing-item.step.2':
-    'Tillbaka i Delad öppnar du de tre punkterna i slutet av en rad och klickar på Delar.',
+    'Tillbaka i Delad klickar du på ett föremåls namn. Längst ned i dess fönster har Synlig för tre val: Alla, Bara jag och Urval.',
   'help.guide.share-packing-item.step.3':
-    'Det finns tre nivåer: ”Delad”, synlig för alla i gruppen, ”Personlig”, som bara du ser, och ”Dela med…”, där du väljer vilka personer föremålet gäller.',
-  'help.guide.share-packing-item.step.4':
-    'Ett ”Personlig” föremål finns bara på ”Min lista”. Växla till ”Min lista” för att hitta det.',
+    'Klicka på Bara jag. Föremålet lämnar den delade listan och ligger nu på din egen lista, där bara du kan se det.',
+  'help.guide.share-packing-item.step.4': 'Växla till Min lista för att hitta det.',
   'help.guide.share-packing-item.step.5':
-    'Öppna Delar igen och bocka för ett namn under Dela med…. Föremålet visas också i den personens lista, och raden får en liten etikett som räknar hur många personer det delas med.',
-  'help.guide.share-packing-item.result': 'Föremålet ligger på den nivå du valde, och raden visar vem som tar med det.',
+    'Öppna det igen, klicka på Urval och bocka för ett namn. Föremålet visas också i den personens lista, och raden får en liten etikett som räknar hur många personer det delas med.',
+  'help.guide.share-packing-item.result':
+    'Föremålet ligger på din egen lista, och märket på dess rad visar hur många personer som ser det tillsammans med dig.',
   'help.guide.share-packing-item.tip.1':
-    'Bara den som tar med ett föremål kan ändra hur det delas. Den du delade det med ser det på sin egen Min lista med en liten handbricka, som visar ditt namn när hen håller muspekaren över den. Hen kan bocka av det.',
+    'Bara den som äger ett föremål kan ändra vem som ser det. Den du delade det med ser det på sin egen Min lista med en liten handbricka, som visar ditt namn när hen pekar på den. Hen kan bocka av det.',
   'help.guide.share-packing-item.tip.2':
-    'På ett delat föremål som någon annan tar med visar tre-punktsmenyn två andra alternativ i stället för Delar: Jag kan ta med det också, som lägger till dig bredvid personen, och Kopiera till min lista, som skapar en privat kopia åt dig.',
+    'Om du vill flytta alla föremål i en lista på en gång använder du Delning för hela listan i listans tre punkter. Se Dela en hel lista.',
   'help.guide.share-packing-item.tip.3':
     'Nya föremål får samma delning som vyn du lägger till dem i. Föremål som läggs till i Delad delas med alla. Föremål som läggs till i Min lista är Personlig, såvida inte alla föremål i den listan delas med samma personer: då delas det nya föremålet med dem också.',
+  'help.guide.share-packing-list.title': 'Dela en hel lista',
+  'help.guide.share-packing-list.goal':
+    'Flytta alla föremål i en lista till gruppens pool, till din egen lista eller till de personer du väljer, i ett svep.',
+  'help.guide.share-packing-list.step.1':
+    'Öppna de tre punkterna i listans rubrik och klicka på Delning för hela listan.',
+  'help.guide.share-packing-list.step.2':
+    'Dialogen namnger listan och erbjuder tre nivåer: Delad, i gruppens pool för alla, Personlig, bara du, och Dela med…, de personer du väljer. Den börjar på nivån som föremålen redan har. Klicka på Dela med….',
+  'help.guide.share-packing-list.step.3': 'Bocka för de personer som listan är till för.',
+  'help.guide.share-packing-list.step.4':
+    'Klicka på Tillämpa på listan. Alla dina föremål i listan flyttas till den nivån, och ett meddelande bekräftar det.',
+  'help.guide.share-packing-list.result':
+    'Listan har lämnat den delade vyn och ligger på Min lista, med ett märke på varje rad som räknar de personer den delas med.',
+  'help.guide.share-packing-list.tip.1':
+    'Bara dina egna föremål flyttas. Föremål som andra lade till förblir som de är, och dialogen säger det när listan har några.',
+  'help.guide.share-packing-list.tip.2':
+    'Ett enskilt föremål kan fortfarande ändras efteråt, i dess fönster under Synlig för.',
   // packing-bags
   'help.guide.packing-bags.title': 'Väg väskorna',
   'help.guide.packing-bags.goal':
     'Ange en vikt för varje föremål, sortera föremålen i väskor och håll varje väska under flygbolagets gräns.',
-  'help.guide.packing-bags.step.1': 'Klicka på viktbrickan före cirkeln och skriv föremålets vikt i gram.',
-  'help.guide.packing-bags.step.2': 'Cirkeln efter vikten är föremålets väska. Klicka på den.',
+  'help.guide.packing-bags.step.1':
+    'Klicka på ett föremåls namn för att öppna dess fönster och skriv föremålets vikt i gram i Totalvikt.',
+  'help.guide.packing-bags.step.2':
+    'Väska, under det, visar Ej tilldelad medan föremålet inte ligger i någon väska. Klicka på det.',
   'help.guide.packing-bags.step.3':
-    'Om det inte finns någon väska ännu klickar du på Lägg till väska, skriver ett namn och trycker på Enter. Väskan skapas och föremålet läggs i den.',
+    'Resans väskor öppnas under det. Om det inte finns någon ännu skriver du ett namn i Lägg till väska i slutet av listan och trycker på Enter. Väskan skapas och föremålet läggs i den.',
   'help.guide.packing-bags.step.4':
     'Kortet Väskor visas till höger om listorna så snart det finns en väska. Varje väska visar sitt namn, vem som bär den, ett fyllnadsfält, hur många föremål som ligger i den och dess vikt. Under väskorna kommer Ej tilldelad och Totalvikt, med Packade under: vikten som redan är packad, och ett tunt fält som visar dess andel.',
   'help.guide.packing-bags.step.5':
@@ -3328,7 +3541,7 @@ const help: TranslationStrings = {
   'help.guide.packing-bags.result':
     'Kortet Väskor till höger visar varje väskas vikt jämfört med dess gräns, vad som inte ligger i någon väska, vad var och en bär och totalen med hur mycket av den som är packat.',
   'help.guide.packing-bags.tip.1':
-    'Viktfältet, väskcirkeln och kortet Väskor finns bara när en administratör har slagit på Spårning av väskor under tillägget Listor. I ett smalare fönster öppnas väskorna i stället från knappen Väskor ovanför förloppskortet.',
+    'Vikten och väskan i föremålets fönster och kortet Väskor finns bara när en administratör har slagit på Spårning av väskor under tillägget Listor. I ett smalare fönster öppnas väskorna i stället från Väskor i de tre punkterna bredvid Lägg till lista.',
   'help.guide.packing-bags.tip.2':
     'Servern beräknar en väskas vikt från alla medlemmars föremål, även de som du inte kan se, så talet är väskans verkliga vikt.',
   'help.guide.packing-bags.tip.3':
@@ -3378,15 +3591,15 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     'Manuell bokning längst till höger i fältet öppnar Ny bokning. Där skapar du sex sorters bokningar: Boende, Restaurang, Evenemang, Guidad tur, Parkering och Övrigt. Flyg, tåg och andra transporter finns i fliken Transporter och visas aldrig här.',
   'help.ctx.trip-bookings.bullet.2':
-    'Nedladdningsikonen före Manuell bokning, Importera bokningsbekräftelser, laddar upp bekräftelser så att TREK kan läsa dem automatiskt: EML, PDF, PKPass, HTML eller TXT, högst fem filer på 10 MB, samt foton när AI-modellen läser bilder. Ikonen finns bara när servern kan läsa dem.',
+    'Uppladdningsikonen före Manuell bokning, Importera bokningsbekräftelser, laddar upp bekräftelser så att TREK kan läsa dem automatiskt: EML, PDF, PKPass, HTML eller TXT, högst fem filer på 10 MB, samt foton när AI-modellen läser bilder. Ikonen finns bara när servern kan läsa dem. Där administratören har slagit på mejlimporten ger samma dialog resan en egen adress att vidarebefordra bokningsmejl till.',
   'help.ctx.trip-bookings.bullet.3':
     'Sök letar igenom titlar, typer, platser, noteringar, bokningskoder och resenärer. Filtrera, tratten bredvid, begränsar fliken efter Status, efter Typ med ett antal för varje typ, och efter Resenärer när en bokning anger personer. Ett tal på tratten visar hur många filter som är aktiva.',
   'help.ctx.trip-bookings.bullet.4':
-    'De tre ikonerna efter Filtrera växlar vy: Kort, Lista och Tidslinje. Visningsalternativ, reglagen bredvid, grupperar och sorterar korten och listan eller ställer in banorna i tidslinjen, och kalkylbladsikonen efter dem, Exportera som kalkylblad (CSV), laddar ner det som fliken visar som en fil. Som standard grupperas korten i Bekräftat och Väntande, och listan efter dag. Klicka på en sektions rubrik för att fälla ihop den.',
+    'De tre ikonerna efter Filtrera växlar vy: Kort, Lista och Tidslinje. Visningsalternativ, reglagen bredvid, grupperar och sorterar korten och listan eller ställer in banorna i tidslinjen, och nedladdningsikonen efter dem, Exportera som kalkylblad (CSV), laddar ner det som fliken visar som en fil. Som standard grupperas korten i Bekräftat och Väntande, och listan efter dag. Klicka på en sektions rubrik för att fälla ihop den.',
   'help.ctx.trip-bookings.bullet.5':
     'Ett kort har en rubrik som är färgad efter status, med statusprick (ett klick växlar mellan Väntande och Bekräftat), typ, titel, penna och papperskorg. Under den står bokningens uppgifter: Datum, Tid, Bokningskod, Incheckning och Utcheckning, Plats / Adress, Boende, Länkad till (stoppet i planen), Länk, Noteringar, Resenärer, Filer och de länkade kostnaderna.',
   'help.ctx.trip-bookings.bullet.6':
-    'Ett klick på ett kort, en rad eller ett fält öppnar bokningens detaljer, med På kartan (när bokningen har en plats), papperskorgen och Redigera längst ned. Att radera frågar en gång (Ta bort bokningen?, som visar om kostnader raderas med). Därefter raderas bokningen tillsammans med sina länkade utgifter, och för ett boende tas nätterna bort från dagsplanen.',
+    'Ett klick på ett kort, en rad eller ett fält öppnar bokningens detaljer, med Karta (när bokningen har en plats), papperskorgen och Redigera längst ned. Att radera frågar en gång (Ta bort bokningen?, som visar om kostnader raderas med). Därefter raderas bokningen tillsammans med sina länkade utgifter, och för ett boende tas nätterna bort från dagsplanen.',
   // booking-views
   'help.guide.booking-views.title': 'Byt vy och öppna en bokning',
   'help.guide.booking-views.goal':
@@ -3402,9 +3615,9 @@ const help: TranslationStrings = {
   'help.guide.booking-views.step.5':
     'Håll muspekaren över ett fält för att se dess dag, tider och plats, och klicka sedan på det för att öppna bokningens detaljer. Ett kort i Kort och en rad i Lista öppnar samma popup.',
   'help.guide.booking-views.step.6':
-    'Rubriken i detaljvyn visar titeln och brickor för status (ett klick växlar den), typ, dag och bokningskod, med en knapp som kopierar koden. Nedanför kommer tiderna som rutor, sedan platsen, resenärerna, noteringar, kostnader och filer, om bokningen har några, och längst ner På kartan, papperskorgen och Redigera.',
+    'Rubriken i detaljvyn visar titeln och brickor för status (ett klick växlar den), typ, dag och bokningskod, med en knapp som kopierar koden. Nedanför kommer tiderna som rutor, sedan platsen, resenärerna, noteringar, kostnader och filer, om bokningen har några, och längst ner Karta, papperskorgen och Redigera.',
   'help.guide.booking-views.result':
-    'Bokningen öppnas i sin detaljvy: ”Redigera” öppnar formuläret, ”På kartan” visar den i planen, och ”Stäng” eller Escape tar dig tillbaka till vyn du kom från.',
+    'Bokningen öppnas i sin detaljvy: ”Redigera” öppnar formuläret, ”Karta” visar den i planen, och ”Stäng” eller Escape tar dig tillbaka till vyn du kom från.',
   'help.guide.booking-views.tip.1':
     'Med ”Visningsalternativ”, reglageikonen efter vyikonerna, kan du gruppera och sortera ”Kort” och ”Lista” med ”Gruppera efter” och ”Sortera efter”. I ”Tidslinje” finns ”Ett spår per typ” och ”Visa den andra fliken”. ”Visa den andra fliken” visar posterna från fliken ”Transporter”, nedtonade, i ett smalt spår överst. ”Återställ vy” återställer standardvärdena, och varje flik kommer ihåg sin vy i den här webbläsaren.',
   'help.guide.booking-views.tip.2':
@@ -3498,7 +3711,7 @@ const help: TranslationStrings = {
     'Länka till befintlig fil visar resans dokument som inte redan finns på den här bokningen. Välj ett, så bifogas det utan att något laddas upp igen.',
   'help.guide.booking-files.step.4': 'Klicka på Uppdatera.',
   'help.guide.booking-files.result':
-    'Kortet och detaljvyn listar dokumenten under Filer. Klicka på ett dokument för att öppna det. ”Visa i filer”, ovanför listan i detaljvyn, tar dig till fliken Filer.',
+    'Kortet och detaljvyn listar dokumenten under Filer. Klicka på ett dokuments namn för att öppna det, eller på nedladdningsikonen i slutet av dess rad för att spara det. ”Visa i filer”, ovanför listan i detaljvyn, tar dig till fliken Filer.',
   'help.guide.booking-files.tip.1':
     'På en bokning som du fortfarande skapar laddas dokumentet upp när du klickar på Lägg till. Uppladdning kräver en anslutning.',
   'help.guide.booking-files.tip.2':
@@ -3521,7 +3734,7 @@ const help: TranslationStrings = {
   'help.guide.booking-cost.result':
     'Kortet visar beloppet längst ner, bokningens formulär listar utgiften under ”Länkade utgifter”, och samma utgift visas på fliken ”Kostnader”, kopplad till den här bokningen.',
   'help.guide.booking-cost.tip.1':
-    'Kategorin beror på typen: Restaurang blir Mat och dryck, Boende blir Boende, Parkering blir Parkering, och Evenemang och Rundtur blir båda Andra.',
+    'Kategorin beror på typen: Restaurang blir Mat och dryck, Boende blir Boende, Parkering blir Parkering, Evenemang och Guidad tur blir Aktiviteter, och Annat förblir Annat.',
   'help.guide.booking-cost.tip.2':
     'En bokning kan ha flera utgifter. Länka befintlig utgift visar de utgifter i Kostnader som ännu inte är länkade till något. På en länkad utgift tar Koppla ifrån, behåll utgiften bort länken men behåller utgiften i Kostnader, medan papperskorgen raderar den.',
   'help.guide.booking-cost.tip.3':
@@ -3542,7 +3755,7 @@ const help: TranslationStrings = {
   'help.guide.filter-bookings.result':
     'Fliken visar bara det du valde, i Kort, Lista och Tidslinje, och filtren ligger kvar för den här resan tills du stänger webbläsarfliken.',
   'help.guide.filter-bookings.tip.1':
-    'Typ visas bara när fliken har fler än en typ, och den listar bara typerna som finns i fliken. Om fliken saknar rundturer finns alltså inget alternativ Rundtur i Typ.',
+    'Typ visas bara när fliken har fler än en typ, och den listar bara typerna som finns i fliken. Om fliken saknar guidade turer finns alltså inget alternativ Guidad tur i Typ.',
   'help.guide.filter-bookings.tip.2':
     'Om inget matchar filtret visar fliken ”Inget matchar de här filtren”, med ”Återställ filter” direkt under.',
   // import-booking-file
@@ -3550,7 +3763,7 @@ const help: TranslationStrings = {
   'help.guide.import-booking-file.goal':
     'Låt TREK läsa bokningen från mejlet eller PDF-filen som leverantören skickade, så att du slipper skriva in den igen.',
   'help.guide.import-booking-file.step.1':
-    'Klicka på nedladdningsikonen i fältet, Importera bokningsbekräftelser. Namnet visas när du håller muspekaren över den. Dialogrutan med samma namn öppnas.',
+    'Klicka på uppladdningsikonen i fältet, Importera bokningsbekräftelser. Namnet visas när du håller muspekaren över den. Dialogrutan med samma namn öppnas.',
   'help.guide.import-booking-file.step.2':
     'Släpp bekräftelserna på rutan, eller klicka på den och välj dem: EML, PDF, PKPass, HTML och TXT, upp till fem filer på 10 MB vardera, samt foton (JPG, PNG, WEBP) när AI-modellen kan läsa bilder. De filer du har valt visas med namn på rutan.',
   'help.guide.import-booking-file.step.3':
@@ -3606,7 +3819,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.summary':
     'Resans pengar: varje utgift i en daterad liggare eller en tabell, vem som har lagt in den och vem som är skyldig för den, i kvittots valuta. Högerkolumnen visar vem som måste betala vem för att göra upp saldot.',
   'help.ctx.trip-costs.bullet.1':
-    'Fältet överst visar resans datum och de resenärer som kostnaderna delas mellan. Där finns också Sök kostnader…, Filtrera (tratten), Exportera CSV (nedladdningsikonen) och omkopplaren Lista / Tabell.',
+    'Fältet överst visar resans datum och de resenärer som kostnaderna delas mellan. Där finns också Sök kostnader…, Filtrera (tratten), Exportera CSV (nedladdningsikonen), valutan som beloppen visas i och omkopplaren Lista / Tabell.',
   'help.ctx.trip-costs.bullet.2':
     'Längst till höger registrerar Betala alla öppna överföringar på en gång, Skanna kvitto fyller i en utgift från ett foto när tillägget AI-tolkning kan läsa bilder, och Lägg till utgift öppnar redigeraren.',
   'help.ctx.trip-costs.bullet.3':
@@ -3614,7 +3827,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-costs.bullet.4':
     'Redovisningen är grupperad efter dag, de nyaste först, och varje dag har en rubrik med antalet poster och vad som spenderats den dagen. En rad visar kategorin som en färgad flik, namnet, betalarna som etiketter med vad var och en har betalat, och under dem Fördelning med varje resenärs andel (en bock markerar vem som har betalat sin del), därefter noteringen och beloppet, samt du lånade ut eller du lånade när fördelningen betyder att andra är skyldiga dig pengar eller att du är skyldig pengar.',
   'help.ctx.trip-costs.bullet.5':
-    'Högerkolumnen visar resultaten: Betala listar vem som betalar vem, Balanser visar varje resenärs överskott eller underskott, Slutlig budget visar vad resan kostar var och en av dem, och Via kategori visar vad pengarna gick till.',
+    'Högerkolumnen visar resultaten: Betala listar vem som betalar vem, Balanser visar varje resenärs överskott eller underskott, Slutlig budget visar vad resan kostar var och en av dem, och Via kategori visar vad pengarna gick till. Ett klick på en kategori lämnar den utanför summorna. Dela kostnaderna mellan resenärerna, längst ned i kolumnen, slår av betalare och uppgörelse för en resa som bara behöver summorna.',
   'help.ctx.trip-costs.bullet.6':
     'En registrerad betalning visas i samma liggare som en egen rad, med en penna och Ångra bredvid. En utgift har en penna och en papperskorg, och papperskorgen frågar innan utgiften raderas. En utgift med kvitton har ett Kvitto-chip bredvid namnet som öppnar dem.',
   'help.ctx.trip-costs.bullet.7':
@@ -3629,7 +3842,7 @@ const help: TranslationStrings = {
   'help.guide.add-expense.step.3':
     'Brickan under namnet är Kategori, Mat och dryck tills du väljer en annan. Det finns fjorton kategorier och de går inte att ändra. Rubrikens färg ändras till färgen på kategorin du väljer, och det gör även fliken på raden och dess stapel i Via kategori.',
   'help.guide.add-expense.step.4':
-    'Ange beloppet från kvittot i Totalt belopp. Valuta bredvid är först inställd på den valuta som Kostnader visas i. Om du ändrar den visar redigeraren det omräknade beloppet. Dag är först inställd på idag, och utgiften grupperas under den dagen i listan.',
+    'Ange beloppet från kvittot i Totalt belopp. Valuta bredvid börjar på resans egen valuta. Om du väljer en annan visar redigeraren det omräknade beloppet under fälten. Dag är först inställd på idag, och utgiften grupperas under den dagen i listan.',
   'help.guide.add-expense.step.5':
     'Under ”Vem betalade?” klickar du på personen som faktiskt betalade. ”Du” är förvalt. ”Ingen har betalat än” bokför beloppet utan att någon är skyldig pengar för det, och ”Flera personer betalade” i växeln bredvid rubriken delar notan mellan flera betalare.',
   'help.guide.add-expense.step.6':
@@ -3685,26 +3898,26 @@ const help: TranslationStrings = {
   'help.guide.split-expense.tip.3':
     'Kvittoläget räknar ut Totalt belopp själv och gråar ut fältet: totalen är summan av kvittots rader.',
   'help.guide.split-expense.tip.4':
-    'En anpassad fördelning kan också anges i procent: ställ Ange andelar som på %, och andelarna måste tillsammans bli 100 % innan utgiften sparas.',
+    'En anpassad fördelning kan också anges i procent eller i andelar: det lilla reglaget bredvid tipset väljer valutasymbolen, % eller Andelar. I procent måste andelarna tillsammans bli 100 % innan utgiften sparas.',
   // expense-currency
   'help.guide.expense-currency.title': 'Lägg in en utgift i en annan valuta',
   'help.guide.expense-currency.goal': 'Ange beloppet på kvittot, så sparar TREK växelkursen.',
   'help.guide.expense-currency.step.1':
     'Öppna ”Lägg till utgift”. Skriv namnet högst upp i dialogen och ange beloppet i ”Totalt belopp” precis som det står på kvittot, inte ett omräknat belopp.',
   'help.guide.expense-currency.step.2':
-    'Öppna ”Valuta” bredvid beloppet och välj kvittots valuta. Listan innehåller alla koder som TREK känner till och går att söka i: skriv de tre bokstäverna.',
+    'Öppna ”Valuta” bredvid beloppet. En ny utgift börjar på resans egen valuta. Välj kvittots valuta: resans valuta och den som Kostnader visas i står överst, och du kan söka bland alla andra koder som TREK känner till genom att skriva de tre bokstäverna.',
   'help.guide.expense-currency.step.3':
     'Under fälten visas en rad med etiketter: beloppet du skrev och dess aktuella värde, märkt realtidspris. Det är bara en förhandsgranskning. Det är inte värdet som sparas.',
   'help.guide.expense-currency.step.4':
     'Klicka på Lägg till utgift längst ner i dialogrutan. Kursen låses vid just det tillfället: utgiften behåller det värde den hade den dag du lade in den.',
   'help.guide.expense-currency.step.5':
-    'I utgiftslistan visar raden båda beloppen under namnet: det du skrev, en pil och beloppet i resans valuta. Varje summa, balans och uppgörelse i fliken Kostnader utgår från det andra beloppet.',
+    'I utgiftslistan visar raden båda beloppen under namnet: det du skrev, en pil och beloppet i den valuta som Kostnader visas i. Varje summa, balans och uppgörelse i fliken Kostnader utgår från det andra beloppet.',
   'help.guide.expense-currency.result':
     'Utgiften behåller beloppet och valutan som du skrev. Utgiftslistan visar båda, och resans summor och balanser räknas i resans valuta.',
   'help.guide.expense-currency.tip.1':
     'Kursen låses när du sparar, så en uppgjord skuld ändras inte när växelkursen ändras veckan efter. En ny kurs sparas bara när du ändrar utgiftens valuta.',
   'help.guide.expense-currency.tip.2':
-    '”Visningsvaluta” i Inställningar ändrar bara hur beloppen visas. De sparade beloppen ändras aldrig. Om fältet är tomt visas varje resa i sin egen valuta.',
+    '”Visningsvaluta” i Inställningar, och valutaväljaren i fältet Kostnader för en enskild resa, ändrar bara hur beloppen visas. De sparade beloppen ändras aldrig. Om visningsvalutan är tom visas varje resa i sin egen valuta.',
   'help.guide.expense-currency.tip.3':
     'Resans valuta ställs in på själva resan, under ”Redigera resa”, och kräver behörigheten ”Redigera resedetaljer”. Om du ändrar den räknas alla frysta kurser om för den nya valutan. Själva beloppen räknas inte om.',
   // filter-costs
@@ -3811,6 +4024,98 @@ const help: TranslationStrings = {
     'En utgift med fördelningen Anpassat eller Kvitto har ingen enskild andel per person, så dess Per Person och P. p / Dag förblir tomma.',
   'help.guide.costs-table.tip.3':
     'Betalare, fördelning, notering och kvitton redigerar du i själva utgiften: Fler alternativ i slutet av en rad har Redigera, och Radera för att ta bort raden.',
+  'help.guide.costs-show-in.title': 'Visa kostnaderna i en annan valuta',
+  'help.guide.costs-show-in.goal':
+    'Läs en resas kostnader i en annan valuta, till exempel valutan i landet du reser vidare till, utan att ändra något som är sparat.',
+  'help.guide.costs-show-in.step.1':
+    'Valutaväljaren i fältet, mellan Exportera CSV och omkopplaren Lista / Tabell, visar valutan som beloppen läses i. Peka på den så står det Visa belopp i.',
+  'help.guide.costs-show-in.step.2':
+    'Klicka på den. Din visningsvaluta och resans egen valuta står överst i listan, och du kan skriva tre bokstäver för att söka bland alla andra. Välj en valuta.',
+  'help.guide.costs-show-in.step.3':
+    'Korten, varje rad i utgiftslistan och högerkolumnen visas nu i den valutan, omräknade efter dagens kurs. Betala erbjuder också överföringarna i den.',
+  'help.guide.costs-show-in.step.4':
+    'Om du vill gå tillbaka öppnar du väljaren igen och väljer listans första post: din visningsvaluta, eller resans egen valuta om du inte har angett någon i Inställningar.',
+  'help.guide.costs-show-in.result':
+    'Hela fliken Kostnader läser resan i den valuta du valde. Utgifterna behåller beloppen och valutorna de angavs i.',
+  'help.guide.costs-show-in.tip.1':
+    'Valet sparas för den här resan i den här webbläsaren. Andra resor, andra enheter och de andra resenärerna behåller sin egen vy.',
+  'help.guide.costs-show-in.tip.2':
+    'Din visningsvaluta i Inställningar förblir som den är. När du väljer den igen i fältet gäller en senare ändring i Inställningar åter för den här resan.',
+  'help.guide.costs-show-in.tip.3':
+    'En ny utgift börjar fortfarande i resans egen valuta, oavsett vilken valuta beloppen visas i.',
+  'help.guide.leave-out-category.title': 'Lämna en kategori utanför summorna',
+  'help.guide.leave-out-category.goal': 'Se vad resan kostade utan en sorts utgifter, till exempel utan flygen.',
+  'help.guide.leave-out-category.step.1':
+    'Via kategori, längst ned i högerkolumnen, rangordnar vad pengarna gick till. Raden överst säger vad ett klick gör: Välj en kategori för att lämna den utanför summorna.',
+  'help.guide.leave-out-category.step.2':
+    'Klicka på en kategori. Dess rad stannar kvar, nedtonad och överstruken, de andra staplarna skalas om, och raden överst anger nu vad som är utelämnat, med Räkna allt bredvid.',
+  'help.guide.leave-out-category.step.3':
+    'Totala resekostnader lämnar den kategorin utanför, och det gör även Din andel och Du betalade under den. Kortet anger också vad som är utelämnat.',
+  'help.guide.leave-out-category.step.4':
+    'Klicka på Räkna allt, eller på den nedtonade raden igen, så räknas varje kategori med igen.',
+  'help.guide.leave-out-category.result':
+    'Summorna visar resan utan de kategorier du lämnade utanför, tills du räknar med dem igen.',
+  'help.guide.leave-out-category.tip.1':
+    'Det här är bara en vy. Inget sparas, och valet försvinner när du lämnar fliken Kostnader.',
+  'help.guide.leave-out-category.tip.2':
+    'Det som är skyldigt förblir helt: Du är skyldig, Du har att få, Utestående belopp, Betala och Balanser räknar fortfarande med varje kategori.',
+  'help.guide.leave-out-category.tip.3':
+    'Du kan lämna flera kategorier utanför samtidigt. Varje klick på en rad växlar bara den.',
+  'help.guide.split-by-shares.title': 'Dela en nota efter nätter eller andelar',
+  'help.guide.split-by-shares.goal':
+    'Fördela en utgift i ett förhållande, till exempel antalet nätter varje resenär bodde, utan att räkna ut beloppen själv.',
+  'help.guide.split-by-shares.step.1':
+    'Öppna utgiften med pennan bredvid dess rad och klicka på Anpassat i omkopplaren bredvid Fördelning.',
+  'help.guide.split-by-shares.step.2':
+    'Bredvid tipset under den väljer ett litet reglage hur du anger fördelningen: valutasymbolen för belopp, % för procent eller Andelar. Klicka på Andelar.',
+  'help.guide.split-by-shares.step.3':
+    'Varje förbockad resenär får ett fält som börjar på 1. Skriv in varje persons andelar, till exempel nätterna de bodde. Under varje fält uppdateras beloppet det blir medan du skriver.',
+  'help.guide.split-by-shares.step.4':
+    'Märket under listan visar Fördelningen stämmer med totalen. Klicka på Spara längst ned i dialogen.',
+  'help.guide.split-by-shares.result':
+    'Utgiften delas i förhållande till andelarna, på öret, och dess rad visar varje resenärs del under Fördelning.',
+  'help.guide.split-by-shares.tip.1':
+    'En person med 0 andelar är inte skyldig något för den här utgiften. Om ingen har någon andel säger dialogen Ge minst en person en andel och sparar inte.',
+  'help.guide.split-by-shares.tip.2':
+    'Bara beloppen sparas, så utgiften öppnas åter med beloppen. Växla till Andelar igen för att ändra förhållandet.',
+  'help.guide.split-by-shares.tip.3':
+    'Procent fungerar på samma sätt: välj %, och procenten måste tillsammans bli 100 %.',
+  'help.guide.link-receipt-file.title': 'Använd en resefil som kvitto',
+  'help.guide.link-receipt-file.goal':
+    'Lägg ett dokument som resan redan har på en utgift, till exempel en voucher eller en bekräftelse som också är fakturan, utan att ladda upp det igen.',
+  'help.guide.link-receipt-file.step.1':
+    'Klicka på pennan bredvid utgiftens rad. Redigeraren öppnas, med Kvitton & fakturor nära botten.',
+  'help.guide.link-receipt-file.step.2':
+    'Klicka på länkikonen bredvid Bifoga. Den finns där så länge resan har bilder eller PDF-filer som inte ligger på den här utgiften än. Listan öppnas under rubriken, med filerna från utgiftens bokning först.',
+  'help.guide.link-receipt-file.step.3':
+    'Klicka på filen. Listan stängs, och filen listas under Kvitton & fakturor, med en papperskorg för att ta bort den igen.',
+  'help.guide.link-receipt-file.step.4':
+    'Klicka på Spara längst ned i dialogen. Raden har nu en kvittobricka bredvid namnet som öppnar filen.',
+  'help.guide.link-receipt-file.result':
+    'Utgiften har filen som sitt kvitto. Ingenting laddades upp: det är samma fil som i Filer, och den behåller sina andra länkar.',
+  'help.guide.link-receipt-file.tip.1':
+    'Papperskorgen bredvid ett kvitto tar bara bort det från utgiften. Filen finns kvar i Filer.',
+  'help.guide.link-receipt-file.tip.2':
+    'Bara bilder och PDF-filer erbjuds, samma typer som Bifoga tar, och inget som ligger i papperskorgen.',
+  'help.guide.costs-totals-only.title': 'Behåll bara resans summor',
+  'help.guide.costs-totals-only.goal':
+    'Följ vad en resa kostar utan vem som betalade, vem som är skyldig vem och uppgörelse, till exempel när ni ändå delar på allt.',
+  'help.guide.costs-totals-only.step.1':
+    'Dela kostnaderna mellan resenärerna är reglaget längst ned i högerkolumnen. Det är på som standard, och raden under dess namn säger vad det gör.',
+  'help.guide.costs-totals-only.step.2':
+    'Slå av det. Korten för skyldig och har att få, Betala, Balanser och Slutlig budget försvinner, och det gör även betalarna och fördelningen på varje rad. Totala resekostnader finns kvar, med antalet utgifter under.',
+  'help.guide.costs-totals-only.step.3':
+    'Lägg till utgift öppnar nu redigeraren utan Vem betalade? och Fördelning: ett namn, en kategori, beloppet, dess valuta och dess dag är allt en utgift behöver.',
+  'help.guide.costs-totals-only.step.4':
+    'Slå på reglaget igen när du vill dela. Betalare, fördelningar och betalningar som registrerats tidigare kommer tillbaka som de var.',
+  'help.guide.costs-totals-only.result':
+    'Kostnader visar resans utgifter, per dag, per kategori och i tabellen, utan något om vem som är skyldig vad.',
+  'help.guide.costs-totals-only.tip.1':
+    'Inställningen hör till resan, så alla resenärer ser samma Kostnader. Bara den som får redigera kostnaderna ser reglaget.',
+  'help.guide.costs-totals-only.tip.2':
+    'En utgift som läggs till medan reglaget är av sparas utan betalare och fördelning, så den blir ingen skuld om du delar upp senare.',
+  'help.guide.costs-totals-only.tip.3':
+    'På en resa med bara dig finns inget att dela, så Kostnader visar summorna för sig och reglaget visas inte.',
 
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Transporter',
@@ -3823,11 +4128,11 @@ const help: TranslationStrings = {
   'help.ctx.trip-transports.bullet.3':
     'Kort är vyn som fliken öppnas i: Bekräftat först, sedan Väntande. Du kan fälla ihop varje avsnitt genom att klicka på dess rubrik. De planerade kollektivtrafikförbindelserna saknar status och visas bland de bekräftade resorna i tidsordning, om inte Visningsalternativ ger dem ett eget avsnitt, Automatisk kollektivtrafik. Lista grupperar per dag, och Tidslinje visar alla resor över resans dagar.',
   'help.ctx.trip-transports.bullet.4':
-    'Kortets övre band är färgat efter status: grönt för bekräftad, gult för väntande och blått för en planerad förbindelse. Det visar statusprick, typ, titel, pennan och papperskorgen. Under det står Datum, Tid, Bokningskod, Rutt samt flygbolag och flygnummer, eller tågnummer, plattform och plats. Klicka på kortet för att öppna detaljerna.',
+    'Kortets övre band är färgat efter status: grönt för bekräftad, gult för väntande och blått för en planerad förbindelse. Det visar statusprick, typ, titel, pennan och papperskorgen. Under det står Datum, Tid, Bokningskod, Rutt samt flygbolag och flygnummer, eller tågnummer, plattform och plats. Kring avgången visar ett flyg också sin Status live. Klicka på kortet för att öppna detaljerna.',
   'help.ctx.trip-transports.bullet.5':
     'Du kan också skapa transporter i planen: + i en dags rubrik (verktygstipset lyder Lägg till i denna dag), eller ett högerklick på rubriken, erbjuder Lägg till transport och Kollektivtrafik. Restidsförbindelsen mellan två stopp öppnar samma sökning för just den sträckan.',
   'help.ctx.trip-transports.bullet.6':
-    'En transport med båda ändpunkterna angivna ritar en linje på kartan. Ruttikonen på transportens rad i dagsplanen och På kartan i dess detaljer slår på den linjen. Visa alla bokningsvägar i verktygsfältet ovanför dagarna slår på eller av linjerna för hela resan.',
+    'En transport med båda ändpunkterna angivna ritar en linje på kartan. Ruttikonen på transportens rad i dagsplanen och Karta längst ned i dess detaljer slår på den linjen. Visa alla bokningsvägar i verktygsfältet ovanför dagarna slår på eller av linjerna för hela resan.',
   // transports-list
   'help.guide.transports-list.title': 'Läs fliken Transporter',
   'help.guide.transports-list.goal': 'Förstå vad listan visar innan du ändrar något i den.',
@@ -3840,7 +4145,7 @@ const help: TranslationStrings = {
   'help.guide.transports-list.step.4':
     'Varje kort visar alla detaljer. Bandet överst är grönt för ”Bekräftat” och bärnstensfärgat för ”Väntande”, och visar statusprickan, typen och titeln. Under det visar ”Datum” de dagar som transporten sträcker sig över, med datum. Sedan kommer ”Tid”, ”Bokningskod”, ”Rutt” med typens ikon mellan stoppen, samt flygbolag och flygnummer eller tågnummer, plattform och plats. Klicka på kortet för att öppna dess detaljer.',
   'help.guide.transports-list.step.5':
-    'Klicka på statusprickens för att växla resan mellan Väntande och Bekräftat. Verktygstipset säger åt vilket håll, till exempel Sätt till Väntande. Pennan i rubrikraden öppnar transportens formulär, och papperskorgen raderar den efter frågan Ta bort bokningen?, som listar vad som raderas, även kopplade kostnader.',
+    'Klicka på statusprickan för att växla resan mellan Väntande och Bekräftat. Verktygstipset säger åt vilket håll, till exempel Sätt till Väntande. Pennan i rubrikraden öppnar transportens formulär, och papperskorgen raderar den efter frågan Ta bort bokningen?, som namnger resan och säger det när en kopplad kostnad raderas med den.',
   'help.guide.transports-list.result':
     'Varje kort visar om resan är bokad, och du kan när som helst använda fältet för att filtrera eller sortera listan.',
   'help.guide.transports-list.tip.1':
@@ -3874,7 +4179,7 @@ const help: TranslationStrings = {
   'help.guide.import-transport-file.goal':
     'Låt TREK läsa ett flyg, ett tåg eller en färja från biljetten som transportören skickade, och kontrollera uppgifterna innan de sparas.',
   'help.guide.import-transport-file.step.1':
-    'Klicka på nedladdningsikonen före Transport i fältet på fliken Transporter, vars verktygstips lyder Importera bokningsbekräftelser. Dialogen med det namnet öppnas, samma som på fliken Bokningar. På en tom flik gör Importera från fil i mitten detsamma.',
+    'Klicka på uppladdningsikonen före Transport i fältet på fliken Transporter, vars verktygstips lyder Importera bokningsbekräftelser. Dialogen med det namnet öppnas, samma som på fliken Bokningar. På en tom flik gör Importera från fil i mitten detsamma.',
   'help.guide.import-transport-file.step.2':
     'Släpp biljetten på rutan, eller klicka på rutan och välj filen: EML, PDF, PKPass, HTML och TXT, upp till fem filer på högst 10 MB vardera, samt foton av en biljett (JPG, PNG, WEBP) om din server har en AI-modell som kan läsa dem. Rutan visar namnen på filerna du valde.',
   'help.guide.import-transport-file.step.3':
@@ -4048,7 +4353,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-mode.tip.1':
     'Valet sparas per resa på ditt konto, så efter en omladdning, i en annan webbläsare eller på en annan enhet öppnas resan i bilresevyn igen.',
   'help.guide.roadtrip-mode.tip.2':
-    'Omkopplaren visas först när en administratör har slagit på tillägget Bilresa, under Tillägg i adminpanelen.',
+    'Omkopplaren visas bara medan tillägget Bilresa är på för resan. En administratör slår på det för alla resor under Tillägg i adminpanelen, och resans ägare kan slå på eller av det för bara den här resan under Tillägg i Reseinställningar.',
   'help.guide.roadtrip-mode.tip.3':
     'På en telefon finns ingen växel: tillägget lägger i stället till en egen flik, ”Bilresa”, bredvid ”Planering”.',
   // roadtrip-stops
@@ -4069,7 +4374,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stops.result':
     'Brickan ”Stopp” på stoppet du ändrade visar den nya längden, och alla ankomsttider efter det flyttas i takt med den. Ett stopp som du har ändrat till en annan typ och tillbaka är ett numrerat resmål igen.',
   'help.guide.roadtrip-stops.tip.1':
-    'Ett uppehåll hör till platsen, inte till ett enskilt besök: en plats som är planerad på två dagar har samma uppehåll båda dagarna.',
+    'Ett uppehåll hör till besöket: en plats som är planerad på två dagar har sitt eget uppehåll på var och en, och att ändra det ena lämnar det andra orört.',
   'help.guide.roadtrip-stops.tip.2':
     'Stopp på vägen visas också under Dagar. Om du stänger av Visa även i Dagar, under Servicestopp i Körinställningar, visas de bara i Bilresa.',
   'help.guide.roadtrip-stops.tip.3': 'Ingen vistelse, i samma dialogruta, tar bort tiden igen.',
@@ -4186,7 +4491,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.step.1':
     'När en räckvidd är angiven visar sidokolumnen ett band på sträckan där bränslet eller batteriet tar slut: Här tar tanken slut, eller Här tar batteriet slut för en elbil. Under det ser du hur långt in på sträckan det är.',
   'help.guide.roadtrip-refuel.step.2':
-    'Lampikonen på bandet är knappen: Hitta bränsle, eller Hitta laddning för en elbil. Den söker längs vägen före den punkten och visar Söker längs rutten… medan den söker.',
+    'Den blinkande bensinpumpen i slutet av bandet, en blixt för en elbil, är knappen: Hitta bränsle, eller Hitta laddning. Den söker längs vägen före den punkten och visar Söker längs rutten… medan den söker.',
   'help.guide.roadtrip-refuel.step.3':
     'Upp till tre stationer visas, var och en med avståndet från rutten och hur mycket räckvidd du skulle ha kvar.',
   'help.guide.roadtrip-refuel.step.4':
@@ -4198,7 +4503,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.tip.2':
     'Sökningen tittar på vägen före den punkt där bränslet tar slut, håller en reserv och räknar omvägen två gånger, så varje ställe den föreslår verkligen går att nå.',
   'help.guide.roadtrip-refuel.tip.3':
-    'Om det inte finns några resultat kan du söka igen: lampan ändras till Försök igen, eftersom platssökningen är en delad tjänst som ibland överskrider tidsgränsen.',
+    'Om det inte finns några resultat kan du söka igen: pumpen ändras till Försök igen, eftersom platssökningen är en delad tjänst som ibland överskrider tidsgränsen.',
   // roadtrip-track
   'help.guide.roadtrip-track.title': 'Låt en dag följa ett importerat spår',
   'help.guide.roadtrip-track.goal':
@@ -4242,7 +4547,7 @@ const help: TranslationStrings = {
   'help.guide.tour-collection-add-to-trip.step.3':
     'Under Vägpunkter väljer du rutan med vägpunkterna för att lägga till start, stopp och mål i rätt ordning, eller ”Bara linjen” för att bara lägga till den sparade linjen.',
   'help.guide.tour-collection-manage.step.1':
-    'Öppna en lista. Varje sparad tur visar svårighetsgrad, typ, resan den sparades från, sträcka och stigning samt hur många vägpunkter den har. Håll pekaren över resans namn för att se vem som sparade den.',
+    'Öppna en lista. Varje sparad tur visar svårighetsgrad eller typ, resan den sparades från, tid, sträcka och stigning samt hur många vägpunkter den har. Håll pekaren över resans namn för att se vem som sparade den.',
   'help.guide.entry-draft.step.1': 'Slå på Utkast i högra kolumnen i redigeraren.',
   'help.guide.journey-map-layers.step.3':
     'Klicka på en ihålig nål eller en liten prick på kartan. Ett kort visar vad det är: en planerad plats och dess dag, eller en vistelse med ”Öppna inlägg”, som tar dig till dagsrapporten den hör till.',
@@ -4276,19 +4581,19 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.result':
     'Nya konton, och alla som aldrig har ändrat de här inställningarna, får dina val.',
   'help.guide.own-routing-engine.goal':
-    'Beräkna rutter för dagar och roadtrips med en OSRM- eller Valhalla-server som du driver själv, i stället för de publika.',
+    'Beräkna rutter för dagar, roadtrips och turer med en OSRM- eller Valhalla-server som du driver själv, i stället för TREK-tjänsterna eller de publika.',
   'help.guide.admin-passkeys.tip.1':
-    'Om TREK inte kan avgöra någon domän än visas en varning om det, och inloggningsnycklar förblir dolda tills du anger APP_URL eller Relying Party ID.',
+    'Om TREK inte kan avgöra någon domän än visas en varning under reglaget om det, och inloggningsnycklar förblir dolda tills du anger APP_URL eller Relying Party ID.',
   'help.guide.rotate-jwt-secret.step.1':
-    'Längst ned på fliken Inställningar, under Farozon, klickar du på Rotera bredvid ”Rotera JWT-hemlighet”.',
+    'På fliken Säkerhet, under Farozon längst ned till höger, klickar du på Rotera bredvid ”Rotera JWT-hemlighet”.',
   'help.guide.storage-backends.tip.3':
     'TREK kan ladda ned fotocacharna igen, så att spegla dem slösar oftast bara lagringsutrymme.',
   'help.guide.admin-channels.step.3':
-    'I kortet Meddelanden nedanför väljer du för varje händelse vilka kanaler som skickar den: ”Ny version tillgänglig”, ”Fel i lagringsreplik” och ”Paddelregion efterfrågad”. Varje reglage sparas direkt.',
+    'Nedanför, i samma kort, väljer du för varje händelse vilka kanaler som skickar den: ”Ny version tillgänglig”, ”Fel i lagringsreplik” och ”Paddelregion efterfrågad”. Varje reglage sparas direkt.',
   'help.guide.notification-defaults.tip.1':
     'Av är ett standardval som varje användare fortfarande kan slå på; Blockerad stänger av det för alla.',
   'help.ctx.notifications.bullet.4':
-    'Bredvid tiden för varje meddelande finns ”Markera som läst” (dubbelbocken) och Radera (papperskorgen), som gäller just det meddelandet. ”Markera alla som lästa” och ”Ta bort alla” högst upp gäller hela listan.',
+    'Peka på ett meddelande så viker dess tid undan för ”Markera som läst” (dubbelbocken) eller ”Markera som oläst” (kuvertet) och Radera (papperskorgen). ”Markera alla som lästa” och ”Ta bort alla” högst upp gäller hela listan.',
   'help.guide.read-notifications.tip.2':
     'Ett meddelande utan knapp är bara information. Läs det i panelen och markera det som läst där.',
   'help.guide.filter-notifications.result': 'Listan visar bara det som fortfarande är oläst, nyast först.',
@@ -4322,6 +4627,27 @@ const help: TranslationStrings = {
     'Klicka på ett kort på fliken Transporter. Detaljerna öppnas ovanpå fliken, med huvudet i samma färg som kortet. En transports rad i dagsplanen öppnar samma detaljer.',
   'help.guide.export-transports-csv.tip.2':
     'Fliken Bokningar har samma ikon och skapar en egen fil, vars namn slutar på bookings.csv.',
+  'help.guide.flight-live-status.title': 'Följ ett flyg live',
+  'help.guide.flight-live-status.goal':
+    'Se var ditt flyg är, om det är försenat och när det landar, utan konto och utan nyckel.',
+  'help.guide.flight-live-status.step.1':
+    'Från tre timmar före avgång får flygets kort på fliken Transporter ett fält Status: Planerad, Redo för avgång, I luften med tiden till landning, eller Landat. En försening visas bredvid i gult eller rött, och medan flyget är i luften fylls en tunn stapel längs fältet på.',
+  'help.guide.flight-live-status.step.2':
+    'Klicka på kortet. Livekortet överst i bokningen visar var flyget befinner sig, vad som kommer härnäst, till exempel Landar om 11 h 50 min, och förseningen till höger, till exempel +25 min.',
+  'help.guide.flight-live-status.step.3':
+    'Under det visar Avgång och Ankomst båda flygplatserna med koder och städer, på en liten karta över rutten med flygplanet på väg. Varje tidsruta visar den tid som gäller nu. När den skiljer sig från planen står den planerade tiden överstruken bredvid.',
+  'help.guide.flight-live-status.step.4':
+    'Medan flyget är i luften följer Höjd, Hastighet och Kvar, i enheterna från dina inställningar, och sedan Flygplan med typ och registrering.',
+  'help.guide.flight-live-status.step.5':
+    'På Plan säger flygets rad på sin dag samma sak i en rad under tiderna, med förseningen bredvid.',
+  'help.guide.flight-live-status.result':
+    'Du ser direkt om flyget är i tid och när det landar: på kortet, i bokningen och i dagsplanen.',
+  'help.guide.flight-live-status.tip.1':
+    'Positionerna kommer från öppna ADS-B-data (adsb.lol, och på de flesta installationer även adsb.fi), utan nyckel och utan konto. Bara flygets anropssignal skickas dit. En administratör slår på eller av funktionen under Tillägg i adminområdet, i kortet Resa, med Följ bokade flyg live.',
+  'help.guide.flight-live-status.tip.2':
+    'Öppna data vet bara var flygplanet är. Gate, terminal och bagageband ingår inte, så lägg till dem i bokningen själv om du behöver dem. Förseningarna och ankomsttiden är uppskattningar som räknas fram från positionerna.',
+  'help.guide.flight-live-status.tip.3':
+    'TREK behöver flygnumret och båda flygplatserna för att följa ett flyg. Ett flyg där flygbolaget flyger under en annan anropssignal, eller ett codeshare-flyg, kanske inte hittas. Bokningen behåller då bara sina vanliga tider.',
   'help.guide.group-sort-bookings.step.2':
     'Under ”Gruppera efter” väljer du Status, Dag, Typ eller ”Ingen gruppering”. Fliken sorteras direkt i de avsnitten.',
   'help.guide.export-bookings-csv.result':
@@ -4329,7 +4655,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.result':
     'Listorna ligger i den ordning du drog dem, och föremålen sorteras A till Ö tills du slår av det. TREK sparar ändå din egen ordning.',
   'help.guide.count-packed-pieces.step.2':
-    'En räknare visas före antalet: 0/5, med ett minus och ett plus. Klicka på plus för varje del som åker ned i väskan.',
+    'Skriv hur många du tar med i Antal, till exempel 5, eller klicka på plus tills det visar talet.',
   'help.guide.expense-receipts.step.4':
     'Tillbaka i liggaren har raden ett Kvitto-chip bredvid namnet, med antalet inom parentes om det finns flera. Klicka på det för att öppna kvittot.',
   'help.guide.final-budget.tip.3':
@@ -4605,7 +4931,7 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.result':
     'Kortet visar På för den här enheten, och händelserna du har slagit på under Push kommer fram även när TREK är stängt.',
   'help.guide.connect-airtrail.step.1':
-    'Hitta AirTrail under Integrationer och ange dess Instans URL och en API-nyckel. Nyckeln skapar du i AirTrail under Inställningar, Säkerhet.',
+    'Hitta AirTrail under Integrationer och ange dess Instans URL och en API-nyckel. Nyckeln skapar du i AirTrail under Inställningar, Säkerhet. Om du skapar nyckeln i AirTrail 3.13 eller senare behöver den behörigheten flight.read.own för att läsa. För att skriva tillbaka ändringar behöver den även flight.update.own, flight.passengers.manage.own, reference_data.read och profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Hitta Dawarich under Integrationer och ange dess Instansens adress och API-nyckeln från Dawarich under Konto, API-nyckel.',
   'help.guide.tour-connect-wanderer.step.1':
@@ -4616,7 +4942,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.tip.1':
     'En användares eget val under Inställningar gäller alltid först. De här värdena gäller alla som inte har ändrat inställningen.',
   'help.guide.own-routing-engine.step.1':
-    'Under Karta i Användarinställningar anger du adressen till din OSRM-server under Egen ruttmotor.',
+    'På fliken Standardvärden avgör kortet Ruttplanering vem som beräknar rutter. Under Ruttjänst väljer du Automatisk, TREK-tjänster, Publik Valhalla (FOSSGIS) eller Egen Valhalla-instans. Valet sparas direkt.',
   'help.guide.admin-passkeys.tip.2':
     'Om du ändrar domänen senare slutar alla inloggningsnycklar som användare redan har lagt till att fungera.',
   'help.guide.instance-keys.tip.4': 'Amap-nyckeln måste vara en Web 服务 (webbtjänst)-nyckel, inte en JS API-nyckel.',
@@ -4643,7 +4969,8 @@ const help: TranslationStrings = {
     'Raden ligger nu på den nya dagen, på sin egen tid. Öppna bokningen om du också behöver ändra tiden.',
   'help.guide.place-image-from-file.goal':
     'Använd ett foto som redan finns bland platsens filer som platsens bild, utan att ladda upp det igen.',
-  'help.guide.place-image-from-file.tip.3': 'Bara resenärer som får ändra platser kan byta bilden.',
+  'help.guide.place-image-from-file.tip.3':
+    'Bara resenärer som får ändra platser kan byta bilden. Ta bort bild under rutorna tar bort den igen.',
   'help.guide.place-own-hours.result':
     'Kortet visar ditt telefonnummer, din e-postadress och dina öppettider, och ringen runt bilden är grön eller röd efter dina tider.',
   'help.guide.confirm-stay-booking.step.4':
@@ -4663,7 +4990,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.tip.1':
     'Medan A till Ö är på kan du inte dra föremål, men du kan fortfarande dra hela listor.',
   'help.guide.count-packed-pieces.step.3':
-    'Så länge bara en del av styckena är packade har räknaren din accentfärg och kryssrutan en kontur i samma färg. Klicka på minus för att ta bort ett stycke från räkningen.',
+    'Packat visas under det: 0/5, med ett minus och ett plus. Klicka på plus för varje stycke som åker ned i väskan, och på minus för att ta bort ett från räkningen.',
   'help.guide.expense-receipts.step.5':
     'Förhandsvisningen visar kvittot, med Öppna i ny flik och Ladda ner överst. Med flera kvitton bläddrar du mellan dem med piltangenterna, och Esc stänger förhandsvisningen.',
   'help.guide.files-sync-settings.step.3':
@@ -4709,6 +5036,24 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.goal':
     'Få vägbeskrivning till en turs start, öppna turens sida på webben eller ladda ner dess rutt som GPX-fil.',
   'help.guide.tour-take-along.result': 'Du har vägen till starten i din kartapp och hela rutten som GPX-fil.',
+  'help.guide.tour-route-in-app.title': 'Följ en turs rutt i en kartapp',
+  'help.guide.tour-route-in-app.goal':
+    'Öppna hela rutten för en vandring, en promenad, en löptur eller en cykeltur i Google Maps, Apple Maps eller CoMaps, för att bli vägledd längs den på vägen.',
+  'help.guide.tour-route-in-app.step.1':
+    'Högst upp i högerkolumnen byter du från Platser till Turer och klickar sedan på turen. Dess kort öppnas över kartan.',
+  'help.guide.tour-route-in-app.step.2':
+    'Klicka på Kartor längst ned på kortet, Öppna rutten i en kartapp. Den sitter bredvid Navigering, som bara leder till starten.',
+  'help.guide.tour-route-in-app.step.3':
+    'Välj appen. Den öppnas i en ny flik eller som appen, med turens rutt till fots för en vandring, en promenad eller en löptur, och med cykel för en cykeltur.',
+  'help.guide.tour-route-in-app.result': 'Din kartapp guidar dig längs turens rutt.',
+  'help.guide.tour-route-in-app.tip.1':
+    'Appen får upp till tio punkter fördelade längs turen, med dess start och slut bland dem, och planerar vägen mellan dem själv. På små stigar kan dess väg avvika från din linje, så ta med GPX-filen för den exakta rutten.',
+  'help.guide.tour-route-in-app.tip.2':
+    'En skidtur, en paddeltur eller en ridtur har ingen Kartor-knapp: en kartapp skulle skicka den längs vägar. Ta med dem som GPX-fil.',
+  'help.guide.tour-route-in-app.tip.3':
+    'Apple Maps erbjuds inte på Android. CoMaps tar bara en start och ett slut, så den erbjuds bara när det är allt rutten behöver.',
+  'help.guide.tour-route-in-app.tip.4':
+    'Kartor finns så fort turen har en rutt, även för medlemmar som bara får läsa resan.',
   'help.guide.tour-copy-keep.tip.2':
     'Spara i samling i en turs meny i dagsplanen öppnar samma dialog, så rutten sparas där också.',
   'help.guide.tour-packing-link.step.3': 'Klicka på Länka.',
@@ -4807,7 +5152,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ferrata-add.tip.4':
     'Visa i OpenStreetMap på kortet öppnar via ferratans egna data. Märket blir gult när inget kan läsas in, med orsaken i verktygstipset.',
   'help.guide.tour-run-plan.result':
-    'Löpturen listas under Turer för den här resan med sin Löptid (planerad), och dess profil och tempo sparas med den.',
+    'Löpturen listas under Turer för den här resan med sin Löptid, och dess profil och tempo sparas med den.',
   'help.guide.tour-run-ways.step.2':
     'Överst på kortet ser du nu hur stor del av löpturen som är obelagd och den svåraste graderade stigen på den.',
   'help.ctx.trip-tour-walk.bullet.2':
@@ -4858,7 +5203,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'En ny paddeltur med båt, vatten och fart, redo för sin första punkt på kartan.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Där vattendata saknas hämtar TREK den för regionen automatiskt eller ber en admin om den, beroende på hur instansen är inställd. Sträckan visar då Läser in vattendata och planeras automatiskt när datan finns, vanligtvis inom en till tre minuter.',
+    'Där vattendata saknas hämtar TREK den för regionen automatiskt eller ber en admin om den, beroende på hur instansen är inställd. En admin lägger till regioner under Vattendata för paddling, en rad under Turer på fliken Tillägg i adminområdet. Sträckan visar då Läser in vattendata och planeras automatiskt när datan finns, vanligtvis inom en till tre minuter.',
   'help.guide.tour-paddle-portage.step.2':
     'Välj Bär båten härifrån. Sträckan till nästa punkt blir en bärsträcka, ritad på land.',
   'help.guide.tour-paddle-lock.title': 'Lägg till en sluss och dess väntetid',
@@ -4942,8 +5287,9 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.title': 'Ställ in ett plugin för dig själv',
   'help.guide.default-user-settings.tip.2':
     'Visningsvaluta räknar bara om belopp för visning. De belopp som angetts i Kostnader ändras inte.',
-  'help.guide.own-routing-engine.step.2':
-    'För rutter som undviker vägtullar, motorvägar eller färjor anger du din Valhalla-adress under Egen Valhalla-instans. Varje fält sparas när du lämnar det. Starta sedan om TREK-servern och ladda om sidan.',
+  'help.guide.own-routing-engine.step.2': 'Ange adressen till din OSRM-server under Egen ruttmotor.',
+  'help.guide.own-routing-engine.step.3':
+    'Ange adressen till din Valhalla under Egen Valhalla-instans och välj Egen Valhalla-instans som Ruttjänst. Varje fält sparas när du lämnar det. Starta sedan om TREK-servern och ladda om sidan.',
   'help.guide.admin-passkeys.tip.3':
     'Om en användare har tappat enheten med sina inloggningsnycklar tar du bort nycklarna med Återställ inloggningsnycklar i Redigera anvädnare.',
   'help.guide.rotate-jwt-secret.result':
@@ -4953,7 +5299,7 @@ const help: TranslationStrings = {
   'help.guide.mark-notifications-read.goal':
     'Ta bort markeringen och talet på klockan när du har sett vad som är nytt.',
   'help.guide.delete-notifications.step.1':
-    'Klicka på Radera, papperskorgen bredvid ett meddelandes tid, för att ta bort bara det meddelandet.',
+    'Peka på ett meddelande och klicka på Radera, papperskorgen som tar tidens plats, för att ta bort bara det meddelandet.',
   'help.guide.notification-settings.step.2': 'Klicka på Inställningar i menyn.',
   'help.guide.public-link.tip.3': 'Håll pekaren över ett alternativ för att läsa vad det döljer.',
   'help.guide.link-journal.step.4':
@@ -4990,7 +5336,7 @@ const help: TranslationStrings = {
   'help.guide.arrange-packing-list.tip.2':
     'TREK kommer ihåg A till Ö i den här webbläsaren, så listan öppnas sorterad nästa gång också. Det ändrar bara vad du ser, aldrig ordningen som de andra ser.',
   'help.guide.count-packed-pieces.step.4':
-    'När räknaren når antalet bockas föremålet av automatiskt och räknas som packat.',
+    'Stäng fönstret. Så länge bara en del av styckena är packade visar raden räkningen, till exempel 3/5, och rutan har en kontur i din accentfärg. När räkningen når antalet bockas föremålet av av sig självt.',
   'help.guide.expense-receipts.result':
     'Kvittot sparas med utgiften: chipet på dess rad öppnar det, och filen finns också i resans Filer.',
   'help.guide.files-sync-settings.step.4':
@@ -5033,7 +5379,7 @@ const help: TranslationStrings = {
     'Dölj turer du inte behöver just nu på kartan, utan att ändra dem för någon annan.',
   'help.guide.tour-import-plan-tab.goal': 'Importera ett GPX- eller KML-spår som en tur medan du planerar dagarna.',
   'help.ctx.trip-tour-detail.summary':
-    'Kortet som öppnas över kartan när du väljer en tur på fliken Planering: turens dagar, mått och profil, varifrån den kommer, och knapparna som skickar den till din telefon, kopierar den, sparar den i en samling eller kopplar den till packlistan.',
+    'Kortet som öppnas över kartan när du väljer en tur på fliken Planering: turens dagar, mått och profil, varifrån den kommer, och knapparna som skickar den till din telefon, öppnar dess rutt i en kartapp, kopierar den, sparar den i en samling eller kopplar den till packlistan.',
   'help.guide.tour-detail-read.step.1':
     'Växla från Platser till Turer högst upp i högra kolumnen och klicka sedan på en tur. Dess kort öppnas över kartan. Turens rad inne i en dag, eller dess linje på kartan, öppnar samma kort.',
   'help.guide.tour-detail-read.tip.2':
@@ -5041,7 +5387,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.step.2':
     'Skriv det nya namnet och klicka på den runda bockknappen, eller tryck på Enter. Med Escape behåller du det gamla namnet.',
   'help.guide.tour-take-along.step.1':
-    'Öppna turens kort. Navigering längst ned på kortet öppnar turens start i en kartapp, och om det finns flera appar listas de först. Du får vägen till starten, inte längs rutten.',
+    'Öppna turens kort. Navigering längst ned på kortet öppnar turens start i en kartapp, och om det finns flera appar listas de först. Du får vägen till starten, inte längs rutten. Kartor bredvid lämnar över hela rutten.',
   'help.guide.tour-copy-keep.title': 'Kopiera en tur eller spara den i en samling',
   'help.guide.tour-copy-keep.tip.3':
     'På fliken Turer gör bokmärket högst upp i vänstra kolumnen samma sak för den öppna turen. Har turen osparade ändringar ber den dig spara turen först.',
@@ -5135,7 +5481,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-plan.tip.1':
     'En ny vandring börjar på T2 (Bergsvandring). T3 lägger till en varning om att sådana stigar kan vara exponerade och kräver trygg fotföring och att man inte är höjdrädd.',
   'help.guide.tour-hike-trail-details.step.3':
-    'Märkena summerar det: hur stor del av rutten som är Känt, den Högsta kända graden och, separat, den Ruttgräns som vandringen planerades med.',
+    'Märkena summerar det: hur stor del av rutten som är Känt, den Högsta kända graden på den och, separat, den Ruttgräns som vandringen planerades med.',
   'help.guide.tour-hike-round.goal':
     'Låt TREK föreslå slingor av den längd du vill ha, med start från ett stopp på en vandring.',
   'help.guide.tour-hike-round.tip.2': 'Avstånd från 1 till 60 km godtas, och slingor inom 20 % av din längd erbjuds.',
@@ -5247,6 +5593,16 @@ const help: TranslationStrings = {
     'När du tar över en dag från Dawarich blir dess inlägg utkast. Leta efter märket innan du delar.',
   'help.guide.journey-map-layers.result':
     'Kartan visar bara de lager du vill ha, och varje nål, prick och linje kan läsas i teckenförklaringen.',
+  'help.guide.journey-satellite.title': 'Se Journeyn på satellitbilder',
+  'help.guide.journey-satellite.goal': 'Byt den ritade kartan under Journeyn mot flygbilder, och tillbaka.',
+  'help.guide.journey-satellite.step.1': 'Klicka på den runda knappen i kartans övre högra hörn, Byt till satellitvy.',
+  'help.guide.journey-satellite.step.2':
+    'Dina nålar och rutter ligger nu på flygbilder. Knappen heter Byt till kartvy: klicka på den för att gå tillbaka till den ritade kartan.',
+  'help.guide.journey-satellite.tip.1':
+    'En delad länk har samma knapp, så besökare kan följa en vandring eller en kustlinje utifrån själva landskapet.',
+  'help.guide.journey-satellite.tip.2':
+    'Valet sparas inte: dagboken och den delade sidan öppnas alltid på den ritade kartan. Satellitbilder har inga gatunamn.',
+  'help.guide.journey-satellite.result': 'Kartan ritas på nytt, med samma lager påslagna som tidigare.',
   'help.guide.journey-keep-route.result':
     'Dagrubriken visar avståndet, och rutten ritas heldragen i kartans lager Inspelat för alla i Journey. En delad länk visar den bara när Inspelade rutter är på.',
   'help.guide.journey-day-stays.result':
@@ -5279,7 +5635,7 @@ const help: TranslationStrings = {
   'help.guide.read-notifications.goal': 'Se vad som har hänt på dina resor medan du var borta, och gå direkt dit.',
   'help.guide.filter-notifications.goal': 'Gå igenom alla dina meddelanden, eller bara de du inte har läst än.',
   'help.guide.mark-notifications-read.step.1':
-    'Klicka på Markera som läst, dubbelbocken bredvid ett meddelandes tid, för att markera bara det meddelandet.',
+    'Peka på ett meddelande och klicka på Markera som läst, dubbelbocken som tar tidens plats, för att markera bara det meddelandet.',
   'help.guide.delete-notifications.step.2':
     'Ta bort alla högst upp tömmer hela listan på en gång, efter att ett fönster har bett dig bekräfta.',
   'help.guide.notification-settings.step.3':
@@ -5295,7 +5651,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.tip.1':
     'De bleka raderna på dagarna mellan start och slut på en flerdagarsbokning går inte att dra, och inte heller en enskild sträcka av ett flyg med mellanlandningar.',
   'help.guide.place-image-from-file.step.2':
-    'Klicka på den runda bilden i rubriken. Eftersom platsen har foton frågar ett litet fönster varifrån bilden ska komma.',
+    'Klicka på Redigera längst ned till höger. Under Välj en bild i formuläret är fotona som är kopplade till platsen rutor bredvid Ladda upp bild.',
   'help.guide.place-own-hours.goal':
     'Lägg in de tider du själv har kontrollerat på kortet, när de som slagits upp är fel eller saknas.',
   'help.guide.place-own-hours.tip.2':
@@ -5305,6 +5661,8 @@ const help: TranslationStrings = {
   'help.guide.confirm-stay-booking.tip.1': 'Klicka på pillret igen så är bokningen tillbaka på Väntande.',
   'help.guide.map-markers.tip.4':
     'Med Kompakta markörer för oplanerade platser på, i Inställningar > Visning under Resor och karta, visas platser som ännu inte ligger på någon dag som små prickar utan foto och betyg. Platsen du väljer ritas alltid fullt ut.',
+  'help.guide.map-markers.tip.5':
+    'På Mapbox GL med en Standard-stil märker kartan själv ut butiker, restauranger och sevärdheter som inte är platser i din resa. Slå på Dölj intressepunkter i Inställningar > Karta och klicka på Spara karta, så syns bara dina egna nålar.',
   'help.guide.tour-map-lines.step.1':
     'Varje tur på resan ritas på kartan som en linje i sin färg, med en nål där den startar. Om du har valt en färg för turen används den. Annars används kategorins färg.',
   'help.guide.car-stops.step.6': 'Klicka på Lägg till.',
@@ -5369,9 +5727,9 @@ const help: TranslationStrings = {
   'help.guide.tour-detail-read.tip.3':
     'Vissa turer visar mer: en stadspromenad sina stationer, en paddeltur sina kontroller och vinden, en tur som redan är genomförd sitt Faktiskt spår, och en tur som är kopplad till en lista sin Packlista.',
   'help.guide.tour-rename-colour.step.3':
-    'Klicka på den färgade pricken i hörnet av turens runda ruta, Spårfärg. Avsnittet Spårfärg öppnas under rubriken.',
+    'Klicka på den färgade pricken i hörnet av turens runda ruta, Spårfärg. En rad med färger öppnas under rubriken.',
   'help.guide.tour-take-along.step.2':
-    'Om turen har en webbsida visar knappen bredvid sajtens namn (Komoot, AllTrails, Outdooractive eller Wanderer), eller Hemsida för alla andra. Knappen öppnar sidan i en ny flik.',
+    'Om turen har en webbsida visar knappen efter Kartor sajtens namn (Komoot, AllTrails, Outdooractive eller Wanderer), eller Hemsida för alla andra. Knappen öppnar sidan i en ny flik.',
   'help.guide.tour-copy-keep.goal':
     'Gör en variant av en tur i den här resan, eller spara den för senare resor i en av dina samlingar.',
   'help.guide.tour-copy-keep.tip.4':
@@ -5410,7 +5768,7 @@ const help: TranslationStrings = {
     'Turens namn högst upp i vänstra skenan innehåller namnet. På en ny tur är den grå texten där, till exempel Vandring utan namn, bara en platshållare: skriv ditt eget namn.',
   'help.guide.tour-save.title': 'Spara en tur',
   'help.guide.tour-save.tip.3':
-    'Spara fungerar inte heller så länge ett fält har ett ogiltigt värde, till exempel en hemsida som inte är en adress. Detaljer öppnas automatiskt för att visa det.',
+    'Spara fungerar inte heller så länge ett fält har ett ogiltigt värde, till exempel en hemsida som inte är en adress, eller så länge gångtiden och pauserna för en dag blir mer än 24 timmar. Detaljer öppnas automatiskt och säger vad du ska göra.',
   'help.guide.tour-edit-saved.tip.1': 'Spara förblir gråat på en tur du inte har ändrat.',
   'help.guide.tour-summary-profile.step.3':
     'För pekaren längs Höjdprofil. Den visar avståndet och höjden vid den punkten, och en prick markerar samma plats på kartan.',
@@ -5491,7 +5849,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-google-import.step.3':
     'Kontrollera Stopp i länken. Ett stopp som saknar position i länken markeras och utelämnas.',
   'help.guide.tour-walk-check-off.step.1':
-    'Klicka på stadspromenaden på dess dag på fliken Planering. Dess kort öppnas bredvid kartan.',
+    'Klicka på stadspromenaden på dess dag på fliken Planering. Dess kort öppnas över kartan.',
   'help.ctx.trip-tour-bike.title': 'Cykelturer',
   'help.guide.tour-bike-profile.step.1': 'Klicka på Planera ny tur högst upp i vänstra skenan på fliken Turer.',
   'help.guide.tour-bike-profile.tip.2':
@@ -5550,7 +5908,19 @@ const help: TranslationStrings = {
     'När du vet när du ska resa öppnar du formuläret med pennan på kortet och väljer datumen. Dina planerade dagar behåller sin ordning och får datumen i samma ordning.',
   'help.guide.trip-reminder.goal': 'Få en påminnelse några dagar innan du åker.',
   'help.guide.upcoming-reservations.tip.2':
-    'Väntande markerar en bokning som inte är bekräftad än. Avbokade bokningar och arkiverade resor visas inte.',
+    'Ett litet P på typikonen markerar en bokning som inte är bekräftad än. Avbokade bokningar och arkiverade resor visas inte.',
+  'help.guide.travel-stats.title': 'Läs av din resestatistik',
+  'help.guide.travel-stats.goal': 'Se hur många länder, resor, dagar och flyg alla dina resor blir tillsammans.',
+  'help.guide.travel-stats.step.1':
+    'Titta på Besökta länder under boardingkortet. Där räknas länderna för platserna och transportbokningarna i varje resa som har börjat, och flaggorna visas med de länder du besökte senast först.',
+  'help.guide.travel-stats.step.2':
+    'Korten bredvid räknar dina resor och platserna som är utsatta på dem, dina dagar på resa och sträckan du har flugit.',
+  'help.guide.travel-stats.result':
+    'Raden uppdateras av sig själv medan du planerar och reser, för alla dina resor, arkiverade inräknade.',
+  'help.guide.travel-stats.tip.1':
+    'Länder som du har markerat som besökta för hand i Atlas kommer efter de från dina resor. Ett land som du har tagit bort i Atlas förblir borttaget här också.',
+  'help.guide.travel-stats.tip.2':
+    'Varje kort kan döljas under Inställningar, Utseende, Widgets på översikten. När alla fyra är av försvinner raden.',
   'help.guide.half-company-holiday.tip.1':
     'Semester som redan är loggad på den dagen kortas till en halv dag. Den som loggar den dagen senare använder bara 0,5 dagar.',
   'help.guide.edit-holiday-calendar.goal':
@@ -5589,6 +5959,25 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.title': 'Om',
   'help.guide.web-push-device.tip.3':
     'Push kräver att TREK öppnas via HTTPS. Om meddelanden är blockerade tillåter du dem i webbläsarens inställningar och försöker igen.',
+  'help.guide.booking-mail-address.title': 'Vidarebefordra bokningsmejl till TREK',
+  'help.guide.booking-mail-address.goal':
+    'Skaffa en egen adress för bokningsbekräftelser, så att TREK lägger varje bokning i rätt resa.',
+  'help.guide.booking-mail-address.step.1':
+    'Under Integrationer visar Bokningsmejl Din adress. Klicka på kopieringsknappen bredvid. Håll adressen för dig själv, som ett lösenord.',
+  'help.guide.booking-mail-address.step.2':
+    'Vidarebefordra ett bokningsmejl dit för hand, med bilagor, eller följ Vidarebefordra automatiskt för att skapa en regel i Gmail eller Outlook.',
+  'help.guide.booking-mail-address.step.3':
+    'Importera bokningsmejl slår importen på eller av. Läs med AI låter AI läsa mejl utan maskinläsbara bokningsuppgifter. Lägg till automatiskt lägger en bokning som TREK är säker på direkt i sin resa.',
+  'help.guide.booking-mail-address.step.4':
+    'Väntande bokningar öppnar mejlen som väntar på dig, med ett tal när det finns några. Ladda upp en mejlfil läser ett mejl som du sparat som .eml.',
+  'help.guide.booking-mail-address.result':
+    'Mejl som du vidarebefordrar hamnar i den resa vars datum och platser passar bokningen, eller väntar under Väntande bokningar på att du ska kontrollera dem.',
+  'help.guide.booking-mail-address.tip.1':
+    'Knappen bredvid kopiera, Ny adress, ger dig en ny adress. Klicka två gånger. Den gamla adressen slutar fungera direkt, så ändra också dina vidarebefordringsregler.',
+  'help.guide.booking-mail-address.tip.2':
+    'En resa kan ha en egen adress, på fliken Bokningar under Importera bokningsbekräftelser. Ett mejl dit slipper gissningen.',
+  'help.guide.booking-mail-address.tip.3':
+    'Vidarebefordrade mejl sparas krypterade i högst 30 dagar. Kortet visas först när administratören har slagit på mejlimporten.',
   'help.guide.connect-airtrail.result':
     'Märket visar Ansluten, och fliken Transporter på en resa erbjuder Importera från AirTrail.',
   'help.guide.connect-dawarich.result':
@@ -5598,7 +5987,7 @@ const help: TranslationStrings = {
   'help.guide.tour-wanderer-watch.result':
     'TREK kontrollerar dina importerade leder och berättar när en led kan ha ändrats. En tur ändras först när du godkänner ändringen.',
   'help.guide.plugin-settings.step.1':
-    'Öppna Plugin i inställningarnas sidofält. Under Tilläggsinställningar har varje plugin som behöver något av dig ett kort med sina fält: fyll i dem och klicka på Spara. Åtgärder på kortet körs när du har bekräftat.',
+    'Öppna Plugin i inställningarnas sidofält. Under Tilläggsinställningar har varje plugin som har inställningar för dig ett eget kort: fyll i dess fält och klicka på Spara, eller gör de val det visar. Åtgärder på kortet körs när du har bekräftat.',
   'help.guide.profile.step.3': 'Klicka på Spara profil till höger i kortets fot.',
   'help.guide.default-user-settings.title': 'Ställ in vad nya användare startar med',
   'help.guide.own-routing-engine.tip.1':
@@ -5609,7 +5998,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Bestäm hur alla användares meddelanden ska vara inställda från början, och blockera en kanal helt för en händelse.',
   'help.ctx.notifications.summary':
-    'Alla meddelanden som TREK har visat dig i appen, de nyaste först: en bokning som någon ändrade, ett nytt meddelande i en reschatt, en kalender som har delats med dig. Klockan uppe till höger visar de tio senaste, den här sidan visar alla.',
+    'Alla meddelanden som TREK har visat dig i appen, de nyaste först och grupperade per dag: en bokning som någon ändrade, ett nytt meddelande i en reschatt, ett flyg som är försenat, en bokning från ett vidarebefordrat mejl. Klockan uppe till höger visar de tio senaste, den här sidan visar alla.',
   'help.guide.read-notifications.step.1':
     'Klicka på klockan uppe till höger. Det röda talet på den visar hur många meddelanden du ännu inte har läst.',
   'help.guide.filter-notifications.step.1': 'Klicka på klockan uppe till höger.',
@@ -5627,19 +6016,38 @@ const help: TranslationStrings = {
   'help.guide.filter-places.step.5':
     'När resan omfattar mer än ett land eller en region filtrerar jordgloben listan på ett land, eller på en region i landet, var och en med sitt antal. Rensa filter återställer till Alla länder.',
   'help.guide.import-places-file.tip.3':
-    'När Turer är på, vilket är standard, importerar du en fil via Turer högst upp i kolumnen, med Importera GPX eller KML, och filens linjer blir turer. Nålarna i filen importeras inte där, eftersom turer bara innehåller linjer.',
+    'Där Turer är av blir ett spår eller en rutt som markerats i Importera fil en egen plats: en färgad linje på sin rad, ritad på kartan, och Spår under Visa hittar den.',
   'help.guide.dawarich-stays.step.3':
-    'Kontrollera Namn, Ankom och Lämnade, välj en Dag eller låt den stå kvar på Inte på någon dag än, lägg till Noteringar om du vill och klicka på Lägg till plats.',
+    'Kontrollera Namn, Ankom och Lämnade. När vistelsen ligger på en dag i resan visar Dag redan den dagen. Välj en annan eller låt den stå kvar på Inte på någon dag än. Lägg till Noteringar om du vill och klicka på Lägg till plats.',
   'help.guide.leave-stop-off-route.result':
     'Stoppet är fortfarande en del av dagen och av PDF:en. Så länge det är märkt Utanför rutten går rutten rakt från stoppet före det till stoppet efter det.',
   'help.guide.move-booking-day.tip.2':
     'Inom sin egen dag flyttas en bokning med tid alltid tillbaka till den plats som tiden ger.',
   'help.guide.place-image-from-file.step.3':
-    'Klicka på fotot du vill ha under Från bifogade filer. Ladda upp från enhet ovanför väljer i stället en ny bild från din dator.',
+    'Klicka på fotot du vill ha. Det får en ring och en bock, och dess filnamn visas under rutorna.',
   'help.guide.place-own-hours.step.1':
     'Öppna platsen och klicka på Redigera längst ned till höger på kortet. Platsens formulär öppnas.',
   'help.guide.place-own-hours.tip.3':
     'Klicka på Ta bort öppettider och sedan på Uppdatera för att visa de automatiskt hittade tiderna på kortet igen.',
+  'help.guide.place-off-map.title': 'Lägg en plats utan koordinater på kartan',
+  'help.guide.place-off-map.goal': 'Ta reda på varför en plats saknar markör, och ge den en.',
+  'help.guide.place-off-map.step.1':
+    'I platskolumnen betyder en varningsnål bredvid en plats namn att den har en adress men inga koordinater. Klicka på raden.',
+  'help.guide.place-off-map.step.2':
+    'Kortet säger Inga koordinater, så inte på kartan bland pillren överst. Peka på det för att se hur du åtgärdar det.',
+  'help.guide.place-off-map.step.3':
+    'Klicka på Redigera längst ned till höger. Under Adress säger formuläret samma sak: platsen visas inte på kartan förrän den har koordinater.',
+  'help.guide.place-off-map.step.4':
+    'Skriv platsens Latitud och Longitud, eller klistra in båda på en gång i Latitud, åtskilda av ett kommatecken. Du kan också söka efter platsen överst i formuläret och välja den bland förslagen.',
+  'help.guide.place-off-map.step.5': 'Klicka på Uppdatera. Varningen är borta, och platsen har en markör på kartan.',
+  'help.guide.place-off-map.result':
+    'Platsen finns på kartan med sin markör, och dess stopp kan ruttplaneras som alla andra.',
+  'help.guide.place-off-map.tip.1':
+    'Utan koordinater har en plats ingen markör och ingen rutt på sin dag, och färre kartappar kan öppna den.',
+  'help.guide.place-off-map.tip.2':
+    'En plats utan både adress och koordinater, en påminnelse till exempel, lämnas ifred och visar ingen varning.',
+  'help.guide.place-off-map.tip.3':
+    'En länk från en kartsajt som du klistrar in i sökfältet fyller också i koordinaterna.',
   'help.guide.confirm-stay-booking.title': 'Bekräfta bokningen av en vistelse',
   'help.guide.confirm-stay-booking.tip.2':
     'Samma piller fungerar i alla bokningar, även i bokningarna under Bokningar på dagen.',
@@ -5651,12 +6059,12 @@ const help: TranslationStrings = {
   'help.guide.car-stops.result':
     'Körningen är ett kort på fliken Transporter och en rad på sin dag, och dess linje på kartan går från upphämtningen genom alla stopp, i deras ordning, till återlämningen.',
   'help.guide.transport-details.step.5':
-    'På kartan längst ned i detaljerna visar färdens linje och öppnar Planering på dess dag. Redigera längst till höger öppnar hela formuläret, och papperskorgen bredvid raderar färden när du har bekräftat.',
+    'Karta längst ned till vänster i detaljerna visar färdens linje och öppnar Planering på dess dag. Redigera längst till höger öppnar hela formuläret, och papperskorgen bredvid raderar färden när du har bekräftat.',
   'help.guide.export-transports-csv.step.1':
     'Begränsa först listan om du bara vill ha en del av den. Sök, Filtrera och sorteringen under Visningsalternativ påverkar alla resultatet: filen innehåller det som fliken visar, i samma ordning.',
   'help.guide.group-sort-bookings.tip.1':
     'Kort och Lista behåller sin egen gruppering: Kort börjar i Status, Lista i Dag. En prick på Visningsalternativ visar att något skiljer sig från standard, och Återställ vy längst ned i panelen återställer standard.',
-  'help.guide.booking-on-map.step.2': 'Klicka på På kartan längst ned i detaljerna.',
+  'help.guide.booking-on-map.step.2': 'Klicka på Karta längst ned i detaljerna.',
   'help.guide.export-bookings-csv.goal':
     'Exportera resans bokningar som en CSV-fil som du kan öppna i Excel, Numbers eller något annat kalkylprogram.',
   'help.guide.arrange-packing-list.goal':
@@ -5735,7 +6143,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-planner.bullet.6':
     'Ett osparat utkast sparas: öppna fliken Turer igen så återställs det, märkt Osparat utkast återställt. Tillbaka till turer och Ångra frågar innan ändringar kastas.',
   'help.guide.tour-open-workspace.step.6':
-    'Pillret längst ned till vänster byter karta, först Karta eller Satellit. När en tur är öppen erbjuder det kartorna för turens typ, till exempel Topo eller Vandring, och reglage som Sätt punkter och 3D.',
+    'Pillret längst ned till vänster byter karta mellan Karta, Topografisk och Satellit, och slår på 3D. När en tur är öppen erbjuder det kartorna för turens typ, till exempel Vandring, och reglage som Sätt punkter och Via ferrata-leder.',
   'help.guide.tour-draw-route.step.1':
     'Klicka på Planera ny tur högst upp i vänstra skenan. Skenan blir Ny tur, en vandring om du inte väljer en annan typ.',
   'help.guide.tour-draw-route.tip.3':
@@ -5768,7 +6176,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.title': 'Importera en GPX-, KML- eller KMZ-fil som en tur',
   'help.guide.tour-import-gpx.tip.2': 'Varje spår eller rutt i en fil blir en egen tur. Spår slås aldrig ihop.',
   'help.guide.tour-view-import.step.2':
-    'Vänstra kolumnen visar den som en GPX-tur: Turöversikt med sträcka, höjder och inspelad tid, och höjdprofilen under. Kartan visar turens linje.',
+    'Vänstra kolumnen visar den som en GPX-tur: Turöversikt med sträcka och höjder, och inspelad tid där filen har någon, med höjdprofilen under. Kartan visar turens linje.',
   'help.guide.tour-plan-from-import.step.1':
     'Öppna den importerade turen på fliken Turer. Klicka på Planera en redigerbar version i kortet Redigerbar version till vänster.',
   'help.guide.tour-plan-from-import.result':
@@ -5807,7 +6215,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Klicka på Underlag för att se samma rutt efter vad du går på, från asfalt till naturmark och berg.',
   'help.guide.tour-hike-round.step.2':
-    'Kortet Rundtur öppnas över kartan. Kontrollera starten under Från och skriv in det Avstånd du vill ha. Pillret bredvid visar vilka längder en rundtur kan ha.',
+    'Kortet Rundtur öppnas över kartan. Kontrollera starten under Från och skriv in det Avstånd du vill ha. Pillret bredvid visar längderna på rundorna som TREK erbjuder för det.',
   'help.guide.tour-hike-compare-ways.title': 'Jämför andra vägar för en sträcka av en vandring',
   'help.guide.tour-hike-compare-ways.tip.2':
     'När ruttplaneraren inte känner till någon annan väg står det på kortet. När ruttplaneraren inte kan följa vägen du valde ligger sträckan kvar som den är, och kortet berättar det.',
@@ -5943,6 +6351,8 @@ const help: TranslationStrings = {
     'Ett tips ändrar aldrig en tur. Turens källkontroll visar vad som faktiskt har ändrats.',
   'help.guide.api-keys.tip.3':
     'Skicka nyckeln som Authorization: Bearer eller X-API-Key till /api/v1. Ett konto kan ha upp till 10 nycklar.',
+  'help.guide.api-keys.tip.4':
+    'I dialogen skapar Ctrl+Enter, eller Cmd+Enter på Mac, nyckeln från vilket fält som helst, på samma sätt som ett klick på Skapa.',
   'help.guide.plugin-settings.step.2':
     'Plugin-aktivitet listar varje åtgärd som ett plugin har utfört å dina vägnar, de nyaste först. Uppdatera läser in de senaste.',
   'help.ctx.admin-github.bullet.3':
@@ -5952,9 +6362,9 @@ const help: TranslationStrings = {
   'help.guide.default-map.step.3':
     'Varje fält sparas när du lämnar det. Länken ”Återställ” bredvid fältets namn återställer TREK:s standardvärde.',
   'help.guide.own-routing-engine.tip.2':
-    'Om bara din egen ruttmotor är angiven används inte heller den offentliga Valhalla. Länken ”Återställ” bredvid ett fält tömmer det igen.',
+    'Om bara din egen ruttmotor är angiven och Ruttjänst står på Automatisk frågas ingen Valhalla. Länken ”Återställ” bredvid ett fält tömmer det igen.',
   'help.guide.admin-passkeys.step.1':
-    'På fliken Inställningar slår du på Aktivera inloggningsnyckel under Inloggningsnyckel.',
+    'På fliken Säkerhet, under Autentiseringsmetoder, slår du på Aktivera inloggningsnyckel.',
   'help.guide.storage-backends.step.4':
     'Hälsa överst listar misslyckade skrivningar till ett speglingsmål. Om det står ”Inga replikfel registrerade” fungerar allt.',
   'help.guide.channels-instance.tip.3':
@@ -5964,7 +6374,7 @@ const help: TranslationStrings = {
   'help.ctx.notifications.bullet.1':
     'Klockan uppe till höger visar hur många olästa meddelanden du har. Klicka på den för de tio senaste, och på Visa alla meddelanden längst ned för den här sidan.',
   'help.guide.read-notifications.step.2':
-    'Panelen listar dina tio senaste meddelanden. Varje meddelande säger vem som gjorde vad och var, och de olästa har färgad bakgrund.',
+    'Panelen listar dina tio senaste meddelanden, grupperade per dag. Varje meddelande säger vem som gjorde vad och var, och de olästa är fetstilta med en prick bredvid tiden.',
   'help.guide.filter-notifications.step.2': 'Klicka på Visa alla meddelanden längst ned i panelen.',
   'help.guide.mark-notifications-read.tip.1': 'Om du öppnar ett meddelande via dess knapp markeras det också som läst.',
   'help.guide.delete-notifications.tip.2':
@@ -5980,8 +6390,7 @@ const help: TranslationStrings = {
   'help.guide.leave-stop-off-route.tip.1':
     'Bara ett stopp med koordinater har det här valet, och inställningen gäller bara den här dagen: samma plats en annan dag ruttplaneras fortfarande.',
   'help.guide.move-booking-day.title': 'Flytta en bokning till en annan dag',
-  'help.guide.place-image-from-file.step.4':
-    'Fotot är nu platsens bild. Klicka på det lilla röda X:et i hörnet för att ta bort det igen.',
+  'help.guide.place-image-from-file.step.4': 'Klicka på Uppdatera. Fotot är nu platsens bild, överst på kortet.',
   'help.guide.place-own-hours.step.2': 'Fyll i Telefon och E-post under Hemsida om du känner till dem.',
   'help.guide.add-accommodation.tip.4':
     'Ett snabbare sätt: plusknappen i dagens rubrik, med verktygstipset Lägg till i denna dag, har Lägg till boende. Den öppnar dagen med det här formuläret redan öppet.',
@@ -5996,7 +6405,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.result':
     'Planering är öppen på resans dag, med resans linje ritad på kartan och ruttikonen på dess rad påslagen.',
   'help.guide.export-transports-csv.step.2':
-    'Klicka på kalkylbladsikonen efter Visningsalternativ. Dess verktygstips lyder Exportera som kalkylblad (CSV).',
+    'Klicka på nedladdningsikonen efter Visningsalternativ. Dess verktygstips lyder Exportera som kalkylblad (CSV), eller, medan en sökning eller ett filter gäller, hur många rader filen innehåller, till exempel Exportera de 2 av 4 visade raderna (CSV).',
   'help.guide.group-sort-bookings.title': 'Gruppera och sortera bokningarna',
   'help.guide.group-sort-bookings.tip.2':
     'I Tidslinje innehåller samma knapp Ett spår per typ och Visa den andra fliken.',
@@ -6006,6 +6415,31 @@ const help: TranslationStrings = {
     'Vill du bara exportera en del av fliken, snäva först in den med Sök eller Filtrera. Filen innehåller exakt det som fliken visar.',
   'help.guide.import-booking-file.tip.4':
     'För att läsa en bekräftelse behövs en anslutning. Offline meddelar Importera det, och du försöker igen när TREK är online igen.',
+  'help.guide.forward-booking-mail.title': 'Vidarebefordra ett bokningsmejl till resan',
+  'help.guide.forward-booking-mail.goal':
+    'Ge resan en egen adress, vidarebefordra bekräftelsen dit och slutför det som TREK inte kunde lägga till själv.',
+  'help.guide.forward-booking-mail.step.1':
+    'Klicka på uppladdningsikonen i fältet, Importera bokningsbekräftelser. Under rutan för filer innehåller Eller vidarebefordra med mejl resans egen adress.',
+  'help.guide.forward-booking-mail.step.2':
+    'Klicka på Skapa en adress för den här resan. Ett mejl som skickas dit hamnar i den här resan utan någon gissning.',
+  'help.guide.forward-booking-mail.step.3':
+    'Adressen visas med en kopieringsknapp bredvid. Kopiera den och vidarebefordra sedan bokningsmejlet dit från ditt mejlprogram, med bilagor, för hand eller med en regel. TREK läser det inom några minuter.',
+  'help.guide.forward-booking-mail.step.4':
+    'En bokning som TREK är säker på läggs i resan av sig själv. Allt annat väntar på dig: öppna menyn under ditt namn uppe till höger, där ett tal räknar de väntande mejlen, och klicka på Väntande bokningar.',
+  'help.guide.forward-booking-mail.step.5':
+    'Varje post visar vad TREK läste, varför den väntar och resan den kom in för. Visa mejl visar själva mejlet. Klicka på Fyll i själv.',
+  'help.guide.forward-booking-mail.step.6':
+    'Ny bokning öppnas i resan med det mejlet innehöll: ämnet som titel, typen, datumet och bokningskoden som hittades. Kontrollera, rätta det som behöver rättas och klicka på Lägg till.',
+  'help.guide.forward-booking-mail.result':
+    'Bokningen finns på fliken Bokningar som alla andra, och dess post har lämnat Väntande bokningar.',
+  'help.guide.forward-booking-mail.tip.1':
+    'Din egen adress, under Inställningar, Integrationer, Bokningsmejl, fungerar för alla resor: TREK väljer den resa vars datum och platser passar bokningen. En resas adress slipper den gissningen.',
+  'help.guide.forward-booking-mail.tip.2':
+    'Med Lägg till automatiskt på i det kortet läggs en bokning som TREK är säker på direkt i resan, och meddelandet om den erbjuder Ångra i 7 dagar. Av väntar varje bokning under Väntande bokningar.',
+  'help.guide.forward-booking-mail.tip.3':
+    'En post kan också sparas som dokument med Spara som dokument, som lägger mejlet eller dess bilagor i resans filer, eller kastas med Kassera.',
+  'help.guide.forward-booking-mail.tip.4':
+    'Adressen är din: en medresenär som vill ha en skapar sin egen. Administratören slår på mejlimporten för hela instansen. Tills dess finns inte Eller vidarebefordra med mejl och Väntande bokningar.',
   'help.guide.arrange-packing-list.step.1':
     'Dra i handtaget längst till vänster i en listas rubrik, före färgpricken, och släpp listan på ett annat kort. En kontur i din accentfärg markerar målkortet, och listan tar det kortets plats för alla på resan.',
   'help.guide.count-packed-pieces.title': 'Packa flera av samma sak',
@@ -6017,6 +6451,8 @@ const help: TranslationStrings = {
     'Klicka på pennan bredvid utgiftens rad. Redigeraren öppnas på den, med Kvitton & fakturor nära botten.',
   'help.guide.expense-receipts.tip.3':
     'Att bifoga kräver en anslutning och behörighet att ladda upp filer, eftersom ett kvitto lagras som en av resans filer.',
+  'help.guide.expense-receipts.tip.4':
+    'En fil som redan finns i resan, till exempel en bokningsbekräftelse som också är fakturan, kan länkas i stället för att laddas upp igen: länkikonen bredvid Bifoga listar de filerna.',
   'help.guide.files-sync-settings.title': 'Välj synkriktning för dokument',
   'help.guide.files-sync-settings.tip.1':
     'Ett spår är alltid på: om du klickar på det enda spår som fortfarande är på händer ingenting.',
@@ -6027,6 +6463,8 @@ const help: TranslationStrings = {
     'Klicka på Spara. Alla noteringar i en kategori som har fått nytt namn eller ny färg ändras direkt, för alla medlemmar. Avbryt förkastar dina ändringar.',
   'help.guide.trip-chat.tip.5':
     'Chatten visar de senaste meddelandena först. Ladda äldre meddelanden överst i chatten läser in de tidigare meddelandena.',
+  'help.guide.trip-chat.tip.6':
+    'Ett meddelande märkt från assistenten är ett svar som någon delade från reseassistenten med Dela i reschatten. Håll pekaren över märket för att se vem som delade det.',
   'help.guide.roadtrip-reorder.result':
     'Stoppen ligger i den ordning du valde, och avstånd, körtid och ankomsttider räknas om för varje dag du ändrade.',
   'help.guide.roadtrip-overnight.goal':
@@ -6066,7 +6504,7 @@ const help: TranslationStrings = {
   'help.guide.tour-rename-colour.tip.1':
     'Namn och färg hör till resan, så alla i den ser dem. Vill du dölja en tur på din egen karta utan att ändra den för någon annan använder du ögat i listan Turer.',
   'help.guide.tour-take-along.tip.1':
-    'På en enhet som kan dela filer visas Dela bredvid GPX och skickar samma fil direkt till en annan app.',
+    'Dela, bredvid GPX, skickar samma fil direkt till en annan app på en enhet som kan dela filer. På andra enheter delar den en kort text om turen, eller kopierar den.',
   'help.guide.tour-copy-keep.step.2':
     'Kopian öppnas direkt, med originalets namn följt av (kopia). Klicka på pennan för att ge den ett eget namn.',
   'help.guide.tour-packing-link.title': 'Koppla en tur till packlistan',
@@ -6102,7 +6540,7 @@ const help: TranslationStrings = {
   'help.guide.tour-save.step.1': 'Skriv ett namn i Turens namn. Spara är gråat tills du har angett ett.',
   'help.guide.tour-edit-saved.title': 'Ändra en sparad tur',
   'help.guide.tour-edit-saved.tip.3':
-    'Ladda ner GPX och Spara i en samling i spalthuvudet fungerar när ändringarna är sparade.',
+    'Ladda ner GPX, Dela och Spara i en samling i spalthuvudet fungerar när ändringarna är sparade.',
   'help.guide.tour-summary-profile.tip.1': 'Klicka på kortets titel för att fälla ihop hela översikten.',
   'help.guide.tour-list-manage.step.3': 'Välj dag. Turen läggs till den dagen, och dess rad visar dagen.',
   'help.guide.tour-delete.goal': 'Ta bort en tur från resan för gott.',
@@ -6288,28 +6726,75 @@ const help: TranslationStrings = {
     'Pluginet fungerar med dina inställningar, och varje åtgärd det utför åt dig visas under Plugin-aktivitet.',
   'help.ctx.admin-defaults.bullet.3':
     'Länken ”Återställ” bredvid ett fält som du har angett återställer TREK:s eget standardvärde. En användares egen inställning gäller alltid före dessa.',
-  'help.ctx.admin-settings.bullet.5': 'Farozon: Rotera JWT-hemlighet loggar ut alla användare, dig själv inräknad.',
+  'help.ctx.admin-settings.bullet.5':
+    'Farozon, på Säkerhet: Rotera JWT-hemlighet loggar ut alla användare, dig själv inräknad.',
   'help.guide.default-user-settings.step.1':
     'Under Standardinställningar för användare väljer du Färgläge (Ljust, Mörk eller Auto), Temperaturenhet, Avståndsenhet, Tidsformat, Vecka börjar på, Datumformat, Visningsvaluta och om Blurra bokningskoder är På eller Av. Varje val sparas direkt.',
   'help.guide.admin-passkeys.step.2':
-    'Ange ”Relying Party ID” (domän), till exempel trek.example.org, och ”Allowed origins” som din TREK nås på, och klicka sedan på Spara. Lämna båda tomma för att använda APP_URL.',
+    'I kortet Inloggningsnyckel anger du ”Relying Party ID” (domän), till exempel trek.example.org, och de ”Tillåtna ursprung” som din TREK nås på, och klickar sedan på Spara. Lämna båda tomma för att använda APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Logga ut alla på en gång',
   'help.guide.notification-defaults.step.2':
     'Klicka på en cell för att växla till nästa läge: På, Av, Blockerad. Verktygstipset anger nästa läge, och varje klick sparas direkt.',
   'help.ctx.notifications.bullet.2':
-    'Alla och Olästa överst växlar mellan alla meddelanden och bara de du inte har läst. Listan läser in fler när du rullar.',
+    'Alla och Olästa överst växlar mellan alla meddelanden och bara de du inte har läst. Listan är grupperad per dag, Idag först, och läser in fler när du rullar.',
   'help.guide.read-notifications.step.3':
     'Klicka på knappen under ett meddelande, Visa Vacay här, för att öppna det som meddelandet gäller. Då markeras det också som läst.',
   'help.guide.filter-notifications.step.3':
     'Klicka på Olästa för att bara se meddelanden som du inte har läst. Alla visar samtliga igen.',
   'help.guide.mark-notifications-read.tip.2':
-    'Att markera som läst ändrar bara bakgrundsfärgen och räknaren. Meddelandet ligger kvar i listan tills du raderar det.',
+    'Att markera som läst tar bara bort fetstilen, pricken och räknaren. Meddelandet ligger kvar i listan tills du raderar det, och Markera som oläst, kuvertet på samma plats, gör det nytt igen.',
   'help.guide.delete-notifications.result': 'Meddelandet tas bort från listan och från klockan.',
+  'help.guide.booking-mail-notifications.title': 'Svara på ett meddelande om ett bokningsmejl',
+  'help.guide.booking-mail-notifications.goal':
+    'Se vad som hände med bokningsmejlen du vidarebefordrade, och avgör de som TREK inte kunde lägga till själv.',
+  'help.guide.booking-mail-notifications.step.1':
+    'Klicka på klockan uppe till höger. När ett vidarebefordrat mejl innehåller bokningar som TREK inte kunde lägga till själv berättar den det där.',
+  'help.guide.booking-mail-notifications.step.2':
+    'Vidarebefordrade bokningar att granska visar hur många som väntar på dig. Klicka på Granska under det.',
+  'help.guide.booking-mail-notifications.step.3':
+    'Väntande bokningar öppnas med varje post som väntar: vad TREK läste, varför den väntar och resan den kom in för. Fyll i själv öppnar en ny bokning med det mejlet innehöll, och papperskorgen kastar posten.',
+  'help.guide.booking-mail-notifications.result':
+    'Varje vidarebefordrad bokning hamnar antingen i sin resa eller väntar på ditt beslut, och du vet alltid vilket.',
+  'help.guide.booking-mail-notifications.tip.1':
+    'En bokning som TREK lade till själv kommer som Bokning tillagd från ett mejl, med Behåll och Ångra. Ångra tar bort bokningen ur resan igen, Behåll låter den ligga kvar.',
+  'help.guide.booking-mail-notifications.tip.2':
+    'De andra på en delad resa får också veta om en bokning från ett mejl, med Visa resan, som öppnar fliken Bokningar.',
+  'help.guide.booking-mail-notifications.tip.3':
+    'Ett flyg som TREK följer live skickar Flyget har lyft, Flyget har landat och, från 15 minuters försening, Flyget är försenat, var och en med Visa resan. De går till dem som flyget är tilldelat, eller till alla på resan. Slå av vilket som helst av dem under Inställningar, Meddelanden.',
   'help.guide.notification-settings.result':
     'Inställningar öppnas på Meddelanden, med ett reglage per händelse och kanal.',
   'help.guide.link-journal.goal': 'Visa en av dina Journey-dagböcker i resan, för de personer du väljer.',
   'help.guide.link-journal.tip.3':
     'Senare har Dagbok i Reseinställningar Redigera åtkomst, Byt dagbok och Koppla ifrån. Om du kopplar ifrån försvinner fliken. Personer som du lade till i själva dagboken behåller sin åtkomst.',
+  'help.guide.trip-addons.title': 'Slå på tillägg för den här resan',
+  'help.guide.trip-addons.goal': 'Slå på eller av en funktion som Kostnader eller Bilresa för bara en resa.',
+  'help.guide.trip-addons.step.1':
+    'Klicka på Reseinställningar bredvid resans namn och välj Tillägg till vänster. Bara resans ägare har det här området.',
+  'help.guide.trip-addons.step.2':
+    'Klicka på reglaget för ett tillägg för att slå på eller av det för den här resan. Listor, Kostnader, Dokument, Samarbete, Bilresa och Turer listas, i den mån din TREK har dem.',
+  'help.guide.trip-addons.step.3':
+    'Bara den här resan markerar ett tillägg som du har ställt in annorlunda än resten av TREK. Slå tillbaka det för att följa administratörens inställning igen.',
+  'help.guide.trip-addons.result':
+    'Resan visar de tillägg du valde, för alla på den: en flik eller en del av planen visas eller försvinner. Dina andra resor behåller administratörens inställning.',
+  'help.guide.trip-addons.tip.1':
+    'Att slå av ett tillägg döljer det och raderar ingenting. Slå på det igen så är allt tillbaka där det var.',
+  'help.guide.trip-addons.tip.2':
+    'Du kan slå på ett tillägg för en resa även när administratören har det av för alla andra.',
+  'help.guide.trip-addons.tip.3':
+    'För att ändra ett reglage krävs en anslutning. Offline säger TREK det och lämnar reglaget som det var.',
+  'help.guide.edit-trip-settings.title': 'Redigera resan från planeraren',
+  'help.guide.edit-trip-settings.goal': 'Ändra resans titel, datum, omslag eller valuta utan att lämna resan.',
+  'help.guide.edit-trip-settings.step.1':
+    'Klicka på Reseinställningar bredvid resans namn och välj Redigera resa till vänster.',
+  'help.guide.edit-trip-settings.step.2':
+    'Ändra det du behöver: omslagsbilden, titeln och beskrivningen, datumen, valutan eller påminnelsen.',
+  'help.guide.edit-trip-settings.step.3':
+    'Klicka på Uppdatera. Reseinställningar stängs, och resan visar ändringen direkt.',
+  'help.guide.edit-trip-settings.result': 'Resan visar de nya uppgifterna överallt, för alla som är med.',
+  'help.guide.edit-trip-settings.tip.1':
+    'Om du flyttar startdatumet frågar TREK först hur bokningarna ska följa med. Om de nya datumen tar bort dagar med innehåll listar TREK de dagarna innan du bekräftar.',
+  'help.guide.edit-trip-settings.tip.2':
+    'Samma formulär öppnas från Mina resor med pennan på reskortet. Redigera resa visas bara för personer som får redigera resan.',
   'help.guide.dawarich-stays.result':
     'Vistelsen är en plats på resan, på dagen du valde eller under Oplanerat, och panelen markerar den som hanterad.',
   'help.ctx.trip-days.bullet.7': 'Medan resan pågår öppnas planen på dagens datum och rullar dit.',
@@ -6320,7 +6805,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'Fotot är platsens bild på kortet, i platskolumnen, i dagen och på kartan.',
   'help.guide.place-own-hours.step.3':
-    'Öppettider under dem visar veckan, en rad per dag. Där TREK har hittat tider för platsen är de redan ifyllda, annars klickar du först på Lägg till öppettider. Skriv när varje dag öppnar och stänger, och klicka på Stängd för en dag då platsen inte har öppet.',
+    'Öppettider under dem visar veckan, en rad per dag. Där TREK har hittat tider för platsen är de redan ifyllda, annars klickar du först på Lägg till öppettider. Skriv när varje dag öppnar och stänger. Till höger om en dag markerar 24h att den är öppen hela dagen och den stängda dörren att den är stängd.',
   'help.guide.add-accommodation.tip.5':
     'GPX-spår och turplatser erbjuds aldrig som boende, bara vanliga platser på resan.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6331,21 +6816,22 @@ const help: TranslationStrings = {
     'Klicka på + i rubriken för den dag då du hämtar bilen, vars verktygstips lyder Lägg till i denna dag, och välj Lägg till transport.',
   'help.guide.car-stops.tip.2': 'Flytta upp och Flytta ner visas först när färden har två stopp eller fler.',
   'help.guide.transport-details.title': 'Öppna en transport och använd dess detaljer',
-  'help.guide.transport-details.tip.1': 'På kartan igen, på en färd vars linje är ritad, slår av linjen.',
+  'help.guide.transport-details.tip.1': 'Karta igen, på en färd vars linje är ritad, slår av linjen.',
   'help.guide.export-transports-csv.result':
     'Webbläsaren sparar en fil med resans namn, till exempel hosten-i-japan-transports.csv, med en rad per färd: Typ, Titel, Status, Start, Slut, Från, Till, Plats, Bekräftelse och Noteringar.',
   'help.guide.group-sort-bookings.goal':
     'Ordna korten eller listan efter status, dag eller typ, i den ordning du vill.',
   'help.guide.booking-on-map.tip.1':
-    'På kartan finns bara för en bokning med en plats. Välj en under Plats / Aktivitet i formuläret, så visas knappen.',
+    'Karta finns bara för en bokning med en plats. Välj en under Plats / Aktivitet i formuläret, så visas knappen.',
   'help.guide.export-bookings-csv.step.2':
     'Öppna Visningsalternativ, reglagen efter vyikonerna, och välj en ordning under Sortera efter. Raderna följer den, en rad per bokning och utan avsnitt.',
   'help.guide.edit-booking.tip.4':
     'Om du har ändrat något frågar TREK Slänga ändringarna? när du klickar utanför formuläret eller trycker på Escape. Fortsätt redigera tar dig tillbaka till formuläret.',
   'help.guide.arrange-packing-list.step.2':
-    'Inne i en lista flyttar du ett föremål uppåt eller nedåt genom att dra i greppet till vänster på raden. En linje i din accentfärg vid radens vänstra kant visar var det hamnar.',
-  'help.guide.count-packed-pieces.goal': 'Ange antal för ett föremål och markera dess delar som packade en i taget.',
-  'help.guide.count-packed-pieces.tip.3': 'Vid antalet ett visas ingen räknare, bara kryssrutan.',
+    'Inne i en lista pekar du på en rad: ett grepp visas i dess vänstra ände och drar föremålet uppåt eller nedåt. En linje i din accentfärg vid radens vänstra kant visar var det hamnar.',
+  'help.guide.count-packed-pieces.goal': 'Ange antal för ett föremål och markera dess stycken som packade ett i taget.',
+  'help.guide.count-packed-pieces.tip.3':
+    'Vid antalet ett finns ingen rad Packat, bara rutan. Raden visar antalet, till exempel ×5, från två och uppåt.',
   'help.guide.expense-receipts.step.2':
     'Klicka på Bifoga bredvid Kvitton & fakturor och välj fotot eller PDF-filen. Du kan också välja flera samtidigt. Varje fil listas under rubriken, med en papperskorg för att ta bort den.',
   'help.guide.files-sync-settings.goal':
@@ -6392,7 +6878,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-plan-tab.tip.1':
     'Ett spår som redan finns i resan är märkt Finns redan i resan och importeras inte två gånger.',
   'help.ctx.trip-tour-detail.bullet.4':
-    'Raden längst ned: Lägg till i dagen eller Ta bort från dag medan en dag är öppen, Navigering till starten, turens webbsida, GPX, Dela där din enhet kan dela filer, Samling och Kopiera.',
+    'Raden längst ned: Lägg till i dagen eller Ta bort från dag medan en dag är öppen, Navigering till starten, Kartor för hela rutten i en kartapp, turens webbsida, GPX, Dela, Samling och Kopiera.',
   'help.guide.tour-detail-read.step.5':
     'Nedanför kommer måtten: Avstånd, Lägsta höjd, Högsta höjd, Höjdmeter uppför och Höjdmeter nedför, tiderna under dem och höjdprofilen i samma färg som turens linje.',
   'help.guide.tour-detail-read.result':
@@ -6522,7 +7008,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.step.4':
     'Överst i listan räknas de besökta stoppen och den återstående gångtiden visas. Ångra vid ett stopp tar bort dess markering.',
   'help.ctx.trip-tour-bike.bullet.2':
-    'Turöversikt till höger visar Cykeltid (uppskattad), ruttplanerarens tid för profilen, inklusive stigningarna. Pauser ingår inte.',
+    'Turöversikt till höger visar Cykeltid, ruttplanerarens uppskattning för profilen, inklusive stigningarna. Pauser ingår inte.',
   'help.guide.tour-bike-profile.step.4':
     'Klicka på Resans platser under Vägpunkter och välj start och mål, här Hotel Alpenroyal och sedan Hotel Greif. Du kan också kontrollera att Lägg till punkt är på och klicka på kartan. Från två punkter räknar TREK ut rutten.',
   'help.guide.tour-bike-profile.tip.5':
@@ -6575,7 +7061,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-gap.step.4':
     'I kortet Vägpunkter visar förbindelsen Manuell, okontrollerad, med sin längd. Peka på den för att läsa varför.',
   'help.guide.tour-horse-recorded.step.2':
-    'Förhandsvisning av importen öppnas, och inget är sparat ännu. Sätt Turtyp till Ridtur under Importera som. Tre märken visar vad importen behåller och vad den inte räknar ut.',
+    'Förhandsvisning av importen öppnas, och inget är sparat ännu. Välj Ridtur under Importera som. Tre märken visar vad importen behåller och vad den inte räknar ut.',
   'help.guide.dateless-trip.goal': 'Börja planera innan du vet när du ska resa.',
   'help.guide.trip-reminder.step.3': 'Klicka på Uppdatera.',
   'help.guide.upcoming-reservations.goal':
@@ -6620,6 +7106,18 @@ const help: TranslationStrings = {
     'Rapportera en bugg och Förslag på ny funktion öppnar projektet på GitHub. Wiki öppnar dokumentationen.',
   'help.guide.map-provider.tip.3':
     'På en GL-karta högerklickar du och drar för att rotera och luta den. Ett klick med mittenknappen lägger till en plats.',
+  'help.guide.map-hide-pois.title': 'Dölj butikerna och sevärdheterna som Mapbox visar',
+  'help.guide.map-hide-pois.goal':
+    'Håll kartan till dina egna platser, utan etiketterna som Mapbox lägger till av sig själv.',
+  'help.guide.map-hide-pois.step.1':
+    'Välj Mapbox GL under Kartleverantör och en Standard-stil under Kartstil: Mapbox Standard eller Standard Satellite.',
+  'help.guide.map-hide-pois.step.2': 'Slå på Dölj intressepunkter och klicka sedan på Spara karta.',
+  'help.guide.map-hide-pois.result':
+    'Resans och dagbokens kartor märker inte längre ut egna butiker, restauranger och sevärdheter, så bara dina nålar syns.',
+  'help.guide.map-hide-pois.tip.1':
+    'Det fungerar bara med Standard-stilarna. Streets, Outdoors och de andra klassiska stilarna behåller sina etiketter.',
+  'help.guide.map-hide-pois.tip.2':
+    'Utforska platser på kartan, under Visning, hittar fortfarande platser i närheten när du ber om det.',
   'help.guide.web-push-device.step.1':
     'Klicka på Slå på för den här enheten under Push-meddelanden på den här enheten och tillåt meddelanden när webbläsaren frågar. Skicka test visar att ett meddelande kommer fram.',
   'help.guide.connect-airtrail.title': 'Anslut din AirTrail',
@@ -6628,6 +7126,23 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.tip.3': 'Koppla från, till höger, tar bort token igen.',
   'help.guide.tour-wanderer-watch.tip.3':
     'Vilka kanaler du får de här tipsen på väljer du i Meddelanden, på raden wanderer: tips om dina leder.',
+  'help.guide.connect-ai.title': 'Anslut din egen AI',
+  'help.guide.connect-ai.goal': 'Planera med assistenten på ditt eget konto hos en AI-leverantör.',
+  'help.guide.connect-ai.step.1':
+    'I kortet AI-assistent väljer du hur du vill ansluta: Logga in med ChatGPT använder ditt ChatGPT-abonnemang, Klistra in en API-nyckel tar en nyckel från Anthropic, OpenAI, Gemini eller OpenRouter.',
+  'help.guide.connect-ai.step.2':
+    'Klistra in din nyckel. TREK visar vilken leverantör den känner igen och vad som skickas dit. Klicka på Anslut; TREK kontrollerar först nyckeln hos leverantören.',
+  'help.guide.connect-ai.step.3':
+    'Kortet visar Ansluten till och leverantören. Välj den Modell du vill ha och klicka på Öppna assistenten för att börja i din pågående eller nästa resa.',
+  'help.guide.connect-ai.result': 'Assistenten körs på ditt eget konto, i alla resor.',
+  'help.guide.connect-ai.tip.1':
+    'Kortet visas bara när admin har slagit på assistenten eller AI-tolkning. Där bara admin får ansluta en står det Din administratör konfigurerar detta.',
+  'help.guide.connect-ai.tip.2':
+    'När admin tillhandahåller en anslutning står det Tillhandahålls av din administratör i kortet, tillsammans med hur många meddelanden du har använt i dag. Anslut din egen leverantör sätter din egen i dess ställe, om admin tillåter det.',
+  'help.guide.connect-ai.tip.3':
+    'Kartan följer assistenten och Uppskatta kostnader ändrar hur assistenten arbetar i dina resor. Koppla från tar bort din nyckel; dina chattar finns kvar.',
+  'help.guide.connect-ai.tip.4':
+    'AI-tolkning läser bokningsfiler med samma anslutning. En personlig inställning för AI-tolkning från tidigare får behålla sitt eget kort längre ned.',
   'help.guide.plugin-settings.tip.1':
     'De här inställningarna gäller bara dig. Andra medlemmar ställer in pluginet för sig själva.',
   'help.guide.offline-conflicts.step.3':
@@ -6643,13 +7158,13 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.result':
     'Alla som inte har ändrat en cell utgår från ditt val, och blockerade celler visas som låsta i deras inställningar.',
   'help.ctx.notifications.bullet.3':
-    'Varje meddelande säger vem som gjorde vad och var. Olästa har färgad bakgrund. En knapp under meddelandet, till exempel Visa resan eller Visa Vacay, tar dig dit och markerar det som läst.',
+    'Varje meddelande säger vem som gjorde vad och var. Dess ruta visar vad det handlar om, med avsändarens initial i hörnet. Olästa är fetstilta med en prick. En knapp under meddelandet, till exempel Visa resan eller Visa Vacay, tar dig dit och markerar det som läst.',
   'help.guide.read-notifications.tip.1':
     'Klockan finns på varje skärm med navigeringsfältet, och siffran uppdateras automatiskt när något nytt kommer.',
   'help.guide.filter-notifications.tip.1':
     'Sidan läser in äldre meddelanden när du rullar nedåt, så ingenting klipps av efter första skärmen.',
   'help.guide.mark-notifications-read.result':
-    'Inget meddelande har färgad bakgrund längre, och det röda talet på klockan är borta.',
+    'Inget meddelande är fetstilt längre, och det röda talet på klockan är borta.',
   'help.guide.notification-settings.title': 'Välj vad du får meddelanden om',
   'help.guide.link-journal.step.1': 'Klicka på Reseinställningar bredvid resans namn och välj Dagbok till vänster.',
   'help.guide.dawarich-stays.tip.1':
@@ -6680,11 +7195,10 @@ const help: TranslationStrings = {
     'Offline sparas bokningen på den här enheten och synkas när du är online igen. Nya filer kräver en anslutning, så ta bort dem eller spara senare. Om du klickar utanför formuläret av misstag, eller trycker på Escape, frågar TREK Slänga ändringarna? innan något du har skrivit går förlorat.',
   'help.guide.booking-on-map.tip.2': 'Ett boende öppnas på sin första natt.',
   'help.guide.export-bookings-csv.step.3':
-    'Klicka på Exportera som kalkylblad (CSV), kalkylbladsikonen efter Visningsalternativ.',
+    'Klicka på Exportera som kalkylblad (CSV), nedladdningsikonen efter Visningsalternativ.',
   'help.guide.arrange-packing-list.step.3':
-    'A till Ö längst till höger i raden med Delad och Min lista visar föremålen i varje lista i namnordning, så att du snabbt ser om något redan finns på den. Klicka på den igen för att gå tillbaka till din egen ordning.',
-  'help.guide.count-packed-pieces.step.1':
-    'Klicka på antalsmärket på en rad, det lilla talet med ett x efter, skriv hur många du tar med, till exempel 5, och tryck på Enter.',
+    'A till Ö i de tre punkterna bredvid Lägg till lista visar föremålen i varje lista i namnordning, så att du snabbt ser om något redan finns på den. En bock markerar det medan det är på. Klicka på det igen för att gå tillbaka till din egen ordning.',
+  'help.guide.count-packed-pieces.step.1': 'Klicka på föremålets namn. Dess fönster öppnas vid raden.',
   'help.guide.expense-receipts.step.3':
     'Klicka på Spara längst ned i dialogen. Filerna laddas upp tillsammans med utgiften och visas även i resans Filer.',
   'help.guide.files-sync-settings.step.1':
@@ -6698,6 +7212,22 @@ const help: TranslationStrings = {
     'Noteringarna visar de nya namnen och färgerna, och kortet Noteringar visar bara kategorin som du valde.',
   'help.guide.roadtrip-stops.tip.5':
     'Ett stopp med en sluttid i dagsplanen varar till den tiden. Dess dialog visar när färden fortsätter, och Ta bort sluttid låter dig ange längden själv igen.',
+  'help.guide.roadtrip-stop-photo.title': 'Se ett stopps foto',
+  'help.guide.roadtrip-stop-photo.goal':
+    'Titta på bilden av ett stopp under färden för att avgöra om det är värt omvägen.',
+  'help.guide.roadtrip-stop-photo.step.1':
+    'Klicka på ett stopp på vägen i spalten, eller på platsen för en bokad natt. Dess kort öppnas över kartan.',
+  'help.guide.roadtrip-stop-photo.step.2':
+    'Klicka på Redigera längst ned på kortet. Stoppets dialog öppnas med platsens bild framför namnet. Ett stopp utan bild visar ikonen för sin typ där.',
+  'help.guide.roadtrip-stop-photo.step.3': 'Klicka på bilden, Visa foton, för att öppna platsens foton i helskärm.',
+  'help.guide.roadtrip-stop-photo.result':
+    'Platsens foton fyller skärmen, och pilarna bläddrar bland de andra som källan känner till. Stäng dem för att komma tillbaka till dialogen, där Avbryt lämnar stoppet som det var.',
+  'help.guide.roadtrip-stop-photo.tip.1':
+    'Bilden är platsens egen bild, den du satte i platsformuläret. Utan någon visar TREK fotot som källan har för platsen, om den kommer från Google eller OpenStreetMap.',
+  'help.guide.roadtrip-stop-photo.tip.2':
+    'På mobil trycker du på ett stopp på fliken Bilresa: dess panel visar bilden i full bredd under namnet, och ett tryck på den öppnar fotona.',
+  'help.guide.roadtrip-stop-photo.tip.3':
+    'Ett träffresultat från Längs rutten finns inte i resan än, så Lägg till som stopp visar ikonen för sin typ i stället för en bild.',
   'help.guide.roadtrip-reorder.tip.2':
     'Bokade resor och deras terminaler ligger kvar där bokningen placerar dem. Bara platser kan dras.',
   'help.guide.roadtrip-overnight.step.2':
@@ -6750,7 +7280,7 @@ const help: TranslationStrings = {
   'help.guide.tour-origin-check.step.2':
     'Importerad visar dagen då turen importerades. Här visar hur den ser ut nu: Som importerad, Redigerad i TREK eller Omplanerad, inspelat spår sparat.',
   'help.ctx.trip-tour-planner.bullet.1':
-    'Turer finns i resans flikrad direkt efter Planering så länge tillägget Turer är på. Fliken finns på dator och surfplatta. På mobilen visar du turer och lägger dem på dagar från fliken Planering, men du ritar dem inte där.',
+    'Turer finns i resans flikrad direkt efter Planering så länge tillägget Turer är på för resan. Resans ägare kan slå på eller av det under Tillägg i Reseinställningar. Fliken finns på dator och surfplatta. På mobilen visar du turer och lägger dem på dagar från fliken Planering, men du ritar dem inte där.',
   'help.guide.tour-open-workspace.step.1':
     'Klicka på Turer i resans flikrad, direkt efter Planering. Kartan fyller skärmen, med en spalt på varje sida.',
   'help.guide.tour-open-workspace.tip.2':
@@ -6789,7 +7319,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.5':
     'En fil utan höjder visar Inga höjder i filen. Linjen och avståndet stämmer ändå, men Höjdmeter uppför och Höjdmeter nedför förblir okända.',
   'help.guide.tour-view-import.tip.2':
-    'Nedladdningsikonen i rubriken sparar importen som GPX-fil igen, och bokmärket sparar den i en samling.',
+    'Ikonerna i rubriken laddar ner den som GPX-fil igen, delar den och sparar den i en samling.',
   'help.guide.tour-plan-from-import.step.4':
     'Turen öppnas i redigeraren med sina vägpunkter. Ändra den om du vill och klicka sedan på Spara längst ned i kolumnen.',
   'help.guide.tour-restore-recorded.step.1':
@@ -6799,7 +7329,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-over.tip.3':
     'Att hämta en tur kräver en anslutning. Om redigeraren har osparade ändringar läggs kopian ändå till i listan, men den öppnas inte, så att ditt arbete förblir öppet.',
   'help.guide.tour-import-wanderer.tip.1':
-    'Knappen finns när wanderer är anslutet under Inställningar, Integrationer. Dessförinnan visar listan Anslut i inställningarna.',
+    'Knappen finns när wanderer är anslutet under Inställningar, Integrationer. Om anslutningen slutar fungera senare erbjuder listan Anslut i inställningarna.',
   'help.ctx.trip-tour-map.bullet.2':
     'Efter avdelaren i knappen kommer reglagen för turens typ: Sätt punkter medan du redigerar en tur, Via ferrata-leder på en vandring, Sjömärken på en paddeltur och pisterna på en skidtur. 3D i slutet visar turen i ett 3D-landskap.',
   'help.guide.tour-map-layers.step.3':
@@ -6860,7 +7390,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.3':
     'Kortet Underlag och vägar under Vägpunkter visar vad rutten går på: underlagen, vägtyperna och andelen som är känd som ohårdgjord. Klicka på en rad för att lysa upp dess sträckor på kartan.',
   'help.guide.tour-bike-profile.step.5':
-    'Läs Cykeltid (uppskattad) i Turöversikt till höger. Håll pekaren över infoprickarna för att se hur den beräknas.',
+    'Läs Cykeltid i Turöversikt till höger. Håll pekaren över infoprickarna för att se hur den beräknas.',
   'help.guide.tour-bike-surfaces.title': 'Se underlagen på en cykeltur',
   'help.guide.tour-bike-surfaces.tip.2':
     'På profilen Landsväg anger en varning ovanför staplarna hur stor del som är känd som ohårdgjord. Visa på kartan markerar de sträckorna.',

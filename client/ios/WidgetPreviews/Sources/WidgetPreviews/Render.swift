@@ -107,13 +107,14 @@ struct Render {
 }
 
 enum WidgetKind: String, CaseIterable {
-    case trip, today, bookings, todos, packing, atlas, collab
+    case trip, today, bookings, flight, todos, packing, atlas, collab
 
     var families: [TrekFamily] {
         switch self {
         case .trip: return [.small, .medium, .large, .extraLarge, .circular, .rectangular, .inline]
         case .today: return [.medium, .large, .extraLarge]
         case .bookings: return [.small, .medium, .large, .extraLarge, .rectangular, .inline]
+        case .flight: return [.small, .medium, .large, .circular, .rectangular, .inline]
         case .todos: return [.small, .medium, .large, .circular, .rectangular]
         case .packing: return [.small, .medium, .large, .circular, .rectangular]
         case .atlas: return [.small, .medium, .large, .circular, .rectangular, .inline]
@@ -158,6 +159,7 @@ struct WidgetFrame: View {
         case .trip: TripContent(snapshot: snapshot, family: family, now: now)
         case .today: TodayContent(snapshot: snapshot, family: family, now: now)
         case .bookings: BookingsContent(snapshot: snapshot, family: family, now: now)
+        case .flight: FlightContent(snapshot: snapshot, family: family, now: now)
         case .todos: TodosContent(snapshot: snapshot, family: family, now: now)
         case .packing: PackingContent(snapshot: snapshot, family: family, now: now)
         case .atlas: AtlasContent(snapshot: snapshot, family: family)

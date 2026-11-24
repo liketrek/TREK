@@ -10,6 +10,13 @@ permissions:
 #
 # Unsigned on purpose: signing and store uploads need secrets that fork PRs do
 # not get, and belong in a release workflow of their own.
+#
+# package-lock.json is not a trigger: every dependency bump touches it, and a
+# Mac build per bump only held the queue. The shells link nothing but the
+# @capacitor/* packages, all declared in client/package.json, and a Dependabot
+# bump of one of them raises the range there too, so it still runs. The client
+# typecheck and the watch and widget snapshot tests run in test.yml on every
+# change under client/.
 on:
   pull_request:
     paths:
@@ -24,7 +31,6 @@ on:
       - 'client/scripts/check-store-metadata.mjs'
       - 'client/fastlane/**'
       - 'client/package.json'
-      - 'package-lock.json'
       - 'shared/src/i18n/*/native.ts'
       - '.github/workflows/native.yml'
   workflow_dispatch:
@@ -181,34 +187,6 @@ jobs:
           name: widget-previews
           path: client/ios/WidgetPreviews/out
           retention-days: 14
-
-  # The watch's half in the UI (client/src/native/watch.ts): the snapshot it
-  # builds and the ticks it takes back, typechecked and tested here as well,
-  # so a change to the bridge is checked next to the Swift that reads it.
-  watch-bridge:
-    runs-on: ubuntu-24.04
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v6
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version-file: .nvmrc
-          cache: npm
-
-      - name: Install
-        run: npm ci --workspace=shared --workspace=client
-
-      - name: Build shared
-        run: npm run build --workspace=shared
-
-      - name: Typecheck the client
-        working-directory: client
-        run: npm run typecheck
-
-      - name: Test the widget and watch snapshots
-        working-directory: client
-        run: npx vitest run src/native/watch.test.ts src/native/widgets.test.ts src/native/widgetExtras.test.ts
 
   # The watch app on watchOS simulators in its screenshot mode (DemoMode.swift):
   # every screen on the largest and the smallest watch, the main ones in every

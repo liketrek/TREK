@@ -5,18 +5,13 @@
  * Boots the real buildApp() like bootstrap.test.ts.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { apiDocsEnabled } from '../../src/nest/common/api-docs.kill-switch';
-import { resetTestDb } from '../helpers/test-db';
+import { resetDatabase } from '../helpers/reset-database';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 
 describe('API-DOCS (#1412) — flag-gated OpenAPI surface', () => {
   let app: INestApplication;
@@ -24,18 +19,17 @@ describe('API-DOCS (#1412) — flag-gated OpenAPI surface', () => {
   let prevFlag: string | undefined;
 
   beforeAll(async () => {
-    resetTestDb(testDb);
     prevFlag = process.env.TREK_API_DOCS_ENABLED;
     process.env.TREK_API_DOCS_ENABLED = 'true';
     app = await buildApp();
     instance = app.getHttpAdapter().getInstance();
+    await resetDatabase(app.get(MikroORM));
   });
 
   afterAll(async () => {
     if (prevFlag === undefined) delete process.env.TREK_API_DOCS_ENABLED;
     else process.env.TREK_API_DOCS_ENABLED = prevFlag;
     await app.close();
-    testDb.close();
   });
 
   it('DOCS-001 — the kill switch parses the boolean-like env family', () => {

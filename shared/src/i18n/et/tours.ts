@@ -92,6 +92,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Tõus',
   'tours.detail.descent': 'Laskumine',
   'tours.detail.navigationHint': 'Navigeerimine avab raja alguspunkti, mitte juhiseid mööda marsruuti.',
+  'tours.detail.openRoute': 'Ava marsruut kaardirakenduses',
+  'tours.detail.mapsShort': 'Kaardid',
   'tours.planner.title': 'Planeeri retk',
   'tours.planner.newTour': 'Planeeri uus retk',
   'tours.planner.addTour': 'Lisa matk',

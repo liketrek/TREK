@@ -10,8 +10,17 @@ const pdf: TranslationStrings = {
   'pdf.safariHint': 'iOS พิมพ์จากแอปบนหน้าจอโฮมไม่ได้ Safari จะเปิดทริปนี้พร้อมการส่งออก และคุณบันทึก PDF ได้ที่นั่น',
   'pdf.pageBreakPerDay': 'ขึ้นหน้าใหม่ทุกวัน',
   'pdf.transportNotes': 'บันทึกการเดินทาง',
+  'pdf.largeText': 'ตัวอักษรขนาดใหญ่',
   'pdf.mapTitle': 'ภาพรวมเส้นทาง',
   'pdf.distanceLabel': 'ระยะทาง',
   'pdf.mapCredit': 'ขอบเขตประเทศ: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'ภาพรวม',
+  'pdf.showPhotos': 'รูปภาพ',
+  'pdf.showDetails': 'ติดต่อและเวลาทำการ',
+  'pdf.atAGlance': 'สรุปโดยย่อ',
+  'pdf.bookings': 'การจองและที่พัก',
+  'pdf.day': 'วัน',
+  'pdf.stay': 'ที่พัก',
+  'pdf.plan': 'แผน',
 };
 export default pdf;

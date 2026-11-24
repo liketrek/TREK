@@ -3,7 +3,7 @@ import { useTranslation } from '../../../i18n'
 import { PermissionLevel } from '../../../store/permissionsStore'
 import { CATEGORIES, LEVEL_LABELS, usePermissionsAdmin } from '../../../components/Admin/usePermissionsAdmin'
 import { Save, RotateCcw } from 'lucide-react'
-import { MAdminButton, MAdminCard } from './MAdminUi'
+import { MAdminButton, MAdminCard, MAdminRow, MAdminSelect } from './MAdminUi'
 import MSkeleton from '../../components/MSkeleton'
 
 export default function MAdminPermissionsPanel(): React.ReactElement {
@@ -43,40 +43,41 @@ export default function MAdminPermissionsPanel(): React.ReactElement {
             <div className="mb-2 font-geist text-[0.5625rem] font-extrabold uppercase tracking-wider text-m-faint">
               {t(`perm.cat.${cat.id}`)}
             </div>
-            <div className="space-y-3">
-              {cat.keys.map(key => {
+            <div>
+              {cat.keys.map((key, index) => {
                 const entry = entryMap.get(key)
                 if (!entry) return null
                 const currentLevel = values[key] || entry.defaultLevel
                 const isDefault = currentLevel === entry.defaultLevel
                 return (
-                  <div key={key}>
-                    <div className="mb-[6px] flex items-start gap-2">
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[0.8125rem] font-bold text-m-ink">{t(`perm.action.${key}`)}</div>
-                        <div className="mt-[1px] font-geist text-[0.625rem] leading-relaxed text-m-muted">
-                          {t(`perm.actionHint.${key}`)}
-                        </div>
-                      </div>
-                      {!isDefault && (
-                        <span className="mt-[1px] flex-none rounded-full bg-[color:color-mix(in_srgb,var(--m-st-pending)_14%,transparent)] px-[7px] py-[2px] font-geist text-[0.5625rem] font-bold text-[color:var(--m-st-pending)]">
-                          {t('perm.customized')}
-                        </span>
-                      )}
-                    </div>
-                    <select
-                      value={currentLevel}
-                      onChange={(e) => handleChange(key, e.target.value as PermissionLevel)}
-                      aria-label={t(`perm.action.${key}`)}
-                      className="h-[42px] w-full rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] px-3 text-[0.84375rem] text-m-ink outline-none"
-                    >
-                      {entry.allowedLevels.map(l => (
-                        <option key={l} value={l}>
-                          {t(LEVEL_LABELS[l] || l)}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
+                  <MAdminRow
+                    key={key}
+                    first={index === 0}
+                    title={
+                      <span className="inline-flex max-w-full items-center gap-[6px]">
+                        <span className="min-w-0">{t(`perm.action.${key}`)}</span>
+                        {/* A changed rule wears the pending dot; its name is in the title for a screen reader. */}
+                        {!isDefault && (
+                          <span
+                            title={t('perm.customized')}
+                            className="h-[6px] w-[6px] flex-none rounded-full bg-[color:var(--m-st-pending)]"
+                          >
+                            <span className="sr-only">{t('perm.customized')}</span>
+                          </span>
+                        )}
+                      </span>
+                    }
+                    hint={t(`perm.actionHint.${key}`)}
+                    trailing={
+                      <MAdminSelect
+                        compact
+                        title={t(`perm.action.${key}`)}
+                        value={currentLevel}
+                        onChange={(level) => handleChange(key, level as PermissionLevel)}
+                        options={entry.allowedLevels.map((level) => ({ value: level, label: t(LEVEL_LABELS[level] || level) }))}
+                      />
+                    }
+                  />
                 )
               })}
             </div>

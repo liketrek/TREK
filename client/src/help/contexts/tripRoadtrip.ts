@@ -2,8 +2,8 @@ import { defineScreen } from '../defineScreen'
 
 /**
  * Help for road trip mode: the plan read as one drive. Turning the mode on,
- * the stops on the way and how long you stay at them, moving stops around the
- * rail, what is along the route and a night on the road, bending a leg with a
+ * the stops on the way and how long you stay at them, a stop's photo, moving
+ * stops around the rail, what is along the route and a night on the road, bending a leg with a
  * via point or another way round, the driving settings and the travel day,
  * refuelling before the tank runs out and how full one stop fills, booked
  * rides on the drive, putting a day onto an imported track, importing a
@@ -24,6 +24,7 @@ export const { context: tripRoadtripContext, guides: tripRoadtripGuides } = defi
   guides: [
     ['roadtrip-mode', 'route', 'guide', 5, 3, { slug: RT, anchor: 'switching-to-road-trip' }, ['read-day-plan', 'roadtrip-limits', 'roadtrip-bookings'], true],
     ['roadtrip-stops', 'mapPin', 'guide', 6, 5, { slug: RT, anchor: 'stops-on-the-way' }, ['roadtrip-corridor', 'roadtrip-reorder', 'set-stop-times'], true],
+    ['roadtrip-stop-photo', 'image', 'quick', 3, 3, { slug: RT, anchor: 'stops-on-the-way' }, ['roadtrip-stops', 'roadtrip-overnight'], true],
     ['roadtrip-reorder', 'arrowUpDown', 'quick', 3, 3, { slug: RT, anchor: 'switching-to-road-trip' }, ['roadtrip-stops', 'reorder-stops'], true],
     ['roadtrip-corridor', 'search', 'guide', 5, 4, { slug: RT, anchor: 'search-along-the-route' }, ['roadtrip-overnight', 'roadtrip-stops', 'roadtrip-refuel'], true],
     ['roadtrip-overnight', 'bed', 'guide', 5, 3, { slug: RT, anchor: 'booked-nights-on-the-drive' }, ['roadtrip-corridor', 'add-accommodation'], true],

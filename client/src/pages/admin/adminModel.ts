@@ -1,4 +1,6 @@
 /** Shared types and pure helpers for the admin page + its data hook. No React, no side effects. */
+import { ADMIN_TAB_HELP } from '../../help/contexts/admin'
+import { getHelpContext } from '../../help/registry'
 import { readDateFormat } from '../../hooks/useDateFormat'
 import { formatDisplayDate } from '../../utils/dateFormat'
 
@@ -105,4 +107,10 @@ export function inviteStatus(
   const isActive = !isExpired && !isUsedUp
   const labelKey = isUsedUp ? 'admin.invite.usedUp' : isExpired ? 'admin.invite.expired' : 'admin.invite.active'
   return { isExpired, isUsedUp, isActive, labelKey }
+}
+
+/** The help screen for an admin tab; a tab without one falls back to the admin overview. */
+export function adminHelpId(tab: string): string {
+  const id = ADMIN_TAB_HELP[tab] ?? `admin-${tab}`
+  return getHelpContext(id) ? id : 'admin'
 }

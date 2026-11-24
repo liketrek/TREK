@@ -3,7 +3,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { schemaMessage, rowIdParam } from '../../nest-rpc/rpc-params';
 import { CollectionsService } from './collections.service';
 import {
   collectionCopyToTripRequestSchema,
@@ -40,7 +40,7 @@ export class CollectionsRpc {
     // getCollection is user-scoped by the service, so a plugin only ever fetches one
     // the acting user may see.
     const userId = this.requireCollectionsUser(ctx, 'reads');
-    const id = num(params.id, 'id');
+    const id = rowIdParam(params.id, 'id');
     await this.requireCollectionsAddon();
     return this.collections.getCollection(userId, id);
   }
@@ -59,7 +59,7 @@ export class CollectionsRpc {
     const parsed = collectionUpdateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid collection: ${schemaMessage(parsed.error)}`);
     const userId = this.requireCollectionsUser(ctx, 'writes');
-    const id = num(params.id, 'id');
+    const id = rowIdParam(params.id, 'id');
     await this.requireCollectionsAddon();
     return this.mapCollectionError(() =>
       this.collections.updateCollection(userId, id, parsed.data as never, undefined),
@@ -89,7 +89,7 @@ export class CollectionsRpc {
   @PluginMethod('collections.deletePlace', { permission: 'db:write:collections' })
   async deletePlace(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
     const userId = this.requireCollectionsUser(ctx, 'writes');
-    const placeId = num(params.placeId, 'placeId');
+    const placeId = rowIdParam(params.placeId, 'placeId');
     await this.requireCollectionsAddon();
     // Awaited so a refusal actually reaches the plugin as RESOURCE_FORBIDDEN/BAD_PARAMS
     // instead of being dropped as an unhandled rejection while this returns

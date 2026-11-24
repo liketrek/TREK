@@ -2,7 +2,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { BadParams, ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, schemaMessage } from '../../nest-rpc/rpc-params';
+import { optionalRowIdParam, rowIdParam, schemaMessage } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AccommodationsService } from './accommodations.service';
 import { accommodationCreateRequestSchema, accommodationUpdateRequestSchema } from '@trek/shared';
@@ -43,15 +43,16 @@ export class AccommodationsRpc {
 
   @PluginMethod('accommodations.create', { permission: 'db:write:accommodations' })
   async create(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
     const actor = this.guards.requireActor(ctx, 'accommodation');
     const parsed = accommodationCreateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid accommodation: ${schemaMessage(parsed.error)}`);
     await this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
     const input = parsed.data as AccommodationInput;
-    const placeId = Math.trunc(Number(input.place_id));
-    const startDayId = Math.trunc(Number(input.start_day_id));
-    const endDayId = Math.trunc(Number(input.end_day_id));
+    // The schema took only a whole number or its digits for each.
+    const placeId = rowIdParam(input.place_id, 'place_id');
+    const startDayId = rowIdParam(input.start_day_id, 'start_day_id');
+    const endDayId = rowIdParam(input.end_day_id, 'end_day_id');
     if (!placeId || !startDayId || !endDayId)
       throw new BadParams('place_id, start_day_id, and end_day_id are required');
     // Verifies the place and both days belong to this trip.
@@ -76,32 +77,33 @@ export class AccommodationsRpc {
 
   @PluginMethod('accommodations.update', { permission: 'db:write:accommodations' })
   async update(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const accommodationId = num(params.accommodationId, 'accommodationId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const accommodationId = rowIdParam(params.accommodationId, 'accommodationId');
     const actor = this.guards.requireActor(ctx, 'accommodation');
     const parsed = accommodationUpdateRequestSchema.safeParse(params.input);
     if (!parsed.success) throw new BadParams(`invalid accommodation: ${schemaMessage(parsed.error)}`);
     await this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
     const existing = await this.days.getAccommodation(accommodationId, tripId);
     if (!existing) throw new ForbiddenResource(`no accommodation ${accommodationId} on trip ${tripId}`);
-    const input = parsed.data as {
-      place_id?: number;
-      start_day_id?: number;
-      end_day_id?: number;
+    const fields = parsed.data as {
       check_in?: string;
       check_in_end?: string;
       check_out?: string;
       confirmation?: string;
       notes?: string;
     };
-    const errors = await this.days.validateAccommodationRefs(
-      tripId,
-      input.place_id,
-      input.start_day_id,
-      input.end_day_id,
-    );
+    // The input is open: a ref is read like a plugin RPC id, so '0x1' or 1.5 is BAD_PARAMS, not bound.
+    const refs = {
+      place_id: optionalRowIdParam(parsed.data.place_id, 'place_id'),
+      start_day_id: optionalRowIdParam(parsed.data.start_day_id, 'start_day_id'),
+      end_day_id: optionalRowIdParam(parsed.data.end_day_id, 'end_day_id'),
+    };
+    const errors = await this.days.validateAccommodationRefs(tripId, refs.place_id, refs.start_day_id, refs.end_day_id);
     if (errors.length > 0) throw new ForbiddenResource(errors[0].message);
-    const { accommodation, mirror } = await this.days.updateAccommodation(accommodationId, existing, input);
+    const { accommodation, mirror } = await this.days.updateAccommodation(accommodationId, existing, {
+      ...fields,
+      ...refs,
+    });
     this.realtime.broadcast(tripId, 'accommodation:updated', { accommodation });
     await this.days.announceMirror(tripId, mirror, (event, payload) => this.realtime.broadcast(tripId, event, payload));
     return accommodation;
@@ -109,8 +111,8 @@ export class AccommodationsRpc {
 
   @PluginMethod('accommodations.delete', { permission: 'db:write:accommodations' })
   async delete(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const accommodationId = num(params.accommodationId, 'accommodationId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const accommodationId = rowIdParam(params.accommodationId, 'accommodationId');
     const actor = this.guards.requireActor(ctx, 'accommodation');
     await this.guards.requireTripEdit(tripId, actor, ACCOMMODATION_EDIT_ACTION);
     if (!(await this.days.getAccommodation(accommodationId, tripId))) {

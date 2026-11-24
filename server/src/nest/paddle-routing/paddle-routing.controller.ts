@@ -1,6 +1,6 @@
 import { ADDON_IDS } from '../../addons';
-import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
 import { TripAccessGuard } from '../permissions/trip-access.guard';
@@ -15,7 +15,7 @@ import { paddleRouteResponseSchema } from '@trek/shared';
  * path only says whose planner asks, so anyone who can see the trip may.
  */
 @Controller('api/trips/:tripId/paddle')
-@UseGuards(AddonGuard, JwtAuthGuard, TripAccessGuard)
+@UseGuards(JwtAuthGuard, TripAccessGuard, TripAddonGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class PaddleRoutingController {
   constructor(private readonly routing: PaddleRoutingService) {}

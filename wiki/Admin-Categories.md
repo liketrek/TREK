@@ -18,7 +18,7 @@ A category is a label consisting of a name, a color, and an icon. Users assign c
 Click **New Category** (top right of the card). A dialog opens:
 
 1. **Category name**: required. Type it into the dialog's head; **Enter** saves.
-2. **Icon**: a grid of 47 curated Lucide icons (Pin, Hotel, Restaurant, Transport, Nature and so on). Click an icon to select it. The default icon is `MapPin`.
+2. **Icon**: a grid of 54 curated Lucide icons (Pin, Hotel, Restaurant, Bus stop, Station, Airport, Parking, Nature and so on). Click an icon to select it. The default icon is `MapPin`.
 3. **Color**: 12 preset swatches plus **Choose custom color** (pipette button). The default color is `#6366f1` (indigo). The 12 presets are:
 
    `#6366f1`, `#8b5cf6`, `#ec4899`, `#ef4444`, `#f97316`, `#f59e0b`, `#10b981`, `#06b6d4`, `#3b82f6`, `#84cc16`, `#6b7280`, `#1f2937`

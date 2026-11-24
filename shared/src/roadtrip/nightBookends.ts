@@ -5,7 +5,7 @@ import {
   isDayInAccommodationRange,
   type DayRef,
 } from '../day/stay-bookends';
-import { closesTheDay, isCarrierType, opensTheDay, type CarrierBooking } from './carriers';
+import { closesTheDay, isCarrierType, type CarrierBooking } from './carriers';
 import { withinDriveRange } from './corridor';
 import { stationary } from './dayWindow';
 import type { BookendPhase, PlanDay, RoadtripStop, RoutedLeg } from './planning-types';
@@ -229,7 +229,9 @@ const withinReach = (hotel: BookendStay, stop: RoadtripStop | undefined): boolea
  * hold them in any order, and the server choose the same one where two overlap.
  *
  * The morning gets the stay slept in, unless the day already starts there, or starts on
- * landing or at a hire car's desk, where the traveller was not at the hotel. The evening
+ * landing, where the traveller was not at the hotel. A day that starts at a hire car's
+ * desk still sets off from the hotel: the traveller checked out and drove or rode to the
+ * desk, and that is the first drive of the day (#2993). The evening
  * gets tonight's stay, unless the day already ends there, or ends at a departure or at the
  * desk the hire car goes back to. A day without a stop of its own gets both or neither: a
  * morning at one hotel and an evening at another is the drive between them, while a day
@@ -276,7 +278,7 @@ export function seatNightBookends(
       const head =
         !!hotels.morning &&
         !!hotels.morningIsSleptHere &&
-        !(first && (hotelIsTheStop(hotels.morning, first) || opensTheDay(first.carrier?.role))) &&
+        !(first && (hotelIsTheStop(hotels.morning, first) || first.carrier?.role === 'arrival')) &&
         withinReach(hotels.morning, first);
       const tail =
         !!hotels.evening &&

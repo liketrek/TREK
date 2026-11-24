@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react'
-import { CalendarPlus, ChevronRight, FileDown, Share2, UserRound } from 'lucide-react'
+import { CalendarPlus, ChevronRight, FileDown, MapPinned, Share2, UserRound } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
 import { IcsSubscribeModal } from '../../../../components/Planner/IcsSubscribeModal'
 import { useTripStore } from '../../../../store/tripStore'
@@ -12,8 +12,8 @@ import type { LucideIcon } from 'lucide-react'
 
 /**
  * Export sheet ('export', opened from the Mehr sheet): the desktop day-plan
- * toolbar's PDF export, GPX download, ICS download and calendar subscription in
- * one place. The subscription dialog is the shared IcsSubscribeModal — it owns the
+ * toolbar's PDF export, GPX download, KML for Google My Maps, ICS download and
+ * calendar subscription in one place. The subscription dialog is the shared IcsSubscribeModal — it owns the
  * enable/rotate/disable token flow.
  */
 export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
@@ -26,7 +26,7 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
   // Fed the way the desktop dialog feeds it: the store's assignments, and the export
   // applies the day plan's filter itself, so both shells print the same. The PDF stays
   // open here; a calendar or GPX file closes the sheet.
-  const { offerMine, isRunning, exportPdf, pdfRouting, pdfRoutingLabel, skipPdfRouting, downloadIcs, downloadGpx } = useTripExport({
+  const { offerMine, isRunning, exportPdf, pdfRouting, pdfRoutingLabel, skipPdfRouting, downloadIcs, downloadGpx, downloadKml } = useTripExport({
     tripId: planner.tripId,
     open,
     data: {
@@ -104,6 +104,12 @@ export default function MExportSheet({ planner, shell }: MTripSheetsProps) {
             title={isRunning('gpx:all') ? t('common.loading') : t('dayplan.gpxAll')}
             sub={t('dayplan.gpxTooltip')}
             onClick={() => void downloadGpx('all', '')}
+          />
+          <ExportRow
+            icon={MapPinned}
+            title={isRunning('kml') ? t('common.loading') : t('dayplan.kmlPlaces')}
+            sub={t('dayplan.kmlHint')}
+            onClick={() => void downloadKml()}
           />
           {canManageShare && (
             <ExportRow

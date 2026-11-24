@@ -125,6 +125,26 @@ describe('RoadtripDayBoundariesRepository', () => {
     expect((await repo.listForTrip(trip.id)).map((b) => b.day_number)).toEqual([2]);
   });
 
+  it('RB4REPO-002: deleteForDays removes exactly the named day_numbers, and nothing for an empty list', async () => {
+    const { trip, from, to } = fixture();
+    await Promise.all(
+      [1, 2, 3].map((day_number) =>
+        repo.upsertBoundary(trip.id, {
+          day_number,
+          from_assignment_id: from.id,
+          to_assignment_id: to.id,
+          fraction: 0.4,
+        }),
+      ),
+    );
+
+    await repo.deleteForDays(trip.id, []);
+    expect(await repo.listForTrip(trip.id)).toHaveLength(3);
+
+    await repo.deleteForDays(trip.id, [1, 3, 99]);
+    expect((await repo.listForTrip(trip.id)).map((b) => b.day_number)).toEqual([2]);
+  });
+
   it('RB7REPO-001: moveDayNumber rewrites only the named day_number of the named trip, silent on a miss', async () => {
     const { trip, from, to } = fixture();
     const { trip: other, from: otherFrom, to: otherTo } = fixture();

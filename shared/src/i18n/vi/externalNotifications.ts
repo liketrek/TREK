@@ -16,6 +16,18 @@ const en: NotificationLocale = {
       title: `Đặt chổ mới: ${p.booking}`,
       body: `${p.actor} đã thêm mới một ${p.type} "${p.booking}" vào "${p.trip}".`,
     }),
+    flight_departed: (p) => ({
+      title: `${p.flight} đã cất cánh`,
+      body: `Chuyến bay ${p.flight} từ ${p.from} đến ${p.to} đang bay.`,
+    }),
+    flight_delayed: (p) => ({
+      title: `${p.flight} bị trễ`,
+      body: `Chuyến bay ${p.flight} từ ${p.from} đến ${p.to} đang trễ khoảng ${p.delay} phút so với lịch.`,
+    }),
+    flight_landed: (p) => ({
+      title: `${p.flight} đã hạ cánh`,
+      body: `Chuyến bay ${p.flight} từ ${p.from} đã hạ cánh tại ${p.to}.`,
+    }),
     trip_reminder: (p) => ({
       title: `Nhắc nhở chuyến đi: ${p.trip}`,
       body: `Hành trình "${p.trip}" sắp bất đầu!`,
@@ -76,6 +88,21 @@ const en: NotificationLocale = {
           : p.state === 'unverifiable'
             ? `“${p.tour}” trong “${p.trip}” không còn kiểm tra được trên wanderer. Chuyến đi trong chuyến du lịch của bạn vẫn giữ nguyên.`
             : `“${p.tour}” trong “${p.trip}” có thể đã thay đổi trên wanderer. Hãy mở chuyến đi và kiểm tra nguồn của nó. Không có gì trong chuyến du lịch tự thay đổi.`,
+    }),
+    mail_booking_added: (p) => ({
+      title: `Đã thêm từ email: ${p.booking}`,
+      body:
+        p.role === 'traveller'
+          ? `${p.actor} đã thêm "${p.booking}" vào "${p.trip}" từ một email được chuyển tiếp.`
+          : `"${p.booking}" từ email bạn chuyển tiếp đã được thêm vào "${p.trip}". Bạn có thể hoàn tác trong TREK trong 7 ngày.`,
+    }),
+    mail_booking_pending: (p) => ({
+      title: 'Đặt chỗ chuyển tiếp cần xem lại',
+      body: `Đặt chỗ chuyển tiếp đang chờ bạn trong TREK: ${p.count}. Mỗi mục cho biết vì sao nó không được tự động thêm.`,
+    }),
+    mail_ingest_paused: () => ({
+      title: 'Đã tạm dừng nhập email',
+      body: 'Hiện tại TREK chưa nhận email đặt chỗ được chuyển tiếp, vì vậy hãy tạm chưa chuyển tiếp. Địa chỉ của bạn vẫn được giữ và sẽ hoạt động lại khi tính năng nhập quay lại, còn các đặt chỗ đã thêm vẫn nằm trong chuyến đi của bạn.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },

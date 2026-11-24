@@ -38,7 +38,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Anschlussflug',
   'reservations.layover.layover': 'Zwischenstopp',
   'reservations.needsReview': 'Prüfen',
-  'reservations.needsReviewHint': 'Flughafen konnte nicht automatisch erkannt werden — bitte Ort bestätigen.',
+  'reservations.needsReviewHint':
+    'Einige Angaben wurden automatisch eingetragen und konnten nicht sicher gelesen werden. Bitte prüfen.',
+  'reservations.reviewConfirm': 'Passt so',
+  'reservations.reviewConfirmHint': 'Klicken, um sie als geprüft zu markieren.',
+  'reservations.reviewConfirmed': 'Als geprüft markiert',
   'reservations.searchLocation': 'Bahnhof, Hafen, Adresse suchen…',
   'reservations.meta.trainNumber': 'Zugnr.',
   'reservations.meta.platform': 'Gleis',
@@ -104,7 +108,7 @@ const reservations: TranslationStrings = {
   'reservations.pendingSave': 'wird gespeichert…',
   'reservations.uploading': 'Wird hochgeladen...',
   'reservations.attachFile': 'Datei anhängen',
-  'reservations.linkExisting': 'Vorhandene verknüpfen',
+  'reservations.linkExisting': 'Datei verknüpfen',
   'reservations.linkAssignment': 'Mit Tagesplanung verknüpfen',
   'reservations.linkedTo': 'Verknüpft mit',
   'reservations.pickAssignment': 'Zuordnung aus dem Plan wählen...',
@@ -280,7 +284,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Die {shown} von {total} angezeigten Zeilen exportieren (CSV)',
   'reservations.wallet.add': 'Zu Apple Wallet hinzufügen',
   'reservations.wallet.addGoogle': 'Zu Google Wallet hinzufügen',
-  'reservations.wallet.short': 'Wallet', // same-as-en
   'reservations.wallet.failed': 'Der Wallet-Pass konnte nicht erstellt werden. Bitte versuch es erneut.',
   'reservations.wallet.undated': 'Gib der Buchung zuerst ein Datum: Wallet zeigt den Pass rund um diesen Zeitpunkt an.',
 };

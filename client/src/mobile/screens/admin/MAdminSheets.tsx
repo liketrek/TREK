@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, ShieldOff, Trash2, UserPlus, UserCog, Download, KeyRound, RotateCcw } from 'lucide-react'
+import { AlertTriangle, CheckCircle, ExternalLink, Fingerprint, ShieldOff, Trash2, Unlink, UserPlus, UserCog, Download, KeyRound, RotateCcw } from 'lucide-react'
 import { useAdminUserActions } from '../../../components/Admin/useAdminUserActions'
 import type { TranslationFn } from '../../../types'
 import type { useAdmin } from '../../../pages/admin/useAdmin'
 import MSheet from '../../components/MSheet'
 import MSegmented from '../../components/MSegmented'
 import MAdminResetMfaSheet from './MAdminResetMfaSheet'
+import MConfirmSheet from '../settings/MConfirmSheet'
 import { MAdminButton, MAdminField, MAdminInput, MAdminSecretInput, MAdminSheetFrame } from './MAdminUi'
 import { NO_AUTOFILL } from '../../../utils/noAutofill'
 
@@ -27,12 +28,11 @@ docker run -d --name trek \\
 // and delete), the "how to update" instructions and the rotate-JWT confirm.
 export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
   const {
-    currentUser,
     editingUser, setEditingUser, editForm, setEditForm,
     showCreateUser, setShowCreateUser, createForm, setCreateForm,
     updateInfo, showUpdateModal, setShowUpdateModal,
     showRotateJwtModal, setShowRotateJwtModal, rotatingJwt,
-    handleCreateUser, handleSaveUser, handleDeleteUser,
+    handleCreateUser, handleSaveUser,
   } = admin
 
   const roleOptions = [
@@ -40,23 +40,10 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
     { value: 'admin', label: t('settings.roleAdmin') },
   ]
 
-  const [showResetPasskeys, setShowResetPasskeys] = useState(false)
-  const [resettingPk, setResettingPk] = useState(false)
-  const [showResetMfa, setShowResetMfa] = useState(false)
 
   const userActions = useAdminUserActions(admin, t)
   const { rotateJwt } = userActions
 
-  // The sheet stays open and busy while the reset runs and closes once it worked.
-  const resetPasskeys = async () => {
-    if (!editingUser) return
-    setResettingPk(true)
-    try {
-      if (await userActions.resetPasskeys(editingUser)) setShowResetPasskeys(false)
-    } finally {
-      setResettingPk(false)
-    }
-  }
 
   return (
     <>
@@ -161,48 +148,12 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
                   onChange={(role) => setEditForm((f) => ({ ...f, role }))}
                 />
               </MAdminField>
-              <div className="border-t border-[color:var(--m-rowbr)] pt-3">
-                <p className="mb-2 font-geist text-[0.625rem] leading-relaxed text-m-muted">
-                  {t('admin.passkey.resetHint')}
-                </p>
-                <div className="flex flex-wrap gap-2">
-                  <MAdminButton variant="ghost" className="text-[color:var(--m-st-danger)]" onClick={() => setShowResetPasskeys(true)}>
-                    <Fingerprint size={12} strokeWidth={2.2} />
-                    {t('admin.passkey.reset')}
-                  </MAdminButton>
-                  {editingUser.id !== currentUser?.id && (
-                    <MAdminButton variant="ghost" className="text-[color:var(--m-st-danger)]" onClick={() => setShowResetMfa(true)}>
-                      <ShieldOff size={12} strokeWidth={2.2} />
-                      {t('admin.mfa.reset')}
-                    </MAdminButton>
-                  )}
-                  <MAdminButton
-                    variant="danger"
-                    disabled={editingUser.id === currentUser?.id}
-                    onClick={() => {
-                      const user = editingUser
-                      setEditingUser(null)
-                      void handleDeleteUser(user)
-                    }}
-                  >
-                    <Trash2 size={12} strokeWidth={2.2} />
-                    {t('admin.deleteUserTitle')}
-                  </MAdminButton>
-                </div>
-              </div>
+              <MUserDangerActions admin={admin} t={t} user={editingUser} />
             </div>
           )}
         </MAdminSheetFrame>
       </MSheet>
 
-      {/* Reset two-factor confirm */}
-      <MAdminResetMfaSheet
-        open={showResetMfa}
-        onClose={() => setShowResetMfa(false)}
-        user={editingUser}
-        onReset={userActions.resetMfa}
-        t={t}
-      />
 
       {/* How to update */}
       <MSheet open={showUpdateModal} onClose={() => setShowUpdateModal(false)} ariaLabel={t('admin.update.howTo')}>
@@ -256,38 +207,6 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
         </MAdminSheetFrame>
       </MSheet>
 
-      {/* Reset passkeys confirm */}
-      <MSheet open={showResetPasskeys} onClose={() => setShowResetPasskeys(false)} ariaLabel={t('admin.passkey.reset')}>
-        <MAdminSheetFrame
-          icon={<KeyRound size={19} strokeWidth={1.8} />}
-          title={t('admin.passkey.reset')}
-          onClose={() => setShowResetPasskeys(false)}
-          footer={
-            <>
-              <MAdminButton variant="ghost" disabled={resettingPk} onClick={() => setShowResetPasskeys(false)}>
-                {t('common.cancel')}
-              </MAdminButton>
-              <MAdminButton variant="danger" busy={resettingPk} onClick={resetPasskeys}>
-                {t('admin.passkey.reset')}
-              </MAdminButton>
-            </>
-          }
-        >
-          <div className="flex gap-3">
-            <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[color:color-mix(in_srgb,var(--m-st-danger)_12%,transparent)] text-[color:var(--m-st-danger)]">
-              <Fingerprint size={18} strokeWidth={2.2} />
-            </span>
-            <div className="min-w-0 flex-1">
-              <p className="text-[0.8125rem] font-bold text-m-ink">
-                {t('admin.passkey.resetConfirm', { name: editingUser?.username ?? '' })}
-              </p>
-              <p className="mt-1 font-geist text-[0.625rem] leading-relaxed text-m-muted">
-                {t('admin.passkey.resetHint')}
-              </p>
-            </div>
-          </div>
-        </MAdminSheetFrame>
-      </MSheet>
 
       {/* Rotate JWT confirm */}
       <MSheet open={showRotateJwtModal} onClose={() => setShowRotateJwtModal(false)} ariaLabel={t('admin.rotateJwt.title')}>
@@ -316,6 +235,128 @@ export default function MAdminSheets({ admin, t }: MAdminSheetsProps) {
               </p>
               <p className="mt-1 font-geist text-[0.625rem] leading-relaxed text-m-muted">
                 {t('admin.rotateJwt.body')}
+              </p>
+            </div>
+          </div>
+        </MAdminSheetFrame>
+      </MSheet>
+    </>
+  )
+}
+
+/**
+ * The ways an admin acts on another account from its edit sheet, each behind
+ * its own confirm: passkeys, two-factor, the SSO link, and deleting the user.
+ */
+function MUserDangerActions({ admin, t, user }: { admin: MAdminSheetsProps['admin']; t: TranslationFn; user: NonNullable<MAdminSheetsProps['admin']['editingUser']> }) {
+  const { currentUser, setEditingUser, handleDeleteUser, oidcConfigured } = admin
+  const editingUser = user
+  const [showResetPasskeys, setShowResetPasskeys] = useState(false)
+  const [resettingPk, setResettingPk] = useState(false)
+  const [showResetMfa, setShowResetMfa] = useState(false)
+  const [showUnlinkSso, setShowUnlinkSso] = useState(false)
+  const userActions = useAdminUserActions(admin, t)
+
+  // The sheet stays open and busy while the reset runs and closes once it worked.
+  const resetPasskeys = async () => {
+    if (!editingUser) return
+    setResettingPk(true)
+    try {
+      if (await userActions.resetPasskeys(editingUser)) setShowResetPasskeys(false)
+    } finally {
+      setResettingPk(false)
+    }
+  }
+
+  return (
+    <>
+      <div className="border-t border-[color:var(--m-rowbr)] pt-3">
+        <p className="mb-2 font-geist text-[0.625rem] leading-relaxed text-m-muted">
+          {t('admin.passkey.resetHint')}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <MAdminButton variant="ghost" className="text-[color:var(--m-st-danger)]" onClick={() => setShowResetPasskeys(true)}>
+            <Fingerprint size={12} strokeWidth={2.2} />
+            {t('admin.passkey.reset')}
+          </MAdminButton>
+          {editingUser.id !== currentUser?.id && (
+            <MAdminButton variant="ghost" className="text-[color:var(--m-st-danger)]" onClick={() => setShowResetMfa(true)}>
+              <ShieldOff size={12} strokeWidth={2.2} />
+              {t('admin.mfa.reset')}
+            </MAdminButton>
+          )}
+          {/* Unlinking single sign-on, as on the desktop: only once SSO is set up, and never for yourself. */}
+          {oidcConfigured && editingUser.id !== currentUser?.id && (
+            <MAdminButton variant="ghost" className="text-[color:var(--m-st-danger)]" onClick={() => setShowUnlinkSso(true)}>
+              <Unlink size={12} strokeWidth={2.2} />
+              {t('admin.sso.unlink')}
+            </MAdminButton>
+          )}
+          <MAdminButton
+            variant="danger"
+            disabled={editingUser.id === currentUser?.id}
+            onClick={() => {
+              setEditingUser(null)
+              void handleDeleteUser(editingUser)
+            }}
+          >
+            <Trash2 size={12} strokeWidth={2.2} />
+            {t('admin.deleteUserTitle')}
+          </MAdminButton>
+        </div>
+      </div>
+
+      {/* Unlink single sign-on confirm */}
+      <MConfirmSheet
+        open={showUnlinkSso && !!editingUser}
+        onClose={() => setShowUnlinkSso(false)}
+        title={t('admin.sso.unlink')}
+        message={`${t('admin.sso.unlinkHint')} ${t('admin.sso.unlinkConfirm', { name: editingUser?.username ?? '' })}`}
+        confirmLabel={t('admin.sso.unlink')}
+        cancelLabel={t('common.cancel')}
+        danger
+        onConfirm={() => {
+          setShowUnlinkSso(false)
+          if (editingUser) void userActions.unlinkSso(editingUser)
+        }}
+      />
+
+      {/* Reset two-factor confirm */}
+      <MAdminResetMfaSheet
+        open={showResetMfa}
+        onClose={() => setShowResetMfa(false)}
+        user={editingUser}
+        onReset={userActions.resetMfa}
+        t={t}
+      />
+
+      {/* Reset passkeys confirm */}
+      <MSheet open={showResetPasskeys} onClose={() => setShowResetPasskeys(false)} ariaLabel={t('admin.passkey.reset')}>
+        <MAdminSheetFrame
+          icon={<KeyRound size={19} strokeWidth={1.8} />}
+          title={t('admin.passkey.reset')}
+          onClose={() => setShowResetPasskeys(false)}
+          footer={
+            <>
+              <MAdminButton variant="ghost" disabled={resettingPk} onClick={() => setShowResetPasskeys(false)}>
+                {t('common.cancel')}
+              </MAdminButton>
+              <MAdminButton variant="danger" busy={resettingPk} onClick={resetPasskeys}>
+                {t('admin.passkey.reset')}
+              </MAdminButton>
+            </>
+          }
+        >
+          <div className="flex gap-3">
+            <span className="flex h-10 w-10 flex-none items-center justify-center rounded-full bg-[color:color-mix(in_srgb,var(--m-st-danger)_12%,transparent)] text-[color:var(--m-st-danger)]">
+              <Fingerprint size={18} strokeWidth={2.2} />
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-[0.8125rem] font-bold text-m-ink">
+                {t('admin.passkey.resetConfirm', { name: editingUser?.username ?? '' })}
+              </p>
+              <p className="mt-1 font-geist text-[0.625rem] leading-relaxed text-m-muted">
+                {t('admin.passkey.resetHint')}
               </p>
             </div>
           </div>

@@ -67,11 +67,12 @@ export function allRpcControllers(): object[] {
     new TodoRpc(anyService(), anyService(), anyService()),
     new DayNotesRpc(anyService(), anyService(), anyService()),
     new PackingRpc(anyService(), anyService(), anyService()),
-    new FilesRpc(anyService(), anyService(), anyService(), anyService(), anyService()),
+    new FilesRpc(anyService(), anyService(), anyService(), anyService(), anyService(), anyService()),
     new PlacesRpc(anyService(), anyService(), anyService(), anyService(), anyService()),
     new DaysRpc(anyService(), anyService(), anyService(), anyService()),
     new ItineraryRpc(anyService(), anyService(), anyService()),
     new TripsRpc(
+      anyService(),
       anyService(),
       anyService(),
       anyService(),
@@ -94,8 +95,18 @@ export function allRpcControllers(): object[] {
     // Plan 3j Task 5 — MetaRpc/HostSurfaceRpc's own repository conversions (MR#/HR#).
     // Plan 4 Task 2 — both classes' own DatabaseService param is gone (canAccessTrip
     // now reads through the TripsRepository they already inject), one fewer anyService().
-    new MetaRpc(anyService(), anyService(), anyService(), anyService(), anyService(), anyService(), anyService()),
+    new MetaRpc(
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+      anyService(),
+    ),
     new HostSurfaceRpc(
+      anyService(),
       anyService(),
       anyService(),
       anyService(),

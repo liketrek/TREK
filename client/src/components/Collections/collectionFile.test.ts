@@ -1,9 +1,10 @@
-// FE-COLL-FILE-001 to FE-COLL-FILE-020
+// FE-COLL-FILE-001 to FE-COLL-FILE-021
 import { describe, it, expect, vi, afterEach } from 'vitest'
 import {
   collectionFileName,
   downloadCollectionFile,
   downloadCollectionGpx,
+  downloadCollectionKml,
   readCollectionFile,
   COLLECTION_FILE_EXTENSION,
   COLLECTION_GPX_EXTENSION,
@@ -89,6 +90,16 @@ describe('downloads', () => {
     expect(names).toEqual(['lisbon.gpx'])
     expect(created[0].type).toBe('application/gpx+xml')
     expect(await created[0].text()).toBe('<gpx/>')
+  })
+
+  it('FE-COLL-FILE-021: hands the browser a KML for Google My Maps under the list name (#1866)', async () => {
+    const { created, names } = captureDownload()
+
+    downloadCollectionKml('Lisbon', '<kml/>')
+
+    expect(names).toEqual(['lisbon.kml'])
+    expect(created[0].type).toBe('application/vnd.google-earth.kml+xml')
+    expect(await created[0].text()).toBe('<kml/>')
   })
 })
 

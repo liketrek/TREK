@@ -109,14 +109,15 @@ const WIDE_REGION: Record<MSheetWideAnchor, string> = {
 // A form on a window as short as a phone on its side: a sheet the window's
 // full height, over the dock, as wide as a form reads well and no wider.
 const SHORT_FORM_REGION =
-  'short:inset-x-4 short:top-[max(env(safe-area-inset-top,0px),8px)] short:bottom-0 short:items-center short:justify-stretch'
+  'short:inset-x-4 short:top-[max(var(--m-safe-t,0px),8px)] short:bottom-0 short:items-center short:justify-stretch'
 const SHORT_FORM_BOX = 'short:max-w-[640px] short:flex-1'
 
 /** The region the sheet stands in, on a phone and on a wide window. */
 function regionClass(variant: MSheetVariant, anchor: MSheetWideAnchor = 'center', form = false): string {
   const base = 'pointer-events-none absolute flex flex-col'
   if (variant === 'drawer') return `${base} ${REGION.drawer}`
-  return `${base} ${REGION[variant]} ${WIDE_REGION[anchor]}${form ? ` ${SHORT_FORM_REGION}` : ''}`
+  // m-safe-trail: on a wide window the sheet keeps off the trailing side's safe area (a Duo's status capsule).
+  return `${base} m-safe-trail ${REGION[variant]} ${WIDE_REGION[anchor]}${form ? ` ${SHORT_FORM_REGION}` : ''}`
 }
 
 /** The sheet's own box inside the region: its width, and the arrow when it has one. */

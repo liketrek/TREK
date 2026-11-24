@@ -94,6 +94,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Stoupání',
   'tours.detail.descent': 'Klesání',
   'tours.detail.navigationHint': 'Navigace otevře výchozí bod túry; nevede po její trase.',
+  'tours.detail.openRoute': 'Otevřít trasu v mapové aplikaci',
+  'tours.detail.mapsShort': 'Mapy',
   'tours.planner.title': 'Naplánovat výlet',
   'tours.planner.newTour': 'Naplánovat nový výlet',
   'tours.planner.addTour': 'Přidat túru',

@@ -117,9 +117,9 @@ export class WalletPassService {
     );
     if (!allowed) throw new DomainError(429, 'Too many Wallet passes, try again in a minute');
 
-    const row = await this.reservations.getReservationWithJoins(reservationId);
-    // The trip guard checked the trip; the booking must belong to it as well.
-    if (!row || Number(row.trip_id) !== tripId) throw new DomainError(404, 'Reservation not found');
+    // The trip guard checked the trip; the read is scoped to it, so a booking of another trip is not found.
+    const row = await this.reservations.getReservationWithJoins(reservationId, tripId);
+    if (!row) throw new DomainError(404, 'Reservation not found');
 
     // The trip's title and where the booking is, read by the reservations domain itself.
     const context = await this.reservations.passContext(reservationId, tripId);

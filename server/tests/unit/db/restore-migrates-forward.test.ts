@@ -71,10 +71,10 @@ describe('a restored database is migrated forward', () => {
 
     // What reinitialize() does after the file has been swapped in.
     const restored = await ormFor(dbFile);
-    await runSchemaBootstrap(restored);
+    await runSchemaBootstrap(restored, { snapshot: true });
     // Twice: a restore can follow a boot that already bootstrapped, and every
     // seeder is written to tolerate that.
-    await runSchemaBootstrap(restored);
+    await runSchemaBootstrap(restored, { snapshot: true });
     await restored.close(true);
 
     const after = new Database(dbFile);

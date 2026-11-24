@@ -37,7 +37,11 @@ const reservations: TranslationStrings = {
   'reservations.layover.connection': 'Connection',
   'reservations.layover.layover': 'Layover',
   'reservations.needsReview': 'Review',
-  'reservations.needsReviewHint': 'Airport could not be matched automatically — please confirm the location.',
+  'reservations.needsReviewHint':
+    'Some details were filled in automatically and could not be read for sure. Please check them.',
+  'reservations.reviewConfirm': 'Looks right',
+  'reservations.reviewConfirmHint': 'Click to mark it as checked.',
+  'reservations.reviewConfirmed': 'Marked as checked',
   'reservations.searchLocation': 'Search station, port, address…',
   'reservations.meta.trainNumber': 'Train No.',
   'reservations.meta.platform': 'Platform',
@@ -277,7 +281,6 @@ const reservations: TranslationStrings = {
   'reservations.exportCsvFiltered': 'Export the {shown} of {total} shown rows (CSV)',
   'reservations.wallet.add': 'Add to Apple Wallet',
   'reservations.wallet.addGoogle': 'Add to Google Wallet',
-  'reservations.wallet.short': 'Wallet',
   'reservations.wallet.failed': 'The Wallet pass could not be made. Please try again.',
   'reservations.wallet.undated': 'Give the booking a date first: Wallet brings the pass up around its time.',
 };

@@ -4,35 +4,30 @@
  * legacy src/mcp/tools/trips.ts registrar with the trip DI port. All three
  * ride the canShareTrips predicate (no declarative trips:share mode exists).
  */
-import { db as testDb } from '../../../src/db/database';
 import { ShareTokens } from '../../../src/db/entities/ShareTokens.entity';
-import { createUser, createTrip } from '../../helpers/factories';
 import { findRow } from '../../helpers/factories/rows';
+import { makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   delete process.env.DEMO_MODE;
 });
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp()).get(MikroORM);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp()).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -46,8 +41,8 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 describe('Tool: get_share_link', () => {
   it('returns null when the trip has no share link, then the token after creation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const empty = parseToolResult(
         await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } }),
@@ -64,8 +59,8 @@ describe('Tool: get_share_link', () => {
   });
 
   it('stores the two narrowing options like the REST route (#1712)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({
         name: 'create_share_link',
@@ -79,9 +74,9 @@ describe('Tool: get_share_link', () => {
   });
 
   it('returns access denied for a non-member trip', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'get_share_link', arguments: { tripId: trip.id } });
       expect(result.isError).toBe(true);
@@ -91,8 +86,8 @@ describe('Tool: get_share_link', () => {
 
 describe('Tool: create_share_link', () => {
   it('creates with the legacy defaults, then updates in place (created=false)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       const first = parseToolResult(
         await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } }),
@@ -115,17 +110,17 @@ describe('Tool: create_share_link', () => {
   });
 
   it('denies without trip access; blocks demo users', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const foreign = createTrip(testDb, other.id);
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const foreign = await makeTrip(orm, other.id);
     await withHarness(user.id, async (h) => {
       expect((await h.client.callTool({ name: 'create_share_link', arguments: { tripId: foreign.id } })).isError).toBe(
         true,
       );
     });
     process.env.DEMO_MODE = 'true';
-    const { user: demo } = createUser(testDb, { email: 'demo@nomad.app' });
-    const trip = createTrip(testDb, demo.id);
+    const { user: demo } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const trip = await makeTrip(orm, demo.id);
     await withHarness(demo.id, async (h) => {
       expect((await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } })).isError).toBe(
         true,
@@ -136,8 +131,8 @@ describe('Tool: create_share_link', () => {
 
 describe('Tool: delete_share_link', () => {
   it('revokes the link; denies without access', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
     await withHarness(user.id, async (h) => {
       await h.client.callTool({ name: 'create_share_link', arguments: { tripId: trip.id } });
       const result = parseToolResult(
@@ -146,7 +141,7 @@ describe('Tool: delete_share_link', () => {
       expect(result.success).toBe(true);
       expect(await findRow(orm, ShareTokens, { trip: trip.id })).toBeNull();
     });
-    const { user: stranger } = createUser(testDb);
+    const { user: stranger } = await makeUser(orm);
     await withHarness(stranger.id, async (h) => {
       expect((await h.client.callTool({ name: 'delete_share_link', arguments: { tripId: trip.id } })).isError).toBe(
         true,

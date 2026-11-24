@@ -1,3 +1,4 @@
+import { idParamSchema } from '../common/primitives.schema';
 import { tourListItemSchema, tourTypeKeySchema } from './tours.schema';
 
 import { z } from 'zod';
@@ -18,8 +19,8 @@ export const tourLibraryQuerySchema = z
   .object({
     q: z.string().trim().max(100).optional(),
     type: tourTypeKeySchema.optional(),
-    trip_id: z.coerce.number().int().positive().optional(),
-    exclude_trip_id: z.coerce.number().int().positive().optional(),
+    trip_id: idParamSchema.optional(),
+    exclude_trip_id: idParamSchema.optional(),
   })
   .strict();
 export type TourLibraryQuery = z.infer<typeof tourLibraryQuerySchema>;

@@ -9,55 +9,49 @@
  * track check on the batch tool.
  */
 import { ADDON_IDS } from '../../../src/addons';
-import { db as testDb } from '../../../src/db/database';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { RoadtripPreferences } from '../../../src/db/entities/RoadtripPreferences.entity';
 import { RoadtripVias } from '../../../src/db/entities/RoadtripVias.entity';
 import { DEMO_EMAIL_PRIMARY } from '../../../src/nest/common/demo';
+import { withRequestContext } from '../../../src/nest/database/request-context';
 import { PermissionsService } from '../../../src/nest/permissions/permissions.service';
-import { createUser, createTrip, createDay, createPlace } from '../../helpers/factories';
-import { addTripMember } from '../../helpers/factories';
+import { makePlace } from '../../helpers/factories/places';
 import { countRows, findRow, updateRows } from '../../helpers/factories/rows';
+import { setAddonEnabled } from '../../helpers/factories/settings';
+import { addTripMember, makeDay, makeTrip } from '../../helpers/factories/trips';
+import { makeUser } from '../../helpers/factories/users';
 import { FakeRealtimeService } from '../../helpers/fake-realtime';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb, setAddonEnabled } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
-import { createTestUnitOfWork, createTestAppSettingsRepo } from '../../helpers/test-uow';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-let orm: TestOrm;
+let orm: MikroORM;
 // Every tool here broadcasts through this one, so a case can read what went out.
 const realtime = new FakeRealtimeService();
 
-// The permissions cache is module-scoped, so a write through any instance is
-// what the tool's own check reads back.
+// The container's own PermissionsService, the one the tools check against, so
+// a write through it is what the tool's own check reads back.
 let savePermissions: PermissionsService['savePermissions'];
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
-  const permissionsService = new PermissionsService(
-    await createTestAppSettingsRepo(testDb),
-    await createTestUnitOfWork(testDb),
-  );
-  savePermissions = permissionsService.savePermissions.bind(permissionsService);
+  const app = await bootTestApp(realtime);
+  orm = app.get(MikroORM);
+  const permissionsService = app.get(PermissionsService);
+  savePermissions = (settings) => withRequestContext(orm, () => permissionsService.savePermissions(settings));
 });
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   realtime.reset();
-  // resetTestDb leaves the addons table alone, so each run restates it. The
+  // resetDatabase leaves the addons table alone, so each run restates it. The
   // addon ships disabled, which is why the tools were invisible before.
-  setAddonEnabled(testDb, ADDON_IDS.ROADTRIP, true);
+  await setAddonEnabled(orm, ADDON_IDS.ROADTRIP, true);
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp(realtime)).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -71,18 +65,18 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 /** A trip with one day, plus a place carrying a route geometry to use as a track. */
 async function scenario() {
-  const { user } = createUser(testDb);
-  const trip = createTrip(testDb, user.id, { title: 'Norway' });
-  const day = createDay(testDb, trip.id, { day_number: 1 });
-  const track = createPlace(testDb, trip.id, { name: 'Scenic' });
+  const { user } = await makeUser(orm);
+  const trip = await makeTrip(orm, user.id, { title: 'Norway' });
+  const day = await makeDay(orm, trip.id, { day_number: 1 });
+  const track = await makePlace(orm, trip.id, { name: 'Scenic' });
   await updateRows(orm, Places, { id: track.id }, { route_geometry: '[[1,2],[3,4]]' });
   return { user, trip, day, track };
 }
 
 describe('road-trip MCP tools', () => {
   it('MCP-ROADTRIP-001: the five tools are gone while the addon is off', async () => {
-    const { user } = createUser(testDb);
-    setAddonEnabled(testDb, ADDON_IDS.ROADTRIP, false);
+    const { user } = await makeUser(orm);
+    await setAddonEnabled(orm, ADDON_IDS.ROADTRIP, false);
 
     await withHarness(user.id, async (h) => {
       const names = (await h.client.listTools()).tools.map((t) => t.name);
@@ -99,7 +93,7 @@ describe('road-trip MCP tools', () => {
   });
 
   it('MCP-ROADTRIP-002: and there while it is on', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const names = (await h.client.listTools()).tools.map((t) => t.name);
       for (const tool of [
@@ -150,8 +144,8 @@ describe('road-trip MCP tools', () => {
     // The same check the REST routes make, which is what the repo means by the
     // two surfaces moving together.
     const { user, trip } = await scenario();
-    const other = createTrip(testDb, user.id, { title: 'Elsewhere' });
-    const otherDay = createDay(testDb, other.id, { day_number: 1 });
+    const other = await makeTrip(orm, user.id, { title: 'Elsewhere' });
+    const otherDay = await makeDay(orm, other.id, { day_number: 1 });
 
     await withHarness(user.id, async (h) => {
       const calls: [string, Record<string, unknown>][] = [
@@ -170,10 +164,10 @@ describe('road-trip MCP tools', () => {
   });
 
   it('MCP-ROADTRIP-005: a trip the caller cannot reach is refused', async () => {
-    const { user } = createUser(testDb);
-    const stranger = createUser(testDb, { email: 'other@example.test' });
-    const theirs = createTrip(testDb, stranger.user.id, { title: 'Theirs' });
-    const theirDay = createDay(testDb, theirs.id, { day_number: 1 });
+    const { user } = await makeUser(orm);
+    const stranger = await makeUser(orm, { email: 'other@example.test' });
+    const theirs = await makeTrip(orm, stranger.user.id, { title: 'Theirs' });
+    const theirDay = await makeDay(orm, theirs.id, { day_number: 1 });
 
     await withHarness(user.id, async (h) => {
       const res = await h.client.callTool({
@@ -215,9 +209,9 @@ describe('road-trip MCP tools', () => {
 
   it('MCP-ROADTRIP-007: a track from another trip cannot label this day', async () => {
     const { user, trip, day } = await scenario();
-    const stranger = createUser(testDb, { email: 'other2@example.test' });
-    const theirs = createTrip(testDb, stranger.user.id, { title: 'Theirs' });
-    const theirTrack = createPlace(testDb, theirs.id, { name: 'Not yours' });
+    const stranger = await makeUser(orm, { email: 'other2@example.test' });
+    const theirs = await makeTrip(orm, stranger.user.id, { title: 'Theirs' });
+    const theirTrack = await makePlace(orm, theirs.id, { name: 'Not yours' });
     await updateRows(orm, Places, { id: theirTrack.id }, { route_geometry: '[[1,2]]' });
 
     await withHarness(user.id, async (h) => {
@@ -274,8 +268,8 @@ describe('road-trip MCP tools', () => {
     // an assistant must never be able to do through a tool what the person it
     // is acting for cannot do through the UI.
     const { user, trip, day } = await scenario();
-    const member = createUser(testDb, { email: 'member@example.test' });
-    addTripMember(testDb, trip.id, member.user.id);
+    const member = await makeUser(orm, { email: 'member@example.test' });
+    await addTripMember(orm, trip.id, member.user.id);
     await savePermissions({ day_edit: 'trip_owner' });
 
     try {
@@ -312,8 +306,8 @@ describe('road-trip MCP tools', () => {
 
   it('MCP-ROADTRIP-011: the demo account may look but never write', async () => {
     const { trip, day } = await scenario();
-    const demo = createUser(testDb, { email: DEMO_EMAIL_PRIMARY });
-    addTripMember(testDb, trip.id, demo.user.id);
+    const demo = await makeUser(orm, { email: DEMO_EMAIL_PRIMARY });
+    await addTripMember(orm, trip.id, demo.user.id);
 
     process.env.DEMO_MODE = 'true';
     try {
@@ -387,7 +381,7 @@ describe('road-trip MCP tools', () => {
   it('MCP-ROADTRIP-014: both via tools say that a via on the drive into a booked night is kept and not used', async () => {
     // The planner refuses that click with a sentence; a tool stores the via as asked, so
     // the note on the tool is the only place the assistant can learn it changes nothing.
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const tools = (await h.client.listTools()).tools;
       for (const name of ['add_route_via', 'add_route_vias']) {

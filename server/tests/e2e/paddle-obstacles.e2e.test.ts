@@ -176,12 +176,14 @@ afterAll(async () => {
 });
 
 describe('GET /api/paddle/obstacles', () => {
-  it('PADE2E-001: 404 while Tours is off, ahead of the session check; 401 without a cookie once on', async () => {
+  it('PADE2E-001: 404 while Tours is off for the caller; 401 without a cookie, whatever Tours says', async () => {
+    // The obstacles belong to no one trip: Tours opens them for a caller one of whose trips has it on,
+    // so the addon is asked once the session says who is asking.
     await setAddonEnabled(orm, 'tours', false);
-    for (const res of [await obstacles(BOX), await obstacles(BOX, USER)]) {
-      expect(res.status).toBe(404);
-      expect(res.body).toEqual({ error: 'Tours addon is not enabled' });
-    }
+    const off = await obstacles(BOX, USER);
+    expect(off.status).toBe(404);
+    expect(off.body).toEqual({ error: 'Tours addon is not enabled' });
+    expect((await obstacles(BOX)).status).toBe(401);
     await setAddonEnabled(orm, 'tours', true);
     const anonymous = await obstacles(BOX);
     expect(anonymous.status).toBe(401);

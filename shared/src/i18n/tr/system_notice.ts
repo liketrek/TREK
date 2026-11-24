@@ -49,6 +49,7 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'Toplulukla birlikte geliştirildi',
   'system_notice.thank_you_support.cta_bmc': 'Bana bir kahve ısmarla',
   'system_notice.thank_you_support.cta_kofi': "Ko-fi'de Destek Ol",
+  'system_notice.thank_you_support.cta_patreon': "Patreon'da Aylık Destek",
   'system_notice.pager.prev': 'Önceki bildirim',
   'system_notice.pager.next': 'Sonraki bildirim',
   'system_notice.pager.counter': '{current} / {total}',
@@ -57,37 +58,39 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Güncelleme yüklendi',
   'system_notice.release_notes.features_label': 'Öne çıkanlar',
   'system_notice.release_notes.features_aside': 'Hepsi bu kadar değil',
-  'system_notice.release_notes.feature_search_title': 'İsabetli yer arama',
-  'system_notice.release_notes.feature_search_body':
-    'Şehirler, adalar, simge yapılar ve koduyla aranan havalimanları önce gelir, kafeler çevrenizden gelir ve öneriler siz yazarken belirir.',
-  'system_notice.release_notes.feature_share_title': 'Paylaşılan yer ayrıntıları',
-  'system_notice.release_notes.feature_share_body':
-    'Web sitelerini, çalışma saatlerini ve fotoğrafları alan alan her TREK ile paylaşın, kayıtlı yerleriniz de başkalarının eklediklerini alır.',
-  'system_notice.release_notes.feature_routing_title': 'Daha hızlı rota hesaplama',
-  'system_notice.release_notes.feature_routing_body':
-    'Bütün bir gün, yirmi durağa kadar tek seferde hesaplanır, yavaş bir rota artık diğerlerini bekletmez ve toplu taşıma, ilk sağlayıcı bir şey bulamazsa ikinci bir sağlayıcıya sorar.',
+  'system_notice.release_notes.feature_mail_title': 'Rezervasyon e-postaları gezine düşer',
+  'system_notice.release_notes.feature_mail_body':
+    'Bir onay e-postasını kişisel adresine yönlendir; TREK gezini bulur, kontrol eder ve rezervasyonu belgesiyle birlikte ekler.',
+  'system_notice.release_notes.feature_flight_title': 'Canlı uçuş durumu, ücretsiz',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK her uçuşunu kendi gününde takip eder: durum, gecikme, iki havalimanı ve uçağın göründüğü bir harita, API anahtarı olmadan.',
+  'system_notice.release_notes.feature_pdf_title': "Yeni gezi PDF'i",
+  'system_notice.release_notes.feature_pdf_body':
+    'Rotanı gösteren bir kapak, her gün bir zaman çizelgesi olarak ve tüm rezervasyonların kodlarıyla, yazdırmaya ya da paylaşmaya hazır.',
   'system_notice.release_notes.footnote':
-    "Ayrıca TREK'in geri kalanına yayılmış, daha küçük değişikliklerden oluşan uzun bir liste var.",
+    'Ayrıca PostgreSQL, gezi başına eklentiler, yerlere etiketler, masrafları tutmanın daha çok yolu ve uzun bir küçük değişiklikler listesi.',
   'system_notice.release_notes.notes_label': 'Sürüm notları',
   'system_notice.release_notes.note_eyebrow': 'Geliştiriciden bir not',
   'system_notice.release_notes.note_title': "TREK'i geliştirmeye devam etmemin sebebi sensin.",
   'system_notice.release_notes.note_body':
-    'TREK, kendi seyahatlerim için küçük bir araç olarak başladı. Onları daha iyi planlamak istediğim için iş çıkışlarında yazıyordum. O günden beri de büyümeyi hiç tam olarak bırakmadı. Kullandığın neredeyse her şey gece geç saatlerde, hafta sonlarında, trenlerde, tam zamanlı bir işin yanında yapıldı ve birinin onu bir gün gerçekten açıp açmayacağını içten içe merak ettiğim çok akşam oldu.',
+    'TREK, kendi gezilerim için işten sonra yaptığım küçük bir araç olarak başladı. Bugün kullandığın hemen her şey gece geç saatlerde, hafta sonlarında ya da trenlerde, tam zamanlı bir işin yanında ortaya çıktı ve çoğu zaman biri onu açar mı diye merak ettim.',
   'system_notice.release_notes.promise_label': 'Söz',
   'system_notice.release_notes.promise_lead': 'TREK sonsuza dek ücretsiz kalacak.',
   'system_notice.release_notes.promise_text':
     'Her özellik, her güncelleme, herkes için. Ücretli paket yok, abonelik yok, gizli şart yok.',
   'system_notice.release_notes.note_body_after':
-    "Sonra sizler açtınız. Birkaç ay içinde sayınız binleri buldu: yıldızlar, hata bildirimleri, konuşmadığım dillere çeviriler, hiç tanışmadığım insanlardan pull request'ler. Hâlâ her sabah ilk iş repoya bakıyorum ve bu hâlâ tam olarak gerçekmiş gibi gelmiyor.",
-  'system_notice.release_notes.note_closing': 'Burada olduğun için teşekkür ederim. Sevgiler, Maurice.',
-  'system_notice.release_notes.support_label': 'Bağımsız kalmak',
-  'system_notice.release_notes.support_lead': 'Google ve benzerleri olmadan.',
+    "Sonra siz geldiniz, kısa sürede binlerce kişi: yıldızlarla, hata bildirimleriyle, konuşmadığım dillere çevirilerle ve hiç tanımadığım insanların pull request'leriyle. Hâlâ her sabah ilk iş depoya bakıyorum ve hâlâ tam gerçek gibi gelmiyor.",
+  'system_notice.release_notes.note_closing':
+    'Burada olduğun için teşekkür ederim. Maurice',
+  'system_notice.release_notes.support_label': 'Sizin sayenizde',
+  'system_notice.release_notes.support_lead': 'TREK yalnızca bağışlar sayesinde var.',
   'system_notice.release_notes.support_text':
-    "Yer arama, adres arama ve rota hesaplama TREK'in kendi sunucularında çalışıyor, bugün dataforest cloud sponsorluğunda. Bunun için her gün mücadele ediyorum ve böyle kalması sizin desteğinize bağlı.",
+    "Bağışlar sunucuların faturasını ödüyor ve bana geliştirmeye devam edecek zaman veriyor. Tek bir kahve bile TREK'in herkes için ücretsiz kalmasına yardım eder.",
   'system_notice.release_notes.cta_bmc': 'Bana bir kahve ısmarla',
   'system_notice.release_notes.cta_kofi': "Ko-fi'de Destek Ol",
-  'system_notice.release_notes.headline': 'Önce doğru yer.',
+  'system_notice.release_notes.cta_patreon': "Patreon'da Aylık Destek",
+  'system_notice.release_notes.headline': 'Daha az yazmak, daha çok gezmek.',
   'system_notice.release_notes.intro':
-    "Yer arama, adres arama ve rota hesaplama artık dataforest cloud sponsorluğunda TREK'in kendi sunucularında çalışıyor ve her TREK, yerler hakkında bildiklerini diğer tüm TREK'lerle paylaşabiliyor.",
+    "Yönlendirdiğin rezervasyon e-postaları gezine düşüyor, TREK uçuşlarını canlı takip ediyor ve gezi PDF'i baştan yepyeni. TREK artık PostgreSQL ile de çalışıyor.",
 };
 export default system_notice;

@@ -64,7 +64,7 @@ export default function MRoadtripTab({ planner, shell }: MTripTabPanelProps) {
   // fall back to the trip's first routed day, which is not the one on screen, and every
   // distance it answered with would be measured against a road nobody is looking at.
   const searchBar = stage && (
-    <div className="pointer-events-auto absolute inset-x-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[26]">
+    <div className="m-safe-row pointer-events-auto absolute inset-x-4 top-[calc(var(--m-safe-top,12px)+96px)] z-[26]">
       <MRtCorridorBar planner={planner} corridor={corridor} onOpen={() => shell.openSheet('rtsearch')} />
     </div>
   )

@@ -505,8 +505,32 @@ const SCRIPTS: Record<string, GuideScript> = {
           await tourRow(p, /Vallunga cross-country/).click();
           await expect(p.getByTestId('ski-track-card')).toBeVisible({ timeout: 30_000 });
           await settle(p);
+          // The card lies below the fold of its panel while the panel still grows; the picture
+          // was taken of the empty space below the window. Wait until the button sits inside it.
+          const change = p.getByTestId('ski-track-card').getByRole('button', { name: 'Change' });
+          await expect
+            .poll(
+              async () => {
+                await change.evaluate((el) => el.scrollIntoView({ block: 'center', inline: 'nearest' }));
+                await p.evaluate(() => window.scrollTo(0, 0));
+                const box = await change.boundingBox();
+                const vp = p.viewportSize();
+                return !!box && !!vp && box.y > 0 && box.y + box.height < vp.height && box.x > 0;
+              },
+              { timeout: 20_000 }
+            )
+            .toBe(true);
+          await p.waitForTimeout(800);
+          await settle(p);
         },
         target: (p) => p.getByTestId('ski-track-card').getByRole('button', { name: 'Change' }),
+        hover: async (p) => {
+          const change = p.getByTestId('ski-track-card').getByRole('button', { name: 'Change' });
+          // A throwaway full screenshot first: the one render that came out right had one here, and
+          // the clipped shot alone has come out as an empty, shifted frame without the ring.
+          await p.screenshot();
+          await change.hover();
+        },
         act: async (p) => {
           await p.getByTestId('ski-track-card').getByRole('button', { name: 'Change' }).click();
           await expect(classifyDialog(p)).toBeVisible();

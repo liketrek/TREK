@@ -1,5 +1,8 @@
+import { ADDON_IDS } from '../../addons';
 import { AssistantAttachments } from '../../db/entities/AssistantAttachments.entity';
 import type { AssistantAttachmentsRepository } from '../../db/repositories/AssistantAttachments.repository';
+import { addonOffMessage } from '../addons/addons.constants';
+import { AddonsService } from '../addons/addons.service';
 import { logError } from '../audit/audit-log.logger';
 import { DemoService } from '../common/demo.service';
 import { UnitOfWork } from '../database/unit-of-work';
@@ -70,6 +73,7 @@ export class AssistantKeepFileService {
     private readonly demo: DemoService,
     private readonly trips: TripAccessService,
     private readonly uow: UnitOfWork,
+    private readonly addons: AddonsService,
   ) {}
 
   /**
@@ -122,10 +126,22 @@ export class AssistantKeepFileService {
     return { ok: true, value: { file: keptOf({ ...created, ...links }) } };
   }
 
-  /** Why the user may not keep this file here, or null: the demo, the trip, the Files rights. */
+  /**
+   * Whether files may go into the trip's Files at all: the trip's Documents
+   * addon, which follows the instance unless the trip's owner chose for it.
+   */
+  keepsOn(tripId: number): Promise<boolean> {
+    return this.addons.isEnabledForTrip(tripId, ADDON_IDS.DOCUMENTS);
+  }
+
+  /**
+   * Why the user may not keep this file here, or null: the demo, the trip, the
+   * trip's Documents addon (answered as the Files routes answer it), the Files rights.
+   */
   private async refusalOf(at: KeepAt, args: AssistantKeepFileArgs): Promise<string | null> {
     if (await this.demo.isDemoUserId(at.userId)) return NOT_ALLOWED;
     if (!(await this.trips.findAccessible(at.tripId, at.userId))) return NOT_ALLOWED;
+    if (!(await this.keepsOn(at.tripId))) return addonOffMessage(ADDON_IDS.DOCUMENTS);
     if (!(await this.guards.hasTripPermission('file_upload', at.tripId, at.userId))) return NOT_ALLOWED;
     const linking = args.reservation_id ?? args.budget_item_id ?? args.place_id;
     if (linking && !(await this.guards.hasTripPermission('file_edit', at.tripId, at.userId))) {

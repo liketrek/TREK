@@ -32,6 +32,12 @@ export interface McpContext {
    * consumers (list_trips / get_trip_summary) treat absence as "no notice".
    */
   getDeprecationNotice?: () => string | null;
+  /**
+   * The one trip a session is about, set by a session pinned to a trip (the
+   * assistant's trip chat). The addon gates then ask that trip instead of the
+   * user's trips as a whole. Absent for an MCP client, which may name any trip.
+   */
+  tripId?: number;
 }
 
 /**
@@ -268,15 +274,17 @@ export type McpAccessValidator = (access: McpDeclarativeAccess, entry: McpRegist
 
 /**
  * Host-supplied check run before every registered tool handler, after the
- * SDK validated the arguments and inside the `around` wrapper. Return a result
- * to answer the call with it instead of running the handler, or undefined to
- * let the handler run. The package attaches no meaning to it; TREK's demo-mode
- * write block lives in `src/mcp/nest-mcp-policy.ts`.
+ * SDK validated the arguments and inside the `around` wrapper. It is handed
+ * the tool's options, the session context and the arguments the handler is
+ * about to receive (after the host's input mapper). Return a result to answer
+ * the call with it instead of running the handler, or undefined to let the
+ * handler run. The package attaches no meaning to it; TREK's demo-mode write
+ * block and its per-trip addon check live in `src/mcp/nest-mcp-policy.ts`.
  *
  * Registered entries only: a dynamic tool's source owns its own checks,
  * because the host cannot know what a contributor's annotations promise.
  */
-export type McpToolGate = (tool: ToolOptions, ctx: McpContext) => unknown;
+export type McpToolGate = (tool: ToolOptions, ctx: McpContext, args?: unknown) => unknown;
 
 /**
  * Host-supplied translation of an error a registered tool handler threw into
@@ -289,6 +297,15 @@ export type McpToolGate = (tool: ToolOptions, ctx: McpContext) => unknown;
  * its own failure handling.
  */
 export type McpErrorMapper = (err: unknown) => unknown;
+
+/**
+ * Rewrites what a client sends before a handler receives it: the arguments of
+ * every tool (registered and dynamic) and prompt, and the variables of every
+ * resource template. The host's normalisation seam (TREK drops NUL characters
+ * here, as from every HTTP request); nest-mcp attaches no semantics to it.
+ * Omitted, the input reaches the handler as the SDK parsed it.
+ */
+export type McpInputMapper = (input: unknown) => unknown;
 
 /**
  * How the module builds its `McpToolGate`: a factory with the providers it
@@ -308,6 +325,8 @@ export interface McpModuleOptions {
   toolGate?: McpToolGateProvider;
   /** See `McpErrorMapper`. Static: it needs nothing from the container. */
   errorMapper?: McpErrorMapper;
+  /** See `McpInputMapper`. Static, like the error mapper. */
+  inputMapper?: McpInputMapper;
 }
 
 /** Injection token for the resolved `McpToolGate` (null when none was configured). */

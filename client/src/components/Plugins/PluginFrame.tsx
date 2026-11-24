@@ -320,6 +320,16 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   const tripCurrency = useTripStore((s) => s.trip?.currency)
   const displayCurrency = (settings.default_currency || tripCurrency || 'EUR').toUpperCase()
   const [height, setHeight] = useState<number | null>(null)
+  // Lifecycle: tell a plugin when it is off the screen or the app is backgrounded,
+  // so a heavy one can pause its timers, polling and animation instead of burning
+  // the shared main thread (worst on a phone, where the whole app janks). And on a
+  // phone a dashboard-widget plugin scrolled well out of view is suspended outright
+  // — its iframe is unmounted and a placeholder keeps its height — so an offscreen
+  // widget costs nothing and comes back on its own when it scrolls into view.
+  const wrapRef = useRef<HTMLDivElement | null>(null)
+  const visibleRef = useRef(true)
+  const [suspended, setSuspended] = useState(false)
+  const suspendable = isPhone && surface === 'dashboard-widget'
   // A host-rendered ConfirmDialog on the plugin's behalf: sandboxed frames have no
   // allow-modals and can't overlay the host, so destructive plugin actions get the
   // same native confirm every TREK feature uses. One at a time; extras are refused.
@@ -670,6 +680,56 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
     }
   }, [pluginId])
 
+  // Watch whether the frame is on screen (and the tab/app in the foreground) and
+  // forward it to the plugin as `trek:visibility`; on a phone, a dashboard widget
+  // that leaves the screen (with a margin so a partial scroll never tears it down)
+  // is suspended, which unmounts the heavy iframe entirely.
+  useEffect(() => {
+    // A phone widget keeps the wrapper mounted across a suspend and is observed
+    // there; everything else is observed on the iframe itself, which never unmounts.
+    const el = suspendable ? wrapRef.current : frameRef.current
+    if (!el || typeof IntersectionObserver === 'undefined') return
+    let onscreen = true
+    const emit = () => {
+      const visible = onscreen && !document.hidden
+      if (visible !== visibleRef.current) {
+        visibleRef.current = visible
+        postFrame({ type: 'trek:visibility', visible })
+      }
+    }
+    const io = new IntersectionObserver(
+      (entries) => {
+        onscreen = entries[entries.length - 1]?.isIntersecting ?? true
+        emit()
+        if (suspendable) setSuspended(!onscreen)
+      },
+      { rootMargin: suspendable ? '250px 0px' : '0px', threshold: 0 }
+    )
+    io.observe(el)
+    const onVis = () => emit()
+    document.addEventListener('visibilitychange', onVis)
+    return () => {
+      io.disconnect()
+      document.removeEventListener('visibilitychange', onVis)
+    }
+  }, [pluginId, postFrame, suspendable])
+
+  // Coming back from a suspend remounts a fresh iframe (same pluginId key), so the
+  // load counter has to start over or the remount reads as a self-navigation and
+  // never gets the context; going into one stops the geolocation watch of the frame
+  // that is about to be unmounted.
+  useEffect(() => {
+    if (suspended) {
+      if (geoWatchRef.current != null) {
+        navigator.geolocation.clearWatch(geoWatchRef.current)
+        geoWatchRef.current = null
+      }
+    } else {
+      loadsRef.current = 0
+      visibleRef.current = true
+    }
+  }, [suspended])
+
   const answerConfirm = (confirmed: boolean) => {
     const req = confirmReqRef.current
     if (req) postFrame({ type: 'trek:confirm:result', requestId: req.requestId, confirmed })
@@ -682,36 +742,53 @@ export default function PluginFrame({ pluginId, tripId = null, placeId = null, d
   const pluginLabel = title || pluginId
   const confirmTitle = confirmReq?.title ? `${pluginLabel} — ${confirmReq.title}` : pluginLabel
 
+  const pluginFrame = (
+    <iframe
+      key={pluginId}
+      ref={frameRef}
+      src={`/plugin-frame/${pluginId}/${path}`}
+      // Deliver the context as soon as the document is parsed (the plugin sets up its
+      // message listener during parse), closing the trek:ready race so the theme is
+      // right on first paint. A 2nd load is a self-navigation — don't bridge to it.
+      onLoad={() => {
+        setLoadFailed(false)
+        loadsRef.current += 1
+        if (loadsRef.current === 1) {
+          postFrame(buildContext())
+          // A widget that loaded off screen (or a backgrounded app) learns so at once,
+          // so it never starts its work just to be told to stop a frame later.
+          if (!visibleRef.current) postFrame({ type: 'trek:visibility', visible: false })
+        }
+        // A self-navigated frame is no longer bridged, so its watch is only
+        // burning battery for positions nobody receives.
+        else if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
+      }}
+      onError={() => setLoadFailed(true)}
+      sandbox="allow-scripts allow-forms"
+      allowFullScreen
+      allow="fullscreen"
+      referrerPolicy="no-referrer"
+      loading="lazy"
+      title={title || pluginId}
+      className={className}
+      style={{ width: '100%', height: suspendable ? '100%' : fill ? '100%' : height ?? '100%', border: 0, display: loadFailed ? 'none' : undefined }}
+    />
+  )
+
   return (
     // Third-party code: a throw in here must cost the plugin, not the page.
     <ErrorBoundary boundaryId="plugin-frame" label={pluginLabel} resetKeys={[pluginId]}>
       <>
-        <iframe
-          key={pluginId}
-          ref={frameRef}
-          src={`/plugin-frame/${pluginId}/${path}`}
-          // Deliver the context as soon as the document is parsed (the plugin sets up its
-          // message listener during parse), closing the trek:ready race so the theme is
-          // right on first paint. A 2nd load is a self-navigation — don't bridge to it.
-          onLoad={() => {
-            setLoadFailed(false)
-            loadsRef.current += 1
-            if (loadsRef.current === 1) postFrame(buildContext())
-            // A self-navigated frame is no longer bridged, so its watch is only
-            // burning battery for positions nobody receives.
-            else if (geoWatchRef.current != null) { navigator.geolocation.clearWatch(geoWatchRef.current); geoWatchRef.current = null }
-          }}
-          onError={() => setLoadFailed(true)}
-          sandbox="allow-scripts allow-forms"
-          allowFullScreen
-          allow="fullscreen"
-          referrerPolicy="no-referrer"
-          loading="lazy"
-          title={title || pluginId}
-          className={className}
-          style={{ width: '100%', height: fill ? '100%' : height ?? '100%', border: 0, display: loadFailed ? 'none' : undefined }}
-        />
-        {loadFailed && (
+        {suspendable ? (
+          // Phone dashboard widget: the wrapper holds the widget's measured height so
+          // the list does not jump when the iframe is unmounted off screen.
+          <div ref={wrapRef} style={{ width: '100%', height: height ?? 160 }}>
+            {!suspended && pluginFrame}
+          </div>
+        ) : (
+          pluginFrame
+        )}
+        {loadFailed && !suspended && (
           <div
             role="alert"
             className="flex items-center justify-center rounded-xl border border-edge bg-surface-2 p-6 text-caption text-content-2"

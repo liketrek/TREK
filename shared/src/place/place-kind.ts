@@ -152,7 +152,7 @@ const KIND_CATEGORY: Readonly<Record<PlaceKind, { names: readonly string[]; icon
   shopping: { names: ['shopping', 'shop', 'einkauf', 'store', 'markt'], icons: ['🛍️', 'ShoppingBag', 'Store'] },
   transport: {
     names: ['transport', 'verkehr', 'transit', 'station'],
-    icons: ['🚌', '🚆', '✈️', 'Bus', 'Train', 'Plane'],
+    icons: ['🚌', '🚆', '✈️', 'Bus', 'Train', 'Plane', 'BusFront', 'TrainFront', 'PlaneTakeoff'],
   },
   beach: { names: ['beach', 'strand', 'plage', 'playa', 'spiaggia'], icons: ['🏖️', 'Waves'] },
   nature: {

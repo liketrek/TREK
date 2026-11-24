@@ -21,7 +21,8 @@ export interface PackingSlice {
   // Three-tier sharing (#858)
   setPackingItemSharing: (tripId: number | string, id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) => Promise<void>
   clonePackingItem: (tripId: number | string, id: number) => Promise<void>
-  addPackingContributor: (tripId: number | string, id: number) => Promise<void>
+  /** Without a userId the caller pledges themselves; with one, that member is put down as a bringer (#3098). */
+  addPackingContributor: (tripId: number | string, id: number, userId?: number) => Promise<void>
   removePackingContributor: (tripId: number | string, id: number, userId: number) => Promise<void>
 }
 
@@ -141,9 +142,9 @@ export const createPackingSlice = (set: SetState, get: GetState): PackingSlice =
     }
   },
 
-  addPackingContributor: async (tripId, id) => {
+  addPackingContributor: async (tripId, id, userId) => {
     try {
-      const result = await packingApi.addContributor(tripId, id)
+      const result = await packingApi.addContributor(tripId, id, userId)
       set(state => ({ packingItems: state.packingItems.map(i => i.id === id ? result.item : i) }))
     } catch (err: unknown) {
       notify(getApiErrorMessage(err, 'Error joining item'), 'error')

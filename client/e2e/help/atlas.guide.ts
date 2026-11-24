@@ -236,6 +236,13 @@ async function excludedTours(page: Page): Promise<Set<number>> {
 /** What was left out before the tour guide ran, so `cleanup` counts exactly its own change again. */
 let excludedBefore = new Set<number>()
 
+/** Why the Dawarich connection could not be made in `beforeAll`, if it could not. */
+let dawarichMissing: Error | null = null
+async function openAtlasWithDawarich(page: Page): Promise<void> {
+  if (dawarichMissing) throw dawarichMissing
+  await openAtlas(page)
+}
+
 const SCRIPTS: Record<string, GuideScript> = {
   'mark-country': {
     guide: guide('mark-country'),
@@ -364,6 +371,9 @@ const SCRIPTS: Record<string, GuideScript> = {
           await expect(detailCard(p, 'Portugal')).toBeVisible()
         },
         target: p => detailCard(p, 'Portugal'),
+        // On the name with its Planned label: the centre of the card is the
+        // Places badge, whose tooltip covered the trip chip under it.
+        hover: p => panel(p).locator('p.text-sm.font-bold').filter({ hasText: 'Portugal' }).hover(),
       },
     ],
   },
@@ -607,7 +617,9 @@ const SCRIPTS: Record<string, GuideScript> = {
         // The side column: the Planned and Recorded badges, what does not
         // count yet, and the i whose tooltip states the rule.
         target: p => showToursButton(p).locator('xpath=..'),
-        hover: p => tourPane(p).getByRole('button', { name: 'My tour activities', exact: true }).hover(),
+        // On Still ahead, whose tooltip is one short line. The i's tooltip is the
+        // whole rule in one wide line, and it covered the badges the step names.
+        hover: p => tourPane(p).getByText('Still ahead', { exact: true }).hover(),
       },
       {
         target: showToursButton,
@@ -619,7 +631,9 @@ const SCRIPTS: Record<string, GuideScript> = {
       },
       {
         target: p => firstTourRow(p),
-        hover: p => firstTourRow(p).locator('[data-testid^="tour-activity-toggle-"]').hover(),
+        // On the tour's name, which has no tooltip: the button's own tooltip ran
+        // past the frame's edge and over the row below.
+        hover: p => firstTourRow(p).locator('span.font-semibold').first().hover(),
         act: async p => {
           // Found again by its own id afterwards: the list may sort a left-out tour elsewhere.
           const id = await firstTourRow(p).getAttribute('data-testid')
@@ -644,7 +658,7 @@ const SCRIPTS: Record<string, GuideScript> = {
   'dawarich-countries': {
     guide: guide('dawarich-countries'),
     start: async p => {
-      await openAtlas(p)
+      await openAtlasWithDawarich(p)
       visitedBefore = await visitedCodes(p)
     },
     steps: [
@@ -708,7 +722,7 @@ const SCRIPTS: Record<string, GuideScript> = {
 
   'dawarich-wishes': {
     guide: guide('dawarich-wishes'),
-    start: openAtlas,
+    start: openAtlasWithDawarich,
     steps: [
       {
         target: p => tile(p, 'Wishlist'),
@@ -773,8 +787,14 @@ test.beforeAll(async ({ request }) => {
   const { ensureToursFixtures } = await import('./tour-fixtures')
   await ensureToursFixtures(request)
   // After the Atlas fixtures: the connection adds two wishes with coordinates
-  // (Fushimi Inari Taisha, Wadi Rum) to the list the fixtures create.
-  await ensureDawarichConnection(request)
+  // (Fushimi Inari Taisha, Wadi Rum) to the list the fixtures create. Without
+  // media.env it cannot be made; the two Dawarich guides then fail at their
+  // start with the reason, and every other guide of the file still runs.
+  try {
+    await ensureDawarichConnection(request)
+  } catch (err) {
+    dawarichMissing = err instanceof Error ? err : new Error(String(err))
+  }
 })
 
 test.afterAll(async ({ request }) => {

@@ -35,7 +35,7 @@ export function BookingFileButtons({ canAttach, uploading, onAttach, linkable, o
 
   const buttonClass = 'bg-surface-secondary border border-edge text-content transition-colors hover:bg-surface-tertiary disabled:cursor-default disabled:opacity-60'
   const buttonStyle = {
-    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 13px',
+    width: '100%', minWidth: 0, display: 'flex', whiteSpace: 'nowrap', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '8px 13px',
     borderRadius: 10, fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit',
   } as const
 
@@ -43,14 +43,15 @@ export function BookingFileButtons({ canAttach, uploading, onAttach, linkable, o
     <div style={{ display: 'grid', gridTemplateColumns: canAttach && canLink ? '1fr 1fr' : '1fr', gap: 8 }}>
       {canAttach && (
         <button type="button" onClick={onAttach} disabled={uploading} className={buttonClass} style={buttonStyle}>
-          <Paperclip size={14} />
-          {uploading ? t('reservations.uploading') : t('reservations.attachFile')}
+          <Paperclip size={14} className="flex-none" />
+          <span className="min-w-0 truncate">{uploading ? t('reservations.uploading') : t('reservations.attachFile')}</span>
         </button>
       )}
       {canLink && (
-        <div ref={pickerRef} style={{ position: 'relative' }}>
+        <div ref={pickerRef} style={{ position: 'relative', minWidth: 0 }}>
           <button type="button" onClick={() => setOpen(v => !v)} aria-expanded={open} className={buttonClass} style={buttonStyle}>
-            <Link2 size={14} /> {t('reservations.linkExisting')}
+            <Link2 size={14} className="flex-none" />
+            <span className="min-w-0 truncate">{t('reservations.linkExisting')}</span>
           </button>
           {open && (
             <div className="bg-surface-card" style={{

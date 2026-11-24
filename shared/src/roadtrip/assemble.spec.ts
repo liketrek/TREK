@@ -1,5 +1,5 @@
 /**
- * ROADTRIP-ASSEMBLE-001..024: what the assembler does with the model's warnings, and
+ * ROADTRIP-ASSEMBLE-001..027: what the assembler does with the model's warnings, and
  * what it tells a surface about the drive between connected days. From 017 on: a booked
  * night seated at both ends of its days (`seatNightBookends`) is one spot overnight,
  * driven to and from like any stop and never between.
@@ -201,16 +201,130 @@ describe('assembleRoadtrip connected days', () => {
     expect(routes.days[1]!.geometry[0]).toEqual([60, 10]);
   });
 
-  it('ROADTRIP-ASSEMBLE-006: that drive is marked as the connection it is, in the colour of the day it leaves', () => {
+  it('ROADTRIP-ASSEMBLE-006: that drive is marked as the connection it is, in the colour of the day it arrives on (#3123)', () => {
     const routes = assembleTwoDays(true);
 
-    // Day 1 drives two of its own legs and then on into day 2; day 2 drives one.
-    expect(routes.lineDays).toEqual([1, 1, 1, 2]);
+    // Day 1 drives two of its own legs; day 2 drives on from yesterday's last stop and then
+    // one of its own. The connecting drive counts toward day 2 on the card, so the map draws
+    // it as day 2 too: drawn as day 1, the map said the drive was day 1's while the card's
+    // figures said day 2's.
+    expect(routes.lineDays).toEqual([1, 1, 2, 2]);
+    expect(routes.days.map((d) => d.distance)).toEqual([200_000, 200_000]);
     expect(routes.lines).toHaveLength(routes.lineJoins.length);
-    // The third line is drawn as day 1 but runs into day 2, and only it is a join. A
-    // surface showing one day needs that apart from the day number, which says day 1 for
-    // both the day's own legs and for the drive leading off it.
+    // The third line is the connection, and only it is a join. A surface showing one day
+    // needs that apart from the day number, which says day 2 for both the day's own leg and
+    // the drive leading into it.
     expect(routes.lineJoins).toEqual([false, false, true, false]);
+  });
+
+  it('ROADTRIP-ASSEMBLE-025: a stop reached after midnight is drawn in the colour of the day it lands on (#3123)', () => {
+    // Day 1 sets off at 22:00 and drives two 100 km legs of 67 minutes each, so its last
+    // stop is reached at 00:14 and the card files it under day 2, with its drive counted
+    // there. The line into it has to say day 2 as well.
+    const first = [stop({ ownerIndex: 0, time: '22:00' }), stop({ ownerIndex: 1 }), stop({ ownerIndex: 2 })];
+    const second = [
+      stop({ ownerDayId: 2, ownerIndex: 0, assignmentId: 300, placeId: 400, lat: 60 }),
+      stop({ ownerDayId: 2, ownerIndex: 1, assignmentId: 301, placeId: 401, lat: 61 }),
+    ];
+    const allLegs: Record<string, RoutedLeg> = {};
+    for (const run of [first, second, [first[2]!, second[0]!]]) {
+      run.slice(0, -1).forEach((from, i) => {
+        allLegs[legKey(from, run[i + 1]!)] = lineFrom(from, run[i + 1]!);
+      });
+    }
+    const routes = assembleRoadtrip({
+      plan: [
+        { dayId: 1, dayNumber: 1, date: '2026-06-01', title: null, stops: first },
+        { dayId: 2, dayNumber: 2, date: '2026-06-02', title: null, stops: second },
+      ],
+      quietDays: [],
+      window: null,
+      distanceUnit: 'metric',
+      allLegs,
+      snapByDay: {},
+      missedByDay: {},
+      loading: false,
+      limits: { rangeKm: null, legMinutes: null, dayMinutes: null },
+      vehicleKind: null,
+      connectDays: true,
+      boundaries: [],
+      labels: { start: 'start', end: 'end' },
+    });
+
+    const landed = routes.days.find((d) => d.dayNumber === 2)!;
+    expect(landed.spills).toEqual([expect.objectContaining({ at: 0, fromDayNumber: 1 })]);
+    // Day 1 keeps one leg; the drive past midnight and day 2's own two legs are day 2's.
+    expect(routes.days.map((d) => d.distance)).toEqual([100_000, 300_000]);
+    expect(routes.lineDays).toEqual([1, 2, 2, 2]);
+    expect(routes.lineJoins).toEqual([false, true, false, false]);
+  });
+
+  /**
+   * The same two days under daily travel times that end each day "At the last place", the
+   * setting #3123 was filed with. `joinKm` sets the drive between the days: 100 km fits the
+   * window, 2000 km does not, so the window plan gives up (`legTooLong`) and the days fall
+   * back to being drawn as stored.
+   */
+  function assembleAtLastPlace(joinKm: number) {
+    const first = [stop({ ownerIndex: 0 }), stop({ ownerIndex: 1 }), stop({ ownerIndex: 2 })];
+    const second = [
+      stop({ ownerDayId: 2, ownerIndex: 0, assignmentId: 300, placeId: 400, lat: 60 }),
+      stop({ ownerDayId: 2, ownerIndex: 1, assignmentId: 301, placeId: 401, lat: 61 }),
+    ];
+    const allLegs: Record<string, RoutedLeg> = {};
+    for (const run of [first, second]) {
+      run.slice(0, -1).forEach((from, i) => {
+        allLegs[legKey(from, run[i + 1]!)] = lineFrom(from, run[i + 1]!);
+      });
+    }
+    const join = lineFrom(first[2]!, second[0]!);
+    allLegs[legKey(first[2]!, second[0]!)] = {
+      ...join,
+      seg: { ...join.seg, distance: joinKm * 1000, duration: joinKm * 40 },
+    };
+    return assembleRoadtrip({
+      plan: [
+        { dayId: 1, dayNumber: 1, date: '2026-06-01', title: null, stops: first },
+        { dayId: 2, dayNumber: 2, date: '2026-06-02', title: null, stops: second },
+      ],
+      quietDays: [],
+      window: { start: 8 * 60, end: 20 * 60, endMode: 'stop' },
+      distanceUnit: 'metric',
+      allLegs,
+      snapByDay: {},
+      missedByDay: {},
+      loading: false,
+      limits: { rangeKm: null, legMinutes: null, dayMinutes: null },
+      vehicleKind: null,
+      connectDays: true,
+      boundaries: [],
+      labels: { start: 'start', end: 'end' },
+    });
+  }
+
+  /** Each day's distance, rebuilt from the lines the map draws in that day's colour. */
+  const drawnKm = (routes: ReturnType<typeof assembleAtLastPlace>, dayNumber: number) =>
+    routes.lineDays.filter((n) => n === dayNumber).length * 100_000;
+
+  it('ROADTRIP-ASSEMBLE-026: ending each day at the last place, the drive between the days is drawn as the next day (#3123)', () => {
+    const routes = assembleAtLastPlace(100);
+
+    expect(routes.dayWindowIssue).toBeNull();
+    expect(routes.lineDays).toEqual([1, 1, 2, 2]);
+    expect(routes.lineJoins).toEqual([false, false, true, false]);
+    // Every 100 km line drawn as a day is counted in that day's distance, and no other.
+    expect(routes.days.map((d) => d.distance)).toEqual([drawnKm(routes, 1), drawnKm(routes, 2)]);
+  });
+
+  it('ROADTRIP-ASSEMBLE-027: when the window cannot be kept, the stored days still draw the drive as the day it reaches (#3123)', () => {
+    const routes = assembleAtLastPlace(2000);
+
+    expect(routes.dayWindowIssue).toBe('legTooLong');
+    expect(routes.lineDays).toEqual([1, 1, 2, 2]);
+    expect(routes.lineJoins).toEqual([false, false, true, false]);
+    // Day 2 carries the 2000 km drive and its own 100 km leg: the line the map draws as
+    // day 2 is the one the card counts there.
+    expect(routes.days.map((d) => d.distance)).toEqual([200_000, 2_100_000]);
   });
 
   it('ROADTRIP-ASSEMBLE-007: with the days unconnected there is no join to mark', () => {

@@ -172,10 +172,10 @@ describe('AiConnectPanel', () => {
     expect(screen.getByRole('button', { name: /Connect OpenRouter/ })).toBeInTheDocument();
   });
 
-  it('FE-COMP-AI-CONNECT-PANEL-008: the sharing details fold out', async () => {
-    const user = userEvent.setup();
+  it('FE-COMP-AI-CONNECT-PANEL-008: the sharing details are said in full, not folded behind a button', () => {
     render(<AiConnectPanel scope="user" onConnected={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: /What gets shared\?/ }));
+    expect(screen.getByText('What gets shared?')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /What gets shared\?/ })).not.toBeInTheDocument();
     expect(screen.getByText('Not your password, your files or your other trips.')).toBeInTheDocument();
   });
 

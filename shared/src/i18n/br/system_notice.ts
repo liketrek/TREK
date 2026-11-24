@@ -19,6 +19,7 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'Construído junto com a comunidade',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'Apoiar no Ko-fi',
+  'system_notice.thank_you_support.cta_patreon': 'Mensal no Patreon',
   'system_notice.pager.prev': 'Aviso anterior',
   'system_notice.pager.next': 'Próximo aviso',
   'system_notice.pager.counter': '{current} / {total}',
@@ -56,38 +57,41 @@ const system_notice: TranslationStrings = {
     'A atualização 3.0.14 detectou um ou mais conflitos de nome de usuário ou e-mail causados por espaços em branco no início ou fim dos valores armazenados. As contas afetadas foram renomeadas automaticamente. Verifique os logs do servidor por linhas começando com **[migration] WHITESPACE COLLISION** para identificar quais contas precisam de revisão.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Atualização instalada',
-  'system_notice.release_notes.headline': 'O lugar certo, primeiro.',
+  'system_notice.release_notes.headline': 'Menos digitação, mais viagem.',
   'system_notice.release_notes.intro':
-    'A busca de lugares, a busca de endereços e o cálculo de rotas agora rodam nos servidores do próprio TREK, patrocinados pela dataforest cloud, e cada TREK pode compartilhar o que sabe sobre lugares com todos os outros.',
+    'Os e-mails de reserva que você encaminha vão direto para a sua viagem, o TREK acompanha seus voos ao vivo e o PDF da viagem é todo novo. O TREK agora também roda em PostgreSQL.',
   'system_notice.release_notes.features_label': 'Os destaques',
   'system_notice.release_notes.features_aside': 'E não é só isso',
-  'system_notice.release_notes.feature_search_title': 'Uma busca de lugares que acerta',
-  'system_notice.release_notes.feature_search_body':
-    'Cidades, ilhas, pontos turísticos e aeroportos pelo código aparecem primeiro, os cafés vêm da sua região e as sugestões surgem enquanto você digita.',
-  'system_notice.release_notes.feature_share_title': 'Detalhes de lugares, compartilhados',
-  'system_notice.release_notes.feature_share_body':
-    'Compartilhe sites, horários de funcionamento e fotos com todo TREK, campo por campo, e os seus lugares salvos recebem o que outros adicionaram.',
-  'system_notice.release_notes.feature_routing_title': 'Rotas mais rápidas',
-  'system_notice.release_notes.feature_routing_body':
-    'Um dia inteiro é calculado de uma vez com até vinte paradas, uma rota lenta não segura mais as outras e o transporte público consulta um segundo provedor quando o primeiro não encontra nada.',
-  'system_notice.release_notes.footnote': 'E ainda uma longa lista de mudanças menores em todo o resto do TREK.',
+  'system_notice.release_notes.feature_mail_title': 'E-mails de reserva caem na sua viagem',
+  'system_notice.release_notes.feature_mail_body':
+    'Encaminhe uma confirmação para o seu endereço pessoal e o TREK encontra a sua viagem, confere tudo e adiciona a reserva com o documento.',
+  'system_notice.release_notes.feature_flight_title': 'Status de voo ao vivo, de graça',
+  'system_notice.release_notes.feature_flight_body':
+    'O TREK acompanha cada um dos seus voos no dia: situação, atraso, os dois aeroportos e um mapa com a aeronave, sem chave de API.',
+  'system_notice.release_notes.feature_pdf_title': 'Um novo PDF da viagem',
+  'system_notice.release_notes.feature_pdf_body':
+    'Uma capa com o seu roteiro, cada dia como linha do tempo e todas as suas reservas com os códigos, pronto para imprimir ou compartilhar.',
+  'system_notice.release_notes.footnote':
+    'Além disso, PostgreSQL, complementos por viagem, tags em lugares, mais formas de controlar os custos e uma longa lista de mudanças menores.',
   'system_notice.release_notes.notes_label': 'Notas da versão',
   'system_notice.release_notes.note_eyebrow': 'Uma nota do mantenedor',
   'system_notice.release_notes.note_title': 'Vocês são a razão de eu continuar construindo o TREK.',
   'system_notice.release_notes.note_body':
-    'O TREK começou como uma ferramentinha para as minhas próprias viagens, escrita depois do trabalho porque eu queria um jeito melhor de planejá-las. E nunca parou de crescer de verdade. Quase tudo o que vocês usam foi construído tarde da noite, nos fins de semana, em trens, ao lado de um trabalho em tempo integral, e foram muitas as noites em que me perguntei, em silêncio, se alguém lá fora algum dia chegaria a abri-lo.',
+    'O TREK começou como uma ferramenta pequena para as minhas próprias viagens, feita depois do trabalho. Quase tudo o que vocês usam hoje nasceu de madrugada, em fins de semana ou em trens, ao lado de um emprego em tempo integral, e muitas vezes me perguntei se alguém chegaria a abri-lo.',
   'system_notice.release_notes.promise_label': 'A promessa',
   'system_notice.release_notes.promise_lead': 'O TREK continua gratuito, para sempre.',
   'system_notice.release_notes.promise_text':
     'Cada recurso, cada atualização, para todo mundo. Sem planos pagos, sem assinaturas, sem pegadinhas.',
   'system_notice.release_notes.note_body_after':
-    'E aí vocês abriram. Em poucos meses eram milhares: estrelas, relatos de bugs, traduções para idiomas que eu não falo, pull requests de pessoas que nunca conheci. Até hoje a primeira coisa que faço toda manhã é olhar o repositório, e ainda não parece totalmente real.',
-  'system_notice.release_notes.note_closing': 'Obrigado por estarem aqui. Um abraço, Maurice.',
-  'system_notice.release_notes.support_label': 'Seguir independente',
-  'system_notice.release_notes.support_lead': 'Sem Google e companhia.',
+    'Aí vocês chegaram, e logo aos milhares: com estrelas, relatos de bugs, traduções para idiomas que não falo e pull requests de pessoas que nunca conheci. Ainda confiro o repositório logo cedo toda manhã, e isso ainda não parece muito real.',
+  'system_notice.release_notes.note_closing':
+    'Obrigado por estarem aqui. Maurice',
+  'system_notice.release_notes.support_label': 'Possível graças a você',
+  'system_notice.release_notes.support_lead': 'O TREK só existe graças às doações.',
   'system_notice.release_notes.support_text':
-    'A busca de lugares, a busca de endereços e o cálculo de rotas rodam nos servidores do próprio TREK, hoje patrocinados pela dataforest cloud. Eu luto por isso todos os dias, e para continuar assim preciso do seu apoio.',
+    'Elas pagam os servidores e me dão tempo para continuar o desenvolvimento. Até um único café ajuda a manter o TREK gratuito para todos.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Apoiar no Ko-fi',
+  'system_notice.release_notes.cta_patreon': 'Mensal no Patreon',
 };
 export default system_notice;

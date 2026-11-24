@@ -16,10 +16,11 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { addonGate } from '../addons/addon-gate';
+import { addonGate, addonOffResource } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { RuntimeEnvService } from '../app-config/runtime-env.service';
 import { DomainError } from '../common/domain-error';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { BudgetWritesService } from './budget-writes.service';
@@ -58,11 +59,6 @@ const splitMembersSchema = z
   .describe(
     'Unequal split: what each participant owes, in the expense currency. The amounts must add up to the expense total. Ask the user; do not guess.',
   );
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 function formatCents(cents: number): string {
   return (cents / 100).toFixed(2);
@@ -841,7 +837,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'read' },
   })
   async tripBudgetResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -853,6 +849,7 @@ export class BudgetMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
     const items = await this.budget.listBudgetItems(id);
     return {
       contents: [
@@ -874,7 +871,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'read' },
   })
   async tripBudgetPerPersonResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -886,6 +883,7 @@ export class BudgetMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
     // In the trip currency, each share at the rate its expense was booked at (#2525).
     const summary = await this.budget.perPersonSummary(id);
     return {
@@ -908,7 +906,7 @@ export class BudgetMcp {
     access: { group: 'budget', mode: 'read' },
   })
   async tripBudgetSettlementResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.budget.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -920,6 +918,7 @@ export class BudgetMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.BUDGET))) return addonOffResource(uri, ADDON_IDS.BUDGET);
     // Resolve the trip currency + live rates like get_settlement_summary — the
     // legacy resource called calculateSettlement(id) bare, silently netting a
     // non-EUR trip in EUR with no FX conversion.

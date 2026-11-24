@@ -1,7 +1,7 @@
 import { isNativeApp } from '../native/platform';
 
 /** Where the project takes donations. */
-const DONATION_HOSTS = ['ko-fi.com', 'buymeacoffee.com'];
+const DONATION_HOSTS = ['ko-fi.com', 'buymeacoffee.com', 'patreon.com'];
 
 /** Whether `href` points at one of the project's donation pages. */
 export function isDonationLink(href: string | undefined): boolean {
@@ -33,6 +33,10 @@ export function withoutDonationsInApp<T extends { href: string }>(links: T[]): T
 type NoticeButton = { kind: string; href?: string } | null | undefined;
 
 /** Whether a system notice asks for a donation through one of its buttons. */
-export function noticeAsksForDonation(notice: { cta?: NoticeButton; secondaryCta?: NoticeButton }): boolean {
-  return isDonationLink(notice.cta?.href) || isDonationLink(notice.secondaryCta?.href);
+export function noticeAsksForDonation(notice: {
+  cta?: NoticeButton;
+  secondaryCta?: NoticeButton;
+  tertiaryCta?: NoticeButton;
+}): boolean {
+  return [notice.cta, notice.secondaryCta, notice.tertiaryCta].some((cta) => isDonationLink(cta?.href));
 }

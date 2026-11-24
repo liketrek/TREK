@@ -9,7 +9,7 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { addonGate } from '../addons/addon-gate';
+import { instanceAddonGate } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
 import { FilesService } from '../files/files.service';
 import { DocSyncConfigService } from './doc-sync-config.service';
@@ -19,7 +19,9 @@ import { idSchema } from '@trek/shared';
 
 import { z } from 'zod';
 
-const documentsAddonOn = addonGate(ADDON_IDS.DOCUMENTS);
+// The document providers stay bound to the instance's Documents switch, so these tools follow it alone;
+// each call still needs Documents on for the trip it names.
+const documentsAddonOn = instanceAddonGate(ADDON_IDS.DOCUMENTS);
 
 /**
  * The MCP half of document sync, mirroring /api/trips/:tripId/docsync.

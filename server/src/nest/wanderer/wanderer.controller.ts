@@ -24,9 +24,12 @@ import type { Request } from 'express';
  * to the Tours addon, which is what it feeds, and only ever touches the
  * caller's own row. The test answers 200 with the reason in the body, since a
  * form showing someone their own typo needs a field to render, not an error.
+ *
+ * AddonGuard runs after JwtAuthGuard: the connection belongs to no one trip, so
+ * it opens while Tours is on for the instance or for any trip of the caller.
  */
 @Controller('api/integrations/wanderer')
-@UseGuards(AddonGuard, JwtAuthGuard, WandererEnabledGuard)
+@UseGuards(JwtAuthGuard, AddonGuard, WandererEnabledGuard)
 @RequireAddon(ADDON_IDS.TOURS, 'Tours')
 export class WandererController {
   constructor(private readonly wanderer: WandererService) {}

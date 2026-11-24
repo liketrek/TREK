@@ -3,38 +3,35 @@
  * Covers MISC-001, 002, 004, 007, 008, 009 to 014.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { authCookie } from '../helpers/auth';
-import { createUser } from '../helpers/factories';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 import { TOUR_WRITE_MAX_BYTES } from '@trek/shared';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
+let orm: MikroORM;
 
 beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
+  orm = nestApp.get(MikroORM);
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 describe('Health check', () => {
@@ -47,7 +44,7 @@ describe('Health check', () => {
 
 describe('Addons list', () => {
   it('MISC-002 — GET /api/addons returns enabled addons', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/addons').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);

@@ -116,7 +116,7 @@ const dashboard: TranslationStrings = {
     'Data rozpoczęcia podróży została zmieniona. Jak plany mają dostosować się do nowych dat?',
   'dashboard.dateShiftKeepBookings': 'Zachowaj rezerwacje w ich terminach',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Plany dnia przesuną się wraz z nowymi datami, a rezerwacje i noclegi pozostaną w swoich pierwotnych terminach, o ile nadal mieszczą się one w ramach podróży.',
+    'Dodane dni pozostaną puste i nic więcej się nie przesunie. Jeśli podróż się przesunie, plany dnia przesuną się wraz z nowymi datami, a rezerwacje i noclegi pozostaną w swoich pierwotnych terminach, o ile nadal mieszczą się one w ramach podróży.',
   'dashboard.dateShiftAll': 'Przesuń wszystko',
   'dashboard.dateShiftAllDesc': 'Cały plan podróży przesunie się wraz z nowymi datami, w tym rezerwacje i noclegi.',
   'dashboard.dateShiftHint':
@@ -275,5 +275,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.pasteFromUrl': 'wklej w „Z adresu URL”',
   'dashboard.aiPlan': 'Zaplanuj z AI',
   'dashboard.aiPlanSub': 'Opisz podróż, przejrzyj propozycję',
+  'dashboard.ics.dayEvents': 'Wydarzenia z podsumowaniem dnia',
+  'dashboard.ics.dayEventsHint':
+    'Całodniowe wydarzenie na każdy dzień z miejscami i notatkami bez godziny. Zmiana tego ustawienia zmienia link, więc zasubskrybuj ponownie nowy link.',
 };
 export default dashboard;

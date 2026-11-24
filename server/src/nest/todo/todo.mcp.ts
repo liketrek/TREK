@@ -12,8 +12,9 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
-import { addonGate } from '../addons/addon-gate';
+import { addonGate, addonOffResource } from '../addons/addon-gate';
 import { AddonsService } from '../addons/addons.service';
+import { uriRowId } from '../common/row-id';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { TodoService } from './todo.service';
 import { idSchema } from '@trek/shared';
@@ -22,11 +23,6 @@ import { z } from 'zod';
 
 /** Legacy registrar gate: the whole todo surface rides the packing addon. */
 const packingAddonOn = addonGate(ADDON_IDS.PACKING);
-
-function parseId(value: string | string[]): number | null {
-  const n = Number(Array.isArray(value) ? value[0] : value);
-  return Number.isInteger(n) && n > 0 ? n : null;
-}
 
 /**
  * Todo MCP surface — ported 1:1 from the legacy registrars: the eight tools
@@ -297,7 +293,7 @@ export class TodoMcp {
     access: { group: 'todos', mode: 'read' },
   })
   async tripTodosResource(uri: URL, { tripId }: { tripId: string | string[] }, ctx: McpContext) {
-    const id = parseId(tripId);
+    const id = uriRowId(tripId);
     if (id === null || !(await this.todos.verifyTripAccess(id, ctx.userId))) {
       return {
         contents: [
@@ -309,6 +305,7 @@ export class TodoMcp {
         ],
       };
     }
+    if (!(await this.addons.isEnabledForTrip(id, ADDON_IDS.PACKING))) return addonOffResource(uri, ADDON_IDS.PACKING);
     const items = await this.todos.listItems(id);
     return {
       contents: [

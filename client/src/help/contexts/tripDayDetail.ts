@@ -23,7 +23,7 @@ export const { context: tripDayDetailContext, guides: tripDayDetailGuides } = de
   guides: [
     ['day-panel', 'panelRight', 'guide', 6, 3, PANEL, ['day-weather', 'day-bookings', 'read-day-plan'], true],
     ['day-weather', 'eye', 'quick', 4, 3, { slug: WEATHER, anchor: 'what-is-shown' }, ['day-panel', 'read-day-plan']],
-    ['rename-day', 'tags', 'quick', 4, 2, PANEL, ['manage-days', 'day-note'], true],
+    ['rename-day', 'tags', 'quick', 4, 3, PANEL, ['manage-days', 'day-note'], true],
     ['add-accommodation', 'building', 'guide', 6, 5, { slug: STAY, anchor: 'creating-an-accommodation' }, ['create-place', 'edit-accommodation', 'booking-hotel'], true],
     ['edit-accommodation', 'pencil', 'guide', 5, 3, IN_PANEL, ['add-accommodation', 'confirm-stay-booking', 'day-bookings']],
     ['confirm-stay-booking', 'checkCircle', 'quick', 4, 2, IN_PANEL, ['edit-accommodation', 'day-bookings', 'booking-hotel'], true],

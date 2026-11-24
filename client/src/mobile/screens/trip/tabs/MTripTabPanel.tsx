@@ -78,7 +78,7 @@ export default function MTripTabPanel({ planner, shell, tab }: MTripTabPanelProp
     // below the trip's floating top controls: its bars measure from --m-safe-top.
     case 'journal':
       return planner.journalId == null ? null : (
-        <div className="absolute inset-0 overflow-hidden [--m-safe-top:calc(env(safe-area-inset-top,0px)+62px)]">
+        <div className="absolute inset-0 overflow-hidden [--m-safe-top:calc(var(--m-safe-t,env(safe-area-inset-top,0px))+62px)]">
           <MJourneyDetail journeyId={planner.journalId} embedded />
         </div>
       )

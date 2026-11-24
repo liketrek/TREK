@@ -1,6 +1,7 @@
 import type { User } from '../../types';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { toRowId } from '../common/row-id';
 import { PhotosService } from './photos.service';
 import { Controller, Get, Headers, HttpException, Param, Res, UseGuards } from '@nestjs/common';
 
@@ -12,7 +13,7 @@ import type { Response } from 'express';
  * to the response via the resolver service.
  *
  * Byte-identical to the legacy Express route (server/src/routes/photos.ts):
- * a finite-id guard (400), the canAccessTrekPhoto check (403), then stream or
+ * a row-id guard (400), the canAccessTrekPhoto check (403), then stream or
  * the provider info (404 inside the service / mapped error for info).
  */
 @Controller('api/photos')
@@ -21,8 +22,9 @@ export class PhotosController {
   constructor(private readonly photos: PhotosService) {}
 
   private async requireAccess(user: User, rawId: string): Promise<number> {
-    const photoId = Number(rawId);
-    if (!Number.isFinite(photoId)) {
+    // toRowId: Number() read '0x1' and '1e0' as photo 1, and 1e20 reached Postgres as an out of range bigint.
+    const photoId = toRowId(rawId);
+    if (photoId === null) {
       throw new HttpException({ error: 'Invalid photo ID' }, 400);
     }
     if (!(await this.photos.canAccess(user.id, photoId))) {

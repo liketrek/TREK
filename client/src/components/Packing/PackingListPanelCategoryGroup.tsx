@@ -4,14 +4,14 @@ import { useToast } from '../shared/Toast'
 import { useTranslation } from '../../i18n'
 import {
   Trash2, Plus, ChevronDown, ChevronRight,
-  X, Pencil, Check, MoreHorizontal, CheckCheck, RotateCcw, UserPlus, GripVertical,
+  Pencil, Check, MoreHorizontal, CheckCheck, RotateCcw, UserPlus, GripVertical, Share2,
 } from 'lucide-react'
 import type { PackingItem, PackingBag } from '../../types'
 import { katColor } from './packingListPanel.helpers'
 import type { TripMember, CategoryAssignee } from './usePackingListPanel'
 import { ArtikelZeile } from './PackingListPanelItemRow'
 import { PopoverItem } from './PackingPopover'
-import { COMPOSER, POPOVER, POPOVER_DIVIDER, composerConfirm } from './packingPopoverStyles'
+import { POPOVER, POPOVER_DIVIDER } from './packingPopoverStyles'
 import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
 import GuestBadge from '../shared/GuestBadge'
 
@@ -52,11 +52,13 @@ interface KategorieGruppeProps {
   currentUserId?: number
   onSetSharing?: (id: number, visibility: 'common' | 'personal' | 'shared', recipientIds: number[]) => void
   onClone?: (id: number) => void
-  onJoin?: (id: number) => void
+  onJoin?: (id: number, userId?: number) => void
   onLeave?: (id: number, userId: number) => void
+  // Opens the choice of one sharing tier for the whole list (#2961).
+  onShareCategory?: () => void
 }
 
-export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, reorderable = true, categoryDrag, currentUserId, onSetSharing, onClone, onJoin, onLeave }: KategorieGruppeProps) {
+export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRename, onDeleteAll, onDeleteItem, onAddItem, assignees, tripMembers, onSetAssignees, bagTrackingEnabled, bags, onCreateBag, canEdit = true, allItems, onReorder, reorderable = true, categoryDrag, currentUserId, onSetSharing, onClone, onJoin, onLeave, onShareCategory }: KategorieGruppeProps) {
   const [offen, setOffen] = useState(true)
   const [dragId, setDragId] = useState<number | null>(null)
   const [overId, setOverId] = useState<number | null>(null)
@@ -272,6 +274,7 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                 {canEdit && <PopoverItem icon={<Pencil size={13} />} label={t('packing.menuRename')} onClick={() => { setEditingName(true); setShowMenu(false) }} />}
                 <PopoverItem icon={<CheckCheck size={13} />} label={t('packing.menuCheckAll')} onClick={() => { void handleCheckAll(); setShowMenu(false) }} />
                 <PopoverItem icon={<RotateCcw size={13} />} label={t('packing.menuUncheckAll')} onClick={() => { void handleUncheckAll(); setShowMenu(false) }} />
+                {canEdit && onShareCategory && <PopoverItem icon={<Share2 size={13} />} label={t('packing.menuShareCat')} onClick={() => { onShareCategory(); setShowMenu(false) }} />}
                 {canEdit && <>
                 <div style={POPOVER_DIVIDER} />
                 <PopoverItem icon={<Trash2 size={13} />} label={t('packing.menuDeleteCat')} danger onClick={handleDeleteAll} />
@@ -309,10 +312,11 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
           })}
           {/* Inline add item */}
           {canEdit && (showAddItem ? (
-            // The new item already looks like a row: an empty box in the checkbox
-            // column, the name typed where names sit, and the add as the accent.
-            <div style={{ ...COMPOSER, gap: 9, margin: '6px 4px 0', paddingBlock: 4, paddingInlineEnd: 4, paddingInlineStart: 27 }}>
-              <span aria-hidden style={{ width: 20, height: 20, borderRadius: 6, border: '1.5px solid var(--text-faint)', opacity: 0.6, flexShrink: 0 }} />
+            // The add row turns into the field in place: same tint, same size, no
+            // frame, an empty box where the new item's box will be, and the add as
+            // the accent at the end.
+            <div style={{ display: 'flex', alignItems: 'center', gap: 9, margin: '6px 4px 0', minHeight: 36, paddingBlock: 4, paddingInlineEnd: 8, paddingInlineStart: 28, borderRadius: 10, background: 'var(--bg-secondary)' }}>
+              <span aria-hidden style={{ width: 20, height: 20, borderRadius: 6, border: '1.5px solid var(--text-faint)', flexShrink: 0 }} />
               <input
                 ref={addItemRef}
                 autoFocus
@@ -326,18 +330,16 @@ export function KategorieGruppe({ kategorie, items, tripId, allCategories, onRen
                   }
                   if (e.key === 'Escape') { setShowAddItem(false); setNewItemName('') }
                 }}
+                onBlur={() => { if (!newItemName.trim()) { setShowAddItem(false); setNewItemName('') } }}
                 placeholder={t('packing.addItemPlaceholder')}
-                style={{ flex: 1, minWidth: 0, padding: '5px 0', border: 'none', fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500, fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'transparent' }}
+                style={{ flex: 1, minWidth: 0, padding: 0, border: 'none', boxShadow: 'none', fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', fontWeight: 500, fontFamily: 'inherit', outline: 'none', color: 'var(--text-primary)', background: 'transparent' }}
               />
-              {/* disabled while the field is empty, so no extra guard here */}
+              {/* A small round add, dark once there is something to add; an empty
+                  field simply closes when the pointer goes elsewhere. */}
               <button type="button" onClick={() => { void onAddItem(kategorie, newItemName.trim()); setNewItemName(''); setTimeout(() => addItemRef.current?.focus(), 30) }}
                 disabled={!newItemName.trim()} aria-label={t('common.add')}
-                style={composerConfirm(!!newItemName.trim())}>
-                <Plus size={15} strokeWidth={2.5} />
-              </button>
-              <button type="button" onClick={() => { setShowAddItem(false); setNewItemName('') }} aria-label={t('common.cancel')}
-                style={{ width: 28, height: 28, borderRadius: 8, border: 'none', background: 'none', cursor: 'pointer', display: 'grid', placeItems: 'center', flexShrink: 0, color: 'var(--text-faint)' }}>
-                <X size={14} />
+                className={`grid size-6 shrink-0 place-items-center rounded-full border-0 transition-colors ${newItemName.trim() ? 'cursor-pointer bg-accent text-accent-text' : 'cursor-default bg-transparent text-content-faint'}`}>
+                <Plus size={13} strokeWidth={2.5} />
               </button>
             </div>
           ) : (

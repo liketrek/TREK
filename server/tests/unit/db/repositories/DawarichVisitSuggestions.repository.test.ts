@@ -355,6 +355,18 @@ describe('DawarichVisitSuggestionsRepository', () => {
         last_seen_at: '2026-03-01T00:00:00Z',
       });
     });
+
+    it('DVSREPO-033: renameNewVisit names a stay nobody acted on, and leaves an accepted one as it is', async () => {
+      const { user } = createUser(testDb);
+      const fresh = await seed(user.id, { source_visit_id: 'a', name: 'Unnamed stay' });
+      const accepted = await seed(user.id, { source_visit_id: 'b', name: 'Mine', state: 'accepted' });
+
+      await suggestions.renameNewVisit(fresh, 'Cinisi, Italy');
+      await suggestions.renameNewVisit(accepted, 'Cinisi, Italy');
+
+      expect(await rawRow(fresh)).toMatchObject({ name: 'Cinisi, Italy', state: 'new' });
+      expect(await rawRow(accepted)).toMatchObject({ name: 'Mine', state: 'accepted' });
+    });
   });
 
   describe('listCandidatesForWindow/deleteById/stampMissingIfUnset (DSY7/DSY8/DSY9)', () => {

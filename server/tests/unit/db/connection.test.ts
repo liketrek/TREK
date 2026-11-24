@@ -1,4 +1,5 @@
 import { openDatabase } from '../../../src/db/connection';
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { Places } from '../../../src/db/entities/Places.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { UnitOfWork } from '../../../src/nest/database/unit-of-work';
@@ -157,8 +158,9 @@ async function deleteTripAndWatchTempFiles(db: Database.Database): Promise<{
       none,
       none,
       none,
-      new UnitOfWork(t.em),
+      new UnitOfWork(t.em, new SqliteEngine()),
       t.em,
+      none,
       none,
     );
     await trips.remove(trip.id, user.id, 'user');

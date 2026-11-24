@@ -1,6 +1,6 @@
 import { ADDON_IDS } from '../../../src/addons';
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { RESPONSE_CONTRACT_KEY } from '../../../src/nest/common/response-contract';
 import { TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
@@ -70,9 +70,9 @@ describe('TourHorseRoutesController (HOR-01)', () => {
 
   it('HORSE-CTRL-004: sits behind the Tours addon, the session and the trip access, and declares its contract', () => {
     expect(Reflect.getMetadata(GUARDS_METADATA, TourHorseRoutesController)).toEqual([
-      AddonGuard,
       JwtAuthGuard,
       TripAccessGuard,
+      TripAddonGuard,
     ]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, TourHorseRoutesController)).toEqual({
       addonId: ADDON_IDS.TOURS,

@@ -132,6 +132,10 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'JourneyPublicController.legacyPhoto',
   'JourneyPublicController.mapLayers',
   'JourneyPublicController.photo',
+  // The booking mail webhook. A mail service holds no session; the HMAC over
+  // the raw mail is the credential, and the route is a 404 unless the admin
+  // made the webhook the import's transport and set its secret.
+  'MailIngestInboundController.receive',
   // The MCP transport — bearer tokens are verified inside the handler.
   // The same documents under the resource URL, for clients that append the
   // well-known path to the server address they were handed.

@@ -640,7 +640,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
     const inCat = createPlace(testDb, trip.id, { category_id: cat.id });
     const outCat = createPlace(testDb, trip.id);
     await deleteRows(t.orm, Categories, { id: { $ne: cat.id } });
-    const rows = await places.listForTrip(String(trip.id), { category: String(cat.id) });
+    const rows = await places.listForTrip(String(trip.id), { category: cat.id });
     expect(rows.map((r) => r.id)).toEqual([inCat.id]);
     void outCat;
   });
@@ -652,7 +652,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
     const tagged = createPlace(testDb, trip.id, { name: 'Tagged' });
     const untagged = createPlace(testDb, trip.id, { name: 'Untagged' });
     await tagPlace(t.orm, tagged.id, [tag.id]);
-    const rows = await places.listForTrip(String(trip.id), { tag: String(tag.id) });
+    const rows = await places.listForTrip(String(trip.id), { tag: tag.id });
     expect(rows.map((r) => r.id)).toEqual([tagged.id]);
     void untagged;
   });
@@ -684,7 +684,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
     await tagPlace(t.orm, other.id, [tag.id]);
     // `other` is left unassigned, so `assignment: 'assigned'` alone should exclude it.
     const rows = await places.listForTrip(String(trip.id), {
-      searchPattern: '%Central Park%', category: String(cat.id), tag: String(tag.id), assignment: 'assigned',
+      searchPattern: '%Central Park%', category: cat.id, tag: tag.id, assignment: 'assigned',
     });
     expect(rows.map((r) => r.id)).toEqual([winner.id]);
   });
@@ -703,7 +703,7 @@ describe('PlacesRepository.listForTrip (PL3) — filter fragments', () => {
 describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 filter combinations', () => {
   function legacyListForTrip(
     tripId: string,
-    filters: { searchPattern?: string; category?: string; tag?: string; assignment?: 'all' | 'unassigned' | 'assigned' },
+    filters: { searchPattern?: string; category?: number | string; tag?: number | string; assignment?: 'all' | 'unassigned' | 'assigned' },
   ): unknown[] {
     let query = `
       SELECT DISTINCT p.*, t.place_id AS tour_place_id, c.name as category_name, c.color as category_color, c.icon as category_icon,
@@ -767,8 +767,8 @@ describe('PlacesRepository.listForTrip (PL3) — toEqual(legacy) over all 32 fil
     createPlace(testDb, otherTrip.id, { name: 'Central Perk' });
 
     const searchOptions: (string | undefined)[] = [undefined, '%Central%'];
-    const categoryOptions: (string | undefined)[] = [undefined, String(cat.id)];
-    const tagOptions: (string | undefined)[] = [undefined, String(tag.id)];
+    const categoryOptions: (number | undefined)[] = [undefined, cat.id];
+    const tagOptions: (number | undefined)[] = [undefined, tag.id];
     const assignmentOptions: (('all' | 'unassigned' | 'assigned') | undefined)[] = [undefined, 'all', 'assigned', 'unassigned'];
 
     let combinations = 0;
@@ -1402,7 +1402,7 @@ describe('PlacesRepository.listForTripIds (AT2, AtlasService#getPlacesForTrips)'
 });
 
 describe('PlacesRepository.listAddressesForUser (AT41, AtlasService#getTravelStats)', () => {
-  it('PLACEREPO-061: matches the legacy DISTINCT statement, owner and member trips, region_name joined from place_regions', async () => {
+  it('PLACEREPO-061: one row per place, owner and member trips, region_name joined from place_regions', async () => {
     const { user: owner } = createUser(testDb);
     const { user: member } = createUser(testDb);
     const { user: stranger } = createUser(testDb);
@@ -1416,7 +1416,7 @@ describe('PlacesRepository.listAddressesForUser (AT41, AtlasService#getTravelSta
 
     // test-sql-allow: the legacy statement is the oracle the repository read is held to.
     const legacy = testDb.prepare(`
-      SELECT DISTINCT p.address, p.lat, p.lng, pr.region_name
+      SELECT DISTINCT p.id, p.address, p.lat, p.lng, pr.region_name
       FROM places p JOIN trips t ON p.trip_id = t.id
       LEFT JOIN trip_members tm ON t.id = tm.trip_id
       LEFT JOIN place_regions pr ON pr.place_id = p.id
@@ -1425,8 +1425,8 @@ describe('PlacesRepository.listAddressesForUser (AT41, AtlasService#getTravelSta
     const typedOwner = await places.listAddressesForUser(owner.id);
     expect(typedOwner).toEqual(legacy);
     expect(typedOwner).toEqual([
-      { address: '5 Avenue Anatole France', lat: 48.85, lng: 2.35, region_name: 'Île-de-France' },
-      { address: null, lat: null, lng: null, region_name: null },
+      { id: place.id, address: '5 Avenue Anatole France', lat: 48.85, lng: 2.35, region_name: 'Île-de-France' },
+      { id: noAddress.id, address: null, lat: null, lng: null, region_name: null },
     ]);
 
     const typedMember = await places.listAddressesForUser(member.id);

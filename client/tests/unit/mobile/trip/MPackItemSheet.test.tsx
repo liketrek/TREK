@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
 import type { ComponentProps } from 'react'
 import MPackItemSheet from '../../../../src/mobile/screens/trip/tabs/MPackItemSheet'
-import type { PackingItem, TripMember } from '../../../../src/types'
+import type { PackingBag, PackingItem, TripMember } from '../../../../src/types'
 import { buildPlanner } from '../../../helpers/mobileTrip'
-import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
+import { fireEvent, render, screen, waitFor, within } from '../../../helpers/render'
 
 // FE-MOB-PACKITEM-001 to FE-MOB-PACKITEM-024
 
@@ -11,6 +11,10 @@ const ME = 7
 const ANNA = { id: 11, username: 'anna', avatar: 'anna.png', avatar_url: null } as unknown as TripMember
 const BEN = { id: 12, username: 'ben', avatar: null, avatar_url: 'https://cdn.example/ben.png' } as unknown as TripMember
 const OWNER = { id: 21, username: 'owner', avatar: null, avatar_url: null } as unknown as TripMember
+const BAGS = [
+  { id: 71, name: 'Backpack', color: '#6366f1' },
+  { id: 72, name: 'Duffel', color: '#ec4899' },
+] as unknown as PackingBag[]
 
 function packItem(overrides: Partial<PackingItem> = {}): PackingItem {
   return {
@@ -29,6 +33,10 @@ function setup(overrides: Partial<ComponentProps<typeof MPackItemSheet>> = {}, i
     bagTrackingEnabled: true,
     tripMembers: [ANNA, BEN],
     currentUserId: ME,
+    categories: ['Clothing', 'Documents'],
+    bags: BAGS,
+    onCreateBag: vi.fn(async () => undefined),
+    onDelete: vi.fn(),
     onClose: vi.fn(),
     ...overrides,
   }
@@ -36,215 +44,242 @@ function setup(overrides: Partial<ComponentProps<typeof MPackItemSheet>> = {}, i
   return { ...props, planner, view }
 }
 
+const sheet = () => within(screen.getByRole('dialog', { name: 'packing.editItem' }))
+
 describe('MPackItemSheet', () => {
   it('FE-MOB-PACKITEM-001: renders nothing without a resolvable item', () => {
     setup({ itemId: null })
     expect(screen.queryByRole('dialog')).toBeNull()
-  })
-
-  it('FE-MOB-PACKITEM-002: renders nothing when the id is unknown', () => {
     setup({ itemId: 99 })
     expect(screen.queryByRole('dialog')).toBeNull()
   })
 
-  it('FE-MOB-PACKITEM-003: prefills name, quantity and weight', () => {
+  it('FE-MOB-PACKITEM-002: shows the name, the list, the amount and the weight, with no save button', () => {
     setup()
-    expect(screen.getByRole('dialog')).toHaveAttribute('aria-label', 'packing.editItem')
-    expect(screen.getByText('Clothing')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('Rain jacket')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('2')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('450')).toBeInTheDocument()
+    expect(sheet().getByDisplayValue('Rain jacket')).toBeInTheDocument()
+    expect(sheet().getAllByText('Clothing').length).toBeGreaterThan(0)
+    expect(within(sheet().getByRole('group', { name: 'packing.quantity' })).getByText('2')).toBeInTheDocument()
+    expect(sheet().getByDisplayValue('450')).toBeInTheDocument()
+    expect(sheet().queryByRole('button', { name: 'common.save' })).toBeNull()
   })
 
-  it('FE-MOB-PACKITEM-004: falls back to the default category in the subtitle', () => {
+  it('FE-MOB-PACKITEM-003: falls back to the default list', () => {
     setup({}, [packItem({ category: null })])
-    expect(screen.getByText('packing.defaultCategory')).toBeInTheDocument()
+    expect(sheet().getAllByText('packing.defaultCategory').length).toBeGreaterThan(0)
   })
 
-  it('FE-MOB-PACKITEM-005: hides the weight field when bag tracking is off', () => {
-    setup({ bagTrackingEnabled: false })
-    expect(screen.queryByText('packing.itemWeight')).toBeNull()
-    expect(screen.queryByDisplayValue('450')).toBeNull()
-  })
-
-  it('FE-MOB-PACKITEM-006: starts a placeholder row with an empty name and no sharing block', () => {
-    setup({}, [packItem({ name: '...', quantity: 1, weight_grams: null })])
-    const name = screen.getByPlaceholderText('packing.addItemPlaceholder')
-    expect(name).toHaveValue('')
-    expect(screen.getByRole('button', { name: 'common.save' })).toBeDisabled()
-    expect(screen.queryByText('packing.share')).toBeNull()
-  })
-
-  it('FE-MOB-PACKITEM-007: strips non-digits from quantity and weight', () => {
-    setup()
-
-    fireEvent.change(screen.getByDisplayValue('2'), { target: { value: '1a2' } })
-    fireEvent.change(screen.getByDisplayValue('450'), { target: { value: '4x5' } })
-
-    expect(screen.getByDisplayValue('12')).toBeInTheDocument()
-    expect(screen.getByDisplayValue('45')).toBeInTheDocument()
-  })
-
-  it('FE-MOB-PACKITEM-008: saves name, clamped quantity and weight', async () => {
-    const { planner, onClose } = setup()
-
-    fireEvent.change(screen.getByDisplayValue('Rain jacket'), { target: { value: '  Poncho  ' } })
-    fireEvent.change(screen.getByDisplayValue('2'), { target: { value: '1500' } })
-    fireEvent.click(screen.getByRole('button', { name: 'common.save' }))
-
-    await waitFor(() => expect(onClose).toHaveBeenCalled())
-    expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, {
-      name: 'Poncho', quantity: 999, weight_grams: 450,
-    })
-  })
-
-  it('FE-MOB-PACKITEM-009: treats an empty quantity as 1 and an empty weight as null', async () => {
+  it('FE-MOB-PACKITEM-004: a renamed item saves when the field lets go, a blank or unchanged name does not', async () => {
     const { planner } = setup()
+    const name = sheet().getByRole('textbox', { name: 'packing.itemName' })
+    fireEvent.focus(name)
+    fireEvent.blur(name)
+    fireEvent.focus(name)
+    fireEvent.change(name, { target: { value: '   ' } })
+    fireEvent.blur(name)
+    expect(planner.tripActions.updatePackingItem).not.toHaveBeenCalled()
 
-    fireEvent.change(screen.getByDisplayValue('2'), { target: { value: '' } })
-    fireEvent.change(screen.getByDisplayValue('450'), { target: { value: '' } })
-    fireEvent.click(screen.getByRole('button', { name: 'common.save' }))
-
-    await waitFor(() => expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, {
-      name: 'Rain jacket', quantity: 1, weight_grams: null,
-    }))
+    fireEvent.focus(name)
+    fireEvent.change(name, { target: { value: '  Poncho  ' } })
+    fireEvent.keyDown(name, { key: 'Enter' })
+    fireEvent.blur(name)
+    await waitFor(() => expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, { name: 'Poncho' }))
   })
 
-  it('FE-MOB-PACKITEM-010: omits weight entirely without bag tracking', async () => {
-    const { planner } = setup({ bagTrackingEnabled: false })
-
-    fireEvent.click(screen.getByRole('button', { name: 'common.save' }))
-
-    await waitFor(() => expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, {
-      name: 'Rain jacket', quantity: 2,
-    }))
-  })
-
-  it('FE-MOB-PACKITEM-011: reports a failed save and keeps the sheet open', async () => {
-    const { planner, onClose } = setup()
-    const update = planner.tripActions.updatePackingItem as unknown as ReturnType<typeof vi.fn>
-    update.mockRejectedValueOnce(new Error('nope'))
-
-    fireEvent.click(screen.getByRole('button', { name: 'common.save' }))
-
+  it('FE-MOB-PACKITEM-005: a failing save is reported', async () => {
+    const { planner } = setup()
+    ;(planner.tripActions.updatePackingItem as unknown as ReturnType<typeof vi.fn>).mockRejectedValueOnce(new Error('nope'))
+    fireEvent.click(sheet().getByRole('button', { name: 'packing.quantityMore' }))
     await waitFor(() => expect(planner.toast.error).toHaveBeenCalledWith('packing.toast.saveError'))
-    expect(onClose).not.toHaveBeenCalled()
   })
 
-  it('FE-MOB-PACKITEM-012: disables save for a blank name', () => {
-    setup()
-
-    fireEvent.change(screen.getByDisplayValue('Rain jacket'), { target: { value: '   ' } })
-
-    expect(screen.getByRole('button', { name: 'common.save' })).toBeDisabled()
+  it('FE-MOB-PACKITEM-006: the amount steps within one and 999', () => {
+    const { planner } = setup({}, [packItem({ quantity: 1 })])
+    expect(sheet().getByRole('button', { name: 'packing.quantityLess' })).toBeDisabled()
+    fireEvent.click(sheet().getByRole('button', { name: 'packing.quantityMore' }))
+    expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, { quantity: 2 })
   })
 
-  it('FE-MOB-PACKITEM-013: keeps rendering the last item after it disappears from the store', () => {
-    const { view, planner, ...props } = setup()
-    const drained = buildPlanner({ tripId: 3, packingItems: [], t: planner.t })
+  it('FE-MOB-PACKITEM-007: several pieces bring the packed counter, one piece does not', () => {
+    const { planner, view } = setup({}, [packItem({ quantity: 3, packed_quantity: 1 } as Partial<PackingItem>)])
+    const packed = within(sheet().getByRole('group', { name: 'packing.printPacked' }))
+    expect(packed.getByText('1/3')).toBeInTheDocument()
+    fireEvent.click(packed.getByRole('button', { name: 'packing.packedMore' }))
+    expect(planner.tripActions.setPackedCount).toHaveBeenCalledWith(3, 1, 2)
+    fireEvent.click(packed.getByRole('button', { name: 'packing.packedLess' }))
+    expect(planner.tripActions.setPackedCount).toHaveBeenCalledWith(3, 1, 0)
 
-    view.rerender(<MPackItemSheet {...props} planner={drained} />)
-
-    expect(screen.getByDisplayValue('Rain jacket')).toBeInTheDocument()
+    view.unmount()
+    setup({}, [packItem({ quantity: 1 })])
+    expect(screen.queryByRole('group', { name: 'packing.printPacked' })).toBeNull()
   })
 
-  it('FE-MOB-PACKITEM-014: owner switches the item to personal and back to common', () => {
+  it('FE-MOB-PACKITEM-008: the weight takes digits only and saves on leaving, empty is no weight', async () => {
     const { planner } = setup()
+    const weight = sheet().getByRole('textbox', { name: 'packing.totalWeight' })
+    fireEvent.focus(weight)
+    fireEvent.change(weight, { target: { value: '4x5' } })
+    expect(weight).toHaveValue('45')
+    fireEvent.blur(weight)
+    await waitFor(() => expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, { weight_grams: 45 }))
 
-    fireEvent.click(screen.getByRole('button', { name: 'packing.tierPersonal' }))
-    fireEvent.click(screen.getByRole('button', { name: 'packing.viewCommon' }))
-
-    expect(planner.tripActions.setPackingItemSharing).toHaveBeenNthCalledWith(1, 3, 1, 'personal', [])
-    expect(planner.tripActions.setPackingItemSharing).toHaveBeenNthCalledWith(2, 3, 1, 'common', [])
+    fireEvent.focus(weight)
+    fireEvent.change(weight, { target: { value: '' } })
+    fireEvent.keyDown(weight, { key: 'Enter' })
+    fireEvent.blur(weight)
+    await waitFor(() => expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, { weight_grams: null }))
   })
 
-  it('FE-MOB-PACKITEM-015: owner adds and removes a share recipient', () => {
+  it('FE-MOB-PACKITEM-009: without bag tracking there is no weight and no bag', () => {
+    setup({ bagTrackingEnabled: false })
+    expect(sheet().queryByRole('textbox', { name: 'packing.totalWeight' })).toBeNull()
+    expect(sheet().queryByRole('button', { name: /packing.noBag/ })).toBeNull()
+  })
+
+  it('FE-MOB-PACKITEM-010: the list choice moves the item, the current list changes nothing', () => {
+    const { planner } = setup()
+    fireEvent.click(sheet().getByRole('button', { name: /Clothing/, expanded: false }))
+    fireEvent.click(sheet().getAllByRole('button', { name: /Clothing/ })[1])
+    expect(planner.tripActions.updatePackingItem).not.toHaveBeenCalled()
+    fireEvent.click(sheet().getByRole('button', { name: /Clothing/, expanded: false }))
+    fireEvent.click(sheet().getByRole('button', { name: /Documents/ }))
+    expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, { category: 'Documents' })
+  })
+
+  it('FE-MOB-PACKITEM-011: the bag choice assigns, clears and creates bags', async () => {
+    const created = { id: 73, name: 'Tote', color: '#10b981' } as unknown as PackingBag
+    const onCreateBag = vi.fn(async () => created)
+    const { planner } = setup({ onCreateBag }, [packItem({ bag_id: 71 } as Partial<PackingItem>)])
+
+    fireEvent.click(sheet().getByRole('button', { name: /Backpack/ }))
+    fireEvent.click(sheet().getByRole('button', { name: /Duffel/ }))
+    expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, { bag_id: 72 })
+
+    fireEvent.click(sheet().getByRole('button', { name: /Backpack/ }))
+    fireEvent.click(sheet().getByRole('button', { name: /packing.noBag/ }))
+    expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, { bag_id: null })
+
+    fireEvent.click(sheet().getByRole('button', { name: /Backpack/ }))
+    const field = sheet().getByRole('textbox', { name: 'packing.bagName' })
+    expect(sheet().getByRole('button', { name: 'packing.addBag' })).toBeDisabled()
+    fireEvent.keyDown(field, { key: 'Enter' })
+    expect(onCreateBag).not.toHaveBeenCalled()
+    fireEvent.change(field, { target: { value: 'Tote' } })
+    fireEvent.click(sheet().getByRole('button', { name: 'packing.addBag' }))
+    await waitFor(() => expect(planner.tripActions.updatePackingItem).toHaveBeenCalledWith(3, 1, { bag_id: 73 }))
+  })
+
+  it('FE-MOB-PACKITEM-012: a bag that could not be created assigns nothing', async () => {
+    const { planner } = setup()
+    fireEvent.click(sheet().getByRole('button', { name: /packing.noBag/ }))
+    const field = sheet().getByRole('textbox', { name: 'packing.bagName' })
+    fireEvent.change(field, { target: { value: 'Tote' } })
+    fireEvent.keyDown(field, { key: 'Enter' })
+    await waitFor(() => expect(sheet().queryByRole('textbox', { name: 'packing.bagName' })).toBeNull())
+    expect(planner.tripActions.updatePackingItem).not.toHaveBeenCalled()
+  })
+
+  it('FE-MOB-PACKITEM-013: the bringer choice ticks anyone on or off (#3098)', () => {
+    const item = packItem({ owner_id: 21, owner_username: 'owner', contributors: [{ user_id: 12, username: 'ben', status: 'accepted' }] })
+    const { planner } = setup({ tripMembers: [ANNA, BEN, OWNER] }, [item])
+
+    fireEvent.click(sheet().getByRole('button', { name: /owner, ben/ }))
+    fireEvent.click(sheet().getByRole('button', { name: 'anna' }))
+    expect(planner.tripActions.addPackingContributor).toHaveBeenCalledWith(3, 1, 11)
+    fireEvent.click(sheet().getByRole('button', { name: 'ben' }))
+    expect(planner.tripActions.removePackingContributor).toHaveBeenCalledWith(3, 1, 12)
+  })
+
+  it('FE-MOB-PACKITEM-014: nobody bringing it reads as such', () => {
+    setup({}, [packItem({ owner_id: null })])
+    expect(sheet().getByRole('button', { name: /packing.bringersNobody/ })).toBeInTheDocument()
+  })
+
+  it('FE-MOB-PACKITEM-015: the owner switches who sees the item', () => {
+    const { planner } = setup()
+    const group = within(sheet().getByRole('radiogroup', { name: 'packing.detail.visibility' }))
+    expect(group.getByRole('radio', { name: 'packing.filterAll' })).toHaveAttribute('aria-checked', 'true')
+    fireEvent.click(group.getByRole('radio', { name: 'packing.visibility.me' }))
+    expect(planner.tripActions.setPackingItemSharing).toHaveBeenCalledWith(3, 1, 'personal', [])
+    fireEvent.click(group.getByRole('radio', { name: 'packing.visibility.some' }))
+    fireEvent.click(sheet().getByRole('button', { name: 'ben' }))
+    expect(planner.tripActions.setPackingItemSharing).toHaveBeenCalledWith(3, 1, 'shared', [12])
+    fireEvent.click(group.getByRole('radio', { name: 'packing.filterAll' }))
+    expect(planner.tripActions.setPackingItemSharing).toHaveBeenLastCalledWith(3, 1, 'common', [])
+  })
+
+  it('FE-MOB-PACKITEM-016: the owner adds and removes a person on a shared item', () => {
     const item = packItem({ is_private: 1, recipients: [{ user_id: 11, username: 'anna' }] })
     const { planner } = setup({}, [item])
-
-    fireEvent.click(screen.getByRole('button', { name: 'ben' }))
+    fireEvent.click(sheet().getByRole('button', { name: 'ben' }))
     expect(planner.tripActions.setPackingItemSharing).toHaveBeenCalledWith(3, 1, 'shared', [11, 12])
-
-    fireEvent.click(screen.getByRole('button', { name: 'anna' }))
-    expect(planner.tripActions.setPackingItemSharing).toHaveBeenCalledWith(3, 1, 'shared', [])
+    fireEvent.click(sheet().getByRole('button', { name: 'anna' }))
+    expect(planner.tripActions.setPackingItemSharing).toHaveBeenCalledWith(3, 1, 'personal', [])
   })
 
-  it('FE-MOB-PACKITEM-016: renders member avatars and initials in the share picker', () => {
-    const { view } = setup()
+  it('FE-MOB-PACKITEM-017: member pictures and initials show in the pickers', () => {
+    const { view } = setup({}, [packItem({ is_private: 1, recipients: [{ user_id: 11, username: 'anna' }] })])
     const srcs = Array.from(view.baseElement.querySelectorAll('img')).map(i => i.getAttribute('src'))
     expect(srcs).toContain('/uploads/avatars/anna.png')
     expect(srcs).toContain('https://cdn.example/ben.png')
   })
 
-  it('FE-MOB-PACKITEM-017: tells the owner when there is nobody to share with', () => {
+  it('FE-MOB-PACKITEM-018: alone on the trip there is nobody to share with', () => {
     setup({ tripMembers: [] })
-    expect(screen.getByText('packing.noOneToShare')).toBeInTheDocument()
+    fireEvent.click(sheet().getByRole('radio', { name: 'packing.visibility.some' }))
+    expect(sheet().getByText('packing.noOneToShare')).toBeInTheDocument()
   })
 
-  it('FE-MOB-PACKITEM-018: a non-owner can pledge to bring a common item too', () => {
-    const item = packItem({ owner_id: 21, owner_username: 'owner' })
-    const { planner } = setup({ tripMembers: [ANNA, BEN, OWNER] }, [item])
-
-    expect(screen.getByText('packing.broughtBy:owner')).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: 'packing.alsoBring' }))
-
-    expect(planner.tripActions.addPackingContributor).toHaveBeenCalledWith(3, 1)
-  })
-
-  it('FE-MOB-PACKITEM-019: a pledged contributor can withdraw and can clone the item', () => {
-    const item = packItem({
-      owner_id: 21, owner_username: 'owner',
-      contributors: [{ user_id: ME, username: 'me', status: 'pledged' }],
-    })
-    const { planner, onClose } = setup({}, [item])
-
-    fireEvent.click(screen.getByRole('button', { name: 'packing.alsoBringingStop' }))
-    expect(planner.tripActions.removePackingContributor).toHaveBeenCalledWith(3, 1, ME)
-
-    fireEvent.click(screen.getByRole('button', { name: 'packing.cloneToMine' }))
+  it('FE-MOB-PACKITEM-019: someone else\'s common item can be copied to my list', () => {
+    const { planner, onClose } = setup({}, [packItem({ owner_id: 21, owner_username: 'owner' })])
+    expect(sheet().queryByRole('radiogroup')).toBeNull()
+    fireEvent.click(sheet().getByRole('button', { name: 'packing.cloneToMine' }))
     expect(planner.tripActions.clonePackingItem).toHaveBeenCalledWith(3, 1)
     expect(onClose).toHaveBeenCalled()
   })
 
-  it('FE-MOB-PACKITEM-020: a recipient sees a read-only note instead of the tier pills', () => {
-    const item = packItem({ is_private: 1, owner_id: 21, owner_username: 'owner' })
-    setup({}, [item])
-
-    expect(screen.getByText('packing.takenCareOf:owner')).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: 'packing.tierPersonal' })).toBeNull()
+  it('FE-MOB-PACKITEM-020: a private item shared with me says whose it is, or the generic hint', () => {
+    const { view } = setup({}, [packItem({ is_private: 1, owner_id: 21, owner_username: 'owner' })])
+    expect(sheet().getByText('packing.takenCareOf:owner')).toBeInTheDocument()
+    expect(sheet().queryByRole('radiogroup')).toBeNull()
+    view.unmount()
+    setup({}, [packItem({ is_private: 1, owner_id: 21, owner_username: null })])
+    expect(sheet().getByText('packing.tierPersonalHint')).toBeInTheDocument()
   })
 
-  it('FE-MOB-PACKITEM-021: falls back to the generic hint when the owner is unknown', () => {
-    const item = packItem({ is_private: 1, owner_id: 21, owner_username: null })
-    setup({}, [item])
-
-    expect(screen.getByText('packing.tierPersonalHint')).toBeInTheDocument()
+  it('FE-MOB-PACKITEM-021: a placeholder starts with an empty name and no people', () => {
+    setup({}, [packItem({ name: '...', quantity: 1, weight_grams: null })])
+    expect(sheet().getByPlaceholderText('packing.addItemPlaceholder')).toHaveValue('')
+    expect(sheet().queryByRole('radiogroup')).toBeNull()
   })
 
-  it('FE-MOB-PACKITEM-022: an unowned item is treated as the viewer\'s own', () => {
-    const item = packItem({ owner_id: null })
-    setup({}, [item])
-
-    expect(screen.getByRole('button', { name: 'packing.tierPersonal' })).toBeInTheDocument()
+  it('FE-MOB-PACKITEM-022: a reader sees the item without anything to change', () => {
+    const planner = buildPlanner({ tripId: 3, packingItems: [packItem()], can: vi.fn(() => false) })
+    setup({ planner })
+    expect(sheet().getByDisplayValue('Rain jacket')).toHaveAttribute('readonly')
+    expect(sheet().queryByRole('group', { name: 'packing.quantity' })).toBeNull()
+    expect(sheet().queryByRole('button', { name: 'common.delete' })).toBeNull()
   })
 
-  it('FE-MOB-PACKITEM-023: closes from the header and the cancel button', () => {
-    const { onClose } = setup()
-
-    fireEvent.click(screen.getByRole('button', { name: 'common.close' }))
-    fireEvent.click(screen.getByRole('button', { name: 'common.cancel' }))
-
+  it('FE-MOB-PACKITEM-023: delete closes the sheet and hands over, close closes', () => {
+    const { onClose, onDelete } = setup()
+    fireEvent.click(sheet().getByRole('button', { name: 'common.delete' }))
+    expect(onClose).toHaveBeenCalledTimes(1)
+    expect(onDelete).toHaveBeenCalledWith(expect.objectContaining({ id: 1 }))
+    fireEvent.click(sheet().getByRole('button', { name: 'common.close' }))
     expect(onClose).toHaveBeenCalledTimes(2)
   })
 
-  it('FE-MOB-PACKITEM-024: a store refresh of the open item keeps the typed draft', () => {
+  it('FE-MOB-PACKITEM-024: keeps showing the last item after it left the store, and a typed name survives a refresh', () => {
     const { view, planner, ...props } = setup()
-    fireEvent.change(screen.getByDisplayValue('Rain jacket'), { target: { value: 'Rain shell' } })
-    // packingSlice replaces the item object on every update, so a WebSocket
-    // refresh of the same id must not reseed the fields.
+    const name = sheet().getByRole('textbox', { name: 'packing.itemName' })
+    fireEvent.focus(name)
+    fireEvent.change(name, { target: { value: 'Rain shell' } })
     const refreshed = buildPlanner({ tripId: 3, packingItems: [packItem()], t: planner.t })
     view.rerender(<MPackItemSheet {...props} planner={refreshed} />)
+    expect(screen.getByDisplayValue('Rain shell')).toBeInTheDocument()
 
+    const drained = buildPlanner({ tripId: 3, packingItems: [], t: planner.t })
+    view.rerender(<MPackItemSheet {...props} planner={drained} />)
     expect(screen.getByDisplayValue('Rain shell')).toBeInTheDocument()
   })
 })

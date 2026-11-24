@@ -37,11 +37,12 @@ export function buildEmailHtml(
   lang: string,
   navigateTarget?: string,
   rawBody = false,
+  manageTarget = '/settings?tab=notifications',
 ): string {
   const s = I18N[lang] || I18N.en;
   const appUrl = getAppUrl();
   const ctaHref = escapeHtml(navigateTarget ? `${appUrl}${navigateTarget}` : appUrl || '');
-  const manageHref = escapeHtml(`${appUrl}/settings?tab=notifications`);
+  const manageHref = escapeHtml(`${appUrl}${manageTarget}`);
   const safeSubject = escapeHtml(subject);
   const safeBody = rawBody ? body : escapeHtml(body);
 

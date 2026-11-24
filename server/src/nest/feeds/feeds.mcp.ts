@@ -19,6 +19,14 @@ import { InjectRepository } from '@mikro-orm/nestjs';
 import { idSchema } from '@trek/shared';
 
 /**
+ * The feed routes take `?days=0` (#2602), which the subscribe dialog appends
+ * on request. The tools hand back the plain URL, so their descriptions say how
+ * to ask for that variant instead of minting a second kind of link.
+ */
+const DAY_EVENTS_HINT =
+  ' Add ?days=0 to the URL for a calendar without the all-day "Day 1", "Day 2" summaries; the trip itself, timed stops and bookings stay.';
+
+/**
  * Calendar-feed MCP surface, mirroring the two authenticated token controllers
  * in feeds.controller.ts. Not a port of a legacy registrar: the feeds domain
  * never had MCP tools, so an assistant could produce a one-shot .ics snapshot
@@ -72,7 +80,8 @@ export class FeedsMcp {
   @Tool({
     name: 'get_trip_calendar_feed',
     description:
-      'Get the subscribable calendar feed URL of one trip, or null when the feed is switched off. This is a live subscription a calendar app re-reads hourly, so it keeps up with the itinerary. Prefer export_trip_ics when the user wants a one-off .ics file to import once and be done.',
+      'Get the subscribable calendar feed URL of one trip, or null when the feed is switched off. This is a live subscription a calendar app re-reads hourly, so it keeps up with the itinerary. Prefer export_trip_ics when the user wants a one-off .ics file to import once and be done.' +
+      DAY_EVENTS_HINT,
     inputSchema: {
       tripId: idSchema,
     },
@@ -88,7 +97,8 @@ export class FeedsMcp {
   @Tool({
     name: 'enable_trip_calendar_feed',
     description:
-      "Switch on the subscribable calendar feed of one trip and return its URL. Safe to repeat: a trip that already has a feed keeps the URL it has, so subscriptions somebody already set up survive. The URL carries a secret token and asks for no login, so whoever holds it can read the trip's dates.",
+      "Switch on the subscribable calendar feed of one trip and return its URL. Safe to repeat: a trip that already has a feed keeps the URL it has, so subscriptions somebody already set up survive. The URL carries a secret token and asks for no login, so whoever holds it can read the trip's dates." +
+      DAY_EVENTS_HINT,
     inputSchema: {
       tripId: idSchema,
     },
@@ -104,7 +114,8 @@ export class FeedsMcp {
   @Tool({
     name: 'rotate_trip_calendar_feed',
     description:
-      "Issue a fresh URL for one trip's calendar feed. Every calendar subscribed to the old URL silently stops updating, so use this when the old link leaked or the user asked to cut it off, not to switch the feed on: enable_trip_calendar_feed does that without breaking anything.",
+      "Issue a fresh URL for one trip's calendar feed. Every calendar subscribed to the old URL silently stops updating, so use this when the old link leaked or the user asked to cut it off, not to switch the feed on: enable_trip_calendar_feed does that without breaking anything." +
+      DAY_EVENTS_HINT,
     inputSchema: {
       tripId: idSchema,
     },
@@ -142,7 +153,8 @@ export class FeedsMcp {
   @Tool({
     name: 'get_all_trips_calendar_feed',
     description:
-      'Get the subscribable calendar feed URL covering every trip the user can open, or null when it is switched off. One feed for the whole travel calendar; get_trip_calendar_feed is the per-trip one.',
+      'Get the subscribable calendar feed URL covering every trip the user can open, or null when it is switched off. One feed for the whole travel calendar; get_trip_calendar_feed is the per-trip one.' +
+      DAY_EVENTS_HINT,
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_READONLY,
     access: { group: 'trips', mode: 'share' },
@@ -154,7 +166,8 @@ export class FeedsMcp {
   @Tool({
     name: 'enable_all_trips_calendar_feed',
     description:
-      "Switch on the calendar feed covering every trip the user can open and return its URL. Safe to repeat: an existing feed keeps its URL. The URL needs no login and follows the user's trips as they change, so a trip added later shows up in it without anyone re-subscribing.",
+      "Switch on the calendar feed covering every trip the user can open and return its URL. Safe to repeat: an existing feed keeps its URL. The URL needs no login and follows the user's trips as they change, so a trip added later shows up in it without anyone re-subscribing." +
+      DAY_EVENTS_HINT,
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'trips', mode: 'share' },
@@ -166,7 +179,8 @@ export class FeedsMcp {
   @Tool({
     name: 'rotate_all_trips_calendar_feed',
     description:
-      'Issue a fresh URL for the all-trips calendar feed. Every calendar subscribed to the old URL stops updating. Use it when that link leaked; enable_all_trips_calendar_feed is the way to switch the feed on without breaking existing subscriptions.',
+      'Issue a fresh URL for the all-trips calendar feed. Every calendar subscribed to the old URL stops updating. Use it when that link leaked; enable_all_trips_calendar_feed is the way to switch the feed on without breaking existing subscriptions.' +
+      DAY_EVENTS_HINT,
     inputSchema: {},
     annotations: TOOL_ANNOTATIONS_NON_IDEMPOTENT,
     access: { group: 'trips', mode: 'share' },

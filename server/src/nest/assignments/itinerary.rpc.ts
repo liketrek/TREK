@@ -2,7 +2,7 @@ import { PluginGuards } from '../../nest-rpc/plugin-guards.service';
 import { ForbiddenResource } from '../../nest-rpc/rpc-errors';
 import { PluginController, PluginMethod } from '../../nest-rpc/rpc-kit/decorators';
 import type { PluginRpcContext } from '../../nest-rpc/rpc-kit/types';
-import { num, str } from '../../nest-rpc/rpc-params';
+import { str, rowIdParam } from '../../nest-rpc/rpc-params';
 import { RealtimeService } from '../realtime/realtime.service';
 import { AssignmentsService } from './assignments.service';
 
@@ -26,9 +26,9 @@ export class ItineraryRpc {
 
   @PluginMethod('itinerary.assign', { permission: 'db:write:itinerary' })
   async assign(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const dayId = num(params.dayId, 'dayId');
-    const placeId = num(params.placeId, 'placeId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const dayId = rowIdParam(params.dayId, 'dayId');
+    const placeId = rowIdParam(params.placeId, 'placeId');
     const actor = this.guards.requireActor(ctx, 'itinerary');
     const notes = params.notes === undefined || params.notes === null ? null : str(params.notes, 'notes');
     await this.guards.requireTripEdit(tripId, actor, DAY_EDIT_ACTION);
@@ -44,8 +44,8 @@ export class ItineraryRpc {
 
   @PluginMethod('itinerary.unassign', { permission: 'db:write:itinerary' })
   async unassign(params: Record<string, unknown>, ctx: PluginRpcContext): Promise<unknown> {
-    const tripId = num(params.tripId, 'tripId');
-    const assignmentId = num(params.assignmentId, 'assignmentId');
+    const tripId = rowIdParam(params.tripId, 'tripId');
+    const assignmentId = rowIdParam(params.assignmentId, 'assignmentId');
     const actor = this.guards.requireActor(ctx, 'itinerary');
     await this.guards.requireTripEdit(tripId, actor, DAY_EDIT_ACTION);
     const existing = await this.assignments.getAssignmentForTrip(assignmentId, tripId);

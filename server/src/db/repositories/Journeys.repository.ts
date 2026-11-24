@@ -231,6 +231,11 @@ export class JourneysRepository extends TrekRepository<Journeys> {
     await this.nativeUpdate({ id }, { cover_image });
   }
 
+  /** Whether some journey names one of these stored values as its cover (the anonymous /uploads/journey gate). */
+  async isCoverImage(values: string[]): Promise<boolean> {
+    return (await this.count({ cover_image: { $in: values } })) > 0;
+  }
+
   /**
    * JG24 — `updateJourney`'s dynamic SET (R6, `presenceSet`). The SERVICE
    * resolves every field to its final bound value first (the `ALLOWED_STATUSES`

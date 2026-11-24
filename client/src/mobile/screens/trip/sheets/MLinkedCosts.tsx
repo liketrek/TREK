@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { ChevronRight, Link2, Link2Off, Plus, Search, Trash2 } from 'lucide-react'
+import { ChevronRight, Link2, Link2Off, Receipt, Search, Trash2 } from 'lucide-react'
 import { useTranslation } from '../../../../i18n'
 import { useTripStore } from '../../../../store/tripStore'
 import { useSettingsStore } from '../../../../store/settingsStore'
@@ -8,10 +8,8 @@ import { formatMoney } from '../../../../utils/formatters'
 import { catMeta } from '../../../../components/Budget/costsCategories'
 import { useExpenseLinks } from '../../../../components/Planner/useRecordLinks'
 import type { BudgetItem } from '../../../../types'
-import { Eyebrow } from './PlSheetChrome'
+import { AddFieldButton, Eyebrow } from './PlSheetChrome'
 
-const PILL_CLS =
-  'flex w-full items-center justify-center gap-[6px] rounded-[13px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)] py-[11px] text-[0.78125rem] font-semibold text-m-ink disabled:opacity-40'
 const ROW_ICON_BTN_CLS = 'flex h-8 w-8 flex-none items-center justify-center rounded-full text-m-faint active:bg-[color:var(--m-ic)]'
 // Past this many the list gets a search field, a trip can collect a lot of expenses.
 const SEARCH_FROM = 6
@@ -88,16 +86,10 @@ export default function MLinkedCosts({ reservationId = null, placeId = null, hin
       )}
 
       <div className={`grid gap-2 ${targetId ? 'grid-cols-2' : 'grid-cols-1'}`}>
-        <button type="button" onClick={onCreate} disabled={createDisabled} className={PILL_CLS}>
-          <Plus size={13} strokeWidth={2.2} />
-          {t('reservations.createExpense')}
-        </button>
+        <AddFieldButton icon={Receipt} label={t('reservations.createExpense')} onClick={onCreate} disabled={createDisabled} />
         {/* Linking needs the record to exist, so it waits for the first save. */}
         {targetId !== null && (
-          <button type="button" onClick={() => setPicking(v => !v)} aria-expanded={picking} className={`${PILL_CLS} ${picking ? '!bg-m-act !text-m-actfg' : ''}`}>
-            <Link2 size={13} strokeWidth={2.2} />
-            {t('files.link')}
-          </button>
+          <AddFieldButton icon={Link2} label={t('files.link')} onClick={() => setPicking(v => !v)} pressed={picking} ariaExpanded={picking} />
         )}
       </div>
 
@@ -133,7 +125,7 @@ export default function MLinkedCosts({ reservationId = null, placeId = null, hin
         </div>
       )}
 
-      {linked.length === 0 && <div className="mt-[5px] font-geist text-[0.625rem] text-m-faint">{t(hintKey)}</div>}
+      {linked.length === 0 && <p className="m-0 mt-[5px] px-[6px] font-geist text-[0.65625rem] leading-snug text-m-faint">{t(hintKey)}</p>}
     </>
   )
 }

@@ -18,7 +18,7 @@ import { WandererClient, WandererError } from '../../../src/nest/wanderer/wander
 import { createSnapshotTestDb } from '../../helpers/db-mock';
 import { makePlace } from '../../helpers/factories/places';
 import { countRows, deleteRows, findRow, insertRow, updateRows } from '../../helpers/factories/rows';
-import { setAddonEnabled, setAppSetting } from '../../helpers/factories/settings';
+import { setAddonEnabled, setAppSetting, setTripAddon } from '../../helpers/factories/settings';
 import { makeTour, makeTourSource } from '../../helpers/factories/tours';
 import { makeTrip } from '../../helpers/factories/trips';
 import { makeUser } from '../../helpers/factories/users';
@@ -127,6 +127,21 @@ describe('WandererWatchService.run', () => {
     await watch.run(NOW);
     expect(client.ownActors).not.toHaveBeenCalled();
     expect(await connection(user.id)).toMatchObject({ watch_last_run_at: null });
+  });
+
+  it('WWATCH-014: with Tours off for the instance, a user whose trip switched it on is watched, the others only take their turn', async () => {
+    await setAddonEnabled(orm(), 'tours', false);
+    const opened = await fixture();
+    const closed = await fixture();
+    await setTripAddon(orm(), opened.trip.id, 'tours', true);
+    await watch.run(NOW);
+    expect(client.trail).toHaveBeenCalledTimes(1);
+    expect(await hintRow(opened.placeId)).toMatchObject({ checked_at: '2026-10-20 10:00:00' });
+    expect(await hintRow(closed.placeId)).toBeNull();
+    expect(await connection(closed.user.id)).toMatchObject({
+      watch_last_run_at: '2026-10-20 10:00:00',
+      watch_failures: 0,
+    });
   });
 
   it('WWATCH-002: a record as imported writes a quiet look, tells nobody and never fetches a GPX', async () => {

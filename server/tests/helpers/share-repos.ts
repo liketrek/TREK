@@ -2,7 +2,6 @@ import { PluginUserErasureQueue } from '../../src/db/entities/PluginUserErasureQ
 import { Plugins } from '../../src/db/entities/Plugins.entity';
 import { ShareTokens } from '../../src/db/entities/ShareTokens.entity';
 import type { BudgetItemsRepository } from '../../src/db/repositories/BudgetItems.repository';
-import type { CategoriesRepository } from '../../src/db/repositories/Categories.repository';
 import type { CollabMessagesRepository } from '../../src/db/repositories/CollabMessages.repository';
 import type { DayAssignmentsRepository } from '../../src/db/repositories/DayAssignments.repository';
 import type { DayNotesRepository } from '../../src/db/repositories/DayNotes.repository';
@@ -25,7 +24,6 @@ import {
   createTestDayAssignmentsRepo,
   createTestDayNotesRepo,
   createTestPlacesRepo,
-  createTestCategoriesRepo,
 } from './test-uow';
 
 import type Database from 'better-sqlite3';
@@ -63,13 +61,13 @@ export function createTestPluginUserErasureQueueRepo(db: Database.Database): Pro
 }
 
 /**
- * The 10 repository arguments `ShareService`'s constructor appends after
+ * The 9 repository arguments `ShareService`'s constructor appends after
  * `uow` (`reservationsRepo`, `shareTokens`, `trips`, `days`, `dayAssignments`,
- * `dayNotes`, `places`, `packingItems`, `budgetItems`, `categories`,
- * `collabMessages` — 11 total, `reservationsRepo` already had its own 3d
+ * `dayNotes`, `places`, `packingItems`, `budgetItems`, `collabMessages` —
+ * 10 total, `reservationsRepo` already had its own 3d
  * factory), built over the SAME connection in one call — every hand-built
  * `new ShareService(...)` test call site spreads this
- * (`...(await shareServiceRepoArgs(conn))`) instead of repeating all 11
+ * (`...(await shareServiceRepoArgs(conn))`) instead of repeating all 10
  * factories, the `budgetRepoArgs` precedent.
  */
 export async function shareServiceRepoArgs(
@@ -85,7 +83,6 @@ export async function shareServiceRepoArgs(
     PlacesRepository,
     PackingItemsRepository,
     BudgetItemsRepository,
-    CategoriesRepository,
     CollabMessagesRepository,
   ]
 > {
@@ -99,7 +96,6 @@ export async function shareServiceRepoArgs(
     await createTestPlacesRepo(db),
     await createTestPackingItemsRepo(db),
     await createTestBudgetItemsRepo(db),
-    await createTestCategoriesRepo(db),
     await createTestCollabMessagesRepo(db),
   ];
 }

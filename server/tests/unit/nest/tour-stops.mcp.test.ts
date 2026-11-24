@@ -133,8 +133,8 @@ describe('TourStopsMcp', () => {
       ['remove_tour_stop', false, { group: 'trips', mode: 'write' }],
     ]);
     expect(tools[0].description).toContain('after_key');
-    const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');
-    const gated = await Promise.all(tools.map((tool) => tool.when?.(ctx(1), { addons: { isAddonEnabled } })));
+    const isEnabledForUserAnywhere = vi.fn(async (_userId: number, id: string) => id === 'tours');
+    const gated = await Promise.all(tools.map((tool) => tool.when?.(ctx(1), { addons: { isEnabledForUserAnywhere } })));
     expect(gated).toEqual([true, true]);
   });
 

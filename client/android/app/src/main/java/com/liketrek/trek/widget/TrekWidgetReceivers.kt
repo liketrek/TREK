@@ -32,6 +32,10 @@ class BookingsWidgetReceiver : TrekWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = BookingsWidget()
 }
 
+class FlightWidgetReceiver : TrekWidgetReceiver() {
+    override val glanceAppWidget: GlanceAppWidget = FlightWidget()
+}
+
 class TodosWidgetReceiver : TrekWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = TodosWidget()
 }
@@ -56,6 +60,7 @@ object TrekWidgetUpdater {
         TripWidgetReceiver::class,
         TodayWidgetReceiver::class,
         BookingsWidgetReceiver::class,
+        FlightWidgetReceiver::class,
         TodosWidgetReceiver::class,
         PackingWidgetReceiver::class,
         AtlasWidgetReceiver::class,

@@ -4,35 +4,24 @@
  * and oauthApiRouter (/api/oauth/*).
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { Addons } from '../../src/db/entities/Addons.entity';
-import { AuditLog } from '../../src/db/entities/AuditLog.entity';
-import { OauthClients } from '../../src/db/entities/OauthClients.entity';
-import { OauthConsents } from '../../src/db/entities/OauthConsents.entity';
 import { OauthTokens } from '../../src/db/entities/OauthTokens.entity';
-import { Users } from '../../src/db/entities/Users.entity';
 import { ALL_SCOPES } from '../../src/mcp/scopes';
-import { AuditService } from '../../src/nest/audit/audit.service';
-import { UnitOfWork } from '../../src/nest/database/unit-of-work';
-import { CimdClientResolver } from '../../src/nest/oauth/oauth-cimd';
+import { withRequestContext } from '../../src/nest/database/request-context';
 import { OauthService } from '../../src/nest/oauth/oauth.service';
 import { authCookie } from '../helpers/auth';
-import { createUser } from '../helpers/factories';
 import { updateRows, upsertRow } from '../helpers/factories/rows';
-import { createTestAddonsService } from '../helpers/test-addons';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../helpers/test-orm';
+import { makeUser } from '../helpers/factories/users';
+import { oneByOne } from '../helpers/one-by-one';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
+import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import crypto from 'crypto';
 import type { Application } from 'express';
 import request from 'supertest';
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 
 vi.mock('../../src/app-config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../../src/app-config')>();
@@ -54,15 +43,15 @@ let containerSideOauth: OauthService;
 // Arrow wrappers rather than `.bind`: with `strictBindCallApply: false` a bound
 // alias is typed `any`, which hides a missing `await` on the now-async methods.
 const createAuthCode = (...args: Parameters<OauthService['createAuthCode']>) =>
-  containerSideOauth.createAuthCode(...args);
+  withRequestContext(orm, () => containerSideOauth.createAuthCode(...args));
 const createOAuthClient = (...args: Parameters<OauthService['createOAuthClient']>) =>
-  containerSideOauth.createOAuthClient(...args);
+  withRequestContext(orm, () => containerSideOauth.createOAuthClient(...args));
 const getUserByAccessToken = (...args: Parameters<OauthService['getUserByAccessToken']>) =>
-  containerSideOauth.getUserByAccessToken(...args);
+  withRequestContext(orm, () => containerSideOauth.getUserByAccessToken(...args));
 
 let nestApp: INestApplication;
 let app: Application;
-let t: TestOrm;
+let orm: MikroORM;
 
 // PKCE helpers
 function makePkce() {
@@ -76,7 +65,7 @@ function makePkce() {
 // addons row, so driving the DB row keeps mcpEnabled() AND
 // validateAuthorizeRequest()/token/revoke consistent from one source.
 async function setMcpEnabled(enabled: boolean) {
-  await upsertRow(t, Addons, {
+  await upsertRow(orm, Addons, {
     id: 'mcp',
     name: 'MCP',
     description: 'AI assistant integration',
@@ -90,28 +79,18 @@ async function setMcpEnabled(enabled: boolean) {
 beforeAll(async () => {
   nestApp = await buildApp();
   app = nestApp.getHttpAdapter().getInstance();
-  t = await createTestOrm(testDb);
-  containerSideOauth = new OauthService(
-    t.repo(OauthClients),
-    t.repo(OauthTokens),
-    t.repo(OauthConsents),
-    await createTestAddonsService(testDb),
-    new AuditService(t.repo(AuditLog), t.repo(Users)),
-    new UnitOfWork(t.em),
-    nestApp.get(CimdClientResolver),
-  );
+  orm = nestApp.get(MikroORM);
+  containerSideOauth = nestApp.get(OauthService);
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
   await setMcpEnabled(true);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  await t.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -329,7 +308,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
   });
 
   it('OAUTH-005 — invalid auth code returns 400 invalid_grant', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const clientResult = await createOAuthClient(user.id, 'TestApp', ['https://app.example.com/cb'], ['trips:read']);
     const client = clientResult.client!;
 
@@ -346,7 +325,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
   });
 
   it('OAUTH-006 — client_id mismatch returns 400 invalid_grant', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r1 = await createOAuthClient(user.id, 'App1', ['https://app1.example.com/cb'], ['trips:read']);
     const r2 = await createOAuthClient(user.id, 'App2', ['https://app2.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
@@ -376,7 +355,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
   });
 
   it('OAUTH-007 — redirect_uri mismatch returns 400 invalid_grant', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -403,7 +382,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
   });
 
   it('OAUTH-008 — wrong client_secret returns 401 invalid_client (timing-safe check)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -430,7 +409,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
   });
 
   it('OAUTH-009 — PKCE failure returns 400 invalid_grant', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -457,7 +436,7 @@ describe('POST /oauth/token — authorization_code grant', () => {
   });
 
   it('OAUTH-010 — happy path: exchange auth code for tokens', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -502,7 +481,7 @@ describe('POST /oauth/token — refresh_token grant', () => {
   });
 
   it('OAUTH-012 — invalid refresh token returns 400 invalid_grant', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
 
     const res = await request(app).post('/oauth/token').send({
@@ -516,7 +495,7 @@ describe('POST /oauth/token — refresh_token grant', () => {
   });
 
   it('OAUTH-013 — happy path: issue then refresh tokens', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -581,7 +560,7 @@ describe('POST /oauth/revoke', () => {
   });
 
   it('OAUTH-016 — wrong client_secret returns 401 invalid_client', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
 
     const res = await request(app)
@@ -592,7 +571,7 @@ describe('POST /oauth/revoke', () => {
   });
 
   it('OAUTH-017 — valid revoke returns 200 even for unknown token (RFC 7009)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
 
     const res = await request(app)
@@ -602,7 +581,7 @@ describe('POST /oauth/revoke', () => {
   });
 
   it('OAUTH-018 — happy path: issue token, revoke it, verify refresh no longer works', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -664,7 +643,7 @@ describe('GET /api/oauth/authorize/validate', () => {
   });
 
   it('OAUTH-020 — returns 200 with valid:false for wrong response_type (authenticated)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { challenge } = makePkce();
     const res = await request(app).get('/api/oauth/authorize/validate').set('Cookie', authCookie(user.id)).query({
       response_type: 'token',
@@ -685,7 +664,7 @@ describe('GET /api/oauth/authorize/validate', () => {
     // Before #2227 registration refused the URI outright; once it was accepted,
     // this route still answered invalid_redirect_uri because it compared byte
     // for byte while RFC 8252 §7.3 frees the port for loopback redirects.
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { challenge } = makePkce();
     const reg = await request(app)
       .post('/oauth/register')
@@ -710,7 +689,7 @@ describe('GET /api/oauth/authorize/validate', () => {
   });
 
   it('OAUTH-2227E: the port is all that is free, so a different callback path is still refused', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { challenge } = makePkce();
     const reg = await request(app)
       .post('/oauth/register')
@@ -745,7 +724,7 @@ describe('GET /api/oauth/authorize/validate', () => {
   });
 
   it('OAUTH-022 — returns 200 with valid:false for unknown client_id (authenticated)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { challenge } = makePkce();
     const res = await request(app).get('/api/oauth/authorize/validate').set('Cookie', authCookie(user.id)).query({
       response_type: 'code',
@@ -761,7 +740,7 @@ describe('GET /api/oauth/authorize/validate', () => {
   });
 
   it('OAUTH-023 — returns 200 with valid:false for mismatched redirect_uri (authenticated)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -779,7 +758,7 @@ describe('GET /api/oauth/authorize/validate', () => {
   });
 
   it('OAUTH-024 — returns 200 with valid:false for empty scope (authenticated)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -797,7 +776,7 @@ describe('GET /api/oauth/authorize/validate', () => {
   });
 
   it('OAUTH-025a — narrows scope to allowed intersection when client lacks some requested scopes (authenticated)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -816,7 +795,7 @@ describe('GET /api/oauth/authorize/validate', () => {
   });
 
   it('OAUTH-025b — returns 200 with valid:false when no requested scope is allowed (authenticated)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -834,7 +813,7 @@ describe('GET /api/oauth/authorize/validate', () => {
   });
 
   it('OAUTH-026 — unauthenticated valid request returns loginRequired=true (H3: minimal response, no client info)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -855,7 +834,7 @@ describe('GET /api/oauth/authorize/validate', () => {
   });
 
   it('OAUTH-027 — authenticated with no prior consent returns consentRequired=true with client details', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -895,7 +874,7 @@ describe('POST /api/oauth/authorize', () => {
 
   it('OAUTH-029 — 403 when MCP disabled', async () => {
     await setMcpEnabled(false);
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).post('/api/oauth/authorize').set('Cookie', authCookie(user.id)).send({
       approved: true,
@@ -909,7 +888,7 @@ describe('POST /api/oauth/authorize', () => {
   });
 
   it('OAUTH-030 — user denied returns redirect with error=access_denied', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -926,7 +905,7 @@ describe('POST /api/oauth/authorize', () => {
   });
 
   it('OAUTH-030b — a denial for an unregistered redirect_uri is refused, not redirected', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -943,7 +922,7 @@ describe('POST /api/oauth/authorize', () => {
   });
 
   it('OAUTH-031 — invalid params returns 400', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const { challenge } = makePkce();
 
     const res = await request(app).post('/api/oauth/authorize').set('Cookie', authCookie(user.id)).send({
@@ -958,7 +937,7 @@ describe('POST /api/oauth/authorize', () => {
   });
 
   it('OAUTH-032 — happy path: approve returns redirect with code', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -984,14 +963,14 @@ describe('POST /api/oauth/authorize', () => {
 describe('Client CRUD — /api/oauth/clients', () => {
   it('OAUTH-033 — GET returns 403 when addon disabled', async () => {
     await setMcpEnabled(false);
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/oauth/clients').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(403);
   });
 
   it('OAUTH-034 — GET returns 200 with clients list', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await createOAuthClient(user.id, 'MyApp', ['https://app.example.com/cb'], ['trips:read']);
 
     const res = await request(app).get('/api/oauth/clients').set('Cookie', authCookie(user.id));
@@ -1002,7 +981,7 @@ describe('Client CRUD — /api/oauth/clients', () => {
   });
 
   it('OAUTH-035 — POST creates client and returns 201 with client_secret', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/oauth/clients')
@@ -1017,7 +996,7 @@ describe('Client CRUD — /api/oauth/clients', () => {
 
   it('OAUTH-036 — POST returns 403 when addon disabled', async () => {
     await setMcpEnabled(false);
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app)
       .post('/api/oauth/clients')
@@ -1027,7 +1006,7 @@ describe('Client CRUD — /api/oauth/clients', () => {
   });
 
   it('OAUTH-037 — POST /clients/:id/rotate rotates secret', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
 
     const res = await request(app).post(`/api/oauth/clients/${r.client!.id}/rotate`).set('Cookie', authCookie(user.id));
@@ -1037,7 +1016,7 @@ describe('Client CRUD — /api/oauth/clients', () => {
   });
 
   it('OAUTH-038 — DELETE /clients/:id deletes client', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
 
     const res = await request(app).delete(`/api/oauth/clients/${r.client!.id}`).set('Cookie', authCookie(user.id));
@@ -1046,7 +1025,7 @@ describe('Client CRUD — /api/oauth/clients', () => {
   });
 
   it('OAUTH-039 — DELETE /clients/:id returns 404 for non-existent', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).delete('/api/oauth/clients/nonexistent-id').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
@@ -1060,14 +1039,14 @@ describe('Client CRUD — /api/oauth/clients', () => {
 describe('Sessions — /api/oauth/sessions', () => {
   it('OAUTH-040 — GET returns 403 when addon disabled', async () => {
     await setMcpEnabled(false);
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/oauth/sessions').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(403);
   });
 
   it('OAUTH-041 — GET returns 200 with sessions list', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).get('/api/oauth/sessions').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -1075,7 +1054,7 @@ describe('Sessions — /api/oauth/sessions', () => {
   });
 
   it('OAUTH-042 — DELETE /sessions/:id revokes session', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -1109,22 +1088,58 @@ describe('Sessions — /api/oauth/sessions', () => {
   });
 
   it('OAUTH-043 — DELETE /sessions/:id returns 404 for non-existent', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).delete('/api/oauth/sessions/99999').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
   });
 
   it('OAUTH-043B — DELETE /sessions/abc (non-numeric id) returns the legacy 404, not a 500 (Plan 3b Task 4 controller addendum, per Task 2 review F1)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const res = await request(app).delete('/api/oauth/sessions/abc').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(404);
     expect(res.body).toEqual({ error: 'Session not found' });
   });
 
+  it('OAUTH-043C: DELETE /sessions/:id by a hex or exponent spelling of a real session id is 404 and revokes nothing', async () => {
+    const { user } = await makeUser(orm);
+    const { client } = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
+    if (!client) throw new Error('the OAuth client was not created');
+    const { verifier, challenge } = makePkce();
+    const code = await createAuthCode({
+      clientId: client.client_id as string,
+      userId: user.id,
+      redirectUri: 'https://app.example.com/cb',
+      scopes: ['trips:read'],
+      codeChallenge: challenge,
+      codeChallengeMethod: 'S256',
+      resource: null,
+    });
+    await request(app).post('/oauth/token').send({
+      grant_type: 'authorization_code',
+      client_id: client.client_id,
+      client_secret: client.client_secret,
+      code,
+      redirect_uri: 'https://app.example.com/cb',
+      code_verifier: verifier,
+    });
+    const sessionId = (await request(app).get('/api/oauth/sessions').set('Cookie', authCookie(user.id))).body
+      .sessions[0].id as number;
+
+    // Number() read both as the session itself, so this route revoked it where every other answers 404.
+    const spellings = [`0x${sessionId.toString(16)}`, `${sessionId}e0`];
+    const answers = await oneByOne(spellings, async (spelling) => {
+      const res = await request(app).delete(`/api/oauth/sessions/${spelling}`).set('Cookie', authCookie(user.id));
+      return [res.status, res.body as unknown];
+    });
+    expect(answers).toEqual(spellings.map(() => [404, { error: 'Session not found' }]));
+    const after = await request(app).get('/api/oauth/sessions').set('Cookie', authCookie(user.id));
+    expect(after.body.sessions).toHaveLength(1);
+  });
+
   it('OAUTH-044 — DELETE /sessions/:id returns 403 when addon disabled', async () => {
     await setMcpEnabled(false);
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
 
     const res = await request(app).delete('/api/oauth/sessions/1').set('Cookie', authCookie(user.id));
     expect(res.status).toBe(403);
@@ -1165,7 +1180,7 @@ describe('M2 — 404 when MCP disabled on discovery + revoke endpoints', () => {
 
 describe('H1 — PKCE format validation', () => {
   it('OAUTH-SEC-004 — short code_challenge (<43 chars) rejected on /authorize/validate', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const res = await request(app).get('/api/oauth/authorize/validate').set('Cookie', authCookie(user.id)).query({
       response_type: 'code',
@@ -1181,7 +1196,7 @@ describe('H1 — PKCE format validation', () => {
   });
 
   it('OAUTH-SEC-005 — wrong code_verifier format rejected on /oauth/token (invalid_grant)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -1211,7 +1226,7 @@ describe('H1 — PKCE format validation', () => {
 
 describe('H3 — Unauthenticated /authorize/validate returns minimal response', () => {
   it('OAUTH-SEC-006 — invalid request by unauthenticated caller returns generic error (no oracle)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { challenge } = makePkce();
 
@@ -1235,7 +1250,7 @@ describe('H3 — Unauthenticated /authorize/validate returns minimal response', 
 
 describe('H5 — All invalid_grant cases return identical response body', () => {
   it('OAUTH-SEC-007 — expired/bad code, client_id mismatch, redirect_uri mismatch all return same body', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -1289,7 +1304,7 @@ describe('H5 — All invalid_grant cases return identical response body', () => 
 
 describe('M5 — Consent scope union (re-authorize adds to existing consent)', () => {
   it('OAUTH-SEC-008 — second consent adds new scope without losing old scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read', 'places:read']);
     const { challenge: ch1 } = makePkce();
     const { challenge: ch2 } = makePkce();
@@ -1332,7 +1347,7 @@ describe('M5 — Consent scope union (re-authorize adds to existing consent)', (
 
 describe('M7 — Cookie-only auth on privileged OAuth endpoints', () => {
   it('OAUTH-SEC-009 — POST /api/oauth/authorize rejects Bearer JWT (no cookie)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     // Use a valid JWT in Authorization header (no cookie) — must be rejected
     const jwt = require('jsonwebtoken');
     const token = jwt.sign({ id: user.id }, 'test-jwt-secret-for-trek-testing-only', { algorithm: 'HS256' });
@@ -1351,7 +1366,7 @@ describe('M7 — Cookie-only auth on privileged OAuth endpoints', () => {
 
   it('OAUTH-SEC-010 — POST /api/oauth/clients rejects Bearer JWT (no cookie)', async () => {
     const jwt = require('jsonwebtoken');
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const token = jwt.sign({ id: user.id }, 'test-jwt-secret-for-trek-testing-only', { algorithm: 'HS256' });
 
     const res = await request(app)
@@ -1364,7 +1379,7 @@ describe('M7 — Cookie-only auth on privileged OAuth endpoints', () => {
 
   it('OAUTH-SEC-011 — DELETE /api/oauth/sessions/:id rejects Bearer JWT (no cookie)', async () => {
     const jwt = require('jsonwebtoken');
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const token = jwt.sign({ id: user.id }, 'test-jwt-secret-for-trek-testing-only', { algorithm: 'HS256' });
 
     const res = await request(app).delete('/api/oauth/sessions/1').set('Authorization', `Bearer ${token}`);
@@ -1382,11 +1397,11 @@ describe('C3 — Refresh token replay detection', () => {
   async function agePastGrace(rawRefreshToken: string) {
     const hash = crypto.createHash('sha256').update(rawRefreshToken).digest('hex');
     const old = new Date(Date.now() - 5 * 60 * 1000).toISOString().replace('T', ' ').slice(0, 19);
-    await updateRows(t, OauthTokens, { refresh_token_hash: hash }, { revoked_at: old });
+    await updateRows(orm, OauthTokens, { refresh_token_hash: hash }, { revoked_at: old });
   }
 
   it('OAUTH-SEC-012 — replaying a rotated (old) refresh token returns invalid_grant', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -1434,7 +1449,7 @@ describe('C3 — Refresh token replay detection', () => {
   });
 
   it('OAUTH-SEC-012b — two clients refreshing the same token at once both keep working (#1007)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -1475,7 +1490,7 @@ describe('C3 — Refresh token replay detection', () => {
   });
 
   it('OAUTH-SEC-013 — replaying old token also invalidates the new chain', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'App', ['https://app.example.com/cb'], ['trips:read']);
     const { verifier, challenge } = makePkce();
 
@@ -1535,7 +1550,7 @@ describe('C3 — Refresh token replay detection', () => {
 
 describe('POST /oauth/token — client_credentials grant', () => {
   it('OAUTH-CC-001 — happy path: issues access token with no refresh_token', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
 
     const res = await request(app).post('/oauth/token').send({
@@ -1553,7 +1568,7 @@ describe('POST /oauth/token — client_credentials grant', () => {
   });
 
   it('OAUTH-CC-002 — issued token resolves to the client owner user', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
 
     const res = await request(app).post('/oauth/token').send({
@@ -1570,7 +1585,7 @@ describe('POST /oauth/token — client_credentials grant', () => {
   });
 
   it('OAUTH-CC-003 — wrong client_secret returns 401 invalid_client', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
 
     const res = await request(app).post('/oauth/token').send({
@@ -1584,7 +1599,7 @@ describe('POST /oauth/token — client_credentials grant', () => {
   });
 
   it('OAUTH-CC-004 — missing client_secret returns 401 invalid_client', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
 
     const res = await request(app).post('/oauth/token').send({
@@ -1597,7 +1612,7 @@ describe('POST /oauth/token — client_credentials grant', () => {
   });
 
   it('OAUTH-CC-005 — non-machine client returns 400 unauthorized_client', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'BrowserApp', ['https://app.example.com/cb'], ['trips:read']);
 
     const res = await request(app).post('/oauth/token').send({
@@ -1611,7 +1626,7 @@ describe('POST /oauth/token — client_credentials grant', () => {
   });
 
   it('OAUTH-CC-006 — scope narrowing: requested subset is honoured', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'Machine', [], ['trips:read', 'places:read'], null, {
       allowsClientCredentials: true,
     });
@@ -1628,7 +1643,7 @@ describe('POST /oauth/token — client_credentials grant', () => {
   });
 
   it('OAUTH-CC-007 — scope outside allowed_scopes returns 400 invalid_scope', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
 
     const res = await request(app).post('/oauth/token').send({
@@ -1643,7 +1658,7 @@ describe('POST /oauth/token — client_credentials grant', () => {
   });
 
   it('OAUTH-CC-008 — createOAuthClient with allowsClientCredentials succeeds without redirect URIs', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const r = await createOAuthClient(user.id, 'Machine', [], ['trips:read'], null, { allowsClientCredentials: true });
 
     expect(r.error).toBeUndefined();

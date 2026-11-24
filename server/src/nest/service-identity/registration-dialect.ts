@@ -1,5 +1,5 @@
 /**
- * How TREK 5.1.4 registers with the TREK services.
+ * How TREK 5.2.0 registers with the TREK services.
  *
  * The issuer writes this file for each release and the release pipeline
  * commits it with the version bump. It is not edited by hand, and its layout
@@ -8,101 +8,100 @@
  */
 import type { DialectSelfCheck, RegistrationDialect } from './registration-dialect.types';
 
-import { createHash, createHmac, hkdfSync } from 'node:crypto';
+import { createHash, createHmac, pbkdf2Sync } from 'node:crypto';
 
-const DIALECT = '8546tJZpbjQb';
-const ARROW_BARLEY = Buffer.from('95fd08ded3ef3e32af04cf42290d5a6d1ad24d88827f9c745ba46b810962cd8e', 'hex');
+const DIALECT = 'MCC2i6oMga-k';
+const FLINT_AURORA = Buffer.from('e0bc92393c56a33c8046371de83c00b73975ec200058dcc1c08d07ef234a0997', 'hex');
+const CHERRY_FALCON = 'abcdefghijklmnopqrstuvwxyz234567';
 
-function mill(a: Buffer, b: Buffer): Buffer {
-  const parts: Buffer[] = [];
-  for (let i = 0; i < Math.max(a.length, b.length); i++) parts.push(a.subarray(i, i + 1), b.subarray(i, i + 1));
-  return Buffer.concat(parts);
-}
-
-function moss(input: Buffer, size: number): Buffer {
-  const out = Buffer.alloc(size);
-  input.forEach((byte, i) => out.writeUInt8(out.readUInt8(i % size) ^ byte, i % size));
-  return out;
-}
-
-function meadow(alg: string, key: Buffer, data: Buffer): Buffer {
-  return createHmac(alg, key).update(data).digest();
-}
-
-function rapids(part: Buffer): Buffer {
+function glacier(part: Buffer): Buffer {
   const head = Buffer.alloc(4);
   head.writeUInt32LE(part.length);
   return Buffer.concat([head, part]);
 }
 
-function hollow(value: number): Buffer {
-  const out = Buffer.alloc(8);
-  out.writeBigUInt64BE(BigInt(value));
+function lynx(a: Buffer, b: Buffer): Buffer {
+  const parts: Buffer[] = [];
+  for (let i = 0; i < Math.max(a.length, b.length); i++) parts.push(a.subarray(i, i + 1), b.subarray(i, i + 1));
+  return Buffer.concat(parts);
+}
+
+function eagle(input: Buffer): string {
+  const bits = [...input].map((byte) => byte.toString(2).padStart(8, '0')).join('');
+  let out = '';
+  for (let i = 0; i < bits.length; i += 5) {
+    out += CHERRY_FALCON.charAt(parseInt(bits.slice(i, i + 5).padEnd(5, '0'), 2));
+  }
   return out;
 }
 
-function apple(part: Buffer): Buffer {
+function rowan(part: Buffer): Buffer {
+  const head = Buffer.alloc(2);
+  head.writeUInt16BE(part.length);
+  return Buffer.concat([head, part]);
+}
+
+function saddle(alg: string, key: Buffer, data: Buffer): Buffer {
+  return createHmac(alg, key).update(data).digest();
+}
+
+function cedar(input: Buffer, size: number): Buffer {
+  const out = Buffer.alloc(size);
+  input.forEach((byte, i) => out.writeUInt8(out.readUInt8(i % size) ^ byte, i % size));
+  return out;
+}
+
+function alder(alg: string, size: number, data: Buffer): Buffer {
+  return createHash(alg, { outputLength: size }).update(data).digest();
+}
+
+function marsh(part: Buffer): Buffer {
   const head = Buffer.alloc(2);
   head.writeUInt16LE(part.length);
   return Buffer.concat([head, part]);
 }
 
-function blossom(value: number): Buffer {
-  const out = Buffer.alloc(4);
-  out.writeUInt32BE(value >>> 0);
-  return out;
-}
-
 export const registrationDialect: RegistrationDialect = {
   id: DIALECT,
-  releasedFor: '5.1.4',
-  createdAt: '2026-11-12',
+  releasedFor: '5.2.0',
+  createdAt: '2026-11-23',
   challengePath: `/v1/register/${DIALECT}/challenge`,
   registerPath: `/v1/register/${DIALECT}`,
-  begin({ challenge, version, random, nowSeconds }) {
-    const chapel = Buffer.from(challenge.c, 'utf8');
-    const fjord = Buffer.from(version, 'utf8');
-    const cliff = createHash('sha256').update(chapel).digest();
-    const horizon = Buffer.concat([cliff].map(apple));
-    const pasture = Buffer.concat([cliff.subarray(0x10, 20), Buffer.from([0x8c]), horizon]);
-    const sorrel = Buffer.from(pasture.toString('hex'));
-    const bell = meadow('sha256', sorrel, chapel);
+  begin({ challenge, version, random }) {
+    const cabin = Buffer.from(challenge.c, 'utf8');
+    const harrier = Buffer.from(version, 'utf8');
+    const quarry = createHash('sha256').update(cabin).digest();
+    const winter = Buffer.concat([marsh(FLINT_AURORA), marsh(harrier), marsh(cabin), marsh(random.subarray(3, 12))]);
+    const paddle = saddle('sha3-256', winter, FLINT_AURORA);
+    const cypress = Buffer.from(paddle.toString('hex'), 'utf8');
     return {
       work(nonce) {
-        const cinder = Buffer.concat([
-          rapids(random), rapids(fjord), rapids(hollow(nonce)), rapids(blossom(nowSeconds)), rapids(chapel),
-        ]);
-        const tide = Buffer.from([
-          0, 0xa, 9, 0xb, 1, 15, 3, 16, 13, 6, 8, 4, 0xc, 14, 0x11, 2, 5, 7,
-        ].map((from) => cinder.readUInt8(from)));
-        const cottage = Buffer.concat([tide, cinder.subarray(18)]);
-        const sapling = Buffer.from(hkdfSync(
-          'sha256', cottage, chapel.subarray(8, 0xc), Buffer.from('9b25443bf88e4cbf', 'hex'), 43,
-        ));
-        const rowan = Buffer.from(Array.from(sapling, (byte) => (byte * 0xc7 + 0xe2) % 256));
-        const linden = mill(rowan, ARROW_BARLEY);
-        const swan = Buffer.from(linden.subarray(2, 41));
-        return { password: swan, salt: bell };
+        const atlas = Buffer.concat([random, cabin, Buffer.from(nonce.toString(10)), harrier, FLINT_AURORA].map(rowan));
+        const blossom = pbkdf2Sync(atlas, quarry.subarray(22, 0x1e), 20, 0x15, 'sha512');
+        const arbor = lynx(blossom, FLINT_AURORA).subarray(0, blossom.length);
+        const coast = Buffer.from(arbor.subarray(0, 21));
+        const wave = alder('shake256', 0x40, coast);
+        return { password: wave, salt: cypress };
       },
       request(nonce) {
-        const falcon = Buffer.concat([
-          Buffer.from(nonce.toString(16), 'utf8'), Buffer.from([0x4b]), cliff.subarray(24, 28), Buffer.from([0x4b]),
-          chapel, Buffer.from([0x4b]), ARROW_BARLEY, Buffer.from([0x4b]), random.subarray(3, 9), Buffer.from([0x4b]),
-          fjord, Buffer.from([0x4b]), blossom(nowSeconds),
-        ]);
-        const pelican = moss(falcon, 0x14);
-        const kelp = meadow('sha512', pelican, fjord);
+        const basin = Buffer.concat([harrier, cabin, Buffer.from(`${nonce}`)].map(glacier));
+        const wave6 = Buffer.concat([harrier, basin]);
+        const wing = pbkdf2Sync(wave6, FLINT_AURORA.subarray(23, 0x1d), 0x1c, 0x1a, 'sha512');
+        const ivy = Buffer.from([
+          3, 0xe, 0x11, 0xf, 9, 0xa, 7, 18, 13, 4, 11, 5, 16, 8, 0, 6, 1, 12, 2, 19,
+        ].map((from) => wing.readUInt8(from)));
+        const grove = Buffer.concat([ivy, wing.subarray(20)]);
+        const dock = saddle('sha256', grove, random);
+        const pearl = cedar(dock, 0x14);
         return {
           body: {
-            willow_jetty: {
-              echo: nonce,
-              banner: version,
-              lava_breeze: random.toString('hex'),
-              flint_lava: challenge.c,
-              sage_frost: String(nowSeconds),
-            },
+            sierra_ridge: version,
+            paddle_mill: pearl.toString('hex'),
+            gorge_rowan: challenge.c,
+            birch_cape: nonce,
+            ash: eagle(random),
           },
-          headers: { 'X-TREK-Fossil-Vessel': kelp.toString('base64url') },
+          headers: {},
         };
       },
     };
@@ -111,13 +110,13 @@ export const registrationDialect: RegistrationDialect = {
 
 /** Fixed inputs and what this module must make of them; TREK's tests and release job run it. */
 export const SELF_CHECK: DialectSelfCheck = {
-  challenge: { c: 'v1.selfcheck.8546tJZpbjQb', alg: 'scrypt', N: 16, r: 1, p: 1, bits: 0, expires_at: 1 },
-  version: '5.1.4',
+  challenge: { c: 'v1.selfcheck.MCC2i6oMga-k', alg: 'scrypt', N: 16, r: 1, p: 1, bits: 0, expires_at: 1 },
+  version: '5.2.0',
   random: '000102030405060708090a0b0c0d0e0f',
   nowSeconds: 1800000000,
   nonce: 41,
-  inputSha256: '35bde8e3256e05441ac19c8b6b22f9d4e4adb59b5564f101078aa597e70ece99',
-  saltSha256: '8730a0377647a045a6fceade4a2c8c7dd3854e56cc6a87cd20ef94e87107493b',
-  scrypt: '884c7cf0406e20ccbba3372999d07d80b3cfc13eb9a464510b68942868840189',
-  requestSha256: '49848ec61f040261e65627b276eb996a83ed3d096b5a0216e8ba00a75a90cf70',
+  inputSha256: '5840e0d3d6661feeb110032d6bd6ce71653bbaad6695c4919d5dc4a1c90d4887',
+  saltSha256: 'd6108d62280c10f09c6ed4b68c4ae18934b5c9bd1b0d2f97452cdc4d048bb8cc',
+  scrypt: '66520ede3f817fec6584440217987d2d5d810f0a1f2f6f05bb7108901ba12070',
+  requestSha256: '4a6a4228f493fcef6c185c910b2667cf08317c0ac693eba64ea850b32ee79980',
 };

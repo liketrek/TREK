@@ -5,6 +5,7 @@ import { RequireAddon } from '../addons/require-addon.decorator';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { ResponseContract } from '../common/response-contract';
+import { rowId } from '../common/row-id.pipe';
 import { JourneyMapService } from './journey-map.service';
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { journeyMapLayersResponseSchema } from '@trek/shared';
@@ -23,7 +24,7 @@ export class JourneyMapController {
 
   @Get(':id/map-layers')
   @ResponseContract(journeyMapLayersResponseSchema)
-  async layers(@CurrentUser() user: User, @Param('id') id: string) {
-    return this.map.mapLayers(Number(id), user.id);
+  async layers(@CurrentUser() user: User, @Param('id', rowId('Journey not found')) id: number) {
+    return this.map.mapLayers(id, user.id);
   }
 }

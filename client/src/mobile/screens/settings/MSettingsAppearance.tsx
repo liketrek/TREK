@@ -189,12 +189,12 @@ export default function MSettingsAppearance() {
           <MSetRow
             first
             label={t('settings.appearance.transparency')}
-            sub={t('settings.appearance.transparencyHint')}
+            hint={t('settings.appearance.transparencyHint')}
             trailing={<MToggle checked={cfg.transparency} onChange={(v) => update({ transparency: v })} ariaLabel={t('settings.appearance.transparency')} />}
           />
           <MSetRow
             label={t('settings.appearance.reduceMotion')}
-            sub={t('settings.appearance.reduceMotionHint')}
+            hint={t('settings.appearance.reduceMotionHint')}
             trailing={<MToggle checked={cfg.reduceMotion} onChange={(v) => update({ reduceMotion: v })} ariaLabel={t('settings.appearance.reduceMotion')} />}
           />
         </div>
@@ -253,7 +253,7 @@ export default function MSettingsAppearance() {
                 <MSetRow
                   first
                   label={t(`settings.appearance.widget.${g.master}`)}
-                  sub={t('settings.appearance.sidebarHint')}
+                  hint={t('settings.appearance.sidebarHint')}
                   trailing={<MToggle checked={masterOn} onChange={(v) => setWidget('desktop', g.master as string, v)} ariaLabel={t(`settings.appearance.widget.${g.master}`)} />}
                 />
               ) : (

@@ -1,19 +1,11 @@
 import React from 'react'
-import { Library, MapPin, Route, Search, X } from 'lucide-react'
 import TrekMark from '../../components/shared/TrekMark'
 import { fs } from '../../components/shared/DialogShell'
 import { StatusPill } from '../../components/Settings/settingsKit'
-import FoldSummary from './FoldSummary'
 import ServiceIdentityPanel from '../../components/Admin/ServiceIdentityPanel'
 import PlaceContribPanel from '../../components/Admin/PlaceContribPanel'
 import type { TranslationFn } from '../../types'
-import {
-  TREK_API_SOURCES as SOURCES,
-  trekApiAddressFeatures,
-  trekApiFacts,
-  trekApiFields,
-  trekApiRoutingFeatures,
-} from '../../components/Admin/trekApiModel'
+import { TREK_API_SOURCES as SOURCES, trekApiFacts } from '../../components/Admin/trekApiModel'
 
 interface TrekApiCardProps {
   t: TranslationFn
@@ -35,30 +27,13 @@ interface TrekApiCardProps {
  * three places on the server rather than promised here, and the allowance below
  * the facts is what the service itself reports for this installation.
  */
-const CHIP = 'rounded-full border px-2.5 py-[3px] font-medium'
-
-/** One of the lists under "more": an icon and a name, chips, a note. */
-function FactGroup({ icon, title, note, children }: { icon: React.ReactNode; title: string; note: string; children: React.ReactNode }) {
-  return (
-    <div className="flex flex-col gap-2 px-3.5 py-3">
-      <p className="m-0 flex items-center gap-1.5 font-semibold text-content" style={fs(12.5, 'body')}>
-        {icon}
-        {title}
-      </p>
-      <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0" style={fs(11.5)}>{children}</ul>
-      <p className="m-0 leading-normal text-content-faint" style={fs(11.5)}>{note}</p>
-    </div>
-  )
-}
-
 export default function TrekApiCard({ t, managed = false }: TrekApiCardProps): React.ReactElement {
-  const fields = trekApiFields(t)
   const facts = trekApiFacts(t)
 
   return (
-    <div className="overflow-hidden rounded-[14px] border bg-surface-card shadow-sm"
+    <section className="overflow-hidden rounded-[12px] border bg-surface-card"
       style={{ borderColor: 'color-mix(in srgb, var(--accent) 40%, transparent)' }}>
-      <div className="flex flex-col gap-3 px-3.5 pb-3.5 pt-3.5">
+      <div className="flex flex-col gap-3 p-3.5">
         {/* The recommendation, moved here from the Google field. It is the whole
             point of the block: a key should be the exception, not the default.
             A pill beside the mark rather than a banner, so it does not shout
@@ -72,13 +47,12 @@ export default function TrekApiCard({ t, managed = false }: TrekApiCardProps): R
           {t('admin.trekApi.tagline')}
         </p>
 
-        <ul className="m-0 grid list-none grid-cols-1 gap-x-4 gap-y-1.5 p-0 sm:grid-cols-2">
+        {/* What it offers as compact badges that wrap, not a list of rows. */}
+        <ul className="m-0 flex list-none flex-wrap gap-1.5 p-0">
           {facts.map(({ Icon, text }) => (
-            <li key={text} className="flex min-w-0 items-center gap-2 text-content-secondary" style={fs(12, 'body')}>
-              <span className="grid h-6 w-6 flex-none place-items-center rounded-[8px] bg-surface-tertiary text-content-muted">
-                <Icon size={13} strokeWidth={2} aria-hidden="true" />
-              </span>
-              <span className="min-w-0">{text}</span>
+            <li key={text} className="inline-flex items-center gap-1.5 rounded-full border border-edge-faint bg-surface-secondary px-2.5 py-1 text-content-secondary" style={fs(11.5)}>
+              <Icon size={12} strokeWidth={2} aria-hidden="true" className="flex-none text-content-muted" />
+              {text}
             </li>
           ))}
         </ul>
@@ -87,72 +61,11 @@ export default function TrekApiCard({ t, managed = false }: TrekApiCardProps): R
         <PlaceContribPanel />
       </div>
 
-      <details className="group border-t border-edge-faint">
-        <FoldSummary>
-          <span className="font-medium text-content" style={fs(13, 'body')}>{t('admin.trekApi.more')}</span>
-        </FoldSummary>
-        <div className="divide-y divide-edge-faint border-t border-edge-faint bg-surface-secondary">
-          {/* The fields as chips rather than a paragraph. A list of what you
-              get is something you scan, not something you read, and a sentence
-              forces the reader to parse commas to answer "is the phone number
-              in there". One list per service, under the service's own name. */}
-          <FactGroup
-            icon={<MapPin size={14} strokeWidth={2.2} className="text-content-muted" aria-hidden="true" />}
-            title={t('admin.trekApi.quota.service.places')}
-            note={t('admin.trekApi.includedNote')}
-          >
-            {fields.map(field => (
-              <li key={field} className={`${CHIP} border-edge-faint bg-surface-card text-content-secondary`}>{field}</li>
-            ))}
-          </FactGroup>
-
-          {/* Named as plainly as what IS included. An admin who switches the
-              source expecting ratings and a photograph of every restaurant
-              should find that out here and not three weeks later. */}
-          <FactGroup
-            icon={<X size={14} strokeWidth={2.4} className="text-content-faint" aria-hidden="true" />}
-            title={t('admin.trekApi.notIncluded')}
-            note={t('admin.trekApi.notIncludedNote')}
-          >
-            {[t('admin.trekApi.notRatings'), t('admin.trekApi.notPhotos')].map(item => (
-              <li key={item} className={`${CHIP} border-dashed border-edge text-content-faint`}>{item}</li>
-            ))}
-          </FactGroup>
-
-          <FactGroup
-            icon={<Search size={14} strokeWidth={2.2} className="text-content-muted" aria-hidden="true" />}
-            title={t('admin.trekApi.quota.service.photon')}
-            note={t('admin.trekApi.addressNote')}
-          >
-            {trekApiAddressFeatures(t).map(item => (
-              <li key={item} className={`${CHIP} border-edge-faint bg-surface-card text-content-secondary`}>{item}</li>
-            ))}
-          </FactGroup>
-
-          <FactGroup
-            icon={<Route size={14} strokeWidth={2.2} className="text-content-muted" aria-hidden="true" />}
-            title={t('admin.trekApi.quota.service.valhalla')}
-            note={t('admin.trekApi.routingNote')}
-          >
-            {trekApiRoutingFeatures(t).map(item => (
-              <li key={item} className={`${CHIP} border-edge-faint bg-surface-card text-content-secondary`}>{item}</li>
-            ))}
-          </FactGroup>
-
-          {/* Attribution, and not in the small print: the licences require the
-              sources to be named, and naming them is also the answer to "where
-              does this actually come from". */}
-          <FactGroup
-            icon={<Library size={14} strokeWidth={2} className="text-content-faint" aria-hidden="true" />}
-            title={t('admin.trekApi.sourcesLabel')}
-            note={t('admin.trekApi.sourcesNote')}
-          >
-            {SOURCES.map(source => (
-              <li key={source} className={`${CHIP} border-edge-faint bg-surface-card text-content-secondary`}>{source}</li>
-            ))}
-          </FactGroup>
-        </div>
-      </details>
-    </div>
+      {/* The sources, named because their licences ask for it, in one line under
+          the card instead of a list of every field the service answers. */}
+      <p className="m-0 border-t border-edge-faint px-3.5 py-2.5 leading-snug text-content-faint" style={fs(11.5)}>
+        <span className="font-semibold text-content-muted">{t('admin.trekApi.sourcesLabel')}:</span> {SOURCES.join(', ')}
+      </p>
+    </section>
   )
 }

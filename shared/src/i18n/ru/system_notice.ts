@@ -19,6 +19,7 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'Создаётся вместе с сообществом',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'Поддержать на Ko-fi',
+  'system_notice.thank_you_support.cta_patreon': 'Каждый месяц на Patreon',
   'system_notice.pager.prev': 'Предыдущее уведомление',
   'system_notice.pager.next': 'Следующее уведомление',
   'system_notice.pager.counter': '{current} / {total}',
@@ -56,38 +57,41 @@ const system_notice: TranslationStrings = {
     'Обновление 3.0.14 обнаружило один или несколько конфликтов имён пользователей или адресов электронной почты, вызванных ведущими или завершающими пробелами в сохранённых значениях. Затронутые учётные записи были автоматически переименованы. Проверьте логи сервера на строки, начинающиеся с **[migration] WHITESPACE COLLISION**, чтобы определить учётные записи, требующие проверки.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Обновление установлено',
-  'system_notice.release_notes.headline': 'Нужное место, с первого раза.',
+  'system_notice.release_notes.headline': 'Меньше набирать, больше путешествовать.',
   'system_notice.release_notes.intro':
-    'Поиск мест, поиск адресов и построение маршрутов теперь работают на собственных серверах TREK при поддержке dataforest cloud, и каждый TREK может делиться тем, что знает о местах, со всеми остальными.',
+    'Письма с бронированиями, которые вы пересылаете, попадают в вашу поездку, TREK следит за вашими рейсами в реальном времени, а PDF поездки полностью новый. TREK теперь работает и на PostgreSQL.',
   'system_notice.release_notes.features_label': 'Главные новинки',
   'system_notice.release_notes.features_aside': 'И это далеко не всё',
-  'system_notice.release_notes.feature_search_title': 'Поиск мест, который попадает в точку',
-  'system_notice.release_notes.feature_search_body':
-    'Города, острова, достопримечательности и аэропорты по их коду идут первыми, кафе ищутся рядом с вами, а подсказки появляются прямо во время ввода.',
-  'system_notice.release_notes.feature_share_title': 'Общие сведения о местах',
-  'system_notice.release_notes.feature_share_body':
-    'Делитесь сайтами, часами работы и фотографиями со всеми TREK, поле за полем, а ваши сохранённые места получают то, что добавили другие.',
-  'system_notice.release_notes.feature_routing_title': 'Более быстрые маршруты',
-  'system_notice.release_notes.feature_routing_body':
-    'Весь день строится за один раз, до двадцати остановок, один медленный маршрут больше не задерживает остальные, а общественный транспорт обращается ко второму провайдеру, если первый ничего не нашёл.',
-  'system_notice.release_notes.footnote': 'Плюс длинный список небольших изменений во всём остальном TREK.',
+  'system_notice.release_notes.feature_mail_title': 'Письма с бронированиями попадают в вашу поездку',
+  'system_notice.release_notes.feature_mail_body':
+    'Перешлите подтверждение на свой персональный адрес, и TREK найдёт вашу поездку, проверит письмо и добавит бронирование вместе с документом.',
+  'system_notice.release_notes.feature_flight_title': 'Статус рейса в реальном времени, бесплатно',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK следит за каждым вашим рейсом в день вылета: статус, задержка, оба аэропорта и карта с самолётом, без API-ключа.',
+  'system_notice.release_notes.feature_pdf_title': 'Новый PDF поездки',
+  'system_notice.release_notes.feature_pdf_body':
+    'Обложка с вашим маршрутом, каждый день в виде таймлайна и все ваши бронирования с кодами, готов к печати или отправке.',
+  'system_notice.release_notes.footnote':
+    'А ещё PostgreSQL, дополнения для каждой поездки, теги для мест, больше способов вести расходы и длинный список мелких изменений.',
   'system_notice.release_notes.notes_label': 'Заметки к релизу',
   'system_notice.release_notes.note_eyebrow': 'Слово от мейнтейнера',
   'system_notice.release_notes.note_title': 'Именно ради вас я продолжаю развивать TREK.',
   'system_notice.release_notes.note_body':
-    'TREK начинался как маленький инструмент для моих собственных поездок: я писал его после работы, потому что хотел планировать их удобнее. С тех пор он, по сути, так и не перестал расти. Почти всё, чем вы пользуетесь, создано поздно ночью, по выходным, в поездах, параллельно с основной работой, и было немало вечеров, когда я тихо сомневался, откроет ли его вообще хоть кто-нибудь.',
+    'TREK начинался как небольшой инструмент для моих собственных поездок, который я делал после работы. Почти всё, чем вы пользуетесь сегодня, появилось поздно вечером, по выходным или в поезде, рядом с работой на полный день, и я часто думал, откроет ли его вообще кто-нибудь.',
   'system_notice.release_notes.promise_label': 'Обещание',
   'system_notice.release_notes.promise_lead': 'TREK остаётся бесплатным навсегда.',
   'system_notice.release_notes.promise_text':
     'Все функции и все обновления, для всех. Никаких платных тарифов, никаких подписок, никаких подвохов.',
   'system_notice.release_notes.note_body_after':
-    'А потом его открыли вы. За несколько месяцев вас стали тысячи: звёзды, отчёты об ошибках, переводы на языки, которыми я не владею, пул-реквесты от людей, с которыми я ни разу не встречался. Я до сих пор каждое утро первым делом заглядываю в репозиторий, и мне всё ещё не до конца верится, что это происходит.',
-  'system_notice.release_notes.note_closing': 'Спасибо, что вы здесь. Ваш Maurice.',
-  'system_notice.release_notes.support_label': 'Оставаться независимым',
-  'system_notice.release_notes.support_lead': 'Без Google и компании.',
+    'А потом пришли вы, вскоре тысячами: со звёздами, сообщениями об ошибках, переводами на языки, которых я не знаю, и pull request-ами от людей, которых я никогда не встречал. Я до сих пор каждое утро первым делом проверяю репозиторий, и это всё ещё не кажется мне до конца реальным.',
+  'system_notice.release_notes.note_closing':
+    'Спасибо, что вы здесь. Maurice',
+  'system_notice.release_notes.support_label': 'Благодаря вам',
+  'system_notice.release_notes.support_lead': 'TREK существует только благодаря пожертвованиям.',
   'system_notice.release_notes.support_text':
-    'Поиск мест, поиск адресов и маршруты работают на собственных серверах TREK, сегодня при поддержке dataforest cloud. Я борюсь за это каждый день, и чтобы так оставалось, нужна ваша поддержка.',
+    'Они оплачивают серверы и дают мне время продолжать его делать. Даже одна чашка кофе помогает сохранить TREK бесплатным для всех.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Поддержать на Ko-fi',
+  'system_notice.release_notes.cta_patreon': 'Каждый месяц на Patreon',
 };
 export default system_notice;

@@ -1,7 +1,6 @@
-import { useState, type ComponentType } from 'react'
+import type { ComponentType } from 'react'
 import { useTranslation } from '../../i18n'
-import { useIsDark } from '../../hooks/useIsDark'
-import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Sparkles, Luggage, Plane, Bookmark, Users, Loader2, Mountain, CarFront, Search } from 'lucide-react'
+import { Puzzle, ListChecks, Wallet, FileText, CalendarDays, Globe, Briefcase, Image, Terminal, Link2, Compass, BookOpen, Sparkles, Luggage, Plane, Bookmark, Users, Loader2, Mountain, CarFront, Radar } from 'lucide-react'
 import EmptyState from '../shared/EmptyState'
 import DawarichIcon from '../shared/DawarichIcon'
 import AirTrailIcon from '../shared/AirTrailIcon'
@@ -9,11 +8,13 @@ import { DOCUMENT_PROVIDER_ICONS } from '../shared/documentProviderIconMap'
 import AddonTile from './AddonTile'
 import AddonSubRow from './AddonSubRow'
 import { Tooltip } from '../shared/Tooltip'
-import { fs } from '../shared/DialogShell'
-import { SettingsCard, StatusPill } from '../Settings/settingsKit'
+import { SettingsCard, SettingsColumns, StatusPill } from '../Settings/settingsKit'
 import { type Addon, type CollabFeatures, COLLAB_SUB_FEATURES, getAddonLabel } from './addons/addonModel'
 import { useAddonManager } from './addons/useAddonManager'
 import AiAddonTile from './addons/AiAddonTile'
+import MailIngestAddonTile from './mailIngest/MailIngestAddonTile'
+import PaddleRegionsPanel from './paddle/PaddleRegionsPanel'
+import ToggleSwitch from '../Settings/ToggleSwitch'
 import { ImmichIcon, SynologyIcon } from './addons/PhotoProviderIcons'
 import WandererMark from '../Tours/wanderer/WandererMark'
 
@@ -67,9 +68,26 @@ const TYPE_META: Record<string, { icon: ComponentType<{ size?: number }>; labelK
   integration: { icon: Link2, labelKey: 'admin.addons.type.integration', hintKey: 'admin.addons.integrationHint' },
 }
 
-export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, collabFeatures, onToggleCollabFeature }: { bagTrackingEnabled?: boolean; onToggleBagTracking?: () => void; collabFeatures?: CollabFeatures; onToggleCollabFeature?: (key: string) => void }) {
+/** The live flight status switch, an instance setting that sits with the trip addons. */
+export interface FlightLiveOption {
+  on: boolean
+  /** The server environment (FLIGHT_LIVE_ENABLED) holds it; the switch shows the state and says why. */
+  locked: boolean
+  managed: boolean
+  onToggle: () => void
+}
+
+export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, collabFeatures, onToggleCollabFeature, flightLive, mailImport = false }: {
+  bagTrackingEnabled?: boolean
+  onToggleBagTracking?: () => void
+  collabFeatures?: CollabFeatures
+  onToggleCollabFeature?: (key: string) => void
+  /** Live flight status, a row of the trip card: it follows the trips' booked flights. */
+  flightLive?: FlightLiveOption
+  /** Booking mail import, a row of the integration card with its setup dialog; off on a managed install. */
+  mailImport?: boolean
+}) {
   const { t } = useTranslation()
-  const dark = useIsDark()
   const {
     addons, loading, handleToggle, tripAddons, globalAddons, integrationAddons, aiAddons, providerOptions, documentProviderOptions,
     toursWanderer,
@@ -77,9 +95,6 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
     toggleToursWanderer,
     mapSwitches,
   } = useAddonManager()
-  const [query, setQuery] = useState('')
-  const [view, setView] = useState<AddonView>('all')
-
   if (loading) {
     return (
       <SettingsCard icon={Puzzle} title={t('admin.addons.title')}>
@@ -180,6 +195,8 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
             onToggle={() => void toggle()}
           />
         )),
+        // The paddle water data the tour planner reads, set up in a dialog of its own.
+        <PaddleRegionsPanel key="paddle-regions" />,
       ]
     }
     return null
@@ -201,42 +218,24 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
     )
   }
 
+  /** Whether a card holds rows beside its own addons: the AI tile, an instance option. */
+  const extraRows = (key: string) =>
+    (key === 'trip' && !!flightLive) || (key === 'integration' && (aiAddons.length > 0 || mailImport))
   /* A card per type, the way every other admin tab sets its cards: Trip in the
      left column, Global and Integration in the right one, each card with the
-     dialogs' head band carrying the type, its count and what it means. Above
-     them one card says how many are on and finds an addon by name. */
+     dialogs' head band carrying the type, its count and what it means. */
   const groups = [
     { key: 'trip', addons: tripAddons },
     { key: 'global', addons: globalAddons },
     { key: 'integration', addons: integrationAddons },
-  ].filter(g => g.addons.length > 0 || (g.key === 'integration' && aiAddons.length > 0))
-  const enabledCount = addons.filter(a => a.type !== 'photo_provider' && a.type !== 'document_provider' && a.enabled).length
-  const totalCount = tripAddons.length + globalAddons.length + integrationAddons.length + aiAddons.length
-
-  const subtitle = (
-    <span className="inline-flex flex-wrap items-center gap-1">
-      {t('admin.addons.subtitleBefore')}
-      <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" style={{ height: 10, verticalAlign: 'middle', opacity: 0.7 }} />
-      {t('admin.addons.subtitleAfter')}
-    </span>
-  )
-
-  /** Whether an addon is shown under the search and the filter. */
-  const shown = (addon: Addon) => {
-    if (view === 'on' && !addon.enabled) return false
-    if (view === 'off' && addon.enabled) return false
-    const q = query.trim().toLocaleLowerCase()
-    if (!q) return true
-    const label = getAddonLabel(t, addon)
-    return `${label.name} ${label.description ?? ''}`.toLocaleLowerCase().includes(q)
-  }
+  ].filter(g => g.addons.length > 0 || extraRows(g.key))
 
   const card = (g: (typeof groups)[number]) => {
     const meta = TYPE_META[g.key]
     const all = g.key === 'integration' ? [...aiAddons, ...g.addons] : g.addons
-    const visible = g.addons.filter(shown)
-    const ai = g.key === 'integration' && aiAddons.some(shown)
-    if (!visible.length && !ai) return null
+    const visible = g.addons
+    const ai = g.key === 'integration' && aiAddons.length > 0
+    if (!visible.length && !ai && !extraRows(g.key)) return null
     const on = all.filter(a => a.enabled).length
     return (
       <SettingsCard
@@ -249,12 +248,16 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
             <span className="inline-flex"><StatusPill tone={on > 0 ? 'success' : 'neutral'}>{on}/{all.length}</StatusPill></span>
           </Tooltip>
         )}
-        bodyClassName="p-3"
       >
+        {/* The addons in one rounded block of rows, as every settings card holds its rows. */}
         <div className="divide-y divide-edge-faint overflow-hidden rounded-[12px] border border-edge-faint bg-surface-card">
           {/* The AI addons share a connection and a settings dialog, so they head the card as one tile. */}
           {ai && <AiAddonTile addons={aiAddons} onToggle={handleToggle} />}
           {visible.map(tile)}
+          {/* Not addons but instance options of the same kind, as rows of the same card;
+              the count above stays the addons'. */}
+          {g.key === 'trip' && flightLive && <FlightLiveTile option={flightLive} />}
+          {g.key === 'integration' && mailImport && <MailIngestAddonTile />}
         </div>
       </SettingsCard>
     )
@@ -263,103 +266,29 @@ export default function AddonManager({ bagTrackingEnabled, onToggleBagTracking, 
   const [first, ...rest] = groups
   const cards = { start: first ? card(first) : null, end: rest.map(card).filter(Boolean) }
 
-  return (
-    <>
-      <SettingsCard
-        icon={Puzzle}
-        title={t('admin.addons.title')}
-        hint={subtitle}
-        badge={totalCount > 0 ? (
-          <Tooltip label={t('admin.addons.group.count', { enabled: enabledCount, total: totalCount })}>
-            <span className="inline-flex">
-              <StatusPill tone={enabledCount > 0 ? 'success' : 'neutral'}>{enabledCount}/{totalCount}</StatusPill>
-            </span>
-          </Tooltip>
-        ) : undefined}
-      >
-        {addons.length === 0
-          ? <EmptyState scene="idle" title={t('admin.addons.noAddons')} surface="var(--bg-secondary)" />
-          : <AddonToolbar groups={groups.map(g => ({ key: g.key, addons: g.key === 'integration' ? [...aiAddons, ...g.addons] : g.addons }))} query={query} onQuery={setQuery} view={view} onView={setView} t={t} />}
+  if (addons.length === 0) {
+    return (
+      <SettingsCard icon={Puzzle} title={t('admin.addons.title')}>
+        <EmptyState scene="idle" title={t('admin.addons.noAddons')} surface="var(--bg-secondary)" />
       </SettingsCard>
+    )
+  }
 
-      {addons.length > 0 && (cards.start || cards.end.length > 0 ? (
-        <div className="grid grid-cols-1 gap-x-5 xl:grid-cols-2 xl:items-start">
-          <div className="min-w-0">{cards.start}</div>
-          <div className="min-w-0">{cards.end}</div>
-        </div>
-      ) : (
-        <p className="m-0 rounded-2xl border border-dashed border-edge-faint px-4 py-8 text-center text-content-muted" style={fs(13, 'body')}>
-          {t('admin.addons.noMatch')}
-        </p>
-      ))}
-    </>
-  )
+  return <SettingsColumns start={cards.start} end={cards.end} />
 }
 
-type AddonView = 'all' | 'on' | 'off'
-
-/**
- * The head card's body: a tile per type with how many of it are on, then a
- * search over the addons' names and descriptions and a switch between all,
- * the ones on and the ones off.
- */
-function AddonToolbar({ groups, query, onQuery, view, onView, t }: {
-  groups: { key: string; addons: Addon[] }[]
-  query: string
-  onQuery: (q: string) => void
-  view: AddonView
-  onView: (v: AddonView) => void
-  t: (key: string, params?: Record<string, unknown>) => string
-}) {
+/** Live flight status as a trip row: on, it follows every booked flight on its day. */
+function FlightLiveTile({ option }: { option: FlightLiveOption }) {
+  const { t } = useTranslation()
+  const name = t('flightLive.adminTitle')
+  const hint = option.managed ? t('flightLive.adminHintManaged') : t('flightLive.adminHint')
   return (
-    <>
-      <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-        {groups.map(g => {
-          const meta = TYPE_META[g.key]
-          const Icon = meta.icon
-          const on = g.addons.filter(a => a.enabled).length
-          return (
-            <div key={g.key} className="flex items-center gap-3 rounded-[12px] border border-edge-faint bg-surface-card px-3 py-2.5">
-              <span className="grid h-8 w-8 flex-none place-items-center rounded-[10px] bg-surface-secondary text-content-secondary">
-                <Icon size={15} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate font-semibold text-content" style={fs(12.5, 'body')}>{t(meta.labelKey)}</span>
-                <span className="block text-content-faint" style={fs(11)}>{t('admin.addons.group.count', { enabled: on, total: g.addons.length })}</span>
-              </span>
-              <span className={`font-geist font-bold tabular-nums ${on > 0 ? 'text-content' : 'text-content-faint'}`} style={fs(18, 'body')} aria-hidden>{on}</span>
-            </div>
-          )
-        })}
-      </div>
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-        <label className="relative flex min-w-0 flex-1 items-center">
-          <Search size={14} className="pointer-events-none absolute start-3 text-content-faint" />
-          <input
-            type="search"
-            value={query}
-            onChange={e => onQuery(e.target.value)}
-            placeholder={t('admin.addons.search')}
-            aria-label={t('admin.addons.search')}
-            className="h-9 w-full rounded-[10px] border border-edge-faint bg-surface-card ps-8 pe-3 text-content outline-none transition-colors placeholder:text-content-faint focus:border-accent"
-            style={fs(13, 'body')}
-          />
-        </label>
-        <div className="inline-flex flex-none gap-1 rounded-[10px] bg-surface-tertiary p-1" role="group" aria-label={t('admin.addons.filter')}>
-          {(['all', 'on', 'off'] as const).map(v => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => onView(v)}
-              aria-pressed={view === v}
-              className={`h-7 rounded-[8px] px-3 font-medium transition-colors ${view === v ? 'bg-surface-card text-content shadow-sm' : 'text-content-muted hover:text-content'}`}
-              style={fs(12.5, 'body')}
-            >
-              {t(`admin.addons.filter.${v}`)}
-            </button>
-          ))}
-        </div>
-      </div>
-    </>
+    <AddonTile
+      icon={<Radar size={18} />}
+      name={name}
+      description={option.locked ? `${hint} ${t('flightLive.envLocked')}` : hint}
+      enabled={option.on}
+      trailing={<ToggleSwitch on={option.on} label={t('flightLive.adminToggle')} disabled={option.locked} onToggle={option.onToggle} />}
+    />
   )
 }

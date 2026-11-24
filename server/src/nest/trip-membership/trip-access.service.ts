@@ -14,8 +14,8 @@ import { Injectable } from '@nestjs/common';
  *
  * Before this the domains injected TripsRepository themselves for this one
  * read, so the trips table had a reader in thirty files outside its domain.
- * The id is bound exactly as given (TripsRepository.findAccessible explains
- * why it is never coerced here); a caller that coerced before still does.
+ * The id is read the way TripsRepository.findAccessible reads it (toRowId):
+ * a spelling no client sends is no trip, on every engine.
  */
 @Injectable()
 export class TripAccessService {

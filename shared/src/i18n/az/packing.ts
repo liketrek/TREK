@@ -9,11 +9,9 @@ const packing: TranslationStrings = {
   'packing.categoryOptions': 'Siyahı seçimləri',
   'packing.editItem': 'Elementi redaktə et',
   'packing.itemName': 'Ad',
-  'packing.itemQuantity': 'Say',
   'packing.packedCount': '{total} ədəddən {packed} yığılıb',
   'packing.packedMore': 'Bir ədəd çox yığ',
   'packing.packedLess': 'Bir ədəd az yığ',
-  'packing.itemWeight': 'Çəki (qram)',
 
   'packing.title': 'Baqaj siyahısı',
   'packing.empty': 'Baqaj siyahısı boşdur',
@@ -52,7 +50,6 @@ const packing: TranslationStrings = {
   'packing.filterAll': 'Hamısı',
   'packing.filterOpen': 'Hazır deyil',
   'packing.filterDone': 'Hazırdır',
-  'packing.sortBy': 'Sıralama',
   'packing.sortByName': 'A-dan Z-yə',
 
   'packing.emptyTitle': 'Baqaj siyahısı boşdur',
@@ -62,6 +59,17 @@ const packing: TranslationStrings = {
   'packing.menuCheckAll': 'Hamısını işarələ',
   'packing.menuUncheckAll': 'Bütün işarələri sil',
   'packing.menuDeleteCat': 'Siyahını sil',
+  'packing.menuShareCat': 'Bütün siyahı üçün paylaşım',
+  'packing.shareCat.hint': 'Bu siyahıdakı bütün elementləriniz seçdiyiniz səviyyəyə keçir.',
+  'packing.shareCat.othersKept':
+    'Başqalarının əlavə etdiyi elementlər olduğu kimi qalır. Onları yalnız özləri dəyişə bilər.',
+  'packing.shareCat.noneOwn':
+    'Bu siyahıdakı bütün elementləri başqası əlavə edib, ona görə paylaşımı yalnız o dəyişə bilər.',
+  'packing.shareCat.pickPeople': 'Paylaşmaq üçün ən azı bir nəfər seçin.',
+  'packing.shareCat.apply': 'Siyahıya tətbiq et',
+  'packing.shareCat.done': '"{name}" üçün paylaşım dəyişdi',
+  'packing.shareCat.doneOthersKept':
+    '"{name}" üçün paylaşım dəyişdi. Başqalarının əlavə etdiyi elementlər olduğu kimi qaldı.',
 
   'packing.noMembers': 'Səyahət üzvü yoxdur',
   'packing.addItem': 'Element əlavə et',
@@ -87,14 +95,12 @@ const packing: TranslationStrings = {
   'packing.quantity': 'Say',
   'packing.bagName': 'Çantanın adı...',
   'packing.addBag': 'Çanta əlavə et',
-  'packing.changeCategory': 'Siyahıya köçür',
 
   'packing.makePrivate': 'Şəxsi et',
   'packing.makePublic': 'Paylaşılan et',
   'packing.privateHint': 'Şəxsi — yalnız sizə görünür',
   'packing.viewCommon': 'Paylaşılan',
   'packing.viewPersonal': 'Mənim siyahım',
-  'packing.share': 'Paylaşım',
   'packing.tierCommonHint': 'Ümumi siyahıdadır və hər kəsə görünür',
   'packing.tierPersonal': 'Şəxsi',
   'packing.tierPersonalHint': 'Şəxsi — yalnız siz görə bilərsiniz',
@@ -106,8 +112,6 @@ const packing: TranslationStrings = {
   'packing.sharedWithCount.one': '{count} nəfərlə paylaşılıb',
   'packing.broughtBy': '{name} gətirir',
   'packing.bringersTitle': 'Gətirənlər',
-  'packing.alsoBring': 'Mən də bunu gətirə bilərəm',
-  'packing.alsoBringingStop': 'Mən bunu gətirməyəcəyəm',
   'packing.cloneToMine': 'Mənim siyahıma köçür',
 
   'packing.confirm.clearChecked': 'İşarələnmiş {count} elementi silmək istədiyinizə əminsiniz?',
@@ -126,6 +130,15 @@ const packing: TranslationStrings = {
 
   'packing.bagLimit': 'Çəki limiti',
   'packing.setBagLimit': 'Limit təyin et',
+  'packing.hideDone': 'Yığılanları gizlət',
+  'packing.detail.list': 'Siyahı',
+  'packing.detail.bag': 'Çanta',
+  'packing.detail.visibility': 'Görə bilənlər',
+  'packing.visibility.me': 'Yalnız mən',
+  'packing.visibility.some': 'Seçilənlər',
+  'packing.bringersNobody': 'Hələ heç kim',
+  'packing.quantityLess': 'Bir ədəd az',
+  'packing.quantityMore': 'Bir ədəd çox',
 };
 
 export default packing;

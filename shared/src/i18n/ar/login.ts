@@ -48,8 +48,7 @@ const login: TranslationStrings = {
   'login.forgotPassword': 'نسيت كلمة المرور؟',
   'login.rememberMe': 'تذكرني',
   'login.forgotPasswordTitle': 'إعادة تعيين كلمة المرور',
-  'login.forgotPasswordBody':
-    'أدخل عنوان البريد الإلكتروني المسجَّل. إذا كان الحساب موجودًا، سنرسل رابط إعادة التعيين.',
+  'login.forgotPasswordBody': 'أدخل عنوان البريد الإلكتروني المسجَّل. إذا كان الحساب موجودًا، سنرسل رابط إعادة التعيين.',
   'login.forgotPasswordSubmit': 'إرسال الرابط',
   'login.forgotPasswordSentTitle': 'تحقق من بريدك',
   'login.forgotPasswordSentBody':

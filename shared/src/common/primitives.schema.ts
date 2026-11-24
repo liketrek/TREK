@@ -11,9 +11,36 @@ export type Id = z.infer<typeof idSchema>;
 
 /**
  * Numeric id coming from a URL param / query string. Express hands these over
- * as strings, so we coerce, then enforce a positive integer.
+ * as strings, so a string must be decimal digits before it becomes a number,
+ * then a positive safe integer. A plain coercion read '0x5', '5e0', '5.0',
+ * '+5' and ' 5' as 5, spellings no client sends that the server's toRowId
+ * refuses; this keeps the two the same rule.
  */
-export const idParamSchema = z.coerce.number().int().positive();
+export const idParamSchema = z
+  .union([z.number().int(), z.string().regex(/^\d+$/)])
+  .transform(Number)
+  .pipe(z.number().int().positive());
+
+/**
+ * A row id written as text: decimal digits naming a safe integer, kept as the
+ * string it arrived as (a multipart field is always text). The server reads it
+ * with toRowId. '0x5', '5e0', '5.0', '+5', ' 5', '5_0' and a number past 2^53
+ * are refused here: bound to SQL they match nothing on SQLite, Postgres 14 and
+ * 15 refuse the cast and 16 and later read hex and underscores as a number.
+ */
+export const rowIdStringSchema = z
+  .string()
+  .regex(/^\d+$/, 'Invalid id')
+  .refine((digits) => Number.isSafeInteger(Number(digits)), 'Invalid id');
+
+/**
+ * A row id in a request body: a safe integer, or its decimal digits as a
+ * string from a client that sends text. Kept as sent, so a field that took
+ * `number | string` keeps its type; the server reads it with toRowId. Refuses
+ * the spellings rowIdStringSchema refuses, and 1.5 and 1e20, each as
+ * `<field>: Invalid id`.
+ */
+export const rowIdInputSchema = z.union([z.number().int('Invalid id'), rowIdStringSchema], { error: 'Invalid id' });
 
 /** Non-empty, trimmed string. */
 export const nonEmptyString = z.string().trim().min(1);

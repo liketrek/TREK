@@ -1,3 +1,4 @@
+import type { PluginDataStore } from '../../../db/engine/plugin-data';
 import { BadParams, ForbiddenResource } from '../../../nest-rpc/rpc-errors';
 import type { PluginRpcRegistry } from '../../../nest-rpc/rpc-kit/registry';
 import {
@@ -10,7 +11,6 @@ import {
 } from '../protocol/envelope';
 import { shapePluginOutput } from '../protocol/output-contract';
 import { auditResource, isAuditable } from './plugin-audit';
-import type { PluginDataDb } from './plugin-data.service';
 
 // Both used to be declared here. They now live in rpc-errors.ts so decorated
 // *.rpc.ts handlers can throw them without importing the router, and are re-exported
@@ -25,7 +25,7 @@ export { BadParams, ForbiddenResource };
  * plugin cannot "call it anyway" — there is no shared object, only messages, and
  * the host is the sole holder of the trek.db handle and the broadcast fns.
  *
- * The handlers themselves no longer live here. Every one of the 113 wire methods is
+ * The handlers themselves no longer live here. Every one of the 115 wire methods is
  * a `@PluginMethod` / `@PluginOpenMethod` on a `@PluginController()` provider in its
  * own domain, and the registry binds the granted subset into the map below. What is
  * left is the part that was never domain-specific: build the map, dispatch into it,
@@ -38,12 +38,12 @@ export { BadParams, ForbiddenResource };
 /** What the router needs that is neither a domain service nor a permission check. */
 export interface HostDeps {
   /**
-   * The plugin's own sqlite (db:own). A GETTER on the factory side, resolved per
-   * access: disable()/re-enable builds a NEW host while the old one's dispose() may
+   * The plugin's own database (db:own): a SQLite file or a Postgres schema. A GETTER
+   * on the factory side, resolved per access: disable()/re-enable builds a NEW host while the old one's dispose() may
    * still be closing the handle, so a captured one leaves the new host throwing
    * 'database connection is not open'.
    */
-  data: PluginDataDb;
+  data: PluginDataStore;
   /** Call an export on another plugin (this host's plugin is the caller). Authorizes
    * the dependency edge + the target's `provides` allowlist, forwards the acting user. */
   callPlugin(targetId: string, fn: string, args: unknown, actingUserId: number | undefined): Promise<unknown>;

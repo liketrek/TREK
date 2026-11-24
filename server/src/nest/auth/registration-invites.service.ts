@@ -68,8 +68,10 @@ export class RegistrationInvitesService {
     // trips WHERE id = ?` existence probe.
     let tripId: number | null = null;
     if (data.trip_id != null && String(data.trip_id).trim() !== '') {
-      const parsed = Number.parseInt(String(data.trip_id));
-      if (!Number.isInteger(parsed) || !(await this.trips.existsById(parsed))) {
+      // toRowId, not parseInt: parseInt('5abc') bound trip 5, and a number past
+      // 2^53 reached Postgres as an out of range bigint.
+      const parsed = toRowId(data.trip_id);
+      if (parsed === null || !(await this.trips.existsById(parsed))) {
         // Used to bind null silently, handing back a plain registration invite
         // the admin never asked for. Thrown, so the controller writes neither
         // the invite nor its audit row and the admin sees the 404.

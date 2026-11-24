@@ -25,7 +25,7 @@ fi
 cd /app/server
 
 # Already started as a non-root user (Kubernetes runAsUser, docker --user): there
-# is nothing to chown and no privilege to drop, and gosu would only fail to switch
+# is nothing to chown and no privilege to drop, and setpriv would only fail to switch
 # users. Run Node as whoever we are; the volumes are that user's to provide.
 if [ "$(id -u)" != "0" ]; then
   exec node --require tsconfig-paths/register dist/index.js
@@ -42,7 +42,7 @@ fi
 # Troubleshooting page of the wiki has the one-off chown for that.
 #
 # Only the owning user has to be node, because that is what Node runs as and
-# what gosu leaves it with. The group is left to whoever set it: a Kubernetes
+# what the drop below leaves it with. The group is left to whoever set it: a Kubernetes
 # fsGroup other than 1000 gives every file its own gid, and taking that back
 # here would make the kubelet's OnRootMismatch walk the volume again on the
 # next start, and this script after it, every time. Only a root group (a fresh
@@ -65,4 +65,11 @@ for dir in /app/data /app/uploads; do
   fi
 done
 
-exec gosu node node --require tsconfig-paths/register dist/index.js
+# setpriv, not gosu: gosu is Go, and Go changes the ids of a process by signalling
+# every runtime thread with a realtime signal and spinning until each one has
+# answered. A host whose security module drops that signal inside the container
+# (AppArmor on recent Ubuntu under Podman) left it spinning at full CPU, before
+# Node had printed a line (#3135). setpriv is single-threaded C and makes the same
+# id changes without any signal. It leaves HOME alone, which gosu set from passwd.
+export HOME=/home/node
+exec setpriv --reuid=node --regid=node --init-groups -- node --require tsconfig-paths/register dist/index.js

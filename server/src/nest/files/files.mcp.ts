@@ -1,3 +1,5 @@
+import { ADDON_IDS } from '../../addons';
+import type { TripFileRow } from '../../db/repositories/TripFiles.repository';
 import { noAccess, permissionDenied } from '../../mcp/tools/_shared';
 import {
   McpController,
@@ -9,11 +11,13 @@ import {
   errorResult,
   ok,
 } from '../../nest-mcp';
+import { addonOffMessage } from '../addons/addons.constants';
+import { AddonsService } from '../addons/addons.service';
 import { McpToolGuardsService } from '../mcp-shared/mcp-tool-guards.service';
 import { contentTypeFor } from '../storage/content-type';
 import { AllowedFileTypesService } from './allowed-file-types.service';
 import { MAX_FILE_SIZE, isUploadTypeAllowed } from './files.constants';
-import { FilesService, FileContentError, FILE_CONTENT_MAX } from './files.service';
+import { FilesService, FileContentError, FILE_CONTENT_MAX, attachesFile } from './files.service';
 import { idSchema, fileLinkRequestSchema, fileUpdateRequestSchema } from '@trek/shared';
 import type { FileLinkRequest, FileUpdateRequest } from '@trek/shared';
 
@@ -63,6 +67,12 @@ function contentRefusal(err: FileContentError): string {
  * transport. It is policed like the multipart route: the same extension rules
  * through isUploadTypeAllowed, the file_upload right, the demo block and the
  * same-trip check on what it attaches to, plus a tighter size cap.
+ *
+ * The Documents addon is the file manager, gated as the REST routes gate it: while
+ * the trip has it off, the list leaves out the files only the manager shows, the
+ * trash is refused, and so is any tool on such a file unless the call itself attaches
+ * it. A file that belongs to a booking, place, expense, note or message stays
+ * reachable, and the upload stays open.
  */
 @McpController()
 export class FilesMcp {
@@ -70,7 +80,13 @@ export class FilesMcp {
     private readonly files: FilesService,
     private readonly guards: McpToolGuardsService,
     private readonly allowedTypes: AllowedFileTypesService,
+    readonly addons: AddonsService,
   ) {}
+
+  private async reachable(tripId: number, file: TripFileRow, targets: FileLinkRequest = {}): Promise<boolean> {
+    if (attachesFile(targets)) return true;
+    return (await this.addons.isEnabledForTrip(tripId, ADDON_IDS.DOCUMENTS)) || (await this.files.isAttached(file));
+  }
 
   @Tool({
     name: 'list_trip_files',
@@ -85,7 +101,9 @@ export class FilesMcp {
   })
   async listTripFiles({ tripId, trash }: { tripId: number; trash?: boolean }, ctx: McpContext) {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    return ok({ files: await this.files.listFiles(tripId, trash === true) });
+    const documentsOn = await this.addons.isEnabledForTrip(tripId, ADDON_IDS.DOCUMENTS);
+    if (!documentsOn && trash === true) return errorResult(addonOffMessage(ADDON_IDS.DOCUMENTS));
+    return ok({ files: await this.files.listFiles(tripId, trash === true, !documentsOn) });
   }
 
   @Tool({
@@ -103,6 +121,8 @@ export class FilesMcp {
   })
   async readTripFile({ tripId, fileId }: { tripId: number; fileId: number }, ctx: McpContext) {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
+    const file = await this.files.getFileById(fileId, tripId);
+    if (file && !(await this.reachable(tripId, file))) return errorResult(addonOffMessage(ADDON_IDS.DOCUMENTS));
     try {
       const { name, mimetype, bytes } = await this.files.readContent(tripId, fileId);
       const asText = isTextual(mimetype);
@@ -124,7 +144,7 @@ export class FilesMcp {
 
   @Tool({
     name: 'upload_trip_file',
-    description: `Add a document to a trip, e.g. a booking confirmation PDF or a ticket, and optionally attach it to a booking or a place in the same call. Pass the bytes base64-encoded in content, up to ${UPLOAD_MAX_MB} MB decoded. The file name has to carry an extension the trip's file manager accepts; the type is derived from it. Returns the new file, whose ID works with read_trip_file and link_trip_file.`,
+    description: `Add a document to a trip, e.g. a booking confirmation PDF or a ticket, and optionally attach it to a booking, a place or an expense in the same call. Pass the bytes base64-encoded in content, up to ${UPLOAD_MAX_MB} MB decoded. The file name has to carry an extension the trip's file manager accepts; the type is derived from it. Returns the new file, whose ID works with read_trip_file and link_trip_file.`,
     inputSchema: {
       tripId: idSchema,
       filename: z
@@ -141,6 +161,7 @@ export class FilesMcp {
       description: z.string().max(1000).optional().describe('Free-text description'),
       reservation_id: idSchema.optional().describe('Booking on the same trip to attach the file to'),
       place_id: idSchema.optional().describe('Place on the same trip to attach the file to'),
+      budget_item_id: idSchema.optional().describe('Expense on the same trip to attach the file to (a receipt)'),
     },
     annotations: TOOL_ANNOTATIONS_WRITE,
     access: { group: 'files', mode: 'write' },
@@ -153,6 +174,7 @@ export class FilesMcp {
       description,
       reservation_id,
       place_id,
+      budget_item_id,
     }: {
       tripId: number;
       filename: string;
@@ -160,6 +182,7 @@ export class FilesMcp {
       description?: string;
       reservation_id?: number;
       place_id?: number;
+      budget_item_id?: number;
     },
     ctx: McpContext,
   ) {
@@ -177,11 +200,12 @@ export class FilesMcp {
     if (bytes.length === 0) return errorResult('The file is empty.');
     if (bytes.length > UPLOAD_MAX)
       return errorResult(`File is too large (over ${UPLOAD_MAX_MB} MB). Ask the user to upload it in TREK instead.`);
-    const foreign = await this.files.findForeignLinkTarget(tripId, { reservation_id, place_id });
+    const foreign = await this.files.findForeignLinkTarget(tripId, { reservation_id, place_id, budget_item_id });
     if (foreign) return errorResult(`Linked item does not belong to this trip (${foreign}).`);
     const file = await this.files.createFileFromBytes(tripId, { originalname, mimetype, bytes }, ctx.userId, {
       reservation_id: reservation_id ?? null,
       place_id: place_id ?? null,
+      budget_item_id: budget_item_id ?? null,
       description: description ?? null,
     });
     this.guards.safeBroadcast(tripId, 'file:created', { file });
@@ -219,6 +243,7 @@ export class FilesMcp {
     if (!(await this.guards.hasTripPermission('file_edit', tripId, ctx.userId))) return permissionDenied();
     const current = await this.files.getFileById(fileId, tripId);
     if (!current) return errorResult('File not found.');
+    if (!(await this.reachable(tripId, current, fields))) return errorResult(addonOffMessage(ADDON_IDS.DOCUMENTS));
     // Same enforcement as the REST route's assertLinkTargets, through the same
     // service method: a foreign reservation id would otherwise come back with its
     // title attached the next time this file is listed.
@@ -259,7 +284,9 @@ export class FilesMcp {
   ) {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
     if (!(await this.guards.hasTripPermission('file_edit', tripId, ctx.userId))) return permissionDenied();
-    if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
+    const file = await this.files.getFileById(fileId, tripId);
+    if (!file) return errorResult('File not found.');
+    if (!(await this.reachable(tripId, file, targets))) return errorResult(addonOffMessage(ADDON_IDS.DOCUMENTS));
     // The REST body allows all three to be absent and stores a link row pointing at
     // nothing. A tool caller that gets here with no target made a mistake, and saying
     // so is more useful than a success that attached the file to nothing.
@@ -293,7 +320,9 @@ export class FilesMcp {
     // deleteFileLink scopes by (linkId, fileId) only, so the file has to be resolved
     // against :tripId first, exactly as the REST route does it. Otherwise a member of
     // any trip could drop a link row belonging to a foreign trip's file.
-    if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
+    const file = await this.files.getFileById(fileId, tripId);
+    if (!file) return errorResult('File not found.');
+    if (!(await this.reachable(tripId, file))) return errorResult(addonOffMessage(ADDON_IDS.DOCUMENTS));
     await this.files.unlinkFile(fileId, linkId, await this.guards.tripWriter(tripId, ctx.userId));
     return ok({ success: true });
   }
@@ -311,7 +340,9 @@ export class FilesMcp {
   })
   async listTripFileLinks({ tripId, fileId }: { tripId: number; fileId: number }, ctx: McpContext) {
     if (!(await this.files.verifyTripAccess(tripId, ctx.userId))) return noAccess();
-    if (!(await this.files.getFileById(fileId, tripId))) return errorResult('File not found.');
+    const file = await this.files.getFileById(fileId, tripId);
+    if (!file) return errorResult('File not found.');
+    if (!(await this.reachable(tripId, file))) return errorResult(addonOffMessage(ADDON_IDS.DOCUMENTS));
     return ok({ links: await this.files.getFileLinks(fileId) });
   }
 }

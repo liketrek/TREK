@@ -80,6 +80,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': '累計爬升',
   'tours.detail.descent': '累計下降',
   'tours.detail.navigationHint': '導航會開啟登山口或步道入口，不會沿著遊程路線提供導航。',
+  'tours.detail.openRoute': '在地圖應用程式中開啟路線',
+  'tours.detail.mapsShort': '地圖',
   'tours.planner.title': '規劃遊程',
   'tours.planner.newTour': '規劃新遊程',
   'tours.planner.addTour': '新增行程',

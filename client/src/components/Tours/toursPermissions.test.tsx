@@ -23,7 +23,7 @@ const state = vi.hoisted(() => ({
 }))
 
 vi.mock('../../store/tripStore', () => ({ useTripStore: (selector: (store: unknown) => unknown) => selector({ trip: state.trip, loadTrip: state.loadTrip, refreshPlaces: state.refreshPlaces, places: [], packingItems: state.packingItems }) }))
-vi.mock('../../store/authStore', () => ({ useAuthStore: (selector: (store: unknown) => unknown) => selector({ user: state.user }) }))
+vi.mock('../../store/authStore', () => ({ useAuthStore: Object.assign((selector: (store: unknown) => unknown) => selector({ user: state.user }), { getState: () => ({ user: state.user }) }) }))
 vi.mock('../../store/settingsStore', () => ({ useSettingsStore: (selector: (store: unknown) => unknown) => selector({ settings: { distance_unit: 'metric' } }) }))
 vi.mock('../Map/MapViewAuto', () => ({ MapViewAuto: () => null }))
 vi.mock('../../repo/tourRepo', () => ({ tourRepo: { importGpx: state.importGpx, previewGpx: state.previewGpx, create: state.create, update: state.update, detail: state.detail } }))

@@ -6,9 +6,16 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
 import { useTripStore } from '../../store/tripStore';
+import { useAddonStore } from '../../store/addonStore';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildUser, buildAdmin, buildTrip, buildPackingItem } from '../../../tests/helpers/factories';
 import PackingListPanel, { itemWeight } from './PackingListPanel';
+
+/** Opens an item's window from its name and scopes the queries to it. */
+function openItem(name: string) {
+  fireEvent.click(screen.getByText(name));
+  return within(screen.getByRole('dialog'));
+}
 
 describe('itemWeight (bag total weight calc)', () => {
   it('FE-COMP-PACKING-030: multiplies unit weight by quantity', () => {
@@ -185,8 +192,7 @@ describe('PackingListPanel', () => {
     expect(await screen.findByPlaceholderText('List name (e.g. Clothing)')).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-016: delete item button exists and triggers API call', async () => {
-    const user = userEvent.setup();
+  it('FE-COMP-PACKING-016: an item is deleted from its window', async () => {
     // Uncategorized item: deleting it is a plain DELETE (a custom category's last
     // item is instead converted to a placeholder — see FE-COMP-PACKING-070).
     const item = buildPackingItem({ id: 99, name: 'To Remove', category: null });
@@ -198,90 +204,69 @@ describe('PackingListPanel', () => {
       })
     );
     render(<PackingListPanel tripId={1} items={[item]} />);
-    expect(screen.getByText('To Remove')).toBeInTheDocument();
-    // Delete button is in the DOM (opacity 0 on desktop but exists)
-    const deleteBtn = screen.getByTitle('Delete');
-    await user.click(deleteBtn);
+    // The row holds no delete button of its own any more.
+    expect(screen.queryByTitle('Delete')).toBeNull();
+    fireEvent.click(openItem('To Remove').getByRole('button', { name: 'Delete' }));
     await waitFor(() => expect(deleteCalled).toBe(true));
   });
 
-  it('FE-COMP-PACKING-017: shows filter buttons (All, Open, Done) when items exist', () => {
+  it('FE-COMP-PACKING-017: the row above the lists carries no filter or sort pills', () => {
     const items = [buildPackingItem({ name: 'Shirt', category: 'Clothing' })];
     render(<PackingListPanel tripId={1} items={items} />);
-    expect(screen.getByText('All')).toBeInTheDocument();
-    expect(screen.getByText('Open')).toBeInTheDocument();
-    expect(screen.getByText('Done')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Done' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'A to Z' })).toBeNull();
   });
 
-  it('FE-COMP-PACKING-018: filtering to Done hides unchecked items', async () => {
-    const user = userEvent.setup();
+  it('FE-COMP-PACKING-018: hiding packed items leaves the open ones', () => {
     const items = [
       buildPackingItem({ name: 'Done Item', checked: 1, category: 'Test' }),
       buildPackingItem({ name: 'Open Item', checked: 0, category: 'Test' }),
     ];
-    render(<PackingListPanel tripId={1} items={items} />);
-    await user.click(screen.getByText('Done'));
-    expect(screen.getByText('Done Item')).toBeInTheDocument();
-    expect(screen.queryByText('Open Item')).not.toBeInTheDocument();
-  });
-
-  it('FE-COMP-PACKING-019: filtering to Open hides checked items', async () => {
-    const user = userEvent.setup();
-    const items = [
-      buildPackingItem({ name: 'Done Item', checked: 1, category: 'Test' }),
-      buildPackingItem({ name: 'Open Item', checked: 0, category: 'Test' }),
-    ];
-    render(<PackingListPanel tripId={1} items={items} />);
-    await user.click(screen.getByText('Open'));
+    render(<PackingListPanel tripId={1} items={items} hideDone />);
     expect(screen.queryByText('Done Item')).not.toBeInTheDocument();
     expect(screen.getByText('Open Item')).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-020: renders empty filter message when filter yields nothing', async () => {
-    const user = userEvent.setup();
+  it('FE-COMP-PACKING-019: without hiding, packed and open items both show', () => {
     const items = [
+      buildPackingItem({ name: 'Done Item', checked: 1, category: 'Test' }),
       buildPackingItem({ name: 'Open Item', checked: 0, category: 'Test' }),
     ];
-    render(<PackingListPanel tripId={1} items={items} />);
-    await user.click(screen.getByText('Done'));
+    render(<PackingListPanel tripId={1} items={items} hideDone={false} />);
+    expect(screen.getByText('Done Item')).toBeInTheDocument();
+    expect(screen.getByText('Open Item')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-020: renders the empty filter message when everything is packed and hidden', () => {
+    const items = [buildPackingItem({ name: 'Done Item', checked: 1, category: 'Test' })];
+    render(<PackingListPanel tripId={1} items={items} hideDone />);
     expect(screen.getByText('No items match this filter')).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-093: the A to Z switch sorts each list by name and a second click restores the manual order', async () => {
-    const user = userEvent.setup();
+  it('FE-COMP-PACKING-093: sorted by name each list reads A to Z, and the manual order comes back', () => {
     const items = [
       buildPackingItem({ id: 1, name: 'Toothbrush', category: 'Bag' }),
       buildPackingItem({ id: 2, name: 'adapter', category: 'Bag' }),
       buildPackingItem({ id: 3, name: 'Shirt', category: 'Bag' }),
     ];
-    render(<PackingListPanel tripId={1} items={items} />);
+    const { rerender } = render(<PackingListPanel tripId={1} items={items} sort="name" />);
     const order = () => ['Toothbrush', 'adapter', 'Shirt']
       .map(n => [n, screen.getByText(n)] as const)
       .sort(([, a], [, b]) => (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1))
       .map(([n]) => n);
-    const toggle = screen.getByRole('button', { name: 'A to Z' });
 
-    expect(order()).toEqual(['Toothbrush', 'adapter', 'Shirt']);
-    expect(toggle).toHaveAttribute('aria-pressed', 'false');
-
-    await user.click(toggle);
     expect(order()).toEqual(['adapter', 'Shirt', 'Toothbrush']);
-    expect(toggle).toHaveAttribute('aria-pressed', 'true');
-    expect(localStorage.getItem('trek:packing-sort')).toBe('name');
-
-    await user.click(toggle);
+    rerender(<PackingListPanel tripId={1} items={items} sort="manual" />);
     expect(order()).toEqual(['Toothbrush', 'adapter', 'Shirt']);
-    expect(localStorage.getItem('trek:packing-sort')).toBe('manual');
   });
 
-  it('FE-COMP-PACKING-094: sorted A to Z the rows cannot be dragged, and the choice is remembered', () => {
-    localStorage.setItem('trek:packing-sort', 'name');
+  it('FE-COMP-PACKING-094: sorted A to Z the rows cannot be dragged', () => {
     const items = [
       buildPackingItem({ id: 1, name: 'Toothbrush', category: 'Bag' }),
       buildPackingItem({ id: 2, name: 'adapter', category: 'Bag' }),
     ];
-    const { container } = render(<PackingListPanel tripId={1} items={items} />);
-    expect(screen.getByRole('button', { name: 'A to Z' })).toHaveAttribute('aria-pressed', 'true');
+    const { container } = render(<PackingListPanel tripId={1} items={items} sort="name" />);
     // Only the category grip stays: the order of the categories is not the A to Z of their items.
     const draggable = [...container.querySelectorAll('[draggable="true"]')];
     expect(draggable.map((el) => el.getAttribute('aria-label'))).toEqual(['Drag to reorder the category']);
@@ -373,8 +358,8 @@ describe('PackingListPanel', () => {
     );
     render(<PackingListPanel tripId={1} items={[item]} />);
 
-    // Find the quantity input showing '2'
-    const qtyInput = screen.getByDisplayValue('2');
+    // The amount is typed in the item's window
+    const qtyInput = openItem('T-Shirts').getByDisplayValue('2');
     await user.clear(qtyInput);
     await user.type(qtyInput, '5');
     await user.tab(); // blur triggers commit
@@ -721,7 +706,7 @@ describe('PackingListPanel', () => {
     expect(screen.getByText(/Import 1/)).toBeInTheDocument();
   });
 
-  it('FE-COMP-PACKING-044: bag item row shows weight input and bag button when bag tracking enabled', async () => {
+  it('FE-COMP-PACKING-044: with bag tracking the weight is set in the item window, not the row', async () => {
     server.use(
       http.get('/api/addons', () =>
         HttpResponse.json({ bagTracking: true, addons: [] })
@@ -733,13 +718,12 @@ describe('PackingListPanel', () => {
     const items = [buildPackingItem({ name: 'Laptop', category: 'Tech' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
-    // Wait for bag tracking to enable (weight input 'g' label appears)
-    await waitFor(() => {
-      expect(container.querySelector('input[placeholder="—"]')).toBeTruthy();
-    });
-
-    // The 'g' gram label appears next to the weight input
-    expect(container.querySelector('span[style*="g"]')).toBeTruthy();
+    // The row stays quiet; the weight field is in the item's window
+    await waitFor(() => expect(useAddonStore.getState().bagTracking).toBe(true));
+    expect(container.querySelector('input[placeholder="—"]')).toBeNull();
+    const dialog = openItem('Laptop');
+    expect(dialog.getByPlaceholderText('—')).toBeInTheDocument();
+    expect(dialog.getByText('g')).toBeInTheDocument();
   });
 
   it('FE-COMP-PACKING-045: "Remove checked" button appears when checked items exist', async () => {
@@ -799,7 +783,7 @@ describe('PackingListPanel', () => {
     await waitFor(() => expect(savedTemplateName).toBe('My Template'));
   });
 
-  it('FE-COMP-PACKING-047: bag picker in item row opens when clicked with bag tracking enabled', async () => {
+  it('FE-COMP-PACKING-047: the bag choice in the item window lists the trip bags', async () => {
     const user = userEvent.setup();
     server.use(
       http.get('/api/addons', () =>
@@ -812,20 +796,12 @@ describe('PackingListPanel', () => {
     const items = [buildPackingItem({ name: 'Laptop', category: 'Tech' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
-    // Wait for bag tracking to enable (Package icon button in item row)
-    await waitFor(() => {
-      expect(container.querySelector('svg.lucide-package')).toBeTruthy();
-    });
-
-    // Click the bag button (Package icon) to open bag picker
-    const packageBtn = container.querySelector('svg.lucide-package')?.closest('button');
-    expect(packageBtn).toBeTruthy();
-    await user.click(packageBtn!);
-
-    // Bag picker dropdown shows the bag name (may also appear in sidebar)
-    await waitFor(() => {
-      expect(screen.getAllByText('Carry-on').length).toBeGreaterThan(0);
-    });
+    await waitFor(() => expect(useAddonStore.getState().bagTracking).toBe(true));
+    expect(container).toBeTruthy();
+    await user.click(screen.getByText('Laptop'));
+    const dialog = within(await screen.findByRole('dialog'));
+    await user.click(dialog.getByRole('button', { name: /Unassigned/ }));
+    expect(await dialog.findByRole('button', { name: /Carry-on/ })).toBeInTheDocument();
   });
 
   it('FE-COMP-PACKING-048: add bag in bag modal opens form when "Add bag" clicked', async () => {
@@ -885,13 +861,9 @@ describe('PackingListPanel', () => {
     const items = [buildPackingItem({ id: itemId, name: 'Camera', category: 'Electronics' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
-    // Wait for weight input to appear (bag tracking enabled)
-    await waitFor(() => {
-      expect(container.querySelector('input[placeholder="—"]')).toBeTruthy();
-    });
-
-    // Change the weight input value
-    const weightInput = container.querySelector('input[placeholder="—"]') as HTMLInputElement;
+    await waitFor(() => expect(useAddonStore.getState().bagTracking).toBe(true));
+    expect(container).toBeTruthy();
+    const weightInput = openItem('Camera').getByPlaceholderText('—');
     await user.clear(weightInput);
     await user.type(weightInput, '500');
     await user.tab(); // blur to trigger change
@@ -901,25 +873,18 @@ describe('PackingListPanel', () => {
     });
   });
 
-  it('FE-COMP-PACKING-050: ArtikelZeile category change picker opens on dot button click', async () => {
+  it('FE-COMP-PACKING-050: the List choice in the item window offers the other lists', async () => {
     const user = userEvent.setup();
     const item = buildPackingItem({ name: 'Camera', category: 'Electronics' });
     const item2 = buildPackingItem({ name: 'Passport', category: 'Documents' });
     const { container } = render(<PackingListPanel tripId={1} items={[item, item2]} />);
 
-    // The category change picker is triggered by a small dot button (no title)
-    // It's rendered inside the action buttons group (sm:opacity-0 sm:group-hover:opacity-100)
-    // In jsdom, CSS classes don't apply so the buttons are accessible
-    // The dot button has a circle span inside with category color
-    // Find all buttons with the 'Move to List' title
-    // Moving an item goes through its menu: the three dots, then Move to List.
-    await user.click(container.querySelector<HTMLButtonElement>('.packing-row-overflow button')!);
-    await user.click(screen.getByText('Move to List'));
-
-    // Category picker shows both category names
-    await waitFor(() => {
-      expect(screen.getAllByText('Electronics').length).toBeGreaterThan(0);
-    });
+    expect(container).toBeTruthy();
+    // Moving an item goes through the List choice of its window.
+    await user.click(screen.getByText('Camera'));
+    const dialog = within(await screen.findByRole('dialog'));
+    await user.click(dialog.getByRole('button', { name: /Electronics/ }));
+    expect(await dialog.findByRole('button', { name: /Documents/ })).toBeInTheDocument();
   });
 
   it('FE-COMP-PACKING-051: bag assignment from picker calls PUT with bag_id', async () => {
@@ -941,25 +906,12 @@ describe('PackingListPanel', () => {
     const items = [buildPackingItem({ id: itemId, name: 'Shoes', category: 'Clothing' })];
     const { container } = render(<PackingListPanel tripId={1} items={items} />);
 
-    // Wait for bag tracking to enable (Package icon appears)
-    await waitFor(() => {
-      expect(container.querySelector('svg.lucide-package')).toBeTruthy();
-    });
-
-    // Use fireEvent (no pointer events) to open the picker without triggering mouseLeave
-    const packageBtn = container.querySelector('svg.lucide-package')?.closest('button');
-    fireEvent.click(packageBtn!);
-
-    // Picker is open - find "Trolley" button inside the dropdown. The bag
-    // sidebar carries the same name on its own button, so scope the query to
-    // the picker, which opens in a portal on the body.
-    const picker = await waitFor(() => {
-      const el = document.body.querySelector<HTMLElement>(':scope > .trek-menu-enter');
-      if (!el) throw new Error('bag picker not open yet');
-      return el;
-    });
-    const trolleyBtn = await within(picker).findByRole('button', { name: /Trolley/ });
-    fireEvent.click(trolleyBtn);
+    await waitFor(() => expect(useAddonStore.getState().bagTracking).toBe(true));
+    expect(container).toBeTruthy();
+    // The bag sidebar carries the same name, so the query stays inside the window.
+    const dialog = openItem('Shoes');
+    fireEvent.click(dialog.getByRole('button', { name: /Unassigned/ }));
+    fireEvent.click(await dialog.findByRole('button', { name: /Trolley/ }));
 
     await waitFor(() => expect(putBody).toMatchObject({ bag_id: 7 }));
   });
@@ -1081,7 +1033,7 @@ describe('PackingListPanel', () => {
     );
     render(<PackingListPanel tripId={1} items={[item]} />);
 
-    const qtyInput = screen.getByDisplayValue('3');
+    const qtyInput = openItem('Socks').getByDisplayValue('3');
     await user.clear(qtyInput);
     await user.type(qtyInput, '7');
     await user.keyboard('{Enter}');
@@ -1089,7 +1041,7 @@ describe('PackingListPanel', () => {
     await waitFor(() => expect(putBody).toMatchObject({ quantity: 7 }));
   });
 
-  it('FE-COMP-PACKING-057: clicking unchecked item name enters inline edit mode', async () => {
+  it('FE-COMP-PACKING-057: clicking an item name opens its window with the name ready to edit', async () => {
     const user = userEvent.setup();
     const item = buildPackingItem({ id: 73, name: 'Jacket', checked: 0, category: 'Clothing' });
     render(<PackingListPanel tripId={1} items={[item]} />);
@@ -1115,15 +1067,12 @@ describe('PackingListPanel', () => {
         return HttpResponse.json({ item: buildPackingItem({ id: 74, category: 'Documents' }) });
       })
     );
-    const { container } = render(<PackingListPanel tripId={1} items={[itemA, itemB]} />);
+    render(<PackingListPanel tripId={1} items={[itemA, itemB]} />);
 
-    // Open the first item's menu and its Move to List entry
-    fireEvent.click(container.querySelector<HTMLButtonElement>('.packing-row-overflow button')!);
-    fireEvent.click(screen.getByText('Move to List'));
-
-    // Picker shows available categories — find and click the 'Documents' button (role=button, text=Documents)
-    const docBtn = await screen.findByRole('button', { name: 'Documents' });
-    fireEvent.click(docBtn);
+    // The List choice of the item's window opens the lists to move it to
+    const dialog = openItem('Camera');
+    fireEvent.click(dialog.getByRole('button', { name: /Electronics/ }));
+    fireEvent.click(await dialog.findByRole('button', { name: /Documents/ }));
 
     await waitFor(() => expect(putBody).toMatchObject({ category: 'Documents' }));
   });
@@ -1518,7 +1467,7 @@ describe('PackingListPanel', () => {
     await waitFor(() => expect(membersBody).toMatchObject({ user_ids: [3] }));
   });
 
-  it('FE-COMP-PACKING-068: inline bag create in item row picker creates bag and assigns it', async () => {
+  it('FE-COMP-PACKING-068: a bag created from the item window is assigned right away', async () => {
     let createBody: Record<string, unknown> | null = null;
     server.use(
       http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
@@ -1532,21 +1481,12 @@ describe('PackingListPanel', () => {
       )
     );
     const items = [buildPackingItem({ id: 150, name: 'Sunglasses', category: 'Accessories' })];
-    const { container } = render(<PackingListPanel tripId={1} items={items} />);
+    render(<PackingListPanel tripId={1} items={items} />);
 
-    // Wait for Package icon (bag button in item row)
-    await waitFor(() => expect(container.querySelector('svg.lucide-package')).toBeTruthy());
-
-    // Use fireEvent to open picker (avoids mouseLeave pointer events)
-    const packageBtn = container.querySelector('svg.lucide-package')?.closest('button');
-    fireEvent.click(packageBtn!);
-
-    // Click "Add bag" inside picker to show inline create
-    const addBagInPickerBtns = await screen.findAllByText('Add bag');
-    fireEvent.click(addBagInPickerBtns[addBagInPickerBtns.length - 1]);
-
-    // Inline input appears in picker
-    const inlineInput = await screen.findByPlaceholderText('Bag name...');
+    await waitFor(() => expect(useAddonStore.getState().bagTracking).toBe(true));
+    const dialog = openItem('Sunglasses');
+    fireEvent.click(dialog.getByRole('button', { name: /Unassigned/ }));
+    const inlineInput = dialog.getByRole('textbox', { name: 'Bag name...' });
     fireEvent.change(inlineInput, { target: { value: 'New Bag' } });
     fireEvent.keyDown(inlineInput, { key: 'Enter' });
 
@@ -1607,36 +1547,23 @@ describe('PackingListPanel', () => {
     );
     render(<PackingListPanel tripId={1} items={[item]} />);
 
-    await user.click(screen.getByTitle('Delete'));
+    await user.click(screen.getByText('Tent'));
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Delete' }));
 
     // The row is updated in place (same id) rather than deleted, so colour/position hold.
     await waitFor(() => expect(putBody).toMatchObject({ name: '...' }));
     expect(deleted).toBe(false);
   });
 
-  it('FE-COMP-PACKING-071: deleting the placeholder row deletes it, dismissing the empty category (#1289)', async () => {
-    const user = userEvent.setup();
+  it('FE-COMP-PACKING-071: the placeholder row of an empty list is typed into, not opened (#1289)', () => {
     const placeholder = buildPackingItem({ id: 5, name: '...', category: 'Camping Gear' });
     seedStore(useTripStore, { packingItems: [placeholder] });
-    let deleted = false;
-    let converted = false;
-    server.use(
-      http.delete('/api/trips/1/packing/5', () => {
-        deleted = true;
-        return HttpResponse.json({ success: true });
-      }),
-      http.put('/api/trips/1/packing/5', () => {
-        converted = true;
-        return HttpResponse.json({ item: placeholder });
-      })
-    );
     render(<PackingListPanel tripId={1} items={[placeholder]} />);
 
-    await user.click(screen.getByTitle('Delete'));
-
-    await waitFor(() => expect(deleted).toBe(true));
-    // It is the placeholder itself — it must be removed, not re-converted.
-    expect(converted).toBe(false);
+    // The empty list goes with its own menu; the placeholder has no window or delete of its own.
+    expect(screen.getByPlaceholderText('...')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Delete' })).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
   });
 
   it('FE-COMP-PACKING-072: adding an item to an empty category reuses the placeholder row instead of appending (#1289)', async () => {
@@ -1706,16 +1633,48 @@ describe('PackingListPanel — under the Lists bar', () => {
     seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
   });
 
-  it('FE-COMP-PACKING-090: the clean-up sits in the progress card and clears what is ticked', async () => {
+  it('FE-COMP-PACKING-090: the progress sits in the view row and the clean-up comes from the Lists menu', async () => {
     vi.spyOn(window, 'confirm').mockReturnValue(true);
     let deleted = false;
     server.use(http.delete('/api/trips/1/packing/91', () => { deleted = true; return HttpResponse.json({ success: true }); }));
-    render(<PackingListPanel tripId={1} inlineHeader={false} items={[buildPackingItem({ id: 91, name: 'Towel', checked: 1 }), buildPackingItem({ id: 92, name: 'Soap' })]} />);
+    const items = [buildPackingItem({ id: 91, name: 'Towel', checked: 1 }), buildPackingItem({ id: 92, name: 'Soap' })];
+    const { rerender } = render(<PackingListPanel tripId={1} inlineHeader={false} items={items} clearCheckedSignal={0} />);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Remove 1 checked' }));
-    await waitFor(() => expect(deleted).toBe(true));
+    expect(screen.getByText('1 of 2 packed')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Remove 1 checked' })).toBeNull();
     // No dashed Add list under the bar: the Lists bar carries it.
     expect(screen.queryByRole('button', { name: 'Add list' })).toBeNull();
+
+    rerender(<PackingListPanel tripId={1} inlineHeader={false} items={items} clearCheckedSignal={1} />);
+    await waitFor(() => expect(deleted).toBe(true));
+  });
+
+  it('FE-COMP-PACKING-090b: a declined clean-up from the menu deletes nothing', async () => {
+    vi.spyOn(window, 'confirm').mockReturnValue(false);
+    let deleted = false;
+    server.use(http.delete('/api/trips/1/packing/91', () => { deleted = true; return HttpResponse.json({ success: true }); }));
+    const items = [buildPackingItem({ id: 91, name: 'Towel', checked: 1 })];
+    const { rerender } = render(<PackingListPanel tripId={1} inlineHeader={false} items={items} clearCheckedSignal={0} />);
+    rerender(<PackingListPanel tripId={1} inlineHeader={false} items={items} clearCheckedSignal={1} />);
+    expect(window.confirm).toHaveBeenCalled();
+    expect(deleted).toBe(false);
+    // Everything packed reads as done.
+    expect(screen.getByText('All packed!')).toBeInTheDocument();
+  });
+
+  it('FE-COMP-PACKING-090c: the menu opens the bag overview on a narrow screen', async () => {
+    server.use(
+      http.get('/api/addons', () => HttpResponse.json({ bagTracking: true, addons: [] })),
+      http.get('/api/trips/:id/packing/bags', () =>
+        HttpResponse.json({ bags: [{ id: 1, name: 'Main Bag', color: '#6366f1', weight_limit_grams: null, members: [] }] })
+      ),
+    );
+    const items = [buildPackingItem({ id: 92, name: 'Soap' })];
+    const { rerender } = render(<PackingListPanel tripId={1} inlineHeader={false} items={items} openBagsSignal={0} />);
+    await waitFor(() => expect(useAddonStore.getState().bagTracking).toBe(true));
+    const before = (await screen.findAllByText('Main Bag')).length;
+    rerender(<PackingListPanel tripId={1} inlineHeader={false} items={items} openBagsSignal={1} />);
+    await waitFor(() => expect(screen.getAllByText('Main Bag').length).toBeGreaterThan(before));
   });
 
   it('FE-COMP-PACKING-091: a raised add-list signal opens the name dialog, which creates the list', async () => {

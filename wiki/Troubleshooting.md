@@ -43,7 +43,7 @@ Log in with what it shows; you will be asked to set a new password.
 docker exec -it -u node trek node server/reset-admin.js
 ```
 
-This resets (or creates) `admin@trek.local` and prints a generated password. Override with `-e RESET_ADMIN_EMAIL=you@example.com -e RESET_ADMIN_PASSWORD=yourpass`. You will be asked to change it on first login. Resetting an existing account also signs it out of every session it still had.
+This resets (or creates) `admin@trek.local` and prints a generated password. Override with `-e RESET_ADMIN_EMAIL=you@example.com -e RESET_ADMIN_PASSWORD=yourpass`. You will be asked to change it on first login. Resetting an existing account also signs it out of every session it still had. On a [Postgres](Database-Postgres) install (`TREK_DB_URL` set) the same command resets the account in the Postgres database, through the same connection settings as the server; it does not open or create a `travel.db`.
 
 **Start over with chosen credentials** (fresh install, no data to keep):
 
@@ -651,3 +651,75 @@ See [Notifications](Notifications#web-push) for the details.
 **Cause:** The server kept refusing a queued change (after eight attempts it counts as failed), or an edit you made offline collided with a newer one on the server.
 
 **Fix:** The status pill at the bottom of the window reads **Failed to sync: N** or **Conflicts: N**. Open **Settings → Offline**. Under **Failed changes**, use **Try again** or **Discard** on each item. Under conflicts, choose **Keep mine** or **Keep theirs**. If the local copy itself looks wrong, **Clear cache** empties it and the next sync downloads it again. Unsynced changes are kept when a trip is cleared from the device. See [Offline-Mode-and-PWA](Offline-Mode-and-PWA).
+
+---
+
+## Postgres: TREK refuses to start because the database holds tables
+
+**Cause:** `TREK_DB_URL` points at a database that already has tables, and none of them is TREK's migration history. TREK creates its schema only in an empty database, and it does not adopt tables another application made. The log reads `[DB] Refusing to boot: the database holds N table(s) (...) but no TREK migration history.` Nothing was written to the database.
+
+**Fix:** Create a new, empty database for TREK, or point `TREK_DB_URL` at the one TREK already migrated. If this database is the wrong one, check the URL. See [Database-Postgres](Database-Postgres#first-boot).
+
+---
+
+## Postgres: TREK refuses to start because a copy before migrating could not be written
+
+**Cause:** Before it applies pending migrations, TREK writes a `pg_dump` copy to `data/pre-migrate-<schema>-<time>.pgdump`. If `pg_dump` is not installed where TREK looks, or the data directory is full or read-only, the copy fails and TREK refuses to migrate. The log says `could not write a copy of the database ... Nothing was migrated.`
+
+**Fix:** Install the PostgreSQL client tools (the Docker image has them) or set `TREK_DB_PG_BIN_DIR` to the directory that holds `pg_dump`. Free disk space or fix the permissions on `data/`, then start again. To migrate without a copy, set `TREK_DB_PRE_MIGRATE_SNAPSHOT=false`, but only when you have a backup of your own. See [Updating](Updating#database-migrations).
+
+---
+
+## Postgres: "pg_dump was not found" when backing up or restoring
+
+**Cause:** The backup, restore or pre-migration copy runs `pg_dump`, `pg_restore` or `psql` by its absolute path. None of them is in the directories TREK searches (`/usr/lib/postgresql/18` down to `14`, `/usr/local/bin`, `/usr/bin`), and `PATH` is not searched.
+
+**Fix:** Install the `postgresql-client` package, or set `TREK_DB_PG_BIN_DIR` to the directory that holds the three tools. The Docker image already includes the version 18 client. See [Database-Postgres](Database-Postgres#where-the-client-tools-are-found).
+
+---
+
+## Postgres: a backup or restore fails with "server version mismatch" or a version error
+
+**Cause:** Three different problems produce messages about versions. A client tool works with servers up to its own major version, so TREK refuses a backup or restore with tools older than the server (`pg_dump is version 17, older than the PostgreSQL 18 server`). A restore also refuses a `pg_restore` or `psql` older than 18.0, 17.6, 16.10, 15.14 or 14.19, because those versions cannot restore a dump safely (CVE-2025-8714). And a client older than 16 cannot use the system's certificate authorities, so with `sslmode` set and no `sslrootcert` it is refused too. Each error names the version it found.
+
+**Fix:** Use the Docker image's tools, which are version 18 and work with every supported server (14 to 18), or point `TREK_DB_PG_BIN_DIR` at client tools at least as new as the server. For the certificate message, add `sslrootcert=<CA file>` to `TREK_DB_URL` or use newer tools.
+
+---
+
+## Postgres: TREK refuses to start because of the server version
+
+**Cause:** TREK supports PostgreSQL 14 to 18 and refuses any other server before it writes anything (`the Postgres server is version 19; TREK supports PostgreSQL 14 to 18`).
+
+**Fix:** Run TREK on a server of a supported version. A newer major is supported once a TREK release ships client tools for it.
+
+---
+
+## Postgres: a restore is refused because of the database role
+
+**Cause:** `TREK_DB_URL` connects as a role that could reach the database server from SQL: a superuser or a member of one, a role that holds `pg_execute_server_program`, `pg_read_server_files` or `pg_write_server_files` or may run a server file function such as `lo_export`, from PostgreSQL 15 on a role granted ALTER SYSTEM or a superuser-only setting, or on PostgreSQL 14 and 15 a role with CREATEROLE or a member of one. A backup is a SQL script that runs as this role, so TREK refuses to restore it with a role that could run commands or read or write files on the database server. Plugin databases (`db:own`) are refused for the same roles. TREK also logs a warning about such a role at startup.
+
+**Fix:** Connect TREK as a role that owns its database and is not a superuser. See [Database-Postgres](Database-Postgres#a-role-that-is-not-a-superuser), which also shows how to move an install made with an older `docker-compose.postgres.yml`.
+
+---
+
+## Postgres: TREK refuses to start because of the sslmode in TREK_DB_URL
+
+**Cause:** The `sslmode` parameter is not one TREK accepts. TREK accepts `disable`, `require`, `verify-ca` and `verify-full`. A value such as `prefer`, `allow` or `no-verify`, or a misspelling, would connect without verifying the server, so TREK refuses to start. A `sslrootcert` that names a file the container cannot read stops the start the same way.
+
+**Fix:** Set `sslmode` to one of the four accepted values, and mount the CA file and point `sslrootcert` at its path inside the container. See [Database-Postgres](Database-Postgres#ssl).
+
+---
+
+## Postgres: TREK refuses to start because TREK_DB_URL is set with a SQLite variable
+
+**Cause:** `TREK_DB_URL` is set together with `TREK_DB_FILE`, `TREK_DB_JOURNAL_MODE` or `TREK_DB_SYNCHRONOUS`. TREK cannot tell which database those variables mean, so it refuses to start.
+
+**Fix:** Unset the SQLite variables. See [Environment-Variables](Environment-Variables).
+
+---
+
+## Postgres: a restore refuses the archive
+
+**Cause:** The archive is not a Postgres backup, or it cannot be loaded here. The message says which: `This backup holds a SQLite database, which cannot be restored into a Postgres database.` (a backup from a SQLite install), `The uploaded dump holds no TREK migration history.` (a dump that is not from TREK), or `This backup was made by a newer TREK version.` A SQLite backup cannot be restored into PostgreSQL, and a PostgreSQL backup cannot be restored into SQLite.
+
+**Fix:** Restore a backup taken on the same engine. For a newer backup, update TREK first. The database being replaced is kept as `data/pre-restore-<time>.pgdump` before the load starts. An archive that is refused is not loaded, so the database itself is unchanged. See [Backups](Backups#restoring-a-backup).

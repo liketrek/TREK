@@ -511,14 +511,39 @@ describe('send() — in-app notification content', () => {
     const { user } = createUser(testDb);
     setNotificationChannels(testDb, 'none');
 
-    // vacay_invite without planId → no navigate target → simple type
-    await send({ event: 'vacay_invite', actorId: null, scope: 'user', targetId: user.id, params: { actor: 'Alice' } });
+    // trip_invite without tripId has no destination.
+    await send({ event: 'trip_invite', actorId: null, scope: 'user', targetId: user.id, params: { actor: 'Alice' } });
 
     const notifs = await getInAppNotifications(user.id);
     expect(notifs.length).toBe(1);
     expect(notifs[0].type).toBe('simple');
     expect(notifs[0].navigate_target).toBeNull();
   });
+
+  it.each([
+    { event: 'vacay_invite', params: { planId: '42' }, expected: '/vacay' },
+    { event: 'vacay_invite', params: {}, expected: '/vacay' },
+    { event: 'vacay_share', params: {}, expected: '/vacay' },
+    { event: 'collab_message', params: { tripId: '42' }, expected: '/trips/42?tab=collab' },
+    { event: 'collab_message', params: {}, expected: '/dashboard' },
+  ] as const)(
+    'routes $event with $params to $expected on in-app and external channels',
+    async ({ event, params, expected }) => {
+      const { user } = createUser(testDb);
+      await setUserWebhookUrl(user.id);
+      setNotificationChannels(testDb, 'webhook');
+
+      await send({ event, actorId: null, scope: 'user', targetId: user.id, params: { actor: 'Alice', ...params } });
+
+      const [notif] = await getInAppNotifications(user.id);
+      expect(notif.type).toBe('navigate');
+      expect(notif.navigate_target).toBe(expected);
+      expect(fetchMock).toHaveBeenCalledTimes(1);
+      const body = JSON.parse(fetchMock.mock.calls[0][1].body);
+      const link = new URL(body.link);
+      expect(link.pathname + link.search).toBe(expected);
+    },
+  );
 
   it('NSVC-014 — navigate_target uses /admin for version_available event', async () => {
     const { user: admin } = createAdmin(testDb);
@@ -607,6 +632,62 @@ describe('send() — in-app notification content', () => {
       ]),
     );
     expect(notifs.every((n) => n.title_key === 'notif.wanderer_source_hint.title')).toBe(true);
+  });
+
+  it('NOTIF-FLT-001 the three live flight notices lead to their trip, and nowhere without one', async () => {
+    const { user } = createUser(testDb);
+    setNotificationChannels(testDb, 'none');
+    const params = { flight: 'LH 716', from: 'FRA', to: 'HND', trip: 'Japan', delay: '25' };
+    const events = ['flight_departed', 'flight_delayed', 'flight_landed'] as const;
+    await events.reduce(async (previous, event) => {
+      await previous;
+      await send({ event, actorId: null, scope: 'user', targetId: user.id, params: { ...params, tripId: '7' } });
+      await send({ event, actorId: null, scope: 'user', targetId: user.id, params });
+    }, Promise.resolve());
+
+    const notifs = await getInAppNotifications(user.id);
+    expect(notifs.map((n) => [n.title_key, n.text_key, n.navigate_target])).toEqual(
+      expect.arrayContaining([
+        ['notif.flight_departed.title', 'notif.flight_departed.text', '/trips/7'],
+        ['notif.flight_delayed.title', 'notif.flight_delayed.text', '/trips/7'],
+        ['notif.flight_landed.title', 'notif.flight_landed.text', '/trips/7'],
+        ['notif.flight_departed.title', 'notif.flight_departed.text', null],
+        ['notif.flight_delayed.title', 'notif.flight_delayed.text', null],
+        ['notif.flight_landed.title', 'notif.flight_landed.text', null],
+      ]),
+    );
+  });
+
+  it('NOTIF-MAIL-001 a mail booking tells the forwarder from a co-traveller; pending ones lead to the inbox', async () => {
+    const { user } = createUser(testDb);
+    setNotificationChannels(testDb, 'none');
+    const params = { booking: 'LH 716', trip: 'Japan', tripId: '7', actor: 'mia', type: 'flight' };
+    await send({ event: 'mail_booking_added', actorId: null, scope: 'user', targetId: user.id, params });
+    await send({
+      event: 'mail_booking_added',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { ...params, role: 'traveller' },
+    });
+    await send({
+      event: 'mail_booking_pending',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { count: '2' },
+    });
+    await send({ event: 'mail_ingest_paused', actorId: null, scope: 'user', targetId: user.id, params: {} });
+
+    const notifs = await getInAppNotifications(user.id);
+    expect(notifs.map((n) => [n.text_key, n.navigate_target])).toEqual(
+      expect.arrayContaining([
+        ['notif.mail_booking_added.text', '/trips/7?tab=buchungen'],
+        ['notif.mail_booking_added.shared', '/trips/7?tab=buchungen'],
+        ['notif.mail_booking_pending.text', '/dashboard?inbox=mail'],
+        ['notif.mail_ingest_paused.text', null],
+      ]),
+    );
   });
 });
 
@@ -814,6 +895,41 @@ describe('send() reports what it delivered', () => {
         params: { trip: 'Trip', actor: 'a', booking: 'Hotel', type: 'hotel', tripId: String(tripId) },
       }),
     ).resolves.toEqual({ attempted: 0, delivered: 0 });
+  });
+
+  it('NSVC-025: settled() waits for a send its caller left running', async () => {
+    const { user } = createUser(testDb);
+    setSmtp();
+    setNotificationChannels(testDb, 'email');
+    await setRecipientEmail(user.id);
+    const tripId = await newTrip('Trip', user.id);
+    let release = () => {};
+    sendMailMock.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          release = () => resolve({ accepted: ['test@test.com'] });
+        }),
+    );
+
+    const running = send({
+      event: 'trip_reminder',
+      actorId: null,
+      scope: 'user',
+      targetId: user.id,
+      params: { trip: 'Trip', tripId: String(tripId) },
+    });
+    let settled = false;
+    const waiting = notifications.settled().then(() => {
+      settled = true;
+    });
+    await vi.waitFor(() => expect(sendMailMock).toHaveBeenCalledTimes(1));
+    expect(settled).toBe(false);
+
+    release();
+    await waiting;
+    await expect(running).resolves.toEqual({ attempted: 2, delivered: 2 });
+    // Nothing left running: it resolves at once.
+    await expect(notifications.settled()).resolves.toBeUndefined();
   });
 });
 

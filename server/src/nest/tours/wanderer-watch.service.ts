@@ -1,3 +1,4 @@
+import { ADDON_IDS } from '../../addons';
 import { TourSourceHints } from '../../db/entities/TourSourceHints.entity';
 import { TOUR_SOURCE_HINT_CHANGES } from '../../db/json-columns';
 import type {
@@ -92,7 +93,7 @@ export class WandererWatchService {
    * one user that fails keeps no other from theirs.
    */
   async run(now: Date = new Date()): Promise<void> {
-    if (this.running || !(await this.addons.isWandererAvailable())) return;
+    if (this.running || !(await this.addons.isWandererAllowed())) return;
     this.running = true;
     try {
       const userIds = await this.wanderer.watchableUserIds(dbNow(now), WATCH_CONNECTIONS_PER_RUN);
@@ -113,6 +114,16 @@ export class WandererWatchService {
    * after each failure in a row; the hints already there stay as they are.
    */
   private async watchUser(userId: number, now: Date): Promise<void> {
+    // Tours off for the instance and in every trip of the user: the turn passes without a look.
+    if (!(await this.addons.isEnabledForUserAnywhere(userId, ADDON_IDS.TOURS))) {
+      const state = await this.wanderer.watchState(userId);
+      await this.wanderer.noteWatchRun(userId, {
+        lastRunAt: dbNow(now),
+        failures: state.failures,
+        pausedUntil: state.pausedUntil,
+      });
+      return;
+    }
     const instance = await this.wanderer.instanceOf(userId);
     const checkedBefore = dbNow(new Date(now.getTime() - WATCH_RECHECK_MS));
     const due = await this.hints.listDue(userId, instance, checkedBefore, WATCH_SOURCES_PER_RUN);

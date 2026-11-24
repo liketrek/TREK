@@ -248,6 +248,8 @@ const TEMP_REF_LISTS = ['orderedIds'] as const
 // day, the walk or the stop (TripAccessGuard, TourVisitsService). Any other 404,
 // the Tours addon turned off among them, fails like any other refusal.
 const GONE_WALK_PARTS = new Set(['Trip not found', 'Assignment not found', 'City walk not found', 'Station not found'])
+// The 404 of a route whose addon is off (AddonGuard, TripAddonGuard).
+const ADDON_OFF = / addon is not enabled$/
 
 /**
  * The body with every link to an offline-created entity pointed at the real id
@@ -427,14 +429,15 @@ async function reconcileStationVisits(mutation: QueuedMutation, data: unknown, a
 /**
  * A 404 that means the write did what it set out to do: a DELETE of something
  * the server no longer has, or a mark of a walk's stop whose stop, day, walk or
- * trip is gone, since its visits went with it.
+ * trip is gone, since its visits went with it. An addon switched off for the
+ * trip or the instance keeps the entity, so that 404 is a refusal.
  */
 function doneByNotFound(mutation: QueuedMutation, err: unknown): boolean {
-  if (mutation.method === 'DELETE') return true
-  if (mutation.resource !== 'tourStationVisits') return false
   // Called on a 404 only, so the server answered.
   const reason = (err as { response: { data?: { error?: unknown } } }).response.data?.error
-  return typeof reason === 'string' && GONE_WALK_PARTS.has(reason)
+  if (typeof reason === 'string' && ADDON_OFF.test(reason)) return false
+  if (mutation.method === 'DELETE') return true
+  return mutation.resource === 'tourStationVisits' && typeof reason === 'string' && GONE_WALK_PARTS.has(reason)
 }
 
 /** Visits, days, day notes, the trip itself and a walk's marks, each from the answer its route gives. */

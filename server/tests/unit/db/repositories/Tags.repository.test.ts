@@ -1,10 +1,11 @@
+import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { Tags } from '../../../../src/db/entities/Tags.entity';
 import type { TagsRepository } from '../../../../src/db/repositories/Tags.repository';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { createPlace, createTag, createTrip, createUser } from '../../../helpers/factories';
-import { tagPlace } from '../../../helpers/factories/places';
+import { makeTag, tagPlace } from '../../../helpers/factories/places';
 import { findRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
@@ -19,7 +20,7 @@ let uow: UnitOfWork;
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   tags = t.repo(Tags);
-  uow = new UnitOfWork(t.em);
+  uow = new UnitOfWork(t.em, new SqliteEngine());
 });
 beforeEach(() => {
   resetTestDb(testDb);
@@ -379,7 +380,76 @@ describe('TagsRepository', () => {
 // Plan 3c Task 4 — findByIds (PL2) and the place_tags pivot writes (PL5/PL12/PL13).
 // ---------------------------------------------------------------------------
 
+describe('TagsRepository: the tags a trip owns', () => {
+  it('TRIPTAGREPO-001: listByTrip returns the rows of that trip by name, whoever created them, as SELECT * rows', async () => {
+    const { user: owner } = createUser(testDb);
+    const { user: member } = createUser(testDb, { username: 'trip_member' });
+    const trip = createTrip(testDb, owner.id);
+    const other = createTrip(testDb, owner.id);
+    const zone = await makeTag(t, owner.id, { trip: trip.id, name: 'Zone' });
+    const activity = await makeTag(t, member.id, { trip: trip.id, name: 'Activity' });
+    await makeTag(t, owner.id, { trip: other.id, name: 'Elsewhere' });
+    createTag(testDb, owner.id, { name: 'personal' });
+
+    const rows = await tags.listByTrip(trip.id);
+
+    expect(rows).toStrictEqual([rawTag(activity.id), rawTag(zone.id)]);
+    expect(rows.map((row) => row.trip_id)).toEqual([trip.id, trip.id]);
+    expect(await tags.listByTrip(999999)).toEqual([]);
+  });
+
+  it('TRIPTAGREPO-002: findByIdAndTrip finds a tag of that trip, and neither a personal tag nor another trip’s', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const other = createTrip(testDb, user.id);
+    const ofTrip = await makeTag(t, user.id, { trip: trip.id, name: 'Monument' });
+    const ofOther = await makeTag(t, user.id, { trip: other.id, name: 'Elsewhere' });
+    const personal = createTag(testDb, user.id, { name: 'personal' });
+
+    expect(await tags.findByIdAndTrip(ofTrip.id, trip.id)).toStrictEqual(rawTag(ofTrip.id));
+    expect(await tags.findByIdAndTrip(ofOther.id, trip.id)).toBeNull();
+    expect(await tags.findByIdAndTrip(personal.id, trip.id)).toBeNull();
+    expect(await tags.findByIdAndTrip(999999, trip.id)).toBeNull();
+  });
+
+  it('TRIPTAGREPO-003: createTag files the row under the trip it is given, and under none when it is given none', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+
+    const ofTrip = await tags.createTag({ user_id: user.id, trip_id: trip.id, name: 'Monument', color: '#ff0000' });
+    const personal = await tags.createTag({ user_id: user.id, name: 'Monument', color: null });
+
+    expect(ofTrip).toStrictEqual(rawTag(ofTrip.id));
+    expect(ofTrip).toMatchObject({ user_id: user.id, trip_id: trip.id, name: 'Monument', color: '#ff0000' });
+    expect(personal).toMatchObject({ user_id: user.id, trip_id: null, color: null });
+  });
+
+  it('TRIPTAGREPO-004: a personal tag still reads through listByUser and findByIdAndUser with a null trip', async () => {
+    const { user } = createUser(testDb);
+    const personal = createTag(testDb, user.id, { name: 'personal' });
+
+    expect((await tags.listByUser(user.id)).map((row) => row.trip_id)).toEqual([null]);
+    expect((await tags.findByIdAndUser(personal.id, user.id))?.trip_id).toBeNull();
+  });
+});
+
 describe('TagsRepository.findByIds (PL2)', () => {
+  it('FINDBYIDSREPO-002: says which trip each tag belongs to, null for a personal one', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id);
+    const ofTrip = await makeTag(t, user.id, { trip: trip.id, name: 'Monument' });
+    const personal = createTag(testDb, user.id, { name: 'personal' });
+
+    const rows = await tags.findByIds([personal.id, ofTrip.id]);
+
+    expect(rows.sort((a, b) => a.id - b.id)).toEqual(
+      [
+        { id: personal.id, user_id: user.id, trip_id: null },
+        { id: ofTrip.id, user_id: user.id, trip_id: trip.id },
+      ].sort((a, b) => a.id - b.id),
+    );
+  });
+
   it('FINDBYIDSREPO-001: returns id + user_id for the matching ids, empty input short-circuits', async () => {
     const { user: ownerA } = createUser(testDb);
     const { user: ownerB } = createUser(testDb, { username: 'owner_b' });

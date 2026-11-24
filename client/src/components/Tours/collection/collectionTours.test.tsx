@@ -447,7 +447,28 @@ describe('CollectionToursSection', () => {
     expect(await screen.findByTestId('kept-tour-preview')).toBeInTheDocument();
     unmount();
     useAddonStore.setState({ addons: [{ id: 'collections', enabled: true }] as never });
+    const off = { response: { status: 404, data: { error: 'Tours addon is not enabled' } } };
+    list.mockRejectedValue(off);
     render(<CollectionToursSection collectionId={3} canRemove />);
+    await waitFor(() => expect(list).toHaveBeenLastCalledWith(3));
+    expect(screen.queryByTestId('collection-tours')).toBeNull();
+    expect(screen.queryByText('The tours of this list could not be loaded.')).toBeNull();
+  });
+
+  it('FE-COLLECTION-TOURS-021: with Tours off for the instance, the tours show once the server hands them over', async () => {
+    useAddonStore.setState({ addons: [{ id: 'collections', enabled: true }] as never });
+    // A trip of the user switched Tours on for itself, so the server answers.
+    vi.spyOn(collectionToursRepo, 'list').mockResolvedValue({ tours: [kept()] });
+    render(<CollectionToursSection collectionId={3} canRemove />);
+    expect(await screen.findByTestId('kept-tour-4')).toHaveTextContent('Ridge');
+  });
+
+  it('FE-COLLECTION-TOURS-022: with Tours off for the instance, a failed read shows nothing, as it always did', async () => {
+    useAddonStore.setState({ addons: [{ id: 'collections', enabled: true }] as never });
+    const list = vi.spyOn(collectionToursRepo, 'list').mockRejectedValue(new Error('500'));
+    render(<CollectionToursSection collectionId={3} canRemove />);
+    await waitFor(() => expect(list).toHaveBeenCalled());
+    expect(screen.queryByText('The tours of this list could not be loaded.')).toBeNull();
     expect(screen.queryByTestId('collection-tours')).toBeNull();
   });
 

@@ -432,6 +432,18 @@ describe('deleteUser', () => {
     const result = (await deleteUser('99999', admin.id)) as any;
     expect(result.status).toBe(404);
   });
+
+  it('ADMIN-SVC-017B: an id spelled in hex or with an exponent names no user, so an admin cannot delete their own account that way', async () => {
+    const { user: admin } = createAdmin(testDb);
+    // parseInt('0x..') was 0 for the self check while Number() reached the admin's own row.
+    const spellings = [`0x${admin.id.toString(16)}`, `${admin.id}e0`];
+    const results = (await Promise.all(spellings.map((spelling) => deleteUser(spelling, admin.id)))) as Array<{
+      status?: number;
+    }>;
+    expect(results.map((r) => r.status)).toEqual([404, 404]);
+    const kept = (await deleteUser(String(admin.id), admin.id)) as { status?: number };
+    expect(kept.status).toBe(400);
+  });
 });
 
 // ── getStats ──────────────────────────────────────────────────────────────────
@@ -737,9 +749,8 @@ describe('updateAddon', () => {
       if (!flip.error) expect(flip.mcpAffected).toBe(false);
     }
 
-    // and the one this change put on the list carries the opposite verdict
-    const docsFlip = (await updateAddon('documents', { enabled: false })) as any;
-    if (!docsFlip.error) expect(docsFlip.mcpAffected).toBe(true);
+    // the doc-sync tools gate on documents, so its flip ends the sessions too
+    expect(((await updateAddon('documents', { enabled: false })) as any).mcpAffected).toBe(true);
   });
 
   it('ADMIN-SVC-087 — refuses to enable a photo provider while journey is off', async () => {

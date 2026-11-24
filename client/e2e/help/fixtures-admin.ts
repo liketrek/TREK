@@ -27,3 +27,34 @@ export async function resetDefaults(api: APIRequestContext, keys: string[]): Pro
     if (!res.ok()) throw new Error(`could not reset the default "${key}": ${res.status()} ${await res.text()}`);
   }
 }
+
+/** Writes instance settings the way the admin page does (PUT /api/auth/app-settings). */
+export async function putAppSettings(api: APIRequestContext, patch: Record<string, string | boolean>): Promise<void> {
+  const res = await api.put('/api/auth/app-settings', { data: patch });
+  if (!res.ok()) throw new Error(`could not save the app settings: ${res.status()} ${await res.text()}`);
+}
+
+const OIDC_EMPTY = { issuer: '', client_id: '', client_secret: '', display_name: '', discovery_url: '' };
+
+/**
+ * An issuer and a client id, which is all TREK needs to call OIDC configured and
+ * draw the SSO rows. Nothing is fetched from the issuer on save.
+ */
+export async function configureOidc(api: APIRequestContext): Promise<void> {
+  const res = await api.put('/api/admin/oidc', {
+    data: {
+      ...OIDC_EMPTY,
+      issuer: 'https://auth.example.org/application/o/trek/',
+      client_id: 'trek',
+      client_secret: 'a-long-client-secret',
+      display_name: 'Authentik',
+    },
+  });
+  if (!res.ok()) throw new Error(`could not configure OIDC: ${res.status()} ${await res.text()}`);
+}
+
+/** Back to the seed, where no identity provider is set. Password login is on there, so the server allows it. */
+export async function clearOidc(api: APIRequestContext): Promise<void> {
+  const res = await api.put('/api/admin/oidc', { data: OIDC_EMPTY });
+  if (!res.ok()) throw new Error(`could not clear OIDC: ${res.status()} ${await res.text()}`);
+}

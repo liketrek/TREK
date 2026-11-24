@@ -110,7 +110,7 @@ const dashboard: TranslationStrings = {
     'Hai modificato la data di inizio di questo viaggio. Come devono adattarsi i tuoi piani alle nuove date?',
   'dashboard.dateShiftKeepBookings': 'Mantieni le prenotazioni alle loro date',
   'dashboard.dateShiftKeepBookingsDesc':
-    'I programmi giornalieri si spostano con le nuove date, mentre prenotazioni e alloggi restano alle date originali, purché queste facciano ancora parte del viaggio.',
+    "I giorni aggiunti restano vuoti e nient'altro si sposta. Se il viaggio si sposta, i programmi giornalieri si spostano con le nuove date, mentre prenotazioni e alloggi restano alle date originali, purché queste facciano ancora parte del viaggio.",
   'dashboard.dateShiftAll': 'Sposta tutto',
   'dashboard.dateShiftAllDesc': "L'intero itinerario si sposta con le nuove date, incluse prenotazioni e alloggi.",
   'dashboard.dateShiftHint':
@@ -241,5 +241,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.pasteFromUrl': 'incolla in «Da URL»',
   'dashboard.aiPlan': 'Pianifica con l’IA',
   'dashboard.aiPlanSub': 'Descrivi il viaggio, rivedi la proposta',
+  'dashboard.ics.dayEvents': 'Eventi di riepilogo del giorno',
+  'dashboard.ics.dayEventsHint':
+    'Un evento di tutto il giorno per ogni giorno con i luoghi e le note senza orario. Cambiare questa opzione cambia il link, quindi iscriviti di nuovo con quello nuovo.',
 };
 export default dashboard;

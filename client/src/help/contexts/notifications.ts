@@ -4,7 +4,9 @@ import { defineScreen } from '../defineScreen';
  * Help for the in-app notifications: the bell in the navbar with its panel of
  * the newest ten, and the full list at `/notifications`. Which events arrive
  * here and on which other channel is a matter of Settings > Notifications, so
- * the last guide only leads there and the channel guides are related.
+ * the last guide only leads there and the channel guides are related. The
+ * notices of the mail import and of flights followed live have a guide of
+ * their own, since they are the ones that ask for an answer or a look.
  * The step actions live in `e2e/help/notifications.guide.ts`.
  */
 
@@ -31,6 +33,17 @@ export const { context: notificationsContext, guides: notificationsGuides } = de
       true,
     ],
     ['delete-notifications', 'trash', 'quick', 2, 2, CENTER, ['mark-notifications-read']],
+    // After the four on the list: its fixture adds a notification of its own and
+    // takes it away again, so the pictures before it count what the seed left.
+    [
+      'booking-mail-notifications',
+      'mailCheck',
+      'quick',
+      3,
+      3,
+      { slug: NOTIFICATIONS, anchor: 'notification-events' },
+      ['forward-booking-mail', 'read-notifications', 'flight-live-status'],
+    ],
     [
       'notification-settings',
       'sliders',

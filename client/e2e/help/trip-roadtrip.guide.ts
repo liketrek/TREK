@@ -3,8 +3,9 @@ import { captureGuide, captureHero, settle, dragLoop, nudgeClock, VIEWPORT, type
 import { seededTrip, ensureRoadtripFixtures } from './fixtures'
 import { openTrip, modal, dialog } from './trip-shared'
 import {
-  FERRY, FUEL_STOP, GOOGLE_ROUTE, HAZARD_TITLE, assignmentsOn, ensureFerry, ensureFuelStop, hideHazards, overnightFlight, placeIdOf,
-  removeFerry, removeFuelStop, removeImportedStops, removeNightAt, restoreFlight, stubGooglePreview, stubHazards,
+  FERRY, FUEL_STOP, GOOGLE_ROUTE, HAZARD_TITLE, PHOTO_STOP, assignmentsOn, ensureFerry, ensureFuelStop, ensurePhotoStop, hideHazards,
+  overnightFlight, placeIdOf, removeFerry, removeFuelStop, removeImportedStops, removeNightAt, removePhotoStop, restoreFlight,
+  stubGooglePreview, stubHazards,
 } from './fixtures-trip-roadtrip'
 import { tripRoadtripContext, tripRoadtripGuides } from '../../src/help/contexts/tripRoadtrip'
 import type { HelpGuide } from '../../src/help/types'
@@ -89,14 +90,18 @@ const addFuelStop = (page: Page) => dryBand(page).getByRole('button', { name: /a
 const viaHandle = (page: Page) => page.locator('.leaflet-marker-icon.leaflet-marker-draggable').first()
 /** The Search button's card: Looking for, the day, Within, Search and Manual. */
 const searchCard = (page: Page) => corridor(page).getByRole('button', { name: 'Search', exact: true }).locator('xpath=../..')
-/** A hotel hit: its add button is the bed, Add as an overnight stay. */
+/**
+ * A hotel hit: its add button is the bed, Add as an overnight stay. The last one,
+ * because the hits run in the order the drive passes them: the first lies a few
+ * kilometres into the morning, and a night there would read as a hotel at 10:30.
+ */
 const nightButton = (page: Page) =>
-  corridor(page).getByRole('button', { name: 'Add as an overnight stay', exact: true }).first()
+  corridor(page).getByRole('button', { name: 'Add as an overnight stay', exact: true }).last()
 const nightRow = (page: Page) =>
   corridor(page)
     .getByRole('listitem')
     .filter({ has: page.getByRole('button', { name: 'Add as an overnight stay', exact: true }) })
-    .first()
+    .last()
 /**
  * The battery badge of a refuelling stop. It has no label of its own: its name
  * is its figure, "80 %", or the "+" it shows while nothing says how full.
@@ -112,6 +117,15 @@ const selectMenu = (page: Page) => page.locator('body > div[style*="99999"]').la
 /** A warning area drawn by the hazard layer, in the warning colour. */
 const hazardArea = (page: Page) => page.locator('.leaflet-overlay-pane path[stroke="var(--warning)"]').first()
 const hazardPopup = (page: Page) => page.locator('.leaflet-popup.trek-hazard-popup')
+/** Edit in the footer of the card the photo stop opens over the map. */
+const cardEdit = (page: Page) =>
+  placeCardHead(page, PHOTO_STOP)
+    .locator('xpath=ancestor::*[.//button[@aria-label="Edit"]][1]')
+    .getByRole('button', { name: 'Edit', exact: true })
+/** The picture in the stop dialog's head: the gallery trigger, named Show photos. */
+const stopDialogPhoto = (page: Page) => modal(page).getByRole('button', { name: 'Show photos', exact: true })
+/** The full-screen gallery the picture opens; portalled to the body, labelled like its trigger. */
+const lightbox = (page: Page) => page.locator('div[role="dialog"][aria-modal="true"][aria-label="Show photos"]')
 
 // ── Getting there ─────────────────────────────────────────────────────────────
 
@@ -182,8 +196,8 @@ type RoutePoint = { leg: number; x: number; y: number }
  * what sits in the middle of it is usually somebody else's pin.
  *
  * The drawn casing is not what takes the click: it is non-interactive, and an
- * invisible band over the same line (`RouteHitBand`, a transparent stroke with
- * the class `cursor-copy`) catches it instead. So the point is read off the
+ * invisible band over the same line (`RouteHitBand`, a transparent stroke)
+ * catches it instead. So the point is read off the
  * casing, which is the line the reader sees and the one the ring sits on, and
  * the hit test asks for the band of that same leg. Both are drawn from the same
  * positions, so their `d` is the same string.
@@ -206,7 +220,8 @@ async function routePoints(page: Page): Promise<RoutePoint[]> {
         // The two panels float over the map; a point under one of them is not clickable.
         if (x < 430 || x > 1550 || y < 220 || y > 950) continue
         const hit = document.elementFromPoint(x, y)
-        const ownBand = hit instanceof SVGPathElement && hit.classList.contains('cursor-copy') && hit.getAttribute('d') === d
+        // By its transparent stroke: react-leaflet no longer carries the band's class onto the path.
+        const ownBand = hit instanceof SVGPathElement && hit.getAttribute('stroke') === 'transparent' && hit.getAttribute('d') === d
         if (hit === path || ownBand) found.push({ leg, x, y })
       }
     })
@@ -229,8 +244,11 @@ async function aimAtLeg(page: Page): Promise<void> {
   const points = await routePoints(page)
   if (points.length === 0) {
     const legs = await page.locator('.leaflet-overlay-pane svg path[stroke="#0a5cc2"]').count()
-    const bands = await page.locator('.leaflet-overlay-pane svg path.cursor-copy').count()
-    throw new Error(`no drawn leg is reachable on the map (${legs} drawn legs, ${bands} click bands)`)
+    const bands = await page.locator('.leaflet-overlay-pane svg path[stroke="transparent"]').count()
+    const kinds = await page.evaluate(() =>
+      [...new Set(Array.from(document.querySelectorAll('.leaflet-overlay-pane svg path')).map(el => `${el.getAttribute('stroke')}|${el.getAttribute('class')}`))].join(', '),
+    )
+    throw new Error(`no drawn leg is reachable on the map (${legs} drawn legs, ${bands} click bands; paths: ${kinds})`)
   }
   const counts = new Map<number, number>()
   for (const point of points) counts.set(point.leg, (counts.get(point.leg) ?? 0) + 1)
@@ -270,10 +288,51 @@ async function aimAtHazard(page: Page): Promise<void> {
     const top = document.elementFromPoint(box.left + box.width / 2, box.top + box.height / 2)
     const why = `area at ${Math.round(box.left)},${Math.round(box.top)} ${Math.round(box.width)}x${Math.round(box.height)}, ` +
       `on top at its centre: ${top ? `${top.tagName.toLowerCase()}.${String(top.getAttribute('class') ?? '')}` : 'nothing'}`
-    return { point: found[Math.floor(found.length / 2)] ?? null, why }
+    // Low in the area, not its middle: the popup opens above the click, and from the
+    // middle its title ends up under the map's category pills.
+    return { point: found[Math.floor(found.length * 0.8)] ?? null, why }
   })
   if (!aim.point) throw new Error(`no part of the warning area is reachable on the map (${aim.why})`)
   hazardAt = aim.point
+}
+
+/**
+ * Drag the map so the warning area sits low enough for its popup. The popup
+ * opens above the click and is taller than the room left under the category
+ * pills when the area stays where framing on Hakone puts it, and Leaflet's own
+ * auto pan does not reliably clear the pills. The drag starts on bare map.
+ */
+async function lowerHazardArea(page: Page): Promise<void> {
+  const plan = await page.evaluate(() => {
+    const path = document.querySelector<SVGPathElement>('.leaflet-overlay-pane path[stroke="var(--warning)"]')
+    if (!path) return null
+    const box = path.getBoundingClientRect()
+    const dy = Math.round(760 - box.bottom)
+    for (let y = 300; y <= 700; y += 40) {
+      for (let x = 700; x <= 1400; x += 50) {
+        // Bare map: inside the map, but not a pin, a popup, a control or a drawn line.
+        const el = document.elementFromPoint(x, y)
+        const bare =
+          !!el?.closest('.leaflet-container') &&
+          !el.closest('.leaflet-marker-pane, .leaflet-popup-pane, .leaflet-tooltip-pane, .leaflet-control-container') &&
+          !(el instanceof SVGPathElement)
+        if (bare) return { x, y, dy }
+      }
+    }
+    return { x: 0, y: 0, dy }
+  })
+  if (!plan || plan.dy <= 0) return
+  if (plan.x === 0) {
+    console.warn('[roadtrip-hazards] no bare map to drag the warning area down from')
+    return
+  }
+  await page.mouse.move(plan.x, plan.y)
+  await page.mouse.down()
+  for (let i = 1; i <= 12; i++) await page.mouse.move(plan.x, plan.y + (plan.dy * i) / 12)
+  // Hold still before letting go, so the drag ends without a fling.
+  await page.waitForTimeout(400)
+  await page.mouse.up()
+  await finishMapPan(page)
 }
 
 /** Hold the loop's last frame a moment, on the state the gesture left. */
@@ -281,6 +340,14 @@ async function holdResult(page: Page, frame: () => Promise<void>): Promise<void>
   await settle(page)
   await frame()
   await frame()
+}
+
+/**
+ * On the stop's name, the handle a reader grabs: the item's centre can be its drive
+ * band, whose Other ways tooltip would lie over the picture.
+ */
+async function hoverShrineName(page: Page): Promise<void> {
+  await stopRow(page, 'Hakone Shrine').hover({ position: { x: 70, y: 12 } })
 }
 
 // ── Day 4 as the fixtures left it, for the guide that moves its stops ─────────
@@ -386,6 +453,18 @@ async function restorePlace(page: Page, name: string, data: Record<string, unkno
   if (place) await page.request.put(`/api/trips/${tripId}/places/${place.id}`, { data })
 }
 
+/** Every visit of the place back on the place's own stay, the hour a new place starts with. */
+async function clearVisitStays(page: Page, name: string): Promise<void> {
+  const { tripId, dayIds } = seededTrip()
+  const placeId = await placeIdOf(page.request, name)
+  if (placeId === null) return
+  for (let i = 0; i < dayIds.length; i++) {
+    for (const visit of (await assignmentsOn(page.request, i)).filter(a => a.place_id === placeId)) {
+      await page.request.put(`/api/trips/${tripId}/assignments/${visit.id}/stay`, { data: { stay_minutes: null } })
+    }
+  }
+}
+
 const closeModal = async (page: Page): Promise<void> => {
   if (await modal(page).isVisible().catch(() => false)) {
     await page.keyboard.press('Escape')
@@ -409,7 +488,15 @@ const SCRIPTS: Record<string, GuideScript> = {
       },
       only(p => p.getByText('Driving time', { exact: true }).locator('xpath=ancestor::header[1]')),
       only(p => dayCard(p, 2).locator('header')),
-      only(p => dayCard(p, 2).getByRole('list').first()),
+      {
+        target: p => dayCard(p, 2).getByRole('list').first(),
+        // In the list's top corner: its centre is the drive band, whose Other ways
+        // tooltip would cover the next stop's name.
+        hover: async p => {
+          const box = await dayCard(p, 2).getByRole('list').first().boundingBox()
+          if (box) await p.mouse.move(box.x + 12, box.y + 8)
+        },
+      },
       {
         // Day 2, like the two steps above: the rail leaves out a day with
         // nothing to drive, and day 1 is one of them.
@@ -473,7 +560,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         // Hakone Shrine, not a seeded stop: every seeded visit has an end time
         // from the day plan, and a stop with one opens the read-only "until"
         // version of the dialog, which has no slider and no Save. The drive's
-        // own fixture places carry no times, so the badge is the plus of Add a stay.
+        // own fixture places carry no times, only the hour a new place starts with.
         target: p => stopItem(p, 'Hakone Shrine').getByRole('button', { name: /^(Time at this stop|Add a stay)/ }),
         act: async p => {
           await stopItem(p, 'Hakone Shrine').getByRole('button', { name: /^(Time at this stop|Add a stay)/ }).click()
@@ -484,19 +571,61 @@ const SCRIPTS: Record<string, GuideScript> = {
       {
         target: dialog,
         act: async p => {
-          await modal(p).getByRole('button', { name: '1 h', exact: true }).click()
-          await expect(modal(p).getByRole('slider', { name: 'Minutes' })).toHaveValue('60')
+          // Not 1 h: a new place starts with an hour, so that preset would change nothing.
+          await modal(p).getByRole('button', { name: '45 min', exact: true }).click()
+          await expect(modal(p).getByRole('slider', { name: 'Minutes' })).toHaveValue('45')
           await modal(p).getByRole('button', { name: 'Save', exact: true }).click()
           await expect(modal(p)).toHaveCount(0)
-          await expect(stopItem(p, 'Hakone Shrine')).toContainText('1 h', { timeout: 20_000 })
+          await expect(stopItem(p, 'Hakone Shrine')).toContainText('45 min', { timeout: 20_000 })
           await settle(p)
         },
       },
     ],
     cleanup: async p => {
-      // Zero, not null: the update folds a null into "leave it alone".
-      await restorePlace(p, 'Hakone Shrine', { duration_minutes: 0 })
+      // The stay lands on the visit (#3092); null hands it back to the place, which has none.
+      await clearVisitStays(p, 'Hakone Shrine')
       await restorePlace(p, 'Meiji Jingu', { stop_type: null })
+    },
+  },
+  'roadtrip-stop-photo': {
+    guide: guide('roadtrip-stop-photo'),
+    start: async p => {
+      await ensurePhotoStop(p.request)
+      await openRoadtrip(p)
+    },
+    steps: [
+      {
+        target: p => stopRow(p, PHOTO_STOP),
+        act: async p => {
+          await stopRow(p, PHOTO_STOP).click({ position: { x: 70, y: 12 } })
+          await expect(placeCardHead(p, PHOTO_STOP)).toBeVisible({ timeout: 15_000 })
+          await finishMapPan(p)
+        },
+      },
+      {
+        // Edit is the primary action at the right end of the card's footer.
+        target: cardEdit,
+        act: async p => {
+          await cardEdit(p).click()
+          await expect(stopDialogPhoto(p)).toBeVisible({ timeout: 15_000 })
+          await expect(stopDialogPhoto(p).locator('img')).toHaveJSProperty('complete', true)
+          await settle(p)
+        },
+      },
+      {
+        target: stopDialogPhoto,
+        act: async p => {
+          await stopDialogPhoto(p).click()
+          await expect(lightbox(p)).toBeVisible({ timeout: 15_000 })
+          await expect(lightbox(p).locator('img').first()).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+    ],
+    cleanup: async p => {
+      if (await lightbox(p).isVisible().catch(() => false)) await p.keyboard.press('Escape')
+      await closeModal(p)
+      await removePhotoStop(p.request)
     },
   },
   'roadtrip-reorder': {
@@ -510,6 +639,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         // Hakone Shrine onto Shinjuku Gyoen: the shrine moves up beside
         // Owakudani, and the day stops driving to Tokyo and back.
         target: p => stopItem(p, 'Hakone Shrine'),
+        hover: hoverShrineName,
         dropTo: p => stopItem(p, 'Shinjuku Gyoen'),
         clip: async (p, frame) => {
           await dragLoop(p, stopItem(p, 'Hakone Shrine'), stopItem(p, 'Shinjuku Gyoen'), frame)
@@ -525,6 +655,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         // head of day 4 between them day 2 then lies above the rail's window, so
         // the pointer let go off the rail and nothing moved.
         target: p => stopItem(p, 'Hakone Shrine'),
+        hover: hoverShrineName,
         dropTo: p => stopItem(p, 'Hakone Open-Air Museum'),
         clip: async (p, frame) => {
           await dragLoop(p, stopItem(p, 'Hakone Shrine'), stopItem(p, 'Hakone Open-Air Museum'), frame)
@@ -538,6 +669,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         // Day 4 is Owakudani and Shinjuku Gyoen now; Alt and up puts the garden
         // first, and the day drives out of Tokyo to the valley.
         target: p => stopRow(p, 'Shinjuku Gyoen'),
+        hover: async p => { await stopRow(p, 'Shinjuku Gyoen').hover({ position: { x: 70, y: 12 } }) },
         act: async p => {
           await stopRow(p, 'Shinjuku Gyoen').focus()
           await p.keyboard.press('Alt+ArrowUp')
@@ -879,6 +1011,11 @@ const SCRIPTS: Record<string, GuideScript> = {
           await settle(p)
         },
         target: p => modal(p).getByRole('group', { name: 'Daily travel times' }),
+        // In the group's corner: its centre carries the note's tooltip over Day end time.
+        hover: async p => {
+          const box = await modal(p).getByRole('group', { name: 'Daily travel times' }).boundingBox()
+          if (box) await p.mouse.move(box.x + 6, box.y + 6)
+        },
       },
       {
         target: p => modal(p).getByRole('textbox', { name: 'Day start time' }),
@@ -939,7 +1076,14 @@ const SCRIPTS: Record<string, GuideScript> = {
           await settle(p)
         },
       },
-      only(p => dryBand(p).getByRole('list').first()),
+      {
+        target: p => dryBand(p).getByRole('list').first(),
+        // In the list's corner: a badge under its centre would lay its tooltip over a name.
+        hover: async p => {
+          const box = await dryBand(p).getByRole('list').first().boundingBox()
+          if (box) await p.mouse.move(box.x + 6, box.y + 6)
+        },
+      },
       {
         prepare: async p => {
           const label = (await addFuelStop(p).getAttribute('aria-label')) ?? ''
@@ -1161,6 +1305,7 @@ const SCRIPTS: Record<string, GuideScript> = {
           // that stop (the way the via guide brings its leg into view) puts the
           // area in the middle of the map at the same zoom, outline and all.
           await frameOnStop(p, 'Hakone Shrine')
+          await lowerHazardArea(p)
           await aimAtHazard(p)
         },
       },
@@ -1170,7 +1315,9 @@ const SCRIPTS: Record<string, GuideScript> = {
         act: async p => {
           await p.mouse.click(hazardAt.x, hazardAt.y)
           await expect(hazardPopup(p)).toContainText(HAZARD_TITLE, { timeout: 15_000 })
-          await settle(p)
+          // The popup pans the map to fit itself, on Leaflet's clock: let that pan land,
+          // or its title stays under the map's category pills.
+          await finishMapPan(p)
         },
       },
     ],

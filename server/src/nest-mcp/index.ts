@@ -1,8 +1,10 @@
 export { McpController, Prompt, Resource, ResourceTemplate, Tool } from './decorators';
 export {
+  combineToolGates,
   demoDenied,
   errorResult,
   ok,
+  okCompact,
   TOOL_ANNOTATIONS_DELETE,
   TOOL_ANNOTATIONS_NON_IDEMPOTENT,
   TOOL_ANNOTATIONS_OPEN_WORLD_NON_IDEMPOTENT,
@@ -32,6 +34,7 @@ export {
   type McpEntry,
   type McpEntryKind,
   type McpErrorMapper,
+  type McpInputMapper,
   type McpModuleOptions,
   type McpRegistryListing,
   type McpToolGate,

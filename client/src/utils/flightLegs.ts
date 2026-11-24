@@ -19,6 +19,8 @@ export interface FlightLeg {
   to: string | null
   airline?: string
   flight_number?: string
+  /** This leg's own seat; the first leg falls back to the booking's flat seat (see legSeat). */
+  seat?: string
   /** This segment's own booking reference, when it was booked separately (#1943). */
   confirmation_number?: string
   dep_day_id?: number | null
@@ -67,11 +69,12 @@ export function stripAirportCode(name: string): string {
 export function getFlightLegs(r: Reservation): FlightLeg[] {
   const meta = parseReservationMetadata(r)
   if (Array.isArray(meta.legs) && meta.legs.length > 0) {
-    return meta.legs.map((l: any): FlightLeg => ({
+    return meta.legs.map((l: any, i: number): FlightLeg => ({
       from: l.from ?? null,
       to: l.to ?? null,
       airline: l.airline || undefined,
       flight_number: l.flight_number || undefined,
+      seat: legSeat(l, i, meta),
       confirmation_number: l.confirmation_number || undefined,
       dep_day_id: l.dep_day_id ?? null,
       dep_time: l.dep_time ?? null,
@@ -91,6 +94,7 @@ export function getFlightLegs(r: Reservation): FlightLeg[] {
     to: toCode,
     airline: meta.airline || undefined,
     flight_number: meta.flight_number || undefined,
+    seat: meta.seat || undefined,
     // The single segment IS the booking, so its reference is the booking's.
     confirmation_number: r.confirmation_number || undefined,
     dep_day_id: r.day_id ?? null,
@@ -127,12 +131,12 @@ export interface TrainLeg {
 export function getTrainLegs(r: Reservation): TrainLeg[] {
   const meta = parseReservationMetadata(r)
   if (Array.isArray(meta.legs) && meta.legs.length > 0) {
-    return meta.legs.map((l: any): TrainLeg => ({
+    return meta.legs.map((l: any, i: number): TrainLeg => ({
       from: l.from ?? null,
       to: l.to ?? null,
       train_number: l.train_number || undefined,
       platform: l.platform || undefined,
-      seat: l.seat || undefined,
+      seat: legSeat(l, i, meta),
       confirmation_number: l.confirmation_number || undefined,
       dep_day_id: l.dep_day_id ?? null,
       dep_time: l.dep_time ?? null,
@@ -159,6 +163,52 @@ export function getTrainLegs(r: Reservation): TrainLeg[] {
     arr_day_id: r.end_day_id ?? r.day_id ?? null,
     arr_time: last?.local_time ?? null,
   }]
+}
+
+/**
+ * A leg's own seat. The flat `metadata.seat` mirrors the first leg's, so a
+ * booking saved before legs carried seats, or one an import gave only the flat
+ * seat, still shows it on its first leg, as the booking form reads it.
+ */
+function legSeat(leg: { seat?: unknown } | null | undefined, index: number, meta: { seat?: unknown }): string | undefined {
+  if (typeof leg?.seat === 'string' && leg.seat) return leg.seat
+  return index === 0 && typeof meta.seat === 'string' && meta.seat ? meta.seat : undefined
+}
+
+/**
+ * The seats of a booking, each with the route of the leg it belongs to. A flight
+ * or train with a stop lists one per leg that has a seat, so a seat booked only
+ * on the second leg is not lost behind the first leg's empty one; any other
+ * booking gives its own seat with no route.
+ */
+export function bookingSeats(r: Reservation): { route: string | null; seat: string }[] {
+  const legs: (FlightLeg | TrainLeg)[] =
+    r.type === 'flight' ? getFlightLegs(r) : usesStationRoute(r.type) ? getTrainLegs(r) : []
+  return seatsOfLegs(legs, parseReservationMetadata(r).seat)
+}
+
+/** bookingSeats for legs already read (getFlightLegs or getTrainLegs) and the booking's flat seat. */
+export function seatsOfLegs(legs: readonly (FlightLeg | TrainLeg)[], flatSeat: unknown): { route: string | null; seat: string }[] {
+  if (legs.length > 1) {
+    return legs.flatMap((l) => (l.seat ? [{ route: [l.from, l.to].filter(Boolean).join(' → ') || null, seat: l.seat }] : []))
+  }
+  return typeof flatSeat === 'string' && flatSeat ? [{ route: null, seat: flatSeat }] : []
+}
+
+/** The label of one of bookingSeats' seats: "Seat", or "Seat FRA → IST" for a leg. */
+export function seatLabel(seatWord: string, route: string | null): string {
+  return route ? `${seatWord} ${route}` : seatWord
+}
+
+/**
+ * bookingSeats as the one Seat cell of a booking's field grid: every leg's seat
+ * in route order, then `suffix` (its class). One cell, because a card cuts its
+ * grid after a few cells and a route in the label does not fit a narrow one;
+ * the detail views name each leg's seat under its route.
+ */
+export function seatCells(r: Reservation, seatWord: string, suffix = ''): { label: string; value: string }[] {
+  const seats = bookingSeats(r)
+  return seats.length ? [{ label: seatWord, value: seats.map((s) => s.seat).join(', ') + suffix }] : []
 }
 
 /** Number of flight segments. 1 for a simple from -> to booking. */

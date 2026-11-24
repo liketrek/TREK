@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { dayColor } from './dayColors'
-import { stageMapData, stagePlaceIds, stagePoints } from './stageMap'
+import { stageConnectionIds, stageMapData, stagePlaceIds, stagePoints } from './stageMap'
 import type { AccessSpur, RoadtripDay, RoadtripRoutes, RoadtripStop } from '@trek/shared/roadtrip'
 
-// FE-RTSTAGE-001 to FE-RTSTAGE-021
+// FE-RTSTAGE-001 to FE-RTSTAGE-023
 
 function stop(name: string, over: Partial<RoadtripStop> = {}): RoadtripStop {
   return {
@@ -125,14 +125,15 @@ describe('stageMapData with a stage', () => {
     expect(stageMapData(routes(), stage, true).lines).toEqual([LINES[1], LINES[2]])
   })
 
-  it('FE-RTSTAGE-016: the drive into the next day is left off the stage', () => {
-    // With "connect the days" on, that leg is drawn in the colour of the day it leaves, so
+  it('FE-RTSTAGE-016: the drive in from the day before is left off the stage', () => {
+    // With "connect the days" on, that leg is drawn as the day it arrives on (#3123), so
     // filtering by day number alone handed the stage a line running off it to a place the
     // day never visits. On a phone, where the stage IS the map, it was the longest thing
-    // on screen and read as the day's own route.
-    const withJoin = routes({ lineJoins: [false, false, true, false] })
+    // on screen and read as the day's own route. The assembler emits it first among the
+    // lines of the day it reaches, ahead of that day's own legs.
+    const withJoin = routes({ lineJoins: [false, true, false, false] })
 
-    expect(stageMapData(withJoin, stage, true).lines).toEqual([LINES[1]])
+    expect(stageMapData(withJoin, stage, true).lines).toEqual([LINES[2]])
   })
 
   it('FE-RTSTAGE-020: a day that is nothing but driving keeps its connection rather than going blank', () => {
@@ -144,7 +145,7 @@ describe('stageMapData with a stage', () => {
   })
 
   it('FE-RTSTAGE-017: the colours still line up once a join has been dropped', () => {
-    const data = stageMapData(routes({ lineJoins: [false, false, true, false] }), stage, true)
+    const data = stageMapData(routes({ lineJoins: [false, true, false, false] }), stage, true)
 
     expect(data.lineColors).toHaveLength(data.lines.length)
     expect(data.lineColors).toEqual([dayColor(2)])
@@ -153,7 +154,7 @@ describe('stageMapData with a stage', () => {
   it('FE-RTSTAGE-018: the all-days view keeps the joins, which is the view they are for', () => {
     // The setting draws the whole drive as one connected line; that is what it is for, and
     // on this map the connection has the other days beside it.
-    expect(stageMapData(routes({ lineJoins: [false, false, true, false] }), null, true).lines).toEqual(LINES)
+    expect(stageMapData(routes({ lineJoins: [false, true, false, false] }), null, true).lines).toEqual(LINES)
   })
 
   it('FE-RTSTAGE-019: routes from before the flag existed are drawn as they were', () => {
@@ -265,5 +266,25 @@ describe('a stage that starts or ends at a booked night', () => {
     expect([...data.placeIds]).toEqual([900, 11])
     expect(data.focusPoints[0]).toEqual([47.2, 11.4])
     expect(data.accessLines).toEqual([walk])
+  })
+})
+
+describe('stageConnectionIds', () => {
+  const flight = (reservationId: number, role: 'arrival' | 'departure') =>
+    stop('Airport', { carrier: { reservationId, type: 'flight', role, title: 'Flight', code: null, at: null } })
+
+  it("FE-RTSTAGE-022: a stage draws its own rides, not the drive's ride home from a later day", () => {
+    // The flight in (31) seams this stage; the flight home (32) belongs to a stage days later
+    // and is not on this one at all.
+    const stage = day([flight(31, 'arrival'), stop('Ubud')])
+    expect(stageConnectionIds(stage, [], () => true)).toEqual([31])
+  })
+
+  it('FE-RTSTAGE-023: of the bookings switched on by hand only those running on the stage day stay', () => {
+    const stage = day([stop('Ubud')])
+    const onThisDay = new Set([40])
+    expect(stageConnectionIds(stage, [40, 41], id => onThisDay.has(id))).toEqual([40])
+    // A ride that seams the stage stays even when it was booked on another day.
+    expect(stageConnectionIds(day([flight(31, 'arrival')]), [31], () => false)).toEqual([31])
   })
 })

@@ -4,6 +4,7 @@
  * the legacy router, because rpc-host.test.ts asserts them and shipped plugins read
  * them, so these tests pin the exact strings rather than just the refusal.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { Users } from '../../../src/db/entities/Users.entity';
 import type { TripsRepository } from '../../../src/db/repositories/Trips.repository';
@@ -47,7 +48,9 @@ const ctx = (actingUserId: number | undefined): PluginRpcContext => ({
  * carry a null role, and `getRole` has no way to tell "row absent" from "row present,
  * role null" apart even if it could.
  */
-function build(overrides: { role?: string | null; allow?: boolean; addonOn?: boolean } = {}) {
+function build(
+  overrides: { role?: string | null; allow?: boolean; addonOn?: boolean; tripAddon?: Record<number, boolean> } = {},
+) {
   const db = {
     findAccessible: vi.fn(async (tripId: number, userId: number) =>
       tripId === 1 && userId === 42 ? { id: 1, user_id: 42 } : undefined,
@@ -59,8 +62,10 @@ function build(overrides: { role?: string | null; allow?: boolean; addonOn?: boo
   const permissions = {
     checkPermission: vi.fn(() => overrides.allow ?? true),
   } as unknown as PermissionsService;
+  // `tripAddon` is what a trip's owner chose, by trip id; a trip left out follows the instance (`addonOn`).
   const addons = {
     isAddonEnabled: vi.fn(() => overrides.addonOn ?? true),
+    isEnabledForTrip: vi.fn(async (tripId: number) => overrides.tripAddon?.[tripId] ?? overrides.addonOn ?? true),
   } as unknown as AddonsService;
   return { guards: new PluginGuards(db, permissions, addons, users), db, users, permissions, addons };
 }
@@ -205,7 +210,7 @@ describe('PluginGuards — canEditAs/canCreateAs against a real UsersRepository 
   beforeEach(async () => {
     testDb = createSnapshotTestDb();
     orm = await createTestOrm(testDb);
-    const permissions = new PermissionsService(orm.repo(AppSettings), new UnitOfWork(orm.em));
+    const permissions = new PermissionsService(orm.repo(AppSettings), new UnitOfWork(orm.em, new SqliteEngine()));
     const db = {
       findAccessible: vi.fn(async (tripId: number) => (tripId === 1 ? { id: 1, user_id: ownerId } : undefined)),
     } as unknown as TripsRepository;
@@ -251,6 +256,56 @@ describe('PluginGuards — requireAddon', () => {
     await expect(build({ addonOn: false }).guards.requireAddon('budget', 'costs')).rejects.toThrow(
       new ForbiddenResource('the costs addon is disabled'),
     );
+  });
+});
+
+describe('PluginGuards: requireAddon for one trip', () => {
+  it('PGUARD-030 a trip the user sees answers with its own choice, in either direction', async () => {
+    const on = build({ addonOn: false, tripAddon: { 1: true } });
+    await expect(on.guards.requireAddon('budget', 'costs', { tripId: 1, userId: 42 })).resolves.toBeUndefined();
+    expect(on.addons.isEnabledForTrip).toHaveBeenCalledWith(1, 'budget');
+
+    const off = build({ addonOn: true, tripAddon: { 1: false } });
+    await expect(off.guards.requireAddon('budget', 'costs', { tripId: 1, userId: 42 })).rejects.toThrow(
+      new ForbiddenResource('the costs addon is disabled'),
+    );
+  });
+
+  it('PGUARD-031 a trip the user cannot see is answered with the instance switch, never its own choice', async () => {
+    const f = build({ addonOn: true, tripAddon: { 1: false } });
+    await expect(f.guards.requireAddon('budget', 'costs', { tripId: 1, userId: 7 })).resolves.toBeUndefined();
+    expect(f.addons.isEnabledForTrip).not.toHaveBeenCalled();
+  });
+
+  it('PGUARD-032 tripRead and requireTripEdit ask the addon of the trip after the access check', async () => {
+    const f = build({ tripAddon: { 1: false } });
+    const read = vi.fn(() => 'rows');
+    await expect(
+      f.guards.tripRead({ tripId: 1 }, ctx(42), read, { addonId: 'packing', noun: 'packing' }),
+    ).rejects.toThrow(new ForbiddenResource('the packing addon is disabled'));
+    expect(read).not.toHaveBeenCalled();
+    await expect(
+      f.guards.requireTripEdit(1, 42, 'packing_edit', { addonId: 'packing', noun: 'packing' }),
+    ).rejects.toThrow(new ForbiddenResource('the packing addon is disabled'));
+    // Without an addon named, the two stay what they were.
+    await expect(f.guards.tripRead({ tripId: 1 }, ctx(42), read)).resolves.toBe('rows');
+    await expect(f.guards.requireTripEdit(1, 42, 'packing_edit')).resolves.toBeUndefined();
+  });
+
+  it('PGUARD-033 tripsWithAddon keeps the trips the addon applies to, in the order given', async () => {
+    const f = build({ addonOn: true, tripAddon: { 2: false } });
+    expect(await f.guards.tripsWithAddon('budget', 'costs', [3, 2, 1])).toEqual([3, 1]);
+    // The instance off: only the trips that switched it on, and a refusal when none did.
+    expect(
+      await build({ addonOn: false, tripAddon: { 2: true } }).guards.tripsWithAddon('budget', 'costs', [1, 2]),
+    ).toEqual([2]);
+    await expect(build({ addonOn: false }).guards.tripsWithAddon('budget', 'costs', [1, 2])).rejects.toThrow(
+      new ForbiddenResource('the costs addon is disabled'),
+    );
+    // The instance on with every trip switched off is an empty answer, not a refusal.
+    expect(
+      await build({ addonOn: true, tripAddon: { 1: false } }).guards.tripsWithAddon('budget', 'costs', [1]),
+    ).toEqual([]);
   });
 });
 

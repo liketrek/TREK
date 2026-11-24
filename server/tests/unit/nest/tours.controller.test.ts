@@ -8,9 +8,9 @@
  */
 import 'reflect-metadata';
 
-import { AddonGuard } from '../../../src/nest/addons/addon.guard';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
 import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import { TRIP_PERMISSION_KEY, TripAccessGuard } from '../../../src/nest/permissions/trip-access.guard';
 import type { PlacesService } from '../../../src/nest/places/places.service';
@@ -86,7 +86,7 @@ async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number
 function importFixture(
   o: { addon?: boolean; trip?: typeof trip | undefined; canEdit?: boolean; result?: unknown } = {},
 ) {
-  const addons = { isAddonEnabled: vi.fn(async () => o.addon ?? true) };
+  const addons = { isEnabledForTrip: vi.fn(async () => o.addon ?? true) };
   const places = {
     verifyTripAccess: vi.fn(async () => ('trip' in o ? o.trip : trip)),
     canEdit: vi.fn(async () => o.canEdit ?? true),
@@ -110,9 +110,13 @@ describe('ToursController planner routes', () => {
     expect(legacyDatabaseAccess).not.toHaveBeenCalled();
   });
 
-  it('TOURS-CTL-001: hides every Tours route behind the addon guard before auth', () => {
+  it('TOURS-CTL-001: hides every Tours route behind the trip addon guard, after trip access', () => {
     expect(Reflect.getMetadata(PATH_METADATA, ToursController)).toBe('api/trips/:tripId/tours');
-    expect(Reflect.getMetadata(GUARDS_METADATA, ToursController)).toEqual([AddonGuard, JwtAuthGuard, TripAccessGuard]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, ToursController)).toEqual([
+      JwtAuthGuard,
+      TripAccessGuard,
+      TripAddonGuard,
+    ]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, ToursController)).toEqual({ addonId: 'tours', label: 'Tours' });
   });
 
@@ -226,15 +230,15 @@ describe('ToursImportController (POST /api/trips/:tripId/tours/import/gpx)', () 
     expect(await controller.importGpx(user, '7', file)).toBe(allSkipped);
   });
 
-  it('TOURS-IMP-004: addon off is the AddonGuard 404 before any trip lookup', async () => {
+  it('TOURS-IMP-004: Tours off for the trip is the TripAddonGuard 404, after the trip lookup', async () => {
     const { controller, places, tours, addons } = importFixture({ addon: false });
 
     expect(await thrownAsync(() => controller.importGpx(user, '7', file))).toEqual({
       status: 404,
       body: { error: 'Tours addon is not enabled' },
     });
-    expect(addons.isAddonEnabled).toHaveBeenCalledWith('tours');
-    expect(places.verifyTripAccess).not.toHaveBeenCalled();
+    expect(places.verifyTripAccess).toHaveBeenCalledWith('7', user.id);
+    expect(addons.isEnabledForTrip).toHaveBeenCalledWith(trip.id, 'tours');
     expect(tours.importGpxAsTour).not.toHaveBeenCalled();
   });
 

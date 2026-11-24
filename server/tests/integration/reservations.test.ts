@@ -3,35 +3,26 @@
  * Covers RESV-001 to RESV-007.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../src/db/entities/DayAccommodations.entity';
 import { Days } from '../../src/db/entities/Days.entity';
 import { ReservationDayPositions } from '../../src/db/entities/ReservationDayPositions.entity';
 import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { authCookie } from '../helpers/auth';
-import {
-  createUser,
-  createTrip,
-  createDay,
-  createPlace,
-  createReservation,
-  createDayAssignment,
-  addTripMember,
-} from '../helpers/factories';
+import { makeDayAssignment } from '../helpers/factories/itinerary';
+import { makePlace } from '../helpers/factories/places';
+import { makeReservation } from '../helpers/factories/reservations';
 import { findRow, findRows, updateRows } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeDay, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let orm: MikroORM;
 
@@ -50,13 +41,12 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -65,8 +55,8 @@ afterAll(async () => {
 
 describe('Create reservation', () => {
   it('RESV-001 — POST /api/trips/:tripId/reservations creates a reservation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -78,8 +68,8 @@ describe('Create reservation', () => {
   });
 
   it('RESV-001b — persists and updates the dedicated url field (#935)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const created = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -97,8 +87,8 @@ describe('Create reservation', () => {
   });
 
   it('RESV-001 — POST without title returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -108,9 +98,9 @@ describe('Create reservation', () => {
   });
 
   it('RESV-001 — non-member cannot create reservation', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -120,9 +110,9 @@ describe('Create reservation', () => {
   });
 
   it('RESV-002 — POST with create_accommodation creates an accommodation record', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id, { date: '2025-06-01' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { date: '2025-06-01' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -139,10 +129,10 @@ describe('Create reservation', () => {
 
 describe('List reservations', () => {
   it('RESV-003 — GET /api/trips/:tripId/reservations returns all reservations', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createReservation(testDb, trip.id, { title: 'Flight Out', type: 'flight' });
-    createReservation(testDb, trip.id, { title: 'Hotel Stay', type: 'hotel' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeReservation(orm, trip.id, { title: 'Flight Out', type: 'flight' });
+    await makeReservation(orm, trip.id, { title: 'Hotel Stay', type: 'hotel' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -150,8 +140,8 @@ describe('List reservations', () => {
   });
 
   it('RESV-003 — returns empty array when no reservations exist', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(user.id));
     expect(res.status).toBe(200);
@@ -159,9 +149,9 @@ describe('List reservations', () => {
   });
 
   it('RESV-007 — non-member cannot list reservations', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id);
+    const { user: owner } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const trip = await makeTrip(orm, owner.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/reservations`).set('Cookie', authCookie(other.id));
     expect(res.status).toBe(404);
@@ -174,9 +164,9 @@ describe('List reservations', () => {
 
 describe('Update reservation', () => {
   it('RESV-004 — PUT updates reservation fields', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const resv = createReservation(testDb, trip.id, { title: 'Old Flight', type: 'flight' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const resv = await makeReservation(orm, trip.id, { title: 'Old Flight', type: 'flight' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/${resv.id}`)
@@ -188,11 +178,11 @@ describe('Update reservation', () => {
   });
 
   it('RESV-004b — PUT with day_id null derives day_id from reservation_time so it stays in the Plan (#1237)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    createDay(testDb, trip.id, { date: '2025-09-01' });
-    const day2 = createDay(testDb, trip.id, { date: '2025-09-02' });
-    const resv = createReservation(testDb, trip.id, { title: 'Event', type: 'event' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeDay(orm, trip.id, { date: '2025-09-01' });
+    const day2 = await makeDay(orm, trip.id, { date: '2025-09-02' });
+    const resv = await makeReservation(orm, trip.id, { title: 'Event', type: 'event' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/${resv.id}`)
@@ -203,10 +193,10 @@ describe('Update reservation', () => {
   });
 
   it('RESV-004c — re-dating a booking moves it to the matching day (start + end) (#1237)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day1 = createDay(testDb, trip.id, { date: '2025-10-01' });
-    const day3 = createDay(testDb, trip.id, { date: '2025-10-03' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day1 = await makeDay(orm, trip.id, { date: '2025-10-01' });
+    const day3 = await makeDay(orm, trip.id, { date: '2025-10-03' });
 
     // Booking sits on day 1 (start + end).
     const created = await request(app)
@@ -236,9 +226,23 @@ describe('Update reservation', () => {
     expect(res.body.reservation.end_day_id).toBe(day3.id);
   });
 
+  it('RESV-004d: a reservation_time on a date the calendar does not have lands on no day, on every engine', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    await makeDay(orm, trip.id, { date: '2024-03-01' });
+
+    // SQLite's JULIANDAY rolls 2024-02-30 over into March; Postgres refuses to cast it.
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Event', type: 'event', reservation_time: '2024-02-30T10:00' });
+    expect(res.status).toBe(201);
+    expect(res.body.reservation.day_id).toBeNull();
+  });
+
   it('RESV-004 — PUT on non-existent reservation returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/99999`)
@@ -248,11 +252,11 @@ describe('Update reservation', () => {
   });
 
   it('RESV-010 — PUT syncs check-in/out times to linked accommodation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day1 = createDay(testDb, trip.id, { date: '2025-08-01' });
-    const day2 = createDay(testDb, trip.id, { date: '2025-08-03' });
-    const place = createPlace(testDb, trip.id, { name: 'Sync Hotel' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day1 = await makeDay(orm, trip.id, { date: '2025-08-01' });
+    const day2 = await makeDay(orm, trip.id, { date: '2025-08-03' });
+    const place = await makePlace(orm, trip.id, { name: 'Sync Hotel' });
 
     // Create reservation with linked accommodation
     const createRes = await request(app)
@@ -290,17 +294,17 @@ describe('Update reservation', () => {
   // legacy raw-bind existence check's own affinity never converts a hex
   // string, so it always stored NULL instead.
   it('L2 — PUT with a hex-spelled accommodation_id stores NULL, matching the legacy affinity miss', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id, { name: 'Hotel' });
     const { accommodation: accom } = (
       await request(app)
         .post(`/api/trips/${trip.id}/accommodations`)
         .set('Cookie', authCookie(user.id))
         .send({ place_id: place.id, start_day_id: day.id, end_day_id: day.id })
     ).body as { accommodation: { id: number } };
-    const resv = createReservation(testDb, trip.id, { title: 'Flight', type: 'flight' });
+    const resv = await makeReservation(orm, trip.id, { title: 'Flight', type: 'flight' });
 
     const hexAccId = '0x' + accom.id.toString(16);
     const res = await request(app)
@@ -311,6 +315,101 @@ describe('Update reservation', () => {
 
     const row = (await findRow(orm, Reservations, { id: resv.id }))!;
     expect(row.accommodation_id).toBeNull();
+  });
+
+  it('POST with a hex-spelled accommodation_id stores NULL, the same as PUT', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id, { name: 'Hotel' });
+    const { accommodation: accom } = (
+      await request(app)
+        .post(`/api/trips/${trip.id}/accommodations`)
+        .set('Cookie', authCookie(user.id))
+        .send({ place_id: place.id, start_day_id: day.id, end_day_id: day.id })
+    ).body as { accommodation: { id: number } };
+
+    const res = await request(app)
+      .post(`/api/trips/${trip.id}/reservations`)
+      .set('Cookie', authCookie(user.id))
+      .send({ title: 'Flight', type: 'flight', accommodation_id: '0x' + accom.id.toString(16) });
+    expect(res.status).toBe(201);
+
+    const row = await findRow(orm, Reservations, { id: res.body.reservation.id as number });
+    expect(row).toMatchObject({ accommodation_id: null });
+  });
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The body is not schema-checked, so a referenced id can arrive as any string.
+// Only the canonical shapes toRowId accepts reach SQL: SQLite matches nothing
+// for '0x1' or 'abc' against an integer column, while Postgres refuses the
+// cast (14 and 15) or reads hex as a number (16 and later). Every engine has
+// to answer the same 400 instead of a 500 on one and a write on another.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('a referenced id the row-id rule refuses is an unknown reference on every engine', () => {
+  const shapes = [
+    ['hex', (id: number) => '0x' + id.toString(16)],
+    ['exponent', (id: number) => `${id}e0`],
+    ['word', () => 'abc'],
+  ] as const;
+  const fields = [
+    ['day_id', 'day_id'],
+    ['end_day_id', 'end_day_id'],
+    ['place_id', 'place_id'],
+    ['create_accommodation.place_id', 'place_id'],
+    ['create_accommodation.start_day_id', 'start_day_id'],
+  ] as const;
+
+  for (const [field, key] of fields) {
+    for (const [shapeName, spell] of shapes) {
+      it(`${field} spelled as ${shapeName}: PUT and POST answer 400 "Unknown reference: ${field}"`, async () => {
+        const { user } = await makeUser(orm);
+        const trip = await makeTrip(orm, user.id);
+        const day = await makeDay(orm, trip.id);
+        const place = await makePlace(orm, trip.id, { name: 'Hotel' });
+        const resv = await makeReservation(orm, trip.id, { title: 'Stay', type: 'hotel' });
+        const value = spell(key === 'place_id' ? place.id : day.id);
+        const body = field.startsWith('create_accommodation.')
+          ? {
+              type: 'hotel',
+              create_accommodation: { place_id: place.id, start_day_id: day.id, end_day_id: day.id, [key]: value },
+            }
+          : { [key]: value };
+
+        const put = await request(app)
+          .put(`/api/trips/${trip.id}/reservations/${resv.id}`)
+          .set('Cookie', authCookie(user.id))
+          .send(body);
+        expect(put.status).toBe(400);
+        expect(put.body.error).toBe(`Unknown reference: ${field}`);
+
+        const post = await request(app)
+          .post(`/api/trips/${trip.id}/reservations`)
+          .set('Cookie', authCookie(user.id))
+          .send({ title: 'Stay', type: 'hotel', ...body });
+        expect(post.status).toBe(400);
+        expect(post.body.error).toBe(`Unknown reference: ${field}`);
+        expect(await findRows(orm, Reservations, { trip: trip.id })).toHaveLength(1);
+      });
+    }
+  }
+
+  it('assignment_id spelled as hex: PUT answers 400 "Unknown reference: assignment_id"', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id, { name: 'Museum' });
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
+    const resv = await makeReservation(orm, trip.id, { title: 'Ticket', type: 'event' });
+
+    const res = await request(app)
+      .put(`/api/trips/${trip.id}/reservations/${resv.id}`)
+      .set('Cookie', authCookie(user.id))
+      .send({ assignment_id: '0x' + assignment.id.toString(16) });
+    expect(res.status).toBe(400);
+    expect(res.body.error).toBe('Unknown reference: assignment_id');
   });
 });
 
@@ -328,11 +427,11 @@ describe('Update reservation', () => {
 
 describe("H1 — a booking on a stay is restamped when the trip's dates change (DY23)", () => {
   it('the accommodation_id RS28 stores is the legacy REAL-bound TEXT shape, and a later date change restamps the linked booking', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { start_date: '2026-12-01', end_date: '2026-12-03' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id, { start_date: '2026-12-01', end_date: '2026-12-03' });
     const day1 = (await findRow(orm, Days, { trip: trip.id, date: '2026-12-01' }))!;
     const day2 = (await findRow(orm, Days, { trip: trip.id, date: '2026-12-02' }))!;
-    const place = createPlace(testDb, trip.id, { name: 'Lighthouse Inn' });
+    const place = await makePlace(orm, trip.id, { name: 'Lighthouse Inn' });
 
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -380,11 +479,11 @@ describe("H1 — a booking on a stay is restamped when the trip's dates change (
 
 describe('RS22 — assignment_id foreign-reference check on POST /reservations', () => {
   it('RS22-own: an assignment_id belonging to the SAME trip is accepted (201)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id);
-    const place = createPlace(testDb, trip.id);
-    const assignment = createDayAssignment(testDb, day.id, place.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id);
+    const place = await makePlace(orm, trip.id);
+    const assignment = await makeDayAssignment(orm, day.id, place.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -395,12 +494,12 @@ describe('RS22 — assignment_id foreign-reference check on POST /reservations',
   });
 
   it('RS22-foreign: an assignment_id belonging to a DIFFERENT trip is refused (400 "Not part of this trip: assignment_id")', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const otherTrip = createTrip(testDb, user.id);
-    const otherDay = createDay(testDb, otherTrip.id);
-    const otherPlace = createPlace(testDb, otherTrip.id);
-    const foreignAssignment = createDayAssignment(testDb, otherDay.id, otherPlace.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const otherTrip = await makeTrip(orm, user.id);
+    const otherDay = await makeDay(orm, otherTrip.id);
+    const otherPlace = await makePlace(orm, otherTrip.id);
+    const foreignAssignment = await makeDayAssignment(orm, otherDay.id, otherPlace.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -411,8 +510,8 @@ describe('RS22 — assignment_id foreign-reference check on POST /reservations',
   });
 
   it('RS22-missing: an assignment_id that resolves to nothing is refused (400 "Unknown reference: assignment_id")', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -429,9 +528,9 @@ describe('RS22 — assignment_id foreign-reference check on POST /reservations',
 
 describe('Delete reservation', () => {
   it('RESV-005 — DELETE removes reservation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const resv = createReservation(testDb, trip.id, { title: 'Flight', type: 'flight' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const resv = await makeReservation(orm, trip.id, { title: 'Flight', type: 'flight' });
 
     const del = await request(app)
       .delete(`/api/trips/${trip.id}/reservations/${resv.id}`)
@@ -444,8 +543,8 @@ describe('Delete reservation', () => {
   });
 
   it('RESV-005 — DELETE non-existent reservation returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .delete(`/api/trips/${trip.id}/reservations/99999`)
@@ -458,9 +557,9 @@ describe('Delete reservation', () => {
   // real row and delete it, where the legacy raw-bind statement's affinity
   // never converts a hex string and so 404'd. Rule 21.
   it('M4 — DELETE …/reservations/0x<id> answers the legacy 404 and deletes nothing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const resv = createReservation(testDb, trip.id, { title: 'Flight', type: 'flight' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const resv = await makeReservation(orm, trip.id, { title: 'Flight', type: 'flight' });
     const hexId = '0x' + resv.id.toString(16);
 
     const res = await request(app)
@@ -479,10 +578,10 @@ describe('Delete reservation', () => {
 
 describe('Batch update positions', () => {
   it('RESV-006 — PUT /positions updates reservation sort order', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const r1 = createReservation(testDb, trip.id, { title: 'First', type: 'flight' });
-    const r2 = createReservation(testDb, trip.id, { title: 'Second', type: 'hotel' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const r1 = await makeReservation(orm, trip.id, { title: 'First', type: 'flight' });
+    const r2 = await makeReservation(orm, trip.id, { title: 'Second', type: 'hotel' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/positions`)
@@ -497,26 +596,24 @@ describe('Batch update positions', () => {
     expect(res.body.success).toBe(true);
   });
 
-  // M4 (Plan 3d Task 7 review): `updatePositions`' `dayId` parsed with
-  // `toRowId`, not the `Number()`-fallback `rowIdNum` — a hex-spelled
-  // `day_id` used to coerce to a real day and reach the per-day upsert,
-  // where the legacy raw-bind statement's affinity never converts a hex
-  // string, so the join matched no row (a quiet no-op, not a write). Rule 21.
-  it('M4 — PUT /positions with a hex-spelled day_id is the legacy quiet no-op (no day-scoped row written)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day = createDay(testDb, trip.id, { date: '2026-01-01' });
-    const resv = createReservation(testDb, trip.id, { title: 'First', type: 'flight' });
+  // M4 (Plan 3d Task 7 review): a hex-spelled `day_id` used to coerce to a
+  // real day and reach the per-day upsert. It was then a quiet 200 that wrote
+  // nothing; the request schema now takes only the decimal spelling of a row
+  // id, so it is the 400 every body id toRowId refuses gets, and still writes
+  // nothing.
+  it('M4: PUT /positions with a hex-spelled day_id is a 400 and writes no day-scoped row', async () => {
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day = await makeDay(orm, trip.id, { date: '2026-01-01' });
+    const resv = await makeReservation(orm, trip.id, { title: 'First', type: 'flight' });
     const hexDayId = '0x' + day.id.toString(16);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/positions`)
       .set('Cookie', authCookie(user.id))
       .send({ positions: [{ id: resv.id, day_plan_position: 0 }], day_id: hexDayId });
-    // Same success shape the legacy statement's own no-op miss returns —
-    // this is not a validation error, it silently writes nothing.
-    expect(res.status).toBe(200);
-    expect(res.body.success).toBe(true);
+    expect(res.status).toBe(400);
+    expect(res.body).toEqual({ error: 'day_id: Invalid id' });
 
     const row = await findRow(orm, ReservationDayPositions, { reservation: resv.id });
     expect(row).toBeNull();
@@ -529,8 +626,8 @@ describe('Batch update positions', () => {
 
 describe('Reservation budget entry integration', () => {
   it('RESV-011 — POST with create_budget_entry auto-creates a linked budget item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -549,8 +646,8 @@ describe('Reservation budget entry integration', () => {
   });
 
   it('RESV-011b — POST with create_budget_entry.total_price = 0 skips budget creation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -567,9 +664,9 @@ describe('Reservation budget entry integration', () => {
   });
 
   it('RESV-012 — PUT with create_budget_entry creates a new budget item when none exists', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const resv = createReservation(testDb, trip.id, { title: 'Hotel Stay', type: 'hotel' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const resv = await makeReservation(orm, trip.id, { title: 'Hotel Stay', type: 'hotel' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/reservations/${resv.id}`)
@@ -583,8 +680,8 @@ describe('Reservation budget entry integration', () => {
   });
 
   it('RESV-013 — PUT with create_budget_entry updates existing linked budget item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     // Create reservation with budget entry via POST
     const createRes = await request(app)
@@ -611,8 +708,8 @@ describe('Reservation budget entry integration', () => {
   });
 
   it('RESV-014 — PUT without create_budget_entry keeps the existing linked budget item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     // Create with budget entry
     const createRes = await request(app)
@@ -642,8 +739,8 @@ describe('Reservation budget entry integration', () => {
   });
 
   it('RESV-014b — PUT with create_budget_entry total_price 0 removes the linked budget item', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -668,8 +765,8 @@ describe('Reservation budget entry integration', () => {
   });
 
   it('RESV-014c — changing the booking type updates the linked expense category', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -688,8 +785,8 @@ describe('Reservation budget entry integration', () => {
   });
 
   it('RESV-014d — a manually-picked expense category survives a booking type change', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
 
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)
@@ -712,11 +809,11 @@ describe('Reservation budget entry integration', () => {
 
 describe('Reservation accommodation delete', () => {
   it('RESV-009 — DELETE reservation linked to accommodation also removes the accommodation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day1 = createDay(testDb, trip.id, { date: '2025-07-01' });
-    const day2 = createDay(testDb, trip.id, { date: '2025-07-03' });
-    const place = createPlace(testDb, trip.id, { name: 'Hotel Belle' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day1 = await makeDay(orm, trip.id, { date: '2025-07-01' });
+    const day2 = await makeDay(orm, trip.id, { date: '2025-07-03' });
+    const place = await makePlace(orm, trip.id, { name: 'Hotel Belle' });
 
     // Create a reservation via API with create_accommodation as an object
     const createRes = await request(app)
@@ -750,11 +847,11 @@ describe('Reservation accommodation delete', () => {
   });
 
   it('RESV-009b — DELETE reservation linked to accommodation also removes its linked budget item (issue #933)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id);
-    const day1 = createDay(testDb, trip.id, { date: '2025-08-01' });
-    const day2 = createDay(testDb, trip.id, { date: '2025-08-03' });
-    const place = createPlace(testDb, trip.id, { name: 'Seaside Resort' });
+    const { user } = await makeUser(orm);
+    const trip = await makeTrip(orm, user.id);
+    const day1 = await makeDay(orm, trip.id, { date: '2025-08-01' });
+    const day2 = await makeDay(orm, trip.id, { date: '2025-08-03' });
+    const place = await makePlace(orm, trip.id, { name: 'Seaside Resort' });
 
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/reservations`)

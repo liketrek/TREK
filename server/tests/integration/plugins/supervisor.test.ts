@@ -7,10 +7,11 @@
  *   - disable() tears the child down.
  * The child runs its own process — its crash/throw can never reach this test.
  */
+import { SqlitePluginDataStore } from '../../../src/db/engine/sqlite/plugin-data-store';
 import { createTestPluginRegistry } from '../../../src/nest-rpc/rpc-kit/testing';
-import { PluginDataDb } from '../../../src/nest/plugins/host/plugin-data.service';
 import { PluginRpcHost, type HostDeps } from '../../../src/nest/plugins/host/rpc-host';
 import { DbRpc } from '../../../src/nest/plugins/host/rpc/db.rpc';
+import { pluginDbFile } from '../../../src/nest/plugins/paths';
 import type { PluginUserSettingsService } from '../../../src/nest/plugins/plugin-user-settings.service';
 import {
   PluginSupervisor,
@@ -51,7 +52,7 @@ function makeSupervisor(
 ): PluginSupervisor {
   const createRpcHost = (id: string, granted: ReadonlySet<string>): PluginRpcHost => {
     const deps: HostDeps = {
-      data: new PluginDataDb(id),
+      data: new SqlitePluginDataStore(id, pluginDbFile(id)),
       callPlugin: async () => undefined,
       emitPluginEvent: async (event, payload) => {
         broadcasts.push({ id, event, payload });
@@ -74,7 +75,7 @@ function makeSupervisor(
   // through PluginSupervisor.onMessage's 'req' branch over real child-process
   // IPC, which now THROWS without a resolveOrm thunk rather than dispatching
   // unwrapped — so this double needs a real (if otherwise unused) ORM, even
-  // though PluginDataDb/DbRpc here are raw better-sqlite3, not MikroORM.
+  // though the plugin store and DbRpc here are raw better-sqlite3, not MikroORM.
   return new PluginSupervisor(createRpcHost, hooks, tuning, () => ormHandle.orm);
 }
 
@@ -139,6 +140,30 @@ describe('PluginSupervisor — isolated runtime', () => {
     expect(diag.tripsDenied).toBe(true); // ungranted db:read:trips was refused across the fork boundary
     // the plugin's ctx.log surfaced through the supervisor's log hook
     expect(events.some((e) => e.topic === '__log')).toBe(true);
+  });
+
+  it('binds a Buffer a plugin passes to ctx.db as its bytes across the fork, in query, exec and tx', async () => {
+    const events: Array<{ topic: string; data: unknown }> = [];
+    sup = makeSupervisor(events);
+    writePlugin(
+      'binkeys',
+      `module.exports = {
+        async onLoad(ctx) {
+          await ctx.db.migrate('001', 'CREATE TABLE kv (k BLOB PRIMARY KEY, v TEXT)');
+          await ctx.db.exec('INSERT INTO kv (k, v) VALUES (?, ?)', Buffer.from([1, 0, 2]), 'exec');
+          await ctx.db.tx([{ sql: 'INSERT INTO kv (k, v) VALUES (?, ?)', args: [Buffer.from([3, 0, 4]), 'tx'] }]);
+          const rows = await ctx.db.query('SELECT v, hex(k) AS h FROM kv WHERE k IN (?, ?) ORDER BY v', Buffer.from([1, 0, 2]), Buffer.from([3, 0, 4]));
+          ctx.log.info('bin', { rows });
+        }
+      };`,
+    );
+
+    await sup.activate('binkeys', new Set(['db:own']), {});
+
+    expect(logMeta<{ rows: unknown[] }>(events, 'bin').rows).toEqual([
+      { v: 'exec', h: '010002' },
+      { v: 'tx', h: '030004' },
+    ]);
   });
 
   it('dispatches invoke.hook + invoke.event across the fork (provider hooks + event subscriptions)', async () => {

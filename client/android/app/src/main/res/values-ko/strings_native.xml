@@ -8,6 +8,8 @@
     <string name="widget_today_description">오늘 일정을 타임라인으로, 날씨와 다음 장소와 함께 보여 줍니다.</string>
     <string name="widget_bookings_name">예약</string>
     <string name="widget_bookings_description">다가오는 항공편, 기차, 호텔, 식당과 그 시간.</string>
+    <string name="widget_flight_name">항공편</string>
+    <string name="widget_flight_description">다음 항공편을 실시간으로: 출발 카운트다운, 비행 중인 항공기, 지연과 도착.</string>
     <string name="widget_todos_name">할 일</string>
     <string name="widget_todos_description">여행을 위해 남은 일과 짐 싸기 진행 상황.</string>
     <string name="widget_packing_name">짐 싸기</string>

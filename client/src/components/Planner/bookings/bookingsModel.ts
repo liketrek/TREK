@@ -133,6 +133,23 @@ export function daySpan(r: Reservation, days: Day[]): DaySpan {
 }
 
 /**
+ * The calendar dates a booking starts and ends on, as "YYYY-MM-DD", or null where it
+ * knows none: its own date first, then the local date of its first or last stop,
+ * then the date of the day it is linked to. A day-linked transport often carries
+ * only times, so its day stands in.
+ */
+export function bookingDates(r: Reservation, days: Day[]): { start: string | null; end: string | null } {
+  const span = daySpan(r, days)
+  const eps = (r.endpoints || []).slice().sort((a, b) => (a.sequence ?? 0) - (b.sequence ?? 0))
+  const from = eps.find(e => e.role === 'from')
+  const to = eps.find(e => e.role === 'to')
+  return {
+    start: splitReservationDateTime(r.reservation_time).date || from?.local_date || span.start?.date || null,
+    end: splitReservationDateTime(r.reservation_end_time).date || to?.local_date || span.end?.date || null,
+  }
+}
+
+/**
  * The moment a booking starts, as "YYYY-MM-DDTHH:MM" in its own local time, or null
  * without any date. A day-linked transport often carries no date in reservation_time,
  * so the linked day stands in (the stay's first day for a hotel).

@@ -1,4 +1,4 @@
-// FE-TP-STOPEDITS-001 to FE-TP-STOPEDITS-016
+// FE-TP-STOPEDITS-001 to FE-TP-STOPEDITS-019
 //
 // Edits to one stop on the drive, driven straight through useRoadtripStopEdits. The
 // stop popup's draft and the stay release question are real state in the harness, so
@@ -8,6 +8,7 @@ import { act, renderHook } from '@testing-library/react'
 import { accommodationsApi } from '../../api/client'
 import type { RoadtripStopDraft } from '../../components/Roadtrip/RoadtripStopPopup'
 import { reanchorAfterInsert, reanchorAfterRemove, reanchorAfterReorder } from '../../components/Roadtrip/roadtripModel'
+import { stayOf } from '../../components/Roadtrip/stayReading'
 import type { CorridorPoi } from '../../components/Roadtrip/useCorridorPois'
 import type { RoadtripStop } from '../../components/Roadtrip/useRoadtripRoutes'
 import { useTripStore, type TripStoreState } from '../../store/tripStore'
@@ -17,6 +18,7 @@ import type { Accommodation, AssignmentsMap } from '../../types'
 import type { Can, Translate } from './plannerTypes'
 import type { PlannerDialogs } from './usePlannerDialogs'
 import type { RoadtripFeed } from './useRoadtripFeed'
+import { assignmentRepo } from '../../repo/assignmentRepo'
 import { useRoadtripStopEdits } from './useRoadtripStopEdits'
 
 type Options = Parameters<typeof useRoadtripStopEdits>[0]
@@ -484,5 +486,70 @@ describe('useRoadtripStopEdits', () => {
       'common.unknownError', 'no room', 'common.unknownError', 'locked', 'common.unknownError',
       'common.unknownError', 'common.unknownError',
     ])
+  })
+
+  // #3092: the same place planned twice on a day, once to stop and once only to steer the
+  // route past it. The stay belongs to the visit, so changing one leaves the other alone.
+  describe('a stay per visit', () => {
+    const viewpoint = buildPlace({ id: 70, lat: 50, lng: 13, duration_minutes: 45 })
+    const twice: AssignmentsMap = {
+      5: [
+        buildAssignment({ id: 51, day_id: 5, place: viewpoint, place_id: 70, order_index: 0 }),
+        buildAssignment({ id: 52, day_id: 5, place: viewpoint, place_id: 70, order_index: 1 }),
+      ],
+    }
+    const seed = () => {
+      useTripStore.setState({ assignments: twice })
+      vi.spyOn(assignmentRepo, 'setStay').mockImplementation(async (_tripId, visit, minutes) => ({ ...visit, stay_minutes: minutes }))
+      return { ...useTripStore.getState(), ...actions, setAssignmentStay: useTripStore.getState().setAssignmentStay } as unknown as TripStoreState
+    }
+
+    it('FE-TP-STOPEDITS-017: the stay dialog changes one visit of a place and leaves the other visit of it alone', async () => {
+      const tripActions = seed()
+      const { result } = renderEdits(null, { tripActions, assignments: twice })
+
+      await act(async () => { await result.current.setRoadtripStay(70, 0, 52) })
+
+      expect(actions.updatePlace).not.toHaveBeenCalled()
+      expect(assignmentRepo.setStay).toHaveBeenCalledWith(42, expect.objectContaining({ id: 52 }), 0)
+      const [first, second] = useTripStore.getState().assignments['5']
+      expect(stayOf(first)).toBe(45)
+      expect(stayOf(second)).toBe(0)
+    })
+
+    it('FE-TP-STOPEDITS-018: the stop popup writes the kind on the place and the stay on the visit it was opened on', async () => {
+      const tripActions = seed()
+      const editing = { placeId: 70, assignmentId: 51, dwellMinutes: 45, stopType: null }
+      const { result } = renderEdits({ poi: hit(), dayId: 5, position: 0, dayNumber: 5, editing }, { tripActions, assignments: twice })
+
+      await act(async () => { await result.current.saveStopDraft({ stopType: 'rest_area', dwellMinutes: 90 }) })
+
+      expect(actions.updatePlace).toHaveBeenCalledWith(42, 70, { stop_type: 'rest_area' })
+      const [first, second] = useTripStore.getState().assignments['5']
+      expect(stayOf(first)).toBe(90)
+      expect(stayOf(second)).toBe(45)
+    })
+
+    it('FE-TP-STOPEDITS-019: the stay of a visit needs the day plan right, and a refusal says so before anything is written', async () => {
+      const tripActions = seed()
+      vi.mocked(can).mockImplementation(action => action === 'place_edit')
+      const editing = { placeId: 70, assignmentId: 51, dwellMinutes: 45, stopType: null }
+      const { result } = renderEdits({ poi: hit(), dayId: 5, position: 0, dayNumber: 5, editing }, { tripActions, assignments: twice })
+      expect(result.current.mayEditStay(52)).toBe(false)
+      expect(result.current.mayEditStay(undefined)).toBe(true)
+
+      await act(async () => { await result.current.setRoadtripStay(70, 0, 52) })
+      expect(assignmentRepo.setStay).not.toHaveBeenCalled()
+      expect(toast.error).toHaveBeenLastCalledWith('trip.journal.errorForbidden')
+
+      await act(async () => { await result.current.saveStopDraft({ stopType: 'rest_area', dwellMinutes: 90 }) })
+      expect(actions.updatePlace).not.toHaveBeenCalled()
+      expect(toast.error).toHaveBeenCalledTimes(2)
+
+      await act(async () => { await result.current.saveStopDraft({ stopType: 'rest_area', dwellMinutes: 45 }) })
+      expect(actions.updatePlace).toHaveBeenCalledWith(42, 70, { stop_type: 'rest_area' })
+      expect(assignmentRepo.setStay).not.toHaveBeenCalled()
+      vi.mocked(can).mockImplementation(() => allowed)
+    })
   })
 })

@@ -3,37 +3,33 @@
  * mark_country_visited, unmark_country_visited, create_bucket_list_item, delete_bucket_list_item,
  * list_bucket_list.
  */
-import { db as testDb } from '../../../src/db/database';
 import { BucketList } from '../../../src/db/entities/BucketList.entity';
 import { VisitedCountries } from '../../../src/db/entities/VisitedCountries.entity';
 import { AtlasService } from '../../../src/nest/atlas/atlas.service';
-import { createUser, createBucketListItem, createVisitedCountry } from '../../helpers/factories';
+import { makeBucketListItem, markCountryVisited } from '../../helpers/factories/atlas';
 import { countRows, findRow } from '../../helpers/factories/rows';
+import { makeUser } from '../../helpers/factories/users';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
-
-let orm: TestOrm;
+// The booted container's own ORM, the one the tools write through.
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp()).get(MikroORM);
 });
 
-beforeEach(() => {
-  resetTestDb(testDb);
+beforeEach(async () => {
+  await resetDatabase(orm);
   delete process.env.DEMO_MODE;
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp()).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -51,7 +47,7 @@ async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>)
 
 describe('Tool: mark_country_visited', () => {
   it('marks a country as visited', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'mark_country_visited', arguments: { country_code: 'FR' } });
       const data = parseToolResult(result) as any;
@@ -65,7 +61,7 @@ describe('Tool: mark_country_visited', () => {
   });
 
   it('MCP-ATLAS-AFTER-001: a failed read after the mark leaves `after` out, not the done write', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     const stats = vi.spyOn(AtlasService.prototype, 'stats').mockRejectedValue(new Error('stats unavailable'));
     try {
       await withHarness(user.id, async (h) => {
@@ -80,8 +76,8 @@ describe('Tool: mark_country_visited', () => {
   });
 
   it('is idempotent — marking twice does not error', async () => {
-    const { user } = createUser(testDb);
-    createVisitedCountry(testDb, user.id, 'JP');
+    const { user } = await makeUser(orm);
+    await markCountryVisited(orm, user.id, 'JP');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'mark_country_visited', arguments: { country_code: 'JP' } });
       const data = parseToolResult(result) as any;
@@ -93,7 +89,7 @@ describe('Tool: mark_country_visited', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'mark_country_visited', arguments: { country_code: 'DE' } });
       expect(result.isError).toBe(true);
@@ -107,8 +103,8 @@ describe('Tool: mark_country_visited', () => {
 
 describe('Tool: unmark_country_visited', () => {
   it('removes a visited country', async () => {
-    const { user } = createUser(testDb);
-    createVisitedCountry(testDb, user.id, 'ES');
+    const { user } = await makeUser(orm);
+    await markCountryVisited(orm, user.id, 'ES');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'unmark_country_visited', arguments: { country_code: 'ES' } });
       expect(parseToolResult(result)).toEqual({
@@ -122,7 +118,7 @@ describe('Tool: unmark_country_visited', () => {
   });
 
   it('succeeds even when country was not marked (no-op)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'unmark_country_visited', arguments: { country_code: 'AU' } });
       const data = parseToolResult(result) as any;
@@ -132,8 +128,8 @@ describe('Tool: unmark_country_visited', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    createVisitedCountry(testDb, user.id, 'IT');
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    await markCountryVisited(orm, user.id, 'IT');
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'unmark_country_visited', arguments: { country_code: 'IT' } });
       expect(result.isError).toBe(true);
@@ -147,7 +143,7 @@ describe('Tool: unmark_country_visited', () => {
 
 describe('Tool: create_bucket_list_item', () => {
   it('stores a wished-for region and refuses one outside its country (#1901)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const ok = parseToolResult(
         await h.client.callTool({
@@ -165,7 +161,7 @@ describe('Tool: create_bucket_list_item', () => {
   });
 
   it('creates a bucket list item with all fields', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_bucket_list_item',
@@ -179,7 +175,7 @@ describe('Tool: create_bucket_list_item', () => {
   });
 
   it('creates a minimal item (name only)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_bucket_list_item', arguments: { name: 'Antarctica' } });
       const data = parseToolResult(result) as any;
@@ -189,7 +185,7 @@ describe('Tool: create_bucket_list_item', () => {
   });
 
   it('takes a target date, so the same place can be planned for several dates (#1898)', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const first = await h.client.callTool({
         name: 'create_bucket_list_item',
@@ -206,8 +202,8 @@ describe('Tool: create_bucket_list_item', () => {
   });
 
   it('reports the duplicate instead of appending a second row (#1898)', async () => {
-    const { user } = createUser(testDb);
-    createBucketListItem(testDb, user.id, { name: 'Japan', country_code: 'JP' });
+    const { user } = await makeUser(orm);
+    await makeBucketListItem(orm, user.id, { name: 'Japan', country_code: 'JP' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({
         name: 'create_bucket_list_item',
@@ -220,7 +216,7 @@ describe('Tool: create_bucket_list_item', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'create_bucket_list_item', arguments: { name: 'Nowhere' } });
       expect(result.isError).toBe(true);
@@ -234,8 +230,8 @@ describe('Tool: create_bucket_list_item', () => {
 
 describe('Tool: delete_bucket_list_item', () => {
   it('deletes a bucket list item owned by the user', async () => {
-    const { user } = createUser(testDb);
-    const item = createBucketListItem(testDb, user.id, { name: 'Machu Picchu' });
+    const { user } = await makeUser(orm);
+    const item = await makeBucketListItem(orm, user.id, { name: 'Machu Picchu' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_bucket_list_item', arguments: { itemId: item.id } });
       const data = parseToolResult(result) as any;
@@ -245,9 +241,9 @@ describe('Tool: delete_bucket_list_item', () => {
   });
 
   it('returns error for item not found (wrong user)', async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const item = createBucketListItem(testDb, other.id, { name: "Other's Wish" });
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const item = await makeBucketListItem(orm, other.id, { name: "Other's Wish" });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_bucket_list_item', arguments: { itemId: item.id } });
       expect(result.isError).toBe(true);
@@ -255,7 +251,7 @@ describe('Tool: delete_bucket_list_item', () => {
   });
 
   it('returns error for non-existent item', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_bucket_list_item', arguments: { itemId: 99999 } });
       expect(result.isError).toBe(true);
@@ -264,8 +260,8 @@ describe('Tool: delete_bucket_list_item', () => {
 
   it('blocks demo user', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
-    const item = createBucketListItem(testDb, user.id);
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
+    const item = await makeBucketListItem(orm, user.id);
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'delete_bucket_list_item', arguments: { itemId: item.id } });
       expect(result.isError).toBe(true);
@@ -279,10 +275,10 @@ describe('Tool: delete_bucket_list_item', () => {
 
 describe('Tool: list_bucket_list', () => {
   it("MCP-ATLAS-BUCKET-001: answers the user's own wishes with their ids, shaped like GET /bucket-list", async () => {
-    const { user } = createUser(testDb);
-    const { user: other } = createUser(testDb);
-    const kyoto = createBucketListItem(testDb, user.id, { name: 'Kyoto', country_code: 'JP', notes: 'In autumn' });
-    createBucketListItem(testDb, other.id, { name: "Other's Wish" });
+    const { user } = await makeUser(orm);
+    const { user: other } = await makeUser(orm);
+    const kyoto = await makeBucketListItem(orm, user.id, { name: 'Kyoto', country_code: 'JP', notes: 'In autumn' });
+    await makeBucketListItem(orm, other.id, { name: "Other's Wish" });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_bucket_list', arguments: {} });
       const data = parseToolResult(result) as { items: Array<Record<string, unknown>> };
@@ -293,7 +289,7 @@ describe('Tool: list_bucket_list', () => {
 
   it('MCP-ATLAS-BUCKET-002: answers an empty list, and reads for a demo user too', async () => {
     process.env.DEMO_MODE = 'true';
-    const { user } = createUser(testDb, { email: 'demo@nomad.app' });
+    const { user } = await makeUser(orm, { email: 'demo@nomad.app' });
     await withHarness(user.id, async (h) => {
       const result = await h.client.callTool({ name: 'list_bucket_list', arguments: {} });
       expect(result.isError).toBeFalsy();

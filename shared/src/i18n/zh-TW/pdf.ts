@@ -10,8 +10,17 @@ const pdf: TranslationStrings = {
   'pdf.safariHint': 'iOS 無法從主畫面上的 App 列印。Safari 會開啟此行程並準備好匯出，你可以在那裡儲存 PDF。',
   'pdf.pageBreakPerDay': '每天分頁',
   'pdf.transportNotes': '交通備註',
+  'pdf.largeText': '大字體',
   'pdf.mapTitle': '路線總覽',
   'pdf.distanceLabel': '距離',
   'pdf.mapCredit': '國家輪廓：geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': '概覽',
+  'pdf.showPhotos': '照片',
+  'pdf.showDetails': '聯絡方式與營業時間',
+  'pdf.atAGlance': '一覽',
+  'pdf.bookings': '預訂與住宿',
+  'pdf.day': '天',
+  'pdf.stay': '住宿',
+  'pdf.plan': '行程',
 };
 export default pdf;

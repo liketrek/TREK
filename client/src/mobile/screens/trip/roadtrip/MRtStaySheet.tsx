@@ -31,10 +31,10 @@ interface RtStaySheetPayload {
  * How long the traveller stays at one stop, on the phone ('rtstay', payload
  * { placeId, minutes, name }).
  *
- * Writes `places.duration_minutes` through `planner.setRoadtripStay`, which is the same
- * single write the desktop dialog makes. Zero rather than null clears it: the update
- * statement folds a null into "leave it alone", so a null could give a stop a stay but
- * never take one away.
+ * Writes the stay of the visit it was opened on through `planner.setRoadtripStay`, which
+ * is the same single write the desktop dialog makes, so two visits of one place keep
+ * their own lengths (#3092). Zero rather than null clears it: a null would hand the visit
+ * back to the place's stay instead of taking the stay away.
  *
  * Two things this sheet deliberately does not do:
  *
@@ -51,7 +51,9 @@ export default function MRtStaySheet({ planner, shell }: MTripSheetsProps) {
   const open = shell.sheet?.id === 'rtstay'
   const payload = (shell.sheet?.payload ?? {}) as RtStaySheetPayload
   const is12h = useSettingsStore(s => s.settings.time_format) === '12h'
-  const canEdit = planner.can('place_edit', planner.trip)
+  // A visit's stay is part of the day plan; only a stop with no saved visit writes the place.
+  const onVisit = typeof payload.assignmentId === 'number' && payload.assignmentId > 0
+  const canEdit = planner.can(onVisit ? 'day_edit' : 'place_edit', planner.trip)
 
   // Hold the last payload so the name and the number survive the exit animation
   // instead of blinking out while the sheet slides away.
@@ -124,7 +126,7 @@ export default function MRtStaySheet({ planner, shell }: MTripSheetsProps) {
     const value = minutes
     setSaving(true)
     try {
-      await planner.setRoadtripStay(placeId, value)
+      await planner.setRoadtripStay(placeId, value, stop?.assignmentId)
       // 'rtstop' is located by day and assignment, not by place: spreading this sheet's own
       // payload into it opened a sheet that resolved to nothing, drew nothing, and still
       // counted as open, which blocks the day swipe until something else closes it.

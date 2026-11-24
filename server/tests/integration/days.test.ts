@@ -3,7 +3,6 @@
  * Covers DAY-001 through DAY-013 and ACCOM-001 through ACCOM-006.
  */
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { AppSettings } from '../../src/db/entities/AppSettings.entity';
 import { BudgetItems } from '../../src/db/entities/BudgetItems.entity';
 import { DayAccommodations } from '../../src/db/entities/DayAccommodations.entity';
@@ -12,33 +11,22 @@ import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { Trips } from '../../src/db/entities/Trips.entity';
 import { legacyBoundIntegerText } from '../../src/nest/common/row-id';
 import { authCookie } from '../helpers/auth';
-import {
-  createUser,
-  createTrip,
-  createDay,
-  createPlace,
-  addTripMember,
-  createDayAccommodation,
-  createReservation,
-} from '../helpers/factories';
 import type { FactoryOrm } from '../helpers/factories/context';
+import { makeDayAccommodation } from '../helpers/factories/itinerary';
+import { makePlace } from '../helpers/factories/places';
+import { makeReservation } from '../helpers/factories/reservations';
 import { countRows, deleteRows, findRow, findRows, insertRow, updateRows } from '../helpers/factories/rows';
 import { setAppSetting } from '../helpers/factories/settings';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { addTripMember, makeDay, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
 import type { Application } from 'express';
 import request from 'supertest';
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
-
-// ─────────────────────────────────────────────────────────────────────────────
-// In-memory DB — schema applied in beforeAll after mocks register
-// ─────────────────────────────────────────────────────────────────────────────
-vi.mock('../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
+import { describe, it, expect, beforeAll, beforeEach, afterAll } from 'vitest';
 
 let nestApp: INestApplication;
 let app: Application;
@@ -65,12 +53,11 @@ beforeAll(async () => {
   app = nestApp.getHttpAdapter().getInstance();
 });
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm());
   await resetRateLimits(nestApp);
 });
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -79,8 +66,12 @@ afterAll(async () => {
 
 describe('List days', () => {
   it('DAY-001 — GET /api/trips/:tripId/days returns days for a trip the user can access', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Paris Trip', start_date: '2026-06-01', end_date: '2026-06-03' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, {
+      title: 'Paris Trip',
+      start_date: '2026-06-01',
+      end_date: '2026-06-03',
+    });
 
     const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(user.id));
 
@@ -91,14 +82,14 @@ describe('List days', () => {
   });
 
   it('DAY-001 — Member can list days for a shared trip', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, {
+    const { user: owner } = await makeUser(orm());
+    const { user: member } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id, {
       title: 'Shared Trip',
       start_date: '2026-07-01',
       end_date: '2026-07-02',
     });
-    addTripMember(testDb, trip.id, member.id);
+    await addTripMember(orm(), trip.id, member.id);
 
     const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(member.id));
 
@@ -107,9 +98,9 @@ describe('List days', () => {
   });
 
   it('DAY-002 — Non-member cannot list days (404)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
+    const { user: owner } = await makeUser(orm());
+    const { user: stranger } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id, { title: 'Private Trip' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/days`).set('Cookie', authCookie(stranger.id));
 
@@ -117,8 +108,8 @@ describe('List days', () => {
   });
 
   it('DAY-002 — Unauthenticated request returns 401', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/days`);
     expect(res.status).toBe(401);
@@ -131,8 +122,8 @@ describe('List days', () => {
 
 describe('Create day', () => {
   it('DAY-006 — POST /api/trips/:tripId/days creates a standalone day with no date', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Open Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Open Trip' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days`)
@@ -147,8 +138,8 @@ describe('Create day', () => {
   });
 
   it('DAY-006 — POST /api/trips/:tripId/days creates a day with a date', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Dated Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Dated Trip' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days`)
@@ -160,9 +151,9 @@ describe('Create day', () => {
   });
 
   it('DAY-006 — Non-member cannot create a day (404)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Private' });
+    const { user: owner } = await makeUser(orm());
+    const { user: stranger } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id, { title: 'Private' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days`)
@@ -173,9 +164,9 @@ describe('Create day', () => {
   });
 
   it('DAY-011: a dated create adds the next date behind the dated days, and the trip ends on it', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-08-01', end_date: '2026-08-02' });
-    const spare = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-08-01', end_date: '2026-08-02' });
+    const spare = await makeDay(orm(), trip.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days`)
@@ -198,9 +189,9 @@ describe('Create day', () => {
   });
 
   it('DAY-012: a dated create on a trip without dates is refused with 400 and adds nothing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Open Trip' });
-    createDay(testDb, trip.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Open Trip' });
+    await makeDay(orm(), trip.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days`)
@@ -213,8 +204,8 @@ describe('Create day', () => {
   });
 
   it('DAY-013: dated next to a position is refused by the contract with 400 and adds nothing', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-08-01', end_date: '2026-08-02' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-08-01', end_date: '2026-08-02' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/days`)
@@ -234,9 +225,9 @@ describe('Create day', () => {
 
 describe('Update day', () => {
   it('DAY-003 — PUT /api/trips/:tripId/days/:dayId updates the day title', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'My Trip' });
-    const day = createDay(testDb, trip.id, { title: 'Old Title' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'My Trip' });
+    const day = await makeDay(orm(), trip.id, { title: 'Old Title' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/days/${day.id}`)
@@ -249,9 +240,9 @@ describe('Update day', () => {
   });
 
   it('DAY-004 — PUT /api/trips/:tripId/days/:dayId updates the day notes', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'My Trip' });
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'My Trip' });
+    const day = await makeDay(orm(), trip.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/days/${day.id}`)
@@ -263,9 +254,9 @@ describe('Update day', () => {
   });
 
   it('DAY-003 — PUT returns 404 for a day that does not belong to the trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'My Trip' });
-    createDay(testDb, trip.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'My Trip' });
+    await makeDay(orm(), trip.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/days/999999`)
@@ -277,10 +268,10 @@ describe('Update day', () => {
   });
 
   it('DAY-003 — Non-member cannot update a day (404)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Private' });
-    const day = createDay(testDb, trip.id, { title: 'Original' });
+    const { user: owner } = await makeUser(orm());
+    const { user: stranger } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id, { title: 'Private' });
+    const day = await makeDay(orm(), trip.id, { title: 'Original' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/days/${day.id}`)
@@ -297,9 +288,9 @@ describe('Update day', () => {
 
 describe('Reorder days', () => {
   it('DAY-005 — Reorder: GET days returns them in day_number order', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm());
     // Create trip with 3 days auto-generated
-    const trip = createTrip(testDb, user.id, {
+    const trip = await makeTrip(orm(), user.id, {
       title: 'Trip',
       start_date: '2026-09-01',
       end_date: '2026-09-03',
@@ -321,10 +312,10 @@ describe('Reorder days', () => {
 
 describe('Delete day', () => {
   it('DELETE /api/trips/:tripId/days/:dayId removes the day', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
-    const day = createDay(testDb, trip.id);
-    createDay(testDb, trip.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
+    const day = await makeDay(orm(), trip.id);
+    await makeDay(orm(), trip.id);
 
     const res = await request(app).delete(`/api/trips/${trip.id}/days/${day.id}`).set('Cookie', authCookie(user.id));
 
@@ -335,8 +326,8 @@ describe('Delete day', () => {
   });
 
   it('DELETE /api/trips/:tripId/days/:dayId returns 404 for unknown day', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
 
     const res = await request(app).delete(`/api/trips/${trip.id}/days/999999`).set('Cookie', authCookie(user.id));
 
@@ -345,9 +336,9 @@ describe('Delete day', () => {
   });
 
   it('DAY-007: the days after a deleted one close up, and the answer carries the trip with its new day count', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
-    const [a, b, c] = [createDay(testDb, trip.id), createDay(testDb, trip.id), createDay(testDb, trip.id)];
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
+    const [a, b, c] = [await makeDay(orm(), trip.id), await makeDay(orm(), trip.id), await makeDay(orm(), trip.id)];
 
     const res = await request(app).delete(`/api/trips/${trip.id}/days/${b.id}`).set('Cookie', authCookie(user.id));
 
@@ -361,8 +352,8 @@ describe('Delete day', () => {
   });
 
   it('DAY-008: deleting a dated day with no day left to take the last date ends the trip a day earlier', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-08-01', end_date: '2026-08-03' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-08-01', end_date: '2026-08-03' });
     const [first] = await dayList(trip.id);
 
     const res = await request(app).delete(`/api/trips/${trip.id}/days/${first.id}`).set('Cookie', authCookie(user.id));
@@ -376,9 +367,9 @@ describe('Delete day', () => {
   });
 
   it('DAY-009: the last day of a trip is refused with 400 and stays', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
+    const day = await makeDay(orm(), trip.id);
 
     const res = await request(app).delete(`/api/trips/${trip.id}/days/${day.id}`).set('Cookie', authCookie(user.id));
 
@@ -388,12 +379,12 @@ describe('Delete day', () => {
   });
 
   it('DAY-010: a member without day_edit gets 403 and the day stays', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: member } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Trip' });
-    addTripMember(testDb, trip.id, member.id);
-    const day = createDay(testDb, trip.id);
-    createDay(testDb, trip.id);
+    const { user: owner } = await makeUser(orm());
+    const { user: member } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id, { title: 'Trip' });
+    await addTripMember(orm(), trip.id, member.id);
+    const day = await makeDay(orm(), trip.id);
+    await makeDay(orm(), trip.id);
     await setAppSetting(orm(), 'perm_day_edit', 'trip_owner');
     const { invalidatePermissionsCache } = await import('../../src/nest/permissions/permissions-cache');
     await invalidatePermissionsCache();
@@ -416,11 +407,11 @@ describe('Delete day', () => {
 
 describe('Accommodations', () => {
   it('ACCOM-001 — POST /api/trips/:tripId/accommodations creates an accommodation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Hotel Trip' });
-    const day1 = createDay(testDb, trip.id, { date: '2026-10-01' });
-    const day2 = createDay(testDb, trip.id, { date: '2026-10-03' });
-    const place = createPlace(testDb, trip.id, { name: 'Grand Hotel' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Hotel Trip' });
+    const day1 = await makeDay(orm(), trip.id, { date: '2026-10-01' });
+    const day2 = await makeDay(orm(), trip.id, { date: '2026-10-03' });
+    const place = await makePlace(orm(), trip.id, { name: 'Grand Hotel' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/accommodations`)
@@ -444,8 +435,8 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-001 — POST missing required fields returns 400', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/accommodations`)
@@ -457,9 +448,9 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-001 — POST with invalid place_id returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
-    const day = createDay(testDb, trip.id);
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
+    const day = await makeDay(orm(), trip.id);
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/accommodations`)
@@ -470,11 +461,11 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-002 — GET /api/trips/:tripId/accommodations returns accommodations for the trip', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Hotel Trip' });
-    const day1 = createDay(testDb, trip.id, { date: '2026-11-01' });
-    const day2 = createDay(testDb, trip.id, { date: '2026-11-03' });
-    const place = createPlace(testDb, trip.id, { name: 'Boutique Inn' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Hotel Trip' });
+    const day1 = await makeDay(orm(), trip.id, { date: '2026-11-01' });
+    const day2 = await makeDay(orm(), trip.id, { date: '2026-11-03' });
+    const place = await makePlace(orm(), trip.id, { name: 'Boutique Inn' });
 
     // Seed accommodation directly
     await insertRow(orm(), DayAccommodations, { trip: trip.id, place: place.id, startDay: day1.id, endDay: day2.id });
@@ -489,9 +480,9 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-002 — Non-member cannot get accommodations (404)', async () => {
-    const { user: owner } = createUser(testDb);
-    const { user: stranger } = createUser(testDb);
-    const trip = createTrip(testDb, owner.id, { title: 'Private Trip' });
+    const { user: owner } = await makeUser(orm());
+    const { user: stranger } = await makeUser(orm());
+    const trip = await makeTrip(orm(), owner.id, { title: 'Private Trip' });
 
     const res = await request(app).get(`/api/trips/${trip.id}/accommodations`).set('Cookie', authCookie(stranger.id));
 
@@ -499,11 +490,11 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-003 — DELETE /api/trips/:tripId/accommodations/:id removes accommodation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Hotel Trip' });
-    const day1 = createDay(testDb, trip.id, { date: '2026-12-01' });
-    const day2 = createDay(testDb, trip.id, { date: '2026-12-03' });
-    const place = createPlace(testDb, trip.id, { name: 'Budget Hostel' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Hotel Trip' });
+    const day1 = await makeDay(orm(), trip.id, { date: '2026-12-01' });
+    const day2 = await makeDay(orm(), trip.id, { date: '2026-12-03' });
+    const place = await makePlace(orm(), trip.id, { name: 'Budget Hostel' });
 
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/accommodations`)
@@ -525,8 +516,8 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-003 — DELETE non-existent accommodation returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
 
     const res = await request(app)
       .delete(`/api/trips/${trip.id}/accommodations/999999`)
@@ -537,11 +528,11 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-001 — Creating accommodation also creates a linked reservation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Hotel Trip' });
-    const day1 = createDay(testDb, trip.id, { date: '2026-10-10' });
-    const day2 = createDay(testDb, trip.id, { date: '2026-10-12' });
-    const place = createPlace(testDb, trip.id, { name: 'Luxury Resort' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Hotel Trip' });
+    const day1 = await makeDay(orm(), trip.id, { date: '2026-10-10' });
+    const day2 = await makeDay(orm(), trip.id, { date: '2026-10-12' });
+    const place = await makePlace(orm(), trip.id, { name: 'Luxury Resort' });
 
     const res = await request(app)
       .post(`/api/trips/${trip.id}/accommodations`)
@@ -560,12 +551,12 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-004 — PUT /api/trips/:tripId/accommodations/:id updates the accommodation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Hotel Trip' });
-    const day1 = createDay(testDb, trip.id, { date: '2026-10-20' });
-    const day2 = createDay(testDb, trip.id, { date: '2026-10-22' });
-    const day3 = createDay(testDb, trip.id, { date: '2026-10-25' });
-    const place = createPlace(testDb, trip.id, { name: 'City Inn' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Hotel Trip' });
+    const day1 = await makeDay(orm(), trip.id, { date: '2026-10-20' });
+    const day2 = await makeDay(orm(), trip.id, { date: '2026-10-22' });
+    const day3 = await makeDay(orm(), trip.id, { date: '2026-10-25' });
+    const place = await makePlace(orm(), trip.id, { name: 'City Inn' });
 
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/accommodations`)
@@ -587,8 +578,8 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-004 — PUT non-existent accommodation returns 404', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/accommodations/999999`)
@@ -600,11 +591,11 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-003 — Deleting accommodation also removes the linked reservation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Hotel Trip' });
-    const day1 = createDay(testDb, trip.id, { date: '2026-10-15' });
-    const day2 = createDay(testDb, trip.id, { date: '2026-10-17' });
-    const place = createPlace(testDb, trip.id, { name: 'Mountain Lodge' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Hotel Trip' });
+    const day1 = await makeDay(orm(), trip.id, { date: '2026-10-15' });
+    const day2 = await makeDay(orm(), trip.id, { date: '2026-10-17' });
+    const place = await makePlace(orm(), trip.id, { name: 'Mountain Lodge' });
 
     const createRes = await request(app)
       .post(`/api/trips/${trip.id}/accommodations`)
@@ -626,11 +617,11 @@ describe('Accommodations', () => {
   });
 
   it('ACCOM-006 — DELETE accommodation also removes its linked budget item (issue #933)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Hotel Budget Trip' });
-    const day1 = createDay(testDb, trip.id, { date: '2026-11-01' });
-    const day2 = createDay(testDb, trip.id, { date: '2026-11-03' });
-    const place = createPlace(testDb, trip.id, { name: 'Grand Hotel' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Hotel Budget Trip' });
+    const day1 = await makeDay(orm(), trip.id, { date: '2026-11-01' });
+    const day2 = await makeDay(orm(), trip.id, { date: '2026-11-03' });
+    const place = await makePlace(orm(), trip.id, { name: 'Grand Hotel' });
 
     // Create a hotel reservation that creates an accommodation and a linked budget item
     const createRes = await request(app)
@@ -679,20 +670,20 @@ describe('Accommodations', () => {
 // ─────────────────────────────────────────────────────────────────────────────
 
 describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (Task 9 fix wave)', () => {
-  it("GET /days by the hex-spelled trip id answers the legacy-shaped miss ({ days: [] }), not the real trip's days", async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-03' });
+  it("GET /days by the hex-spelled trip id answers the guard's 404, not the real trip's days (TripAccessGuard reads :tripId through toRowId)", async () => {
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-03' });
     const hexTripId = '0x' + trip.id.toString(16);
 
     const res = await request(app).get(`/api/trips/${hexTripId}/days`).set('Cookie', authCookie(user.id));
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ days: [] });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Trip not found' });
   });
 
-  it('PUT /days/:id by the hex-spelled trip id 404s "Day not found" (getDay\'s own toRowId gate), not the real trip\'s day', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
-    const day = createDay(testDb, trip.id, { title: 'Original' });
+  it('PUT /days/:id by the hex-spelled trip id 404s "Trip not found" at the guard, not the real trip\'s day', async () => {
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
+    const day = await makeDay(orm(), trip.id, { title: 'Original' });
     const hexTripId = '0x' + trip.id.toString(16);
 
     const res = await request(app)
@@ -700,14 +691,14 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
       .set('Cookie', authCookie(user.id))
       .send({ title: 'Renamed' });
     expect(res.status).toBe(404);
-    expect(res.body).toEqual({ error: 'Day not found' });
+    expect(res.body).toEqual({ error: 'Trip not found' });
     const row = await findRow(orm(), Days, { id: day.id });
     expect(row?.title).toBe('Original');
   });
 
   it('POST /days by the hex-spelled trip id (append, no position) answers the guard\'s own 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2 — was a manufactured 500)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
     const hexTripId = '0x' + trip.id.toString(16);
     const before = await dayCount(trip.id);
 
@@ -719,8 +710,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('POST /days {position} (insert) by the hex-spelled trip id answers the guard\'s own 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2 — was a manufactured 500)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
     const hexTripId = '0x' + trip.id.toString(16);
     const before = await dayCount(trip.id);
 
@@ -735,8 +726,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('POST /days (append, no position) by trip id "N.0" answers 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
     const shapedTripId = `${trip.id}.0`;
     const before = await dayCount(trip.id);
 
@@ -748,8 +739,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('POST /days {position} (insert) by trip id "N.0" answers 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
     const shapedTripId = `${trip.id}.0`;
     const before = await dayCount(trip.id);
 
@@ -764,8 +755,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('POST /days (append, no position) by trip id "N%20" (trailing space) answers 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
     const shapedTripId = `${trip.id}%20`;
     const before = await dayCount(trip.id);
 
@@ -777,8 +768,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('POST /days {position} (insert) by trip id "N%20" (trailing space) answers 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
     const shapedTripId = `${trip.id}%20`;
     const before = await dayCount(trip.id);
 
@@ -793,8 +784,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('POST /days (append, no position) by trip id "%2BN" (leading plus) answers 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
     const shapedTripId = `%2B${trip.id}`;
     const before = await dayCount(trip.id);
 
@@ -806,8 +797,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('POST /days {position} (insert) by trip id "%2BN" (leading plus) answers 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
     const shapedTripId = `%2B${trip.id}`;
     const before = await dayCount(trip.id);
 
@@ -822,8 +813,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('POST /days (append, no position) by trip id "Ne0" (exponent form) answers 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip' });
     const shapedTripId = `${trip.id}e0`;
     const before = await dayCount(trip.id);
 
@@ -835,8 +826,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('POST /days {position} (insert) by trip id "Ne0" (exponent form) answers 404 "Trip not found" and writes no day (M-1 narrowing, Task 9 fix round 2)', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-09-01', end_date: '2026-09-02' });
     const shapedTripId = `${trip.id}e0`;
     const before = await dayCount(trip.id);
 
@@ -850,17 +841,17 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
     expect(after).toBe(before);
   });
 
-  it('PUT /days/reorder by the hex-spelled trip id 400s "orderedIds must be a permutation…" and writes NOTHING — the live H2 bug: it used to 200 and invert a real accommodation', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-06-01', end_date: '2026-06-03' });
+  it('PUT /days/reorder by the hex-spelled trip id 404s "Trip not found" at the guard and writes NOTHING, where it used to answer 200 and invert a real accommodation', async () => {
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-06-01', end_date: '2026-06-03' });
     const days = await dayList(trip.id);
     expect(days).toHaveLength(3);
     const [d1, d2, d3] = days;
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' });
+    const place = await makePlace(orm(), trip.id, { name: 'Hotel' });
     // A valid (non-inverted) stay d1 -> d2, and a reservation on d1 — exactly
     // the shape the compiled-boot evidence used to catch reorder inverting.
-    const stay = createDayAccommodation(testDb, trip.id, place.id, d1.id, d2.id);
-    const reservation = createReservation(testDb, trip.id, { day_id: d1.id, title: 'Dinner' });
+    const stay = await makeDayAccommodation(orm(), trip.id, place.id, d1.id, d2.id);
+    const reservation = await makeReservation(orm(), trip.id, { day: d1.id, title: 'Dinner' });
     await updateRows(orm(), Reservations, { id: reservation.id }, { reservation_time: '2026-06-01T19:00:00' });
     const hexTripId = '0x' + trip.id.toString(16);
 
@@ -868,8 +859,8 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
       .put(`/api/trips/${hexTripId}/days/reorder`)
       .set('Cookie', authCookie(user.id))
       .send({ orderedIds: [d2.id, d1.id, d3.id] });
-    expect(res.status).toBe(400);
-    expect(res.body).toEqual({ error: 'orderedIds must be a permutation of the trip day ids.' });
+    expect(res.status).toBe(404);
+    expect(res.body).toEqual({ error: 'Trip not found' });
 
     // Nothing renumbered.
     const after = await dayList(trip.id);
@@ -883,12 +874,12 @@ describe('A-H2 — DaysService trip id parsed once, threaded to every survivor (
   });
 
   it('PUT /days/reorder with the REAL numeric trip id still works and can still be legitimately rejected for inverting a stay (unchanged, base 400) — L-5: zero days rows changed, not only the stay', async () => {
-    const { user } = createUser(testDb);
-    const trip = createTrip(testDb, user.id, { title: 'Trip', start_date: '2026-06-01', end_date: '2026-06-03' });
+    const { user } = await makeUser(orm());
+    const trip = await makeTrip(orm(), user.id, { title: 'Trip', start_date: '2026-06-01', end_date: '2026-06-03' });
     const days = await dayList(trip.id);
     const [d1, d2, d3] = days;
-    const place = createPlace(testDb, trip.id, { name: 'Hotel' });
-    const stay = createDayAccommodation(testDb, trip.id, place.id, d1.id, d3.id);
+    const place = await makePlace(orm(), trip.id, { name: 'Hotel' });
+    const stay = await makeDayAccommodation(orm(), trip.id, place.id, d1.id, d3.id);
 
     const res = await request(app)
       .put(`/api/trips/${trip.id}/days/reorder`)

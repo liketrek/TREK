@@ -120,16 +120,70 @@ class TrekBridgeViewController: CAPBridgeViewController {
             bottom: max(0, safe.bottom - (window.bounds.maxY - frame.maxY)),
             right: max(0, safe.right - (window.bounds.maxX - frame.maxX))
         )
-        if !force, insets == publishedSafeArea { return }
+        let corner = cornerElement(in: frame, window: window)
+        if corner != .zero, UIDevice.current.model == "iPhone", cornerWindowSizes.insert(sizeKey(window.bounds.size)).inserted {
+            setNeedsStatusBarAppearanceUpdate()
+        }
+        if !force, insets == publishedSafeArea, corner == publishedCorner { return }
         publishedSafeArea = insets
+        publishedCorner = corner
         let px = { (v: CGFloat) in "'\(Int(v.rounded(.up)))px'" }
         let js = "(function(s){"
             + "s.setProperty('--trek-native-safe-top',\(px(insets.top)));"
             + "s.setProperty('--trek-native-safe-left',\(px(insets.left)));"
             + "s.setProperty('--trek-native-safe-right',\(px(insets.right)));"
             + "s.setProperty('--trek-native-safe-bottom',\(px(insets.bottom)));"
+            + "s.setProperty('--trek-native-corner-bottom',\(px(corner.top)));"
+            + "s.setProperty('--trek-native-corner-left',\(px(corner.left)));"
+            + "s.setProperty('--trek-native-corner-right',\(px(corner.right)));"
             + "})(document.documentElement.style)"
         webView.evaluateJavaScript(js, completionHandler: nil)
+    }
+
+    private var publishedCorner: UIEdgeInsets?
+
+    // MARK: - The status bar beside a corner element
+
+    /// The window sizes on which a corner element was seen. On an iPhone Duo
+    /// that element is the status capsule, so the app hides the status bar
+    /// there to take the capsule away; whatever still covers the corner stays
+    /// in the safe area the page keeps clear of. A size stays in the set
+    /// once seen: with the bar hidden the next measure may find no corner, and
+    /// showing the bar again would bring the capsule back and start over. The
+    /// folded and the unfolded display differ in size, so each keeps its own
+    /// answer, and a device without such an element never hides its bar. Only
+    /// on an iPhone: an iPad's window controls are such an element as well.
+    private var cornerWindowSizes = Set<String>()
+
+    private func sizeKey(_ size: CGSize) -> String {
+        "\(Int(size.width.rounded()))x\(Int(size.height.rounded()))"
+    }
+
+    override var prefersStatusBarHidden: Bool {
+        if super.prefersStatusBarHidden { return true }
+        guard let size = view.window?.bounds.size else { return false }
+        return cornerWindowSizes.contains(sizeKey(size))
+    }
+
+    /// An element in a top corner of the screen, such as the status capsule of
+    /// an iPhone Duo: how far down it reaches (top) and how wide it is on its
+    /// side (left/right), in the web view's coordinates; zero where there is
+    /// none. iOS 26 tells a corner apart from a whole edge: the safe area with
+    /// the corner avoided vertically reaches lower than the one avoiding it
+    /// horizontally, which in turn is wider on the corner's side. The page
+    /// counts it into its safe area (mobile.css): upright its content starts
+    /// below the element, on a wide window it leaves the element's side free.
+    private func cornerElement(in frame: CGRect, window: UIWindow) -> UIEdgeInsets {
+        guard #available(iOS 26.0, *) else { return .zero }
+        let vertical = view.edgeInsets(for: .safeArea(cornerAdaptation: .vertical))
+        let horizontal = view.edgeInsets(for: .safeArea(cornerAdaptation: .horizontal))
+        guard vertical.top > horizontal.top + 1 else { return .zero }
+        return UIEdgeInsets(
+            top: max(0, vertical.top - frame.minY),
+            left: max(0, horizontal.left - vertical.left - frame.minX),
+            bottom: 0,
+            right: max(0, horizontal.right - vertical.right - (window.bounds.maxX - frame.maxX))
+        )
     }
 
     // MARK: - A proxy's sign-in page
@@ -448,15 +502,36 @@ enum TrekServerStore {
     /// filled in with that server (previousURL). Raise both together.
     private static let serverCheck = 3
 
+    private static var rechecked = false
+
     /// Runs before the first bridge is built, so a server picked under an older
-    /// minimum is not loaded unchecked.
+    /// minimum is not loaded unchecked. Once per launch: the bridge that
+    /// restoreForOffline restarts must keep the server it put back.
     static func recheckAfterUpdate() {
+        guard !rechecked else { return }
+        rechecked = true
         let defaults = UserDefaults.standard
         guard defaults.integer(forKey: checkedKey) < serverCheck else { return }
         defaults.set(serverCheck, forKey: checkedKey)
         guard let server = url else { return }
-        url = nil
+        // Not through `url`, which throws the offline copy away: it still belongs
+        // to this server, and is what the app starts on if the check cannot run.
+        defaults.removeObject(forKey: key)
+        defaults.removeObject(forKey: signInHostsKey)
         defaults.set(server, forKey: previousKey)
+    }
+
+    /// The check an update asked for cannot run (the server is out of reach),
+    /// but there is a copy of its UI: the server goes back in place, unchecked
+    /// for now, and the check runs again on the next launch.
+    static func restoreForOffline() -> Bool {
+        let defaults = UserDefaults.standard
+        guard url == nil, let previous = previousURL,
+              FileManager.default.fileExists(atPath: offlineCopyURL.path) else { return false }
+        defaults.set(previous, forKey: key)
+        defaults.removeObject(forKey: previousKey)
+        defaults.set(0, forKey: checkedKey)
+        return true
     }
 
     /// The server an update asked to check again, until a server is set.

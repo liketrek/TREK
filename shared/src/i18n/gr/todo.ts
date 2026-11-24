@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Προτεραιότητα',
   'todo.detail.noPriority': 'Καμία',
   'todo.detail.create': 'Δημιουργία εργασίας',
+  'todo.progressCount': '{done} από {total} ολοκληρώθηκαν',
+  'todo.allDone': 'Όλα έγιναν!',
+  'todo.filter.myShort': 'Δικές μου',
 };
 export default todo;

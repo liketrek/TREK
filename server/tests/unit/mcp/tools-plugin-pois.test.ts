@@ -4,24 +4,20 @@
  * counterparts of the GET /api/plugins feed and GET /api/plugin-pois. Both go through
  * PluginPoisService, so the gate, the window and the normalization are the REST ones.
  */
-import { db as testDb } from '../../../src/db/database';
 import { Plugins } from '../../../src/db/entities/Plugins.entity';
 import { PluginHooks } from '../../../src/nest/plugins/plugin-hooks.service';
-import { createUser } from '../../helpers/factories';
 import { makePlugin } from '../../helpers/factories/plugins';
 import { deleteRows } from '../../helpers/factories/rows';
+import { makeUser } from '../../helpers/factories/users';
 import { createMcpHarness, parseToolResult, type McpHarness } from '../../helpers/mcp-harness';
-import { resetTestDb } from '../../helpers/test-db';
-import { createTestOrm, type TestOrm } from '../../helpers/test-orm';
+import { resetDatabase } from '../../helpers/reset-database';
+import { bootTestApp } from '../../helpers/test-app';
+import { MikroORM } from '@mikro-orm/core';
 
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { pluginsEnabled } = vi.hoisted(() => ({ pluginsEnabled: vi.fn(() => true) }));
 
-vi.mock('../../../src/db/database', async () => {
-  const { createSnapshotTestDb, buildDbMock } = await import('../../helpers/db-mock');
-  return buildDbMock(createSnapshotTestDb());
-});
 vi.mock('../../../src/nest/plugins/kill-switch', () => ({ pluginsEnabled }));
 
 const providersOfMock = vi.spyOn(PluginHooks.prototype, 'providersOf');
@@ -36,14 +32,14 @@ const trailheads = {
 };
 const bbox = { south: 47, west: 11, north: 47.5, east: 11.5 };
 
-let orm: TestOrm;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  orm = await createTestOrm(testDb);
+  orm = (await bootTestApp()).get(MikroORM);
 });
 
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await deleteRows(orm, Plugins);
   await makePlugin(orm, 'trail-finder', {
     name: 'Trail Finder',
@@ -57,8 +53,7 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await orm.close();
-  testDb.close();
+  await (await bootTestApp()).close();
 });
 
 async function withHarness(userId: number, fn: (h: McpHarness) => Promise<void>) {
@@ -75,7 +70,7 @@ const search = (h: McpHarness, args: Record<string, unknown>) =>
 
 describe('Tool: list_plugin_poi_categories', () => {
   it('names the categories a provider answers, labelled in the requested language', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const res = await h.client.callTool({ name: 'list_plugin_poi_categories', arguments: { lang: 'de' } });
       expect(parseToolResult(res)).toEqual({
@@ -96,7 +91,7 @@ describe('Tool: list_plugin_poi_categories', () => {
   });
 
   it('is empty while the plugin runtime is switched off', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     pluginsEnabled.mockReturnValue(false);
     await withHarness(user.id, async (h) => {
       const res = await h.client.callTool({ name: 'list_plugin_poi_categories', arguments: {} });
@@ -107,7 +102,7 @@ describe('Tool: list_plugin_poi_categories', () => {
 
 describe('Tool: search_plugin_pois', () => {
   it('returns the plugin answer in the search_pois row shape, asked as the requesting user', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     categoryPoisMock.mockResolvedValue([
       {
         id: 'th-1',
@@ -149,7 +144,7 @@ describe('Tool: search_plugin_pois', () => {
   });
 
   it('refuses an undeclared category and an inverted box without asking the plugin', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const unknown = await search(h, { pluginId: 'trail-finder', category: 'huts', bbox });
       expect(unknown.isError).toBe(true);
@@ -165,7 +160,7 @@ describe('Tool: search_plugin_pois', () => {
   });
 
   it('takes the box search_pois takes and refuses an edge off the globe without asking the plugin', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     await withHarness(user.id, async (h) => {
       const { tools } = await h.client.listTools();
       const bboxOf = (name: string) => tools.find((t) => t.name === name)?.inputSchema.properties?.bbox;
@@ -182,7 +177,7 @@ describe('Tool: search_plugin_pois', () => {
   });
 
   it('turns a failing plugin into an error result', async () => {
-    const { user } = createUser(testDb);
+    const { user } = await makeUser(orm);
     categoryPoisMock.mockRejectedValue(new Error('timed out'));
     await withHarness(user.id, async (h) => {
       const res = await search(h, { pluginId: 'trail-finder', category: 'trailheads', bbox });

@@ -55,39 +55,43 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.highlight_community': 'Construït conjuntament amb la comunitat',
   'system_notice.thank_you_support.cta_bmc': 'Buy Me a Coffee',
   'system_notice.thank_you_support.cta_kofi': 'Dona suport a Ko-fi',
+  'system_notice.thank_you_support.cta_patreon': 'Cada mes a Patreon',
   'system_notice.release_notes.eyebrow': 'Actualització instal·lada',
-  'system_notice.release_notes.headline': 'El lloc correcte, primer.',
+  'system_notice.release_notes.headline': 'Menys teclejar, més viatjar.',
   'system_notice.release_notes.features_label': 'Els protagonistes',
   'system_notice.release_notes.features_aside': 'I això no és tot',
-  'system_notice.release_notes.feature_search_title': 'Una cerca de llocs que l’encerta',
-  'system_notice.release_notes.feature_search_body':
-    'Ciutats, illes, monuments i aeroports pel seu codi surten primer, les cafeteries surten del teu voltant i els suggeriments apareixen mentre escrius.',
-  'system_notice.release_notes.feature_share_title': 'Detalls dels llocs, compartits',
-  'system_notice.release_notes.feature_share_body':
-    'Comparteix webs, horaris i fotos amb cada TREK, camp per camp, i els teus llocs desats s’omplen amb el que altres han afegit.',
-  'system_notice.release_notes.feature_routing_title': 'Rutes més ràpides',
-  'system_notice.release_notes.feature_routing_body':
-    'Un dia sencer es calcula d’una tirada amb fins a vint parades, una ruta lenta ja no frena les altres i el transport públic consulta un segon proveïdor quan el primer no troba res.',
-  'system_notice.release_notes.footnote': 'I una llarga llista de canvis més petits a la resta de TREK.',
+  'system_notice.release_notes.feature_mail_title': 'Els correus de reserva arriben al teu viatge',
+  'system_notice.release_notes.feature_mail_body':
+    'Reenvia una confirmació a la teva adreça personal i TREK troba el teu viatge, ho comprova i afegeix la reserva amb el seu document.',
+  'system_notice.release_notes.feature_flight_title': 'Estat del vol en directe, gratis',
+  'system_notice.release_notes.feature_flight_body':
+    'TREK segueix cadascun dels teus vols el dia que toca: estat, retard, tots dos aeroports i un mapa amb l’avió, sense clau d’API.',
+  'system_notice.release_notes.feature_pdf_title': 'Un PDF del viatge nou',
+  'system_notice.release_notes.feature_pdf_body':
+    'Una portada amb la teva ruta, cada dia com a cronologia i totes les teves reserves amb els codis, a punt per imprimir o compartir.',
+  'system_notice.release_notes.footnote':
+    'A més, PostgreSQL, complements per viatge, etiquetes als llocs, més maneres de portar les despeses i una llarga llista de canvis més petits.',
   'system_notice.release_notes.notes_label': 'Notes de la versió',
   'system_notice.release_notes.note_eyebrow': 'Una nota del mantenidor',
   'system_notice.release_notes.note_title': 'Sou el motiu pel qual continuo construint TREK.',
   'system_notice.release_notes.note_body':
-    "TREK va néixer com una petita eina per als meus propis viatges, escrita després de la feina perquè volia una manera millor de planificar-los. En realitat, mai no ha deixat de créixer. Gairebé tot ho he construït a altes hores de la nit, els caps de setmana, als trens, al costat d'una feina a jornada completa, i més d'una vegada em vaig preguntar en silenci si algú, en algun lloc, l'obriria mai.",
+    'TREK va néixer com una eina petita per als meus propis viatges, feta després de la feina. Gairebé tot el que fas servir avui va prendre forma de nit, en caps de setmana o en trens, al costat d’una feina a temps complet, i sovint em preguntava si algú arribaria a obrir-lo.',
   'system_notice.release_notes.promise_label': 'La promesa',
   'system_notice.release_notes.promise_lead': 'TREK continuarà sent gratuït, per sempre.',
   'system_notice.release_notes.promise_text':
     'Cada funcionalitat, cada actualització, per a tothom. Sense nivells de pagament, sense subscripcions, sense lletra petita.',
   'system_notice.release_notes.note_body_after':
-    "I llavors el vau obrir. En pocs mesos éreu milers: estrelles, informes d'errors, traduccions a llengües que no parlo, pull requests de gent que no he conegut mai. El primer que faig cada matí continua sent mirar el repositori, i encara em costa creure-m'ho.",
-  'system_notice.release_notes.note_closing': 'Gràcies per ser aquí. Una abraçada, Maurice.',
-  'system_notice.release_notes.support_label': 'Continuar independents',
-  'system_notice.release_notes.support_lead': 'Sense Google i companyia.',
+    'Després vau arribar vosaltres, aviat per milers: amb estrelles, informes d’errors, traduccions a idiomes que no parlo i pull requests de gent que no havia vist mai. Cada matí encara miro el repositori a primera hora, i encara no se’m fa del tot real.',
+  'system_notice.release_notes.note_closing':
+    'Gràcies per ser aquí. Maurice',
+  'system_notice.release_notes.support_label': 'Possible gràcies a tu',
+  'system_notice.release_notes.support_lead': 'TREK només existeix gràcies a les donacions.',
   'system_notice.release_notes.support_text':
-    'La cerca de llocs, la cerca d’adreces i el càlcul de rutes funcionen en servidors propis de TREK, avui patrocinats per dataforest cloud. Hi lluito cada dia, i perquè continuï així cal el teu suport.',
+    'Paguen els servidors i em donen el temps per seguir construint-lo. Fins i tot un sol cafè ajuda que TREK continuï sent gratuït per a tothom.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Dona suport a Ko-fi',
+  'system_notice.release_notes.cta_patreon': 'Cada mes a Patreon',
   'system_notice.release_notes.intro':
-    'La cerca de llocs, la cerca d’adreces i el càlcul de rutes ara funcionen en servidors propis de TREK, patrocinats per dataforest cloud, i cada TREK pot compartir el que sap dels llocs amb tots els altres.',
+    'Els correus de reserva que reenvies arriben al teu viatge, TREK segueix els teus vols en directe i el PDF del viatge és totalment nou. TREK també funciona ara amb PostgreSQL.',
 };
 export default system_notice;

@@ -9,6 +9,7 @@ import { resetAllStores } from '../../../helpers/store';
 import { usePermissionsStore } from '../../../../src/store/permissionsStore';
 import { ToastContainer } from '../../../../src/components/shared/Toast';
 import MAdminPermissionsPanel from '../../../../src/mobile/screens/admin/MAdminPermissionsPanel';
+import { mobileOptionLabels, pickMobileOption } from '../../../helpers/mobileSelect';
 
 const ALLOWED = ['admin', 'trip_owner', 'trip_member', 'everybody'];
 
@@ -76,12 +77,12 @@ describe('MAdminPermissionsPanel', () => {
   });
 
   it('FE-MOB-APERM-003: a select reflects the stored level and offers every allowed level', async () => {
+    const user = userEvent.setup();
     renderPanel();
 
     await screen.findByText('Permission Settings');
-    const select = screen.getByRole('combobox', { name: 'Create trips' }) as HTMLSelectElement;
-    expect(select.value).toBe('trip_member');
-    expect(Array.from(select.options).map((o) => o.textContent)).toEqual([
+    expect(screen.getByRole('combobox', { name: 'Create trips' })).toHaveTextContent('Trip members');
+    expect(await mobileOptionLabels(user, 'Create trips')).toEqual([
       'Admin only', 'Trip owner', 'Trip members', 'Everyone',
     ]);
   });
@@ -125,7 +126,7 @@ describe('MAdminPermissionsPanel', () => {
     const save = screen.getByRole('button', { name: /Save/ });
     expect(save).toBeDisabled();
 
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Create trips' }), 'admin');
+    await pickMobileOption(user, 'Create trips', 'Admin only');
 
     expect(save).not.toBeDisabled();
     expect(screen.getAllByText('customized')).toHaveLength(1);
@@ -151,8 +152,8 @@ describe('MAdminPermissionsPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Reset to defaults' }));
 
     await waitFor(() => expect(screen.queryByText('customized')).not.toBeInTheDocument());
-    expect((screen.getByRole('combobox', { name: 'Create trips' }) as HTMLSelectElement).value).toBe('trip_member');
-    expect((screen.getByRole('combobox', { name: 'Edit trip details' }) as HTMLSelectElement).value).toBe('trip_owner');
+    expect(screen.getByRole('combobox', { name: 'Create trips' })).toHaveTextContent('Trip members');
+    expect(screen.getByRole('combobox', { name: 'Edit trip details' })).toHaveTextContent('Trip owner');
     expect(screen.getByRole('button', { name: /Save/ })).not.toBeDisabled();
   });
 
@@ -168,7 +169,7 @@ describe('MAdminPermissionsPanel', () => {
     renderPanel();
 
     await screen.findByText('Permission Settings');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Create trips' }), 'admin');
+    await pickMobileOption(user, 'Create trips', 'Admin only');
     await user.click(screen.getByRole('button', { name: /Save/ }));
 
     await screen.findByText('Permission settings saved');
@@ -184,7 +185,7 @@ describe('MAdminPermissionsPanel', () => {
     renderPanel();
 
     await screen.findByText('Permission Settings');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Create trips' }), 'admin');
+    await pickMobileOption(user, 'Create trips', 'Admin only');
     await user.click(screen.getByRole('button', { name: /Save/ }));
 
     await screen.findByText('Permission settings saved');
@@ -199,7 +200,7 @@ describe('MAdminPermissionsPanel', () => {
     renderPanel();
 
     await screen.findByText('Permission Settings');
-    await user.selectOptions(screen.getByRole('combobox', { name: 'Create trips' }), 'admin');
+    await pickMobileOption(user, 'Create trips', 'Admin only');
     const save = screen.getByRole('button', { name: /Save/ });
     await user.click(save);
 

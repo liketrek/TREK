@@ -50,7 +50,10 @@ function typingDevice(): boolean {
  */
 export function focusDialog(panel: HTMLElement): void {
   if (panel.contains(document.activeElement)) return
-  const field = typingDevice() ? firstTextField(panel) : null
+  // A dialog that starts somewhere other than its first field marks that field,
+  // as the add-place dialog does with its search below the name in its head.
+  const marked = panel.querySelector<HTMLElement>('[data-initial-focus]')
+  const field = typingDevice() ? (marked ?? firstTextField(panel)) : null
   ;(field ?? panel).focus({ preventScroll: true })
 }
 

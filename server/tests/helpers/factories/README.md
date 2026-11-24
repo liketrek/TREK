@@ -27,6 +27,21 @@ switches to the snapshot when it converts (`tests/e2e/tags.e2e.test.ts` is the
 example). `resetTestDb(testDb)` between tests keeps working: each helper call
 opens a fresh context, so no identity map remembers a row the reset deleted.
 
+A `buildApp()` suite on the real database module resets between tests with
+`resetDatabase(orm)` from `../helpers/reset-database`, the same state
+`resetTestDb` leaves on the snapshot (user data gone, ids still growing, the
+default categories, addons and photo providers back, the seeded admin gone
+on the first call) on SQLite and on Postgres alike, so the suite runs in the
+Postgres lane too:
+
+```ts
+beforeAll(async () => {
+  nestApp = await buildApp();
+  orm = nestApp.get(MikroORM);
+});
+beforeEach(() => resetDatabase(orm));
+```
+
 ## What is here
 
 One file per domain, each returning the row as the app reads it (`EntityDTO`

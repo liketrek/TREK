@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { isDeepLinkableTripTab } from '../../constants/tripTabs';
 import { useAssistantStore } from '../../store/assistantStore';
@@ -37,8 +37,14 @@ export function useAssistantDeepLink({
   const known = requestedDay !== null && tripDays.some((day) => day.id === Number(requestedDay));
   const dayDone = requestedDay !== null && (known || tripDays.length > 0);
 
+  const taken = useRef<URLSearchParams | null>(null);
+
   useEffect(() => {
     if (!openRequested && !dayDone) return;
+    // Once per URL: React Router lands the cleaned URL as a transition, and
+    // until it does the link must not be taken again (see useAssistantTabLink).
+    if (taken.current === searchParams) return;
+    taken.current = searchParams;
     if (openRequested) useAssistantStore.getState().open();
     if (known) selectDay(Number(requestedDay));
     setSearchParams(
@@ -49,7 +55,7 @@ export function useAssistantDeepLink({
       },
       { replace: true }
     );
-  }, [openRequested, requestedDay, known, dayDone, selectDay, setSearchParams]);
+  }, [searchParams, openRequested, requestedDay, known, dayDone, selectDay, setSearchParams]);
 }
 
 interface AssistantTabLinkOptions {
@@ -59,27 +65,41 @@ interface AssistantTabLinkOptions {
   activeTab: string;
   /** Switches the planner's tab the way its tab bar does. */
   selectTab: (tabId: string) => void;
+  /** Told about every link it took, so a shell can open the part of the tab a link means. */
+  onLinked?: (tabId: string) => void;
 }
 
 /**
- * `?tab=<id>` while the planner is already open: what a card in the chat
- * opens in another tab of this trip (`?tab=finanzplan&expense=7`). The
- * planner reads the tab once when it opens; this takes a later one live,
- * once, and then drops it from the URL. What the tab reads beside it stays
- * for that tab to take.
+ * `?tab=<id>` from a notification or a card in the chat, including while the
+ * planner is already open. Both desktop and mobile take the requested tab
+ * once and then drop it from the URL. A tab the planner does not have is
+ * dropped too, so it does not linger in the address bar. What the tab reads
+ * beside it stays for that tab to take (`?tab=finanzplan&expense=7`, for example).
  */
 export function useAssistantTabLink({
   searchParams,
   setSearchParams,
   activeTab,
   selectTab,
+  onLinked,
 }: AssistantTabLinkOptions): void {
   const requested = searchParams.get('tab');
   const linkable = requested !== null && isDeepLinkableTripTab(requested);
+  const taken = useRef<URLSearchParams | null>(null);
 
   useEffect(() => {
-    if (!linkable || requested === null) return;
-    if (requested !== activeTab) selectTab(requested);
+    if (requested === null) return;
+    // Once per URL. React Router lands the URL without the link as a
+    // transition, so the renders before it still read the link; selectTab is a
+    // new function on each of them and onLinked sets state, and taking the link
+    // again on every one of them rendered the planner into React's update limit
+    // (a ?tab= link on an iPad or an unfolded Duo).
+    if (taken.current === searchParams) return;
+    taken.current = searchParams;
+    if (linkable) {
+      if (requested !== activeTab) selectTab(requested);
+      onLinked?.(requested);
+    }
     setSearchParams(
       (params) => {
         params.delete('tab');
@@ -87,5 +107,5 @@ export function useAssistantTabLink({
       },
       { replace: true }
     );
-  }, [linkable, requested, activeTab, selectTab, setSearchParams]);
+  }, [searchParams, linkable, requested, activeTab, selectTab, onLinked, setSearchParams]);
 }

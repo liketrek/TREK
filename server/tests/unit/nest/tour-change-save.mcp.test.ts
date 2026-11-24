@@ -419,9 +419,9 @@ describe('TourChangeMcp.saveTourChange (MCP-T03)', () => {
     const confirmed = z.object(options.inputSchema as ZodRawShape).pick({ confirmed: true });
     const yes = [true, false, undefined].map((value) => confirmed.safeParse({ confirmed: value }).success);
     expect(yes).toEqual([true, false, false]);
-    const isAddonEnabled = vi.fn(async (id: string) => id === 'tours');
-    expect(await options.when?.(ctx(1), { addons: { isAddonEnabled } })).toBe(true);
-    expect(isAddonEnabled).toHaveBeenCalledWith('tours');
+    const isEnabledForUserAnywhere = vi.fn(async (_userId: number, id: string) => id === 'tours');
+    expect(await options.when?.(ctx(1), { addons: { isEnabledForUserAnywhere } })).toBe(true);
+    expect(isEnabledForUserAnywhere).toHaveBeenCalledWith(1, 'tours');
   });
 
   it('TCHG-SAVE-010: a save sent again once saved writes nothing and answers the step it was saved as', async () => {

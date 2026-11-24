@@ -83,7 +83,7 @@ export const BRAND_NAMES = [
 ];
 
 /** Unit symbols, short codes rather than words: "{count} km", "{minutes} min". */
-export const UNITS = ['km', 'mi', 'ft', 'min'];
+export const UNITS = ['km', 'mi', 'ft', 'min', 'mph'];
 
 /**
  * Key cap labels, printed on the keyboard in Latin letters whatever the

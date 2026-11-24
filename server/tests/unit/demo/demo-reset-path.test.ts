@@ -11,7 +11,7 @@
  * cases assert is which file each step names.
  *
  * The port is the real `SqliteDatabaseBackup` over a lifecycle stand-in (the
- * file, close, reopen) and a MaintenanceRepository stand-in (checkpoint,
+ * file, close, reopen) and a SqliteMaintenance stand-in (checkpoint,
  * VACUUM INTO). The file system is spied rather than written to, because the
  * baseline path is fixed at data/travel-baseline.db and a developer running a
  * demo instance has a real one sitting there.
@@ -21,7 +21,7 @@
  * `withRequestContext` over a real (empty) test database: the reads find
  * nothing and the restore-writes are skipped.
  */
-import type { MaintenanceRepository } from '../../../src/db/repositories/MaintenanceRepository';
+import type { SqliteMaintenance } from '../../../src/db/engine/sqlite/sqlite-maintenance';
 import { resetDemoUser, saveBaseline } from '../../../src/demo/demo-reset';
 import { SqliteDatabaseBackup } from '../../../src/nest/backup/sqlite-database-backup';
 import { DatabaseConnectionLostError } from '../../../src/nest/database/database-backup.interface';
@@ -34,6 +34,12 @@ import type Database from 'better-sqlite3';
 import fs from 'node:fs';
 import path from 'node:path';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+
+const { logWarn } = vi.hoisted(() => ({ logWarn: vi.fn() }));
+vi.mock('../../../src/nest/audit/audit-log.logger', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../src/nest/audit/audit-log.logger')>()),
+  logWarn,
+}));
 
 const LIVE_DB = path.join(path.sep, 'srv', 'trek', 'custom-name.db');
 const BASELINE = path.resolve(__dirname, '..', '..', '..', 'data', 'travel-baseline.db');
@@ -65,8 +71,10 @@ describe('demo-reset DB path', () => {
     maintenance = { walCheckpoint: vi.fn(async () => {}), vacuumInto: vi.fn(async () => {}) };
     database = new SqliteDatabaseBackup(
       lifecycle as unknown as DatabaseLifecycle,
-      maintenance as unknown as MaintenanceRepository,
+      maintenance as unknown as SqliteMaintenance,
     );
+    // The baseline here exists only in the existsSync stand-in; DEMORESET-008 covers a refused one.
+    vi.spyOn(database, 'checkCopy').mockResolvedValue(null);
   });
 
   afterEach(() => {
@@ -154,5 +162,21 @@ describe('demo-reset DB path', () => {
 
     expect(console.error).not.toHaveBeenCalledWith('[Demo Reset] Failed to restore baseline:', expect.anything());
     expect(renameSync).not.toHaveBeenCalled();
+  });
+
+  it('DEMORESET-008: a baseline this engine cannot restore is not swapped in, but replaced by a fresh one', async () => {
+    logWarn.mockClear();
+    vi.spyOn(database, 'checkCopy').mockResolvedValue(`${BASELINE} is not a SQLite database`);
+
+    await withCtx(() => resetDemoUser(database));
+
+    expect(database.checkCopy).toHaveBeenCalledWith(BASELINE);
+    expect(lifecycle.close).not.toHaveBeenCalled();
+    expect(copyFileSync).not.toHaveBeenCalled();
+    expect(maintenance.vacuumInto).toHaveBeenCalledWith(BASELINE + '.tmp');
+    expect(renameSync).toHaveBeenCalledWith(BASELINE + '.tmp', BASELINE);
+    expect(logWarn).toHaveBeenCalledWith(
+      expect.stringMatching(/is not a SQLite database\); saving the current database/),
+    );
   });
 });

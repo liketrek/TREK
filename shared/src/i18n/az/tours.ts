@@ -91,6 +91,8 @@ const tours: TranslationStrings = {
   'tours.detail.ascent': 'Yüksəlmə',
   'tours.detail.descent': 'Enmə',
   'tours.detail.navigationHint': 'Naviqasiya cığırın başlanğıcını açır; marşrut boyunca istiqamət göstərmir.',
+  'tours.detail.openRoute': 'Marşrutu xəritə tətbiqində aç',
+  'tours.detail.mapsShort': 'Xəritələr',
   'tours.planner.title': 'Tur planlaşdır',
   'tours.planner.newTour': 'Yeni tur planlaşdır',
   'tours.planner.addTour': 'Tur əlavə et',

@@ -51,9 +51,6 @@ const journey: TranslationStrings = {
   'journey.editor.bodyPlaceholder': 'Розкажіть історію цього дня...',
   'journey.editor.placePlaceholder': 'Місце розташування (необов’язково)',
   'journey.editor.tagsPlaceholder': 'Теги: прихована перлина, найкраща їжа, варто повернутися...',
-  'journey.visibility.private': 'Приватний',
-  'journey.visibility.shared': 'Спільний',
-  'journey.visibility.public': 'Публічний',
   'journey.emptyState.title': 'Ваша історія починається тут',
   'journey.emptyState.subtitle': 'Позначтесь у місці або напишіть перший запис у щоденник',
   'journey.frontpage.subtitle': 'Перетворюйте поїздки на історії, які ви ніколи не забудете',
@@ -284,6 +281,7 @@ const journey: TranslationStrings = {
   'journey.picker.noAlbums': 'Альбомів не знайдено',
   'journey.picker.selectDate': 'Оберіть дату',
   'journey.picker.search': 'Пошук',
+  'journey.picker.takenBetween': 'Зроблені між',
   'journey.editor.uploadingProgress': 'Завантаження {done}/{total}…',
   'journey.editor.uploadFailed': 'Не вдалося завантажити фото',
   'journey.editor.uploadPartialFailed':

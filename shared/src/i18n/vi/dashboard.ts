@@ -106,7 +106,7 @@ const dashboard: TranslationStrings = {
     'Bạn đã thay đổi thời điểm bắt đầu chuyến đi. Các kế hoạch của bạn nên theo ngày mới như thế nào?',
   'dashboard.dateShiftKeepBookings': 'Giữ đặt chỗ theo ngày ban đầu',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Kế hoạch theo ngày sẽ dời theo ngày mới, trong khi đặt chỗ và chỗ ở vẫn giữ nguyên ngày ban đầu miễn là những ngày đó vẫn nằm trong chuyến đi.',
+    'Các ngày được thêm vẫn trống và không có gì khác bị dời. Nếu chuyến đi bị dời, kế hoạch theo ngày sẽ dời theo ngày mới, trong khi đặt chỗ và chỗ ở vẫn giữ nguyên ngày ban đầu miễn là những ngày đó vẫn nằm trong chuyến đi.',
   'dashboard.dateShiftAll': 'Dời tất cả',
   'dashboard.dateShiftAllDesc': 'Toàn bộ lịch trình sẽ dời theo ngày mới, bao gồm cả đặt chỗ và chỗ ở.',
   'dashboard.dateShiftHint':
@@ -221,5 +221,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.pasteFromUrl': 'dán vào “Từ URL”',
   'dashboard.aiPlan': 'Lập kế hoạch với AI',
   'dashboard.aiPlanSub': 'Mô tả chuyến đi, xem lại bản đề xuất',
+  'dashboard.ics.dayEvents': 'Sự kiện tóm tắt ngày',
+  'dashboard.ics.dayEventsHint':
+    'Một sự kiện cả ngày cho mỗi ngày với các địa điểm và ghi chú không có giờ. Thay đổi tùy chọn này sẽ đổi liên kết, vì vậy hãy đăng ký lại bằng liên kết mới.',
 };
 export default dashboard;

@@ -512,8 +512,8 @@ struct StopList: View {
                 ForEach(Array(window.enumerated()), id: \.offset) { offset, stop in
                     let past = (stop.minutes ?? Int.max) < nowMinutes
                     let isNext = !past && (offset == 0 || (window[offset - 1].minutes ?? Int.max) < nowMinutes)
-                    if isNext && offset > 0, let nowLabel { nowLine(nowLabel) }
-                    row(stop, past: past, isNext: isNext, last: offset == window.count - 1)
+                    if isNext && offset > 0, let nowLabel { nowLine(nowLabel, in: window) }
+                    row(stop, in: window, past: past, isNext: isNext, last: offset == window.count - 1)
                 }
             }
         }
@@ -528,13 +528,33 @@ struct StopList: View {
 
     private var ink: Color { onPhoto ? .white : Trek.ink(scheme) }
 
-    private func row(_ stop: WidgetSnapshot.Stop, past: Bool, isNext: Bool, last: Bool) -> some View {
+    /// The time column, as wide as the longest time in the window (and the now
+    /// marker's label): every row lays all of them over each other, hidden, so
+    /// "5:45 AM" fits as well as "09:30" and the dots still stand in one line.
+    private func timeColumn<Label: View>(_ window: [WidgetSnapshot.Stop], @ViewBuilder label: () -> Label) -> some View {
+        ZStack(alignment: .leading) {
+            ForEach(Array(window.enumerated()), id: \.offset) { _, stop in
+                Text(stop.time ?? "–").font(Trek.number(11.5, .heavy)).hidden()
+            }
+            if let nowLabel { nowText(nowLabel).hidden() }
+            label()
+        }
+        .lineLimit(1)
+        .fixedSize(horizontal: true, vertical: false)
+        .frame(minWidth: 38, alignment: .leading)
+    }
+
+    private func nowText(_ label: String) -> some View {
+        Text(label.uppercased()).font(.system(size: 8.5, weight: .heavy)).tracking(0.5).foregroundStyle(Trek.danger)
+    }
+
+    private func row(_ stop: WidgetSnapshot.Stop, in window: [WidgetSnapshot.Stop], past: Bool, isNext: Bool, last: Bool) -> some View {
         let color = Color(css: stop.color) ?? (onPhoto ? .white : Trek.info)
         return HStack(alignment: .top, spacing: 8) {
-            Text(stop.time ?? "–")
-                .font(Trek.number(11.5, isNext ? .heavy : .semibold))
-                .frame(width: 38, alignment: .leading)
-                .padding(.top, 1)
+            timeColumn(window) {
+                Text(stop.time ?? "–").font(Trek.number(11.5, isNext ? .heavy : .semibold))
+            }
+            .padding(.top, 1)
             VStack(spacing: 0) {
                 ZStack {
                     Circle().fill(color).frame(width: isNext ? 11 : 8, height: isNext ? 11 : 8)
@@ -562,10 +582,9 @@ struct StopList: View {
         .frame(height: 24, alignment: .top)
     }
 
-    private func nowLine(_ label: String) -> some View {
+    private func nowLine(_ label: String, in window: [WidgetSnapshot.Stop]) -> some View {
         HStack(spacing: 5) {
-            Text(label.uppercased()).font(.system(size: 8.5, weight: .heavy)).tracking(0.5).foregroundStyle(Trek.danger)
-                .frame(width: 38, alignment: .leading)
+            timeColumn(window) { nowText(label) }
             Circle().fill(Trek.danger).frame(width: 5, height: 5).frame(width: 15)
             Rectangle().fill(Trek.danger).frame(height: 1.2)
         }

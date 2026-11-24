@@ -1,5 +1,9 @@
+import { useTranslation } from '../../i18n';
 import { currencyDecimals, currencyLocale, formatMoney } from '../../utils/formatters';
 import { fs } from '../shared/DialogShell';
+
+/** What a card shows for a balance that is still loading or could not be read. */
+export const UNKNOWN_AMOUNT = '…';
 
 /** A tone's colour, from the status tokens the booking cards use. */
 const TONE_COLOR = {
@@ -23,28 +27,35 @@ export default function SummaryCard({
   icon,
   foot,
   tone,
+  failed = false,
 }: {
   label: string;
   sub: string;
-  amount: number;
+  amount: number | null;
   currency: string;
   locale: string;
   icon: React.ReactNode;
   foot: React.ReactNode;
   tone: 'owe' | 'owed' | 'total' | 'unfinished';
+  /** With no amount: the read failed rather than still running. */
+  failed?: boolean;
 }) {
+  const { t } = useTranslation();
   const color = TONE_COLOR[tone];
   // formatToParts keeps the design's "big integer + muted symbol/decimals" styling
   // while letting Intl place the symbol and pick separators per locale + currency.
   let parts: Intl.NumberFormatPart[] | null = null;
   try {
     const d = currencyDecimals(currency);
-    parts = new Intl.NumberFormat(currencyLocale(currency), {
-      style: 'currency',
-      currency: (currency || 'EUR').toUpperCase(),
-      minimumFractionDigits: d,
-      maximumFractionDigits: d,
-    }).formatToParts(amount || 0);
+    parts =
+      amount == null
+        ? null
+        : new Intl.NumberFormat(currencyLocale(currency), {
+            style: 'currency',
+            currency: (currency || 'EUR').toUpperCase(),
+            minimumFractionDigits: d,
+            maximumFractionDigits: d,
+          }).formatToParts(amount || 0);
   } catch {
     parts = null;
   }
@@ -92,11 +103,15 @@ export default function SummaryCard({
               </span>
             ))
           ) : (
-            <span>{formatMoney(amount, currency, locale)}</span>
+            <span>{amount == null ? UNKNOWN_AMOUNT : formatMoney(amount, currency, locale)}</span>
           )}
         </div>
         <div className="mt-auto flex flex-wrap items-center gap-1.5 text-content-muted" style={fs(12.5, 'body')}>
-          {foot}
+          {amount == null ? (
+            <span className="text-content-faint">{t(failed ? 'common.unknownError' : 'common.loading')}</span>
+          ) : (
+            foot
+          )}
         </div>
       </div>
     </section>

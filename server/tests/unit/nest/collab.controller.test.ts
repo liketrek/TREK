@@ -1,3 +1,6 @@
+import type { AddonsService } from '../../../src/nest/addons/addons.service';
+import { REQUIRE_ADDON } from '../../../src/nest/addons/require-addon.decorator';
+import { TripAddonGuard } from '../../../src/nest/addons/trip-addon.guard';
 import { RuntimeEnvService } from '../../../src/nest/app-config/runtime-env.service';
 import { JwtAuthGuard } from '../../../src/nest/auth-core/jwt-auth.guard';
 import {
@@ -54,8 +57,12 @@ const storageStub = {
  * Build the controller over its stubs. The env is the live one, so a case about
  * demo mode stubs DEMO_MODE and every other case runs outside it.
  */
-function ctl(service: CollabService, storage: StorageService = storageStub): CollabController {
-  return new CollabController(service, storage, new RuntimeEnvService());
+/** Whether Collab applies to the trip: on, unless a test switches it off for its trip. */
+const addonsOn = { isEnabledForTrip: vi.fn(async () => true) } as unknown as AddonsService;
+const addonsOff = { isEnabledForTrip: vi.fn(async () => false) } as unknown as AddonsService;
+
+function ctl(service: CollabService, storage: StorageService = storageStub, addons = addonsOn): CollabController {
+  return new CollabController(service, storage, new RuntimeEnvService(), addons);
 }
 
 async function thrownAsync(fn: () => Promise<unknown>): Promise<{ status: number; body: unknown }> {
@@ -344,6 +351,18 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
           ),
         ),
       ).toEqual({ status: 403, body: { error: 'No permission' } });
+    });
+
+    it('refuses a trip that has Collab off for itself, after the trip check, with the addon text', async () => {
+      const s = svc({ verifyTripAccess: vi.fn().mockResolvedValue({ id: 5, user_id: 1 }) } as Partial<CollabService>);
+      expect(
+        await thrownAsync(() => ctl(s, storageStub, addonsOff).createMessage(user, '5', { text: 'hi' }, undefined)),
+      ).toEqual({
+        status: 404,
+        body: { error: 'Collab addon is not enabled' },
+      });
+      expect(addonsOff.isEnabledForTrip).toHaveBeenCalledWith(5, 'collab');
+      expect(s.postMessage).not.toHaveBeenCalled();
     });
 
     it('react 404 unknown, else broadcasts reactions (empty emoji now 400s in the Zod pipe)', async () => {
@@ -667,7 +686,23 @@ describe('CollabController (parity with the legacy /api/trips/:tripId/collab rou
       for (const handler of [CollabController.prototype.createMessage, CollabController.prototype.addNoteFile]) {
         expect(Reflect.getMetadata(TRIP_PERMISSION_KEY, handler)).toBeUndefined();
         expect(guardsOn(handler)).not.toContain(TripAccessGuard);
+        expect(guardsOn(handler)).not.toContain(TripAddonGuard);
       }
+    });
+
+    it('every other route asks the trip and then the Collab addon of that trip', async () => {
+      expect(Reflect.getMetadata(REQUIRE_ADDON, CollabController)).toEqual({ addonId: 'collab', label: 'Collab' });
+      const multipart = new Set<unknown>([
+        CollabController.prototype.createMessage,
+        CollabController.prototype.addNoteFile,
+      ]);
+      const proto = CollabController.prototype as unknown as Record<string, unknown>;
+      const routes = Object.getOwnPropertyNames(CollabController.prototype)
+        .map((name) => proto[name])
+        .filter((fn) => typeof fn === 'function' && Reflect.getMetadata('method', fn as object) !== undefined)
+        .filter((fn) => !multipart.has(fn));
+      expect(routes.length).toBeGreaterThan(15);
+      for (const handler of routes) expect(guardsOn(handler as object)).toEqual([TripAccessGuard, TripAddonGuard]);
     });
   });
 

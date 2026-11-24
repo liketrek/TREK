@@ -1,5 +1,5 @@
 import { ValidationError } from '../common/domain-errors';
-import { MAX_TRIP_DAYS, tripSpanDays, type PermissionKey } from '@trek/shared';
+import { addIsoDays, MAX_TRIP_DAYS, tripSpanDays, type PermissionKey } from '@trek/shared';
 
 /**
  * Pure helpers of the trips domain, moved out of trips.service.ts. Nothing
@@ -40,9 +40,11 @@ const TRIP_EDIT_FIELDS = ['title', 'description', 'start_date', 'end_date', 'cur
 /**
  * The permissions a trip update needs, in the order PUT /api/trips/:id checks
  * them, each with the refusal that route answers. Archiving and the cover have
- * their own action; any other field present is an edit. update_trip runs the
- * same list, so an MCP caller cannot archive a trip or swap its cover on the
- * strength of trip_edit alone.
+ * their own action, and so does the costs mode (#1714): it decides what Costs
+ * shows, so whoever may edit the costs sets it, as against the trip's own
+ * details. Any other field present is an edit. update_trip runs the same list,
+ * so an MCP caller cannot archive a trip or swap its cover on the strength of
+ * trip_edit alone.
  */
 export function tripUpdatePermissions(body: object): { action: PermissionKey; refusal: string }[] {
   const sent = (field: string) => (body as Record<string, unknown>)[field] !== undefined;
@@ -53,6 +55,29 @@ export function tripUpdatePermissions(body: object): { action: PermissionKey; re
   if (sent('cover_image')) {
     needed.push({ action: 'trip_cover_upload', refusal: 'No permission to change cover image' });
   }
+  if (sent('costs_mode')) {
+    needed.push({ action: 'budget_edit', refusal: 'No permission to change how this trip keeps its costs' });
+  }
   if (TRIP_EDIT_FIELDS.some(sent)) needed.push({ action: 'trip_edit', refusal: 'No permission to edit this trip' });
   return needed;
+}
+
+/**
+ * The start the owner's leave days move to when the trip's dates change: the
+ * old start moved by as far as the trip's first dated day moved. When the days
+ * move with a new start, that is the new start; when days were only added
+ * around the plan, the first day kept its date and the leave stays (#3119).
+ * Without a dated day to go by, the new start as it always was.
+ */
+export function leaveStartFor(
+  oldStart: string | null | undefined,
+  daysBefore: readonly { id: number; date: string | null }[],
+  dateNow: ReadonlyMap<number, string | null>,
+  newStart: string | null | undefined,
+): string | null | undefined {
+  const first = daysBefore.find((d) => d.date);
+  const firstNow = first ? dateNow.get(first.id) : null;
+  if (!oldStart || !first?.date || !firstNow) return newStart;
+  const moved = Math.round((Date.parse(`${firstNow}T00:00:00Z`) - Date.parse(`${first.date}T00:00:00Z`)) / 86_400_000);
+  return addIsoDays(oldStart, moved);
 }

@@ -74,19 +74,29 @@ export interface PluginContext {
   settings: {
     get(key: string): Promise<unknown>;
   };
-  /** Your OWN sqlite database (`db:own`): a separate file the plugin never gets a
-   * path or connection to directly. Quota: 256 MB per plugin (writes past it fail);
+  /** Your OWN database (`db:own`): a SQLite file of its own, or, when TREK runs on
+   * Postgres, a schema of its own in TREK's database, which your SQL is confined to
+   * (`engine()` says which, and README § Your own database on Postgres has the rules).
+   * The plugin never gets a path or connection to it directly. Quota: 256 MB per plugin (writes past it fail);
    * result sets are capped at 100,000 rows, and a `query`, a `tx` or an `exec` script
    * without args gets 2 s of wall-clock time, checked between the rows it reads and
    * the statements it runs (past it, it throws, a `tx` rolls back and a script stops
    * before its next statement). An `exec` with bound args (one statement) and
    * `migrate` are not timed, and no single statement can be stopped midway (a read
    * only between its rows).
+   * Every call runs in a transaction of its own, so transaction control (`BEGIN`, `COMMIT`,
+   * `ROLLBACK`, `SAVEPOINT`, ...) is refused in every statement of every call, on both
+   * engines; batch atomic writes with `tx()` instead of a `BEGIN; ...; COMMIT;` script.
+   * SQL, a bound value or a `migrate` id holding the character U+0000 (NUL) is refused on
+   * both engines too: bind binary data as a Buffer and keep NUL out of composite keys.
    * See `tx()` below for the atomic-batch cap and README § Runtime limits. */
   db: {
     query<T = unknown>(sql: string, ...args: unknown[]): Promise<T[]>;
     exec(sql: string, ...args: unknown[]): Promise<{ changes: number }>;
     migrate(id: string, sql: string): Promise<{ applied: boolean }>;
+    /** The engine your SQL runs on: 'sqlite' (the default), or 'postgres' when TREK runs on
+     * Postgres. Your SQL is passed through as written, so write it in that engine's dialect. */
+    engine(): Promise<'sqlite' | 'postgres'>;
     /** Run several statements atomically on your OWN db — all commit or all roll
      * back. Each op is one statement; reads see the batch's own earlier writes.
      * A read returns `{ rows }`, a write `{ changes }`. Max 100 statements. */

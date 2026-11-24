@@ -11,8 +11,17 @@ const pdf: TranslationStrings = {
     'Az iOS nem tud nyomtatni a kezdőképernyőn lévő appból. A Safari megnyitja ezt az utat az előkészített exporttal, ott mentheted a PDF-et.',
   'pdf.pageBreakPerDay': 'Oldaltörés naponta',
   'pdf.transportNotes': 'Közlekedési jegyzetek',
+  'pdf.largeText': 'Nagy betűméret',
   'pdf.mapTitle': 'Útvonal áttekintése',
   'pdf.distanceLabel': 'Távolság',
   'pdf.mapCredit': 'Országhatárok: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Áttekintés',
+  'pdf.showPhotos': 'Fotók',
+  'pdf.showDetails': 'Elérhetőség és nyitvatartás',
+  'pdf.atAGlance': 'Egy pillantásra',
+  'pdf.bookings': 'Foglalások és szállások',
+  'pdf.day': 'Nap',
+  'pdf.stay': 'Szállás',
+  'pdf.plan': 'Program',
 };
 export default pdf;

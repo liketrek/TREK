@@ -108,7 +108,7 @@ const dashboard: TranslationStrings = {
     'Je hebt gewijzigd wanneer deze reis begint. Hoe moeten je plannen de nieuwe datums volgen?',
   'dashboard.dateShiftKeepBookings': 'Boekingen op hun datums houden',
   'dashboard.dateShiftKeepBookingsDesc':
-    'Dagplannen verschuiven mee met de nieuwe datums, terwijl reserveringen en accommodaties op hun oorspronkelijke datums blijven zolang die nog binnen de reis vallen.',
+    'Toegevoegde dagen blijven leeg en verder verschuift er niets. Als de reis verschuift, verschuiven dagplannen mee met de nieuwe datums, terwijl reserveringen en accommodaties op hun oorspronkelijke datums blijven zolang die nog binnen de reis vallen.',
   'dashboard.dateShiftAll': 'Alles verschuiven',
   'dashboard.dateShiftAllDesc':
     'De volledige reisplanning verschuift mee met de nieuwe datums, inclusief reserveringen en accommodaties.',
@@ -240,5 +240,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.pasteFromUrl': 'plak in “Vanaf URL”',
   'dashboard.aiPlan': 'Plannen met AI',
   'dashboard.aiPlanSub': 'Beschrijf de reis, bekijk het voorstel',
+  'dashboard.ics.dayEvents': 'Dagoverzicht als afspraken',
+  'dashboard.ics.dayEventsHint':
+    'Een afspraak van een hele dag per dag met de plekken en notities zonder tijd. Als je dit wijzigt verandert de link, dus abonneer je opnieuw met de nieuwe link.',
 };
 export default dashboard;

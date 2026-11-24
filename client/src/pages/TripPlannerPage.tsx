@@ -63,7 +63,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   // selection, CRUD handlers with undo, map filters, splash) lives in the hook.
   const pageState = useTripPlannerPage()
   const {
-    tripId, navigate, toast, t, language, placesPhotosEnabled,
+    tripId, navigate, t, language, placesPhotosEnabled,
     trip, days, places, assignments, packingItems, todoItems, categories, reservations, budgetItems, files,
     selectedDayId, isLoading, tripActions, can, canUploadFiles,
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
@@ -76,7 +76,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange,
     leftWidth, rightWidth,
     leftHidden, rightHidden, toggleLeft, toggleRight,
-    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizeMin, resizeMax,
+    startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing, resizeMin, resizeMaxLeft, resizeMaxRight,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,
     showDayDetail, setShowDayDetail, dayDetailCollapsed, setDayDetailCollapsed,
     stayPickerDayId, setStayPickerDayId,
@@ -123,7 +123,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
     selectedPlace, dayOrderMap, dayPlaces,
     toursEnabled, toursMode, setToursMode, tours, toursLoading, tourDataReady, tourPlaceIds,
     invalidateTourPlaceIds, selectedTour,
-    mapTileUrl, fontStyle, splashDone, assistantMap,
+    mapTileUrl, fontStyle, slowOpen, saveTrip, assistantMap,
   } = pageState.planner
   const {
     poi,
@@ -183,13 +183,13 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
   // the day-header tram button and the modal's mode switch — is off without one.
   const tripHasDates = Boolean(trip?.start_date && trip?.end_date)
 
-  if (isLoading || !splashDone) {
+  if (isLoading) {
     return (
-      <div className="bg-surface" style={{
+      <div className="bg-surface" aria-busy="true" style={{
         minHeight: '100vh', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         ...fontStyle,
       }}>
-        <TripLoadingSplash title={trip?.title} />
+        {slowOpen && <TripLoadingSplash title={trip?.title} />}
       </div>
     )
   }
@@ -294,7 +294,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 boxShadow: leftHidden ? 'none' : 'var(--sidebar-shadow)',
                 borderRadius: 16,
                 overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                transition: 'width 0.25s ease',
+                transition: resizing ? 'none' : 'width 0.25s ease',
                 opacity: leftHidden ? 0 : 1,
               }}>
                 {enabledAddons.roadtrip && (
@@ -319,7 +319,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                       onMoveStopToDay={can('day_edit', trip) ? moveRoadtripStopToDay : undefined}
                       onAskAlternatives={can('day_edit', trip) ? askRouteAlternatives : undefined}
                       openAlternatives={routeAlternatives.open}
-                      onEditStay={can('place_edit', trip) ? editRoadtripStay : undefined}
+                      onEditStay={can('day_edit', trip) ? editRoadtripStay : undefined}
                       onSetStopKind={can('place_edit', trip) ? setRoadtripStopKind : undefined}
                       onSetStopFill={can('place_edit', trip) ? setRoadtripStopFill : undefined}
                       onFollowTrack={can('day_edit', trip) && followTrack.available ? followTrack.open : undefined}
@@ -402,7 +402,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 />
                 )}
                 {!leftHidden && (
-                  <PanelResizeHandle side="left" width={leftWidth} min={resizeMin} max={resizeMax} onStart={startResizeLeft} onNudge={nudgeLeft} />
+                  <PanelResizeHandle side="left" width={leftWidth} min={resizeMin} max={resizeMaxLeft} onStart={startResizeLeft} onNudge={nudgeLeft} />
                 )}
               </div>
             </div>
@@ -418,11 +418,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 boxShadow: rightHidden ? 'none' : 'var(--sidebar-shadow)',
                 borderRadius: 16,
                 overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                transition: 'width 0.25s ease',
+                transition: resizing ? 'none' : 'width 0.25s ease',
                 opacity: rightHidden ? 0 : 1,
               }}>
                 {!rightHidden && (
-                  <PanelResizeHandle side="right" width={rightWidth} min={resizeMin} max={resizeMax} onStart={startResizeRight} onNudge={nudgeRight} />
+                  <PanelResizeHandle side="right" width={rightWidth} min={resizeMin} max={resizeMaxRight} onStart={startResizeRight} onNudge={nudgeRight} />
                 )}
                 <div style={{ flex: 1, overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
                   {roadtripActive ? (
@@ -547,7 +547,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 onDelete={() => handleDeletePlace(selectedPlace.id)}
                 leftWidth={isMobile ? 0 : leftPanelPx}
                 rightWidth={isMobile ? 0 : rightPanelPx}
-                clearMapPill cardRef={pageState.inspectorCard.measure}
+                clearMapPill collapsible cardRef={pageState.inspectorCard.measure}
               />
             )}
 
@@ -633,9 +633,9 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 background: 'var(--sidebar-bg)', backdropFilter: 'blur(24px) saturate(180%)',
                 WebkitBackdropFilter: 'blur(24px) saturate(180%)', boxShadow: leftHidden ? 'none' : 'var(--sidebar-shadow)',
                 borderRadius: 16, overflow: 'hidden', display: 'flex', flexDirection: 'column',
-                transition: 'width 0.25s ease', opacity: leftHidden ? 0 : 1,
+                transition: resizing ? 'none' : 'width 0.25s ease', opacity: leftHidden ? 0 : 1,
               }}>
-                {!leftHidden && <PanelResizeHandle side="left" width={leftWidth} min={resizeMin} max={resizeMax} onStart={startResizeLeft} onNudge={nudgeLeft} />}
+                {!leftHidden && <PanelResizeHandle side="left" width={leftWidth} min={resizeMin} max={resizeMaxLeft} onStart={startResizeLeft} onNudge={nudgeLeft} />}
                 <LazyPanel id="tour-planner-rail"><TourWorkspaceRail workspace={pageState} canEdit={canPlaceEdit} canAssign={canDayEdit} /></LazyPanel>
               </div>
             </div>
@@ -654,7 +654,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 style={{
                   width: rightHidden ? 0 : rightWidth,
                   opacity: rightHidden ? 0 : 1,
-                  transition: 'width 0.25s ease, opacity 0.25s ease',
+                  transition: resizing ? 'opacity 0.25s ease' : 'width 0.25s ease, opacity 0.25s ease',
                   background: 'var(--sidebar-bg)',
                   backdropFilter: 'blur(24px) saturate(180%)',
                   WebkitBackdropFilter: 'blur(24px) saturate(180%)',
@@ -662,7 +662,7 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
                 }}
               >
                 {!rightHidden && (
-                  <PanelResizeHandle side="right" width={rightWidth} min={resizeMin} max={resizeMax} onStart={startResizeRight} onNudge={nudgeRight} />
+                  <PanelResizeHandle side="right" width={rightWidth} min={resizeMin} max={resizeMaxRight} onStart={startResizeRight} onNudge={nudgeRight} />
                 )}
                 {!rightHidden && (
                   <LazyPanel id="tour-planner-tours">
@@ -826,11 +826,11 @@ function TripPlannerPageDesktop(): React.ReactElement | null {
       <TripFormModal
         isOpen={showTripForm}
         onClose={() => setShowTripForm(false)}
-        onSave={async (data) => { await tripActions.updateTrip(tripId, data); loadAccommodations(); toast.success(t('trip.toast.tripUpdated')) }}
+        onSave={saveTrip}
         trip={trip}
         onCoverUpdate={applyTripCoverUpdate}
       />
-      <TripMembersModal isOpen={showMembersModal} onClose={() => setShowMembersModal(false)} tripId={tripId} tripTitle={trip?.title} onMembersChanged={refreshMembers} />
+      <TripMembersModal isOpen={showMembersModal} onClose={() => setShowMembersModal(false)} tripId={tripId} tripTitle={trip?.title} onMembersChanged={refreshMembers} editTrip={trip && can('trip_edit', trip) ? { trip, onSave: saveTrip, onCoverUpdate: applyTripCoverUpdate } : undefined} />
       <ReservationModal isOpen={showReservationModal} onClose={() => { if (importReviewActive) { advanceImportReview() } else { setShowReservationModal(false); setEditingReservation(null); setBookingForAssignmentId(null) } }} onSave={async (data, steps) => { const r = await handleSaveReservation(data, steps); if (importReviewActive && r) advanceImportReview(); return r }} reservation={editingReservation} prefill={reservationPrefill} days={days} places={places} assignments={assignments} selectedDayId={selectedDayId} files={files} onFileUpload={canUploadFiles ? (fd) => tripActions.addFile(tripId, fd) : undefined} onFileDelete={(id) => tripActions.deleteFile(tripId, id)} accommodations={tripAccommodations} defaultAssignmentId={bookingForAssignmentId} onOpenExpense={openBookingExpense} tripMembers={tripMembers} />
       {showTransportModal && (
         <ErrorBoundary boundaryId="planner-panel:transport" fallback={null}>

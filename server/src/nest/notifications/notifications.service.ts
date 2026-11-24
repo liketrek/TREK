@@ -5,13 +5,14 @@ import { logDebug, logError } from '../audit/audit-log.logger';
 import { avatarUrl } from '../common/avatarUrl';
 import { UnitOfWork } from '../database/unit-of-work';
 import { RealtimeService } from '../realtime/realtime.service';
+import { shouldSendToUser } from './channel-gate';
 import { getChannel, listChannels } from './channel-registry';
 import { registerBuiltinChannels } from './channels/builtins';
-import { getAction } from './in-app-actions';
+import { getAction, registerAction } from './in-app-actions';
+import { InFlightSends } from './in-flight-sends';
 import { getEventText } from './mailer/email-html';
 import { MailerService } from './mailer/mailer.service';
 import {
-  ADMIN_SCOPED_EVENTS,
   isAdminGlobalChannel,
   type ChannelMessage,
   type ExternalChannel,
@@ -127,6 +128,13 @@ const WANDERER_HINT_TEXT: Record<string, { textKey: string }> = {
   possible_change: { textKey: 'notif.wanderer_source_hint.possible_change' },
 };
 
+// The two texts of a booking added from a mail: the forwarder's and a co-traveller's,
+// each in a textKey of its own for the client's key check, as above.
+const MAIL_BOOKING_TEXT: Record<'forwarder' | 'traveller', { textKey: string }> = {
+  forwarder: { textKey: 'notif.mail_booking_added.text' },
+  traveller: { textKey: 'notif.mail_booking_added.shared' },
+};
+
 const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
   // ── Dev-only test events ──────────────────────────────────────────────────
   test_simple: {
@@ -173,6 +181,28 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     navigateTextKey: 'notif.action.view_trip',
     navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
   },
+  // Live flight status (flight-live): the poll saw the flight leave, land or run late.
+  flight_departed: {
+    inAppType: 'navigate',
+    titleKey: 'notif.flight_departed.title',
+    textKey: 'notif.flight_departed.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
+  flight_delayed: {
+    inAppType: 'navigate',
+    titleKey: 'notif.flight_delayed.title',
+    textKey: 'notif.flight_delayed.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
+  flight_landed: {
+    inAppType: 'navigate',
+    titleKey: 'notif.flight_landed.title',
+    textKey: 'notif.flight_landed.text',
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+  },
   trip_reminder: {
     inAppType: 'navigate',
     titleKey: 'notif.trip_reminder.title',
@@ -192,7 +222,7 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.vacay_invite.title',
     textKey: 'notif.vacay_invite.text',
     navigateTextKey: 'notif.action.view_vacay',
-    navigateTarget: (p) => (p.planId ? `/vacay/${p.planId}` : null),
+    navigateTarget: () => '/vacay',
   },
   vacay_share: {
     inAppType: 'navigate',
@@ -220,7 +250,7 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     titleKey: 'notif.collab_message.title',
     textKey: 'notif.collab_message.text',
     navigateTextKey: 'notif.action.view_collab',
-    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}` : null),
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}?tab=collab` : '/dashboard'),
   },
   packing_tagged: {
     inAppType: 'navigate',
@@ -259,6 +289,31 @@ const EVENT_NOTIFICATION_CONFIG: Record<string, EventNotifConfig> = {
     textKey: (p) => (WANDERER_HINT_TEXT[p.state] ?? WANDERER_HINT_TEXT.possible_change).textKey,
     navigateTextKey: 'notif.action.view_tour',
     navigateTarget: (p) => (p.tripId && p.placeId ? `/trips/${p.tripId}?tab=plan&place=${p.placeId}` : null),
+  },
+  // A booking from a forwarded mail went into a trip. The forwarder's copy is a
+  // keep/undo question (the call site makes it boolean); a co-traveller's opens the trip.
+  mail_booking_added: {
+    inAppType: 'navigate',
+    titleKey: 'notif.mail_booking_added.title',
+    textKey: (p) => (p.role === 'traveller' ? MAIL_BOOKING_TEXT.traveller : MAIL_BOOKING_TEXT.forwarder).textKey,
+    navigateTextKey: 'notif.action.view_trip',
+    navigateTarget: (p) => (p.tripId ? `/trips/${p.tripId}?tab=buchungen` : null),
+  },
+  // Bookings from forwarded mails wait in the person's inbox for a decision.
+  mail_booking_pending: {
+    inAppType: 'navigate',
+    titleKey: 'notif.mail_booking_pending.title',
+    textKey: 'notif.mail_booking_pending.text',
+    navigateTextKey: 'notif.action.review',
+    navigateTarget: () => '/dashboard?inbox=mail',
+  },
+  // The import stopped (a plan without it, or an admin switched it off): every
+  // person with an address hears it once, with nothing to open.
+  mail_ingest_paused: {
+    inAppType: 'simple',
+    titleKey: 'notif.mail_ingest_paused.title',
+    textKey: 'notif.mail_ingest_paused.text',
+    navigateTarget: () => null,
   },
   synology_session_cleared: {
     inAppType: 'simple',
@@ -308,43 +363,6 @@ export interface NotificationDelivery {
 }
 
 /**
- * Should this channel deliver this event to this recipient?
- *
- * Encodes, unchanged, the gating the four hand-written dispatch blocks used to do:
- *  - admin-scoped events (version_available) reach recipients only over a channel
- *    that bypasses the `notification_channels` toggle (email), gated by the admin
- *    global pref rather than the per-user opt-out. Their webhook/ntfy copies go out
- *    once, globally, via sendGlobal() below — not per recipient.
- *  - everything else: the admin enabled the channel, the user didn't opt out of this
- *    event on it, and the user has credentials for it.
- */
-async function shouldSendToUser(
-  channel: ExternalChannel,
-  event: NotifEventType,
-  recipientId: number,
-  activeChannels: string[],
-  prefs: NotificationPreferencesService,
-): Promise<boolean> {
-  if (!channel.supportsEvent(event)) return false;
-
-  if (ADMIN_SCOPED_EVENTS.has(event)) {
-    if (!channel.bypassesActiveToggleForAdminEvents) return false;
-    if (!isAdminGlobalChannel(channel.id)) return false;
-    if (!(await prefs.getAdminGlobalPref(event, channel.id))) return false;
-  } else {
-    // A built-in needs the admin's explicit switch; a plugin channel is on because the
-    // admin enabled the plugin — that IS the opt-in (see getActiveChannels).
-    if (channel.source === 'builtin' && !activeChannels.includes(channel.id)) return false;
-    if (!(await prefs.isEnabledForEvent(recipientId, event, channel.id))) return false;
-  }
-
-  if (!(await channel.isConfiguredFor(recipientId))) return false;
-  // Last, since it is the costly check: Web Push reads and verifies the server's
-  // key pair. Every check here is a plain AND, so the order changes no answer.
-  return !channel.isInstanceConfigured || (await channel.isInstanceConfigured());
-}
-
-/**
  * DI-native notifications domain service. The in-app notification SQL moved
  * 1:1 from the legacy `services/inAppNotifications.ts` (identical statements,
  * post-insert re-selects) and the unified `send()` dispatcher moved 1:1 from
@@ -365,6 +383,8 @@ async function shouldSendToUser(
  */
 @Injectable()
 export class NotificationsService {
+  private readonly inFlight = new InFlightSends();
+
   constructor(
     private readonly realtime: RealtimeService,
     private readonly mailer: MailerService,
@@ -676,6 +696,20 @@ export class NotificationsService {
   }
 
   /**
+   * Names what a tap on a yes/no notification does: a domain that sends one
+   * registers its action here from its module's init, so this module never
+   * imports the domain. The handler gets the payload the notification
+   * carried and the person who answered; a handler that throws leaves the
+   * notification unanswered, with its message as the error.
+   */
+  registerResponseAction(
+    action: string,
+    handler: (payload: Record<string, unknown>, respondingUserId: number) => Promise<void>,
+  ): void {
+    registerAction(action, handler);
+  }
+
+  /**
    * Run a notification's action for the recipient's answer.
    * @txIndependent the claim commits on its own before the action runs, so a second
    * submit sees it; a failing action releases it again.
@@ -726,13 +760,23 @@ export class NotificationsService {
   // ── Unified dispatcher (from services/notificationService.ts) ─────────────
 
   /**
-   * Resolves the recipients of one event and delivers it on every active channel.
+   * Resolves the recipients of one event and delivers it on every active
+   * channel. A caller may leave the send running; `settled()` waits for it.
    *
    * @txStandalone a notification reports a change after it is written; email
    * and webhook delivery are network I/O, which never runs inside a transaction.
-   * @txIndependent each recipient's row is written on its own, between deliveries.
    */
-  async send(payload: NotificationPayload): Promise<NotificationDelivery> {
+  send(payload: NotificationPayload): Promise<NotificationDelivery> {
+    return this.inFlight.track(this.deliver(payload));
+  }
+
+  /** Resolves once every send started before the call has finished, delivered or not. */
+  settled(): Promise<void> {
+    return this.inFlight.settled();
+  }
+
+  /** @txIndependent each recipient's row is written on its own, between deliveries. */
+  private async deliver(payload: NotificationPayload): Promise<NotificationDelivery> {
     const { event, actorId, params, scope, targetId, inApp } = payload;
     const delivery: NotificationDelivery = { attempted: 0, delivered: 0 };
 

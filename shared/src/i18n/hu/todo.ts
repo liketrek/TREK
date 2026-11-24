@@ -38,5 +38,8 @@ const todo: TranslationStrings = {
   'todo.detail.priority': 'Prioritás',
   'todo.detail.noPriority': 'Nincs',
   'todo.sortByPrio': 'Prioritás',
+  'todo.progressCount': '{done}/{total} kész',
+  'todo.allDone': 'Minden kész!',
+  'todo.filter.myShort': 'Enyém',
 };
 export default todo;

@@ -5,6 +5,8 @@
 "widget.today.description" = "Päeva plaan ajajoonena, koos ilma ja järgmise peatusega.";
 "widget.bookings.name" = "Broneeringud";
 "widget.bookings.description" = "Sinu järgmised lennud, rongid, hotellid ja lauad ning millal need on.";
+"widget.flight.name" = "Lend";
+"widget.flight.description" = "Sinu järgmine lend otse: loendus väljumiseni, lennuk teel, hilinemine ja saabumine.";
 "widget.todos.name" = "Ülesanded";
 "widget.todos.description" = "Mis reisi jaoks veel tegemata on ja kui kaugel pakkimine on.";
 "widget.packing.name" = "Pakkimine";

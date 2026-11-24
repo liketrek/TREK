@@ -132,7 +132,8 @@ export default function MapSettingsTab(): React.ReactElement {
   const {
     managed, presets, canMapbox, saving, provider, changeProvider, mapTileUrl, setMapTileUrl, mapboxToken, setMapboxToken,
     cartoKey, setCartoKey, cartoNeedsKey, mapboxStyle, setMapboxStyle, mapbox3d, setMapbox3d,
-    mapboxQuality, setMapboxQuality, previewPlaces, glPreview, webgl2Missing, save: saveMapSettings,
+    mapboxQuality, setMapboxQuality, hideBasemapPois, setHideBasemapPois, mapboxPreview, previewPlaces, glPreview,
+    webgl2Missing, save: saveMapSettings,
   } = useMapSettingsForm()
   // One chunk per engine — see components/Map/glLazy.tsx.
   const GlMapPreview = provider === 'maplibre-gl' ? GlMapPreviewMaplibre : GlMapPreviewMapbox
@@ -164,8 +165,6 @@ export default function MapSettingsTab(): React.ReactElement {
                 icon={Box}
                 name={<><span className="sm:hidden">Mapbox</span><span className="hidden sm:inline">Mapbox GL</span></>}
                 subtitle={t('settings.mapMapboxSubtitle')}
-                // Only on ≥sm; on a narrow window there's no room next to the title.
-                badge={<span className="hidden sm:inline-flex"><StatusPill tone="warning">{t('settings.mapExperimental')}</StatusPill></span>}
               />
             )}
             <ProviderTile
@@ -307,6 +306,11 @@ export default function MapSettingsTab(): React.ReactElement {
                   }
                   control={<ToggleSwitch on={mapboxQuality} onToggle={() => setMapboxQuality(!mapboxQuality)} label={t('settings.mapHighQuality')} />}
                 />
+                <SettingRow
+                  label={t('settings.mapHidePois')}
+                  hint={t('settings.mapHidePoisHint')}
+                  control={<ToggleSwitch on={hideBasemapPois} onToggle={() => setHideBasemapPois(!hideBasemapPois)} label={t('settings.mapHidePois')} />}
+                />
               </SettingRows>
 
               <div className="rounded-[12px] border border-edge-faint bg-surface-card px-3.5 py-3">
@@ -335,8 +339,9 @@ export default function MapSettingsTab(): React.ReactElement {
               // Zoom in close so the style's character (3D buildings,
               // satellite texture, label density) is immediately visible.
               zoom={PREVIEW_ZOOM}
-              enable3d={provider === 'mapbox-gl' && mapbox3d && supports3d}
-              quality={provider === 'mapbox-gl' && mapboxQuality}
+              enable3d={mapboxPreview.enable3d && supports3d}
+              quality={mapboxPreview.quality}
+              hidePois={mapboxPreview.hidePois}
             />
           </Suspense>
           </ErrorBoundary>
@@ -372,7 +377,6 @@ export default function MapSettingsTab(): React.ReactElement {
           onClick={saveMapSettings}
           disabled={saving}
           className={SETTINGS_BUTTON_PRIMARY}
-          style={fs(13, 'body')}
         >
           {saving ? <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-current border-t-transparent" /> : <Save size={14} strokeWidth={2} />}
           {t('settings.saveMap')}

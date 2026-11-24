@@ -114,7 +114,7 @@ const dashboard: TranslationStrings = {
   'dashboard.dateShiftIntro': '旅行の開始日が変更されました。予定を新しい日程にどのように合わせますか？',
   'dashboard.dateShiftKeepBookings': '予約を元の日付のままにする',
   'dashboard.dateShiftKeepBookingsDesc':
-    '日別計画は新しい日程に合わせて移動しますが、予約と宿泊先は旅行期間内にある限り元の日付のままになります。',
+    '追加した日は空のままで、ほかは何も動きません。旅行の日程がずれる場合、日別計画は新しい日程に合わせて移動しますが、予約と宿泊先は旅行期間内にある限り元の日付のままになります。',
   'dashboard.dateShiftAll': 'すべてを移動する',
   'dashboard.dateShiftAllDesc': '予約や宿泊先を含む旅程全体が新しい日程に合わせて移動します。',
   'dashboard.dateShiftHint':
@@ -219,5 +219,8 @@ const dashboard: TranslationStrings = {
   'dashboard.ics.pasteFromUrl': '「URL から」に貼り付け',
   'dashboard.aiPlan': 'AIで旅行を計画',
   'dashboard.aiPlanSub': '希望を伝えて提案を確認',
+  'dashboard.ics.dayEvents': '日ごとの概要イベント',
+  'dashboard.ics.dayEventsHint':
+    '時刻のない場所とメモをまとめた終日イベントを1日ごとに追加します。切り替えるとリンクが変わるため、新しいリンクで登録し直してください。',
 };
 export default dashboard;

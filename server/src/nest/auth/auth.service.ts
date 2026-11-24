@@ -15,7 +15,7 @@ import { UnitOfWork } from '../database/unit-of-work';
 import { PermissionsService } from '../permissions/permissions.service';
 import { validatePassword } from '../common/passwordPolicy';
 import { encryptMfaSecret, decryptMfaSecret } from '../common/crypto/mfaCrypto';
-import { decrypt_api_key, maybe_encrypt_api_key, encrypt_api_key } from '../common/crypto/apiKeyCrypto';
+import { decrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { resolveApiKey } from '../settings/instance-api-keys';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
@@ -42,9 +42,9 @@ import { EphemeralTokenService } from '../auth-core/ephemeral-token.service';
 // Import from sessionManager directly, NOT the ../../mcp barrel: the barrel pulls
 // the whole tools fan-out (and via the domain bridges, the Nest services) into
 // every consumer of this module — a nest→mcp→nest module cycle.
-import { revokeUserSessions } from '../../mcp/sessionManager';
+import { invalidateMcpSessions, revokeUserSessions } from '../../mcp/sessionManager';
 import { UserCleanupService } from './user-cleanup.service';
-import { splitManagedKeys } from '../common/managed';
+import { envLockedKeys, splitManagedKeys, withEnvLocks } from '../common/managed';
 import { emitUserDeleted } from '../../plugin-user-lifecycle';
 import { verifyJwtAndLoadUser } from '../auth-core/jwt-verify';
 import { User } from '../../types';
@@ -68,16 +68,18 @@ import {
   matchBackupCode,
   parseBackupCodeHashes,
   stripUserForClient,
+  appSettingsAudit,
 } from './auth.helpers';
 import {
   ADMIN_FORM_SETTING_KEYS,
-  APP_SETTINGS,
   MASKED_ADMIN_SETTING_KEYS,
+  ADMIN_SETTING_MASK,
+  isMaskEcho,
+  storedAdminValue,
   PUBLIC_CONFIG_SETTING_KEYS,
   isOidcConfigured,
   isOidcConfiguredIn,
   readAppSetting,
-  type AppSettingDef,
   type AppSettingKey,
 } from '../common/app-settings.registry';
 
@@ -308,8 +310,7 @@ export class AuthService {
     const userCount = await this.usersRepo.countNonGuest();
     const isDemo = readEnv().demo.enabled;
     const toggles = await this.resolveAuthToggles();
-    // One directory deeper than the legacy src/services location — the extra
-    // '../' keeps resolving to the workspace package.json.
+    // One directory deeper than the old src/services, so the extra '../' still reaches the package.json.
     const version: string = readEnv().app.appVersion ?? require('../../../package.json').version;
     // Asked through the same resolver the search itself uses, so the client can
     // never show Google features that rest on a key this caller does not get —
@@ -359,6 +360,7 @@ export class AuthService {
       password_registration: isDemo ? false : toggles.password_registration,
       oidc_login: toggles.oidc_login,
       oidc_registration: isDemo ? false : toggles.oidc_registration,
+      oidc_auto_redirect: settings.get('oidc_auto_redirect') !== 'false', // read only without password login (#2925)
       // Passkey login: the instance toggle + whether a usable RP ID resolves for
       // this deployment. The login page shows the passkey button only when both
       // are true. `passkey_configured` stays a pure boolean — it never leaks the
@@ -489,10 +491,8 @@ export class AuthService {
         const token = await this.generateToken(user, undefined, client);
 
         if (validInvite) {
-          const updated = await this.inviteTokens.incrementUsedCount(validInvite.token);
-          if (!updated) {
-            console.warn(`[Auth] Invite token ${validInvite.token.slice(0, 8)}... exceeded max_uses due to race condition`);
-          }
+          // The increment is the capacity check: another signup took the last use since the read above.
+          if (!(await this.inviteTokens.incrementUsedCount(validInvite.token))) throw new DomainError(410, 'Invite link has been fully used');
           // Trip-bound invite (#1402): auto-add the freshly registered user to the
           // trip. Idempotent + owner-safe; no-ops if the bound trip was since deleted.
           if (validInvite.trip_id) {
@@ -677,13 +677,13 @@ export class AuthService {
     if (readEnv().demo.enabled && isDemoEmail(userEmail)) {
       throw new DomainError(403, 'Account deletion is disabled in demo mode.');
     }
-    if (userRole === 'admin') {
+    await this.userCleanup.deleteUserCompletely(userId, async () => {
+      if (userRole !== 'admin') return;
       const adminCount = await this.usersRepo.countAdmins();
       if (adminCount <= 1) {
         throw new DomainError(400, 'Cannot delete the last admin account');
       }
-    }
-    await this.userCleanup.deleteUserCompletely(userId);
+    });
     await emitUserDeleted(userId); // let plugins erase their own per-user data
     return { success: true };
   }
@@ -709,9 +709,9 @@ export class AuthService {
     const result: Record<string, string> = {};
     for (const key of ADMIN_FORM_SETTING_KEYS) {
       const value = await readAppSetting(this.appSettings, key);
-      if (value !== null) result[key] = MASKED_ADMIN_SETTING_KEYS.has(key) ? '••••••••' : value;
+      if (value !== null) result[key] = MASKED_ADMIN_SETTING_KEYS.has(key) ? ADMIN_SETTING_MASK : value;
     }
-    return { data: result };
+    return { data: withEnvLocks(result) };
   }
 
   async updateAppSettings(
@@ -739,24 +739,24 @@ export class AuthService {
       }
     }
 
-    // Lockout prevention: can't disable all login methods
-    if (body.password_login !== undefined || body.oidc_login !== undefined) {
-      const current = await this.resolveAuthToggles();
-      const oidcConfigured = await isOidcConfigured(this.appSettings);
-      const nextPasswordLogin = body.password_login !== undefined ? (String(body.password_login) === 'true') : current.password_login;
-      const nextOidcLogin = body.oidc_login !== undefined ? (String(body.oidc_login) === 'true') : current.oidc_login;
-      if (!nextPasswordLogin && (!nextOidcLogin || !oidcConfigured)) {
-        throw new DomainError(400, 'Cannot disable all login methods. At least one must remain enabled.');
-      }
-    }
-
     // SMTP, the OIDC toggles and the WebAuthn pair share this handler with keys
     // the admin does own, so a managed install skips those names and keeps the
     // rest of the save working. Reported, never thrown: the settings tab sends
     // the whole form in one request.
-    const { blocked } = splitManagedKeys(body as Record<string, unknown>, readEnv().managed.enabled);
+    const blocked = [...splitManagedKeys(body, readEnv().managed.enabled).blocked, ...envLockedKeys(body)];
+    const mailImportBefore = await readAppSetting(this.appSettings, 'mail_ingest_enabled');
 
     await this.uow.transactional(async () => { // the whole form lands, or none of it
+      // Lockout prevention: can't disable all login methods (read in the writing transaction).
+      if (body.password_login !== undefined || body.oidc_login !== undefined) {
+        const current = await this.resolveAuthToggles();
+        const oidcConfigured = await isOidcConfigured(this.appSettings);
+        const nextPasswordLogin = body.password_login !== undefined ? (String(body.password_login) === 'true') : current.password_login;
+        const nextOidcLogin = body.oidc_login !== undefined ? (String(body.oidc_login) === 'true') : current.oidc_login;
+        if (!nextPasswordLogin && (!nextOidcLogin || !oidcConfigured)) {
+          throw new DomainError(400, 'Cannot disable all login methods. At least one must remain enabled.');
+        }
+      }
       for (const key of ADMIN_FORM_SETTING_KEYS) {
         if (blocked.includes(key)) continue;
         if (body[key] !== undefined) {
@@ -769,31 +769,19 @@ export class AuthService {
           // admin a saved setting that quietly does nothing.
           if (key === 'places_provider' && !isPlacesProviderChoice(val)) continue;
           // A masked key sent back unchanged keeps its stored value.
-          if (MASKED_ADMIN_SETTING_KEYS.has(key) && val === '••••••••') continue;
-          const encrypted: AppSettingDef['encrypted'] = (APP_SETTINGS[key] as AppSettingDef).encrypted;
-          if (encrypted === 'always') val = encrypt_api_key(val);
-          else if (encrypted === 'if-plain' && val) val = maybe_encrypt_api_key(val) ?? val;
-          await this.appSettings.setValue(key, val);
+          if (isMaskEcho(key, val)) continue;
+          await this.appSettings.setValue(key, storedAdminValue(key, val));
         }
       }
     });
 
-    const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !(k === 'smtp_pass' && String(body[k]) === '••••••••'));
+    // A masked key sent back as its mask was not changed, and a secret's value never reaches the audit row.
+    const changedKeys = ADMIN_FORM_SETTING_KEYS.filter(k => !blocked.includes(k) && body[k] !== undefined && !isMaskEcho(k, body[k]));
 
-    const summary: Record<string, unknown> = {};
-    const smtpChanged = changedKeys.some(k => k.startsWith('smtp_'));
-    if (changedKeys.includes('notification_channels')) summary.notification_channels = body.notification_channels;
-    if (changedKeys.includes('admin_webhook_url')) summary.admin_webhook_url_updated = true;
-    if (changedKeys.some(k => k.startsWith('admin_ntfy_'))) summary.admin_ntfy_updated = true;
-    if (smtpChanged) summary.smtp_settings_updated = true;
-    if (changedKeys.includes('allow_registration')) summary.allow_registration = body.allow_registration;
-    if (changedKeys.includes('allowed_file_types')) summary.allowed_file_types_updated = true;
-    if (changedKeys.includes('require_mfa')) summary.require_mfa = body.require_mfa;
-
-    const debugDetails: Record<string, unknown> = {};
-    for (const k of changedKeys) {
-      debugDetails[k] = k === 'smtp_pass' ? '***' : body[k];
-    }
+    const { summary, debugDetails } = appSettingsAudit(changedKeys, body);
+    // The mail import tools are listed only while it is on, and a session's tool list is fixed when it connects.
+    const mailImportAfter = await readAppSetting(this.appSettings, 'mail_ingest_enabled');
+    if (changedKeys.includes('mail_ingest_enabled') && mailImportAfter !== mailImportBefore) invalidateMcpSessions();
 
     // The reminder crons read their enable gates and channels per tick, so a
     // notification-settings change takes effect at the next run — no restart.
@@ -1064,8 +1052,8 @@ export class AuthService {
     const newPv = (user.password_version ?? 0) + 1;
 
     await this.uow.transactional(async () => {
-      // Burn the token first to keep it atomic with the password change.
-      await this.passwordResetTokens.markConsumed(row.id);
+      // Burn the token first, atomic with the password change; a second use racing this one loses here.
+      if (!(await this.passwordResetTokens.markConsumed(row.id))) throw new DomainError(400, 'This reset link has already been used');
       // Also burn every OTHER live token for this user — a fresh login
       // should not leave a second door open.
       await this.passwordResetTokens.consumeAllLiveForUser(user.id, row.id);

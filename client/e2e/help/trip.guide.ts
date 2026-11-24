@@ -1,14 +1,24 @@
 import { test, expect, type Page, type Locator } from '@playwright/test'
 import { captureGuide, captureHero, beat, typeInto, settle, VIEWPORT, type GuideScript } from './guide'
 import { ensureUsers, seededTrip, ADMIN_USERS, JOURNEY_TITLE } from './fixtures'
-import { openTrip, openTripOnDay, modal } from './trip-shared'
+import { openTrip, openTripOnDay, modal, confirmDialog } from './trip-shared'
+import { mockTripAssistant, resetTripAssistant, QUESTION, SUGGESTED, type AssistantRun } from './fixtures-assistant'
 import { tripContext, tripGuides } from '../../src/help/contexts/trip'
 import type { HelpGuide } from '../../src/help/types'
 
+/** The round button at the bottom of the planner, not the navbar's twin of the same name. */
+const assistantLauncher = (page: Page) => page.locator('button.trek-assistant-pop')
+const assistantWindow = (page: Page) => page.getByRole('dialog', { name: 'Assistant', exact: true })
+/** The answer's card of changes: the last section inside the window, by its title while it waits. */
+const changeCard = (page: Page) =>
+  assistantWindow(page).locator('section').filter({ has: page.getByText('Suggested changes', { exact: true }) }).last()
+/** What the mocked chat made for real, for cleanup. */
+let assistantRun: AssistantRun | null = null
+
 /**
  * Actions for the trip frame, keyed by the ids in `src/help/contexts/trip.ts`:
- * the trip's Settings (people, sharing, the linked journal), the columns and
- * the undo. They run on the seeded "Autumn in Japan"; what a guide creates (a
+ * the trip's Settings (people, sharing, the linked journal, the trip's addons
+ * and its own form), the columns and the undo. They run on the seeded "Autumn in Japan"; what a guide creates (a
  * member, a guest, a link, a linked journal) it leaves for the next one or
  * takes away again in `cleanup`.
  */
@@ -28,7 +38,8 @@ const block = (page: Page, opening: RegExp) => modal(page).locator('section').fi
 const inviteBlock = (page: Page) => block(page, /^Invite User/)
 const accessBlock = (page: Page) => block(page, /^Access\s*\d/)
 /** An area in the dialog's list on the left; each carries the area's name as its label. */
-const area = (page: Page, name: 'People' | 'Sharing' | 'Journal') => modal(page).getByRole('button', { name, exact: true })
+type AreaName = 'People' | 'Sharing' | 'Journal' | 'Addons' | 'Edit Trip'
+const area = (page: Page, name: AreaName) => modal(page).getByRole('button', { name, exact: true })
 /** The Trip settings pill beside the trip's name. */
 const settingsPill = (page: Page) => page.getByRole('button', { name: 'Trip settings', exact: true })
 /**
@@ -52,7 +63,7 @@ async function openSettings(page: Page): Promise<void> {
   await clickSettings(page)
 }
 
-async function pickArea(page: Page, name: 'Sharing' | 'Journal'): Promise<void> {
+async function pickArea(page: Page, name: AreaName): Promise<void> {
   await area(page, name).click()
   await expect(area(page, name)).toHaveAttribute('aria-current', 'page')
   await settle(page)
@@ -61,6 +72,8 @@ async function pickArea(page: Page, name: 'Sharing' | 'Journal'): Promise<void> 
 const closeModal = async (page: Page): Promise<void> => {
   await page.keyboard.press('Escape')
   await expect(modal(page)).toHaveCount(0)
+  // The dialog hands the focus back to the pill, whose focus ring would stay in the picture.
+  await page.evaluate(() => (document.activeElement as HTMLElement | null)?.blur())
 }
 
 /** Take the journal off the trip again; a trip without one answers that too, which is fine. */
@@ -70,6 +83,49 @@ async function unlinkJournal(page: Page): Promise<void> {
 }
 
 const only = (target: (p: Page) => Locator) => ({ target })
+
+/**
+ * Wait until the first rows of the places column show their photos. A photo
+ * that comes back late leaves the category icon in its place for good, so a
+ * page that does not get them in time is opened again, at most twice.
+ */
+async function placePhotos(page: Page): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const loaded = await page
+      .waitForFunction(
+        () => {
+          const rows = [...document.querySelectorAll('[role="option"]')].slice(0, 8)
+          return rows.length > 0 && rows.every(row => row.querySelector('img')?.complete)
+        },
+        null,
+        { timeout: 15_000 },
+      )
+      .then(() => true)
+      .catch(() => false)
+    if (loaded) break
+    await openTrip(page)
+  }
+  await settle(page)
+}
+
+/** The addon the trip-addons guide switches; its row in the Addons area is the switch's row. */
+const ADDON_ID = 'roadtrip'
+const ADDON_NAME = 'Road trip'
+const addonSwitch = (page: Page) => modal(page).getByRole('button', { name: ADDON_NAME, exact: true })
+/** A row of the Addons area: the switch's parent, with the tile, the name, the badge and the line under it. */
+const addonRow = (page: Page) => addonSwitch(page).locator('xpath=..')
+/** The list of every trip addon, one row each. */
+const addonList = (page: Page) => addonRow(page).locator('xpath=..')
+
+/** Back to whatever the instance says for the addon the guide switched. */
+async function resetAddon(page: Page): Promise<void> {
+  const { tripId } = seededTrip()
+  await page.request.put(`/api/trips/${tripId}/addons/${ADDON_ID}`, { data: { enabled: null } })
+}
+
+/** A panel of the trip's form by its heading: the heading, its CardHead, then the panel. */
+const formPanel = (page: Page, heading: string) =>
+  modal(page).getByRole('heading', { name: heading, exact: true }).locator('xpath=../../..')
 
 const SCRIPTS: Record<string, GuideScript> = {
   'add-member': {
@@ -152,7 +208,7 @@ const SCRIPTS: Record<string, GuideScript> = {
         act: p => pickArea(p, 'Sharing'),
       },
       {
-        // The first row of chips: Map & Plan, Bookings, Packing, Costs, Chat.
+        // The chips under Options: Map & Plan, Bookings, Packing, Costs, Chat, then the two options.
         target: p => modal(p).getByRole('button', { name: 'Map & Plan' }).locator('xpath=..'),
         act: async p => {
           await modal(p).getByRole('button', { name: 'Packing', exact: true }).click()
@@ -161,11 +217,8 @@ const SCRIPTS: Record<string, GuideScript> = {
         },
       },
       {
-        // Options with its two chips; the pointer on the first shows what it leaves out.
-        target: p => modal(p).getByRole('button', { name: 'Travel & stays only' }).locator('xpath=../..'),
-        hover: async p => {
-          await modal(p).getByRole('button', { name: 'Travel & stays only' }).hover()
-        },
+        // The first of the two options; the pointer on it shows what it leaves out.
+        target: p => modal(p).getByRole('button', { name: 'Travel & stays only' }),
       },
       {
         target: p => modal(p).getByRole('button', { name: 'Create link', exact: true }),
@@ -243,9 +296,71 @@ const SCRIPTS: Record<string, GuideScript> = {
     ],
     cleanup: unlinkJournal,
   },
+  'trip-addons': {
+    guide: guide('trip-addons'),
+    start: async p => {
+      await resetAddon(p)
+      await openSettings(p)
+    },
+    steps: [
+      {
+        target: p => area(p, 'Addons'),
+        act: async p => {
+          await pickArea(p, 'Addons')
+          await expect(addonSwitch(p)).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: addonList,
+        act: async p => {
+          const before = await addonSwitch(p).getAttribute('aria-pressed')
+          await addonSwitch(p).click()
+          await expect(addonSwitch(p)).not.toHaveAttribute('aria-pressed', before ?? '')
+          await expect(addonRow(p).getByText('This trip only', { exact: true })).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: addonRow,
+        // The result shows the trip with the addon switched.
+        act: async p => {
+          await closeModal(p)
+          await placePhotos(p)
+        },
+      },
+    ],
+    cleanup: resetAddon,
+  },
+  'edit-trip-settings': {
+    guide: guide('edit-trip-settings'),
+    start: openSettings,
+    steps: [
+      {
+        target: p => area(p, 'Edit Trip'),
+        act: async p => {
+          await pickArea(p, 'Edit Trip')
+          await expect(formPanel(p, 'Name and description')).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      only(p => formPanel(p, 'Name and description')),
+      {
+        target: p => modal(p).getByRole('button', { name: 'Update', exact: true }),
+        act: async p => {
+          await modal(p).getByRole('button', { name: 'Update', exact: true }).click()
+          await expect(modal(p)).toHaveCount(0, { timeout: 15_000 })
+          await settle(p)
+        },
+      },
+    ],
+  },
   'collapse-columns': {
     guide: guide('collapse-columns'),
-    start: p => openTrip(p),
+    start: async p => {
+      await openTrip(p)
+      await placePhotos(p)
+    },
     steps: [
       {
         target: leftToggle,
@@ -303,6 +418,30 @@ const SCRIPTS: Record<string, GuideScript> = {
       // The day has to stay open for that: the + at the end of a row belongs to
       // the open day, and closing the day's details panel closes the day with it.
       await openTripOnDay(p, 1)
+      // The picture shows the rows around it, so their photos have to be in
+      // first; the spare place has none of its own and is left out of the wait.
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const loaded = await p
+          .waitForFunction(
+            () => {
+              // A place's avatar is an <img> with the place's name as its alt
+              // while it has a photo, and the category icon once the photo is
+              // given up. Day 1's places sit in the day plan and in the places
+              // column, so each needs two loaded photos.
+              const names = ['Senso-ji Temple', 'teamLab Planets']
+              return names.every(name => {
+                const imgs = [...document.querySelectorAll('img')].filter(img => img.alt === name)
+                return imgs.length >= 2 && imgs.every(img => img.complete && img.naturalWidth > 0)
+              })
+            },
+            null,
+            { timeout: 20_000 },
+          )
+          .then(() => true)
+          .catch(() => false)
+        if (loaded) break
+        await openTripOnDay(p, 1)
+      }
       const row = p.getByRole('option', { name: /^Tsukiji Outer Market/ })
       await row.hover()
       const add = row.getByRole('button', { name: '+ Day' })
@@ -329,6 +468,73 @@ const SCRIPTS: Record<string, GuideScript> = {
       for (const place of places.filter(x => x.name === 'Tsukiji Outer Market')) {
         await p.request.delete(`/api/trips/${tripId}/places/${place.id}`)
       }
+    },
+  },
+  'trip-assistant': {
+    guide: guide('trip-assistant'),
+    // No provider answers in the run: fixtures-assistant.ts answers for it, and Apply plans the place for real.
+    start: async p => {
+      assistantRun = await mockTripAssistant(p)
+      await openTrip(p)
+      await expect(assistantLauncher(p)).toBeVisible({ timeout: 20_000 })
+      await settle(p)
+    },
+    steps: [
+      {
+        target: p => assistantLauncher(p),
+        act: async p => {
+          await assistantLauncher(p).click()
+          await expect(assistantWindow(p).getByRole('textbox')).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+      {
+        prepare: async p => {
+          await typeInto(p, assistantWindow(p).getByRole('textbox'), QUESTION)
+          await beat(p, 300)
+          await settle(p)
+        },
+        target: p => assistantWindow(p).locator('form').last(),
+        hover: async p => { await assistantWindow(p).getByRole('button', { name: 'Send', exact: true }).hover() },
+        act: async p => {
+          await assistantWindow(p).getByRole('button', { name: 'Send', exact: true }).click()
+          await expect(changeCard(p)).toBeVisible({ timeout: 20_000 })
+          await expect(changeCard(p).getByRole('button', { name: 'Apply', exact: true })).toBeEnabled()
+          await settle(p)
+        },
+      },
+      {
+        target: p => changeCard(p),
+        hover: async p => { await changeCard(p).getByRole('button', { name: 'Apply', exact: true }).hover() },
+        act: async p => {
+          await changeCard(p).getByRole('button', { name: 'Apply', exact: true }).click()
+          await expect(assistantWindow(p).getByRole('button', { name: 'Undo', exact: true }).first()).toBeVisible({ timeout: 20_000 })
+          // The place lands in day 1 of the plan behind the window, through the websocket.
+          await expect(p.getByText(SUGGESTED.name, { exact: true }).first()).toBeVisible({ timeout: 20_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: p => assistantWindow(p).getByRole('button', { name: 'Share in the trip chat' }).last(),
+        act: async p => {
+          await assistantWindow(p).getByRole('button', { name: 'Share in the trip chat' }).last().click()
+          await expect(confirmDialog(p).getByRole('button', { name: 'Share', exact: true })).toBeVisible({ timeout: 10_000 })
+          await settle(p)
+        },
+      },
+      {
+        target: p => confirmDialog(p),
+        hover: async p => { await confirmDialog(p).getByRole('button', { name: 'Share', exact: true }).hover() },
+        act: async p => {
+          await confirmDialog(p).getByRole('button', { name: 'Share', exact: true }).click()
+          await expect(p.getByText('Shared in the trip chat').first()).toBeVisible({ timeout: 15_000 })
+          await settle(p)
+        },
+      },
+    ],
+    cleanup: async p => {
+      await resetTripAssistant(p.request, assistantRun)
+      assistantRun = null
     },
   },
 }

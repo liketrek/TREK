@@ -47,7 +47,9 @@ describe('demo reset and the signed-in sessions', () => {
       await deleteRows(t, UserSessions);
     };
     database = {
+      archiveEntry: 'travel.db',
       canSnapshot: () => true,
+      checkCopy: vi.fn(async () => null),
       checkpoint: vi.fn(async () => undefined),
       replace: vi.fn(async () => {
         await swap();

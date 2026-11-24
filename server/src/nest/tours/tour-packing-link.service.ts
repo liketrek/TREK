@@ -96,9 +96,9 @@ export class TourPackingLinkService {
     return { tripId: tid, placeId: pid, tour };
   }
 
-  /** Packing has to be on for a link to be made or read through. */
-  private async requirePacking(): Promise<void> {
-    if (!(await this.addons.isAddonEnabled(ADDON_IDS.PACKING))) {
+  /** Packing has to be on for this trip for a link to be made or read through. */
+  private async requirePacking(tripId: number): Promise<void> {
+    if (!(await this.addons.isEnabledForTrip(tripId, ADDON_IDS.PACKING))) {
       throw new DomainError(404, 'Packing addon is not enabled', { code: 'packing_addon_off' });
     }
   }
@@ -129,7 +129,7 @@ export class TourPackingLinkService {
     socketId?: string,
   ): Promise<TourDetailResponse> {
     const tour = await this.tourIn(tripId, placeId);
-    await this.requirePacking();
+    await this.requirePacking(tour.tripId);
     if (body.category !== null) {
       const items = await this.visibleItems(tour.tripId, userId);
       if (!items.some((item) => item.category === body.category)) {
@@ -159,8 +159,8 @@ export class TourPackingLinkService {
    * points at, and the tour's facts as context. Reading changes nothing.
    */
   async view(tripId: number, placeId: number, userId: number): Promise<TourPackingView> {
-    const { tour } = await this.tourIn(tripId, placeId);
-    await this.requirePacking();
+    const { tour, tripId: tid } = await this.tourIn(tripId, placeId);
+    await this.requirePacking(tid);
     const link = (await this.links.findForTour(placeId)) ?? null;
     const context = {
       name: tour.name,

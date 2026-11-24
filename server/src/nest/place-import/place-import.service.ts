@@ -15,11 +15,17 @@ import { CollectionGpxProvider, type ExportedCollectionFile } from './providers/
 import { GoogleDirectionsProvider } from './providers/google-directions.provider';
 import { GoogleListProvider } from './providers/google-list.provider';
 import { GoogleMapsShortLinkProvider } from './providers/google-maps-short-link.provider';
-import { GpxProvider, type GpxExportInput, type GpxExportOptions, type GpxTourExport } from './providers/gpx.provider';
+import {
+  GpxProvider,
+  type GpxExportInput,
+  type GpxExportOptions,
+  type GpxExportPlace,
+  type GpxTourExport,
+} from './providers/gpx.provider';
 import { KmlProvider } from './providers/kml.provider';
 import { NaverListProvider } from './providers/naver-list.provider';
 import { Injectable } from '@nestjs/common';
-import type { CollectionGpxExport, CollectionGpxReadResult } from '@trek/shared';
+import type { CollectionGpxExport, CollectionGpxReadResult, CollectionKmlExport } from '@trek/shared';
 
 // The directions-link reading is also what the road trip planner reads a
 // shared route with, what the import routes dispatch on, and what the city
@@ -41,7 +47,7 @@ export type Geocoder = (query: string) => Promise<{ lat: number; lng: number } |
 
 /**
  * Places out of files and shared lists: the one layer that reads GPX, KML/KMZ,
- * Google lists, Google directions links and Naver lists, and writes GPX.
+ * Google lists, Google directions links and Naver lists, and writes GPX and KML.
  *
  * One provider per source behind it, over one GPX codec and one KML codec.
  * Nothing here persists: a trip import (PlacesService), the Tours import
@@ -114,6 +120,20 @@ export class PlaceImportService {
   /** IO-02: the lines of a .kml or .kmz upload as tour rows, and what it holds besides. Throws KmlReadError. */
   readMapFileTracks(fileBuffer: Buffer, filename: string): Promise<KmlTracksRead> {
     return this.kml.readTracks(fileBuffer, filename);
+  }
+
+  /** A trip's places as KML pins for Google My Maps (#1866), or null when none has coordinates. */
+  writeTripKml(tripTitle: string, places: GpxExportPlace[]): string | null {
+    return this.kml.writeTrip(tripTitle, places);
+  }
+
+  tripKmlFilename(tripTitle: string): string {
+    return this.kml.tripFilename(tripTitle);
+  }
+
+  /** A list file as KML pins for Google My Maps (#1866). */
+  writeCollectionKml(file: ExportedCollectionFile): CollectionKmlExport {
+    return this.kml.writeCollection(file);
   }
 
   // ── Shared lists ───────────────────────────────────────────────────────────

@@ -60,13 +60,20 @@ export class MemoriesAccessService {
     return await this.journeyContributors.hasAccess(journeyId, userId);
   }
 
+  /**
+   * `owner` is the route's `:ownerId` as it came: read through toRowId, so a
+   * spelling it refuses ('0x2', '2e0') is nobody's photo rather than the
+   * caller's own through Number().
+   */
   async canAccessUserPhoto(
     requestingUserId: number,
-    ownerUserId: number,
+    owner: number | string,
     tripId: string,
     assetId: string,
     provider: string,
   ): Promise<boolean> {
+    const ownerUserId = toRowId(owner);
+    if (ownerUserId === null) return false;
     if (requestingUserId === ownerUserId) {
       return true;
     }

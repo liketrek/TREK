@@ -59,6 +59,7 @@
  * plugin-runtime.service.ts's own comment at the wrap site) already ran inside a
  * request context by the time this file's shared `runtime` finished booting.
  */
+import { SqliteEngine } from '../../../src/db/engine/sqlite/sqlite-engine';
 import { AuditLog } from '../../../src/db/entities/AuditLog.entity';
 import { NotificationChannelPreferences } from '../../../src/db/entities/NotificationChannelPreferences.entity';
 import { PluginActions } from '../../../src/db/entities/PluginActions.entity';
@@ -158,7 +159,7 @@ async function buildRuntime(registrar?: CronRegistrarService, orm?: TestOrm['orm
     t.repo(Settings),
     t.repo(NotificationChannelPreferences),
     // Plan 4 Task 4: `uow` is no longer `@Optional()`.
-    new UnitOfWork(t.em),
+    new UnitOfWork(t.em, new SqliteEngine()),
     undefined,
     undefined,
     orm,

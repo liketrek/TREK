@@ -18,9 +18,16 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
+          cache: npm
+          cache-dependency-path: package-lock.json
 
+      # shared's ESLint and Prettier plugins are its own devDependencies, and
+      # the format ratchet in scripts/lib/ resolves prettier from the root, so
+      # shared plus the root is the whole tree these checks read. npm ci
+      # installs exactly what the lockfile says, where npm install could
+      # resolve anew.
       - name: Install dependencies
-        run: npm install
+        run: npm ci --workspace shared --include-workspace-root
 
       - name: Run lint & format check
         # Both are check-only: lint used to run eslint --fix, which rewrote the

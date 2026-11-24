@@ -30,6 +30,7 @@ import { takeResumeRoute, useRememberRoute } from './utils/resumeRoute'
 import { usePermissionsStore, PermissionLevel } from './store/permissionsStore'
 import { useInAppNotificationListener } from './hooks/useInAppNotificationListener.ts'
 import { useRoadtripPreferencesSync } from './hooks/useRoadtripPreferencesSync'
+import { useTripAddonsSync } from './hooks/useTripAddonsSync'
 import { registerSyncTriggers, unregisterSyncTriggers } from './sync/syncTriggers'
 import OfflineBanner from './components/Layout/OfflineBanner'
 import NewVersionNotice from './components/Layout/NewVersionNotice'
@@ -380,6 +381,7 @@ export default function App() {
 
   useInAppNotificationListener()
   useRoadtripPreferencesSync()
+  useTripAddonsSync()
 
   useEffect(() => {
     if (isAuthenticated) {

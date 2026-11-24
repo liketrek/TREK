@@ -11,8 +11,17 @@ const pdf: TranslationStrings = {
     'iOS tidak bisa mencetak dari aplikasi di Layar Utama. Safari membuka perjalanan ini dengan ekspor yang siap, di sana kamu bisa menyimpan PDF.',
   'pdf.pageBreakPerDay': 'Pemisah halaman per hari',
   'pdf.transportNotes': 'Catatan transportasi',
+  'pdf.largeText': 'Teks besar',
   'pdf.mapTitle': 'Ringkasan rute',
   'pdf.distanceLabel': 'Jarak',
   'pdf.mapCredit': 'Garis batas negara: geoBoundaries (CC BY 4.0)',
+  'pdf.showOverview': 'Ringkasan',
+  'pdf.showPhotos': 'Foto',
+  'pdf.showDetails': 'Kontak & jam buka',
+  'pdf.atAGlance': 'Sekilas',
+  'pdf.bookings': 'Pemesanan & penginapan',
+  'pdf.day': 'Hari',
+  'pdf.stay': 'Penginapan',
+  'pdf.plan': 'Rencana',
 };
 export default pdf;

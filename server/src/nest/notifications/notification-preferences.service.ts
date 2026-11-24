@@ -4,8 +4,9 @@ import { AppSettings } from '../../db/entities/AppSettings.entity';
 import { NotificationChannelPreferences } from '../../db/entities/NotificationChannelPreferences.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import type { NotificationChannelPreferencesRepository } from '../../db/repositories/NotificationChannelPreferences.repository';
+import { TRIP_ADDON_IDS } from '../addons/addons.constants';
 import { AddonsService } from '../addons/addons.service';
-import { readAppSetting } from '../common/app-settings.registry';
+import { readAppSetting, resolveAppSetting } from '../common/app-settings.registry';
 import { UnitOfWork } from '../database/unit-of-work';
 import { listChannels } from './channel-registry';
 import { MailerService } from './mailer/mailer.service';
@@ -93,14 +94,22 @@ export class NotificationPreferencesService {
    * The events the matrices list: what the install can raise at all
    * (offeredEventTypes), narrowed to the features that are switched on. A row
    * for vacation sharing on an install without Vacay, or for Synology without
-   * the provider, is a switch that never does anything.
+   * the provider, is a switch that never does anything. For one user's own
+   * matrix a trip addon counts as on while it is on in any of their trips, so a
+   * trip that switched Collab on lists its chat row although the instance has it off.
+   * For the admin's matrix it counts as on while it is on in any trip at all,
+   * since an admin-scoped event fires from whichever trip has it.
    */
-  private async listedEventTypes(): Promise<NotifEventType[]> {
+  private async listedEventTypes(userId?: number, scope: 'user' | 'admin' = 'user'): Promise<NotifEventType[]> {
     const photoProviders = await this.addons.enabledPhotoProviderIds();
+    const read = (id: string): Promise<boolean> => {
+      if (userId === undefined || !TRIP_ADDON_IDS.has(id)) return this.addons.isAddonEnabled(id);
+      return scope === 'admin' ? this.addons.isEnabledAnywhere(id) : this.addons.isEnabledForUserAnywhere(userId, id);
+    };
     // One read per addon, shared by the events that hang off it.
     const addonOn = new Map<string, Promise<boolean>>();
     const on = (id: string): Promise<boolean> => {
-      if (!addonOn.has(id)) addonOn.set(id, this.addons.isAddonEnabled(id));
+      if (!addonOn.has(id)) addonOn.set(id, read(id));
       return addonOn.get(id) as Promise<boolean>;
     };
     const events = offeredEventTypes();
@@ -130,7 +139,15 @@ export class NotificationPreferencesService {
       case 'synology_session_cleared':
         return photoProviders.includes('synologyphotos');
       case 'wanderer_source_hint':
-        return this.addons.isWandererAvailable();
+        return (await this.addons.isWandererAllowed()) && (await on(ADDON_IDS.TOURS));
+      case 'flight_departed':
+      case 'flight_delayed':
+      case 'flight_landed':
+        return (await resolveAppSetting(this.appSettings, 'flight_live_enabled')) !== 'false';
+      case 'mail_booking_added':
+      case 'mail_booking_pending':
+      case 'mail_ingest_paused':
+        return (await resolveAppSetting(this.appSettings, 'mail_ingest_enabled')) === 'true';
       default:
         return true;
     }
@@ -366,8 +383,8 @@ export class NotificationPreferencesService {
     // Filter event types by scope
     const event_types =
       scope === 'admin'
-        ? (await this.listedEventTypes()).filter((e) => ADMIN_SCOPED_EVENTS.has(e))
-        : (await this.listedEventTypes()).filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
+        ? (await this.listedEventTypes(userId, 'admin')).filter((e) => ADMIN_SCOPED_EVENTS.has(e))
+        : (await this.listedEventTypes(userId)).filter((e) => !ADMIN_SCOPED_EVENTS.has(e));
 
     return {
       preferences,

@@ -146,8 +146,8 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
       await c.markRegion(user, 'by', { name: 'Bavaria', country_code: 'de' }, 'sock-1');
       await c.unmarkRegion(user, 'by', 'sock-1');
       await c.createBucketItem(user, { name: 'Tokyo' }, 'sock-1');
-      await c.updateBucketItem(user, '1', { name: 'Kyoto' }, 'sock-1');
-      await c.deleteBucketItem(user, '1', 'sock-1');
+      await c.updateBucketItem(user, 1, { name: 'Kyoto' }, 'sock-1');
+      await c.deleteBucketItem(user, 1, 'sock-1');
       for (const write of Object.values(writes)) expect(write.mock.calls[0]?.at(-1)).toBe('sock-1');
     });
   });
@@ -214,14 +214,14 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
 
     it('404 on update of a missing item', () => {
       const updateBucketItem = vi.fn().mockReturnValue(null);
-      return thrown(() => makeController({ updateBucketItem }).updateBucketItem(user, '9', { name: 'X' })).then((r) =>
+      return thrown(() => makeController({ updateBucketItem }).updateBucketItem(user, 9, { name: 'X' })).then((r) =>
         expect(r).toEqual({ status: 404, body: { error: 'Item not found' } }),
       );
     });
 
     it('updates an existing item', async () => {
       const updateBucketItem = vi.fn().mockReturnValue({ id: 1, name: 'Kyoto' });
-      expect(await makeController({ updateBucketItem }).updateBucketItem(user, '1', { name: 'Kyoto' })).toEqual({
+      expect(await makeController({ updateBucketItem }).updateBucketItem(user, 1, { name: 'Kyoto' })).toEqual({
         item: { id: 1, name: 'Kyoto' },
       });
     });
@@ -240,7 +240,7 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
         throw new BucketItemExistsError();
       });
       return thrown(() =>
-        makeController({ updateBucketItem }).updateBucketItem(user, '1', { target_date: '2027-05' }),
+        makeController({ updateBucketItem }).updateBucketItem(user, 1, { target_date: '2027-05' }),
       ).then((r) => expect(r).toEqual({ status: 409, body: { error: 'Already on your bucket list' } }));
     });
 
@@ -255,21 +255,21 @@ describe('AtlasController (parity with the legacy /api/addons/atlas route)', () 
       const updateBucketItem = vi.fn(() => {
         throw boom;
       });
-      await expect(makeController({ updateBucketItem }).updateBucketItem(user, '1', { name: 'Japan' })).rejects.toThrow(
+      await expect(makeController({ updateBucketItem }).updateBucketItem(user, 1, { name: 'Japan' })).rejects.toThrow(
         boom,
       );
     });
 
     it('404 on delete of a missing item', () => {
       const deleteBucketItem = vi.fn().mockReturnValue(false);
-      return thrown(() => makeController({ deleteBucketItem }).deleteBucketItem(user, '9')).then((r) =>
+      return thrown(() => makeController({ deleteBucketItem }).deleteBucketItem(user, 9)).then((r) =>
         expect(r).toEqual({ status: 404, body: { error: 'Item not found' } }),
       );
     });
 
     it('deletes an existing item', async () => {
       const deleteBucketItem = vi.fn().mockReturnValue(true);
-      expect(await makeController({ deleteBucketItem }).deleteBucketItem(user, '1')).toEqual({ success: true });
+      expect(await makeController({ deleteBucketItem }).deleteBucketItem(user, 1)).toEqual({ success: true });
     });
   });
 });

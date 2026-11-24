@@ -59,7 +59,7 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
     titleKey: 'system_notice.release_notes.headline',
     bodyKey: 'system_notice.release_notes.intro',
     release: {
-      version: '5.1.3',
+      version: '5.2.0',
       eyebrowKey: 'system_notice.release_notes.eyebrow',
       headlineKey: 'system_notice.release_notes.headline',
       introKey: 'system_notice.release_notes.intro',
@@ -67,28 +67,28 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
       featuresAsideKey: 'system_notice.release_notes.features_aside',
       features: [
         {
-          iconName: 'Search',
-          visual: 'search',
-          titleKey: 'system_notice.release_notes.feature_search_title',
-          bodyKey: 'system_notice.release_notes.feature_search_body',
+          iconName: 'Mail',
+          visual: 'mail',
+          titleKey: 'system_notice.release_notes.feature_mail_title',
+          bodyKey: 'system_notice.release_notes.feature_mail_body',
         },
         {
-          iconName: 'Share2',
-          visual: 'share',
-          titleKey: 'system_notice.release_notes.feature_share_title',
-          bodyKey: 'system_notice.release_notes.feature_share_body',
+          iconName: 'Plane',
+          visual: 'flight',
+          titleKey: 'system_notice.release_notes.feature_flight_title',
+          bodyKey: 'system_notice.release_notes.feature_flight_body',
         },
         {
-          iconName: 'Route',
-          visual: 'routing',
-          titleKey: 'system_notice.release_notes.feature_routing_title',
-          bodyKey: 'system_notice.release_notes.feature_routing_body',
+          iconName: 'FileText',
+          visual: 'pdf',
+          titleKey: 'system_notice.release_notes.feature_pdf_title',
+          bodyKey: 'system_notice.release_notes.feature_pdf_body',
         },
       ],
       footnoteKey: 'system_notice.release_notes.footnote',
       notes: {
         labelKey: 'system_notice.release_notes.notes_label',
-        href: 'https://github.com/liketrek/TREK/releases/tag/v5.1.0',
+        href: 'https://github.com/liketrek/TREK/releases/tag/v5.2.0',
       },
       note: {
         eyebrowKey: 'system_notice.release_notes.note_eyebrow',
@@ -113,6 +113,11 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
       kind: 'link',
       labelKey: 'system_notice.release_notes.cta_kofi',
       href: 'https://ko-fi.com/mauriceboe',
+    },
+    tertiaryCta: {
+      kind: 'link',
+      labelKey: 'system_notice.release_notes.cta_patreon',
+      href: 'https://www.patreon.com/cw/mauriceboe',
     },
     dismissible: true,
     // Desktop-only: the two-column layout has no phone form, and the phone has its
@@ -150,6 +155,11 @@ export const SYSTEM_NOTICES: SystemNotice[] = [
       kind: 'link',
       labelKey: 'system_notice.thank_you_support.cta_kofi',
       href: 'https://ko-fi.com/mauriceboe',
+    },
+    tertiaryCta: {
+      kind: 'link',
+      labelKey: 'system_notice.thank_you_support.cta_patreon',
+      href: 'https://www.patreon.com/cw/mauriceboe',
     },
     dismissible: true,
     // Desktop-only: the support modal is suppressed on small/mobile viewports.

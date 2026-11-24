@@ -1,6 +1,7 @@
 import type { APIRequestContext, Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 import { at, day } from '../dates';
-import { seededTrip } from './fixtures';
+import { coverFixture, seededTrip } from './fixtures';
 import { PICTURE_DAY } from './guide';
 
 /**
@@ -43,6 +44,8 @@ export const FUEL_STOP = {
   address: 'Ebina, Kanagawa',
   description: 'Fuel and food on the Tomei Expressway, halfway to Hakone.',
   stop_type: 'fuel',
+  // What a fuel stop starts with; a new place would otherwise stand an hour at the pump.
+  duration_minutes: 10,
 };
 
 /**
@@ -80,6 +83,38 @@ export async function removeFuelStop(api: APIRequestContext): Promise<void> {
   const { tripId } = seededTrip();
   const id = await placeIdOf(api, FUEL_STOP.name);
   if (id !== null) await api.delete(`/api/trips/${tripId}/places/${id}`);
+}
+
+// ── A stop on the way with a picture, for the stop photo guide ───────────────
+
+/**
+ * Owakudani, the volcanic valley above Hakone on day 4, as a Sights stop on the
+ * way with a picture of its own. The cover drawing is a mountain ridge at
+ * sunset, which is what the valley looks like towards Fuji in the evening.
+ */
+export const PHOTO_STOP = 'Owakudani';
+
+/** The picture uploaded as the place's own image, and the valley made a Sights stop. */
+export async function ensurePhotoStop(api: APIRequestContext): Promise<void> {
+  const { tripId } = seededTrip();
+  const id = await placeIdOf(api, PHOTO_STOP);
+  if (id === null) throw new Error(`the seeded place "${PHOTO_STOP}" is missing`);
+  const image = await api.post(`/api/trips/${tripId}/places/${id}/image`, {
+    multipart: {
+      image: { name: 'owakudani-evening.jpg', mimeType: 'image/jpeg', buffer: readFileSync(await coverFixture()) },
+    },
+  });
+  if (!image.ok()) throw new Error(`could not give "${PHOTO_STOP}" a picture: ${image.status()} ${await image.text()}`);
+  const put = await api.put(`/api/trips/${tripId}/places/${id}`, { data: { stop_type: 'sights' } });
+  if (!put.ok())
+    throw new Error(`could not make "${PHOTO_STOP}" a stop on the way: ${put.status()} ${await put.text()}`);
+}
+
+/** The valley a destination without a picture again; the update reclaims the uploaded file. */
+export async function removePhotoStop(api: APIRequestContext): Promise<void> {
+  const { tripId } = seededTrip();
+  const id = await placeIdOf(api, PHOTO_STOP);
+  if (id !== null) await api.put(`/api/trips/${tripId}/places/${id}`, { data: { stop_type: null, image_url: null } });
 }
 
 // ── A ferry on day 3, for the bookings guide ─────────────────────────────────

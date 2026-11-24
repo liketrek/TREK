@@ -28,7 +28,7 @@ const answer = { entries: [], uncounted: { unassigned: 0, undated: 0 } };
 describe('TourActivityStatsController', () => {
   it('STA2-CTL-001: sits behind the addon and auth guards, not under a trip', () => {
     expect(Reflect.getMetadata(PATH_METADATA, TourActivityStatsController)).toBe('api/tours/activity-stats');
-    expect(Reflect.getMetadata(GUARDS_METADATA, TourActivityStatsController)).toEqual([AddonGuard, JwtAuthGuard]);
+    expect(Reflect.getMetadata(GUARDS_METADATA, TourActivityStatsController)).toEqual([JwtAuthGuard, AddonGuard]);
     expect(Reflect.getMetadata(REQUIRE_ADDON, TourActivityStatsController)).toEqual({
       addonId: 'tours',
       label: 'Tours',

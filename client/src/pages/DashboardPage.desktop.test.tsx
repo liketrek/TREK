@@ -205,7 +205,10 @@ describe('DashboardPage (desktop)', () => {
     // Only the unconfirmed one is marked.
     const pending = container.querySelectorAll('.upc-pending');
     expect(pending).toHaveLength(1);
-    expect(pending[0]).toHaveTextContent('Pending');
+    // A letter on the type icon's corner, the word as its name and tooltip.
+    expect(pending[0]).toHaveTextContent(/^P$/);
+    expect(pending[0]).toHaveAttribute('aria-label', 'Pending');
+    expect(pending[0].closest('.upc-type')).not.toBeNull();
   });
 
   it('FE-PAGE-DESKDASH-009: the currency tool converts and swaps the pair', async () => {

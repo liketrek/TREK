@@ -5,6 +5,7 @@ import type { useTranslation } from '../../i18n';
 import { useTripStore } from '../../store/tripStore';
 import type { Place } from '../../types';
 import { offlineOr } from '../../utils/needsConnection';
+import { tagChoices } from '../../utils/placeTags';
 import { useToast } from '../shared/Toast';
 
 /** What the pool shows: everything, what is not on a day yet, what is, or the tracks. */
@@ -30,8 +31,8 @@ export function placesFilterTabs(t: Translate, hasTracks: boolean) {
 
 /**
  * The category filter of the places pool: a set of category ids (plus the
- * no-category bucket), many at once. It lives in the trip store, so the list
- * and the map markers filter on the same values (#1541).
+ * no-category bucket) and of tags, many at once. It lives in the trip store, so
+ * the list and the map markers filter on the same values (#1541).
  */
 export function usePlacesCategoryFilter() {
   const categoryFilters = useTripStore((s) => s.placesCategoryFilter);
@@ -43,6 +44,15 @@ export function usePlacesCategoryFilter() {
     setCategoryFilters(next);
   };
   return { categoryFilters, setCategoryFilters, toggleCategoryFilter };
+}
+
+/**
+ * The tags the category filter offers under the categories, for both shells: the
+ * trip's own, and any other tag one of the listed places carries.
+ */
+export function usePlacesFilterTags(places: Place[]) {
+  const tripTags = useTripStore((s) => s.tripTags);
+  return useMemo(() => tagChoices(tripTags, ...places.map((place) => place.tags)), [tripTags, places]);
 }
 
 export interface PlacesPoolOptions {

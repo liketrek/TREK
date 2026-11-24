@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react'
 import { MapViewAuto } from '../Map/MapViewAuto'
 import type { CollectionPlace } from '@trek/shared'
-import { mappablePlaces } from '../../pages/collections/collectionsModel'
+import { mappablePlaces, withMarkerCategory } from '../../pages/collections/collectionsModel'
 import { useTileUrl } from '../../hooks/useTileUrl'
 import { OFM_BRIGHT, OFM_DARK } from '../../constants/mapDefaults'
 import type { ViewportPadding } from '../../utils/mapViewport'
@@ -15,6 +15,9 @@ interface CollectionMapProps {
   dark: boolean
   /** A control bar floats over the top of the map (the desktop panel's), so the frame starts below it. */
   underBar?: boolean
+  /** Given, the padlock sits on the map: locked, picking a place leaves the camera where it is (#2010). */
+  locked?: boolean
+  onToggleLock?: () => void
 }
 
 /** How far a pin reaches from its point: half a selected pin (44 px) and the rating badge on its corner. */
@@ -69,8 +72,8 @@ function framePoints(places: CollectionPlace[]): [number, number][] {
  * box instead, clear of the edges and of the controls floating over it, and lands
  * while the map is built rather than flying in.
  */
-export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, onDeselect, dark, underBar = false }: CollectionMapProps): React.ReactElement {
-  const pts = useMemo(() => mappablePlaces(places), [places])
+export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, onDeselect, dark, underBar = false, locked = false, onToggleLock }: CollectionMapProps): React.ReactElement {
+  const pts = useMemo(() => mappablePlaces(places).map(withMarkerCategory), [places])
   const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_BRIGHT)
   const focusPoints = useMemo(() => framePoints(pts), [pts])
   // The places as a set: another list, a filter or a new place frames again, while a
@@ -95,6 +98,8 @@ export default function CollectionMap({ places, selectedPlaceId, onOpenPlace, on
         focusPoints={focusPoints}
         focusKey={focusKey}
         fitPadding={framePadding(underBar)}
+        followSelection={!locked}
+        onToggleFollow={onToggleLock}
       />
     </div>
   )

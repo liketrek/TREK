@@ -1,6 +1,7 @@
 import { ADDON_IDS } from '../../addons';
 import { AddonGuard } from '../addons/addon.guard';
 import { RequireAddon } from '../addons/require-addon.decorator';
+import { TripAddonGuard } from '../addons/trip-addon.guard';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { TripAccessGuard } from '../permissions/trip-access.guard';
 import { GoogleRouteService } from './google-route.service';
@@ -13,8 +14,13 @@ import { createZodDto } from 'nestjs-zod';
 export class PreviewDto extends createZodDto(googleRoutePreviewRequestSchema) {}
 export class ImportDto extends createZodDto(googleRouteImportSchema) {}
 
+/**
+ * The preview has no trip, so AddonGuard opens it while the instance or any
+ * trip of the caller has Road trip on. The import writes into one trip and
+ * asks that trip, after TripAccessGuard.
+ */
 @Controller('api')
-@UseGuards(AddonGuard, JwtAuthGuard)
+@UseGuards(JwtAuthGuard, AddonGuard)
 @RequireAddon(ADDON_IDS.ROADTRIP, 'Road trip')
 export class GoogleRouteController {
   constructor(private readonly routes: GoogleRouteService) {}
@@ -26,7 +32,7 @@ export class GoogleRouteController {
 
   @Post('trips/:tripId/roadtrip/google-maps-import')
   @HttpCode(200)
-  @UseGuards(TripAccessGuard)
+  @UseGuards(TripAccessGuard, TripAddonGuard)
   import(
     @Param('tripId') tripId: string,
     @Body() input: ImportDto,
