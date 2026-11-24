@@ -38,7 +38,6 @@ TREK has grown from a travel planner into a whole ecosystem for trips: plan toge
 &nbsp;
 <a href="https://github.com/liketrek/TREK"><img alt="Stars" src="https://img.shields.io/github/stars/liketrek/trek?style=for-the-badge&label=Stars&color=6B7280" /></a>
 
-<sub>PUBLIC SERVICES PROUDLY SPONSORED BY</sub><br /><a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="30" /></picture></a>
 </div>
 
 ---
@@ -220,23 +219,20 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 
 <br />
 
-## Powered by [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek)
+<div align="center">
 
-<a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="36" /></picture></a>
+<sub>POWERED BY</sub><br />
+<a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="40" /></picture></a>
 
-TREK's public services, the place index with over 88 million places, the address search in every TREK language and the planet-wide routing, run on [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) in Frankfurt, free of charge for everyone who self-hosts TREK. Thank you, dataforest, for backing open source this generously. 💚 Looking for a server for your own TREK? [dataforest cloud](https://cloud.dataforest.net/en?mtm_campaign=trek) is where TREK's own services live.
+<sub>The place index with 88 million places, the address search and the planet-wide routing run on <a href="https://cloud.dataforest.net/en?mtm_campaign=trek">dataforest cloud</a> in Frankfurt, free for every self-hosted TREK. Thank you! 💚</sub>
+
+</div>
 
 <br />
 
 ## AI usage
 
-We use LLM-assisted coding tools across parts of this codebase. Nothing ships that a
-maintainer has not read and understood: every change goes through a pull request, is
-reviewed and tested, and has a human who can answer for it. "The AI wrote that" is not
-an answer any of us would accept from ourselves.
-
-See [**How we use AI in TREK**](https://github.com/liketrek/TREK/discussions/1851) for
-the details.
+We use LLM-assisted coding tools, and nothing ships that a maintainer has not read, reviewed, tested and can answer for. More in [How we use AI in TREK](https://github.com/liketrek/TREK/discussions/1851).
 
 <br />
 
@@ -260,7 +256,7 @@ Open `http://localhost:3000`, or `http://<server-ip>:3000` from another machine.
 
 <div align="center">
 
-<a href="#docker-compose-production">Docker Compose</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#helm-kubernetes">Helm / Kubernetes</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#install-as-app-pwa">Install as PWA</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#reverse-proxy">Reverse Proxy</a>
+<a href="#docker-compose-production">Docker Compose</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#helm-kubernetes">Helm / Kubernetes</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#reverse-proxy">Reverse Proxy</a>
 
 </div>
 
@@ -314,18 +310,6 @@ helm install trek trek/trek
 ```
 
 See [`charts/README.md`](https://github.com/liketrek/TREK/blob/main/charts/README.md) for values.
-
-<br />
-
-<h2 id="install-as-app-pwa">Install as App (PWA)</h2>
-
-TREK works as a Progressive Web App, and the TREK Travel Planner app for iPhone, iPad and Android connects to the same server ([Native Apps](https://github.com/liketrek/TREK/wiki/Native-Apps)). To install the web app instead:
-
-1. Open TREK in the browser (HTTPS required)
-2. **iOS**: Share ▸ *Add to Home Screen*
-3. **Android**: Menu ▸ *Install app* (or *Add to Home Screen*)
-
-TREK then launches fullscreen with its own icon, just like a native app.
 
 <br />
 
