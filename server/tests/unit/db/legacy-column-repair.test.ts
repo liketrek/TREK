@@ -230,8 +230,13 @@ describe('the list of columns', () => {
     );
   });
 
-  it('LEGACYCOL-002: each postgres member is the column as the Postgres baseline declares it', () => {
+  it('LEGACYCOL-002: the frozen repair matches the PostgreSQL baseline through the half-day type change', () => {
     const postgres = postgresColumns();
+    // The official repair was authored against the 46440 baseline. The fork
+    // baseline also includes 46450, which widened carried_over for half days.
+    const carriedOver = 'vacay_user_years.carried_over';
+    expect(postgres.get(carriedOver)).toBe('"carried_over" double precision null default 0');
+    postgres.set(carriedOver, '"carried_over" bigint null default 0');
     const wrong = listedEntries().filter(
       ([table, sqlite, declared]) => declared !== postgres.get(`${table}.${nameOf(sqlite)}`),
     );
