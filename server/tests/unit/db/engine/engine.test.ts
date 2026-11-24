@@ -28,11 +28,24 @@ describe('resolveEngine', () => {
     expect(engine.ormOptions()).toEqual({
       driver: TrekPostgreSqlDriver,
       clientUrl: PG_URL,
+      host: 'db.example',
+      port: 5432,
       pool: { min: 0, max: 7 },
       driverOptions: {},
       // Puts pg_temp last on every new connection's search_path (session-search-path.ts).
       onCreateConnection: expect.any(Function),
     });
+  });
+
+  it('ENGINE-004: a Unix socket reaches the pool, as a host parameter or as a percent-encoded host', () => {
+    const viaParam = resolveEngine(
+      deriveDb({ TREK_DB_URL: 'postgresql://trek:s3cret@localhost/trek?host=/var/run/postgresql' }),
+    ).ormOptions();
+    expect(viaParam).toMatchObject({ host: '/var/run/postgresql', port: undefined });
+    const encoded = resolveEngine(
+      deriveDb({ TREK_DB_URL: 'postgresql://trek:s3cret@%2Fvar%2Frun%2Fpostgresql:5433/trek' }),
+    ).ormOptions();
+    expect(encoded).toMatchObject({ host: '/var/run/postgresql', port: 5433 });
   });
 
   it('ENGINE-003: describes a Postgres database without its password', () => {

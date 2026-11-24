@@ -5,6 +5,7 @@ import type { DatabaseEngine } from '../engine';
 import { redactUrl } from '../redact-url';
 import { TrekPostgreSqlDriver } from './postgres-driver';
 import { bootstrapPostgresSchema, defaultPostgresBootstrapDeps, type PostgresBootstrapDeps } from './schema-bootstrap';
+import { pgServerAddress } from './server-address';
 import { putTempSchemaLast } from './session-search-path';
 import { sslOptionFor } from './ssl';
 import type { EntityManager } from '@mikro-orm/core';
@@ -84,9 +85,13 @@ export class PostgresEngine implements DatabaseEngine {
   /** Every new pool connection first puts `pg_temp` last on its `search_path` (`session-search-path.ts`). */
   ormOptions() {
     const ssl = sslOptionFor(this.settings.url);
+    // MikroORM takes the address from the URL's authority alone; a `host` parameter (a socket directory) would be lost.
+    const { host, port } = pgServerAddress(this.settings.url);
     return {
       driver: TrekPostgreSqlDriver,
       clientUrl: this.settings.url,
+      host,
+      port,
       pool: { min: 0, max: this.settings.poolMax },
       driverOptions: ssl === undefined ? {} : { ssl },
       onCreateConnection: (connection: unknown) => putTempSchemaLast(connection as DatabaseConnection),

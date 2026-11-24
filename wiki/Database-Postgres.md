@@ -23,7 +23,7 @@ Postgres does not make TREK scale out. TREK still runs as one process. See [Limi
 
 | Variable | What it does | Default |
 |---|---|---|
-| `TREK_DB_URL` | Connection URL, `postgres://user:password@host:5432/database` (or `postgresql://`). Setting it selects Postgres. | unset (SQLite) |
+| `TREK_DB_URL` | Connection URL, `postgres://user:password@host:5432/database` (or `postgresql://`). Setting it selects Postgres. For a Unix socket, name its directory in a `host` parameter: `postgresql://user:password@localhost/database?host=/var/run/postgresql`. | unset (SQLite) |
 | `TREK_DB_POOL_MAX` | Most connections TREK opens to the database, from 1 to 100. The pool sets no minimum, so idle connections can close. | `10` |
 | `TREK_DB_PG_BIN_DIR` | Directory holding `pg_dump`, `pg_restore` and `psql`. | see below |
 

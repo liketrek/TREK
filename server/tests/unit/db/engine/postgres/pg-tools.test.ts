@@ -77,6 +77,15 @@ describe('pg-tools', () => {
       PGUSER: 'u',
       PGCONNECT_TIMEOUT: '10',
     });
+    // A Unix socket: the host parameter wins over the URL's host, as in libpq, and an encoded host is decoded.
+    expect(pgConnectionEnv('postgresql://u@localhost/d?host=/var/run/postgresql&port=5433')).toMatchObject({
+      PGHOST: '/var/run/postgresql',
+      PGPORT: '5433',
+    });
+    expect(pgConnectionEnv('postgresql://u@%2Fvar%2Frun%2Fpostgresql/d')).toMatchObject({
+      PGHOST: '/var/run/postgresql',
+      PGPORT: '5432',
+    });
   });
 
   it('PGTOOLS-003: SSL is verified as the app pool verifies it, against the URL root certificate when it names one', () => {

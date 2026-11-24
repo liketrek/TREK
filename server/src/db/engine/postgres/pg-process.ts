@@ -1,3 +1,5 @@
+import { pgServerAddress } from './server-address';
+
 import { execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
@@ -65,9 +67,10 @@ export function resolvePgTool(tool: PgTool, binDir: string | undefined): string 
  */
 export function pgConnectionEnv(url: string): Record<string, string> {
   const parsed = new URL(url);
+  const address = pgServerAddress(url);
   const env: Record<string, string> = {
-    PGHOST: parsed.hostname.replace(/^\[(.*)\]$/, '$1'),
-    PGPORT: parsed.port || '5432',
+    PGHOST: address.host,
+    PGPORT: String(address.port ?? 5432),
     PGDATABASE: decodeURIComponent(parsed.pathname.replace(/^\//, '')),
     PGCONNECT_TIMEOUT: CONNECT_TIMEOUT_SECONDS,
   };
