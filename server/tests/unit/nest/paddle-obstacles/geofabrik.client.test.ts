@@ -123,6 +123,45 @@ describe('GeofabrikClient.regions', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('GEOF-016: reads the list Geofabrik serves with null for a top level parent or a missing extract (#3195)', async () => {
+    // The live index names a continent's parent as null rather than leaving the key out.
+    const live = {
+      type: 'FeatureCollection',
+      features: [
+        {
+          properties: {
+            id: 'europe',
+            parent: null,
+            name: 'Europe',
+            urls: { pbf: `${GEOFABRIK_HOST}europe-latest.osm.pbf` },
+          },
+          geometry: null,
+        },
+        {
+          properties: { id: 'oberpfalz', parent: 'bayern', name: 'Oberpfalz', urls: { pbf: EXTRACT } },
+          geometry: square,
+        },
+        { properties: { id: 'nopbf', parent: 'europe', name: 'No pbf', urls: { pbf: null } }, geometry: null },
+      ],
+    };
+    fetchMock.mockResolvedValueOnce(json(live));
+
+    const regions = await client.regions(1000);
+
+    expect([...regions.keys()]).toEqual(['europe', 'oberpfalz']);
+    expect(regions.get('europe')?.parent).toBeNull();
+    expect(regions.get('oberpfalz')?.parent).toBe('bayern');
+  });
+
+  it('GEOF-017: skips an entry it cannot read and keeps the rest, but refuses a list of nothing readable', async () => {
+    const odd = { properties: { id: 42, name: 'Odd', urls: { pbf: EXTRACT } }, geometry: null };
+    fetchMock.mockResolvedValueOnce(json({ features: [...index.features, odd] }));
+    expect([...(await client.regions(1000)).keys()]).toEqual(['bayern', 'oberpfalz']);
+
+    fetchMock.mockResolvedValueOnce(json({ features: [odd, odd] }));
+    await expect(new GeofabrikClient().regions()).rejects.toThrow('Geofabrik index is not the list of extracts');
+  });
+
   it('GEOF-004: refuses an answer that is not the list, or not a success', async () => {
     fetchMock.mockResolvedValueOnce(json({ type: 'FeatureCollection' }));
     await expect(client.regions()).rejects.toThrow('Geofabrik index is not the list of extracts');

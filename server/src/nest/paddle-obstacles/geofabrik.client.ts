@@ -30,19 +30,22 @@ export const MAX_EXTRACT_BYTES = 4 * 1024 * 1024 * 1024;
 const DOWNLOAD_TIMEOUT_MS = 60 * 60 * 1000;
 const MAX_REDIRECTS = 3;
 
-const indexSchema = z.object({
-  features: z.array(
-    z.object({
-      properties: z.object({
-        id: z.string(),
-        parent: z.string().optional(),
-        name: z.string(),
-        urls: z.object({ pbf: z.string().optional() }).passthrough(),
-      }),
-      geometry: z.unknown(),
-    }),
-  ),
+/**
+ * One entry of the list. Geofabrik writes an absent value as null (a
+ * continent's `parent`), so every optional field takes both spellings.
+ */
+const featureSchema = z.object({
+  properties: z.object({
+    id: z.string(),
+    parent: z.string().nullish(),
+    name: z.string(),
+    urls: z.object({ pbf: z.string().nullish() }).passthrough(),
+  }),
+  geometry: z.unknown(),
 });
+
+/** The list itself; its entries are read one by one, so one odd entry costs only that region. */
+const indexSchema = z.object({ features: z.array(z.unknown()) });
 
 export interface GeofabrikRegion {
   id: string;
@@ -98,10 +101,16 @@ export class GeofabrikClient {
     const parsed = indexSchema.safeParse(await readCappedJson<unknown>(response, MAX_INDEX_BYTES));
     if (!parsed.success) throw new Error('Geofabrik index is not the list of extracts');
     const regions = new Map<string, GeofabrikRegion>();
-    for (const feature of parsed.data.features) {
-      const { id, name, parent, urls } = feature.properties;
+    let unreadable = 0;
+    for (const entry of parsed.data.features) {
+      const feature = featureSchema.safeParse(entry);
+      if (!feature.success) {
+        unreadable += 1;
+        continue;
+      }
+      const { id, name, parent, urls } = feature.data.properties;
       if (!urls.pbf || !isExtractUrl(urls.pbf)) continue;
-      const boundary = paddleRegionBoundarySchema.safeParse(feature.geometry);
+      const boundary = paddleRegionBoundarySchema.safeParse(feature.data.geometry);
       regions.set(id, {
         id,
         name,
@@ -110,6 +119,11 @@ export class GeofabrikClient {
         boundary: boundary.success ? boundary.data : null,
       });
     }
+    // Entries none of which can be read are a list in another shape, not an empty catalogue.
+    if (unreadable > 0 && unreadable === parsed.data.features.length) {
+      throw new Error('Geofabrik index is not the list of extracts');
+    }
+    if (unreadable > 0) logWarn(`[Paddle] Geofabrik index: skipped ${unreadable} entries it could not read`);
     this.index = { regions, fetchedAt: now };
     return regions;
   }
