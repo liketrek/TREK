@@ -1,20 +1,17 @@
 import { buildApp } from '../../src/bootstrap';
-import { db as testDb } from '../../src/db/database';
 import { DayAssignments } from '../../src/db/entities/DayAssignments.entity';
 import { Days } from '../../src/db/entities/Days.entity';
 import { Places } from '../../src/db/entities/Places.entity';
 import { Reservations } from '../../src/db/entities/Reservations.entity';
 import { authCookie } from '../helpers/auth';
-import {
-  createUser,
-  createTrip,
-  createDay,
-  createPlace,
-  createDayAssignment,
-  createReservation,
-} from '../helpers/factories';
+import { makeDayAssignment } from '../helpers/factories/itinerary';
+import { makePlace } from '../helpers/factories/places';
+import { makeReservation } from '../helpers/factories/reservations';
 import { findRow, updateRows } from '../helpers/factories/rows';
-import { resetTestDb, resetRateLimits } from '../helpers/test-db';
+import { makeDay, makeTrip } from '../helpers/factories/trips';
+import { makeUser } from '../helpers/factories/users';
+import { resetDatabase } from '../helpers/reset-database';
+import { resetRateLimits } from '../helpers/test-db';
 import { MikroORM } from '@mikro-orm/core';
 import type { INestApplication } from '@nestjs/common';
 
@@ -31,27 +28,26 @@ beforeAll(async () => {
   orm = nestApp.get(MikroORM);
 });
 beforeEach(async () => {
-  resetTestDb(testDb);
+  await resetDatabase(orm);
   await resetRateLimits(nestApp);
 });
 afterAll(async () => {
   await nestApp.close();
-  testDb.close();
 });
-function fixture() {
-  const { user } = createUser(testDb);
-  const trip = createTrip(testDb, user.id);
-  const day = createDay(testDb, trip.id);
-  const place = createPlace(testDb, trip.id);
-  const assignment = createDayAssignment(testDb, day.id, place.id);
+async function fixture() {
+  const { user } = await makeUser(orm);
+  const trip = await makeTrip(orm, user.id);
+  const day = await makeDay(orm, trip.id);
+  const place = await makePlace(orm, trip.id);
+  const assignment = await makeDayAssignment(orm, day.id, place.id);
   return { user, trip, day, place, assignment };
 }
 describe('visit and day timing HTTP', () => {
   it('preserves an explicit clear and zero stay for one visit without changing place or booking defaults', async () => {
-    const f = fixture();
-    const second = createDayAssignment(testDb, f.day.id, f.place.id, { order_index: 1 });
+    const f = await fixture();
+    const second = await makeDayAssignment(orm, f.day.id, f.place.id, { order_index: 1 });
     await updateRows(orm, Places, { id: f.place.id }, { place_time: '09:00', end_time: '10:00', duration_minutes: 60 });
-    const booking = createReservation(testDb, f.trip.id);
+    const booking = await makeReservation(orm, f.trip.id);
     await updateRows(
       orm,
       Reservations,
@@ -104,7 +100,7 @@ describe('visit and day timing HTTP', () => {
     });
   });
   it('persists day timing and rejects foreign targets and invalid values', async () => {
-    const f = fixture();
+    const f = await fixture();
     const timing = {
       enabled: true,
       start: '08:30',
@@ -114,7 +110,7 @@ describe('visit and day timing HTTP', () => {
     const saved = await request(app).put(url).set('Cookie', authCookie(f.user.id)).send(timing).expect(200);
     expect(saved.body.day.timing).toEqual(timing);
     expect(saved.body.day).not.toHaveProperty('timing_json');
-    const other = createTrip(testDb, f.user.id);
+    const other = await makeTrip(orm, f.user.id);
     await request(app)
       .put(`/api/trips/${other.id}/days/${f.day.id}/timing`)
       .set('Cookie', authCookie(f.user.id))
@@ -138,8 +134,8 @@ describe('visit and day timing HTTP', () => {
     expect(await findRow(orm, Days, { id: f.day.id })).toMatchObject({ timing_json: JSON.stringify(timing) });
   });
   it('copies per-visit inputs and remaps manual travel endpoints', async () => {
-    const f = fixture();
-    const second = createDayAssignment(testDb, f.day.id, f.place.id, { order_index: 1 });
+    const f = await fixture();
+    const second = await makeDayAssignment(orm, f.day.id, f.place.id, { order_index: 1 });
     await updateRows(
       orm,
       DayAssignments,
