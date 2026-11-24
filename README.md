@@ -395,6 +395,8 @@ Caddy handles TLS and WebSockets automatically.
 Every variable, its default and what it does: see
 [Environment Variables](https://github.com/liketrek/TREK/wiki/Environment-Variables).
 
+<br />
+
 ## Data sources
 
 The Atlas map's country and sub-national (province/county) boundaries come from
