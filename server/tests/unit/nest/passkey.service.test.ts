@@ -329,6 +329,7 @@ describe('passkeyRegisterOptions', () => {
     const { user, password } = createUser(testDb);
     await insertCredential(user.id, { credential_id: 'cred-a', transports: JSON.stringify(['usb', 'nfc']) });
     await insertCredential(user.id, { credential_id: 'cred-b', transports: 'not-json' });
+    await insertCredential(user.id, { credential_id: 'cred-c', transports: JSON.stringify(['usb', 7, null]) });
     await seedChallenge('stale', user.id, 'registration', Date.now() - 1000); // purged on the way in
     swMock.generateRegistrationOptions.mockResolvedValue({ challenge: 'reg-chal' });
 
@@ -345,6 +346,7 @@ describe('passkeyRegisterOptions', () => {
     expect(call.excludeCredentials).toEqual([
       { id: 'cred-a', transports: ['usb', 'nfc'] },
       { id: 'cred-b', transports: undefined }, // unparseable transports degrade to undefined
+      { id: 'cred-c', transports: ['usb'] }, // only string entries are transports
     ]);
 
     const stored = await findRows(orm, WebauthnChallenges);
@@ -505,6 +507,8 @@ describe('passkeyRegisterVerify', () => {
       aaguid: 'aaguid-1',
     });
     expect(Buffer.from(row?.public_key as Buffer)).toEqual(Buffer.from([9, 9, 9]));
+    // Verification accepts exactly the algorithms the options offered.
+    expect(swMock.verifyRegistrationResponse.mock.calls[0][0].supportedAlgorithmIDs).toEqual([-8, -7, -257]);
   });
 
   it('PASSKEY-SVC-012: defaults a blank name by device type and caps a long one at 60 chars', async () => {

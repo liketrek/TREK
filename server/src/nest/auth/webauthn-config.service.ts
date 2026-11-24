@@ -2,7 +2,7 @@ import { getAppUrl, readEnv } from '../../app-config';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 function hostOf(url: string): string | null {
   try {
@@ -17,6 +17,23 @@ function isIpHost(host: string): boolean {
   if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) return true; // IPv4
   if (host.includes(':')) return true; // IPv6 (hostname keeps the colons)
   return false;
+}
+
+/**
+ * An http(s) origin reduced to the scheme, host and port the browser reports
+ * (`new URL(o).origin`), so a configured path, trailing slash or uppercase host
+ * still matches. @simplewebauthn/server refuses such an expected origin
+ * outright, where older releases only failed to match it. Any other scheme (an
+ * app package origin) is kept as written. Null when the value does not parse.
+ */
+function normalizeOrigin(origin: string): string | null {
+  let url: URL;
+  try {
+    url = new URL(origin);
+  } catch {
+    return null;
+  }
+  return url.protocol === 'http:' || url.protocol === 'https:' ? url.origin : origin;
 }
 
 /**
@@ -70,7 +87,24 @@ export interface WebauthnConfig {
  */
 @Injectable()
 export class WebauthnConfigService {
+  private readonly logger = new Logger(WebauthnConfigService.name);
+
   constructor(@InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository) {}
+
+  /** Normalizes every origin, dropping (and naming) the ones that do not parse. */
+  private normalizeOrigins(origins: string[]): string[] {
+    const normalized: string[] = [];
+    const unparseable: string[] = [];
+    for (const origin of origins) {
+      const value = normalizeOrigin(origin);
+      if (value === null) unparseable.push(origin);
+      else normalized.push(value);
+    }
+    if (unparseable.length > 0) {
+      this.logger.warn(`Ignoring passkey origins that are not valid URLs: ${unparseable.join(', ')}`);
+    }
+    return Array.from(new Set(normalized));
+  }
 
   /** `SELECT value FROM app_settings WHERE key = ?` (WC1), through `AppSettingsRepository.getValue` (Plan 3a). */
   private async setting(key: string): Promise<string | null> {
@@ -85,14 +119,18 @@ export class WebauthnConfigService {
    * disabled so nobody can enrol a credential bound to the wrong origin.
    */
   async resolve(): Promise<WebauthnConfig | null> {
-    // 1. Explicit operator config always wins.
-    const explicitRpId = (readEnv().webauthn.rpId || (await this.setting('webauthn_rp_id')))?.trim() || null;
-    const explicitOrigins = (readEnv().webauthn.origins || (await this.setting('webauthn_origins')) || '')
+    // 1. Explicit operator config always wins. Host names compare without case,
+    //    and the verifier refuses an RP ID that is not in its lower-case form.
+    const explicitRpId =
+      (readEnv().webauthn.rpId || (await this.setting('webauthn_rp_id')))?.trim().toLowerCase() || null;
+    const configuredOrigins = (readEnv().webauthn.origins || (await this.setting('webauthn_origins')) || '')
       .split(',')
       // The lookbehind matches only the first slash of the trailing run. Without it the
       // engine retries from every slash, which is quadratic on a slash-heavy value.
       .map((o) => o.trim().replace(/(?<!\/)\/+$/, ''))
       .filter(Boolean);
+    const explicitOrigins = this.normalizeOrigins(configuredOrigins);
+    const hasExplicitOrigins = configuredOrigins.length > 0;
 
     const appUrl = getAppUrl();
     const appHost = hostOf(appUrl);
@@ -104,12 +142,14 @@ export class WebauthnConfigService {
     }
     if (!rpID) return null; // bare IP / unresolved → WebAuthn cannot be used here
 
-    // 3. Resolve the allowed origins. Explicit list wins verbatim (operator's
-    //    responsibility). Otherwise derive a SINGLE origin from APP_URL — we never
-    //    silently union dev localhost origins into a production allow-list.
+    // 3. Resolve the allowed origins. Explicit list wins (operator's
+    //    responsibility); a list whose every entry failed to parse stays explicit
+    //    and leaves the feature unconfigured rather than falling back to APP_URL.
+    //    Otherwise derive a SINGLE origin from APP_URL; we never silently union
+    //    dev localhost origins into a production allow-list.
     let origins = explicitOrigins;
-    if (origins.length === 0) {
-      if (appHost) origins = [appUrl.replace(/(?<!\/)\/+$/, '')];
+    if (!hasExplicitOrigins) {
+      if (appHost) origins = this.normalizeOrigins([appUrl.replace(/(?<!\/)\/+$/, '')]);
       if (rpID === 'localhost') {
         // Dev: the browser origin is the Vite dev server (:5173), not the API port.
         origins = Array.from(new Set([...origins, 'http://localhost:5173', 'http://localhost:3001']));
@@ -117,7 +157,7 @@ export class WebauthnConfigService {
     }
     if (origins.length === 0) return null;
 
-    return { rpID, rpName: 'TREK', origins, explicitOrigins: explicitOrigins.length > 0 };
+    return { rpID, rpName: 'TREK', origins, explicitOrigins: hasExplicitOrigins };
   }
 
   /** True when a usable RP ID resolves for this deployment (exposed as a pure boolean on app-config). */

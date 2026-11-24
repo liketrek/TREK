@@ -1,5 +1,6 @@
 import type { AppSettingsRepository } from '../../../src/db/repositories/AppSettings.repository';
 import { WebauthnConfigService, originWithinRpScope } from '../../../src/nest/auth/webauthn-config.service';
+import { Logger } from '@nestjs/common';
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
@@ -128,6 +129,56 @@ describe('WebauthnConfigService.resolve', () => {
     vi.stubEnv('WEBAUTHN_RP_ID', 'env.example.org');
     vi.stubEnv('WEBAUTHN_ORIGINS', 'https://env.example.org');
     expect((await svc.resolve())!.explicitOrigins).toBe(true);
+  });
+
+  // The verifier refuses an expected origin with a path, a trailing slash or an
+  // uppercase host, and an RP ID that is not lower case. Each is reduced to the
+  // form the browser reports, so a value that worked before keeps working.
+  it('WAC-014: configured origins are reduced to scheme, host and port, deduplicated', async () => {
+    settingsStore.set('webauthn_rp_id', 'example.org');
+    settingsStore.set(
+      'webauthn_origins',
+      'https://A.Example.org/trek/, https://a.example.org, https://b.example.org:8443/x//, http://localhost:5173/',
+    );
+    expect(await svc.resolve()).toMatchObject({
+      origins: ['https://a.example.org', 'https://b.example.org:8443', 'http://localhost:5173'],
+      explicitOrigins: true,
+    });
+  });
+
+  it('WAC-015: the RP ID is lower-cased, from the setting and from the env var', async () => {
+    settingsStore.set('webauthn_rp_id', ' Trek.Example.ORG ');
+    expect(await svc.resolve()).toMatchObject({ rpID: 'trek.example.org' });
+
+    vi.stubEnv('WEBAUTHN_RP_ID', 'ENV.example.org');
+    expect(await svc.resolve()).toMatchObject({ rpID: 'env.example.org' });
+  });
+
+  it('WAC-016: an APP_URL with a path, a trailing slash or an uppercase host derives its origin', async () => {
+    appUrlRef.value = 'https://Trek.Example.org/app/';
+    expect(await svc.resolve()).toMatchObject({
+      rpID: 'trek.example.org',
+      origins: ['https://trek.example.org'],
+      explicitOrigins: false,
+    });
+  });
+
+  it('WAC-017: an origin that does not parse is dropped and named in a warning; other schemes are kept', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    settingsStore.set('webauthn_rp_id', 'example.org');
+    settingsStore.set('webauthn_origins', 'example.org, https://example.org, android:apk-key-hash:abc123');
+    expect(await svc.resolve()).toMatchObject({ origins: ['https://example.org', 'android:apk-key-hash:abc123'] });
+    expect(warn).toHaveBeenCalledWith('Ignoring passkey origins that are not valid URLs: example.org');
+    warn.mockRestore();
+  });
+
+  it('WAC-018: an explicit list with no parseable origin leaves passkeys unconfigured instead of falling back', async () => {
+    const warn = vi.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+    appUrlRef.value = 'https://trek.example.org';
+    settingsStore.set('webauthn_origins', 'trek.example.org');
+    expect(await svc.resolve()).toBeNull();
+    expect(warn).toHaveBeenCalledTimes(1);
+    warn.mockRestore();
   });
 });
 

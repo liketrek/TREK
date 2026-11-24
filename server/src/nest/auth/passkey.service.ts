@@ -20,7 +20,6 @@ import {
   verifyRegistrationResponse,
   generateAuthenticationOptions,
   verifyAuthenticationResponse,
-  type AuthenticatorTransportFuture,
 } from '@simplewebauthn/server';
 
 import bcrypt from 'bcryptjs';
@@ -72,11 +71,11 @@ function originFromResponse(resp: unknown): string | null {
   return typeof origin === 'string' ? origin : null;
 }
 
-function parseTransports(raw: string | null): AuthenticatorTransportFuture[] | undefined {
+function parseTransports(raw: string | null): string[] | undefined {
   if (!raw) return undefined;
   try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? (parsed as AuthenticatorTransportFuture[]) : undefined;
+    const parsed: unknown = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((t): t is string => typeof t === 'string') : undefined;
   } catch {
     return undefined;
   }
@@ -308,6 +307,8 @@ export class PasskeyService {
         expectedOrigin,
         expectedRPID: cfg.rpID,
         requireUserVerification: true,
+        // The same list the options offered, so the verifier never falls back to its own default.
+        supportedAlgorithmIDs: SUPPORTED_ALGORITHM_IDS,
       });
     } catch (err) {
       // Body stays the generic 400 (parity), but the operator gets to see WHY —
