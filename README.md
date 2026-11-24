@@ -224,7 +224,7 @@ Most of what follows is an addon an admin switches on or off. Lists, Costs, Docu
 <sub>POWERED BY</sub><br />
 <a href="https://cloud.dataforest.net/en?mtm_campaign=trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/sponsors/dataforest-light.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/sponsors/dataforest-dark.svg" /><img src="docs/sponsors/dataforest-dark.svg" alt="dataforest cloud" height="40" /></picture></a>
 
-<sub>The place index with 88 million places, the address search and the planet-wide routing run on <a href="https://cloud.dataforest.net/en?mtm_campaign=trek">dataforest cloud</a> in Frankfurt, free for every self-hosted TREK. Thank you! 💚</sub>
+The place index with 88 million places, the address search and the planet-wide routing run on <a href="https://cloud.dataforest.net/en?mtm_campaign=trek">dataforest cloud</a> in Frankfurt, free for every self-hosted TREK. Thank you! 💚
 
 </div>
 
