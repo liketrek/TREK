@@ -12,12 +12,9 @@ TREK has grown from a travel planner into a whole ecosystem for trips: plan toge
 
 <br />
 
-<table>
-<tr>
-<td align="center"><a href="https://apps.apple.com/app/id6831237775"><img src="docs/app/qr-app-store.svg" alt="QR code for TREK on the App Store" width="120" /></a><br /><a href="https://apps.apple.com/app/id6831237775"><img alt="Download on the App Store" src="https://img.shields.io/badge/App_Store-iPhone_%26_iPad-111827?style=for-the-badge&logo=apple&logoColor=white" /></a></td>
-<td align="center"><a href="https://play.google.com/store/apps/details?id=com.liketrek.trek"><img src="docs/app/qr-google-play.svg" alt="QR code for TREK on Google Play" width="120" /></a><br /><a href="https://play.google.com/store/apps/details?id=com.liketrek.trek"><img alt="Get it on Google Play" src="https://img.shields.io/badge/Google_Play-Android-111827?style=for-the-badge&logo=googleplay&logoColor=white" /></a></td>
-</tr>
-</table>
+<a href="https://apps.apple.com/app/id6831237775"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/app/app-store-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/app/app-store-light.svg" /><img src="docs/app/app-store-light.svg" alt="Download TREK on the App Store, with a QR code" width="320" /></picture></a>
+&nbsp;
+<a href="https://play.google.com/store/apps/details?id=com.liketrek.trek"><picture><source media="(prefers-color-scheme: dark)" srcset="docs/app/google-play-dark.svg" /><source media="(prefers-color-scheme: light)" srcset="docs/app/google-play-light.svg" /><img src="docs/app/google-play-light.svg" alt="Get TREK on Google Play, with a QR code" width="320" /></picture></a>
 
 <sub>The app connects to your own TREK server. <a href="https://github.com/liketrek/TREK/wiki/Native-Apps">How it works</a></sub>
 
