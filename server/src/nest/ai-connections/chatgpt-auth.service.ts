@@ -5,6 +5,7 @@ import type { AiConnectionRow, AiConnectionsRepository } from '../../db/reposito
 import { readCappedJson } from '../../utils/cappedFetch';
 import { decodeJson, encodeJson } from '../../utils/json-column';
 import { safeFetch } from '../../utils/ssrfGuard';
+import { logWarn } from '../audit/audit-log.logger';
 import { OidcService } from '../oidc/oidc.service';
 import { AI_AUTH_FLOW_TTL_MS, AiAuthFlowStore } from './ai-auth-flow.store';
 import { aiRefusal, providerRefusal } from './ai-connections.constants';
@@ -64,14 +65,22 @@ const tokenResponseSchema = z.object({
 });
 type TokenResponse = z.infer<typeof tokenResponseSchema>;
 
-/** The token endpoint said no, with its HTTP status and its error code. */
+/** The token endpoint said no, with its HTTP status, its error code and the reason it gave. */
 class TokenEndpointError extends Error {
   constructor(
     readonly status: number,
     readonly code: string | undefined,
+    readonly description?: string,
   ) {
-    super(`token endpoint ${status}${code ? ` (${code})` : ''}`);
+    super(`token endpoint ${status}${code ? ` (${code})` : ''}${description ? `: ${description}` : ''}`);
   }
+}
+
+/** The OAuth `error_description` of a refusal, cut to one log line. */
+function errorDescriptionOf(body: unknown): string | undefined {
+  if (!body || typeof body !== 'object') return undefined;
+  const text = (body as Record<string, unknown>).error_description;
+  return typeof text === 'string' && text ? text.slice(0, 300) : undefined;
 }
 
 function randomToken(): string {
@@ -348,11 +357,14 @@ export class ChatgptAuthService {
         resource: RESOURCE,
       });
     } catch (err) {
-      // A code that is refused has expired or was used already: the sign-in starts over.
-      if (err instanceof TokenEndpointError && err.status === 400) {
-        throw aiRefusal('expired', 'The sign-in took too long; start it again');
+      if (!(err instanceof TokenEndpointError) || err.status === 0 || err.status >= 500) {
+        throw aiRefusal('provider_unavailable', 'ChatGPT is not responding');
       }
-      throw aiRefusal('provider_unavailable', 'ChatGPT is not responding');
+      // The endpoint's own words, so an admin can tell an expired code from a client or redirect it refused.
+      logWarn(`[AI] ChatGPT sign-in: the token endpoint refused the code, ${err.message}`);
+      // Only invalid_grant means the code ran out or was used already; anything else is not the user's delay.
+      if (err.code === 'invalid_grant') throw aiRefusal('expired', 'The sign-in took too long; start it again');
+      throw aiRefusal('generic', `ChatGPT refused the sign-in (${err.code ?? `HTTP ${err.status}`})`);
     }
   }
 
@@ -407,7 +419,7 @@ export class ChatgptAuthService {
       throw new TokenEndpointError(0, undefined);
     }
     const json = await readCappedJson<unknown>(res, MAX_TOKEN_BYTES);
-    if (!res.ok) throw new TokenEndpointError(res.status, errorCodeOf(json));
+    if (!res.ok) throw new TokenEndpointError(res.status, errorCodeOf(json), errorDescriptionOf(json));
     const parsed = tokenResponseSchema.safeParse(json);
     if (!parsed.success) throw new TokenEndpointError(res.status, 'unreadable_answer');
     return parsed.data;

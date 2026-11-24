@@ -36,6 +36,11 @@ vi.mock('../../../../src/utils/ssrfGuard', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../../../src/utils/ssrfGuard')>()),
   safeFetch,
 }));
+const { logWarn } = vi.hoisted(() => ({ logWarn: vi.fn() }));
+vi.mock('../../../../src/nest/audit/audit-log.logger', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('../../../../src/nest/audit/audit-log.logger')>()),
+  logWarn,
+}));
 
 const db = createSnapshotTestDb();
 let t: TestModule;
@@ -358,6 +363,33 @@ describe('finishing a sign-in', () => {
         )
       ).status,
     ).toBe(502);
+  });
+});
+
+describe('a refused code (#3196)', () => {
+  it('CGPT-016: only invalid_grant reads as expired; another refusal names its OAuth error and is logged', async () => {
+    const user = await caller();
+    let flow = await started(user.id);
+    safeFetch.mockResolvedValueOnce(
+      tokenAnswer(400, { error: 'invalid_client', error_description: 'Client authentication failed' }),
+    );
+    const refused = await refusal(
+      service().finish(user, flow.flowId, callbackUrl({ code: 'c', state: flow.state, client_id: 'oaiapp_x' })),
+    );
+    expect(refused.status).toBe(400);
+    expect(refused.body).toMatchObject({ code: 'generic' });
+    expect(refused.body.error).toContain('invalid_client');
+    expect(logWarn.mock.calls.flat().join(' ')).toMatch(/invalid_client.*Client authentication failed/);
+
+    flow = await started(user.id);
+    safeFetch.mockResolvedValueOnce(tokenAnswer(400, { error: 'invalid_grant' }));
+    expect(
+      (
+        await refusal(
+          service().finish(user, flow.flowId, callbackUrl({ code: 'c', state: flow.state, client_id: 'oaiapp_x' })),
+        )
+      ).body,
+    ).toMatchObject({ code: 'expired' });
   });
 });
 

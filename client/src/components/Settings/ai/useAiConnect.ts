@@ -3,7 +3,7 @@ import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { useTranslation } from '../../../i18n';
 import { aiConnectionsRepo } from '../../../repo/aiConnectionsRepo';
-import { detectKeyKind, isChatgptCallback, providerLabel } from '../../Assistant/providerCatalog';
+import { chatgptCallbackUrl, detectKeyKind, isChatgptCallback, providerLabel } from '../../Assistant/providerCatalog';
 import { useToast } from '../../shared/Toast';
 import {
   callbackMatchesFlow,
@@ -243,9 +243,9 @@ export function useChatgptConnect({
   };
 
   const finish = async (raw: string) => {
-    const url = raw.trim();
+    const url = chatgptCallbackUrl(raw);
     if (!flow || finishing.current) return;
-    if (!isChatgptCallback(url) || !callbackMatchesFlow(url, flow.authorizeUrl)) {
+    if (!url || !callbackMatchesFlow(url, flow.authorizeUrl)) {
       setError({ messageKey: 'assistant.connect.chatgptWrong', code: 'wrong_url' });
       return;
     }
@@ -264,7 +264,9 @@ export function useChatgptConnect({
     } catch (err) {
       const code = refusalCode(err);
       setError({ messageKey: connectErrorKey(err), code });
-      if (code === 'expired') restart();
+      // The server takes a sign-in once, whatever it answers: any refusal it sent
+      // used this one up. Offline the request never left, and a wrong address is refused before the flow is taken.
+      if (code !== null && code !== 'offline' && code !== 'wrong_url') restart();
     } finally {
       finishing.current = false;
       setBusy(false);
@@ -298,7 +300,7 @@ export function useChatgptConnect({
   useOnReturnToTab(opened, () => {
     if (pasted.trim() || busy) return;
     readClipboard((text) => {
-      if (flow && !callbackMatchesFlow(text, flow.authorizeUrl)) focusField();
+      if (flow && !callbackMatchesFlow(chatgptCallbackUrl(text) ?? text, flow.authorizeUrl)) focusField();
       else if (!paste(text)) focusField();
     }, focusField);
   });

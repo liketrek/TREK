@@ -1,4 +1,4 @@
-// FE-HOOK-AI-CONNECT-001 to FE-HOOK-AI-CONNECT-015: pasting a key, an own server, the ChatGPT sign-in and the OpenRouter return.
+// FE-HOOK-AI-CONNECT-001 to FE-HOOK-AI-CONNECT-017: pasting a key, an own server, the ChatGPT sign-in and the OpenRouter return.
 import { act, fireEvent, renderHook, waitFor } from '@testing-library/react';
 import { createElement, type ReactNode } from 'react';
 import { MemoryRouter, useLocation } from 'react-router';
@@ -20,6 +20,7 @@ vi.mock('../../shared/Toast', () => ({ useToast: () => toast }));
 const { useChatgptConnect, useCustomConnect, useKeyConnect, useOpenrouterReturn, useOpenrouterStart } =
   await import('./useAiConnect');
 const { rememberOpenrouterFlow } = await import('./aiConnectModel');
+const { OnlineOnlyError } = await import('../../../repo/onlineOnly');
 
 function wrapperAt(url = '/settings') {
   return ({ children }: { children: ReactNode }) =>
@@ -207,7 +208,7 @@ describe('useChatgptConnect', () => {
     expect(repo.chatgptFinish).not.toHaveBeenCalled();
   });
 
-  it('FE-HOOK-AI-CONNECT-010: an account ChatGPT will not share says so and keeps the flow', async () => {
+  it('FE-HOOK-AI-CONNECT-010: an account ChatGPT will not share says so, and the next try is a fresh sign-in', async () => {
     repo.chatgptFinish.mockRejectedValueOnce(refused('not_eligible'));
     const onConnected = vi.fn();
     const { result } = renderHook(() => useChatgptConnect({ active: true, onConnected }), { wrapper: wrapperAt() });
@@ -216,7 +217,50 @@ describe('useChatgptConnect', () => {
     await act(() => result.current.submit());
     expect(result.current.error).toEqual({ messageKey: 'assistant.error.notEligible', code: 'not_eligible' });
     expect(onConnected).not.toHaveBeenCalled();
-    expect(repo.chatgptStart).toHaveBeenCalledTimes(1);
+    // The server took the sign-in when it refused it.
+    await waitFor(() => expect(repo.chatgptStart).toHaveBeenCalledTimes(2));
+  });
+
+  it('FE-HOOK-AI-CONNECT-016: any refusal the server sent starts exactly one fresh sign-in; offline and a wrong address keep this one', async () => {
+    const generic = Object.assign(new Error('generic'), {
+      response: { status: 400, data: { error: 'ChatGPT refused the sign-in (invalid_client)', code: 'generic' } },
+    });
+    repo.chatgptFinish.mockRejectedValueOnce(generic).mockRejectedValueOnce(new OnlineOnlyError());
+    const { result } = renderHook(() => useChatgptConnect({ active: true, onConnected: vi.fn() }), {
+      wrapper: wrapperAt(),
+    });
+    await waitFor(() => expect(result.current.flow).not.toBeNull());
+    act(() => result.current.change(CALLBACK));
+    await act(() => result.current.submit());
+    expect(result.current.error?.code).toBe('generic');
+    await waitFor(() => expect(repo.chatgptStart).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result.current.flow).not.toBeNull());
+
+    act(() => result.current.change(CALLBACK));
+    await act(() => result.current.submit());
+    expect(result.current.error?.code).toBe('offline');
+    expect(repo.chatgptStart).toHaveBeenCalledTimes(2);
+
+    // The server refuses a wrong address before it takes the sign-in, so the right one still works.
+    repo.chatgptFinish.mockRejectedValueOnce(refused('wrong_url'));
+    act(() => result.current.change(CALLBACK));
+    await act(() => result.current.submit());
+    expect(result.current.error?.code).toBe('wrong_url');
+    expect(repo.chatgptStart).toHaveBeenCalledTimes(2);
+  });
+
+  it('FE-HOOK-AI-CONNECT-017: the address pasted without http://, as the hint shows it, is taken and sent with it', async () => {
+    const onConnected = vi.fn();
+    const { result } = renderHook(() => useChatgptConnect({ active: true, onConnected }), { wrapper: wrapperAt() });
+    await waitFor(() => expect(result.current.flow).not.toBeNull());
+    const bare = CALLBACK.replace('http://', '');
+    let taken = false;
+    act(() => {
+      taken = result.current.paste(` ${bare} `);
+    });
+    expect(taken).toBe(true);
+    await waitFor(() => expect(onConnected).toHaveBeenCalledTimes(1));
+    expect(repo.chatgptFinish).toHaveBeenCalledWith({ flowId: FLOW.flowId, pastedUrl: CALLBACK });
   });
 
   it('FE-HOOK-AI-CONNECT-013: the clipboard fills the field where the browser lets it be read, else the field gets the cursor', async () => {

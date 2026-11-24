@@ -111,11 +111,23 @@ export const CHATGPT_USAGE_URL = 'https://chatgpt.com/settings/usage';
  * error page and the user pastes its address back; only the port may differ.
  */
 export function isChatgptCallback(text: string): boolean {
+  return chatgptCallbackUrl(text) !== null;
+}
+
+/**
+ * The pasted callback as the server reads it, or null when it is something
+ * else. The address bar and the hint under the field show it without `http://`,
+ * so an address pasted that way gets the scheme put back.
+ */
+export function chatgptCallbackUrl(text: string): string | null {
+  const trimmed = text.trim();
+  const address = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `http://${trimmed}`;
   let url: URL;
   try {
-    url = new URL(text.trim());
+    url = new URL(address);
   } catch {
-    return false;
+    return null;
   }
-  return url.protocol === 'http:' && url.hostname === '127.0.0.1' && url.pathname === '/auth/callback';
+  const ok = url.protocol === 'http:' && url.hostname === '127.0.0.1' && url.pathname === '/auth/callback';
+  return ok ? address : null;
 }
