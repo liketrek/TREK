@@ -83,8 +83,7 @@ const system_notice: TranslationStrings = {
     'Setiap fitur, setiap pembaruan, untuk semua orang. Tanpa paket berbayar, tanpa langganan, tanpa syarat tersembunyi.',
   'system_notice.release_notes.note_body_after':
     'Lalu Anda datang, tak lama kemudian ribuan: dengan bintang, laporan bug, terjemahan ke bahasa yang tidak saya kuasai, dan pull request dari orang yang belum pernah saya temui. Saya masih memeriksa repositori pertama kali setiap pagi, dan rasanya masih belum benar-benar nyata.',
-  'system_notice.release_notes.note_closing':
-    'Terima kasih sudah ada di sini. Maurice',
+  'system_notice.release_notes.note_closing': 'Terima kasih sudah ada di sini. Maurice',
   'system_notice.release_notes.support_label': 'Terwujud berkat Anda',
   'system_notice.release_notes.support_lead': 'TREK hanya ada berkat donasi.',
   'system_notice.release_notes.support_text':

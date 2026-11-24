@@ -58,14 +58,12 @@ const system_notice: TranslationStrings = {
     'Das 3.0.14-Upgrade hat einen oder mehrere Konflikte bei Benutzernamen oder E-Mail-Adressen festgestellt, die durch führende oder nachgestellte Leerzeichen in gespeicherten Konten verursacht wurden. Betroffene Konten wurden automatisch umbenannt. Prüfe die Serverprotokolle auf Zeilen, die mit **[migration] WHITESPACE COLLISION** beginnen, um die betroffenen Konten zu identifizieren.',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Update installiert',
-  'system_notice.release_notes.headline':
-    'Weniger tippen, mehr reisen.',
+  'system_notice.release_notes.headline': 'Weniger tippen, mehr reisen.',
   'system_notice.release_notes.intro':
     'Buchungsmails, die du weiterleitest, landen in deiner Reise, TREK verfolgt deine Flüge live, und das Reise-PDF ist ganz neu. TREK läuft jetzt auch mit PostgreSQL.',
   'system_notice.release_notes.features_label': 'Die Highlights',
   'system_notice.release_notes.features_aside': 'Längst nicht alles',
-  'system_notice.release_notes.feature_mail_title':
-    'Buchungsmails landen in deiner Reise',
+  'system_notice.release_notes.feature_mail_title': 'Buchungsmails landen in deiner Reise',
   'system_notice.release_notes.feature_mail_body':
     'Leite eine Bestätigung an deine persönliche Adresse weiter, und TREK findet deine Reise, prüft sie und trägt die Buchung samt Dokument ein.',
   'system_notice.release_notes.feature_flight_title': 'Live-Flugstatus, kostenlos',
@@ -87,12 +85,9 @@ const system_notice: TranslationStrings = {
     'Jede Funktion, jedes Update, für alle. Keine Paid Tiers, keine Abos, kein Haken.',
   'system_notice.release_notes.note_body_after':
     'Dann kamt ihr, schnell zu Tausenden: mit Sternen, Bug-Reports, Übersetzungen in Sprachen, die ich nicht spreche, und Pull Requests von Leuten, die ich nie getroffen habe. Bis heute schaue ich jeden Morgen zuerst ins Repository, und ganz real fühlt es sich immer noch nicht an.',
-  'system_notice.release_notes.note_closing':
-    'Danke, dass du dabei bist. Maurice',
-  'system_notice.release_notes.support_label':
-    'Möglich durch dich',
-  'system_notice.release_notes.support_lead':
-    'TREK gibt es nur dank Spenden.',
+  'system_notice.release_notes.note_closing': 'Danke, dass du dabei bist. Maurice',
+  'system_notice.release_notes.support_label': 'Möglich durch dich',
+  'system_notice.release_notes.support_lead': 'TREK gibt es nur dank Spenden.',
   'system_notice.release_notes.support_text':
     'Sie bezahlen die Server und schenken mir die Zeit, weiter daran zu bauen. Schon ein Kaffee hilft, dass TREK für alle frei bleibt.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',

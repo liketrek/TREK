@@ -81,8 +81,7 @@ const system_notice: TranslationStrings = {
     'すべての機能も、すべてのアップデートも、すべての人に。有料プランも、サブスクも、隠れた仕掛けもありません。',
   'system_notice.release_notes.note_body_after':
     'そこにみなさんが来てくれて、やがて何千人にもなりました。スター、バグ報告、私が話せない言語への翻訳、会ったこともない人からのプルリクエスト。今でも毎朝いちばんにリポジトリを確認していて、まだ少し現実とは思えません。',
-  'system_notice.release_notes.note_closing':
-    'ここにいてくれて、ありがとう。Maurice',
+  'system_notice.release_notes.note_closing': 'ここにいてくれて、ありがとう。Maurice',
   'system_notice.release_notes.support_label': 'あなたのおかげです',
   'system_notice.release_notes.support_lead': 'TREK は寄付のおかげで成り立っています。',
   'system_notice.release_notes.support_text':

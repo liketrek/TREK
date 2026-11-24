@@ -83,8 +83,7 @@ const system_notice: TranslationStrings = {
     '모든 기능, 모든 업데이트를 모두에게. 유료 등급도, 구독도, 숨겨진 조건도 없습니다.',
   'system_notice.release_notes.note_body_after':
     '그러다 여러분이 와 주셨고, 곧 수천 명이 되었습니다. 별, 버그 리포트, 제가 쓰지 못하는 언어로 된 번역, 만난 적 없는 분들의 풀 리퀘스트까지. 저는 지금도 매일 아침 가장 먼저 저장소를 확인하는데, 여전히 현실 같지 않습니다.',
-  'system_notice.release_notes.note_closing':
-    '함께해 주셔서 감사합니다. Maurice',
+  'system_notice.release_notes.note_closing': '함께해 주셔서 감사합니다. Maurice',
   'system_notice.release_notes.support_label': '여러분 덕분입니다',
   'system_notice.release_notes.support_lead': 'TREK은 후원 덕분에 존재합니다.',
   'system_notice.release_notes.support_text':

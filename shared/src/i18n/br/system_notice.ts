@@ -84,8 +84,7 @@ const system_notice: TranslationStrings = {
     'Cada recurso, cada atualização, para todo mundo. Sem planos pagos, sem assinaturas, sem pegadinhas.',
   'system_notice.release_notes.note_body_after':
     'Aí vocês chegaram, e logo aos milhares: com estrelas, relatos de bugs, traduções para idiomas que não falo e pull requests de pessoas que nunca conheci. Ainda confiro o repositório logo cedo toda manhã, e isso ainda não parece muito real.',
-  'system_notice.release_notes.note_closing':
-    'Obrigado por estarem aqui. Maurice',
+  'system_notice.release_notes.note_closing': 'Obrigado por estarem aqui. Maurice',
   'system_notice.release_notes.support_label': 'Possível graças a você',
   'system_notice.release_notes.support_lead': 'O TREK só existe graças às doações.',
   'system_notice.release_notes.support_text':

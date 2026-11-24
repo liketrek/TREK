@@ -84,8 +84,7 @@ const system_notice: TranslationStrings = {
     'Все функции и все обновления, для всех. Никаких платных тарифов, никаких подписок, никаких подвохов.',
   'system_notice.release_notes.note_body_after':
     'А потом пришли вы, вскоре тысячами: со звёздами, сообщениями об ошибках, переводами на языки, которых я не знаю, и pull request-ами от людей, которых я никогда не встречал. Я до сих пор каждое утро первым делом проверяю репозиторий, и это всё ещё не кажется мне до конца реальным.',
-  'system_notice.release_notes.note_closing':
-    'Спасибо, что вы здесь. Maurice',
+  'system_notice.release_notes.note_closing': 'Спасибо, что вы здесь. Maurice',
   'system_notice.release_notes.support_label': 'Благодаря вам',
   'system_notice.release_notes.support_lead': 'TREK существует только благодаря пожертвованиям.',
   'system_notice.release_notes.support_text':

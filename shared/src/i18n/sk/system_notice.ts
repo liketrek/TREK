@@ -80,8 +80,7 @@ const system_notice: TranslationStrings = {
     'Každá funkcia, každá aktualizácia, pre všetkých. Žiadne platené úrovne, žiadne predplatné, žiadny háčik.',
   'system_notice.release_notes.note_body_after':
     'Potom ste prišli vy, čoskoro po tisícoch: s hviezdičkami, hláseniami chýb, prekladmi do jazykov, ktorými nehovorím, a pull requestmi od ľudí, ktorých som nikdy nestretol. Každé ráno stále ako prvé skontrolujem repozitár a stále mi to nepripadá celkom skutočné.',
-  'system_notice.release_notes.note_closing':
-    'Ďakujem, že ste tu. Maurice',
+  'system_notice.release_notes.note_closing': 'Ďakujem, že ste tu. Maurice',
   'system_notice.release_notes.support_label': 'Vďaka vám',
   'system_notice.release_notes.support_lead': 'TREK existuje len vďaka darom.',
   'system_notice.release_notes.support_text':

@@ -53,14 +53,12 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.cta_patreon': 'Monthly on Patreon',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Update installed',
-  'system_notice.release_notes.headline':
-    'Less typing, more travelling.',
+  'system_notice.release_notes.headline': 'Less typing, more travelling.',
   'system_notice.release_notes.intro':
     'Booking mails you forward land in your trip, TREK follows your flights live, and the trip PDF is all new. TREK now runs on PostgreSQL too.',
   'system_notice.release_notes.features_label': 'The headliners',
   'system_notice.release_notes.features_aside': 'Far from everything',
-  'system_notice.release_notes.feature_mail_title':
-    'Booking mails land in your trip',
+  'system_notice.release_notes.feature_mail_title': 'Booking mails land in your trip',
   'system_notice.release_notes.feature_mail_body':
     'Forward a confirmation to your personal address and TREK finds your trip, checks it and adds the booking with its document.',
   'system_notice.release_notes.feature_flight_title': 'Live flight status, for free',
@@ -82,12 +80,9 @@ const system_notice: TranslationStrings = {
     'Every feature, every update, for everyone. No paid tiers, no subscriptions, no catch.',
   'system_notice.release_notes.note_body_after':
     "Then you came, soon by the thousands: with stars, bug reports, translations into languages I don't speak and pull requests from people I've never met. I still check the repository first thing every morning, and it still doesn't quite feel real.",
-  'system_notice.release_notes.note_closing':
-    'Thank you for being here. Maurice',
-  'system_notice.release_notes.support_label':
-    'Made possible by you',
-  'system_notice.release_notes.support_lead':
-    'TREK only exists thanks to donations.',
+  'system_notice.release_notes.note_closing': 'Thank you for being here. Maurice',
+  'system_notice.release_notes.support_label': 'Made possible by you',
+  'system_notice.release_notes.support_lead': 'TREK only exists thanks to donations.',
   'system_notice.release_notes.support_text':
     'They pay for the servers and give me the time to keep building it. Even one coffee helps keep TREK free for everyone.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',

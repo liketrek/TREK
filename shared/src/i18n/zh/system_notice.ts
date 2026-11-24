@@ -81,8 +81,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text': '每个功能、每次更新，都属于每一个人。没有付费档位，没有订阅，没有套路。',
   'system_notice.release_notes.note_body_after':
     '后来你们来了，很快就是成千上万人：有星标，有问题反馈，有翻译成我不会的语言的译文，还有素未谋面的人提交的 pull request。我至今每天早上第一件事还是看一眼仓库，仍然觉得不太真实。',
-  'system_notice.release_notes.note_closing':
-    '谢谢你来到这里。Maurice',
+  'system_notice.release_notes.note_closing': '谢谢你来到这里。Maurice',
   'system_notice.release_notes.support_label': '因为有你',
   'system_notice.release_notes.support_lead': 'TREK 全靠捐赠才得以存在。',
   'system_notice.release_notes.support_text':

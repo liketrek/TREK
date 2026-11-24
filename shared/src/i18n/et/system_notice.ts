@@ -80,8 +80,7 @@ const system_notice: TranslationStrings = {
     'Iga funktsioon ja iga uuendus kõigile. Ei tasulisi pakette, tellimusi ega varjatud tingimusi.',
   'system_notice.release_notes.note_body_after':
     'Siis tulite teie, peagi tuhandete kaupa: tähtede, veateadete, minu jaoks tundmatutesse keeltesse tehtud tõlgete ja inimeste pull requestidega, keda ma pole kunagi kohanud. Vaatan hoidla igal hommikul esimese asjana üle ja see ei tundu ikka veel päris päriselt.',
-  'system_notice.release_notes.note_closing':
-    'Aitäh, et oled siin. Maurice',
+  'system_notice.release_notes.note_closing': 'Aitäh, et oled siin. Maurice',
   'system_notice.release_notes.support_label': 'Võimalik tänu sinule',
   'system_notice.release_notes.support_lead': 'TREK on olemas ainult tänu annetustele.',
   'system_notice.release_notes.support_text':
