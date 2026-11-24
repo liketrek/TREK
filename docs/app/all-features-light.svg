@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="680" height="120" viewBox="0 0 680 120" role="img" aria-label="See all features">
+  <defs>
+    <filter id="s" x="-10%" y="-30%" width="120%" height="180%"><feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#0f172a" flood-opacity="0.08"/></filter>
+  </defs>
+  <rect x="12" y="8" width="656" height="90" rx="22" fill="#ffffff" stroke="#e4e7ec" filter="url(#s)"/>
+  <text x="34" y="41" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="20" font-weight="700" letter-spacing="-0.3" fill="#0f172a">See all features</text>
+  <text x="202" y="41" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="12.5" fill="#64748b">planning, tours, bookings, journal, AI, plugins and more</text>
+  <rect x="34" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="47" y="77" font-size="14" text-anchor="middle">🧭</text>
+  <rect x="64" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="77" y="77" font-size="14" text-anchor="middle">🥾</text>
+  <rect x="94" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="107" y="77" font-size="14" text-anchor="middle">🧳</text>
+  <rect x="124" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="137" y="77" font-size="14" text-anchor="middle">👥</text>
+  <rect x="154" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="167" y="77" font-size="14" text-anchor="middle">📔</text>
+  <rect x="184" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="197" y="77" font-size="14" text-anchor="middle">🗺️</text>
+  <rect x="214" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="227" y="77" font-size="14" text-anchor="middle">🤖</text>
+  <rect x="244" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="257" y="77" font-size="14" text-anchor="middle">🧩</text>
+  <rect x="274" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="287" y="77" font-size="14" text-anchor="middle">📱</text>
+  <rect x="304" y="59" width="26" height="26" rx="8" fill="#f3f4f6"/><text x="317" y="77" font-size="14" text-anchor="middle">⚙️</text>
+  <circle cx="636" cy="53" r="18" fill="#0f172a"/>
+  <path d="M629 50 l7 7 l7 -7" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
