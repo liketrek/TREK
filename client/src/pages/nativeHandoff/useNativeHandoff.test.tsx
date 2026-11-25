@@ -1,4 +1,4 @@
-// FE-NATIVE-HANDOFF-001 to FE-NATIVE-HANDOFF-011
+// FE-NATIVE-HANDOFF-001 to FE-NATIVE-HANDOFF-012
 import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -91,6 +91,16 @@ describe('useNativeHandoff', () => {
     expect(window.location.replace).toHaveBeenCalledWith('/api/auth/oidc/login?remember=1');
     expect(sessionStorage.getItem('oidc_redirect')).toBe(`/native-handoff?challenge=${challenge}`);
     expect(rememberHandoffReturn).toHaveBeenCalledWith(`/native-handoff?challenge=${challenge}`);
+  });
+
+  it('FE-NATIVE-HANDOFF-012: goes through the identity provider for SSO even when this browser is still signed in', () => {
+    // A session left from an earlier sign-in skipped the provider, and with it the
+    // re-authentication it demands (#3014).
+    setSearch(`?challenge=${challenge}&start=oidc`);
+    const { result } = renderHandoff();
+    expect(window.location.replace).toHaveBeenCalledWith('/api/auth/oidc/login?remember=1');
+    expect(result.current.ready).toBe(false);
+    expect(mockNavigate).not.toHaveBeenCalled();
   });
 
   it('FE-NATIVE-HANDOFF-005: waits while the session is still being checked', () => {

@@ -35,17 +35,22 @@ export function useNativeHandoff() {
 
   // Back here once signed in, without `start`, so an SSO round trip cannot loop.
   const returnPath = `${HANDOFF_PATH}?challenge=${challenge}`;
+  // The app's SSO button always goes through the identity provider, even when this
+  // browser still holds a TREK session from an earlier sign-in. That session would
+  // otherwise skip the provider, and with it a re-authentication it demands.
+  const startOidc = valid && params.get('start') === 'oidc';
 
   useEffect(() => {
-    if (!valid || isLoading || isAuthenticated || passkeyStep) return;
-    if (params.get('start') === 'oidc') {
+    if (!valid || isLoading || passkeyStep) return;
+    if (startOidc) {
       sessionStorage.setItem('oidc_redirect', returnPath);
       rememberHandoffReturn(returnPath);
       window.location.replace('/api/auth/oidc/login?remember=1');
       return;
     }
+    if (isAuthenticated) return;
     void navigate(`/login?redirect=${encodeURIComponent(returnPath)}`, { replace: true });
-  }, [valid, isLoading, isAuthenticated, passkeyStep, params, returnPath, navigate]);
+  }, [valid, isLoading, isAuthenticated, passkeyStep, startOidc, returnPath, navigate]);
 
   const openApp = async (): Promise<void> => {
     setStatus('sending');
@@ -90,7 +95,7 @@ export function useNativeHandoff() {
     passkeyStep: valid && !isLoading && !isAuthenticated && passkeyStep,
     continueWithPasskey,
     otherSignIn,
-    ready: valid && !isLoading && isAuthenticated,
+    ready: valid && !isLoading && isAuthenticated && !startOidc,
     userName,
     status,
     openApp,
