@@ -64,9 +64,9 @@ export class Trips {
   created_at?: string | null;
   updated_at?: string | null;
   reminder_sent_for?: string | null;
+  costs_mode: TTripsCostsMode & Opt = TripsCostsMode.SPLIT;
   ai_travel_plans_collection = new Collection<AiTravelPlans>(this);
   ai_travel_plans_collection1 = new Collection<AiTravelPlans>(this);
-  costs_mode: TTripsCostsMode & Opt = TripsCostsMode.SPLIT;
   assistant_attachments_collection = new Collection<AssistantAttachments>(this);
   assistant_threads_collection = new Collection<AssistantThreads>(this);
   budget_category_order_collection = new Collection<BudgetCategoryOrder>(this);
@@ -146,9 +146,9 @@ export const TripsSchema = defineEntity({
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`).index('idx_trips_created_at'),
     updated_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     reminder_sent_for: p.text().nullable(),
+    costs_mode: p.enum(() => TripsCostsMode).default('split'),
     ai_travel_plans_collection: () => p.oneToMany(AiTravelPlans).mappedBy('targetTrip').hidden(),
     ai_travel_plans_collection1: () => p.oneToMany(AiTravelPlans).mappedBy('appliedTrip').hidden(),
-    costs_mode: p.enum(() => TripsCostsMode).default('split'),
     assistant_attachments_collection: () => p.oneToMany(AssistantAttachments).mappedBy('trip').hidden(),
     assistant_threads_collection: () => p.oneToMany(AssistantThreads).mappedBy('trip').hidden(),
     budget_category_order_collection: () => p.oneToMany(BudgetCategoryOrder).mappedBy('trip').hidden(),
