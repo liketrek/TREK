@@ -83,6 +83,18 @@ export interface WalletPassSource {
   tripTitle: string | null;
   /** The booking's place (the hotel, the restaurant), when it has coordinates. */
   place: { lat: number; lng: number; name: string | null } | null;
+  /**
+   * The dates the booking sits on when its own time carries none: the day it is
+   * linked to and the day it ends on, or for a hotel the first and last day of its
+   * stay with the stay's check-in and check-out times. The app shows these dates,
+   * so the pass reads them too.
+   */
+  linked?: {
+    startDate: string | null;
+    endDate: string | null;
+    checkIn?: string | null;
+    checkOut?: string | null;
+  } | null;
 }
 
 const KIND_OF: Record<string, WalletPassKind> = {
@@ -125,6 +137,20 @@ function splitLocal(value: string | null | undefined): { date: string; time: str
   const match = /^(\d{4}-\d{2}-\d{2})(?:[T ](\d{2}:\d{2}))?/.exec(value.trim());
   if (!match) return null;
   return { date: match[1] as string, time: match[2] ?? null };
+}
+
+/** The clock of a time-only value ("12:40", "15:00:00"), which a day-linked booking may carry. */
+function clockOnly(value: string | null | undefined): string | null {
+  return /^\s*(\d{2}:\d{2})/.exec(value ?? '')?.[1] ?? null;
+}
+
+/** A linked day's date with the first clock the booking or its stay gives for it. */
+function onLinkedDay(
+  date: string | null | undefined,
+  ...clocks: (string | null | undefined)[]
+): { date: string; time: string | null } | null {
+  if (!date) return null;
+  return { date, time: clocks.map(clockOnly).find((clock) => clock !== null) ?? null };
 }
 
 /** The UTC offset of a zone at a wall-clock time, in minutes ("+09:00" is 540). */
@@ -233,14 +259,27 @@ export function buildWalletPassRequest(src: WalletPassSource, words: WalletWords
   const toEnd = [...endpoints].reverse().find((e) => e.role === 'to');
   const journey = kind === 'flight' || kind === 'train' || kind === 'bus' || kind === 'boat';
 
-  // When it starts: the departure as the endpoint knows it, else the booking's own time.
+  // When it starts: the departure as the endpoint knows it, else the booking's own
+  // time, else the day it is linked to (a hotel's stay), with the clock it has.
+  const linked = src.linked;
+  const hotel = kind === 'hotel';
   const startLocal =
     (journey && fromEnd?.local_date ? { date: fromEnd.local_date, time: fromEnd.local_time } : null) ??
-    splitLocal(reservation.reservation_time);
+    splitLocal(reservation.reservation_time) ??
+    onLinkedDay(
+      linked?.startDate,
+      reservation.reservation_time,
+      ...(hotel ? [text(meta, 'check_in_time', 8), linked?.checkIn] : []),
+    );
   if (!startLocal) return null;
   const endLocal =
     (journey && toEnd?.local_date ? { date: toEnd.local_date, time: toEnd.local_time } : null) ??
-    splitLocal(reservation.reservation_end_time);
+    splitLocal(reservation.reservation_end_time) ??
+    onLinkedDay(
+      linked?.endDate,
+      reservation.reservation_end_time,
+      ...(hotel ? [text(meta, 'check_out_time', 8), linked?.checkOut] : []),
+    );
 
   const place = src.place ?? (fromEnd && !journey ? { lat: fromEnd.lat, lng: fromEnd.lng, name: fromEnd.name } : null);
   const startZone =

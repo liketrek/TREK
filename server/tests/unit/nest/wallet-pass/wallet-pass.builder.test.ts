@@ -292,4 +292,66 @@ describe('wallet pass builder', () => {
     expect(request?.back).toBeUndefined();
     expect(request?.start).toBe('2027-04-02T15:00:00+00:00');
   });
+
+  // A hotel whose dates live on its stay, and a booking linked to a day, carry no
+  // date of their own. The app shows the stay's and the day's dates, so the pass
+  // used to refuse a booking the user could see dated ("give the booking a date").
+  it('WALLET-B-011: a hotel without its own time takes the dates and times of its stay', () => {
+    const request = buildWalletPassRequest(
+      source(
+        { reservation_time: null, reservation_end_time: null, metadata: {} },
+        { linked: { startDate: '2027-01-08', endDate: '2027-01-11', checkIn: '15:00', checkOut: '10:00:00' } },
+      ),
+      WORDS,
+    );
+    expect(request).toMatchObject({
+      kind: 'hotel',
+      start: '2027-01-08T15:00:00+09:00',
+      end: '2027-01-11T10:00:00+09:00',
+    });
+    expect(request?.details).toEqual([
+      { label: 'Check-in', value: displayTime('en-GB', '2027-01-08', '15:00') },
+      { label: 'Check-out', value: displayTime('en-GB', '2027-01-11', '10:00') },
+    ]);
+  });
+
+  it('WALLET-B-012: the booking own check-in time comes before the stay one', () => {
+    const request = buildWalletPassRequest(
+      source(
+        { reservation_time: null, reservation_end_time: null, metadata: { check_in_time: '16:30' } },
+        { linked: { startDate: '2027-01-08', endDate: null, checkIn: '15:00', checkOut: null } },
+      ),
+      WORDS,
+    );
+    expect(request?.start).toBe('2027-01-08T16:30:00+09:00');
+    expect(request?.end).toBeUndefined();
+  });
+
+  it('WALLET-B-013: a day-linked booking with only a clock is dated by its day', () => {
+    const request = buildWalletPassRequest(
+      source(
+        {
+          type: 'restaurant',
+          title: 'Gion Karyo',
+          reservation_time: '19:30',
+          reservation_end_time: null,
+          metadata: {},
+        },
+        { linked: { startDate: '2027-04-03', endDate: null } },
+      ),
+      WORDS,
+    );
+    expect(request).toMatchObject({ kind: 'restaurant', start: '2027-04-03T19:30:00+09:00' });
+  });
+
+  it('WALLET-B-014: its own date still wins over the linked day, and nothing at all still means no pass', () => {
+    const own = buildWalletPassRequest(
+      source({}, { linked: { startDate: '2027-01-08', endDate: '2027-01-11' } }),
+      WORDS,
+    );
+    expect(own?.start).toBe('2027-04-02T15:00:00+09:00');
+    expect(
+      buildWalletPassRequest(source({ reservation_time: null }, { linked: { startDate: null, endDate: null } }), WORDS),
+    ).toBeNull();
+  });
 });

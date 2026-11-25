@@ -145,6 +145,60 @@ describe('WalletPassService', () => {
     expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
   });
 
+  it('WALLET-S-003b: a hotel dated only by its stay gets a pass with the stay dates', async () => {
+    const { service, reservations } = make();
+    signerAnswers(200, PASS);
+    reservations.getReservationWithJoins.mockResolvedValueOnce({
+      ...ROW,
+      reservation_time: null,
+      reservation_end_time: null,
+      metadata: '{}',
+    });
+    reservations.passContext.mockResolvedValueOnce({
+      trip_title: 'Valencia',
+      place_lat: 39.47,
+      place_lng: -0.376,
+      place_name: 'Only You Hotel Valencia',
+      day_date: null,
+      end_day_date: null,
+      stay_start_date: '2027-01-08',
+      stay_end_date: '2027-01-11',
+      stay_check_in: '15:00',
+      stay_check_out: '10:00',
+    });
+    await service.passFor(1, 42, 7, 'en');
+    const body = JSON.parse(String((safeFetchAdminConfigured.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body).toMatchObject({ kind: 'hotel', start: '2027-01-08T15:00:00+01:00', end: '2027-01-11T10:00:00+01:00' });
+  });
+
+  it('WALLET-S-003c: any other booking reads the dates of the days it is linked to', async () => {
+    const { service, reservations } = make();
+    signerAnswers(200, PASS);
+    reservations.getReservationWithJoins.mockResolvedValueOnce({
+      ...ROW,
+      type: 'restaurant',
+      reservation_time: '19:30',
+      reservation_end_time: null,
+      metadata: '{}',
+    });
+    reservations.passContext.mockResolvedValueOnce({
+      trip_title: 'Japan 2027',
+      place_lat: 35.0,
+      place_lng: 135.77,
+      place_name: 'Gion Karyo',
+      day_date: '2027-04-03',
+      end_day_date: null,
+      // A stay the restaurant happens to share is not its date.
+      stay_start_date: '2027-04-01',
+      stay_end_date: '2027-04-06',
+      stay_check_in: '15:00',
+      stay_check_out: '11:00',
+    });
+    await service.passFor(1, 42, 7, 'en');
+    const body = JSON.parse(String((safeFetchAdminConfigured.mock.calls[0] as [string, RequestInit])[1].body));
+    expect(body).toMatchObject({ kind: 'restaurant', start: '2027-04-03T19:30:00+09:00' });
+  });
+
   it('WALLET-S-004: a user asking too often is slowed down before anything is read', async () => {
     const { service, rateLimit, reservations } = make();
     rateLimit.check.mockResolvedValueOnce(false);

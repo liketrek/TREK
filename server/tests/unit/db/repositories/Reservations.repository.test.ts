@@ -1058,7 +1058,7 @@ describe('ReservationsRepository — findPassContext', () => {
     await setReservation(room.id, { accommodation_id: String(stay.id) });
     const bare = createReservation(testDb, trip.id, { title: 'Museum', type: 'event' });
 
-    expect(await reservationsRepo.findPassContext(dinner.id, trip.id)).toEqual({
+    expect(await reservationsRepo.findPassContext(dinner.id, trip.id)).toMatchObject({
       trip_title: 'Japan 2027',
       place_lat: 35.0,
       place_lng: 135.77,
@@ -1073,9 +1073,43 @@ describe('ReservationsRepository — findPassContext', () => {
       place_lat: null,
       place_lng: null,
       place_name: null,
+      day_date: null,
+      end_day_date: null,
+      stay_start_date: null,
+      stay_end_date: null,
+      stay_check_in: null,
+      stay_check_out: null,
     });
     const other = createTrip(testDb, user.id, { title: 'Elsewhere' });
     expect(await reservationsRepo.findPassContext(dinner.id, other.id)).toBeUndefined();
+  });
+
+  it('RES-PASS-002: reads the dates of the linked days and of a hotel stay, with its check-in and check-out', async () => {
+    const { user } = createUser(testDb);
+    const trip = createTrip(testDb, user.id, { title: 'Valencia', start_date: '2027-01-08', end_date: '2027-01-11' });
+    const first = createDay(testDb, trip.id, { date: '2027-01-08' });
+    const last = createDay(testDb, trip.id, { date: '2027-01-11' });
+    const hotel = createPlace(testDb, trip.id, { name: 'Only You Hotel Valencia', lat: 39.47, lng: -0.376 });
+    const stay = createDayAccommodation(testDb, trip.id, hotel.id, first.id, last.id);
+    await updateRows(await orm(), DayAccommodations, { id: stay.id }, { check_in: '15:00', check_out: '10:00' });
+
+    const room = createReservation(testDb, trip.id, { title: 'Only You', type: 'hotel' });
+    await setReservation(room.id, { accommodation_id: String(stay.id) });
+    const dinner = createReservation(testDb, trip.id, { title: 'Dinner', type: 'restaurant' });
+    await setReservation(dinner.id, { day: first.id, endDay: last.id });
+
+    expect(await reservationsRepo.findPassContext(room.id, trip.id)).toMatchObject({
+      stay_start_date: '2027-01-08',
+      stay_end_date: '2027-01-11',
+      stay_check_in: '15:00',
+      stay_check_out: '10:00',
+      day_date: null,
+    });
+    expect(await reservationsRepo.findPassContext(dinner.id, trip.id)).toMatchObject({
+      day_date: '2027-01-08',
+      end_day_date: '2027-01-11',
+      stay_start_date: null,
+    });
   });
 });
 

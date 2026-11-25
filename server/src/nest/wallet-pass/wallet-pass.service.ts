@@ -5,7 +5,7 @@ import { logWarn } from '../audit/audit-log.logger';
 import { DomainError } from '../common/domain-error';
 import { RateLimitService } from '../common/rate-limit.service';
 import { ReservationsReadService } from '../reservations/reservations-read.service';
-import { buildWalletPassRequest, type WalletPassEndpoint } from './wallet-pass.builder';
+import { buildWalletPassRequest, type WalletPassEndpoint, type WalletPassSource } from './wallet-pass.builder';
 import { loadWalletWords } from './wallet-pass.words';
 import { Inject, Injectable } from '@nestjs/common';
 import type { ConfigType } from '@nestjs/config';
@@ -26,6 +26,26 @@ const MAX_PASS_BYTES = 512 * 1024;
 const PKPASS = 'application/vnd.apple.pkpass';
 /** Every ZIP, and so every .pkpass, starts with a local file header. */
 const ZIP_LOCAL_HEADER = 0x04034b50;
+
+/**
+ * The dates a booking sits on through the days it is linked to, as the app reads
+ * them (bookingDates): a hotel's stay when it has one, else the booking's own days.
+ */
+function linkedDates(
+  type: string | null | undefined,
+  context: Awaited<ReturnType<ReservationsReadService['passContext']>>,
+): WalletPassSource['linked'] {
+  if (!context) return null;
+  if (type === 'hotel' && (context.stay_start_date || context.stay_end_date)) {
+    return {
+      startDate: context.stay_start_date,
+      endDate: context.stay_end_date,
+      checkIn: context.stay_check_in,
+      checkOut: context.stay_check_out,
+    };
+  }
+  return { startDate: context.day_date, endDate: context.end_day_date };
+}
 
 export interface WalletPass {
   bytes: Buffer;
@@ -143,6 +163,7 @@ export class WalletPassService {
           typeof context?.place_lat === 'number' && typeof context.place_lng === 'number'
             ? { lat: context.place_lat, lng: context.place_lng, name: context.place_name ?? null }
             : null,
+        linked: linkedDates(row.type, context),
       },
       await loadWalletWords(language),
     );
