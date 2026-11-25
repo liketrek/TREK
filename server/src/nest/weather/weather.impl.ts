@@ -640,6 +640,47 @@ async function detailedFromArchive(
   };
 }
 
+/**
+ * The last day Open-Meteo's forecast answers, counted in calendar days from today.
+ * The fraction of a day between now and the target's midnight is not that count:
+ * the day 16 out lies 15.x days away and slipped through a `<= 16` test (#3216).
+ */
+const FORECAST_LAST_DAY = 15;
+
+function calendarDaysAhead(day: string, now: Date): number {
+  const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  return Math.round((Date.parse(`${day}T00:00:00Z`) - today) / 86_400_000);
+}
+
+/**
+ * The forecast counts its range from the place's own date, which trails UTC's in
+ * the Americas for part of the day, so its last day can still be refused there.
+ */
+function isOutsideForecastRange(status: number, reason: string | undefined): boolean {
+  return status === 400 && /out of allowed range/i.test(reason ?? '');
+}
+
+/** Last year's day standing in for a trip day the forecast does not reach. */
+async function detailedClimate(
+  lat: string,
+  lng: string,
+  targetDate: Date,
+  now: Date,
+  descriptions: Record<number, string>,
+  ck: string,
+): Promise<WeatherResult> {
+  let refYear = targetDate.getFullYear() - 1;
+  // Archive API only has data up to yesterday — go back further if needed
+  const yesterday = new Date(now.getTime() - 86400000);
+  if (new Date(refYear, targetDate.getMonth(), targetDate.getDate()) > yesterday) refYear--;
+  const refDateStr = `${refYear}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
+
+  const climate = await detailedFromArchive(lat, lng, refDateStr, 'climate', descriptions);
+  if (!climate) return { temp: 0, main: '', description: '', type: '', error: 'no_forecast' };
+  setCache(ck, climate, TTL_CLIMATE_MS);
+  return climate;
+}
+
 async function _getDetailedWeatherImpl(lat: string, lng: string, date: string, lang: string): Promise<WeatherResult> {
   const ck = `detailed_${cacheKey(lat, lng, date, lang)}`;
 
@@ -652,18 +693,9 @@ async function _getDetailedWeatherImpl(lat: string, lng: string, date: string, l
   const dateStr = targetDate.toISOString().slice(0, 10);
   const descriptions = lang === 'de' ? WMO_DESCRIPTION_DE : WMO_DESCRIPTION_EN;
 
-  // Climate path (> 16 days out): last year's day stands in for the trip's.
-  if (diffDays > 16) {
-    let refYear = targetDate.getFullYear() - 1;
-    // Archive API only has data up to yesterday — go back further if needed
-    const yesterday = new Date(now.getTime() - 86400000);
-    if (new Date(refYear, targetDate.getMonth(), targetDate.getDate()) > yesterday) refYear--;
-    const refDateStr = `${refYear}-${String(targetDate.getMonth() + 1).padStart(2, '0')}-${String(targetDate.getDate()).padStart(2, '0')}`;
-
-    const climate = await detailedFromArchive(lat, lng, refDateStr, 'climate', descriptions);
-    if (!climate) return { temp: 0, main: '', description: '', type: '', error: 'no_forecast' };
-    setCache(ck, climate, TTL_CLIMATE_MS);
-    return climate;
+  // Climate path: past the forecast's last day, last year's day stands in for the trip's.
+  if (calendarDaysAhead(dateStr, now) > FORECAST_LAST_DAY) {
+    return detailedClimate(lat, lng, targetDate, now, descriptions, ck);
   }
 
   // Past day: the forecast API answers nulls once a date is a couple of months
@@ -678,7 +710,7 @@ async function _getDetailedWeatherImpl(lat: string, lng: string, date: string, l
     }
   }
 
-  // Forecast path (<= 16 days)
+  // Forecast path (up to today + 15 days)
   const url =
     `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}` +
     `&hourly=temperature_2m,precipitation_probability,precipitation,weathercode,windspeed_10m,relativehumidity_2m` +
@@ -688,6 +720,9 @@ async function _getDetailedWeatherImpl(lat: string, lng: string, date: string, l
   const { response, data } = await fetchOpenMeteo(url);
 
   if (!response.ok || data.error) {
+    if (isOutsideForecastRange(response.status, data.reason)) {
+      return detailedClimate(lat, lng, targetDate, now, descriptions, ck);
+    }
     throw new ApiError(response.status || 500, data.reason || 'Open-Meteo API error');
   }
 

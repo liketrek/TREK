@@ -1223,3 +1223,110 @@ describe('size cap on the Open-Meteo body', () => {
     expect(result.temp).toBe(15);
   });
 });
+
+// ── the forecast's last day (#3216) ──────────────────────────────────────────
+
+describe('getDetailedWeather at the edge of the forecast range', () => {
+  const FORECAST = 'api.open-meteo.com/v1/forecast';
+  const ARCHIVE = 'archive-api.open-meteo.com/v1/archive';
+
+  const archiveDay = {
+    daily: {
+      time: ['2025-12-11'],
+      temperature_2m_max: [8],
+      temperature_2m_min: [2],
+      weathercode: [3],
+      precipitation_sum: [0],
+      windspeed_10m_max: [12],
+      sunrise: ['2025-12-11T07:50'],
+      sunset: ['2025-12-11T16:10'],
+    },
+    hourly: { time: [], temperature_2m: [] },
+  };
+
+  const forecastDay = (date: string) => ({
+    daily: {
+      time: [date],
+      temperature_2m_max: [10],
+      temperature_2m_min: [4],
+      weathercode: [1],
+      sunrise: [`${date}T07:50`],
+      sunset: [`${date}T16:10`],
+      precipitation_probability_max: [10],
+      precipitation_sum: [0],
+      windspeed_10m_max: [9],
+    },
+    hourly: { time: [], temperature_2m: [] },
+  });
+
+  /** Answers like Open-Meteo: the forecast refuses a start_date past `lastForecastDay`. */
+  function openMeteo(lastForecastDay: string) {
+    vi.mocked(fetch).mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes(FORECAST)) {
+        const start = /start_date=([\d-]+)/.exec(url)?.[1] ?? '';
+        if (start > lastForecastDay) {
+          return mockResponse(
+            {
+              error: true,
+              reason: `Parameter 'start_date' is out of allowed range from 2026-08-24 to ${lastForecastDay}`,
+            },
+            false,
+            400,
+          );
+        }
+        return mockResponse(forecastDay(start));
+      }
+      if (url.includes(ARCHIVE)) return mockResponse(archiveDay);
+      throw new Error(`unexpected request ${url}`);
+    });
+  }
+
+  beforeEach(() => {
+    vi.mocked(fetch).mockReset();
+  });
+
+  it('WEATHER-HORIZON-001: the day 16 days out answers with climate instead of failing', async () => {
+    vi.setSystemTime(new Date('2026-11-25T13:00:00Z'));
+    openMeteo('2026-12-10');
+
+    const result = await getDetailedWeather('47.10', '11.30', '2026-12-11', 'en');
+
+    expect(result.type).toBe('climate');
+    expect(result.temp_max).toBe(8);
+    const asked = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+    expect(asked.some((u) => u.includes(FORECAST))).toBe(false);
+    expect(asked.some((u) => u.includes(`${ARCHIVE}`) && u.includes('start_date=2025-12-11'))).toBe(true);
+  });
+
+  it('WEATHER-HORIZON-002: the day 15 days out keeps its forecast, late in the UTC day too', async () => {
+    vi.setSystemTime(new Date('2026-11-25T23:30:00Z'));
+    openMeteo('2026-12-10');
+
+    const result = await getDetailedWeather('47.11', '11.31', '2026-12-10', 'en');
+
+    expect(result.type).toBe('forecast');
+    expect(result.temp_max).toBe(10);
+  });
+
+  it('WEATHER-HORIZON-003: a place whose local date is still behind UTC falls back to climate on the refusal', async () => {
+    // 02:00 UTC is still the day before in the Americas, so Open-Meteo's range
+    // there ends a day earlier than UTC's today + 15.
+    vi.setSystemTime(new Date('2026-11-26T02:00:00Z'));
+    openMeteo('2026-12-10');
+
+    const result = await getDetailedWeather('40.71', '-74.00', '2026-12-11', 'en');
+
+    expect(result.type).toBe('climate');
+    expect(result.temp_max).toBe(8);
+  });
+
+  it('WEATHER-HORIZON-004: any other refusal of the forecast still surfaces as an error', async () => {
+    vi.setSystemTime(new Date('2026-11-25T13:00:00Z'));
+    vi.mocked(fetch).mockResolvedValue(
+      mockResponse({ error: true, reason: 'Cannot initialize WeatherVariable' }, false, 400),
+    );
+
+    await expect(getDetailedWeather('47.12', '11.32', '2026-12-01', 'en')).rejects.toMatchObject({ status: 400 });
+  });
+});
