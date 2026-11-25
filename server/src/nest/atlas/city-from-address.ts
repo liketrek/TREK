@@ -60,6 +60,25 @@ function normalize(value: string): string {
   return value.trim().toLowerCase();
 }
 
+/** A part that is a postcode and nothing else ("10117", "150-0002"), as the TREK index writes it. */
+function isBarePostcode(part: string): boolean {
+  let rest = part;
+  for (const pattern of POSTCODES) rest = rest.replace(pattern, ' ');
+  return rest !== part && !/[\p{L}\d]/u.test(rest);
+}
+
+/**
+ * The generic word a geocoder writes after a region's own name: "Kaafu Atoll" for
+ * the region the map calls Kaafu. Without it the atoll was read as the city, and
+ * every island in it counted as one (#3200).
+ */
+const REGION_WORD = /\s+(?:atoll|province|region|state|prefecture|county|governorate|oblast)$/i;
+
+function sameRegion(part: string, region: string): boolean {
+  const name = normalize(part);
+  return name === region || name.replace(REGION_WORD, '') === region;
+}
+
 export function cityFromAddress(
   address: string | null | undefined,
   isKnownCountry: (part: string) => boolean,
@@ -76,21 +95,43 @@ export function cityFromAddress(
 
   const region = regionName ? normalize(regionName) : null;
 
+  // The TREK index writes "street, postcode, locality" with no country: the locality
+  // is the city, whatever the region is called (#3200).
+  const tail = parts[parts.length - 1] as string;
+  if (
+    parts.length >= 3 &&
+    isBarePostcode(parts[parts.length - 2] as string) &&
+    !isKnownCountry(tail) &&
+    !hasDigits(tail) &&
+    /\p{L}/u.test(tail)
+  ) {
+    return tail;
+  }
+
   // A geocoder always ends on the country, so drop the last part outright once the
   // address is long enough for that to be certain. The country-name list below still
   // runs for every part, but it is a finite list (it has no "Nederland", for one), and
   // this way a country it has never heard of cannot be counted as a city.
   const last = parts.length >= 3 ? parts.length - 2 : parts.length - 1;
 
+  // A city that is its own region (Berlin, Wien, Malé) is skipped like any region,
+  // but written beside its postcode ("10117 Berlin") it is the city of the address.
+  // It counts when no part before it names a city (#3200).
+  let cityRegion: string | null = null;
+
   // Index 0 stays out of the running: geocoders lead with the place itself.
   for (let i = last; i >= 1; i--) {
-    const part = hasDigits(parts[i]) ? besidePostcode(parts[i]) : parts[i];
+    const withPostcode = hasDigits(parts[i]);
+    const part = withPostcode ? besidePostcode(parts[i]) : parts[i];
     if (!part) continue;
     if (isKnownCountry(part)) continue;
-    if (region && normalize(part) === region) continue;
+    if (region && sameRegion(part, region)) {
+      if (withPostcode) cityRegion ??= part;
+      continue;
+    }
     // Anything with no letter at all (stray punctuation, a lone dash) is not a name.
     if (!/\p{L}/u.test(part)) continue;
     return part;
   }
-  return null;
+  return cityRegion;
 }

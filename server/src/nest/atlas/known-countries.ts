@@ -1,3 +1,5 @@
+import { SUPPORTED_LANGUAGES } from '@trek/shared';
+
 /**
  * Country names, English and German, used to tell a city apart from a country
  * when splitting a free-text place address. Moved here from auth.helpers.ts
@@ -6,7 +8,7 @@
  * Deliberately not ISO codes: it matches against whatever the geocoder wrote
  * into places.address, which is display text in the user's language.
  */
-export const KNOWN_COUNTRIES = new Set([
+const KNOWN_COUNTRIES = new Set([
   // Nominatim inserts an extra tier above the country for France and its overseas
   // territories, which reads exactly like a place name and would otherwise be counted
   // as a city.
@@ -186,3 +188,34 @@ export const KNOWN_COUNTRIES = new Set([
   'Belarus',
   'Weissrussland',
 ]);
+
+/**
+ * Every country's name in every language TREK speaks, as the platform's ICU writes
+ * it, lower-cased. The list above is English and German only, so an address ending
+ * in "Maldives", "Österreich" or "Italia" counted the country as its city (#3200).
+ * The TREK index writes its country with the same Intl names.
+ */
+const COUNTRY_NAMES: ReadonlySet<string> = (() => {
+  const names = new Set<string>();
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  for (const { locale } of SUPPORTED_LANGUAGES) {
+    let display: Intl.DisplayNames;
+    try {
+      display = new Intl.DisplayNames([locale], { type: 'region', fallback: 'none' });
+    } catch {
+      continue;
+    }
+    for (const a of letters) {
+      for (const b of letters) {
+        const name = display.of(a + b);
+        if (name) names.add(name.normalize('NFC').toLowerCase());
+      }
+    }
+  }
+  return names;
+})();
+
+/** Whether a part of an address names a country, in any language TREK speaks. */
+export function isCountryName(part: string): boolean {
+  return KNOWN_COUNTRIES.has(part) || COUNTRY_NAMES.has(part.trim().normalize('NFC').toLowerCase());
+}

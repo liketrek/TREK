@@ -5,6 +5,7 @@
  * invented examples and failed against actual data.
  */
 import { cityFromAddress } from '../../../src/nest/atlas/city-from-address';
+import { isCountryName } from '../../../src/nest/atlas/known-countries';
 
 import { describe, it, expect } from 'vitest';
 
@@ -77,5 +78,73 @@ describe('cityFromAddress with the postcode in the same part as the city (#3137)
     expect(city('Shibuya Sky, 12, Shibuya 2, Japan')).toBeNull();
     expect(city('350 5th Ave, New York, NY 10118, USA')).toBe('New York');
     expect(city('CN Tower, Toronto, ON M5V 3L9, Canada')).toBe('Toronto');
+  });
+});
+
+// #3200: a Maldives traveller saw more regions than cities. Each of these addresses
+// lost its city, or counted something that is none, before.
+describe('cityFromAddress for the cities the count used to miss (#3200)', () => {
+  const real = (address: string, region?: string | null) => cityFromAddress(address, isCountryName, region);
+
+  it('reads the locality of the line the TREK index writes, which ends without a country', () => {
+    expect(city('Pariser Platz 1, 10117, Berlin', 'Berlin')).toBe('Berlin');
+    expect(city('Boduthakurufaanu Magu, 20026, Malé', 'Malé')).toBe('Malé');
+    expect(city('Rue de Rivoli 99, 75001, Paris', 'Île-de-France')).toBe('Paris');
+  });
+
+  it('counts a city that is its own region when its postcode stands beside it', () => {
+    expect(city('Pariser Platz, 10117 Berlin, Germany', 'Berlin')).toBe('Berlin');
+    expect(city('Hotel Adlon Kempinski, Unter den Linden 77, 10117 Berlin, Germany', 'Berlin')).toBe('Berlin');
+    expect(real('Michaelerkuppel, 1010 Wien, Österreich', 'Wien')).toBe('Wien');
+    expect(real('Boduthakurufaanu Magu, Malé 20026, Maldives', 'Malé')).toBe('Malé');
+    // A city below the region still wins, as before.
+    expect(city('Shibuya Crossing, Shibuya City, Tokyo 150-0002, Japan', 'Tokyo')).toBe('Shibuya City');
+  });
+
+  it('never counts a region named without a postcode, so a mountain or an atoll is no city', () => {
+    expect(real('Zugspitze, Bayern, Deutschland', 'Bayern')).toBeNull();
+    expect(real('Resort, Kaafu, Maldives', 'Kaafu')).toBeNull();
+  });
+
+  it('reads the island below an atoll the geocoder writes with its generic word', () => {
+    expect(real('Kurumba Maldives, Vihamanaafushi, Kaafu Atoll, Maldives', 'Kaafu')).toBe('Vihamanaafushi');
+    expect(real('Maafushi Beach, Maafushi, Kaafu Atoll, 08090, Maldives', 'Kaafu')).toBe('Maafushi');
+  });
+
+  it('never counts a country as the city, in any language TREK speaks', () => {
+    expect(real('Malé, Maldives', 'Malé')).toBeNull();
+    expect(real('Maafushi, Maldives', 'Kaafu')).toBeNull();
+    expect(real('Somewhere, 08090, Maldives')).toBeNull();
+    expect(real('Piazza Navona, Roma, Italia', 'Lazio')).toBe('Roma');
+  });
+
+  it('keeps the lines it already read right', () => {
+    expect(real('350 5th Ave, New York, NY 10118, USA')).toBe('New York');
+    expect(real('CN Tower, Toronto, ON M5V 3L9, Canada')).toBe('Toronto');
+    expect(real('Museum, Marienplatz, München, Bayern, 80331, Germany', 'Bayern')).toBe('München');
+    expect(real('Marienplatz 1, München')).toBe('München');
+  });
+});
+
+describe('isCountryName', () => {
+  it('knows a country by its name in the languages TREK speaks, ignoring case', () => {
+    for (const name of [
+      'Maldives',
+      'Malediven',
+      'Österreich',
+      'Italia',
+      'Sri Lanka',
+      'maldives',
+      'Deutschland',
+      'Japan',
+    ]) {
+      expect(isCountryName(name)).toBe(true);
+    }
+  });
+
+  it('does not take a city or a region for a country', () => {
+    for (const name of ['Malé', 'Berlin', 'Kaafu Atoll', 'München', 'Bayern', 'New York']) {
+      expect(isCountryName(name)).toBe(false);
+    }
   });
 });

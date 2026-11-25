@@ -34,7 +34,7 @@ import {
   reverseGeocodeRegion,
 } from './atlas-geo';
 import type { RegionInfo } from './atlas-geo';
-import { KNOWN_COUNTRIES } from './known-countries';
+import { isCountryName } from './known-countries';
 import { cityFromAddress } from './city-from-address';
 import { transferEndpointIds } from './transfer-endpoints';
 import { countryVisitDates } from './visit-dates';
@@ -1046,7 +1046,7 @@ export class AtlasService {
       // Explicit null checks: lat/lng of exactly 0 (equator / prime meridian)
       // are valid coordinates a falsy check would drop.
       if (p.lat != null && p.lng != null) coords.push({ lat: p.lat, lng: p.lng });
-      const city = cityFromAddress(p.address, (part) => KNOWN_COUNTRIES.has(part), p.region_name);
+      const city = cityFromAddress(p.address, isCountryName, p.region_name);
       if (city && !cities.has(city.toLowerCase())) cities.set(city.toLowerCase(), city);
     }
     return { totalPlaces: places.length, cities: [...cities.values()], coords };
