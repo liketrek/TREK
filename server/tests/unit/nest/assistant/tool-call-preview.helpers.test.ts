@@ -226,6 +226,18 @@ describe('describeToolCall', () => {
     const year = describeToolCall('add_vacay_year', 'tc-9', { year: 2027 }, hinted(false, true, 'vacay'));
     expect(year).toMatchObject({ verbKey: 'genericCreate', domain: 'vacay', undoable: false });
     // A vacation day has a card of its own, even before its lookup ran: the day, in the vacation planner.
+    // A part of the trip that loads as a group (its tags) is no place elsewhere in TREK: no domain.
+    const tag = describeToolCall(
+      'add_trip_label',
+      'tc-11',
+      { name: 'Food' },
+      {
+        ...ctx,
+        hintOf: () => ({ destructive: false, creates: true, group: 'tags', tripPart: true as const }),
+      },
+    );
+    expect(tag).toMatchObject({ verbKey: 'genericCreate', tool: 'add_trip_label' });
+    expect(tag).not.toHaveProperty('domain');
     const vacay = describeToolCall('toggle_vacay_entry', 'tc-10', { date: '2026-07-01', half: true }, ctx);
     expect(vacay).toMatchObject({ verbKey: 'addVacationDay', subject: 'Wed 1 Jul', domain: 'vacay', undoable: false });
     expect(vacay.rows).toEqual([]);

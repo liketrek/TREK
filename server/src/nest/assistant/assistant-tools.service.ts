@@ -31,6 +31,7 @@ import {
   HOME_USE_TOOLS_SPEC,
   isOfferedTool,
   isStudioController,
+  isTripPart,
   JOURNEY_PINNED_ARG,
   keptAtHome,
   USE_TOOLS_SPEC,
@@ -39,6 +40,7 @@ import {
 import {
   ASSISTANT_SCOPES,
   ASSISTANT_SERVER_TOOLS,
+  MAX_OFFERED_TOOLS,
   PINNED_ARG,
   PREVIEW_BOOK_PAGE_TOOL,
   REMEMBER_TOOL,
@@ -82,6 +84,8 @@ export interface ToolHint {
   destructive: boolean;
   creates: boolean;
   group: string | null;
+  /** The group is a part of the trip itself (its bookings, its packing), not a place elsewhere in TREK. */
+  tripPart?: true;
 }
 
 interface ListedTool {
@@ -218,6 +222,15 @@ function modelSchema(name: string, schema: Record<string, unknown>, pinArg: stri
   return { ...rest, properties, ...(required.length > 0 ? { required } : {}) };
 }
 
+function hintOf(annotations: { destructiveHint?: boolean; idempotentHint?: boolean }, group: string | null): ToolHint {
+  return {
+    destructive: annotations.destructiveHint === true,
+    creates: annotations.idempotentHint === false,
+    group,
+    ...(group && isTripPart(group) ? { tripPart: true as const } : {}),
+  };
+}
+
 function readResult(result: unknown): ToolRun {
   const record = (result ?? {}) as { content?: unknown; isError?: unknown };
   const text = Array.isArray(record.content)
@@ -264,7 +277,7 @@ export class AssistantToolSession {
     private readonly pinArg: string = PINNED_ARG,
   ) {}
 
-  /** The groups this turn loaded; the core is always there. */
+  /** The groups this turn loaded, the one used longest ago first; the core is always there. */
   private readonly loaded = new Set<string>();
 
   /** Reads the model called before their group was loaded in this turn, by name, with that group; told once. */
@@ -286,6 +299,10 @@ export class AssistantToolSession {
   specs(): AiToolSpec[] {
     // The step these specs go to sees every loaded group's schema.
     this.unoffered.clear();
+    return this.offeredSpecs();
+  }
+
+  private offeredSpecs(): AiToolSpec[] {
     const listed = [...this.tools.values()]
       .filter((tool) => tool.offered)
       .filter((tool) => !this.grouped || tool.hint.group === null || this.loaded.has(tool.hint.group))
@@ -345,7 +362,7 @@ export class AssistantToolSession {
       // name from an earlier turn), so it wrote the arguments without the
       // schema (#2967). Its group is loaded here, so the next step offers the
       // schema.
-      this.loaded.add(unloaded);
+      this.use([unloaded]);
       this.unoffered.add(unloaded);
     }
     const group = this.tools.get(name)?.hint.group;
@@ -382,6 +399,8 @@ export class AssistantToolSession {
     if (name === OPEN_JOURNEY_CHAT_TOOL && this.offersJournalChat) {
       return openJourneyChat(args, await this.invoke(OPEN_JOURNEY_CHAT_READ, {}));
     }
+    const group = this.tools.get(name)?.hint.group;
+    if (group && this.loaded.delete(group)) this.loaded.add(group);
     const final = name === TRANSIT_CREATE_TOOL ? await this.withFoundItinerary(args) : args;
     const run = await this.invoke(name, final);
     this.audit(name);
@@ -436,9 +455,54 @@ ${hint}`,
     const groups = asked.filter((group) => group in ASSISTANT_TOOL_GROUPS);
     if (groups.length === 0)
       return { ok: false, value: `Name one of: ${Object.keys(ASSISTANT_TOOL_GROUPS).join(', ')}` };
-    for (const group of groups) this.loaded.add(group);
-    const tools = [...this.tools.values()].filter((tool) => tool.hint.group && groups.includes(tool.hint.group));
-    return { ok: true, value: { loaded: groups, tools: tools.map((tool) => tool.name) } };
+    const { unloaded, refused } = this.use(groups);
+    const loaded = groups.filter((group) => !refused.includes(group));
+    const tools = [...this.tools.values()].filter((tool) => tool.hint.group && loaded.includes(tool.hint.group));
+    return {
+      ok: true,
+      value: {
+        loaded,
+        tools: tools.map((tool) => tool.name),
+        ...(unloaded.length > 0 ? { unloaded } : {}),
+        ...(refused.length > 0
+          ? {
+              notLoaded: refused,
+              note: 'Too many tools for one step: load these on their own once the others are done.',
+            }
+          : {}),
+      },
+    };
+  }
+
+  /**
+   * Loads groups as the ones used last, then unloads the ones used longest
+   * ago until the step offers no more than MAX_OFFERED_TOOLS. Groups asked for
+   * together that do not fit even alone are left out from the last one asked.
+   */
+  private use(groups: readonly string[]): { unloaded: string[]; refused: string[] } {
+    for (const group of groups) {
+      this.loaded.delete(group);
+      this.loaded.add(group);
+    }
+    const unloaded: string[] = [];
+    const refused: string[] = [];
+    const drop = (group: string) => {
+      this.loaded.delete(group);
+      this.unoffered.delete(group);
+    };
+    while (this.offeredSpecs().length > MAX_OFFERED_TOOLS) {
+      const oldest = [...this.loaded].find((group) => !groups.includes(group));
+      if (oldest) {
+        drop(oldest);
+        unloaded.push(oldest);
+        continue;
+      }
+      const last = [...this.loaded].reverse().find((group) => groups.includes(group) && !refused.includes(group));
+      if (!last || this.loaded.size === 1) break;
+      drop(last);
+      refused.push(last);
+    }
+    return { unloaded, refused };
   }
 
   async close(): Promise<void> {
@@ -620,11 +684,7 @@ export class AssistantToolsService implements OnApplicationBootstrap {
         inputSchema,
         kind,
         pinned: pinNamesOf(pin.arg).some((key) => key in properties),
-        hint: {
-          destructive: annotations.destructiveHint === true,
-          creates: annotations.idempotentHint === false,
-          group: entry ? groupOf(entry) : null,
-        },
+        hint: hintOf(annotations, entry ? groupOf(entry) : null),
         offered: true,
       };
       if (offer.keep(listed)) tools.set(tool.name, { ...listed, offered: offer.offered?.(listed) ?? true });

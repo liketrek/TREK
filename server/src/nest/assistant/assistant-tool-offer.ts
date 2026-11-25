@@ -11,9 +11,10 @@ import { PACKAGE_HELD_READS, PACKAGE_TOOL_CONTROLLERS } from './cards/registry';
  * annotated read-only runs at once, every other one waits as a change card.
  *
  * Offering all of them in every step would cost a lot of tokens and runs past
- * what some providers take in one request, so a turn starts with the core of
- * a trip (days, places, bookings, packing, to-dos, budget, weather, search)
- * and the model loads an addon's tools when it needs them (USE_TOOLS_TOOL).
+ * what some providers take in one request (MAX_OFFERED_TOOLS), so a turn
+ * starts with the core of a trip (days, places, the plan, weather, search)
+ * and the model loads the rest of the trip and the addons when it needs them
+ * (USE_TOOLS_TOOL).
  */
 
 /**
@@ -286,7 +287,14 @@ export function checkDenylist(names: Iterable<string>): string[] {
   return problems;
 }
 
-type ToolGroups = Readonly<Record<string, { about: string; controllers: readonly string[] }>>;
+interface ToolGroup {
+  about: string;
+  controllers: readonly string[];
+  /** A part of the trip itself rather than of the rest of TREK: its changes carry no place in TREK of their own. */
+  tripPart?: true;
+}
+
+type ToolGroups = Readonly<Record<string, ToolGroup>>;
 
 /**
  * The tool groups a turn can load, by the MCP controller that registers the
@@ -295,6 +303,30 @@ type ToolGroups = Readonly<Record<string, { about: string; controllers: readonly
  * belongs to the core, which every step offers.
  */
 const CORE_TOOL_GROUPS: ToolGroups = {
+  bookings: {
+    about:
+      "The trip's bookings: flights, trains, stays and every other reservation, the hotels and other " +
+      'accommodation, airports and the live status of a flight.',
+    controllers: ['ReservationsMcp', 'ReservationsReadMcp', 'AccommodationsMcp', 'AirportsMcp', 'FlightLiveMcp'],
+    tripPart: true,
+  },
+  packing: {
+    about: "The trip's packing lists (items, bags, templates) and its to-do list.",
+    controllers: ['PackingMcp', 'TodoMcp'],
+    tripPart: true,
+  },
+  budget: {
+    about:
+      "Changing the trip's budget: costs, who paid and who shares them, settlements and frozen exchange rates. " +
+      'Reading the costs needs nothing loaded.',
+    controllers: ['BudgetMcp'],
+    tripPart: true,
+  },
+  tags: {
+    about: 'Tags and categories of places.',
+    controllers: ['TagsMcp', 'TripTagsMcp', 'CategoriesMcp'],
+    tripPart: true,
+  },
   tours: {
     about:
       'Tours: hikes (also over several days in stages), city walks, bike tours (road, gravel, mountain bike), ' +
@@ -407,6 +439,11 @@ export function withPackageControllers(
 
 export const ASSISTANT_TOOL_GROUPS = withPackageControllers(CORE_TOOL_GROUPS, PACKAGE_TOOL_CONTROLLERS);
 
+/** Whether a group is a part of the trip itself, whose changes show no place in TREK beside them. */
+export function isTripPart(group: string): boolean {
+  return ASSISTANT_TOOL_GROUPS[group]?.tripPart === true;
+}
+
 const GROUP_OF_CONTROLLER = new Map(
   Object.entries(ASSISTANT_TOOL_GROUPS).flatMap(([group, { controllers }]) =>
     controllers.map((controller) => [controller, group] as const),
@@ -428,7 +465,8 @@ function useToolsDescription(core: string): string {
     Object.entries(ASSISTANT_TOOL_GROUPS)
       .map(([group, { about }]) => `"${group}" (${about})`)
       .join('; ') +
-    `. ${core}`
+    `. ${core} Only so many tools fit in one step: loading a group can unload the one used longest ago, ` +
+    'which comes back when you call one of its tools.'
   );
 }
 
@@ -449,8 +487,7 @@ const USE_TOOLS_PARAMETERS: AiToolSpec['parameters'] = {
 export const HOME_USE_TOOLS_SPEC: AiToolSpec = {
   name: USE_TOOLS_TOOL,
   description: useToolsDescription(
-    'Reading the trips (list_trips, and a trip by its id: days, places, bookings, packing, to-dos, budget, weather) ' +
-      'needs nothing loaded.',
+    'Reading the trips (list_trips, and a trip by its id: days, places, costs, weather) needs nothing loaded.',
   ),
   parameters: USE_TOOLS_PARAMETERS,
 };
@@ -458,7 +495,7 @@ export const HOME_USE_TOOLS_SPEC: AiToolSpec = {
 export const USE_TOOLS_SPEC: AiToolSpec = {
   name: USE_TOOLS_TOOL,
   description: useToolsDescription(
-    'The trip itself (days, places, bookings, packing, to-dos, budget, weather, search) needs nothing loaded.',
+    'The trip itself (days, places, the plan, notes, costs, weather, search) needs nothing loaded.',
   ),
   parameters: {
     type: 'object',

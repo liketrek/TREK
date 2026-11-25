@@ -19,6 +19,12 @@ export const MAX_READS_PER_STEP = 30;
 /** Answer cards one step shows; the reads past it answer the model as usual, without a card. */
 export const MAX_CARDS_PER_STEP = 12;
 
+/**
+ * The most tools one request offers the model: OpenAI's APIs and Azure refuse
+ * a longer list (`array_above_max_length`), whatever else the provider takes.
+ */
+export const MAX_OFFERED_TOOLS = 128;
+
 /** What a tool answer may cost the conversation, as JSON text, after it was cut down to its structure. */
 export const MAX_TOOL_OUTPUT_CHARS = 40_000;
 

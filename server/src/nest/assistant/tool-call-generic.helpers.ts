@@ -205,6 +205,6 @@ export function describeGeneric(
     undoable: false,
     effect: null,
     tool: toolName,
-    ...(hint?.group ? { domain: hint.group } : {}),
+    ...(hint?.group && !hint.tripPart ? { domain: hint.group } : {}),
   };
 }
