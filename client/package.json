@@ -154,7 +154,7 @@
     "eslint-plugin-react-refresh": "^0.5.8",
     "fake-indexeddb": "^6.2.7",
     "jsdom": "^29.1.1",
-    "msw": "^2.15.0",
+    "msw": "^3.0.7",
     "postcss": "^8.5.33",
     "prettier": "^3.10.1",
     "prettier-plugin-organize-imports": "^4.3.0",
