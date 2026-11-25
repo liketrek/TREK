@@ -1,6 +1,6 @@
 {
   "name": "@trek/server",
-  "version": "5.2.0",
+  "version": "5.2.1",
   "engines": {
     "node": "^22.22.2 || ^24.15.0 || >=26.0.0"
   },
