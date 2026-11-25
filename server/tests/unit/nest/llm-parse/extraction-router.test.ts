@@ -7,6 +7,7 @@ import {
   routeExtraction,
   routeImageExtraction,
 } from '../../../../src/nest/llm-parse/router/extraction-router';
+import { FLAT_SCHEMA_BY_TYPE, FLIGHTS_ARRAY_SCHEMA } from '../../../../src/nest/llm-parse/router/flat-schemas';
 import { fitTextWindow } from '../../../../src/nest/llm-parse/text-window';
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
@@ -318,6 +319,86 @@ describe('printed 12-hour clocks and unreadable types (#2094, #2076)', () => {
     const flats = mapToKi.mock.calls[0][0];
     expect(flats[0].type).toBe('event');
     expect(flats[0].type_guessed).toBeUndefined();
+  });
+});
+
+// A word that names a type is not proof the document is that type. The first match
+// used to decide, with transport first in the table, so a hotel confirmation that named
+// the airport bus was extracted with the bus or ferry schema, which has no hotel name,
+// address or dates, and the import dropped it.
+describe('documents that name more than one type', () => {
+  const sentSchema = () => extractEnforced.mock.calls[0][0].schema;
+  const sentSystem = () => extractEnforced.mock.calls[0][0].system as string;
+
+  it('lets the model read a hotel confirmation that names the bus, the train and the cruise port as a hotel', async () => {
+    extractEnforced.mockResolvedValue({
+      type: 'hotel',
+      name: 'Hotel Sol',
+      address: 'Calle Mayor 1, Madrid',
+      checkin_time: '2026-12-03T15:00:00',
+      checkout_time: '2026-12-06T11:00:00',
+    });
+    await routeExtraction(
+      'Hotel Sol Madrid\nYour stay, 3 nights.\nGetting here: the airport bus stops 200 m away, ' +
+        'the train station is 5 minutes away, and the cruise port is close.',
+      CTX,
+    );
+    expect(sentSchema().properties.type).toEqual({ type: 'string', enum: ['train', 'bus', 'ferry', 'hotel'] });
+    expect(sentSchema().properties.checkin_time).toEqual({ type: 'string' });
+    expect(sentSystem()).toContain('one of: train, bus, ferry, hotel');
+    expect(sentSystem()).toContain('- hotel: hotel stay.');
+    expect(sentSystem()).not.toContain('- car:');
+    const flat = mapToKi.mock.calls[0][0][0];
+    expect(flat.type).toBe('hotel');
+    expect(flat.name).toBe('Hotel Sol');
+    expect(flat.checkout_time).toBe('2026-12-06T11:00:00');
+    expect(flat.type_guessed).toBeUndefined();
+  });
+
+  it('keeps a ferry ticket that lists its cabin as accommodation a ferry', async () => {
+    extractEnforced.mockResolvedValue({ type: 'ferry', from_name: 'Portsmouth', to_name: 'Caen' });
+    await routeExtraction('Your ferry booking Portsmouth - Caen. Outbound accommodation: 2-berth cabin.', CTX);
+    expect(sentSchema().properties.type).toEqual({ type: 'string', enum: ['ferry', 'hotel'] });
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('ferry');
+  });
+
+  it('keeps the first named type when the model answers outside the list', async () => {
+    extractEnforced.mockResolvedValue({ type: 'flight', name: 'Hostel Luna' });
+    await routeExtraction('Hostel Luna. The airport bus stops at the door.', CTX);
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('bus');
+  });
+
+  it('still extracts a document that names one type with that type schema', async () => {
+    extractEnforced.mockResolvedValue({ name: 'Casa Azul' });
+    await routeExtraction('Your apartment Casa Azul, 3 nights, check-in from 15:00.', CTX);
+    expect(sentSchema()).toBe(FLAT_SCHEMA_BY_TYPE.hotel);
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('hotel');
+  });
+
+  it('keeps a rail ticket with several train numbers off the flight path (#2076)', async () => {
+    extractEnforced.mockResolvedValue({ from_name: 'Hamburg', to_name: 'Kassel' });
+    await routeExtraction('Deutsche Bahn. IC 2023 Hamburg Hbf - Hannover Hbf, RE 4711 Hannover - Kassel.', CTX);
+    expect(sentSchema()).toBe(FLAT_SCHEMA_BY_TYPE.train);
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('train');
+  });
+
+  it('keeps a flight confirmation with hotel offers on the flight path', async () => {
+    extractEnforced.mockResolvedValue({ flights: [{ vehicle_number: 'EW9044', from_code: 'CGN', to_code: 'PMI' }] });
+    await routeExtraction('Hinflug EW 9044 Koeln - Palma. Hotels in Palma ab 39 EUR, jetzt Hotel buchen.', CTX);
+    expect(sentSchema()).toBe(FLIGHTS_ARRAY_SCHEMA);
+    expect(mapToKi.mock.calls[0][0][0].type).toBe('flight');
+  });
+
+  it('reads the event words only when the document names no other type', async () => {
+    extractEnforced.mockResolvedValue({ name: 'Concert' });
+    await routeExtraction('Concert ticket. Doors open 19:00.', CTX);
+    expect(sentSchema()).toBe(FLAT_SCHEMA_BY_TYPE.event);
+
+    vi.clearAllMocks();
+    mapToKi.mockReturnValue([{ '@type': 'Mock' }]);
+    extractEnforced.mockResolvedValue({ from_name: 'Madrid', to_name: 'Lisboa' });
+    await routeExtraction('Bus ticket Madrid to Lisboa, seat 12.', CTX);
+    expect(sentSchema()).toBe(FLAT_SCHEMA_BY_TYPE.bus);
   });
 });
 

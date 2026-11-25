@@ -77,34 +77,64 @@ const PHOTO_UNION_HINT = [
 ].join('\n');
 
 /**
- * Keyword → reservation type, so an obvious document skips the costlier union/strong path.
+ * Keyword → reservation type, so an obvious document skips the union schema.
  *
- * Order is the whole rule: the first pattern that matches wins. Lodging used to be
- * tested second, on a group that included "check-in"/"check-out" — words printed on
- * nearly every ferry, train and bus ticket there is — so a ferry ticket came back as
- * a hotel and the user was handed a booking form with no transport type on it
- * (#2076). Transport is tested first now, and the lodging pattern asks for a word
- * that actually names lodging.
+ * A word that names a type is not proof the document IS that type: a hotel
+ * confirmation names the train station and the airport bus, a ferry ticket lists
+ * its cabin as "accommodation". When the first matching pattern decided, transport
+ * sat first in the table (#2076), so a hotel that named a bus came back a bus or
+ * ferry booking, extracted with a schema that has no hotel name, address or dates,
+ * and the import dropped it. So readType only decides alone when the document names
+ * one type. When it names several, the model picks between exactly those.
  *
- * "pick-up"/"drop-off" are gone from the rental pattern for the same reason: they
- * appear on ferry, bus and airport-transfer vouchers. A rental names its rental.
+ * Lodging asks for a word that names lodging, never "check-in"/"check-out" (printed
+ * on nearly every ticket there is), and the rental pattern never "pick-up"/"drop-off"
+ * (printed on ferry, bus and airport-transfer vouchers). A rental names its rental.
  */
 const TYPE_KEYWORDS: [FlatType, RegExp][] = [
-  ['train', /\b(deutsche\s*bahn|bahn|train|railway|\bice\b|\bzug\b|gleis|sncf|trenitalia|renfe)\b/i],
-  ['bus', /\b(flixbus|\bbus\b|coach|omnibus)\b/i],
+  ['train', /\b(deutsche\s*bahn|bahn|train|railway|ice|zug|gleis|sncf|trenitalia|renfe)\b/i],
+  ['bus', /\b(flixbus|bus|coach|omnibus)\b/i],
   ['ferry', /\b(f(?:ä|ae)hre|ferry|cruise|kreuzfahrt|einschiffung)\b/i],
   ['car', /\b(sixt|europcar|hertz|avis|enterprise|mietwagen|rental\s*car|autovermietung|anmietung)\b/i],
-  ['hotel', /\b(hotel|(?:ü|ue)bernachtung|zimmer|room\s*night|lodging|airbnb|b&b|hostel|pension)\b/i],
-  ['restaurant', /\b(restaurant|\btisch\b|table\s*for|men(?:ü|u)|gedeck)\b/i],
-  ['event', /\b(ticket|concert|konzert|veranstaltung|eintritt|admission)\b/i],
+  [
+    'hotel',
+    /\b(hotels?|motel|(?:ü|ue)bernachtung|unterkunft|ferienwohnung|zimmer|room\s*night|lodging|accommodation|apartment|guest\s*house|airbnb|b&b|hostel|pension)\b/i,
+  ],
+  ['restaurant', /\b(restaurant|tisch|table\s*for|men(?:ü|u)|gedeck)\b/i],
 ];
 
-/** The transport half of the table, for the flight gate below. */
+/**
+ * "Ticket" is printed on every train, bus and ferry ticket, so the event words
+ * decide only for a document that names no other type at all.
+ */
+const EVENT_KEYWORDS = /\b(ticket|concert|konzert|veranstaltung|eintritt|admission)\b/i;
+
+/** The transport half of the table, for the flight gate in readType. */
 const TRANSPORT_FLAT_TYPES = new Set<FlatType>(['train', 'bus', 'ferry', 'car']);
 
-function detectType(text: string): FlatType | null {
-  for (const [type, re] of TYPE_KEYWORDS) if (re.test(text)) return type;
-  return null;
+/**
+ * What the keywords say about a document: the one type it names, or the types it
+ * names, in table order, for the model to choose between. Both empty means it names
+ * none, and the model picks from every type.
+ */
+interface TypeReading {
+  type: FlatType | null;
+  candidates: FlatType[];
+}
+
+/** Read the reservation type off the document's own words; see TYPE_KEYWORDS. */
+function readType(text: string): TypeReading {
+  const named = TYPE_KEYWORDS.filter(([, re]) => re.test(text)).map(([type]) => type);
+  // The flight path forces type 'flight' on everything it returns, so it must not
+  // claim a document that names another kind of transport: a German rail ticket
+  // carries numbers like "IC 2023" or "RE 4711", which the two-letters-plus-digits
+  // test cannot tell from an airline code (#2076).
+  if (detectFlightNumbers(text).length > 0 && !named.some((type) => TRANSPORT_FLAT_TYPES.has(type))) {
+    return { type: 'flight', candidates: [] };
+  }
+  if (named.length > 1) return { type: null, candidates: named };
+  if (named.length === 1) return { type: named[0], candidates: [] };
+  return { type: EVENT_KEYWORDS.test(text) ? 'event' : null, candidates: [] };
 }
 
 /** Detect flight numbers (order-preserving, deduped) — also the "is this a flight doc" test. */
@@ -260,10 +290,30 @@ async function extractFlights(text: string, ctx: RouterContext): Promise<FlatLik
   return legs.map((leg) => fixArrivalDate(normalizeDates({ ...leg, type: 'flight' as FlatType })));
 }
 
-/** One enforced call for a single reservation — a type-specific schema when the type is
- *  obvious from keywords, else a union schema the model fills with the type it picks. */
-async function extractSingle(text: string, ctx: RouterContext, images?: Buffer[]): Promise<FlatLike> {
-  const known = detectType(text);
+/** The union schema with its type narrowed to the given candidates. */
+function unionSchemaFor(candidates: FlatType[]): Record<string, unknown> {
+  const properties = UNION_SINGLE_SCHEMA.properties as Record<string, unknown>;
+  return { ...UNION_SINGLE_SCHEMA, properties: { ...properties, type: { type: 'string', enum: candidates } } };
+}
+
+/** The union hint for a document that names several types: only those, each with its field meanings. */
+function candidateHint(candidates: FlatType[]): string {
+  return [
+    `Pick the correct "type", one of: ${candidates.join(', ')}. Then fill its fields:`,
+    ...candidates.map((type) => `- ${type}: ${TYPE_HINT[type]}`),
+  ].join('\n');
+}
+
+/** One enforced call for a single reservation — a type-specific schema when the keywords
+ *  name one type, a union narrowed to the named types when they name several, else a
+ *  union over every type that the model fills with the type it picks. */
+async function extractSingle(
+  text: string,
+  ctx: RouterContext,
+  reading: TypeReading,
+  images?: Buffer[],
+): Promise<FlatLike> {
+  const known = reading.type;
   const call = (schema: Record<string, unknown>, hint: string) =>
     extractEnforced({
       baseUrl: ctx.baseUrl,
@@ -279,6 +329,14 @@ async function extractSingle(text: string, ctx: RouterContext, images?: Buffer[]
   if (known) {
     const out = (await call(FLAT_SCHEMA_BY_TYPE[known], `It is a ${TYPE_HINT[known]}`)) ?? {};
     return fixArrivalDate(normalizeDates({ ...out, type: known }));
+  }
+  if (reading.candidates.length > 0) {
+    const out = (await call(unionSchemaFor(reading.candidates), candidateHint(reading.candidates))) ?? {};
+    const raw = typeof out.type === 'string' ? out.type.toLowerCase().trim() : '';
+    // A server without grammar enforcement can still answer outside the list. The
+    // document named the candidates, so the first of them is the best reading left.
+    const type = reading.candidates.find((candidate) => candidate === raw) ?? reading.candidates[0];
+    return fixArrivalDate(normalizeDates({ ...out, type }));
   }
   const out = (await call(UNION_SINGLE_SCHEMA, images?.length ? PHOTO_UNION_HINT : 'Pick the correct "type".')) ?? {};
   // "I could not tell" used to be written down as "hotel", and a hotel is a
@@ -337,14 +395,8 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
   // Schicht 1 — exactly one model call.
   let flats: FlatLike[];
   try {
-    // The flight path forces type 'flight' on everything it returns, so it must not
-    // claim a document that already names another kind of transport: a German rail
-    // ticket carries numbers like "IC 2023" or "RE 4711", which the two-letters-plus-
-    // digits test cannot tell from an airline code, and the ticket came back a flight
-    // without detectType ever running (#2076).
-    const named = detectType(text);
-    const looksLikeFlight = detectFlightNumbers(text).length > 0 && !(named && TRANSPORT_FLAT_TYPES.has(named));
-    flats = looksLikeFlight ? await extractFlights(text, ctx) : [await extractSingle(text, ctx)];
+    const reading = readType(text);
+    flats = reading.type === 'flight' ? await extractFlights(text, ctx) : [await extractSingle(text, ctx, reading)];
   } catch (err) {
     return {
       kiItems: [],
@@ -371,7 +423,7 @@ export async function routeExtraction(text: string, ctx: RouterContext): Promise
 export async function routeImageExtraction(images: Buffer[], ctx: RouterContext): Promise<RoutedExtraction> {
   let flat: FlatLike;
   try {
-    flat = unwrapPrice(await extractSingle('', ctx, images));
+    flat = unwrapPrice(await extractSingle('', ctx, { type: null, candidates: [] }, images));
   } catch (err) {
     return {
       kiItems: [],
