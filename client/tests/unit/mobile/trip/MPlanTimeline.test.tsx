@@ -128,6 +128,7 @@ function buildTl(over: Record<string, unknown> = {}): MPlanTimelineController {
       { key: 'plugin:ev/fastest', label: 'EV fastest' },
     ],
     setLegMode: vi.fn(),
+    setIncomingLegMode: vi.fn(),
     transitLegFor: vi.fn(() => null),
     planTransitLeg: vi.fn(),
     journeyLate: vi.fn(() => null),
@@ -505,6 +506,74 @@ describe('MPlanTimeline', () => {
       renderTimeline()
 
       expect(screen.getByText('7 min').closest('button')).toBeNull()
+    })
+
+    // The legs a booking or the hotel starts: the phone used to leave them inert while
+    // the desktop opened the mode menu of the stop at their other end.
+    describe('legs that start at a booking or the hotel', () => {
+      const HOTEL_SEG: RouteSegment = { ...SEG, drivingText: '12 min', walkingText: '35 min', distanceText: '2.7 km' }
+      const hotelLeg = () => screen.getByText('12 min').closest('button') as HTMLElement
+      const leg = { from: { name: 'Budapest Keleti', lat: 47.5, lng: 19.08 }, to: { name: 'Basilica apARTment', lat: 47.5, lng: 19.05 }, time: '19:29' }
+
+      it('FE-MOB-PLTL-050: the leg back to the hotel sets the outgoing mode of the last stop', () => {
+        renderTimeline({ hotelLegs: { top: null, bottom: { seg: HOTEL_SEG, name: 'Basilica', assignmentId: 12 } } }, {}, { mode: 'edit' })
+        fireEvent.click(hotelLeg())
+
+        fireEvent.click(screen.getByText('Walking'))
+
+        expect(mocks.tl.setLegMode).toHaveBeenCalledWith(12, 'walking')
+        expect(mocks.tl.setIncomingLegMode).not.toHaveBeenCalled()
+      })
+
+      it('FE-MOB-PLTL-051: the leg from the hotel sets the incoming mode of the first stop', () => {
+        renderTimeline({ hotelLegs: { top: { seg: HOTEL_SEG, name: 'Basilica', assignmentId: 11 }, bottom: null } }, {}, { mode: 'edit' })
+        fireEvent.click(hotelLeg())
+
+        fireEvent.click(screen.getByText('dayplan.transportMode.useDefault'))
+
+        expect(mocks.tl.setIncomingLegMode).toHaveBeenCalledWith(11, null)
+        expect(mocks.tl.setLegMode).not.toHaveBeenCalled()
+      })
+
+      it('FE-MOB-PLTL-052: a walk from the train to the hotel that no stop owns offers public transit only', () => {
+        renderTimeline(
+          { hotelLegs: { top: null, bottom: { seg: HOTEL_SEG, name: 'Basilica' } }, transitLegFor: vi.fn(() => leg) },
+          {}, { mode: 'edit' },
+        )
+        fireEvent.click(hotelLeg())
+
+        expect(screen.queryByText('Driving')).not.toBeInTheDocument()
+        expect(screen.queryByText('dayplan.transportMode.useDefault')).not.toBeInTheDocument()
+        fireEvent.click(screen.getByText('transit.title'))
+
+        expect(mocks.tl.planTransitLeg).toHaveBeenCalledWith(leg, undefined)
+      })
+
+      it('FE-MOB-PLTL-053: without a transit search that walk stays plain text', () => {
+        renderTimeline({ hotelLegs: { top: null, bottom: { seg: HOTEL_SEG, name: 'Basilica' } } }, {}, { mode: 'edit' })
+
+        expect(screen.getByText('12 min').closest('button')).toBeNull()
+      })
+
+      it('FE-MOB-PLTL-054: the leg from a booking to the next stop sets the incoming mode of that stop', () => {
+        const rows: PlanRow[] = [
+          { key: 'tr-21', kind: 'transport', item: M_FLIGHT, res: FLIGHT },
+          { key: 'conn-tr-21', kind: 'conn', seg: HOTEL_SEG, incomingAssignmentId: 12 },
+          { key: 'pl-12', kind: 'place', item: M_PLACE2, assignment: PARK, linkedReservations: [] },
+        ]
+        renderTimeline({ rows }, {}, { mode: 'edit' })
+        fireEvent.click(hotelLeg())
+
+        fireEvent.click(screen.getByText('Walking'))
+
+        expect(mocks.tl.setIncomingLegMode).toHaveBeenCalledWith(12, 'walking')
+      })
+
+      it('FE-MOB-PLTL-055: go mode keeps the hotel legs read-only', () => {
+        renderTimeline({ hotelLegs: { top: null, bottom: { seg: HOTEL_SEG, name: 'Basilica', assignmentId: 12 } } })
+
+        expect(screen.getByText('12 min').closest('button')).toBeNull()
+      })
     })
   })
 

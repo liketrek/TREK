@@ -585,3 +585,87 @@ describe('DayPlanSidebar, public transit between two city walks (CW-08)', () => 
     expect(screen.getByTestId('tour-day-overrun')).toHaveTextContent('Ends at 14:00, after Harbour starts at 13:00');
   });
 });
+
+// The walk from a train's arrival to the night's hotel: no stop is at either end, so
+// there is no mode to change, and the desktop left it inert. The transit search is
+// what can be planned for it, as for every other leg.
+describe('DayPlanSidebar, public transit from a booking arrival to the hotel', () => {
+  it('FE-PLANNER-DAYPLAN-171f: the walk from a train arrival to the hotel, which no stop owns, offers public transport', async () => {
+    const user = userEvent.setup();
+    const onPlanTransitLeg = vi.fn();
+    const days = [
+      buildDay({ id: 10, date: '2025-06-01', title: 'Day 1' }),
+      buildDay({ id: 11, date: '2025-06-02', title: 'Day 2' }),
+      buildDay({ id: 12, date: '2025-06-03', title: 'Day 3' }),
+    ];
+    const accommodations = [
+      {
+        id: 1,
+        trip_id: 1,
+        start_day_id: 10,
+        end_day_id: 12,
+        place_lat: 47.5,
+        place_lng: 19.05,
+        place_name: 'Basilica apARTment',
+      },
+    ];
+    const train = buildReservation({
+      id: 430,
+      type: 'train',
+      title: 'Wien => Budapest',
+      day_id: 11,
+      end_day_id: 11,
+      day_plan_position: 5,
+      reservation_time: '2025-06-02T16:42:00',
+      reservation_end_time: '2025-06-02T19:29:00',
+      endpoints: [
+        {
+          role: 'from',
+          sequence: 0,
+          name: 'Wien Hbf',
+          code: null,
+          lat: 48.18,
+          lng: 16.37,
+          timezone: null,
+          local_date: null,
+          local_time: null,
+        },
+        {
+          role: 'to',
+          sequence: 1,
+          name: 'Budapest Keleti',
+          code: null,
+          lat: 47.5,
+          lng: 19.08,
+          timezone: null,
+          local_date: null,
+          local_time: null,
+        },
+      ],
+    });
+    const albertina = buildPlace({ id: 1, name: 'Albertina', place_time: '12:00', lat: 48.2, lng: 16.37 });
+    render(
+      <DayPlanSidebar
+        {...makeDefaultProps({
+          days,
+          assignments: { '11': [buildAssignment({ id: 11, day_id: 11, order_index: 0, place: albertina })] },
+          accommodations,
+          reservations: [train],
+          selectedDayId: 11,
+          routeShown: true,
+          onPlanTransitLeg,
+        })}
+      />
+    );
+    await user.click(await screen.findByLabelText('Public transit'));
+    expect(contextMenu().queryByRole('button', { name: 'Driving' })).not.toBeInTheDocument();
+    await user.click(contextMenu().getByRole('button', { name: 'Public transit' }));
+    expect(onPlanTransitLeg).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dayId: 11,
+        from: expect.objectContaining({ lat: 47.5, lng: 19.08 }),
+        to: { name: 'Basilica apARTment', lat: 47.5, lng: 19.05 },
+      })
+    );
+  });
+});

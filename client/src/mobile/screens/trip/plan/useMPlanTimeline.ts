@@ -14,8 +14,8 @@ import type { PlannedTransitLeg, TransitLeg } from '../../../../components/Plann
 import { useTransitLegPlanner } from '../../../../components/Planner/useTransitLegPlanner'
 import { dayItemOverrun } from '../../../../components/Tours/tourDayTime'
 import {
-  buildPlanRows, breaksChronology, findUpNext, hotelChipsForDay, hotelLegsForDay, itemHasTime,
-  type HotelLegs, type PlanRow, type TransportEntry,
+  buildPlanTimeline, breaksChronology, findUpNext, hotelChipsForDay, hotelLegsForDay, itemHasTime,
+  type BookendOwners, type HotelLegs, type PlanRow, type TransportEntry,
 } from './planTimelineModel'
 import type { TripPlanner } from '../MTripShell'
 import type { WeatherResult } from '@trek/shared'
@@ -99,16 +99,17 @@ export function useMPlanTimeline(planner: TripPlanner, forDayId?: number | null)
     tripAccommodations,
   )
 
-  const rows = useMemo<PlanRow[]>(() => {
-    if (!day) return []
-    return buildPlanRows({ merged, reservations, routeSegments: connSegments, dayId: day.id, toursEnabled: planner.toursEnabled, places: planner.places })
+  const timeline = useMemo<{ rows: PlanRow[]; bookendOwners: BookendOwners }>(() => {
+    if (!day) return { rows: [], bookendOwners: {} }
+    return buildPlanTimeline({ merged, reservations, routeSegments: connSegments, dayId: day.id, toursEnabled: planner.toursEnabled, places: planner.places })
   }, [day, merged, reservations, connSegments, planner.toursEnabled, planner.places])
+  const rows = timeline.rows
 
   // Accommodation bookend legs (hotel → first stop, last stop → hotel). The
   // segments already sit in connSegments; hotelLegsForDay picks the two out.
   const hotelLegs = useMemo<HotelLegs>(
-    () => (day ? hotelLegsForDay(day, days, tripAccommodations, connSegments) : { top: null, bottom: null }),
-    [day, days, tripAccommodations, connSegments],
+    () => (day ? hotelLegsForDay(day, days, tripAccommodations, connSegments, timeline.bookendOwners) : { top: null, bottom: null }),
+    [day, days, tripAccommodations, connSegments, timeline.bookendOwners],
   )
 
   const hotelChips = useMemo(
@@ -375,6 +376,17 @@ export function useMPlanTimeline(planner: TripPlanner, forDayId?: number | null)
     persistLegMode(assignmentId, mode)
   }, [day, persistLegMode])
 
+  // The same for the leg entering a stop: from a booking's arrival or from the
+  // morning hotel, which no stop leaves (as on the desktop day plan).
+  const setIncomingLegMode = useCallback((assignmentId: number, mode: string | null) => {
+    if (!day) return
+    const key = String(day.id)
+    useTripStore.setState(state => ({
+      assignments: { ...state.assignments, [key]: (state.assignments[key] || []).map(a => (a.id === assignmentId ? { ...a, incoming_leg_transport_mode: mode } : a)) },
+    }))
+    persistLegMode(assignmentId, mode, 'incoming')
+  }, [day, persistLegMode])
+
   // ── Public transit for one leg (#2398) ──
   // The entry the desktop connector menu carries: the automated search, seeded with
   // the leg's two ends and the time the stop it leaves is planned for, between two city
@@ -394,8 +406,9 @@ export function useMPlanTimeline(planner: TripPlanner, forDayId?: number | null)
     toursEnabled: planner.toursEnabled, tourOf, onPlan: tripHasDates ? openTransitSearch : undefined,
   })
   const transitLegFor = useCallback((seg: RouteSegment): TransitLeg | null => (day ? legFor(day.id, seg) : null), [day, legFor])
-  // `originId` is the stop the leg leaves, which tells two walks ending at one spot apart.
-  const planTransitLeg = useCallback((leg: TransitLeg, originId: number) => {
+  // `originId` is the stop the leg leaves, which tells two walks ending at one spot apart;
+  // a leg that leaves a booking or the hotel has none.
+  const planTransitLeg = useCallback((leg: TransitLeg, originId?: number) => {
     if (day) plan(day.id, leg, originId)
   }, [day, plan])
   // A saved journey that now arrives after the walk it leads to starts (CW-08).
@@ -414,7 +427,7 @@ export function useMPlanTimeline(planner: TripPlanner, forDayId?: number | null)
     moveRowTo,
     addPlace, addBooking, addTransport,
     optimize, canExportRoute, routeTargets, exportGoogleMaps, exportCoMaps, renameDay, fullPlaceOf,
-    routeModeOptions, setLegMode, transitLegFor, planTransitLeg, journeyLate, tourOverrun,
+    routeModeOptions, setLegMode, setIncomingLegMode, transitLegFor, planTransitLeg, journeyLate, tourOverrun,
   }
 }
 

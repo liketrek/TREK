@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 import {
-  breaksChronology, buildPlanRows, cityPillsForDay, findUpNext, getTransitMeta, hotelChipsForDay,
+  breaksChronology, buildPlanRows, buildPlanTimeline, cityPillsForDay, findUpNext, getTransitMeta, hotelChipsForDay,
   hotelLegsForDay, itemHasTime, parseReservationMeta, transportSubtitle,
   type TransportEntry,
 } from '../../../../src/mobile/screens/trip/plan/planTimelineModel'
@@ -954,5 +954,78 @@ describe('planTimelineModel: a rental car picked up or returned on the day', () 
     const { rows } = planOf(2, [later], [pickup])
     expect(rows.map(r => r.key)).toEqual(['tr-71', 'conn-tr-71', 'pl-32'])
     expect(connectors(rows).map(s => [s.from, s.to])).toEqual([[at(PICKUP), at(MIRADOR)]])
+  })
+})
+
+describe('planTimelineModel: which stop owns a leg that touches a booking or the hotel', () => {
+  // Day 2 of a stay from day 1 to day 3: the traveller walks from the hotel to the
+  // museum, takes the train to the lake and walks from the station to the hotel. The
+  // two legs a booking starts and the two bookend legs are the ones the phone could
+  // not change before; the desktop takes their mode from the stop at their other end.
+  const HOTEL = { lat: 47.3769, lng: 8.5417 }
+  const MUSEUM = { lat: 47.3792, lng: 8.5403 }
+  const STATION_FROM = { lat: 47.378, lng: 8.54 }
+  const STATION_TO = { lat: 47.05, lng: 8.31 }
+  const PIER = { lat: 47.052, lng: 8.309 }
+  const stay = accommodation({
+    id: 40, place_id: 950, place_name: 'Hotel Limmat', place_lat: HOTEL.lat, place_lng: HOTEL.lng,
+    start_day_id: 1, end_day_id: 3,
+  })
+  const museum = buildAssignment({ id: 31, day_id: 2, order_index: 0, place: place(960, 'Museum', MUSEUM.lat, MUSEUM.lng) })
+  const pier = buildAssignment({ id: 32, day_id: 2, order_index: 2, place: place(961, 'Pier', PIER.lat, PIER.lng) })
+  const train = (id: number, position: number) => buildReservation({
+    id, type: 'train', title: `IR ${id}`, day_id: 2, end_day_id: 2, day_plan_position: position,
+    reservation_time: '2026-05-02T11:00', reservation_end_time: '2026-05-02T12:00',
+    endpoints: [
+      { role: 'from', sequence: 0, name: 'Zurich HB', code: null, ...STATION_FROM, timezone: null, local_date: null, local_time: null },
+      { role: 'to', sequence: 1, name: 'Lucerne', code: null, ...STATION_TO, timezone: null, local_date: null, local_time: null },
+    ],
+  })
+
+  const timelineOf = (dayAssignments: Assignment[], reservations: Reservation[]) => {
+    const merged = getMergedItems({
+      dayAssignments,
+      dayNotes: [],
+      dayTransports: getTransportForDay({ reservations, dayId: 2, dayAssignmentIds: dayAssignments.map(a => a.id), days: DAYS }),
+      dayId: 2,
+    })
+    const segments = segmentsOf(buildDayRouteRuns(2, {
+      days: DAYS, assignments: { '2': dayAssignments }, reservations, accommodations: [stay], optimizeFromAccommodation: true,
+    }))
+    const { rows, bookendOwners } = buildPlanTimeline({ merged, reservations, routeSegments: segments, dayId: 2 })
+    return { rows, legs: hotelLegsForDay(DAY2, DAYS, [stay], segments, bookendOwners) }
+  }
+  const conns = (rows: ReturnType<typeof buildPlanRows>) => rows.flatMap(r => (r.kind === 'conn' ? [r] : []))
+
+  it('FE-MOB-PTLM-064: the leg out of a booking uses the incoming mode of the stop it reaches', () => {
+    const { rows } = timelineOf([museum, pier], [train(70, 1)])
+    expect(rows.map(r => r.kind)).toEqual(['place', 'conn', 'transport', 'conn', 'place'])
+    const [toStation, toPier] = conns(rows)
+    // Out of a stop: the stop's own outgoing mode, as before.
+    expect(toStation).toMatchObject({ assignmentId: 31 })
+    expect(toStation.incomingAssignmentId).toBeUndefined()
+    // Out of the train: no stop leaves it, so the pier's incoming mode is the one it uses.
+    expect(toPier).toMatchObject({ seg: { from: [STATION_TO.lat, STATION_TO.lng], to: [PIER.lat, PIER.lng] }, incomingAssignmentId: 32 })
+    expect(toPier.assignmentId).toBeUndefined()
+  })
+
+  it('FE-MOB-PTLM-065: the hotel legs belong to the first and the last stop of the day', () => {
+    const { legs } = timelineOf([museum, pier], [train(70, 1)])
+    expect(legs.top).toMatchObject({ name: 'Hotel Limmat', assignmentId: 31, seg: { from: [HOTEL.lat, HOTEL.lng], to: [MUSEUM.lat, MUSEUM.lng] } })
+    expect(legs.bottom).toMatchObject({ name: 'Hotel Limmat', assignmentId: 32, seg: { from: [PIER.lat, PIER.lng], to: [HOTEL.lat, HOTEL.lng] } })
+  })
+
+  it('FE-MOB-PTLM-066: a day that ends with the train has no stop owning the walk to the hotel', () => {
+    const { legs } = timelineOf([museum], [train(71, 5)])
+    expect(legs.bottom).toMatchObject({ seg: { from: [STATION_TO.lat, STATION_TO.lng], to: [HOTEL.lat, HOTEL.lng] } })
+    expect(legs.bottom?.assignmentId).toBeUndefined()
+    expect(legs.top).toMatchObject({ assignmentId: 31 })
+  })
+
+  it('FE-MOB-PTLM-067: a day that starts with the train has no stop owning the walk from the hotel', () => {
+    const { legs } = timelineOf([pier], [train(72, -1)])
+    expect(legs.top).toMatchObject({ seg: { from: [HOTEL.lat, HOTEL.lng], to: [STATION_FROM.lat, STATION_FROM.lng] } })
+    expect(legs.top?.assignmentId).toBeUndefined()
+    expect(legs.bottom).toMatchObject({ assignmentId: 32 })
   })
 })

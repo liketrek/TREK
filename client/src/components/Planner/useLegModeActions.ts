@@ -34,6 +34,15 @@ export function legModeMenuItems(
   ];
 }
 
+/**
+ * The menu of a leg no stop owns, a booking's arrival to the night's hotel: nothing
+ * keeps a mode for it, so it follows the day default and only public transit can be
+ * planned for it.
+ */
+export function transitOnlyMenuItems(planTransit: () => void, t: Translate): LegModeMenuItem[] {
+  return [{ label: t('transit.title'), icon: TramFront, onClick: planTransit }];
+}
+
 export interface LegModeDeps {
   tripId: number;
   toast: { error: (message: string) => void };

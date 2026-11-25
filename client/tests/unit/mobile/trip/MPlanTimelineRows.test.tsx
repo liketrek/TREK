@@ -488,6 +488,23 @@ describe('HotelConnRow', () => {
     expect(screen.getByText('1 h 5 min')).toBeInTheDocument()
     expect(screen.queryByText('14 min')).not.toBeInTheDocument()
   })
+
+  it('FE-MOB-PLROW-045: the leg is a button when it can be tapped, the stay name stays text', () => {
+    const onTap = vi.fn()
+    render(<HotelConnRow seg={SEG} name="Hotel Sacher" placement="bottom" onTap={onTap} />)
+
+    const button = screen.getByRole('button')
+    expect(button.textContent).toContain('14 min')
+    expect(button.textContent).not.toContain('Hotel Sacher')
+    fireEvent.click(button)
+    expect(onTap).toHaveBeenCalledTimes(1)
+  })
+
+  it('FE-MOB-PLROW-046: without a tap handler nothing on the row is a button', () => {
+    render(<HotelConnRow seg={SEG} name="Hotel Sacher" placement="top" />)
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+  })
 })
 
 describe('NoteRow', () => {

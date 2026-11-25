@@ -4,7 +4,7 @@ import type { LucideIcon } from 'lucide-react'
 import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
 import MarkdownText from '../../../../components/shared/MarkdownText'
 import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay'
-import { legModeMenuItems } from '../../../../components/Planner/useLegModeActions'
+import { legModeMenuItems, transitOnlyMenuItems } from '../../../../components/Planner/useLegModeActions'
 import { formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
 import { cityPillsForDay } from './planTimelineModel'
@@ -114,16 +114,24 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
   const { t, trip, can } = planner
   const canEdit = can('day_edit', trip)
   const canEditPlaces = can('place_edit', trip)
-  const openLegMenu = (e: MouseEvent, assignmentId: number, seg: RouteSegment) => {
-    // Public transit sits under the road profiles, as on the desktop (#2398).
+  // The tap on a leg while editing: the mode menu of the stop that owns it, its
+  // outgoing mode for a leg it leaves, its incoming mode for one it enters from a
+  // booking or the morning hotel, as on the desktop. Public transit sits under the
+  // road profiles (#2398). A leg no stop owns, a booking's arrival to the hotel, can
+  // only have transit planned, and stays inert where that is not available.
+  const legTap = (seg: RouteSegment, owner: { id: number; incoming: boolean } | null): ((e: MouseEvent) => void) | undefined => {
+    if (!editing) return undefined
     const transitLeg = tl.transitLegFor(seg)
-    legMenu.open(e, legModeMenuItems(
-      tl.routeModeOptions,
-      mode => tl.setLegMode(assignmentId, mode),
-      t,
-      transitLeg ? () => tl.planTransitLeg(transitLeg, assignmentId) : undefined,
-    ))
+    const planTransit = transitLeg
+      ? () => tl.planTransitLeg(transitLeg, owner && !owner.incoming ? owner.id : undefined)
+      : undefined
+    if (owner) {
+      const pick = (mode: string | null) => (owner.incoming ? tl.setIncomingLegMode(owner.id, mode) : tl.setLegMode(owner.id, mode))
+      return e => legMenu.open(e, legModeMenuItems(tl.routeModeOptions, pick, t, planTransit))
+    }
+    return planTransit ? e => legMenu.open(e, transitOnlyMenuItems(planTransit, t)) : undefined
   }
+  const owned = (id: number | undefined, incoming: boolean) => (id != null ? { id, incoming } : null)
   const day = tl.day
   const dayId = day?.id
   // A stay chip shows the stay before anything can be changed, as on the
@@ -249,7 +257,12 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
         )}
 
         {tl.hotelLegs.top && (
-          <HotelConnRow seg={tl.hotelLegs.top.seg} name={tl.hotelLegs.top.name} placement="top" />
+          <HotelConnRow
+            seg={tl.hotelLegs.top.seg}
+            name={tl.hotelLegs.top.name}
+            placement="top"
+            onTap={legTap(tl.hotelLegs.top.seg, owned(tl.hotelLegs.top.assignmentId, true))}
+          />
         )}
         {dayId != null && daySchedule.byPosition[dayId]?.start.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
 
@@ -321,13 +334,24 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
                 />
               )
             case 'conn':
-              return <ConnRow key={row.key} seg={row.seg} onTap={editing && row.assignmentId != null ? e => openLegMenu(e, row.assignmentId!, row.seg) : undefined} />
+              return (
+                <ConnRow
+                  key={row.key}
+                  seg={row.seg}
+                  onTap={legTap(row.seg, row.assignmentId != null ? owned(row.assignmentId, false) : owned(row.incomingAssignmentId, true))}
+                />
+              )
           }
         })}
 
         {dayId != null && daySchedule.byPosition[dayId]?.end.map(si => <PlanScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
         {tl.hotelLegs.bottom && (
-          <HotelConnRow seg={tl.hotelLegs.bottom.seg} name={tl.hotelLegs.bottom.name} placement="bottom" />
+          <HotelConnRow
+            seg={tl.hotelLegs.bottom.seg}
+            name={tl.hotelLegs.bottom.name}
+            placement="bottom"
+            onTap={legTap(tl.hotelLegs.bottom.seg, owned(tl.hotelLegs.bottom.assignmentId, false))}
+          />
         )}
 
         {tl.rows.length === 0 && !editing && (

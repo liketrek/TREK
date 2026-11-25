@@ -69,7 +69,7 @@ import { findTodayDayId } from './today'
 import { markdownLinkComponents } from '../shared/markdownLink'
 import { RouteConnector, HotelRouteConnector } from './DayPlanSidebarRouteConnector'
 import { resolveLegMode } from './legMode'
-import { useLegModeActions } from './useLegModeActions'
+import { transitOnlyMenuItems, useLegModeActions } from './useLegModeActions'
 import { dayExportStops, fillAroundLocked } from './dayRoute'
 import { projectDayItinerary, projectedById, type TourStageStops } from '../Map/dayTourProjection'
 import type { DayRoutePoint } from '../Map/dayRoutePlan'
@@ -1413,6 +1413,27 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
     } as unknown as React.MouseEvent)
   }
 
+  // A hotel bookend leg opens the mode menu of the stop that owns it, the first stop's
+  // incoming mode at the top and the last stop's outgoing mode at the bottom. One no
+  // stop owns, a booking's arrival to the hotel, can only have transit planned.
+  const hotelLegRow = (dayId: number, leg: { seg: RouteSegment; name: string; targetId?: number }, placement: 'top' | 'bottom') => {
+    const connector = <HotelRouteConnector seg={leg.seg} name={leg.name} profile={routeProfile} placement={placement} />
+    const targetId = leg.targetId
+    const planTransit = targetId == null ? transitLegPlanner(dayId, leg.seg) : undefined
+    const open = targetId != null
+      ? (e: React.MouseEvent) => (placement === 'top' ? openIncomingLegModeMenu : openLegModeMenu)(e, targetId, dayId, leg.seg)
+      : planTransit && ((e: React.MouseEvent) => ctxMenu.open(e, transitOnlyMenuItems(planTransit, t)))
+    if (!canEditDays || !open) return connector
+    const label = targetId != null ? t('dayplan.transportMode.change') : t('transit.title')
+    return (
+      <Tooltip label={label} placement="top">
+        <div role="button" tabIndex={0} onClick={open} onKeyDown={e => openLegMenuByKey(e, open)} style={{ cursor: 'pointer' }} aria-label={label}>
+          {connector}
+        </div>
+      </Tooltip>
+    )
+  }
+
   return (
     // Sized as a flex child as well as by height: the desktop panel puts the Days / Road
     // trip switch above this, and at height 100% alone the list ran the switch's height
@@ -1734,17 +1755,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     dropAfterLastItem(day.id, { assignmentId, noteId })
                   }}
                 >
-                  {hotelLegs[day.id]?.top && (() => {
-                    const targetId = hotelLegs[day.id]?.top?.targetId
-                    const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.top!.seg} name={hotelLegs[day.id]!.top!.name} profile={routeProfile} placement="top" />
-                    return canEditDays && targetId != null ? (
-                      <Tooltip label={t('dayplan.transportMode.change')} placement="top">
-                        <div role="button" tabIndex={0}  onClick={e => openIncomingLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.top!.seg)} onKeyDown={e => openLegMenuByKey(e, m => openIncomingLegModeMenu(m, targetId, day.id, hotelLegs[day.id]!.top!.seg))} style={{ cursor: 'pointer' }} aria-label={t('dayplan.transportMode.change')}>
-                          {connector}
-                        </div>
-                      </Tooltip>
-                    ) : connector
-                  })()}
+                  {hotelLegs[day.id]?.top && hotelLegRow(day.id, hotelLegs[day.id]!.top!, 'top')}
                   {daySchedule.byPosition[day.id]?.start.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
                   {visibleCount === 0 && !dayNoteUi ? (
                     <div
@@ -2477,17 +2488,7 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
                     })
                   )}
                   {daySchedule.byPosition[day.id]?.end.map(si => <PluginDayScheduleRow key={`${si.pluginId}:${si.id}`} item={si} />)}
-                  {hotelLegs[day.id]?.bottom && (() => {
-                    const targetId = hotelLegs[day.id]?.bottom?.targetId
-                    const connector = <HotelRouteConnector seg={hotelLegs[day.id]!.bottom!.seg} name={hotelLegs[day.id]!.bottom!.name} profile={routeProfile} placement="bottom" />
-                    return canEditDays && targetId != null ? (
-                      <Tooltip label={t('dayplan.transportMode.change')} placement="top">
-                        <div role="button" tabIndex={0}  onClick={e => openLegModeMenu(e, targetId, day.id, hotelLegs[day.id]!.bottom!.seg)} onKeyDown={e => openLegMenuByKey(e, m => openLegModeMenu(m, targetId, day.id, hotelLegs[day.id]!.bottom!.seg))} style={{ cursor: 'pointer' }} aria-label={t('dayplan.transportMode.change')}>
-                          {connector}
-                        </div>
-                      </Tooltip>
-                    ) : connector
-                  })()}
+                  {hotelLegs[day.id]?.bottom && hotelLegRow(day.id, hotelLegs[day.id]!.bottom!, 'bottom')}
                   <AssistantDayPreview tripId={tripId} dayId={day.id} />{/* The assistant's waiting changes, then the drop zone at the list end */}
                   <div
                     style={{ minHeight: 12, padding: '2px 8px' }}

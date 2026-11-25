@@ -31,7 +31,12 @@ export type PlanRow =
   | { key: string; kind: 'transport'; item: MergedItem; res: TransportEntry }
   | { key: string; kind: 'transit'; item: MergedItem; res: TransportEntry; transit: TransitMeta }
   | { key: string; kind: 'note'; item: MergedItem; note: DayNote }
-  | { key: string; kind: 'conn'; seg: RouteSegment; assignmentId?: number }
+  /**
+   * A leg between two rows. `assignmentId` is the stop it leaves, whose outgoing mode it
+   * uses; a leg that leaves a booking uses the incoming mode of the stop it enters,
+   * `incomingAssignmentId`, as on the desktop day plan.
+   */
+  | { key: string; kind: 'conn'; seg: RouteSegment; assignmentId?: number; incomingAssignmentId?: number }
 
 export function parseReservationMeta(res: Reservation): Record<string, unknown> {
   let meta: unknown = res.metadata
@@ -57,6 +62,26 @@ const sameCoord = (a: [number, number], b: [number, number]): boolean =>
   Math.abs(a[0] - b[0]) < 1e-9 && Math.abs(a[1] - b[1]) < 1e-9
 
 /**
+ * The stops whose mode the two hotel bookend legs use: the first waypoint of the
+ * day for the leg from the hotel (its incoming mode), the last for the leg back
+ * (its outgoing mode). Absent where that end of the day is a booking, which no
+ * stop owns.
+ */
+export interface BookendOwners {
+  top?: number
+  bottom?: number
+}
+
+type PlanRowsOptions = {
+  merged: MergedItem[]
+  reservations: Reservation[]
+  routeSegments: RouteSegment[]
+  dayId: number
+  toursEnabled?: boolean
+  places?: Place[]
+}
+
+/**
  * Map the day's merged items to render rows and slot a travel-time connector
  * under the row each drawn leg belongs to. Segments are matched by their exact
  * waypoint coordinates (the calculator echoes the input waypoints back on each
@@ -64,14 +89,12 @@ const sameCoord = (a: [number, number], b: [number, number]): boolean =>
  * front: they belong to the day's edges, and a stop planned on the hotel's own
  * spot would otherwise pair with them (#2501).
  */
-export function buildPlanRows(opts: {
-  merged: MergedItem[]
-  reservations: Reservation[]
-  routeSegments: RouteSegment[]
-  dayId: number
-  toursEnabled?: boolean
-  places?: Place[]
-}): PlanRow[] {
+export function buildPlanRows(opts: PlanRowsOptions): PlanRow[] {
+  return buildPlanTimeline(opts).rows
+}
+
+/** buildPlanRows, plus the stops that own the day's two hotel bookend legs. */
+export function buildPlanTimeline(opts: PlanRowsOptions): { rows: PlanRow[]; bookendOwners: BookendOwners } {
   const { merged, reservations, routeSegments, dayId } = opts
   const pool = routeSegments.filter(s => !s.hotelBookend)
   const projected = new Map(projectDayItinerary(
@@ -133,15 +156,24 @@ export function buildPlanRows(opts: {
   // A booking whose station is the stop itself leaves a leg that goes nowhere: the
   // transit planner saves a journey between two of the day's places at their own
   // coordinates. That is no walk and no drive, so it gets no connector.
+  //
+  // A leg out of a booking has no stop to keep its mode, so it uses the incoming mode
+  // of the stop it enters, `toAssignmentId`, the one the route calc routed it in.
   type Origin = { at: [number, number]; row: number; assignmentId?: number }
-  const legs = new Map<number, { seg: RouteSegment; assignmentId?: number }>()
-  const connect = (origin: Origin | null, to: [number, number], toBooking = false) => {
+  const legs = new Map<number, { seg: RouteSegment; assignmentId?: number; incomingAssignmentId?: number }>()
+  const connect = (origin: Origin | null, to: [number, number], toBooking = false, toAssignmentId?: number) => {
     if (!origin) return
     const seg = takeSegment(origin.at, to)
     const fromBooking = origin.assignmentId == null
     if (!seg || ((toBooking || fromBooking) && sameCoord(origin.at, to))) return
-    legs.set(origin.row, { seg, assignmentId: origin.assignmentId })
+    legs.set(origin.row, {
+      seg,
+      assignmentId: origin.assignmentId,
+      ...(fromBooking && toAssignmentId != null ? { incomingAssignmentId: toAssignmentId } : {}),
+    })
   }
+  // The day's first waypoint, a stop or a booking's departure: the hotel leg runs into it.
+  let first: { assignmentId?: number } | null = null
   let prev: Origin | null = null
   for (let i = 0; i < base.length; i++) {
     const row = base[i]
@@ -151,7 +183,10 @@ export function buildPlanRows(opts: {
       if (row.assignment.route_excluded) continue
       const itineraryItem = projected.get(row.assignment.id)
       if (itineraryItem?.kind === 'tour') {
-        if (itineraryItem.start) connect(prev, [itineraryItem.start.lat, itineraryItem.start.lng])
+        if (itineraryItem.start) {
+          first ??= { assignmentId: row.assignment.id }
+          connect(prev, [itineraryItem.start.lat, itineraryItem.start.lng], false, row.assignment.id)
+        }
         prev = itineraryItem.end
           ? { at: [itineraryItem.end.lat, itineraryItem.end.lng], row: i, assignmentId: row.assignment.id }
           : null
@@ -159,7 +194,8 @@ export function buildPlanRows(opts: {
       }
       if (place?.lat == null || place?.lng == null) continue
       const at: [number, number] = [place.lat, place.lng]
-      connect(prev, at)
+      first ??= { assignmentId: row.assignment.id }
+      connect(prev, at, false, row.assignment.id)
       // The leg's mode is stored on its ORIGIN place assignment (#1281), so carry
       // that id for the tap-to-change menu.
       prev = { at, row: i, assignmentId: row.assignment.id }
@@ -171,16 +207,23 @@ export function buildPlanRows(opts: {
         if (prev) prev = { ...prev, row: i }
         continue
       }
+      if (from) first ??= {}
       // Only out of a stop: two bookings back to back are no drive (#1394).
       if (from && prev?.assignmentId != null) connect(prev, [from.lat, from.lng], true)
       prev = to ? { at: [to.lat, to.lng], row: i } : null
     }
   }
 
-  return base.flatMap((row, i): PlanRow[] => {
+  const rows = base.flatMap((row, i): PlanRow[] => {
     const leg = legs.get(i)
-    return leg ? [row, { key: `conn-${row.key}`, kind: 'conn', seg: leg.seg, assignmentId: leg.assignmentId }] : [row]
+    return leg ? [row, { key: `conn-${row.key}`, kind: 'conn', ...leg }] : [row]
   })
+  // The last waypoint is where the day ends: a stop, or a booking's arrival (no owner).
+  const bookendOwners: BookendOwners = {
+    ...(first?.assignmentId != null ? { top: first.assignmentId } : {}),
+    ...(prev?.assignmentId != null ? { bottom: prev.assignmentId } : {}),
+  }
+  return { rows, bookendOwners }
 }
 
 export interface HotelChip {
@@ -218,7 +261,12 @@ export function hotelChipsForDay(day: Day, days: Day[], accommodations: Accommod
   return chips.filter(c => c.name).sort((a, b) => rank[a.variant] - rank[b.variant])
 }
 
-export interface HotelLeg { seg: RouteSegment; name: string }
+export interface HotelLeg {
+  seg: RouteSegment
+  name: string
+  /** The stop whose mode the leg uses (see BookendOwners); absent when a booking ends it. */
+  assignmentId?: number
+}
 export interface HotelLegs { top: HotelLeg | null; bottom: HotelLeg | null }
 
 /**
@@ -242,17 +290,19 @@ export function hotelLegsForDay(
   days: Day[],
   accommodations: Accommodation[],
   routeSegments: RouteSegment[],
+  owners: BookendOwners = {},
 ): HotelLegs {
   const { morning, evening } = getDayBookendHotels(day, days, accommodations)
-  const legOf = (a: Accommodation | undefined, bookend: 'morning' | 'evening'): HotelLeg | null => {
+  const legOf = (a: Accommodation | undefined, bookend: 'morning' | 'evening', owner?: number): HotelLeg | null => {
     if (!a || a.place_lat == null || a.place_lng == null) return null
     const at: [number, number] = [a.place_lat, a.place_lng]
     const seg = routeSegments.find(s => s.hotelBookend === bookend && sameCoord(bookend === 'morning' ? s.from : s.to, at))
-    return seg ? { seg, name: accommodationName(a) } : null
+    if (!seg) return null
+    return { seg, name: accommodationName(a), ...(owner != null ? { assignmentId: owner } : {}) }
   }
   // A moving day without stops is one drive from one hotel to the next (#1297). The
   // calc tags it as the morning leg, so it shows once, at the top (#2476).
-  return { top: legOf(morning, 'morning'), bottom: legOf(evening, 'evening') }
+  return { top: legOf(morning, 'morning', owners.top), bottom: legOf(evening, 'evening', owners.bottom) }
 }
 
 /** The day headline as city pills — a "Tokyo → Kyoto" title becomes two pills with an arrow. */

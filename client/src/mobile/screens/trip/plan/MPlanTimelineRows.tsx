@@ -534,18 +534,19 @@ export function PlanScheduleRow({ item }: { item: PluginDayScheduleItem }) {
 
 // ── b4b) Accommodation bookend leg (hotel → first stop / last stop → hotel) ──
 
-export function HotelConnRow({ seg, name, placement }: {
+export function HotelConnRow({ seg, name, placement, onTap }: {
   seg: RouteSegment
   name: string
   placement: 'top' | 'bottom'
+  onTap?: (e: MouseEvent) => void
 }) {
   // Same line as the connectors between two stops, so a bookend leg routed with a
-  // plugin profile or set to walking reads the same as the rest of the day (#1281).
-  const travel = (
-    <div className="flex items-center gap-2 py-px text-[color:var(--m-conn)]">
-      <TravelLine seg={seg} />
-    </div>
-  )
+  // plugin profile or set to walking reads the same as the rest of the day (#1281),
+  // and taps the same way. Only the line is the button, the stay's name stays text.
+  const cls = 'flex w-full items-center gap-2 py-px text-[color:var(--m-conn)]'
+  const travel = onTap
+    ? <button type="button" onClick={onTap} className={`${cls} transition-transform active:scale-[.98]`}><TravelLine seg={seg} /></button>
+    : <div className={cls}><TravelLine seg={seg} /></div>
   const hotel = (
     <div className="flex items-center justify-center gap-[5px] whitespace-nowrap font-geist text-[0.59375rem] font-semibold text-m-muted">
       <BedDouble size={11} strokeWidth={2} className="flex-none" />
