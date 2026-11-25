@@ -488,6 +488,7 @@ input {
 .pad.grow {
   flex: 1;
   margin-top: -30px;
+  padding-bottom: var(--safe-bottom);
 }
 .pad.lift {
   margin-top: -34px;
