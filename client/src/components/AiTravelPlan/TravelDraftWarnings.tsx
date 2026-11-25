@@ -26,19 +26,19 @@ export default function TravelDraftWarnings({ warnings }: TravelDraftWarningsPro
 
   return (
     <section className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
-      <h2 className="mb-3 text-sm font-semibold text-content">{t('planner.ai.warnings')}</h2>
+      <h2 className="mb-3 text-body font-semibold text-content">{t('planner.ai.warnings')}</h2>
       {ordered.length === 0 ? (
-        <p className="text-sm text-content-muted">{t('planner.ai.noWarnings')}</p>
+        <p className="text-body text-content-muted">{t('planner.ai.noWarnings')}</p>
       ) : (
         <ul className="space-y-2">
           {ordered.map((warning) => (
             <li
               key={`${warning.code}-${warning.message}`}
-              className={`flex gap-2.5 rounded-xl border px-3 py-2.5 text-sm ${SEVERITY_CLASS[warning.severity]}`}
+              className={`flex gap-2.5 rounded-xl border px-3 py-2.5 text-body ${SEVERITY_CLASS[warning.severity]}`}
             >
               <span className="mt-0.5 shrink-0">{SEVERITY_ICON[warning.severity]}</span>
               <div className="min-w-0">
-                <div className="text-xs font-semibold uppercase tracking-wide text-content-muted">
+                <div className="text-caption font-semibold uppercase tracking-wide text-content-muted">
                   {t(`planner.ai.severity.${warning.severity}`)}
                 </div>
                 <p className="mt-0.5 break-words">{warning.message}</p>

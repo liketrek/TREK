@@ -8,6 +8,7 @@
  * so we don't need real encryption for most tests.
  */
 import { db as testDb } from '../../../src/db/database';
+import { AppSettings } from '../../../src/db/entities/AppSettings.entity';
 import { Settings } from '../../../src/db/entities/Settings.entity';
 import { Trips } from '../../../src/db/entities/Trips.entity';
 import { SettingsService, isAdminOnlyEndpointSetting } from '../../../src/nest/settings/settings.service';
@@ -26,7 +27,7 @@ import {
   createTestSettingsRepo,
 } from '../../helpers/test-uow';
 
-import { describe, it, expect, vi, beforeAll, beforeEach, afterAll } from 'vitest';
+import { describe, it, expect, vi, beforeAll, beforeEach, afterAll, afterEach } from 'vitest';
 
 // ── DB + apiKeyCrypto mock ────────────────────────────────────────────────────
 
@@ -505,5 +506,30 @@ describe('planner_trip_views', () => {
     expect(await readUserSetting(t, user.id, 'planner_trip_views')).toBe('{}');
     await svc.upsertSetting(user.id, 'planner_trip_views', null);
     expect(await readUserSetting(t, user.id, 'planner_trip_views')).toBe('');
+  });
+
+  describe('getInstanceApiKey', () => {
+    const ORIGINAL_AMAP_KEY = process.env.AMAP_API_KEY;
+
+    afterEach(() => {
+      if (ORIGINAL_AMAP_KEY === undefined) delete process.env.AMAP_API_KEY;
+      else process.env.AMAP_API_KEY = ORIGINAL_AMAP_KEY;
+    });
+
+    it('SET-SVC-041 — reads the stored instance key when the operator set no variable', async () => {
+      delete process.env.AMAP_API_KEY;
+      await setAppSetting(t, 'amap_api_key', 'stored-key');
+      expect(await svc.getInstanceApiKey('amap_api_key')).toBe('stored-key');
+    });
+
+    it('SET-SVC-042 — the operator environment variable wins over the stored row, and no key anywhere is null', async () => {
+      await setAppSetting(t, 'amap_api_key', 'stored-key');
+      process.env.AMAP_API_KEY = 'env-key';
+      expect(await svc.getInstanceApiKey('amap_api_key')).toBe('env-key');
+
+      delete process.env.AMAP_API_KEY;
+      await deleteRows(t, AppSettings, { key: 'amap_api_key' });
+      expect(await svc.getInstanceApiKey('amap_api_key')).toBeNull();
+    });
   });
 });

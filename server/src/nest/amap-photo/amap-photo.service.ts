@@ -1,13 +1,7 @@
-import { AppSettings } from '../../db/entities/AppSettings.entity';
-import { Users } from '../../db/entities/Users.entity';
-import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { safeFetchFollow } from '../../utils/ssrfGuard';
-import { resolveApiKey } from '../settings/instance-api-keys';
-import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable, Logger } from '@nestjs/common';
 import { readEnv } from '../../app-config';
+import { safeFetchFollow } from '../../utils/ssrfGuard';
 import type { UnsplashPhoto } from '../unsplash/unsplash.service';
+import { Injectable, Logger } from '@nestjs/common';
 
 /**
  * A single POI entry as Amap's place/text returns it (we only care about these).
@@ -37,24 +31,6 @@ const AMAP_PHOTO_ATTRIBUTION = '© 高德地图';
 export class AmapPhotoService {
   private readonly logger = new Logger(AmapPhotoService.name);
 
-  constructor(
-    @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
-    @InjectRepository(Users) private readonly usersRepo: UsersRepository,
-  ) {}
-
-  /** Resolve an Amap Web Service key, mirroring how UnsplashService resolves its key. */
-  private async getAmapKey(userId: number): Promise<string | null> {
-    return (
-      await resolveApiKey(
-        this.appSettings,
-        this.usersRepo,
-        'amap_api_key',
-        userId,
-        readEnv().maps.amapApiKey,
-      )
-    ).key;
-  }
-
   /**
    * Search POI photos on Amap.
    *
@@ -73,12 +49,19 @@ export class AmapPhotoService {
    * The empty result keeps the Unsplash fallback alive. We only let a real JSON
    * parse error bubble, because that would signal something unexpected that the
    * caller should know about.
+   *
+   * `key` is resolved by the caller: the cover search owns the precedence
+   * (operator env, the instance setting, then the caller's own column), and the
+   * `users` table is not this domain's to read.
    */
-  async searchCoverPhotos(query: string, perPage = 9, userId = 0): Promise<{ photos: UnsplashPhoto[]; hadKey: boolean }> {
+  async searchCoverPhotos(
+    query: string,
+    perPage = 9,
+    key: string | null = null,
+  ): Promise<{ photos: UnsplashPhoto[]; hadKey: boolean }> {
     const trimmed = query.trim();
     if (!trimmed) return { photos: [], hadKey: false };
 
-    const key = await this.getAmapKey(userId);
     if (!key) {
       this.logger.debug('Amap key not configured, skipping POI photo search');
       return { photos: [], hadKey: false };

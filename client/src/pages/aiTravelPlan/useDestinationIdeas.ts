@@ -1,9 +1,9 @@
 import type { DestinationIdea } from '@trek/shared';
 import { useState } from 'react';
-import { aiTravelPlanApi } from '../../api/aiTravelPlan';
 import { briefDayCount, splitList, type TravelBrief } from '../../components/AiTravelPlan/aiPlanModel';
 import { useToast } from '../../components/shared/Toast';
 import { useTranslation } from '../../i18n';
+import { useAiTravelPlanStore } from '../../store/aiTravelPlanStore';
 
 /**
  * The "suggest destinations" affordance on the brief form. Discovery is
@@ -19,7 +19,8 @@ export function useDestinationIdeas(brief: TravelBrief, updateBrief: (patch: Par
     setIdeasPending(true);
     const month = brief.startDate ? Number(brief.startDate.slice(5, 7)) : undefined;
     const budget = brief.budgetCny.trim() === '' ? undefined : Number(brief.budgetCny);
-    void aiTravelPlanApi
+    void useAiTravelPlanStore
+      .getState()
       .destinationIdeas({
         days: briefDayCount(brief) ?? undefined,
         budgetCny: budget,

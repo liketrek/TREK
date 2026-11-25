@@ -1,4 +1,6 @@
 import type {
+  DestinationIdeaRequest,
+  DestinationIdeasResponse,
   TravelPlan,
   TravelPlanApplyRequest,
   TravelPlanApplyResponse,
@@ -12,7 +14,7 @@ import { create } from 'zustand';
 import { aiTravelPlanApi } from '../api/aiTravelPlan';
 
 /** Which request the page is waiting on; the page disables every control while one runs. */
-export type AiTravelPlanPending =
+type AiTravelPlanPending =
   'loading' | 'creating' | 'revising' | 'recalculating' | 'applying' | 'undoing' | 'discarding' | null;
 
 /**
@@ -36,6 +38,7 @@ interface AiTravelPlanState {
   apply: (id: number, request: TravelPlanApplyRequest, idempotencyKey: string) => Promise<TravelPlanApplyResponse>;
   undo: (id: number, request?: TravelPlanUndoRequest) => Promise<TravelPlanUndoResponse>;
   discard: (id: number, request?: TravelPlanDiscardRequest) => Promise<TravelPlan>;
+  destinationIdeas: (request: DestinationIdeaRequest) => Promise<DestinationIdeasResponse>;
   reset: () => void;
 }
 
@@ -121,6 +124,8 @@ export const useAiTravelPlanStore = create<AiTravelPlanState>((set) => ({
       set({ pending: null });
     }
   },
+
+  destinationIdeas: (request) => aiTravelPlanApi.destinationIdeas(request),
 
   reset: () => set({ plan: null, pending: null }),
 }));

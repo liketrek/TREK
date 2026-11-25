@@ -67,7 +67,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 //   id, transport, mailbox; mail_ingest_messages: id, transport, dedupe_hash, user_id, size; mail_ingest_candidates:
 //   id, message_id, user_id (each row is written whole by the mail import, which always knows all of them).
 // + trip_addon_overrides: trip_id, addon_id, enabled (an override is only ever written whole, by the trip owner).
-const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 635;
+// + ai_travel_plans: id, owner_id, status, request_json; ai_travel_plan_revisions: id, plan_id, version,
+//   draft_json, facts_json, warnings_json, model_meta_json (a plan and each revision are written whole).
+const KNOWN_UNINITIALISED_NOT_NULL_SCALARS = 646;
 
 describe('entity class fields never carry a NaN initialiser (task-4-review-shape.md, Important 1)', () => {
   it('CLASSFIELD-001: new X() has no own property whose value is NaN, across all 133 entities', () => {

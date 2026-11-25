@@ -95,6 +95,7 @@ export default defineConfig({
         // measures it; raise it with scripts/coverage-thresholds.mjs, never lower it.
         'src/nest/ai-travel-plan/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },
         'src/nest/airports/**/*.ts': { statements: 68, branches: 60, functions: 93, lines: 73 },
+        'src/nest/amap-photo/**/*.ts': { statements: 92, branches: 73, functions: 99, lines: 94 },
         'src/nest/app-config/**/*.ts': { statements: 79, branches: 100, functions: 65, lines: 71 },
         'src/nest/assignments/**/*.ts': { statements: 90, branches: 80, functions: 97, lines: 96 },
         'src/nest/assistant/**/*.ts': { statements: 80, branches: 80, functions: 80, lines: 80 },

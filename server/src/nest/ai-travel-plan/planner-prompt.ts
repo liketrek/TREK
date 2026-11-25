@@ -67,7 +67,7 @@ export interface PlannerModelOptions {
 }
 
 /** The warning a capped generation carries instead of calling the model. */
-export function usageLimitWarning(): TravelPlanWarning {
+function usageLimitWarning(): TravelPlanWarning {
   return {
     code: 'usage_limit',
     message: '今日 AI 模型用量已达到上限，本次只按你填写的结构化字段规划。',

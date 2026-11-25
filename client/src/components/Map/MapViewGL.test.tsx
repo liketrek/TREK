@@ -2,7 +2,7 @@ import React from 'react'
 import { describe, it, expect, vi, afterEach, beforeEach } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { render } from '../../../tests/helpers/render'
-import { act, fireEvent, waitFor, within } from '@testing-library/react'
+import { act, fireEvent, waitFor } from '@testing-library/react'
 import { resetAllStores } from '../../../tests/helpers/store'
 import { buildPlace } from '../../../tests/helpers/factories'
 import { server } from '../../../tests/helpers/msw/server'
@@ -17,7 +17,6 @@ import type { Poi } from './poiCategories'
 import { Coffee, type LucideIcon } from 'lucide-react'
 import { renderIconMarkup } from '../../utils/iconMarkup'
 import type { RouteVia } from '../../types'
-import { MapLoadStatusProvider } from './MapLoadStatus'
 
 // Stable fake map so fitBounds call counts survive re-renders. The canvas
 // container is a single element so listeners registered by the component are
@@ -296,59 +295,6 @@ afterEach(() => {
 })
 
 describe('MapViewGL', () => {
-  it('FE-COMP-MAPVIEWGL-LOAD-001: stays loading until the first complete map load', async () => {
-    const { queryByRole, unmount } = render(
-      <MapLoadStatusProvider onRetry={vi.fn()}>
-        <MapViewGL places={[]} />
-      </MapLoadStatusProvider>,
-    )
-    expect(queryByRole('status')).toBeInTheDocument()
-
-    const onLoad = glMap.on.mock.calls.find(call => call[0] === 'load')?.[1] as () => void
-    await act(async () => { onLoad() })
-
-    expect(queryByRole('status')).not.toBeInTheDocument()
-    expect(queryByRole('alert')).not.toBeInTheDocument()
-
-    const onStyleLoad = glMap.once.mock.calls.find(call => call[0] === 'style.load')?.[1]
-    const onError = glMap.on.mock.calls.find(call => call[0] === 'error')?.[1]
-    unmount()
-    expect(glMap.off).toHaveBeenCalledWith('style.load', onStyleLoad)
-    expect(glMap.off).toHaveBeenCalledWith('error', onError)
-  })
-
-  it('FE-COMP-MAPVIEWGL-LOAD-002: an initial style error offers a retry', async () => {
-    const onRetry = vi.fn()
-    const { findByRole } = render(
-      <MapLoadStatusProvider onRetry={onRetry}>
-        <MapViewGL places={[]} />
-      </MapLoadStatusProvider>,
-    )
-    const onError = glMap.on.mock.calls.find(call => call[0] === 'error')?.[1] as () => void
-    await act(async () => { onError() })
-
-    const alert = await findByRole('alert')
-    fireEvent.click(within(alert).getByRole('button'))
-    expect(onRetry).toHaveBeenCalledTimes(1)
-  })
-
-  it('FE-COMP-MAPVIEWGL-LOAD-003: an ordinary tile error after style.load is not a failure', async () => {
-    const { queryByRole } = render(
-      <MapLoadStatusProvider onRetry={vi.fn()}>
-        <MapViewGL places={[]} />
-      </MapLoadStatusProvider>,
-    )
-    const onStyleLoad = glMap.once.mock.calls.find(call => call[0] === 'style.load')?.[1] as () => void
-    const onError = glMap.on.mock.calls.find(call => call[0] === 'error')?.[1] as () => void
-    await act(async () => {
-      onStyleLoad()
-      onError()
-    })
-
-    expect(queryByRole('alert')).not.toBeInTheDocument()
-    expect(queryByRole('status')).toBeInTheDocument()
-  })
-
   it('FE-COMP-MAPVIEWGL-001: opening place inspector does not refit bounds (issue #921)', async () => {
     const places = [
       buildMapPlace({ id: 1, lat: 48.8584, lng: 2.2945 }),

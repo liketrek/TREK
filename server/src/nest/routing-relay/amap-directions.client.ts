@@ -25,7 +25,7 @@ import { discardBody, exceedsDeclaredLength, readCappedJson } from '../../utils/
 import { encodePolyline } from '../../utils/polyline';
 import { safeFetchFollow } from '../../utils/ssrfGuard';
 import { logWarn } from '../audit/audit-log.logger';
-import { UA, amapUrl } from '../maps/maps.helpers';
+import { UA, amapUrl } from '../maps/maps.helpers.contract';
 import { gcj02ToWgs84, toAmapLocation, type ValhallaCosting, type ValhallaRouteRequest } from '@trek/shared';
 
 /** A direction answer is a few hundred steps; anything past this is not the endpoint we think it is. */
@@ -182,19 +182,26 @@ export async function routeByAmap(
   }
 
   const legs: AmapLeg[] = [];
-  for (let i = 0; i < pairs.length; i += LEG_CONCURRENCY) {
+  // Batches run one after another by recursion rather than a loop: the deadline is
+  // shared, so they cannot go out all at once, and an await inside a loop is what
+  // the lint forbids. A failed or unroutable pair ends the chain like it did before.
+  const askBatch = async (start: number): Promise<AmapRouteAnswer | null> => {
+    if (start >= pairs.length) return null;
     const batch = pairs
-      .slice(i, i + LEG_CONCURRENCY)
+      .slice(start, start + LEG_CONCURRENCY)
       .map((pair) => askLeg(profile, pair.from, pair.to, strategy, apiKey, deadline));
-    for (const outcome of await Promise.all(batch)) {
+    const outcomes = await Promise.all(batch);
+    for (const outcome of outcomes) {
       if (outcome.kind === 'failed') return { kind: 'failed' };
       // One pair Amap cannot route is a question for the Valhalla behind this, not a failure.
       if (outcome.kind === 'none') return { kind: 'none' };
       legs.push(outcome.leg);
     }
-  }
+    return askBatch(start + LEG_CONCURRENCY);
+  };
 
-  return { kind: 'route', body: tripFrom(legs) };
+  const stop = await askBatch(0);
+  return stop ?? { kind: 'route', body: tripFrom(legs) };
 }
 
 async function askLeg(

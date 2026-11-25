@@ -114,8 +114,8 @@ export default function TravelDraftMap({
   return (
     <section className="overflow-hidden rounded-2xl border border-edge bg-surface-card shadow-sm">
       <header className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1 border-b border-edge-faint px-4 py-3 sm:px-5">
-        <h2 className="text-sm font-semibold text-content">{t('planner.ai.mapTitle')}</h2>
-        {sketchOnly ? <span className="text-xs text-content-muted">{t('planner.ai.mapNote')}</span> : null}
+        <h2 className="text-body font-semibold text-content">{t('planner.ai.mapTitle')}</h2>
+        {sketchOnly ? <span className="text-caption text-content-muted">{t('planner.ai.mapNote')}</span> : null}
       </header>
       <div className="h-64 w-full [--bottom-nav-h:0px] sm:h-80">
         <MapViewAuto
@@ -131,7 +131,10 @@ export default function TravelDraftMap({
       </div>
       {days.some((day) => day.items.length > 1) ? (
         <div className="flex flex-wrap items-center gap-2 border-t border-edge-faint px-4 py-2.5 sm:px-5">
-          <div role="group" className="inline-flex items-center gap-0.5 rounded-full border border-edge p-0.5 text-xs">
+          <div
+            role="group"
+            className="inline-flex items-center gap-0.5 rounded-full border border-edge p-0.5 text-caption"
+          >
             <button
               type="button"
               onClick={() => onNavModeChange('drive')}
@@ -165,7 +168,7 @@ export default function TravelDraftMap({
             return (
               <span
                 key={day.date}
-                className="inline-flex items-center gap-1.5 rounded-full border border-edge px-2 py-1 text-xs"
+                className="inline-flex items-center gap-1.5 rounded-full border border-edge px-2 py-1 text-caption"
               >
                 <span aria-hidden className="h-2 w-2 rounded-full" style={{ backgroundColor: dayColor(dayIndex) }} />
                 <span className="text-content-secondary">{t('planner.dayN', { n: dayIndex + 1 })}</span>

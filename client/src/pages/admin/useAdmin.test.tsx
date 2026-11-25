@@ -84,7 +84,7 @@ describe('useAdmin', () => {
 
     const { result } = await mountAdmin();
 
-    expect(result.current.users.map(u => u.username)).toEqual(['admin', 'alice']);
+    expect(result.current.users.map((u) => u.username)).toEqual(['admin', 'alice']);
     expect(result.current.stats).toBeNull();
     expect(toastCalls).toEqual([]);
   });

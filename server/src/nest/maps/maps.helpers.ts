@@ -27,7 +27,7 @@ export const UA = buildUserAgent(getAppUrl());
 // ── Amap (高德) request plumbing ──────────────────────────────────────────────
 
 /** The upstream every Amap Web Service call is written against; `AMAP_API_BASE` mirrors it for a gateway. */
-export const AMAP_UPSTREAM = 'https://restapi.amap.com';
+const AMAP_UPSTREAM = 'https://restapi.amap.com';
 
 /**
  * Amap's optional 数字签名 (digital signature).
@@ -39,10 +39,10 @@ export const AMAP_UPSTREAM = 'https://restapi.amap.com';
  *
  * Unset, which is the common case, nothing is added.
  */
-export function amapSignature(params: Record<string, string>, key: string): string | null {
+function amapSignature(params: Record<string, string>, key: string): string | null {
   const secret = readEnv().maps.amapApiSecret;
   if (!secret) return null;
-  const signed = { ...params, key, output: 'JSON' };
+  const signed: Record<string, string> = { ...params, key, output: 'JSON' };
   const canonical = Object.keys(signed)
     // Byte order, and it has to stay byte order: Amap computes the same signature over
     // the same sorted names, so a locale-aware comparison would produce a signature the

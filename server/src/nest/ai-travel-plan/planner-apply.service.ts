@@ -120,6 +120,8 @@ export class PlannerApplyService {
           for await (const item of draftDay.items) {
             const place = await this.places.create(String(tripId), placeInput(item));
             const assignment = await this.assignments.createAssignment(dayId, place.id);
+            // The row was just inserted in this transaction, so a null here is unreadable data, not an absent one.
+            if (!assignment) throw new Error(`applied day ${draftDay.date}: the new assignment is not readable`);
             createdPlaceIds.push(place.id);
             createdAssignmentIds.push(assignment.id);
             createdPlaces.push(place);

@@ -37,23 +37,23 @@ function DraftOverview({ vm }: { vm: ReturnType<typeof useAiTravelPlan> }): Reac
   return (
     <section className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-surface-secondary px-2.5 py-1 text-xs font-semibold text-content-secondary">
+        <span className="rounded-full bg-surface-secondary px-2.5 py-1 text-caption font-semibold text-content-secondary">
           {t(`planner.ai.status.${plan.status}`)}
         </span>
-        <span className="text-xs text-content-muted">
+        <span className="text-caption text-content-muted">
           {t('planner.ai.revision')} {plan.currentRevision}
         </span>
-        <span className="ms-auto text-xs text-content-muted">
+        <span className="ms-auto text-caption text-content-muted">
           {formatDate(plan.request.startDate ?? '', locale)} – {formatDate(plan.request.endDate ?? '', locale)}
         </span>
       </div>
 
-      <h2 className="mt-3 text-lg font-semibold text-content">
+      <h2 className="mt-3 text-subtitle font-semibold text-content">
         {plan.request.destination ?? t('planner.ai.untitled')}
       </h2>
-      {draft?.summary && <p className="mt-1.5 text-sm leading-relaxed text-content-secondary">{draft.summary}</p>}
+      {draft?.summary && <p className="mt-1.5 text-body leading-relaxed text-content-secondary">{draft.summary}</p>}
 
-      <div className="mt-4 flex flex-wrap gap-2 text-xs">
+      <div className="mt-4 flex flex-wrap gap-2 text-caption">
         <span className="rounded-lg bg-surface-secondary px-2.5 py-1.5 text-content-secondary">
           {t('planner.days')} {vm.dayCount}
         </span>
@@ -72,7 +72,7 @@ function DraftOverview({ vm }: { vm: ReturnType<typeof useAiTravelPlan> }): Reac
           type="button"
           onClick={vm.handleEditRequest}
           disabled={vm.isBusy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-edge px-3 py-1.5 text-xs font-medium text-content transition hover:bg-surface-hover disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-edge px-3 py-1.5 text-caption font-medium text-content transition hover:bg-surface-hover disabled:opacity-60"
         >
           <PenLine size={13} />
           {t('planner.ai.editBrief')}
@@ -84,7 +84,7 @@ function DraftOverview({ vm }: { vm: ReturnType<typeof useAiTravelPlan> }): Reac
               void vm.handleRecalculate();
             }}
             disabled={vm.isBusy}
-            className="inline-flex items-center gap-1.5 rounded-lg border border-edge px-3 py-1.5 text-xs font-medium text-content transition hover:bg-surface-hover disabled:opacity-60"
+            className="inline-flex items-center gap-1.5 rounded-lg border border-edge px-3 py-1.5 text-caption font-medium text-content transition hover:bg-surface-hover disabled:opacity-60"
           >
             {vm.pending === 'recalculating' ? <Loader2 size={13} className="animate-spin" /> : <Route size={13} />}
             {vm.pending === 'recalculating' ? t('planner.ai.recalculating') : t('planner.ai.recalculate')}
@@ -94,7 +94,7 @@ function DraftOverview({ vm }: { vm: ReturnType<typeof useAiTravelPlan> }): Reac
           type="button"
           onClick={vm.handleStartOver}
           disabled={vm.isBusy}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-edge px-3 py-1.5 text-xs font-medium text-content transition hover:bg-surface-hover disabled:opacity-60"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-edge px-3 py-1.5 text-caption font-medium text-content transition hover:bg-surface-hover disabled:opacity-60"
         >
           <RotateCcw size={13} />
           {t('planner.ai.startOver')}
@@ -122,18 +122,18 @@ export default function AiTravelPlanPage(): React.ReactElement {
       {/* pb clears the phone's floating dock, whose centre FAB otherwise sits on the form's submit button. */}
       <div className="mx-auto w-full max-w-5xl px-4 py-6 pb-[calc(var(--bottom-nav-h,0px)_+_24px)] sm:px-6 md:pb-10 lg:py-10">
         <header className="mb-6">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-accent-subtle px-3 py-1 text-xs font-semibold text-accent-on">
+          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-accent-subtle px-3 py-1 text-caption font-semibold text-accent-on">
             <Sparkles size={13} />
             {t('planner.ai.badge')}
           </div>
-          <h1 className="text-2xl font-bold text-content sm:text-3xl">{t('planner.ai.title')}</h1>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-content-muted">{t('planner.ai.subtitle')}</p>
+          <h1 className="text-title font-bold text-content sm:text-title">{t('planner.ai.title')}</h1>
+          <p className="mt-2 max-w-2xl text-body leading-relaxed text-content-muted">{t('planner.ai.subtitle')}</p>
         </header>
 
         {vm.error && (
           <div
             role="alert"
-            className="mb-5 rounded-xl border border-danger bg-danger-soft px-4 py-3 text-sm text-content"
+            className="mb-5 rounded-xl border border-danger bg-danger-soft px-4 py-3 text-body text-content"
           >
             {vm.error}
           </div>
@@ -170,9 +170,9 @@ export default function AiTravelPlanPage(): React.ReactElement {
 
               {plan.status !== 'applied' && plan.status !== 'expired' && (
                 <section className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
-                  <h2 className="mb-3 text-sm font-semibold text-content">{t('planner.ai.reviseTitle')}</h2>
+                  <h2 className="mb-3 text-body font-semibold text-content">{t('planner.ai.reviseTitle')}</h2>
                   <textarea
-                    className="min-h-20 w-full resize-y rounded-xl border border-edge bg-surface-input px-3 py-2 text-sm text-content placeholder:text-content-faint focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60"
+                    className="min-h-20 w-full resize-y rounded-xl border border-edge bg-surface-input px-3 py-2 text-body text-content placeholder:text-content-faint focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60"
                     value={vm.feedback}
                     maxLength={2000}
                     disabled={vm.isBusy}
@@ -186,7 +186,7 @@ export default function AiTravelPlanPage(): React.ReactElement {
                         void vm.handleRevise();
                       }}
                       disabled={vm.isBusy}
-                      className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-sm font-semibold text-accent-text transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+                      className="inline-flex items-center gap-2 rounded-xl bg-accent px-4 py-2 text-body font-semibold text-accent-text transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {vm.pending === 'revising' && <Loader2 size={15} className="animate-spin" />}
                       {vm.pending === 'revising' ? t('planner.ai.revising') : t('planner.ai.reviseSubmit')}
@@ -228,7 +228,7 @@ export default function AiTravelPlanPage(): React.ReactElement {
                   void vm.handleDiscard();
                 }}
                 disabled={vm.isBusy}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-edge px-4 py-2 text-sm font-medium text-content-muted transition hover:bg-surface-hover hover:text-danger disabled:opacity-60"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-edge px-4 py-2 text-body font-medium text-content-muted transition hover:bg-surface-hover hover:text-danger disabled:opacity-60"
               >
                 <Trash2 size={15} />
                 {vm.pending === 'discarding' ? t('planner.ai.discarding') : t('planner.ai.discard')}

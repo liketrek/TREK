@@ -18,8 +18,8 @@ interface TravelBriefFormProps {
 }
 
 const inputClass =
-  'w-full rounded-xl border border-edge bg-surface-input px-3 py-2 text-sm text-content placeholder:text-content-faint focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60';
-const labelClass = 'mb-1.5 block text-xs font-medium text-content-muted';
+  'w-full rounded-xl border border-edge bg-surface-input px-3 py-2 text-body text-content placeholder:text-content-faint focus:outline-none focus:ring-2 focus:ring-accent disabled:opacity-60';
+const labelClass = 'mb-1.5 block text-caption font-medium text-content-muted';
 
 /** The traveller's wish list: one sentence, plus the structured fields that sharpen it. */
 export default function TravelBriefForm({
@@ -127,7 +127,7 @@ export default function TravelBriefForm({
       <fieldset className="mt-4">
         <legend className={labelClass}>{t('planner.ai.travelers')}</legend>
         <div className="grid grid-cols-3 gap-3">
-          <label className="text-xs text-content-muted">
+          <label className="text-caption text-content-muted">
             <span className="mb-1 block">{t('planner.ai.adults')}</span>
             <input
               type="number"
@@ -139,7 +139,7 @@ export default function TravelBriefForm({
               onChange={(event) => onChange({ adults: Number(event.target.value) || 1 })}
             />
           </label>
-          <label className="text-xs text-content-muted">
+          <label className="text-caption text-content-muted">
             <span className="mb-1 block">{t('planner.ai.children')}</span>
             <input
               type="number"
@@ -151,7 +151,7 @@ export default function TravelBriefForm({
               onChange={(event) => onChange({ children: Number(event.target.value) || 0 })}
             />
           </label>
-          <label className="text-xs text-content-muted">
+          <label className="text-caption text-content-muted">
             <span className="mb-1 block">{t('planner.ai.seniors')}</span>
             <input
               type="number"
@@ -248,11 +248,11 @@ export default function TravelBriefForm({
       </div>
 
       <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-xs leading-relaxed text-content-muted">{t('planner.ai.briefHint')}</p>
+        <p className="text-caption leading-relaxed text-content-muted">{t('planner.ai.briefHint')}</p>
         <button
           type="submit"
           disabled={disabled}
-          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-sm font-semibold text-accent-text transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+          className="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-accent px-5 py-2.5 text-body font-semibold text-accent-text transition hover:bg-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Sparkles size={16} />
           {disabled ? t('planner.ai.generating') : t('planner.ai.generate')}

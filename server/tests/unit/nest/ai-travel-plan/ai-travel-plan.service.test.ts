@@ -10,6 +10,10 @@
  */
 import { AiTravelPlanRevisions } from '../../../../src/db/entities/AiTravelPlanRevisions.entity';
 import { AiTravelPlans } from '../../../../src/db/entities/AiTravelPlans.entity';
+import { DayAssignments } from '../../../../src/db/entities/DayAssignments.entity';
+import { Days } from '../../../../src/db/entities/Days.entity';
+import { Places } from '../../../../src/db/entities/Places.entity';
+import { Trips } from '../../../../src/db/entities/Trips.entity';
 import { dbNow } from '../../../../src/db/types';
 import { AiTravelPlanModule } from '../../../../src/nest/ai-travel-plan/ai-travel-plan.module';
 import { AiTravelPlanService } from '../../../../src/nest/ai-travel-plan/ai-travel-plan.service';
@@ -27,7 +31,7 @@ import { RealtimeService } from '../../../../src/nest/realtime/realtime.service'
 import { TripAccessService } from '../../../../src/nest/trip-membership/trip-access.service';
 import type { User } from '../../../../src/types';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
-import { findRow } from '../../../helpers/factories/rows';
+import { countRows, findRow, findRows, updateRows } from '../../../helpers/factories/rows';
 import { makeTrip } from '../../../helpers/factories/trips';
 import { makeUser } from '../../../helpers/factories/users';
 import { FakeRealtimeService } from '../../../helpers/fake-realtime';
@@ -181,17 +185,17 @@ const service = () => t.get(AiTravelPlanService);
 const orm = () => t.get(MikroORM);
 
 /** Rows visible to a fresh connection: what a rollback must leave at zero. */
-function count(table: 'trips' | 'days' | 'places' | 'assignments', tripId?: number): number {
-  const sql =
-    table === 'assignments'
-      ? tripId === undefined
-        ? 'SELECT COUNT(*) AS n FROM day_assignments'
-        : 'SELECT COUNT(*) AS n FROM day_assignments a JOIN days d ON d.id = a.day_id WHERE d.trip_id = ?'
-      : tripId === undefined
-        ? `SELECT COUNT(*) AS n FROM ${table}`
-        : `SELECT COUNT(*) AS n FROM ${table} WHERE trip_id = ?`;
-  const row = (tripId === undefined ? db.prepare(sql).get() : db.prepare(sql).get(tripId)) as { n: number };
-  return row.n;
+function count(table: 'trips' | 'days' | 'places' | 'assignments', tripId?: number): Promise<number> {
+  switch (table) {
+    case 'trips':
+      return countRows(orm(), Trips);
+    case 'days':
+      return countRows(orm(), Days, tripId === undefined ? {} : { trip: tripId });
+    case 'places':
+      return countRows(orm(), Places, tripId === undefined ? {} : { trip: tripId });
+    case 'assignments':
+      return countRows(orm(), DayAssignments, tripId === undefined ? {} : { day: { trip: tripId } });
+  }
 }
 
 async function user(): Promise<User> {
@@ -331,7 +335,7 @@ describe('discard and expiry', () => {
   it('PLAN-007: a ready plan past its TTL reads as expired without a write', async () => {
     const ownerId = await user();
     const { plan } = await service().create(ownerId, request());
-    db.prepare('UPDATE ai_travel_plans SET expires_at = ? WHERE id = ?').run('2000-01-01 00:00:00', plan.id);
+    await updateRows(orm(), AiTravelPlans, { id: plan.id }, { expires_at: '2000-01-01 00:00:00' });
 
     expect((await service().get(ownerId, String(plan.id))).plan.status).toBe('expired');
     expect((await findRow(orm(), AiTravelPlans, { id: plan.id }))?.status).toBe('ready');
@@ -380,17 +384,13 @@ describe('apply and undo (phase 3 writes the trip)', () => {
     expect(applied.plan.applyResult?.createdAssignmentIds).toHaveLength(3);
 
     // The real write: one trip, two days, three places and three assignments.
-    expect(count('trips')).toBe(1);
-    expect(count('days', applied.tripId)).toBe(2);
-    expect(count('places', applied.tripId)).toBe(3);
-    expect(count('assignments', applied.tripId)).toBe(3);
+    expect(await count('trips')).toBe(1);
+    expect(await count('days', applied.tripId)).toBe(2);
+    expect(await count('places', applied.tripId)).toBe(3);
+    expect(await count('assignments', applied.tripId)).toBe(3);
 
     // A provider place keeps its id and the draft's own time window.
-    const place = db
-      .prepare(
-        'SELECT name, amap_poi_id, place_time, end_time, duration_minutes FROM places WHERE trip_id = ? ORDER BY id',
-      )
-      .get(applied.tripId) as Record<string, unknown>;
+    const [place] = await findRows(orm(), Places, { trip: applied.tripId }, { id: 'asc' });
     expect(place).toMatchObject({
       name: '西湖',
       amap_poi_id: 'B0FF0001',
@@ -417,9 +417,9 @@ describe('apply and undo (phase 3 writes the trip)', () => {
     const again = await service().apply(ownerId, String(plan.id), { mode: 'new_trip' }, 'key-2');
 
     expect(again.tripId).toBe(first.tripId);
-    expect(count('trips')).toBe(1);
-    expect(count('places')).toBe(3);
-    expect(count('assignments')).toBe(3);
+    expect(await count('trips')).toBe(1);
+    expect(await count('places')).toBe(3);
+    expect(await count('assignments')).toBe(3);
   });
 
   it('PLAN-009c: an empty draft is refused before anything is written', async () => {
@@ -430,7 +430,7 @@ describe('apply and undo (phase 3 writes the trip)', () => {
       status: 409,
       body: { error: '草案还没有可写入的行程内容，请先补充或重新生成草案。', code: 'plan_empty_draft' },
     });
-    expect(count('trips')).toBe(0);
+    expect(await count('trips')).toBe(0);
     expect(await findRow(orm(), AiTravelPlans, { id: plan.id })).toMatchObject({
       status: 'ready',
       applied_trip_id: null,
@@ -452,9 +452,9 @@ describe('apply and undo (phase 3 writes the trip)', () => {
     });
 
     await expect(service().apply(ownerId, String(plan.id), { mode: 'new_trip' }, 'key-1')).rejects.toThrow('db down');
-    expect(count('trips')).toBe(0);
-    expect(count('days')).toBe(0);
-    expect(count('places')).toBe(0);
+    expect(await count('trips')).toBe(0);
+    expect(await count('days')).toBe(0);
+    expect(await count('places')).toBe(0);
     expect(await findRow(orm(), AiTravelPlans, { id: plan.id })).toMatchObject({
       status: 'ready',
       applied_trip_id: null,
@@ -472,7 +472,12 @@ describe('apply and undo (phase 3 writes the trip)', () => {
 
     // Read the committed count at broadcast time: a pre-commit broadcast sees 0.
     const placesAtBroadcast: number[] = [];
-    realtime.broadcastMock.mockImplementation(() => placesAtBroadcast.push(count('places', trip.id)));
+    realtime.broadcastMock.mockImplementation(() => {
+      // test-sql-allow: read synchronously inside the broadcast — the point is that it already sees the committed rows, and the ORM helpers are async.
+      placesAtBroadcast.push(
+        (db.prepare('SELECT COUNT(*) AS n FROM places WHERE trip_id = ?').get(trip.id) as { n: number }).n,
+      );
+    });
 
     const applied = await service().apply(
       ownerId,
@@ -484,9 +489,9 @@ describe('apply and undo (phase 3 writes the trip)', () => {
     expect(applied.tripId).toBe(trip.id);
     expect(applied.plan).toMatchObject({ status: 'applied', targetTripId: trip.id, appliedTripId: trip.id });
     expect(applied.plan.applyResult?.createdDayIds).toHaveLength(0);
-    expect(count('days', trip.id)).toBe(2);
-    expect(count('places', trip.id)).toBe(3);
-    expect(count('assignments', trip.id)).toBe(3);
+    expect(await count('days', trip.id)).toBe(2);
+    expect(await count('places', trip.id)).toBe(3);
+    expect(await count('assignments', trip.id)).toBe(3);
 
     expect(realtime.broadcastMock).toHaveBeenCalledWith(trip.id, 'place:created', expect.any(Object));
     expect(realtime.broadcastMock).toHaveBeenCalledWith(trip.id, 'assignment:created', expect.any(Object));
@@ -500,11 +505,7 @@ describe('apply and undo (phase 3 writes the trip)', () => {
     const winnerTrip = await makeTrip(orm(), ownerId.id);
     // A concurrent apply already claimed the row: the claim this call makes
     // must now affect none, and every row it wrote must roll back.
-    db.prepare('UPDATE ai_travel_plans SET status = ?, applied_trip_id = ? WHERE id = ?').run(
-      'applied',
-      winnerTrip.id,
-      plan.id,
-    );
+    await updateRows(orm(), AiTravelPlans, { id: plan.id }, { status: 'applied', appliedTrip: winnerTrip.id });
     const stale = await orm().em.fork().findOneOrFail(AiTravelPlans, { id: plan.id });
 
     const applied = await t.get(PlannerApplyService).apply({
@@ -516,9 +517,9 @@ describe('apply and undo (phase 3 writes the trip)', () => {
     });
 
     expect(applied.tripId).toBe(winnerTrip.id);
-    expect(count('trips')).toBe(1);
-    expect(count('places')).toBe(0);
-    expect(count('assignments')).toBe(0);
+    expect(await count('trips')).toBe(1);
+    expect(await count('places')).toBe(0);
+    expect(await count('assignments')).toBe(0);
     expect(realtime.broadcastMock).not.toHaveBeenCalled();
   });
 
@@ -556,11 +557,7 @@ describe('apply and undo (phase 3 writes the trip)', () => {
     const ownerId = await user();
     const { plan } = await service().create(ownerId, request());
     const trip = await makeTrip(orm(), ownerId.id);
-    db.prepare('UPDATE ai_travel_plans SET status = ?, applied_trip_id = ? WHERE id = ?').run(
-      'applied',
-      trip.id,
-      plan.id,
-    );
+    await updateRows(orm(), AiTravelPlans, { id: plan.id }, { status: 'applied', appliedTrip: trip.id });
 
     await expect(service().apply(ownerId, String(plan.id), { mode: 'new_trip' }, 'key-1')).resolves.toMatchObject({
       tripId: trip.id,
@@ -575,14 +572,14 @@ describe('apply and undo (phase 3 writes the trip)', () => {
   it('PLAN-013: a failed plan cannot be applied, an unknown status reads as failed', async () => {
     const ownerId = await user();
     const { plan } = await service().create(ownerId, request());
-    db.prepare('UPDATE ai_travel_plans SET status = ? WHERE id = ?').run('failed', plan.id);
+    await updateRows(orm(), AiTravelPlans, { id: plan.id }, { status: 'failed' });
 
     expect(await refusal(service().apply(ownerId, String(plan.id), { mode: 'new_trip' }, 'key-1'))).toEqual({
       status: 409,
       body: { error: '草案当前状态为 failed，不能应用。', code: 'plan_not_applicable', status: 'failed' },
     });
 
-    db.prepare('UPDATE ai_travel_plans SET status = ? WHERE id = ?').run('not-a-status', plan.id);
+    await updateRows(orm(), AiTravelPlans, { id: plan.id }, { status: 'not-a-status' });
     expect((await service().get(ownerId, String(plan.id))).plan.status).toBe('failed');
   });
 
@@ -610,9 +607,9 @@ describe('apply and undo (phase 3 writes the trip)', () => {
       tripDeleted: true,
       plan: { status: 'ready', appliedTripId: null, targetTripId: null, applyResult: null },
     });
-    expect(count('trips')).toBe(0);
-    expect(count('days')).toBe(0);
-    expect(count('places')).toBe(0);
+    expect(await count('trips')).toBe(0);
+    expect(await count('days')).toBe(0);
+    expect(await count('places')).toBe(0);
     expect(realtime.broadcastMock).toHaveBeenCalledWith(applied.tripId, 'trip:deleted', { id: applied.tripId });
     expect(audit.writeAudit).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -646,7 +643,7 @@ describe('apply and undo (phase 3 writes the trip)', () => {
     expect(refused.body.placeIds).toHaveLength(3);
     expect(refused.body.assignmentIds).toHaveLength(3);
     // Refusing changed nothing: the trip and the applied plan are untouched.
-    expect(count('trips')).toBe(1);
+    expect(await count('trips')).toBe(1);
     expect(await findRow(orm(), AiTravelPlans, { id: plan.id })).toMatchObject({
       status: 'applied',
       applied_trip_id: applied.tripId,
@@ -667,17 +664,13 @@ describe('apply and undo (phase 3 writes the trip)', () => {
     const ownerId = await user();
     const { plan } = await service().create(ownerId, request());
     const trip = await makeTrip(orm(), ownerId.id);
-    db.prepare('UPDATE ai_travel_plans SET status = ?, applied_trip_id = ? WHERE id = ?').run(
-      'applied',
-      trip.id,
-      plan.id,
-    );
+    await updateRows(orm(), AiTravelPlans, { id: plan.id }, { status: 'applied', appliedTrip: trip.id });
 
     expect(await refusal(service().undo(ownerId, String(plan.id)))).toEqual({
       status: 409,
       body: { error: '这次应用没有记录写入的实体，无法自动撤销。', code: 'apply_result_missing' },
     });
-    expect(count('trips')).toBe(1);
+    expect(await count('trips')).toBe(1);
   });
 });
 

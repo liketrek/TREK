@@ -7,6 +7,7 @@ import { readAppSetting, resolveAppSetting, type AppSettingKey } from '../common
 import { decrypt_api_key, maybe_encrypt_api_key } from '../common/crypto/apiKeyCrypto';
 import { UnitOfWork } from '../database/unit-of-work';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
+import { readInstanceApiKey, readOperatorKey, type InstanceApiKeyName } from './instance-api-keys';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import {
@@ -394,6 +395,16 @@ export class SettingsService {
     } catch {
       return row.value;
     }
+  }
+
+  /**
+   * The instance's third-party key for `name`: the operator's environment
+   * variable first, then the encrypted `app_settings` row. The caller's own
+   * key is the resolution chain's last step and is read where the `users`
+   * table is owned, not here.
+   */
+  async getInstanceApiKey(name: InstanceApiKeyName): Promise<string | null> {
+    return readOperatorKey(name) ?? (await readInstanceApiKey(this.appSettings, name));
   }
 
   /** The stored text of a registered instance setting, or null without a row, for a domain that keeps one there. */

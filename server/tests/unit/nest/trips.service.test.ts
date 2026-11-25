@@ -317,8 +317,7 @@ beforeAll(async () => {
   ),
   new ReservationsService(new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), budgetSvc, realtime, notificationsStub(), new ReservationsReadService(await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb)), accommodationsSvc, await createTestUnitOfWork(testDb), await createTestReservationsRepo(testDb), await createTestReservationEndpointsRepo(testDb), await createTestReservationTravelersRepo(testDb), await createTestReservationDayPositionsRepo(testDb), await createTestDayAccommodationsRepo(testDb), await createTestDaysRepo(testDb), await createTestPlacesRepo(testDb), await createTestDayAssignmentsRepo(testDb), await createTestTripMembersRepo(testDb), await createTestUsersRepo(testDb), await createTestTripsRepo(testDb), await createTestBudgetItemsRepo(testDb), await createTestAddonsService(testDb)),
   new CollabService(
-    // Plan 4 Task 2 — CollabService's own DatabaseService param is gone:
-    // canAccessTrip now reads through the TripsRepository at the end.
+    // Plan 4 Task 2 — CollabService's own DatabaseService param is gone: canAccessTrip reads through TripsRepository.
     new PermissionsService(await createTestAppSettingsRepo(testDb), await createTestUnitOfWork(testDb)), realtime, notificationsStub(), { releaseValues: async () => [] } as never, new RateLimitService(), await createTestUnitOfWork(testDb),
     await createTestCollabMessageReactionsRepo(testDb), await createTestCollabNotesRepo(testDb), await createTestCollabPollsRepo(testDb),
     await createTestCollabPollVotesRepo(testDb), await createTestCollabLinksRepo(testDb), await createTestCollabMessagesRepo(testDb),

@@ -341,7 +341,7 @@ export class PlannerService {
 }
 
 /** The calendar days a request covers; empty when it has no start date. */
-export function planDates(request: TravelPlanCreateRequest): string[] {
+function planDates(request: TravelPlanCreateRequest): string[] {
   if (!request.startDate) return [];
   const start = Date.parse(`${request.startDate}T00:00:00Z`);
   if (!Number.isFinite(start)) return [];

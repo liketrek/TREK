@@ -30,7 +30,8 @@ import { safeHexColor } from '../../utils/safeColor'
 import { MAPBOX_DEFAULT_STYLE, styleForActiveProvider, type GlMapProvider } from './glProviders'
 import { useStandardBasemapConfig } from './useStandardBasemapConfig'
 import { buildGlMap, initialMapStyle } from './glSupport'
-import { useMapLoadStatus } from './useMapLoadStatus'
+import { trackInitialMapLoad, useMapLoadStatus } from './useMapLoadStatus'
+import { tuckAttributionOnIdle } from './tuckAttribution'
 import { mapboxTileCacheRequest, tileCacheActive } from '../../native/tileCache'
 import LocationButton from './LocationButton'
 import { useIsPhone } from '../../mobile/useIsPhone'
@@ -941,7 +942,6 @@ export function MapViewGL({
   // Build/rebuild the map on provider/style/token/3d change
   useEffect(() => {
     if (!containerRef.current || (!isMapLibre && !mapboxToken)) return
-    reportMapLoad?.('loading')
     if (!isMapLibre) gl.accessToken = mapboxToken
 
     // Open framed on the places rather than on the caller's default: a trip in Japan should
@@ -972,20 +972,9 @@ export function MapViewGL({
     if (isMapLibre) mapOptions.aroundCenter = false
 
     // Null when the GPU refused WebGL2: MapViewAuto has switched to Leaflet by then.
-    const map = buildGlMap(() => new gl.Map(mapOptions as any))
-    if (!map) {
-      reportMapLoad?.('failed')
-      return
-    }
+    const { map, dispose } = trackInitialMapLoad(() => buildGlMap(() => new gl.Map(mapOptions as any)), reportMapLoad)
+    if (!map) return
     mapRef.current = map
-    let cancelled = false
-    let styleLoaded = false
-    const onStyleLoad = () => { styleLoaded = true }
-    const onError = () => {
-      if (!cancelled && !styleLoaded) reportMapLoad?.('failed')
-    }
-    map.once('style.load', onStyleLoad)
-    map.on('error', onError)
     popupRef.current = new gl.Popup({
       closeButton: false,
       closeOnClick: false,
@@ -995,22 +984,7 @@ export function MapViewGL({
       maxWidth: '240px',
       className: 'trek-map-popup',
     })
-    /*
-     * The credit starts as the little (i), not as a ribbon across the map.
-     *
-     * Both engines collapse their attribution below 640px, and both then open it
-     * anyway and wait for a drag before tucking it away. On a phone, where the map IS
-     * the screen, that means the first thing anybody sees is a two-line grey band
-     * over the bottom of it. Dragging is exactly what maplibre does on its own
-     * `drag` handler; this only starts where that would have ended up, so the credit
-     * is one tap away and nothing about it is removed.
-     */
-    map.once('idle', () => {
-      const attrib = containerRef.current?.querySelector('.maplibregl-ctrl-attrib.maplibregl-compact-show')
-        ?? containerRef.current?.querySelector('.mapboxgl-ctrl-attrib.mapboxgl-compact-show')
-      attrib?.classList.remove('maplibregl-compact-show', 'mapboxgl-compact-show')
-      attrib?.removeAttribute('open')
-    })
+    tuckAttributionOnIdle(map, containerRef.current)
 
     // Hand the map out so the trip planner can render its own compass pill next to
     // the POI pill (a custom round control instead of Mapbox's default top-right one).
@@ -1019,7 +993,6 @@ export function MapViewGL({
     ;(window as any).__trek_map = map
 
     map.on('load', () => {
-      styleLoaded = true
       if (enableMapbox3d) {
         // Terrain is only valuable on satellite styles — on clean vector
         // styles it makes route lines drift off the HTML markers because
@@ -1238,7 +1211,6 @@ export function MapViewGL({
       // cleanup below.
       setMapReady(true)
       setReadyMap(map)
-      if (!cancelled) reportMapLoad?.('ready')
     })
 
     // Layer for the hand-positioned place pins, inside the canvas container so it
@@ -1436,9 +1408,7 @@ export function MapViewGL({
     if (enableMapbox3d) map.on('render', syncMarkerAltitudes)
 
     return () => {
-      cancelled = true
-      map.off('style.load', onStyleLoad)
-      map.off('error', onError)
+      dispose()
       canvas.removeEventListener('mousedown', onAuxDown)
       canvas.removeEventListener('auxclick', onAuxClick)
       canvas.removeEventListener('touchstart', onTouchStart)

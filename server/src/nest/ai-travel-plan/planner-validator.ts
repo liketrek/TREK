@@ -63,7 +63,7 @@ export function validateDraft(request: TravelPlanCreateRequest, draft: TravelPla
 
     const first = minutes(timed[0]?.arriveAt ?? null);
     const last = minutes(timed[timed.length - 1]?.leaveAt ?? null);
-    const lastLeave = Math.max(...timed.map((item) => minutes(item.leaveAt)));
+    const lastLeave = Math.max(...timed.map((item) => minutes(item.leaveAt) ?? 0));
 
     if (lastLeave > DAY_HARD_END_MINUTES) {
       warnings.push({

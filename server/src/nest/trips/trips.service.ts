@@ -55,6 +55,7 @@ import { inOrder } from '../common/in-order';
 import { UnitOfWork } from '../database/unit-of-work';
 import { legacyBoundIntegerText } from '../common/row-id';
 import { appClock } from '../common/timezoneService';
+import { resolveAmapCoverKey } from './amap-cover-key';
 import { assertTripSpan, leaveStartFor } from './trips.helpers';
 
 interface CreateTripData {
@@ -428,16 +429,13 @@ export class TripsService {
   }
 
   async searchCoverImages(query: string, userId: number) {
-    // Amap POI photos first — works out-of-the-box for Chinese place names,
-    // returns a handful of POI-indexed cover candidates without needing a
-    // separately configured Unsplash Access Key.
-    const amapResult = await this.amapPhoto.searchCoverPhotos(query, 9, userId);
+    // Amap POI photos first — Chinese place names work out of the box, no Unsplash key needed.
+    const amapKey = await resolveAmapCoverKey(this.settings, this.em.getRepository(Users), userId);
+    const amapResult = await this.amapPhoto.searchCoverPhotos(query, 9, amapKey);
     if (amapResult.photos.length > 0) return { photos: amapResult.photos };
 
-    // Fall back to Unsplash for users who *do* have an Access Key configured
-    // (or who manage to get one and the DNS proxy covers them). The original
-    // "unsplash_key_needed" error survives here — when both sources yield
-    // nothing, callers still get the hint that explains what to do next.
+    // Unsplash fallback for users with an Access Key. When both sources yield nothing,
+    // the original "unsplash_key_needed" error still explains what to do next.
     return this.unsplash.searchUnsplashPhotos(query, 9, await this.unsplash.getUnsplashKey(userId));
   }
 

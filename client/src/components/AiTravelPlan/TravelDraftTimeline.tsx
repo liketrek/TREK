@@ -86,7 +86,7 @@ function DayWeather({ weather }: { weather: TravelPlanDayWeather }): React.React
         : null;
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-lg border border-edge px-2 py-1 text-xs text-content-secondary"
+      className="inline-flex items-center gap-1 rounded-lg border border-edge px-2 py-1 text-caption text-content-secondary"
       title={weather.description ?? undefined}
     >
       {weatherIcon(weather.kind)}
@@ -108,19 +108,19 @@ export default function TravelDraftTimeline({ days, navMode }: TravelDraftTimeli
         return (
           <section key={day.date} className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
             <header className="mb-4 flex flex-wrap items-baseline justify-between gap-2 border-b border-edge-faint pb-3">
-              <h3 className="text-sm font-semibold text-content">
+              <h3 className="text-body font-semibold text-content">
                 {t('planner.dayN', { n: dayIndex + 1 })}
                 <span className="ms-2 font-normal text-content-muted">{formatDay(day.date, locale)}</span>
               </h3>
               <div className="flex flex-wrap items-center gap-2 sm:gap-3">
                 {day.weather && <DayWeather weather={day.weather} />}
-                <span className="text-xs text-content-muted">{t('planner.placeN', { n: day.items.length })}</span>
+                <span className="text-caption text-content-muted">{t('planner.placeN', { n: day.items.length })}</span>
                 {navigationUrl && (
                   <a
                     href={navigationUrl}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1 rounded-lg border border-edge px-2 py-1 text-xs font-medium text-content-secondary transition hover:bg-surface-hover hover:text-content"
+                    className="inline-flex items-center gap-1 rounded-lg border border-edge px-2 py-1 text-caption font-medium text-content-secondary transition hover:bg-surface-hover hover:text-content"
                   >
                     <Navigation size={11} />
                     {t('planner.ai.navigate')}
@@ -130,7 +130,7 @@ export default function TravelDraftTimeline({ days, navMode }: TravelDraftTimeli
             </header>
 
             {day.items.length === 0 ? (
-              <p className="py-2 text-sm text-content-muted">{t('planner.ai.emptyDay')}</p>
+              <p className="py-2 text-body text-content-muted">{t('planner.ai.emptyDay')}</p>
             ) : (
               <ol className="space-y-5">
                 {day.items.map((item, itemIndex) => (
@@ -140,18 +140,18 @@ export default function TravelDraftTimeline({ days, navMode }: TravelDraftTimeli
                       className="absolute start-0 top-1.5 h-2.5 w-2.5 rounded-full bg-accent ring-4 ring-accent-subtle"
                     />
                     <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
-                      <span className="text-sm font-semibold text-content">{item.place.name}</span>
+                      <span className="text-body font-semibold text-content">{item.place.name}</span>
                       {item.arriveAt && (
-                        <span className="inline-flex items-center gap-1 text-xs text-content-muted">
+                        <span className="inline-flex items-center gap-1 text-caption text-content-muted">
                           <Clock size={12} />
                           {item.leaveAt ? `${item.arriveAt}–${item.leaveAt}` : item.arriveAt}
                         </span>
                       )}
                     </div>
 
-                    {item.activity && <p className="mt-1 text-sm text-content-secondary">{item.activity}</p>}
+                    {item.activity && <p className="mt-1 text-body text-content-secondary">{item.activity}</p>}
 
-                    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-content-muted">
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-caption text-content-muted">
                       {item.travelFromPrevious && (
                         <span className="inline-flex items-center gap-1">
                           <Route size={12} />

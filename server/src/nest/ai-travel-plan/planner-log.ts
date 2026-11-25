@@ -34,7 +34,7 @@ export interface PlannerTrace {
 export type PlannerMode = 'create' | 'stream' | 'revise';
 
 /** One stage of a generation, as the planner reports it, plus the parsing/model steps. */
-export type PlannerLogStage = TravelPlanStreamStage | 'parse' | 'feedback';
+type PlannerLogStage = TravelPlanStreamStage | 'parse' | 'feedback';
 
 export interface PlannerLogFields extends PlannerTrace {
   mode?: PlannerMode | null;

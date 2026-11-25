@@ -16,6 +16,33 @@ export class AiTravelPlansRepository extends TrekRepository<AiTravelPlans> {
     return this.find({ owner: ownerId }, { orderBy: { updated_at: 'desc' }, limit });
   }
 
+  /** Keeps one plan row (written before or after generation); answers its id. */
+  async insertPlan(plan: {
+    ownerId: number;
+    status: string;
+    requestJson: string;
+    currentRevision: number;
+    expiresAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  }): Promise<number> {
+    const db = this.kysely<AiTravelPlansKyselyDB>();
+    const row = await db
+      .insertInto('ai_travel_plans')
+      .values({
+        owner_id: plan.ownerId,
+        status: plan.status,
+        request_json: plan.requestJson,
+        current_revision: plan.currentRevision,
+        expires_at: plan.expiresAt,
+        created_at: plan.createdAt,
+        updated_at: plan.updatedAt,
+      })
+      .returning('id')
+      .executeTakeFirstOrThrow();
+    return Number(row.id);
+  }
+
   /**
    * Generation attempts the owner started since `since`: every stored revision
    * (a create's first draft and each revise) plus a plan that never got one

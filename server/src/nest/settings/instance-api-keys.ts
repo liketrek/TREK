@@ -96,6 +96,11 @@ export function operatorKeyVariables(): Partial<Record<InstanceApiKeyName, strin
   return set;
 }
 
+/** The operator's environment value for `name`, or null when no variable sets it. */
+export function readOperatorKey(name: InstanceApiKeyName): string | null {
+  return OPERATOR_KEY_ENV[name].read() ?? null;
+}
+
 /** The instance-wide value in cleartext, or null when unset/cleared. */
 export async function readInstanceApiKey(
   appSettings: AppSettingsRepository,

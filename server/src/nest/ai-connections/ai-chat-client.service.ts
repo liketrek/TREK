@@ -43,6 +43,12 @@ export function openAiWantsResponses(model: string): boolean {
 export class AiChatClientService {
   constructor(private readonly chatgpt: ChatgptAuthService) {}
 
+  /**
+   * The client for a resolved connection. Building it writes nothing; the
+   * ChatGPT token refresh it wires runs later, once per rejected token.
+   *
+   * @txStandalone the only write behind this factory is that one refresh, which persists on its own
+   */
   create(connection: ResolvedAiConnection): AiChatClient {
     const { credential, kind, model } = connection;
     if (credential.type === 'chatgpt') return this.chatgptPlan(connection.id, model, credential.accessToken);

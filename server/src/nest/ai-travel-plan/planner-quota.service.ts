@@ -117,6 +117,8 @@ export class PlannerQuotaService {
   /**
    * Books what this generation's model calls cost. A failed write is logged,
    * never thrown: accounting must not lose the plan the traveller generated.
+   *
+   * @txStandalone a usage row stands on its own; it is an audit of a model call, not part of the plan's transaction
    */
   async record(userId: number, paidBy: AiConnectionScope | null, meta: TravelPlanModelMeta): Promise<void> {
     const inputTokens = meta.promptTokens ?? 0;

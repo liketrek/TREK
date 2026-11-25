@@ -18,10 +18,12 @@ import { PlacesProviderSelector } from './places-provider.selector';
 import { GooglePlacesClient } from './providers/google-places.provider';
 import { WikimediaClient } from './providers/wikimedia.client';
 import { InjectRepository } from '@mikro-orm/nestjs';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 
 @Injectable()
 export class PlacePhotoResolver {
+  private readonly logger = new Logger(PlacePhotoResolver.name);
+
   constructor(
     private readonly photoCache: PlacePhotoCacheService,
     @InjectRepository(Places) private readonly placesRepo: PlacesRepository,
@@ -134,7 +136,7 @@ export class PlacePhotoResolver {
             try {
               await this.placesRepo.setImageUrlIfUnset(placeId, cached.photoUrl);
             } catch (dbErr) {
-              console.error('Failed to persist photo URL to database:', dbErr);
+              this.logger.error('Failed to persist photo URL to database:', dbErr);
             }
             return { attribution: cached.attribution };
           } catch {

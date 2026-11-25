@@ -31,7 +31,7 @@ export default function DestinationIdeas({
     <div className="mt-2">
       <button
         type="button"
-        className="inline-flex items-center gap-1.5 text-xs font-medium text-accent hover:text-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+        className="inline-flex items-center gap-1.5 text-caption font-medium text-accent hover:text-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
         disabled={disabled || pending}
         onClick={onSuggest}
       >
@@ -42,7 +42,7 @@ export default function DestinationIdeas({
       {ideas !== null && !pending && (
         <div className="mt-3">
           {ideas.length === 0 ? (
-            <p className="text-xs text-content-muted">{t('planner.ai.ideasEmpty')}</p>
+            <p className="text-caption text-content-muted">{t('planner.ai.ideasEmpty')}</p>
           ) : (
             <ul className="grid gap-2 sm:grid-cols-3">
               {ideas.map((idea) => (
@@ -51,24 +51,26 @@ export default function DestinationIdeas({
                     type="button"
                     disabled={disabled}
                     onClick={() => onPick(idea)}
-                    className="h-full w-full rounded-xl border border-edge bg-surface-input p-3 text-left transition hover:border-accent disabled:cursor-not-allowed disabled:opacity-60"
+                    className="h-full w-full rounded-xl border border-edge bg-surface-input p-3 text-start transition hover:border-accent disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <span className="flex items-center gap-1 text-sm font-semibold text-content">
+                    <span className="flex items-center gap-1 text-body font-semibold text-content">
                       <MapPin size={12} className="text-content-muted" />
                       {idea.name}
                     </span>
-                    <span className="mt-0.5 block text-xs text-content-muted">
+                    <span className="mt-0.5 block text-caption text-content-muted">
                       {idea.region} · {dayLabel.format(idea.suggestedDays)}
                     </span>
-                    <span className="mt-0.5 block text-xs tabular-nums text-content-muted">
+                    <span className="mt-0.5 block text-caption tabular-nums text-content-muted">
                       {currency.format(idea.estimatedBudgetCny.min)}–{currency.format(idea.estimatedBudgetCny.max)}
                     </span>
                     {idea.reasons.length > 0 && (
-                      <span className="mt-1 block text-xs leading-relaxed text-content-secondary">
+                      <span className="mt-1 block text-caption leading-relaxed text-content-secondary">
                         {idea.reasons.slice(0, 2).join(' · ')}
                       </span>
                     )}
-                    <span className="mt-1.5 block text-xs font-medium text-accent">{t('planner.ai.ideasPick')}</span>
+                    <span className="mt-1.5 block text-caption font-medium text-accent">
+                      {t('planner.ai.ideasPick')}
+                    </span>
                   </button>
                 </li>
               ))}

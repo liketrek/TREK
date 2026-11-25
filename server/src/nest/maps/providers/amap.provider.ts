@@ -41,6 +41,7 @@ import type {
   SearchBias,
   ViewportBias,
 } from './places-provider';
+import { Logger } from '@nestjs/common';
 import { fromAmapLocation, gcj02ToWgs84, normalizePlaceWebsite, toAmapLocation } from '@trek/shared';
 
 /** A search answer is a few dozen POIs; anything past this is not the endpoint we think it is. */
@@ -318,6 +319,7 @@ export function amapOpeningToOsm(text: string): string | null {
 
 export class AmapPlacesProvider implements PlacesProvider {
   readonly id = 'amap' as const;
+  private readonly logger = new Logger(AmapPlacesProvider.name);
 
   constructor(
     private readonly credential: ProviderCredential,
@@ -666,8 +668,8 @@ export class AmapPlacesProvider implements PlacesProvider {
       if (truncated || !bytes.length) return { kind: 'failed' };
       return { kind: 'photo', bytes, attribution: AMAP_PHOTO_ATTRIBUTION };
     } catch (err) {
-      console.error(
-        `[Maps] amap photo failed userId=${this.credential.userId}: ${err instanceof Error ? err.message : String(err)}`,
+      this.logger.error(
+        `amap photo failed userId=${this.credential.userId}: ${err instanceof Error ? err.message : String(err)}`,
       );
       return { kind: 'failed' };
     }

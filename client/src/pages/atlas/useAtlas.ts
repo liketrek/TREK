@@ -43,8 +43,7 @@ export function useAtlas(options: { chromeInsets?: () => AtlasChromeInsets } = {
   const resolveName = useCountryNames(language)
   const dm = settings.dark_mode
   const dark = dm === true || dm === 'dark' || (dm === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches)
-  // The atlas paints its own country fills, so it draws the app's colour basemap
-  // rather than the user's template — only their CARTO key is read here.
+  // The atlas paints its own fills, so it draws the colour basemap; only the CARTO key is read.
   const tileUrl = useTileUrl(dark ? OFM_DARK : OFM_BRIGHT, true)
   // The template is read through a ref inside the map effect so a template change —
   // the CARTO key arriving after the first render is the usual one — retiles the
@@ -510,9 +509,7 @@ export function useAtlas(options: { chromeInsets?: () => AtlasChromeInsets } = {
           }
         }
         return {
-          // Unvisited land used to be near-white grey over a grey basemap, which made
-          // the whole atlas look like an empty canvas. A soft mint tint keeps unvisited
-          // countries readable while the coloured basemap stays visible underneath.
+          // Grey on grey read as an empty canvas; a soft mint tint keeps unvisited land readable.
           fillColor: visited ? colorForCode(a3) : (dark ? '#1e1e2e' : '#a7f3d0'),
           fillOpacity: visited ? 0.7 : 0.35,
           color: dark ? '#333' : '#cbd5e1',

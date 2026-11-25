@@ -145,6 +145,8 @@ export class AiConnectionsService implements SharedAiConnectionPort {
    * The connection a user's assistant runs on now, with its credential, or the
    * refusal the client shows: nothing connected, a sign-in to renew, a key to
    * replace. A ChatGPT token about to expire is refreshed here.
+   *
+   * @txStandalone resolving may persist one refreshed token, an idempotent provision that must stand on its own
    */
   async resolveForUser(userId: number): Promise<ResolvedAiConnection> {
     if (!(await this.enabled())) throw aiRefusal('not_connected', 'The AI assistant is not available');

@@ -13,6 +13,8 @@ import { hasBlockingWarning, validateDraft } from '../../../../src/nest/ai-trave
 import { PlannerService } from '../../../../src/nest/ai-travel-plan/planner.service';
 import { RealTravelPlanEngine } from '../../../../src/nest/ai-travel-plan/real-travel-plan.engine';
 import { classifyPlaceEnvironment } from '../../../../src/nest/ai-travel-plan/weather-plan';
+import { WeatherService } from '../../../../src/nest/weather/weather.service';
+import { Test } from '@nestjs/testing';
 import {
   travelPlanCreateRequestSchema,
   travelPlanRequestSchema,
@@ -331,18 +333,25 @@ describe('validateDraft', () => {
 });
 
 describe('PlannerService', () => {
-  function service(
+  async function service(
     provider: Record<string, ReturnType<typeof vi.fn>>,
     weather: Record<string, ReturnType<typeof vi.fn>> = {
       get: vi.fn(async () => ({ temp: 20, main: 'Clear', description: '晴', type: 'forecast' })),
       getDetailed: vi.fn(),
     },
-  ): PlannerService {
-    return new PlannerService({ searchLodging: vi.fn(async () => []), ...provider } as never, weather as never);
+  ): Promise<PlannerService> {
+    const moduleRef = await Test.createTestingModule({
+      providers: [
+        PlannerService,
+        { provide: PlannerProvider, useValue: { searchLodging: vi.fn(async () => []), ...provider } },
+        { provide: WeatherService, useValue: weather },
+      ],
+    }).compile();
+    return moduleRef.get(PlannerService);
   }
 
   it('blocks when the destination cannot be resolved', async () => {
-    const planner = service({ centre: vi.fn(async () => null), search: vi.fn(), route: vi.fn() });
+    const planner = await service({ centre: vi.fn(async () => null), search: vi.fn(), route: vi.fn() });
     const outcome = await planner.plan({ userId: 1, request: request() });
 
     expect(outcome.warnings).toEqual([
@@ -351,7 +360,7 @@ describe('PlannerService', () => {
   });
 
   it('blocks when every search returns nothing', async () => {
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => []),
       route: vi.fn(),
@@ -365,7 +374,7 @@ describe('PlannerService', () => {
 
   it('never searches the bare destination — Amap answers that with the city’s own offices', async () => {
     const search = vi.fn(async (_userId: number, _query: string) => [candidate(1), candidate(2)]);
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search,
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -380,7 +389,7 @@ describe('PlannerService', () => {
 
   it('spends two search slots on indoor stops when the forecast is rainy', async () => {
     const search = vi.fn(async (_userId: number, _query: string) => [candidate(1)]);
-    const planner = service(
+    const planner = await service(
       {
         centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
         search,
@@ -415,7 +424,7 @@ describe('PlannerService', () => {
       inFlight--;
       return [candidate(1)];
     });
-    const planner = service(
+    const planner = await service(
       {
         centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
         search,
@@ -435,7 +444,7 @@ describe('PlannerService', () => {
 
   it('keeps the clear-weather search budget on interests alone', async () => {
     const search = vi.fn(async (_userId: number, _query: string) => [candidate(1)]);
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search,
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -448,7 +457,7 @@ describe('PlannerService', () => {
 
   it('fills a single explicit interest with the discovery keywords', async () => {
     const search = vi.fn(async (_userId: number, _query: string) => [candidate(1)]);
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search,
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -462,7 +471,7 @@ describe('PlannerService', () => {
 
   it('drops civic infrastructure that a city-name search drags in', async () => {
     const civic = (id: number, category: string) => ({ ...candidate(id), category });
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [
         candidate(1),
@@ -483,7 +492,7 @@ describe('PlannerService', () => {
       const base = candidate(id);
       return { ...base, name, place: { ...base.place, name } };
     };
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [
         candidate(1),
@@ -501,7 +510,7 @@ describe('PlannerService', () => {
 
   it('keeps only what the keyword means — a shop on 公园路 is not a park', async () => {
     const typed = (id: number, category: string) => ({ ...candidate(id), category });
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [
         typed(1, '风景名胜;公园广场;公园'),
@@ -521,7 +530,7 @@ describe('PlannerService', () => {
 
   it('carries the provider metadata the traveller needs to judge a stop', async () => {
     const base = candidate(1);
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [
         {
@@ -552,7 +561,7 @@ describe('PlannerService', () => {
   });
 
   it('schedules real places with routed legs and records place and route facts', async () => {
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [candidate(1), candidate(2), candidate(1)]),
       route: vi.fn(async () => ({
@@ -580,7 +589,7 @@ describe('PlannerService', () => {
   });
 
   it('keeps going with estimated legs and a warning when the router refuses', async () => {
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [candidate(1), candidate(2)]),
       route: vi.fn(async () => ({ ok: false })),
@@ -602,7 +611,7 @@ describe('PlannerService', () => {
       .mockResolvedValueOnce([candidate(1)])
       .mockRejectedValueOnce(new Error('quota'))
       .mockResolvedValue([]);
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search,
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -616,7 +625,7 @@ describe('PlannerService', () => {
 
   it('returns request_incomplete without a destination or with an unusable start date', async () => {
     const search = vi.fn();
-    const planner = service({ centre: vi.fn(), search, route: vi.fn() });
+    const planner = await service({ centre: vi.fn(), search, route: vi.fn() });
 
     const noDestination = await planner.plan({
       userId: 1,
@@ -638,7 +647,7 @@ describe('PlannerService', () => {
     const runs = await Promise.all(
       (['driving', 'mixed'] as const).map(async (transport) => {
         const route = vi.fn(async () => ({ ok: false }));
-        const planner = service({
+        const planner = await service({
           centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
           search: vi.fn(async () => [candidate(1), candidate(2), candidate(3), candidate(4)]),
           route,
@@ -665,7 +674,7 @@ describe('PlannerService', () => {
 
   it('uses the pace for the daily cap and warns about the places it left out', async () => {
     const many = Array.from({ length: 10 }, (_, index) => candidate(index + 1));
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => many),
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -682,7 +691,7 @@ describe('PlannerService', () => {
   it('keeps stops near the centre and drops an administrative area', async () => {
     const city = candidate(2);
     const abroad = candidate(3);
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [
         candidate(1),
@@ -699,7 +708,7 @@ describe('PlannerService', () => {
 
   it('spreads a long list across every planned day instead of leaving the tail empty', async () => {
     const many = Array.from({ length: 6 }, (_, index) => candidate(index + 1));
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => many),
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -719,7 +728,7 @@ describe('PlannerService', () => {
   });
 
   it('puts one stop on each day when the list only just covers the calendar', async () => {
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [candidate(1), candidate(2)]),
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -731,7 +740,7 @@ describe('PlannerService', () => {
   });
 
   it('warns about a day that had no place left to schedule', async () => {
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [candidate(1)]),
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -746,7 +755,7 @@ describe('PlannerService', () => {
   it('prefers a better-rated stop when the extra distance is small', async () => {
     const near = candidate(1, 30.009, 120);
     const rated = candidate(2, 30.0094, 120);
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [
         { ...near, rating: 1, place: { ...near.place, rating: 1 } },
@@ -763,7 +772,7 @@ describe('PlannerService', () => {
   it('never schedules a stop before it opens', async () => {
     const place = candidate(1, 30.005, 120);
     const hours = ['Friday: 10:00-18:00'];
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [{ ...place, hours, place: { ...place.place, hours } }]),
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -780,7 +789,7 @@ describe('PlannerService', () => {
   it('clamps a visit to the provider closing time', async () => {
     const place = candidate(1, 30.005, 120);
     const hours = ['Friday: 09:00-10:00'];
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [{ ...place, hours, place: { ...place.place, hours } }]),
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -797,7 +806,7 @@ describe('PlannerService', () => {
   it('skips a place the provider says is closed on that weekday and warns', async () => {
     const place = candidate(1, 30.005, 120);
     const hours = ['Monday: Closed'];
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [{ ...place, hours, place: { ...place.place, hours } }]),
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -814,7 +823,7 @@ describe('PlannerService', () => {
   });
 
   it('moves a stop out of the lunch window and skips what no longer fits the day', async () => {
-    const lunch = service({
+    const lunch = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [candidate(1), candidate(2)]),
       route: vi.fn(async () => ({ ok: true, legs: [{ mode: 'walk', minutes: 60, distanceMeters: 100 }] })),
@@ -825,7 +834,7 @@ describe('PlannerService', () => {
     });
     expect(shifted.draft.days[0]?.items[1]).toMatchObject({ arriveAt: '13:30', leaveAt: '15:00' });
 
-    const overflow = service({
+    const overflow = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [candidate(1), candidate(2), candidate(3)]),
       // A routed leg this long pushes every following stop past the day's end.
@@ -849,7 +858,7 @@ describe('PlannerService', () => {
 
   it('truncates a long place fact and leaves the parenthesis off when there is no address', async () => {
     const longAddress = '长'.repeat(600);
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [candidate(1, 30, 120, null), candidate(2, 30.1, 120.1, longAddress)]),
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -866,7 +875,7 @@ describe('PlannerService', () => {
   });
 
   it('records each day’s forecast and a weather fact', async () => {
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [candidate(1)]),
       route: vi.fn(async () => ({ ok: true, legs: [] })),
@@ -890,7 +899,7 @@ describe('PlannerService', () => {
   });
 
   it('warns, but still plans, when the weather lookup fails', async () => {
-    const planner = service(
+    const planner = await service(
       {
         centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
         search: vi.fn(async () => [candidate(1)]),
@@ -915,7 +924,7 @@ describe('PlannerService', () => {
       category: '科教文化服务;博物馆',
       place: { ...museumBase.place, name: '杭州博物馆', category: '科教文化服务;博物馆' },
     };
-    const planner = service(
+    const planner = await service(
       {
         centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
         search: vi.fn(async () => [outdoor, museum]),
@@ -948,7 +957,7 @@ describe('PlannerService', () => {
         place: { ...base.place, name: `博物馆${id}`, category: '科教文化服务;博物馆' },
       };
     });
-    const planner = service(
+    const planner = await service(
       {
         centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
         search: vi.fn(async () => [...outdoor, ...indoor]),
@@ -980,7 +989,7 @@ describe('PlannerService', () => {
       category: '科教文化服务;博物馆',
       place: { ...museumBase.place, name: '杭州博物馆', category: '科教文化服务;博物馆' },
     };
-    const planner = service(
+    const planner = await service(
       {
         centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
         search: vi.fn(async () => [outdoor, museum]),
@@ -1006,7 +1015,7 @@ describe('PlannerService', () => {
   });
 
   it('warns about the outdoor stops that remain on a risky day', async () => {
-    const planner = service(
+    const planner = await service(
       {
         centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
         search: vi.fn(async () => [candidate(1), candidate(2)]),
@@ -1043,7 +1052,7 @@ describe('PlannerService', () => {
       rating: 4.6,
       place: { ...hotelBase.place, name: '西湖酒店', category: '住宿服务;宾馆酒店', rating: 4.6 },
     };
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [museum, hotel]),
       searchLodging: vi.fn(async () => [hotel]),
@@ -1064,7 +1073,7 @@ describe('PlannerService', () => {
   });
 
   it('warns, but still plans, when the lodging search fails', async () => {
-    const planner = service({
+    const planner = await service({
       centre: vi.fn(async () => ({ lat: 30, lng: 120 })),
       search: vi.fn(async () => [candidate(1)]),
       searchLodging: vi.fn(async () => Promise.reject(new Error('quota'))),

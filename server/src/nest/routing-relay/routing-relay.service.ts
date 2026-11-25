@@ -4,7 +4,7 @@ import { servicesConfig } from '../app-config/tokens';
 import { logWarn } from '../audit/audit-log.logger';
 import { DomainError } from '../common/domain-error';
 import { RateLimitService } from '../common/rate-limit.service';
-import { PlacesProviderSelector } from '../maps/places-provider.selector';
+import { PlacesProviderSelector } from '../maps/places-provider.selector.contract';
 import { ServiceIdentityPort } from '../service-identity/service-identity.interface';
 import { routeByAmap } from './amap-directions.client';
 import { Inject, Injectable } from '@nestjs/common';

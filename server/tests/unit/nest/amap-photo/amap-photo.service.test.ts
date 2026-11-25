@@ -1,33 +1,16 @@
-import type { AppSettingsRepository } from '../../../../src/db/repositories/AppSettings.repository';
-import type { UsersRepository } from '../../../../src/db/repositories/Users.repository';
-import { RuntimeEnvService } from '../../../../src/nest/app-config/runtime-env.service';
 import { AmapPhotoService } from '../../../../src/nest/amap-photo/amap-photo.service';
+import { Test } from '@nestjs/testing';
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { beforeAll, describe, it, expect, vi, afterEach } from 'vitest';
 
-const { mockSafeFetchFollow, mockGetValue, mockGetApiKeyColumn } = vi.hoisted(() => ({
-  mockSafeFetchFollow: vi.fn(),
-  mockGetValue: vi.fn(() => Promise.resolve(undefined as string | null | undefined)),
-  mockGetApiKeyColumn: vi.fn(() => Promise.resolve(undefined as string | null | undefined)),
-}));
+const { mockSafeFetchFollow } = vi.hoisted(() => ({ mockSafeFetchFollow: vi.fn() }));
 
 // safeFetchFollow is mocked so tests never hit the real Amap endpoint.
-// resolveApiKey reads decrypt_api_key — passthrough so stored values compare plaintext.
 vi.mock('../../../../src/utils/ssrfGuard', () => ({ safeFetchFollow: mockSafeFetchFollow }));
-vi.mock('../../../../src/nest/common/crypto/apiKeyCrypto', () => ({
-  decrypt_api_key: (v: string | null) => v,
-  maybe_encrypt_api_key: (v: string | null) => v,
-}));
-
-const ORIGINAL_AMAP_KEY = process.env.AMAP_API_KEY;
 
 afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
-  mockGetValue.mockResolvedValue(undefined);
-  mockGetApiKeyColumn.mockResolvedValue(undefined);
-  if (ORIGINAL_AMAP_KEY === undefined) delete process.env.AMAP_API_KEY;
-  else process.env.AMAP_API_KEY = ORIGINAL_AMAP_KEY;
 });
 
 function fakeRes(body: unknown, init: { ok?: boolean; status?: number } = {}): Response {
@@ -38,15 +21,13 @@ function fakeRes(body: unknown, init: { ok?: boolean; status?: number } = {}): R
   } as unknown as Response;
 }
 
-const appSettingsStub = { getValue: mockGetValue } as unknown as AppSettingsRepository;
-const usersStub = { getApiKeyColumn: mockGetApiKeyColumn } as unknown as UsersRepository;
-const svc = new AmapPhotoService(appSettingsStub, usersStub);
+const KEY = 'test-key';
+let svc: AmapPhotoService;
 
-/** Inject a key via the env var (lowest-precedence source resolveApiKey reads). */
-function withKeyInEnv(key = 'test-key') {
-  process.env.AMAP_API_KEY = key;
-  return svc;
-}
+beforeAll(async () => {
+  const moduleRef = await Test.createTestingModule({ providers: [AmapPhotoService] }).compile();
+  svc = moduleRef.get(AmapPhotoService);
+});
 
 describe('amapPhotoService.searchCoverPhotos', () => {
   it('FE-AMAP-PHOTO-001: returns POI-photos from Amap place/text when the key is present', async () => {
@@ -64,15 +45,13 @@ describe('amapPhotoService.searchCoverPhotos', () => {
           },
           {
             name: '上海市',
-            photos: [
-              { url: 'http://store.is.autonavi.com/showpic/ccc', title: null },
-            ],
+            photos: [{ url: 'http://store.is.autonavi.com/showpic/ccc', title: null }],
           },
         ],
       }),
     );
 
-    const result = await withKeyInEnv().searchCoverPhotos('上海', 9, 0);
+    const result = await svc.searchCoverPhotos('上海', 9, KEY);
 
     expect(result.hadKey).toBe(true);
     expect(result.photos).toHaveLength(3);
@@ -88,12 +67,8 @@ describe('amapPhotoService.searchCoverPhotos', () => {
     expect(result.photos[0].thumb).toBe(result.photos[0].url);
   });
 
-  it('FE-AMAP-PHOTO-002: returns empty list when no Amap key is configured', async () => {
-    delete process.env.AMAP_API_KEY;
-    mockGetValue.mockResolvedValue(null);
-    mockGetApiKeyColumn.mockResolvedValue(null);
-
-    const result = await svc.searchCoverPhotos('上海', 9, 0);
+  it('FE-AMAP-PHOTO-002: returns empty list when the caller supplies no Amap key', async () => {
+    const result = await svc.searchCoverPhotos('上海', 9, null);
 
     expect(result.hadKey).toBe(false);
     expect(result.photos).toEqual([]);
@@ -101,11 +76,9 @@ describe('amapPhotoService.searchCoverPhotos', () => {
   });
 
   it('FE-AMAP-PHOTO-003: returns empty list when Amap refuses (status !== "1")', async () => {
-    mockSafeFetchFollow.mockResolvedValue(
-      fakeRes({ status: '0', info: 'INVALID_USER_KEY', infocode: '10001' }),
-    );
+    mockSafeFetchFollow.mockResolvedValue(fakeRes({ status: '0', info: 'INVALID_USER_KEY', infocode: '10001' }));
 
-    const result = await withKeyInEnv().searchCoverPhotos('上海', 9, 0);
+    const result = await svc.searchCoverPhotos('上海', 9, KEY);
 
     expect(result.hadKey).toBe(true);
     expect(result.photos).toEqual([]);
@@ -122,7 +95,7 @@ describe('amapPhotoService.searchCoverPhotos', () => {
       }),
     );
 
-    const { photos } = await withKeyInEnv().searchCoverPhotos('上海', 9, 0);
+    const { photos } = await svc.searchCoverPhotos('上海', 9, KEY);
     expect(photos).toHaveLength(1);
   });
 
@@ -142,10 +115,12 @@ describe('amapPhotoService.searchCoverPhotos', () => {
       }),
     );
 
-    const { photos } = await withKeyInEnv().searchCoverPhotos('上海', 5, 0);
+    const { photos } = await svc.searchCoverPhotos('上海', 5, KEY);
     // P1 contributes 3, P2 contributes 2 → total 5
     expect(photos).toHaveLength(5);
-    expect(photos.map((p) => p.url)).toEqual(expect.arrayContaining(['http://x/0', 'http://x/1', 'http://x/2', 'http://y/0', 'http://y/1']));
+    expect(photos.map((p) => p.url)).toEqual(
+      expect.arrayContaining(['http://x/0', 'http://x/1', 'http://x/2', 'http://y/0', 'http://y/1']),
+    );
   });
 
   it('FE-AMAP-PHOTO-006: drops non-http(s) photo URLs', async () => {
@@ -167,7 +142,7 @@ describe('amapPhotoService.searchCoverPhotos', () => {
       }),
     );
 
-    const { photos } = await withKeyInEnv().searchCoverPhotos('上海', 9, 0);
+    const { photos } = await svc.searchCoverPhotos('上海', 9, KEY);
     expect(photos).toHaveLength(1);
     expect(photos[0].url).toBe('http://store.is.autonavi.com/showpic/good');
   });
@@ -175,7 +150,7 @@ describe('amapPhotoService.searchCoverPhotos', () => {
   it('FE-AMAP-PHOTO-007: returns empty list on transport failure (fetch throws)', async () => {
     mockSafeFetchFollow.mockRejectedValue(new Error('ETIMEDOUT'));
 
-    const result = await withKeyInEnv().searchCoverPhotos('上海', 9, 0);
+    const result = await svc.searchCoverPhotos('上海', 9, KEY);
     expect(result.hadKey).toBe(true);
     expect(result.photos).toEqual([]);
   });
@@ -183,13 +158,13 @@ describe('amapPhotoService.searchCoverPhotos', () => {
   it('FE-AMAP-PHOTO-008: returns empty list when HTTP status is not 2xx', async () => {
     mockSafeFetchFollow.mockResolvedValue(fakeRes({ status: 500, ok: false }));
 
-    const result = await withKeyInEnv().searchCoverPhotos('上海', 9, 0);
+    const result = await svc.searchCoverPhotos('上海', 9, KEY);
     expect(result.hadKey).toBe(true);
     expect(result.photos).toEqual([]);
   });
 
   it('FE-AMAP-PHOTO-009: returns empty list for blank query without hitting the network', async () => {
-    const result = await withKeyInEnv().searchCoverPhotos('   ', 9, 0);
+    const result = await svc.searchCoverPhotos('   ', 9, KEY);
     expect(result.hadKey).toBe(false); // no call means hadKey is from before key lookup
     expect(result.photos).toEqual([]);
     expect(mockSafeFetchFollow).not.toHaveBeenCalled();

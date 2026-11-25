@@ -26,19 +26,19 @@ export default function TravelDraftBudget({ budget }: TravelDraftBudgetProps): R
     <section className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
       <header className="mb-1 flex flex-wrap items-center gap-2">
         <Wallet size={16} className="text-content-muted" />
-        <h2 className="text-sm font-semibold text-content">{t('planner.ai.budgetTitle')}</h2>
-        <span className="ms-auto text-sm font-semibold text-content">
+        <h2 className="text-body font-semibold text-content">{t('planner.ai.budgetTitle')}</h2>
+        <span className="ms-auto text-body font-semibold text-content">
           {formatCny(budget.min, locale)}–{formatCny(budget.max, locale)}
         </span>
       </header>
-      <p className="text-xs text-content-muted">{t('planner.ai.budgetEstimateNote')}</p>
+      <p className="text-caption text-content-muted">{t('planner.ai.budgetEstimateNote')}</p>
 
       {rows.length === 0 ? (
-        <p className="mt-3 text-sm text-content-muted">{t('planner.ai.budgetNoEstimate')}</p>
+        <p className="mt-3 text-body text-content-muted">{t('planner.ai.budgetNoEstimate')}</p>
       ) : (
         <dl className="mt-3 grid gap-x-6 gap-y-2 sm:grid-cols-2">
           {rows.map((key) => (
-            <div key={key} className="flex items-center justify-between gap-3 text-sm">
+            <div key={key} className="flex items-center justify-between gap-3 text-body">
               <dt className="text-content-secondary">{t(`planner.ai.budgetCategory.${key}`)}</dt>
               <dd className="tabular-nums text-content">
                 {formatCny(budget.breakdown[key] ?? 0, locale)}–{formatCny(budget.breakdownMax[key] ?? 0, locale)}
@@ -50,8 +50,8 @@ export default function TravelDraftBudget({ budget }: TravelDraftBudgetProps): R
 
       {budget.assumptions.length > 0 && (
         <div className="mt-4 border-t border-edge pt-3">
-          <h3 className="text-xs font-semibold text-content-secondary">{t('planner.ai.budgetAssumptions')}</h3>
-          <ul className="mt-1.5 list-disc space-y-1 ps-5 text-xs leading-relaxed text-content-muted">
+          <h3 className="text-caption font-semibold text-content-secondary">{t('planner.ai.budgetAssumptions')}</h3>
+          <ul className="mt-1.5 list-disc space-y-1 ps-5 text-caption leading-relaxed text-content-muted">
             {budget.assumptions.map((line) => (
               <li key={line}>{line}</li>
             ))}

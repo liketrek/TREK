@@ -25,15 +25,15 @@ export default function TravelDraftLodging({ areas }: TravelDraftLodgingProps): 
     <section className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
       <header className="mb-1 flex flex-wrap items-center gap-2">
         <BedDouble size={16} className="text-content-muted" />
-        <h2 className="text-sm font-semibold text-content">{t('planner.ai.lodgingTitle')}</h2>
+        <h2 className="text-body font-semibold text-content">{t('planner.ai.lodgingTitle')}</h2>
       </header>
-      <p className="text-xs text-content-muted">{t('planner.ai.lodgingEstimateNote')}</p>
+      <p className="text-caption text-content-muted">{t('planner.ai.lodgingEstimateNote')}</p>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {areas.map((area) => (
           <article key={`${area.name}-${area.lat}-${area.lng}`} className="rounded-xl border border-edge-faint p-3">
-            <h3 className="text-sm font-semibold text-content">{area.name}</h3>
-            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-content-muted">
+            <h3 className="text-body font-semibold text-content">{area.name}</h3>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-content-muted">
               <span className="inline-flex items-center gap-1">
                 <BedDouble size={11} />
                 <span className="tabular-nums">{area.hotelCount}</span>
@@ -47,7 +47,7 @@ export default function TravelDraftLodging({ areas }: TravelDraftLodgingProps): 
                 </span>
               )}
             </div>
-            {area.reason && <p className="mt-1.5 text-xs leading-relaxed text-content-muted">{area.reason}</p>}
+            {area.reason && <p className="mt-1.5 text-caption leading-relaxed text-content-muted">{area.reason}</p>}
 
             {area.sampleHotels.length > 0 && (
               <ul className="mt-2 space-y-1">
@@ -56,7 +56,7 @@ export default function TravelDraftLodging({ areas }: TravelDraftLodgingProps): 
                   return (
                     <li
                       key={`${hotel.place.provider}:${hotel.place.providerId}`}
-                      className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-content-secondary"
+                      className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-caption text-content-secondary"
                     >
                       <MapPin size={11} className="shrink-0 text-content-faint" />
                       <span className="min-w-0 truncate">{hotel.place.name}</span>

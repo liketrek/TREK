@@ -27,16 +27,16 @@ export default function TravelDraftSources({ draft }: TravelDraftSourcesProps): 
     <section className="rounded-2xl border border-edge bg-surface-card p-4 shadow-sm sm:p-5">
       <header className="mb-3 flex items-center gap-2">
         <Database size={16} className="text-content-muted" />
-        <h2 className="text-sm font-semibold text-content">{t('planner.ai.sources')}</h2>
+        <h2 className="text-body font-semibold text-content">{t('planner.ai.sources')}</h2>
         {draft.factsCheckedAt && (
-          <span className="ms-auto text-xs text-content-muted">
+          <span className="ms-auto text-caption text-content-muted">
             {t('planner.ai.factsCheckedAt', { time: draft.factsCheckedAt })}
           </span>
         )}
       </header>
 
       {sources.length === 0 ? (
-        <p className="text-sm text-content-muted">{t('planner.ai.noSources')}</p>
+        <p className="text-body text-content-muted">{t('planner.ai.noSources')}</p>
       ) : (
         <ul className="space-y-2">
           {sources.map((source) => {
@@ -44,7 +44,7 @@ export default function TravelDraftSources({ draft }: TravelDraftSourcesProps): 
             return (
               <li
                 key={key}
-                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-surface-secondary px-3 py-2 text-xs"
+                className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-xl bg-surface-secondary px-3 py-2 text-caption"
               >
                 <BadgeCheck size={14} className="text-success" />
                 <span className="font-medium text-content">{source.provider}</span>

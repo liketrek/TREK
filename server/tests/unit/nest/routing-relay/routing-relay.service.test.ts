@@ -37,7 +37,10 @@ const identity = {
 };
 /** No Amap key: every question in these cases is the Valhalla's, as it was before Amap. */
 const places = {
-  resolveAmapKey: vi.fn(async (): Promise<{ key: string | null; source: string | null }> => ({ key: null, source: null })),
+  resolveAmapKey: vi.fn(async (): Promise<{ key: string | null; source: string | null }> => ({
+    key: null,
+    source: null,
+  })),
 };
 const DOMESTIC = {
   locations: [
@@ -265,7 +268,7 @@ describe('RoutingRelayService.ask', () => {
     expect((await relay.ask(1, 'route', ROUTE)).retryAfter).toBe('60');
   });
 
-  it('RELAY-017: a route inside China is Amap\'s, answered without the Valhalla being asked', async () => {
+  it("RELAY-017: a route inside China is Amap's, answered without the Valhalla being asked", async () => {
     places.resolveAmapKey.mockResolvedValueOnce({ key: 'amap-key', source: 'instance' });
     vi.mocked(safeFetchFollow).mockResolvedValueOnce(amapRoute());
 
@@ -282,7 +285,7 @@ describe('RoutingRelayService.ask', () => {
     expect(safeFetchAdminConfigured).not.toHaveBeenCalled();
   });
 
-  it('RELAY-018: a domestic chain asking for alternates stays the Valhalla\'s question', async () => {
+  it("RELAY-018: a domestic chain asking for alternates stays the Valhalla's question", async () => {
     places.resolveAmapKey.mockResolvedValueOnce({ key: 'amap-key', source: 'instance' });
     vi.mocked(safeFetchAdminConfigured).mockResolvedValueOnce(upstream(200, '{"trip":{}}'));
 

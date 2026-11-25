@@ -1,0 +1,10 @@
+/* Vector basemaps (OpenFreeMap) ship muted pastels, which is why the map read as a
+   grey slab next to the rest of the UI. A small saturation lift is enough to let the
+   water, parks and roads carry colour. Raster basemaps (Amap, Esri, OSM) already
+   carry their own colour and are left alone — only the GL layer is filtered, and
+   `:not(.leaflet-gl-layer)` keeps the canvas from being filtered twice when MapLibre
+   is mounted through the Leaflet bridge. */
+.leaflet-gl-layer,
+.maplibregl-map:not(.leaflet-gl-layer) {
+  filter: saturate(1.35) contrast(1.02);
+}

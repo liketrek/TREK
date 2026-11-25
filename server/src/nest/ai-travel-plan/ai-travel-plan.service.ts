@@ -167,24 +167,25 @@ export class AiTravelPlanService {
 
     const persistedAt = Date.now();
     const planId = await this.uow.transactional(async () => {
-      const id = await this.plans.insert({
-        owner: user.id,
+      const id = await this.plans.insertPlan({
+        ownerId: user.id,
         status,
-        request_json: encodeJson(AI_TRAVEL_PLAN_REQUEST, request),
-        current_revision: 1,
-        targetTrip: null,
-        appliedTrip: null,
-        expires_at: addDays(now, PLAN_TTL_DAYS),
-        created_at: now,
-        updated_at: now,
+        requestJson: encodeJson(AI_TRAVEL_PLAN_REQUEST, request),
+        currentRevision: 1,
+        expiresAt: addDays(now, PLAN_TTL_DAYS),
+        createdAt: now,
+        updatedAt: now,
       });
-      await this.revisions.insert({
-        plan: id,
+      await this.revisions.insertRevision({
+        planId: id,
         version: 1,
         reason: null,
-        ...encoded,
-        duration_ms: durationMs,
-        created_at: now,
+        draftJson: encoded.draft_json,
+        factsJson: encoded.facts_json,
+        warningsJson: encoded.warnings_json,
+        modelMetaJson: encoded.model_meta_json,
+        durationMs,
+        createdAt: now,
       });
       return id;
     });
@@ -214,6 +215,9 @@ export class AiTravelPlanService {
    * are persisted exactly as the JSON route does, and the client reattaches
    * with `GET /:id`. Writes to a closed stream are dropped by the writer, not
    * by this method.
+   *
+   * @txIndependent the plan row is written before the provider is called and the revision after,
+   * with the model's answer between them: each write is complete on its own
    */
   async createStreaming(
     user: User,
@@ -226,16 +230,14 @@ export class AiTravelPlanService {
 
     const now = dbNow();
     const planId = await this.uow.transactional(async () =>
-      this.plans.insert({
-        owner: user.id,
+      this.plans.insertPlan({
+        ownerId: user.id,
         status: 'generating',
-        request_json: encodeJson(AI_TRAVEL_PLAN_REQUEST, request),
-        current_revision: 0,
-        targetTrip: null,
-        appliedTrip: null,
-        expires_at: addDays(now, PLAN_TTL_DAYS),
-        created_at: now,
-        updated_at: now,
+        requestJson: encodeJson(AI_TRAVEL_PLAN_REQUEST, request),
+        currentRevision: 0,
+        expiresAt: addDays(now, PLAN_TTL_DAYS),
+        createdAt: now,
+        updatedAt: now,
       }),
     );
     emit({ type: 'plan', plan: await this.loadView(planId, user.id) });
@@ -268,13 +270,16 @@ export class AiTravelPlanService {
 
       const persistedAt = Date.now();
       await this.uow.transactional(async () => {
-        await this.revisions.insert({
-          plan: planId,
+        await this.revisions.insertRevision({
+          planId,
           version: 1,
           reason: null,
-          ...encoded,
-          duration_ms: durationMs,
-          created_at: dbNow(),
+          draftJson: encoded.draft_json,
+          factsJson: encoded.facts_json,
+          warningsJson: encoded.warnings_json,
+          modelMetaJson: encoded.model_meta_json,
+          durationMs,
+          createdAt: dbNow(),
         });
         await this.plans.nativeUpdate(
           { id: planId, owner: user.id },
@@ -389,13 +394,16 @@ export class AiTravelPlanService {
     const persistedAt = Date.now();
     try {
       await this.uow.transactional(async () => {
-        await this.revisions.insert({
-          plan: plan.id,
+        await this.revisions.insertRevision({
+          planId: plan.id,
           version,
           reason: body.feedback,
-          ...encoded,
-          duration_ms: durationMs,
-          created_at: now,
+          draftJson: encoded.draft_json,
+          factsJson: encoded.facts_json,
+          warningsJson: encoded.warnings_json,
+          modelMetaJson: encoded.model_meta_json,
+          durationMs,
+          createdAt: now,
         });
         await this.plans.nativeUpdate(
           { id: plan.id, owner: user.id },

@@ -16,7 +16,7 @@ import { useToast } from '../../components/shared/Toast';
 import { getApiErrorMessage } from '../../types';
 import { randomId } from '../../utils/randomId';
 
-export type ApplyMode = 'new_trip' | 'existing_trip';
+type ApplyMode = 'new_trip' | 'existing_trip';
 
 interface RequestContext {
   t: Translate;

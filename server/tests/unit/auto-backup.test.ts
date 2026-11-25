@@ -186,11 +186,11 @@ describe('auto-backup run', () => {
     await scheduledRun()();
 
     expect(maintenanceStub.vacuumInto).toHaveBeenCalledWith(
-      expect.stringContaining('/stub/spool/travel-snap-auto-backup-'),
+      expect.stringContaining(path.join('/stub/spool', 'travel-snap-auto-backup-')),
     );
     const dbEntry = archiveMock.file.mock.calls.find(([, opts]) => opts?.name === 'travel.db');
     expect(dbEntry).toBeDefined();
-    expect(dbEntry?.[0]).toContain('/stub/spool/travel-snap-auto-backup-');
+    expect(dbEntry?.[0]).toContain(path.join('/stub/spool', 'travel-snap-auto-backup-'));
     expect(dbEntry?.[0]).not.toBe(liveDb);
   });
 

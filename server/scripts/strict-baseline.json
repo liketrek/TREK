@@ -75,7 +75,6 @@
   "src/nest/journey/journey.dto.ts": 2,
   "src/nest/journey/journey.mcp.ts": 1,
   "src/nest/llm-parse/mime-email.ts": 1,
-  "src/nest/maps/providers/amap.provider.ts": 1,
   "src/nest/mcp-transport/mcp-transport.service.ts": 4,
   "src/nest/memories/immich.controller.ts": 1,
   "src/nest/memories/immich.service.ts": 1,

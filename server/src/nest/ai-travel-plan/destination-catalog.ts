@@ -332,7 +332,7 @@ function normalize(value: string): string {
 }
 
 /** The catalog entry a destination string names, or null when none matches. */
-export function findDestinationProfile(destination: string | undefined): DestinationProfile | null {
+function findDestinationProfile(destination: string | undefined): DestinationProfile | null {
   if (!destination) return null;
   const value = normalize(destination);
   if (value === '') return null;
