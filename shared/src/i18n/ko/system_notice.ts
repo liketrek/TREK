@@ -58,20 +58,17 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': '업데이트 완료',
   'system_notice.release_notes.headline': '입력은 줄이고, 여행은 더 많이.',
   'system_notice.release_notes.intro':
-    '전달한 예약 메일은 내 여행으로 들어가고, TREK이 내 항공편을 실시간으로 따라가며, 여행 PDF는 완전히 새로워졌습니다. 이제 TREK은 PostgreSQL에서도 실행됩니다.',
+    '전달한 예약 메일은 내 여행으로 들어가고, TREK이 항공편을 실시간으로 따라가며, 여행 PDF는 완전히 새로워졌습니다.',
   'system_notice.release_notes.features_label': '이번 릴리스의 주역',
   'system_notice.release_notes.features_aside': '이게 전부는 아닙니다',
   'system_notice.release_notes.feature_mail_title': '예약 메일이 내 여행으로 들어갑니다',
-  'system_notice.release_notes.feature_mail_body':
-    '확인 메일을 내 전용 주소로 전달하면 TREK이 내 여행을 찾아 확인하고, 문서와 함께 예약을 추가합니다.',
+  'system_notice.release_notes.feature_mail_body': '확인 메일을 전달하면 TREK이 알맞은 여행에 예약을 추가합니다.',
   'system_notice.release_notes.feature_flight_title': '실시간 항공편 상태, 무료',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK이 내 항공편을 당일에 따라갑니다. 상태, 지연, 두 공항, 항공기가 보이는 지도까지, API 키는 필요 없습니다.',
+  'system_notice.release_notes.feature_flight_body': '상태, 지연, 지도 위의 항공기까지, API 키 없이.',
   'system_notice.release_notes.feature_pdf_title': '새로워진 여행 PDF',
-  'system_notice.release_notes.feature_pdf_body':
-    '내 경로가 담긴 표지, 하루하루를 타임라인으로, 모든 예약을 코드와 함께 담아 바로 인쇄하거나 공유할 수 있습니다.',
+  'system_notice.release_notes.feature_pdf_body': '내 경로, 하루하루, 모든 예약을 담아 바로 인쇄할 수 있습니다.',
   'system_notice.release_notes.footnote':
-    '그 밖에 PostgreSQL, 여행별 애드온, 장소 태그, 더 다양한 비용 관리 방법, 그리고 많은 작은 개선이 있습니다.',
+    '그 밖에 PostgreSQL, 여행별 애드온, 장소 태그, 그리고 많은 작은 개선이 있습니다.',
   'system_notice.release_notes.notes_label': '릴리스 노트',
   'system_notice.release_notes.note_eyebrow': '개발자의 한마디',
   'system_notice.release_notes.note_title': '여러분이 있어서 TREK을 계속 만듭니다.',
@@ -82,7 +79,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     '모든 기능, 모든 업데이트를 모두에게. 유료 등급도, 구독도, 숨겨진 조건도 없습니다.',
   'system_notice.release_notes.note_body_after':
-    '그러다 여러분이 와 주셨고, 곧 수천 명이 되었습니다. 별, 버그 리포트, 제가 쓰지 못하는 언어로 된 번역, 만난 적 없는 분들의 풀 리퀘스트까지. 저는 지금도 매일 아침 가장 먼저 저장소를 확인하는데, 여전히 현실 같지 않습니다.',
+    '그러다 여러분이 수천 명이나 와 주셨습니다. 별, 버그 리포트, 번역, 만난 적 없는 분들의 풀 리퀘스트까지. 여전히 현실 같지 않습니다.',
   'system_notice.release_notes.note_closing': '함께해 주셔서 감사합니다. Maurice',
   'system_notice.release_notes.support_label': '여러분 덕분입니다',
   'system_notice.release_notes.support_lead': 'TREK은 후원 덕분에 존재합니다.',
@@ -91,5 +88,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Ko-fi에서 후원하기',
   'system_notice.release_notes.cta_patreon': 'Patreon에서 매달 후원하기',
+  'system_notice.release_notes.apps_title': '이제 휴대폰에서도 TREK을',
 };
 export default system_notice;

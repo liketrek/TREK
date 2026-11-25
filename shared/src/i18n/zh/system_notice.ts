@@ -57,20 +57,16 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': '更新已安装',
   'system_notice.release_notes.headline': '少打字，多出行。',
   'system_notice.release_notes.intro':
-    '你转发的预订邮件会自动归入你的行程，TREK 实时跟踪你的航班，行程 PDF 也全新设计。TREK 现在也能运行在 PostgreSQL 上。',
+    '你转发的预订邮件会自动归入你的行程，TREK 实时跟踪你的航班，行程 PDF 也全新设计。',
   'system_notice.release_notes.features_label': '本次重头戏',
   'system_notice.release_notes.features_aside': '远不止这些',
   'system_notice.release_notes.feature_mail_title': '预订邮件自动归入你的行程',
-  'system_notice.release_notes.feature_mail_body':
-    '把确认邮件转发到你的专属地址，TREK 会找到你的行程、核对内容，并把预订连同文件一起添加进去。',
+  'system_notice.release_notes.feature_mail_body': '转发确认邮件，TREK 会把预订添加到对应的行程中。',
   'system_notice.release_notes.feature_flight_title': '实时航班动态，免费',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK 会在航班当天跟踪你的每个航班：状态、延误、两端机场，还有显示飞机的地图，无需 API 密钥。',
+  'system_notice.release_notes.feature_flight_body': '状态、延误，还有地图上的飞机，无需 API 密钥。',
   'system_notice.release_notes.feature_pdf_title': '全新的行程 PDF',
-  'system_notice.release_notes.feature_pdf_body':
-    '封面带着你的路线，每一天都是时间线，你的所有预订连同预订码一并收录，可直接打印或分享。',
-  'system_notice.release_notes.footnote':
-    '此外还有 PostgreSQL、按行程启用的附加组件、地点标签、更多记录费用的方式，以及一长串细节改进。',
+  'system_notice.release_notes.feature_pdf_body': '你的路线、每一天和所有预订，可直接打印。',
+  'system_notice.release_notes.footnote': '此外还有 PostgreSQL、按行程启用的附加组件、地点标签，以及许多细节改进。',
   'system_notice.release_notes.notes_label': '更新说明',
   'system_notice.release_notes.note_eyebrow': '来自维护者的话',
   'system_notice.release_notes.note_title': '是你们让我一直坚持做 TREK。',
@@ -80,7 +76,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_lead': 'TREK 永远免费。',
   'system_notice.release_notes.promise_text': '每个功能、每次更新，都属于每一个人。没有付费档位，没有订阅，没有套路。',
   'system_notice.release_notes.note_body_after':
-    '后来你们来了，很快就是成千上万人：有星标，有问题反馈，有翻译成我不会的语言的译文，还有素未谋面的人提交的 pull request。我至今每天早上第一件事还是看一眼仓库，仍然觉得不太真实。',
+    '后来你们来了，成千上万：有星标，有问题反馈，有翻译，还有素未谋面的人提交的 pull request。我仍然觉得不太真实。',
   'system_notice.release_notes.note_closing': '谢谢你来到这里。Maurice',
   'system_notice.release_notes.support_label': '因为有你',
   'system_notice.release_notes.support_lead': 'TREK 全靠捐赠才得以存在。',
@@ -89,5 +85,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': '请我喝杯咖啡',
   'system_notice.release_notes.cta_kofi': '在 Ko-fi 上支持',
   'system_notice.release_notes.cta_patreon': 'Patreon 按月支持',
+  'system_notice.release_notes.apps_title': 'TREK 现已登陆手机',
 };
 export default system_notice;

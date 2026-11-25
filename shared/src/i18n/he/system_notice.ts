@@ -53,20 +53,16 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'העדכון הותקן',
   'system_notice.release_notes.headline': 'פחות הקלדה, יותר טיולים.',
   'system_notice.release_notes.intro':
-    'הודעות הזמנה שתעבירו יגיעו ישר לטיול שלכם, TREK עוקב אחרי הטיסות שלכם בזמן אמת, וקובץ ה-PDF של הטיול חדש לגמרי. TREK רץ עכשיו גם על PostgreSQL.',
+    'הודעות הזמנה שתעבירו יגיעו לטיול שלכם, TREK עוקב אחרי הטיסות שלכם בזמן אמת, וקובץ ה-PDF של הטיול חדש לגמרי.',
   'system_notice.release_notes.features_label': 'החידושים המרכזיים',
   'system_notice.release_notes.features_aside': 'ולא רק',
   'system_notice.release_notes.feature_mail_title': 'הודעות הזמנה מגיעות לטיול שלכם',
-  'system_notice.release_notes.feature_mail_body':
-    'העבירו אישור לכתובת האישית שלכם ו-TREK ימצא את הטיול שלכם, יבדוק ויוסיף את ההזמנה יחד עם המסמך שלה.',
+  'system_notice.release_notes.feature_mail_body': 'העבירו אישור ו-TREK יוסיף את ההזמנה לטיול הנכון.',
   'system_notice.release_notes.feature_flight_title': 'סטטוס טיסה בזמן אמת, בחינם',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK עוקב אחרי כל אחת מהטיסות שלכם ביום שלה: מצב, עיכוב, שני שדות התעופה ומפה עם המטוס, בלי מפתח API.',
+  'system_notice.release_notes.feature_flight_body': 'מצב, עיכובים והמטוס על המפה, בלי מפתח API.',
   'system_notice.release_notes.feature_pdf_title': 'PDF חדש לטיול',
-  'system_notice.release_notes.feature_pdf_body':
-    'שער עם המסלול שלכם, כל יום כציר זמן וכל ההזמנות שלכם עם הקודים שלהן, מוכן להדפסה או לשיתוף.',
-  'system_notice.release_notes.footnote':
-    'ועוד PostgreSQL, תוספים לכל טיול, תגיות על מקומות, עוד דרכים לנהל עלויות ורשימה ארוכה של שינויים קטנים.',
+  'system_notice.release_notes.feature_pdf_body': 'המסלול שלכם, כל יום וכל ההזמנות שלכם, מוכן להדפסה.',
+  'system_notice.release_notes.footnote': 'ועוד PostgreSQL, תוספים לכל טיול, תגיות על מקומות והרבה שינויים קטנים.',
   'system_notice.release_notes.notes_label': 'הערות גרסה',
   'system_notice.release_notes.note_eyebrow': 'מילה מהמתחזק',
   'system_notice.release_notes.note_title': 'בזכותכם אני ממשיך לבנות את TREK.',
@@ -76,7 +72,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_lead': 'TREK נשאר חינמי, לתמיד.',
   'system_notice.release_notes.promise_text': 'כל תכונה, כל עדכון, לכולם. בלי מסלולים בתשלום, בלי מנויים, בלי מלכודות.',
   'system_notice.release_notes.note_body_after':
-    'ואז הגעתם אתם, ותוך זמן קצר כבר באלפים: עם כוכבים, דיווחי באגים, תרגומים לשפות שאני לא מדבר ובקשות משיכה מאנשים שמעולם לא פגשתי. אני עדיין בודק את המאגר דבר ראשון כל בוקר, וזה עדיין לא לגמרי מרגיש אמיתי.',
+    'ואז הגעתם אתם, באלפים: עם כוכבים, דיווחי באגים, תרגומים ובקשות משיכה מאנשים שמעולם לא פגשתי. זה עדיין לא לגמרי מרגיש אמיתי.',
   'system_notice.release_notes.note_closing': 'תודה שאתם כאן. Maurice',
   'system_notice.release_notes.support_label': 'בזכותכם',
   'system_notice.release_notes.support_lead': 'TREK קיים רק בזכות תרומות.',
@@ -85,6 +81,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'קנו לי קפה',
   'system_notice.release_notes.cta_kofi': 'תמיכה ב-Ko-fi',
   'system_notice.release_notes.cta_patreon': 'חודשי ב-Patreon',
+  'system_notice.release_notes.apps_title': 'TREK עכשיו בטלפון שלכם',
   'system_notice.pager.prev': 'ההודעה הקודמת',
   'system_notice.pager.next': 'ההודעה הבאה',
   'system_notice.pager.counter': '{current} / {total}',

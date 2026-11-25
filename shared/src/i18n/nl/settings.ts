@@ -226,6 +226,12 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': 'machine', // same-as-en
   'settings.account': 'Account', // same-as-en
   'settings.about': 'Over',
+  'settings.apps.title': 'TREK-app',
+  'settings.apps.hint': 'Scan een code met je telefoon en verbind de app daarna met deze server.',
+  'settings.apps.downloadOn': 'Download in de',
+  'settings.apps.getItOn': 'Ontdek het op',
+  'settings.apps.iosDevices': 'iPhone en iPad',
+  'settings.apps.androidDevices': 'Telefoon en tablet',
   'settings.about.reportBug': 'Bug melden',
   'settings.about.reportBugHint': 'Probleem gevonden? Laat het ons weten',
   'settings.about.featureRequest': 'Feature aanvragen',

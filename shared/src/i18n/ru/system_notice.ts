@@ -59,20 +59,18 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Обновление установлено',
   'system_notice.release_notes.headline': 'Меньше набирать, больше путешествовать.',
   'system_notice.release_notes.intro':
-    'Письма с бронированиями, которые вы пересылаете, попадают в вашу поездку, TREK следит за вашими рейсами в реальном времени, а PDF поездки полностью новый. TREK теперь работает и на PostgreSQL.',
+    'Пересланные письма с бронированиями попадают в вашу поездку, TREK следит за вашими рейсами в реальном времени, а PDF поездки полностью новый.',
   'system_notice.release_notes.features_label': 'Главные новинки',
   'system_notice.release_notes.features_aside': 'И это далеко не всё',
   'system_notice.release_notes.feature_mail_title': 'Письма с бронированиями попадают в вашу поездку',
   'system_notice.release_notes.feature_mail_body':
-    'Перешлите подтверждение на свой персональный адрес, и TREK найдёт вашу поездку, проверит письмо и добавит бронирование вместе с документом.',
+    'Перешлите подтверждение, и TREK добавит бронирование в нужную поездку.',
   'system_notice.release_notes.feature_flight_title': 'Статус рейса в реальном времени, бесплатно',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK следит за каждым вашим рейсом в день вылета: статус, задержка, оба аэропорта и карта с самолётом, без API-ключа.',
+  'system_notice.release_notes.feature_flight_body': 'Статус, задержки и самолёт на карте, без API-ключа.',
   'system_notice.release_notes.feature_pdf_title': 'Новый PDF поездки',
-  'system_notice.release_notes.feature_pdf_body':
-    'Обложка с вашим маршрутом, каждый день в виде таймлайна и все ваши бронирования с кодами, готов к печати или отправке.',
+  'system_notice.release_notes.feature_pdf_body': 'Ваш маршрут, каждый день и все ваши бронирования, готово к печати.',
   'system_notice.release_notes.footnote':
-    'А ещё PostgreSQL, дополнения для каждой поездки, теги для мест, больше способов вести расходы и длинный список мелких изменений.',
+    'А ещё PostgreSQL, дополнения для каждой поездки, теги для мест и много мелких изменений.',
   'system_notice.release_notes.notes_label': 'Заметки к релизу',
   'system_notice.release_notes.note_eyebrow': 'Слово от мейнтейнера',
   'system_notice.release_notes.note_title': 'Именно ради вас я продолжаю развивать TREK.',
@@ -83,7 +81,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Все функции и все обновления, для всех. Никаких платных тарифов, никаких подписок, никаких подвохов.',
   'system_notice.release_notes.note_body_after':
-    'А потом пришли вы, вскоре тысячами: со звёздами, сообщениями об ошибках, переводами на языки, которых я не знаю, и pull request-ами от людей, которых я никогда не встречал. Я до сих пор каждое утро первым делом проверяю репозиторий, и это всё ещё не кажется мне до конца реальным.',
+    'А потом пришли вы, тысячами: со звёздами, сообщениями об ошибках, переводами и pull request-ами от людей, которых я никогда не встречал. Мне до сих пор не совсем верится.',
   'system_notice.release_notes.note_closing': 'Спасибо, что вы здесь. Maurice',
   'system_notice.release_notes.support_label': 'Благодаря вам',
   'system_notice.release_notes.support_lead': 'TREK существует только благодаря пожертвованиям.',
@@ -92,5 +90,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Поддержать на Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Каждый месяц на Patreon',
+  'system_notice.release_notes.apps_title': 'TREK теперь в вашем телефоне',
 };
 export default system_notice;

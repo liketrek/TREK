@@ -60,20 +60,18 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Đã cập nhật',
   'system_notice.release_notes.headline': 'Bớt gõ phím, thêm chuyến đi.',
   'system_notice.release_notes.intro':
-    'Email đặt chỗ bạn chuyển tiếp sẽ vào đúng chuyến đi của bạn, TREK theo dõi trực tiếp các chuyến bay của bạn, và bản PDF chuyến đi hoàn toàn mới. TREK nay cũng chạy trên PostgreSQL.',
+    'Email đặt chỗ bạn chuyển tiếp sẽ vào đúng chuyến đi của bạn, TREK theo dõi trực tiếp các chuyến bay của bạn, và bản PDF chuyến đi hoàn toàn mới.',
   'system_notice.release_notes.features_label': 'Những điểm nhấn',
   'system_notice.release_notes.features_aside': 'Chưa phải tất cả',
   'system_notice.release_notes.feature_mail_title': 'Email đặt chỗ vào đúng chuyến đi của bạn',
   'system_notice.release_notes.feature_mail_body':
-    'Chuyển tiếp email xác nhận đến địa chỉ cá nhân của bạn, TREK sẽ tìm chuyến đi của bạn, kiểm tra rồi thêm đặt chỗ kèm tài liệu.',
+    'Chuyển tiếp email xác nhận, TREK sẽ thêm đặt chỗ vào đúng chuyến đi.',
   'system_notice.release_notes.feature_flight_title': 'Trạng thái chuyến bay trực tiếp, miễn phí',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK theo dõi từng chuyến bay của bạn vào đúng ngày bay: trạng thái, độ trễ, cả hai sân bay và bản đồ có máy bay, không cần khóa API.',
+  'system_notice.release_notes.feature_flight_body': 'Trạng thái, độ trễ và máy bay trên bản đồ, không cần khóa API.',
   'system_notice.release_notes.feature_pdf_title': 'PDF chuyến đi mới',
-  'system_notice.release_notes.feature_pdf_body':
-    'Trang bìa với lộ trình của bạn, mỗi ngày là một dòng thời gian và mọi đặt chỗ của bạn kèm mã, sẵn sàng để in hoặc chia sẻ.',
+  'system_notice.release_notes.feature_pdf_body': 'Lộ trình của bạn, từng ngày và mọi đặt chỗ, sẵn sàng để in.',
   'system_notice.release_notes.footnote':
-    'Cùng với PostgreSQL, tiện ích theo từng chuyến đi, thẻ cho địa điểm, nhiều cách theo dõi chi phí hơn và một danh sách dài các thay đổi nhỏ.',
+    'Cùng với PostgreSQL, tiện ích theo từng chuyến đi, thẻ cho địa điểm và nhiều thay đổi nhỏ khác.',
   'system_notice.release_notes.notes_label': 'Ghi chú phát hành',
   'system_notice.release_notes.note_eyebrow': 'Lời nhắn từ người bảo trì',
   'system_notice.release_notes.note_title': 'Bạn là lý do tôi tiếp tục xây dựng TREK.',
@@ -84,7 +82,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Mọi tính năng, mọi bản cập nhật, cho tất cả mọi người. Không tầng trả phí, không đăng ký, không ràng buộc.',
   'system_notice.release_notes.note_body_after':
-    'Rồi các bạn đến, chẳng mấy chốc đã hàng nghìn người: với những ngôi sao, báo cáo lỗi, bản dịch sang ngôn ngữ tôi không biết và pull request từ những người tôi chưa từng gặp. Sáng nào tôi cũng kiểm tra kho mã đầu tiên, và cảm giác vẫn chưa hoàn toàn thật.',
+    'Rồi các bạn đến, hàng nghìn người: với những ngôi sao, báo cáo lỗi, bản dịch và pull request từ những người tôi chưa từng gặp. Cảm giác vẫn chưa hoàn toàn thật.',
   'system_notice.release_notes.note_closing': 'Cảm ơn bạn đã ở đây. Maurice',
   'system_notice.release_notes.support_label': 'Nhờ có bạn',
   'system_notice.release_notes.support_lead': 'TREK chỉ tồn tại nhờ quyên góp.',
@@ -93,5 +91,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Mời tôi một ly cà phê',
   'system_notice.release_notes.cta_kofi': 'Hỗ trợ trên Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Hàng tháng trên Patreon',
+  'system_notice.release_notes.apps_title': 'TREK nay đã có trên điện thoại của bạn',
 };
 export default system_notice;

@@ -55,20 +55,18 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Uuendus paigaldatud',
   'system_notice.release_notes.headline': 'Vähem tippimist, rohkem reisimist.',
   'system_notice.release_notes.intro':
-    'Broneeringukirjad, mille edasi saadad, jõuavad sinu reisile, TREK jälgib sinu lende reaalajas ja reisi PDF on täiesti uus. TREK töötab nüüd ka PostgreSQLiga.',
+    'Edasi saadetud broneeringukirjad jõuavad sinu reisile, TREK jälgib sinu lende reaalajas ja reisi PDF on täiesti uus.',
   'system_notice.release_notes.features_label': 'Peamised uuendused',
   'system_notice.release_notes.features_aside': 'See pole kaugeltki kõik',
   'system_notice.release_notes.feature_mail_title': 'Broneeringukirjad jõuavad sinu reisile',
-  'system_notice.release_notes.feature_mail_body':
-    'Edasta kinnitus oma isiklikule aadressile ja TREK leiab sinu reisi, kontrollib selle üle ning lisab broneeringu koos dokumendiga.',
+  'system_notice.release_notes.feature_mail_body': 'Edasta kinnitus ja TREK lisab broneeringu õigele reisile.',
   'system_notice.release_notes.feature_flight_title': 'Lennu staatus reaalajas, tasuta',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK jälgib iga sinu lendu selle päeval: olek, hilinemine, mõlemad lennujaamad ja kaart lennukiga, ilma API võtmeta.',
+  'system_notice.release_notes.feature_flight_body': 'Olek, hilinemised ja lennuk kaardil, ilma API võtmeta.',
   'system_notice.release_notes.feature_pdf_title': 'Uus reisi PDF',
   'system_notice.release_notes.feature_pdf_body':
-    'Kaas sinu marsruudiga, iga päev ajajoonena ja kõik sinu broneeringud koodidega, valmis printimiseks või jagamiseks.',
+    'Sinu marsruut, iga päev ja kõik sinu broneeringud, valmis printimiseks.',
   'system_notice.release_notes.footnote':
-    'Lisaks PostgreSQL, lisandmoodulid reisi kohta, sildid kohtadele, rohkem viise kulude hoidmiseks ja pikk nimekiri väiksemaid muudatusi.',
+    'Lisaks PostgreSQL, lisandmoodulid reisi kohta, sildid kohtadele ja palju väiksemaid muudatusi.',
   'system_notice.release_notes.notes_label': 'Väljalaskemärkmed',
   'system_notice.release_notes.note_eyebrow': 'Sõnum hooldajalt',
   'system_notice.release_notes.note_title': 'Sina oled põhjus, miks ma TREKi arendamist jätkan.',
@@ -79,7 +77,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Iga funktsioon ja iga uuendus kõigile. Ei tasulisi pakette, tellimusi ega varjatud tingimusi.',
   'system_notice.release_notes.note_body_after':
-    'Siis tulite teie, peagi tuhandete kaupa: tähtede, veateadete, minu jaoks tundmatutesse keeltesse tehtud tõlgete ja inimeste pull requestidega, keda ma pole kunagi kohanud. Vaatan hoidla igal hommikul esimese asjana üle ja see ei tundu ikka veel päris päriselt.',
+    'Siis tulite teie, tuhandete kaupa: tähtede, veateadete, tõlgete ja pull requestidega inimestelt, keda ma pole kunagi kohanud. See ei tundu ikka veel päris päriselt.',
   'system_notice.release_notes.note_closing': 'Aitäh, et oled siin. Maurice',
   'system_notice.release_notes.support_label': 'Võimalik tänu sinule',
   'system_notice.release_notes.support_lead': 'TREK on olemas ainult tänu annetustele.',
@@ -88,6 +86,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Osta mulle kohv',
   'system_notice.release_notes.cta_kofi': 'Toeta Ko-fi kaudu',
   'system_notice.release_notes.cta_patreon': 'Igakuiselt Patreonis',
+  'system_notice.release_notes.apps_title': 'TREK on nüüd sinu telefonis',
   'system_notice.pager.prev': 'Eelmine teade',
   'system_notice.pager.next': 'Järgmine teade',
   'system_notice.pager.counter': '{current} / {total}',

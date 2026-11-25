@@ -55,20 +55,17 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Update installed',
   'system_notice.release_notes.headline': 'Less typing, more travelling.',
   'system_notice.release_notes.intro':
-    'Booking mails you forward land in your trip, TREK follows your flights live, and the trip PDF is all new. TREK now runs on PostgreSQL too.',
+    'Booking mails you forward land in your trip, TREK follows your flights live and the trip PDF is all new.',
   'system_notice.release_notes.features_label': 'The headliners',
   'system_notice.release_notes.features_aside': 'Far from everything',
   'system_notice.release_notes.feature_mail_title': 'Booking mails land in your trip',
   'system_notice.release_notes.feature_mail_body':
-    'Forward a confirmation to your personal address and TREK finds your trip, checks it and adds the booking with its document.',
+    'Forward a confirmation and TREK adds the booking to the right trip.',
   'system_notice.release_notes.feature_flight_title': 'Live flight status, for free',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK follows each of your flights on its day: state, delay, both airports and a map with the aircraft, with no API key.',
+  'system_notice.release_notes.feature_flight_body': 'State, delays and the aircraft on a map, with no API key.',
   'system_notice.release_notes.feature_pdf_title': 'A new trip PDF',
-  'system_notice.release_notes.feature_pdf_body':
-    'A cover with your route, every day as a timeline and all your bookings with their codes, ready to print or share.',
-  'system_notice.release_notes.footnote':
-    'Plus PostgreSQL, addons per trip, tags on places, more ways to keep costs and a long list of smaller changes.',
+  'system_notice.release_notes.feature_pdf_body': 'Your route, every day and all your bookings, ready to print.',
+  'system_notice.release_notes.footnote': 'Plus PostgreSQL, addons per trip, tags on places and many smaller changes.',
   'system_notice.release_notes.notes_label': 'Release notes',
   'system_notice.release_notes.note_eyebrow': 'A note from the maintainer',
   'system_notice.release_notes.note_title': 'You are the reason I keep building TREK.',
@@ -79,7 +76,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Every feature, every update, for everyone. No paid tiers, no subscriptions, no catch.',
   'system_notice.release_notes.note_body_after':
-    "Then you came, soon by the thousands: with stars, bug reports, translations into languages I don't speak and pull requests from people I've never met. I still check the repository first thing every morning, and it still doesn't quite feel real.",
+    "Then you came, by the thousands: with stars, bug reports, translations and pull requests from people I've never met. It still doesn't quite feel real.",
   'system_notice.release_notes.note_closing': 'Thank you for being here. Maurice',
   'system_notice.release_notes.support_label': 'Made possible by you',
   'system_notice.release_notes.support_lead': 'TREK only exists thanks to donations.',
@@ -88,6 +85,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Support on Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Monthly on Patreon',
+  'system_notice.release_notes.apps_title': 'TREK is now on your phone',
   'system_notice.pager.prev': 'Previous notice',
   'system_notice.pager.next': 'Next notice',
   'system_notice.pager.counter': '{current} / {total}',

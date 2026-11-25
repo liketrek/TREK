@@ -55,20 +55,17 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Aktualizácia nainštalovaná',
   'system_notice.release_notes.headline': 'Menej písania, viac cestovania.',
   'system_notice.release_notes.intro':
-    'E-maily s rezerváciami, ktoré prepošlete, skončia vo vašej ceste, TREK sleduje vaše lety naživo a PDF cesty je celé nové. TREK teraz beží aj na PostgreSQL.',
+    'Preposlané e-maily s rezerváciami skončia vo vašej ceste, TREK sleduje vaše lety naživo a PDF cesty je celé nové.',
   'system_notice.release_notes.features_label': 'Hlavné novinky',
   'system_notice.release_notes.features_aside': 'Zďaleka nie všetko',
   'system_notice.release_notes.feature_mail_title': 'E-maily s rezerváciami skončia vo vašej ceste',
-  'system_notice.release_notes.feature_mail_body':
-    'Prepošlite potvrdenie na svoju osobnú adresu a TREK nájde vašu cestu, skontroluje e-mail a pridá rezerváciu aj s dokumentom.',
+  'system_notice.release_notes.feature_mail_body': 'Prepošlite potvrdenie a TREK pridá rezerváciu do správnej cesty.',
   'system_notice.release_notes.feature_flight_title': 'Stav letu naživo, zadarmo',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK sleduje každý váš let v deň odletu: stav, meškanie, obe letiská a mapu s lietadlom, bez API kľúča.',
+  'system_notice.release_notes.feature_flight_body': 'Stav, meškania a lietadlo na mape, bez API kľúča.',
   'system_notice.release_notes.feature_pdf_title': 'Nové PDF cesty',
-  'system_notice.release_notes.feature_pdf_body':
-    'Titulná strana s vašou trasou, každý deň ako časová os a všetky vaše rezervácie s kódmi, pripravené na tlač alebo zdieľanie.',
+  'system_notice.release_notes.feature_pdf_body': 'Vaša trasa, každý deň a všetky vaše rezervácie, pripravené na tlač.',
   'system_notice.release_notes.footnote':
-    'K tomu PostgreSQL, doplnky pre jednotlivé cesty, štítky pri miestach, viac spôsobov, ako sledovať výdavky, a dlhý zoznam menších zmien.',
+    'K tomu PostgreSQL, doplnky pre jednotlivé cesty, štítky pri miestach a veľa menších zmien.',
   'system_notice.release_notes.notes_label': 'Poznámky k vydaniu',
   'system_notice.release_notes.note_eyebrow': 'Slovo od správcu',
   'system_notice.release_notes.note_title': 'Vy ste dôvod, prečo na TREK stále pracujem.',
@@ -79,7 +76,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Každá funkcia, každá aktualizácia, pre všetkých. Žiadne platené úrovne, žiadne predplatné, žiadny háčik.',
   'system_notice.release_notes.note_body_after':
-    'Potom ste prišli vy, čoskoro po tisícoch: s hviezdičkami, hláseniami chýb, prekladmi do jazykov, ktorými nehovorím, a pull requestmi od ľudí, ktorých som nikdy nestretol. Každé ráno stále ako prvé skontrolujem repozitár a stále mi to nepripadá celkom skutočné.',
+    'Potom ste prišli vy, po tisícoch: s hviezdičkami, hláseniami chýb, prekladmi a pull requestmi od ľudí, ktorých som nikdy nestretol. Stále mi to nepripadá celkom skutočné.',
   'system_notice.release_notes.note_closing': 'Ďakujem, že ste tu. Maurice',
   'system_notice.release_notes.support_label': 'Vďaka vám',
   'system_notice.release_notes.support_lead': 'TREK existuje len vďaka darom.',
@@ -88,6 +85,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Kúp mi kávu',
   'system_notice.release_notes.cta_kofi': 'Podporiť na Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Mesačne na Patreone',
+  'system_notice.release_notes.apps_title': 'TREK je teraz vo vašom telefóne',
   'system_notice.pager.prev': 'Predchádzajúce oznámenie',
   'system_notice.pager.next': 'Ďalšie oznámenie',
   'system_notice.pager.counter': '{current} / {total}',

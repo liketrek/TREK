@@ -226,6 +226,12 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': 'macchina',
   'settings.account': 'Account', // same-as-en
   'settings.about': 'Informazioni',
+  'settings.apps.title': 'App TREK',
+  'settings.apps.hint': 'Scansiona un codice con il telefono, poi collega l’app a questo server.',
+  'settings.apps.downloadOn': 'Scarica su',
+  'settings.apps.getItOn': 'Disponibile su',
+  'settings.apps.iosDevices': 'iPhone e iPad',
+  'settings.apps.androidDevices': 'Telefono e tablet',
   'settings.about.reportBug': 'Segnala un bug',
   'settings.about.reportBugHint': 'Hai trovato un problema? Faccelo sapere',
   'settings.about.featureRequest': 'Richiedi funzionalità',

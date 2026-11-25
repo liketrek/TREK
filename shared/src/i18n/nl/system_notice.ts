@@ -59,20 +59,19 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Update geïnstalleerd',
   'system_notice.release_notes.headline': 'Minder typen, meer reizen.',
   'system_notice.release_notes.intro':
-    'Boekingsmails die je doorstuurt komen in je reis terecht, TREK volgt je vluchten live en de reis-PDF is helemaal nieuw. TREK draait nu ook op PostgreSQL.',
+    'Boekingsmails die je doorstuurt komen in je reis terecht, TREK volgt je vluchten live en de reis-PDF is helemaal nieuw.',
   'system_notice.release_notes.features_label': 'De hoogtepunten',
   'system_notice.release_notes.features_aside': 'Lang niet alles',
   'system_notice.release_notes.feature_mail_title': 'Boekingsmails komen in je reis terecht',
   'system_notice.release_notes.feature_mail_body':
-    'Stuur een bevestiging door naar je persoonlijke adres en TREK vindt je reis, controleert de mail en voegt de boeking met het bijbehorende document toe.',
+    'Stuur een bevestiging door en TREK zet de boeking in de juiste reis.',
   'system_notice.release_notes.feature_flight_title': 'Live vluchtstatus, gratis',
   'system_notice.release_notes.feature_flight_body':
-    'TREK volgt elk van je vluchten op de dag zelf: status, vertraging, beide luchthavens en een kaart met het vliegtuig, zonder API-sleutel.',
+    'Status, vertragingen en het vliegtuig op de kaart, zonder API-sleutel.',
   'system_notice.release_notes.feature_pdf_title': 'Een nieuwe reis-PDF',
-  'system_notice.release_notes.feature_pdf_body':
-    'Een omslag met je route, elke dag als tijdlijn en al je boekingen met hun codes, klaar om te printen of te delen.',
+  'system_notice.release_notes.feature_pdf_body': 'Je route, elke dag en al je boekingen, klaar om te printen.',
   'system_notice.release_notes.footnote':
-    'Daarnaast PostgreSQL, add-ons per reis, labels op plaatsen, meer manieren om kosten bij te houden en een lange lijst kleinere wijzigingen.',
+    'Daarnaast PostgreSQL, add-ons per reis, labels op plaatsen en veel kleinere wijzigingen.',
   'system_notice.release_notes.notes_label': 'Release notes',
   'system_notice.release_notes.note_eyebrow': 'Een woord van de maintainer',
   'system_notice.release_notes.note_title': 'Jij bent de reden dat ik aan TREK blijf bouwen.',
@@ -83,7 +82,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Elke functie, elke update, voor iedereen. Geen betaalde versies, geen abonnementen, geen addertjes.',
   'system_notice.release_notes.note_body_after':
-    'Toen kwamen jullie, al snel bij duizenden: met sterren, bugmeldingen, vertalingen in talen die ik niet spreek en pull requests van mensen die ik nooit heb ontmoet. Ik check elke ochtend nog steeds als eerste de repository, en het voelt nog steeds niet helemaal echt.',
+    'Toen kwamen jullie, bij duizenden: met sterren, bugmeldingen, vertalingen en pull requests van mensen die ik nooit heb ontmoet. Het voelt nog steeds niet helemaal echt.',
   'system_notice.release_notes.note_closing': 'Bedankt dat je er bent. Maurice',
   'system_notice.release_notes.support_label': 'Mogelijk dankzij jou',
   'system_notice.release_notes.support_lead': 'TREK bestaat alleen dankzij donaties.',
@@ -92,5 +91,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Steun op Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Maandelijks op Patreon',
+  'system_notice.release_notes.apps_title': 'TREK staat nu op je telefoon',
 };
 export default system_notice;

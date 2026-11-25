@@ -58,20 +58,18 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Pembaruan terpasang',
   'system_notice.release_notes.headline': 'Lebih sedikit mengetik, lebih banyak bepergian.',
   'system_notice.release_notes.intro':
-    'Email pemesanan yang Anda teruskan langsung masuk ke perjalanan Anda, TREK memantau penerbangan Anda secara langsung, dan PDF perjalanan benar-benar baru. TREK kini juga berjalan di PostgreSQL.',
+    'Email pemesanan yang Anda teruskan masuk ke perjalanan Anda, TREK memantau penerbangan Anda secara langsung, dan PDF perjalanan benar-benar baru.',
   'system_notice.release_notes.features_label': 'Sorotan utama',
   'system_notice.release_notes.features_aside': 'Masih banyak lagi',
   'system_notice.release_notes.feature_mail_title': 'Email pemesanan masuk ke perjalanan Anda',
   'system_notice.release_notes.feature_mail_body':
-    'Teruskan email konfirmasi ke alamat pribadi Anda, lalu TREK mencari perjalanan Anda, memeriksanya, dan menambahkan pemesanan beserta dokumennya.',
+    'Teruskan konfirmasi dan TREK menambahkan pemesanan ke perjalanan yang tepat.',
   'system_notice.release_notes.feature_flight_title': 'Status penerbangan langsung, gratis',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK memantau setiap penerbangan Anda pada harinya: status, keterlambatan, kedua bandara, dan peta dengan pesawatnya, tanpa kunci API.',
+  'system_notice.release_notes.feature_flight_body': 'Status, keterlambatan, dan pesawat di peta, tanpa kunci API.',
   'system_notice.release_notes.feature_pdf_title': 'PDF perjalanan baru',
-  'system_notice.release_notes.feature_pdf_body':
-    'Sampul dengan rute Anda, setiap hari sebagai lini masa, dan semua pemesanan Anda beserta kodenya, siap dicetak atau dibagikan.',
+  'system_notice.release_notes.feature_pdf_body': 'Rute Anda, setiap hari, dan semua pemesanan Anda, siap dicetak.',
   'system_notice.release_notes.footnote':
-    'Ditambah PostgreSQL, add-on per perjalanan, tag pada tempat, lebih banyak cara mencatat biaya, dan daftar panjang perubahan yang lebih kecil.',
+    'Ditambah PostgreSQL, add-on per perjalanan, tag pada tempat, dan banyak perubahan kecil lainnya.',
   'system_notice.release_notes.notes_label': 'Catatan rilis',
   'system_notice.release_notes.note_eyebrow': 'Catatan dari maintainer',
   'system_notice.release_notes.note_title': 'Kalianlah alasan saya terus membangun TREK.',
@@ -82,7 +80,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Setiap fitur, setiap pembaruan, untuk semua orang. Tanpa paket berbayar, tanpa langganan, tanpa syarat tersembunyi.',
   'system_notice.release_notes.note_body_after':
-    'Lalu Anda datang, tak lama kemudian ribuan: dengan bintang, laporan bug, terjemahan ke bahasa yang tidak saya kuasai, dan pull request dari orang yang belum pernah saya temui. Saya masih memeriksa repositori pertama kali setiap pagi, dan rasanya masih belum benar-benar nyata.',
+    'Lalu Anda datang, ribuan orang: dengan bintang, laporan bug, terjemahan, dan pull request dari orang yang belum pernah saya temui. Rasanya masih belum benar-benar nyata.',
   'system_notice.release_notes.note_closing': 'Terima kasih sudah ada di sini. Maurice',
   'system_notice.release_notes.support_label': 'Terwujud berkat Anda',
   'system_notice.release_notes.support_lead': 'TREK hanya ada berkat donasi.',
@@ -91,5 +89,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Traktir aku kopi',
   'system_notice.release_notes.cta_kofi': 'Dukung di Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Bulanan di Patreon',
+  'system_notice.release_notes.apps_title': 'TREK kini ada di ponsel Anda',
 };
 export default system_notice;

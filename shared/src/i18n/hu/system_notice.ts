@@ -58,20 +58,19 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Frissítés telepítve',
   'system_notice.release_notes.headline': 'Kevesebb gépelés, több utazás.',
   'system_notice.release_notes.intro':
-    'Az általad továbbított foglalási e-mailek az utazásodba kerülnek, a TREK élőben követi a járataidat, az utazás PDF-je pedig vadonatúj. A TREK mostantól PostgreSQL-lel is fut.',
+    'A továbbított foglalási e-mailek az utazásodba kerülnek, a TREK élőben követi a járataidat, az utazás PDF-je pedig vadonatúj.',
   'system_notice.release_notes.features_label': 'A fő újdonságok',
   'system_notice.release_notes.features_aside': 'És ez még nem minden',
   'system_notice.release_notes.feature_mail_title': 'A foglalási e-mailek az utazásodba kerülnek',
   'system_notice.release_notes.feature_mail_body':
-    'Továbbíts egy visszaigazolást a személyes címedre, és a TREK megkeresi az utazásodat, ellenőrzi, majd hozzáadja a foglalást a dokumentumával együtt.',
+    'Továbbíts egy visszaigazolást, és a TREK a megfelelő utazáshoz adja a foglalást.',
   'system_notice.release_notes.feature_flight_title': 'Élő járatinfó, ingyen',
-  'system_notice.release_notes.feature_flight_body':
-    'A TREK minden járatodat követi az indulása napján: állapot, késés, mindkét repülőtér és egy térkép a géppel, API-kulcs nélkül.',
+  'system_notice.release_notes.feature_flight_body': 'Állapot, késések és a gép a térképen, API-kulcs nélkül.',
   'system_notice.release_notes.feature_pdf_title': 'Új utazás-PDF',
   'system_notice.release_notes.feature_pdf_body':
-    'Címlap az útvonaladdal, minden nap idővonalként és az összes foglalásod a kódjaikkal, nyomtatásra vagy megosztásra készen.',
+    'Az útvonalad, minden nap és az összes foglalásod, nyomtatásra készen.',
   'system_notice.release_notes.footnote':
-    'Ezen túl PostgreSQL, utazásonkénti bővítmények, címkék a helyeken, több mód a költségek nyomon követésére és apróbb változtatások hosszú sora.',
+    'Ezen túl PostgreSQL, utazásonkénti bővítmények, címkék a helyeken és sok apróbb változtatás.',
   'system_notice.release_notes.notes_label': 'Kiadási jegyzetek',
   'system_notice.release_notes.note_eyebrow': 'Egy szó a fejlesztőtől',
   'system_notice.release_notes.note_title': 'Miattad építem tovább a TREK-et.',
@@ -82,7 +81,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Minden funkció, minden frissítés, mindenkinek. Nincsenek fizetős csomagok, nincsenek előfizetések, nincs átverés.',
   'system_notice.release_notes.note_body_after':
-    'Aztán megjöttetek ti, hamarosan ezrével: csillagokkal, hibajelentésekkel, olyan nyelvekre készült fordításokkal, amelyeket nem beszélek, és olyan emberek pull requestjeivel, akiket sosem ismertem. Még mindig minden reggel először a repót nézem meg, és még mindig nem tűnik teljesen valóságosnak.',
+    'Aztán megjöttetek ti, ezrével: csillagokkal, hibajelentésekkel, fordításokkal és olyan emberek pull requestjeivel, akiket sosem ismertem. Még mindig nem tűnik teljesen valóságosnak.',
   'system_notice.release_notes.note_closing': 'Köszönöm, hogy itt vagy. Maurice',
   'system_notice.release_notes.support_label': 'Általad válik lehetővé',
   'system_notice.release_notes.support_lead': 'A TREK csak az adományoknak köszönhetően létezik.',
@@ -91,5 +90,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Vegyél nekem egy kávét',
   'system_notice.release_notes.cta_kofi': 'Támogass a Ko-fi-n',
   'system_notice.release_notes.cta_patreon': 'Havonta a Patreonon',
+  'system_notice.release_notes.apps_title': 'A TREK már a telefonodon is ott van',
 };
 export default system_notice;

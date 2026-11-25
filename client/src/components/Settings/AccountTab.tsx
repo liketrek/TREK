@@ -1,5 +1,5 @@
 import React, { useId } from 'react'
-import { User, Save, Lock, KeyRound, AlertTriangle, Shield, Camera, Trash2, Copy, Download, Printer, ShieldCheck } from 'lucide-react'
+import { User, Save, Lock, KeyRound, AlertTriangle, Shield, Camera, Trash2, Copy, Download, Printer, ShieldCheck, Smartphone } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import Section from './Section'
 import PasskeysSection from './PasskeysSection'
@@ -12,6 +12,8 @@ import { EditorField, GRID_2, INPUT, PANEL } from '../shared/dialogParts'
 import { SETTINGS_BUTTON, SETTINGS_BUTTON_DANGER, SETTINGS_BUTTON_PRIMARY, SettingRow, SettingRows, SettingsHint, StatusPill, SettingsColumns } from './settingsKit'
 import { stripTrailingSlashes, useAccountSettings } from './useAccountSettings'
 import AccountDemoLock from './AccountDemoLock'
+import AppStoreCards from '../shared/AppStoreCards'
+import { isNativeApp } from '../../native/platform'
 
 /** The small turning ring a button shows while its request is on the way. */
 const SPINNER = 'h-3.5 w-3.5 flex-none animate-spin rounded-full border-2 border-current border-t-transparent'
@@ -366,6 +368,13 @@ export default function AccountTab(): React.ReactElement {
 
       {/* Passkeys */}
       <PasskeysSection demoMode={demoMode} />
+
+      {/* Where to get the phone app; inside the app itself there is nothing to fetch. */}
+      {!isNativeApp() && (
+        <Section title={t('settings.apps.title')} icon={Smartphone} hint={t('settings.apps.hint')}>
+          <AppStoreCards />
+        </Section>
+      )}
         </>}
       />
       </AccountDemoLock>

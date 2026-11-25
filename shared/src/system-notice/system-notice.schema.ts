@@ -72,6 +72,8 @@ const noticeReleaseSchema = z.object({
   featuresAsideKey: z.string().optional(),
   /** Two to four cards; the grid lays out any of those counts. */
   features: z.array(noticeReleaseFeatureSchema),
+  /** A tile across the release column with the app store cards and their QR codes. */
+  apps: z.object({ titleKey: z.string() }).optional(),
   notes: z.object({ labelKey: z.string(), href: z.string() }).optional(),
   footnoteKey: z.string().optional(),
   note: z.object({

@@ -2,6 +2,7 @@ import { ArrowRight, Heart, Infinity as InfinityIcon, ShieldCheck, X } from 'luc
 import React from 'react';
 import { useTranslation } from '../../i18n/TranslationContext.js';
 import type { SystemNoticeDTO } from '../../store/systemNoticeStore.js';
+import AppStoreCards from '../shared/AppStoreCards';
 import { PATREON_PATH } from '../shared/PatreonIcon';
 import { ReleaseFeatureVisual } from './ReleaseNoticeVisuals.js';
 import './releaseNotice.css';
@@ -126,6 +127,16 @@ export function ReleaseNoticeModal({ notice, visible, onDismiss, onCTA, onSecond
             <p id={bodyId} className="rn-intro">
               {withSponsorLink(t(release.introKey))}
             </p>
+
+            {release.apps && (
+              <div className="rn-apps">
+                <div className="rn-feature-shine" aria-hidden="true" />
+                <div className="rn-apps-text">
+                  <div className="rn-feature-title">{t(release.apps.titleKey)}</div>
+                </div>
+                <AppStoreCards tone="dark" className="rn-apps-stores" />
+              </div>
+            )}
 
             <div className="rn-features-head">
               <span className="rn-features-label">{t(release.featuresLabelKey)}</span>

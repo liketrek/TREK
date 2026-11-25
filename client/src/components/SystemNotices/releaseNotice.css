@@ -647,3 +647,28 @@
 .rn-sponsor:hover {
   text-decoration-color: currentColor;
 }
+
+/* ── The apps: one tile across the column, the text beside the store cards ── */
+
+.rn-apps {
+  position: relative;
+  margin-top: 22px;
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  padding: 16px 16px 16px 20px;
+  border-radius: 20px;
+  background: linear-gradient(160deg, oklch(1 0 0 / 0.1) 0%, oklch(1 0 0 / 0.045) 62%);
+  border: 1px solid oklch(1 0 0 / 0.13);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.16), 0 12px 28px -16px oklch(0 0 0 / 0.7);
+  overflow: hidden;
+}
+
+.rn-apps-text { position: relative; flex: 1 1 200px; min-width: 0; }
+
+.rn-apps-stores { position: relative; flex: 0 1 520px; min-width: 0; }
+
+@media (max-width: 1280px) {
+  .rn-apps { flex-direction: column; align-items: stretch; }
+  .rn-apps-stores { flex-basis: auto; }
+}

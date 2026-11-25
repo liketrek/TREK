@@ -228,6 +228,12 @@ const settings: TranslationStrings = {
     'Obtenir un token : POST /oauth/token avec grant_type=client_credentials, client_id et client_secret. Sans navigateur, sans token de rafraîchissement.',
   'settings.oauth.badge.machine': 'machine', // same-as-en
   'settings.account': 'Compte',
+  'settings.apps.title': 'App TREK',
+  'settings.apps.hint': 'Scannez un code avec votre téléphone, puis connectez l’app à ce serveur.',
+  'settings.apps.downloadOn': 'Télécharger dans l’',
+  'settings.apps.getItOn': 'Disponible sur',
+  'settings.apps.iosDevices': 'iPhone et iPad',
+  'settings.apps.androidDevices': 'Téléphone et tablette',
   'settings.about': 'À propos',
   'settings.about.reportBug': 'Signaler un bug',
   'settings.about.reportBugHint': 'Un problème ? Faites-le nous savoir',

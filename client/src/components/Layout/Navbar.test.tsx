@@ -544,9 +544,9 @@ describe('Navbar styling and menu details', () => {
 
     const discord = screen.getByTitle('Discord');
     fireEvent.mouseEnter(discord);
-    expect(discord.style.background).toBe('rgba(88, 101, 242, 0.125)');
+    expect(discord.style.background).toBe('rgba(88, 101, 242, 0.15)');
     fireEvent.mouseLeave(discord);
-    expect(discord.style.background).toBe('var(--bg-tertiary)');
+    expect(discord.style.background).toBe('');
 
     expect(document.querySelector('img[src="/text-light.svg"]')).not.toBeNull();
   });

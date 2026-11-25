@@ -60,15 +60,13 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.features_aside': 'Hepsi bu kadar değil',
   'system_notice.release_notes.feature_mail_title': 'Rezervasyon e-postaları gezine düşer',
   'system_notice.release_notes.feature_mail_body':
-    'Bir onay e-postasını kişisel adresine yönlendir; TREK gezini bulur, kontrol eder ve rezervasyonu belgesiyle birlikte ekler.',
+    'Bir onay e-postasını yönlendir, TREK rezervasyonu doğru geziye ekler.',
   'system_notice.release_notes.feature_flight_title': 'Canlı uçuş durumu, ücretsiz',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK her uçuşunu kendi gününde takip eder: durum, gecikme, iki havalimanı ve uçağın göründüğü bir harita, API anahtarı olmadan.',
+  'system_notice.release_notes.feature_flight_body': 'Durum, gecikmeler ve haritada uçak, API anahtarı olmadan.',
   'system_notice.release_notes.feature_pdf_title': "Yeni gezi PDF'i",
-  'system_notice.release_notes.feature_pdf_body':
-    'Rotanı gösteren bir kapak, her gün bir zaman çizelgesi olarak ve tüm rezervasyonların kodlarıyla, yazdırmaya ya da paylaşmaya hazır.',
+  'system_notice.release_notes.feature_pdf_body': 'Rotan, her gün ve tüm rezervasyonların, yazdırmaya hazır.',
   'system_notice.release_notes.footnote':
-    'Ayrıca PostgreSQL, gezi başına eklentiler, yerlere etiketler, masrafları tutmanın daha çok yolu ve uzun bir küçük değişiklikler listesi.',
+    'Ayrıca PostgreSQL, gezi başına eklentiler, yerlere etiketler ve birçok küçük değişiklik.',
   'system_notice.release_notes.notes_label': 'Sürüm notları',
   'system_notice.release_notes.note_eyebrow': 'Geliştiriciden bir not',
   'system_notice.release_notes.note_title': "TREK'i geliştirmeye devam etmemin sebebi sensin.",
@@ -79,7 +77,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Her özellik, her güncelleme, herkes için. Ücretli paket yok, abonelik yok, gizli şart yok.',
   'system_notice.release_notes.note_body_after':
-    "Sonra siz geldiniz, kısa sürede binlerce kişi: yıldızlarla, hata bildirimleriyle, konuşmadığım dillere çevirilerle ve hiç tanımadığım insanların pull request'leriyle. Hâlâ her sabah ilk iş depoya bakıyorum ve hâlâ tam gerçek gibi gelmiyor.",
+    "Sonra siz geldiniz, binlerce kişi: yıldızlarla, hata bildirimleriyle, çevirilerle ve hiç tanımadığım insanların pull request'leriyle. Hâlâ tam gerçek gibi gelmiyor.",
   'system_notice.release_notes.note_closing': 'Burada olduğun için teşekkür ederim. Maurice',
   'system_notice.release_notes.support_label': 'Sizin sayenizde',
   'system_notice.release_notes.support_lead': 'TREK yalnızca bağışlar sayesinde var.',
@@ -88,8 +86,9 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Bana bir kahve ısmarla',
   'system_notice.release_notes.cta_kofi': "Ko-fi'de Destek Ol",
   'system_notice.release_notes.cta_patreon': "Patreon'da Aylık Destek",
+  'system_notice.release_notes.apps_title': 'TREK artık telefonunda',
   'system_notice.release_notes.headline': 'Daha az yazmak, daha çok gezmek.',
   'system_notice.release_notes.intro':
-    "Yönlendirdiğin rezervasyon e-postaları gezine düşüyor, TREK uçuşlarını canlı takip ediyor ve gezi PDF'i baştan yepyeni. TREK artık PostgreSQL ile de çalışıyor.",
+    "Yönlendirdiğin rezervasyon e-postaları gezine düşüyor, TREK uçuşlarını canlı takip ediyor ve gezi PDF'i baştan yepyeni.",
 };
 export default system_notice;

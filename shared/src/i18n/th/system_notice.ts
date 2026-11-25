@@ -59,20 +59,16 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'ติดตั้งอัปเดตแล้ว',
   'system_notice.release_notes.headline': 'พิมพ์น้อยลง เที่ยวได้มากขึ้น',
   'system_notice.release_notes.intro':
-    'อีเมลจองที่คุณส่งต่อจะเข้าไปอยู่ในทริปของคุณ TREK ติดตามเที่ยวบินของคุณแบบเรียลไทม์ และ PDF ของทริปก็ใหม่หมด TREK ยังทำงานบน PostgreSQL ได้แล้วด้วย',
+    'อีเมลจองที่คุณส่งต่อจะเข้าไปอยู่ในทริปของคุณ TREK ติดตามเที่ยวบินของคุณแบบเรียลไทม์ และ PDF ของทริปก็ใหม่หมด',
   'system_notice.release_notes.features_label': 'ไฮไลต์สำคัญ',
   'system_notice.release_notes.features_aside': 'ไกลจากทุกสิ่ง',
   'system_notice.release_notes.feature_mail_title': 'อีเมลจองเข้าไปอยู่ในทริปของคุณ',
-  'system_notice.release_notes.feature_mail_body':
-    'ส่งต่ออีเมลยืนยันไปยังที่อยู่ส่วนตัวของคุณ แล้ว TREK จะหาทริปของคุณ ตรวจสอบ และเพิ่มการจองพร้อมเอกสาร',
+  'system_notice.release_notes.feature_mail_body': 'ส่งต่ออีเมลยืนยัน แล้ว TREK จะเพิ่มการจองลงในทริปที่ถูกต้อง',
   'system_notice.release_notes.feature_flight_title': 'สถานะเที่ยวบินแบบสด ฟรี',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK ติดตามเที่ยวบินของคุณทุกเที่ยวในวันบิน ทั้งสถานะ ความล่าช้า สนามบินทั้งสองแห่ง และแผนที่ที่มีเครื่องบิน โดยไม่ต้องใช้ API key',
+  'system_notice.release_notes.feature_flight_body': 'สถานะ ความล่าช้า และเครื่องบินบนแผนที่ โดยไม่ต้องใช้คีย์ API',
   'system_notice.release_notes.feature_pdf_title': 'PDF ของทริปแบบใหม่',
-  'system_notice.release_notes.feature_pdf_body':
-    'หน้าปกพร้อมเส้นทางของคุณ ทุกวันเป็นไทม์ไลน์ และการจองทั้งหมดของคุณพร้อมรหัส พร้อมพิมพ์หรือแชร์ได้ทันที',
-  'system_notice.release_notes.footnote':
-    'ยังมี PostgreSQL แอดออนรายทริป แท็กบนสถานที่ วิธีติดตามค่าใช้จ่ายที่มากขึ้น และการเปลี่ยนแปลงเล็ก ๆ อีกมากมาย',
+  'system_notice.release_notes.feature_pdf_body': 'เส้นทางของคุณ ทุกวัน และการจองทั้งหมดของคุณ พร้อมพิมพ์',
+  'system_notice.release_notes.footnote': 'ยังมี PostgreSQL แอดออนรายทริป แท็กบนสถานที่ และการเปลี่ยนแปลงเล็ก ๆ อีกมากมาย',
   'system_notice.release_notes.notes_label': 'บันทึกประจำรุ่น',
   'system_notice.release_notes.note_eyebrow': 'ข้อความจากผู้ดูแลโครงการ',
   'system_notice.release_notes.note_title': 'คุณคือเหตุผลที่ผมยังสร้าง TREK ต่อไป',
@@ -83,7 +79,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'ทุกฟีเจอร์ ทุกอัปเดต สำหรับทุกคน ไม่มีระดับแบบเสียเงิน ไม่มีการสมัครสมาชิก ไม่มีเงื่อนไขแอบแฝง',
   'system_notice.release_notes.note_body_after':
-    'แล้วพวกคุณก็มา ไม่นานก็นับเป็นพัน ทั้งดาว รายงานบั๊ก คำแปลเป็นภาษาที่ผมพูดไม่ได้ และ pull request จากคนที่ผมไม่เคยพบ ผมยังเปิดดูรีโพซิทอรีเป็นอย่างแรกทุกเช้า และยังรู้สึกไม่จริงนักอยู่ดี',
+    'แล้วพวกคุณก็มา นับเป็นพัน ทั้งดาว รายงานบั๊ก คำแปล และ pull request จากคนที่ผมไม่เคยพบ จนถึงตอนนี้ก็ยังรู้สึกไม่ค่อยเหมือนจริง',
   'system_notice.release_notes.note_closing': 'ขอบคุณที่อยู่ตรงนี้ Maurice',
   'system_notice.release_notes.support_label': 'เกิดขึ้นได้เพราะคุณ',
   'system_notice.release_notes.support_lead': 'TREK อยู่ได้ด้วยเงินบริจาคเท่านั้น',
@@ -92,5 +88,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'ซื้อกาแฟให้ผม',
   'system_notice.release_notes.cta_kofi': 'สนับสนุนผ่าน Ko-fi',
   'system_notice.release_notes.cta_patreon': 'รายเดือนผ่าน Patreon',
+  'system_notice.release_notes.apps_title': 'TREK มาอยู่บนมือถือของคุณแล้ว',
 };
 export default system_notice;

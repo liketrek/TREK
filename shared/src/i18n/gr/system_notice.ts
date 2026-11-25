@@ -60,20 +60,20 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Ενημερώθηκε',
   'system_notice.release_notes.headline': 'Λιγότερη πληκτρολόγηση, περισσότερο ταξίδι.',
   'system_notice.release_notes.intro':
-    'Τα μηνύματα κράτησης που προωθείτε καταλήγουν στο ταξίδι σας, το TREK παρακολουθεί ζωντανά τις πτήσεις σας και το PDF του ταξιδιού είναι ολοκαίνουργιο. Το TREK τρέχει πλέον και σε PostgreSQL.',
+    'Τα μηνύματα κράτησης που προωθείτε καταλήγουν στο ταξίδι σας, το TREK παρακολουθεί ζωντανά τις πτήσεις σας και το PDF του ταξιδιού είναι ολοκαίνουργιο.',
   'system_notice.release_notes.features_label': 'Τα σημαντικότερα',
   'system_notice.release_notes.features_aside': 'Και δεν είναι μόνο αυτά',
   'system_notice.release_notes.feature_mail_title': 'Τα μηνύματα κράτησης βρίσκουν το ταξίδι σας',
   'system_notice.release_notes.feature_mail_body':
-    'Προωθήστε μια επιβεβαίωση στην προσωπική σας διεύθυνση και το TREK βρίσκει το ταξίδι σας, την ελέγχει και προσθέτει την κράτηση μαζί με το έγγραφό της.',
+    'Προωθήστε μια επιβεβαίωση και το TREK προσθέτει την κράτηση στο σωστό ταξίδι.',
   'system_notice.release_notes.feature_flight_title': 'Ζωντανή κατάσταση πτήσεων, δωρεάν',
   'system_notice.release_notes.feature_flight_body':
-    'Το TREK παρακολουθεί κάθε πτήση σας τη μέρα της: κατάσταση, καθυστέρηση, τα δύο αεροδρόμια και χάρτη με το αεροσκάφος, χωρίς κλειδί API.',
+    'Κατάσταση, καθυστερήσεις και το αεροσκάφος στον χάρτη, χωρίς κλειδί API.',
   'system_notice.release_notes.feature_pdf_title': 'Νέο PDF ταξιδιού',
   'system_notice.release_notes.feature_pdf_body':
-    'Εξώφυλλο με τη διαδρομή σας, κάθε μέρα ως χρονολόγιο και όλες οι κρατήσεις σας με τους κωδικούς τους, έτοιμο για εκτύπωση ή κοινοποίηση.',
+    'Η διαδρομή σας, κάθε μέρα και όλες οι κρατήσεις σας, έτοιμα για εκτύπωση.',
   'system_notice.release_notes.footnote':
-    'Επιπλέον PostgreSQL, πρόσθετα ανά ταξίδι, ετικέτες σε μέρη, περισσότεροι τρόποι για να παρακολουθείτε τα έξοδα και μια μακριά λίστα μικρότερων αλλαγών.',
+    'Επιπλέον PostgreSQL, πρόσθετα ανά ταξίδι, ετικέτες σε μέρη και πολλές μικρότερες αλλαγές.',
   'system_notice.release_notes.notes_label': 'Σημειώσεις έκδοσης',
   'system_notice.release_notes.note_eyebrow': 'Μια σημείωση από τον δημιουργό',
   'system_notice.release_notes.note_title': 'Εσείς είστε ο λόγος που συνεχίζω να φτιάχνω το TREK.',
@@ -84,7 +84,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Κάθε λειτουργία, κάθε ενημέρωση, για όλους. Καμία έκδοση επί πληρωμή, καμία συνδρομή, καμία παγίδα.',
   'system_notice.release_notes.note_body_after':
-    'Μετά ήρθατε εσείς, σύντομα με τα χιλιάδες: με αστέρια, αναφορές σφαλμάτων, μεταφράσεις σε γλώσσες που δεν μιλάω και pull requests από ανθρώπους που δεν έχω γνωρίσει ποτέ. Κάθε πρωί ελέγχω πρώτα το αποθετήριο και ακόμη δεν μου φαίνεται απόλυτα αληθινό.',
+    'Μετά ήρθατε εσείς, με τα χιλιάδες: με αστέρια, αναφορές σφαλμάτων, μεταφράσεις και pull requests από ανθρώπους που δεν έχω γνωρίσει ποτέ. Ακόμη δεν μου φαίνεται εντελώς αληθινό.',
   'system_notice.release_notes.note_closing': 'Σας ευχαριστώ που είστε εδώ. Maurice',
   'system_notice.release_notes.support_label': 'Χάρη σε εσάς',
   'system_notice.release_notes.support_lead': 'Το TREK υπάρχει μόνο χάρη στις δωρεές.',
@@ -93,5 +93,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Στηρίξτε στο Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Μηνιαία στο Patreon',
+  'system_notice.release_notes.apps_title': 'Το TREK είναι πλέον στο κινητό σας',
 };
 export default system_notice;

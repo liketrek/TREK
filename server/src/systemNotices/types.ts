@@ -51,6 +51,8 @@ export interface NoticeRelease {
   featuresLabelKey: string;
   featuresAsideKey?: string;
   features: NoticeReleaseFeature[];
+  /** A tile across the release column with the app store cards and their QR codes. */
+  apps?: { titleKey: string };
   notes?: { labelKey: string; href: string };
   footnoteKey?: string;
   note: {

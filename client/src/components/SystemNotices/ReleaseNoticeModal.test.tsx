@@ -1,4 +1,4 @@
-// FE-RN-001 to FE-RN-020
+// FE-RN-001 to FE-RN-022
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '../../../tests/helpers/render';
@@ -294,5 +294,24 @@ describe('ReleaseNoticeModal', () => {
     // A day's five stops on one drawn route.
     expect(document.querySelectorAll('.rn-vis-route-stop')).toHaveLength(5);
     expect(document.querySelector('.rn-vis-route-line')).not.toBeNull();
+  });
+
+  it('FE-RN-021: an apps block draws one tile with its title and both store cards', () => {
+    renderModal(withRelease({ apps: { titleKey: 'rel.apps.title' } }));
+    const tile = document.querySelector('.rn-apps');
+    expect(tile).toHaveTextContent('rel.apps.title');
+    const stores = tile?.querySelectorAll('a.asc-card') ?? [];
+    expect([...stores].map((a) => a.getAttribute('href'))).toEqual([
+      'https://apps.apple.com/app/id6831237775',
+      'https://play.google.com/store/apps/details?id=com.liketrek.trek',
+    ]);
+    // On the release column, which is dark in either theme.
+    expect(tile?.querySelector('.asc-row')).toHaveClass('asc-dark');
+  });
+
+  it('FE-RN-022: without an apps block there is no apps tile', () => {
+    renderModal();
+    expect(document.querySelector('.rn-apps')).toBeNull();
+    expect(document.querySelector('.asc-card')).toBeNull();
   });
 });

@@ -59,20 +59,18 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Uppdatering klar',
   'system_notice.release_notes.headline': 'Mindre knappande, mer resande.',
   'system_notice.release_notes.intro':
-    'Bokningsmejl som du vidarebefordrar hamnar i din resa, TREK följer dina flyg live och resans PDF är helt ny. TREK körs nu även på PostgreSQL.',
+    'Bokningsmejl som du vidarebefordrar hamnar i din resa, TREK följer dina flyg live och resans PDF är helt ny.',
   'system_notice.release_notes.features_label': 'Höjdpunkterna',
   'system_notice.release_notes.features_aside': 'Långt ifrån allt',
   'system_notice.release_notes.feature_mail_title': 'Bokningsmejl hamnar i din resa',
   'system_notice.release_notes.feature_mail_body':
-    'Vidarebefordra en bekräftelse till din personliga adress, så hittar TREK din resa, kontrollerar den och lägger till bokningen med dokumentet.',
+    'Vidarebefordra en bekräftelse så lägger TREK till bokningen i rätt resa.',
   'system_notice.release_notes.feature_flight_title': 'Flygstatus live, gratis',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK följer vart och ett av dina flyg på avresedagen: status, förseningar, båda flygplatserna och en karta med flygplanet, utan API-nyckel.',
+  'system_notice.release_notes.feature_flight_body': 'Status, förseningar och flygplanet på kartan, utan API-nyckel.',
   'system_notice.release_notes.feature_pdf_title': 'En ny PDF för resan',
-  'system_notice.release_notes.feature_pdf_body':
-    'Ett omslag med din rutt, varje dag som en tidslinje och alla dina bokningar med koderna, redo att skriva ut eller dela.',
+  'system_notice.release_notes.feature_pdf_body': 'Din rutt, varje dag och alla dina bokningar, redo att skriva ut.',
   'system_notice.release_notes.footnote':
-    'Dessutom PostgreSQL, tillägg per resa, taggar på platser, fler sätt att hålla koll på kostnader och en lång lista med mindre ändringar.',
+    'Dessutom PostgreSQL, tillägg per resa, taggar på platser och många mindre ändringar.',
   'system_notice.release_notes.notes_label': 'Versionsnyheter',
   'system_notice.release_notes.note_eyebrow': 'Ett ord från utvecklaren',
   'system_notice.release_notes.note_title': 'Du är anledningen till att jag fortsätter bygga TREK.',
@@ -83,7 +81,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Varje funktion, varje uppdatering, för alla. Inga betalnivåer, inga prenumerationer, inga förbehåll.',
   'system_notice.release_notes.note_body_after':
-    'Sedan kom ni, snart i tusental: med stjärnor, felrapporter, översättningar till språk jag inte talar och pull requests från människor jag aldrig har träffat. Jag tittar fortfarande in i repot först av allt varje morgon, och det känns fortfarande inte riktigt på riktigt.',
+    'Sedan kom ni, i tusental: med stjärnor, felrapporter, översättningar och pull requests från människor jag aldrig har träffat. Det känns fortfarande inte riktigt på riktigt.',
   'system_notice.release_notes.note_closing': 'Tack för att du är här. Maurice',
   'system_notice.release_notes.support_label': 'Möjligt tack vare dig',
   'system_notice.release_notes.support_lead': 'TREK finns bara tack vare donationer.',
@@ -92,5 +90,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Stöd på Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Varje månad på Patreon',
+  'system_notice.release_notes.apps_title': 'TREK finns nu i din telefon',
 };
 export default system_notice;

@@ -318,6 +318,12 @@ const settings: TranslationStrings = {
   'settings.oauth.badge.machine': 'maşın',
 
   'settings.account': 'Hesab',
+  'settings.apps.title': 'TREK tətbiqi',
+  'settings.apps.hint': 'Telefonunuzla kodu skan edin, sonra tətbiqi bu serverə qoşun.',
+  'settings.apps.downloadOn': 'Yükləyin:',
+  'settings.apps.getItOn': 'Əldə edin:',
+  'settings.apps.iosDevices': 'iPhone və iPad',
+  'settings.apps.androidDevices': 'Telefon və planşet',
   'settings.about': 'Haqqında',
   'settings.about.reportBug': 'Xəta bildir',
   'settings.about.reportBugHint': 'Problem tapmısınız? Bizə bildirin',

@@ -56,20 +56,17 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'アップデート完了',
   'system_notice.release_notes.headline': '入力は少なく、旅はもっと。',
   'system_notice.release_notes.intro':
-    '転送した予約メールはあなたの旅行に届き、TREKがフライトをリアルタイムで追跡し、旅行のPDFも新しくなりました。TREKは PostgreSQL でも動くようになりました。',
+    '転送した予約メールは旅行に届き、TREKがフライトをリアルタイムで追跡し、旅行のPDFも新しくなりました。',
   'system_notice.release_notes.features_label': '今回の目玉',
   'system_notice.release_notes.features_aside': 'ほんの一部です',
   'system_notice.release_notes.feature_mail_title': '予約メールが、あなたの旅行に届く',
-  'system_notice.release_notes.feature_mail_body':
-    '確認メールを自分専用のアドレスに転送すると、TREKがあなたの旅行を見つけて内容を確認し、書類つきで予約を追加します。',
+  'system_notice.release_notes.feature_mail_body': '確認メールを転送すると、TREKが正しい旅行に予約を追加します。',
   'system_notice.release_notes.feature_flight_title': 'フライト状況をリアルタイムで、無料',
-  'system_notice.release_notes.feature_flight_body':
-    'TREKは、あなたの各フライトを当日に追跡します。状況、遅延、両方の空港、機体つきの地図まで、APIキーは不要です。',
+  'system_notice.release_notes.feature_flight_body': '状況、遅延、地図上の機体まで。APIキーは不要です。',
   'system_notice.release_notes.feature_pdf_title': '旅行PDFを一新',
-  'system_notice.release_notes.feature_pdf_body':
-    'あなたのルートを載せた表紙、1日ごとのタイムライン、すべての予約と予約番号まで。印刷にも共有にもそのまま使えます。',
+  'system_notice.release_notes.feature_pdf_body': 'ルート、毎日の予定、すべての予約をまとめて、そのまま印刷できます。',
   'system_notice.release_notes.footnote':
-    'ほかにも、PostgreSQL 対応、旅行ごとのアドオン、場所へのタグ、費用を管理する方法の追加、そして多数の細かな改善があります。',
+    'ほかにも、PostgreSQL 対応、旅行ごとのアドオン、場所へのタグ、多数の細かな改善があります。',
   'system_notice.release_notes.notes_label': 'リリースノート',
   'system_notice.release_notes.note_eyebrow': '開発者より',
   'system_notice.release_notes.note_title': 'あなたがいるから、TREKを作り続けています。',
@@ -80,7 +77,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'すべての機能も、すべてのアップデートも、すべての人に。有料プランも、サブスクも、隠れた仕掛けもありません。',
   'system_notice.release_notes.note_body_after':
-    'そこにみなさんが来てくれて、やがて何千人にもなりました。スター、バグ報告、私が話せない言語への翻訳、会ったこともない人からのプルリクエスト。今でも毎朝いちばんにリポジトリを確認していて、まだ少し現実とは思えません。',
+    'そこにみなさんが何千人も来てくれました。スター、バグ報告、翻訳、会ったこともない人からのプルリクエスト。今でも少し現実とは思えません。',
   'system_notice.release_notes.note_closing': 'ここにいてくれて、ありがとう。Maurice',
   'system_notice.release_notes.support_label': 'あなたのおかげです',
   'system_notice.release_notes.support_lead': 'TREK は寄付のおかげで成り立っています。',
@@ -89,5 +86,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'コーヒーをおごる',
   'system_notice.release_notes.cta_kofi': 'Ko-fiで応援する',
   'system_notice.release_notes.cta_patreon': 'Patreonで毎月応援',
+  'system_notice.release_notes.apps_title': 'TREKがスマートフォンでも使えるように',
 };
 export default system_notice;

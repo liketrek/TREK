@@ -62,15 +62,14 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.features_aside': 'I això no és tot',
   'system_notice.release_notes.feature_mail_title': 'Els correus de reserva arriben al teu viatge',
   'system_notice.release_notes.feature_mail_body':
-    'Reenvia una confirmació a la teva adreça personal i TREK troba el teu viatge, ho comprova i afegeix la reserva amb el seu document.',
+    'Reenvia una confirmació i TREK afegeix la reserva al viatge correcte.',
   'system_notice.release_notes.feature_flight_title': 'Estat del vol en directe, gratis',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK segueix cadascun dels teus vols el dia que toca: estat, retard, tots dos aeroports i un mapa amb l’avió, sense clau d’API.',
+  'system_notice.release_notes.feature_flight_body': 'Estat, retards i l’avió al mapa, sense clau d’API.',
   'system_notice.release_notes.feature_pdf_title': 'Un PDF del viatge nou',
   'system_notice.release_notes.feature_pdf_body':
-    'Una portada amb la teva ruta, cada dia com a cronologia i totes les teves reserves amb els codis, a punt per imprimir o compartir.',
+    'La teva ruta, cada dia i totes les teves reserves, a punt per imprimir.',
   'system_notice.release_notes.footnote':
-    'A més, PostgreSQL, complements per viatge, etiquetes als llocs, més maneres de portar les despeses i una llarga llista de canvis més petits.',
+    'A més, PostgreSQL, complements per viatge, etiquetes als llocs i molts canvis més petits.',
   'system_notice.release_notes.notes_label': 'Notes de la versió',
   'system_notice.release_notes.note_eyebrow': 'Una nota del mantenidor',
   'system_notice.release_notes.note_title': 'Sou el motiu pel qual continuo construint TREK.',
@@ -81,7 +80,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Cada funcionalitat, cada actualització, per a tothom. Sense nivells de pagament, sense subscripcions, sense lletra petita.',
   'system_notice.release_notes.note_body_after':
-    'Després vau arribar vosaltres, aviat per milers: amb estrelles, informes d’errors, traduccions a idiomes que no parlo i pull requests de gent que no havia vist mai. Cada matí encara miro el repositori a primera hora, i encara no se’m fa del tot real.',
+    'Després vau arribar vosaltres, per milers: amb estrelles, informes d’errors, traduccions i pull requests de gent que no havia vist mai. Encara no se’m fa del tot real.',
   'system_notice.release_notes.note_closing': 'Gràcies per ser aquí. Maurice',
   'system_notice.release_notes.support_label': 'Possible gràcies a tu',
   'system_notice.release_notes.support_lead': 'TREK només existeix gràcies a les donacions.',
@@ -90,7 +89,8 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Dona suport a Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Cada mes a Patreon',
+  'system_notice.release_notes.apps_title': 'TREK ara és al teu mòbil',
   'system_notice.release_notes.intro':
-    'Els correus de reserva que reenvies arriben al teu viatge, TREK segueix els teus vols en directe i el PDF del viatge és totalment nou. TREK també funciona ara amb PostgreSQL.',
+    'Els correus de reserva que reenvies arriben al teu viatge, TREK segueix els teus vols en directe i el PDF del viatge és totalment nou.',
 };
 export default system_notice;

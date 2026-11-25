@@ -57,20 +57,17 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'تم تثبيت التحديث',
   'system_notice.release_notes.headline': 'اكتب أقل، سافر أكثر.',
   'system_notice.release_notes.intro':
-    'رسائل الحجز التي تعيد توجيهها تصل إلى رحلتك، ويتابع TREK رحلات طيرانك مباشرةً، وملف PDF للرحلة جديد كليًا. ويعمل TREK الآن على PostgreSQL أيضًا.',
+    'رسائل الحجز التي تعيد توجيهها تصل إلى رحلتك، ويتابع TREK رحلات طيرانك مباشرةً، وملف PDF للرحلة جديد كليًا.',
   'system_notice.release_notes.features_label': 'أبرز الجديد',
   'system_notice.release_notes.features_aside': 'وهذا ليس كل شيء',
   'system_notice.release_notes.feature_mail_title': 'رسائل الحجز تصل إلى رحلتك',
-  'system_notice.release_notes.feature_mail_body':
-    'أعد توجيه التأكيد إلى عنوانك الشخصي، وسيجد TREK رحلتك ويراجع الرسالة ويضيف الحجز مع مستنده.',
+  'system_notice.release_notes.feature_mail_body': 'أعد توجيه التأكيد وسيضيف TREK الحجز إلى الرحلة الصحيحة.',
   'system_notice.release_notes.feature_flight_title': 'حالة الرحلات الجوية مباشرةً، مجانًا',
-  'system_notice.release_notes.feature_flight_body':
-    'يتابع TREK كل رحلة طيران لك في يومها: الحالة والتأخير والمطارين وخريطة عليها الطائرة، دون مفتاح API.',
+  'system_notice.release_notes.feature_flight_body': 'الحالة والتأخير والطائرة على الخريطة، دون مفتاح API.',
   'system_notice.release_notes.feature_pdf_title': 'ملف PDF جديد للرحلة',
-  'system_notice.release_notes.feature_pdf_body':
-    'غلاف بمسارك، وكل يوم على شكل جدول زمني، وكل حجوزاتك برموزها، جاهز للطباعة أو المشاركة.',
+  'system_notice.release_notes.feature_pdf_body': 'مسارك وكل يوم وكل حجوزاتك، جاهزة للطباعة.',
   'system_notice.release_notes.footnote':
-    'إضافةً إلى PostgreSQL، والإضافات لكل رحلة، والوسوم على الأماكن، وطرق أكثر لتتبّع التكاليف، وقائمة طويلة من التغييرات الأصغر.',
+    'إضافةً إلى PostgreSQL، والإضافات لكل رحلة، والوسوم على الأماكن، وتغييرات أصغر كثيرة.',
   'system_notice.release_notes.notes_label': 'ملاحظات الإصدار',
   'system_notice.release_notes.note_eyebrow': 'كلمة من صاحب المشروع',
   'system_notice.release_notes.note_title': 'أنتم السبب في أنني ما زلت أبني TREK.',
@@ -80,7 +77,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_lead': 'سيبقى TREK مجانيًا، إلى الأبد.',
   'system_notice.release_notes.promise_text': 'كل ميزة، وكل تحديث، للجميع. لا باقات مدفوعة، لا اشتراكات، لا شروط خفية.',
   'system_notice.release_notes.note_body_after':
-    'ثم جئتم، وسرعان ما صرتم بالآلاف: بنجوم وتقارير أخطاء وترجمات إلى لغات لا أتحدثها وطلبات دمج من أشخاص لم ألتقِ بهم قط. ما زلت أتفقد المستودع أول شيء كل صباح، وما زال الأمر لا يبدو حقيقيًا تمامًا.',
+    'ثم جئتم بالآلاف: بنجوم وتقارير أخطاء وترجمات وطلبات دمج من أشخاص لم ألتقِ بهم قط. وما زال الأمر لا يبدو حقيقيًا تمامًا.',
   'system_notice.release_notes.note_closing': 'شكرًا لوجودك هنا. Maurice',
   'system_notice.release_notes.support_label': 'بفضلك أنت',
   'system_notice.release_notes.support_lead': 'TREK موجود بفضل التبرعات فقط.',
@@ -89,5 +86,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'اشترِ لي قهوة',
   'system_notice.release_notes.cta_kofi': 'ادعمني على Ko-fi',
   'system_notice.release_notes.cta_patreon': 'شهريًا على Patreon',
+  'system_notice.release_notes.apps_title': 'TREK الآن على هاتفك',
 };
 export default system_notice;

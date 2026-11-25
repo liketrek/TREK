@@ -59,20 +59,19 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': 'Aktualizacja zainstalowana',
   'system_notice.release_notes.headline': 'Mniej pisania, więcej podróży.',
   'system_notice.release_notes.intro':
-    'Maile z rezerwacjami, które przesyłasz dalej, trafiają do Twojej podróży, TREK śledzi Twoje loty na żywo, a PDF podróży jest zupełnie nowy. TREK działa teraz także na PostgreSQL.',
+    'Przesłane dalej maile z rezerwacjami trafiają do Twojej podróży, TREK śledzi Twoje loty na żywo, a PDF podróży jest zupełnie nowy.',
   'system_notice.release_notes.features_label': 'Najważniejsze nowości',
   'system_notice.release_notes.features_aside': 'To nie wszystko',
   'system_notice.release_notes.feature_mail_title': 'Maile z rezerwacjami trafiają do Twojej podróży',
   'system_notice.release_notes.feature_mail_body':
-    'Prześlij potwierdzenie na swój osobisty adres, a TREK znajdzie Twoją podróż, sprawdzi je i doda rezerwację razem z dokumentem.',
+    'Prześlij dalej potwierdzenie, a TREK doda rezerwację do właściwej podróży.',
   'system_notice.release_notes.feature_flight_title': 'Status lotu na żywo, za darmo',
-  'system_notice.release_notes.feature_flight_body':
-    'TREK śledzi każdy Twój lot w jego dniu: status, opóźnienie, oba lotniska i mapę z samolotem, bez klucza API.',
+  'system_notice.release_notes.feature_flight_body': 'Status, opóźnienia i samolot na mapie, bez klucza API.',
   'system_notice.release_notes.feature_pdf_title': 'Nowy PDF podróży',
   'system_notice.release_notes.feature_pdf_body':
-    'Okładka z Twoją trasą, każdy dzień jako oś czasu i wszystkie Twoje rezerwacje z kodami, gotowe do wydruku lub udostępnienia.',
+    'Twoja trasa, każdy dzień i wszystkie Twoje rezerwacje, gotowe do wydruku.',
   'system_notice.release_notes.footnote':
-    'Do tego PostgreSQL, dodatki dla każdej podróży, tagi przy miejscach, więcej sposobów na pilnowanie kosztów i długa lista drobniejszych zmian.',
+    'Do tego PostgreSQL, dodatki dla każdej podróży, tagi przy miejscach i wiele drobniejszych zmian.',
   'system_notice.release_notes.notes_label': 'Notatki do wydania',
   'system_notice.release_notes.note_eyebrow': 'Słowo od autora',
   'system_notice.release_notes.note_title': 'To dzięki wam wciąż rozwijam TREK.',
@@ -83,7 +82,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text':
     'Każda funkcja, każda aktualizacja, dla wszystkich. Bez płatnych wersji, bez subskrypcji, bez haczyków.',
   'system_notice.release_notes.note_body_after':
-    'Potem przyszliście wy, wkrótce tysiącami: z gwiazdkami, zgłoszeniami błędów, tłumaczeniami na języki, których nie znam, i pull requestami od ludzi, których nigdy nie spotkałem. Wciąż co rano najpierw zaglądam do repozytorium i nadal nie wydaje mi się to do końca prawdziwe.',
+    'Potem przyszliście wy, tysiącami: z gwiazdkami, zgłoszeniami błędów, tłumaczeniami i pull requestami od ludzi, których nigdy nie spotkałem. Nadal nie wydaje mi się to do końca prawdziwe.',
   'system_notice.release_notes.note_closing': 'Dziękuję, że tu jesteście. Maurice',
   'system_notice.release_notes.support_label': 'Dzięki Tobie',
   'system_notice.release_notes.support_lead': 'TREK istnieje tylko dzięki darowiznom.',
@@ -92,5 +91,6 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.cta_bmc': 'Postaw mi kawę',
   'system_notice.release_notes.cta_kofi': 'Wesprzyj na Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Co miesiąc na Patreonie',
+  'system_notice.release_notes.apps_title': 'TREK jest teraz w Twoim telefonie',
 };
 export default system_notice;
