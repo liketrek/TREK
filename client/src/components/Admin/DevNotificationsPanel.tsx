@@ -25,20 +25,17 @@ function ButtonGrid({ children }: { children: React.ReactNode }): React.ReactEle
   return <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">{children}</div>
 }
 
-export default function DevNotificationsPanel(): React.ReactElement {
-  const ids = useId()
-  const {
-    sending, trips, selectedTripId, setSelectedTripId, users, selectedUserId, setSelectedUserId,
-    tripInviteId, vacayInviteId, send,
-  } = useDevNotifications()
-
-  // ── Helpers ──────────────────────────────────────────────────────────────
-
-  const Btn = ({
-    id, label, sub, icon: Icon, onClick,
-  }: {
-    id: string; label: string; sub: string; icon: React.ElementType; onClick: () => void
-  }) => (
+/**
+ * One send button. Declared here, not inside the panel: a component made during
+ * render is a new type on every render, so React would remount every button on
+ * each state change and a click could land on one that is already gone.
+ */
+function Btn({
+  id, label, sub, icon: Icon, onClick, sending,
+}: {
+  id: string; label: string; sub: string; icon: React.ElementType; onClick: () => void; sending: string | null
+}): React.ReactElement {
+  return (
     <button type="button"
       onClick={onClick}
       disabled={sending !== null}
@@ -54,6 +51,14 @@ export default function DevNotificationsPanel(): React.ReactElement {
       {sending === id && <Loader2 size={15} className="flex-none animate-spin text-content-faint" />}
     </button>
   )
+}
+
+export default function DevNotificationsPanel(): React.ReactElement {
+  const ids = useId()
+  const {
+    sending, trips, selectedTripId, setSelectedTripId, users, selectedUserId, setSelectedUserId,
+    tripInviteId, vacayInviteId, send,
+  } = useDevNotifications()
 
   return (
     <div>
@@ -66,16 +71,16 @@ export default function DevNotificationsPanel(): React.ReactElement {
         badge={<StatusPill tone="warning">DEV ONLY</StatusPill>}
       >
         <ButtonGrid>
-          <Btn id="simple-me" label="Simple → Me" sub="test_simple · user" icon={Bell}
+          <Btn sending={sending} id="simple-me" label="Simple → Me" sub="test_simple · user" icon={Bell}
             onClick={send.simpleMe}
           />
-          <Btn id="boolean-me" label="Boolean → Me" sub="test_boolean · user" icon={CheckCircle}
+          <Btn sending={sending} id="boolean-me" label="Boolean → Me" sub="test_boolean · user" icon={CheckCircle}
             onClick={send.booleanMe}
           />
-          <Btn id="navigate-me" label="Navigate → Me" sub="test_navigate · user" icon={Navigation}
+          <Btn sending={sending} id="navigate-me" label="Navigate → Me" sub="test_navigate · user" icon={Navigation}
             onClick={send.navigateMe}
           />
-          <Btn id="simple-admins" label="Simple → All Admins" sub="test_simple · admin" icon={Zap}
+          <Btn sending={sending} id="simple-admins" label="Simple → All Admins" sub="test_simple · admin" icon={Zap}
             onClick={send.simpleAdmins}
           />
         </ButtonGrid>
@@ -94,19 +99,19 @@ export default function DevNotificationsPanel(): React.ReactElement {
             </SelectBox>
           </EditorField>
           <ButtonGrid>
-            <Btn id="booking_change" label="booking_change" sub="navigate · trip" icon={Calendar}
+            <Btn sending={sending} id="booking_change" label="booking_change" sub="navigate · trip" icon={Calendar}
               onClick={send.bookingChange}
             />
-            <Btn id="trip_reminder" label="trip_reminder" sub="navigate · trip" icon={Clock}
+            <Btn sending={sending} id="trip_reminder" label="trip_reminder" sub="navigate · trip" icon={Clock}
               onClick={send.tripReminder}
             />
-            <Btn id="photos_shared" label="photos_shared" sub="navigate · trip" icon={Image}
+            <Btn sending={sending} id="photos_shared" label="photos_shared" sub="navigate · trip" icon={Image}
               onClick={send.photosShared}
             />
-            <Btn id="collab_message" label="collab_message" sub="navigate · trip" icon={MessageSquare}
+            <Btn sending={sending} id="collab_message" label="collab_message" sub="navigate · trip" icon={MessageSquare}
               onClick={send.collabMessage}
             />
-            <Btn id="packing_tagged" label="packing_tagged" sub="navigate · trip" icon={Tag}
+            <Btn sending={sending} id="packing_tagged" label="packing_tagged" sub="navigate · trip" icon={Tag}
               onClick={send.packingTagged}
             />
           </ButtonGrid>
@@ -127,6 +132,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
           </EditorField>
           <ButtonGrid>
             <Btn
+              sending={sending}
               id={tripInviteId}
               label="trip_invite"
               sub="navigate · user"
@@ -134,6 +140,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
               onClick={send.tripInvite}
             />
             <Btn
+              sending={sending}
               id={vacayInviteId}
               label="vacay_invite"
               sub="navigate · user"
@@ -147,7 +154,7 @@ export default function DevNotificationsPanel(): React.ReactElement {
       {/* ── Admin-Scoped Events ──────────────────────────────────────────── */}
       <SettingsCard icon={ShieldCheck} title="Admin-Scoped Events" hint="Fires to all admin users.">
         <ButtonGrid>
-          <Btn id="version_available" label="version_available" sub="navigate · admin" icon={Download}
+          <Btn sending={sending} id="version_available" label="version_available" sub="navigate · admin" icon={Download}
             onClick={send.versionAvailable}
           />
         </ButtonGrid>

@@ -349,4 +349,16 @@ describe('DevNotificationsPanel', () => {
     expect(btn.style.background).toBe('');
     expect(btn.className).toContain('hover:bg-surface-secondary');
   });
+
+  it('FE-ADMIN-DEVNOTIF-017: a send button stays the same element while the panel updates around it', async () => {
+    render(<><ToastContainer /><DevNotificationsPanel /></>);
+    const btn = screen.getByRole('button', { name: /Simple → Me/ });
+
+    // The lookups answer and re-render the panel.
+    await screen.findByText('Trip-Scoped Events');
+    await screen.findByText('User-Scoped Events');
+
+    expect(btn.isConnected).toBe(true);
+    expect(screen.getByRole('button', { name: /Simple → Me/ })).toBe(btn);
+  });
 });
