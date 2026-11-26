@@ -135,16 +135,14 @@ describe('OauthPublicController /token', () => {
     // The password changed since the consent: the code grants nothing, and the refusal is audited.
     const stale = makeRes();
     const staleSvc = osvc({
-      consumeAuthCode: vi
-        .fn()
-        .mockReturnValue({
-          clientId: 'c',
-          redirectUri: 'u',
-          userId: 1,
-          scopes: ['s'],
-          codeChallenge: 'cc',
-          resource: null,
-        }),
+      consumeAuthCode: vi.fn().mockReturnValue({
+        clientId: 'c',
+        redirectUri: 'u',
+        userId: 1,
+        scopes: ['s'],
+        codeChallenge: 'cc',
+        resource: null,
+      }),
       authenticateClient: vi.fn().mockReturnValue({ id: 'c' }),
       verifyPKCE: vi.fn().mockReturnValue(true),
       issueTokensForCode: vi.fn().mockReturnValue(null),

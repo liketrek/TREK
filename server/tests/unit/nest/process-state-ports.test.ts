@@ -66,6 +66,7 @@ function code(over: Partial<PendingCode> = {}): PendingCode {
     resource: null,
     codeChallenge: 'x',
     codeChallengeMethod: 'S256',
+    passwordVersion: 0,
     expiresAt: Date.now() + 60_000,
     ...over,
   };
