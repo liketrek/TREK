@@ -73,22 +73,30 @@ COPY server/package.json ./server/
 # The upgrade takes the Debian security fixes the base image was built before
 # (zlib, 11/2026, failed the image scan until node:24-trixie-slim caught up).
 #
-# postgresql-client-18 brings pg_dump, pg_restore and psql to
-# /usr/lib/postgresql/18/bin, which back up and restore an install on Postgres
+# postgresql-client-19 brings pg_dump, pg_restore and psql to
+# /usr/lib/postgresql/19/bin, which back up and restore an install on Postgres
 # (TREK_DB_URL). A client handles every server up to its own major and refuses
-# a newer one, so the image carries the newest major TREK supports (14 to 18).
+# a newer one, so the image carries the newest major TREK supports (14 to 19).
 # Debian 13 ships 17 only, so it comes from the PostgreSQL project's apt
-# repository (PGDG): the `18` component lists that major's packages and no
-# other, and the repository's signing key (fingerprint B97B 0AFC AA1A 47F0 44F2
-# 44A0 7FCC 7D46 ACCC 4CF8) is kept beside the entrypoint instead of fetched at
-# build time. Raise both together when TREK supports a newer major.
+# repository (PGDG): its `main` component carries every major the project
+# supports, and the package name pins the one installed. The per-major
+# components can trail a new release, so the image does not rely on them. The
+# repository's signing key (fingerprint B97B 0AFC AA1A 47F0 44F2 44A0 7FCC 7D46
+# ACCC 4CF8) is kept beside the entrypoint instead of fetched at build time.
+# Raise the package together with SUPPORTED_SERVER_MAJORS in
+# server/src/db/engine/postgres/server-checks.ts.
+# Earlier images carried the version 18 tools, and installs that set
+# TREK_DB_PG_BIN_DIR=/usr/lib/postgresql/18/bin (the old .env.example value)
+# would lose backups and the pre-migrate snapshot after updating, so that path
+# stays as a link to the 19 tools, which handle every supported server.
 COPY server/scripts/pgdg-apt-key.asc /etc/apt/keyrings/pgdg.asc
-RUN echo 'deb [signed-by=/etc/apt/keyrings/pgdg.asc] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main 18' \
+RUN echo 'deb [signed-by=/etc/apt/keyrings/pgdg.asc] http://apt.postgresql.org/pub/repos/apt trixie-pgdg main' \
       > /etc/apt/sources.list.d/pgdg.list && \
     apt-get update && \
     apt-get upgrade -y --no-install-recommends && \
     apt-get install -y --no-install-recommends tzdata dumb-init wget ca-certificates \
-    libkitinerary-bin libsqlite3-0 postgresql-client-18 && \
+    libkitinerary-bin libsqlite3-0 postgresql-client-19 && \
+    mkdir -p /usr/lib/postgresql/18 && ln -s /usr/lib/postgresql/19/bin /usr/lib/postgresql/18/bin && \
     npm ci --workspace=server --omit=dev --ignore-scripts && \
     { ln -sf "$(find /usr/lib -name kitinerary-extractor -type f | head -1)" /usr/local/bin/kitinerary-extractor || true; } && \
     rm -rf /var/lib/apt/lists/* /usr/local/lib/node_modules/npm /usr/local/bin/npm /usr/local/bin/npx && \

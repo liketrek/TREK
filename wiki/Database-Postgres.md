@@ -2,7 +2,7 @@
 
 By default TREK keeps all data in one SQLite file, `travel.db`, in the data directory. Setting `TREK_DB_URL` runs TREK on a PostgreSQL database instead. Without that variable nothing changes, and every page of this wiki that describes `travel.db` still applies to an install on SQLite.
 
-> **Status:** Postgres support is new. On every pull request, CI runs the server test suites that start the app against PostgreSQL 14 and 18, the oldest and newest supported versions. It has also been checked by hand end to end against PostgreSQL 17 in Docker (first boot, sign-in, trips, backup and restore, the copy before a migration, `RESTORE_FROM_BACKUP`). The same checks have been run against a Supabase project over its direct connection; see [Supabase](#supabase) and the [Manual verification checklist](#manual-verification-checklist) below.
+> **Status:** Postgres support is new. On every pull request, CI runs the server test suites that start the app against PostgreSQL 14 and 19, the oldest and newest supported versions. It has also been checked by hand end to end against PostgreSQL 17 in Docker (first boot, sign-in, trips, backup and restore, the copy before a migration, `RESTORE_FROM_BACKUP`). The same checks have been run against a Supabase project over its direct connection; see [Supabase](#supabase) and the [Manual verification checklist](#manual-verification-checklist) below.
 
 ## When to use it
 
@@ -12,11 +12,11 @@ Postgres does not make TREK scale out. TREK still runs as one process. See [Limi
 
 ## Requirements
 
-- **PostgreSQL 14 to 18.** TREK refuses to start on any other server version, before it writes anything.
+- **PostgreSQL 14 to 19.** TREK refuses to start on any other server version, before it writes anything.
 - **An empty database dedicated to TREK.** TREK creates its schema in an empty database. It refuses a database that holds tables it did not create, and a restore replaces everything in the schema it loads into. Do not share the database with another application.
 - **A role that is not a superuser,** which owns the database or can create objects in its schema. A backup archive is a SQL script run by this role during a restore, so a role with fewer privileges limits what a crafted archive can do. A restore refuses a role that could reach the database server from SQL (a superuser, a member of a superuser role, a role that holds `pg_execute_server_program`, `pg_read_server_files` or `pg_write_server_files` or may run a server file function such as `lo_export` or `pg_read_file`, from PostgreSQL 15 on a role granted ALTER SYSTEM or a superuser-only setting, and on PostgreSQL 14 and 15 a role with CREATEROLE or a member of one), and TREK warns about such a role when it starts. See [A role that is not a superuser](#a-role-that-is-not-a-superuser).
 - **ICU support in the server.** The schema creates the collation `nocase` with `provider = icu`, so the server must be built with ICU. The official `postgres` images include it.
-- **PostgreSQL client tools** (`pg_dump`, `pg_restore`, `psql`) for backups, restores and the copy TREK takes before a migration. The Docker image installs the version 18 client, which works with every supported server. A client works with servers up to its own major version, so a client outside the image must be at least as new as the server; TREK refuses an older one with a message that names both versions. See [Configuration](#configuration).
+- **PostgreSQL client tools** (`pg_dump`, `pg_restore`, `psql`) for backups, restores and the copy TREK takes before a migration. The Docker image installs the version 19 client, which works with every supported server. A client works with servers up to its own major version, so a client outside the image must be at least as new as the server; TREK refuses an older one with a message that names both versions. See [Configuration](#configuration).
 - **Client tool versions that carry the CVE-2025-8714 fix.** A restore refuses `pg_restore` or `psql` older than 18.0, 17.6, 16.10, 15.14 or 14.19.
 
 ## Configuration
@@ -63,13 +63,14 @@ The key file must satisfy libpq's rule, or `pg_dump`, `pg_restore` and `psql` re
 
 TREK runs the tools by their absolute path. It does not search `PATH`. When `TREK_DB_PG_BIN_DIR` is unset, TREK looks in these directories, in order, and uses the first one that holds the tool:
 
-1. `/usr/lib/postgresql/18/bin`
-2. `/usr/lib/postgresql/17/bin`
-3. `/usr/lib/postgresql/16/bin`
-4. `/usr/lib/postgresql/15/bin`
-5. `/usr/lib/postgresql/14/bin`
-6. `/usr/local/bin`
-7. `/usr/bin`
+1. `/usr/lib/postgresql/19/bin`
+2. `/usr/lib/postgresql/18/bin`
+3. `/usr/lib/postgresql/17/bin`
+4. `/usr/lib/postgresql/16/bin`
+5. `/usr/lib/postgresql/15/bin`
+6. `/usr/lib/postgresql/14/bin`
+7. `/usr/local/bin`
+8. `/usr/bin`
 
 The newest version comes first, because a client works with every server up to its own major version and refuses a newer one.
 
@@ -85,16 +86,16 @@ If that first start fails because a password is missing, the database is already
 
 #### Postgres versions and the volume path
 
-The file uses PostgreSQL 18, the newest version TREK supports, which matches the client tools in the TREK image. The `postgres` image keeps its data in a different place before and from version 18, so the volume is mounted at another path:
+The file uses PostgreSQL 18. TREK supports up to 19 and the client tools in the TREK image are version 19, so a new database may also run `postgres:19`, on the same volume path. The `postgres` image keeps its data in a different place before and from version 18, so the volume is mounted at another path:
 
 | Image | Volume mounted at |
 |---|---|
-| `postgres:18` | `/var/lib/postgresql` |
+| `postgres:18`, `postgres:19` | `/var/lib/postgresql` |
 | `postgres:14` to `postgres:17` | `/var/lib/postgresql/data` |
 
-To run 14 to 17, change both the image tag and the volume path in the `db` service. The 18 image refuses a volume at `/var/lib/postgresql/data`, and a 14 to 17 image with its volume one level up would keep the data in an anonymous volume, which `docker compose down` leaves behind, so the next start comes up on an empty database.
+To run 14 to 17, change both the image tag and the volume path in the `db` service. The 18 and 19 images refuse a volume at `/var/lib/postgresql/data`, and a 14 to 17 image with its volume one level up would keep the data in an anonymous volume, which `docker compose down` leaves behind, so the next start comes up on an empty database.
 
-A database stays on the major version it was created with. When you update `docker-compose.postgres.yml`, keep the image tag and the volume path of your existing database. A new image tag on the old volume does not bring the data along: the 18 image refuses a volume that holds an older database, and an older image does not find the data of a newer one. To move a database to another major, use `pg_upgrade`, or dump and restore it: take a backup under **Admin > Backup** and download it, start the new major on a new, empty volume, and restore the backup there, on the first start with `RESTORE_FROM_BACKUP` (see [Backups and restore](#backups-and-restore)) or under **Admin > Backup**. TREK's backups restore into the same or a newer major; TREK refuses a backup from a newer major than the server it restores into.
+A database stays on the major version it was created with. When you update `docker-compose.postgres.yml`, keep the image tag and the volume path of your existing database. A new image tag on the old volume does not bring the data along: the 18 or 19 image refuses a volume that holds an older database, and an older image does not find the data of a newer one. To move a database to another major, use `pg_upgrade`, or dump and restore it: take a backup under **Admin > Backup** and download it, start the new major on a new, empty volume, and restore the backup there, on the first start with `RESTORE_FROM_BACKUP` (see [Backups and restore](#backups-and-restore)) or under **Admin > Backup**. TREK's backups restore into the same or a newer major; TREK refuses a backup from a newer major than the server it restores into.
 
 ### A role that is not a superuser
 
@@ -266,7 +267,7 @@ A plugin with the `db:own` permission keeps its own database. On SQLite that is 
 - **Moving from SQLite goes one way.** The [move command](#moving-an-existing-install-to-postgres) copies a SQLite install into an empty Postgres database. The way back is to start TREK on the untouched SQLite file again; nothing copies Postgres data back into SQLite.
 - **No more than one TREK replica.** TREK keeps state in memory: rate limits, pending one-time codes, the permission cache and the WebSocket connections. Each process has its own copy, so two replicas would disagree with each other. Keep `replicas: 1` in the Helm chart and one `trek` container. Postgres does not change that.
 - **Two processes booting on one database at once are not coordinated.** Start one process for the first boot and for each upgrade, then continue with one.
-- **PostgreSQL 14 to 18 only.** A newer server is refused until a TREK release supports it, because the image's client tools would not be able to back it up.
+- **PostgreSQL 14 to 19 only.** A newer server is refused until a TREK release supports it, because the image's client tools would not be able to back it up.
 - **One TREK instance per database.** Plugin data schemas are named after the plugin alone (see [Plugin data](#plugin-data)), and a restore drops the plugin schemas the role owns. Give each instance its own database.
 - **Writes are serialized.** TREK takes a database-wide advisory lock for each write transaction, as the SQLite engine does with its single writer. Heavy concurrent writes wait on that lock.
 

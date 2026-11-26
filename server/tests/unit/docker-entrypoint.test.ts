@@ -110,3 +110,14 @@ describe('entrypoint script', () => {
     expect(source).not.toMatch(/^\s*exec gosu/m);
   });
 });
+
+// Earlier images carried the version 18 client tools, and the old .env.example
+// suggested TREK_DB_PG_BIN_DIR=/usr/lib/postgresql/18/bin. resolvePgTool looks
+// only in a configured directory, so without the link such an install loses its
+// backups and the mandatory pre-migrate snapshot after updating the image.
+describe('postgres client tools in the image', () => {
+  it('installs the version 19 client and keeps the version 18 directory as a link to it', () => {
+    expect(dockerfile).toMatch(/\bpostgresql-client-19\b/);
+    expect(dockerfile).toContain('ln -s /usr/lib/postgresql/19/bin /usr/lib/postgresql/18/bin');
+  });
+});

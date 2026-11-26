@@ -35,7 +35,7 @@ permissions:
 #   Server tests i/10        one slice of the server suite, with coverage
 #   Server coverage          merges the slices, checks the per-domain
 #                            thresholds, uploads lcov
-#   Server Postgres 14 i/3, Server Postgres 18 i/3
+#   Server Postgres 14 i/3, Server Postgres 19 i/3
 #                            per supported major, in three slices: the probe
 #                            (the repository SQL against Postgres, first slice
 #                            only), then a slice of the lane (every suite that
@@ -55,7 +55,7 @@ permissions:
 #   Client e2e i/2           one slice of the browser flows in Chromium and
 #                            WebKit, in the Playwright container
 #   Docker and Helm          builds the image and boots it until ready, on
-#                            SQLite and on Postgres 18; lints and renders the
+#                            SQLite and on Postgres 19; lints and renders the
 #                            Helm chart and checks the compose files
 #   Sonar                    SonarCloud analysis, not required
 #   ci-ok                    the one required check (below)
@@ -639,7 +639,7 @@ jobs:
           retention-days: 1
 
   # TREK on Postgres, once per supported major: the oldest (14) and the newest
-  # (18). Both steps run against the same service, the probe on an empty
+  # (19). Both steps run against the same service, the probe on an empty
   # database of its own, the lane on databases it creates and drops.
   #
   # The probe (server/scripts/pg-probe.ts): against an empty Postgres it
@@ -696,7 +696,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        postgres: [14, 18]
+        postgres: [14, 19]
         shard: [1, 2, 3]
     services:
       postgres:
@@ -757,14 +757,14 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
-      # The image ships the 18 client tools, which write settings a 14 server
+      # The image ships the 19 client tools, which write settings a 14 server
       # does not know; the backup round trip runs with the same tools here.
-      - name: Install the PostgreSQL 18 client tools
+      - name: Install the PostgreSQL 19 client tools
         run: |
           set -euo pipefail
           sudo /usr/share/postgresql-common/pgdg/apt.postgresql.org.sh -y >/dev/null
-          sudo apt-get install -y --no-install-recommends postgresql-client-18 >/dev/null
-          /usr/lib/postgresql/18/bin/pg_restore --version
+          sudo apt-get install -y --no-install-recommends postgresql-client-19 >/dev/null
+          /usr/lib/postgresql/19/bin/pg_restore --version
 
       - name: Run the Postgres lane
         if: ${{ !cancelled() }}
@@ -1347,7 +1347,7 @@ jobs:
           set -euo pipefail
           docker network create trek-ci-pg
           docker run -d --name trek-ci-db --network trek-ci-pg \
-            -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=trek postgres:18
+            -e POSTGRES_PASSWORD=ci -e POSTGRES_DB=trek postgres:19
           for _ in $(seq 1 30); do
             docker exec trek-ci-db pg_isready -U postgres -d trek >/dev/null 2>&1 && break
             sleep 2

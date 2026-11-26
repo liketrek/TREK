@@ -28,7 +28,7 @@
  * (tests/unit/nest-rpc/rpc-row-id-params.test.ts) for plugin RPC params.
  *
  * It boots the app on the real database module, so it runs in the SQLite
- * suite and in the Postgres lane on 14 and 18.
+ * suite and in the Postgres lane on 14 and 19.
  */
 import { buildApp } from '../../src/bootstrap';
 import { Addons } from '../../src/db/entities/Addons.entity';

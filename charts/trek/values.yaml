@@ -190,7 +190,7 @@ env:
 # starting it on SQLite. The role in the URL owns TREK's database and must not be a superuser
 # (nor a member of one, nor hold a right that reaches the server's files or programs): a
 # restore runs the backup's SQL as that role and refuses one that could reach the database host. The wiki page shows the
-# SQL that creates such a role. PostgreSQL 14 to 18 is supported.
+# SQL that creates such a role. PostgreSQL 14 to 19 is supported.
 #   url: "postgres://trek:<password>@postgres.example.internal:5432/trek?sslmode=require"
 database:
   url: ""

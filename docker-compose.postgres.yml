@@ -21,11 +21,12 @@
 # superuser trek; the wiki page Database-Postgres ("Moving a compose install
 # off the superuser") shows how to move it to this layout.
 #
-# The database runs PostgreSQL 18. TREK supports 14 to 18: to run 14 to 17,
-# change the image tag and mount the volume at /var/lib/postgresql/data
-# instead, where those images keep their data (the 18 image refuses that
-# path). An existing database stays on the major it was created with: when
-# you update this file, keep your image tag and volume path. Moving to
+# The database runs PostgreSQL 18. TREK supports 14 to 19: a new database
+# may run postgres:19 on the same volume path. To run 14 to 17, change the
+# image tag and mount the volume at /var/lib/postgresql/data instead, where
+# those images keep their data (the 18 and 19 images refuse that path). An
+# existing database stays on the major it was created with: when you update
+# this file, keep your image tag and volume path. Moving to
 # another major needs pg_upgrade, or a dump and restore (a TREK backup
 # restored into a new, empty database of the same or a newer major), never
 # just a new image tag.
@@ -46,7 +47,7 @@ services:
       - no-new-privileges:true
     # No ports are published: only the trek service on the compose network reaches the database.
     volumes:
-      # The path the postgres:18 image expects. Images 14 to 17 need
+      # The path the postgres:18 and :19 images expect. Images 14 to 17 need
       # /var/lib/postgresql/data here (see the top of this file).
       - trek-pgdata:/var/lib/postgresql
     healthcheck:
