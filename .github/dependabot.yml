@@ -28,8 +28,10 @@ updates:
     groups:
       # Packages that release in lockstep move together, so a PR never pins
       # half of them on one version and half on the next.
+      # better-sqlite3 and kysely are pinned exactly by @mikro-orm/sqlite and
+      # share its connection, so they move with MikroORM.
       mikro-orm:
-        patterns: ['@mikro-orm/*']
+        patterns: ['@mikro-orm/*', better-sqlite3, kysely]
         update-types: [minor, patch]
       nestjs:
         patterns: ['@nestjs/*']
@@ -58,17 +60,6 @@ updates:
       # advisory for one of them still shows up in the Security tab, where it
       # is handled together with that reason.
       #
-      # MikroORM 7.2.9 and later refuse a plain value for a foreign key that
-      # points at a unique column other than the primary key, which the OAuth
-      # token and consent repositories write: every OAuth sign-in would fail.
-      # It moves together with those writes.
-      - dependency-name: '@mikro-orm/*'
-        versions: ['>=7.2.9']
-      # Pinned exactly by @mikro-orm/sqlite, and sharing its connection.
-      - dependency-name: better-sqlite3
-        update-types: [version-update:semver-major, version-update:semver-minor, version-update:semver-patch]
-      - dependency-name: kysely
-        update-types: [version-update:semver-major, version-update:semver-minor, version-update:semver-patch]
       # Pinned exactly by @nestjs/schedule; a newer cron of our own would be a
       # second copy whose CronJob the scheduler does not accept.
       - dependency-name: cron
@@ -77,10 +68,6 @@ updates:
       # Alpine image needs the musl binaries).
       - dependency-name: '@rollup/rollup-linux-*-musl'
         update-types: [version-update:semver-major, version-update:semver-minor, version-update:semver-patch]
-      # msw 3 renames the unhandled request option and changes how requests
-      # reach the handlers; the client tests move to it as one migration.
-      - dependency-name: msw
-        update-types: [version-update:semver-major]
 
   # plugin-sdk is standalone with a lockfile of its own and ships to npm.
   - package-ecosystem: npm
