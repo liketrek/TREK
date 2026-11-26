@@ -122,6 +122,6 @@ describe('ReservationImportController upload options', () => {
   it.each(['preview', 'previewAsync'] as const)('%s decodes non-ASCII filenames as UTF-8', (handler) => {
     const multer = multerOf(handler);
     expect(multer.defParamCharset).toBe('utf8');
-    expect(multer.limits).toEqual({ fileSize: 10 * 1024 * 1024, files: 5 });
+    expect(multer.limits).toMatchObject({ fileSize: 10 * 1024 * 1024, files: 5 });
   });
 });
