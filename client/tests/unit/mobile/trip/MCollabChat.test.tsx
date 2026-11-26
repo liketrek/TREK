@@ -266,7 +266,9 @@ describe('MCollabChat', () => {
     expect(send).toBeEnabled()
     fireEvent.click(send)
 
-    expect(await screen.findByText('Landed safely')).toBeInTheDocument()
+    // React mirrors the draft into the textarea's text, so the composer itself
+    // matches the trimmed text; wait for the appended bubble, not the draft.
+    expect(await screen.findByText('Landed safely', { ignore: 'script, style, textarea' })).toBeInTheDocument()
     expect(sentBodies).toEqual([{ text: 'Landed safely' }])
     expect(input).toHaveValue('')
   })

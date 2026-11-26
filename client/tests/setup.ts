@@ -26,10 +26,13 @@ vi.mock('../src/api/websocket', () => ({
 // lets it through, so the runner really talks to frankfurter or a tile server and settles
 // a promise after the test environment is gone (see handlers/external.ts). Those fail now.
 // An unhandled same-origin call stays a warning: that is a missing handler, not egress.
+// Only HTTP frames are judged, as before msw 3 reported every network frame here.
 beforeAll(() => server.listen({
-  onUnhandledRequest: (request, print) => {
-    if (new URL(request.url).origin === location.origin) print.warning();
-    else print.error();
+  onUnhandledFrame: ({ frame, defaults }) => {
+    if (frame.protocol !== 'http') return;
+    const { request } = frame.data as { request: Request };
+    if (new URL(request.url).origin === location.origin) defaults.warn();
+    else defaults.error();
   },
 }));
 afterEach(() => {

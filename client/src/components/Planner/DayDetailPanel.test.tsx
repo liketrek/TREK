@@ -5,43 +5,17 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { useAuthStore } from '../../store/authStore';
-import { useTripStore } from '../../store/tripStore';
 import { useSettingsStore } from '../../store/settingsStore';
 import { usePermissionsStore } from '../../store/permissionsStore';
 import { usePluginStore } from '../../store/pluginStore';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { buildUser, buildAdmin, buildTrip, buildDay, buildPlace, buildReservation } from '../../../tests/helpers/factories';
+import { seedStore } from '../../../tests/helpers/store';
+import { buildUser, buildAdmin, buildDay, buildPlace, buildReservation } from '../../../tests/helpers/factories';
+import { dayDetailDay as day, dayDetailProps as defaultProps, resetDayDetailPanel } from '../../../tests/helpers/dayDetailPanel';
 import DayDetailPanel from './DayDetailPanel';
 import { isBlurred } from '../../../tests/helpers/bookingCodeBlur';
 
-const day = buildDay({ id: 1, trip_id: 1, date: '2025-06-15', title: 'Day in Paris' });
-
-const defaultProps = {
-  day,
-  days: [day],
-  places: [],
-  categories: [],
-  tripId: 1,
-  assignments: {},
-  reservations: [],
-  lat: null,
-  lng: null,
-  onClose: vi.fn(),
-  onAccommodationChange: vi.fn(),
-};
-
 beforeEach(() => {
-  resetAllStores();
-  vi.clearAllMocks();
-  server.use(
-    http.get('/api/weather/detailed', () => HttpResponse.json({ error: true })),
-    http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [] })),
-  );
-  seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
-  seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
-  seedStore(useSettingsStore, {
-    settings: { time_format: '24h', temperature_unit: 'celsius', blur_booking_codes: false },
-  });
+  resetDayDetailPanel({ time_format: '24h', temperature_unit: 'celsius', blur_booking_codes: false });
 });
 
 /** The stay picker filters by category through a pill that opens its list; this picks one entry of it. */
@@ -147,13 +121,23 @@ describe('DayDetailPanel', () => {
   });
 
   it('FE-PLANNER-DAYDETAIL-009: weather loading state shown briefly', async () => {
+    // The forecast is held until the spinner was seen, then released, so the request
+    // does not stay open past this test.
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => { release = resolve; });
     server.use(
-      http.get('/api/weather/detailed', () => new Promise(() => {})), // never resolves
+      http.get('/api/weather/detailed', async () => {
+        await gate;
+        return HttpResponse.json({ error: true });
+      }),
     );
     render(<DayDetailPanel {...defaultProps} lat={48.8566} lng={2.3522} />);
     // The spinner announces itself as a loading status
     const spinner = await screen.findByRole('status', { name: 'Loading...' });
     expect(spinner.querySelector('.animate-spin')).not.toBeNull();
+
+    release();
+    expect(await screen.findByText(/No weather/i)).toBeInTheDocument();
   });
 
   it('FE-PLANNER-DAYDETAIL-101: a late forecast for the previous day never replaces the one for the current day', async () => {
@@ -1606,14 +1590,14 @@ describe('DayDetailPanel remaining branches', () => {
     const user = userEvent.setup();
     const onAccommodationChange = vi.fn();
     let updateBody: Record<string, unknown> | null = null;
-    let listCalls = 0;
+    // The reload after the save reads the new name; keyed on the save, not on a
+    // count of reads, so a stray read before it cannot rename the stay early.
     server.use(
-      http.get('/api/trips/1/accommodations', () => {
-        listCalls += 1;
-        return HttpResponse.json({
-          accommodations: [hotel(listCalls > 1 ? { place_name: 'Reloaded Hotel' } : {})],
-        });
-      }),
+      http.get('/api/trips/1/accommodations', () =>
+        HttpResponse.json({
+          accommodations: [hotel(updateBody ? { place_name: 'Reloaded Hotel' } : {})],
+        }),
+      ),
       http.put('/api/trips/1/accommodations/1', async ({ request }) => {
         updateBody = (await request.json()) as Record<string, unknown>;
         return HttpResponse.json({ accommodation: hotel() });
@@ -1874,25 +1858,40 @@ describe('DayDetailPanel remaining branches, part two', () => {
     expect(await screen.findByText('15h 20m')).toBeInTheDocument();
   });
 
-  it('FE-W5DDP-021: a collapsed untitled day falls back to its position, or to ? when it has none', () => {
+  it('FE-W5DDP-021: a collapsed untitled day falls back to its position, or to ? when it has none', async () => {
+    // Each mount reads the stays; wait for that read to be answered, so it cannot
+    // reach the handler of the test that runs next.
+    let staysRead = 0;
+    server.use(
+      http.get('/api/trips/1/accommodations', () => {
+        staysRead += 1;
+        return HttpResponse.json({ accommodations: [] });
+      }),
+    );
     const bare = buildDay({ id: 2, trip_id: 1, date: null, title: null });
     const { unmount } = render(<DayDetailPanel {...defaultProps} day={bare} days={[defaultProps.day, bare]} collapsed />);
     expect(screen.getByText('Day 2')).toBeInTheDocument();
+    await waitFor(() => expect(staysRead).toBe(1));
     unmount();
 
     render(<DayDetailPanel {...defaultProps} day={bare} days={[]} collapsed />);
     expect(screen.getByText('Day ?')).toBeInTheDocument();
+    await waitFor(() => expect(staysRead).toBe(2));
   });
 
   it('FE-W5DDP-020: an empty reload after the edit-save clears the accommodation', async () => {
     const user = userEvent.setup();
-    let listCalls = 0;
+    // The list empties once the edit is saved, not on a count of reads, so a stray
+    // read before the save cannot empty it early.
+    let saved = false;
     server.use(
-      http.get('/api/trips/1/accommodations', () => {
-        listCalls += 1;
-        return listCalls === 1 ? HttpResponse.json({ accommodations: [hotel()] }) : HttpResponse.json({});
+      http.get('/api/trips/1/accommodations', () =>
+        saved ? HttpResponse.json({}) : HttpResponse.json({ accommodations: [hotel()] }),
+      ),
+      http.put('/api/trips/1/accommodations/1', () => {
+        saved = true;
+        return HttpResponse.json({ accommodation: hotel() });
       }),
-      http.put('/api/trips/1/accommodations/1', () => HttpResponse.json({ accommodation: hotel() })),
     );
 
     render(<DayDetailPanel {...defaultProps} places={[buildPlace({ id: 5, name: 'Grand Hotel' })]} />);

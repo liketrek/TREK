@@ -341,12 +341,14 @@ describe('DefaultUserSettingsTab', () => {
     expect(input).toHaveValue('pk.old');
     await user.clear(input);
     await user.type(input, 'pk.new');
-    fireEvent.blur(input);
+    // Leave the field for real: fireEvent.blur keeps the focus on it, so the reset click
+    // would blur it a second time and race that save against the reset request
+    await user.tab();
+    expect(input).not.toHaveFocus();
     await waitFor(() => expect(puts).toEqual([{ mapbox_access_token: 'pk.new' }]));
 
-    // Clicking the reset link also blurs the field again, so only the last PUT is checked
     await user.click(resetLink('Shared Mapbox token'));
-    await waitFor(() => expect(puts[puts.length - 1]).toEqual({ mapbox_access_token: null }));
+    await waitFor(() => expect(puts).toEqual([{ mapbox_access_token: 'pk.new' }, { mapbox_access_token: null }]));
     await waitFor(() => expect(screen.getByPlaceholderText('pk.eyJ…')).toHaveValue(''));
   });
 
@@ -449,12 +451,14 @@ describe('DefaultUserSettingsTab', () => {
     expect(input).toHaveValue('ck.old');
     await user.clear(input);
     await user.type(input, 'ck.new');
-    fireEvent.blur(input);
+    // Leave the field for real: fireEvent.blur keeps the focus on it, so the reset click
+    // would blur it a second time and race that save against the reset request
+    await user.tab();
+    expect(input).not.toHaveFocus();
     await waitFor(() => expect(puts).toEqual([{ carto_api_key: 'ck.new' }]));
 
-    // Clicking the reset link also blurs the field again, so only the last PUT is checked
     await user.click(resetLink('Shared CARTO key'));
-    await waitFor(() => expect(puts[puts.length - 1]).toEqual({ carto_api_key: null }));
+    await waitFor(() => expect(puts).toEqual([{ carto_api_key: 'ck.new' }, { carto_api_key: null }]));
     await waitFor(() => expect(cartoInput()).toHaveValue(''));
   });
 

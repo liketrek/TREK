@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { locationAt } from '../../tests/helpers/location'
 
 /*
  * reconcileAppVersion notes the worker that served the page when its module
@@ -85,7 +86,7 @@ beforeEach(() => {
   plainReload = vi.fn()
   Object.defineProperty(window, 'location', {
     writable: true,
-    value: { ...window.location, href: 'http://localhost/dashboard', replace: reload, reload: plainReload },
+    value: locationAt('/dashboard', { replace: reload, reload: plainReload }),
   })
 })
 

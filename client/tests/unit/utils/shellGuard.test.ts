@@ -5,10 +5,13 @@
  */
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { locationAt, pageUrl } from '../../helpers/location';
 
 const SOURCE = readFileSync(resolve(process.cwd(), 'public/shell-guard.js'), 'utf8');
 const ENTRY = '/assets/index-BZcJ9-lk.js';
 const MARKER = 'trek:shell-reload';
+// Workbox names its precache after the scope the worker was registered for.
+const PRECACHE = `workbox-precache-v2-${pageUrl('/')}`;
 
 type Listener = [string, EventListenerOrEventListenerObject, boolean | AddEventListenerOptions | undefined];
 let listeners: Listener[] = [];
@@ -51,21 +54,21 @@ interface Env {
   deleted: string[];
 }
 
-/** A page a service worker served, unless `controlled` is false. */
-function install(href = 'http://localhost/trips/4?tab=plan#day-2', controlled = true): Env {
+/** The page at `path`, one a service worker served unless `controlled` is false. */
+function install(path = '/trips/4?tab=plan#day-2', controlled = true): Env {
   const replace = vi.fn();
-  Object.defineProperty(window, 'location', { value: { ...window.location, href, replace }, writable: true, configurable: true });
+  Object.defineProperty(window, 'location', { value: locationAt(path, { replace }), writable: true, configurable: true });
   const fetch = vi.fn(async () => healthAnswer(true, 'application/json; charset=utf-8'));
   vi.stubGlobal('fetch', fetch);
   const unregister = vi.fn(async () => true);
   Object.defineProperty(navigator, 'serviceWorker', {
-    value: { controller: controlled ? { scriptURL: 'http://localhost/sw.js' } : null, getRegistration: vi.fn(async () => ({ unregister })) },
+    value: { controller: controlled ? { scriptURL: pageUrl('/sw.js') } : null, getRegistration: vi.fn(async () => ({ unregister })) },
     configurable: true,
   });
   const deleted: string[] = [];
   Object.defineProperty(globalThis, 'caches', {
     value: {
-      keys: vi.fn(async () => ['workbox-precache-v2-http://localhost/', 'map-tiles', 'gl-map-offline', 'user-uploads']),
+      keys: vi.fn(async () => [PRECACHE, 'map-tiles', 'gl-map-offline', 'user-uploads']),
       delete: vi.fn(async (name: string) => { deleted.push(name); return true; }),
     },
     configurable: true,
@@ -117,7 +120,7 @@ describe('shell-guard.js', () => {
 
     expect(env.fetch).toHaveBeenCalledWith('/api/health', expect.objectContaining({ cache: 'no-store', redirect: 'manual' }));
     // Only the precache: offline map regions and cached uploads were downloaded on purpose.
-    expect(env.deleted).toEqual(['workbox-precache-v2-http://localhost/']);
+    expect(env.deleted).toEqual([PRECACHE]);
     expect(env.unregister).toHaveBeenCalledTimes(1);
     const target = new URL(env.replace.mock.calls[0][0] as string);
     expect(target.pathname + target.hash).toBe('/trips/4#day-2');
@@ -191,7 +194,7 @@ describe('shell-guard.js', () => {
   it('FE-SHELLGUARD-011: a page that came from the network is reloaded afresh and its worker kept', async () => {
     // Nothing the worker keeps answered this load, so throwing it away would only
     // cost the offline shell.
-    const env = install('http://localhost/dashboard', false);
+    const env = install('/dashboard', false);
     runGuard();
     fail(moduleScript(ENTRY));
     await vi.waitFor(() => expect(env.replace).toHaveBeenCalledTimes(1));

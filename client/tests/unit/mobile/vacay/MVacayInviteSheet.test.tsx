@@ -1,21 +1,39 @@
 // FE-MOB-MVACINV-001 to FE-MOB-MVACINV-010
 import React from 'react';
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi, type MockInstance } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { render, screen, fireEvent, waitFor, within } from '../../../helpers/render';
+import { render, screen, fireEvent, waitFor, within, act } from '../../../helpers/render';
 import { server } from '../../../helpers/msw/server';
 import { resetAllStores } from '../../../helpers/store';
 import { useVacayStore } from '../../../../src/store/vacayStore';
+import apiClient from '../../../../src/api/client';
 import MVacayInviteSheet from '../../../../src/mobile/screens/vacay/MVacayInviteSheet';
 
 const toasts: { type: string; message: string }[] = [];
+const USERS_ENDPOINT = '/addons/vacay/available-users';
+let getSpy: MockInstance<typeof apiClient.get>;
 
 function availableUsers(users: { id: number; username: string; color: string | null }[]) {
   server.use(http.get('/api/addons/vacay/available-users', () => HttpResponse.json({ users })));
 }
 
+/**
+ * Waits until the sheet has asked for the invitable users `lookups` times and
+ * every answer has come back and been applied. The answer is not on screen when
+ * it changes nothing (an empty list, the same list on a reload), and a lookup
+ * still out when the test ends would land in the next one.
+ */
+async function usersSettled(lookups: number) {
+  const calls = () => getSpy.mock.calls.flatMap(([url], i) => (url === USERS_ENDPOINT ? [getSpy.mock.results[i].value] : []));
+  await waitFor(() => expect(calls()).toHaveLength(lookups));
+  await act(async () => {
+    await Promise.allSettled(calls());
+  });
+}
+
 beforeEach(() => {
   resetAllStores();
+  getSpy = vi.spyOn(apiClient, 'get');
   toasts.length = 0;
   window.__addToast = ((message: string, type?: string) => {
     toasts.push({ type: type ?? 'info', message });
@@ -28,6 +46,7 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  getSpy.mockRestore();
   delete window.__addToast;
 });
 
@@ -54,6 +73,7 @@ describe('MVacayInviteSheet', () => {
   it('FE-MOB-MVACINV-003: falls back to the empty state when the lookup fails', async () => {
     server.use(http.get('/api/addons/vacay/available-users', () => HttpResponse.json({ error: 'nope' }, { status: 500 })));
     renderSheet();
+    await usersSettled(1);
 
     expect(await screen.findByText('No users available')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Select user' })).not.toBeInTheDocument();
@@ -74,7 +94,9 @@ describe('MVacayInviteSheet', () => {
     const send = await screen.findByRole('button', { name: 'Send Invite' });
     expect(send).toBeDisabled();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Select user' }));
+    // The picker shows up once the users are in; nobody is picked yet.
+    fireEvent.click(await screen.findByRole('button', { name: 'Select user' }));
+    expect(screen.getByRole('button', { name: 'Send Invite' })).toBeDisabled();
     fireEvent.click(screen.getByRole('button', { name: 'bob' }));
     expect(screen.getByRole('button', { name: 'Send Invite' })).toBeEnabled();
   });
@@ -122,6 +144,7 @@ describe('MVacayInviteSheet', () => {
 
     fireEvent.click(within(row).getByRole('button', { name: 'Cancel' }));
     expect(cancelInvite).toHaveBeenCalledWith(9);
+    await usersSettled(1);
   });
 
   it('FE-MOB-MVACINV-009: the close icon and the cancel button both dismiss the sheet', async () => {
@@ -131,6 +154,7 @@ describe('MVacayInviteSheet', () => {
     const dialog = screen.getByRole('dialog', { name: 'Invite User' });
     fireEvent.click(within(dialog).getAllByRole('button', { name: 'Cancel' })[0]);
     expect(onClose).toHaveBeenCalledTimes(2);
+    await usersSettled(1);
   });
 
   it('FE-MOB-MVACINV-010: reopening resets the previous selection', async () => {
@@ -141,6 +165,7 @@ describe('MVacayInviteSheet', () => {
 
     rerender(<MVacayInviteSheet open={false} onClose={() => {}} />);
     rerender(<MVacayInviteSheet open onClose={() => {}} />);
+    await usersSettled(2);
 
     expect(await screen.findByRole('button', { name: 'Select user' })).toBeInTheDocument();
   });

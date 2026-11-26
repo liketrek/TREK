@@ -1535,8 +1535,10 @@ describe('AdminPage', () => {
       const matrixCard = matrixHeading.closest<HTMLElement>('section');
 
       // The matrix switch is named after its event and channel; the card's first
-      // buttons belong to the webhook and ntfy targets above the matrix.
-      fireEvent.click(within(matrixCard!).getByRole('button', { name: /, email$/i }));
+      // buttons belong to the webhook and ntfy targets above the matrix. The card's
+      // heading renders before the matrix fetch lands (a loading row stands in until
+      // then), so wait for the switch itself.
+      fireEvent.click(await within(matrixCard!).findByRole('button', { name: /, email$/i }));
 
       await waitFor(() => {
         expect(prefUpdateCalled).toBe(true);

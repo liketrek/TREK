@@ -7,6 +7,7 @@ import { http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { buildAppConfig } from '../../../tests/helpers/factories';
+import { locationAt, pageUrl } from '../../../tests/helpers/location';
 import { markSignedOut, clearSignedOut, wasSignedOut } from '../../utils/signedOut';
 import { TranslationProvider } from '../../i18n/TranslationContext';
 import { useAuthStore, type LoginResult } from '../../store/authStore';
@@ -54,7 +55,7 @@ function setSearch(search: string) {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: { ...realLocation, pathname: '/login', href: 'http://localhost/login', search },
+    value: locationAt(`/login${search}`),
   });
 }
 
@@ -196,7 +197,7 @@ describe('useLogin — app config probe', () => {
     await ready(result);
 
     expect(result.current.noRedirect).toBe(true);
-    expect(window.location.href).toBe('http://localhost/login');
+    expect(window.location.href).toBe(pageUrl('/login'));
   });
 
   it('FE-LOGIN-HOOK-009: never auto-redirects on a cached config', async () => {
@@ -210,7 +211,7 @@ describe('useLogin — app config probe', () => {
     await ready(result);
 
     expect(result.current.oidcOnly).toBe(true);
-    expect(window.location.href).toBe('http://localhost/login');
+    expect(window.location.href).toBe(pageUrl('/login'));
   });
 });
 
@@ -1183,13 +1184,13 @@ describe('useLogin — the wait before the sign-in is known (#1167)', () => {
     await waitFor(() => expect(result.current.redirectScreen).toBe(false));
     expect(result.current.configWait).toBe(false);
     expect(result.current.oidcOnly).toBe(true);
-    expect(window.location.href).toBe('http://localhost/login');
+    expect(window.location.href).toBe(pageUrl('/login'));
   });
 
-  it('FE-LOGIN-HOOK-208: a redirect that stalls offers the way on by hand after eight seconds', () => {
+  it('FE-LOGIN-HOOK-208: a redirect that stalls offers the way on by hand after eight seconds', async () => {
     vi.useFakeTimers();
     localStorage.setItem(CONFIG_CACHE_KEY, JSON.stringify(oidcOnlyConfig()));
-    heldConfig(oidcOnlyConfig());
+    const release = heldConfig(oidcOnlyConfig());
     const { result } = renderLogin();
 
     expect(result.current.redirectScreen).toBe(true);
@@ -1197,6 +1198,12 @@ describe('useLogin — the wait before the sign-in is known (#1167)', () => {
     expect(result.current.idpSlow).toBe(false);
     act(() => { vi.advanceTimersByTime(1); });
     expect(result.current.idpSlow).toBe(true);
+
+    // The probe answers in the end and the redirect goes ahead, here and not in
+    // the next test.
+    vi.useRealTimers();
+    release();
+    await waitFor(() => expect(window.location.href).toBe('/api/auth/oidc/login?remember=1'));
   });
 
   it('FE-LOGIN-HOOK-209: a failed sign-in at the IdP shows the OIDC-only screen and its error, without going back', async () => {
@@ -1209,7 +1216,7 @@ describe('useLogin — the wait before the sign-in is known (#1167)', () => {
     expect(result.current.configWait).toBe(false);
     expect(result.current.redirectScreen).toBe(false);
     expect(result.current.error).not.toBe('');
-    expect(window.location.href).toBe('http://localhost/login');
+    expect(window.location.href).toBe(pageUrl('/login?oidc_error=token_failed'));
   });
 
   it('FE-LOGIN-HOOK-215: with the auto redirect turned off the page stays, with its SSO button (#2925)', async () => {
@@ -1222,7 +1229,7 @@ describe('useLogin — the wait before the sign-in is known (#1167)', () => {
     expect(result.current.oidcOnly).toBe(true);
     expect(result.current.redirectScreen).toBe(false);
     expect(result.current.configWait).toBe(false);
-    expect(window.location.href).toBe('http://localhost/login');
+    expect(window.location.href).toBe(pageUrl('/login'));
   });
 
   it('FE-LOGIN-HOOK-216: a cached config with the auto redirect off announces no redirect while the probe is out', async () => {
@@ -1237,7 +1244,7 @@ describe('useLogin — the wait before the sign-in is known (#1167)', () => {
     release();
     await ready(result);
     expect(result.current.redirectScreen).toBe(false);
-    expect(window.location.href).toBe('http://localhost/login');
+    expect(window.location.href).toBe(pageUrl('/login'));
   });
 
   it('FE-LOGIN-HOOK-217: a server from before the switch, with no field, keeps the redirect', async () => {
@@ -1259,6 +1266,6 @@ describe('useLogin — the wait before the sign-in is known (#1167)', () => {
 
     release();
     await ready(result);
-    expect(window.location.href).toBe('http://localhost/login');
+    expect(window.location.href).toBe(pageUrl('/login'));
   });
 });

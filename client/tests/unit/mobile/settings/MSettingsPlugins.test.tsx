@@ -442,6 +442,9 @@ describe('MSettingsPlugins', () => {
     expect(frame).toHaveAttribute('data-plugin', 'p1');
     expect(frame).toHaveAttribute('data-path', 'settings.html');
     expect(frame).toHaveAttribute('data-title', 'Weather Pro');
+    // The framed card renders at once, the declared-field form only once its
+    // settings request answered; wait for that form before counting the cards.
+    await screen.findByPlaceholderText('https://api.example');
     // Declared-field form and framed surface are two separate cards
     expect(screen.getAllByText('Weather Pro')).toHaveLength(2);
   });

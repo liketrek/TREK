@@ -160,6 +160,13 @@ describe('helpStore: search', () => {
 })
 
 describe('helpStore: doc index', () => {
+  // Loading the index has no debounce, so these tests await the response directly.
+  // msw no longer runs its own timers outside fake ones, and a successful mocked
+  // response only arrives once a timer fires, so these tests run on real timers.
+  beforeEach(() => {
+    vi.useRealTimers()
+  })
+
   it('loads the table of contents once and resolves titles from it', async () => {
     let calls = 0
     server.use(

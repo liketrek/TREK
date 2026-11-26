@@ -1,13 +1,14 @@
 import React from 'react'
 import { render, screen, waitFor, act } from '@testing-library/react'
 import { MemoryRouter, useLocation } from 'react-router'
-import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { describe, it, expect, beforeEach, onTestFinished, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import { server } from '../tests/helpers/msw/server'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
 import { resetAllStores } from '../tests/helpers/store'
 import { buildUser, buildSettings, buildTrip } from '../tests/helpers/factories'
+import { locationAt } from '../tests/helpers/location'
 import { offlineDb } from './db/offlineDb'
 import { SETTINGS_WAIT_MS } from './utils/startDestination'
 import App from './App'
@@ -185,9 +186,29 @@ describe('RootRedirect — startup destination', () => {
     seedAuth({ isAuthenticated: true, user: buildUser() })
     useSettingsStore.setState({ isLoaded: false })
     stubActiveTrip({ id: 42, title: 'Japan' })
+    // App asks for the settings on its own as soon as the user is signed in.
+    // Held until the redirect is decided, or whichever answer lands first wins
+    // and the test proves nothing about the mirror; released here, so it cannot
+    // land in the next test either.
+    let releaseSettings = () => {}
+    const settingsHeld = new Promise<void>((resolve) => { releaseSettings = resolve })
+    onTestFinished(() => releaseSettings())
+    server.use(
+      http.get('/api/settings', async () => {
+        await settingsHeld
+        return HttpResponse.json({
+          settings: buildSettings({ start_page: 'active_trip', start_trip_tab: 'finanzplan' }),
+        })
+      }),
+    )
 
     renderApp('/')
     await waitFor(() => expect(screen.getByText('TripPlanner')).toBeInTheDocument())
+    expect(currentPath()).toBe('/trips/42?tab=finanzplan')
+    expect(useSettingsStore.getState().isLoaded).toBe(false)
+
+    releaseSettings()
+    await waitFor(() => expect(useSettingsStore.getState().isLoaded).toBe(true))
   })
 })
 
@@ -532,7 +553,7 @@ describe('Version cache-busting', () => {
     const reload = vi.fn()
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { ...window.location, reload },
+      value: locationAt('/', { reload }),
     })
 
     server.use(
@@ -587,7 +608,7 @@ describe('Version cache-busting', () => {
     // and try to update.
     localStorage.setItem('trek_app_version', '2.9.9')
     const reload = vi.fn()
-    Object.defineProperty(window, 'location', { writable: true, value: { ...window.location, reload } })
+    Object.defineProperty(window, 'location', { writable: true, value: locationAt('/', { reload }) })
 
     server.use(
       http.get('/api/auth/app-config', () =>
@@ -609,7 +630,7 @@ describe('Version cache-busting', () => {
     // failure neither deletes anything nor reloads into the old worker's shell.
     localStorage.setItem('trek_app_version', '2.9.9')
     const reload = vi.fn()
-    Object.defineProperty(window, 'location', { writable: true, value: { ...window.location, reload } })
+    Object.defineProperty(window, 'location', { writable: true, value: locationAt('/', { reload }) })
     const cachesDelete = vi.fn().mockResolvedValue(true)
     const unregister = vi.fn().mockResolvedValue(true)
     vi.stubGlobal('caches', { keys: vi.fn().mockResolvedValue(['workbox-precache-v2', 'map-tiles']), delete: cachesDelete })
@@ -685,6 +706,9 @@ describe('RootRedirect — preference not mirrored on this device', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true })
     seedAuth({ isAuthenticated: true, user: buildUser() })
     useSettingsStore.setState({ isLoaded: false })
+    // No backend: the settings never arrive, so only the timeout can decide.
+    // Answered, they would open the dashboard on their own and hide the wait.
+    server.use(http.get('/api/settings', () => HttpResponse.error()))
 
     renderApp('/')
     expect(screen.queryByText('Dashboard')).not.toBeInTheDocument()

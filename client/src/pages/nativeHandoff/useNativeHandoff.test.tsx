@@ -2,6 +2,7 @@
 import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { locationAt } from '../../../tests/helpers/location';
 import { act, renderHook, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { rememberHandoffReturn, requestHandoffCode, signInWithPasskey } from '../../native/browserSignIn';
@@ -28,7 +29,7 @@ function setSearch(search: string) {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: { ...realLocation, search, href: 'http://localhost/native-handoff' + search, replace: vi.fn() },
+    value: locationAt(`/native-handoff${search}`, { replace: vi.fn() }),
   });
 }
 

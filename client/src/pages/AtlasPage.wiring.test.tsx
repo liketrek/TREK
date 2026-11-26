@@ -276,7 +276,10 @@ describe('AtlasPage wiring', () => {
 
       fireEvent.click(screen.getByText('atlas.unmark'));
 
-      await waitFor(() => expect(atlas.setConfirmAction).toHaveBeenLastCalledWith(null));
+      // The cancel above already closed with null, so wait for the unmark's own close:
+      // it comes only after the region delete and the country check have both answered.
+      await waitFor(() => expect(atlas.setConfirmAction).toHaveBeenCalledTimes(2));
+      expect(atlas.setConfirmAction).toHaveBeenLastCalledWith(null);
       expect(atlas.visitedRegions).toEqual({});
       const data = atlas.data as AtlasData;
       expect(data.countries.map((c) => c.code)).toEqual(['FR']);
@@ -379,6 +382,8 @@ describe('AtlasPage wiring', () => {
       fireEvent.click(screen.getByText('atlas.addToBucket'));
 
       await waitFor(() => expect(body).toMatchObject({ name: 'Bretagne', country_code: 'FR', target_date: null }));
+      // Let the post answer and the popup close here, not in the next test.
+      await waitFor(() => expect(atlas.setConfirmAction).toHaveBeenLastCalledWith(null));
     });
 
     it('FE-PAGE-ATLASW-018b: a country already wishlisted for that date is not posted again (#1898)', async () => {

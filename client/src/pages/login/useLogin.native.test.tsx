@@ -5,6 +5,7 @@ import React from 'react';
 import { MemoryRouter } from 'react-router';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { buildAppConfig } from '../../../tests/helpers/factories';
+import { locationAt, pageUrl } from '../../../tests/helpers/location';
 import { server } from '../../../tests/helpers/msw/server';
 import { act, renderHook, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
@@ -54,7 +55,7 @@ beforeEach(() => {
   Object.defineProperty(window, 'location', {
     configurable: true,
     writable: true,
-    value: { ...realLocation, pathname: '/login', href: 'http://localhost/login', search: '' },
+    value: locationAt('/login'),
   });
 });
 
@@ -78,7 +79,7 @@ describe('useLogin in the native app', () => {
     );
     const { result } = renderLogin();
     await waitFor(() => expect(result.current.appConfig).not.toBeNull());
-    expect(window.location.href).toBe('http://localhost/login');
+    expect(window.location.href).toBe(pageUrl('/login'));
     expect(result.current.oidcOnly).toBe(true);
   });
 

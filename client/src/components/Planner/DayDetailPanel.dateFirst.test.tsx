@@ -1,31 +1,11 @@
 // FE-PLANNER-DAYDETAIL-DF-001 to FE-PLANNER-DAYDETAIL-DF-002
 // The day panel's heading with "date first in day headings" on (#2921).
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
-import { buildAdmin, buildDay, buildTrip } from '../../../tests/helpers/factories';
-import { server } from '../../../tests/helpers/msw/server';
+import { dayDetailProps as props, resetDayDetailPanel } from '../../../tests/helpers/dayDetailPanel';
 import { render, screen } from '../../../tests/helpers/render';
-import { resetAllStores, seedStore } from '../../../tests/helpers/store';
-import { useAuthStore } from '../../store/authStore';
+import { seedStore } from '../../../tests/helpers/store';
 import { useSettingsStore } from '../../store/settingsStore';
-import { useTripStore } from '../../store/tripStore';
 import DayDetailPanel from './DayDetailPanel';
-
-const day = buildDay({ id: 1, trip_id: 1, date: '2025-06-15', title: 'Day in Paris' });
-
-const props = {
-  day,
-  days: [day],
-  places: [],
-  categories: [],
-  tripId: 1,
-  assignments: {},
-  reservations: [],
-  lat: null,
-  lng: null,
-  onClose: vi.fn(),
-  onAccommodationChange: vi.fn(),
-};
 
 function settings(dayDateFirst: boolean) {
   seedStore(useSettingsStore, {
@@ -34,14 +14,7 @@ function settings(dayDateFirst: boolean) {
 }
 
 beforeEach(() => {
-  resetAllStores();
-  vi.clearAllMocks();
-  server.use(
-    http.get('/api/weather/detailed', () => HttpResponse.json({ error: true })),
-    http.get('/api/trips/1/accommodations', () => HttpResponse.json({ accommodations: [] }))
-  );
-  seedStore(useAuthStore, { user: buildAdmin(), isAuthenticated: true });
-  seedStore(useTripStore, { trip: buildTrip({ id: 1 }) });
+  resetDayDetailPanel();
 });
 
 describe('DayDetailPanel with the date first', () => {

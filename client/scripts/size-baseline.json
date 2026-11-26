@@ -8,7 +8,7 @@
   "src/components/Map/MapView.tsx": 1200,
   "src/components/Map/MapViewGL.test.tsx": 2919,
   "src/components/Map/MapViewGL.tsx": 2116,
-  "src/components/Planner/DayDetailPanel.test.tsx": 2333,
+  "src/components/Planner/DayDetailPanel.test.tsx": 2332,
   "src/components/Planner/DayPlanSidebar.test.tsx": 5349,
   "src/components/Planner/DayPlanSidebar.tsx": 2908,
   "src/components/Planner/PlaceFormModal.test.tsx": 2836,

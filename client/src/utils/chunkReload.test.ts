@@ -1,4 +1,5 @@
 import { isChunkLoadError, reloadOnceForChunk, clearChunkReloadMarker, reloadFresh, importChunk, FRESH_LOAD_PARAM } from './chunkReload';
+import { locationAt, pageUrl } from '../../tests/helpers/location';
 
 const net = vi.hoisted(() => ({
   probeNow: vi.fn(async () => 'online' as 'online' | 'offline' | 'proxy-wall'),
@@ -38,11 +39,11 @@ describe('isChunkLoadError', () => {
  * A recovery reload is a location.replace onto a fresh URL (reloadFresh), so the
  * stub records the replace. `plain` is the location.reload() it must not use.
  */
-function stubLocation(href = 'http://localhost/trips/4?tab=plan#day-2') {
+function stubLocation(path = '/trips/4?tab=plan#day-2', overrides: Partial<Location> = {}) {
   const reload = vi.fn();
   const plain = vi.fn();
   Object.defineProperty(window, 'location', {
-    value: { ...window.location, href, replace: reload, reload: plain },
+    value: locationAt(path, { replace: reload, reload: plain, ...overrides }),
     writable: true,
   });
   return { reload, plain };
@@ -56,7 +57,8 @@ describe('reloadFresh', () => {
     expect(plain).not.toHaveBeenCalled();
     expect(reload).toHaveBeenCalledTimes(1);
     const target = new URL(reload.mock.calls[0][0] as string);
-    // Path, query and hash stay, so the app comes back where it was.
+    // Origin, path, query and hash stay, so the app comes back where it was.
+    expect(target.origin).toBe(new URL(pageUrl('/')).origin);
     expect(target.pathname).toBe('/trips/4');
     expect(target.searchParams.get('tab')).toBe('plan');
     expect(target.hash).toBe('#day-2');
@@ -64,7 +66,7 @@ describe('reloadFresh', () => {
   });
 
   it('FE-UTIL-CHUNK-016: two reloads never share a URL', () => {
-    const { reload } = stubLocation('http://localhost/dashboard');
+    const { reload } = stubLocation('/dashboard');
     const now = vi.spyOn(Date, 'now').mockReturnValue(1790358416100);
     reloadFresh();
     now.mockReturnValue(1790358416101);
@@ -73,7 +75,7 @@ describe('reloadFresh', () => {
   });
 
   it('FE-UTIL-CHUNK-017: falls back to a plain reload when the URL cannot be built', () => {
-    const { reload, plain } = stubLocation('not a url');
+    const { reload, plain } = stubLocation('/', { href: 'not a url' });
     reloadFresh();
     expect(reload).not.toHaveBeenCalled();
     expect(plain).toHaveBeenCalledTimes(1);
@@ -145,7 +147,7 @@ describe('reloadOntoCurrentBuild', () => {
     const deleted: string[] = [];
     Object.defineProperty(globalThis, 'caches', {
       value: {
-        keys: vi.fn(async () => ['workbox-precache-v2-http://localhost/', 'map-tiles']),
+        keys: vi.fn(async () => [`workbox-precache-v2-${pageUrl('/')}`, 'map-tiles']),
         delete: vi.fn(async (name: string) => { deleted.push(name); return true; }),
       },
       configurable: true,
@@ -191,7 +193,7 @@ describe('reloadOntoCurrentBuild', () => {
     // Not before the shell is gone: the reload would come back to the same error.
     expect(reload).not.toHaveBeenCalled();
     await vi.waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
-    expect(deleted).toEqual(['workbox-precache-v2-http://localhost/']);
+    expect(deleted).toEqual([`workbox-precache-v2-${pageUrl('/')}`]);
     expect(registration.unregister).toHaveBeenCalledTimes(1);
   });
 

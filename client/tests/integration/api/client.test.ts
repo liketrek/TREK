@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { server } from '../../helpers/msw/server';
 import { buildUser } from '../../helpers/factories';
+import { locationAt, pageUrl } from '../../helpers/location';
 
 // The global setup.ts mocks websocket with getSocketId returning null.
 // We need to be able to control what getSocketId returns per-test.
@@ -59,7 +60,7 @@ describe('API client interceptors', () => {
     // Reset window.location to a neutral path
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/', pathname: '/', search: '', hash: '' },
+      value: locationAt('/'),
     });
   });
 
@@ -97,7 +98,7 @@ describe('API client interceptors', () => {
   it('FE-API-003: 401 with AUTH_REQUIRED → redirects to /login with redirect param', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/', pathname: '/dashboard', search: '', hash: '' },
+      value: locationAt('/dashboard'),
     });
 
     server.use(
@@ -118,7 +119,7 @@ describe('API client interceptors', () => {
   it('FE-API-003b: 401 without AUTH_REQUIRED code does not redirect', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/dashboard', pathname: '/dashboard', search: '' },
+      value: locationAt('/dashboard'),
     });
 
     const originalHref = window.location.href;
@@ -141,7 +142,7 @@ describe('API client interceptors', () => {
   it('FE-API-003c: 401 on /login page does not redirect', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/login', pathname: '/login', search: '' },
+      value: locationAt('/login'),
     });
 
     server.use(
@@ -157,13 +158,13 @@ describe('API client interceptors', () => {
     }
 
     // href should NOT have been changed to /login?redirect=...
-    expect(window.location.href).toBe('http://localhost/login');
+    expect(window.location.href).toBe(pageUrl('/login'));
   });
 
   it('FE-API-004: 403 with MFA_REQUIRED → redirects to /settings?mfa=required', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/', pathname: '/dashboard', search: '' },
+      value: locationAt('/dashboard'),
     });
 
     server.use(
@@ -184,7 +185,7 @@ describe('API client interceptors', () => {
   it('FE-API-004b: 403 with MFA_REQUIRED on /settings page does not redirect', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/settings', pathname: '/settings', search: '' },
+      value: locationAt('/settings'),
     });
 
     server.use(
@@ -200,7 +201,7 @@ describe('API client interceptors', () => {
     }
 
     // Should NOT redirect when already on /settings
-    expect(window.location.href).toBe('http://localhost/settings');
+    expect(window.location.href).toBe(pageUrl('/settings'));
   });
 
   it('FE-API-005: successful API call returns response data', async () => {
@@ -253,7 +254,7 @@ describe('API client interceptors', () => {
   it('FE-API-008: 401 AUTH_REQUIRED on /register path does not redirect', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/register', pathname: '/register', search: '' },
+      value: locationAt('/register'),
     });
 
     server.use(
@@ -264,13 +265,13 @@ describe('API client interceptors', () => {
 
     try { await authApi.me(); } catch { /* expected */ }
 
-    expect(window.location.href).toBe('http://localhost/register');
+    expect(window.location.href).toBe(pageUrl('/register'));
   });
 
   it('FE-API-009: 401 AUTH_REQUIRED on /shared/:token path does not redirect', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/shared/abc123', pathname: '/shared/abc123', search: '' },
+      value: locationAt('/shared/abc123'),
     });
 
     server.use(
@@ -281,13 +282,13 @@ describe('API client interceptors', () => {
 
     try { await authApi.me(); } catch { /* expected */ }
 
-    expect(window.location.href).toBe('http://localhost/shared/abc123');
+    expect(window.location.href).toBe(pageUrl('/shared/abc123'));
   });
 
   it('FE-API-010: 401 AUTH_REQUIRED still rejects the promise even when redirect fires', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/dashboard', pathname: '/dashboard', search: '' },
+      value: locationAt('/dashboard'),
     });
 
     server.use(
@@ -304,7 +305,7 @@ describe('API client interceptors', () => {
   it('FE-API-011: 403 without MFA_REQUIRED code does not redirect', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/dashboard', pathname: '/dashboard', search: '' },
+      value: locationAt('/dashboard'),
     });
 
     server.use(
@@ -315,13 +316,13 @@ describe('API client interceptors', () => {
 
     try { await authApi.me(); } catch { /* expected */ }
 
-    expect(window.location.href).toBe('http://localhost/dashboard');
+    expect(window.location.href).toBe(pageUrl('/dashboard'));
   });
 
   it('FE-API-012: 403 MFA_REQUIRED still rejects the promise after redirect fires', async () => {
     Object.defineProperty(window, 'location', {
       writable: true,
-      value: { href: 'http://localhost/dashboard', pathname: '/dashboard', search: '' },
+      value: locationAt('/dashboard'),
     });
 
     server.use(
@@ -962,11 +963,13 @@ describe('mapsApi', () => {
 
   it('FE-MAPS-004: mapsApi.autocomplete rejects when AbortSignal is aborted', async () => {
     const controller = new AbortController();
+    let release!: () => void;
+    const gate = new Promise<void>(resolve => { release = resolve; });
 
     server.use(
       http.post('/api/maps/autocomplete', async () => {
-        // Never resolves — request will be aborted
-        await new Promise(() => {});
+        // Held until the request has been aborted
+        await gate;
         return HttpResponse.json({ suggestions: [] });
       })
     );
@@ -974,6 +977,11 @@ describe('mapsApi', () => {
     const promise = mapsApi.autocomplete('Paris', undefined, undefined, controller.signal);
     controller.abort();
 
-    await expect(promise).rejects.toThrow();
+    try {
+      await expect(promise).rejects.toThrow();
+    } finally {
+      // Let the held handler finish here, not in whatever runs after this test.
+      release();
+    }
   });
 });
