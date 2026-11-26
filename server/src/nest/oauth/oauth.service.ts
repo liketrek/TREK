@@ -3,6 +3,7 @@ import { getMcpSafeUrl } from '../../app-config';
 import { OauthClients } from '../../db/entities/OauthClients.entity';
 import { OauthConsents } from '../../db/entities/OauthConsents.entity';
 import { OauthTokens } from '../../db/entities/OauthTokens.entity';
+import { Users } from '../../db/entities/Users.entity';
 import {
   OAUTH_CLIENT_ALLOWED_SCOPES,
   OAUTH_CLIENT_REDIRECT_URIS,
@@ -12,6 +13,7 @@ import {
 import type { OauthClientRow, OauthClientsRepository } from '../../db/repositories/OauthClients.repository';
 import type { OauthConsentsRepository } from '../../db/repositories/OauthConsents.repository';
 import type { OauthTokenRefreshRow, OauthTokensRepository } from '../../db/repositories/OauthTokens.repository';
+import type { UsersRepository } from '../../db/repositories/Users.repository';
 import { dbNow, parseDbTimestamp } from '../../db/types';
 // Import from scopes/sessionManager directly, NOT the ../../mcp barrel: the
 // barrel pulls the whole tools fan-out (and via the domain bridges, the Nest
@@ -133,6 +135,7 @@ export class OauthService {
     @InjectRepository(OauthClients) private readonly clients: OauthClientsRepository,
     @InjectRepository(OauthTokens) private readonly tokens: OauthTokensRepository,
     @InjectRepository(OauthConsents) private readonly consents: OauthConsentsRepository,
+    @InjectRepository(Users) private readonly users: UsersRepository,
     private readonly addons: AddonsService,
     private readonly audit: AuditService,
     private readonly uow: UnitOfWork,
@@ -317,6 +320,7 @@ export class OauthService {
     resource: string | null;
     codeChallenge: string;
     codeChallengeMethod: 'S256';
+    passwordVersion: number;
   }): Promise<string | null> {
     const rawCode = randomBytes(32).toString('hex');
     const stored = await this.pendingCodes.put(rawCode, { ...params, expiresAt: Date.now() + AUTH_CODE_TTL_MS });
@@ -387,6 +391,19 @@ export class OauthService {
   // -------------------------------------------------------------------------
   // Token issuance
   // -------------------------------------------------------------------------
+
+  /**
+   * The tokens a redeemed authorization code grants, or null when the
+   * password changed since the consent: a reset or a change revokes the
+   * user's tokens, and a code from before it must not mint new ones. Checked
+   * in the transaction that writes the tokens.
+   */
+  async issueTokensForCode(pending: PendingCode): Promise<Awaited<ReturnType<OauthService['issueTokens']>> | null> {
+    return this.uow.transactional(async () => {
+      if ((await this.users.getPasswordVersion(pending.userId)) !== pending.passwordVersion) return null;
+      return this.issueTokens(pending.clientId, pending.userId, pending.scopes, null, pending.resource ?? null);
+    });
+  }
 
   async issueTokens(
     clientId: string,

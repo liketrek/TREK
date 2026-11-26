@@ -3,6 +3,7 @@ import { getClientIp } from '../audit/client-ip';
 import { CookieAuthGuard } from '../auth-core/cookie-auth.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
 import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
+import { verifiedSessionClaims } from '../auth-core/jwt-verify';
 import { OptionalJwtGuard } from '../auth-core/optional-jwt.guard';
 import { DEMO_ACCOUNT_REFUSAL, refuseForDemoAccount } from '../common/demo-write';
 import { RateLimitService } from '../common/rate-limit.service';
@@ -135,6 +136,9 @@ export class OauthApiController {
       resource: validation.resource ?? null,
       codeChallenge: body.code_challenge,
       codeChallengeMethod: 'S256',
+      // The cookie session the guard has just verified: the code is good only under its password.
+      passwordVersion:
+        verifiedSessionClaims((req.cookies as Record<string, string> | undefined)?.trek_session)?.pv ?? 0,
     });
     if (!code) {
       throw new HttpException(

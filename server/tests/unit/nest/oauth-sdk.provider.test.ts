@@ -37,7 +37,7 @@ function makeOauth(overrides: Partial<Record<keyof OauthService, unknown>> = {})
     getSdkClient: vi.fn(),
     createOAuthClient: vi.fn(() => ({ client: baseClientRecord() })),
     consumeAuthCode: vi.fn(),
-    issueTokens: vi.fn(() => tokens()),
+    issueTokensForCode: vi.fn(() => tokens()),
     refreshTokens: vi.fn(() => ({ tokens: tokens() })),
     getUserByAccessToken: vi.fn(),
     revokeToken: vi.fn(),
@@ -459,7 +459,8 @@ describe('TrekOAuthProvider.exchangeAuthorizationCode', () => {
   });
 
   it('SDKP-045: a valid exchange issues tokens and audits the issue', async () => {
-    const oauth = makeOauth({ consumeAuthCode: vi.fn(async () => pending()) });
+    const code = pending();
+    const oauth = makeOauth({ consumeAuthCode: vi.fn(async () => code) });
     const audit = makeAudit();
     const { provider } = makeProvider(oauth, audit);
     const result = await provider.exchangeAuthorizationCode(
@@ -470,7 +471,7 @@ describe('TrekOAuthProvider.exchangeAuthorizationCode', () => {
       new URL('https://trek.example.test/mcp'),
     );
     expect(result).toEqual(tokens());
-    expect(oauth.issueTokens).toHaveBeenCalledWith('cid-1', 7, ['trips:read'], null, 'https://trek.example.test/mcp');
+    expect(oauth.issueTokensForCode).toHaveBeenCalledWith(code);
     expect(audit.writeAudit).toHaveBeenCalledWith({
       userId: 7,
       action: 'oauth.token.issue',
@@ -480,17 +481,29 @@ describe('TrekOAuthProvider.exchangeAuthorizationCode', () => {
   });
 
   it('SDKP-046: a pending code without a resource issues a null-audience token', async () => {
-    const oauth = makeOauth({ consumeAuthCode: vi.fn(async () => pending({ resource: null })) });
+    const code = pending({ resource: null });
+    const oauth = makeOauth({ consumeAuthCode: vi.fn(async () => code) });
     const { provider } = makeProvider(oauth);
     await provider.exchangeAuthorizationCode(clientInfo(), 'code', 'verifier');
-    expect(oauth.issueTokens).toHaveBeenCalledWith('cid-1', 7, ['trips:read'], null, null);
+    expect(oauth.issueTokensForCode).toHaveBeenCalledWith(code);
+  });
+
+  it('SDKP-048: a code whose password changed since the consent mints no tokens', async () => {
+    const oauth = makeOauth({
+      consumeAuthCode: vi.fn(async () => pending()),
+      issueTokensForCode: vi.fn(async () => null),
+    });
+    const audit = makeAudit();
+    const { provider } = makeProvider(oauth, audit);
+    await expect(provider.exchangeAuthorizationCode(clientInfo(), 'code', 'verifier')).rejects.toThrow(invalid);
+    expect(audit.writeAudit).not.toHaveBeenCalled();
   });
 
   it('SDKP-047: a missing codeVerifier is refused, not waved through', async () => {
     const oauth = makeOauth({ consumeAuthCode: vi.fn(async () => pending()) });
     const { provider } = makeProvider(oauth);
     await expect(provider.exchangeAuthorizationCode(clientInfo(), 'code')).rejects.toThrow(invalid);
-    expect(oauth.issueTokens).not.toHaveBeenCalled();
+    expect(oauth.issueTokensForCode).not.toHaveBeenCalled();
   });
 });
 

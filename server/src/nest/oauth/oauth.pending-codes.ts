@@ -28,6 +28,8 @@ export interface PendingCode {
   resource: string | null;
   codeChallenge: string;
   codeChallengeMethod: 'S256';
+  /** The password version the consent was given under; the code mints tokens only while it holds. */
+  passwordVersion: number;
   expiresAt: number;
 }
 

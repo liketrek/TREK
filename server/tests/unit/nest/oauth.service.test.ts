@@ -132,6 +132,7 @@ beforeAll(async () => {
     clientsRepo,
     tokensRepo,
     consentsRepo,
+    usersRepo,
     addonsStub,
     new AuditService(auditLogRepo, usersRepo),
     new UnitOfWork(t.em, new SqliteEngine()),
@@ -410,6 +411,7 @@ describe('createAuthCode + consumeAuthCode', () => {
     const clientId = created.client!.client_id as string;
 
     const code = await createAuthCode({
+      passwordVersion: 0,
       clientId,
       userId: user.id,
       redirectUri: 'https://example.com/callback',
@@ -435,6 +437,7 @@ describe('createAuthCode + consumeAuthCode', () => {
     const clientId = created.client!.client_id as string;
 
     const code = await createAuthCode({
+      passwordVersion: 0,
       clientId,
       userId: user.id,
       redirectUri: 'https://example.com/callback',
@@ -446,6 +449,33 @@ describe('createAuthCode + consumeAuthCode', () => {
 
     await consumeAuthCode(code);
     expect(await consumeAuthCode(code)).toBeNull();
+  });
+
+  it('a code mints tokens only while the password it was granted under holds', async () => {
+    const { user } = createUser(testDb);
+    const created = await makeClient(user.id);
+    const clientId = created.client!.client_id as string;
+    const grant = async () =>
+      (await consumeAuthCode(
+        (await createAuthCode({
+          passwordVersion: 0,
+          clientId,
+          userId: user.id,
+          redirectUri: 'https://example.com/callback',
+          scopes: ['trips:read'],
+          resource: null,
+          codeChallenge: 'abc123',
+          codeChallengeMethod: 'S256',
+        }))!,
+      ))!;
+
+    const kept = await svc.issueTokensForCode(await grant());
+    expect(kept?.access_token).toEqual(expect.any(String));
+
+    const beforeReset = await grant();
+    await updateRows(t, Users, { id: user.id }, { password_version: 1 });
+    expect(await svc.issueTokensForCode(beforeReset)).toBeNull();
+    expect(await countRows(t, OauthTokens, { user: user.id })).toBe(1);
   });
 });
 
@@ -1273,6 +1303,7 @@ describe('addon gate and MCP endpoint', () => {
 
 describe('pending-code store', () => {
   const codeParams = {
+    passwordVersion: 0,
     clientId: 'c',
     userId: 42,
     redirectUri: 'https://example.com/callback',
@@ -1433,6 +1464,7 @@ describe('module-scoped OAuth state', () => {
     // scoped, so even a second hand-built instance must see it — two maps would
     // kill the authorization-code flow silently.
     const code = (await createAuthCode({
+      passwordVersion: 0,
       clientId: 'c',
       userId: 42,
       redirectUri: 'https://example.com/callback',
@@ -1446,6 +1478,7 @@ describe('module-scoped OAuth state', () => {
       clientsRepo,
       tokensRepo,
       consentsRepo,
+      usersRepo,
       addonsStub,
       new AuditService(auditLogRepo, usersRepo),
       new UnitOfWork(t.em, new SqliteEngine()),

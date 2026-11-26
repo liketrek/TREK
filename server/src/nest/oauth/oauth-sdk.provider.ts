@@ -184,13 +184,8 @@ export class TrekOAuthProvider implements OAuthServerProvider {
     if (!codeVerifier || !this.oauth.verifyPKCE(codeVerifier, pending.codeChallenge))
       throw new Error('Authorization grant is invalid.');
 
-    const tokens = await this.oauth.issueTokens(
-      client.client_id,
-      pending.userId,
-      pending.scopes,
-      null,
-      pending.resource ?? null,
-    );
+    const tokens = await this.oauth.issueTokensForCode(pending);
+    if (!tokens) throw new Error('Authorization grant is invalid.');
     await this.audit.writeAudit({
       userId: pending.userId,
       action: 'oauth.token.issue',

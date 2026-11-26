@@ -61,6 +61,7 @@ const { oauthSvc } = vi.hoisted(() => ({
     consumeAuthCode: vi.fn(),
     saveConsent: vi.fn(),
     issueTokens: vi.fn(),
+    issueTokensForCode: vi.fn(),
     issueClientCredentialsToken: vi.fn(),
     refreshTokens: vi.fn(),
     revokeToken: vi.fn(),

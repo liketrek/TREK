@@ -1,3 +1,4 @@
+import { JWT_SECRET } from '../../../src/config';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { getClientIp } from '../../../src/nest/audit/client-ip';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
@@ -8,6 +9,7 @@ import type { User } from '../../../src/types';
 import { HttpException } from '@nestjs/common';
 
 import type { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 vi.mock('../../../src/nest/audit/client-ip', () => ({ getClientIp: vi.fn(() => '1.2.3.4') }));
@@ -122,13 +124,44 @@ describe('OauthPublicController /token', () => {
       }),
       authenticateClient: vi.fn().mockReturnValue({ id: 'c' }),
       verifyPKCE: vi.fn().mockReturnValue(true),
-      issueTokens: vi.fn().mockReturnValue({ access_token: 'at', token_type: 'Bearer' }),
+      issueTokensForCode: vi.fn().mockReturnValue({ access_token: 'at', token_type: 'Bearer' }),
     });
     await opc(svc, rl()).token(
       reqWith({ grant_type: 'authorization_code', client_id: 'c', code: 'x', redirect_uri: 'u', code_verifier: 'v' }),
       ok,
     );
     expect(ok.body).toEqual({ access_token: 'at', token_type: 'Bearer' });
+
+    // The password changed since the consent: the code grants nothing, and the refusal is audited.
+    const stale = makeRes();
+    const staleSvc = osvc({
+      consumeAuthCode: vi
+        .fn()
+        .mockReturnValue({
+          clientId: 'c',
+          redirectUri: 'u',
+          userId: 1,
+          scopes: ['s'],
+          codeChallenge: 'cc',
+          resource: null,
+        }),
+      authenticateClient: vi.fn().mockReturnValue({ id: 'c' }),
+      verifyPKCE: vi.fn().mockReturnValue(true),
+      issueTokensForCode: vi.fn().mockReturnValue(null),
+    });
+    const staleAudit = { writeAudit: vi.fn() };
+    await new OauthPublicController(staleSvc, rl(), staleAudit as unknown as AuditService).token(
+      reqWith({ grant_type: 'authorization_code', client_id: 'c', code: 'x', redirect_uri: 'u', code_verifier: 'v' }),
+      stale,
+    );
+    expect(stale.statusCode).toBe(400);
+    expect(stale.body).toEqual({ error: 'invalid_grant', error_description: 'Authorization grant is invalid.' });
+    expect(staleAudit.writeAudit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        action: 'oauth.token.grant_failed',
+        details: { client_id: 'c', reason: 'password_changed' },
+      }),
+    );
   });
 
   it('authorization_code: maps client_id / redirect_uri / resource mismatches + pkce + client auth', async () => {
@@ -594,6 +627,29 @@ describe('OauthApiController', () => {
       req,
     );
     expect((ok as { redirect: string }).redirect).toContain('code=the_code');
+  });
+
+  it('authorize: the code carries the password version of the cookie session that consented', async () => {
+    const createAuthCode = vi.fn().mockReturnValue('the_code');
+    const svc = osvc({
+      validateAuthorizeRequest: vi.fn().mockReturnValue({ valid: true, scopes: ['s'], resource: null }),
+      saveConsent: vi.fn(),
+      createAuthCode,
+    });
+    const cookie = jwt.sign({ id: user.id, pv: 4 }, JWT_SECRET, { algorithm: 'HS256' });
+    await new OauthApiController(svc, rl()).authorize(
+      user,
+      {
+        client_id: 'c',
+        redirect_uri: 'https://cb',
+        scope: 's',
+        code_challenge: 'cc',
+        code_challenge_method: 'S256',
+        approved: true,
+      },
+      { ...req, cookies: { trek_session: cookie } } as unknown as Request,
+    );
+    expect(createAuthCode).toHaveBeenCalledWith(expect.objectContaining({ passwordVersion: 4 }));
   });
 
   it('clients/sessions: 403 when MCP off, else CRUD', async () => {

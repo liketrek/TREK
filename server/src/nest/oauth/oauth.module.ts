@@ -57,10 +57,11 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
  * module availability (inventory §6 — `OauthTokensRepository` needs to be
  * importable from `AuthModule` too, Task 5's `revokeAllForUser`, the same
  * shape `McpTokensRepository`/`InviteTokensRepository` already use across
- * `nest/tokens`/`nest/auth`/`nest/oidc`) even though `OauthService` itself
- * never injects `UsersRepository` directly — OA16/OA31 read `users` columns
+ * `nest/tokens`/`nest/auth`/`nest/oidc`). OA16/OA31 read `users` columns
  * THROUGH `OauthTokensRepository`'s own join methods, not a separate
- * `Users` call (Task 1's ruling: "do not add users methods" for this join).
+ * `Users` call (Task 1's ruling: "do not add users methods" for this join);
+ * `OauthService` injects `UsersRepository` only to check that the password
+ * an authorization code was granted under still holds.
  */
 @Module({
   imports: [

@@ -264,6 +264,7 @@ describe('GET /oauth/authorize — SDK authorizationHandler over trekOAuthProvid
     //    SDK-side exchange see it.
     const code = await withRequestContext(orm, () =>
       containerSideOauth.createAuthCode({
+        passwordVersion: 0,
         clientId,
         userId: user.id,
         redirectUri: 'https://client.example.com/cb',
