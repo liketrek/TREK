@@ -23,6 +23,8 @@ import {
 } from './provider-http';
 import { readSseEvents } from './sse-lines';
 
+import { createHash, type Hash } from 'node:crypto';
+
 export const ANTHROPIC_VERSION = '2023-06-01';
 /**
  * The answer cap of one step, which Anthropic requires to be set: the most
@@ -41,17 +43,49 @@ function imageBlock(image: AiImage): ContentBlock {
 }
 
 /**
+ * What a thinking block is bound to: Anthropic checks its signature against
+ * everything the request sends before it (the system blocks, the tools, the
+ * earlier turns) and refuses the whole request when any of it changed since
+ * the block was written. The history does change: a tool group loaded later
+ * in the turn, an earlier answer cut short once a new question follows, a
+ * held change applied since, a trip card that moved on. The fingerprint of
+ * what was sent before a step is kept with its record (AnthropicTurn), and
+ * its thinking goes back only while the request still sends the same before
+ * it (#3094).
+ */
+export class SentBefore {
+  private readonly hash: Hash;
+
+  constructor(head: unknown) {
+    this.hash = createHash('sha256').update(JSON.stringify(head));
+  }
+
+  add(role: AnthropicMessage['role'], blocks: readonly ContentBlock[]): void {
+    for (const block of blocks) this.hash.update(`${role}\n${JSON.stringify(block)}\n`);
+  }
+
+  fingerprint(): string {
+    return this.hash.copy().digest('base64url');
+  }
+}
+
+/**
  * The provider-neutral history as Messages API turns: a tool result is a
  * `tool_result` block of a user turn, and turns of the same role that follow
  * each other merge into one, since the API wants them alternating. An image
  * of a tool result goes inside that `tool_result`, after its text, where the
  * model reads it as what the tool produced; a user's images go before their
- * words.
+ * words. A recorded answer keeps its thinking only where `sent` still holds
+ * what was sent before it; without a record of that it goes back without.
  */
-export function toAnthropicMessages(messages: AiChatMessage[]): AnthropicMessage[] {
+export function toAnthropicMessages(
+  messages: AiChatMessage[],
+  sent: SentBefore = new SentBefore(null),
+): AnthropicMessage[] {
   const out: AnthropicMessage[] = [];
   const push = (role: AnthropicMessage['role'], blocks: ContentBlock[]) => {
     if (blocks.length === 0) return;
+    sent.add(role, blocks);
     const last = out.at(-1);
     if (last?.role === role) last.content.push(...blocks);
     else out.push({ role, content: blocks });
@@ -60,7 +94,11 @@ export function toAnthropicMessages(messages: AiChatMessage[]): AnthropicMessage
     if (message.role === 'user') {
       push('user', [...(message.images ?? []).map(imageBlock), { type: 'text', text: message.text }]);
     } else if (message.role === 'assistant' && message.providerState?.adapter === 'anthropic-messages') {
-      push('assistant', message.providerState.blocks.filter((block) => !isBlankText(block)).map(replayed));
+      const bound = message.providerState.sentBefore === sent.fingerprint();
+      const blocks = message.providerState.blocks.filter(
+        (block) => !isBlankText(block) && (bound || !isThinking(block)),
+      );
+      push('assistant', blocks.map(replayed));
     } else if (message.role === 'assistant') {
       push('assistant', [
         ...(message.text.trim() ? [{ type: 'text', text: message.text }] : []),
@@ -159,15 +197,8 @@ export class AnthropicMessagesClient implements AiChatClient {
     const system = [request.system, request.context]
       .filter((text): text is string => !!text)
       .map((text) => ({ type: 'text', text, cache_control: CACHED }));
-    const messages = toAnthropicMessages(request.messages);
-    markHistoryForCache(messages, MAX_CACHE_BREAKPOINTS - system.length);
-    const body = {
-      model: this.model,
-      max_tokens: MAX_TOKENS,
-      stream: true,
-      system,
-      messages,
-      ...(request.tools.length > 0 || request.webSearch
+    const tools =
+      request.tools.length > 0 || request.webSearch
         ? {
             tools: [
               ...request.tools.map((tool) => ({
@@ -180,8 +211,12 @@ export class AnthropicMessagesClient implements AiChatClient {
             // `none` is allowed with extended thinking, unlike forcing a tool.
             ...(request.toolChoice === 'none' ? { tool_choice: { type: 'none' } } : {}),
           }
-        : {}),
-    };
+        : {};
+    const sent = new SentBefore({ model: this.model, system, ...tools });
+    const messages = toAnthropicMessages(request.messages, sent);
+    const sentBefore = sent.fingerprint();
+    markHistoryForCache(messages, MAX_CACHE_BREAKPOINTS - system.length);
+    const body = { model: this.model, max_tokens: MAX_TOKENS, stream: true, system, messages, ...tools };
     const events = await openProviderStream(
       this.fetcher,
       this.kind,
@@ -199,7 +234,7 @@ export class AnthropicMessagesClient implements AiChatClient {
       signal,
     );
 
-    const turn = new AnthropicTurn();
+    const turn = new AnthropicTurn(sentBefore);
     for await (const sse of readSseEvents(events)) {
       const event = parseEventData(sse.data);
       if (!event) continue;
@@ -241,6 +276,9 @@ class AnthropicTurn {
   private readonly blocks = new Map<number, OpenBlock>();
   private readonly cited = new Set<string>();
   private searched = false;
+
+  /** `sentBefore`: the fingerprint of what the request sent before this answer, kept with its record. */
+  constructor(private readonly sentBefore: string) {}
 
   *apply(event: Record<string, unknown>): Generator<AiChatEvent> {
     const index = asCount(event.index);
@@ -321,7 +359,7 @@ class AnthropicTurn {
     const blocks = [...this.blocks.entries()].sort(([a], [b]) => a - b).map(([, open]) => open.block);
     const thought = blocks.some(isThinking);
     if (!this.searched && !thought) return null;
-    return { adapter: 'anthropic-messages', blocks };
+    return { adapter: 'anthropic-messages', blocks, sentBefore: this.sentBefore };
   }
 }
 

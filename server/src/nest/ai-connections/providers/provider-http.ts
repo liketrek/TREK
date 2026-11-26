@@ -70,10 +70,15 @@ export async function refusalOf(kind: AiConnectionKind, res: Response): Promise<
   return failure;
 }
 
-/** The field an error body names as refused (OpenAI's `param`, such as `input[12]`), when it is a bare path. */
+/**
+ * The field an error body names as refused, when it is a bare path: OpenAI's
+ * `param` (`input[12]`), or the path Anthropic's message starts with
+ * (`messages.1.content.0: ...`), of which nothing after the path is kept.
+ */
 function refusedParamOf(body: unknown): string | undefined {
-  const param = asRecord(asRecord(body).error).param;
-  return typeof param === 'string' && /^[\w.[\]-]{1,80}$/.test(param) ? param : undefined;
+  const error = asRecord(asRecord(body).error);
+  const param = typeof error.param === 'string' ? error.param : /^([\w.]{1,80}): /.exec(asText(error.message))?.[1];
+  return param !== undefined && /^[\w.[\]-]{1,80}$/.test(param) ? param : undefined;
 }
 
 /** One SSE data payload as a JSON object; null for anything else (a `[DONE]`, a keepalive). */

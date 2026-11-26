@@ -387,10 +387,12 @@ const aiProviderStateSchema = z.discriminatedUnion('adapter', [
     adapter: z.literal('openai-responses'),
     items: z.array(z.record(z.string(), z.unknown())),
   }),
-  // Anthropic's content blocks of an answer that searched the web or thought, replayed as they came.
+  // Anthropic's content blocks of an answer that searched the web or thought, replayed as they came, and the
+  // fingerprint of what its request sent before it, which its thinking blocks are bound to.
   z.object({
     adapter: z.literal('anthropic-messages'),
     blocks: z.array(z.record(z.string(), z.unknown())),
+    sentBefore: z.string().optional(),
   }),
   // Gemini's thought signature per tool call id, which its Chat Completions endpoint wants back with the call.
   z.object({

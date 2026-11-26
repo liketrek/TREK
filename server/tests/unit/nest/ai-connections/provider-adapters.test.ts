@@ -4,10 +4,15 @@
  * neutral events, and how a refusal becomes an AiProviderError. No socket is
  * opened: every adapter is handed a fetch that answers from the fixtures.
  */
-import type { AiChatEvent, AiChatRequest } from '../../../../src/nest/ai-connections/ai-chat-client.interface';
+import type {
+  AiChatEvent,
+  AiChatRequest,
+  AiProviderState,
+} from '../../../../src/nest/ai-connections/ai-chat-client.interface';
 import {
   AnthropicMessagesClient,
   markHistoryForCache,
+  SentBefore,
   toAnthropicMessages,
 } from '../../../../src/nest/ai-connections/providers/anthropic-messages.client';
 import { OpenAiChatClient, toChatMessages } from '../../../../src/nest/ai-connections/providers/openai-chat.client';
@@ -185,6 +190,26 @@ describe('provider errors', () => {
       '[ai] chatgpt refused the request: HTTP 400 (invalid_request_error)',
     ]);
   });
+  it('PERR-005: Anthropic names the refused field at the start of its message; the log keeps that path alone (#3094)', async () => {
+    const refused = (message: unknown) =>
+      failure(
+        new AnthropicMessagesClient(
+          'm',
+          'k',
+          fetchAnswering(jsonResponse(400, { type: 'error', error: { type: 'invalid_request_error', message } }))
+            .fetcher,
+        ).stream(REQUEST, signal()),
+      );
+    logWarn.mockClear();
+    await refused('messages.1.content.0: Invalid `signature` in `thinking` block. Dinner in Rome at 20:00.');
+    await refused('Dinner in Rome: at 20:00');
+    await refused(42);
+    expect(logWarn.mock.calls.map(([line]) => line)).toEqual([
+      '[ai] anthropic refused the request: HTTP 400 (invalid_request_error) at messages.1.content.0',
+      '[ai] anthropic refused the request: HTTP 400 (invalid_request_error)',
+      '[ai] anthropic refused the request: HTTP 400 (invalid_request_error)',
+    ]);
+  });
 });
 
 describe('toProviderSchema', () => {
@@ -353,6 +378,13 @@ describe('AnthropicMessagesClient', () => {
     expect((err as Error).name).toBe('AbortError');
   });
 
+  /** The fingerprint a history of this one question leaves, as toAnthropicMessages takes it without a request. */
+  const after = (question: string): string => {
+    const sent = new SentBefore(null);
+    toAnthropicMessages([{ role: 'user', text: question }], sent);
+    return sent.fingerprint();
+  };
+
   it('ANTH-008: an answer that thought is replayed with its thinking blocks as they came, never marked for the cache (#2789)', async () => {
     const thinking = { type: 'thinking', thinking: '', signature: 'sig-a1b2' };
     const call = { type: 'tool_use', id: 'toolu_02', name: 'list_accommodations', input: {} };
@@ -381,7 +413,7 @@ describe('AnthropicMessagesClient', () => {
     expect(events.filter((e) => e.type === 'text-delta')).toEqual([]);
     expect(events).toContainEqual({
       type: 'provider-state',
-      state: { adapter: 'anthropic-messages', blocks: [thinking, call] },
+      state: { adapter: 'anthropic-messages', blocks: [thinking, call], sentBefore: expect.any(String) },
     });
 
     const next = toAnthropicMessages([
@@ -390,7 +422,11 @@ describe('AnthropicMessagesClient', () => {
         role: 'assistant',
         text: '',
         toolCalls: [{ id: 'toolu_02', name: 'list_accommodations', args: {} }],
-        providerState: { adapter: 'anthropic-messages', blocks: [thinking, call] },
+        providerState: {
+          adapter: 'anthropic-messages',
+          blocks: [thinking, call],
+          sentBefore: after('Where are we staying?'),
+        },
       },
       { role: 'tool', toolCallId: 'toolu_02', name: 'list_accommodations', output: '[]' },
       { role: 'user', text: 'And in Kyoto?' },
@@ -406,7 +442,7 @@ describe('AnthropicMessagesClient', () => {
         role: 'assistant',
         text: '',
         toolCalls: [],
-        providerState: { adapter: 'anthropic-messages', blocks: [thinking] },
+        providerState: { adapter: 'anthropic-messages', blocks: [thinking], sentBefore: after('Hi') },
       },
       { role: 'user', text: 'Still there?' },
     ]);
@@ -415,7 +451,11 @@ describe('AnthropicMessagesClient', () => {
     expect(ended[0]?.content[0]?.cache_control).toEqual({ type: 'ephemeral' });
 
     // The request is marked, the stored answer is not: a mark left on it would go out on every later step.
-    const stored = { adapter: 'anthropic-messages' as const, blocks: [{ ...thinking }, { ...call }] };
+    const stored = {
+      adapter: 'anthropic-messages' as const,
+      blocks: [{ ...thinking }, { ...call }],
+      sentBefore: after('Hi'),
+    };
     const marked = toAnthropicMessages([
       { role: 'user', text: 'Hi' },
       { role: 'assistant', text: '', toolCalls: [], providerState: stored },
@@ -424,6 +464,79 @@ describe('AnthropicMessagesClient', () => {
     markHistoryForCache(marked, 2);
     expect(marked[1]?.content[1]?.cache_control).toEqual({ type: 'ephemeral' });
     expect(stored.blocks[1]).not.toHaveProperty('cache_control');
+  });
+  it('ANTH-010: thinking goes back only while the request sends what it was written after, else without it (#3094)', async () => {
+    const thought = [
+      { type: 'message_start', message: { usage: { input_tokens: 5, output_tokens: 1 } } },
+      { type: 'content_block_start', index: 0, content_block: { type: 'thinking', thinking: '', signature: '' } },
+      { type: 'content_block_delta', index: 0, delta: { type: 'thinking_delta', thinking: 'Look it up.' } },
+      { type: 'content_block_delta', index: 0, delta: { type: 'signature_delta', signature: 'sig-c3' } },
+      { type: 'content_block_stop', index: 0 },
+      {
+        type: 'content_block_start',
+        index: 1,
+        content_block: { type: 'tool_use', id: 'toolu_09', name: 'create_place' },
+      },
+      {
+        type: 'content_block_delta',
+        index: 1,
+        delta: { type: 'input_json_delta', partial_json: '{"name":"Ryoan-ji"}' },
+      },
+      { type: 'content_block_stop', index: 1 },
+      { type: 'message_delta', delta: { stop_reason: 'tool_use' }, usage: { output_tokens: 30 } },
+      { type: 'message_stop' },
+    ];
+    const first = await run(
+      new AnthropicMessagesClient('claude-sonnet-5-5', 'k', fetchAnswering(streamResponse(thought)).fetcher).stream(
+        REQUEST,
+        signal(),
+      ),
+    );
+    const recorded = first.find((e) => e.type === 'provider-state');
+    if (recorded?.type !== 'provider-state' || recorded.state.adapter !== 'anthropic-messages')
+      throw new Error('no record');
+    const record = recorded.state;
+    const followUp = (request: AiChatRequest, state: AiProviderState = record): AiChatRequest => ({
+      ...request,
+      messages: [
+        ...request.messages,
+        {
+          role: 'assistant',
+          text: '',
+          toolCalls: [{ id: 'toolu_09', name: 'create_place', args: {} }],
+          providerState: state,
+        },
+        { role: 'tool', toolCallId: 'toolu_09', name: 'create_place', output: '{"id":8}' },
+        { role: 'user', text: 'And Ginkaku-ji?' },
+      ],
+    });
+    const sentTypes = async (request: AiChatRequest, model = 'claude-sonnet-5-5') => {
+      const http = fetchAnswering(streamResponse(STREAM));
+      await run(new AnthropicMessagesClient(model, 'k', http.fetcher).stream(request, signal()));
+      const body = JSON.parse(String(http.calls[0]?.init.body)) as {
+        messages: Array<{ content: Array<{ type: string }> }>;
+      };
+      return body.messages.flatMap((message) => message.content.map((block) => block.type));
+    };
+    const [question, answer, result, thanks] = REQUEST.messages;
+    if (result?.role !== 'tool' || !question || !answer || !thanks) throw new Error('fixture');
+
+    // Everything before the answer as it was: its thinking goes back with its call.
+    expect(await sentTypes(followUp(REQUEST))).toContain('thinking');
+    // A tool group loaded since, the trip card moved on, an earlier answer cut short, another model, a record
+    // kept before the fingerprint: the provider would refuse the block and the request with it, so it stays out.
+    const changed: Array<[AiChatRequest, string?]> = [
+      [followUp({ ...REQUEST, tools: [...REQUEST.tools, { ...TOOL, name: 'list_bookings' }] })],
+      [followUp({ ...REQUEST, context: 'Trip: Japan, 3 days, 1 place' })],
+      [followUp({ ...REQUEST, messages: [question, answer, { ...result, output: '{"id":7,"more":1}' }, thanks] })],
+      [followUp(REQUEST), 'claude-opus-5-5'],
+      [followUp(REQUEST, { adapter: 'anthropic-messages', blocks: record.blocks })],
+    ];
+    for (const [request, model] of changed) {
+      const types = await sentTypes(request, model);
+      expect(types).not.toContain('thinking');
+      expect(types).toContain('tool_use');
+    }
   });
 });
 
@@ -1128,6 +1241,7 @@ describe('web search through the provider', () => {
             RESULT,
             { type: 'text', text: 'Eat at A.' },
           ],
+          sentBefore: expect.any(String),
         },
       },
       { type: 'finish', reason: 'stop' },
