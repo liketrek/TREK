@@ -87,8 +87,10 @@ describe('openDatabase', () => {
   });
 });
 
-// SQLite names every temp file etilqs_<random>. Linux unlinks the file the
-// moment it is opened, so it only shows among the process's open descriptors;
+// SQLite names every temp file etilqs_<random>, except where it can open it
+// without a name: from 3.54 on Linux uses O_TMPFILE, and such a file shows among
+// the process's open descriptors as <dir>/#<inode> (deleted). Before that, Linux
+// unlinked the named file the moment it was opened, so it showed only there too.
 // Windows keeps it in the temp directory until it is closed. macOS offers
 // neither view, which is why the test below does not run there.
 const canSeeTempFiles = process.platform === 'linux' || process.platform === 'win32';
@@ -104,7 +106,7 @@ function sqliteTempFiles(): string[] {
           return [];
         }
       })
-      .filter((target) => target.includes('etilqs_'));
+      .filter((target) => target.includes('etilqs_') || /\/#\d+ \(deleted\)$/.test(target));
   }
   return fs.readdirSync(os.tmpdir()).filter((name) => name.startsWith('etilqs_'));
 }
