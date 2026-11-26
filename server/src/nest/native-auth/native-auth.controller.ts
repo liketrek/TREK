@@ -3,6 +3,7 @@ import { AuditService } from '../audit/audit.service';
 import { getClientIp } from '../audit/client-ip';
 import { CookieAuthGuard } from '../auth-core/cookie-auth.guard';
 import { CurrentUser } from '../auth-core/current-user.decorator';
+import { verifiedSessionClaims } from '../auth-core/jwt-verify';
 import { Public } from '../auth-core/public.decorator';
 import { setAuthCookie } from '../common/cookie';
 import { RateLimitService } from '../common/rate-limit.service';
@@ -67,14 +68,25 @@ export class NativeAuthController {
 
   /**
    * Cookie only: an API or MCP bearer token must not be able to mint itself a
-   * full browser session this way.
+   * full browser session this way. The code is bound to the cookie's session,
+   * which the guard has just verified, so it redeems only while that stands.
    */
   @Post('handoff')
   @UseGuards(CookieAuthGuard)
   @HttpCode(200)
   @ResponseContract(nativeHandoffResponseSchema)
-  async handoff(@Body() body: NativeHandoffDto, @CurrentUser() user: User): Promise<NativeHandoffResponse> {
-    return { code: await this.nativeAuth.issueCode(user.id, body.challenge) };
+  async handoff(
+    @Body() body: NativeHandoffDto,
+    @CurrentUser() user: User,
+    @Req() req: Request,
+  ): Promise<NativeHandoffResponse> {
+    const claims = verifiedSessionClaims((req.cookies as Record<string, string> | undefined)?.trek_session);
+    const origin = {
+      userId: user.id,
+      passwordVersion: claims?.pv ?? 0,
+      sessionId: typeof claims?.jti === 'string' ? claims.jti : null,
+    };
+    return { code: await this.nativeAuth.issueCode(origin, body.challenge) };
   }
 
   /**

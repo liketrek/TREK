@@ -4,6 +4,7 @@
  * service; the exchange route is rate-limited per ip before the code is
  * touched, sets the remembered session cookie and writes the login row.
  */
+import { JWT_SECRET } from '../../../src/config';
 import type { AuditService } from '../../../src/nest/audit/audit.service';
 import { DomainError } from '../../../src/nest/common/domain-error';
 import type { RateLimitService } from '../../../src/nest/common/rate-limit.service';
@@ -14,6 +15,7 @@ import type { User } from '../../../src/types';
 import { nativeHandoffResponseSchema, successResponseSchema } from '@trek/shared';
 
 import type { Request, Response } from 'express';
+import jwt from 'jsonwebtoken';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const challenge = 'a'.repeat(64);
@@ -43,11 +45,25 @@ function makeRes() {
 beforeEach(() => vi.clearAllMocks());
 
 describe('NativeAuthController.handoff', () => {
-  it('NATIVE-CTL-001: issues a code for the signed-in user and the given challenge', async () => {
+  it('NATIVE-CTL-001: issues a code bound to the cookie session it was asked from', async () => {
     const { controller, nativeAuth } = build();
+    const tracked = jwt.sign({ id: 7, pv: 3, jti: 'sess-1' }, JWT_SECRET, { algorithm: 'HS256' });
+    const asked = { ...req, cookies: { trek_session: tracked } } as unknown as Request;
 
-    expect(await controller.handoff({ challenge }, { id: 7 } as User)).toEqual({ code: 'code-1' });
-    expect(nativeAuth.issueCode).toHaveBeenCalledWith(7, challenge);
+    expect(await controller.handoff({ challenge }, { id: 7 } as User, asked)).toEqual({ code: 'code-1' });
+    expect(nativeAuth.issueCode).toHaveBeenCalledWith(
+      { userId: 7, passwordVersion: 3, sessionId: 'sess-1' },
+      challenge,
+    );
+  });
+
+  it('NATIVE-CTL-001b: a session from before tracking binds the code to its password version alone', async () => {
+    const { controller, nativeAuth } = build();
+    const untracked = jwt.sign({ id: 7 }, JWT_SECRET, { algorithm: 'HS256' });
+    const asked = { ...req, cookies: { trek_session: untracked } } as unknown as Request;
+
+    await controller.handoff({ challenge }, { id: 7 } as User, asked);
+    expect(nativeAuth.issueCode).toHaveBeenCalledWith({ userId: 7, passwordVersion: 0, sessionId: null }, challenge);
   });
 });
 

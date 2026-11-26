@@ -143,3 +143,81 @@ describe('Native sign-in hand-off e2e', () => {
     expect((await request(server).get('/api/auth/native/start?challenge=nope')).status).toBe(400);
   });
 });
+
+describe('a hand-off code outlives no end of the session that minted it', () => {
+  const sessionFrom = (response: request.Response): string =>
+    (response.headers['set-cookie'] as unknown as string[] | undefined)
+      ?.find((c) => c.startsWith('trek_session='))
+      ?.split(';')[0] ?? '';
+
+  /** A tracked browser session of a fresh account, as a sign-in leaves one. */
+  async function signedIn(name: string): Promise<{ email: string; cookie: string }> {
+    const email = `${name}@example.test`;
+    const { user } = await makeUser(orm, { username: name, email });
+    const minted = await handoff(sessionCookie(user.id));
+    const cookie = sessionFrom(await exchange({ code: minted.body.code, verifier }));
+    expect(cookie).not.toBe('');
+    return { email, cookie };
+  }
+
+  async function resetPassword(email: string): Promise<void> {
+    const mailer = app.get(MailerService) as unknown as { sendPasswordResetEmail: ReturnType<typeof vi.fn> };
+    mailer.sendPasswordResetEmail.mockClear();
+    mailer.sendPasswordResetEmail.mockResolvedValue({ delivered: 'test' });
+    expect((await request(server).post('/api/auth/forgot-password').send({ email })).status).toBe(200);
+    const url = String(mailer.sendPasswordResetEmail.mock.calls.at(-1)?.[1]);
+    const token = new URL(url).searchParams.get('token');
+    const reset = await request(server)
+      .post('/api/auth/reset-password')
+      .send({ token, new_password: 'Native-Reset-Check!2026' });
+    expect(reset.status).toBe(200);
+  }
+
+  async function refused(code: string): Promise<void> {
+    const late = await exchange({ code, verifier });
+    expect(late.status).toBe(400);
+    expect(late.body).toEqual({ error: 'Invalid or expired code' });
+    expect(late.headers['set-cookie']).toBeUndefined();
+  }
+
+  it('NATIVE-E2E-007: a code minted before a password reset mints no session after it', async () => {
+    const account = await signedIn('native-reset-tracked');
+    const minted = await handoff(account.cookie);
+    expect(minted.status).toBe(200);
+
+    await resetPassword(account.email);
+
+    await refused(minted.body.code);
+  });
+
+  it('NATIVE-E2E-008: a code minted from a session from before tracking is refused after a reset too', async () => {
+    const email = 'native-reset-untracked@example.test';
+    const { user } = await makeUser(orm, { username: 'native-reset-untracked', email });
+    const minted = await handoff(sessionCookie(user.id));
+    expect(minted.status).toBe(200);
+
+    await resetPassword(email);
+
+    await refused(minted.body.code);
+  });
+
+  it('NATIVE-E2E-009: a code minted before its session signed out mints no session after it', async () => {
+    const account = await signedIn('native-logout');
+    const minted = await handoff(account.cookie);
+
+    expect((await request(server).post('/api/auth/logout').set('Cookie', account.cookie)).status).toBe(200);
+
+    await refused(minted.body.code);
+  });
+
+  it('NATIVE-E2E-010: a code redeemed before the reset gives a session the reset then ends', async () => {
+    const account = await signedIn('native-reset-before');
+    const minted = await handoff(account.cookie);
+    const appSession = sessionFrom(await exchange({ code: minted.body.code, verifier }));
+    expect((await request(server).get('/api/auth/me').set('Cookie', appSession)).status).toBe(200);
+
+    await resetPassword(account.email);
+
+    expect((await request(server).get('/api/auth/me').set('Cookie', appSession)).status).toBe(401);
+  });
+});

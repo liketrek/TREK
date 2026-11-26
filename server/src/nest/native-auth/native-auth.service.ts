@@ -1,4 +1,4 @@
-import { LoginSessionService } from '../auth/login-session.service';
+import { LoginSessionService, type SessionOrigin } from '../auth/login-session.service';
 import { DomainError } from '../common/domain-error';
 import type { SessionClient } from '../sessions/sessions.service';
 import { NATIVE_HANDOFF_CODE_TTL_MS, NativeHandoffStore } from './native-handoff.store';
@@ -30,10 +30,10 @@ export class NativeAuthService {
     private readonly handoffs: NativeHandoffStore,
   ) {}
 
-  async issueCode(userId: number, challenge: string): Promise<string> {
+  async issueCode(origin: SessionOrigin, challenge: string): Promise<string> {
     const code = randomBytes(32).toString('base64url');
     const stored = await this.handoffs.put(code, {
-      userId,
+      origin,
       challenge,
       expiresAt: Date.now() + NATIVE_HANDOFF_CODE_TTL_MS,
     });
@@ -45,13 +45,15 @@ export class NativeAuthService {
    * Burns the code on every attempt, right or wrong, so a code that leaked
    * through the URL scheme gets exactly one guess. The session is always the
    * long one: an app that forgets its login whenever the system unloads it
-   * would be useless on the road.
+   * would be useless on the road. It is carried on from the browser session
+   * that handed it off, so a code minted before that session ended (a
+   * password reset above all) mints nothing afterwards.
    */
   async redeem(code: string, verifier: string, client: SessionClient): Promise<{ token: string; userId: number }> {
     const entry = await this.handoffs.take(code);
     if (!entry || !verifierMatches(entry.challenge, verifier)) throw new DomainError(400, INVALID_CODE);
-    const token = await this.logins.signIn(entry.userId, true, client);
+    const token = await this.logins.signIn(entry.origin, true, client);
     if (!token) throw new DomainError(400, INVALID_CODE);
-    return { token, userId: entry.userId };
+    return { token, userId: entry.origin.userId };
   }
 }

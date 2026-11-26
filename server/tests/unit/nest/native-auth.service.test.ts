@@ -29,6 +29,8 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 const verifier = 'v'.repeat(43);
 const challenge = createHash('sha256').update(verifier).digest('hex');
 const client = { userAgent: 'TREK iOS' };
+/** A browser session from before sessions were tracked, on a password never changed. */
+const origin = (userId: number) => ({ userId, passwordVersion: 0, sessionId: null });
 
 const db = createSnapshotTestDb();
 let t: TestModule;
@@ -60,7 +62,7 @@ describe('NativeAuthService', () => {
   it('NATIVE-SVC-001: redeems a code with the matching verifier into a remembered, tracked session', async () => {
     const { user } = await makeUser(orm());
     const before = await readUser(orm(), user.id);
-    const code = await service.issueCode(user.id, challenge);
+    const code = await service.issueCode(origin(user.id), challenge);
 
     const session = await service.redeem(code, verifier, client);
 
@@ -78,7 +80,7 @@ describe('NativeAuthService', () => {
 
   it('NATIVE-SVC-002: a wrong verifier is refused and burns the code with it', async () => {
     const { user } = await makeUser(orm());
-    const code = await service.issueCode(user.id, challenge);
+    const code = await service.issueCode(origin(user.id), challenge);
 
     await expect(service.redeem(code, 'w'.repeat(43), client)).rejects.toEqual(refused);
     await expect(service.redeem(code, verifier, client)).rejects.toEqual(refused);
@@ -86,7 +88,7 @@ describe('NativeAuthService', () => {
 
   it('NATIVE-SVC-003: a code is single use', async () => {
     const { user } = await makeUser(orm());
-    const code = await service.issueCode(user.id, challenge);
+    const code = await service.issueCode(origin(user.id), challenge);
 
     await service.redeem(code, verifier, client);
     await expect(service.redeem(code, verifier, client)).rejects.toEqual(refused);
@@ -99,7 +101,7 @@ describe('NativeAuthService', () => {
   it('NATIVE-SVC-005: a code older than its ttl is refused', async () => {
     const { user } = await makeUser(orm());
     vi.useFakeTimers({ toFake: ['Date'] });
-    const code = await service.issueCode(user.id, challenge);
+    const code = await service.issueCode(origin(user.id), challenge);
     vi.setSystemTime(Date.now() + NATIVE_HANDOFF_CODE_TTL_MS + 1);
 
     await expect(service.redeem(code, verifier, client)).rejects.toEqual(refused);
@@ -107,7 +109,7 @@ describe('NativeAuthService', () => {
 
   it('NATIVE-SVC-006: a code whose account is gone mints no session', async () => {
     const sessions = await countRows(orm(), UserSessions);
-    const code = await service.issueCode(987654, challenge);
+    const code = await service.issueCode(origin(987654), challenge);
 
     await expect(service.redeem(code, verifier, client)).rejects.toEqual(refused);
     expect(await countRows(orm(), UserSessions)).toBe(sessions);
@@ -116,16 +118,16 @@ describe('NativeAuthService', () => {
   it('NATIVE-SVC-007: a full store refuses to mint another code', async () => {
     vi.spyOn(t.get(NativeHandoffStore), 'put').mockResolvedValueOnce(false);
 
-    await expect(service.issueCode(1, challenge)).rejects.toEqual(expect.objectContaining({ status: 503 }));
+    await expect(service.issueCode(origin(1), challenge)).rejects.toEqual(expect.objectContaining({ status: 503 }));
   });
 
   it('NATIVE-SVC-008: LoginSessionService answers null for an account that does not exist', async () => {
-    expect(await t.get(LoginSessionService).signIn(987654, true, client)).toBeNull();
+    expect(await t.get(LoginSessionService).signIn(origin(987654), true, client)).toBeNull();
   });
 });
 
 describe('InMemoryNativeHandoffStore', () => {
-  const entry = (expiresAt: number): NativeHandoff => ({ userId: 1, challenge, expiresAt });
+  const entry = (expiresAt: number): NativeHandoff => ({ origin: origin(1), challenge, expiresAt });
 
   it('NATIVE-STORE-001: holds at most its cap of live codes', async () => {
     const store = new InMemoryNativeHandoffStore();
@@ -144,7 +146,7 @@ describe('InMemoryNativeHandoffStore', () => {
 
     expect(await store.put('fresh', entry(Date.now() + 60_000))).toBe(true);
     expect(await store.take('c0')).toBeNull();
-    expect(await store.take('fresh')).toEqual(expect.objectContaining({ userId: 1 }));
+    expect(await store.take('fresh')).toEqual(expect.objectContaining({ origin: origin(1) }));
   });
 
   it('NATIVE-STORE-003: take removes the entry, expired or not', async () => {

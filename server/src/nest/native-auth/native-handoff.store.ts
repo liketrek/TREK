@@ -1,6 +1,9 @@
+import type { SessionOrigin } from '../auth/login-session.service';
+
 /** A sign-in the system browser handed off and the app has not redeemed yet. */
 export interface NativeHandoff {
-  userId: number;
+  /** The browser session that handed it off; the app's session stands only while that one does. */
+  origin: SessionOrigin;
   /** Hex sha256 of the verifier the app kept to itself. */
   challenge: string;
   expiresAt: number;
