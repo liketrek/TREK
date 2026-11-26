@@ -54,6 +54,33 @@ updates:
       # by hand once mapbox-gl checks the built-ins first again.
       - dependency-name: mapbox-gl
         versions: ['>=3.33.0']
+      # The packages below move by hand, each for its reason. A security
+      # advisory for one of them still shows up in the Security tab, where it
+      # is handled together with that reason.
+      #
+      # MikroORM 7.2.9 and later refuse a plain value for a foreign key that
+      # points at a unique column other than the primary key, which the OAuth
+      # token and consent repositories write: every OAuth sign-in would fail.
+      # It moves together with those writes.
+      - dependency-name: '@mikro-orm/*'
+        versions: ['>=7.2.9']
+      # Pinned exactly by @mikro-orm/sqlite, and sharing its connection.
+      - dependency-name: better-sqlite3
+        update-types: [version-update:semver-major, version-update:semver-minor, version-update:semver-patch]
+      - dependency-name: kysely
+        update-types: [version-update:semver-major, version-update:semver-minor, version-update:semver-patch]
+      # Pinned exactly by @nestjs/schedule; a newer cron of our own would be a
+      # second copy whose CronJob the scheduler does not accept.
+      - dependency-name: cron
+        update-types: [version-update:semver-major, version-update:semver-minor, version-update:semver-patch]
+      # Root pins that must name the rollup version the lockfile installs (the
+      # Alpine image needs the musl binaries).
+      - dependency-name: '@rollup/rollup-linux-*-musl'
+        update-types: [version-update:semver-major, version-update:semver-minor, version-update:semver-patch]
+      # msw 3 renames the unhandled request option and changes how requests
+      # reach the handlers; the client tests move to it as one migration.
+      - dependency-name: msw
+        update-types: [version-update:semver-major]
 
   # plugin-sdk is standalone with a lockfile of its own and ships to npm.
   - package-ecosystem: npm
