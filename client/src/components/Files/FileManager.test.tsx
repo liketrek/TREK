@@ -526,6 +526,24 @@ describe('FileManager', () => {
     });
   });
 
+  it('FE-COMP-FILEMANAGER-039: a file pasted while the drop zone has focus is uploaded once', async () => {
+    const onUpload = vi.fn().mockResolvedValue({ file: { id: 56 } });
+    render(<FileManager {...defaultProps} onUpload={onUpload} />);
+
+    const zone = document.querySelector('[role="presentation"]') as HTMLElement;
+    const file = new File(['data'], 'pasted.png', { type: 'image/png' });
+    const pasteEvent = new Event('paste', { bubbles: true, cancelable: true });
+    Object.defineProperty(pasteEvent, 'clipboardData', {
+      value: { types: ['Files'], files: [file], items: [{ kind: 'file', type: 'image/png', getAsFile: () => file }] },
+    });
+
+    await fireEvent(zone, pasteEvent);
+
+    await waitFor(() => expect(onUpload).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    expect(onUpload).toHaveBeenCalledTimes(1);
+  });
+
   it('FE-COMP-FILEMANAGER-028: upload with places open assign modal after upload', async () => {
     const { buildPlace } = await import('../../../tests/helpers/factories');
     const place = buildPlace({ id: 10, name: 'Sagrada Familia' });

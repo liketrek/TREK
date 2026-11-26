@@ -125,6 +125,9 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
       }
     },
     noClick: false,
+    // Pasting is handled once for the whole panel (handlePaste), with the upload
+    // permission check; the zone's own paste upload would send each file twice.
+    noPaste: true,
   })
 
   const handlePaste = useCallback((e: React.ClipboardEvent) => {
