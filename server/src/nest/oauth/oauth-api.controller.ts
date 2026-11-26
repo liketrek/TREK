@@ -29,6 +29,12 @@ import type { Request, Response } from 'express';
 
 const MIN = 60_000;
 
+/** The id of the cookie session a consent comes from, null for a token from before sessions were tracked. */
+function consentingSession(req: Request): string | null {
+  const jti = verifiedSessionClaims((req.cookies as Record<string, string> | undefined)?.trek_session)?.jti;
+  return typeof jti === 'string' ? jti : null;
+}
+
 /**
  * Authenticated OAuth management endpoints (the SPA's consent + client/session
  * UI) — byte-identical to the legacy oauthApiRouter (server/src/routes/oauth.ts):
@@ -136,9 +142,8 @@ export class OauthApiController {
       resource: validation.resource ?? null,
       codeChallenge: body.code_challenge,
       codeChallengeMethod: 'S256',
-      // The cookie session the guard has just verified: the code is good only under its password.
-      passwordVersion:
-        verifiedSessionClaims((req.cookies as Record<string, string> | undefined)?.trek_session)?.pv ?? 0,
+      // The cookie session the guard has just verified: the code is good only while it stands.
+      sessionId: consentingSession(req),
     });
     if (!code) {
       throw new HttpException(

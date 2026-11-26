@@ -37,6 +37,7 @@ import {
   sweepPendingCodes,
 } from '../../../src/nest/oauth/oauth.pending-codes';
 import { OauthService } from '../../../src/nest/oauth/oauth.service';
+import type { SessionsService } from '../../../src/nest/sessions/sessions.service';
 import { createUser } from '../../helpers/factories';
 import { countRows, findRow, findRows, insertRow, updateRows } from '../../helpers/factories/rows';
 import { resetTestDb } from '../../helpers/test-db';
@@ -121,6 +122,12 @@ const getConsent = (...args: Parameters<OauthService['getConsent']>) => svc.getC
 const isConsentSufficient = (...args: Parameters<OauthService['isConsentSufficient']>) =>
   svc.isConsentSufficient(...args);
 
+/** Sessions a reset or a sign-out ended; every other id reads as an active session. */
+const endedSessions = new Set<string>();
+const sessionsStub = {
+  findActive: vi.fn(async (id: string) => (endedSessions.has(id) ? null : { id, last_seen_at: '2026-01-01 00:00:00' })),
+} as unknown as SessionsService & { findActive: ReturnType<typeof vi.fn> };
+
 beforeAll(async () => {
   t = await createTestOrm(testDb);
   auditLogRepo = t.repo(AuditLog);
@@ -132,7 +139,7 @@ beforeAll(async () => {
     clientsRepo,
     tokensRepo,
     consentsRepo,
-    usersRepo,
+    sessionsStub,
     addonsStub,
     new AuditService(auditLogRepo, usersRepo),
     new UnitOfWork(t.em, new SqliteEngine()),
@@ -411,7 +418,7 @@ describe('createAuthCode + consumeAuthCode', () => {
     const clientId = created.client!.client_id as string;
 
     const code = await createAuthCode({
-      passwordVersion: 0,
+      sessionId: null,
       clientId,
       userId: user.id,
       redirectUri: 'https://example.com/callback',
@@ -437,7 +444,7 @@ describe('createAuthCode + consumeAuthCode', () => {
     const clientId = created.client!.client_id as string;
 
     const code = await createAuthCode({
-      passwordVersion: 0,
+      sessionId: null,
       clientId,
       userId: user.id,
       redirectUri: 'https://example.com/callback',
@@ -451,13 +458,13 @@ describe('createAuthCode + consumeAuthCode', () => {
     expect(await consumeAuthCode(code)).toBeNull();
   });
 
-  it('a code mints tokens only while the password it was granted under holds', async () => {
+  it('a code mints tokens only while the session that consented stands', async () => {
     const { user } = createUser(testDb);
     const created = await makeClient(user.id);
     const clientId = String(created.client?.client_id);
-    const grant = async () => {
+    const grant = async (sessionId: string | null) => {
       const code = await createAuthCode({
-        passwordVersion: 0,
+        sessionId,
         clientId,
         userId: user.id,
         redirectUri: 'https://example.com/callback',
@@ -471,13 +478,15 @@ describe('createAuthCode + consumeAuthCode', () => {
       return pending;
     };
 
-    const kept = await svc.issueTokensForCode(await grant());
-    expect(kept?.access_token).toEqual(expect.any(String));
+    expect((await svc.issueTokensForCode(await grant('sess-live')))?.access_token).toEqual(expect.any(String));
+    // A token from before sessions were tracked has no session to check.
+    expect((await svc.issueTokensForCode(await grant(null)))?.access_token).toEqual(expect.any(String));
 
-    const beforeReset = await grant();
-    await updateRows(t, Users, { id: user.id }, { password_version: 1 });
+    const beforeReset = await grant('sess-reset');
+    endedSessions.add('sess-reset');
     expect(await svc.issueTokensForCode(beforeReset)).toBeNull();
-    expect(await countRows(t, OauthTokens, { user: user.id })).toBe(1);
+    expect(await countRows(t, OauthTokens, { user: user.id })).toBe(2);
+    expect(sessionsStub.findActive).toHaveBeenCalledWith('sess-reset', user.id, expect.any(String));
   });
 });
 
@@ -1305,7 +1314,7 @@ describe('addon gate and MCP endpoint', () => {
 
 describe('pending-code store', () => {
   const codeParams = {
-    passwordVersion: 0,
+    sessionId: null,
     clientId: 'c',
     userId: 42,
     redirectUri: 'https://example.com/callback',
@@ -1466,7 +1475,7 @@ describe('module-scoped OAuth state', () => {
     // scoped, so even a second hand-built instance must see it — two maps would
     // kill the authorization-code flow silently.
     const code = (await createAuthCode({
-      passwordVersion: 0,
+      sessionId: null,
       clientId: 'c',
       userId: 42,
       redirectUri: 'https://example.com/callback',
@@ -1480,7 +1489,7 @@ describe('module-scoped OAuth state', () => {
       clientsRepo,
       tokensRepo,
       consentsRepo,
-      usersRepo,
+      sessionsStub,
       addonsStub,
       new AuditService(auditLogRepo, usersRepo),
       new UnitOfWork(t.em, new SqliteEngine()),

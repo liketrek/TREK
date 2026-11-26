@@ -66,7 +66,7 @@ function code(over: Partial<PendingCode> = {}): PendingCode {
     resource: null,
     codeChallenge: 'x',
     codeChallengeMethod: 'S256',
-    passwordVersion: 0,
+    sessionId: null,
     expiresAt: Date.now() + 60_000,
     ...over,
   };
@@ -135,7 +135,7 @@ describe('OAuth pending codes', () => {
       store,
     );
     const issued = await service.createAuthCode({
-      passwordVersion: 0,
+      sessionId: null,
       clientId: 'c',
       userId: 1,
       redirectUri: 'https://app.example/cb',

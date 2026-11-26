@@ -132,7 +132,7 @@ describe('OauthPublicController /token', () => {
     );
     expect(ok.body).toEqual({ access_token: 'at', token_type: 'Bearer' });
 
-    // The password changed since the consent: the code grants nothing, and the refusal is audited.
+    // The consenting session ended since: the code grants nothing, and the refusal is audited.
     const stale = makeRes();
     const staleSvc = osvc({
       consumeAuthCode: vi.fn().mockReturnValue({
@@ -157,7 +157,7 @@ describe('OauthPublicController /token', () => {
     expect(staleAudit.writeAudit).toHaveBeenCalledWith(
       expect.objectContaining({
         action: 'oauth.token.grant_failed',
-        details: { client_id: 'c', reason: 'password_changed' },
+        details: { client_id: 'c', reason: 'session_ended' },
       }),
     );
   });
@@ -627,14 +627,14 @@ describe('OauthApiController', () => {
     expect((ok as { redirect: string }).redirect).toContain('code=the_code');
   });
 
-  it('authorize: the code carries the password version of the cookie session that consented', async () => {
+  it('authorize: the code carries the cookie session that consented', async () => {
     const createAuthCode = vi.fn().mockReturnValue('the_code');
     const svc = osvc({
       validateAuthorizeRequest: vi.fn().mockReturnValue({ valid: true, scopes: ['s'], resource: null }),
       saveConsent: vi.fn(),
       createAuthCode,
     });
-    const cookie = jwt.sign({ id: user.id, pv: 4 }, JWT_SECRET, { algorithm: 'HS256' });
+    const cookie = jwt.sign({ id: user.id, jti: 'sess-4' }, JWT_SECRET, { algorithm: 'HS256' });
     await new OauthApiController(svc, rl()).authorize(
       user,
       {
@@ -647,7 +647,7 @@ describe('OauthApiController', () => {
       },
       { ...req, cookies: { trek_session: cookie } } as unknown as Request,
     );
-    expect(createAuthCode).toHaveBeenCalledWith(expect.objectContaining({ passwordVersion: 4 }));
+    expect(createAuthCode).toHaveBeenCalledWith(expect.objectContaining({ sessionId: 'sess-4' }));
   });
 
   it('clients/sessions: 403 when MCP off, else CRUD', async () => {

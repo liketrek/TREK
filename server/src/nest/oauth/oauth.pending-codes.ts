@@ -28,8 +28,12 @@ export interface PendingCode {
   resource: string | null;
   codeChallenge: string;
   codeChallengeMethod: 'S256';
-  /** The password version the consent was given under; the code mints tokens only while it holds. */
-  passwordVersion: number;
+  /**
+   * The browser session that consented (`user_sessions.id`), or null for a
+   * token from before sessions were tracked; the code mints tokens only while
+   * that session is active.
+   */
+  sessionId: string | null;
   expiresAt: number;
 }
 

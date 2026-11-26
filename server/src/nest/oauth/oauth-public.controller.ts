@@ -96,7 +96,7 @@ export class OauthPublicController {
       if (!this.oauth.verifyPKCE(code_verifier, pending.codeChallenge))
         return invalidGrant('pkce_failed', pending.userId);
       const tokens = await this.oauth.issueTokensForCode(pending);
-      if (!tokens) return invalidGrant('password_changed', pending.userId);
+      if (!tokens) return invalidGrant('session_ended', pending.userId);
       await this.audit.writeAudit({
         userId: pending.userId,
         action: 'oauth.token.issue',

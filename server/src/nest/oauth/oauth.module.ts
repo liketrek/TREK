@@ -8,6 +8,7 @@ import { createMcpAddonGate } from '../addons/mcp-addon-gate';
 import { AuditModule } from '../audit/audit.module';
 import { RateLimitModule } from '../common/rate-limit.module';
 import { SchedulingModule } from '../scheduling/scheduling.module';
+import { SessionsModule } from '../sessions/sessions.module';
 import { OauthApiController } from './oauth-api.controller';
 import { CimdClientResolver } from './oauth-cimd';
 import { OauthPublicController } from './oauth-public.controller';
@@ -59,14 +60,15 @@ import type { MiddlewareConsumer, NestModule } from '@nestjs/common';
  * shape `McpTokensRepository`/`InviteTokensRepository` already use across
  * `nest/tokens`/`nest/auth`/`nest/oidc`). OA16/OA31 read `users` columns
  * THROUGH `OauthTokensRepository`'s own join methods, not a separate
- * `Users` call (Task 1's ruling: "do not add users methods" for this join);
- * `OauthService` injects `UsersRepository` only to check that the password
- * an authorization code was granted under still holds.
+ * `Users` call (Task 1's ruling: "do not add users methods" for this join).
+ * Whether the session that consented to an authorization code still stands
+ * is the sessions domain's to answer (`SessionsService.findActive`).
  */
 @Module({
   imports: [
     RateLimitModule,
     AuditModule,
+    SessionsModule,
     AddonsModule,
     SchedulingModule,
     MikroOrmModule.forFeature([OauthClients, OauthTokens, OauthConsents, Users]),
