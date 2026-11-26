@@ -124,7 +124,6 @@ export function useFileManager({ files = [], onUpload, onDelete, onUpdate, place
         toast.error(t('files.uploadErrorSize', { max: maxUploadMb }))
       }
     },
-    noClick: false,
     // Pasting is handled once for the whole panel (handlePaste), with the upload
     // permission check; the zone's own paste upload would send each file twice.
     noPaste: true,
