@@ -454,20 +454,22 @@ describe('createAuthCode + consumeAuthCode', () => {
   it('a code mints tokens only while the password it was granted under holds', async () => {
     const { user } = createUser(testDb);
     const created = await makeClient(user.id);
-    const clientId = created.client!.client_id as string;
-    const grant = async () =>
-      (await consumeAuthCode(
-        (await createAuthCode({
-          passwordVersion: 0,
-          clientId,
-          userId: user.id,
-          redirectUri: 'https://example.com/callback',
-          scopes: ['trips:read'],
-          resource: null,
-          codeChallenge: 'abc123',
-          codeChallengeMethod: 'S256',
-        }))!,
-      ))!;
+    const clientId = String(created.client?.client_id);
+    const grant = async () => {
+      const code = await createAuthCode({
+        passwordVersion: 0,
+        clientId,
+        userId: user.id,
+        redirectUri: 'https://example.com/callback',
+        scopes: ['trips:read'],
+        resource: null,
+        codeChallenge: 'abc123',
+        codeChallengeMethod: 'S256',
+      });
+      const pending = code ? await consumeAuthCode(code) : null;
+      if (!pending) throw new Error('the code was not stored');
+      return pending;
+    };
 
     const kept = await svc.issueTokensForCode(await grant());
     expect(kept?.access_token).toEqual(expect.any(String));
