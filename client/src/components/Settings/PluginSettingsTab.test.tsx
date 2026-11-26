@@ -4,6 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
 import { render, screen, waitFor, within } from '../../../tests/helpers/render';
 import { server } from '../../../tests/helpers/msw/server';
+import { locationAt } from '../../../tests/helpers/location';
 import { ToastContainer } from '../shared/Toast';
 import { usePluginStore, type ActivePlugin } from '../../store/pluginStore';
 import type { PluginAction, PluginUserSettingField } from '../../api/client';
@@ -367,7 +368,7 @@ describe('PluginSettingsTab', () => {
 
   it('FE-COMP-PLUGINSETTINGS-020: an OAuth-only plugin gets a card and Connect hands off to the provider', async () => {
     const user = userEvent.setup();
-    const loc = { href: 'http://localhost/settings', origin: 'http://localhost', pathname: '/settings' };
+    const loc = locationAt('/settings');
     vi.stubGlobal('location', loc);
     serve('weather', {}, { configured: true, connected: false });
     server.use(http.post('/api/plugin-oauth/weather/connect', () =>

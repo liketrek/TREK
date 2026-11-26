@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi, type Mock } from 'vitest'
 import { locationAt } from '../../tests/helpers/location'
 
 /*
@@ -76,14 +76,14 @@ function breakStorage(method: 'getItem' | 'setItem', broken: () => Storage) {
 const marker = () => localStorage.getItem('trek_app_version')
 // The version the bundle under test is built as (vite define, from package.json).
 const BUILT = __TREK_UI_VERSION__
-let reload: ReturnType<typeof vi.fn>
-let plainReload: ReturnType<typeof vi.fn>
+let reload: Mock<Location['replace']>
+let plainReload: Mock<Location['reload']>
 
 beforeEach(() => {
   // Every reload here asks for the page under a fresh URL (reloadFresh), which is
   // a location.replace. `plainReload` is the location.reload() it must not use.
-  reload = vi.fn()
-  plainReload = vi.fn()
+  reload = vi.fn<Location['replace']>()
+  plainReload = vi.fn<Location['reload']>()
   Object.defineProperty(window, 'location', {
     writable: true,
     value: locationAt('/dashboard', { replace: reload, reload: plainReload }),

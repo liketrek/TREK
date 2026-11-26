@@ -3805,8 +3805,13 @@ describe('JourneyDetailPage', () => {
       let createCalls = 0;
       let updateCalls = 0;
       let providerCalls = 0;
+      let journeyReads = 0;
 
       server.use(
+        http.get('/api/journeys/1', () => {
+          journeyReads++;
+          return HttpResponse.json(mockJourneyDetail);
+        }),
         http.get('/api/integrations/memories/:provider/status', () => HttpResponse.json({ connected: true })),
         http.post('/api/integrations/memories/:provider/search', () => HttpResponse.json({
           assets: [{ id: 'context-1', takenAt: '2026-03-15T12:00:00Z', city: 'Rome' }],
@@ -3851,10 +3856,13 @@ describe('JourneyDetailPage', () => {
       expect(createCalls).toBe(1);
       expect(screen.getByText('New Entry')).toBeInTheDocument();
 
+      const readsBeforeRetry = journeyReads;
       await user.click(screen.getByRole('button', { name: 'Save' }));
       await waitFor(() => expect(providerCalls).toBe(2));
       expect(createCalls).toBe(1);
       expect(updateCalls).toBe(1);
+      // The photos landed and the journal reloads; let that read answer here, not after the test.
+      await waitFor(() => expect(journeyReads).toBeGreaterThan(readsBeforeRetry));
     });
   });
 

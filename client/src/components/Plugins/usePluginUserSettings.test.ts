@@ -1,5 +1,6 @@
 // FE-COMP-PLUGIN-USERSET-001 to -012: the per plugin user settings logic both settings shells share.
 import { act, renderHook, waitFor } from '@testing-library/react';
+import { locationAt } from '../../../tests/helpers/location';
 import { pluginsApi, type PluginAction, type PluginUserSettingField } from '../../api/client';
 import { SECRET_MASK } from './settingsForm';
 import { usePluginOAuth, usePluginUserSettings } from './usePluginUserSettings';
@@ -150,7 +151,7 @@ describe('usePluginOAuth', () => {
 
   it('FE-COMP-PLUGIN-USERSET-012: a connect hands off to the provider and keeps the button busy', async () => {
     const realLocation = window.location;
-    const loc = { href: 'http://localhost/settings' };
+    const loc = locationAt('/settings');
     Object.defineProperty(window, 'location', { writable: true, configurable: true, value: loc });
     try {
       vi.spyOn(pluginsApi, 'oauthConnect').mockResolvedValue({
