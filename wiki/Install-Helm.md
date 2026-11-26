@@ -228,6 +228,8 @@ persistence:
 
 > **Warning:** A `ReadWriteMany` data volume is only safe for pods that read it. SQLite needs every process that writes `travel.db` on the same host, so a second writer over a network filesystem corrupts the database. Keep `updateStrategy: Recreate` either way.
 
+Such a backup job can ship with the release: `extraObjects` takes a list of further Kubernetes objects (a `CronJob`, a `ConfigMap`, anything the cluster knows) and renders each one as written, as a map or as a string of YAML. `{{ }}` in them is evaluated, so `{{ include "trek.fullname" . }}-data` names the data claim; this holds for both forms, so write literal braces as `{{ "{{" }}`. Mount the data volume read only: besides `travel.db` it holds the encryption key and the server's secrets. Copy the archives TREK writes itself (**Admin Panel > Backup**, with **Auto-Backup** on) from `backups/` in that volume rather than the live `travel.db`, which a copy can catch halfway through a write. Those archives contain `.encryption_key` as well (unless the key comes from `ENCRYPTION_KEY`), so protect wherever the job copies them to like the data volume itself.
+
 ### Security Context
 
 ```yaml

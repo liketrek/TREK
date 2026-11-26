@@ -338,6 +338,29 @@ extraVolumes: []
 #       readOnly: true
 extraVolumeMounts: []
 
+# Further Kubernetes objects the chart renders next to its own, for example a Job, a
+# CronJob or a ConfigMap. Each item is rendered as written, either as a map or as a
+# string of YAML, and {{ }} in it is evaluated, so {{ include "trek.fullname" . }} or
+# {{ .Release.Name }} work, in both forms. Write literal braces as {{ "{{" }}.
+# A backup job must only read the data volume: it also holds the encryption key and the
+# server's secrets, and a second writer corrupts travel.db. Rather than copying the live
+# travel.db, copy TREK's own backups (Admin, Backup, automatic backups) from backups/ in
+# that volume. Those archives carry .encryption_key too (unless ENCRYPTION_KEY is set),
+# so protect the job's destination like the data volume itself.
+#   extraObjects:
+#     - apiVersion: v1
+#       kind: ConfigMap
+#       metadata:
+#         name: '{{ include "trek.fullname" . }}-extra'
+#       data:
+#         note: hello
+#     - |
+#       apiVersion: v1
+#       kind: ConfigMap
+#       metadata:
+#         name: {{ .Release.Name }}-notes
+extraObjects: []
+
 resources:
   requests:
     cpu: 100m

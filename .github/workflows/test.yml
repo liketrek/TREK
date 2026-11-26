@@ -1224,6 +1224,14 @@ jobs:
             --set service.port=8080 \
             --set-json 'httpRoute={"enabled":true,"parentRefs":[{"name":"gateway","namespace":"gateway-system","sectionName":"https"}],"hostnames":["trek.example.com"],"paths":["/","/api"],"annotations":{"example.com/note":"custom route"},"timeouts":{"request":"0s","backendRequest":"0s"}}' \
             > "$out/http-route-variants.yaml"
+          helm template trek charts/trek \
+            --set-json 'extraObjects=[{"apiVersion":"batch/v1","kind":"CronJob","metadata":{"name":"{{ include \"trek.fullname\" . }}-backup-copy"},"spec":{"schedule":"0 3 * * *","jobTemplate":{"spec":{"template":{"spec":{"restartPolicy":"OnFailure","containers":[{"name":"copy","image":"busybox:1.36","command":["ls","/data/backups"],"volumeMounts":[{"name":"data","mountPath":"/data","readOnly":true}]}],"volumes":[{"name":"data","persistentVolumeClaim":{"claimName":"{{ include \"trek.fullname\" . }}-data","readOnly":true}}]}}}}}},"apiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: {{ .Release.Name }}-notes\ndata:\n  release: {{ .Release.Name | quote }}\n"]' \
+            > "$out/extra-objects.yaml"
+          # kubeconform accepts a name that still reads {{ ... }}, so check that both forms went through tpl.
+          if grep -n '{{' "$out/extra-objects.yaml"; then
+            echo "::error::extraObjects left a template unrendered"
+            exit 1
+          fi
 
       - name: Check the manifests against the Kubernetes schemas
         # The pinned Gateway API schema adds HTTPRoute validation without skipping unknown resources.
