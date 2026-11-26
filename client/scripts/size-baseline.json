@@ -17,7 +17,7 @@
   "src/components/Studio/countryShapes.ts": 2595,
   "src/index.css": 1636,
   "src/mobile/screens/admin/MAdminPluginsPanel.tsx": 1503,
-  "src/pages/JourneyDetailPage.test.tsx": 4028,
+  "src/pages/JourneyDetailPage.test.tsx": 3886,
   "src/pages/LoginPage.tsx": 1294,
   "src/pages/TripPlannerPage.tsx": 1128,
   "src/pages/atlas/useAtlas.ts": 1207,
