@@ -275,7 +275,8 @@ export class AdminService {
     // An address the admin enters is one the admin vouches for, so an SSO sign-in
     // may link to it again. The edit dialog sends the email on every save, so only
     // a new address counts, not the unchanged one or the same one in another case.
-    if (email && email.toLowerCase() !== user.email.toLowerCase()) patch.email_self_asserted = 0;
+    const emailChanged = !!email && email.toLowerCase() !== user.email.toLowerCase();
+    if (emailChanged) patch.email_self_asserted = 0;
     if (role) patch.role = role;
     if (password) {
       patch.password_hash = passwordHash!;
@@ -302,6 +303,9 @@ export class AdminService {
           }
         }
         await this.users.applyAdminEdit(userId, patch);
+        // A reset link sent to the old address, or asked for before the admin set
+        // a password, must not reopen the account afterwards.
+        if (emailChanged || password) await this.auth.retirePasswordResetLinks(userId);
 
         if (password) {
           // The version bump only invalidates JWT cookies. These two stores carry

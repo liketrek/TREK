@@ -209,6 +209,7 @@ export class AuthService {
   // Reset-email delivery (canonical app URL, never request headers)
   getAppUrl() { return getAppUrl(); }
   sendPasswordResetEmail(email: string, url: string, userId: number | null) { return this.mailer.sendPasswordResetEmail(email, url, userId); }
+  retirePasswordResetLinks(userId: number) { return this.passwordResetTokens.consumeAllLiveForUser(userId); }
 
   // -------------------------------------------------------------------------
   // Toggles + tokens
@@ -651,9 +652,8 @@ export class AuthService {
 
     await this.uow.transactional(async () => {
       await this.usersRepo.setPassword(userId, hash, newPv);
-      // A password change ends every session (the pv bump covers the tokens from
-      // before sessions were tracked) and prunes the MCP static token and OAuth
-      // bearer-token stores to match, the same set the password reset revokes.
+      // Ends every session, reset link, MCP and OAuth token, the same set the password reset revokes.
+      await this.retirePasswordResetLinks(userId);
       await this.mcpTokens.deleteAllForUser(userId);
       try { await this.oauthTokens.revokeAllForUser(userId); } catch { /* no oauth_tokens in very old installs */ }
       // Push devices keep receiving notifications without any session, so they

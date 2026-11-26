@@ -1,7 +1,9 @@
 import { readEnv, getAppUrl } from '../../app-config';
 import { AppSettings } from '../../db/entities/AppSettings.entity';
+import { PasswordResetTokens } from '../../db/entities/PasswordResetTokens.entity';
 import { Users } from '../../db/entities/Users.entity';
 import type { AppSettingsRepository } from '../../db/repositories/AppSettings.repository';
+import type { PasswordResetTokensRepository } from '../../db/repositories/PasswordResetTokens.repository';
 import {
   UserIdentityTakenError,
   type UsersRepository,
@@ -58,6 +60,7 @@ export class UserProfileService {
     private readonly uow: UnitOfWork,
     @InjectRepository(AppSettings) private readonly appSettings: AppSettingsRepository,
     @InjectRepository(Users) private readonly usersRepo: UsersRepository,
+    @InjectRepository(PasswordResetTokens) private readonly passwordResetTokens: PasswordResetTokensRepository,
   ) {}
 
   /**
@@ -282,6 +285,9 @@ export class UserProfileService {
       try {
         await this.uow.transactional(async () => {
           await this.usersRepo.patchProfile(userId, changes);
+          // A reset link is a credential sent to the address the account had,
+          // so it must not outlive the move to another one.
+          if (emailChanged) await this.passwordResetTokens.consumeAllLiveForUser(userId);
           if (!keyLocked) await this.mirrorInstanceKeys(body, isAdmin);
         });
       } catch (err) {

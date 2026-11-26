@@ -17,6 +17,7 @@ import { resetTestDb } from '../../helpers/test-db';
 import {
   createTestUnitOfWork,
   createTestAppSettingsRepo,
+  createTestPasswordResetTokensRepo,
   createTestUsersRepo,
   sharedTestOrm,
 } from '../../helpers/test-uow';
@@ -69,6 +70,7 @@ beforeAll(async () => {
     await createTestUnitOfWork(testDb),
     await createTestAppSettingsRepo(testDb),
     await createTestUsersRepo(testDb),
+    await createTestPasswordResetTokensRepo(testDb),
   );
 });
 
