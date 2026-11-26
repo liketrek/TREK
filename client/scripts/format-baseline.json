@@ -2121,7 +2121,6 @@
   "tests/unit/sync/tripSyncManager.test.ts",
   "tests/unit/tripStore.test.ts",
   "tests/unit/utils/cleanAmount.test.ts",
-  "tests/unit/utils/fileDownload.test.ts",
   "tests/unit/utils/formatters.test.ts",
   "tests/unit/utils/placeFiles.test.ts",
   "tests/unit/utils/shellGuard.test.ts",

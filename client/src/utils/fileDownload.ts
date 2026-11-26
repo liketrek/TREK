@@ -39,13 +39,51 @@ function triggerAnchorDownload(blobUrl: string, filename?: string): void {
   setTimeout(() => { URL.revokeObjectURL(blobUrl); a.remove() }, 100)
 }
 
+// How long a live download may take before a copy stored for offline use is
+// served instead. Without a stored copy the live download keeps going as long
+// as it takes, since there is nothing better to show.
+const STORED_COPY_WAIT_MS = 5000
+
+// A network failure (the request or the body read rejected) serves the stored
+// copy when there is one. After our own abort the stored copy is already being
+// served, so the error only has to end this read.
+async function storedCopyOr(url: string, err: unknown, signal: AbortSignal): Promise<Blob> {
+  if (signal.aborted) throw err
+  const cached = await getCachedBlob(url)
+  if (cached) return cached
+  throw err
+}
+
+async function readLive(url: string, signal: AbortSignal): Promise<Blob> {
+  let resp: Response
+  try {
+    resp = await fetch(url, { credentials: 'include', signal })
+  } catch (err) {
+    // Genuine network failure: the fetch itself rejected (offline, or a flaky
+    // link even though navigator.onLine is true). Serve the pre-downloaded copy.
+    return storedCopyOr(url, err, signal)
+  }
+  // The server answered: a non-ok status (401/403/404/…) is a real error and must
+  // surface, not be masked by a stale cached copy.
+  if (!resp.ok) throw new Error(resp.status === 401 ? 'Unauthorized' : `HTTP ${resp.status}`)
+  try {
+    return await resp.blob()
+  } catch (err) {
+    // The connection broke while the body was still arriving.
+    return storedCopyOr(url, err, signal)
+  }
+}
+
 /**
  * Resolves a protected file to a Blob, preferring the live server but falling
  * back to the offline cache (pre-downloaded by the trip sync manager). This is
  * what lets attachments open in a PWA / airplane mode. When offline we go
- * straight to the cache; when online we fetch live and only fall back if the
- * network actually fails — which also covers flaky links where navigator.onLine
- * still reports true ("sometimes it works, sometimes it doesn't").
+ * straight to the cache; when online we fetch live and fall back if the
+ * network fails, which also covers flaky links where navigator.onLine still
+ * reports true ("sometimes it works, sometimes it doesn't"). A stalled link
+ * never rejects, so once the live download has run for STORED_COPY_WAIT_MS the
+ * stored copy, if there is one, is served and the download aborted. The cache
+ * is only read then, so a quick HTTP error still surfaces on its own.
  */
 async function getFileBlob(url: string): Promise<Blob> {
   assertRelativeUrl(url)
@@ -54,20 +92,27 @@ async function getFileBlob(url: string): Promise<Blob> {
     if (cached) return cached
     throw new Error('File not available offline')
   }
-  let resp: Response
+  // A controller and a timer rather than AbortSignal.timeout, which Safari only
+  // has from 16 on.
+  const live = new AbortController()
+  let settled = false
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const storedAfterWait = new Promise<Blob>((resolve) => {
+    timer = setTimeout(() => {
+      void getCachedBlob(url).then((cached) => {
+        // Nothing stored: keep waiting on the live download, as before.
+        if (!cached || settled) return
+        resolve(cached)
+        live.abort()
+      })
+    }, STORED_COPY_WAIT_MS)
+  })
   try {
-    resp = await fetch(url, { credentials: 'include' })
-  } catch (err) {
-    // Genuine network failure — the fetch itself rejected (offline, or a flaky
-    // link even though navigator.onLine is true). Serve the pre-downloaded copy.
-    const cached = await getCachedBlob(url)
-    if (cached) return cached
-    throw err
+    return await Promise.race([readLive(url, live.signal), storedAfterWait])
+  } finally {
+    settled = true
+    clearTimeout(timer)
   }
-  // The server answered: a non-ok status (401/403/404/…) is a real error and must
-  // surface, not be masked by a stale cached copy.
-  if (!resp.ok) throw new Error(resp.status === 401 ? 'Unauthorized' : `HTTP ${resp.status}`)
-  return await resp.blob()
 }
 
 /**
