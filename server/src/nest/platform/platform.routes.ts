@@ -155,7 +155,7 @@ async function resolveServedName(name: string, serving: PublicServing | undefine
 
 async function servePhoto(
   storage: StorageService,
-  req: Request,
+  req: Request<{ filename: string }>,
   res: Response,
   users: UsersRepository,
   shareTokens: ShareTokensRepository,
@@ -314,7 +314,7 @@ export function applyPlatformUploads(
   // photo's trip. Previously any share token for any trip could request
   // any photo filename by UUID — fine in practice because UUIDs are
   // unguessable, but the auth model was wrong.
-  app.get('/uploads/photos/:filename', (req: Request, res: Response, next: NextFunction) => {
+  app.get('/uploads/photos/:filename', (req: Request<{ filename: string }>, res: Response, next: NextFunction) => {
     if (!orm) {
       next(new Error('applyPlatformUploads: no MikroORM available to build a request context for /uploads/photos/*'));
       return;

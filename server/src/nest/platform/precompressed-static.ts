@@ -1,4 +1,5 @@
-import express, { type NextFunction, type Request, type Response } from 'express';
+import type { NextFunction, Request, Response } from 'express';
+import { contentType } from 'mime-types';
 import { readdirSync } from 'node:fs';
 import path from 'node:path';
 
@@ -19,12 +20,9 @@ function collectPrecompressed(dir: string, urlPrefix: string, into: Set<string>)
   return into;
 }
 
-/** The Content-Type the static handler gives the original file, charset included, from the same table. */
+/** The Content-Type the static handler (send) gives the original file, from the same table and with the same fallback. */
 function contentTypeOf(file: string): string {
-  const { mime } = express.static;
-  const type = mime.lookup(file);
-  const charset = mime.charsets.lookup(type, '');
-  return charset ? `${type}; charset=${charset}` : type;
+  return contentType(path.extname(file)) || 'application/octet-stream';
 }
 
 /**

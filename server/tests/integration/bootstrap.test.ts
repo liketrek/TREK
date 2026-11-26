@@ -132,6 +132,24 @@ describe('BOOTSTRAP (F6) — unified NestJS app serves the whole surface', () =>
     expect(res.body.type).toBe('FeatureCollection');
   });
 
+  it('BOOT-009 — a request without a parsed body gets an empty object, except /mcp, which stays raw', async () => {
+    type Layer = { name: string; handle: (req: object, res: object, next: () => void) => void };
+    const { stack } = (instance as unknown as { router: { stack: Layer[] } }).router;
+    const names = stack.map((layer) => layer.name);
+    expect(names.indexOf('emptyBodyDefault')).toBeGreaterThan(names.indexOf('urlencodedParser'));
+    const emptyBodyDefault = stack[names.indexOf('emptyBodyDefault')].handle;
+    const run = (path: string, body?: unknown) =>
+      new Promise<unknown>((resolve) => {
+        const req = { path, body };
+        emptyBodyDefault(req, {}, () => resolve(req.body));
+      });
+
+    expect(await run('/api/trips/1/packing/2/contributors')).toEqual({});
+    expect(await run('/api/trips', { name: 'kept' })).toEqual({ name: 'kept' });
+    expect(await run('/mcp')).toBeUndefined();
+    expect(await run('/mcp/')).toBeUndefined();
+  });
+
   it('BOOTSTRAP-ORM-001: the ORM unit of work resolves from the container', () => {
     expect(app.get(UnitOfWork)).toBeInstanceOf(UnitOfWork);
   });

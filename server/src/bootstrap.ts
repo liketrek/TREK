@@ -232,6 +232,14 @@ export async function buildApp(): Promise<INestApplication> {
   instance.use(function urlencodedParser(req: Request, res: Response, next: NextFunction) {
     return isMcp(req) ? next() : urlencoded(req, res, next);
   });
+  // A request the parsers above did not read (no body, or another content type)
+  // keeps an empty object as its body, as it always had: body-parser 2 leaves
+  // it undefined, which a route whose fields are all optional would refuse and a
+  // plugin route would receive as null. /mcp stays raw.
+  instance.use(function emptyBodyDefault(req: Request, _res: Response, next: NextFunction) {
+    if (req.body === undefined && !isMcp(req)) req.body = {};
+    next();
+  });
   // Every request value without NUL from here on (nest/common/nul-free-input.ts):
   // the path, the query string, the parsed body and the cookies, before any
   // guard, interceptor or controller reads them, so a key or a check made from
