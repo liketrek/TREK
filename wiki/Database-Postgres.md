@@ -47,6 +47,18 @@ Without `sslmode`, the connection pool uses no SSL. The client tools use the lib
 
 `sslrootcert=` names the file holding the certificate authority that signs the server's certificate. It is needed when the server uses a certificate from a private CA, and it is valid only together with one of the verifying modes. The file must be readable inside the container, so mount it into the container and point the URL at the path inside the container. Without `sslrootcert`, the system's trusted certificate authorities are used. The client tools read the system's authorities only from version 16 on, so with an older client (outside the Docker image) set `sslrootcert`; TREK refuses a backup or restore with such a client otherwise and says so.
 
+#### Client certificates
+
+A server that asks for a client certificate (mutual TLS) gets one from `sslcert=` and `sslkey=`, which name the certificate and its private key, with the libpq parameter names:
+
+```
+postgres://trek@db/trek?sslmode=verify-full&sslrootcert=/certs/ca.crt&sslcert=/certs/client.crt&sslkey=/certs/client.key
+```
+
+Both must be given together, and only with one of the verifying modes; TREK refuses to start otherwise, and also when a file cannot be read. The connection pool and the backup and restore tools present the same certificate. Mount the files into the container like the CA file: with Docker Compose a read-only volume such as `./certs:/certs:ro`, on Kubernetes a Secret through the chart's `extraVolumes` and `extraVolumeMounts` (see [Install: Helm](Install-Helm#further-volumes)).
+
+The key file must satisfy libpq's rule, or `pg_dump`, `pg_restore` and `psql` refuse it and backups fail: mode `0600` when it is owned by the user TREK runs as, or owned by root with mode `0640` at most. A Kubernetes Secret mounted as a volume therefore needs `defaultMode: 0640` together with an `fsGroup` in the pod's security context, so the key is readable through its group without being readable by everyone.
+
 ### Where the client tools are found
 
 TREK runs the tools by their absolute path. It does not search `PATH`. When `TREK_DB_PG_BIN_DIR` is unset, TREK looks in these directories, in order, and uses the first one that holds the tool:

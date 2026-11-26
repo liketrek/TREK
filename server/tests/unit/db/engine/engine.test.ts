@@ -96,6 +96,41 @@ describe('sslOptionFor', () => {
       rmSync(dir, { recursive: true, force: true });
     }
   });
+
+  it('ENGINE-014: presents the client certificate in sslcert and sslkey (mutual TLS), both or neither, only when verifying', () => {
+    const dir = mkdtempSync(path.join(tmpdir(), 'trek-mtls-'));
+    try {
+      const cert = path.join(dir, 'client.crt');
+      const key = path.join(dir, 'client.key');
+      writeFileSync(cert, '-----BEGIN CERTIFICATE-----\nclient\n-----END CERTIFICATE-----\n');
+      writeFileSync(key, '-----BEGIN PRIVATE KEY-----\nclient\n-----END PRIVATE KEY-----\n');
+      const pair = `sslcert=${encodeURIComponent(cert)}&sslkey=${encodeURIComponent(key)}`;
+      expect(sslOptionFor(`${PG_URL}?sslmode=verify-full&${pair}`)).toEqual({
+        rejectUnauthorized: true,
+        cert: readFileSync(cert, 'utf8'),
+        key: readFileSync(key, 'utf8'),
+      });
+      expect(() => sslOptionFor(`${PG_URL}?sslmode=verify-full&sslcert=${encodeURIComponent(cert)}`)).toThrow(
+        /only one of sslcert and sslkey/,
+      );
+      expect(() => sslOptionFor(`${PG_URL}?sslmode=verify-full&sslkey=${encodeURIComponent(key)}`)).toThrow(
+        /only one of sslcert and sslkey/,
+      );
+      expect(() => sslOptionFor(`${PG_URL}?sslmode=disable&${pair}`)).toThrow(
+        /sslcert and sslkey with sslmode=disable/,
+      );
+      expect(() => sslOptionFor(`${PG_URL}?${pair}`)).toThrow(/sslcert and sslkey without sslmode/);
+      const missing = encodeURIComponent(path.join(dir, 'no.key'));
+      expect(() =>
+        sslOptionFor(`${PG_URL}?sslmode=require&sslcert=${encodeURIComponent(cert)}&sslkey=${missing}`),
+      ).toThrow(/sslkey .* cannot be read/);
+      expect(() =>
+        sslOptionFor(`${PG_URL}?sslmode=require&sslcert=${missing}&sslkey=${encodeURIComponent(key)}`),
+      ).toThrow(/sslcert .* cannot be read/);
+    } finally {
+      rmSync(dir, { recursive: true, force: true });
+    }
+  });
 });
 
 describe('redactUrl', () => {

@@ -97,6 +97,21 @@ describe('pg-tools', () => {
     });
   });
 
+  it('PGTOOLS-023: the client certificate in sslcert and sslkey reaches the tools as PGSSLCERT and PGSSLKEY', () => {
+    const env = pgConnectionEnv(
+      'postgres://u@h/d?sslmode=verify-full&sslrootcert=%2Fcerts%2Fca.crt&sslcert=%2Fcerts%2Fclient.crt&sslkey=%2Fcerts%2Fclient.key',
+    );
+    expect(env).toMatchObject({
+      PGSSLMODE: 'verify-full',
+      PGSSLROOTCERT: '/certs/ca.crt',
+      PGSSLCERT: '/certs/client.crt',
+      PGSSLKEY: '/certs/client.key',
+    });
+    const plain = pgConnectionEnv('postgres://u@h/d?sslmode=require');
+    expect(plain.PGSSLCERT).toBeUndefined();
+    expect(plain.PGSSLKEY).toBeUndefined();
+  });
+
   it('PGTOOLS-004: pg_dump writes a private custom-format dump beside the target and renames it into place', async () => {
     installFakeTool(bin, 'psql', { snippets: [answersSchema()] });
     const log = installFakeTool(bin, 'pg_dump', { snippets: [writesFile('dump')] });

@@ -63,7 +63,8 @@ export function resolvePgTool(tool: PgTool, binDir: string | undefined): string 
  * read. An sslmode that asks for SSL verifies the server's certificate, as the
  * app's own pool does (`postgres-engine.ts`): against the URL's sslrootcert,
  * else the system's trusted CAs (`system`, which `run` accepts only from a
- * client that understands it).
+ * client that understands it), and presents the URL's client certificate
+ * (sslcert and sslkey) when it names one.
  */
 export function pgConnectionEnv(url: string): Record<string, string> {
   const parsed = new URL(url);
@@ -81,6 +82,10 @@ export function pgConnectionEnv(url: string): Record<string, string> {
   else if (sslmode) {
     env.PGSSLMODE = 'verify-full';
     env.PGSSLROOTCERT = parsed.searchParams.get('sslrootcert') ?? 'system';
+    const clientCert = parsed.searchParams.get('sslcert');
+    const clientKey = parsed.searchParams.get('sslkey');
+    if (clientCert) env.PGSSLCERT = clientCert;
+    if (clientKey) env.PGSSLKEY = clientKey;
   }
   return env;
 }
