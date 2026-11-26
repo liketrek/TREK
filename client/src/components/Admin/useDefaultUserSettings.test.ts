@@ -137,19 +137,25 @@ describe('useDefaultUserSettings', () => {
 
     act(() => result.current.pickTilePreset(''));
     act(() => result.current.pickStylePreset(''));
+    // Writes go out in order, a microtask later: let any that was queued start first.
+    await act(async () => {});
     expect(update).not.toHaveBeenCalled();
 
     act(() => result.current.pickTilePreset('https://tile.openstreetmap.de/{z}/{x}/{y}.png'));
     expect(result.current.mapTileUrl).toBe('https://tile.openstreetmap.de/{z}/{x}/{y}.png');
-    expect(update).toHaveBeenLastCalledWith({ map_tile_url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' });
+    await waitFor(() =>
+      expect(update).toHaveBeenLastCalledWith({ map_tile_url: 'https://tile.openstreetmap.de/{z}/{x}/{y}.png' })
+    );
 
     act(() => result.current.pickStylePreset('https://tiles.openfreemap.org/styles/positron'));
-    expect(update).toHaveBeenLastCalledWith({ maplibre_style: 'https://tiles.openfreemap.org/styles/positron' });
+    await waitFor(() =>
+      expect(update).toHaveBeenLastCalledWith({ maplibre_style: 'https://tiles.openfreemap.org/styles/positron' })
+    );
 
     act(() => result.current.setMapboxStyle('mapbox://styles/not-for-maplibre'));
     act(() => result.current.commitStyle());
     expect(result.current.mapboxStyle).toBe(OPENFREEMAP_DEFAULT_STYLE);
-    expect(update).toHaveBeenLastCalledWith({ maplibre_style: OPENFREEMAP_DEFAULT_STYLE });
+    await waitFor(() => expect(update).toHaveBeenLastCalledWith({ maplibre_style: OPENFREEMAP_DEFAULT_STYLE }));
     await waitFor(() => expect(toast.success).toHaveBeenCalledTimes(3));
   });
 });

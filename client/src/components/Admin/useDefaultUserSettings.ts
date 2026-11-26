@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { adminApi } from '../../api/client';
+import { useWritesInOrder } from '../../hooks/useWritesInOrder';
 import { useTranslation } from '../../i18n';
 import { useAuthStore } from '../../store/authStore';
 import { useSettingsStore } from '../../store/settingsStore';
@@ -87,32 +88,38 @@ export function useDefaultUserSettings({ errorMessage, previewCreatedAt }: Defau
       .catch(() => setLoaded(true));
   }, []);
 
-  const save = async (patch: Partial<Defaults>) => {
-    try {
-      const updated = await adminApi.updateDefaultUserSettings(patch as Record<string, unknown>);
-      setDefaults(updated);
-      toast.success(t('admin.defaultSettings.saved'));
-    } catch (err: unknown) {
-      toast.error(errorMessage(err, t('common.error')));
-    }
-  };
+  // A field's save on blur and the reset clicked right after it reach the server in
+  // that order, or the save landing last would store the old value again.
+  const inOrder = useWritesInOrder();
 
-  const reset = async (key: keyof Defaults) => {
-    try {
-      const updated = await adminApi.updateDefaultUserSettings({ [key]: null });
-      setDefaults(updated);
-      if (key === 'map_tile_url') setMapTileUrl('');
-      if (key === 'mapbox_access_token') setMapboxToken('');
-      if (key === 'carto_api_key') setCartoKey('');
-      if (key === 'mapbox_style' || key === 'maplibre_style') {
-        const provider = normalizeProvider(defaults.map_provider);
-        setMapboxStyle(provider === 'leaflet' ? '' : defaultStyleForProvider(provider));
+  const save = (patch: Partial<Defaults>) =>
+    inOrder(async () => {
+      try {
+        const updated = await adminApi.updateDefaultUserSettings(patch as Record<string, unknown>);
+        setDefaults(updated);
+        toast.success(t('admin.defaultSettings.saved'));
+      } catch (err: unknown) {
+        toast.error(errorMessage(err, t('common.error')));
       }
-      toast.success(t('admin.defaultSettings.reset'));
-    } catch (err: unknown) {
-      toast.error(errorMessage(err, t('common.error')));
-    }
-  };
+    });
+
+  const reset = (key: keyof Defaults) =>
+    inOrder(async () => {
+      try {
+        const updated = await adminApi.updateDefaultUserSettings({ [key]: null });
+        setDefaults(updated);
+        if (key === 'map_tile_url') setMapTileUrl('');
+        if (key === 'mapbox_access_token') setMapboxToken('');
+        if (key === 'carto_api_key') setCartoKey('');
+        if (key === 'mapbox_style' || key === 'maplibre_style') {
+          const provider = normalizeProvider(defaults.map_provider);
+          setMapboxStyle(provider === 'leaflet' ? '' : defaultStyleForProvider(provider));
+        }
+        toast.success(t('admin.defaultSettings.reset'));
+      } catch (err: unknown) {
+        toast.error(errorMessage(err, t('common.error')));
+      }
+    });
 
   const isSet = (key: keyof Defaults) => defaults[key] !== undefined;
 

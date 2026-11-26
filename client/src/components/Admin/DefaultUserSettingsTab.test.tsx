@@ -1,7 +1,7 @@
 // FE-ADMIN-DUS-001 to FE-ADMIN-DUS-031
 import { render, screen, waitFor, within, fireEvent } from '../../../tests/helpers/render';
 import userEvent from '@testing-library/user-event';
-import { http, HttpResponse } from 'msw';
+import { delay, http, HttpResponse } from 'msw';
 import { server } from '../../../tests/helpers/msw/server';
 import { resetAllStores, seedStore } from '../../../tests/helpers/store';
 import { buildAdmin } from '../../../tests/helpers/factories';
@@ -349,6 +349,35 @@ describe('DefaultUserSettingsTab', () => {
 
     await user.click(resetLink('Shared Mapbox token'));
     await waitFor(() => expect(puts).toEqual([{ mapbox_access_token: 'pk.new' }, { mapbox_access_token: null }]));
+    await waitFor(() => expect(screen.getByPlaceholderText('pk.eyJ…')).toHaveValue(''));
+  });
+
+  it('FE-ADMIN-DUS-032: a reset clicked while the save of the field is still out is the one that stays', async () => {
+    const user = userEvent.setup();
+    const { state } = stubDefaults({ map_provider: 'mapbox-gl', mapbox_access_token: 'pk.old' });
+    // The save is the slower request: sent at once, the reset would overtake it.
+    const done: string[] = [];
+    server.use(
+      http.put('/api/admin/default-user-settings', async ({ request }) => {
+        const body = await request.json() as Record<string, unknown>;
+        if (body.mapbox_access_token !== null) await delay(100);
+        if (body.mapbox_access_token === null) delete state.mapbox_access_token;
+        else state.mapbox_access_token = body.mapbox_access_token;
+        done.push(body.mapbox_access_token === null ? 'reset' : 'save');
+        return HttpResponse.json({ ...state });
+      }),
+    );
+    render(<DefaultUserSettingsTab />);
+    await screen.findByText('Shared Mapbox token');
+
+    const input = screen.getByPlaceholderText('pk.eyJ…');
+    await user.clear(input);
+    await user.type(input, 'pk.new');
+    // The click leaves the field, which saves it, and resets it right after.
+    await user.click(resetLink('Shared Mapbox token'));
+
+    await waitFor(() => expect(done).toEqual(['save', 'reset']));
+    expect(state.mapbox_access_token).toBeUndefined();
     await waitFor(() => expect(screen.getByPlaceholderText('pk.eyJ…')).toHaveValue(''));
   });
 
