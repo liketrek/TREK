@@ -105,9 +105,62 @@ jobs:
           track: ${{ inputs.track || 'internal' }}
           status: draft
 
+      # The same build for installs outside Google Play: the universal APK Google
+      # Play makes of this bundle, signed with the Play app signing key, published
+      # to liketrek/trek-android for Obtainium (wiki/Native-Apps.md). Held back
+      # while the app needs a server version that is not released yet.
+      - name: Whether the latest server release serves this build
+        id: released
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag=$(gh api "repos/$GITHUB_REPOSITORY/releases/latest" --jq .tag_name)
+          git fetch --depth=1 origin "refs/tags/$tag:refs/tags/$tag"
+          git show "$tag:server/src/nest/health/features.controller.ts" > "$RUNNER_TEMP/released-features.ts"
+          node scripts/ci/android-apk-release.mjs guard "$RUNNER_TEMP/released-features.ts" >> "$GITHUB_OUTPUT"
+
+      - name: Universal APK from Google Play
+        if: steps.released.outputs.publish == 'true'
+        env:
+          PLAY_APK_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_APK_SERVICE_ACCOUNT_JSON }}
+          APK: trek-${{ steps.version.outputs.version }}.apk
+        run: |
+          printf '%s' "$PLAY_APK_SERVICE_ACCOUNT_JSON" > "$RUNNER_TEMP/play-apk.json"
+          node scripts/ci/android-apk-release.mjs download "$RUNNER_TEMP/play-apk.json" com.liketrek.trek \
+            "${{ steps.version.outputs.build }}" "$RUNNER_TEMP/$APK"
+          rm -f "$RUNNER_TEMP/play-apk.json"
+          cd "$RUNNER_TEMP" && sha256sum "$APK" > "$APK.sha256"
+
+      - uses: actions/create-github-app-token@v3
+        if: steps.released.outputs.publish == 'true'
+        id: apk-token
+        with:
+          app-id: ${{ secrets.RELEASE_APP_ID }}
+          private-key: ${{ secrets.RELEASE_APP_PRIVATE_KEY }}
+          owner: liketrek
+          repositories: trek-android
+
+      # One release per app version: a newer build of the same version replaces
+      # its APK, so the release always holds what Google Play holds for it.
+      - name: Publish to liketrek/trek-android
+        if: steps.released.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ steps.apk-token.outputs.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+          BUILD: ${{ steps.version.outputs.build }}
+        run: |
+          apk="$RUNNER_TEMP/trek-$VERSION.apk"
+          notes="TREK $VERSION for Android (build $BUILD): the build Google Play distributes, with the same signature. Connect it to your own TREK server; push and TREK Cloud need Google Play services. Changes: https://github.com/liketrek/TREK/releases"
+          if gh release view "v$VERSION" -R liketrek/trek-android > /dev/null 2>&1; then
+            gh release upload "v$VERSION" -R liketrek/trek-android --clobber "$apk" "$apk.sha256"
+            gh release edit "v$VERSION" -R liketrek/trek-android --notes "$notes"
+          else
+            gh release create "v$VERSION" -R liketrek/trek-android --title "TREK $VERSION" --notes "$notes" "$apk" "$apk.sha256"
+          fi
+
       - name: Remove the upload key
         if: always()
-        run: rm -f "$RUNNER_TEMP/upload.jks"
+        run: rm -f "$RUNNER_TEMP/upload.jks" "$RUNNER_TEMP/play-apk.json"
 
   ios:
     if: github.repository == 'liketrek/TREK'

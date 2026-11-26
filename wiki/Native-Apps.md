@@ -2,7 +2,9 @@
 
 **TREK Travel Planner** is the TREK app for iPhone, iPad and Android, from the App Store and Google Play. It is a client for your TREK server: it asks for the server's address once and then shows the TREK interface that server delivers, in the version the server runs, with the same data, the same accounts and the same settings as in the browser. On the home screen it is called **TREK**.
 
-The browser keeps working as before, and installing TREK from the browser as a web app is still possible; see [Offline-Mode-and-PWA](Offline-Mode-and-PWA). The app adds what a browser cannot do well on a phone: signing in with single sign-on and passkeys, the system share sheet for exports, haptics, and on iOS a start without network.
+The browser keeps working as before, and installing TREK from the browser as a web app is still possible; see [Offline-Mode-and-PWA](Offline-Mode-and-PWA).
+
+Without Google Play, the Android app is also published as an APK at [liketrek/trek-android](https://github.com/liketrek/trek-android), for example for [Obtainium](https://github.com/ImranR98/Obtainium). It is the build Google Play distributes, with the same signature, so a phone can move between the two without uninstalling. Push notifications and TREK Cloud subscriptions need Google Play services; without them the app works without those two. The app adds what a browser cannot do well on a phone: signing in with single sign-on and passkeys, the system share sheet for exports, haptics, and on iOS a start without network.
 
 ## Connecting to a server
 
@@ -121,6 +123,7 @@ The apps are built from `client/`: Capacitor wraps the address screen in `client
 - **Every pull request** that touches the native code runs `.github/workflows/native.yml`: an unsigned Android debug and release build (the release build runs R8 with `client/android/app/proguard-rules.pro`), an iOS simulator build with Xcode 26, and a check of the store texts and images.
 - **A release** runs `.github/workflows/native-release.yml`, by hand (choose the Play track) or on a `v*` tag. A tag pushed by another workflow with the default token does not start it, so after a release run it by hand on the tag. It builds the signed Android App Bundle and sends it to the chosen Google Play testing track as a draft, and archives the iOS app and uploads it to App Store Connect, where it appears in TestFlight. Promoting a build to production happens in the two consoles.
 - **Version numbers**: both stores get the version from `client/package.json` without a prerelease suffix, and the workflow run number plus 1000 as the build number. A prerelease reuses its version with a higher build number and stays on the internal track and in TestFlight.
+- **The APK outside Google Play**: after the upload, the same job fetches the universal APK Google Play builds of that bundle (signed with the Play app signing key) and publishes it to [liketrek/trek-android](https://github.com/liketrek/trek-android), one release per app version, a newer build of the same version replacing its APK. `scripts/ci/android-apk-release.mjs` holds a build back while the app needs a newer native API than the latest server release answers.
 - **The `store` environment** holds every secret and needs the approval of a required reviewer before a job starts. It only runs in liketrek/TREK, never for a pull request.
 
 ### Secrets in the `store` environment
@@ -130,6 +133,7 @@ The apps are built from `client/`: Capacitor wraps the address screen in `client
 | ANDROID_UPLOAD_KEYSTORE_B64 | The upload keystore, base64 encoded |
 | ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD | Its password, key alias and key password |
 | PLAY_SERVICE_ACCOUNT_JSON | The Google Cloud service account with "Release to testing tracks" in Play Console |
+| PLAY_APK_SERVICE_ACCOUNT_JSON | The Google Cloud service account allowed to download the APKs Google Play generates, for liketrek/trek-android |
 | APPLE_TEAM_ID | The Apple Developer team of [APPLE ORGANISATION ACCOUNT] |
 | ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8_B64 | The App Store Connect team API key (App Manager role), the .p8 file base64 encoded |
 
