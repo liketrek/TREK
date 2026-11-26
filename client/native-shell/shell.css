@@ -204,11 +204,32 @@
   --sea: #cfe3ef;
   --text-face: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --display-face: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  /* The insets of the device, from the web view or, on iOS, from the native side. */
-  --safe-top: max(env(safe-area-inset-top, 0px), var(--trek-native-safe-top, 0px));
-  --safe-bottom: max(env(safe-area-inset-bottom, 0px), var(--trek-native-safe-bottom, 0px));
-  --safe-start: max(env(safe-area-inset-left, 0px), var(--trek-native-safe-left, 0px));
-  --safe-end: max(env(safe-area-inset-right, 0px), var(--trek-native-safe-right, 0px));
+  /* The insets of the device, from the web view or from the native side. On
+   * Android a web view can report env() as 0 while the page reaches under the
+   * status and navigation bars; Capacitor's SystemBars writes the real insets
+   * to --safe-area-inset-* instead (0 where it lays the web view out between
+   * the bars). iOS measures its own (TrekBridgeViewController publishSafeArea).
+   * In a browser the variables are unset: env() alone. */
+  --safe-top: max(
+    env(safe-area-inset-top, 0px),
+    var(--safe-area-inset-top, 0px),
+    var(--trek-native-safe-top, 0px)
+  );
+  --safe-bottom: max(
+    env(safe-area-inset-bottom, 0px),
+    var(--safe-area-inset-bottom, 0px),
+    var(--trek-native-safe-bottom, 0px)
+  );
+  --safe-start: max(
+    env(safe-area-inset-left, 0px),
+    var(--safe-area-inset-left, 0px),
+    var(--trek-native-safe-left, 0px)
+  );
+  --safe-end: max(
+    env(safe-area-inset-right, 0px),
+    var(--safe-area-inset-right, 0px),
+    var(--trek-native-safe-right, 0px)
+  );
   color-scheme: light;
   -webkit-text-size-adjust: 100%;
 }

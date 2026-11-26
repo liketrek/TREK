@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 import { directionOf, pickLocale, translator } from '../../../native-shell/i18n';
 
-// FE-NATIVE-SHELL-001 to FE-NATIVE-SHELL-006
+// FE-NATIVE-SHELL-001 to FE-NATIVE-SHELL-007
 //
 // The app's own first screens (client/native-shell): which language and reading
 // direction they start in, and the layout rules in shell.css that no component
@@ -96,5 +96,20 @@ describe('native shell', () => {
     expect(css).not.toMatch(
       /margin-left|margin-right|padding-left|padding-right|text-align:\s*left|[^-]left:\s|[^-]right:\s/
     );
+  });
+
+  it("FE-NATIVE-SHELL-007: every edge clears the system bars from Android's injected insets too, and the foot keeps clear of the navigation bar", () => {
+    const root = find(':root')
+      .map((r) => r.body)
+      .join('');
+    const side = (name: string, edge: string) =>
+      new RegExp(
+        `--${name}:\\s*max\\(\\s*env\\(safe-area-inset-${edge}, 0px\\),\\s*var\\(--safe-area-inset-${edge}, 0px\\),\\s*var\\(--trek-native-safe-${edge}, 0px\\)\\s*\\)`
+      );
+    expect(root).toMatch(side('safe-top', 'top'));
+    expect(root).toMatch(side('safe-bottom', 'bottom'));
+    expect(root).toMatch(side('safe-start', 'left'));
+    expect(root).toMatch(side('safe-end', 'right'));
+    expect(find('.dock')[0]?.body).toMatch(/padding-block:[^;]*var\(--safe-bottom\)/);
   });
 });
