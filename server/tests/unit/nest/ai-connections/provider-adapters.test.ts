@@ -532,8 +532,7 @@ describe('AnthropicMessagesClient', () => {
       [followUp(REQUEST), 'claude-opus-5-5'],
       [followUp(REQUEST, { adapter: 'anthropic-messages', blocks: record.blocks })],
     ];
-    for (const [request, model] of changed) {
-      const types = await sentTypes(request, model);
+    for (const types of await Promise.all(changed.map(([request, model]) => sentTypes(request, model)))) {
       expect(types).not.toContain('thinking');
       expect(types).toContain('tool_use');
     }
