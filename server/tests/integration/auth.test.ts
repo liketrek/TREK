@@ -39,6 +39,7 @@ import { VacayPlanMembers } from '../../src/db/entities/VacayPlanMembers.entity'
 import { VacayPlans } from '../../src/db/entities/VacayPlans.entity';
 import { VisitedCountries } from '../../src/db/entities/VisitedCountries.entity';
 import { VisitedRegions } from '../../src/db/entities/VisitedRegions.entity';
+import { oauthClientRef } from '../../src/db/repositories/_shared/oauth-client-ref';
 import { dbNow } from '../../src/db/types';
 import { authCookie, authHeader } from '../helpers/auth';
 import { makeBucketListItem, markCountryVisited } from '../helpers/factories/atlas';
@@ -810,14 +811,14 @@ describe('Account deletion', () => {
       client_secret_hash: 'h',
     });
     await insertRow(orm, OauthTokens, {
-      client: 'cid-auth-test',
+      client: oauthClientRef('cid-auth-test'),
       user: target.id,
       access_token_hash: 'ath-auth',
       refresh_token_hash: 'rth-auth',
       access_token_expires_at: dbNow(new Date(Date.now() + 3600_000)),
       refresh_token_expires_at: dbNow(new Date(Date.now() + 30 * 86_400_000)),
     });
-    await insertRow(orm, OauthConsents, { client: 'cid-auth-test', user: target.id });
+    await insertRow(orm, OauthConsents, { client: oauthClientRef('cid-auth-test'), user: target.id });
 
     // vacay_plans.owner_id (CASCADE): target owns a vacation plan
     const vacayPlanId = await insertRow(orm, VacayPlans, { owner: target.id });

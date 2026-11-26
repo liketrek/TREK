@@ -37,6 +37,7 @@ import { VacayPlanMembers } from '../../src/db/entities/VacayPlanMembers.entity'
 import { VacayPlans } from '../../src/db/entities/VacayPlans.entity';
 import { VisitedCountries } from '../../src/db/entities/VisitedCountries.entity';
 import { VisitedRegions } from '../../src/db/entities/VisitedRegions.entity';
+import { oauthClientRef } from '../../src/db/repositories/_shared/oauth-client-ref';
 import { dbNow } from '../../src/db/types/db-timestamp.type';
 import { authCookie } from '../helpers/auth';
 import { makeBucketListItem, markCountryVisited } from '../helpers/factories/atlas';
@@ -278,14 +279,14 @@ describe('Admin user management', () => {
       client_secret_hash: 'h',
     });
     await insertRow(orm, OauthTokens, {
-      client: 'cid-admin-test',
+      client: oauthClientRef('cid-admin-test'),
       user: target.id,
       access_token_hash: 'ath-admin',
       refresh_token_hash: 'rth-admin',
       access_token_expires_at: dbNow(new Date(Date.now() + 60 * 60 * 1000)),
       refresh_token_expires_at: dbNow(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
     });
-    await insertRow(orm, OauthConsents, { client: 'cid-admin-test', user: target.id });
+    await insertRow(orm, OauthConsents, { client: oauthClientRef('cid-admin-test'), user: target.id });
 
     // vacay_plans.owner_id (CASCADE): target owns a vacation plan
     const vacayPlanId = (await makeVacayPlan(orm, target.id)).id;

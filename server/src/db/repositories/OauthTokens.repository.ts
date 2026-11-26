@@ -2,6 +2,7 @@ import { columnRef, currentTimestamp } from '../dialect/sql-functions';
 import { OauthTokens } from '../entities/OauthTokens.entity';
 import type { DB } from '../kysely/db';
 import type { DbTimestamp } from '../types';
+import { oauthClientRef } from './_shared/oauth-client-ref';
 import { type AssertRowKeys } from './_shared/rows';
 import { TrekRepository } from './_shared/trek-repository';
 
@@ -178,7 +179,7 @@ export class OauthTokensRepository extends TrekRepository<OauthTokens> {
    */
   async insertToken(row: NewOauthTokenRow): Promise<void> {
     await this.insert({
-      client: row.client_id,
+      client: oauthClientRef(row.client_id),
       user: row.user_id,
       access_token_hash: row.access_token_hash,
       refresh_token_hash: row.refresh_token_hash,

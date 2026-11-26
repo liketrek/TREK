@@ -2,6 +2,7 @@ import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { OauthClients } from '../../../../src/db/entities/OauthClients.entity';
 import { OauthConsents } from '../../../../src/db/entities/OauthConsents.entity';
 import type { OauthConsentsRepository } from '../../../../src/db/repositories/OauthConsents.repository';
+import { oauthClientRef } from '../../../../src/db/repositories/_shared/oauth-client-ref';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
@@ -61,7 +62,7 @@ describe('OauthConsentsRepository', () => {
     it('OAUTHCONSENTREPO-002: returns the stored scopes JSON text', async () => {
       const { user } = createUser(testDb);
       await seedClient(user.id, 'proto-2');
-      await insertRow(t, OauthConsents, { client: 'proto-2', user: user.id, scopes: '["trips:read"]' });
+      await insertRow(t, OauthConsents, { client: oauthClientRef('proto-2'), user: user.id, scopes: '["trips:read"]' });
       expect(await consents.findScopes('proto-2', user.id)).toEqual({ scopes: '["trips:read"]' });
     });
   });
@@ -127,7 +128,7 @@ describe('OauthConsentsRepository', () => {
     it("OAUTHCONSENTREPO-007: findScopes then a raw write on the same transaction connection — the raw write survives the transaction's closing flush", async () => {
       const { user } = createUser(testDb);
       await seedClient(user.id, 'proto-7');
-      await insertRow(t, OauthConsents, { client: 'proto-7', user: user.id, scopes: '["a"]' });
+      await insertRow(t, OauthConsents, { client: oauthClientRef('proto-7'), user: user.id, scopes: '["a"]' });
 
       await withRequestContext(t.orm, async () => {
         await uow.transactional(async () => {

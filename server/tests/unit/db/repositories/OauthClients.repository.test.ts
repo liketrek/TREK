@@ -2,6 +2,7 @@ import { SqliteEngine } from '../../../../src/db/engine/sqlite/sqlite-engine';
 import { OauthClients } from '../../../../src/db/entities/OauthClients.entity';
 import { OauthTokens } from '../../../../src/db/entities/OauthTokens.entity';
 import type { OauthClientsRepository } from '../../../../src/db/repositories/OauthClients.repository';
+import { oauthClientRef } from '../../../../src/db/repositories/_shared/oauth-client-ref';
 import { dbNow } from '../../../../src/db/types';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
@@ -351,7 +352,7 @@ describe('OauthClientsRepository', () => {
     async function holdToken(clientId: string): Promise<void> {
       const { user } = createUser(testDb);
       await insertRow(t, OauthTokens, {
-        client: clientId,
+        client: oauthClientRef(clientId),
         user: user.id,
         access_token_hash: `acc-${clientId}`,
         refresh_token_hash: `ref-${clientId}`,

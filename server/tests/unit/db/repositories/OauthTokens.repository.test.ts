@@ -3,6 +3,7 @@ import { OauthClients } from '../../../../src/db/entities/OauthClients.entity';
 import { OauthConsents } from '../../../../src/db/entities/OauthConsents.entity';
 import { OauthTokens } from '../../../../src/db/entities/OauthTokens.entity';
 import type { OauthTokensRepository } from '../../../../src/db/repositories/OauthTokens.repository';
+import { oauthClientRef } from '../../../../src/db/repositories/_shared/oauth-client-ref';
 import { dbNow } from '../../../../src/db/types';
 import { withRequestContext } from '../../../../src/nest/database/request-context';
 import { UnitOfWork } from '../../../../src/nest/database/unit-of-work';
@@ -75,7 +76,7 @@ async function seedToken(
   }> = {},
 ): Promise<number> {
   const id = await insertRow(t, OauthTokens, {
-    client: overrides.clientId as string,
+    client: oauthClientRef(overrides.clientId as string),
     user: overrides.userId as number,
     access_token_hash: overrides.accessHash ?? `acc-${Math.random().toString(36).slice(2)}`,
     refresh_token_hash: overrides.refreshHash ?? `ref-${Math.random().toString(36).slice(2)}`,

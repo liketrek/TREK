@@ -22,6 +22,7 @@ import type { OauthClientsRepository } from '../../../src/db/repositories/OauthC
 import type { OauthConsentsRepository } from '../../../src/db/repositories/OauthConsents.repository';
 import type { OauthTokensRepository } from '../../../src/db/repositories/OauthTokens.repository';
 import type { UsersRepository } from '../../../src/db/repositories/Users.repository';
+import { oauthClientRef } from '../../../src/db/repositories/_shared/oauth-client-ref';
 import { dbNow } from '../../../src/db/types';
 import { revokeUserSessionsForClient } from '../../../src/mcp/sessionManager';
 import type { AddonsService } from '../../../src/nest/addons/addons.service';
@@ -1646,7 +1647,7 @@ describe('admin OAuth sessions', () => {
     const { user } = createUser(testDb);
     await insertRow(t, OauthClients, { client_id: 'c1', client_secret_hash: 'hash', name: 'Client' });
     await insertRow(t, OauthTokens, {
-      client: 'c1',
+      client: oauthClientRef('c1'),
       user: user.id,
       access_token_hash: 'ahash',
       refresh_token_hash: 'rhash',
