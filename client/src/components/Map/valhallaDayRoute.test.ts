@@ -59,6 +59,8 @@ interface Traffic {
   osrm: string[];
 }
 
+const HOUR = 60 * 60 * 1000;
+
 const answered = (body: RouteBody) => HttpResponse.json({ trip: valhallaTrip(body.locations) });
 
 /** Every routing host answering, the relay as `relay` says; what each was asked is recorded. */
@@ -274,7 +276,39 @@ describe('the route cache keeps the engine apart', () => {
 
     up = true;
     resetValhallaTurns();
+    expect((await calculateRouteWithLegs(points, { profile: 'driving' })).distance).toBe(2000);
+    expect(traffic.relay).toHaveLength(1);
+
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + HOUR + 1);
     expect((await calculateRouteWithLegs(points, { profile: 'driving' })).distance).toBe(4000);
+    expect([traffic.relay.length, traffic.osrm.length]).toEqual([2, 1]);
+  });
+
+  it('VDAY-CACHE-005: a day the relay could not route opens drawn after a reload, without waiting for the relay again (#3228)', async () => {
+    const points = freshDay(3);
+    let slow = true;
+    const traffic = listen((body) =>
+      slow ? HttpResponse.json({ error: 'The TREK routing service took too long' }, { status: 504 }) : answered(body)
+    );
+    expect((await calculateRouteWithLegs(points, { profile: 'driving' })).engine).toBe('osrm');
+    const { offlineDb } = await import('../../db/offlineDb');
+    const stoodIn = (key: string) => key.includes(`${points[0].lng},${points[0].lat}`) && key.endsWith(':standin');
+    await vi.waitFor(async () => expect(await offlineDb.routeCache.filter((row) => stoodIn(row.key)).count()).toBe(1));
+
+    // A reload: the modules, and with them the routes in memory and the relay's rest, start over.
+    vi.resetModules();
+    const reloaded = await import('./RouteCalculator');
+    const again = await reloaded.calculateRouteWithLegs(points, { profile: 'driving' });
+    expect([again.distance, again.engine]).toEqual([2000, 'osrm']);
+    expect([traffic.relay.length, traffic.osrm.length]).toEqual([1, 1]);
+
+    // An hour on, the relay gets the day again and its answer is kept as the day's.
+    slow = false;
+    const now = Date.now();
+    vi.spyOn(Date, 'now').mockReturnValue(now + HOUR + 1);
+    const routed = await reloaded.calculateRouteWithLegs(points, { profile: 'driving' });
+    expect([routed.distance, routed.engine]).toEqual([4000, 'valhalla']);
     expect([traffic.relay.length, traffic.osrm.length]).toEqual([2, 1]);
   });
 });

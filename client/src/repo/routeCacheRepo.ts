@@ -23,11 +23,11 @@ async function prune(): Promise<void> {
  * anything this store cannot read or write is simply routed again.
  */
 export const routeCacheRepo = {
-  /** The route kept under `key`, unless it is missing or too old. */
-  async get<T>(key: string): Promise<T | null> {
+  /** The route kept under `key`, unless it is missing or older than `maxAgeMs`. */
+  async get<T>(key: string, maxAgeMs = MAX_AGE_MS): Promise<T | null> {
     try {
       const row = await offlineDb.routeCache.get(key);
-      if (!row || Date.now() - row.savedAt > MAX_AGE_MS) return null;
+      if (!row || Date.now() - row.savedAt > maxAgeMs) return null;
       return row.route as T;
     } catch {
       // A closed or blocked database: the leg is routed again.

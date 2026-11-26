@@ -3,7 +3,7 @@ import { pluginsApi } from '../../api/client'
 import type { RouteEngine, RouteResult, RouteSegment, RouteWithLegs, SnappedWaypoint, Waypoint, RouteAnchors } from '../../types'
 import { haversineKm } from '../../utils/geo'
 import { countRoute } from './routeUsageCounter'
-import { cacheRoute, rememberRoute, routeInMemory, storedRoute } from './routeStore'
+import { cacheRoute, keepStandIn, rememberRoute, routeInMemory, standIn, storedRoute } from './routeStore'
 import { formatDuration, formatRouteDistance, getDistanceUnit, legSegment } from './routeText'
 import type { RouteAlternative } from './routeTypes'
 import { valhallaAvailable, valhallaPlansDays, valhallaRoutesDays, type AvoidClass } from './valhallaRoute'
@@ -289,6 +289,12 @@ function withEngine(route: RouteWithLegs, engine: RouteEngine): RouteWithLegs {
  * A day planned with Valhalla: its answer, kept under the Valhalla key, or where it gives
  * none OSRM's for the whole day, kept under the plain key. One engine per day, never one
  * leg from each. While the relay rests, a day that avoids nothing is not put to it at all.
+ *
+ * A day that avoids nothing and that Valhalla could not route is not put to it again for a
+ * while: OSRM's answer, the same road an OSRM instance draws, stands in for it under a key
+ * of its own, so every visit does not wait out the relay first (#3228). Never under the
+ * Valhalla key, which holds only what Valhalla answered. A day that avoids something is
+ * asked again, since the stand-in drives the very road it means to leave out.
  */
 async function valhallaOrOsrmDay(
   waypoints: Waypoint[],
@@ -299,6 +305,9 @@ async function valhallaOrOsrmDay(
     signal?: AbortSignal
   },
 ): Promise<RouteWithLegs> {
+  const standInKey = avoiding.length ? null : `${keys.valhalla}:standin`
+  const stoodIn = standInKey ? await standIn(standInKey) : null
+  if (stoodIn) return stoodIn
   const asking = avoiding.length > 0 || valhallaRoutesDays()
   const routed = asking ? await valhallaDayRoute(waypoints, profile, avoiding, signal) : null
   if (routed) {
@@ -307,7 +316,10 @@ async function valhallaOrOsrmDay(
   }
   const plain = (await storedRoute(keys.plain)) ?? await osrmWithLegs(waypoints, keys.coords, profile, signal)
   cacheRoute(keys.plain, plain)
-  return withFallbackNoted(plain, avoiding)
+  const drawn = withFallbackNoted(plain, avoiding)
+  // A day left before Valhalla answered was never refused by it.
+  if (standInKey && !signal?.aborted) keepStandIn(standInKey, drawn)
+  return drawn
 }
 
 /** Fetches a full route via OSRM and returns coordinates, distance, and duration estimates for driving/walking. */

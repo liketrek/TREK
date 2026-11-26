@@ -39,3 +39,21 @@ export async function storedRoute(key: string): Promise<RouteWithLegs | null> {
   if (kept) rememberRoute(key, kept);
   return kept;
 }
+
+/**
+ * How long OSRM's answer stands in for a day Valhalla could not route. Long enough that
+ * reopening the trip draws that day at once instead of waiting out the relay again on
+ * every visit (#3228), short enough that a Valhalla back from an outage gets the day again
+ * the same day.
+ */
+const STAND_IN_MS = 60 * 60 * 1000;
+
+/** Keeps OSRM's answer for a day Valhalla could not route, on the device only, for `STAND_IN_MS`. */
+export function keepStandIn(key: string, route: RouteWithLegs): void {
+  void routeCacheRepo.put(key, route);
+}
+
+/** The answer that stood in for a day Valhalla could not route, while it is recent enough. */
+export function standIn(key: string): Promise<RouteWithLegs | null> {
+  return routeCacheRepo.get<RouteWithLegs>(key, STAND_IN_MS);
+}
