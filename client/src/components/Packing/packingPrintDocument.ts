@@ -167,7 +167,7 @@ export function packingPrintHtml(items: PackingItem[], text: PackingPrintText, b
   return `<!doctype html><html lang="${escapeHtml(text.lang)}"><head><meta charset="utf-8"><title>${escapeHtml(text.title)}</title>
 <style>${text.fontCss}${PRINT_CSS}</style></head><body><div class="sheet">
 <header class="hero">
-<div class="hero-top"><span class="eyebrow">${escapeHtml(text.eyebrow)}</span><img src="${origin}/logo-light.svg" alt="TREK"></div>
+<div class="hero-top"><span class="eyebrow">${escapeHtml(text.eyebrow)}</span><img src="${origin}/logo-light.svg" alt="YOUYA"></div>
 <h1>${escapeHtml(text.title)}</h1>
 ${text.dates ? `<div class="dates">${escapeHtml(text.dates)}</div>` : ''}
 <div class="stats">${stats}</div>
@@ -175,7 +175,7 @@ ${text.dates ? `<div class="dates">${escapeHtml(text.dates)}</div>` : ''}
 </header>
 <main>${sections}</main>
 ${bagsHtml}
-<footer><span>made with</span><img src="${origin}/logo-dark.svg" alt="TREK"></footer>
+<footer><span>made with</span><img src="${origin}/logo-dark.svg" alt="YOUYA"></footer>
 </div></body></html>`
 }
 

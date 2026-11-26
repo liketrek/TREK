@@ -1,45 +1,45 @@
 # Offline Mode and PWA
 
-TREK can be installed as a Progressive Web App (PWA) and used without an internet connection for previously synced trips.
+YOUYA can be installed as a Progressive Web App (PWA) and used without an internet connection for previously synced trips.
 
 ## Install as an app (PWA)
 
-TREK must be served over **HTTPS** — the install prompt does not appear on plain HTTP.
+YOUYA must be served over **HTTPS** — the install prompt does not appear on plain HTTP.
 
 **iOS (Safari):**
-1. Open TREK in Safari.
+1. Open YOUYA in Safari.
 2. Tap the Share button.
 3. Select **Add to Home Screen**.
 
 **Android (Chrome / Edge):**
-1. Open TREK in the browser.
+1. Open YOUYA in the browser.
 2. Tap the browser menu.
 3. Select **Install app** or **Add to Home Screen**.
 
 **Desktop (Chrome / Edge):**
-1. Open TREK in the browser.
+1. Open YOUYA in the browser.
 2. Click the install icon at the end of the address bar, or choose **Install** from the browser menu.
 
-Once installed, TREK launches in **standalone** mode (fullscreen, no browser UI) using the TREK icon.
+Once installed, YOUYA launches in **standalone** mode (fullscreen, no browser UI) using the YOUYA icon.
 
 The installed app starts at the app root, so the **Start page** setting decides what you see when you tap the icon: the dashboard, or straight into your active trip on a tab of your choice. See [Display-Settings](Display-Settings).
 
 ### The app reopens where it was
 
-Phones close an installed app in the background soon after you switch away from it, for example to a map app for directions. When you open TREK again within six hours, the installed app goes back to where you were instead of the start page: the same trip, on the same tab and the same day of the plan, or the Journey, Collections, Vacay, Atlas or Files page you had open. After six hours, or after logging out, it starts at the start page again. This only happens in the installed app; in a browser tab, opening the address starts as usual.
+Phones close an installed app in the background soon after you switch away from it, for example to a map app for directions. When you open YOUYA again within six hours, the installed app goes back to where you were instead of the start page: the same trip, on the same tab and the same day of the plan, or the Journey, Collections, Vacay, Atlas or Files page you had open. After six hours, or after logging out, it starts at the start page again. This only happens in the installed app; in a browser tab, opening the address starts as usual.
 
 ### Push notifications
 
-Web Push shows TREK notifications on a phone or computer even while TREK is closed. It needs two things from the setup above:
+Web Push shows YOUYA notifications on a phone or computer even while YOUYA is closed. It needs two things from the setup above:
 
 - **HTTPS everywhere.** Browsers only allow push on a secure origin. On plain `http://` (for example a LAN address) the card under **Settings → Notifications** says that push needs HTTPS.
-- **The installed app on iPhone and iPad.** iOS and iPadOS 16.4 or later deliver push only to TREK added to the Home Screen. Install it as described above, open it from the Home Screen icon, and switch push on there. In a Safari tab the card asks you to add TREK to the Home Screen first.
+- **The installed app on iPhone and iPad.** iOS and iPadOS 16.4 or later deliver push only to YOUYA added to the Home Screen. Install it as described above, open it from the Home Screen icon, and switch push on there. In a Safari tab the card asks you to add YOUYA to the Home Screen first.
 
 Push is switched on per device: each phone, tablet or browser you want to receive notifications on needs its own **Turn on for this device**. Logging out switches it off for that device. The admin has to enable the Web Push channel first, and which events arrive follows the **Push** column. See [Notifications](Notifications).
 
 ## What works offline
 
-TREK uses Workbox service-worker caching plus an IndexedDB database (Dexie) for structured trip data. The following content is available offline after the first sync:
+YOUYA uses Workbox service-worker caching plus an IndexedDB database (Dexie) for structured trip data. The following content is available offline after the first sync:
 
 **Service-worker cache (Workbox)**
 
@@ -50,7 +50,7 @@ TREK uses Workbox service-worker caching plus an IndexedDB database (Dexie) for 
 | Mapbox GL glyphs, sprites and vector tiles | `mapbox-tiles` | StaleWhileRevalidate | 30 days | 3 000 |
 | OpenFreeMap glyphs, sprites and vector tiles | `gl-map-offline` | CacheFirst | 90 days | 6 000 |
 | Cover images and avatars (`/uploads/covers`, `/uploads/avatars`) | `user-uploads` | CacheFirst | 7 days | 300 |
-| Typefaces of TREK Studio books (`.woff2` build assets) | `book-fonts` | CacheFirst | 365 days | 600 |
+| Typefaces of YOUYA Studio books (`.woff2` build assets) | `book-fonts` | CacheFirst | 365 days | 600 |
 | App shell and every page of the app (HTML / JS / CSS) | precache | Precached | Until next deploy | — |
 
 > **Note:** API responses are **never** stored in the service-worker cache. Workbox keys its entries by URL and cannot vary them on the session cookie, so on a shared device one account's cached data could be served to the next. Offline reads come from the per-user IndexedDB cache described below instead.
@@ -59,13 +59,13 @@ TREK uses Workbox service-worker caching plus an IndexedDB database (Dexie) for 
 
 **IndexedDB (Dexie) — structured trip data**
 
-On login, when the browser comes back online, and when you lift **Force offline mode**, TREK runs a background sync that writes full trip bundles into IndexedDB — you can also start one by hand with **Re-sync now**, with **Download for offline use** for a progress-tracked run, or by re-enabling a trip's offline toggle:
+On login, when the browser comes back online, and when you lift **Force offline mode**, YOUYA runs a background sync that writes full trip bundles into IndexedDB — you can also start one by hand with **Re-sync now**, with **Download for offline use** for a progress-tracked run, or by re-enabling a trip's offline toggle:
 
 - Trips, days, places, packing items, to-dos, budget items, reservations, accommodations, trip members, tags, and categories.
 - With the Tours addon on, each trip's tours, so a tour still reads as a tour offline. A tour you opened in the route editor while online keeps its control points, so it opens there offline too. For a city walk the sync also stores the stops checked off on each of its days, and the walk's stops themselves when this device has not read them yet, so the walk shows how far it got and can be checked off offline.
 - File attachments that are neither photos nor videos (PDFs, documents, etc.) are downloaded and stored as blobs in IndexedDB. Videos are deliberately skipped — a single clip can be hundreds of megabytes and would evict the trip's real documents.
 - Map tiles are pre-fetched into the service-worker `map-tiles` cache for zoom levels 0 to 16 across each trip's bounding box, stopping at the zoom level that would push the total past 12 288 tiles (roughly 180 MB). If the browser refused persistent storage, prefetching stops at zoom 12 so the app shell cannot be evicted.
-- The places around each trip, up to 3000 from the [TREK Places API](TREK-Places-API) in one request (about a megabyte for a city), so place search and suggestions still answer offline. They are downloaded whether or not **Store map tiles offline** is on, refreshed only when the trip's area changes, and removed with the trip. See [Searching offline](Places-and-Search#searching-offline).
+- The places around each trip, up to 3000 from the [YOUYA Places API](TREK-Places-API) in one request (about a megabyte for a city), so place search and suggestions still answer offline. They are downloaded whether or not **Store map tiles offline** is on, refreshed only when the trip's area changes, and removed with the trip. See [Searching offline](Places-and-Search#searching-offline).
 
 > **Note:** A WebSocket reconnect does *not* run this sync. It replays your queued changes and then re-reads the trip you currently have open — days, places, packing items, to-dos, budget items, reservations and files — which refreshes that one trip's cached rows. It never re-downloads the bundles for your other trips, the file blobs or the map tiles; skipping the full sync there is deliberate, so a dropped socket on an otherwise online device doesn't run into the server's rate limiter.
 
@@ -108,9 +108,9 @@ If a change you made offline collides with a newer change on the server, it is s
 
 ### Stats & cache
 
-The stats panel shows cached trips, pending changes, conflicts and failed changes. A change the server keeps refusing with a server error is retried with growing gaps (from 30 seconds up to about two hours) and only holds back the other changes of its own trip; after eight attempts it counts as failed. Later changes you make on this device to the same item (the same place, packing item, visit, tour, a city walk's stops on one day, or driving settings) wait behind a failed change or an open conflict instead of overtaking it, so they reach the server in the order you made them; for visits, tours, the stops of a city walk and driving settings that includes changes you make while online. Places and packing items remember which version you edited, so trying a failed change again never overwrites a newer version saved in the meantime, on this device or by another member of the trip: it turns into a conflict for you to decide. Visits, tours, the stops of a city walk and driving settings carry no such version, so trying again overwrites what another member changed on the same item in the meantime, the same as any change sent after being offline. Failed changes come with **Try again** and **Discard**: trying again sends them first and then the changes that waited behind them; discarding keeps the server's version, sends the changes that waited, and the next sync puts the server's version back on the device. **Clear cache** removes all offline data from IndexedDB after you confirm it in TREK's dialog (you can re-sync any time while online). Each cached trip entry shows its date range, place/file count and last successful sync.
+The stats panel shows cached trips, pending changes, conflicts and failed changes. A change the server keeps refusing with a server error is retried with growing gaps (from 30 seconds up to about two hours) and only holds back the other changes of its own trip; after eight attempts it counts as failed. Later changes you make on this device to the same item (the same place, packing item, visit, tour, a city walk's stops on one day, or driving settings) wait behind a failed change or an open conflict instead of overtaking it, so they reach the server in the order you made them; for visits, tours, the stops of a city walk and driving settings that includes changes you make while online. Places and packing items remember which version you edited, so trying a failed change again never overwrites a newer version saved in the meantime, on this device or by another member of the trip: it turns into a conflict for you to decide. Visits, tours, the stops of a city walk and driving settings carry no such version, so trying again overwrites what another member changed on the same item in the meantime, the same as any change sent after being offline. Failed changes come with **Try again** and **Discard**: trying again sends them first and then the changes that waited behind them; discarding keeps the server's version, sends the changes that waited, and the next sync puts the server's version back on the device. **Clear cache** removes all offline data from IndexedDB after you confirm it in YOUYA's dialog (you can re-sync any time while online). Each cached trip entry shows its date range, place/file count and last successful sync.
 
-Changes waiting to sync remember which version of TREK queued them. After an update, a browser tab that still runs the previous version leaves changes queued by the newer version alone instead of sending them in a form it does not know: they stay under pending changes, together with the later changes to the same item, until a tab on the current version (reload the page) sends them. Nothing is lost. The same applies after an install is rolled back, but only to a release that already has this check; an older release sends such changes anyway. After a rollback no tab on the newer version comes back, so these changes stay under pending changes and keep holding back the later changes to the same item, including online changes to visits, tours and driving settings. They cannot be tried again or discarded one by one: **Clear cache** is the way out, and it also drops every other change that has not synced yet.
+Changes waiting to sync remember which version of YOUYA queued them. After an update, a browser tab that still runs the previous version leaves changes queued by the newer version alone instead of sending them in a form it does not know: they stay under pending changes, together with the later changes to the same item, until a tab on the current version (reload the page) sends them. Nothing is lost. The same applies after an install is rolled back, but only to a release that already has this check; an older release sends such changes anyway. After a rollback no tab on the newer version comes back, so these changes stay under pending changes and keep holding back the later changes to the same item, including online changes to visits, tours and driving settings. They cannot be tried again or discarded one by one: **Clear cache** is the way out, and it also drops every other change that has not synced yet.
 
 ## Limitations
 

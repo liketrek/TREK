@@ -31,7 +31,7 @@ If you have the `member_manage` permission (default: trip owner), an **Invite Us
 
 ### Removing a Member
 
-Click the remove icon next to any member's name (**Remove access**). TREK asks first, in a dialog over the Share dialog, and removes the member only on **Confirm**.
+Click the remove icon next to any member's name (**Remove access**). YOUYA asks first, in a dialog over the Share dialog, and removes the member only on **Confirm**.
 
 If you click the remove icon next to **your own** name, the action is labeled **Leave trip**, and the same dialog asks *Leave trip? You will lose access.* before anything happens. Leaving reloads the page and returns you to the dashboard.
 
@@ -45,7 +45,7 @@ Guests are never listed among the members, and the server refuses to hand owners
 
 ## Guest Members
 
-Not everyone on a trip has — or wants — a TREK account. **Guests** let you add travel companions by name only, so you can assign them to costs, packing and tasks just like a real member, without creating a login for them.
+Not everyone on a trip has — or wants — a YOUYA account. **Guests** let you add travel companions by name only, so you can assign them to costs, packing and tasks just like a real member, without creating a login for them.
 
 Guests appear in their own **Guests** section below the members list, each with a **Guest** badge:
 
@@ -57,7 +57,7 @@ Only the **trip owner** can manage guests (this is stricter than inviting member
 
 Other members see the Guests section too (when guests exist) but cannot add, rename or remove them.
 
-> Two guests may share the same name — TREK stores the name you type as-is and keeps the two apart by their internal id, so assignments never get confused. A guest name may be at most 50 characters.
+> Two guests may share the same name — YOUYA stores the name you type as-is and keeps the two apart by their internal id, so assignments never get confused. A guest name may be at most 50 characters.
 
 ### What a guest can be assigned to
 
@@ -82,11 +82,11 @@ These limits are enforced on the server, not just hidden in the UI.
 
 ### Renaming and removing
 
-In the owner's Guests section, each guest row has a **Rename** (pencil) and a **Remove access** (trash) button. Rename turns the name into a field: Enter saves, Escape leaves it as it was. Removing a guest is **destructive and cascading**, so TREK asks in a dialog before it deletes, and removes the guest only on **Delete**:
+In the owner's Guests section, each guest row has a **Rename** (pencil) and a **Remove access** (trash) button. Rename turns the name into a field: Enter saves, Escape leaves it as it was. Removing a guest is **destructive and cascading**, so YOUYA asks in a dialog before it deletes, and removes the guest only on **Delete**:
 
 > Remove this guest? Their assignments are removed and their share of each expense goes to the others in its split.
 
-A share split by amount is handed to the others in equal parts, and a receipt split line by line is split again without the guest. A guest who paid for an expense, or who is part of a recorded payment, cannot be removed: TREK says so and keeps the guest, so the money stays on the books. Change the payer or delete the payment first.
+A share split by amount is handed to the others in equal parts, and a receipt split line by line is split again without the guest. A guest who paid for an expense, or who is part of a recorded payment, cannot be removed: YOUYA says so and keeps the guest, so the money stays on the books. Change the payer or delete the payment first.
 
 There is no limit on the number of guests per trip.
 
@@ -140,7 +140,7 @@ Below the public link, in the same **Sharing** area, users with the `share_manag
 
 Unlike the read-only share link, this one is **not anonymous**:
 
-- Whoever opens it must have a TREK account and be **signed in**. If they are not, they are sent to the login page and returned to the invite afterwards — there is **no registration** from this link.
+- Whoever opens it must have a YOUYA account and be **signed in**. If they are not, they are sent to the login page and returned to the invite afterwards — there is **no registration** from this link.
 - Opening it while signed in shows a confirmation card naming the trip. Clicking **Join trip** adds you as a **member** (the same access a manually-added member gets) and opens the trip. The owner and existing members see the same card and are simply taken to the trip when they accept.
 - To invite people who do **not** yet have an account, use an admin invite link with an optional trip binding instead — see [Invite-Links](Invite-Links).
 - Someone another member **removed** from the trip cannot rejoin through the invite link, old or regenerated; they see that they were removed. Adding them again by name in the Trip settings lets them back in. Someone who **left** the trip on their own can still rejoin through the link.

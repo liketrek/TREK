@@ -67,7 +67,7 @@ Every transport has these fields, whatever its type:
 
 When editing, the foot of the dialog also has **Delete**, which asks once before it removes the transport.
 
-If you have changed something and then press Escape or click beside the dialog, TREK asks *Discard your changes?* first: **Keep editing** returns to the form, **Discard** closes it without saving.
+If you have changed something and then press Escape or click beside the dialog, YOUYA asks *Discard your changes?* first: **Keep editing** returns to the form, **Discard** closes it without saving.
 
 The notes of a transport also print in the [trip PDF](PDF-Export). The PDF preview has a **Transport notes** switch to leave them out.
 
@@ -120,7 +120,7 @@ Self-hosters can point the `TRANSIT_API_URL` environment variable at their own M
 
 ## Offline
 
-A transport you save while offline waits in a queue and is sent when TREK is back online. A transport that carries new files needs a connection, because files cannot be uploaded offline: remove the new files to save it, or save once you are back online.
+A transport you save while offline waits in a queue and is sent when YOUYA is back online. A transport that carries new files needs a connection, because files cannot be uploaded offline: remove the new files to save it, or save once you are back online.
 
 ## Opening a transport
 
@@ -134,7 +134,7 @@ From the plan, **Edit** on a transport needs the right to edit days; on the Tran
 
 ## Live flight status
 
-TREK follows every booked flight on its day, with no API key and at no cost: the server asks the open ADS-B networks [adsb.lol](https://www.adsb.lol/) (and [adsb.fi](https://adsb.fi/) on a self-hosted install) where the aircraft flying the booked flight number is, from three hours before departure until two hours after arrival.
+YOUYA follows every booked flight on its day, with no API key and at no cost: the server asks the open ADS-B networks [adsb.lol](https://www.adsb.lol/) (and [adsb.fi](https://adsb.fi/) on a self-hosted install) where the aircraft flying the booked flight number is, from three hours before departure until two hours after arrival.
 
 - **The booking detail** on the desktop and the transport sheet on the phone show a live card: where the flight stands ("Scheduled", "In the air", "Landed") with what comes next ("Lands in 5 h 40 min") and the delay, both airports with their times (the planned one struck when it moved), a small map of the real route with the aircraft on it, and altitude, speed, remaining distance and aircraft while it flies. Hover the map for the data and map credits.
 - **Booking cards and the day plan** say the same in one line, with a progress bar while the flight is in the air and the delay beside it.
@@ -149,7 +149,7 @@ Delays and the arrival estimate are worked out from the aircraft's positions. Ga
 A transport with both ends set can be drawn as a line on the trip map:
 
 - **Flights**, **cruises** and **ferries** follow a great-circle curve, the way they actually travel across the globe.
-- **Cars**, **buses**, **taxis** and **bicycles** follow real roads, routed on demand by the same router as a day's route (driving for car, bus and taxi, cycling for the bicycle): the Valhalla of the TREK services, or OSRM for a day it cannot answer and on an installation without them; see [Road-Trip](Road-Trip#routing-engines). A straight line shows while the route loads, and stays when routing fails or the distance is over about 2000 km.
+- **Cars**, **buses**, **taxis** and **bicycles** follow real roads, routed on demand by the same router as a day's route (driving for car, bus and taxi, cycling for the bicycle): the Valhalla of the YOUYA services, or OSRM for a day it cannot answer and on an installation without them; see [Road-Trip](Road-Trip#routing-engines). A straight line shows while the route loads, and stays when routing fails or the distance is over about 2000 km.
 - **Trains** are drawn as a straight line through all their stations.
 - **Cable cars** are drawn as a straight line from the valley to the mountain station, the way the rope runs.
 - **Public transit** journeys follow their real rail and bus lines, each ride in its line's own colour and the walks between them as a dotted grey line. A journey the provider sent no shape for falls back to a straight line. A journey is also drawn whenever its day's **Route** is switched on, so it has no route button of its own in the day plan.

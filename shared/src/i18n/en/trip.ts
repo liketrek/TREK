@@ -38,7 +38,7 @@ const trip: TranslationStrings = {
   'trip.toast.placesDeleted.one': '{count} place deleted',
   'trip.invite.linkTitle': 'Trip invite link',
   'trip.invite.linkHint':
-    'Anyone with a TREK account who opens this link joins the trip as a member. Regenerate to invalidate the old link.',
+    'Anyone with a YOUYA account who opens this link joins the trip as a member. Regenerate to invalidate the old link.',
   'trip.invite.create': 'Create invite link',
   'trip.invite.regenerate': 'Regenerate',
   'trip.invite.disable': 'Disable',

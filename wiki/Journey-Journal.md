@@ -43,7 +43,7 @@ Each entry corresponds to a day in your journey. The entry editor provides:
 - **Photos and videos** — attach photos to the entry. The first photo becomes the card thumbnail in list views. A video clip goes on an entry the same way: `mp4`, `m4v`, `webm` or `mov`, up to 500 MB per file. The clip is stored as uploaded, without transcoding, and the editor shows its first frame as a preview before you save. The journey gallery takes the same clips.
   > **Note on HEIC files:** HEIC is an Apple-only format that many browsers and platforms do not recognise as an image. To ensure broad compatibility, HEIC/HEIF files are automatically converted to JPEG before upload. This conversion may result in the loss of embedded metadata (EXIF data such as GPS coordinates, camera information, etc.).
 
-  > **Note on Android:** the photo picker of Android browsers removes the location from photos before they reach any website, so a photo uploaded from an Android phone usually arrives without GPS and stays off the map. Photos added from a connected Immich or Synology Photos library keep their location, because TREK reads it from the library instead of the uploaded file.
+  > **Note on Android:** the photo picker of Android browsers removes the location from photos before they reach any website, so a photo uploaded from an Android phone usually arrives without GPS and stays off the map. Photos added from a connected Immich or Synology Photos library keep their location, because YOUYA reads it from the library instead of the uploaded file.
 - **Pros / Cons** — optional verdict cards. Add items to a **Pros** list (thumbs-up) or a **Cons** list (thumbs-down) to summarise what you loved or what could have been better. These are stored in the `pros_cons.pros` and `pros_cons.cons` arrays on the entry.
 - **Tags** — free-form labels (e.g. "hidden gem", "best meal").
 - **Location** — pin the entry to a map location.
@@ -82,7 +82,7 @@ External selections are queued with the other editor changes and saved only when
 
 The same photo picker opens from the journey gallery, on desktop and on a phone. **Select all** takes every photo of the search, not only the ones scrolled into view: on the day, **Trip Period** and **Date Range** tabs it first loads the pages still missing, with a spinner on the button while it does, and closing the picker or switching tab cancels it. **All Photos** is your whole library, so there Select all takes only the photos loaded so far, and a count such as **(200+)** says there are more further down. Select all adds to what you already picked on another tab or in an album, and **Deselect all** takes back only the photos in view. **Add** waits until Select all has finished loading, so it never sends only part of the selection. The picker loads up to 50,200 photos of one date search, by Select all or by scrolling, far more than a trip usually holds; past that the count keeps its **+**, and a narrower **Date Range** reaches the rest. A large selection is sent in several requests, and if one of them fails, the photos that did arrive show up in the journey straight away while an error says the rest did not; adding the same selection again skips the photos that are already there.
 
-Imported photos are added oldest first, so an entry lists a bulk import in the order the photos were taken, and you can still drag them into another order afterwards. The gallery sorts by capture time, which TREK asks Immich or Synology Photos for right after the import; once those times arrive the gallery re-sorts by itself on every device that has the journey open.
+Imported photos are added oldest first, so an entry lists a bulk import in the order the photos were taken, and you can still drag them into another order afterwards. The gallery sorts by capture time, which YOUYA asks Immich or Synology Photos for right after the import; once those times arrive the gallery re-sorts by itself on every device that has the journey open.
 
 ### Viewing photos
 
@@ -119,7 +119,7 @@ The journey map shows four layers, each switched on and off at the top of the ma
 
 Each switch shows how many things it holds; a layer with nothing to show is dimmed and says why, one that could not be loaded is marked and the rest of the map keeps working. Marks on one spot join into a disc with their number, and a click lists them. A click on a planned place or a stay opens a card with its trip, days and times and, where there is one, a button to the entry. The **i** button beside the switches explains every pin, dot and line. The layers work the same on a phone and on a shared journey.
 
-The thin dashed line connecting entries in date order is something else and stays as it is: that one is drawn by TREK, while a track is a route.
+The thin dashed line connecting entries in date order is something else and stays as it is: that one is drawn by YOUYA, while a track is a route.
 
 ### Keeping a recorded day
 
@@ -127,13 +127,13 @@ With a [Dawarich](Dawarich) connection, a journey can keep the route you actuall
 
 1. In the timeline, the header of each day carries the Dawarich mark. Click it (on a phone: **More options**, then **Recording of** the day of the card you are on).
 2. The dialog names the journey and the day and reads that day from your Dawarich. Nothing is kept yet.
-3. **Time zone of the day** decides where the day starts and ends. TREK starts with the zone Dawarich records in when its answer shows one, else the zone of your device; pick the one you were travelling in.
+3. **Time zone of the day** decides where the day starts and ends. YOUYA starts with the zone Dawarich records in when its answer shows one, else the zone of your device; pick the one you were travelling in.
 4. Check what the day covers: a sketch of the route, the distance, the first and last time, the pieces and the gaps in the recording, the modes Dawarich gave them, and whether it came as tracks or as thinned points.
 5. **Keep route** keeps it. The day header then shows the distance, and the route appears on the journey map in the colour of that day's pins.
 
 What you should know:
 
-- **Gaps stay gaps.** Where the recording stops, the line stops too; TREK never draws a way between two pieces that was not recorded.
+- **Gaps stay gaps.** Where the recording stops, the line stops too; YOUYA never draws a way between two pieces that was not recorded.
 - **Taking the same day over again keeps no second copy.** When Dawarich now holds a different version (a day that was still running, a recording that was fixed), the dialog says so and **Replace** swaps it. Replacing never touches entries or texts.
 - **What you keep is what you saw.** If the recording changes in Dawarich while the dialog is open, nothing is kept and the dialog shows the new version first.
 - **A failed read changes nothing.** The version the journey keeps stays as it is, and the dialog offers **Try again**.
@@ -176,11 +176,11 @@ While you travel, the stays of each day can be ready for review without you star
 
 ![Journey detail page for "Tokyo, Hakone and Kyoto in November" with its cover header, its state and the day, place, entry and photo counts; on the left the day-by-day timeline with Add Entry, an entry with its photos, story, mood and weather, and the Jump to a day pill at the foot; on the right the map with its layer switches Plan, Recorded, Entries and Photos](assets/JourneyDetail.png)
 
-## TREK Studio
+## YOUYA Studio
 
 A journey can also be laid out as a printable photo book. Open a journey and click **Studio** in the header. The designer opens on top of the journey at `/journey/:id/studio`, so the journey stays open underneath and **Back to the journey** drops you straight back into it.
 
-![The TREK Studio editor with the pages rail on the left, a spread on the workbench and the properties inspector on the right](assets/TREK-Studio-Editor.png)
+![The YOUYA Studio editor with the pages rail on the left, a spread on the workbench and the properties inspector on the right](assets/TREK-Studio-Editor.png)
 
 - **Page format** — Square 21 × 21 cm (the default), Square 30 × 30 cm, A4 landscape, A4 portrait, A5 landscape, or a custom width × height in millimetres. Everything is drawn as a spread (two pages side by side) with 3 mm bleed and a 5 mm safe margin.
 - **The shape of the book** follows a bound one: a cover, a single first page on the right (page 1, where a title page or a dedication goes), the spreads, a single last page on the left, and a back cover. The first and last pages take the cover layouts and, like the covers, stay where they are; new spreads always go between them. Page numbers, when switched on, count from the first page, and the number on screen is the number that prints. Books made before this had no single pages and keep their numbering as it was.
@@ -194,7 +194,7 @@ A journey can also be laid out as a printable photo book. Open a journey and cli
 - **Spreads travel between books.** Download the spread you are on as a design file and import it into another book. The file carries the design only, not the photographs.
 - **Several people can design at once.** Everyone in the same book sees the others' pointers with their names on them, and a save is pushed to the rest live. A save that lands on a version somebody else has already changed comes back as a conflict, with the other version alongside it, rather than quietly overwriting their work.
 
-![Frame styles and frame shapes in TREK Studio, with a photo's crop, look and frame options in the inspector](assets/TREK-Studio-Frames.png)
+![Frame styles and frame shapes in YOUYA Studio, with a photo's crop, look and frame options in the inspector](assets/TREK-Studio-Frames.png)
 
 The book belongs to its journey and inherits its access exactly: anyone who may read the journey may open its book, and only those who may edit the journey may save or delete it. There is no second set of permissions to keep in step.
 
@@ -202,13 +202,13 @@ Studio is desktop only: it needs a viewport at least 1024 px wide. Below that �
 
 ## Plugin entry rows
 
-Installed plugins can add extra rows to a journal entry card via the `journalEntryProvider` hook. A plugin returns rows (`label`, optional `value`, optional `url`) and TREK renders them natively under the entry — no iframe. Rows are additive and fail-safe: they require the Journey addon, the entry's journey is access-checked the same way as reading it, only http/https/mailto links are allowed, and a provider that errors or is slow is simply skipped.
+Installed plugins can add extra rows to a journal entry card via the `journalEntryProvider` hook. A plugin returns rows (`label`, optional `value`, optional `url`) and YOUYA renders them natively under the entry — no iframe. Rows are additive and fail-safe: they require the Journey addon, the entry's journey is access-checked the same way as reading it, only http/https/mailto links are allowed, and a provider that errors or is slow is simply skipped.
 
 > **Plugins:** requires the `hook:journal-entry-provider` permission. See [Plugin-Development](Plugin-Development) for the hook contract.
 
 ## Public sharing
 
-You can share a journey with a read-only public link. When creating the link you can independently toggle which sections are visible to visitors: **Timeline** (entries and stories), **Gallery** (photos), and **Map**. Visitors can only see the sections you have enabled, and no TREK account is required. Entries marked as **Draft** are left out of the shared journey until you publish them. See [Public-Share-Links](Public-Share-Links) for details on the separate journey share token mechanism.
+You can share a journey with a read-only public link. When creating the link you can independently toggle which sections are visible to visitors: **Timeline** (entries and stories), **Gallery** (photos), and **Map**. Visitors can only see the sections you have enabled, and no YOUYA account is required. Entries marked as **Draft** are left out of the shared journey until you publish them. See [Public-Share-Links](Public-Share-Links) for details on the separate journey share token mechanism.
 
 **Photos appear on the public map too**, as long as **Gallery** and **Map** are both on. A gallery photo that knows where it was taken becomes a thumbnail pin, clustered into one pin where several were taken close together, and sitting below the entry pins so the itinerary stays the point of the map. The location comes from the file's own EXIF for uploads and from Immich or Synology for provider photos, and a photo that carries none simply stays off the map (see the HEIC note above — that conversion drops GPS, so iPhone uploads usually arrive without a location).
 
@@ -221,5 +221,5 @@ Both toggles matter. A photo's coordinates follow the **Map** switch: with Map o
 - [Addons-Overview](Addons-Overview)
 - [Admin-Addons](Admin-Addons)
 - [Public-Share-Links](Public-Share-Links)
-- [TREK-Studio](TREK-Studio)
+- [YOUYA-Studio](TREK-Studio)
 - [Trip-Settings](Trip-Settings)

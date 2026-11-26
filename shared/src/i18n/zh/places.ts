@@ -186,7 +186,7 @@ const places: TranslationStrings = {
   'places.imageUploadError': '无法上传图片',
   'places.refresh.pill': '新的地点信息',
   'places.refresh.title': '更新地点信息',
-  'places.refresh.intro': 'TREK 知道这个地点更新的信息。选择要采用的内容，其余保持不变。之后保存地点。',
+  'places.refresh.intro': '游芽知道这个地点更新的信息。选择要采用的内容，其余保持不变。之后保存地点。',
   'places.refresh.apply': '采用',
   'places.refresh.replaces': '替换当前保存的值',
   'places.refresh.empty': '空',

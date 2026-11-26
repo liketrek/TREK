@@ -19,11 +19,11 @@
 - [[Passkeys]]
 - [[Password Reset|Password-Reset]]
 
-## Using TREK
+## Using YOUYA
 - [[My Trips Dashboard|My-Trips-Dashboard]]
 - [[Dashboard Widgets|Dashboard-Widgets]]
 - [[Notifications Inbox|Notifications-Inbox]]
-- [[TREK on a Phone|Mobile-App]]
+- [[YOUYA on a Phone|Mobile-App]]
 - [[Native Apps|Native-Apps]]
 - [[Offline Mode and PWA|Offline-Mode-and-PWA]]
 - [[Languages]]
@@ -78,7 +78,7 @@
 
 ## Journey and Studio
 - [[Journey Journal|Journey-Journal]]
-- [[TREK Studio|TREK-Studio]]
+- [[YOUYA Studio|YOUYA-Studio]]
 - [[Photo Providers|Photo-Providers]]
 
 ## Addons
@@ -101,7 +101,7 @@
 ## Integrations
 - [[Dawarich]]
 - [[Public API|Public-API]]
-- [[TREK Places API|TREK-Places-API]]
+- [[YOUYA Places API|YOUYA-Places-API]]
 
 ## Plugins
 - [[Plugins Overview|Plugins]]

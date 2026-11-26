@@ -1,6 +1,6 @@
 # Costs (Budget Tracking)
 
-Record what the trip costs, who put the money down and who it is shared with, and let TREK work out who owes whom at the end.
+Record what the trip costs, who put the money down and who it is shared with, and let YOUYA work out who owes whom at the end.
 
 > **Renamed to Costs (v3.3.0, #1464):** the feature is called **Costs** everywhere in the UI: the planner tab reads **Costs**, and so does its entry in Admin → Addons. Its internal addon id is still `budget`, which is why the permission is `budget_edit` and the MCP scopes are `budget:read` and `budget:write`.
 
@@ -62,7 +62,7 @@ An expense row shows:
 - the **note** as a pill; click it to read the whole note, click again to fold it,
 - the **total**, and under it a green **you lent** or red **you borrowed** chip when the split leaves you up or down on it.
 
-Beside the row, members who may edit costs find a pencil that opens the expense and a bin that deletes it. TREK asks first (*Delete expense?*, with *"{name}" will be permanently deleted.*), on the desktop and on the phone. When the expense has receipts, the question adds *Its receipt files stay in Files.* A payment row has a pencil and **Undo** instead.
+Beside the row, members who may edit costs find a pencil that opens the expense and a bin that deletes it. YOUYA asks first (*Delete expense?*, with *"{name}" will be permanently deleted.*), on the desktop and on the phone. When the expense has receipts, the question adds *Its receipt files stay in Files.* A payment row has a pencil and **Undo** instead.
 
 The filters work together: pick a day and a banner above the list names the day in full, with the number of expenses and their total. Payments carry no name or category, so a search or a category filter hides them; **I'm owed** hides them too, and **Paid by me** keeps only the transfers you are part of.
 
@@ -120,7 +120,7 @@ The bin beside a receipt (**Remove receipt**) only unlinks the file from the exp
 With the [AI Parsing](AI-Booking-Import) addon on and a model that reads images (see *Model reads images* there), **Scan receipt** sits beside **Add expense**, and on a phone the Costs header carries a scan icon. It is offered to whoever may add expenses. The model that reads the receipt can be the AI connection shared with the AI assistant; whether it reads images is the AI Parsing addon's own *Model reads images* setting. See [AI-Booking-Import](AI-Booking-Import#which-connection-reads-your-files).
 
 1. Click **Scan receipt**. The **Scan a receipt** dialog takes one photo of the receipt (JPG, PNG or WEBP, up to 10 MB; a photo over 40 megapixels or a WEBP over 3.5 MB is refused): drop it on the box, or click the box to pick one or, on a phone, take one. Then click **Scan**.
-2. The dialog closes and the model reads the photo in the background: the **background tasks** widget shows *Reading the receipt…*, and you can keep using TREK meanwhile. On a local model running on CPU this takes from a few seconds to a couple of minutes.
+2. The dialog closes and the model reads the photo in the background: the **background tasks** widget shows *Reading the receipt…*, and you can keep using YOUYA meanwhile. On a local model running on CPU this takes from a few seconds to a couple of minutes.
 3. When it is done, **Review expense** opens the expense dialog filled in with what was read: the merchant as the name, the total, the currency and the day. The split stays **Equally**; switch it to **Ticket** and the receipt's lines are already listed, each shared by everyone. Discount and free lines are left out, since a Ticket line needs a price. If you may upload files (`file_upload`), the photo is already under **Receipts & Invoices**, uploaded when you save like any receipt you attach yourself. Without that permission the dialog opens filled in all the same, just without the photo.
 4. Check everything, pick the category, who paid and the split, and save. Nothing is stored before that.
 
@@ -142,7 +142,7 @@ An expense with no payer is flagged **Unfinished** on its row and counted into t
 **Split** decides who owes for the expense. The switch beside the heading has three modes, and a line under it says what the current one does. Every member is listed with a box to tick; an unticked member owes nothing.
 
 - **Equally**: everyone ticked pays the same share, shown beside each name, with the head count and *{amount} per person* under the list. Remainder cents from rounding are handed out deterministically and rotated by the expense, so over a trip nobody is always the one who pays the extra cent.
-- **Custom**: type each person's share. Together they have to make the total: under the list, a green *Split matches total* or a red *Sum of splits: … (under by …)* / *(over by …)* says where you stand, and the dialog will not save until it matches. A small switch next to the hint (**Enter shares as**) picks between the currency symbol, **%** and **Shares**. In percent, each person gets a percentage instead, they have to add up to 100 % (a red *… % of 100 % assigned* says when they do not), and TREK turns them into amounts that add up to the total exactly. With **Shares**, each person gets a number of shares, such as the nights they stayed: everyone starts at one, and an apartment of 390 € for five nights against four comes to 216,67 € and 173,33 €. A person on zero shares owes nothing, and with nobody on a share the dialog says *Give at least one person a share*. What is saved is the amounts, so the expense reopens with them. The phone sheet has the same switch under the split modes.
+- **Custom**: type each person's share. Together they have to make the total: under the list, a green *Split matches total* or a red *Sum of splits: … (under by …)* / *(over by …)* says where you stand, and the dialog will not save until it matches. A small switch next to the hint (**Enter shares as**) picks between the currency symbol, **%** and **Shares**. In percent, each person gets a percentage instead, they have to add up to 100 % (a red *… % of 100 % assigned* says when they do not), and YOUYA turns them into amounts that add up to the total exactly. With **Shares**, each person gets a number of shares, such as the nights they stayed: everyone starts at one, and an apartment of 390 € for five nights against four comes to 216,67 € and 173,33 €. A person on zero shares owes nothing, and with nobody on a share the dialog says *Give at least one person a share*. What is saved is the amounts, so the expense reopens with them. The phone sheet has the same switch under the split modes.
 - **Ticket**: list what was on the receipt. Each line has an **Item name**, a price and, under *Splitting:*, a chip per member to tick who had it. **Add item** adds a line, the bin removes one. The total is summed from the lines, **Individual shares** shows what each person comes to, cent-exact, and the lines are kept, so the list is still there the next time you open the expense.
 
 ## Settlement calculator
@@ -156,7 +156,7 @@ Costs works out the smallest number of transfers that settles every debt (a gree
 
 The final budget comes to each member's share of the paid expenses (exact in the trip's own currency; in another display currency, rounding can leave a single figure a cent off while the column still adds up), so recording a payment moves an amount from *pending* to *net reimbursements* without changing it. An expense nobody has paid yet stays out of it, as it stays out of the balances.
 
-**Settle up** in the bar at the top of the tab records every open transfer at once, without asking. **Add payment** in the head of the Settle up card records a single transfer by hand, for a repayment that did not follow a suggested one. Recorded payments then appear in the ledger as their own rows, with the pencil and **Undo** beside them. Offline, a payment is saved in the queue (*You are offline. The payment is saved and shows up once TREK is back online.*) and sent when TREK is back online.
+**Settle up** in the bar at the top of the tab records every open transfer at once, without asking. **Add payment** in the head of the Settle up card records a single transfer by hand, for a repayment that did not follow a suggested one. Recorded payments then appear in the ledger as their own rows, with the pencil and **Undo** beside them. Offline, a payment is saved in the queue (*You are offline. The payment is saved and shows up once YOUYA is back online.*) and sent when YOUYA is back online.
 
 ![The Add payment dialog with From and To, the amount, its currency and the day](assets/CostsSettleUp.png)
 
@@ -188,7 +188,7 @@ Amounts follow each currency's own decimals and format. Currencies without decim
 
 ## Offline
 
-Expenses and payments you save while offline wait in a queue and sync when TREK is back online. Receipts are the exception, see [Receipts and invoices](#receipts-and-invoices).
+Expenses and payments you save while offline wait in a queue and sync when YOUYA is back online. Receipts are the exception, see [Receipts and invoices](#receipts-and-invoices).
 
 ## AI assistant
 
@@ -213,7 +213,7 @@ With Costs on, the cost pills on the days of the plan and **Total Cost** at its 
 
 ## Table view
 
-The table is a second way to read and plan the same expenses, close to the categorized budget sheet TREK had before Costs was rebuilt. Switch to it with the **Table** icon in the bar; **List** brings the ledger back. Search and filters apply to the table as well.
+The table is a second way to read and plan the same expenses, close to the categorized budget sheet YOUYA had before Costs was rebuilt. Switch to it with the **Table** icon in the bar; **List** brings the ledger back. Search and filters apply to the table as well.
 
 ![The table view: expenses grouped by category with Name, Date, Total, Persons and Days, the per person and per day columns on grey, Food & drink folded, a lock beside each total, and the Settle up, Balances and Final budget cards on the right](assets/CostsTable.png)
 

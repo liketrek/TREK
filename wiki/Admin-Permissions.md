@@ -6,7 +6,7 @@ The **Permission Settings** card, at the bottom of the **Users** tab, controls w
 
 ## Role model
 
-TREK uses four permission levels, ordered from most to least privileged. The dropdowns show them by the label in brackets:
+YOUYA uses four permission levels, ordered from most to least privileged. The dropdowns show them by the label in brackets:
 
 | Level | Label | Who it includes |
 |-------|-------|----------------|

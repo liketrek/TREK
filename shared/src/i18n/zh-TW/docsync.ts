@@ -13,16 +13,16 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': '新資料夾名稱',
   'docsync.syncNow': '立即同步',
   'docsync.unlink': '中斷連線',
-  'docsync.confirmUnlink': '文件會留在 TREK，也會留在儲存庫，只有兩者之間的配對會解除。',
+  'docsync.confirmUnlink': '文件會留在游芽，也會留在儲存庫，只有兩者之間的配對會解除。',
   'docsync.syncEnabled': '自動同步',
   'docsync.deletePolicy': '當文件被刪除時',
   'docsync.deleteUnlink': '兩份都保留',
   'docsync.deleteTrash': '移到回收桶',
   'docsync.conflictPolicy': '當兩邊都有變更時',
   'docsync.onConflict.manual': '詢問我',
-  'docsync.onConflict.trek_wins': '保留 TREK 的副本',
+  'docsync.onConflict.trek_wins': '保留游芽的副本',
   'docsync.onConflict.provider_wins': '保留儲存端的副本',
-  'docsync.webhookHint': '把這個 URL 貼到你的提供者，變更就會立刻送達。沒有它，TREK 只會定時檢查。',
+  'docsync.webhookHint': '把這個 URL 貼到你的提供者，變更就會立刻送達。沒有它，游芽只會定時檢查。',
 
   // 連線表單欄位。這些鍵對應 document_provider_fields 的 `label` 欄，
   // 該欄存的是鍵名後綴，而不是文字。
@@ -44,7 +44,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudLogin': '你的 Nextcloud 登入名稱，不是電子郵件地址。',
   'docsync.hintNextcloudAppPassword': '「設定 → 安全性 → 建立新的應用程式密碼」。絕對不要用你的帳戶密碼。',
   'docsync.hintOpenCloudToken': '在 OpenCloud 的應用程式權杖中建立。',
-  'docsync.hintBasePath': 'TREK 會在這裡尋找旅行資料夾。預設為 /TREK。',
+  'docsync.hintBasePath': '游芽會在這裡尋找旅行資料夾。預設為 /TREK。',
   'docsync.hintSynologyUrl': '請包含連接埠，例如 https://nas.example.com:5001',
   'docsync.hintSynologyUser': '最好使用一個專用的 DSM 帳戶，只能存取這個共用資料夾。',
   'docsync.hintSynologyOtp': '只有在該帳戶啟用雙因素驗證時才需要，而且只需一次。',
@@ -64,13 +64,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': '檔案過大',
   'docsync.state.error': '錯誤',
   'docsync.state.remote_missing': '提供者上找不到',
-  'docsync.state.local_deleted': '已在 TREK 中刪除',
+  'docsync.state.local_deleted': '已在游芽中刪除',
   'docsync.state.scope_drift': '已移出資料夾',
 
   'docsync.conflict.resolve': '處理 {count} 個',
 
   'docsync.conflict.title': '兩份都有變更',
-  'docsync.conflict.keepTrek': '保留 TREK 版本',
+  'docsync.conflict.keepTrek': '保留游芽版本',
   'docsync.conflict.keepProvider': '保留提供者版本',
   'docsync.conflict.keepBoth': '兩份都保留',
 
@@ -82,7 +82,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': '這個帳戶沒有執行此操作的權限。',
   'docsync.error.not_found': '在提供者上找不到。',
   'docsync.error.scope_missing': '已連接的資料夾不存在了。',
-  'docsync.error.rate_limited': '提供者正在限制我們的請求速率。TREK 稍後會再試。',
+  'docsync.error.rate_limited': '提供者正在限制我們的請求速率。游芽稍後會再試。',
   'docsync.error.too_large': '這個檔案超過提供者接受的大小。',
   'docsync.error.unsupported_type': '提供者不接受這種檔案類型。',
   'docsync.error.quota_exceeded': '提供者的空間已用盡。',
@@ -101,8 +101,8 @@ const docsync: TranslationStrings = {
   'docsync.card.pickFolder': '已連線，請選擇資料夾',
 
   'docsync.empty.title': '尚未連接任何項目',
-  'docsync.empty.hintOwner': '請在左邊挑一個儲存庫。TREK 會自己留一份副本，就算那邊消失了也不會遺失任何東西。',
-  'docsync.empty.hintMember': '這由旅行的擁有者設定。無論如何，文件都會留在 TREK。',
+  'docsync.empty.hintOwner': '請在左邊挑一個儲存庫。游芽會自己留一份副本，就算那邊消失了也不會遺失任何東西。',
+  'docsync.empty.hintMember': '這由旅行的擁有者設定。無論如何，文件都會留在游芽。',
 
   // 各產品的歸檔方式。在任何人連線之前就會顯示，
   // 因為下一個畫面正是要問這些。
@@ -113,7 +113,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': '歸檔在 NAS 的資料夾中',
 
   // ── 流向列 ─────────────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': '游芽',
   'docsync.flow.toProvider': '送往儲存庫',
   'docsync.flow.toTrek': '來自儲存庫',
   'docsync.flow.documents': '份文件',
@@ -142,15 +142,15 @@ const docsync: TranslationStrings = {
   'docsync.connect.testing': '正在嘗試連線',
   'docsync.connect.okAs': '已連上，登入身分為 {account}',
   'docsync.connect.insecureHint': '適用於你自己網路上、使用自簽憑證的執行個體。',
-  'docsync.connect.about.paperless': 'TREK 會把這趟旅行歸在自己的標籤下，不會動到你封存的其他內容。',
-  'docsync.connect.about.papra': '選擇這趟旅行所屬的組織。TREK 會在其中以自己的標籤歸檔。',
+  'docsync.connect.about.paperless': '游芽會把這趟旅行歸在自己的標籤下，不會動到你封存的其他內容。',
+  'docsync.connect.about.papra': '選擇這趟旅行所屬的組織。游芽會在其中以自己的標籤歸檔。',
   'docsync.connect.about.nextcloud': '請用應用程式密碼，不要用帳戶密碼：它不受雙因素驗證影響，也可以單獨撤銷。',
-  'docsync.connect.about.opencloud': 'TREK 會為這趟旅行取得專屬的空間，與其他內容分開。',
+  'docsync.connect.about.opencloud': '游芽會為這趟旅行取得專屬的空間，與其他內容分開。',
   'docsync.connect.about.synologydrive': '最好使用只能存取這趟旅行所用共用資料夾的 DSM 帳戶。',
 
   // ── 挑選容器 ───────────────────────────────────────────────────────────────
   'docsync.scope.title': '這趟旅行要放在 {provider} 的哪裡？',
-  'docsync.scope.intro': '只有放在這裡面的內容會同步。儲存庫裡的其他東西都不會進入 TREK。',
+  'docsync.scope.intro': '只有放在這裡面的內容會同步。儲存庫裡的其他東西都不會進入游芽。',
   'docsync.scope.createTitle': '建立新的',
   'docsync.scope.createAction': '建立',
   'docsync.scope.pickTitle': '或使用你已經有的',
@@ -160,7 +160,7 @@ const docsync: TranslationStrings = {
   // ── 需要人來決定的事 ───────────────────────────────────────────────────────
   'docsync.issues.title': '需要查看',
   'docsync.issues.conflict': '兩邊都有變更。請選擇要保留哪一份。',
-  'docsync.issues.remote_missing': '已從儲存庫消失。TREK 的副本還在。',
+  'docsync.issues.remote_missing': '已從儲存庫消失。游芽的副本還在。',
   'docsync.issues.rejected_type': '這裡不允許這種檔案類型。',
   'docsync.issues.too_large': '超過大小限制。',
   'docsync.issues.error': '傳輸沒有完成。',
@@ -169,11 +169,11 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled': '已暫停：管理員已停用此提供者。重新啟用後會繼續同步。',
   'docsync.binding.reconnect': '重新連線',
   'docsync.connection.title': '連線',
-  'docsync.connection.hint': 'TREK 用於此儲存空間的位址與登入資訊。',
+  'docsync.connection.hint': '游芽用於此儲存空間的位址與登入資訊。',
   'docsync.connection.edit': '編輯連線',
   'docsync.connection.remove': '移除連線',
   'docsync.connection.confirmRemove':
-    'TREK 會忘記此儲存空間的位址與登入資訊，此行程經由它的所有同步都會停止。文件仍保留在 TREK 與儲存空間中。',
+    '游芽會忘記此儲存空間的位址與登入資訊，此行程經由它的所有同步都會停止。文件仍保留在游芽與儲存空間中。',
 };
 
 export default docsync;

@@ -114,7 +114,7 @@ describe('HelpPage', () => {
     render(<HelpPage />)
 
     expect(screen.getByText("Couldn't load this page")).toBeInTheDocument()
-    expect(screen.getByText(/fetched from the TREK wiki/)).toBeInTheDocument()
+    expect(screen.getByText(/fetched from the YOUYA wiki/)).toBeInTheDocument()
     expect(screen.queryByRole('heading', { name: 'Stale' })).toBeNull()
   })
 

@@ -83,8 +83,7 @@ const system_notice: TranslationStrings = {
     'Minden funkció, minden frissítés, mindenkinek. Nincsenek fizetős csomagok, nincsenek előfizetések, nincs átverés.',
   'system_notice.release_notes.note_body_after':
     'Aztán megjöttetek ti, hamarosan ezrével: csillagokkal, hibajelentésekkel, olyan nyelvekre készült fordításokkal, amelyeket nem beszélek, és olyan emberek pull requestjeivel, akiket sosem ismertem. Még mindig minden reggel először a repót nézem meg, és még mindig nem tűnik teljesen valóságosnak.',
-  'system_notice.release_notes.note_closing':
-    'Köszönöm, hogy itt vagy. Maurice',
+  'system_notice.release_notes.note_closing': 'Köszönöm, hogy itt vagy. Maurice',
   'system_notice.release_notes.support_label': 'Általad válik lehetővé',
   'system_notice.release_notes.support_lead': 'A TREK csak az adományoknak köszönhetően létezik.',
   'system_notice.release_notes.support_text':

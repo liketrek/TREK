@@ -35,7 +35,7 @@ const trip: TranslationStrings = {
   'trip.confirm.deletePlaces': '删除 {count} 个地点？',
   'trip.toast.placesDeleted': '已删除 {count} 个地点',
   'trip.invite.linkTitle': '行程邀请链接',
-  'trip.invite.linkHint': '任何拥有 TREK 账户的人打开此链接都会以成员身份加入行程。重新生成可使旧链接失效。',
+  'trip.invite.linkHint': '任何拥有游芽账户的人打开此链接都会以成员身份加入行程。重新生成可使旧链接失效。',
   'trip.invite.create': '创建邀请链接',
   'trip.invite.regenerate': '重新生成',
   'trip.invite.disable': '停用',

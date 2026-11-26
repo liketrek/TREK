@@ -19,12 +19,12 @@ const wanderer: TranslationStrings = {
   'wanderer.saved': '已保存 wanderer 连接',
   'wanderer.disconnected': '已移除 wanderer 连接',
   'wanderer.loadFailed': '无法加载 wanderer 连接',
-  'wanderer.privateIp': '此地址位于私有网络中。如果 TREK 无法访问，需要管理员允许内部网络。',
+  'wanderer.privateIp': '此地址位于私有网络中。如果游芽无法访问，需要管理员允许内部网络。',
   'wanderer.error.disabled': '管理员尚未为游览启用 wanderer。',
   'wanderer.error.not_connected': '尚未连接 wanderer。',
   'wanderer.error.invalid_url': '该地址不是有效的 wanderer URL。',
   'wanderer.error.blocked_address':
-    'TREK 不能访问该地址。对于你自己网络中的实例，管理员需要设置 ALLOW_INTERNAL_NETWORK=true。',
+    '游芽不能访问该地址。对于你自己网络中的实例，管理员需要设置 ALLOW_INTERNAL_NETWORK=true。',
   'wanderer.error.unreachable': '无法访问 wanderer。请检查地址以及实例是否正在运行。',
   'wanderer.error.tls': '无法验证该实例的证书。如果是自签名证书，请在下方允许。',
   'wanderer.error.unauthorized': 'wanderer 未接受该 API 令牌。它可能已被撤销或已过期。',
@@ -33,7 +33,7 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': '只能导入你自己的 wanderer 步道。',
   'wanderer.error.invalid_response': '该响应并非来自 wanderer。请检查地址是否指向 wanderer 本身。',
   'wanderer.error.no_author':
-    'wanderer 已响应，但没有为此 API 令牌所属的账户给出任何步道作者，因此 TREK 无法判断哪些步道是你的。',
+    'wanderer 已响应，但没有为此 API 令牌所属的账户给出任何步道作者，因此游芽无法判断哪些步道是你的。',
   'wanderer.error.too_large': '步道文件超过 10 MB。',
   'wanderer.error.server_error': 'wanderer 返回了错误。请稍后再试。',
   'wanderer.error.offline': '你处于离线状态。只能在联网时搜索 wanderer。',

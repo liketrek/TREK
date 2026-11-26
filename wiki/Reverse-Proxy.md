@@ -1,8 +1,8 @@
 # Reverse Proxy
 
-Putting TREK behind a TLS-terminating reverse proxy is strongly recommended for production.
+Putting YOUYA behind a TLS-terminating reverse proxy is strongly recommended for production.
 
-## Why HTTPS Matters for TREK
+## Why HTTPS Matters for YOUYA
 
 - **PWA install** requires HTTPS; browsers block "Add to Home Screen" on plain HTTP.
 - **Session cookies**: the `trek_session` cookie is marked `secure` in production, so it won't be sent over HTTP.
@@ -13,7 +13,7 @@ Putting TREK behind a TLS-terminating reverse proxy is strongly recommended for 
 
 Whatever proxy you use, it must satisfy three constraints:
 
-1. **WebSocket upgrades on `/ws`**: TREK uses WebSockets for real-time sync. Set `proxy_read_timeout 86400` (Nginx) or rely on Caddy's automatic upgrade handling.
+1. **WebSocket upgrades on `/ws`**: YOUYA uses WebSockets for real-time sync. Set `proxy_read_timeout 86400` (Nginx) or rely on Caddy's automatic upgrade handling.
 2. **Body size ≥ 500 MB**: backup restore ZIPs can include the full uploads directory. Set `client_max_body_size 500m` (Nginx); Caddy imposes no request-body limit of its own, so it already passes them; just keep any `request_body { max_size … }` block you have at `500mb` or more.
 3. **Pass the `Mcp-Session-Id` header through on `/mcp`**: if you use MCP. See below.
 
@@ -67,7 +67,7 @@ server {
 Key lines:
 - `proxy_read_timeout 86400`: keeps WebSocket connections alive (86400 s = 24 h).
 - `client_max_body_size 500m`: allows large backup restore uploads and video uploads; set in both locations. If you raise `FILE_UPLOAD_LIMIT_MB` or `BACKUP_UPLOAD_LIMIT_MB` above 500, raise this as well.
-- `X-Forwarded-Proto $scheme`: tells TREK whether the original request was HTTPS; required for `FORCE_HTTPS` redirect and cookie security to work correctly.
+- `X-Forwarded-Proto $scheme`: tells YOUYA whether the original request was HTTPS; required for `FORCE_HTTPS` redirect and cookie security to work correctly.
 
 ## Caddy
 
@@ -105,10 +105,10 @@ the client (check that your reverse proxy forwards it).
 Nginx and Caddy both forward custom headers in both directions by default, so **the standard configs above already work**. You only need to act if you have deliberately restricted headers:
 
 - Don't list `/mcp` under a `proxy_hide_header` directive, and don't run it through a response-header allowlist that omits `Mcp-Session-Id`.
-- If your proxy rewrites or lowercases headers, that's fine, HTTP header names are case-insensitive and both TREK and MCP clients treat them as such.
-- The browser-facing `Access-Control-Expose-Headers: Mcp-Session-Id` response header is what permits browser-based clients (Claude.ai, Claude Desktop connectors, MCP Inspector) to *read* the session id at all. TREK sends it automatically, don't strip or overwrite it in the proxy.
+- If your proxy rewrites or lowercases headers, that's fine, HTTP header names are case-insensitive and both YOUYA and MCP clients treat them as such.
+- The browser-facing `Access-Control-Expose-Headers: Mcp-Session-Id` response header is what permits browser-based clients (Claude.ai, Claude Desktop connectors, MCP Inspector) to *read* the session id at all. YOUYA sends it automatically, don't strip or overwrite it in the proxy.
 
-TREK 3.3.0 and earlier did not send `Access-Control-Expose-Headers` at all, which caused exactly the symptom above regardless of proxy configuration. If you are on an older version and see a new session per tool call, upgrade; no proxy change will fix it.
+YOUYA 3.3.0 and earlier did not send `Access-Control-Expose-Headers` at all, which caused exactly the symptom above regardless of proxy configuration. If you are on an older version and see a new session per tool call, upgrade; no proxy change will fix it.
 
 ### Streaming responses
 
@@ -126,11 +126,11 @@ location /mcp {
 }
 ```
 
-TREK sends an SSE keep-alive comment every 25 seconds (`MCP_SSE_KEEPALIVE`) precisely so proxies with a short idle timeout (nginx defaults to 60 s) don't drop an idle stream between tool calls. Lower the interval if your proxy's timeout is tighter than that.
+YOUYA sends an SSE keep-alive comment every 25 seconds (`MCP_SSE_KEEPALIVE`) precisely so proxies with a short idle timeout (nginx defaults to 60 s) don't drop an idle stream between tool calls. Lower the interval if your proxy's timeout is tighter than that.
 
-## Paths that must reach TREK
+## Paths that must reach YOUYA
 
-The standard configs above send everything (`location /`) to TREK, which is the simplest and safest setup. If you restrict the proxy to specific paths instead, these must all reach TREK:
+The standard configs above send everything (`location /`) to YOUYA, which is the simplest and safest setup. If you restrict the proxy to specific paths instead, these must all reach YOUYA:
 
 | Path | Used for |
 |---|---|
@@ -143,7 +143,7 @@ The standard configs above send everything (`location /`) to TREK, which is the 
 
 ## HTTPS Environment Variables
 
-Five variables control how TREK behaves behind a proxy. They work as a group:
+Five variables control how YOUYA behaves behind a proxy. They work as a group:
 
 | Variable | Purpose | Default |
 |---|---|---|
@@ -151,13 +151,13 @@ Five variables control how TREK behaves behind a proxy. They work as a group:
 | `HSTS_INCLUDE_SUBDOMAINS` | When `true`: adds the `includeSubDomains` directive to the HSTS header, extending HTTPS enforcement to all subdomains. Only effective while HSTS is active. Leave `false` if you run other services on sibling subdomains over plain HTTP. | `false` |
 | `TRUST_PROXY` | Number of trusted proxy hops. Lets Express read the real client IP from `X-Forwarded-For`. Automatically set to `1` in production even if not explicitly configured. | `1` (production), off (development) |
 | `COOKIE_SECURE` | Controls the `secure` flag on `trek_session`. Auto-derived as `true` when `NODE_ENV=production`, when `FORCE_HTTPS=true`, or when the request itself arrived over TLS, Express sets `req.secure` once your proxy sends `X-Forwarded-Proto: https` and `TRUST_PROXY` is configured. Set to `false` explicitly to allow cookies over plain HTTP (e.g. LAN testing without TLS). | auto |
-| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g. `https://trek.example.com`). The address TREK is opened under is always allowed, even when the list does not name it; a request from any other origin gets `403 Not allowed by CORS` and a `CORS: refused origin ...` line in the log. In production without this set, all cross-origin requests are blocked. In development without this set, all origins are allowed. | blocked in prod, open in dev |
+| `ALLOWED_ORIGINS` | Comma-separated list of allowed CORS origins (e.g. `https://trek.example.com`). The address YOUYA is opened under is always allowed, even when the list does not name it; a request from any other origin gets `403 Not allowed by CORS` and a `CORS: refused origin ...` line in the log. In production without this set, all cross-origin requests are blocked. In development without this set, all origins are allowed. | blocked in prod, open in dev |
 
 > **Note on HSTS:** The `max-age=31536000` header goes out whenever `FORCE_HTTPS=true` **or** `NODE_ENV=production`, and `NODE_ENV=production` is the default in the Docker image, the compose file and the Helm chart, so a standard install sends HSTS even with `FORCE_HTTPS` unset. Browsers ignore the header on a plain-HTTP response, so an instance you only ever reach over HTTP is unaffected. Once a browser has seen it over HTTPS, though, it refuses plain HTTP to that hostname for a year, so don't plan on falling back to `http://` for a hostname you have already served over HTTPS.
 
 > **Note on `FORCE_HTTPS` and proxy headers:** The HTTPS redirect reads `X-Forwarded-Proto` directly from the incoming headers; it does not depend on Express's `trust proxy` setting. If you set `FORCE_HTTPS=true` and your reverse proxy correctly sends `X-Forwarded-Proto: https`, the redirect will work regardless of `TRUST_PROXY`. However, you still need `TRUST_PROXY` set so Express resolves the correct client IP from `X-Forwarded-For`.
 
-If you access TREK directly on `http://<host>:3000` without a proxy, leave `FORCE_HTTPS` unset and do not set `TRUST_PROXY`.
+If you access YOUYA directly on `http://<host>:3000` without a proxy, leave `FORCE_HTTPS` unset and do not set `TRUST_PROXY`.
 
 See [Environment-Variables](Environment-Variables) for full documentation of these and all other variables.
 

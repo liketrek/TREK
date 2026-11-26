@@ -1,12 +1,12 @@
-# TREK on a Phone
+# YOUYA on a Phone
 
-TREK has a layout of its own for phones. It is the same app at the same address with the same data, drawn for one hand and a small screen: a floating bar at the bottom, sheets that slide up instead of dialogs, and a trip screen built around the day you are on. Install it to your home screen and it behaves like an app; see [Offline-Mode-and-PWA](Offline-Mode-and-PWA).
+YOUYA has a layout of its own for phones. It is the same app at the same address with the same data, drawn for one hand and a small screen: a floating bar at the bottom, sheets that slide up instead of dialogs, and a trip screen built around the day you are on. Install it to your home screen and it behaves like an app; see [Offline-Mode-and-PWA](Offline-Mode-and-PWA).
 
 ![Three phone screens side by side: the dashboard with the floating bottom bar, a trip in Travel mode with Up next, the day timeline and the trip dock, and the trip's More sheet with Files, Collab, Journal, Trip settings, Export and Edit Trip](assets/MobileApp.png)
 
 ## When the phone layout applies
 
-TREK switches to the phone layout when the window is narrower than 768 px, and also on a touch screen less than 500 px tall, so a phone turned on its side keeps the phone layout instead of jumping to the desktop planner. A tablet and a desktop window follow their width as usual. Turning the phone or resizing the window switches between the two layouts on the fly.
+YOUYA switches to the phone layout when the window is narrower than 768 px, and also on a touch screen less than 500 px tall, so a phone turned on its side keeps the phone layout instead of jumping to the desktop planner. A tablet and a desktop window follow their width as usual. Turning the phone or resizing the window switches between the two layouts on the fly.
 
 ## The bottom bar
 
@@ -39,7 +39,7 @@ A trip opens on its own screen with glass controls over the map, a row of day ch
 
 Swipe sideways to go from day to day, or tap a day chip. A button switches between the list and the map; the map and the list are the same in every mode.
 
-**The More sheet** of a trip starts with **Ask TREK** when the assistant is available, showing how many things in your plan are worth a check. Below come tiles for the sections that did not get a dock seat (such as Files, Collab and plugin tabs), then **Trip settings** ([Trip-Settings](Trip-Settings)), **Export** and, if you may edit the trip, **Edit Trip**.
+**The More sheet** of a trip starts with **Ask YOUYA** when the assistant is available, showing how many things in your plan are worth a check. Below come tiles for the sections that did not get a dock seat (such as Files, Collab and plugin tabs), then **Trip settings** ([Trip-Settings](Trip-Settings)), **Export** and, if you may edit the trip, **Edit Trip**.
 
 **Export** on a phone offers the trip as a **PDF**, **My plan as PDF**, the GPX tracks of the **Whole trip**, the **Places for Google My Maps** as KML, **Download .ics**, and **Subscribe to calendar**, which keeps your calendar app up to date. See [PDF-Export](PDF-Export) and [Calendar-Feeds](Calendar-Feeds).
 
@@ -59,7 +59,7 @@ Swipe sideways to go from day to day, or tap a day chip. A button switches betwe
 
 A few things need a bigger screen and are not offered on a phone:
 
-- [TREK Studio](TREK-Studio), the photo book designer, and making its PDF.
+- [YOUYA Studio](TREK-Studio), the photo book designer, and making its PDF.
 - Parts of the road trip planner: comparing route alternatives, making a day follow an imported track, and booking a night at a stop. The phone shows these as **Planned on desktop**.
 - The **Tours** tab, where tours are drawn and edited. Saved tours show on the phone under **Places**, ready to put on a day.
 - The **API Keys** section of **Settings → Integrations**.

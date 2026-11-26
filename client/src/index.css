@@ -720,8 +720,8 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --border-primary: #e5e7eb;
   --border-secondary: #f3f4f6;
   --border-faint: rgba(0,0,0,0.06);
-  --accent: #111827;
-  --accent-text: #ffffff;
+  --accent: #21443B;
+  --accent-text: #FFF5E9;
   --sidebar-bg: rgba(250,250,250,0.82);
   --sidebar-shadow: 0 4px 32px rgba(0,0,0,0.10), 0 0 0 1px rgba(0,0,0,0.06);
   --tooltip-bg: rgba(255,255,255,0.96);
@@ -735,8 +735,8 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
      defining them is visually inert. Colored schemes override --accent* via
      [data-scheme]; status/shadow/inverse stay scheme-independent. */
   --accent-on: var(--accent);       /* accent as text/icon/border on a surface */
-  --accent-hover: #1f2937;          /* hover state of an accent fill */
-  --accent-subtle: #f1f5f9;         /* faint accent-tinted surface (chips, selected) */
+  --accent-hover: #2C5A4E;          /* hover state of an accent fill */
+  --accent-subtle: #EAF6F0;         /* faint accent-tinted surface (chips, selected) */
 
   /* Strength of a dayTintProvider plugin's colour in each region of a day card.
      Per-theme because the tones are fixed hexes: the default tone #4F46E5 is itself a
@@ -840,8 +840,8 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
   --border-primary: #27272a;
   --border-secondary: #1c1c21;
   --border-faint: rgba(255,255,255,0.07);
-  --accent: #e4e4e7;
-  --accent-text: #09090b;
+  --accent: #72CDA7;
+  --accent-text: #102A22;
   --sidebar-bg: rgba(19,19,22,0.82);
   --sidebar-shadow: 0 4px 32px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
   --tooltip-bg: rgba(19,19,22,0.96);
@@ -851,8 +851,8 @@ input[type="number"], input[type="time"], input[type="date"], input[type="dateti
 
   /* Extended semantic tokens (dark) */
   --accent-on: var(--accent);
-  --accent-hover: #d4d4d8;
-  --accent-subtle: rgba(255, 255, 255, 0.08);
+  --accent-hover: #8BDCBB;
+  --accent-subtle: rgba(114, 205, 167, 0.18);
 
   --day-tint-badge: 24%;
   --day-tint-header: 13%;
@@ -1254,7 +1254,7 @@ body {
 }
 
 /* Brand images: no save/copy/drag */
-img[alt="TREK"] {
+img[alt="YOUYA"] {
   pointer-events: none;
   user-select: none;
   -webkit-user-select: none;

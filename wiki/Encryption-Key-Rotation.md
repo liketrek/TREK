@@ -2,7 +2,7 @@
 
 ## What the encryption key protects
 
-TREK encrypts sensitive settings at rest using AES-256-GCM. The following values are stored encrypted in the database:
+YOUYA encrypts sensitive settings at rest using AES-256-GCM. The following values are stored encrypted in the database:
 
 - Google Maps API key (instance-wide, in `app_settings`; the per-user column is still read as a fallback)
 - Unsplash access key (instance-wide, in `app_settings`; the per-user column is still read as a fallback)
@@ -22,7 +22,7 @@ TREK encrypts sensitive settings at rest using AES-256-GCM. The following values
 - OIDC client secret (global, in `app_settings`)
 - SMTP password (global, in `app_settings`)
 - Admin webhook URL and admin ntfy token (global, in `app_settings`)
-- Web Push VAPID private key, the one TREK generates and signs push messages with when the `VAPID_*` variables supply no key pair (global, in `app_settings`; see [Notifications](Notifications#server-keys))
+- Web Push VAPID private key, the one YOUYA generates and signs push messages with when the `VAPID_*` variables supply no key pair (global, in `app_settings`; see [Notifications](Notifications#server-keys))
 - MFA (TOTP) secrets for all users
 - Photo passphrases for Synology shared-link photos (in `trek_photos`)
 - Passphrases for shared trip album links (in `trip_album_links`)
@@ -33,18 +33,18 @@ The encryption derives a key from `ENCRYPTION_KEY` using SHA-256 (with a domain 
 
 ## Key resolution order
 
-On startup, TREK resolves the encryption key in this order:
+On startup, YOUYA resolves the encryption key in this order:
 
-1. **`ENCRYPTION_KEY` environment variable**: explicit, always takes priority. When set, the value is also written to `./data/.encryption_key` so it survives container restarts if the env var is later removed. If that file already holds a **different** key, TREK refuses to start: the stored secrets are encrypted with the file's key, and starting with another one would make them unreadable and overwrite the only copy of the old key. Set the variable back to the value in the file, remove it, or rotate the key with the script below.
+1. **`ENCRYPTION_KEY` environment variable**: explicit, always takes priority. When set, the value is also written to `./data/.encryption_key` so it survives container restarts if the env var is later removed. If that file already holds a **different** key, YOUYA refuses to start: the stored secrets are encrypted with the file's key, and starting with another one would make them unreadable and overwrite the only copy of the old key. Set the variable back to the value in the file, remove it, or rotate the key with the script below.
 2. **`./data/.encryption_key` file**: present on any install that has started at least once.
 3. **`./data/.jwt_secret` file**: one-time fallback for older installs that pre-date the dedicated encryption key. The value is immediately persisted to `./data/.encryption_key` so future JWT rotations cannot break decryption.
 4. **Auto-generated**: fresh install with none of the above. A random 32-byte hex key is generated and written to `./data/.encryption_key`.
 
 ## What happens if the key is lost
 
-All encrypted settings (API keys, SMTP password, OIDC secret, MFA secrets, notification tokens, the AI Assistant's provider key and ChatGPT sign-ins, Wanderer tokens, etc.) become unreadable, TREK cannot decrypt them. They must be re-entered manually after the key is restored or replaced. Unencrypted data (trips, places, users, etc.) is unaffected.
+All encrypted settings (API keys, SMTP password, OIDC secret, MFA secrets, notification tokens, the AI Assistant's provider key and ChatGPT sign-ins, Wanderer tokens, etc.) become unreadable, YOUYA cannot decrypt them. They must be re-entered manually after the key is restored or replaced. Unencrypted data (trips, places, users, etc.) is unaffected.
 
-The Web Push key pair cannot be re-entered, and TREK never replaces it on its own: unless the `VAPID_*` variables supply a pair, push stays off, with an error in the log, until TREK runs with the original key again, and then every device receives as before. To give it up instead, delete both `web_push_vapid_public_key` and `web_push_vapid_private_key` from `app_settings`. TREK then generates a new pair, and every device has to subscribe again (see [Environment-Variables](Environment-Variables#web-push)).
+The Web Push key pair cannot be re-entered, and YOUYA never replaces it on its own: unless the `VAPID_*` variables supply a pair, push stays off, with an error in the log, until YOUYA runs with the original key again, and then every device receives as before. To give it up instead, delete both `web_push_vapid_public_key` and `web_push_vapid_private_key` from `app_settings`. YOUYA then generates a new pair, and every device has to subscribe again (see [Environment-Variables](Environment-Variables#web-push)).
 
 ## Backing up the key
 
@@ -58,7 +58,7 @@ To find your current key: check the `ENCRYPTION_KEY` environment variable or rea
 
 Use `scripts/migrate-encryption.ts` to re-encrypt the stored secrets listed below without downtime or manual re-entry, on SQLite and on Postgres alike.
 
-The script works on the database TREK runs on. Without `TREK_DB_URL` that is the SQLite file the server opens (`TREK_DB_FILE`, default `data/travel.db`; `DB_PATH` names another file for the script alone, and the script refuses to run when it names a different file than `TREK_DB_FILE`). On a [Postgres](Database-Postgres) install (`TREK_DB_URL` set) it is the Postgres database, reached with the server's own connection settings (SSL included); no `travel.db` is opened, created or backed up then, and the script refuses to run when `DB_PATH` or `TREK_DB_FILE` is set beside the URL, since it would not be clear which database is meant.
+The script works on the database YOUYA runs on. Without `TREK_DB_URL` that is the SQLite file the server opens (`TREK_DB_FILE`, default `data/travel.db`; `DB_PATH` names another file for the script alone, and the script refuses to run when it names a different file than `TREK_DB_FILE`). On a [Postgres](Database-Postgres) install (`TREK_DB_URL` set) it is the Postgres database, reached with the server's own connection settings (SSL included); no `travel.db` is opened, created or backed up then, and the script refuses to run when `DB_PATH` or `TREK_DB_FILE` is set beside the URL, since it would not be clear which database is meant.
 
 **Docker:**
 
@@ -78,8 +78,8 @@ The script:
 
 1. Prompts for the old and new encryption keys interactively (keys are never echoed to the terminal or written to shell history).
 2. Asks for confirmation before making any changes.
-3. Creates a timestamped backup of the database before modifying anything: on SQLite a copy next to the file (e.g. `travel.db.backup-1713484800000`), on Postgres a `pg_dump` custom-format copy in the data directory (e.g. `data/pre-key-rotation-1713484800000.pgdump`). On Postgres it checks first that it reaches the database and that the database holds TREK's tables, and it changes nothing when the copy cannot be written (for example without the PostgreSQL client tools; the TREK image ships them). The copy loads back as described in [Rolling back a Postgres update](Updating#rolling-back-a-postgres-update).
-4. Runs the rotation as one transaction. On Postgres that transaction first takes the same write lock as every write of a running TREK, so the server's writes wait until the rotation has finished.
+3. Creates a timestamped backup of the database before modifying anything: on SQLite a copy next to the file (e.g. `travel.db.backup-1713484800000`), on Postgres a `pg_dump` custom-format copy in the data directory (e.g. `data/pre-key-rotation-1713484800000.pgdump`). On Postgres it checks first that it reaches the database and that the database holds YOUYA's tables, and it changes nothing when the copy cannot be written (for example without the PostgreSQL client tools; the YOUYA image ships them). The copy loads back as described in [Rolling back a Postgres update](Updating#rolling-back-a-postgres-update).
+4. Runs the rotation as one transaction. On Postgres that transaction first takes the same write lock as every write of a running YOUYA, so the server's writes wait until the rotation has finished.
 5. Re-encrypts all stored secrets across all tables:
    - `app_settings`: `oidc_client_secret`, `smtp_pass`, `admin_webhook_url`, `admin_ntfy_token`, `maps_api_key`, `unsplash_api_key`, `amap_api_key`, `web_push_vapid_private_key`
    - `app_settings['storage.backends']`: the `secretAccessKey` of every S3 storage backend
@@ -100,8 +100,8 @@ The script:
 
 After a successful migration:
 
-1. If you supply the key through `ENCRYPTION_KEY`, update it to the new value. (TREK refuses to start while the variable and the key file disagree.)
-2. Restart TREK.
+1. If you supply the key through `ENCRYPTION_KEY`, update it to the new value. (YOUYA refuses to start while the variable and the key file disagree.)
+2. Restart YOUYA.
 
 If any secrets could not be migrated, the script exits with a non-zero status and the original database backup is retained.
 

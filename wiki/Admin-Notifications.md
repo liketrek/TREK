@@ -36,7 +36,7 @@ Allow users to configure their own ntfy topics for push notifications. The defau
 
 ### Web Push
 
-Lets users receive notifications on their phones and computers through the browser, even while TREK is closed. It needs HTTPS, and on iPhone and iPad TREK has to be added to the Home Screen. No setup beyond the switch: TREK creates its signing keys on first start. See [Notifications](Notifications#web-push) for the requirements and the server keys.
+Lets users receive notifications on their phones and computers through the browser, even while YOUYA is closed. It needs HTTPS, and on iPhone and iPad YOUYA has to be added to the Home Screen. No setup beyond the switch: YOUYA creates its signing keys on first start. See [Notifications](Notifications#web-push) for the requirements and the server keys.
 
 ### In-App
 
@@ -50,7 +50,7 @@ The same run at 09:00 also sends the **to-do due** reminders for unchecked to-do
 
 ## Admin alerts
 
-Admin-only notifications, such as a new TREK version, a failed write to a storage replica or a request for paddle water data, go to the admin's own targets. These are separate from the users' webhooks and topics.
+Admin-only notifications, such as a new YOUYA version, a failed write to a storage replica or a request for paddle water data, go to the admin's own targets. These are separate from the users' webhooks and topics.
 
 ### Admin Webhook
 

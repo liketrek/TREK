@@ -31,7 +31,7 @@ Both views share a toolbar: a **Search plugins…** box, a **Type** filter (Widg
 2. Click a card to open the **pre-install review dialog** (see below).
 3. Click **Install**.
 
-If the newest release does not support the TREK you are running, the button changes. This happens when it needs a newer TREK, or when your TREK has outgrown the upper bound it declares (`>=3.2.0 <4.0.0` on TREK 4, say). Then: when an older release still fits you get **Install {version}** for that one; when nothing fits, the button reads **Incompatible** and is disabled. Either way the dialog explains why in an amber note; it does not hide the reason behind a tooltip.
+If the newest release does not support the YOUYA you are running, the button changes. This happens when it needs a newer YOUYA, or when your YOUYA has outgrown the upper bound it declares (`>=3.2.0 <4.0.0` on YOUYA 4, say). Then: when an older release still fits you get **Install {version}** for that one; when nothing fits, the button reads **Incompatible** and is disabled. Either way the dialog explains why in an amber note; it does not hide the reason behind a tooltip.
 
 A newly installed plugin is **off**. Nothing runs until you enable it.
 
@@ -39,12 +39,12 @@ A newly installed plugin is **off**. Nothing runs until you enable it.
 
 Before installing, read these sections:
 
-- **What it can access**: a plain-language summary of what the plugin's permissions let it do ("Reads your trips", "Edits places", "Provides photos"), plus a line for its own isolated database. It is a summary, not the raw permission list: permissions TREK has no summary line for (`notify:send`, `ai:invoke`, `jobs:run`, `db:write:members` and others) do not appear here at all, and a plugin that asks only for those still reads *Needs no special access.* For the complete list, read the manifest in the plugin's source repository. Only the consent dialog for an update renders permissions code by code, unknown codes verbatim.
+- **What it can access**: a plain-language summary of what the plugin's permissions let it do ("Reads your trips", "Edits places", "Provides photos"), plus a line for its own isolated database. It is a summary, not the raw permission list: permissions YOUYA has no summary line for (`notify:send`, `ai:invoke`, `jobs:run`, `db:write:members` and others) do not appear here at all, and a plugin that asks only for those still reads *Needs no special access.* For the complete list, read the manifest in the plugin's source repository. Only the consent dialog for an update renders permissions code by code, unknown codes verbatim.
 - **Map categories it adds**: for a plugin that asks for `hook:poi-category-provider`, each button it would add to the category row on the trip map (see [Places and Search](Places-and-Search#categories-from-plugins)), with its icon on its colour and its name in your language. The access list above reads *Adds map categories* for the same permission, and so does a chip on the plugin's row once it is installed. A plugin that declares categories without asking for the permission shows no list, because its buttons would never appear. The consent dialog of an update that adds the permission spells out what it shares: *Add its own place categories to Explore places on the map; picking one sends the plugin the map area you are viewing.*
-- A plugin that asks for `hook:search-provider` reads **Answers searches** in the access list: its own index answers place searches beside TREK's results, and a plugin built for it also answers while the search is still being typed, with its places marked with the plugin's name (see [Places and Search](Places-and-Search#suggestions-while-you-type)).
+- A plugin that asks for `hook:search-provider` reads **Answers searches** in the access list: its own index answers place searches beside YOUYA's results, and a plugin built for it also answers while the search is still being typed, with its places marked with the plugin's name (see [Places and Search](Places-and-Search#suggestions-while-you-type)).
 - **Connects to**: every host the manifest declares it may reach, as monospace chips.
 - **Setup**: settings the plugin will ask you (or each user) to fill in, tagged **Instance-wide** or **Per user**, and **Required** where applicable.
-- **Details**: version, size, the TREK version range it requires, when it was reviewed, and total downloads.
+- **Details**: version, size, the YOUYA version range it requires, when it was reviewed, and total downloads.
 
 A footer links to the **Source repository**, **Report an issue**, and the plugin's **Homepage**.
 
@@ -60,14 +60,14 @@ Saving restarts the plugin so it picks up the new list; a running plugin's allow
 
 ## Enabling, restarting, and disabling
 
-Each installed row has a toggle (**Enable plugin**) and shows **Active** or **Off**. A coloured dot on the icon tile reflects runtime health: green when the plugin is active, a pulsing blue while it starts, red when it has errored, grey when it is not running. Incompatibility is not a dot colour; a plugin this TREK cannot run gets an amber chip on the row instead.
+Each installed row has a toggle (**Enable plugin**) and shows **Active** or **Off**. A coloured dot on the icon tile reflects runtime health: green when the plugin is active, a pulsing blue while it starts, red when it has errored, grey when it is not running. Incompatibility is not a dot colour; a plugin this YOUYA cannot run gets an amber chip on the row instead.
 
-Enabling can be refused for good reasons. The first three are version gates that run before everything else; a plugin that cannot run on this TREK is never offered a permission dialog, because consenting would not make it start:
+Enabling can be refused for good reasons. The first three are version gates that run before everything else; a plugin that cannot run on this YOUYA is never offered a permission dialog, because consenting would not make it start:
 
-- **This TREK is outside the range the plugin declares**: the row carries an amber *Needs TREK {range}* chip that also names the version this server runs, and the toggle is refused. Expect this after a major upgrade: a plugin that declared `>=3.2.0 <4.0.0` stops activating on TREK 4 even though it ran fine the day before. There is no dialog to click through: it takes a release from the author that admits this TREK, and once the registry has one, the row's **Update** button offers it.
-- **The plugin does not say which TREK versions it supports**: the chip reads *Does not say which TREK versions it supports*. That is a plugin folder which predates the range field or was dropped into the plugins directory by hand: **Rescan** registers it rather than letting it vanish silently, and the gate then refuses it instead of guessing. It needs a manifest with a `trek` range.
-- **Version checks off**: the operator set `TREK_PLUGINS_IGNORE_TREK_RANGE` (see [Environment Variables](Environment-Variables)), and the header shows an amber *Version checks off* pill. The two cases above then stop being blockers: the row carries an amber chip for as long as the plugin runs here, saying the plugin is *Outside its TREK range ({range})* (or *Declares no TREK range*) and that version checks are off, but the toggle works. In Discover, an entry the registry marks incompatible gets an **Install anyway** button instead of a dead one; pressing it opens a warning first (the author has not updated the plugin's range for this TREK, nothing guarantees it works, and in rare cases a mismatched plugin can corrupt TREK data) and only **Install anyway** in that dialog sends the request. A sideload, dev-link, update or dependency download that lands outside its range cannot ask first, so the same warning appears right after it succeeds. The bypass never lifts the plugin-API version gate.
-- **The plugin needs a newer plugin API**: its manifest's `apiVersion` is higher than the plugin API this TREK implements (currently v1). Install, upload, and dev-link reject that up front, so this only shows for a plugin picked up from the plugins directory on disk, registered at the next restart, or when you press **Rescan**.
+- **This YOUYA is outside the range the plugin declares**: the row carries an amber *Needs YOUYA {range}* chip that also names the version this server runs, and the toggle is refused. Expect this after a major upgrade: a plugin that declared `>=3.2.0 <4.0.0` stops activating on YOUYA 4 even though it ran fine the day before. There is no dialog to click through: it takes a release from the author that admits this YOUYA, and once the registry has one, the row's **Update** button offers it.
+- **The plugin does not say which YOUYA versions it supports**: the chip reads *Does not say which YOUYA versions it supports*. That is a plugin folder which predates the range field or was dropped into the plugins directory by hand: **Rescan** registers it rather than letting it vanish silently, and the gate then refuses it instead of guessing. It needs a manifest with a `trek` range.
+- **Version checks off**: the operator set `TREK_PLUGINS_IGNORE_TREK_RANGE` (see [Environment Variables](Environment-Variables)), and the header shows an amber *Version checks off* pill. The two cases above then stop being blockers: the row carries an amber chip for as long as the plugin runs here, saying the plugin is *Outside its YOUYA range ({range})* (or *Declares no YOUYA range*) and that version checks are off, but the toggle works. In Discover, an entry the registry marks incompatible gets an **Install anyway** button instead of a dead one; pressing it opens a warning first (the author has not updated the plugin's range for this YOUYA, nothing guarantees it works, and in rare cases a mismatched plugin can corrupt YOUYA data) and only **Install anyway** in that dialog sends the request. A sideload, dev-link, update or dependency download that lands outside its range cannot ask first, so the same warning appears right after it succeeds. The bypass never lifts the plugin-API version gate.
+- **The plugin needs a newer plugin API**: its manifest's `apiVersion` is higher than the plugin API this YOUYA implements (currently v1). Install, upload, and dev-link reject that up front, so this only shows for a plugin picked up from the plugins directory on disk, registered at the next restart, or when you press **Rescan**.
 - **A required addon is disabled**: a toast names the addon; turn it on in [Admin-Addons](Admin-Addons).
 - **A plugin dependency is missing or outdated**: a dialog lists each dependency with a one-click **Download** / **Update** that installs the newest compatible version and then retries.
 - **The update widened its permissions**: the consent dialog (below).
@@ -80,7 +80,7 @@ The row's **⋯** menu offers **Restart** (active plugins only), **Instance sett
 
 When a newer version exists, the row grows an **Update → v{version}** button, and a bar above the list reads *{count} updates available for your plugins.* with an **Update all** button.
 
-If the new version requests rights you have not granted, TREK installs it but leaves it off and shows **This update needs new permissions**:
+If the new version requests rights you have not granted, YOUYA installs it but leaves it off and shows **This update needs new permissions**:
 
 > *{name} v{version} is asking for rights you haven't granted yet. The new version is installed but stays off until you approve it.*
 
@@ -88,13 +88,13 @@ The dialog lists **Newly requested permissions** and **New outbound connections*
 
 ### Changing the version
 
-**⋯ → Change version…** (registry plugins only) lists the versions the registry has published, each with a **Switch to {version}** button and a note when it needs a different TREK. Picking an older one asks first (**Roll back this plugin?**: data written by the newer version stays in place, and the older version may not understand it) and installs it after you press **Roll back**. A deliberate pick other than the newest version holds that plugin there: its row reads **Updates paused at v{version}** with a **Resume updates** link, and it is left out of the update banner and **Update all** until you resume or move to the newest version.
+**⋯ → Change version…** (registry plugins only) lists the versions the registry has published, each with a **Switch to {version}** button and a note when it needs a different YOUYA. Picking an older one asks first (**Roll back this plugin?**: data written by the newer version stays in place, and the older version may not understand it) and installs it after you press **Roll back**. A deliberate pick other than the newest version holds that plugin there: its row reads **Updates paused at v{version}** with a **Resume updates** link, and it is left out of the update banner and **Update all** until you resume or move to the newest version.
 
 ### Blocked updates
 
 If an author's signing key no longer matches the one pinned at install, the update is refused and the row shows **Update blocked** and the reason, with a **Review** link. The dialog then shows the pinned key fingerprint next to the offered one:
 
-> *TREK cannot tell a legitimate key rotation apart from a takeover; both look identical from here. Confirm the new key with the author through a channel you already trust before you accept it.*
+> *YOUYA cannot tell a legitimate key rotation apart from a takeover; both look identical from here. Confirm the new key with the author through a channel you already trust before you accept it.*
 
 Only a **changed key** can be overridden (**Trust the new key & update**). A signature that is invalid, missing, or half-declared gets an explanation and **no override button at all**; the server refuses those too.
 
@@ -104,11 +104,11 @@ Only a **changed key** can be overridden (**Trust the new key & update**). A sig
 
 ## Badges: what they do and do not guarantee
 
-- **Reviewed**: a TREK maintainer scanned this plugin for malware on each version, not for quality or whether it works. It is not a guarantee that a plugin is harmless.
+- **Reviewed**: a YOUYA maintainer scanned this plugin for malware on each version, not for quality or whether it works. It is not a guarantee that a plugin is harmless.
 - **Signed**: the files were verified against the author's signing key at install, and that key is pinned. A checksum already proves the files are what the *registry* vouches for; a signature proves they came from the *author*.
 - **Unsigned**: *The files match what the registry vouches for, but nothing ties them to the author. One guarantee fewer, not unsafe.* Most registry plugins are unsigned today, which is why this is an amber note rather than an alarm.
 
-Neither badge says anything about what the code *does*. A collapsible panel at the bottom of the tab, titled **How plugins are contained**, spells out the isolation model, what permissions really constrain, what TREK cannot promise, and the worst case. Read it once.
+Neither badge says anything about what the code *does*. A collapsible panel at the bottom of the tab, titled **How plugins are contained**, spells out the isolation model, what permissions really constrain, what YOUYA cannot promise, and the worst case. Read it once.
 
 ## Sideloading and dev-linking
 

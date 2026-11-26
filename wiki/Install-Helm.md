@@ -1,6 +1,6 @@
 # Install: Helm
 
-Deploy TREK on Kubernetes using the official Helm chart.
+Deploy YOUYA on Kubernetes using the official Helm chart.
 
 ## Add the Chart Repository
 
@@ -27,7 +27,7 @@ helm repo update
 helm install trek trek/trek
 ```
 
-This deploys TREK with default values: a `ClusterIP` service on port 3000, 1 Gi PVCs for data and uploads, and no ingress.
+This deploys YOUYA with default values: a `ClusterIP` service on port 3000, 1 Gi PVCs for data and uploads, and no ingress.
 
 ## Encryption Key
 
@@ -62,7 +62,7 @@ If `existingSecret` uses a different key name than `ENCRYPTION_KEY`, specify it 
 
 > **Note:** If both `generateEncryptionKey` and `existingSecret` are set, `existingSecret` takes precedence. Only one method should be active at a time.
 
-> **GitOps:** `generateEncryptionKey` reads the existing secret from the cluster to keep the key across upgrades. Under `helm template`, ArgoCD or Flux the chart cannot do that and renders a new key on every sync. TREK then refuses to start rather than lose every stored secret (see [Encryption-Key-Rotation](Encryption-Key-Rotation#key-resolution-order)). Use `existingSecret` in those setups.
+> **GitOps:** `generateEncryptionKey` reads the existing secret from the cluster to keep the key across upgrades. Under `helm template`, ArgoCD or Flux the chart cannot do that and renders a new key on every sync. YOUYA then refuses to start rather than lose every stored secret (see [Encryption-Key-Rotation](Encryption-Key-Rotation#key-resolution-order)). Use `existingSecret` in those setups.
 
 > **Note:** If `ENCRYPTION_KEY` is left empty, the server resolves it automatically: existing installs fall back to `data/.jwt_secret` (encrypted data stays readable after upgrade); fresh installs auto-generate a key persisted to the data PVC.
 
@@ -124,7 +124,7 @@ env:
   # TRUST_PROXY: "1"             # proxy hops for X-Forwarded-For/Proto; defaults to 1 in production
   # COOKIE_SECURE: "true"        # auto-derived; set "false" only for local HTTP testing
   # ALLOW_INTERNAL_NETWORK: "false"  # set "true" if Immich or other services are on a private network
-  # ALLOW_LINK_LOCAL_IPS: ""     # single link-local addresses TREK may reach, e.g. "169.254.1.2"
+  # ALLOW_LINK_LOCAL_IPS: ""     # single link-local addresses YOUYA may reach, e.g. "169.254.1.2"
   # HTTP_PROXY: ""               # outbound proxy for HTTP requests
   # HTTPS_PROXY: ""              # outbound proxy for HTTPS requests
   # NO_PROXY: "localhost,127.0.0.1"  # hosts that bypass the proxy
@@ -133,8 +133,8 @@ env:
   # NOMINATIM_URL: ""            # your own Nominatim for every geocoding call
   # OVERPASS_URL: ""             # your own Overpass endpoint(s), comma-separated
   # OVERPASS_TIMEOUT_MS: "25000" # per-endpoint Overpass timeout
-  # TREK_PLACES_ENABLED: "false" # stop asking the TREK Places API
-  # TREK_PLACES_URL: ""          # a copy of the TREK Places API you run yourself
+  # TREK_PLACES_ENABLED: "false" # stop asking the YOUYA Places API
+  # TREK_PLACES_URL: ""          # a copy of the YOUYA Places API you run yourself
   # AMAP_API_BASE: ""            # send the Amap calls through a proxy or gateway
   # OIDC_ISSUER: "https://auth.example.com"
   # OIDC_CLIENT_ID: "trek"
@@ -173,13 +173,13 @@ Alternatively, use `generateEncryptionKey: true` to let the chart generate and m
 
 Every value the chart writes into its Secret is quoted, so a password such as `12345` or a value like `true` reaches the container as the text you typed.
 
-> **Note:** Web Push needs none of the `VAPID_*` values. TREK generates its key pair on first start and keeps it in the database on the data PVC, so it survives upgrades and restores. Set `env.VAPID_PUBLIC_KEY` and `secretEnv.VAPID_PRIVATE_KEY` together only to bring a pair of your own; changing the pair later means every device has to subscribe again. See [Environment-Variables](Environment-Variables#web-push).
+> **Note:** Web Push needs none of the `VAPID_*` values. YOUYA generates its key pair on first start and keeps it in the database on the data PVC, so it survives upgrades and restores. Set `env.VAPID_PUBLIC_KEY` and `secretEnv.VAPID_PRIVATE_KEY` together only to bring a pair of your own; changing the pair later means every device has to subscribe again. See [Environment-Variables](Environment-Variables#web-push).
 
 > **Note:** Without `UNSPLASH_ACCESS_KEY` the server queries Unsplash's unauthenticated endpoint, which many datacenter and VPS IP ranges — including a lot of Kubernetes clusters — are blocked or rate-limited on. Trip-cover and place-image search then fail with **"Unsplash search unavailable"**. A free Access Key switches the server to Unsplash's authenticated API (`api.unsplash.com`), which is not subject to that block. The key can also be set in **Admin → Settings → API Keys**; this value takes priority over that one. See [Environment-Variables](Environment-Variables#image-search-unsplash).
 
 ### Running on Postgres
 
-To run TREK on a PostgreSQL database, set `database.url`. The connection URL carries the password, so the chart writes it into its own Secret as `TREK_DB_URL` rather than into the ConfigMap:
+To run YOUYA on a PostgreSQL database, set `database.url`. The connection URL carries the password, so the chart writes it into its own Secret as `TREK_DB_URL` rather than into the ConfigMap:
 
 ```yaml
 database:
@@ -200,13 +200,13 @@ database:
 
 The chart then reads `TREK_DB_URL` from that Secret. If the key is missing, the pod does not start. It does not fall back to SQLite. The chart refuses to render when `database.url` and the top-level `existingSecret` are both set, because the chart's own Secret, which holds the URL, is not created in that case. Use `database.existingSecret` instead.
 
-The database must be empty and dedicated to TREK, with a role that is not a superuser. The data and uploads volumes are still needed: they hold the data directory, the uploads and the copies TREK takes before migrating. The PostgreSQL requirements, the SSL settings (`sslmode`, `sslrootcert` with a CA file mounted into the pod) and the backups are on [Database: Postgres](Database-Postgres).
+The database must be empty and dedicated to YOUYA, with a role that is not a superuser. The data and uploads volumes are still needed: they hold the data directory, the uploads and the copies YOUYA takes before migrating. The PostgreSQL requirements, the SSL settings (`sslmode`, `sslrootcert` with a CA file mounted into the pod) and the backups are on [Database: Postgres](Database-Postgres).
 
-Keep `replicas: 1` on Postgres too. TREK keeps rate limits, pending codes, the permission cache and WebSocket connections in memory, so a second pod would not share them. See [Limitations](Database-Postgres#limitations).
+Keep `replicas: 1` on Postgres too. YOUYA keeps rate limits, pending codes, the permission cache and WebSocket connections in memory, so a second pod would not share them. See [Limitations](Database-Postgres#limitations).
 
 ### Persistent Storage
 
-The data PVC holds the database, the plugins you install and the automatic `pre-migrate-<schema>-<time>.db` copy TREK writes before an upgrade migrates the database, so the previous image can run on that copy again. See [Updating](Updating).
+The data PVC holds the database, the plugins you install and the automatic `pre-migrate-<schema>-<time>.db` copy YOUYA writes before an upgrade migrates the database, so the previous image can run on that copy again. See [Updating](Updating).
 
 ```yaml
 persistence:
@@ -237,9 +237,9 @@ podSecurityContext:
 securityContext: {}
 ```
 
-With these defaults the container starts as root, hands `/app/data` and `/app/uploads` to the `node` user (uid 1000) if they are not `node`'s yet, and then drops to `node`. Only the two directories and what sits directly in them are checked, so a large uploads volume that already belongs to `node` does not slow down the start. Only the owning user is changed, plus a `root` group, so an `fsGroup` other than 1000 stays in place and the kubelet does not walk the volume again on the next start. If ownership has to be corrected, the log says `Correcting ownership of /app/uploads for the node user...` before TREK's own start-up lines. A volume that refuses `chown` (NFS with `root_squash`, for example) logs a warning instead; run TREK as uid 1000 then, as shown below.
+With these defaults the container starts as root, hands `/app/data` and `/app/uploads` to the `node` user (uid 1000) if they are not `node`'s yet, and then drops to `node`. Only the two directories and what sits directly in them are checked, so a large uploads volume that already belongs to `node` does not slow down the start. Only the owning user is changed, plus a `root` group, so an `fsGroup` other than 1000 stays in place and the kubelet does not walk the volume again on the next start. If ownership has to be corrected, the log says `Correcting ownership of /app/uploads for the node user...` before YOUYA's own start-up lines. A volume that refuses `chown` (NFS with `root_squash`, for example) logs a warning instead; run YOUYA as uid 1000 then, as shown below.
 
-To run TREK as `node` from the first process on, for example in a namespace that enforces the `restricted` Pod Security Standard, set the user in the pod security context. The image notices it is not root and starts Node directly, with no ownership step and no privilege drop:
+To run YOUYA as `node` from the first process on, for example in a namespace that enforces the `restricted` Pod Security Standard, set the user in the pod security context. The image notices it is not root and starts Node directly, with no ownership step and no privilege drop:
 
 ```yaml
 podSecurityContext:
@@ -301,7 +301,7 @@ extraEnvFrom:
 
 ### Further volumes
 
-`extraVolumes` adds volumes to the pod, and `extraVolumeMounts` mounts them in the TREK container, next to `/app/data` and `/app/uploads`. Both go into the Deployment as written, and the chart does not create the objects they name. For example, to give the booking import your own KItinerary extractors from a ConfigMap (one `.json` and one `.js` key for each extractor, see [Reservations-and-Bookings](Reservations-and-Bookings#your-own-extractors)):
+`extraVolumes` adds volumes to the pod, and `extraVolumeMounts` mounts them in the YOUYA container, next to `/app/data` and `/app/uploads`. Both go into the Deployment as written, and the chart does not create the objects they name. For example, to give the booking import your own KItinerary extractors from a ConfigMap (one `.json` and one `.js` key for each extractor, see [Reservations-and-Bookings](Reservations-and-Bookings#your-own-extractors)):
 
 ```yaml
 extraVolumes:
@@ -333,7 +333,7 @@ ingress:
         - trek.example.com
 ```
 
-> **Important:** TREK uses WebSockets on `/ws`. Your ingress controller must support WebSocket upgrades. Set `proxy-read-timeout` to at least `86400` and `proxy-body-size` to at least `500m` for backup restores and video uploads.
+> **Important:** YOUYA uses WebSockets on `/ws`. Your ingress controller must support WebSocket upgrades. Set `proxy-read-timeout` to at least `86400` and `proxy-body-size` to at least `500m` for backup restores and video uploads.
 
 > **Note:** Keep `env.ALLOWED_ORIGINS` in sync with `ingress.hosts` — the chart does not synchronize these automatically.
 
@@ -341,7 +341,7 @@ ingress:
 
 ### HTTPRoute
 
-HTTPRoute support is off by default. To attach TREK to an existing Gateway, enable it in your values file:
+HTTPRoute support is off by default. To attach YOUYA to an existing Gateway, enable it in your values file:
 
 ```yaml
 httpRoute:
@@ -360,7 +360,7 @@ httpRoute:
     backendRequest: "0s"
 ```
 
-The cluster needs the Gateway API `HTTPRoute` v1 CRD and a compatible controller. The chart creates only an HTTPRoute to TREK's existing Service on `service.port`; your operator must provide the Gateway and GatewayClass, configure its listener and TLS certificate, and allow routes from the chart's namespace. When enabled, `parentRefs` and `paths` must be non-empty. Paths are string prefixes. Ingress and HTTPRoute may be enabled together.
+The cluster needs the Gateway API `HTTPRoute` v1 CRD and a compatible controller. The chart creates only an HTTPRoute to YOUYA's existing Service on `service.port`; your operator must provide the Gateway and GatewayClass, configure its listener and TLS certificate, and allow routes from the chart's namespace. When enabled, `parentRefs` and `paths` must be non-empty. Paths are string prefixes. Ingress and HTTPRoute may be enabled together.
 
 Timeout fields are Standard Channel in Gateway API v1.2, though controller support varies. If omitted, the controller's timeout defaults apply. `0s` disables that request timeout; controller idle and buffering limits can still affect `/ws` and streamed assistant responses. Set `env.ALLOWED_ORIGINS` and `env.APP_URL` to the public URL. If the Gateway terminates TLS, also set `env.FORCE_HTTPS: "true"` and `env.TRUST_PROXY: "1"`.
 

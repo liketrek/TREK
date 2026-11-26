@@ -34,7 +34,7 @@ Under the progress card, beside the Shared and My list switch (see [The two view
 - **Open**: what still has to be packed.
 - **Done**: what is already packed.
 
-On the desktop, **A to Z** at the far end of the same row shows each list's items in name order, so you can check at a glance whether something is already on the list. Click it again to go back to the manual order. TREK remembers the choice in this browser.
+On the desktop, **A to Z** at the far end of the same row shows each list's items in name order, so you can check at a glance whether something is already on the list. Click it again to go back to the manual order. YOUYA remembers the choice in this browser.
 
 ## Categories
 
@@ -49,7 +49,7 @@ Each list's head has the name, a count of packed and total items (green once all
 - **Rename**: rename the list.
 - **Check All**: tick every item in it.
 - **Uncheck All**: untick every item in it.
-- **Delete List**: delete the list and all its items. On the desktop it does not ask first. On the phone TREK asks (*Are you sure you want to delete the list "{name}" with {count} items?*).
+- **Delete List**: delete the list and all its items. On the desktop it does not ask first. On the phone YOUYA asks (*Are you sure you want to delete the list "{name}" with {count} items?*).
 
 **Rename** and **Delete List** need the `packing_edit` permission; **Check All** and **Uncheck All** are always there.
 
@@ -163,7 +163,7 @@ Bag tracking is only there when an admin has turned it on.
 With it on, a **Bags** card sits to the right of the lists on wide screens; on narrower ones the **Bags** button above the progress card opens it as a sheet. Each bag shows:
 
 - its name and colour dot,
-- the total weight, and a weight limit if you set one. Click **Set limit** next to the weight (or the limit itself, to change it) and type the limit in kilograms, the way airlines state it; TREK stores it in grams. Clearing the field removes the limit again,
+- the total weight, and a weight limit if you set one. Click **Set limit** next to the weight (or the limit itself, to change it) and type the limit in kilograms, the way airlines state it; YOUYA stores it in grams. Clearing the field removes the limit again,
 - a fill bar, measured against the limit when there is one; without one the bag is scaled against the heaviest bag, so bags stay comparable,
 - the avatars of the members assigned to the bag, beside its name, with a dashed **+** to pick them,
 - the item count, under the fill bar.

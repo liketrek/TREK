@@ -219,7 +219,7 @@ describe('JourneyPublicPage', () => {
     });
     // One footer, the shared frame's: "Shared via TREK", the credit and the GitHub link
     const footer = screen.getByRole('contentinfo');
-    expect(within(footer).getByText('TREK')).toBeInTheDocument();
+    expect(within(footer).getByText('YOUYA')).toBeInTheDocument();
     expect(within(footer).getByText(/Made with/)).toBeInTheDocument();
     expect(within(footer).getByText('GitHub')).toBeInTheDocument();
     expect(screen.getAllByText(/Made with/)).toHaveLength(1);

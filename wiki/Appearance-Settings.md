@@ -1,6 +1,6 @@
 # Appearance Settings
 
-Tune how TREK looks: colour mode, accent scheme, readability, and which dashboard widgets you see.
+Tune how YOUYA looks: colour mode, accent scheme, readability, and which dashboard widgets you see.
 
 ![Settings page on the Appearance tab showing the Light / Dark / Auto colour mode buttons, the eight colour scheme swatches, the Readability section with transparency, reduce motion, density and the text size sliders for everything, large, medium, normal and small text, and the start of Dashboard widgets](assets/UsrSettingsAppearance.png)
 
@@ -22,7 +22,7 @@ Three segmented buttons: **Light**, **Dark**, and **Auto**. **Auto** follows you
 
 A grid of accent schemes, each with a colour dot that previews in your current mode:
 
-- **Default**: TREK's monochrome look.
+- **Default**: YOUYA's monochrome look.
 - **High contrast**: raises text and border contrast.
 - **Indigo**, **Teal**, **Rose**, **Amber**, **Violet**: coloured accents.
 - **Custom**: pick your own accent (below).
@@ -39,7 +39,7 @@ Next to the pickers, a live contrast badge evaluates the accent you are currentl
 - **Good contrast (n.n:1)**: the ratio meets WCAG AA for normal text (4.5:1 or better).
 - **Low contrast (n.n:1)**: below 4.5:1; white text on that accent will be hard to read.
 
-The badge is advisory. TREK will still let you apply a low-contrast accent.
+The badge is advisory. YOUYA will still let you apply a low-contrast accent.
 
 ## Readability
 
@@ -81,7 +81,7 @@ Hiding a widget here only affects your own dashboard. Widgets that depend on an 
 
 Opened on a phone, the Appearance screen carries an extra **Mobile** card that the desktop tab does not have:
 
-- **Bottom navbar**: which items sit in the bottom bar, in which order, and which are demoted under **More**. **Dashboard** is pinned first and cannot be moved; two more items fit next to it, and a counter above the list shows how full the bar is. Leaving both lists untouched keeps TREK's automatic split.
+- **Bottom navbar**: which items sit in the bottom bar, in which order, and which are demoted under **More**. **Dashboard** is pinned first and cannot be moved; two more items fit next to it, and a counter above the list shows how full the bar is. Leaving both lists untouched keeps YOUYA's automatic split.
 - **Dashboard order**: reorder how the trip list and the inline widgets stack on the phone dashboard. The featured trip always stays on top. A block whose widget is switched off under **Dashboard widgets** keeps its place in the list and is marked **Hidden**.
 
 Both are stored on your account alongside the rest of the appearance settings, and both are cleared by **Reset to defaults**.

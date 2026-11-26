@@ -120,8 +120,7 @@ const planner: TranslationStrings = {
   'planner.ai.openTrip': 'เปิดทริป',
   'planner.ai.undoing': 'กำลังยกเลิก…',
   'planner.ai.undo': 'ยกเลิกการใช้นี้',
-  'planner.ai.undoManual':
-    'การใช้นี้ถูกนำไปยังทริปที่มีอยู่แล้ว จึงต้องยกเลิกด้วยตนเองในทริปนั้น ข้อเสนอระบุวันที่และสถานที่ที่เพิ่มไว้',
+  'planner.ai.undoManual': 'การใช้นี้ถูกนำไปยังทริปที่มีอยู่แล้ว จึงต้องยกเลิกด้วยตนเองในทริปนั้น ข้อเสนอระบุวันที่และสถานที่ที่เพิ่มไว้',
   'planner.ai.applyCardTitle': 'ใช้ข้อเสนอนี้',
   'planner.ai.estimatedBudget': 'ค่าใช้จ่ายโดยประมาณ',
   'planner.ai.budgetTitle': 'ประมาณการงบประมาณ',
@@ -160,8 +159,7 @@ const planner: TranslationStrings = {
   'planner.ai.applying': 'กำลังนำไปใช้…',
   'planner.ai.apply': 'ใช้กับทริป',
   'planner.ai.promptLabel': 'คุณอยากได้ทริปแบบไหน?',
-  'planner.ai.promptPlaceholder':
-    'เช่น สี่วันสบาย ๆ ที่เฉิงตูกับพ่อแม่ช่วงตรุษจีน — ดูแพนด้า กินหม้อไฟ งบไม่เกิน 8,000 หยวน',
+  'planner.ai.promptPlaceholder': 'เช่น สี่วันสบาย ๆ ที่เฉิงตูกับพ่อแม่ช่วงตรุษจีน — ดูแพนด้า กินหม้อไฟ งบไม่เกิน 8,000 หยวน',
   'planner.ai.destination': 'จุดหมายปลายทาง',
   'planner.ai.destinationPlaceholder': 'เช่น เฉิงตู',
   'planner.ai.origin': 'ออกเดินทางจาก',

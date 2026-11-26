@@ -7,7 +7,7 @@ const config: CapacitorConfig = {
   appId: 'com.liketrek.trek',
   // What the home screen shows under the icon; the longer title belongs to
   // the store listings.
-  appName: 'TREK',
+  appName: '游芽',
   // The app ships only the address screen. Once a server is picked, the native
   // side points the WebView at it (TrekBridgeViewController.swift,
   // MainActivity.java) and the UI comes from that server, always in the version
@@ -32,9 +32,9 @@ const config: CapacitorConfig = {
   },
   plugins: {
     SplashScreen: {
-      // Matches <meta name="theme-color"> in index.html, so the launch image,
-      // the splash and the first painted frame are the same colour and there is
-      // no white flash between them.
+      // Matches the generated native splash tiles (scripts/generate-app-icons.mjs),
+      // so the launch image, the splash and the first painted frame are the same
+      // colour and there is no white flash between them.
       backgroundColor: '#09090b',
       // The server's UI hides it once React has mounted (native/nativeApp.ts),
       // the address screen once it has rendered. Auto-hide stays on as the

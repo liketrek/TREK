@@ -3,10 +3,10 @@ import { pluralForm } from '../plural';
 
 const zh: NotificationLocale = {
   email: {
-    footer: '您收到此邮件是因为您在 TREK 中启用了通知。',
+    footer: '您收到此邮件是因为您在游芽中启用了通知。',
     manage: '管理偏好设置',
     madeWith: 'Made with',
-    openTrek: '打开 TREK',
+    openTrek: '打开游芽',
   },
   events: {
     trip_invite: (p) => ({
@@ -39,15 +39,15 @@ const zh: NotificationLocale = {
     }),
     vacay_invite: (p) => ({
       title: '假期合并邀请',
-      body: `${p.actor} 邀请你合并假期计划。打开 TREK 接受或拒绝。`,
+      body: `${p.actor} 邀请你合并假期计划。打开游芽接受或拒绝。`,
     }),
     vacay_share: (p) => ({
       title: 'Vacay 日历共享',
-      body: `${p.actor} 与你共享了假期日历。打开 TREK 查看。`,
+      body: `${p.actor} 与你共享了假期日历。打开游芽查看。`,
     }),
     collection_invite: (p) => ({
       title: '收藏邀请',
-      body: `${p.actor} 邀请你共享收藏。打开 TREK 接受或拒绝。`,
+      body: `${p.actor} 邀请你共享收藏。打开游芽接受或拒绝。`,
     }),
     photos_shared: (p) => ({
       title: pluralForm(p.count, 'zh', { other: `${p.count} 张照片已分享` }),
@@ -62,8 +62,8 @@ const zh: NotificationLocale = {
       body: `${p.actor} 将你分配到"${p.trip}"中的"${p.category}"类别。`,
     }),
     version_available: (p) => ({
-      title: '新版 TREK 可用',
-      body: `TREK ${p.version} 现已可用。请前往管理面板进行更新。`,
+      title: '新版游芽可用',
+      body: `游芽${p.version} 现已可用。请前往管理面板进行更新。`,
     }),
     replica_failure: (p) => ({
       title: '存储副本故障',
@@ -95,22 +95,22 @@ const zh: NotificationLocale = {
       body:
         p.role === 'traveller'
           ? `${p.actor} 从转发的邮件中将“${p.booking}”添加到“${p.trip}”。`
-          : `你转发的邮件中的“${p.booking}”已添加到“${p.trip}”。7 天内可以在 TREK 中撤销。`,
+          : `你转发的邮件中的“${p.booking}”已添加到“${p.trip}”。7 天内可以在游芽中撤销。`,
     }),
     mail_booking_pending: (p) => ({
       title: '待查看的转发预订',
-      body: `TREK 中等待你处理的转发预订：${p.count}。每一条都说明了为什么没有自动添加。`,
+      body: `游芽中等待你处理的转发预订：${p.count}。每一条都说明了为什么没有自动添加。`,
     }),
     mail_ingest_paused: () => ({
       title: '邮件导入已暂停',
-      body: 'TREK 暂时不接收转发的预订邮件，请先不要转发。你的地址会保留，导入恢复后即可再次使用，已添加的预订仍保留在你的行程中。',
+      body: '游芽暂时不接收转发的预订邮件，请先不要转发。你的地址会保留，导入恢复后即可再次使用，已添加的预订仍保留在你的行程中。',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: '重置您的密码',
     greeting: '您好',
-    body: '我们收到了重置您的 TREK 账户密码的请求。点击下方按钮设置新密码。',
+    body: '我们收到了重置您的游芽账户密码的请求。点击下方按钮设置新密码。',
     ctaIntro: '重置密码',
     expiry: '此链接将在 60 分钟后失效。',
     ignore: '如果这不是您本人的请求，可以忽略本邮件 — 您的密码不会改变。',

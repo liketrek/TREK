@@ -82,8 +82,7 @@ const system_notice: TranslationStrings = {
     'Hər funksiya və hər yeniləmə hər kəs üçün olacaq. Ödənişli səviyyələr, abunəliklər və gizli şərtlər yoxdur.',
   'system_notice.release_notes.note_body_after':
     'Sonra siz gəldiniz, tezliklə minlərlə: ulduzlarla, xəta hesabatları ilə, bilmədiyim dillərə tərcümələrlə və heç tanımadığım insanların pull request-ləri ilə. Hər səhər ilk işim repozitoriyaya baxmaqdır və bu, hələ də tam gerçək görünmür.',
-  'system_notice.release_notes.note_closing':
-    'Burada olduğunuz üçün təşəkkür edirəm. Maurice',
+  'system_notice.release_notes.note_closing': 'Burada olduğunuz üçün təşəkkür edirəm. Maurice',
   'system_notice.release_notes.support_label': 'Sizin sayənizdə mümkündür',
   'system_notice.release_notes.support_lead': 'TREK yalnız ianələr sayəsində mövcuddur.',
   'system_notice.release_notes.support_text':

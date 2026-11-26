@@ -15,7 +15,7 @@ If you may edit the trip (`trip_edit`), **Edit Trip** sits at the foot of that l
 
 *Who is on this trip, and the guests without an account.*
 
-- **Invite User** adds someone with a TREK account straight away: pick them and press **Invite**. When everyone already has access, the dialog says *All users already have access.*
+- **Invite User** adds someone with a YOUYA account straight away: pick them and press **Invite**. When everyone already has access, the dialog says *All users already have access.*
 - **Access** lists the members with their role. The owner carries a crown. **Make owner** hands the trip to another member, **Remove access** takes someone off the trip, and on your own row **Leave trip** takes you off.
 - **Guests** are *people without an account. They can be assigned to costs, packing and tasks, but cannot sign in.* **Add guest** names one; a guest can be renamed or removed later.
 
@@ -26,7 +26,7 @@ Adding and removing members needs the **Add / remove members** permission, which
 *A read-only link for anyone, and an invite link to join.*
 
 - **Public Link**: *Create a link anyone can use to view this trip without logging in.* **Create link** makes it. The chips choose which parts it shows (**Map & Plan** always, then **Bookings**, **Packing**, **Costs** and **Chat**), and **Options** narrow it to **Travel & stays only** or **Without photos**. **Delete link** turns it off. See [Public-Share-Links](Public-Share-Links).
-- **Trip invite link**: *Anyone with a TREK account who opens this link joins the trip as a member.* **Create invite link** makes one, **Regenerate** replaces it so the old one stops working, and **Disable** turns it off. See [Trip-Members-and-Sharing](Trip-Members-and-Sharing#trip-invite-link).
+- **Trip invite link**: *Anyone with a YOUYA account who opens this link joins the trip as a member.* **Create invite link** makes one, **Regenerate** replaces it so the old one stops working, and **Disable** turns it off. See [Trip-Members-and-Sharing](Trip-Members-and-Sharing#trip-invite-link).
 
 Each link has a **Copy** button. Managing the links needs the **Manage share links** permission, by default the trip owner's.
 
@@ -77,7 +77,7 @@ Only the trip's owner sees this area. It lists the trip addons (**Lists**, **Cos
 - Turning it back to what the instance says drops the trip's own choice, so a later change by the administrator reaches the trip again.
 - The choice holds for everyone on the trip, in the planner, on the phone, in the public link, in the offline copy and for the [AI Assistant](AI-Assistant) and [MCP](MCP-Overview) tools of that trip. Members see the result, not the switches.
 - Switching an addon off hides it; nothing is deleted. Switching it on again brings back what was there.
-- Changing a switch needs a connection; offline TREK says so and leaves the switch as it was.
+- Changing a switch needs a connection; offline YOUYA says so and leaves the switch as it was.
 
 ## See also
 

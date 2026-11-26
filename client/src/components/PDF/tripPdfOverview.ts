@@ -152,7 +152,7 @@ export function coverHtml({
   <div class="cover-bg"${image ? ` style="background-image:url('${escHtml(cssUrl(image))}')"` : ''}></div>
   ${baked ? '' : '<div class="cover-shade"></div>'}
   <div class="cover-top">
-    ${logo ? `<img src="${escHtml(logo)}" alt="TREK" />` : '<span></span>'}
+    ${logo ? `<img src="${escHtml(logo)}" alt="YOUYA" />` : '<span></span>'}
     <span class="eyebrow">${escHtml(tr('pdf.travelPlan'))}</span>
   </div>
   <div class="cover-body">

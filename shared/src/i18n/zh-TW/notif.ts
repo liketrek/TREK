@@ -32,7 +32,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': '打包指派',
   'notif.packing_tagged.text': '{actor} 在 {trip} 中將 {category} 指派給你',
   'notif.version_available.title': '有新版本可用',
-  'notif.version_available.text': 'TREK {version} 現已推出',
+  'notif.version_available.text': '游芽{version} 現已推出',
   'notif.replica_failure.title': '儲存複本故障',
   'notif.replica_failure.text': "寫入複本 '{backend}' 失敗：{op} / {key} — {error}",
   'notif.replica_failure.textSuppressed':

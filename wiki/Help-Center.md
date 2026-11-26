@@ -1,9 +1,9 @@
 # Help Center
 
-The help center is TREK's built-in guide to the screen you are on. It answers "what is this?" and
-"how do I do that?" without leaving the app, with a picture of every step taken from TREK itself.
+The help center is YOUYA's built-in guide to the screen you are on. It answers "what is this?" and
+"how do I do that?" without leaving the app, with a picture of every step taken from YOUYA itself.
 
-It is not the same thing as [In-App Help](In-App-Help), which is this wiki, rendered inside TREK at
+It is not the same thing as [In-App Help](In-App-Help), which is this wiki, rendered inside YOUYA at
 `/help`. The help center is the `?` panel; it links into the wiki wherever the reference
 documentation continues.
 
@@ -92,7 +92,7 @@ cost nothing to a visitor who never asks for help.
 
 ## Languages
 
-The guides are written in English first and translated into all 28 languages TREK speaks (see
+The guides are written in English first and translated into all 28 languages YOUYA speaks (see
 [Languages](Languages)). Every button
 and field a guide names is the app's own string in that language, so what you read matches what you
 see.
@@ -104,7 +104,7 @@ The panel says *No guide for this screen yet.* and leaves the search box as the 
 
 ## See also
 
-- [In-App Help](In-App-Help) - the wiki rendered inside TREK at `/help`
+- [In-App Help](In-App-Help) - the wiki rendered inside YOUYA at `/help`
 - [Trip Planner Overview](Trip-Planner-Overview)
 - [FAQ](FAQ)
 - [Troubleshooting](Troubleshooting)

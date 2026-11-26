@@ -10,7 +10,7 @@ On a wide screen the tab has two cards side by side: **Default User Settings** o
 
 Every choice saves the moment you pick it, and a toast confirms **Default saved**. Text fields save when you leave the field.
 
-Once a default is set, a small **reset** link appears next to its name. It removes the default, so users without their own value fall back to TREK's built-in one. While no default is set, none of the choices in a row is highlighted.
+Once a default is set, a small **reset** link appears next to its name. It removes the default, so users without their own value fall back to YOUYA's built-in one. While no default is set, none of the choices in a row is highlighted.
 
 ## Default User Settings
 
@@ -36,7 +36,7 @@ The map card configures the map users see and the routing services behind it, fr
 
 ### Map Template
 
-The tile source for the standard map. Pick a preset from **Select template...** or type any XYZ tile URL or MapLibre style URL into the field below it. The presets are **OpenStreetMap**, **OpenStreetMap DE**, **OpenFreeMap Positron**, **OpenFreeMap Bright**, **CartoDB Light**, **CartoDB Dark** and **Stadia Smooth**. Leave the field empty to keep TREK's built-in default. See [Map-Settings](Map-Settings) for what each preset looks like.
+The tile source for the standard map. Pick a preset from **Select template...** or type any XYZ tile URL or MapLibre style URL into the field below it. The presets are **OpenStreetMap**, **OpenStreetMap DE**, **OpenFreeMap Positron**, **OpenFreeMap Bright**, **CartoDB Light**, **CartoDB Dark** and **Stadia Smooth**. Leave the field empty to keep YOUYA's built-in default. See [Map-Settings](Map-Settings) for what each preset looks like.
 
 ### Shared CARTO key
 
@@ -44,22 +44,22 @@ Used for every user who has not entered their own key, so the whole instance get
 
 ### Own routing engine
 
-The address of an OSRM instance of your own, for example `https://osrm.example.org`. Empty uses the public servers, which allow about one request a second: enough for a day plan, tight for a road trip. With the TREK services or an own Valhalla as **Routing service**, OSRM only calculates the days Valhalla cannot answer.
+The address of an OSRM instance of your own, for example `https://osrm.example.org`. Empty uses the public servers, which allow about one request a second: enough for a day plan, tight for a road trip. With the YOUYA services or an own Valhalla as **Routing service**, OSRM only calculates the days Valhalla cannot answer.
 
 ### Routing service
 
-Which Valhalla TREK asks, and with it how much of the routing Valhalla does.
+Which Valhalla YOUYA asks, and with it how much of the routing Valhalla does.
 
-- **Automatic** (nothing chosen): the TREK services, or **Own Valhalla instance** when one is set. If only **Own routing engine** is set, no Valhalla is asked.
-- **TREK services**: the Valhalla at `valhalla.liketrek.com` (or `TREK_VALHALLA_URL`), a planet with elevation data. It calculates every route: the days of the planner and the road trip on foot, by bike and by car, driving around toll roads, motorways and ferries, and the routes, heights and ways of tours. This server asks it with the installation key, so the browser never talks to it and no restart is needed. Where it cannot answer (no key yet, the day's allowance spent, the service unreachable or failing, a question that runs out its ten-second deadline, a shared page without a sign-in, or no way for one of the day's legs), OSRM calculates that day as it did before, without a message; a day is always calculated by one engine, never one leg by each, because the two estimate travel times differently. What only Valhalla can answer (avoiding road classes, tours) goes to the public FOSSGIS Valhalla instead, except a question that only ran out its deadline, which FOSSGIS would take as long over. Such a slow question, a very long bike route for example, is answered 504 and changes nothing for anyone else: the next question goes to the TREK services again. Only a host that cannot be reached or answers with a server error is left alone, for a minute on the server and ten minutes in a browser tab, and a spent allowance for as long as the service says (an hour at most). Each user may ask 60 routing questions a minute through this server, and the whole installation 100.
-- **Public Valhalla (FOSSGIS)**: `valhalla1.openstreetmap.de`, as before: OSRM calculates the routes, and Valhalla only answers what OSRM cannot (driving around toll roads, motorways and ferries, and tours). This is also what an installation without the TREK services gets.
-- **Own Valhalla instance**: the address below. Like the TREK services it calculates every route, with OSRM taking over a day it cannot answer.
+- **Automatic** (nothing chosen): the YOUYA services, or **Own Valhalla instance** when one is set. If only **Own routing engine** is set, no Valhalla is asked.
+- **YOUYA services**: the Valhalla at `valhalla.liketrek.com` (or `TREK_VALHALLA_URL`), a planet with elevation data. It calculates every route: the days of the planner and the road trip on foot, by bike and by car, driving around toll roads, motorways and ferries, and the routes, heights and ways of tours. This server asks it with the installation key, so the browser never talks to it and no restart is needed. Where it cannot answer (no key yet, the day's allowance spent, the service unreachable or failing, a question that runs out its ten-second deadline, a shared page without a sign-in, or no way for one of the day's legs), OSRM calculates that day as it did before, without a message; a day is always calculated by one engine, never one leg by each, because the two estimate travel times differently. What only Valhalla can answer (avoiding road classes, tours) goes to the public FOSSGIS Valhalla instead, except a question that only ran out its deadline, which FOSSGIS would take as long over. Such a slow question, a very long bike route for example, is answered 504 and changes nothing for anyone else: the next question goes to the YOUYA services again. Only a host that cannot be reached or answers with a server error is left alone, for a minute on the server and ten minutes in a browser tab, and a spent allowance for as long as the service says (an hour at most). Each user may ask 60 routing questions a minute through this server, and the whole installation 100.
+- **Public Valhalla (FOSSGIS)**: `valhalla1.openstreetmap.de`, as before: OSRM calculates the routes, and Valhalla only answers what OSRM cannot (driving around toll roads, motorways and ferries, and tours). This is also what an installation without the YOUYA services gets.
+- **Own Valhalla instance**: the address below. Like the YOUYA services it calculates every route, with OSRM taking over a day it cannot answer.
 
-A day longer than one request may carry is asked in pieces that share a stop: twenty stops a piece on the TREK services and an own Valhalla, one after another without a pause, and ten on FOSSGIS, paced to its one request a second. A day cut for the TREK services that ends up at FOSSGIS is cut again into pieces of ten.
+A day longer than one request may carry is asked in pieces that share a stop: twenty stops a piece on the YOUYA services and an own Valhalla, one after another without a pause, and ten on FOSSGIS, paced to its one request a second. A day cut for the YOUYA services that ends up at FOSSGIS is cut again into pieces of ten.
 
 Routes the browser has kept on the device are kept per engine, so switching the routing service never shows a day calculated by the other engine.
 
-The allowance the TREK services count for routing is shown in the TREK API card under **Admin → Settings**.
+The allowance the YOUYA services count for routing is shown in the YOUYA API card under **Admin → Settings**.
 
 ### Own Valhalla instance
 

@@ -1,8 +1,8 @@
 # AI Connections
 
-TREK's AI features run on a language model from a provider you choose. The **AI connection** is that link: which provider answers, with which account or key, and which model. The [AI Assistant](AI-Assistant) runs on it, and [AI Parsing](AI-Booking-Import) can read your imported bookings with the same connection, so one setup serves both.
+YOUYA's AI features run on a language model from a provider you choose. The **AI connection** is that link: which provider answers, with which account or key, and which model. The [AI Assistant](AI-Assistant) runs on it, and [AI Parsing](AI-Booking-Import) can read your imported bookings with the same connection, so one setup serves both.
 
-[MCP](MCP-Overview) works the other way round and needs no AI connection in TREK: there an AI app outside TREK brings its own model and talks to TREK.
+[MCP](MCP-Overview) works the other way round and needs no AI connection in YOUYA: there an AI app outside YOUYA brings its own model and talks to YOUYA.
 
 ## Providers
 
@@ -11,22 +11,22 @@ TREK's AI features run on a language model from a provider you choose. The **AI 
 | **Anthropic** | API key | *Claude Max and Team include API credits.* |
 | **OpenAI** | API key | Create a key in your OpenAI dashboard. |
 | **Gemini** | API key | AI Studio has a free tier with limits per minute and per day, on which Google may use what you send to improve its products. With billing turned on the limits are higher and that does not apply. |
-| **OpenRouter** | API key, or **Connect OpenRouter** | Signing in with OpenRouter hands TREK a key, no copying needed. Offered only when TREK runs on an `https://` address, because OpenRouter only sends the browser back to one. |
+| **OpenRouter** | API key, or **Connect OpenRouter** | Signing in with OpenRouter hands YOUYA a key, no copying needed. Offered only when YOUYA runs on an `https://` address, because OpenRouter only sends the browser back to one. |
 | **ChatGPT** | **Sign in with ChatGPT** | Uses your ChatGPT plan, no key needed. Marked **Beta**: an API key is the official way. |
 | **Own server** | Server address, optional API key, model | Any OpenAI compatible server, for example Ollama. Only an administrator can set one up, for everyone. |
 
-**Paste an API key** recognises the provider from the key itself and says **Detected:** with its name. When a key does not give its provider away, TREK asks **Which provider is this key from?** The key is tested as soon as you connect. **Get a key** opens the provider's page for making one.
+**Paste an API key** recognises the provider from the key itself and says **Detected:** with its name. When a key does not give its provider away, YOUYA asks **Which provider is this key from?** The key is tested as soon as you connect. **Get a key** opens the provider's page for making one.
 
-**Sign in with ChatGPT** works in two steps, because ChatGPT does not send you back to TREK by itself:
+**Sign in with ChatGPT** works in two steps, because ChatGPT does not send you back to YOUYA by itself:
 
 1. **Open ChatGPT sign-in** opens ChatGPT in a new tab. Sign in there.
 2. Your browser then shows an error page. That is expected. Copy the address at the top, which starts with `127.0.0.1`, come back and use **Paste address**.
 
-If it takes too long, TREK asks you to sign in again. A ChatGPT account other than the one already connected is refused until you remove the connection first.
+If it takes too long, YOUYA asks you to sign in again. A ChatGPT account other than the one already connected is refused until you remove the connection first.
 
 ### Choosing a model
 
-Once connected, **Model** lists what the provider offers. *Only models that can use tools are listed*, because the assistant works through TREK's tools. **Recommended** marks a good default and **Free** a model without charge. A new connection starts on a model TREK picks; change it whenever you like.
+Once connected, **Model** lists what the provider offers. *Only models that can use tools are listed*, because the assistant works through YOUYA's tools. **Recommended** marks a good default and **Free** a model without charge. A new connection starts on a model YOUYA picks; change it whenever you like.
 
 ## Your settings
 
@@ -47,7 +47,7 @@ A connected section shows **Connected to** *the provider*, its status and the mo
 | **Signed out** | You signed out; the connection counts as none. |
 | **Not reachable** | The provider did not answer or refused the key. **Replace key** fixes a key that stopped working. |
 
-When your own connection breaks, TREK does not quietly switch you to the administrator's: you see why yours does not work instead.
+When your own connection breaks, YOUYA does not quietly switch you to the administrator's: you see why yours does not work instead.
 
 **Disconnect** (or **Sign out** for ChatGPT) removes your connection. Your chats stay. **Open assistant** opens the chat straight from here.
 
@@ -62,7 +62,7 @@ If you saved your own AI parsing model before the shared connection existed, tha
 
 ## For administrators
 
-> **Admin:** In **Admin → Addons**, the **AI Assistant**, **AI Parsing** and **MCP** addons share one **AI** tile: *One connection for the assistant and booking import. MCP lets other AI apps use TREK.* Switch the addons on there, then press **Set up AI**. See [Admin-Addons](Admin-Addons).
+> **Admin:** In **Admin → Addons**, the **AI Assistant**, **AI Parsing** and **MCP** addons share one **AI** tile: *One connection for the assistant and booking import. MCP lets other AI apps use YOUYA.* Switch the addons on there, then press **Set up AI**. See [Admin-Addons](Admin-Addons).
 
 **Set up AI** opens one dialog with a tab per part. A tab shows only while its addon is on, and every change is saved at once.
 
@@ -80,7 +80,7 @@ While you pay, **Connection for everyone** holds the instance's connection: an A
 
 > Signing in with your own ChatGPT plan for everyone shares that plan with everyone on the server: their chats count against your plan. Check that your plan and OpenAI's terms allow this.
 
-TREK reaches an own server through the guard meant for services on your own network, so a model server on the same machine or your LAN works without `ALLOW_INTERNAL_NETWORK`. The cloud providers go through the strict guard. See [Internal-Network-Access](Internal-Network-Access).
+YOUYA reaches an own server through the guard meant for services on your own network, so a model server on the same machine or your LAN works without `ALLOW_INTERNAL_NETWORK`. The cloud providers go through the strict guard. See [Internal-Network-Access](Internal-Network-Access).
 
 ### AI Assistant
 

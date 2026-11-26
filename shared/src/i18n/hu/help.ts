@@ -7,7 +7,7 @@ const help: TranslationStrings = {
   'help.contents': 'Tartalom',
   'help.noResults': 'Nincs találat.',
   'help.errorTitle': 'Az oldal nem tölthető be',
-  'help.errorBody': 'A súgó tartalmát a TREK wikiből töltjük be. Ellenőrizd a kapcsolatot, és próbáld újra.',
+  'help.errorBody': 'A súgó tartalmát a YOUYA wikiből töltjük be. Ellenőrizd a kapcsolatot, és próbáld újra.',
 
   // center
   'help.center.button': 'Súgó ehhez a képernyőhöz',
@@ -74,14 +74,14 @@ const help: TranslationStrings = {
   'help.guide.create-trip.step.2':
     'Adj nevet az utazásnak. Csak ezt a mezőt kötelező kitölteni, minden mást később is megadhatsz.',
   'help.guide.create-trip.step.3':
-    'Válassz kezdő és záró dátumot. A TREK minden dátumhoz létrehoz egy napot, így máris elkezdheted az útiterv összeállítását. Még nincsenek dátumaid? Hagyd mindkettőt üresen, és helyette add meg a „Napok száma” értékét.',
+    'Válassz kezdő és záró dátumot. A YOUYA minden dátumhoz létrehoz egy napot, így máris elkezdheted az útiterv összeállítását. Még nincsenek dátumaid? Hagyd mindkettőt üresen, és helyette add meg a „Napok száma” értékét.',
   'help.guide.create-trip.step.4':
     'Ha szeretnéd, adj hozzá borítófotót: tölts fel sajátot, húzd be vagy illeszd be, vagy keress képet az úti célhoz az Unsplashen.',
   'help.guide.create-trip.step.5': 'Kattints az „Új utazás létrehozása” gombra.',
   'help.guide.create-trip.result':
     'Az utazás megjelenik az irányítópulton. Ha ez a következő utazásod, a felső beszállókártyán látszik.',
   'help.guide.create-trip.tip.1':
-    'A dátumok később is módosíthatók. Ha már vannak foglalások, a TREK megkérdezi, hogy a napokkal együtt azokat is áthelyezze-e.',
+    'A dátumok később is módosíthatók. Ha már vannak foglalások, a YOUYA megkérdezi, hogy a napokkal együtt azokat is áthelyezze-e.',
   'help.guide.create-trip.tip.2':
     'Az itt megadott pénznemre váltódik át az utazás összes költsége. Válaszd az úti cél pénznemét.',
 
@@ -94,7 +94,7 @@ const help: TranslationStrings = {
   'help.guide.edit-trip.step.3': 'Kattints a „Frissítés” gombra.',
   'help.guide.edit-trip.result': 'A kártya azonnal frissül az utazás minden tagjánál.',
   'help.guide.edit-trip.tip.1':
-    'Ha egy foglalásokkal rendelkező utazás kezdetét áthelyezed, a TREK megkérdezi, hogy a foglalások is kerüljenek-e át. Ha lerövidíted az utazást, felsorolja a kieső napokat és az azokra tervezett programokat. A mentés csak a „Napok eltávolítása és mentés” gombra kattintva történik meg.',
+    'Ha egy foglalásokkal rendelkező utazás kezdetét áthelyezed, a YOUYA megkérdezi, hogy a foglalások is kerüljenek-e át. Ha lerövidíted az utazást, felsorolja a kieső napokat és az azokra tervezett programokat. A mentés csak a „Napok eltávolítása és mentés” gombra kattintva történik meg.',
 
   // cover-image
   'help.guide.cover-image.title': 'Borítókép beállítása',
@@ -105,7 +105,7 @@ const help: TranslationStrings = {
   'help.guide.cover-image.step.3': 'Válassz egy fotót, és kattints a „Frissítés” gombra.',
   'help.guide.cover-image.result': 'A fotót az utazáshoz mentjük, és mindenhol megjelenik, ahol az utazás szerepel.',
   'help.guide.cover-image.tip.1':
-    'Az Unsplash-keresésből származó fotóknál a TREK automatikusan feltünteti a szerzőt; a saját feltöltéseid a szervereden maradnak.',
+    'Az Unsplash-keresésből származó fotóknál a YOUYA automatikusan feltünteti a szerzőt; a saját feltöltéseid a szervereden maradnak.',
 
   // duplicate-trip
   'help.guide.duplicate-trip.title': 'Utazás duplikálása',
@@ -153,7 +153,7 @@ const help: TranslationStrings = {
     'Lásd minden aktív utazás napjait és foglalásait a naptáralkalmazásodban, folyamatosan szinkronban.',
   'help.guide.calendar-feed.step.1': 'Kattints a nézetváltó melletti naptár ikonra.',
   'help.guide.calendar-feed.step.2':
-    'Kattints a „Naptár-feliratkozás bekapcsolása” gombra. A TREK létrehoz egy privát feedlinket.',
+    'Kattints a „Naptár-feliratkozás bekapcsolása” gombra. A YOUYA létrehoz egy privát feedlinket.',
   'help.guide.calendar-feed.step.3':
     'Kattints a „Hozzáadás a Google Naptárhoz” vagy a „Hozzáadás az Apple Naptárhoz / Outlookhoz” gombra. Más naptáralkalmazásnál nyisd meg a „Vagy másold ki kézzel a hivatkozást” részt, és onnan másold ki a linket.',
   'help.guide.calendar-feed.result':
@@ -347,7 +347,7 @@ const help: TranslationStrings = {
   // invite
   'help.guide.invite.title': 'Közös tervezés valakivel',
   'help.guide.invite.goal':
-    'Vond össze a tervedet egy másik TREK-felhasználó tervével, hogy egy naptárban lássátok mindkettőtök szabadnapjait.',
+    'Vond össze a tervedet egy másik YOUYA-felhasználó tervével, hogy egy naptárban lássátok mindkettőtök szabadnapjait.',
   'help.guide.invite.step.1': 'Kattints a „Személyek” kártyán a személy ikonra.',
   'help.guide.invite.step.2': 'Válaszd ki a felhasználót, és kattints a „Meghívó küldése” gombra.',
   'help.guide.invite.step.3':
@@ -376,7 +376,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ─────────────────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atlasz',
   'help.ctx.atlas.summary':
-    'Az Atlasz egy világtérképen mutatja meg, merre jártál: minden ország, ahová egy utazásod vitt, színes, a TREK használata előtt meglátogatott országokat pedig kézzel is hozzáadhatod. Nagyíts rá a régiókhoz, vezess bakancslistát a még meglátogatni kívánt helyekről, a számaidat pedig az alsó üvegpanelen látod.',
+    'Az Atlasz egy világtérképen mutatja meg, merre jártál: minden ország, ahová egy utazásod vitt, színes, a YOUYA használata előtt meglátogatott országokat pedig kézzel is hozzáadhatod. Nagyíts rá a régiókhoz, vezess bakancslistát a még meglátogatni kívánt helyekről, a számaidat pedig az alsó üvegpanelen látod.',
   'help.ctx.atlas.bullet.1':
     'A térkép: minden meglátogatott ország saját, állandó színt kap, a tervezett országok szaggatott körvonalat, a bakancslistás országok átlós vonalkázást, minden más ország szürke. Ha egy ország fölé viszed az egeret, látod az utazásait, a helyeit, valamint az első és az utolsó látogatás idejét.',
   'help.ctx.atlas.bullet.2':
@@ -392,7 +392,7 @@ const help: TranslationStrings = {
   // mark-country
   'help.guide.mark-country.title': 'Ország megjelölése meglátogatottként',
   'help.guide.mark-country.goal':
-    'Vegyél fel egy országot, ahol még a TREK használata előtt jártál, hogy a térkép és a számlálód is tartalmazza.',
+    'Vegyél fel egy országot, ahol még a YOUYA használata előtt jártál, hogy a térkép és a számlálód is tartalmazza.',
   'help.guide.mark-country.step.1': 'Írd be az ország nevét a térkép tetején lévő keresőmezőbe.',
   'help.guide.mark-country.step.2':
     'Válaszd ki a listából. A térkép az országra ugrik, és megnyílik hozzá egy felugró ablak.',
@@ -461,7 +461,7 @@ const help: TranslationStrings = {
   'help.guide.search-place.result':
     'A régió és vele az ország is megjelölődik. Azoknál az országoknál, amelyekhez a térképcsomag nem tartalmaz régióadatot, maga az ország kap jelölést.',
   'help.guide.search-place.tip.1':
-    'A helyek ugyanabból a keresésből jönnek, mint a TREK-ben máshol, így az adminisztrátor által beállított szolgáltatót használják.',
+    'A helyek ugyanabból a keresésből jönnek, mint a YOUYA-ben máshol, így az adminisztrátor által beállított szolgáltatót használják.',
   // bucket-country
   'help.guide.bucket-country.title': 'Ország felvétele a bakancslistára',
   'help.guide.bucket-country.goal':
@@ -499,7 +499,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     'A számok automatikusan frissülnek, ahogy az utazásaidat tervezed. Itt semmit sem kell karbantartanod.',
   'help.guide.stats.tip.1':
-    'A városokat a szöveges címből olvassa ki a TREK, nem keresi ki. Kihagyja az országot, az irányítószámot és a régiót, és az előttük álló nevet veszi, így a „10178 Berlin” Berlinnek számít. Egy rövid cím, például „Osteria Francescana, Italy”, egyáltalán nem ad hozzá várost.',
+    'A városokat a szöveges címből olvassa ki a YOUYA, nem keresi ki. Kihagyja az országot, az irányítószámot és a régiót, és az előttük álló nevet veszi, így a „10178 Berlin” Berlinnek számít. Egy rövid cím, például „Osteria Francescana, Italy”, egyáltalán nem ad hozzá várost.',
   'help.guide.stats.tip.2':
     'A kézzel megjelölt országok beleszámítanak az „Ország” értékbe és a kontinensekbe, de utazást, helyet vagy napot nem adnak hozzá.',
   // dawarich-countries
@@ -509,7 +509,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     'Ha a Dawarich bővítmény csatlakoztatva van, a térkép alján, a statisztikától balra megjelenik egy Dawarich panel két csempével. Kattints az „Ország” csempére.',
   'help.guide.dawarich-countries.step.2':
-    'Az ablak az „Ország” fülön nyílik meg. Kattints az „Országok keresése” gombra: a TREK hónapról hónapra beolvassa, mely országokat és városokat fednek le a felvételeid az elmúlt 12 hónapban, ezért ez eltarthat egy ideig. Minden ország, amely még nincs az Atlaszodban, megjelenik a zászlajával, a városok számával és az első város nevével. Alapból minden ország ki van pipálva. Ha egyet ki akarsz hagyni, kattints a sorára.',
+    'Az ablak az „Ország” fülön nyílik meg. Kattints az „Országok keresése” gombra: a YOUYA hónapról hónapra beolvassa, mely országokat és városokat fednek le a felvételeid az elmúlt 12 hónapban, ezért ez eltarthat egy ideig. Minden ország, amely még nincs az Atlaszodban, megjelenik a zászlajával, a városok számával és az első város nevével. Alapból minden ország ki van pipálva. Ha egyet ki akarsz hagyni, kattints a sorára.',
   'help.guide.dawarich-countries.step.3':
     'Erősítsd meg a jobb alsó gombbal, amelyen öt kipipált sor esetén „5 ország hozzáadása” áll. Az ablak jelzi, hány ország került be. Mire bezárod, a térkép már frissült.',
   'help.guide.dawarich-countries.result':
@@ -517,7 +517,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Azokat az országokat, amelyeket az Atlasz már meglátogatottként mutat, akár kézi jelölés, akár egy utazás, akár egy korábbi ellenőrzés alapján, kihagyjuk, így a saját jelöléseid sosem változnak. Ha egy országot korábban eltávolítottál az Atlaszból, és itt megerősíted, újra bekerül.',
   'help.guide.dawarich-countries.tip.2':
-    'Ha a TREK nem tud párosítani egy országnevet, a nevet a sorok alatt felsorolja, nem hagyja ki. Az „Ellenőrzés újra” ismét lekérdezi a Dawarichot. A lista alatti megjegyzés jelzi, hogy az elmúlt 12 hónapot ellenőriztük. Ez az időszak nem módosítható.',
+    'Ha a YOUYA nem tud párosítani egy országnevet, a nevet a sorok alatt felsorolja, nem hagyja ki. Az „Ellenőrzés újra” ismét lekérdezi a Dawarichot. A lista alatti megjegyzés jelzi, hogy az elmúlt 12 hónapot ellenőriztük. Ez az időszak nem módosítható.',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': 'Kívánságok kipipálása a felvételeid alapján',
   'help.guide.dawarich-wishes.goal':
@@ -525,7 +525,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.step.1':
     'A térkép alján, a statisztikától balra lévő Dawarich panelen kattints a „Kívánságlista” csempére.',
   'help.guide.dawarich-wishes.step.2':
-    'Az ablak a „Kívánságlista” fülön nyílik meg. Kattints a „Kívánságlista ellenőrzése” gombra: a TREK a felvételeid alapján minden olyan bejegyzést ellenőriz, amelynek vannak koordinátái. Az elért kívánságoknál látszik, milyen közel jutottál, mennyi ideig maradtál, és melyik napon jártál ott; alapból ki vannak pipálva. Amit már korábban kipipáltál, azon a „Már kipipálva” felirat áll. A lista alatti megjegyzés megadja a koordináták nélküli bejegyzések számát, és a szabályt is: „Egy kívánság 250 méteren belül és 20 perc helyszíni tartózkodás után számít teljesítettnek.”',
+    'Az ablak a „Kívánságlista” fülön nyílik meg. Kattints a „Kívánságlista ellenőrzése” gombra: a YOUYA a felvételeid alapján minden olyan bejegyzést ellenőriz, amelynek vannak koordinátái. Az elért kívánságoknál látszik, milyen közel jutottál, mennyi ideig maradtál, és melyik napon jártál ott; alapból ki vannak pipálva. Amit már korábban kipipáltál, azon a „Már kipipálva” felirat áll. A lista alatti megjegyzés megadja a koordináták nélküli bejegyzések számát, és a szabályt is: „Egy kívánság 250 méteren belül és 20 perc helyszíni tartózkodás után számít teljesítettnek.”',
   'help.guide.dawarich-wishes.step.3':
     'Erősítsd meg a jobb alsó gombbal, amelyen két kipipált sor esetén „2 kipipálása” áll. Ezután zárd be az ablakot, és nyisd meg a mellette lévő panel „Bakancslista” fülét.',
   'help.guide.dawarich-wishes.result':
@@ -533,7 +533,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     'Az elhaladás nem számít: a hely közelében kell lenned, és ott is kell töltened egy kis időt. Ha több tartózkodás is megfelel, a leghosszabbat vesszük alapul. Koordináták nélküli kívánságot nem lehet ellenőrizni, ezért a helyeket a „Hely hozzáadása” keresőjével add hozzá, ne csak név alapján.',
   'help.guide.dawarich-wishes.tip.2':
-    'Egy ellenőrzés legfeljebb 50 bejegyzést vizsgál meg, a még ki nem pipáltakkal kezdve. Ha több van, a TREK jelzi. A már kipipált kívánság megtartja a saját dátumát.',
+    'Egy ellenőrzés legfeljebb 50 bejegyzést vizsgál meg, a még ki nem pipáltakkal kezdve. Ha több van, a YOUYA jelzi. A már kipipált kívánság megtartja a saját dátumát.',
 
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Gyűjtemények',
@@ -592,7 +592,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     'A helyek a nevükkel, címükkel, koordinátáikkal, leírásukkal és kategóriájukkal együtt átmásolódnak a listába. Az utazás nem változik.',
   'help.guide.import-from-trip.tip.1':
-    'A TREK automatikusan kihagyja a név vagy koordináták szerinti ismétlődéseket, így nyugodtan importálhatsz kétszer is.',
+    'A YOUYA automatikusan kihagyja a név vagy koordináták szerinti ismétlődéseket, így nyugodtan importálhatsz kétszer is.',
   'help.guide.import-from-trip.tip.2':
     'Egy utazás helylistájában a jelölési mód a „Mentés gyűjteménybe” lehetőséget kínálja, ha csak kézzel válogatott helyeket szeretnél menteni.',
   // place-status
@@ -622,7 +622,7 @@ const help: TranslationStrings = {
   'help.guide.place-detail.result':
     'A „Szerkesztés” gombbal közvetlenül az adatlapon módosíthatod a nevet, a kategóriát, a címkéket, a címet, a koordinátákat, a leírást és a linkeket.',
   'help.guide.place-detail.tip.1':
-    'Ha a helynek nincs saját képe, a borítót a TREK automatikusan letölti. Saját képként JPG, PNG, GIF, WebP vagy HEIC fájlt tölthetsz fel, legfeljebb 20 MB-ig. A kamera melletti kuka visszaállítja az automatikus fotót.',
+    'Ha a helynek nincs saját képe, a borítót a YOUYA automatikusan letölti. Saját képként JPG, PNG, GIF, WebP vagy HEIC fájlt tölthetsz fel, legfeljebb 20 MB-ig. A kamera melletti kuka visszaállítja az automatikus fotót.',
   'help.guide.place-detail.tip.2':
     'Minden tag, te is, adhat csillagos értékelést az állapot alatt; a szűrősor „Értékelés” szűrője az átlagot használja.',
   // labels
@@ -668,7 +668,7 @@ const help: TranslationStrings = {
     'Ezt egy megosztott lista nézői is megtehetik. A helyeket átmásolja a listából, magát a listát nem módosítja.',
   // share-list
   'help.guide.share-list.title': 'Lista megosztása valakivel',
-  'help.guide.share-list.goal': 'Tervezz meg egy listát másokkal közösen, élőben, ezen a TREK-példányon.',
+  'help.guide.share-list.goal': 'Tervezz meg egy listát másokkal közösen, élőben, ezen a YOUYA-példányon.',
   'help.guide.share-list.step.1': 'Kattints a „Megosztás” gombra a listád fejlécében.',
   'help.guide.share-list.step.2':
     'Válaszd ki a felhasználót és a szerepkört: „Néző”, „Szerkesztő” vagy „Adminisztrátor”.',
@@ -683,21 +683,21 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Lista exportálása fájlba',
   'help.guide.export-list.goal':
-    'Adj át egy listát valakinek egy másik TREK-szerveren, nyisd meg egy térképalkalmazásban, vagy nézd meg a Google My Mapsben.',
+    'Adj át egy listát valakinek egy másik YOUYA-szerveren, nyisd meg egy térképalkalmazásban, vagy nézd meg a Google My Mapsben.',
   'help.guide.export-list.step.1': 'Kattints az „Exportálás” gombra a lista fejlécében.',
   'help.guide.export-list.step.2':
-    'Válaszd a „TREK-lista” formátumot, ha egy másik TREK-ben használnád a listát címkékkel és állapotokkal együtt, a GPX-et az OsmAndhoz, az Organic Mapshez, Garmin eszközhöz és más, útpontokat kezelő alkalmazásokhoz, vagy a KML-t a Google My Mapshez, hogy a helyeket a Google Térképen lásd.',
+    'Válaszd a „YOUYA-lista” formátumot, ha egy másik YOUYA-ben használnád a listát címkékkel és állapotokkal együtt, a GPX-et az OsmAndhoz, az Organic Mapshez, Garmin eszközhöz és más, útpontokat kezelő alkalmazásokhoz, vagy a KML-t a Google My Mapshez, hogy a helyeket a Google Térképen lásd.',
   'help.guide.export-list.result': 'A fájl letöltődik. Megosztott listát bármelyik tagja exportálhat.',
   'help.guide.export-list.tip.1':
-    'Koordináták nélküli hely nem lehet GPX-útpont vagy KML-gombostű; ezek kimaradnak, és a TREK jelzi, hány ilyen volt.',
+    'Koordináták nélküli hely nem lehet GPX-útpont vagy KML-gombostű; ezek kimaradnak, és a YOUYA jelzi, hány ilyen volt.',
   'help.guide.export-list.tip.2':
-    'Az értékelések, a tagok és a feltöltött fotók szándékosan nem kerülnek az exportba; ezek ehhez a TREK-példányhoz tartoznak, nem a listához.',
+    'Az értékelések, a tagok és a feltöltött fotók szándékosan nem kerülnek az exportba; ezek ehhez a YOUYA-példányhoz tartoznak, nem a listához.',
   // import-file
   'help.guide.import-file.title': 'Lista importálása fájlból',
-  'help.guide.import-file.goal': 'Importálj egy TREK-listafájlt vagy GPX-fájlt új listaként vagy egy meglévő listába.',
+  'help.guide.import-file.goal': 'Importálj egy YOUYA-listafájlt vagy GPX-fájlt új listaként vagy egy meglévő listába.',
   'help.guide.import-file.step.1': 'A listasávban kattints az „Új lista” melletti, feltöltés nyilas importálás gombra.',
   'help.guide.import-file.step.2':
-    'Válaszd ki a fájlt. Mielőtt bármit importálna, a TREK megmutatja, mi van a fájlban: a nevét, a helyek és a címkék számát.',
+    'Válaszd ki a fájlt. Mielőtt bármit importálna, a YOUYA megmutatja, mi van a fájlban: a nevét, a helyek és a címkék számát.',
   'help.guide.import-file.step.3':
     'Hagyd az „Új lista” lehetőséget, ha szeretnéd, módosítsd a nevet, majd kattints az „Importálás” gombra. Vagy válaszd a „Hozzáadás listához” lehetőséget, hogy a helyek egy általad szerkeszthető listára kerüljenek, és kattints a „Hozzáadás a listához” gombra.',
   'help.guide.import-file.result':
@@ -705,7 +705,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     'GPX-fájlból minden névvel ellátott útpont hely lesz; a nyomvonalak vonalak, ezért kimaradnak, és az előnézet jelzi, hány pontról van szó.',
   'help.guide.import-file.tip.2':
-    'A TREK elutasítja azt a fájlt, amely se nem TREK-lista, se nem GPX, és megmutatja az okát. Ha csak egy hely nem olvasható, csak az az egy marad ki, nem az egész fájl.',
+    'A YOUYA elutasítja azt a fájlt, amely se nem YOUYA-lista, se nem GPX, és megmutatja az okát. Ha csak egy hely nem olvasható, csak az az egy marad ki, nem az egész fájl.',
   // edit-list
   'help.guide.edit-list.title': 'Lista szerkesztése vagy törlése',
   'help.guide.edit-list.goal':
@@ -930,7 +930,7 @@ const help: TranslationStrings = {
     'A naphoz kötött bejegyzések csak egyszer számítanak, akárhány utazás érinti is azt a napot.',
   // share-public
   'help.guide.share-public.title': 'Az útinapló nyilvános megosztása',
-  'help.guide.share-public.goal': 'Adj csak olvasható linket azoknak, akiknek nincs TREK-fiókjuk.',
+  'help.guide.share-public.goal': 'Adj csak olvasható linket azoknak, akiknek nincs YOUYA-fiókjuk.',
   'help.guide.share-public.step.1':
     'A fejléc ⋯ gombjával nyisd meg az „Útinapló beállításai” ablakot, és görgess a „Nyilvános megosztás” részhez.',
   'help.guide.share-public.step.2': 'Kattints a „Megosztó link létrehozása” gombra.',
@@ -952,7 +952,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.result':
     'Az útinapló megjelenik a listájukban, a bejegyzéseiknél pedig a nevük látszik. Közreműködő eltávolításához kattints a mellette lévő × jelre.',
   'help.guide.contributors.tip.1':
-    'A közreműködők ennek a TREK-nek a felhasználói lehetnek. Mindenki másnak ott a nyilvános link.',
+    'A közreműködők ennek a YOUYA-nek a felhasználói lehetnek. Mindenki másnak ott a nyilvános link.',
   // studio
   'help.guide.studio.title': 'Az útinapló tördelése fotókönyvvé',
   'help.guide.studio.goal': 'Készíts a naplóból nyomtatható oldalakat.',
@@ -993,7 +993,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ────────────────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Studio', // same-as-en
   'help.ctx.journey-studio.summary':
-    'A TREK Studio nyomtatható fotókönyvvé tördeli az útinaplót. A napló fölött nyílik meg: balra a sáv a paneleivel, középen az éppen szerkesztett oldalpár, jobbra a tulajdonságai. Az Automatikus elrendezés a bejegyzéseidből elkészíti az első vázlatot, egy téma színeket és betűtípusokat ad a könyvnek, az asszisztens pedig veled együtt tervezhet oldalakat. Ezután mindent áthelyezhetsz, körbevághatsz és átformázhatsz, és minden lépés visszavonható.',
+    'A YOUYA Studio nyomtatható fotókönyvvé tördeli az útinaplót. A napló fölött nyílik meg: balra a sáv a paneleivel, középen az éppen szerkesztett oldalpár, jobbra a tulajdonságai. Az Automatikus elrendezés a bejegyzéseidből elkészíti az első vázlatot, egy téma színeket és betűtípusokat ad a könyvnek, az asszisztens pedig veled együtt tervezhet oldalakat. Ezután mindent áthelyezhetsz, körbevághatsz és átformázhatsz, és minden lépés visszavonható.',
   'help.ctx.journey-studio.bullet.1':
     'Felső sáv: balra az útinapló borítója és neve. Jobbra: ki van még a könyvben és el van-e mentve, az oldalformátum, a visszavonás, az újra és a beillesztés, az Automatikus elrendezés, az asszisztens, a súgó, az Exportálás és a Studiót bezáró gomb.',
   'help.ctx.journey-studio.bullet.2':
@@ -1005,7 +1005,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     'A könyv felépítése egy nyomtatott könyvét követi: borító, egy különálló első oldal a borító üres belső oldalával szemben, az oldalpárok, egy különálló utolsó oldal és a hátsó borító. Az oldalszámozás az első oldallal kezdődik, és nyomtatásban is úgy jelenik meg, ahogy látod.',
   'help.ctx.journey-studio.bullet.6':
-    'Egyszerre többen is dolgozhattok a terven: mindenki látja a többiek mutatóját a nevükkel. Ha olyan verziót mentesz, amelyet közben más módosított, a TREK ütközést jelez, és nem írja felül a munkáját.',
+    'Egyszerre többen is dolgozhattok a terven: mindenki látja a többiek mutatóját a nevükkel. Ha olyan verziót mentesz, amelyet közben más módosított, a YOUYA ütközést jelez, és nem írja felül a munkáját.',
   'help.ctx.journey-studio.bullet.7':
     'Téma: egyetlen megjelenés az egész könyvnek, a papírja, a tintája és három kiemelőszíne, a betűtípusai és a motívumai. A témához kapcsolt elemek követik, ha módosítod.',
   'help.ctx.journey-studio.bullet.8':
@@ -1086,7 +1086,7 @@ const help: TranslationStrings = {
     'A könyv minden kapcsolt színe és betűtípusa egyszerre változik, a téma alkalmazása pedig egyetlen visszavonási lépés.',
   'help.guide.studio-content.tip.1': 'A „Content” tetején lévő keresőmező mindkét listát szűri.',
   'help.guide.studio-content.tip.2':
-    'Ha az asztalodról ráhúzol egy fájlt a munkaterületre, a TREK egy lépésben feltölti és el is helyezi.',
+    'Ha az asztalodról ráhúzol egy fájlt a munkaterületre, a YOUYA egy lépésben feltölti és el is helyezi.',
   // studio-elements
   'help.guide.studio-elements.title': 'Szöveg, alakzatok, ikonok és matricák hozzáadása',
   'help.guide.studio-elements.goal': 'Díszítsd az oldalpárt a fotókon és a történeteken túl.',
@@ -1200,12 +1200,12 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.result':
     'Az oldalpár a kereteivel és szövegstílusaival együtt importálódik. Húzd a keretekbe az új útinapló fotóit.',
   'help.guide.studio-spread-file.tip.1':
-    'Ha egy fájl nem kétoldalas tervfájl, a TREK elutasítja, és megmutatja az okát.',
+    'Ha egy fájl nem kétoldalas tervfájl, a YOUYA elutasítja, és megmutatja az okát.',
 
   // ── Screen: settings (all tabs) ───────────────────────────────────────────────────────
   'help.ctx.settings.title': 'Beállítások',
   'help.ctx.settings.summary':
-    'A személyes beállításaid, a bal oldalsávban témánként egy füllel. A legtöbb kapcsoló azonnal érvénybe lép, amint átállítod. A „Mentés” gombbal rendelkező űrlapok csak akkor mentődnek, ha a „Mentés” gombra kattintasz. Az itteni beállítások senki más TREK-jét nem befolyásolják.',
+    'A személyes beállításaid, a bal oldalsávban témánként egy füllel. A legtöbb kapcsoló azonnal érvénybe lép, amint átállítod. A „Mentés” gombbal rendelkező űrlapok csak akkor mentődnek, ha a „Mentés” gombra kattintasz. Az itteni beállítások senki más YOUYA-jét nem befolyásolják.',
   'help.ctx.settings.bullet.1':
     'Bal oldalsáv: „Általános”, „Megjelenés”, „Térkép”, „Értesítések”, „Integráció”, „Offline” és „Fiók”. A „Pluginok” akkor jelenik meg, ha van aktív plugin. A „Névjegy” akkor látszik, ha az üzemeltető nem rejtette el. A verziószám alul látható.',
   'help.ctx.settings.bullet.2':
@@ -1216,7 +1216,7 @@ const help: TranslationStrings = {
     'A „Fiók” részben a profilod, a jelszavad, a kétlépcsős azonosítás, a jelkulcsok és a fiók törlésének lehetősége található.',
   'help.ctx.settings-display.title': 'Megjelenés',
   'help.ctx.settings-display.summary':
-    'Itt állíthatod be, mivel induljon a TREK, milyen nyelvet és mértékegységeket használjon, és hogyan működjön az utazástérkép és a foglalások. Minden módosítás azonnal érvénybe lép.',
+    'Itt állíthatod be, mivel induljon a YOUYA, milyen nyelvet és mértékegységeket használjon, és hogyan működjön az utazástérkép és a foglalások. Minden módosítás azonnal érvénybe lép.',
   'help.ctx.settings-display.bullet.1':
     '„Indítás”: a „Kezdőoldal” az „Irányítópult” vagy az „Aktív utazás” lehet; az „Aktív utazás” választásakor a „Kezdő fül” határozza meg, melyik fülön nyíljon meg az utazás.',
   'help.ctx.settings-display.bullet.2':
@@ -1225,7 +1225,7 @@ const help: TranslationStrings = {
     'Utazás és térkép: „Helyek megnyitása itt”, „Dátum elöl a napok fejlécében”, „Útvonal-címkék a foglalásokhoz”, „Mindig jelenjenek meg a foglalási útvonalak”, „Kompakt jelölők a nem tervezett helyekhez”, „Helyek felfedezése a térképen”, „Foglalási kódok elrejtése” és „Útvonal optimalizálása a szállástól”.',
   'help.ctx.settings-appearance.title': 'Megjelenés',
   'help.ctx.settings-appearance.summary':
-    'Így néz ki a TREK ennél a fióknál: világos vagy sötét téma, kiemelőszín, üveghatás és animációk, betűméret, és hogy mely widgetek jelenjenek meg az irányítópulton. Minden azonnal érvénybe lép, minden eszközön, ahol bejelentkezel.',
+    'Így néz ki a YOUYA ennél a fióknál: világos vagy sötét téma, kiemelőszín, üveghatás és animációk, betűméret, és hogy mely widgetek jelenjenek meg az irányítópulton. Minden azonnal érvénybe lép, minden eszközön, ahol bejelentkezel.',
   'help.ctx.settings-appearance.bullet.1':
     'Téma: „Színmód” („Világos”, „Sötét” vagy „Automatikus”), a „Színséma”, és az „Egyéni” lehetőséggel saját kiemelőszín világos és sötét módhoz, kontrasztellenőrzéssel.',
   'help.ctx.settings-appearance.bullet.2':
@@ -1245,7 +1245,7 @@ const help: TranslationStrings = {
     'Csak Mapbox GL-nél: „3D épületek és terep”, „Magas minőség mód” és „Érdekes helyek elrejtése”. A „Térkép mentése” gomb fölött élő előnézet látható. A „Térkép mentése” elmenti a választásodat.',
   'help.ctx.settings-notifications.title': 'Értesítések',
   'help.ctx.settings-notifications.summary':
-    'Itt állíthatod be, hogyan ér el a TREK az alkalmazáson kívül. Felül egy táblázat dönti el, mi hová menjen: eseményenként egy sor, csatornánként egy oszlop. Alatta a webhook, az ntfy, az ezen az eszközön használt push és az esetleges plugincsatornák kártyái találhatók.',
+    'Itt állíthatod be, hogyan ér el a YOUYA az alkalmazáson kívül. Felül egy táblázat dönti el, mi hová menjen: eseményenként egy sor, csatornánként egy oszlop. Alatta a webhook, az ntfy, az ezen az eszközön használt push és az esetleges plugincsatornák kártyái találhatók.',
   'help.ctx.settings-notifications.bullet.1':
     '„Értesítések”: csatornánként kapcsold be vagy ki az egyes eseményeket. A lakat azt jelzi, hogy a rendszergazda mindenkinél kikapcsolta az adott eseményt.',
   'help.ctx.settings-notifications.bullet.2':
@@ -1256,7 +1256,7 @@ const help: TranslationStrings = {
     '„Push értesítések ezen az eszközön”: a „Bekapcsolás ezen az eszközön” csak erre a böngészőre vonatkozik; a „Teszt küldése” egy próbaértesítést küld. A plugincsatornán a „Beállítás” gomb látszik, amíg be nem állítod.',
   'help.ctx.settings-integrations.title': 'Integrációk',
   'help.ctx.settings-integrations.summary':
-    'Minden, ami kívülről kapcsolódik a TREK-hez: a saját címed a foglalási e-mailekhez, fotókönyvtárak a naplóhoz, az AirTrail a repülésekhez, a Dawarich a ténylegesen bejárt helyekhez, a wanderer az útvonalakhoz, csak olvasható API-kulcsok más programokhoz és MCP az AI-kliensekhez. Egy másik szolgáltatáshoz csak akkor csatlakozhatsz, ha a rendszergazda bekapcsolta.',
+    'Minden, ami kívülről kapcsolódik a YOUYA-hez: a saját címed a foglalási e-mailekhez, fotókönyvtárak a naplóhoz, az AirTrail a repülésekhez, a Dawarich a ténylegesen bejárt helyekhez, a wanderer az útvonalakhoz, csak olvasható API-kulcsok más programokhoz és MCP az AI-kliensekhez. Egy másik szolgáltatáshoz csak akkor csatlakozhatsz, ha a rendszergazda bekapcsolta.',
   'help.ctx.settings-integrations.bullet.1':
     '„Foglalási e-mailek”, legfelül, ha az admin bekapcsolta az e-mail-importot: a továbbítási címed a kapcsolóival. Alatta az Immich és a Synology Photos, az AirTrail, a Dawarich és a wanderer: minden kártyán ott a cím és a kulcs, a „Mentés” és a „Kapcsolat tesztelése” gomb, valamint egy „Csatlakozva” vagy „Nincs kapcsolódva” jelvény.',
   'help.ctx.settings-integrations.bullet.2':
@@ -1267,7 +1267,7 @@ const help: TranslationStrings = {
     'API tokenek: az MCP-hez való csatlakozás régi módja, „Elavult” jelöléssel; helyette használd az „OAuth 2.1 kliensek” lehetőséget.',
   'help.ctx.settings-offline.title': 'Offline', // same-as-en
   'help.ctx.settings-offline.summary':
-    'Mit tárol a TREK ezen az eszközön, hogy egy utazás kapcsolat nélkül is megnyíljon, és mi történik, ha egy offline végzett módosítás ütközik egy máshol végzett módosítással.',
+    'Mit tárol a YOUYA ezen az eszközön, hogy egy utazás kapcsolat nélkül is megnyíljon, és mi történik, ha egy offline végzett módosítás ütközik egy máshol végzett módosítással.',
   'help.ctx.settings-offline.bullet.1':
     '„Offline mód”: az „Offline mód kényszerítése” előbb mindent letölt, utána csak a gyorsítótárból dolgozik, a módosításaidat pedig sorba állítja.',
   'help.ctx.settings-offline.bullet.2':
@@ -1278,20 +1278,20 @@ const help: TranslationStrings = {
     'A „Szinkronizálási ütközések” csak akkor jelenik meg, ha két módosítás ütközik, „Az enyém”, „A szerveré megtartása” és az „Ütközés esetén” lehetőséggel. Az „Offline gyorsítótár” mutatja az utazások, valamint a függő vagy sikertelen módosítások számát, „Próbáld újra”, „Elvetés” és „Gyorsítótár törlése” gombbal.',
   'help.ctx.settings-account.title': 'Fiók',
   'help.ctx.settings-account.summary':
-    'A fiókod ezen a TREK-en és a bejelentkezésed módja: profilkép, felhasználónév és e-mail, jelszó, kétlépcsős hitelesítés és passkey-k. A fiók törlése a „Fiók” kártya alján található.',
+    'A fiókod ezen a YOUYA-en és a bejelentkezésed módja: profilkép, felhasználónév és e-mail, jelszó, kétlépcsős hitelesítés és passkey-k. A fiók törlése a „Fiók” kártya alján található.',
   'help.ctx.settings-account.bullet.1':
     'Fiók: a képen lévő kamerára kattintva profilképet tölthetsz fel, a piros kukával eltávolíthatod. A felhasználónevet és az e-mail-címet a „Mentés” gomb menti.',
   'help.ctx.settings-account.bullet.2':
-    '„Jelszó módosítása”: a jelenlegi jelszó, majd kétszer az új, a szabályok gépelés közben kipipálódnak, végül „Jelszó frissítése”. Ha ezen a TREK-en csak SSO-val lehet bejelentkezni, ez a kártya nem jelenik meg.',
+    '„Jelszó módosítása”: a jelenlegi jelszó, majd kétszer az új, a szabályok gépelés közben kipipálódnak, végül „Jelszó frissítése”. Ha ezen a YOUYA-en csak SSO-val lehet bejelentkezni, ez a kártya nem jelenik meg.',
   'help.ctx.settings-account.bullet.3':
     '„Kétfaktoros hitelesítés (2FA)” hitelesítő alkalmazással és tartalékkódokkal, valamint „Passkey-k” a jelszó nélküli bejelentkezéshez.',
   'help.ctx.settings-account.bullet.4':
     'A fiók törlése a „Fiók” kártya aljának bal oldalán található, és megerősítést kér. Az egyetlen rendszergazda nem törölheti saját magát.',
   // language-region
   'help.guide.language-region.title': 'Nyelv, mértékegységek és pénznem beállítása',
-  'help.guide.language-region.goal': 'Használd a TREK-et a saját nyelveden, a régiódban szokásos formátumokkal.',
+  'help.guide.language-region.goal': 'Használd a YOUYA-et a saját nyelveden, a régiódban szokásos formátumokkal.',
   'help.guide.language-region.step.1':
-    'A „Nyelv és régió” részben válassz nyelvet („Nyelv”) a listából; gépeléssel gyorsan megtalálhatsz egyet. A TREK azonnal átvált, minden eszközön, amelyen bejelentkezel.',
+    'A „Nyelv és régió” részben válassz nyelvet („Nyelv”) a listából; gépeléssel gyorsan megtalálhatsz egyet. A YOUYA azonnal átvált, minden eszközön, amelyen bejelentkezel.',
   'help.guide.language-region.step.2':
     'A „Helynevek” határozza meg, milyen nyelven jelenjenek meg a helykeresés eredményei, a javaslatok és a címek; az „Ugyanaz, mint az alkalmazás” a felület nyelvét követi.',
   'help.guide.language-region.result':
@@ -1314,20 +1314,20 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.2':
     'A rendszergazda mindenkinek megadhatja az alapértelmezéseket; amit itt módosítasz, az csak rád vonatkozik.',
   // startup
-  'help.guide.startup.title': 'Mivel induljon a TREK',
+  'help.guide.startup.title': 'Mivel induljon a YOUYA',
   'help.guide.startup.goal':
-    'A TREK azzal az oldallal nyíljon meg, amelyet a legtöbbet használsz, ne mindig az irányítópulttal.',
+    'A YOUYA azzal az oldallal nyíljon meg, amelyet a legtöbbet használsz, ne mindig az irányítópulttal.',
   'help.guide.startup.step.1':
     'A „Megjelenés” fül tetején, az „Indítás” részben állítsd a „Kezdőoldal” értékét „Irányítópult” vagy „Aktív utazás” lehetőségre.',
   'help.guide.startup.step.2':
     'Az „Aktív utazás” választásakor megjelenik a „Kezdő fül”: válaszd ki, melyik fülön nyíljon meg az utazás.',
-  'help.guide.startup.result': 'Amikor legközelebb megnyitod a TREK-et, közvetlenül ez az oldal jelenik meg.',
+  'help.guide.startup.result': 'Amikor legközelebb megnyitod a YOUYA-et, közvetlenül ez az oldal jelenik meg.',
   'help.guide.startup.tip.1':
     'Az „Aktív utazás” a ma zajló utazás, vagy ha nincs ilyen, a következő. Ugyanez az utazás látszik felül az irányítópulton is.',
   // theme-scheme
   'help.guide.theme-scheme.title': 'Téma és kiemelőszín beállítása',
   'help.guide.theme-scheme.goal':
-    'Legyen a TREK világos, sötét, vagy kövesse az eszközöd beállítását, a neked tetsző színben.',
+    'Legyen a YOUYA világos, sötét, vagy kövesse az eszközöd beállítását, a neked tetsző színben.',
   'help.guide.theme-scheme.step.1':
     'A „Téma” részben állítsd a „Színmód” értékét „Világos”, „Sötét” vagy „Automatikus” lehetőségre. Az „Automatikus” az eszközöd beállítását követi.',
   'help.guide.theme-scheme.step.2':
@@ -1349,7 +1349,7 @@ const help: TranslationStrings = {
   'help.guide.readability.result':
     'A módosítás egyszerre az egész alkalmazásra érvényes, a térképpanelekre és az útinaplóra is.',
   'help.guide.readability.tip.1':
-    'A TREK egyes részei már most is kevesebb animációt használnak, ha az eszközödön be van kapcsolva a mozgáscsökkentés. A „Mozgás csökkentése” a többi részen is csökkenti az animációt.',
+    'A YOUYA egyes részei már most is kevesebb animációt használnak, ha az eszközödön be van kapcsolva a mozgáscsökkentés. A „Mozgás csökkentése” a többi részen is csökkenti az animációt.',
   'help.guide.readability.tip.2':
     'A szövegméret a tipográfiai szinteken keresztül érvényesül, így semmi sem vágódik le; ami már nem fér el, új sorba tördelődik.',
   // dashboard-widgets
@@ -1452,17 +1452,17 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.tip.1':
     'A legtöbb helyet a térképcsempék foglalják; ha kikapcsolod őket, csak az utazások adatai és a dokumentumok maradnak.',
   'help.guide.offline-prepare.tip.2':
-    'A legzökkenőmentesebb offline indításhoz telepítsd a TREK-et alkalmazásként a böngészőből.',
+    'A legzökkenőmentesebb offline indításhoz telepítsd a YOUYA-et alkalmazásként a böngészőből.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': 'Melyik verzió maradjon meg szinkronizálási ütközéskor',
   'help.guide.offline-conflicts.goal':
-    'Válaszd ki, hogyan oldja fel a TREK az offline végzett és a máshol végzett módosítás közötti ütközést.',
+    'Válaszd ki, hogyan oldja fel a YOUYA az offline végzett és a máshol végzett módosítás közötti ütközést.',
   'help.guide.offline-conflicts.step.1':
     'Ha egy offline végzett módosításod ütközik egy újabbal, az „Offline” fül tetején megjelenik a „Szinkronizálási ütközések” rész. Minden módosításnál kattints „Az enyém” vagy „A szerveré megtartása” gombra.',
   'help.guide.offline-conflicts.step.2':
     'Ugyanezen a kártyán az „Ütközés esetén” határozza meg, mi történjen legközelebb: „Kérdezz rá minden alkalommal”, „Mindig az én verzióm megtartása” vagy „Mindig a szerver verziójának megtartása”.',
   'help.guide.offline-conflicts.result':
-    'A „Kérdezz rá minden alkalommal” beállításnál az ütközés a „Szinkronizálási ütközések” között marad, amíg nem döntesz. A másik két beállításnál a TREK magától feloldja.',
+    'A „Kérdezz rá minden alkalommal” beállításnál az ütközés a „Szinkronizálási ütközések” között marad, amíg nem döntesz. A másik két beállításnál a YOUYA magától feloldja.',
   'help.guide.offline-conflicts.tip.1':
     'A „Gyorsítótár törlése” csak az ezen az eszközön tárolt másolatot törli. A szerveren semmi sem változik.',
   // profile
@@ -1483,7 +1483,7 @@ const help: TranslationStrings = {
   'help.guide.password.result':
     'Az új jelszó azonnal érvénybe lép. Minden más eszközöd kijelentkezik, az MCP API-tokenjeid törlődnek, az OAuth klienseknek pedig újra be kell jelentkezniük; ezen az eszközön bejelentkezve maradsz.',
   'help.guide.password.tip.1':
-    'Ha ezen a TREK-en csak SSO-val lehet bejelentkezni, nincs TREK-jelszó, és nincs „Jelszó módosítása” kártya sem.',
+    'Ha ezen a YOUYA-en csak SSO-val lehet bejelentkezni, nincs YOUYA-jelszó, és nincs „Jelszó módosítása” kártya sem.',
   // mfa
   'help.guide.mfa.title': 'Kétlépcsős azonosítás bekapcsolása',
   'help.guide.mfa.goal': 'Védd a fiókodat egy hitelesítő alkalmazás kódjával.',
@@ -1518,15 +1518,15 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     'A fiókod törlődött, a saját utazásaiddal, helyeiddel és fájljaiddal együtt. A mások által birtokolt utazások megmaradnak.',
   'help.guide.delete-account.tip.1':
-    'Ha te vagy az egyetlen rendszergazda, a TREK a „Törlés nem lehetséges” üzenetet jeleníti meg: előbb nevezz ki egy másik felhasználót rendszergazdának.',
+    'Ha te vagy az egyetlen rendszergazda, a YOUYA a „Törlés nem lehetséges” üzenetet jeleníti meg: előbb nevezz ki egy másik felhasználót rendszergazdának.',
   'help.guide.delete-account.tip.2': 'Ez nem vonható vissza. Megerősítés előtt exportáld, amit meg szeretnél tartani.',
 
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Adminisztráció',
   'help.ctx.admin.summary':
-    'A teljes TREK-példány beállításai, minden felhasználóra: ki és hogyan jelentkezhet be, mi van bekapcsolva, hol tárolódnak a fájlok, hogyan küld üzenetet a szerver, és hogyan készül a biztonsági mentés. Ezt az oldalt csak a rendszergazdák látják. Az oldalsáv a füleket „Felhasználók”, „Konfiguráció” és „Karbantartás” csoportba rendezi, és minden fül külön képernyő.',
+    'A teljes YOUYA-példány beállításai, minden felhasználóra: ki és hogyan jelentkezhet be, mi van bekapcsolva, hol tárolódnak a fájlok, hogyan küld üzenetet a szerver, és hogyan készül a biztonsági mentés. Ezt az oldalt csak a rendszergazdák látják. Az oldalsáv a füleket „Felhasználók”, „Konfiguráció” és „Karbantartás” csoportba rendezi, és minden fül külön képernyő.',
   'help.ctx.admin.bullet.1':
-    'A fejléc jobb oldalán látod a felhasználók, utazások, helyek és fájlok számát. Alatta „Frissítés elérhető” sáv jelenik meg, ha új TREK-verzió jelent meg.',
+    'A fejléc jobb oldalán látod a felhasználók, utazások, helyek és fájlok számát. Alatta „Frissítés elérhető” sáv jelenik meg, ha új YOUYA-verzió jelent meg.',
   'help.ctx.admin.bullet.2':
     '„Felhasználók” és „Alapértékek”: fiókok, meghívó linkek és jogosultságok, valamint azok a beállítások és az a térkép, amelyekkel egy új fiók indul.',
   'help.ctx.admin.bullet.3':
@@ -1537,7 +1537,7 @@ const help: TranslationStrings = {
     '„Tárhely”, „Mentés”, „GitHub” és „Audit”: a feltöltések tárolási helye, azonnali és ütemezett mentések, a kiadások története, valamint a biztonsági szempontból fontos események naplója.',
   'help.ctx.admin-users.title': 'Felhasználók',
   'help.ctx.admin-users.summary':
-    'A TREK összes fiókja a szerepkörrel, az e-mail-címmel és az utolsó aktivitás idejével, a meghívó linkek, amelyekkel zárt példányon is lehet regisztrálni, valamint az, hogy ki mit tehet az utazásokban.',
+    'A YOUYA összes fiókja a szerepkörrel, az e-mail-címmel és az utolsó aktivitás idejével, a meghívó linkek, amelyekkel zárt példányon is lehet regisztrálni, valamint az, hogy ki mit tehet az utazásokban.',
   'help.ctx.admin-users.bullet.1':
     'A táblázat: felhasználó, e-mail, szerepkör, létrehozás dátuma és „Utoljára aktív”, soronként „Felhasználó szerkesztése” és „Felhasználó törlése” gombbal. Az avatáron lévő zöld pont azt jelzi, hogy a felhasználó éppen online; a saját sorodban a (Te) jelölés látszik.',
   'help.ctx.admin-users.bullet.2':
@@ -1559,7 +1559,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     '„Csomagolási sablonok”: elnevezett kategória- és tétellisták, amelyekből egy utazás csomaglistája kiindulhat.',
   'help.ctx.admin-config.bullet.2':
-    'Kategóriák: a TREK-ben a helyinspektortól a Gyűjteményekig használt kategóriák neve, ikonja és színe, mindegyik egy előnézettel ellátott ablakban szerkeszthető.',
+    'Kategóriák: a YOUYA-ben a helyinspektortól a Gyűjteményekig használt kategóriák neve, ikonja és színe, mindegyik egy előnézettel ellátott ablakban szerkeszthető.',
   'help.ctx.admin-config.bullet.3':
     'Iskolai szünetek: az országok és régiók katalógusa a szünetek időszakaival, amelyből a Vacay-ben bárki választhat.',
   'help.ctx.admin-settings.title': 'Biztonság és szolgáltatások',
@@ -1570,12 +1570,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     '„Passkey-bejelentkezés”: a „Relying Party azonosító (domain)” és az „Engedélyezett origók”. „Egyszeri bejelentkezés (OIDC)”: „Megjelenítendő név”, „Kibocsátó URL”, egy opcionális „Discovery URL”, „Kliens azonosító” és „Kliens titok”.',
   'help.ctx.admin-settings.bullet.3':
-    'A „Szolgáltatások” fülön a helykeresés és az útvonaltervezés: a TREK API, „Ajánlott alapértelmezés” jelöléssel, a „Mai keret” és a „Helyadatok megosztása” beállítással, majd a „Tömegközlekedési szolgáltató”, a „Helykeresési szolgáltató” és a „Helykeresési napló”.',
+    'A „Szolgáltatások” fülön a helykeresés és az útvonaltervezés: a YOUYA API, „Ajánlott alapértelmezés” jelöléssel, a „Mai keret” és a „Helyadatok megosztása” beállítással, majd a „Tömegközlekedési szolgáltató”, a „Helykeresési szolgáltató” és a „Helykeresési napló”.',
   'help.ctx.admin-settings.bullet.4':
     '„API kulcsok”: a „Google Maps API kulcs” a „Teszt” és a „Mire használja a kulcsot” lehetőséggel, az Unsplash- és az Amap-kulcs, a kártya alján pedig egyetlen „Mentés” gomb. Az alatta lévő „Engedélyezett fájltípusok” korlátozza a feltöltéseket.',
   'help.ctx.admin-addons.title': 'Bővítmények',
   'help.ctx.admin-addons.summary':
-    'A TREK funkciómoduljai három kártyán: az „Utazás” az utazás füleihez, a „Globális” a főmenü szakaszaihoz, az „Integráció” pedig a külső szolgáltatásokhoz. Minden bővítménynek van kapcsolója; kikapcsolt állapotban a menüpont, az útvonalak és az API mindenki számára eltűnik.',
+    'A YOUYA funkciómoduljai három kártyán: az „Utazás” az utazás füleihez, a „Globális” a főmenü szakaszaihoz, az „Integráció” pedig a külső szolgáltatásokhoz. Minden bővítménynek van kapcsolója; kikapcsolt állapotban a menüpont, az útvonalak és az API mindenki számára eltűnik.',
   'help.ctx.admin-addons.bullet.1':
     'Bővítményenként egy sor a kapcsolójával, és minden kártya fejlécében az, hogy hány bővítménye van bekapcsolva. A név melletti infójel megmondja, mit csinál a bővítmény.',
   'help.ctx.admin-addons.bullet.2':
@@ -1584,7 +1584,7 @@ const help: TranslationStrings = {
     'A fogaskerekes sorok beállítóablakot nyitnak, például a „Vízi adatok evezéshez” a „Túrák” alatt és az „E-mail-import beállítása” a „Foglalási e-mailek importja” alatt. Az élő járatállapot az „Utazás” kártya egyik sora.',
   'help.ctx.admin-plugins.title': 'Pluginok',
   'help.ctx.admin-plugins.summary':
-    'Külső fejlesztésű pluginok, amelyek saját folyamatban futnak a TREK mellett, mindegyik a telepítéskor kért jogosultságokkal. Telepíthetsz a katalógusból, feltölthetsz egy csomagot, vagy plugin fejlesztése közben belinkelhetsz egy mappát.',
+    'Külső fejlesztésű pluginok, amelyek saját folyamatban futnak a YOUYA mellett, mindegyik a telepítéskor kért jogosultságokkal. Telepíthetsz a katalógusból, feltölthetsz egy csomagot, vagy plugin fejlesztése közben belinkelhetsz egy mappát.',
   'help.ctx.admin-plugins.bullet.1':
     '„Telepítve” és „Felfedezés”, a „Pluginok keresése…” mezővel, valamint a szűrővel típus, állapot és sorrend szerint. Minden sorban látszik a verzió, az, hogy mihez férhet hozzá a plugin, az „Ellenőrizve”, „Aláírva” vagy „Aláírás nélkül” jelzés, egy kapcsoló és egy ⋯ menü.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1601,7 +1601,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     'Kategóriák: útidokumentumok, útinapló-fotók, borítók, profilképek, helyképek, a fotógyorsítótárak és a biztonsági mentések, mindegyik egy-egy backendhez rendelve, alul a „Módosítások mentése” gombbal.',
   'help.ctx.admin-storage.bullet.4':
-    'Hivatkozás nélküli fájlok: amit az éjszakai ellenőrzés talált, és a TREK-ben már semmi sem használ, az „Ellenőrzés most” gombbal, valamint egy kapcsolóval, amely az egy hete használaton kívüli ilyen fájlokat törli.',
+    'Hivatkozás nélküli fájlok: amit az éjszakai ellenőrzés talált, és a YOUYA-ben már semmi sem használ, az „Ellenőrzés most” gombbal, valamint egy kapcsolóval, amely az egy hete használaton kívüli ilyen fájlokat törli.',
   'help.ctx.admin-notifications.title': 'Értesítések',
   'help.ctx.admin-notifications.summary':
     'Itt látod, milyen csatornákat kínál a példány a felhasználóinak, és melyeken kapsz értesítést adminként. A felhasználók a Beállítások alatt maguk választják ki a témáikat és URL-jeiket; te döntöd el, mi érhető el, és te állítod be az e-mailt.',
@@ -1613,14 +1613,14 @@ const help: TranslationStrings = {
     '„Rendszergazdai értesítések”, jobb oldalon: „Admin webhook” és „Admin Ntfy”, mindegyik egy teszt gombbal, alattuk pedig, hogy melyik csatorna küldi az egyes adminisztrátori eseményeket („Új verzió elérhető”, „Tárhely-replika hiba”, „Evezős régiót kértek”).',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    'Az AI-kliensek összes tokenje és OAuth-munkamenete ehhez a TREK-példányhoz, az összes felhasználónál. Bármelyiket visszavonhatod.',
+    'Az AI-kliensek összes tokenje és OAuth-munkamenete ehhez a YOUYA-példányhoz, az összes felhasználónál. Bármelyiket visszavonhatod.',
   'help.ctx.admin-mcp-tokens.bullet.1':
     'OAuth munkamenetek: a kliens, a neki megadott hatókörök, a tulajdonos és a dátum, valamint egy kuka ikon, amellyel visszavonhatod.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     'API tokenek: név, tulajdonos, „Létrehozva” és „Utoljára használva”, egy kuka ikonnal, amellyel törölheted.',
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    'A TREK újdonságai: a kiadások története a GitHubról, és az, hogy van-e a tiédnél újabb verzió. Maga a frissítés nem az alkalmazásban, hanem a gazdagépen történik.',
+    'A YOUYA újdonságai: a kiadások története a GitHubról, és az, hogy van-e a tiédnél újabb verzió. Maga a frissítés nem az alkalmazásban, hanem a gazdagépen történik.',
   'help.ctx.admin-github.bullet.1':
     'A „Frissítési előzmények” idővonalon sorolja fel a kiadásokat a kiadási megjegyzésekkel. A legújabbon „Legújabb” címke látszik, az előzetes kiadásokon „Előzetes kiadás”, a GitHub gomb pedig megnyitja a kiadások oldalát.',
   'help.ctx.admin-github.bullet.2':
@@ -1698,7 +1698,7 @@ const help: TranslationStrings = {
   // permissions
   'help.guide.permissions.title': 'Ki mit tehet',
   'help.guide.permissions.goal':
-    'Állítsd be műveletenként, melyik szerepkör végezheti el az adott műveletet ezen a TREK-en.',
+    'Állítsd be műveletenként, melyik szerepkör végezheti el az adott műveletet ezen a YOUYA-en.',
   'help.guide.permissions.step.1':
     'A „Jogosultsági beállítások” részben keresd meg a műveletet a csoportjában, például az „Utazások törlése” műveletet az „Utazáskezelés” alatt, és válaszd ki, ki végezheti el: „Mindenki”, „Utazás tagjai”, „Utazás tulajdonosa” vagy „Csak adminisztrátor”. A módosított sor „testreszabott” jelölést kap.',
   'help.guide.permissions.step.2':
@@ -1774,11 +1774,11 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     'Ha az „Egyszeri bejelentkezés (OIDC)” be van állítva, három SSO-sor következik: „SSO-bejelentkezés”, „SSO Auto-Provisioning”, amely fiókot hoz létre, amikor valaki először jelentkezik be SSO-val, és „Közvetlenül az SSO-ra”.',
   'help.guide.auth-methods.step.3':
-    'A „Passkey-bejelentkezés engedélyezése” passkey-ket kínál a bejelentkezési oldalon. Kapcsold be a „2FA kötelezővé tétele” beállítást: így mindenkinek, akinek még nincs 2FA-ja, be kell állítania a Beállításokban, mielőtt használhatná a TREK-et.',
+    'A „Passkey-bejelentkezés engedélyezése” passkey-ket kínál a bejelentkezési oldalon. Kapcsold be a „2FA kötelezővé tétele” beállítást: így mindenkinek, akinek még nincs 2FA-ja, be kell állítania a Beállításokban, mielőtt használhatná a YOUYA-et.',
   'help.guide.auth-methods.result':
     'A bejelentkezési oldal pontosan azokat a módokat kínálja, amelyeket bekapcsolva hagytál.',
   'help.guide.auth-methods.tip.1':
-    'A TREK nem engedi kikapcsolni az utolsó bejelentkezési módot: a kapcsolója kiszürkül, az elemleírásban pedig ez áll: „Legalább egy bejelentkezési módnak engedélyezettnek kell maradnia.”',
+    'A YOUYA nem engedi kikapcsolni az utolsó bejelentkezési módot: a kapcsolója kiszürkül, az elemleírásban pedig ez áll: „Legalább egy bejelentkezési módnak engedélyezettnek kell maradnia.”',
   'help.guide.auth-methods.tip.2':
     'Ha a szerveren be van állítva az OIDC_ONLY, a jelszavas kapcsolók zárolva vannak, és egy megjegyzés jelzi ezt.',
   'help.guide.auth-methods.tip.3':
@@ -1795,7 +1795,7 @@ const help: TranslationStrings = {
   'help.guide.oidc.result':
     'A bejelentkezési oldalon megjelenik az SSO gomb; ha az „SSO automatikus fióklétrehozás” be van kapcsolva, az első alkalommal belépők automatikusan fiókot kapnak.',
   'help.guide.oidc.tip.1':
-    'A szolgáltatód által kért átirányítási URI a TREK-példányod címe és a dokumentációban szereplő OIDC callback útvonal együtt.',
+    'A szolgáltatód által kért átirányítási URI a YOUYA-példányod címe és a dokumentációban szereplő OIDC callback útvonal együtt.',
   'help.guide.oidc.tip.2':
     'A claim-leképezés határozza meg, mely SSO-csoportok tagjai lesznek adminisztrátorok. Részletek a dokumentáció OIDC oldalán.',
   // instance-keys
@@ -1803,19 +1803,19 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     'Google-fotók és -értékelések, Unsplash-borítók és Amap-keresés az egész példány számára.',
   'help.guide.instance-keys.step.1':
-    'A „Szolgáltatások” fülön a „Helykeresés és útvonaltervezés” kártya a TREK API-val kezdődik, „Ajánlott alapértelmezés” jelöléssel. Kulcs nélkül válaszol a helykeresésre, a címekre és az útvonaltervezésre, a „Mai keret” pedig megmutatja, mennyi maradt a napból.',
+    'A „Szolgáltatások” fülön a „Helykeresés és útvonaltervezés” kártya a YOUYA API-val kezdődik, „Ajánlott alapértelmezés” jelöléssel. Kulcs nélkül válaszol a helykeresésre, a címekre és az útvonaltervezésre, a „Mai keret” pedig megmutatja, mennyi maradt a napból.',
   'help.guide.instance-keys.step.2':
     'Fotókhoz, értékelésekhez és nyitvatartáshoz illessz be egy „Google Maps API kulcs” értéket az „API kulcsok” alatt, és kattints a „Teszt” gombra; az eredmény „Csatlakozva” vagy „Érvénytelen”. A „Mire használja a kulcsot” alatt csak azt kapcsold be, amiért fizetni szeretnél: „Helyfotók”, „Hely automatikus kiegészítése”, „Hely részletei”, „Helyek gazdagítása” és „Keresés csak a Google-lel”, valamint állíts be egy „Napi korlát a Google-hívásokra” értéket.',
   'help.guide.instance-keys.step.3':
     'Illeszd be az Unsplash API-kulcsot a borítókereséshez és az Amap (高德地图) API-kulcsot a szárazföldi Kínában történő helykereséshez, majd kattints a kártya alján a „Mentés” gombra.',
   'help.guide.instance-keys.result':
-    'A felhasználók saját kulcs nélkül is használhatják a funkciókat. Google-kulcs nélkül a keresés a TREK Places API-t és az OpenStreetMapet használja.',
+    'A felhasználók saját kulcs nélkül is használhatják a funkciókat. Google-kulcs nélkül a keresés a YOUYA Places API-t és az OpenStreetMapet használja.',
   'help.guide.instance-keys.tip.1':
-    'Ha egy felhasználónak saját kulcsa van a Beállítások alatt, a TREK nála ezt használja a példány kulcsa helyett.',
+    'Ha egy felhasználónak saját kulcsa van a Beállítások alatt, a YOUYA nála ezt használja a példány kulcsa helyett.',
   'help.guide.instance-keys.tip.2':
     'A kulcsok környezeti változókból is származhatnak; ezek itt csak olvashatóként jelennek meg.',
   'help.guide.instance-keys.tip.3':
-    'A „Napi korlát a Google-hívásokra” meghatározza, mennyit költhet a TREK naponta a kulcsra; a cím melletti jelvény a mai hívásokat számolja. A korlát elérése után a keresések másnapig (UTC) az OpenStreetMapet használják.',
+    'A „Napi korlát a Google-hívásokra” meghatározza, mennyit költhet a YOUYA naponta a kulcsra; a cím melletti jelvény a mai hívásokat számolja. A korlát elérése után a keresések másnapig (UTC) az OpenStreetMapet használják.',
   // places-transit
   'help.guide.places-transit.title': 'A kereső- és a tömegközlekedési szolgáltató kiválasztása',
   'help.guide.places-transit.goal':
@@ -1823,11 +1823,11 @@ const help: TranslationStrings = {
   'help.guide.places-transit.step.1':
     'A „Szolgáltatások” fülön, a „Helykeresés és útvonaltervezés” kártyán a „Tömegközlekedési szolgáltató” alatt választhatsz: „Transitous (ingyenes)”, amely kulcs nélkül működik, és Európában a legerősebb, vagy Google, amely a Google-kulcsot használja. A választás azonnal mentődik.',
   'help.guide.places-transit.step.2':
-    'A „Helykeresési szolgáltató” alatt választhatod ki, melyik szolgáltatást kérdezze a TREK, ha a TREK indexe és az OpenStreetMap nem talál semmit: „Automatikus” (Google, ha van kulcs, utána Amap), Google Places, Amap (高德地图) vagy OpenStreetMap.',
+    'A „Helykeresési szolgáltató” alatt választhatod ki, melyik szolgáltatást kérdezze a YOUYA, ha a YOUYA indexe és az OpenStreetMap nem talál semmit: „Automatikus” (Google, ha van kulcs, utána Amap), Google Places, Amap (高德地图) vagy OpenStreetMap.',
   'help.guide.places-transit.result':
-    'A TREK minden keresőmezője és minden tömegközlekedési útvonaltervezése ezt a beállítást használja.',
+    'A YOUYA minden keresőmezője és minden tömegközlekedési útvonaltervezése ezt a beállítást használja.',
   'help.guide.places-transit.tip.1':
-    'Ha egy választott szolgáltatóhoz nincs kulcs, itt figyelmeztetés jelenik meg. A helykeresés ilyenkor csak a TREK indexét és az OpenStreetMapet, a tömegközlekedés csak a Transitoust használja.',
+    'Ha egy választott szolgáltatóhoz nincs kulcs, itt figyelmeztetés jelenik meg. A helykeresés ilyenkor csak a YOUYA indexét és az OpenStreetMapet, a tömegközlekedés csak a Transitoust használja.',
   'help.guide.places-transit.tip.2': 'A Google tömegközlekedési útvonalait kérésenként számlázzák, a Transitoust nem.',
   // file-types
   'help.guide.file-types.title': 'Fájltípusok korlátozása',
@@ -1835,7 +1835,7 @@ const help: TranslationStrings = {
   'help.guide.file-types.step.1':
     'A „Szolgáltatások” fülön, az „Engedélyezett fájltípusok” részben szerkeszd a vesszővel elválasztott kiterjesztéslistát, vagy írj be * jelet, ha minden típust engedélyeznél, majd kattints a „Mentés” gombra.',
   'help.guide.file-types.result':
-    'Minden más típusú feltöltést a TREK egyértelmű üzenettel elutasít, a dokumentumoknál, az útinaplóban és a borítóknál is.',
+    'Minden más típusú feltöltést a YOUYA egyértelmű üzenettel elutasít, a dokumentumoknál, az útinaplóban és a borítóknál is.',
   'help.guide.file-types.tip.1':
     'A képtípusokat hagyd a listában; a borítókat és az útinapló fotóit is ugyanez a lista alapján ellenőrzi a rendszer.',
   // toggle-addon
@@ -1865,7 +1865,7 @@ const help: TranslationStrings = {
   'help.guide.install-plugin.tip.1':
     'Az „Újraszkennelés” csomag nélkül is megtalálja a fejlesztéshez belinkelt pluginmappát.',
   'help.guide.install-plugin.tip.2':
-    'Az aláíratlan plugint a TREK ennek megfelelően jelöli; csak akkor telepítsd, ha megbízol a forrásában.',
+    'Az aláíratlan plugint a YOUYA ennek megfelelően jelöli; csak akkor telepítsd, ha megbízol a forrásában.',
   // storage-backends
   'help.guide.storage-backends.title': 'Feltöltések áthelyezése S3-ra vagy tükrözésük',
   'help.guide.storage-backends.goal':
@@ -1875,9 +1875,9 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'A „Kategóriák” részben rendeld hozzá a feltöltések egyes típusait, például az „Útidokumentumok”, az „Útinapló-fotók” vagy a „Biztonsági mentések” kategóriát, egy-egy backendhez.',
   'help.guide.storage-backends.step.3':
-    'Kattints a „Kategóriák” alján a „Módosítások mentése” gombra. Ha egy kategória mostantól máshová mutat, a TREK megkérdezi, hogy a „Meglévő objektumok áthelyezése” vagy a „Csak az új írások irányítása” legyen.',
+    'Kattints a „Kategóriák” alján a „Módosítások mentése” gombra. Ha egy kategória mostantól máshová mutat, a YOUYA megkérdezi, hogy a „Meglévő objektumok áthelyezése” vagy a „Csak az új írások irányítása” legyen.',
   'help.guide.storage-backends.result':
-    'Az új feltöltések a hozzárendelt backendre kerülnek. Az áthelyezett fájlokat a TREK onnan szolgálja ki, ami pedig nem került áthelyezésre, az a régi helyén marad.',
+    'Az új feltöltések a hozzárendelt backendre kerülnek. Az áthelyezett fájlokat a YOUYA onnan szolgálja ki, ami pedig nem került áthelyezésre, az a régi helyén marad.',
   'help.guide.storage-backends.tip.1':
     'A környezeti változókkal beállított háttértár itt látszik, de nem szerkeszthető.',
   'help.guide.storage-backends.tip.2':
@@ -1926,7 +1926,7 @@ const help: TranslationStrings = {
     'Az MCP bővítmény kikapcsolása egyszerre leállít minden klienst, és elrejti ezt a fület, de semmit sem töröl: a tokenek a visszakapcsolás után újra működnek.',
   // release-history
   'help.guide.release-history.title': 'Új kiadás keresése',
-  'help.guide.release-history.goal': 'Tudd meg, naprakész-e a TREK-példányod, és mit hoz a következő verzió.',
+  'help.guide.release-history.goal': 'Tudd meg, naprakész-e a YOUYA-példányod, és mit hoz a következő verzió.',
   'help.guide.release-history.step.1':
     'Ha újabb kiadás jelent meg, az oldal fejléce alatt megjelenik a „Frissítés elérhető” a jelenleg futó verzióval. A „Megtekintés a GitHubon” megnyitja a kiadást, a „Frissítési útmutató” pedig a Dockerhez szükséges parancsokat, más telepítéseknél a frissítési útmutatót mutatja.',
   'help.guide.release-history.step.2':
@@ -1962,7 +1962,7 @@ const help: TranslationStrings = {
   'help.guide.auto-backup.step.2':
     'A „Régi mentések törlése ennyi idő után” részben add meg, meddig maradjon meg egy mentés, „1 nap” és „Örökre megőrzés” között, majd kattints a „Mentés” gombra.',
   'help.guide.auto-backup.result':
-    'A mentések az ütemezés szerint megjelennek a listában. A választott időnél régebbi mentéseket a TREK törli.',
+    'A mentések az ütemezés szerint megjelennek a listában. A választott időnél régebbi mentéseket a YOUYA törli.',
   'help.guide.auto-backup.tip.1':
     'A „Futtatás időpontja” a szerver idejét használja; az alatta lévő tipp megmutatja a szerver időzónáját.',
   'help.guide.auto-backup.tip.2':
@@ -1987,7 +1987,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     'Kapcsold be a kapcsolót a Nextcloud sorában. Megjelenik a „Bővítmény frissítve” üzenet, és innentől az utazások tulajdonosai az utazásaik „Fájl” fülén megtalálják a „Dokumentumok szinkronizálása” lehetőséget, a „Szolgáltató csatlakoztatása” alatt pedig a Nextcloudot.',
   'help.guide.document-providers.result':
-    'A tárhely ennek a TREK-nek minden utazásán elérhető. Semmi sem csatlakozik, amíg egy utazás tulajdonosa be nem kapcsolja.',
+    'A tárhely ennek a YOUYA-nek minden utazásán elérhető. Semmi sem csatlakozik, amíg egy utazás tulajdonosa be nem kapcsolja.',
   'help.guide.document-providers.tip.1':
     'Itt csak arról döntesz, hogy egy tárhely felkínálható-e. A cím és a hitelesítő adatok az adott utazáshoz tartoznak: ezeket az utazás tulajdonosa adja meg az utazás „Fájl” fülén, sosem az adminfelületen.',
   'help.guide.document-providers.tip.2':
@@ -1996,30 +1996,30 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     'Adj mindenkinek továbbítási címet, hogy a továbbított foglalási visszaigazolásokból foglalás legyen a megfelelő utazásban.',
   'help.guide.mail-import-setup.step.1':
-    'A „Bővítmények” fülön, az „Integráció” kártyán kapcsold be a „Foglalási e-mailek importja” bővítményt. Ezen a TREK-en mostantól mindenki személyes továbbítási címet kap.',
+    'A „Bővítmények” fülön, az „Integráció” kártyán kapcsold be a „Foglalási e-mailek importja” bővítményt. Ezen a YOUYA-en mostantól mindenki személyes továbbítási címet kap.',
   'help.guide.mail-import-setup.step.2': 'Kattints az „E-mail-import beállítása” sorra, amely alatta jelenik meg.',
   'help.guide.mail-import-setup.step.3':
-    'A „Hogyan érkezik a levél” alatt válaszd az „IMAP-postafiók” lehetőséget, és add meg a kiszolgálót, a portot, a titkosítást, a felhasználót, a jelszót és a mappát. Válaszd inkább a „Webhook” lehetőséget olyan levelezőszolgáltatóhoz, amely minden levelet a TREK-nek küld, vagy a „Csak feltöltés” lehetőséget, ha postafiók nélkül szeretnéd kipróbálni. Ezután állítsd be a „Címsablon” mezőt, vagyis a továbbítási címet egy helyőrzővel oda, ahová az egyes emberek kódja kerül, valamint az „AI-e-mailek személyenként és naponta” értéket.',
+    'A „Hogyan érkezik a levél” alatt válaszd az „IMAP-postafiók” lehetőséget, és add meg a kiszolgálót, a portot, a titkosítást, a felhasználót, a jelszót és a mappát. Válaszd inkább a „Webhook” lehetőséget olyan levelezőszolgáltatóhoz, amely minden levelet a YOUYA-nek küld, vagy a „Csak feltöltés” lehetőséget, ha postafiók nélkül szeretnéd kipróbálni. Ezután állítsd be a „Címsablon” mezőt, vagyis a továbbítási címet egy helyőrzővel oda, ahová az egyes emberek kódja kerül, valamint az „AI-e-mailek személyenként és naponta” értéket.',
   'help.guide.mail-import-setup.step.4':
-    'Kattints a „Mentés”, majd a „Kapcsolat tesztelése” gombra; az eredmény „Csatlakozva”, vagy megmondja, mi hibás. Lejjebb az ablak megmutatja, mikor olvasta utoljára a TREK a leveleket, és az elmúlt 24 óra leveleit: „Magától hozzáadva”, „Várakozik” és „Sikertelen”.',
+    'Kattints a „Mentés”, majd a „Kapcsolat tesztelése” gombra; az eredmény „Csatlakozva”, vagy megmondja, mi hibás. Lejjebb az ablak megmutatja, mikor olvasta utoljára a YOUYA a leveleket, és az elmúlt 24 óra leveleit: „Magától hozzáadva”, „Várakozik” és „Sikertelen”.',
   'help.guide.mail-import-setup.result':
     'Mindenki a Beállítások, Integrációk részben találja a saját továbbítási címét. A továbbított visszaigazolásból foglalás lesz a megfelelő utazásban, vagy ott vár, hogy a tulajdonosa megnézze.',
   'help.guide.mail-import-setup.tip.1':
-    'Adj a TREK-nek egy külön postafiókot, amely fogadja a plusz címeket (trek+…@a-te-domained), ne személyeset. Az elolvasott levelek a TREK/processed mappába kerülnek.',
+    'Adj a YOUYA-nek egy külön postafiókot, amely fogadja a plusz címeket (trek+…@a-te-domained), ne személyeset. Az elolvasott levelek a TREK/processed mappába kerülnek.',
   'help.guide.mail-import-setup.tip.2':
     'A MAIL_INGEST_ előtaggal kezdődő környezeti változók felülírják az ablak mezőit. A saját hálózaton lévő levelezőszerverhez ezenkívül ALLOW_INTERNAL_NETWORK=true kell a szerveren.',
   'help.guide.mail-import-setup.tip.3':
     'Az „AI-e-mailek személyenként és naponta” azt korlátozza, hány géppel olvasható foglalási adat nélküli levelet olvas el az AI egy személynek naponta. E fölött már csak a géppel olvasható adatokat olvassa be.',
   'help.guide.ai-setup.title': 'Az MI-asszisztens beállítása',
   'help.guide.ai-setup.goal':
-    'Csatlakoztass egyszer egy MI-szolgáltatót, hogy ezen a TREK-en mindenki tervezhessen az asszisztenssel.',
+    'Csatlakoztass egyszer egy MI-szolgáltatót, hogy ezen a YOUYA-en mindenki tervezhessen az asszisztenssel.',
   'help.guide.ai-setup.step.1':
     'A „Bővítmények” fülön, az „Integráció” kártyán keresd meg az MI csempét, és kapcsold be az „MI-asszisztens” kapcsolót. Az „MI-elemzés” és az „MCP” ugyanabban a csempében található.',
   'help.guide.ai-setup.step.2': 'Kattints az „MI beállítása” gombra, ez a kapcsolók alatt megjelenő sor.',
   'help.guide.ai-setup.step.3':
     'A „Ki fizet” résznél válaszd ki, ki biztosítja a kapcsolatot: „Én fizetek, saját is engedélyezett”, „Én fizetek mindenkiért” vagy „Mindenki a saját fiókját használja”. Az alatta lévő sor megmondja, mit jelent a választásod.',
   'help.guide.ai-setup.step.4':
-    'A „Kapcsolat mindenkinek” résznél válaszd az „API-kulcs beillesztése” lehetőséget, és illeszd be az Anthropic, az OpenAI, a Gemini vagy az OpenRouter kulcsát. A TREK kiírja, melyik szolgáltatót ismerte fel. Kattints a „Csatlakoztatás” gombra; a TREK mentés előtt ellenőrizteti a kulcsot a szolgáltatóval.',
+    'A „Kapcsolat mindenkinek” résznél válaszd az „API-kulcs beillesztése” lehetőséget, és illeszd be az Anthropic, az OpenAI, a Gemini vagy az OpenRouter kulcsát. A YOUYA kiírja, melyik szolgáltatót ismerte fel. Kattints a „Csatlakoztatás” gombra; a YOUYA mentés előtt ellenőrizteti a kulcsot a szolgáltatóval.',
   'help.guide.ai-setup.step.5':
     'A kapcsolat „Kapcsolódva” állapotot mutat. Válaszd ki a „Modell”-t, amellyel mindenki csevegni fog; csak az eszközöket használni tudó modellek jelennek meg. A „Módosítás” és a „Kapcsolat eltávolítása” alatta található.',
   'help.guide.ai-setup.step.6':
@@ -2036,15 +2036,15 @@ const help: TranslationStrings = {
     'A webes keresés a ChatGPT-vel, az Anthropickal és az OpenRouterrel működik, a szolgáltató saját keresőjén keresztül, és a keresések csak ahhoz a szolgáltatóhoz jutnak el.',
   'help.guide.paddle-water-data.title': 'Vízadatok betöltése evezős túrákhoz',
   'help.guide.paddle-water-data.goal':
-    'Add meg az evezős túrákhoz egy régió duzzasztóit, zsilipjeit és evezési szabályait, és döntsd el, hogy a TREK magától töltsön-e be új régiókat.',
+    'Add meg az evezős túrákhoz egy régió duzzasztóit, zsilipjeit és evezési szabályait, és döntsd el, hogy a YOUYA magától töltsön-e be új régiókat.',
   'help.guide.paddle-water-data.step.1':
     'A „Bővítmények” fülön, amíg a „Túrák” be van kapcsolva, kattints a „Vízi adatok evezéshez” sorra, a „Túrák” alatti utolsó sorra. A mellette lévő szám a régiókat vagy a rád váró kéréseket mutatja.',
   'help.guide.paddle-water-data.step.2':
     'A „Régiók automatikus betöltése” alatt válaszd az „Automatikus”, a „Kérésre” vagy a „Ki” lehetőséget. Az „Automatikus” betölti azt a régiót, ahol valaki evezős túrát tervez, az „Az automatikusan betöltött legnagyobb régió” méretéig; ami ennél nagyobb, az a „Kért” alatt vár, ahol a „Betöltés” beolvassa, az „Elutasítás” pedig elveti.',
   'help.guide.paddle-water-data.step.3':
-    'A „Régió hozzáadása” alatt keress egy régiót a Geofabrikban, például Oberpfalz, és kattints mellette a „Hozzáadás” gombra. A TREK a háttérben beolvassa; ha „Kész”, a sorában látod az objektumokat, az adatok dátumát és a vízi utak kilométereit. Az „Újraolvasás” frissíti, a „Régió eltávolítása” törli.',
+    'A „Régió hozzáadása” alatt keress egy régiót a Geofabrikban, például Oberpfalz, és kattints mellette a „Hozzáadás” gombra. A YOUYA a háttérben beolvassa; ha „Kész”, a sorában látod az objektumokat, az adatok dátumát és a vízi utak kilométereit. Az „Újraolvasás” frissíti, a „Régió eltávolítása” törli.',
   'help.guide.paddle-water-data.result':
-    'A régión belüli evezős túrák megmutatják az akadályait, és követik a vízi utat, a TREK pedig havonta újra beolvassa az összes régiót.',
+    'A régión belüli evezős túrák megmutatják az akadályait, és követik a vízi utat, a YOUYA pedig havonta újra beolvassa az összes régiót.',
   'help.guide.paddle-water-data.tip.1':
     'A Geofabrikhoz csak a régió neve jut el, soha egy valaki által tervezett hely.',
   'help.guide.paddle-water-data.tip.2':
@@ -2057,7 +2057,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     'Egy utazás minden része: a terv a napokkal, a térképpel és a helyekkel, valamint a túrák, a közlekedés, a foglalások, a listák, a költségek, a fájlok, az együttműködés és az összekapcsolt napló fülei. Mindegyiknek saját súgóoldala van ez alatt.',
   'help.ctx.trip.bullet.1':
-    'A felső sáv alatti fülsor: „Terv”, „Túrák”, „Közlekedés”, „Foglalások”, „Listák”, „Költségek”, „Fájl”, „Együttműködés”, és ha van összekapcsolt napló, „Napló”. Hogy a TREK-eden mely fülek léteznek, azt a bővítmények és a pluginek határozzák meg.',
+    'A felső sáv alatti fülsor: „Terv”, „Túrák”, „Közlekedés”, „Foglalások”, „Listák”, „Költségek”, „Fájl”, „Együttműködés”, és ha van összekapcsolt napló, „Napló”. Hogy a YOUYA-eden mely fülek léteznek, azt a bővítmények és a pluginek határozzák meg.',
   'help.ctx.trip.bullet.2':
     'A „Terv” fül három oszlopból áll: balra a napok, középen a térkép, jobbra a helyek. Az Autós út bővítménnyel a napok oszlopa egy „Nap” és „Autós út” kapcsolóval kezdődik, a Túrák bővítménnyel a helyek oszlopa egy „Hely” és „Túrák” kapcsolóval. A foglalások és a közlekedés a terv részei, a megállóknál és a megállók között jelennek meg; a fülek felsorolják őket.',
   'help.ctx.trip.bullet.3':
@@ -2070,7 +2070,7 @@ const help: TranslationStrings = {
     'A napok eszköztárában lévő visszavonás nyíllal egyenként visszavonhatod a tervben végzett legutóbbi módosításaidat.',
   // add-member
   'help.guide.add-member.title': 'Tag hozzáadása',
-  'help.guide.add-member.goal': 'Adj hozzáférést ehhez az utazáshoz valakinek, akinek van TREK-fiókja.',
+  'help.guide.add-member.goal': 'Adj hozzáférést ehhez az utazáshoz valakinek, akinek van YOUYA-fiókja.',
   'help.guide.add-member.step.1':
     'Kattints a bal felső sarokban, az utazás neve melletti „Utazás beállításai” gombra. A „Személyek” lapon nyílik meg.',
   'help.guide.add-member.step.2':
@@ -2080,7 +2080,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     'A tag ugyanúgy látja és szerkesztheti az utazást, mint te, az adminisztrátor által a „Jogosultsági beállítások” alatt megadott kereteken belül.',
   'help.guide.add-member.tip.1':
-    'Akit nem találsz a listában, annak még nincs TREK-fiókja: add hozzá vendégként, vagy regisztráljon egy meghívó linkkel.',
+    'Akit nem találsz a listában, annak még nincs YOUYA-fiókja: add hozzá vendégként, vagy regisztráljon egy meghívó linkkel.',
   'help.guide.add-member.tip.2':
     'A „Hozzáférés” melletti szám az utazás résztvevőinek számát mutatja; a vendégek külön, lejjebb szerepelnek.',
   // trip-invite-link
@@ -2089,7 +2089,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     'Kattints az utazás neve melletti „Utazás beállításai” gombra, és bal oldalon válaszd a „Megosztás” lehetőséget. A „Meghívó link az utazáshoz” alatt kattints a „Meghívó link létrehozása” gombra.',
   'help.guide.trip-invite-link.step.2':
-    'Kattints a „Másolás” gombra, és küldd el a linket. Aki TREK-fiókkal megnyitja, tagként csatlakozik.',
+    'Kattints a „Másolás” gombra, és küldd el a linket. Aki YOUYA-fiókkal megnyitja, tagként csatlakozik.',
   'help.guide.trip-invite-link.step.3':
     'Az „Újragenerálás” lecseréli a linket, és a régi link megszűnik működni; a „Letiltás” kikapcsolja.',
   'help.guide.trip-invite-link.result':
@@ -2100,14 +2100,14 @@ const help: TranslationStrings = {
     'Ha a linket rossz csevegésbe küldted, generáld újra: a régi link azonnal megszűnik működni.',
   // add-guest
   'help.guide.add-guest.title': 'Vendég hozzáadása fiók nélkül',
-  'help.guide.add-guest.goal': 'Vegyél fel az utazásba valakit, aki nem használja a TREK-et.',
+  'help.guide.add-guest.goal': 'Vegyél fel az utazásba valakit, aki nem használja a YOUYA-et.',
   'help.guide.add-guest.step.1':
     'Kattints az utazás neve melletti „Utazás beállításai” gombra. A „Személyek” lapon a „Vendégek” az utolsó rész, a „Hozzáférés” alatt.',
   'help.guide.add-guest.step.2': 'Írd be a nevet a „Vendég neve” mezőbe, és kattints a „Vendég hozzáadása” gombra.',
   'help.guide.add-guest.result':
     'A vendég hozzárendelhető költségekhez, csomagolási tételekhez és feladatokhoz, de bejelentkezni nem tud.',
   'help.guide.add-guest.tip.1':
-    'Az „Átnevezés” (ceruza) módosítja a vendég nevét. A „Hozzáférés eltávolítása” (kuka) megerősítés után eltávolítja a vendéget: a hozzárendelései törlődnek, a kiadásokból rá eső részt pedig a felosztásban szereplő többiek között osztja szét a TREK.',
+    'Az „Átnevezés” (ceruza) módosítja a vendég nevét. A „Hozzáférés eltávolítása” (kuka) megerősítés után eltávolítja a vendéget: a hozzárendelései törlődnek, a kiadásokból rá eső részt pedig a felosztásban szereplő többiek között osztja szét a YOUYA.',
   'help.guide.add-guest.tip.2': 'Ha a vendég később fiókot kap, hívd meg tagként, a vendéget pedig távolítsd el.',
   // public-link
   'help.guide.public-link.title': 'Csak olvasható link közzététele',
@@ -2161,7 +2161,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     'A visszavonás a tervre vonatkozik: helyek hozzáadása, hozzárendelése, eltávolítása, átrendezése, áthelyezése és rögzítése, nap kiürítése, útvonal-optimalizálás, helyek törlése, kategóriamódosítások és importálások.',
   'help.guide.undo-change.tip.2':
-    'Újabb kattintással tovább léphetsz vissza: a TREK ezen az utazáson az utolsó 30 módosításodat tartja meg, a legújabbal kezdve, amíg el nem hagyod az utazást.',
+    'Újabb kattintással tovább léphetsz vissza: a YOUYA ezen az utazáson az utolsó 30 módosításodat tartja meg, a legújabbal kezdve, amíg el nem hagyod az utazást.',
   'help.guide.trip-assistant.title': 'Tervezés az asszisztenssel',
   'help.guide.trip-assistant.goal': 'Kérdezd az asszisztenst az utazásodról, és vedd fel a tervbe, amit javasol.',
   'help.guide.trip-assistant.step.1':
@@ -2217,19 +2217,19 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     'Kattints a helyek oszlopának tetején a „Hely/Tevékenység hozzáadása” gombra (ha egy nap meg van nyitva, „Új hely”). Az űrlap a keresőmezőben villogó kurzorral nyílik meg.',
   'help.guide.create-place.step.2':
-    'Írd be a helyet a „Helyek keresése…” mezőbe, és válassz egy találatot. Kitöltődik az ablak tetején lévő név, a „Cím”, a „Szélességi fok”, a „Hosszúsági fok” és a „Weboldal”, a bal oldali „Hely részletei” pedig képeket, nyitvatartást és leírást mutat. Google-kulccsal rendelkező TREK-en a találatok alatti „Nem ez a hely? Keresés a Google-lel” ugyanezt a keresést a Google-lel futtatja le. Bekapcsolt Gyűjtemények bővítménnyel a jobb oldali „Mentett helyek” ugyanígy kínálja fel a listáid helyeit.',
+    'Írd be a helyet a „Helyek keresése…” mezőbe, és válassz egy találatot. Kitöltődik az ablak tetején lévő név, a „Cím”, a „Szélességi fok”, a „Hosszúsági fok” és a „Weboldal”, a bal oldali „Hely részletei” pedig képeket, nyitvatartást és leírást mutat. Google-kulccsal rendelkező YOUYA-en a találatok alatti „Nem ez a hely? Keresés a Google-lel” ugyanezt a keresést a Google-lel futtatja le. Bekapcsolt Gyűjtemények bővítménnyel a jobb oldali „Mentett helyek” ugyanígy kínálja fel a listáid helyeit.',
   'help.guide.create-place.step.3':
     'A „Hely részletei” részben a „Válassz képet” alatt kattints egy képre, és az lesz a hely képe. A „Szöveg átvétele” bemásolja a leírást az űrlapba.',
   'help.guide.create-place.step.4':
     'Ellenőrizd az űrlap mezőit. Csak az ablak tetején lévő név kötelező. Az alatta lévő „Kategória” gombbal az utazás egyik kategóriáját választhatod ki, a mellette lévő + gombbal újat hozhatsz létre. A „Cím”, a „Szélességi fok” és a „Hosszúsági fok” a keresésből jön, vagy te írod be. A „Címkék” alatt kattints azokra a címkékre, amelyeket a helynek viselnie kell. Az „A helyről” és a „Jegyzetek” fül között válthatsz a szövegmezőben a leírás és a saját jegyzeteid között. A „Weboldal” mezőbe a linket írhatod, a „Fájl” alatti „Csatolás” dokumentumot ad hozzá, a „Telefon”, az „E-mail” és a „Nyitvatartás hozzáadása” pedig azokhoz az adatokhoz való, amelyeket a keresés nem talált meg.',
   'help.guide.create-place.step.5':
-    'Kattints a „Hozzáadás” gombra. Ha az utazásban már van azonos nevű vagy azonos helyen lévő hely, a TREK figyelmeztet, és a gomb felirata „Hozzáadás mindenképp” lesz.',
+    'Kattints a „Hozzáadás” gombra. Ha az utazásban már van azonos nevű vagy azonos helyen lévő hely, a YOUYA figyelmeztet, és a gomb felirata „Hozzáadás mindenképp” lesz.',
   'help.guide.create-place.result':
     'A hely bekerül a listába és a térképre, a „Nem tervezett” csoportba, amíg egy napra nem teszed.',
   'help.guide.create-place.tip.1':
     'Ha a Költségvetés bővítmény be van kapcsolva, az űrlap alján lévő „Költség” mentés után azonnal megnyitja a „Költségek” szerkesztőt a hely kiadásához. Az ablakba beillesztett kép vagy PDF fájlként csatolódik a „Fájl” részhez.',
   'help.guide.create-place.tip.2':
-    'A keresési találatokat minden TREK-példányon a TREK indexe és az OpenStreetMap adja, a „Hely részletei” pedig automatikusan kitöltődik a Wikipedia, a Wikivoyage és a Wikimedia adataiból. A TREK csak akkor fordul a Google-höz, ha egyik sem talál semmit, és értékeléseket csak a Google ad.',
+    'A keresési találatokat minden YOUYA-példányon a YOUYA indexe és az OpenStreetMap adja, a „Hely részletei” pedig automatikusan kitöltődik a Wikipedia, a Wikivoyage és a Wikimedia adataiból. A YOUYA csak akkor fordul a Google-höz, ha egyik sem talál semmit, és értékeléseket csak a Google ad.',
   'help.guide.create-place.tip.3':
     'Helyet a térképen is létrehozhatsz: kattints jobb gombbal a kívánt pontra, és az űrlap a koordinátákkal és a címmel kitöltve nyílik meg.',
   // place-to-open-day
@@ -2323,7 +2323,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     'A gombostűk az utazás helyei, a listában és a térképen, a „Nem tervezett” alatt, amíg egy napra nem teszed őket.',
   'help.guide.import-places-file.tip.1':
-    'A túl nagy fájlt a TREK elutasítja, és megmutatja a méretkorlátot; exportáld újra fotók nélkül, vagy oszd fel.',
+    'A túl nagy fájlt a YOUYA elutasítja, és megmutatja a méretkorlátot; exportáld újra fotók nélkül, vagy oszd fel.',
   'help.guide.import-places-file.tip.2':
     'A „Fájl importálása” ablakban végzett importálást visszavonhatod a napok fölötti eszköztárból.',
   // import-places-list
@@ -2335,11 +2335,11 @@ const help: TranslationStrings = {
     'A „Szolgáltató” alatt válaszd a „Google Lista” vagy a „Naver Lista” lehetőséget, majd illeszd be a lista megosztott linkjét a „Link” mezőbe. Google Maps-útvonaltervező link is működik: a megállói helyek lesznek, az autós útvonal sorrendjében.',
   'help.guide.import-places-list.step.3': 'Kattints az „Importálás” gombra.',
   'help.guide.import-places-list.result':
-    'A lista összes helye bekerült az utazásba, a listában szereplő néven; az utazásban már meglévő helyeket a TREK kihagyja.',
+    'A lista összes helye bekerült az utazásba, a listában szereplő néven; az utazásban már meglévő helyeket a YOUYA kihagyja.',
   'help.guide.import-places-list.tip.1':
     'A listának nyilvánosan megosztottnak kell lennie; egy privát lista linkjéből semmi sem importálódik.',
   'help.guide.import-places-list.tip.2':
-    'Ha a TREK-példányodhoz tartozik Google-kulcs, az ablakban megjelenik a „Helyek gazdagítása a Google-lel” lehetőség: ez minden importált helyet megkeres, és kitölti a fotókat, a címet és a részleteket.',
+    'Ha a YOUYA-példányodhoz tartozik Google-kulcs, az ablakban megjelenik a „Helyek gazdagítása a Google-lel” lehetőség: ez minden importált helyet megkeres, és kitölti a fotókat, a címet és a részleteket.',
   'help.guide.sort-places.title': 'A helyek listájának rendezése',
   'help.guide.sort-places.goal':
     'Rendezd a listát név, értékelés vagy aszerint, mit adtál hozzá vagy módosítottál utoljára.',
@@ -2454,7 +2454,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Ha egy megállót másik napkártyára húzol, átkerül arra a napra, és lekerül a régiről.',
   'help.guide.reorder-stops.step.4':
-    'Ha egy megállónak rögzített időpontja van, és az áthelyezés felborítaná a nap sorrendjét, a TREK megkérdezi: „Időpont eltávolítása?”, mert az időpont határozza meg a megálló helyét. Az „Időpont eltávolítása és áthelyezés” törli az időpontot, és oda teszi a megállót, ahová ejtetted. A „Mégse” változatlanul hagyja a napot.',
+    'Ha egy megállónak rögzített időpontja van, és az áthelyezés felborítaná a nap sorrendjét, a YOUYA megkérdezi: „Időpont eltávolítása?”, mert az időpont határozza meg a megálló helyét. Az „Időpont eltávolítása és áthelyezés” törli az időpontot, és oda teszi a megállót, ahová ejtetted. A „Mégse” változatlanul hagyja a napot.',
   'help.guide.reorder-stops.result': 'Az útvonal és a menetidők azonnal az új sorrendhez igazodnak.',
   'help.guide.reorder-stops.tip.1':
     'A rögzített időpontú foglalás az időpontjának megfelelő helyen marad. Ha a napján belül máshová ejted, visszaugrik. Ha egy másik napkártyára húzod, átkerül arra a napra.',
@@ -2475,7 +2475,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'Az időpont az adott napi megállóhoz tartozik; ugyanannak a helynek egy másik napon más időpontja lehet.',
   'help.guide.set-stop-times.tip.2':
-    'Időponthoz kötött megállót úgy mozgathatsz kézzel, hogy áthúzod. A TREK ekkor megkérdezi: „Időpont eltávolítása?”, és az „Időpont eltávolítása és áthelyezés” leveszi az időpontot, és áthelyezi.',
+    'Időponthoz kötött megállót úgy mozgathatsz kézzel, hogy áthúzod. A YOUYA ekkor megkérdezi: „Időpont eltávolítása?”, és az „Időpont eltávolítása és áthelyezés” leveszi az időpontot, és áthelyezi.',
   'help.guide.set-stop-times.tip.3':
     'Ugyanebben az űrlapban az „A helyről” és a „Jegyzetek” melletti „Csak ... nap” fül olyan jegyzetre való, amely csak erre a napra érvényes, például egy asztalfoglalás vagy egy jegyszám.',
   // remove-from-day
@@ -2522,7 +2522,7 @@ const help: TranslationStrings = {
   // day-route
   'help.guide.day-route.title': 'A napi útvonal megjelenítése és optimalizálása',
   'help.guide.day-route.goal':
-    'Nézd meg a megállók közötti útvonalat, válaszd ki, mivel utazol, és bízd a TREK-re a sorrend kialakítását.',
+    'Nézd meg a megállók közötti útvonalat, válaszd ki, mivel utazol, és bízd a YOUYA-re a sorrend kialakítását.',
   'help.guide.day-route.step.1':
     'Nyisd meg a napot, és kattints a megállói alatti útvonalsávban az „Útvonal” gombra: a megállók közötti útvonal megjelenik a térképen, a megállók közötti összekötők pedig az egyes szakaszok idejét és távolságát mutatják.',
   'help.guide.day-route.step.2':
@@ -2614,7 +2614,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     'Az alsó sor: „Hozzáadás a naphoz”, ha egy nap meg van nyitva, és a hely még nincs rajta, majd „Navigáció” (vagy a térképalkalmazásod neve, ha a Beállításokban már választottál egyet), és két ikon, a „Weboldal megnyitása” és a „Mentés gyűjteménybe”. Jobb oldalon a három pont tartalmazza az „Eltávolítás a napról” és a „Törlés” parancsot, a „Szerkesztés” pedig megnyitja a hely űrlapját, ahol a képét is módosíthatod.',
   'help.ctx.trip-place.bullet.6':
-    'A keresésből kiválasztott helynél azt látod, amit a TREK indexe vagy az OpenStreetMap tud róla: a felső gombok között „Nyitott” vagy „Lezárva” állapotot, zöld vagy piros gyűrűvel a kép körül, a hely helyi ideje szerint; a telefonszámát, szintén gombként; lejjebb a „Nyitvatartás” részt, a sorban a mai nyitvatartással, kattintásra pedig az egész héttel; a weboldalát pedig a „Weboldal megnyitása” alatt. A Google-értékelés csak a Google-on keresztül talált helyeknél jelenik meg, Google-kulccsal rendelkező TREK-en. A hely űrlapján általad megadott nyitvatartás, telefonszám és e-mail felülírja a lekérdezett adatokat, és ezek határozzák meg a gyűrű színét is.',
+    'A keresésből kiválasztott helynél azt látod, amit a YOUYA indexe vagy az OpenStreetMap tud róla: a felső gombok között „Nyitott” vagy „Lezárva” állapotot, zöld vagy piros gyűrűvel a kép körül, a hely helyi ideje szerint; a telefonszámát, szintén gombként; lejjebb a „Nyitvatartás” részt, a sorban a mai nyitvatartással, kattintásra pedig az egész héttel; a weboldalát pedig a „Weboldal megnyitása” alatt. A Google-értékelés csak a Google-on keresztül talált helyeknél jelenik meg, Google-kulccsal rendelkező YOUYA-en. A hely űrlapján általad megadott nyitvatartás, telefonszám és e-mail felülírja a lekérdezett adatokat, és ezek határozzák meg a gyűrű színét is.',
   // read-place
   'help.guide.read-place.title': 'Mit mutat a kártya egy helyről',
   'help.guide.read-place.goal': 'Nézd meg egyetlen kártyán mindazt, amit az utazás egy helyről tud.',
@@ -2637,7 +2637,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.tip.2':
     'Ha szerkesztheted a helyeket, a névre duplán kattintva az űrlap megnyitása nélkül átnevezheted a helyet. Az Enter ment, az Esc elveti a módosítást.',
   'help.guide.read-place.tip.3':
-    'A kézzel beírt helynél csak az űrlapon megadott adatok látszanak. Kattints a „Szerkesztés” gombra, és töltsd ki magad a „Telefon”, az „E-mail” mezőt és a nyitvatartást, vagy válaszd ki a helyet a „Helyek keresése…” alatti javaslatok közül, és kattints a „Frissítés” gombra, hogy a TREK lekérdezze őket. A Google-értékeléshez Google-kulcs kell.',
+    'A kézzel beírt helynél csak az űrlapon megadott adatok látszanak. Kattints a „Szerkesztés” gombra, és töltsd ki magad a „Telefon”, az „E-mail” mezőt és a nyitvatartást, vagy válaszd ki a helyet a „Helyek keresése…” alatti javaslatok közül, és kattints a „Frissítés” gombra, hogy a YOUYA lekérdezze őket. A Google-értékeléshez Google-kulcs kell.',
   'help.guide.fold-place-card.title': 'A kártya összecsukása az útból',
   'help.guide.fold-place-card.goal': 'Tartsd kijelölve a helyet, miközben a körülötte lévő térképet nézed.',
   'help.guide.fold-place-card.step.1':
@@ -2691,7 +2691,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     'A csempék alatti sor végén lévő „Kép eltávolítása” a „Frissítés” gombra kattintás után kép nélkül hagyja a helyet. A „Mégse” megtartja a régit.',
   'help.guide.place-image.tip.3':
-    'A többi csempe a hely jelenlegi képe, a hozzá csatolt fotók és a TREK által hozzá talált képek, mindegyik a forrásmegjelöléssel. A képet csak azok az utazók módosíthatják, akik szerkeszthetik a helyeket.',
+    'A többi csempe a hely jelenlegi képe, a hozzá csatolt fotók és a YOUYA által hozzá talált képek, mindegyik a forrásmegjelöléssel. A képet csak azok az utazók módosíthatják, akik szerkeszthetik a helyeket.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'A hely hozzáadása a megnyitott naphoz vagy eltávolítása róla',
   'help.guide.place-day-assign.goal': 'Használd a kártyán lévő gombot ahelyett, hogy a sort áthúznád a tervezőn.',
@@ -2775,11 +2775,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     'A lista az ehhez a helyhez illő térképalkalmazásokat mutatja: Google Maps, Waze, Apple Maps, OpenStreetMap és CoMaps, Androidon pedig a „Másik térképalkalmazás” lehetőséget is.',
   'help.guide.place-navigation.step.3':
-    'Kattints arra, amelyiket használod. Ahol lehet, a TREK magát a helyet küldi át az alkalmazásnak, nem csak a koordinátáit, így a megfelelő bejárathoz jutsz.',
+    'Kattints arra, amelyiket használod. Ahol lehet, a YOUYA magát a helyet küldi át az alkalmazásnak, nem csak a koordinátáit, így a megfelelő bejárathoz jutsz.',
   'help.guide.place-navigation.step.4':
     'A mellette lévő ikon, a „Weboldal megnyitása”, új lapon nyitja meg a hely saját weboldalát a nyitvatartással és a jegyekkel.',
   'help.guide.place-navigation.result':
-    'A térképalkalmazás a helynél nyílik meg, a weboldal új lapon, az utazásban pedig semmi sem változik. Ha a TREK alkalmazásként van telepítve, új lap helyett a térképalkalmazás nyílik meg.',
+    'A térképalkalmazás a helynél nyílik meg, a weboldal új lapon, az utazásban pedig semmi sem változik. Ha a YOUYA alkalmazásként van telepítve, új lap helyett a térképalkalmazás nyílik meg.',
   'help.guide.place-navigation.tip.1':
     'A Waze azonnal elindítja a navigációt. A többi alkalmazás megnyitja a helyet, és a navigáció indításához még egyszer koppintanod kell.',
   'help.guide.place-navigation.tip.2':
@@ -2821,7 +2821,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.result':
     'A nyomvonal a választott színnel jelenik meg a kártyán, a helyek oszlopában lévő sorában és a térképen.',
   'help.guide.place-track.tip.1':
-    'Ez a két rész csak útvonallal rendelkező helyeknél jelenik meg: olyan helynél, amelyet még a Túrák bővítmény előtt importáltak GPX-, KML- vagy KMZ-fájlból, vagy olyan TREK-en, ahol a Túrák ki van kapcsolva. Bekapcsolt Túrák bővítménnyel az új GPX-fájlból túra lesz, amely a saját túrakártyáját nyitja meg.',
+    'Ez a két rész csak útvonallal rendelkező helyeknél jelenik meg: olyan helynél, amelyet még a Túrák bővítmény előtt importáltak GPX-, KML- vagy KMZ-fájlból, vagy olyan YOUYA-en, ahol a Túrák ki van kapcsolva. Bekapcsolt Túrák bővítménnyel az új GPX-fájlból túra lesz, amely a saját túrakártyáját nyitja meg.',
   'help.guide.place-track.tip.2':
     'A magassági adatokkal rögzített nyomvonal a legmagasabb és a legalacsonyabb pontját, a megtett szintemelkedést és -csökkenést, valamint a túra magassági profilját is mutatja.',
   'help.guide.place-track.tip.3':
@@ -2835,13 +2835,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     'Az utazás összes dokumentuma egy listában: jegyek, visszaigazolások, Wallet-kártyák és képek. Mindegyikhez tartozik egy megjegyzés, egy kapcsolat ahhoz a helyhez vagy foglaláshoz, amelyhez tartozik, valamint egy kuka, ahonnan visszaállíthatod.',
   'help.ctx.trip-files.bullet.1':
-    'A sáv alatti szaggatott keretes mező („Húzd ide a fájlokat”) fogadja a ráejtett fájlokat. Rákattintva megnyílik a fájlválasztó. A mezőben látod, milyen fájltípusokat fogad ez a TREK, és mekkora a fájlonkénti korlát (max. 50 MB, hacsak a rendszergazda mást nem állított be).',
+    'A sáv alatti szaggatott keretes mező („Húzd ide a fájlokat”) fogadja a ráejtett fájlokat. Rákattintva megnyílik a fájlválasztó. A mezőben látod, milyen fájltípusokat fogad ez a YOUYA, és mekkora a fájlonkénti korlát (max. 50 MB, hacsak a rendszergazda mást nem állított be).',
   'help.ctx.trip-files.bullet.2':
     'A felső sávban a „Fájl” felirat és a szűrőfülek láthatók: „Mind”, „PDF-ek”, „Képek” és „Dokumentumok”, mindegyik a darabszámával. Amint egy fájl csillagot kap, a „Mind” után megjelenik egy csillag fül, és amint egy jegyzethez melléklet tartozik, a sor végén megjelenik a „Közös jegyzetek” fül.',
   'help.ctx.trip-files.bullet.3':
     'Egy sorban látszik a bélyegkép vagy a fájl típusa, a feltöltő, a név, alatta a megjegyzés, a méret és a dátum, valamint minden kapcsolathoz egy jelvény: a hely, a foglalás vagy a közlekedés a nevével (ha fölé viszed az egeret, megjelenik a „Napi terv”, a „Foglalás” vagy a „Közlekedés” felirat), illetve a „Közös jegyzetekből” jelvény.',
   'help.ctx.trip-files.bullet.4':
-    'A sor végén legfeljebb öt ikon van, mindegyik neve megjelenik, ha fölé viszed az egeret: „Csillag”, „Hozzárendelés” (a ceruza), „Megnyitás”, „Letöltés” és „Törlés”. A „Törlés” nem kérdez rá: a fájl a kukába kerül, ahonnan visszaállíthatod. Offline állapotban a jegyzet, a kapcsolat, a csillag és a kuka is működik, és a TREK akkor küldi el őket, amikor újra van kapcsolat; csak a feltöltéshez és egy további kapcsolat megszüntetéséhez kell internet.',
+    'A sor végén legfeljebb öt ikon van, mindegyik neve megjelenik, ha fölé viszed az egeret: „Csillag”, „Hozzárendelés” (a ceruza), „Megnyitás”, „Letöltés” és „Törlés”. A „Törlés” nem kérdez rá: a fájl a kukába kerül, ahonnan visszaállíthatod. Offline állapotban a jegyzet, a kapcsolat, a csillag és a kuka is működik, és a YOUYA akkor küldi el őket, amikor újra van kapcsolat; csak a feltöltéshez és egy további kapcsolat megszüntetéséhez kell internet.',
   'help.ctx.trip-files.bullet.5':
     'A képek és videók teljes képernyőn nyílnak meg, a nyílbillentyűkkel lapozhatók, és bélyegképsor is tartozik hozzájuk. Minden más dokumentum egy ablakban nyílik meg, felül a nevével, alatta a „Megnyitás új lapon” és a „Letöltés” gombbal. A Wallet-kártyák azonnal letöltődnek.',
   'help.ctx.trip-files.bullet.6':
@@ -2853,7 +2853,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     'Nyisd meg az utazást, és a fülsávon kattints a „Fájl” fülre. Itt látod az utazás dokumentumait, fölöttük a feltöltési mezővel.',
   'help.guide.files-upload.step.2':
-    'Kattints a „Húzd ide a fájlokat” mezőre, és válassz ki egy vagy több fájlt. Egymás után töltődnek fel, közben a mezőben a „Feltöltés...” felirat látszik. A mezőben, a „vagy kattints a böngészéshez” alatt látod, milyen fájltípusokat fogad ez a TREK, és mekkora lehet egy fájl.',
+    'Kattints a „Húzd ide a fájlokat” mezőre, és válassz ki egy vagy több fájlt. Egymás után töltődnek fel, közben a mezőben a „Feltöltés...” felirat látszik. A mezőben, a „vagy kattints a böngészéshez” alatt látod, milyen fájltípusokat fogad ez a YOUYA, és mekkora lehet egy fájl.',
   'help.guide.files-upload.step.3':
     'Amikor az utolsó fájl feltöltése befejeződik, automatikusan megnyílik hozzá a „Fájl hozzárendelése” ablak (ha az utazásnak vannak helyei vagy foglalásai), a tetején a fájl nevével. A „Megjegyzés” alatti „Megjegyzés hozzáadása...” mezővel megjegyzést fűzhetsz a fájlhoz, az alatta lévő listákkal pedig egy helyhez vagy foglaláshoz kapcsolhatod. A jobb felső × gombbal zárd be; a bezárással semmi sem vész el.',
   'help.guide.files-upload.step.4':
@@ -2865,7 +2865,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     'A Ctrl+V billentyűkkel a vágólapon lévő képet közvetlenül a listába illesztheted, így egy foglalásról készült képernyőképet nem kell előbb elmentened.',
   'help.guide.files-upload.tip.3':
-    'A feltöltéshez fájlfeltöltési jogosultság kell; enélkül a feltöltőmező meg sem jelenik. A listán nem szereplő típust a TREK üzenettel elutasítja, és semmit sem tölt fel. A méretkorlátot (50 MB, hacsak a rendszergazda mást nem állított be) meghaladó fájlt még a küldés előtt elutasítja, és az üzenet megadja a korlátot. A feltöltéshez internetkapcsolat is kell: offline állapotban a TREK jelzi ezt, és nem tölt fel semmit.',
+    'A feltöltéshez fájlfeltöltési jogosultság kell; enélkül a feltöltőmező meg sem jelenik. A listán nem szereplő típust a YOUYA üzenettel elutasítja, és semmit sem tölt fel. A méretkorlátot (50 MB, hacsak a rendszergazda mást nem állított be) meghaladó fájlt még a küldés előtt elutasítja, és az üzenet megadja a korlátot. A feltöltéshez internetkapcsolat is kell: offline állapotban a YOUYA jelzi ezt, és nem tölt fel semmit.',
   // files-link
   'help.guide.files-link.title': 'Dokumentum csatolása helyhez vagy foglaláshoz',
   'help.guide.files-link.goal':
@@ -2885,7 +2885,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     'Egy fájlnak egyszerre több kapcsolata is lehet, így ugyanaz a visszaigazolás tartozhat egyszerre a szálloda foglalásához és a szálloda helyéhez.',
   'help.guide.files-link.tip.2':
-    'Egy bejelölt tételre újra kattintva megszünteted a kapcsolatot; maga a fájl megmarad. Offline állapotban a jegyzet és az új jelölések mentődnek, és a TREK akkor küldi el őket, amikor újra van kapcsolat; csak egy másik kapcsolat megszüntetéséhez kell internet.',
+    'Egy bejelölt tételre újra kattintva megszünteted a kapcsolatot; maga a fájl megmarad. Offline állapotban a jegyzet és az új jelölések mentődnek, és a YOUYA akkor küldi el őket, amikor újra van kapcsolat; csak egy másik kapcsolat megszüntetéséhez kell internet.',
   'help.guide.files-link.tip.3':
     'Fordítva is működik: a helyhez vagy foglaláshoz csatolt dokumentum is szerepel ebben a listában, ugyanazzal a jelvénnyel a sorában.',
   'help.guide.files-link.tip.4':
@@ -2922,7 +2922,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     'A lista mindig úgy van rendezve, hogy elöl a csillagozott fájlok állnak, utána a legújabbak, így a ma feltöltött dokumentum a múlt havi fölött látszik.',
   // files-preview
-  'help.guide.files-preview.title': 'Dokumentum megtekintése a TREK elhagyása nélkül',
+  'help.guide.files-preview.title': 'Dokumentum megtekintése a YOUYA elhagyása nélkül',
   'help.guide.files-preview.goal':
     'Nézz meg azonnal egy jegyet vagy képet, és töltsd le az eszközödre, ha ott van rá szükséged.',
   'help.guide.files-preview.step.1':
@@ -2958,7 +2958,7 @@ const help: TranslationStrings = {
     'A sávban a kuka ikon melletti „Kuka ürítése” véglegesen töröl mindent, ami még a kukában van. A böngésző előtte egyszer megerősítést kér. A kuka ikon visszavált a fájlokra.',
   'help.guide.files-trash.result': 'A fájl visszakerült a listába, oda, ahol korábban volt.',
   'help.guide.files-trash.tip.1':
-    'A sorban lévő „Törlés” nem kérdez rá előbb. Ezért van kuka: a TREK-ből semmi sem tűnik el, amíg itt nem törlöd. Mindez offline is működik, és a TREK akkor küldi el, amikor újra van kapcsolat.',
+    'A sorban lévő „Törlés” nem kérdez rá előbb. Ezért van kuka: a YOUYA-ből semmi sem tűnik el, amíg itt nem törlöd. Mindez offline is működik, és a YOUYA akkor küldi el, amikor újra van kapcsolat.',
   'help.guide.files-trash.tip.2':
     'A fájlok törléséhez és visszaállításához fájltörlési jog kell. Akinek ez nincs meg, nem látja sem a sorban a „Törlés” gombot, sem a kuka gombjait.',
   'help.guide.files-trash.tip.3': 'A kukából véglegesen törölt fájl már nem állítható vissza.',
@@ -2971,21 +2971,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     'Kattints a tárolódra, például a Nextcloudra. Megnyílik egy kisebb ablak a csatlakozáshoz. Ennek címe a tároló neve, és azokat a bejelentkezési adatokat kéri, amelyekre ennek a tárolónak szüksége van.',
   'help.guide.files-sync.step.3':
-    'Töltsd ki a „Cím” mezőt és a tároló saját bejelentkezési adatait: Paperless-ngx-nél API-tokent, Papránál API-kulcsot és szervezetazonosítót, Nextcloudnál felhasználónevet és alkalmazásjelszót, OpenCloudnál felhasználónevet és alkalmazástokent, Synology Drive-nál pedig felhasználónevet, jelszót és, ha a fiók kéri, kétlépcsős kódot. Ahol a tároló lehetővé teszi, mindig alkalmazásjelszót vagy tokent használj, soha ne a fiókod jelszavát. A Nextcloud és a Synology Drive emellett egy opcionális alapmappát is elfogad, ahol a TREK az utazások mappáit keresi, itt a /Reisen mappát. Az alul lévő „Saját aláírású tanúsítvány elfogadása” csak a saját hálózatodon lévő, ilyen tanúsítványt használó tárolóhoz való.',
+    'Töltsd ki a „Cím” mezőt és a tároló saját bejelentkezési adatait: Paperless-ngx-nél API-tokent, Papránál API-kulcsot és szervezetazonosítót, Nextcloudnál felhasználónevet és alkalmazásjelszót, OpenCloudnál felhasználónevet és alkalmazástokent, Synology Drive-nál pedig felhasználónevet, jelszót és, ha a fiók kéri, kétlépcsős kódot. Ahol a tároló lehetővé teszi, mindig alkalmazásjelszót vagy tokent használj, soha ne a fiókod jelszavát. A Nextcloud és a Synology Drive emellett egy opcionális alapmappát is elfogad, ahol a YOUYA az utazások mappáit keresi, itt a /Reisen mappát. Az alul lévő „Saját aláírású tanúsítvány elfogadása” csak a saját hálózatodon lévő, ilyen tanúsítványt használó tárolóhoz való.',
   'help.guide.files-sync.step.4':
-    'Kattints a „Kapcsolat tesztelése” gombra. A TREK a megadott adatokkal csatlakozik a tárhelyhez, és a láblécben megjelenik a „Sikeres kapcsolat, bejelentkezve:” felirat a fiók nevével. Ha a hitelesítő adatokat elutasítja a tárhely, vagy a cím nem érhető el, a lábléc ezt jelzi. Egyik esetben sem mentődik el semmi.',
+    'Kattints a „Kapcsolat tesztelése” gombra. A YOUYA a megadott adatokkal csatlakozik a tárhelyhez, és a láblécben megjelenik a „Sikeres kapcsolat, bejelentkezve:” felirat a fiók nevével. Ha a hitelesítő adatokat elutasítja a tárhely, vagy a cím nem érhető el, a lábléc ezt jelzi. Egyik esetben sem mentődik el semmi.',
   'help.guide.files-sync.step.5':
-    'Kattints a „Csatlakozás” gombra. A kapcsolat az utazással együtt mentődik, és a TREK megkérdezi, hol legyenek a tárhelyen az utazás dokumentumai: melyik címke, mappa vagy tér tartalmazza őket. Csak az szinkronizálódik, ami ott van. Az „Új létrehozása” a „Létrehozás” gombra kattintva létrehozza ezt az utazás címéből képzett névvel. A „Vagy használj egy meglévőt” alatt a már létezők látszanak. Kattints egyre, itt az Autumn in Japan mappára.',
+    'Kattints a „Csatlakozás” gombra. A kapcsolat az utazással együtt mentődik, és a YOUYA megkérdezi, hol legyenek a tárhelyen az utazás dokumentumai: melyik címke, mappa vagy tér tartalmazza őket. Csak az szinkronizálódik, ami ott van. Az „Új létrehozása” a „Létrehozás” gombra kattintva létrehozza ezt az utazás címéből képzett névvel. A „Vagy használj egy meglévőt” alatt a már létezők látszanak. Kattints egyre, itt az Autumn in Japan mappára.',
   'help.guide.files-sync.step.6':
-    'Az ablak újra megnyílik: a tárhelyed bal oldalon az „Ez az utazás” alatt látszik, a jobb oldali kártyáján pedig az, hová szinkronizál, mikor futott utoljára, és a „Szinkronizálás most” gomb. Az első szinkronizálás automatikusan elindul; a „Szinkronizálás most” gombbal bármikor elindíthatsz egyet. Szinkronizálás után a név melletti „Még nincs szinkronizálva” jelvény zöld pontra vált, amely fölé víve az egeret a „Naprakész” felirat látszik. A folyamatsáv mutatja, hány dokumentum van a TREK-ben és a tárhelyen, köztük a „Ki a tárolóba” és a „Be a tárolóból” sávval. Az ablakot a jobb felső × jellel zárhatod be.',
+    'Az ablak újra megnyílik: a tárhelyed bal oldalon az „Ez az utazás” alatt látszik, a jobb oldali kártyáján pedig az, hová szinkronizál, mikor futott utoljára, és a „Szinkronizálás most” gomb. Az első szinkronizálás automatikusan elindul; a „Szinkronizálás most” gombbal bármikor elindíthatsz egyet. Szinkronizálás után a név melletti „Még nincs szinkronizálva” jelvény zöld pontra vált, amely fölé víve az egeret a „Naprakész” felirat látszik. A folyamatsáv mutatja, hány dokumentum van a YOUYA-ben és a tárhelyen, köztük a „Ki a tárolóba” és a „Be a tárolóból” sávval. Az ablakot a jobb felső × jellel zárhatod be.',
   'help.guide.files-sync.result':
-    'A tárhelyen már meglévő dokumentumok a lista tetején jelennek meg, a te nevedben feltöltve, és az utazás minden dokumentuma a tárhelyen is megvan, kivéve a „Közös jegyzetek” dokumentumait. Mostantól a TREK a háttérben figyeli a tárhelyet, és a listában végzett módosításokat átmásolja oda.',
+    'A tárhelyen már meglévő dokumentumok a lista tetején jelennek meg, a te nevedben feltöltve, és az utazás minden dokumentuma a tárhelyen is megvan, kivéve a „Közös jegyzetek” dokumentumait. Mostantól a YOUYA a háttérben figyeli a tárhelyet, és a listában végzett módosításokat átmásolja oda.',
   'help.guide.files-sync.tip.1':
     'Az utazást csak a tulajdonosa vagy a példány adminisztrátora csatlakoztathatja, mert a hitelesítő adatok a tárolóban a teljes fiókhoz hozzáférést adnak. Ha az utazás már csatlakoztatva van, minden tag látja a „Dokumentumok szinkronizálása” gombot, megnyithatja, elolvashatja a kártyát, és megnyomhatja a „Szinkronizálás most” gombot.',
   'help.guide.files-sync.tip.2':
-    'A saját hálózatodon lévő tárolóhoz a TREK-szerveren ALLOW_INTERNAL_NETWORK=true beállítás kell, a címének pedig a gép hálózati címének kell lennie, sosem localhost. Enélkül a „Kapcsolat tesztelése” ezt válaszolja: „Ez a cím nem engedélyezett.”',
+    'A saját hálózatodon lévő tárolóhoz a YOUYA-szerveren ALLOW_INTERNAL_NETWORK=true beállítás kell, a címének pedig a gép hálózati címének kell lennie, sosem localhost. Enélkül a „Kapcsolat tesztelése” ezt válaszolja: „Ez a cím nem engedélyezett.”',
   'help.guide.files-sync.tip.3':
-    'A „Szinkronizálás most” melletti ikon, a „Leválasztás”, egyszer megerősítést kér. Ezután megszünteti a kapcsolatot, és mindkét oldalon megtart minden dokumentumot. Ha egy címkét, mappát vagy teret másodszor is csatlakoztatsz, a TREK újként kezeli, és mindent újra importál belőle. Ezért leválasztás után üreset csatlakoztass, ne a régit.',
+    'A „Szinkronizálás most” melletti ikon, a „Leválasztás”, egyszer megerősítést kér. Ezután megszünteti a kapcsolatot, és mindkét oldalon megtart minden dokumentumot. Ha egy címkét, mappát vagy teret másodszor is csatlakoztatsz, a YOUYA újként kezeli, és mindent újra importál belőle. Ezért leválasztás után üreset csatlakoztass, ne a régit.',
 
   // ── Screen: trip-day-detail ───────────────────────────────────────────────────────────
   'help.ctx.trip-day-detail.title': 'Nap részletei',
@@ -3173,7 +3173,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     'A térkép tetején lévő ikonsor a kategóriakeresés: „Éttermek”, „Kávézók”, „Bárok és éjszakai élet”, „Szállás”, „Látnivalók”, „Múzeumok és kultúra”, „Természet és parkok”, „Programok”, „Pékségek” és „Élelmiszerboltok”. A pluginek által hozzáadott kategóriák egy vékony elválasztó után következnek; ha egy ikon fölé viszed az egeret, megjelenik a neve.',
   'help.guide.map-nearby-places.step.2':
-    'Kattints egy kategóriára. A TREK ilyen típusú helyeket keres a térkép látható részén, és minden találathoz a kategória színével jelölt gombostűt tesz le. Egyszerre csak egy kategória lehet aktív: egy másikra kattintva lecseréled, az aktívra kattintva kikapcsolod.',
+    'Kattints egy kategóriára. A YOUYA ilyen típusú helyeket keres a térkép látható részén, és minden találathoz a kategória színével jelölt gombostűt tesz le. Egyszerre csak egy kategória lehet aktív: egy másikra kattintva lecseréled, az aktívra kattintva kikapcsolod.',
   'help.guide.map-nearby-places.step.3':
     'Ha elmozdítod a térképet, a sor alatt megjelenik egy második gomb: a „Keresés ezen a területen” ugyanazt a keresést futtatja le az új nézetre. A térkép mozgatása magától nem indít új keresést, így kevesebb kérés megy ki.',
   'help.guide.map-nearby-places.step.4':
@@ -3181,13 +3181,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     'Ellenőrizd a kitöltött adatokat, és egészítsd ki azzal, amit a keresés nem tudhatott. A név alatti kategóriagomb már be van állítva, ha az utazásnak van megfelelő kategóriája, például étteremnél az étterem; ha nincs, „Nincs kategória” látszik rajta, amíg nem választasz. Írd le az „A helyről” mezőbe, miről szól a hely, a saját jegyzeteidet pedig a „Jegyzetek” mezőbe.',
   'help.guide.map-nearby-places.step.6':
-    'Kattints a „Hozzáadás” gombra. Ha már van az utazásban azonos nevű vagy ugyanazon a ponton lévő hely, a TREK jelzi ezt, és a gomb felirata „Hozzáadás mindenképp” lesz.',
+    'Kattints a „Hozzáadás” gombra. Ha már van az utazásban azonos nevű vagy ugyanazon a ponton lévő hely, a YOUYA jelzi ezt, és a gomb felirata „Hozzáadás mindenképp” lesz.',
   'help.guide.map-nearby-places.result':
     'A hely bekerült a helylistába, és a térképen az utazás saját gombostűjeként látszik, a „Nem tervezett” helyek között, amíg egy naphoz nem rendeled. A keresés gombostűi addig maradnak, amíg ki nem kapcsolod a kategóriát.',
   'help.guide.map-nearby-places.tip.1':
     'A sor rejtve marad, ha a Beállítások > Megjelenés menüpont „Utazás és térkép” részében a „Helyek felfedezése a térképen” ki van kapcsolva.',
   'help.guide.map-nearby-places.tip.2':
-    'A találatok a TREK Places indexéből és az OpenStreetMapből származnak, így ez azon kevés funkció egyike a tervben, amelyhez internetkapcsolat kell.',
+    'A találatok a YOUYA Places indexéből és az OpenStreetMapből származnak, így ez azon kevés funkció egyike a tervben, amelyhez internetkapcsolat kell.',
   'help.guide.map-nearby-places.tip.3':
     'A keresés csak a képernyőn látható területet fedi le, ezért nagyíts rá arra az utcára, amely érdekel. Egy egész városra kiterjedő keresés csak az első hatvan találatot adja, különösebb sorrend nélkül.',
   // map-add-place
@@ -3196,7 +3196,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     'Kattints jobb gombbal a térkép kívánt pontjára. Megnyílik a hely űrlapja „Hely/Tevékenység hozzáadása” címmel.',
   'help.guide.map-add-place.step.2':
-    'A „Szélességi fok” és a „Hosszúsági fok” már erre a pontra van beállítva. A TREK lekérdezi a koordinátákat, és a „Cím” mezőt az ott talált adattal tölti ki. Ha a lekérdezés nevet is talál, a TREK az ablak tetején a nevet is kitölti. Még semmi sincs elmentve, így javítsd ki, ami nem stimmel.',
+    'A „Szélességi fok” és a „Hosszúsági fok” már erre a pontra van beállítva. A YOUYA lekérdezi a koordinátákat, és a „Cím” mezőt az ott talált adattal tölti ki. Ha a lekérdezés nevet is talál, a YOUYA az ablak tetején a nevet is kitölti. Még semmi sincs elmentve, így javítsd ki, ami nem stimmel.',
   'help.guide.map-add-place.step.3':
     'Az ablak tetején lévő mezőbe írj egy olyan nevet, amelyről felismered a helyet. Az alatta lévő gombbal válassz kategóriát; amíg nem választasz, „Nincs kategória” látszik rajta. Ezután add meg a tervhez szükséges további adatokat: „A helyről”, „Jegyzetek”, „Weboldal”.',
   'help.guide.map-add-place.step.4':
@@ -3213,7 +3213,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     'Az alapréteg-kapcsoló a térkép bal alsó sarkában lévő két kerek gomb közül az alsó, a lakat alatt. Az ikonja mindig azt a réteget mutatja, amelyre vált, az elemleírása pedig meg is nevezi: „Váltás műholdas nézetre”. Kattints rá.',
   'help.guide.map-satellite.step.2':
-    'A térkép most légifotókat mutat. Ezek elég részletesek ahhoz, hogy egyes épületeket is láss, és nincs szükséged saját kulcsra. Minden, amit a TREK rajzol, fölöttük marad: a gombostűk, a nap útvonala, a nyomvonalak és a foglalási útvonalak.',
+    'A térkép most légifotókat mutat. Ezek elég részletesek ahhoz, hogy egyes épületeket is láss, és nincs szükséged saját kulcsra. Minden, amit a YOUYA rajzol, fölöttük marad: a gombostűk, a nap útvonala, a nyomvonalak és a foglalási útvonalak.',
   'help.guide.map-satellite.step.3':
     'A gombon most a „Váltás térkép nézetre” felirat áll. Kattints rá, hogy visszatérj a térképnézethez.',
   'help.guide.map-satellite.result': 'A térkép újrarajzolódik, és a fiókod megjegyzi a választott réteget.',
@@ -3268,7 +3268,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Jelenítsd meg a térképen a Dawarich által a telefonodon rögzített útvonalat szaggatott vonalként a tervezett útvonal mellett, és nézd meg napról napra, hogyan alakult valójában az utazás.',
   'help.guide.map-dawarich-trail.step.1':
-    'A kerek Dawarich gomb a térkép jobb alsó sarkában, a „Teljes utazás megjelenítése” alatt található. Ha fölé viszed az egeret, ez látszik: „Rögzített útvonal megjelenítése”. Kattints rá. A TREK lekéri a Dawarichodtól az utazás dátumaira vonatkozó adatokat, és amíg a válaszra vár, egy gyűrű forog a gomb körül.',
+    'A kerek Dawarich gomb a térkép jobb alsó sarkában, a „Teljes utazás megjelenítése” alatt található. Ha fölé viszed az egeret, ez látszik: „Rögzített útvonal megjelenítése”. Kattints rá. A YOUYA lekéri a Dawarichodtól az utazás dátumaira vonatkozó adatokat, és amíg a válaszra vár, egy gyűrű forog a gomb körül.',
   'help.guide.map-dawarich-trail.step.2':
     'A rögzített útvonal szaggatott vonalként jelenik meg, naponként más színnel, a tervezett útvonal alá rajzolva, hogy a terv olvasható maradjon. A gombon most a „Rögzített útvonal elrejtése” felirat áll. Minden nap helyi idő szerint éjfélkor ér véget. Ha a napok oszlopában összecsukasz egy napot, a szaggatott vonala és a megállói eltűnnek a térképről.',
   'help.guide.map-dawarich-trail.step.3':
@@ -3276,9 +3276,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     'A térképen együtt látod, mit terveztél és mit csináltál valójában, szaggatott és folytonos vonalként. A gombok fölötti kártya továbbra is a tervezett napokat és azok távolságait sorolja fel.',
   'help.guide.map-dawarich-trail.tip.1':
-    'A be- vagy kikapcsolt állapotot a fiókod utazásonként menti, így minden böngészőben és minden eszközön ugyanaz. Amíg az útvonal be van kapcsolva, a TREK kétpercenként újra lekérdezi a Dawarichot, így egy zajló utazás az oldal újratöltése nélkül is frissül. Magát az útvonalat a TREK sosem tárolja, így nincs benne az adatbázisában, a biztonsági mentésekben, és offline sem érhető el.',
+    'A be- vagy kikapcsolt állapotot a fiókod utazásonként menti, így minden böngészőben és minden eszközön ugyanaz. Amíg az útvonal be van kapcsolva, a YOUYA kétpercenként újra lekérdezi a Dawarichot, így egy zajló utazás az oldal újratöltése nélkül is frissül. Magát az útvonalat a YOUYA sosem tárolja, így nincs benne az adatbázisában, a biztonsági mentésekben, és offline sem érhető el.',
   'help.guide.map-dawarich-trail.tip.2':
-    'A gomb felirata elárulja, miért üres a térkép: betöltés közben „Rögzített útvonal betöltése…”, egyébként „Ezeken a napokon nem készült rögzítés”, „A rögzített útvonalat nem sikerült betölteni”, vagy ha a TREK offline, „A rögzített útvonalhoz kapcsolat kell”.',
+    'A gomb felirata elárulja, miért üres a térkép: betöltés közben „Rögzített útvonal betöltése…”, egyébként „Ezeken a napokon nem készült rögzítés”, „A rögzített útvonalat nem sikerült betölteni”, vagy ha a YOUYA offline, „A rögzített útvonalhoz kapcsolat kell”.',
   // map-compass
   'help.guide.map-compass.title': 'A térkép elforgatása és visszaállítása északra',
   'help.guide.map-compass.goal':
@@ -3453,7 +3453,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     'A „Képek csatolása” gombbal egy üzenethez legfeljebb négy képet adhatsz hozzá. Be is illesztheted őket, vagy ráhúzhatod a mezőre.',
   'help.guide.trip-chat.tip.3':
-    'A linket tartalmazó üzenet alatt előnézeti kártya jelenik meg, amelyet a saját TREK-ed tölt le, így ha a link olyasmire mutat, amit csak te érsz el, egyszerű link marad.',
+    'A linket tartalmazó üzenet alatt előnézeti kártya jelenik meg, amelyet a saját YOUYA-ed tölt le, így ha a link olyasmire mutat, amit csak te érsz el, egyszerű link marad.',
   'help.guide.trip-chat.tip.4':
     'A Chatnek saját kapcsolója van a „Bővítmények” alatt, az „Együttműködés” alatt: az adminisztrátor kikapcsolhatja, a jegyzetek, a linkek, a szavazások és a „Mi következik” pedig közben bekapcsolva maradhatnak.',
 
@@ -3494,7 +3494,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     'Ha valakit hozzárendelsz egy listához, csomagolási értesítést kap. Ez nem befolyásolja, ki látja a tételeket: ezt az egyes tételek ablakában a „Látható” alatt, vagy az egész listára a „Megosztás az egész listára” beállítással állíthatod be.',
   'help.guide.packing-categories.tip.3':
-    'Két listának lehet ugyanaz a neve. A TREK a háttérben megkülönbözteti őket, így a nevek pontosan úgy maradnak, ahogy beírtad.',
+    'Két listának lehet ugyanaz a neve. A YOUYA a háttérben megkülönbözteti őket, így a nevek pontosan úgy maradnak, ahogy beírtad.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Kipipálás csomagolás közben',
   'help.guide.check-off-packing.goal':
@@ -3545,13 +3545,13 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.step.3':
     'Vagy töltsd be a sorokat fájlból az ablak bal alsó sarkában lévő „CSV/TXT/MD betöltése” gombbal. Egy .csv, .txt vagy .md fájlt választhatsz, és a tartalma felülírja a mezőben lévő szöveget.',
   'help.guide.import-packing-list.step.4':
-    'Kattints a jobb alsó „3 importálása” gombra; a rajta lévő szám azt mutatja, hány sort értelmezett a TREK.',
+    'Kattints a jobb alsó „3 importálása” gombra; a rajta lévő szám azt mutatja, hány sort értelmezett a YOUYA.',
   'help.guide.import-packing-list.result':
     'Minden sorból egy tétel lesz abban a listában, amelyet az első mezője megnevez. A már meglévő tételek nem változnak.',
   'help.guide.import-packing-list.tip.1':
     'A mezőket vessző, pontosvessző vagy tabulátor is elválaszthatja, az idézőjelek pedig egyben tartják a mezőt, így a "Shirt, blue" egyetlen név marad. Az egyetlen értéket tartalmazó sor csak egy név. A saját lista nélküli sor az „Egyéb” listába kerül. A név előtti "3x" a mennyiséget adja meg.',
   'help.guide.import-packing-list.tip.2':
-    'Ha a negyedik mezőben megadott táska még nem létezik az utazásban, a TREK létrehozja. Az „Importálás” és a „Sablon alkalmazása” a két módja annak, hogy egyszerre sok tételhez adj súlyt és táskát.',
+    'Ha a negyedik mezőben megadott táska még nem létezik az utazásban, a YOUYA létrehozja. Az „Importálás” és a „Sablon alkalmazása” a két módja annak, hogy egyszerre sok tételhez adj súlyt és táskát.',
   // export-packing-list
   'help.guide.export-packing-list.title': 'A csomagolási lista nyomtatása vagy exportálása',
   'help.guide.export-packing-list.goal':
@@ -3694,7 +3694,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     'A sáv jobb végén lévő „Kézi foglalás” megnyitja az „Új foglalás” ablakot. Hatféle foglalást hozhatsz létre: „Szállás”, „Étterem”, „Esemény”, „Vezetett túra”, „Parkolás” és „Egyéb”. A repülőjáratok, vonatok és egyéb közlekedési eszközök a „Közlekedés” fülön vannak, és itt sosem jelennek meg.',
   'help.ctx.trip-bookings.bullet.2':
-    'A „Kézi foglalás” előtti feltöltés ikonnal („Foglalási visszaigazolások importálása”) visszaigazolásokat tölthetsz fel, amelyeket a TREK automatikusan feldolgoz: EML, PDF, PKPass, HTML vagy TXT, legfeljebb öt fájl, egyenként 10 MB-ig, valamint fotók, ha az AI-modell képeket is tud olvasni. Az ikon csak akkor jelenik meg, ha a szerver képes feldolgozni őket. Ha az adminisztrátor bekapcsolta az e-mail-importot, ugyanez az ablak az utazásnak saját címet is ad, amelyre a foglalási e-maileket továbbíthatod.',
+    'A „Kézi foglalás” előtti feltöltés ikonnal („Foglalási visszaigazolások importálása”) visszaigazolásokat tölthetsz fel, amelyeket a YOUYA automatikusan feldolgoz: EML, PDF, PKPass, HTML vagy TXT, legfeljebb öt fájl, egyenként 10 MB-ig, valamint fotók, ha az AI-modell képeket is tud olvasni. Az ikon csak akkor jelenik meg, ha a szerver képes feldolgozni őket. Ha az adminisztrátor bekapcsolta az e-mail-importot, ugyanez az ablak az utazásnak saját címet is ad, amelyre a foglalási e-maileket továbbíthatod.',
   'help.ctx.trip-bookings.bullet.3':
     'A „Keresés” a címekben, típusokban, helyekben, jegyzetekben, foglalási kódokban és utazókban keres. A mellette lévő tölcsér, a „Szűrő” „Állapot” és „Típus” szerint (típusonként darabszámmal), valamint „Utasok” szerint szűkíti a fület, ha egy foglaláshoz személyek is tartoznak. A tölcséren lévő szám mutatja, hány szűrő aktív.',
   'help.ctx.trip-bookings.bullet.4':
@@ -3759,7 +3759,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     'A „Szállás” alatt válaszd ki a szállodát. A listában az utazás helyei szerepelnek, az importált nyomvonalak és túrák nélkül. Ha kiválasztasz egyet, a neve bekerül az üres címmezőbe, a címe pedig a „Helyszín / Cím” mezőbe.',
   'help.guide.booking-hotel.step.3':
-    'Állítsd be a „Kitől” és az „Eddig” mezőt: az első éjszakát és az elutazás reggelét. Mindkettőben az utazás napjai közül választhatsz a dátumukkal együtt, és a TREK gondoskodik róla, hogy az „Eddig” a „Kitől” után legyen.',
+    'Állítsd be a „Kitől” és az „Eddig” mezőt: az első éjszakát és az elutazás reggelét. Mindkettőben az utazás napjai közül választhatsz a dátumukkal együtt, és a YOUYA gondoskodik róla, hogy az „Eddig” a „Kitől” után legyen.',
   'help.guide.booking-hotel.step.4':
     'Töltsd ki a „Bejelentkezés”, a „Bejelentkezés eddig” és a „Kijelentkezés” mezőt, valamint a visszaigazolásból a „Foglalási kód” mezőt.',
   'help.guide.booking-hotel.step.5': 'Kattints a „Hozzáadás” gombra.',
@@ -3768,7 +3768,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.tip.1':
     'A „Szállás” az egyetlen típus „Dátum” és „Kezdési idő” nélkül. A dátumait az „Ettől” és az „Eddig” mezőben adod meg, és nem naptári dátumokat, hanem az utazás napjait választod ki.',
   'help.guide.booking-hotel.tip.2':
-    'Ha a „Szállás” mezőt üresen hagyod, és helyette beírod a címet, a TREK megkeresi a helyet, létrehozza, és felteszi a térképre.',
+    'Ha a „Szállás” mezőt üresen hagyod, és helyette beírod a címet, a YOUYA megkeresi a helyet, létrehozza, és felteszi a térképre.',
   'help.guide.booking-hotel.tip.3': 'Ha törlöd a foglalást, az éjszakái is eltűnnek a napi tervből.',
   // link-booking
   'help.guide.link-booking.title': 'Foglalás összekapcsolása a tervvel',
@@ -3786,7 +3786,7 @@ const help: TranslationStrings = {
   'help.guide.link-booking.tip.1':
     'A lista tetején lévő „Nincs összekapcsolás (önálló)” megszünteti a kapcsolatot. A szállásnál nincs megállóválasztó: az éjszakáin keresztül kapcsolódik a tervhez.',
   'help.guide.link-booking.tip.2':
-    'Ha dátummal rendelkező napon választasz megállót, a TREK kitölti az üres „Dátum” mezőt. A már beállított dátumot nem módosítja.',
+    'Ha dátummal rendelkező napon választasz megállót, a YOUYA kitölti az üres „Dátum” mezőt. A már beállított dátumot nem módosítja.',
   // booking-travelers
   'help.guide.booking-travelers.title': 'Kinek szól a foglalás',
   'help.guide.booking-travelers.goal':
@@ -3866,7 +3866,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': 'Foglalás importálása a visszaigazolásból',
   'help.guide.import-booking-file.goal':
-    'A TREK olvassa ki a foglalást a szolgáltatótól kapott e-mailből vagy PDF-ből, hogy ne kelljen újra begépelned.',
+    'A YOUYA olvassa ki a foglalást a szolgáltatótól kapott e-mailből vagy PDF-ből, hogy ne kelljen újra begépelned.',
   'help.guide.import-booking-file.step.1':
     'Kattints a sávban a feltöltés ikonra, a „Foglalási visszaigazolások importálása” gombra; a neve akkor jelenik meg, ha fölé viszed az egeret. Megnyílik az azonos nevű ablak.',
   'help.guide.import-booking-file.step.2':
@@ -4000,16 +4000,16 @@ const help: TranslationStrings = {
   'help.guide.split-expense.tip.2':
     'Az „Equally” centre pontosan oszt: a maradék cent kiadásonként más-más személyhez kerül, így nem mindig ugyanaz fizeti.',
   'help.guide.split-expense.tip.3':
-    '„Blokk” módban a „Teljes összeg” mezőt a TREK maga számolja ki, ezért a mező kiszürkül: a végösszeg a blokk tételeinek összege.',
+    '„Blokk” módban a „Teljes összeg” mezőt a YOUYA maga számolja ki, ezért a mező kiszürkül: a végösszeg a blokk tételeinek összege.',
   'help.guide.split-expense.tip.4':
     'Egyéni felosztást százalékban vagy részekben is megadhatsz: a tipp melletti kis kapcsoló választja ki a pénznem jelét, a %-ot vagy a „Részek” lehetőséget. Százaléknál a részeknek együtt 100 %-ot kell kitenniük, mielőtt a kiadás mentődik.',
   // expense-currency
   'help.guide.expense-currency.title': 'Kiadás rögzítése más pénznemben',
-  'help.guide.expense-currency.goal': 'Add meg a nyugtán szereplő összeget, az árfolyamot pedig a TREK elmenti.',
+  'help.guide.expense-currency.goal': 'Add meg a nyugtán szereplő összeget, az árfolyamot pedig a YOUYA elmenti.',
   'help.guide.expense-currency.step.1':
     'Nyisd meg a „Költség hozzáadása” ablakot. Írd be a nevet az ablak tetejére, az összeget pedig a „Teljes összeg” mezőbe pontosan úgy, ahogy a nyugtán szerepel, ne átváltva.',
   'help.guide.expense-currency.step.2':
-    'Nyisd meg az összeg melletti „Pénznem” listát; az új kiadás az utazás saját pénznemével indul. Válaszd ki a nyugta pénznemét: az utazás pénzneme és az, amelyben a „Költségek” látszanak, a lista tetején áll, és a háromjegyű kód beírásával a TREK által ismert összes többi között kereshetsz.',
+    'Nyisd meg az összeg melletti „Pénznem” listát; az új kiadás az utazás saját pénznemével indul. Válaszd ki a nyugta pénznemét: az utazás pénzneme és az, amelyben a „Költségek” látszanak, a lista tetején áll, és a háromjegyű kód beírásával a YOUYA által ismert összes többi között kereshetsz.',
   'help.guide.expense-currency.step.3':
     'A mezők alatt jelvények jelennek meg: a beírt összeg és a jelenlegi értéke, „élő árfolyam” jelöléssel. Ez csak előnézet, nem ez az érték kerül mentésre.',
   'help.guide.expense-currency.step.4':
@@ -4226,7 +4226,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Közlekedés',
   'help.ctx.trip-transports.summary':
-    'Minden mód, amellyel a megállók között utazol: repülők, vonatok, buszok, autók, taxik, kerékpárok, hajóutak, kompok, kötélpályák és azok a tömegközlekedési kapcsolatok, amelyeket a TREK kikeres neked. A fül felsorolja őket. A terven is létrehozhatod és megtekintheted őket, és a térképen is megjelennek.',
+    'Minden mód, amellyel a megállók között utazol: repülők, vonatok, buszok, autók, taxik, kerékpárok, hajóutak, kompok, kötélpályák és azok a tömegközlekedési kapcsolatok, amelyeket a YOUYA kikeres neked. A fül felsorolja őket. A terven is létrehozhatod és megtekintheted őket, és a térképen is megjelennek.',
   'help.ctx.trip-transports.bullet.1':
     'Ez a fül csak az utakat mutatja. A szállások, éttermek, események és jegyek a „Foglalások” fülön vannak, így ugyanaz a bejegyzés soha nem jelenik meg kétszer.',
   'help.ctx.trip-transports.bullet.2':
@@ -4284,7 +4284,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': 'Járat importálása az e-jegyből',
   'help.guide.import-transport-file.goal':
-    'A TREK olvassa ki a repülést, a vonatot vagy a kompot a szolgáltatótól kapott jegyből, te pedig mentés előtt ellenőrizd.',
+    'A YOUYA olvassa ki a repülést, a vonatot vagy a kompot a szolgáltatótól kapott jegyből, te pedig mentés előtt ellenőrizd.',
   'help.guide.import-transport-file.step.1':
     'A „Közlekedés” fül sávjában kattints a „Közlekedés” előtti feltöltés ikonra („Foglalási visszaigazolások importálása”). Megnyílik az ilyen nevű ablak, ugyanaz, mint a „Foglalások” fülön. Üres fülön a középen lévő „Importálás fájlból” ugyanezt teszi.',
   'help.guide.import-transport-file.step.2':
@@ -4304,11 +4304,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': 'Tömegközlekedési kapcsolat tervezése',
   'help.guide.plan-transit.goal':
-    'Keresd ki a TREK-kel a valódi vonat- és buszjáratokat egy nap két pontja között, és tedd be a tervbe a kiválasztottat.',
+    'Keresd ki a YOUYA-kel a valódi vonat- és buszjáratokat egy nap két pontja között, és tedd be a tervbe a kiválasztottat.',
   'help.guide.plan-transit.step.1':
     'Kattints a nap fejlécében a + jelre, és válaszd a „Tömegközlekedés” lehetőséget. A kereső az adott napra nyílik meg: a nap címkeként látszik a fejlécben, a mellette lévő „Kézzel” és „Automatikus” pedig a kereső és a szokásos űrlap között vált.',
   'help.guide.plan-transit.step.2':
-    'A „Kitől” és a „Ki” mezőbe megállót vagy állomást adhatsz meg. Amíg a mező üres, a TREK a nap szállását, a nap foglalásainak állomásait és repülőtereit, valamint a nap saját megállóit javasolja. Ha beírsz két betűt, helyette a menetrend állomásai között keres. A két mező közötti „Csere” gomb felcseréli a „Kitől” és a „Ki” értékét.',
+    'A „Kitől” és a „Ki” mezőbe megállót vagy állomást adhatsz meg. Amíg a mező üres, a YOUYA a nap szállását, a nap foglalásainak állomásait és repülőtereit, valamint a nap saját megállóit javasolja. Ha beírsz két betűt, helyette a menetrend állomásai között keres. A két mező közötti „Csere” gomb felcseréli a „Kitől” és a „Ki” értékét.',
   'help.guide.plan-transit.step.3':
     'Az „Indulás” vagy az „Érkezés” egy időponttal együtt megadja, mikor szeretnél utazni, a „Legjobb útvonal”, a „Kevesebb átszállás” vagy a „Kevesebb gyaloglás” pedig azt, milyen sorrendben jelenjenek meg a találatok.',
   'help.guide.plan-transit.step.4':
@@ -4349,7 +4349,7 @@ const help: TranslationStrings = {
   'help.guide.leg-travel-mode.step.1':
     'A megállók közötti összekötők csak akkor jelennek meg, ha a nap útvonala be van kapcsolva. Kattints a nap fejlécére a megnyitásához, majd a megállók alatti sávban az „Útvonal” gombra.',
   'help.guide.leg-travel-mode.step.2':
-    'Minden összekötő mutatja az adott szakasz menetidejét és távolságát, annak a közlekedési módnak az ikonjával, amellyel a TREK tervezte: autó ikon az autózáshoz, láb a gyalogláshoz, kerékpár a kerékpározáshoz.',
+    'Minden összekötő mutatja az adott szakasz menetidejét és távolságát, annak a közlekedési módnak az ikonjával, amellyel a YOUYA tervezte: autó ikon az autózáshoz, láb a gyalogláshoz, kerékpár a kerékpározáshoz.',
   'help.guide.leg-travel-mode.step.3':
     'Kattints az összekötőre. A menüben az „Autó”, a „Gyalog” és a „Kerékpár”, erre az egy szakaszra a „Tömegközlekedés”, valamint a „Napi alapértelmezett” lehetőség közül választhatsz.',
   'help.guide.leg-travel-mode.step.4':
@@ -4422,7 +4422,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     'Az a járat, amely ugyanazzal a számmal és dátummal már szerepel az utazásban, kimarad, és egy üzenet jelzi, hány ilyen volt. A napok fölötti eszköztár visszavonás nyila a teljes importálást visszavonja.',
   'help.guide.airtrail-import.tip.2':
-    'Az adatok elsődleges forrása továbbra is az AirTrail. A TREK az utazás megnyitásakor és a háttérben néhány percenként lekéri a módosításokat. Az AirTrailben törölt járat kártyája a TREK-ben megmarad, a címkéje pedig „Nincs szinkronizálva” lesz. A TREK-ben végzett módosítások csak akkor kerülnek vissza az AirTrailbe, ha az Integrációk alatt be van kapcsolva a „Módosítások visszaírása az AirTrailbe”.',
+    'Az adatok elsődleges forrása továbbra is az AirTrail. A YOUYA az utazás megnyitásakor és a háttérben néhány percenként lekéri a módosításokat. Az AirTrailben törölt járat kártyája a YOUYA-ben megmarad, a címkéje pedig „Nincs szinkronizálva” lesz. A YOUYA-ben végzett módosítások csak akkor kerülnek vissza az AirTrailbe, ha az Integrációk alatt be van kapcsolva a „Módosítások visszaírása az AirTrailbe”.',
   'help.guide.airtrail-import.tip.3':
     'Az összevont csatlakozás nem egyetlen AirTrail-járat, amelyet szinkronizálni lehetne, ezért egyszeri importálásként kerül be: megtartja a kék címkét, és ha fölé viszed az egeret, ezt jelzi is. Ugyanez történik egy szinkronizált járattal, ha kézzel megállót adsz hozzá.',
 
@@ -4502,7 +4502,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-corridor.step.5':
     'Kattints a találaton lévő pluszra („Hozzáadás”). A „Hozzáadás megállóként” megmutatja, melyik napra és hányadik helyre kerül, és megkérdezi a „Megálló típusa” és az „Idő ezen a megállón” értékét; töltőnél az „Elérhetőség és díjak” is megjelenik. A „Hozzáadás” felveszi az útra, a „További részletek” pedig helyette a teljes helyűrlapot nyitja meg.',
   'help.guide.roadtrip-corridor.result':
-    'A hozzáadott megálló a típusa ikonjával azon a ponton jelenik meg az útvonalon, ahol elhaladsz mellette. A TREK a napot a megállón keresztül újratervezi, és ez kiüríti a listát: a következő megállóhoz keress újra.',
+    'A hozzáadott megálló a típusa ikonjával azon a ponton jelenik meg az útvonalon, ahol elhaladsz mellette. A YOUYA a napot a megállón keresztül újratervezi, és ez kiüríti a listát: a következő megállóhoz keress újra.',
   'help.guide.roadtrip-corridor.tip.1':
     'A keresés csak a „Keresés” gomb megnyomásakor indul el: egyetlen keresés is sok kérést küld egy közös szolgáltatásnak.',
   'help.guide.roadtrip-corridor.tip.2':
@@ -4515,7 +4515,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-via.step.1':
     'Jelenítsd meg a térképen a kívánt szakaszt: kattints egy megállóra a sávban, majd zárd be a térkép fölött megnyíló kártyát.',
   'help.guide.roadtrip-via.step.2':
-    'Kattints a kirajzolt útvonalra. A kattintott szakaszra egy köztes pont kerül, és a TREK a szakaszt ezen keresztül újratervezi.',
+    'Kattints a kirajzolt útvonalra. A kattintott szakaszra egy köztes pont kerül, és a YOUYA a szakaszt ezen keresztül újratervezi.',
   'help.guide.roadtrip-via.step.3':
     'A sáv frissül: a nap fejlécében megjelenik az új távolság és vezetési idő, és a köztes pont utáni összes érkezési idő is ennek megfelelően változik.',
   'help.guide.roadtrip-via.step.4':
@@ -4545,13 +4545,13 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.result':
     'A szakasz mostantól a választott utat használja, és vele együtt változik az oldalsó oszlopban a távolság és az utána következő érkezési idők is.',
   'help.guide.roadtrip-alternatives.tip.1':
-    'Ha másik utat választasz, a TREK előbb ellenőrzi azt az autós út útvonaltervezőjével. Ezután a lehető legkevesebb köztes ponttal tartja rajta a szakaszt, és lecseréli a szakasz korábbi köztes pontjait. Az olyan út, amelyet az útvonaltervező nem tud követni, nem mentődik el. Ha az útvonaltervező saját útját választod, a köztes pontok ismét eltűnnek.',
+    'Ha másik utat választasz, a YOUYA előbb ellenőrzi azt az autós út útvonaltervezőjével. Ezután a lehető legkevesebb köztes ponttal tartja rajta a szakaszt, és lecseréli a szakasz korábbi köztes pontjait. Az olyan út, amelyet az útvonaltervező nem tud követni, nem mentődik el. Ha az útvonaltervező saját útját választod, a köztes pontok ismét eltűnnek.',
   'help.guide.roadtrip-alternatives.tip.2':
     'Az „Autópálya nélkül”, az „Útdíj nélkül” és a „Komp nélkül” egy másik, saját sebességmodellt használó motorból származik, ezért az idejük nem hasonlítható össze a többiekével.',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': 'Az autó és a vezetési korlátok beállítása',
   'help.guide.roadtrip-limits.goal':
-    'Add meg a TREK-nek, milyen járművel utazol, és mennyit szeretnél vezetni szünet nélkül.',
+    'Add meg a YOUYA-nek, milyen járművel utazol, és mennyit szeretnél vezetni szünet nélkül.',
   'help.guide.roadtrip-limits.step.1':
     'A „Vezetési beállítások” a jobb oldali oszlopban, a keresés alatt található. A jelvényei mutatják, mi van beállítva; rákattintva megnyílik.',
   'help.guide.roadtrip-limits.step.2':
@@ -4609,7 +4609,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.result':
     'A megálló a saját ikonjával a megfelelő szakaszon jelenik meg, és a hatótávot ettől a megállótól számoljuk újra. A sáv arra a pontra kerül, ahol a tank most kiürül, vagy eltűnik, ha újabb megálló nélkül is eljutsz az út végéig.',
   'help.guide.roadtrip-refuel.tip.1':
-    'A hatótávot a TREK az utolsó tankoló- vagy töltőmegállótól számolja, napokon átívelően. A jármű típusa határozza meg, mely megállók számítanak: „Üzemanyag” esetén csak a tankolóhelyek, „Elektromos” esetén csak a töltőállomások.',
+    'A hatótávot a YOUYA az utolsó tankoló- vagy töltőmegállótól számolja, napokon átívelően. A jármű típusa határozza meg, mely megállók számítanak: „Üzemanyag” esetén csak a tankolóhelyek, „Elektromos” esetén csak a töltőállomások.',
   'help.guide.roadtrip-refuel.tip.2':
     'A keresés az út azon szakaszát nézi, amely a tank kiürülése előtt van, tartalékot is számol, és a kitérőt kétszer veszi figyelembe, így minden felkínált hely valóban elérhető.',
   'help.guide.roadtrip-refuel.tip.3':
@@ -4623,7 +4623,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     'Válassz egy nyomvonalat. Mindegyiknél látszik a hossza, és hogy követi-e a nap útvonalát, vagy milyen messze van tőle. A legközelebbi nyomvonal áll elöl.',
   'help.guide.roadtrip-track.step.3':
-    'Kattints a „Kövesse ezt a nyomvonalat” gombra. A TREK köztes pontokat tesz oda, ahol az autós útvonal a legtávolabb esik a nyomvonaltól, újraszámolja az útvonalat, és ezt többször megismétli.',
+    'Kattints a „Kövesse ezt a nyomvonalat” gombra. A YOUYA köztes pontokat tesz oda, ahol az autós útvonal a legtávolabb esik a nyomvonaltól, újraszámolja az útvonalat, és ezt többször megismétli.',
   'help.guide.roadtrip-track.step.4':
     'Az ablak megmutatja, hány köztes pontot helyezett el, és mennyire közel halad most az útvonal a nyomvonalhoz, vagy azt, hogy az útvonal már eddig is követte a nyomvonalat. A bal alsó „Köztes pontok elvetése” eltávolítja őket, és az útvonaltervező újratervezi a napot. Az ablak bezárásakor a nyomvonal megmarad.',
   'help.guide.roadtrip-track.result':
@@ -4675,7 +4675,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     'A rendszergazda által telepített pluginek saját beállításaid: a kulcsok és beállítások, amelyeket az egyes pluginek kérnek tőled, valamint egy napló arról, mit végeztek a pluginek a nevedben. A fül csak akkor látszik, ha van aktív plugin.',
   'help.ctx.settings-about.bullet.3':
-    'A Ko-fi, a Buy Me a Coffee és a Discord oldalán támogathatod a TREK-et, vagy beszélgethetsz a fejlesztőkkel.',
+    'A Ko-fi, a Buy Me a Coffee és a Discord oldalán támogathatod a YOUYA-et, vagy beszélgethetsz a fejlesztőkkel.',
   'help.guide.language-region.step.3':
     'Állítsd be a „Megjelenítési pénznem” értékét, vagy hagyd „Az utazás pénzneme” beállításon, hogy minden utazást a saját pénznemében láss. Ezután válaszd ki a „Hőmérséklet egység”, a „Távolság egység”, az „Időformátum” és a „Dátumformátum” értékét, valamint azt, melyik nappal kezdődjön a hét („A hét kezdőnapja”).',
   'help.guide.travel-map-prefs.step.3':
@@ -4683,23 +4683,23 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.step.2':
     'A felső „Értesítések” kártya „Push” oszlopában állíthatod be, mely eseményekről kapjanak értesítést az eszközeid.',
   'help.guide.connect-airtrail.goal':
-    'A TREK importálja és szinkronizálja a repüléseidet a saját AirTrail-példányodból.',
-  'help.guide.connect-dawarich.goal': 'A TREK a saját Dawarich-példányodból olvassa ki, hol jártál valójában.',
+    'A YOUYA importálja és szinkronizálja a repüléseidet a saját AirTrail-példányodból.',
+  'help.guide.connect-dawarich.goal': 'A YOUYA a saját Dawarich-példányodból olvassa ki, hol jártál valójában.',
   'help.guide.tour-connect-wanderer.goal':
-    'A TREK beolvassa a saját wanderer-példányod útvonalait, így túraként importálhatod őket.',
+    'A YOUYA beolvassa a saját wanderer-példányod útvonalait, így túraként importálhatod őket.',
   'help.guide.tour-wanderer-watch.title': 'Értesítés a wanderer-útvonalaid változásairól',
   'help.guide.plugin-settings.tip.2':
     'Az „Értesítések” alatt egy plugincsatorna „Beállítás” gombja erre az oldalra visz.',
   'help.guide.default-user-settings.result':
     'Az új fiókok, és mindenki, aki még soha nem módosította ezeket a beállításokat, a te választásaidat látják.',
   'help.guide.own-routing-engine.goal':
-    'A napok, az autós utak és a túrák útvonalát a saját OSRM- vagy Valhalla-szervered tervezze a TREK-szolgáltatások vagy a nyilvánosak helyett.',
+    'A napok, az autós utak és a túrák útvonalát a saját OSRM- vagy Valhalla-szervered tervezze a YOUYA-szolgáltatások vagy a nyilvánosak helyett.',
   'help.guide.admin-passkeys.tip.1':
-    'Ha a TREK még nem tudja megállapítani a domaint, egy figyelmeztetés a kapcsoló alatt jelzi ezt, és a passkey-k rejtve maradnak, amíg be nem állítod az APP_URL-t vagy a Relying Party ID-t.',
+    'Ha a YOUYA még nem tudja megállapítani a domaint, egy figyelmeztetés a kapcsoló alatt jelzi ezt, és a passkey-k rejtve maradnak, amíg be nem állítod az APP_URL-t vagy a Relying Party ID-t.',
   'help.guide.rotate-jwt-secret.step.1':
     'A „Biztonság” fülön, alul jobbra a „Veszélyzóna” részben kattints a „JWT-titok cseréje” melletti „Megújítás” gombra.',
   'help.guide.storage-backends.tip.3':
-    'A TREK a fotógyorsítótárakat újra le tudja tölteni, ezért a tükrözésük általában csak pazarolja a tárhelyet.',
+    'A YOUYA a fotógyorsítótárakat újra le tudja tölteni, ezért a tükrözésük általában csak pazarolja a tárhelyet.',
   'help.guide.admin-channels.step.3':
     'Alattuk, ugyanazon a kártyán, eseményenként válaszd ki, mely csatornákon menjen ki az értesítés: „Új verzió elérhető”, „Tárhely-replika hiba” és „Evezős régiót kértek”. Minden kapcsoló azonnal mentődik.',
   'help.guide.notification-defaults.tip.1':
@@ -4760,13 +4760,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     'A nyílt adat csak azt tudja, hol van a repülő. A kapu, a terminál és a poggyászszalag nem része, ezért ha szükséged van rájuk, add hozzá őket magad a foglaláshoz. A késések és az érkezési idő a pozíciókból számolt becslések.',
   'help.guide.flight-live-status.tip.3':
-    'A TREK-nek a járatszám és mindkét repülőtér kell a követéshez. Az a járat, amelynek légitársasága másik hívójellel repül, vagy a közös járat nem biztos, hogy megtalálható; ilyenkor a foglalás megtartja a sima időpontjait.',
+    'A YOUYA-nek a járatszám és mindkét repülőtér kell a követéshez. Az a járat, amelynek légitársasága másik hívójellel repül, vagy a közös járat nem biztos, hogy megtalálható; ilyenkor a foglalás megtartja a sima időpontjait.',
   'help.guide.group-sort-bookings.step.2':
     'A „Csoportosítás” alatt válaszd az „Állapot”, a „Nap”, a „Típus” vagy a „Nincs csoportosítás” lehetőséget. A fül azonnal ezekbe a csoportokba rendeződik.',
   'help.guide.export-bookings-csv.result':
     'A böngésződ letölt egy fájlt, amelynek neve az utazásból és a fülből áll, például autumn-in-japan-bookings.csv, és a fülön látott minden foglalás egy sort kap benne.',
   'help.guide.arrange-packing-list.result':
-    'A listák abban a sorrendben állnak, ahogy elrendezted őket, a tételek pedig A-tól Z-ig rendezve jelennek meg, amíg ezt ki nem kapcsolod. A saját sorrendedet a TREK ettől még megőrzi.',
+    'A listák abban a sorrendben állnak, ahogy elrendezted őket, a tételek pedig A-tól Z-ig rendezve jelennek meg, amíg ezt ki nem kapcsolod. A saját sorrendedet a YOUYA ettől még megőrzi.',
   'help.guide.count-packed-pieces.step.2':
     'A „Menny.” mezőbe írd be, hányat viszel, például 5, vagy kattints a plusz gombra, amíg a szám meg nem jelenik.',
   'help.guide.expense-receipts.step.4':
@@ -4774,7 +4774,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     'Aki kilépett az utazásból, az „Egyenlegek” és a „Végső költségvetés” alatt addig megtartja a sorát, amíg neki tartoznak, vagy ő tartozik valakinek.',
   'help.guide.files-sync-settings.step.2':
-    'A folyamatsávon a TREK és a tárolód látszik a bennük lévő dokumentumokkal, köztük pedig két sáv: „Ki a tárolóba” és „Be a tárolóból”. Kattints a „Ki a tárolóba” sávra a kikapcsolásához. A sáv kiszürkül, alatta pedig ez olvasható: „Csak befelé”. Újabb kattintással visszakapcsolhatod.',
+    'A folyamatsávon a YOUYA és a tárolód látszik a bennük lévő dokumentumokkal, köztük pedig két sáv: „Ki a tárolóba” és „Be a tárolóból”. Kattints a „Ki a tárolóba” sávra a kikapcsolásához. A sáv kiszürkül, alatta pedig ez olvasható: „Csak befelé”. Újabb kattintással visszakapcsolhatod.',
   'help.guide.files-sync-settings.tip.4':
     'Ezeket csak az utazás tulajdonosa vagy egy rendszergazda módosíthatja. A többi tag a folyamatsávot látja egy olyan sorral, mint például „A dokumentumok mindkét irányba mozognak”, de „Beállítások” nélkül.',
   'help.guide.manage-notes.step.2':
@@ -4785,7 +4785,7 @@ const help: TranslationStrings = {
     'A kukával csak olyan kategóriát törölhetsz, amelyet egyik jegyzet sem használ. A még használt kategória addig a listán marad, amíg az érintett jegyzeteket át nem teszed egy másik kategóriába.',
   'help.guide.roadtrip-reorder.title': 'Megálló átrendezése vagy áthelyezése másik napra',
   'help.guide.roadtrip-reorder.tip.3':
-    'A rögzített időpontnál a TREK nem kérdez rá semmire: a sáv azonnal újraszámolja a napot, és megjelöli azokat a megállókat, amelyek már nem érhetők el időben.',
+    'A rögzített időpontnál a YOUYA nem kérdez rá semmire: a sáv azonnal újraszámolja a napot, és megjelöli azokat a megállókat, amelyek már nem érhetők el időben.',
   'help.guide.roadtrip-overnight.step.3':
     'Az ablak tetején az „Éjszakázás” szállást ad hozzá, a „Szünet” pedig rövidebb megállóvá teszi. Szállodánál az „Éjszakázás”, kempingnél a „Szünet” van kiválasztva. Éjszakázásnál csak a „Bejelentkezés” időpontja kell, ezt üresen is hagyhatod.',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4799,12 +4799,12 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     'Felül a „GPX vagy KML importálása” gombbal fájlokat hozhatsz be túraként. Az alatta lévő szűrőgomb (kezdetben „Mind”, a túrák számával) állapot, forrás, útvonalkorlát és típus szerint szűkíti a listát.',
   'help.guide.tour-show-list.step.2':
-    'Minden sor egy túra. A színes sáv a túra vonala a térképen, a kerek csempe pedig a TREK-ben tervezett gyalogtúra útvonalkorlátját (T1-től T6-ig) vagy a típus ikonját mutatja. A név alatti jelvények a napokat, amelyeken szerepel, valamint az időt, a távolságot és a szintemelkedést jelzik. Többnapos túránál a holdas szám a szakaszok számát mutatja.',
+    'Minden sor egy túra. A színes sáv a túra vonala a térképen, a kerek csempe pedig a YOUYA-ben tervezett gyalogtúra útvonalkorlátját (T1-től T6-ig) vagy a típus ikonját mutatja. A név alatti jelvények a napokat, amelyeken szerepel, valamint az időt, a távolságot és a szintemelkedést jelzik. Többnapos túránál a holdas szám a szakaszok számát mutatja.',
   'help.guide.tour-add-to-day.title': 'Túra hozzáadása egy naphoz',
   'help.guide.tour-add-to-day.tip.2':
     'Ha az utazás az utolsó szakasz előtt véget ér, a lehetőség az utolsó még beférő szakaszt mutatja, az utána következő szakaszok pedig nap nélkül maradnak.',
   'help.guide.tour-day-times.step.3':
-    'Kattints a „Frissítés” gombra. A sorban most kezdés → befejezés látszik. A kiszámolt befejezési idő halványabb: a ≈ becslést jelez, a ≥ azt, hogy egy tartózkodásnak még nincs időtartama, a +1 pedig éjfél utánit. Ha fölé viszed az egeret, látod, hogyan számolta ki a TREK.',
+    'Kattints a „Frissítés” gombra. A sorban most kezdés → befejezés látszik. A kiszámolt befejezési idő halványabb: a ≈ becslést jelez, a ≥ azt, hogy egy tartózkodásnak még nincs időtartama, a +1 pedig éjfél utánit. Ha fölé viszed az egeret, látod, hogyan számolta ki a YOUYA.',
   'help.guide.tour-remove-from-day.goal': 'Túra levétele a tervből törlés nélkül.',
   'help.guide.tour-filter-list.goal':
     'Szűkítsd a hosszú listát a keresett túrákra: a még nem tervezettekre, a fájlból származókra vagy egy adott típusúakra.',
@@ -4832,15 +4832,15 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.4':
     'A nyomvonal alatti „Csere” gombbal másik felvételt választhatsz. A „Leválasztás” eltávolítja a túráról, a nyomvonal pedig importként az utazásban marad.',
   'help.guide.tour-origin-check.step.3':
-    'A „Túrák” fülön rajzolt túránál a „TREK-ben tervezve” felirat látszik, a létrehozás napjával („Létrehozva”).',
+    'A „Túrák” fülön rajzolt túránál a „YOUYA-ben tervezve” felirat látszik, a létrehozás napjával („Létrehozva”).',
   'help.ctx.trip-tour-planner.bullet.2':
     'A bal oldali sáv a szerkesztő. Ha nincs megnyitva semmi, az „Új túra tervezése” lehetőséget kínálja. Egy megnyitott túránál a nevét, a típusát, az útpontjait, a típusához tartozó kártyákat és a részleteit mutatja, alul „Elveti” és „Mentés” gombbal.',
   'help.guide.tour-open-workspace.step.2':
     'A bal oldali sáv a szerkesztő. Ha nincs megnyitva túra, az „Új túra tervezése” lehetőséget kínálja, amellyel a térképen kezdhetsz új túrát.',
   'help.guide.tour-open-workspace.tip.3':
-    'Ha másik túrát nyitsz meg, miközben a szerkesztőben mentetlen módosítások vannak, a TREK előbb rákérdez: „Módosítások elvetése”, vagy folytatod a szerkesztést.',
+    'Ha másik túrát nyitsz meg, miközben a szerkesztőben mentetlen módosítások vannak, a YOUYA előbb rákérdez: „Módosítások elvetése”, vagy folytatod a szerkesztést.',
   'help.guide.tour-draw-route.step.5':
-    'Kattints a következő pontokra abban a sorrendben, ahogy bejárod őket. Minden kattintás új végpontként adja hozzá a pontot, és két ponttól a TREK az ösvények mentén tervezi meg az útvonalat.',
+    'Kattints a következő pontokra abban a sorrendben, ahogy bejárod őket. Minden kattintás új végpontként adja hozzá a pontot, és két ponttól a YOUYA az ösvények mentén tervezi meg az útvonalat.',
   'help.guide.tour-type-profile.goal':
     'Válaszd ki a túra típusát, kerékpártúránál a profilját is, hogy az útvonal a megfelelő utakon haladjon.',
   'help.guide.tour-edit-points.title': 'Pontok mozgatása, átrendezése és törlése',
@@ -4918,7 +4918,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-compare-ways.step.3':
     'A sorok jelvényei mutatják, mennyivel hosszabb, magasabb vagy lassabb az adott út a jelenleginél. Kattints arra, amelyiket választod.',
   'help.guide.tour-ferrata-add.step.1':
-    'Megnyitott gyalogtúránál kattints a bal alsó térképgombok közül a „Vasalt utak” gombra. A jelvény a látható területen lévő vasalt utakat számolja; ha a TREK kéri, nagyíts rá.',
+    'Megnyitott gyalogtúránál kattints a bal alsó térképgombok közül a „Vasalt utak” gombra. A jelvény a látható területen lévő vasalt utakat számolja; ha a YOUYA kéri, nagyíts rá.',
   'help.guide.tour-ferrata-add.tip.3':
     'A vasalt úti szakasz ki van emelve a magassági profilon, így látod, a nap melyik pontján érsz oda.',
   'help.guide.tour-run-plan.step.5': 'A „Túra neve” mezőben adj nevet a futásnak, és kattints a „Mentés” gombra.',
@@ -4963,11 +4963,11 @@ const help: TranslationStrings = {
     'Nézd meg a sítúrád körüli pályákat, sífutópályákat és felvonókat, és azt, mit jelentenek a színeik.',
   'help.guide.tour-ski-import.title': 'Sínyomvonal importálása és típusának megadása',
   'help.guide.tour-ski-import.tip.1':
-    'Az importált nyomvonal a rögzített formájában marad: a TREK nem illeszti a pályákhoz, és a kártyáján a „Síidő” értéke „Nincs kiszámolva”.',
+    'Az importált nyomvonal a rögzített formájában marad: a YOUYA nem illeszti a pályákhoz, és a kártyáján a „Síidő” értéke „Nincs kiszámolva”.',
   'help.ctx.trip-tour-paddle.bullet.3':
     'Egy pont „További műveletek” menüjében találod az evezős eszközöket: a következő szakasz megtervezése a vízen vagy kézi rajzolása, „Átemelés innentől” és „Zsilip ezen a ponton”.',
   'help.guide.tour-paddle-setup.step.3':
-    'A „Hajó” alatt válaszd a „Kajak”, „Kenu”, SUP vagy „Egyéb” lehetőséget. A hajótól függ, milyen sebességet javasol a TREK.',
+    'A „Hajó” alatt válaszd a „Kajak”, „Kenu”, SUP vagy „Egyéb” lehetőséget. A hajótól függ, milyen sebességet javasol a YOUYA.',
   'help.guide.tour-paddle-setup.tip.4':
     'Az oszlop alján lévő „Az evezés kockázatos” sor megnyitja a „Biztonság a vízen” részt. Az első túrád előtt egyszer olvasd el.',
   'help.guide.tour-paddle-water-route.step.5':
@@ -4977,7 +4977,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-portage.result':
     'A szakasz átemelésként jelenik meg a térképen és az útpontok között, az „Időbecslés” pedig hordozásként számolja.',
   'help.guide.tour-paddle-lock.tip.2':
-    'Ha egy átemelés megkerüli a zsilipet, a zsilip halványítva, „Megkerülve, az átemelés számít” jelöléssel látszik. Ilyenkor az átemelés ideje számít, a zsilip perceit nem számolja bele a TREK.',
+    'Ha egy átemelés megkerüli a zsilipet, a zsilip halványítva, „Megkerülve, az átemelés számít” jelöléssel látszik. Ilyenkor az átemelés ideje számít, a zsilip perceit nem számolja bele a YOUYA.',
   'help.guide.tour-paddle-time.step.4':
     'Ha a túrán van átemelés, a „Hordozás” sor számolja a cipelést. Kattints a sebességére, és add meg, milyen gyorsan viszed a hajót. A „Ki- és visszaszállás” minden átemelésnél hozzáadja a perceket.',
   'help.guide.tour-paddle-wind.step.1':
@@ -4988,9 +4988,9 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.step.1':
     'A „Túrák” fülön kattints a jobb oldali oszlopban a „Túra hozzáadása” gombra, válaszd a „GPX vagy KML importálása” lehetőséget, és válaszd ki a fájlt.',
   'help.guide.tour-paddle-track-marks.tip.2':
-    'Az „Elveti” gombbal eldobod a nem mentett jelöléseket. A rögzített nyomvonalat a TREK sosem rajzolja újra.',
+    'Az „Elveti” gombbal eldobod a nem mentett jelöléseket. A rögzített nyomvonalat a YOUYA sosem rajzolja újra.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'A TREK nem számol lovaglási időt. Ha szeretnéd, hogy a napon szerepeljen idő, add meg a „Részletek” között a „Tervezett” mezőben.',
+    'A YOUYA nem számol lovaglási időt. Ha szeretnéd, hogy a napon szerepeljen idő, add meg a „Részletek” között a „Tervezett” mezőben.',
   'help.guide.tour-horse-plan.step.5':
     'Válassz egy szakaszt a „Szakaszok” alatt. Ellenőrizd, milyen irányban lovagolsz rajta („Irány”), és mit mutat mentén a „Lovas hozzáférés”.',
   'help.guide.tour-horse-plan.tip.5':
@@ -5032,33 +5032,33 @@ const help: TranslationStrings = {
   'help.guide.journey-map-layers.tip.1':
     'A szaggatott színes vonal az utazás GPX-útvonala, a terv része; a folytonos vonal az adott napon rögzített útvonal.',
   'help.guide.journey-keep-route.tip.1':
-    'Ahol a felvétel megszakad, ott a vonal is véget ér. A TREK csak azt rajzolja meg, amit rögzítettek.',
+    'Ahol a felvétel megszakad, ott a vonal is véget ér. A YOUYA csak azt rajzolja meg, amit rögzítettek.',
   'help.guide.journey-day-stays.tip.1':
     'A sor csak azoknak jelenik meg, akik szerkeszthetik a naplót, és saját Dawarich-fiókjuk van csatlakoztatva, és csak azokon a napokon, ahol még van mit eldönteni.',
   'help.guide.journey-take-over-day.step.4':
     'Ha az útvonalat is meg szeretnéd tartani, hagyd bekapcsolva „A nap útvonalának mentése is” lehetőséget, majd kattints az „Átvétel” gombra. A gombon látszik, hány vázlat jön létre.',
   'help.guide.journey-auto-prepare.step.3':
-    'Az alatta lévő sorból kiderül, mikor kérte le utoljára a TREK a tartózkodásaidat, vagy hogy miért nem sikerült. A „Lekérés most” gombbal azonnal lekérheted őket a Dawarichtól.',
-  'help.guide.photo-location.tip.1': 'Az általad megadott helyeket a TREK soha nem helyezi át.',
+    'Az alatta lévő sorból kiderül, mikor kérte le utoljára a YOUYA a tartózkodásaidat, vagy hogy miért nem sikerült. A „Lekérés most” gombbal azonnal lekérheted őket a Dawarichtól.',
+  'help.guide.photo-location.tip.1': 'Az általad megadott helyeket a YOUYA soha nem helyezi át.',
   'help.ctx.settings-plugins.bullet.1':
     '„Bővítménybeállítások”: alatta minden olyan pluginnek saját kártyája van, amely adatot kér tőled, a mezőivel és „Mentés” gombbal. A titkos mezők tartalma mentés után soha többé nem jelenik meg.',
   'help.guide.dashboard-widgets.step.3':
     'A kártyák alatti „Alapértelmezések visszaállítása” az egész „Megjelenés” fület visszaállítja az eredeti beállításokra.',
   'help.guide.web-push-device.result':
-    'A kártyán a „Bekapcsolva ezen az eszközön” felirat látszik, és a „Push” alatt bekapcsolt eseményekről akkor is kapsz értesítést, ha a TREK be van zárva.',
+    'A kártyán a „Bekapcsolva ezen az eszközön” felirat látszik, és a „Push” alatt bekapcsolt eseményekről akkor is kapsz értesítést, ha a YOUYA be van zárva.',
   'help.guide.connect-airtrail.step.1':
     'Az „Integráció” részben keresd meg az AirTrailt, és add meg a „Példány URL-címe” mezőt és egy API-kulcsot. A kulcsot az AirTrailben hozhatod létre a Settings, Security menüpontban. Ha a kulcsot az AirTrail 3.13-as vagy újabb verziójában hozod létre, olvasáshoz a(z) flight.read.own jogosultság kell. A módosítások visszaírásához ezek is kellenek: flight.update.own, flight.passengers.manage.own, reference_data.read és profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Az „Integráció” részben keresd meg a Dawarichot, és add meg „A példány címe” mezőt, valamint az API-kulcsot, amelyet a Dawarichban az Account, API key menüpontban találsz.',
   'help.guide.tour-connect-wanderer.step.1':
     'Az „Integráció” részben keresd meg a wanderert, és add meg a „Példány URL-címe” mezőt és egy API-tokent. A tokent a wandererben hozhatod létre a Settings, Account, API tokens menüpontban; wanderer_key_ előtaggal kezdődik.',
-  'help.guide.tour-wanderer-watch.goal': 'A TREK a háttérben figyelje az importált útvonalaid változásait.',
+  'help.guide.tour-wanderer-watch.goal': 'A YOUYA a háttérben figyelje az importált útvonalaid változásait.',
   'help.guide.mcp-oauth.tip.3': 'Az API tokenek még működnek, de „Elavult” jelölést kaptak; válts OAuth kliensre.',
   'help.guide.offline-conflicts.tip.2': 'A beállítás csak erre az eszközre vonatkozik.',
   'help.guide.default-user-settings.tip.1':
     'A felhasználó saját beállítása a Beállításokban mindig elsőbbséget élvez; ezek az értékek mindenkire vonatkoznak, aki nem módosította az adott beállítást.',
   'help.guide.own-routing-engine.step.1':
-    'Az „Alapértékek” fülön az „Útvonaltervezés” kártya dönti el, ki számolja az útvonalakat. Az „Útvonaltervező szolgáltatás” alatt válaszd az „Automatikus”, a „TREK-szolgáltatások”, a „Nyilvános Valhalla (FOSSGIS)” vagy a „Saját Valhalla-példány” lehetőséget. A választás azonnal mentődik.',
+    'Az „Alapértékek” fülön az „Útvonaltervezés” kártya dönti el, ki számolja az útvonalakat. Az „Útvonaltervező szolgáltatás” alatt válaszd az „Automatikus”, a „YOUYA-szolgáltatások”, a „Nyilvános Valhalla (FOSSGIS)” vagy a „Saját Valhalla-példány” lehetőséget. A választás azonnal mentődik.',
   'help.guide.admin-passkeys.tip.2':
     'Ha később módosítod a domaint, a felhasználók által addig hozzáadott összes passkey használhatatlanná válik.',
   'help.guide.instance-keys.tip.4':
@@ -5079,7 +5079,7 @@ const help: TranslationStrings = {
     'Az utazás minden résztvevőjénél válaszd a „Nincs hozzáférés”, az „Olvasás” vagy a „Szerkesztés” lehetőséget. A „Mindenki olvashatja” és a „Senki” egyszerre mindenkire beállítja.',
   'help.guide.collapse-columns.tip.3': 'Ha az elválasztó fókuszban van, a nyílbillentyűkkel is mozgathatod.',
   'help.guide.edit-place.tip.3':
-    'Ha az ablakon kívülre kattintasz, a módosításaid nem vesznek el: a TREK előbb megkérdezi: „Elveted a módosításokat?”, és a „Szerkesztés folytatása” gombbal visszatérhetsz az űrlaphoz.',
+    'Ha az ablakon kívülre kattintasz, a módosításaid nem vesznek el: a YOUYA előbb megkérdezi: „Elveted a módosításokat?”, és a „Szerkesztés folytatása” gombbal visszatérhetsz az űrlaphoz.',
   'help.guide.dawarich-stays.goal':
     'Vedd fel azokat a helyeket, ahol a Dawarich az utazás során tartózkodást rögzített, miután mindegyiket ellenőrizted.',
   'help.guide.leave-stop-off-route.step.1':
@@ -5098,7 +5098,7 @@ const help: TranslationStrings = {
   'help.guide.tour-map-lines.tip.2':
     'Egy túra elrejtése csak rád vonatkozik, és ebben a böngészőben, ehhez az utazáshoz tárolódik: a túra, a napjai és a színe mindenki más számára változatlan. A „Túrák” lista fölötti „Összes megjelenítése” minden elrejtett túrát újra megjelenít, a telefonos térkép pedig mindig minden túrát mutat.',
   'help.guide.car-stops.step.4':
-    'A „Megállók útközben” alatt minden helyhez, amelyen az út keresztülvezet, kattints a „Megálló hozzáadása” gombra, és válaszd ki, ha szeretnéd, egy időponttal együtt. A kiválasztott hely nélküli megállót a TREK mentéskor eltávolítja.',
+    'A „Megállók útközben” alatt minden helyhez, amelyen az út keresztülvezet, kattints a „Megálló hozzáadása” gombra, és válaszd ki, ha szeretnéd, egy időponttal együtt. A kiválasztott hely nélküli megállót a YOUYA mentéskor eltávolítja.',
   'help.guide.transport-details.step.2':
     'A fejlécben lévő gombok az állapotot, a típust, a napot és a „Foglalási kód” értékét mutatják. Az állapotra kattintva „Függőben” és „Megerősítve” között válthatsz. A kód melletti kis másolás ikon („Foglalási kód másolása”) a vágólapra másolja a kódot.',
   'help.guide.group-sort-bookings.step.3':
@@ -5129,7 +5129,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     'A sávon az út egy kártya a típusa színében, az érkezési oszlopban a menetrenddel, a cím alatt pedig a kiinduló- és végponttal.',
   'help.guide.roadtrip-google-import.tip.1':
-    'A TREK maga számolja ki az útvonalat a megállók között; nem a Google útvonalát másolja.',
+    'A YOUYA maga számolja ki az útvonalat a megállók között; nem a Google útvonalát másolja.',
   'help.guide.roadtrip-hazards.result':
     'A térkép az utazásod környékén érvényes aktuális figyelmeztetéseket mutatja, az útvonal pedig nem változik.',
   'help.ctx.trip-tours.bullet.3':
@@ -5138,7 +5138,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.goal':
     'Tervezd meg, mikor teljesíted a túrát, hogy a vonalával együtt megjelenjen a napon és a térképen.',
   'help.guide.tour-add-to-day.tip.3':
-    'Egy túrát egy naphoz csak egyszer adhatsz hozzá. Ha olyan napra húzod, amelyen már szerepel, a TREK csak ezt jelzi: „Ez a túra már szerepel ezen a napon.”',
+    'Egy túrát egy naphoz csak egyszer adhatsz hozzá. Ha olyan napra húzod, amelyen már szerepel, a YOUYA csak ezt jelzi: „Ez a túra már szerepel ezen a napon.”',
   'help.guide.tour-day-times.step.4':
     'Ha a túra később ér véget, mint ahogy a nap következő eleme kezdődik, a sor alatt megjegyzés jelzi, például: 13:30-kor ér véget, a Gostner Schwaige-i ebéd 12:30-as kezdése után. Semmi sem mozdul el.',
   'help.guide.tour-remove-from-day.step.1':
@@ -5196,7 +5196,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.result':
     'A „Túrák” fül: balra a szerkesztő, jobbra az utazás túrái, középen a térkép.',
   'help.guide.tour-draw-route.step.6':
-    'Az „Útpontok” alatt minden pont saját sort kap a számával, és amint betöltődik a hely neve, arról kapja a nevét. Amíg a TREK dolgozik, az „Új túra” melletti kis pont jelzi, mit csinál éppen.',
+    'Az „Útpontok” alatt minden pont saját sort kap a számával, és amint betöltődik a hely neve, arról kapja a nevét. Amíg a YOUYA dolgozik, az „Új túra” melletti kis pont jelzi, mit csinál éppen.',
   'help.guide.tour-type-profile.step.1':
     'Kattints a „Túra neve” alatti „Túratípus” gombra. Megmutatja a jelenlegi típust, egy sorban azzal együtt, hogyan tervezi az útvonalat.',
   'help.guide.tour-edit-points.goal': 'Módosítsd a túra útvonalát a pontok mozgatásával a térképen vagy a listában.',
@@ -5220,7 +5220,7 @@ const help: TranslationStrings = {
     '„Az utazás túrái” tetején a „Túra összefoglalója” mutatja a szerkesztőben lévő túra „Távolság”, „Szintemelkedés” és „Szintcsökkenés” értékét, a becsült időt, a szüneteket és a tervezett teljes időt.',
   'help.guide.tour-list-manage.title': 'Az utazás túráinak kezelése',
   'help.guide.tour-list-manage.tip.2':
-    'A napmenüben azok a napok, amelyeken a túra már szerepel, szürkén jelennek meg. Többnapos túránál a TREK megkérdezi, hogy a szakaszok azon a napon kezdődjenek-e, vagy az egész túra arra a napra kerüljön.',
+    'A napmenüben azok a napok, amelyeken a túra már szerepel, szürkén jelennek meg. Többnapos túránál a YOUYA megkérdezi, hogy a szakaszok azon a napon kezdődjenek-e, vagy az egész túra arra a napra kerüljön.',
   'help.guide.tour-delete.tip.2':
     'Ha csak egy napról szeretnéd levenni, inkább a nap menüjében válaszd az „Eltávolítás a napról” lehetőséget.',
   'help.guide.tour-saved-elsewhere.step.4':
@@ -5231,7 +5231,7 @@ const help: TranslationStrings = {
     'Az „Importálás mint” alatt ellenőrizd, milyen nyomvonalakról van szó. A „Gyalogtúra” van előre kiválasztva. A „Kerékpártúra” és a „Futás” a profilt, az „Evezős túra” a hajót és a víz típusát, a „Sí és tél” a szakágat kéri.',
   'help.guide.tour-view-import.title': 'Importált nyomvonal megtekintése',
   'help.guide.tour-view-import.result':
-    'A rögzített nyomvonalat pontosan úgy látod, ahogy importálták, semmit sem számol újra a TREK.',
+    'A rögzített nyomvonalat pontosan úgy látod, ahogy importálták, semmit sem számol újra a YOUYA.',
   'help.guide.tour-plan-from-import.tip.2':
     'Ha a kártya szerint a javaslat hosszabb szakaszokon messze esik a nyomvonaltól, ellenőrizd ezeket a részeket a térképen, mielőtt erre alapozva tervezel.',
   'help.guide.tour-restore-recorded.step.3':
@@ -5246,7 +5246,7 @@ const help: TranslationStrings = {
   'help.guide.tour-map-layers.tip.1':
     'A kiválasztott térkép minden megnyitott túránál megmarad, amíg újra nem töltöd az oldalt. Az a túra, amelynek típusánál ez a térkép nem érhető el, a „Térkép” nézetben nyílik meg; a „Terv” fül térképe és a Beállításokban megadott érték nem változik.',
   'help.guide.tour-along-search.step.4':
-    'Kattints a „Keresés a túra mentén” gombra. A TREK csak keres, a túra nem változik.',
+    'Kattints a „Keresés a túra mentén” gombra. A YOUYA csak keres, a túra nem változik.',
   'help.guide.tour-along-add-stop.step.1':
     'Kattints egy helyre „A túra mentén” listában, vagy a gombostűjére a térképen. A térkép fölött megnyílik a kártyája: mi az, milyen messze van az útvonaltól, és a túra mekkora részénél található.',
   'help.guide.tour-3d-terrain.title': 'Túra megtekintése 3D-ben',
@@ -5272,7 +5272,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     'A körök a gyalogtúra „Ösvény legnagyobb nehézsége” beállításán belül maradnak; a kártyán lévő T jelvény mutatja, melyik ez.',
   'help.guide.tour-hike-compare-ways.step.4':
-    'Kattints az „Ezt az utat választom” gombra. A TREK az útvonaltervezővel ellenőrzi, hogy az útvonal valóban ezt követi-e.',
+    'Kattints az „Ezt az utat választom” gombra. A YOUYA az útvonaltervezővel ellenőrzi, hogy az útvonal valóban ezt követi-e.',
   'help.guide.tour-ferrata-add.step.2':
     'Kattints egy vasalt útra a térképen: a szaggatott vonalára vagy a jelére. A kártyáján látod a nevét, a nehézségi fokát és a hosszát.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -5315,7 +5315,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-fix-leg.tip.2':
     'Amíg egy terület pályaadatai letöltés alatt állnak, a tervező vár, és automatikusan újrapróbálkozik.',
   'help.guide.tour-ski-summary.step.3':
-    'A jobb oldali „Túra összefoglalója” részben a „Síidő” mindezt összeadja. Az információs pont elmagyarázza, hogyan számolja a TREK.',
+    'A jobb oldali „Túra összefoglalója” részben a „Síidő” mindezt összeadja. Az információs pont elmagyarázza, hogyan számolja a YOUYA.',
   'help.guide.tour-ski-pistes-layer.step.1':
     'Ha egy „Sí és tél” túra meg van nyitva, a térkép automatikusan megjeleníti a pályákat. A térkép bal alsó sarkában lévő gombsorban a havas hegy kapcsolóval ki- és bekapcsolhatod őket; az elemleírása: „Pályák, sífutópályák és felvonók”.',
   'help.guide.tour-ski-import.goal':
@@ -5329,7 +5329,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Elkészült egy új evezős túra a hajóval, a víz típusával és a sebességgel, készen arra, hogy felvedd az első pontját a térképen.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Ahol hiányoznak a vízadatok, a TREK a példány beállításától függően vagy automatikusan letölti őket a régióra, vagy egy rendszergazdától kéri. A régiókat az admin a „Vízi adatok evezéshez” alatt adja hozzá, amely a „Túrák” alatti sor az adminfelület „Bővítmények” fülén. A szakaszon ilyenkor a „Vízadatok betöltése” felirat látszik, és amint megvannak az adatok, automatikusan megtörténik a tervezés, általában egy-három percen belül.',
+    'Ahol hiányoznak a vízadatok, a YOUYA a példány beállításától függően vagy automatikusan letölti őket a régióra, vagy egy rendszergazdától kéri. A régiókat az admin a „Vízi adatok evezéshez” alatt adja hozzá, amely a „Túrák” alatti sor az adminfelület „Bővítmények” fülén. A szakaszon ilyenkor a „Vízadatok betöltése” felirat látszik, és amint megvannak az adatok, automatikusan megtörténik a tervezés, általában egy-három percen belül.',
   'help.guide.tour-paddle-portage.step.2':
     'Válaszd az „Átemelés innentől” lehetőséget. A következő pontig tartó szakasz átemelés lesz, a szárazföldön megrajzolva.',
   'help.guide.tour-paddle-lock.title': 'Zsilip és várakozási idő hozzáadása',
@@ -5405,9 +5405,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     'A push böngészőnként működik: ismételd meg minden telefonon és számítógépen, amelyen értesítést szeretnél kapni. A „Kikapcsolás ezen az eszközön” csak azon az eszközön kapcsolja ki.',
   'help.guide.connect-airtrail.step.2':
-    'Az „Önaláírt tanúsítványok engedélyezése” csak a saját hálózatodon futó, megbízható példányhoz való. A „Módosítások visszaírása az AirTrailbe” alapból ki van kapcsolva, így a TREK csak olvas; kapcsold be, ha a szerkesztéseidet is vissza szeretnéd küldeni.',
+    'Az „Önaláírt tanúsítványok engedélyezése” csak a saját hálózatodon futó, megbízható példányhoz való. A „Módosítások visszaírása az AirTrailbe” alapból ki van kapcsolva, így a YOUYA csak olvas; kapcsold be, ha a szerkesztéseidet is vissza szeretnéd küldeni.',
   'help.guide.connect-dawarich.step.2':
-    'Az „Új tartózkodások automatikus keresése” beállítással a TREK magától ellenőrzi az újdonságokat. Kikapcsolt állapotban csak akkor olvassa a Dawarichot, ha kéred. A „Saját aláírású tanúsítvány engedélyezése” csak olyan példányhoz való, amelyben a szervered nem bízik.',
+    'Az „Új tartózkodások automatikus keresése” beállítással a YOUYA magától ellenőrzi az újdonságokat. Kikapcsolt állapotban csak akkor olvassa a Dawarichot, ha kéred. A „Saját aláírású tanúsítvány engedélyezése” csak olyan példányhoz való, amelyben a szervered nem bízik.',
   'help.guide.tour-connect-wanderer.step.2':
     'Az „Önaláírt tanúsítvány engedélyezése” beállítást csak a saját hálózatodon futó példányhoz kapcsold be.',
   'help.guide.tour-wanderer-watch.step.1':
@@ -5417,7 +5417,7 @@ const help: TranslationStrings = {
     'A „Megjelenítési pénznem” csak a megjelenítéshez váltja át az összegeket. A „Költségek” fülön rögzített összegek nem változnak.',
   'help.guide.own-routing-engine.step.2': 'A „Saját útvonaltervező” alatt add meg az OSRM-szervered címét.',
   'help.guide.own-routing-engine.step.3':
-    'A „Saját Valhalla-példány” alatt add meg a Valhalláid címét, és az „Útvonaltervező szolgáltatás” alatt válaszd a „Saját Valhalla-példány” lehetőséget. Minden mező akkor mentődik, amikor elhagyod; ezután indítsd újra a TREK-szervert, és töltsd újra az oldalt.',
+    'A „Saját Valhalla-példány” alatt add meg a Valhalláid címét, és az „Útvonaltervező szolgáltatás” alatt válaszd a „Saját Valhalla-példány” lehetőséget. Minden mező akkor mentődik, amikor elhagyod; ezután indítsd újra a YOUYA-szervert, és töltsd újra az oldalt.',
   'help.guide.admin-passkeys.tip.3':
     'Ha egy felhasználó elvesztette a passkey-it tároló eszközét, a „Felhasználó szerkesztése” ablakban a „Passkey-k visszaállítása” gombbal törölheted őket.',
   'help.guide.rotate-jwt-secret.result':
@@ -5433,7 +5433,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     'Olvasd el a sárga megjegyzést: megnevezi, kik kapnak most először hozzáférést a naplóhoz. Ezután kattints a „Napló kapcsolása” gombra.',
   'help.guide.dawarich-stays.step.1':
-    'Ha a Dawarich csatlakoztatva van a Beállítások, Integrációk menüpontban, a helylista fölött megjelenik „A Dawarichból” rész. A fejlécéből kiderül, mikor ellenőrzött utoljára a TREK, és hány tartózkodás vár. Kattints rá a lista megnyitásához.',
+    'Ha a Dawarich csatlakoztatva van a Beállítások, Integrációk menüpontban, a helylista fölött megjelenik „A Dawarichból” rész. A fejlécéből kiderül, mikor ellenőrzött utoljára a YOUYA, és hány tartózkodás vár. Kattints rá a lista megnyitásához.',
   'help.guide.leave-stop-off-route.step.2':
     'A név mellett „Útvonalon kívül” jelvény jelenik meg. A megálló a napon és a térképen marad, de a nap útvonala és a szakaszidők nem számolnak vele.',
   'help.guide.move-booking-day.result': 'A foglalás a tervben már az új naphoz tartozik, az időpontja nem változott.',
@@ -5442,7 +5442,7 @@ const help: TranslationStrings = {
     'Nyiss meg egy helyet, amelynek a fájljai között van fotó. A kártya alján lévő „Fájl” rész mutatja, hány fájl tartozik a helyhez.',
   'help.guide.place-own-hours.title': 'Hely nyitvatartásának, telefonszámának vagy e-mail-címének javítása',
   'help.guide.place-own-hours.tip.1':
-    'Az általad megadott nyitvatartás felülírja a TREK által lekérdezettet, így egy szezonálisan nyitva tartó kávézónál az látszik, amit te tudsz.',
+    'Az általad megadott nyitvatartás felülírja a YOUYA által lekérdezettet, így egy szezonálisan nyitva tartó kávézónál az látszik, amit te tudsz.',
   'help.guide.day-panel.tip.3':
     'Naptár szerint tervezel? Kapcsold be a Beállítások „Megjelenés” részében a „Dátum elöl a napok fejlécében” beállítást: a fejlécben előbb a dátum látszik, alatta az „1. nap” vagy a nap neve.',
   'help.guide.confirm-stay-booking.result':
@@ -5462,15 +5462,15 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2':
     'Az oszlopokat pontosvessző választja el, és az Excel az ékezeteket helyesen jeleníti meg.',
   'help.guide.arrange-packing-list.tip.2':
-    'A TREK ebben a böngészőben megjegyzi az „A-tól Z-ig” beállítást, így a lista legközelebb is rendezve nyílik meg. Ez csak azt befolyásolja, amit te látsz, a többiek sorrendjét soha.',
+    'A YOUYA ebben a böngészőben megjegyzi az „A-tól Z-ig” beállítást, így a lista legközelebb is rendezve nyílik meg. Ez csak azt befolyásolja, amit te látsz, a többiek sorrendjét soha.',
   'help.guide.count-packed-pieces.step.4':
     'Zárd be az ablakot. Amíg csak a darabok egy része van becsomagolva, a sor mutatja a számot, például 3/5, és a négyzet kiemelőszínű keretet kap. Amint a szám eléri a mennyiséget, a tétel magától kipipálódik.',
   'help.guide.expense-receipts.result':
     'A nyugta a kiadással együtt mentődik: a sorában lévő címke megnyitja, a fájl pedig az utazás „Fájl” részében is megtalálható.',
   'help.guide.files-sync-settings.step.4':
-    'A „Ha egy dokumentumot törölnek” alatt add meg, mi történjen a másik oldalon lévő példánnyal. A „Mindkét példány megtartása” a tárolóban lévő példányt a helyén hagyja. Az „Áthelyezés a kukába” a tároló kukájába helyezi, amikor a dokumentumot a TREK-ben törlik.',
+    'A „Ha egy dokumentumot törölnek” alatt add meg, mi történjen a másik oldalon lévő példánnyal. A „Mindkét példány megtartása” a tárolóban lévő példányt a helyén hagyja. Az „Áthelyezés a kukába” a tároló kukájába helyezi, amikor a dokumentumot a YOUYA-ben törlik.',
   'help.ctx.trip-collab.bullet.7':
-    'Itt mindenhez internetkapcsolat kell. Offline állapotban az üzenet, a jegyzet, a link, a szavazás vagy a szavazat nem mentődik, és a TREK ezt jelzi: „Ehhez kapcsolat kell. Próbáld újra, ha a TREK újra online.” Azok a tagok, akik nem szerkeszthetik az „Együttműködés” fület, mindent elolvashatnak, de az „Új jegyzet”, a „Link hozzáadása” és az „Új szavazás” nem jelenik meg nekik, az üzenetmező pedig szürke.',
+    'Itt mindenhez internetkapcsolat kell. Offline állapotban az üzenet, a jegyzet, a link, a szavazás vagy a szavazat nem mentődik, és a YOUYA ezt jelzi: „Ehhez kapcsolat kell. Próbáld újra, ha a YOUYA újra online.” Azok a tagok, akik nem szerkeszthetik az „Együttműködés” fület, mindent elolvashatnak, de az „Új jegyzet”, a „Link hozzáadása” és az „Új szavazás” nem jelenik meg nekik, az üzenetmező pedig szürke.',
   'help.guide.manage-notes.step.4':
     'A „Szerkesztés” megnyitja a jegyzet ablakát, minden mező kitöltve. Módosítsd, amit kell, itt például egy újabb sort a „Tartalom” alatt, és kattints a „Mentés” gombra.',
   'help.guide.note-categories.step.2':
@@ -5487,7 +5487,7 @@ const help: TranslationStrings = {
     'A „Bejelentkezés” vagy a „Beszállás” gomb mutatja, mikorra kell az autóútnak a terminálhoz érnie: az indulás ennyivel korábbra kerül a menetrendinél.',
   'help.guide.roadtrip-google-import.title': 'Útvonal importálása a Google Mapsből',
   'help.guide.roadtrip-google-import.tip.2':
-    'A linkben legalább kettő, legfeljebb 30 olyan megállónak kell lennie, amelyet a TREK el tud helyezni.',
+    'A linkben legalább kettő, legfeljebb 30 olyan megállónak kell lennie, amelyet a YOUYA el tud helyezni.',
   'help.guide.roadtrip-hazards.tip.1':
     'A figyelmeztetések nem útlezárások: az útvonal soha nem változik miattuk, és aktuális közlemények, nem az utazásod idejére szóló előrejelzések.',
   'help.ctx.trip-tours.bullet.4':
@@ -5614,9 +5614,9 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.3':
     'A jelvények összefoglalják: az útvonal mekkora része „Ismert”, mi a „Legmagasabb ismert” fokozat, és külön az az „Útvonalkorlát”, amellyel a gyalogtúrát tervezték.',
   'help.guide.tour-hike-round.goal':
-    'A TREK javasoljon a kívánt hosszúságú körtúrákat a gyalogtúra egyik megállójából indulva.',
+    'A YOUYA javasoljon a kívánt hosszúságú körtúrákat a gyalogtúra egyik megállójából indulva.',
   'help.guide.tour-hike-round.tip.2':
-    '1 és 60 km közötti távolságot adhatsz meg, és a TREK a megadott értéktől legfeljebb 20 %-kal eltérő köröket kínál.',
+    '1 és 60 km közötti távolságot adhatsz meg, és a YOUYA a megadott értéktől legfeljebb 20 %-kal eltérő köröket kínál.',
   'help.guide.tour-hike-compare-ways.result':
     'Az adott szakasz a választott utat követi, a gyalogtúra többi része változatlan. A térkép alján megjelenő „Út átvéve” üzenetben ott a „Visszavonás”.',
   'help.guide.tour-ferrata-add.step.3':
@@ -5641,7 +5641,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     'A meglátogatott megállók ki vannak pipálva, a kihagyottak át vannak húzva, a hátralévő idő pedig csak azt számolja, ami még előtted áll.',
   'help.guide.tour-bike-profile.goal':
-    'Kezdj egy kerékpártúrát, és a TREK tervezze meg az útvonalat túrakerékpárhoz, országúti, gravel- vagy MTB-kerékpárhoz.',
+    'Kezdj egy kerékpártúrát, és a YOUYA tervezze meg az útvonalat túrakerékpárhoz, országúti, gravel- vagy MTB-kerékpárhoz.',
   'help.guide.tour-bike-profile.tip.1':
     'Ha később módosítod a profilt, a teljes útvonal újratervezése megtörténik az új profillal.',
   'help.guide.tour-bike-surfaces.step.2':
@@ -5672,7 +5672,7 @@ const help: TranslationStrings = {
     'Tavon a „Tavakon át” határozza meg az útvonalat: az „Egyenesen” a legrövidebb, a „Part mentén” szeles napokra a parthoz közel halad.',
   'help.guide.tour-paddle-water-route.title': 'Vízi szakaszok tervezése',
   'help.guide.tour-paddle-water-route.tip.2':
-    'Ahol az útvonal egy duzzasztógát mellett átemeléssel halad el, vagy egy zsilipen megy át, a TREK saját pontot helyez el, „Felismert” jelöléssel. Ha áthelyezed vagy módosítod, a saját pontod lesz.',
+    'Ahol az útvonal egy duzzasztógát mellett átemeléssel halad el, vagy egy zsilipen megy át, a YOUYA saját pontot helyez el, „Felismert” jelöléssel. Ha áthelyezed vagy módosítod, a saját pontod lesz.',
   'help.guide.tour-paddle-portage.step.3':
     'A pont alatt megjelenik egy „Átemelés” kártya a hosszával és a többletpercekkel. Kattints rá a megnyitásához.',
   'help.guide.tour-paddle-lock.goal':
@@ -5680,7 +5680,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-lock.result':
     'A zsilip a perceivel együtt szerepel a túrán, az „Időbecslés” pedig hozzáadja őket.',
   'help.guide.tour-paddle-time.tip.1':
-    'A TREK kiindulásként vízen 4 km/h-val, cipeléskor 2 km/h-val és átemelésenként 10 perccel számol. Ezek beállítandó kiindulási értékek, nem mért adatok.',
+    'A YOUYA kiindulásként vízen 4 km/h-val, cipeléskor 2 km/h-val és átemelésenként 10 perccel számol. Ezek beállítandó kiindulási értékek, nem mért adatok.',
   'help.guide.tour-paddle-wind.step.3':
     'A sávok a nap óráit mutatják, a széllökések az átlagos szél mögött látszanak. Ha egy sáv fölé viszed az egeret, megjelennek az adott óra értékei és a szélirány.',
   'help.guide.tour-paddle-checklist.goal':
@@ -5754,7 +5754,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.tip.3':
     '„A hét kezdőnapja” minden dátumválasztó első oszlopát meghatározza; a Vacay-nek saját beállítása van.',
   'help.guide.web-push-device.tip.2':
-    'iPhone-on és iPaden előbb add hozzá a TREK-et a Főképernyőhöz, és onnan nyisd meg.',
+    'iPhone-on és iPaden előbb add hozzá a YOUYA-et a Főképernyőhöz, és onnan nyisd meg.',
   'help.guide.connect-airtrail.step.3':
     'Kattints a „Mentés”, majd a „Kapcsolat tesztelése” gombra. A teszt jelzi, hány repülést talált, a jelvény pedig „Csatlakozva” állapotra vált.',
   'help.guide.connect-dawarich.step.3':
@@ -5762,7 +5762,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     'Kattints a „Mentés”, majd a „Kapcsolat tesztelése” gombra. A teszt jelzi, hány útvonaladat importálhatod, a jelvény pedig „Csatlakozva” állapotra vált.',
   'help.guide.tour-wanderer-watch.step.2':
-    'A TREK naponta legfeljebb egyszer lekéri az általad importált útvonalak rövid adatait, a sorban pedig látod, mikor ellenőrzött utoljára. Ha egy útvonal megváltozhatott, értesítést kapsz, és a „Jelzések” számlálója nő: a „Jelzések” gombra kattintva minden túránál látod, hogy „Változhatott”, „Megváltozott” vagy „Nem ellenőrizhető”, és onnan meg is nyithatod.',
+    'A YOUYA naponta legfeljebb egyszer lekéri az általad importált útvonalak rövid adatait, a sorban pedig látod, mikor ellenőrzött utoljára. Ha egy útvonal megváltozhatott, értesítést kapsz, és a „Jelzések” számlálója nő: a „Jelzések” gombra kattintva minden túránál látod, hogy „Változhatott”, „Megváltozott” vagy „Nem ellenőrizhető”, és onnan meg is nyithatod.',
   'help.guide.plugin-settings.goal':
     'Add meg egy pluginnek a saját kulcsaidat és beállításaidat, és nézd meg, mit végzett a nevedben.',
   'help.guide.own-routing-engine.result': 'Minden utazás útvonalait a te szervereid számolják.',
@@ -5783,7 +5783,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     'Az utazás fülsorában megjelenik a „Napló” fül. Mindenki, akinek „Olvasás” vagy „Szerkesztés” jogot adtál, ezen a fülön nyithatja meg a naplót, élő frissítéssel.',
   'help.guide.create-place.tip.4':
-    'A Google Mapsből másolt link a keresőben is működik: illeszd be, nyomj Entert, és a TREK kiolvassa belőle a helyet. Ha az űrlapon már van pozíció, a kereső melletti célkereszt („Helyek a gombostű közelében”) felsorolja, mi található a közelben.',
+    'A Google Mapsből másolt link a keresőben is működik: illeszd be, nyomj Entert, és a YOUYA kiolvassa belőle a helyet. Ha az űrlapon már van pozíció, a kereső melletti célkereszt („Helyek a gombostű közelében”) felsorolja, mi található a közelben.',
   'help.guide.dawarich-stays.step.2':
     'A tartózkodások napok szerint csoportosítva jelennek meg, mindegyik az érkezés és a távozás idejével; a mérőóra ikon azt a tartózkodást jelöli, amelyben a Dawarich bizonytalan volt. Kattints a tartózkodás melletti gombostűre („Hozzáadás helyszínként”).',
   'help.guide.leave-stop-off-route.step.3':
@@ -5809,7 +5809,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.4':
     'A címre kattintva az űrlap megnyitása nélkül nevezheted át az utat. Az „Átnevezés” ablakban már ott a jelenlegi név: írd be az újat, és kattints a „Mentés” gombra.',
   'help.guide.export-transports-csv.goal':
-    'Exportáld az utazás közlekedési adatait a TREK-ből CSV-fájlként, táblázatkezelőhöz, utazási irodának vagy nyomtatáshoz.',
+    'Exportáld az utazás közlekedési adatait a YOUYA-ből CSV-fájlként, táblázatkezelőhöz, utazási irodának vagy nyomtatáshoz.',
   'help.guide.group-sort-bookings.result':
     'A foglalások a választott csoportokban és sorrendben jelennek meg, és ez a böngésző a következő alkalomra is megjegyzi a beállítást.',
   'help.guide.booking-on-map.step.1':
@@ -5824,7 +5824,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     'A szerkesztőben egy felsorolt fájl nevére kattintva ugyanez az előnézet nyílik meg. Ilyenkor az Esc csak az előnézetet zárja be, a kiadást nem.',
   'help.guide.files-sync-settings.step.5':
-    'A „Ha mindkét oldal változott” határozza meg, melyik példány marad meg, ha egy dokumentumot mindkét helyen szerkesztettek: „Kérdezzen rá”, „A TREK-példány megtartása” vagy „A tároló példányának megtartása”. Az „Automatikus szinkronizálás” bekapcsolásával a TREK a háttérben figyeli a változásokat; kikapcsolva a kártyán „Szüneteltetve” látszik, és csak a „Szinkronizálás most” indít szinkronizálást. Minden itteni módosítás azonnal mentődik.',
+    'A „Ha mindkét oldal változott” határozza meg, melyik példány marad meg, ha egy dokumentumot mindkét helyen szerkesztettek: „Kérdezzen rá”, „A YOUYA-példány megtartása” vagy „A tároló példányának megtartása”. Az „Automatikus szinkronizálás” bekapcsolásával a YOUYA a háttérben figyeli a változásokat; kikapcsolva a kártyán „Szüneteltetve” látszik, és csak a „Szinkronizálás most” indít szinkronizálást. Minden itteni módosítás azonnal mentődik.',
   'help.guide.manage-notes.step.5':
     'A „Törlés” előbb rákérdez („Törli a jegyzetet?”), mert a jegyzet a fájljaival együtt minden tagnál törlődik. A megerősítéshez kattints a „Törlés” gombra.',
   'help.guide.note-categories.step.3':
@@ -5845,17 +5845,17 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-hazards.tip.2':
     'A DWD Németországot fedi le, a GDACS világszerte jelenti a katasztrófákat. Ha egy figyelmeztetés csak pontként jelenik meg, az érintett terület ismeretlen.',
   'help.ctx.trip-tours.bullet.5':
-    'A napok oszlopában a túra egy megállóhoz hasonló sor. Ha van „Kezdés” időpontja, a sorban kezdés → befejezés látszik, a befejezést a túra idejéből számolja a TREK, a „További lehetőségek” menüben pedig a „Szerkesztés”, az „Eltávolítás a napról”, a „Kihagyás az útvonalból” és a „Mentés gyűjteménybe” található.',
+    'A napok oszlopában a túra egy megállóhoz hasonló sor. Ha van „Kezdés” időpontja, a sorban kezdés → befejezés látszik, a befejezést a túra idejéből számolja a YOUYA, a „További lehetőségek” menüben pedig a „Szerkesztés”, az „Eltávolítás a napról”, a „Kihagyás az útvonalból” és a „Mentés gyűjteménybe” található.',
   'help.guide.tour-show-list.step.5': 'Ugyanebben a kapcsolóban a „Hely” gombra kattintva visszakapod a helylistát.',
   'help.guide.tour-add-to-day.step.2':
     'Válaszd ki a napot. A menü az utazás összes napját felsorolja dátummal és címmel; az a nap, amelyen a túra már szerepel, szürke.',
   'help.guide.tour-add-to-day.result': 'A túra megjelenik a napja alatt, a vonala pedig a térképen az adott nap része.',
   'help.guide.tour-day-times.tip.2':
-    'Ha egy napon egy többnapos túrának csak egy szakasza szerepel, a TREK nem számol befejezési időt, mert a túra ideje a teljes útvonalra vonatkozik.',
+    'Ha egy napon egy többnapos túrának csak egy szakasza szerepel, a YOUYA nem számol befejezési időt, mert a túra ideje a teljes útvonalra vonatkozik.',
   'help.guide.tour-remove-from-day.step.3':
     'Vagy kattints a nap fejlécére a nap megnyitásához, kattints a túrára a listában, majd a kártyája alján az „Eltávolítás a napról” gombra.',
   'help.guide.tour-filter-list.step.3':
-    'Ha a lista vegyes, a „Forrás” (TREK, GPX-import, wanderer), az „Útvonalkorlát” (T1-től T6-ig) és a „Típus” („Gyalogtúra”, „Kerékpártúra” és így tovább) tovább szűkíti. Egy bejelölt értékre újra kattintva törlöd a szűrést.',
+    'Ha a lista vegyes, a „Forrás” (YOUYA, GPX-import, wanderer), az „Útvonalkorlát” (T1-től T6-ig) és a „Típus” („Gyalogtúra”, „Kerékpártúra” és így tovább) tovább szűkíti. Egy bejelölt értékre újra kattintva törlöd a szűrést.',
   'help.guide.tour-hide-on-map.step.1':
     'Vidd az egeret egy túra fölé a listában, és kattints a sor jobb oldalán megjelenő szem ikonra („Elrejtés a térképen”).',
   'help.guide.tour-import-plan-tab.step.1':
@@ -5875,7 +5875,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.tip.4':
     'A „Gyűjtemény” csak akkor érhető el, ha a Gyűjtemények bővítmény be van kapcsolva. Csak olvasható listát nem választhatsz, ha pedig még nincs listád, az ablak a „Gyűjtemények megnyitása” lehetőséget kínálja.',
   'help.guide.tour-packing-link.step.5':
-    'A tételek kipipálásához kattints a „Csomagolási lista megnyitása” gombra. A TREK a „Listák” fülre vált, a csomagolási listára.',
+    'A tételek kipipálásához kattints a „Csomagolási lista megnyitása” gombra. A YOUYA a „Listák” fülre vált, a csomagolási listára.',
   'help.guide.tour-files.step.2': 'Az alatta lévő sor most mutatja a fájlok számát, és kinyílik a lista.',
   'help.guide.tour-activity-link.step.2':
     'A „Teljesítve” alatt ellenőrizd, melyik napon teljesítetted. Ha egyik naphoz sem tartozik, válaszd a „Nap nélkül” lehetőséget.',
@@ -5888,7 +5888,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.step.5':
     'A térkép tetején lévő „Hely vagy cím keresése” mezővel egy adott helyre ugorhatsz, így ott kezdheted, ahol a túra lesz.',
   'help.guide.tour-draw-route.goal':
-    'Helyezd el egy új túra pontjait a térképen, és a TREK megtervezi köztük az útvonalat.',
+    'Helyezd el egy új túra pontjait a térképen, és a YOUYA megtervezi köztük az útvonalat.',
   'help.guide.tour-draw-route.tip.2':
     'A térkép gombján a Topo vagy a „Túrázás” térkép megmutatja az ösvényeket, így könnyebb rájuk kattintani. Ha egy pont túl messze van minden olyan úttól, amelyet a túratípus használhat, útvonal helyett értesítés jelenik meg.',
   'help.guide.tour-type-profile.step.3':
@@ -5960,7 +5960,7 @@ const help: TranslationStrings = {
   'help.guide.tour-stages-on-days.step.6':
     'A mellette lévő nyíl („A szakasz megnyitása a tervezőben”) a szerkesztőben, ennél a szakasznál nyitja meg a túrát.',
   'help.ctx.trip-tour-hike.bullet.1':
-    'A szerkesztő tetején lévő „Túratípus” határozza meg, hogyan tervezi a TREK az útvonalat. A „Gyalogtúra” a „Részletek” alatt megadott „Ösvény legnagyobb nehézsége” szintig használ ösvényeket; a „Futás” futásra alkalmas utakat választ, és a „Tervezett tempó” megadását kéri.',
+    'A szerkesztő tetején lévő „Túratípus” határozza meg, hogyan tervezi a YOUYA az útvonalat. A „Gyalogtúra” a „Részletek” alatt megadott „Ösvény legnagyobb nehézsége” szintig használ ösvényeket; a „Futás” futásra alkalmas utakat választ, és a „Tervezett tempó” megadását kéri.',
   'help.guide.tour-hike-plan.step.1':
     'Kattints a bal oldali oszlop tetején az „Új túra tervezése” gombra. A szerkesztő „Új túra” címmel nyílik meg.',
   'help.guide.tour-hike-plan.tip.2':
@@ -5990,7 +5990,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.2':
     'Ha egy megállónak még nincs tartózkodási ideje, az utána következő érkezési idők a lehető legkorábbi időpontként jelennek meg.',
   'help.guide.tour-walk-google-import.step.3':
-    'Ellenőrizd a „Megállók a linkben” részt. Ha egy megállónak nincs pozíciója a linkben, a TREK megjelöli, és kihagyja.',
+    'Ellenőrizd a „Megállók a linkben” részt. Ha egy megállónak nincs pozíciója a linkben, a YOUYA megjelöli, és kihagyja.',
   'help.guide.tour-walk-check-off.step.1':
     'A „Terv” fülön kattints a városi sétára a napján. A kártyája a térkép fölött nyílik meg.',
   'help.ctx.trip-tour-bike.title': 'Kerékpártúrák',
@@ -6024,11 +6024,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     'Az „Evezési tempó” szürkén mutatja a hajóhoz javasolt értéket. Ha saját értéket írsz be, a mezőn „Saját tempó” jelzés jelenik meg; az alatta lévő „Javasolt használata” link visszaállítja a hajóhoz javasolt sebességet.',
   'help.guide.tour-paddle-water-route.goal':
-    'A TREK tervezzen meg egy szakaszt a folyón vagy a tavon, és értsd meg a megjegyzéseket azoknál a szakaszoknál, amelyeket nem tudott megtervezni.',
+    'A YOUYA tervezzen meg egy szakaszt a folyón vagy a tavon, és értsd meg a megjegyzéseket azoknál a szakaszoknál, amelyeket nem tudott megtervezni.',
   'help.guide.tour-paddle-water-route.tip.3':
     'A megtervezett szakasz alatti megjegyzések jelzik a vadvizet a nehézségi fokával, a csónakcsúszdát („Csónakcsúszda”), vagy az egyenes vonallal áthidalt hiányt a térképadatokban („Hiány a térképadatokban”).',
   'help.guide.tour-paddle-portage.step.4':
-    'Az „Útvonal” alatt a „Kövesd az utat” egy feltérképezett utat használ, az „Egyenes vonal” pedig egyenesen átvág. A TREK magától keresi az utat, és jelzi, ha nincs ilyen hosszú kerülő nélkül.',
+    'Az „Útvonal” alatt a „Kövesd az utat” egy feltérképezett utat használ, az „Egyenes vonal” pedig egyenesen átvág. A YOUYA magától keresi az utat, és jelzi, ha nincs ilyen hosszú kerülő nélkül.',
   'help.guide.tour-paddle-lock.step.1':
     'Vidd az egeret a zsilipnél lévő megállóra, és kattints a három pontra („További műveletek”).',
   'help.guide.tour-paddle-time.title': 'Evezős túra idejének áttekintése és módosítása',
@@ -6038,7 +6038,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     'Mentsd el az evezős túrát, majd keresd meg a bal oldali oszlopban az „Ellenőrzőlista” részt. A fejlécében lévő jelvény összefoglalja, hol tart a lista.',
   'help.guide.tour-paddle-checklist.tip.4':
-    'Az akadályok a TREK által tárolt régiók OpenStreetMap-adataiból származnak. Ahol nincs ilyen adat, a kártya jelzi ezt, és a duzzasztógátakat, zsilipeket és átemeléseket neked kell ellenőrizned.',
+    'Az akadályok a YOUYA által tárolt régiók OpenStreetMap-adataiból származnak. Ahol nincs ilyen adat, a kártya jelzi ezt, és a duzzasztógátakat, zsilipeket és átemeléseket neked kell ellenőrizned.',
   'help.guide.tour-paddle-track-marks.step.4':
     '„Az utazás túrái” között kattints a nyomvonalra. A bal oldali oszlop a rögzített formájában mutatja, az „Átemelések és zsilipek” kártyával együtt.',
   'help.ctx.trip-tour-horse.title': 'Lovastúrák',
@@ -6105,16 +6105,16 @@ const help: TranslationStrings = {
     'Amíg egy összekapcsolt utazás tart, az egyes napok tartózkodásai az adott napnál jelennek meg, készen a „Nap átvétele” funkcióra.',
   'help.ctx.settings-about.title': 'Névjegy',
   'help.guide.web-push-device.tip.3':
-    'A pushhoz a TREK-et HTTPS-en keresztül kell megnyitni. Ha az értesítések le vannak tiltva, engedélyezd őket a böngésző beállításaiban, és próbáld újra.',
-  'help.guide.booking-mail-address.title': 'Foglalási e-mailek továbbítása a TREK-nek',
+    'A pushhoz a YOUYA-et HTTPS-en keresztül kell megnyitni. Ha az értesítések le vannak tiltva, engedélyezd őket a böngésző beállításaiban, és próbáld újra.',
+  'help.guide.booking-mail-address.title': 'Foglalási e-mailek továbbítása a YOUYA-nek',
   'help.guide.booking-mail-address.goal':
-    'Kapj saját címet a foglalási visszaigazolásokhoz, hogy a TREK minden foglalást a megfelelő utazáshoz adjon hozzá.',
+    'Kapj saját címet a foglalási visszaigazolásokhoz, hogy a YOUYA minden foglalást a megfelelő utazáshoz adjon hozzá.',
   'help.guide.booking-mail-address.step.1':
     'Az „Integrációk” alatt a „Foglalási e-mailek” részben látod „A címed” mezőt. Kattints a mellette lévő másolás gombra. Tartsd magadnál a címet, mint egy jelszót.',
   'help.guide.booking-mail-address.step.2':
     'Továbbíts egy foglalási e-mailt erre a címre kézzel, a mellékletekkel együtt, vagy kövesd az „Automatikus átirányítás” lépéseit, hogy szabályt állíts be a Gmailben vagy az Outlookban.',
   'help.guide.booking-mail-address.step.3':
-    'A „Foglalási e-mailek importálása” be- vagy kikapcsolja az importálást. Az „Olvasás AI-val” lehetővé teszi, hogy az AI olyan e-maileket is elolvasson, amelyekben nincsenek géppel olvasható foglalási adatok. A „Hozzáadás magától” a TREK számára biztos foglalást rögtön beteszi az utazásba.',
+    'A „Foglalási e-mailek importálása” be- vagy kikapcsolja az importálást. Az „Olvasás AI-val” lehetővé teszi, hogy az AI olyan e-maileket is elolvasson, amelyekben nincsenek géppel olvasható foglalási adatok. A „Hozzáadás magától” a YOUYA számára biztos foglalást rögtön beteszi az utazásba.',
   'help.guide.booking-mail-address.step.4':
     'A „Függőben lévő foglalások” megnyitja a rád váró e-maileket, számmal, ha vannak ilyenek. Az „E-mail-fájl feltöltése” egy .eml formátumban mentett levelet olvas be.',
   'help.guide.booking-mail-address.result':
@@ -6122,7 +6122,7 @@ const help: TranslationStrings = {
   'help.guide.booking-mail-address.tip.1':
     'A másolás melletti gomb, az „Új cím”, új címet ad. Kattints rá kétszer; a régi cím azonnal megszűnik működni, ezért a továbbítási szabályaidat is cseréld ki.',
   'help.guide.booking-mail-address.tip.2':
-    'Egy utazásnak lehet saját címe is, a „Foglalások” fülön a „Foglalási visszaigazolások importálása” alatt. Az erre küldött levélnél a TREK-nek nem kell találgatnia.',
+    'Egy utazásnak lehet saját címe is, a „Foglalások” fülön a „Foglalási visszaigazolások importálása” alatt. Az erre küldött levélnél a YOUYA-nek nem kell találgatnia.',
   'help.guide.booking-mail-address.tip.3':
     'A továbbított e-maileket legfeljebb 30 napig tároljuk titkosítva. A kártya csak akkor jelenik meg, ha az adminisztrátor bekapcsolta az e-mail-importot.',
   'help.guide.connect-airtrail.result':
@@ -6132,7 +6132,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     'A jelvényen „Csatlakozva” látszik, és az utazások „Túrák” fülén kereshetsz a wanderer-példányodban, és importálhatod az útvonalait.',
   'help.guide.tour-wanderer-watch.result':
-    'A TREK figyeli az importált útvonalaidat, és szól, ha valamelyik megváltozhatott. A túra csak akkor változik, ha elfogadod a módosítást.',
+    'A YOUYA figyeli az importált útvonalaidat, és szól, ha valamelyik megváltozhatott. A túra csak akkor változik, ha elfogadod a módosítást.',
   'help.guide.plugin-settings.step.1':
     'A beállítások oldalsávjában nyisd meg a „Pluginok” részt. A „Bővítménybeállítások” alatt minden olyan pluginnek, amelynek vannak beállításai számodra, saját kártyája van: töltsd ki a mezőit, és kattints a „Mentés” gombra, vagy tedd meg a felkínált választásokat. A kártyán lévő műveletek megerősítés után futnak le.',
   'help.guide.profile.step.3': 'Kattints a kártya alján, jobb oldalon a „Mentés” gombra.',
@@ -6146,7 +6146,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Add meg, milyen értesítési beállításokkal induljon minden felhasználó, és tilts le teljesen egy csatornát egy adott eseménynél.',
   'help.ctx.notifications.summary':
-    'Az összes értesítés, amelyet a TREK az alkalmazáson belül megjelenített, a legújabbal kezdve és napok szerint csoportosítva: egy foglalás, amelyet valaki módosított, egy új üzenet egy utazás csevegésében, egy késő járat, egy továbbított e-mailből származó foglalás. A jobb felső sarokban lévő csengő a legújabb tízet mutatja, ez az oldal az összeset.',
+    'Az összes értesítés, amelyet a YOUYA az alkalmazáson belül megjelenített, a legújabbal kezdve és napok szerint csoportosítva: egy foglalás, amelyet valaki módosított, egy új üzenet egy utazás csevegésében, egy késő járat, egy továbbított e-mailből származó foglalás. A jobb felső sarokban lévő csengő a legújabb tízet mutatja, ez az oldal az összeset.',
   'help.guide.read-notifications.step.1':
     'Kattints a jobb felső sarokban a csengőre. A rajta lévő piros szám az olvasatlan értesítések számát mutatja.',
   'help.guide.filter-notifications.step.1': 'Kattints a jobb felső sarokban a csengőre.',
@@ -6230,7 +6230,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync.tip.4':
     'Ha a kártyán sárga figyelmeztetés látszik „Újracsatlakozás” gombbal, a tároló már nem fogadja el a mentett bejelentkezési adatokat. Kattints az „Újracsatlakozás” gombra, adj meg új alkalmazásjelszót vagy tokent, és a szinkronizálás újraindul.',
   'help.guide.files-sync-settings.result':
-    'A következő futástól az utazás csak a választott irányban szinkronizál, a törléseket és az ütköző szerkesztéseket pedig a beállított szabályok szerint kezeli a TREK.',
+    'A következő futástól az utazás csak a választott irányban szinkronizál, a törléseket és az ütköző szerkesztéseket pedig a beállított szabályok szerint kezeli a YOUYA.',
   'help.guide.manage-notes.result':
     'A jegyzet egyszerre minden tagnál eltűnt a „Jegyzetek” kártyáról. A csak kitűzött vagy módosított jegyzet megmarad, és a többiek is abban az állapotban látják, ahogy hagytad.',
   'help.guide.note-categories.step.4':
@@ -6277,7 +6277,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     'A GPX gombbal GPX-fájlként töltheted le a mentett túrát: a teljes útvonalat a meglévő magassági adatokkal, navigációs alkalmazáshoz vagy GPS-eszközhöz.',
   'help.guide.tour-copy-keep.step.1':
-    'Nyisd meg a túra kártyáját, és kattints alul a „Másolás” gombra. A TREK új, önálló túrát hoz létre a napjai nélkül, az eredeti pedig változatlan marad.',
+    'Nyisd meg a túra kártyáját, és kattints alul a „Másolás” gombra. A YOUYA új, önálló túrát hoz létre a napjai nélkül, az eredeti pedig változatlan marad.',
   'help.guide.tour-copy-keep.result':
     'Az utazásban van egy második, szabadon módosítható túra, a gyűjteményben pedig egy saját másolat, amelyet egy másik utazáshoz is hozzáadhatsz.',
   'help.guide.tour-packing-link.tip.1':
@@ -6290,7 +6290,7 @@ const help: TranslationStrings = {
   'help.guide.tour-origin-check.title': 'Túra eredetének megtekintése',
   'help.guide.tour-origin-check.result': 'Tudod, honnan és mikor származik a túra, és hogy azóta megváltozott-e.',
   'help.ctx.trip-tour-planner.bullet.6':
-    'A nem mentett vázlat megmarad: ha újra megnyitod a „Túrák” fület, a TREK visszaállítja, „Nem mentett vázlat visszaállítva” jelöléssel. A „Vissza a túrákhoz” és az „Elveti” rákérdez, mielőtt elvetné a módosításokat.',
+    'A nem mentett vázlat megmarad: ha újra megnyitod a „Túrák” fület, a YOUYA visszaállítja, „Nem mentett vázlat visszaállítva” jelöléssel. A „Vissza a túrákhoz” és az „Elveti” rákérdez, mielőtt elvetné a módosításokat.',
   'help.guide.tour-open-workspace.step.6':
     'A bal alsó gombbal válthatsz a térképek között: „Térkép”, „Topográfiai” és „Műhold”, és 3D-t is bekapcsolhatsz. Megnyitott túránál a típusához tartozó térképeket is kínálja, például „Túrázás”, valamint kapcsolókat, például a „Pontok elhelyezése” és a „Vasalt utak”.',
   'help.guide.tour-draw-route.step.1':
@@ -6325,7 +6325,7 @@ const help: TranslationStrings = {
   'help.guide.tour-saved-elsewhere.result': 'Semmilyen módosítás nem vész el, hacsak valaki szándékosan el nem veti.',
   'help.guide.tour-import-gpx.title': 'GPX-, KML- vagy KMZ-fájl importálása túraként',
   'help.guide.tour-import-gpx.tip.2':
-    'A fájl minden nyomvonalából vagy útvonalából külön túra lesz. A nyomvonalakat a TREK soha nem fűzi össze.',
+    'A fájl minden nyomvonalából vagy útvonalából külön túra lesz. A nyomvonalakat a YOUYA soha nem fűzi össze.',
   'help.guide.tour-view-import.step.2':
     'A bal oldali oszlop GPX-túraként mutatja: a „Túra összefoglalója” a távolsággal és a magassági adatokkal, valamint a rögzített idővel, ha a fájlban van, alatta a magassági profillal. A térképen a vonala látszik.',
   'help.guide.tour-plan-from-import.step.1':
@@ -6367,7 +6367,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'A „Burkolat” gombra kattintva ugyanezt az útvonalat aszerint nézheted meg, min jársz: az aszfalttól a földútig és a szikláig.',
   'help.guide.tour-hike-round.step.2':
-    'A térkép fölött megnyílik a „Körtúra” kártya. Ellenőrizd a kiindulópontot a „Kitől” alatt, és írd be a kívánt távolságot („Távolság”). A mellette lévő jelvény mutatja, milyen hosszúságú köröket kínál majd hozzá a TREK.',
+    'A térkép fölött megnyílik a „Körtúra” kártya. Ellenőrizd a kiindulópontot a „Kitől” alatt, és írd be a kívánt távolságot („Távolság”). A mellette lévő jelvény mutatja, milyen hosszúságú köröket kínál majd hozzá a YOUYA.',
   'help.guide.tour-hike-compare-ways.title': 'Más útvonalak összehasonlítása a gyalogtúra egy szakaszára',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Ha az útvonaltervező nem ismer másik utat, a kártya jelzi ezt. Ha az útvonaltervező nem tudja követni a választott utat, a szakasz változatlan marad, és a kártya erről is tájékoztat.',
@@ -6387,7 +6387,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     'A nyitvatartás az OpenStreetMapből vagy abból az utazási helyből származik, amelyhez a megálló tartozik, és a mellette lévő jelvény mutatja, honnan. Indulás előtt ellenőrizd.',
   'help.guide.tour-walk-google-import.step.4':
-    'Kattints a „Betöltés sétaként” gombra. A TREK maga tervezi meg a gyalogos útvonalat a megállók között. A séta mentéséhez kattints a „Mentés” gombra.',
+    'Kattints a „Betöltés sétaként” gombra. A YOUYA maga tervezi meg a gyalogos útvonalat a megállók között. A séta mentéséhez kattints a „Mentés” gombra.',
   'help.guide.tour-walk-check-off.step.2':
     'Görgess „A séta megállói” részhez. Minden megállónál látod, mennyi ideig maradsz, és ha a sétának van kezdési ideje, azt is, mikor érkezel.',
   'help.ctx.trip-tour-bike.summary':
@@ -6398,12 +6398,12 @@ const help: TranslationStrings = {
   'help.guide.tour-bike-surfaces.step.4':
     'Az „Úttípus” alatt kattints egy sorra, például a „Mező- vagy erdei út” vagy a „Forgalmas út” sorra, és látod, hol halad rajta az útvonal.',
   'help.guide.tour-bike-mtb-grades.step.1':
-    'Nyisd meg a kerékpártúrát a szerkesztőben, és ellenőrizd, hogy a profil MTB-re van-e állítva. Az ösvények nehézségi fokát a TREK csak ennél a profilnál olvassa be.',
+    'Nyisd meg a kerékpártúrát a szerkesztőben, és ellenőrizd, hogy a profil MTB-re van-e állítva. Az ösvények nehézségi fokát a YOUYA csak ennél a profilnál olvassa be.',
   'help.ctx.trip-tour-ski.title': 'Sí- és téli túrák',
   'help.guide.tour-ski-plan.goal':
     'Tervezz egy napot a pályákon, egy sífutókört, egy sítúrát vagy egy hótalpas sétát a feltérképezett pályák, felvonók és utak mentén.',
   'help.guide.tour-ski-plan.tip.2':
-    'A „Szakág” melletti információs pont elmagyarázza, mit csinál a TREK a sítúrákkal. Sem ott, sem máshol itt nincs információ a hóról, a lavinákról, vagy arról, hogy a pályák, a felvonók és az utak nyitva vannak-e.',
+    'A „Szakág” melletti információs pont elmagyarázza, mit csinál a YOUYA a sítúrákkal. Sem ott, sem máshol itt nincs információ a hóról, a lavinákról, vagy arról, hogy a pályák, a felvonók és az utak nyitva vannak-e.',
   'help.guide.tour-ski-options.step.3':
     'Az „Előnyben” alatt válaszd a „Leggyorsabb”, a „Legtöbb síelés” vagy a „Legkönnyebb” lehetőséget. A „Tempó” alatt válaszd a „Laza”, a „Normál” vagy a „Sportos” lehetőséget: ez azt befolyásolja, mennyi időt számol az útvonaltervező az egyes pályákra.',
   'help.guide.tour-ski-fix-leg.goal':
@@ -6421,11 +6421,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     'Ellenőrizd, hogy a „Pont hozzáadása” be van-e kapcsolva, majd kattints a térképre: először a vízre szállás helyére, aztán az útközbeni pontokra, végül a kiszállás helyére.',
   'help.guide.tour-paddle-water-route.step.1':
-    'A kézzel rajzolt szakasz pontja alatt a „Kézzel rajzolva, nem tervezett” felirat és a szakasz hossza látszik. A TREK a vonalat pontosan úgy tartja meg, ahogy megrajzoltad.',
+    'A kézzel rajzolt szakasz pontja alatt a „Kézzel rajzolva, nem tervezett” felirat és a szakasz hossza látszik. A YOUYA a vonalat pontosan úgy tartja meg, ahogy megrajzoltad.',
   'help.guide.tour-paddle-water-route.tip.4':
     'Amíg van meg nem tervezett szakasz, nem tudsz menteni. Előbb tervezd meg a vízen, vagy rajzold meg kézzel.',
   'help.guide.tour-paddle-portage.step.5':
-    'A „Ki- és beszállás” mezőben add meg, hány percre van szükséged a kiszálláshoz, a kipakoláshoz és a visszaszálláshoz. Ha üresen hagyod, a TREK 10 perccel számol.',
+    'A „Ki- és beszállás” mezőben add meg, hány percre van szükséged a kiszálláshoz, a kipakoláshoz és a visszaszálláshoz. Ha üresen hagyod, a YOUYA 10 perccel számol.',
   'help.guide.tour-paddle-lock.step.2':
     'Válaszd a „Zsilip ezen a ponton” lehetőséget. A pont alatt megjelenik egy „Zsilip” kártya „Hiányzó idő” jelöléssel.',
   'help.guide.tour-paddle-time.goal':
@@ -6433,9 +6433,9 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-time.tip.3':
     'A szüneteket és a saját tervezett teljes időt a „Részletek” alatt adhatod meg. Ha van tervezett teljes idő, a kártya a becslés mellett a „Saját tervezett összidő” értéket is mutatja.',
   'help.guide.tour-paddle-wind.tip.1':
-    'Előrejelzés csak a következő 16 napra érhető el. Egy későbbi napnál a TREK jelzi, melyik dátumtól lesz elérhető az előrejelzés, egy elmúlt napnál pedig azt, hogy a nap már elmúlt.',
+    'Előrejelzés csak a következő 16 napra érhető el. Egy későbbi napnál a YOUYA jelzi, melyik dátumtól lesz elérhető az előrejelzés, egy elmúlt napnál pedig azt, hogy a nap már elmúlt.',
   'help.guide.tour-paddle-checklist.step.2':
-    'Az alatta lévő sorból kiderül, mennyire frissek az adatok: „OSM-állapot” az OpenStreetMaphez, „Lekérve” arra, hogy a TREK mikor olvasta be őket, és „Akadályadatok”, ha nem fedik le a teljes útvonalat.',
+    'Az alatta lévő sorból kiderül, mennyire frissek az adatok: „OSM-állapot” az OpenStreetMaphez, „Lekérve” arra, hogy a YOUYA mikor olvasta be őket, és „Akadályadatok”, ha nem fedik le a teljes útvonalat.',
   'help.guide.tour-paddle-checklist.tip.5':
     'Az ellenőrzőlista nem biztonsági vagy jogi engedély. A döntésed nem írja felül az OpenStreetMapben rögzített tilalmakat vagy magánterületeket.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -6453,7 +6453,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-recorded.tip.3':
     'A fájlt a „Túrák” fül bármely részére is ráhúzhatod, és ugyanez az előnézet nyílik meg.',
   'help.guide.create-trip.tip.3':
-    'Az „Útitársak” alatt olyan embereket adhatsz hozzá, akiknek már van fiókjuk ezen a TREK-en. Amint az utazás létrejön, a tagjai lesznek.',
+    'Az „Útitársak” alatt olyan embereket adhatsz hozzá, akiknek már van fiókjuk ezen a YOUYA-en. Amint az utazás létrejön, a tagjai lesznek.',
   'help.guide.trip-reminder.step.1':
     'Kattints az utazás kártyáján lévő ceruzára. Új utazásnál az „Új utazás” űrlapon ugyanez a rész található.',
   'help.guide.company-holidays.tip.2':
@@ -6475,7 +6475,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.7':
     'Mentett túrák: az utazásokból mentett túrák a lista első sorai, a nehézségi fokukkal, a típusukkal, a származási utazással és az adataikkal. A „Hozzáadás egy úthoz” új túrát készít belőlük, a kuka ikon pedig eltávolítja őket a listáról.',
   'help.guide.move-to-list.title': 'Helyek áthelyezése vagy duplikálása másik listába',
-  'help.guide.copy-to-trip.tip.2': 'Az utazásban már szereplő helyeket a TREK kihagyja, és jelzi, hányat hagyott ki.',
+  'help.guide.copy-to-trip.tip.2': 'Az utazásban már szereplő helyeket a YOUYA kihagyja, és jelzi, hányat hagyott ki.',
   'help.guide.accept-list-invite.tip.2':
     'A lista tetején a „Megosztott” gombra kattintva látod a tagokat. Ott a „Lista elhagyása” gombbal ki is léphetsz a listából.',
   'help.guide.tour-collection-add-to-trip.goal':
@@ -6496,14 +6496,14 @@ const help: TranslationStrings = {
   'help.guide.journey-auto-prepare.title': 'A rögzített napok automatikus előkészítése',
   'help.guide.photo-location.title': 'Bejegyzések elhelyezése a fotók készítési helyén',
   'help.ctx.settings-about.summary':
-    'Mi a TREK, melyik verzió fut ezen a szerveren, és hol találod a projektet: a dokumentációt, a hibabejelentés helyét és a támogatás lehetőségeit.',
+    'Mi a YOUYA, melyik verzió fut ezen a szerveren, és hol találod a projektet: a dokumentációt, a hibabejelentés helyét és a támogatás lehetőségeit.',
   'help.guide.startup.tip.2':
     'Ha a kezdő fül egy általad kikapcsolt bővítményhez tartozik, helyette a terv nyílik meg.',
   'help.guide.web-push-device.title': 'Push értesítések ezen az eszközön',
   'help.guide.connect-airtrail.tip.1':
     'A kártya csak akkor jelenik meg, ha a rendszergazda bekapcsolta az AirTrail bővítményt.',
   'help.guide.connect-dawarich.tip.1':
-    'A TREK csak javasol bejegyzéseket, helyeket és országokat; semmi sem kerül be, amíg meg nem erősíted, és a Dawarichba semmit sem ír vissza.',
+    'A YOUYA csak javasol bejegyzéseket, helyeket és országokat; semmi sem kerül be, amíg meg nem erősíted, és a Dawarichba semmit sem ír vissza.',
   'help.guide.tour-connect-wanderer.tip.1':
     'A kártya csak akkor jelenik meg, ha a rendszergazda a Túrák beállításainál engedélyezi a wanderert.',
   'help.guide.tour-wanderer-watch.tip.1':
@@ -6519,15 +6519,15 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     'Minden fiók kapjon ésszerű mértékegységeket, színmódot és pénznemet anélkül, hogy bárkinek meg kellene nyitnia a Beállításokat.',
   'help.guide.default-map.step.3':
-    'Minden mező akkor mentődik, amikor elhagyod. A mező neve melletti „visszaállítás” link visszaállítja a TREK alapértelmezett értékét.',
+    'Minden mező akkor mentődik, amikor elhagyod. A mező neve melletti „visszaállítás” link visszaállítja a YOUYA alapértelmezett értékét.',
   'help.guide.own-routing-engine.tip.2':
-    'Ha csak a saját útvonaltervező van beállítva, és az „Útvonaltervező szolgáltatás” „Automatikus”, egyetlen Valhallát sem kérdez meg a TREK. A mező melletti „visszaállítás” link újra kiüríti.',
+    'Ha csak a saját útvonaltervező van beállítva, és az „Útvonaltervező szolgáltatás” „Automatikus”, egyetlen Valhallát sem kérdez meg a YOUYA. A mező melletti „visszaállítás” link újra kiüríti.',
   'help.guide.admin-passkeys.step.1':
     'A „Biztonság” fülön, a „Hitelesítési módok” részben kapcsold be a „Passkey-bejelentkezés engedélyezése” beállítást.',
   'help.guide.storage-backends.step.4':
     'A felül lévő „Egészség” felsorolja a tükörcélra sikertelenül írt adatokat. Ha a „Nincs rögzített replikahiba.” üzenet látszik, minden rendben van.',
   'help.guide.channels-instance.tip.3':
-    'A Web Pushhoz HTTPS kell. iPhone-on és iPaden a felhasználóknak előbb hozzá kell adniuk a TREK-et a Főképernyőhöz.',
+    'A Web Pushhoz HTTPS kell. iPhone-on és iPaden a felhasználóknak előbb hozzá kell adniuk a YOUYA-et a Főképernyőhöz.',
   'help.guide.notification-defaults.step.1':
     'Az „Értesítések” fülön görgess le az „Alapértelmezések a felhasználóknak” részhez. Minden sor egy esemény, minden oszlop egy csatorna.',
   'help.ctx.notifications.bullet.1':
@@ -6577,28 +6577,28 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     'Ha a fülnek csak egy részét exportálnád, előbb szűkítsd a „Keresés” vagy a „Szűrő” segítségével. A fájl pontosan azt tartalmazza, amit a fül mutat.',
   'help.guide.import-booking-file.tip.4':
-    'A visszaigazolás feldolgozásához internetkapcsolat kell. Offline állapotban az importálás jelzi ezt, és amikor a TREK újra online, próbáld újra.',
+    'A visszaigazolás feldolgozásához internetkapcsolat kell. Offline állapotban az importálás jelzi ezt, és amikor a YOUYA újra online, próbáld újra.',
   'help.guide.forward-booking-mail.title': 'Foglalási e-mail továbbítása az utazásnak',
   'help.guide.forward-booking-mail.goal':
-    'Adj az utazásnak saját címet, továbbítsd rá a visszaigazolást, és fejezd be, amit a TREK nem tudott magától hozzáadni.',
+    'Adj az utazásnak saját címet, továbbítsd rá a visszaigazolást, és fejezd be, amit a YOUYA nem tudott magától hozzáadni.',
   'help.guide.forward-booking-mail.step.1':
     'Kattints a sávban a feltöltés ikonra, „Foglalási visszaigazolások importálása”. A fájlmező alatt a „Vagy továbbítás e-mailben” az utazás saját címét tartalmazza.',
   'help.guide.forward-booking-mail.step.2':
     'Kattints a „Cím létrehozása ehhez az utazáshoz” gombra. Az erre küldött levél találgatás nélkül ebbe az utazásba kerül.',
   'help.guide.forward-booking-mail.step.3':
-    'A cím megjelenik, mellette egy másolás gombbal. Másold ki, majd továbbítsd rá a foglalási e-mailt a levelezőprogramodból, a mellékletekkel együtt, kézzel vagy szabállyal. A TREK néhány percen belül beolvassa.',
+    'A cím megjelenik, mellette egy másolás gombbal. Másold ki, majd továbbítsd rá a foglalási e-mailt a levelezőprogramodból, a mellékletekkel együtt, kézzel vagy szabállyal. A YOUYA néhány percen belül beolvassa.',
   'help.guide.forward-booking-mail.step.4':
-    'A TREK számára biztos foglalás magától bekerül az utazásba. Minden más rád vár: nyisd meg a neved alatti menüt a jobb felső sarokban, ahol egy szám jelzi a várakozó leveleket, és kattints a „Függőben lévő foglalások” gombra.',
+    'A YOUYA számára biztos foglalás magától bekerül az utazásba. Minden más rád vár: nyisd meg a neved alatti menüt a jobb felső sarokban, ahol egy szám jelzi a várakozó leveleket, és kattints a „Függőben lévő foglalások” gombra.',
   'help.guide.forward-booking-mail.step.5':
-    'Minden bejegyzés megmutatja, mit olvasott a TREK, miért vár, és melyik utazáshoz érkezett. Az „E-mail megjelenítése” magát a levelet mutatja. Kattints a „Kitöltés kézzel” gombra.',
+    'Minden bejegyzés megmutatja, mit olvasott a YOUYA, miért vár, és melyik utazáshoz érkezett. Az „E-mail megjelenítése” magát a levelet mutatja. Kattints a „Kitöltés kézzel” gombra.',
   'help.guide.forward-booking-mail.step.6':
     'Az „Új foglalás” megnyílik az utazásban a levélben talált adatokkal: a tárgy címként, a típus, a dátum és a megtalált foglalási kód. Ellenőrizd, javítsd, ami kell, és kattints a „Hozzáadás” gombra.',
   'help.guide.forward-booking-mail.result':
     'A foglalás a „Foglalások” fülön van, mint bármelyik másik, a bejegyzése pedig kikerült a „Függőben lévő foglalások” közül.',
   'help.guide.forward-booking-mail.tip.1':
-    'A saját címed, a Beállítások, Integrációk, Foglalási e-mailek alatt, minden utazáshoz működik: a TREK azt az utazást választja, amelynek a dátumai és helyei illenek a foglaláshoz. Az utazás saját címe megspórolja ezt a találgatást.',
+    'A saját címed, a Beállítások, Integrációk, Foglalási e-mailek alatt, minden utazáshoz működik: a YOUYA azt az utazást választja, amelynek a dátumai és helyei illenek a foglaláshoz. Az utazás saját címe megspórolja ezt a találgatást.',
   'help.guide.forward-booking-mail.tip.2':
-    'Ha azon a kártyán be van kapcsolva a „Hozzáadás magától”, a TREK számára biztos foglalás rögtön az utazásba kerül, és az erről szóló értesítés 7 napig kínálja a „Visszavonás” lehetőséget. Kikapcsolva minden foglalás a „Függőben lévő foglalások” alatt vár.',
+    'Ha azon a kártyán be van kapcsolva a „Hozzáadás magától”, a YOUYA számára biztos foglalás rögtön az utazásba kerül, és az erről szóló értesítés 7 napig kínálja a „Visszavonás” lehetőséget. Kikapcsolva minden foglalás a „Függőben lévő foglalások” alatt vár.',
   'help.guide.forward-booking-mail.tip.3':
     'Egy bejegyzést dokumentumként is megtarthatsz a „Mentés dokumentumként” gombbal, amely a levelet vagy a mellékleteit az utazás fájljai közé teszi, vagy elvethetsz az „Elvetés” gombbal.',
   'help.guide.forward-booking-mail.tip.4':
@@ -6613,7 +6613,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.step.1':
     'Kattints a kiadás sora melletti ceruzára. Megnyílik a szerkesztő, alul a „Nyugták és számlák” résszel.',
   'help.guide.expense-receipts.tip.3':
-    'A csatoláshoz internetkapcsolat és fájlfeltöltési jogosultság kell, mert a nyugtát a TREK az utazás egyik fájljaként tárolja.',
+    'A csatoláshoz internetkapcsolat és fájlfeltöltési jogosultság kell, mert a nyugtát a YOUYA az utazás egyik fájljaként tárolja.',
   'help.guide.expense-receipts.tip.4':
     'Az utazásban már meglévő fájlt, például egy foglalási visszaigazolást, amely egyben a számla is, nem kell újra feltölteni, hanem hozzákapcsolhatod: a „Csatolás” melletti link ikon felsorolja ezeket a fájlokat.',
   'help.guide.files-sync-settings.title': 'A dokumentumok szinkronizálási irányának kiválasztása',
@@ -6680,15 +6680,15 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     'Nyisd meg a túra kártyáját. A „Terv és tényleges” rész a terv „Távolság”, „Szintemelkedés”, „Szintcsökkenés” és „Idő szünetekkel” értékét a nyomvonaléi mellett mutatja, az „Eltérés” kiszámításával.',
   'help.guide.tour-origin-check.goal':
-    'Tudd meg, hogy a túrát a TREK-ben rajzolták vagy importálták, melyik fájlból, és hogy azóta módosult-e.',
+    'Tudd meg, hogy a túrát a YOUYA-ben rajzolták vagy importálták, melyik fájlból, és hogy azóta módosult-e.',
   'help.ctx.trip-tour-planner.title': 'Túrák',
   'help.guide.tour-open-workspace.title': 'Eligazodás a „Túrák” fülön',
   'help.guide.tour-open-workspace.step.7':
-    'Kattints egy túrára a jobb oldali sávban. A TREK-ben tervezett túra a szerkesztőben nyílik meg, az importált nyomvonal pedig változatlanul, GPX-túraként, megtekintésre.',
+    'Kattints egy túrára a jobb oldali sávban. A YOUYA-ben tervezett túra a szerkesztőben nyílik meg, az importált nyomvonal pedig változatlanul, GPX-túraként, megtekintésre.',
   'help.guide.tour-draw-route.step.2':
     'Írd be a „Hely vagy cím keresése” mezőbe, honnan indul a túra, és válaszd ki a találatot. A térkép odaugrik.',
   'help.guide.tour-draw-route.tip.4':
-    'A nem mentett vázlat megmarad. Ha újra megnyitod az utazás „Túrák” fülét, a TREK visszaállítja, „Nem mentett vázlat visszaállítva” jelöléssel.',
+    'A nem mentett vázlat megmarad. Ha újra megnyitod az utazás „Túrák” fülét, a YOUYA visszaállítja, „Nem mentett vázlat visszaállítva” jelöléssel.',
   'help.guide.tour-type-profile.tip.1':
     'A típus módosítása egy lépésnek számít az előzményekben: a sáv tetején lévő „Pontmódosítás visszavonása” visszaállítja a régi típust és az útvonalát.',
   'help.guide.tour-edit-points.step.4':
@@ -6717,10 +6717,10 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.goal':
     'Egy GPS-óráról, alkalmazásból vagy a Google Earthből származó nyomvonalból készíts túrát az utazáshoz, mentés előtti ellenőrzéssel.',
   'help.guide.tour-import-gpx.tip.3':
-    'Az utazásban már szereplő nyomvonal szürkén, „Már az utazásban van” jelöléssel látszik, és a TREK kihagyja.',
+    'Az utazásban már szereplő nyomvonal szürkén, „Már az utazásban van” jelöléssel látszik, és a YOUYA kihagyja.',
   'help.guide.tour-view-import.step.3': 'A bal felső sarokban lévő nyíllal („Vissza a túrákhoz”) bezárhatod.',
   'help.guide.tour-plan-from-import.step.2':
-    'A TREK ellenőrzőpontokat vesz a nyomvonalból, és újratervezi köztük az útvonalat. A térkép az importált nyomvonalat pontozott, a javaslatot folytonos vonallal mutatja, a kártya pedig összeveti a hosszukat, a nyomvonaltól 50 m-en belül haladó rész arányát és a „Legnagyobb eltérés” értékét.',
+    'A YOUYA ellenőrzőpontokat vesz a nyomvonalból, és újratervezi köztük az útvonalat. A térkép az importált nyomvonalat pontozott, a javaslatot folytonos vonallal mutatja, a kártya pedig összeveti a hosszukat, a nyomvonaltól 50 m-en belül haladó rész arányát és a „Legnagyobb eltérés” értékét.',
   'help.guide.tour-restore-recorded.title': 'Visszatérés a rögzített nyomvonalhoz',
   'help.guide.tour-take-over.title': 'Túra átvétele másik utazásból',
   'help.guide.tour-take-over.tip.1':
@@ -6781,7 +6781,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.4':
     'Két séta egy napon: a „Terv” fülön kattints a köztük lévő szakaszra („Közlekedési mód módosítása”), és válaszd a „Tömegközlekedés” lehetőséget. A keresés onnan és akkor indul, ahol és amikor az első séta véget ér, és figyelmeztet, ha egy kapcsolat a következő séta kezdete után érkezik.',
   'help.guide.tour-walk-google-import.tip.1':
-    'A TREK csak gyalogosan tervezett útvonalat tud beolvasni. Megosztás előtt állítsd a Google Mapset gyalogos módra.',
+    'A YOUYA csak gyalogosan tervezett útvonalat tud beolvasni. Megosztás előtt állítsd a Google Mapset gyalogos módra.',
   'help.guide.tour-walk-check-off.step.3':
     'Egy megnézett megállónál kattints a „Megjelölés látogatottként”, egy kihagyottnál a „Kihagyás” gombra.',
   'help.ctx.trip-tour-bike.bullet.1':
@@ -6810,7 +6810,7 @@ const help: TranslationStrings = {
     'Ha a pályák betöltése megszakad, a kapcsolón figyelmeztető jel jelenik meg. A térkép és az útvonalad ettől még működik.',
   'help.guide.tour-ski-import.step.4': 'Kattints az „1 túra importálása” gombra.',
   'help.ctx.trip-tour-paddle.summary':
-    'Kajak-, kenu- vagy SUP-túra folyón vagy tavon. Megadja a hajót és a víz típusát, ahol a TREK-nek van adata, a vizet követi, az átemeléseket és a zsilipeket beszámítja az időbe, és mutatja az evezés napjára várható szelet, valamint az útközbeni akadályokról ismert adatokat.',
+    'Kajak-, kenu- vagy SUP-túra folyón vagy tavon. Megadja a hajót és a víz típusát, ahol a YOUYA-nek van adata, a vizet követi, az átemeléseket és a zsilipeket beszámítja az időbe, és mutatja az evezés napjára várható szelet, valamint az útközbeni akadályokról ismert adatokat.',
   'help.guide.tour-paddle-setup.goal':
     'Indíts kajak-, kenu- vagy SUP-túrát, és add meg, mivel, milyen vízen és milyen gyorsan evezel.',
   'help.guide.tour-paddle-setup.tip.1':
@@ -6818,7 +6818,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-water-route.step.2':
     'Ha egy szakaszt a vízen szeretnél megterveztetni, vidd az egeret az előtte lévő megállóra, és kattints a három pontra („További műveletek”).',
   'help.guide.tour-paddle-water-route.result':
-    'Minden szakasz a vizet követi, vagy szándékosan kézzel van rajzolva, és ha a TREK nem tudott megtervezni egy szakaszt, jelzi az okát.',
+    'Minden szakasz a vizet követi, vagy szándékosan kézzel van rajzolva, és ha a YOUYA nem tudott megtervezni egy szakaszt, jelzi az okát.',
   'help.guide.tour-paddle-portage.tip.1':
     'Ha mégis evezve tennéd meg a szakaszt, nyisd meg újra a pont „További műveletek” menüjét, és válaszd az „Újra evezés ezen a szakaszon” lehetőséget. A szakasz ismét kézzel rajzolt szakasz lesz.',
   'help.guide.tour-paddle-lock.step.3': 'Kattints a „Zsilip” kártyára a megnyitásához.',
@@ -6838,7 +6838,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     'Kattints a „Túra neve” alatti „Túratípus” mezőre, és válaszd a „Lovastúra” lehetőséget. Az „Útpontok” alatt megjelenik a „Lovas útvonalak” kártya.',
   'help.guide.tour-horse-plan.tip.2':
-    'A TREK lovastúránál nem számol lovaglási időt. Ha szeretnéd, hogy a napon szerepeljen idő, add meg a „Részletek” között a „Tervezett” mezőben.',
+    'A YOUYA lovastúránál nem számol lovaglási időt. Ha szeretnéd, hogy a napon szerepeljen idő, add meg a „Részletek” között a „Tervezett” mezőben.',
   'help.guide.tour-horse-gap.step.3':
     'Kattints a „Szakasz átvétele” gombra. Amíg a kapcsoló nincs bekapcsolva, a gomb szürke marad.',
   'help.guide.tour-horse-recorded.step.1':
@@ -6855,7 +6855,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': 'Napok rögzítése annak, akivel közösen tervezel',
   'help.guide.dissolve-fusion.title': 'Közös tervezés befejezése',
   'help.guide.country-places.goal':
-    'Listázd ki, mely helyeket számol a TREK egy országhoz: így ellenőrizheted, mit csináltál ott, vagy megtalálhatod azt a helyet, amelyet a TREK rossz országhoz rendelt.',
+    'Listázd ki, mely helyeket számol a YOUYA egy országhoz: így ellenőrizheted, mit csináltál ott, vagy megtalálhatod azt a helyet, amelyet a YOUYA rossz országhoz rendelt.',
   'help.guide.regions.tip.3':
     'A „Hozzáadás a bakancslistához” régióknál is működik. A régió ugyanolyan sraffozással jelenik meg, mint egy bakancslistás ország.',
   'help.guide.tour-activity-stats.step.2':
@@ -6886,11 +6886,11 @@ const help: TranslationStrings = {
   'help.guide.readability.tip.3':
     'Az olvashatósági beállítások „Kísérleti” jelölésűek. Ha valami rosszul néz ki, a fül alján lévő „Alapértelmezések visszaállítása” gombbal visszaállíthatod az alapbeállításokat.',
   'help.guide.web-push-device.goal':
-    'Lásd a TREK értesítéseit a telefonodon vagy a számítógépeden akkor is, ha a TREK be van zárva.',
+    'Lásd a YOUYA értesítéseit a telefonodon vagy a számítógépeden akkor is, ha a YOUYA be van zárva.',
   'help.guide.connect-airtrail.tip.2':
-    'A kulcsot a TREK titkosítva tárolja, és többé nem jeleníti meg; ha a mezőben pontok látszanak, van mentett kulcs.',
+    'A kulcsot a YOUYA titkosítva tárolja, és többé nem jeleníti meg; ha a mezőben pontok látszanak, van mentett kulcs.',
   'help.guide.connect-dawarich.tip.2':
-    'A gombok alatt a kártya jelzi, mikor ellenőrzött utoljára a TREK, és mit nem tud a Dawarich-verziód.',
+    'A gombok alatt a kártya jelzi, mikor ellenőrzött utoljára a YOUYA, és mit nem tud a Dawarich-verziód.',
   'help.guide.tour-connect-wanderer.tip.2':
     'Privát címen futó példányhoz szükség lehet arra, hogy a rendszergazda engedélyezze a belső hálózatokat.',
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6898,13 +6898,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     'A plugin a te beállításaiddal működik, és minden művelete, amelyet a nevedben végez, megjelenik a „Bővítmény-tevékenység” alatt.',
   'help.ctx.admin-defaults.bullet.3':
-    'A beállított mező melletti „visszaállítás” link visszaállítja a TREK alapértelmezett értékét. A felhasználó saját beállítása mindig felülírja ezeket.',
+    'A beállított mező melletti „visszaállítás” link visszaállítja a YOUYA alapértelmezett értékét. A felhasználó saját beállítása mindig felülírja ezeket.',
   'help.ctx.admin-settings.bullet.5':
     '„Veszélyzóna”, a „Biztonság” fülön: a „JWT-titok cseréje” minden felhasználót kijelentkeztet, téged is.',
   'help.guide.default-user-settings.step.1':
     'Az „Alapértelmezett felhasználói beállítások” részben válaszd ki a „Színmód” („Világos”, „Sötét” vagy „Automatikus”), a „Hőmérséklet egység”, a „Távolság egység”, az „Időformátum”, „A hét kezdőnapja”, a „Dátumformátum” és a „Megjelenítési pénznem” értékét, valamint azt, hogy a „Foglalási kódok elrejtése” be vagy ki legyen kapcsolva. Minden választás azonnal mentődik.',
   'help.guide.admin-passkeys.step.2':
-    'A „Passkey-bejelentkezés” kártyán add meg a „Relying Party azonosító (domain)” értékét, például trek.example.org, és az „Engedélyezett origók” közé azokat a címeket, amelyeken a TREK-ed elérhető, majd kattints a „Mentés” gombra. Ha mindkettőt üresen hagyod, a TREK az APP_URL értékét használja.',
+    'A „Passkey-bejelentkezés” kártyán add meg a „Relying Party azonosító (domain)” értékét, például trek.example.org, és az „Engedélyezett origók” közé azokat a címeket, amelyeken a YOUYA-ed elérhető, majd kattints a „Mentés” gombra. Ha mindkettőt üresen hagyod, a YOUYA az APP_URL értékét használja.',
   'help.guide.rotate-jwt-secret.title': 'Mindenki kijelentkeztetése egyszerre',
   'help.guide.notification-defaults.step.2':
     'Egy cellára kattintva a következő állapotra váltasz: „Be”, „Ki”, „Tiltva”. Az elemleírás megnevezi a következő állapotot, és minden kattintás azonnal mentődik.',
@@ -6919,17 +6919,17 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': 'Az értesítés lekerül a listáról és a csengőből.',
   'help.guide.booking-mail-notifications.title': 'Válasz egy foglalási e-mailről szóló értesítésre',
   'help.guide.booking-mail-notifications.goal':
-    'Nézd meg, mi lett a továbbított foglalási e-mailekkel, és döntsd el azokat, amelyeket a TREK nem tudott magától hozzáadni.',
+    'Nézd meg, mi lett a továbbított foglalási e-mailekkel, és döntsd el azokat, amelyeket a YOUYA nem tudott magától hozzáadni.',
   'help.guide.booking-mail-notifications.step.1':
-    'Kattints a jobb felső sarokban lévő csengőre. Ha egy továbbított levélben olyan foglalások vannak, amelyeket a TREK nem tudott magától hozzáadni, itt jelzi.',
+    'Kattints a jobb felső sarokban lévő csengőre. Ha egy továbbított levélben olyan foglalások vannak, amelyeket a YOUYA nem tudott magától hozzáadni, itt jelzi.',
   'help.guide.booking-mail-notifications.step.2':
     'Az „Ellenőrizendő továbbított foglalások” megmondja, hányan várnak rád. Kattints alatta az „Áttekintés” gombra.',
   'help.guide.booking-mail-notifications.step.3':
-    'A „Függőben lévő foglalások” megnyílik az összes várakozó bejegyzéssel: mit olvasott a TREK, miért vár, és melyik utazáshoz érkezett. A „Kitöltés kézzel” új foglalást nyit meg a levélben talált adatokkal, a kuka pedig elveti a bejegyzést.',
+    'A „Függőben lévő foglalások” megnyílik az összes várakozó bejegyzéssel: mit olvasott a YOUYA, miért vár, és melyik utazáshoz érkezett. A „Kitöltés kézzel” új foglalást nyit meg a levélben talált adatokkal, a kuka pedig elveti a bejegyzést.',
   'help.guide.booking-mail-notifications.result':
     'Minden továbbított foglalás vagy bekerül a saját utazásába, vagy a te döntésedre vár, és mindig tudod, melyik a helyzet.',
   'help.guide.booking-mail-notifications.tip.1':
-    'A TREK által magától hozzáadott foglalás „Foglalás hozzáadva levélből” értesítésként érkezik, „Megtartás” és „Visszavonás” gombbal. A „Visszavonás” ismét kiveszi a foglalást az utazásból, a „Megtartás” ott hagyja.',
+    'A YOUYA által magától hozzáadott foglalás „Foglalás hozzáadva levélből” értesítésként érkezik, „Megtartás” és „Visszavonás” gombbal. A „Visszavonás” ismét kiveszi a foglalást az utazásból, a „Megtartás” ott hagyja.',
   'help.guide.booking-mail-notifications.tip.2':
     'A közös utazás többi résztvevője is értesül a levélből származó foglalásról, az „Utazás megtekintése” gombbal, amely megnyitja az utazás „Foglalások” fülét.',
   'help.guide.booking-mail-notifications.tip.3':
@@ -6945,9 +6945,9 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     'Kattints az „Utazás beállításai” gombra az utazás neve mellett, és válaszd a „Bővítmények” lehetőséget a bal oldalon. Ez a rész csak az utazás tulajdonosának érhető el.',
   'help.guide.trip-addons.step.2':
-    'Kattints egy bővítmény kapcsolójára, hogy be- vagy kikapcsold ehhez az utazáshoz. A „Listák”, „Költségek”, „Dokumentumok”, „Együttműködés”, „Autós út” és „Túrák” szerepelnek, amennyiben a TREK-ed rendelkezik velük.',
+    'Kattints egy bővítmény kapcsolójára, hogy be- vagy kikapcsold ehhez az utazáshoz. A „Listák”, „Költségek”, „Dokumentumok”, „Együttműködés”, „Autós út” és „Túrák” szerepelnek, amennyiben a YOUYA-ed rendelkezik velük.',
   'help.guide.trip-addons.step.3':
-    'A „Csak ez az utazás” jelzi azt a bővítményt, amelyet a TREK többi részétől eltérően állítottál be. Kapcsold vissza, hogy újra az adminisztrátor beállítását kövesse.',
+    'A „Csak ez az utazás” jelzi azt a bővítményt, amelyet a YOUYA többi részétől eltérően állítottál be. Kapcsold vissza, hogy újra az adminisztrátor beállítását kövesse.',
   'help.guide.trip-addons.result':
     'Az utazás az általad választott bővítményeket mutatja mindenkinek: egy fül vagy a terv egy része megjelenik vagy eltűnik. A többi utazásod az adminisztrátor beállítását követi.',
   'help.guide.trip-addons.tip.1':
@@ -6955,7 +6955,7 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.tip.2':
     'Egy bővítményt akkor is bekapcsolhatsz egy utazáshoz, ha az adminisztrátor mindenki másnál kikapcsolta.',
   'help.guide.trip-addons.tip.3':
-    'A kapcsoló módosításához kapcsolat kell. Offline állapotban a TREK ezt jelzi, és a kapcsoló marad, ahogy volt.',
+    'A kapcsoló módosításához kapcsolat kell. Offline állapotban a YOUYA ezt jelzi, és a kapcsoló marad, ahogy volt.',
   'help.guide.edit-trip-settings.title': 'Az utazás szerkesztése a tervezőből',
   'help.guide.edit-trip-settings.goal':
     'Módosítsd az utazás címét, dátumait, borítóját vagy pénznemét anélkül, hogy elhagynád az utazást.',
@@ -6967,7 +6967,7 @@ const help: TranslationStrings = {
     'Kattints a „Frissítés” gombra. Az „Utazás beállításai” bezárul, és az utazás rögtön mutatja a változást.',
   'help.guide.edit-trip-settings.result': 'Az utazás mindenhol az új adatokat mutatja, minden résztvevőjének.',
   'help.guide.edit-trip-settings.tip.1':
-    'Ha áthelyezed a kezdő dátumot, a TREK először megkérdezi, hogyan kövessék a foglalások. Ha az új dátumok miatt olyan napok esnek ki, amelyeken van valami, a megerősítés előtt felsorolja ezeket a napokat.',
+    'Ha áthelyezed a kezdő dátumot, a YOUYA először megkérdezi, hogyan kövessék a foglalások. Ha az új dátumok miatt olyan napok esnek ki, amelyeken van valami, a megerősítés előtt felsorolja ezeket a napokat.',
   'help.guide.edit-trip-settings.tip.2':
     'Ugyanez az űrlap megnyílik az „Utazásaim” oldalról is az utazáskártya ceruzájával. Az „Utazás szerkesztése” csak azoknak jelenik meg, akik szerkeszthetik az utazást.',
   'help.guide.dawarich-stays.result':
@@ -6980,9 +6980,9 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'A fotó lett a hely képe a kártyán, a helyek oszlopában, a napon és a térképen.',
   'help.guide.place-own-hours.step.3':
-    'Alattuk a „Nyitvatartás” a hetet mutatja, naponként egy sorral. Ha a TREK talált nyitvatartást a helyhez, az már ki van töltve; ha nem, előbb kattints a „Nyitvatartás hozzáadása” gombra. Írd be, mikor nyit és zár az egyes napokon. A nap jobb oldalán a 24h egész napos nyitvatartásként, a zárt ajtó pedig zártként jelöli.',
+    'Alattuk a „Nyitvatartás” a hetet mutatja, naponként egy sorral. Ha a YOUYA talált nyitvatartást a helyhez, az már ki van töltve; ha nem, előbb kattints a „Nyitvatartás hozzáadása” gombra. Írd be, mikor nyit és zár az egyes napokon. A nap jobb oldalán a 24h egész napos nyitvatartásként, a zárt ajtó pedig zártként jelöli.',
   'help.guide.add-accommodation.tip.5':
-    'A GPX-nyomvonalakat és a túrák helyeit a TREK soha nem kínálja fel szálláshelyként, csak az utazás szokásos helyeit.',
+    'A GPX-nyomvonalakat és a túrák helyeit a YOUYA soha nem kínálja fel szálláshelyként, csak az utazás szokásos helyeit.',
   'help.guide.confirm-stay-booking.step.1':
     'Nyisd meg a bejelentkezés napját. A szállás kártyáján a „Foglalás” alatt látod az arra az éjszakára szóló szállodafoglalást „Függőben” vagy „Megerősítve” állapottal. Kattints erre a mezőre.',
   'help.guide.tour-map-lines.step.4':
@@ -7002,7 +7002,7 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.2':
     'Nyisd meg a nézetikonok utáni csúszkákat („Nézet beállításai”), és a „Rendezés” alatt válassz sorrendet. A sorok ezt követik, foglalásonként egy sorral, csoportok nélkül.',
   'help.guide.edit-booking.tip.4':
-    'Ha már módosítottál valamit, az űrlapon kívülre kattintva vagy az Esc billentyűvel a TREK megkérdezi: „Elveted a módosításokat?” A „Szerkesztés folytatása” visszavisz az űrlaphoz.',
+    'Ha már módosítottál valamit, az űrlapon kívülre kattintva vagy az Esc billentyűvel a YOUYA megkérdezi: „Elveted a módosításokat?” A „Szerkesztés folytatása” visszavisz az űrlaphoz.',
   'help.guide.arrange-packing-list.step.2':
     'Egy listán belül vidd az egeret egy sor fölé: a bal végén megjelenik egy fogantyú, amellyel feljebb vagy lejjebb húzhatod a tételt. A sor bal szélén megjelenő, kiemelőszínű vonal mutatja, hová kerül.',
   'help.guide.count-packed-pieces.goal':
@@ -7014,7 +7014,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     'Döntsd el, hogy a dokumentumok csak bejöjjenek a tárolódból, csak kimenjenek oda, vagy mindkét irányban mozogjanak, és mi történjen, ha egy dokumentumot törölnek, vagy mindkét helyen módosítanak.',
   'help.guide.files-sync-settings.tip.2':
-    'A „Kérdezzen rá” beállításnál a mindkét helyen szerkesztett dokumentum a kártya alatti „Átnézést igényel” részben vár. Kattints a „Megoldás” gombra, és válaszd „A TREK-verzió megtartása”, „A szolgáltató verziójának megtartása” vagy a „Mindkettő megtartása” lehetőséget.',
+    'A „Kérdezzen rá” beállításnál a mindkét helyen szerkesztett dokumentum a kártya alatti „Átnézést igényel” részben vár. Kattints a „Megoldás” gombra, és válaszd „A YOUYA-verzió megtartása”, „A szolgáltató verziójának megtartása” vagy a „Mindkettő megtartása” lehetőséget.',
   'help.guide.manage-notes.goal':
     'Nyiss meg egy jegyzetet teljes terjedelmében, tartsd felül a fontosat, és javítsd vagy töröld, ami már nem aktuális.',
   'help.guide.manage-notes.tip.2':
@@ -7032,7 +7032,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.tip.2':
     'A megállónál foglalt asztal vagy jegy gombként jelenik meg az adott megállón; ami egyik megállóhoz sem tartozik, az „Erre a napra még lefoglalva” alatt szerepel.',
   'help.guide.roadtrip-google-import.step.3':
-    'Ellenőrizd a talált megállókat. Mindegyiknél látod, hol van; a „Hely nem azonosítható” jelölésűeket a TREK kihagyja.',
+    'Ellenőrizd a talált megállókat. Mindegyiknél látod, hol van; a „Hely nem azonosítható” jelölésűeket a YOUYA kihagyja.',
   'help.guide.roadtrip-hazards.step.1': 'A jobb oldali oszlopban nyisd meg a „Vezetési beállítások” ablakot.',
   'help.ctx.trip-tours.summary':
     'A „Terv” fül jobb oldali oszlopa „Túrák” módban: az utazás összes túrája egy listában, a napok mellett. Innen rendelheted a túrákat a napokhoz, szűrheted a listát, elrejtheted a vonalakat a térképen, és GPX- vagy KML-fájlokat importálhatsz. Az útvonalakat a „Túrák” fülön rajzolhatod meg és módosíthatod.',
@@ -7136,7 +7136,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     'Nyiss meg egy túrát a „Túrák” fülön, és a bal oldali panelen görgess le „A túra mentén” részhez, a túra megállói alá. A kártya akkor jelenik meg, ha a túrának már van útvonala.',
   'help.guide.tour-along-search.tip.3':
-    'A találatok az OpenStreetMapből és a TREK helyindexéből származnak, ezért a kereséshez internetkapcsolat kell. Ha nincs találat, a „Tágítás eddig” a következő távolsággal próbálkozik; ha egy szerver túlterhelt, a „Próbáld újra” visszaszámlálást mutat, amíg újra próbálkozhatsz.',
+    'A találatok az OpenStreetMapből és a YOUYA helyindexéből származnak, ezért a kereséshez internetkapcsolat kell. Ha nincs találat, a „Tágítás eddig” a következő távolsággal próbálkozik; ha egy szerver túlterhelt, a „Próbáld újra” visszaszámlálást mutat, amíg újra próbálkozhatsz.',
   'help.guide.tour-along-add-stop.tip.1':
     'A hely a túra megállója lesz, nem az utazás helye, ezért nem jelenik meg a helylistában.',
   'help.guide.tour-3d-terrain.step.4':
@@ -7157,7 +7157,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     'Az útpontok alatti „Útrészletek” az OpenStreetMap alapján mutatja minden szakasz SAC-fokozatát, burkolatát és úttípusát, és ezek szerint színezi az útvonalat a térképen. Semmi sem változtat benne a túrán.',
   'help.guide.tour-hike-plan.step.4':
-    'A „Pont hozzáadása” kezdettől be van kapcsolva: kattints a térképen a gyalogtúra kiinduló- és végpontjára. A mellette lévő „Út helyei” gombbal helyette az utazás egy menedékházát vagy szállodáját is kiválaszthatod. Két ponttól a TREK megtervezi a gyalogos útvonalat.',
+    'A „Pont hozzáadása” kezdettől be van kapcsolva: kattints a térképen a gyalogtúra kiinduló- és végpontjára. A mellette lévő „Út helyei” gombbal helyette az utazás egy menedékházát vagy szállodáját is kiválaszthatod. Két ponttól a YOUYA megtervezi a gyalogos útvonalat.',
   'help.guide.tour-hike-trail-details.title': 'Nehézségi fokok, burkolatok és úttípusok egy gyalogtúra mentén',
   'help.guide.tour-hike-trail-details.tip.1':
     'Az OpenStreetMapben értékkel nem rendelkező utak az „Ismeretlen” alatt szerepelnek, és az ismeretlen nem jelent könnyűt. Ha némelyiknél az „Ezúttal nem lehetett lekérdezni” felirat látszik, kattints a „Próbáld újra” gombra.',
@@ -7189,7 +7189,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     'A jobb oldali „Túra összefoglalója” a „Kerékpáros idő” értéket mutatja, vagyis az útvonaltervező becslését a profilra, az emelkedőkkel együtt. A szüneteket nem tartalmazza.',
   'help.guide.tour-bike-profile.step.4':
-    'Az „Útpontok” alatt kattints az „Út helyei” gombra, és válaszd ki a kiinduló- és a végpontot, itt a Hotel Alpenroyal, majd a Hotel Greif. Azt is megteheted, hogy ellenőrzöd, be van-e kapcsolva a „Pont hozzáadása”, és a térképre kattintasz. Két ponttól a TREK megtervezi az útvonalat.',
+    'Az „Útpontok” alatt kattints az „Út helyei” gombra, és válaszd ki a kiinduló- és a végpontot, itt a Hotel Alpenroyal, majd a Hotel Greif. Azt is megteheted, hogy ellenőrzöd, be van-e kapcsolva a „Pont hozzáadása”, és a térképre kattintasz. Két ponttól a YOUYA megtervezi az útvonalat.',
   'help.guide.tour-bike-profile.tip.5':
     'Ha a rendszergazda engedélyezi a CyclOSM térképet, megnyitott kerékpártúránál a térkép rétegsorában a „Kerékpár” is megjelenik. Ha nem töltődik be, válts a „Térkép” nézetre. A túra nem változik.',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -7220,7 +7220,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     'Evezős túránál a térkép a „Térkép” és a „Műhold” nézetet, rétegként pedig az OpenSeaMap „Hajózási jelek” rétegét kínálja.',
   'help.guide.tour-paddle-water-route.step.3':
-    'Válaszd a „Következő szakasz tervezése a vízen” lehetőséget. A TREK ettől a ponttól a következőig a folyó vagy a tó mentén tervezi meg a szakaszt.',
+    'Válaszd a „Következő szakasz tervezése a vízen” lehetőséget. A YOUYA ettől a ponttól a következőig a folyó vagy a tó mentén tervezi meg a szakaszt.',
   'help.guide.tour-paddle-portage.title': 'A hajó átemelése egy akadály mellett',
   'help.guide.tour-paddle-portage.tip.2':
     'Az utolsó pontnál az „Átemelés innentől” akkor lép életbe, amikor elhelyezed a következő pontot. A sorban „Innen átemelés” látszik, az x-szel („Mégse emeld át”) pedig visszavonhatod.',
@@ -7241,7 +7241,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.3':
     'A „Lovas útvonalak” kártyán kattints a „Keresés a térképnézetben” gombra. A látható terület összes kijelölt lovasútvonala megjelenik a hosszával.',
   'help.guide.tour-horse-plan.tip.3':
-    'Keresés után elmozdítottad a térképet? A gombon ilyenkor „Keresés ebben a nézetben” áll. Túl nagy terület esetén a TREK arra kér, hogy előbb nagyíts rá.',
+    'Keresés után elmozdítottad a térképet? A gombon ilyenkor „Keresés ebben a nézetben” áll. Túl nagy terület esetén a YOUYA arra kér, hogy előbb nagyíts rá.',
   'help.guide.tour-horse-gap.step.4':
     'Az „Útpontok” kártyán az áthidalás „Kézi, ellenőrizetlen” jelöléssel és a hosszával jelenik meg. Ha fölé viszed az egeret, elolvashatod, miért.',
   'help.guide.tour-horse-recorded.step.2':
@@ -7319,7 +7319,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     'Az „MI-asszisztens” kártyán válaszd ki, hogyan csatlakozol: a „Bejelentkezés ChatGPT-vel” a ChatGPT-előfizetésedet használja, az „API-kulcs beillesztése” pedig az Anthropic, az OpenAI, a Gemini vagy az OpenRouter kulcsát fogadja.',
   'help.guide.connect-ai.step.2':
-    'Illeszd be a kulcsot. A TREK kiírja, melyik szolgáltatót ismerte fel, és azt is, mi kerül hozzá. Kattints a „Csatlakoztatás” gombra; a TREK előbb ellenőrizteti a kulcsot a szolgáltatóval.',
+    'Illeszd be a kulcsot. A YOUYA kiírja, melyik szolgáltatót ismerte fel, és azt is, mi kerül hozzá. Kattints a „Csatlakoztatás” gombra; a YOUYA előbb ellenőrizteti a kulcsot a szolgáltatóval.',
   'help.guide.connect-ai.step.3':
     'A kártyán ez áll: „Kapcsolódva” és a szolgáltató neve. Válaszd ki a kívánt „Modell”-t, majd kattints az „Asszisztens megnyitása” gombra, hogy a jelenlegi vagy a következő utazásodban elindulj.',
   'help.guide.connect-ai.result': 'Az asszisztens a saját fiókodon fut, minden utazásodban.',
@@ -7338,7 +7338,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     'Alul az „Alapértelmezések a felhasználóknak”: eseményenként és csatornánként „Be”, „Ki” vagy „Tiltva” mindenkinek, aki nem módosította.',
   'help.guide.default-user-settings.step.2':
-    'A beállított mező neve mellett megjelenik egy „visszaállítás” link, amely visszaállítja a TREK beépített alapértelmezését.',
+    'A beállított mező neve mellett megjelenik egy „visszaállítás” link, amely visszaállítja a YOUYA beépített alapértelmezését.',
   'help.guide.own-routing-engine.title': 'Saját útvonaltervező szerverek használata',
   'help.guide.admin-passkeys.result':
     'A bejelentkezési oldalon megjelenik a passkey-s bejelentkezés lehetősége, és a felhasználók a beállításaikban passkey-ket adhatnak hozzá.',
@@ -7362,7 +7362,7 @@ const help: TranslationStrings = {
     'Vidd az egeret a foglalás sora fölé a napon: a bal oldalán megjelenő fogantyú jelzi, hogy húzható.',
   'help.guide.place-image-from-file.tip.1': 'Csak JPG, PNG, GIF és WebP fájlok választhatók; PDF-jegy nem.',
   'help.guide.place-own-hours.step.4':
-    'A „Nyitvatartás” jobb oldalán lévő gombok: a másolás gomb minden napra a hétfői nyitvatartást állítja be, az X pedig törli a saját időpontjaidat. Ha a TREK saját nyitvatartást is talált, az „Átvétel a hely adataiból” visszaállítja azt.',
+    'A „Nyitvatartás” jobb oldalán lévő gombok: a másolás gomb minden napra a hétfői nyitvatartást állítja be, az X pedig törli a saját időpontjaidat. Ha a YOUYA saját nyitvatartást is talált, az „Átvétel a hely adataiból” visszaállítja azt.',
   'help.guide.confirm-stay-booking.step.2':
     'A foglalás a terv fölött nyílik meg. A fejlécében az első gomb az állapotát mutatja.',
   'help.ctx.trip-map.bullet.9':
@@ -7379,7 +7379,7 @@ const help: TranslationStrings = {
   'help.guide.group-sort-bookings.step.1':
     'A „Kártyák” vagy a „Lista” nézetben kattints a három nézetikon utáni csúszkákra („Nézet beállításai”).',
   'help.guide.create-booking.tip.4':
-    'Offline állapotban a foglalás ezen az eszközön mentődik, és amint újra van kapcsolat, szinkronizálódik. Az új fájlokhoz internetkapcsolat kell, ezért távolítsd el őket, vagy mentsd később. Ha véletlenül az űrlapon kívülre kattintasz, vagy megnyomod az Esc billentyűt, a TREK megkérdezi: „Elveted a módosításokat?”, mielőtt bármi elveszne abból, amit beírtál.',
+    'Offline állapotban a foglalás ezen az eszközön mentődik, és amint újra van kapcsolat, szinkronizálódik. Az új fájlokhoz internetkapcsolat kell, ezért távolítsd el őket, vagy mentsd később. Ha véletlenül az űrlapon kívülre kattintasz, vagy megnyomod az Esc billentyűt, a YOUYA megkérdezi: „Elveted a módosításokat?”, mielőtt bármi elveszne abból, amit beírtál.',
   'help.guide.booking-on-map.tip.2': 'A szállás az első éjszakájánál nyílik meg.',
   'help.guide.export-bookings-csv.step.3':
     'Kattints az „Exportálás táblázatként (CSV)” gombra, a „Nézet beállításai” utáni letöltés ikonra.',
@@ -7391,7 +7391,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     'Kattints a sáv jobb szélén a „Dokumentumok szinkronizálása” gombra. Ha az utazás össze van kötve egy tárolóval, a tároló kártyája jobb oldalon nyílik meg; több tárolónál bal oldalon, az „Ez az utazás” alatt kattints a kívántra.',
   'help.guide.files-sync-settings.tip.3':
-    'Az „Azonnali frissítések”, egy link a mellette lévő „Másolás” gombbal, csak azoknál a tárolóknál jelenik meg, amelyeknél a TREK nem tud automatikusan feliratkozni a változásokra. Illeszd be a linket a tárolóba, és a változások azonnal megérkeznek, nem csak a következő ellenőrzéskor.',
+    'Az „Azonnali frissítések”, egy link a mellette lévő „Másolás” gombbal, csak azoknál a tárolóknál jelenik meg, amelyeknél a YOUYA nem tud automatikusan feliratkozni a változásokra. Illeszd be a linket a tárolóba, és a változások azonnal megérkeznek, nem csak a következő ellenőrzéskor.',
   'help.guide.manage-notes.step.1':
     'Kattints a jegyzetkártya fejlécében a három pontra („További lehetőségek”). A menüben a „Kibontás”, a „Kitűzés”, a „Szerkesztés” és a „Törlés” található.',
   'help.guide.note-categories.title': 'Jegyzetek rendezése kategóriákba',
@@ -7410,7 +7410,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     'A hely fotói kitöltik a képernyőt, és a nyilakkal végigléphetsz azokon, amelyeket a forrása ismer. Zárd be őket, hogy visszatérj az ablakhoz, ahol a „Mégse” úgy hagyja a megállót, ahogy volt.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    'A kép a hely saját képe, amelyet a hely űrlapján állítottál be. Ha nincs, a TREK azt a fotót mutatja, amelyet a forrása a helyhez ismer, ha a hely Google-ből vagy OpenStreetMapből származik.',
+    'A kép a hely saját képe, amelyet a hely űrlapján állítottál be. Ha nincs, a YOUYA azt a fotót mutatja, amelyet a forrása a helyhez ismer, ha a hely Google-ből vagy OpenStreetMapből származik.',
   'help.guide.roadtrip-stop-photo.tip.2':
     'Telefonon koppints egy megállóra az „Autós út” fülön: a lapja a név alatt a teljes szélességben mutatja a képet, és a rá koppintás megnyitja a fotókat.',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -7438,7 +7438,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     'Ha egy szakaszokból álló túrát egy napra húzol, ugyanezt egy kis ablak kérdezi meg. A „Mégse” változatlanul hagyja a tervet.',
   'help.guide.tour-day-times.step.2':
-    'Add meg a „Kezdés” értékét, a „Befejezés” mezőt hagyd üresen. A mezők alatti sor mutatja a TREK által kiszámolt befejezési időt: a kezdés plusz a túra ideje.',
+    'Add meg a „Kezdés” értékét, a „Befejezés” mezőt hagyd üresen. A mezők alatti sor mutatja a YOUYA által kiszámolt befejezési időt: a kezdés plusz a túra ideje.',
   'help.guide.tour-remove-from-day.title': 'Túra levétele egy napról',
   'help.guide.tour-filter-list.title': 'A túralista szűrése',
   'help.guide.tour-filter-list.tip.3':
@@ -7450,7 +7450,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     'A kártya az áttekintésre és a túrához kapcsolódó dolgokra való. Magát az útvonalat a „Túrák” fülön módosíthatod: nyisd meg, és „Az utazás túrái” alatt kattints a túrára. Túrát is ott törölhetsz, nem itt.',
   'help.guide.tour-detail-read.step.6':
-    'Görgess tovább a „Leírás” és a „Jegyzetek” részhez, majd az „Eredet” részhez: TREK-ben tervezve, az importált fájl, vagy a wanderer-útvonal, amelyből származik, a dátummal.',
+    'Görgess tovább a „Leírás” és a „Jegyzetek” részhez, majd az „Eredet” részhez: YOUYA-ben tervezve, az importált fájl, vagy a wanderer-útvonal, amelyből származik, a dátummal.',
   'help.guide.tour-rename-colour.title': 'Túra átnevezése és színének módosítása',
   'help.guide.tour-rename-colour.result':
     'A túra az utazásban mindenhol az új nevével jelenik meg, a vonala pedig a választott színnel.',
@@ -7468,13 +7468,13 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     'Az „Összehasonlítás a térképen” gombbal a tényleges nyomvonal pontozott vonalként jelenik meg a terv mellett. Az összehasonlítás befejezésével ismét eltűnik.',
   'help.guide.tour-origin-check.step.2':
-    'Az „Importálva” az importálás napját mutatja. Az „Itt” a jelenlegi állapotot: „Ahogy importálva”, „Szerkesztve a TREK-ben” vagy „Újratervezve, a rögzített nyomvonal megőrizve”.',
+    'Az „Importálva” az importálás napját mutatja. Az „Itt” a jelenlegi állapotot: „Ahogy importálva”, „Szerkesztve a YOUYA-ben” vagy „Újratervezve, a rögzített nyomvonal megőrizve”.',
   'help.ctx.trip-tour-planner.bullet.1':
     'Ha a Túrák bővítmény be van kapcsolva az utazáshoz, a „Túrák” fül az utazás fülsorában közvetlenül a „Terv” után található; az utazás tulajdonosa az „Utazás beállításai” „Bővítmények” részében kapcsolhatja. A fül számítógépen és táblagépen érhető el; telefonon a túrákat a „Terv” fülön nézheted meg és rendelheted napokhoz, de nem rajzolhatod meg.',
   'help.guide.tour-open-workspace.step.1':
     'Kattints az utazás fülsorában, közvetlenül a „Terv” után a „Túrák” fülre. A térkép kitölti a képernyőt, mindkét oldalán egy-egy sávval.',
   'help.guide.tour-open-workspace.tip.2':
-    'Ha GPX-, KML- vagy KMZ-fájlt ejtesz bárhová ezen a fülön, a TREK az utazás túráiként importálja őket.',
+    'Ha GPX-, KML- vagy KMZ-fájlt ejtesz bárhová ezen a fülön, a YOUYA az utazás túráiként importálja őket.',
   'help.guide.tour-draw-route.step.4':
     'A térkép alján megjelenik a „Pont elhelyezve” üzenet. A mellette lévő „Visszavonás” ismét eltávolítja a pontot.',
   'help.guide.tour-type-profile.title': 'A túra típusának kiválasztása',
@@ -7553,7 +7553,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.tip.2':
     'A gyalogtúra korlátjánál nehezebb fokozat sorában „A határ felett” jelvény látszik.',
   'help.guide.tour-hike-round.step.5':
-    'Kattints az „Ezt a kört választom” gombra, majd a „Csere” gombra, amikor a TREK megkérdezi, lecserélje-e a tervezett útvonalat.',
+    'Kattints az „Ezt a kört választom” gombra, majd a „Csere” gombra, amikor a YOUYA megkérdezi, lecserélje-e a tervezett útvonalat.',
   'help.guide.tour-hike-compare-ways.step.2':
     'A térkép fölött megnyílik a „Más utak ehhez a szakaszhoz” a „Jelenlegi út” és az „A út”, „B út” és így tovább lehetőséggel. Mindegyik a saját színével jelenik meg a térképen, és ha egy sor fölé viszed az egeret, a vonala kiemelődik.',
   'help.guide.tour-ferrata-add.goal':
@@ -7581,7 +7581,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.3':
     'Az „Útpontok” alatti „Burkolat és utak” kártya megmutatja, milyen talajon halad az útvonal: a burkolatokat, az úttípusokat és az ismerten burkolatlan rész arányát. Egy sorra kattintva kiemelheted a hozzá tartozó szakaszokat a térképen.',
   'help.guide.tour-bike-profile.step.5':
-    'Nézd meg a jobb oldali „Túra összefoglalója” részben a „Kerékpáros idő” értéket. Ha az információs pontja fölé viszed az egeret, látod, hogyan számolja a TREK.',
+    'Nézd meg a jobb oldali „Túra összefoglalója” részben a „Kerékpáros idő” értéket. Ha az információs pontja fölé viszed az egeret, látod, hogyan számolja a YOUYA.',
   'help.guide.tour-bike-surfaces.title': 'Egy kerékpártúra burkolatainak megtekintése',
   'help.guide.tour-bike-surfaces.tip.2':
     'Az „Országúti” profilnál a sávok fölötti figyelmeztetés jelzi, mekkora szakasz ismerten burkolatlan. A „Megjelenítés a térképen” megjelöli ezeket a szakaszokat.',
@@ -7609,13 +7609,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     'Evezős túránál „A túra mentén” elsőként vízre szállási helyeket, csónakkölcsönzőt és ivóvizet keres.',
   'help.guide.tour-paddle-water-route.step.4':
-    'Ha a TREK nem tudott megtervezni egy szakaszt, az pirosra vált, és jelzi az okát, például hogy a területre még nincs vízadat. Az „Egyenes vonal” gombbal egyelőre kézzel rajzolhatod meg.',
+    'Ha a YOUYA nem tudott megtervezni egy szakaszt, az pirosra vált, és jelzi az okát, például hogy a területre még nincs vízadat. Az „Egyenes vonal” gombbal egyelőre kézzel rajzolhatod meg.',
   'help.guide.tour-paddle-portage.goal':
     'Jelölj meg egy szakaszt, ahol viszed a hajót, hogy szárazföldi szakaszként számítson, a ki- és beszállás idejével együtt.',
   'help.guide.tour-paddle-portage.tip.3':
     'A hordozás 2 km/h-val számít, amíg az „Időbecslés” kártyán meg nem adod a saját hordozási sebességedet.',
   'help.guide.tour-paddle-lock.tip.1':
-    'A TREK nem ismeri a zsilipek üzemrendjét. Csak az általad megadott időkkel számol, ezért a zsilip nyitvatartását magad ellenőrizd.',
+    'A YOUYA nem ismeri a zsilipek üzemrendjét. Csak az általad megadott időkkel számol, ezért a zsilip nyitvatartását magad ellenőrizd.',
   'help.guide.tour-paddle-time.step.3':
     'A „Víz” sor a vízen megtett távolság az „Evezési tempó” alapján. A sebességet az oszlop tetején lévő „Evezési tempó” mezőben módosíthatod.',
   'help.guide.tour-paddle-wind.goal': 'Nézd meg az evezés napjára várható szelet a túra kiindulópontján.',
@@ -7626,7 +7626,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.goal':
     'Importálj evezős nyomvonalat az órádról, és jelöld meg rajta, hol vitted a hajót, és hol mentél át zsilipen.',
   'help.guide.tour-paddle-track-marks.tip.1':
-    'Pontosan a nyomvonalra kattints: a vonaltól túl messze eső kattintást a TREK elutasítja, és a kártya jelzi ezt.',
+    'Pontosan a nyomvonalra kattints: a vonaltól túl messze eső kattintást a YOUYA elutasítja, és a kártya jelzi ezt.',
   'help.ctx.trip-tour-horse.bullet.3':
     'Minden szakasz egy jelvény az „Útpontok” kártyán, az útvonal nevével, egy hozzáférést jelző ponttal és a hosszával. Az a szakasz, amelyet egyetlen lovasútvonal sem fed le, „Kézi, ellenőrizetlen” jelölést kap.',
   'help.guide.tour-horse-plan.step.4':

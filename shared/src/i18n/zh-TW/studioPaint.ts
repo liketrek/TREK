@@ -1,6 +1,6 @@
 import type { TranslationStrings } from '../types';
 
-/** TREK Studio: paint, gradients, patterns and the page background. */
+/**游芽 Studio: paint, gradients, patterns and the page background. */
 const studioPaint: TranslationStrings = {
   'journey.studio.paint.kind': '填色類型',
   'journey.studio.paint.none': '無',

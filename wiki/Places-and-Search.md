@@ -53,7 +53,7 @@ Click **Select** (the tick next to the search field) to switch the list into sel
 
 - **The head band** holds the name, which you type straight into the band, and the category as a pill. The **+** next to the pill (*New category*) turns it into a field for a new category's name; **OK** or Enter creates it, **Cancel** or Escape closes the field. Categories are shared by the whole instance, so creating one takes an admin account (see [Tags and Categories](Tags-and-Categories)). After a search pick, a pill names where the place came from. Once the place has coordinates, the round **Open in maps** pill opens it in a map app, the same menu as **Navigation** (see [Opening a place in a map app](#opening-a-place-in-a-map-app)).
 - **Search** finds the place and fills in the rest, see [Searching for a place](#searching-for-a-place). A place picked from the search, or from a marker of the [map categories](#exploring-the-map-by-category), comes with the matching category already picked when the trip's palette has one (a hotel goes to the category named like Hotel or Accommodation, a café to Café or Bar, and so on). A category you chose yourself is never replaced.
-- **Places near this pin** (the target button beside the search button) appears once the form has coordinates, for example after a right-click on the map. It lists the named places around that point, nearest first with their distance, so you can pick the café you clicked on instead of keeping a bare pin. The TREK API answers it; when it has nothing, Google with a key, otherwise OpenStreetMap. The same lookup is `POST /api/maps/nearby` and the MCP tool `search_nearby_places`.
+- **Places near this pin** (the target button beside the search button) appears once the form has coordinates, for example after a right-click on the map. It lists the named places around that point, nearest first with their distance, so you can pick the café you clicked on instead of keeping a bare pin. The YOUYA API answers it; when it has nothing, Google with a key, otherwise OpenStreetMap. The same lookup is `POST /api/maps/nearby` and the MCP tool `search_nearby_places`.
 - When a full search finds nothing, a box says *Nothing found for "…"* with **Add by hand**: it takes what you searched for as the name, if the name is still empty, and jumps to the phone, e-mail and opening hours fields.
 - **Address**, **Latitude** and **Longitude** say where it is.
 - **Phone**, **E-mail** and the opening hours are the place's own, see [Phone, e-mail and opening hours](#phone-e-mail-and-opening-hours).
@@ -97,7 +97,7 @@ The place inspector shows the phone and the e-mail address as pills in its head 
 
 ### Newer place details
 
-When you edit a saved place, TREK looks the place up again. If the lookup knows a description, website, phone number, e-mail address or opening hours that differ from what the place holds, a **New place details** pill with the number of differences appears in the head of the form. It opens a list with what the place holds now beside what the lookup has. A field that is empty is ticked; a field that already has a value is not, and says that it would replace it. **Take over** writes only the ticked fields into the form, and the place keeps them once you save it. A field the lookup knows nothing about is never offered, so refreshing never empties anything.
+When you edit a saved place, YOUYA looks the place up again. If the lookup knows a description, website, phone number, e-mail address or opening hours that differ from what the place holds, a **New place details** pill with the number of differences appears in the head of the form. It opens a list with what the place holds now beside what the lookup has. A field that is empty is ticked; a field that already has a value is not, and says that it would replace it. **Take over** writes only the ticked fields into the form, and the place keeps them once you save it. A field the lookup knows nothing about is never offered, so refreshing never empties anything.
 
 ### Costs for a place
 
@@ -109,26 +109,26 @@ Deleting the place deletes its linked expenses too, the same way deleting a book
 
 ## Searching for a place
 
-Place search needs no API key. Two sources answer it together: the **TREK API**, TREK's own index of 73.6 million places, and **OpenStreetMap**, asked through the address search of the TREK services where the installation has a key and through Nominatim where it has none (see [Address search](TREK-Places-API#address-search)). The index is strongest on businesses such as restaurants, shops and hotels; OpenStreetMap is where the temples, bridges, viewpoints and stations are. What the index is, where its data comes from and what TREK sends to it is on its own page: [TREK Places API](TREK-Places-API).
+Place search needs no API key. Two sources answer it together: the **YOUYA API**, YOUYA's own index of 73.6 million places, and **OpenStreetMap**, asked through the address search of the YOUYA services where the installation has a key and through Nominatim where it has none (see [Address search](TREK-Places-API#address-search)). The index is strongest on businesses such as restaurants, shops and hotels; OpenStreetMap is where the temples, bridges, viewpoints and stations are. What the index is, where its data comes from and what YOUYA sends to it is on its own page: [YOUYA Places API](TREK-Places-API).
 
 ### Suggestions while you type
 
 After two or more characters and a 300 ms pause, suggestions appear under the search field of the place form.
 
 - Use **↑ / ↓** to move through them, **Enter** to pick one, **Esc** to close the list.
-- Suggestions come from the TREK API, from its index and from an OpenStreetMap layer it keeps, and from the address search of the TREK services asked at the same time. A suggestion from the layer shows the name that matched what you typed, with the name used on the spot underneath when the two differ. How the rows are ordered is described in [How the list is put together](#how-the-list-is-put-together).
-- Only when both have nothing does TREK ask the keyed provider (Google or Amap), or, without one, OpenStreetMap's search on its own.
+- Suggestions come from the YOUYA API, from its index and from an OpenStreetMap layer it keeps, and from the address search of the YOUYA services asked at the same time. A suggestion from the layer shows the name that matched what you typed, with the name used on the spot underneath when the two differ. How the rows are ordered is described in [How the list is put together](#how-the-list-is-put-together).
+- Only when both have nothing does YOUYA ask the keyed provider (Google or Amap), or, without one, OpenStreetMap's search on its own.
 - An installed [search plugin](Plugin-Cookbook#suggestions-while-the-user-types) whose index can keep up with typing adds up to three of its places under the suggestions, marked with the plugin's name. Picking one fills in what the plugin knows about the place, with no second lookup.
 
 ### Language of place names
 
-By default, search, suggestions and addresses answer in the language TREK is set to. **Settings > General > Language & region > Place names** picks another one, for example English names while the app is in German, or **Same as the app** again. Where a place has no name in that language, its local name is shown. The TREK API has no translations, so its results keep the names used on the spot either way.
+By default, search, suggestions and addresses answer in the language YOUYA is set to. **Settings > General > Language & region > Place names** picks another one, for example English names while the app is in German, or **Same as the app** again. Where a place has no name in that language, its local name is shown. The YOUYA API has no translations, so its results keep the names used on the spot either way.
 
 ### The full search
 
-Press **Enter** without picking a suggestion, or click the search button beside the field, to run a full search. It asks the TREK API and OpenStreetMap at the same time and merges their answers the same way as the suggestions, up to ten results; see [How the list is put together](#how-the-list-is-put-together).
+Press **Enter** without picking a suggestion, or click the search button beside the field, to run a full search. It asks the YOUYA API and OpenStreetMap at the same time and merges their answers the same way as the suggestions, up to ten results; see [How the list is put together](#how-the-list-is-put-together).
 
-A Google or Amap key does not change this. The keyed provider is asked only when the TREK API and OpenStreetMap both come back empty; see [Google and Amap](#google-and-amap).
+A Google or Amap key does not change this. The keyed provider is asked only when the YOUYA API and OpenStreetMap both come back empty; see [Google and Amap](#google-and-amap).
 
 Installed [search plugins](Plugin-Cookbook#answer-place-searches-from-your-own-index) add their results below the core list. Only the ones built for it also answer while you type; the others appear here, once the search is run.
 
@@ -136,14 +136,14 @@ Installed [search plugins](Plugin-Cookbook#answer-place-searches-from-your-own-i
 
 The suggestions and the full search build their list the same way, so the two agree on what a name means.
 
-1. **Both are asked at once:** the index with its OpenStreetMap layer, and the address search of the TREK services. Its hits are ranked with places that have a Wikidata link before their unlinked namesakes, and streets, unlinked shops and unlinked artworks step back: "Neuschwanstein" opens on the castle, not on an artwork of that name. It leans towards the area you are planning (see [The open day steers the search](#the-open-day-steers-the-search)), more narrowly than before, so a namesake 50 km away no longer passes the real place. On an installation without a key Nominatim answers in its place, and the list has no lead.
+1. **Both are asked at once:** the index with its OpenStreetMap layer, and the address search of the YOUYA services. Its hits are ranked with places that have a Wikidata link before their unlinked namesakes, and streets, unlinked shops and unlinked artworks step back: "Neuschwanstein" opens on the castle, not on an artwork of that name. It leans towards the area you are planning (see [The open day steers the search](#the-open-day-steers-the-search)), more narrowly than before, so a namesake 50 km away no longer passes the real place. On an installation without a key Nominatim answers in its place, and the list has no lead.
 2. **The list opens on a lead** when the address search's answer has one:
    - a country or a region, always;
    - a town, an island or a sight with a Wikidata link, when it is called what you typed (or a typo of it: one letter wrong, two in a name of eight letters or more), lies within 1000 km of where you are looking, and no place of that name ranks above it. With no hint at all, a town, an island or a sight leads; a municipality or a county does not.
 3. **The rest alternate**, index and OpenStreetMap, the index first.
 4. **Doubles go:** a place both sources know (within 60 metres, with a matching name) is listed once, as the index's copy; rows of the lead's own name inside its area go, so "Berlin" no longer opens on a business filed as "Berlin" in Berlin; the same element under two ids is shown once; and rows that read the same, with the same name and the same line below it, are shown once.
 
-A three-letter code in capitals, such as `JFK` or `LHR`, is looked up in TREK's bundled airport list and asked for as that airport at its place, which then leads. Typed in lower case it stays an ordinary search, so `ber` on the way to "Berlin" still finds Berlin.
+A three-letter code in capitals, such as `JFK` or `LHR`, is looked up in YOUYA's bundled airport list and asked for as that airport at its place, which then leads. Typed in lower case it stays an ordinary search, so `ber` on the way to "Berlin" still finds Berlin.
 
 The line below a row from the address search shows the street, the quarter, the town and the country, and the region only where there is no town. It never shows the postcode or the county.
 
@@ -151,7 +151,7 @@ Measured on 5000 places from Wikidata, the right place came first while typing 6
 
 ### Where each result came from
 
-Every row, in the suggestions and in the search results, on the desktop and on the phone, carries a small mark naming its source: **TREK**, **OpenStreetMap**, **Google** or **Amap** (高德地图, or 高德地圖 in traditional Chinese), and for a row from a search plugin the name the plugin was installed under. A list that mixes several sources stays readable that way. Results from the offline cache carry no mark; see [Searching offline](#searching-offline).
+Every row, in the suggestions and in the search results, on the desktop and on the phone, carries a small mark naming its source: **YOUYA**, **OpenStreetMap**, **Google** or **Amap** (高德地图, or 高德地圖 in traditional Chinese), and for a row from a search plugin the name the plugin was installed under. A list that mixes several sources stays readable that way. Results from the offline cache carry no mark; see [Searching offline](#searching-offline).
 
 ### The open day steers the search
 
@@ -162,7 +162,7 @@ Every search is hinted with the area you are planning, so "Hase-dera" finds the 
 
 A hint that reaches further than about 60 km from its centre is dropped instead of sent. The middle of a round trip sits in open country between the cities, and pointing the search there ranks worse than no hint at all. Measured over 126 places of a real trip, the day hint put the right place among the first five results 70.6 percent of the time, against 54.8 percent with no hint and 57.1 percent with a hint around the whole trip.
 
-Without any hint, the TREK API turns down a single common word such as `bar` as too broad, and OpenStreetMap answers that search on its own. Once the trip has a place or two, the index joins in.
+Without any hint, the YOUYA API turns down a single common word such as `bar` as too broad, and OpenStreetMap answers that search on its own. Once the trip has a place or two, the index joins in.
 
 The place form on the desktop and the search sheet on the phone use the same hint.
 
@@ -172,12 +172,12 @@ The place form on the desktop and the search sheet on the phone use the same hin
 
 > **Admin:** The Google Maps API key is instance-wide, set in **Admin → Settings → API Keys → Google Maps API Key**. It is stored encrypted at rest and used for every member of the instance. It can also come from the `PLACES_API_KEY` environment variable, which wins over the field and leaves it read-only; see [Environment Variables](Environment-Variables#place-search-google-places).
 
-A key does not buy a different search by itself. Google fills the slot that answers once the TREK API and OpenStreetMap both have nothing, and it adds what only a commercial provider has: ratings and photos. No open dataset carries either of those for ordinary businesses. A place found through Google keeps its Google id, so its details, rating and photos keep coming from Google.
+A key does not buy a different search by itself. Google fills the slot that answers once the YOUYA API and OpenStreetMap both have nothing, and it adds what only a commercial provider has: ratings and photos. No open dataset carries either of those for ordinary businesses. A place found through Google keeps its Google id, so its details, rating and photos keep coming from Google.
 
 That order means a search the index answered with the wrong place never reaches Google on its own. Two ways to send it there:
 
 - **Per search:** under a result list that did not come from Google, a small line reads **Not the right place? Search Google instead**. It sends the same query to Google Places alone, once, and the results carry the Google mark. The line only appears where a search can reach Google at all: an instance with a Google key, and with neither Amap nor OpenStreetMap picked as the provider, the same rule the switch below follows. Desktop form and phone search sheet alike. The MCP tool `search_place` does the same with `provider: 'google'`, see [MCP-Tools-and-Resources](MCP-Tools-and-Resources).
-- **For every search:** the switch **Search with Google only** in the key's block (below) sends every search and every suggestion to Google Places and asks nothing of the TREK API or OpenStreetMap, from the app and from `search_place` alike. Off, the order above applies. The switch does nothing without a key, and nothing while Amap or OpenStreetMap is picked as the provider. Switching it on or off is recorded in the [Audit Log](Audit-Log) as `admin.places_google_only`.
+- **For every search:** the switch **Search with Google only** in the key's block (below) sends every search and every suggestion to Google Places and asks nothing of the YOUYA API or OpenStreetMap, from the app and from `search_place` alike. Off, the order above applies. The switch does nothing without a key, and nothing while Amap or OpenStreetMap is picked as the provider. Switching it on or off is recorded in the [Audit Log](Audit-Log) as `admin.places_google_only`.
 
 The key's block carries five switches under **What the key may be used for**:
 
@@ -187,21 +187,21 @@ The key's block carries five switches under **What the key may be used for**:
 | **Place Autocomplete** | The suggestions while you type. |
 | **Place Details** | The details of a place: hours, rating, website. |
 | **Place Enrichment** | The **Place details** column in the place form, see [below](#place-details-while-searching). |
-| **Search with Google only** | Every search and every suggestion goes to Google Places instead of the TREK API and OpenStreetMap. Off by default. On, every list already comes from Google, so the per-search line above has nothing to offer and does not appear; off, the line appears under lists the TREK API or OpenStreetMap produced. |
+| **Search with Google only** | Every search and every suggestion goes to Google Places instead of the YOUYA API and OpenStreetMap. Off by default. On, every list already comes from Google, so the per-search line above has nothing to offer and does not appear; off, the line appears under lists the YOUYA API or OpenStreetMap produced. |
 
-Under the switches, **Daily limit for Google calls** caps how many calls TREK makes to Google per day. A badge beside it shows today's count (*Today: 120 of 500*). Once the limit is reached, TREK stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave the field empty for no limit, which is the default.
+Under the switches, **Daily limit for Google calls** caps how many calls YOUYA makes to Google per day. A badge beside it shows today's count (*Today: 120 of 500*). Once the limit is reached, YOUYA stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave the field empty for no limit, which is the default.
 
-> **Place Autocomplete and Place Details act on every provider**, not only on Google. Switched off, the suggestion dropdown stays empty and details lookups stop for the TREK API and OpenStreetMap too; the full search keeps working. Leave both on unless that is what you want.
+> **Place Autocomplete and Place Details act on every provider**, not only on Google. Switched off, the suggestion dropdown stays empty and details lookups stop for the YOUYA API and OpenStreetMap too; the full search keeps working. Leave both on unless that is what you want.
 
-> **API key restrictions:** TREK calls the Google Places API from the server, not the browser. If you apply **HTTP referrers** restrictions to your key in Google Cloud Console, you must also set `APP_URL` in your environment: TREK sends it as the `Referer` header on every outbound Google API request, and without it Google rejects every server-side call with `REQUEST_DENIED`. For server-side deployments, **IP address** restrictions are simpler and need no extra configuration. See [Troubleshooting](Troubleshooting) if photos are missing after adding a key.
+> **API key restrictions:** YOUYA calls the Google Places API from the server, not the browser. If you apply **HTTP referrers** restrictions to your key in Google Cloud Console, you must also set `APP_URL` in your environment: YOUYA sends it as the `Referer` header on every outbound Google API request, and without it Google rejects every server-side call with `REQUEST_DENIED`. For server-side deployments, **IP address** restrictions are simpler and need no extra configuration. See [Troubleshooting](Troubleshooting) if photos are missing after adding a key.
 
 ### With an Amap (高德地图) API key
 
 > **Admin:** Set the key in **Admin → Settings → API Keys → Amap (高德地图) API Key**, then pick **Amap (高德地图)** under **Place search provider** in the same card. It needs a **Web 服务** (web service) key from [console.amap.com](https://console.amap.com/dev/key/app); a JS API key is a different credential and is rejected.
 
-Google Places is unreachable from most networks inside mainland China, and OpenStreetMap knows very little about Chinese restaurants, shops and shopping centres. With Amap selected it takes the slot Google otherwise holds, and for a search around a trip inside China it answers first: a search or a suggestion centred inside China goes to Amap before the TREK API and OpenStreetMap, which are asked only when Amap has nothing (Amap is never asked twice for the same search). Centred anywhere else, the TREK API and OpenStreetMap answer first and Amap only when they have nothing, so a search for the Eiffel Tower does not come back in Macau. Amap answers in Chinese, with ratings, phone numbers and opening hours where Amap has them. This order only applies when Amap is picked outright under **Place search provider**; on **Auto**, where Amap holds the slot because no Google key is set, the TREK API and OpenStreetMap always answer first. Suggestions, place details and the reverse geocoding behind right-click-to-add-a-place go through Amap as well. Rows that came from Amap carry an Amap mark like every other source.
+Google Places is unreachable from most networks inside mainland China, and OpenStreetMap knows very little about Chinese restaurants, shops and shopping centres. With Amap selected it takes the slot Google otherwise holds, and for a search around a trip inside China it answers first: a search or a suggestion centred inside China goes to Amap before the YOUYA API and OpenStreetMap, which are asked only when Amap has nothing (Amap is never asked twice for the same search). Centred anywhere else, the YOUYA API and OpenStreetMap answer first and Amap only when they have nothing, so a search for the Eiffel Tower does not come back in Macau. Amap answers in Chinese, with ratings, phone numbers and opening hours where Amap has them. This order only applies when Amap is picked outright under **Place search provider**; on **Auto**, where Amap holds the slot because no Google key is set, the YOUYA API and OpenStreetMap always answer first. Suggestions, place details and the reverse geocoding behind right-click-to-add-a-place go through Amap as well. Rows that came from Amap carry an Amap mark like every other source.
 
-Amap does not supply place photos here. Its images come with no licence statement TREK could show next to them, so an Amap place gets its picture from Wikimedia Commons like any other, with the credit and licence attached.
+Amap does not supply place photos here. Its images come with no licence statement YOUYA could show next to them, so an Amap place gets its picture from Wikimedia Commons like any other, with the credit and licence attached.
 
 A place remembers where it came from. One picked from Amap keeps its Amap id, one picked from Google keeps its Google id, and each keeps opening against the provider that knows it, whichever provider the admin selects later.
 
@@ -209,18 +209,18 @@ Amap links can be pasted into the search field too; see [Pasting a map URL](#pas
 
 ### Which provider answers
 
-**Admin → Settings → API Keys → Place search provider** decides only who fills the keyed slot beside the TREK API and OpenStreetMap. Those two are asked either way.
+**Admin → Settings → API Keys → Place search provider** decides only who fills the keyed slot beside the YOUYA API and OpenStreetMap. Those two are asked either way.
 
 | Setting | Who fills the keyed slot |
 |---|---|
 | `Automatic` | Google when a Google key is set, otherwise Amap when an Amap key is, otherwise nobody. The default, and what every install had before Amap existed: adding an Amap key never moves an install off Google on its own. |
 | `Google Places` | Google. With no Google key the slot stays empty rather than falling to Amap. |
 | `Amap (高德地图)` | Amap. With no Amap key the slot stays empty. |
-| `OpenStreetMap` | Nobody, whatever keys are configured. Search runs on the TREK API and OpenStreetMap alone. |
+| `OpenStreetMap` | Nobody, whatever keys are configured. Search runs on the YOUYA API and OpenStreetMap alone. |
 
-When the selected provider has no key, the card says so: place search is then answered by the TREK index and OpenStreetMap alone.
+When the selected provider has no key, the card says so: place search is then answered by the YOUYA index and OpenStreetMap alone.
 
-To keep searches from reaching the TREK API at all, set `TREK_PLACES_ENABLED=false` on the server; see [Switching it off](TREK-Places-API#switching-it-off).
+To keep searches from reaching the YOUYA API at all, set `TREK_PLACES_ENABLED=false` on the server; see [Switching it off](TREK-Places-API#switching-it-off).
 
 ## Place details while searching
 
@@ -238,17 +238,17 @@ One credit line sits under the picture grid, and it belongs to the picture in pl
 
 ### Where the information comes from
 
-**Pictures** come from Wikimedia Commons, resolved from the place's own tags first: the Wikidata image, the lead image of its Wikipedia article, its Commons category. Only when those turn up too few does TREK look for pictures taken nearby, within 60 metres, and never for shops, restaurants, cafés and other everyday businesses. Two percent of those have a picture on Wikimedia, against 70 percent of churches, so a picture taken nearby is almost always of the building across the square. A missing picture is the honest answer there.
+**Pictures** come from Wikimedia Commons, resolved from the place's own tags first: the Wikidata image, the lead image of its Wikipedia article, its Commons category. Only when those turn up too few does YOUYA look for pictures taken nearby, within 60 metres, and never for shops, restaurants, cafés and other everyday businesses. Two percent of those have a picture on Wikimedia, against 70 percent of churches, so a picture taken nearby is almost always of the building across the square. A missing picture is the honest answer there.
 
 **Descriptions** come from the first source that has one:
 
 1. The OpenStreetMap `description` tag, for a place from OpenStreetMap.
-2. The Wikivoyage article, then the Wikipedia article, that the place is tagged with, in your language where one exists. TREK resolves the article from the tag rather than guessing it from the name, so an ambiguous name never pulls in the wrong article.
-3. The place's own website, for a place from the TREK API: the summary the site publishes for machines, credited with the site's host name and linked back. This is what gives restaurants, shops and hotels a description at all. Your server never opens the website itself; the TREK API has read it once for everyone.
+2. The Wikivoyage article, then the Wikipedia article, that the place is tagged with, in your language where one exists. YOUYA resolves the article from the tag rather than guessing it from the name, so an ambiguous name never pulls in the wrong article.
+3. The place's own website, for a place from the YOUYA API: the summary the site publishes for machines, credited with the site's host name and linked back. This is what gives restaurants, shops and hotels a description at all. Your server never opens the website itself; the YOUYA API has read it once for everyone.
 4. Google's editorial summary, with a Google key and **Place Details** on.
 5. The article about the chain a branch belongs to, headed **About the chain** with the note *This describes the chain, not this branch.*
 
-**Opening hours** come from OpenStreetMap first, because an OpenStreetMap entry describes that exact building where a chain's website often carries one set of hours for every branch. After that come the hours a place from the TREK API publishes on its own site, and for a place found through Google, Google's hours.
+**Opening hours** come from OpenStreetMap first, because an OpenStreetMap entry describes that exact building where a chain's website often carries one set of hours for every branch. After that come the hours a place from the YOUYA API publishes on its own site, and for a place found through Google, Google's hours.
 
 Pictures are copied to your own server and served from there. Nothing is loaded directly from Google or Wikimedia while you browse, so no visitor's address leaves your instance.
 
@@ -262,13 +262,13 @@ With the [Collections](Collections) addon on, the place form on a desktop carrie
 
 ## Pasting a map URL
 
-Paste a `maps.app.goo.gl/…`, `goo.gl/maps/…` or `maps.google.*/…` URL into the search field and press the search button. TREK resolves it on the server and fills in the name, address and coordinates.
+Paste a `maps.app.goo.gl/…`, `goo.gl/maps/…` or `maps.google.*/…` URL into the search field and press the search button. YOUYA resolves it on the server and fills in the name, address and coordinates.
 
-Amap links work the same way, as long as the link carries a coordinate: `uri.amap.com/marker?position=…` share links, map URLs with the coordinate in the address, and `surl.amap.com` short links that resolve to one of those. A bare `amap.com/place/…` POI page is an id and nothing else, and TREK answers it with an error rather than guessing where it is. Coordinates are converted from GCJ-02 to WGS-84 on the way in, so the place lands where it belongs on every other map.
+Amap links work the same way, as long as the link carries a coordinate: `uri.amap.com/marker?position=…` share links, map URLs with the coordinate in the address, and `surl.amap.com` short links that resolve to one of those. A bare `amap.com/place/…` POI page is an id and nothing else, and YOUYA answers it with an error rather than guessing where it is. Coordinates are converted from GCJ-02 to WGS-84 on the way in, so the place lands where it belongs on every other map.
 
 ## Entering coordinates manually
 
-**Paste** a `lat, lng` pair (for example `48.8566, 2.3522`) into the **Latitude** field, separated by a comma, a semicolon or a space. TREK detects the pair and fills both coordinate fields at once. This works on paste only: the coordinate fields accept digits, a decimal point and a leading minus, so typing a pair by hand drops the separator and leaves a single invalid number (`48.85662.3522`) behind. Type the two values into their own fields instead.
+**Paste** a `lat, lng` pair (for example `48.8566, 2.3522`) into the **Latitude** field, separated by a comma, a semicolon or a space. YOUYA detects the pair and fills both coordinate fields at once. This works on paste only: the coordinate fields accept digits, a decimal point and a leading minus, so typing a pair by hand drops the separator and leaves a single invalid number (`48.85662.3522`) behind. Type the two values into their own fields instead.
 
 ## The place inspector
 
@@ -331,11 +331,11 @@ In the installed app the map app takes over the current window rather than a new
 The import button in the places column (*Import Places*) offers two ways:
 
 - **Import file** takes a `.gpx`, `.kml` or `.kmz` file, from tools like Google My Maps, Google Earth or a GPS tracker. Pick the file or drop it on the dialog, then choose what to import: **Waypoints**, **Routes** and **Tracks (with path geometry)** for GPX, **Points (Placemarks)** and **Paths (LineStrings)** for KML and KMZ. Dropping a file straight onto the places column opens the same dialog with it.
-- **List Import** reads a shared list. Both Google Maps and Naver Maps list URLs are supported, with a **Provider** switch when both are available, and a shared Google Maps directions link works too: its stops become places, in driving order. Stops a route gives only by name are looked up through the TREK API first.
+- **List Import** reads a shared list. Both Google Maps and Naver Maps list URLs are supported, with a **Provider** switch when both are available, and a shared Google Maps directions link works too: its stops become places, in driving order. Stops a route gives only by name are looked up through the YOUYA API first.
 
 Imported tracks each get their own line colour so multiple routes stay apart on the map; you can override it per track in the place inspector. See [Map Features](Map-Features#gpx-tracks) for the details. An import can be undone with **Undo** in the days column.
 
-Importing the same list again does not duplicate what is already in the trip. A place is recognised by the provider id it was imported with (Google place id, Google feature id, or OSM id) before its name or its coordinates are considered, so renaming a place in TREK, or moving its pin, does not make it come back as a second copy on the next import.
+Importing the same list again does not duplicate what is already in the trip. A place is recognised by the provider id it was imported with (Google place id, Google feature id, or OSM id) before its name or its coordinates are considered, so renaming a place in YOUYA, or moving its pin, does not make it come back as a second copy on the next import.
 
 > **Admin:** with a Google Maps API key in **Admin → Settings → API Keys**, the list import offers **Enrich places via Google**, which looks up each imported place to fill in photos, address and contact details, one Google lookup per place. **Import file** offers the same switch while **Waypoints** (GPX) or **Points (Placemarks)** (KML, KMZ) are ticked: each imported point is looked up on Google afterwards and gets its photo, address, website and phone, while paths and tracks stay as they are. Without a key the imports work the same, just without that option.
 
@@ -343,7 +343,7 @@ Importing the same list again does not duplicate what is already in the trip. A 
 
 With **Explore places on the map** switched on in [Display Settings](Display-Settings#explore-places-on-the-map), the trip map carries a row of category buttons: **Restaurants**, **Cafés**, **Bars & nightlife**, **Accommodation**, **Sights**, **Museums & culture**, **Nature & parks**, **Activities**, **Bakeries** and **Groceries** (supermarkets, village shops and convenience stores). Click one to show that kind of place around the part of the map you are looking at. After you move the map, **Search this area** runs it again for the new view.
 
-The TREK API answers these first, from the map centre out to a radius that covers the view, at most 20 km. When it has nothing for the area, or cannot be reached, the public Overpass mirrors of OpenStreetMap answer instead, narrowed to a window of half a degree around the centre; `OVERPASS_URL` and `OVERPASS_TIMEOUT_MS` on [Environment Variables](Environment-Variables) steer those. Results from the TREK API come with address, website, phone and opening hours where the index has them, under the names used on the spot rather than translations. The [Road trip](Road-Trip#search-along-the-route) search along the drive asks the same two sources.
+The YOUYA API answers these first, from the map centre out to a radius that covers the view, at most 20 km. When it has nothing for the area, or cannot be reached, the public Overpass mirrors of OpenStreetMap answer instead, narrowed to a window of half a degree around the centre; `OVERPASS_URL` and `OVERPASS_TIMEOUT_MS` on [Environment Variables](Environment-Variables) steer those. Results from the YOUYA API come with address, website, phone and opening hours where the index has them, under the names used on the spot rather than translations. The [Road trip](Road-Trip#search-along-the-route) search along the drive asks the same two sources.
 
 ### Categories from plugins
 
@@ -351,15 +351,15 @@ An installed [plugin](Plugins) can add up to four buttons of its own to the row:
 
 A plugin's buttons are there while the plugin is switched on and the admin has granted it the permission to add map categories (`hook:poi-category-provider`, see [Plugin Permissions](Plugin-Permissions)). Like the built-in ones they show only an icon, and a picked one fills with the plugin's colour. Rest the pointer on one for its name: in your language when the plugin ships a name for it, otherwise in the plugin's own wording.
 
-A plugin button works like a built-in one: one category at a time, and **Search this area** after you move the map. Only the plugin that added the button is asked, for the part of the map you are looking at, narrowed to the same half-degree window as OpenStreetMap, and at most 60 of its places are shown. The request carries that area, the category and your language, and names no trip. The plugin answers as you, so it can follow your own settings for it, and TREK keeps no copy of the answer. A plugin that takes longer than eight seconds, or fails, gets a red dot on its button and a **Search this area** to try again. The built-in buttons never wait for it.
+A plugin button works like a built-in one: one category at a time, and **Search this area** after you move the map. Only the plugin that added the button is asked, for the part of the map you are looking at, narrowed to the same half-degree window as OpenStreetMap, and at most 60 of its places are shown. The request carries that area, the category and your language, and names no trip. The plugin answers as you, so it can follow your own settings for it, and YOUYA keeps no copy of the answer. A plugin that takes longer than eight seconds, or fails, gets a red dot on its button and a **Search this area** to try again. The built-in buttons never wait for it.
 
-Plugin categories need a connection. Offline, or with **Force offline mode** on, TREK does not ask the plugin at all: a picked button shows the red dot, and **Search this area** tries again once you are back online. See [Offline Mode and PWA](Offline-Mode-and-PWA).
+Plugin categories need a connection. Offline, or with **Force offline mode** on, YOUYA does not ask the plugin at all: a picked button shows the red dot, and **Search this area** tries again once you are back online. See [Offline Mode and PWA](Offline-Mode-and-PWA).
 
 The markers carry the icon and colour the plugin chose for the category. On the desktop, resting the pointer on a marker shows the place's name and, where the plugin sends them, up to six rows only it knows, such as a trail's length or a step-free entrance. They are always shown as plain text. The phone has no hover, so it does not show these rows.
 
 Clicking or tapping a marker opens the place form with the name, address, website, phone and coordinates filled in, the same as for a marker from a built-in button, for anyone allowed to edit places. A website only comes along when it is an http or https address. Once saved it is an ordinary place of the trip, and it stays when the plugin goes.
 
-When the admin switches a plugin off, uninstalls it or takes the permission away, its buttons disappear, and their markers with them: for the admin straight away, for everyone else the next time TREK loads, or as soon as they press one.
+When the admin switches a plugin off, uninstalls it or takes the permission away, its buttons disappear, and their markers with them: for the admin straight away, for everyone else the next time YOUYA loads, or as soon as they press one.
 
 > **Admin:** the Plugins panel marks a plugin that asks for the permission with an **Adds map categories** chip, and a registry plugin's detail lists the categories it would add, with their icons, colours and names, before you install it. See [Admin-Plugins](Admin-Plugins#the-pre-install-review-dialog).
 
@@ -369,17 +369,17 @@ To build such a plugin, see [Plugin Cookbook](Plugin-Cookbook#add-your-own-place
 
 ## Searching offline
 
-When a trip is kept for offline use, TREK also downloads the places around it from the TREK API: one request of up to 3000 places, in a box around the trip's places with some margin, at most 1.5 degrees a side (a trip spread wider gets its centre). For a city the size of Rostock that is about a megabyte. The download is repeated only when the trip's area changes, and it happens whether or not **Store map tiles offline** is on: the tiles are the big part, the places are not.
+When a trip is kept for offline use, YOUYA also downloads the places around it from the YOUYA API: one request of up to 3000 places, in a box around the trip's places with some margin, at most 1.5 degrees a side (a trip spread wider gets its centre). For a city the size of Rostock that is about a megabyte. The download is repeated only when the trip's area changes, and it happens whether or not **Store map tiles offline** is on: the tiles are the big part, the places are not.
 
 With no network, or with **Force offline mode** on, suggestions and the full search then answer from that cache: places whose name starts with or contains what you typed, ignoring case and accents, across every trip you keep offline. Picking one fills in its name, address, coordinates, website and phone from the cache. Answers from the cache carry no source mark, because they are not a live answer from anyone, and they are never written to the [Place Search Log](#place-search-log).
 
-Switching a trip's offline storage off removes its cached places with the rest of its data, and **Clear cache** in **Settings → Offline** removes them all. With the TREK API switched off nothing is downloaded, and offline search has nothing to answer from. See [Offline Mode and PWA](Offline-Mode-and-PWA).
+Switching a trip's offline storage off removes its cached places with the rest of its data, and **Clear cache** in **Settings → Offline** removes them all. With the YOUYA API switched off nothing is downloaded, and offline search has nothing to answer from. See [Offline Mode and PWA](Offline-Mode-and-PWA).
 
 ## Place Search Log
 
 > **Admin:** switch it on under **Admin → Settings → API Keys → Place Search Log**, on the desktop or the phone. It is off by default.
 
-With the log on, every time somebody picks a place from a list of search results or suggestions, TREK writes one row: what was typed, the language TREK was set to, the hint coordinate, which source answered, where in the list the picked place stood and how long the list was, and the picked place's name, id and coordinate. Coordinates are rounded to three decimals, about 100 metres. A row holds no user, no trip and no session, and a search nobody picked from leaves no row at all.
+With the log on, every time somebody picks a place from a list of search results or suggestions, YOUYA writes one row: what was typed, the language YOUYA was set to, the hint coordinate, which source answered, where in the list the picked place stood and how long the list was, and the picked place's name, id and coordinate. Coordinates are rounded to three decimals, about 100 metres. A row holds no user, no trip and no session, and a search nobody picked from leaves no row at all.
 
 It exists so a different place index can be measured against real searches later: how often was the place people actually wanted among the first five results.
 
@@ -388,4 +388,4 @@ It exists so a different place index can be measured against real searches later
 - **Reading and wiping:** there is no screen for it. Signed in as an admin, `GET /api/place-shadow/summary` returns the row count, the counts per source and how often the pick was the first result or among the first five. `GET /api/place-shadow/export` returns the rows oldest first, 2000 per page; pass the `nextAfter` value back as `?after=` for the next page. `DELETE /api/place-shadow` deletes every row.
 - Switching the log on or off is recorded in the [Audit Log](Audit-Log) as `admin.place_shadow`.
 
-**See also:** [TREK Places API](TREK-Places-API) · [Day-Plans-and-Notes](Day-Plans-and-Notes) · [Map-Features](Map-Features) · [Collections](Collections) · [Offline-Mode-and-PWA](Offline-Mode-and-PWA) · [Tags-and-Categories](Tags-and-Categories)
+**See also:** [YOUYA Places API](TREK-Places-API) · [Day-Plans-and-Notes](Day-Plans-and-Notes) · [Map-Features](Map-Features) · [Collections](Collections) · [Offline-Mode-and-PWA](Offline-Mode-and-PWA) · [Tags-and-Categories](Tags-and-Categories)

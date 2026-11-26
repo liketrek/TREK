@@ -1,6 +1,6 @@
 # Languages
 
-TREK ships with translations for 28 languages, the [Help Center](Help-Center) guides included. You can change your language at any time without logging out.
+YOUYA ships with translations for 28 languages, the [Help Center](Help-Center) guides included. You can change your language at any time without logging out.
 
 ## Supported languages
 
@@ -49,7 +49,7 @@ Texts that count something use the forms each language has for numbers: one plac
 
 ## How language is detected
 
-TREK resolves the display language in this order:
+YOUYA resolves the display language in this order:
 
 1. **User preference** — the language saved to your account (set in Settings → General).
 2. **Browser language** — `navigator.languages` (and `navigator.language`) reported by your browser.

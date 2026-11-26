@@ -1,6 +1,6 @@
 # Public Share Links
 
-Share a read-only view of your trip with people who do not have a TREK account. The viewer opens in a browser without logging in.
+Share a read-only view of your trip with people who do not have a YOUYA account. The viewer opens in a browser without logging in.
 
 ![The Sharing area of the Trip settings with a created public link](assets/Share.png)
 
@@ -16,7 +16,7 @@ The share URL takes the form:
 <your-instance>/shared/<token>
 ```
 
-Copy this URL and send it to anyone you want to share the trip with. No TREK account is required to view it.
+Copy this URL and send it to anyone you want to share the trip with. No YOUYA account is required to view it.
 
 ### How long a link lives
 
@@ -26,7 +26,7 @@ Once the 90 days are up, visitors get **Link expired or invalid**. Only an unkno
 
 To revive a lapsed link, flip one of the unlocked toggles — **Bookings**, **Packing**, **Costs** or **Chat** — and flip it back if you did not mean to change anything. **Map & Plan** is locked, so clicking it sends no request and will not revive the link. Flipping an unlocked toggle re-saves the **same** token for another 90 days and the old URL starts working again. If you want a genuinely different URL, because the old one leaked for instance, use **Delete link** and then **Create link**.
 
-Links created before TREK added the expiry carry no expiry at all and work indefinitely. The first time you change one of their toggles, that save puts them on the 90-day clock like every other link.
+Links created before YOUYA added the expiry carry no expiry at all and work indefinitely. The first time you change one of their toggles, that save puts them on the 90-day clock like every other link.
 
 ## Permission toggles
 
@@ -59,13 +59,13 @@ A public viewer has no account, so there is no "their" display currency to use. 
 
 ## What the public viewer shows
 
-The shared trip page speaks the planner's design. A light top bar carries the TREK logo, the trip's name, a **Read-only shared view** pill and the language picker, so a viewer can read the trip in their own language. Below it the trip opens as a postcard: its cover image, the date range, the title, the description and how big the trip is (days, places and, when Bookings is shared, bookings). The tab bar under the hero stays at the top of the window while the page scrolls, and offers only the sections you enabled. With nothing but the plan shared there is no tab bar at all.
+The shared trip page speaks the planner's design. A light top bar carries the YOUYA logo, the trip's name, a **Read-only shared view** pill and the language picker, so a viewer can read the trip in their own language. Below it the trip opens as a postcard: its cover image, the date range, the title, the description and how big the trip is (days, places and, when Bookings is shared, bookings). The tab bar under the hero stays at the top of the window while the page scrolls, and offers only the sections you enabled. With nothing but the plan shared there is no tab bar at all.
 
 The Plan tab appears whenever **Map & Plan** is on, which is every link created through the share UI, since that toggle is locked on there. A link whose `share_map` flag was turned off outside the UI (through the REST API or the `create_share_link` MCP tool, both of which take it as a plain boolean) has no Plan tab at all: the server withholds the days, places, assignments and notes entirely, and the viewer opens on the first section the owner did share.
 
 On a wide screen the Plan tab puts the days on the left and the map on the right, and the map stays in view while the days scroll past it. On a phone the map comes first and the days follow under it. Every day is a card like the planner's: its number on a tile, its name and date, its stays with check-in and check-out marked, and how many places it has. The plan of the day is open underneath, places with their photo or category colour, address, description, notes, planned time and links to Google Maps, the website and the phone number, and transports and notes as tinted rows. The chevron folds a day away. Under the last day, a **Not planned yet** card lists the places the trip has collected but not put on a day, drawn the same way (not on a travel-only link).
 
-Which day the map shows is picked in the select at the map's top edge, with a step back and forth beside it, or by clicking a day's head; clicking it again goes back to the whole trip. A picked day numbers its stops on the map in visiting order, the same numbers the places wear in the list (a place the day returns to shows both, e.g. `1, 3`), and joins them with a dashed connector. That connector is a straight line showing sequence, not a driving route: TREK will not send a shared itinerary to a third-party routing service on an anonymous visitor's behalf. The whole trip shows every geocoded place as an unnumbered pin with no connector. On either view, pins that sit close together are grouped into a cluster bubble with their count, the same way the planner's map does it, so the stops of a busy day stay tappable on a phone; click a cluster to zoom in on its members, and at maximum zoom it fans them out.
+Which day the map shows is picked in the select at the map's top edge, with a step back and forth beside it, or by clicking a day's head; clicking it again goes back to the whole trip. A picked day numbers its stops on the map in visiting order, the same numbers the places wear in the list (a place the day returns to shows both, e.g. `1, 3`), and joins them with a dashed connector. That connector is a straight line showing sequence, not a driving route: YOUYA will not send a shared itinerary to a third-party routing service on an anonymous visitor's behalf. The whole trip shows every geocoded place as an unnumbered pin with no connector. On either view, pins that sit close together are grouped into a cluster bubble with their count, the same way the planner's map does it, so the stops of a busy day stay tappable on a phone; click a cluster to zoom in on its members, and at maximum zoom it fans them out.
 
 The Bookings tab lists the transports first and the other bookings after them, as the booking cards of the planner: status, type, title, day and time, route, carrier and numbers, location, note and link. Confirmation codes, travellers and prices never leave the server.
 

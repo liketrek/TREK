@@ -1,7 +1,7 @@
 # Publishing a Plugin
 
 Plugins are distributed from a static registry — the
-[TREK-Plugins](https://github.com/liketrek/TREK-Plugins) GitHub repo. There is
+[YOUYA-Plugins](https://github.com/liketrek/TREK-Plugins) GitHub repo. There is
 no upload server and no account: you host the code in your own public GitHub repo,
 attach a built `plugin.zip` to a release, and list it with a pull request.
 
@@ -90,7 +90,7 @@ Repo) and names the one command to run next; it is for orientation, so it never 
 
 Between them they now catch, **offline**, nearly everything the registry rejects for:
 
-- an `icon` that isn't a real lucide name (TREK falls back to `Blocks` silently, so a
+- an `icon` that isn't a real lucide name (YOUYA falls back to `Blocks` silently, so a
   typo is invisible locally — but CI rejects it)
 - a README missing any of the four required sections, still carrying scaffold
   placeholders, or under **400 characters** of real prose
@@ -100,13 +100,13 @@ Between them they now catch, **offline**, nearly everything the registry rejects
 - a permission your manifest declares but the README never explains
 - a `name`, `description` or `author` outside the registry's length limits, or a name
   that mixes Latin with Cyrillic/Greek look-alikes (a homoglyph spoof)
-- an `egress[]` host with no matching `http:outbound:<host>` permission — TREK builds
+- an `egress[]` host with no matching `http:outbound:<host>` permission — YOUYA builds
   the network allow-list and the iframe CSP from those permissions only and never reads
   `egress[]`, so such a host is silently unreachable at runtime
-- a permission TREK doesn't know — the SDK and registry CI check against the same
+- a permission YOUYA doesn't know — the SDK and registry CI check against the same
   65-entry list the host enforces, so a typo'd permission fails here instead of at
   install on every instance (the registry's copy is a manually regenerated snapshot,
-  so a brand-new TREK permission can briefly fail registry CI even though `validate`
+  so a brand-new YOUYA permission can briefly fail registry CI even though `validate`
   accepts it — that's the snapshot lagging, not a typo)
 
 Only **six** gates genuinely need the network, because none of them can be answered from
@@ -124,9 +124,9 @@ npm i -D playwright && npx playwright install chromium   # once — not an SDK d
 npx trek-plugin-sdk shot                                 # --dark for the dark theme
 ```
 
-`shot` boots the dev server, renders your plugin in the same themed frame TREK uses,
+`shot` boots the dev server, renders your plugin in the same themed frame YOUYA uses,
 and writes a 1600×900 `docs/screenshot.png`. An `integration` plugin has no UI to
-render, so `shot` can't help — screenshot the TREK surface your plugin changes instead.
+render, so `shot` can't help — screenshot the YOUYA surface your plugin changes instead.
 
 Commit the screenshot. The registry resolves it **at the pinned commit**, so an image
 that exists only in your working tree fails CI even though `status` was green.
@@ -143,7 +143,7 @@ npx trek-plugin-sdk pack . --json          # machine-readable result
 and **size** you'd otherwise compute by hand. It refuses to pack a plugin that could
 not *load* — a broken manifest, a missing `server/index.js`, a native binary — but it
 deliberately does **not** enforce the publish gates (an unwritten README, a missing
-screenshot), because packing is also how you sideload a plugin into a local TREK to try
+screenshot), because packing is also how you sideload a plugin into a local YOUYA to try
 it, and the docs only have to be there when you ship. `validate` is what gates those.
 It ships
 only what the runtime needs — `trek-plugin.json`, `README.md`, `LICENSE`,
@@ -187,12 +187,12 @@ npx trek-plugin-sdk entry \
 `entry` reads your manifest and `plugin.zip` and emits the complete entry —
 deriving `commitSha` (from `git rev-parse <tag>^{commit}`), `downloadUrl`,
 `sha256`, `size`, `apiVersion`, and **`trek`** — your manifest's range, verbatim.
-That range is the entry's only compatibility field: it is what TREK gates installs
+That range is the entry's only compatibility field: it is what YOUYA gates installs
 and activation on. (The older `minTrekVersion`/`maxTrekVersion` are **deprecated**
 and no longer emitted — the first merely restated the range's lower bound, and the
 second is *inclusive*, so it cannot express `<4.0.0` at all. Entries published
 before `trek` existed may still carry them.) `entry` refuses to build an entry for a
-manifest with no usable `trek` range, because TREK would refuse to install it. Flags: `--zip`
+manifest with no usable `trek` range, because YOUYA would refuse to install it. Flags: `--zip`
 (default `plugin.zip`), `--commit <sha>` to override commit resolution, `--asset`
 to name a differently-named release asset, `--merge` for updates (below), and
 `--out` to write a file.
@@ -238,7 +238,7 @@ The fast path — `submit` does the whole fork/branch/commit/PR dance for you:
 npx trek-plugin-sdk submit --repo you/trek-plugin-flight-tracker --tag v1.0.0
 ```
 
-It forks [TREK-Plugins](https://github.com/liketrek/TREK-Plugins) (once),
+It forks [YOUYA-Plugins](https://github.com/liketrek/TREK-Plugins) (once),
 **fast-forwards your fork from the registry** (a diverged fork warns with the
 `gh repo sync --force` command to reset it, and the submit continues), branches off
 the registry's current `main`, writes (or, for an update, merges into)
@@ -275,7 +275,7 @@ maintainer override) · homoglyph/mixed-script name check · `versions[]` sorted
 newest-first · the release tag exists
 and resolves to `commitSha` · manifest parity at that commit (`id`, `version`,
 `type`, `apiVersion`, and `nativeModules` must not be `true`) · every declared
-permission is on TREK's known-permission list (or a valid `http:outbound:<host>`) ·
+permission is on YOUYA's known-permission list (or a valid `http:outbound:<host>`) ·
 **the downloaded
 artifact's SHA-256 matches the pin** and its size is within bounds · **no native
 binaries** in the archive · `egress[]` present (and no bare `*`) when
@@ -293,9 +293,9 @@ manifest declares (each permission string must appear in the README).
 ## Provenance & integrity
 
 - `commitSha` pins the exact source the maintainer reviewed (git tags are movable).
-- `sha256` pins the exact artifact bytes TREK will run (release assets are mutable).
+- `sha256` pins the exact artifact bytes YOUYA will run (release assets are mutable).
 
-TREK verifies the downloaded bytes against `sha256` and refuses to install on a
+YOUYA verifies the downloaded bytes against `sha256` and refuses to install on a
 mismatch. A `reviewedAt` date on your entry means a maintainer looked at that
 exact commit — it is **not** an ongoing guarantee. `reviewedAt` and `boundOwner`
 are maintained by CI on merge; don't set them yourself.
@@ -306,7 +306,7 @@ are maintained by CI on merge; don't set them yourself.
 signature additionally proves the bytes were signed by **you**, so a compromised
 registry can't ship attacker code under your name. The entry schema allows two
 optional fields — `authorPublicKey` on the entry and `signature` on each version.
-TREK verifies the signature offline (minisign / Ed25519, no external service) and
+YOUYA verifies the signature offline (minisign / Ed25519, no external service) and
 pins your key on first install (trust-on-first-use): a later release signed with a
 different key is refused until an admin re-trusts it.
 
@@ -376,7 +376,7 @@ back the key up.
 A rotation — lost key, compromised machine, planned hygiene — is the one signing
 change with a sanctioned path, and since SDK 1.7.0 the SDK drives its whole
 artifact half. Two flows, one rule: a rotated entry must have **every** version
-re-signed with the new key, because TREK verifies whichever version it installs
+re-signed with the new key, because YOUYA verifies whichever version it installs
 against the entry's single `authorPublicKey`.
 
 **Without shipping a version:**

@@ -1,6 +1,6 @@
 /**
  * Renders the native apps' icon and splash sources into assets/, from the
- * white TREK mark in public/icons/icon-white.svg. `npx @capacitor/assets
+ * white YOUYA mark in public/icons/icon-white.svg. `npx @capacitor/assets
  * generate --android --ios` then turns them into every size both platforms
  * ask for (see the icons:app script).
  *
@@ -21,10 +21,10 @@ const outDir = join(clientDir, 'assets');
 mkdirSync(outDir, { recursive: true });
 
 const source = readFileSync(join(clientDir, 'public', 'icons', 'icon-white.svg'), 'utf8');
-const markPath = [...source.matchAll(/<path d="([^"]+)"/g)].map((m) => m[1]).find((d) => d.length > 500);
+const markPath = [...source.matchAll(/<path[^>]*\bd="([^"]+)"/g)].map((m) => m[1])[0];
 if (!markPath) throw new Error('No mark path found in icon-white.svg');
 // The mark's extent inside its 1500 x 1500 viewBox.
-const MARK = { x: 40, y: 5, w: 1420, h: 1490 };
+const MARK = { x: 380, y: 16, w: 740, h: 1350 };
 
 const LAUNCH_BG = '#09090b';
 

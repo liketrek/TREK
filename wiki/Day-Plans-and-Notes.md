@@ -106,7 +106,7 @@ To take a place off a day, choose **Remove from day** in the row's **…** menu,
 
 ### Clearing a day
 
-To take every place off a day at once, right click the day's head band and choose **Clear day**. On a phone, **Clear day** sits in the day's sheet. TREK asks first (*Clear Day 3?*): every place comes off the day and stays in the trip, and the day keeps its notes and bookings. **Undo** brings the places back (*Day cleared*). The entry is only there on a day with places on it, for members who can edit days.
+To take every place off a day at once, right click the day's head band and choose **Clear day**. On a phone, **Clear day** sits in the day's sheet. YOUYA asks first (*Clear Day 3?*): every place comes off the day and stays in the trip, and the day keeps its notes and bookings. **Undo** brings the places back (*Day cleared*). The entry is only there on a day with places on it, for members who can edit days.
 
 ### Leaving a stop out of the route
 
@@ -153,7 +153,7 @@ Click a day's head band to open its details. The panel floats over the map, betw
 
 The head band of the days column holds, from left to right:
 
-- **Export**: one dialog with every way a trip leaves TREK, in four groups. **Document** is the **PDF** of the whole plan and, once some stop has participants or some booking has travelers, **My plan as PDF**: the plan you go on, without the stops and bookings that name only other people (see [PDF-Export](PDF-Export)). **Calendar** offers **Download .ics** and, for members who can manage share links, **Subscribe to calendar** (see [Calendar Feeds](Calendar-Feeds)). **Maps & GPS** offers GPX files: **Whole trip**, **Places only** and **Days as routes** (see [Exporting a trip as GPX](Map-Features#exporting-a-trip-as-gpx)). **Google Maps** offers the places as a KML file for Google My Maps (see [Taking the places to Google Maps](Map-Features#taking-the-places-to-google-maps)).
+- **Export**: one dialog with every way a trip leaves YOUYA, in four groups. **Document** is the **PDF** of the whole plan and, once some stop has participants or some booking has travelers, **My plan as PDF**: the plan you go on, without the stops and bookings that name only other people (see [PDF-Export](PDF-Export)). **Calendar** offers **Download .ics** and, for members who can manage share links, **Subscribe to calendar** (see [Calendar Feeds](Calendar-Feeds)). **Maps & GPS** offers GPX files: **Whole trip**, **Places only** and **Days as routes** (see [Exporting a trip as GPX](Map-Features#exporting-a-trip-as-gpx)). **Google Maps** offers the places as a KML file for Google My Maps (see [Taking the places to Google Maps](Map-Features#taking-the-places-to-google-maps)).
 - **Undo**: reverses the last action. See [Undo](Trip-Planner-Overview#undo).
 - **Expand all days** / **Collapse all days**.
 - **Reorder days**: move, add and delete days. Shown to members who can edit days. See [Adding a day](#adding-a-day) and [Deleting a day](#deleting-a-day).
@@ -202,7 +202,7 @@ A day with nothing on it gets a single line that says so. **Delete day** confirm
 
 New dates lay the days of a trip out again. Plans follow their position: the first day of the plan takes the new start date, the second the date after it, and so on. When the new dates hold fewer days than the plan, the last days go, also when it was the start that moved. Empty days without a date that are left over go as well, with any change of dates.
 
-Before such a save, TREK asks first: in the trip dialog as a step before the save. Editing the trip from the phone's dashboard asks in a sheet over the trip sheet instead; editing it from inside the planner shows the same step as on desktop, also on a phone. Escape in that step goes back to the form and keeps what you typed. It names the days that go, the first six by name and the rest as a count, and lists what is on them:
+Before such a save, YOUYA asks first: in the trip dialog as a step before the save. Editing the trip from the phone's dashboard asks in a sheet over the trip sheet instead; editing it from inside the planner shows the same step as on desktop, also on a phone. Escape in that step goes back to the form and keeps what you typed. It names the days that go, the first six by name and the rest as a count, and lists what is on them:
 
 - **Planned places** stay in the place list of the trip.
 - **Notes**, day titles and day descriptions are deleted.
@@ -210,7 +210,7 @@ Before such a save, TREK asks first: in the trip dialog as a step before the sav
 - **A stay that checks in or out on one of those days** is removed as a whole, also for nights that are still part of the trip. Unlike when you delete a single day, its booking stays under Bookings and its expense, if it has one, under Costs. The list shows the stay in red.
 - **The last days go, not the first** closes the list when the start moved, as a reminder that plans follow their position.
 
-The save button then reads **Remove days and save**. When the start moved, the same step also asks how bookings follow the new dates, as before. When the days that go hold nothing, nothing extra is asked. Should TREK fail to read the days of the trip, it warns in general terms instead of listing them. There is no undo.
+The save button then reads **Remove days and save**. When the start moved, the same step also asks how bookings follow the new dates, as before. When the days that go hold nothing, nothing extra is asked. Should YOUYA fail to read the days of the trip, it warns in general terms instead of listing them. There is no undo.
 
 On a trip without dates, a lower **Day count** only takes away days with no places, notes or stay on them, starting from the end. A day with plans on it stays.
 

@@ -13,8 +13,8 @@ The section is hidden entirely when the feature is off and you have no passkeys 
 ## Enrolling a passkey
 
 1. Click **Add a passkey**.
-2. Enter your **current password**; TREK asks for it so a hijacked session cannot silently plant a passkey.
-3. Optionally give the passkey a name (the placeholder suggests something like `iPhone`). Leave it blank and TREK names it **Passkey (synced)** or **Passkey** depending on the authenticator.
+2. Enter your **current password**; YOUYA asks for it so a hijacked session cannot silently plant a passkey.
+3. Optionally give the passkey a name (the placeholder suggests something like `iPhone`). Leave it blank and YOUYA names it **Passkey (synced)** or **Passkey** depending on the authenticator.
 4. Click **Add a passkey** again and follow your device prompt (Touch ID, Windows Hello, Android screen lock, a YubiKey, and so on).
 
 Every passkey is registered with *user verification required*, so a biometric or PIN check always happens; a bare "tap the key" gesture is not enough. The same authenticator cannot be enrolled twice on one account, and enrolment expires if you take longer than five minutes.
@@ -32,7 +32,7 @@ The button only shows when all of these hold:
 - The instance is not in OIDC-only mode.
 - You are on the sign-in form (not registration, the 2FA step, or a forced password change).
 
-TREK never reveals which accounts have passkeys: the login ceremony uses discoverable credentials, every failure returns the same generic *Authentication failed*, and responses are padded to a fixed minimum latency so timing gives nothing away.
+YOUYA never reveals which accounts have passkeys: the login ceremony uses discoverable credentials, every failure returns the same generic *Authentication failed*, and responses are padded to a fixed minimum latency so timing gives nothing away.
 
 ## Managing your passkeys
 
@@ -61,20 +61,20 @@ Passkeys are bound to a domain (the *Relying Party ID*). If no usable domain res
 
 Both values can be pinned with environment variables, which take priority over the Admin panel fields:
 
-- `WEBAUTHN_RP_ID`: the registrable domain, e.g. `trek.example.com`. A pinned value is used verbatim, so it has to be a real domain: browsers refuse a bare IP address as a Relying Party ID. TREK checks for one only on the RP ID it derives from `APP_URL`; an IP host there resolves to nothing and the feature reports itself as not configured.
+- `WEBAUTHN_RP_ID`: the registrable domain, e.g. `trek.example.com`. A pinned value is used verbatim, so it has to be a real domain: browsers refuse a bare IP address as a Relying Party ID. YOUYA checks for one only on the RP ID it derives from `APP_URL`; an IP host there resolves to nothing and the feature reports itself as not configured.
 - `WEBAUTHN_ORIGINS`: comma-separated allowed origins, e.g. `https://trek.example.com`.
 
 See [Environment-Variables](Environment-Variables) for the full description of both.
 
 ## Audit and rate limits
 
-Enrolment, deletion, and passkey logins are recorded in the [Audit-Log](Audit-Log) (`user.passkey_register`, `user.passkey_delete`, and `user.login` with `method: passkey`). If an authenticator ever replays a stale signature counter, TREK rejects that attempt and logs `user.passkey_clone_suspected` without disabling the credential.
+Enrolment, deletion, and passkey logins are recorded in the [Audit-Log](Audit-Log) (`user.passkey_register`, `user.passkey_delete`, and `user.login` with `method: passkey`). If an authenticator ever replays a stale signature counter, YOUYA rejects that attempt and logs `user.passkey_clone_suspected` without disabling the credential.
 
 Login and enrolment attempts are rate limited per IP over a 15-minute window.
 
 ## Permissions
 
-No TREK permission gates passkeys: any signed-in user can enrol and manage their own. Only the instance-wide toggle and the WebAuthn domain configuration are admin-controlled, and the **Reset passkeys** action is admin-only.
+No YOUYA permission gates passkeys: any signed-in user can enrol and manage their own. Only the instance-wide toggle and the WebAuthn domain configuration are admin-controlled, and the **Reset passkeys** action is admin-only.
 
 ## See also
 

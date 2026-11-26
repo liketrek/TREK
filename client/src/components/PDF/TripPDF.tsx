@@ -444,7 +444,7 @@ ${coverHtml({
 ${overviewHtml}
 ${daysHtml}
 ${pluginSectionsHtml}
-<div class="doc-end"><span>made with</span><img src="${absUrl('/logo-dark.svg')}" alt="TREK" /></div>
+<div class="doc-end"><span>made with</span><img src="${absUrl('/logo-dark.svg')}" alt="YOUYA" /></div>
 </main>
 </body></html>`
   markdown.dispose()

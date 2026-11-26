@@ -151,7 +151,8 @@ const planner: TranslationStrings = {
   'planner.ai.lodgingSampleDistance': '{distance} από το σημείο αναφοράς',
   'planner.ai.ideasCta': 'Δεν ξέρετε πού να πάτε; Λάβετε ιδέες προορισμών',
   'planner.ai.ideasLoading': 'Επιλογή προορισμών…',
-  'planner.ai.ideasEmpty': 'Δεν υπάρχει ακόμη κατάλληλος προορισμός. Δοκιμάστε μεγαλύτερο προϋπολογισμό ή λιγότερα ενδιαφέροντα.',
+  'planner.ai.ideasEmpty':
+    'Δεν υπάρχει ακόμη κατάλληλος προορισμός. Δοκιμάστε μεγαλύτερο προϋπολογισμό ή λιγότερα ενδιαφέροντα.',
   'planner.ai.ideasFailed': 'Οι ιδέες προορισμών δεν είναι διαθέσιμες τώρα. Δοκιμάστε αργότερα.',
   'planner.ai.ideasPick': 'Χρήση αυτού του προορισμού',
   'planner.ai.modeNew': 'Νέο ταξίδι',

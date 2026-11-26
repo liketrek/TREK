@@ -1,7 +1,7 @@
 /**
  * The Google Play listing graphics (`npm run store:graphic`):
  *
- *   featureGraphic.png  1024 x 500, the dark app background, the white TREK mark,
+ *   featureGraphic.png  1024 x 500, the dark app background, the white YOUYA mark,
  *                       the name and the subtitle, and on the right a crop of the
  *                       first phone screenshot when one has been promoted
  *                       (`npm run store:promote`); without it, mark and text only.
@@ -21,7 +21,7 @@ mkdirSync(imagesDir, { recursive: true });
 const WIDTH = 1024;
 const HEIGHT = 500;
 const BACKGROUND = '#09090b';
-const TITLE = 'TREK Travel Planner';
+const TITLE = 'YOUYA Travel Planner';
 const SUBTITLE = readFileSync(join(clientDir, 'fastlane', 'metadata', 'en-US', 'subtitle.txt'), 'utf8').trim();
 
 const escapeXml = (text) => text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

@@ -21,12 +21,12 @@ const wanderer: TranslationStrings = {
   'wanderer.disconnected': 'wanderer connection removed',
   'wanderer.loadFailed': 'Could not load the wanderer connection',
   'wanderer.privateIp':
-    'This address is in a private network. If TREK cannot reach it, the administrator has to allow internal networks.',
+    'This address is in a private network. If YOUYA cannot reach it, the administrator has to allow internal networks.',
   'wanderer.error.disabled': 'Your admin has not enabled wanderer for Tours.',
   'wanderer.error.not_connected': 'wanderer is not connected yet.',
   'wanderer.error.invalid_url': 'That address is not a valid wanderer URL.',
   'wanderer.error.blocked_address':
-    'TREK may not reach that address. For an instance on your own network the administrator has to set ALLOW_INTERNAL_NETWORK=true.',
+    'YOUYA may not reach that address. For an instance on your own network the administrator has to set ALLOW_INTERNAL_NETWORK=true.',
   'wanderer.error.unreachable': 'wanderer could not be reached. Check the address and that the instance is running.',
   'wanderer.error.tls': 'The certificate of the instance could not be verified. For a self-signed one, allow it below.',
   'wanderer.error.unauthorized': 'wanderer did not accept the API token. It may have been revoked or may have expired.',
@@ -36,7 +36,7 @@ const wanderer: TranslationStrings = {
   'wanderer.error.invalid_response':
     'The answer did not come from wanderer. Check that the address points at wanderer itself.',
   'wanderer.error.no_author':
-    'wanderer answered, but names no trail author for the account of this API token, so TREK cannot tell which trails are yours.',
+    'wanderer answered, but names no trail author for the account of this API token, so YOUYA cannot tell which trails are yours.',
   'wanderer.error.too_large': 'The trail file is larger than 10 MB.',
   'wanderer.error.server_error': 'wanderer answered with an error. Try again later.',
   'wanderer.error.offline': 'You are offline. wanderer can only be searched online.',

@@ -18,7 +18,7 @@ The chat opens on the latest messages and loads them in pages of 100. When older
 
 ### Images
 
-A message can carry up to **four images**. Click the image button in the composer, paste them from the clipboard, or drop them onto the composer. JPEG, PNG, GIF and WebP are accepted, up to **10 MB** each; TREK checks the file type and the extension, and anything else is refused with *Only JPEG, PNG, GIF and WebP images up to 10 MB are allowed*. Each picked image shows as a thumbnail above the field with an **×** to drop it again, and a message can consist of images alone, with no text. While they upload, the composer shows the progress. Sending an image needs the `file_upload` permission on top of `collab_edit`.
+A message can carry up to **four images**. Click the image button in the composer, paste them from the clipboard, or drop them onto the composer. JPEG, PNG, GIF and WebP are accepted, up to **10 MB** each; YOUYA checks the file type and the extension, and anything else is refused with *Only JPEG, PNG, GIF and WebP images up to 10 MB are allowed*. Each picked image shows as a thumbnail above the field with an **×** to drop it again, and a message can consist of images alone, with no text. While they upload, the composer shows the progress. Sending an image needs the `file_upload` permission on top of `collab_edit`.
 
 ## Emoji
 
@@ -44,7 +44,7 @@ With the AI assistant on, a member can share one of its answers into the trip ch
 
 ## URL link previews
 
-When a message contains a web address, TREK fetches an Open Graph preview (site, title, description and image) and shows it under the text. Only the first address in a message gets a preview.
+When a message contains a web address, YOUYA fetches an Open Graph preview (site, title, description and image) and shows it under the text. Only the first address in a message gets a preview.
 
 The fetch runs on the server, so it is kept on a short leash: only trip members can ask for one, the target must be a public HTTP(S) address (addresses on your own network are refused), a preview is remembered for ten minutes, and a member can trigger sixty new fetches a minute. A preview that is refused or runs over that budget is simply not shown; the message itself is unaffected.
 

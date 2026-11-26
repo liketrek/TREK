@@ -144,7 +144,7 @@ const reservations: TranslationStrings = {
   'reservations.import.pinFound': '已在地圖上',
   'reservations.import.pinMissingTitle': '尚未在地圖上',
   'reservations.import.pinMissingBody':
-    'TREK 無法在地圖上找到這個住宿。請檢查上方的名稱和地址後重新搜尋，或不帶圖釘儲存。',
+    '游芽無法在地圖上找到這個住宿。請檢查上方的名稱和地址後重新搜尋，或不帶圖釘儲存。',
   'reservations.import.pinRetry': '重新搜尋',
   'reservations.import.savedWithoutPin': '已儲存，但沒有地圖圖釘。編輯該地點並設定位置後，即可在地圖上看到。',
   'reservations.import.acceptedFormats': '支援格式：EML、PDF、PKPass、HTML、TXT（每個最大 10 MB，最多 5 個檔案）',
@@ -262,7 +262,7 @@ const reservations: TranslationStrings = {
   'reservations.copyFailed': '無法複製',
   'reservations.showInFiles': '在檔案中顯示',
   'reservations.filesNeedConnection': '上傳檔案需要網路連線。移除新檔案即可離線儲存這筆預訂，或在恢復連線後再儲存。',
-  'reservations.needsConnection': '此操作需要網路連線。請在 TREK 恢復連線後再試一次。',
+  'reservations.needsConnection': '此操作需要網路連線。請在游芽恢復連線後再試一次。',
   'reservations.exportCsvFiltered': '匯出顯示的 {shown}/{total} 列 (CSV)',
   'reservations.wallet.add': '加入 Apple 錢包',
   'reservations.wallet.addGoogle': '加入 Google 錢包',

@@ -5,7 +5,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.pendingCount': '{count} bookings wait for you',
   'mailInbox.pendingCount.one': '{count} booking waits for you',
   'mailInbox.empty': 'Nothing waiting',
-  'mailInbox.emptyHint': 'Bookings TREK could not add on its own show up here, with what you can do about each.',
+  'mailInbox.emptyHint': 'Bookings YOUYA could not add on its own show up here, with what you can do about each.',
   'mailInbox.untitled': 'Booking mail',
   'mailInbox.showMail': 'Show mail',
   'mailInbox.backToList': 'Back to the list',
@@ -66,10 +66,10 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.renewed': 'Your new address is ready',
   'mailInbox.settings.saveError': 'Could not save',
   'mailInbox.settings.addressHint':
-    'Forward booking confirmations to this address and TREK adds them to the right trip. Keep it to yourself like a password.',
+    'Forward booking confirmations to this address and YOUYA adds them to the right trip. Keep it to yourself like a password.',
   'mailInbox.settings.howTo': 'Forward automatically',
   'mailInbox.settings.howToGmail':
-    'Gmail: Settings, Forwarding and POP/IMAP, Add a forwarding address. Gmail sends a code, which shows up under Pending bookings. Then add a filter for booking senders that forwards to TREK.',
+    'Gmail: Settings, Forwarding and POP/IMAP, Add a forwarding address. Gmail sends a code, which shows up under Pending bookings. Then add a filter for booking senders that forwards to YOUYA.',
   'mailInbox.settings.howToOutlook':
     'Outlook: Settings, Mail, Rules, add a rule that forwards booking mails. Some work accounts block automatic forwarding; forward by hand there.',
   'mailInbox.settings.howToManual': 'By hand: forward any booking mail, attachments included.',
@@ -82,7 +82,7 @@ const mailInbox: TranslationStrings = {
     'Needs the {addon} addon and an AI connection, which an admin sets up. Until then only mails with machine-readable booking data are read.',
   'mailInbox.settings.autoAdd': 'Add on its own',
   'mailInbox.settings.autoAddHint':
-    'A booking TREK is sure about goes straight into its trip, and you can undo it for 7 days. Off, each one waits for your OK.',
+    'A booking YOUYA is sure about goes straight into its trip, and you can undo it for 7 days. Off, each one waits for your OK.',
   'mailInbox.settings.upload': 'Upload a mail file',
   'mailInbox.settings.uploaded': 'Mail received, it is being read',
   'mailInbox.settings.uploadDuplicate': 'This mail is in already',

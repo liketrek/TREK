@@ -12,7 +12,7 @@ const JOURNEY = 'Journey-Journal'
 const ENTRIES = { slug: JOURNEY, anchor: 'journal-entries' }
 const CREATING = { slug: JOURNEY, anchor: 'creating-a-journey' }
 const LONG = { slug: JOURNEY, anchor: 'getting-around-a-long-journal' }
-const STUDIO = { slug: JOURNEY, anchor: 'trek-studio' }
+const STUDIO = { slug: JOURNEY, anchor: 'youya-studio' }
 
 export const { context: journeyContext, guides: journeyGuides } = defineScreen({
   id: 'journey',

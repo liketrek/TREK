@@ -8,7 +8,7 @@ Vacay is a personal vacation day planner that lives separately from your trip pl
 
 ## What Vacay is
 
-While trips in TREK represent specific travel plans, Vacay tracks your annual leave entitlement — the number of vacation days granted by your employer or contract, which days you have already logged, and the balance left. It is personal by default, but you can fuse your plan with another TREK user to see each other's calendars side by side.
+While trips in YOUYA represent specific travel plans, Vacay tracks your annual leave entitlement — the number of vacation days granted by your employer or contract, which days you have already logged, and the balance left. It is personal by default, but you can fuse your plan with another YOUYA user to see each other's calendars side by side.
 
 ## Accessing Vacay
 
@@ -44,7 +44,7 @@ This is a **personal** setting. In a fused plan each person keeps their own leav
 
 The main area shows a full 12-month grid. Each cell represents one day. Click a day to log or remove a vacation entry. Logged days are colour-coded by person when collaborators are fused into your plan.
 
-Days that overlap with any of your existing TREK trips are marked with a small blue dot in the corner.
+Days that overlap with any of your existing YOUYA trips are marked with a small blue dot in the corner.
 
 You can also switch the calendar toolbar to **Company** mode to mark shared company holidays, which are highlighted in amber and do not deduct from personal allowances.
 
@@ -62,7 +62,7 @@ Each toggle's icon in the toolbar is the marker it places, so you can see what a
 **Settings** (gear icon) let you configure:
 
 - **Block weekends** — prevents logging on weekend days. You choose which days count as the weekend.
-- **Week starts on**: Monday or Sunday. This one is per plan and applies to the Vacay calendar only; every other calendar in TREK follows **Week starts on** under Settings > General > Language & region.
+- **Week starts on**: Monday or Sunday. This one is per plan and applies to the Vacay calendar only; every other calendar in YOUYA follows **Week starts on** under Settings > General > Language & region.
 - **Carry-over** — toggle as described above.
 - **Vacation year** — Calendar, Fiscal or Hire date, as described under Leave year above. Unlike the rest of this panel it is personal to you rather than to the plan.
 - **Company holidays** — enable a shared company holiday layer that any fused user can edit.
@@ -81,7 +81,7 @@ The catalog belongs to the whole instance. Renaming a region keeps existing cale
 
 ## Inviting collaborators
 
-You can invite other TREK users to fuse their Vacay plan with yours. Once a user accepts, your plans are merged: you see each other's logged days in distinct colours, and you can log days on behalf of the other person if needed.
+You can invite other YOUYA users to fuse their Vacay plan with yours. Once a user accepts, your plans are merged: you see each other's logged days in distinct colours, and you can log days on behalf of the other person if needed.
 
 To invite someone, click the **+** icon in the **Persons** panel in the sidebar, choose a user, and send the invite. The recipient receives a notification and must accept before the fusion takes effect.
 

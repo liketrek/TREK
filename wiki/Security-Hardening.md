@@ -1,6 +1,6 @@
 # Security Hardening
 
-A production TREK deployment checklist. All items reference actual TREK configuration options.
+A production YOUYA deployment checklist. All items reference actual YOUYA configuration options.
 
 ## Encryption & Secrets
 
@@ -10,7 +10,7 @@ A production TREK deployment checklist. All items reference actual TREK configur
 
 ## HTTPS & Network
 
-- [ ] Run TREK behind a TLS-terminating reverse proxy (nginx, Caddy, Traefik). See [Reverse-Proxy](Reverse-Proxy).
+- [ ] Run YOUYA behind a TLS-terminating reverse proxy (nginx, Caddy, Traefik). See [Reverse-Proxy](Reverse-Proxy).
 - [ ] Set `TRUST_PROXY=1` so client IPs are captured correctly in the audit log. In `NODE_ENV=production` this defaults to `1` automatically, but set it explicitly if you use a non-standard proxy hop count.
 - [ ] Set `FORCE_HTTPS=true` to 301-redirect HTTP to HTTPS and add `upgrade-insecure-requests` to the CSP. Your proxy must send `X-Forwarded-Proto: https` (or terminate TLS on the same connection), otherwise the redirect fires on every request and loops.
 - [ ] Know that HSTS (`max-age=31536000`) does not depend on `FORCE_HTTPS`: it is sent whenever `FORCE_HTTPS=true` **or** `NODE_ENV=production`, which the Docker image sets by default, so an instance behind Traefik, Caddy or a Cloudflare Tunnel advertises HSTS without setting `FORCE_HTTPS` at all. Set `HSTS_INCLUDE_SUBDOMAINS=true` to add `includeSubDomains`; it is off by default so an install on an apex domain does not force HTTPS onto sibling subdomains you may still serve over plain HTTP.
@@ -26,7 +26,7 @@ A production TREK deployment checklist. All items reference actual TREK configur
 
 ## Session Security
 
-TREK stores sessions as JWTs in an httpOnly `trek_session` cookie (SameSite=Lax). A normal login expires after `SESSION_DURATION` (default 24 hours) and rides in a browser-session cookie that the browser drops when it closes; ticking **Remember me** issues a persistent cookie whose lifetime and JWT expiry are `SESSION_DURATION_REMEMBER` (default 30 days); shorten it if a 30-day window is too wide for your threat model. The `secure` flag is set automatically when `NODE_ENV=production`, when `FORCE_HTTPS=true`, or when Express sees that the request arrived over TLS (`X-Forwarded-Proto: https`); the last of those needs `trust proxy` active, which is automatic in production and otherwise means setting `TRUST_PROXY` yourself. Tokens are also accepted via `Authorization: Bearer` header for MCP and API clients.
+YOUYA stores sessions as JWTs in an httpOnly `trek_session` cookie (SameSite=Lax). A normal login expires after `SESSION_DURATION` (default 24 hours) and rides in a browser-session cookie that the browser drops when it closes; ticking **Remember me** issues a persistent cookie whose lifetime and JWT expiry are `SESSION_DURATION_REMEMBER` (default 30 days); shorten it if a 30-day window is too wide for your threat model. The `secure` flag is set automatically when `NODE_ENV=production`, when `FORCE_HTTPS=true`, or when Express sees that the request arrived over TLS (`X-Forwarded-Proto: https`); the last of those needs `trust proxy` active, which is automatic in production and otherwise means setting `TRUST_PROXY` yourself. Tokens are also accepted via `Authorization: Bearer` header for MCP and API clients.
 
 - [ ] Ensure `FORCE_HTTPS=true` (or `NODE_ENV=production`) so the `trek_session` cookie carries the `secure` flag and is never sent over plain HTTP.
 - [ ] Set `COOKIE_SECURE=false` only as a temporary escape hatch for LAN testing without TLS; do not use in production.
@@ -60,7 +60,7 @@ A backup restore and the hourly demo reset replace the whole database file. Both
 
 ## Password Policy
 
-TREK enforces a minimum password policy on all registrations and password changes:
+YOUYA enforces a minimum password policy on all registrations and password changes:
 
 - Minimum 8 characters
 - Must contain uppercase, lowercase, digit, and special character
@@ -82,7 +82,7 @@ Built-in in-memory rate limits protect authentication endpoints:
 | Password change | 5 attempts | 15 minutes |
 | MCP token creation | 5 attempts | 15 minutes |
 
-These limits are per source IP. If TREK is behind a reverse proxy, set `TRUST_PROXY` so the real client IP is used rather than the proxy's IP.
+These limits are per source IP. If YOUYA is behind a reverse proxy, set `TRUST_PROXY` so the real client IP is used rather than the proxy's IP.
 
 ## Content Security Policy
 
@@ -97,7 +97,7 @@ Helmet applies a strict CSP on all responses. Key directives:
 
 ## Plugin Runtime Hardening
 
-Installed plugins run **untrusted third-party code**. TREK contains a plugin in several independent layers so a hostile or buggy plugin can neither read TREK's data nor take the instance down. Nothing here needs configuration (it is all on by default), but the escape hatches below exist for tuning.
+Installed plugins run **untrusted third-party code**. YOUYA contains a plugin in several independent layers so a hostile or buggy plugin can neither read YOUYA's data nor take the instance down. Nothing here needs configuration (it is all on by default), but the escape hatches below exist for tuning.
 
 - [ ] Leave the plugin system's defaults in place. It is **on by default** but installed plugins still have to be **activated one by one**, so no third-party code runs until an admin turns a specific plugin on. Set `TREK_PLUGINS_ENABLED=false` (accepts `false`/`0`/`off`/`no`) to switch the whole system off; installed plugins stay on disk, deactivated, and the runtime is idle.
 - [ ] Keep the **OS permission jail** enabled (the default). In production each plugin runs in an isolated child process launched with Node's `--permission` model: filesystem **writes**, `child_process`, worker threads and native addons are denied outright, and reads are scoped to just the plugin's own code, so a plugin cannot read `trek.db` or the secret files, or shell out. The child's environment is scrubbed (no `JWT_SECRET`, no DB credentials). Setting `TREK_PLUGIN_PERMISSIONS=off` disables this jail (isolation then falls back to crash-only) and logs a loud warning. Only ever do this on a machine you fully trust.
@@ -107,17 +107,17 @@ Installed plugins run **untrusted third-party code**. TREK contains a plugin in 
 
 > The developer **dev-link** feature (`TREK_PLUGINS_DEV_LINK=1`) loads unsigned local code and, under `npm run dev`, runs with the OS jail off; keep it off on any instance that isn't a throwaway dev box you control. See [Plugins](Plugins) and [Plugin Permissions](Plugin-Permissions).
 >
-> Likewise leave `TREK_PLUGINS_IGNORE_TREK_RANGE` unset. It turns the plugin TREK-version gate into a warning so a plugin whose author has not updated its `trek` range can still be installed and activated; the admin panel warns at every step, but a plugin running on a TREK it was never tested against can misbehave and, in rare cases, corrupt data. Set it only for a specific plugin you need, and remove it once the author ships a release that admits your TREK.
+> Likewise leave `TREK_PLUGINS_IGNORE_TREK_RANGE` unset. It turns the plugin YOUYA-version gate into a warning so a plugin whose author has not updated its `trek` range can still be installed and activated; the admin panel warns at every step, but a plugin running on a YOUYA it was never tested against can misbehave and, in rare cases, corrupt data. Set it only for a specific plugin you need, and remove it once the author ships a release that admits your YOUYA.
 
 ## Backups
 
 - [ ] Enable auto-backup with an appropriate retention window. See [Backups](Backups).
-- [ ] Store backups off-site: copy backup ZIPs to a separate location outside the TREK host.
+- [ ] Store backups off-site: copy backup ZIPs to a separate location outside the YOUYA host.
 
 ## Monitoring
 
 - [ ] Review the audit log periodically for unexpected logins or admin changes. See [Audit-Log](Audit-Log).
-- [ ] Check for TREK updates regularly. See [Admin-GitHub-Releases](Admin-GitHub-Releases) and [Updating](Updating).
+- [ ] Check for YOUYA updates regularly. See [Admin-GitHub-Releases](Admin-GitHub-Releases) and [Updating](Updating).
 
 ## See also
 

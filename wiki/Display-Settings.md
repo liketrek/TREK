@@ -8,20 +8,20 @@ The General tab (Settings → General) controls your locale preferences and a fe
 
 Open the user menu in the top navigation bar, select **Settings**, and stay on the **General** tab; it is the tab the page opens on.
 
-The tab is split into three sections: **Startup** (where opening TREK lands), **Language & region** (currency, language, place names, temperature, distance, time format, week start) and **Travel & map** (open places in, date first in day headings, booking route labels, always show booking routes, compact markers for unplanned places, explore places on the map, blur booking codes, optimize route from accommodation).
+The tab is split into three sections: **Startup** (where opening YOUYA lands), **Language & region** (currency, language, place names, temperature, distance, time format, week start) and **Travel & map** (open places in, date first in day headings, booking route labels, always show booking routes, compact markers for unplanned places, explore places on the map, blur booking codes, optimize route from accommodation).
 
 > Color mode (Light / Dark / Auto) is **not** here; it lives on the **Appearance** tab. See [Appearance-Settings](Appearance-Settings).
 
 ## Start page
 
-Where TREK goes when you open it: the app root (`/`), which is also what the installed PWA and any home-screen shortcut launch.
+Where YOUYA goes when you open it: the app root (`/`), which is also what the installed PWA and any home-screen shortcut launch.
 
 | Option | Behaviour |
 |--------|-----------|
 | **Dashboard** (default) | The trip overview, exactly as before. |
 | **Active trip** | Straight into your active trip, skipping the dashboard. |
 
-Your **active trip** is the one running today; if none is, the next one starting; if you have only past trips, the most recent one. That is the same trip the dashboard features in its hero, so the two never disagree. Archived trips are never picked, and if you have no trip at all, TREK opens the dashboard as usual.
+Your **active trip** is the one running today; if none is, the next one starting; if you have only past trips, the most recent one. That is the same trip the dashboard features in its hero, so the two never disagree. Archived trips are never picked, and if you have no trip at all, YOUYA opens the dashboard as usual.
 
 The dashboard stays reachable at `/dashboard`; only the root redirects.
 
@@ -105,7 +105,7 @@ Affects all time displays throughout the app.
 
 ## Week starts on
 
-The first column of every calendar in TREK: trip dates, bookings, expenses, to-dos, journal entries and photo date ranges. Choose **Monday** (the default), **Sunday** or **Saturday**; the choices show the day names in your language, and so do the weekday headers of the calendars.
+The first column of every calendar in YOUYA: trip dates, bookings, expenses, to-dos, journal entries and photo date ranges. Choose **Monday** (the default), **Sunday** or **Saturday**; the choices show the day names in your language, and so do the weekday headers of the calendars.
 
 An administrator can set the default for everyone under **Admin → User Defaults**; your own choice always wins. Vacay keeps its own **Week start** per plan, see [Vacay](Vacay).
 
@@ -125,7 +125,7 @@ Shows or hides station / airport names on the endpoint markers of booking routes
 
 ## Explore places on the map
 
-Shows a row of category buttons on the trip map for finding nearby restaurants, accommodation, sights and more. TREK's own place index answers first and OpenStreetMap fills in, and installed plugins can add buttons of their own; see [Exploring the map by category](Places-and-Search#exploring-the-map-by-category). A switch, on by default.
+Shows a row of category buttons on the trip map for finding nearby restaurants, accommodation, sights and more. YOUYA's own place index answers first and OpenStreetMap fills in, and installed plugins can add buttons of their own; see [Exploring the map by category](Places-and-Search#exploring-the-map-by-category). A switch, on by default.
 
 ## Always show booking routes
 

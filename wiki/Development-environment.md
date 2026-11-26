@@ -14,14 +14,14 @@
 
 ## 1. Fork & Clone the Repository
 
-Go to the [TREK repository](https://github.com/liketrek/TREK) and click **Fork** to create your own copy.
+Go to the [YOUYA repository](https://github.com/liketrek/TREK) and click **Fork** to create your own copy.
 
 Then clone your fork locally:
 
 ```bash
 # Clone your fork, checking out the dev branch
 git clone -b dev git@github.com:your-username/TREK.git
-cd TREK
+cd YOUYA
 ```
 
 ---

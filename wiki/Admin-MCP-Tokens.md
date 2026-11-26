@@ -8,7 +8,7 @@ This panel is only visible when the **MCP** addon is enabled. MCP is one of the 
 
 ## OAuth Sessions
 
-OAuth sessions are created when a user authorizes an MCP client via the OAuth 2.1 flow. These are the recommended way to connect MCP clients to TREK.
+OAuth sessions are created when a user authorizes an MCP client via the OAuth 2.1 flow. These are the recommended way to connect MCP clients to YOUYA.
 
 Each row of the **OAuth Sessions** card (the count sits beside its title) shows:
 

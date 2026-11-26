@@ -152,7 +152,7 @@ const reservations: TranslationStrings = {
   'reservations.import.pinFound': 'On the map',
   'reservations.import.pinMissingTitle': 'Not on the map yet',
   'reservations.import.pinMissingBody':
-    "TREK couldn't find this stay on the map. Check the name and address above and search again, or save it without a pin.",
+    "YOUYA couldn't find this stay on the map. Check the name and address above and search again, or save it without a pin.",
   'reservations.import.pinRetry': 'Search again',
   'reservations.import.savedWithoutPin':
     'Saved without a map pin. Edit the place and set its location to see it on the map.',
@@ -277,7 +277,7 @@ const reservations: TranslationStrings = {
   'reservations.showInFiles': 'Show in files',
   'reservations.filesNeedConnection':
     'Files need a connection to upload. Remove the new ones to save the booking offline, or save once you are back online.',
-  'reservations.needsConnection': 'This needs a connection. Try again once TREK is back online.',
+  'reservations.needsConnection': 'This needs a connection. Try again once YOUYA is back online.',
   'reservations.exportCsvFiltered': 'Export the {shown} of {total} shown rows (CSV)',
   'reservations.wallet.add': 'Add to Apple Wallet',
   'reservations.wallet.addGoogle': 'Add to Google Wallet',

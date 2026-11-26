@@ -8,7 +8,7 @@ const help: TranslationStrings = {
   'help.noResults': "Geen pagina's gevonden.",
   'help.errorTitle': 'Deze pagina kon niet worden geladen',
   'help.errorBody':
-    'De hulpteksten worden opgehaald uit de TREK-wiki. Controleer je verbinding en probeer het opnieuw.',
+    'De hulpteksten worden opgehaald uit de YOUYA-wiki. Controleer je verbinding en probeer het opnieuw.',
 
   // center
   'help.center.button': 'Hulp bij dit scherm',
@@ -74,14 +74,14 @@ const help: TranslationStrings = {
     'Klik op ‘Nieuwe reis’. De kaart achter je laatste reis en de knop rechtsonder doen precies hetzelfde.',
   'help.guide.create-trip.step.2': 'Geef de reis een naam. Meer heb je niet nodig: de rest kun je later toevoegen.',
   'help.guide.create-trip.step.3':
-    'Kies een begin- en einddatum. TREK maakt voor elke datum een dag aan, zodat je meteen aan je reisschema kunt beginnen. Nog geen data? Laat beide leeg en vul in plaats daarvan het ‘Aantal dagen’ in.',
+    'Kies een begin- en einddatum. YOUYA maakt voor elke datum een dag aan, zodat je meteen aan je reisschema kunt beginnen. Nog geen data? Laat beide leeg en vul in plaats daarvan het ‘Aantal dagen’ in.',
   'help.guide.create-trip.step.4':
     'Optioneel: voeg een omslagfoto toe. Upload een eigen foto, sleep of plak er een in, of zoek op Unsplash naar je bestemming.',
   'help.guide.create-trip.step.5': 'Klik op ‘Nieuwe reis aanmaken’.',
   'help.guide.create-trip.result':
     'De reis verschijnt op je dashboard. Is het je eerstvolgende reis, dan staat hij op de instapkaart bovenaan.',
   'help.guide.create-trip.tip.1':
-    'De data kun je later nog wijzigen. Zijn er al boekingen, dan vraagt TREK of die met de dagen mee moeten schuiven.',
+    'De data kun je later nog wijzigen. Zijn er al boekingen, dan vraagt YOUYA of die met de dagen mee moeten schuiven.',
   'help.guide.create-trip.tip.2':
     'Alle kosten worden omgerekend naar de reisvaluta die je hier kiest. Kies de valuta van je bestemming.',
 
@@ -94,7 +94,7 @@ const help: TranslationStrings = {
   'help.guide.edit-trip.step.3': 'Klik op Bijwerken.',
   'help.guide.edit-trip.result': 'De kaart wordt meteen bijgewerkt, voor iedereen in de reis.',
   'help.guide.edit-trip.tip.1':
-    'Verschuif je het begin van een reis met boekingen, dan vraagt TREK of de boekingen mee moeten schuiven. Kort je een reis in, dan zie je welke dagen zouden verdwijnen en wat daarop gepland staat. Er wordt pas opgeslagen als je op ‘Dagen verwijderen en opslaan’ klikt.',
+    'Verschuif je het begin van een reis met boekingen, dan vraagt YOUYA of de boekingen mee moeten schuiven. Kort je een reis in, dan zie je welke dagen zouden verdwijnen en wat daarop gepland staat. Er wordt pas opgeslagen als je op ‘Dagen verwijderen en opslaan’ klikt.',
 
   // cover-image
   'help.guide.cover-image.title': 'Een omslagfoto instellen',
@@ -153,7 +153,7 @@ const help: TranslationStrings = {
     'Zie de dagen en boekingen van al je actieve reizen in je agenda-app, altijd up-to-date.',
   'help.guide.calendar-feed.step.1': 'Klik op het agendapictogram naast de schakelaar voor de weergave.',
   'help.guide.calendar-feed.step.2':
-    'Klik op ‘Agenda-abonnement inschakelen’. TREK maakt een privélink voor de feed aan.',
+    'Klik op ‘Agenda-abonnement inschakelen’. YOUYA maakt een privélink voor de feed aan.',
   'help.guide.calendar-feed.step.3':
     'Klik op ‘Toevoegen aan Google Agenda’ of ‘Toevoegen aan Apple Agenda / Outlook’. Gebruik je een andere agenda-app, open dan ‘Of kopieer een link handmatig’ en kopieer daar de link.',
   'help.guide.calendar-feed.result':
@@ -346,7 +346,7 @@ const help: TranslationStrings = {
   // invite
   'help.guide.invite.title': 'Samen met iemand plannen',
   'help.guide.invite.goal':
-    'Voeg je plan samen met dat van een andere TREK-gebruiker, zodat jullie allebei je vrije dagen in één raster zien.',
+    'Voeg je plan samen met dat van een andere YOUYA-gebruiker, zodat jullie allebei je vrije dagen in één raster zien.',
   'help.guide.invite.step.1': 'Klik op het personenpictogram in de kaart ‘Personen’.',
   'help.guide.invite.step.2': 'Kies de gebruiker en klik op ‘Uitnodiging verzenden’.',
   'help.guide.invite.step.3':
@@ -373,7 +373,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ─────────────────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atlas', // same-as-en
   'help.ctx.atlas.summary':
-    "Atlas toont op een wereldkaart waar je bent geweest: elk land waar je met een reis bent geweest, is ingekleurd, en landen waar je was voordat je TREK gebruikte, voeg je zelf toe. Zoom in om regio's te zien, houd een bucketlist bij van plekken die je nog wilt zien, en bekijk je cijfers in het glazen paneel onderaan.",
+    "Atlas toont op een wereldkaart waar je bent geweest: elk land waar je met een reis bent geweest, is ingekleurd, en landen waar je was voordat je YOUYA gebruikte, voeg je zelf toe. Zoom in om regio's te zien, houd een bucketlist bij van plekken die je nog wilt zien, en bekijk je cijfers in het glazen paneel onderaan.",
   'help.ctx.atlas.bullet.1':
     'De kaart: elk bezocht land heeft een eigen, vaste kleur, geplande landen hebben een gestippelde rand, landen op je bucketlist zijn diagonaal gearceerd en alle andere landen zijn grijs. Beweeg de muis over een land om de reizen, plekken en het eerste en laatste bezoek te zien.',
   'help.ctx.atlas.bullet.2':
@@ -389,7 +389,7 @@ const help: TranslationStrings = {
   // mark-country
   'help.guide.mark-country.title': 'Een land als bezocht markeren',
   'help.guide.mark-country.goal':
-    'Voeg een land toe waar je al was voordat je TREK gebruikte, zodat het op de kaart staat en meetelt.',
+    'Voeg een land toe waar je al was voordat je YOUYA gebruikte, zodat het op de kaart staat en meetelt.',
   'help.guide.mark-country.step.1': 'Typ het land in het zoekveld bovenaan de kaart.',
   'help.guide.mark-country.step.2':
     'Kies het uit de lijst. De kaart gaat naar het land en er opent een pop-up voor dat land.',
@@ -458,7 +458,7 @@ const help: TranslationStrings = {
   'help.guide.search-place.result':
     'De regio is gemarkeerd, en het land ook. Heeft het kaartpakket voor een land geen regiogegevens, dan wordt het land zelf gemarkeerd.',
   'help.guide.search-place.tip.1':
-    'Plaatsen komen uit dezelfde zoekfunctie als overal in TREK, dus ze gebruiken de provider die je beheerder heeft ingesteld.',
+    'Plaatsen komen uit dezelfde zoekfunctie als overal in YOUYA, dus ze gebruiken de provider die je beheerder heeft ingesteld.',
   // bucket-country
   'help.guide.bucket-country.title': 'Een land op de bucketlist zetten',
   'help.guide.bucket-country.goal':
@@ -496,7 +496,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     'De getallen worden automatisch bijgewerkt terwijl je je reizen plant. Je hoeft hier zelf niets bij te houden.',
   'help.guide.stats.tip.1':
-    'Steden worden uit de adrestekst gelezen, niet opgezocht. TREK slaat het land, de postcode en de regio over en neemt de naam ervoor, dus ‘10178 Berlin’ telt als Berlin. Een kort adres als ‘Osteria Francescana, Italy’ levert helemaal geen stad op.',
+    'Steden worden uit de adrestekst gelezen, niet opgezocht. YOUYA slaat het land, de postcode en de regio over en neemt de naam ervoor, dus ‘10178 Berlin’ telt als Berlin. Een kort adres als ‘Osteria Francescana, Italy’ levert helemaal geen stad op.',
   'help.guide.stats.tip.2':
     'Landen die je zelf hebt gemarkeerd, tellen mee bij Landen en de continenten, maar voegen geen reizen, plaatsen of dagen toe.',
   // dawarich-countries
@@ -506,7 +506,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     'Is de add-on Dawarich gekoppeld, dan verschijnt onder aan de kaart, links van de statistieken, een Dawarich-paneel met twee tegels. Klik op Landen.',
   'help.guide.dawarich-countries.step.2':
-    'Het venster opent op het tabblad Landen. Klik op ‘Naar landen zoeken’: TREK leest maand voor maand de landen en steden uit je opnames van de afgelopen 12 maanden, dus dat kan even duren. Elk land dat nog niet in je Atlas staat, verschijnt in de lijst met de vlag, het aantal steden en de naam van de eerste stad. Elk land is standaard aangevinkt. Klik op een rij om het land over te slaan.',
+    'Het venster opent op het tabblad Landen. Klik op ‘Naar landen zoeken’: YOUYA leest maand voor maand de landen en steden uit je opnames van de afgelopen 12 maanden, dus dat kan even duren. Elk land dat nog niet in je Atlas staat, verschijnt in de lijst met de vlag, het aantal steden en de naam van de eerste stad. Elk land is standaard aangevinkt. Klik op een rij om het land over te slaan.',
   'help.guide.dawarich-countries.step.3':
     'Bevestig met de knop rechtsonder. Zijn er vijf rijen aangevinkt, dan staat daar ‘5 landen toevoegen’. Het venster laat zien hoeveel landen er zijn toegevoegd. Sluit je het, dan is de kaart al bijgewerkt.',
   'help.guide.dawarich-countries.result':
@@ -514,7 +514,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Landen die de Atlas al als bezocht toont, omdat je ze zelf hebt gemarkeerd, door een reis of door een eerdere controle, worden overgeslagen, zodat je eigen markeringen nooit veranderen. Een land dat je eerder uit de Atlas hebt verwijderd, wordt weer toegevoegd als je het hier bevestigt.',
   'help.guide.dawarich-countries.tip.2':
-    "Kan TREK een landnaam niet herkennen, dan staat die naam onder de rijen en valt hij niet weg. 'Opnieuw controleren' vraagt het Dawarich nog een keer. De notitie onder de lijst vermeldt dat de afgelopen 12 maanden zijn gecontroleerd. Die periode kun je niet wijzigen.",
+    "Kan YOUYA een landnaam niet herkennen, dan staat die naam onder de rijen en valt hij niet weg. 'Opnieuw controleren' vraagt het Dawarich nog een keer. De notitie onder de lijst vermeldt dat de afgelopen 12 maanden zijn gecontroleerd. Die periode kun je niet wijzigen.",
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': 'Wensen afvinken op basis van je opnames',
   'help.guide.dawarich-wishes.goal':
@@ -522,7 +522,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.step.1':
     'Klik in het Dawarich-paneel onder aan de kaart, links van de statistieken, op Wensenlijst.',
   'help.guide.dawarich-wishes.step.2':
-    'Het venster opent op het tabblad Wensenlijst. Klik op ‘Wensenlijst controleren’: TREK zoekt in je opnames naar elk item met coördinaten. Een wens die je hebt bereikt, staat in de lijst met hoe dichtbij je kwam, hoe lang je bleef en op welke dag, en is standaard aangevinkt. Bij een wens die je al had afgevinkt, staat ‘Al afgevinkt’. Onder de lijst staat hoeveel items geen coördinaten hebben, en ook de regel: een wens telt als bereikt binnen 250 m en na 20 minuten ter plaatse.',
+    'Het venster opent op het tabblad Wensenlijst. Klik op ‘Wensenlijst controleren’: YOUYA zoekt in je opnames naar elk item met coördinaten. Een wens die je hebt bereikt, staat in de lijst met hoe dichtbij je kwam, hoe lang je bleef en op welke dag, en is standaard aangevinkt. Bij een wens die je al had afgevinkt, staat ‘Al afgevinkt’. Onder de lijst staat hoeveel items geen coördinaten hebben, en ook de regel: een wens telt als bereikt binnen 250 m en na 20 minuten ter plaatse.',
   'help.guide.dawarich-wishes.step.3':
     "Bevestig met de knop rechtsonder; als er twee rijen zijn aangevinkt, staat daar '2 afvinken'. Sluit daarna het venster en open het tabblad Bucketlist in het paneel ernaast.",
   'help.guide.dawarich-wishes.result':
@@ -530,7 +530,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     "Voorbijrijden telt niet: je moet dicht bij de plek zijn en er een tijdje blijven. Komen meerdere verblijven in aanmerking, dan telt het langste. Een wens zonder coördinaten kan niet worden gecontroleerd, dus voeg plekken toe via de zoekfunctie in 'Plaats toevoegen', niet alleen met een naam.",
   'help.guide.dawarich-wishes.tip.2':
-    'Eén controle bekijkt maximaal 50 items, te beginnen met de items die nog niet zijn afgevinkt. Zijn er meer, dan laat TREK dat weten. Een wens die al was afgevinkt, houdt zijn eigen datum.',
+    'Eén controle bekijkt maximaal 50 items, te beginnen met de items die nog niet zijn afgevinkt. Zijn er meer, dan laat YOUYA dat weten. Een wens die al was afgevinkt, houdt zijn eigen datum.',
 
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Collecties',
@@ -589,7 +589,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     'De plekken worden met naam, adres, coördinaten, beschrijving en categorie naar de lijst gekopieerd. Aan de reis verandert niets.',
   'help.guide.import-from-trip.tip.1':
-    'TREK slaat dubbele plekken met dezelfde naam of dezelfde coördinaten automatisch over, dus twee keer importeren kan geen kwaad.',
+    'YOUYA slaat dubbele plekken met dezelfde naam of dezelfde coördinaten automatisch over, dus twee keer importeren kan geen kwaad.',
   'help.guide.import-from-trip.tip.2':
     'In de plaatsenlijst van een reis biedt de selectiemodus in plaats daarvan ‘In collectie opslaan’ voor plaatsen die je zelf uitkiest.',
   // place-status
@@ -664,7 +664,7 @@ const help: TranslationStrings = {
     'Kijkers van een gedeelde lijst kunnen dit ook. De plaatsen worden uit de lijst gekopieerd; de lijst zelf verandert niet.',
   // share-list
   'help.guide.share-list.title': 'Een lijst met iemand delen',
-  'help.guide.share-list.goal': 'Werk live samen aan een lijst met anderen op deze TREK.',
+  'help.guide.share-list.goal': 'Werk live samen aan een lijst met anderen op deze YOUYA.',
   'help.guide.share-list.step.1': 'Klik boven in je lijst op Delen.',
   'help.guide.share-list.step.2': 'Kies de gebruiker en een rol: Kijker, Bewerker of Beheerder.',
   'help.guide.share-list.step.3':
@@ -678,23 +678,23 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Een lijst als bestand exporteren',
   'help.guide.export-list.goal':
-    'Geef een lijst aan iemand op een andere TREK-server, open hem in een kaartenapp of bekijk hem in Google My Maps.',
+    'Geef een lijst aan iemand op een andere YOUYA-server, open hem in een kaartenapp of bekijk hem in Google My Maps.',
   'help.guide.export-list.step.1': 'Klik boven in de lijst op Exporteren.',
   'help.guide.export-list.step.2':
-    'Kies TREK-lijst om de lijst in een andere TREK te gebruiken, met labels en status, GPX voor OsmAnd, Organic Maps, een Garmin en andere apps die waypoints kunnen lezen, of KML voor Google My Maps, om de plaatsen in Google Maps te zien.',
+    'Kies YOUYA-lijst om de lijst in een andere YOUYA te gebruiken, met labels en status, GPX voor OsmAnd, Organic Maps, een Garmin en andere apps die waypoints kunnen lezen, of KML voor Google My Maps, om de plaatsen in Google Maps te zien.',
   'help.guide.export-list.result':
     'Het bestand wordt gedownload. Elk lid van een gedeelde lijst mag de lijst exporteren.',
   'help.guide.export-list.tip.1':
-    'Een plek zonder coördinaten kan geen GPX-waypoint of KML-speld worden. Zulke plekken worden overgeslagen, en TREK laat weten hoeveel het er waren.',
+    'Een plek zonder coördinaten kan geen GPX-waypoint of KML-speld worden. Zulke plekken worden overgeslagen, en YOUYA laat weten hoeveel het er waren.',
   'help.guide.export-list.tip.2':
-    "Beoordelingen, leden en geüploade foto's worden bewust niet geëxporteerd: die horen bij deze TREK, niet bij de lijst.",
+    "Beoordelingen, leden en geüploade foto's worden bewust niet geëxporteerd: die horen bij deze YOUYA, niet bij de lijst.",
   // import-file
   'help.guide.import-file.title': 'Een lijst uit een bestand importeren',
   'help.guide.import-file.goal':
-    'Importeer een TREK-lijstbestand of een GPX-bestand als nieuwe lijst of in een bestaande lijst.',
+    'Importeer een YOUYA-lijstbestand of een GPX-bestand als nieuwe lijst of in een bestaande lijst.',
   'help.guide.import-file.step.1': 'Klik in de lijstenbalk op de importknop met de uploadpijl, naast ‘Nieuwe lijst’.',
   'help.guide.import-file.step.2':
-    'Kies het bestand. Voordat TREK iets importeert, zie je wat erin staat: de naam en het aantal plekken en labels.',
+    'Kies het bestand. Voordat YOUYA iets importeert, zie je wat erin staat: de naam en het aantal plekken en labels.',
   'help.guide.import-file.step.3':
     'Laat ‘Nieuwe lijst’ staan en pas eventueel de naam aan, en klik op ‘Importeren’. Of kies ‘Aan een lijst toevoegen’ om de plaatsen in een lijst te zetten die je mag bewerken, en klik op ‘Aan lijst toevoegen’.',
   'help.guide.import-file.result':
@@ -702,7 +702,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     'Uit een GPX wordt elk waypoint met een naam een plek. Tracks zijn lijnen en worden overgeslagen, en in het voorbeeld zie je hoeveel punten dat waren.',
   'help.guide.import-file.tip.2':
-    'Een bestand dat geen TREK-lijst en geen GPX is, wordt geweigerd, en TREK vertelt waarom. Kan één plek niet worden gelezen, dan wordt alleen die plek overgeslagen, niet het hele bestand.',
+    'Een bestand dat geen YOUYA-lijst en geen GPX is, wordt geweigerd, en YOUYA vertelt waarom. Kan één plek niet worden gelezen, dan wordt alleen die plek overgeslagen, niet het hele bestand.',
   // edit-list
   'help.guide.edit-list.title': 'Een lijst bewerken of verwijderen',
   'help.guide.edit-list.goal':
@@ -921,7 +921,7 @@ const help: TranslationStrings = {
     'Vermeldingen met een dag tellen maar één keer mee, ook als meerdere reizen die dag omvatten.',
   // share-public
   'help.guide.share-public.title': 'Het reisverslag openbaar delen',
-  'help.guide.share-public.goal': 'Geef mensen zonder TREK-account een link waarmee ze alleen kunnen lezen.',
+  'help.guide.share-public.goal': 'Geef mensen zonder YOUYA-account een link waarmee ze alleen kunnen lezen.',
   'help.guide.share-public.step.1': 'Open Reisverslaginstellingen via ⋯ bovenaan en scrol naar ‘Openbaar delen’.',
   'help.guide.share-public.step.2': 'Klik op ‘Deellink aanmaken’.',
   'help.guide.share-public.step.3':
@@ -939,7 +939,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.step.3': 'Kies ‘Kijker’ of ‘Bewerker’ en klik op ‘Uitnodigen’.',
   'help.guide.contributors.result':
     'Het reisverslag verschijnt in hun lijst en hun vermeldingen tonen hun naam. Klik op de × naast een bijdrager om die te verwijderen.',
-  'help.guide.contributors.tip.1': 'Bijdragers zijn mensen op deze TREK. Voor alle anderen is er de openbare link.',
+  'help.guide.contributors.tip.1': 'Bijdragers zijn mensen op deze YOUYA. Voor alle anderen is er de openbare link.',
   // studio
   'help.guide.studio.title': 'Het reisverslag opmaken als fotoboek',
   'help.guide.studio.goal': "Maak van het reisverslag afdrukbare pagina's.",
@@ -979,7 +979,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ────────────────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Studio', // same-as-en
   'help.ctx.journey-studio.summary':
-    'Met TREK Studio maak je van een reisverslag een fotoboek dat je kunt laten drukken. Studio opent boven het reisverslag: links de balk met zijn panelen, in het midden de dubbele pagina waaraan je werkt en rechts de eigenschappen ervan. Automatische opmaak maakt een eerste opzet op basis van je vermeldingen, een thema geeft het boek zijn kleuren en lettertypen, en de assistent kan samen met jou pagina’s ontwerpen. Daarna kun je alles verplaatsen, bijsnijden en anders opmaken, en elke stap ongedaan maken.',
+    'Met YOUYA Studio maak je van een reisverslag een fotoboek dat je kunt laten drukken. Studio opent boven het reisverslag: links de balk met zijn panelen, in het midden de dubbele pagina waaraan je werkt en rechts de eigenschappen ervan. Automatische opmaak maakt een eerste opzet op basis van je vermeldingen, een thema geeft het boek zijn kleuren en lettertypen, en de assistent kan samen met jou pagina’s ontwerpen. Daarna kun je alles verplaatsen, bijsnijden en anders opmaken, en elke stap ongedaan maken.',
   'help.ctx.journey-studio.bullet.1':
     'Bovenbalk: links de omslag en de naam van het reisverslag. Rechts wie er nog meer in het boek zit en of het is opgeslagen, het paginaformaat, ongedaan maken, opnieuw en plakken, Automatische opmaak, de assistent, help, Exporteren en de knop waarmee je Studio sluit.',
   'help.ctx.journey-studio.bullet.2':
@@ -991,7 +991,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     'Het boek is opgebouwd als een gedrukt boek: omslag, een losse eerste pagina tegenover de lege binnenkant van de omslag, de dubbele pagina’s, een losse laatste pagina en de achterkant. De paginanummers tellen vanaf de eerste pagina en worden afgedrukt zoals je ze ziet.',
   'help.ctx.journey-studio.bullet.6':
-    'Meerdere mensen kunnen tegelijk ontwerpen: iedereen ziet de cursors van de anderen met hun naam. Sla je een versie op die iemand anders heeft gewijzigd, dan meldt TREK een conflict in plaats van diens werk te overschrijven.',
+    'Meerdere mensen kunnen tegelijk ontwerpen: iedereen ziet de cursors van de anderen met hun naam. Sla je een versie op die iemand anders heeft gewijzigd, dan meldt YOUYA een conflict in plaats van diens werk te overschrijven.',
   'help.ctx.journey-studio.bullet.7':
     'Thema: één look voor het hele boek, met papier, inkt en drie accenten, lettertypen en motieven. Elementen die aan het thema zijn gekoppeld, volgen het als je het wijzigt.',
   'help.ctx.journey-studio.bullet.8':
@@ -1072,7 +1072,7 @@ const help: TranslationStrings = {
     'Alle gekoppelde kleuren en lettertypen in het boek veranderen tegelijk, en het toepassen van het thema is één stap ongedaan maken.',
   'help.guide.studio-content.tip.1': 'Het zoekveld boven in Inhoud filtert beide lijsten.',
   'help.guide.studio-content.tip.2':
-    'Sleep je een bestand van je bureaublad naar het werkblad, dan uploadt TREK het en plaatst het in één keer.',
+    'Sleep je een bestand van je bureaublad naar het werkblad, dan uploadt YOUYA het en plaatst het in één keer.',
   // studio-elements
   'help.guide.studio-elements.title': 'Tekst, vormen, iconen en stickers toevoegen',
   'help.guide.studio-elements.goal': "Versier een dubbele pagina, naast foto's en verhalen.",
@@ -1187,12 +1187,12 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.result':
     "De dubbele pagina wordt geïmporteerd met de kaders en tekststijlen. Sleep de foto's van het nieuwe reisverslag in de kaders.",
   'help.guide.studio-spread-file.tip.1':
-    'Is een bestand geen ontwerp van een dubbele pagina, dan weigert TREK het en zie je waarom.',
+    'Is een bestand geen ontwerp van een dubbele pagina, dan weigert YOUYA het en zie je waarom.',
 
   // ── Screen: settings (all tabs) ───────────────────────────────────────────────────────
   'help.ctx.settings.title': 'Instellingen',
   'help.ctx.settings.summary':
-    'Je persoonlijke instellingen, met in de zijbalk links een tabblad per onderwerp. De meeste schakelaars werken meteen. Een formulier met een knop ‘Opslaan’ wordt pas opgeslagen als je op ‘Opslaan’ klikt. Niets hier verandert TREK voor anderen.',
+    'Je persoonlijke instellingen, met in de zijbalk links een tabblad per onderwerp. De meeste schakelaars werken meteen. Een formulier met een knop ‘Opslaan’ wordt pas opgeslagen als je op ‘Opslaan’ klikt. Niets hier verandert YOUYA voor anderen.',
   'help.ctx.settings.bullet.1':
     'Zijbalk links: Weergave, Weergave, Kaart, Meldingen, Integraties, Offline en Account. Plugins verschijnt zodra er een plugin actief is. Over verschijnt, tenzij de beheerder van de server het heeft verborgen. Onderaan staat de versie.',
   'help.ctx.settings.bullet.2':
@@ -1203,7 +1203,7 @@ const help: TranslationStrings = {
     'Onder Account vind je je profiel, wachtwoord, tweefactorauthenticatie, passkeys en de optie om je account te verwijderen.',
   'help.ctx.settings-display.title': 'Weergave',
   'help.ctx.settings-display.summary':
-    'Waarmee TREK opent, welke taal en eenheden het gebruikt, en hoe de reiskaart en boekingen werken. Elke wijziging gaat direct in.',
+    'Waarmee YOUYA opent, welke taal en eenheden het gebruikt, en hoe de reiskaart en boekingen werken. Elke wijziging gaat direct in.',
   'help.ctx.settings-display.bullet.1':
     'Opstarten: ‘Startpagina’ opent het Dashboard of de ‘Actieve reis’; kies je ‘Actieve reis’, dan bepaal je met ‘Starttabblad’ op welk tabblad die reis opent.',
   'help.ctx.settings-display.bullet.2':
@@ -1212,7 +1212,7 @@ const help: TranslationStrings = {
     'Reis en kaart: ‘Plekken openen in’, ‘Datum eerst in dagkoppen’, ‘Routelabels voor boekingen’, ‘Boekingsroutes altijd tonen’, ‘Compacte markeringen voor ongeplande plaatsen’, ‘Plaatsen op de kaart ontdekken’, ‘Boekingscodes vervagen’ en ‘Route optimaliseren vanaf accommodatie’.',
   'help.ctx.settings-appearance.title': 'Weergave',
   'help.ctx.settings-appearance.summary':
-    'Hoe TREK er voor dit account uitziet: licht of donker, de accentkleur, glas en animaties, de tekstgrootte, en welke widgets het dashboard toont. Alles wordt meteen toegepast, op elk apparaat waarop je inlogt.',
+    'Hoe YOUYA er voor dit account uitziet: licht of donker, de accentkleur, glas en animaties, de tekstgrootte, en welke widgets het dashboard toont. Alles wordt meteen toegepast, op elk apparaat waarop je inlogt.',
   'help.ctx.settings-appearance.bullet.1':
     'Thema: Kleurmodus (Licht, Donker of Automatisch), het kleurenschema en, bij Aangepast, je eigen accentkleur voor de lichte en donkere modus, met een contrastcontrole.',
   'help.ctx.settings-appearance.bullet.2':
@@ -1231,7 +1231,7 @@ const help: TranslationStrings = {
     'Alleen bij Mapbox GL: ‘3D-gebouwen & terrein’, ‘Hoge kwaliteit modus’ en ‘Interessante plekken verbergen’. Boven ‘Kaart opslaan’ zie je een live voorbeeld. Met ‘Kaart opslaan’ sla je je keuze op.',
   'help.ctx.settings-notifications.title': 'Meldingen',
   'help.ctx.settings-notifications.summary':
-    'Hoe TREK je buiten de app bereikt. Bovenaan bepaalt een tabel, met een rij per gebeurtenis en een kolom per kanaal, wat waarheen wordt gestuurd. Daaronder staan de kaarten voor de webhook, ntfy, pushmeldingen op dit apparaat en eventuele kanalen van plugins.',
+    'Hoe YOUYA je buiten de app bereikt. Bovenaan bepaalt een tabel, met een rij per gebeurtenis en een kolom per kanaal, wat waarheen wordt gestuurd. Daaronder staan de kaarten voor de webhook, ntfy, pushmeldingen op dit apparaat en eventuele kanalen van plugins.',
   'help.ctx.settings-notifications.bullet.1':
     'Meldingen: zet elke gebeurtenis per kanaal aan of uit. Een slotje betekent dat de beheerder die voor iedereen heeft uitgezet.',
   'help.ctx.settings-notifications.bullet.2':
@@ -1242,7 +1242,7 @@ const help: TranslationStrings = {
     '‘Pushmeldingen op dit apparaat’: ‘Inschakelen op dit apparaat’ geldt alleen voor deze browser; ‘Test versturen’ stuurt een testmelding. Een pluginkanaal toont ‘Instellen’ tot het is ingesteld.',
   'help.ctx.settings-integrations.title': 'Integraties',
   'help.ctx.settings-integrations.summary':
-    'Alles wat van buitenaf met TREK verbinding maakt: je eigen adres voor boekingsmails, fotobibliotheken voor het reisverslag, AirTrail voor vluchten, Dawarich voor waar je echt bent geweest, wanderer voor trails, alleen-lezen API-sleutels voor andere software, en MCP voor AI-clients. Een koppeling met een andere dienst verschijnt pas als de beheerder die heeft aangezet.',
+    'Alles wat van buitenaf met YOUYA verbinding maakt: je eigen adres voor boekingsmails, fotobibliotheken voor het reisverslag, AirTrail voor vluchten, Dawarich voor waar je echt bent geweest, wanderer voor trails, alleen-lezen API-sleutels voor andere software, en MCP voor AI-clients. Een koppeling met een andere dienst verschijnt pas als de beheerder die heeft aangezet.',
   'help.ctx.settings-integrations.bullet.1':
     '‘Boekingsmails’ staat bovenaan zodra de beheerder de mailimport aan heeft: je doorstuuradres met zijn schakelaars. Daaronder staan Immich en Synology Photos, AirTrail, Dawarich en wanderer. Elke kaart heeft een adres en sleutel, ‘Opslaan’ en ‘Verbinding testen’, en een badge ‘Verbonden’ of ‘Niet verbonden’.',
   'help.ctx.settings-integrations.bullet.2':
@@ -1253,7 +1253,7 @@ const help: TranslationStrings = {
     'API-tokens: de oude manier om met MCP te verbinden, gemarkeerd als Verouderd. Gebruik in plaats daarvan OAuth 2.1-clients.',
   'help.ctx.settings-offline.title': 'Offline', // same-as-en
   'help.ctx.settings-offline.summary':
-    'Wat TREK op dit apparaat bewaart zodat je een reis ook zonder verbinding kunt openen, en wat er gebeurt als een offline wijziging botst met een wijziging die ergens anders is gedaan.',
+    'Wat YOUYA op dit apparaat bewaart zodat je een reis ook zonder verbinding kunt openen, en wat er gebeurt als een offline wijziging botst met een wijziging die ergens anders is gedaan.',
   'help.ctx.settings-offline.bullet.1':
     'Offlinemodus: ‘Offlinemodus forceren’ downloadt eerst alles, werkt daarna alleen nog vanuit de cache en zet je wijzigingen in de wachtrij.',
   'help.ctx.settings-offline.bullet.2':
@@ -1264,20 +1264,20 @@ const help: TranslationStrings = {
     'Synchronisatieconflicten verschijnt alleen als twee wijzigingen met elkaar botsen, met ‘De mijne’, ‘Die van de server behouden’ en ‘Wanneer er een conflict optreedt’. Offline cache telt de reizen en de wijzigingen die nog wachten of zijn mislukt, met ‘Opnieuw proberen’, ‘Verwerpen’ en ‘Cache wissen’.',
   'help.ctx.settings-account.title': 'Account', // same-as-en
   'help.ctx.settings-account.summary':
-    'Je account op deze TREK en hoe je inlogt: profielfoto, gebruikersnaam en e-mail, wachtwoord, tweestapsverificatie en passkeys. ‘Account verwijderen’ staat onderaan de kaart Account.',
+    'Je account op deze YOUYA en hoe je inlogt: profielfoto, gebruikersnaam en e-mail, wachtwoord, tweestapsverificatie en passkeys. ‘Account verwijderen’ staat onderaan de kaart Account.',
   'help.ctx.settings-account.bullet.1':
     'Account: klik op de camera bij de foto om er een te uploaden, en op de rode prullenbak om hem te verwijderen. Gebruikersnaam en E-mail sla je op met ‘Profiel opslaan’.',
   'help.ctx.settings-account.bullet.2':
-    'Wachtwoord wijzigen: het huidige wachtwoord, twee keer het nieuwe, waarbij de regels worden afgevinkt terwijl je typt, en dan ‘Wachtwoord bijwerken’. Logt deze TREK alleen via SSO in, dan zie je deze kaart niet.',
+    'Wachtwoord wijzigen: het huidige wachtwoord, twee keer het nieuwe, waarbij de regels worden afgevinkt terwijl je typt, en dan ‘Wachtwoord bijwerken’. Logt deze YOUYA alleen via SSO in, dan zie je deze kaart niet.',
   'help.ctx.settings-account.bullet.3':
     'Tweefactorauthenticatie (2FA) met een authenticator-app en back-upcodes; passkeys om zonder wachtwoord in te loggen.',
   'help.ctx.settings-account.bullet.4':
     '‘Account verwijderen’ staat links onderaan de kaart Account en vraagt om bevestiging. De enige beheerder kan zichzelf niet verwijderen.',
   // language-region
   'help.guide.language-region.title': 'Taal, eenheden en valuta instellen',
-  'help.guide.language-region.goal': 'Gebruik TREK in je eigen taal en met de notaties van je regio.',
+  'help.guide.language-region.goal': 'Gebruik YOUYA in je eigen taal en met de notaties van je regio.',
   'help.guide.language-region.step.1':
-    'Kies onder ‘Taal en regio’ een ‘Taal’ uit de lijst. Typ om er snel een te vinden. TREK schakelt meteen over, op elk apparaat waarop je inlogt.',
+    'Kies onder ‘Taal en regio’ een ‘Taal’ uit de lijst. Typ om er snel een te vinden. YOUYA schakelt meteen over, op elk apparaat waarop je inlogt.',
   'help.guide.language-region.step.2':
     'Met Plaatsnamen stel je de taal in voor het zoeken naar plaatsen, suggesties en adressen. ‘Zelfde als de app’ volgt de taal van de app.',
   'help.guide.language-region.result':
@@ -1299,18 +1299,19 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.2':
     'Een beheerder kan de standaardwaarden voor iedereen instellen; wat je hier aanpast, geldt voor jou.',
   // startup
-  'help.guide.startup.title': 'Kiezen waarmee TREK opent',
-  'help.guide.startup.goal': 'Open TREK op de pagina die je het meest gebruikt, in plaats van steeds op het dashboard.',
+  'help.guide.startup.title': 'Kiezen waarmee YOUYA opent',
+  'help.guide.startup.goal':
+    'Open YOUYA op de pagina die je het meest gebruikt, in plaats van steeds op het dashboard.',
   'help.guide.startup.step.1':
     'Zet bovenaan Weergave, onder ‘Opstarten’, de ‘Startpagina’ op Dashboard of ‘Actieve reis’.',
   'help.guide.startup.step.2': 'Bij ‘Actieve reis’ verschijnt ‘Starttabblad’: kies het tabblad waarop die reis opent.',
-  'help.guide.startup.result': 'De volgende keer dat je TREK opent, ga je direct naar die pagina.',
+  'help.guide.startup.result': 'De volgende keer dat je YOUYA opent, ga je direct naar die pagina.',
   'help.guide.startup.tip.1':
     'De actieve reis is de reis die vandaag loopt, of anders de eerstvolgende. Het is dezelfde reis die bovenaan het dashboard staat.',
   // theme-scheme
   'help.guide.theme-scheme.title': 'Thema en accentkleur instellen',
   'help.guide.theme-scheme.goal':
-    'Maak TREK licht, donker of laat het je apparaat volgen, in de kleur die jij mooi vindt.',
+    'Maak YOUYA licht, donker of laat het je apparaat volgen, in de kleur die jij mooi vindt.',
   'help.guide.theme-scheme.step.1':
     'Zet onder ‘Thema’ de ‘Kleurmodus’ op Licht, Donker of Automatisch. Automatisch volgt je apparaat.',
   'help.guide.theme-scheme.step.2':
@@ -1332,7 +1333,7 @@ const help: TranslationStrings = {
   'help.guide.readability.result':
     'De wijziging geldt meteen voor de hele app, ook voor de kaartpanelen en het reisverslag.',
   'help.guide.readability.tip.1':
-    'Sommige onderdelen van TREK tonen al minder animaties als je apparaat is ingesteld op minder beweging. ‘Beweging verminderen’ vermindert de animaties in de overige onderdelen.',
+    'Sommige onderdelen van YOUYA tonen al minder animaties als je apparaat is ingesteld op minder beweging. ‘Beweging verminderen’ vermindert de animaties in de overige onderdelen.',
   'help.guide.readability.tip.2':
     'De tekstgrootte werkt via de typografische niveaus, dus er wordt niets afgekapt. Tekst die niet meer past, loopt door op de volgende regel.',
   // dashboard-widgets
@@ -1431,17 +1432,17 @@ const help: TranslationStrings = {
     'De reizen openen ook zonder verbinding. Wijzigingen die je maakt, komen in een wachtrij en worden verstuurd zodra je weer online bent.',
   'help.guide.offline-prepare.tip.1':
     'Kaarttegels nemen de meeste ruimte in. Zet ze uit als je alleen de reisgegevens en documenten wilt bewaren.',
-  'help.guide.offline-prepare.tip.2': 'Installeer TREK vanuit de browser als app, dan start het offline het soepelst.',
+  'help.guide.offline-prepare.tip.2': 'Installeer YOUYA vanuit de browser als app, dan start het offline het soepelst.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': 'Kiezen welke versie blijft bij een synchronisatieconflict',
   'help.guide.offline-conflicts.goal':
-    'Kies hoe TREK een conflict oplost tussen een offline wijziging en een wijziging die ergens anders is gedaan.',
+    'Kies hoe YOUYA een conflict oplost tussen een offline wijziging en een wijziging die ergens anders is gedaan.',
   'help.guide.offline-conflicts.step.1':
     'Botst een wijziging die je offline hebt gedaan met een nieuwere, dan verschijnt bovenaan Offline het onderdeel Synchronisatieconflicten. Klik per wijziging op ‘De mijne’ of ‘Die van de server behouden’.',
   'help.guide.offline-conflicts.step.2':
     'In dezelfde kaart bepaal je bij ‘Wanneer er een conflict optreedt’ wat er de volgende keer gebeurt: ‘Vraag het me elke keer’, ‘Altijd mijn versie behouden’ of ‘Altijd de serverversie behouden’.',
   'help.guide.offline-conflicts.result':
-    'Met ‘Vraag het me elke keer’ blijft een conflict in ‘Synchronisatieconflicten’ staan tot je een keuze maakt. Met de andere twee opties lost TREK het automatisch op.',
+    'Met ‘Vraag het me elke keer’ blijft een conflict in ‘Synchronisatieconflicten’ staan tot je een keuze maakt. Met de andere twee opties lost YOUYA het automatisch op.',
   'help.guide.offline-conflicts.tip.1':
     "'Cache wissen' verwijdert alleen de kopie op dit apparaat. Op de server verandert niets.",
   // profile
@@ -1462,7 +1463,7 @@ const help: TranslationStrings = {
   'help.guide.password.result':
     'Het nieuwe wachtwoord geldt meteen. Op alle andere apparaten word je uitgelogd, je MCP API-tokens worden verwijderd en OAuth-clients moeten opnieuw inloggen. Op dit apparaat blijf je ingelogd.',
   'help.guide.password.tip.1':
-    'Logt deze TREK alleen via SSO in, dan is er geen TREK-wachtwoord en ook geen kaart ‘Wachtwoord wijzigen’.',
+    'Logt deze YOUYA alleen via SSO in, dan is er geen YOUYA-wachtwoord en ook geen kaart ‘Wachtwoord wijzigen’.',
   // mfa
   'help.guide.mfa.title': 'Tweestapsverificatie inschakelen',
   'help.guide.mfa.goal': 'Beveilig je account met een code uit een authenticator-app.',
@@ -1497,16 +1498,16 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     'Je account is verwijderd, samen met de reizen, plaatsen en bestanden waarvan je de eigenaar bent. Reizen waarvan anderen de eigenaar zijn, blijven bestaan.',
   'help.guide.delete-account.tip.1':
-    'Ben je de enige beheerder, dan toont TREK ‘Verwijderen niet mogelijk’: maak eerst een andere gebruiker beheerder.',
+    'Ben je de enige beheerder, dan toont YOUYA ‘Verwijderen niet mogelijk’: maak eerst een andere gebruiker beheerder.',
   'help.guide.delete-account.tip.2':
     'Dit kun je niet ongedaan maken. Exporteer wat je wilt bewaren voordat je bevestigt.',
 
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Beheerder',
   'help.ctx.admin.summary':
-    'Instellingen voor de hele TREK-instantie, voor alle gebruikers: wie mag inloggen en hoe, wat er aanstaat, waar bestanden worden opgeslagen, hoe de server mensen bereikt en hoe er back-ups worden gemaakt. Alleen beheerders zien deze pagina. De zijbalk groepeert de tabbladen onder Gebruikers, Configuratie en Onderhoud, en elk tabblad is een apart scherm.',
+    'Instellingen voor de hele YOUYA-instantie, voor alle gebruikers: wie mag inloggen en hoe, wat er aanstaat, waar bestanden worden opgeslagen, hoe de server mensen bereikt en hoe er back-ups worden gemaakt. Alleen beheerders zien deze pagina. De zijbalk groepeert de tabbladen onder Gebruikers, Configuratie en Onderhoud, en elk tabblad is een apart scherm.',
   'help.ctx.admin.bullet.1':
-    'De kop toont rechts het aantal gebruikers, reizen, plaatsen en bestanden. Daaronder verschijnt een banner ‘Update beschikbaar’ als er een nieuwere TREK-versie is.',
+    'De kop toont rechts het aantal gebruikers, reizen, plaatsen en bestanden. Daaronder verschijnt een banner ‘Update beschikbaar’ als er een nieuwere YOUYA-versie is.',
   'help.ctx.admin.bullet.2':
     'Gebruikers en Standaarden: accounts, uitnodigingslinks en rechten, en de instellingen en kaart waarmee een nieuw account begint.',
   'help.ctx.admin.bullet.3':
@@ -1517,7 +1518,7 @@ const help: TranslationStrings = {
     'Opslag, Back-up, GitHub en Audit: waar uploads worden opgeslagen, back-ups wanneer je wilt of volgens een schema, de releasegeschiedenis en het logboek van beveiligingsgebeurtenissen.',
   'help.ctx.admin-users.title': 'Gebruikers',
   'help.ctx.admin-users.summary':
-    'Alle accounts op deze TREK, met rol, e-mailadres en wanneer ze voor het laatst actief waren, de uitnodigingslinks waarmee mensen zich op een gesloten installatie kunnen registreren, en wie wat mag in reizen.',
+    'Alle accounts op deze YOUYA, met rol, e-mailadres en wanneer ze voor het laatst actief waren, de uitnodigingslinks waarmee mensen zich op een gesloten installatie kunnen registreren, en wie wat mag in reizen.',
   'help.ctx.admin-users.bullet.1':
     'De tabel: gebruiker, e-mailadres, rol, aangemaakt en Laatst actief, met per rij ‘Gebruiker bewerken’ en ‘Gebruiker verwijderen’. Een groene stip op de avatar betekent dat de persoon nu online is. Bij je eigen rij staat (Jij).',
   'help.ctx.admin-users.bullet.2':
@@ -1539,7 +1540,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     'Paksjablonen: lijsten met een naam, met categorieën en items, waarmee de inpaklijst van een reis kan beginnen.',
   'help.ctx.admin-config.bullet.2':
-    'Categorieën: naam, pictogram en kleur van de categorieën die overal in TREK worden gebruikt, van de plaatsdetails tot Collecties. Je bewerkt ze elk in een venster met een voorbeeld.',
+    'Categorieën: naam, pictogram en kleur van de categorieën die overal in YOUYA worden gebruikt, van de plaatsdetails tot Collecties. Je bewerkt ze elk in een venster met een voorbeeld.',
   'help.ctx.admin-config.bullet.3':
     "Schoolvakanties: de catalogus van landen en regio's met hun vakantieperiodes, waaruit iedereen in Vakantie kan kiezen.",
   'help.ctx.admin-settings.title': 'Beveiliging en Diensten',
@@ -1550,12 +1551,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     'Inloggen met passkey: de ‘Relying Party ID (domein)’ en de ‘Toegestane origins’. Single Sign-On (OIDC): ‘Weergavenaam’, ‘Issuer-URL’, een optionele Discovery-URL, ‘Client-ID’ en ‘Clientgeheim’.',
   'help.ctx.admin-settings.bullet.3':
-    'Plaatszoeken en routering, op Diensten: de TREK API, gemarkeerd als ‘Aanbevolen standaardbron’, met ‘Tegoed vandaag’ en ‘Plaatsdetails delen’, daarna ‘Ov-provider’, ‘Provider voor plaatszoeken’ en ‘Logboek van plaatszoekopdrachten’.',
+    'Plaatszoeken en routering, op Diensten: de YOUYA API, gemarkeerd als ‘Aanbevolen standaardbron’, met ‘Tegoed vandaag’ en ‘Plaatsdetails delen’, daarna ‘Ov-provider’, ‘Provider voor plaatszoeken’ en ‘Logboek van plaatszoekopdrachten’.',
   'help.ctx.admin-settings.bullet.4':
     'API-sleutels: de Google Maps API-sleutel met ‘Testen’ en ‘Waarvoor de sleutel wordt gebruikt’, de sleutel voor Unsplash en die voor Amap, en onderaan de kaart één knop ‘Opslaan’. ‘Toegestane bestandstypen’ daaronder beperkt uploads.',
   'help.ctx.admin-addons.title': 'Add-ons',
   'help.ctx.admin-addons.summary':
-    'De functiemodules van TREK in drie kaarten: Reis voor de tabbladen van een reis, Globaal voor de onderdelen in de hoofdnavigatie en Integratie voor externe diensten. Elke add-on heeft een schakelaar. Uit betekent dat het menu-item, de routes en de API voor iedereen verdwijnen.',
+    'De functiemodules van YOUYA in drie kaarten: Reis voor de tabbladen van een reis, Globaal voor de onderdelen in de hoofdnavigatie en Integratie voor externe diensten. Elke add-on heeft een schakelaar. Uit betekent dat het menu-item, de routes en de API voor iedereen verdwijnen.',
   'help.ctx.admin-addons.bullet.1':
     'Per add-on een rij met een schakelaar, en in de kop van elke kaart hoeveel van zijn add-ons aanstaan. Het infoteken naast een naam zegt wat de add-on doet.',
   'help.ctx.admin-addons.bullet.2':
@@ -1564,7 +1565,7 @@ const help: TranslationStrings = {
     'Rijen met een tandwiel openen een instelvenster, zoals ‘Watergegevens voor peddelen’ onder Tochten en ‘Mailimport instellen’ onder ‘Import van boekingsmails’. De live vluchtstatus is een rij van de kaart Reis.',
   'help.ctx.admin-plugins.title': 'Plugins', // same-as-en
   'help.ctx.admin-plugins.summary':
-    'Plugins van derden die in een eigen proces naast TREK draaien, elk met de rechten die bij de installatie zijn gevraagd. Installeer ze uit de catalogus, upload een pakket, of koppel een map terwijl je zelf een plugin ontwikkelt.',
+    'Plugins van derden die in een eigen proces naast YOUYA draaien, elk met de rechten die bij de installatie zijn gevraagd. Installeer ze uit de catalogus, upload een pakket, of koppel een map terwijl je zelf een plugin ontwikkelt.',
   'help.ctx.admin-plugins.bullet.1':
     'Geïnstalleerd en Ontdekken, met ‘Plugins zoeken…’ en Filter voor type, status en volgorde. Elke rij toont de versie, waartoe de plugin toegang heeft, Beoordeeld en Ondertekend of Niet ondertekend, een schakelaar en een ⋯-menu.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1581,7 +1582,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     "Categorieën: reisdocumenten, foto's uit reisverslagen, omslagen, profielfoto's, afbeeldingen van plaatsen, de fotocaches en back-ups, elk gekoppeld aan een backend, met ‘Wijzigingen opslaan’ onderaan.",
   'help.ctx.admin-storage.bullet.4':
-    'Niet-gekoppelde bestanden: wat de nachtelijke controle heeft gevonden dat niets in TREK nog gebruikt, met ‘Nu controleren’ en een schakelaar die zulke bestanden verwijdert zodra ze een week ongebruikt zijn.',
+    'Niet-gekoppelde bestanden: wat de nachtelijke controle heeft gevonden dat niets in YOUYA nog gebruikt, met ‘Nu controleren’ en een schakelaar die zulke bestanden verwijdert zodra ze een week ongebruikt zijn.',
   'help.ctx.admin-notifications.title': 'Meldingen',
   'help.ctx.admin-notifications.summary':
     "De kanalen die de instantie aan gebruikers aanbiedt, en de kanalen waarop jij als beheerder meldingen krijgt. Gebruikers kiezen hun eigen topics en URL's onder Instellingen. Jij bepaalt welke kanalen er zijn en stelt e-mail in.",
@@ -1593,14 +1594,14 @@ const help: TranslationStrings = {
     'Beheermeldingen, rechts: Admin-webhook en Admin-Ntfy met elk een testknop, en daaronder welk kanaal elke beheerdersgebeurtenis verstuurt (‘Nieuwe versie beschikbaar’, ‘Opslagreplica mislukt’, ‘Peddelregio aangevraagd’).',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    'Alle tokens en OAuth-sessies die AI-clients voor deze TREK hebben, van alle gebruikers. Je kunt ze allemaal intrekken.',
+    'Alle tokens en OAuth-sessies die AI-clients voor deze YOUYA hebben, van alle gebruikers. Je kunt ze allemaal intrekken.',
   'help.ctx.admin-mcp-tokens.bullet.1':
     'OAuth-sessies: de client, de toegekende scopes, de eigenaar en de datum, met een prullenbak om de sessie in te trekken.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     'API-tokens: naam, eigenaar, ‘Aangemaakt’ en ‘Laatst gebruikt’, met een prullenbak om het token te verwijderen.',
   'help.ctx.admin-github.title': 'GitHub', // same-as-en
   'help.ctx.admin-github.summary':
-    'Wat er nieuw is in TREK: de releasegeschiedenis van GitHub, en of er een nieuwere versie is dan die van jou. Het bijwerken zelf gebeurt buiten de app, op de host.',
+    'Wat er nieuw is in YOUYA: de releasegeschiedenis van GitHub, en of er een nieuwere versie is dan die van jou. Het bijwerken zelf gebeurt buiten de app, op de host.',
   'help.ctx.admin-github.bullet.1':
     '‘Release-geschiedenis’ toont de releases als tijdlijn met hun releasenotes. De nieuwste heeft het label ‘Nieuwste’, pre-releases zijn gemarkeerd als ‘Pre-release’, en GitHub opent de pagina met releases.',
   'help.ctx.admin-github.bullet.2':
@@ -1674,7 +1675,7 @@ const help: TranslationStrings = {
     'Op je eigen rij werkt de prullenbak niet: je kunt jezelf niet verwijderen. Dat moet een andere beheerder doen.',
   // permissions
   'help.guide.permissions.title': 'Bepalen wie wat mag',
-  'help.guide.permissions.goal': 'Stel per actie in welke rol die op deze TREK mag uitvoeren.',
+  'help.guide.permissions.goal': 'Stel per actie in welke rol die op deze YOUYA mag uitvoeren.',
   'help.guide.permissions.step.1':
     'Zoek onder ‘Rechtinstellingen’ de actie in de juiste groep, zoals ‘Reizen verwijderen’ onder ‘Reisbeheer’, en kies wie dat mag: Iedereen, Reisleden, Reiseigenaar of ‘Alleen beheerder’. Een gewijzigde rij is gemarkeerd als ‘aangepast’.',
   'help.guide.permissions.step.2':
@@ -1705,7 +1706,7 @@ const help: TranslationStrings = {
   'help.guide.packing-templates.step.2':
     'Klik op de naam van het sjabloon om het te openen en daarna op ‘Categorie toevoegen’. Met de + bovenaan een categorie voeg je items toe. Een item heeft alleen een naam nodig.',
   'help.guide.packing-templates.step.3':
-    'Alles wordt meteen opgeslagen. Met het potlood hernoem je een sjabloon, categorie of item. Met de prullenbak verwijder je een item meteen. Bij een sjabloon of categorie vraagt TREK eerst om bevestiging, omdat alles wat erin zit ook wordt verwijderd.',
+    'Alles wordt meteen opgeslagen. Met het potlood hernoem je een sjabloon, categorie of item. Met de prullenbak verwijder je een item meteen. Bij een sjabloon of categorie vraagt YOUYA eerst om bevestiging, omdat alles wat erin zit ook wordt verwijderd.',
   'help.guide.packing-templates.result':
     'Het sjabloon is beschikbaar in de inpaklijst van elke reis. Bij het toepassen worden de items gekopieerd, dus per reis kun je ze vrij aanpassen.',
   'help.guide.packing-templates.tip.1':
@@ -1748,10 +1749,10 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     'Zodra Single Sign-On (OIDC) is ingesteld, volgen drie SSO-rijen: ‘Inloggen via SSO’, ‘Automatische SSO-provisioning’, dat een account aanmaakt zodra iemand voor het eerst via SSO inlogt, en ‘Direct naar SSO’.',
   'help.guide.auth-methods.step.3':
-    '‘Inloggen met passkey inschakelen’ biedt passkeys aan op de inlogpagina. Zet ‘2FA verplichten’ aan, zodat iedereen zonder 2FA die eerst in Instellingen moet instellen voordat ze TREK kunnen gebruiken.',
+    '‘Inloggen met passkey inschakelen’ biedt passkeys aan op de inlogpagina. Zet ‘2FA verplichten’ aan, zodat iedereen zonder 2FA die eerst in Instellingen moet instellen voordat ze YOUYA kunnen gebruiken.',
   'help.guide.auth-methods.result': 'Op de inlogpagina staan precies de methoden die je hebt aangelaten.',
   'help.guide.auth-methods.tip.1':
-    'TREK laat je de laatste inlogmethode niet uitzetten: de schakelaar wordt grijs en de tooltip meldt ‘Er moet minstens één inlogmethode ingeschakeld blijven’.',
+    'YOUYA laat je de laatste inlogmethode niet uitzetten: de schakelaar wordt grijs en de tooltip meldt ‘Er moet minstens één inlogmethode ingeschakeld blijven’.',
   'help.guide.auth-methods.tip.2':
     'Is OIDC_ONLY op de server ingesteld, dan zijn de wachtwoordschakelaars vergrendeld en staat er een opmerking bij.',
   'help.guide.auth-methods.tip.3':
@@ -1768,7 +1769,7 @@ const help: TranslationStrings = {
   'help.guide.oidc.result':
     "Op de inlogpagina staat de SSO-knop; staat 'Automatische SSO-provisioning' aan, dan krijgen nieuwe gebruikers de eerste keer automatisch een account.",
   'help.guide.oidc.tip.1':
-    'De redirect-URI die je provider nodig heeft, is het adres van je TREK plus het OIDC-callbackpad uit de documentatie.',
+    'De redirect-URI die je provider nodig heeft, is het adres van je YOUYA plus het OIDC-callbackpad uit de documentatie.',
   'help.guide.oidc.tip.2':
     'Met claim-mapping bepaal je welke SSO-groepen beheerder worden; zie de OIDC-pagina in de documentatie.',
   // instance-keys
@@ -1776,19 +1777,19 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     "Voeg voor de hele installatie foto's en beoordelingen van Google, omslagen van Unsplash en zoeken via Amap toe.",
   'help.guide.instance-keys.step.1':
-    'Op het tabblad Diensten begint de kaart voor plaatszoeken en routering met de TREK API, gemarkeerd als ‘Aanbevolen standaardbron’. Hij beantwoordt plaatszoekopdrachten, adressen en routering zonder sleutel, en ‘Tegoed vandaag’ toont wat er van de dag over is.',
+    'Op het tabblad Diensten begint de kaart voor plaatszoeken en routering met de YOUYA API, gemarkeerd als ‘Aanbevolen standaardbron’. Hij beantwoordt plaatszoekopdrachten, adressen en routering zonder sleutel, en ‘Tegoed vandaag’ toont wat er van de dag over is.',
   'help.guide.instance-keys.step.2':
     "Plak voor foto's, beoordelingen en openingstijden een Google Maps API-sleutel onder ‘API-sleutels’ en klik op ‘Testen’. Je ziet dan ‘Verbonden’ of ‘Ongeldig’. Zet onder ‘Waarvoor de sleutel wordt gebruikt’ alleen aan waarvoor je wilt betalen: Plaatsfoto's, Plaatsautocomplete, Plaatsdetails, Plaatsverrijking en ‘Alleen met Google zoeken’, plus een ‘Daglimiet’ voor Google-aanroepen.",
   'help.guide.instance-keys.step.3':
     "Plak de Unsplash API-sleutel om omslagfoto's te zoeken en de Amap (高德地图) API-sleutel om plaatsen in het Chinese vasteland te zoeken, en klik onderaan de kaart op ‘Opslaan’.",
   'help.guide.instance-keys.result':
-    'Gebruikers krijgen de functies zonder eigen sleutels. Zonder Google-sleutel loopt zoeken via de TREK Places API en OpenStreetMap.',
+    'Gebruikers krijgen de functies zonder eigen sleutels. Zonder Google-sleutel loopt zoeken via de YOUYA Places API en OpenStreetMap.',
   'help.guide.instance-keys.tip.1':
-    'Heeft een gebruiker onder Instellingen een eigen sleutel ingevuld, dan gebruikt TREK voor die gebruiker die sleutel in plaats van de sleutel van de instantie.',
+    'Heeft een gebruiker onder Instellingen een eigen sleutel ingevuld, dan gebruikt YOUYA voor die gebruiker die sleutel in plaats van de sleutel van de instantie.',
   'help.guide.instance-keys.tip.2':
     'Sleutels kunnen ook uit omgevingsvariabelen komen. Die zie je hier, maar kun je niet wijzigen.',
   'help.guide.instance-keys.tip.3':
-    '‘Daglimiet voor Google-aanroepen’ bepaalt hoeveel TREK per dag aan de sleutel mag uitgeven. Het label naast de titel telt de aanroepen van vandaag. Is de limiet bereikt, dan wordt er tot de volgende dag (UTC) via OpenStreetMap gezocht.',
+    '‘Daglimiet voor Google-aanroepen’ bepaalt hoeveel YOUYA per dag aan de sleutel mag uitgeven. Het label naast de titel telt de aanroepen van vandaag. Is de limiet bereikt, dan wordt er tot de volgende dag (UTC) via OpenStreetMap gezocht.',
   // places-transit
   'help.guide.places-transit.title': 'De providers voor zoeken en ov kiezen',
   'help.guide.places-transit.goal':
@@ -1796,10 +1797,10 @@ const help: TranslationStrings = {
   'help.guide.places-transit.step.1':
     'Kies op het tabblad Diensten, in de kaart voor plaatszoeken en routering, onder ‘Ov-provider’ voor ‘Transitous (gratis)’, zonder sleutel en het sterkst in Europa, of voor Google, dat de Google-sleutel gebruikt. De keuze wordt meteen opgeslagen.',
   'help.guide.places-transit.step.2':
-    'Kies onder ‘Provider voor plaatszoeken’ welke dienst TREK raadpleegt als de TREK-index en OpenStreetMap niets vinden: Automatisch (Google als er een sleutel is, anders Amap), Google Places, Amap (高德地图) of OpenStreetMap.',
-  'help.guide.places-transit.result': 'Elk zoekveld en elke ov-route in TREK gebruikt deze keuze.',
+    'Kies onder ‘Provider voor plaatszoeken’ welke dienst YOUYA raadpleegt als de YOUYA-index en OpenStreetMap niets vinden: Automatisch (Google als er een sleutel is, anders Amap), Google Places, Amap (高德地图) of OpenStreetMap.',
+  'help.guide.places-transit.result': 'Elk zoekveld en elke ov-route in YOUYA gebruikt deze keuze.',
   'help.guide.places-transit.tip.1':
-    'Kies je een dienst zonder sleutel, dan zie je hier een waarschuwing. Het zoeken naar plaatsen gebruikt dan alleen de TREK-index en OpenStreetMap, en het OV alleen Transitous.',
+    'Kies je een dienst zonder sleutel, dan zie je hier een waarschuwing. Het zoeken naar plaatsen gebruikt dan alleen de YOUYA-index en OpenStreetMap, en het OV alleen Transitous.',
   'help.guide.places-transit.tip.2': 'Ov-routes van Google worden per aanvraag gefactureerd, die van Transitous niet.',
   // file-types
   'help.guide.file-types.title': 'Bestandstypen beperken',
@@ -1847,7 +1848,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     "Wijs onder ‘Categorieën’ elk soort upload, zoals ‘Reisdocumenten’, ‘Reisverslag-foto's’ of ‘Back-ups’, toe aan een backend.",
   'help.guide.storage-backends.step.3':
-    'Klik onderaan Categorieën op ‘Wijzigingen opslaan’. Verwijst een categorie nu naar een andere plek, dan vraagt TREK of je ‘Bestaande objecten verplaatsen’ of ‘Alleen nieuwe schrijfacties omleiden’ wilt.',
+    'Klik onderaan Categorieën op ‘Wijzigingen opslaan’. Verwijst een categorie nu naar een andere plek, dan vraagt YOUYA of je ‘Bestaande objecten verplaatsen’ of ‘Alleen nieuwe schrijfacties omleiden’ wilt.',
   'help.guide.storage-backends.result':
     'Nieuwe uploads gaan naar de toegewezen backend. Verplaatste bestanden worden vanaf daar geleverd, en wat je niet wilde verplaatsen, blijft waar het stond.',
   'help.guide.storage-backends.tip.1':
@@ -1899,7 +1900,7 @@ const help: TranslationStrings = {
     'Zet je de add-on MCP uit, dan stoppen alle clients meteen en verdwijnt dit tabblad, maar er wordt niets verwijderd: zodra je hem weer aanzet, werken de tokens weer.',
   // release-history
   'help.guide.release-history.title': 'Controleren op een nieuwe versie',
-  'help.guide.release-history.goal': 'Weet of je TREK up-to-date is en wat de volgende versie brengt.',
+  'help.guide.release-history.goal': 'Weet of je YOUYA up-to-date is en wat de volgende versie brengt.',
   'help.guide.release-history.step.1':
     "Is er een nieuwere release, dan staat onder de paginakop ‘Update beschikbaar’, met de versie die je nu gebruikt. ‘Bekijk op GitHub’ opent de release, en ‘Hoe bij te werken’ toont de commando's voor Docker of de updatehandleiding voor andere installaties.",
   'help.guide.release-history.step.2':
@@ -1958,7 +1959,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     'Zet de schakelaar op de rij van Nextcloud aan. Je krijgt de melding ‘Add-on bijgewerkt’, en vanaf nu vinden reiseigenaren Documentsynchronisatie op het tabblad Bestanden van hun reizen, met Nextcloud onder ‘Aanbieder koppelen’.',
   'help.guide.document-providers.result':
-    'De opslagdienst is beschikbaar in elke reis op deze TREK. Er wordt pas iets gekoppeld als een reiseigenaar dat doet.',
+    'De opslagdienst is beschikbaar in elke reis op deze YOUYA. Er wordt pas iets gekoppeld als een reiseigenaar dat doet.',
   'help.guide.document-providers.tip.1':
     'Hier bepaal je alleen of een opslagdienst mag worden aangeboden. Het adres en de inloggegevens horen bij een reis en worden door de eigenaar van de reis ingevuld op het tabblad Bestanden, nooit in het beheerpaneel.',
   'help.guide.document-providers.tip.2':
@@ -1967,30 +1968,30 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     'Geef iedereen een doorstuuradres, zodat de boekingsbevestigingen die ze doorsturen boekingen worden in de juiste reis.',
   'help.guide.mail-import-setup.step.1':
-    'Zet op het tabblad Add-ons, in de kaart ‘Integratie’, ‘Import van boekingsmails’ aan. Iedereen op deze TREK krijgt nu een eigen doorstuuradres.',
+    'Zet op het tabblad Add-ons, in de kaart ‘Integratie’, ‘Import van boekingsmails’ aan. Iedereen op deze YOUYA krijgt nu een eigen doorstuuradres.',
   'help.guide.mail-import-setup.step.2': 'Klik op ‘Mailimport instellen’, de rij die eronder verschijnt.',
   'help.guide.mail-import-setup.step.3':
-    'Kies onder ‘Hoe mail binnenkomt’ voor ‘IMAP-mailbox’ en vul server, poort, versleuteling, gebruiker, wachtwoord en map in. Kies ‘Webhook’ voor een maildienst die elke mail naar TREK post, of ‘Alleen uploaden’ om het te proberen zonder mailbox. Stel daarna het ‘Adressjabloon’ in, het doorstuuradres met een plaatshouder waar de code van elke persoon komt, en de AI-mails per persoon en dag.',
+    'Kies onder ‘Hoe mail binnenkomt’ voor ‘IMAP-mailbox’ en vul server, poort, versleuteling, gebruiker, wachtwoord en map in. Kies ‘Webhook’ voor een maildienst die elke mail naar YOUYA post, of ‘Alleen uploaden’ om het te proberen zonder mailbox. Stel daarna het ‘Adressjabloon’ in, het doorstuuradres met een plaatshouder waar de code van elke persoon komt, en de AI-mails per persoon en dag.',
   'help.guide.mail-import-setup.step.4':
-    'Klik op ‘Opslaan’ en dan op ‘Verbinding testen’. Je ziet ‘Verbonden’ of wat er misging. Daaronder toont het venster wanneer TREK de mail het laatst las en de mails van de laatste 24 uur: ‘Zelf toegevoegd’, ‘In afwachting’ en ‘Mislukt’.',
+    'Klik op ‘Opslaan’ en dan op ‘Verbinding testen’. Je ziet ‘Verbonden’ of wat er misging. Daaronder toont het venster wanneer YOUYA de mail het laatst las en de mails van de laatste 24 uur: ‘Zelf toegevoegd’, ‘In afwachting’ en ‘Mislukt’.',
   'help.guide.mail-import-setup.result':
     'Iedereen vindt zijn doorstuuradres onder Instellingen, Integraties. Een doorgestuurde bevestiging wordt een boeking in de juiste reis, of wacht daar tot de eigenaar ernaar kijkt.',
   'help.guide.mail-import-setup.tip.1':
-    'Geef TREK een eigen mailbox die plusadressen accepteert (trek+…@jouw-domein), geen persoonlijke. Gelezen mails verhuizen naar de map TREK/processed.',
+    'Geef YOUYA een eigen mailbox die plusadressen accepteert (trek+…@jouw-domein), geen persoonlijke. Gelezen mails verhuizen naar de map TREK/processed.',
   'help.guide.mail-import-setup.tip.2':
     'Omgevingsvariabelen die met MAIL_INGEST_ beginnen, gaan voor op de velden in het venster. Een mailserver in je eigen netwerk heeft op de server ook ALLOW_INTERNAL_NETWORK=true nodig.',
   'help.guide.mail-import-setup.tip.3':
     '‘AI-mails per persoon en dag’ begrenst hoeveel mails zonder machineleesbare boekingsgegevens een AI per persoon per dag leest. Daarboven worden alleen de machineleesbare gegevens gelezen.',
   'help.guide.ai-setup.title': 'De AI-assistent instellen',
   'help.guide.ai-setup.goal':
-    'Koppel één keer een AI-aanbieder, zodat iedereen op deze TREK met de assistent kan plannen.',
+    'Koppel één keer een AI-aanbieder, zodat iedereen op deze YOUYA met de assistent kan plannen.',
   'help.guide.ai-setup.step.1':
     'Zoek op het tabblad Add-ons, in de kaart Integratie, de AI-tegel en zet AI-assistent aan. AI-analyse en MCP staan in dezelfde tegel.',
   'help.guide.ai-setup.step.2': 'Klik op ‘AI instellen’, de rij die onder de schakelaars verschijnt.',
   'help.guide.ai-setup.step.3':
     'Kies onder ‘Wie betaalt’ wie de koppeling regelt: ‘Ik betaal, eigen toegestaan’, ‘Ik betaal voor iedereen’ of ‘Iedereen gebruikt een eigen account’. De regel eronder legt uit wat je keuze betekent.',
   'help.guide.ai-setup.step.4':
-    'Kies onder ‘Koppeling voor iedereen’ voor ‘API-sleutel plakken’ en plak een sleutel van Anthropic, OpenAI, Gemini of OpenRouter. TREK noemt de aanbieder die het herkent. Klik op ‘Koppelen’; TREK controleert de sleutel bij de aanbieder voordat hij wordt opgeslagen.',
+    'Kies onder ‘Koppeling voor iedereen’ voor ‘API-sleutel plakken’ en plak een sleutel van Anthropic, OpenAI, Gemini of OpenRouter. YOUYA noemt de aanbieder die het herkent. Klik op ‘Koppelen’; YOUYA controleert de sleutel bij de aanbieder voordat hij wordt opgeslagen.',
   'help.guide.ai-setup.step.5':
     'De koppeling staat als ‘Verbonden’. Kies het ‘Model’ waarmee iedereen chat; alleen modellen die tools kunnen gebruiken staan in de lijst. Daaronder staan ‘Wijzigen’ en ‘Koppeling verwijderen’.',
   'help.guide.ai-setup.step.6':
@@ -2007,15 +2008,15 @@ const help: TranslationStrings = {
     'Zoeken op het web werkt met ChatGPT, Anthropic en OpenRouter, via de eigen zoekfunctie van de aanbieder, en de zoekopdrachten gaan alleen naar die aanbieder.',
   'help.guide.paddle-water-data.title': 'De watergegevens voor peddeltochten laden',
   'help.guide.paddle-water-data.goal':
-    'Geef peddeltochten de stuwen, sluizen en peddelregels van een regio, en bepaal of TREK nieuwe regio’s zelf laadt.',
+    'Geef peddeltochten de stuwen, sluizen en peddelregels van een regio, en bepaal of YOUYA nieuwe regio’s zelf laadt.',
   'help.guide.paddle-water-data.step.1':
     'Klik op het tabblad Add-ons, terwijl Tochten aan staat, op ‘Watergegevens voor peddelen’, de laatste rij onder Tochten. Een getal ernaast telt de regio’s, of de aanvragen die op jou wachten.',
   'help.guide.paddle-water-data.step.2':
     'Kies onder ‘Regio’s automatisch laden’ voor Automatisch, Op aanvraag of Uit. Automatisch laadt de regio waar iemand een peddeltocht plant, tot de ‘Grootste automatisch geladen regio’. Alles wat groter is, wacht onder ‘Aangevraagd’, waar ‘Laden’ het inleest en ‘Afwijzen’ het laat vallen.',
   'help.guide.paddle-water-data.step.3':
-    'Zoek onder ‘Regio toevoegen’ op Geofabrik naar een regio, bijvoorbeeld Oberpfalz, en klik ernaast op ‘Toevoegen’. TREK leest hem op de achtergrond in. Zodra hij ‘Gereed’ is, toont zijn rij de objecten, de datum van de gegevens en de kilometers water. ‘Opnieuw lezen’ vernieuwt hem en ‘Regio verwijderen’ wist hem.',
+    'Zoek onder ‘Regio toevoegen’ op Geofabrik naar een regio, bijvoorbeeld Oberpfalz, en klik ernaast op ‘Toevoegen’. YOUYA leest hem op de achtergrond in. Zodra hij ‘Gereed’ is, toont zijn rij de objecten, de datum van de gegevens en de kilometers water. ‘Opnieuw lezen’ vernieuwt hem en ‘Regio verwijderen’ wist hem.',
   'help.guide.paddle-water-data.result':
-    'Peddeltochten binnen de regio tonen de obstakels en volgen het water, en TREK leest elke regio eens per maand opnieuw in.',
+    'Peddeltochten binnen de regio tonen de obstakels en volgen het water, en YOUYA leest elke regio eens per maand opnieuw in.',
   'help.guide.paddle-water-data.tip.1':
     'Alleen de naam van de regio gaat naar Geofabrik, nooit een plaats die iemand plant.',
   'help.guide.paddle-water-data.tip.2':
@@ -2028,7 +2029,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     'Alles over één reis: de planning met dagen, kaart en plaatsen, en de tabbladen voor tochten, vervoer, boekingen, lijsten, onkosten, bestanden, samenwerking en een gekoppeld reisverslag. Voor elk daarvan is er een eigen helpscherm, onder dit scherm.',
   'help.ctx.trip.bullet.1':
-    'De tabbalk onder de bovenbalk: Planning, Tochten, Transport, Boekingen, Lijsten, Onkosten, Bestanden, Samenwerking en, zodra er een reisverslag is gekoppeld, Reisverslag. Welke tabbladen er op jouw TREK zijn, hangt af van de add-ons en plugins.',
+    'De tabbalk onder de bovenbalk: Planning, Tochten, Transport, Boekingen, Lijsten, Onkosten, Bestanden, Samenwerking en, zodra er een reisverslag is gekoppeld, Reisverslag. Welke tabbladen er op jouw YOUYA zijn, hangt af van de add-ons en plugins.',
   'help.ctx.trip.bullet.2':
     'Planning heeft drie kolommen: de dagen links, de kaart in het midden, de plaatsen rechts. Met de add-on Roadtrip begint de dagenkolom met een schakelaar Dagen en Roadtrip, met de add-on Tochten begint de plaatsenkolom met Plaatsen en Tochten. Boekingen en vervoer horen bij de planning, bij de stop en tussen stops; de tabbladen zetten ze op een rij.',
   'help.ctx.trip.bullet.3':
@@ -2041,7 +2042,7 @@ const help: TranslationStrings = {
     'Met de pijl Ongedaan maken in de werkbalk van de dagen draai je je recente wijzigingen in de planning een voor een terug.',
   // add-member
   'help.guide.add-member.title': 'Een lid toevoegen',
-  'help.guide.add-member.goal': 'Geef iemand met een TREK-account toegang tot deze reis.',
+  'help.guide.add-member.goal': 'Geef iemand met een YOUYA-account toegang tot deze reis.',
   'help.guide.add-member.step.1':
     'Klik op ‘Reisinstellingen’, het label naast de naam van de reis linksboven. Het venster opent op Personen.',
   'help.guide.add-member.step.2':
@@ -2051,7 +2052,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     'Het lid kan de reis net als jij bekijken en bewerken, binnen de grenzen die de beheerder onder Rechtinstellingen heeft ingesteld.',
   'help.guide.add-member.tip.1':
-    'Staat iemand niet in de lijst, dan heeft die persoon nog geen TREK-account: voeg hem of haar toe als gast, of laat hem of haar zich registreren via een uitnodigingslink.',
+    'Staat iemand niet in de lijst, dan heeft die persoon nog geen YOUYA-account: voeg hem of haar toe als gast, of laat hem of haar zich registreren via een uitnodigingslink.',
   'help.guide.add-member.tip.2': 'Het getal naast Toegang telt de mensen in de reis. Gasten staan apart daaronder.',
   // trip-invite-link
   'help.guide.trip-invite-link.title': 'Uitnodigen via een link',
@@ -2059,7 +2060,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     'Klik naast de naam van de reis op ‘Reisinstellingen’ en kies links ‘Wordt gedeeld’. Klik onder ‘Uitnodigingslink voor reis’ op ‘Uitnodigingslink maken’.',
   'help.guide.trip-invite-link.step.2':
-    'Klik op Kopiëren en stuur de link door. Iedereen met een TREK-account die de link opent, wordt lid van de reis.',
+    'Klik op Kopiëren en stuur de link door. Iedereen met een YOUYA-account die de link opent, wordt lid van de reis.',
   'help.guide.trip-invite-link.step.3':
     "'Opnieuw genereren' vervangt de link, waarna de oude link niet meer werkt; met Uitschakelen zet je hem uit.",
   'help.guide.trip-invite-link.result': 'Iedereen die de link opent, wordt lid van de reis en staat onder Toegang.',
@@ -2069,7 +2070,7 @@ const help: TranslationStrings = {
     'Heb je de link in de verkeerde chat gezet? Genereer hem dan opnieuw: de oude link werkt meteen niet meer.',
   // add-guest
   'help.guide.add-guest.title': 'Een gast zonder account toevoegen',
-  'help.guide.add-guest.goal': 'Voeg iemand aan de reis toe die TREK niet gebruikt.',
+  'help.guide.add-guest.goal': 'Voeg iemand aan de reis toe die YOUYA niet gebruikt.',
   'help.guide.add-guest.step.1':
     'Klik naast de naam van de reis op ‘Reisinstellingen’. Bij ‘Personen’ is ‘Gasten’ het laatste onderdeel, onder ‘Toegang’.',
   'help.guide.add-guest.step.2': 'Typ de naam bij ‘Naam van gast’ en klik op ‘Gast toevoegen’.',
@@ -2130,7 +2131,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     '‘Ongedaan maken’ werkt voor de planning: plaatsen toevoegen, toewijzen, verwijderen, herordenen, verplaatsen en vergrendelen, een dag leegmaken, een route optimaliseren, plaatsen verwijderen, categoriewijzigingen en imports.',
   'help.guide.undo-change.tip.2':
-    'Klik nog een keer om verder terug te gaan: TREK onthoudt je laatste 30 wijzigingen in deze reis, de nieuwste eerst, tot je de reis verlaat.',
+    'Klik nog een keer om verder terug te gaan: YOUYA onthoudt je laatste 30 wijzigingen in deze reis, de nieuwste eerst, tot je de reis verlaat.',
   'help.guide.trip-assistant.title': 'Plannen met de assistent',
   'help.guide.trip-assistant.goal':
     'Stel de assistent vragen over je reis en laat hem toevoegen wat hij voorstelt aan het plan.',
@@ -2189,19 +2190,19 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     'Klik bovenaan de plaatsenkolom op ‘Plaats/activiteit toevoegen’ (‘Nieuwe plek’ als er een dag open is). Het formulier opent met de cursor in het zoekveld.',
   'help.guide.create-place.step.2':
-    "Typ de plaats in ‘Plekken zoeken…’ en kies een resultaat. De naam bovenaan het venster, Adres, Breedtegraad, Lengtegraad en Website worden ingevuld, en Plaatsdetails links toont foto's, openingstijden en een beschrijving. Heeft je TREK een Google-sleutel, dan zoek je met ‘Niet de juiste plek? Zoek in plaats daarvan met Google’ onder de resultaten hetzelfde via Google. Staat Collecties aan, dan biedt ‘Opgeslagen plekken’ rechts op dezelfde manier de plaatsen uit je lijsten aan.",
+    "Typ de plaats in ‘Plekken zoeken…’ en kies een resultaat. De naam bovenaan het venster, Adres, Breedtegraad, Lengtegraad en Website worden ingevuld, en Plaatsdetails links toont foto's, openingstijden en een beschrijving. Heeft je YOUYA een Google-sleutel, dan zoek je met ‘Niet de juiste plek? Zoek in plaats daarvan met Google’ onder de resultaten hetzelfde via Google. Staat Collecties aan, dan biedt ‘Opgeslagen plekken’ rechts op dezelfde manier de plaatsen uit je lijsten aan.",
   'help.guide.create-place.step.3':
     'Klik in ‘Plaatsdetails’ onder ‘Kies een afbeelding’ op een afbeelding om die als afbeelding van de plaats te gebruiken. ‘Deze tekst gebruiken’ kopieert de beschrijving naar het formulier.',
   'help.guide.create-place.step.4':
     'Controleer de velden van het formulier. De naam bovenin het venster is het enige verplichte veld. De pil ‘Categorie’ eronder kiest een van de categorieën van de reis, en met de + ernaast maak je een nieuwe. Adres, Breedtegraad en Lengtegraad komen uit de zoekopdracht of typ je zelf. Klik onder ‘Tags’ op de tags die de plaats moet krijgen. Met ‘Over de plek’ en ‘Notities’ wissel je het tekstveld tussen de beschrijving en je eigen notities. Bij Website vul je de link in, ‘Bijvoegen’ onder Bestanden voegt een document toe, en Telefoon, E-mail en ‘Openingstijden toevoegen’ zijn voor gegevens die de zoekopdracht niet vond.',
   'help.guide.create-place.step.5':
-    'Klik op Toevoegen. Staat er al een plek met dezelfde naam of op dezelfde locatie in de reis, dan waarschuwt TREK je en verandert de knop in ‘Toch toevoegen’.',
+    'Klik op Toevoegen. Staat er al een plek met dezelfde naam of op dezelfde locatie in de reis, dan waarschuwt YOUYA je en verandert de knop in ‘Toch toevoegen’.',
   'help.guide.create-place.result':
     'De plek staat in de lijst en op de kaart, onder Ongepland tot je hem op een dag zet.',
   'help.guide.create-place.tip.1':
     '‘Kosten’ onderaan het formulier opent, als de add-on Budget aanstaat, direct na het opslaan de editor Onkosten voor de uitgave van de plaats. Een afbeelding of pdf die je in het venster plakt, wordt als bestand bijgevoegd onder ‘Bestanden’.',
   'help.guide.create-place.tip.2':
-    'Op elke TREK komen de zoekresultaten uit de TREK-index en OpenStreetMap, en Plaatsdetails wordt automatisch aangevuld uit Wikipedia, Wikivoyage en Wikimedia. TREK vraagt het alleen aan Google als die allebei niets vinden, en alleen Google levert beoordelingen.',
+    'Op elke YOUYA komen de zoekresultaten uit de YOUYA-index en OpenStreetMap, en Plaatsdetails wordt automatisch aangevuld uit Wikipedia, Wikivoyage en Wikimedia. YOUYA vraagt het alleen aan Google als die allebei niets vinden, en alleen Google levert beoordelingen.',
   'help.guide.create-place.tip.3':
     'Je kunt ook een plek op de kaart aanmaken: klik met de rechtermuisknop op de plek, en het formulier opent met de coördinaten en het adres al ingevuld.',
   // place-to-open-day
@@ -2296,7 +2297,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     'De markeringen zijn plaatsen van de reis, in de lijst en op de kaart, onder Ongepland tot je ze op een dag zet.',
   'help.guide.import-places-file.tip.1':
-    "Een te groot bestand wordt geweigerd, en TREK toont de maximale grootte; exporteer het opnieuw zonder foto's, of splits het op.",
+    "Een te groot bestand wordt geweigerd, en YOUYA toont de maximale grootte; exporteer het opnieuw zonder foto's, of splits het op.",
   'help.guide.import-places-file.tip.2':
     'Een import via ‘Bestand importeren’ kun je ongedaan maken via de werkbalk boven de dagen.',
   // import-places-list
@@ -2312,7 +2313,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.tip.1':
     'De lijst moet openbaar gedeeld zijn. Met de link van een privélijst wordt niets geïmporteerd.',
   'help.guide.import-places-list.tip.2':
-    "Heeft je TREK een Google-sleutel, dan zie je in het venster ‘Plaatsen verrijken via Google’: daarmee wordt elke geïmporteerde plek opgezocht en aangevuld met foto's, adres en details.",
+    "Heeft je YOUYA een Google-sleutel, dan zie je in het venster ‘Plaatsen verrijken via Google’: daarmee wordt elke geïmporteerde plek opgezocht en aangevuld met foto's, adres en details.",
   'help.guide.sort-places.title': 'De plaatsenlijst sorteren',
   'help.guide.sort-places.goal':
     'Sorteer de lijst op naam, op beoordeling of op wat het laatst is toegevoegd of gewijzigd.',
@@ -2428,7 +2429,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Sleep de stop naar een andere dagkaart om hem daarheen te verplaatsen. Op de oude dag verdwijnt hij dan.',
   'help.guide.reorder-stops.step.4':
-    'Heeft een stop een vaste tijd en zou een verplaatsing de volgorde van de dag verstoren, dan vraagt TREK ‘Tijd verwijderen?’, omdat de tijd de plek van de stop bepaalt. ‘Tijd verwijderen en verplaatsen’ haalt de tijd weg en zet de stop waar je hem neerzet. ‘Annuleren’ laat de dag zoals hij was.',
+    'Heeft een stop een vaste tijd en zou een verplaatsing de volgorde van de dag verstoren, dan vraagt YOUYA ‘Tijd verwijderen?’, omdat de tijd de plek van de stop bepaalt. ‘Tijd verwijderen en verplaatsen’ haalt de tijd weg en zet de stop waar je hem neerzet. ‘Annuleren’ laat de dag zoals hij was.',
   'help.guide.reorder-stops.result': 'De route en de reistijden passen zich meteen aan de nieuwe volgorde aan.',
   'help.guide.reorder-stops.tip.1':
     'Een boeking met een vaste tijd blijft op de plek die bij die tijd hoort. Zet je hem ergens anders in dezelfde dag neer, dan springt hij terug. Sleep je hem naar een andere dagkaart, dan verhuist hij naar die dag.',
@@ -2448,7 +2449,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'De tijd hoort bij de stop op die dag. Dezelfde plek kan op een andere dag een andere tijd hebben.',
   'help.guide.set-stop-times.tip.2':
-    'Wil je een stop met een tijd zelf verplaatsen, sleep hem dan. TREK vraagt ‘Tijd verwijderen?’, en ‘Tijd verwijderen en verplaatsen’ haalt de tijd weg en verplaatst hem.',
+    'Wil je een stop met een tijd zelf verplaatsen, sleep hem dan. YOUYA vraagt ‘Tijd verwijderen?’, en ‘Tijd verwijderen en verplaatsen’ haalt de tijd weg en verplaatst hem.',
   'help.guide.set-stop-times.tip.3':
     'Het tabblad ‘Alleen dag’ naast ‘Over de plek’ en ‘Notities’, in hetzelfde formulier, is voor een notitie die alleen op deze dag geldt, bijvoorbeeld een tafelreservering of een ticketnummer.',
   // remove-from-day
@@ -2494,7 +2495,7 @@ const help: TranslationStrings = {
   'help.guide.day-note.tip.2': 'Notities gelden per dag. Een notitie voor de hele reis zet je in Samenwerking.',
   // day-route
   'help.guide.day-route.title': 'De route van de dag tonen en optimaliseren',
-  'help.guide.day-route.goal': 'Bekijk de route tussen de stops, kies hoe je reist en laat TREK de volgorde bepalen.',
+  'help.guide.day-route.goal': 'Bekijk de route tussen de stops, kies hoe je reist en laat YOUYA de volgorde bepalen.',
   'help.guide.day-route.step.1':
     'Open de dag en klik op ‘Route’ in de routebalk onder de stops: de route tussen de stops verschijnt op de kaart, en de verbindingen tussen de stops tonen de tijd en afstand van elk traject.',
   'help.guide.day-route.step.2':
@@ -2508,7 +2509,7 @@ const help: TranslationStrings = {
   'help.guide.day-route.result':
     'De dag is een route met tijden. ‘Totale kosten’ en de trajecten worden bijgewerkt als de volgorde verandert.',
   'help.guide.day-route.tip.1':
-    'Routes komen standaard van OSRM; de beheerder kan onder Standaardinstellingen een andere routeplanner voor TREK instellen.',
+    'Routes komen standaard van OSRM; de beheerder kan onder Standaardinstellingen een andere routeplanner voor YOUYA instellen.',
   'help.guide.day-route.tip.2':
     'Een deel van de route dat niet kon worden berekend, toont geen tijd. Controleer of beide stops coördinaten hebben.',
   'help.guide.day-route.tip.3': 'Met de pijl voor ongedaan maken draai je een optimalisatie terug.',
@@ -2587,7 +2588,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     'De rij onderaan: ‘Toevoegen aan dag’ als er een dag open is en de plaats er nog niet op staat, daarna Navigatie (of de naam van je kaartapp, zodra je die in Instellingen hebt gekozen), en twee pictogrammen, ‘Website openen’ en ‘In collectie opslaan’. Rechts bevatten de drie puntjes ‘Verwijderen van dag’ en Verwijderen, en ‘Bewerken’ opent het formulier van de plaats, waar je ook de afbeelding wijzigt.',
   'help.ctx.trip-place.bullet.6':
-    'Bij een plaats die je uit de zoekresultaten hebt gekozen, zie je wat de TREK-index of OpenStreetMap erover weten: ‘Open’ of ‘Gesloten’ tussen de pillen bovenaan, met een groene of rode ring om de afbeelding, op basis van de lokale tijd van de plaats; het telefoonnummer, ook als pil; verderop ‘Openingstijden’, met de tijden van vandaag in de rij en na een klik de hele week; en de website onder ‘Website openen’. De Google-beoordeling verschijnt alleen bij een plaats die via Google is gevonden, op een TREK met een Google-sleutel. Openingstijden, een telefoonnummer en een e-mailadres die je zelf in het formulier van de plaats hebt ingevuld, vervangen de opgezochte gegevens en bepalen ook de kleur van de ring.',
+    'Bij een plaats die je uit de zoekresultaten hebt gekozen, zie je wat de YOUYA-index of OpenStreetMap erover weten: ‘Open’ of ‘Gesloten’ tussen de pillen bovenaan, met een groene of rode ring om de afbeelding, op basis van de lokale tijd van de plaats; het telefoonnummer, ook als pil; verderop ‘Openingstijden’, met de tijden van vandaag in de rij en na een klik de hele week; en de website onder ‘Website openen’. De Google-beoordeling verschijnt alleen bij een plaats die via Google is gevonden, op een YOUYA met een Google-sleutel. Openingstijden, een telefoonnummer en een e-mailadres die je zelf in het formulier van de plaats hebt ingevuld, vervangen de opgezochte gegevens en bepalen ook de kleur van de ring.',
   // read-place
   'help.guide.read-place.title': 'Wat de kaart je over een plek vertelt',
   'help.guide.read-place.goal': 'Lees op één kaart alles wat de reis over een plek weet.',
@@ -2664,7 +2665,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     '‘Afbeelding verwijderen’, aan het eind van de regel onder de tegels, laat de plaats zonder afbeelding achter zodra je op ‘Bijwerken’ klikt. ‘Annuleren’ houdt de oude.',
   'help.guide.place-image.tip.3':
-    'De andere tegels zijn de huidige afbeelding van de plaats, de foto’s die eraan zijn gekoppeld en de afbeeldingen die TREK ervoor vond, elk met de bronvermelding. Alleen reizigers die plaatsen mogen wijzigen, kunnen de afbeelding wijzigen.',
+    'De andere tegels zijn de huidige afbeelding van de plaats, de foto’s die eraan zijn gekoppeld en de afbeeldingen die YOUYA ervoor vond, elk met de bronvermelding. Alleen reizigers die plaatsen mogen wijzigen, kunnen de afbeelding wijzigen.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'De plaats aan de geopende dag toevoegen, of eraf halen',
   'help.guide.place-day-assign.goal': 'Gebruik de knop op de kaart in plaats van de rij door de planner te slepen.',
@@ -2748,11 +2749,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     'In de lijst staan de kaart-apps die bij deze plaats passen: Google Maps, Waze, Apple Maps, OpenStreetMap en CoMaps, en op Android ook ‘Andere kaart-app’.',
   'help.guide.place-navigation.step.3':
-    'Klik op de app die je gebruikt. Waar mogelijk stuurt TREK de plek zelf naar de app en niet alleen de coördinaten, zodat je bij de juiste ingang uitkomt.',
+    'Klik op de app die je gebruikt. Waar mogelijk stuurt YOUYA de plek zelf naar de app en niet alleen de coördinaten, zodat je bij de juiste ingang uitkomt.',
   'help.guide.place-navigation.step.4':
     'Het pictogram ernaast, ‘Website openen’, opent de eigen website van de plek, met openingstijden en tickets, in een nieuw tabblad.',
   'help.guide.place-navigation.result':
-    'De kaart-app opent op de plaats, de website opent in een nieuw tabblad, en er verandert niets aan de reis. Is TREK als app geïnstalleerd, dan opent de kaart-app in plaats van een nieuw tabblad.',
+    'De kaart-app opent op de plaats, de website opent in een nieuw tabblad, en er verandert niets aan de reis. Is YOUYA als app geïnstalleerd, dan opent de kaart-app in plaats van een nieuw tabblad.',
   'help.guide.place-navigation.tip.1':
     'Waze begint meteen te navigeren. De andere apps openen de plek, en je tikt nog één keer om de navigatie te starten.',
   'help.guide.place-navigation.tip.2':
@@ -2793,7 +2794,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.result':
     'De track wordt getekend in de kleur die je hebt gekozen: op de kaart van de plek, op de rij in de plekkenkolom en op de landkaart.',
   'help.guide.place-track.tip.1':
-    'Alleen een plaats met een route heeft deze twee blokken: een plaats die uit een GPX-, KML- of KMZ-bestand is geïmporteerd voordat Tochten bestond, of op een TREK waar Tochten uit staat. Staat Tochten aan, dan wordt een nieuw GPX-bestand een tocht, met een eigen tochtkaart.',
+    'Alleen een plaats met een route heeft deze twee blokken: een plaats die uit een GPX-, KML- of KMZ-bestand is geïmporteerd voordat Tochten bestond, of op een YOUYA waar Tochten uit staat. Staat Tochten aan, dan wordt een nieuw GPX-bestand een tocht, met een eigen tochtkaart.',
   'help.guide.place-track.tip.2':
     'Is een track met hoogtegegevens opgenomen, dan zie je ook het hoogste en laagste punt, de stijgende en dalende meters en het hoogteprofiel van de wandeling.',
   'help.guide.place-track.tip.3':
@@ -2807,13 +2808,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     'Alle documenten van de reis in één lijst: tickets, bevestigingen, passen en afbeeldingen. Elk document heeft een notitie, een koppeling naar de plaats of boeking waar het bij hoort, en een prullenbak waaruit je het kunt terugzetten.',
   'help.ctx.trip-files.bullet.1':
-    'Het gestippelde vak onder de balk, ‘Sleep bestanden hierheen’, neemt bestanden aan die je erop neerzet. Klik erop om de bestandskiezer te openen. In het vak staan de bestandstypen die deze TREK accepteert en de maximale grootte per bestand (Max 50 MB, tenzij een beheerder iets anders heeft ingesteld).',
+    'Het gestippelde vak onder de balk, ‘Sleep bestanden hierheen’, neemt bestanden aan die je erop neerzet. Klik erop om de bestandskiezer te openen. In het vak staan de bestandstypen die deze YOUYA accepteert en de maximale grootte per bestand (Max 50 MB, tenzij een beheerder iets anders heeft ingesteld).',
   'help.ctx.trip-files.bullet.2':
     "In de balk bovenaan staan Bestanden en de filtertabbladen Alle, PDF's, Afbeeldingen en Documenten, elk met het aantal. Zodra een bestand een ster heeft, verschijnt na Alle een stertabblad, en zodra een notitie een bijlage heeft, verschijnt aan het eind het tabblad Collab-notities.",
   'help.ctx.trip-files.bullet.3':
     'Een rij toont een miniatuur of het bestandstype, wie het bestand heeft geüpload, de naam, de notitie eronder, de grootte en de datum, en een label per koppeling: de plek, de boeking of het vervoer met de naam (beweeg de muis erover om Dagplan, Boeking of Transport te zien), en ‘Uit Collab-notities’.',
   'help.ctx.trip-files.bullet.4':
-    'Aan het eind van een rij staan maximaal vijf pictogrammen, met een naam als je ze aanwijst: Ster, Toewijzen (het potlood), Openen, Downloaden en Verwijderen. Verwijderen vraagt niet om bevestiging: het bestand gaat naar de prullenbak, waar je het kunt terugzetten. Offline werken een notitie, een koppeling, een ster en de prullenbak gewoon, en worden ze verstuurd zodra TREK weer online is. Alleen uploaden en het verwijderen van een extra koppeling vereisen een internetverbinding.',
+    'Aan het eind van een rij staan maximaal vijf pictogrammen, met een naam als je ze aanwijst: Ster, Toewijzen (het potlood), Openen, Downloaden en Verwijderen. Verwijderen vraagt niet om bevestiging: het bestand gaat naar de prullenbak, waar je het kunt terugzetten. Offline werken een notitie, een koppeling, een ster en de prullenbak gewoon, en worden ze verstuurd zodra YOUYA weer online is. Alleen uploaden en het verwijderen van een extra koppeling vereisen een internetverbinding.',
   'help.ctx.trip-files.bullet.5':
     'Een afbeelding of video opent schermvullend, met de pijltjestoetsen en een rij miniaturen. Elk ander document opent in een venster met bovenaan de naam en daaronder ‘Openen in nieuw tabblad’ en Downloaden. Een wallet-pas wordt meteen gedownload.',
   'help.ctx.trip-files.bullet.6':
@@ -2825,7 +2826,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     'Open de reis en klik in de tabbladbalk op Bestanden. Daar staan de documenten van de reis, met het uploadvak erboven.',
   'help.guide.files-upload.step.2':
-    'Klik op ‘Sleep bestanden hierheen’ en kies een of meer bestanden. Ze worden een voor een geüpload, en zolang dat bezig is, staat er ‘Uploaden...’ in het vak. In het vak, onder ‘of klik om te bladeren’, zie je welke bestandstypen deze TREK accepteert en hoe groot een bestand maximaal mag zijn.',
+    'Klik op ‘Sleep bestanden hierheen’ en kies een of meer bestanden. Ze worden een voor een geüpload, en zolang dat bezig is, staat er ‘Uploaden...’ in het vak. In het vak, onder ‘of klik om te bladeren’, zie je welke bestandstypen deze YOUYA accepteert en hoe groot een bestand maximaal mag zijn.',
   'help.guide.files-upload.step.3':
     'Zodra het laatste bestand is geüpload, opent ‘Bestand toewijzen’ er vanzelf voor (als de reis plekken of boekingen heeft), met de bestandsnaam boven in het venster. Met ‘Notitie toevoegen...’ onder Notitie zet je een notitie bij het bestand, en met de lijsten daaronder koppel je het aan een plek of boeking. Sluit het venster met de × rechtsboven. Je raakt daarbij niets kwijt.',
   'help.guide.files-upload.step.4':
@@ -2837,7 +2838,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     'Met Ctrl+V zet je een afbeelding van het klembord in de lijst, zodat je een screenshot van een boeking niet eerst hoeft op te slaan.',
   'help.guide.files-upload.tip.3':
-    'Voor uploaden heb je het recht nodig om bestanden te uploaden; zonder dat recht is het vak er helemaal niet. Een bestandstype dat niet op de lijst staat, wordt met een melding geweigerd en er wordt niets geüpload. Een bestand boven de limiet (50 MB, tenzij een beheerder een andere limiet heeft ingesteld) wordt geweigerd voordat er iets wordt verstuurd, en de melding noemt de limiet. Uploaden vereist ook een verbinding: offline meldt TREK dat en wordt er niets geüpload.',
+    'Voor uploaden heb je het recht nodig om bestanden te uploaden; zonder dat recht is het vak er helemaal niet. Een bestandstype dat niet op de lijst staat, wordt met een melding geweigerd en er wordt niets geüpload. Een bestand boven de limiet (50 MB, tenzij een beheerder een andere limiet heeft ingesteld) wordt geweigerd voordat er iets wordt verstuurd, en de melding noemt de limiet. Uploaden vereist ook een verbinding: offline meldt YOUYA dat en wordt er niets geüpload.',
   // files-link
   'help.guide.files-link.title': 'Een document koppelen aan een plaats of een boeking',
   'help.guide.files-link.goal':
@@ -2857,7 +2858,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     'Een bestand kan meerdere koppelingen tegelijk hebben, zodat dezelfde bevestiging zowel bij de boeking van het hotel als bij de plaats van het hotel kan horen.',
   'help.guide.files-link.tip.2':
-    'Klik nog een keer op een aangevinkt item om die koppeling weg te halen; het bestand zelf blijft bestaan. Offline worden de notitie en nieuwe vinkjes opgeslagen en verstuurd zodra TREK weer online is; alleen voor het verwijderen van een andere koppeling heb je een verbinding nodig.',
+    'Klik nog een keer op een aangevinkt item om die koppeling weg te halen; het bestand zelf blijft bestaan. Offline worden de notitie en nieuwe vinkjes opgeslagen en verstuurd zodra YOUYA weer online is; alleen voor het verwijderen van een andere koppeling heb je een verbinding nodig.',
   'help.guide.files-link.tip.3':
     'Het werkt ook andersom: een document dat aan een plek of boeking is gekoppeld, staat ook in deze lijst, met hetzelfde label op de rij.',
   'help.guide.files-link.tip.4':
@@ -2894,7 +2895,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     'De lijst is altijd gesorteerd met bestanden met een ster bovenaan en daarna de nieuwste eerst. Een document van vandaag staat dus boven een document van vorige maand.',
   // files-preview
-  'help.guide.files-preview.title': 'Een document lezen zonder TREK te verlaten',
+  'help.guide.files-preview.title': 'Een document lezen zonder YOUYA te verlaten',
   'help.guide.files-preview.goal':
     'Bekijk een ticket of afbeelding meteen, en download het naar je apparaat als je het daar nodig hebt.',
   'help.guide.files-preview.step.1':
@@ -2931,7 +2932,7 @@ const help: TranslationStrings = {
     "'Prullenbak legen', in de balk naast het prullenbakicoon, verwijdert alles wat nog in de prullenbak staat definitief. De browser vraagt eerst één keer om bevestiging. Het prullenbakicoon schakelt terug naar de bestanden.",
   'help.guide.files-trash.result': 'Het bestand staat weer op zijn oude plek in de lijst.',
   'help.guide.files-trash.tip.1':
-    '‘Verwijderen’ op een rij vraagt niet eerst om bevestiging. Daarom is er een prullenbak: er wordt pas iets uit TREK verwijderd als je het hier verwijdert. Dit werkt ook allemaal offline en wordt verstuurd zodra TREK weer online is.',
+    '‘Verwijderen’ op een rij vraagt niet eerst om bevestiging. Daarom is er een prullenbak: er wordt pas iets uit YOUYA verwijderd als je het hier verwijdert. Dit werkt ook allemaal offline en wordt verstuurd zodra YOUYA weer online is.',
   'help.guide.files-trash.tip.2':
     'Om bestanden te verwijderen en terug te zetten, heb je het recht nodig om bestanden te verwijderen. Een lid zonder dat recht ziet geen Verwijderen op de rij en ook geen knoppen in de prullenbak.',
   'help.guide.files-trash.tip.3':
@@ -2945,21 +2946,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     'Klik op je opslagdienst, hier Nextcloud. Er opent een kleiner venster voor de verbinding, met de naam van de opslagdienst, waarin om de inloggegevens wordt gevraagd die deze dienst nodig heeft.',
   'help.guide.files-sync.step.3':
-    "Vul Adres in en de inloggegevens van de opslagdienst: een API-token voor Paperless-ngx, een API-sleutel en de Organisatie-ID voor Papra, Gebruikersnaam en een App-wachtwoord voor Nextcloud, Gebruikersnaam en een App-token voor OpenCloud, en voor Synology Drive Gebruikersnaam, Wachtwoord en, als het account erom vraagt, een Tweestapscode. Gebruik een app-wachtwoord of token als de dienst dat aanbiedt, nooit je accountwachtwoord. Bij Nextcloud en Synology Drive kun je ook een Basismap opgeven, waar TREK naar reismappen zoekt, hier /Reisen. ‘Zelfondertekend certificaat toestaan’ onderaan is alleen bedoeld voor een opslagdienst op je eigen netwerk met zo'n certificaat.",
+    "Vul Adres in en de inloggegevens van de opslagdienst: een API-token voor Paperless-ngx, een API-sleutel en de Organisatie-ID voor Papra, Gebruikersnaam en een App-wachtwoord voor Nextcloud, Gebruikersnaam en een App-token voor OpenCloud, en voor Synology Drive Gebruikersnaam, Wachtwoord en, als het account erom vraagt, een Tweestapscode. Gebruik een app-wachtwoord of token als de dienst dat aanbiedt, nooit je accountwachtwoord. Bij Nextcloud en Synology Drive kun je ook een Basismap opgeven, waar YOUYA naar reismappen zoekt, hier /Reisen. ‘Zelfondertekend certificaat toestaan’ onderaan is alleen bedoeld voor een opslagdienst op je eigen netwerk met zo'n certificaat.",
   'help.guide.files-sync.step.4':
-    'Klik op ‘Verbinding testen’. TREK maakt verbinding met de opslagdienst met de gegevens die je hebt ingevuld, en onderaan staat ‘Bereikt, aangemeld als’, gevolgd door de naam van het account. Worden de inloggegevens geweigerd of is het adres niet bereikbaar, dan staat dat daar. In beide gevallen wordt er niets opgeslagen.',
+    'Klik op ‘Verbinding testen’. YOUYA maakt verbinding met de opslagdienst met de gegevens die je hebt ingevuld, en onderaan staat ‘Bereikt, aangemeld als’, gevolgd door de naam van het account. Worden de inloggegevens geweigerd of is het adres niet bereikbaar, dan staat dat daar. In beide gevallen wordt er niets opgeslagen.',
   'help.guide.files-sync.step.5':
-    'Klik op Verbinden. De verbinding wordt bij de reis opgeslagen, en TREK vraagt waar in de opslagdienst de documenten van de reis moeten staan: de tag, map of ruimte waarin ze zitten. Alleen wat daarin staat, wordt gesynchroniseerd. ‘Een nieuwe maken’ maakt er een aan als je op Aanmaken klikt, met de titel van de reis als naam. Onder ‘Of gebruik er een die je al hebt’ zie je de bestaande. Klik op een ervan, hier de map Autumn in Japan.',
+    'Klik op Verbinden. De verbinding wordt bij de reis opgeslagen, en YOUYA vraagt waar in de opslagdienst de documenten van de reis moeten staan: de tag, map of ruimte waarin ze zitten. Alleen wat daarin staat, wordt gesynchroniseerd. ‘Een nieuwe maken’ maakt er een aan als je op Aanmaken klikt, met de titel van de reis als naam. Onder ‘Of gebruik er een die je al hebt’ zie je de bestaande. Klik op een ervan, hier de map Autumn in Japan.',
   'help.guide.files-sync.step.6':
-    'Het venster opent opnieuw: links staat je opslagdienst onder ‘Deze reis’, en rechts zie je op de kaart waarmee wordt gesynchroniseerd, wanneer dat voor het laatst gebeurde en ‘Nu synchroniseren’. De eerste synchronisatie start vanzelf. Klik op ‘Nu synchroniseren’ om op elk moment te synchroniseren. Na een synchronisatie verandert het label ‘Nog niet gesynchroniseerd’ naast de naam in een groene stip, met Synchroon als je de muis erover beweegt. De stroombalk toont hoeveel documenten TREK en de opslagdienst elk hebben, met daartussen de banen ‘Naar de opslag’ en ‘Uit de opslag’. Sluit het venster met de × rechtsboven.',
+    'Het venster opent opnieuw: links staat je opslagdienst onder ‘Deze reis’, en rechts zie je op de kaart waarmee wordt gesynchroniseerd, wanneer dat voor het laatst gebeurde en ‘Nu synchroniseren’. De eerste synchronisatie start vanzelf. Klik op ‘Nu synchroniseren’ om op elk moment te synchroniseren. Na een synchronisatie verandert het label ‘Nog niet gesynchroniseerd’ naast de naam in een groene stip, met Synchroon als je de muis erover beweegt. De stroombalk toont hoeveel documenten YOUYA en de opslagdienst elk hebben, met daartussen de banen ‘Naar de opslag’ en ‘Uit de opslag’. Sluit het venster met de × rechtsboven.',
   'help.guide.files-sync.result':
-    'De documenten die al in de opslag stonden, verschijnen bovenaan de lijst, geüpload op jouw naam, en alle documenten van de reis staan ook in de opslag, behalve die uit Collab-notities. Vanaf nu controleert TREK de opslag op de achtergrond, en wijzigingen in de lijst worden naar de opslag gekopieerd.',
+    'De documenten die al in de opslag stonden, verschijnen bovenaan de lijst, geüpload op jouw naam, en alle documenten van de reis staan ook in de opslag, behalve die uit Collab-notities. Vanaf nu controleert YOUYA de opslag op de achtergrond, en wijzigingen in de lijst worden naar de opslag gekopieerd.',
   'help.guide.files-sync.tip.1':
     "Alleen de eigenaar van de reis of een beheerder van de instantie kan een reis koppelen, omdat de inloggegevens toegang geven tot het hele account bij de opslagdienst. Is de reis gekoppeld, dan ziet elk lid Documentsynchronisatie en kan hij of zij het openen, de kaart lezen en op 'Nu synchroniseren' klikken.",
   'help.guide.files-sync.tip.2':
-    "Voor een opslagdienst op je eigen netwerk moet op de TREK-server ALLOW_INTERNAL_NETWORK=true staan, en het adres moet het netwerkadres van de machine zijn, nooit localhost. Anders antwoordt 'Verbinding testen' met 'Dat adres is niet toegestaan.'",
+    "Voor een opslagdienst op je eigen netwerk moet op de YOUYA-server ALLOW_INTERNAL_NETWORK=true staan, en het adres moet het netwerkadres van de machine zijn, nooit localhost. Anders antwoordt 'Verbinding testen' met 'Dat adres is niet toegestaan.'",
   'help.guide.files-sync.tip.3':
-    '‘Verbinding verbreken’, het pictogram naast ‘Nu synchroniseren’, vraagt één keer om bevestiging. Daarna wordt de koppeling verbroken en blijven alle documenten aan beide kanten bewaard. Koppel je een tag, map of ruimte een tweede keer, dan ziet TREK die als nieuw en importeert alles erin opnieuw. Koppel na het verbreken dus een lege, niet de oude.',
+    '‘Verbinding verbreken’, het pictogram naast ‘Nu synchroniseren’, vraagt één keer om bevestiging. Daarna wordt de koppeling verbroken en blijven alle documenten aan beide kanten bewaard. Koppel je een tag, map of ruimte een tweede keer, dan ziet YOUYA die als nieuw en importeert alles erin opnieuw. Koppel na het verbreken dus een lege, niet de oude.',
 
   // ── Screen: trip-day-detail ───────────────────────────────────────────────────────────
   'help.ctx.trip-day-detail.title': 'Dagdetails',
@@ -3147,7 +3148,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     'Met de rij pictogrammen bovenaan de kaart zoek je per categorie: Restaurants, Cafés, Bars & uitgaan, Accommodatie, Bezienswaardigheden, Musea & cultuur, Natuur & parken, Activiteiten, Bakkerijen en Boodschappen. Categorieën van plugins staan erachter, na een dunne scheidingslijn. Beweeg je muis over een pictogram om de naam te zien.',
   'help.guide.map-nearby-places.step.2':
-    'Klik op een categorie. TREK zoekt naar dat soort plaatsen in het zichtbare deel van de kaart en zet bij elk resultaat een speld in de kleur van de categorie. Er kan één categorie tegelijk actief zijn: klik je op een andere, dan vervangt die de vorige, en klik je op de actieve, dan zet je hem uit.',
+    'Klik op een categorie. YOUYA zoekt naar dat soort plaatsen in het zichtbare deel van de kaart en zet bij elk resultaat een speld in de kleur van de categorie. Er kan één categorie tegelijk actief zijn: klik je op een andere, dan vervangt die de vorige, en klik je op de actieve, dan zet je hem uit.',
   'help.guide.map-nearby-places.step.3':
     "Verschuif je de kaart, dan verschijnt onder de rij een tweede knop: 'Dit gebied doorzoeken' voert dezelfde zoekopdracht uit voor het nieuwe kaartbeeld. Alleen de kaart verschuiven start geen nieuwe zoekopdracht. Zo blijft het aantal verzoeken laag.",
   'help.guide.map-nearby-places.step.4':
@@ -3155,13 +3156,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     'Controleer wat er is ingevuld en vul aan wat de zoekopdracht niet kon weten. De pil ‘Categorie’ onder de naam is al ingesteld als de reis een passende categorie heeft, zoals restaurant voor een restaurant. Anders staat er ‘Geen categorie’ tot je er een kiest. Schrijf onder ‘Over de plek’ waar de plaats over gaat, en je eigen notities onder ‘Notities’.',
   'help.guide.map-nearby-places.step.6':
-    "Klik op Toevoegen. Staat er al een plaats met dezelfde naam of op dezelfde plek in de reis, dan meldt TREK dat, en verandert de knop in 'Toch toevoegen'.",
+    "Klik op Toevoegen. Staat er al een plaats met dezelfde naam of op dezelfde plek in de reis, dan meldt YOUYA dat, en verandert de knop in 'Toch toevoegen'.",
   'help.guide.map-nearby-places.result':
     'De plek staat in de plekkenlijst en als eigen speld van de reis op de kaart, onder Ongepland tot je hem op een dag zet. De spelden van de zoekopdracht blijven staan tot je de categorie uitzet.',
   'help.guide.map-nearby-places.tip.1':
     'De rij is verborgen als ‘Plaatsen op de kaart ontdekken’ uit staat in Instellingen > Weergave, onder Reis en kaart.',
   'help.guide.map-nearby-places.tip.2':
-    'De resultaten komen uit de TREK-plaatsenindex en van OpenStreetMap. Dit is dus een van de weinige onderdelen van de planning waarvoor je verbinding nodig hebt.',
+    'De resultaten komen uit de YOUYA-plaatsenindex en van OpenStreetMap. Dit is dus een van de weinige onderdelen van de planning waarvoor je verbinding nodig hebt.',
   'help.guide.map-nearby-places.tip.3':
     'Er wordt alleen gezocht in het gebied dat op het scherm staat. Zoom dus in op de straat die je interesseert. Zoek je in een hele stad, dan krijg je alleen de eerste zestig resultaten, zonder duidelijke volgorde.',
   // map-add-place
@@ -3170,7 +3171,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     "Klik met rechts op de plek op de kaart. Het plaatsformulier opent met de kop 'Plaats/activiteit toevoegen'.",
   'help.guide.map-add-place.step.2':
-    'Breedtegraad en Lengtegraad staan al op dat punt. TREK zoekt de coördinaten op en vult bij Adres in wat het daar vindt. Levert het opzoeken een naam op, dan vult TREK ook de naam bovenaan het venster in. Er is nog niets opgeslagen, dus verbeter wat niet klopt.',
+    'Breedtegraad en Lengtegraad staan al op dat punt. YOUYA zoekt de coördinaten op en vult bij Adres in wat het daar vindt. Levert het opzoeken een naam op, dan vult YOUYA ook de naam bovenaan het venster in. Er is nog niets opgeslagen, dus verbeter wat niet klopt.',
   'help.guide.map-add-place.step.3':
     'Typ in het veld boven in het venster een naam die je herkent. Kies een categorie via de pil eronder, waarop ‘Geen categorie’ staat tot je er een kiest. Vul daarna de andere gegevens voor de planning in: ‘Over de plek’, Notities, Website.',
   'help.guide.map-add-place.step.4':
@@ -3187,7 +3188,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     'De schakelaar voor de basislaag is de onderste van de twee ronde knoppen linksonder op de kaart, onder het slot. Het pictogram toont altijd de laag waarnaar hij wisselt, en de tooltip zegt welke: ‘Overschakelen naar satellietweergave’. Klik erop.',
   'help.guide.map-satellite.step.2':
-    "De kaart toont nu luchtfoto's. Die zijn zo gedetailleerd dat je losse gebouwen ziet, en je hebt er geen eigen sleutel voor nodig. Alles wat TREK tekent, blijft erbovenop: de spelden, de route van de dag, de tracks en de routes van boekingen.",
+    "De kaart toont nu luchtfoto's. Die zijn zo gedetailleerd dat je losse gebouwen ziet, en je hebt er geen eigen sleutel voor nodig. Alles wat YOUYA tekent, blijft erbovenop: de spelden, de route van de dag, de tracks en de routes van boekingen.",
   'help.guide.map-satellite.step.3':
     'Op de knop staat nu ‘Overschakelen naar kaartweergave’. Klik erop om terug te gaan naar de kaartweergave.',
   'help.guide.map-satellite.result':
@@ -3243,7 +3244,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Toon de route die Dawarich op je telefoon heeft opgenomen als stippellijn naast je geplande route op de kaart, en zie per dag hoe de reis echt is verlopen.',
   'help.guide.map-dawarich-trail.step.1':
-    'De ronde Dawarich-knop zit rechtsonder op de kaart, onder ‘Hele reis tonen’. Beweeg je de muis erover, dan staat er ‘Opgenomen route tonen’. Klik erop. TREK vraagt de gegevens voor de data van de reis op bij je Dawarich, en zolang TREK op antwoord wacht, draait er een ring rond de knop.',
+    'De ronde Dawarich-knop zit rechtsonder op de kaart, onder ‘Hele reis tonen’. Beweeg je de muis erover, dan staat er ‘Opgenomen route tonen’. Klik erop. YOUYA vraagt de gegevens voor de data van de reis op bij je Dawarich, en zolang YOUYA op antwoord wacht, draait er een ring rond de knop.',
   'help.guide.map-dawarich-trail.step.2':
     'De opgenomen route verschijnt als stippellijn, met een eigen kleur per dag, onder de geplande route, zodat de planning leesbaar blijft. Op de knop staat nu ‘Opgenomen route verbergen’. Elke dag eindigt om middernacht plaatselijke tijd. Klap je een dag in de dagenkolom in, dan verdwijnen de stippellijn en de stops van die dag van de kaart.',
   'help.guide.map-dawarich-trail.step.3':
@@ -3251,9 +3252,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     'Wat je had gepland en wat je echt hebt gedaan, staan samen op de kaart, als stippellijn en doorgetrokken lijn. De kaart boven de knoppen toont nog steeds de geplande dagen en hun afstanden.',
   'help.guide.map-dawarich-trail.tip.1':
-    'Of de route aan of uit staat, wordt per reis in je account opgeslagen, dus dat is in elke browser en op elk apparaat hetzelfde. Zolang de route aan staat, vraagt TREK elke twee minuten opnieuw gegevens op bij Dawarich, zodat een lopende reis wordt bijgewerkt zonder dat je de pagina hoeft te herladen. De route zelf wordt nooit opgeslagen: hij staat niet in de database van TREK en niet in back-ups, en is offline niet beschikbaar.',
+    'Of de route aan of uit staat, wordt per reis in je account opgeslagen, dus dat is in elke browser en op elk apparaat hetzelfde. Zolang de route aan staat, vraagt YOUYA elke twee minuten opnieuw gegevens op bij Dawarich, zodat een lopende reis wordt bijgewerkt zonder dat je de pagina hoeft te herladen. De route zelf wordt nooit opgeslagen: hij staat niet in de database van YOUYA en niet in back-ups, en is offline niet beschikbaar.',
   'help.guide.map-dawarich-trail.tip.2':
-    "Het label van de knop vertelt waarom de kaart leeg is: 'De opgenomen route wordt geladen…' tijdens het laden, 'Op deze datums is er niets opgenomen', 'De opgenomen route kon niet worden geladen', of 'De opgenomen route heeft een verbinding nodig' als TREK offline is.",
+    "Het label van de knop vertelt waarom de kaart leeg is: 'De opgenomen route wordt geladen…' tijdens het laden, 'Op deze datums is er niets opgenomen', 'De opgenomen route kon niet worden geladen', of 'De opgenomen route heeft een verbinding nodig' als YOUYA offline is.",
   // map-compass
   'help.guide.map-compass.title': 'De kaart draaien en het noorden terugvinden',
   'help.guide.map-compass.goal':
@@ -3425,7 +3426,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     "Met 'Afbeeldingen toevoegen' voeg je maximaal vier afbeeldingen toe aan één bericht. Je kunt ze ook plakken of naar het invoerveld slepen.",
   'help.guide.trip-chat.tip.3':
-    'Onder een bericht met een link verschijnt een voorbeeldkaart, opgehaald door je eigen TREK. Een link naar iets wat alleen jij kunt bereiken, blijft dus een gewone link.',
+    'Onder een bericht met een link verschijnt een voorbeeldkaart, opgehaald door je eigen YOUYA. Een link naar iets wat alleen jij kunt bereiken, blijft dus een gewone link.',
   'help.guide.trip-chat.tip.4':
     'Chat heeft een eigen schakelaar onder Add-ons, onder Samenwerking: een beheerder kan de chat uitzetten en de notities, links, polls en ‘Wat komt er’ laten aanstaan.',
 
@@ -3466,7 +3467,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     'Wijs je iemand toe aan een lijst, dan krijgt die persoon een inpakmelding. Dat verandert niets aan wie de items kan zien. Dat stel je in in het venster van elk item onder ‘Zichtbaar voor’, of voor de hele lijst met ‘Delen voor de hele lijst’.',
   'help.guide.packing-categories.tip.3':
-    'Twee lijsten mogen dezelfde naam hebben. TREK houdt ze intern uit elkaar, zodat de namen blijven zoals je ze hebt getypt.',
+    'Twee lijsten mogen dezelfde naam hebben. YOUYA houdt ze intern uit elkaar, zodat de namen blijven zoals je ze hebt getypt.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Afvinken tijdens het inpakken',
   'help.guide.check-off-packing.goal': 'Vink af wat in je tas zit, volg de voortgang en verwijder de ingepakte items.',
@@ -3515,13 +3516,13 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.step.3':
     'Of laad de regels uit een bestand met ‘CSV/TXT/MD laden’, linksonder in het venster. Dat werkt met een .csv-, .txt- of .md-bestand en vervangt wat er in het vak staat.',
   'help.guide.import-packing-list.step.4':
-    'Klik rechtsonder op ‘3 importeren’. Het getal geeft aan hoeveel regels TREK heeft begrepen.',
+    'Klik rechtsonder op ‘3 importeren’. Het getal geeft aan hoeveel regels YOUYA heeft begrepen.',
   'help.guide.import-packing-list.result':
     'Elke regel wordt een rij, in de lijst die in het eerste veld staat. Items die er al waren, blijven ongewijzigd.',
   'help.guide.import-packing-list.tip.1':
     'Komma\'s, puntkomma\'s en tabs scheiden allemaal velden, en dubbele aanhalingstekens houden een veld bij elkaar, zodat "Shirt, blauw" één naam blijft. Een regel met maar één waarde is gewoon een naam. Een regel zonder eigen lijst komt in Overig terecht. Met "3x" voor een naam stel je het aantal in.',
   'help.guide.import-packing-list.tip.2':
-    'Heeft de reis de tas uit het vierde veld nog niet, dan maakt TREK die aan. ‘Importeren’ en ‘Sjabloon toepassen’ zijn de twee manieren om voor veel items tegelijk gewichten en tassen toe te voegen.',
+    'Heeft de reis de tas uit het vierde veld nog niet, dan maakt YOUYA die aan. ‘Importeren’ en ‘Sjabloon toepassen’ zijn de twee manieren om voor veel items tegelijk gewichten en tassen toe te voegen.',
   // export-packing-list
   'help.guide.export-packing-list.title': 'De inpaklijst afdrukken of exporteren',
   'help.guide.export-packing-list.goal':
@@ -3666,7 +3667,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '‘Handmatige boeking’ rechts in de balk opent ‘Nieuwe reservering’. Daarmee maak je zes soorten boekingen: Accommodatie, Restaurant, Evenement, Rondleiding, Parkeren en Overig. Vluchten, treinen en ander vervoer staan op het tabblad Transport en komen hier nooit voor.',
   'help.ctx.trip-bookings.bullet.2':
-    "Het uploadpictogram vóór ‘Handmatige boeking’, ‘Boekingsbevestigingen importeren’, uploadt bevestigingen zodat TREK ze automatisch kan uitlezen: EML, PDF, PKPass, HTML of TXT, maximaal vijf bestanden van 10 MB, en foto's als het AI-model afbeeldingen leest. Het pictogram is er alleen als de server ze kan lezen. Heeft de beheerder de mailimport aangezet, dan geeft hetzelfde venster de reis een eigen adres om boekingsmails naartoe te sturen.",
+    "Het uploadpictogram vóór ‘Handmatige boeking’, ‘Boekingsbevestigingen importeren’, uploadt bevestigingen zodat YOUYA ze automatisch kan uitlezen: EML, PDF, PKPass, HTML of TXT, maximaal vijf bestanden van 10 MB, en foto's als het AI-model afbeeldingen leest. Het pictogram is er alleen als de server ze kan lezen. Heeft de beheerder de mailimport aangezet, dan geeft hetzelfde venster de reis een eigen adres om boekingsmails naartoe te sturen.",
   'help.ctx.trip-bookings.bullet.3':
     'Zoeken doorzoekt titels, typen, plekken, notities, boekingscodes en reizigers. Met Filteren, de trechter ernaast, beperk je het tabblad op Status, op Type (met een aantal per type) en op Reizigers, zodra er bij een boeking mensen zijn ingevuld. Een getal op de trechter laat zien hoeveel filters er actief zijn.',
   'help.ctx.trip-bookings.bullet.4':
@@ -3731,7 +3732,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     'Kies het hotel onder ‘Accommodatie’. De lijst bevat de plaatsen van de reis, zonder geïmporteerde tracks en tochten. Kies je er een, dan komt de naam in een lege titel en het adres in ‘Locatie / Adres’.',
   'help.guide.booking-hotel.step.3':
-    'Stel Van en Tot in: de eerste nacht en de ochtend waarop je vertrekt. Bij allebei kun je kiezen uit de dagen van de reis met hun data, en TREK zorgt dat Tot na Van blijft.',
+    'Stel Van en Tot in: de eerste nacht en de ochtend waarop je vertrekt. Bij allebei kun je kiezen uit de dagen van de reis met hun data, en YOUYA zorgt dat Tot na Van blijft.',
   'help.guide.booking-hotel.step.4':
     'Vul Inchecken, ‘Check-in tot’ en Uitchecken in, en de Boekingscode uit de bevestiging.',
   'help.guide.booking-hotel.step.5': 'Klik op Toevoegen.',
@@ -3780,7 +3781,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.title': 'De voucher bij de boeking bewaren',
   'help.guide.booking-files.goal': 'Voeg de bevestiging, het ticket of de pas toe aan de boeking waar ze bij horen.',
   'help.guide.booking-files.step.1':
-    'Open de boeking met het potlood op de kaart. Bestanden staat naast Koppelen. Klik daar op ‘Bestand bijvoegen’. Bij een bestaande boeking wordt het document meteen geüpload en meldt TREK ‘Bestand geüpload’.',
+    'Open de boeking met het potlood op de kaart. Bestanden staat naast Koppelen. Klik daar op ‘Bestand bijvoegen’. Bij een bestaande boeking wordt het document meteen geüpload en meldt YOUYA ‘Bestand geüpload’.',
   'help.guide.booking-files.step.2':
     'Het document staat er met zijn naam, met een knop om het te openen en een X ernaast.',
   'help.guide.booking-files.step.3':
@@ -3837,7 +3838,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': 'Een boeking importeren uit de bevestiging',
   'help.guide.import-booking-file.goal':
-    'Laat TREK de boeking uitlezen uit de e-mail of de PDF van de aanbieder, zodat je hem niet opnieuw hoeft te typen.',
+    'Laat YOUYA de boeking uitlezen uit de e-mail of de PDF van de aanbieder, zodat je hem niet opnieuw hoeft te typen.',
   'help.guide.import-booking-file.step.1':
     'Klik in de balk op het uploadpictogram, ‘Boekingsbevestigingen importeren’. De naam zie je als je de muis erover beweegt. Het venster met dezelfde naam opent.',
   'help.guide.import-booking-file.step.2':
@@ -3973,16 +3974,16 @@ const help: TranslationStrings = {
   'help.guide.split-expense.tip.2':
     'Gelijk verdeelt tot op de cent: de cent die overblijft, gaat bij elke uitgave naar iemand anders, zodat niet steeds dezelfde persoon hem betaalt.',
   'help.guide.split-expense.tip.3':
-    'In de modus Bon berekent TREK het Totaalbedrag zelf en wordt het veld grijs: het totaal is de som van de regels op de bon.',
+    'In de modus Bon berekent YOUYA het Totaalbedrag zelf en wordt het veld grijs: het totaal is de som van de regels op de bon.',
   'help.guide.split-expense.tip.4':
     'Een aangepaste verdeling kun je ook in procenten of in delen invoeren: met de kleine schakelaar naast de hint kies je het valutateken, % of Delen. Bij procenten moeten de delen samen 100 % zijn voordat de uitgave kan worden opgeslagen.',
   // expense-currency
   'help.guide.expense-currency.title': 'Een uitgave in een andere valuta invoeren',
-  'help.guide.expense-currency.goal': 'Vul het bedrag van het bonnetje in, dan slaat TREK de wisselkoers op.',
+  'help.guide.expense-currency.goal': 'Vul het bedrag van het bonnetje in, dan slaat YOUYA de wisselkoers op.',
   'help.guide.expense-currency.step.1':
     "Open 'Uitgave toevoegen'. Typ bovenaan het venster de naam en vul bij Totaalbedrag het bedrag in precies zoals het op het bonnetje staat, niet omgerekend.",
   'help.guide.expense-currency.step.2':
-    'Open Valuta naast het bedrag. Een nieuwe uitgave begint in de eigen valuta van de reis. Kies de valuta van het bonnetje: de valuta van de reis en die waarin Onkosten wordt getoond staan bovenaan, en alle andere codes die TREK kent, zoek je door de drie letters te typen.',
+    'Open Valuta naast het bedrag. Een nieuwe uitgave begint in de eigen valuta van de reis. Kies de valuta van het bonnetje: de valuta van de reis en die waarin Onkosten wordt getoond staan bovenaan, en alle andere codes die YOUYA kent, zoek je door de drie letters te typen.',
   'help.guide.expense-currency.step.3':
     'Onder de velden verschijnt een rij labels: het bedrag dat je hebt getypt en wat het nu waard is, met de vermelding ‘live koers’. Dit is alleen een voorbeeld, niet het bedrag dat wordt opgeslagen.',
   'help.guide.expense-currency.step.4':
@@ -4199,7 +4200,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Transport',
   'help.ctx.trip-transports.summary':
-    "Alle manieren waarop je tussen de stops reist: vluchten, treinen, bussen, auto's, taxi's, fietsen, cruises, veerboten, kabelbanen en de ov-verbindingen die TREK voor je opzoekt. Het tabblad zet ze op een rij. Je kunt ze ook in de planning aanmaken en bekijken, en ze staan op de kaart.",
+    "Alle manieren waarop je tussen de stops reist: vluchten, treinen, bussen, auto's, taxi's, fietsen, cruises, veerboten, kabelbanen en de ov-verbindingen die YOUYA voor je opzoekt. Het tabblad zet ze op een rij. Je kunt ze ook in de planning aanmaken en bekijken, en ze staan op de kaart.",
   'help.ctx.trip-transports.bullet.1':
     'Op dit tabblad staan alleen de ritten. Accommodatie, restaurants, evenementen en tickets staan op het tabblad Boekingen, zodat niets dubbel verschijnt.',
   'help.ctx.trip-transports.bullet.2':
@@ -4256,7 +4257,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': 'Een vlucht importeren uit het e-ticket',
   'help.guide.import-transport-file.goal':
-    'Laat TREK een vlucht, trein of veerboot uitlezen uit het ticket van de vervoerder, en controleer alles voordat het wordt opgeslagen.',
+    'Laat YOUYA een vlucht, trein of veerboot uitlezen uit het ticket van de vervoerder, en controleer alles voordat het wordt opgeslagen.',
   'help.guide.import-transport-file.step.1':
     'Klik in de balk van het tabblad Transport op het uploadpictogram vóór Transport, met de knopinfo ‘Boekingsbevestigingen importeren’. Het venster met die naam opent, hetzelfde als op het tabblad Boekingen. Op een leeg tabblad doet ‘Importeren vanuit bestand’ in het midden hetzelfde.',
   'help.guide.import-transport-file.step.2':
@@ -4276,11 +4277,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': 'Een ov-verbinding plannen',
   'help.guide.plan-transit.goal':
-    'Laat TREK de echte treinen en bussen tussen twee punten van een dag opzoeken, en zet de verbinding die je kiest in de planning.',
+    'Laat YOUYA de echte treinen en bussen tussen twee punten van een dag opzoeken, en zet de verbinding die je kiest in de planning.',
   'help.guide.plan-transit.step.1':
     'Klik op de + in de kop van de dag en kies ‘Openbaar vervoer’. Het zoeken opent voor die dag: de dag staat als label in de kop, en met Handmatig en Automatisch ernaast wissel je tussen dit zoeken en het gewone formulier.',
   'help.guide.plan-transit.step.2':
-    'Bij ‘Van’ en ‘Naar’ kies je een halte of station. Zolang het vak nog leeg is, stelt TREK de accommodatie van de dag voor, de stations en luchthavens uit de boekingen van die dag en de stops van de dag zelf. Typ je twee letters, dan doorzoekt TREK in plaats daarvan de stations uit de dienstregeling. ‘Wisselen’ tussen de twee vakken draait Van en Naar om.',
+    'Bij ‘Van’ en ‘Naar’ kies je een halte of station. Zolang het vak nog leeg is, stelt YOUYA de accommodatie van de dag voor, de stations en luchthavens uit de boekingen van die dag en de stops van de dag zelf. Typ je twee letters, dan doorzoekt YOUYA in plaats daarvan de stations uit de dienstregeling. ‘Wisselen’ tussen de twee vakken draait Van en Naar om.',
   'help.guide.plan-transit.step.3':
     'Met Vertrek of Aankomst en een tijd geef je aan wanneer je wilt reizen, en met ‘Beste route’, ‘Minder overstappen’ of ‘Minder lopen’ hoe de resultaten worden gesorteerd.',
   'help.guide.plan-transit.step.4':
@@ -4393,7 +4394,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     'Een vlucht met hetzelfde nummer en dezelfde datum die al in de reis staat, wordt overgeslagen, en een melding vertelt hoeveel vluchten zijn overgeslagen. Met de pijl voor ongedaan maken in de werkbalk boven de dagen draai je de hele import terug.',
   'help.guide.airtrail-import.tip.2':
-    "AirTrail blijft de hoofdbron van de gegevens. TREK haalt wijzigingen op als je de reis opent en daarna om de paar minuten op de achtergrond. Een vlucht die in AirTrail is verwijderd, houdt zijn kaart in TREK, maar het label verandert in 'Niet gesynchroniseerd'. Wijzigingen in TREK gaan alleen terug naar AirTrail als 'Wijzigingen terugschrijven naar AirTrail' aan staat onder Integraties.",
+    "AirTrail blijft de hoofdbron van de gegevens. YOUYA haalt wijzigingen op als je de reis opent en daarna om de paar minuten op de achtergrond. Een vlucht die in AirTrail is verwijderd, houdt zijn kaart in YOUYA, maar het label verandert in 'Niet gesynchroniseerd'. Wijzigingen in YOUYA gaan alleen terug naar AirTrail als 'Wijzigingen terugschrijven naar AirTrail' aan staat onder Integraties.",
   'help.guide.airtrail-import.tip.3':
     'Een samengevoegde verbinding is niet één AirTrail-vlucht die kan worden gesynchroniseerd, dus het is een eenmalige import: hij houdt het blauwe label, en als je met de muis over dat label gaat, zie je dat ook. Hetzelfde gebeurt met een gesynchroniseerde vlucht als je er zelf een tussenstop aan toevoegt.',
 
@@ -4518,13 +4519,13 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.result':
     'Het traject gebruikt nu de weg die je hebt gekozen, en de afstand in de zijkolom en de aankomsttijden daarna veranderen mee.',
   'help.guide.roadtrip-alternatives.tip.1':
-    'Kies je een andere weg, dan controleert TREK die eerst met de routeplanner van de roadtrip. Daarna houdt TREK het traject op die weg met zo weinig tussenpunten als nodig, en vervangt het de tussenpunten die het traject al had. Een weg die de routeplanner niet kan volgen, wordt niet opgeslagen. Kies je de weg van de routeplanner zelf, dan verdwijnen de tussenpunten weer.',
+    'Kies je een andere weg, dan controleert YOUYA die eerst met de routeplanner van de roadtrip. Daarna houdt YOUYA het traject op die weg met zo weinig tussenpunten als nodig, en vervangt het de tussenpunten die het traject al had. Een weg die de routeplanner niet kan volgen, wordt niet opgeslagen. Kies je de weg van de routeplanner zelf, dan verdwijnen de tussenpunten weer.',
   'help.guide.roadtrip-alternatives.tip.2':
     "'Zonder snelweg', 'Zonder tol' en 'Zonder veerboot' komen van een tweede routeplanner met een eigen snelheidsmodel, dus die tijden zijn niet te vergelijken met de andere.",
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': 'De auto en de rijlimieten instellen',
   'help.guide.roadtrip-limits.goal':
-    'Vertel TREK in wat voor voertuig je rijdt en hoe ver je zonder pauze wilt rijden.',
+    'Vertel YOUYA in wat voor voertuig je rijdt en hoe ver je zonder pauze wilt rijden.',
   'help.guide.roadtrip-limits.step.1':
     'Rij-instellingen staat onder het zoekveld in de rechterkolom. De labels laten zien wat er is ingesteld. Klik erop om het te openen.',
   'help.guide.roadtrip-limits.step.2':
@@ -4595,7 +4596,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     'Kies een track. Bij elke track zie je de lengte, en of hij de route van deze dag volgt of hoe ver hij ervan af ligt. De dichtstbijzijnde track staat bovenaan.',
   'help.guide.roadtrip-track.step.3':
-    'Klik op ‘Deze track volgen’. TREK zet tussenpunten waar de route het verst van de track afwijkt, berekent de route opnieuw en herhaalt dat een paar keer.',
+    'Klik op ‘Deze track volgen’. YOUYA zet tussenpunten waar de route het verst van de track afwijkt, berekent de route opnieuw en herhaalt dat een paar keer.',
   'help.guide.roadtrip-track.step.4':
     'Het venster meldt hoeveel via-punten er zijn geplaatst en hoe dicht de rit nu bij de track blijft, of dat de rit de track al volgde. ‘Via-punten laten vallen’, linksonder, verwijdert ze, en de router plant de dag opnieuw. Sluit je het venster, dan blijft de track behouden.',
   'help.guide.roadtrip-track.result':
@@ -4646,30 +4647,30 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     'Je eigen instellingen voor de plugins die de beheerder heeft geïnstalleerd: de sleutels en voorkeuren die elke plugin vraagt, en een logboek van wat plugins namens jou hebben gedaan. Het tabblad verschijnt alleen zolang er een plugin actief is.',
   'help.ctx.settings-about.bullet.3':
-    'Via Ko-fi, Buy Me a Coffee en Discord kun je TREK steunen of met de makers praten.',
+    'Via Ko-fi, Buy Me a Coffee en Discord kun je YOUYA steunen of met de makers praten.',
   'help.guide.language-region.step.3':
     'Stel de ‘Weergavevaluta’ in, of kies ‘Valuta van de reis’ om elke reis in zijn eigen valuta te zien. Kies daarna ‘Temperatuureenheid’, ‘Afstandseenheid’, ‘Tijdnotatie’, bij ‘Week begint op’ de eerste dag van de week en de ‘Datumnotatie’.',
   'help.guide.travel-map-prefs.step.3':
     '‘Plaatsen op de kaart ontdekken’ toont de categoriepil om plaatsen in de buurt te vinden. ‘Boekingscodes vervagen’ verbergt bevestigingsnummers tot je er met de muis overheen gaat of erop tikt. ‘Route optimaliseren vanaf accommodatie’ laat een dag bij je hotel beginnen en eindigen.',
   'help.guide.web-push-device.step.2':
     'In de kaart ‘Meldingen’ bovenaan bepaal je in de kolom ‘Push’ welke gebeurtenissen naar je apparaten worden gestuurd.',
-  'help.guide.connect-airtrail.goal': 'Laat TREK de vluchten uit je eigen AirTrail importeren en synchroniseren.',
-  'help.guide.connect-dawarich.goal': 'Laat TREK uit je eigen Dawarich uitlezen waar je echt bent geweest.',
+  'help.guide.connect-airtrail.goal': 'Laat YOUYA de vluchten uit je eigen AirTrail importeren en synchroniseren.',
+  'help.guide.connect-dawarich.goal': 'Laat YOUYA uit je eigen Dawarich uitlezen waar je echt bent geweest.',
   'help.guide.tour-connect-wanderer.goal':
-    'Laat TREK de trails uit je eigen wanderer lezen, zodat je ze als tochten kunt importeren.',
+    'Laat YOUYA de trails uit je eigen wanderer lezen, zodat je ze als tochten kunt importeren.',
   'help.guide.tour-wanderer-watch.title': 'Melding krijgen als je wanderer-trails veranderen',
   'help.guide.plugin-settings.tip.2':
     'Een pluginkanaal onder ‘Meldingen’ heeft een knop ‘Instellen’ die deze pagina opent.',
   'help.guide.default-user-settings.result':
     'Nieuwe accounts, en iedereen die deze instellingen nooit heeft aangepast, krijgen jouw keuzes te zien.',
   'help.guide.own-routing-engine.goal':
-    'Plan routes voor dagen, roadtrips en tochten via een OSRM- of Valhalla-server die je zelf draait, in plaats van via de TREK-diensten of de openbare servers.',
+    'Plan routes voor dagen, roadtrips en tochten via een OSRM- of Valhalla-server die je zelf draait, in plaats van via de YOUYA-diensten of de openbare servers.',
   'help.guide.admin-passkeys.tip.1':
-    'Kan TREK nog geen domein bepalen, dan meldt een waarschuwing onder de schakelaar dat, en blijven passkeys verborgen tot je APP_URL of de Relying Party ID instelt.',
+    'Kan YOUYA nog geen domein bepalen, dan meldt een waarschuwing onder de schakelaar dat, en blijven passkeys verborgen tot je APP_URL of de Relying Party ID instelt.',
   'help.guide.rotate-jwt-secret.step.1':
     'Klik op het tabblad Beveiliging, onder ‘Gevarenzone’ rechtsonder, op ‘Vernieuwen’ naast ‘JWT-geheim roteren’.',
   'help.guide.storage-backends.tip.3':
-    'TREK kan de fotocaches opnieuw downloaden, dus ze spiegelen kost meestal alleen maar opslagruimte.',
+    'YOUYA kan de fotocaches opnieuw downloaden, dus ze spiegelen kost meestal alleen maar opslagruimte.',
   'help.guide.admin-channels.step.3':
     'Kies daaronder, in dezelfde kaart, per gebeurtenis via welke kanalen die wordt verstuurd: ‘Nieuwe versie beschikbaar’, ‘Opslagreplica mislukt’ en ‘Peddelregio aangevraagd’. Elke schakelaar wordt direct opgeslagen.',
   'help.guide.notification-defaults.tip.1':
@@ -4731,13 +4732,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     'Open gegevens weten alleen waar het toestel is. Gate, terminal en bagageband horen er niet bij, dus voeg ze zelf aan de boeking toe als je ze nodig hebt. De vertragingen en de aankomsttijd zijn schattingen op basis van de posities.',
   'help.guide.flight-live-status.tip.3':
-    'TREK heeft het vluchtnummer en beide luchthavens nodig om een vlucht te volgen. Een vlucht van een maatschappij die onder een andere roepnaam vliegt, of een codeshare, wordt misschien niet gevonden. De boeking houdt dan gewoon zijn tijden.',
+    'YOUYA heeft het vluchtnummer en beide luchthavens nodig om een vlucht te volgen. Een vlucht van een maatschappij die onder een andere roepnaam vliegt, of een codeshare, wordt misschien niet gevonden. De boeking houdt dan gewoon zijn tijden.',
   'help.guide.group-sort-bookings.step.2':
     'Kies bij ‘Groeperen op’ voor Status, Dag, Type of ‘Niet groeperen’. Het tabblad wordt meteen in die secties ingedeeld.',
   'help.guide.export-bookings-csv.result':
     'Je browser downloadt een bestand met de naam van de reis en het tabblad, bijvoorbeeld herfst-in-japan-bookings.csv, met een rij voor elke boeking die op het tabblad stond.',
   'help.guide.arrange-packing-list.result':
-    'De lijsten staan in de volgorde waarin je ze hebt gesleept, en de items staan op ‘A tot Z’ tot je dit uitzet. TREK bewaart je eigen volgorde wel.',
+    'De lijsten staan in de volgorde waarin je ze hebt gesleept, en de items staan op ‘A tot Z’ tot je dit uitzet. YOUYA bewaart je eigen volgorde wel.',
   'help.guide.count-packed-pieces.step.2':
     'Typ bij ‘Aantal’ hoeveel je meeneemt, bijvoorbeeld 5, of klik op de plus tot het getal klopt.',
   'help.guide.expense-receipts.step.4':
@@ -4745,7 +4746,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     'Iemand die de reis heeft verlaten, houdt een rij in ‘Saldi’ en ‘Eindbudget’ zolang die persoon nog geld krijgt of moet betalen.',
   'help.guide.files-sync-settings.step.2':
-    'De stroombalk toont TREK en jouw opslag met de documenten die elk bevat, en daartussen twee banen: ‘Naar de opslag’ en ‘Uit de opslag’. Klik op ‘Naar de opslag’ om die uit te zetten. De baan wordt grijs en de regel onder de banen luidt ‘Alleen binnenkomend’. Klik er nog eens op om hem weer aan te zetten.',
+    'De stroombalk toont YOUYA en jouw opslag met de documenten die elk bevat, en daartussen twee banen: ‘Naar de opslag’ en ‘Uit de opslag’. Klik op ‘Naar de opslag’ om die uit te zetten. De baan wordt grijs en de regel onder de banen luidt ‘Alleen binnenkomend’. Klik er nog eens op om hem weer aan te zetten.',
   'help.guide.files-sync-settings.tip.4':
     'Alleen de eigenaar van de reis of een beheerder kan dit wijzigen. Andere leden zien de stroombalk met een regel als ‘Documenten gaan beide kanten op’, maar geen ‘Instellingen’.',
   'help.guide.manage-notes.step.2':
@@ -4756,7 +4757,7 @@ const help: TranslationStrings = {
     'Met de prullenbak verwijder je alleen een categorie die door geen enkele notitie wordt gebruikt. Een categorie die nog in gebruik is, blijft in de lijst tot je die notities naar een andere categorie verplaatst.',
   'help.guide.roadtrip-reorder.title': 'Een stop verplaatsen of naar een andere dag zetten',
   'help.guide.roadtrip-reorder.tip.3':
-    'TREK vraagt niets over een tijd die je hebt vastgezet: de rail berekent de dag meteen opnieuw en markeert elke stop die niet meer op tijd te halen is.',
+    'YOUYA vraagt niets over een tijd die je hebt vastgezet: de rail berekent de dag meteen opnieuw en markeert elke stop die niet meer op tijd te halen is.',
   'help.guide.roadtrip-overnight.step.3':
     'Bovenaan het venster voegt ‘Overnachten’ een overnachting toe en maakt ‘Pauze’ er een korte stop van. Een hotel opent met ‘Overnachten’, een camping met ‘Pauze’. Voor een overnachting is alleen ‘Inchecken’ nodig, en dat mag je leeg laten.',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4770,7 +4771,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     'Bovenaan importeer je met ‘GPX of KML importeren’ bestanden als tochten. De filterknop daaronder (eerst ‘Alle’, met het aantal tochten) filtert de lijst op status, bron, routelimiet en type.',
   'help.guide.tour-show-list.step.2':
-    'Elke rij is één tocht. De gekleurde balk is de lijn op de kaart, en de ronde tegel toont de routelimiet (T1 tot T6) van een wandeling die in TREK is gepland, of het pictogram van het type. De badges onder de naam tonen de dagen waarop de tocht staat, de tijd, de afstand en de stijging. Bij een meerdaagse tocht geeft de maan met een getal aan hoeveel etappes hij heeft.',
+    'Elke rij is één tocht. De gekleurde balk is de lijn op de kaart, en de ronde tegel toont de routelimiet (T1 tot T6) van een wandeling die in YOUYA is gepland, of het pictogram van het type. De badges onder de naam tonen de dagen waarop de tocht staat, de tijd, de afstand en de stijging. Bij een meerdaagse tocht geeft de maan met een getal aan hoeveel etappes hij heeft.',
   'help.guide.tour-add-to-day.title': 'Een tocht op een dag zetten',
   'help.guide.tour-add-to-day.tip.2':
     'Eindigt de reis vóór de laatste etappe, dan toont de optie de laatste etappe die nog past, en de etappes daarna blijven zonder dag.',
@@ -4803,7 +4804,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.4':
     'Met ‘Wijzigen’ onder de track kies je een andere opname. ‘Ontkoppelen’ haalt hem van de tocht, en de track blijft als import in de reis.',
   'help.guide.tour-origin-check.step.3':
-    'Een tocht die je op het tabblad Tochten hebt getekend, toont ‘gepland in TREK’, met bij ‘Aangemaakt’ de dag waarop hij is gemaakt.',
+    'Een tocht die je op het tabblad Tochten hebt getekend, toont ‘gepland in YOUYA’, met bij ‘Aangemaakt’ de dag waarop hij is gemaakt.',
   'help.ctx.trip-tour-planner.bullet.2':
     'De linkerrail is de editor. Is er niets geopend, dan biedt hij ‘Nieuwe tocht plannen’. Een geopende tocht toont de naam, het type, de waypoints, de kaarten voor dat type en de details, met ‘Verwerpen’ en ‘Opslaan’ onderaan.',
   'help.guide.tour-open-workspace.step.2':
@@ -4811,7 +4812,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.tip.3':
     'Open je een andere tocht terwijl de editor niet-opgeslagen wijzigingen bevat, dan krijg je eerst de keuze: ‘Wijzigingen verwerpen’ of verder bewerken.',
   'help.guide.tour-draw-route.step.5':
-    'Klik de volgende punten aan in de volgorde waarin je ze loopt. Elke klik voegt het punt toe als nieuw eindpunt, en vanaf twee punten plant TREK de route over de paden.',
+    'Klik de volgende punten aan in de volgorde waarin je ze loopt. Elke klik voegt het punt toe als nieuw eindpunt, en vanaf twee punten plant YOUYA de route over de paden.',
   'help.guide.tour-type-profile.goal':
     'Kies het soort tocht, en bij een fietstocht het profiel, zodat de route over de juiste wegen gaat.',
   'help.guide.tour-edit-points.title': 'Punten verplaatsen, ordenen en verwijderen',
@@ -4937,11 +4938,11 @@ const help: TranslationStrings = {
     'Zie de pistes, langlaufloipes en liften rond je skitocht, en wat hun kleuren betekenen.',
   'help.guide.tour-ski-import.title': 'Een skitrack importeren en aangeven wat het was',
   'help.guide.tour-ski-import.tip.1':
-    'Een geïmporteerde track blijft zoals hij is opgenomen: TREK legt hem niet over de pistes, en de kaart toont ‘Skitijd’ als ‘Niet berekend’.',
+    'Een geïmporteerde track blijft zoals hij is opgenomen: YOUYA legt hem niet over de pistes, en de kaart toont ‘Skitijd’ als ‘Niet berekend’.',
   'help.ctx.trip-tour-paddle.bullet.3':
     '‘Meer acties’ op een punt bevat de peddelfuncties: het volgende stuk over het water plannen of met de hand tekenen, ‘Boot vanaf hier dragen’ en ‘Sluis op dit punt’.',
   'help.guide.tour-paddle-setup.step.3':
-    'Kies onder ‘Boot’ Kajak, Canadese kano, SUP of Overig. Op basis van de boot stelt TREK een snelheid voor.',
+    'Kies onder ‘Boot’ Kajak, Canadese kano, SUP of Overig. Op basis van de boot stelt YOUYA een snelheid voor.',
   'help.guide.tour-paddle-setup.tip.4':
     "‘Peddelen heeft risico's’, de rij onderaan de kolom, opent ‘Veiligheid op het water’. Lees dit één keer voor je eerste tocht.",
   'help.guide.tour-paddle-water-route.step.5':
@@ -4964,7 +4965,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.tip.2':
     '‘Verwerpen’ verwijdert de markeringen die je nog niet hebt opgeslagen. De opgenomen track zelf wordt nooit opnieuw getekend.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK berekent geen rijtijd. Vul een tijd in bij ‘Gepland’ in Details als je die op de dag wilt zien.',
+    'YOUYA berekent geen rijtijd. Vul een tijd in bij ‘Gepland’ in Details als je die op de dag wilt zien.',
   'help.guide.tour-horse-plan.step.5':
     'Kies een traject onder ‘Trajecten’. Controleer de ‘Richting’ waarin je het rijdt en wat ‘Toegang te paard’ langs dat traject aangeeft.',
   'help.guide.tour-horse-plan.tip.5':
@@ -5008,7 +5009,7 @@ const help: TranslationStrings = {
   'help.guide.journey-map-layers.tip.1':
     'Een gestippelde gekleurde lijn is de GPX-route van een reis en hoort bij het plan; een doorgetrokken lijn is een route die op die dag is opgenomen.',
   'help.guide.journey-keep-route.tip.1':
-    'Waar de opname stopt, stopt ook de lijn. TREK tekent alleen wat is opgenomen.',
+    'Waar de opname stopt, stopt ook de lijn. YOUYA tekent alleen wat is opgenomen.',
   'help.guide.journey-day-stays.tip.1':
     'De rij verschijnt alleen voor mensen die het reisverslag mogen bewerken en hun eigen Dawarich hebben gekoppeld, en alleen op dagen waarop nog iets te kiezen valt.',
   'help.guide.journey-take-over-day.step.4':
@@ -5021,7 +5022,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3':
     '‘Standaardwaarden herstellen’, onder de kaarten, zet het hele tabblad Weergave terug naar de oorspronkelijke instellingen.',
   'help.guide.web-push-device.result':
-    'De kaart toont ‘Ingeschakeld op dit apparaat’, en de gebeurtenissen die onder Push aanstaan, komen binnen, ook als TREK gesloten is.',
+    'De kaart toont ‘Ingeschakeld op dit apparaat’, en de gebeurtenissen die onder Push aanstaan, komen binnen, ook als YOUYA gesloten is.',
   'help.guide.connect-airtrail.step.1':
     'Zoek onder Integraties AirTrail en vul de ‘Instantie-URL’ en een API-sleutel in. De sleutel maak je in AirTrail aan onder Instellingen, Beveiliging. Als je de sleutel in AirTrail 3.13 of nieuwer aanmaakt, heeft hij de scope flight.read.own nodig om te lezen. Om wijzigingen terug te schrijven, heeft hij ook flight.update.own, flight.passengers.manage.own, reference_data.read en profile.read nodig.',
   'help.guide.connect-dawarich.step.1':
@@ -5029,14 +5030,14 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.1':
     'Zoek onder Integraties wanderer en vul de ‘Instantie-URL’ en een API-token in. Het token maak je in wanderer aan onder Instellingen, Account, API-tokens; het begint met wanderer_key_.',
   'help.guide.tour-wanderer-watch.goal':
-    'Laat TREK op de achtergrond controleren of de trails die je hebt geïmporteerd zijn gewijzigd.',
+    'Laat YOUYA op de achtergrond controleren of de trails die je hebt geïmporteerd zijn gewijzigd.',
   'help.guide.mcp-oauth.tip.3':
     'API-tokens werken nog, maar zijn gemarkeerd als ‘Verouderd’; stap over op een OAuth-client.',
   'help.guide.offline-conflicts.tip.2': 'De keuze geldt alleen voor dit apparaat.',
   'help.guide.default-user-settings.tip.1':
     'De eigen keuze van een gebruiker onder Instellingen gaat altijd voor; deze standaarden gelden voor iedereen die die instelling niet heeft gewijzigd.',
   'help.guide.own-routing-engine.step.1':
-    'Op het tabblad Standaarden bepaalt de kaart Routering wie routes berekent. Kies onder ‘Routeringsdienst’ voor Automatisch, ‘TREK-diensten’, ‘Publieke Valhalla (FOSSGIS)’ of ‘Eigen Valhalla-instantie’. De keuze wordt meteen opgeslagen.',
+    'Op het tabblad Standaarden bepaalt de kaart Routering wie routes berekent. Kies onder ‘Routeringsdienst’ voor Automatisch, ‘YOUYA-diensten’, ‘Publieke Valhalla (FOSSGIS)’ of ‘Eigen Valhalla-instantie’. De keuze wordt meteen opgeslagen.',
   'help.guide.admin-passkeys.tip.2':
     'Wijzig je het domein later, dan werkt geen enkele passkey die mensen al hebben toegevoegd nog.',
   'help.guide.instance-keys.tip.4': 'De Amap-sleutel moet een Web 服务-sleutel (webservice) zijn, geen JS API-sleutel.',
@@ -5057,7 +5058,7 @@ const help: TranslationStrings = {
   'help.guide.collapse-columns.tip.3':
     'Heeft de scheidingslijn de focus, dan kun je hem ook met de pijltjestoetsen verschuiven.',
   'help.guide.edit-place.tip.3':
-    'Klik je buiten het venster, dan raak je je wijzigingen niet kwijt: TREK vraagt eerst ‘Wijzigingen weggooien?’, en met ‘Verder bewerken’ ga je terug naar het formulier.',
+    'Klik je buiten het venster, dan raak je je wijzigingen niet kwijt: YOUYA vraagt eerst ‘Wijzigingen weggooien?’, en met ‘Verder bewerken’ ga je terug naar het formulier.',
   'help.guide.dawarich-stays.goal':
     'Voeg de plekken toe waar Dawarich tijdens de reis je verblijven heeft vastgelegd, nadat je ze een voor een hebt gecontroleerd.',
   'help.guide.leave-stop-off-route.step.1':
@@ -5106,7 +5107,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     'In de rail is het traject een kaart in de kleur van het type, met de dienstregeling in de aankomstkolom en het begin- en eindpunt onder de titel.',
   'help.guide.roadtrip-google-import.tip.1':
-    'TREK berekent zelf de route tussen de stops; de weg van Google wordt niet overgenomen.',
+    'YOUYA berekent zelf de route tussen de stops; de weg van Google wordt niet overgenomen.',
   'help.guide.roadtrip-hazards.result':
     'De kaart toont de actuele waarschuwingen rond je reis, en de route verandert niet.',
   'help.ctx.trip-tours.bullet.3':
@@ -5115,7 +5116,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.goal':
     'Plan wanneer je een tocht maakt, zodat hij in de dag staat en zijn lijn op de kaart verschijnt.',
   'help.guide.tour-add-to-day.tip.3':
-    'Je kunt een tocht maar één keer aan een dag toevoegen. Zet je hem op een dag waar hij al op staat, dan toont TREK alleen ‘Deze tocht staat al op die dag.’',
+    'Je kunt een tocht maar één keer aan een dag toevoegen. Zet je hem op een dag waar hij al op staat, dan toont YOUYA alleen ‘Deze tocht staat al op die dag.’',
   'help.guide.tour-day-times.step.4':
     'Eindigt de tocht nadat het volgende onderdeel van de dag begint, dan meldt een regel onder de rij dat, bijvoorbeeld: Eindigt om 13:30, na het begin van Lunch bij Gostner Schwaige om 12:30. Er wordt niets verplaatst.',
   'help.guide.tour-remove-from-day.step.1':
@@ -5172,7 +5173,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.result':
     'Het tabblad Tochten: de editor links, de tochten van de reis rechts en de kaart daartussen.',
   'help.guide.tour-draw-route.step.6':
-    'Onder ‘Waypoints’ krijgt elk punt een rij met een nummer, en zodra de naam is geladen, de naam van de plek. Terwijl TREK bezig is, toont een stipje naast ‘Nieuwe tocht’ de status.',
+    'Onder ‘Waypoints’ krijgt elk punt een rij met een nummer, en zodra de naam is geladen, de naam van de plek. Terwijl YOUYA bezig is, toont een stipje naast ‘Nieuwe tocht’ de status.',
   'help.guide.tour-type-profile.step.1':
     'Klik op ‘Soort tocht’ onder ‘Naam van de tocht’. Je ziet het huidige type met een regel over hoe het wordt gepland.',
   'help.guide.tour-edit-points.goal':
@@ -5197,7 +5198,7 @@ const help: TranslationStrings = {
     '‘Tochtoverzicht’ bovenaan ‘Tochten van deze reis’ geeft de ‘Afstand’, ‘Hoogtemeters omhoog’ en ‘Hoogtemeters omlaag’ van de tocht in de editor, de geschatte tijd, de pauzes en het geplande totaal.',
   'help.guide.tour-list-manage.title': 'De tochten van de reis beheren',
   'help.guide.tour-list-manage.tip.2':
-    'Een dag waar de tocht al op staat, is grijs in het dagmenu. Bij een meerdaagse tocht vraagt TREK of de etappes op die dag beginnen of dat de hele tocht op die dag komt.',
+    'Een dag waar de tocht al op staat, is grijs in het dagmenu. Bij een meerdaagse tocht vraagt YOUYA of de etappes op die dag beginnen of dat de hele tocht op die dag komt.',
   'help.guide.tour-delete.tip.2':
     'Wil je hem alleen van een dag halen, gebruik dan ‘Verwijderen van dag’ in het menu van de dag.',
   'help.guide.tour-saved-elsewhere.step.4':
@@ -5222,7 +5223,8 @@ const help: TranslationStrings = {
     '‘Langs de tocht’, een kaart in het linkerpaneel, zoekt naar uitzichtpunten, water, hutten, eten en meer dicht bij de route en toont de resultaten. Je kunt een plaats uit de lijst als stop aan de tocht toevoegen.',
   'help.guide.tour-map-layers.tip.1':
     'De kaart die je kiest, blijft gelden voor elke tocht die je opent, tot je de pagina opnieuw laadt. Een tocht waarvan het type die kaart niet heeft, opent op ‘Kaart’; de kaart op het tabblad Planning en de instelling in Instellingen veranderen niet.',
-  'help.guide.tour-along-search.step.4': 'Klik op ‘Zoeken langs de tocht’. TREK zoekt alleen: de tocht verandert niet.',
+  'help.guide.tour-along-search.step.4':
+    'Klik op ‘Zoeken langs de tocht’. YOUYA zoekt alleen: de tocht verandert niet.',
   'help.guide.tour-along-add-stop.step.1':
     'Klik op een plaats in de lijst ‘Langs de tocht’, of op de speld op de kaart. Er opent een kaartje over de kaart: wat het is, hoe ver het van de route ligt en waar het langs de tocht ligt.',
   'help.guide.tour-3d-terrain.title': 'Een tocht in 3D bekijken',
@@ -5248,7 +5250,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     'Rondwandelingen blijven binnen de ‘Maximale moeilijkheid van het pad’ van de wandeling; de T-pil in de kaart laat zien welke dat is.',
   'help.guide.tour-hike-compare-ways.step.4':
-    'Klik op ‘Deze weg nemen’. TREK controleert met de router of de route die weg echt volgt.',
+    'Klik op ‘Deze weg nemen’. YOUYA controleert met de router of de route die weg echt volgt.',
   'help.guide.tour-ferrata-add.step.2':
     'Klik op de kaart op een klettersteig, op de gestippelde lijn of op het bordje. Het kaartje toont de naam, de moeilijkheidsgraad en de lengte.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -5305,7 +5307,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Een nieuwe peddeltocht met boot, water en snelheid, klaar voor het eerste punt op de kaart.',
   'help.guide.tour-paddle-water-route.tip.1':
-    "Ontbreken de watergegevens, dan downloadt TREK ze automatisch voor de regio of vraagt het ze aan bij een beheerder, afhankelijk van hoe de instantie is ingesteld. Een beheerder voegt regio's toe onder ‘Watergegevens voor peddelen’, een rij onder Tochten op het tabblad Add-ons van het beheergedeelte. Het stuk toont dan ‘Watergegevens laden’ en wordt automatisch gepland zodra de gegevens er zijn, meestal binnen één tot drie minuten.",
+    "Ontbreken de watergegevens, dan downloadt YOUYA ze automatisch voor de regio of vraagt het ze aan bij een beheerder, afhankelijk van hoe de instantie is ingesteld. Een beheerder voegt regio's toe onder ‘Watergegevens voor peddelen’, een rij onder Tochten op het tabblad Add-ons van het beheergedeelte. Het stuk toont dan ‘Watergegevens laden’ en wordt automatisch gepland zodra de gegevens er zijn, meestal binnen één tot drie minuten.",
   'help.guide.tour-paddle-portage.step.2':
     'Kies ‘Boot vanaf hier dragen’. Het stuk tot het volgende punt wordt een draagstuk, getekend over land.',
   'help.guide.tour-paddle-lock.title': 'Een sluis en de wachttijd toevoegen',
@@ -5380,9 +5382,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     'Push werkt per browser: herhaal dit op elke telefoon en computer waarop je meldingen wilt. ‘Uitschakelen op dit apparaat’ zet het alleen op dat apparaat uit.',
   'help.guide.connect-airtrail.step.2':
-    '‘Zelfondertekende certificaten toestaan’ is alleen bedoeld voor een vertrouwde instantie op je eigen netwerk. ‘Wijzigingen terugschrijven naar AirTrail’ staat standaard uit, dus TREK leest alleen; zet het aan om je wijzigingen terug te sturen.',
+    '‘Zelfondertekende certificaten toestaan’ is alleen bedoeld voor een vertrouwde instantie op je eigen netwerk. ‘Wijzigingen terugschrijven naar AirTrail’ staat standaard uit, dus YOUYA leest alleen; zet het aan om je wijzigingen terug te sturen.',
   'help.guide.connect-dawarich.step.2':
-    'Met ‘Automatisch op nieuwe bezoeken controleren’ controleert TREK zelf. Staat het uit, dan leest TREK Dawarich alleen als jij daarom vraagt. ‘Zelfondertekend certificaat toestaan’ is alleen bedoeld voor een instantie die je server niet vertrouwt.',
+    'Met ‘Automatisch op nieuwe bezoeken controleren’ controleert YOUYA zelf. Staat het uit, dan leest YOUYA Dawarich alleen als jij daarom vraagt. ‘Zelfondertekend certificaat toestaan’ is alleen bedoeld voor een instantie die je server niet vertrouwt.',
   'help.guide.tour-connect-wanderer.step.2':
     'Zet ‘Zelfondertekend certificaat toestaan’ alleen aan voor een instantie op je eigen netwerk.',
   'help.guide.tour-wanderer-watch.step.1':
@@ -5392,7 +5394,7 @@ const help: TranslationStrings = {
     '‘Weergavevaluta’ rekent bedragen alleen om voor de weergave. De bedragen die in Onkosten zijn ingevoerd, blijven zoals ze zijn.',
   'help.guide.own-routing-engine.step.2': 'Vul onder ‘Eigen routeserver’ het adres van je OSRM-server in.',
   'help.guide.own-routing-engine.step.3':
-    'Vul onder ‘Eigen Valhalla-instantie’ het adres van je Valhalla in en kies ‘Eigen Valhalla-instantie’ als ‘Routeringsdienst’. Elk veld wordt opgeslagen zodra je het verlaat. Start daarna de TREK-server opnieuw op en laad de pagina opnieuw.',
+    'Vul onder ‘Eigen Valhalla-instantie’ het adres van je Valhalla in en kies ‘Eigen Valhalla-instantie’ als ‘Routeringsdienst’. Elk veld wordt opgeslagen zodra je het verlaat. Start daarna de YOUYA-server opnieuw op en laad de pagina opnieuw.',
   'help.guide.admin-passkeys.tip.3':
     'Is een gebruiker het apparaat met de passkeys kwijt, verwijder die passkeys dan met ‘Passkeys resetten’ in ‘Gebruiker bewerken’.',
   'help.guide.rotate-jwt-secret.result':
@@ -5408,7 +5410,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     'Lees de gele opmerking: daarin staat wie het reisverslag voor het eerst krijgt. Klik dan op ‘Dagboek koppelen’.',
   'help.guide.dawarich-stays.step.1':
-    'Is Dawarich gekoppeld in Instellingen, Integraties, dan staat ‘Uit Dawarich’ boven de plaatsenlijst. In de kop zie je wanneer TREK voor het laatst heeft gecontroleerd en hoeveel bezoeken er wachten. Klik erop om de lijst te openen.',
+    'Is Dawarich gekoppeld in Instellingen, Integraties, dan staat ‘Uit Dawarich’ boven de plaatsenlijst. In de kop zie je wanneer YOUYA voor het laatst heeft gecontroleerd en hoeveel bezoeken er wachten. Klik erop om de lijst te openen.',
   'help.guide.leave-stop-off-route.step.2':
     'Naast de naam verschijnt een badge ‘Buiten de route’. De stop blijft op de dag en op de kaart, maar de route van de dag en de reistijden van de trajecten slaan hem over.',
   'help.guide.move-booking-day.result':
@@ -5418,7 +5420,7 @@ const help: TranslationStrings = {
     'Open een plaats die een foto bij de ‘Bestanden’ heeft. Het blok ‘Bestanden’ onderaan de kaart toont hoeveel bestanden de plaats heeft.',
   'help.guide.place-own-hours.title': 'Openingstijden, telefoonnummer of e-mailadres van een plaats corrigeren',
   'help.guide.place-own-hours.tip.1':
-    'Tijden die je invult, vervangen de tijden die TREK heeft opgezocht, zodat een café met seizoenstijden toont wat jij weet.',
+    'Tijden die je invult, vervangen de tijden die YOUYA heeft opgezocht, zodat een café met seizoenstijden toont wat jij weet.',
   'help.guide.day-panel.tip.3':
     'Plan je liever op datum? Zet ‘Datum eerst in dagkoppen’ aan in Instellingen, onder Weergave. De kop toont dan eerst de datum, met Dag 1 of de naam van de dag eronder.',
   'help.guide.confirm-stay-booking.result':
@@ -5438,15 +5440,15 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2':
     "De kolommen worden gescheiden door puntkomma's, en Excel opent het bestand met de accenten intact.",
   'help.guide.arrange-packing-list.tip.2':
-    'TREK onthoudt ‘A tot Z’ in deze browser, dus de lijst opent de volgende keer ook gesorteerd. Het verandert alleen wat jij ziet, nooit de volgorde die anderen zien.',
+    'YOUYA onthoudt ‘A tot Z’ in deze browser, dus de lijst opent de volgende keer ook gesorteerd. Het verandert alleen wat jij ziet, nooit de volgorde die anderen zien.',
   'help.guide.count-packed-pieces.step.4':
     'Sluit het venster. Zolang maar een deel van de stukken is ingepakt, toont de rij de teller, zoals 3/5, en heeft het vakje een rand in je accentkleur. Zodra de teller het aantal bereikt, wordt het item vanzelf afgevinkt.',
   'help.guide.expense-receipts.result':
     'Het bonnetje is bij de uitgave opgeslagen: met de chip op de rij open je het, en het bestand staat ook bij de Bestanden van de reis.',
   'help.guide.files-sync-settings.step.4':
-    'Kies onder ‘Als een document wordt verwijderd’ wat er met de kopie aan de andere kant gebeurt. ‘Beide kopieën behouden’ laat de kopie in de opslag staan. ‘Naar de prullenbak verplaatsen’ verplaatst die naar de prullenbak van de opslag als het document in TREK wordt verwijderd.',
+    'Kies onder ‘Als een document wordt verwijderd’ wat er met de kopie aan de andere kant gebeurt. ‘Beide kopieën behouden’ laat de kopie in de opslag staan. ‘Naar de prullenbak verplaatsen’ verplaatst die naar de prullenbak van de opslag als het document in YOUYA wordt verwijderd.',
   'help.ctx.trip-collab.bullet.7':
-    'Voor alles hier is een verbinding nodig. Offline worden berichten, notities, links, polls en stemmen niet opgeslagen, en meldt TREK: Dit vereist een verbinding. Probeer het opnieuw zodra TREK weer online is. Leden die Samenwerking niet mogen bewerken, kunnen alles lezen, maar zien ‘Nieuwe notitie’, ‘Link toevoegen’ en ‘Nieuwe poll’ niet, en het berichtvak is grijs.',
+    'Voor alles hier is een verbinding nodig. Offline worden berichten, notities, links, polls en stemmen niet opgeslagen, en meldt YOUYA: Dit vereist een verbinding. Probeer het opnieuw zodra YOUYA weer online is. Leden die Samenwerking niet mogen bewerken, kunnen alles lezen, maar zien ‘Nieuwe notitie’, ‘Link toevoegen’ en ‘Nieuwe poll’ niet, en het berichtvak is grijs.',
   'help.guide.manage-notes.step.4':
     '‘Bewerken’ opent het notitievenster met alles al ingevuld. Pas aan wat nodig is, hier een extra regel onder ‘Inhoud’, en klik op ‘Opslaan’.',
   'help.guide.note-categories.step.2':
@@ -5463,7 +5465,7 @@ const help: TranslationStrings = {
     'De pil ‘Inchecken’ of ‘Instappen’ geeft aan hoe laat je uiterlijk bij de terminal moet zijn: het vertrek wordt zoveel eerder gezet dan in de dienstregeling.',
   'help.guide.roadtrip-google-import.title': 'Een route uit Google Maps importeren',
   'help.guide.roadtrip-google-import.tip.2':
-    'De link moet minstens twee en hoogstens 30 stops bevatten die TREK kan plaatsen.',
+    'De link moet minstens twee en hoogstens 30 stops bevatten die YOUYA kan plaatsen.',
   'help.guide.roadtrip-hazards.tip.1':
     'Waarschuwingen zijn geen wegafsluitingen: de route verandert er nooit door, en het zijn actuele meldingen, geen voorspelling voor jouw data.',
   'help.ctx.trip-tours.bullet.4':
@@ -5494,7 +5496,7 @@ const help: TranslationStrings = {
     'Open de tochtkaart. ‘Navigatie’ onderaan de kaart opent het begin van de tocht in een kaartapp, en toont eerst de apps als er meerdere zijn. Je wordt naar de start geleid, niet langs de route. ‘Kaarten’ ernaast geeft de hele route door.',
   'help.guide.tour-copy-keep.title': 'Een tocht kopiëren of in een collectie bewaren',
   'help.guide.tour-copy-keep.tip.3':
-    'Op het tabblad Tochten doet de bladwijzer bovenaan de linkerkolom hetzelfde voor de geopende tocht. Heeft die nog niet-opgeslagen wijzigingen, dan vraagt TREK je eerst de tocht op te slaan.',
+    'Op het tabblad Tochten doet de bladwijzer bovenaan de linkerkolom hetzelfde voor de geopende tocht. Heeft die nog niet-opgeslagen wijzigingen, dan vraagt YOUYA je eerst de tocht op te slaan.',
   'help.guide.tour-packing-link.step.4':
     'De tochtkaart toont nu de lijst, hoeveel items ervan zijn ingepakt, een balk en de eerste items. Ingepakte items zijn doorgestreept.',
   'help.guide.tour-files.step.1':
@@ -5534,7 +5536,7 @@ const help: TranslationStrings = {
   'help.guide.tour-save.tip.2':
     '‘Terug naar tochten’ bovenaan de balk sluit de editor, en vraagt eerst of je zeker bent als er niet-opgeslagen wijzigingen zijn.',
   'help.guide.tour-edit-saved.step.4':
-    'Klik op ‘Terug naar tochten’ om te sluiten. Zijn er niet-opgeslagen wijzigingen, dan vraagt TREK eerst ‘Niet-opgeslagen wijzigingen aan de tocht verwerpen?’',
+    'Klik op ‘Terug naar tochten’ om te sluiten. Zijn er niet-opgeslagen wijzigingen, dan vraagt YOUYA eerst ‘Niet-opgeslagen wijzigingen aan de tocht verwerpen?’',
   'help.guide.tour-summary-profile.step.2': 'Het infopunt naast de geschatte tijd legt uit hoe die wordt berekend.',
   'help.guide.tour-list-manage.goal':
     'Bekijk de totalen van de tochten van de reis, zet er een op een dag en beperk de lijst tot wat je nodig hebt.',
@@ -5579,7 +5581,7 @@ const help: TranslationStrings = {
   'help.guide.tour-multi-day.step.2':
     'Klik onder ‘Dagen’ op ‘Meerdaagse tocht’. Een opmerking vertelt waar het eerste etappe-einde komt.',
   'help.guide.tour-multi-day.tip.4':
-    'Etappes worden opgeslagen als je op ‘Opslaan’ klikt. Verwijdert een wijziging een etappe die op een dag van de reis staat, dan meldt TREK dat opslaan die etappe van die dag haalt.',
+    'Etappes worden opgeslagen als je op ‘Opslaan’ klikt. Verwijdert een wijziging een etappe die op een dag van de reis staat, dan meldt YOUYA dat opslaan die etappe van die dag haalt.',
   'help.guide.tour-stages-on-days.step.5':
     'Bij elke etappe staat de dag waarop die staat. Klik op de dag om de etappe naar een andere dag te verplaatsen, of kies ‘Geen dag’ om haar eraf te halen.',
   'help.ctx.trip-tour-hike.summary':
@@ -5591,7 +5593,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.3':
     'De badges vatten het samen: hoeveel van de route ‘Bekend’ is, de hoogste bekende graad en, apart weergegeven, de ‘Routelimiet’ waarmee de wandeling is gepland.',
   'help.guide.tour-hike-round.goal':
-    'Laat TREK rondjes van de gewenste lengte voorstellen, vanaf een stop van een wandeling.',
+    'Laat YOUYA rondjes van de gewenste lengte voorstellen, vanaf een stop van een wandeling.',
   'help.guide.tour-hike-round.tip.2':
     'Afstanden van 1 tot 60 km zijn mogelijk, en je krijgt rondes aangeboden die maximaal 20 % van jouw afstand afwijken.',
   'help.guide.tour-hike-compare-ways.result':
@@ -5617,7 +5619,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     'Bezochte stops zijn afgevinkt, overgeslagen stops doorgestreept, en de resterende tijd telt alleen wat nog komt.',
   'help.guide.tour-bike-profile.goal':
-    'Begin een fietstocht en laat TREK de route plannen voor toerfietsen, racefiets, gravel of MTB.',
+    'Begin een fietstocht en laat YOUYA de route plannen voor toerfietsen, racefiets, gravel of MTB.',
   'help.guide.tour-bike-profile.tip.1':
     'Wijzig je het profiel later, dan wordt de hele route opnieuw gepland voor het nieuwe profiel.',
   'help.guide.tour-bike-surfaces.step.2':
@@ -5648,13 +5650,13 @@ const help: TranslationStrings = {
     'Op een meer bepaalt ‘Over meren’ de route: ‘Rechtdoor’ is het kortst, ‘Dicht bij de oever’ blijft dicht bij de kant voor winderige dagen.',
   'help.guide.tour-paddle-water-route.title': 'De stukken op het water plannen',
   'help.guide.tour-paddle-water-route.tip.2':
-    'Waar de route de boot om een stuw heen draagt of door een sluis gaat, zet TREK daar zelf een punt, gemarkeerd als ‘Gevonden’. Verplaats of wijzig je het, dan wordt het je eigen punt.',
+    'Waar de route de boot om een stuw heen draagt of door een sluis gaat, zet YOUYA daar zelf een punt, gemarkeerd als ‘Gevonden’. Verplaats of wijzig je het, dan wordt het je eigen punt.',
   'help.guide.tour-paddle-portage.step.3':
     'Onder het punt verschijnt een kaart ‘Overdragen’ met de lengte en de extra minuten. Klik erop om die te openen.',
   'help.guide.tour-paddle-lock.goal': 'Zet een sluis op de tocht en tel de wachttijd en het schutten mee in de tijd.',
   'help.guide.tour-paddle-lock.result': 'De sluis staat op de tocht met de minuten, en de ‘Tijdschatting’ telt ze op.',
   'help.guide.tour-paddle-time.tip.1':
-    'TREK begint met 4 km/u op het water, 2 km/u bij het dragen en 10 minuten bij elk draagstuk. Dat zijn beginwaarden om aan te passen, geen metingen.',
+    'YOUYA begint met 4 km/u op het water, 2 km/u bij het dragen en 10 minuten bij elk draagstuk. Dat zijn beginwaarden om aan te passen, geen metingen.',
   'help.guide.tour-paddle-wind.step.3':
     'De balken tonen de uren van de dag, met de windstoten achter de gemiddelde wind. Ga met de muis over een balk voor de cijfers en de richting van dat uur.',
   'help.guide.tour-paddle-checklist.goal':
@@ -5727,7 +5729,7 @@ const help: TranslationStrings = {
     '‘Plugin-activiteit’ onderaan toont elke actie die een plugin namens jou heeft uitgevoerd, de nieuwste bovenaan, met ‘Vernieuwen’.',
   'help.guide.language-region.tip.3':
     '‘Week begint op’ bepaalt de eerste kolom van elke datumkiezer; Vakantie heeft een eigen instelling.',
-  'help.guide.web-push-device.tip.2': 'Zet TREK op iPhone en iPad eerst op het beginscherm en open het daarvandaan.',
+  'help.guide.web-push-device.tip.2': 'Zet YOUYA op iPhone en iPad eerst op het beginscherm en open het daarvandaan.',
   'help.guide.connect-airtrail.step.3':
     'Klik op ‘Opslaan’ en dan op ‘Verbinding testen’. Je ziet hoeveel vluchten er zijn gevonden, en de badge verandert in ‘Verbonden’.',
   'help.guide.connect-dawarich.step.3':
@@ -5735,7 +5737,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     'Klik op ‘Opslaan’ en dan op ‘Verbinding testen’. Je ziet hoeveel van je trails je kunt importeren, en de badge verandert in ‘Verbonden’.',
   'help.guide.tour-wanderer-watch.step.2':
-    'Hooguit één keer per dag leest TREK de korte gegevens van elke trail die je hebt geïmporteerd, en de rij toont wanneer dat voor het laatst gebeurde. Is een trail mogelijk gewijzigd, dan krijg je een melding en telt ‘Meldingen’ hem mee: klik op ‘Meldingen’ om elke tocht te zien als ‘Mogelijk gewijzigd’, ‘Gewijzigd’ of ‘Niet te controleren’, en open hem van daaruit.',
+    'Hooguit één keer per dag leest YOUYA de korte gegevens van elke trail die je hebt geïmporteerd, en de rij toont wanneer dat voor het laatst gebeurde. Is een trail mogelijk gewijzigd, dan krijg je een melding en telt ‘Meldingen’ hem mee: klik op ‘Meldingen’ om elke tocht te zien als ‘Mogelijk gewijzigd’, ‘Gewijzigd’ of ‘Niet te controleren’, en open hem van daaruit.',
   'help.guide.plugin-settings.goal':
     'Geef een plugin je eigen sleutels en voorkeuren, en bekijk wat hij namens jou heeft gedaan.',
   'help.guide.own-routing-engine.result': 'Routes in elke reis worden op jouw servers berekend.',
@@ -5756,7 +5758,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     'In de tabbalk van de reis verschijnt een tabblad ‘Reisverslag’. Iedereen aan wie je ‘Lezen’ of ‘Bewerken’ hebt gegeven, kan het reisverslag op dat tabblad openen, met live updates.',
   'help.guide.create-place.tip.4':
-    'Een link die je uit Google Maps hebt gekopieerd, werkt ook in het zoekveld: plak hem, druk op Enter, en TREK haalt de plaats eruit. Zodra het formulier een positie heeft, toont ‘Plaatsen in de buurt van deze pin’, het vizier naast het zoekveld, wat er in de buurt is.',
+    'Een link die je uit Google Maps hebt gekopieerd, werkt ook in het zoekveld: plak hem, druk op Enter, en YOUYA haalt de plaats eruit. Zodra het formulier een positie heeft, toont ‘Plaatsen in de buurt van deze pin’, het vizier naast het zoekveld, wat er in de buurt is.',
   'help.guide.dawarich-stays.step.2':
     'De bezoeken zijn per dag gegroepeerd, elk met je aankomst- en vertrektijd; een meterpictogram geeft aan dat Dawarich niet zeker was van een bezoek. Klik op ‘Als plaats toevoegen’, de speld naast een bezoek.',
   'help.guide.leave-stop-off-route.step.3':
@@ -5783,7 +5785,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.4':
     'Klik op de titel om de rit te hernoemen zonder het formulier te openen. ‘Hernoemen’ opent met de huidige naam ingevuld: typ de nieuwe naam en klik op ‘Opslaan’.',
   'help.guide.export-transports-csv.goal':
-    'Exporteer de ritten van de reis uit TREK als CSV-bestand, voor een spreadsheet, een reisbureau of om af te drukken.',
+    'Exporteer de ritten van de reis uit YOUYA als CSV-bestand, voor een spreadsheet, een reisbureau of om af te drukken.',
   'help.guide.group-sort-bookings.result':
     'De boekingen staan in de secties en de volgorde die je hebt gekozen, en deze browser onthoudt die keuze voor de volgende keer.',
   'help.guide.booking-on-map.step.1':
@@ -5798,7 +5800,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     'In de editor opent een klik op de naam van een bestand in de lijst hetzelfde voorbeeld. Esc sluit dan alleen het voorbeeld, niet de uitgave.',
   'help.guide.files-sync-settings.step.5':
-    '‘Als beide kanten zijn gewijzigd’ bepaalt welke kopie blijft als een document op beide plekken is bewerkt: ‘Vraag het mij’, ‘De TREK-kopie behouden’ of ‘De kopie in de opslag behouden’. Met ‘Automatisch synchroniseren’ controleert TREK op de achtergrond op wijzigingen; staat het uit, dan toont de kaart ‘Gepauzeerd’ en synchroniseert alleen ‘Nu synchroniseren’. Elke wijziging hier wordt meteen opgeslagen.',
+    '‘Als beide kanten zijn gewijzigd’ bepaalt welke kopie blijft als een document op beide plekken is bewerkt: ‘Vraag het mij’, ‘De YOUYA-kopie behouden’ of ‘De kopie in de opslag behouden’. Met ‘Automatisch synchroniseren’ controleert YOUYA op de achtergrond op wijzigingen; staat het uit, dan toont de kaart ‘Gepauzeerd’ en synchroniseert alleen ‘Nu synchroniseren’. Elke wijziging hier wordt meteen opgeslagen.',
   'help.guide.manage-notes.step.5':
     '‘Verwijderen’ vraagt eerst ‘Notitie verwijderen?’, omdat de notitie voor alle leden wordt verwijderd, samen met de bestanden. Klik op ‘Verwijderen’ om te bevestigen.',
   'help.guide.note-categories.step.3':
@@ -5829,7 +5831,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     'Of klik op de kop van de dag om die te openen, klik op de tocht in de lijst en klik onderaan de tochtkaart op ‘Verwijderen van dag’.',
   'help.guide.tour-filter-list.step.3':
-    'Bevat de lijst verschillende soorten, dan kun je verder filteren met ‘Bron’ (TREK, GPX-import, wanderer), ‘Routelimiet’ (T1 tot T6) en ‘Type’ (Wandeling, Fietstocht enzovoort). Klik nog een keer op een aangevinkte waarde om die te wissen.',
+    'Bevat de lijst verschillende soorten, dan kun je verder filteren met ‘Bron’ (YOUYA, GPX-import, wanderer), ‘Routelimiet’ (T1 tot T6) en ‘Type’ (Wandeling, Fietstocht enzovoort). Klik nog een keer op een aangevinkte waarde om die te wissen.',
   'help.guide.tour-hide-on-map.step.1':
     'Wijs een tocht in de lijst aan en klik op het oog dat rechts in de rij verschijnt (‘Verbergen op de kaart’).',
   'help.guide.tour-import-plan-tab.step.1':
@@ -5849,7 +5851,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.tip.4':
     '‘Collectie’ is er alleen zolang de add-on Collecties aanstaat. Een lijst die je alleen mag lezen, kun je niet kiezen, en heb je nog geen lijst, dan biedt het venster ‘Collecties openen’.',
   'help.guide.tour-packing-link.step.5':
-    'Klik op ‘Inpaklijst openen’ om dingen af te vinken. TREK gaat naar het tabblad Lijsten, naar de inpaklijst.',
+    'Klik op ‘Inpaklijst openen’ om dingen af te vinken. YOUYA gaat naar het tabblad Lijsten, naar de inpaklijst.',
   'help.guide.tour-files.step.2': 'De rij eronder telt ze nu, en de lijst gaat open.',
   'help.guide.tour-activity-link.step.2':
     'Controleer onder ‘Gedaan op’ de dag waarop je de tocht hebt gemaakt. Kies ‘Geen dag’ als die bij geen enkele dag hoort.',
@@ -5863,7 +5865,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.step.5':
     '‘Zoek plaats of adres’ bovenaan de kaart verplaatst de kaart naar een plek, zodat je kunt beginnen waar de tocht is.',
   'help.guide.tour-draw-route.goal':
-    'Zet de punten van een nieuwe tocht op de kaart en laat TREK de route ertussen berekenen.',
+    'Zet de punten van een nieuwe tocht op de kaart en laat YOUYA de route ertussen berekenen.',
   'help.guide.tour-draw-route.tip.2':
     'Met Topo of Wandelen in de pil van de kaart zie je de paden, zodat je er makkelijker een aanklikt. Ligt een punt te ver van een weg die het type kan gebruiken, dan krijg je een melding in plaats van een route.',
   'help.guide.tour-type-profile.step.3':
@@ -5938,7 +5940,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-plan.step.1':
     'Klik bovenaan de linkerkolom op ‘Nieuwe tocht plannen’. De editor opent als ‘Nieuwe tocht’.',
   'help.guide.tour-hike-plan.tip.2':
-    'Vanaf T4 vraagt TREK eerst ‘Alpiene routeberekening inschakelen?’. Bevestig alleen als de route door blootgesteld of ongemarkeerd terrein mag gaan; de vraag komt één keer per bewerksessie.',
+    'Vanaf T4 vraagt YOUYA eerst ‘Alpiene routeberekening inschakelen?’. Bevestig alleen als de route door blootgesteld of ongemarkeerd terrein mag gaan; de vraag komt één keer per bewerksessie.',
   'help.guide.tour-hike-trail-details.step.4':
     'Klik op een graad in de lijst om alleen die stukken op de kaart te tonen. Klik er nog een keer op om de hele route te zien.',
   'help.guide.tour-hike-round.step.1':
@@ -5999,11 +6001,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     '‘Peddeltempo’ toont de voorgestelde snelheid voor de boot in grijs. Typ je eigen snelheid, dan toont het veld ‘Eigen tempo’; met de link eronder, ‘Het voorgestelde gebruiken’, neem je weer de snelheid van de boot.',
   'help.guide.tour-paddle-water-route.goal':
-    'Laat TREK een stuk over de rivier of het meer plannen, en begrijp de opmerkingen bij een stuk dat niet kon worden gepland.',
+    'Laat YOUYA een stuk over de rivier of het meer plannen, en begrijp de opmerkingen bij een stuk dat niet kon worden gepland.',
   'help.guide.tour-paddle-water-route.tip.3':
     'Opmerkingen onder een gepland stuk wijzen op ‘Wildwater’ met de moeilijkheidsgraad, een ‘Kanogoot’ of een ‘Gat in de kaartgegevens’ dat met een rechte lijn is overbrugd.',
   'help.guide.tour-paddle-portage.step.4':
-    'Onder ‘Route’ volgt ‘Het pad volgen’ een weg op de kaart en gaat ‘Rechte lijn’ er direct overheen. TREK zoekt zelf naar het pad en meldt het als er geen pad is zonder lange omweg.',
+    'Onder ‘Route’ volgt ‘Het pad volgen’ een weg op de kaart en gaat ‘Rechte lijn’ er direct overheen. YOUYA zoekt zelf naar het pad en meldt het als er geen pad is zonder lange omweg.',
   'help.guide.tour-paddle-lock.step.1': 'Wijs de stop bij de sluis aan en klik op ‘Meer acties’, de drie puntjes.',
   'help.guide.tour-paddle-time.title': 'De tijd van een peddeltocht bekijken en aanpassen',
   'help.guide.tour-paddle-time.tip.2': 'Stroming en wind tellen niet mee in de schatting.',
@@ -6012,7 +6014,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     'Sla de peddeltocht op en zoek dan ‘Controlelijst’ in de linkerkolom. De badge in de kop vat samen hoe de lijst ervoor staat.',
   'help.guide.tour-paddle-checklist.tip.4':
-    "Obstakels komen uit de OpenStreetMap-gegevens van de regio's die TREK beschikbaar heeft. Zijn er voor een regio geen gegevens, dan meldt de kaart dat, en controleer je stuwen, sluizen en draagstukken zelf.",
+    "Obstakels komen uit de OpenStreetMap-gegevens van de regio's die YOUYA beschikbaar heeft. Zijn er voor een regio geen gegevens, dan meldt de kaart dat, en controleer je stuwen, sluizen en draagstukken zelf.",
   'help.guide.tour-paddle-track-marks.step.4':
     'Klik op de track in ‘Tochten van deze reis’. De linkerkolom toont hem zoals hij is opgenomen, met de kaart ‘Overdraagplaatsen en sluizen’.',
   'help.ctx.trip-tour-horse.title': 'Ritten te paard',
@@ -6021,7 +6023,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.result':
     'De rit volgt de trajecten die je hebt gekozen, elk met de naam van de route, een stip voor de toegang en de lengte, en staat onder ‘Tochten van deze reis’.',
   'help.guide.tour-horse-gap.step.1':
-    'Heeft de rit al een traject, open dan een andere route en kies een traject dat niet aansluit op het einde van je rit. Onder ‘Aansluiting op je rit’ meldt TREK hoe ver ze uit elkaar liggen.',
+    'Heeft de rit al een traject, open dan een andere route en kies een traject dat niet aansluit op het einde van je rit. Onder ‘Aansluiting op je rit’ meldt YOUYA hoe ver ze uit elkaar liggen.',
   'help.guide.tour-horse-recorded.title': 'Een opgenomen rit uit een GPX-bestand bewaren',
   'help.guide.tour-horse-recorded.tip.2':
     'Een bestand zonder hoogtes toont ‘Geen hoogtes in het bestand’ in plaats van een stijging van nul.',
@@ -6079,16 +6081,16 @@ const help: TranslationStrings = {
     'Zolang een gekoppelde reis loopt, staan de bezoeken van elke dag bij die dag klaar voor ‘Dag overnemen’.',
   'help.ctx.settings-about.title': 'Over',
   'help.guide.web-push-device.tip.3':
-    'Pushmeldingen werken alleen als je TREK via HTTPS opent. Zijn meldingen geblokkeerd? Sta ze dan toe in je browserinstellingen en probeer het opnieuw.',
-  'help.guide.booking-mail-address.title': 'Boekingsmails naar TREK doorsturen',
+    'Pushmeldingen werken alleen als je YOUYA via HTTPS opent. Zijn meldingen geblokkeerd? Sta ze dan toe in je browserinstellingen en probeer het opnieuw.',
+  'help.guide.booking-mail-address.title': 'Boekingsmails naar YOUYA doorsturen',
   'help.guide.booking-mail-address.goal':
-    'Krijg je eigen adres voor boekingsbevestigingen, zodat TREK elke boeking aan de juiste reis toevoegt.',
+    'Krijg je eigen adres voor boekingsbevestigingen, zodat YOUYA elke boeking aan de juiste reis toevoegt.',
   'help.guide.booking-mail-address.step.1':
     'Onder ‘Integraties’ toont ‘Boekingsmails’ je adres. Klik op de kopieerknop ernaast. Houd het adres voor jezelf, net als een wachtwoord.',
   'help.guide.booking-mail-address.step.2':
     'Stuur er met de hand een boekingsmail naartoe, bijlagen inbegrepen, of volg ‘Automatisch doorsturen’ om een regel in Gmail of Outlook in te stellen.',
   'help.guide.booking-mail-address.step.3':
-    '‘Boekingsmails importeren’ zet de import aan of uit. Met ‘Met AI lezen’ laat je AI ook mails lezen zonder machineleesbare boekingsgegevens. ‘Zelf toevoegen’ zet een boeking waar TREK zeker van is meteen in de reis.',
+    '‘Boekingsmails importeren’ zet de import aan of uit. Met ‘Met AI lezen’ laat je AI ook mails lezen zonder machineleesbare boekingsgegevens. ‘Zelf toevoegen’ zet een boeking waar YOUYA zeker van is meteen in de reis.',
   'help.guide.booking-mail-address.step.4':
     '‘Boekingen in afwachting’ opent de mails die op jou wachten, met een getal als er zijn. ‘Een mailbestand uploaden’ leest een mail die je als .eml hebt bewaard.',
   'help.guide.booking-mail-address.result':
@@ -6106,7 +6108,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     'Op de badge staat ‘Verbonden’ en op het tabblad Tochten van een reis kun je in je wanderer zoeken en routes importeren.',
   'help.guide.tour-wanderer-watch.result':
-    'TREK controleert je geïmporteerde routes en laat het je weten als er een mogelijk is gewijzigd. Een tocht verandert pas als jij de wijziging accepteert.',
+    'YOUYA controleert je geïmporteerde routes en laat het je weten als er een mogelijk is gewijzigd. Een tocht verandert pas als jij de wijziging accepteert.',
   'help.guide.plugin-settings.step.1':
     'Open ‘Plugins’ in de zijbalk van de instellingen. Onder ‘Plug-in-instellingen’ heeft elke plugin die instellingen voor je heeft een eigen kaart: vul de velden in en klik op ‘Opslaan’, of maak de keuzes die de kaart toont. Acties op de kaart worden pas uitgevoerd nadat je ze bevestigt.',
   'help.guide.profile.step.3': 'Klik rechts onderaan de kaart op ‘Profiel opslaan’.',
@@ -6120,7 +6122,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Bepaal met welke meldingsinstellingen elke gebruiker begint, en blokkeer een kanaal volledig voor een gebeurtenis.',
   'help.ctx.notifications.summary':
-    'Alle meldingen die TREK je in de app heeft getoond, de nieuwste bovenaan en per dag gegroepeerd: een boeking die iemand heeft gewijzigd, een nieuw bericht in een reischat, een vlucht met vertraging, een boeking uit een doorgestuurde mail. De bel rechtsboven toont de nieuwste tien, op deze pagina staan ze allemaal.',
+    'Alle meldingen die YOUYA je in de app heeft getoond, de nieuwste bovenaan en per dag gegroepeerd: een boeking die iemand heeft gewijzigd, een nieuw bericht in een reischat, een vlucht met vertraging, een boeking uit een doorgestuurde mail. De bel rechtsboven toont de nieuwste tien, op deze pagina staan ze allemaal.',
   'help.guide.read-notifications.step.1':
     'Klik rechtsboven op de bel. Het rode getal erop geeft aan hoeveel meldingen je nog niet hebt gelezen.',
   'help.guide.filter-notifications.step.1': 'Klik rechtsboven op de bel.',
@@ -6251,7 +6253,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     'Klik op ‘GPX’ om de opgeslagen tocht als GPX-bestand te downloaden: de hele route met de hoogtegegevens die erbij horen, klaar voor een navigatie-app of gps-apparaat.',
   'help.guide.tour-copy-keep.step.1':
-    'Open de kaart van de tocht en klik onderaan op ‘Kopiëren’. TREK maakt een nieuwe, losstaande tocht zonder dagen, en het origineel blijft ongewijzigd.',
+    'Open de kaart van de tocht en klik onderaan op ‘Kopiëren’. YOUYA maakt een nieuwe, losstaande tocht zonder dagen, en het origineel blijft ongewijzigd.',
   'help.guide.tour-copy-keep.result':
     'De reis heeft nu een tweede tocht die je vrij kunt aanpassen, en de collectie heeft een eigen kopie die je aan een andere reis kunt toevoegen.',
   'help.guide.tour-packing-link.tip.1':
@@ -6343,7 +6345,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Klik op ‘Ondergrond’ om dezelfde route te bekijken op basis van waar je over loopt, van asfalt tot onverhard en rots.',
   'help.guide.tour-hike-round.step.2':
-    'De kaart Rondwandeling opent boven de kaart. Controleer het startpunt onder ‘Van’ en typ de gewenste Afstand. De pil ernaast toont de lengtes van de rondes die TREK ervoor aanbiedt.',
+    'De kaart Rondwandeling opent boven de kaart. Controleer het startpunt onder ‘Van’ en typ de gewenste Afstand. De pil ernaast toont de lengtes van de rondes die YOUYA ervoor aanbiedt.',
   'help.guide.tour-hike-compare-ways.title': 'Andere routes voor één deel van een wandeling vergelijken',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Kent de routeplanner geen andere weg, dan meldt de kaart dat. Kan de routeplanner de gekozen weg niet volgen, dan blijft het deel zoals het was en laat de kaart je dat weten.',
@@ -6362,7 +6364,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     'De openingstijden komen uit OpenStreetMap of van de plek in de reis waar een stop bij hoort, en het label ernaast geeft aan welke van de twee. Controleer ze voordat je gaat.',
   'help.guide.tour-walk-google-import.step.4':
-    'Klik op ‘Laden als wandeling’. TREK plant zelf de looproute tussen de stops. Klik op ‘Opslaan’ om de wandeling te bewaren.',
+    'Klik op ‘Laden als wandeling’. YOUYA plant zelf de looproute tussen de stops. Klik op ‘Opslaan’ om de wandeling te bewaren.',
   'help.guide.tour-walk-check-off.step.2':
     'Scrol naar ‘Haltes van de wandeling’. Bij elke stop zie je hoelang je er blijft en, als de wandeling een begintijd heeft, wanneer je er aankomt.',
   'help.ctx.trip-tour-bike.summary':
@@ -6378,7 +6380,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     'Plan een dag op de piste, een langlaufronde, een skitocht of een sneeuwschoenwandeling langs de pistes, liften en paden op de kaart.',
   'help.guide.tour-ski-plan.tip.2':
-    'Het infopuntje naast Discipline legt uit wat TREK met skitochten doet. Niets daar of elders hier zegt iets over sneeuw, lawines of de vraag of pistes, liften en paden open zijn.',
+    'Het infopuntje naast Discipline legt uit wat YOUYA met skitochten doet. Niets daar of elders hier zegt iets over sneeuw, lawines of de vraag of pistes, liften en paden open zijn.',
   'help.guide.tour-ski-options.step.3':
     'Kies onder Voorkeur ‘Snelste’, ‘Meeste skiën’ of ‘Makkelijkst’. Kies onder Tempo ‘Rustig’, ‘Normaal’ of ‘Sportief’: dat bepaalt hoeveel tijd de routeplanner voor elke afdaling rekent.',
   'help.guide.tour-ski-fix-leg.goal': 'Laat een rood stuk met één klik plannen, of teken het als rechte lijn.',
@@ -6395,11 +6397,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     'Controleer of ‘Punt toevoegen’ aan staat en klik dan op de kaart: eerst op je instappunt, dan op eventuele punten onderweg en tot slot op je uitstappunt.',
   'help.guide.tour-paddle-water-route.step.1':
-    'Bij een stuk dat met de hand is getekend, staat onder het punt ‘Met de hand getekend, niet gerouteerd’, met de lengte erbij. TREK laat de lijn zoals je hem hebt getekend.',
+    'Bij een stuk dat met de hand is getekend, staat onder het punt ‘Met de hand getekend, niet gerouteerd’, met de lengte erbij. YOUYA laat de lijn zoals je hem hebt getekend.',
   'help.guide.tour-paddle-water-route.tip.4':
     'Zolang een stuk niet is gepland, kun je niet opslaan. Plan het eerst over het water of teken het met de hand.',
   'help.guide.tour-paddle-portage.step.5':
-    'Vul onder ‘Uit en in’ in hoeveel minuten je nodig hebt om uit te stappen, uit te laden en weer te water te gaan. Laat je het leeg, dan rekent TREK met 10 minuten.',
+    'Vul onder ‘Uit en in’ in hoeveel minuten je nodig hebt om uit te stappen, uit te laden en weer te water te gaan. Laat je het leeg, dan rekent YOUYA met 10 minuten.',
   'help.guide.tour-paddle-lock.step.2':
     'Kies ‘Sluis op dit punt’. Onder het punt verschijnt een kaart Sluis met de melding ‘Tijd ontbreekt’.',
   'help.guide.tour-paddle-time.goal':
@@ -6409,7 +6411,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     'Er is alleen een voorspelling voor de komende 16 dagen. Bij een dag die verder weg ligt, zie je vanaf welke datum de voorspelling beschikbaar is. Bij een dag in het verleden zie je dat die dag al voorbij is.',
   'help.guide.tour-paddle-checklist.step.2':
-    'De regel eronder laat zien hoe actueel de gegevens zijn: ‘OSM-gegevens van’ voor OpenStreetMap, ‘Opgehaald’ voor het moment waarop TREK ze ophaalde, en ‘Hindernisgegevens’ als die niet de hele route dekken.',
+    'De regel eronder laat zien hoe actueel de gegevens zijn: ‘OSM-gegevens van’ voor OpenStreetMap, ‘Opgehaald’ voor het moment waarop YOUYA ze ophaalde, en ‘Hindernisgegevens’ als die niet de hele route dekken.',
   'help.guide.tour-paddle-checklist.tip.5':
     'Een checklist is geen goedkeuring op het gebied van veiligheid of wetgeving. Jouw beslissing heft geen verbod of privéterrein op dat in OpenStreetMap staat.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -6449,7 +6451,7 @@ const help: TranslationStrings = {
     'Bewaarde tochten: tochten die je uit een reis hebt bewaard, staan bovenaan een lijst, met moeilijkheidsgraad, soort, de reis waar ze vandaan komen en hun gegevens. Met ‘Aan een reis toevoegen’ maak je er een nieuwe tocht van, met de prullenbak haal je hem van de lijst.',
   'help.guide.move-to-list.title': 'Plaatsen naar een andere lijst verplaatsen of dupliceren',
   'help.guide.copy-to-trip.tip.2':
-    'Plaatsen die al in de reis staan, worden overgeslagen. TREK laat zien hoeveel dat er waren.',
+    'Plaatsen die al in de reis staan, worden overgeslagen. YOUYA laat zien hoeveel dat er waren.',
   'help.guide.accept-list-invite.tip.2':
     'Klik bovenaan de lijst op ‘Gedeeld’ om de leden te zien. Daar kun je met ‘Lijst verlaten’ de lijst ook weer verlaten.',
   'help.guide.tour-collection-add-to-trip.goal':
@@ -6467,16 +6469,16 @@ const help: TranslationStrings = {
   'help.guide.journey-day-stays.goal': 'Maak van de bezoeken die Dawarich heeft vastgelegd een voor een vermeldingen.',
   'help.guide.journey-take-over-day.goal':
     'Maak in één stap van de bezoeken van een dag conceptvermeldingen, of één dagverslag.',
-  'help.guide.journey-auto-prepare.title': 'TREK je opgenomen dagen laten voorbereiden',
+  'help.guide.journey-auto-prepare.title': 'YOUYA je opgenomen dagen laten voorbereiden',
   'help.guide.photo-location.title': "Vermeldingen plaatsen waar de foto's zijn gemaakt",
   'help.ctx.settings-about.summary':
-    'Wat TREK is, welke versie deze server draait en waar je het project vindt: de documentatie, waar je een bug meldt en hoe je het project kunt steunen.',
+    'Wat YOUYA is, welke versie deze server draait en waar je het project vindt: de documentatie, waar je een bug meldt en hoe je het project kunt steunen.',
   'help.guide.startup.tip.2':
     'Hoort een starttabblad bij een add-on die je hebt uitgezet, dan opent in plaats daarvan de planning.',
   'help.guide.web-push-device.title': 'Pushmeldingen op dit apparaat ontvangen',
   'help.guide.connect-airtrail.tip.1': 'De kaart verschijnt alleen als de beheerder de add-on AirTrail heeft aangezet.',
   'help.guide.connect-dawarich.tip.1':
-    'TREK doet alleen voorstellen voor vermeldingen, plaatsen en landen. Er wordt niets toegevoegd tot je het bevestigt, en er wordt niets naar Dawarich teruggeschreven.',
+    'YOUYA doet alleen voorstellen voor vermeldingen, plaatsen en landen. Er wordt niets toegevoegd tot je het bevestigt, en er wordt niets naar Dawarich teruggeschreven.',
   'help.guide.tour-connect-wanderer.tip.1':
     'De kaart verschijnt alleen als de beheerder wanderer onder Tochten toestaat.',
   'help.guide.tour-wanderer-watch.tip.1':
@@ -6492,7 +6494,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     'Geef elk account handige eenheden, een kleurmodus en een valuta, zonder dat iemand Instellingen hoeft te openen.',
   'help.guide.default-map.step.3':
-    'Elk veld wordt opgeslagen zodra je het verlaat. Met de resetlink naast de naam van een veld zet je de standaardwaarde van TREK terug.',
+    'Elk veld wordt opgeslagen zodra je het verlaat. Met de resetlink naast de naam van een veld zet je de standaardwaarde van YOUYA terug.',
   'help.guide.own-routing-engine.tip.2':
     'Is alleen je eigen routeserver ingesteld en staat ‘Routeringsdienst’ op Automatisch, dan wordt geen Valhalla gevraagd. Met de resetlink naast een veld maak je het weer leeg.',
   'help.guide.admin-passkeys.step.1':
@@ -6500,7 +6502,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.4':
     'Onder Gezondheid bovenaan zie je mislukte schrijfacties naar een spiegeldoel. Staat er ‘Geen replicafouten geregistreerd’, dan werkt alles.',
   'help.guide.channels-instance.tip.3':
-    'Web Push werkt alleen via HTTPS. Op iPhone en iPad moeten mensen TREK eerst aan hun beginscherm toevoegen.',
+    'Web Push werkt alleen via HTTPS. Op iPhone en iPad moeten mensen YOUYA eerst aan hun beginscherm toevoegen.',
   'help.guide.notification-defaults.step.1':
     'Scrol op het tabblad Meldingen naar Standaarden voor gebruikers onderaan. Elke rij is een gebeurtenis, elke kolom een kanaal.',
   'help.ctx.notifications.bullet.1':
@@ -6551,28 +6553,28 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     'Wil je maar een deel van het tabblad exporteren, beperk het dan eerst met Zoeken of Filter. Het bestand bevat precies wat het tabblad toont.',
   'help.guide.import-booking-file.tip.4':
-    'Voor het inlezen van een bevestiging is een internetverbinding nodig. Ben je offline, dan meldt Importeren dat. Probeer het opnieuw zodra TREK weer online is.',
+    'Voor het inlezen van een bevestiging is een internetverbinding nodig. Ben je offline, dan meldt Importeren dat. Probeer het opnieuw zodra YOUYA weer online is.',
   'help.guide.forward-booking-mail.title': 'Een boekingsmail naar de reis doorsturen',
   'help.guide.forward-booking-mail.goal':
-    'Geef de reis een eigen adres, stuur de bevestiging erheen door en rond af wat TREK niet zelf kon toevoegen.',
+    'Geef de reis een eigen adres, stuur de bevestiging erheen door en rond af wat YOUYA niet zelf kon toevoegen.',
   'help.guide.forward-booking-mail.step.1':
     'Klik in de balk op het uploadpictogram, ‘Boekingsbevestigingen importeren’. Onder het vak voor bestanden bevat ‘Of stuur door per mail’ het eigen adres van de reis.',
   'help.guide.forward-booking-mail.step.2':
     'Klik op ‘Een adres voor deze reis aanmaken’. Een mail die ernaartoe wordt gestuurd, komt zonder te raden in deze reis terecht.',
   'help.guide.forward-booking-mail.step.3':
-    'Het adres verschijnt met een kopieerknop ernaast. Kopieer het en stuur de boekingsmail er vanuit je mailprogramma naartoe door, bijlagen inbegrepen, met de hand of met een regel. TREK leest hem binnen een paar minuten.',
+    'Het adres verschijnt met een kopieerknop ernaast. Kopieer het en stuur de boekingsmail er vanuit je mailprogramma naartoe door, bijlagen inbegrepen, met de hand of met een regel. YOUYA leest hem binnen een paar minuten.',
   'help.guide.forward-booking-mail.step.4':
-    'Een boeking waar TREK zeker van is, komt vanzelf in de reis. Al het andere wacht op jou: open rechtsboven het menu onder je naam, waar een getal de wachtende mails telt, en klik op ‘Boekingen in afwachting’.',
+    'Een boeking waar YOUYA zeker van is, komt vanzelf in de reis. Al het andere wacht op jou: open rechtsboven het menu onder je naam, waar een getal de wachtende mails telt, en klik op ‘Boekingen in afwachting’.',
   'help.guide.forward-booking-mail.step.5':
-    'Elk item toont wat TREK las, waarom het wacht en voor welke reis het binnenkwam. ‘Mail tonen’ toont de mail zelf. Klik op ‘Zelf invullen’.',
+    'Elk item toont wat YOUYA las, waarom het wacht en voor welke reis het binnenkwam. ‘Mail tonen’ toont de mail zelf. Klik op ‘Zelf invullen’.',
   'help.guide.forward-booking-mail.step.6':
-    '‘Nieuwe reservering’ opent in de reis met wat de mail bevatte: het onderwerp als titel, het type, de datum en de boekingscode die TREK vond. Controleer het, corrigeer wat nodig is en klik op ‘Toevoegen’.',
+    '‘Nieuwe reservering’ opent in de reis met wat de mail bevatte: het onderwerp als titel, het type, de datum en de boekingscode die YOUYA vond. Controleer het, corrigeer wat nodig is en klik op ‘Toevoegen’.',
   'help.guide.forward-booking-mail.result':
     'De boeking staat op het tabblad Boekingen zoals elke andere, en zijn item is uit ‘Boekingen in afwachting’ verdwenen.',
   'help.guide.forward-booking-mail.tip.1':
-    'Je eigen adres, onder Instellingen, Integraties, Boekingsmails, werkt voor elke reis: TREK kiest de reis waarvan de data en plaatsen bij de boeking passen. Met het adres van een reis hoeft TREK niet te raden.',
+    'Je eigen adres, onder Instellingen, Integraties, Boekingsmails, werkt voor elke reis: YOUYA kiest de reis waarvan de data en plaatsen bij de boeking passen. Met het adres van een reis hoeft YOUYA niet te raden.',
   'help.guide.forward-booking-mail.tip.2':
-    'Staat ‘Zelf toevoegen’ in die kaart aan, dan komt een boeking waar TREK zeker van is meteen in de reis, en de melding erover biedt 7 dagen lang ‘Ongedaan maken’. Staat het uit, dan wacht elke boeking onder ‘Boekingen in afwachting’.',
+    'Staat ‘Zelf toevoegen’ in die kaart aan, dan komt een boeking waar YOUYA zeker van is meteen in de reis, en de melding erover biedt 7 dagen lang ‘Ongedaan maken’. Staat het uit, dan wacht elke boeking onder ‘Boekingen in afwachting’.',
   'help.guide.forward-booking-mail.tip.3':
     'Een item kun je ook bewaren als document met ‘Opslaan als document’, waarmee de mail of zijn bijlagen in de bestanden van de reis komen, of laten vallen met ‘Verwerpen’.',
   'help.guide.forward-booking-mail.tip.4':
@@ -6607,7 +6609,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-overnight.goal':
     'Zoek een slaapplek onderweg en voeg de overnachting als boeking aan de rit toe.',
   'help.guide.roadtrip-overnight.tip.2':
-    'Zet je een geboekte overnachting via ‘Bewerken’ op de kaart terug naar Pauze, dan vraagt TREK eerst ‘Overnachting laten vervallen?’. Met ‘Maak er een pauze van’ verwijder je de overnachting, met de boeking en eventueel gekoppelde uitgaven, en blijft de stop in de rit staan.',
+    'Zet je een geboekte overnachting via ‘Bewerken’ op de kaart terug naar Pauze, dan vraagt YOUYA eerst ‘Overnachting laten vervallen?’. Met ‘Maak er een pauze van’ verwijder je de overnachting, met de boeking en eventueel gekoppelde uitgaven, en blijft de stop in de rit staan.',
   'help.guide.roadtrip-stop-fill.tip.2':
     'Kies je de waarde die de stop al heeft, dan gaat de stop terug naar je standaardwaarde.',
   'help.guide.roadtrip-bookings.tip.1':
@@ -6653,11 +6655,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     'Open de kaart van de tocht. ‘Planning en werkelijk’ zet Afstand, Hoogtemeters omhoog, Hoogtemeters omlaag en ‘Tijd met pauzes’ van de planning naast die van de track, met het Verschil.',
   'help.guide.tour-origin-check.goal':
-    'Zoek uit of een tocht in TREK is getekend of geïmporteerd, uit welk bestand, en of hij sindsdien is gewijzigd.',
+    'Zoek uit of een tocht in YOUYA is getekend of geïmporteerd, uit welk bestand, en of hij sindsdien is gewijzigd.',
   'help.ctx.trip-tour-planner.title': 'Tochten',
   'help.guide.tour-open-workspace.title': 'Je weg vinden op het tabblad Tochten',
   'help.guide.tour-open-workspace.step.7':
-    'Klik op een tocht in de rechterbalk. Een tocht die in TREK is gepland, opent in de editor. Een geïmporteerde track opent ongewijzigd als GPX-tocht, om te bekijken.',
+    'Klik op een tocht in de rechterbalk. Een tocht die in YOUYA is gepland, opent in de editor. Een geïmporteerde track opent ongewijzigd als GPX-tocht, om te bekijken.',
   'help.guide.tour-draw-route.step.2':
     'Typ in ‘Zoek plaats of adres’ waar de tocht begint en kies het resultaat. De kaart gaat daarheen.',
   'help.guide.tour-draw-route.tip.4':
@@ -6693,7 +6695,7 @@ const help: TranslationStrings = {
     'Een track die al in de reis staat, is grijs met ‘Al in de reis’ en wordt overgeslagen.',
   'help.guide.tour-view-import.step.3': 'Met ‘Terug naar tochten’, het pijltje linksboven, sluit je hem weer.',
   'help.guide.tour-plan-from-import.step.2':
-    'TREK haalt controlepunten uit de track en plant er opnieuw een route langs. De kaart toont de import gestippeld en het voorstel doorgetrokken, en de kaart met details vergelijkt de lengtes, het aandeel ‘Binnen 50 m van de track’ en de Grootste afwijking.',
+    'YOUYA haalt controlepunten uit de track en plant er opnieuw een route langs. De kaart toont de import gestippeld en het voorstel doorgetrokken, en de kaart met details vergelijkt de lengtes, het aandeel ‘Binnen 50 m van de track’ en de Grootste afwijking.',
   'help.guide.tour-restore-recorded.title': 'Teruggaan naar de opgenomen track',
   'help.guide.tour-take-over.title': 'Een tocht uit een andere reis overnemen',
   'help.guide.tour-take-over.tip.1':
@@ -6782,7 +6784,7 @@ const help: TranslationStrings = {
     'Laden de pistes niet meer, dan toont de schakelaar een waarschuwingsteken. De kaart en je route blijven werken.',
   'help.guide.tour-ski-import.step.4': 'Klik op ‘1 tocht importeren’.',
   'help.ctx.trip-tour-paddle.summary':
-    'Een kajak-, kano- of SUP-tocht op een rivier of meer. Bij de tocht staan de boot en het water, de route volgt het water waar TREK daar gegevens over heeft, overdragen en sluizen tellen mee in de tijd, en je ziet de wind op de dag dat je peddelt en wat er bekend is over obstakels onderweg.',
+    'Een kajak-, kano- of SUP-tocht op een rivier of meer. Bij de tocht staan de boot en het water, de route volgt het water waar YOUYA daar gegevens over heeft, overdragen en sluizen tellen mee in de tijd, en je ziet de wind op de dag dat je peddelt en wat er bekend is over obstakels onderweg.',
   'help.guide.tour-paddle-setup.goal':
     'Begin een kajak-, kano- of SUP-tocht en geef aan waarmee je peddelt, op wat voor water en hoe snel.',
   'help.guide.tour-paddle-setup.tip.1':
@@ -6790,7 +6792,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-water-route.step.2':
     'Wil je één stuk over het water laten plannen, wijs dan de stop ervoor aan en klik op Meer acties, de drie puntjes.',
   'help.guide.tour-paddle-water-route.result':
-    'Elk stuk volgt het water of is bewust met de hand getekend, en bij een stuk dat TREK niet kon plannen, staat waarom.',
+    'Elk stuk volgt het water of is bewust met de hand getekend, en bij een stuk dat YOUYA niet kon plannen, staat waarom.',
   'help.guide.tour-paddle-portage.tip.1':
     'Wil je het stuk toch peddelen, open dan opnieuw Meer acties bij het punt en kies ‘Dit stuk weer peddelen’. Het wordt dan weer een stuk dat met de hand is getekend.',
   'help.guide.tour-paddle-lock.step.3': 'Klik op de kaart Sluis om die te openen.',
@@ -6810,7 +6812,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     'Klik op het veld ‘Soort tocht’ onder ‘Naam van de tocht’ en kies ‘Rit te paard’. De kaart Ruiterroutes verschijnt onder Waypoints.',
   'help.guide.tour-horse-plan.tip.2':
-    'TREK berekent geen rijtijd voor een rit te paard. Vul er een in onder Gepland in Details als je een tijd op de dag wilt.',
+    'YOUYA berekent geen rijtijd voor een rit te paard. Vul er een in onder Gepland in Details als je een tijd op de dag wilt.',
   'help.guide.tour-horse-gap.step.3':
     'Klik op ‘Traject overnemen’. Zolang de schakelaar niet aan staat, blijft de knop grijs.',
   'help.guide.tour-horse-recorded.step.1':
@@ -6827,7 +6829,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': 'Dagen invoeren voor iemand met wie je plant',
   'help.guide.dissolve-fusion.title': 'Stoppen met samen plannen',
   'help.guide.country-places.goal':
-    'Bekijk welke plaatsen TREK voor een land meetelt, om na te gaan wat je daar hebt gedaan of om een plaats te vinden die TREK aan het verkeerde land heeft toegewezen.',
+    'Bekijk welke plaatsen YOUYA voor een land meetelt, om na te gaan wat je daar hebt gedaan of om een plaats te vinden die YOUYA aan het verkeerde land heeft toegewezen.',
   'help.guide.regions.tip.3':
     '‘Aan bucket list toevoegen’ werkt ook voor een regio. De regio krijgt dan dezelfde arcering als een land op je bucketlist.',
   'help.guide.tour-activity-stats.step.2':
@@ -6856,11 +6858,12 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.1': 'Naast de titel staat de versie die deze server draait.',
   'help.guide.readability.tip.3':
     'Leesbaarheid is gemarkeerd als Experimenteel. Ziet er iets niet goed uit, klik dan onderaan het tabblad op ‘Standaardwaarden herstellen’ om de standaardinstellingen terug te zetten.',
-  'help.guide.web-push-device.goal': 'Ontvang meldingen van TREK op je telefoon of computer, ook als TREK gesloten is.',
+  'help.guide.web-push-device.goal':
+    'Ontvang meldingen van YOUYA op je telefoon of computer, ook als YOUYA gesloten is.',
   'help.guide.connect-airtrail.tip.2':
     'De sleutel wordt versleuteld opgeslagen en nooit meer getoond. Staan er puntjes in het veld, dan is er een sleutel opgeslagen.',
   'help.guide.connect-dawarich.tip.2':
-    'Onder de knoppen staat op de kaart wanneer TREK voor het laatst heeft gecontroleerd en wat jouw versie van Dawarich niet ondersteunt.',
+    'Onder de knoppen staat op de kaart wanneer YOUYA voor het laatst heeft gecontroleerd en wat jouw versie van Dawarich niet ondersteunt.',
   'help.guide.tour-connect-wanderer.tip.2':
     'Draait je installatie op een privéadres, dan moet de beheerder mogelijk interne netwerken toestaan.',
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6868,13 +6871,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     'De plugin werkt met jouw instellingen, en elke actie die hij voor je uitvoert, staat onder Plugin-activiteit.',
   'help.ctx.admin-defaults.bullet.3':
-    'Met de resetlink naast een veld dat je hebt ingesteld, zet je de standaardwaarde van TREK terug. De eigen instelling van een gebruiker gaat hier altijd boven.',
+    'Met de resetlink naast een veld dat je hebt ingesteld, zet je de standaardwaarde van YOUYA terug. De eigen instelling van een gebruiker gaat hier altijd boven.',
   'help.ctx.admin-settings.bullet.5':
     'Gevarenzone, op Beveiliging: met ‘JWT-geheim roteren’ log je alle gebruikers uit, jezelf ook.',
   'help.guide.default-user-settings.step.1':
     'Kies onder Standaard gebruikersinstellingen de Kleurmodus (Licht, Donker of Automatisch), Temperatuureenheid, Afstandseenheid, Tijdnotatie, ‘Week begint op’, de Datumnotatie, de Weergavevaluta en of ‘Boekingscodes vervagen’ aan of uit staat. Elke keuze wordt meteen opgeslagen.',
   'help.guide.admin-passkeys.step.2':
-    'Vul in de kaart ‘Inloggen met passkey’ de ‘Relying Party ID (domein)’ in, bijvoorbeeld trek.example.org, en de ‘Toegestane origins’ waarop je TREK bereikbaar is, en klik op ‘Opslaan’. Laat beide leeg om APP_URL te gebruiken.',
+    'Vul in de kaart ‘Inloggen met passkey’ de ‘Relying Party ID (domein)’ in, bijvoorbeeld trek.example.org, en de ‘Toegestane origins’ waarop je YOUYA bereikbaar is, en klik op ‘Opslaan’. Laat beide leeg om APP_URL te gebruiken.',
   'help.guide.rotate-jwt-secret.title': 'Iedereen tegelijk uitloggen',
   'help.guide.notification-defaults.step.2':
     'Klik op een cel om naar de volgende stand te gaan: Aan, Uit, Geblokkeerd. De knopinfo noemt de volgende stand, en elke klik wordt meteen opgeslagen.',
@@ -6889,21 +6892,21 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': 'De melding is verdwenen uit de lijst en bij de bel.',
   'help.guide.booking-mail-notifications.title': 'Reageren op een melding over een boekingsmail',
   'help.guide.booking-mail-notifications.goal':
-    'Zie wat er is geworden van de boekingsmails die je hebt doorgestuurd, en beslis over de mails die TREK niet zelf kon toevoegen.',
+    'Zie wat er is geworden van de boekingsmails die je hebt doorgestuurd, en beslis over de mails die YOUYA niet zelf kon toevoegen.',
   'help.guide.booking-mail-notifications.step.1':
-    'Klik op de bel rechtsboven. Bevat een doorgestuurde mail boekingen die TREK niet zelf kon toevoegen, dan meldt TREK dat daar.',
+    'Klik op de bel rechtsboven. Bevat een doorgestuurde mail boekingen die YOUYA niet zelf kon toevoegen, dan meldt YOUYA dat daar.',
   'help.guide.booking-mail-notifications.step.2':
     '‘Doorgestuurde boekingen om te controleren’ zegt hoeveel er op je wachten. Klik daaronder op ‘Controleren’.',
   'help.guide.booking-mail-notifications.step.3':
-    '‘Boekingen in afwachting’ opent met elk item dat wacht: wat TREK las, waarom het wacht en voor welke reis het binnenkwam. ‘Zelf invullen’ opent een nieuwe boeking met wat de mail bevatte, en de prullenbak verwerpt het item.',
+    '‘Boekingen in afwachting’ opent met elk item dat wacht: wat YOUYA las, waarom het wacht en voor welke reis het binnenkwam. ‘Zelf invullen’ opent een nieuwe boeking met wat de mail bevatte, en de prullenbak verwerpt het item.',
   'help.guide.booking-mail-notifications.result':
     'Elke doorgestuurde boeking komt direct in de juiste reis terecht of wacht op jouw beslissing, en je weet altijd welke van de twee.',
   'help.guide.booking-mail-notifications.tip.1':
-    'Een boeking die TREK zelf heeft toegevoegd, komt als ‘Boeking uit een mail toegevoegd’, met ‘Behouden’ en ‘Ongedaan maken’. ‘Ongedaan maken’ haalt de boeking weer uit de reis, ‘Behouden’ laat hem erin staan.',
+    'Een boeking die YOUYA zelf heeft toegevoegd, komt als ‘Boeking uit een mail toegevoegd’, met ‘Behouden’ en ‘Ongedaan maken’. ‘Ongedaan maken’ haalt de boeking weer uit de reis, ‘Behouden’ laat hem erin staan.',
   'help.guide.booking-mail-notifications.tip.2':
     'De andere mensen op een gedeelde reis horen ook van een boeking uit een mail, met ‘Reis bekijken’, dat het tabblad Boekingen opent.',
   'help.guide.booking-mail-notifications.tip.3':
-    'Een vlucht die TREK live volgt, stuurt ‘Vlucht vertrokken’, ‘Vlucht geland’ en, vanaf 15 minuten vertraging, ‘Vlucht heeft vertraging’, elk met ‘Reis bekijken’. Ze gaan naar de mensen aan wie de vlucht is toegewezen, of naar iedereen op de reis. Zet ze uit in Instellingen, onder Meldingen.',
+    'Een vlucht die YOUYA live volgt, stuurt ‘Vlucht vertrokken’, ‘Vlucht geland’ en, vanaf 15 minuten vertraging, ‘Vlucht heeft vertraging’, elk met ‘Reis bekijken’. Ze gaan naar de mensen aan wie de vlucht is toegewezen, of naar iedereen op de reis. Zet ze uit in Instellingen, onder Meldingen.',
   'help.guide.notification-settings.result':
     'Instellingen staat open op Meldingen, met een schakelaar per gebeurtenis en kanaal.',
   'help.guide.link-journal.goal':
@@ -6915,9 +6918,9 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     'Klik naast de naam van de reis op ‘Reisinstellingen’ en kies links ‘Add-ons’. Alleen de eigenaar van de reis heeft dit gedeelte.',
   'help.guide.trip-addons.step.2':
-    'Klik op de schakelaar van een add-on om hem voor deze reis aan of uit te zetten. Lijsten, Onkosten, Documenten, Samenwerking, Roadtrip en Tochten staan erbij, voor zover je TREK ze heeft.',
+    'Klik op de schakelaar van een add-on om hem voor deze reis aan of uit te zetten. Lijsten, Onkosten, Documenten, Samenwerking, Roadtrip en Tochten staan erbij, voor zover je YOUYA ze heeft.',
   'help.guide.trip-addons.step.3':
-    '‘Alleen deze reis’ markeert een add-on die je los van de rest van TREK hebt ingesteld. Zet hem terug om weer de instelling van de beheerder te volgen.',
+    '‘Alleen deze reis’ markeert een add-on die je los van de rest van YOUYA hebt ingesteld. Zet hem terug om weer de instelling van de beheerder te volgen.',
   'help.guide.trip-addons.result':
     'De reis toont de add-ons die je hebt gekozen, voor iedereen erop: een tabblad of een onderdeel van de planning verschijnt of verdwijnt. Je andere reizen houden de instelling van de beheerder.',
   'help.guide.trip-addons.tip.1':
@@ -6925,7 +6928,7 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.tip.2':
     'Je kunt een add-on voor één reis aanzetten, ook als de beheerder hem voor iedereen uit heeft.',
   'help.guide.trip-addons.tip.3':
-    'Een schakelaar omzetten vraagt een verbinding. Ben je offline, dan zegt TREK dat en blijft de schakelaar zoals hij was.',
+    'Een schakelaar omzetten vraagt een verbinding. Ben je offline, dan zegt YOUYA dat en blijft de schakelaar zoals hij was.',
   'help.guide.edit-trip-settings.title': 'De reis bewerken vanuit de planner',
   'help.guide.edit-trip-settings.goal':
     'Wijzig de titel, data, omslag of valuta van de reis zonder de reis te verlaten.',
@@ -6937,7 +6940,7 @@ const help: TranslationStrings = {
     'Klik op ‘Bijwerken’. ‘Reisinstellingen’ sluit en de reis toont de wijziging meteen.',
   'help.guide.edit-trip-settings.result': 'De reis toont de nieuwe gegevens overal, voor iedereen die meereist.',
   'help.guide.edit-trip-settings.tip.1':
-    'Verschuif je de begindatum, dan vraagt TREK eerst hoe de boekingen moeten meebewegen. Vallen er door de nieuwe data dagen weg waar al iets op staat, dan toont TREK die dagen voordat je bevestigt.',
+    'Verschuif je de begindatum, dan vraagt YOUYA eerst hoe de boekingen moeten meebewegen. Vallen er door de nieuwe data dagen weg waar al iets op staat, dan toont YOUYA die dagen voordat je bevestigt.',
   'help.guide.edit-trip-settings.tip.2':
     'Hetzelfde formulier opent vanuit Mijn reizen met het potlood op de reiskaart. ‘Reis bewerken’ zien alleen mensen die de reis mogen bewerken.',
   'help.guide.dawarich-stays.result':
@@ -6950,7 +6953,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'De foto is nu de afbeelding van de plaats: op de kaart met details, in de plaatsenkolom, in de dag en op de kaart.',
   'help.guide.place-own-hours.step.3':
-    '‘Openingstijden’ daaronder toont de week, met een rij per dag. Heeft TREK openingstijden voor de plaats gevonden, dan zijn die al ingevuld. Zo niet, klik dan eerst op ‘Openingstijden toevoegen’. Vul per dag in wanneer de plaats opent en sluit. Rechts van een dag markeert ‘24u’ hem als de hele dag open en de gesloten deur als gesloten.',
+    '‘Openingstijden’ daaronder toont de week, met een rij per dag. Heeft YOUYA openingstijden voor de plaats gevonden, dan zijn die al ingevuld. Zo niet, klik dan eerst op ‘Openingstijden toevoegen’. Vul per dag in wanneer de plaats opent en sluit. Rechts van een dag markeert ‘24u’ hem als de hele dag open en de gesloten deur als gesloten.',
   'help.guide.add-accommodation.tip.5':
     'GPX-tracks en plaatsen van tochten worden nooit als verblijf aangeboden, alleen gewone plaatsen van de reis.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6972,7 +6975,7 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.2':
     'Open Weergaveopties, het schuifregelaarpictogram naast de weergavepictogrammen, en kies een volgorde onder ‘Sorteren op’. De rijen volgen die volgorde, met een rij per boeking en zonder onderverdeling.',
   'help.guide.edit-booking.tip.4':
-    'Heb je iets gewijzigd en klik je buiten het formulier of druk je op Escape, dan vraagt TREK ‘Wijzigingen weggooien?’. Met ‘Verder bewerken’ ga je terug naar het formulier.',
+    'Heb je iets gewijzigd en klik je buiten het formulier of druk je op Escape, dan vraagt YOUYA ‘Wijzigingen weggooien?’. Met ‘Verder bewerken’ ga je terug naar het formulier.',
   'help.guide.arrange-packing-list.step.2':
     'Wijs binnen een lijst een rij aan: aan het linkereinde verschijnt een greep waarmee je dat item omhoog of omlaag sleept. Een lijn in je accentkleur aan de linkerkant van een rij laat zien waar het item terechtkomt.',
   'help.guide.count-packed-pieces.goal': 'Geef een item een aantal en markeer de stuks een voor een als ingepakt.',
@@ -6983,7 +6986,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     'Bepaal of documenten alleen uit je opslag worden geïmporteerd, alleen ernaartoe worden geëxporteerd of allebei, en wat er gebeurt als een document wordt verwijderd of op beide plekken wordt gewijzigd.',
   'help.guide.files-sync-settings.tip.2':
-    'Bij ‘Vraag het mij’ komt een document dat op beide plekken is gewijzigd onder ‘Vraagt om aandacht’ te staan, onder de kaart. Klik op ‘Oplossen’ en kies ‘De TREK-versie behouden’, ‘De versie van de aanbieder behouden’ of ‘Allebei behouden’.',
+    'Bij ‘Vraag het mij’ komt een document dat op beide plekken is gewijzigd onder ‘Vraagt om aandacht’ te staan, onder de kaart. Klik op ‘Oplossen’ en kies ‘De YOUYA-versie behouden’, ‘De versie van de aanbieder behouden’ of ‘Allebei behouden’.',
   'help.guide.manage-notes.goal':
     'Open een notitie helemaal, zet de belangrijkste bovenaan, en verbeter of verwijder wat verouderd is.',
   'help.guide.manage-notes.tip.2':
@@ -7104,7 +7107,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     'Open een tocht op het tabblad Tochten en scrol in het linkerpaneel omlaag naar ‘Langs de tocht’, onder de stops van de tocht. Dat onderdeel verschijnt zodra de tocht een route heeft.',
   'help.guide.tour-along-search.tip.3':
-    'De resultaten komen uit OpenStreetMap en de plaatsenindex van TREK, dus voor het zoeken heb je een internetverbinding nodig. Wordt er niets gevonden, dan probeert ‘Verbreden tot’ de volgende afstand. Is een server te druk, dan toont ‘Opnieuw proberen’ een aftelling tot je het opnieuw kunt proberen.',
+    'De resultaten komen uit OpenStreetMap en de plaatsenindex van YOUYA, dus voor het zoeken heb je een internetverbinding nodig. Wordt er niets gevonden, dan probeert ‘Verbreden tot’ de volgende afstand. Is een server te druk, dan toont ‘Opnieuw proberen’ een aftelling tot je het opnieuw kunt proberen.',
   'help.guide.tour-along-add-stop.tip.1':
     'De plaats wordt een stop van de tocht, geen plaats van de reis. Hij verschijnt dus niet in de plaatsenlijst.',
   'help.guide.tour-3d-terrain.step.4':
@@ -7125,7 +7128,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     'Padgegevens, onder de routepunten, toont voor elk deel de SAC-graad, de ondergrond en het soort weg uit OpenStreetMap, en kleurt de route op de kaart daarnaar. Niets hiervan verandert de tocht.',
   'help.guide.tour-hike-plan.step.4':
-    '‘Punt toevoegen’ staat meteen aan: klik op de kaart waar de wandeling begint en waar hij eindigt. Met ‘Reisplekken’ ernaast kies je in plaats daarvan een hut of hotel uit de reis. Vanaf twee punten berekent TREK de wandelroute.',
+    '‘Punt toevoegen’ staat meteen aan: klik op de kaart waar de wandeling begint en waar hij eindigt. Met ‘Reisplekken’ ernaast kies je in plaats daarvan een hut of hotel uit de reis. Vanaf twee punten berekent YOUYA de wandelroute.',
   'help.guide.tour-hike-trail-details.title':
     'Moeilijkheidsgraden, ondergrond en soorten wegen langs een wandeling bekijken',
   'help.guide.tour-hike-trail-details.tip.1':
@@ -7158,7 +7161,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     'Het Tochtoverzicht rechts toont ‘Fietstijd’, de schatting van de routeplanner voor het profiel, inclusief de klimmen. Pauzes tellen niet mee.',
   'help.guide.tour-bike-profile.step.4':
-    'Klik onder Waypoints op ‘Reisplekken’ en kies het begin- en eindpunt, hier Hotel Alpenroyal en daarna Hotel Greif. Je kunt ook controleren of ‘Punt toevoegen’ aan staat en op de kaart klikken. Vanaf twee punten berekent TREK de route.',
+    'Klik onder Waypoints op ‘Reisplekken’ en kies het begin- en eindpunt, hier Hotel Alpenroyal en daarna Hotel Greif. Je kunt ook controleren of ‘Punt toevoegen’ aan staat en op de kaart klikken. Vanaf twee punten berekent YOUYA de route.',
   'help.guide.tour-bike-profile.tip.5':
     'Heeft een beheerder de CyclOSM-kaart toegestaan, dan kun je in de rij met kaartlagen ook Fietsen kiezen als er een fietstocht openstaat. Laadt die kaart niet meer, schakel dan over naar Kaart. De tocht verandert niet.',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -7187,7 +7190,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     'De kaart van een peddeltocht biedt Kaart en Satelliet, en Zeemarkeringen van OpenSeaMap als extra laag.',
   'help.guide.tour-paddle-water-route.step.3':
-    'Kies ‘Volgend deel over het water plannen’. TREK plant het stuk over de rivier of het meer, van dit punt naar het volgende.',
+    'Kies ‘Volgend deel over het water plannen’. YOUYA plant het stuk over de rivier of het meer, van dit punt naar het volgende.',
   'help.guide.tour-paddle-portage.title': 'De boot om een obstakel heen dragen',
   'help.guide.tour-paddle-portage.tip.2':
     'Bij het laatste punt gaat ‘Boot vanaf hier dragen’ pas in zodra je het volgende punt zet. In de rij staat ‘Vanaf hier overdragen’, en met het kruisje, ‘Toch niet overdragen’, draai je het terug.',
@@ -7282,7 +7285,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     'Kies in de kaart AI-assistent hoe je koppelt: ‘Inloggen met ChatGPT’ gebruikt je ChatGPT-abonnement, ‘API-sleutel plakken’ neemt een sleutel van Anthropic, OpenAI, Gemini of OpenRouter.',
   'help.guide.connect-ai.step.2':
-    'Plak je sleutel. TREK noemt de aanbieder die het herkent en zegt wat er naartoe gaat. Klik op ‘Koppelen’; TREK controleert de sleutel eerst bij de aanbieder.',
+    'Plak je sleutel. YOUYA noemt de aanbieder die het herkent en zegt wat er naartoe gaat. Klik op ‘Koppelen’; YOUYA controleert de sleutel eerst bij de aanbieder.',
   'help.guide.connect-ai.step.3':
     'De kaart toont ‘Verbonden met’ en de aanbieder. Kies het ‘Model’ dat je wilt en klik op ‘Assistent openen’ om te beginnen in je huidige of volgende reis.',
   'help.guide.connect-ai.result': 'De assistent draait op je eigen account, in elke reis.',
@@ -7301,7 +7304,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     'Standaarden voor gebruikers, onderaan: per gebeurtenis en kanaal Aan, Uit of Geblokkeerd, voor iedereen die het zelf niet heeft aangepast.',
   'help.guide.default-user-settings.step.2':
-    'Een veld dat je hebt ingesteld, krijgt een resetlink naast de naam. Daarmee zet je de ingebouwde standaardwaarde van TREK terug.',
+    'Een veld dat je hebt ingesteld, krijgt een resetlink naast de naam. Daarmee zet je de ingebouwde standaardwaarde van YOUYA terug.',
   'help.guide.own-routing-engine.title': 'Je eigen routeservers gebruiken',
   'help.guide.admin-passkeys.result':
     'Op de inlogpagina staat ‘Inloggen met een passkey’, en mensen kunnen passkeys toevoegen in hun instellingen.',
@@ -7326,7 +7329,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.tip.1':
     'Alleen JPG-, PNG-, GIF- en WebP-bestanden worden aangeboden, een PDF-ticket dus niet.',
   'help.guide.place-own-hours.step.4':
-    'De knoppen rechts van Openingstijden: met de kopieerknop krijgt elke dag de tijden van maandag, en met de X verwijder je je eigen tijden weer. Heeft TREK zelf openingstijden gevonden, dan zet je die met ‘Overnemen uit de plekdetails’ terug.',
+    'De knoppen rechts van Openingstijden: met de kopieerknop krijgt elke dag de tijden van maandag, en met de X verwijder je je eigen tijden weer. Heeft YOUYA zelf openingstijden gevonden, dan zet je die met ‘Overnemen uit de plekdetails’ terug.',
   'help.guide.confirm-stay-booking.step.2':
     'De boeking opent boven de planning. Het eerste label bovenaan toont de status.',
   'help.ctx.trip-map.bullet.9':
@@ -7344,7 +7347,7 @@ const help: TranslationStrings = {
   'help.guide.group-sort-bookings.step.1':
     'Klik in Kaarten of Lijst op Weergaveopties, het schuifregelaarpictogram na de drie weergavepictogrammen.',
   'help.guide.create-booking.tip.4':
-    'Offline wordt de boeking op dit apparaat opgeslagen en gesynchroniseerd zodra je weer online bent. Voor nieuwe bestanden is een internetverbinding nodig, dus verwijder ze of sla later op. Klik je per ongeluk buiten het formulier of druk je op Escape, dan vraagt TREK ‘Wijzigingen weggooien?’ voordat iets van wat je hebt getypt verloren gaat.',
+    'Offline wordt de boeking op dit apparaat opgeslagen en gesynchroniseerd zodra je weer online bent. Voor nieuwe bestanden is een internetverbinding nodig, dus verwijder ze of sla later op. Klik je per ongeluk buiten het formulier of druk je op Escape, dan vraagt YOUYA ‘Wijzigingen weggooien?’ voordat iets van wat je hebt getypt verloren gaat.',
   'help.guide.booking-on-map.tip.2': 'Een verblijf opent op de eerste nacht.',
   'help.guide.export-bookings-csv.step.3':
     'Klik op ‘Exporteren als spreadsheet (CSV)’, het downloadpictogram na ‘Weergaveopties’.',
@@ -7356,7 +7359,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     'Klik rechts in de balk op Documentsynchronisatie. Is de reis gekoppeld, dan opent rechts de kaart van je opslag. Heb je meer dan één opslag, klik dan links onder ‘Deze reis’ op de opslag die je wilt.',
   'help.guide.files-sync-settings.tip.3':
-    '‘Directe updates’, een link met ‘Kopiëren’ ernaast, is er alleen voor opslag waarbij TREK zich niet automatisch op wijzigingen kan abonneren. Plak de link in de opslag, dan komen wijzigingen meteen binnen in plaats van bij de volgende controle.',
+    '‘Directe updates’, een link met ‘Kopiëren’ ernaast, is er alleen voor opslag waarbij YOUYA zich niet automatisch op wijzigingen kan abonneren. Plak de link in de opslag, dan komen wijzigingen meteen binnen in plaats van bij de volgende controle.',
   'help.guide.manage-notes.step.1':
     'Klik op de drie puntjes bovenaan een notitiekaart (‘Meer opties’). In het menu staan Uitvouwen, Vastpinnen, Bewerken en Verwijderen.',
   'help.guide.note-categories.title': 'Notities in categorieën indelen',
@@ -7376,7 +7379,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     'De foto’s van de plaats vullen het scherm en met de pijlen ga je door de andere die de bron kent. Sluit ze om terug te gaan naar het venster, waar ‘Annuleren’ de stop laat zoals hij was.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    'De foto is de eigen afbeelding van de plaats, die je in het plaatsformulier hebt ingesteld. Zonder afbeelding toont TREK de foto die zijn bron van de plaats heeft, als die van Google of OpenStreetMap komt.',
+    'De foto is de eigen afbeelding van de plaats, die je in het plaatsformulier hebt ingesteld. Zonder afbeelding toont YOUYA de foto die zijn bron van de plaats heeft, als die van Google of OpenStreetMap komt.',
   'help.guide.roadtrip-stop-photo.tip.2':
     'Tik op een telefoon op een stop op het tabblad Roadtrip: zijn venster toont de foto over de volle breedte onder de naam, en een tik erop opent de foto’s.',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -7402,7 +7405,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     'Sleep je een tocht met etappes naar een dag, dan krijg je dezelfde vraag in een klein venster. Met ‘Annuleren’ blijft de planning zoals hij was.',
   'help.guide.tour-day-times.step.2':
-    'Vul Start in en laat Einde leeg. De regel onder de velden toont het einde dat TREK berekent: de starttijd plus de duur van de tocht.',
+    'Vul Start in en laat Einde leeg. De regel onder de velden toont het einde dat YOUYA berekent: de starttijd plus de duur van de tocht.',
   'help.guide.tour-remove-from-day.title': 'Een tocht van een dag halen',
   'help.guide.tour-filter-list.title': 'De lijst met tochten filteren',
   'help.guide.tour-filter-list.tip.3':
@@ -7414,7 +7417,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     'De kaart is om te lezen en voor wat bij een tocht hoort. De route zelf wijzig je op het tabblad Tochten: open dat en klik op de tocht onder ‘Tochten van deze reis’. Daar verwijder je een tocht ook, niet hier.',
   'help.guide.tour-detail-read.step.6':
-    'Scrol verder voor de Beschrijving en de Notities, en daarna Herkomst: gepland in TREK, het bestand waaruit de tocht is geïmporteerd, of de wanderer-trail waar hij vandaan komt, met de datum.',
+    'Scrol verder voor de Beschrijving en de Notities, en daarna Herkomst: gepland in YOUYA, het bestand waaruit de tocht is geïmporteerd, of de wanderer-trail waar hij vandaan komt, met de datum.',
   'help.guide.tour-rename-colour.title': 'Een tocht hernoemen en een andere kleur geven',
   'help.guide.tour-rename-colour.result':
     'De tocht heeft overal in de reis zijn nieuwe naam, en de lijn heeft de kleur die je hebt gekozen.',
@@ -7432,7 +7435,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     'Klik op ‘Vergelijken op de kaart’ om de werkelijke track gestippeld naast de planning te tonen. Met ‘Vergelijking beëindigen’ haal je hem weer weg.',
   'help.guide.tour-origin-check.step.2':
-    'Bij Geïmporteerd staat de dag van de import. Hier toont de huidige stand: ‘Zoals geïmporteerd’, ‘Bewerkt in TREK’ of ‘Opnieuw gepland, opgenomen spoor bewaard’.',
+    'Bij Geïmporteerd staat de dag van de import. Hier toont de huidige stand: ‘Zoals geïmporteerd’, ‘Bewerkt in YOUYA’ of ‘Opnieuw gepland, opgenomen spoor bewaard’.',
   'help.ctx.trip-tour-planner.bullet.1':
     'Tochten staat in de tabbalk van de reis direct na Planning zolang de add-on Tochten voor de reis aanstaat. De eigenaar van de reis kan hem aan- of uitzetten onder Add-ons in Reisinstellingen. Het tabblad is er op een computer en een tablet. Op een telefoon bekijk je tochten en zet je ze op dagen via het tabblad Planning, maar tekenen kan daar niet.',
   'help.guide.tour-open-workspace.step.1':
@@ -7574,13 +7577,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     'Bij een peddeltocht zoekt ‘Langs de tocht’ eerst naar Instapplaatsen, Bootverhuur en Drinkwater.',
   'help.guide.tour-paddle-water-route.step.4':
-    'Een stuk dat TREK niet kon plannen, wordt rood en vermeldt waarom, bijvoorbeeld dat er voor het gebied nog geen watergegevens zijn. Klik op ‘Recht tekenen’ om het voorlopig met de hand te tekenen.',
+    'Een stuk dat YOUYA niet kon plannen, wordt rood en vermeldt waarom, bijvoorbeeld dat er voor het gebied nog geen watergegevens zijn. Klik op ‘Recht tekenen’ om het voorlopig met de hand te tekenen.',
   'help.guide.tour-paddle-portage.goal':
     'Markeer een stuk waar je de boot draagt, zodat het als land telt, met tijd om uit te stappen en weer in te stappen.',
   'help.guide.tour-paddle-portage.tip.3':
     'Dragen telt met 2 km/u, tot je in de kaart Tijdschatting je eigen Draagtempo instelt.',
   'help.guide.tour-paddle-lock.tip.1':
-    'TREK kent geen schuttijden van sluizen. De tijden zijn alleen wat jij invult, dus controleer zelf de bedieningstijden van de sluis.',
+    'YOUYA kent geen schuttijden van sluizen. De tijden zijn alleen wat jij invult, dus controleer zelf de bedieningstijden van de sluis.',
   'help.guide.tour-paddle-time.step.3':
     'De rij Water is de afstand op het water bij jouw Peddeltempo. Pas het tempo aan in het veld Peddeltempo bovenaan de kolom.',
   'help.guide.tour-paddle-wind.goal':

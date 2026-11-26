@@ -208,7 +208,7 @@ const budget: TranslationStrings = {
   'costs.viewReceipt': '查看收據',
   'costs.receiptLeftBehind': '儲存失敗，已上傳的 {count} 張收據仍留在系統中。請到「檔案」分頁刪除。',
   'costs.receiptsNeedConnection': '上傳收據需要網路連線。移除新收據即可離線儲存這筆支出，或在恢復連線後再儲存。',
-  'costs.paymentQueued': '你目前處於離線狀態。付款已儲存，TREK 恢復連線後就會顯示。',
+  'costs.paymentQueued': '你目前處於離線狀態。付款已儲存，游芽恢復連線後就會顯示。',
   'costs.confirm.deleteBodyReceipts': '「{name}」將被永久刪除。其收據檔案仍會保留在「檔案」中。',
 };
 export default budget;

@@ -1,6 +1,6 @@
 import type { TranslationStrings } from '../types';
 
-/** TREK Studio: the photo look, its border, shadow, zoom, adjustments and duotone, and the print resolution. */
+/**游芽 Studio: the photo look, its border, shadow, zoom, adjustments and duotone, and the print resolution. */
 const studioPhoto: TranslationStrings = {
   'journey.studio.photo.zoom': '縮放',
   'journey.studio.photo.flip': '鏡像',

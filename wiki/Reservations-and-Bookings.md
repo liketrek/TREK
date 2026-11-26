@@ -14,7 +14,7 @@ A trip without any bookings shows *No reservations yet* instead, with **Manual B
 
 ## Reservation types
 
-TREK knows seventeen types. Six of them belong to the Bookings tab and eleven to the Transports tab:
+YOUYA knows seventeen types. Six of them belong to the Bookings tab and eleven to the Transports tab:
 
 | Type | Tab | How it is created |
 |------|-----|-------------------|
@@ -105,7 +105,7 @@ A card starts with a head band tinted by the status. In it are the status dot, t
 - **Route** for bookings with endpoints, and **Segment codes** when the legs of a connection each have their own code.
 - Type-specific fields: airline and flight number, train number, platform, seat, check-in and check-out.
 - **Location / Address**, the linked **Accommodation**, and **Linked to**, the day and stop the booking is pinned to.
-- **Link**, the booking URL. A link TREK refuses to open is shown as plain text.
+- **Link**, the booking URL. A link YOUYA refuses to open is shown as plain text.
 - **Notes**, rendered as markdown and cut after four lines.
 - **Travelers**, **Files** (click one to open it) and the linked costs at the foot, with a total per currency.
 
@@ -158,15 +158,15 @@ A booking for one particular stop is quicker from the plan: point at the stop in
 
 Click the pencil on a card or list row, or **Edit** in the booking detail. The editor opens as **Edit Reservation** with everything the booking has; change what you need and click **Update**.
 
-If you have changed something and then press Escape or click beside the editor, TREK asks *Discard your changes?* before it closes. **Keep editing** takes you back to the form, **Discard** closes it without saving. The cross and **Cancel** close the editor straight away.
+If you have changed something and then press Escape or click beside the editor, YOUYA asks *Discard your changes?* before it closes. **Keep editing** takes you back to the form, **Discard** closes it without saving. The cross and **Cancel** close the editor straight away.
 
-To delete a booking, click the bin on its card or row, or **Delete** in the detail. TREK asks once (*Delete booking?*) before it removes the booking. When the booking has linked costs, the question says so (*"{name}" will be permanently deleted, along with its linked costs.*) and the costs are removed with it.
+To delete a booking, click the bin on its card or row, or **Delete** in the detail. YOUYA asks once (*Delete booking?*) before it removes the booking. When the booking has linked costs, the question says so (*"{name}" will be permanently deleted, along with its linked costs.*) and the costs are removed with it.
 
 ## Import from booking confirmation
 
-TREK can read booking confirmations, PDF tickets and wallet passes and turn them into bookings, using [KDE Itinerary](https://apps.kde.org/itinerary/). Every booking it finds opens in the normal editor for you to check before anything is saved.
+YOUYA can read booking confirmations, PDF tickets and wallet passes and turn them into bookings, using [KDE Itinerary](https://apps.kde.org/itinerary/). Every booking it finds opens in the normal editor for you to check before anything is saved.
 
-Booking mails can also be forwarded to TREK, which reads them and adds the booking to the right trip on its own; see [Booking Mail Import](Booking-Mail-Import).
+Booking mails can also be forwarded to YOUYA, which reads them and adds the booking to the right trip on its own; see [Booking Mail Import](Booking-Mail-Import).
 
 ### Supported formats
 
@@ -203,7 +203,7 @@ Each saved booking appears for every trip member straight away.
 
 The import button is hidden only when the server has neither the `kitinerary-extractor` binary nor the [AI Parsing addon](AI-Booking-Import). With the AI addon enabled and configured, import works without the binary and every file goes straight to the model.
 
-The binary ships inside the official TREK Docker image. If you run TREK from source, install the `libkitinerary-bin` package (Debian trixie, Ubuntu 25.04 or newer) or set `KITINERARY_EXTRACTOR_PATH` to the binary's full path. See [Environment-Variables](Environment-Variables).
+The binary ships inside the official YOUYA Docker image. If you run YOUYA from source, install the `libkitinerary-bin` package (Debian trixie, Ubuntu 25.04 or newer) or set `KITINERARY_EXTRACTOR_PATH` to the binary's full path. See [Environment-Variables](Environment-Variables).
 
 ### Your own extractors
 
@@ -222,17 +222,17 @@ With the Helm chart, mount a ConfigMap there with `extraVolumes` and `extraVolum
 
 ### Review mark
 
-A booking TREK could not complete on its own carries an amber warning icon next to its title, and a **Review** pill in its detail. It comes from AirTrail imports whose date is not exact or whose airport could not be placed, and from bookings an AI assistant created with the flag set. Open the booking, check the missing parts and save it; saving in the editor clears the mark. File imports never keep it, because each one passes through the editor before it is saved.
+A booking YOUYA could not complete on its own carries an amber warning icon next to its title, and a **Review** pill in its detail. It comes from AirTrail imports whose date is not exact or whose airport could not be placed, and from bookings an AI assistant created with the flag set. Open the booking, check the missing parts and save it; saving in the editor clears the mark. File imports never keep it, because each one passes through the editor before it is saved.
 
 ### AI fallback for hard-to-read files
 
-KDE Itinerary only recognises structured tickets. For confirmations it cannot read (plain-text emails, unusual PDF layouts, vendors it does not know) TREK can hand the file to an AI model instead. The optional **AI Parsing** addon runs only for the files Itinerary returns nothing for, and it works with a self-hosted local model, so booking data need not leave your server. See [AI-Booking-Import](AI-Booking-Import).
+KDE Itinerary only recognises structured tickets. For confirmations it cannot read (plain-text emails, unusual PDF layouts, vendors it does not know) YOUYA can hand the file to an AI model instead. The optional **AI Parsing** addon runs only for the files Itinerary returns nothing for, and it works with a self-hosted local model, so booking data need not leave your server. See [AI-Booking-Import](AI-Booking-Import).
 
 ## Import from AirTrail
 
 With the **AirTrail** integration addon enabled and your instance connected under **Settings → Integrations**, the **Transports** tab shows **Import from AirTrail** (the plane icon in the bar, or an **AirTrail** button on an empty tab). It lists the flights in your AirTrail account, with the ones inside the trip dates under *During this trip* and already selected. Each imported flight becomes a flight booking that stays in sync with AirTrail both ways.
 
-TREK talks to AirTrail 3.13 and later through its `/api/v1` routes and to older instances through the legacy routes; it finds out which on its own. AirTrail 3.13 checks the scopes of an API key, so a key created there needs `flight.read.own` (import, sync and **Test connection**), `flight.update.own` (changes made in TREK going back to AirTrail), `flight.passengers.manage.own` (a changed seat or passenger), `reference_data.read` (the airport, airline and aircraft codes of a change) and `profile.read` (a change to a flight without a passenger). A key created before 3.13 has every scope and needs nothing. A missing scope does not unlink a flight: the change is not sent, and the server log names the scope to add to the key.
+YOUYA talks to AirTrail 3.13 and later through its `/api/v1` routes and to older instances through the legacy routes; it finds out which on its own. AirTrail 3.13 checks the scopes of an API key, so a key created there needs `flight.read.own` (import, sync and **Test connection**), `flight.update.own` (changes made in YOUYA going back to AirTrail), `flight.passengers.manage.own` (a changed seat or passenger), `reference_data.read` (the airport, airline and aircraft codes of a change) and `profile.read` (a change to a flight without a passenger). A key created before 3.13 has every scope and needs nothing. A missing scope does not unlink a flight: the change is not sent, and the server log names the scope to add to the key.
 
 ### Connecting flights (layovers)
 
@@ -248,7 +248,7 @@ Some entry points in the day plan follow the plan's own right, `day_edit`: **Add
 
 ## Offline
 
-Bookings, transports and stays you save while you are offline wait in a queue and are sent when TREK is back online. Files are the exception: they need a connection to upload. If you try to save a booking with new files while offline, the editor says *Files need a connection to upload. Remove the new ones to save the booking offline, or save once you are back online.* See [Offline-Mode-and-PWA](Offline-Mode-and-PWA).
+Bookings, transports and stays you save while you are offline wait in a queue and are sent when YOUYA is back online. Files are the exception: they need a connection to upload. If you try to save a booking with new files while offline, the editor says *Files need a connection to upload. Remove the new ones to save the booking offline, or save once you are back online.* See [Offline-Mode-and-PWA](Offline-Mode-and-PWA).
 
 ## Real-time sync
 

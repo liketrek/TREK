@@ -79,7 +79,7 @@ const assistantRoadtrip: TranslationStrings = {
   'assistant.card.roadtrip.dayRoute.after': 'After {name}',
   'assistant.card.roadtrip.dayRoute.follows': 'Follows {name}',
   'assistant.card.roadtrip.dayRoute.sketch':
-    'Straight lines for now; TREK works out the road once the change is applied.',
+    'Straight lines for now; YOUYA works out the road once the change is applied.',
   'assistant.card.roadtrip.dayEnd.at': 'The day ends at {name}',
   'assistant.card.roadtrip.dayEnd.along': 'The day ends {percent} % along the drive after {name}',
   'assistant.card.roadtrip.dayEnd.auto': 'The day ends automatically again',

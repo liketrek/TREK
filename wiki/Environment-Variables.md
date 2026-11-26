@@ -1,6 +1,6 @@
 # Environment Variables
 
-Complete reference for all environment variables TREK reads.
+Complete reference for all environment variables YOUYA reads.
 
 ## How to Set Variables
 
@@ -16,7 +16,7 @@ Complete reference for all environment variables TREK reads.
 
 ## Startup Validation
 
-TREK checks almost all of this surface once at boot. A variable that is **unset or blank** falls back to its documented
+YOUYA checks almost all of this surface once at boot. A variable that is **unset or blank** falls back to its documented
 default; a variable that is **present but malformed** aborts startup, with an aggregated report naming every
 offending value:
 
@@ -30,7 +30,7 @@ The value of a secret is never printed: `ENCRYPTION_KEY`, `SMTP_PASS`, `OIDC_CLI
 the other keys, secrets and passwords appear as `***`, so the report names the variable and the problem only.
 
 In Docker this crash-loops the container until the value is corrected or removed. Boolean switches accept
-`true`/`false`, `1`/`0`, `on`/`off`, `yes`/`no` in any casing — anything else counts as malformed. Variables TREK
+`true`/`false`, `1`/`0`, `on`/`off`, `yes`/`no` in any casing — anything else counts as malformed. Variables YOUYA
 does not know are passed through untouched.
 
 `TREK_DB_JOURNAL_MODE` and `TREK_DB_SYNCHRONOUS` are exceptions: they log a warning and fall back instead of
@@ -58,18 +58,18 @@ warning in the log; the web UI is only served with `NODE_ENV=production` in lowe
 | `SESSION_DURATION_REMEMBER` | Session length used when the user **ticks "Remember me"** on login: a longer-lived JWT `exp` claim plus a **persistent** `trek_session` cookie whose `maxAge` matches, so the session survives browser restarts. Same `ms`-style format and the same startup validation as `SESSION_DURATION`. Also the lifetime of every SSO session when `OIDC_ONLY=true`, where the login page has no such switch.                                                                                                                                                                                                                                     | `30d`                           |
 | `ALLOWED_ORIGINS`           | Comma-separated origins for CORS and email notification links                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | same-origin                     |
 | `ALLOW_INTERNAL_NETWORK`    | Allow outbound requests to private/RFC-1918 IPs. Set `true` if Immich, a document store bound through [Document-Sync](Document-Sync) or other integrated services are on your local network. Loopback (`127.x`) and link-local (`169.254.x`) addresses remain blocked regardless, apart from a link-local address listed in `ALLOW_LINK_LOCAL_IPS`.                                                                                                                                                                                                                                                 | `false`                         |
-| `ALLOW_LINK_LOCAL_IPS`      | Single link-local addresses (`169.254.x.x`) TREK may reach after all, comma-separated. Meant for the host gateway of a rootless Podman container, `169.254.1.2`, with an identity provider or another service behind it. OIDC, AI Parsing, plugin OAuth and your own routing engines reach a listed address directly; the other integrations treat it as internal, so they also need `ALLOW_INTERNAL_NETWORK=true`. `169.254.169.x` and `169.254.170.x`, where cloud providers serve metadata and credentials, cannot be listed, and an entry that is not a single link-local IPv4 aborts startup. See [Internal-Network-Access](Internal-Network-Access#a-link-local-address-you-need). | unset |
+| `ALLOW_LINK_LOCAL_IPS`      | Single link-local addresses (`169.254.x.x`) YOUYA may reach after all, comma-separated. Meant for the host gateway of a rootless Podman container, `169.254.1.2`, with an identity provider or another service behind it. OIDC, AI Parsing, plugin OAuth and your own routing engines reach a listed address directly; the other integrations treat it as internal, so they also need `ALLOW_INTERNAL_NETWORK=true`. `169.254.169.x` and `169.254.170.x`, where cloud providers serve metadata and credentials, cannot be listed, and an entry that is not a single link-local IPv4 aborts startup. See [Internal-Network-Access](Internal-Network-Access#a-link-local-address-you-need). | unset |
 | `APP_URL`                   | Public base URL (e.g. `https://trek.example.com`). Required when OIDC is enabled — must match the redirect URI registered with your IdP. Also used as the base URL for email notification links and subscribable calendar feed URLs (the `webcal://`/`https://` links the Subscribe dialog hands to Google/Apple/Outlook).                                                                                                                                                                                                          | —                               |
-| `TREK_WIKI_DIR`             | Where the in-app Help pages (`/help`) read their content from. TREK ships this wiki and serves it from disk, so the docs always match the version you are running. You should not need to set this — it is an escape hatch for unusual layouts. If the directory cannot be found, Help falls back to fetching the repository's `wiki/` folder from the `main` branch on GitHub (which can be ahead of the release you are running, and needs outbound network access).                                                               | the bundled `wiki/` directory   |
+| `TREK_WIKI_DIR`             | Where the in-app Help pages (`/help`) read their content from. YOUYA ships this wiki and serves it from disk, so the docs always match the version you are running. You should not need to set this — it is an escape hatch for unusual layouts. If the directory cannot be found, Help falls back to fetching the repository's `wiki/` folder from the `main` branch on GitHub (which can be ahead of the release you are running, and needs outbound network access).                                                               | the bundled `wiki/` directory   |
 
 ### `HOST` — Source and Proxmox installs only
 
-By default TREK binds to all network interfaces (`0.0.0.0`), which is the correct behaviour inside a container because
+By default YOUYA binds to all network interfaces (`0.0.0.0`), which is the correct behaviour inside a container because
 Docker handles port exposure at the host level. Setting `HOST` overrides the bind address at the Node.js level.
 
-**When to use it:** only when running TREK directly on a host (git sources or
+**When to use it:** only when running YOUYA directly on a host (git sources or
 the [Proxmox community script](Install-Proxmox)) and you need to restrict which interface the server listens on — for
-example, to expose TREK only on a LAN interface while keeping it off the public-facing one.
+example, to expose YOUYA only on a LAN interface while keeping it off the public-facing one.
 
 **Never set `HOST` in Docker, Docker Compose, Helm, or Unraid deployments.** Use Docker's
 `-p <host-ip>:<host-port>:<container-port>` syntax or your orchestrator's port binding instead.
@@ -97,7 +97,7 @@ Setting `ENCRYPTION_KEY` explicitly is recommended so you can back it up indepen
 
 ### `DEFAULT_LANGUAGE` — Supported Codes
 
-You can set `DEFAULT_LANGUAGE` to any of the 28 languages TREK ships. The currently supported codes are:
+You can set `DEFAULT_LANGUAGE` to any of the 28 languages YOUYA ships. The currently supported codes are:
 
 | Code    | Language           |
 |---------|--------------------|
@@ -130,15 +130,15 @@ You can set `DEFAULT_LANGUAGE` to any of the 28 languages TREK ships. The curren
 | `vi`    | Tiếng Việt         |
 | `ca`    | Català             |
 
-If you set a code that isn't on this list, TREK refuses to start and prints
+If you set a code that isn't on this list, YOUYA refuses to start and prints
 `DEFAULT_LANGUAGE="…": must be one of: …`. Leave the variable unset to use English (`en`). This list grows as new
-translations are added to TREK.
+translations are added to YOUYA.
 
 ---
 
 ## Outbound HTTP(S) Proxy
 
-TREK can route supported outbound HTTP(S) requests through a proxy by setting the standard variables below. Outbound
+YOUYA can route supported outbound HTTP(S) requests through a proxy by setting the standard variables below. Outbound
 proxying is disabled by default.
 
 | Variable      | Description                                                   | Default |
@@ -147,7 +147,7 @@ proxying is disabled by default.
 | `HTTPS_PROXY` | Proxy URL for outbound HTTPS requests                         | —       |
 | `NO_PROXY`    | Comma-separated hosts or domains that should bypass the proxy | —       |
 
-> **Note:** Requests that go through TREK's SSRF protection (place photos, link previews, webhooks, Immich, Synology,
+> **Note:** Requests that go through YOUYA's SSRF protection (place photos, link previews, webhooks, Immich, Synology,
 > Dawarich and the other integrations) read the same three variables themselves and use the proxy as well, on any
 > install. Everything else follows Node's own environment proxy, which needs `NODE_USE_ENV_PROXY=1` (see below).
 > `NO_PROXY` takes `*`, a host (which also matches its subdomains, a leading dot is optional) or `host:port`.
@@ -157,7 +157,7 @@ proxying is disabled by default.
 > change. On Helm the image already has it, and the chart passes `HTTP_PROXY`, `HTTPS_PROXY` and `NO_PROXY` from
 > `env:` through to the container.
 
-> **Set `NO_PROXY`.** Without it every request goes to the proxy, including the ones TREK makes to itself, such as the
+> **Set `NO_PROXY`.** Without it every request goes to the proxy, including the ones YOUYA makes to itself, such as the
 > container health check. `localhost,127.0.0.1` is a sensible minimum; add your own hosts as needed.
 
 ---
@@ -171,12 +171,12 @@ full explanation.
 |---------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|
 | `FORCE_HTTPS`             | When `true`: 301-redirects HTTP→HTTPS, sends HSTS (`max-age=31536000`), adds CSP `upgrade-insecure-requests`, forces cookie `secure` flag. Only useful behind a TLS proxy. Your proxy must send `X-Forwarded-Proto: https`.                                                             | `false`          |
 | `HSTS_INCLUDE_SUBDOMAINS` | When `true`: adds the `includeSubDomains` directive to the HSTS header, extending HTTPS enforcement to all subdomains. Only effective when HSTS is active (`FORCE_HTTPS=true` or `NODE_ENV=production`). Leave `false` if you run other services on sibling subdomains over plain HTTP. | `false`          |
-| `TRUST_PROXY`             | Number of trusted proxy hops. Tells Express how far into `X-Forwarded-For` to look for the real client IP, and where to read `X-Forwarded-Proto`. Count your hops: with two proxies in front of TREK and `TRUST_PROXY=1`, the IP on every audit row is the inner proxy's. `0` trusts nothing and always uses the socket address. Not required for the `FORCE_HTTPS` redirect, which reads the `X-Forwarded-Proto` header directly — set it for correct client IPs in the audit log, and for the `COOKIE_SECURE` auto-derivation, which goes through `req.secure`. | `1` (production) |
+| `TRUST_PROXY`             | Number of trusted proxy hops. Tells Express how far into `X-Forwarded-For` to look for the real client IP, and where to read `X-Forwarded-Proto`. Count your hops: with two proxies in front of YOUYA and `TRUST_PROXY=1`, the IP on every audit row is the inner proxy's. `0` trusts nothing and always uses the socket address. Not required for the `FORCE_HTTPS` redirect, which reads the `X-Forwarded-Proto` header directly — set it for correct client IPs in the audit log, and for the `COOKIE_SECURE` auto-derivation, which goes through `req.secure`. | `1` (production) |
 | `HTTP_KEEP_ALIVE_TIMEOUT_MS` | How long (in milliseconds) the server keeps an idle keep-alive connection open; the headers timeout follows one second above it. Keep it above your reverse proxy's upstream idle timeout (60 s for nginx and most load balancers, 90 s for Traefik), otherwise the proxy reuses a connection the server just closed and answers that request with a 502. Between `1000` and `290000`. | `95000` |
 | `COOKIE_SECURE`           | Controls the `secure` flag on the `trek_session` cookie. Auto-derived as `true` when `NODE_ENV=production`, when `FORCE_HTTPS=true`, or when the request itself arrived over TLS on the outermost hop (`X-Forwarded-Proto: https` with `TRUST_PROXY` set). Set to `false` only as an escape hatch for LAN testing without TLS — not recommended in production.                                                   | auto             |
 
 > **Warning:** `FORCE_HTTPS=true` behind a proxy that does not forward `X-Forwarded-Proto: https` causes a
-> redirect loop — every request looks like plain HTTP to TREK and gets 301'd again. Fix the proxy to send the
+> redirect loop — every request looks like plain HTTP to YOUYA and gets 301'd again. Fix the proxy to send the
 > header. Setting `TRUST_PROXY` does not help: the redirect accepts the raw `X-Forwarded-Proto: https` header on
 > its own, whatever `trust proxy` is set to. (`TRUST_PROXY` only feeds the second half of the check, `req.secure`,
 > which additionally covers a proxy chain that sends a comma-joined `X-Forwarded-Proto` — and production already
@@ -228,7 +228,7 @@ over the database values.
 | `SMTP_PORT`            | SMTP server port. Port `465` enables implicit TLS (`secure: true`); all other ports use STARTTLS or plain.                              | —       |
 | `SMTP_USER`            | SMTP authentication username                                                                                                            | —       |
 | `SMTP_PASS`            | SMTP authentication password                                                                                                            | —       |
-| `SMTP_FROM`            | Sender address for outbound emails (e.g. `TREK <noreply@example.com>`)                                                                  | —       |
+| `SMTP_FROM`            | Sender address for outbound emails (e.g. `YOUYA <noreply@example.com>`)                                                                  | —       |
 | `SMTP_SKIP_TLS_VERIFY` | Set `true` to disable TLS certificate validation. Useful for self-signed certs on internal SMTP relays — not recommended in production. | `false` |
 
 `SMTP_HOST`, `SMTP_PORT`, and `SMTP_FROM` are all required for email delivery to work. `SMTP_USER` and `SMTP_PASS` are
@@ -238,13 +238,13 @@ optional (for unauthenticated relays).
 
 ## Booking mail import
 
-How forwarded booking mails reach TREK ([Booking mail import](Booking-Mail-Import)). Every variable overrides its field
+How forwarded booking mails reach YOUYA ([Booking mail import](Booking-Mail-Import)). Every variable overrides its field
 in the admin dialog; unset, the dialog decides.
 
 | Variable                       | Description                                                                                                 | Default |
 |--------------------------------|-------------------------------------------------------------------------------------------------------------|---------|
 | `MAIL_INGEST_TRANSPORT`        | `off` (uploads only), `imap` or `webhook`.                                                                  | `off`   |
-| `MAIL_INGEST_IMAP_HOST`        | The mailbox TREK reads every two minutes. A host on your own network needs `ALLOW_INTERNAL_NETWORK=true`.   |         |
+| `MAIL_INGEST_IMAP_HOST`        | The mailbox YOUYA reads every two minutes. A host on your own network needs `ALLOW_INTERNAL_NETWORK=true`.   |         |
 | `MAIL_INGEST_IMAP_PORT`        | `993` for TLS, `143` for STARTTLS.                                                                          | `993`   |
 | `MAIL_INGEST_IMAP_TLS`         | `tls` (encrypted from the first byte) or `starttls`.                                                        | `tls`   |
 | `MAIL_INGEST_IMAP_USER`        | IMAP login.                                                                                                 |         |
@@ -258,7 +258,7 @@ in the admin dialog; unset, the dialog decides.
 ## Web Push
 
 [Web Push](Notifications#web-push) signs every message with a VAPID key pair. None of these variables is needed:
-without them TREK generates a pair on first start and keeps it in the database, the private half encrypted with
+without them YOUYA generates a pair on first start and keeps it in the database, the private half encrypted with
 `ENCRYPTION_KEY`, so it moves with every backup and survives a restore.
 
 | Variable            | Description                                                                                                                        | Default                                                                     |
@@ -269,9 +269,9 @@ without them TREK generates a pair on first start and keeps it in the database, 
 
 A value in the wrong shape aborts startup like any other variable on this page; for `VAPID_PRIVATE_KEY` the report
 prints `***` instead of the value. A pair whose halves do not belong together, or only one half of a pair, does not
-stop TREK from starting, but push is off with an error in the log until the variables are fixed: the Push card and
+stop YOUYA from starting, but push is off with an error in the log until the variables are fixed: the Push card and
 column disappear from **Settings → Notifications**, the routes that register a device answer `503`, nothing is sent,
-and every registered device stays registered. TREK never signs with another pair in its place, neither one stored in
+and every registered device stays registered. YOUYA never signs with another pair in its place, neither one stored in
 the database (from a start without the variables) nor a newly generated one: no device registered with yours holds
 that key, and the first message sent with it would drop every one of them. Once both variables hold the two halves of
 your pair again, every device receives as before.
@@ -279,23 +279,23 @@ Any tool that prints the standard Web Push pair works, for example `npx web-push
 
 Without `VAPID_SUBJECT`, the contact is `APP_URL` when that is an `https://` address other than `localhost`, and
 otherwise the project page. Unlike links in emails, it never falls back on the first `ALLOWED_ORIGINS` entry, which may
-be another site that is only allowed to call the API. TREK never fills in an email address on its own, so no admin
+be another site that is only allowed to call the API. YOUYA never fills in an email address on its own, so no admin
 address travels to the push services.
 
-TREK generates a pair only while neither `web_push_vapid_public_key` nor `web_push_vapid_private_key` exists in
+YOUYA generates a pair only while neither `web_push_vapid_public_key` nor `web_push_vapid_private_key` exists in
 `app_settings`, and never overwrites a pair that is there. When no pair comes from the variables and the stored
 private key cannot be decrypted with the current `ENCRYPTION_KEY` (after a restore under a different key, for example),
 push is off: the log says why, the Push card and column disappear from every user's **Settings → Notifications** (the
 routes that register a device answer `503`), nothing is sent, and every registered device stays registered.
-Starting TREK with the original `ENCRYPTION_KEY` again brings push back on every device as it was. A stored private key
+Starting YOUYA with the original `ENCRYPTION_KEY` again brings push back on every device as it was. A stored private key
 that does not belong to the stored public key, or only one of the two rows, turns push off the same way. To start over
-with a new pair instead, delete both rows from `app_settings`; TREK then generates a new pair, and every device has to
+with a new pair instead, delete both rows from `app_settings`; YOUYA then generates a new pair, and every device has to
 subscribe again.
 
 Browsers bind each subscription to the public key it was made with. After a switch to another pair (setting the
 variables on an instance that has been using its generated pair, changing them, removing them again, or a newly
-generated pair), TREK drops each old subscription the first time it would have sent to it. A device subscribes again
-with the new key on its own the next time TREK is opened on it, where the browser allows that without a tap;
+generated pair), YOUYA drops each old subscription the first time it would have sent to it. A device subscribes again
+with the new key on its own the next time YOUYA is opened on it, where the browser allows that without a tap;
 elsewhere, push shows as off in **Settings → Notifications** and has to be turned on again there.
 
 On Helm, `VAPID_PUBLIC_KEY` and `VAPID_SUBJECT` go under `env:` and `VAPID_PRIVATE_KEY` under `secretEnv:`.
@@ -318,7 +318,7 @@ randomly generated password that is printed to the server log. Once any user exi
 
 ## AI Assistant
 
-The AI Assistant addon has no environment variables for its provider. The AI connection (provider, API key or sign-in) is set up inside TREK, and its secrets are encrypted with `ENCRYPTION_KEY`. `LLM_TIMEOUT_MS` and `LLM_MAX_OUTPUT_TOKENS` under [Booking Import](#booking-import-kde-itinerary) bound the AI calls.
+The AI Assistant addon has no environment variables for its provider. The AI connection (provider, API key or sign-in) is set up inside YOUYA, and its secrets are encrypted with `ENCRYPTION_KEY`. `LLM_TIMEOUT_MS` and `LLM_MAX_OUTPUT_TOKENS` under [Booking Import](#booking-import-kde-itinerary) bound the AI calls.
 
 ---
 
@@ -351,11 +351,11 @@ Request bodies validated with Zod are documented automatically from the same sch
 
 | Variable                    | Description                                                                                                                                                                                             | Default       |
 |-----------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------|
-| `KITINERARY_EXTRACTOR_PATH` | Full path to the `kitinerary-extractor` binary. When unset, TREK searches `/usr/lib/*/libexec/kf6/kitinerary-extractor` and then `PATH`. Set this if you install the binary to a non-standard location. | auto-detected |
+| `KITINERARY_EXTRACTOR_PATH` | Full path to the `kitinerary-extractor` binary. When unset, YOUYA searches `/usr/lib/*/libexec/kf6/kitinerary-extractor` and then `PATH`. Set this if you install the binary to a non-standard location. | auto-detected |
 
-The official TREK Docker image bundles the binary automatically: on both amd64 and arm64 it installs
+The official YOUYA Docker image bundles the binary automatically: on both amd64 and arm64 it installs
 `libkitinerary-bin` via apt (Debian trixie) and symlinks it to `/usr/local/bin/kitinerary-extractor`, which the image
-also pins via `KITINERARY_EXTRACTOR_PATH`. When running TREK from source, install `libkitinerary-bin` (Debian trixie /
+also pins via `KITINERARY_EXTRACTOR_PATH`. When running YOUYA from source, install `libkitinerary-bin` (Debian trixie /
 Ubuntu 25.04+). There is no static binary to download; to run a newer extractor than your distribution
 packages, build one and point `KITINERARY_EXTRACTOR_PATH` at it, or derive an image from the official one with your own
 apt sources. The extractor's version is in the startup log and in `GET /api/admin/system-info` (admin only) — worth
@@ -378,9 +378,9 @@ An admin can switch the backend under **Admin → Settings → API Keys → Tran
 
 | Variable          | Description                                                                                                                                                                                                                             | Default                     |
 |-------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------|
-| `TRANSIT_API_URL` | Base URL of the transit routing API. TREK's server proxies requests to it. Point this at your own self-hosted [MOTIS](https://github.com/motis-project/motis) instance if you want zero third-party egress. A trailing slash is stripped. | `https://api.transitous.org` |
+| `TRANSIT_API_URL` | Base URL of the transit routing API. YOUYA's server proxies requests to it. Point this at your own self-hosted [MOTIS](https://github.com/motis-project/motis) instance if you want zero third-party egress. A trailing slash is stripped. | `https://api.transitous.org` |
 
-When left at the default, using the transit feature makes the TREK **server** send outbound HTTPS requests to `api.transitous.org` (with an identifying User-Agent, as the Transitous usage policy asks). No transit request is made until a user actually searches for a journey.
+When left at the default, using the transit feature makes the YOUYA **server** send outbound HTTPS requests to `api.transitous.org` (with an identifying User-Agent, as the Transitous usage policy asks). No transit request is made until a user actually searches for a journey.
 
 ---
 
@@ -392,13 +392,13 @@ Booked flights are followed live through the keyless open ADS-B networks adsb.lo
 |-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------|
 | `FLIGHT_LIVE_ENABLED` | `false` switches live flight status off, `true` keeps it on; either way it wins over **Admin → Settings → Live flight status**, which then shows the value locked. Unset leaves the choice to the admin switch. | unset   |
 
-While on, the TREK **server** asks `api.adsb.lol` (and `opendata.adsb.fi` on a self-hosted install) for the callsign of each booked flight in its watch window, at most once a second and 200 times an hour. Nothing else about the trip or its travellers is sent.
+While on, the YOUYA **server** asks `api.adsb.lol` (and `opendata.adsb.fi` on a self-hosted install) for the callsign of each booked flight in its watch window, at most once a second and 200 times an hour. Nothing else about the trip or its travellers is sent.
 
 ---
 
 ## Image Search (Unsplash)
 
-TREK can search [Unsplash](https://unsplash.com/) for **trip cover images** and **place images**. By default the server queries Unsplash's public web endpoint **without an API key**, so no configuration is needed on most installs.
+YOUYA can search [Unsplash](https://unsplash.com/) for **trip cover images** and **place images**. By default the server queries Unsplash's public web endpoint **without an API key**, so no configuration is needed on most installs.
 
 Some hosting environments — commonly VPS and datacenter IP ranges (and many Kubernetes clusters) — are **blocked or rate-limited** by that unauthenticated endpoint, which surfaces in the UI as **"Unsplash search unavailable"**. Configuring a free Unsplash Access Key switches the server to Unsplash's official, authenticated API (`api.unsplash.com`), which is not subject to that block. See [issue #1449](https://github.com/liketrek/TREK/issues/1449).
 
@@ -415,20 +415,20 @@ To get a key: create a free account at [unsplash.com/developers](https://unsplas
 
 ---
 
-## Place Search (TREK Places API)
+## Place Search (YOUYA Places API)
 
-TREK's own place index, the [TREK Places API](TREK-Places-API), answers the suggestions and, together with OpenStreetMap, the full search in the place form, the category buttons on the trip map, the Road trip search along the drive, import geocoding and the offline download of a trip's surroundings. It needs no key to enter, it is on by default, and there is no switch for it in the admin panel: whether searches leave the instance is set here.
+YOUYA's own place index, the [YOUYA Places API](TREK-Places-API), answers the suggestions and, together with OpenStreetMap, the full search in the place form, the category buttons on the trip map, the Road trip search along the drive, import geocoding and the offline download of a trip's surroundings. It needs no key to enter, it is on by default, and there is no switch for it in the admin panel: whether searches leave the instance is set here.
 
 | Variable              | Description | Default |
 |-----------------------|-------------|---------|
 | `TREK_PLACES_ENABLED` | Set to `false` to stop asking the index. Search then works as it did before 4.3.0: OpenStreetMap on an install without a key, the keyed provider (Google or Amap) when one is set, the Overpass mirrors for the category buttons and for the OpenStreetMap ways and horse routes Tours reads, and no places downloaded for offline search. It is a boolean switch like the others on this page: `false`, `0`, `off` and `no` in any casing switch it off, a value that is not boolean-like aborts startup, and unset or blank leaves the index on. | on |
 | `TREK_PLACES_URL`     | Base URL of a copy of the service you run yourself; it has to answer the same `/v1` API. Unset or blank uses the public service. A trailing slash is stripped, and a value that is not a full URL aborts startup. It is configuration rather than user input and is not run through the SSRF guard, so an address on your LAN or Docker network works without `ALLOW_INTERNAL_NETWORK`. | `https://places.liketrek.com` |
-| `TREK_PLACES_CONTRIBUTE` | Whether an admin may let this installation send the place details its users typed in (website, phone, e-mail, opening hours, description, picture) to the TREK Places API. `admin` leaves the choice to **Admin > Settings**, where it stays off until an admin agrees; `off` takes the choice away and nothing is sent. Values the assistant, a plugin, an import or a provider filled in are never sent, and neither is anything from a development, test or demo instance, one with its own `TREK_PLACES_URL`, or one with `TREK_SERVICES=off`. | `admin` |
-| `TREK_SERVICES`       | `auto` lets the installation register itself with the TREK services on first use and keep its key in the database; `off` sends no key, and searches use the shared pool. See [Installation key and daily allowance](TREK-Places-API#installation-key-and-daily-allowance). | `auto` |
+| `TREK_PLACES_CONTRIBUTE` | Whether an admin may let this installation send the place details its users typed in (website, phone, e-mail, opening hours, description, picture) to the YOUYA Places API. `admin` leaves the choice to **Admin > Settings**, where it stays off until an admin agrees; `off` takes the choice away and nothing is sent. Values the assistant, a plugin, an import or a provider filled in are never sent, and neither is anything from a development, test or demo instance, one with its own `TREK_PLACES_URL`, or one with `TREK_SERVICES=off`. | `admin` |
+| `TREK_SERVICES`       | `auto` lets the installation register itself with the YOUYA services on first use and keep its key in the database; `off` sends no key, and searches use the shared pool. See [Installation key and daily allowance](TREK-Places-API#installation-key-and-daily-allowance). | `auto` |
 | `TREK_SERVICES_KEY`   | A key issued to you for this installation. Wins over the stored key and turns self-registration off. A value that is not a key aborts startup. | none |
 | `TREK_SERVICES_HOSTS` | Comma-separated hosts that receive the installation key over https. | `places.liketrek.com,photon.liketrek.com,valhalla.liketrek.com` |
-| `TREK_PHOTON_URL`     | The address search of the TREK services, a [Photon](https://github.com/komoot/photon) instance. Once the installation holds a key it is the geocoder in place of Nominatim: the OpenStreetMap half of search and suggestions, import geocoding, the right-click on the map and pasted map links, matching a Google place to its OpenStreetMap record and naming an opened OpenStreetMap place. An empty answer is the answer, and so is a miss (an error, a timeout, a refused key or a spent allowance): Nominatim is not asked in its place. It is never asked with `TREK_SERVICES=off`, without a key, or when `NOMINATIM_URL` is set. See [Address search](TREK-Places-API#address-search). | `https://photon.liketrek.com` |
-| `TREK_VALHALLA_URL`   | The Valhalla of the TREK services. Routes, elevation and the description of a line go there unless the admin picks another routing service under Admin, Default user settings; this server relays them with the installation key, so the browser never talks to it. A trailing slash is stripped, and a value that is not a full URL aborts startup. | `https://valhalla.liketrek.com` |
+| `TREK_PHOTON_URL`     | The address search of the YOUYA services, a [Photon](https://github.com/komoot/photon) instance. Once the installation holds a key it is the geocoder in place of Nominatim: the OpenStreetMap half of search and suggestions, import geocoding, the right-click on the map and pasted map links, matching a Google place to its OpenStreetMap record and naming an opened OpenStreetMap place. An empty answer is the answer, and so is a miss (an error, a timeout, a refused key or a spent allowance): Nominatim is not asked in its place. It is never asked with `TREK_SERVICES=off`, without a key, or when `NOMINATIM_URL` is set. See [Address search](TREK-Places-API#address-search). | `https://photon.liketrek.com` |
+| `TREK_VALHALLA_URL`   | The Valhalla of the YOUYA services. Routes, elevation and the description of a line go there unless the admin picks another routing service under Admin, Default user settings; this server relays them with the installation key, so the browser never talks to it. A trailing slash is stripped, and a value that is not a full URL aborts startup. | `https://valhalla.liketrek.com` |
 | `TREK_WALLET_SIGNER_URL` | Signs a booking's Apple Wallet pass when someone taps **Add to Apple Wallet** in the iOS app. Only liketrek holds the pass certificate, so the pass's texts (the booking's name, times, places, seat or room and confirmation code, nothing else) go there once per tap and are not stored. Never asked with `TREK_SERVICES=off`; a value that is not a full URL aborts startup. | `https://push.liketrek.com/v1/wallet/pass` |
 
 On Helm these go under `env:` in `values.yaml`, except `TREK_SERVICES_KEY`, which goes under `secretEnv:`. The chart passes `TREK_PLACES_ENABLED` through whenever it is set at all, so an unquoted `false` or `--set env.TREK_PLACES_ENABLED=false` reaches the container as well.
@@ -437,7 +437,7 @@ On Helm these go under `env:` in `values.yaml`, except `TREK_SERVICES_KEY`, whic
 
 ## Place Search (Google Places)
 
-A Google Maps API key gives place search Google as the keyed provider beside the TREK Places index and OpenStreetMap, and switches on Google photos, place details and the Google transit backend. What the key is used for, and the switches that limit it, are on [Places and Search](Places-and-Search#with-a-google-maps-api-key).
+A Google Maps API key gives place search Google as the keyed provider beside the YOUYA Places index and OpenStreetMap, and switches on Google photos, place details and the Google transit backend. What the key is used for, and the switches that limit it, are on [Places and Search](Places-and-Search#with-a-google-maps-api-key).
 
 | Variable         | Description | Default |
 |------------------|-------------|---------|
@@ -451,15 +451,15 @@ A Google Maps API key gives place search Google as the keyed provider beside the
 
 While the variable is set, the **Google Maps API Key** field in the admin panel is read-only and names `PLACES_API_KEY` instead of showing a value. **Test** beside it still works and checks the key from the environment. The same goes for `UNSPLASH_ACCESS_KEY` and `AMAP_API_KEY` and their fields. The value itself never reaches the browser.
 
-If you restrict the key to **HTTP referrers** in Google Cloud Console, set `APP_URL` as well: TREK sends it as the `Referer` header on every Google request, and without it Google rejects them.
+If you restrict the key to **HTTP referrers** in Google Cloud Console, set `APP_URL` as well: YOUYA sends it as the `Referer` header on every Google request, and without it Google rejects them.
 
 ---
 
 ## Place Search (Amap / 高德地图)
 
 Google Places is unreachable from most networks inside mainland China, and OpenStreetMap's coverage of Chinese POIs
-(restaurants, shops, the things a trip is actually made of) is thin and rarely in Chinese. TREK can put
-[Amap (高德地图)](https://lbs.amap.com/) in the slot Google otherwise holds: the TREK Places index and OpenStreetMap
+(restaurants, shops, the things a trip is actually made of) is thin and rarely in Chinese. YOUYA can put
+[Amap (高德地图)](https://lbs.amap.com/) in the slot Google otherwise holds: the YOUYA Places index and OpenStreetMap
 still answer first, Amap answers when they have nothing, and autocomplete, place details and reverse geocoding go
 through it. There is an Amap basemap to match (see [[Map Settings|Map-Settings]]).
 
@@ -485,7 +485,7 @@ it the provider.
 
 ### Coordinates
 
-Amap speaks **GCJ-02**, the offset datum Chinese law requires published maps to use; everything TREK stores is
+Amap speaks **GCJ-02**, the offset datum Chinese law requires published maps to use; everything YOUYA stores is
 **WGS-84**. The conversion happens at the boundary, in both directions, so what lands in the database, in a GPX export
 or on a map is always WGS-84: a place added through Amap and opened in OpenStreetMap later is in the right spot. The
 place also keeps the Amap id it was found by, so it keeps opening against Amap whichever provider is selected later.
@@ -507,13 +507,13 @@ through environment variables. `TREK_PLACE_PHOTO_DIR` below is unaffected.
 | `BACKUP_UPLOAD_LIMIT_MB`     | Maximum **compressed** size (in MB) of a restore-backup archive that may be uploaded. Raise it if your backups (which include the `uploads/` directory) exceed the default. Non-positive or invalid values abort startup. | `500`                   |
 | `RESTORE_FROM_BACKUP` | Path to a backup ZIP to restore on the **first** start, before any setup. Only acts while no database exists; afterwards it is ignored with a warning. A backup that fails the restore checks stops the start. See [Backups](Backups#restoring-on-a-new-install-before-setup). | none |
 | `BACKUP_MAX_DECOMPRESSED_MB` | Maximum **decompressed** size (in MB) of a restore-backup archive — the zip-bomb guard. Independent of `BACKUP_UPLOAD_LIMIT_MB` and enforced on both restore paths, so a restore that fits the upload cap can still be refused with `Backup exceeds the maximum decompressed size.` Raise both when restoring a very large instance. | `5120` (5 GB)          |
-| `TREK_DB_URL`                | Run TREK on a PostgreSQL database instead of the SQLite file: `postgres://user:password@host:5432/database` (or `postgresql://`). Needs PostgreSQL 14 to 18, an empty database of its own and a role that is not a superuser. Percent-encode special characters in the password. See [Database: Postgres](Database-Postgres). | unset (SQLite) |
-| `TREK_DB_POOL_MAX`           | Most connections TREK opens to the PostgreSQL database, from 1 to 100. Unused on SQLite. | `10` |
-| `TREK_DB_PG_BIN_DIR`         | Directory holding `pg_dump`, `pg_restore` and `psql`, which back up and restore a PostgreSQL database. Unset, TREK looks in `/usr/lib/postgresql/18` to `14` (`bin`), newest first, then `/usr/local/bin` and `/usr/bin`. Unused on SQLite. See [Database: Postgres](Database-Postgres#where-the-client-tools-are-found). | unset |
-| `TREK_DB_FILE`               | Explicit path of the SQLite database file. Unset, TREK uses `travel.db` in the data directory. Not used with `TREK_DB_URL`. | unset |
+| `TREK_DB_URL`                | Run YOUYA on a PostgreSQL database instead of the SQLite file: `postgres://user:password@host:5432/database` (or `postgresql://`). Needs PostgreSQL 14 to 18, an empty database of its own and a role that is not a superuser. Percent-encode special characters in the password. See [Database: Postgres](Database-Postgres). | unset (SQLite) |
+| `TREK_DB_POOL_MAX`           | Most connections YOUYA opens to the PostgreSQL database, from 1 to 100. Unused on SQLite. | `10` |
+| `TREK_DB_PG_BIN_DIR`         | Directory holding `pg_dump`, `pg_restore` and `psql`, which back up and restore a PostgreSQL database. Unset, YOUYA looks in `/usr/lib/postgresql/18` to `14` (`bin`), newest first, then `/usr/local/bin` and `/usr/bin`. Unused on SQLite. See [Database: Postgres](Database-Postgres#where-the-client-tools-are-found). | unset |
+| `TREK_DB_FILE`               | Explicit path of the SQLite database file. Unset, YOUYA uses `travel.db` in the data directory. Not used with `TREK_DB_URL`. | unset |
 | `TREK_DB_JOURNAL_MODE`       | SQLite [journal mode](https://sqlite.org/pragma.html#pragma_journal_mode): `DELETE`, `TRUNCATE`, `PERSIST`, `MEMORY`, `WAL` or `OFF`. Set `DELETE` when the data directory lives on network storage — see below. Values SQLite doesn't know log a warning and fall back. | `WAL`                   |
 | `TREK_DB_PRE_MIGRATE_SNAPSHOT` | Copy the database to `pre-migrate-<schema>-<time>.db` next to it before a startup applies pending migrations, so the previous image can be started on that copy again. On PostgreSQL the copy is a `pg_dump` file, `pre-migrate-<schema>-<time>.pgdump`, and needs the client tools (see `TREK_DB_PG_BIN_DIR`). If the copy cannot be written the startup refuses rather than migrate without one. Set `false` only to get past that when you cannot free space and have a backup of your own. See [Updating](Updating#database-migrations). | `true` |
-| `TREK_DB_IGNORE_SQLITE_FILE` | With `TREK_DB_URL` set, TREK refuses to start on a Postgres database that holds no TREK data while the data directory holds a `travel.db` with accounts, because it would come up as a new, empty instance beside it. `true` starts anyway, with a warning. Move the install instead with the command in [Database: Postgres](Database-Postgres#moving-an-existing-install-to-postgres). Unused on SQLite. | `false` |
+| `TREK_DB_IGNORE_SQLITE_FILE` | With `TREK_DB_URL` set, YOUYA refuses to start on a Postgres database that holds no YOUYA data while the data directory holds a `travel.db` with accounts, because it would come up as a new, empty instance beside it. `true` starts anyway, with a warning. Move the install instead with the command in [Database: Postgres](Database-Postgres#moving-an-existing-install-to-postgres). Unused on SQLite. | `false` |
 | `TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP` | How many of those copies stay in the data directory, newest first (1 to 100). | `3` |
 | `TREK_DB_SYNCHRONOUS`        | SQLite [synchronous](https://sqlite.org/pragma.html#pragma_synchronous) level: `OFF`, `NORMAL`, `FULL` or `EXTRA`. The default follows the journal mode — `NORMAL` under WAL (what SQLite itself uses there), `FULL` otherwise, because a rollback journal at `NORMAL` can lose committed transactions on a power cut. | `NORMAL` / `FULL`       |
 
@@ -548,20 +548,20 @@ next key rotation or admin reset would quietly switch the file back to WAL.
 | Variable                  | Description                                                                                                                                                                                                                                                                                                                | Default             |
 |---------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------|
 | `IDEMPOTENCY_TTL_SECONDS` | How long (in seconds) stored idempotency keys are kept before garbage collection. The offline client replays queued mutations with their `X-Idempotency-Key` on reconnect, so this must exceed the longest expected offline window or a replay could create a duplicate. Invalid values abort startup. | `2592000` (30 days) |
-| `NOMINATIM_URL`           | Custom HTTP(S) Nominatim base URL for every geocoding call the server makes: place search, reverse lookup, place details and the Atlas region fill. When set it **replaces** the public OpenStreetMap service for all of them, with no fallback, so point it at an instance whose import covers the places your users plan and that speaks the Nominatim API (`/search`, `/reverse`, `/lookup`). Photon, Geoapify and LocationIQ are not drop-in replacements. TREK keeps its client-side spacing of roughly one request a second whichever instance answers, so this changes where the requests go, not how fast they are sent. Unset or blank uses the default, which is then asked only by an installation without the TREK services (no key yet, or `TREK_SERVICES=off`) and for a search the TREK services' address search does not answer at all: with a key, that address search geocodes instead (see `TREK_PHOTON_URL`). Set, it keeps every geocoding call off the address search and on your Nominatim, as before. With the TREK Places API on, suggestions while typing come from the TREK API, beside the address search where the installation has a key; without a key they reach Nominatim only when the TREK API has nothing. | `https://nominatim.openstreetmap.org` |
-| `OVERPASS_URL`            | Custom [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) endpoint(s), comma-separated, for the map's category buttons, the Road trip search along the drive and the `search_pois` MCP tool whenever the TREK Places API has no answer or is switched off. When set it **replaces** the bundled public mirrors: point it at an internal or self-hosted Overpass instance when the public mirrors are unreachable from your network (e.g. firewalled/locked-down egress in a Kubernetes cluster). Entries that aren't valid `http(s)` URLs are ignored. If you don't run your own Overpass but the public mirrors throttle TREK, first make sure `APP_URL` (or `ALLOWED_ORIGINS`) is set: that alone gives outbound Overpass/Nominatim requests a unique User-Agent, which the public mirrors rate-limit far less. One request is not covered: the tag lookup behind an OpenStreetMap place's details (website, phone, Wikidata) still goes to `overpass-api.de` whatever this is set to, and where that host is unreachable those details fall back to the tags Nominatim returns. | bundled public mirrors |
+| `NOMINATIM_URL`           | Custom HTTP(S) Nominatim base URL for every geocoding call the server makes: place search, reverse lookup, place details and the Atlas region fill. When set it **replaces** the public OpenStreetMap service for all of them, with no fallback, so point it at an instance whose import covers the places your users plan and that speaks the Nominatim API (`/search`, `/reverse`, `/lookup`). Photon, Geoapify and LocationIQ are not drop-in replacements. YOUYA keeps its client-side spacing of roughly one request a second whichever instance answers, so this changes where the requests go, not how fast they are sent. Unset or blank uses the default, which is then asked only by an installation without the YOUYA services (no key yet, or `TREK_SERVICES=off`) and for a search the YOUYA services' address search does not answer at all: with a key, that address search geocodes instead (see `TREK_PHOTON_URL`). Set, it keeps every geocoding call off the address search and on your Nominatim, as before. With the YOUYA Places API on, suggestions while typing come from the YOUYA API, beside the address search where the installation has a key; without a key they reach Nominatim only when the YOUYA API has nothing. | `https://nominatim.openstreetmap.org` |
+| `OVERPASS_URL`            | Custom [Overpass API](https://wiki.openstreetmap.org/wiki/Overpass_API) endpoint(s), comma-separated, for the map's category buttons, the Road trip search along the drive and the `search_pois` MCP tool whenever the YOUYA Places API has no answer or is switched off. When set it **replaces** the bundled public mirrors: point it at an internal or self-hosted Overpass instance when the public mirrors are unreachable from your network (e.g. firewalled/locked-down egress in a Kubernetes cluster). Entries that aren't valid `http(s)` URLs are ignored. If you don't run your own Overpass but the public mirrors throttle YOUYA, first make sure `APP_URL` (or `ALLOWED_ORIGINS`) is set: that alone gives outbound Overpass/Nominatim requests a unique User-Agent, which the public mirrors rate-limit far less. One request is not covered: the tag lookup behind an OpenStreetMap place's details (website, phone, Wikidata) still goes to `overpass-api.de` whatever this is set to, and where that host is unreachable those details fall back to the tags Nominatim returns. | bundled public mirrors |
 | `OVERPASS_TIMEOUT_MS`     | Per-endpoint timeout (in milliseconds) for Overpass POI requests. Endpoints race in parallel and one that hasn't answered within this window is abandoned so a faster mirror can win. The query itself gives Overpass 20 seconds of work, so a lower value hangs up on answers that were still coming; that is why the default rose from `12000` in 4.3.0. Drop any lower value you set by hand, and raise it only for a slow self-hosted Overpass instance. The Tours search along a tour does not read it: it gives Overpass 10 seconds of work and waits 12, because someone is waiting for the list. Invalid values abort startup. | `25000` |
 | `LLM_TIMEOUT_MS`          | How long (in milliseconds) one AI-parsing call may take before it is abandoned. One ceiling for every provider, applied to the abort signal and to the underlying HTTP client alike. The default is generous so heavier parsing work fits without a code change; lower it if you use a cloud provider and would rather fail fast. Invalid values abort startup. | `900000` (15 min) |
 | `LLM_MAX_OUTPUT_TOKENS`   | The longest answer (in tokens) one AI-parsing call may ask the model for, sent to every provider. A document with many bookings needs a long answer; when the model hits the cap the import says so and names this variable. Raise it for such documents, but keep prompt plus cap inside the context your model has, or the server refuses the request. Unset keeps each provider's own cap. A whole number from 256 to 1000000, anything else aborts startup. | `4096` (OpenAI-compatible), `8192` (Anthropic) |
 | `GOOGLE_LIST_DATA_BASE`   | HTTP(S) base URL of a list-data service. A pasted URL starting with this base is fetched and parsed directly; the URL's origin must also match the base so a lookalike host cannot bypass the URL guard. A failed direct import reports an error without falling back to Google. Unset or a nonmatching URL uses the original Google flow. | Unset |
 
-> **Routing is mostly not set here.** With the TREK services, their Valhalla calculates every route TREK draws and OSRM takes over a day it cannot answer; `TREK_VALHALLA_URL` only points at another copy of it. Engines of your own are set by an admin under **Admin → User Defaults** as **Routing service**, **Own routing engine** and **Own Valhalla instance**, and they take effect after a restart. `OVERPASS_URL` and `OVERPASS_TIMEOUT_MS` above also apply to the road trip's search along the route.
+> **Routing is mostly not set here.** With the YOUYA services, their Valhalla calculates every route YOUYA draws and OSRM takes over a day it cannot answer; `TREK_VALHALLA_URL` only points at another copy of it. Engines of your own are set by an admin under **Admin → User Defaults** as **Routing service**, **Own routing engine** and **Own Valhalla instance**, and they take effect after a restart. `OVERPASS_URL` and `OVERPASS_TIMEOUT_MS` above also apply to the road trip's search along the route.
 
 ---
 
 ## Demo Mode
 
-Demo mode runs TREK as a public, self-resetting sandbox. Not intended for regular deployments.
+Demo mode runs YOUYA as a public, self-resetting sandbox. Not intended for regular deployments.
 
 | Variable           | Description                                                                                                                                                                                                                                                                 | Default          |
 |--------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------|
@@ -589,7 +589,7 @@ The plugin system is **on by default**. The runtime and the Admin → Plugins pa
 | `TREK_PLUGIN_PERMISSIONS`         | Set to any falsy value (`off`, `false`, `0`, `no` — any casing) to opt **out** of the Node.js OS-level permission sandbox for plugin child processes (not recommended). A truthy value, or leaving it unset, keeps the sandbox on; anything outside that set is rejected at boot.                                                            | `on`                                                                                |
 | `TREK_PLUGIN_ALLOW_PRIVATE_EGRESS`| Set to `on` to let a plugin's declared outbound hosts resolve to private/internal addresses (e.g. a service on your LAN). By default connections to private, loopback, link-local and metadata addresses are refused. | off (private egress blocked)                                                        |
 | `TREK_PLUGINS_DEV_LINK`           | **Development only.** Set to any truthy value (`1`, `true`, `on`, `yes` — any casing) to enable *dev-link*: registering a plugin from a local build directory and hot-reloading it against a live instance's data. Dev-linked code bypasses the install-time signature/integrity checks and (under `npm run dev`) runs with the OS permission jail off, so it must never be reachable in production — absent, blank or an explicitly falsy value (`0`, `false`, `off`, `no`) keeps it off. Data access is still fully gated by the capability host. | off (disabled)                                                                      |
-| `TREK_PLUGINS_IGNORE_TREK_RANGE` | Set to any truthy value (`1`, `true`, `on`, `yes` — any casing) to turn the plugin **TREK-version gate** into a warning. A plugin whose `trek` range does not admit the running TREK — or that declares no range at all — can then be installed (registry, sideload, dev-link), updated and activated, and "install latest" takes the newest published version rather than the newest compatible one. Every bypass is logged, the install response carries a `trekRangeBypassed` marker, and the admin panel shows a *Version checks off* pill, a warning dialog before/after each such install, and a persistent chip on the row. Use it only when a plugin author has not yet updated their range for your TREK: nothing guarantees the plugin works, and in rare cases a mismatched plugin can corrupt TREK data. The plugin-API version gate is **not** lifted. Absent, blank or falsy keeps the gate hard. | off (gate enforced) |
+| `TREK_PLUGINS_IGNORE_TREK_RANGE` | Set to any truthy value (`1`, `true`, `on`, `yes` — any casing) to turn the plugin **YOUYA-version gate** into a warning. A plugin whose `trek` range does not admit the running YOUYA — or that declares no range at all — can then be installed (registry, sideload, dev-link), updated and activated, and "install latest" takes the newest published version rather than the newest compatible one. Every bypass is logged, the install response carries a `trekRangeBypassed` marker, and the admin panel shows a *Version checks off* pill, a warning dialog before/after each such install, and a persistent chip on the row. Use it only when a plugin author has not yet updated their range for your YOUYA: nothing guarantees the plugin works, and in rare cases a mismatched plugin can corrupt YOUYA data. The plugin-API version gate is **not** lifted. Absent, blank or falsy keeps the gate hard. | off (gate enforced) |
 | `TREK_PLUGIN_AI_PER_DAY`          | Per-plugin **daily** cap on shared-LLM broker calls (`ai.complete` / `ai.extract`). Bounds how much a single plugin can spend on the admin's LLM quota per UTC day, independent of its granted permissions. Counts persist across restarts within the same day; set to `0` to disable the AI broker entirely. Generous by design — only bites a runaway plugin. | `200`                                                                               |
 | `TREK_PLUGIN_NOTIFY_PER_DAY`      | Per-plugin **daily** cap on user-notification broker calls (`notify.send`), so one plugin can't spam a user. Same UTC-day window and restart-safe counting as `TREK_PLUGIN_AI_PER_DAY`; set to `0` to disable the notify broker. | `100`                                                                               |
 | `TREK_PLUGIN_RPC_PER_SEC`         | Sustained rate limit (calls **per second**) for a plugin's host RPC calls (`ctx.*`) once its burst allowance is spent. Prevents a tight-loop plugin from starving the single-threaded host. | `20`                                                                                |

@@ -150,7 +150,8 @@ const planner: TranslationStrings = {
   'planner.ai.lodgingSampleDistance': 'À {distance} de l’ancre',
   'planner.ai.ideasCta': 'Vous hésitez ? Obtenez des idées de destinations',
   'planner.ai.ideasLoading': 'Sélection des destinations…',
-  'planner.ai.ideasEmpty': 'Aucune destination ne correspond encore. Essayez un budget plus élevé ou moins de centres d’intérêt.',
+  'planner.ai.ideasEmpty':
+    'Aucune destination ne correspond encore. Essayez un budget plus élevé ou moins de centres d’intérêt.',
   'planner.ai.ideasFailed': 'Les idées de destinations sont indisponibles pour le moment. Réessayez plus tard.',
   'planner.ai.ideasPick': 'Choisir cette destination',
   'planner.ai.modeNew': 'Nouveau voyage',

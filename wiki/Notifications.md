@@ -6,15 +6,15 @@ The Notifications tab (Settings → Notifications) lets you choose which events 
 
 ## Notification channels
 
-TREK ships five delivery channels, and a plugin can add more. Which channels appear depends on what the admin has enabled server-side.
+YOUYA ships five delivery channels, and a plugin can add more. Which channels appear depends on what the admin has enabled server-side.
 
 | Channel | Description |
 |---------|-------------|
 | **In-app** | Bell icon in the navigation bar. Always available. Delivered in real time via WebSocket. |
 | **Email** | Delivered to your account email. Requires the admin to configure SMTP. |
-| **Webhook** | TREK POSTs a JSON payload to a URL you specify. Discord and Slack webhook URLs are auto-detected and receive a natively formatted payload. |
+| **Webhook** | YOUYA POSTs a JSON payload to a URL you specify. Discord and Slack webhook URLs are auto-detected and receive a natively formatted payload. |
 | **ntfy** | Push notifications via [ntfy.sh](https://ntfy.sh) or a self-hosted ntfy server. |
-| **Push** | Web Push: notifications from the browser, or the Home Screen app, on each device you turn it on for, even while TREK is closed. See [Web Push](#web-push). |
+| **Push** | Web Push: notifications from the browser, or the Home Screen app, on each device you turn it on for, even while YOUYA is closed. See [Web Push](#web-push). |
 
 ### Plugin channels
 
@@ -31,7 +31,7 @@ Two things are true of plugin channels specifically:
 
 - **They are user-scoped.** Admin-only events (like `version_available`) always go out over the
   built-in admin channels, never a plugin's.
-- **The plugin never sees your trips.** The notification is rendered by TREK — in your language,
+- **The plugin never sees your trips.** The notification is rendered by YOUYA — in your language,
   with the deep link already built — before the plugin is handed it. The plugin gets that message
   and your own credentials for its service, and nothing else.
 
@@ -62,7 +62,7 @@ The following events are shown in the admin panel (Admin → Notifications) and 
 
 | Event | Description | Channels |
 |-------|-------------|---------|
-| `version_available` | A new TREK version is available | in-app, email, webhook, ntfy |
+| `version_available` | A new YOUYA version is available | in-app, email, webhook, ntfy |
 | `replica_failure` | A write to a storage replica failed (repeats within the hour are suppressed and counted) | in-app, email, webhook, ntfy |
 | `paddle_region_requested` | Someone is planning a paddle tour in a region that is not loaded yet (*Paddle region requested*) | in-app, email, webhook, ntfy |
 
@@ -94,13 +94,13 @@ A default applies to every cell you have not changed yourself, so when the admin
 
 ![The cards below the matrix: Webhook URL with Test and Save, Ntfy with topic, server URL and access token, and Push notifications on this device with Send test and Turn on for this device](assets/NotifChannels.png)
 
-Enter a URL that TREK will POST to when a notification fires. Once saved, the URL is displayed as `••••••••`. Use the **Test** button to send a test payload to the saved URL.
+Enter a URL that YOUYA will POST to when a notification fires. Once saved, the URL is displayed as `••••••••`. Use the **Test** button to send a test payload to the saved URL.
 
-TREK auto-detects the webhook destination and adjusts the payload format:
+YOUYA auto-detects the webhook destination and adjusts the payload format:
 
 - **Discord** (`discord.com/api/webhooks/…`) — sends a rich embed with title, description, and a timestamp.
 - **Slack** (`hooks.slack.com/…`) — sends a formatted Slack message block.
-- **Generic** — sends a plain JSON object with `event`, `title`, `body`, `tripName`, `link`, `timestamp`, and `source` (`"TREK"`) fields.
+- **Generic** — sends a plain JSON object with `event`, `title`, `body`, `tripName`, `link`, `timestamp`, and `source` (`"YOUYA"`) fields.
 
 ## ntfy configuration
 
@@ -108,8 +108,8 @@ Enter your ntfy **topic** and optionally a custom **server URL** (defaults to th
 
 ## Web Push
 
-Web Push shows TREK notifications on your phone or computer the way other web apps do, even while TREK is closed. No
-app store and no third-party account are involved: your TREK server hands each message to the push service your
+Web Push shows YOUYA notifications on your phone or computer the way other web apps do, even while YOUYA is closed. No
+app store and no third-party account are involved: your YOUYA server hands each message to the push service your
 browser uses (Google for Chrome and most Chromium browsers, Mozilla for Firefox, Apple for Safari and iOS, Microsoft
 for Edge on Windows), encrypted so that only your browser can read it.
 
@@ -127,12 +127,12 @@ for Edge on Windows), encrypted so that only your browser can read it.
 
 ### Requirements
 
-- TREK has to be opened over **HTTPS**. Browsers only offer push to secure pages (a plain `http://` address works on
+- YOUYA has to be opened over **HTTPS**. Browsers only offer push to secure pages (a plain `http://` address works on
   `localhost` only); on any other `http://` address the card says that push needs HTTPS.
-- On **iPhone and iPad** (iOS and iPadOS 16.4 or later) push only works in the Home Screen app: open TREK in Safari,
-  choose **Share → Add to Home Screen**, then open TREK from the new icon and turn push on there.
-- If notifications are blocked for TREK in the browser or the system settings, allow them there first.
-- The browser has to use one of the push services named above. TREK refuses a subscription to any other push service,
+- On **iPhone and iPad** (iOS and iPadOS 16.4 or later) push only works in the Home Screen app: open YOUYA in Safari,
+  choose **Share → Add to Home Screen**, then open YOUYA from the new icon and turn push on there.
+- If notifications are blocked for YOUYA in the browser or the system settings, allow them there first.
+- The browser has to use one of the push services named above. YOUYA refuses a subscription to any other push service,
   so turning push on fails in such a browser.
 
 ### What arrives
@@ -149,7 +149,7 @@ service drops anything older.
 A device the push service reports as gone (HTTP 404 or 410: browser uninstalled, site data cleared, subscription
 expired) is removed at once, and turning push on again there registers it anew. A refusal (HTTP 403) is not taken as
 proof: Apple also answers it when it rejects the server's signature (`BadJwtToken`), which is a server problem, not the
-device's. TREK logs the push service's reason every time and removes the device only when a 403 is its third failed
+device's. YOUYA logs the push service's reason every time and removes the device only when a 403 is its third failed
 send in a row or later. A successful send in between starts the count over, and so does registering the device again.
 Other failures (a timeout, an error at the push service) are logged and counted, but never remove a device on their
 own.
@@ -160,26 +160,26 @@ signed in there: right away on the device you changed the password on, after the
 
 ### Server keys
 
-Push messages are signed with a VAPID key pair. Unless `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` provide one, TREK
+Push messages are signed with a VAPID key pair. Unless `VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` provide one, YOUYA
 generates a pair on first start and keeps it in the database, the private half encrypted with `ENCRYPTION_KEY`, so it
 survives backups and restores and there is nothing to set up. A new pair is only ever generated while neither half is
 stored and neither variable is set. Operators who want to bring their own pair can set the variables; see
 [Environment-Variables](Environment-Variables#web-push). Every subscription belongs to the key it was made with: after
-the key pair changes, each device has to subscribe again. TREK does that on its own the next time it is opened on the
+the key pair changes, each device has to subscribe again. YOUYA does that on its own the next time it is opened on the
 device, where the browser allows it; elsewhere, turn push on again.
 
 Each message also names a contact for the push services: `VAPID_SUBJECT` when it is set, otherwise the instance's
-`APP_URL` when it is an `https://` address other than `localhost`, otherwise the TREK project page
+`APP_URL` when it is an `https://` address other than `localhost`, otherwise the YOUYA project page
 (`https://github.com/liketrek/TREK`). `ALLOWED_ORIGINS` never stands in for `APP_URL` here, and no email address is sent
 unless you put one in `VAPID_SUBJECT`.
 
-TREK never overwrites a stored pair it cannot use. When the private key does not decrypt with the current
-`ENCRYPTION_KEY` (after a restore under a different key, for example), push is off until TREK runs with the original
+YOUYA never overwrites a stored pair it cannot use. When the private key does not decrypt with the current
+`ENCRYPTION_KEY` (after a restore under a different key, for example), push is off until YOUYA runs with the original
 key again: the server log says why, the Push card and column disappear from **Settings → Notifications** and nothing
 is sent, but every device stays registered and receives again afterwards without anyone doing anything. The same
 holds when the two stored halves do not belong together or one of them is missing; only starting over with a new pair
 fixes that (see [Environment-Variables](Environment-Variables#web-push)). Push is off the same way while
-`VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` do not belong together or only one of them is set: TREK does not fall back
+`VAPID_PUBLIC_KEY` and `VAPID_PRIVATE_KEY` do not belong together or only one of them is set: YOUYA does not fall back
 on a pair stored in the database, which would drop every device registered with your key, and every device receives
 again once both variables hold your pair. See also [Encryption-Key-Rotation](Encryption-Key-Rotation).
 

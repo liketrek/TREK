@@ -1,10 +1,10 @@
 # MCP Overview
 
-TREK includes a built-in [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server. MCP is an open standard that lets AI assistants read and modify data in external services through a structured API. When the MCP addon is enabled on your TREK instance, AI clients such as Claude.ai, Claude Desktop, Cursor, VS Code, and others can connect directly to your trips.
+YOUYA includes a built-in [Model Context Protocol](https://modelcontextprotocol.io/) (MCP) server. MCP is an open standard that lets AI assistants read and modify data in external services through a structured API. When the MCP addon is enabled on your YOUYA instance, AI clients such as Claude.ai, Claude Desktop, Cursor, VS Code, and others can connect directly to your trips.
 
 ## What you can do
 
-Once connected, an AI assistant can work with your TREK data in a single conversation:
+Once connected, an AI assistant can work with your YOUYA data in a single conversation:
 
 - Create and update trips, days, and itineraries
 - Search for real-world places and add them to your trip
@@ -22,7 +22,7 @@ Once connected, an AI assistant can work with your TREK data in a single convers
 - Switch calendar feeds and trip invite links on or off
 - Keep school holiday regions up to date for Vacay
 - Upload documents to a trip, read them and link them to bookings, places or expenses
-- Look up how a TREK feature works in the bundled help
+- Look up how a YOUYA feature works in the bundled help
 
 Changes made through MCP are broadcast to all connected clients in real-time — exactly like changes made in the web UI.
 
@@ -30,13 +30,13 @@ Many of these tools belong to an addon and only appear while an administrator ha
 
 ### MCP and the built-in AI Assistant
 
-The **AI Assistant** addon is a chat inside TREK itself. It works on the same tools as an external MCP client and the same permission checks apply, but it does not connect through `/mcp`: its AI provider is set up inside TREK, not through OAuth clients. Changes it suggests wait for your confirmation. MCP is the way to let a different AI app, such as Claude.ai or Cursor, use TREK.
+The **AI Assistant** addon is a chat inside YOUYA itself. It works on the same tools as an external MCP client and the same permission checks apply, but it does not connect through `/mcp`: its AI provider is set up inside YOUYA, not through OAuth clients. Changes it suggests wait for your confirmation. MCP is the way to let a different AI app, such as Claude.ai or Cursor, use YOUYA.
 
 ## Authentication options
 
 | Use case | Method |
 |---|---|
-| Interactive client (Claude.ai, Cursor, VS Code…) | OAuth 2.1 with browser consent — TREK issues tokens after you approve scopes in a consent screen |
+| Interactive client (Claude.ai, Cursor, VS Code…) | OAuth 2.1 with browser consent — YOUYA issues tokens after you approve scopes in a consent screen |
 | AI agent or script running unattended | Machine client (client_credentials) — token obtained directly via `client_id` + `client_secret`, no browser ever opened |
 | Legacy setups | Static API token — deprecated, full access, no scopes |
 
@@ -45,7 +45,7 @@ See [MCP-Setup](MCP-Setup) for step-by-step instructions for each method.
 ## Requirements
 
 - **MCP addon enabled** — an administrator must enable the MCP addon (`mcp`) from the Admin Panel before the `/mcp` endpoint becomes available and the MCP section appears in user settings.
-- **`APP_URL` set** — set the `APP_URL` environment variable to your TREK instance's public URL so OAuth discovery advertises the right issuer and endpoints. If it is unset or not a valid URL, TREK falls back to the first entry of `ALLOWED_ORIGINS`, and then to `http://localhost:{PORT}`. Only an `https://` origin or `localhost` / `127.0.0.1` is accepted as the issuer — anything else is replaced by `http://localhost:{PORT}`, which remote OAuth clients cannot reach.
+- **`APP_URL` set** — set the `APP_URL` environment variable to your YOUYA instance's public URL so OAuth discovery advertises the right issuer and endpoints. If it is unset or not a valid URL, YOUYA falls back to the first entry of `ALLOWED_ORIGINS`, and then to `http://localhost:{PORT}`. Only an `https://` origin or `localhost` / `127.0.0.1` is accepted as the issuer — anything else is replaced by `http://localhost:{PORT}`, which remote OAuth clients cannot reach.
 
 ## Rate limits and session limits
 

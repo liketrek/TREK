@@ -6,7 +6,7 @@ const help: TranslationStrings = {
   'help.contents': 'Contingut',
   'help.noResults': 'No hi ha cap pàgina que hi coincideixi.',
   'help.errorTitle': "No s'ha pogut carregar aquesta pàgina",
-  'help.errorBody': 'El contingut de l’ajuda es carrega del wiki de TREK. Comprova la connexió i torna-ho a provar.',
+  'help.errorBody': 'El contingut de l’ajuda es carrega del wiki de YOUYA. Comprova la connexió i torna-ho a provar.',
 
   // center
   'help.center.button': 'Ajuda per a aquesta pantalla',
@@ -73,14 +73,14 @@ const help: TranslationStrings = {
   'help.guide.create-trip.step.2':
     "Posa un nom al viatge. És l'únic camp necessari; tota la resta ho pots afegir més endavant.",
   'help.guide.create-trip.step.3':
-    "Tria una data d'inici i una de final. TREK crea un dia per a cada data, perquè puguis començar a planificar l'itinerari. Encara no tens dates? Deixa-les buides i indica el «Nombre de dies».",
+    "Tria una data d'inici i una de final. YOUYA crea un dia per a cada data, perquè puguis començar a planificar l'itinerari. Encara no tens dates? Deixa-les buides i indica el «Nombre de dies».",
   'help.guide.create-trip.step.4':
     "Opcional: afegeix una foto de portada. Puja'n una de teva, arrossega-la o enganxa-la, o busca la destinació a Unsplash.",
   'help.guide.create-trip.step.5': 'Fes clic a «Crea un viatge nou».',
   'help.guide.create-trip.result':
     "El viatge apareix al tauler. Si és el teu proper viatge, surt a la targeta d'embarcament de dalt de tot.",
   'help.guide.create-trip.tip.1':
-    'Pots canviar les dates més endavant. Si ja hi ha reserves, TREK et pregunta si les vols moure juntament amb els dies.',
+    'Pots canviar les dates més endavant. Si ja hi ha reserves, YOUYA et pregunta si les vols moure juntament amb els dies.',
   'help.guide.create-trip.tip.2':
     'Totes les despeses es converteixen a la moneda del viatge que triïs aquí. Tria la moneda de la destinació.',
 
@@ -94,7 +94,7 @@ const help: TranslationStrings = {
   'help.guide.edit-trip.step.3': 'Fes clic a «Actualitza».',
   'help.guide.edit-trip.result': 'La targeta s’actualitza a l’instant per a tots els membres del viatge.',
   'help.guide.edit-trip.tip.1':
-    "Si avances o endarrereixes l'inici d'un viatge que té reserves, TREK et pregunta si també cal moure les reserves. Si escurces un viatge, es mostren els dies que s'eliminarien i què hi ha planificat. Només es desa quan fas clic a «Treu els dies i desa».",
+    "Si avances o endarrereixes l'inici d'un viatge que té reserves, YOUYA et pregunta si també cal moure les reserves. Si escurces un viatge, es mostren els dies que s'eliminarien i què hi ha planificat. Només es desa quan fas clic a «Treu els dies i desa».",
 
   // cover-image
   'help.guide.cover-image.title': 'Posar una foto de portada',
@@ -152,7 +152,7 @@ const help: TranslationStrings = {
     'Consulta els dies i les reserves de tots els viatges actius a la teva app de calendari, sempre sincronitzats.',
   'help.guide.calendar-feed.step.1': 'Fes clic a la icona del calendari, al costat del selector de vista.',
   'help.guide.calendar-feed.step.2':
-    'Fes clic a «Activa la subscripció al calendari». TREK crea un enllaç privat al feed.',
+    'Fes clic a «Activa la subscripció al calendari». YOUYA crea un enllaç privat al feed.',
   'help.guide.calendar-feed.step.3':
     "Fes clic a «Afegeix a Google Calendar» o «Afegeix a Calendari d’Apple / Outlook». Per a qualsevol altra aplicació de calendari, obre «O copia un enllaç manualment» i copia l'enllaç des d'allà.",
   'help.guide.calendar-feed.result':
@@ -348,7 +348,7 @@ const help: TranslationStrings = {
   // invite
   'help.guide.invite.title': 'Planificar amb algú altre',
   'help.guide.invite.goal':
-    'Uneix el teu pla amb el d’un altre usuari de TREK perquè tots dos vegeu els dies lliures en una sola graella.',
+    'Uneix el teu pla amb el d’un altre usuari de YOUYA perquè tots dos vegeu els dies lliures en una sola graella.',
   'help.guide.invite.step.1': 'Fes clic a la icona de persona de la targeta «Persones».',
   'help.guide.invite.step.2': "Tria l'usuari i fes clic a «Envia la invitació».",
   'help.guide.invite.step.3':
@@ -376,7 +376,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ─────────────────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atles',
   'help.ctx.atlas.summary':
-    'L’Atles mostra en un mapa del món on has viatjat: cada país on t’ha portat un viatge apareix acolorit, i pots afegir a mà els països que vas visitar abans de fer servir TREK. Apropa’t per veure les regions, fes una llista de llocs que encara vols visitar i consulta les teves xifres al panell translúcid de la part inferior.',
+    'L’Atles mostra en un mapa del món on has viatjat: cada país on t’ha portat un viatge apareix acolorit, i pots afegir a mà els països que vas visitar abans de fer servir YOUYA. Apropa’t per veure les regions, fes una llista de llocs que encara vols visitar i consulta les teves xifres al panell translúcid de la part inferior.',
   'help.ctx.atlas.bullet.1':
     "El mapa: cada país visitat té el seu propi color fix, els països planificats tenen un contorn discontinu, els de la llista de desitjos tenen ratlles diagonals i la resta són grisos. Passa el ratolí per un país per veure'n els viatges, els llocs i la primera i l'última visita.",
   'help.ctx.atlas.bullet.2':
@@ -392,7 +392,7 @@ const help: TranslationStrings = {
   // mark-country
   'help.guide.mark-country.title': 'Marcar un país com a visitat',
   'help.guide.mark-country.goal':
-    'Afegeix un país que vas visitar abans de fer servir TREK, perquè compti al mapa i al recompte.',
+    'Afegeix un país que vas visitar abans de fer servir YOUYA, perquè compti al mapa i al recompte.',
   'help.guide.mark-country.step.1': 'Escriu el país al quadre de cerca de dalt del mapa.',
   'help.guide.mark-country.step.2':
     'Tria’l de la llista. El mapa es desplaça fins al país i se n’obre una finestra emergent.',
@@ -458,7 +458,7 @@ const help: TranslationStrings = {
   'help.guide.search-place.result':
     'Es marca la regió i també el país. Per als països que no tenen dades de regions al paquet de mapes, es marca directament el país.',
   'help.guide.search-place.tip.1':
-    'Els llocs surten de la mateixa cerca que a la resta de TREK, és a dir, del proveïdor que ha configurat l’administrador.',
+    'Els llocs surten de la mateixa cerca que a la resta de YOUYA, és a dir, del proveïdor que ha configurat l’administrador.',
   // bucket-country
   'help.guide.bucket-country.title': 'Afegir un país a la llista de desitjos',
   'help.guide.bucket-country.goal':
@@ -496,7 +496,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     "Les xifres s'actualitzen automàticament a mesura que planifiques els viatges. Aquí no cal mantenir res.",
   'help.guide.stats.tip.1':
-    "Les ciutats s'extreuen del text de l'adreça, no es consulten enlloc. TREK deixa de banda el país, el codi postal i la regió i agafa el nom que hi ha abans, així que «10178 Berlin» compta com a Berlin. Una adreça curta com «Osteria Francescana, Italy» no afegeix cap ciutat.",
+    "Les ciutats s'extreuen del text de l'adreça, no es consulten enlloc. YOUYA deixa de banda el país, el codi postal i la regió i agafa el nom que hi ha abans, així que «10178 Berlin» compta com a Berlin. Una adreça curta com «Osteria Francescana, Italy» no afegeix cap ciutat.",
   'help.guide.stats.tip.2':
     'Els països marcats a mà compten a «Països» i als continents, però no sumen viatges, llocs ni dies.',
   // dawarich-countries
@@ -506,7 +506,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     "Quan el complement Dawarich està connectat, apareix un panell de Dawarich amb dues caselles a la part de baix del mapa, a l'esquerra de les estadístiques. Fes clic a «Països».",
   'help.guide.dawarich-countries.step.2':
-    'El diàleg s’obre a la pestanya «Països». Fes clic a «Busca països»: TREK llegeix els països i les ciutats que cobreixen els teus enregistraments dels últims 12 mesos, mes a mes, així que pot trigar una mica. Cada país que encara no tens a l’Atles apareix amb la bandera, el nombre de ciutats i el nom de la primera ciutat. Tots els països estan marcats per defecte. Fes clic en una fila per excloure’l.',
+    'El diàleg s’obre a la pestanya «Països». Fes clic a «Busca països»: YOUYA llegeix els països i les ciutats que cobreixen els teus enregistraments dels últims 12 mesos, mes a mes, així que pot trigar una mica. Cada país que encara no tens a l’Atles apareix amb la bandera, el nombre de ciutats i el nom de la primera ciutat. Tots els països estan marcats per defecte. Fes clic en una fila per excloure’l.',
   'help.guide.dawarich-countries.step.3':
     "Confirma amb el botó de baix a la dreta, que diu «Afegeix 5 països» quan hi ha cinc files marcades. El diàleg indica quants se n'han afegit. Quan el tanques, el mapa ja està actualitzat.",
   'help.guide.dawarich-countries.result':
@@ -514,7 +514,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Els països que l’Atles ja mostra com a visitats, ja sigui a mà, per un viatge o per una comprovació anterior, no s’hi inclouen, així les teves marques no canvien mai. Si confirmes aquí un país que havies tret de l’Atles, s’hi torna a afegir.',
   'help.guide.dawarich-countries.tip.2':
-    'Si TREK no reconeix el nom d’un país, el nom apareix sota les files i no es descarta. «Tornar a comprovar» torna a consultar Dawarich. La nota sota la llista indica que s’han revisat els darrers 12 mesos. Aquest període no es pot canviar.',
+    'Si YOUYA no reconeix el nom d’un país, el nom apareix sota les files i no es descarta. «Tornar a comprovar» torna a consultar Dawarich. La nota sota la llista indica que s’han revisat els darrers 12 mesos. Aquest període no es pot canviar.',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': 'Marcar desitjos complerts a partir dels teus enregistraments',
   'help.guide.dawarich-wishes.goal':
@@ -522,7 +522,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.step.1':
     'Al panell de Dawarich, a la part de baix del mapa i a l’esquerra de les estadístiques, fes clic a «Llista de desitjos».',
   'help.guide.dawarich-wishes.step.2':
-    "El diàleg s'obre a la pestanya «Llista de desitjos». Fes clic a «Comprova la llista de desitjos»: TREK revisa els teus registres per a cada entrada que té coordenades. Cada desig assolit surt a la llista amb com t'hi vas acostar, quant de temps t'hi vas quedar i quin dia, i apareix marcat per defecte. Els que ja havies marcat diuen «Ja marcat». Sota la llista, una nota compta les entrades sense coordenades i també mostra la regla: «Un desig es considera assolit a menys de 250 m i després de 20 minuts al lloc».",
+    "El diàleg s'obre a la pestanya «Llista de desitjos». Fes clic a «Comprova la llista de desitjos»: YOUYA revisa els teus registres per a cada entrada que té coordenades. Cada desig assolit surt a la llista amb com t'hi vas acostar, quant de temps t'hi vas quedar i quin dia, i apareix marcat per defecte. Els que ja havies marcat diuen «Ja marcat». Sota la llista, una nota compta les entrades sense coordenades i també mostra la regla: «Un desig es considera assolit a menys de 250 m i després de 20 minuts al lloc».",
   'help.guide.dawarich-wishes.step.3':
     "Confirma amb el botó de baix a la dreta, que diu «Marca'n 2» quan hi ha dues files marcades. Després tanca el diàleg i obre la pestanya «Llista de desitjos» del panell del costat.",
   'help.guide.dawarich-wishes.result':
@@ -530,7 +530,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     'Passar-hi pel costat no compta: has d’estar a prop del lloc i quedar-t’hi una estona. Si hi ha diverses estades vàlides, es fa servir la més llarga. Un desig sense coordenades no es pot comprovar, així que afegeix els llocs amb la cerca d’«Afegeix un lloc» i no només amb el nom.',
   'help.guide.dawarich-wishes.tip.2':
-    "Cada comprovació revisa fins a 50 entrades, començant per les que encara no estan marcades. Si n'hi ha més, TREK t'ho indica. Un desig que ja estava marcat conserva la seva data.",
+    "Cada comprovació revisa fins a 50 entrades, començant per les que encara no estan marcades. Si n'hi ha més, YOUYA t'ho indica. Un desig que ja estava marcat conserva la seva data.",
 
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Col·leccions',
@@ -587,7 +587,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     "Els llocs es copien a la llista amb el nom, l'adreça, les coordenades, la descripció i la categoria. El viatge no canvia.",
   'help.guide.import-from-trip.tip.1':
-    'TREK omet automàticament els duplicats per nom o per coordenades, així que pots importar dues vegades sense problema.',
+    'YOUYA omet automàticament els duplicats per nom o per coordenades, així que pots importar dues vegades sense problema.',
   'help.guide.import-from-trip.tip.2':
     "A la llista de llocs d'un viatge, el mode de selecció ofereix «Desar a la col·lecció» per a un grup de llocs triats a mà.",
   // place-status
@@ -663,7 +663,7 @@ const help: TranslationStrings = {
     'Els lectors d’una llista compartida també ho poden fer. Es copien els llocs de la llista i la llista no canvia.',
   // share-list
   'help.guide.share-list.title': 'Compartir una llista amb algú',
-  'help.guide.share-list.goal': "Planifica una llista en directe juntament amb altres persones d'aquest TREK.",
+  'help.guide.share-list.goal': "Planifica una llista en directe juntament amb altres persones d'aquest YOUYA.",
   'help.guide.share-list.step.1': 'Fes clic a «Compartir» a la capçalera de la llista.',
   'help.guide.share-list.step.2': "Tria l'usuari i un rol: «Lector», «Editor» o «Administrador».",
   'help.guide.share-list.step.3':
@@ -677,23 +677,23 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Exportar una llista a un fitxer',
   'help.guide.export-list.goal':
-    "Passa una llista a algú d'un altre servidor TREK, obre-la en una aplicació de mapes o mira-la a Google My Maps.",
+    "Passa una llista a algú d'un altre servidor YOUYA, obre-la en una aplicació de mapes o mira-la a Google My Maps.",
   'help.guide.export-list.step.1': 'Fes clic a «Exporta», a la capçalera de la llista.',
   'help.guide.export-list.step.2':
-    'Tria «Llista del TREK» per fer servir la llista en un altre TREK, amb etiquetes i estat, GPX per a OsmAnd, Organic Maps, un Garmin i altres apps que llegeixen punts de pas, o KML per a Google My Maps, per veure els llocs a Google Maps.',
+    'Tria «Llista del YOUYA» per fer servir la llista en un altre YOUYA, amb etiquetes i estat, GPX per a OsmAnd, Organic Maps, un Garmin i altres apps que llegeixen punts de pas, o KML per a Google My Maps, per veure els llocs a Google Maps.',
   'help.guide.export-list.result': 'El fitxer es baixa. Qualsevol membre d’una llista compartida la pot exportar.',
   'help.guide.export-list.tip.1':
-    "Un lloc sense coordenades no pot ser un punt de referència GPX ni una xinxeta KML: queda fora i TREK t'indica quants n'han quedat fora.",
+    "Un lloc sense coordenades no pot ser un punt de referència GPX ni una xinxeta KML: queda fora i YOUYA t'indica quants n'han quedat fora.",
   'help.guide.export-list.tip.2':
-    "Les valoracions, els membres i les fotos pujades no s'exporten, i és expressament així: pertanyen a aquest TREK, no a la llista.",
+    "Les valoracions, els membres i les fotos pujades no s'exporten, i és expressament així: pertanyen a aquest YOUYA, no a la llista.",
   // import-file
   'help.guide.import-file.title': 'Importar una llista des d’un fitxer',
   'help.guide.import-file.goal':
-    'Importa un fitxer de llista de TREK o un fitxer GPX, com a llista nova o en una llista existent.',
+    'Importa un fitxer de llista de YOUYA o un fitxer GPX, com a llista nova o en una llista existent.',
   'help.guide.import-file.step.1':
     "Fes clic al botó d'importar amb la fletxa de pujada, al costat de «Nova llista», al carril de llistes.",
   'help.guide.import-file.step.2':
-    'Tria el fitxer. Abans d’importar res, TREK et mostra què conté: el nom, quants llocs i quantes etiquetes.',
+    'Tria el fitxer. Abans d’importar res, YOUYA et mostra què conté: el nom, quants llocs i quantes etiquetes.',
   'help.guide.import-file.step.3':
     "Deixa «Nova llista» i canvia'n el nom si vols, i fes clic a «Importa». O bé tria «Afegir a una llista» per posar els llocs en una llista que puguis editar, i fes clic a «Afegeix a la llista».",
   'help.guide.import-file.result':
@@ -701,7 +701,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     "D'un GPX, cada punt de referència amb nom es converteix en un lloc. Les traces són línies i queden fora; la previsualització indica quants punts eren.",
   'help.guide.import-file.tip.2':
-    "Si el fitxer no és ni una «Llista del TREK» ni un GPX, es rebutja i TREK n'indica el motiu. Si no es pot llegir un lloc concret, només se salta aquell lloc, no tot el fitxer.",
+    "Si el fitxer no és ni una «Llista del YOUYA» ni un GPX, es rebutja i YOUYA n'indica el motiu. Si no es pot llegir un lloc concret, només se salta aquell lloc, no tot el fitxer.",
   // edit-list
   'help.guide.edit-list.title': 'Editar o eliminar una llista',
   'help.guide.edit-list.goal':
@@ -924,7 +924,7 @@ const help: TranslationStrings = {
     "Les entrades d'un dia només compten una vegada, encara que aquell dia formi part de diversos viatges.",
   // share-public
   'help.guide.share-public.title': 'Compartir la travessia públicament',
-  'help.guide.share-public.goal': 'Dona un enllaç de només lectura a persones que no tenen compte a TREK.',
+  'help.guide.share-public.goal': 'Dona un enllaç de només lectura a persones que no tenen compte a YOUYA.',
   'help.guide.share-public.step.1':
     "Obre «Configuració de la travesia» amb ⋯ a la capçalera i desplaça't fins a «Compartició pública».",
   'help.guide.share-public.step.2': 'Fes clic a «Crea un enllaç per compartir».',
@@ -945,7 +945,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.result':
     'La travessia apareix a la seva llista i les seves entrades mostren el seu nom. Per treure un col·laborador, fes clic a la × del costat.',
   'help.guide.contributors.tip.1':
-    "Els col·laboradors són per a persones d'aquest TREK. Per a la resta hi ha l'enllaç públic.",
+    "Els col·laboradors són per a persones d'aquest YOUYA. Per a la resta hi ha l'enllaç públic.",
   // studio
   'help.guide.studio.title': 'Maquetar la travessia com un àlbum de fotos',
   'help.guide.studio.goal': 'Converteix el diari en pàgines per imprimir.',
@@ -985,7 +985,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ────────────────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Studio', // same-as-en
   'help.ctx.journey-studio.summary':
-    "TREK Studio maqueta una travessia com un àlbum de fotos que pots imprimir. S'obre a sobre del diari: la columna i els seus tauler són a l'esquerra, la doble pàgina en què treballes és al mig i les propietats són a la dreta. Disseny automàtic crea un primer esborrany a partir de les entrades, un tema dona al llibre els colors i les tipografies, i l'assistent pot dissenyar pàgines amb tu. Després pots moure, retallar i canviar l'estil de tot, i pots desfer cada pas.",
+    "YOUYA Studio maqueta una travessia com un àlbum de fotos que pots imprimir. S'obre a sobre del diari: la columna i els seus tauler són a l'esquerra, la doble pàgina en què treballes és al mig i les propietats són a la dreta. Disseny automàtic crea un primer esborrany a partir de les entrades, un tema dona al llibre els colors i les tipografies, i l'assistent pot dissenyar pàgines amb tu. Després pots moure, retallar i canviar l'estil de tot, i pots desfer cada pas.",
   'help.ctx.journey-studio.bullet.1':
     "Barra superior: a l'esquerra, la coberta i el nom de la travessia. A la dreta, qui més és al llibre i si està desat, el format de pàgina, desfés, refés i enganxa, Disseny automàtic, l'assistent, l'ajuda, Exporta i el botó que tanca Studio.",
   'help.ctx.journey-studio.bullet.2':
@@ -997,7 +997,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     "El llibre es maqueta com un llibre imprès: coberta, una primera pàgina sola davant l'interior en blanc de la coberta, les dobles pàgines, una última pàgina sola i la contracoberta. Els números de pàgina compten des de la primera pàgina i s'imprimeixen tal com es veuen.",
   'help.ctx.journey-studio.bullet.6':
-    'Diverses persones poden dissenyar alhora: tothom veu els punters dels altres amb el seu nom. Si deses una versió que algú altre ha modificat, TREK mostra un conflicte en lloc de sobreescriure-li la feina.',
+    'Diverses persones poden dissenyar alhora: tothom veu els punters dels altres amb el seu nom. Si deses una versió que algú altre ha modificat, YOUYA mostra un conflicte en lloc de sobreescriure-li la feina.',
   'help.ctx.journey-studio.bullet.7':
     'Tema: un aspecte per a tot el llibre, amb el seu paper, la seva tinta i tres accents, les seves tipografies i els seus motius. Els elements vinculats al tema el segueixen quan el canvies.',
   'help.ctx.journey-studio.bullet.8':
@@ -1078,7 +1078,7 @@ const help: TranslationStrings = {
     'Tots els colors i tipografies vinculats del llibre canvien alhora, i aplicar el tema és un sol pas de desfer.',
   'help.guide.studio-content.tip.1': 'El quadre de cerca de dalt de «Contingut» filtra totes dues llistes.',
   'help.guide.studio-content.tip.2':
-    "Quan deixes anar un fitxer de l'escriptori a la taula de treball, TREK el puja i el col·loca d'un sol cop.",
+    "Quan deixes anar un fitxer de l'escriptori a la taula de treball, YOUYA el puja i el col·loca d'un sol cop.",
   // studio-elements
   'help.guide.studio-elements.title': 'Afegir text, formes, icones i adhesius',
   'help.guide.studio-elements.goal': 'Decora una doble pàgina amb més coses a part de fotos i textos.',
@@ -1194,12 +1194,12 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.result':
     "La doble pàgina s'importa amb els seus marcs i els estils de text. Deixa anar les fotos de la nova travessia als marcs.",
   'help.guide.studio-spread-file.tip.1':
-    "Si un fitxer no és un disseny de doble pàgina, TREK el rebutja i n'explica el motiu.",
+    "Si un fitxer no és un disseny de doble pàgina, YOUYA el rebutja i n'explica el motiu.",
 
   // ── Screen: settings (all tabs) ───────────────────────────────────────────────────────
   'help.ctx.settings.title': 'Configuració',
   'help.ctx.settings.summary':
-    "La teva configuració personal, amb una pestanya per tema a la barra lateral de l'esquerra. La majoria d'interruptors s'apliquen tan bon punt els canvies. Un formulari amb botó «Desa» només es desa quan hi fas clic. Res del que hi ha aquí no canvia TREK per a ningú més.",
+    "La teva configuració personal, amb una pestanya per tema a la barra lateral de l'esquerra. La majoria d'interruptors s'apliquen tan bon punt els canvies. Un formulari amb botó «Desa» només es desa quan hi fas clic. Res del que hi ha aquí no canvia YOUYA per a ningú més.",
   'help.ctx.settings.bullet.1':
     "Barra lateral de l'esquerra: «Pantalla», «Aparença», «Mapa», «Notificacions», «Integracions», «Fora de línia» i «Compte». «Connectors» apareix quan hi ha algun connector actiu. «Quant a» apareix tret que l'operador l'hagi amagat. La versió es mostra a baix de tot.",
   'help.ctx.settings.bullet.2':
@@ -1210,7 +1210,7 @@ const help: TranslationStrings = {
     "«Compte» inclou el teu perfil, la contrasenya, l'autenticació de dos factors, les claus d'accés i l'opció d'eliminar el compte.",
   'help.ctx.settings-display.title': 'Pantalla',
   'help.ctx.settings-display.summary':
-    "Amb què s'obre TREK, l'idioma i les unitats que fa servir, i com funcionen el mapa del viatge i les reserves. Cada canvi s'aplica a l'instant.",
+    "Amb què s'obre YOUYA, l'idioma i les unitats que fa servir, i com funcionen el mapa del viatge i les reserves. Cada canvi s'aplica a l'instant.",
   'help.ctx.settings-display.bullet.1':
     "«Inici»: «Pàgina d'inici» obre el «Tauler» o el «Viatge actiu»; amb «Viatge actiu», «Pestanya d'inici» tria la pestanya amb què s'obre aquell viatge.",
   'help.ctx.settings-display.bullet.2':
@@ -1219,7 +1219,7 @@ const help: TranslationStrings = {
     "«Viatge i mapa»: «Obre els llocs a», «Data primer als títols dels dies», «Etiquetes de rutes de reserves», «Mostra sempre les rutes de reserva», «Marcadors compactes per als llocs sense planificar», «Explora llocs al mapa», «Difumina els codis de reserva» i «Optimitza la ruta des de l'allotjament».",
   'help.ctx.settings-appearance.title': 'Aparença',
   'help.ctx.settings-appearance.summary':
-    'L’aspecte de TREK en aquest compte: clar o fosc, el color d’accent, la translucidesa i les animacions, la mida del text i els ginys que mostra el tauler. Tot s’aplica a l’instant, a tots els dispositius on iniciïs sessió.',
+    'L’aspecte de YOUYA en aquest compte: clar o fosc, el color d’accent, la translucidesa i les animacions, la mida del text i els ginys que mostra el tauler. Tot s’aplica a l’instant, a tots els dispositius on iniciïs sessió.',
   'help.ctx.settings-appearance.bullet.1':
     "«Tema»: «Mode de color» («Clar», «Fosc» o «Automàtic»), l'«Esquema de colors» i, amb «Personalitzat», el teu propi color d'accent per al mode clar i el fosc, amb una comprovació de contrast.",
   'help.ctx.settings-appearance.bullet.2':
@@ -1239,7 +1239,7 @@ const help: TranslationStrings = {
     "Només per a Mapbox GL: «Edificis 3D i terreny», «Mode d'alta qualitat» i «Amaga els punts d'interès». A sobre de «Desa el mapa» hi ha una vista prèvia en directe. «Desa el mapa» desa el que has triat.",
   'help.ctx.settings-notifications.title': 'Notificacions',
   'help.ctx.settings-notifications.summary':
-    "Com et contacta TREK fora de l'aplicació. A dalt, una taula amb una fila per esdeveniment i una columna per canal decideix què s'envia per on. A sota hi ha les targetes del webhook, de ntfy, del push en aquest dispositiu i de qualsevol canal de connector.",
+    "Com et contacta YOUYA fora de l'aplicació. A dalt, una taula amb una fila per esdeveniment i una columna per canal decideix què s'envia per on. A sota hi ha les targetes del webhook, de ntfy, del push en aquest dispositiu i de qualsevol canal de connector.",
   'help.ctx.settings-notifications.bullet.1':
     "«Notificacions»: activa o desactiva cada esdeveniment per a cada canal. Un cadenat vol dir que l'administrador l'ha desactivat per a tothom.",
   'help.ctx.settings-notifications.bullet.2':
@@ -1250,7 +1250,7 @@ const help: TranslationStrings = {
     '«Notificacions push en aquest dispositiu»: «Activa en aquest dispositiu» només afecta aquest navegador; «Envia una prova» envia una notificació de prova. Un canal de connector mostra «Configura» fins que no està configurat.',
   'help.ctx.settings-integrations.title': 'Integracions',
   'help.ctx.settings-integrations.summary':
-    "Tot el que es connecta a TREK des de fora: la teva adreça pròpia per als correus de reserva, biblioteques de fotos per al diari, AirTrail per als vols, Dawarich per saber on has estat realment, wanderer per als camins, claus API de només lectura per a altres programes, i MCP per als clients d'IA. Una connexió amb un altre servei només apareix quan l'administrador l'ha activada.",
+    "Tot el que es connecta a YOUYA des de fora: la teva adreça pròpia per als correus de reserva, biblioteques de fotos per al diari, AirTrail per als vols, Dawarich per saber on has estat realment, wanderer per als camins, claus API de només lectura per a altres programes, i MCP per als clients d'IA. Una connexió amb un altre servei només apareix quan l'administrador l'ha activada.",
   'help.ctx.settings-integrations.bullet.1':
     "Correus de reserva, a dalt de tot quan l'administrador té activada la importació de correus: la teva adreça de reenviament amb els seus interruptors. A sota, Immich i Synology Photos, AirTrail, Dawarich i wanderer: cada targeta té la seva adreça i clau, «Desa» i «Prova la connexió», i una insígnia «Connectat» o «No connectat».",
   'help.ctx.settings-integrations.bullet.2':
@@ -1261,7 +1261,7 @@ const help: TranslationStrings = {
     "«Tokens d'API»: l'antiga manera de connectar-se a MCP, marcada com a «Obsolet»; fes servir «Clients OAuth 2.1» en lloc seu.",
   'help.ctx.settings-offline.title': 'Fora de línia',
   'help.ctx.settings-offline.summary':
-    "Què desa TREK en aquest dispositiu perquè un viatge s'obri també sense connexió, i què passa quan un canvi fet sense connexió entra en conflicte amb un canvi fet en un altre lloc.",
+    "Què desa YOUYA en aquest dispositiu perquè un viatge s'obri també sense connexió, i què passa quan un canvi fet sense connexió entra en conflicte amb un canvi fet en un altre lloc.",
   'help.ctx.settings-offline.bullet.1':
     '«Mode fora de línia»: «Forçar mode fora de línia» primer ho baixa tot i després funciona només amb la memòria cau i deixa els teus canvis en cua.',
   'help.ctx.settings-offline.bullet.2':
@@ -1272,20 +1272,20 @@ const help: TranslationStrings = {
     '«Conflictes de sincronització» només apareix quan hi ha dos canvis en conflicte, amb «La meva», «Mantenir la seva» i «Quan es produeix un conflicte». «Memòria cau fora de línia» compta els viatges i els canvis pendents o fallits, amb «Torna-ho a provar», «Descartar» i «Netejar memòria cau».',
   'help.ctx.settings-account.title': 'Compte',
   'help.ctx.settings-account.summary':
-    "El teu compte en aquest TREK i com hi inicies sessió: foto de perfil, nom d'usuari i correu, contrasenya, autenticació de dos factors i claus d'accés. «Elimina el compte» és al peu de la targeta «Compte».",
+    "El teu compte en aquest YOUYA i com hi inicies sessió: foto de perfil, nom d'usuari i correu, contrasenya, autenticació de dos factors i claus d'accés. «Elimina el compte» és al peu de la targeta «Compte».",
   'help.ctx.settings-account.bullet.1':
     '«Compte»: fes clic a la càmera de la foto per pujar-ne una, i a la paperera vermella per treure-la. «Nom d’usuari» i «Correu» es desen amb «Desa el perfil».',
   'help.ctx.settings-account.bullet.2':
-    '«Canvia la contrasenya»: la contrasenya actual, la nova dues vegades, amb els requisits que es van marcant mentre escrius, i després «Actualitza la contrasenya». Si aquest TREK només permet iniciar sessió amb SSO, aquesta targeta no apareix.',
+    '«Canvia la contrasenya»: la contrasenya actual, la nova dues vegades, amb els requisits que es van marcant mentre escrius, i després «Actualitza la contrasenya». Si aquest YOUYA només permet iniciar sessió amb SSO, aquesta targeta no apareix.',
   'help.ctx.settings-account.bullet.3':
     'Autenticació de dos factors (2FA) amb una aplicació d’autenticació i codis de recuperació; claus d’accés per iniciar sessió sense contrasenya.',
   'help.ctx.settings-account.bullet.4':
     "«Elimina el compte» és a l'esquerra del peu de la targeta «Compte» i demana confirmació. L'únic administrador no es pot eliminar a si mateix.",
   // language-region
   'help.guide.language-region.title': 'Definir l’idioma, les unitats i la divisa',
-  'help.guide.language-region.goal': 'Fes servir TREK en la teva llengua i amb els formats de la teva regió.',
+  'help.guide.language-region.goal': 'Fes servir YOUYA en la teva llengua i amb els formats de la teva regió.',
   'help.guide.language-region.step.1':
-    "A «Idioma i regió», tria un «Idioma» de la seva llista; escriu per trobar-ne un ràpidament. TREK canvia a l'instant, a tots els dispositius on inicies sessió.",
+    "A «Idioma i regió», tria un «Idioma» de la seva llista; escriu per trobar-ne un ràpidament. YOUYA canvia a l'instant, a tots els dispositius on inicies sessió.",
   'help.guide.language-region.step.2':
     "«Noms de llocs» defineix l'idioma de la cerca de llocs, els suggeriments i les adreces; «Igual que l’app» segueix l'idioma de la interfície.",
   'help.guide.language-region.result':
@@ -1308,18 +1308,19 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.2':
     "Un administrador pot definir els valors per defecte per a tothom; el que canviïs aquí només s'aplica a tu.",
   // startup
-  'help.guide.startup.title': "Triar amb què s'obre TREK",
-  'help.guide.startup.goal': "Fes que TREK s'obri a la pàgina que més fas servir, en lloc d'obrir-se sempre al tauler.",
+  'help.guide.startup.title': "Triar amb què s'obre YOUYA",
+  'help.guide.startup.goal':
+    "Fes que YOUYA s'obri a la pàgina que més fas servir, en lloc d'obrir-se sempre al tauler.",
   'help.guide.startup.step.1':
     "A dalt de tot de «Pantalla», a «Inici», defineix la «Pàgina d'inici» com a «Tauler» o «Viatge actiu».",
   'help.guide.startup.step.2':
     "Amb «Viatge actiu», apareix «Pestanya d'inici»: tria la pestanya amb què s'obre aquell viatge.",
-  'help.guide.startup.result': "La propera vegada que obris TREK, s'obrirà directament aquella pàgina.",
+  'help.guide.startup.result': "La propera vegada que obris YOUYA, s'obrirà directament aquella pàgina.",
   'help.guide.startup.tip.1':
     '«Viatge actiu» és el viatge que està en curs avui, o el pròxim que comença. És el mateix viatge que mostra el tauler a dalt de tot.',
   // theme-scheme
   'help.guide.theme-scheme.title': "Definir el tema i el color d'accent",
-  'help.guide.theme-scheme.goal': "Fes TREK clar o fosc, o que segueixi el dispositiu, amb el color que t'agradi.",
+  'help.guide.theme-scheme.goal': "Fes YOUYA clar o fosc, o que segueixi el dispositiu, amb el color que t'agradi.",
   'help.guide.theme-scheme.step.1':
     'A «Tema», posa «Mode de color» a «Clar», «Fosc» o «Automàtic». «Automàtic» segueix el teu dispositiu.',
   'help.guide.theme-scheme.step.2':
@@ -1340,7 +1341,7 @@ const help: TranslationStrings = {
     '«Mida del text»: arrossega «Tot» per canviar la mida de tot el text alhora, o ajusta «Gran», «Mitjana», «Normal» i «Petita» una per una. Cada mida mostra un exemple, perquè vegis el resultat mentre arrossegues.',
   'help.guide.readability.result': 'El canvi s’aplica de cop a tota l’app, també als panells del mapa i al diari.',
   'help.guide.readability.tip.1':
-    'Algunes parts de TREK ja redueixen les animacions quan el dispositiu està configurat per reduir el moviment. «Reduir el moviment» les redueix a la resta.',
+    'Algunes parts de YOUYA ja redueixen les animacions quan el dispositiu està configurat per reduir el moviment. «Reduir el moviment» les redueix a la resta.',
   'help.guide.readability.tip.2':
     "La mida del text s'aplica mitjançant els nivells tipogràfics, així que no es talla res: si una mida ja no hi cap, el text passa a la línia següent.",
   // dashboard-widgets
@@ -1441,17 +1442,17 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.tip.1':
     'Les tessel·les del mapa són les que ocupen més espai; desactiva-les per desar només les dades dels viatges i els documents.',
   'help.guide.offline-prepare.tip.2':
-    'Per a un inici sense connexió més fluid, instal·la TREK com a app des del navegador.',
+    'Per a un inici sense connexió més fluid, instal·la YOUYA com a app des del navegador.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': 'Decidir quina versió es conserva en un conflicte de sincronització',
   'help.guide.offline-conflicts.goal':
-    'Tria com resol TREK un conflicte entre un canvi fet sense connexió i un canvi fet en un altre lloc.',
+    'Tria com resol YOUYA un conflicte entre un canvi fet sense connexió i un canvi fet en un altre lloc.',
   'help.guide.offline-conflicts.step.1':
     'Quan un canvi que has fet sense connexió entra en conflicte amb un de més recent, apareix «Conflictes de sincronització» a la part de dalt de «Fora de línia». Per a cada canvi, fes clic a «La meva» o «Mantenir la seva».',
   'help.guide.offline-conflicts.step.2':
     "A la mateixa targeta, «Quan es produeix un conflicte» decideix què passarà la propera vegada: «Pregunta'm cada vegada», «Mantingues sempre la meva versió» o «Mantingues sempre la versió del servidor».",
   'help.guide.offline-conflicts.result':
-    "Amb «Pregunta'm cada vegada», un conflicte es queda a «Conflictes de sincronització» fins que triïs. Amb les altres dues opcions, TREK el resol automàticament.",
+    "Amb «Pregunta'm cada vegada», un conflicte es queda a «Conflictes de sincronització» fins que triïs. Amb les altres dues opcions, YOUYA el resol automàticament.",
   'help.guide.offline-conflicts.tip.1':
     '«Netejar memòria cau» només esborra la còpia d’aquest dispositiu. Al servidor no canvia res.',
   // profile
@@ -1473,7 +1474,7 @@ const help: TranslationStrings = {
   'help.guide.password.result':
     "La contrasenya nova s'aplica a l'instant. Es tanca la sessió a tots els altres dispositius, s'eliminen els teus tokens d'API de MCP i els clients OAuth han de tornar a iniciar sessió; aquest dispositiu continua connectat.",
   'help.guide.password.tip.1':
-    'Si aquest TREK només permet iniciar sessió amb SSO, no hi ha contrasenya de TREK ni targeta «Canvia la contrasenya».',
+    'Si aquest YOUYA només permet iniciar sessió amb SSO, no hi ha contrasenya de YOUYA ni targeta «Canvia la contrasenya».',
   // mfa
   'help.guide.mfa.title': 'Activar l’autenticació de dos factors',
   'help.guide.mfa.goal': 'Protegeix el compte amb un codi d’una aplicació d’autenticació.',
@@ -1508,15 +1509,15 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     "El teu compte s'elimina, juntament amb els viatges, els llocs i els fitxers dels quals ets propietari. Els viatges que són d'altres persones es mantenen.",
   'help.guide.delete-account.tip.1':
-    "Si ets l'únic administrador, TREK mostra «No és possible eliminar-lo»: primer fes administrador un altre usuari.",
+    "Si ets l'únic administrador, YOUYA mostra «No és possible eliminar-lo»: primer fes administrador un altre usuari.",
   'help.guide.delete-account.tip.2': 'No es pot desfer. Exporta el que vulguis conservar abans de confirmar.',
 
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Administrador',
   'help.ctx.admin.summary':
-    "La configuració de tota la instància de TREK, per a tots els usuaris: qui pot iniciar sessió i com, què està activat, on es desen els fitxers, com contacta el servidor amb la gent i com se'n fan les còpies de seguretat. Només els administradors veuen aquesta pàgina. La barra lateral agrupa les pestanyes a «Usuaris», «Configuració» i «Manteniment», i cada pestanya és una pantalla independent.",
+    "La configuració de tota la instància de YOUYA, per a tots els usuaris: qui pot iniciar sessió i com, què està activat, on es desen els fitxers, com contacta el servidor amb la gent i com se'n fan les còpies de seguretat. Només els administradors veuen aquesta pàgina. La barra lateral agrupa les pestanyes a «Usuaris», «Configuració» i «Manteniment», i cada pestanya és una pantalla independent.",
   'help.ctx.admin.bullet.1':
-    "A la dreta de la capçalera hi ha el recompte d'usuaris, viatges, llocs i fitxers. A sota apareix el bàner «Actualització disponible» quan hi ha una versió més nova de TREK.",
+    "A la dreta de la capçalera hi ha el recompte d'usuaris, viatges, llocs i fitxers. A sota apareix el bàner «Actualització disponible» quan hi ha una versió més nova de YOUYA.",
   'help.ctx.admin.bullet.2':
     "«Usuaris» i «Predeterminats»: comptes, enllaços d'invitació i permisos, i la configuració i el mapa amb què comença un compte nou.",
   'help.ctx.admin.bullet.3':
@@ -1527,7 +1528,7 @@ const help: TranslationStrings = {
     "«Emmagatzematge», «Còpia de seguretat», «GitHub» i «Auditoria»: on van els fitxers pujats, còpies a demanda i programades, l'historial de versions i el registre d'esdeveniments rellevants per a la seguretat.",
   'help.ctx.admin-users.title': 'Usuaris',
   'help.ctx.admin-users.summary':
-    "Tots els comptes d'aquest TREK, amb el rol, el correu i l'última activitat, els enllaços d'invitació que permeten registrar-se en una instància tancada, i qui pot fer què als viatges.",
+    "Tots els comptes d'aquest YOUYA, amb el rol, el correu i l'última activitat, els enllaços d'invitació que permeten registrar-se en una instància tancada, i qui pot fer què als viatges.",
   'help.ctx.admin-users.bullet.1':
     "La taula: usuari, correu, rol, data de creació i «Última activitat», amb «Editar usuari» i «Eliminar usuari» a cada fila. Un punt verd a l'avatar vol dir que la persona està connectada ara mateix; la teva fila diu «(Tu)».",
   'help.ctx.admin-users.bullet.2':
@@ -1549,7 +1550,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     "«Plantilles d'equipatge»: llistes amb nom, amb categories i articles, que serveixen de punt de partida per a la llista d'equipatge d'un viatge.",
   'help.ctx.admin-config.bullet.2':
-    '«Categories»: nom, icona i color de les categories que es fan servir a tot TREK, de la fitxa del lloc a «Col·leccions», cadascuna editable en un diàleg amb vista prèvia.',
+    '«Categories»: nom, icona i color de les categories que es fan servir a tot YOUYA, de la fitxa del lloc a «Col·leccions», cadascuna editable en un diàleg amb vista prèvia.',
   'help.ctx.admin-config.bullet.3':
     '«Vacances escolars»: el catàleg de països i regions amb els seus períodes de vacances, que tothom pot triar a «Vacances».',
   'help.ctx.admin-settings.title': 'Seguretat i serveis',
@@ -1560,12 +1561,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     "«Inici de sessió amb clau d'accés»: l'«ID de la part confiable (domini)» i els «Orígens permesos». «Inici de sessió únic (OIDC)»: «Nom visible», «URL de l'emissor», una URL de descoberta opcional, «ID de client» i «Secret de client».",
   'help.ctx.admin-settings.bullet.3':
-    "Cerca de llocs i rutes, a «Serveis»: l'API de TREK, marcada com a «Recomanat per defecte», amb «Quota d'avui» i «Comparteix els detalls del lloc», i després «Proveïdor de transport públic», «Proveïdor de cerca de llocs» i «Registre de cerca de llocs».",
+    "Cerca de llocs i rutes, a «Serveis»: l'API de YOUYA, marcada com a «Recomanat per defecte», amb «Quota d'avui» i «Comparteix els detalls del lloc», i després «Proveïdor de transport públic», «Proveïdor de cerca de llocs» i «Registre de cerca de llocs».",
   'help.ctx.admin-settings.bullet.4':
     "«Claus API»: la «Clau API de Google Maps» amb «Provar» i «Per a què s'utilitza la clau», les claus d'Unsplash i d'Amap, i un sol «Desa» a baix de la targeta. «Tipus de fitxer permesos», a sota, limita els fitxers que es poden pujar.",
   'help.ctx.admin-addons.title': 'Complements',
   'help.ctx.admin-addons.summary':
-    "Els mòduls de TREK en tres targetes: «Viatge» per a les pestanyes d'un viatge, «Global» per a les seccions del menú principal i «Integració» per als serveis externs. Cada complement té un interruptor; si el desactives, l'entrada del menú, les rutes i l'API desapareixen per a tothom.",
+    "Els mòduls de YOUYA en tres targetes: «Viatge» per a les pestanyes d'un viatge, «Global» per a les seccions del menú principal i «Integració» per als serveis externs. Cada complement té un interruptor; si el desactives, l'entrada del menú, les rutes i l'API desapareixen per a tothom.",
   'help.ctx.admin-addons.bullet.1':
     "Una fila per complement, amb el seu interruptor, i a la capçalera de cada targeta quants complements té activats. La marca d'informació del costat d'un nom explica què fa el complement.",
   'help.ctx.admin-addons.bullet.2':
@@ -1574,7 +1575,7 @@ const help: TranslationStrings = {
     "Les files amb un engranatge obren un diàleg de configuració, com ara «Dades d'aigua per a rutes en piragua» a Excursions i «Configura la importació de correus» a «Importació de correus de reserva». L'estat de vol en directe és una fila de la targeta «Viatge».",
   'help.ctx.admin-plugins.title': 'Connectors',
   'help.ctx.admin-plugins.summary':
-    "Connectors de tercers que s'executen en un procés propi al costat de TREK, cadascun amb els permisos que va demanar en instal·lar-lo. Instal·la'ls des del catàleg, puja un paquet o vincula una carpeta mentre desenvolupes un connector.",
+    "Connectors de tercers que s'executen en un procés propi al costat de YOUYA, cadascun amb els permisos que va demanar en instal·lar-lo. Instal·la'ls des del catàleg, puja un paquet o vincula una carpeta mentre desenvolupes un connector.",
   'help.ctx.admin-plugins.bullet.1':
     '«Instal·lat» i «Descobreix», amb «Cerca connectors…» i «Filtra» per tipus, estat i ordre. Cada fila mostra la versió, a què pot accedir el connector, «Revisat», «Signat» o «Sense signar», un interruptor i un menú ⋯.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1591,7 +1592,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     '«Categories»: documents del viatge, fotos de la travessia, portades, fotos de perfil, imatges de llocs, les memòries cau de fotos i les còpies de seguretat, cadascuna assignada a un backend, amb «Desa els canvis» a baix de tot.',
   'help.ctx.admin-storage.bullet.4':
-    "«Fitxers sense referència»: el que la comprovació nocturna ha trobat que ja no fa servir res a TREK, amb «Comprova-ho ara» i un interruptor que elimina aquests fitxers quan fa una setmana que no s'usen.",
+    "«Fitxers sense referència»: el que la comprovació nocturna ha trobat que ja no fa servir res a YOUYA, amb «Comprova-ho ara» i un interruptor que elimina aquests fitxers quan fa una setmana que no s'usen.",
   'help.ctx.admin-notifications.title': 'Notificacions',
   'help.ctx.admin-notifications.summary':
     'Els canals que la instància ofereix als usuaris, i els que reps tu com a administrador. Els usuaris trien els seus temes i URL a «Configuració»; tu decideixes quins canals hi ha i configures el correu.',
@@ -1603,14 +1604,14 @@ const help: TranslationStrings = {
     "Avisos d'administració, a la dreta: «Webhook d'administrador» i «Ntfy d'administrador», cadascun amb un botó de prova, i a sota quin canal envia cada esdeveniment d'administració («Versió nova disponible», «Error de rèplica d'emmagatzematge», «Regió de caiac demanada»).",
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    "Tots els tokens i sessions OAuth que tenen els clients d'IA per a aquest TREK, de tots els usuaris. Pots revocar-ne qualsevol.",
+    "Tots els tokens i sessions OAuth que tenen els clients d'IA per a aquest YOUYA, de tots els usuaris. Pots revocar-ne qualsevol.",
   'help.ctx.admin-mcp-tokens.bullet.1':
     '«Sessions OAuth»: el client, els àmbits que se li han concedit, el propietari i la data, amb una icona de paperera per revocar-la.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     "«Tokens d'API»: nom, propietari, «Creat» i «Últim ús», amb una paperera per eliminar-lo.",
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    "Les novetats de TREK: l'historial de versions de GitHub i si hi ha una versió més nova que la teva. L'actualització es fa fora de l'aplicació, al servidor.",
+    "Les novetats de YOUYA: l'historial de versions de GitHub i si hi ha una versió més nova que la teva. L'actualització es fa fora de l'aplicació, al servidor.",
   'help.ctx.admin-github.bullet.1':
     "«Historial de versions» mostra les versions en una cronologia amb les seves notes. La més recent té l'etiqueta «Última», les versions prèvies diuen «Prellançament» i GitHub obre la pàgina de versions.",
   'help.ctx.admin-github.bullet.2':
@@ -1684,7 +1685,7 @@ const help: TranslationStrings = {
     'La icona de la paperera de la teva pròpia fila no funciona: no et pots eliminar a tu mateix. Ho ha de fer un altre administrador.',
   // permissions
   'help.guide.permissions.title': 'Decidir qui pot fer què',
-  'help.guide.permissions.goal': 'Defineix, acció per acció, quin rol la pot fer en aquest TREK.',
+  'help.guide.permissions.goal': 'Defineix, acció per acció, quin rol la pot fer en aquest YOUYA.',
   'help.guide.permissions.step.1':
     "A «Configuració de permisos», busca l'acció dins del seu grup, com ara «Elimina els viatges» a «Gestió de viatges», i tria qui la pot fer: «Tothom», «Membres del viatge», «Propietari del viatge» o «Només l'administrador». Una fila modificada es marca com a «personalitzat».",
   'help.guide.permissions.step.2':
@@ -1759,11 +1760,11 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     "Quan «Inici de sessió únic (OIDC)» està configurat, hi ha tres files d'SSO més: «Inici de sessió SSO», «Aprovisionament automàtic SSO», que crea un compte la primera vegada que algú inicia sessió per SSO, i «Anar directament a l’SSO».",
   'help.guide.auth-methods.step.3':
-    "«Activa l'inici de sessió amb clau d'accés» ofereix les claus d'accés a la pàgina d'inici de sessió. Activa «Exigir 2FA» perquè tothom qui no tingui la 2FA l'hagi de configurar a «Configuració» abans de poder fer servir TREK.",
+    "«Activa l'inici de sessió amb clau d'accés» ofereix les claus d'accés a la pàgina d'inici de sessió. Activa «Exigir 2FA» perquè tothom qui no tingui la 2FA l'hagi de configurar a «Configuració» abans de poder fer servir YOUYA.",
   'help.guide.auth-methods.result':
     "La pàgina d'inici de sessió ofereix exactament els mètodes que has deixat activats.",
   'help.guide.auth-methods.tip.1':
-    "TREK no et deixa desactivar l'últim mètode d'inici de sessió: el seu interruptor es posa gris i el text d'ajuda diu «At least one login method must remain enabled».",
+    "YOUYA no et deixa desactivar l'últim mètode d'inici de sessió: el seu interruptor es posa gris i el text d'ajuda diu «At least one login method must remain enabled».",
   'help.guide.auth-methods.tip.2':
     'Si el servidor té definit OIDC_ONLY, els interruptors de contrasenya queden bloquejats i una nota ho indica.',
   'help.guide.auth-methods.tip.3':
@@ -1780,7 +1781,7 @@ const help: TranslationStrings = {
   'help.guide.oidc.result':
     "La pàgina d'inici de sessió mostra el botó d'SSO; amb «Aprovisionament automàtic SSO» activat, els usuaris que entren per primera vegada reben un compte automàticament.",
   'help.guide.oidc.tip.1':
-    'L’URI de redirecció que demana el proveïdor és l’adreça del teu TREK seguida del camí de retorn d’OIDC que indica la documentació.',
+    'L’URI de redirecció que demana el proveïdor és l’adreça del teu YOUYA seguida del camí de retorn d’OIDC que indica la documentació.',
   'help.guide.oidc.tip.2':
     'L’assignació de claims decideix quins grups de l’SSO esdevenen administradors; consulta la pàgina d’OIDC a la documentació.',
   // instance-keys
@@ -1788,19 +1789,19 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     "Afegeix fotos i valoracions de Google, portades d'Unsplash i la cerca d'Amap per a tota la instància.",
   'help.guide.instance-keys.step.1':
-    "A la pestanya «Serveis», la targeta de cerca de llocs i rutes comença amb l'API de TREK, marcada com a «Recomanat per defecte». Resol la cerca de llocs, les adreces i les rutes sense cap clau, i «Quota d'avui» mostra què en queda del dia.",
+    "A la pestanya «Serveis», la targeta de cerca de llocs i rutes comença amb l'API de YOUYA, marcada com a «Recomanat per defecte». Resol la cerca de llocs, les adreces i les rutes sense cap clau, i «Quota d'avui» mostra què en queda del dia.",
   'help.guide.instance-keys.step.2':
     "Per a fotos, valoracions i horaris d'obertura, enganxa una «Clau API de Google Maps» a «Claus API» i fes clic a «Provar»; et dirà «Connectat» o «No vàlida». A «Per a què s'utilitza la clau», activa només el que vulguis que es facturi: «Fotos de Llocs», «Autocompletat de Llocs», «Detalls del Lloc», «Enriquiment de llocs» i «Cercar només amb Google», i a més un «Límit diari» de crides a Google.",
   'help.guide.instance-keys.step.3':
     "Enganxa la «Clau API d'Unsplash» per a la cerca de portades i la «Clau API d'Amap (高德地图)» per a la cerca de llocs a la Xina continental, i fes clic a «Desa», a baix de la targeta.",
   'help.guide.instance-keys.result':
-    'Els usuaris tenen les funcions sense necessitat de claus pròpies. Sense clau de Google, la cerca funciona amb la TREK Places API i OpenStreetMap.',
+    'Els usuaris tenen les funcions sense necessitat de claus pròpies. Sense clau de Google, la cerca funciona amb la YOUYA Places API i OpenStreetMap.',
   'help.guide.instance-keys.tip.1':
-    'Quan un usuari té una clau personal a «Configuració», TREK fa servir aquesta clau en lloc de la de la instància per a aquell usuari.',
+    'Quan un usuari té una clau personal a «Configuració», YOUYA fa servir aquesta clau en lloc de la de la instància per a aquell usuari.',
   'help.guide.instance-keys.tip.2':
     'Les claus també poden venir de variables d’entorn; en aquest cas, aquí es mostren només de lectura.',
   'help.guide.instance-keys.tip.3':
-    "«Límit diari de crides a Google» fixa quant pot gastar TREK amb la clau cada dia; la insígnia al costat del títol compta les crides d'avui. Quan s'arriba al límit, les cerques fan servir OpenStreetMap fins a l'endemà (UTC).",
+    "«Límit diari de crides a Google» fixa quant pot gastar YOUYA amb la clau cada dia; la insígnia al costat del títol compta les crides d'avui. Quan s'arriba al límit, les cerques fan servir OpenStreetMap fins a l'endemà (UTC).",
   // places-transit
   'help.guide.places-transit.title': 'Triar els proveïdors de cerca i de transport públic',
   'help.guide.places-transit.goal':
@@ -1808,11 +1809,11 @@ const help: TranslationStrings = {
   'help.guide.places-transit.step.1':
     "A la pestanya «Serveis», a la targeta de cerca de llocs i de rutes, tria a «Proveïdor de transport públic»: «Transitous (gratuït)», que no necessita clau i funciona millor a Europa, o Google, que fa servir la clau de Google. L'opció es desa a l'instant.",
   'help.guide.places-transit.step.2':
-    "A «Proveïdor de la cerca de llocs», tria a quin servei recorre TREK quan l'índex de TREK i OpenStreetMap no troben res: «Automàtic» (Google si hi ha clau, i si no, Amap), Google Places, Amap (高德地图) o OpenStreetMap.",
+    "A «Proveïdor de la cerca de llocs», tria a quin servei recorre YOUYA quan l'índex de YOUYA i OpenStreetMap no troben res: «Automàtic» (Google si hi ha clau, i si no, Amap), Google Places, Amap (高德地图) o OpenStreetMap.",
   'help.guide.places-transit.result':
-    'Tots els quadres de cerca i totes les rutes de transport públic de TREK fan servir aquesta opció.',
+    'Tots els quadres de cerca i totes les rutes de transport públic de YOUYA fan servir aquesta opció.',
   'help.guide.places-transit.tip.1':
-    "Si tries una opció sense la seva clau, aquí apareix un avís. Aleshores la cerca de llocs només fa servir l'índex de TREK i OpenStreetMap, i el transport públic només fa servir Transitous.",
+    "Si tries una opció sense la seva clau, aquí apareix un avís. Aleshores la cerca de llocs només fa servir l'índex de YOUYA i OpenStreetMap, i el transport públic només fa servir Transitous.",
   'help.guide.places-transit.tip.2':
     'Les rutes de transport públic de Google es facturen per petició; les de Transitous, no.',
   // file-types
@@ -1861,7 +1862,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'A «Categories», assigna cada tipus de fitxer pujat, com ara «Documents del viatge», «Fotos de la travesia» o «Còpies de seguretat», a un backend.',
   'help.guide.storage-backends.step.3':
-    'Fes clic a «Desa els canvis» al peu de «Categories». Si alguna categoria apunta ara a un altre lloc, TREK et pregunta si vols «Mou els objectes existents» o «Només enruta les escriptures noves».',
+    'Fes clic a «Desa els canvis» al peu de «Categories». Si alguna categoria apunta ara a un altre lloc, YOUYA et pregunta si vols «Mou els objectes existents» o «Només enruta les escriptures noves».',
   'help.guide.storage-backends.result':
     "Els fitxers nous van al backend assignat. Els fitxers moguts se serveixen des d'allà, i els que has triat no moure es queden on eren.",
   'help.guide.storage-backends.tip.1':
@@ -1913,7 +1914,7 @@ const help: TranslationStrings = {
     'Desactivar el complement MCP atura tots els clients alhora i amaga aquesta pestanya, però no elimina res: els tokens tornen a funcionar quan el tornes a activar.',
   // release-history
   'help.guide.release-history.title': 'Comprovar si hi ha una versió nova',
-  'help.guide.release-history.goal': 'Comprova si el teu TREK està al dia i què porta la versió següent.',
+  'help.guide.release-history.goal': 'Comprova si el teu YOUYA està al dia i què porta la versió següent.',
   'help.guide.release-history.step.1':
     "Quan hi ha una versió més nova, «Actualització disponible» apareix sota la capçalera de la pàgina amb la versió que fas servir. «Veure a GitHub» obre la versió, i «Com actualitzar» mostra les ordres per a Docker o la guia d'actualització per a altres instal·lacions.",
   'help.guide.release-history.step.2':
@@ -1974,7 +1975,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     "Activa l'interruptor de la fila de Nextcloud. El missatge diu «Complement actualitzat», i a partir d'aleshores els propietaris dels viatges troben «Sincronització de documents» a la pestanya «Fitxers» dels seus viatges, amb Nextcloud a «Connecta un proveïdor».",
   'help.guide.document-providers.result':
-    'El magatzem està disponible a tots els viatges d’aquest TREK. No es connecta res fins que el propietari d’un viatge el connecta.',
+    'El magatzem està disponible a tots els viatges d’aquest YOUYA. No es connecta res fins que el propietari d’un viatge el connecta.',
   'help.guide.document-providers.tip.1':
     "Aquí només es decideix si es pot oferir un magatzem. L'adreça i les credencials són de cada viatge i les introdueix el propietari del viatge a la pestanya «Fitxers», mai al tauler d'administració.",
   'help.guide.document-providers.tip.2':
@@ -1983,30 +1984,30 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     'Dona a tothom una adreça de reenviament, perquè les confirmacions de reserva que reenviïn es converteixin en reserves del viatge correcte.',
   'help.guide.mail-import-setup.step.1':
-    'A la pestanya «Complements», a la targeta «Integració», activa «Importació de correus de reserva». Ara tothom en aquest TREK té una adreça de reenviament personal.',
+    'A la pestanya «Complements», a la targeta «Integració», activa «Importació de correus de reserva». Ara tothom en aquest YOUYA té una adreça de reenviament personal.',
   'help.guide.mail-import-setup.step.2': 'Fes clic a «Configura la importació de correus», la fila que apareix a sota.',
   'help.guide.mail-import-setup.step.3':
-    "A «Com arriba el correu», tria «Bústia IMAP» i introdueix «Servidor», «Port», «Xifratge», «Usuari», «Contrasenya» i «Carpeta». Tria «Webhook» en lloc d'això per a un servei de correu que envia cada correu a TREK, o «Només pujada de fitxers» per provar-ho sense bústia. Després defineix la «Plantilla d’adreça», l'adreça de reenviament amb un marcador on va el codi de cada persona, i els «Correus amb IA per persona i dia».",
+    "A «Com arriba el correu», tria «Bústia IMAP» i introdueix «Servidor», «Port», «Xifratge», «Usuari», «Contrasenya» i «Carpeta». Tria «Webhook» en lloc d'això per a un servei de correu que envia cada correu a YOUYA, o «Només pujada de fitxers» per provar-ho sense bústia. Després defineix la «Plantilla d’adreça», l'adreça de reenviament amb un marcador on va el codi de cada persona, i els «Correus amb IA per persona i dia».",
   'help.guide.mail-import-setup.step.4':
-    'Fes clic a «Desa» i després a «Prova la connexió»; diu «Connectat» o què ha fallat. A sota, el diàleg mostra quan ha llegit TREK el correu per última vegada i els correus de les últimes 24 hores: «Afegits automàticament», «En espera» i «Fallits».',
+    'Fes clic a «Desa» i després a «Prova la connexió»; diu «Connectat» o què ha fallat. A sota, el diàleg mostra quan ha llegit YOUYA el correu per última vegada i els correus de les últimes 24 hores: «Afegits automàticament», «En espera» i «Fallits».',
   'help.guide.mail-import-setup.result':
     'Tothom troba la seva adreça de reenviament a «Configuració», «Integracions». Una confirmació reenviada es converteix en una reserva al viatge que toca, o hi espera que el propietari la revisi.',
   'help.guide.mail-import-setup.tip.1':
-    'Dona a TREK una bústia pròpia que accepti adreces amb plus (trek+…@el-teu-domini), no una de personal. Els correus llegits passen a la carpeta TREK/processed.',
+    'Dona a YOUYA una bústia pròpia que accepti adreces amb plus (trek+…@el-teu-domini), no una de personal. Els correus llegits passen a la carpeta TREK/processed.',
   'help.guide.mail-import-setup.tip.2':
     "Les variables d'entorn que comencen per MAIL_INGEST_ s'imposen als camps del diàleg. Un servidor de correu de la teva pròpia xarxa també necessita ALLOW_INTERNAL_NETWORK=true al servidor.",
   'help.guide.mail-import-setup.tip.3':
     "«Correus amb IA per persona i dia» limita quants correus sense dades de reserva llegibles per màquina llegeix una IA per a cada persona cada dia. Per sobre d'aquest límit, només es llegeixen les dades llegibles per màquina.",
   'help.guide.ai-setup.title': "Configura l'assistent d'IA",
   'help.guide.ai-setup.goal':
-    "Connecta un proveïdor d'IA una sola vegada, perquè tothom en aquest TREK pugui planificar amb l'assistent.",
+    "Connecta un proveïdor d'IA una sola vegada, perquè tothom en aquest YOUYA pugui planificar amb l'assistent.",
   'help.guide.ai-setup.step.1':
     "A la pestanya «Complements», a la targeta «Integració», busca la casella d'IA i activa l'«Assistent d’IA». L'«Anàlisi amb IA» i l'MCP són a la mateixa casella.",
   'help.guide.ai-setup.step.2': 'Fes clic a «Configura la IA», la fila que apareix sota els interruptors.',
   'help.guide.ai-setup.step.3':
     'A «Qui paga», tria qui proporciona la connexió: «Pago jo», «Pago jo, amb compte propi permès», «Pago jo per a tothom» o «Tothom fa servir el seu propi compte». La línia de sota explica què vol dir la teva elecció.',
   'help.guide.ai-setup.step.4':
-    "A «Connexió per a tothom», tria «Enganxa una clau API» i enganxa-hi una clau d'Anthropic, OpenAI, Gemini o OpenRouter. TREK indica el proveïdor que detecta. Fes clic a «Connecta»; TREK comprova la clau amb el proveïdor abans de desar-la.",
+    "A «Connexió per a tothom», tria «Enganxa una clau API» i enganxa-hi una clau d'Anthropic, OpenAI, Gemini o OpenRouter. YOUYA indica el proveïdor que detecta. Fes clic a «Connecta»; YOUYA comprova la clau amb el proveïdor abans de desar-la.",
   'help.guide.ai-setup.step.5':
     'La connexió apareix com a «Connectat». Tria el «Model» amb què xateja tothom; només es llisten els models que poden fer servir eines. «Canvia» i «Elimina la connexió» són a sota.',
   'help.guide.ai-setup.step.6':
@@ -2022,15 +2023,15 @@ const help: TranslationStrings = {
     'La cerca web funciona amb ChatGPT, Anthropic i OpenRouter, mitjançant la cerca del mateix proveïdor, i les cerques només van a aquest proveïdor.',
   'help.guide.paddle-water-data.title': "Carrega les dades d'aigües per a les excursions en piragua",
   'help.guide.paddle-water-data.goal':
-    "Dona a les excursions en piragua les preses, les rescloses i les normes de navegació d'una regió, i decideix si TREK carrega regions noves per ell mateix.",
+    "Dona a les excursions en piragua les preses, les rescloses i les normes de navegació d'una regió, i decideix si YOUYA carrega regions noves per ell mateix.",
   'help.guide.paddle-water-data.step.1':
     "A la pestanya «Complements», mentre «Excursions» és activat, fes clic a «Dades d’aigües per a piragua», l'última fila de «Excursions». Un número al costat compta les regions, o les sol·licituds que t'esperen.",
   'help.guide.paddle-water-data.step.2':
     'A «Carregar regions automàticament», tria «Automàtic», «A petició» o «Desactivat». «Automàtic» carrega la regió on algú planifica una excursió en piragua, fins a la «Regió més gran que es carrega automàticament»; el que és més gran espera a «Demanades», on «Carregar» ho llegeix i «Rebutja» ho descarta.',
   'help.guide.paddle-water-data.step.3':
-    "A «Afegeix una regió», busca una regió a Geofabrik, per exemple Oberpfalz, i fes clic a «Afegeix» al costat. TREK la llegeix en segon pla; quan és «Llesta», la seva fila mostra els objectes, la data de les dades i els quilòmetres d'aigua. «Torna a llegir» l'actualitza i «Elimina la regió» l'elimina.",
+    "A «Afegeix una regió», busca una regió a Geofabrik, per exemple Oberpfalz, i fes clic a «Afegeix» al costat. YOUYA la llegeix en segon pla; quan és «Llesta», la seva fila mostra els objectes, la data de les dades i els quilòmetres d'aigua. «Torna a llegir» l'actualitza i «Elimina la regió» l'elimina.",
   'help.guide.paddle-water-data.result':
-    "Les excursions en piragua dins la regió mostren els seus obstacles i segueixen l'aigua, i TREK torna a llegir cada regió un cop al mes.",
+    "Les excursions en piragua dins la regió mostren els seus obstacles i segueixen l'aigua, i YOUYA torna a llegir cada regió un cop al mes.",
   'help.guide.paddle-water-data.tip.1': 'Només el nom de la regió va a Geofabrik, mai un lloc que algú planifica.',
   'help.guide.paddle-water-data.tip.2':
     "Llegir una regió triga uns minuts i fa servir memòria mentre s'executa, i un país sencer necessita uns quants gigabytes d'espai temporal.",
@@ -2042,7 +2043,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     "Tot el que té a veure amb un viatge: el pla amb els dies, el mapa i els llocs, i les pestanyes d'excursions, transports, reserves, llistes, pressupost, fitxers, col·laboració i diari vinculat. Cadascuna té la seva pròpia pantalla d'ajuda, a sota d'aquesta.",
   'help.ctx.trip.bullet.1':
-    'La barra de pestanyes, sota la barra superior: «Planificat», «Excursions», «Transports», «Reserves», «Llistes», «Pressupost», «Fitxers», «Col·laboració» i, quan hi ha un diari vinculat, «Diari». Els complements i els connectors determinen quines pestanyes hi ha al teu TREK.',
+    'La barra de pestanyes, sota la barra superior: «Planificat», «Excursions», «Transports», «Reserves», «Llistes», «Pressupost», «Fitxers», «Col·laboració» i, quan hi ha un diari vinculat, «Diari». Els complements i els connectors determinen quines pestanyes hi ha al teu YOUYA.',
   'help.ctx.trip.bullet.2':
     "«Planificat» té tres columnes: els dies a l'esquerra, el mapa al mig i els llocs a la dreta. Amb el complement «Viatge per carretera», la columna de dies comença amb un selector entre «Dies» i «Viatge per carretera»; amb el complement «Excursions», la columna de llocs comença amb «Llocs» i «Excursions». Les reserves i els transports formen part del pla, a la parada i entre parades; les pestanyes en mostren la llista.",
   'help.ctx.trip.bullet.3':
@@ -2055,7 +2056,7 @@ const help: TranslationStrings = {
     "La fletxa de desfer de la barra d'eines dels dies desfà els teus últims canvis al pla, un per un.",
   // add-member
   'help.guide.add-member.title': 'Afegir un membre',
-  'help.guide.add-member.goal': 'Dona accés a aquest viatge a una persona que tingui compte de TREK.',
+  'help.guide.add-member.goal': 'Dona accés a aquest viatge a una persona que tingui compte de YOUYA.',
   'help.guide.add-member.step.1':
     "Fes clic a «Configuració del viatge», la pastilla del costat del nom del viatge, a dalt a l'esquerra. S'obre a «Persones».",
   'help.guide.add-member.step.2':
@@ -2065,7 +2066,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     'El membre pot veure i editar el viatge igual que tu, dins dels nivells que l’administrador ha definit a «Configuració de permisos».',
   'help.guide.add-member.tip.1':
-    'Si algú no surt a la llista, és que encara no té compte de TREK: afegeix-lo com a convidat o deixa que es registri amb un enllaç d’invitació.',
+    'Si algú no surt a la llista, és que encara no té compte de YOUYA: afegeix-lo com a convidat o deixa que es registri amb un enllaç d’invitació.',
   'help.guide.add-member.tip.2':
     "El número del costat d'«Accés» compta les persones del viatge; els convidats apareixen a part, a sota.",
   // trip-invite-link
@@ -2074,7 +2075,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     "Fes clic a «Configuració del viatge», al costat del nom del viatge, i tria «Compartint» a l'esquerra. A «Enllaç d'invitació al viatge», fes clic a «Crear enllaç d'invitació».",
   'help.guide.trip-invite-link.step.2':
-    "Fes clic a «Copiar» i envia l'enllaç. Qualsevol persona amb compte de TREK que l'obri s'hi uneix com a membre.",
+    "Fes clic a «Copiar» i envia l'enllaç. Qualsevol persona amb compte de YOUYA que l'obri s'hi uneix com a membre.",
   'help.guide.trip-invite-link.step.3':
     "«Regenera» substitueix l'enllaç i l'antic deixa de funcionar; «Desactivar» el desactiva.",
   'help.guide.trip-invite-link.result': 'Qui obre l’enllaç s’uneix al viatge i apareix a «Accés».',
@@ -2084,7 +2085,7 @@ const help: TranslationStrings = {
     "Si has enviat l'enllaç al xat equivocat, torna'l a generar: l'enllaç antic deixa de funcionar a l'instant.",
   // add-guest
   'help.guide.add-guest.title': 'Afegir un convidat sense compte',
-  'help.guide.add-guest.goal': 'Afegeix al viatge algú que no fa servir TREK.',
+  'help.guide.add-guest.goal': 'Afegeix al viatge algú que no fa servir YOUYA.',
   'help.guide.add-guest.step.1':
     "Fes clic a «Configuració del viatge», al costat del nom del viatge. A «Persones», «Convidats» és l'última part, sota «Accés».",
   'help.guide.add-guest.step.2': 'Escriu el nom a «Nom del convidat» i fes clic a «Afegir convidat».',
@@ -2145,7 +2146,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     '«Desfer» abasta el pla: afegir, assignar, treure, reordenar, moure i bloquejar llocs, buidar un dia, optimitzar una ruta, eliminar llocs, canvis de categoria i importacions.',
   'help.guide.undo-change.tip.2':
-    'Torna a fer clic per anar més enrere: TREK conserva els teus últims 30 canvis en aquest viatge, del més recent al més antic, fins que en surts.',
+    'Torna a fer clic per anar més enrere: YOUYA conserva els teus últims 30 canvis en aquest viatge, del més recent al més antic, fins que en surts.',
   'help.guide.trip-assistant.title': "Planifica amb l'assistent",
   'help.guide.trip-assistant.goal':
     "Pregunta a l'assistent sobre el teu viatge i deixa que afegeixi al pla el que et proposa.",
@@ -2202,19 +2203,19 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     "Fes clic a «Afegeix un lloc / activitat», a dalt de la columna de llocs («Lloc nou» si hi ha un dia obert). El formulari s'obre amb el cursor a la cerca.",
   'help.guide.create-place.step.2':
-    "Escriu el lloc a «Cerca llocs…» i tria un resultat. S'omplen el nom de dalt del diàleg, «Adreça», «Latitud», «Longitud» i «Lloc web», i «Detalls del lloc», a l'esquerra, mostra imatges, l'horari i una descripció. En un TREK amb clau de Google, «Not the right place? Search Google instead», sota els resultats, fa la mateixa cerca amb Google. Amb «Col·leccions» activat, «Llocs desats», a la dreta, t'ofereix els llocs de les teves llistes de la mateixa manera.",
+    "Escriu el lloc a «Cerca llocs…» i tria un resultat. S'omplen el nom de dalt del diàleg, «Adreça», «Latitud», «Longitud» i «Lloc web», i «Detalls del lloc», a l'esquerra, mostra imatges, l'horari i una descripció. En un YOUYA amb clau de Google, «Not the right place? Search Google instead», sota els resultats, fa la mateixa cerca amb Google. Amb «Col·leccions» activat, «Llocs desats», a la dreta, t'ofereix els llocs de les teves llistes de la mateixa manera.",
   'help.guide.create-place.step.3':
     'A «Detalls del lloc», fes clic a una imatge sota «Tria una imatge» perquè sigui la imatge del lloc. «Utilitza aquest text» copia la descripció al formulari.',
   'help.guide.create-place.step.4':
     "Revisa els camps del formulari. El nom, a dalt del diàleg, és l'únic camp obligatori. La pastilla «Categoria» de sota tria una de les categories del viatge, i el + del costat en crea una de nova. «Adreça», «Latitud» i «Longitud» provenen de la cerca o les escrius tu. A «Etiquetes», fes clic a les etiquetes que ha de tenir el lloc. «Sobre el lloc» i «Notes» canvien el camp de text entre la descripció i les teves notes. «Lloc web» és per a l'enllaç, «Adjunta», a «Fitxers», afegeix un document, i «Telèfon», «Correu electrònic» i «Afegeix l'horari» són per a les dades que la cerca no ha trobat.",
   'help.guide.create-place.step.5':
-    'Fes clic a «Afegir». Si al viatge ja hi ha un lloc amb el mateix nom o a la mateixa ubicació, TREK mostra un avís i el botó passa a dir «Afegir igualment».',
+    'Fes clic a «Afegir». Si al viatge ja hi ha un lloc amb el mateix nom o a la mateixa ubicació, YOUYA mostra un avís i el botó passa a dir «Afegir igualment».',
   'help.guide.create-place.result':
     'El lloc és a la llista i al mapa, a «Sense planificar» fins que es posa en un dia.',
   'help.guide.create-place.tip.1':
     "«Pressupost», a baix del formulari, amb el complement «Pressupost» activat, obre l'editor de «Pressupost» per a la despesa del lloc just després de desar. Una imatge o un PDF que enganxis al diàleg s'adjunta com un fitxer a «Fitxers».",
   'help.guide.create-place.tip.2':
-    'A tots els TREK, els resultats de la cerca provenen de l’índex de TREK i d’OpenStreetMap, i «Detalls del lloc» s’omple automàticament amb Wikipedia, Wikivoyage i Wikimedia. TREK només consulta Google quan cap dels dos troba res, i només Google aporta valoracions.',
+    'A tots els YOUYA, els resultats de la cerca provenen de l’índex de YOUYA i d’OpenStreetMap, i «Detalls del lloc» s’omple automàticament amb Wikipedia, Wikivoyage i Wikimedia. YOUYA només consulta Google quan cap dels dos troba res, i només Google aporta valoracions.',
   'help.guide.create-place.tip.3':
     "També pots crear un lloc des del mapa: fes clic dret al punt i el formulari s'obre amb les coordenades i l'adreça ja omplertes.",
   // place-to-open-day
@@ -2307,7 +2308,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     'Les xinxetes són llocs del viatge, a la llista i al mapa, a «Sense planificar» fins que les poses en un dia.',
   'help.guide.import-places-file.tip.1':
-    "Si el fitxer és massa gran, es rebutja i TREK n'indica la mida màxima; torna'l a exportar sense fotos o divideix-lo.",
+    "Si el fitxer és massa gran, es rebutja i YOUYA n'indica la mida màxima; torna'l a exportar sense fotos o divideix-lo.",
   'help.guide.import-places-file.tip.2':
     "Una importació feta amb «Importa un fitxer» es pot desfer des de la barra d'eines de sobre els dies.",
   // import-places-list
@@ -2323,7 +2324,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.tip.1':
     "La llista ha d'estar compartida públicament; l'enllaç d'una llista privada no importa res.",
   'help.guide.import-places-list.tip.2':
-    '«Enriquir llocs mitjançant Google» apareix al diàleg quan el teu TREK té una clau de Google: cerca cada lloc importat i hi afegeix fotos, adreça i detalls.',
+    '«Enriquir llocs mitjançant Google» apareix al diàleg quan el teu YOUYA té una clau de Google: cerca cada lloc importat i hi afegeix fotos, adreça i detalls.',
   'help.guide.sort-places.title': 'Ordenar la llista de llocs',
   'help.guide.sort-places.goal':
     "Ordena la llista per nom, per valoració o pel que s'ha afegit o modificat més recentment.",
@@ -2439,7 +2440,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     "Arrossega la parada fins a la targeta d'un altre dia per moure-la-hi; desapareix del dia anterior.",
   'help.guide.reorder-stops.step.4':
-    "Si una parada té una hora fixa i un moviment trencaria l'ordre del dia, TREK et pregunta «Vols eliminar l'hora?», perquè l'hora determina la posició de la parada. «Elimina l'hora i mou» elimina l'hora i posa la parada on l'has deixat. «Cancel·la» deixa el dia com estava.",
+    "Si una parada té una hora fixa i un moviment trencaria l'ordre del dia, YOUYA et pregunta «Vols eliminar l'hora?», perquè l'hora determina la posició de la parada. «Elimina l'hora i mou» elimina l'hora i posa la parada on l'has deixat. «Cancel·la» deixa el dia com estava.",
   'help.guide.reorder-stops.result': "La ruta i els temps de desplaçament s'actualitzen a l'instant amb el nou ordre.",
   'help.guide.reorder-stops.tip.1':
     "Una reserva amb hora fixa es queda a la posició que li correspon per l'hora. Si la deixes anar en un altre punt del dia, hi torna. Si l'arrossegues a la targeta d'un altre dia, passa a aquell dia.",
@@ -2460,7 +2461,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     "L'hora pertany a la parada d'aquell dia; el mateix lloc en un altre dia pot tenir una altra hora.",
   'help.guide.set-stop-times.tip.2':
-    "Per moure a mà una parada amb hora, arrossega-la. TREK et pregunta «Vols eliminar l'hora?», i «Elimina l'hora i mou» treu l'hora i la mou.",
+    "Per moure a mà una parada amb hora, arrossega-la. YOUYA et pregunta «Vols eliminar l'hora?», i «Elimina l'hora i mou» treu l'hora i la mou.",
   'help.guide.set-stop-times.tip.3':
     "La pestanya «Només aquest dia», al costat de «Sobre el lloc» i «Notes», al mateix formulari, és per a una nota que només val aquell dia, per exemple una reserva de taula o un número d'entrada.",
   // remove-from-day
@@ -2506,7 +2507,7 @@ const help: TranslationStrings = {
   // day-route
   'help.guide.day-route.title': 'Mostrar i optimitzar la ruta del dia',
   'help.guide.day-route.goal':
-    'Consulta la ruta entre les parades, tria com et desplaces i deixa que TREK n’ordeni la seqüència.',
+    'Consulta la ruta entre les parades, tria com et desplaces i deixa que YOUYA n’ordeni la seqüència.',
   'help.guide.day-route.step.1':
     'Obre el dia i fes clic a «Ruta» a la barra de ruta de sota les parades: la ruta entre les parades es dibuixa al mapa, i els connectors entre parades mostren el temps i la distància de cada tram.',
   'help.guide.day-route.step.2':
@@ -2520,7 +2521,7 @@ const help: TranslationStrings = {
   'help.guide.day-route.result':
     "El dia és una ruta amb horaris; «Cost total» i els trams s'actualitzen quan canvia l'ordre.",
   'help.guide.day-route.tip.1':
-    "Per defecte, les rutes les calcula OSRM; l'administrador pot configurar TREK perquè faci servir un altre motor de rutes a «Valors per defecte».",
+    "Per defecte, les rutes les calcula OSRM; l'administrador pot configurar YOUYA perquè faci servir un altre motor de rutes a «Valors per defecte».",
   'help.guide.day-route.tip.2':
     'Un tram que no s’ha pogut calcular no mostra cap temps. Comprova que les dues parades tinguin coordenades.',
   'help.guide.day-route.tip.3': 'La fletxa de desfer reverteix una optimització.',
@@ -2596,7 +2597,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     "La fila de baix: «Afegeix al dia» mentre hi ha un dia obert i el lloc encara no hi és, després «Navegació» (o el nom de la teva aplicació de mapes, si n'has triat una a «Configuració»), i dues icones, «Obre el lloc web» i «Desar a la col·lecció». A la dreta, els tres punts tenen «Treure del dia» i «Elimina», i «Edita» n'obre el formulari, on també pots canviar-ne la imatge.",
   'help.ctx.trip-place.bullet.6':
-    "Un lloc que has triat de la cerca mostra el que en saben l'índex de TREK o OpenStreetMap: «Obert» o «Tancada» entre les pastilles de dalt, amb un anell verd o vermell al voltant de la imatge, segons l'hora local del lloc; el telèfon, també com a pastilla; «Horari d'obertura» més avall, amb l'horari d'avui a la fila i tota la setmana amb un clic; i el lloc web a «Obre el lloc web». La valoració de Google només es mostra en llocs trobats amb Google, en un TREK amb clau de Google. L'horari d'obertura, el telèfon i el correu electrònic que hagis escrit tu mateix al formulari del lloc substitueixen els consultats i també determinen el color de l'anell.",
+    "Un lloc que has triat de la cerca mostra el que en saben l'índex de YOUYA o OpenStreetMap: «Obert» o «Tancada» entre les pastilles de dalt, amb un anell verd o vermell al voltant de la imatge, segons l'hora local del lloc; el telèfon, també com a pastilla; «Horari d'obertura» més avall, amb l'horari d'avui a la fila i tota la setmana amb un clic; i el lloc web a «Obre el lloc web». La valoració de Google només es mostra en llocs trobats amb Google, en un YOUYA amb clau de Google. L'horari d'obertura, el telèfon i el correu electrònic que hagis escrit tu mateix al formulari del lloc substitueixen els consultats i també determinen el color de l'anell.",
   // read-place
   'help.guide.read-place.title': "Què et diu la targeta d'un lloc",
   'help.guide.read-place.goal': "Consulta en una sola targeta tot el que sap el viatge d'un lloc.",
@@ -2673,7 +2674,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     "«Elimina la imatge», al final de la línia sota les caselles, deixa el lloc sense imatge quan fas clic a «Actualitza». «Cancel·la» conserva l'anterior.",
   'help.guide.place-image.tip.3':
-    "Les altres caselles són la imatge actual del lloc, les fotos que hi ha adjuntes i les imatges que TREK n'ha trobat, cadascuna amb el seu crèdit. Només els viatgers que poden modificar llocs poden canviar la imatge.",
+    "Les altres caselles són la imatge actual del lloc, les fotos que hi ha adjuntes i les imatges que YOUYA n'ha trobat, cadascuna amb el seu crèdit. Només els viatgers que poden modificar llocs poden canviar la imatge.",
   // place-day-assign
   'help.guide.place-day-assign.title': 'Afegir el lloc al dia obert o treure’l',
   'help.guide.place-day-assign.goal': 'Fes servir el botó de la fitxa en lloc d’arrossegar la fila pel planificador.',
@@ -2756,11 +2757,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     'La llista inclou les aplicacions de mapes adequades per a aquest lloc: Google Maps, Waze, Apple Maps, OpenStreetMap i CoMaps, i també «Una altra app de mapes» a Android.',
   'help.guide.place-navigation.step.3':
-    "Fes clic a la que facis servir. Quan és possible, TREK envia a l'aplicació el lloc mateix, no només les coordenades, perquè arribis a l'entrada correcta.",
+    "Fes clic a la que facis servir. Quan és possible, YOUYA envia a l'aplicació el lloc mateix, no només les coordenades, perquè arribis a l'entrada correcta.",
   'help.guide.place-navigation.step.4':
     'La icona del costat, «Obre el lloc web», obre el web del propi lloc, amb els horaris i les entrades, en una pestanya nova.',
   'help.guide.place-navigation.result':
-    "L'aplicació de mapes s'obre al lloc, el lloc web s'obre en una pestanya nova i no canvia res del viatge. Si tens TREK instal·lat com a aplicació, s'obre l'aplicació de mapes en lloc d'una pestanya nova.",
+    "L'aplicació de mapes s'obre al lloc, el lloc web s'obre en una pestanya nova i no canvia res del viatge. Si tens YOUYA instal·lat com a aplicació, s'obre l'aplicació de mapes en lloc d'una pestanya nova.",
   'help.guide.place-navigation.tip.1':
     'Waze comença a navegar de seguida. Les altres aplicacions obren el lloc i has de tocar una vegada més per iniciar la navegació.',
   'help.guide.place-navigation.tip.2':
@@ -2801,7 +2802,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.result':
     'La traça es dibuixa amb el color que has triat, a la targeta, a la seva fila de la columna de llocs i al mapa.',
   'help.guide.place-track.tip.1':
-    "Només els llocs amb un traçat tenen aquests dos blocs: un lloc importat d'un fitxer GPX, KML o KMZ abans que existís «Excursions», o en un TREK amb «Excursions» desactivat. Quan «Excursions» està activat, un fitxer GPX nou es converteix en una excursió, que obre la seva pròpia targeta d'excursió.",
+    "Només els llocs amb un traçat tenen aquests dos blocs: un lloc importat d'un fitxer GPX, KML o KMZ abans que existís «Excursions», o en un YOUYA amb «Excursions» desactivat. Quan «Excursions» està activat, un fitxer GPX nou es converteix en una excursió, que obre la seva pròpia targeta d'excursió.",
   'help.guide.place-track.tip.2':
     'Si la ruta es va enregistrar amb altituds, també mostra el punt més alt i el més baix, el desnivell positiu i negatiu i el perfil del recorregut.',
   'help.guide.place-track.tip.3':
@@ -2815,13 +2816,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     'Tots els documents del viatge en una sola llista: bitllets, confirmacions, passis i imatges. Cadascun té una nota, un vincle al lloc o a la reserva a què correspon i una paperera des d’on el pots recuperar.',
   'help.ctx.trip-files.bullet.1':
-    "«Arrossega els fitxers aquí», el requadre discontinu de sota la barra, accepta els fitxers que hi deixes anar. Un clic al requadre obre el selector de fitxers. El requadre mostra els tipus de fitxer que accepta aquest TREK i el límit per fitxer (màx. 50 MB, tret que un administrador n'hagi fixat un altre).",
+    "«Arrossega els fitxers aquí», el requadre discontinu de sota la barra, accepta els fitxers que hi deixes anar. Un clic al requadre obre el selector de fitxers. El requadre mostra els tipus de fitxer que accepta aquest YOUYA i el límit per fitxer (màx. 50 MB, tret que un administrador n'hagi fixat un altre).",
   'help.ctx.trip-files.bullet.2':
     "La barra de dalt conté «Fitxers» i les pestanyes de filtre «Tots», «PDF», «Imatges» i «Documents», cadascuna amb el seu recompte. Una pestanya d'estrella apareix després de «Tots» tan bon punt hi ha algun fitxer destacat, i una pestanya «Notes de col·laboració» apareix al final tan bon punt alguna nota té un adjunt.",
   'help.ctx.trip-files.bullet.3':
     "Cada fila mostra una miniatura o el tipus de fitxer, qui l'ha pujat, el nom, la nota a sota, la mida i la data, i una insígnia per vincle: el lloc, la reserva o el transport, amb el seu nom (passa-hi el ratolí per veure «Pla diari», «Reserva» o «Transport»), i «Des de notes de col·laboració».",
   'help.ctx.trip-files.bullet.4':
-    "Al final de cada fila hi ha fins a cinc icones, i cadascuna mostra el nom quan hi passes el ratolí: «Destaca», «Assigna» (el llapis), «Obert», «Baixa» i «Elimina». «Elimina» no demana confirmació: el fitxer va a la paperera, d'on el pots recuperar. Sense connexió, les notes, els vincles, les estrelles i la paperera continuen funcionant i s'envien quan TREK torna a estar en línia; només pujar fitxers i treure un altre vincle necessiten connexió.",
+    "Al final de cada fila hi ha fins a cinc icones, i cadascuna mostra el nom quan hi passes el ratolí: «Destaca», «Assigna» (el llapis), «Obert», «Baixa» i «Elimina». «Elimina» no demana confirmació: el fitxer va a la paperera, d'on el pots recuperar. Sense connexió, les notes, els vincles, les estrelles i la paperera continuen funcionant i s'envien quan YOUYA torna a estar en línia; només pujar fitxers i treure un altre vincle necessiten connexió.",
   'help.ctx.trip-files.bullet.5':
     'Les imatges i els vídeos s’obren a pantalla completa, amb les tecles de fletxa i una fila de miniatures. La resta de documents s’obren en un diàleg amb el nom a dalt i, a sota, «Obre en una pestanya nova» i «Baixa». Les targetes de cartera digital es baixen directament.',
   'help.ctx.trip-files.bullet.6':
@@ -2833,7 +2834,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     'Obre el viatge i fes clic a «Fitxers» a la barra de pestanyes. Hi trobaràs els documents del viatge, amb el quadre per pujar-ne a sobre.',
   'help.guide.files-upload.step.2':
-    "Fes clic a «Arrossega els fitxers aquí» i tria un o diversos fitxers. Es pugen un darrere l'altre i, mentrestant, el requadre diu «Pujant...». Dins del requadre, sota «o fes clic per explorar», veuràs els tipus de fitxer que accepta aquest TREK i la mida màxima per fitxer.",
+    "Fes clic a «Arrossega els fitxers aquí» i tria un o diversos fitxers. Es pugen un darrere l'altre i, mentrestant, el requadre diu «Pujant...». Dins del requadre, sota «o fes clic per explorar», veuràs els tipus de fitxer que accepta aquest YOUYA i la mida màxima per fitxer.",
   'help.guide.files-upload.step.3':
     "Quan l'últim fitxer s'ha acabat de pujar, s'obre automàticament «Assigna el fitxer» (si el viatge té llocs o reserves), amb el nom del fitxer a dalt del diàleg. «Afegeix una nota...», a «Nota», afegeix una nota al fitxer, i les llistes de sota el vinculen a un lloc o a una reserva. Tanca'l amb la × de dalt a la dreta; en tancar-lo no es perd res.",
   'help.guide.files-upload.step.4':
@@ -2845,7 +2846,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     "Prem Ctrl+V per afegir a la llista una imatge del porta-retalls; així no cal que desis abans la captura de pantalla d'una reserva.",
   'help.guide.files-upload.tip.3':
-    "Per pujar fitxers cal tenir-ne permís; sense permís, el requadre ni tan sols apareix. Un tipus que no és a la llista es rebutja amb un missatge i no es puja res. Un fitxer que supera el límit (50 MB, tret que un administrador n'hagi fixat un altre) es rebutja abans d'enviar res, i el missatge indica el límit. Per pujar també cal connexió: sense connexió, TREK t'ho diu i no puja res.",
+    "Per pujar fitxers cal tenir-ne permís; sense permís, el requadre ni tan sols apareix. Un tipus que no és a la llista es rebutja amb un missatge i no es puja res. Un fitxer que supera el límit (50 MB, tret que un administrador n'hagi fixat un altre) es rebutja abans d'enviar res, i el missatge indica el límit. Per pujar també cal connexió: sense connexió, YOUYA t'ho diu i no puja res.",
   // files-link
   'help.guide.files-link.title': 'Vincular un document a un lloc o a una reserva',
   'help.guide.files-link.goal':
@@ -2865,7 +2866,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     'Un fitxer pot tenir diversos vincles alhora, així que una mateixa confirmació pot correspondre alhora a la reserva de l’hotel i al lloc de l’hotel.',
   'help.guide.files-link.tip.2':
-    "Torna a fer clic a una entrada marcada per treure aquest vincle; el fitxer es manté. Sense connexió, la nota i les noves marques es desen i s'envien quan TREK torna a estar en línia; només per treure un altre vincle cal connexió.",
+    "Torna a fer clic a una entrada marcada per treure aquest vincle; el fitxer es manté. Sense connexió, la nota i les noves marques es desen i s'envien quan YOUYA torna a estar en línia; només per treure un altre vincle cal connexió.",
   'help.guide.files-link.tip.3':
     "També funciona a l'inrevés: un document adjuntat a un lloc o a una reserva també apareix en aquesta llista, amb la mateixa insígnia a la seva fila.",
   'help.guide.files-link.tip.4':
@@ -2902,7 +2903,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     "La llista sempre mostra primer els fitxers destacats i després els més recents, així que un document pujat avui surt per sobre d'un del mes passat.",
   // files-preview
-  'help.guide.files-preview.title': 'Llegir un document sense sortir de TREK',
+  'help.guide.files-preview.title': 'Llegir un document sense sortir de YOUYA',
   'help.guide.files-preview.goal':
     'Consulta un bitllet o una imatge a l’instant i baixa’l al dispositiu quan el necessitis.',
   'help.guide.files-preview.step.1':
@@ -2938,7 +2939,7 @@ const help: TranslationStrings = {
     '«Buida la paperera», a la barra al costat de la icona de la paperera, elimina definitivament tot el que encara hi ha a la paperera. Abans, el navegador et demana confirmació una vegada. La icona de la paperera torna a la vista de fitxers.',
   'help.guide.files-trash.result': 'El fitxer torna a ser a la llista on era abans.',
   'help.guide.files-trash.tip.1':
-    "«Elimina» en una fila no demana confirmació. Per això hi ha la paperera: no s'elimina res de TREK fins que no ho elimines aquí. Tot això també funciona sense connexió, i s'envia quan TREK torna a estar en línia.",
+    "«Elimina» en una fila no demana confirmació. Per això hi ha la paperera: no s'elimina res de YOUYA fins que no ho elimines aquí. Tot això també funciona sense connexió, i s'envia quan YOUYA torna a estar en línia.",
   'help.guide.files-trash.tip.2':
     'Per eliminar i recuperar un fitxer cal permís per eliminar fitxers. Un membre sense aquest permís no veu «Elimina» a la fila ni els botons de la paperera.',
   'help.guide.files-trash.tip.3': 'Un fitxer que elimines definitivament de la paperera ja no es pot recuperar.',
@@ -2951,21 +2952,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     'Fes clic al teu servei d’emmagatzematge, en aquest cas Nextcloud. S’obre un diàleg més petit per a la connexió. Mostra el nom del servei i et demana les dades d’inici de sessió que aquest servei necessita.',
   'help.guide.files-sync.step.3':
-    "Omple «Adreça» i les dades d'inici de sessió del gestor: un «Token API» per a Paperless-ngx, una «Clau API» i l'«ID d’organització» per a Papra, «Nom d’usuari» i una «Contrasenya d’aplicació» per a Nextcloud, «Nom d’usuari» i un «Token d’aplicació» per a OpenCloud, i per a Synology Drive, «Nom d’usuari», «Contrasenya» i, si el compte ho demana, un «Codi de doble factor». Fes servir una contrasenya o un token d'aplicació sempre que el gestor ho ofereixi, mai la contrasenya del teu compte. Nextcloud i Synology Drive també admeten una «Carpeta base» opcional, on TREK busca les carpetes dels viatges, en aquest exemple /Reisen. «Accepta un certificat autosignat», a baix, només és per a un gestor de la teva pròpia xarxa amb aquest tipus de certificat.",
+    "Omple «Adreça» i les dades d'inici de sessió del gestor: un «Token API» per a Paperless-ngx, una «Clau API» i l'«ID d’organització» per a Papra, «Nom d’usuari» i una «Contrasenya d’aplicació» per a Nextcloud, «Nom d’usuari» i un «Token d’aplicació» per a OpenCloud, i per a Synology Drive, «Nom d’usuari», «Contrasenya» i, si el compte ho demana, un «Codi de doble factor». Fes servir una contrasenya o un token d'aplicació sempre que el gestor ho ofereixi, mai la contrasenya del teu compte. Nextcloud i Synology Drive també admeten una «Carpeta base» opcional, on YOUYA busca les carpetes dels viatges, en aquest exemple /Reisen. «Accepta un certificat autosignat», a baix, només és per a un gestor de la teva pròpia xarxa amb aquest tipus de certificat.",
   'help.guide.files-sync.step.4':
-    "Fes clic a «Prova la connexió». TREK es connecta al gestor amb les dades que has escrit, i el peu de la targeta mostra «Contactat, sessió iniciada com a» seguit del nom del compte. Si les credencials es rebutgen o no es pot accedir a l'adreça, el peu ho indica. En tots dos casos no es desa res.",
+    "Fes clic a «Prova la connexió». YOUYA es connecta al gestor amb les dades que has escrit, i el peu de la targeta mostra «Contactat, sessió iniciada com a» seguit del nom del compte. Si les credencials es rebutgen o no es pot accedir a l'adreça, el peu ho indica. En tots dos casos no es desa res.",
   'help.guide.files-sync.step.5':
-    'Fes clic a «Connecta». La connexió es desa amb el viatge i TREK et pregunta en quin lloc del magatzem han d’anar els documents del viatge: l’etiqueta, la carpeta o l’espai que els conté. Només se sincronitza el que hi ha allà. «Crea’n un de nou» el crea quan fas clic a «Crea», amb un nom basat en el títol del viatge. A «O fes servir un que ja tinguis» hi ha els que ja existeixen. Fes clic en un, en aquest exemple la carpeta Autumn in Japan.',
+    'Fes clic a «Connecta». La connexió es desa amb el viatge i YOUYA et pregunta en quin lloc del magatzem han d’anar els documents del viatge: l’etiqueta, la carpeta o l’espai que els conté. Només se sincronitza el que hi ha allà. «Crea’n un de nou» el crea quan fas clic a «Crea», amb un nom basat en el títol del viatge. A «O fes servir un que ja tinguis» hi ha els que ja existeixen. Fes clic en un, en aquest exemple la carpeta Autumn in Japan.',
   'help.guide.files-sync.step.6':
-    "El diàleg es torna a obrir: el teu magatzem apareix a «Aquest viatge», a l'esquerra, i la seva targeta, a la dreta, mostra on se sincronitza, quan es va sincronitzar per última vegada i «Sincronitza ara». La primera sincronització comença automàticament; fes clic a «Sincronitza ara» per sincronitzar quan vulguis. Després d'una sincronització, la insígnia «Encara no s’ha sincronitzat» del costat del nom es converteix en un punt verd, que mostra «Al dia» quan hi passes el ratolí per sobre. La barra de flux mostra quants documents tenen TREK i el magatzem, amb els carrils «Cap al gestor» i «Des del gestor» entremig. Tanca el diàleg amb la × de dalt a la dreta.",
+    "El diàleg es torna a obrir: el teu magatzem apareix a «Aquest viatge», a l'esquerra, i la seva targeta, a la dreta, mostra on se sincronitza, quan es va sincronitzar per última vegada i «Sincronitza ara». La primera sincronització comença automàticament; fes clic a «Sincronitza ara» per sincronitzar quan vulguis. Després d'una sincronització, la insígnia «Encara no s’ha sincronitzat» del costat del nom es converteix en un punt verd, que mostra «Al dia» quan hi passes el ratolí per sobre. La barra de flux mostra quants documents tenen YOUYA i el magatzem, amb els carrils «Cap al gestor» i «Des del gestor» entremig. Tanca el diàleg amb la × de dalt a la dreta.",
   'help.guide.files-sync.result':
-    "Els documents que ja hi havia al magatzem apareixen a dalt de tot de la llista, pujats al teu nom, i tots els documents del viatge també són al magatzem, excepte els de «Notes de col·laboració». A partir d'ara, TREK revisa el magatzem en segon pla i els canvis de la llista es copien al magatzem.",
+    "Els documents que ja hi havia al magatzem apareixen a dalt de tot de la llista, pujats al teu nom, i tots els documents del viatge també són al magatzem, excepte els de «Notes de col·laboració». A partir d'ara, YOUYA revisa el magatzem en segon pla i els canvis de la llista es copien al magatzem.",
   'help.guide.files-sync.tip.1':
     'Només el propietari del viatge o un administrador de la instància pot connectar un viatge, perquè les credencials donen accés a tot el compte del magatzem. Un cop connectat, tots els membres veuen «Sincronització de documents» i poden obrir-la, consultar la targeta i prémer «Sincronitza ara».',
   'help.guide.files-sync.tip.2':
-    'Un servei d’emmagatzematge a la teva xarxa local necessita ALLOW_INTERNAL_NETWORK=true al servidor de TREK, i la seva adreça ha de ser l’adreça de la màquina a la xarxa, mai localhost. Si no, «Prova la connexió» respon «Aquesta adreça no està permesa.».',
+    'Un servei d’emmagatzematge a la teva xarxa local necessita ALLOW_INTERNAL_NETWORK=true al servidor de YOUYA, i la seva adreça ha de ser l’adreça de la màquina a la xarxa, mai localhost. Si no, «Prova la connexió» respon «Aquesta adreça no està permesa.».',
   'help.guide.files-sync.tip.3':
-    "«Desconnecta», la icona del costat de «Sincronitza ara», demana confirmació una vegada. Després tanca la connexió i conserva tots els documents a les dues bandes. Si tornes a connectar una etiqueta, una carpeta o un espai, TREK el tracta com a nou i en torna a importar tot el contingut. Per això, després de desconnectar, connecta'n un de buit, no l'antic.",
+    "«Desconnecta», la icona del costat de «Sincronitza ara», demana confirmació una vegada. Després tanca la connexió i conserva tots els documents a les dues bandes. Si tornes a connectar una etiqueta, una carpeta o un espai, YOUYA el tracta com a nou i en torna a importar tot el contingut. Per això, després de desconnectar, connecta'n un de buit, no l'antic.",
 
   // ── Screen: trip-day-detail ───────────────────────────────────────────────────────────
   'help.ctx.trip-day-detail.title': 'Detalls del dia',
@@ -3152,7 +3153,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     "La fila d'icones de dalt del mapa és la cerca per categories: «Restaurants», «Cafeteries», «Bars i oci nocturn», «Allotjament», «Llocs d'interès», «Museus i cultura», «Natura i parcs», «Activitats», «Fleques» i «Botigues de queviures». Les categories que afegeix un connector van després d'un separador fi; passa el ratolí per una icona per veure'n el nom.",
   'help.guide.map-nearby-places.step.2':
-    "Fes clic a una categoria. TREK cerca aquest tipus de lloc a la part visible del mapa i posa una xinxeta del color de la categoria per a cada resultat. Només pots tenir una categoria alhora: si en tries una altra, substitueix l'anterior, i si fas clic a la que està activa, la desactives.",
+    "Fes clic a una categoria. YOUYA cerca aquest tipus de lloc a la part visible del mapa i posa una xinxeta del color de la categoria per a cada resultat. Només pots tenir una categoria alhora: si en tries una altra, substitueix l'anterior, i si fas clic a la que està activa, la desactives.",
   'help.guide.map-nearby-places.step.3':
     'Quan mous el mapa, apareix un segon botó sota la fila: «Cerca en aquesta zona» fa la mateixa cerca per a la vista nova. Moure el mapa no inicia cap cerca nova per si sol. Així es fan poques peticions.',
   'help.guide.map-nearby-places.step.4':
@@ -3160,13 +3161,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     'Revisa el que ha omplert i afegeix el que la cerca no podia saber. La pastilla de categoria de sota el nom ja ve triada si el viatge té una categoria que hi encaixa, com ara restaurant per a un restaurant; si no, diu «Sense categoria» fins que en triïs una. Escriu de què va el lloc a «Sobre el lloc», i les teves notes a «Notes».',
   'help.guide.map-nearby-places.step.6':
-    'Fes clic a «Afegir». Si al viatge ja hi ha un lloc amb el mateix nom o al mateix punt, TREK t’avisa i el botó passa a dir «Afegir igualment».',
+    'Fes clic a «Afegir». Si al viatge ja hi ha un lloc amb el mateix nom o al mateix punt, YOUYA t’avisa i el botó passa a dir «Afegir igualment».',
   'help.guide.map-nearby-places.result':
     'El lloc és a la llista de llocs i al mapa com una xinxeta més del viatge, a «Sense planificar» fins que el posis en un dia. Les xinxetes de la cerca es queden fins que desactives la categoria.',
   'help.guide.map-nearby-places.tip.1':
     "La fila s'amaga quan «Explora llocs al mapa» està desactivat a «Configuració» > «Pantalla», dins de «Viatge i mapa».",
   'help.guide.map-nearby-places.tip.2':
-    "Els resultats provenen de l'índex TREK Places i d'OpenStreetMap, així que és una de les poques coses del pla que necessita connexió.",
+    "Els resultats provenen de l'índex YOUYA Places i d'OpenStreetMap, així que és una de les poques coses del pla que necessita connexió.",
   'help.guide.map-nearby-places.tip.3':
     'La cerca només cobreix la zona que es veu a la pantalla, així que apropa el zoom fins al carrer que t’interessa. Si cerques en tota una ciutat, només obtindràs els seixanta primers resultats, sense cap ordre clar.',
   // map-add-place
@@ -3175,7 +3176,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     'Fes clic amb el botó dret al punt del mapa. S’obre el formulari del lloc amb el títol «Afegeix un lloc / activitat».',
   'help.guide.map-add-place.step.2':
-    '«Latitud» i «Longitud» ja tenen les coordenades d’aquell punt. TREK les consulta i omple «Adreça» amb el que hi troba. Si la consulta troba un nom, TREK també l’escriu a la part de dalt del diàleg. Encara no s’ha desat res, així que corregeix el que no sigui correcte.',
+    '«Latitud» i «Longitud» ja tenen les coordenades d’aquell punt. YOUYA les consulta i omple «Adreça» amb el que hi troba. Si la consulta troba un nom, YOUYA també l’escriu a la part de dalt del diàleg. Encara no s’ha desat res, així que corregeix el que no sigui correcte.',
   'help.guide.map-add-place.step.3':
     'Escriu un nom que reconeguis al camp de dalt del diàleg. Tria una categoria a la pastilla de sota, que diu «Sense categoria» fins que en triïs una. Després afegeix-hi la resta de dades per al pla: «Sobre el lloc», «Notes», «Lloc web».',
   'help.guide.map-add-place.step.4':
@@ -3192,7 +3193,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     "El selector de capa base és el de sota dels dos botons rodons de baix a l'esquerra del mapa, sota el cadenat. La icona sempre mostra la capa a la qual canvia, i el text d'ajuda ho indica: «Canvia a vista de satèl·lit». Fes-hi clic.",
   'help.guide.map-satellite.step.2':
-    'Ara el mapa mostra imatges aèries. Són prou detallades per distingir edificis individuals, i no et cal cap clau pròpia. Tot el que dibuixa TREK continua a sobre: les xinxetes, la ruta del dia, les traces i les rutes de les reserves.',
+    'Ara el mapa mostra imatges aèries. Són prou detallades per distingir edificis individuals, i no et cal cap clau pròpia. Tot el que dibuixa YOUYA continua a sobre: les xinxetes, la ruta del dia, les traces i les rutes de les reserves.',
   'help.guide.map-satellite.step.3':
     'Ara el botó diu «Canvia a vista de mapa». Fes-hi clic per tornar a la vista de mapa.',
   'help.guide.map-satellite.result': 'El mapa es torna a dibuixar i la capa que has triat es desa al teu compte.',
@@ -3247,7 +3248,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Mostra al mapa el recorregut que Dawarich ha enregistrat al teu mòbil, amb una línia discontínua al costat de la ruta planificada, i descobreix dia a dia com va anar realment el viatge.',
   'help.guide.map-dawarich-trail.step.1':
-    'El botó rodó de Dawarich és a baix a la dreta del mapa, sota «Mostra tot el viatge». Quan hi passes el ratolí, diu «Mostra el recorregut enregistrat». Fes-hi clic. TREK demana al teu Dawarich les dades de les dates del viatge, i un anell gira al voltant del botó mentre TREK espera la resposta.',
+    'El botó rodó de Dawarich és a baix a la dreta del mapa, sota «Mostra tot el viatge». Quan hi passes el ratolí, diu «Mostra el recorregut enregistrat». Fes-hi clic. YOUYA demana al teu Dawarich les dades de les dates del viatge, i un anell gira al voltant del botó mentre YOUYA espera la resposta.',
   'help.guide.map-dawarich-trail.step.2':
     "La ruta enregistrada apareix com una línia discontínua, amb un color per dia, dibuixada sota la ruta planificada perquè el pla es continuï llegint bé. Ara el botó diu «Amaga el recorregut enregistrat». Cada dia acaba a la mitjanit local. Quan plegues un dia a la columna de dies, la seva línia discontínua i les seves parades s'amaguen al mapa.",
   'help.guide.map-dawarich-trail.step.3':
@@ -3255,9 +3256,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     'El que havies planificat i el que has fet de debò es mostren junts al mapa, amb línies discontínues i contínues. La targeta de sobre els botons continua mostrant els dies planificats i les seves distàncies.',
   'help.guide.map-dawarich-trail.tip.1':
-    "Si està activat o no es desa per a cada viatge al teu compte, de manera que és igual en tots els navegadors i dispositius. Mentre el recorregut està activat, TREK torna a consultar Dawarich cada dos minuts, així un viatge en curs s'actualitza sense haver de recarregar la pàgina. El recorregut no es desa mai, de manera que no és a la base de dades de TREK ni a les còpies de seguretat, i no està disponible sense connexió.",
+    "Si està activat o no es desa per a cada viatge al teu compte, de manera que és igual en tots els navegadors i dispositius. Mentre el recorregut està activat, YOUYA torna a consultar Dawarich cada dos minuts, així un viatge en curs s'actualitza sense haver de recarregar la pàgina. El recorregut no es desa mai, de manera que no és a la base de dades de YOUYA ni a les còpies de seguretat, i no està disponible sense connexió.",
   'help.guide.map-dawarich-trail.tip.2':
-    'El text del botó t’explica per què el mapa és buit: «S’està carregant el recorregut enregistrat…» mentre es carrega, «No s’ha enregistrat res en aquestes dates», «No s’ha pogut carregar el recorregut enregistrat» o, quan TREK no té connexió, «El recorregut enregistrat necessita connexió».',
+    'El text del botó t’explica per què el mapa és buit: «S’està carregant el recorregut enregistrat…» mentre es carrega, «No s’ha enregistrat res en aquestes dates», «No s’ha pogut carregar el recorregut enregistrat» o, quan YOUYA no té connexió, «El recorregut enregistrat necessita connexió».',
   // map-compass
   'help.guide.map-compass.title': 'Girar el mapa i tornar a orientar-lo al nord',
   'help.guide.map-compass.goal':
@@ -3432,7 +3433,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     'Amb «Adjunta imatges» pots afegir fins a quatre imatges a un missatge. També les pots enganxar o deixar anar sobre el quadre de text.',
   'help.guide.trip-chat.tip.3':
-    'Un missatge amb un enllaç mostra a sota una targeta de vista prèvia, que obté el teu propi TREK, de manera que un enllaç a un contingut al qual només tu tens accés es queda com un enllaç normal.',
+    'Un missatge amb un enllaç mostra a sota una targeta de vista prèvia, que obté el teu propi YOUYA, de manera que un enllaç a un contingut al qual només tu tens accés es queda com un enllaç normal.',
   'help.guide.trip-chat.tip.4':
     '«Xat» té el seu propi interruptor a «Complements», sota «Col·laboració»: un administrador el pot desactivar i mantenir les notes, els enllaços, les enquestes i «Què ve ara».',
 
@@ -3473,7 +3474,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     "Quan assignes algú a una llista, rep una notificació d'equipatge. Això no canvia qui pot veure els articles. Això es defineix a la finestra de cada article, a «Visible per a», o per a tota la llista amb «Compartició de tota la llista».",
   'help.guide.packing-categories.tip.3':
-    'Dues llistes poden tenir el mateix nom. TREK les distingeix internament, així que els noms es mantenen tal com els has escrit.',
+    'Dues llistes poden tenir el mateix nom. YOUYA les distingeix internament, així que els noms es mantenen tal com els has escrit.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Marcar les coses mentre fas la maleta',
   'help.guide.check-off-packing.goal':
@@ -3525,13 +3526,13 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.step.3':
     'També pots carregar les línies d’un fitxer amb «Carrega CSV/TXT/MD», a baix a l’esquerra del diàleg. Accepta fitxers .csv, .txt o .md i substitueix el que hi hagi al quadre.',
   'help.guide.import-packing-list.step.4':
-    'Fes clic a «Importa 3», a baix a la dreta; el número indica quantes línies ha entès TREK.',
+    'Fes clic a «Importa 3», a baix a la dreta; el número indica quantes línies ha entès YOUYA.',
   'help.guide.import-packing-list.result':
     'Cada línia es converteix en una fila, a la llista que indica el primer camp. Els articles que ja hi eren no canvien.',
   'help.guide.import-packing-list.tip.1':
     'Les comes, els punts i comes i els tabuladors separen els camps, i les cometes dobles mantenen un camp sencer, així "Camisa, blava" continua sent un sol nom. Una línia amb un sol valor és només un nom. Una línia sense llista pròpia va a «Altres». "3x" davant d’un nom n’indica la quantitat.',
   'help.guide.import-packing-list.tip.2':
-    "Si el viatge encara no té la bossa indicada al quart camp, TREK la crea. «Importa» i «Aplica una plantilla» són les dues maneres d'afegir pesos i bosses a molts articles alhora.",
+    "Si el viatge encara no té la bossa indicada al quart camp, YOUYA la crea. «Importa» i «Aplica una plantilla» són les dues maneres d'afegir pesos i bosses a molts articles alhora.",
   // export-packing-list
   'help.guide.export-packing-list.title': 'Imprimir o exportar la llista d’equipatge',
   'help.guide.export-packing-list.goal':
@@ -3677,7 +3678,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '«Reserva manual», a l’extrem dret de la barra, obre «Reserva nova». Pots crear sis tipus de reserves: «Allotjament», «Restaurant», «Esdeveniment», «Visita guiada», «Aparcament» i «Altres». Els vols, els trens i la resta de transports són a la pestanya «Transports» i aquí no apareixen mai.',
   'help.ctx.trip-bookings.bullet.2':
-    "La icona de pujada de davant de «Reserva manual», «Importa confirmacions de reserva», puja confirmacions perquè TREK les llegeixi automàticament: EML, PDF, PKPass, HTML o TXT, fins a cinc fitxers de 10 MB com a màxim, i fotos si el model d'IA llegeix imatges. La icona només apareix si el servidor les pot llegir. Si l'administrador ha activat la importació de correus, el mateix diàleg dona al viatge la seva pròpia adreça per reenviar-hi els correus de reserva.",
+    "La icona de pujada de davant de «Reserva manual», «Importa confirmacions de reserva», puja confirmacions perquè YOUYA les llegeixi automàticament: EML, PDF, PKPass, HTML o TXT, fins a cinc fitxers de 10 MB com a màxim, i fotos si el model d'IA llegeix imatges. La icona només apareix si el servidor les pot llegir. Si l'administrador ha activat la importació de correus, el mateix diàleg dona al viatge la seva pròpia adreça per reenviar-hi els correus de reserva.",
   'help.ctx.trip-bookings.bullet.3':
     "«Cercar» busca als títols, tipus, llocs, notes, codis de reserva i viatgers. «Filtra», l'embut del costat, redueix la pestanya per «Estat», per «Tipus», amb un recompte per a cadascun, i per «Viatgers» quan alguna reserva indica persones. Un número a l'embut mostra quants filtres hi ha actius.",
   'help.ctx.trip-bookings.bullet.4':
@@ -3742,7 +3743,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     "Tria l'hotel a «Allotjament». La llista conté els llocs del viatge, sense les traces ni les excursions importades. Quan en tries un, el nom s'escriu al títol, si és buit, i l'adreça, a «Ubicació / adreça».",
   'help.guide.booking-hotel.step.3':
-    'Defineix «De» i «Fins a»: la primera nit i el matí que marxes. Tots dos ofereixen els dies del viatge amb les dates, i TREK fa que «Fins a» sempre sigui posterior a «De».',
+    'Defineix «De» i «Fins a»: la primera nit i el matí que marxes. Tots dos ofereixen els dies del viatge amb les dates, i YOUYA fa que «Fins a» sempre sigui posterior a «De».',
   'help.guide.booking-hotel.step.4':
     "Omple «Registre d'entrada», «Registre fins a» i «Registre de sortida», i el «Codi de reserva» de la confirmació.",
   'help.guide.booking-hotel.step.5': 'Fes clic a «Afegir».',
@@ -3791,7 +3792,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.title': 'Desar el comprovant amb la reserva',
   'help.guide.booking-files.goal': 'Adjunta la confirmació, el bitllet o el passi a la reserva corresponent.',
   'help.guide.booking-files.step.1':
-    "Obre la reserva amb el llapis de la seva targeta. «Fitxers» és al costat de «Vincula»; fes-hi clic a «Adjunta un fitxer». En una reserva que ja existeix, el document es puja a l'instant i TREK mostra «Fitxer pujat».",
+    "Obre la reserva amb el llapis de la seva targeta. «Fitxers» és al costat de «Vincula»; fes-hi clic a «Adjunta un fitxer». En una reserva que ja existeix, el document es puja a l'instant i YOUYA mostra «Fitxer pujat».",
   'help.guide.booking-files.step.2': 'El document apareix amb el seu nom, un botó per obrir-lo i una X al costat.',
   'help.guide.booking-files.step.3':
     "«Vincula un fitxer existent» et mostra els documents del viatge que encara no són en aquesta reserva. Tria'n un i s'adjunta sense haver-lo de tornar a pujar.",
@@ -3847,7 +3848,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': 'Importar una reserva des de la confirmació',
   'help.guide.import-booking-file.goal':
-    "Fes que TREK llegeixi la reserva del correu o del PDF que t'ha enviat el proveïdor, perquè no l'hagis de tornar a escriure.",
+    "Fes que YOUYA llegeixi la reserva del correu o del PDF que t'ha enviat el proveïdor, perquè no l'hagis de tornar a escriure.",
   'help.guide.import-booking-file.step.1':
     "Fes clic a la icona de pujada de la barra, «Importa confirmacions de reserva»; el nom apareix quan hi passes el ratolí. S'obre el diàleg amb el mateix nom.",
   'help.guide.import-booking-file.step.2':
@@ -3987,11 +3988,11 @@ const help: TranslationStrings = {
     "Un repartiment personalitzat també es pot introduir en percentatges o en parts: l'interruptor petit del costat de la indicació tria entre el símbol de la divisa, % o «Parts». En percentatges, les parts han de sumar el 100 % perquè es pugui desar la despesa.",
   // expense-currency
   'help.guide.expense-currency.title': 'Introduir una despesa en una altra divisa',
-  'help.guide.expense-currency.goal': "Escriu l'import que diu el rebut i TREK desarà el tipus de canvi.",
+  'help.guide.expense-currency.goal': "Escriu l'import que diu el rebut i YOUYA desarà el tipus de canvi.",
   'help.guide.expense-currency.step.1':
     'Obre «Afegir despesa». Escriu el nom a dalt del diàleg i introdueix a «Import total» l’import exacte del tiquet, no un import convertit.',
   'help.guide.expense-currency.step.2':
-    "Obre «Divisa», al costat de l'import; una despesa nova comença amb la moneda del propi viatge. Tria la divisa del tiquet: la del viatge i la que mostra «Despeses» són a dalt, i pots cercar qualsevol altre codi que conegui TREK escrivint les tres lletres.",
+    "Obre «Divisa», al costat de l'import; una despesa nova comença amb la moneda del propi viatge. Tria la divisa del tiquet: la del viatge i la que mostra «Despeses» són a dalt, i pots cercar qualsevol altre codi que conegui YOUYA escrivint les tres lletres.",
   'help.guide.expense-currency.step.3':
     "Sota els camps apareix una fila d'insígnies: l'import que has escrit i el seu valor actual, marcat com a «tipus de canvi actual». Només és una vista prèvia. No és el valor que es desa.",
   'help.guide.expense-currency.step.4':
@@ -4207,7 +4208,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Transports', // same-as-en
   'help.ctx.trip-transports.summary':
-    'Totes les maneres com et desplaces entre les parades: vols, trens, autobusos, cotxes, taxis, bicicletes, creuers, ferris, telefèrics i les connexions de transport públic que TREK et busca. La pestanya els mostra en una llista. També els pots crear i consultar al pla, i es dibuixen al mapa.',
+    'Totes les maneres com et desplaces entre les parades: vols, trens, autobusos, cotxes, taxis, bicicletes, creuers, ferris, telefèrics i les connexions de transport públic que YOUYA et busca. La pestanya els mostra en una llista. També els pots crear i consultar al pla, i es dibuixen al mapa.',
   'help.ctx.trip-transports.bullet.1':
     'La pestanya només mostra els trajectes. Els allotjaments, restaurants, esdeveniments i entrades són a la pestanya «Reserves», perquè una mateixa entrada no aparegui mai dues vegades.',
   'help.ctx.trip-transports.bullet.2':
@@ -4264,7 +4265,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': 'Importar un vol des del bitllet electrònic',
   'help.guide.import-transport-file.goal':
-    "Fes que TREK llegeixi un vol, un tren o un ferri del bitllet que t'ha enviat la companyia, i revisa'l abans de desar-lo.",
+    "Fes que YOUYA llegeixi un vol, un tren o un ferri del bitllet que t'ha enviat la companyia, i revisa'l abans de desar-lo.",
   'help.guide.import-transport-file.step.1':
     "A la barra de la pestanya «Transports», fes clic a la icona de pujada de davant de «Transport», amb el text d'ajuda «Importa confirmacions de reserva». S'obre el diàleg amb aquest nom, el mateix que té la pestanya «Reserves». Si la pestanya és buida, «Importa des d'un fitxer», al mig, fa el mateix.",
   'help.guide.import-transport-file.step.2':
@@ -4284,11 +4285,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': 'Planificar una connexió de transport públic',
   'help.guide.plan-transit.goal':
-    "Fes que TREK busqui els trens i autobusos reals entre dos punts d'un dia i afegeixi al pla el que triïs.",
+    "Fes que YOUYA busqui els trens i autobusos reals entre dos punts d'un dia i afegeixi al pla el que triïs.",
   'help.guide.plan-transit.step.1':
     'Fes clic al + de la capçalera del dia i tria «Transport públic». La cerca s’obre per a aquell dia: el dia apareix com una pastilla a la capçalera, i «Transport manual» i «Transport automatitzat», al costat, canvien entre aquesta cerca i el formulari normal.',
   'help.guide.plan-transit.step.2':
-    "«De» i «A» admeten una parada o una estació. Mentre el camp és buit, TREK et suggereix l'allotjament del dia, les estacions i els aeroports de les reserves del dia i les parades del mateix dia. Quan escrius dues lletres, busca a les estacions de l'horari. «Intercanviar», entre els dos camps, inverteix «De» i «A».",
+    "«De» i «A» admeten una parada o una estació. Mentre el camp és buit, YOUYA et suggereix l'allotjament del dia, les estacions i els aeroports de les reserves del dia i les parades del mateix dia. Quan escrius dues lletres, busca a les estacions de l'horari. «Intercanviar», entre els dos camps, inverteix «De» i «A».",
   'help.guide.plan-transit.step.3':
     "«Sortida» o «Arribada» amb una hora indica quan vols viatjar, i «La millor ruta», «Menys transbords» o «Caminar menys» indica com s'ordenen els resultats.",
   'help.guide.plan-transit.step.4':
@@ -4401,7 +4402,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     "Si un vol ja és al viatge amb el mateix número i la mateixa data, se salta, i un missatge t'indica quants se n'han saltat. La fletxa de desfer de la barra d'eines de sobre els dies desfà tota la importació.",
   'help.guide.airtrail-import.tip.2':
-    'AirTrail continua sent la font principal de les dades. TREK en llegeix els canvis quan obres el viatge i, en segon pla, cada pocs minuts. Si elimines un vol a AirTrail, la targeta es manté a TREK i la seva etiqueta passa a «No sincronitzat». Els canvis que facis a TREK només s’envien a AirTrail si tens activat «Sincronitzar els canvis cap a AirTrail» a «Integracions».',
+    'AirTrail continua sent la font principal de les dades. YOUYA en llegeix els canvis quan obres el viatge i, en segon pla, cada pocs minuts. Si elimines un vol a AirTrail, la targeta es manté a YOUYA i la seva etiqueta passa a «No sincronitzat». Els canvis que facis a YOUYA només s’envien a AirTrail si tens activat «Sincronitzar els canvis cap a AirTrail» a «Integracions».',
   'help.guide.airtrail-import.tip.3':
     'Una connexió combinada no és un únic vol d’AirTrail que es pugui sincronitzar, així que s’importa una sola vegada: conserva l’etiqueta blava i, si hi passes el ratolí per sobre, t’ho indica. El mateix passa amb un vol sincronitzat si hi afegeixes una escala a mà.',
 
@@ -4525,13 +4526,13 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.result':
     'Ara el tram va per la carretera que has triat, i la distància de la columna lateral i les hores d’arribada posteriors també canvien.',
   'help.guide.roadtrip-alternatives.tip.1':
-    'Quan tries una altra carretera, TREK primer la comprova amb el calculador de rutes del viatge per carretera. Després manté el tram en aquella carretera amb els mínims punts de pas necessaris i substitueix els punts de pas que ja tenia el tram. Una carretera que el calculador no pot seguir no es desa. Si tries la carretera que proposa el mateix calculador, els punts de pas es tornen a eliminar.',
+    'Quan tries una altra carretera, YOUYA primer la comprova amb el calculador de rutes del viatge per carretera. Després manté el tram en aquella carretera amb els mínims punts de pas necessaris i substitueix els punts de pas que ja tenia el tram. Una carretera que el calculador no pot seguir no es desa. Si tries la carretera que proposa el mateix calculador, els punts de pas es tornen a eliminar.',
   'help.guide.roadtrip-alternatives.tip.2':
     '«Sense autopista», «Sense peatges» i «Sense ferri» els calcula un segon motor amb el seu propi model de velocitat, així que els temps no es poden comparar amb els de les altres rutes.',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': 'Definir el cotxe i els límits de conducció',
   'help.guide.roadtrip-limits.goal':
-    'Indica a TREK quin vehicle condueixes i quanta estona vols conduir sense fer cap pausa.',
+    'Indica a YOUYA quin vehicle condueixes i quanta estona vols conduir sense fer cap pausa.',
   'help.guide.roadtrip-limits.step.1':
     '«Preferències de conducció» és sota la cerca, a la columna de la dreta. Les seves insígnies mostren què hi ha configurat; fes-hi clic per obrir-les.',
   'help.guide.roadtrip-limits.step.2':
@@ -4602,7 +4603,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     'Tria una traça. Cadascuna mostra la longitud i si segueix la ruta d’aquest dia o a quina distància queda. La traça més propera surt primer.',
   'help.guide.roadtrip-track.step.3':
-    "Fes clic a «Segueix aquesta traça». TREK afegeix punts de pas on el trajecte s'allunya més de la traça, torna a calcular la ruta i ho repeteix diverses vegades.",
+    "Fes clic a «Segueix aquesta traça». YOUYA afegeix punts de pas on el trajecte s'allunya més de la traça, torna a calcular la ruta i ho repeteix diverses vegades.",
   'help.guide.roadtrip-track.step.4':
     "El diàleg indica quants punts de pas s'han col·locat i com de prop de la traça va ara la ruta, o bé que la ruta ja seguia la traça. «Treure els punts de pas», a baix a l'esquerra, els elimina i el calculador de rutes torna a planificar el dia. Si tanques el diàleg, la traça es conserva.",
   'help.guide.roadtrip-track.result':
@@ -4654,30 +4655,30 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     "La teva configuració dels connectors que ha instal·lat l'administrador: les claus i preferències que et demana cada connector, i un registre del que han fet els connectors en nom teu. La pestanya només apareix mentre hi ha algun connector actiu.",
   'help.ctx.settings-about.bullet.3':
-    'A Ko-fi, Buy Me a Coffee i Discord pots donar suport a TREK o parlar amb la gent que el fa.',
+    'A Ko-fi, Buy Me a Coffee i Discord pots donar suport a YOUYA o parlar amb la gent que el fa.',
   'help.guide.language-region.step.3':
     "Tria la «Divisa de visualització», o deixa «Divisa del viatge» per veure cada viatge en la seva divisa. Després tria «Unitat de temperatura», «Unitat de distància», «Format d'hora», a «La setmana comença el» el dia en què comença la setmana i el «Format de data».",
   'help.guide.travel-map-prefs.step.3':
     "«Explora llocs al mapa» mostra la pastilla de categories per trobar llocs propers. «Difumina els codis de reserva» amaga els números de confirmació fins que hi passes el ratolí per sobre o els toques. «Optimitza la ruta des de l'allotjament» fa que el dia comenci i acabi al teu hotel.",
   'help.guide.web-push-device.step.2':
     "A la targeta «Notificacions» de dalt, la columna Push defineix quins esdeveniments s'envien als teus dispositius.",
-  'help.guide.connect-airtrail.goal': 'Fes que TREK importi i sincronitzi els vols del teu propi AirTrail.',
-  'help.guide.connect-dawarich.goal': 'Fes que TREK sàpiga on has estat de veritat a partir del teu propi Dawarich.',
+  'help.guide.connect-airtrail.goal': 'Fes que YOUYA importi i sincronitzi els vols del teu propi AirTrail.',
+  'help.guide.connect-dawarich.goal': 'Fes que YOUYA sàpiga on has estat de veritat a partir del teu propi Dawarich.',
   'help.guide.tour-connect-wanderer.goal':
-    'Fes que TREK llegeixi els camins del teu propi wanderer per importar-los com a excursions.',
+    'Fes que YOUYA llegeixi els camins del teu propi wanderer per importar-los com a excursions.',
   'help.guide.tour-wanderer-watch.title': 'Rebre un avís quan canviïn els teus camins de wanderer',
   'help.guide.plugin-settings.tip.2':
     'Un canal de connector a «Notificacions» té un botó «Configura» que obre aquesta pàgina.',
   'help.guide.default-user-settings.result':
     'Els comptes nous, i tothom que no hagi canviat mai aquesta configuració, veuen el que has triat.',
   'help.guide.own-routing-engine.goal':
-    'Calcula les rutes dels dies, dels viatges per carretera i de les excursions amb un servidor OSRM o Valhalla propi, en lloc dels serveis de TREK o dels públics.',
+    'Calcula les rutes dels dies, dels viatges per carretera i de les excursions amb un servidor OSRM o Valhalla propi, en lloc dels serveis de YOUYA o dels públics.',
   'help.guide.admin-passkeys.tip.1':
-    "Si TREK encara no pot determinar cap domini, un avís sota l'interruptor t'ho indica, i les claus d'accés queden amagades fins que defineixis APP_URL o el Relying Party ID.",
+    "Si YOUYA encara no pot determinar cap domini, un avís sota l'interruptor t'ho indica, i les claus d'accés queden amagades fins que defineixis APP_URL o el Relying Party ID.",
   'help.guide.rotate-jwt-secret.step.1':
     'A la pestanya «Seguretat», a «Zona de perill», a baix a la dreta, fes clic a «Renova» al costat de «Rota el secret JWT».',
   'help.guide.storage-backends.tip.3':
-    'TREK pot tornar a baixar les memòries cau de fotos, així que replicar-les sol ser malbaratar espai.',
+    'YOUYA pot tornar a baixar les memòries cau de fotos, així que replicar-les sol ser malbaratar espai.',
   'help.guide.admin-channels.step.3':
     "A sota, a la mateixa targeta, tria per a cada esdeveniment quins canals l'envien: «Versió nova disponible», «Error de rèplica d'emmagatzematge» i «Regió de caiac demanada». Cada interruptor es desa a l'instant.",
   'help.guide.notification-defaults.tip.1':
@@ -4737,13 +4738,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     "Les dades obertes només saben on és l'avió. La porta, la terminal i la cinta d'equipatges no en formen part, així que afegeix-les tu a la reserva si les necessites. Els retards i l'hora d'arribada són estimacions calculades a partir de les posicions.",
   'help.guide.flight-live-status.tip.3':
-    "TREK necessita el número de vol i els dos aeroports per seguir un vol. Pot ser que no es trobi un vol d'una companyia que vola sota un altre indicatiu, o un vol amb codi compartit; aleshores la reserva conserva les hores normals.",
+    "YOUYA necessita el número de vol i els dos aeroports per seguir un vol. Pot ser que no es trobi un vol d'una companyia que vola sota un altre indicatiu, o un vol amb codi compartit; aleshores la reserva conserva les hores normals.",
   'help.guide.group-sort-bookings.step.2':
     "A «Agrupar per», tria «Estat», «Dia», «Tipus» o «Sense agrupar». La pestanya s'ordena de seguida en aquestes seccions.",
   'help.guide.export-bookings-csv.result':
     'El navegador baixa un fitxer amb el nom del viatge i de la pestanya, per exemple autumn-in-japan-bookings.csv, amb una fila per cada reserva que mostrava la pestanya.',
   'help.guide.arrange-packing-list.result':
-    "Les llistes queden en l'ordre en què les has arrossegat, i els articles s'ordenen de la A a la Z fins que ho desactives. TREK continua desant el teu ordre.",
+    "Les llistes queden en l'ordre en què les has arrossegat, i els articles s'ordenen de la A a la Z fins que ho desactives. YOUYA continua desant el teu ordre.",
   'help.guide.count-packed-pieces.step.2':
     'A «Quant.», escriu quantes en portes, per exemple 5, o fes clic al més fins que mostri el nombre.',
   'help.guide.expense-receipts.step.4':
@@ -4751,7 +4752,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     "Qui ha deixat el viatge conserva una fila a «Balanços» i a «Pressupost final» mentre encara li deguin diners o n'hagi de pagar.",
   'help.guide.files-sync-settings.step.2':
-    'La barra de flux mostra TREK i el teu gestor, amb els documents que té cadascun, i dos carrils entre tots dos: «Cap al gestor» i «Des del gestor». Fes clic a «Cap al gestor» per desactivar-lo. El carril es posa gris i la línia de sota els carrils diu «Only coming in». Torna-hi a fer clic per activar-lo de nou.',
+    'La barra de flux mostra YOUYA i el teu gestor, amb els documents que té cadascun, i dos carrils entre tots dos: «Cap al gestor» i «Des del gestor». Fes clic a «Cap al gestor» per desactivar-lo. El carril es posa gris i la línia de sota els carrils diu «Only coming in». Torna-hi a fer clic per activar-lo de nou.',
   'help.guide.files-sync-settings.tip.4':
     "Només el propietari del viatge o un administrador poden canviar res d'això. La resta de membres veuen la barra de flux amb una línia com «Documents move both ways», però no veuen «Configuració».",
   'help.guide.manage-notes.step.2':
@@ -4762,7 +4763,7 @@ const help: TranslationStrings = {
     'La paperera només elimina una categoria que no fa servir cap nota. Una categoria que encara fan servir algunes notes es queda a la llista fins que les mous a una altra categoria.',
   'help.guide.roadtrip-reorder.title': 'Reordenar una parada o moure-la a un altre dia',
   'help.guide.roadtrip-reorder.tip.3':
-    "TREK no et pregunta res sobre una hora que has fixat: el carril recalcula el dia a l'instant i marca les parades a les quals ja no es pot arribar a temps.",
+    "YOUYA no et pregunta res sobre una hora que has fixat: el carril recalcula el dia a l'instant i marca les parades a les quals ja no es pot arribar a temps.",
   'help.guide.roadtrip-overnight.step.3':
     "A dalt del diàleg, «Pernoctar» hi afegeix una nit d'estada i «Parada» el converteix en una parada d'una estona. Un hotel s'obre amb «Pernoctar» i un càmping amb «Parada». Una nit només demana el «Registre d'entrada», que pots deixar buit.",
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4776,7 +4777,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     "A dalt, «Importa GPX o KML» importa fitxers com a excursions. El botó de filtre de sota (al principi «Tots», amb el nombre d'excursions) filtra la llista per estat, origen, límit de ruta i tipus.",
   'help.guide.tour-show-list.step.2':
-    "Cada fila és una excursió. La barra de color és la seva línia al mapa, i la casella rodona mostra el límit de ruta (T1 a T6) d'una caminada planificada a TREK o la icona del seu tipus. Les insígnies de sota el nom mostren els dies en què és, el temps, la distància i el desnivell positiu. En una excursió de diversos dies, la lluna amb un número indica quantes etapes té.",
+    "Cada fila és una excursió. La barra de color és la seva línia al mapa, i la casella rodona mostra el límit de ruta (T1 a T6) d'una caminada planificada a YOUYA o la icona del seu tipus. Les insígnies de sota el nom mostren els dies en què és, el temps, la distància i el desnivell positiu. En una excursió de diversos dies, la lluna amb un número indica quantes etapes té.",
   'help.guide.tour-add-to-day.title': 'Posar una excursió en un dia',
   'help.guide.tour-add-to-day.tip.2':
     "Si el viatge acaba abans de l'última etapa, l'opció mostra l'última etapa que hi cap, i les etapes següents queden sense dia.",
@@ -4809,7 +4810,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.4':
     "«Canvia», a sota de la traça, tria un altre enregistrament. «Desvincula» la treu de l'excursió, i la traça es queda al viatge com a importació.",
   'help.guide.tour-origin-check.step.3':
-    'Una excursió que has dibuixat a la pestanya «Excursions» mostra «planificada a TREK», amb el dia a «Creat».',
+    'Una excursió que has dibuixat a la pestanya «Excursions» mostra «planificada a YOUYA», amb el dia a «Creat».',
   'help.ctx.trip-tour-planner.bullet.2':
     "El carril de l'esquerra és l'editor. Si no hi ha res obert, ofereix «Planifica una nova excursió». Una excursió oberta mostra el nom, el tipus, els punts de ruta, les targetes del seu tipus i els detalls, amb «Descartar» i «Desa» a baix.",
   'help.guide.tour-open-workspace.step.2':
@@ -4817,7 +4818,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.tip.3':
     "Si obres una altra excursió mentre l'editor té canvis sense desar, primer et pregunta si vols «Descarta els canvis» o continuar editant.",
   'help.guide.tour-draw-route.step.5':
-    "Fes clic als punts següents en l'ordre en què els recorreràs. Cada clic afegeix el punt com a nou final, i a partir de dos punts TREK planifica la ruta pels camins.",
+    "Fes clic als punts següents en l'ordre en què els recorreràs. Cada clic afegeix el punt com a nou final, i a partir de dos punts YOUYA planifica la ruta pels camins.",
   'help.guide.tour-type-profile.goal':
     "Tria el tipus d'excursió i, si és en bici, el perfil, perquè la ruta passi pels camins adequats.",
   'help.guide.tour-edit-points.title': 'Moure, reordenar i treure punts',
@@ -4941,11 +4942,11 @@ const help: TranslationStrings = {
     "Consulta les pistes, els circuits de fons i els remuntadors al voltant de la teva excursió d'esquí, i què vol dir cada color.",
   'help.guide.tour-ski-import.title': "Importar una traça d'esquí i indicar què era",
   'help.guide.tour-ski-import.tip.1':
-    "Una traça importada es conserva tal com es va enregistrar: TREK no l'ajusta a les pistes, i la seva targeta mostra «Temps d’esquí» com a «Sense calcular».",
+    "Una traça importada es conserva tal com es va enregistrar: YOUYA no l'ajusta a les pistes, i la seva targeta mostra «Temps d’esquí» com a «Sense calcular».",
   'help.ctx.trip-tour-paddle.bullet.3':
     "«Més accions», en un punt, conté les eines de rem: planificar el tram següent per l'aigua o dibuixar-lo a mà, «Porta l’embarcació per terra des d’aquí» i «Resclosa en aquest punt».",
   'help.guide.tour-paddle-setup.step.3':
-    "A «Vaixell», tria «Caiac», «Canoa», SUP o «Altres». L'embarcació determina la velocitat que suggereix TREK.",
+    "A «Vaixell», tria «Caiac», «Canoa», SUP o «Altres». L'embarcació determina la velocitat que suggereix YOUYA.",
   'help.guide.tour-paddle-setup.tip.4':
     '«El rem té riscos», la fila del final de la columna, obre «Seguretat a l’aigua». Llegeix-la un cop abans de la teva primera excursió.',
   'help.guide.tour-paddle-water-route.step.5':
@@ -4968,7 +4969,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.tip.2':
     '«Descartar» elimina les marques que no has desat. La traça enregistrada no es redibuixa mai.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK no calcula cap temps a cavall. Si vols que el dia en tingui, introdueix un temps a «Planificat», a «Detalls».',
+    'YOUYA no calcula cap temps a cavall. Si vols que el dia en tingui, introdueix un temps a «Planificat», a «Detalls».',
   'help.guide.tour-horse-plan.step.5':
     'Tria un tram a «Seccions». Comprova el «Sentit» en què el fas i què indica «Accés a cavall» al llarg del tram.',
   'help.guide.tour-horse-plan.tip.5':
@@ -5010,7 +5011,7 @@ const help: TranslationStrings = {
   'help.guide.journey-map-layers.tip.1':
     "Una línia de color discontínua és la ruta GPX d'un viatge, que forma part del pla; una de contínua és una ruta enregistrada aquell dia.",
   'help.guide.journey-keep-route.tip.1':
-    "On s'atura l'enregistrament, també s'atura la línia. TREK només dibuixa el que s'ha enregistrat.",
+    "On s'atura l'enregistrament, també s'atura la línia. YOUYA només dibuixa el que s'ha enregistrat.",
   'help.guide.journey-day-stays.tip.1':
     'La fila només apareix a les persones que poden editar el diari i tenen el seu propi Dawarich connectat, i només els dies en què encara hi ha alguna cosa per decidir.',
   'help.guide.journey-take-over-day.step.4':
@@ -5023,7 +5024,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3':
     '«Restableix els valors per defecte», sota les targetes, torna tota la pestanya «Aparença» a la configuració original.',
   'help.guide.web-push-device.result':
-    "La targeta mostra «Activat en aquest dispositiu», i els esdeveniments activats a Push t'arriben encara que TREK estigui tancat.",
+    "La targeta mostra «Activat en aquest dispositiu», i els esdeveniments activats a Push t'arriben encara que YOUYA estigui tancat.",
   'help.guide.connect-airtrail.step.1':
     "A «Integracions», busca AirTrail i introdueix la «URL de la instància» i una clau API. La clau es crea a AirTrail, a «Settings», «Security». Si crees la clau a AirTrail 3.13 o posterior, necessita l'abast flight.read.own per llegir. Per sincronitzar els canvis cap a AirTrail, també necessita flight.update.own, flight.passengers.manage.own, reference_data.read i profile.read.",
   'help.guide.connect-dawarich.step.1':
@@ -5031,14 +5032,14 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.1':
     'A «Integracions», busca wanderer i introdueix la «URL de la instància» i un token API. El token es crea a wanderer, a «Settings», «Account», «API tokens»; comença per wanderer_key_.',
   'help.guide.tour-wanderer-watch.goal':
-    'Fes que TREK comprovi en segon pla si els camins que has importat han canviat.',
+    'Fes que YOUYA comprovi en segon pla si els camins que has importat han canviat.',
   'help.guide.mcp-oauth.tip.3':
     "Els «Tokens d'API» encara funcionen, però estan marcats com a «Obsolet»; passa a un client OAuth.",
   'help.guide.offline-conflicts.tip.2': "L'opció només s'aplica a aquest dispositiu.",
   'help.guide.default-user-settings.tip.1':
     "El que hagi triat un usuari a «Configuració» sempre té prioritat; aquests valors s'apliquen a tothom qui no hagi canviat aquella opció.",
   'help.guide.own-routing-engine.step.1':
-    "A la pestanya «Predeterminats», la targeta «Rutes» decideix qui calcula les rutes. A «Servei de rutes», tria «Automàtic», «Serveis de TREK», «Valhalla pública (FOSSGIS)» o «Instància de Valhalla pròpia». L'opció es desa a l'instant.",
+    "A la pestanya «Predeterminats», la targeta «Rutes» decideix qui calcula les rutes. A «Servei de rutes», tria «Automàtic», «Serveis de YOUYA», «Valhalla pública (FOSSGIS)» o «Instància de Valhalla pròpia». L'opció es desa a l'instant.",
   'help.guide.admin-passkeys.tip.2':
     "Si més endavant canvies el domini, totes les claus d'accés que ja hagi afegit la gent deixaran de funcionar.",
   'help.guide.instance-keys.tip.4': "La clau d'Amap ha de ser una clau Web 服务 (servei web), no una clau de JS API.",
@@ -5057,7 +5058,7 @@ const help: TranslationStrings = {
     'Per a cada persona del viatge, tria «Sense accés», «Llegir» o «Edita». «Tothom pot llegir» i «Ningú» ho defineixen per a tothom alhora.',
   'help.guide.collapse-columns.tip.3': 'Quan el separador té el focus, també el pots moure amb les tecles de fletxa.',
   'help.guide.edit-place.tip.3':
-    'Si fas clic fora del diàleg, no perds els canvis: TREK primer et pregunta «Vols descartar els canvis?», i «Continua editant» et torna al formulari.',
+    'Si fas clic fora del diàleg, no perds els canvis: YOUYA primer et pregunta «Vols descartar els canvis?», i «Continua editant» et torna al formulari.',
   'help.guide.dawarich-stays.goal':
     'Afegeix els llocs on Dawarich va enregistrar les teves estades durant el viatge, després de revisar-los un per un.',
   'help.guide.leave-stop-off-route.step.1':
@@ -5107,7 +5108,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     "Al carril, el trajecte és una targeta del color del seu tipus, amb l'horari a la columna d'arribada i els punts d'inici i de final sota el títol.",
   'help.guide.roadtrip-google-import.tip.1':
-    'TREK calcula la seva pròpia ruta entre les parades; no copia la carretera de Google.',
+    'YOUYA calcula la seva pròpia ruta entre les parades; no copia la carretera de Google.',
   'help.guide.roadtrip-hazards.result':
     'El mapa mostra els avisos actuals a la zona del teu viatge, i la ruta no canvia.',
   'help.ctx.trip-tours.bullet.3':
@@ -5116,7 +5117,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.goal':
     'Planifica quan faràs una excursió perquè aparegui al dia, amb la seva línia al mapa.',
   'help.guide.tour-add-to-day.tip.3':
-    'Només pots afegir una excursió una vegada a cada dia. Si la deixes anar en un dia que ja la té, TREK només mostra «Aquesta excursió ja és en aquest dia.».',
+    'Només pots afegir una excursió una vegada a cada dia. Si la deixes anar en un dia que ja la té, YOUYA només mostra «Aquesta excursió ja és en aquest dia.».',
   'help.guide.tour-day-times.step.4':
     "Si l'excursió acaba després que comenci l'element següent del dia, una nota sota la fila t'ho indica, per exemple «Ends at 13:30, after Lunch at Gostner Schwaige starts at 12:30». No es mou res.",
   'help.guide.tour-remove-from-day.step.1':
@@ -5174,7 +5175,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.result':
     "La pestanya «Excursions»: l'editor a l'esquerra, les excursions del viatge a la dreta i el mapa al mig.",
   'help.guide.tour-draw-route.step.6':
-    "A «Punts de ruta», cada punt té una fila amb el seu número, que agafa el nom del lloc quan s'ha carregat. Mentre TREK treballa, un puntet al costat de «Nova excursió» n'indica l'estat.",
+    "A «Punts de ruta», cada punt té una fila amb el seu número, que agafa el nom del lloc quan s'ha carregat. Mentre YOUYA treballa, un puntet al costat de «Nova excursió» n'indica l'estat.",
   'help.guide.tour-type-profile.step.1':
     "Fes clic a «Tipus de ruta», sota «Nom de l'excursió». Mostra el tipus actual amb una línia que explica com es planifica.",
   'help.guide.tour-edit-points.goal': "Canvia per on passa l'excursió movent-ne els punts al mapa o a la llista.",
@@ -5198,7 +5199,7 @@ const help: TranslationStrings = {
     "El «Resum de l'excursió», a dalt d'«Excursions d'aquest viatge», mostra la «Distància», el «Desnivell positiu» i el «Desnivell negatiu» de l'excursió oberta a l'editor, el temps estimat, les pauses i el total planificat.",
   'help.guide.tour-list-manage.title': 'Gestionar les excursions del viatge',
   'help.guide.tour-list-manage.tip.2':
-    "Al menú del dia, els dies que ja tenen l'excursió apareixen en gris. En una excursió de diversos dies, TREK et pregunta si les etapes comencen aquell dia o si tota l'excursió va en aquell dia.",
+    "Al menú del dia, els dies que ja tenen l'excursió apareixen en gris. En una excursió de diversos dies, YOUYA et pregunta si les etapes comencen aquell dia o si tota l'excursió va en aquell dia.",
   'help.guide.tour-delete.tip.2': "Si només la vols treure d'un dia, fes servir «Treure del dia» al menú del dia.",
   'help.guide.tour-saved-elsewhere.step.4':
     "Tria «Desa com a excursió nova» per conservar-les totes dues, «Carrega la més nova» per carregar l'altra versió, o «Sobreescriu» per substituir l'altra versió per la teva.",
@@ -5223,7 +5224,7 @@ const help: TranslationStrings = {
   'help.guide.tour-map-layers.tip.1':
     "El mapa que triïs es manté per a totes les excursions que obris fins que recarreguis la pàgina. Una excursió el tipus de la qual no l'ofereix s'obre amb «Mapa», i el mapa de la pestanya «Planificat» i l'opció de «Configuració» no canvien.",
   'help.guide.tour-along-search.step.4':
-    "Fes clic a «Cerca al llarg de la ruta». TREK només busca: l'excursió no canvia.",
+    "Fes clic a «Cerca al llarg de la ruta». YOUYA només busca: l'excursió no canvia.",
   'help.guide.tour-along-add-stop.step.1':
     "Fes clic a un lloc de la llista «Al llarg de la ruta», o a la seva xinxeta al mapa. La seva targeta s'obre sobre el mapa: què és, a quina distància és de la ruta i en quin punt de l'excursió es troba.",
   'help.guide.tour-3d-terrain.title': 'Veure una excursió en 3D',
@@ -5249,7 +5250,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     'Les voltes no superen la «Dificultat màxima del sender» de la caminada; la pastilla T de la targeta indica quina és.',
   'help.guide.tour-hike-compare-ways.step.4':
-    'Fes clic a «Fes servir aquest camí». TREK comprova amb el calculador de rutes que la ruta realment el segueix.',
+    'Fes clic a «Fes servir aquest camí». YOUYA comprova amb el calculador de rutes que la ruta realment el segueix.',
   'help.guide.tour-ferrata-add.step.2':
     'Fes clic a una via ferrada al mapa, a la seva línia discontínua o al seu senyal. La seva targeta mostra el nom, el grau i la longitud.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -5306,7 +5307,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     "Una nova ruta en piragua amb la seva embarcació, el seu tipus d'aigua i la seva velocitat, llesta per al primer punt al mapa.",
   'help.guide.tour-paddle-water-route.tip.1':
-    "Quan falten les dades de l'aigua, TREK les baixa automàticament per a la regió o les demana a un administrador, segons com estigui configurada la instància. Un administrador afegeix regions a «Dades d’aigües per a piragua», una fila d'«Excursions» a la pestanya «Complements» de l'àrea d'administració. Aleshores el tram mostra «Carregant les dades d'aigua» i es planifica automàticament quan les dades hi són, normalment en un a tres minuts.",
+    "Quan falten les dades de l'aigua, YOUYA les baixa automàticament per a la regió o les demana a un administrador, segons com estigui configurada la instància. Un administrador afegeix regions a «Dades d’aigües per a piragua», una fila d'«Excursions» a la pestanya «Complements» de l'àrea d'administració. Aleshores el tram mostra «Carregant les dades d'aigua» i es planifica automàticament quan les dades hi són, normalment en un a tres minuts.",
   'help.guide.tour-paddle-portage.step.2':
     'Tria «Porta l’embarcació per terra des d’aquí». El tram fins al punt següent passa a ser un transport per terra, dibuixat per terra.',
   'help.guide.tour-paddle-lock.title': "Afegir una resclosa i el seu temps d'espera",
@@ -5381,9 +5382,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     "Push funciona per navegador: repeteix-ho a cada telèfon i ordinador on vulguis rebre notificacions. «Desactiva en aquest dispositiu» l'atura només en aquell dispositiu.",
   'help.guide.connect-airtrail.step.2':
-    "«Permetre certificats autodirigits» només és per a una instància de confiança de la teva pròpia xarxa. «Sincronitzar els canvis cap a AirTrail» està desactivat per defecte, de manera que TREK només llegeix; activa'l per enviar-hi les teves modificacions.",
+    "«Permetre certificats autodirigits» només és per a una instància de confiança de la teva pròpia xarxa. «Sincronitzar els canvis cap a AirTrail» està desactivat per defecte, de manera que YOUYA només llegeix; activa'l per enviar-hi les teves modificacions.",
   'help.guide.connect-dawarich.step.2':
-    '«Comprova automàticament si hi ha estades noves» fa que TREK ho comprovi pel seu compte. Si està desactivat, TREK només consulta Dawarich quan tu ho demanes. «Permet un certificat autosignat» només és per a una instància en què el teu servidor no confia.',
+    '«Comprova automàticament si hi ha estades noves» fa que YOUYA ho comprovi pel seu compte. Si està desactivat, YOUYA només consulta Dawarich quan tu ho demanes. «Permet un certificat autosignat» només és per a una instància en què el teu servidor no confia.',
   'help.guide.tour-connect-wanderer.step.2':
     'Activa «Permet un certificat autosignat» només per a una instància de la teva pròpia xarxa.',
   'help.guide.tour-wanderer-watch.step.1':
@@ -5393,7 +5394,7 @@ const help: TranslationStrings = {
     '«Divisa de visualització» només converteix els imports per mostrar-los. Els imports introduïts a «Pressupost» no canvien.',
   'help.guide.own-routing-engine.step.2': "A «Motor de rutes propi», introdueix l'adreça del teu servidor OSRM.",
   'help.guide.own-routing-engine.step.3':
-    "A «Instància pròpia de Valhalla», introdueix l'adreça del teu Valhalla i tria «Instància pròpia de Valhalla» com a «Servei de rutes». Cada camp es desa en sortir-ne; després reinicia el servidor de TREK i torna a carregar la pàgina.",
+    "A «Instància pròpia de Valhalla», introdueix l'adreça del teu Valhalla i tria «Instància pròpia de Valhalla» com a «Servei de rutes». Cada camp es desa en sortir-ne; després reinicia el servidor de YOUYA i torna a carregar la pàgina.",
   'help.guide.admin-passkeys.tip.3':
     "Si un usuari ha perdut el dispositiu amb les seves claus d'accés, elimina-les amb «Restablir claus d'accés» a «Editar usuari».",
   'help.guide.rotate-jwt-secret.result':
@@ -5409,7 +5410,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     'Llegeix la nota groga: indica qui tindrà accés al diari per primera vegada. Després fes clic a «Vincula el diari».',
   'help.guide.dawarich-stays.step.1':
-    'Amb Dawarich connectat a «Configuració», «Integracions», a sobre de la llista de llocs apareix «Des de Dawarich». La capçalera indica quan ho va comprovar TREK per última vegada i quantes estades hi ha en espera. Fes-hi clic per obrir la llista.',
+    'Amb Dawarich connectat a «Configuració», «Integracions», a sobre de la llista de llocs apareix «Des de Dawarich». La capçalera indica quan ho va comprovar YOUYA per última vegada i quantes estades hi ha en espera. Fes-hi clic per obrir la llista.',
   'help.guide.leave-stop-off-route.step.2':
     'Al costat del nom apareix la insígnia «Fora de ruta». La parada es queda al dia i al mapa, però la ruta del dia i els temps dels trams no la tenen en compte.',
   'help.guide.move-booking-day.result': "La reserva passa a ser del nou dia al pla, i l'hora no canvia.",
@@ -5418,7 +5419,7 @@ const help: TranslationStrings = {
     'Obre un lloc que tingui una foto entre els seus «Fitxers». El bloc «Fitxers», a prop de la part de baix de la targeta, indica quants fitxers té el lloc.',
   'help.guide.place-own-hours.title': "Corregir l'horari, el telèfon o el correu d'un lloc",
   'help.guide.place-own-hours.tip.1':
-    "L'horari que introdueixes substitueix el que havia consultat TREK, així que una cafeteria amb horari de temporada mostra el que tu saps.",
+    "L'horari que introdueixes substitueix el que havia consultat YOUYA, així que una cafeteria amb horari de temporada mostra el que tu saps.",
   'help.guide.day-panel.tip.3':
     'Planifiques amb el calendari? Activa «Data primer als títols dels dies» a «Configuració», dins de «Pantalla», i la capçalera mostrarà primer la data, amb «Dia 1» o el nom del dia a sota.',
   'help.guide.confirm-stay-booking.result':
@@ -5438,15 +5439,15 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2':
     'Les columnes van separades per punt i coma, i Excel obre el fitxer amb els accents intactes.',
   'help.guide.arrange-packing-list.tip.2':
-    "TREK recorda «A a Z» en aquest navegador, de manera que la propera vegada la llista també s'obre ordenada. Només canvia el que veus tu, mai l'ordre que veuen els altres.",
+    "YOUYA recorda «A a Z» en aquest navegador, de manera que la propera vegada la llista també s'obre ordenada. Només canvia el que veus tu, mai l'ordre que veuen els altres.",
   'help.guide.count-packed-pieces.step.4':
     "Tanca la finestra. Mentre només algunes peces estan empaquetades, la fila mostra el recompte, com 3/5, i la casella té un contorn del teu color d'accent. Quan el recompte arriba a la quantitat, l'article es marca per si sol.",
   'help.guide.expense-receipts.result':
     "El rebut es desa amb la despesa: la fitxa de la fila l'obre, i el fitxer també és als «Fitxers» del viatge.",
   'help.guide.files-sync-settings.step.4':
-    "A «Quan s’elimina un document», tria què passa amb la còpia de l'altra banda. «Conserva les dues còpies» deixa la còpia del gestor on és. «Mou a la paperera» l'envia a la paperera del gestor quan el document s'elimina a TREK.",
+    "A «Quan s’elimina un document», tria què passa amb la còpia de l'altra banda. «Conserva les dues còpies» deixa la còpia del gestor on és. «Mou a la paperera» l'envia a la paperera del gestor quan el document s'elimina a YOUYA.",
   'help.ctx.trip-collab.bullet.7':
-    'Tot el que hi ha aquí necessita connexió. Sense connexió, no es desa cap missatge, nota, enllaç, enquesta ni vot, i TREK mostra «This needs a connection. Try again once TREK is back online.». Els membres que no poden editar «Col·laboració» ho poden llegir tot, però no tenen «Nota nova», «Afegeix un enllaç» ni «Enquesta nova», i el quadre de missatges els apareix en gris.',
+    'Tot el que hi ha aquí necessita connexió. Sense connexió, no es desa cap missatge, nota, enllaç, enquesta ni vot, i YOUYA mostra «This needs a connection. Try again once YOUYA is back online.». Els membres que no poden editar «Col·laboració» ho poden llegir tot, però no tenen «Nota nova», «Afegeix un enllaç» ni «Enquesta nova», i el quadre de missatges els apareix en gris.',
   'help.guide.manage-notes.step.4':
     '«Edita» obre el diàleg de la nota amb tot omplert. Canvia el que calgui, en aquest cas una línia més a «Contingut», i fes clic a «Desa».',
   'help.guide.note-categories.step.2':
@@ -5463,7 +5464,7 @@ const help: TranslationStrings = {
     "La pastilla «Registre d'entrada» o «Embarcament» indica a quina hora com a màxim t'ha de deixar el trajecte a la terminal: la sortida s'avança aquest temps respecte de l'horari.",
   'help.guide.roadtrip-google-import.title': 'Importar una ruta de Google Maps',
   'help.guide.roadtrip-google-import.tip.2':
-    "L'enllaç ha de tenir com a mínim dues parades que TREK pugui situar, i com a màxim 30.",
+    "L'enllaç ha de tenir com a mínim dues parades que YOUYA pugui situar, i com a màxim 30.",
   'help.guide.roadtrip-hazards.tip.1':
     'Els avisos no són talls de carretera: la ruta no canvia mai per culpa seva, i són avisos actuals, no una previsió per a les teves dates.',
   'help.ctx.trip-tours.bullet.4':
@@ -5591,7 +5592,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.3':
     'Les insígnies ho resumeixen: quina part de la ruta és «Conegut», el grau «Màxim conegut» que hi ha i, a part, el «Límit de càlcul» amb què es va planificar la caminada.',
   'help.guide.tour-hike-round.goal':
-    "Fes que TREK et proposi voltes de la llargada que vulguis, a partir d'una parada d'una caminada.",
+    "Fes que YOUYA et proposi voltes de la llargada que vulguis, a partir d'una parada d'una caminada.",
   'help.guide.tour-hike-round.tip.2':
     "S'accepten distàncies d'1 a 60 km, i es proposen voltes que no s'allunyin més d'un 20 % de la teva.",
   'help.guide.tour-hike-compare-ways.result':
@@ -5618,7 +5619,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     'Les parades visitades queden marcades, les saltades, ratllades, i el temps restant només compta el que encara tens per davant.',
   'help.guide.tour-bike-profile.goal':
-    'Comença una ruta en bicicleta i fes que TREK la calculi per a cicloturisme, carretera, grava o BTT.',
+    'Comença una ruta en bicicleta i fes que YOUYA la calculi per a cicloturisme, carretera, grava o BTT.',
   'help.guide.tour-bike-profile.tip.1':
     'Si després canvies el perfil, tota la ruta es torna a planificar segons el nou perfil.',
   'help.guide.tour-bike-surfaces.step.2':
@@ -5649,7 +5650,7 @@ const help: TranslationStrings = {
     'En un llac, «Pels llacs» defineix la ruta: «En línia recta» és la més curta, i «A prop de la riba» va arran de la vora per als dies de vent.',
   'help.guide.tour-paddle-water-route.title': "Planificar els trams per l'aigua",
   'help.guide.tour-paddle-water-route.tip.2':
-    "On la ruta porta l'embarcació per terra per esquivar un assut o passa per una resclosa, TREK hi posa un punt propi, marcat com a «Detectat». Si el mous o el modifiques, passa a ser un punt teu.",
+    "On la ruta porta l'embarcació per terra per esquivar un assut o passa per una resclosa, YOUYA hi posa un punt propi, marcat com a «Detectat». Si el mous o el modifiques, passa a ser un punt teu.",
   'help.guide.tour-paddle-portage.step.3':
     'Sota el punt apareix una targeta «Transport per terra» amb la seva longitud i els minuts addicionals. Fes-hi clic per obrir-la.',
   'help.guide.tour-paddle-lock.goal':
@@ -5657,7 +5658,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-lock.result':
     "La resclosa és a l'excursió amb els seus minuts, i l'«Estimació de temps» els suma.",
   'help.guide.tour-paddle-time.tip.1':
-    "TREK comença amb 4 km/h a l'aigua, 2 km/h en el transport per terra i 10 minuts a cada transport per terra. Són valors inicials per ajustar, no mesures.",
+    "YOUYA comença amb 4 km/h a l'aigua, 2 km/h en el transport per terra i 10 minuts a cada transport per terra. Són valors inicials per ajustar, no mesures.",
   'help.guide.tour-paddle-wind.step.3':
     "Les barres mostren les hores del dia, amb les ratxes darrere del vent mitjà. Passa el ratolí per sobre d'una barra per veure les dades i la direcció d'aquella hora.",
   'help.guide.tour-paddle-checklist.goal':
@@ -5731,7 +5732,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.tip.3':
     '«La setmana comença el» defineix la primera columna de tots els selectors de dates; «Vacances» té la seva pròpia opció.',
   'help.guide.web-push-device.tip.2':
-    "A l'iPhone i l'iPad, primer afegeix TREK a la pantalla d'inici i obre'l des d'allà.",
+    "A l'iPhone i l'iPad, primer afegeix YOUYA a la pantalla d'inici i obre'l des d'allà.",
   'help.guide.connect-airtrail.step.3':
     "Fes clic a «Desa» i després a «Prova la connexió». T'indica quants vols ha trobat, i la insígnia passa a «Connectat».",
   'help.guide.connect-dawarich.step.3':
@@ -5739,7 +5740,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     "Fes clic a «Desa» i després a «Prova la connexió». T'indica quants dels teus camins pots importar, i la insígnia passa a «Connectat».",
   'help.guide.tour-wanderer-watch.step.2':
-    "Com a màxim un cop al dia, TREK consulta la fitxa resumida de cada camí que has importat, i la fila mostra quan ho va comprovar per última vegada. Quan un camí pot haver canviat, reps una notificació i «Avisos» el compta: fes clic a «Avisos» per veure cada excursió com a «Pot haver canviat», «Canviat» o «No comprovable», i obre-la des d'allà.",
+    "Com a màxim un cop al dia, YOUYA consulta la fitxa resumida de cada camí que has importat, i la fila mostra quan ho va comprovar per última vegada. Quan un camí pot haver canviat, reps una notificació i «Avisos» el compta: fes clic a «Avisos» per veure cada excursió com a «Pot haver canviat», «Canviat» o «No comprovable», i obre-la des d'allà.",
   'help.guide.plugin-settings.goal':
     'Dona a un connector les teves claus i preferències, i consulta què ha fet en nom teu.',
   'help.guide.own-routing-engine.result': 'Les rutes de tots els viatges es calculen als teus servidors.',
@@ -5758,7 +5759,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     'A la barra de pestanyes del viatge apareix la pestanya «Diari». Tothom a qui hagis donat «Llegir» o «Edita» pot obrir-hi el diari, amb actualitzacions en directe.',
   'help.guide.create-place.tip.4':
-    "Un enllaç copiat de Google Maps també funciona a la cerca: enganxa'l, prem Retorn i TREK n'extreu el lloc. Quan el formulari ja té una posició, «Llocs a prop d’aquest marcador», la creu del costat de la cerca, mostra el que hi ha al voltant.",
+    "Un enllaç copiat de Google Maps també funciona a la cerca: enganxa'l, prem Retorn i YOUYA n'extreu el lloc. Quan el formulari ja té una posició, «Llocs a prop d’aquest marcador», la creu del costat de la cerca, mostra el que hi ha al voltant.",
   'help.guide.dawarich-stays.step.2':
     "Les estades s'agrupen per dia, cadascuna amb l'hora d'arribada i de sortida; una icona de mesurador indica una estada de la qual Dawarich no estava segur. Fes clic a «Afegeix-ho com a lloc», la xinxeta del costat d'una estada.",
   'help.guide.leave-stop-off-route.step.3':
@@ -5784,7 +5785,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.4':
     "Fes clic al títol per canviar el nom del trajecte sense obrir el formulari. «Canviar el nom» s'obre amb el nom omplert: escriu-ne el nou i fes clic a «Desa».",
   'help.guide.export-transports-csv.goal':
-    'Exporta els trajectes del viatge des de TREK en un fitxer CSV, per a un full de càlcul, una agència de viatges o per imprimir-los.',
+    'Exporta els trajectes del viatge des de YOUYA en un fitxer CSV, per a un full de càlcul, una agència de viatges o per imprimir-los.',
   'help.guide.group-sort-bookings.result':
     "Les reserves apareixen en les seccions i l'ordre que has triat, i aquest navegador recorda l'opció per a la propera visita.",
   'help.guide.booking-on-map.step.1':
@@ -5799,7 +5800,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     "A l'editor, un clic al nom d'un fitxer de la llista obre la mateixa vista prèvia. Aleshores Esc només tanca la vista prèvia, no la despesa.",
   'help.guide.files-sync-settings.step.5':
-    "«Quan han canviat les dues bandes» decideix quina còpia es conserva quan un document s'ha editat als dos llocs: «Pregunta-m'ho», «Conserva la còpia del TREK» o «Conserva la còpia del magatzem». «Sincronitza automàticament» fa que TREK comprovi els canvis en segon pla; si està desactivat, la targeta diu «En pausa» i només «Sincronitza ara» fa una sincronització. Cada canvi que fas aquí es desa a l'instant.",
+    "«Quan han canviat les dues bandes» decideix quina còpia es conserva quan un document s'ha editat als dos llocs: «Pregunta-m'ho», «Conserva la còpia del YOUYA» o «Conserva la còpia del magatzem». «Sincronitza automàticament» fa que YOUYA comprovi els canvis en segon pla; si està desactivat, la targeta diu «En pausa» i només «Sincronitza ara» fa una sincronització. Cada canvi que fas aquí es desa a l'instant.",
   'help.guide.manage-notes.step.5':
     "«Elimina» primer et pregunta «Vols eliminar la nota?», perquè la nota s'elimina per a tots els membres, amb els seus fitxers. Fes clic a «Elimina» per confirmar-ho.",
   'help.guide.note-categories.step.3':
@@ -5831,7 +5832,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     "També pots fer clic a la capçalera del dia per obrir-lo, fer clic a l'excursió de la llista i després a «Treure del dia», a baix de la seva targeta.",
   'help.guide.tour-filter-list.step.3':
-    'Si la llista en té de diversos, «Origen» (TREK, «Importació GPX», wanderer), «Límit de ruta» (T1 a T6) i «Tipus» («Senderisme», «Ruta en bicicleta», etc.) la filtren encara més. Torna a fer clic en un valor marcat per desmarcar-lo.',
+    'Si la llista en té de diversos, «Origen» (YOUYA, «Importació GPX», wanderer), «Límit de ruta» (T1 a T6) i «Tipus» («Senderisme», «Ruta en bicicleta», etc.) la filtren encara més. Torna a fer clic en un valor marcat per desmarcar-lo.',
   'help.guide.tour-hide-on-map.step.1':
     "Passa el ratolí per sobre d'una excursió de la llista i fes clic a l'ull que apareix a la dreta de la fila («Amaga al mapa»).",
   'help.guide.tour-import-plan-tab.step.1':
@@ -5851,7 +5852,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.tip.4':
     '«Col·lecció» només apareix si el complement «Col·leccions» està activat. No pots triar una llista de només lectura, i si encara no tens cap llista, el diàleg ofereix «Obre les col·leccions».',
   'help.guide.tour-packing-link.step.5':
-    "Fes clic a «Obre la llista d'equipatge» per anar marcant coses. TREK passa a la pestanya «Llistes», a la llista d'equipatge.",
+    "Fes clic a «Obre la llista d'equipatge» per anar marcant coses. YOUYA passa a la pestanya «Llistes», a la llista d'equipatge.",
   'help.guide.tour-files.step.2': "Ara la fila de sota en mostra el recompte, i la llista s'obre.",
   'help.guide.tour-activity-link.step.2':
     'A «Feta el», comprova el dia que la vas fer. Tria «Sense dia» si no correspon a cap.',
@@ -5864,7 +5865,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.step.5':
     "«Cerca un lloc o una adreça», a dalt del mapa, porta el mapa a un lloc, perquè puguis començar on és l'excursió.",
   'help.guide.tour-draw-route.goal':
-    "Posa els punts d'una excursió nova al mapa i deixa que TREK calculi la ruta entre ells.",
+    "Posa els punts d'una excursió nova al mapa i deixa que YOUYA calculi la ruta entre ells.",
   'help.guide.tour-draw-route.tip.2':
     "Topo o «Excursionisme», a la pastilla del mapa, mostren els camins, i així és més fàcil fer-hi clic. Si un punt és massa lluny de qualsevol via que pugui fer servir el tipus, apareix un avís en lloc d'una ruta.",
   'help.guide.tour-type-profile.step.3':
@@ -6000,11 +6001,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     "«Velocitat de rem» mostra en gris la velocitat suggerida per a l'embarcació. Si n'escrius una de pròpia, el camp diu «Velocitat pròpia»; l'enllaç de sota, «Usa el suggerit», torna a la velocitat de l'embarcació.",
   'help.guide.tour-paddle-water-route.goal':
-    "Fes que TREK planifiqui un tram pel riu o pel llac, i entén les notes d'un tram que no ha pogut planificar.",
+    "Fes que YOUYA planifiqui un tram pel riu o pel llac, i entén les notes d'un tram que no ha pogut planificar.",
   'help.guide.tour-paddle-water-route.tip.3':
     'Les notes de sota un tram planificat indiquen «Aigües braves» amb el seu grau, un «Pas per a canoes» o un «Buit a les dades del mapa» salvat amb una línia recta.',
   'help.guide.tour-paddle-portage.step.4':
-    "A «Ruta», «Seguir el camí» fa servir una via cartografiada i «Línia recta» va directament. TREK busca el camí automàticament i t'avisa quan no n'hi ha cap sense fer una gran volta.",
+    "A «Ruta», «Seguir el camí» fa servir una via cartografiada i «Línia recta» va directament. YOUYA busca el camí automàticament i t'avisa quan no n'hi ha cap sense fer una gran volta.",
   'help.guide.tour-paddle-lock.step.1':
     'Passa el ratolí per la parada de la resclosa i fes clic a «Més accions», els tres punts.',
   'help.guide.tour-paddle-time.title': "Consultar i ajustar el temps d'una ruta en piragua",
@@ -6014,7 +6015,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     "Desa la ruta en piragua i després busca «Llista de comprovació» a la columna de l'esquerra. La insígnia de la capçalera resumeix com està la llista.",
   'help.guide.tour-paddle-checklist.tip.4':
-    "Els obstacles provenen de les dades d'OpenStreetMap de les regions que té TREK. On no n'hi ha, la targeta t'ho indica, i has de comprovar tu mateix els assuts, les rescloses i els transports per terra.",
+    "Els obstacles provenen de les dades d'OpenStreetMap de les regions que té YOUYA. On no n'hi ha, la targeta t'ho indica, i has de comprovar tu mateix els assuts, les rescloses i els transports per terra.",
   'help.guide.tour-paddle-track-marks.step.4':
     "Fes clic a la traça a «Excursions d'aquest viatge». La columna de l'esquerra la mostra tal com es va enregistrar, amb la targeta «Transports per terra i rescloses».",
   'help.ctx.trip-tour-horse.title': 'Rutes a cavall',
@@ -6082,16 +6083,16 @@ const help: TranslationStrings = {
     'Mentre dura un viatge vinculat, les estades de cada dia apareixen en aquell dia, a punt per a «Incorporar el dia».',
   'help.ctx.settings-about.title': 'Quant a',
   'help.guide.web-push-device.tip.3':
-    'Push necessita que obris TREK per HTTPS. Si les notificacions estan bloquejades, permet-les a la configuració del navegador i torna-ho a provar.',
-  'help.guide.booking-mail-address.title': 'Reenvia correus de reserva a TREK',
+    'Push necessita que obris YOUYA per HTTPS. Si les notificacions estan bloquejades, permet-les a la configuració del navegador i torna-ho a provar.',
+  'help.guide.booking-mail-address.title': 'Reenvia correus de reserva a YOUYA',
   'help.guide.booking-mail-address.goal':
-    'Aconsegueix una adreça pròpia per a les confirmacions de reserva, perquè TREK afegeixi cada reserva al viatge que toca.',
+    'Aconsegueix una adreça pròpia per a les confirmacions de reserva, perquè YOUYA afegeixi cada reserva al viatge que toca.',
   'help.guide.booking-mail-address.step.1':
     "A «Integracions», «Correus de reserva» mostra «La teva adreça». Fes clic al botó de copiar del costat. Guarda l'adreça per a tu, com una contrasenya.",
   'help.guide.booking-mail-address.step.2':
     'Reenvia-hi una reserva a mà, amb els adjunts, o segueix «Reenvia automàticament» per configurar una regla a Gmail o Outlook.',
   'help.guide.booking-mail-address.step.3':
-    '«Importa correus de reserva» activa o desactiva la importació. «Llegeix amb IA» deixa que la IA llegeixi correus sense dades de reserva llegibles per màquina. «Afegeix automàticament» posa directament al viatge una reserva de la qual TREK està segur.',
+    '«Importa correus de reserva» activa o desactiva la importació. «Llegeix amb IA» deixa que la IA llegeixi correus sense dades de reserva llegibles per màquina. «Afegeix automàticament» posa directament al viatge una reserva de la qual YOUYA està segur.',
   'help.guide.booking-mail-address.step.4':
     "«Reserves pendents» obre els correus que esperen una decisió teva, amb un número si n'hi ha. «Puja un fitxer de correu» llegeix un correu que has desat com a .eml.",
   'help.guide.booking-mail-address.result':
@@ -6109,7 +6110,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     'La insígnia mostra «Connectat», i la pestanya «Excursions» de cada viatge pot buscar al teu wanderer i importar-ne els camins.',
   'help.guide.tour-wanderer-watch.result':
-    "TREK comprova els camins que has importat i t'avisa quan algun pot haver canviat. Una excursió només canvia quan acceptes el canvi.",
+    "YOUYA comprova els camins que has importat i t'avisa quan algun pot haver canviat. Una excursió només canvia quan acceptes el canvi.",
   'help.guide.plugin-settings.step.1':
     "Obre «Connectors» a la barra lateral de la configuració. Sota «Configuració dels connectors», cada connector que té opcions per a tu té una targeta pròpia: omple'n els camps i fes clic a «Desa», o tria el que et mostra. Les accions de la targeta s'executen després de confirmar-les.",
   'help.guide.profile.step.3': 'Fes clic a «Desa el perfil», a la dreta del peu de la targeta.',
@@ -6123,7 +6124,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Decideix com comencen les notificacions de cada usuari, i bloqueja del tot un canal per a un esdeveniment.',
   'help.ctx.notifications.summary':
-    "Totes les notificacions que TREK t'ha mostrat dins de l'aplicació, de la més recent a la més antiga i agrupades per dia: una reserva que algú ha modificat, un missatge nou al xat d'un viatge, un vol amb retard, una reserva d'un correu reenviat. La campana de dalt a la dreta mostra les deu més recents, i aquesta pàgina les mostra totes.",
+    "Totes les notificacions que YOUYA t'ha mostrat dins de l'aplicació, de la més recent a la més antiga i agrupades per dia: una reserva que algú ha modificat, un missatge nou al xat d'un viatge, un vol amb retard, una reserva d'un correu reenviat. La campana de dalt a la dreta mostra les deu més recents, i aquesta pàgina les mostra totes.",
   'help.guide.read-notifications.step.1':
     'Fes clic a la campana de dalt a la dreta. El número vermell indica quantes notificacions encara no has llegit.',
   'help.guide.filter-notifications.step.1': 'Fes clic a la campana de dalt a la dreta.',
@@ -6253,7 +6254,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     "Fes clic a GPX per baixar l'excursió desada com a fitxer GPX: tota la ruta amb les altituds que té, llesta per a una aplicació de navegació o un dispositiu GPS.",
   'help.guide.tour-copy-keep.step.1':
-    "Obre la targeta de l'excursió i fes clic a «Copiar», a baix. TREK crea una excursió nova i independent, sense els seus dies, i l'original no canvia.",
+    "Obre la targeta de l'excursió i fes clic a «Copiar», a baix. YOUYA crea una excursió nova i independent, sense els seus dies, i l'original no canvia.",
   'help.guide.tour-copy-keep.result':
     'El viatge té una segona excursió que pots modificar lliurement, i la col·lecció en té la seva pròpia còpia, llesta per afegir-la a un altre viatge.',
   'help.guide.tour-packing-link.tip.1':
@@ -6342,7 +6343,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     "Fes clic a «Ferm» per veure la mateixa ruta segons el terreny que trepitges, des de l'asfalt fins al terra natural i la roca.",
   'help.guide.tour-hike-round.step.2':
-    "S'obre la targeta «Ruta circular» sobre el mapa. Comprova l'inici a «De» i escriu la «Distància» que vulguis. La pastilla del costat mostra les llargades de les rutes circulars que TREK et proposarà.",
+    "S'obre la targeta «Ruta circular» sobre el mapa. Comprova l'inici a «De» i escriu la «Distància» que vulguis. La pastilla del costat mostra les llargades de les rutes circulars que YOUYA et proposarà.",
   'help.guide.tour-hike-compare-ways.title': "Comparar altres camins per a un tram d'una caminada",
   'help.guide.tour-hike-compare-ways.tip.2':
     "Quan el calculador de rutes no coneix cap altre camí, la targeta t'ho indica. Quan no pot seguir el camí que has triat, el tram es queda com estava i la targeta t'ho diu.",
@@ -6361,7 +6362,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     "Els horaris d'obertura provenen d'OpenStreetMap o del lloc del viatge al qual correspon una parada, i la pastilla del costat indica d'on. Comprova'ls abans d'anar-hi.",
   'help.guide.tour-walk-google-import.step.4':
-    'Fes clic a «Carrega com a passeig». TREK planifica pel seu compte el camí a peu entre les parades. Fes clic a «Desa» per conservar el passeig.',
+    'Fes clic a «Carrega com a passeig». YOUYA planifica pel seu compte el camí a peu entre les parades. Fes clic a «Desa» per conservar el passeig.',
   'help.guide.tour-walk-check-off.step.2':
     "Desplaça't fins a «Parades de la ruta». Cada parada mostra quanta estona t'hi estàs i, si el passeig té hora d'inici, a quina hora hi arribes.",
   'help.ctx.trip-tour-bike.summary':
@@ -6377,7 +6378,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     "Planifica un dia a les pistes, un circuit d'esquí de fons, una travessa amb esquís o una sortida amb raquetes per les pistes, remuntadors i senders cartografiats.",
   'help.guide.tour-ski-plan.tip.2':
-    "El punt d'informació del costat de «Disciplina» explica què fa TREK amb les excursions d'esquí. Ni allà ni enlloc d'aquí no s'indica res sobre la neu, les allaus o si les pistes, els remuntadors i els senders són oberts.",
+    "El punt d'informació del costat de «Disciplina» explica què fa YOUYA amb les excursions d'esquí. Ni allà ni enlloc d'aquí no s'indica res sobre la neu, les allaus o si les pistes, els remuntadors i els senders són oberts.",
   'help.guide.tour-ski-options.step.3':
     'A «Preferir», tria «La més ràpida», «Més esquí» o «Més fàcil». A «Ritme», tria «Tranquil», «Normal» o «Esportiu»: canvia el temps que el calculador assigna a cada pista.',
   'help.guide.tour-ski-fix-leg.goal':
@@ -6395,11 +6396,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     "Comprova que «Afegeix un punt» estigui activat i fes clic al mapa: primer el punt on entres a l'aigua, després els punts intermedis i, finalment, el punt on en surts.",
   'help.guide.tour-paddle-water-route.step.1':
-    "Un tram dibuixat a mà mostra «Dibuixat a mà, sense calcular» sota el seu punt, amb la seva longitud. TREK manté la línia tal com l'has dibuixada.",
+    "Un tram dibuixat a mà mostra «Dibuixat a mà, sense calcular» sota el seu punt, amb la seva longitud. YOUYA manté la línia tal com l'has dibuixada.",
   'help.guide.tour-paddle-water-route.tip.4':
     "No pots desar mentre hi hagi un tram sense planificar. Primer planifica'l per l'aigua o dibuixa'l a mà.",
   'help.guide.tour-paddle-portage.step.5':
-    "A «Sortida i entrada», escriu els minuts que necessites per sortir, descarregar i tornar a entrar a l'aigua. Si ho deixes buit, TREK hi posa 10 minuts.",
+    "A «Sortida i entrada», escriu els minuts que necessites per sortir, descarregar i tornar a entrar a l'aigua. Si ho deixes buit, YOUYA hi posa 10 minuts.",
   'help.guide.tour-paddle-lock.step.2':
     'Tria «Resclosa en aquest punt». Sota el punt apareix una targeta «Resclosa», marcada amb «Falta el temps».',
   'help.guide.tour-paddle-time.goal':
@@ -6409,7 +6410,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     'Només hi ha previsió per als pròxims 16 dies. Per a un dia més llunyà, indica a partir de quina data hi haurà previsió. Per a un dia que ja ha passat, ho indica.',
   'help.guide.tour-paddle-checklist.step.2':
-    "La línia de sota indica com d'actuals són les dades: «Data OSM» per a OpenStreetMap, «Consultades» per a quan les va llegir TREK, i «Dades d’obstacles» on no cobreixen tota la ruta.",
+    "La línia de sota indica com d'actuals són les dades: «Data OSM» per a OpenStreetMap, «Consultades» per a quan les va llegir YOUYA, i «Dades d’obstacles» on no cobreixen tota la ruta.",
   'help.guide.tour-paddle-checklist.tip.5':
     'Una llista de comprovació no és cap aprovació de seguretat ni legal. La teva decisió no anul·la cap prohibició ni cap terreny privat que consti a OpenStreetMap.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -6427,7 +6428,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-recorded.tip.3':
     'També pots deixar anar el fitxer a qualsevol punt de la pestanya «Excursions» per obrir la mateixa previsualització.',
   'help.guide.create-trip.tip.3':
-    'A «Companys de viatge» pots afegir persones que ja tenen un compte en aquest TREK. Passen a ser membres del viatge tan bon punt es crea.',
+    'A «Companys de viatge» pots afegir persones que ja tenen un compte en aquest YOUYA. Passen a ser membres del viatge tan bon punt es crea.',
   'help.guide.trip-reminder.step.1':
     'Fes clic al llapis de la targeta del viatge. Per a un viatge nou, el formulari «Viatge nou» té la mateixa secció.',
   'help.guide.company-holidays.tip.2':
@@ -6449,7 +6450,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.7':
     "Excursions desades: les excursions que has desat d'un viatge són les primeres files d'una llista, amb el grau, el tipus, el viatge d'on provenen i les seves mesures. «Afegeix a un viatge» en crea una excursió nova, i la icona de la paperera la treu de la llista.",
   'help.guide.move-to-list.title': 'Moure o duplicar llocs a una altra llista',
-  'help.guide.copy-to-trip.tip.2': "Els llocs que el viatge ja té s'ometen, i TREK indica quants se n'han omès.",
+  'help.guide.copy-to-trip.tip.2': "Els llocs que el viatge ja té s'ometen, i YOUYA indica quants se n'han omès.",
   'help.guide.accept-list-invite.tip.2':
     "Fes clic a «Compartit», a dalt de la llista, per veure'n els membres. Des d'allà, «Sortir de la llista» et permet tornar a sortir-ne.",
   'help.guide.tour-collection-add-to-trip.goal':
@@ -6466,16 +6467,16 @@ const help: TranslationStrings = {
   'help.guide.journey-day-stays.goal': 'Converteix en entrades, una per una, les estades que ha enregistrat Dawarich.',
   'help.guide.journey-take-over-day.goal':
     "Converteix les estades d'un dia en esborranys d'entrada, o en una sola crònica del dia, d'un sol cop.",
-  'help.guide.journey-auto-prepare.title': 'Fer que TREK prepari els teus dies enregistrats',
+  'help.guide.journey-auto-prepare.title': 'Fer que YOUYA prepari els teus dies enregistrats',
   'help.guide.photo-location.title': 'Situar les entrades on es van fer les fotos',
   'help.ctx.settings-about.summary':
-    "Què és TREK, quina versió fa servir aquest servidor i on trobar el projecte: la documentació, on informar d'errors i les maneres de donar suport al projecte.",
+    "Què és YOUYA, quina versió fa servir aquest servidor i on trobar el projecte: la documentació, on informar d'errors i les maneres de donar suport al projecte.",
   'help.guide.startup.tip.2':
     "Si la pestanya d'inici pertany a un complement que has desactivat, s'obre el pla en el seu lloc.",
   'help.guide.web-push-device.title': 'Rebre notificacions push en aquest dispositiu',
   'help.guide.connect-airtrail.tip.1': "La targeta només apareix si l'administrador té activat el complement AirTrail.",
   'help.guide.connect-dawarich.tip.1':
-    "TREK només suggereix entrades, llocs i països; no s'afegeix res fins que no ho confirmes, i no s'escriu res a Dawarich.",
+    "YOUYA només suggereix entrades, llocs i països; no s'afegeix res fins que no ho confirmes, i no s'escriu res a Dawarich.",
   'help.guide.tour-connect-wanderer.tip.1':
     "La targeta només apareix si l'administrador permet wanderer a «Excursions».",
   'help.guide.tour-wanderer-watch.tip.1':
@@ -6491,7 +6492,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     "Dona a tots els comptes unes unitats, un mode de color i una divisa adequats sense que ningú hagi d'obrir «Configuració».",
   'help.guide.default-map.step.3':
-    "Cada camp es desa en sortir-ne. L'enllaç «Restaurar» del costat del nom d'un camp torna al valor per defecte de TREK.",
+    "Cada camp es desa en sortir-ne. L'enllaç «Restaurar» del costat del nom d'un camp torna al valor per defecte de YOUYA.",
   'help.guide.own-routing-engine.tip.2':
     "Si només tens definit el teu motor de rutes propi i el «Servei de rutes» és a «Automàtic», no es consulta cap Valhalla. L'enllaç «Restaurar» del costat d'un camp el torna a buidar.",
   'help.guide.admin-passkeys.step.1':
@@ -6499,7 +6500,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.4':
     "«Salut», a dalt, mostra les escriptures fallides a un destí de rèplica. Si diu «No s'ha registrat cap fallada de rèplica.», tot funciona correctament.",
   'help.guide.channels-instance.tip.3':
-    "Web Push necessita HTTPS. A l'iPhone i l'iPad, primer cal afegir TREK a la pantalla d'inici.",
+    "Web Push necessita HTTPS. A l'iPhone i l'iPad, primer cal afegir YOUYA a la pantalla d'inici.",
   'help.guide.notification-defaults.step.1':
     "A la pestanya «Notificacions», desplaça't fins a «Valors per defecte dels usuaris», a baix de tot. Cada fila és un esdeveniment i cada columna, un canal.",
   'help.ctx.notifications.bullet.1':
@@ -6549,28 +6550,28 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     'Per exportar només una part de la pestanya, filtra-la primer amb «Cercar» o «Filtra». El fitxer conté exactament el que mostra la pestanya.',
   'help.guide.import-booking-file.tip.4':
-    "Per llegir una confirmació cal connexió. Sense connexió, «Importa» t'ho indica, i ho pots tornar a provar quan TREK torni a estar en línia.",
+    "Per llegir una confirmació cal connexió. Sense connexió, «Importa» t'ho indica, i ho pots tornar a provar quan YOUYA torni a estar en línia.",
   'help.guide.forward-booking-mail.title': 'Reenvia un correu de reserva al viatge',
   'help.guide.forward-booking-mail.goal':
-    'Dona al viatge la seva pròpia adreça, reenvia-hi la confirmació i acaba el que TREK no ha pogut afegir pel seu compte.',
+    'Dona al viatge la seva pròpia adreça, reenvia-hi la confirmació i acaba el que YOUYA no ha pogut afegir pel seu compte.',
   'help.guide.forward-booking-mail.step.1':
     "Fes clic a la icona de pujada de la barra, «Importa confirmacions de reserva». Sota el quadre per als fitxers, «O reenvia-ho per correu» mostra l'adreça pròpia del viatge.",
   'help.guide.forward-booking-mail.step.2':
     "Fes clic a «Crea una adreça per a aquest viatge». Un correu enviat a aquesta adreça arriba a aquest viatge sense haver d'endevinar res.",
   'help.guide.forward-booking-mail.step.3':
-    "L'adreça apareix amb un botó de copiar al costat. Copia-la i reenvia-hi el correu de reserva des del teu programa de correu, amb els adjunts, a mà o amb una regla. TREK el llegeix en pocs minuts.",
+    "L'adreça apareix amb un botó de copiar al costat. Copia-la i reenvia-hi el correu de reserva des del teu programa de correu, amb els adjunts, a mà o amb una regla. YOUYA el llegeix en pocs minuts.",
   'help.guide.forward-booking-mail.step.4':
-    'Una reserva de la qual TREK està segur entra al viatge tota sola. Tota la resta espera la teva decisió: obre el menú sota el teu nom a dalt a la dreta, on un número compta els correus en espera, i fes clic a «Reserves pendents».',
+    'Una reserva de la qual YOUYA està segur entra al viatge tota sola. Tota la resta espera la teva decisió: obre el menú sota el teu nom a dalt a la dreta, on un número compta els correus en espera, i fes clic a «Reserves pendents».',
   'help.guide.forward-booking-mail.step.5':
-    'Cada entrada mostra què ha llegit TREK, per què espera i el viatge per al qual ha arribat. «Mostra el correu» mostra el correu mateix. Fes clic a «Omple-ho tu mateix».',
+    'Cada entrada mostra què ha llegit YOUYA, per què espera i el viatge per al qual ha arribat. «Mostra el correu» mostra el correu mateix. Fes clic a «Omple-ho tu mateix».',
   'help.guide.forward-booking-mail.step.6':
     "S'obre «Reserva nova» al viatge amb el que contenia el correu: l'assumpte com a títol, el tipus, la data i el codi de reserva que ha trobat. Revisa-ho, corregeix el que calgui i fes clic a «Afegeix».",
   'help.guide.forward-booking-mail.result':
     'La reserva és a la pestanya «Reserves» com qualsevol altra, i la seva entrada ha sortit de «Reserves pendents».',
   'help.guide.forward-booking-mail.tip.1':
-    "La teva adreça, a «Configuració», «Integracions», «Correus de reserva», serveix per a tots els viatges: TREK tria el viatge amb les dates i els llocs que encaixen amb la reserva. L'adreça d'un viatge s'estalvia aquesta endevinació.",
+    "La teva adreça, a «Configuració», «Integracions», «Correus de reserva», serveix per a tots els viatges: YOUYA tria el viatge amb les dates i els llocs que encaixen amb la reserva. L'adreça d'un viatge s'estalvia aquesta endevinació.",
   'help.guide.forward-booking-mail.tip.2':
-    "Amb «Afegeix automàticament» activat a aquella targeta, una reserva de la qual TREK està segur va directament al viatge, i l'avís corresponent ofereix «Desfés» durant 7 dies. Desactivat, cada reserva espera a «Reserves pendents».",
+    "Amb «Afegeix automàticament» activat a aquella targeta, una reserva de la qual YOUYA està segur va directament al viatge, i l'avís corresponent ofereix «Desfés» durant 7 dies. Desactivat, cada reserva espera a «Reserves pendents».",
   'help.guide.forward-booking-mail.tip.3':
     'Una entrada també es pot conservar com a document amb «Desa com a document», que posa el correu o els seus adjunts als fitxers del viatge, o es pot descartar amb «Descarta».',
   'help.guide.forward-booking-mail.tip.4':
@@ -6652,11 +6653,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     "Obre la targeta de l'excursió. «Pla i real» mostra la «Distància», el «Desnivell positiu», el «Desnivell negatiu» i el «Temps amb pauses» del pla al costat dels de la traça, amb la «Diferència».",
   'help.guide.tour-origin-check.goal':
-    "Esbrina si una excursió es va dibuixar a TREK o es va importar, de quin fitxer, i si ha canviat des d'aleshores.",
+    "Esbrina si una excursió es va dibuixar a YOUYA o es va importar, de quin fitxer, i si ha canviat des d'aleshores.",
   'help.ctx.trip-tour-planner.title': 'Excursions',
   'help.guide.tour-open-workspace.title': 'Orientar-se a la pestanya «Excursions»',
   'help.guide.tour-open-workspace.step.7':
-    "Fes clic a una excursió del carril de la dreta. Una excursió planificada a TREK s'obre a l'editor. Una traça importada s'obre sense canvis, com a «Excursió GPX», per consultar-la.",
+    "Fes clic a una excursió del carril de la dreta. Una excursió planificada a YOUYA s'obre a l'editor. Una traça importada s'obre sense canvis, com a «Excursió GPX», per consultar-la.",
   'help.guide.tour-draw-route.step.2':
     "Escriu on comença l'excursió a «Cerca un lloc o una adreça» i tria el resultat. El mapa s'hi desplaça.",
   'help.guide.tour-draw-route.tip.4':
@@ -6690,7 +6691,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.3': "Una traça que el viatge ja té apareix en gris com a «Ja és al viatge» i s'omet.",
   'help.guide.tour-view-import.step.3': "«Torna a excursions», la fletxa de dalt a l'esquerra, la torna a tancar.",
   'help.guide.tour-plan-from-import.step.2':
-    'TREK agafa punts de control de la traça i torna a calcular-ne la ruta. El mapa dibuixa la importació amb línia de punts i el suggeriment amb línia contínua, i la targeta en compara les longituds, la proporció «Dins de 50 m de la traça» i la «Desviació màxima».',
+    'YOUYA agafa punts de control de la traça i torna a calcular-ne la ruta. El mapa dibuixa la importació amb línia de punts i el suggeriment amb línia contínua, i la targeta en compara les longituds, la proporció «Dins de 50 m de la traça» i la «Desviació màxima».',
   'help.guide.tour-restore-recorded.title': 'Tornar a la traça enregistrada',
   'help.guide.tour-take-over.title': "Agafar una excursió d'un altre viatge",
   'help.guide.tour-take-over.tip.1':
@@ -6782,7 +6783,7 @@ const help: TranslationStrings = {
     "Si les pistes deixen de carregar-se, l'interruptor mostra un senyal d'avís. El mapa i la teva ruta continuen funcionant.",
   'help.guide.tour-ski-import.step.4': 'Fes clic a «Importa 1 excursió».',
   'help.ctx.trip-tour-paddle.summary':
-    "Una ruta en caiac, canoa o SUP per un riu o un llac. Indica l'embarcació i el tipus d'aigua, segueix l'aigua on TREK en té dades, compta els transports per terra i les rescloses en el temps previst, i mostra el vent del dia que remes i el que se sap dels obstacles del recorregut.",
+    "Una ruta en caiac, canoa o SUP per un riu o un llac. Indica l'embarcació i el tipus d'aigua, segueix l'aigua on YOUYA en té dades, compta els transports per terra i les rescloses en el temps previst, i mostra el vent del dia que remes i el que se sap dels obstacles del recorregut.",
   'help.guide.tour-paddle-setup.goal':
     'Comença una ruta en caiac, canoa o SUP i indica amb què remes, per quina aigua i a quina velocitat.',
   'help.guide.tour-paddle-setup.tip.1':
@@ -6790,7 +6791,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-water-route.step.2':
     "Perquè un tram es planifiqui per l'aigua, passa el ratolí per la parada anterior i fes clic a «Més accions», els tres punts.",
   'help.guide.tour-paddle-water-route.result':
-    "Cada tram segueix l'aigua o està dibuixat a mà expressament, i un tram que TREK no ha pogut planificar n'explica el motiu.",
+    "Cada tram segueix l'aigua o està dibuixat a mà expressament, i un tram que YOUYA no ha pogut planificar n'explica el motiu.",
   'help.guide.tour-paddle-portage.tip.1':
     'Si al final vols fer aquell tram remant, torna a obrir «Més accions» al punt i tria «Torna a remar aquest tram». Torna a ser un tram dibuixat a mà.',
   'help.guide.tour-paddle-lock.step.3': 'Fes clic a la targeta «Resclosa» per obrir-la.',
@@ -6809,7 +6810,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     "Fes clic al camp «Tipus de ruta», sota «Nom de l'excursió», i tria «Ruta a cavall». La targeta «Rutes eqüestres» apareix sota «Punts de ruta».",
   'help.guide.tour-horse-plan.tip.2':
-    'TREK no calcula cap temps per a les rutes a cavall. Si vols tenir un temps al dia, introdueix-lo a «Planificat», dins de «Detalls».',
+    'YOUYA no calcula cap temps per a les rutes a cavall. Si vols tenir un temps al dia, introdueix-lo a «Planificat», dins de «Detalls».',
   'help.guide.tour-horse-gap.step.3':
     "Fes clic a «Agafa el tram». Mentre l'interruptor no estigui activat, el botó queda en gris.",
   'help.guide.tour-horse-recorded.step.1':
@@ -6826,7 +6827,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': 'Registrar dies per a algú amb qui planifiques',
   'help.guide.dissolve-fusion.title': 'Deixar de planificar junts',
   'help.guide.country-places.goal':
-    'Consulta els llocs que TREK compta per a un país, per revisar què hi vas fer o per trobar un lloc que TREK ha assignat a un país equivocat.',
+    'Consulta els llocs que YOUYA compta per a un país, per revisar què hi vas fer o per trobar un lloc que YOUYA ha assignat a un país equivocat.',
   'help.guide.regions.tip.3':
     '«Afegeix a la llista de desitjos» també funciona amb les regions. La regió es mostra amb el mateix ratllat que un país de la llista de desitjos.',
   'help.guide.tour-activity-stats.step.2':
@@ -6857,11 +6858,11 @@ const help: TranslationStrings = {
   'help.guide.readability.tip.3':
     '«Llegibilitat» està marcada com a Experimental. Si alguna cosa es veu malament, fes clic a «Restableix els valors per defecte», a baix de la pestanya, per recuperar la configuració per defecte.',
   'help.guide.web-push-device.goal':
-    "Rep les notificacions de TREK al telèfon o a l'ordinador encara que TREK estigui tancat.",
+    "Rep les notificacions de YOUYA al telèfon o a l'ordinador encara que YOUYA estigui tancat.",
   'help.guide.connect-airtrail.tip.2':
     "La clau es desa xifrada i no es torna a mostrar mai; els punts del camp indiquen que n'hi ha una de desada.",
   'help.guide.connect-dawarich.tip.2':
-    'Sota els botons, la targeta indica quan ho va comprovar TREK per última vegada i què no ofereix la teva versió de Dawarich.',
+    'Sota els botons, la targeta indica quan ho va comprovar YOUYA per última vegada i què no ofereix la teva versió de Dawarich.',
   'help.guide.tour-connect-wanderer.tip.2':
     "Una instància amb una adreça privada pot necessitar que l'administrador permeti les xarxes internes.",
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6869,13 +6870,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     'El connector funciona amb la teva configuració, i totes les accions que fa per tu apareixen a «Activitat dels connectors».',
   'help.ctx.admin-defaults.bullet.3':
-    "L'enllaç «Restaurar» del costat d'un camp que has definit recupera el valor per defecte de TREK. La configuració pròpia d'un usuari sempre té prioritat sobre aquests valors.",
+    "L'enllaç «Restaurar» del costat d'un camp que has definit recupera el valor per defecte de YOUYA. La configuració pròpia d'un usuari sempre té prioritat sobre aquests valors.",
   'help.ctx.admin-settings.bullet.5':
     '«Zona de perill», a «Seguretat»: «Rota el secret JWT» tanca la sessió de tots els usuaris, tu inclòs.',
   'help.guide.default-user-settings.step.1':
     "A «Configuració per defecte dels usuaris», tria «Mode de color» («Clar», «Fosc» o «Automàtic»), «Unitat de temperatura», «Unitat de distància», «Format d'hora», «La setmana comença el», el «Format de data», la «Divisa de visualització» i si «Difumina els codis de reserva» està activat o desactivat. Cada opció es desa a l'instant.",
   'help.guide.admin-passkeys.step.2':
-    "A la targeta «Inici de sessió amb clau d'accés», introdueix l'«ID de la part confiable (domini)», com ara trek.example.org, i els «Orígens permesos» des d'on s'accedeix al teu TREK, i fes clic a «Desa». Deixa'ls tots dos buits per fer servir APP_URL.",
+    "A la targeta «Inici de sessió amb clau d'accés», introdueix l'«ID de la part confiable (domini)», com ara trek.example.org, i els «Orígens permesos» des d'on s'accedeix al teu YOUYA, i fes clic a «Desa». Deixa'ls tots dos buits per fer servir APP_URL.",
   'help.guide.rotate-jwt-secret.title': 'Tancar la sessió de tothom alhora',
   'help.guide.notification-defaults.step.2':
     "Fes clic a una cel·la per passar-la a l'estat següent: «Activat», «Desactivat», «Bloquejat». El text d'ajuda indica l'estat següent, i cada clic es desa a l'instant.",
@@ -6890,21 +6891,21 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': 'La notificació desapareix de la llista i de la campana.',
   'help.guide.booking-mail-notifications.title': 'Respon un avís sobre un correu de reserva',
   'help.guide.booking-mail-notifications.goal':
-    'Veure què ha passat amb els correus de reserva que has reenviat i decidir què fer amb els que TREK no ha pogut afegir per ell mateix.',
+    'Veure què ha passat amb els correus de reserva que has reenviat i decidir què fer amb els que YOUYA no ha pogut afegir per ell mateix.',
   'help.guide.booking-mail-notifications.step.1':
-    "Fes clic a la campana de dalt a la dreta. Quan un correu reenviat conté reserves que TREK no ha pogut afegir pel seu compte, t'ho diu allà.",
+    "Fes clic a la campana de dalt a la dreta. Quan un correu reenviat conté reserves que YOUYA no ha pogut afegir pel seu compte, t'ho diu allà.",
   'help.guide.booking-mail-notifications.step.2':
     "«Reserves reenviades per revisar» diu quantes t'esperen. Fes clic a «Revisa» a sota.",
   'help.guide.booking-mail-notifications.step.3':
-    "«Reserves pendents» s'obre amb totes les entrades que esperen: el que TREK ha llegit, per què espera i el viatge al qual arribava. «Omple-ho tu mateix» obre una reserva nova amb el que contenia el correu, i la paperera descarta l'entrada.",
+    "«Reserves pendents» s'obre amb totes les entrades que esperen: el que YOUYA ha llegit, per què espera i el viatge al qual arribava. «Omple-ho tu mateix» obre una reserva nova amb el que contenia el correu, i la paperera descarta l'entrada.",
   'help.guide.booking-mail-notifications.result':
     'Cada reserva reenviada acaba al seu viatge o espera la teva decisió, i sempre saps quin dels dos casos és.',
   'help.guide.booking-mail-notifications.tip.1':
-    'Una reserva que TREK ha afegit pel seu compte arriba com a «Reserva afegida des d’un correu», amb «Conserva» i «Desfés». «Desfés» torna a treure la reserva del viatge, «Conserva» hi deixa.',
+    'Una reserva que YOUYA ha afegit pel seu compte arriba com a «Reserva afegida des d’un correu», amb «Conserva» i «Desfés». «Desfés» torna a treure la reserva del viatge, «Conserva» hi deixa.',
   'help.guide.booking-mail-notifications.tip.2':
     "Les altres persones d'un viatge compartit també s'assabenten d'una reserva feta des d'un correu, amb «Mostra el viatge», que obre la pestanya «Reserves».",
   'help.guide.booking-mail-notifications.tip.3':
-    "Un vol que TREK segueix en directe envia «Vol sortit», «Vol aterrat» i, a partir de 15 minuts de retard, «Vol amb retard», cadascun amb «Veure el viatge». Van a les persones assignades al vol, o a tothom al viatge. Desactiva'ls a «Configuració», «Notificacions».",
+    "Un vol que YOUYA segueix en directe envia «Vol sortit», «Vol aterrat» i, a partir de 15 minuts de retard, «Vol amb retard», cadascun amb «Veure el viatge». Van a les persones assignades al vol, o a tothom al viatge. Desactiva'ls a «Configuració», «Notificacions».",
   'help.guide.notification-settings.result':
     "«Configuració» s'obre a «Notificacions», amb un interruptor per a cada esdeveniment i canal.",
   'help.guide.link-journal.goal':
@@ -6917,9 +6918,9 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     "Fes clic a «Configuració del viatge» al costat del nom del viatge i tria «Complements» a l'esquerra. Només el propietari del viatge té aquesta àrea.",
   'help.guide.trip-addons.step.2':
-    "Fes clic a l'interruptor d'un complement per activar-lo o desactivar-lo per a aquest viatge. Hi surten «Llistes», «Pressupost», «Documents», «Col·laboració», «Viatge per carretera» i «Excursions», tants com en tingui el teu TREK.",
+    "Fes clic a l'interruptor d'un complement per activar-lo o desactivar-lo per a aquest viatge. Hi surten «Llistes», «Pressupost», «Documents», «Col·laboració», «Viatge per carretera» i «Excursions», tants com en tingui el teu YOUYA.",
   'help.guide.trip-addons.step.3':
-    "«Només aquest viatge» marca un complement que has separat de la resta de TREK. Torna'l a canviar per seguir de nou la configuració de l'administrador.",
+    "«Només aquest viatge» marca un complement que has separat de la resta de YOUYA. Torna'l a canviar per seguir de nou la configuració de l'administrador.",
   'help.guide.trip-addons.result':
     "El viatge mostra els complements que has triat, per a tothom qui hi participa: una pestanya o una part del pla apareix o desapareix. Els teus altres viatges mantenen la configuració de l'administrador.",
   'help.guide.trip-addons.tip.1':
@@ -6927,7 +6928,7 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.tip.2':
     "Pots activar un complement per a un sol viatge encara que l'administrador el tingui desactivat per a tots els altres.",
   'help.guide.trip-addons.tip.3':
-    "Canviar un interruptor requereix connexió. Fora de línia, TREK ho diu i deixa l'interruptor com estava.",
+    "Canviar un interruptor requereix connexió. Fora de línia, YOUYA ho diu i deixa l'interruptor com estava.",
   'help.guide.edit-trip-settings.title': 'Edita el viatge des del planificador',
   'help.guide.edit-trip-settings.goal':
     'Canvia el títol, les dates, la portada o la moneda del viatge sense sortir-ne.',
@@ -6939,7 +6940,7 @@ const help: TranslationStrings = {
     "Fes clic a «Actualitza». «Configuració del viatge» es tanca, i el viatge mostra el canvi a l'instant.",
   'help.guide.edit-trip-settings.result': 'El viatge mostra els detalls nous a tot arreu, per a tothom qui hi és.',
   'help.guide.edit-trip-settings.tip.1':
-    "Si mous la data d'inici, TREK primer et pregunta com han de seguir-la les reserves. Si les dates noves treuen dies que ja tenen alguna cosa, et llista aquests dies abans que confirmis.",
+    "Si mous la data d'inici, YOUYA primer et pregunta com han de seguir-la les reserves. Si les dates noves treuen dies que ja tenen alguna cosa, et llista aquests dies abans que confirmis.",
   'help.guide.edit-trip-settings.tip.2':
     "El mateix formulari s'obre des de «Els meus viatges» amb el llapis de la targeta del viatge. «Edita el viatge» només apareix per a qui pot editar el viatge.",
   'help.guide.dawarich-stays.result':
@@ -6952,7 +6953,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'La foto és la imatge del lloc a la targeta, a la columna de llocs, al dia i al mapa.',
   'help.guide.place-own-hours.step.3':
-    "A sota, «Horari d'obertura» mostra la setmana, amb una fila per dia. Si TREK ha trobat l'horari del lloc, ja està omplert; si no, fes clic primer a «Afegeix l'horari». Escriu quan obre i tanca cada dia. A la dreta d'un dia, 24h el marca com a obert tot el dia i la porta tancada com a tancat.",
+    "A sota, «Horari d'obertura» mostra la setmana, amb una fila per dia. Si YOUYA ha trobat l'horari del lloc, ja està omplert; si no, fes clic primer a «Afegeix l'horari». Escriu quan obre i tanca cada dia. A la dreta d'un dia, 24h el marca com a obert tot el dia i la porta tancada com a tancat.",
   'help.guide.add-accommodation.tip.5':
     "Les traces GPX i els llocs d'excursions no s'ofereixen mai com a allotjament, només els llocs normals del viatge.",
   'help.guide.confirm-stay-booking.step.1':
@@ -6986,7 +6987,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     "Decideix si els documents només s'importen del teu gestor, només s'hi exporten o totes dues coses, i què passa quan un document s'elimina o es modifica als dos llocs.",
   'help.guide.files-sync-settings.tip.2':
-    "Amb «Pregunta-m'ho», un document editat als dos llocs queda en espera a «Cal revisar-ho», sota la targeta. Fes clic a «Resol» i tria «Conserva la versió de TREK», «Conserva la versió del proveïdor» o «Conserva-les totes dues».",
+    "Amb «Pregunta-m'ho», un document editat als dos llocs queda en espera a «Cal revisar-ho», sota la targeta. Fes clic a «Resol» i tria «Conserva la versió de YOUYA», «Conserva la versió del proveïdor» o «Conserva-les totes dues».",
   'help.guide.manage-notes.goal':
     'Obre una nota sencera, mantén la important a dalt de tot, i corregeix o elimina el que hagi quedat desfasat.',
   'help.guide.manage-notes.tip.2':
@@ -7106,7 +7107,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     "Obre una excursió a la pestanya «Excursions» i desplaça el panell de l'esquerra fins a «Al llarg de la ruta», sota les parades de l'excursió. La targeta hi apareix quan l'excursió té una ruta.",
   'help.guide.tour-along-search.tip.3':
-    "Els resultats provenen d'OpenStreetMap i de l'índex de llocs de TREK, així que la cerca necessita connexió. Si no troba res, «Amplia a» prova la distància següent; si un servidor està saturat, «Torna-ho a provar» mostra un compte enrere fins que ho puguis tornar a provar.",
+    "Els resultats provenen d'OpenStreetMap i de l'índex de llocs de YOUYA, així que la cerca necessita connexió. Si no troba res, «Amplia a» prova la distància següent; si un servidor està saturat, «Torna-ho a provar» mostra un compte enrere fins que ho puguis tornar a provar.",
   'help.guide.tour-along-add-stop.tip.1':
     "El lloc passa a ser una parada de l'excursió, no un lloc del viatge, així que no apareix a la llista de llocs.",
   'help.guide.tour-3d-terrain.step.4':
@@ -7127,7 +7128,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     "«Detalls del camí», sota els punts de ruta, mostra el grau SAC, el ferm i el tipus de via de cada tram segons OpenStreetMap, i acoloreix la ruta del mapa a partir d'aquestes dades. Res d'això no canvia l'excursió.",
   'help.guide.tour-hike-plan.step.4':
-    '«Afegeix un punt» està activat des del principi: fes clic al mapa on comença la caminada i on acaba. «Llocs del viatge», al costat, et permet triar en canvi un refugi o un hotel del viatge. A partir de dos punts, TREK calcula la ruta a peu.',
+    '«Afegeix un punt» està activat des del principi: fes clic al mapa on comença la caminada i on acaba. «Llocs del viatge», al costat, et permet triar en canvi un refugi o un hotel del viatge. A partir de dos punts, YOUYA calcula la ruta a peu.',
   'help.guide.tour-hike-trail-details.title': "Veure graus, ferms i tipus de via d'una caminada",
   'help.guide.tour-hike-trail-details.tip.1':
     "Les vies sense cap valor a OpenStreetMap apareixen a «Desconeguda», i desconegut no vol dir fàcil. Si n'hi ha que mostren «No s'ha pogut consultar aquesta vegada», fes clic a «Torna-ho a provar».",
@@ -7159,7 +7160,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     "El «Resum de l'excursió», a la dreta, mostra el «Temps en bici», l'estimació del calculador de rutes per al perfil, amb les pujades incloses. Les pauses no hi són.",
   'help.guide.tour-bike-profile.step.4':
-    "A «Punts de ruta», fes clic a «Llocs del viatge» i tria l'inici i el final, en aquest cas l'Hotel Alpenroyal i després l'Hotel Greif. També pots comprovar que «Afegeix un punt» estigui activat i fer clic al mapa. A partir de dos punts, TREK calcula la ruta.",
+    "A «Punts de ruta», fes clic a «Llocs del viatge» i tria l'inici i el final, en aquest cas l'Hotel Alpenroyal i després l'Hotel Greif. També pots comprovar que «Afegeix un punt» estigui activat i fer clic al mapa. A partir de dos punts, YOUYA calcula la ruta.",
   'help.guide.tour-bike-profile.tip.5':
     "Si un administrador permet el mapa CyclOSM, la fila de capes del mapa també ofereix «Bicicleta» mentre hi ha una ruta en bicicleta oberta. Si deixa de carregar-se, canvia a «Mapa». L'excursió no canvia.",
   'help.guide.tour-bike-surfaces.tip.1':
@@ -7188,7 +7189,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     "El mapa d'una ruta en piragua ofereix «Mapa» i «Satèl·lit», i «Senyals nàutics» d'OpenSeaMap com a capa superposada.",
   'help.guide.tour-paddle-water-route.step.3':
-    "Tria «Planifica el tram següent per l’aigua». TREK planifica el tram pel riu o pel llac des d'aquest punt fins al següent.",
+    "Tria «Planifica el tram següent per l’aigua». YOUYA planifica el tram pel riu o pel llac des d'aquest punt fins al següent.",
   'help.guide.tour-paddle-portage.title': "Portar l'embarcació per terra per esquivar un obstacle",
   'help.guide.tour-paddle-portage.tip.2':
     "A l'últim punt, «Porta l’embarcació per terra des d’aquí» s'aplica quan hi poses el punt següent. La fila diu «Portejar des d'aquí», i la seva creu, «Al final no portejar», ho desfà.",
@@ -7287,7 +7288,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     "A la targeta «Assistent d’IA», tria com connectar-te: «Inicia sessió amb ChatGPT» fa servir el teu pla de ChatGPT, «Enganxa una clau API» agafa una clau d'Anthropic, OpenAI, Gemini o OpenRouter.",
   'help.guide.connect-ai.step.2':
-    'Enganxa la teva clau. TREK indica quin proveïdor detecta i què se li envia. Fes clic a «Connecta»; TREK primer comprova la clau amb el proveïdor.',
+    'Enganxa la teva clau. YOUYA indica quin proveïdor detecta i què se li envia. Fes clic a «Connecta»; YOUYA primer comprova la clau amb el proveïdor.',
   'help.guide.connect-ai.step.3':
     'La targeta diu «Connectat a» i el proveïdor. Tria el «Model» que vulguis i fes clic a «Obre l’assistent» per començar al teu viatge actual o al següent.',
   'help.guide.connect-ai.result': "L'assistent funciona amb el teu propi compte, a tots els viatges.",
@@ -7306,7 +7307,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     '«Valors per defecte dels usuaris», a baix de tot: per a cada esdeveniment i canal, «Activat», «Desactivat» o «Bloquejat» per a tothom qui no ho hagi canviat.',
   'help.guide.default-user-settings.step.2':
-    'Un camp que hagis definit mostra un enllaç «Restaurar» al costat del nom, que recupera el valor per defecte de TREK.',
+    'Un camp que hagis definit mostra un enllaç «Restaurar» al costat del nom, que recupera el valor per defecte de YOUYA.',
   'help.guide.own-routing-engine.title': 'Fer servir els teus propis servidors de rutes',
   'help.guide.admin-passkeys.result':
     "La pàgina d'inici de sessió ofereix «Inicia la sessió amb una passkey», i la gent pot afegir passkeys des de la seva configuració.",
@@ -7331,7 +7332,7 @@ const help: TranslationStrings = {
     "Passa el ratolí per sobre de la fila de la reserva al dia: l'agafador de l'esquerra indica que es pot arrossegar.",
   'help.guide.place-image-from-file.tip.1': "Només s'ofereixen fitxers JPG, PNG, GIF i WebP; un bitllet en PDF, no.",
   'help.guide.place-own-hours.step.4':
-    "Els botons de la dreta d'«Horari d'obertura»: el botó de copiar aplica l'horari del dilluns a tots els dies, i la X torna a eliminar el teu horari. Si TREK havia trobat un horari propi, «Agafa-ho dels detalls del lloc» el recupera.",
+    "Els botons de la dreta d'«Horari d'obertura»: el botó de copiar aplica l'horari del dilluns a tots els dies, i la X torna a eliminar el teu horari. Si YOUYA havia trobat un horari propi, «Agafa-ho dels detalls del lloc» el recupera.",
   'help.guide.confirm-stay-booking.step.2':
     "La reserva s'obre sobre el pla. La primera pastilla de la capçalera en mostra l'estat.",
   'help.ctx.trip-map.bullet.9':
@@ -7349,7 +7350,7 @@ const help: TranslationStrings = {
   'help.guide.group-sort-bookings.step.1':
     'A «Targetes» o «Llista», fes clic a «Opcions de vista», els controls lliscants de després de les tres icones de vista.',
   'help.guide.create-booking.tip.4':
-    'Sense connexió, la reserva es desa en aquest dispositiu i se sincronitza quan tornes a estar en línia. Els fitxers nous necessiten connexió, així que treu-los o desa més tard. Si fas clic fora del formulari per error, o prems Esc, TREK et pregunta «Vols descartar els canvis?» abans que es perdi res del que has escrit.',
+    'Sense connexió, la reserva es desa en aquest dispositiu i se sincronitza quan tornes a estar en línia. Els fitxers nous necessiten connexió, així que treu-los o desa més tard. Si fas clic fora del formulari per error, o prems Esc, YOUYA et pregunta «Vols descartar els canvis?» abans que es perdi res del que has escrit.',
   'help.guide.booking-on-map.tip.2': "Una estada s'obre a la primera nit.",
   'help.guide.export-bookings-csv.step.3':
     "Fes clic a «Exporta com a full de càlcul (CSV)», la icona de baixada de després d'«Opcions de vista».",
@@ -7361,7 +7362,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     "Fes clic a «Sincronització de documents», a l'extrem dret de la barra. Si el viatge ja està vinculat, la targeta del teu gestor s'obre a la dreta; si n'hi ha més d'un, fes clic al que vulguis a «Aquest viatge», a l'esquerra.",
   'help.guide.files-sync-settings.tip.3':
-    "«Actualitzacions instantànies», un enllaç amb «Copiar» al costat, només apareix per als gestors en què TREK no es pot subscriure automàticament als canvis. Enganxa l'enllaç al gestor i els canvis arribaran a l'instant en lloc d'arribar a la propera comprovació.",
+    "«Actualitzacions instantànies», un enllaç amb «Copiar» al costat, només apareix per als gestors en què YOUYA no es pot subscriure automàticament als canvis. Enganxa l'enllaç al gestor i els canvis arribaran a l'instant en lloc d'arribar a la propera comprovació.",
   'help.guide.manage-notes.step.1':
     "Fes clic als tres punts de la capçalera d'una targeta de nota («Més opcions»). El menú conté «Ampliar», «Fixa», «Edita» i «Elimina».",
   'help.guide.note-categories.title': 'Classificar les notes en categories',
@@ -7381,7 +7382,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     'Les fotos del lloc ocupen tota la pantalla, i les fletxes recorren les altres que la seva font coneix. Tanca-les per tornar al diàleg, on «Cancel·la» deixa la parada tal com era.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    "La imatge és la del mateix lloc, la que has definit al formulari del lloc. Si no n'hi ha, TREK mostra la foto que la seva font té per al lloc, si ve de Google o d'OpenStreetMap.",
+    "La imatge és la del mateix lloc, la que has definit al formulari del lloc. Si no n'hi ha, YOUYA mostra la foto que la seva font té per al lloc, si ve de Google o d'OpenStreetMap.",
   'help.guide.roadtrip-stop-photo.tip.2':
     "En un telèfon, toca una parada a la pestanya «Viatge per carretera»: la seva fitxa mostra la imatge a tota l'amplada sota el nom, i tocar-la obre les fotos.",
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -7408,7 +7409,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     'Si arrossegues a un dia una excursió amb etapes, et fa la mateixa pregunta en un diàleg petit. «Cancel·la» deixa el pla com estava.',
   'help.guide.tour-day-times.step.2':
-    "Indica l'«Inici» i deixa «Fi» buit. La línia de sota els camps mostra l'hora de final que calcula TREK: l'inici més el temps de l'excursió.",
+    "Indica l'«Inici» i deixa «Fi» buit. La línia de sota els camps mostra l'hora de final que calcula YOUYA: l'inici més el temps de l'excursió.",
   'help.guide.tour-remove-from-day.title': "Treure una excursió d'un dia",
   'help.guide.tour-filter-list.title': "Filtrar la llista d'excursions",
   'help.guide.tour-filter-list.tip.3':
@@ -7420,7 +7421,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     "La targeta serveix per consultar l'excursió i el que hi va associat. La ruta en si es modifica a la pestanya «Excursions»: obre-la i fes clic a l'excursió a «Excursions d'aquest viatge». Les excursions també s'eliminen allà, no aquí.",
   'help.guide.tour-detail-read.step.6':
-    "Continua baixant per veure la «Descripció» i les «Notes», i després l'«Origen»: «planificada a TREK», el fitxer des d'on es va importar o el camí de wanderer d'on prové, amb la data.",
+    "Continua baixant per veure la «Descripció» i les «Notes», i després l'«Origen»: «planificada a YOUYA», el fitxer des d'on es va importar o el camí de wanderer d'on prové, amb la data.",
   'help.guide.tour-rename-colour.title': "Canviar el nom i el color d'una excursió",
   'help.guide.tour-rename-colour.result':
     "L'excursió mostra el seu nom nou a tot el viatge, i la seva línia es dibuixa amb el color que has triat.",
@@ -7438,7 +7439,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     'Fes clic a «Compara al mapa» per dibuixar el traç real amb línia de punts al costat del pla. «Acaba la comparació» el torna a treure.',
   'help.guide.tour-origin-check.step.2':
-    "«Importat» mostra el dia de la importació. «Aquí» mostra l'estat actual: «Tal com es va importar», «Editat a TREK» o «Replanificat, traça enregistrada conservada».",
+    "«Importat» mostra el dia de la importació. «Aquí» mostra l'estat actual: «Tal com es va importar», «Editat a YOUYA» o «Replanificat, traça enregistrada conservada».",
   'help.ctx.trip-tour-planner.bullet.1':
     "«Excursions» és a la barra de pestanyes del viatge, just després de «Planificació», mentre el complement «Excursions» està activat per al viatge; el propietari del viatge el pot activar a «Complements», a «Configuració del viatge». La pestanya apareix a l'ordinador i a la tauleta; al telèfon, les excursions es consulten i es posen en dies des de la pestanya «Planificació», però no s'hi poden dibuixar.",
   'help.guide.tour-open-workspace.step.1':
@@ -7580,13 +7581,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     "En una ruta en piragua, «Al llarg de la ruta» busca primer «Punts d'embarcament», «Lloguer de barques» i «Aigua potable».",
   'help.guide.tour-paddle-water-route.step.4':
-    "Un tram que TREK no ha pogut planificar es posa vermell i n'explica el motiu, per exemple que encara no hi ha dades de l'aigua de la zona. Fes clic a «Dibuixa recte» per dibuixar-lo a mà de moment.",
+    "Un tram que YOUYA no ha pogut planificar es posa vermell i n'explica el motiu, per exemple que encara no hi ha dades de l'aigua de la zona. Fes clic a «Dibuixa recte» per dibuixar-lo a mà de moment.",
   'help.guide.tour-paddle-portage.goal':
     "Marca un tram en què portes l'embarcació per terra, perquè compti com a terra, amb temps per sortir de l'aigua i tornar-hi a entrar.",
   'help.guide.tour-paddle-portage.tip.3':
     'El transport per terra es calcula a 2 km/h fins que defineixes la teva pròpia «Velocitat de transport» a la targeta «Estimació de temps».',
   'help.guide.tour-paddle-lock.tip.1':
-    "TREK no coneix els horaris de les rescloses. Els temps són només els que introdueixes, així que comprova tu mateix l'horari de la resclosa.",
+    "YOUYA no coneix els horaris de les rescloses. Els temps són només els que introdueixes, així que comprova tu mateix l'horari de la resclosa.",
   'help.guide.tour-paddle-time.step.3':
     "La fila «Aigua» és la distància a l'aigua a la teva «Velocitat de rem». Canvia la velocitat al camp «Velocitat de rem», a dalt de la columna.",
   'help.guide.tour-paddle-wind.goal': "Consulta el vent previst a l'inici de l'excursió el dia que remes.",

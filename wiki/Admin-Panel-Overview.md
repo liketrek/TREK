@@ -1,6 +1,6 @@
 # Admin Panel Overview
 
-The Admin Panel is the central control surface for TREK instance operators. It is only accessible to users with the `admin` role.
+The Admin Panel is the central control surface for YOUYA instance operators. It is only accessible to users with the `admin` role.
 
 ## Accessing the Admin Panel
 
@@ -10,7 +10,7 @@ Open the user menu in the top navigation bar (your avatar), then select **Admin*
 
 ## Layout
 
-On desktop the page opens with a header (**Administration**, *User management and system settings*) whose right side shows four counters: **Users**, **Trips**, **Places** and **Files**. When a newer TREK release exists, an update banner sits below it, with a **How to Update** button that opens a dialog with the update commands for your kind of install and a link to the update guide. On a demo instance a **Demo Baseline** card with a **Save Baseline** button sits there too, see [Demo-Mode](Demo-Mode). Under that, a side navigation on the left lists the tabs in four groups, and the selected tab fills the right side. Every tab is built from cards with toggle rows, and anything that needs confirming (deleting a user, restoring a backup, revoking a token) asks in TREK's own dialog rather than the browser's.
+On desktop the page opens with a header (**Administration**, *User management and system settings*) whose right side shows four counters: **Users**, **Trips**, **Places** and **Files**. When a newer YOUYA release exists, an update banner sits below it, with a **How to Update** button that opens a dialog with the update commands for your kind of install and a link to the update guide. On a demo instance a **Demo Baseline** card with a **Save Baseline** button sits there too, see [Demo-Mode](Demo-Mode). Under that, a side navigation on the left lists the tabs in four groups, and the selected tab fills the right side. Every tab is built from cards with toggle rows, and anything that needs confirming (deleting a user, restoring a backup, revoking a token) asks in YOUYA's own dialog rather than the browser's.
 
 On a phone the admin is a separate screen: the same four counters sit at the top and a section picker switches between the same sections (users, user defaults, personalization, settings, addons, plugins, storage, notifications, MCP, GitHub, backup, audit). Each section offers what its desktop tab offers, including the permissions panel within the users section.
 
@@ -40,7 +40,7 @@ A Google Maps, Unsplash or Amap key that comes from an environment variable show
 
 ### Daily limit for Google calls
 
-In **Settings > API Keys**, the **Google Maps API Key** block has a collapsible section, **What the key may be used for**, whose last row is **Daily limit for Google calls**. Once the limit is reached, TREK stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave the field empty for no limit. A pill beside the name shows today's usage (**Today: 120** or **Today: 120 of 500**) and turns amber (**Limit reached (120), Google paused until tomorrow**) once the day is used up. **Save** appears only while the number has changed.
+In **Settings > API Keys**, the **Google Maps API Key** block has a collapsible section, **What the key may be used for**, whose last row is **Daily limit for Google calls**. Once the limit is reached, YOUYA stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave the field empty for no limit. A pill beside the name shows today's usage (**Today: 120** or **Today: 120 of 500**) and turns amber (**Limit reached (120), Google paused until tomorrow**) once the day is used up. **Save** appears only while the number has changed.
 
 ### Notification defaults
 
@@ -54,7 +54,7 @@ The **Week starts on** default decides which day opens each row of every date pi
 
 On desktop and mobile, **User Defaults** includes the **Routing service** and optional **Own routing engine** and **Own Valhalla instance** fields in the map section. Changes save when you leave the field; **reset** restores the built-in default.
 
-With **Routing service** on **Automatic** and both fields empty, the Valhalla of the TREK services calculates every route, and the public OSRM servers a day it cannot answer. Without the TREK services, or with **Public Valhalla (FOSSGIS)** chosen, TREK uses public OSRM servers for routing and the public FOSSGIS Valhalla for avoiding toll roads, motorways and ferries. Configuring only a custom routing instance disables the public Valhalla fallback. After entering a custom server URL, restart TREK and reload the page. See [Admin-User-Defaults](Admin-User-Defaults#routing-service) and [Road-Trip](Road-Trip#routing-engines).
+With **Routing service** on **Automatic** and both fields empty, the Valhalla of the YOUYA services calculates every route, and the public OSRM servers a day it cannot answer. Without the YOUYA services, or with **Public Valhalla (FOSSGIS)** chosen, YOUYA uses public OSRM servers for routing and the public FOSSGIS Valhalla for avoiding toll roads, motorways and ferries. Configuring only a custom routing instance disables the public Valhalla fallback. After entering a custom server URL, restart YOUYA and reload the page. See [Admin-User-Defaults](Admin-User-Defaults#routing-service) and [Road-Trip](Road-Trip#routing-engines).
 
 > **AI / MCP:** These fields configure the routing services the planner and the road trip MCP tools use, and do not change stored trip data.
 

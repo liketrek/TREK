@@ -1,6 +1,6 @@
 # Notifications Inbox
 
-Everything TREK tells you in the app lands in one inbox: trip invitations, chat messages, booking changes, reminders, hints about your tours, update notices. You reach it through the bell in the navigation bar, and the full list opens as its own page at `/notifications`.
+Everything YOUYA tells you in the app lands in one inbox: trip invitations, chat messages, booking changes, reminders, hints about your tours, update notices. You reach it through the bell in the navigation bar, and the full list opens as its own page at `/notifications`.
 
 Which events reach the inbox, and which also go out by email, webhook, ntfy or Web Push, is set in **Settings → Notifications**; see [Notifications](Notifications).
 
@@ -12,7 +12,7 @@ The bell in the navigation bar shows how many notifications you have not read ye
 - The list is cut into days, with the day's heading staying at the top while you scroll through it.
 - **Show all notifications** at the bottom opens the full inbox page.
 
-Following a notification from the panel closes it. New notifications arrive live over TREK's connection, so the count and the panel update without a reload.
+Following a notification from the panel closes it. New notifications arrive live over YOUYA's connection, so the count and the panel update without a reload.
 
 ![The bell panel open over the dashboard: Notifications with the unread count, Mark all read and Delete all, chat messages under Today with View Messages buttons, and Show all notifications at the bottom](assets/NotificationsBell.png)
 
@@ -40,7 +40,7 @@ Each notification has a tile on the start side that says at a glance what it is 
 | Bookmark | Collection invitations |
 | Photos | Photos shared with you |
 | Mountain | Hints on your tours, such as a [wanderer](Wanderer) trail that changed |
-| Sparkles | A new TREK version |
+| Sparkles | A new YOUYA version |
 | Warning | Something that needs your attention, such as a photo provider that was disconnected |
 | Bell | Everything else |
 

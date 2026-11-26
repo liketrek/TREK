@@ -33,7 +33,7 @@ const notif: TranslationStrings = {
   'notif.packing_tagged.title': 'Packing Assignment',
   'notif.packing_tagged.text': '{actor} assigned you to {category} in {trip}',
   'notif.version_available.title': 'New Version Available',
-  'notif.version_available.text': 'TREK {version} is now available',
+  'notif.version_available.text': 'YOUYA {version} is now available',
   'notif.replica_failure.title': 'Storage replica failure',
   'notif.replica_failure.text': "Replica write failed on '{backend}': {op} of {key} — {error}",
   'notif.replica_failure.textSuppressed':

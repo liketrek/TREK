@@ -85,8 +85,7 @@ const system_notice: TranslationStrings = {
     'Κάθε λειτουργία, κάθε ενημέρωση, για όλους. Καμία έκδοση επί πληρωμή, καμία συνδρομή, καμία παγίδα.',
   'system_notice.release_notes.note_body_after':
     'Μετά ήρθατε εσείς, σύντομα με τα χιλιάδες: με αστέρια, αναφορές σφαλμάτων, μεταφράσεις σε γλώσσες που δεν μιλάω και pull requests από ανθρώπους που δεν έχω γνωρίσει ποτέ. Κάθε πρωί ελέγχω πρώτα το αποθετήριο και ακόμη δεν μου φαίνεται απόλυτα αληθινό.',
-  'system_notice.release_notes.note_closing':
-    'Σας ευχαριστώ που είστε εδώ. Maurice',
+  'system_notice.release_notes.note_closing': 'Σας ευχαριστώ που είστε εδώ. Maurice',
   'system_notice.release_notes.support_label': 'Χάρη σε εσάς',
   'system_notice.release_notes.support_lead': 'Το TREK υπάρχει μόνο χάρη στις δωρεές.',
   'system_notice.release_notes.support_text':

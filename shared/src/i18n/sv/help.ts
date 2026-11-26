@@ -7,7 +7,7 @@ const help: TranslationStrings = {
   'help.contents': 'Innehåll',
   'help.noResults': 'Inga matchande sidor.',
   'help.errorTitle': 'Sidan kunde inte laddas',
-  'help.errorBody': 'Hjälpinnehållet hämtas från TREK-wikin. Kontrollera anslutningen och försök igen.',
+  'help.errorBody': 'Hjälpinnehållet hämtas från YOUYA-wikin. Kontrollera anslutningen och försök igen.',
 
   // center
   'help.center.button': 'Hjälp för den här vyn',
@@ -73,14 +73,14 @@ const help: TranslationStrings = {
   'help.guide.create-trip.step.2':
     'Ge resan ett namn. Det är det enda fältet du måste fylla i, allt annat kan du lägga till senare.',
   'help.guide.create-trip.step.3':
-    'Välj ett startdatum och ett slutdatum. TREK skapar en dag för varje datum, så att du kan börja planera din resplan. Inga datum än? Lämna båda tomma och ange i stället Antal dagar.',
+    'Välj ett startdatum och ett slutdatum. YOUYA skapar en dag för varje datum, så att du kan börja planera din resplan. Inga datum än? Lämna båda tomma och ange i stället Antal dagar.',
   'help.guide.create-trip.step.4':
     'Valfritt: lägg till ett omslagsfoto. Ladda upp ett eget, dra eller klistra in ett, eller sök på Unsplash efter destinationen.',
   'help.guide.create-trip.step.5': 'Klicka på ”Skapa ny resa”.',
   'help.guide.create-trip.result':
     'Resan visas i översikten. Om det är din nästa resa visas den i boardingkortet överst.',
   'help.guide.create-trip.tip.1':
-    'Datumen kan ändras senare. Om det redan finns bokningar frågar TREK om de ska flyttas med dagarna.',
+    'Datumen kan ändras senare. Om det redan finns bokningar frågar YOUYA om de ska flyttas med dagarna.',
   'help.guide.create-trip.tip.2': 'Resans valuta är den som alla kostnader räknas om till. Välj valutan på resmålet.',
 
   // edit-trip
@@ -92,7 +92,7 @@ const help: TranslationStrings = {
   'help.guide.edit-trip.step.3': 'Klicka på ”Uppdatera”.',
   'help.guide.edit-trip.result': 'Kortet uppdateras direkt, för alla medlemmar i resan.',
   'help.guide.edit-trip.tip.1':
-    'Om du flyttar starten på en resa med bokningar frågar TREK om bokningarna ska flyttas med. Om du kortar en resa listas dagarna som skulle tas bort och vad som är planerat på dem. Ändringen sparas först när du klickar på Ta bort dagar och spara.',
+    'Om du flyttar starten på en resa med bokningar frågar YOUYA om bokningarna ska flyttas med. Om du kortar en resa listas dagarna som skulle tas bort och vad som är planerat på dem. Ändringen sparas först när du klickar på Ta bort dagar och spara.',
 
   // cover-image
   'help.guide.cover-image.title': 'Välj ett omslagsfoto',
@@ -149,7 +149,7 @@ const help: TranslationStrings = {
   'help.guide.calendar-feed.goal':
     'Se dagar och bokningar för varje aktiv resa i din kalenderapp, alltid synkroniserade.',
   'help.guide.calendar-feed.step.1': 'Klicka på kalenderikonen bredvid vyomkopplaren.',
-  'help.guide.calendar-feed.step.2': 'Klicka på Aktivera kalenderprenumeration. TREK skapar en privat flödeslänk.',
+  'help.guide.calendar-feed.step.2': 'Klicka på Aktivera kalenderprenumeration. YOUYA skapar en privat flödeslänk.',
   'help.guide.calendar-feed.step.3':
     'Klicka på Lägg till i Google Kalender eller Lägg till i Apple Kalender / Outlook. För någon annan kalenderapp öppnar du Eller kopiera en länk manuellt och kopierar länken därifrån.',
   'help.guide.calendar-feed.result':
@@ -337,7 +337,7 @@ const help: TranslationStrings = {
   // invite
   'help.guide.invite.title': 'Planera tillsammans med någon',
   'help.guide.invite.goal':
-    'Slå ihop din plan med en annan TREK-användares plan så att ni båda ser era lediga dagar i samma rutnät.',
+    'Slå ihop din plan med en annan YOUYA-användares plan så att ni båda ser era lediga dagar i samma rutnät.',
   'help.guide.invite.step.1': 'Klicka på personikonen i kortet Personer.',
   'help.guide.invite.step.2': 'Välj användaren och klicka på Skicka inbjudan.',
   'help.guide.invite.step.3':
@@ -365,7 +365,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ─────────────────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atlas',
   'help.ctx.atlas.summary':
-    'Atlas visar var du har rest på en världskarta. Varje land som en resa har tagit dig till färgläggs, och länder du besökte innan du använde TREK kan du lägga till för hand. Zooma in för att se regioner, för en bucketlista över platser du fortfarande vill se och läs dina siffror i glaspanelen längst ner.',
+    'Atlas visar var du har rest på en världskarta. Varje land som en resa har tagit dig till färgläggs, och länder du besökte innan du använde YOUYA kan du lägga till för hand. Zooma in för att se regioner, för en bucketlista över platser du fortfarande vill se och läs dina siffror i glaspanelen längst ner.',
   'help.ctx.atlas.bullet.1':
     'Kartan: varje besökt land har sin egen fasta färg, planerade länder har streckad kontur, länder på bucketlistan har diagonala streck och alla andra länder är grå. Håll pekaren över ett land för att se dess resor, platser samt första och sista besök.',
   'help.ctx.atlas.bullet.2':
@@ -381,7 +381,7 @@ const help: TranslationStrings = {
   // mark-country
   'help.guide.mark-country.title': 'Markera ett land som besökt',
   'help.guide.mark-country.goal':
-    'Lägg till ett land som du besökte innan du började använda TREK, så att kartan och din räkning tar med det.',
+    'Lägg till ett land som du besökte innan du började använda YOUYA, så att kartan och din räkning tar med det.',
   'help.guide.mark-country.step.1': 'Skriv landets namn i sökrutan högst upp på kartan.',
   'help.guide.mark-country.step.2': 'Välj det i listan. Kartan flyttas till landet och en popup öppnas för det.',
   'help.guide.mark-country.step.3': 'Välj Markera som besökt.',
@@ -448,7 +448,7 @@ const help: TranslationStrings = {
   'help.guide.search-place.result':
     'Regionen markeras, och landet med den. För länder utan regiondata i kartpaketet markeras i stället själva landet.',
   'help.guide.search-place.tip.1':
-    'Platserna kommer från samma sökning som överallt annars i TREK, så de använder leverantören som din administratör har ställt in.',
+    'Platserna kommer från samma sökning som överallt annars i YOUYA, så de använder leverantören som din administratör har ställt in.',
   // bucket-country
   'help.guide.bucket-country.title': 'Sätt ett land på bucketlistan',
   'help.guide.bucket-country.goal': 'Ha en önskelista över länder på kartan, skild från länderna du har besökt.',
@@ -484,7 +484,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     'Siffrorna uppdateras automatiskt medan du planerar dina resor. Du behöver inte underhålla något här.',
   'help.guide.stats.tip.1':
-    'Städer läses från adresstexten och slås inte upp. TREK hoppar över landet, postnumret och regionen och tar namnet före dem, så ”10178 Berlin” räknas som Berlin. En kort adress som ”Osteria Francescana, Italy” ger ingen stad alls.',
+    'Städer läses från adresstexten och slås inte upp. YOUYA hoppar över landet, postnumret och regionen och tar namnet före dem, så ”10178 Berlin” räknas som Berlin. En kort adress som ”Osteria Francescana, Italy” ger ingen stad alls.',
   'help.guide.stats.tip.2':
     'Länder som du har markerat för hand räknas med i ”Länder” och i kontinenterna, men lägger inte till några resor, platser eller dagar.',
   // dawarich-countries
@@ -494,7 +494,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     'När tillägget Dawarich är anslutet visas en Dawarich-panel med två rutor längst ner på kartan, till vänster om statistiken. Klicka på Länder.',
   'help.guide.dawarich-countries.step.2':
-    'Dialogrutan öppnas på fliken Länder. Klicka på Leta efter länder: TREK läser de länder och städer som dina inspelningar täcker under de senaste 12 månaderna, en månad i taget, så det kan ta en stund. Varje land som din Atlas inte har ännu listas med sin flagga, antalet städer och namnet på den första staden. Varje land är förbockat från början. Klicka på en rad för att utesluta landet.',
+    'Dialogrutan öppnas på fliken Länder. Klicka på Leta efter länder: YOUYA läser de länder och städer som dina inspelningar täcker under de senaste 12 månaderna, en månad i taget, så det kan ta en stund. Varje land som din Atlas inte har ännu listas med sin flagga, antalet städer och namnet på den första staden. Varje land är förbockat från början. Klicka på en rad för att utesluta landet.',
   'help.guide.dawarich-countries.step.3':
     'Bekräfta med knappen nere till höger, som lyder Lägg till 5 länder när fem rader är ibockade. Dialogrutan visar hur många som lades till. När du stänger den är kartan redan uppdaterad.',
   'help.guide.dawarich-countries.result':
@@ -502,7 +502,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Länder som Atlas redan visar som besökta, antingen för hand, från en resa eller från en tidigare kontroll, hoppas över, så att dina egna markeringar aldrig ändras. Ett land som du tidigare tog bort från Atlas läggs till igen när du bekräftar det här.',
   'help.guide.dawarich-countries.tip.2':
-    'Om TREK inte kan matcha ett landsnamn listas namnet under raderna i stället för att försvinna. ”Kontrollera igen” frågar Dawarich en gång till. Noteringen under listan säger att de senaste 12 månaderna har kontrollerats. Den perioden går inte att ändra.',
+    'Om YOUYA inte kan matcha ett landsnamn listas namnet under raderna i stället för att försvinna. ”Kontrollera igen” frågar Dawarich en gång till. Noteringen under listan säger att de senaste 12 månaderna har kontrollerats. Den perioden går inte att ändra.',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': 'Bocka av önskemål utifrån dina inspelningar',
   'help.guide.dawarich-wishes.goal':
@@ -510,7 +510,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.step.1':
     'Klicka på Önskelista i Dawarich-panelen längst ner på kartan, till vänster om statistiken.',
   'help.guide.dawarich-wishes.step.2':
-    'Dialogrutan öppnas på fliken Önskelista. Klicka på Stäm av önskelistan: TREK går igenom dina inspelningar efter varje post som har koordinater. En önskning som du har nått listas med hur nära du kom, hur länge du stannade och vilken dag, och är förbockad från början. En som du redan har bockat av har texten Redan avbockad. Under listan räknar en notering posterna utan koordinater och visar också regeln: En önskning räknas som uppfylld inom 250 m och efter 20 minuter på platsen.',
+    'Dialogrutan öppnas på fliken Önskelista. Klicka på Stäm av önskelistan: YOUYA går igenom dina inspelningar efter varje post som har koordinater. En önskning som du har nått listas med hur nära du kom, hur länge du stannade och vilken dag, och är förbockad från början. En som du redan har bockat av har texten Redan avbockad. Under listan räknar en notering posterna utan koordinater och visar också regeln: En önskning räknas som uppfylld inom 250 m och efter 20 minuter på platsen.',
   'help.guide.dawarich-wishes.step.3':
     'Bekräfta med knappen nere till höger, som lyder Bocka av 2 när två rader är ibockade. Stäng sedan dialogrutan och öppna fliken Bucketlista i panelen bredvid.',
   'help.guide.dawarich-wishes.result':
@@ -518,7 +518,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     'Att köra förbi räknas inte: du måste vara nära platsen och stanna där en stund. Om flera vistelser uppfyller kravet används den längsta. En önskan utan koordinater kan inte kontrolleras, så lägg till platser via sökningen i ”Lägg till plats”, inte bara med namn.',
   'help.guide.dawarich-wishes.tip.2':
-    'En kontroll tittar på upp till 50 poster, och börjar med dem som inte är avbockade ännu. Om det finns fler meddelar TREK det. Ett önskemål som redan var avbockat behåller sitt eget datum.',
+    'En kontroll tittar på upp till 50 poster, och börjar med dem som inte är avbockade ännu. Om det finns fler meddelar YOUYA det. Ett önskemål som redan var avbockat behåller sitt eget datum.',
 
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Samlingar',
@@ -576,7 +576,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     'Platserna kopieras till listan med namn, adress, koordinater, beskrivning och kategori. Resan ändras inte.',
   'help.guide.import-from-trip.tip.1':
-    'TREK hoppar automatiskt över dubbletter med samma namn eller koordinater, så det är ofarligt att importera två gånger.',
+    'YOUYA hoppar automatiskt över dubbletter med samma namn eller koordinater, så det är ofarligt att importera två gånger.',
   'help.guide.import-from-trip.tip.2':
     'I en resas platslista finns i stället Spara i samling i markeringsläget, för en handplockad uppsättning platser.',
   // place-status
@@ -650,7 +650,7 @@ const help: TranslationStrings = {
     'Läsare av en delad lista kan göra det här också. Platserna kopieras från listan, och listan ändras inte.',
   // share-list
   'help.guide.share-list.title': 'Dela en lista med någon',
-  'help.guide.share-list.goal': 'Planera en lista tillsammans med andra på den här TREK-instansen, i realtid.',
+  'help.guide.share-list.goal': 'Planera en lista tillsammans med andra på den här YOUYA-instansen, i realtid.',
   'help.guide.share-list.step.1': 'Klicka på Dela högst upp i din lista.',
   'help.guide.share-list.step.2': 'Välj användaren och en roll: Läsare, Redigerare eller Admin.',
   'help.guide.share-list.step.3':
@@ -664,22 +664,22 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Exportera en lista som fil',
   'help.guide.export-list.goal':
-    'Ge en lista till någon på en annan TREK-server, öppna den i en kartapp eller se den i Google My Maps.',
+    'Ge en lista till någon på en annan YOUYA-server, öppna den i en kartapp eller se den i Google My Maps.',
   'help.guide.export-list.step.1': 'Klicka på Exportera högst upp i listan.',
   'help.guide.export-list.step.2':
-    'Välj TREK-lista om du vill använda listan i en annan TREK, med etiketter och status, GPX för OsmAnd, Organic Maps, en Garmin och andra appar som läser vägpunkter, eller KML för Google My Maps, för att se platserna i Google Maps.',
+    'Välj YOUYA-lista om du vill använda listan i en annan YOUYA, med etiketter och status, GPX för OsmAnd, Organic Maps, en Garmin och andra appar som läser vägpunkter, eller KML för Google My Maps, för att se platserna i Google Maps.',
   'help.guide.export-list.result': 'Filen laddas ner. Alla medlemmar i en delad lista får exportera den.',
   'help.guide.export-list.tip.1':
-    'En plats utan koordinater kan inte bli en GPX-vägpunkt eller en KML-nål. Den utelämnas, och TREK berättar hur många det gällde.',
+    'En plats utan koordinater kan inte bli en GPX-vägpunkt eller en KML-nål. Den utelämnas, och YOUYA berättar hur många det gällde.',
   'help.guide.export-list.tip.2':
-    'Betyg, medlemmar och uppladdade foton exporteras inte, med avsikt: de hör till den här TREK-instansen och inte till listan.',
+    'Betyg, medlemmar och uppladdade foton exporteras inte, med avsikt: de hör till den här YOUYA-instansen och inte till listan.',
   // import-file
   'help.guide.import-file.title': 'Importera en lista från en fil',
   'help.guide.import-file.goal':
-    'Importera en TREK-listfil eller en GPX-fil, som en ny lista eller till en befintlig lista.',
+    'Importera en YOUYA-listfil eller en GPX-fil, som en ny lista eller till en befintlig lista.',
   'help.guide.import-file.step.1': 'Klicka på importknappen med uppåtpilen bredvid Ny lista i listfältet.',
   'help.guide.import-file.step.2':
-    'Välj filen. Innan TREK importerar något visar den vad filen innehåller: namnet, hur många platser och hur många etiketter.',
+    'Välj filen. Innan YOUYA importerar något visar den vad filen innehåller: namnet, hur många platser och hur många etiketter.',
   'help.guide.import-file.step.3':
     'Behåll Ny lista och ändra namnet om du vill, och klicka sedan på Importera. Eller välj Lägg till i en lista för att lägga platserna i en lista som du kan redigera, och klicka på Lägg till i listan.',
   'help.guide.import-file.result':
@@ -687,7 +687,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     'Från en GPX-fil blir varje namngiven vägpunkt en plats. Spår är linjer och utelämnas, och förhandsgranskningen visar hur många punkter det var.',
   'help.guide.import-file.tip.2':
-    'En fil som varken är en TREK-lista eller en GPX-fil avvisas, och TREK visar orsaken. Om en enskild plats inte går att läsa hoppas bara den platsen över, inte hela filen.',
+    'En fil som varken är en YOUYA-lista eller en GPX-fil avvisas, och YOUYA visar orsaken. Om en enskild plats inte går att läsa hoppas bara den platsen över, inte hela filen.',
   // edit-list
   'help.guide.edit-list.title': 'Redigera eller radera en lista',
   'help.guide.edit-list.goal': 'Ändra en listas namn, färg, omslag, beskrivning eller länkar, eller ta bort listan.',
@@ -897,7 +897,7 @@ const help: TranslationStrings = {
     'Inlägg med en dag räknas bara en gång, oavsett hur många resor som omfattar den dagen.',
   // share-public
   'help.guide.share-public.title': 'Dela Journeyn offentligt',
-  'help.guide.share-public.goal': 'Ge personer utan TREK-konto en skrivskyddad länk.',
+  'help.guide.share-public.goal': 'Ge personer utan YOUYA-konto en skrivskyddad länk.',
   'help.guide.share-public.step.1': 'Öppna Journey Inställningar med ⋯ i rubriken och rulla till Offentlig delning.',
   'help.guide.share-public.step.2': 'Klicka på Skapa en delningslänk.',
   'help.guide.share-public.step.3':
@@ -917,7 +917,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.result':
     'Journey visas i deras lista, och deras inlägg visar deras namn. Du tar bort en medverkande genom att klicka på × bredvid personen.',
   'help.guide.contributors.tip.1':
-    'Medverkande är till för personer på den här TREK-servern. För alla andra finns den offentliga länken.',
+    'Medverkande är till för personer på den här YOUYA-servern. För alla andra finns den offentliga länken.',
   // studio
   'help.guide.studio.title': 'Lägg ut din Journey som en fotobok',
   'help.guide.studio.goal': 'Gör dagboken till sidor som går att skriva ut.',
@@ -956,7 +956,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ────────────────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Studio', // same-as-en
   'help.ctx.journey-studio.summary':
-    'TREK Studio lägger ut en resa som en fotobok som du kan skriva ut. Den öppnas ovanpå dagboken: sidofältet och dess paneler ligger till vänster, uppslaget du arbetar med i mitten och dess egenskaper till höger. Automatisk layout bygger ett första utkast av dina inlägg, ett tema ger boken färger och typsnitt, och assistenten kan formge sidor tillsammans med dig. Sedan kan du flytta, beskära och ändra stilen på allt, och du kan ångra varje steg.',
+    'YOUYA Studio lägger ut en resa som en fotobok som du kan skriva ut. Den öppnas ovanpå dagboken: sidofältet och dess paneler ligger till vänster, uppslaget du arbetar med i mitten och dess egenskaper till höger. Automatisk layout bygger ett första utkast av dina inlägg, ett tema ger boken färger och typsnitt, och assistenten kan formge sidor tillsammans med dig. Sedan kan du flytta, beskära och ändra stilen på allt, och du kan ångra varje steg.',
   'help.ctx.journey-studio.bullet.1':
     'Övre fältet: reseboksomslaget och namnet till vänster. Till höger syns vem mer som är med i boken och om den är sparad, sidformatet, ångra, gör om och klistra in, Automatisk layout, assistenten, hjälpen, Exportera och knappen som stänger Studio.',
   'help.ctx.journey-studio.bullet.2':
@@ -968,7 +968,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     'Boken läggs ut som en tryckt bok: omslag, en ensam första sida mitt emot omslagets tomma insida, uppslagen, en ensam sista sida och baksidan. Sidnumren räknas från första sidan och trycks som de visas.',
   'help.ctx.journey-studio.bullet.6':
-    'Flera personer kan designa samtidigt: alla ser de andras pekare med deras namn. Om du sparar en version som någon annan har ändrat visar TREK en konflikt i stället för att skriva över deras arbete.',
+    'Flera personer kan designa samtidigt: alla ser de andras pekare med deras namn. Om du sparar en version som någon annan har ändrat visar YOUYA en konflikt i stället för att skriva över deras arbete.',
   'help.ctx.journey-studio.bullet.7':
     'Tema: ett uttryck för hela boken, med papper, bläck och tre accentfärger, typsnitt och motiv. Element som är länkade till temat följer med när du ändrar det.',
   'help.ctx.journey-studio.bullet.8':
@@ -1045,7 +1045,7 @@ const help: TranslationStrings = {
     'Varje länkad färg och varje länkat typsnitt i boken ändras samtidigt, och att använda temat är ett enda ångrasteg.',
   'help.guide.studio-content.tip.1': 'Sökrutan överst i Content filtrerar båda listorna.',
   'help.guide.studio-content.tip.2':
-    'Om du släpper en fil från skrivbordet på arbetsbänken laddar TREK upp den och placerar den i ett enda steg.',
+    'Om du släpper en fil från skrivbordet på arbetsbänken laddar YOUYA upp den och placerar den i ett enda steg.',
   // studio-elements
   'help.guide.studio-elements.title': 'Lägg till text, former, ikoner och klistermärken',
   'help.guide.studio-elements.goal': 'Lägg till dekoration på ett uppslag utöver foton och berättelser.',
@@ -1153,12 +1153,12 @@ const help: TranslationStrings = {
     'I den andra boken öppnar du ”Sidor” och klickar på ”Importera” bredvid ”+ Sida” längst ner. Välj sedan filen.',
   'help.guide.studio-spread-file.result':
     'Uppslaget importeras med sina ramar och textstilar. Släpp fotona från den nya Journey i ramarna.',
-  'help.guide.studio-spread-file.tip.1': 'Om en fil inte är en uppslagsdesign avvisar TREK den och visar orsaken.',
+  'help.guide.studio-spread-file.tip.1': 'Om en fil inte är en uppslagsdesign avvisar YOUYA den och visar orsaken.',
 
   // ── Screen: settings (all tabs) ───────────────────────────────────────────────────────
   'help.ctx.settings.title': 'Inställningar',
   'help.ctx.settings.summary':
-    'Dina personliga inställningar, med en flik per ämne i sidofältet till vänster. De flesta reglage gäller så fort du ändrar dem. Ett formulär med knappen Spara sparar först när du klickar på Spara. Inget här ändrar TREK för någon annan.',
+    'Dina personliga inställningar, med en flik per ämne i sidofältet till vänster. De flesta reglage gäller så fort du ändrar dem. Ett formulär med knappen Spara sparar först när du klickar på Spara. Inget här ändrar YOUYA för någon annan.',
   'help.ctx.settings.bullet.1':
     'Sidofältet till vänster: Visning, Utseende, Karta, Meddelanden, Integrationer, Offline och Konto. Plugin visas när ett plugin är aktivt. Om visas om inte operatören har dolt den. Versionen visas längst ned.',
   'help.ctx.settings.bullet.2':
@@ -1169,7 +1169,7 @@ const help: TranslationStrings = {
     'Konto innehåller din profil, ditt lösenord, tvåfaktorsautentisering, inloggningsnycklar och möjligheten att radera ditt konto.',
   'help.ctx.settings-display.title': 'Visning',
   'help.ctx.settings-display.summary':
-    'Vad TREK öppnas med, vilket språk och vilka enheter det använder och hur reskartan och bokningarna fungerar. Varje ändring gäller direkt.',
+    'Vad YOUYA öppnas med, vilket språk och vilka enheter det använder och hur reskartan och bokningarna fungerar. Varje ändring gäller direkt.',
   'help.ctx.settings-display.bullet.1':
     'Start: Startsida öppnas på Översikt eller på Aktiv resa. Med Aktiv resa väljer Startflik vilken flik den resan öppnas på.',
   'help.ctx.settings-display.bullet.2':
@@ -1178,7 +1178,7 @@ const help: TranslationStrings = {
     'Resor och karta: Öppna platser i, Datum först i dagsrubriker, Etiketter för bokningsrutter, Visa alltid bokningsrutter, Kompakta markörer för oplanerade platser, Utforska platser på kartan, Blurra bokningskoder och Optimera rutten från boendet.',
   'help.ctx.settings-appearance.title': 'Utseende',
   'help.ctx.settings-appearance.summary':
-    'Hur TREK ser ut på det här kontot: ljust eller mörkt läge, accentfärg, glas och rörelse, textstorlek och vilka widgetar översikten visar. Allt gäller direkt, på alla enheter du loggar in på.',
+    'Hur YOUYA ser ut på det här kontot: ljust eller mörkt läge, accentfärg, glas och rörelse, textstorlek och vilka widgetar översikten visar. Allt gäller direkt, på alla enheter du loggar in på.',
   'help.ctx.settings-appearance.bullet.1':
     'Tema: Färgläge (Ljust, Mörk eller Auto), Färgschemat och, med Anpassat, din egen accentfärg för ljust och mörkt läge, med kontrastkontroll.',
   'help.ctx.settings-appearance.bullet.2':
@@ -1198,7 +1198,7 @@ const help: TranslationStrings = {
     'Bara Mapbox GL: 3D-byggnader och terräng, Högkvalitetsläge och Dölj intressepunkter. En liveförhandsvisning visas ovanför Spara karta. Spara karta sparar ditt val.',
   'help.ctx.settings-notifications.title': 'Meddelanden',
   'help.ctx.settings-notifications.summary':
-    'Hur TREK kontaktar dig utanför appen. Överst avgör en tabell med en rad per händelse och en kolumn per kanal vad som skickas vart. Under den finns korten för webhook, ntfy, push på den här enheten och eventuella plugin-kanaler.',
+    'Hur YOUYA kontaktar dig utanför appen. Överst avgör en tabell med en rad per händelse och en kolumn per kanal vad som skickas vart. Under den finns korten för webhook, ntfy, push på den här enheten och eventuella plugin-kanaler.',
   'help.ctx.settings-notifications.bullet.1':
     'Meddelanden: slå på eller av varje händelse per kanal. Ett lås betyder att admin har stängt av den för alla.',
   'help.ctx.settings-notifications.bullet.2':
@@ -1209,7 +1209,7 @@ const help: TranslationStrings = {
     'Push-meddelanden på den här enheten: Slå på för den här enheten gäller bara den här webbläsaren, och Skicka test skickar ett testmeddelande. En plugin-kanal visar Konfigurera tills den är inställd.',
   'help.ctx.settings-integrations.title': 'Integrationer',
   'help.ctx.settings-integrations.summary':
-    'Allt som ansluter till TREK utifrån: din egen adress för bokningsmejl, fotobibliotek för dagboken, AirTrail för flyg, Dawarich för var du faktiskt har varit, wanderer för leder, skrivskyddade API-nycklar för annan programvara och MCP för AI-klienter. En anslutning till en annan tjänst visas först när admin har slagit på den.',
+    'Allt som ansluter till YOUYA utifrån: din egen adress för bokningsmejl, fotobibliotek för dagboken, AirTrail för flyg, Dawarich för var du faktiskt har varit, wanderer för leder, skrivskyddade API-nycklar för annan programvara och MCP för AI-klienter. En anslutning till en annan tjänst visas först när admin har slagit på den.',
   'help.ctx.settings-integrations.bullet.1':
     'Bokningsmejl, överst när administratören har slagit på mejlimporten: din vidarebefordringsadress med sina reglage. Under det Immich och Synology Photos, AirTrail, Dawarich och wanderer: varje kort har sin adress och nyckel, Spara och Testa anslutningen, och ett märke Ansluten eller Inte ansluten.',
   'help.ctx.settings-integrations.bullet.2':
@@ -1220,7 +1220,7 @@ const help: TranslationStrings = {
     'API Token: det gamla sättet att ansluta till MCP, märkt Utfasad. Använd OAuth 2.1 Klienter i stället.',
   'help.ctx.settings-offline.title': 'Offline', // same-as-en
   'help.ctx.settings-offline.summary':
-    'Vad TREK lagrar på den här enheten så att en resa går att öppna utan uppkoppling, och vad som händer när en ändring som du gjorde offline krockar med en ändring som gjordes någon annanstans.',
+    'Vad YOUYA lagrar på den här enheten så att en resa går att öppna utan uppkoppling, och vad som händer när en ändring som du gjorde offline krockar med en ändring som gjordes någon annanstans.',
   'help.ctx.settings-offline.bullet.1':
     'Offlineläge: Tvinga offlineläge laddar först ner allt, arbetar sedan bara från cachen och köar dina ändringar.',
   'help.ctx.settings-offline.bullet.2':
@@ -1231,20 +1231,20 @@ const help: TranslationStrings = {
     'Synkroniseringskonflikter visas bara när två ändringar krockar, med Min, Behåll deras och När en konflikt uppstår. Offline-cache räknar resorna och de väntande eller misslyckade ändringarna, med Försök igen, Ångra och Rensa cache.',
   'help.ctx.settings-account.title': 'Konto',
   'help.ctx.settings-account.summary':
-    'Ditt konto i den här TREK-instansen och hur du loggar in: profilbild, användarnamn och e-post, lösenord, tvåfaktorsautentisering och inloggningsnycklar. ”Ta bort konto” finns längst ned i kortet Konto.',
+    'Ditt konto i den här YOUYA-instansen och hur du loggar in: profilbild, användarnamn och e-post, lösenord, tvåfaktorsautentisering och inloggningsnycklar. ”Ta bort konto” finns längst ned i kortet Konto.',
   'help.ctx.settings-account.bullet.1':
     'Konto: klicka på kameran på bilden för att ladda upp en bild och på den röda papperskorgen för att ta bort den. Användarnamn och E-post sparas med Spara profil.',
   'help.ctx.settings-account.bullet.2':
-    'Ändra lösenord: det nuvarande lösenordet och det nya två gånger, med reglerna avbockade medan du skriver, och sedan Uppdatera lösenord. Om den här TREK-instansen bara använder SSO för inloggning visas inte kortet.',
+    'Ändra lösenord: det nuvarande lösenordet och det nya två gånger, med reglerna avbockade medan du skriver, och sedan Uppdatera lösenord. Om den här YOUYA-instansen bara använder SSO för inloggning visas inte kortet.',
   'help.ctx.settings-account.bullet.3':
     'Tvåfaktorsautentisering (2FA) med en autentiseringsapp och reservkoder, samt inloggningsnycklar för att logga in utan lösenord.',
   'help.ctx.settings-account.bullet.4':
     'Ta bort konto finns till vänster i kortet Kontos fot och kräver bekräftelse. Den enda administratören kan inte ta bort sig själv.',
   // language-region
   'help.guide.language-region.title': 'Ställ in språk, enheter och valuta',
-  'help.guide.language-region.goal': 'Använd TREK på ditt språk och med formaten i din region.',
+  'help.guide.language-region.goal': 'Använd YOUYA på ditt språk och med formaten i din region.',
   'help.guide.language-region.step.1':
-    'Under Språk och region väljer du ett Språk i listan. Skriv för att hitta ett snabbt. TREK byter direkt, på alla enheter där du är inloggad.',
+    'Under Språk och region väljer du ett Språk i listan. Skriv för att hitta ett snabbt. YOUYA byter direkt, på alla enheter där du är inloggad.',
   'help.guide.language-region.step.2':
     'Platsnamn anger vilket språk som platssökning, förslag och adresser använder. Samma som appen följer gränssnittsspråket.',
   'help.guide.language-region.result':
@@ -1265,17 +1265,17 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.2':
     'En admin kan ställa in standardvärden för alla. Det du ändrar här gäller bara dig.',
   // startup
-  'help.guide.startup.title': 'Välj vad TREK öppnar med',
-  'help.guide.startup.goal': 'Öppna TREK på den sida du använder mest, i stället för på översikten varje gång.',
+  'help.guide.startup.title': 'Välj vad YOUYA öppnar med',
+  'help.guide.startup.goal': 'Öppna YOUYA på den sida du använder mest, i stället för på översikten varje gång.',
   'help.guide.startup.step.1':
     'Högst upp i Visning, under Start, ställer du in Startsida på Översikt eller Aktiv resa.',
   'help.guide.startup.step.2': 'Med Aktiv resa visas Startflik: välj vilken flik den resan öppnas på.',
-  'help.guide.startup.result': 'Nästa gång du öppnar TREK öppnas den sidan direkt.',
+  'help.guide.startup.result': 'Nästa gång du öppnar YOUYA öppnas den sidan direkt.',
   'help.guide.startup.tip.1':
     'Aktiv resa är resan som pågår i dag, eller nästa resa som kommer. Det är samma resa som översikten visar överst.',
   // theme-scheme
   'help.guide.theme-scheme.title': 'Ställ in tema och accentfärg',
-  'help.guide.theme-scheme.goal': 'Gör TREK ljust, mörkt eller låt det följa din enhet, i den färg du föredrar.',
+  'help.guide.theme-scheme.goal': 'Gör YOUYA ljust, mörkt eller låt det följa din enhet, i den färg du föredrar.',
   'help.guide.theme-scheme.step.1':
     'Under Tema ställer du in Färgläge på Ljust, Mörk eller Auto. Auto följer din enhet.',
   'help.guide.theme-scheme.step.2':
@@ -1296,7 +1296,7 @@ const help: TranslationStrings = {
     'Textstorlek: dra Allt för att skala all text på en gång, eller ställ in Stor, Mellan, Normalt och Liten en i taget. Varje storlek visar ett prov, så att du ser resultatet medan du drar.',
   'help.guide.readability.result': 'Ändringen gäller hela appen på en gång, även kartpanelerna och dagboken.',
   'help.guide.readability.tip.1':
-    'Vissa delar av TREK använder redan mindre animation när enheten är inställd på minskad rörelse. Minska rörelse dämpar animationerna i de övriga delarna.',
+    'Vissa delar av YOUYA använder redan mindre animation när enheten är inställd på minskad rörelse. Minska rörelse dämpar animationerna i de övriga delarna.',
   'help.guide.readability.tip.2':
     'Textstorleken tillämpas via typografinivåerna, så ingenting klipps av. Text som inte längre ryms radbryts.',
   // dashboard-widgets
@@ -1395,17 +1395,17 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.tip.1':
     'Kartrutor tar mest plats. Slå av dem om du bara vill spara resedata och dokument.',
   'help.guide.offline-prepare.tip.2':
-    'Installera TREK som en app från webbläsaren för en så smidig offlinestart som möjligt.',
+    'Installera YOUYA som en app från webbläsaren för en så smidig offlinestart som möjligt.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': 'Välj vilken version som behålls vid en synkroniseringskonflikt',
   'help.guide.offline-conflicts.goal':
-    'Välj hur TREK löser en konflikt mellan en ändring som gjordes offline och en som gjordes någon annanstans.',
+    'Välj hur YOUYA löser en konflikt mellan en ändring som gjordes offline och en som gjordes någon annanstans.',
   'help.guide.offline-conflicts.step.1':
     'När en ändring som du gjort offline krockar med en nyare visas Synkroniseringskonflikter nära toppen av Offline. För varje ändring klickar du på ”Min” eller Behåll deras.',
   'help.guide.offline-conflicts.step.2':
     'I samma kort avgör När en konflikt uppstår vad som gäller nästa gång: Fråga mig varje gång, Behåll alltid min version eller Behåll alltid serverversionen.',
   'help.guide.offline-conflicts.result':
-    'Med ”Fråga mig varje gång” ligger en konflikt kvar i Synkroniseringskonflikter tills du väljer. Med de andra två alternativen löser TREK den automatiskt.',
+    'Med ”Fråga mig varje gång” ligger en konflikt kvar i Synkroniseringskonflikter tills du väljer. Med de andra två alternativen löser YOUYA den automatiskt.',
   'help.guide.offline-conflicts.tip.1':
     '”Rensa cache” tar bara bort kopian på den här enheten. Inget ändras på servern.',
   // profile
@@ -1426,7 +1426,7 @@ const help: TranslationStrings = {
   'help.guide.password.result':
     'Det nya lösenordet gäller direkt. Alla andra enheter loggas ut, dina MCP API-token raderas och OAuth-klienter måste logga in igen. Den här enheten förblir inloggad.',
   'help.guide.password.tip.1':
-    'Om den här TREK-instansen bara använder SSO för inloggning finns det inget TREK-lösenord och inget kort ”Ändra lösenord”.',
+    'Om den här YOUYA-instansen bara använder SSO för inloggning finns det inget YOUYA-lösenord och inget kort ”Ändra lösenord”.',
   // mfa
   'help.guide.mfa.title': 'Slå på tvåfaktorsautentisering',
   'help.guide.mfa.goal': 'Skydda kontot med en kod från en autentiseringsapp.',
@@ -1460,15 +1460,15 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     'Ditt konto raderas, tillsammans med resorna, platserna och filerna som du äger. Resor som andra äger finns kvar.',
   'help.guide.delete-account.tip.1':
-    'Om du är den enda administratören visar TREK ”Det går inte att radera”: gör först en annan användare till admin.',
+    'Om du är den enda administratören visar YOUYA ”Det går inte att radera”: gör först en annan användare till admin.',
   'help.guide.delete-account.tip.2': 'Det går inte att ångra. Exportera det du vill behålla innan du bekräftar.',
 
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Administration',
   'help.ctx.admin.summary':
-    'Inställningar för hela TREK-instansen, för alla användare: vem som får logga in och hur, vad som är påslaget, var filer lagras, hur servern når människor och hur den säkerhetskopieras. Bara administratörer ser den här sidan. Sidofältet grupperar flikarna under Användare, Konfiguration och Underhåll, och varje flik är en egen skärm.',
+    'Inställningar för hela YOUYA-instansen, för alla användare: vem som får logga in och hur, vad som är påslaget, var filer lagras, hur servern når människor och hur den säkerhetskopieras. Bara administratörer ser den här sidan. Sidofältet grupperar flikarna under Användare, Konfiguration och Underhåll, och varje flik är en egen skärm.',
   'help.ctx.admin.bullet.1':
-    'Rubriken räknar användare, resor, platser och filer till höger. Under den visas en banner Uppdatering tillgänglig när det finns en nyare TREK-version.',
+    'Rubriken räknar användare, resor, platser och filer till höger. Under den visas en banner Uppdatering tillgänglig när det finns en nyare YOUYA-version.',
   'help.ctx.admin.bullet.2':
     'Användare och Standardvärden: konton, inbjudningslänkar och behörigheter, samt de inställningar och den karta som ett nytt konto startar med.',
   'help.ctx.admin.bullet.3':
@@ -1479,7 +1479,7 @@ const help: TranslationStrings = {
     'Lagring, Säkerhetskopia, GitHub och Revision: var uppladdningar lagras, säkerhetskopior på begäran och enligt schema, versionshistoriken och loggen över säkerhetsrelevanta händelser.',
   'help.ctx.admin-users.title': 'Användare',
   'help.ctx.admin-users.summary':
-    'Alla konton på den här TREK-instansen, med roll, e-post och senaste aktivitet, inbjudningslänkarna som låter personer registrera sig på en sluten instans samt vem som får göra vad i resor.',
+    'Alla konton på den här YOUYA-instansen, med roll, e-post och senaste aktivitet, inbjudningslänkarna som låter personer registrera sig på en sluten instans samt vem som får göra vad i resor.',
   'help.ctx.admin-users.bullet.1':
     'Tabellen: användare, e-post, roll, skapad och Senast aktiv, med Redigera användare och Ta bort användare på varje rad. En grön prick på avataren betyder att personen är online just nu. Din egen rad visar (Du).',
   'help.ctx.admin-users.bullet.2':
@@ -1501,7 +1501,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     'Packningsmallar: namngivna listor med kategorier och föremål som en resas packlista kan utgå från.',
   'help.ctx.admin-config.bullet.2':
-    'Kategorier: namn, ikon och färg för kategorierna som används i hela TREK, från platsinspektören till Samlingar. Var och en redigeras i en dialog med förhandsgranskning.',
+    'Kategorier: namn, ikon och färg för kategorierna som används i hela YOUYA, från platsinspektören till Samlingar. Var och en redigeras i en dialog med förhandsgranskning.',
   'help.ctx.admin-config.bullet.3':
     'Skollov: katalogen med länder och regioner och deras lovperioder, som alla kan välja i Vacay.',
   'help.ctx.admin-settings.title': 'Säkerhet och Tjänster',
@@ -1512,12 +1512,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     'Inloggningsnyckel: Relying Party ID (domänen) och Tillåtna ursprung. Enkel inloggning (OIDC): Visningsnamn, Utfärdarens URL, en valfri Discovery-URL, Klient ID och Klient hemlighet.',
   'help.ctx.admin-settings.bullet.3':
-    'Platssökning och ruttplanering, på Tjänster: TREK API, markerat Rekommenderad standardkälla, med Dagens kvot och Dela platsuppgifter, därefter Kollektivtrafikleverantör, Leverantör för platssökning och Logg över platssökningar.',
+    'Platssökning och ruttplanering, på Tjänster: YOUYA API, markerat Rekommenderad standardkälla, med Dagens kvot och Dela platsuppgifter, därefter Kollektivtrafikleverantör, Leverantör för platssökning och Logg över platssökningar.',
   'help.ctx.admin-settings.bullet.4':
     'API Nycklar: Google Maps API Nyckel med Test och Vad nyckeln används till, nycklarna för Unsplash och Amap, och en Spara längst ned i kortet. Tillåtna filtyper, under det, begränsar uppladdningar.',
   'help.ctx.admin-addons.title': 'Tillägg',
   'help.ctx.admin-addons.summary':
-    'TREK:s funktionsmoduler i tre kort: Resa för flikarna i en resa, Global för avsnitten i huvudnavigeringen och Integration för externa tjänster. Varje tillägg har ett reglage. Av betyder att navigeringsposten, rutterna och API:et tas bort för alla.',
+    'YOUYA:s funktionsmoduler i tre kort: Resa för flikarna i en resa, Global för avsnitten i huvudnavigeringen och Integration för externa tjänster. Varje tillägg har ett reglage. Av betyder att navigeringsposten, rutterna och API:et tas bort för alla.',
   'help.ctx.admin-addons.bullet.1':
     'En rad per tillägg med sitt reglage, och i varje korts rubrik hur många av dess tillägg som är på. Infomärket bredvid ett namn säger vad tillägget gör.',
   'help.ctx.admin-addons.bullet.2':
@@ -1526,7 +1526,7 @@ const help: TranslationStrings = {
     'Rader med ett kugghjul öppnar en konfigurationsdialog, till exempel Vattendata för paddling under Turer och Konfigurera mejlimport under Import av bokningsmejl. Flygstatus live är en rad i kortet Resa.',
   'help.ctx.admin-plugins.title': 'Plugin',
   'help.ctx.admin-plugins.summary':
-    'Tredjepartsplugins som körs i en egen process bredvid TREK, var och en med de behörigheter som den bad om vid installationen. Installera från katalogen, ladda upp ett paket eller länka en mapp medan du utvecklar ett plugin.',
+    'Tredjepartsplugins som körs i en egen process bredvid YOUYA, var och en med de behörigheter som den bad om vid installationen. Installera från katalogen, ladda upp ett paket eller länka en mapp medan du utvecklar ett plugin.',
   'help.ctx.admin-plugins.bullet.1':
     'Installerat och Upptäck, med Sök plugins… och Filtrera för typ, status och ordning. Varje rad visar versionen, vad pluginet får komma åt, Granskad och Signerad eller Osignerad, ett reglage och en ⋯-meny.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1543,7 +1543,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     'Kategorier: resedokument, Journey-foton, omslag, profilbilder, platsbilder, fotocacharna och säkerhetskopior, var och en kopplad till en backend, med Spara ändringar längst ned.',
   'help.ctx.admin-storage.bullet.4':
-    'Filer utan koppling: vad den nattliga kontrollen hittade som inget i TREK längre använder, med Kontrollera nu och ett reglage som raderar sådana filer när de har varit oanvända i en vecka.',
+    'Filer utan koppling: vad den nattliga kontrollen hittade som inget i YOUYA längre använder, med Kontrollera nu och ett reglage som raderar sådana filer när de har varit oanvända i en vecka.',
   'help.ctx.admin-notifications.title': 'Meddelanden',
   'help.ctx.admin-notifications.summary':
     'Kanalerna som instansen erbjuder sina användare och de som du får som administratör. Användarna väljer själva sina ämnen och URL:er under Inställningar. Du bestämmer vad som finns och ställer in e-post.',
@@ -1555,14 +1555,14 @@ const help: TranslationStrings = {
     'Adminaviseringar, till höger: Webhook för administratörer och Admin Ntfy med en testknapp var, och under dem vilken kanal som skickar varje admin-händelse (Ny version tillgänglig, Fel i lagringsreplik, Paddelregion efterfrågad).',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    'Alla tokens och OAuth-sessioner som AI-klienter har för den här TREK-instansen, för alla användare. Du kan återkalla vilken som helst av dem.',
+    'Alla tokens och OAuth-sessioner som AI-klienter har för den här YOUYA-instansen, för alla användare. Du kan återkalla vilken som helst av dem.',
   'help.ctx.admin-mcp-tokens.bullet.1':
     '”OAuth Sessioner”: klienten, de behörigheter den har fått, ägaren och datumet, med en papperskorg som återkallar den.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     'API Token: namn, ägare, Skapad och Senast använd, med en papperskorg som raderar den.',
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    'Vad som är nytt i TREK: versionshistoriken från GitHub och om det finns en nyare version än din. Själva uppdateringen görs utanför appen, på värden.',
+    'Vad som är nytt i YOUYA: versionshistoriken från GitHub och om det finns en nyare version än din. Själva uppdateringen görs utanför appen, på värden.',
   'help.ctx.admin-github.bullet.1':
     'Versionshistorik listar utgåvorna som en tidslinje med deras anteckningar. Den nyaste har märket Senaste, förhandsutgåvor märks Förhandsutgåva, och GitHub öppnar sidan med utgåvor.',
   'help.ctx.admin-github.bullet.2':
@@ -1635,7 +1635,7 @@ const help: TranslationStrings = {
     'Papperskorgen på din egen rad fungerar inte: du kan inte radera dig själv. Det måste en annan admin göra.',
   // permissions
   'help.guide.permissions.title': 'Bestäm vem som får göra vad',
-  'help.guide.permissions.goal': 'Ange per åtgärd vilken roll som får utföra den i den här TREK-instansen.',
+  'help.guide.permissions.goal': 'Ange per åtgärd vilken roll som får utföra den i den här YOUYA-instansen.',
   'help.guide.permissions.step.1':
     'Hitta åtgärden i sin grupp under Behörighetsinställningar, till exempel Ta bort resor under Resahantering, och välj vem som får utföra den: Alla, Resedeltagare, Researrangör eller Admin endast. En ändrad rad markeras skräddarsydd.',
   'help.guide.permissions.step.2':
@@ -1707,10 +1707,10 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     'När Enkel inloggning (OIDC) är konfigurerat följer tre SSO-rader: SSO Inloggning, SSO Automatisk konfigurering, som skapar ett konto första gången någon loggar in via SSO, och Direkt till SSO.',
   'help.guide.auth-methods.step.3':
-    'Aktivera inloggningsnyckel erbjuder inloggningsnycklar på inloggningssidan. Slå på Kräv 2FA så måste alla som saknar 2FA ställa in det under Inställningar innan de kan använda TREK.',
+    'Aktivera inloggningsnyckel erbjuder inloggningsnycklar på inloggningssidan. Slå på Kräv 2FA så måste alla som saknar 2FA ställa in det under Inställningar innan de kan använda YOUYA.',
   'help.guide.auth-methods.result': 'Inloggningssidan erbjuder precis de metoder som du lät vara på.',
   'help.guide.auth-methods.tip.1':
-    'TREK låter dig inte stänga av den sista inloggningsmetoden: dess reglage blir grått, och verktygstipset lyder Minst en inloggningsmetod måste förbli aktiverad.',
+    'YOUYA låter dig inte stänga av den sista inloggningsmetoden: dess reglage blir grått, och verktygstipset lyder Minst en inloggningsmetod måste förbli aktiverad.',
   'help.guide.auth-methods.tip.2':
     'Om OIDC_ONLY är satt på servern är lösenordsreglagen låsta, och en notering säger det.',
   'help.guide.auth-methods.tip.3':
@@ -1727,7 +1727,7 @@ const help: TranslationStrings = {
   'help.guide.oidc.result':
     'Inloggningssidan visar SSO-knappen. När SSO Automatisk konfigurering är på får förstagångsanvändare ett konto automatiskt.',
   'help.guide.oidc.tip.1':
-    'Redirect-URI:n som din leverantör behöver är adressen till din TREK plus OIDC-callbacksökvägen från dokumentationen.',
+    'Redirect-URI:n som din leverantör behöver är adressen till din YOUYA plus OIDC-callbacksökvägen från dokumentationen.',
   'help.guide.oidc.tip.2':
     'Claim-mappningen avgör vilka SSO-grupper som blir administratörer. Se OIDC-sidan i dokumentationen.',
   // instance-keys
@@ -1735,18 +1735,18 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     'Lägg till Google-foton och betyg, Unsplash-omslag och Amap-sökning för hela instansen.',
   'help.guide.instance-keys.step.1':
-    'På fliken Tjänster börjar kortet Platssökning och ruttplanering med TREK API, markerat Rekommenderad standardkälla. Det svarar på platssökning, adresser och ruttplanering utan nyckel, och Dagens kvot visar vad som är kvar av dagen.',
+    'På fliken Tjänster börjar kortet Platssökning och ruttplanering med YOUYA API, markerat Rekommenderad standardkälla. Det svarar på platssökning, adresser och ruttplanering utan nyckel, och Dagens kvot visar vad som är kvar av dagen.',
   'help.guide.instance-keys.step.2':
     'För foton, betyg och öppettider klistrar du in en Google Maps API Nyckel under API Nycklar och klickar på Test. Där står Ansluten eller Felaktig. Under Vad nyckeln används till slår du bara på det du vill ska debiteras: Plats Foton, Automatisk komplettering av plats, Platsinformation, Platsberikning och Sök bara med Google, samt en Daglig gräns för Google-anrop.',
   'help.guide.instance-keys.step.3':
     'Klistra in Unsplash API-nyckel för omslagssökning och Amap (高德地图) API-nyckel för platssökning i Kina (fastlandet) och klicka sedan på Spara längst ned i kortet.',
   'help.guide.instance-keys.result':
-    'Användarna får funktionerna utan egna nycklar. Utan Google-nyckel körs sökningen via TREK Places API och OpenStreetMap.',
+    'Användarna får funktionerna utan egna nycklar. Utan Google-nyckel körs sökningen via YOUYA Places API och OpenStreetMap.',
   'help.guide.instance-keys.tip.1':
-    'Om en användare har en personlig nyckel under Inställningar använder TREK den i stället för instansens nyckel för den användaren.',
+    'Om en användare har en personlig nyckel under Inställningar använder YOUYA den i stället för instansens nyckel för den användaren.',
   'help.guide.instance-keys.tip.2': 'Nycklar kan också komma från miljövariabler. De visas som skrivskyddade här.',
   'help.guide.instance-keys.tip.3':
-    'Daglig gräns för Google-anrop begränsar hur mycket TREK får förbruka på nyckeln per dag. Märket bredvid rubriken räknar dagens anrop. När gränsen är nådd använder sökningar OpenStreetMap till nästa dag (UTC).',
+    'Daglig gräns för Google-anrop begränsar hur mycket YOUYA får förbruka på nyckeln per dag. Märket bredvid rubriken räknar dagens anrop. När gränsen är nådd använder sökningar OpenStreetMap till nästa dag (UTC).',
   // places-transit
   'help.guide.places-transit.title': 'Välj sökleverantör och leverantör för kollektivtrafik',
   'help.guide.places-transit.goal':
@@ -1754,10 +1754,10 @@ const help: TranslationStrings = {
   'help.guide.places-transit.step.1':
     'På fliken Tjänster, i kortet Platssökning och ruttplanering, väljer du under Kollektivtrafikleverantör: Transitous (gratis), som är nyckelfri och starkast i Europa, eller Google, som använder Google-nyckeln. Valet sparas direkt.',
   'help.guide.places-transit.step.2':
-    'Under Leverantör för platssökning väljer du vilken tjänst TREK ska fråga när TREK-indexet och OpenStreetMap inte hittar något: Automatisk (Google om det finns en nyckel, sedan Amap), Google Places, Amap (高德地图) eller OpenStreetMap.',
-  'help.guide.places-transit.result': 'Alla sökrutor och alla kollektivtrafikrutter i TREK använder det här valet.',
+    'Under Leverantör för platssökning väljer du vilken tjänst YOUYA ska fråga när YOUYA-indexet och OpenStreetMap inte hittar något: Automatisk (Google om det finns en nyckel, sedan Amap), Google Places, Amap (高德地图) eller OpenStreetMap.',
+  'help.guide.places-transit.result': 'Alla sökrutor och alla kollektivtrafikrutter i YOUYA använder det här valet.',
   'help.guide.places-transit.tip.1':
-    'Ett val utan nyckel visar en varning här. Platssökningen använder då bara TREK-indexet och OpenStreetMap, och kollektivtrafiken bara Transitous.',
+    'Ett val utan nyckel visar en varning här. Platssökningen använder då bara YOUYA-indexet och OpenStreetMap, och kollektivtrafiken bara Transitous.',
   'help.guide.places-transit.tip.2':
     'Googles kollektivtrafikrutter debiteras per förfrågan. Transitous debiteras inte.',
   // file-types
@@ -1805,7 +1805,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'Koppla varje slags uppladdning, till exempel Resedokument, Journey-foton eller Säkerhetskopior, till en backend under Kategorier.',
   'help.guide.storage-backends.step.3':
-    'Klicka på Spara ändringar längst ned i Kategorier. Om en kategori nu pekar på en annan lagring frågar TREK om du vill Flytta befintliga objekt eller Dirigera bara nya skrivningar.',
+    'Klicka på Spara ändringar längst ned i Kategorier. Om en kategori nu pekar på en annan lagring frågar YOUYA om du vill Flytta befintliga objekt eller Dirigera bara nya skrivningar.',
   'help.guide.storage-backends.result':
     'Nya uppladdningar går till den tilldelade lagringen. Flyttade filer levereras därifrån, och det du valde att inte flytta ligger kvar där det var.',
   'help.guide.storage-backends.tip.1':
@@ -1855,7 +1855,7 @@ const help: TranslationStrings = {
     'Om du stänger av tillägget MCP slutar alla klienter fungera direkt och den här fliken döljs, men inget raderas: token fungerar igen när tillägget slås på igen.',
   // release-history
   'help.guide.release-history.title': 'Kolla efter en ny version',
-  'help.guide.release-history.goal': 'Ta reda på om din TREK är aktuell och vad nästa version innehåller.',
+  'help.guide.release-history.goal': 'Ta reda på om din YOUYA är aktuell och vad nästa version innehåller.',
   'help.guide.release-history.step.1':
     'När det finns en nyare utgåva visas Uppdatering tillgänglig under sidrubriken, med versionen du kör. Visa på GitHub öppnar utgåvan, och Så här uppdaterar du visar kommandona för Docker eller uppdateringsguiden för andra installationer.',
   'help.guide.release-history.step.2':
@@ -1912,7 +1912,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     'Slå på reglaget på raden Nextcloud. Meddelandet lyder Tillägget har uppdaterats, och från och med nu hittar reseägare Dokumentsynkronisering i fliken Filer på sina resor, med Nextcloud under Anslut en leverantör.',
   'help.guide.document-providers.result':
-    'Lagringen finns tillgänglig på varje resa i den här TREK-instansen. Inget är anslutet förrän en reseägare ansluter det.',
+    'Lagringen finns tillgänglig på varje resa i den här YOUYA-instansen. Inget är anslutet förrän en reseägare ansluter det.',
   'help.guide.document-providers.tip.1':
     'Här bestäms bara om ett lager får erbjudas. Adressen och inloggningsuppgifterna hör till en resa och anges i dess flik Filer av resans ägare, aldrig i adminpanelen.',
   'help.guide.document-providers.tip.2':
@@ -1921,30 +1921,30 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     'Ge alla en vidarebefordringsadress, så att bokningsbekräftelserna de skickar vidare blir bokningar i rätt resa.',
   'help.guide.mail-import-setup.step.1':
-    'På fliken Tillägg, i kortet Integration, slår du på Import av bokningsmejl. Alla på den här TREK-instansen får nu en personlig vidarebefordringsadress.',
+    'På fliken Tillägg, i kortet Integration, slår du på Import av bokningsmejl. Alla på den här YOUYA-instansen får nu en personlig vidarebefordringsadress.',
   'help.guide.mail-import-setup.step.2': 'Klicka på Konfigurera mejlimport, raden som visas under det.',
   'help.guide.mail-import-setup.step.3':
-    'Under Hur mejl kommer in väljer du IMAP-brevlåda och anger Server, Port, Kryptering, Användare, Lösenord och Mapp. Välj i stället Webhook för en mejltjänst som skickar varje mejl till TREK, eller Endast uppladdning för att prova utan brevlåda. Ställ sedan in Adressmall, vidarebefordringsadressen med en platshållare där varje persons kod hamnar, och AI-mejl per person och dag.',
+    'Under Hur mejl kommer in väljer du IMAP-brevlåda och anger Server, Port, Kryptering, Användare, Lösenord och Mapp. Välj i stället Webhook för en mejltjänst som skickar varje mejl till YOUYA, eller Endast uppladdning för att prova utan brevlåda. Ställ sedan in Adressmall, vidarebefordringsadressen med en platshållare där varje persons kod hamnar, och AI-mejl per person och dag.',
   'help.guide.mail-import-setup.step.4':
-    'Klicka på Spara och sedan på Testa anslutning. Det står Ansluten eller vad som gick fel. Nedanför visar dialogen när TREK senast läste mejlen och mejlen från de senaste 24 timmarna: Tillagda automatiskt, Väntar och Misslyckade.',
+    'Klicka på Spara och sedan på Testa anslutning. Det står Ansluten eller vad som gick fel. Nedanför visar dialogen när YOUYA senast läste mejlen och mejlen från de senaste 24 timmarna: Tillagda automatiskt, Väntar och Misslyckade.',
   'help.guide.mail-import-setup.result':
     'Alla hittar sin vidarebefordringsadress under Inställningar, Integrationer. En vidarebefordrad bekräftelse blir en bokning i rätt resa, eller väntar där på att ägaren tittar på den.',
   'help.guide.mail-import-setup.tip.1':
-    'Ge TREK en egen brevlåda som tar emot plusadresser (trek+…@din-domän), inte en personlig. Lästa mejl flyttas vidare till mappen TREK/processed.',
+    'Ge YOUYA en egen brevlåda som tar emot plusadresser (trek+…@din-domän), inte en personlig. Lästa mejl flyttas vidare till mappen TREK/processed.',
   'help.guide.mail-import-setup.tip.2':
     'Miljövariabler som börjar med MAIL_INGEST_ går före fälten i dialogen. En mejlserver i ditt eget nätverk kräver dessutom ALLOW_INTERNAL_NETWORK=true på servern.',
   'help.guide.mail-import-setup.tip.3':
     'AI-mejl per person och dag begränsar hur många mejl utan maskinläsbara bokningsuppgifter som en AI läser för en person per dag. Över gränsen läses bara de maskinläsbara uppgifterna.',
   'help.guide.ai-setup.title': 'Konfigurera AI-assistenten',
   'help.guide.ai-setup.goal':
-    'Anslut en AI-leverantör en gång, så att alla på den här TREK-instansen kan planera med assistenten.',
+    'Anslut en AI-leverantör en gång, så att alla på den här YOUYA-instansen kan planera med assistenten.',
   'help.guide.ai-setup.step.1':
     'På fliken Tillägg hittar du AI-rutan i kortet Integration och slår på AI-assistent. AI-tolkning och MCP finns i samma ruta.',
   'help.guide.ai-setup.step.2': 'Klicka på Konfigurera AI, raden som visas under reglagen.',
   'help.guide.ai-setup.step.3':
     'Under Vem betalar väljer du vem som tillhandahåller anslutningen: Jag betalar, eget tillåtet, Jag betalar för alla eller Alla använder sitt eget konto. Raden under förklarar vad ditt val innebär.',
   'help.guide.ai-setup.step.4':
-    'Under Anslutning för alla väljer du Klistra in en API-nyckel och klistrar in en nyckel från Anthropic, OpenAI, Gemini eller OpenRouter. TREK visar vilken leverantör den känner igen. Klicka på Anslut; TREK kontrollerar nyckeln hos leverantören innan den sparas.',
+    'Under Anslutning för alla väljer du Klistra in en API-nyckel och klistrar in en nyckel från Anthropic, OpenAI, Gemini eller OpenRouter. YOUYA visar vilken leverantör den känner igen. Klicka på Anslut; YOUYA kontrollerar nyckeln hos leverantören innan den sparas.',
   'help.guide.ai-setup.step.5':
     'Anslutningen visas som Ansluten. Välj den Modell som alla chattar med; bara modeller som kan använda verktyg listas. Ändra och Ta bort anslutningen finns under den.',
   'help.guide.ai-setup.step.6':
@@ -1961,15 +1961,15 @@ const help: TranslationStrings = {
     'Webbsökning fungerar med ChatGPT, Anthropic och OpenRouter, genom leverantörens egen sökning, och sökningarna går bara till den leverantören.',
   'help.guide.paddle-water-data.title': 'Läs in vattendata för paddelturer',
   'help.guide.paddle-water-data.goal':
-    'Ge paddelturer en regions dammar, slussar och paddlingsregler, och bestäm om TREK läser in nya regioner själv.',
+    'Ge paddelturer en regions dammar, slussar och paddlingsregler, och bestäm om YOUYA läser in nya regioner själv.',
   'help.guide.paddle-water-data.step.1':
     'På fliken Tillägg, medan Turer är på, klickar du på Vattendata för paddling, sista raden under Turer. Ett tal bredvid räknar regionerna, eller förfrågningarna som väntar på dig.',
   'help.guide.paddle-water-data.step.2':
     'Under Läs in regioner automatiskt väljer du Automatisk, På begäran eller Av. Automatisk läser in regionen där någon planerar en paddeltur, upp till Största region som läses in automatiskt. Allt större väntar under Efterfrågade, där Läs in godkänner det och Avböj avvisar det.',
   'help.guide.paddle-water-data.step.3':
-    'Under Lägg till en region söker du i Geofabrik efter en region, till exempel Oberpfalz, och klickar på Lägg till bredvid. TREK läser in den i bakgrunden. När den är Klar visar raden objekten, datumet för datan och kilometer vatten. Läs in igen uppdaterar den, och Ta bort region raderar den.',
+    'Under Lägg till en region söker du i Geofabrik efter en region, till exempel Oberpfalz, och klickar på Lägg till bredvid. YOUYA läser in den i bakgrunden. När den är Klar visar raden objekten, datumet för datan och kilometer vatten. Läs in igen uppdaterar den, och Ta bort region raderar den.',
   'help.guide.paddle-water-data.result':
-    'Paddelturer inom regionen visar dess hinder och följer vattnet, och TREK läser in varje region på nytt en gång i månaden.',
+    'Paddelturer inom regionen visar dess hinder och följer vattnet, och YOUYA läser in varje region på nytt en gång i månaden.',
   'help.guide.paddle-water-data.tip.1': 'Bara regionens namn går till Geofabrik, aldrig en plats som någon planerar.',
   'help.guide.paddle-water-data.tip.2':
     'Att läsa in en region tar några minuter och minne medan det pågår, och ett helt land behöver några gigabyte tillfälligt utrymme.',
@@ -1981,7 +1981,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     'Allt om en resa: planen med dagar, karta och platser samt flikarna för turer, transporter, bokningar, listor, kostnader, filer, samarbete och en länkad dagbok. Var och en av dem har en egen hjälpskärm under den här.',
   'help.ctx.trip.bullet.1':
-    'Flikraden under det övre fältet: Planering, Turer, Transporter, Bokningar, Listor, Kostnader, Filer, Samarbete och, när en dagbok är länkad, Dagbok. Tillägg och plugin avgör vilka flikar som finns i din TREK.',
+    'Flikraden under det övre fältet: Planering, Turer, Transporter, Bokningar, Listor, Kostnader, Filer, Samarbete och, när en dagbok är länkad, Dagbok. Tillägg och plugin avgör vilka flikar som finns i din YOUYA.',
   'help.ctx.trip.bullet.2':
     'Planering har tre kolumner: dagarna till vänster, kartan i mitten och platserna till höger. Med tillägget Bilresa börjar dagkolumnen med ett reglage för Dagar och Bilresa, och med tillägget Turer börjar platskolumnen med Platser och Turer. Bokningar och transporter ingår i planen, vid stoppet och mellan stoppen. Flikarna listar dem.',
   'help.ctx.trip.bullet.3':
@@ -1993,7 +1993,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.6': 'Ångra-pilen i dagarnas verktygsfält ångrar dina senaste ändringar i planen, en i taget.',
   // add-member
   'help.guide.add-member.title': 'Lägg till en medlem',
-  'help.guide.add-member.goal': 'Ge någon med ett TREK-konto åtkomst till den här resan.',
+  'help.guide.add-member.goal': 'Ge någon med ett YOUYA-konto åtkomst till den här resan.',
   'help.guide.add-member.step.1':
     'Klicka på Reseinställningar, knappen bredvid resans namn uppe till vänster. Den öppnas på Personer.',
   'help.guide.add-member.step.2':
@@ -2003,7 +2003,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     'Medlemmen kan se och redigera resan på samma sätt som du, inom de nivåer som administratören har satt under ”Behörighetsinställningar”.',
   'help.guide.add-member.tip.1':
-    'Den som saknas i listan har inget TREK-konto ännu. Lägg till personen som gäst, eller låt personen registrera sig via en inbjudningslänk.',
+    'Den som saknas i listan har inget YOUYA-konto ännu. Lägg till personen som gäst, eller låt personen registrera sig via en inbjudningslänk.',
   'help.guide.add-member.tip.2': 'Siffran bredvid Åtkomst räknar personerna i resan. Gäster listas separat nedanför.',
   // trip-invite-link
   'help.guide.trip-invite-link.title': 'Bjud in via länk',
@@ -2011,7 +2011,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     'Klicka på Reseinställningar bredvid resans namn och välj Delar till vänster. Klicka på Skapa inbjudningslänk under Inbjudningslänk till resa.',
   'help.guide.trip-invite-link.step.2':
-    'Klicka på Kopiera och skicka länken. Alla med ett TREK-konto som öppnar den går med som medlem.',
+    'Klicka på Kopiera och skicka länken. Alla med ett YOUYA-konto som öppnar den går med som medlem.',
   'help.guide.trip-invite-link.step.3':
     'Skapa ny ersätter länken, och den gamla länken slutar fungera. Inaktivera stänger av den.',
   'help.guide.trip-invite-link.result': 'Alla som öppnar länken går med i resan och visas under ”Åtkomst”.',
@@ -2021,7 +2021,7 @@ const help: TranslationStrings = {
     'Använd Skapa ny om du skickade länken till fel chatt: den gamla länken slutar fungera direkt.',
   // add-guest
   'help.guide.add-guest.title': 'Lägg till en gäst utan konto',
-  'help.guide.add-guest.goal': 'Lägg till någon i resan som inte använder TREK.',
+  'help.guide.add-guest.goal': 'Lägg till någon i resan som inte använder YOUYA.',
   'help.guide.add-guest.step.1':
     'Klicka på Reseinställningar bredvid resans namn. På Personer är Gäster den sista delen, under Åtkomst.',
   'help.guide.add-guest.step.2': 'Skriv namnet i Gästens namn och klicka på Lägg till gäst.',
@@ -2078,7 +2078,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     'Ångra gäller planen: att lägga till, tilldela, ta bort, ordna om, flytta och låsa platser, tömma en dag, optimera en rutt, radera platser, ändra kategorier och importera.',
   'help.guide.undo-change.tip.2':
-    'Klicka igen för att gå längre bakåt: TREK sparar dina senaste 30 ändringar på den här resan, de nyaste först, tills du lämnar den.',
+    'Klicka igen för att gå längre bakåt: YOUYA sparar dina senaste 30 ändringar på den här resan, de nyaste först, tills du lämnar den.',
   'help.guide.trip-assistant.title': 'Planera med assistenten',
   'help.guide.trip-assistant.goal': 'Fråga assistenten om din resa och låt den lägga till sina förslag i planen.',
   'help.guide.trip-assistant.step.1':
@@ -2134,19 +2134,19 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     'Klicka på Lägg till plats/aktivitet överst i platskolumnen (Ny plats medan en dag är öppen). Formuläret öppnas med markören i sökfältet.',
   'help.guide.create-place.step.2':
-    'Skriv platsen i Sök platser… och välj ett resultat. Namnet överst i dialogen, Adress, Latitud, Longitud och Hemsida fylls i, och Platsdetaljer till vänster visar bilder, öppettider och en beskrivning. I en TREK med Google-nyckel kör Inte rätt plats? Sök på Google i stället under resultaten samma sökning via Google. När Samlingar är på erbjuder Sparade platser till höger platserna i dina listor på samma sätt.',
+    'Skriv platsen i Sök platser… och välj ett resultat. Namnet överst i dialogen, Adress, Latitud, Longitud och Hemsida fylls i, och Platsdetaljer till vänster visar bilder, öppettider och en beskrivning. I en YOUYA med Google-nyckel kör Inte rätt plats? Sök på Google i stället under resultaten samma sökning via Google. När Samlingar är på erbjuder Sparade platser till höger platserna i dina listor på samma sätt.',
   'help.guide.create-place.step.3':
     'Under Platsdetaljer klickar du på en bild under ”Välj en bild” för att göra den till platsens bild. ”Använd den här texten” kopierar beskrivningen till formuläret.',
   'help.guide.create-place.step.4':
     'Kontrollera formulärets fält. Namnet högst upp i dialogen är det enda obligatoriska fältet. Kategoripillret under det väljer en av resans kategorier, och + bredvid skapar en ny. Adress, Latitud och Longitud kommer från sökningen, eller så skriver du in dem. Under Taggar klickar du på de taggar som platsen ska ha. Om platsen och Noteringar växlar textfältet mellan beskrivningen och dina egna noteringar. Hemsida tar länken, Bifoga under Filer lägger till ett dokument, och Telefon, E-post och Lägg till öppettider är till för uppgifter som sökningen inte hittade.',
   'help.guide.create-place.step.5':
-    'Klicka på Lägg till. Om en plats med samma namn eller på samma ställe redan finns i resan visar TREK en varning och knappen ändras till Lägg till ändå.',
+    'Klicka på Lägg till. Om en plats med samma namn eller på samma ställe redan finns i resan visar YOUYA en varning och knappen ändras till Lägg till ändå.',
   'help.guide.create-place.result':
     'Platsen finns i listan och på kartan, under Oplanerat tills du lägger den på en dag.',
   'help.guide.create-place.tip.1':
     'Kostnader längst ned i formuläret, med tillägget Budget på, öppnar redigeraren Kostnader för platsens utgift direkt efter att du har sparat. En bild eller PDF som du klistrar in i dialogen bifogas som en fil under Filer.',
   'help.guide.create-place.tip.2':
-    'TREK-indexet och OpenStreetMap ger sökresultaten på varje TREK, och Platsdetaljer fylls i automatiskt från Wikipedia, Wikivoyage och Wikimedia. TREK frågar Google bara när båda ger noll träffar, och bara Google ger betyg.',
+    'YOUYA-indexet och OpenStreetMap ger sökresultaten på varje YOUYA, och Platsdetaljer fylls i automatiskt från Wikipedia, Wikivoyage och Wikimedia. YOUYA frågar Google bara när båda ger noll träffar, och bara Google ger betyg.',
   'help.guide.create-place.tip.3':
     'Du kan också skapa en plats på kartan: högerklicka på stället, så öppnas formuläret med koordinater och adress ifyllda.',
   // place-to-open-day
@@ -2238,7 +2238,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     'Nålarna är platser i resan, i listan och på kartan, under Oplanerat tills du lägger dem på en dag.',
   'help.guide.import-places-file.tip.1':
-    'En fil som är för stor avvisas, och TREK visar storleksgränsen. Exportera den igen utan foton, eller dela upp den.',
+    'En fil som är för stor avvisas, och YOUYA visar storleksgränsen. Exportera den igen utan foton, eller dela upp den.',
   'help.guide.import-places-file.tip.2':
     'En import som gjorts i Importera fil kan ångras från verktygsfältet ovanför dagarna.',
   // import-places-list
@@ -2254,7 +2254,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.tip.1':
     'Listan måste vara delad offentligt. Länken till en privat lista importerar ingenting.',
   'help.guide.import-places-list.tip.2':
-    'Berika platser via Google visas i dialogrutan när din TREK har en Google-nyckel: den slår upp varje importerad plats och fyller i foton, adress och detaljer.',
+    'Berika platser via Google visas i dialogrutan när din YOUYA har en Google-nyckel: den slår upp varje importerad plats och fyller i foton, adress och detaljer.',
   'help.guide.sort-places.title': 'Sortera platslistan',
   'help.guide.sort-places.goal':
     'Sortera listan efter namn, efter betyg eller efter vad som lades till eller ändrades senast.',
@@ -2369,7 +2369,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Dra stoppet till ett annat dagkort för att flytta det dit. Det tas bort från den gamla dagen.',
   'help.guide.reorder-stops.step.4':
-    'Om ett stopp har en fast tid och en flytt skulle bryta dagens ordning frågar TREK Ta bort tid?, eftersom tiden avgör stoppets plats. Ta bort tid och flytta tar bort tiden och lägger stoppet där du släppte det. Avbryt lämnar dagen som den var.',
+    'Om ett stopp har en fast tid och en flytt skulle bryta dagens ordning frågar YOUYA Ta bort tid?, eftersom tiden avgör stoppets plats. Ta bort tid och flytta tar bort tiden och lägger stoppet där du släppte det. Avbryt lämnar dagen som den var.',
   'help.guide.reorder-stops.result': 'Rutten och restiderna uppdateras direkt efter den nya ordningen.',
   'help.guide.reorder-stops.tip.1':
     'En bokning med fast tid ligger kvar på den plats som tiden ger. Om du släpper den någon annanstans på dagen flyttas den tillbaka. Om du drar den till ett annat dagkort flyttas den till den dagen.',
@@ -2389,7 +2389,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'Tiden hör till stoppet på den dagen. Samma plats en annan dag kan ha en annan tid.',
   'help.guide.set-stop-times.tip.2':
-    'Om du vill flytta ett stopp med tid för hand drar du det. TREK frågar Ta bort tid?, och Ta bort tid och flytta tar bort tiden och flyttar det.',
+    'Om du vill flytta ett stopp med tid för hand drar du det. YOUYA frågar Ta bort tid?, och Ta bort tid och flytta tar bort tiden och flyttar det.',
   'help.guide.set-stop-times.tip.3':
     'Fliken Bara dag bredvid Om platsen och Noteringar, i samma formulär, är till för en anteckning som bara gäller den här dagen, till exempel en bordsbokning eller ett biljettnummer.',
   // remove-from-day
@@ -2430,7 +2430,7 @@ const help: TranslationStrings = {
   'help.guide.day-note.tip.2': 'Noteringar gäller en dag i taget. En notering för hela resan lägger du i Samarbete.',
   // day-route
   'help.guide.day-route.title': 'Visa och optimera dagens rutt',
-  'help.guide.day-route.goal': 'Se rutten mellan stoppen, välj hur du reser och låt TREK sortera ordningen.',
+  'help.guide.day-route.goal': 'Se rutten mellan stoppen, välj hur du reser och låt YOUYA sortera ordningen.',
   'help.guide.day-route.step.1':
     'Öppna dagen och klicka på Rutt i ruttfältet under dess stopp: vägen mellan stoppen ritas på kartan, och förbindelserna mellan stoppen visar tid och avstånd för varje sträcka.',
   'help.guide.day-route.step.2':
@@ -2444,7 +2444,7 @@ const help: TranslationStrings = {
   'help.guide.day-route.result':
     'Dagen är en rutt med tider. Totala kostnaden och sträckorna uppdateras när ordningen ändras.',
   'help.guide.day-route.tip.1':
-    'Rutterna kommer som standard från OSRM. Administratören kan ställa in att TREK använder en annan ruttmotor under Användarinställningar.',
+    'Rutterna kommer som standard från OSRM. Administratören kan ställa in att YOUYA använder en annan ruttmotor under Användarinställningar.',
   'help.guide.day-route.tip.2':
     'En sträcka som inte kunde ruttas visar ingen tid. Kontrollera att båda stoppen har koordinater.',
   'help.guide.day-route.tip.3': 'Ångra-pilen tar tillbaka en optimering.',
@@ -2521,7 +2521,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     'Raden längst ned: Lägg till i dagen medan en dag är öppen och platsen inte ligger på den än, därefter Navigering (eller namnet på din kartapp, när du har valt en i Inställningar), och två ikoner, Öppna hemsida och Spara i samling. Till höger rymmer de tre punkterna Ta bort från dag och Radera, och Redigera öppnar platsens formulär, där du också byter dess bild.',
   'help.ctx.trip-place.bullet.6':
-    'En plats som du har valt i sökningen visar vad TREK-indexet eller OpenStreetMap vet om den: Öppen eller Stängd bland pillren högst upp, med en grön eller röd ring runt bilden, utifrån platsens lokala tid; telefonnumret, också som ett piller; Öppettider längre ned, med dagens tider på raden och hela veckan efter ett klick; och hemsidan under ”Öppna hemsida”. Googles betyg visas bara på en plats som hittats via Google, i en TREK med Google-nyckel. Öppettider, telefonnummer och e-post som du själv har skrivit in i platsens formulär ersätter de uppslagna och avgör även ringens färg.',
+    'En plats som du har valt i sökningen visar vad YOUYA-indexet eller OpenStreetMap vet om den: Öppen eller Stängd bland pillren högst upp, med en grön eller röd ring runt bilden, utifrån platsens lokala tid; telefonnumret, också som ett piller; Öppettider längre ned, med dagens tider på raden och hela veckan efter ett klick; och hemsidan under ”Öppna hemsida”. Googles betyg visas bara på en plats som hittats via Google, i en YOUYA med Google-nyckel. Öppettider, telefonnummer och e-post som du själv har skrivit in i platsens formulär ersätter de uppslagna och avgör även ringens färg.',
   // read-place
   'help.guide.read-place.title': 'Vad kortet visar om en plats',
   'help.guide.read-place.goal': 'Läs allt resan vet om en plats, samlat i ett kort.',
@@ -2598,7 +2598,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     'Ta bort bild, i slutet av raden under rutorna, lämnar platsen utan bild när du klickar på Uppdatera. Avbryt behåller den gamla.',
   'help.guide.place-image.tip.3':
-    'De andra rutorna är platsens nuvarande bild, fotona som är kopplade till den och bilderna som TREK hittade för den, var och en med sitt upphov. Bara resenärer som får ändra platser kan byta bilden.',
+    'De andra rutorna är platsens nuvarande bild, fotona som är kopplade till den och bilderna som YOUYA hittade för den, var och en med sitt upphov. Bara resenärer som får ändra platser kan byta bilden.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'Lägg till platsen på den öppna dagen, eller ta bort den',
   'help.guide.place-day-assign.goal': 'Använd knappen på kortet i stället för att dra raden över planeraren.',
@@ -2681,11 +2681,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     'Listan visar de kartappar som passar den här platsen: Google Maps, Waze, Apple Maps, OpenStreetMap och CoMaps, plus Annan kartapp på Android.',
   'help.guide.place-navigation.step.3':
-    'Klicka på den du använder. Där det går skickar TREK själva platsen till appen och inte bara koordinaterna, så att du kommer till rätt entré.',
+    'Klicka på den du använder. Där det går skickar YOUYA själva platsen till appen och inte bara koordinaterna, så att du kommer till rätt entré.',
   'help.guide.place-navigation.step.4':
     'Ikonen bredvid, Öppna hemsida, öppnar platsens egen webbplats, med öppettider och biljetter, i en ny flik.',
   'help.guide.place-navigation.result':
-    'Kartappen öppnas på platsen och hemsidan öppnas i en ny flik. Inget i resan ändras. Om TREK är installerat som app öppnas kartappen i stället för en ny flik.',
+    'Kartappen öppnas på platsen och hemsidan öppnas i en ny flik. Inget i resan ändras. Om YOUYA är installerat som app öppnas kartappen i stället för en ny flik.',
   'help.guide.place-navigation.tip.1':
     'Waze börjar navigera direkt. De andra apparna öppnar platsen, och du trycker en gång till för att starta navigeringen.',
   'help.guide.place-navigation.tip.2':
@@ -2725,7 +2725,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.result':
     'Spåret ritas i färgen du valde, på kortet, på sin rad i platskolumnen och på kartan.',
   'help.guide.place-track.tip.1':
-    'Bara en plats med en stig har de här två blocken: en plats som importerades från en GPX-, KML- eller KMZ-fil innan Turer fanns, eller på en TREK-instans där Turer är av. När Turer är på blir en ny GPX-fil en tur, som öppnar ett eget turkort.',
+    'Bara en plats med en stig har de här två blocken: en plats som importerades från en GPX-, KML- eller KMZ-fil innan Turer fanns, eller på en YOUYA-instans där Turer är av. När Turer är på blir en ny GPX-fil en tur, som öppnar ett eget turkort.',
   'help.guide.place-track.tip.2':
     'Ett spår som är inspelat med höjder visar också sin högsta och lägsta punkt, antalet höjdmeter upp och ner och vandringens höjdprofil.',
   'help.guide.place-track.tip.3':
@@ -2739,13 +2739,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     'Alla resans dokument i en lista: biljetter, bekräftelser, wallet-kort och bilder. Varje dokument har en notering, en länk till platsen eller bokningen det hör till och en papperskorg som du kan återställa det från.',
   'help.ctx.trip-files.bullet.1':
-    'Släpp filer här, den streckade rutan under fältet, tar emot filer som du släpper på den. Ett klick på den öppnar filväljaren. Rutan visar vilka filtyper den här TREK-installationen godtar och gränsen per fil (Max 50 MB, om inte en administratör har angett en annan).',
+    'Släpp filer här, den streckade rutan under fältet, tar emot filer som du släpper på den. Ett klick på den öppnar filväljaren. Rutan visar vilka filtyper den här YOUYA-installationen godtar och gränsen per fil (Max 50 MB, om inte en administratör har angett en annan).',
   'help.ctx.trip-files.bullet.2':
     'Fältet överst innehåller Filer och filterflikarna Alla, PDF-filer, Bilder och Dokument, var och en med sitt antal. En stjärnflik visas efter Alla så snart en fil är stjärnmärkt, och en flik Samarbetsanteckningar visas sist så snart en notering har en bilaga.',
   'help.ctx.trip-files.bullet.3':
     'En rad visar en miniatyr eller filens typ, vem som laddade upp den, namnet, noteringen under det, storleken och datumet, samt en bricka per koppling: platsen, bokningen eller transporten med sitt namn (håll muspekaren över den för att se Dagsplan, Bokning eller Transport) och Från samarbetsanteckningar.',
   'help.ctx.trip-files.bullet.4':
-    'I slutet av en rad finns upp till fem ikoner, var och en med ett namn när du pekar på den: Stjärnmarkera, Tilldela (pennan), Öppna, Ladda ner och Radera. Radera frågar inte: filen flyttas till papperskorgen, där du kan återställa den. Offline fungerar en notering, en länk, en stjärna och papperskorgen fortfarande, och skickas när TREK är online igen. Bara uppladdning och borttagning av ytterligare en länk kräver en anslutning.',
+    'I slutet av en rad finns upp till fem ikoner, var och en med ett namn när du pekar på den: Stjärnmarkera, Tilldela (pennan), Öppna, Ladda ner och Radera. Radera frågar inte: filen flyttas till papperskorgen, där du kan återställa den. Offline fungerar en notering, en länk, en stjärna och papperskorgen fortfarande, och skickas när YOUYA är online igen. Bara uppladdning och borttagning av ytterligare en länk kräver en anslutning.',
   'help.ctx.trip-files.bullet.5':
     'En bild eller en video öppnas i helskärm, med piltangenter och en rad miniatyrer. Alla andra dokument öppnas i en dialogruta med namnet överst och Öppna i ny flik och Ladda ner under det. Ett plånbokskort laddas ner direkt.',
   'help.ctx.trip-files.bullet.6':
@@ -2757,7 +2757,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     'Öppna resan och klicka på ”Filer” i flikraden. Resans dokument listas där, med uppladdningsrutan ovanför.',
   'help.guide.files-upload.step.2':
-    'Klicka på Släpp filer här och välj en eller flera filer. De laddas upp en efter en, och rutan visar Laddar upp... medan det pågår. I rutan, under eller klicka för att bläddra, ser du filtyperna som den här TREK-installationen godtar och den största tillåtna filstorleken.',
+    'Klicka på Släpp filer här och välj en eller flera filer. De laddas upp en efter en, och rutan visar Laddar upp... medan det pågår. I rutan, under eller klicka för att bläddra, ser du filtyperna som den här YOUYA-installationen godtar och den största tillåtna filstorleken.',
   'help.guide.files-upload.step.3':
     'När den sista filen har laddats upp öppnas Tilldela fil automatiskt för den (om resan har några platser eller bokningar), med filens namn överst i dialogen. Lägg till en notering... under Notering lägger till en notering på filen, och listorna under kopplar den till en plats eller en bokning. Stäng dialogen med × uppe till höger. Ingenting går förlorat när du stänger den.',
   'help.guide.files-upload.step.4':
@@ -2768,7 +2768,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     'Tryck på Ctrl+V för att lägga till en bild från urklipp i listan, så att du inte först behöver spara en skärmbild av en bokning.',
   'help.guide.files-upload.tip.3':
-    'Att ladda upp kräver behörighet att ladda upp filer; utan den visas rutan inte alls. En filtyp som inte finns på listan nekas med ett meddelande, och inget laddas upp. En fil över gränsen (50 MB om inte en administratör har angett en annan) nekas innan något skickas, och meddelandet anger gränsen. Uppladdning kräver också en anslutning: offline meddelar TREK det och laddar inte upp något.',
+    'Att ladda upp kräver behörighet att ladda upp filer; utan den visas rutan inte alls. En filtyp som inte finns på listan nekas med ett meddelande, och inget laddas upp. En fil över gränsen (50 MB om inte en administratör har angett en annan) nekas innan något skickas, och meddelandet anger gränsen. Uppladdning kräver också en anslutning: offline meddelar YOUYA det och laddar inte upp något.',
   // files-link
   'help.guide.files-link.title': 'Koppla ett dokument till en plats eller en bokning',
   'help.guide.files-link.goal': 'Gör biljetten lätt att hitta från dagen den hör till, inte bara från den här listan.',
@@ -2787,7 +2787,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     'En fil kan ha flera kopplingar samtidigt, så samma bekräftelse kan höra till hotellets bokning och hotellets plats på en gång.',
   'help.guide.files-link.tip.2':
-    'Klicka på en markerad post igen för att ta bort den länken. Själva filen finns kvar. Offline sparas anteckningen och nya markeringar och skickas när TREK är online igen. Bara att ta bort ytterligare en länk kräver en anslutning.',
+    'Klicka på en markerad post igen för att ta bort den länken. Själva filen finns kvar. Offline sparas anteckningen och nya markeringar och skickas när YOUYA är online igen. Bara att ta bort ytterligare en länk kräver en anslutning.',
   'help.guide.files-link.tip.3':
     'Det fungerar också åt andra hållet: ett dokument som är bifogat en plats eller en bokning finns också i den här listan, med samma etikett på sin rad.',
   'help.guide.files-link.tip.4':
@@ -2824,7 +2824,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     'Listan sorteras alltid med stjärnmarkerade filer först och sedan de nyaste först, så ett dokument som laddades upp i dag visas ovanför ett från förra månaden.',
   // files-preview
-  'help.guide.files-preview.title': 'Läs ett dokument utan att lämna TREK',
+  'help.guide.files-preview.title': 'Läs ett dokument utan att lämna YOUYA',
   'help.guide.files-preview.goal':
     'Titta på en biljett eller en bild direkt och ladda ner den till din enhet när du behöver den där.',
   'help.guide.files-preview.step.1':
@@ -2859,7 +2859,7 @@ const help: TranslationStrings = {
     '”Töm papperskorgen”, i fältet bredvid papperskorgsikonen, raderar allt som ligger kvar i papperskorgen för gott. Webbläsaren ber om bekräftelse en gång innan det sker. Papperskorgsikonen växlar tillbaka till filerna.',
   'help.guide.files-trash.result': 'Filen är tillbaka i listan där den låg tidigare.',
   'help.guide.files-trash.tip.1':
-    'Radera på en rad frågar inte först. Det är därför det finns en papperskorg: ingenting tas bort från TREK förrän du raderar det där. Allt det här fungerar också offline och skickas när TREK är online igen.',
+    'Radera på en rad frågar inte först. Det är därför det finns en papperskorg: ingenting tas bort från YOUYA förrän du raderar det där. Allt det här fungerar också offline och skickas när YOUYA är online igen.',
   'help.guide.files-trash.tip.2':
     'För att radera och återställa en fil krävs behörigheten att radera filer. En medlem utan den ser varken Radera på raden eller knapparna i papperskorgen.',
   'help.guide.files-trash.tip.3': 'En fil som har raderats för gott i papperskorgen går inte att få tillbaka.',
@@ -2872,21 +2872,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     'Klicka på ditt lager, här Nextcloud. En mindre dialog öppnas för anslutningen. Den visar lagrets namn och frågar efter de inloggningsuppgifter som just det lagret kräver.',
   'help.guide.files-sync.step.3':
-    'Fyll i Adress och arkivets egen inloggning: en API-token för Paperless-ngx, en API-nyckel och Organisations-ID för Papra, Användarnamn och ett Applösenord för Nextcloud, Användarnamn och en App-token för OpenCloud, och för Synology Drive Användarnamn, Lösenord och, om kontot kräver det, en Tvåfaktorskod. Använd ett applösenord eller en token överallt där arkivet erbjuder det, aldrig ditt vanliga kontolösenord. Nextcloud och Synology Drive tar också en valfri Basmapp, där TREK letar efter resemappar, här /Reisen. Tillåt självsignerat certifikat längst ned är bara till för ett arkiv i ditt eget nätverk med ett sådant certifikat.',
+    'Fyll i Adress och arkivets egen inloggning: en API-token för Paperless-ngx, en API-nyckel och Organisations-ID för Papra, Användarnamn och ett Applösenord för Nextcloud, Användarnamn och en App-token för OpenCloud, och för Synology Drive Användarnamn, Lösenord och, om kontot kräver det, en Tvåfaktorskod. Använd ett applösenord eller en token överallt där arkivet erbjuder det, aldrig ditt vanliga kontolösenord. Nextcloud och Synology Drive tar också en valfri Basmapp, där YOUYA letar efter resemappar, här /Reisen. Tillåt självsignerat certifikat längst ned är bara till för ett arkiv i ditt eget nätverk med ett sådant certifikat.',
   'help.guide.files-sync.step.4':
-    'Klicka på Testa anslutningen. TREK ansluter till lagringen med det du skrev, och i sidfoten står Nådde den, inloggad som följt av kontots namn. Om inloggningsuppgifterna avvisas eller adressen inte kan nås visar sidfoten det i stället. I båda fallen sparas ingenting.',
+    'Klicka på Testa anslutningen. YOUYA ansluter till lagringen med det du skrev, och i sidfoten står Nådde den, inloggad som följt av kontots namn. Om inloggningsuppgifterna avvisas eller adressen inte kan nås visar sidfoten det i stället. I båda fallen sparas ingenting.',
   'help.guide.files-sync.step.5':
-    'Klicka på Anslut. Anslutningen sparas med resan, och TREK frågar var i lagringen resans dokument ska ligga: taggen, mappen eller utrymmet som innehåller dem. Bara det som finns där synkroniseras. Skapa en ny skapar en när du klickar på Skapa, med ett namn från resans titel. Under Eller använd en du redan har ser du de som redan finns. Klicka på en, här mappen Autumn in Japan.',
+    'Klicka på Anslut. Anslutningen sparas med resan, och YOUYA frågar var i lagringen resans dokument ska ligga: taggen, mappen eller utrymmet som innehåller dem. Bara det som finns där synkroniseras. Skapa en ny skapar en när du klickar på Skapa, med ett namn från resans titel. Under Eller använd en du redan har ser du de som redan finns. Klicka på en, här mappen Autumn in Japan.',
   'help.guide.files-sync.step.6':
-    'Dialogrutan öppnas igen: ditt lager står under Den här resan till vänster, och dess kort till höger visar vart det synkroniseras, när det senast kördes och Synkronisera nu. Den första synkroniseringen startar automatiskt. Klicka på Synkronisera nu för att köra en när du vill. Efter en synkronisering ändras märket Inte synkroniserad än bredvid namnet till en grön prick, som visar Synkroniserad när du håller muspekaren över den. Flödesfältet visar hur många dokument TREK och lagret har var för sig, med banorna Ut till arkivet och In från arkivet emellan. Stäng dialogrutan med × uppe till höger.',
+    'Dialogrutan öppnas igen: ditt lager står under Den här resan till vänster, och dess kort till höger visar vart det synkroniseras, när det senast kördes och Synkronisera nu. Den första synkroniseringen startar automatiskt. Klicka på Synkronisera nu för att köra en när du vill. Efter en synkronisering ändras märket Inte synkroniserad än bredvid namnet till en grön prick, som visar Synkroniserad när du håller muspekaren över den. Flödesfältet visar hur många dokument YOUYA och lagret har var för sig, med banorna Ut till arkivet och In från arkivet emellan. Stäng dialogrutan med × uppe till höger.',
   'help.guide.files-sync.result':
-    'Dokumenten som redan fanns i lagret visas överst i listan, uppladdade i ditt namn, och varje dokument på resan finns också i lagret, utom dokumenten från Samarbetsanteckningar. Från och med nu kontrollerar TREK lagret i bakgrunden, och ändringar i listan kopieras till lagret.',
+    'Dokumenten som redan fanns i lagret visas överst i listan, uppladdade i ditt namn, och varje dokument på resan finns också i lagret, utom dokumenten från Samarbetsanteckningar. Från och med nu kontrollerar YOUYA lagret i bakgrunden, och ändringar i listan kopieras till lagret.',
   'help.guide.files-sync.tip.1':
     'Bara resans ägare eller en instansadministratör kan ansluta en resa, eftersom inloggningsuppgifterna ger åtkomst till hela kontot i lagret. När resan är ansluten ser alla medlemmar ”Dokumentsynkronisering” och kan öppna den, läsa kortet och klicka på ”Synkronisera nu”.',
   'help.guide.files-sync.tip.2':
-    'Ett lager i ditt eget nätverk kräver ALLOW_INTERNAL_NETWORK=true på TREK-servern, och dess adress måste vara maskinens adress i nätverket, aldrig localhost. Utan det svarar ”Testa anslutningen” ”Den adressen är inte tillåten.”',
+    'Ett lager i ditt eget nätverk kräver ALLOW_INTERNAL_NETWORK=true på YOUYA-servern, och dess adress måste vara maskinens adress i nätverket, aldrig localhost. Utan det svarar ”Testa anslutningen” ”Den adressen är inte tillåten.”',
   'help.guide.files-sync.tip.3':
-    'Koppla från, ikonen bredvid Synkronisera nu, frågar en gång om bekräftelse. Därefter avslutas anslutningen och alla dokument behålls på båda sidor. Om du ansluter en tagg, mapp eller yta en andra gång behandlar TREK den som ny och importerar allt i den på nytt. Anslut därför en tom efter Koppla från, inte den gamla.',
+    'Koppla från, ikonen bredvid Synkronisera nu, frågar en gång om bekräftelse. Därefter avslutas anslutningen och alla dokument behålls på båda sidor. Om du ansluter en tagg, mapp eller yta en andra gång behandlar YOUYA den som ny och importerar allt i den på nytt. Anslut därför en tom efter Koppla från, inte den gamla.',
 
   // ── Screen: trip-day-detail ───────────────────────────────────────────────────────────
   'help.ctx.trip-day-detail.title': 'Information om dagen',
@@ -3071,7 +3071,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     'Raden med ikoner högst upp på kartan är kategorisökningen: Restauranger, Kaféer, Barer och nattliv, Boende, Sevärdheter, Museer och kultur, Natur och parker, Aktiviteter, Bagerier och Livsmedelsbutiker. Kategorier som ett plugin lägger till kommer efter en smal avdelare. Håll pekaren över en ikon för att se dess namn.',
   'help.guide.map-nearby-places.step.2':
-    'Klicka på en kategori. TREK söker efter den sortens plats i den synliga delen av kartan och sätter en nål i kategorins färg för varje träff. Bara en kategori åt gången: om du klickar på en annan ersätter den den förra, och om du klickar på den aktiva stängs den av.',
+    'Klicka på en kategori. YOUYA söker efter den sortens plats i den synliga delen av kartan och sätter en nål i kategorins färg för varje träff. Bara en kategori åt gången: om du klickar på en annan ersätter den den förra, och om du klickar på den aktiva stängs den av.',
   'help.guide.map-nearby-places.step.3':
     'När du flyttar kartan visas en andra knapp under raden: ”Sök i detta område” kör samma sökning för den nya vyn. Att flytta kartan startar ingen ny sökning av sig själv. Det håller nere antalet förfrågningar.',
   'help.guide.map-nearby-places.step.4':
@@ -3079,13 +3079,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     'Kontrollera vad som fyllts i och lägg till det som sökningen inte kunde veta. Kategoriknappen under namnet är redan vald när resan har en passande kategori, till exempel restaurang för en restaurang. Annars står det Ingen kategori tills du väljer en. Skriv vad platsen handlar om under Om platsen, och dina egna anteckningar under Noteringar.',
   'help.guide.map-nearby-places.step.6':
-    'Klicka på ”Lägg till”. Om en plats med samma namn eller på samma ställe redan finns i resan meddelar TREK det, och knappen ändras till ”Lägg till ändå”.',
+    'Klicka på ”Lägg till”. Om en plats med samma namn eller på samma ställe redan finns i resan meddelar YOUYA det, och knappen ändras till ”Lägg till ändå”.',
   'help.guide.map-nearby-places.result':
     'Platsen finns i platslistan och på kartan som en av resans egna nålar, under Oplanerat tills du lägger den på en dag. Sökningens nålar finns kvar tills du stänger av kategorin.',
   'help.guide.map-nearby-places.tip.1':
     'Raden döljs när Utforska platser på kartan är av i Inställningar > Visning, under Resor och karta.',
   'help.guide.map-nearby-places.tip.2':
-    'Resultaten kommer från TREK Places-indexet och från OpenStreetMap, så det här är en av få saker i planen som kräver uppkoppling.',
+    'Resultaten kommer från YOUYA Places-indexet och från OpenStreetMap, så det här är en av få saker i planen som kräver uppkoppling.',
   'help.guide.map-nearby-places.tip.3':
     'En sökning täcker bara området på skärmen, så zooma in på gatan du är intresserad av. En sökning över en hel stad ger bara de första sextio träffarna, utan någon tydlig ordning.',
   // map-add-place
@@ -3094,7 +3094,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     'Högerklicka på platsen på kartan. Platsformuläret öppnas med rubriken ”Lägg till plats/aktivitet”.',
   'help.guide.map-add-place.step.2':
-    '”Latitud” och ”Longitud” är redan inställda på den punkten. TREK slår upp koordinaterna och fyller i ”Adress” med det som finns där. Om uppslagningen hittar ett namn fyller TREK också i namnet högst upp i dialogen. Inget är sparat än, så rätta det som är fel.',
+    '”Latitud” och ”Longitud” är redan inställda på den punkten. YOUYA slår upp koordinaterna och fyller i ”Adress” med det som finns där. Om uppslagningen hittar ett namn fyller YOUYA också i namnet högst upp i dialogen. Inget är sparat än, så rätta det som är fel.',
   'help.guide.map-add-place.step.3':
     'Skriv ett namn som du känner igen i fältet överst i dialogen. Välj en kategori på knappen under det, som visar Ingen kategori tills du väljer en. Lägg sedan till övriga uppgifter för planen: Om platsen, Noteringar, Hemsida.',
   'help.guide.map-add-place.step.4':
@@ -3111,7 +3111,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     'Reglaget för baslagret är den nedre av de två runda knapparna längst ned till vänster på kartan, under låset. Ikonen visar alltid lagret du byter till, och verktygstipset säger vilket: Byt till satellitvy. Klicka på den.',
   'help.guide.map-satellite.step.2':
-    'Kartan visar nu flygbilder. De är så detaljerade att du kan se enskilda byggnader, och du behöver ingen egen nyckel. Allt som TREK ritar ligger kvar ovanpå: nålarna, dagens rutt, spåren och bokningsrutterna.',
+    'Kartan visar nu flygbilder. De är så detaljerade att du kan se enskilda byggnader, och du behöver ingen egen nyckel. Allt som YOUYA ritar ligger kvar ovanpå: nålarna, dagens rutt, spåren och bokningsrutterna.',
   'help.guide.map-satellite.step.3':
     'Knappen lyder nu Byt till kartvy. Klicka på den för att gå tillbaka till kartvyn.',
   'help.guide.map-satellite.result': 'Kartan ritas om, och lagret du valde sparas på ditt konto.',
@@ -3165,7 +3165,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Visa rutten som Dawarich spelade in på din telefon på kartan, som en streckad linje bredvid din planerade rutt, och se dag för dag hur resan faktiskt gick.',
   'help.guide.map-dawarich-trail.step.1':
-    'Den runda Dawarich-knappen finns nere till höger på kartan, under Visa hela resan. När du håller pekaren över den står det Visa inspelad rutt. Klicka på den. TREK hämtar data för resans datum från din Dawarich, och en ring snurrar runt knappen medan TREK väntar på svaret.',
+    'Den runda Dawarich-knappen finns nere till höger på kartan, under Visa hela resan. När du håller pekaren över den står det Visa inspelad rutt. Klicka på den. YOUYA hämtar data för resans datum från din Dawarich, och en ring snurrar runt knappen medan YOUYA väntar på svaret.',
   'help.guide.map-dawarich-trail.step.2':
     'Den inspelade rutten visas som en streckad linje, med en färg per dag, ritad under den planerade rutten så att planen förblir läsbar. Knappen lyder nu Dölj inspelad rutt. Varje dag slutar vid lokal midnatt. När du fäller ihop en dag i dagkolumnen döljs dess streckade linje och dess stopp på kartan.',
   'help.guide.map-dawarich-trail.step.3':
@@ -3173,9 +3173,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     'Det du planerade och det du faktiskt gjorde visas tillsammans på kartan, som streckade och hela linjer. Kortet ovanför knapparna listar fortfarande de planerade dagarna och deras avstånd.',
   'help.guide.map-dawarich-trail.tip.1':
-    'På eller av sparas per resa på ditt konto, så det är detsamma i alla webbläsare och på alla enheter. Medan rutten är på frågar TREK Dawarich på nytt varannan minut, så en pågående resa uppdateras utan att sidan laddas om. Själva rutten lagras aldrig, så den finns inte i TREKs databas, inte i säkerhetskopior och inte offline.',
+    'På eller av sparas per resa på ditt konto, så det är detsamma i alla webbläsare och på alla enheter. Medan rutten är på frågar YOUYA Dawarich på nytt varannan minut, så en pågående resa uppdateras utan att sidan laddas om. Själva rutten lagras aldrig, så den finns inte i YOUYAs databas, inte i säkerhetskopior och inte offline.',
   'help.guide.map-dawarich-trail.tip.2':
-    'Knappens etikett visar varför kartan är tom: ”Laddar den inspelade rutten…” medan den laddas, ”Ingenting spelades in de här datumen”, ”Den inspelade rutten kunde inte laddas” eller ”Den inspelade rutten kräver en anslutning” när TREK är offline.',
+    'Knappens etikett visar varför kartan är tom: ”Laddar den inspelade rutten…” medan den laddas, ”Ingenting spelades in de här datumen”, ”Den inspelade rutten kunde inte laddas” eller ”Den inspelade rutten kräver en anslutning” när YOUYA är offline.',
   // map-compass
   'help.guide.map-compass.title': 'Vrid kartan och hitta norr igen',
   'help.guide.map-compass.goal':
@@ -3347,7 +3347,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     'Med ”Bifoga bilder” kan du lägga till upp till fyra bilder i ett meddelande. Du kan också klistra in dem eller släppa dem på rutan.',
   'help.guide.trip-chat.tip.3':
-    'Ett meddelande med en länk får ett förhandsvisningskort under sig, som hämtas av din egen TREK, så en länk till något som bara du kommer åt förblir en vanlig länk.',
+    'Ett meddelande med en länk får ett förhandsvisningskort under sig, som hämtas av din egen YOUYA, så en länk till något som bara du kommer åt förblir en vanlig länk.',
   'help.guide.trip-chat.tip.4':
     'Chatt har en egen omkopplare under Tillägg, nedanför Samarbete: en administratör kan stänga av den och låta noteringarna, länkarna, omröstningarna och Vad händer härnäst? vara på.',
 
@@ -3388,7 +3388,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     'När du tilldelar någon en lista får personen ett packningsmeddelande. Det ändrar inte vem som kan se föremålen. Det ställer du in i varje föremåls fönster under Synlig för, eller för hela listan med Delning för hela listan.',
   'help.guide.packing-categories.tip.3':
-    'Två listor kan ha samma namn. TREK håller isär dem internt, så namnen förblir som du skrev dem.',
+    'Två listor kan ha samma namn. YOUYA håller isär dem internt, så namnen förblir som du skrev dem.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Bocka av medan du packar',
   'help.guide.check-off-packing.goal':
@@ -3440,13 +3440,13 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.step.3':
     'Eller läs in raderna från en fil med Ladda CSV/TXT/MD, nere till vänster i dialogrutan. Den tar en .csv-, .txt- eller .md-fil och ersätter det som står i rutan.',
   'help.guide.import-packing-list.step.4':
-    'Klicka på Importera 3 nere till höger. Talet på knappen räknar de rader som TREK förstod.',
+    'Klicka på Importera 3 nere till höger. Talet på knappen räknar de rader som YOUYA förstod.',
   'help.guide.import-packing-list.result':
     'Varje rad blir ett föremål, i listan som anges i radens första fält. Föremål som redan fanns ändras inte.',
   'help.guide.import-packing-list.tip.1':
     'Kommatecken, semikolon och tabbar skiljer alla fälten åt, och citattecken håller ihop ett fält, så att ”Skjorta, blå” förblir ett namn. En rad med bara ett värde är enbart ett namn. En rad utan egen lista hamnar i ”Andra”. ”3x” framför ett namn anger antalet.',
   'help.guide.import-packing-list.tip.2':
-    'Om resan inte har väskan som anges i det fjärde fältet än skapar TREK den. Importera och ”Använd mall” är de två sätten att lägga till vikter och väskor för många föremål på en gång.',
+    'Om resan inte har väskan som anges i det fjärde fältet än skapar YOUYA den. Importera och ”Använd mall” är de två sätten att lägga till vikter och väskor för många föremål på en gång.',
   // export-packing-list
   'help.guide.export-packing-list.title': 'Skriv ut eller exportera packlistan',
   'help.guide.export-packing-list.goal':
@@ -3591,7 +3591,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     'Manuell bokning längst till höger i fältet öppnar Ny bokning. Där skapar du sex sorters bokningar: Boende, Restaurang, Evenemang, Guidad tur, Parkering och Övrigt. Flyg, tåg och andra transporter finns i fliken Transporter och visas aldrig här.',
   'help.ctx.trip-bookings.bullet.2':
-    'Uppladdningsikonen före Manuell bokning, Importera bokningsbekräftelser, laddar upp bekräftelser så att TREK kan läsa dem automatiskt: EML, PDF, PKPass, HTML eller TXT, högst fem filer på 10 MB, samt foton när AI-modellen läser bilder. Ikonen finns bara när servern kan läsa dem. Där administratören har slagit på mejlimporten ger samma dialog resan en egen adress att vidarebefordra bokningsmejl till.',
+    'Uppladdningsikonen före Manuell bokning, Importera bokningsbekräftelser, laddar upp bekräftelser så att YOUYA kan läsa dem automatiskt: EML, PDF, PKPass, HTML eller TXT, högst fem filer på 10 MB, samt foton när AI-modellen läser bilder. Ikonen finns bara när servern kan läsa dem. Där administratören har slagit på mejlimporten ger samma dialog resan en egen adress att vidarebefordra bokningsmejl till.',
   'help.ctx.trip-bookings.bullet.3':
     'Sök letar igenom titlar, typer, platser, noteringar, bokningskoder och resenärer. Filtrera, tratten bredvid, begränsar fliken efter Status, efter Typ med ett antal för varje typ, och efter Resenärer när en bokning anger personer. Ett tal på tratten visar hur många filter som är aktiva.',
   'help.ctx.trip-bookings.bullet.4':
@@ -3656,7 +3656,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     'Välj hotellet under Boende. Listan innehåller resans platser, utan importerade spår och turer. När du väljer en plats hamnar namnet i en tom titel och adressen i ”Plats / Adress”.',
   'help.guide.booking-hotel.step.3':
-    'Ange Från och Till: första natten och morgonen du reser. Båda erbjuder resans dagar med datum, och TREK håller Till efter Från.',
+    'Ange Från och Till: första natten och morgonen du reser. Båda erbjuder resans dagar med datum, och YOUYA håller Till efter Från.',
   'help.guide.booking-hotel.step.4':
     'Fyll i Incheckning, Incheckning fram till och Utcheckning samt Bokningskod från bekräftelsen.',
   'help.guide.booking-hotel.step.5': 'Klicka på Lägg till.',
@@ -3704,7 +3704,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.title': 'Behåll vouchern hos bokningen',
   'help.guide.booking-files.goal': 'Bifoga bekräftelsen, biljetten eller passet till den bokning den hör till.',
   'help.guide.booking-files.step.1':
-    'Öppna bokningen med pennan på kortet. Filer finns bredvid Länka, och där klickar du på Bifoga fil. På en bokning som redan finns laddas dokumentet upp direkt, och TREK visar Fil uppladdad.',
+    'Öppna bokningen med pennan på kortet. Filer finns bredvid Länka, och där klickar du på Bifoga fil. På en bokning som redan finns laddas dokumentet upp direkt, och YOUYA visar Fil uppladdad.',
   'help.guide.booking-files.step.2':
     'Dokumentet listas med sitt namn, med en knapp för att öppna det och ett kryss bredvid.',
   'help.guide.booking-files.step.3':
@@ -3761,7 +3761,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': 'Importera en bokning från bekräftelsen',
   'help.guide.import-booking-file.goal':
-    'Låt TREK läsa bokningen från mejlet eller PDF-filen som leverantören skickade, så att du slipper skriva in den igen.',
+    'Låt YOUYA läsa bokningen från mejlet eller PDF-filen som leverantören skickade, så att du slipper skriva in den igen.',
   'help.guide.import-booking-file.step.1':
     'Klicka på uppladdningsikonen i fältet, Importera bokningsbekräftelser. Namnet visas när du håller muspekaren över den. Dialogrutan med samma namn öppnas.',
   'help.guide.import-booking-file.step.2':
@@ -3901,11 +3901,11 @@ const help: TranslationStrings = {
     'En anpassad fördelning kan också anges i procent eller i andelar: det lilla reglaget bredvid tipset väljer valutasymbolen, % eller Andelar. I procent måste andelarna tillsammans bli 100 % innan utgiften sparas.',
   // expense-currency
   'help.guide.expense-currency.title': 'Lägg in en utgift i en annan valuta',
-  'help.guide.expense-currency.goal': 'Ange beloppet på kvittot, så sparar TREK växelkursen.',
+  'help.guide.expense-currency.goal': 'Ange beloppet på kvittot, så sparar YOUYA växelkursen.',
   'help.guide.expense-currency.step.1':
     'Öppna ”Lägg till utgift”. Skriv namnet högst upp i dialogen och ange beloppet i ”Totalt belopp” precis som det står på kvittot, inte ett omräknat belopp.',
   'help.guide.expense-currency.step.2':
-    'Öppna ”Valuta” bredvid beloppet. En ny utgift börjar på resans egen valuta. Välj kvittots valuta: resans valuta och den som Kostnader visas i står överst, och du kan söka bland alla andra koder som TREK känner till genom att skriva de tre bokstäverna.',
+    'Öppna ”Valuta” bredvid beloppet. En ny utgift börjar på resans egen valuta. Välj kvittots valuta: resans valuta och den som Kostnader visas i står överst, och du kan söka bland alla andra koder som YOUYA känner till genom att skriva de tre bokstäverna.',
   'help.guide.expense-currency.step.3':
     'Under fälten visas en rad med etiketter: beloppet du skrev och dess aktuella värde, märkt realtidspris. Det är bara en förhandsgranskning. Det är inte värdet som sparas.',
   'help.guide.expense-currency.step.4':
@@ -4120,7 +4120,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Transporter',
   'help.ctx.trip-transports.summary':
-    'Alla sätt att resa mellan stoppen: flyg, tåg, bussar, bilar, taxi, cyklar, kryssningar, färjor, linbanor och de kollektivtrafikförbindelser som TREK slår upp åt dig. Fliken listar dem. Du kan också skapa och läsa dem i planen, och de ritas på kartan.',
+    'Alla sätt att resa mellan stoppen: flyg, tåg, bussar, bilar, taxi, cyklar, kryssningar, färjor, linbanor och de kollektivtrafikförbindelser som YOUYA slår upp åt dig. Fliken listar dem. Du kan också skapa och läsa dem i planen, och de ritas på kartan.',
   'help.ctx.trip-transports.bullet.1':
     'Fliken visar bara färderna. Boende, restauranger, evenemang och biljetter finns på fliken Bokningar, så att samma post aldrig visas två gånger.',
   'help.ctx.trip-transports.bullet.2':
@@ -4177,7 +4177,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': 'Importera en flygning från e-biljetten',
   'help.guide.import-transport-file.goal':
-    'Låt TREK läsa ett flyg, ett tåg eller en färja från biljetten som transportören skickade, och kontrollera uppgifterna innan de sparas.',
+    'Låt YOUYA läsa ett flyg, ett tåg eller en färja från biljetten som transportören skickade, och kontrollera uppgifterna innan de sparas.',
   'help.guide.import-transport-file.step.1':
     'Klicka på uppladdningsikonen före Transport i fältet på fliken Transporter, vars verktygstips lyder Importera bokningsbekräftelser. Dialogen med det namnet öppnas, samma som på fliken Bokningar. På en tom flik gör Importera från fil i mitten detsamma.',
   'help.guide.import-transport-file.step.2':
@@ -4197,11 +4197,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': 'Planera en kollektivtrafikförbindelse',
   'help.guide.plan-transit.goal':
-    'Låt TREK slå upp riktiga tåg och bussar mellan två punkter en dag och lägga in den du väljer i planen.',
+    'Låt YOUYA slå upp riktiga tåg och bussar mellan två punkter en dag och lägga in den du väljer i planen.',
   'help.guide.plan-transit.step.1':
     'Klicka på + i dagens rubrik och välj Kollektivtrafik. Sökningen öppnas för den dagen: dagen visas som en bricka i rubriken, och Manuell och Automatisk bredvid den växlar mellan den här sökningen och det vanliga formuläret.',
   'help.guide.plan-transit.step.2':
-    'Från och Till tar ett stopp eller en station. Så länge rutan är tom föreslår TREK dagens boende, stationerna och flygplatserna från dagens bokningar och dagens egna stopp. När du skriver två bokstäver söker TREK i stället bland tidtabellens stationer. Byt plats mellan de två rutorna växlar Från och Till.',
+    'Från och Till tar ett stopp eller en station. Så länge rutan är tom föreslår YOUYA dagens boende, stationerna och flygplatserna från dagens bokningar och dagens egna stopp. När du skriver två bokstäver söker YOUYA i stället bland tidtabellens stationer. Byt plats mellan de två rutorna växlar Från och Till.',
   'help.guide.plan-transit.step.3':
     'Avgång eller Ankomst med en tid anger när du vill resa, och Bästa resväg, Färre byten eller Mindre gång anger hur resultaten ska sorteras.',
   'help.guide.plan-transit.step.4':
@@ -4315,7 +4315,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     'En flygning som redan finns i resan med samma nummer och datum hoppas över, och ett meddelande anger hur många som hoppades över. Ångrapilen i verktygsfältet ovanför dagarna ångrar hela importen.',
   'help.guide.airtrail-import.tip.2':
-    'AirTrail är fortfarande den huvudsakliga datakällan. TREK läser ändringarna när du öppnar resan och med några minuters mellanrum i bakgrunden. En flygning som raderats i AirTrail behåller sitt kort i TREK, och etiketten ändras till ”Ej synkroniserad”. Ändringar som görs i TREK skickas tillbaka till AirTrail bara om ”Skriv tillbaka ändringarna till AirTrail” är påslaget under Integrationer.',
+    'AirTrail är fortfarande den huvudsakliga datakällan. YOUYA läser ändringarna när du öppnar resan och med några minuters mellanrum i bakgrunden. En flygning som raderats i AirTrail behåller sitt kort i YOUYA, och etiketten ändras till ”Ej synkroniserad”. Ändringar som görs i YOUYA skickas tillbaka till AirTrail bara om ”Skriv tillbaka ändringarna till AirTrail” är påslaget under Integrationer.',
   'help.guide.airtrail-import.tip.3':
     'En sammanslagen förbindelse är inte en enda AirTrail-flygning som kan synkroniseras, så den är en engångsimport: den behåller den blå pillern, och när du håller muspekaren över pillern får du veta det. Detsamma gäller en synkroniserad flygning där du lägger till ett stopp för hand.',
 
@@ -4437,12 +4437,12 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.result':
     'Sträckan använder nu vägen du valde, och avståndet i sidokolumnen och ankomsttiderna efter den ändras också.',
   'help.guide.roadtrip-alternatives.tip.1':
-    'När du väljer en annan väg kontrollerar TREK den först med bilresans ruttberäknare. Sedan håller den sträckan på den vägen med så få mellanpunkter som behövs och ersätter eventuella mellanpunkter som sträckan redan hade. En väg som ruttberäknaren inte kan följa sparas inte. Om du väljer ruttberäknarens egen väg tas mellanpunkterna bort igen.',
+    'När du väljer en annan väg kontrollerar YOUYA den först med bilresans ruttberäknare. Sedan håller den sträckan på den vägen med så få mellanpunkter som behövs och ersätter eventuella mellanpunkter som sträckan redan hade. En väg som ruttberäknaren inte kan följa sparas inte. Om du väljer ruttberäknarens egen väg tas mellanpunkterna bort igen.',
   'help.guide.roadtrip-alternatives.tip.2':
     'Utan motorväg, Utan vägavgifter och Utan färja kommer från en andra motor med en egen hastighetsmodell, så deras tider går inte att jämföra med de andras.',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': 'Ställ in bilen och körgränserna',
-  'help.guide.roadtrip-limits.goal': 'Berätta för TREK vilket fordon du kör och hur långt du vill köra utan paus.',
+  'help.guide.roadtrip-limits.goal': 'Berätta för YOUYA vilket fordon du kör och hur långt du vill köra utan paus.',
   'help.guide.roadtrip-limits.step.1':
     'Körinställningar finns under sökningen i högerkolumnen. Dess etiketter visar vad som är inställt. Klicka på den för att öppna.',
   'help.guide.roadtrip-limits.step.2':
@@ -4512,7 +4512,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     'Välj ett spår. Varje spår visar sin längd och om det följer den här dagens rutt eller hur långt bort det ligger. Det närmaste spåret kommer först.',
   'help.guide.roadtrip-track.step.3':
-    'Klicka på Följ det här spåret. TREK lägger till mellanpunkter där körningen avviker mest från spåret och beräknar rutten på nytt, och upprepar det flera gånger.',
+    'Klicka på Följ det här spåret. YOUYA lägger till mellanpunkter där körningen avviker mest från spåret och beräknar rutten på nytt, och upprepar det flera gånger.',
   'help.guide.roadtrip-track.step.4':
     'Dialogen visar hur många via-punkter som placerades och hur nära spåret färden nu håller sig, eller att färden redan följde spåret. ”Släpp via-punkter”, längst ned till vänster, tar bort dem, och ruttplaneraren planerar dagen på nytt. Om du stänger dialogen behålls spåret.',
   'help.guide.roadtrip-track.result':
@@ -4564,30 +4564,30 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     'Dina egna inställningar för de plugin som administratören har installerat: nycklar och inställningar som varje plugin ber dig om, och en logg över vad pluginen har gjort åt dig. Fliken visas bara när ett plugin är aktivt.',
   'help.ctx.settings-about.bullet.3':
-    'Via Ko-fi, Buy Me a Coffee och Discord kan du stötta TREK eller prata med dem som utvecklar det.',
+    'Via Ko-fi, Buy Me a Coffee och Discord kan du stötta YOUYA eller prata med dem som utvecklar det.',
   'help.guide.language-region.step.3':
     'Ställ in Visningsvaluta, eller behåll ”Resans valuta” för att se varje resa i dess egen valuta. Välj sedan Temperaturenhet, Avståndsenhet, Tidsformat, vilken dag veckan ska börja på under ”Vecka börjar på” och Datumformat.',
   'help.guide.travel-map-prefs.step.3':
     '”Utforska platser på kartan” visar kategoripillret för att hitta platser i närheten. ”Blurra bokningskoder” döljer bekräftelsenummer tills du håller pekaren över dem eller trycker på dem. ”Optimera rutten från boendet” börjar och avslutar dagen vid ditt hotell.',
   'help.guide.web-push-device.step.2':
     'I kortet Meddelanden högst upp styr kolumnen Push vilka händelser som skickas till dina enheter.',
-  'help.guide.connect-airtrail.goal': 'Låt TREK importera och synka flygen från din egen AirTrail.',
-  'help.guide.connect-dawarich.goal': 'Låt TREK läsa var du faktiskt har varit, från din egen Dawarich.',
+  'help.guide.connect-airtrail.goal': 'Låt YOUYA importera och synka flygen från din egen AirTrail.',
+  'help.guide.connect-dawarich.goal': 'Låt YOUYA läsa var du faktiskt har varit, från din egen Dawarich.',
   'help.guide.tour-connect-wanderer.goal':
-    'Låt TREK läsa lederna i din egen wanderer, så att du kan importera dem som turer.',
+    'Låt YOUYA läsa lederna i din egen wanderer, så att du kan importera dem som turer.',
   'help.guide.tour-wanderer-watch.title': 'Få besked när dina wanderer-leder ändras',
   'help.guide.plugin-settings.tip.2':
     'En plugin-kanal under Meddelanden har knappen Konfigurera, som öppnar den här sidan.',
   'help.guide.default-user-settings.result':
     'Nya konton, och alla som aldrig har ändrat de här inställningarna, får dina val.',
   'help.guide.own-routing-engine.goal':
-    'Beräkna rutter för dagar, roadtrips och turer med en OSRM- eller Valhalla-server som du driver själv, i stället för TREK-tjänsterna eller de publika.',
+    'Beräkna rutter för dagar, roadtrips och turer med en OSRM- eller Valhalla-server som du driver själv, i stället för YOUYA-tjänsterna eller de publika.',
   'help.guide.admin-passkeys.tip.1':
-    'Om TREK inte kan avgöra någon domän än visas en varning under reglaget om det, och inloggningsnycklar förblir dolda tills du anger APP_URL eller Relying Party ID.',
+    'Om YOUYA inte kan avgöra någon domän än visas en varning under reglaget om det, och inloggningsnycklar förblir dolda tills du anger APP_URL eller Relying Party ID.',
   'help.guide.rotate-jwt-secret.step.1':
     'På fliken Säkerhet, under Farozon längst ned till höger, klickar du på Rotera bredvid ”Rotera JWT-hemlighet”.',
   'help.guide.storage-backends.tip.3':
-    'TREK kan ladda ned fotocacharna igen, så att spegla dem slösar oftast bara lagringsutrymme.',
+    'YOUYA kan ladda ned fotocacharna igen, så att spegla dem slösar oftast bara lagringsutrymme.',
   'help.guide.admin-channels.step.3':
     'Nedanför, i samma kort, väljer du för varje händelse vilka kanaler som skickar den: ”Ny version tillgänglig”, ”Fel i lagringsreplik” och ”Paddelregion efterfrågad”. Varje reglage sparas direkt.',
   'help.guide.notification-defaults.tip.1':
@@ -4647,13 +4647,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     'Öppna data vet bara var flygplanet är. Gate, terminal och bagageband ingår inte, så lägg till dem i bokningen själv om du behöver dem. Förseningarna och ankomsttiden är uppskattningar som räknas fram från positionerna.',
   'help.guide.flight-live-status.tip.3':
-    'TREK behöver flygnumret och båda flygplatserna för att följa ett flyg. Ett flyg där flygbolaget flyger under en annan anropssignal, eller ett codeshare-flyg, kanske inte hittas. Bokningen behåller då bara sina vanliga tider.',
+    'YOUYA behöver flygnumret och båda flygplatserna för att följa ett flyg. Ett flyg där flygbolaget flyger under en annan anropssignal, eller ett codeshare-flyg, kanske inte hittas. Bokningen behåller då bara sina vanliga tider.',
   'help.guide.group-sort-bookings.step.2':
     'Under ”Gruppera efter” väljer du Status, Dag, Typ eller ”Ingen gruppering”. Fliken sorteras direkt i de avsnitten.',
   'help.guide.export-bookings-csv.result':
     'Webbläsaren laddar ned en fil som är uppkallad efter resan och fliken, till exempel hosten-i-japan-bookings.csv, med en rad för varje bokning som fliken visade.',
   'help.guide.arrange-packing-list.result':
-    'Listorna ligger i den ordning du drog dem, och föremålen sorteras A till Ö tills du slår av det. TREK sparar ändå din egen ordning.',
+    'Listorna ligger i den ordning du drog dem, och föremålen sorteras A till Ö tills du slår av det. YOUYA sparar ändå din egen ordning.',
   'help.guide.count-packed-pieces.step.2':
     'Skriv hur många du tar med i Antal, till exempel 5, eller klicka på plus tills det visar talet.',
   'help.guide.expense-receipts.step.4':
@@ -4661,7 +4661,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     'Den som har lämnat resan har kvar en rad i Balanser och ”Slutlig budget” så länge personen har pengar att få eller är skyldig pengar.',
   'help.guide.files-sync-settings.step.2':
-    'Flödesfältet visar TREK och ditt arkiv med de dokument som finns i vart och ett, och två banor mellan dem: ”Ut till arkivet” och ”In från arkivet”. Klicka på ”Ut till arkivet” för att stänga av den banan. Den blir gråad och raden under banorna lyder ”Bara inkommande”. Klicka igen för att slå på den igen.',
+    'Flödesfältet visar YOUYA och ditt arkiv med de dokument som finns i vart och ett, och två banor mellan dem: ”Ut till arkivet” och ”In från arkivet”. Klicka på ”Ut till arkivet” för att stänga av den banan. Den blir gråad och raden under banorna lyder ”Bara inkommande”. Klicka igen för att slå på den igen.',
   'help.guide.files-sync-settings.tip.4':
     'Bara resans ägare eller en administratör kan ändra något av det här. Andra medlemmar ser flödesfältet med en rad som ”Dokument rör sig åt båda hållen”, men inga Inställningar.',
   'help.guide.manage-notes.step.2':
@@ -4672,7 +4672,7 @@ const help: TranslationStrings = {
     'Papperskorgen tar bara bort en kategori som ingen anteckning använder. En kategori som fortfarande används av anteckningar ligger kvar i listan tills du flyttar de anteckningarna till en annan kategori.',
   'help.guide.roadtrip-reorder.title': 'Ändra ordning på ett stopp eller flytta det till en annan dag',
   'help.guide.roadtrip-reorder.tip.3':
-    'TREK frågar inte om en tid som du har fäst: skenan räknar om dagen direkt och markerar alla stopp som inte längre går att nå i tid.',
+    'YOUYA frågar inte om en tid som du har fäst: skenan räknar om dagen direkt och markerar alla stopp som inte längre går att nå i tid.',
   'help.guide.roadtrip-overnight.step.3':
     'Högst upp i dialogen lägger Övernattning till en övernattning, och Paus gör det till ett stopp en stund. Ett hotell öppnas med Övernattning, en campingplats med Paus. En natt kräver bara Incheckning, som du kan lämna tom.',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4686,7 +4686,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     'Högst upp hämtar ”Importera GPX eller KML” in filer som turer. Filterknappen under (först Alla, med antalet turer) filtrerar listan efter status, källa, ruttgräns och typ.',
   'help.guide.tour-show-list.step.2':
-    'Varje rad är en tur. Den färgade stapeln är turens linje på kartan, och den runda rutan visar ruttgränsen (T1 till T6) för en vandring som planerats i TREK, eller ikonen för turtypen. Märkena under namnet visar vilka dagar turen ligger på, tid, sträcka och stigning. På en flerdagarstur visar månen med en siffra hur många etapper den har.',
+    'Varje rad är en tur. Den färgade stapeln är turens linje på kartan, och den runda rutan visar ruttgränsen (T1 till T6) för en vandring som planerats i YOUYA, eller ikonen för turtypen. Märkena under namnet visar vilka dagar turen ligger på, tid, sträcka och stigning. På en flerdagarstur visar månen med en siffra hur många etapper den har.',
   'help.guide.tour-add-to-day.title': 'Lägg en tur på en dag',
   'help.guide.tour-add-to-day.tip.2':
     'Om resan slutar före sista etappen visar alternativet den sista etapp som får plats, och etapperna efter den blir utan dag.',
@@ -4718,7 +4718,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.4':
     'Byt under spåret väljer en annan inspelning. ”Koppla ifrån” tar bort den från turen, och spåret ligger kvar i resan som en import.',
   'help.guide.tour-origin-check.step.3':
-    'En tur som du har ritat på fliken Turer visar ”planerad i TREK”, med datumet under Skapad.',
+    'En tur som du har ritat på fliken Turer visar ”planerad i YOUYA”, med datumet under Skapad.',
   'help.ctx.trip-tour-planner.bullet.2':
     'Vänstra skenan är redigeraren. När inget är öppet erbjuder den ”Planera ny tur”. En öppen tur visar namn, typ, vägpunkter, korten för turtypen och detaljerna, med Ångra och Spara längst ned.',
   'help.guide.tour-open-workspace.step.2':
@@ -4726,7 +4726,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.tip.3':
     'Om du öppnar en annan tur medan redigeraren har osparade ändringar får du först en fråga: ”Kasta ändringar” eller fortsätta redigera.',
   'help.guide.tour-draw-route.step.5':
-    'Klicka på nästa ställen i den ordning du går dem. Varje klick lägger till punkten som nytt slut, och från och med två punkter planerar TREK rutten längs stigarna.',
+    'Klicka på nästa ställen i den ordning du går dem. Varje klick lägger till punkten som nytt slut, och från och med två punkter planerar YOUYA rutten längs stigarna.',
   'help.guide.tour-type-profile.goal': 'Välj turtyp, och för en cykeltur även profil, så att rutten följer rätt vägar.',
   'help.guide.tour-edit-points.title': 'Flytta, ändra ordning på och ta bort punkter',
   'help.guide.tour-edit-points.tip.1':
@@ -4847,11 +4847,11 @@ const help: TranslationStrings = {
     'Se pisterna, längdspåren och liftarna runt din skidtur och vad deras färger betyder.',
   'help.guide.tour-ski-import.title': 'Importera ett skidspår och ange vad det var',
   'help.guide.tour-ski-import.tip.1':
-    'Ett importerat spår behålls som det spelades in: TREK matchar det inte mot pisterna, och dess kort visar Skidtid som ”Inte uträknad”.',
+    'Ett importerat spår behålls som det spelades in: YOUYA matchar det inte mot pisterna, och dess kort visar Skidtid som ”Inte uträknad”.',
   'help.ctx.trip-tour-paddle.bullet.3':
     '”Fler åtgärder” på en punkt innehåller paddelverktygen: planera nästa sträcka på vattnet eller rita den för hand, ”Bär båten härifrån” och ”Sluss vid den här punkten”.',
   'help.guide.tour-paddle-setup.step.3':
-    'Under Båt väljer du Kajak, Kanadensare, SUP eller Andra. Båttypen avgör vilken fart TREK föreslår.',
+    'Under Båt väljer du Kajak, Kanadensare, SUP eller Andra. Båttypen avgör vilken fart YOUYA föreslår.',
   'help.guide.tour-paddle-setup.tip.4':
     '”Paddling har risker”, raden längst ned i kolumnen, öppnar ”Säkerhet på vattnet”. Läs den en gång före din första tur.',
   'help.guide.tour-paddle-water-route.step.5':
@@ -4874,7 +4874,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.tip.2':
     'Ångra tar bort de markeringar du inte har sparat. Själva det inspelade spåret ritas aldrig om.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK beräknar ingen ridtid. Ange en tid under Planerat i Detaljer om du vill ha en på dagen.',
+    'YOUYA beräknar ingen ridtid. Ange en tid under Planerat i Detaljer om du vill ha en på dagen.',
   'help.guide.tour-horse-plan.step.5':
     'Välj en sektion under Sektioner. Kontrollera i vilken Riktning du rider den och vad ”Tillträde för häst” anger längs den.',
   'help.guide.tour-horse-plan.tip.5':
@@ -4916,7 +4916,7 @@ const help: TranslationStrings = {
   'help.guide.journey-map-layers.tip.1':
     'En streckad färgad linje är en resas GPX-rutt och ingår i planen. En heldragen linje är en rutt som spelades in den dagen.',
   'help.guide.journey-keep-route.tip.1':
-    'Där inspelningen slutar slutar också linjen. TREK ritar bara det som spelades in.',
+    'Där inspelningen slutar slutar också linjen. YOUYA ritar bara det som spelades in.',
   'help.guide.journey-day-stays.tip.1':
     'Raden visas bara för dem som får redigera dagboken och har sin egen Dawarich kopplad, och bara på dagar med något kvar att ta ställning till.',
   'help.guide.journey-take-over-day.step.4':
@@ -4929,20 +4929,20 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3':
     'Återställ till standardinställningarna, under korten, återställer hela fliken Utseende till ursprungliga inställningar.',
   'help.guide.web-push-device.result':
-    'Kortet visar På för den här enheten, och händelserna du har slagit på under Push kommer fram även när TREK är stängt.',
+    'Kortet visar På för den här enheten, och händelserna du har slagit på under Push kommer fram även när YOUYA är stängt.',
   'help.guide.connect-airtrail.step.1':
     'Hitta AirTrail under Integrationer och ange dess Instans URL och en API-nyckel. Nyckeln skapar du i AirTrail under Inställningar, Säkerhet. Om du skapar nyckeln i AirTrail 3.13 eller senare behöver den behörigheten flight.read.own för att läsa. För att skriva tillbaka ändringar behöver den även flight.update.own, flight.passengers.manage.own, reference_data.read och profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Hitta Dawarich under Integrationer och ange dess Instansens adress och API-nyckeln från Dawarich under Konto, API-nyckel.',
   'help.guide.tour-connect-wanderer.step.1':
     'Hitta wanderer under Integrationer och ange dess Instans URL och en API-token. Token skapar du i wanderer under Inställningar, Konto, API-token. Den börjar med wanderer_key_.',
-  'help.guide.tour-wanderer-watch.goal': 'Låt TREK leta efter ändringar i lederna du har importerat, i bakgrunden.',
+  'help.guide.tour-wanderer-watch.goal': 'Låt YOUYA leta efter ändringar i lederna du har importerat, i bakgrunden.',
   'help.guide.mcp-oauth.tip.3': 'API Token fungerar fortfarande men är märkta Utfasad. Byt till en OAuth-klient.',
   'help.guide.offline-conflicts.tip.2': 'Valet gäller bara den här enheten.',
   'help.guide.default-user-settings.tip.1':
     'En användares eget val under Inställningar gäller alltid först. De här värdena gäller alla som inte har ändrat inställningen.',
   'help.guide.own-routing-engine.step.1':
-    'På fliken Standardvärden avgör kortet Ruttplanering vem som beräknar rutter. Under Ruttjänst väljer du Automatisk, TREK-tjänster, Publik Valhalla (FOSSGIS) eller Egen Valhalla-instans. Valet sparas direkt.',
+    'På fliken Standardvärden avgör kortet Ruttplanering vem som beräknar rutter. Under Ruttjänst väljer du Automatisk, YOUYA-tjänster, Publik Valhalla (FOSSGIS) eller Egen Valhalla-instans. Valet sparas direkt.',
   'help.guide.admin-passkeys.tip.2':
     'Om du ändrar domänen senare slutar alla inloggningsnycklar som användare redan har lagt till att fungera.',
   'help.guide.instance-keys.tip.4': 'Amap-nyckeln måste vara en Web 服务 (webbtjänst)-nyckel, inte en JS API-nyckel.',
@@ -4960,7 +4960,7 @@ const help: TranslationStrings = {
     'Välj Ingen åtkomst, Läsa eller Redigera för varje person på resan. Med Alla kan läsa och Ingen ställer du in alla på en gång.',
   'help.guide.collapse-columns.tip.3': 'När avdelaren har fokus kan du också flytta den med piltangenterna.',
   'help.guide.edit-place.tip.3':
-    'Om du klickar utanför dialogen går dina ändringar inte förlorade: TREK frågar först Slänga ändringarna?, och Fortsätt redigera tar dig tillbaka till formuläret.',
+    'Om du klickar utanför dialogen går dina ändringar inte förlorade: YOUYA frågar först Slänga ändringarna?, och Fortsätt redigera tar dig tillbaka till formuläret.',
   'help.guide.dawarich-stays.goal':
     'Lägg till platserna där Dawarich registrerade dina vistelser under resan, efter att du har kontrollerat var och en.',
   'help.guide.leave-stop-off-route.step.1':
@@ -5010,14 +5010,14 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     'I skenan är resan ett kort i sin typs färg, med tidtabellen i ankomstkolumnen och start- och slutpunkt under titeln.',
   'help.guide.roadtrip-google-import.tip.1':
-    'TREK räknar ut sin egen rutt mellan stoppen och kopierar inte Googles väg.',
+    'YOUYA räknar ut sin egen rutt mellan stoppen och kopierar inte Googles väg.',
   'help.guide.roadtrip-hazards.result': 'Kartan visar de aktuella varningarna runt din resa, och rutten ändras inte.',
   'help.ctx.trip-tours.bullet.3':
     'En rad: det färgade strecket är turens linje på kartan, den runda rutan visar ruttgränsen (T1 till T6) eller typen, ett litet GPX- eller wanderer-märke visar att turen är importerad, och märkena anger dagar, tid, sträcka och stigning. En måne med ett tal visar antalet etapper på en flerdagarstur.',
   'help.guide.tour-show-list.step.3': 'Klicka på en rad. Turens kort öppnas över kartan.',
   'help.guide.tour-add-to-day.goal': 'Planera när du gör en tur, så att den ligger på dagen med sin linje på kartan.',
   'help.guide.tour-add-to-day.tip.3':
-    'Du kan lägga en tur på en dag bara en gång. Om du släpper den på en dag som redan har den visar TREK bara Den här turen finns redan på den dagen.',
+    'Du kan lägga en tur på en dag bara en gång. Om du släpper den på en dag som redan har den visar YOUYA bara Den här turen finns redan på den dagen.',
   'help.guide.tour-day-times.step.4':
     'Om turen slutar efter att dagens nästa punkt har börjat visas en rad under raden som säger det, till exempel Slutar 13:30, efter att Lunch at Gostner Schwaige börjar 12:30. Inget flyttas.',
   'help.guide.tour-remove-from-day.step.1':
@@ -5073,7 +5073,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.result':
     'Fliken Turer: redigeraren till vänster, resans turer till höger och kartan emellan.',
   'help.guide.tour-draw-route.step.6':
-    'Under Vägpunkter får varje punkt en rad med sitt nummer, uppkallad efter platsen när namnet har lästs in. Medan TREK arbetar visar en liten prick bredvid Ny tur status.',
+    'Under Vägpunkter får varje punkt en rad med sitt nummer, uppkallad efter platsen när namnet har lästs in. Medan YOUYA arbetar visar en liten prick bredvid Ny tur status.',
   'help.guide.tour-type-profile.step.1':
     'Klicka på Turtyp under Turens namn. Den visar den aktuella typen med en rad om hur den planeras.',
   'help.guide.tour-edit-points.goal': 'Ändra vart turen går genom att flytta dess punkter på kartan eller i listan.',
@@ -5096,7 +5096,7 @@ const help: TranslationStrings = {
     'Turöversikt högst upp i Turer för den här resan visar Avstånd, Höjdmeter uppför och Höjdmeter nedför för turen i redigeraren, dess beräknade tid, pauserna och den planerade totaltiden.',
   'help.guide.tour-list-manage.title': 'Hantera resans turer',
   'help.guide.tour-list-manage.tip.2':
-    'En dag som redan har turen är gråad i dagmenyn. För en flerdagarstur frågar TREK om etapperna ska börja på den dagen eller om hela turen ska läggas på den dagen.',
+    'En dag som redan har turen är gråad i dagmenyn. För en flerdagarstur frågar YOUYA om etapperna ska börja på den dagen eller om hela turen ska läggas på den dagen.',
   'help.guide.tour-delete.tip.2':
     'Om du bara vill ta bort turen från en dag använder du i stället Ta bort från dagen i dagens meny.',
   'help.guide.tour-saved-elsewhere.step.4':
@@ -5121,7 +5121,7 @@ const help: TranslationStrings = {
     'Längs turen, ett kort i vänstra panelen, söker efter utsiktsplatser, vatten, hyddor, mat med mera nära rutten och listar resultaten. Du kan lägga till en plats från listan i turen som ett stopp.',
   'help.guide.tour-map-layers.tip.1':
     'Kartan du väljer gäller för alla turer du öppnar tills du laddar om sidan. En tur vars typ inte erbjuder den öppnas på Karta, och kartan på fliken Planering och inställningen i Inställningar ändras inte.',
-  'help.guide.tour-along-search.step.4': 'Klicka på Sök längs turen. TREK söker bara: turen ändras inte.',
+  'help.guide.tour-along-search.step.4': 'Klicka på Sök längs turen. YOUYA söker bara: turen ändras inte.',
   'help.guide.tour-along-add-stop.step.1':
     'Klicka på en plats i listan Längs turen, eller på dess nål på kartan. Dess kort öppnas över kartan: vad platsen är, hur långt den ligger från rutten och hur långt längs turen den ligger.',
   'help.guide.tour-3d-terrain.title': 'Se en tur i 3D',
@@ -5146,7 +5146,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     'Rundorna håller sig inom vandringens Högsta svårighetsgrad för leden. T-pillret i kortet visar vilken.',
   'help.guide.tour-hike-compare-ways.step.4':
-    'Klicka på Ta den här vägen. TREK kontrollerar med ruttplaneraren att rutten verkligen följer den.',
+    'Klicka på Ta den här vägen. YOUYA kontrollerar med ruttplaneraren att rutten verkligen följer den.',
   'help.guide.tour-ferrata-add.step.2':
     'Klicka på en via ferrata på kartan, på dess streckade linje eller dess skylt. Kortet visar namn, grad och längd.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -5203,7 +5203,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'En ny paddeltur med båt, vatten och fart, redo för sin första punkt på kartan.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Där vattendata saknas hämtar TREK den för regionen automatiskt eller ber en admin om den, beroende på hur instansen är inställd. En admin lägger till regioner under Vattendata för paddling, en rad under Turer på fliken Tillägg i adminområdet. Sträckan visar då Läser in vattendata och planeras automatiskt när datan finns, vanligtvis inom en till tre minuter.',
+    'Där vattendata saknas hämtar YOUYA den för regionen automatiskt eller ber en admin om den, beroende på hur instansen är inställd. En admin lägger till regioner under Vattendata för paddling, en rad under Turer på fliken Tillägg i adminområdet. Sträckan visar då Läser in vattendata och planeras automatiskt när datan finns, vanligtvis inom en till tre minuter.',
   'help.guide.tour-paddle-portage.step.2':
     'Välj Bär båten härifrån. Sträckan till nästa punkt blir en bärsträcka, ritad på land.',
   'help.guide.tour-paddle-lock.title': 'Lägg till en sluss och dess väntetid',
@@ -5277,9 +5277,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     'Push fungerar per webbläsare: upprepa stegen på varje telefon och dator där du vill ha meddelanden. Slå av för den här enheten stänger bara av push på den enheten.',
   'help.guide.connect-airtrail.step.2':
-    'Tillåt självsignerade certifikat är bara till för en betrodd instans i ditt eget nätverk. Skriv tillbaka ändringarna till AirTrail är av som standard, så TREK bara läser. Slå på det för att skicka tillbaka dina ändringar.',
+    'Tillåt självsignerade certifikat är bara till för en betrodd instans i ditt eget nätverk. Skriv tillbaka ändringarna till AirTrail är av som standard, så YOUYA bara läser. Slå på det för att skicka tillbaka dina ändringar.',
   'help.guide.connect-dawarich.step.2':
-    'Leta efter nya vistelser automatiskt låter TREK kontrollera på egen hand. När det är av läser TREK Dawarich bara när du ber om det. Tillåt självsignerat certifikat är bara till för en instans som din server inte litar på.',
+    'Leta efter nya vistelser automatiskt låter YOUYA kontrollera på egen hand. När det är av läser YOUYA Dawarich bara när du ber om det. Tillåt självsignerat certifikat är bara till för en instans som din server inte litar på.',
   'help.guide.tour-connect-wanderer.step.2':
     'Slå bara på Tillåt ett självsignerat certifikat för en instans i ditt eget nätverk.',
   'help.guide.tour-wanderer-watch.step.1':
@@ -5289,7 +5289,7 @@ const help: TranslationStrings = {
     'Visningsvaluta räknar bara om belopp för visning. De belopp som angetts i Kostnader ändras inte.',
   'help.guide.own-routing-engine.step.2': 'Ange adressen till din OSRM-server under Egen ruttmotor.',
   'help.guide.own-routing-engine.step.3':
-    'Ange adressen till din Valhalla under Egen Valhalla-instans och välj Egen Valhalla-instans som Ruttjänst. Varje fält sparas när du lämnar det. Starta sedan om TREK-servern och ladda om sidan.',
+    'Ange adressen till din Valhalla under Egen Valhalla-instans och välj Egen Valhalla-instans som Ruttjänst. Varje fält sparas när du lämnar det. Starta sedan om YOUYA-servern och ladda om sidan.',
   'help.guide.admin-passkeys.tip.3':
     'Om en användare har tappat enheten med sina inloggningsnycklar tar du bort nycklarna med Återställ inloggningsnycklar i Redigera anvädnare.',
   'help.guide.rotate-jwt-secret.result':
@@ -5305,7 +5305,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     'Läs den gula noteringen: den visar vem som får dagboken för första gången. Klicka sedan på Koppla dagbok.',
   'help.guide.dawarich-stays.step.1':
-    'När Dawarich är kopplat under Inställningar, Integrationer, visas Från Dawarich ovanför platslistan. Rubriken visar när TREK senast kontrollerade och hur många vistelser som väntar. Klicka på den för att öppna listan.',
+    'När Dawarich är kopplat under Inställningar, Integrationer, visas Från Dawarich ovanför platslistan. Rubriken visar när YOUYA senast kontrollerade och hur många vistelser som väntar. Klicka på den för att öppna listan.',
   'help.guide.leave-stop-off-route.step.2':
     'Märket Utanför rutten visas bredvid namnet. Stoppet finns kvar på dagen och på kartan, men dagens rutt och dess sträcktider hoppar över det.',
   'help.guide.move-booking-day.result': 'Bokningen hör nu till den nya dagen i planen, med oförändrad tid.',
@@ -5314,7 +5314,7 @@ const help: TranslationStrings = {
     'Öppna en plats som har ett foto bland sina Filer. Blocket Filer nära kortets nederkant visar hur många filer platsen har.',
   'help.guide.place-own-hours.title': 'Rätta en plats öppettider, telefonnummer eller e-postadress',
   'help.guide.place-own-hours.tip.1':
-    'Tider du skriver in ersätter dem som TREK slog upp, så ett kafé med säsongstider visar det du vet.',
+    'Tider du skriver in ersätter dem som YOUYA slog upp, så ett kafé med säsongstider visar det du vet.',
   'help.guide.day-panel.tip.3':
     'Planerar du efter kalendern? Slå på Datum först i dagsrubriker i Inställningar, under Visning, så visar rubriken datumet först, med Dag 1 eller dagens namn under.',
   'help.guide.confirm-stay-booking.result':
@@ -5334,15 +5334,15 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2':
     'Kolumnerna är åtskilda med semikolon, och Excel öppnar filen med bibehållna accenter.',
   'help.guide.arrange-packing-list.tip.2':
-    'TREK kommer ihåg A till Ö i den här webbläsaren, så listan öppnas sorterad nästa gång också. Det ändrar bara vad du ser, aldrig ordningen som de andra ser.',
+    'YOUYA kommer ihåg A till Ö i den här webbläsaren, så listan öppnas sorterad nästa gång också. Det ändrar bara vad du ser, aldrig ordningen som de andra ser.',
   'help.guide.count-packed-pieces.step.4':
     'Stäng fönstret. Så länge bara en del av styckena är packade visar raden räkningen, till exempel 3/5, och rutan har en kontur i din accentfärg. När räkningen når antalet bockas föremålet av av sig självt.',
   'help.guide.expense-receipts.result':
     'Kvittot sparas med utgiften: chipet på dess rad öppnar det, och filen finns också i resans Filer.',
   'help.guide.files-sync-settings.step.4':
-    'Under När ett dokument tas bort väljer du vad som händer med kopian på andra sidan. Behåll båda kopiorna låter lagringens kopia ligga kvar. Flytta till papperskorgen skickar den till lagringens papperskorg när dokumentet raderas i TREK.',
+    'Under När ett dokument tas bort väljer du vad som händer med kopian på andra sidan. Behåll båda kopiorna låter lagringens kopia ligga kvar. Flytta till papperskorgen skickar den till lagringens papperskorg när dokumentet raderas i YOUYA.',
   'help.ctx.trip-collab.bullet.7':
-    'Allt här kräver en anslutning. Offline sparas inget meddelande, ingen notering, ingen länk, ingen omröstning och ingen röst, och TREK säger Det här kräver en anslutning. Försök igen när TREK är online igen. Medlemmar som inte får redigera Samarbete kan läsa allt, men Ny notering, Lägg till länk och Ny omröstning finns inte för dem och meddelanderutan är gråad.',
+    'Allt här kräver en anslutning. Offline sparas inget meddelande, ingen notering, ingen länk, ingen omröstning och ingen röst, och YOUYA säger Det här kräver en anslutning. Försök igen när YOUYA är online igen. Medlemmar som inte får redigera Samarbete kan läsa allt, men Ny notering, Lägg till länk och Ny omröstning finns inte för dem och meddelanderutan är gråad.',
   'help.guide.manage-notes.step.4':
     'Redigera öppnar noteringsdialogen med allt ifyllt. Ändra det du behöver, här en rad till under Innehåll, och klicka på Spara.',
   'help.guide.note-categories.step.2':
@@ -5359,7 +5359,7 @@ const help: TranslationStrings = {
     'Pillret Incheckning eller Påstigning anger när du senast måste vara framme vid terminalen: avgången sätts så mycket tidigare än tidtabellen.',
   'help.guide.roadtrip-google-import.title': 'Importera en rutt från Google Maps',
   'help.guide.roadtrip-google-import.tip.2':
-    'Länken måste innehålla minst två stopp som TREK kan placera, och högst 30.',
+    'Länken måste innehålla minst två stopp som YOUYA kan placera, och högst 30.',
   'help.guide.roadtrip-hazards.tip.1':
     'Varningar är inga vägavstängningar: rutten ändras aldrig på grund av dem, och de är aktuella meddelanden, ingen prognos för dina datum.',
   'help.ctx.trip-tours.bullet.4':
@@ -5429,7 +5429,7 @@ const help: TranslationStrings = {
   'help.guide.tour-save.tip.2':
     'Tillbaka till turer överst i skenan stänger redigeraren, och frågar först om det finns osparade ändringar.',
   'help.guide.tour-edit-saved.step.4':
-    'Klicka på Tillbaka till turer för att stänga den. Finns det osparade ändringar frågar TREK först Kasta osparade ändringar i turen?.',
+    'Klicka på Tillbaka till turer för att stänga den. Finns det osparade ändringar frågar YOUYA först Kasta osparade ändringar i turen?.',
   'help.guide.tour-summary-profile.step.2': 'Infopricken bredvid den beräknade tiden förklarar hur den räknas ut.',
   'help.guide.tour-list-manage.goal':
     'Se summorna för resans turer, lägg en tur på en dag och begränsa listan till det du behöver.',
@@ -5483,7 +5483,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.3':
     'Märkena summerar det: hur stor del av rutten som är Känt, den Högsta kända graden på den och, separat, den Ruttgräns som vandringen planerades med.',
   'help.guide.tour-hike-round.goal':
-    'Låt TREK föreslå slingor av den längd du vill ha, med start från ett stopp på en vandring.',
+    'Låt YOUYA föreslå slingor av den längd du vill ha, med start från ett stopp på en vandring.',
   'help.guide.tour-hike-round.tip.2': 'Avstånd från 1 till 60 km godtas, och slingor inom 20 % av din längd erbjuds.',
   'help.guide.tour-hike-compare-ways.result':
     'Just den sträckan följer vägen du valde och resten av vandringen ändras inte. Vägen vald längst ned på kartan har Ångra.',
@@ -5508,7 +5508,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     'Besökta stopp är avbockade, överhoppade är överstrukna, och återstående tid räknar bara det som ligger framför dig.',
   'help.guide.tour-bike-profile.goal':
-    'Starta en cykeltur och låt TREK ruttplanera den för touring, landsväg, grus eller MTB.',
+    'Starta en cykeltur och låt YOUYA ruttplanera den för touring, landsväg, grus eller MTB.',
   'help.guide.tour-bike-profile.tip.1': 'Om du ändrar profilen senare planeras hela rutten om för den nya profilen.',
   'help.guide.tour-bike-surfaces.step.2':
     'Märket i kortets rubrik visar hur stor del av rutten som är känd för att vara obelagd.',
@@ -5537,14 +5537,14 @@ const help: TranslationStrings = {
     'På en sjö styr Över sjöar rutten: Rakt över är kortast, och Nära stranden håller sig nära stranden för blåsiga dagar.',
   'help.guide.tour-paddle-water-route.title': 'Planera sträckorna på vattnet',
   'help.guide.tour-paddle-water-route.tip.2':
-    'Där rutten bär båten runt en damm eller går genom en sluss sätter TREK en egen punkt, märkt Hittad. Om du flyttar eller ändrar den blir den din egen punkt.',
+    'Där rutten bär båten runt en damm eller går genom en sluss sätter YOUYA en egen punkt, märkt Hittad. Om du flyttar eller ändrar den blir den din egen punkt.',
   'help.guide.tour-paddle-portage.step.3':
     'Ett kort Lyft visas under punkten med sin längd och de extra minuterna. Klicka på det för att öppna det.',
   'help.guide.tour-paddle-lock.goal': 'Lägg en sluss på turen och räkna med väntan och passagen i tiden.',
   'help.guide.tour-paddle-lock.result':
     'Slussen ligger på turen med sina minuter, och Tidsuppskattning lägger ihop dem.',
   'help.guide.tour-paddle-time.tip.1':
-    'TREK utgår från 4 km/h på vattnet, 2 km/h vid bärning och 10 minuter vid varje lyft. Det är startvärden som du kan justera, inga mätningar.',
+    'YOUYA utgår från 4 km/h på vattnet, 2 km/h vid bärning och 10 minuter vid varje lyft. Det är startvärden som du kan justera, inga mätningar.',
   'help.guide.tour-paddle-wind.step.3':
     'Staplarna visar dagens timmar, med byarna bakom medelvinden. Håll pekaren över en stapel för den timmens värden och riktning.',
   'help.guide.tour-paddle-checklist.goal':
@@ -5616,7 +5616,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.tip.3':
     'Vecka börjar på styr den första kolumnen i varje datumväljare. Vacay har en egen inställning.',
   'help.guide.web-push-device.tip.2':
-    'På iPhone och iPad lägger du först till TREK på hemskärmen och öppnar det därifrån.',
+    'På iPhone och iPad lägger du först till YOUYA på hemskärmen och öppnar det därifrån.',
   'help.guide.connect-airtrail.step.3':
     'Klicka på Spara och sedan på Testa anslutningen. Du får veta hur många flygningar som hittades, och märket ändras till Ansluten.',
   'help.guide.connect-dawarich.step.3':
@@ -5624,7 +5624,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     'Klicka på Spara och sedan på Testa anslutningen. Du får veta hur många av dina leder du kan importera, och märket ändras till Ansluten.',
   'help.guide.tour-wanderer-watch.step.2':
-    'Högst en gång om dagen läser TREK den korta historiken för varje led du har importerat, och raden visar när den senast kontrollerades. När en led kan ha ändrats får du ett meddelande och Tips räknar den. Klicka på Tips för att se varje tur som Kan ha ändrats, Ändrad eller Kan inte kontrolleras, och öppna den därifrån.',
+    'Högst en gång om dagen läser YOUYA den korta historiken för varje led du har importerat, och raden visar när den senast kontrollerades. När en led kan ha ändrats får du ett meddelande och Tips räknar den. Klicka på Tips för att se varje tur som Kan ha ändrats, Ändrad eller Kan inte kontrolleras, och öppna den därifrån.',
   'help.guide.plugin-settings.goal':
     'Ge ett plugin dina egna nycklar och inställningar, och se vad det har gjort i ditt namn.',
   'help.guide.own-routing-engine.result': 'Rutter i alla resor beräknas på dina egna servrar.',
@@ -5643,7 +5643,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     'En flik Dagbok visas i resans flikrad. Alla du gav Läsa eller Redigera kan öppna dagboken på den fliken, med liveuppdateringar.',
   'help.guide.create-place.tip.4':
-    'En länk som kopierats från Google Maps fungerar också i sökningen: klistra in den, tryck på Enter, så läser TREK platsen från länken. När formuläret har en position listar Platser nära den här nålen, hårkorset bredvid sökningen, vad som finns runt den.',
+    'En länk som kopierats från Google Maps fungerar också i sökningen: klistra in den, tryck på Enter, så läser YOUYA platsen från länken. När formuläret har en position listar Platser nära den här nålen, hårkorset bredvid sökningen, vad som finns runt den.',
   'help.guide.dawarich-stays.step.2':
     'Vistelserna är grupperade per dag, var och en med när du kom och när du åkte. En mätarikon markerar en vistelse som Dawarich var osäker på. Klicka på Lägg till som plats, nålen bredvid en vistelse.',
   'help.guide.leave-stop-off-route.step.3':
@@ -5669,7 +5669,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.4':
     'Klicka på titeln för att byta namn på färden utan att öppna formuläret. Byt namn öppnas med namnet ifyllt: skriv det nya och klicka på Spara.',
   'help.guide.export-transports-csv.goal':
-    'Exportera resans färder från TREK som en CSV-fil, för ett kalkylblad, en researrangör eller en utskrift.',
+    'Exportera resans färder från YOUYA som en CSV-fil, för ett kalkylblad, en researrangör eller en utskrift.',
   'help.guide.group-sort-bookings.result':
     'Bokningarna visas i de sektioner och den ordning du valde, och den här webbläsaren kommer ihåg valet till nästa besök.',
   'help.guide.booking-on-map.step.1':
@@ -5684,7 +5684,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     'I redigeraren öppnar ett klick på en listad fils namn samma förhandsvisning. Esc stänger då bara förhandsvisningen, inte utgiften.',
   'help.guide.files-sync-settings.step.5':
-    'När båda sidor ändrats avgör vilken kopia som behålls när ett dokument har redigerats på båda ställena: Fråga mig, Behåll TREK-kopian eller Behåll lagrets kopia. Synkronisera automatiskt låter TREK leta efter ändringar i bakgrunden. När det är av står det Pausad på kortet, och bara Synkronisera nu kör en synkronisering. Varje ändring här sparas direkt.',
+    'När båda sidor ändrats avgör vilken kopia som behålls när ett dokument har redigerats på båda ställena: Fråga mig, Behåll YOUYA-kopian eller Behåll lagrets kopia. Synkronisera automatiskt låter YOUYA leta efter ändringar i bakgrunden. När det är av står det Pausad på kortet, och bara Synkronisera nu kör en synkronisering. Varje ändring här sparas direkt.',
   'help.guide.manage-notes.step.5':
     'Radera frågar först, Radera notering?, eftersom noteringen raderas för alla medlemmar, tillsammans med sina filer. Klicka på Radera för att bekräfta.',
   'help.guide.note-categories.step.3':
@@ -5715,7 +5715,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     'Eller klicka på dagens rubrik för att öppna dagen, klicka på turen i listan och klicka på Ta bort från dag längst ned på dess kort.',
   'help.guide.tour-filter-list.step.3':
-    'Där listan blandar olika värden begränsar Källa (TREK, GPX-import, wanderer), Ruttgräns (T1 till T6) och Typ (Vandring, Cykeltur och så vidare) den ytterligare. Klicka på ett markerat värde igen för att rensa det.',
+    'Där listan blandar olika värden begränsar Källa (YOUYA, GPX-import, wanderer), Ruttgräns (T1 till T6) och Typ (Vandring, Cykeltur och så vidare) den ytterligare. Klicka på ett markerat värde igen för att rensa det.',
   'help.guide.tour-hide-on-map.step.1':
     'Peka på en tur i listan och klicka på ögat som visas till höger på dess rad (Dölj på kartan).',
   'help.guide.tour-import-plan-tab.step.1':
@@ -5735,7 +5735,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.tip.4':
     'Samling finns bara när tillägget Samlingar är på. En lista du bara får läsa kan inte väljas, och om du inte har någon lista än erbjuder dialogen Öppna samlingar.',
   'help.guide.tour-packing-link.step.5':
-    'Klicka på Öppna packlistan för att bocka av saker. TREK växlar till fliken Listor, på packlistan.',
+    'Klicka på Öppna packlistan för att bocka av saker. YOUYA växlar till fliken Listor, på packlistan.',
   'help.guide.tour-files.step.2': 'Raden under räknar nu filerna, och listan öppnas.',
   'help.guide.tour-activity-link.step.2':
     'Markera dagen du gjorde turen under Genomförd. Välj Ingen dag om den inte hör till någon dag.',
@@ -5748,7 +5748,7 @@ const help: TranslationStrings = {
     'Sök plats eller adress högst upp på kartan flyttar kartan. Pillret längst ned till vänster växlar mellan de kartor som turens typ erbjuder, till exempel Topo eller Satellit, och innehåller den öppna turens reglage, till exempel Sätt punkter och 3D.',
   'help.guide.tour-open-workspace.step.5':
     'Sök plats eller adress högst upp på kartan flyttar kartan till en plats, så att du kan börja där turen ska gå.',
-  'help.guide.tour-draw-route.goal': 'Sätt punkterna för en ny tur på kartan och låt TREK räkna ut rutten mellan dem.',
+  'help.guide.tour-draw-route.goal': 'Sätt punkterna för en ny tur på kartan och låt YOUYA räkna ut rutten mellan dem.',
   'help.guide.tour-draw-route.tip.2':
     'Topo eller Vandring i kartans piller visar stigarna, vilket gör det lättare att klicka på en. En punkt som ligger för långt från alla vägar som typen kan använda får ett meddelande i stället för en rutt.',
   'help.guide.tour-type-profile.step.3':
@@ -5879,11 +5879,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     'Paddeltempo visar båtens förslag i grått. Skriv ditt eget, så står det Eget tempo i fältet. Länken under, Använd den föreslagna, återgår till båtens tempo.',
   'help.guide.tour-paddle-water-route.goal':
-    'Låt TREK planera en sträcka längs floden eller sjön, och förstå noteringarna på en sträcka som inte kunde planeras.',
+    'Låt YOUYA planera en sträcka längs floden eller sjön, och förstå noteringarna på en sträcka som inte kunde planeras.',
   'help.guide.tour-paddle-water-route.tip.3':
     'Noteringar under en planerad sträcka flaggar Fors med sin grad, en Kanotränna eller en Lucka i kartdata som överbryggats med en rak linje.',
   'help.guide.tour-paddle-portage.step.4':
-    'Under Rutt följer Följ stigen en kartlagd väg, och Rak linje går direkt över. TREK letar själv efter stigen och säger till när det inte finns någon utan en lång omväg.',
+    'Under Rutt följer Följ stigen en kartlagd väg, och Rak linje går direkt över. YOUYA letar själv efter stigen och säger till när det inte finns någon utan en lång omväg.',
   'help.guide.tour-paddle-lock.step.1': 'Peka på stoppet vid slussen och klicka på Fler åtgärder, de tre prickarna.',
   'help.guide.tour-paddle-time.title': 'Läs av och justera en paddelturs tid',
   'help.guide.tour-paddle-time.tip.2': 'Strömmen och vinden ingår inte i uppskattningen.',
@@ -5892,7 +5892,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     'Spara paddelturen och leta sedan upp Checklista i vänstra kolumnen. Märket i rubriken summerar hur långt du har kommit i listan.',
   'help.guide.tour-paddle-checklist.tip.4':
-    'Hinder kommer från OpenStreetMap-data för de regioner som TREK har data för. Där data saknas säger kortet det, och du kontrollerar dammar, slussar och lyft själv.',
+    'Hinder kommer från OpenStreetMap-data för de regioner som YOUYA har data för. Där data saknas säger kortet det, och du kontrollerar dammar, slussar och lyft själv.',
   'help.guide.tour-paddle-track-marks.step.4':
     'Klicka på spåret i Turer för den här resan. Vänstra kolumnen visar det som det spelades in, med kortet Lyft och slussar.',
   'help.ctx.trip-tour-horse.title': 'Ridturer',
@@ -5958,16 +5958,16 @@ const help: TranslationStrings = {
     'Medan en länkad resa pågår listas varje dags vistelser vid dagen, redo för Ta över dag.',
   'help.ctx.settings-about.title': 'Om',
   'help.guide.web-push-device.tip.3':
-    'Push kräver att TREK öppnas via HTTPS. Om meddelanden är blockerade tillåter du dem i webbläsarens inställningar och försöker igen.',
-  'help.guide.booking-mail-address.title': 'Vidarebefordra bokningsmejl till TREK',
+    'Push kräver att YOUYA öppnas via HTTPS. Om meddelanden är blockerade tillåter du dem i webbläsarens inställningar och försöker igen.',
+  'help.guide.booking-mail-address.title': 'Vidarebefordra bokningsmejl till YOUYA',
   'help.guide.booking-mail-address.goal':
-    'Skaffa en egen adress för bokningsbekräftelser, så att TREK lägger varje bokning i rätt resa.',
+    'Skaffa en egen adress för bokningsbekräftelser, så att YOUYA lägger varje bokning i rätt resa.',
   'help.guide.booking-mail-address.step.1':
     'Under Integrationer visar Bokningsmejl Din adress. Klicka på kopieringsknappen bredvid. Håll adressen för dig själv, som ett lösenord.',
   'help.guide.booking-mail-address.step.2':
     'Vidarebefordra ett bokningsmejl dit för hand, med bilagor, eller följ Vidarebefordra automatiskt för att skapa en regel i Gmail eller Outlook.',
   'help.guide.booking-mail-address.step.3':
-    'Importera bokningsmejl slår importen på eller av. Läs med AI låter AI läsa mejl utan maskinläsbara bokningsuppgifter. Lägg till automatiskt lägger en bokning som TREK är säker på direkt i sin resa.',
+    'Importera bokningsmejl slår importen på eller av. Läs med AI låter AI läsa mejl utan maskinläsbara bokningsuppgifter. Lägg till automatiskt lägger en bokning som YOUYA är säker på direkt i sin resa.',
   'help.guide.booking-mail-address.step.4':
     'Väntande bokningar öppnar mejlen som väntar på dig, med ett tal när det finns några. Ladda upp en mejlfil läser ett mejl som du sparat som .eml.',
   'help.guide.booking-mail-address.result':
@@ -5985,7 +5985,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     'Märket visar Ansluten, och fliken Turer på en resa kan söka i din wanderer och importera dess leder.',
   'help.guide.tour-wanderer-watch.result':
-    'TREK kontrollerar dina importerade leder och berättar när en led kan ha ändrats. En tur ändras först när du godkänner ändringen.',
+    'YOUYA kontrollerar dina importerade leder och berättar när en led kan ha ändrats. En tur ändras först när du godkänner ändringen.',
   'help.guide.plugin-settings.step.1':
     'Öppna Plugin i inställningarnas sidofält. Under Tilläggsinställningar har varje plugin som har inställningar för dig ett eget kort: fyll i dess fält och klicka på Spara, eller gör de val det visar. Åtgärder på kortet körs när du har bekräftat.',
   'help.guide.profile.step.3': 'Klicka på Spara profil till höger i kortets fot.',
@@ -5998,7 +5998,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Bestäm hur alla användares meddelanden ska vara inställda från början, och blockera en kanal helt för en händelse.',
   'help.ctx.notifications.summary':
-    'Alla meddelanden som TREK har visat dig i appen, de nyaste först och grupperade per dag: en bokning som någon ändrade, ett nytt meddelande i en reschatt, ett flyg som är försenat, en bokning från ett vidarebefordrat mejl. Klockan uppe till höger visar de tio senaste, den här sidan visar alla.',
+    'Alla meddelanden som YOUYA har visat dig i appen, de nyaste först och grupperade per dag: en bokning som någon ändrade, ett nytt meddelande i en reschatt, ett flyg som är försenat, en bokning från ett vidarebefordrat mejl. Klockan uppe till höger visar de tio senaste, den här sidan visar alla.',
   'help.guide.read-notifications.step.1':
     'Klicka på klockan uppe till höger. Det röda talet på den visar hur många meddelanden du ännu inte har läst.',
   'help.guide.filter-notifications.step.1': 'Klicka på klockan uppe till höger.',
@@ -6127,7 +6127,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     'Klicka på GPX för att ladda ner den sparade turen som en GPX-fil: hela rutten med de höjder den har, redo för en navigeringsapp eller en GPS-enhet.',
   'help.guide.tour-copy-keep.step.1':
-    'Öppna turens kort och klicka på Kopiera längst ned. TREK skapar en ny, fristående tur utan dess dagar, och originalet ändras inte.',
+    'Öppna turens kort och klicka på Kopiera längst ned. YOUYA skapar en ny, fristående tur utan dess dagar, och originalet ändras inte.',
   'help.guide.tour-copy-keep.result':
     'Resan har en andra tur som du kan ändra fritt, och samlingen har en egen kopia, redo att läggas till i en annan resa.',
   'help.guide.tour-packing-link.tip.1':
@@ -6215,7 +6215,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Klicka på Underlag för att se samma rutt efter vad du går på, från asfalt till naturmark och berg.',
   'help.guide.tour-hike-round.step.2':
-    'Kortet Rundtur öppnas över kartan. Kontrollera starten under Från och skriv in det Avstånd du vill ha. Pillret bredvid visar längderna på rundorna som TREK erbjuder för det.',
+    'Kortet Rundtur öppnas över kartan. Kontrollera starten under Från och skriv in det Avstånd du vill ha. Pillret bredvid visar längderna på rundorna som YOUYA erbjuder för det.',
   'help.guide.tour-hike-compare-ways.title': 'Jämför andra vägar för en sträcka av en vandring',
   'help.guide.tour-hike-compare-ways.tip.2':
     'När ruttplaneraren inte känner till någon annan väg står det på kortet. När ruttplaneraren inte kan följa vägen du valde ligger sträckan kvar som den är, och kortet berättar det.',
@@ -6234,7 +6234,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     'Öppettiderna kommer från OpenStreetMap eller från den plats på resan som ett stopp hör till, och pillret bredvid dem visar vilket. Kontrollera dem innan du ger dig av.',
   'help.guide.tour-walk-google-import.step.4':
-    'Klicka på Läs in som promenad. TREK planerar själv vägen till fots mellan stoppen. Klicka på Spara för att spara promenaden.',
+    'Klicka på Läs in som promenad. YOUYA planerar själv vägen till fots mellan stoppen. Klicka på Spara för att spara promenaden.',
   'help.guide.tour-walk-check-off.step.2':
     'Rulla till Promenadens stopp. Varje stopp visar hur länge du stannar och, om promenaden har en starttid, när du kommer fram.',
   'help.ctx.trip-tour-bike.summary':
@@ -6250,7 +6250,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     'Planera en dag på pisterna, en längdskidslinga, en skidtur eller en snöskopromenad längs kartlagda pister, liftar och spår.',
   'help.guide.tour-ski-plan.tip.2':
-    'Infopricken bredvid Gren förklarar vad TREK gör med skidturer. Inget i den, eller någon annanstans här, säger något om snö, laviner eller om pister, liftar och spår är öppna.',
+    'Infopricken bredvid Gren förklarar vad YOUYA gör med skidturer. Inget i den, eller någon annanstans här, säger något om snö, laviner eller om pister, liftar och spår är öppna.',
   'help.guide.tour-ski-options.step.3':
     'Välj Snabbast, Mest åkning eller Lättast under Föredra. Välj Lugnt, Normalt eller Sportigt under Takt: det ändrar tiden som ruttplaneraren räknar för varje pist.',
   'help.guide.tour-ski-fix-leg.goal': 'Få en röd sträcka planerad med ett klick, eller rita den rakt.',
@@ -6267,11 +6267,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     'Kontrollera att Lägg till punkt är på och klicka sedan på kartan: först din sjösättningsplats, sedan eventuella punkter på vägen och till sist din upptagningsplats.',
   'help.guide.tour-paddle-water-route.step.1':
-    'En sträcka som är ritad för hand visar Ritad för hand, inte ruttad under sin punkt, med sin längd. TREK behåller linjen som du ritade den.',
+    'En sträcka som är ritad för hand visar Ritad för hand, inte ruttad under sin punkt, med sin längd. YOUYA behåller linjen som du ritade den.',
   'help.guide.tour-paddle-water-route.tip.4':
     'Du kan inte spara så länge en sträcka inte är planerad. Planera den först på vattnet eller rita den för hand.',
   'help.guide.tour-paddle-portage.step.5':
-    'Skriv under Ur och i hur många minuter du behöver för att gå i land, lasta av och sätta i båten igen. Om du lämnar fältet tomt räknar TREK med 10 minuter.',
+    'Skriv under Ur och i hur många minuter du behöver för att gå i land, lasta av och sätta i båten igen. Om du lämnar fältet tomt räknar YOUYA med 10 minuter.',
   'help.guide.tour-paddle-lock.step.2':
     'Välj Sluss vid den här punkten. Ett kort Sluss visas under punkten, märkt Tid saknas.',
   'help.guide.tour-paddle-time.goal':
@@ -6281,7 +6281,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     'Det finns bara en prognos för de närmaste 16 dagarna. För en dag längre fram står det från vilket datum prognosen finns. För en dag som har passerat står det att dagen har passerat.',
   'help.guide.tour-paddle-checklist.step.2':
-    'Raden under visar hur aktuella uppgifterna är: OSM-data från för OpenStreetMap, Hämtad för när TREK läste dem och Hinderdata där de inte täcker hela rutten.',
+    'Raden under visar hur aktuella uppgifterna är: OSM-data från för OpenStreetMap, Hämtad för när YOUYA läste dem och Hinderdata där de inte täcker hela rutten.',
   'help.guide.tour-paddle-checklist.tip.5':
     'En checklista är inget säkerhetsgodkännande och inget juridiskt godkännande. Ditt beslut upphäver inte ett förbud eller privat mark som är registrerad i OpenStreetMap.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -6320,7 +6320,7 @@ const help: TranslationStrings = {
     'Sparade turer: turer som du sparat från en resa ligger först i en lista, med svårighetsgrad, typ, resan de kom från och sina mått. Lägg till i en resa skapar en ny tur av en av dem, och papperskorgen tar bort den från listan.',
   'help.guide.move-to-list.title': 'Flytta eller duplicera platser till en annan lista',
   'help.guide.copy-to-trip.tip.2':
-    'En plats som resan redan har hoppas över, och TREK visar hur många som hoppades över.',
+    'En plats som resan redan har hoppas över, och YOUYA visar hur många som hoppades över.',
   'help.guide.accept-list-invite.tip.2':
     'Klicka på Delad högst upp i listan för att se medlemmarna. Där kan du klicka på Lämna lista för att lämna listan igen.',
   'help.guide.tour-collection-add-to-trip.goal':
@@ -6337,15 +6337,15 @@ const help: TranslationStrings = {
   'help.guide.journey-day-stays.goal': 'Gör om vistelserna som Dawarich har registrerat till inlägg, ett i taget.',
   'help.guide.journey-take-over-day.goal':
     'Gör om en dags vistelser till utkast till inlägg, eller till en dagsrapport, i ett enda steg.',
-  'help.guide.journey-auto-prepare.title': 'Låt TREK förbereda dina inspelade dagar',
+  'help.guide.journey-auto-prepare.title': 'Låt YOUYA förbereda dina inspelade dagar',
   'help.guide.photo-location.title': 'Placera inlägg där fotona togs',
   'help.ctx.settings-about.summary':
-    'Vad TREK är, vilken version den här servern kör och var du hittar projektet: dokumentationen, var du rapporterar en bugg och hur du kan stödja projektet.',
+    'Vad YOUYA är, vilken version den här servern kör och var du hittar projektet: dokumentationen, var du rapporterar en bugg och hur du kan stödja projektet.',
   'help.guide.startup.tip.2': 'En startflik som hör till ett tillägg som du har stängt av öppnar planen i stället.',
   'help.guide.web-push-device.title': 'Få push-meddelanden på den här enheten',
   'help.guide.connect-airtrail.tip.1': 'Kortet visas bara när admin har slagit på tillägget AirTrail.',
   'help.guide.connect-dawarich.tip.1':
-    'TREK föreslår bara inlägg, platser och länder. Inget läggs till förrän du bekräftar, och inget skrivs tillbaka till Dawarich.',
+    'YOUYA föreslår bara inlägg, platser och länder. Inget läggs till förrän du bekräftar, och inget skrivs tillbaka till Dawarich.',
   'help.guide.tour-connect-wanderer.tip.1': 'Kortet visas bara när admin tillåter wanderer under Turer.',
   'help.guide.tour-wanderer-watch.tip.1':
     'Ett tips ändrar aldrig en tur. Turens källkontroll visar vad som faktiskt har ändrats.',
@@ -6360,7 +6360,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     'Ge alla konton rimliga enheter, färgläge och valuta utan att någon behöver öppna Inställningar.',
   'help.guide.default-map.step.3':
-    'Varje fält sparas när du lämnar det. Länken ”Återställ” bredvid fältets namn återställer TREK:s standardvärde.',
+    'Varje fält sparas när du lämnar det. Länken ”Återställ” bredvid fältets namn återställer YOUYA:s standardvärde.',
   'help.guide.own-routing-engine.tip.2':
     'Om bara din egen ruttmotor är angiven och Ruttjänst står på Automatisk frågas ingen Valhalla. Länken ”Återställ” bredvid ett fält tömmer det igen.',
   'help.guide.admin-passkeys.step.1':
@@ -6368,7 +6368,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.4':
     'Hälsa överst listar misslyckade skrivningar till ett speglingsmål. Om det står ”Inga replikfel registrerade” fungerar allt.',
   'help.guide.channels-instance.tip.3':
-    'Web Push kräver HTTPS. På iPhone och iPad måste användarna först lägga till TREK på hemskärmen.',
+    'Web Push kräver HTTPS. På iPhone och iPad måste användarna först lägga till YOUYA på hemskärmen.',
   'help.guide.notification-defaults.step.1':
     'Rulla ned till Standardval för användare längst ned på fliken Meddelanden. Varje rad är en händelse, varje kolumn en kanal.',
   'help.ctx.notifications.bullet.1':
@@ -6414,28 +6414,28 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     'Vill du bara exportera en del av fliken, snäva först in den med Sök eller Filtrera. Filen innehåller exakt det som fliken visar.',
   'help.guide.import-booking-file.tip.4':
-    'För att läsa en bekräftelse behövs en anslutning. Offline meddelar Importera det, och du försöker igen när TREK är online igen.',
+    'För att läsa en bekräftelse behövs en anslutning. Offline meddelar Importera det, och du försöker igen när YOUYA är online igen.',
   'help.guide.forward-booking-mail.title': 'Vidarebefordra ett bokningsmejl till resan',
   'help.guide.forward-booking-mail.goal':
-    'Ge resan en egen adress, vidarebefordra bekräftelsen dit och slutför det som TREK inte kunde lägga till själv.',
+    'Ge resan en egen adress, vidarebefordra bekräftelsen dit och slutför det som YOUYA inte kunde lägga till själv.',
   'help.guide.forward-booking-mail.step.1':
     'Klicka på uppladdningsikonen i fältet, Importera bokningsbekräftelser. Under rutan för filer innehåller Eller vidarebefordra med mejl resans egen adress.',
   'help.guide.forward-booking-mail.step.2':
     'Klicka på Skapa en adress för den här resan. Ett mejl som skickas dit hamnar i den här resan utan någon gissning.',
   'help.guide.forward-booking-mail.step.3':
-    'Adressen visas med en kopieringsknapp bredvid. Kopiera den och vidarebefordra sedan bokningsmejlet dit från ditt mejlprogram, med bilagor, för hand eller med en regel. TREK läser det inom några minuter.',
+    'Adressen visas med en kopieringsknapp bredvid. Kopiera den och vidarebefordra sedan bokningsmejlet dit från ditt mejlprogram, med bilagor, för hand eller med en regel. YOUYA läser det inom några minuter.',
   'help.guide.forward-booking-mail.step.4':
-    'En bokning som TREK är säker på läggs i resan av sig själv. Allt annat väntar på dig: öppna menyn under ditt namn uppe till höger, där ett tal räknar de väntande mejlen, och klicka på Väntande bokningar.',
+    'En bokning som YOUYA är säker på läggs i resan av sig själv. Allt annat väntar på dig: öppna menyn under ditt namn uppe till höger, där ett tal räknar de väntande mejlen, och klicka på Väntande bokningar.',
   'help.guide.forward-booking-mail.step.5':
-    'Varje post visar vad TREK läste, varför den väntar och resan den kom in för. Visa mejl visar själva mejlet. Klicka på Fyll i själv.',
+    'Varje post visar vad YOUYA läste, varför den väntar och resan den kom in för. Visa mejl visar själva mejlet. Klicka på Fyll i själv.',
   'help.guide.forward-booking-mail.step.6':
     'Ny bokning öppnas i resan med det mejlet innehöll: ämnet som titel, typen, datumet och bokningskoden som hittades. Kontrollera, rätta det som behöver rättas och klicka på Lägg till.',
   'help.guide.forward-booking-mail.result':
     'Bokningen finns på fliken Bokningar som alla andra, och dess post har lämnat Väntande bokningar.',
   'help.guide.forward-booking-mail.tip.1':
-    'Din egen adress, under Inställningar, Integrationer, Bokningsmejl, fungerar för alla resor: TREK väljer den resa vars datum och platser passar bokningen. En resas adress slipper den gissningen.',
+    'Din egen adress, under Inställningar, Integrationer, Bokningsmejl, fungerar för alla resor: YOUYA väljer den resa vars datum och platser passar bokningen. En resas adress slipper den gissningen.',
   'help.guide.forward-booking-mail.tip.2':
-    'Med Lägg till automatiskt på i det kortet läggs en bokning som TREK är säker på direkt i resan, och meddelandet om den erbjuder Ångra i 7 dagar. Av väntar varje bokning under Väntande bokningar.',
+    'Med Lägg till automatiskt på i det kortet läggs en bokning som YOUYA är säker på direkt i resan, och meddelandet om den erbjuder Ångra i 7 dagar. Av väntar varje bokning under Väntande bokningar.',
   'help.guide.forward-booking-mail.tip.3':
     'En post kan också sparas som dokument med Spara som dokument, som lägger mejlet eller dess bilagor i resans filer, eller kastas med Kassera.',
   'help.guide.forward-booking-mail.tip.4':
@@ -6470,7 +6470,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-overnight.goal':
     'Hitta ett ställe att sova på vägen och lägg till natten på färden som en bokning.',
   'help.guide.roadtrip-overnight.tip.2':
-    'Om du ställer tillbaka en bokad natt till Paus, via Redigera på dess kort, frågar TREK först Ta bort övernattningen? ”Gör till en paus” tar bort natten, med dess bokning och eventuell kopplad utgift, och behåller stoppet på färden.',
+    'Om du ställer tillbaka en bokad natt till Paus, via Redigera på dess kort, frågar YOUYA först Ta bort övernattningen? ”Gör till en paus” tar bort natten, med dess bokning och eventuell kopplad utgift, och behåller stoppet på färden.',
   'help.guide.roadtrip-stop-fill.tip.2':
     'Om du väljer det värde som stoppet redan har går stoppet tillbaka till ditt standardvärde.',
   'help.guide.roadtrip-bookings.tip.1':
@@ -6515,11 +6515,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     'Öppna turens kort. Planerat och faktiskt visar planens Avstånd, Höjdmeter uppför, Höjdmeter nedför och Tid med pauser bredvid spårets värden, med Skillnad.',
   'help.guide.tour-origin-check.goal':
-    'Ta reda på om en tur ritades i TREK eller importerades, från vilken fil, och om den har ändrats sedan dess.',
+    'Ta reda på om en tur ritades i YOUYA eller importerades, från vilken fil, och om den har ändrats sedan dess.',
   'help.ctx.trip-tour-planner.title': 'Turer',
   'help.guide.tour-open-workspace.title': 'Hitta runt på fliken Turer',
   'help.guide.tour-open-workspace.step.7':
-    'Klicka på en tur i högra spalten. En tur som planerats i TREK öppnas i redigeraren. Ett importerat spår öppnas oförändrat som GPX-tur, för visning.',
+    'Klicka på en tur i högra spalten. En tur som planerats i YOUYA öppnas i redigeraren. Ett importerat spår öppnas oförändrat som GPX-tur, för visning.',
   'help.guide.tour-draw-route.step.2':
     'Skriv var turen startar i Sök plats eller adress och välj resultatet. Kartan flyttas dit.',
   'help.guide.tour-draw-route.tip.4':
@@ -6553,7 +6553,7 @@ const help: TranslationStrings = {
     'Ett spår som resan redan har är gråat och märkt Finns redan i resan, och hoppas över.',
   'help.guide.tour-view-import.step.3': 'Tillbaka till turer, pilen uppe till vänster, stänger den igen.',
   'help.guide.tour-plan-from-import.step.2':
-    'TREK väljer kontrollpunkter från spåret och ruttplanerar dem på nytt. Kartan ritar importen prickad och förslaget heldraget, och kortet jämför deras längder, andelen Inom 50 m av spåret och Största avvikelse.',
+    'YOUYA väljer kontrollpunkter från spåret och ruttplanerar dem på nytt. Kartan ritar importen prickad och förslaget heldraget, och kortet jämför deras längder, andelen Inom 50 m av spåret och Största avvikelse.',
   'help.guide.tour-restore-recorded.title': 'Gå tillbaka till det inspelade spåret',
   'help.guide.tour-take-over.title': 'Ta över en tur från en annan resa',
   'help.guide.tour-take-over.tip.1':
@@ -6641,7 +6641,7 @@ const help: TranslationStrings = {
     'Om pisterna slutar laddas visar reglaget ett varningsmärke. Kartan och din rutt fungerar ändå.',
   'help.guide.tour-ski-import.step.4': 'Klicka på Importera 1 tur.',
   'help.ctx.trip-tour-paddle.summary':
-    'En kajak-, kanot- eller SUP-tur på en flod eller en sjö. Den anger sin båt och sitt vatten, följer vattnet där TREK har data, räknar in bärsträckor och slussar i tiden och visar vinden den dag du paddlar samt vad som är känt om hindren på vägen.',
+    'En kajak-, kanot- eller SUP-tur på en flod eller en sjö. Den anger sin båt och sitt vatten, följer vattnet där YOUYA har data, räknar in bärsträckor och slussar i tiden och visar vinden den dag du paddlar samt vad som är känt om hindren på vägen.',
   'help.guide.tour-paddle-setup.goal':
     'Starta en kajak-, kanot- eller SUP-tur och ange vad du paddlar, på vilket vatten och med vilken fart.',
   'help.guide.tour-paddle-setup.tip.1':
@@ -6649,7 +6649,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-water-route.step.2':
     'Om du vill att en sträcka ska planeras på vattnet pekar du på stoppet före den och klickar på Fler åtgärder, de tre prickarna.',
   'help.guide.tour-paddle-water-route.result':
-    'Varje sträcka följer vattnet eller är avsiktligt ritad för hand, och en sträcka som TREK inte kunde planera anger varför.',
+    'Varje sträcka följer vattnet eller är avsiktligt ritad för hand, och en sträcka som YOUYA inte kunde planera anger varför.',
   'help.guide.tour-paddle-portage.tip.1':
     'Vill du ändå paddla sträckan öppnar du Fler åtgärder på punkten igen och väljer Paddla den här sträckan igen. Den blir då åter en sträcka som är ritad för hand.',
   'help.guide.tour-paddle-lock.step.3': 'Klicka på kortet Sluss för att öppna det.',
@@ -6668,7 +6668,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     'Klicka på fältet Turtyp under Turens namn och välj Ridtur. Kortet Ridleder visas under Vägpunkter.',
   'help.guide.tour-horse-plan.tip.2':
-    'TREK räknar inte ut någon ridtid för en ridtur. Ange en under Planerat i Detaljer om du vill ha en tid på dagen.',
+    'YOUYA räknar inte ut någon ridtid för en ridtur. Ange en under Planerat i Detaljer om du vill ha en tid på dagen.',
   'help.guide.tour-horse-gap.step.3': 'Klicka på Ta delsträcka. Knappen är gråad tills reglaget är på.',
   'help.guide.tour-horse-recorded.step.1':
     'Klicka på Lägg till tur (+) i Turer för den här resan, välj Importera GPX eller KML och välj filen med din ridtur.',
@@ -6684,7 +6684,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': 'Logga dagar åt någon du planerar med',
   'help.guide.dissolve-fusion.title': 'Sluta planera tillsammans',
   'help.guide.country-places.goal':
-    'Lista de platser som TREK räknar till ett land, för att kontrollera vad du gjorde där eller hitta en plats som TREK har placerat i fel land.',
+    'Lista de platser som YOUYA räknar till ett land, för att kontrollera vad du gjorde där eller hitta en plats som YOUYA har placerat i fel land.',
   'help.guide.regions.tip.3':
     'Lägg till på bucketlistan fungerar även för en region. Regionen visas med samma snedstreck som ett land på din bucketlista.',
   'help.guide.tour-activity-stats.step.2':
@@ -6713,11 +6713,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.1': 'Versionen som den här servern kör visas bredvid titeln.',
   'help.guide.readability.tip.3':
     'Läsbarhet är märkt Experimentell. Om något ser fel ut klickar du på Återställ till standardinställningarna längst ned på fliken för att återställa standardinställningarna.',
-  'help.guide.web-push-device.goal': 'Se TREK-meddelanden på mobilen eller datorn även när TREK är stängt.',
+  'help.guide.web-push-device.goal': 'Se YOUYA-meddelanden på mobilen eller datorn även när YOUYA är stängt.',
   'help.guide.connect-airtrail.tip.2':
     'Nyckeln lagras krypterad och visas aldrig igen. Prickar i fältet betyder att en nyckel är sparad.',
   'help.guide.connect-dawarich.tip.2':
-    'Under knapparna visar kortet när TREK senast kontrollerade och vad din Dawarich-version inte erbjuder.',
+    'Under knapparna visar kortet när YOUYA senast kontrollerade och vad din Dawarich-version inte erbjuder.',
   'help.guide.tour-connect-wanderer.tip.2':
     'En instans på en privat adress kan kräva att admin tillåter interna nätverk.',
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6725,13 +6725,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     'Pluginet fungerar med dina inställningar, och varje åtgärd det utför åt dig visas under Plugin-aktivitet.',
   'help.ctx.admin-defaults.bullet.3':
-    'Länken ”Återställ” bredvid ett fält som du har angett återställer TREK:s eget standardvärde. En användares egen inställning gäller alltid före dessa.',
+    'Länken ”Återställ” bredvid ett fält som du har angett återställer YOUYA:s eget standardvärde. En användares egen inställning gäller alltid före dessa.',
   'help.ctx.admin-settings.bullet.5':
     'Farozon, på Säkerhet: Rotera JWT-hemlighet loggar ut alla användare, dig själv inräknad.',
   'help.guide.default-user-settings.step.1':
     'Under Standardinställningar för användare väljer du Färgläge (Ljust, Mörk eller Auto), Temperaturenhet, Avståndsenhet, Tidsformat, Vecka börjar på, Datumformat, Visningsvaluta och om Blurra bokningskoder är På eller Av. Varje val sparas direkt.',
   'help.guide.admin-passkeys.step.2':
-    'I kortet Inloggningsnyckel anger du ”Relying Party ID” (domän), till exempel trek.example.org, och de ”Tillåtna ursprung” som din TREK nås på, och klickar sedan på Spara. Lämna båda tomma för att använda APP_URL.',
+    'I kortet Inloggningsnyckel anger du ”Relying Party ID” (domän), till exempel trek.example.org, och de ”Tillåtna ursprung” som din YOUYA nås på, och klickar sedan på Spara. Lämna båda tomma för att använda APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Logga ut alla på en gång',
   'help.guide.notification-defaults.step.2':
     'Klicka på en cell för att växla till nästa läge: På, Av, Blockerad. Verktygstipset anger nästa läge, och varje klick sparas direkt.',
@@ -6746,21 +6746,21 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': 'Meddelandet tas bort från listan och från klockan.',
   'help.guide.booking-mail-notifications.title': 'Svara på ett meddelande om ett bokningsmejl',
   'help.guide.booking-mail-notifications.goal':
-    'Se vad som hände med bokningsmejlen du vidarebefordrade, och avgör de som TREK inte kunde lägga till själv.',
+    'Se vad som hände med bokningsmejlen du vidarebefordrade, och avgör de som YOUYA inte kunde lägga till själv.',
   'help.guide.booking-mail-notifications.step.1':
-    'Klicka på klockan uppe till höger. När ett vidarebefordrat mejl innehåller bokningar som TREK inte kunde lägga till själv berättar den det där.',
+    'Klicka på klockan uppe till höger. När ett vidarebefordrat mejl innehåller bokningar som YOUYA inte kunde lägga till själv berättar den det där.',
   'help.guide.booking-mail-notifications.step.2':
     'Vidarebefordrade bokningar att granska visar hur många som väntar på dig. Klicka på Granska under det.',
   'help.guide.booking-mail-notifications.step.3':
-    'Väntande bokningar öppnas med varje post som väntar: vad TREK läste, varför den väntar och resan den kom in för. Fyll i själv öppnar en ny bokning med det mejlet innehöll, och papperskorgen kastar posten.',
+    'Väntande bokningar öppnas med varje post som väntar: vad YOUYA läste, varför den väntar och resan den kom in för. Fyll i själv öppnar en ny bokning med det mejlet innehöll, och papperskorgen kastar posten.',
   'help.guide.booking-mail-notifications.result':
     'Varje vidarebefordrad bokning hamnar antingen i sin resa eller väntar på ditt beslut, och du vet alltid vilket.',
   'help.guide.booking-mail-notifications.tip.1':
-    'En bokning som TREK lade till själv kommer som Bokning tillagd från ett mejl, med Behåll och Ångra. Ångra tar bort bokningen ur resan igen, Behåll låter den ligga kvar.',
+    'En bokning som YOUYA lade till själv kommer som Bokning tillagd från ett mejl, med Behåll och Ångra. Ångra tar bort bokningen ur resan igen, Behåll låter den ligga kvar.',
   'help.guide.booking-mail-notifications.tip.2':
     'De andra på en delad resa får också veta om en bokning från ett mejl, med Visa resan, som öppnar fliken Bokningar.',
   'help.guide.booking-mail-notifications.tip.3':
-    'Ett flyg som TREK följer live skickar Flyget har lyft, Flyget har landat och, från 15 minuters försening, Flyget är försenat, var och en med Visa resan. De går till dem som flyget är tilldelat, eller till alla på resan. Slå av vilket som helst av dem under Inställningar, Meddelanden.',
+    'Ett flyg som YOUYA följer live skickar Flyget har lyft, Flyget har landat och, från 15 minuters försening, Flyget är försenat, var och en med Visa resan. De går till dem som flyget är tilldelat, eller till alla på resan. Slå av vilket som helst av dem under Inställningar, Meddelanden.',
   'help.guide.notification-settings.result':
     'Inställningar öppnas på Meddelanden, med ett reglage per händelse och kanal.',
   'help.guide.link-journal.goal': 'Visa en av dina Journey-dagböcker i resan, för de personer du väljer.',
@@ -6771,9 +6771,9 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     'Klicka på Reseinställningar bredvid resans namn och välj Tillägg till vänster. Bara resans ägare har det här området.',
   'help.guide.trip-addons.step.2':
-    'Klicka på reglaget för ett tillägg för att slå på eller av det för den här resan. Listor, Kostnader, Dokument, Samarbete, Bilresa och Turer listas, i den mån din TREK har dem.',
+    'Klicka på reglaget för ett tillägg för att slå på eller av det för den här resan. Listor, Kostnader, Dokument, Samarbete, Bilresa och Turer listas, i den mån din YOUYA har dem.',
   'help.guide.trip-addons.step.3':
-    'Bara den här resan markerar ett tillägg som du har ställt in annorlunda än resten av TREK. Slå tillbaka det för att följa administratörens inställning igen.',
+    'Bara den här resan markerar ett tillägg som du har ställt in annorlunda än resten av YOUYA. Slå tillbaka det för att följa administratörens inställning igen.',
   'help.guide.trip-addons.result':
     'Resan visar de tillägg du valde, för alla på den: en flik eller en del av planen visas eller försvinner. Dina andra resor behåller administratörens inställning.',
   'help.guide.trip-addons.tip.1':
@@ -6781,7 +6781,7 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.tip.2':
     'Du kan slå på ett tillägg för en resa även när administratören har det av för alla andra.',
   'help.guide.trip-addons.tip.3':
-    'För att ändra ett reglage krävs en anslutning. Offline säger TREK det och lämnar reglaget som det var.',
+    'För att ändra ett reglage krävs en anslutning. Offline säger YOUYA det och lämnar reglaget som det var.',
   'help.guide.edit-trip-settings.title': 'Redigera resan från planeraren',
   'help.guide.edit-trip-settings.goal': 'Ändra resans titel, datum, omslag eller valuta utan att lämna resan.',
   'help.guide.edit-trip-settings.step.1':
@@ -6792,7 +6792,7 @@ const help: TranslationStrings = {
     'Klicka på Uppdatera. Reseinställningar stängs, och resan visar ändringen direkt.',
   'help.guide.edit-trip-settings.result': 'Resan visar de nya uppgifterna överallt, för alla som är med.',
   'help.guide.edit-trip-settings.tip.1':
-    'Om du flyttar startdatumet frågar TREK först hur bokningarna ska följa med. Om de nya datumen tar bort dagar med innehåll listar TREK de dagarna innan du bekräftar.',
+    'Om du flyttar startdatumet frågar YOUYA först hur bokningarna ska följa med. Om de nya datumen tar bort dagar med innehåll listar YOUYA de dagarna innan du bekräftar.',
   'help.guide.edit-trip-settings.tip.2':
     'Samma formulär öppnas från Mina resor med pennan på reskortet. Redigera resa visas bara för personer som får redigera resan.',
   'help.guide.dawarich-stays.result':
@@ -6805,7 +6805,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'Fotot är platsens bild på kortet, i platskolumnen, i dagen och på kartan.',
   'help.guide.place-own-hours.step.3':
-    'Öppettider under dem visar veckan, en rad per dag. Där TREK har hittat tider för platsen är de redan ifyllda, annars klickar du först på Lägg till öppettider. Skriv när varje dag öppnar och stänger. Till höger om en dag markerar 24h att den är öppen hela dagen och den stängda dörren att den är stängd.',
+    'Öppettider under dem visar veckan, en rad per dag. Där YOUYA har hittat tider för platsen är de redan ifyllda, annars klickar du först på Lägg till öppettider. Skriv när varje dag öppnar och stänger. Till höger om en dag markerar 24h att den är öppen hela dagen och den stängda dörren att den är stängd.',
   'help.guide.add-accommodation.tip.5':
     'GPX-spår och turplatser erbjuds aldrig som boende, bara vanliga platser på resan.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6826,7 +6826,7 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.2':
     'Öppna Visningsalternativ, reglagen efter vyikonerna, och välj en ordning under Sortera efter. Raderna följer den, en rad per bokning och utan avsnitt.',
   'help.guide.edit-booking.tip.4':
-    'Om du har ändrat något frågar TREK Slänga ändringarna? när du klickar utanför formuläret eller trycker på Escape. Fortsätt redigera tar dig tillbaka till formuläret.',
+    'Om du har ändrat något frågar YOUYA Slänga ändringarna? när du klickar utanför formuläret eller trycker på Escape. Fortsätt redigera tar dig tillbaka till formuläret.',
   'help.guide.arrange-packing-list.step.2':
     'Inne i en lista pekar du på en rad: ett grepp visas i dess vänstra ände och drar föremålet uppåt eller nedåt. En linje i din accentfärg vid radens vänstra kant visar var det hamnar.',
   'help.guide.count-packed-pieces.goal': 'Ange antal för ett föremål och markera dess stycken som packade ett i taget.',
@@ -6837,7 +6837,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     'Bestäm om dokument bara importeras från ditt arkiv, bara exporteras till det, eller både och, och vad som händer när ett dokument raderas eller ändras på båda ställena.',
   'help.guide.files-sync-settings.tip.2':
-    'Med Fråga mig väntar ett dokument som ändrats på båda ställena under Behöver ses över, under kortet. Klicka på Lös och välj Behåll TREK-versionen, Behåll leverantörens version eller Behåll båda.',
+    'Med Fråga mig väntar ett dokument som ändrats på båda ställena under Behöver ses över, under kortet. Klicka på Lös och välj Behåll YOUYA-versionen, Behåll leverantörens version eller Behåll båda.',
   'help.guide.manage-notes.goal':
     'Öppna en notering i sin helhet, håll den viktiga överst och rätta eller ta bort det som är inaktuellt.',
   'help.guide.manage-notes.tip.2':
@@ -6957,7 +6957,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     'Öppna en tur på fliken Turer och rulla den vänstra panelen ned till Längs turen, under turens stopp. Kortet finns när turen har en rutt.',
   'help.guide.tour-along-search.tip.3':
-    'Resultaten kommer från OpenStreetMap och TREK:s platsindex, så sökningen kräver en anslutning. När inget hittas provar Vidga till nästa avstånd. När en server är upptagen visar Försök igen en nedräkning tills du kan försöka igen.',
+    'Resultaten kommer från OpenStreetMap och YOUYA:s platsindex, så sökningen kräver en anslutning. När inget hittas provar Vidga till nästa avstånd. När en server är upptagen visar Försök igen en nedräkning tills du kan försöka igen.',
   'help.guide.tour-along-add-stop.tip.1':
     'Platsen blir ett stopp på turen, inte en plats på resan, så den visas inte i platslistan.',
   'help.guide.tour-3d-terrain.step.4':
@@ -6978,7 +6978,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     'Leddetaljer, under vägpunkterna, visar SAC-graden, underlaget och vägtypen för varje sträcka från OpenStreetMap och färgar rutten på kartan efter dem. Inget där ändrar turen.',
   'help.guide.tour-hike-plan.step.4':
-    'Lägg till punkt är på från början: klicka på kartan där vandringen startar och där den slutar. Resans platser bredvid väljer i stället en stuga eller ett hotell på resan. Från två punkter räknar TREK ut gångrutten.',
+    'Lägg till punkt är på från början: klicka på kartan där vandringen startar och där den slutar. Resans platser bredvid väljer i stället en stuga eller ett hotell på resan. Från två punkter räknar YOUYA ut gångrutten.',
   'help.guide.tour-hike-trail-details.title': 'Se svårighetsgrader, underlag och vägtyper längs en vandring',
   'help.guide.tour-hike-trail-details.tip.1':
     'Vägar som saknar värde i OpenStreetMap listas under Okänd, och okänd betyder inte lätt. Om några visar Kunde inte hämtas den här gången klickar du på Försök igen.',
@@ -7010,7 +7010,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     'Turöversikt till höger visar Cykeltid, ruttplanerarens uppskattning för profilen, inklusive stigningarna. Pauser ingår inte.',
   'help.guide.tour-bike-profile.step.4':
-    'Klicka på Resans platser under Vägpunkter och välj start och mål, här Hotel Alpenroyal och sedan Hotel Greif. Du kan också kontrollera att Lägg till punkt är på och klicka på kartan. Från två punkter räknar TREK ut rutten.',
+    'Klicka på Resans platser under Vägpunkter och välj start och mål, här Hotel Alpenroyal och sedan Hotel Greif. Du kan också kontrollera att Lägg till punkt är på och klicka på kartan. Från två punkter räknar YOUYA ut rutten.',
   'help.guide.tour-bike-profile.tip.5':
     'Om en admin tillåter kartan CyclOSM erbjuder lagerraden på kartan också Cykel medan en cykeltur är öppen. Om den slutar laddas byter du till Karta. Turen ändras inte.',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -7037,7 +7037,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     'Kartan för en paddeltur erbjuder Karta och Satellit, och Sjömärken från OpenSeaMap som ett lager ovanpå.',
   'help.guide.tour-paddle-water-route.step.3':
-    'Välj Planera nästa etapp på vattnet. TREK planerar sträckan längs älven eller sjön från den här punkten till nästa.',
+    'Välj Planera nästa etapp på vattnet. YOUYA planerar sträckan längs älven eller sjön från den här punkten till nästa.',
   'help.guide.tour-paddle-portage.title': 'Bär båten runt ett hinder',
   'help.guide.tour-paddle-portage.tip.2':
     'På den sista punkten gäller Bär båten härifrån först när du har satt nästa punkt. Raden visar Bär härifrån, och dess kryss, Bär inte ändå, ångrar det.',
@@ -7057,7 +7057,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.3':
     'Klicka på Sök i kartvyn i kortet Ridleder. Alla skyltade ridleder i vyn listas där med sin längd.',
   'help.guide.tour-horse-plan.tip.3':
-    'Har du flyttat kartan efter en sökning? Då heter knappen Sök i den här vyn. Är vyn för stor ber TREK dig zooma in först.',
+    'Har du flyttat kartan efter en sökning? Då heter knappen Sök i den här vyn. Är vyn för stor ber YOUYA dig zooma in först.',
   'help.guide.tour-horse-gap.step.4':
     'I kortet Vägpunkter visar förbindelsen Manuell, okontrollerad, med sin längd. Peka på den för att läsa varför.',
   'help.guide.tour-horse-recorded.step.2':
@@ -7131,7 +7131,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     'I kortet AI-assistent väljer du hur du vill ansluta: Logga in med ChatGPT använder ditt ChatGPT-abonnemang, Klistra in en API-nyckel tar en nyckel från Anthropic, OpenAI, Gemini eller OpenRouter.',
   'help.guide.connect-ai.step.2':
-    'Klistra in din nyckel. TREK visar vilken leverantör den känner igen och vad som skickas dit. Klicka på Anslut; TREK kontrollerar först nyckeln hos leverantören.',
+    'Klistra in din nyckel. YOUYA visar vilken leverantör den känner igen och vad som skickas dit. Klicka på Anslut; YOUYA kontrollerar först nyckeln hos leverantören.',
   'help.guide.connect-ai.step.3':
     'Kortet visar Ansluten till och leverantören. Välj den Modell du vill ha och klicka på Öppna assistenten för att börja i din pågående eller nästa resa.',
   'help.guide.connect-ai.result': 'Assistenten körs på ditt eget konto, i alla resor.',
@@ -7150,7 +7150,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     'Standardval för användare, längst ned: per händelse och kanal På, Av eller Blockerad för alla som inte har ändrat det.',
   'help.guide.default-user-settings.step.2':
-    'Ett fält som du har angett får en länk ”Återställ” bredvid sitt namn. Den återställer TREK:s inbyggda standardvärde.',
+    'Ett fält som du har angett får en länk ”Återställ” bredvid sitt namn. Den återställer YOUYA:s inbyggda standardvärde.',
   'help.guide.own-routing-engine.title': 'Använd dina egna ruttservrar',
   'help.guide.admin-passkeys.result':
     'Inloggningssidan erbjuder Logga in med en inloggningsnyckel, och användarna kan lägga till inloggningsnycklar i sina inställningar.',
@@ -7175,7 +7175,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.tip.1':
     'Bara JPG-, PNG-, GIF- och WebP-filer erbjuds. En PDF-biljett erbjuds inte.',
   'help.guide.place-own-hours.step.4':
-    'Knapparna till höger om Öppettider: kopieringsknappen ger alla dagar måndagens tider, och X tar bort dina tider igen. Där TREK har hittat egna tider återställer Hämta från platsdetaljerna dem.',
+    'Knapparna till höger om Öppettider: kopieringsknappen ger alla dagar måndagens tider, och X tar bort dina tider igen. Där YOUYA har hittat egna tider återställer Hämta från platsdetaljerna dem.',
   'help.guide.confirm-stay-booking.step.2':
     'Bokningen öppnas över planen. Den första etiketten i rubriken visar dess status.',
   'help.ctx.trip-map.bullet.9':
@@ -7192,7 +7192,7 @@ const help: TranslationStrings = {
   'help.guide.group-sort-bookings.step.1':
     'Klicka på Visningsalternativ i Kort eller Lista, reglagen efter de tre vyikonerna.',
   'help.guide.create-booking.tip.4':
-    'Offline sparas bokningen på den här enheten och synkas när du är online igen. Nya filer kräver en anslutning, så ta bort dem eller spara senare. Om du klickar utanför formuläret av misstag, eller trycker på Escape, frågar TREK Slänga ändringarna? innan något du har skrivit går förlorat.',
+    'Offline sparas bokningen på den här enheten och synkas när du är online igen. Nya filer kräver en anslutning, så ta bort dem eller spara senare. Om du klickar utanför formuläret av misstag, eller trycker på Escape, frågar YOUYA Slänga ändringarna? innan något du har skrivit går förlorat.',
   'help.guide.booking-on-map.tip.2': 'Ett boende öppnas på sin första natt.',
   'help.guide.export-bookings-csv.step.3':
     'Klicka på Exportera som kalkylblad (CSV), nedladdningsikonen efter Visningsalternativ.',
@@ -7204,7 +7204,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     'Klicka på Dokumentsynkronisering längst till höger i fältet. När resan är kopplad öppnas ditt arkivs kort till höger. Om det finns fler än ett arkiv klickar du på det du vill ha under Den här resan till vänster.',
   'help.guide.files-sync-settings.tip.3':
-    'Direkta uppdateringar, en länk med Kopiera bredvid, visas bara för arkiv där TREK inte automatiskt kan prenumerera på ändringar. Klistra in länken i arkivet, så kommer ändringar direkt i stället för vid nästa kontroll.',
+    'Direkta uppdateringar, en länk med Kopiera bredvid, visas bara för arkiv där YOUYA inte automatiskt kan prenumerera på ändringar. Klistra in länken i arkivet, så kommer ändringar direkt i stället för vid nästa kontroll.',
   'help.guide.manage-notes.step.1':
     'Klicka på de tre prickarna i rubriken på ett noteringskort (Fler alternativ). Menyn innehåller Expandera, Fäst, Redigera och Radera.',
   'help.guide.note-categories.title': 'Sortera noteringar i kategorier',
@@ -7223,7 +7223,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     'Platsens foton fyller skärmen, och pilarna bläddrar bland de andra som källan känner till. Stäng dem för att komma tillbaka till dialogen, där Avbryt lämnar stoppet som det var.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    'Bilden är platsens egen bild, den du satte i platsformuläret. Utan någon visar TREK fotot som källan har för platsen, om den kommer från Google eller OpenStreetMap.',
+    'Bilden är platsens egen bild, den du satte i platsformuläret. Utan någon visar YOUYA fotot som källan har för platsen, om den kommer från Google eller OpenStreetMap.',
   'help.guide.roadtrip-stop-photo.tip.2':
     'På mobil trycker du på ett stopp på fliken Bilresa: dess panel visar bilden i full bredd under namnet, och ett tryck på den öppnar fotona.',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -7250,7 +7250,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     'Om du drar en tur med etapper till en dag visas samma fråga i en liten dialog. Avbryt lämnar planen som den var.',
   'help.guide.tour-day-times.step.2':
-    'Ange Start och lämna Slut tomt. Raden under fälten visar slutet som TREK räknar ut: starten plus turens tid.',
+    'Ange Start och lämna Slut tomt. Raden under fälten visar slutet som YOUYA räknar ut: starten plus turens tid.',
   'help.guide.tour-remove-from-day.title': 'Ta bort en tur från en dag',
   'help.guide.tour-filter-list.title': 'Filtrera turlistan',
   'help.guide.tour-filter-list.tip.3':
@@ -7262,7 +7262,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     'Kortet är till för att läsa och för det som hör till en tur. Själva rutten ändrar du på fliken Turer: öppna den och klicka på turen under Turer för den här resan. En tur raderas också där, inte här.',
   'help.guide.tour-detail-read.step.6':
-    'Rulla vidare till Beskrivning och Noteringar och sedan Ursprung: planerad i TREK, filen som turen importerades från, eller wanderer-leden den kommer från, med datum.',
+    'Rulla vidare till Beskrivning och Noteringar och sedan Ursprung: planerad i YOUYA, filen som turen importerades från, eller wanderer-leden den kommer från, med datum.',
   'help.guide.tour-rename-colour.title': 'Byt namn på en tur och ändra dess färg',
   'help.guide.tour-rename-colour.result':
     'Turen visas med sitt nya namn överallt i resan, och dess linje ritas i färgen som du valde.',
@@ -7278,7 +7278,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     'Klicka på Jämför på kartan för att rita det faktiska spåret prickat bredvid planen. Avsluta jämförelsen tar bort det igen.',
   'help.guide.tour-origin-check.step.2':
-    'Importerad visar dagen då turen importerades. Här visar hur den ser ut nu: Som importerad, Redigerad i TREK eller Omplanerad, inspelat spår sparat.',
+    'Importerad visar dagen då turen importerades. Här visar hur den ser ut nu: Som importerad, Redigerad i YOUYA eller Omplanerad, inspelat spår sparat.',
   'help.ctx.trip-tour-planner.bullet.1':
     'Turer finns i resans flikrad direkt efter Planering så länge tillägget Turer är på för resan. Resans ägare kan slå på eller av det under Tillägg i Reseinställningar. Fliken finns på dator och surfplatta. På mobilen visar du turer och lägger dem på dagar från fliken Planering, men du ritar dem inte där.',
   'help.guide.tour-open-workspace.step.1':
@@ -7362,7 +7362,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.tip.2':
     'En svårighetsgrad över vandringens gräns får ett märke Över gränsen på sin rad.',
   'help.guide.tour-hike-round.step.5':
-    'Klicka på Ta den här rundan och sedan på Ersätt när TREK frågar om den planerade rutten ska ersättas.',
+    'Klicka på Ta den här rundan och sedan på Ersätt när YOUYA frågar om den planerade rutten ska ersättas.',
   'help.guide.tour-hike-compare-ways.step.2':
     'Andra vägar för den här etappen öppnas över kartan med Nuvarande väg och Väg A, Väg B och så vidare. Varje väg ritas på kartan i sin färg, och om du pekar på en rad lyses dess linje upp.',
   'help.guide.tour-ferrata-add.goal': 'Hitta via ferratorna runt din vandring och gör en av dem till en del av rutten.',
@@ -7416,13 +7416,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     'Längs turen söker först efter Isättningsplatser, Båtuthyrning och Dricksvatten på en paddeltur.',
   'help.guide.tour-paddle-water-route.step.4':
-    'En sträcka som TREK inte kunde planera blir röd och visar varför, till exempel att det ännu inte finns några vattendata för området. Klicka på Rita rakt för att rita den för hand tills vidare.',
+    'En sträcka som YOUYA inte kunde planera blir röd och visar varför, till exempel att det ännu inte finns några vattendata för området. Klicka på Rita rakt för att rita den för hand tills vidare.',
   'help.guide.tour-paddle-portage.goal':
     'Markera en sträcka där du bär båten, så att den räknas som land, med tid för att ta sig ur båten och i den igen.',
   'help.guide.tour-paddle-portage.tip.3':
     'Bärning räknas med 2 km/h tills du anger ditt eget Bärtempo i kortet Tidsuppskattning.',
   'help.guide.tour-paddle-lock.tip.1':
-    'TREK känner inte till några slusstider. Tiderna är bara det du själv anger, så kontrollera slussens öppettider själv.',
+    'YOUYA känner inte till några slusstider. Tiderna är bara det du själv anger, så kontrollera slussens öppettider själv.',
   'help.guide.tour-paddle-time.step.3':
     'Raden Vatten är avståndet på vattnet i ditt Paddeltempo. Ändra farten i fältet Paddeltempo överst i kolumnen.',
   'help.guide.tour-paddle-wind.goal': 'Se den prognostiserade vinden vid turens start den dag du paddlar den.',

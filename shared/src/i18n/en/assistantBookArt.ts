@@ -1,6 +1,6 @@
 import type { TranslationStrings } from '../types';
 
-/** TREK Studio: the art checks the assistant runs on a page, and its search of the Studio's catalogues. */
+/** YOUYA Studio: the art checks the assistant runs on a page, and its search of the Studio's catalogues. */
 const assistantBookArt: TranslationStrings = {
   'assistant.card.book.finding.flat_cover': 'A flat cover',
   'assistant.card.book.finding.weak_hierarchy': 'Nothing leads the page',

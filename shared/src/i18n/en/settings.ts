@@ -44,9 +44,9 @@ const settings: TranslationStrings = {
     'A Valhalla of your own, asked when the routing service above is set to it or to automatic. If only an own routing engine is configured and no routing service is chosen, no Valhalla is asked. After entering a URL, restart the server and reload the page.',
   'settings.valhallaProvider': 'Routing service',
   'settings.valhallaProviderHint':
-    'With the TREK services or an own Valhalla, Valhalla calculates every route: days and road trips on foot, by bike and by car, routes that avoid tolls, motorways or ferries, and the routes, heights and ways of tours. Where it cannot answer, OSRM calculates that day instead. The TREK services are asked through this server. With the public FOSSGIS Valhalla, OSRM calculates the routes and Valhalla only answers what OSRM cannot. Automatic asks the TREK services unless an own Valhalla or only an own routing engine is set.',
+    'With the YOUYA services or an own Valhalla, Valhalla calculates every route: days and road trips on foot, by bike and by car, routes that avoid tolls, motorways or ferries, and the routes, heights and ways of tours. Where it cannot answer, OSRM calculates that day instead. The YOUYA services are asked through this server. With the public FOSSGIS Valhalla, OSRM calculates the routes and Valhalla only answers what OSRM cannot. Automatic asks the YOUYA services unless an own Valhalla or only an own routing engine is set.',
   'settings.valhallaProviderOption.auto': 'Automatic',
-  'settings.valhallaProviderOption.trek': 'TREK services',
+  'settings.valhallaProviderOption.trek': 'YOUYA services',
   'settings.valhallaProviderOption.fossgis': 'Public Valhalla (FOSSGIS)',
   'settings.valhallaProviderOption.custom': 'Own Valhalla instance',
   'settings.mapHint': 'URL template for map tiles',
@@ -63,7 +63,7 @@ const settings: TranslationStrings = {
   'settings.mapCartoKeyHint': 'CARTO basemaps show a watermark without a key. Free, no account needed, from',
   'settings.mapCartoKeyLink': 'carto.com basemap API key',
   'settings.mapCartoKeyMissing':
-    'This template is a CARTO basemap. Without a key CARTO stamps "API KEY REQUIRED" onto every tile. Until you enter one, TREK shows the default basemap instead.',
+    'This template is a CARTO basemap. Without a key CARTO stamps "API KEY REQUIRED" onto every tile. Until you enter one, YOUYA shows the default basemap instead.',
   'settings.mapStyle': 'Map Style',
   'settings.mapStylePlaceholder': 'Select a Mapbox style',
   'settings.mapStyleHint': 'Preset or your own mapbox://styles/USER/ID URL',
@@ -162,15 +162,15 @@ const settings: TranslationStrings = {
   'settings.notificationPreferences.push': 'Push',
   'settings.webPush.title': 'Push notifications on this device',
   'settings.webPush.hint':
-    'Shows TREK notifications on this device even while TREK is closed. Which events arrive follows the Push column.',
+    'Shows YOUYA notifications on this device even while YOUYA is closed. Which events arrive follows the Push column.',
   'settings.webPush.enable': 'Turn on for this device',
   'settings.webPush.disable': 'Turn off for this device',
   'settings.webPush.enabled': 'On for this device',
   'settings.webPush.unsupported': 'This browser cannot receive push notifications.',
-  'settings.webPush.insecure': 'Push needs TREK to be opened over HTTPS.',
-  'settings.webPush.iosInstall': 'On iPhone and iPad, add TREK to the Home Screen first and open it from there.',
+  'settings.webPush.insecure': 'Push needs YOUYA to be opened over HTTPS.',
+  'settings.webPush.iosInstall': 'On iPhone and iPad, add YOUYA to the Home Screen first and open it from there.',
   'settings.webPush.denied':
-    'Notifications are blocked for TREK in this browser. Allow them in the browser settings, then try again.',
+    'Notifications are blocked for YOUYA in this browser. Allow them in the browser settings, then try again.',
   'settings.webPush.failed': 'Push could not be turned on for this device.',
   'settings.notificationPreferences.noChannels':
     'No notification channels are configured. Ask an admin to set up email or webhook notifications.',
@@ -293,21 +293,21 @@ const settings: TranslationStrings = {
   'settings.about.featureRequestHint': 'Suggest a new feature',
   'settings.about.wikiHint': 'Documentation & guides',
   'settings.about.sponsor.eyebrow': 'Sponsored infrastructure',
-  'settings.about.sponsor.title': "TREK's own servers run on dataforest cloud",
+  'settings.about.sponsor.title': "YOUYA's own servers run on dataforest cloud",
   'settings.about.sponsor.body':
-    "Place search, address search and routing come from TREK's own servers instead of Google and co., and dataforest cloud sponsors the machines they run on.",
+    "Place search, address search and routing come from YOUYA's own servers instead of Google and co., and dataforest cloud sponsors the machines they run on.",
   'settings.about.sponsor.cta': 'Visit dataforest cloud',
   'settings.about.sponsor.search': 'Place search',
   'settings.about.sponsor.address': 'Address search',
   'settings.about.sponsor.routing': 'Routing',
   'settings.about.descriptionManaged':
-    'TREK helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
+    'YOUYA helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place.',
   'settings.about.sourceTitle': 'Source code',
-  'settings.about.sourceHint': 'TREK is open source, licensed AGPL-3.0',
+  'settings.about.sourceHint': 'YOUYA is open source, licensed AGPL-3.0',
   'settings.about.supporters.badge': 'Monthly Supporters',
-  'settings.about.supporters.title': 'Travel companions for TREK',
+  'settings.about.supporters.title': 'Travel companions for YOUYA',
   'settings.about.supporters.subtitle':
-    "While you're planning your next route, these folks are helping plan TREK's future. Their monthly contribution goes straight into development and real hours spent — so TREK stays Open Source.",
+    "While you're planning your next route, these folks are helping plan YOUYA's future. Their monthly contribution goes straight into development and real hours spent — so YOUYA stays Open Source.",
   'settings.about.supporters.since': 'supporter since {date}',
   'settings.about.supporters.tierEmpty': 'Be the first',
   'settings.about.supporter.tier.noReturnTicket': 'No Return Ticket',
@@ -316,7 +316,7 @@ const settings: TranslationStrings = {
   'settings.about.supporter.tier.budgetTraveller': 'Budget Traveller',
   'settings.about.supporter.tier.hostelBunkmate': 'Hostel Bunkmate',
   'settings.about.description':
-    'TREK is a self-hosted travel planner that helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place, on your own server.',
+    'YOUYA is a self-hosted travel planner that helps you organize your trips from the first idea to the last memory. Day planning, budget, packing lists, photos and much more — all in one place, on your own server.',
   'settings.about.madeWith': 'Made with',
   'settings.about.madeBy': 'by Maurice and a growing open-source community.',
   'settings.username': 'Username',
@@ -432,7 +432,7 @@ const settings: TranslationStrings = {
   'settings.airtrail.allowInsecureTlsHint': 'Enable only for a trusted instance on your own network.',
   'settings.airtrail.writeBack': 'Write changes back to AirTrail',
   'settings.airtrail.writeBackHint':
-    'Off by default: AirTrail is the source of truth and TREK only reads from it. Turn on to push edits made in TREK back to AirTrail.',
+    'Off by default: AirTrail is the source of truth and YOUYA only reads from it. Turn on to push edits made in YOUYA back to AirTrail.',
   'settings.airtrail.connected': 'Connected',
   'settings.airtrail.notConnected': 'Not connected',
   'settings.airtrail.toast.saved': 'AirTrail connection saved',
@@ -550,7 +550,7 @@ const settings: TranslationStrings = {
   'settings.startPageDashboard': 'Dashboard',
   'settings.startPageActiveTrip': 'Active trip',
   'settings.startPageHint':
-    'TREK opens straight in the trip running today, or the next one coming up. That is the same trip the dashboard features.',
+    'YOUYA opens straight in the trip running today, or the next one coming up. That is the same trip the dashboard features.',
   'settings.startTripTab': 'Start tab',
   'settings.startTripTabHint':
     'The tab the trip opens on. If it belongs to an addon you switched off, the plan view opens instead.',

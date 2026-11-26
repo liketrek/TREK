@@ -1,12 +1,12 @@
 # Invite Links
 
-Invite new users to register on your TREK instance, even when open registration is disabled. Invite links work by embedding a short-lived token in the registration URL.
+Invite new users to register on your YOUYA instance, even when open registration is disabled. Invite links work by embedding a short-lived token in the registration URL.
 
 ![Invite Links](assets/UsersAndInvites.png)
 
 ## What invite links do
 
-An invite link lets a person register a new TREK account without requiring the site to have open registration enabled. Visiting `/register?invite=<token>` pre-validates the token and switches the page to the Register form. The token's use count is incremented on successful registration, and the link stops working once the use limit is reached.
+An invite link lets a person register a new YOUYA account without requiring the site to have open registration enabled. Visiting `/register?invite=<token>` pre-validates the token and switches the page to the Register form. The token's use count is incremented on successful registration, and the link stops working once the use limit is reached.
 
 > Invite links here are for **registering new accounts**. To let people who *already* have an account join a specific trip, use the trip invite link in the **Sharing** area of the trip's **Trip settings** (see [Trip-Members-and-Sharing](Trip-Members-and-Sharing)).
 

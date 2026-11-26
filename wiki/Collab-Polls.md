@@ -63,7 +63,7 @@ Members with `collab_edit` can click the lock on an open poll to close it at onc
 
 ## Deleting a poll
 
-Members with `collab_edit` can delete a poll with the bin on its card. On the desktop it goes at once, without asking; on the phone TREK asks *Delete poll?* first. Either way it is gone for every member.
+Members with `collab_edit` can delete a poll with the bin on its card. On the desktop it goes at once, without asking; on the phone YOUYA asks *Delete poll?* first. Either way it is gone for every member.
 
 ## Active and closed sections
 

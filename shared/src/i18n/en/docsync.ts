@@ -13,17 +13,17 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': 'New folder name',
   'docsync.syncNow': 'Sync now',
   'docsync.unlink': 'Disconnect',
-  'docsync.confirmUnlink': 'Documents stay in TREK and at the store. Only the pairing between them goes.',
+  'docsync.confirmUnlink': 'Documents stay in YOUYA and at the store. Only the pairing between them goes.',
   'docsync.syncEnabled': 'Sync automatically',
   'docsync.deletePolicy': 'When a document is deleted',
   'docsync.deleteUnlink': 'Keep both copies',
   'docsync.deleteTrash': 'Move to recycle bin',
   'docsync.conflictPolicy': 'When both sides changed',
   'docsync.onConflict.manual': 'Ask me',
-  'docsync.onConflict.trek_wins': 'Keep the TREK copy',
+  'docsync.onConflict.trek_wins': 'Keep the YOUYA copy',
   'docsync.onConflict.provider_wins': "Keep the store's copy",
   'docsync.webhookHint':
-    'Paste this URL into your provider so changes arrive immediately. Without it, TREK checks on a timer.',
+    'Paste this URL into your provider so changes arrive immediately. Without it, YOUYA checks on a timer.',
 
   // Connection form fields. The keys mirror the `label` column in
   // document_provider_fields, which stores a key suffix rather than text.
@@ -46,7 +46,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudLogin': 'Your Nextcloud login name, not your email address.',
   'docsync.hintNextcloudAppPassword': 'Settings, Security, Create new app password. Never your account password.',
   'docsync.hintOpenCloudToken': 'Created under app tokens in OpenCloud.',
-  'docsync.hintBasePath': 'Where TREK looks for trip folders. Defaults to /TREK.',
+  'docsync.hintBasePath': 'Where YOUYA looks for trip folders. Defaults to /TREK.',
   'docsync.hintSynologyUrl': 'Include the port, for example https://nas.example.com:5001',
   'docsync.hintSynologyUser': 'Best a dedicated DSM account with access to just this shared folder.',
   'docsync.hintSynologyOtp': 'Only needed once, if the account uses two-factor authentication.',
@@ -66,14 +66,14 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': 'Too large',
   'docsync.state.error': 'Error',
   'docsync.state.remote_missing': 'Missing at the provider',
-  'docsync.state.local_deleted': 'Deleted in TREK',
+  'docsync.state.local_deleted': 'Deleted in YOUYA',
   'docsync.state.scope_drift': 'Moved out of the folder',
 
   'docsync.conflict.resolve': 'Resolve {count}',
   'docsync.conflict.resolve.one': 'Resolve {count}',
 
   'docsync.conflict.title': 'Both copies changed',
-  'docsync.conflict.keepTrek': 'Keep the TREK version',
+  'docsync.conflict.keepTrek': 'Keep the YOUYA version',
   'docsync.conflict.keepProvider': 'Keep the provider version',
   'docsync.conflict.keepBoth': 'Keep both',
 
@@ -86,7 +86,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': 'This account is not allowed to do that.',
   'docsync.error.not_found': 'Not found on the provider.',
   'docsync.error.scope_missing': 'The connected folder no longer exists.',
-  'docsync.error.rate_limited': 'The provider is rate limiting us. TREK will try again later.',
+  'docsync.error.rate_limited': 'The provider is rate limiting us. YOUYA will try again later.',
   'docsync.error.too_large': 'The file is larger than the provider accepts.',
   'docsync.error.unsupported_type': 'The provider does not accept this file type.',
   'docsync.error.quota_exceeded': 'The provider is out of space.',
@@ -107,8 +107,8 @@ const docsync: TranslationStrings = {
 
   'docsync.empty.title': 'Nothing connected yet',
   'docsync.empty.hintOwner':
-    'Pick a store on the left. TREK keeps its own copy of everything, so nothing is lost if it goes away.',
-  'docsync.empty.hintMember': 'The trip owner sets this up. Documents stay in TREK either way.',
+    'Pick a store on the left. YOUYA keeps its own copy of everything, so nothing is lost if it goes away.',
+  'docsync.empty.hintMember': 'The trip owner sets this up. Documents stay in YOUYA either way.',
 
   // How each product files things. Shown before anyone connects, because it is
   // what the next screen will ask for.
@@ -119,7 +119,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': 'Files in a folder on the NAS',
 
   // ── The flow bar ───────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': 'YOUYA',
   'docsync.flow.toProvider': 'Out to the store',
   'docsync.flow.toTrek': 'In from the store',
   'docsync.flow.documents': 'documents',
@@ -149,17 +149,17 @@ const docsync: TranslationStrings = {
   'docsync.connect.okAs': 'Reached it, signed in as {account}',
   'docsync.connect.insecureHint': 'For an instance on your own network with a self-signed certificate.',
   'docsync.connect.about.paperless':
-    'TREK files this trip under its own tag and never touches the rest of your archive.',
+    'YOUYA files this trip under its own tag and never touches the rest of your archive.',
   'docsync.connect.about.papra':
-    'Pick the organisation this trip belongs to. TREK files it under its own tag inside it.',
+    'Pick the organisation this trip belongs to. YOUYA files it under its own tag inside it.',
   'docsync.connect.about.nextcloud':
     'Use an app password, not your account password: it survives two-factor and you can revoke it on its own.',
-  'docsync.connect.about.opencloud': 'TREK gets its own space for this trip, separate from everything else.',
+  'docsync.connect.about.opencloud': 'YOUYA gets its own space for this trip, separate from everything else.',
   'docsync.connect.about.synologydrive': 'Best a DSM account that only reaches the shared folder this trip should use.',
 
   // ── Picking the container ──────────────────────────────────────────────────
   'docsync.scope.title': 'Where should this trip live in {provider}?',
-  'docsync.scope.intro': 'Only what is in here is synced. Everything else in your store stays out of TREK.',
+  'docsync.scope.intro': 'Only what is in here is synced. Everything else in your store stays out of YOUYA.',
   'docsync.scope.createTitle': 'Make a new one',
   'docsync.scope.createAction': 'Create',
   'docsync.scope.pickTitle': 'Or use one you already have',
@@ -169,7 +169,7 @@ const docsync: TranslationStrings = {
   // ── Things a person has to decide ──────────────────────────────────────────
   'docsync.issues.title': 'Needs a look',
   'docsync.issues.conflict': 'Changed in both places. Pick which one to keep.',
-  'docsync.issues.remote_missing': 'Gone from the store. The TREK copy is still here.',
+  'docsync.issues.remote_missing': 'Gone from the store. The YOUYA copy is still here.',
   'docsync.issues.rejected_type': 'This file type is not allowed here.',
   'docsync.issues.too_large': 'Bigger than the limit.',
   'docsync.issues.error': 'The transfer did not go through.',
@@ -179,11 +179,11 @@ const docsync: TranslationStrings = {
     'Paused: an administrator has switched this provider off. Syncing resumes once it is back on.',
   'docsync.binding.reconnect': 'Reconnect',
   'docsync.connection.title': 'Connection',
-  'docsync.connection.hint': 'The address and login TREK uses for this store.',
+  'docsync.connection.hint': 'The address and login YOUYA uses for this store.',
   'docsync.connection.edit': 'Edit connection',
   'docsync.connection.remove': 'Remove connection',
   'docsync.connection.confirmRemove':
-    'TREK forgets the address and login for this store, and every sync of this trip through it stops. Documents stay in TREK and at the store.',
+    'YOUYA forgets the address and login for this store, and every sync of this trip through it stops. Documents stay in YOUYA and at the store.',
 };
 
 export default docsync;

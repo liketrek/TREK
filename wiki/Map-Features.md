@@ -4,7 +4,7 @@ The map in the middle of the Plan tab shows your places, the route of the select
 
 ## Map renderer
 
-TREK uses **Leaflet** by default. The renderer is picked in Settings → Map under **Map provider**: **Leaflet** for raster tiles, **MapLibre GL** for OpenFreeMap vector tiles (no token required), or **Mapbox GL** for vector tiles with 3D buildings and terrain, which additionally needs a Mapbox access token. Mapbox GL carries the tag **Experimental** in the settings. If Mapbox GL is selected but no access token is present, TREK falls back to Leaflet automatically so the map is never blank.
+YOUYA uses **Leaflet** by default. The renderer is picked in Settings → Map under **Map provider**: **Leaflet** for raster tiles, **MapLibre GL** for OpenFreeMap vector tiles (no token required), or **Mapbox GL** for vector tiles with 3D buildings and terrain, which additionally needs a Mapbox access token. Mapbox GL carries the tag **Experimental** in the settings. If Mapbox GL is selected but no access token is present, YOUYA falls back to Leaflet automatically so the map is never blank.
 
 The scopes required for Mapbox GL are:
 - STYLES:TILES
@@ -21,7 +21,7 @@ On the desktop, a lock button sits on top of the satellite switcher in the botto
 
 ## Satellite view
 
-A round button in the bottom-left corner of the map flips the base layer between the normal map tiles and **satellite** imagery (ESRI World Imagery, no API key needed, usable up to zoom 19). The icon always shows the layer it switches to. The button is on all three renderers: Leaflet swaps its tile layer for the imagery, while MapLibre GL and Mapbox GL put the same imagery on as a raster layer of their own beneath everything TREK draws, so the route, the pins and the tracks stay on top of it. Your choice is stored on your account (`map_base_layer`), the same setting whichever renderer you use, so it carries over to every trip and survives a reload.
+A round button in the bottom-left corner of the map flips the base layer between the normal map tiles and **satellite** imagery (ESRI World Imagery, no API key needed, usable up to zoom 19). The icon always shows the layer it switches to. The button is on all three renderers: Leaflet swaps its tile layer for the imagery, while MapLibre GL and Mapbox GL put the same imagery on as a raster layer of their own beneath everything YOUYA draws, so the route, the pins and the tracks stay on top of it. Your choice is stored on your account (`map_base_layer`), the same setting whichever renderer you use, so it carries over to every trip and survives a reload.
 
 ## Recorded route
 
@@ -35,7 +35,7 @@ The map on the **Tours** tab has its own layer pill. Besides **Map** and **Satel
 
 Each place is a round marker:
 
-- **Photo marker:** the place's photo fills the circle, your own uploaded picture first, otherwise the photo TREK found for it.
+- **Photo marker:** the place's photo fills the circle, your own uploaded picture first, otherwise the photo YOUYA found for it.
 - **Icon marker:** without a photo, the category's icon in the category's colour.
 - **Selected place:** the active place has a larger marker.
 - **Order badge:** while a day is open, a small badge at the bottom right shows the stop's position in that day's plan, and a place that comes up twice in the day carries both numbers. Without an open day the badge shows the place's rating instead, where it has one.
@@ -61,7 +61,7 @@ Markers that [plugins](Places-and-Search#categories-from-plugins) put on the map
 
 A day's route is drawn as a solid blue line, a bright core over a darker casing in the look Apple Maps uses, through that day's stops in the order you arranged them. It is not on automatically: switch it on with **Route** in the route bar of the selected day (see [Day Plans and Notes](Day-Plans-and-Notes#the-route-bar)), or in the day sheet on a phone. The choice is remembered per trip in your browser, and the phone's map turns it on by default the first time you open a trip you have not decided on.
 
-A straight line is drawn immediately, then upgraded to real road geometry from the router, or from a plugin route profile, each leg routed in the travel mode that leg carries: driving, walking or cycling. With the TREK services the router is their [Valhalla](TREK-Places-API#routing), and OSRM draws only a day it cannot answer; without them it is a public OSRM router. See [Road-Trip](Road-Trip#routing-engines). If routing fails, that leg stays a straight line between the two stops.
+A straight line is drawn immediately, then upgraded to real road geometry from the router, or from a plugin route profile, each leg routed in the travel mode that leg carries: driving, walking or cycling. With the YOUYA services the router is their [Valhalla](TREK-Places-API#routing), and OSRM draws only a day it cannot answer; without them it is a public OSRM router. See [Road-Trip](Road-Trip#routing-engines). If routing fails, that leg stays a straight line between the two stops.
 
 A leg you walk is drawn as a dotted line in the same colour, without the casing, so the drive stands apart from the stretches on foot.
 
@@ -89,7 +89,7 @@ Clicking a line on the map selects that track and opens its details, which helps
 
 ### Exporting a trip as GPX
 
-**Export** in the head band of the days column opens one dialog with every way a trip leaves TREK: the plan as a PDF under **Document**, the bookings under **Calendar**, and under **Maps & GPS** the trip as a `.gpx` file for offline maps such as Organic Maps, for a handheld GPS, or for any other tool that reads the format. On a phone the same downloads sit in the trip's **Export** sheet, under "More".
+**Export** in the head band of the days column opens one dialog with every way a trip leaves YOUYA: the plan as a PDF under **Document**, the bookings under **Calendar**, and under **Maps & GPS** the trip as a `.gpx` file for offline maps such as Organic Maps, for a handheld GPS, or for any other tool that reads the format. On a phone the same downloads sit in the trip's **Export** sheet, under "More".
 
 Three scopes:
 
@@ -109,7 +109,7 @@ Travel times are not drawn on the map; they sit in the day plan. Switch a day's 
 
 Each leg carries its own mode, so a day routed by car can still have one leg you walk. If you may edit the day, clicking a connector (*Change travel mode*) opens the mode menu for that leg alone, with **Public transit** on a trip with dates. See [Route Optimization](Route-Optimization#route-calculation).
 
-Car, foot and bicycle times come from the same router as the route line (the Valhalla of the TREK services, OSRM for a day it cannot answer or without them), so they follow real roads, footpaths and cycle routes instead of straight-line estimates. A plugin route profile is answered by the plugin's own route provider instead, which is what lets it fold in things like charging stops; those legs can add a short note next to the distance. When routing is unavailable the leg falls back to a straight line and shows no time.
+Car, foot and bicycle times come from the same router as the route line (the Valhalla of the YOUYA services, OSRM for a day it cannot answer or without them), so they follow real roads, footpaths and cycle routes instead of straight-line estimates. A plugin route profile is answered by the plugin's own route provider instead, which is what lets it fold in things like charging stops; those legs can add a short note next to the distance. When routing is unavailable the leg falls back to a straight line and shows no time.
 
 ## Reservation and transport overlay
 
@@ -145,9 +145,9 @@ With **Explore places on the map** switched on (Settings > General > Travel & ma
 
 ## Plugin map markers
 
-Installed plugins can add their own markers to the trip map, for example to show bookings on the map (#587). A plugin implements the `mapMarkerProvider` hook and returns marker specs (`id`, `lat`, `lng`, and optional `label`, `popupText`, `url`, `icon`, `tone`); TREK range-checks the coordinates, length-caps the text, allows only http, https and mailto links, and draws them itself. Markers are additive and fail-safe: a plugin never runs code on the map canvas, and one that errors or is slow simply contributes nothing.
+Installed plugins can add their own markers to the trip map, for example to show bookings on the map (#587). A plugin implements the `mapMarkerProvider` hook and returns marker specs (`id`, `lat`, `lng`, and optional `label`, `popupText`, `url`, `icon`, `tone`); YOUYA range-checks the coordinates, length-caps the text, allows only http, https and mailto links, and draws them itself. Markers are additive and fail-safe: a plugin never runs code on the map canvas, and one that errors or is slow simply contributes nothing.
 
-Plugins can also draw bounded vector overlays (a computed route, a reachable-range corridor, a zone) through the `mapLayerProvider` hook: polylines, polygons and metric circles, styled with the same tone palette. TREK clamps every styling value, enforces per-plugin vertex budgets, and always draws its own day route on top. Both hooks work on the Leaflet and the Mapbox or MapLibre GL renderer, on desktop and mobile.
+Plugins can also draw bounded vector overlays (a computed route, a reachable-range corridor, a zone) through the `mapLayerProvider` hook: polylines, polygons and metric circles, styled with the same tone palette. YOUYA clamps every styling value, enforces per-plugin vertex budgets, and always draws its own day route on top. Both hooks work on the Leaflet and the Mapbox or MapLibre GL renderer, on desktop and mobile.
 
 > **Plugins:** requires the `hook:map-marker-provider` permission (markers) or `hook:map-layer-provider` (overlays). See [Plugin-Development](Plugin-Development) for the hook contracts.
 

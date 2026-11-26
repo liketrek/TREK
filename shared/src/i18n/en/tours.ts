@@ -12,8 +12,8 @@ const tours: TranslationStrings = {
   'tours.addToDay': 'Add to day',
   'tours.badge.wanderer': 'wanderer',
   'tours.badge.gpx': 'GPX import',
-  'tours.badge.planned': 'planned in TREK',
-  'tours.badge.trek': 'TREK',
+  'tours.badge.planned': 'planned in YOUYA',
+  'tours.badge.trek': 'YOUYA',
   'tours.badgeShort.gpx': 'GPX',
   'tours.badgeShort.wanderer': 'wanderer',
   'tours.caution.badge': 'Use with caution',
@@ -40,7 +40,7 @@ const tours: TranslationStrings = {
   'tours.alreadyOnDay': 'This tour is already on that day.',
   'tours.conversion.title': 'Editable version',
   'tours.conversion.intro':
-    'An import is a recorded track. Plan an editable version: TREK takes control points from it, routes them anew and shows how close that comes. Nothing changes until you choose.',
+    'An import is a recorded track. Plan an editable version: YOUYA takes control points from it, routes them anew and shows how close that comes. Nothing changes until you choose.',
   'tours.conversion.replace': 'Replace the import',
   'tours.conversion.replaceHint':
     'Plans this tour over in place: its days and notes stay, and the recorded track is kept so you can go back to it.',
@@ -126,7 +126,7 @@ const tours: TranslationStrings = {
   'tours.planner.safetyInfoLabel': 'About safety',
   'tours.planner.addPoint': 'Add point',
   'tours.planner.addPointActive': 'Click the map',
-  'tours.planner.emptyHint': 'Turn on Add point and click the map. From two points on, TREK works out the route.',
+  'tours.planner.emptyHint': 'Turn on Add point and click the map. From two points on, YOUYA works out the route.',
   'tours.planner.walkingEstimated': 'Estimated walking time',
   'tours.planner.walkingEstimatedShort': 'Est. walking time',
   'tours.planner.walkingEstimatedInfoLabel': 'How the walking time is estimated',
@@ -240,7 +240,7 @@ const tours: TranslationStrings = {
     'The change date wanderer gave at the import. A hint, not proof of a version.',
   'tours.provenance.localState': 'Here',
   'tours.provenance.plannedOver': 'Planned over, recorded track kept',
-  'tours.provenance.editedLocally': 'Edited in TREK',
+  'tours.provenance.editedLocally': 'Edited in YOUYA',
   'tours.provenance.asImported': 'As imported',
   'tours.provenance.openSource': 'Open in wanderer',
   'tours.provenance.check': 'Check source',
@@ -314,7 +314,7 @@ const tours: TranslationStrings = {
   'tours.walkImport.menu': 'Import walk from Google Maps',
   'tours.walkImport.title': 'Walk from a Google Maps link',
   'tours.walkImport.intro':
-    'Share a walking route in Google Maps and paste its link here. TREK reads the stops and plans the way on foot between them itself.',
+    'Share a walking route in Google Maps and paste its link here. YOUYA reads the stops and plans the way on foot between them itself.',
   'tours.walkImport.urlLabel': 'Link to the walking route',
   'tours.walkImport.urlHint': 'A maps.app.goo.gl short link, or the address of the route on google.com/maps.',
   'tours.walkImport.read': 'Read the link',
@@ -324,14 +324,14 @@ const tours: TranslationStrings = {
   'tours.walkImport.source': 'From Google Maps',
   'tours.walkImport.openSource': 'Open in Google Maps',
   'tours.walkImport.recalculated':
-    'TREK plans the way between the stops again; the line drawn in Google Maps is not taken over.',
+    'YOUYA plans the way between the stops again; the line drawn in Google Maps is not taken over.',
   'tours.walkImport.noPosition': 'No position in the link',
   'tours.walkImport.unresolved': '{count} stops have no position in the link and are left out.',
   'tours.walkImport.unresolved.one': '{count} stop has no position in the link and is left out.',
   'tours.walkImport.tooFewPositions': 'A walk needs at least two stops with a position.',
   'tours.walkImport.replacesDraft': 'Loading the walk replaces the unsaved changes in the planner.',
   'tours.walkImport.defaultName': 'Walk from Google Maps',
-  'tours.walkImport.draftNotice': 'From a Google Maps walking route. TREK planned the way between the stops itself.',
+  'tours.walkImport.draftNotice': 'From a Google Maps walking route. YOUYA planned the way between the stops itself.',
   'tours.walkImport.offline': 'Reading a link needs a connection.',
   'tours.walkImport.failed': 'The link could not be read just now. Try again in a moment.',
   'tours.walkImport.refusal.not_google_maps':
@@ -372,7 +372,7 @@ const tours: TranslationStrings = {
   'tours.poi.fromRoute': '{distance} from the route',
   'tours.poi.along': 'at {distance}',
   'tours.poi.source.osm': 'From OpenStreetMap',
-  'tours.poi.source.trek': "From TREK's places index",
+  'tours.poi.source.trek': "From YOUYA's places index",
   'tours.poi.hoursHint': 'As the source has them; check before you go.',
   'tours.poi.website': 'Website',
   'tours.poi.slot.label': 'Where it goes',
@@ -503,7 +503,7 @@ const tours: TranslationStrings = {
   'tours.ski.summary.build': 'Map data as of {build}',
   'tours.ski.summary.saved': 'Shown as saved. Move a point or change an option to plan it again.',
   'tours.ski.chooseTechnique': 'Choose the technique, or Unknown.',
-  'tours.ski.infoLabel': 'What TREK does with ski tours and tracks',
+  'tours.ski.infoLabel': 'What YOUYA does with ski tours and tracks',
   'tours.ski.info':
     'A planned tour follows runs, lifts and trails from OpenStreetMap where the piste data reaches, and runs straight between its points where it does not. An imported track is kept as recorded. Heights come from the piste data, the terrain or the file. Nothing here, the gradient colours in 3D included, says anything about snow, avalanches or whether runs, lifts and trails are open.',
   'tours.ski.time': 'Ski time',
@@ -910,7 +910,7 @@ const tours: TranslationStrings = {
   'tours.planner.routeLeg': 'Route the next leg again',
   'tours.planner.freeLegBadge': 'Drawn by hand, not routed',
   'tours.planner.freeLegInfo':
-    'TREK joins these two points with a straight line. No router planned or checked this leg.',
+    'YOUYA joins these two points with a straight line. No router planned or checked this leg.',
   'tours.map.seamarks': 'Seamarks',
   'tours.map.seamarksDown': 'Seamarks are not loading. The map and your route still work.',
   'tours.map.pistes': 'Pistes, cross-country trails and lifts',
@@ -966,9 +966,9 @@ const tours: TranslationStrings = {
   'tours.import.previewConfirm': 'Import {count} tours',
   'tours.import.previewConfirm.one': 'Import {count} tour',
   'tours.conversion.introPaddle':
-    'An import is a recorded track. Plan an editable paddle tour: TREK takes control points from it, joins them with straight lines as a paddle tour is drawn, and shows how close that comes. Nothing changes until you choose.',
+    'An import is a recorded track. Plan an editable paddle tour: YOUYA takes control points from it, joins them with straight lines as a paddle tour is drawn, and shows how close that comes. Nothing changes until you choose.',
   'tours.conversion.introSki':
-    'An import is a recorded track. Plan an editable ski and winter tour: TREK takes control points from it, joins them with straight lines as a ski and winter tour is drawn, and shows how close that comes. Nothing changes until you choose.',
+    'An import is a recorded track. Plan an editable ski and winter tour: YOUYA takes control points from it, joins them with straight lines as a ski and winter tour is drawn, and shows how close that comes. Nothing changes until you choose.',
   'tours.conversion.closePaddle':
     'The suggestion follows the track closely. Its points are joined by straight lines, so it is not the same line.',
   'tours.planner.moreActions': 'More actions',
@@ -1000,7 +1000,7 @@ const tours: TranslationStrings = {
   'tours.paddle.lockBypassed': 'Carried round, the portage counts',
   'tours.paddle.time.title': 'Time estimate',
   'tours.paddle.time.assumptionInfo':
-    'TREK starts with 4 km/h on the water, 2 km/h carrying and 10 minutes to get out and back in at each portage. These are starting values to adjust, not norms and not measurements. Lock times are only what you enter.',
+    'YOUYA starts with 4 km/h on the water, 2 km/h carrying and 10 minutes to get out and back in at each portage. These are starting values to adjust, not norms and not measurements. Lock times are only what you enter.',
   'tours.paddle.time.water': 'On the water',
   'tours.paddle.time.carry': 'Carrying',
   'tours.paddle.time.carrySpeed': 'Carrying speed',
@@ -1079,7 +1079,7 @@ const tours: TranslationStrings = {
   'tours.paddle.obstacles.partial':
     'Obstacle data covers only part of the route (as of {date}). Check the rest yourself.',
   'tours.paddle.obstacles.none': 'No obstacle data for this area. Check weirs, locks and portages here yourself.',
-  'tours.paddle.obstacles.offline': 'Without a connection TREK loads no obstacle data. Check the water yourself.',
+  'tours.paddle.obstacles.offline': 'Without a connection YOUYA loads no obstacle data. Check the water yourself.',
   'tours.paddle.obstacles.error': 'The obstacle data could not be loaded. Check the water yourself.',
   'tours.paddle.obstacle.kind.weir': 'Weir',
   'tours.paddle.obstacle.kind.dam': 'Dam',
@@ -1094,7 +1094,7 @@ const tours: TranslationStrings = {
   'tours.paddle.obstacle.kind.portage': 'Portage',
   'tours.paddle.obstacle.kind.access': 'Access rule',
   'tours.paddle.obstacles.truncated':
-    'TREK shows only part of the objects here; the area holds more. Check the water yourself.',
+    'YOUYA shows only part of the objects here; the area holds more. Check the water yourself.',
   'tours.paddle.obstacles.dateUnknown': 'an unknown date',
   'tours.paddle.obstacleCard.onRoute': 'On the route at',
   'tours.paddle.obstacleCard.near': 'Near the route',
@@ -1178,7 +1178,7 @@ const tours: TranslationStrings = {
   'tours.paddle.safety.title': 'Safety on the water',
   'tours.paddle.safety.short': 'Paddling has risks. Check water, rules and weather yourself.',
   'tours.paddle.safety.text':
-    'Paddling carries risks. Maps, route suggestions and notes can be incomplete or out of date. Before the tour, check the current local conditions, the rules for using the water and the weather. Take suitable safety measures. TREK supports your planning and does not replace your own check and responsible decision.',
+    'Paddling carries risks. Maps, route suggestions and notes can be incomplete or out of date. Before the tour, check the current local conditions, the rules for using the water and the weather. Take suitable safety measures. YOUYA supports your planning and does not replace your own check and responsible decision.',
   'tours.planner.shapingPoint': 'Shaping point',
   'tours.planner.shapingHint': 'Steers the route without being a stop. Drag it to where the route should run.',
   'tours.planner.makeStop': 'Make it a stop',
@@ -1230,17 +1230,18 @@ const tours: TranslationStrings = {
   'tours.paddle.routeAllOnWater': 'Plan the legs drawn by hand on the water',
   'tours.paddle.auto': 'Found',
   'tours.paddle.autoHint':
-    'TREK set this point at a portage or lock it found on the way. Move or change it and it is yours.',
+    'YOUYA set this point at a portage or lock it found on the way. Move or change it and it is yours.',
   'tours.paddle.note.rapids': 'Whitewater {grade}',
   'tours.paddle.note.pass': 'Boat chute',
   'tours.paddle.note.gap': 'Gap in the map data',
   'tours.paddle.note.rapidsHint':
     'The route runs through moving water here. Scout it first and carry around if in doubt.',
   'tours.paddle.note.gapHint': 'The water data has a gap here, bridged with a straight line. Check it on site.',
-  'tours.paddle.failed.not_on_water': 'One end of this leg is not on water TREK knows. Move it onto the river or lake.',
+  'tours.paddle.failed.not_on_water':
+    'One end of this leg is not on water YOUYA knows. Move it onto the river or lake.',
   'tours.paddle.failed.no_region': 'No water data for this area yet. An administrator can add the region.',
   'tours.paddle.failed.building': 'The water data for this region is still being prepared. Try again in a few minutes.',
-  'tours.paddle.failed.no_water_path': 'TREK found no way on the water between these points.',
+  'tours.paddle.failed.no_water_path': 'YOUYA found no way on the water between these points.',
   'tours.paddle.failed.cross_region': 'These points lie in two regions that share no water data.',
   'tours.paddle.failed.busy': 'The route planner is busy. Try again in a moment.',
   'tours.paddle.failed.timeout': 'Planning this leg took too long. Add a point in between and try again.',
@@ -1256,8 +1257,8 @@ const tours: TranslationStrings = {
   'tours.paddle.load.phase.read': 'Reading',
   'tours.paddle.load.phase.build': 'Building the water network',
   'tours.paddle.load.hint': 'Usually one to three minutes. Keep planning, the stretch is planned by itself afterwards.',
-  'tours.paddle.load.reason.tooLarge': 'The region is larger than TREK loads by itself.',
-  'tours.paddle.load.reason.limit': 'TREK has already loaded enough regions by itself today.',
+  'tours.paddle.load.reason.tooLarge': 'The region is larger than YOUYA loads by itself.',
+  'tours.paddle.load.reason.limit': 'YOUYA has already loaded enough regions by itself today.',
   'tours.paddle.load.declined': 'An admin declined the water data for {region}.',
   'tours.paddle.load.failed': 'The water data for {region} could not be loaded.',
   'tours.paddle.load.noWater': 'The water data for {region} has no water here. Put the point on the river or lake.',
@@ -1281,7 +1282,7 @@ const tours: TranslationStrings = {
   'tours.horse.time': 'Riding time',
   'tours.horse.timeInfoLabel': 'Why there is no riding time',
   'tours.horse.timeInfo':
-    "TREK works out no riding time: the pace is the horse's and the rider's. Enter a planned total yourself if you want one.",
+    "YOUYA works out no riding time: the pace is the horse's and the rider's. Enter a planned total yourself if you want one.",
   'tours.horse.routes.title': 'Horse routes',
   'tours.horse.routes.infoLabel': 'About horse routes',
   'tours.horse.routes.info':
@@ -1337,7 +1338,7 @@ const tours: TranslationStrings = {
   'tours.horse.recorded.asRecordedInfo': 'The line stays as the file recorded it. Nothing is routed again.',
   'tours.horse.recorded.noTime': 'No riding time',
   'tours.horse.recorded.noTimeInfo':
-    "TREK works out no riding time for a ride: the pace is the horse's and the rider's.",
+    "YOUYA works out no riding time for a ride: the pace is the horse's and the rider's.",
   'tours.horse.recorded.accessUnchecked': 'Access not checked',
   'tours.horse.recorded.accessUncheckedInfo':
     'The import does not check whether the ways may be ridden. The signs on site count.',
@@ -1491,7 +1492,7 @@ const tours: TranslationStrings = {
   'tours.planner.nothingToSave': 'Nothing to save yet. Change the tour first.',
   'tours.detail.openInTours': 'Open in Tours tab',
   'tours.planner.status.routingGeneric': 'Calculating route…',
-  'tours.planner.emptyHintPlacing': 'Click the map to set points. From two points on, TREK works out the route.',
+  'tours.planner.emptyHintPlacing': 'Click the map to set points. From two points on, YOUYA works out the route.',
   'tours.ski.drawStraight': 'Draw straight',
   'tours.horse.routes.stale': 'The list shows the view you searched. Search again for this one.',
   'tours.horse.dialog.adoptGapHint':

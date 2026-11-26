@@ -1,12 +1,12 @@
 # Addons Overview
 
-Addons are optional features that an admin can enable or disable for the entire TREK instance. When an addon is disabled, its navigation tabs, menu items, and API routes are hidden from all users.
+Addons are optional features that an admin can enable or disable for the entire YOUYA instance. When an addon is disabled, its navigation tabs, menu items, and API routes are hidden from all users.
 
 ![Addon overview](assets/Addons-Overview.png)
 
 ## What addons are
 
-Each addon extends TREK with functionality beyond the core trip-planning features. Addons are managed globally: you cannot enable an addon for one user only. Once enabled, the feature becomes available to all users on the instance.
+Each addon extends YOUYA with functionality beyond the core trip-planning features. Addons are managed globally: you cannot enable an addon for one user only. Once enabled, the feature becomes available to all users on the instance.
 
 ## Addon list
 
@@ -14,7 +14,7 @@ The following addons are registered in the system (defined in `server/src/db/see
 
 | Addon ID | Type | Description |
 |---|---|---|
-| `mcp` | integration | Exposes TREK data and actions through the Model Context Protocol for AI assistant integrations. Off by default. See [MCP-Overview](MCP-Overview). |
+| `mcp` | integration | Exposes YOUYA data and actions through the Model Context Protocol for AI assistant integrations. Off by default. See [MCP-Overview](MCP-Overview). |
 | `packing` | trip | **Lists**: packing lists and to-do tasks for your trips. See [Packing-Lists](Packing-Lists). |
 | `budget` | trip | **Costs**: track and split trip expenses. See [Budget-Tracking](Budget-Tracking). |
 | `documents` | trip | Document and file attachments for trips: itineraries, visa copies and other files. Can be kept in step with a self-hosted document store (Paperless-ngx, Papra, Nextcloud, OpenCloud, Synology). See [Documents-and-Files](Documents-and-Files) and [Document-Sync](Document-Sync). |
@@ -22,7 +22,7 @@ The following addons are registered in the system (defined in `server/src/db/see
 | `atlas` | global | Interactive world map showing countries and regions you have visited, plus a bucket list. See [Atlas](Atlas). |
 | `collab` | trip | Notes, polls, and live chat for trip collaboration. See [Real-Time-Collaboration](Real-Time-Collaboration). |
 | `roadtrip` | trip | **Road trip**: plans a trip as one continuous drive, with stops along the route, driving times and arrival times that update themselves. Off by default. See [Road-Trip](Road-Trip). |
-| `tours` | trip | **Tours**: hikes, city walks, bike, ski, paddle and horse tours with a route, drawn in TREK or imported from GPX, KML or KMZ, as single-day tours or with stages over several days. On by default. See [Tours](Tours). |
+| `tours` | trip | **Tours**: hikes, city walks, bike, ski, paddle and horse tours with a route, drawn in YOUYA or imported from GPX, KML or KMZ, as single-day tours or with stages over several days. On by default. See [Tours](Tours). |
 | `journey` | global | Trip tracking and travel journal: check-ins, photos, and daily stories. See [Journey-Journal](Journey-Journal). |
 | `collections` | global | A personal, server-wide library of saved places in named lists, with idea/want/visited/revisit status, categories, and fusion sharing with per-member roles. See [Collections](Collections). |
 | `airtrail` | integration | Sync flights from your self-hosted AirTrail instance into trips. |

@@ -4,7 +4,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.title': '待处理的预订',
   'mailInbox.pendingCount': '有 {count} 个预订等你处理',
   'mailInbox.empty': '没有待处理的内容',
-  'mailInbox.emptyHint': 'TREK 无法自动添加的预订会显示在这里，并附上每一项可以怎么处理。',
+  'mailInbox.emptyHint': '游芽无法自动添加的预订会显示在这里，并附上每一项可以怎么处理。',
   'mailInbox.untitled': '预订邮件',
   'mailInbox.showMail': '查看邮件',
   'mailInbox.backToList': '返回列表',
@@ -64,10 +64,10 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.renewed': '你的新地址已就绪',
   'mailInbox.settings.saveError': '无法保存',
   'mailInbox.settings.addressHint':
-    '把预订确认邮件转发到此地址，TREK 会把它们添加到正确的旅行中。请像密码一样妥善保管。',
+    '把预订确认邮件转发到此地址，游芽会把它们添加到正确的旅行中。请像密码一样妥善保管。',
   'mailInbox.settings.howTo': '自动转发',
   'mailInbox.settings.howToGmail':
-    'Gmail：设置，转发和 POP/IMAP，添加转发地址。Gmail 会发送一个验证码，它会显示在“待处理的预订”中。然后为预订发件人添加一个过滤器，转发到 TREK。',
+    'Gmail：设置，转发和 POP/IMAP，添加转发地址。Gmail 会发送一个验证码，它会显示在“待处理的预订”中。然后为预订发件人添加一个过滤器，转发到游芽。',
   'mailInbox.settings.howToOutlook':
     'Outlook：设置，邮件，规则，添加一条转发预订邮件的规则。部分工作账户会禁止自动转发，此时请手动转发。',
   'mailInbox.settings.howToManual': '手动：转发任何预订邮件，包括附件。',
@@ -78,7 +78,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiUnavailable':
     '需要 {addon} 插件和由管理员设置的 AI 连接。在此之前，只会读取包含机器可读预订数据的邮件。',
   'mailInbox.settings.autoAdd': '自动添加',
-  'mailInbox.settings.autoAddHint': 'TREK 有把握的预订会直接加入旅行，7 天内可以撤销。关闭后，每个预订都会等你确认。',
+  'mailInbox.settings.autoAddHint': '游芽有把握的预订会直接加入旅行，7 天内可以撤销。关闭后，每个预订都会等你确认。',
   'mailInbox.settings.upload': '上传邮件文件',
   'mailInbox.settings.uploaded': '已收到邮件，正在读取',
   'mailInbox.settings.uploadDuplicate': '这封邮件已经导入过了',

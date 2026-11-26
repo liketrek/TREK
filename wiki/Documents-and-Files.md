@@ -113,7 +113,7 @@ See [Document-Sync](Document-Sync) for setup per store, the delete and conflict 
 
 ## Offline
 
-Notes on files, links, stars and the trash wait in a queue while you are offline and are sent when TREK is back online. Uploading a file needs a connection (*Uploading needs a connection. Try again once TREK is back online.*), and so does removing a link from a file (*Removing this link needs a connection. Try again once TREK is back online.*).
+Notes on files, links, stars and the trash wait in a queue while you are offline and are sent when YOUYA is back online. Uploading a file needs a connection (*Uploading needs a connection. Try again once YOUYA is back online.*), and so does removing a link from a file (*Removing this link needs a connection. Try again once YOUYA is back online.*).
 
 ## Permissions
 

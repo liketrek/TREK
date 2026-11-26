@@ -7,7 +7,7 @@ const help: TranslationStrings = {
   'help.contents': 'Contenido',
   'help.noResults': 'No hay páginas que coincidan.',
   'help.errorTitle': 'No se ha podido cargar esta página',
-  'help.errorBody': 'La ayuda se carga desde la wiki de TREK. Comprueba tu conexión y vuelve a intentarlo.',
+  'help.errorBody': 'La ayuda se carga desde la wiki de YOUYA. Comprueba tu conexión y vuelve a intentarlo.',
 
   // center
   'help.center.button': 'Ayuda para esta pantalla',
@@ -74,14 +74,14 @@ const help: TranslationStrings = {
   'help.guide.create-trip.step.2':
     'Ponle un nombre al viaje. Es el único campo obligatorio; todo lo demás puedes añadirlo después.',
   'help.guide.create-trip.step.3':
-    'Elige una fecha de inicio y una de fin. TREK crea un día por cada fecha para que puedas empezar a planificar tu itinerario. ¿Aún no tienes fechas? Deja las dos vacías e indica el «Número de días».',
+    'Elige una fecha de inicio y una de fin. YOUYA crea un día por cada fecha para que puedas empezar a planificar tu itinerario. ¿Aún no tienes fechas? Deja las dos vacías e indica el «Número de días».',
   'help.guide.create-trip.step.4':
     'Opcional: añade una foto de portada. Sube una tuya, arrástrala o pégala, o busca el destino en Unsplash.',
   'help.guide.create-trip.step.5': 'Haz clic en «Crear nuevo viaje».',
   'help.guide.create-trip.result':
     'El viaje aparece en tu panel. Si es tu próximo viaje, se muestra en la tarjeta de embarque de arriba.',
   'help.guide.create-trip.tip.1':
-    'Puedes cambiar las fechas más adelante. Si ya hay reservas, TREK te pregunta si quieres moverlas junto con los días.',
+    'Puedes cambiar las fechas más adelante. Si ya hay reservas, YOUYA te pregunta si quieres moverlas junto con los días.',
   'help.guide.create-trip.tip.2':
     'Todos los gastos se convierten a la divisa del viaje que elijas aquí. Elige la divisa del destino.',
 
@@ -153,7 +153,7 @@ const help: TranslationStrings = {
     'Consulta en tu aplicación de calendario los días y las reservas de todos los viajes activos, siempre sincronizados.',
   'help.guide.calendar-feed.step.1': 'Haz clic en el icono del calendario, junto al selector de vista.',
   'help.guide.calendar-feed.step.2':
-    'Haz clic en «Activar la suscripción al calendario». TREK crea un enlace privado al feed.',
+    'Haz clic en «Activar la suscripción al calendario». YOUYA crea un enlace privado al feed.',
   'help.guide.calendar-feed.step.3':
     'Haz clic en «Añadir a Google Calendar» o en «Añadir a Calendario de Apple / Outlook». Para cualquier otra aplicación de calendario, abre «O copia un enlace manualmente» y copia el enlace desde ahí.',
   'help.guide.calendar-feed.result':
@@ -348,7 +348,7 @@ const help: TranslationStrings = {
   // invite
   'help.guide.invite.title': 'Planificar junto a otra persona',
   'help.guide.invite.goal':
-    'Une tu plan con el de otro usuario de TREK para que los dos veáis vuestros días libres en una sola cuadrícula.',
+    'Une tu plan con el de otro usuario de YOUYA para que los dos veáis vuestros días libres en una sola cuadrícula.',
   'help.guide.invite.step.1': 'Haz clic en el icono de la persona en la tarjeta «Personas».',
   'help.guide.invite.step.2': 'Elige al usuario y haz clic en «Enviar invitación».',
   'help.guide.invite.step.3':
@@ -376,7 +376,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ─────────────────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atlas',
   'help.ctx.atlas.summary':
-    'Atlas muestra en un mapa del mundo los lugares por los que has viajado: cada país al que te ha llevado un viaje aparece coloreado, y puedes añadir a mano los países que visitaste antes de usar TREK. Acerca el mapa para ver las regiones, guarda una lista de deseos con los lugares que aún quieres conocer y consulta tus cifras en el panel translúcido de abajo.',
+    'Atlas muestra en un mapa del mundo los lugares por los que has viajado: cada país al que te ha llevado un viaje aparece coloreado, y puedes añadir a mano los países que visitaste antes de usar YOUYA. Acerca el mapa para ver las regiones, guarda una lista de deseos con los lugares que aún quieres conocer y consulta tus cifras en el panel translúcido de abajo.',
   'help.ctx.atlas.bullet.1':
     'El mapa: cada país visitado tiene su propio color fijo, los países planeados tienen un contorno discontinuo, los de la lista de deseos tienen rayas diagonales y el resto aparece en gris. Pasa el cursor por un país para ver sus viajes, sus lugares y tu primera y última visita.',
   'help.ctx.atlas.bullet.2':
@@ -392,7 +392,7 @@ const help: TranslationStrings = {
   // mark-country
   'help.guide.mark-country.title': 'Marcar un país como visitado',
   'help.guide.mark-country.goal':
-    'Añade un país que visitaste antes de usar TREK para que aparezca en el mapa y en tu recuento.',
+    'Añade un país que visitaste antes de usar YOUYA para que aparezca en el mapa y en tu recuento.',
   'help.guide.mark-country.step.1': 'Escribe el país en el cuadro de búsqueda de la parte superior del mapa.',
   'help.guide.mark-country.step.2':
     'Elígelo en la lista. El mapa se desplaza hasta el país y se abre una ventana con su información.',
@@ -461,7 +461,7 @@ const help: TranslationStrings = {
   'help.guide.search-place.result':
     'Se marcan la región y también el país. Si el paquete de mapas no tiene datos de regiones para ese país, se marca directamente el país.',
   'help.guide.search-place.tip.1':
-    'Los lugares salen de la misma búsqueda que en el resto de TREK, así que usan el proveedor que haya configurado tu administrador.',
+    'Los lugares salen de la misma búsqueda que en el resto de YOUYA, así que usan el proveedor que haya configurado tu administrador.',
   // bucket-country
   'help.guide.bucket-country.title': 'Añadir un país a la lista de deseos',
   'help.guide.bucket-country.goal':
@@ -499,7 +499,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     'Las cifras se actualizan solas a medida que planificas tus viajes. Aquí no tienes que mantener nada.',
   'help.guide.stats.tip.1':
-    'Las ciudades se leen del texto de la dirección, no se consultan en ningún sitio. TREK omite el país, el código postal y la región y toma el nombre que va antes, así que «10178 Berlin» cuenta como Berlín. Una dirección corta como «Osteria Francescana, Italy» no añade ninguna ciudad.',
+    'Las ciudades se leen del texto de la dirección, no se consultan en ningún sitio. YOUYA omite el país, el código postal y la región y toma el nombre que va antes, así que «10178 Berlin» cuenta como Berlín. Una dirección corta como «Osteria Francescana, Italy» no añade ninguna ciudad.',
   'help.guide.stats.tip.2':
     'Los países que marcas a mano cuentan en «Países» y en los continentes, pero no suman viajes, lugares ni días.',
   // dawarich-countries
@@ -509,7 +509,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     'Con el complemento de Dawarich conectado, aparece en la parte inferior del mapa, a la izquierda de las estadísticas, un panel de Dawarich con dos casillas. Haz clic en «Países».',
   'help.guide.dawarich-countries.step.2':
-    'El cuadro se abre en su pestaña «Países». Haz clic en «Buscar países»: TREK lee los países y ciudades que cubren tus grabaciones de los últimos 12 meses, mes a mes, así que puede tardar un poco. Cada país que aún no está en tu atlas aparece con su bandera, el número de ciudades y el nombre de la primera ciudad. Todos los países aparecen marcados de forma predeterminada. Haz clic en una fila para excluirla.',
+    'El cuadro se abre en su pestaña «Países». Haz clic en «Buscar países»: YOUYA lee los países y ciudades que cubren tus grabaciones de los últimos 12 meses, mes a mes, así que puede tardar un poco. Cada país que aún no está en tu atlas aparece con su bandera, el número de ciudades y el nombre de la primera ciudad. Todos los países aparecen marcados de forma predeterminada. Haz clic en una fila para excluirla.',
   'help.guide.dawarich-countries.step.3':
     'Confirma con el botón de abajo a la derecha, que indica «Add 5 countries» cuando hay cinco filas marcadas. El cuadro indica cuántos se han añadido. Al cerrarlo, el mapa ya está actualizado.',
   'help.guide.dawarich-countries.result':
@@ -517,7 +517,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Los países que el Atlas ya muestra como visitados, ya sea a mano, por un viaje o por una comprobación anterior, se omiten, así que tus propias marcas nunca cambian. Si confirmas aquí un país que habías quitado del Atlas, se vuelve a añadir.',
   'help.guide.dawarich-countries.tip.2':
-    'Si TREK no reconoce el nombre de un país, lo muestra debajo de las filas en lugar de descartarlo. «Volver a comprobar» vuelve a consultar a Dawarich. La nota bajo la lista indica que se han revisado los últimos 12 meses. Este periodo no se puede cambiar.',
+    'Si YOUYA no reconoce el nombre de un país, lo muestra debajo de las filas en lugar de descartarlo. «Volver a comprobar» vuelve a consultar a Dawarich. La nota bajo la lista indica que se han revisado los últimos 12 meses. Este periodo no se puede cambiar.',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': 'Marcar deseos cumplidos a partir de tus grabaciones',
   'help.guide.dawarich-wishes.goal':
@@ -525,7 +525,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.step.1':
     'En el panel de Dawarich de la parte inferior del mapa, a la izquierda de las estadísticas, haz clic en «Lista de deseos».',
   'help.guide.dawarich-wishes.step.2':
-    'El cuadro se abre en su pestaña «Lista de deseos». Haz clic en «Comprobar la lista de deseos»: TREK revisa tus grabaciones para cada entrada que tenga coordenadas. Un deseo alcanzado aparece con lo cerca que llegaste, cuánto tiempo estuviste y el día, y aparece marcado de forma predeterminada. Uno que ya habías marcado indica «Ya tachado». Debajo de la lista, una nota cuenta las entradas sin coordenadas y muestra también la regla: «A wish counts as reached within 250 m and after 20 minutes on the spot».',
+    'El cuadro se abre en su pestaña «Lista de deseos». Haz clic en «Comprobar la lista de deseos»: YOUYA revisa tus grabaciones para cada entrada que tenga coordenadas. Un deseo alcanzado aparece con lo cerca que llegaste, cuánto tiempo estuviste y el día, y aparece marcado de forma predeterminada. Uno que ya habías marcado indica «Ya tachado». Debajo de la lista, una nota cuenta las entradas sin coordenadas y muestra también la regla: «A wish counts as reached within 250 m and after 20 minutes on the spot».',
   'help.guide.dawarich-wishes.step.3':
     'Confirma con el botón de abajo a la derecha, que pone «Tachar 2» cuando hay dos filas marcadas. Después cierra el diálogo y abre la pestaña «Lista de deseos» del panel de al lado.',
   'help.guide.dawarich-wishes.result':
@@ -533,7 +533,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     'Pasar cerca no basta: tienes que estar junto al lugar y quedarte allí un tiempo. Si hay varias estancias que cumplen la condición, se toma la más larga. Un deseo sin coordenadas no se puede comprobar, así que añade los lugares con la búsqueda de «Añadir lugar» y no solo por el nombre.',
   'help.guide.dawarich-wishes.tip.2':
-    'Cada comprobación revisa hasta 50 entradas, empezando por las que aún no están marcadas. Si hay más, TREK te lo indica. Un deseo que ya estaba marcado conserva su propia fecha.',
+    'Cada comprobación revisa hasta 50 entradas, empezando por las que aún no están marcadas. Si hay más, YOUYA te lo indica. Un deseo que ya estaba marcado conserva su propia fecha.',
 
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Colecciones',
@@ -590,7 +590,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     'Los lugares se copian a la lista con su nombre, dirección, coordenadas, descripción y categoría. El viaje no cambia.',
   'help.guide.import-from-trip.tip.1':
-    'TREK omite automáticamente los duplicados por nombre o coordenadas, así que puedes importar dos veces sin problema.',
+    'YOUYA omite automáticamente los duplicados por nombre o coordenadas, así que puedes importar dos veces sin problema.',
   'help.guide.import-from-trip.tip.2':
     'En la lista de lugares de un viaje, el modo de selección ofrece en su lugar «Guardar en colección» para un conjunto de lugares elegidos a mano.',
   // place-status
@@ -666,7 +666,7 @@ const help: TranslationStrings = {
     'Los lectores de una lista compartida también pueden hacerlo. Se copian los lugares de la lista y la lista no cambia.',
   // share-list
   'help.guide.share-list.title': 'Compartir una lista con alguien',
-  'help.guide.share-list.goal': 'Planifica una lista en directo con otras personas de este TREK.',
+  'help.guide.share-list.goal': 'Planifica una lista en directo con otras personas de este YOUYA.',
   'help.guide.share-list.step.1': 'Haz clic en Compartir, en la cabecera de tu lista.',
   'help.guide.share-list.step.2': 'Elige al usuario y un rol: «Lector», Editor o «Administrador».',
   'help.guide.share-list.step.3':
@@ -680,24 +680,24 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Exportar una lista a un archivo',
   'help.guide.export-list.goal':
-    'Pasa una lista a alguien de otro servidor TREK, ábrela en una aplicación de mapas o mírala en Google My Maps.',
+    'Pasa una lista a alguien de otro servidor YOUYA, ábrela en una aplicación de mapas o mírala en Google My Maps.',
   'help.guide.export-list.step.1': 'Haz clic en Exportar, en la cabecera de la lista.',
   'help.guide.export-list.step.2':
-    'Elige «Lista de TREK» para usar la lista en otro TREK, con etiquetas y estados, GPX para OsmAnd, Organic Maps, un Garmin y otras aplicaciones que leen puntos de ruta, o KML para Google My Maps, para ver los lugares en Google Maps.',
+    'Elige «Lista de YOUYA» para usar la lista en otro YOUYA, con etiquetas y estados, GPX para OsmAnd, Organic Maps, un Garmin y otras aplicaciones que leen puntos de ruta, o KML para Google My Maps, para ver los lugares en Google Maps.',
   'help.guide.export-list.result':
     'El archivo se descarga. Cualquier miembro de una lista compartida puede exportarla.',
   'help.guide.export-list.tip.1':
-    'Un lugar sin coordenadas no puede ser un punto de ruta GPX ni un pin KML; se omite y TREK te indica cuántos se han omitido.',
+    'Un lugar sin coordenadas no puede ser un punto de ruta GPX ni un pin KML; se omite y YOUYA te indica cuántos se han omitido.',
   'help.guide.export-list.tip.2':
-    'Las valoraciones, los miembros y las fotos subidas no se exportan, y es a propósito: pertenecen a este TREK, no a la lista.',
+    'Las valoraciones, los miembros y las fotos subidas no se exportan, y es a propósito: pertenecen a este YOUYA, no a la lista.',
   // import-file
   'help.guide.import-file.title': 'Importar una lista desde un archivo',
   'help.guide.import-file.goal':
-    'Importa un archivo de lista de TREK o un archivo GPX, como lista nueva o en una lista existente.',
+    'Importa un archivo de lista de YOUYA o un archivo GPX, como lista nueva o en una lista existente.',
   'help.guide.import-file.step.1':
     'Haz clic en el botón de importar con la flecha hacia arriba, junto a «Nueva lista», en la columna de listas.',
   'help.guide.import-file.step.2':
-    'Elige el archivo. Antes de importar nada, TREK muestra lo que contiene: el nombre, cuántos lugares y cuántas etiquetas.',
+    'Elige el archivo. Antes de importar nada, YOUYA muestra lo que contiene: el nombre, cuántos lugares y cuántas etiquetas.',
   'help.guide.import-file.step.3':
     'Deja «Nueva lista» y cambia el nombre si quieres, y haz clic en Importar. O elige «Añadir a una lista» para poner los lugares en una lista que puedas editar, y haz clic en «Añadir a la lista».',
   'help.guide.import-file.result':
@@ -705,7 +705,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     'De un GPX, cada punto de ruta con nombre se convierte en un lugar; los tracks son líneas y se omiten, y la vista previa indica cuántos puntos eran.',
   'help.guide.import-file.tip.2':
-    'Si el archivo no es ni una lista de TREK ni un GPX, se rechaza y TREK te dice por qué. Si no se puede leer un lugar concreto, solo se omite ese lugar, no el archivo entero.',
+    'Si el archivo no es ni una lista de YOUYA ni un GPX, se rechaza y YOUYA te dice por qué. Si no se puede leer un lugar concreto, solo se omite ese lugar, no el archivo entero.',
   // edit-list
   'help.guide.edit-list.title': 'Editar o eliminar una lista',
   'help.guide.edit-list.goal':
@@ -926,7 +926,7 @@ const help: TranslationStrings = {
   'help.guide.link-trip.tip.2': 'Las entradas de un día solo cuentan una vez, aunque varios viajes incluyan ese día.',
   // share-public
   'help.guide.share-public.title': 'Compartir la travesía públicamente',
-  'help.guide.share-public.goal': 'Comparte un enlace de solo lectura con personas que no tienen cuenta en TREK.',
+  'help.guide.share-public.goal': 'Comparte un enlace de solo lectura con personas que no tienen cuenta en YOUYA.',
   'help.guide.share-public.step.1':
     'Abre «Ajustes de la travesía» con ⋯ en la cabecera y baja hasta «Compartir público».',
   'help.guide.share-public.step.2': 'Haz clic en «Crear enlace para compartir».',
@@ -947,7 +947,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.result':
     'La travesía aparece en su lista y sus entradas llevan su nombre. Para quitar a un colaborador, haz clic en la × que tiene al lado.',
   'help.guide.contributors.tip.1':
-    'Los colaboradores son personas de este TREK. Para todos los demás está el enlace público.',
+    'Los colaboradores son personas de este YOUYA. Para todos los demás está el enlace público.',
   // studio
   'help.guide.studio.title': 'Maquetar la travesía como un libro de fotos',
   'help.guide.studio.goal': 'Convierte el diario en páginas imprimibles.',
@@ -990,7 +990,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ────────────────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Studio', // same-as-en
   'help.ctx.journey-studio.summary':
-    'TREK Studio maqueta una travesía como un libro de fotos que puedes imprimir. Se abre encima del diario: la barra lateral y sus paneles a la izquierda, la doble página en la que trabajas en el centro y sus propiedades a la derecha. Diseño automático crea un primer borrador a partir de tus entradas, un tema da al libro sus colores y tipografías, y el asistente puede diseñar páginas contigo. Después puedes mover, recortar y cambiar el estilo de todo, y deshacer cada paso.',
+    'YOUYA Studio maqueta una travesía como un libro de fotos que puedes imprimir. Se abre encima del diario: la barra lateral y sus paneles a la izquierda, la doble página en la que trabajas en el centro y sus propiedades a la derecha. Diseño automático crea un primer borrador a partir de tus entradas, un tema da al libro sus colores y tipografías, y el asistente puede diseñar páginas contigo. Después puedes mover, recortar y cambiar el estilo de todo, y deshacer cada paso.',
   'help.ctx.journey-studio.bullet.1':
     'Barra superior: a la izquierda, la portada y el nombre de la travesía. A la derecha, quién más está en el libro y si está guardado, el formato de página, deshacer, rehacer y pegar, Diseño automático, el asistente, la ayuda, Exportar y el botón que cierra Studio.',
   'help.ctx.journey-studio.bullet.2':
@@ -1002,7 +1002,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     'El libro se maqueta como uno impreso: portada, una primera página suelta frente al interior en blanco de la portada, las dobles páginas, una última página suelta y la contraportada. Los números de página empiezan a contar desde la primera página y se imprimen tal como se ven.',
   'help.ctx.journey-studio.bullet.6':
-    'Varias personas pueden diseñar a la vez: cada una ve los punteros de las demás con su nombre. Si guardas una versión que otra persona ha cambiado, TREK muestra un conflicto en lugar de sobrescribir su trabajo.',
+    'Varias personas pueden diseñar a la vez: cada una ve los punteros de las demás con su nombre. Si guardas una versión que otra persona ha cambiado, YOUYA muestra un conflicto en lugar de sobrescribir su trabajo.',
   'help.ctx.journey-studio.bullet.7':
     'Tema: un único aspecto para todo el libro, con su papel, su tinta y tres acentos, sus tipografías y sus motivos. Los elementos vinculados al tema lo siguen cuando lo cambias.',
   'help.ctx.journey-studio.bullet.8':
@@ -1083,7 +1083,7 @@ const help: TranslationStrings = {
     'Todos los colores y tipografías vinculados del libro cambian a la vez, y aplicar el tema es un solo paso de deshacer.',
   'help.guide.studio-content.tip.1': 'El cuadro de búsqueda de la parte superior de «Contenido» filtra las dos listas.',
   'help.guide.studio-content.tip.2':
-    'Si sueltas un archivo de tu escritorio en la mesa de trabajo, TREK lo sube y lo coloca en un solo paso.',
+    'Si sueltas un archivo de tu escritorio en la mesa de trabajo, YOUYA lo sube y lo coloca en un solo paso.',
   // studio-elements
   'help.guide.studio-elements.title': 'Añadir textos, formas, iconos y pegatinas',
   'help.guide.studio-elements.goal': 'Decora una doble página con algo más que fotos e historias.',
@@ -1197,12 +1197,12 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.result':
     'La doble página se importa con sus marcos y estilos de texto. Suelta en los marcos las fotos de la nueva travesía.',
   'help.guide.studio-spread-file.tip.1':
-    'Si un archivo no es un diseño de doble página, TREK lo rechaza e indica el motivo.',
+    'Si un archivo no es un diseño de doble página, YOUYA lo rechaza e indica el motivo.',
 
   // ── Screen: settings (all tabs) ───────────────────────────────────────────────────────
   'help.ctx.settings.title': 'Ajustes',
   'help.ctx.settings.summary':
-    'Tus ajustes personales, con una pestaña por tema en la barra lateral izquierda. La mayoría de los interruptores se aplican en cuanto los cambias. Un formulario con botón Guardar solo se guarda al hacer clic en Guardar. Nada de lo que cambies aquí afecta a TREK para los demás.',
+    'Tus ajustes personales, con una pestaña por tema en la barra lateral izquierda. La mayoría de los interruptores se aplican en cuanto los cambias. Un formulario con botón Guardar solo se guarda al hacer clic en Guardar. Nada de lo que cambies aquí afecta a YOUYA para los demás.',
   'help.ctx.settings.bullet.1':
     'Barra lateral izquierda: «Pantalla», «Apariencia», «Mapa», «Notificaciones», «Integraciones», «Sin conexión» y «Cuenta». «Plugins» aparece cuando hay algún plugin activo. «Acerca de» aparece salvo que el administrador del servidor la haya ocultado. La versión se muestra abajo del todo.',
   'help.ctx.settings.bullet.2':
@@ -1213,7 +1213,7 @@ const help: TranslationStrings = {
     '«Cuenta» incluye tu perfil, tu contraseña, la autenticación de dos factores, las passkeys y la opción de eliminar tu cuenta.',
   'help.ctx.settings-display.title': 'Pantalla',
   'help.ctx.settings-display.summary':
-    'Con qué se abre TREK, qué idioma y unidades usa, y cómo se comportan el mapa del viaje y las reservas. Todos los cambios se aplican al momento.',
+    'Con qué se abre YOUYA, qué idioma y unidades usa, y cómo se comportan el mapa del viaje y las reservas. Todos los cambios se aplican al momento.',
   'help.ctx.settings-display.bullet.1':
     '«Inicio»: «Página de inicio» abre el «Panel» o el «Viaje activo»; con «Viaje activo», «Pestaña de inicio» elige la pestaña con la que se abre ese viaje.',
   'help.ctx.settings-display.bullet.2':
@@ -1222,7 +1222,7 @@ const help: TranslationStrings = {
     '«Viaje y mapa»: «Abrir lugares en», «Fecha primero en los títulos de día», «Etiquetas de rutas de reservas», «Mostrar siempre las rutas de reserva», «Marcadores compactos para lugares sin planificar», «Explorar lugares en el mapa», «Difuminar códigos de reserva» y «Optimizar la ruta desde el alojamiento».',
   'help.ctx.settings-appearance.title': 'Apariencia',
   'help.ctx.settings-appearance.summary':
-    'El aspecto de TREK en esta cuenta: modo claro u oscuro, color de acento, transparencias y animaciones, tamaño del texto y los widgets que muestra el panel. Todo se aplica al momento en todos los dispositivos en los que inicies sesión.',
+    'El aspecto de YOUYA en esta cuenta: modo claro u oscuro, color de acento, transparencias y animaciones, tamaño del texto y los widgets que muestra el panel. Todo se aplica al momento en todos los dispositivos en los que inicies sesión.',
   'help.ctx.settings-appearance.bullet.1':
     '«Tema»: «Modo de color» («Claro», «Oscuro» o «Automático»), el esquema de color y, con «Personalizado», tu propio color de acento para el modo claro y el oscuro, con comprobación de contraste.',
   'help.ctx.settings-appearance.bullet.2':
@@ -1242,7 +1242,7 @@ const help: TranslationStrings = {
     'Solo para Mapbox GL: «Edificios 3D y terreno», «Modo de alta calidad» y «Ocultar puntos de interés». Encima de «Guardar mapa» se muestra una vista previa en directo. «Guardar mapa» guarda tu elección.',
   'help.ctx.settings-notifications.title': 'Notificaciones',
   'help.ctx.settings-notifications.summary':
-    'Cómo te contacta TREK fuera de la aplicación. Arriba, una tabla con una fila por evento y una columna por canal decide qué se envía por dónde. Debajo están las tarjetas del webhook, ntfy, push en este dispositivo y los canales de plugins.',
+    'Cómo te contacta YOUYA fuera de la aplicación. Arriba, una tabla con una fila por evento y una columna por canal decide qué se envía por dónde. Debajo están las tarjetas del webhook, ntfy, push en este dispositivo y los canales de plugins.',
   'help.ctx.settings-notifications.bullet.1':
     '«Notificaciones»: activa o desactiva cada evento por canal. Un candado indica que el administrador lo ha desactivado para todos.',
   'help.ctx.settings-notifications.bullet.2':
@@ -1253,7 +1253,7 @@ const help: TranslationStrings = {
     '«Notificaciones push en este dispositivo»: «Activar en este dispositivo» solo afecta a este navegador; «Enviar prueba» envía una notificación de prueba. Un canal de plugin muestra Configurar hasta que se configura.',
   'help.ctx.settings-integrations.title': 'Integraciones',
   'help.ctx.settings-integrations.summary':
-    'Todo lo que se conecta a TREK desde fuera: tu propia dirección para los correos de reserva, bibliotecas de fotos para el diario, AirTrail para los vuelos, Dawarich para saber por dónde has ido realmente, wanderer para rutas, claves de API de solo lectura para otros programas y MCP para clientes de IA. La conexión con otro servicio solo aparece cuando el administrador la ha activado.',
+    'Todo lo que se conecta a YOUYA desde fuera: tu propia dirección para los correos de reserva, bibliotecas de fotos para el diario, AirTrail para los vuelos, Dawarich para saber por dónde has ido realmente, wanderer para rutas, claves de API de solo lectura para otros programas y MCP para clientes de IA. La conexión con otro servicio solo aparece cuando el administrador la ha activado.',
   'help.ctx.settings-integrations.bullet.1':
     '«Correos de reserva», arriba cuando el administrador tiene activada la importación de correos: tu dirección de reenvío con sus interruptores. Debajo, Immich y Synology Photos, AirTrail, Dawarich y wanderer: cada tarjeta tiene su dirección y su clave, «Guardar» y «Probar conexión», y una insignia «Conectado» o «No conectado».',
   'help.ctx.settings-integrations.bullet.2':
@@ -1264,7 +1264,7 @@ const help: TranslationStrings = {
     '«Tokens de API»: la forma antigua de conectarse a MCP, marcada como «Obsoleto»; usa en su lugar «Clientes OAuth 2.1».',
   'help.ctx.settings-offline.title': 'Sin conexión',
   'help.ctx.settings-offline.summary':
-    'Qué guarda TREK en este dispositivo para que puedas abrir un viaje sin conexión, y qué pasa cuando un cambio hecho sin conexión choca con otro hecho en otro sitio.',
+    'Qué guarda YOUYA en este dispositivo para que puedas abrir un viaje sin conexión, y qué pasa cuando un cambio hecho sin conexión choca con otro hecho en otro sitio.',
   'help.ctx.settings-offline.bullet.1':
     '«Modo offline»: «Forzar el modo offline» primero lo descarga todo, después funciona solo con la caché y deja tus cambios en cola.',
   'help.ctx.settings-offline.bullet.2':
@@ -1275,20 +1275,20 @@ const help: TranslationStrings = {
     '«Conflictos de sincronización» solo aparece cuando dos cambios entran en conflicto, con «La mía», «Conservar la del servidor» y «Cuando ocurre un conflicto». «Caché offline» cuenta los viajes y los cambios pendientes o fallidos, con «Reintentar», Descartar y «Vaciar caché».',
   'help.ctx.settings-account.title': 'Cuenta',
   'help.ctx.settings-account.summary':
-    'Tu cuenta en este TREK y cómo inicias sesión: foto de perfil, nombre de usuario y correo, contraseña, autenticación en dos factores y passkeys. «Eliminar cuenta» está al pie de la tarjeta «Cuenta».',
+    'Tu cuenta en este YOUYA y cómo inicias sesión: foto de perfil, nombre de usuario y correo, contraseña, autenticación en dos factores y passkeys. «Eliminar cuenta» está al pie de la tarjeta «Cuenta».',
   'help.ctx.settings-account.bullet.1':
     'Cuenta: haz clic en la cámara de la imagen para subir una y en la papelera roja para quitarla. «Nombre de usuario» y «Correo» se guardan con «Guardar perfil».',
   'help.ctx.settings-account.bullet.2':
-    '«Cambiar contraseña»: la contraseña actual, la nueva dos veces, con los requisitos marcándose a medida que escribes, y luego «Actualizar contraseña». Si en este TREK solo se inicia sesión mediante SSO, esta tarjeta no aparece.',
+    '«Cambiar contraseña»: la contraseña actual, la nueva dos veces, con los requisitos marcándose a medida que escribes, y luego «Actualizar contraseña». Si en este YOUYA solo se inicia sesión mediante SSO, esta tarjeta no aparece.',
   'help.ctx.settings-account.bullet.3':
     'Autenticación de dos factores (2FA) con una app de autenticación y códigos de respaldo; llaves de acceso para iniciar sesión sin contraseña.',
   'help.ctx.settings-account.bullet.4':
     '«Eliminar cuenta» está a la izquierda del pie de la tarjeta «Cuenta» y pide confirmación. El único administrador no puede eliminarse a sí mismo.',
   // language-region
   'help.guide.language-region.title': 'Definir idioma, unidades y moneda',
-  'help.guide.language-region.goal': 'Usa TREK en tu idioma y con los formatos de tu región.',
+  'help.guide.language-region.goal': 'Usa YOUYA en tu idioma y con los formatos de tu región.',
   'help.guide.language-region.step.1':
-    'En «Idioma y región», elige un «Idioma» de su lista; escribe para encontrar uno rápidamente. TREK cambia al momento, en todos los dispositivos en los que inicies sesión.',
+    'En «Idioma y región», elige un «Idioma» de su lista; escribe para encontrar uno rápidamente. YOUYA cambia al momento, en todos los dispositivos en los que inicies sesión.',
   'help.guide.language-region.step.2':
     '«Nombres de lugares» define el idioma que usan la búsqueda de lugares, las sugerencias y las direcciones; «Igual que la app» sigue el idioma de la interfaz.',
   'help.guide.language-region.result':
@@ -1311,18 +1311,18 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.2':
     'Un administrador puede definir los valores predeterminados para todos; lo que cambies aquí se aplica solo a ti.',
   // startup
-  'help.guide.startup.title': 'Elegir con qué se abre TREK',
-  'help.guide.startup.goal': 'Abre TREK en la página que más usas, en lugar de en el panel cada vez.',
+  'help.guide.startup.title': 'Elegir con qué se abre YOUYA',
+  'help.guide.startup.goal': 'Abre YOUYA en la página que más usas, en lugar de en el panel cada vez.',
   'help.guide.startup.step.1': 'Arriba de «Pantalla», en «Inicio», pon «Página de inicio» en «Panel» o «Viaje activo».',
   'help.guide.startup.step.2':
     'Con «Viaje activo» aparece «Pestaña de inicio»: elige la pestaña con la que se abre ese viaje.',
-  'help.guide.startup.result': 'La próxima vez que abras TREK, se abrirá directamente esa página.',
+  'help.guide.startup.result': 'La próxima vez que abras YOUYA, se abrirá directamente esa página.',
   'help.guide.startup.tip.1':
     '«Viaje activo» es el viaje en curso hoy o el próximo que tengas. Es el mismo viaje que el panel muestra arriba.',
   // theme-scheme
   'help.guide.theme-scheme.title': 'Definir el tema y el color de acento',
   'help.guide.theme-scheme.goal':
-    'Pon TREK en modo claro, oscuro o según tu dispositivo, con el color que más te guste.',
+    'Pon YOUYA en modo claro, oscuro o según tu dispositivo, con el color que más te guste.',
   'help.guide.theme-scheme.step.1':
     'En «Tema», pon «Modo de color» en «Claro», «Oscuro» o «Automático». «Automático» sigue la configuración de tu dispositivo.',
   'help.guide.theme-scheme.step.2':
@@ -1345,7 +1345,7 @@ const help: TranslationStrings = {
   'help.guide.readability.result':
     'El cambio se aplica a toda la aplicación a la vez, incluidos los paneles del mapa y el diario.',
   'help.guide.readability.tip.1':
-    'Algunas partes de TREK ya usan menos animaciones si tu dispositivo tiene activada la reducción de movimiento. «Reducir movimiento» reduce las animaciones en el resto.',
+    'Algunas partes de YOUYA ya usan menos animaciones si tu dispositivo tiene activada la reducción de movimiento. «Reducir movimiento» reduce las animaciones en el resto.',
   'help.guide.readability.tip.2':
     'El tamaño del texto se aplica por niveles tipográficos, así que no se corta nada; si un tamaño ya no cabe, el texto pasa a la línea siguiente.',
   // dashboard-widgets
@@ -1445,17 +1445,17 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.tip.1':
     'Las teselas del mapa son lo que más espacio ocupa; desactívalas para guardar solo los datos del viaje y los documentos.',
   'help.guide.offline-prepare.tip.2':
-    'Instala TREK como aplicación desde el navegador para que el inicio sin conexión sea más fluido.',
+    'Instala YOUYA como aplicación desde el navegador para que el inicio sin conexión sea más fluido.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': 'Decidir qué versión se conserva en un conflicto de sincronización',
   'help.guide.offline-conflicts.goal':
-    'Elige cómo resuelve TREK un conflicto entre un cambio hecho sin conexión y otro hecho en otro sitio.',
+    'Elige cómo resuelve YOUYA un conflicto entre un cambio hecho sin conexión y otro hecho en otro sitio.',
   'help.guide.offline-conflicts.step.1':
     'Si un cambio que hiciste sin conexión entra en conflicto con otro más reciente, aparece «Conflictos de sincronización» cerca de la parte superior de «Sin conexión». Para cada cambio, haz clic en «La mía» o en «Conservar la del servidor».',
   'help.guide.offline-conflicts.step.2':
     'En la misma tarjeta, «Cuando ocurre un conflicto» decide qué pasará la próxima vez: «Preguntarme cada vez», «Conservar siempre mi versión» o «Conservar siempre la versión del servidor».',
   'help.guide.offline-conflicts.result':
-    'Con «Preguntarme cada vez», el conflicto se queda en «Conflictos de sincronización» hasta que elijas. Con las otras dos opciones, TREK lo resuelve automáticamente.',
+    'Con «Preguntarme cada vez», el conflicto se queda en «Conflictos de sincronización» hasta que elijas. Con las otras dos opciones, YOUYA lo resuelve automáticamente.',
   'help.guide.offline-conflicts.tip.1':
     '«Vaciar caché» solo borra la copia de este dispositivo. En el servidor no cambia nada.',
   // profile
@@ -1477,7 +1477,7 @@ const help: TranslationStrings = {
   'help.guide.password.result':
     'La nueva contraseña se aplica al momento. Se cierra la sesión en todos los demás dispositivos, se eliminan tus tokens de API de MCP y los clientes OAuth tienen que volver a iniciar sesión; este dispositivo mantiene la sesión.',
   'help.guide.password.tip.1':
-    'Si en este TREK solo se inicia sesión mediante SSO, no hay contraseña de TREK ni tarjeta «Cambiar contraseña».',
+    'Si en este YOUYA solo se inicia sesión mediante SSO, no hay contraseña de YOUYA ni tarjeta «Cambiar contraseña».',
   // mfa
   'help.guide.mfa.title': 'Activar la autenticación en dos pasos',
   'help.guide.mfa.goal': 'Protege la cuenta con un código de una app de autenticación.',
@@ -1511,15 +1511,15 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     'Tu cuenta se elimina, junto con los viajes, lugares y archivos que te pertenecen. Los viajes de otras personas se conservan.',
   'help.guide.delete-account.tip.1':
-    'Si eres el único administrador, TREK muestra «No es posible eliminarla»: primero haz administrador a otro usuario.',
+    'Si eres el único administrador, YOUYA muestra «No es posible eliminarla»: primero haz administrador a otro usuario.',
   'help.guide.delete-account.tip.2': 'No se puede deshacer. Exporta lo que quieras conservar antes de confirmar.',
 
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Administrador',
   'help.ctx.admin.summary':
-    'Ajustes de toda la instancia de TREK, para todos los usuarios: quién puede iniciar sesión y cómo, qué está activado, dónde se guardan los archivos, cómo contacta el servidor con las personas y cómo se hacen las copias de seguridad. Solo los administradores ven esta página. La barra lateral agrupa las pestañas en «Usuarios», «Configuración» y «Mantenimiento», y cada pestaña es una pantalla independiente.',
+    'Ajustes de toda la instancia de YOUYA, para todos los usuarios: quién puede iniciar sesión y cómo, qué está activado, dónde se guardan los archivos, cómo contacta el servidor con las personas y cómo se hacen las copias de seguridad. Solo los administradores ven esta página. La barra lateral agrupa las pestañas en «Usuarios», «Configuración» y «Mantenimiento», y cada pestaña es una pantalla independiente.',
   'help.ctx.admin.bullet.1':
-    'La cabecera muestra a la derecha el número de usuarios, viajes, lugares y archivos. Debajo aparece el banner «Actualización disponible» cuando hay una versión más reciente de TREK.',
+    'La cabecera muestra a la derecha el número de usuarios, viajes, lugares y archivos. Debajo aparece el banner «Actualización disponible» cuando hay una versión más reciente de YOUYA.',
   'help.ctx.admin.bullet.2':
     '«Usuarios» y «Predeterminados»: cuentas, enlaces de invitación y permisos, y los ajustes y el mapa con los que empieza una cuenta nueva.',
   'help.ctx.admin.bullet.3':
@@ -1530,7 +1530,7 @@ const help: TranslationStrings = {
     '«Almacenamiento», «Respaldo», «GitHub» y «Auditoría»: dónde se guardan los archivos subidos, copias manuales y programadas, el historial de versiones y el registro de eventos relevantes para la seguridad.',
   'help.ctx.admin-users.title': 'Usuarios',
   'help.ctx.admin-users.summary':
-    'Todas las cuentas de este TREK, con su rol, su correo y su última actividad, los enlaces de invitación que permiten registrarse en una instancia cerrada, y quién puede hacer qué en los viajes.',
+    'Todas las cuentas de este YOUYA, con su rol, su correo y su última actividad, los enlaces de invitación que permiten registrarse en una instancia cerrada, y quién puede hacer qué en los viajes.',
   'help.ctx.admin-users.bullet.1':
     'La tabla: usuario, correo, rol, fecha de creación y «Última actividad», con «Editar usuario» y «Eliminar usuario» en cada fila. Un punto verde en el avatar indica que la persona está conectada ahora; tu propia fila indica «(Tú)».',
   'help.ctx.admin-users.bullet.2':
@@ -1552,7 +1552,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     '«Plantillas de equipaje»: listas con nombre de categorías y artículos que la lista de equipaje de un viaje puede usar como punto de partida.',
   'help.ctx.admin-config.bullet.2':
-    '«Categorías»: nombre, icono y color de las categorías que se usan en todo TREK, desde el detalle del lugar hasta «Colecciones», cada una editable en un cuadro con vista previa.',
+    '«Categorías»: nombre, icono y color de las categorías que se usan en todo YOUYA, desde el detalle del lugar hasta «Colecciones», cada una editable en un cuadro con vista previa.',
   'help.ctx.admin-config.bullet.3':
     '«Vacaciones escolares»: el catálogo de países y regiones con sus periodos de vacaciones, que todo el mundo puede elegir en «Vacaciones».',
   'help.ctx.admin-settings.title': 'Seguridad y servicios',
@@ -1563,12 +1563,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     '«Inicio de sesión con passkey»: el «Relying Party ID (dominio)» y los «Orígenes permitidos». «Inicio de sesión único (OIDC)»: «Nombre visible», «URL del emisor», una URL de descubrimiento opcional, «ID de cliente» y «Secreto de cliente».',
   'help.ctx.admin-settings.bullet.3':
-    '«Búsqueda de lugares y rutas», en «Servicios»: la API de TREK, marcada como «Fuente recomendada por defecto», con «Cupo de hoy» y «Compartir detalles de lugares», y después «Proveedor de transporte público», «Proveedor de búsqueda de lugares» y «Registro de búsquedas de lugares».',
+    '«Búsqueda de lugares y rutas», en «Servicios»: la API de YOUYA, marcada como «Fuente recomendada por defecto», con «Cupo de hoy» y «Compartir detalles de lugares», y después «Proveedor de transporte público», «Proveedor de búsqueda de lugares» y «Registro de búsquedas de lugares».',
   'help.ctx.admin-settings.bullet.4':
     '«Claves API»: la «Clave API de Google Maps» con «Probar» y «Para qué se usa la clave», la clave de Unsplash y la de Amap, y un solo botón «Guardar» al pie de la tarjeta. «Tipos de archivo permitidos», debajo, limita lo que se puede subir.',
   'help.ctx.admin-addons.title': 'Complementos',
   'help.ctx.admin-addons.summary':
-    'Los módulos de funciones de TREK en tres tarjetas: «Viaje» para las pestañas de un viaje, «Global» para las secciones del menú principal e «Integración» para los servicios externos. Cada complemento tiene un interruptor; si lo desactivas, la entrada del menú, las rutas y la API desaparecen para todos.',
+    'Los módulos de funciones de YOUYA en tres tarjetas: «Viaje» para las pestañas de un viaje, «Global» para las secciones del menú principal e «Integración» para los servicios externos. Cada complemento tiene un interruptor; si lo desactivas, la entrada del menú, las rutas y la API desaparecen para todos.',
   'help.ctx.admin-addons.bullet.1':
     'Una fila por complemento con su interruptor y, en la cabecera de cada tarjeta, cuántos de sus complementos están activados. La marca de información junto a un nombre explica qué hace el complemento.',
   'help.ctx.admin-addons.bullet.2':
@@ -1577,7 +1577,7 @@ const help: TranslationStrings = {
     'Las filas con un engranaje abren un cuadro de configuración, como «Datos de aguas para piragüismo» bajo «Excursiones» y «Configurar la importación de correos» bajo «Importación de correos de reserva». «Estado de vuelos en directo» es una fila de la tarjeta «Viaje».',
   'help.ctx.admin-plugins.title': 'Plugins', // same-as-en
   'help.ctx.admin-plugins.summary':
-    'Plugins de terceros que se ejecutan en su propio proceso junto a TREK, cada uno con los permisos que pidió al instalarse. Puedes instalarlos desde el catálogo, subir un paquete o vincular una carpeta mientras desarrollas un plugin.',
+    'Plugins de terceros que se ejecutan en su propio proceso junto a YOUYA, cada uno con los permisos que pidió al instalarse. Puedes instalarlos desde el catálogo, subir un paquete o vincular una carpeta mientras desarrollas un plugin.',
   'help.ctx.admin-plugins.bullet.1':
     '«Instalado» y «Descubrir», con «Buscar plugins…» y «Filtrar» por tipo, estado y orden. Cada fila muestra la versión, a qué puede acceder el plugin, «Revisado» y «Firmado» o «Sin firmar», un interruptor y un menú ⋯.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1594,7 +1594,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     '«Categorías»: documentos del viaje, fotos de la travesía, portadas, fotos de perfil, imágenes de lugares, las cachés de fotos y las copias de seguridad, cada una asignada a un backend, con «Guardar cambios» al pie.',
   'help.ctx.admin-storage.bullet.4':
-    'Archivos sin referencia: lo que la comprobación nocturna encontró y que ya no usa nada en TREK, con «Comprobar ahora» y un interruptor que elimina esos archivos cuando llevan una semana sin usarse.',
+    'Archivos sin referencia: lo que la comprobación nocturna encontró y que ya no usa nada en YOUYA, con «Comprobar ahora» y un interruptor que elimina esos archivos cuando llevan una semana sin usarse.',
   'help.ctx.admin-notifications.title': 'Notificaciones',
   'help.ctx.admin-notifications.summary':
     'Los canales que la instancia ofrece a sus usuarios y los que recibes tú como administrador. Los usuarios eligen sus propios temas y URL en «Ajustes»; tú decides qué canales existen y configuras el correo.',
@@ -1606,14 +1606,14 @@ const help: TranslationStrings = {
     '«Avisos de administración», a la derecha: «Webhook de admin» y «Ntfy de admin», cada uno con un botón de prueba, y debajo qué canal envía cada evento de administración («Nueva versión disponible», «Fallo de réplica de almacenamiento», «Región de kayak pedida»).',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    'Todos los tokens y sesiones OAuth que tienen los clientes de IA en este TREK, de todos los usuarios. Puedes revocar cualquiera de ellos.',
+    'Todos los tokens y sesiones OAuth que tienen los clientes de IA en este YOUYA, de todos los usuarios. Puedes revocar cualquiera de ellos.',
   'help.ctx.admin-mcp-tokens.bullet.1':
     '«Sesiones OAuth»: el cliente, los ámbitos que se le concedieron, su propietario y la fecha, con una papelera para revocarla.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     '«Tokens de API»: nombre, propietario, «Creado» y «Último uso», con una papelera para eliminarlo.',
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    'Novedades de TREK: el historial de versiones de GitHub y si hay una versión más reciente que la tuya. La actualización en sí se hace fuera de la aplicación, en el servidor.',
+    'Novedades de YOUYA: el historial de versiones de GitHub y si hay una versión más reciente que la tuya. La actualización en sí se hace fuera de la aplicación, en el servidor.',
   'help.ctx.admin-github.bullet.1':
     '«Historial de versiones» muestra las versiones en una cronología con sus notas. La más reciente lleva la etiqueta «Última», las versiones preliminares indican «Prelanzamiento» y GitHub abre la página de versiones.',
   'help.ctx.admin-github.bullet.2':
@@ -1687,7 +1687,7 @@ const help: TranslationStrings = {
     'La papelera de tu propia fila no funciona: no puedes eliminarte a ti mismo. Tiene que hacerlo otro administrador.',
   // permissions
   'help.guide.permissions.title': 'Decidir quién puede hacer qué',
-  'help.guide.permissions.goal': 'Define, para cada acción, qué rol puede realizarla en este TREK.',
+  'help.guide.permissions.goal': 'Define, para cada acción, qué rol puede realizarla en este YOUYA.',
   'help.guide.permissions.step.1':
     'En «Configuración de permisos», busca la acción dentro de su grupo, como «Eliminar viajes» en «Gestión de viajes», y elige quién puede hacerla: «Todos», «Miembros del viaje», «Propietario del viaje» o «Solo administrador». Las filas modificadas se marcan como «personalizado».',
   'help.guide.permissions.step.2':
@@ -1762,11 +1762,11 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     'Cuando «Inicio de sesión único (OIDC)» está configurado, siguen tres filas de SSO: «Inicio de sesión SSO», «SSO Auto-Provisioning», que crea una cuenta la primera vez que alguien inicia sesión por SSO, e «Ir directamente al SSO».',
   'help.guide.auth-methods.step.3':
-    '«Activar inicio de sesión con passkey» ofrece passkeys en la página de inicio de sesión. Activa «Exigir 2FA» para que todas las personas que no tengan 2FA tengan que configurarla en «Ajustes» antes de poder usar TREK.',
+    '«Activar inicio de sesión con passkey» ofrece passkeys en la página de inicio de sesión. Activa «Exigir 2FA» para que todas las personas que no tengan 2FA tengan que configurarla en «Ajustes» antes de poder usar YOUYA.',
   'help.guide.auth-methods.result':
     'La página de inicio de sesión ofrece exactamente los métodos que has dejado activados.',
   'help.guide.auth-methods.tip.1':
-    'TREK no te deja desactivar el último método de inicio de sesión: su interruptor se pone gris y la descripción emergente dice «At least one login method must remain enabled».',
+    'YOUYA no te deja desactivar el último método de inicio de sesión: su interruptor se pone gris y la descripción emergente dice «At least one login method must remain enabled».',
   'help.guide.auth-methods.tip.2':
     'Si en el servidor está definido OIDC_ONLY, los interruptores de contraseña quedan bloqueados y una nota lo indica.',
   'help.guide.auth-methods.tip.3':
@@ -1783,7 +1783,7 @@ const help: TranslationStrings = {
   'help.guide.oidc.result':
     'La página de inicio de sesión muestra el botón de SSO; con «SSO Auto-Provisioning» activado, quien entra por primera vez obtiene una cuenta automáticamente.',
   'help.guide.oidc.tip.1':
-    'La URI de redirección que pide tu proveedor es la dirección de tu TREK seguida de la ruta de callback de OIDC que indica la documentación.',
+    'La URI de redirección que pide tu proveedor es la dirección de tu YOUYA seguida de la ruta de callback de OIDC que indica la documentación.',
   'help.guide.oidc.tip.2':
     'La asignación de claims decide qué grupos de SSO pasan a ser administradores; consulta la página de OIDC en la documentación.',
   // instance-keys
@@ -1791,19 +1791,19 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     'Añade fotos y valoraciones de Google, portadas de Unsplash y búsqueda de Amap para toda la instancia.',
   'help.guide.instance-keys.step.1':
-    'En la pestaña «Servicios», la tarjeta «Búsqueda de lugares y rutas» empieza con la API de TREK, marcada como «Fuente recomendada por defecto». Responde a la búsqueda de lugares, las direcciones y las rutas sin clave, y «Cupo de hoy» muestra lo que queda del día.',
+    'En la pestaña «Servicios», la tarjeta «Búsqueda de lugares y rutas» empieza con la API de YOUYA, marcada como «Fuente recomendada por defecto». Responde a la búsqueda de lugares, las direcciones y las rutas sin clave, y «Cupo de hoy» muestra lo que queda del día.',
   'help.guide.instance-keys.step.2':
     'Para fotos, valoraciones y horarios, pega una «Clave API de Google Maps» en «Claves API» y haz clic en «Probar»; indicará «Conectado» o «No válida». En «Para qué se usa la clave», activa solo lo que quieras que se facture: «Fotos de Lugares», «Autocompletado de Lugares», «Detalles del Lugar», «Enriquecimiento de lugares» y «Buscar solo con Google», además de un «Límite diario de llamadas a Google».',
   'help.guide.instance-keys.step.3':
     'Pega la «Clave de API de Unsplash» para buscar portadas y la «Clave de API de Amap (高德地图)» para buscar lugares en China continental, y haz clic en Guardar, al pie de la tarjeta.',
   'help.guide.instance-keys.result':
-    'Los usuarios tienen las funciones sin necesidad de claves propias. Sin clave de Google, la búsqueda usa la API de lugares de TREK y OpenStreetMap.',
+    'Los usuarios tienen las funciones sin necesidad de claves propias. Sin clave de Google, la búsqueda usa la API de lugares de YOUYA y OpenStreetMap.',
   'help.guide.instance-keys.tip.1':
-    'Si un usuario tiene una clave personal en «Ajustes», TREK usa esa clave en lugar de la de la instancia para ese usuario.',
+    'Si un usuario tiene una clave personal en «Ajustes», YOUYA usa esa clave en lugar de la de la instancia para ese usuario.',
   'help.guide.instance-keys.tip.2':
     'Las claves también pueden proceder de variables de entorno; en ese caso aparecen aquí como de solo lectura.',
   'help.guide.instance-keys.tip.3':
-    '«Límite diario de llamadas a Google» limita lo que TREK puede gastar al día con la clave; la insignia junto al título cuenta las llamadas de hoy. Al alcanzar el límite, las búsquedas usan OpenStreetMap hasta el día siguiente (UTC).',
+    '«Límite diario de llamadas a Google» limita lo que YOUYA puede gastar al día con la clave; la insignia junto al título cuenta las llamadas de hoy. Al alcanzar el límite, las búsquedas usan OpenStreetMap hasta el día siguiente (UTC).',
   // places-transit
   'help.guide.places-transit.title': 'Elegir los proveedores de búsqueda y de transporte público',
   'help.guide.places-transit.goal':
@@ -1811,11 +1811,11 @@ const help: TranslationStrings = {
   'help.guide.places-transit.step.1':
     'En la pestaña «Servicios», en la tarjeta «Búsqueda de lugares y rutas», elige en «Proveedor de transporte público»: «Transitous (gratis)», que no necesita clave y funciona mejor en Europa, o Google, que usa la clave de Google. La elección se guarda al momento.',
   'help.guide.places-transit.step.2':
-    'En «Proveedor de búsqueda de lugares», elige a qué servicio consulta TREK cuando el índice de TREK y OpenStreetMap no encuentran nada: «Automático» (Google si hay clave, y si no Amap), Google Places, Amap (高德地图) u OpenStreetMap.',
+    'En «Proveedor de búsqueda de lugares», elige a qué servicio consulta YOUYA cuando el índice de YOUYA y OpenStreetMap no encuentran nada: «Automático» (Google si hay clave, y si no Amap), Google Places, Amap (高德地图) u OpenStreetMap.',
   'help.guide.places-transit.result':
-    'Todos los cuadros de búsqueda y todas las rutas de transporte público de TREK usan esta opción.',
+    'Todos los cuadros de búsqueda y todas las rutas de transporte público de YOUYA usan esta opción.',
   'help.guide.places-transit.tip.1':
-    'Si eliges una opción sin su clave, aquí aparece un aviso. Entonces la búsqueda de lugares solo usa el índice de TREK y OpenStreetMap, y el transporte público solo usa Transitous.',
+    'Si eliges una opción sin su clave, aquí aparece un aviso. Entonces la búsqueda de lugares solo usa el índice de YOUYA y OpenStreetMap, y el transporte público solo usa Transitous.',
   'help.guide.places-transit.tip.2':
     'Las rutas de transporte público de Google se facturan por petición; las de Transitous, no.',
   // file-types
@@ -1864,7 +1864,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'En «Categorías», asigna cada tipo de archivo subido, como «Documentos del viaje», «Fotos de la travesía» o «Copias de seguridad», a un backend.',
   'help.guide.storage-backends.step.3':
-    'Haz clic en «Guardar cambios» al pie de «Categorías». Si una categoría apunta ahora a otro destino, TREK pregunta si quieres «Mover objetos existentes» o «Solo enrutar las escrituras nuevas».',
+    'Haz clic en «Guardar cambios» al pie de «Categorías». Si una categoría apunta ahora a otro destino, YOUYA pregunta si quieres «Mover objetos existentes» o «Solo enrutar las escrituras nuevas».',
   'help.guide.storage-backends.result':
     'Los archivos nuevos van al backend asignado. Los archivos movidos se sirven desde ahí, y lo que elegiste no mover se queda donde estaba.',
   'help.guide.storage-backends.tip.1':
@@ -1916,7 +1916,7 @@ const help: TranslationStrings = {
     'Al desactivar el complemento MCP, todos los clientes dejan de funcionar a la vez y esta pestaña se oculta, pero no se borra nada: los tokens vuelven a funcionar cuando lo reactivas.',
   // release-history
   'help.guide.release-history.title': 'Comprobar si hay una versión nueva',
-  'help.guide.release-history.goal': 'Comprueba si tu TREK está al día y qué trae la próxima versión.',
+  'help.guide.release-history.goal': 'Comprueba si tu YOUYA está al día y qué trae la próxima versión.',
   'help.guide.release-history.step.1':
     'Cuando hay una versión más reciente, aparece «Actualización disponible» bajo la cabecera de la página, con la versión que usas. «Ver en GitHub» abre la versión, y «Cómo actualizar» muestra los comandos para Docker o la guía de actualización para otras instalaciones.',
   'help.guide.release-history.step.2':
@@ -1977,7 +1977,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     'Activa el interruptor de la fila de Nextcloud. El mensaje indica «Complemento actualizado», y a partir de ese momento los propietarios de los viajes encuentran «Sincronización de documentos» en la pestaña «Archivos» de sus viajes, con Nextcloud en «Conectar un proveedor».',
   'help.guide.document-providers.result':
-    'El almacenamiento está disponible en todos los viajes de este TREK. No se conecta nada hasta que el propietario de un viaje lo conecte.',
+    'El almacenamiento está disponible en todos los viajes de este YOUYA. No se conecta nada hasta que el propietario de un viaje lo conecte.',
   'help.guide.document-providers.tip.1':
     'Aquí solo se decide si se puede ofrecer un almacenamiento. La dirección y las credenciales pertenecen a cada viaje, y las introduce el propietario del viaje en su pestaña «Archivos», nunca en el panel de administración.',
   'help.guide.document-providers.tip.2':
@@ -1986,31 +1986,31 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     'Da a cada persona una dirección de reenvío, para que las confirmaciones de reserva que reenvíen se conviertan en reservas del viaje correcto.',
   'help.guide.mail-import-setup.step.1':
-    'En la pestaña «Complementos», en la tarjeta «Integración», activa «Importación de correos de reserva». Ahora todas las personas de este TREK tienen una dirección de reenvío personal.',
+    'En la pestaña «Complementos», en la tarjeta «Integración», activa «Importación de correos de reserva». Ahora todas las personas de este YOUYA tienen una dirección de reenvío personal.',
   'help.guide.mail-import-setup.step.2':
     'Haz clic en «Configurar la importación de correos», la fila que aparece debajo.',
   'help.guide.mail-import-setup.step.3':
-    'En «Cómo llega el correo», elige «Buzón IMAP» e introduce «Servidor», «Puerto», «Cifrado», «Usuario», «Contraseña» y «Carpeta». Elige «Webhook» si prefieres un servicio de correo que envíe cada mensaje a TREK, o «Solo subida de archivos» para probarlo sin buzón. Después define la «Plantilla de dirección», la dirección de reenvío con un marcador donde va el código de cada persona, y los «Correos con IA por persona y día».',
+    'En «Cómo llega el correo», elige «Buzón IMAP» e introduce «Servidor», «Puerto», «Cifrado», «Usuario», «Contraseña» y «Carpeta». Elige «Webhook» si prefieres un servicio de correo que envíe cada mensaje a YOUYA, o «Solo subida de archivos» para probarlo sin buzón. Después define la «Plantilla de dirección», la dirección de reenvío con un marcador donde va el código de cada persona, y los «Correos con IA por persona y día».',
   'help.guide.mail-import-setup.step.4':
-    'Haz clic en «Guardar» y luego en «Probar conexión»; te dice «Conectado» o qué ha fallado. Debajo, el cuadro muestra cuándo leyó TREK el correo por última vez y los correos de las últimas 24 horas: «Añadidos automáticamente», «En espera» y «Error».',
+    'Haz clic en «Guardar» y luego en «Probar conexión»; te dice «Conectado» o qué ha fallado. Debajo, el cuadro muestra cuándo leyó YOUYA el correo por última vez y los correos de las últimas 24 horas: «Añadidos automáticamente», «En espera» y «Error».',
   'help.guide.mail-import-setup.result':
     'Cada persona encuentra su dirección de reenvío en «Ajustes», «Integraciones». Una confirmación reenviada se convierte en una reserva del viaje correcto, o espera allí a que su dueño la revise.',
   'help.guide.mail-import-setup.tip.1':
-    'Da a TREK un buzón propio que admita direcciones con plus (trek+…@tu-dominio), no uno personal. Los correos leídos pasan a la carpeta TREK/processed.',
+    'Da a YOUYA un buzón propio que admita direcciones con plus (trek+…@tu-dominio), no uno personal. Los correos leídos pasan a la carpeta TREK/processed.',
   'help.guide.mail-import-setup.tip.2':
     'Las variables de entorno que empiezan por MAIL_INGEST_ tienen prioridad sobre los campos del cuadro. Un servidor de correo de tu propia red también necesita ALLOW_INTERNAL_NETWORK=true en el servidor.',
   'help.guide.mail-import-setup.tip.3':
     '«Correos con IA por persona y día» limita cuántos correos sin datos de reserva legibles por máquina lee una IA por persona cada día. Por encima de ese límite, solo se leen los datos legibles por máquina.',
   'help.guide.ai-setup.title': 'Configurar el asistente de IA',
   'help.guide.ai-setup.goal':
-    'Conecta un proveedor de IA una sola vez para que todos los usuarios de este TREK puedan planificar con el asistente.',
+    'Conecta un proveedor de IA una sola vez para que todos los usuarios de este YOUYA puedan planificar con el asistente.',
   'help.guide.ai-setup.step.1':
     'En la pestaña «Complementos», dentro de la tarjeta «Integración», busca el mosaico «IA» y activa «Asistente de IA». «Análisis con IA» y MCP están en el mismo mosaico.',
   'help.guide.ai-setup.step.2': 'Haz clic en «Configurar IA», la fila que aparece debajo de los interruptores.',
   'help.guide.ai-setup.step.3':
     'En «Quién paga», elige quién proporciona la conexión: «Pago yo, se permite la propia», «Pago yo por todos» o «Cada uno usa su propia cuenta». La línea de debajo explica qué significa tu elección.',
   'help.guide.ai-setup.step.4':
-    'En «Conexión para todos», elige «Pegar una clave API» y pega una clave de Anthropic, OpenAI, Gemini u OpenRouter. TREK indica el proveedor que detecta. Haz clic en «Conectar»; TREK comprueba la clave con el proveedor antes de guardarla.',
+    'En «Conexión para todos», elige «Pegar una clave API» y pega una clave de Anthropic, OpenAI, Gemini u OpenRouter. YOUYA indica el proveedor que detecta. Haz clic en «Conectar»; YOUYA comprueba la clave con el proveedor antes de guardarla.',
   'help.guide.ai-setup.step.5':
     'La conexión aparece como «Conectado». Elige el «Modelo» con el que chatea todo el mundo; solo se muestran los modelos que pueden usar herramientas. Debajo están «Cambiar» y «Eliminar conexión».',
   'help.guide.ai-setup.step.6':
@@ -2027,15 +2027,15 @@ const help: TranslationStrings = {
     'La «Búsqueda web» funciona con ChatGPT, Anthropic y OpenRouter, a través de la búsqueda del propio proveedor, y las búsquedas solo se envían a ese proveedor.',
   'help.guide.paddle-water-data.title': 'Carga los datos de aguas para las rutas de piragüismo',
   'help.guide.paddle-water-data.goal':
-    'Da a las rutas de piragüismo los azudes, las esclusas y las normas de navegación de una región, y decide si TREK carga regiones nuevas por su cuenta.',
+    'Da a las rutas de piragüismo los azudes, las esclusas y las normas de navegación de una región, y decide si YOUYA carga regiones nuevas por su cuenta.',
   'help.guide.paddle-water-data.step.1':
     'En la pestaña «Complementos», con «Excursiones» activado, haz clic en «Datos de aguas para piragüismo», la última fila bajo «Excursiones». Un número a su lado cuenta las regiones, o las solicitudes que esperan tu respuesta.',
   'help.guide.paddle-water-data.step.2':
     'En «Cargar regiones automáticamente», elige «Automático», «Bajo petición» o «Desactivado». «Automático» carga la región donde alguien planifica una ruta de piragüismo, hasta la «Región más grande que se carga automáticamente»; lo que sea mayor espera en «Pedidas», donde «Cargar» lo lee y «Rechazar» lo descarta.',
   'help.guide.paddle-water-data.step.3':
-    'En «Añadir una región», busca una región en Geofabrik, por ejemplo Oberpfalz, y haz clic en «Añadir» a su lado. TREK la lee en segundo plano; cuando está «Lista», su fila muestra los objetos, la fecha de los datos y los kilómetros de agua. «Volver a leer» la actualiza y «Eliminar región» la borra.',
+    'En «Añadir una región», busca una región en Geofabrik, por ejemplo Oberpfalz, y haz clic en «Añadir» a su lado. YOUYA la lee en segundo plano; cuando está «Lista», su fila muestra los objetos, la fecha de los datos y los kilómetros de agua. «Volver a leer» la actualiza y «Eliminar región» la borra.',
   'help.guide.paddle-water-data.result':
-    'Las rutas de piragüismo dentro de la región muestran sus obstáculos y siguen el agua, y TREK vuelve a leer cada región una vez al mes.',
+    'Las rutas de piragüismo dentro de la región muestran sus obstáculos y siguen el agua, y YOUYA vuelve a leer cada región una vez al mes.',
   'help.guide.paddle-water-data.tip.1':
     'A Geofabrik solo llega el nombre de la región, nunca un lugar que alguien planifica.',
   'help.guide.paddle-water-data.tip.2':
@@ -2048,7 +2048,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     'Todo sobre un viaje: el plan con sus días, el mapa y los lugares, y las pestañas de excursiones, transportes, reservas, listas, costes, archivos, colaboración y diario vinculado. Cada una tiene su propia pantalla de ayuda debajo de esta.',
   'help.ctx.trip.bullet.1':
-    'La barra de pestañas bajo la barra superior: «Planificado», «Excursiones», «Transportes», «Reservas», «Listas», «Costes», «Archivos», «Colaboración» y, cuando hay un diario vinculado, «Diario». Los complementos y plugins determinan qué pestañas hay en tu TREK.',
+    'La barra de pestañas bajo la barra superior: «Planificado», «Excursiones», «Transportes», «Reservas», «Listas», «Costes», «Archivos», «Colaboración» y, cuando hay un diario vinculado, «Diario». Los complementos y plugins determinan qué pestañas hay en tu YOUYA.',
   'help.ctx.trip.bullet.2':
     '«Planificado» tiene tres columnas: los días a la izquierda, el mapa en el centro y los lugares a la derecha. Con el complemento «Viaje por carretera», la columna de días empieza con un interruptor «Días» y «Viaje por carretera»; con el complemento «Excursiones», la columna de lugares empieza con «Lugares» y «Excursiones». Las reservas y los transportes forman parte del plan, en cada parada y entre paradas; las pestañas los recogen en listas.',
   'help.ctx.trip.bullet.3':
@@ -2061,7 +2061,7 @@ const help: TranslationStrings = {
     'La flecha de deshacer de la barra de herramientas de los días deshace tus cambios recientes en el plan, uno a uno.',
   // add-member
   'help.guide.add-member.title': 'Añadir un miembro',
-  'help.guide.add-member.goal': 'Da acceso a este viaje a alguien que tenga cuenta en TREK.',
+  'help.guide.add-member.goal': 'Da acceso a este viaje a alguien que tenga cuenta en YOUYA.',
   'help.guide.add-member.step.1':
     'Haz clic en «Ajustes del viaje», la píldora junto al nombre del viaje, arriba a la izquierda. Se abre en «Personas».',
   'help.guide.add-member.step.2':
@@ -2071,7 +2071,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     'El miembro puede ver y editar el viaje igual que tú, dentro de los niveles que el administrador haya fijado en «Configuración de permisos».',
   'help.guide.add-member.tip.1':
-    'Si alguien no aparece en la lista, todavía no tiene cuenta de TREK: añádelo como invitado o deja que se registre con un enlace de invitación.',
+    'Si alguien no aparece en la lista, todavía no tiene cuenta de YOUYA: añádelo como invitado o deja que se registre con un enlace de invitación.',
   'help.guide.add-member.tip.2':
     'El número junto a «Acceso» cuenta las personas del viaje; los invitados aparecen aparte, más abajo.',
   // trip-invite-link
@@ -2080,7 +2080,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     'Haz clic en «Ajustes del viaje», junto al nombre del viaje, y elige «Compartiendo» a la izquierda. En «Enlace de invitación al viaje», haz clic en «Crear enlace de invitación».',
   'help.guide.trip-invite-link.step.2':
-    'Haz clic en Copiar y envía el enlace. Cualquiera con cuenta en TREK que lo abra se une como miembro.',
+    'Haz clic en Copiar y envía el enlace. Cualquiera con cuenta en YOUYA que lo abra se une como miembro.',
   'help.guide.trip-invite-link.step.3':
     '«Regenerar» crea un enlace nuevo y el antiguo deja de funcionar; «Desactivar» lo desactiva.',
   'help.guide.trip-invite-link.result': 'Quien abra el enlace se une al viaje y aparece en «Acceso».',
@@ -2090,7 +2090,7 @@ const help: TranslationStrings = {
     'Regenera el enlace si lo enviaste al chat equivocado: el enlace antiguo deja de funcionar al momento.',
   // add-guest
   'help.guide.add-guest.title': 'Añadir un invitado sin cuenta',
-  'help.guide.add-guest.goal': 'Añade al viaje a alguien que no usa TREK.',
+  'help.guide.add-guest.goal': 'Añade al viaje a alguien que no usa YOUYA.',
   'help.guide.add-guest.step.1':
     'Haz clic en «Ajustes del viaje», junto al nombre del viaje. En «Personas», «Invitados» es la última sección, debajo de «Acceso».',
   'help.guide.add-guest.step.2': 'Escribe el nombre en «Nombre del invitado» y haz clic en «Añadir invitado».',
@@ -2150,7 +2150,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     'Deshacer abarca el plan: añadir, asignar, quitar, reordenar, mover y bloquear lugares, vaciar un día, optimizar una ruta, eliminar lugares, cambios de categoría e importaciones.',
   'help.guide.undo-change.tip.2':
-    'Vuelve a hacer clic para retroceder más: TREK guarda tus últimos 30 cambios en este viaje, del más reciente al más antiguo, hasta que salgas de él.',
+    'Vuelve a hacer clic para retroceder más: YOUYA guarda tus últimos 30 cambios en este viaje, del más reciente al más antiguo, hasta que salgas de él.',
   'help.guide.trip-assistant.title': 'Planificar con el asistente',
   'help.guide.trip-assistant.goal': 'Pregunta al asistente sobre tu viaje y deja que añada al plan lo que te sugiere.',
   'help.guide.trip-assistant.step.1':
@@ -2206,19 +2206,19 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     'Haz clic en «Añadir lugar/actividad», arriba de la columna de lugares («Nuevo lugar» si hay un día abierto). El formulario se abre con el cursor en la búsqueda.',
   'help.guide.create-place.step.2':
-    'Escribe el lugar en «Buscar lugares…» y elige un resultado. Se rellenan el nombre arriba del cuadro, «Dirección», «Latitud», «Longitud» y «Sitio web», y «Detalles del lugar», a la izquierda, muestra imágenes, horario y una descripción. En un TREK con clave de Google, «¿No es el lugar correcto? Buscar en Google», bajo los resultados, repite la búsqueda con Google. Con «Colecciones» activado, «Lugares guardados», a la derecha, ofrece igualmente los lugares de tus listas.',
+    'Escribe el lugar en «Buscar lugares…» y elige un resultado. Se rellenan el nombre arriba del cuadro, «Dirección», «Latitud», «Longitud» y «Sitio web», y «Detalles del lugar», a la izquierda, muestra imágenes, horario y una descripción. En un YOUYA con clave de Google, «¿No es el lugar correcto? Buscar en Google», bajo los resultados, repite la búsqueda con Google. Con «Colecciones» activado, «Lugares guardados», a la derecha, ofrece igualmente los lugares de tus listas.',
   'help.guide.create-place.step.3':
     'En «Detalles del lugar», haz clic en una imagen de «Elegir una imagen» para usarla como imagen del lugar. «Usar este texto» copia la descripción en el formulario.',
   'help.guide.create-place.step.4':
     'Revisa los campos del formulario. El nombre, arriba del cuadro, es el único campo obligatorio. La píldora «Categoría» de debajo elige una de las categorías del viaje, y el + de al lado crea una nueva. «Dirección», «Latitud» y «Longitud» vienen de la búsqueda o las escribes tú. En «Etiquetas», haz clic en las etiquetas que debe llevar el lugar. «Sobre el lugar» y «Notas» cambian el campo de texto entre la descripción y tus propias notas. En «Sitio web» va el enlace, «Adjuntar» en «Archivos» añade un documento, y «Teléfono», «Correo electrónico» y «Añadir horario» son para los datos que la búsqueda no ha encontrado.',
   'help.guide.create-place.step.5':
-    'Haz clic en Añadir. Si el viaje ya tiene un lugar con el mismo nombre o en la misma ubicación, TREK muestra un aviso y el botón cambia a «Añadir de todos modos».',
+    'Haz clic en Añadir. Si el viaje ya tiene un lugar con el mismo nombre o en la misma ubicación, YOUYA muestra un aviso y el botón cambia a «Añadir de todos modos».',
   'help.guide.create-place.result':
     'El lugar está en la lista y en el mapa, en «Sin planificar» hasta que lo pongas en un día.',
   'help.guide.create-place.tip.1':
     '«Costes», al final del formulario, con el complemento «Presupuesto» activado, abre el editor de costes para el gasto del lugar justo después de guardar. Una imagen o un PDF que pegues en el cuadro se adjunta como archivo en «Archivos».',
   'help.guide.create-place.tip.2':
-    'En cualquier TREK, los resultados de búsqueda proceden del índice de TREK y de OpenStreetMap, y «Detalles del lugar» se rellena automáticamente con Wikipedia, Wikivoyage y Wikimedia. TREK solo consulta a Google si ninguno de los dos encuentra nada, y las valoraciones solo las ofrece Google.',
+    'En cualquier YOUYA, los resultados de búsqueda proceden del índice de YOUYA y de OpenStreetMap, y «Detalles del lugar» se rellena automáticamente con Wikipedia, Wikivoyage y Wikimedia. YOUYA solo consulta a Google si ninguno de los dos encuentra nada, y las valoraciones solo las ofrece Google.',
   'help.guide.create-place.tip.3':
     'También puedes crear un lugar en el mapa: haz clic con el botón derecho en el punto y se abre el formulario con las coordenadas y la dirección ya rellenadas.',
   // place-to-open-day
@@ -2313,7 +2313,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     'Los pins son lugares del viaje, en la lista y en el mapa, en «Sin planificar» hasta que los pongas en un día.',
   'help.guide.import-places-file.tip.1':
-    'Si el archivo es demasiado grande, se rechaza y TREK te indica el límite de tamaño; vuelve a exportarlo sin fotos o divídelo.',
+    'Si el archivo es demasiado grande, se rechaza y YOUYA te indica el límite de tamaño; vuelve a exportarlo sin fotos o divídelo.',
   'help.guide.import-places-file.tip.2':
     'Una importación hecha en «Importar archivo» se puede deshacer desde la barra de herramientas que hay encima de los días.',
   // import-places-list
@@ -2329,7 +2329,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.tip.1':
     'La lista tiene que estar compartida públicamente; con el enlace de una lista privada no se importa nada.',
   'help.guide.import-places-list.tip.2':
-    '«Enriquecer lugares con Google» aparece en el cuadro si tu TREK tiene clave de Google: busca cada lugar importado y completa sus fotos, dirección y detalles.',
+    '«Enriquecer lugares con Google» aparece en el cuadro si tu YOUYA tiene clave de Google: busca cada lugar importado y completa sus fotos, dirección y detalles.',
   'help.guide.sort-places.title': 'Ordenar la lista de lugares',
   'help.guide.sort-places.goal': 'Ordena la lista por nombre, por valoración o por lo último que se añadió o cambió.',
   'help.guide.sort-places.step.1':
@@ -2444,7 +2444,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Arrastra la parada a la tarjeta de otro día para moverla allí; se quita del día anterior.',
   'help.guide.reorder-stops.step.4':
-    'Si una parada tiene una hora fija y moverla rompería el orden del día, TREK pregunta «¿Eliminar hora?», porque la hora determina la posición de la parada. «Eliminar hora y mover» quita la hora y deja la parada donde la soltaste. «Cancelar» deja el día como estaba.',
+    'Si una parada tiene una hora fija y moverla rompería el orden del día, YOUYA pregunta «¿Eliminar hora?», porque la hora determina la posición de la parada. «Eliminar hora y mover» quita la hora y deja la parada donde la soltaste. «Cancelar» deja el día como estaba.',
   'help.guide.reorder-stops.result': 'La ruta y los tiempos de viaje se actualizan al momento según el nuevo orden.',
   'help.guide.reorder-stops.tip.1':
     'Una reserva con hora fija se queda en la posición que le corresponde por su hora. Si la sueltas en otro punto de su día, vuelve a su sitio. Si la arrastras a la tarjeta de otro día, pasa a ese día.',
@@ -2465,7 +2465,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'La hora pertenece a la parada de ese día; el mismo lugar puede tener otra hora en otro día.',
   'help.guide.set-stop-times.tip.2':
-    'Para mover a mano una parada con hora, arrástrala. TREK pregunta «¿Eliminar hora?», y «Eliminar hora y mover» le quita la hora y la mueve.',
+    'Para mover a mano una parada con hora, arrástrala. YOUYA pregunta «¿Eliminar hora?», y «Eliminar hora y mover» le quita la hora y la mueve.',
   'help.guide.set-stop-times.tip.3':
     'La pestaña «Solo el día…», junto a «Sobre el lugar» y «Notas» en el mismo formulario, es para una nota que solo vale para ese día, por ejemplo una reserva de mesa o un número de entrada.',
   // remove-from-day
@@ -2510,7 +2510,7 @@ const help: TranslationStrings = {
   // day-route
   'help.guide.day-route.title': 'Mostrar y optimizar la ruta del día',
   'help.guide.day-route.goal':
-    'Consulta la ruta entre las paradas, elige cómo te desplazas y deja que TREK ordene las paradas.',
+    'Consulta la ruta entre las paradas, elige cómo te desplazas y deja que YOUYA ordene las paradas.',
   'help.guide.day-route.step.1':
     'Abre el día y haz clic en «Ruta», en la barra de ruta bajo sus paradas: la ruta entre las paradas se muestra en el mapa, y los conectores entre ellas indican el tiempo y la distancia de cada tramo.',
   'help.guide.day-route.step.2':
@@ -2524,7 +2524,7 @@ const help: TranslationStrings = {
   'help.guide.day-route.result':
     'El día es una ruta con horarios; «Coste total» y los tramos se actualizan al cambiar el orden.',
   'help.guide.day-route.tip.1':
-    'Las rutas se calculan con OSRM de forma predeterminada; el administrador puede configurar TREK para usar otro motor de rutas en «Valores predeterminados».',
+    'Las rutas se calculan con OSRM de forma predeterminada; el administrador puede configurar YOUYA para usar otro motor de rutas en «Valores predeterminados».',
   'help.guide.day-route.tip.2':
     'Si no se ha podido calcular la ruta de un tramo, no se muestra su duración. Comprueba que las dos paradas tengan coordenadas.',
   'help.guide.day-route.tip.3': 'La flecha de deshacer revierte una optimización.',
@@ -2600,7 +2600,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     'La fila de abajo: «Añadir al día» si hay un día abierto y el lugar aún no está en él, después «Navegación» (o el nombre de tu aplicación de mapas, si elegiste una en «Ajustes») y dos iconos, «Abrir la web» y «Guardar en colección». A la derecha, los tres puntos contienen «Quitar del día» y «Eliminar», y «Editar» abre el formulario del lugar, donde también cambias su imagen.',
   'help.ctx.trip-place.bullet.6':
-    'Un lugar elegido en la búsqueda muestra lo que saben de él el índice de TREK u OpenStreetMap: «Abierta» o «Cerrada» entre las píldoras de arriba, con un anillo verde o rojo alrededor de la imagen, según la hora local del lugar; su teléfono, también como píldora; el «Horario de apertura» más abajo, con el horario de hoy en la fila y la semana completa al hacer clic; y su sitio web en «Abrir la web». La valoración de Google solo aparece en lugares encontrados con Google, en un TREK con clave de Google. El horario, el teléfono y el correo que hayas escrito tú en el formulario del lugar sustituyen a los consultados y también deciden el color del anillo.',
+    'Un lugar elegido en la búsqueda muestra lo que saben de él el índice de YOUYA u OpenStreetMap: «Abierta» o «Cerrada» entre las píldoras de arriba, con un anillo verde o rojo alrededor de la imagen, según la hora local del lugar; su teléfono, también como píldora; el «Horario de apertura» más abajo, con el horario de hoy en la fila y la semana completa al hacer clic; y su sitio web en «Abrir la web». La valoración de Google solo aparece en lugares encontrados con Google, en un YOUYA con clave de Google. El horario, el teléfono y el correo que hayas escrito tú en el formulario del lugar sustituyen a los consultados y también deciden el color del anillo.',
   // read-place
   'help.guide.read-place.title': 'Lo que te dice la tarjeta de un lugar',
   'help.guide.read-place.goal': 'Consulta en una sola tarjeta todo lo que el viaje sabe de un lugar.',
@@ -2676,7 +2676,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     '«Eliminar imagen», al final de la línea bajo las casillas, deja el lugar sin imagen cuando haces clic en «Actualizar». «Cancelar» conserva la anterior.',
   'help.guide.place-image.tip.3':
-    'Las otras casillas son la imagen actual del lugar, las fotos adjuntas y las imágenes que TREK encontró para él, cada una con su crédito. Solo los viajeros que pueden modificar lugares pueden cambiar la imagen.',
+    'Las otras casillas son la imagen actual del lugar, las fotos adjuntas y las imágenes que YOUYA encontró para él, cada una con su crédito. Solo los viajeros que pueden modificar lugares pueden cambiar la imagen.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'Añadir el lugar al día abierto o quitarlo',
   'help.guide.place-day-assign.goal': 'Usa el botón de la ficha en lugar de arrastrar la fila por el planificador.',
@@ -2761,11 +2761,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     'La lista muestra las aplicaciones de mapas adecuadas para este lugar: Google Maps, Waze, Apple Maps, OpenStreetMap y CoMaps, y además «Otra app de mapas» en Android.',
   'help.guide.place-navigation.step.3':
-    'Haz clic en la que uses. Siempre que puede, TREK envía a la aplicación el propio lugar, no solo sus coordenadas, para que llegues a la entrada correcta.',
+    'Haz clic en la que uses. Siempre que puede, YOUYA envía a la aplicación el propio lugar, no solo sus coordenadas, para que llegues a la entrada correcta.',
   'help.guide.place-navigation.step.4':
     'El icono de al lado, «Abrir la web», abre en una pestaña nueva la web del propio lugar, con sus horarios y entradas.',
   'help.guide.place-navigation.result':
-    'La aplicación de mapas se abre en el lugar, la web se abre en una pestaña nueva y no cambia nada del viaje. Si TREK está instalado como aplicación, se abre la aplicación de mapas en lugar de una pestaña nueva.',
+    'La aplicación de mapas se abre en el lugar, la web se abre en una pestaña nueva y no cambia nada del viaje. Si YOUYA está instalado como aplicación, se abre la aplicación de mapas en lugar de una pestaña nueva.',
   'help.guide.place-navigation.tip.1':
     'Waze empieza a navegar al momento. Las demás aplicaciones abren el lugar, y tienes que tocar una vez más para iniciar la navegación.',
   'help.guide.place-navigation.tip.2':
@@ -2805,7 +2805,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.result':
     'El track se muestra con el color elegido en la tarjeta, en su fila de la columna de lugares y en el mapa.',
   'help.guide.place-track.tip.1':
-    'Solo los lugares con un recorrido tienen estos dos bloques: los importados de un archivo GPX, KML o KMZ antes de que existiera «Excursiones», o en un TREK con «Excursiones» desactivado. Con «Excursiones» activado, un archivo GPX nuevo se convierte en una excursión, que abre su propia tarjeta de excursión.',
+    'Solo los lugares con un recorrido tienen estos dos bloques: los importados de un archivo GPX, KML o KMZ antes de que existiera «Excursiones», o en un YOUYA con «Excursiones» desactivado. Con «Excursiones» activado, un archivo GPX nuevo se convierte en una excursión, que abre su propia tarjeta de excursión.',
   'help.guide.place-track.tip.2':
     'Si el track se grabó con altitudes, también muestra el punto más alto y el más bajo, los metros de subida y de bajada, y el perfil de la ruta.',
   'help.guide.place-track.tip.3':
@@ -2819,13 +2819,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     'Todos los documentos del viaje en una sola lista: billetes, confirmaciones, pases e imágenes. Cada uno tiene una nota, un vínculo al lugar o a la reserva a la que pertenece y una papelera desde la que puedes restaurarlo.',
   'help.ctx.trip-files.bullet.1':
-    '«Arrastra aquí los archivos», el recuadro discontinuo bajo la barra, acepta los archivos que sueltes en él. Un clic en él abre el selector de archivos. El recuadro muestra los tipos de archivo que acepta este TREK y el límite por archivo (máx. 50 MB, salvo que un administrador haya fijado otro).',
+    '«Arrastra aquí los archivos», el recuadro discontinuo bajo la barra, acepta los archivos que sueltes en él. Un clic en él abre el selector de archivos. El recuadro muestra los tipos de archivo que acepta este YOUYA y el límite por archivo (máx. 50 MB, salvo que un administrador haya fijado otro).',
   'help.ctx.trip-files.bullet.2':
     'La barra superior contiene «Archivos» y las pestañas de filtro «Todos», PDF, «Imágenes» y «Documentos», cada una con su recuento. En cuanto destacas un archivo, aparece una pestaña con una estrella después de «Todos», y en cuanto una nota tiene un adjunto, aparece al final la pestaña «Notas de colaboración».',
   'help.ctx.trip-files.bullet.3':
     'Cada fila muestra una miniatura o el tipo de archivo, quién lo subió, el nombre, la nota debajo, el tamaño y la fecha, y una insignia por cada vínculo: el lugar, la reserva o el transporte con su nombre (al pasar el cursor indica «Plan diario», «Reserva» o «Transporte»), y «Desde notas de colaboración».',
   'help.ctx.trip-files.bullet.4':
-    'Al final de cada fila hay hasta cinco iconos, cuyo nombre aparece al pasar el cursor: «Destacar», «Asignar» (el lápiz), Abrir, Descargar y Eliminar. Eliminar no pide confirmación: el archivo va a la papelera, desde donde puedes restaurarlo. Sin conexión, las notas, los vínculos, las estrellas y la papelera siguen funcionando y se envían cuando TREK vuelve a estar en línea; solo subir archivos y quitar otro vínculo necesitan conexión.',
+    'Al final de cada fila hay hasta cinco iconos, cuyo nombre aparece al pasar el cursor: «Destacar», «Asignar» (el lápiz), Abrir, Descargar y Eliminar. Eliminar no pide confirmación: el archivo va a la papelera, desde donde puedes restaurarlo. Sin conexión, las notas, los vínculos, las estrellas y la papelera siguen funcionando y se envían cuando YOUYA vuelve a estar en línea; solo subir archivos y quitar otro vínculo necesitan conexión.',
   'help.ctx.trip-files.bullet.5':
     'Una imagen o un vídeo se abre a pantalla completa, con las teclas de flecha y una fila de miniaturas. Cualquier otro documento se abre en un cuadro con su nombre arriba y, debajo, «Abrir en una pestaña nueva» y Descargar. Una tarjeta para el monedero digital se descarga directamente.',
   'help.ctx.trip-files.bullet.6':
@@ -2837,7 +2837,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     'Abre el viaje y haz clic en Archivos, en la barra de pestañas. Ahí están los documentos del viaje, con el recuadro para subir archivos encima.',
   'help.guide.files-upload.step.2':
-    'Haz clic en «Arrastra aquí los archivos» y elige uno o varios archivos. Se suben uno tras otro, y mientras tanto el recuadro indica «Subiendo...». Dentro del recuadro, bajo «o haz clic para explorar», ves los tipos de archivo que acepta este TREK y el tamaño máximo por archivo.',
+    'Haz clic en «Arrastra aquí los archivos» y elige uno o varios archivos. Se suben uno tras otro, y mientras tanto el recuadro indica «Subiendo...». Dentro del recuadro, bajo «o haz clic para explorar», ves los tipos de archivo que acepta este YOUYA y el tamaño máximo por archivo.',
   'help.guide.files-upload.step.3':
     'Cuando termina de subirse el último archivo, se abre automáticamente «Asignar archivo» para él (si el viaje tiene lugares o reservas), con el nombre del archivo arriba del cuadro. «Añadir una nota...», en «Nota», añade una nota al archivo, y las listas de debajo lo vinculan a un lugar o a una reserva. Ciérralo con la × de arriba a la derecha; al cerrarlo no se pierde nada.',
   'help.guide.files-upload.step.4':
@@ -2849,7 +2849,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     'Pulsa Ctrl+V para añadir a la lista una imagen del portapapeles; así no tienes que guardar antes la captura de pantalla de una reserva.',
   'help.guide.files-upload.tip.3':
-    'Para subir archivos necesitas permiso para hacerlo; sin él, el recuadro ni siquiera aparece. Un tipo que no está en la lista se rechaza con un mensaje y no se sube nada. Un archivo que supera el límite (50 MB, salvo que un administrador haya fijado otro) se rechaza antes de enviar nada, y el mensaje indica el límite. Para subir también necesitas conexión: sin ella, TREK te avisa y no sube nada.',
+    'Para subir archivos necesitas permiso para hacerlo; sin él, el recuadro ni siquiera aparece. Un tipo que no está en la lista se rechaza con un mensaje y no se sube nada. Un archivo que supera el límite (50 MB, salvo que un administrador haya fijado otro) se rechaza antes de enviar nada, y el mensaje indica el límite. Para subir también necesitas conexión: sin ella, YOUYA te avisa y no sube nada.',
   // files-link
   'help.guide.files-link.title': 'Vincular un documento a un lugar o a una reserva',
   'help.guide.files-link.goal':
@@ -2869,7 +2869,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     'Un archivo puede tener varios vínculos a la vez, así que la misma confirmación puede pertenecer a la vez a la reserva del hotel y al lugar del hotel.',
   'help.guide.files-link.tip.2':
-    'Vuelve a hacer clic en una entrada marcada para quitar ese vínculo; el archivo no se borra. Sin conexión, la nota y las nuevas marcas se guardan y se envían cuando TREK vuelve a estar en línea; solo quitar otro vínculo requiere conexión.',
+    'Vuelve a hacer clic en una entrada marcada para quitar ese vínculo; el archivo no se borra. Sin conexión, la nota y las nuevas marcas se guardan y se envían cuando YOUYA vuelve a estar en línea; solo quitar otro vínculo requiere conexión.',
   'help.guide.files-link.tip.3':
     'También funciona al revés: un documento adjunto a un lugar o a una reserva aparece igualmente en esta lista, con la misma insignia en su fila.',
   'help.guide.files-link.tip.4':
@@ -2906,7 +2906,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     'La lista siempre muestra primero los destacados y después los más recientes, así que un documento subido hoy aparece por encima de uno del mes pasado.',
   // files-preview
-  'help.guide.files-preview.title': 'Ver un documento sin salir de TREK',
+  'help.guide.files-preview.title': 'Ver un documento sin salir de YOUYA',
   'help.guide.files-preview.goal':
     'Consulta al momento un billete o una imagen, y descárgalo en tu dispositivo cuando lo necesites ahí.',
   'help.guide.files-preview.step.1':
@@ -2943,7 +2943,7 @@ const help: TranslationStrings = {
     '«Vaciar papelera», en la barra junto al icono de la papelera, elimina para siempre todo lo que siga en la papelera. Antes, el navegador te pide confirmación una vez. El icono de la papelera vuelve a llevarte a los archivos.',
   'help.guide.files-trash.result': 'El archivo vuelve a estar en la lista donde estaba.',
   'help.guide.files-trash.tip.1':
-    'Eliminar en una fila no pide confirmación. Por eso existe la papelera: nada se borra de TREK hasta que lo eliminas aquí. Todo esto también funciona sin conexión y se envía cuando TREK vuelve a estar en línea.',
+    'Eliminar en una fila no pide confirmación. Por eso existe la papelera: nada se borra de YOUYA hasta que lo eliminas aquí. Todo esto también funciona sin conexión y se envía cuando YOUYA vuelve a estar en línea.',
   'help.guide.files-trash.tip.2':
     'Para eliminar y restaurar archivos hace falta el permiso para eliminar archivos. Un miembro sin él no ve Eliminar en la fila ni los botones de la papelera.',
   'help.guide.files-trash.tip.3': 'Un archivo eliminado definitivamente desde la papelera no se puede recuperar.',
@@ -2956,21 +2956,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     'Haz clic en tu servicio de almacenamiento, en este caso Nextcloud. Se abre un diálogo más pequeño para la conexión, con el nombre del servicio, que te pide los datos de acceso que necesita.',
   'help.guide.files-sync.step.3':
-    'Rellena la «Dirección» y los datos de acceso del almacenamiento: un «Token de API» para Paperless-ngx; una clave de API y el «ID de organización» para Papra; «Nombre de usuario» y una «Contraseña de aplicación» para Nextcloud; «Nombre de usuario» y un «Token de aplicación» para OpenCloud; y, para Synology Drive, «Nombre de usuario», «Contraseña» y, si la cuenta lo pide, un «Código de doble factor». Usa una contraseña o un token de aplicación siempre que el almacenamiento lo ofrezca, nunca la contraseña de tu cuenta. Nextcloud y Synology Drive también admiten una «Carpeta base» opcional, donde TREK busca las carpetas de los viajes, aquí /Reisen. «Aceptar un certificado autofirmado», abajo del todo, es solo para un almacenamiento en tu propia red que use un certificado así.',
+    'Rellena la «Dirección» y los datos de acceso del almacenamiento: un «Token de API» para Paperless-ngx; una clave de API y el «ID de organización» para Papra; «Nombre de usuario» y una «Contraseña de aplicación» para Nextcloud; «Nombre de usuario» y un «Token de aplicación» para OpenCloud; y, para Synology Drive, «Nombre de usuario», «Contraseña» y, si la cuenta lo pide, un «Código de doble factor». Usa una contraseña o un token de aplicación siempre que el almacenamiento lo ofrezca, nunca la contraseña de tu cuenta. Nextcloud y Synology Drive también admiten una «Carpeta base» opcional, donde YOUYA busca las carpetas de los viajes, aquí /Reisen. «Aceptar un certificado autofirmado», abajo del todo, es solo para un almacenamiento en tu propia red que use un certificado así.',
   'help.guide.files-sync.step.4':
-    'Haz clic en «Probar conexión». TREK se conecta al almacenamiento con los datos que has escrito, y el pie indica «Conectado, sesión iniciada como» seguido del nombre de la cuenta. Si se rechazan las credenciales o no se puede acceder a la dirección, el pie lo indica. En ningún caso se guarda nada.',
+    'Haz clic en «Probar conexión». YOUYA se conecta al almacenamiento con los datos que has escrito, y el pie indica «Conectado, sesión iniciada como» seguido del nombre de la cuenta. Si se rechazan las credenciales o no se puede acceder a la dirección, el pie lo indica. En ningún caso se guarda nada.',
   'help.guide.files-sync.step.5':
-    'Haz clic en «Conectar». La conexión se guarda con el viaje, y TREK pregunta dónde deben estar los documentos del viaje en el almacenamiento: la etiqueta, carpeta o espacio que los contiene. Solo se sincroniza lo que hay ahí dentro. «Crear uno nuevo» lo crea al hacer clic en Crear, con un nombre tomado del título del viaje. En «O usa uno que ya tengas» ves los que ya existen. Haz clic en uno, aquí la carpeta Autumn in Japan.',
+    'Haz clic en «Conectar». La conexión se guarda con el viaje, y YOUYA pregunta dónde deben estar los documentos del viaje en el almacenamiento: la etiqueta, carpeta o espacio que los contiene. Solo se sincroniza lo que hay ahí dentro. «Crear uno nuevo» lo crea al hacer clic en Crear, con un nombre tomado del título del viaje. En «O usa uno que ya tengas» ves los que ya existen. Haz clic en uno, aquí la carpeta Autumn in Japan.',
   'help.guide.files-sync.step.6':
-    'El cuadro se vuelve a abrir: tu almacenamiento aparece en «Este viaje», a la izquierda, y su tarjeta, a la derecha, muestra con qué se sincroniza, cuándo se sincronizó por última vez y «Sincronizar ahora». La primera sincronización empieza automáticamente; haz clic en «Sincronizar ahora» para sincronizar cuando quieras. Después de una sincronización, la insignia «Aún sin sincronizar» junto al nombre cambia a un punto verde, que indica «Al día» al pasar el cursor. La barra de flujo muestra cuántos documentos tienen TREK y el almacenamiento, con los carriles «Hacia el gestor» y «Desde el gestor» entre ellos. Cierra el cuadro con la × de arriba a la derecha.',
+    'El cuadro se vuelve a abrir: tu almacenamiento aparece en «Este viaje», a la izquierda, y su tarjeta, a la derecha, muestra con qué se sincroniza, cuándo se sincronizó por última vez y «Sincronizar ahora». La primera sincronización empieza automáticamente; haz clic en «Sincronizar ahora» para sincronizar cuando quieras. Después de una sincronización, la insignia «Aún sin sincronizar» junto al nombre cambia a un punto verde, que indica «Al día» al pasar el cursor. La barra de flujo muestra cuántos documentos tienen YOUYA y el almacenamiento, con los carriles «Hacia el gestor» y «Desde el gestor» entre ellos. Cierra el cuadro con la × de arriba a la derecha.',
   'help.guide.files-sync.result':
-    'Los documentos que ya había en el almacén aparecen al principio de la lista, subidos a tu nombre, y todos los documentos del viaje están también en el almacén, salvo los de «Notas de colaboración». A partir de ahora, TREK revisa el almacén en segundo plano y los cambios de la lista se copian en el almacén.',
+    'Los documentos que ya había en el almacén aparecen al principio de la lista, subidos a tu nombre, y todos los documentos del viaje están también en el almacén, salvo los de «Notas de colaboración». A partir de ahora, YOUYA revisa el almacén en segundo plano y los cambios de la lista se copian en el almacén.',
   'help.guide.files-sync.tip.1':
     'Solo el propietario del viaje o un administrador de la instancia pueden conectar un viaje, porque las credenciales dan acceso a toda la cuenta del almacén. Una vez conectado, todos los miembros ven «Sincronización de documentos» y pueden abrirlo, consultar la tarjeta y pulsar «Sincronizar ahora».',
   'help.guide.files-sync.tip.2':
-    'Un almacenamiento en tu propia red necesita ALLOW_INTERNAL_NETWORK=true en el servidor de TREK, y su dirección tiene que ser la del equipo en la red, nunca localhost. Si no, «Probar conexión» responde «Esa dirección no está permitida.».',
+    'Un almacenamiento en tu propia red necesita ALLOW_INTERNAL_NETWORK=true en el servidor de YOUYA, y su dirección tiene que ser la del equipo en la red, nunca localhost. Si no, «Probar conexión» responde «Esa dirección no está permitida.».',
   'help.guide.files-sync.tip.3':
-    '«Desconectar», el icono junto a «Sincronizar ahora», pide confirmación una vez. Después cierra la conexión y conserva todos los documentos en los dos lados. Si vuelves a conectar una etiqueta, carpeta o espacio, TREK lo trata como nuevo y vuelve a importar todo su contenido. Así que, después de desconectar, conecta uno vacío, no el anterior.',
+    '«Desconectar», el icono junto a «Sincronizar ahora», pide confirmación una vez. Después cierra la conexión y conserva todos los documentos en los dos lados. Si vuelves a conectar una etiqueta, carpeta o espacio, YOUYA lo trata como nuevo y vuelve a importar todo su contenido. Así que, después de desconectar, conecta uno vacío, no el anterior.',
 
   // ── Screen: trip-day-detail ───────────────────────────────────────────────────────────
   'help.ctx.trip-day-detail.title': 'Detalles del día',
@@ -3160,7 +3160,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     'La fila de iconos de la parte superior del mapa es la búsqueda por categorías: «Restaurantes», Cafés, «Bares y ocio nocturno», «Alojamiento», «Lugares de interés», «Museos y cultura», «Naturaleza y parques», «Actividades», «Panaderías» y «Tiendas de alimentación». Las categorías que añade un plugin aparecen detrás de un separador fino; pasa el cursor por un icono para ver su nombre.',
   'help.guide.map-nearby-places.step.2':
-    'Haz clic en una categoría. TREK busca ese tipo de lugar en la zona visible del mapa y pone un marcador del color de la categoría por cada resultado. Solo puede haber una categoría a la vez: si haces clic en otra, sustituye a la anterior, y si haces clic en la activa, se desactiva.',
+    'Haz clic en una categoría. YOUYA busca ese tipo de lugar en la zona visible del mapa y pone un marcador del color de la categoría por cada resultado. Solo puede haber una categoría a la vez: si haces clic en otra, sustituye a la anterior, y si haces clic en la activa, se desactiva.',
   'help.guide.map-nearby-places.step.3':
     'Al mover el mapa, aparece un segundo botón bajo la fila: «Buscar en esta zona» repite la búsqueda en la nueva vista. Mover el mapa no lanza una búsqueda nueva por sí solo, para que haya menos peticiones.',
   'help.guide.map-nearby-places.step.4':
@@ -3168,13 +3168,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     'Comprueba lo que se ha rellenado y añade lo que la búsqueda no podía saber. La píldora de categoría bajo el nombre ya está elegida si el viaje tiene una categoría que coincide, como restaurante para un restaurante; si no, indica «Sin categoría» hasta que elijas una. Escribe de qué trata el lugar en «Sobre el lugar», y tus propias notas en «Notas».',
   'help.guide.map-nearby-places.step.6':
-    'Haz clic en Añadir. Si el viaje ya tiene un lugar con el mismo nombre o en el mismo punto, TREK te avisa y el botón cambia a «Añadir de todos modos».',
+    'Haz clic en Añadir. Si el viaje ya tiene un lugar con el mismo nombre o en el mismo punto, YOUYA te avisa y el botón cambia a «Añadir de todos modos».',
   'help.guide.map-nearby-places.result':
     'El lugar está en la lista de lugares y en el mapa como un marcador más del viaje, en «Sin planificar» hasta que lo pongas en un día. Los marcadores de la búsqueda siguen ahí hasta que desactives la categoría.',
   'help.guide.map-nearby-places.tip.1':
     'La fila se oculta si «Explorar lugares en el mapa» está desactivado en «Ajustes» > «Pantalla», en «Viaje y mapa».',
   'help.guide.map-nearby-places.tip.2':
-    'Los resultados proceden del índice de lugares de TREK y de OpenStreetMap, así que es una de las pocas cosas del plan que necesitan conexión.',
+    'Los resultados proceden del índice de lugares de YOUYA y de OpenStreetMap, así que es una de las pocas cosas del plan que necesitan conexión.',
   'help.guide.map-nearby-places.tip.3':
     'Cada búsqueda abarca solo la zona visible, así que acerca el zoom a la calle que te interesa. Una búsqueda en toda una ciudad solo devuelve los sesenta primeros resultados, sin un orden claro.',
   // map-add-place
@@ -3183,7 +3183,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     'Haz clic derecho en el punto del mapa. Se abre el formulario del lugar con el título «Añadir lugar/actividad».',
   'help.guide.map-add-place.step.2':
-    'Latitud y Longitud ya tienen ese punto. TREK busca las coordenadas y rellena Dirección con lo que encuentra allí. Si la búsqueda da con un nombre, TREK también lo pone en la parte superior del diálogo. Todavía no se ha guardado nada, así que corrige lo que no esté bien.',
+    'Latitud y Longitud ya tienen ese punto. YOUYA busca las coordenadas y rellena Dirección con lo que encuentra allí. Si la búsqueda da con un nombre, YOUYA también lo pone en la parte superior del diálogo. Todavía no se ha guardado nada, así que corrige lo que no esté bien.',
   'help.guide.map-add-place.step.3':
     'Escribe un nombre que reconozcas en el campo de la parte superior del cuadro. Elige una categoría en la píldora de debajo, que indica «Sin categoría» hasta que elijas una. Después añade los demás datos para el plan: «Sobre el lugar», «Notas», «Sitio web».',
   'help.guide.map-add-place.step.4':
@@ -3200,7 +3200,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     'El selector de capa base es el de abajo de los dos botones redondos de la esquina inferior izquierda del mapa, bajo el candado. Su icono muestra siempre la capa a la que cambia, y la descripción emergente lo indica: «Cambiar a vista de satélite». Haz clic en él.',
   'help.guide.map-satellite.step.2':
-    'El mapa muestra ahora imágenes aéreas, con detalle suficiente para distinguir edificios, y sin necesidad de una clave propia. Todo lo que dibuja TREK sigue encima: los marcadores, la ruta del día, los tracks y las rutas de las reservas.',
+    'El mapa muestra ahora imágenes aéreas, con detalle suficiente para distinguir edificios, y sin necesidad de una clave propia. Todo lo que dibuja YOUYA sigue encima: los marcadores, la ruta del día, los tracks y las rutas de las reservas.',
   'help.guide.map-satellite.step.3':
     'Ahora el botón indica «Cambiar a vista de mapa». Haz clic en él para volver a la vista de mapa.',
   'help.guide.map-satellite.result': 'El mapa se vuelve a dibujar, y la capa elegida se guarda en tu cuenta.',
@@ -3255,7 +3255,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Muestra en el mapa la ruta que Dawarich grabó en tu móvil, como línea discontinua junto a la ruta planificada, y descubre día a día cómo fue el viaje en realidad.',
   'help.guide.map-dawarich-trail.step.1':
-    'El botón redondo de Dawarich está abajo a la derecha del mapa, bajo «Mostrar todo el viaje». Al pasar el cursor por encima, indica «Mostrar ruta grabada». Haz clic en él. TREK pide a tu Dawarich los datos de las fechas del viaje, y un anillo gira alrededor del botón mientras espera la respuesta.',
+    'El botón redondo de Dawarich está abajo a la derecha del mapa, bajo «Mostrar todo el viaje». Al pasar el cursor por encima, indica «Mostrar ruta grabada». Haz clic en él. YOUYA pide a tu Dawarich los datos de las fechas del viaje, y un anillo gira alrededor del botón mientras espera la respuesta.',
   'help.guide.map-dawarich-trail.step.2':
     'La ruta grabada aparece como una línea discontinua, con un color por día, por debajo de la ruta planificada para que el plan se siga leyendo bien. El botón indica ahora «Ocultar ruta grabada». Cada día termina a medianoche, hora local. Al plegar un día en la columna de días, su línea discontinua y sus paradas se ocultan en el mapa.',
   'help.guide.map-dawarich-trail.step.3':
@@ -3263,9 +3263,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     'Lo que planificaste y lo que hiciste realmente se muestran juntos en el mapa, con líneas discontinuas y continuas. La tarjeta encima de los botones sigue mostrando los días planificados y sus distancias.',
   'help.guide.map-dawarich-trail.tip.1':
-    'Si está activada o no se guarda por viaje en tu cuenta, así que es igual en todos los navegadores y dispositivos. Mientras la ruta está activada, TREK vuelve a consultar a Dawarich cada dos minutos, de modo que un viaje en curso se actualiza sin recargar la página. La ruta en sí nunca se guarda: no está en la base de datos de TREK, ni en las copias de seguridad, ni disponible sin conexión.',
+    'Si está activada o no se guarda por viaje en tu cuenta, así que es igual en todos los navegadores y dispositivos. Mientras la ruta está activada, YOUYA vuelve a consultar a Dawarich cada dos minutos, de modo que un viaje en curso se actualiza sin recargar la página. La ruta en sí nunca se guarda: no está en la base de datos de YOUYA, ni en las copias de seguridad, ni disponible sin conexión.',
   'help.guide.map-dawarich-trail.tip.2':
-    'El texto del botón te dice por qué el mapa está vacío: «Cargando la ruta grabada…» mientras se carga, «No se grabó nada en estas fechas», «No se pudo cargar la ruta grabada» o «La ruta grabada necesita conexión» cuando TREK está sin conexión.',
+    'El texto del botón te dice por qué el mapa está vacío: «Cargando la ruta grabada…» mientras se carga, «No se grabó nada en estas fechas», «No se pudo cargar la ruta grabada» o «La ruta grabada necesita conexión» cuando YOUYA está sin conexión.',
   // map-compass
   'help.guide.map-compass.title': 'Girar el mapa y volver a orientarlo al norte',
   'help.guide.map-compass.goal':
@@ -3440,7 +3440,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     'Con «Adjuntar imágenes» puedes añadir hasta cuatro imágenes a un mensaje. También puedes pegarlas o arrastrarlas al cuadro de texto.',
   'help.guide.trip-chat.tip.3':
-    'Un mensaje con un enlace muestra debajo una tarjeta de vista previa que obtiene tu propio TREK, así que un enlace a algo a lo que solo tú tienes acceso se queda como enlace normal.',
+    'Un mensaje con un enlace muestra debajo una tarjeta de vista previa que obtiene tu propio YOUYA, así que un enlace a algo a lo que solo tú tienes acceso se queda como enlace normal.',
   'help.guide.trip-chat.tip.4':
     'El chat tiene su propio interruptor en «Complementos», bajo «Colaboración»: un administrador puede desactivarlo y mantener activados las notas, los enlaces, las encuestas y «Qué viene ahora».',
 
@@ -3481,7 +3481,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     'Cuando asignas a alguien a una lista, recibe una notificación de equipaje. Esto no cambia quién puede ver los artículos: eso se define en la ventana de cada artículo, en «Visible para», o para toda la lista con «Compartir toda la lista».',
   'help.guide.packing-categories.tip.3':
-    'Dos listas pueden tener el mismo nombre. TREK las distingue internamente, así que los nombres se quedan tal como los escribiste.',
+    'Dos listas pueden tener el mismo nombre. YOUYA las distingue internamente, así que los nombres se quedan tal como los escribiste.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Marcar lo que vas guardando',
   'help.guide.check-off-packing.goal':
@@ -3533,13 +3533,13 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.step.3':
     'O carga las líneas desde un archivo con «Cargar CSV/TXT/MD», abajo a la izquierda del cuadro. Admite archivos .csv, .txt o .md y sustituye lo que haya en el recuadro.',
   'help.guide.import-packing-list.step.4':
-    'Haz clic en «Importar 3», abajo a la derecha; el número indica las líneas que TREK ha entendido.',
+    'Haz clic en «Importar 3», abajo a la derecha; el número indica las líneas que YOUYA ha entendido.',
   'help.guide.import-packing-list.result':
     'Cada línea se convierte en una fila, dentro de la lista indicada en su primer campo. Los artículos que ya había no cambian.',
   'help.guide.import-packing-list.tip.1':
     'Las comas, los puntos y comas y los tabuladores separan los campos, y las comillas dobles mantienen un campo unido, así que "Camisa, azul" sigue siendo un solo nombre. Una línea con un único valor es solo un nombre. Las líneas sin lista propia van a «Otros». "3x" delante de un nombre indica la cantidad.',
   'help.guide.import-packing-list.tip.2':
-    'Si el viaje aún no tiene la bolsa indicada en el cuarto campo, TREK la crea. «Importar» y «Aplicar plantilla» son las dos formas de añadir pesos y bolsas a muchos artículos a la vez.',
+    'Si el viaje aún no tiene la bolsa indicada en el cuarto campo, YOUYA la crea. «Importar» y «Aplicar plantilla» son las dos formas de añadir pesos y bolsas a muchos artículos a la vez.',
   // export-packing-list
   'help.guide.export-packing-list.title': 'Imprimir o exportar la lista de equipaje',
   'help.guide.export-packing-list.goal':
@@ -3685,7 +3685,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '«Reserva manual», en el extremo derecho de la barra, abre «Nueva reserva». Permite crear seis tipos de reservas: «Alojamiento», «Restaurante», «Evento», «Visita guiada», «Aparcamiento» y «Otros». Los vuelos, trenes y demás transportes están en la pestaña «Transportes» y nunca aparecen aquí.',
   'help.ctx.trip-bookings.bullet.2':
-    'El icono de subida delante de «Reserva manual», «Importar confirmaciones de reserva», sube confirmaciones para que TREK las lea automáticamente: EML, PDF, PKPass, HTML o TXT, hasta cinco archivos de 10 MB como máximo, y fotos si el modelo de IA puede leer imágenes. El icono solo aparece si el servidor puede leerlas. Si el administrador ha activado la importación de correos, el mismo cuadro da al viaje su propia dirección a la que reenviar correos de reserva.',
+    'El icono de subida delante de «Reserva manual», «Importar confirmaciones de reserva», sube confirmaciones para que YOUYA las lea automáticamente: EML, PDF, PKPass, HTML o TXT, hasta cinco archivos de 10 MB como máximo, y fotos si el modelo de IA puede leer imágenes. El icono solo aparece si el servidor puede leerlas. Si el administrador ha activado la importación de correos, el mismo cuadro da al viaje su propia dirección a la que reenviar correos de reserva.',
   'help.ctx.trip-bookings.bullet.3':
     'La búsqueda busca en títulos, tipos, lugares, notas, códigos de reserva y viajeros. «Filtrar», el embudo de al lado, filtra la pestaña por «Estado», por «Tipo», con un recuento para cada uno, y por «Viajeros» en cuanto alguna reserva indica personas. Un número en el embudo indica cuántos filtros hay activos.',
   'help.ctx.trip-bookings.bullet.4':
@@ -3750,7 +3750,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     'Elige el hotel en «Alojamiento». La lista contiene los lugares del viaje, sin tracks importados ni excursiones. Al elegir uno, su nombre se usa como título si está vacío, y su dirección pasa a «Ubicación / dirección».',
   'help.guide.booking-hotel.step.3':
-    'Indica «Desde» y «Hasta»: la primera noche y la mañana en que te vas. Los dos ofrecen los días del viaje con sus fechas, y TREK mantiene «Hasta» después de «Desde».',
+    'Indica «Desde» y «Hasta»: la primera noche y la mañana en que te vas. Los dos ofrecen los días del viaje con sus fechas, y YOUYA mantiene «Hasta» después de «Desde».',
   'help.guide.booking-hotel.step.4':
     'Rellena «Registro de entrada», «Check-in hasta» y «Registro de salida», y el «Código de reserva» de la confirmación.',
   'help.guide.booking-hotel.step.5': 'Haz clic en «Añadir».',
@@ -3797,7 +3797,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.title': 'Guardar el bono junto a la reserva',
   'help.guide.booking-files.goal': 'Adjunta la confirmación, el billete o el pase a la reserva correspondiente.',
   'help.guide.booking-files.step.1':
-    'Abre la reserva con el lápiz de su tarjeta. «Archivos» está junto a «Enlace»; haz clic ahí en «Adjuntar archivo». En una reserva que ya existe, el documento se sube al momento y TREK muestra «Archivo subido».',
+    'Abre la reserva con el lápiz de su tarjeta. «Archivos» está junto a «Enlace»; haz clic ahí en «Adjuntar archivo». En una reserva que ya existe, el documento se sube al momento y YOUYA muestra «Archivo subido».',
   'help.guide.booking-files.step.2': 'El documento aparece con su nombre, con un botón para abrirlo y una X al lado.',
   'help.guide.booking-files.step.3':
     '«Vincular archivo existente» ofrece los documentos del viaje que aún no están en esta reserva. Elige uno y se adjunta sin volver a subirlo.',
@@ -3853,7 +3853,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': 'Importar una reserva desde su confirmación',
   'help.guide.import-booking-file.goal':
-    'Haz que TREK lea la reserva del correo o del PDF que te envió el proveedor, para no tener que escribirla otra vez.',
+    'Haz que YOUYA lea la reserva del correo o del PDF que te envió el proveedor, para no tener que escribirla otra vez.',
   'help.guide.import-booking-file.step.1':
     'Haz clic en el icono de subida de la barra, «Importar confirmaciones de reserva»; su nombre aparece al pasar el cursor. Se abre el cuadro con ese mismo nombre.',
   'help.guide.import-booking-file.step.2':
@@ -3992,11 +3992,11 @@ const help: TranslationStrings = {
     'Un reparto personalizado también se puede indicar en porcentaje o en partes: el pequeño interruptor junto a la indicación elige el símbolo de la moneda, % o «Partes». En porcentaje, las partes tienen que sumar el 100 % para poder guardar el gasto.',
   // expense-currency
   'help.guide.expense-currency.title': 'Introducir un gasto en otra moneda',
-  'help.guide.expense-currency.goal': 'Introduce el importe del recibo y TREK guarda el tipo de cambio.',
+  'help.guide.expense-currency.goal': 'Introduce el importe del recibo y YOUYA guarda el tipo de cambio.',
   'help.guide.expense-currency.step.1':
     'Abre «Añadir gasto». Escribe el nombre en la parte superior del diálogo e introduce en «Importe total» el importe exacto del recibo, sin convertirlo.',
   'help.guide.expense-currency.step.2':
-    'Abre «Moneda», junto al importe; un gasto nuevo empieza en la moneda propia del viaje. Elige la moneda del recibo: la moneda del viaje y aquella en la que se muestran los «Costes» están arriba, y puedes buscar cualquier otro código que conozca TREK escribiendo las tres letras.',
+    'Abre «Moneda», junto al importe; un gasto nuevo empieza en la moneda propia del viaje. Elige la moneda del recibo: la moneda del viaje y aquella en la que se muestran los «Costes» están arriba, y puedes buscar cualquier otro código que conozca YOUYA escribiendo las tres letras.',
   'help.guide.expense-currency.step.3':
     'Debajo de los campos aparece una fila de insignias: el importe que escribiste y su valor actual, marcado como «tasa en vivo». Es solo una vista previa. No es el valor que se guarda.',
   'help.guide.expense-currency.step.4':
@@ -4211,7 +4211,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Transportes',
   'help.ctx.trip-transports.summary':
-    'Todos los medios con los que te desplazas entre las paradas: vuelos, trenes, autobuses, coches, taxis, bicicletas, cruceros, ferris, teleféricos y las conexiones de transporte público que TREK busca por ti. La pestaña los recoge en una lista. También puedes crearlos y consultarlos en el plan, y se muestran en el mapa.',
+    'Todos los medios con los que te desplazas entre las paradas: vuelos, trenes, autobuses, coches, taxis, bicicletas, cruceros, ferris, teleféricos y las conexiones de transporte público que YOUYA busca por ti. La pestaña los recoge en una lista. También puedes crearlos y consultarlos en el plan, y se muestran en el mapa.',
   'help.ctx.trip-transports.bullet.1':
     'La pestaña solo muestra los trayectos. El alojamiento, los restaurantes, los eventos y las entradas están en la pestaña «Reservas», así que una misma entrada nunca aparece dos veces.',
   'help.ctx.trip-transports.bullet.2':
@@ -4269,7 +4269,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': 'Importar un vuelo desde su billete electrónico',
   'help.guide.import-transport-file.goal':
-    'Haz que TREK lea un vuelo, un tren o un ferry del billete que te envió la compañía, y revísalo antes de guardarlo.',
+    'Haz que YOUYA lea un vuelo, un tren o un ferry del billete que te envió la compañía, y revísalo antes de guardarlo.',
   'help.guide.import-transport-file.step.1':
     'En la barra de la pestaña «Transportes», haz clic en el icono de subida delante de «Transporte», cuya descripción emergente dice «Importar confirmaciones de reserva». Se abre el cuadro con ese nombre, el mismo que tiene la pestaña «Reservas». Con la pestaña vacía, «Importar desde archivo», en el centro, hace lo mismo.',
   'help.guide.import-transport-file.step.2':
@@ -4289,11 +4289,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': 'Planificar una conexión de transporte público',
   'help.guide.plan-transit.goal':
-    'Haz que TREK busque los trenes y autobuses reales entre dos puntos de un día y añade al plan el que elijas.',
+    'Haz que YOUYA busque los trenes y autobuses reales entre dos puntos de un día y añade al plan el que elijas.',
   'help.guide.plan-transit.step.1':
     'Haz clic en el + de la cabecera del día y elige «Transporte público». La búsqueda se abre para ese día: el día aparece como una píldora en la cabecera, y «A mano» y «Automático», a su lado, cambian entre esta búsqueda y el formulario normal.',
   'help.guide.plan-transit.step.2':
-    'En «De» y «A» puedes poner una parada o una estación. Con el cuadro todavía vacío, TREK te sugiere el alojamiento del día, las estaciones y aeropuertos de las reservas del día y las propias paradas del día. Al escribir dos letras, busca en cambio entre las estaciones del horario. «Intercambiar», entre los dos cuadros, invierte «De» y «A».',
+    'En «De» y «A» puedes poner una parada o una estación. Con el cuadro todavía vacío, YOUYA te sugiere el alojamiento del día, las estaciones y aeropuertos de las reservas del día y las propias paradas del día. Al escribir dos letras, busca en cambio entre las estaciones del horario. «Intercambiar», entre los dos cuadros, invierte «De» y «A».',
   'help.guide.plan-transit.step.3':
     '«Salida» o «Llegada» con una hora indica cuándo quieres viajar, y «Mejor ruta», «Menos transbordos» o «Menos caminata» indica cómo se ordenan los resultados.',
   'help.guide.plan-transit.step.4':
@@ -4406,7 +4406,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     'Si un vuelo ya está en el viaje con el mismo número y la misma fecha, se omite, y un mensaje te dice cuántos se han omitido. La flecha de deshacer de la barra de herramientas, sobre los días, deshace toda la importación.',
   'help.guide.airtrail-import.tip.2':
-    'AirTrail sigue siendo la fuente principal de los datos. TREK lee sus cambios cuando abres el viaje y cada pocos minutos en segundo plano. Si borras un vuelo en AirTrail, su tarjeta se mantiene en TREK y su etiqueta cambia a «No sincronizado». Lo que edites en TREK solo se envía a AirTrail si tienes activado «Escribir cambios de vuelta en AirTrail» en «Integraciones».',
+    'AirTrail sigue siendo la fuente principal de los datos. YOUYA lee sus cambios cuando abres el viaje y cada pocos minutos en segundo plano. Si borras un vuelo en AirTrail, su tarjeta se mantiene en YOUYA y su etiqueta cambia a «No sincronizado». Lo que edites en YOUYA solo se envía a AirTrail si tienes activado «Escribir cambios de vuelta en AirTrail» en «Integraciones».',
   'help.guide.airtrail-import.tip.3':
     'Una conexión unida no es un único vuelo de AirTrail que se pueda sincronizar, así que se importa una sola vez: mantiene la etiqueta azul y, al pasar el ratón por encima, te lo indica. Lo mismo ocurre con un vuelo sincronizado si le añades una escala a mano.',
 
@@ -4530,13 +4530,13 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.result':
     'El tramo va ahora por la carretera que elegiste, y también cambian la distancia en la columna lateral y las horas de llegada posteriores.',
   'help.guide.roadtrip-alternatives.tip.1':
-    'Cuando eliges otra carretera, TREK la comprueba primero con el calculador del viaje por carretera. Después mantiene el tramo en esa carretera con los mínimos puntos de paso necesarios, y sustituye los que ya tuviera el tramo. Una carretera que el calculador no puede seguir no se guarda. Si eliges la carretera propuesta por el calculador, se vuelven a quitar los puntos de paso.',
+    'Cuando eliges otra carretera, YOUYA la comprueba primero con el calculador del viaje por carretera. Después mantiene el tramo en esa carretera con los mínimos puntos de paso necesarios, y sustituye los que ya tuviera el tramo. Una carretera que el calculador no puede seguir no se guarda. Si eliges la carretera propuesta por el calculador, se vuelven a quitar los puntos de paso.',
   'help.guide.roadtrip-alternatives.tip.2':
     '«Sin autopista», «Sin peajes» y «Sin ferri» los calcula un segundo motor con su propio modelo de velocidad, así que sus tiempos no se pueden comparar con los demás.',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': 'Configurar el coche y los límites de conducción',
   'help.guide.roadtrip-limits.goal':
-    'Indica a TREK qué vehículo conduces y cuánto quieres conducir sin hacer una pausa.',
+    'Indica a YOUYA qué vehículo conduces y cuánto quieres conducir sin hacer una pausa.',
   'help.guide.roadtrip-limits.step.1':
     '«Ajustes de conducción» está debajo de la búsqueda, en la columna derecha. Sus insignias muestran lo que has configurado; haz clic para abrirlo.',
   'help.guide.roadtrip-limits.step.2':
@@ -4607,7 +4607,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     'Elige una traza. Cada una muestra su longitud y si sigue la ruta de este día o a qué distancia está. La más cercana aparece primero.',
   'help.guide.roadtrip-track.step.3':
-    'Haz clic en «Seguir esta traza». TREK añade puntos de paso donde la ruta se aleja más del track y vuelve a calcularla, y repite el proceso varias veces.',
+    'Haz clic en «Seguir esta traza». YOUYA añade puntos de paso donde la ruta se aleja más del track y vuelve a calcularla, y repite el proceso varias veces.',
   'help.guide.roadtrip-track.step.4':
     'El cuadro indica cuántos puntos de paso se han colocado y cuánto se ajusta ahora la ruta al track, o que la ruta ya seguía el track. «Quitar puntos de paso», abajo a la izquierda, los elimina, y el calculador de rutas vuelve a planificar el día. Al cerrar el cuadro se conserva el track.',
   'help.guide.roadtrip-track.result':
@@ -4658,30 +4658,30 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     'Tus ajustes personales de los plugins que ha instalado el administrador: las claves y preferencias que te pide cada plugin y un registro de lo que han hecho los plugins en tu nombre. La pestaña solo aparece mientras haya algún plugin activo.',
   'help.ctx.settings-about.bullet.3':
-    'En Ko-fi, Buy Me a Coffee y Discord puedes apoyar a TREK o hablar con las personas que lo desarrollan.',
+    'En Ko-fi, Buy Me a Coffee y Discord puedes apoyar a YOUYA o hablar con las personas que lo desarrollan.',
   'help.guide.language-region.step.3':
     'Elige la «Moneda de visualización», o deja «Moneda del viaje» para ver cada viaje en su propia moneda. Después elige «Unidad de temperatura», «Unidad de distancia», «Formato de hora», el día en que empieza la semana en «La semana comienza el» y el «Formato de fecha».',
   'help.guide.travel-map-prefs.step.3':
     '«Explorar lugares en el mapa» muestra la píldora de categorías para buscar lugares cercanos. «Difuminar códigos de reserva» oculta los números de confirmación hasta que pasas el cursor por encima o los tocas. «Optimizar la ruta desde el alojamiento» hace que el día empiece y termine en tu hotel.',
   'help.guide.web-push-device.step.2':
     'En la tarjeta «Notificaciones» de arriba, la columna Push define qué eventos se envían a tus dispositivos.',
-  'help.guide.connect-airtrail.goal': 'Haz que TREK importe y sincronice los vuelos de tu propio AirTrail.',
-  'help.guide.connect-dawarich.goal': 'Haz que TREK sepa por dónde has ido realmente, a partir de tu propio Dawarich.',
+  'help.guide.connect-airtrail.goal': 'Haz que YOUYA importe y sincronice los vuelos de tu propio AirTrail.',
+  'help.guide.connect-dawarich.goal': 'Haz que YOUYA sepa por dónde has ido realmente, a partir de tu propio Dawarich.',
   'help.guide.tour-connect-wanderer.goal':
-    'Haz que TREK lea las rutas de tu propio wanderer para importarlas como excursiones.',
+    'Haz que YOUYA lea las rutas de tu propio wanderer para importarlas como excursiones.',
   'help.guide.tour-wanderer-watch.title': 'Recibir un aviso cuando cambien tus rutas de wanderer',
   'help.guide.plugin-settings.tip.2':
     'Un canal de plugin en «Notificaciones» tiene un botón Configurar que abre esta página.',
   'help.guide.default-user-settings.result':
     'Las cuentas nuevas, y todos los que nunca han cambiado estos ajustes, verán lo que elijas.',
   'help.guide.own-routing-engine.goal':
-    'Calcula las rutas de los días, de los viajes por carretera y de las excursiones con tu propio servidor OSRM o Valhalla, en lugar de los servicios de TREK o los públicos.',
+    'Calcula las rutas de los días, de los viajes por carretera y de las excursiones con tu propio servidor OSRM o Valhalla, en lugar de los servicios de YOUYA o los públicos.',
   'help.guide.admin-passkeys.tip.1':
-    'Si TREK aún no puede determinar un dominio, un aviso bajo el interruptor lo indica, y las passkeys seguirán ocultas hasta que definas APP_URL o el Relying Party ID.',
+    'Si YOUYA aún no puede determinar un dominio, un aviso bajo el interruptor lo indica, y las passkeys seguirán ocultas hasta que definas APP_URL o el Relying Party ID.',
   'help.guide.rotate-jwt-secret.step.1':
     'En la pestaña «Seguridad», en «Zona de peligro», abajo a la derecha, haz clic en «Rotar» junto a «Rotar secreto JWT».',
   'help.guide.storage-backends.tip.3':
-    'TREK puede volver a descargar las cachés de fotos, así que replicarlas suele ser un desperdicio de espacio.',
+    'YOUYA puede volver a descargar las cachés de fotos, así que replicarlas suele ser un desperdicio de espacio.',
   'help.guide.admin-channels.step.3':
     'Debajo, en la misma tarjeta, elige para cada evento por qué canales se envía: «Nueva versión disponible», «Fallo de réplica de almacenamiento» y «Región de kayak pedida». Cada interruptor se guarda al momento.',
   'help.guide.notification-defaults.tip.1':
@@ -4742,13 +4742,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     'Los datos abiertos solo saben dónde está el avión. La puerta, la terminal y la cinta de equipajes no forman parte de ellos, así que añádelas tú a la reserva si las necesitas. Los retrasos y la hora de llegada son estimaciones calculadas a partir de las posiciones.',
   'help.guide.flight-live-status.tip.3':
-    'TREK necesita el número de vuelo y los dos aeropuertos para seguir un vuelo. Puede que no se encuentre un vuelo cuya aerolínea opera con otro indicativo, o un código compartido; su reserva conserva entonces las horas normales.',
+    'YOUYA necesita el número de vuelo y los dos aeropuertos para seguir un vuelo. Puede que no se encuentre un vuelo cuya aerolínea opera con otro indicativo, o un código compartido; su reserva conserva entonces las horas normales.',
   'help.guide.group-sort-bookings.step.2':
     'En «Agrupar por», elige «Estado», «Día», «Tipo» o «Sin agrupar». La pestaña se ordena al momento en esas secciones.',
   'help.guide.export-bookings-csv.result':
     'Tu navegador descarga un archivo con el nombre del viaje y de la pestaña, por ejemplo autumn-in-japan-bookings.csv, con una fila por cada reserva que mostraba la pestaña.',
   'help.guide.arrange-packing-list.result':
-    'Las listas quedan en el orden en que las colocaste, y los artículos se ordenan de la A a la Z hasta que lo desactives. TREK sigue guardando tu propio orden.',
+    'Las listas quedan en el orden en que las colocaste, y los artículos se ordenan de la A a la Z hasta que lo desactives. YOUYA sigue guardando tu propio orden.',
   'help.guide.count-packed-pieces.step.2':
     'En «Cant.», escribe cuántas unidades llevas, por ejemplo 5, o haz clic en el más hasta que muestre el número.',
   'help.guide.expense-receipts.step.4':
@@ -4756,7 +4756,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     'Quien haya salido del viaje sigue teniendo una fila en «Saldos» y «Presupuesto final» mientras se le deba dinero o deba dinero.',
   'help.guide.files-sync-settings.step.2':
-    'La barra de flujo muestra TREK y tu gestor con los documentos que tiene cada uno, y dos carriles entre ellos: «Hacia el gestor» y «Desde el gestor». Haz clic en «Hacia el gestor» para desactivarlo. El carril se queda en gris y la línea bajo los carriles dice «Solo entrada». Vuelve a hacer clic para activarlo de nuevo.',
+    'La barra de flujo muestra YOUYA y tu gestor con los documentos que tiene cada uno, y dos carriles entre ellos: «Hacia el gestor» y «Desde el gestor». Haz clic en «Hacia el gestor» para desactivarlo. El carril se queda en gris y la línea bajo los carriles dice «Solo entrada». Vuelve a hacer clic para activarlo de nuevo.',
   'help.guide.files-sync-settings.tip.4':
     'Solo el propietario del viaje o un administrador pueden cambiar todo esto. Los demás miembros ven la barra de flujo con una línea como «Los documentos van en ambos sentidos», pero no «Ajustes».',
   'help.guide.manage-notes.step.2':
@@ -4767,7 +4767,7 @@ const help: TranslationStrings = {
     'La papelera solo elimina categorías que no usa ninguna nota. Una categoría que todavía usan algunas notas se queda en la lista hasta que pases esas notas a otra categoría.',
   'help.guide.roadtrip-reorder.title': 'Reordenar una parada o pasarla a otro día',
   'help.guide.roadtrip-reorder.tip.3':
-    'TREK no te pregunta por las horas que hayas fijado: el carril recalcula el día al momento y marca las paradas a las que ya no se puede llegar a tiempo.',
+    'YOUYA no te pregunta por las horas que hayas fijado: el carril recalcula el día al momento y marca las paradas a las que ya no se puede llegar a tiempo.',
   'help.guide.roadtrip-overnight.step.3':
     'Arriba del cuadro, «Pernoctar» añade una noche de estancia y «Parada» la convierte en una parada de un rato. Un hotel se abre con «Pernoctar» y un camping, con «Parada». Para una noche solo se pide el «Registro de entrada», que puedes dejar vacío.',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4781,7 +4781,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     'Arriba, «Importar GPX o KML» importa archivos como excursiones. El botón de filtro que hay debajo («Todos» al principio, con el número de excursiones) filtra la lista por estado, origen, límite de ruta y tipo.',
   'help.guide.tour-show-list.step.2':
-    'Cada fila es una excursión. La barra de color es su línea en el mapa, y la casilla redonda muestra el límite de ruta (T1 a T6) de una caminata planificada en TREK o el icono de su tipo. Las insignias bajo el nombre muestran los días en que está, su duración, distancia y desnivel positivo. En una excursión de varios días, la luna con un número indica cuántas etapas tiene.',
+    'Cada fila es una excursión. La barra de color es su línea en el mapa, y la casilla redonda muestra el límite de ruta (T1 a T6) de una caminata planificada en YOUYA o el icono de su tipo. Las insignias bajo el nombre muestran los días en que está, su duración, distancia y desnivel positivo. En una excursión de varios días, la luna con un número indica cuántas etapas tiene.',
   'help.guide.tour-add-to-day.title': 'Poner una excursión en un día',
   'help.guide.tour-add-to-day.tip.2':
     'Si el viaje termina antes de la última etapa, la opción muestra la última etapa que cabe, y las siguientes se quedan sin día.',
@@ -4814,7 +4814,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.4':
     '«Cambiar», debajo del track, elige otra grabación. «Desvincular» la quita de la excursión, y el track sigue en el viaje como importación.',
   'help.guide.tour-origin-check.step.3':
-    'Una excursión que dibujaste en la pestaña «Excursiones» indica «planificada en TREK», con el día en que se creó en «Creado».',
+    'Una excursión que dibujaste en la pestaña «Excursiones» indica «planificada en YOUYA», con el día en que se creó en «Creado».',
   'help.ctx.trip-tour-planner.bullet.2':
     'El carril izquierdo es el editor. Si no hay nada abierto, ofrece «Planificar nueva excursión». Una excursión abierta muestra su nombre, su tipo, sus puntos de ruta, las tarjetas propias de su tipo y sus detalles, con Descartar y Guardar abajo.',
   'help.guide.tour-open-workspace.step.2':
@@ -4822,7 +4822,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.tip.3':
     'Si abres otra excursión mientras el editor tiene cambios sin guardar, primero se te pregunta: «Descartar cambios» o seguir editando.',
   'help.guide.tour-draw-route.step.5':
-    'Haz clic en los siguientes puntos en el orden en que vas a recorrerlos. Cada clic añade el punto como nuevo final y, a partir de dos puntos, TREK planifica la ruta por los caminos.',
+    'Haz clic en los siguientes puntos en el orden en que vas a recorrerlos. Cada clic añade el punto como nuevo final y, a partir de dos puntos, YOUYA planifica la ruta por los caminos.',
   'help.guide.tour-type-profile.goal':
     'Elige el tipo de excursión y, si es en bici, su perfil, para que la ruta vaya por los caminos adecuados.',
   'help.guide.tour-edit-points.title': 'Mover, reordenar y quitar puntos',
@@ -4948,11 +4948,11 @@ const help: TranslationStrings = {
     'Consulta las pistas, los circuitos de fondo y los remontes que rodean tu excursión de esquí, y qué significan sus colores.',
   'help.guide.tour-ski-import.title': 'Importar un track de esquí e indicar qué fue',
   'help.guide.tour-ski-import.tip.1':
-    'Un track importado se conserva tal como se grabó: TREK no lo ajusta a las pistas, y su tarjeta muestra «Tiempo de esquí» como «Sin calcular».',
+    'Un track importado se conserva tal como se grabó: YOUYA no lo ajusta a las pistas, y su tarjeta muestra «Tiempo de esquí» como «Sin calcular».',
   'help.ctx.trip-tour-paddle.bullet.3':
     '«Más acciones» en un punto incluye las herramientas de remo: planificar el siguiente tramo por el agua o dibujarlo a mano, «Portear la embarcación desde aquí» y «Esclusa en este punto».',
   'help.guide.tour-paddle-setup.step.3':
-    'En «Barco», elige Kayak, «Canoa», SUP u «Otros». La embarcación determina la velocidad que propone TREK.',
+    'En «Barco», elige Kayak, «Canoa», SUP u «Otros». La embarcación determina la velocidad que propone YOUYA.',
   'help.guide.tour-paddle-setup.tip.4':
     '«Remar tiene riesgos», la fila de abajo de la columna, abre «Seguridad en el agua». Léelo una vez antes de tu primera excursión.',
   'help.guide.tour-paddle-water-route.step.5':
@@ -4975,7 +4975,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.tip.2':
     'Descartar elimina las marcas que no hayas guardado. El track grabado nunca se vuelve a trazar.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK no calcula el tiempo a caballo. Si quieres que aparezca en el día, introduce un tiempo en «Planeado», dentro de «Detalles».',
+    'YOUYA no calcula el tiempo a caballo. Si quieres que aparezca en el día, introduce un tiempo en «Planeado», dentro de «Detalles».',
   'help.guide.tour-horse-plan.step.5':
     'Elige un tramo en «Secciones». Comprueba el «Sentido» en que lo recorres y lo que indica «Acceso a caballo» a lo largo de él.',
   'help.guide.tour-horse-plan.tip.5':
@@ -5019,7 +5019,7 @@ const help: TranslationStrings = {
   'help.guide.journey-map-layers.tip.1':
     'Una línea de color discontinua es la ruta GPX de un viaje, que forma parte del plan; una continua es una ruta grabada ese día.',
   'help.guide.journey-keep-route.tip.1':
-    'Donde termina la grabación, termina también la línea. TREK solo dibuja lo que se ha grabado.',
+    'Donde termina la grabación, termina también la línea. YOUYA solo dibuja lo que se ha grabado.',
   'help.guide.journey-day-stays.tip.1':
     'La fila solo aparece para quienes pueden editar el diario y tienen conectado su propio Dawarich, y solo en los días en los que queda algo por decidir.',
   'help.guide.journey-take-over-day.step.4':
@@ -5032,7 +5032,7 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3':
     '«Restablecer valores predeterminados», debajo de las tarjetas, devuelve toda la pestaña «Apariencia» a su configuración original.',
   'help.guide.web-push-device.result':
-    'La tarjeta muestra «Activado en este dispositivo», y los eventos activados en Push te llegan aunque TREK esté cerrado.',
+    'La tarjeta muestra «Activado en este dispositivo», y los eventos activados en Push te llegan aunque YOUYA esté cerrado.',
   'help.guide.connect-airtrail.step.1':
     'En «Integraciones», busca AirTrail e introduce su «URL de la instancia» y una clave de API. La clave se crea en AirTrail, en «Ajustes», «Seguridad». Si creas la clave en AirTrail 3.13 o posterior, necesita el ámbito flight.read.own para leer. Para escribir cambios de vuelta, también necesita flight.update.own, flight.passengers.manage.own, reference_data.read y profile.read.',
   'help.guide.connect-dawarich.step.1':
@@ -5040,14 +5040,14 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.1':
     'En «Integraciones», busca wanderer e introduce su «URL de la instancia» y un token de API. El token se crea en wanderer, en «Ajustes», «Cuenta», «Tokens de API», y empieza por wanderer_key_.',
   'help.guide.tour-wanderer-watch.goal':
-    'Haz que TREK compruebe en segundo plano si cambian las rutas que has importado.',
+    'Haz que YOUYA compruebe en segundo plano si cambian las rutas que has importado.',
   'help.guide.mcp-oauth.tip.3':
     'Los «Tokens de API» siguen funcionando, pero están marcados como «Obsoleto»; pásate a un cliente OAuth.',
   'help.guide.offline-conflicts.tip.2': 'Esta opción solo se aplica a este dispositivo.',
   'help.guide.default-user-settings.tip.1':
     'Lo que cada usuario elija en «Ajustes» siempre tiene prioridad; estos valores se aplican a quienes no hayan cambiado ese ajuste.',
   'help.guide.own-routing-engine.step.1':
-    'En la pestaña «Predeterminados», la tarjeta «Rutas» decide quién calcula las rutas. En «Servicio de rutas», elige «Automático», «Servicios de TREK», «Valhalla pública (FOSSGIS)» o «Instancia de Valhalla propia». La elección se guarda al momento.',
+    'En la pestaña «Predeterminados», la tarjeta «Rutas» decide quién calcula las rutas. En «Servicio de rutas», elige «Automático», «Servicios de YOUYA», «Valhalla pública (FOSSGIS)» o «Instancia de Valhalla propia». La elección se guarda al momento.',
   'help.guide.admin-passkeys.tip.2':
     'Si cambias el dominio más adelante, todas las passkeys que ya se hayan añadido dejarán de funcionar.',
   'help.guide.instance-keys.tip.4':
@@ -5069,7 +5069,7 @@ const help: TranslationStrings = {
   'help.guide.collapse-columns.tip.3':
     'Cuando el separador tiene el foco, también puedes moverlo con las teclas de flecha.',
   'help.guide.edit-place.tip.3':
-    'Si haces clic fuera del cuadro, no pierdes tus cambios: TREK te pregunta primero «¿Descartar los cambios?», y «Seguir editando» te devuelve al formulario.',
+    'Si haces clic fuera del cuadro, no pierdes tus cambios: YOUYA te pregunta primero «¿Descartar los cambios?», y «Seguir editando» te devuelve al formulario.',
   'help.guide.dawarich-stays.goal':
     'Añade los lugares en los que Dawarich registró tus estancias durante el viaje, después de revisar cada uno.',
   'help.guide.leave-stop-off-route.step.1':
@@ -5119,7 +5119,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     'En el carril, el trayecto es una tarjeta del color de su tipo, con el horario en la columna de llegada y sus puntos de salida y llegada bajo el título.',
   'help.guide.roadtrip-google-import.tip.1':
-    'TREK calcula su propia ruta entre las paradas; no copia la carretera de Google.',
+    'YOUYA calcula su propia ruta entre las paradas; no copia la carretera de Google.',
   'help.guide.roadtrip-hazards.result':
     'El mapa muestra los avisos actuales alrededor de tu viaje, y la ruta no cambia.',
   'help.ctx.trip-tours.bullet.3':
@@ -5128,7 +5128,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.goal':
     'Planifica cuándo harás una excursión para que aparezca en el día con su línea en el mapa.',
   'help.guide.tour-add-to-day.tip.3':
-    'Una excursión solo se puede añadir una vez a cada día. Si la sueltas en un día que ya la tiene, TREK solo muestra «Esta excursión ya está en ese día.».',
+    'Una excursión solo se puede añadir una vez a cada día. Si la sueltas en un día que ya la tiene, YOUYA solo muestra «Esta excursión ya está en ese día.».',
   'help.guide.tour-day-times.step.4':
     'Si la excursión termina después de que empiece el siguiente elemento del día, una nota bajo la fila te avisa, por ejemplo «Ends at 13:30, after Lunch at Gostner Schwaige starts at 12:30». No se mueve nada.',
   'help.guide.tour-remove-from-day.step.1':
@@ -5185,7 +5185,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.result':
     'La pestaña «Excursiones»: el editor a la izquierda, las excursiones del viaje a la derecha y el mapa en medio.',
   'help.guide.tour-draw-route.step.6':
-    'En «Puntos de ruta», cada punto tiene una fila con su número, que toma el nombre del lugar en cuanto se carga. Mientras TREK está calculando, un pequeño punto junto a «Nueva excursión» muestra su estado.',
+    'En «Puntos de ruta», cada punto tiene una fila con su número, que toma el nombre del lugar en cuanto se carga. Mientras YOUYA está calculando, un pequeño punto junto a «Nueva excursión» muestra su estado.',
   'help.guide.tour-type-profile.step.1':
     'Haz clic en «Tipo de ruta», bajo «Nombre de la excursión». Muestra el tipo actual con una línea que explica cómo se planifica.',
   'help.guide.tour-edit-points.goal':
@@ -5210,7 +5210,7 @@ const help: TranslationStrings = {
     '«Resumen de la excursión», arriba de «Excursiones de este viaje», muestra la «Distancia», el «Desnivel positivo» y el «Desnivel negativo» de la excursión abierta en el editor, su tiempo estimado, las pausas y el total previsto.',
   'help.guide.tour-list-manage.title': 'Gestionar las excursiones del viaje',
   'help.guide.tour-list-manage.tip.2':
-    'En el menú de días, los días que ya tienen la excursión aparecen en gris. En una excursión de varios días, TREK te pregunta si sus etapas empiezan ese día o si toda la excursión va en ese día.',
+    'En el menú de días, los días que ya tienen la excursión aparecen en gris. En una excursión de varios días, YOUYA te pregunta si sus etapas empiezan ese día o si toda la excursión va en ese día.',
   'help.guide.tour-delete.tip.2': 'Si solo quieres quitarla de un día, usa «Quitar del día» en el menú del día.',
   'help.guide.tour-saved-elsewhere.step.4':
     'Elige «Guardar como nueva excursión» para conservar las dos, «Cargar la más reciente» para cargar la otra versión o «Sobrescribir» para sustituir la otra versión por la tuya.',
@@ -5234,7 +5234,7 @@ const help: TranslationStrings = {
   'help.guide.tour-map-layers.tip.1':
     'El mapa que eliges se mantiene en todas las excursiones que abras hasta que recargues la página. Una excursión cuyo tipo no lo ofrece se abre en «Mapa», y ni el mapa de la pestaña «Planificado» ni el ajuste de «Ajustes» cambian.',
   'help.guide.tour-along-search.step.4':
-    'Haz clic en «Buscar a lo largo de la ruta». TREK solo busca: la excursión no cambia.',
+    'Haz clic en «Buscar a lo largo de la ruta». YOUYA solo busca: la excursión no cambia.',
   'help.guide.tour-along-add-stop.step.1':
     'Haz clic en un lugar de la lista «A lo largo de la ruta» o en su marcador del mapa. Su tarjeta se abre sobre el mapa: qué es, a qué distancia está de la ruta y en qué punto de la excursión queda.',
   'help.guide.tour-3d-terrain.title': 'Ver una excursión en 3D',
@@ -5261,7 +5261,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     'Los circuitos no superan la «Dificultad máxima del sendero» de la caminata; la píldora T de la tarjeta indica cuál es.',
   'help.guide.tour-hike-compare-ways.step.4':
-    'Haz clic en «Usar este camino». TREK comprueba con el calculador de rutas que la ruta lo sigue realmente.',
+    'Haz clic en «Usar este camino». YOUYA comprueba con el calculador de rutas que la ruta lo sigue realmente.',
   'help.guide.tour-ferrata-add.step.2':
     'Haz clic en una vía ferrata del mapa, en su línea discontinua o en su señal. Su tarjeta muestra el nombre, el grado y la longitud.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -5318,7 +5318,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Una nueva excursión de remo con su embarcación, su tipo de agua y su velocidad, lista para su primer punto en el mapa.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Si faltan los datos del agua, TREK los descarga automáticamente para la región o se los pide a un administrador, según cómo esté configurada la instancia. Un administrador añade regiones en «Datos de aguas para piragüismo», una fila bajo «Excursiones» en la pestaña «Complementos» del área de administración. El tramo muestra entonces «Cargando los datos del agua» y se planifica automáticamente cuando llegan, normalmente en uno a tres minutos.',
+    'Si faltan los datos del agua, YOUYA los descarga automáticamente para la región o se los pide a un administrador, según cómo esté configurada la instancia. Un administrador añade regiones en «Datos de aguas para piragüismo», una fila bajo «Excursiones» en la pestaña «Complementos» del área de administración. El tramo muestra entonces «Cargando los datos del agua» y se planifica automáticamente cuando llegan, normalmente en uno a tres minutos.',
   'help.guide.tour-paddle-portage.step.2':
     'Elige «Portear la embarcación desde aquí». El tramo hasta el siguiente punto pasa a ser un porteo, dibujado por tierra.',
   'help.guide.tour-paddle-lock.title': 'Añadir una esclusa y su tiempo de espera',
@@ -5393,9 +5393,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     'Push funciona por navegador: repite el proceso en cada móvil y ordenador en el que quieras recibir notificaciones. «Desactivar en este dispositivo» las desactiva solo en ese dispositivo.',
   'help.guide.connect-airtrail.step.2':
-    '«Permitir certificados autofirmados» es solo para una instancia de confianza en tu propia red. «Escribir cambios de vuelta en AirTrail» está desactivado de forma predeterminada, así que TREK solo lee; actívalo para enviar tus cambios a AirTrail.',
+    '«Permitir certificados autofirmados» es solo para una instancia de confianza en tu propia red. «Escribir cambios de vuelta en AirTrail» está desactivado de forma predeterminada, así que YOUYA solo lee; actívalo para enviar tus cambios a AirTrail.',
   'help.guide.connect-dawarich.step.2':
-    '«Buscar estancias nuevas automáticamente» permite que TREK compruebe por su cuenta. Si está desactivado, TREK solo consulta Dawarich cuando se lo pides. «Permitir certificado autofirmado» es solo para una instancia en la que tu servidor no confía.',
+    '«Buscar estancias nuevas automáticamente» permite que YOUYA compruebe por su cuenta. Si está desactivado, YOUYA solo consulta Dawarich cuando se lo pides. «Permitir certificado autofirmado» es solo para una instancia en la que tu servidor no confía.',
   'help.guide.tour-connect-wanderer.step.2':
     'Activa «Permitir certificado autofirmado» solo si la instancia está en tu propia red.',
   'help.guide.tour-wanderer-watch.step.1':
@@ -5405,7 +5405,7 @@ const help: TranslationStrings = {
     '«Moneda de visualización» solo convierte los importes para mostrarlos. Los importes introducidos en «Costes» no cambian.',
   'help.guide.own-routing-engine.step.2': 'En «Motor de rutas propio», introduce la dirección de tu servidor OSRM.',
   'help.guide.own-routing-engine.step.3':
-    'En «Instancia de Valhalla propia», introduce la dirección de tu Valhalla y elige «Instancia de Valhalla propia» como «Servicio de rutas». Cada campo se guarda al salir de él; después reinicia el servidor de TREK y recarga la página.',
+    'En «Instancia de Valhalla propia», introduce la dirección de tu Valhalla y elige «Instancia de Valhalla propia» como «Servicio de rutas». Cada campo se guarda al salir de él; después reinicia el servidor de YOUYA y recarga la página.',
   'help.guide.admin-passkeys.tip.3':
     'Si un usuario ha perdido el dispositivo con sus passkeys, elimínalas con «Restablecer passkeys» en «Editar usuario».',
   'help.guide.rotate-jwt-secret.result':
@@ -5421,7 +5421,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     'Lee la nota amarilla: indica quién recibe acceso al diario por primera vez. Después haz clic en «Vincular diario».',
   'help.guide.dawarich-stays.step.1':
-    'Con Dawarich conectado en «Ajustes», «Integraciones», aparece «Desde Dawarich» encima de la lista de lugares. Su cabecera indica cuándo comprobó TREK por última vez y cuántas estancias están en espera. Haz clic en ella para abrir la lista.',
+    'Con Dawarich conectado en «Ajustes», «Integraciones», aparece «Desde Dawarich» encima de la lista de lugares. Su cabecera indica cuándo comprobó YOUYA por última vez y cuántas estancias están en espera. Haz clic en ella para abrir la lista.',
   'help.guide.leave-stop-off-route.step.2':
     'Junto al nombre aparece la insignia «Fuera de ruta». La parada sigue en el día y en el mapa, pero la ruta del día y los tiempos de sus tramos la omiten.',
   'help.guide.move-booking-day.result': 'La reserva pertenece al nuevo día en el plan, a la misma hora.',
@@ -5430,7 +5430,7 @@ const help: TranslationStrings = {
     'Abre un lugar que tenga una foto entre sus «Archivos». El bloque «Archivos», cerca del final de la tarjeta, indica cuántos archivos tiene el lugar.',
   'help.guide.place-own-hours.title': 'Corregir el horario, el teléfono o el correo de un lugar',
   'help.guide.place-own-hours.tip.1':
-    'El horario que introduzcas sustituye al que consultó TREK, así que una cafetería con horario de temporada muestra el que tú conoces.',
+    'El horario que introduzcas sustituye al que consultó YOUYA, así que una cafetería con horario de temporada muestra el que tú conoces.',
   'help.guide.day-panel.tip.3':
     '¿Planificas por calendario? Activa «Fecha primero en los títulos de día» en «Ajustes», en «Pantalla», y la cabecera mostrará primero la fecha, con «Día 1» o el nombre del día debajo.',
   'help.guide.confirm-stay-booking.result':
@@ -5450,15 +5450,15 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2':
     'Las columnas están separadas por punto y coma, y Excel abre el archivo con los acentos correctos.',
   'help.guide.arrange-packing-list.tip.2':
-    'TREK recuerda «A a Z» en este navegador, así que la próxima vez la lista también se abre ordenada. Solo cambia lo que ves tú, nunca el orden que ven los demás.',
+    'YOUYA recuerda «A a Z» en este navegador, así que la próxima vez la lista también se abre ordenada. Solo cambia lo que ves tú, nunca el orden que ven los demás.',
   'help.guide.count-packed-pieces.step.4':
     'Cierra la ventana. Mientras solo hayas guardado algunas unidades, la fila muestra el recuento, como 3/5, y la casilla tiene un borde de tu color de acento. Cuando el recuento llega a la cantidad, el artículo se marca solo.',
   'help.guide.expense-receipts.result':
     'El recibo se guarda con el gasto: la etiqueta de su fila lo abre, y el archivo también está en los «Archivos» del viaje.',
   'help.guide.files-sync-settings.step.4':
-    'En «Cuando se elimina un documento», elige qué pasa con la copia del otro lado. «Conservar ambas copias» deja la copia del gestor donde está. «Mover a la papelera» la envía a la papelera del gestor cuando el documento se elimina en TREK.',
+    'En «Cuando se elimina un documento», elige qué pasa con la copia del otro lado. «Conservar ambas copias» deja la copia del gestor donde está. «Mover a la papelera» la envía a la papelera del gestor cuando el documento se elimina en YOUYA.',
   'help.ctx.trip-collab.bullet.7':
-    'Todo lo de esta sección necesita conexión. Sin conexión, los mensajes, notas, enlaces, encuestas y votos no se guardan, y TREK muestra «This needs a connection. Try again once TREK is back online.». Los miembros que no pueden editar «Colaboración» pueden leerlo todo, pero no ven «Nueva nota», «Añadir enlace» ni «Nueva encuesta», y el cuadro de mensajes aparece en gris.',
+    'Todo lo de esta sección necesita conexión. Sin conexión, los mensajes, notas, enlaces, encuestas y votos no se guardan, y YOUYA muestra «This needs a connection. Try again once YOUYA is back online.». Los miembros que no pueden editar «Colaboración» pueden leerlo todo, pero no ven «Nueva nota», «Añadir enlace» ni «Nueva encuesta», y el cuadro de mensajes aparece en gris.',
   'help.guide.manage-notes.step.4':
     'Editar abre el cuadro de la nota con todo rellenado. Cambia lo que necesites, aquí una línea más en «Contenido», y haz clic en Guardar.',
   'help.guide.note-categories.step.2':
@@ -5475,7 +5475,7 @@ const help: TranslationStrings = {
     'La píldora «Registro de entrada» o «Embarque» indica a qué hora tienes que estar en la terminal: la salida se adelanta ese tiempo respecto al horario.',
   'help.guide.roadtrip-google-import.title': 'Importar una ruta de Google Maps',
   'help.guide.roadtrip-google-import.tip.2':
-    'El enlace tiene que tener al menos dos paradas que TREK pueda situar, y como máximo 30.',
+    'El enlace tiene que tener al menos dos paradas que YOUYA pueda situar, y como máximo 30.',
   'help.guide.roadtrip-hazards.tip.1':
     'Los avisos no son cortes de carretera: la ruta nunca cambia por ellos, y son avisos actuales, no una previsión para tus fechas.',
   'help.ctx.trip-tours.bullet.4':
@@ -5604,7 +5604,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.3':
     'Las insignias lo resumen: qué parte de la ruta es «Conocido», el «Máximo conocido» y, aparte, el «Límite de ruta» con el que se planificó la caminata.',
   'help.guide.tour-hike-round.goal':
-    'Haz que TREK te proponga circuitos de la longitud que quieras, empezando en una parada de la caminata.',
+    'Haz que YOUYA te proponga circuitos de la longitud que quieras, empezando en una parada de la caminata.',
   'help.guide.tour-hike-round.tip.2':
     'Se aceptan distancias de 1 a 60 km, y se proponen circuitos que se desvían como mucho un 20 % de la tuya.',
   'help.guide.tour-hike-compare-ways.result':
@@ -5631,7 +5631,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     'Las paradas visitadas aparecen marcadas, las omitidas tachadas, y el tiempo restante solo cuenta lo que queda por delante.',
   'help.guide.tour-bike-profile.goal':
-    'Empieza una ruta en bici y deja que TREK la calcule para cicloturismo, carretera, gravel o MTB.',
+    'Empieza una ruta en bici y deja que YOUYA la calcule para cicloturismo, carretera, gravel o MTB.',
   'help.guide.tour-bike-profile.tip.1':
     'Si cambias el perfil más tarde, toda la ruta se vuelve a planificar para el nuevo perfil.',
   'help.guide.tour-bike-surfaces.step.2':
@@ -5663,14 +5663,14 @@ const help: TranslationStrings = {
     'En un lago, «Por los lagos» define la ruta: «En línea recta» es la más corta, y «Cerca de la orilla» va pegada a la orilla para los días de viento.',
   'help.guide.tour-paddle-water-route.title': 'Planificar los tramos por el agua',
   'help.guide.tour-paddle-water-route.tip.2':
-    'Donde la ruta portea la embarcación alrededor de un azud o pasa por una esclusa, TREK coloca ahí un punto propio, marcado como «Detectado». Si lo mueves o lo cambias, pasa a ser tuyo.',
+    'Donde la ruta portea la embarcación alrededor de un azud o pasa por una esclusa, YOUYA coloca ahí un punto propio, marcado como «Detectado». Si lo mueves o lo cambias, pasa a ser tuyo.',
   'help.guide.tour-paddle-portage.step.3':
     'Bajo el punto aparece una tarjeta «Porteo» con su longitud y los minutos adicionales. Haz clic en ella para abrirla.',
   'help.guide.tour-paddle-lock.goal': 'Añade una esclusa a la excursión e incluye en su tiempo la espera y el paso.',
   'help.guide.tour-paddle-lock.result':
     'La esclusa está en la excursión con sus minutos, y la «Estimación de tiempo» los suma.',
   'help.guide.tour-paddle-time.tip.1':
-    'TREK empieza con 4 km/h en el agua, 2 km/h en el porteo y 10 minutos en cada porteo. Son valores iniciales para ajustar, no mediciones.',
+    'YOUYA empieza con 4 km/h en el agua, 2 km/h en el porteo y 10 minutos en cada porteo. Son valores iniciales para ajustar, no mediciones.',
   'help.guide.tour-paddle-wind.step.3':
     'Las barras muestran las horas del día, con las rachas detrás del viento medio. Pasa el cursor por una barra para ver los datos y la dirección de esa hora.',
   'help.guide.tour-paddle-checklist.goal':
@@ -5742,7 +5742,7 @@ const help: TranslationStrings = {
   'help.guide.language-region.tip.3':
     '«La semana comienza el» define la primera columna de todos los selectores de fecha; «Vacaciones» tiene su propio ajuste.',
   'help.guide.web-push-device.tip.2':
-    'En iPhone y iPad, primero añade TREK a la pantalla de inicio y ábrelo desde ahí.',
+    'En iPhone y iPad, primero añade YOUYA a la pantalla de inicio y ábrelo desde ahí.',
   'help.guide.connect-airtrail.step.3':
     'Haz clic en Guardar y luego en «Probar conexión». Te indica cuántos vuelos ha encontrado, y la insignia cambia a «Conectado».',
   'help.guide.connect-dawarich.step.3':
@@ -5750,7 +5750,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     'Haz clic en Guardar y luego en «Probar conexión». Te indica cuántas de tus rutas puedes importar, y la insignia cambia a «Conectado».',
   'help.guide.tour-wanderer-watch.step.2':
-    'Como mucho una vez al día, TREK lee el registro breve de cada ruta que hayas importado, y la fila indica cuándo comprobó por última vez. Si una ruta puede haber cambiado, recibes una notificación y «Avisos» la cuenta: haz clic en «Avisos» para ver cada excursión como «Puede haber cambiado», «Cambiado» o «No comprobable», y ábrela desde ahí.',
+    'Como mucho una vez al día, YOUYA lee el registro breve de cada ruta que hayas importado, y la fila indica cuándo comprobó por última vez. Si una ruta puede haber cambiado, recibes una notificación y «Avisos» la cuenta: haz clic en «Avisos» para ver cada excursión como «Puede haber cambiado», «Cambiado» o «No comprobable», y ábrela desde ahí.',
   'help.guide.plugin-settings.goal':
     'Dale a un plugin tus propias claves y preferencias, y consulta lo que ha hecho en tu nombre.',
   'help.guide.own-routing-engine.result': 'Las rutas de todos los viajes se calculan en tus servidores.',
@@ -5770,7 +5770,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     'Aparece la pestaña «Diario» en la barra de pestañas del viaje. Todos a quienes diste acceso de lectura o edición pueden abrir el diario en esa pestaña, con actualizaciones en directo.',
   'help.guide.create-place.tip.4':
-    'Un enlace copiado de Google Maps también funciona en la búsqueda: pégalo, pulsa Intro y TREK obtiene el lugar a partir de él. En cuanto el formulario tiene una posición, «Lugares cerca de este marcador», la mira junto a la búsqueda, muestra lo que hay alrededor.',
+    'Un enlace copiado de Google Maps también funciona en la búsqueda: pégalo, pulsa Intro y YOUYA obtiene el lugar a partir de él. En cuanto el formulario tiene una posición, «Lugares cerca de este marcador», la mira junto a la búsqueda, muestra lo que hay alrededor.',
   'help.guide.dawarich-stays.step.2':
     'Las estancias se agrupan por día, cada una con la hora de llegada y de salida; un icono de indicador marca las estancias de las que Dawarich no estaba seguro. Haz clic en «Añadir como lugar», el marcador junto a una estancia.',
   'help.guide.leave-stop-off-route.step.3':
@@ -5796,7 +5796,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.4':
     'Haz clic en el título para cambiar el nombre del trayecto sin abrir el formulario. «Renombrar» se abre con el nombre ya escrito: escribe el nuevo y haz clic en Guardar.',
   'help.guide.export-transports-csv.goal':
-    'Exporta desde TREK los trayectos del viaje a un archivo CSV para una hoja de cálculo, una agencia de viajes o para imprimirlos.',
+    'Exporta desde YOUYA los trayectos del viaje a un archivo CSV para una hoja de cálculo, una agencia de viajes o para imprimirlos.',
   'help.guide.group-sort-bookings.result':
     'Las reservas aparecen en las secciones y en el orden que elegiste, y este navegador recuerda la elección para la próxima vez.',
   'help.guide.booking-on-map.step.1':
@@ -5811,7 +5811,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     'En el editor, un clic en el nombre de un archivo de la lista abre la misma vista previa. En ese caso, Esc solo cierra la vista previa, no el gasto.',
   'help.guide.files-sync-settings.step.5':
-    '«Cuando ambos lados cambiaron» decide qué copia se conserva si un documento se ha editado en los dos sitios: «Preguntarme», «Conservar la copia de TREK» o «Conservar la copia del almacén». «Sincronizar automáticamente» permite que TREK busque cambios en segundo plano; si está desactivado, la tarjeta indica «En pausa» y solo «Sincronizar ahora» sincroniza. Cada cambio aquí se guarda al momento.',
+    '«Cuando ambos lados cambiaron» decide qué copia se conserva si un documento se ha editado en los dos sitios: «Preguntarme», «Conservar la copia de YOUYA» o «Conservar la copia del almacén». «Sincronizar automáticamente» permite que YOUYA busque cambios en segundo plano; si está desactivado, la tarjeta indica «En pausa» y solo «Sincronizar ahora» sincroniza. Cada cambio aquí se guarda al momento.',
   'help.guide.manage-notes.step.5':
     'Eliminar pregunta antes, «¿Eliminar nota?», porque la nota se borra para todos los miembros, junto con sus archivos. Haz clic en Eliminar para confirmar.',
   'help.guide.note-categories.step.3':
@@ -5842,7 +5842,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     'También puedes hacer clic en la cabecera del día para abrirlo, hacer clic en la excursión de la lista y después en «Quitar del día», al pie de su tarjeta.',
   'help.guide.tour-filter-list.step.3':
-    'Si la lista los mezcla, «Origen» (TREK, «Importación GPX», wanderer), «Límite de ruta» (T1 a T6) y «Tipo» («Senderismo», «Ruta en bicicleta», etc.) la filtran aún más. Vuelve a hacer clic en un valor marcado para quitarlo.',
+    'Si la lista los mezcla, «Origen» (YOUYA, «Importación GPX», wanderer), «Límite de ruta» (T1 a T6) y «Tipo» («Senderismo», «Ruta en bicicleta», etc.) la filtran aún más. Vuelve a hacer clic en un valor marcado para quitarlo.',
   'help.guide.tour-hide-on-map.step.1':
     'Pasa el cursor por una excursión de la lista y haz clic en el ojo que aparece a la derecha de su fila («Ocultar en el mapa»).',
   'help.guide.tour-import-plan-tab.step.1':
@@ -5862,7 +5862,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.tip.4':
     '«Colección» solo aparece si el complemento «Colecciones» está activado. Una lista que solo puedes leer no se puede elegir y, si aún no tienes ninguna lista, el cuadro ofrece «Abrir colecciones».',
   'help.guide.tour-packing-link.step.5':
-    'Haz clic en «Abrir la lista de equipaje» para ir marcando artículos. TREK cambia a la pestaña «Listas», en la lista de equipaje.',
+    'Haz clic en «Abrir la lista de equipaje» para ir marcando artículos. YOUYA cambia a la pestaña «Listas», en la lista de equipaje.',
   'help.guide.tour-files.step.2': 'La fila de debajo indica ahora cuántos hay, y la lista se despliega.',
   'help.guide.tour-activity-link.step.2':
     'En «Hecha el», comprueba el día en que la hiciste. Elige «Sin día» si no corresponde a ninguno.',
@@ -5876,7 +5876,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.step.5':
     '«Buscar lugar o dirección», arriba del mapa, lleva el mapa a un lugar para que puedas empezar donde está la excursión.',
   'help.guide.tour-draw-route.goal':
-    'Coloca en el mapa los puntos de una nueva excursión y deja que TREK calcule la ruta entre ellos.',
+    'Coloca en el mapa los puntos de una nueva excursión y deja que YOUYA calcule la ruta entre ellos.',
   'help.guide.tour-draw-route.tip.2':
     'Topo o «Senderismo» en la píldora del mapa muestran los senderos, así es más fácil hacer clic en uno. Si un punto está demasiado lejos de cualquier camino que pueda usar ese tipo, recibes un aviso en lugar de una ruta.',
   'help.guide.tour-type-profile.step.3':
@@ -6014,11 +6014,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     '«Velocidad de remo» muestra en gris la velocidad sugerida para la embarcación. Si escribes la tuya, el campo indica «Velocidad propia»; el enlace de debajo, «Use the suggested», vuelve a usar la velocidad de la embarcación.',
   'help.guide.tour-paddle-water-route.goal':
-    'Deja que TREK planifique un tramo por el río o el lago, y entiende las notas de un tramo que no ha podido planificar.',
+    'Deja que YOUYA planifique un tramo por el río o el lago, y entiende las notas de un tramo que no ha podido planificar.',
   'help.guide.tour-paddle-water-route.tip.3':
     'Las notas bajo un tramo planificado avisan de aguas bravas con su grado, de un «Paso para canoas» o de un «Hueco en los datos del mapa» salvado con una línea recta.',
   'help.guide.tour-paddle-portage.step.4':
-    'En «Ruta», «Seguir el camino» usa un camino cartografiado y «Línea recta» va directamente. TREK busca el camino por su cuenta y te avisa si no hay ninguno sin un gran rodeo.',
+    'En «Ruta», «Seguir el camino» usa un camino cartografiado y «Línea recta» va directamente. YOUYA busca el camino por su cuenta y te avisa si no hay ninguno sin un gran rodeo.',
   'help.guide.tour-paddle-lock.step.1':
     'Pasa el cursor por la parada de la esclusa y haz clic en «Más acciones», los tres puntos.',
   'help.guide.tour-paddle-time.title': 'Consultar y ajustar el tiempo de una excursión de remo',
@@ -6028,7 +6028,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     'Guarda la excursión de remo y busca «Lista de comprobación» en la columna izquierda. La insignia de su cabecera resume el estado de la lista.',
   'help.guide.tour-paddle-checklist.tip.4':
-    'Los obstáculos proceden de los datos de OpenStreetMap de las regiones que tiene TREK. Si no hay datos, la tarjeta te lo indica, y tienes que comprobar tú los azudes, esclusas y porteos.',
+    'Los obstáculos proceden de los datos de OpenStreetMap de las regiones que tiene YOUYA. Si no hay datos, la tarjeta te lo indica, y tienes que comprobar tú los azudes, esclusas y porteos.',
   'help.guide.tour-paddle-track-marks.step.4':
     'Haz clic en el track en «Excursiones de este viaje». La columna izquierda lo muestra tal como se grabó, con la tarjeta «Porteos y esclusas».',
   'help.ctx.trip-tour-horse.title': 'Rutas a caballo',
@@ -6095,16 +6095,16 @@ const help: TranslationStrings = {
     'Mientras un viaje vinculado está en curso, las estancias de cada día aparecen en ese día, listas para «Incorporar día».',
   'help.ctx.settings-about.title': 'Acerca de',
   'help.guide.web-push-device.tip.3':
-    'Push necesita que TREK esté abierto por HTTPS. Si las notificaciones están bloqueadas, permítelas en los ajustes del navegador y vuelve a intentarlo.',
-  'help.guide.booking-mail-address.title': 'Reenvía los correos de reserva a TREK',
+    'Push necesita que YOUYA esté abierto por HTTPS. Si las notificaciones están bloqueadas, permítelas en los ajustes del navegador y vuelve a intentarlo.',
+  'help.guide.booking-mail-address.title': 'Reenvía los correos de reserva a YOUYA',
   'help.guide.booking-mail-address.goal':
-    'Consigue tu propia dirección para las confirmaciones de reserva, y TREK añadirá cada reserva al viaje correcto.',
+    'Consigue tu propia dirección para las confirmaciones de reserva, y YOUYA añadirá cada reserva al viaje correcto.',
   'help.guide.booking-mail-address.step.1':
     'En «Integraciones», «Correos de reserva» muestra «Tu dirección». Haz clic en el botón de copiar que hay a su lado. Mantén la dirección en privado, como una contraseña.',
   'help.guide.booking-mail-address.step.2':
     'Reenvíale a mano un correo de reserva, con los archivos adjuntos incluidos, o sigue «Reenviar automáticamente» para crear una regla en Gmail u Outlook.',
   'help.guide.booking-mail-address.step.3':
-    '«Importar correos de reserva» activa o desactiva la importación. «Leer con IA» deja que la IA lea los correos sin datos de reserva legibles por máquina. «Añadir automáticamente» mete directamente en su viaje una reserva de la que TREK está seguro.',
+    '«Importar correos de reserva» activa o desactiva la importación. «Leer con IA» deja que la IA lea los correos sin datos de reserva legibles por máquina. «Añadir automáticamente» mete directamente en su viaje una reserva de la que YOUYA está seguro.',
   'help.guide.booking-mail-address.step.4':
     '«Reservas pendientes» abre los correos que esperan tu revisión, con un número cuando hay alguno. «Subir un archivo de correo» lee un correo que guardaste como .eml.',
   'help.guide.booking-mail-address.result':
@@ -6122,7 +6122,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     'La insignia muestra «Conectado», y la pestaña «Excursiones» de un viaje puede buscar en tu wanderer e importar sus rutas.',
   'help.guide.tour-wanderer-watch.result':
-    'TREK comprueba tus rutas importadas y te avisa cuando alguna puede haber cambiado. Una excursión solo cambia si aceptas el cambio.',
+    'YOUYA comprueba tus rutas importadas y te avisa cuando alguna puede haber cambiado. Una excursión solo cambia si aceptas el cambio.',
   'help.guide.plugin-settings.step.1':
     'Abre «Plugins» en la barra lateral de ajustes. Bajo «Ajustes de complementos», cada plugin que tiene ajustes para ti cuenta con su propia tarjeta: rellena sus campos y haz clic en «Guardar», o toma las decisiones que muestra. Las acciones de la tarjeta se ejecutan tras confirmarlas.',
   'help.guide.profile.step.3': 'Haz clic en «Guardar perfil», a la derecha del pie de la tarjeta.',
@@ -6136,7 +6136,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Decide cómo empiezan las notificaciones de cada usuario y bloquea por completo un canal para un evento.',
   'help.ctx.notifications.summary':
-    'Todas las notificaciones que TREK te ha mostrado en la aplicación, de la más reciente a la más antigua y agrupadas por día: una reserva que alguien ha cambiado, un mensaje nuevo en el chat de un viaje, un vuelo con retraso, una reserva de un correo reenviado. La campana de arriba a la derecha muestra las diez más recientes; esta página, todas.',
+    'Todas las notificaciones que YOUYA te ha mostrado en la aplicación, de la más reciente a la más antigua y agrupadas por día: una reserva que alguien ha cambiado, un mensaje nuevo en el chat de un viaje, un vuelo con retraso, una reserva de un correo reenviado. La campana de arriba a la derecha muestra las diez más recientes; esta página, todas.',
   'help.guide.read-notifications.step.1':
     'Haz clic en la campana de arriba a la derecha. El número rojo indica cuántas notificaciones no has leído aún.',
   'help.guide.filter-notifications.step.1': 'Haz clic en la campana de arriba a la derecha.',
@@ -6267,7 +6267,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     'Haz clic en GPX para descargar la excursión guardada como archivo GPX: toda la ruta con las altitudes que tenga, lista para una aplicación de navegación o un GPS.',
   'help.guide.tour-copy-keep.step.1':
-    'Abre la tarjeta de la excursión y haz clic en Copiar, abajo. TREK crea una excursión nueva e independiente sin sus días, y la original no cambia.',
+    'Abre la tarjeta de la excursión y haz clic en Copiar, abajo. YOUYA crea una excursión nueva e independiente sin sus días, y la original no cambia.',
   'help.guide.tour-copy-keep.result':
     'El viaje tiene una segunda excursión que puedes cambiar libremente, y la colección guarda su propia copia, lista para añadirla a otro viaje.',
   'help.guide.tour-packing-link.tip.1':
@@ -6358,7 +6358,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Haz clic en «Firme» para ver la misma ruta según el tipo de suelo, del asfalto a la tierra y la roca.',
   'help.guide.tour-hike-round.step.2':
-    'La tarjeta «Ruta circular» se abre sobre el mapa. Comprueba el inicio en «De» y escribe la «Distancia» que quieres. La píldora de al lado muestra las longitudes de las rutas circulares que te ofrecerá TREK para ella.',
+    'La tarjeta «Ruta circular» se abre sobre el mapa. Comprueba el inicio en «De» y escribe la «Distancia» que quieres. La píldora de al lado muestra las longitudes de las rutas circulares que te ofrecerá YOUYA para ella.',
   'help.guide.tour-hike-compare-ways.title': 'Comparar otros caminos para un tramo de una caminata',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Si el calculador no conoce otro camino, la tarjeta te lo indica. Si no puede seguir el camino que elegiste, el tramo no cambia y la tarjeta te avisa.',
@@ -6378,7 +6378,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     'Los horarios proceden de OpenStreetMap o del lugar del viaje asociado a la parada, y la píldora de al lado indica de cuál. Compruébalos antes de ir.',
   'help.guide.tour-walk-google-import.step.4':
-    'Haz clic en «Cargar como paseo». TREK calcula por su cuenta el camino a pie entre las paradas. Haz clic en Guardar para guardar el paseo.',
+    'Haz clic en «Cargar como paseo». YOUYA calcula por su cuenta el camino a pie entre las paradas. Haz clic en Guardar para guardar el paseo.',
   'help.guide.tour-walk-check-off.step.2':
     'Baja hasta «Paradas del paseo». Cada parada muestra cuánto tiempo te quedas y, si el paseo tiene hora de inicio, a qué hora llegas.',
   'help.ctx.trip-tour-bike.summary':
@@ -6394,7 +6394,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     'Planifica un día de pistas, un circuito de fondo, una travesía con esquís o una ruta con raquetas por las pistas, remontes y senderos cartografiados.',
   'help.guide.tour-ski-plan.tip.2':
-    'El punto de información junto a «Disciplina» explica qué hace TREK con las excursiones de esquí. Nada de lo que dice, ni nada de esta pantalla, informa sobre la nieve, los aludes o si las pistas, remontes y senderos están abiertos.',
+    'El punto de información junto a «Disciplina» explica qué hace YOUYA con las excursiones de esquí. Nada de lo que dice, ni nada de esta pantalla, informa sobre la nieve, los aludes o si las pistas, remontes y senderos están abiertos.',
   'help.guide.tour-ski-options.step.3':
     'En «Preferir», elige «La más rápida», «Más esquí» o «Más fácil». En «Ritmo», elige «Tranquilo», «Normal» o «Deportivo»: cambia el tiempo que el calculador asigna a cada pista.',
   'help.guide.tour-ski-fix-leg.goal': 'Planifica con un clic un tramo en rojo, o dibújalo recto.',
@@ -6411,11 +6411,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     'Comprueba que «Añadir punto» está activado y haz clic en el mapa: primero en el punto de embarque, luego en los puntos intermedios y por último en el de desembarque.',
   'help.guide.tour-paddle-water-route.step.1':
-    'Un tramo dibujado a mano muestra «Dibujado a mano, sin calcular» bajo su punto, con su longitud. TREK mantiene la línea tal como la dibujaste.',
+    'Un tramo dibujado a mano muestra «Dibujado a mano, sin calcular» bajo su punto, con su longitud. YOUYA mantiene la línea tal como la dibujaste.',
   'help.guide.tour-paddle-water-route.tip.4':
     'No puedes guardar mientras haya un tramo sin planificar. Primero planifícalo por el agua o dibújalo a mano.',
   'help.guide.tour-paddle-portage.step.5':
-    'En «Desembarcar y embarcar», escribe los minutos que necesitas para salir, descargar y volver al agua. Si lo dejas vacío, TREK cuenta 10 minutos.',
+    'En «Desembarcar y embarcar», escribe los minutos que necesitas para salir, descargar y volver al agua. Si lo dejas vacío, YOUYA cuenta 10 minutos.',
   'help.guide.tour-paddle-lock.step.2':
     'Elige «Esclusa en este punto». Bajo el punto aparece una tarjeta de esclusa marcada con «Falta el tiempo».',
   'help.guide.tour-paddle-time.goal':
@@ -6425,7 +6425,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     'Solo hay previsión para los próximos 16 días. Para un día posterior, indica a partir de qué fecha estará disponible. Para un día pasado, indica que ya ha pasado.',
   'help.guide.tour-paddle-checklist.step.2':
-    'La línea de debajo indica lo actualizados que están los datos: «Fecha OSM» para OpenStreetMap, «Consultados» para cuándo los leyó TREK, y «Datos de obstáculos» donde no cubren toda la ruta.',
+    'La línea de debajo indica lo actualizados que están los datos: «Fecha OSM» para OpenStreetMap, «Consultados» para cuándo los leyó YOUYA, y «Datos de obstáculos» donde no cubren toda la ruta.',
   'help.guide.tour-paddle-checklist.tip.5':
     'Una lista de comprobación no es una autorización de seguridad ni legal. Tu decisión no anula una prohibición ni un terreno privado registrados en OpenStreetMap.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -6465,7 +6465,8 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.7':
     'Excursiones guardadas: las excursiones que guardaste desde un viaje son las primeras filas de una lista, con su dificultad, su tipo, el viaje del que proceden y sus medidas. «Añadir a un viaje» crea una excursión nueva a partir de una, y el icono de la papelera la quita de la lista.',
   'help.guide.move-to-list.title': 'Mover o duplicar lugares en otra lista',
-  'help.guide.copy-to-trip.tip.2': 'Los lugares que el viaje ya tiene se omiten, y TREK indica cuántos se han omitido.',
+  'help.guide.copy-to-trip.tip.2':
+    'Los lugares que el viaje ya tiene se omiten, y YOUYA indica cuántos se han omitido.',
   'help.guide.accept-list-invite.tip.2':
     'Haz clic en «Compartida», arriba de la lista, para ver sus miembros. Desde ahí, «Salir de la lista» te permite volver a salir.',
   'help.guide.tour-collection-add-to-trip.goal':
@@ -6482,17 +6483,17 @@ const help: TranslationStrings = {
   'help.guide.journey-day-stays.goal': 'Convierte en entradas, una a una, las estancias que registró Dawarich.',
   'help.guide.journey-take-over-day.goal':
     'Convierte las estancias de un día en borradores de entradas, o en una crónica del día, de una sola vez.',
-  'help.guide.journey-auto-prepare.title': 'Dejar que TREK prepare tus días grabados',
+  'help.guide.journey-auto-prepare.title': 'Dejar que YOUYA prepare tus días grabados',
   'help.guide.photo-location.title': 'Ubicar las entradas donde se hicieron sus fotos',
   'help.ctx.settings-about.summary':
-    'Qué es TREK, qué versión ejecuta este servidor y dónde encontrar el proyecto: la documentación, dónde informar de un error y las formas de apoyar el proyecto.',
+    'Qué es YOUYA, qué versión ejecuta este servidor y dónde encontrar el proyecto: la documentación, dónde informar de un error y las formas de apoyar el proyecto.',
   'help.guide.startup.tip.2':
     'Si la pestaña de inicio pertenece a un complemento que has desactivado, se abre el plan en su lugar.',
   'help.guide.web-push-device.title': 'Recibir notificaciones push en este dispositivo',
   'help.guide.connect-airtrail.tip.1':
     'La tarjeta solo aparece si el administrador tiene activado el complemento AirTrail.',
   'help.guide.connect-dawarich.tip.1':
-    'TREK solo sugiere entradas, lugares y países; no se añade nada hasta que lo confirmas, y nada se escribe en Dawarich.',
+    'YOUYA solo sugiere entradas, lugares y países; no se añade nada hasta que lo confirmas, y nada se escribe en Dawarich.',
   'help.guide.tour-connect-wanderer.tip.1':
     'La tarjeta solo aparece si el administrador permite wanderer en «Excursiones».',
   'help.guide.tour-wanderer-watch.tip.1':
@@ -6508,7 +6509,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     'Da a todas las cuentas unas unidades, un modo de color y una moneda razonables sin que nadie tenga que abrir «Ajustes».',
   'help.guide.default-map.step.3':
-    'Cada campo se guarda al salir de él. El enlace «restaurar» junto al nombre de un campo recupera el valor predeterminado de TREK.',
+    'Cada campo se guarda al salir de él. El enlace «restaurar» junto al nombre de un campo recupera el valor predeterminado de YOUYA.',
   'help.guide.own-routing-engine.tip.2':
     'Si solo configuras tu propio motor de rutas y «Servicio de rutas» está en «Automático», no se consulta ningún Valhalla. El enlace «restaurar» junto a un campo lo vuelve a vaciar.',
   'help.guide.admin-passkeys.step.1':
@@ -6516,7 +6517,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.4':
     '«Salud», arriba, muestra las escrituras fallidas en un destino espejo. Si indica «No se registraron fallos de réplica.», todo funciona.',
   'help.guide.channels-instance.tip.3':
-    'Web Push necesita HTTPS. En iPhone y iPad, primero hay que añadir TREK a la pantalla de inicio.',
+    'Web Push necesita HTTPS. En iPhone y iPad, primero hay que añadir YOUYA a la pantalla de inicio.',
   'help.guide.notification-defaults.step.1':
     'En la pestaña «Notificaciones», baja hasta «Valores predeterminados para usuarios», al final. Cada fila es un evento y cada columna, un canal.',
   'help.ctx.notifications.bullet.1':
@@ -6565,28 +6566,28 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     'Para exportar solo una parte de la pestaña, fíltrala antes con «Buscar» o «Filtrar». El archivo contiene exactamente lo que muestra la pestaña.',
   'help.guide.import-booking-file.tip.4':
-    'Para leer una confirmación hace falta conexión. Sin conexión, Importar te lo indica, y puedes volver a intentarlo cuando TREK vuelva a estar en línea.',
+    'Para leer una confirmación hace falta conexión. Sin conexión, Importar te lo indica, y puedes volver a intentarlo cuando YOUYA vuelva a estar en línea.',
   'help.guide.forward-booking-mail.title': 'Reenvía un correo de reserva al viaje',
   'help.guide.forward-booking-mail.goal':
-    'Da al viaje su propia dirección, reenvíale la confirmación y termina lo que TREK no pudo añadir por sí solo.',
+    'Da al viaje su propia dirección, reenvíale la confirmación y termina lo que YOUYA no pudo añadir por sí solo.',
   'help.guide.forward-booking-mail.step.1':
     'Haz clic en el icono de subida de la barra, «Importar confirmaciones de reserva». Debajo del cuadro de archivos, «O reenvía por correo» contiene la dirección propia del viaje.',
   'help.guide.forward-booking-mail.step.2':
     'Haz clic en «Crear una dirección para este viaje». Un correo enviado a ella llega a este viaje sin suposiciones.',
   'help.guide.forward-booking-mail.step.3':
-    'La dirección aparece con un botón de copiar al lado. Cópiala y reenvíale el correo de reserva desde tu programa de correo, con los archivos adjuntos incluidos, a mano o con una regla. TREK lo lee en unos minutos.',
+    'La dirección aparece con un botón de copiar al lado. Cópiala y reenvíale el correo de reserva desde tu programa de correo, con los archivos adjuntos incluidos, a mano o con una regla. YOUYA lo lee en unos minutos.',
   'help.guide.forward-booking-mail.step.4':
-    'Una reserva de la que TREK está seguro entra sola en el viaje. Todo lo demás espera tu revisión: abre el menú bajo tu nombre, arriba a la derecha, donde un número cuenta los correos en espera, y haz clic en «Reservas pendientes».',
+    'Una reserva de la que YOUYA está seguro entra sola en el viaje. Todo lo demás espera tu revisión: abre el menú bajo tu nombre, arriba a la derecha, donde un número cuenta los correos en espera, y haz clic en «Reservas pendientes».',
   'help.guide.forward-booking-mail.step.5':
-    'Cada entrada muestra lo que leyó TREK, por qué espera y el viaje al que llegó. «Mostrar correo» muestra el propio correo. Haz clic en «Rellenar tú mismo».',
+    'Cada entrada muestra lo que leyó YOUYA, por qué espera y el viaje al que llegó. «Mostrar correo» muestra el propio correo. Haz clic en «Rellenar tú mismo».',
   'help.guide.forward-booking-mail.step.6':
     '«Nueva reserva» se abre en el viaje con lo que contenía el correo: el asunto como título, el tipo, la fecha y el código de reserva que encontró. Revísalo, corrige lo que haga falta y haz clic en «Añadir».',
   'help.guide.forward-booking-mail.result':
     'La reserva está en la pestaña «Reservas» como cualquier otra, y su entrada ha salido de «Reservas pendientes».',
   'help.guide.forward-booking-mail.tip.1':
-    'Tu propia dirección, en «Ajustes», «Integraciones», «Correos de reserva», sirve para todos los viajes: TREK elige el viaje cuyas fechas y lugares encajan con la reserva. La dirección de un viaje se salta esa suposición.',
+    'Tu propia dirección, en «Ajustes», «Integraciones», «Correos de reserva», sirve para todos los viajes: YOUYA elige el viaje cuyas fechas y lugares encajan con la reserva. La dirección de un viaje se salta esa suposición.',
   'help.guide.forward-booking-mail.tip.2':
-    'Con «Añadir automáticamente» activado en esa tarjeta, una reserva de la que TREK está seguro entra directamente en el viaje, y el aviso correspondiente ofrece «Deshacer» durante 7 días. Si está desactivado, todas las reservas esperan en «Reservas pendientes».',
+    'Con «Añadir automáticamente» activado en esa tarjeta, una reserva de la que YOUYA está seguro entra directamente en el viaje, y el aviso correspondiente ofrece «Deshacer» durante 7 días. Si está desactivado, todas las reservas esperan en «Reservas pendientes».',
   'help.guide.forward-booking-mail.tip.3':
     'Una entrada también se puede conservar como documento con «Guardar como documento», que pone el correo o sus archivos adjuntos en los archivos del viaje, o descartar con «Descartar».',
   'help.guide.forward-booking-mail.tip.4':
@@ -6668,11 +6669,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     'Abre la tarjeta de la excursión. «Previsto y real» muestra la «Distancia», el «Desnivel positivo», el «Desnivel negativo» y el «Tiempo con pausas» del plan junto a los del track, con la «Diferencia».',
   'help.guide.tour-origin-check.goal':
-    'Averigua si una excursión se dibujó en TREK o se importó, desde qué archivo, y si ha cambiado desde entonces.',
+    'Averigua si una excursión se dibujó en YOUYA o se importó, desde qué archivo, y si ha cambiado desde entonces.',
   'help.ctx.trip-tour-planner.title': 'Excursiones',
   'help.guide.tour-open-workspace.title': 'Orientarte en la pestaña «Excursiones»',
   'help.guide.tour-open-workspace.step.7':
-    'Haz clic en una excursión del carril derecho. Una excursión planificada en TREK se abre en el editor. Un track importado se abre sin cambios, como «Excursión GPX», para consultarlo.',
+    'Haz clic en una excursión del carril derecho. Una excursión planificada en YOUYA se abre en el editor. Un track importado se abre sin cambios, como «Excursión GPX», para consultarlo.',
   'help.guide.tour-draw-route.step.2':
     'Escribe dónde empieza la excursión en «Buscar lugar o dirección» y elige el resultado. El mapa se desplaza hasta allí.',
   'help.guide.tour-draw-route.tip.4':
@@ -6708,7 +6709,7 @@ const help: TranslationStrings = {
   'help.guide.tour-view-import.step.3':
     '«Volver a excursiones», la flecha de arriba a la izquierda, la vuelve a cerrar.',
   'help.guide.tour-plan-from-import.step.2':
-    'TREK toma puntos de control del track y vuelve a calcular la ruta entre ellos. El mapa muestra lo importado con línea de puntos y la propuesta con línea continua, y la tarjeta compara sus longitudes, la proporción «A menos de 50 m del track» y la «Mayor desviación».',
+    'YOUYA toma puntos de control del track y vuelve a calcular la ruta entre ellos. El mapa muestra lo importado con línea de puntos y la propuesta con línea continua, y la tarjeta compara sus longitudes, la proporción «A menos de 50 m del track» y la «Mayor desviación».',
   'help.guide.tour-restore-recorded.title': 'Volver al track grabado',
   'help.guide.tour-take-over.title': 'Traer una excursión de otro viaje',
   'help.guide.tour-take-over.tip.1':
@@ -6799,7 +6800,7 @@ const help: TranslationStrings = {
     'Si las pistas dejan de cargarse, el interruptor muestra un icono de aviso. El mapa y tu ruta siguen funcionando.',
   'help.guide.tour-ski-import.step.4': 'Haz clic en «Importar 1 excursión».',
   'help.ctx.trip-tour-paddle.summary':
-    'Una excursión en kayak, canoa o SUP por un río o un lago. Indica su embarcación y su tipo de agua, sigue el agua donde TREK tiene datos, incluye en su tiempo los porteos y las esclusas, y muestra el viento del día en que remas y lo que se sabe de los obstáculos del recorrido.',
+    'Una excursión en kayak, canoa o SUP por un río o un lago. Indica su embarcación y su tipo de agua, sigue el agua donde YOUYA tiene datos, incluye en su tiempo los porteos y las esclusas, y muestra el viento del día en que remas y lo que se sabe de los obstáculos del recorrido.',
   'help.guide.tour-paddle-setup.goal':
     'Empieza una excursión en kayak, canoa o SUP e indica con qué remas, en qué tipo de agua y a qué velocidad.',
   'help.guide.tour-paddle-setup.tip.1':
@@ -6807,7 +6808,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-water-route.step.2':
     'Para que un tramo se planifique por el agua, pasa el cursor por la parada anterior y haz clic en «Más acciones», los tres puntos.',
   'help.guide.tour-paddle-water-route.result':
-    'Cada tramo sigue el agua o está dibujado a mano a propósito, y un tramo que TREK no ha podido planificar explica por qué.',
+    'Cada tramo sigue el agua o está dibujado a mano a propósito, y un tramo que YOUYA no ha podido planificar explica por qué.',
   'help.guide.tour-paddle-portage.tip.1':
     'Si al final quieres remar ese tramo, vuelve a abrir «Más acciones» en el punto y elige «Volver a remar este tramo». Vuelve a ser un tramo dibujado a mano.',
   'help.guide.tour-paddle-lock.step.3': 'Haz clic en la tarjeta de la esclusa para abrirla.',
@@ -6827,7 +6828,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     'Haz clic en el campo «Tipo de ruta», bajo «Nombre de la excursión», y elige «Ruta a caballo». La tarjeta «Rutas ecuestres» aparece debajo de «Puntos de ruta».',
   'help.guide.tour-horse-plan.tip.2':
-    'TREK no calcula el tiempo a caballo de una ruta. Si quieres que aparezca en el día, introduce un tiempo en «Planeado», dentro de «Detalles».',
+    'YOUYA no calcula el tiempo a caballo de una ruta. Si quieres que aparezca en el día, introduce un tiempo en «Planeado», dentro de «Detalles».',
   'help.guide.tour-horse-gap.step.3':
     'Haz clic en «Tomar tramo». Mientras el interruptor esté desactivado, el botón sigue en gris.',
   'help.guide.tour-horse-recorded.step.1':
@@ -6844,7 +6845,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': 'Registrar días para alguien con quien planificas',
   'help.guide.dissolve-fusion.title': 'Dejar de planificar juntos',
   'help.guide.country-places.goal':
-    'Consulta los lugares que TREK cuenta para un país, para repasar lo que hiciste allí o encontrar un lugar que TREK haya asignado a un país equivocado.',
+    'Consulta los lugares que YOUYA cuenta para un país, para repasar lo que hiciste allí o encontrar un lugar que YOUYA haya asignado a un país equivocado.',
   'help.guide.regions.tip.3':
     '«Añadir a lista de deseos» también funciona con regiones. La región aparece con el mismo rayado que un país de tu lista de deseos.',
   'help.guide.tour-activity-stats.step.2':
@@ -6875,11 +6876,11 @@ const help: TranslationStrings = {
   'help.guide.readability.tip.3':
     '«Legibilidad» está marcada como «Experimental». Si algo se ve mal, haz clic en «Restablecer valores predeterminados», al final de la pestaña, para volver a la configuración predeterminada.',
   'help.guide.web-push-device.goal':
-    'Recibe las notificaciones de TREK en tu móvil o tu ordenador aunque TREK esté cerrado.',
+    'Recibe las notificaciones de YOUYA en tu móvil o tu ordenador aunque YOUYA esté cerrado.',
   'help.guide.connect-airtrail.tip.2':
     'La clave se guarda cifrada y no se vuelve a mostrar; si ves puntos en el campo, hay una guardada.',
   'help.guide.connect-dawarich.tip.2':
-    'Debajo de los botones, la tarjeta indica cuándo comprobó TREK por última vez y qué no ofrece tu versión de Dawarich.',
+    'Debajo de los botones, la tarjeta indica cuándo comprobó YOUYA por última vez y qué no ofrece tu versión de Dawarich.',
   'help.guide.tour-connect-wanderer.tip.2':
     'Si la instancia está en una dirección privada, puede que el administrador tenga que permitir las redes internas.',
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6887,13 +6888,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     'El plugin funciona con tus ajustes, y todas las acciones que hace por ti aparecen en «Actividad de plugins».',
   'help.ctx.admin-defaults.bullet.3':
-    'El enlace «restaurar» junto a un campo que hayas configurado recupera el valor predeterminado de TREK. Lo que configure cada usuario siempre tiene prioridad sobre estos valores.',
+    'El enlace «restaurar» junto a un campo que hayas configurado recupera el valor predeterminado de YOUYA. Lo que configure cada usuario siempre tiene prioridad sobre estos valores.',
   'help.ctx.admin-settings.bullet.5':
     '«Zona de peligro», en «Seguridad»: «Rotar secreto JWT» cierra la sesión de todos los usuarios, también la tuya.',
   'help.guide.default-user-settings.step.1':
     'En «Configuración predeterminada de usuarios», elige «Modo de color» («Claro», «Oscuro» o «Automático»), «Unidad de temperatura», «Unidad de distancia», «Formato de hora», «La semana comienza el», el «Formato de fecha», la «Moneda de visualización» y si «Difuminar códigos de reserva» está activado o desactivado. Cada opción se guarda al momento.',
   'help.guide.admin-passkeys.step.2':
-    'En la tarjeta «Inicio de sesión con passkey», introduce el «Relying Party ID (dominio)», por ejemplo trek.example.org, y los «Orígenes permitidos» desde los que se accede a tu TREK, y haz clic en «Guardar». Déjalos vacíos para usar APP_URL.',
+    'En la tarjeta «Inicio de sesión con passkey», introduce el «Relying Party ID (dominio)», por ejemplo trek.example.org, y los «Orígenes permitidos» desde los que se accede a tu YOUYA, y haz clic en «Guardar». Déjalos vacíos para usar APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Cerrar la sesión de todos a la vez',
   'help.guide.notification-defaults.step.2':
     'Haz clic en una casilla para pasarla al siguiente estado: activado, «Desactivado», «Bloqueado». La descripción emergente indica el siguiente estado, y cada clic se guarda al momento.',
@@ -6908,21 +6909,21 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': 'La notificación desaparece de la lista y de la campana.',
   'help.guide.booking-mail-notifications.title': 'Responde a un aviso sobre un correo de reserva',
   'help.guide.booking-mail-notifications.goal':
-    'Mira qué ha pasado con los correos de reserva que reenviaste y decide sobre los que TREK no pudo añadir por sí solo.',
+    'Mira qué ha pasado con los correos de reserva que reenviaste y decide sobre los que YOUYA no pudo añadir por sí solo.',
   'help.guide.booking-mail-notifications.step.1':
-    'Haz clic en la campana de arriba a la derecha. Cuando un correo reenviado contiene reservas que TREK no pudo añadir por sí solo, te avisa ahí.',
+    'Haz clic en la campana de arriba a la derecha. Cuando un correo reenviado contiene reservas que YOUYA no pudo añadir por sí solo, te avisa ahí.',
   'help.guide.booking-mail-notifications.step.2':
     '«Reservas reenviadas por revisar» indica cuántas esperan tu revisión. Haz clic en «Revisar» debajo.',
   'help.guide.booking-mail-notifications.step.3':
-    '«Reservas pendientes» se abre con cada entrada que espera: lo que leyó TREK, por qué espera y el viaje al que llegó. «Rellenar tú mismo» abre una reserva nueva con lo que contenía el correo, y la papelera descarta la entrada.',
+    '«Reservas pendientes» se abre con cada entrada que espera: lo que leyó YOUYA, por qué espera y el viaje al que llegó. «Rellenar tú mismo» abre una reserva nueva con lo que contenía el correo, y la papelera descarta la entrada.',
   'help.guide.booking-mail-notifications.result':
     'Cada reserva reenviada acaba en su viaje o espera tu decisión, y siempre sabes cuál es el caso.',
   'help.guide.booking-mail-notifications.tip.1':
-    'Una reserva que TREK añadió por sí solo llega como «Reserva añadida desde un correo», con «Mantener» y «Deshacer». «Deshacer» saca la reserva del viaje otra vez, «Mantener» la deja ahí.',
+    'Una reserva que YOUYA añadió por sí solo llega como «Reserva añadida desde un correo», con «Mantener» y «Deshacer». «Deshacer» saca la reserva del viaje otra vez, «Mantener» la deja ahí.',
   'help.guide.booking-mail-notifications.tip.2':
     'Las demás personas de un viaje compartido también se enteran de una reserva que viene de un correo, con «Ver viaje», que abre su pestaña «Reservas».',
   'help.guide.booking-mail-notifications.tip.3':
-    'Un vuelo que TREK sigue en directo envía «Vuelo despegado», «Vuelo aterrizado» y, a partir de 15 minutos de retraso, «Vuelo con retraso», cada uno con «Ver viaje». Van a las personas a las que está asignado el vuelo, o a todo el viaje. Desactiva cualquiera de ellos en «Ajustes», en «Notificaciones».',
+    'Un vuelo que YOUYA sigue en directo envía «Vuelo despegado», «Vuelo aterrizado» y, a partir de 15 minutos de retraso, «Vuelo con retraso», cada uno con «Ver viaje». Van a las personas a las que está asignado el vuelo, o a todo el viaje. Desactiva cualquiera de ellos en «Ajustes», en «Notificaciones».',
   'help.guide.notification-settings.result':
     '«Ajustes» está abierto en «Notificaciones», con un interruptor por evento y canal.',
   'help.guide.link-journal.goal':
@@ -6935,9 +6936,9 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     'Haz clic en «Ajustes del viaje», junto al nombre del viaje, y elige «Complementos» a la izquierda. Solo quien es propietario del viaje tiene esta zona.',
   'help.guide.trip-addons.step.2':
-    'Haz clic en el interruptor de un complemento para activarlo o desactivarlo en este viaje. Aparecen «Listas», «Costes», «Documentos», «Colaboración», «Viaje por carretera» y «Excursiones», según los que tenga tu TREK.',
+    'Haz clic en el interruptor de un complemento para activarlo o desactivarlo en este viaje. Aparecen «Listas», «Costes», «Documentos», «Colaboración», «Viaje por carretera» y «Excursiones», según los que tenga tu YOUYA.',
   'help.guide.trip-addons.step.3':
-    '«Solo este viaje» marca un complemento que has puesto distinto del resto de TREK. Vuelve a ponerlo igual para que siga otra vez el ajuste del administrador.',
+    '«Solo este viaje» marca un complemento que has puesto distinto del resto de YOUYA. Vuelve a ponerlo igual para que siga otra vez el ajuste del administrador.',
   'help.guide.trip-addons.result':
     'El viaje muestra los complementos que elegiste, para todas las personas que están en él: una pestaña o una parte del plan aparece o desaparece. Tus otros viajes mantienen el ajuste del administrador.',
   'help.guide.trip-addons.tip.1':
@@ -6945,7 +6946,7 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.tip.2':
     'Puedes activar un complemento en un viaje aunque el administrador lo tenga desactivado para todos los demás.',
   'help.guide.trip-addons.tip.3':
-    'Cambiar un interruptor requiere conexión. Sin conexión, TREK te lo dice y deja el interruptor como estaba.',
+    'Cambiar un interruptor requiere conexión. Sin conexión, YOUYA te lo dice y deja el interruptor como estaba.',
   'help.guide.edit-trip-settings.title': 'Edita el viaje desde el planificador',
   'help.guide.edit-trip-settings.goal':
     'Cambia el título, las fechas, la portada o la moneda del viaje sin salir de él.',
@@ -6958,7 +6959,7 @@ const help: TranslationStrings = {
   'help.guide.edit-trip-settings.result':
     'El viaje muestra sus nuevos datos en todas partes, para todos los que participan en él.',
   'help.guide.edit-trip-settings.tip.1':
-    'Si mueves la fecha de inicio, TREK te pregunta primero cómo deben seguirla las reservas. Si las nuevas fechas quitan días que tienen algo, te muestra esos días antes de que confirmes.',
+    'Si mueves la fecha de inicio, YOUYA te pregunta primero cómo deben seguirla las reservas. Si las nuevas fechas quitan días que tienen algo, te muestra esos días antes de que confirmes.',
   'help.guide.edit-trip-settings.tip.2':
     'El mismo formulario se abre desde «Mis viajes» con el lápiz de la tarjeta del viaje. «Editar viaje» solo aparece para quienes pueden editar el viaje.',
   'help.guide.dawarich-stays.result':
@@ -6972,7 +6973,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'La foto es la imagen del lugar en la tarjeta, en la columna de lugares, en el día y en el mapa.',
   'help.guide.place-own-hours.step.3':
-    '«Horario de apertura», debajo, muestra la semana, con una fila por día. Si TREK encontró el horario del lugar, ya está rellenado; si no, haz clic primero en «Añadir horario». Escribe a qué hora abre y cierra cada día. A la derecha de un día, «24h» lo marca como abierto todo el día y la puerta cerrada, como cerrado.',
+    '«Horario de apertura», debajo, muestra la semana, con una fila por día. Si YOUYA encontró el horario del lugar, ya está rellenado; si no, haz clic primero en «Añadir horario». Escribe a qué hora abre y cierra cada día. A la derecha de un día, «24h» lo marca como abierto todo el día y la puerta cerrada, como cerrado.',
   'help.guide.add-accommodation.tip.5':
     'Los tracks GPX y los lugares de excursiones nunca se ofrecen como alojamiento; solo los lugares normales del viaje.',
   'help.guide.confirm-stay-booking.step.1':
@@ -7005,7 +7006,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     'Decide si los documentos solo se importan desde tu almacenamiento, solo se exportan a él o ambas cosas, y qué pasa cuando un documento se elimina o se cambia en los dos sitios.',
   'help.guide.files-sync-settings.tip.2':
-    'Con «Preguntarme», un documento editado en los dos sitios queda en espera en «Requiere atención», debajo de la tarjeta. Haz clic en «Resolver» y elige «Conservar la versión de TREK», «Conservar la versión del proveedor» o «Conservar ambas».',
+    'Con «Preguntarme», un documento editado en los dos sitios queda en espera en «Requiere atención», debajo de la tarjeta. Haz clic en «Resolver» y elige «Conservar la versión de YOUYA», «Conservar la versión del proveedor» o «Conservar ambas».',
   'help.guide.manage-notes.goal':
     'Abre una nota completa, deja la importante arriba y corrige o elimina lo que ya no esté al día.',
   'help.guide.manage-notes.tip.2':
@@ -7128,7 +7129,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     'Abre una excursión en la pestaña «Excursiones» y baja en el panel izquierdo hasta «A lo largo de la ruta», bajo las paradas de la excursión. La tarjeta aparece en cuanto la excursión tiene ruta.',
   'help.guide.tour-along-search.tip.3':
-    'Los resultados proceden de OpenStreetMap y del índice de lugares de TREK, así que la búsqueda necesita conexión. Si no se encuentra nada, «Ampliar a» prueba con la siguiente distancia; si un servidor está saturado, «Reintentar» muestra una cuenta atrás hasta que puedas volver a intentarlo.',
+    'Los resultados proceden de OpenStreetMap y del índice de lugares de YOUYA, así que la búsqueda necesita conexión. Si no se encuentra nada, «Ampliar a» prueba con la siguiente distancia; si un servidor está saturado, «Reintentar» muestra una cuenta atrás hasta que puedas volver a intentarlo.',
   'help.guide.tour-along-add-stop.tip.1':
     'El lugar pasa a ser una parada de la excursión, no un lugar del viaje, así que no aparece en la lista de lugares.',
   'help.guide.tour-3d-terrain.step.4':
@@ -7149,7 +7150,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     '«Detalles del sendero», bajo los puntos de ruta, muestra el grado SAC, el firme y el tipo de vía de cada tramo según OpenStreetMap, y colorea la ruta del mapa según ellos. Nada de esto modifica la excursión.',
   'help.guide.tour-hike-plan.step.4':
-    '«Añadir punto» está activado desde el principio: haz clic en el mapa donde empieza la caminata y donde termina. «Lugares del viaje», al lado, te permite elegir en su lugar un refugio o un hotel del viaje. A partir de dos puntos, TREK calcula la ruta a pie.',
+    '«Añadir punto» está activado desde el principio: haz clic en el mapa donde empieza la caminata y donde termina. «Lugares del viaje», al lado, te permite elegir en su lugar un refugio o un hotel del viaje. A partir de dos puntos, YOUYA calcula la ruta a pie.',
   'help.guide.tour-hike-trail-details.title': 'Ver grados, firmes y tipos de vía a lo largo de una caminata',
   'help.guide.tour-hike-trail-details.tip.1':
     'Los caminos sin valor en OpenStreetMap aparecen en «Desconocida», y desconocido no significa fácil. Si algunos indican «No se pudo consultar esta vez», haz clic en «Reintentar».',
@@ -7181,7 +7182,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     'El «Resumen de la excursión» de la derecha muestra el «Tiempo en bici», la estimación del calculador de rutas para el perfil, con las subidas incluidas. Las pausas no se incluyen.',
   'help.guide.tour-bike-profile.step.4':
-    'En «Puntos de ruta», haz clic en «Lugares del viaje» y elige el inicio y el final, aquí Hotel Alpenroyal y luego Hotel Greif. También puedes comprobar que «Añadir punto» está activado y hacer clic en el mapa. A partir de dos puntos, TREK calcula la ruta.',
+    'En «Puntos de ruta», haz clic en «Lugares del viaje» y elige el inicio y el final, aquí Hotel Alpenroyal y luego Hotel Greif. También puedes comprobar que «Añadir punto» está activado y hacer clic en el mapa. A partir de dos puntos, YOUYA calcula la ruta.',
   'help.guide.tour-bike-profile.tip.5':
     'Si un administrador permite el mapa CyclOSM, la fila de capas del mapa también ofrece «Bicicleta» mientras hay una ruta en bici abierta. Si deja de cargar, cambia a «Mapa». La excursión no cambia.',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -7211,7 +7212,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     'El mapa de una excursión de remo ofrece «Mapa» y «Satélite», y «Señales náuticas» de OpenSeaMap como capa superpuesta.',
   'help.guide.tour-paddle-water-route.step.3':
-    'Elige «Planificar el siguiente tramo por el agua». TREK planifica el tramo por el río o el lago desde este punto hasta el siguiente.',
+    'Elige «Planificar el siguiente tramo por el agua». YOUYA planifica el tramo por el río o el lago desde este punto hasta el siguiente.',
   'help.guide.tour-paddle-portage.title': 'Portear la embarcación para rodear un obstáculo',
   'help.guide.tour-paddle-portage.tip.2':
     'En el último punto, «Portear la embarcación desde aquí» se aplica cuando colocas el siguiente punto. La fila indica «Porteo desde aquí», y su cruz, «Al final no portear», lo deshace.',
@@ -7308,7 +7309,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     'En la tarjeta «Asistente de IA», elige cómo conectar: «Iniciar sesión con ChatGPT» usa tu plan de ChatGPT, y «Pegar una clave API» acepta una clave de Anthropic, OpenAI, Gemini u OpenRouter.',
   'help.guide.connect-ai.step.2':
-    'Pega tu clave. TREK indica el proveedor que detecta y qué datos se le envían. Haz clic en «Conectar»; antes, TREK comprueba la clave con el proveedor.',
+    'Pega tu clave. YOUYA indica el proveedor que detecta y qué datos se le envían. Haz clic en «Conectar»; antes, YOUYA comprueba la clave con el proveedor.',
   'help.guide.connect-ai.step.3':
     'La tarjeta muestra «Conectado a» y el proveedor. Elige el «Modelo» que quieras y haz clic en «Abrir asistente» para empezar en tu viaje actual o en el próximo.',
   'help.guide.connect-ai.result': 'El asistente funciona con tu propia cuenta, en todos tus viajes.',
@@ -7326,7 +7327,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     '«Valores predeterminados para usuarios», abajo del todo: para cada evento y canal, activado, «Desactivado» o «Bloqueado» para todos los que no lo hayan cambiado.',
   'help.guide.default-user-settings.step.2':
-    'Cada campo que configures muestra un enlace «restaurar» junto a su nombre, que recupera el valor predeterminado de TREK.',
+    'Cada campo que configures muestra un enlace «restaurar» junto a su nombre, que recupera el valor predeterminado de YOUYA.',
   'help.guide.own-routing-engine.title': 'Usar tus propios servidores de rutas',
   'help.guide.admin-passkeys.result':
     'La página de inicio de sesión ofrece «Iniciar sesión con una passkey», y cada persona puede añadir passkeys en sus ajustes.',
@@ -7351,7 +7352,7 @@ const help: TranslationStrings = {
     'Pasa el cursor por la fila de la reserva en el día: el asa de la izquierda indica que se puede arrastrar.',
   'help.guide.place-image-from-file.tip.1': 'Solo se ofrecen archivos JPG, PNG, GIF y WebP; un billete en PDF, no.',
   'help.guide.place-own-hours.step.4':
-    'Los botones a la derecha de «Horario de apertura»: el de copiar aplica a todos los días el horario del lunes, y la X vuelve a quitar tu horario. Si TREK encontró un horario propio, «Tomar de los detalles del lugar» lo recupera.',
+    'Los botones a la derecha de «Horario de apertura»: el de copiar aplica a todos los días el horario del lunes, y la X vuelve a quitar tu horario. Si YOUYA encontró un horario propio, «Tomar de los detalles del lugar» lo recupera.',
   'help.guide.confirm-stay-booking.step.2':
     'La reserva se abre sobre el plan. La primera píldora de su cabecera muestra su estado.',
   'help.ctx.trip-map.bullet.9':
@@ -7369,7 +7370,7 @@ const help: TranslationStrings = {
   'help.guide.group-sort-bookings.step.1':
     'En «Tarjetas» o «Lista», haz clic en «Opciones de vista», los controles deslizantes que hay después de los tres iconos de vista.',
   'help.guide.create-booking.tip.4':
-    'Sin conexión, la reserva se guarda en este dispositivo y se sincroniza cuando vuelvas a estar en línea. Los archivos nuevos necesitan conexión, así que quítalos o guarda más tarde. Si haces clic fuera del formulario sin querer, o pulsas Escape, TREK pregunta «¿Descartar los cambios?» antes de que pierdas lo que has escrito.',
+    'Sin conexión, la reserva se guarda en este dispositivo y se sincroniza cuando vuelvas a estar en línea. Los archivos nuevos necesitan conexión, así que quítalos o guarda más tarde. Si haces clic fuera del formulario sin querer, o pulsas Escape, YOUYA pregunta «¿Descartar los cambios?» antes de que pierdas lo que has escrito.',
   'help.guide.booking-on-map.tip.2': 'Una estancia se abre en su primera noche.',
   'help.guide.export-bookings-csv.step.3':
     'Haz clic en «Exportar como hoja de cálculo (CSV)», el icono de descarga después de «Opciones de vista».',
@@ -7381,7 +7382,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     'Haz clic en «Sincronización de documentos», en el extremo derecho de la barra. Si el viaje ya está vinculado, la tarjeta de tu almacenamiento se abre a la derecha; si tienes más de uno, haz clic en el que quieras en «Este viaje», a la izquierda.',
   'help.guide.files-sync-settings.tip.3':
-    '«Actualizaciones instantáneas», un enlace con Copiar al lado, solo aparece en los almacenamientos en los que TREK no puede suscribirse a los cambios automáticamente. Pega el enlace en el almacenamiento y los cambios llegarán al momento en lugar de en la siguiente comprobación.',
+    '«Actualizaciones instantáneas», un enlace con Copiar al lado, solo aparece en los almacenamientos en los que YOUYA no puede suscribirse a los cambios automáticamente. Pega el enlace en el almacenamiento y los cambios llegarán al momento en lugar de en la siguiente comprobación.',
   'help.guide.manage-notes.step.1':
     'Haz clic en los tres puntos de la cabecera de una tarjeta de nota («Más opciones»). El menú incluye «Expandir», «Fijar», Editar y Eliminar.',
   'help.guide.note-categories.title': 'Organizar las notas en categorías',
@@ -7400,7 +7401,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     'Las fotos del lugar llenan la pantalla, y las flechas pasan por las demás que conoce su fuente. Ciérralas para volver al cuadro, donde «Cancelar» deja la parada como estaba.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    'La imagen es la propia del lugar, la que pusiste en el formulario del lugar. Si no hay ninguna, TREK muestra la foto que su fuente tiene del lugar, si viene de Google o de OpenStreetMap.',
+    'La imagen es la propia del lugar, la que pusiste en el formulario del lugar. Si no hay ninguna, YOUYA muestra la foto que su fuente tiene del lugar, si viene de Google o de OpenStreetMap.',
   'help.guide.roadtrip-stop-photo.tip.2':
     'En el móvil, toca una parada en la pestaña «Viaje por carretera»: su ficha muestra la imagen a todo lo ancho bajo el nombre, y al tocarla se abren las fotos.',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -7427,7 +7428,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     'Si arrastras a un día una excursión con etapas, se te pregunta lo mismo en un pequeño cuadro. Cancelar deja el plan como estaba.',
   'help.guide.tour-day-times.step.2':
-    'Indica el «Inicio» y deja «Fin» vacío. La línea bajo los campos muestra la hora de fin que calcula TREK: el inicio más la duración de la excursión.',
+    'Indica el «Inicio» y deja «Fin» vacío. La línea bajo los campos muestra la hora de fin que calcula YOUYA: el inicio más la duración de la excursión.',
   'help.guide.tour-remove-from-day.title': 'Quitar una excursión de un día',
   'help.guide.tour-filter-list.title': 'Filtrar la lista de excursiones',
   'help.guide.tour-filter-list.tip.3':
@@ -7439,7 +7440,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     'La tarjeta sirve para consultar la excursión y lo que la acompaña. La ruta en sí se cambia en la pestaña «Excursiones»: ábrela y haz clic en la excursión en «Excursiones de este viaje». Las excursiones también se eliminan ahí, no aquí.',
   'help.guide.tour-detail-read.step.6':
-    'Sigue bajando para ver la «Descripción» y las «Notas», y después el «Origen»: «planificada en TREK», el archivo del que se importó o la ruta de wanderer de la que procede, con la fecha.',
+    'Sigue bajando para ver la «Descripción» y las «Notas», y después el «Origen»: «planificada en YOUYA», el archivo del que se importó o la ruta de wanderer de la que procede, con la fecha.',
   'help.guide.tour-rename-colour.title': 'Cambiar el nombre y el color de una excursión',
   'help.guide.tour-rename-colour.result':
     'La excursión muestra su nuevo nombre en todo el viaje, y su línea aparece con el color elegido.',
@@ -7457,7 +7458,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     'Haz clic en «Comparar en el mapa» para mostrar el track real con línea de puntos junto al plan. «Terminar la comparación» lo vuelve a quitar.',
   'help.guide.tour-origin-check.step.2':
-    '«Importado» muestra el día en que se importó. «Aquí» muestra su estado actual: «Tal como se importó», «Editado en TREK» o «Replanificado, traza grabada conservada».',
+    '«Importado» muestra el día en que se importó. «Aquí» muestra su estado actual: «Tal como se importó», «Editado en YOUYA» o «Replanificado, traza grabada conservada».',
   'help.ctx.trip-tour-planner.bullet.1':
     '«Excursiones» aparece en la barra de pestañas del viaje, justo después de «Planificado», mientras el complemento «Excursiones» está activado para el viaje; quien es propietario del viaje puede cambiarlo en «Complementos», dentro de «Ajustes del viaje». La pestaña está disponible en ordenador y tableta; en el móvil, las excursiones se consultan y se ponen en días desde la pestaña «Planificado», pero no se dibujan.',
   'help.guide.tour-open-workspace.step.1':
@@ -7597,13 +7598,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     'En una excursión de remo, «A lo largo de la ruta» busca primero «Embarcaderos», «Alquiler de barcas» y «Agua potable».',
   'help.guide.tour-paddle-water-route.step.4':
-    'Un tramo que TREK no ha podido planificar se pone en rojo y explica por qué, por ejemplo que aún no hay datos del agua para la zona. Haz clic en «Dibujar recto» para dibujarlo a mano de momento.',
+    'Un tramo que YOUYA no ha podido planificar se pone en rojo y explica por qué, por ejemplo que aún no hay datos del agua para la zona. Haz clic en «Dibujar recto» para dibujarlo a mano de momento.',
   'help.guide.tour-paddle-portage.goal':
     'Marca un tramo en el que llevas la embarcación a cuestas, para que cuente como tierra, con tiempo para desembarcar y volver a embarcar.',
   'help.guide.tour-paddle-portage.tip.3':
     'El porteo se calcula a 2 km/h hasta que indiques tu propia «Velocidad de porteo» en la tarjeta «Estimación de tiempo».',
   'help.guide.tour-paddle-lock.tip.1':
-    'TREK no conoce los horarios de las esclusas. Los tiempos son solo los que introduces, así que comprueba tú el horario de la esclusa.',
+    'YOUYA no conoce los horarios de las esclusas. Los tiempos son solo los que introduces, así que comprueba tú el horario de la esclusa.',
   'help.guide.tour-paddle-time.step.3':
     'La fila «Agua» es la distancia en el agua a tu «Velocidad de remo». Cambia la velocidad en el campo «Velocidad de remo», arriba de la columna.',
   'help.guide.tour-paddle-wind.goal': 'Consulta el viento previsto en el inicio de la excursión el día en que remas.',

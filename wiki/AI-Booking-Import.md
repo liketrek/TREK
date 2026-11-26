@@ -1,6 +1,6 @@
 # AI Booking Import
 
-The **AI Parsing** addon gives TREK's booking import a second reader. When [KDE Itinerary](Reservations-and-Bookings#import-from-booking-confirmation) cannot make sense of a confirmation (a plain-text email, an unusual PDF layout, a vendor whose format it does not know) TREK hands the document to an AI model and turns the answer into a booking you check before it is saved. With a model that reads images, it also reads photos of tickets.
+The **AI Parsing** addon gives YOUYA's booking import a second reader. When [KDE Itinerary](Reservations-and-Bookings#import-from-booking-confirmation) cannot make sense of a confirmation (a plain-text email, an unusual PDF layout, a vendor whose format it does not know) YOUYA hands the document to an AI model and turns the answer into a booking you check before it is saved. With a model that reads images, it also reads photos of tickets.
 
 The addon is **off by default**. It reads with the same AI connection the [AI assistant](#the-ai-assistant-and-this-addon) uses, and it also works with a model running on your own hardware, so booking data never has to leave your server.
 
@@ -46,7 +46,7 @@ The shared connection of the AI assistant supports these providers:
 | **Sign in with ChatGPT** | ChatGPT | Uses a ChatGPT plan, no key. Reads bookings on the same plan. |
 | **Own server** | Your own hardware, or any OpenAI-compatible service | Ollama, LM Studio, vLLM, llama.cpp, a LiteLLM proxy or a hosted endpoint such as Groq, at a **Server address** you enter: the one that `/chat/completions` follows, usually ending in `/v1` (`http://localhost:11434/v1`, `https://api.groq.com/openai/v1`). Ollama is read through its own API, every other server through `/chat/completions`. The API key is optional. |
 
-To connect, pick **Sign in with ChatGPT**, **Paste an API key** or **Own server**. When you paste a key, TREK shows *Detected: {provider}*; if it cannot tell, it asks *Which provider is this key from?*. **Connect OpenRouter** is offered as its own button.
+To connect, pick **Sign in with ChatGPT**, **Paste an API key** or **Own server**. When you paste a key, YOUYA shows *Detected: {provider}*; if it cannot tell, it asks *Which provider is this key from?*. **Connect OpenRouter** is offered as its own button.
 
 The addon's **Own connection** offers three providers of its own:
 
@@ -58,7 +58,7 @@ The addon's **Own connection** offers three providers of its own:
 
 > **Scanned PDFs:** local and OpenAI-compatible models get the document's *extracted text*. A scanned PDF has no text layer. When the model reads images, the first two pages are drawn as images and sent like a photo; otherwise those providers return nothing for it. **Anthropic** receives the PDF itself and reads scans either way.
 >
-> **Long documents:** extracted text is sent up to 24,000 characters to a cloud model (OpenAI, Anthropic for anything that is not a PDF, OpenAI-compatible), and up to 6,000 to a local model (16,000 for a flight itinerary), since a CPU reads every character. A longer document keeps its start and its end, where the total and the payment summary sit, and loses the middle. The import then warns *long document, the middle part was not read*, so check the booking in the review. A self-hosted server whose context is too small for 24,000 characters (vLLM or llama.cpp with 8k tokens, say) refuses the request; TREK then asks once more with 8,000 characters, start and end kept, and warns the same way. Ollama's OpenAI-compatible endpoint cuts a long prompt without saying so, so use the **Local** provider for Ollama.
+> **Long documents:** extracted text is sent up to 24,000 characters to a cloud model (OpenAI, Anthropic for anything that is not a PDF, OpenAI-compatible), and up to 6,000 to a local model (16,000 for a flight itinerary), since a CPU reads every character. A longer document keeps its start and its end, where the total and the payment summary sit, and loses the middle. The import then warns *long document, the middle part was not read*, so check the booking in the review. A self-hosted server whose context is too small for 24,000 characters (vLLM or llama.cpp with 8k tokens, say) refuses the request; YOUYA then asks once more with 8,000 characters, start and end kept, and warns the same way. Ollama's OpenAI-compatible endpoint cuts a long prompt without saying so, so use the **Local** provider for Ollama.
 >
 > **A total for the whole booking:** a round trip that states one total for all flights gets that price once, on the first flight, so saving every leg does not book the purchase twice. Fares the document lists per leg stay on their legs.
 >
@@ -84,7 +84,7 @@ The **AI Parsing** tab starts with **Reads bookings with**, which shows the conn
 The form for an **Own connection** has these fields:
 
 - **Provider**: **Local (Ollama)**, **OpenAI** or **Anthropic**.
-- **Base URL**: empty means the provider's own address: `http://localhost:11434/v1` for a local Ollama server, `https://api.openai.com/v1` for OpenAI and `https://api.anthropic.com` for Anthropic. Any OpenAI-compatible endpoint goes here. For Anthropic it can name a gateway that speaks the Anthropic Messages API; give it without `/v1`, since TREK adds `/v1/messages`, and the gateway has to accept PDF document blocks and tool calls. Picking another provider empties the field, so an address meant for one never receives another provider's key.
+- **Base URL**: empty means the provider's own address: `http://localhost:11434/v1` for a local Ollama server, `https://api.openai.com/v1` for OpenAI and `https://api.anthropic.com` for Anthropic. Any OpenAI-compatible endpoint goes here. For Anthropic it can name a gateway that speaks the Anthropic Messages API; give it without `/v1`, since YOUYA adds `/v1/messages`, and the gateway has to accept PDF document blocks and tool calls. Picking another provider empties the field, so an address meant for one never receives another provider's key.
 - **API key**: optional for a local server (the field says *Often not needed*), required for the cloud providers. It is stored **encrypted** and shown masked (`••••••••`) once saved; leaving it unchanged keeps the stored key.
 - **Model**: the model id, for example `qwen3.5:4b`, `gpt-4o` or `claude-opus-4-8`.
 
@@ -130,7 +130,7 @@ It is a retry, not another route. On a normal import the model has already seen 
 
 ### What gets filled in and created
 
-The model is asked for the complete booking, **every leg of a multi-segment flight** included. When you save, TREK ties each booking into the trip:
+The model is asked for the complete booking, **every leg of a multi-segment flight** included. When you save, YOUYA ties each booking into the trip:
 
 - **Fields**: the booking code, dates and times, and depending on the type the seat, class, platform, total price and currency. Hotels bring their address, rental cars their company, restaurants and events their venue with phone number and website.
 - **Places**: only a **hotel** becomes a trip place. The editor reuses a trip place with a matching name; otherwise it looks up the address you checked and creates a place, so the pin appears on the map. Transport stops are located while the files are parsed and stored as the booking's **From** and **To**, not as trip places. A stop that could not be located is listed as a warning in the widget and dropped when you save, so fix it in the editor first. Restaurant and event venues arrive as the booking's address only; the editor can link a place the trip already has, but it never creates one.
@@ -153,7 +153,7 @@ When the model reads images (see **Model reads images** above), the import takes
 - A photo always goes to the model. KDE Itinerary is not asked, since it reads documents, not pictures.
 - A scanned PDF without a text layer is read the same way: its first two pages are drawn as images and sent to the model.
 - A photo is shrunk to 1600 px on its longest side before it is sent. A model pays for every pixel and does not read a ticket better at twelve megapixels; a local `qwen3.5:4b` on a CPU took several times longer on the same ticket at full size.
-- A photo over 40 megapixels is refused, with a warning naming the file, before it is even decoded. So is a WEBP over 3.5 MB: TREK shrinks JPG and PNG but cannot shrink a WEBP, and the providers take no more than that.
+- A photo over 40 megapixels is refused, with a warning naming the file, before it is even decoded. So is a WEBP over 3.5 MB: YOUYA shrinks JPG and PNG but cannot shrink a WEBP, and the providers take no more than that.
 - HEIC is not accepted. A phone's photo picker hands over a JPEG anyway.
 - When the model does not read images, the dialog does not offer photos, and the server refuses one sent anyway with *The configured AI model does not read photos*.
 
@@ -162,7 +162,7 @@ Photographing a receipt for the Costs tab is covered in [Budget-Tracking](Budget
 ## Good to know
 
 - **Nothing to migrate**, and everything is set up in the UI. The only environment variables the addon reads are `LLM_TIMEOUT_MS` and `LLM_MAX_OUTPUT_TOKENS` (see [Environment-Variables](Environment-Variables)).
-- **Local models can be slow.** On a CPU-only host one booking can take from tens of seconds to a couple of minutes. TREK gives a model 15 minutes per document by default; `LLM_TIMEOUT_MS` raises or lowers that. Uploads are parsed **one at a time** per user, so several files wait in line rather than run in parallel.
+- **Local models can be slow.** On a CPU-only host one booking can take from tens of seconds to a couple of minutes. YOUYA gives a model 15 minutes per document by default; `LLM_TIMEOUT_MS` raises or lowers that. Uploads are parsed **one at a time** per user, so several files wait in line rather than run in parallel.
 - **A long booking list can outgrow the answer.** A model may write at most 4096 tokens per document (8192 on Anthropic). When a document holds more than that, the import says the answer was cut off; `LLM_MAX_OUTPUT_TOKENS` raises the cap, as far as your model's context allows.
 - **Parse jobs are kept for about 10 minutes** after they finish. Start the review within that time.
 - **Privacy**: with the Local provider or an own server nothing leaves your network. With OpenAI or Anthropic, the document's text (for Anthropic the PDF itself, and for either a photo) is sent to that provider.

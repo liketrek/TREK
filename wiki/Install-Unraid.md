@@ -1,6 +1,6 @@
 # Install: Unraid
 
-Install TREK on Unraid via Community Applications or a direct template import.
+Install YOUYA on Unraid via Community Applications or a direct template import.
 
 ## Prerequisite
 
@@ -9,8 +9,8 @@ Docker must be enabled in Unraid (**Settings → Docker → Enable Docker: Yes**
 ## Install via Community Applications
 
 1. Open the **Apps** tab in Unraid.
-2. Search for **TREK**.
-3. Click **Install** on the TREK result.
+2. Search for **YOUYA**.
+3. Click **Install** on the YOUYA result.
 
 If the app does not appear, you can install directly from the template URL. In **Docker → Add Container**, paste the template URL:
 
@@ -39,7 +39,7 @@ The Unraid template exposes the following fields in the container UI:
 | `ALLOWED_ORIGINS` | *(empty)* | Comma-separated origins for CORS and email notification links, e.g. `https://trek.example.com` |
 | `APP_URL` | *(empty)* | Public base URL; required when OIDC is enabled (must match the redirect URI registered with your IdP) |
 | `ADMIN_EMAIL` | `admin@trek.local` | Email for the first admin account (first-boot only; no effect once any user exists). Pre-filled by the template — must be set together with `ADMIN_PASSWORD`, otherwise both are ignored. |
-| `ADMIN_PASSWORD` | *(empty)* | Password for the first admin account (first-boot only). Must be set together with `ADMIN_EMAIL`. If either is omitted, TREK creates the account with email `admin@trek.local` and a random password printed to the container log. |
+| `ADMIN_PASSWORD` | *(empty)* | Password for the first admin account (first-boot only). Must be set together with `ADMIN_EMAIL`. If either is omitted, YOUYA creates the account with email `admin@trek.local` and a random password printed to the container log. |
 
 ### Advanced Variables
 
@@ -55,7 +55,7 @@ Generate a key in the Unraid terminal (**Tools → Terminal**):
 openssl rand -hex 32
 ```
 
-Copy the output into the `ENCRYPTION_KEY` field before starting the container for the first time. If you skip this, TREK auto-generates a key and saves it to `data/.encryption_key` — your data is still protected, but you should record that file in your backups.
+Copy the output into the `ENCRYPTION_KEY` field before starting the container for the first time. If you skip this, YOUYA auto-generates a key and saves it to `data/.encryption_key` — your data is still protected, but you should record that file in your backups.
 
 ## After Install
 
@@ -65,11 +65,11 @@ Once the container starts, open your browser at:
 http://<unraid-ip>:<port>
 ```
 
-On first boot, TREK automatically creates an admin account. The credentials are printed to the container log — check **Docker → trek → Log** in the Unraid UI. If you set both `ADMIN_EMAIL` and `ADMIN_PASSWORD`, those values are used; otherwise the email is `admin@trek.local` and a random password is generated.
+On first boot, YOUYA automatically creates an admin account. The credentials are printed to the container log — check **Docker → trek → Log** in the Unraid UI. If you set both `ADMIN_EMAIL` and `ADMIN_PASSWORD`, those values are used; otherwise the email is `admin@trek.local` and a random password is generated.
 
 ## Updating
 
-Click the TREK container in the **Docker** tab and select **Update**. Before the new version migrates the database, TREK copies it to `pre-migrate-<schema>-<time>.db` in the `data` folder (`/mnt/user/appdata/trek/data` by default), so you can go back to the previous image if needed. See [Updating](Updating#database-migrations).
+Click the YOUYA container in the **Docker** tab and select **Update**. Before the new version migrates the database, YOUYA copies it to `pre-migrate-<schema>-<time>.db` in the `data` folder (`/mnt/user/appdata/trek/data` by default), so you can go back to the previous image if needed. See [Updating](Updating#database-migrations).
 
 ## Next Steps
 

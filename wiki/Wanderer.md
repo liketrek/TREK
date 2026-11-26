@@ -1,15 +1,15 @@
 # wanderer
 
-[wanderer](https://wanderer.to) is a self-hosted trail library: you keep your hikes, rides and routes there with their GPX files, photos and descriptions. TREK can read your own wanderer instance and bring a trail into a trip as a [tour](Tours), ready to put on a day. Each person connects their own instance; TREK only reads from it and never writes anything back.
+[wanderer](https://wanderer.to) is a self-hosted trail library: you keep your hikes, rides and routes there with their GPX files, photos and descriptions. YOUYA can read your own wanderer instance and bring a trail into a trip as a [tour](Tours), ready to put on a day. Each person connects their own instance; YOUYA only reads from it and never writes anything back.
 
 > **Admin:** wanderer is a switch inside the **Tours** addon. In **Admin → Addons**, open the Tours tile and turn on **wanderer** (*Users can connect their own wanderer instance and import its trails as tours*). Without it the connection section and the import button are not shown, and a request says *Your admin has not enabled wanderer for Tours.* See [Admin-Addons](Admin-Addons).
 
 ## Connecting your instance
 
 1. In wanderer, open **Settings → Account → API tokens** and create a token. A wanderer token starts with `wanderer_key_`.
-2. In TREK, open **Settings → Integrations** and find the **wanderer** section.
+2. In YOUYA, open **Settings → Integrations** and find the **wanderer** section.
 3. Enter the **Instance URL**, the address of your wanderer, and paste the **API token**.
-4. Press **Test connection**. On success TREK says how many of your trails you can import, for example *Connected. You can import 12 of your trails.*
+4. Press **Test connection**. On success YOUYA says how many of your trails you can import, for example *Connected. You can import 12 of your trails.*
 5. Press **Save**. The section then reads **Connected**.
 
 | Field | Notes |
@@ -24,7 +24,7 @@
 
 ### Instances on your own network
 
-An address in a private network is accepted with a note: *If TREK cannot reach it, the administrator has to allow internal networks.* TREK reaches wanderer through the same strict guard as Immich, AirTrail and Dawarich, so an instance on your LAN needs `ALLOW_INTERNAL_NETWORK=true` on the TREK server. Until then a test answers *TREK may not reach that address.* See [Internal-Network-Access](Internal-Network-Access).
+An address in a private network is accepted with a note: *If YOUYA cannot reach it, the administrator has to allow internal networks.* YOUYA reaches wanderer through the same strict guard as Immich, AirTrail and Dawarich, so an instance on your LAN needs `ALLOW_INTERNAL_NETWORK=true` on the YOUYA server. Until then a test answers *YOUYA may not reach that address.* See [Internal-Network-Access](Internal-Network-Access).
 
 ## Importing a trail
 
@@ -57,17 +57,17 @@ An imported tour's **Origin** names wanderer as its source, with the date wander
 
 **Check my trails for changes** in the wanderer section sends you a notification when a trail you imported may have changed. It is off by default, and dimmed until you connect.
 
-At most once a day, TREK reads the short record of each trail you imported, never its GPX file. It only tells you: whether a change comes in is up to you, through the tour's source check. What it can say:
+At most once a day, YOUYA reads the short record of each trail you imported, never its GPX file. It only tells you: whether a change comes in is up to you, through the tour's source check. What it can say:
 
 - **May have changed**: wanderer changed the trail's time stamp. Only the source check shows whether its content differs.
 - **Changed**: wanderer's record shows another name or description.
-- **Not checkable**: TREK could not judge this trail, for example because it is out of reach.
+- **Not checkable**: YOUYA could not judge this trail, for example because it is out of reach.
 
-The row shows when TREK last looked and how many hints are open; **Hints** opens **Hints on your trails**, where **Open the tour** goes to each one. The hints arrive as notifications too, under the event *wanderer: hints on your trails*, with a **View Tour** button; see [Notifications](Notifications).
+The row shows when YOUYA last looked and how many hints are open; **Hints** opens **Hints on your trails**, where **Open the tour** goes to each one. The hints arrive as notifications too, under the event *wanderer: hints on your trails*, with a **View Tour** button; see [Notifications](Notifications).
 
 When wanderer does not answer, the check waits longer after each failure and the row says **Paused until** a time. When wanderer refuses the token, the row reads **Token refused** and the check resumes once a connection test passes or a new token is saved.
 
-## What TREK keeps
+## What YOUYA keeps
 
 - Your instance address, the encrypted token and the switches. The token is encrypted with the server's encryption key, and the rotation script does not carry it over: after a key rotation, enter the token again. See [Encryption-Key-Rotation](Encryption-Key-Rotation).
 - The tours you imported, as ordinary tours of the trip, with where they came from.

@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>en</string>
 	<key>CFBundleDisplayName</key>
-	<string>TREK</string>
+	<string>游芽</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleIdentifier</key>
@@ -15,7 +15,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>TREK</string>
+	<string>游芽</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
@@ -54,29 +54,29 @@
 	     waives it. Without this string the prompt has no explanation and iOS
 	     logs "Local network prohibited" instead of a useful error. -->
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>TREK connects to the TREK server you choose, which is often running on your home or office network.</string>
+	<string>游芽 connects to the server you choose, which is often running on your home or office network.</string>
 	<!-- Permission usage descriptions. iOS does not merely deny a missing one:
 	     it terminates the app the first time the API is touched, so every key
 	     below is load-bearing even where the feature is optional.
 
 	     The WebView's file picker offers "Take Photo" and "Photo Library". -->
 	<key>NSCameraUsageDescription</key>
-	<string>TREK uses the camera so you can photograph a place, a journey entry or a booking document and add it to your trip.</string>
+	<string>游芽 uses the camera so you can photograph a place, a journey entry or a booking document and add it to your trip.</string>
 	<!-- "Take Video" in the same picker records sound with the film. -->
 	<key>NSMicrophoneUsageDescription</key>
-	<string>TREK records sound when you film a video for a journey entry.</string>
+	<string>游芽 records sound when you film a video for a journey entry.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>TREK needs access to your photos so you can add them to trips, places and journey entries.</string>
+	<string>游芽 needs access to your photos so you can add them to trips, places and journey entries.</string>
 	<!-- "Save Image" in the share sheet that exports and downloads open in. -->
 	<key>NSPhotoLibraryAddUsageDescription</key>
-	<string>TREK saves photos and exports you download from your trips back to your photo library.</string>
+	<string>游芽 saves photos and exports you download from your trips back to your photo library.</string>
 	<!-- navigator.geolocation in the WebView ("locate me" on the map). -->
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>NSFaceIDUsageDescription</key>
-	<string>TREK uses Face ID to unlock the app when you turn on the app lock.</string>
+	<string>游芽 uses Face ID to unlock the app when you turn on the app lock.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>TREK uses your location to centre the map on you and to find places near you.</string>
+	<string>游芽 uses your location to centre the map on you and to find places near you.</string>
 	<!-- Deep links (@capacitor/app appUrlOpen), matching the intent-filter in
 	     AndroidManifest.xml and @string/custom_url_scheme there. This is the
 	     return path for SSO and passkey sign-in, which runs in an

@@ -1,6 +1,6 @@
 # In-App Help
 
-Read the whole TREK wiki from inside TREK, without leaving the app or opening GitHub.
+Read the whole YOUYA wiki from inside YOUYA, without leaving the app or opening GitHub.
 
 ![In-App Help](assets/HelpInApp.png)
 
@@ -14,21 +14,21 @@ The [Help Center](Help-Center) (the **?** in the navbar) links here too: its **I
 
 ## The docs ship with your install
 
-Since **v3.4.0** the wiki is bundled into the TREK image and served from disk (commit `6c87bf2f`). That means:
+Since **v3.4.0** the wiki is bundled into the YOUYA image and served from disk (commit `6c87bf2f`). That means:
 
 - The help you read always matches the version you are running. A v3.4 install shows v3.4 docs, not whatever `main` says.
 - Help works with no outbound network access at all.
-- Screenshots and other images are served by TREK, not fetched from GitHub — your browser never talks to github.com for help content.
+- Screenshots and other images are served by YOUYA, not fetched from GitHub — your browser never talks to github.com for help content.
 
 ### The GitHub fallback
 
-If the bundled `wiki/` directory cannot be found — an unusual layout, or an image built without it — TREK logs a warning and falls back to fetching the public GitHub wiki over the network instead, caching each page and image for an hour and serving a stale copy rather than failing outright. Help degrades instead of disappearing, but the content then tracks the latest release rather than your version.
+If the bundled `wiki/` directory cannot be found — an unusual layout, or an image built without it — YOUYA logs a warning and falls back to fetching the public GitHub wiki over the network instead, caching each page and image for an hour and serving a stale copy rather than failing outright. Help degrades instead of disappearing, but the content then tracks the latest release rather than your version.
 
-TREK probes for `_Sidebar.md` specifically, not just the directory, so a half-copied `wiki/` folder falls back rather than serving an empty table of contents.
+YOUYA probes for `_Sidebar.md` specifically, not just the directory, so a half-copied `wiki/` folder falls back rather than serving an empty table of contents.
 
 ### `TREK_WIKI_DIR`
 
-The bundled directory is found automatically. `TREK_WIKI_DIR` overrides where TREK looks — an escape hatch for unusual layouts, not something a normal install needs to set. See [Environment-Variables](Environment-Variables).
+The bundled directory is found automatically. `TREK_WIKI_DIR` overrides where YOUYA looks — an escape hatch for unusual layouts, not something a normal install needs to set. See [Environment-Variables](Environment-Variables).
 
 ## The sidebar
 
@@ -46,16 +46,16 @@ To search page contents, use the wiki on GitHub or your browser's in-page find.
 
 ## Rendering
 
-Pages render with TREK's own styling: headings, tables, code blocks, blockquotes, and images. A few things are handled specially so the same Markdown works both here and on GitHub:
+Pages render with YOUYA's own styling: headings, tables, code blocks, blockquotes, and images. A few things are handled specially so the same Markdown works both here and on GitHub:
 
 - Wiki links in either GitHub spelling — `[[Title|Slug]]` and the bare relative `[Currencies](Currencies)` — become in-app links that navigate without a page reload.
-- Relative image paths are rewritten to TREK's own asset endpoint.
+- Relative image paths are rewritten to YOUYA's own asset endpoint.
 - Heading anchors use GitHub's slug scheme, so a `](#some-heading)` link inside a page lands in the right place.
 - HTML comments (such as `<!-- TODO: screenshot -->` placeholders) are stripped rather than shown.
 
 External links open in a new tab.
 
-If a page cannot be loaded you get **Couldn't load this page** — *The help content is fetched from the TREK wiki. Check your connection and try again.*
+If a page cannot be loaded you get **Couldn't load this page** — *The help content is fetched from the YOUYA wiki. Check your connection and try again.*
 
 ## Permissions
 

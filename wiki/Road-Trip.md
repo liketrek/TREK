@@ -187,14 +187,14 @@ To narrow the results afterwards:
 
 **Clear results** empties the list, its pins on the map and the filters.
 
-The search asks TREK's place index and OpenStreetMap, and any installed place-search plugin, whose hits show their source. A source that fails is named beside the results that did arrive, and a search cut short says so rather than claiming the stretch was checked. The search only runs when you press **Search**, and needs a connection.
+The search asks YOUYA's place index and OpenStreetMap, and any installed place-search plugin, whose hits show their source. A source that fails is named beside the results that did arrive, and a search cut short says so rather than claiming the stretch was checked. The search only runs when you press **Search**, and needs a connection.
 
 ### Add manually
 
 The search does not know every charger or pump: a good share of the chargers at a motorway junction are missing from OpenStreetMap. **Add manually**, beside **Search**, is for those.
 
 - Look the place up by name.
-- TREK works out which leg of which day it belongs on, measured against the drawn route. **Add between** lists every leg of every routed day, if the guess is wrong.
+- YOUYA works out which leg of which day it belongs on, measured against the drawn route. **Add between** lists every leg of every routed day, if the guess is wrong.
 - A place well away from the route is accepted, with a note: *12 km from the route, so check which leg it belongs on.*
 - The dialog opens on the kind you are searching for, with that kind's usual stay.
 
@@ -216,7 +216,7 @@ The handles show once you zoom in far enough to aim at a road (zoom level 9). A 
 
 ## Other ways and avoidance
 
-Click a drive band in the rail to see **Ways to drive this leg**. TREK asks the router for alternatives and lists them: the **Fastest**, how much slower or quicker each other one is, and on a leg you already reshaped, the road you are on as **Current**. Hover an entry to light it up on the map, click it to drive that way. Choosing a different road first checks it with the road trip's router, then holds the leg on it with as few vias as it takes, replacing any the leg already had; a road the router will not follow is not saved. Choosing the router's own road removes them again.
+Click a drive band in the rail to see **Ways to drive this leg**. YOUYA asks the router for alternatives and lists them: the **Fastest**, how much slower or quicker each other one is, and on a leg you already reshaped, the road you are on as **Current**. Hover an entry to light it up on the map, click it to drive that way. Choosing a different road first checks it with the road trip's router, then holds the leg on it with as few vias as it takes, replacing any the leg already had; a road the router will not follow is not saved. Choosing the router's own road removes them again.
 
 The list can also offer **No motorway**, **No tolls** and **No ferry**. These come from the second routing engine (see below), which prices roads with its own speed model, so they are marked *Timed by the avoidance router, not the main one* and are not compared with the others. When the router knows only one way, the list says *Only one sensible way to drive this one.*
 
@@ -230,16 +230,16 @@ Routing uses two engines, and both have public defaults, so the addon works with
 
 | Engine | Used for | Default | Own instance |
 |---|---|---|---|
-| **Valhalla** | with the TREK services or an own Valhalla: every road route TREK draws (the road trip, the day plan, the routed booking lines) on foot, by bike and by car, and the other ways of a leg. With the public FOSSGIS Valhalla only driving around toll roads, motorways and ferries, and the **No motorway**, **No tolls** and **No ferry** offers | the TREK services' Valhalla through this server (**Routing service**), the FOSSGIS Valhalla at `valhalla1.openstreetmap.de` where they are off | **Own Valhalla instance** |
-| **OSRM** | every day Valhalla does not calculate: all of them with the public FOSSGIS Valhalla or without a Valhalla, and a day the TREK services or an own Valhalla cannot answer | the FOSSGIS servers at `routing.openstreetmap.de` | **Own routing engine** |
+| **Valhalla** | with the YOUYA services or an own Valhalla: every road route YOUYA draws (the road trip, the day plan, the routed booking lines) on foot, by bike and by car, and the other ways of a leg. With the public FOSSGIS Valhalla only driving around toll roads, motorways and ferries, and the **No motorway**, **No tolls** and **No ferry** offers | the YOUYA services' Valhalla through this server (**Routing service**), the FOSSGIS Valhalla at `valhalla1.openstreetmap.de` where they are off | **Own Valhalla instance** |
+| **OSRM** | every day Valhalla does not calculate: all of them with the public FOSSGIS Valhalla or without a Valhalla, and a day the YOUYA services or an own Valhalla cannot answer | the FOSSGIS servers at `routing.openstreetmap.de` | **Own routing engine** |
 
-A day is always calculated by one engine, never one leg by each: the two estimate travel times differently, and a day's arrival times are added up leg by leg. When Valhalla cannot answer a day (the service down or its allowance spent, a question that ran out its deadline, or no way for one of its legs), OSRM calculates the whole day instead, without a message. A question that only took too long, a very long bike route for example, costs that one day: the TREK services are asked again for the next. A host that cannot be reached or fails is left to rest first (see [Admin-User-Defaults](Admin-User-Defaults#routing-service)). A day that avoids road classes still goes to the public FOSSGIS Valhalla when the TREK services cannot answer, since OSRM cannot avoid them.
+A day is always calculated by one engine, never one leg by each: the two estimate travel times differently, and a day's arrival times are added up leg by leg. When Valhalla cannot answer a day (the service down or its allowance spent, a question that ran out its deadline, or no way for one of its legs), OSRM calculates the whole day instead, without a message. A question that only took too long, a very long bike route for example, costs that one day: the YOUYA services are asked again for the next. A host that cannot be reached or fails is left to rest first (see [Admin-User-Defaults](Admin-User-Defaults#routing-service)). A day that avoids road classes still goes to the public FOSSGIS Valhalla when the YOUYA services cannot answer, since OSRM cannot avoid them.
 
-The public OSRM servers allow roughly one request a second, and so does the FOSSGIS Valhalla. That is enough for a day plan and tight for a road trip, which routes every leg of every day: TREK spaces its requests to those hosts 1.1 seconds apart and retries a refused one, but a long trip takes a while to fill in. An instance with many road trippers is better off with the TREK services or engines of its own. The relay keeps its connection to the TREK services open between questions, and the server, routing for the [MCP tools](#mcp-tools), asks the relay, an own OSRM and an own Valhalla without that spacing.
+The public OSRM servers allow roughly one request a second, and so does the FOSSGIS Valhalla. That is enough for a day plan and tight for a road trip, which routes every leg of every day: YOUYA spaces its requests to those hosts 1.1 seconds apart and retries a refused one, but a long trip takes a while to fill in. An instance with many road trippers is better off with the YOUYA services or engines of its own. The relay keeps its connection to the YOUYA services open between questions, and the server, routing for the [MCP tools](#mcp-tools), asks the relay, an own OSRM and an own Valhalla without that spacing.
 
 > **Admin:** Set your own engines under **Admin → User Defaults**, in the **Map** section, on the desktop or the phone: **Own routing engine** for OSRM, **Own Valhalla instance** for Valhalla. A value saves when you leave the field, and **reset** restores the public default. Then **restart the server and reload the page.** Only an admin can set them; they apply to everyone.
 
-Why a restart: routes are calculated in the browser, and the browser only talks to addresses the server names in its security policy, which it builds once at start. An address the policy does not name is blocked by the browser without an error TREK could report.
+Why a restart: routes are calculated in the browser, and the browser only talks to addresses the server names in its security policy, which it builds once at start. An address the policy does not name is blocked by the browser without an error YOUYA could report.
 
 What the combinations do:
 
@@ -247,7 +247,7 @@ With **Routing service** left on **Automatic**:
 
 | Own routing engine | Own Valhalla instance | Result |
 |---|---|---|
-| empty | empty | The TREK services' Valhalla for every route, public OSRM for a day it cannot answer. Without the TREK services: public OSRM for routes, public Valhalla for avoidance. |
+| empty | empty | The YOUYA services' Valhalla for every route, public OSRM for a day it cannot answer. Without the YOUYA services: public OSRM for routes, public Valhalla for avoidance. |
 | set | empty | Your OSRM for routes. **No Valhalla is used**, because an instance that runs its own router has chosen against public hosts. The avoid switches are unavailable, and **Other ways** can still offer routes without motorways or tolls if your OSRM supports excluding them. |
 | empty or set | set | Your Valhalla for every route, OSRM (yours where set) for a day it cannot answer. |
 
@@ -255,10 +255,10 @@ Choosing **Public Valhalla (FOSSGIS)** as **Routing service** keeps OSRM for eve
 
 Requirements for your own instances:
 
-- **OSRM** must serve the standard layout, `<address>/route/v1/<profile>/…`, which `osrm-routed` does out of the box. It answers every route in TREK that Valhalla does not, not only road trips. The public servers refuse to exclude road classes; an OSRM of your own built through the MLD pipeline, with a profile that has those classes, can answer **No motorway** and **No tolls** in **Other ways** by itself.
+- **OSRM** must serve the standard layout, `<address>/route/v1/<profile>/…`, which `osrm-routed` does out of the box. It answers every route in YOUYA that Valhalla does not, not only road trips. The public servers refuse to exclude road classes; an OSRM of your own built through the MLD pipeline, with a profile that has those classes, can answer **No motorway** and **No tolls** in **Other ways** by itself.
 - **Valhalla** of your own answers every route, so it needs the `auto`, `pedestrian` and `bicycle` costings and should take twenty locations a request (`max_locations`, Valhalla's own default for `auto`); a longer day is asked in pieces of twenty that share a stop, one after another without a pause. Only a piece that goes to the public FOSSGIS Valhalla is cut to ten stops and paced.
-- **Reachable from the browser.** The browser calls the engine directly, so the address has to work from the devices your travellers plan on, not only from the TREK server. `http://localhost:5000` means the traveller's own computer to a browser. When TREK is served over HTTPS, the engine has to be HTTPS too, or the browser blocks it as mixed content.
-- **Reachable from the TREK server** for the [MCP tools](#mcp-tools), which calculate on the server. An address on your local network is accepted there without `ALLOW_INTERNAL_NETWORK`, because only an admin can set it.
+- **Reachable from the browser.** The browser calls the engine directly, so the address has to work from the devices your travellers plan on, not only from the YOUYA server. `http://localhost:5000` means the traveller's own computer to a browser. When YOUYA is served over HTTPS, the engine has to be HTTPS too, or the browser blocks it as mixed content.
+- **Reachable from the YOUYA server** for the [MCP tools](#mcp-tools), which calculate on the server. An address on your local network is accepted there without `ALLOW_INTERNAL_NETWORK`, because only an admin can set it.
 
 There is no environment variable for either engine. See also [Admin-Panel-Overview](Admin-Panel-Overview) and [Route-Optimization](Route-Optimization).
 
@@ -271,7 +271,7 @@ Scenic routes are usually published as a track. A day can follow one that is alr
 3. Pick the track. The list shows each track's colour, length and how far it lies from this day, nearest first.
 4. Press **Follow this track**.
 
-TREK then places via points where the road strays furthest from the track and routes again, round after round, until the drive is close enough. It reports the result: *6 via points placed. The drive stays within 300 m of the track.* Via points already on those legs are replaced. On the public routing servers this can take half a minute for a long route.
+YOUYA then places via points where the road strays furthest from the track and routes again, round after round, until the drive is close enough. It reports the result: *6 via points placed. The drive stays within 300 m of the track.* Via points already on those legs are replaced. On the public routing servers this can take half a minute for a long route.
 
 The badge is then tinted, and its tooltip names the track the day follows. **Drop _n_ via points** in the same dialog undoes it.
 
@@ -328,7 +328,7 @@ A **Flight**, **Train**, **Ferry**, **Cruise** or **Bus** booking on a day is a 
 - A booking that lands on a later day seats its arrival at the start of that day. With **Connect the days** on, the join between the two days is the ride. With daily travel times set, the ride runs on the booking's clock: no day ends at the airport and no morning resumes on the plane.
 - The terminals sit where the day plan lists the booking: a position you dragged it to under Days, otherwise behind the last stop whose time is before the departure, otherwise at the end of the day. Move the booking under Days to move the seam.
 
-What the seam does not do: it never plans the ride itself, and a booking without located terminals (an airport TREK could not place, a train with no station coordinates) makes no seam and is left to the day plan. Via points and other ways of driving are offered for the road into a departure terminal, not for the ride or for the road out of an arrival, and the search along the route skips the ride. A taxi or a transit hop is not a seam: you stay on the road.
+What the seam does not do: it never plans the ride itself, and a booking without located terminals (an airport YOUYA could not place, a train with no station coordinates) makes no seam and is left to the day plan. Via points and other ways of driving are offered for the road into a departure terminal, not for the ride or for the road out of an arrival, and the search along the route skips the ride. A taxi or a transit hop is not a seam: you stay on the road.
 
 ### Hire cars
 
@@ -348,10 +348,10 @@ A route planned in Google Maps can become the stops of a day:
 
 1. In Road trip, open the **…** menu next to the day picker in **Along the route** and choose **Import Google Maps route**.
 2. Paste the directions link. Long links, short `maps.app.goo.gl` links and Google's URL-builder links work. The link needs 2 to 30 stops.
-3. Check the stops in the preview and choose the **Day**. A stop TREK could not place is marked *Location unresolved; this stop will be skipped.*
+3. Check the stops in the preview and choose the **Day**. A stop YOUYA could not place is marked *Location unresolved; this stop will be skipped.*
 4. Import. The stops are appended to that day in their order.
 
-TREK calculates its own route between them; Google's road is not copied. The import needs a connection and permission to edit both places and days. The **List Import** button in the places panel under **Days** (it reads **Google List** when Google is the only list source) accepts the same kind of link.
+YOUYA calculates its own route between them; Google's road is not copied. The import needs a connection and permission to edit both places and days. The **List Import** button in the places panel under **Days** (it reads **Google List** when Google is the only list source) accepts the same kind of link.
 
 ## On the phone
 
@@ -395,17 +395,17 @@ Units, limits and the exact fields are on [MCP-Addon-Tools](MCP-Addon-Tools). Se
 
 Road trip planning is online. Routing, the search along the route, via points, dragging day endings, **Find fuel**, charger data, hazard areas and the Google Maps import all need a connection, and the controls say so rather than accepting a change they cannot send.
 
-What TREK contacts, and from where:
+What YOUYA contacts, and from where:
 
 | Service | Asked by | When | To change it |
 |---|---|---|---|
-| TREK services' Valhalla (`valhalla.liketrek.com` by default) | the TREK server, for the browser and for MCP | every route; it receives the stops' coordinates in order, the travel mode and the road classes to avoid, with the installation key, and no user or trip | **Routing service**, or `TREK_VALHALLA_URL` |
-| OSRM (`routing.openstreetmap.de` by default) | the browser, and the TREK server for MCP | every route Valhalla does not calculate | **Own routing engine** |
-| Valhalla (`valhalla1.openstreetmap.de`) | the browser, and the TREK server for MCP | with **Public Valhalla (FOSSGIS)**, or where the TREK services cannot answer: only when avoiding road classes or offering **No motorway**, **No tolls**, **No ferry** | **Own Valhalla instance**, or not at all once only **Own routing engine** is set |
-| TREK's place index and OpenStreetMap | the TREK server | the search along the route (OpenStreetMap through Overpass), and the place lookups of **Add manually** and the Google import (the usual place search: the index, then the address search of the TREK services, or Nominatim without them) | see [TREK-Places-API](TREK-Places-API) and [Places-and-Search](Places-and-Search), and `OVERPASS_URL`, `NOMINATIM_URL` and `TREK_PHOTON_URL` in [Environment-Variables](Environment-Variables) |
-| MobiData BW OCPDB | the TREK server | when a charging stop's data is shown | |
-| DWD and GDACS | the TREK server | only with **Show hazard areas** on | switch it off |
-| Google short links (`maps.app.goo.gl`) | the TREK server | only to unfold a short link during the Google import | |
+| YOUYA services' Valhalla (`valhalla.liketrek.com` by default) | the YOUYA server, for the browser and for MCP | every route; it receives the stops' coordinates in order, the travel mode and the road classes to avoid, with the installation key, and no user or trip | **Routing service**, or `TREK_VALHALLA_URL` |
+| OSRM (`routing.openstreetmap.de` by default) | the browser, and the YOUYA server for MCP | every route Valhalla does not calculate | **Own routing engine** |
+| Valhalla (`valhalla1.openstreetmap.de`) | the browser, and the YOUYA server for MCP | with **Public Valhalla (FOSSGIS)**, or where the YOUYA services cannot answer: only when avoiding road classes or offering **No motorway**, **No tolls**, **No ferry** | **Own Valhalla instance**, or not at all once only **Own routing engine** is set |
+| YOUYA's place index and OpenStreetMap | the YOUYA server | the search along the route (OpenStreetMap through Overpass), and the place lookups of **Add manually** and the Google import (the usual place search: the index, then the address search of the YOUYA services, or Nominatim without them) | see [YOUYA-Places-API](TREK-Places-API) and [Places-and-Search](Places-and-Search), and `OVERPASS_URL`, `NOMINATIM_URL` and `TREK_PHOTON_URL` in [Environment-Variables](Environment-Variables) |
+| MobiData BW OCPDB | the YOUYA server | when a charging stop's data is shown | |
+| DWD and GDACS | the YOUYA server | only with **Show hazard areas** on | switch it off |
+| Google short links (`maps.app.goo.gl`) | the YOUYA server | only to unfold a short link during the Google import | |
 
 ## Troubleshooting
 
@@ -413,7 +413,7 @@ What TREK contacts, and from where:
 |---|---|
 | No **Days** / **Road trip** switch | The addon is off. An admin enables it in **Admin → Addons**. On a phone, look for the **Road trip** tab instead. |
 | *No route yet* | The trip has no days with places yet. Add places under **Days**, or give a place its coordinates. |
-| **No route** on a leg | The routing server did not answer that leg: usually the public servers' limit of about one request a second, sometimes a place the road network cannot reach. TREK retries and asks a refused day one leg at a time; reload later, or set your own engine. |
+| **No route** on a leg | The routing server did not answer that leg: usually the public servers' limit of about one request a second, sometimes a place the road network cannot reach. YOUYA retries and asks a refused day one leg at a time; reload later, or set your own engine. |
 | *Still working out the rest of the drive* for a long time | A long trip on the public routing servers. Every leg is a request, spaced a second apart. |
 | *Daily breaks cannot be calculated until all connecting routes are available.* | A leg is missing. The day endings appear once every leg has routed. |
 | *A fixed time conflicts with the drive and daily breaks.* | A time you pinned cannot be reached with the daily travel times. Your time is kept; move it, or change the daily times. |

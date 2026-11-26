@@ -1,18 +1,18 @@
 import type { TranslationStrings } from '../types';
 
 const system_notice: TranslationStrings = {
-  'system_notice.welcome_v1.title': '欢迎使用 TREK',
+  'system_notice.welcome_v1.title': '欢迎使用游芽',
   'system_notice.welcome_v1.body': '您的全能旅行规划器。制定行程、与朋友分享旅行，随时保持井然有序——在线或离线均可。',
   'system_notice.welcome_v1.cta_label': '规划行程',
-  'system_notice.welcome_v1.hero_alt': '风景优美的旅游目的地与 TREK 界面',
+  'system_notice.welcome_v1.hero_alt': '风景优美的旅游目的地与游芽界面',
   'system_notice.welcome_v1.highlight_plan': '逐日行程规划',
   'system_notice.welcome_v1.highlight_share': '与旅行伙伴协作',
   'system_notice.welcome_v1.highlight_offline': '移动端支持离线使用',
   'system_notice.dev_test_modal.title': '[开发] 测试通知',
   'system_notice.dev_test_modal.body': '这是一条仅用于开发环境的测试通知。',
-  'system_notice.thank_you_support.title': '感谢你使用 TREK',
+  'system_notice.thank_you_support.title': '感谢你使用游芽',
   'system_notice.thank_you_support.body':
-    '想跟你说声谢谢——谢谢你安装了 TREK，这对我来说真的意义非凡。\n\n我是一名独立开发者，TREK 是我利用业余时间打造的。它最初只是我为自己的旅行做的一个小工具，而社区一路以来给予的支持和关注，老实说让我感到无比惊喜。TREK 是我用满满的热爱做出来的——但也离不开许多了不起的外部贡献者，是他们一起塑造了今天的它。\n\n**TREK 是开源的，完全免费——而且永远都会如此。没有付费档位，没有订阅，没有任何套路。我保证。**\n\n如果 TREK 对你有帮助，并且你愿意支持它的开发，请我喝一杯小小的咖啡，真的能帮我把它继续做下去——完全没有任何压力，但每一杯都让那些挑灯夜战的夜晚有了坚持的动力。\n\n谢谢你来到这里。\n\n— Maurice',
+    '想跟你说声谢谢——谢谢你安装了游芽，这对我来说真的意义非凡。\n\n我是一名独立开发者，游芽是我利用业余时间打造的。它最初只是我为自己的旅行做的一个小工具，而社区一路以来给予的支持和关注，老实说让我感到无比惊喜。游芽是我用满满的热爱做出来的——但也离不开许多了不起的外部贡献者，是他们一起塑造了今天的它。\n\n**游芽是开源的，完全免费——而且永远都会如此。没有付费档位，没有订阅，没有任何套路。我保证。**\n\n如果游芽对你有帮助，并且你愿意支持它的开发，请我喝一杯小小的咖啡，真的能帮我把它继续做下去——完全没有任何压力，但每一杯都让那些挑灯夜战的夜晚有了坚持的动力。\n\n谢谢你来到这里。\n\n— Maurice',
   'system_notice.thank_you_support.highlight_opensource': '在 GitHub 上 100% 开源',
   'system_notice.thank_you_support.highlight_free': '永久免费——绝无付费档位',
   'system_notice.thank_you_support.highlight_community': '与社区一起共建',
@@ -26,7 +26,7 @@ const system_notice: TranslationStrings = {
   'system_notice.pager.position': '通知 {current}/{total}',
   'system_notice.v3_photos.title': '3.0 版照片已迁移',
   'system_notice.v3_photos.body':
-    '旅行规划器中的​**照片**标签已被移除。您的照片安全无虑 — TREK 从未修改您的 Immich 或 Synology 相册。\n\n照片现在位于 **旅程** 插件中。旅程是可选的 — 如果尚未启用，请联系管理员在 Admin → 插件 中开启。',
+    '旅行规划器中的​**照片**标签已被移除。您的照片安全无虑 —游芽从未修改您的 Immich 或 Synology 相册。\n\n照片现在位于 **旅程** 插件中。旅程是可选的 — 如果尚未启用，请联系管理员在 Admin → 插件 中开启。',
   'system_notice.v3_journey.title': '认识旅程 — 旅行日记',
   'system_notice.v3_journey.body': '将您的旅程记录为展示时间线、照片画廊和互动地图的丰富旅行故事。',
   'system_notice.v3_journey.cta_label': '打开旅程',
@@ -49,7 +49,7 @@ const system_notice: TranslationStrings = {
   'system_notice.v3_mcp.highlight_tools': '扩展工具集与提示词',
   'system_notice.v3_thankyou.title': '来自我的一封私人信',
   'system_notice.v3_thankyou.body':
-    '在你继续之前——我想停下来说几句。\n\nTREK 最初只是我为自己的旅行而做的一个业余项目。我从未想过它会成长为 4,000 人信赖的冒险规划工具。每一颗星标、每一个 issue、每一个功能请求——我都会读，它们在全职工作和大学学业之间的深夜里支撑着我继续前行。\n\n我想让你们知道：TREK 将永远开源，永远可自托管，永远属于你们。没有追踪，没有订阅，没有任何附加条件。只是一个热爱旅行的人为同样热爱旅行的你们打造的工具。\n\n特别感谢 [jubnl](https://github.com/jubnl)——你已经成为一位不可思议的合作者。3.0 版本中许多精彩之处都留下了你的印记。感谢你在这个项目还很粗糙的时候就选择了相信它。\n\n也感谢你们每一位——报告了 bug、翻译了文本、向朋友分享了 TREK，或者只是用它规划了一次旅行——**谢谢你们**。你们是这一切存在的原因。\n\n愿我们一起踏上更多的冒险旅程。\n\n— Maurice\n\n---\n\n[加入 Discord 社区](https://discord.gg/7Q6M6jDwzf)\n\n如果 TREK 让你的旅行更美好，一杯[小小的咖啡](https://ko-fi.com/mauriceboe)能让这盏灯一直亮着。',
+    '在你继续之前——我想停下来说几句。\n\n 游芽最初只是我为自己的旅行而做的一个业余项目。我从未想过它会成长为 4,000 人信赖的冒险规划工具。每一颗星标、每一个 issue、每一个功能请求——我都会读，它们在全职工作和大学学业之间的深夜里支撑着我继续前行。\n\n我想让你们知道：游芽将永远开源，永远可自托管，永远属于你们。没有追踪，没有订阅，没有任何附加条件。只是一个热爱旅行的人为同样热爱旅行的你们打造的工具。\n\n特别感谢 [jubnl](https://github.com/jubnl)——你已经成为一位不可思议的合作者。3.0 版本中许多精彩之处都留下了你的印记。感谢你在这个项目还很粗糙的时候就选择了相信它。\n\n也感谢你们每一位——报告了 bug、翻译了文本、向朋友分享了游芽，或者只是用它规划了一次旅行——**谢谢你们**。你们是这一切存在的原因。\n\n愿我们一起踏上更多的冒险旅程。\n\n— Maurice\n\n---\n\n[加入 Discord 社区](https://discord.gg/7Q6M6jDwzf)\n\n如果游芽让你的旅行更美好，一杯[小小的咖啡](https://ko-fi.com/mauriceboe)能让这盏灯一直亮着。',
   'system_notice.v3014_whitespace_collision.title': '需要操作：用户账户冲突',
   'system_notice.v3014_whitespace_collision.body':
     '3.0.14 版本升级检测到一个或多个由存储账户中首尾空白字符引发的用户名或邮箱冲突。受影响的账户已自动重命名。请检查服务器日志中以 **[migration] WHITESPACE COLLISION** 开头的行，以确认哪些账户需要审查。',
@@ -57,15 +57,15 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.eyebrow': '更新已安装',
   'system_notice.release_notes.headline': '少打字，多出行。',
   'system_notice.release_notes.intro':
-    '你转发的预订邮件会自动归入你的行程，TREK 实时跟踪你的航班，行程 PDF 也全新设计。TREK 现在也能运行在 PostgreSQL 上。',
+    '你转发的预订邮件会自动归入你的行程，游芽实时跟踪你的航班，行程 PDF 也全新设计。游芽现在也能运行在 PostgreSQL 上。',
   'system_notice.release_notes.features_label': '本次重头戏',
   'system_notice.release_notes.features_aside': '远不止这些',
   'system_notice.release_notes.feature_mail_title': '预订邮件自动归入你的行程',
   'system_notice.release_notes.feature_mail_body':
-    '把确认邮件转发到你的专属地址，TREK 会找到你的行程、核对内容，并把预订连同文件一起添加进去。',
+    '把确认邮件转发到你的专属地址，游芽会找到你的行程、核对内容，并把预订连同文件一起添加进去。',
   'system_notice.release_notes.feature_flight_title': '实时航班动态，免费',
   'system_notice.release_notes.feature_flight_body':
-    'TREK 会在航班当天跟踪你的每个航班：状态、延误、两端机场，还有显示飞机的地图，无需 API 密钥。',
+    '游芽会在航班当天跟踪你的每个航班：状态、延误、两端机场，还有显示飞机的地图，无需 API 密钥。',
   'system_notice.release_notes.feature_pdf_title': '全新的行程 PDF',
   'system_notice.release_notes.feature_pdf_body':
     '封面带着你的路线，每一天都是时间线，你的所有预订连同预订码一并收录，可直接打印或分享。',
@@ -73,20 +73,19 @@ const system_notice: TranslationStrings = {
     '此外还有 PostgreSQL、按行程启用的附加组件、地点标签、更多记录费用的方式，以及一长串细节改进。',
   'system_notice.release_notes.notes_label': '更新说明',
   'system_notice.release_notes.note_eyebrow': '来自维护者的话',
-  'system_notice.release_notes.note_title': '是你们让我一直坚持做 TREK。',
+  'system_notice.release_notes.note_title': '是你们让我一直坚持做游芽。',
   'system_notice.release_notes.note_body':
-    'TREK 最初只是我为自己的旅行做的一个小工具，是下班后做出来的。你今天用到的几乎所有功能，都是在深夜、周末或火车上，在一份全职工作之外完成的，我常常想，到底会不会有人打开它。',
+    '游芽最初只是我为自己的旅行做的一个小工具，是下班后做出来的。你今天用到的几乎所有功能，都是在深夜、周末或火车上，在一份全职工作之外完成的，我常常想，到底会不会有人打开它。',
   'system_notice.release_notes.promise_label': '承诺',
-  'system_notice.release_notes.promise_lead': 'TREK 永远免费。',
+  'system_notice.release_notes.promise_lead': '游芽永远免费。',
   'system_notice.release_notes.promise_text': '每个功能、每次更新，都属于每一个人。没有付费档位，没有订阅，没有套路。',
   'system_notice.release_notes.note_body_after':
     '后来你们来了，很快就是成千上万人：有星标，有问题反馈，有翻译成我不会的语言的译文，还有素未谋面的人提交的 pull request。我至今每天早上第一件事还是看一眼仓库，仍然觉得不太真实。',
-  'system_notice.release_notes.note_closing':
-    '谢谢你来到这里。Maurice',
+  'system_notice.release_notes.note_closing': '谢谢你来到这里。Maurice',
   'system_notice.release_notes.support_label': '因为有你',
-  'system_notice.release_notes.support_lead': 'TREK 全靠捐赠才得以存在。',
+  'system_notice.release_notes.support_lead': '游芽全靠捐赠才得以存在。',
   'system_notice.release_notes.support_text':
-    '这些捐赠付了服务器的费用，也让我有时间继续开发。哪怕一杯咖啡，也能帮 TREK 对所有人保持免费。',
+    '这些捐赠付了服务器的费用，也让我有时间继续开发。哪怕一杯咖啡，也能帮游芽对所有人保持免费。',
   'system_notice.release_notes.cta_bmc': '请我喝杯咖啡',
   'system_notice.release_notes.cta_kofi': '在 Ko-fi 上支持',
   'system_notice.release_notes.cta_patreon': 'Patreon 按月支持',

@@ -73,7 +73,7 @@ export default function MSettings() {
     // move to the footer below, because AGPL §13 wants those offered wherever
     // people reach the software over a network. Under the product's name, not
     // under either group.
-    ...(appVersion && !managed ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info, group: 'TREK' }] : []),
+    ...(appVersion && !managed ? [{ id: 'about', label: t('settings.tabs.about'), icon: Info, group: 'YOUYA' }] : []),
   ]
 
   const active = tabs.find((tab) => tab.id === activeTab) || tabs[0]

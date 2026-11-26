@@ -13,7 +13,7 @@ export interface SchemeSwatch {
 }
 
 export const APPEARANCE_SCHEMES: SchemeSwatch[] = [
-  { id: 'default', swatch: { light: '#111827', dark: '#e4e4e7' } },
+  { id: 'default', swatch: { light: '#21443B', dark: '#72CDA7' } },
   { id: 'highContrast', swatch: { light: '#1d4ed8', dark: '#60a5fa' } },
   { id: 'indigo', swatch: { light: '#4f46e5', dark: '#6366f1' } },
   { id: 'teal', swatch: { light: '#0d9488', dark: '#14b8a6' } },

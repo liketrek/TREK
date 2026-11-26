@@ -1,10 +1,10 @@
 # Internal Network Access
 
-TREK makes outbound HTTP requests when you configure integrations such as Immich or Synology Photos. By default, it blocks requests to private and local IP ranges to prevent server-side request forgery (SSRF) attacks. You need to allow internal network access when those services are hosted on your LAN.
+YOUYA makes outbound HTTP requests when you configure integrations such as Immich or Synology Photos. By default, it blocks requests to private and local IP ranges to prevent server-side request forgery (SSRF) attacks. You need to allow internal network access when those services are hosted on your LAN.
 
 ## Default behavior
 
-TREK has two SSRF guards, both in `ssrfGuard.ts`. Which one applies depends on the call site, not on who configured the URL.
+YOUYA has two SSRF guards, both in `ssrfGuard.ts`. Which one applies depends on the call site, not on who configured the URL.
 
 **The strict guard** (`safeFetch` / `safeFetchFollow`, built on `checkSsrf`) covers most outbound traffic: Immich, Synology Photos, AirTrail, Dawarich, the wanderer connection, the document stores behind [Document-Sync](Document-Sync) (Paperless-ngx, Papra, Nextcloud, OpenCloud and Synology), notification webhooks, ntfy, Unsplash, place lookups, and the cloud hosts the AI assistant connections talk to (the ChatGPT sign-in and the hosted providers). It resolves the hostname to an IP address before allowing the connection and blocks loopback, link-local and private ranges. Only the private ranges open up, and only with `ALLOW_INTERNAL_NETWORK=true`. The two tables below describe this guard.
 
@@ -12,7 +12,7 @@ TREK has two SSRF guards, both in `ssrfGuard.ts`. Which one applies depends on t
 
 **The relaxed guard** (`safeFetchAdminConfigured`, also exported as `safeFetchLlm`) covers endpoints that are expected to live on your own network: OIDC (discovery, token, userinfo, JWKS), the LLM providers behind the AI Parsing addon (a local Ollama or any OpenAI-compatible endpoint), the AI server an admin sets up for the AI assistant, and plugin OAuth token exchanges. The self-hosted routing engines an admin sets for the [Road-Trip](Road-Trip) addon (**Own routing engine**, **Own Valhalla instance**) go through it too when the server asks them itself, which it does for the MCP road trip tools. The planner asks them from the browser, so they must also be reachable from your users' devices. It deliberately permits loopback and LAN targets, so a model server on `localhost` or an identity provider on your LAN works **without** `ALLOW_INTERNAL_NETWORK`. It still resolves every hostname, re-checks every redirect hop, and always blocks link-local and cloud-metadata addresses (`169.254.0.0/16`, the full `fe80::/10`, and the AWS and Alibaba metadata addresses). The only way past is a single address listed in `ALLOW_LINK_LOCAL_IPS`, see [below](#a-link-local-address-you-need).
 
-**No guard** applies to the addresses an admin sets in the environment for place search: `TREK_PLACES_URL`, `NOMINATIM_URL` and `OVERPASS_URL`. They are configuration rather than user input, so a self-run copy of the [TREK Places API](TREK-Places-API), a Nominatim or an Overpass instance on your LAN or in the same Docker network is reached without `ALLOW_INTERNAL_NETWORK`.
+**No guard** applies to the addresses an admin sets in the environment for place search: `TREK_PLACES_URL`, `NOMINATIM_URL` and `OVERPASS_URL`. They are configuration rather than user input, so a self-run copy of the [YOUYA Places API](TREK-Places-API), a Nominatim or an Overpass instance on your LAN or in the same Docker network is reached without `ALLOW_INTERNAL_NETWORK`.
 
 ## Always blocked
 
@@ -44,11 +44,11 @@ The one way past this table is `ALLOW_LINK_LOCAL_IPS`, for a single IPv4 link-lo
 
 The hostname `localhost` is matched at the hostname stage too, but it normally resolves to a loopback address (`127.0.0.1` or `::1`), which the always-blocked loopback rule catches first, so under the strict guard it is blocked no matter how `ALLOW_INTERNAL_NETWORK` is set. On a host that maps `localhost` somewhere else, the hostname rule still applies and it stays blocked unless `ALLOW_INTERNAL_NETWORK=true`. The relaxed guard allows `localhost` outright, which is what makes a local Ollama the supported default for AI Parsing.
 
-`*.local` and `*.internal` hostnames are permitted when `ALLOW_INTERNAL_NETWORK=true`: the guard still resolves them to an IP and enforces all IP-level rules, so TREK never connects to a loopback or link-local address such a hostname resolves to, and a hostname with no other address remains blocked regardless.
+`*.local` and `*.internal` hostnames are permitted when `ALLOW_INTERNAL_NETWORK=true`: the guard still resolves them to an IP and enforces all IP-level rules, so YOUYA never connects to a loopback or link-local address such a hostname resolves to, and a hostname with no other address remains blocked regardless.
 
 ## When to enable
 
-Set `ALLOW_INTERNAL_NETWORK=true` when a service reached through the strict guard (Immich, Synology Photos, AirTrail, Dawarich, wanderer, a document store bound through [Document-Sync](Document-Sync), or a notification webhook) is hosted on your local network and you need TREK to reach it. You do **not** need it for a local or LAN Ollama, an OpenAI-compatible endpoint, an OIDC provider on your LAN, your own OSRM or Valhalla, or plugin OAuth; those go through the relaxed guard and already work. Nor do you need it for your own TREK Places API, Nominatim or Overpass, which are not guarded at all. Leave the flag off if only those need internal access, since turning it on widens the surface for every strict-guard integration at once.
+Set `ALLOW_INTERNAL_NETWORK=true` when a service reached through the strict guard (Immich, Synology Photos, AirTrail, Dawarich, wanderer, a document store bound through [Document-Sync](Document-Sync), or a notification webhook) is hosted on your local network and you need YOUYA to reach it. You do **not** need it for a local or LAN Ollama, an OpenAI-compatible endpoint, an OIDC provider on your LAN, your own OSRM or Valhalla, or plugin OAuth; those go through the relaxed guard and already work. Nor do you need it for your own YOUYA Places API, Nominatim or Overpass, which are not guarded at all. Leave the flag off if only those need internal access, since turning it on widens the surface for every strict-guard integration at once.
 
 A service in another container on the same Docker network counts as internal too, because its container name resolves to a private address; so do a Tailscale address (`100.64.0.0/10`) and a `.local` name. A service on loopback (`localhost`, `127.0.0.1`) is never reached through the strict guard, whatever the flag says: use the host's LAN address or the container name instead.
 
@@ -68,9 +68,9 @@ ALLOW_LINK_LOCAL_IPS=169.254.1.2
 
 - The relaxed guard (OIDC, AI Parsing, the AI assistant's own server, plugin OAuth, your own routing engines) then reaches it with nothing else set.
 - The strict guard treats it as internal, like a `192.168.x` address, so Immich, a document store or any other integration behind it also needs `ALLOW_INTERNAL_NETWORK=true`.
-- Every other link-local address stays blocked. `169.254.169.x` and `169.254.170.x`, where AWS, GCP, Azure and the container services built on them hand out instance metadata and credentials, cannot be listed at all. TREK refuses to start with one of them in the list, and with any entry that is not a single IPv4 address such as `169.254.1.2`, so IPv6 link-local (`fe80::/10`) cannot be listed either.
+- Every other link-local address stays blocked. `169.254.169.x` and `169.254.170.x`, where AWS, GCP, Azure and the container services built on them hand out instance metadata and credentials, cannot be listed at all. YOUYA refuses to start with one of them in the list, and with any entry that is not a single IPv4 address such as `169.254.1.2`, so IPv6 link-local (`fe80::/10`) cannot be listed either.
 
-Several addresses are separated by commas. The list is read at startup, so restart TREK after changing it.
+Several addresses are separated by commas. The list is read at startup, so restart YOUYA after changing it.
 
 ## Behind an outbound proxy
 
@@ -78,13 +78,13 @@ With `HTTP_PROXY` or `HTTPS_PROXY` set, requests through the strict and the rela
 
 ## DNS rebinding protection
 
-Even with `ALLOW_INTERNAL_NETWORK=true`, TREK pins the DNS resolution to prevent rebinding attacks. When the guard checks a URL, it resolves the hostname once and records the addresses it may use. The outbound connection is then made directly to those addresses using a pinned dispatcher (via undici), so the hostname cannot re-resolve to a different address between the check and the actual request.
+Even with `ALLOW_INTERNAL_NETWORK=true`, YOUYA pins the DNS resolution to prevent rebinding attacks. When the guard checks a URL, it resolves the hostname once and records the addresses it may use. The outbound connection is then made directly to those addresses using a pinned dispatcher (via undici), so the hostname cannot re-resolve to a different address between the check and the actual request.
 
-A hostname can resolve to several addresses, and a LAN DNS server often hands out a host's IPv6 link-local address (`fe80::`) next to its IPv4 one. TREK never connects to an address the guard blocks: it leaves that address out and connects over the ones that remain. Only a hostname whose addresses are all blocked is refused. Under the strict guard, a private address among the rest still needs `ALLOW_INTERNAL_NETWORK=true`.
+A hostname can resolve to several addresses, and a LAN DNS server often hands out a host's IPv6 link-local address (`fe80::`) next to its IPv4 one. YOUYA never connects to an address the guard blocks: it leaves that address out and connects over the ones that remain. Only a hostname whose addresses are all blocked is refused. Under the strict guard, a private address among the rest still needs `ALLOW_INTERNAL_NETWORK=true`.
 
 ## Audit log
 
-When a user saves an Immich URL that resolves to a private IP, TREK records an `immich.private_ip_configured` entry in the [Audit-Log](Audit-Log) including the URL and the resolved IP address. AirTrail does the same with `airtrail.private_ip_configured`, and Dawarich with `dawarich.private_ip_configured`. Synology Photos does not emit an equivalent event, and neither do wanderer and document sync.
+When a user saves an Immich URL that resolves to a private IP, YOUYA records an `immich.private_ip_configured` entry in the [Audit-Log](Audit-Log) including the URL and the resolved IP address. AirTrail does the same with `airtrail.private_ip_configured`, and Dawarich with `dawarich.private_ip_configured`. Synology Photos does not emit an equivalent event, and neither do wanderer and document sync.
 
 ## See also
 

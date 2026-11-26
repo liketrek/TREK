@@ -6,7 +6,7 @@ const help: TranslationStrings = {
   'help.contents': 'Obsah',
   'help.noResults': 'Žiadne zodpovedajúce stránky.',
   'help.errorTitle': 'Túto stránku sa nepodarilo načítať',
-  'help.errorBody': 'Obsah pomocníka sa načítava z wiki TREK. Skontrolujte pripojenie a skúste to znova.',
+  'help.errorBody': 'Obsah pomocníka sa načítava z wiki YOUYA. Skontrolujte pripojenie a skúste to znova.',
 
   // ── Help center (the contextual panel behind the ? in the navbar) ──────────
   'help.center.button': 'Pomoc k tejto obrazovke',
@@ -75,14 +75,14 @@ const help: TranslationStrings = {
   'help.guide.create-trip.step.2':
     'Zadajte názov cesty. Je to jediné povinné pole, všetko ostatné môžete doplniť neskôr.',
   'help.guide.create-trip.step.3':
-    'Vyberte dátum začiatku a konca. TREK vytvorí jeden deň pre každý dátum, takže môžete začať plánovať itinerár. Zatiaľ bez dátumov? Nechajte obe polia prázdne a namiesto toho zadajte Počet dní.',
+    'Vyberte dátum začiatku a konca. YOUYA vytvorí jeden deň pre každý dátum, takže môžete začať plánovať itinerár. Zatiaľ bez dátumov? Nechajte obe polia prázdne a namiesto toho zadajte Počet dní.',
   'help.guide.create-trip.step.4':
     'Voliteľné: pridajte titulnú fotku. Nahrajte vlastnú, pretiahnite ju sem alebo vložte zo schránky, prípadne vyhľadajte cieľ cesty na Unsplash.',
   'help.guide.create-trip.step.5': 'Kliknite na Vytvoriť novú cestu.',
   'help.guide.create-trip.result':
     'Cesta sa zobrazí na vašom prehľade. Ak je to vaša najbližšia cesta, zobrazí sa na palubnom lístku navrchu.',
   'help.guide.create-trip.tip.1':
-    'Dátumy môžete neskôr zmeniť. Ak už máte rezervácie, TREK sa opýta, či ich má posunúť spolu s dňami.',
+    'Dátumy môžete neskôr zmeniť. Ak už máte rezervácie, YOUYA sa opýta, či ich má posunúť spolu s dňami.',
   'help.guide.create-trip.tip.2':
     'Všetky náklady sa prepočítavajú na menu cesty, ktorú tu vyberiete. Zvoľte menu cieľovej krajiny.',
 
@@ -95,7 +95,7 @@ const help: TranslationStrings = {
   'help.guide.edit-trip.step.3': 'Kliknite na „Aktualizovať“.',
   'help.guide.edit-trip.result': 'Karta sa okamžite aktualizuje pre všetkých členov cesty.',
   'help.guide.edit-trip.tip.1':
-    'Ak posuniete začiatok cesty, ktorá má rezervácie, TREK sa opýta, či sa majú posunúť aj rezervácie. Pri skrátení cesty zobrazí dni, ktoré zaniknú, a čo je v nich naplánované. Uloží sa až po kliknutí na Odobrať dni a uložiť.',
+    'Ak posuniete začiatok cesty, ktorá má rezervácie, YOUYA sa opýta, či sa majú posunúť aj rezervácie. Pri skrátení cesty zobrazí dni, ktoré zaniknú, a čo je v nich naplánované. Uloží sa až po kliknutí na Odobrať dni a uložiť.',
 
   // cover-image
   'help.guide.cover-image.title': 'Nastavenie titulnej fotky',
@@ -151,7 +151,7 @@ const help: TranslationStrings = {
   'help.guide.calendar-feed.goal':
     'Majte dni a rezervácie všetkých aktívnych ciest vo svojej kalendárovej aplikácii, stále synchronizované.',
   'help.guide.calendar-feed.step.1': 'Kliknite na ikonu kalendára vedľa prepínača zobrazenia.',
-  'help.guide.calendar-feed.step.2': 'Kliknite na Zapnúť odber kalendára. TREK vytvorí súkromný odkaz na kanál.',
+  'help.guide.calendar-feed.step.2': 'Kliknite na Zapnúť odber kalendára. YOUYA vytvorí súkromný odkaz na kanál.',
   'help.guide.calendar-feed.step.3':
     'Kliknite na „Pridať do Kalendára Google“ alebo „Pridať do Kalendára Apple / Outlooku“. Pri inej kalendárovej aplikácii otvorte „Alebo skopírujte odkaz ručne“ a odkaz skopírujte odtiaľ.',
   'help.guide.calendar-feed.result':
@@ -349,7 +349,7 @@ const help: TranslationStrings = {
   // invite
   'help.guide.invite.title': 'Spoločné plánovanie',
   'help.guide.invite.goal':
-    'Prepojte svoj plán s plánom iného používateľa TREK, aby ste obaja videli svoje voľné dni v jednej mriežke.',
+    'Prepojte svoj plán s plánom iného používateľa YOUYA, aby ste obaja videli svoje voľné dni v jednej mriežke.',
   'help.guide.invite.step.1': 'Kliknite na ikonu osoby v karte Osoby.',
   'help.guide.invite.step.2': 'Vyberte používateľa a kliknite na Odoslať pozvánku.',
   'help.guide.invite.step.3':
@@ -377,7 +377,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ──────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atlas',
   'help.ctx.atlas.summary':
-    'Atlas ukazuje na mape sveta, kde ste cestovali: každá krajina, do ktorej vás zaviedla nejaká cesta, je vyfarbená a krajiny, ktoré ste navštívili skôr, než ste začali používať TREK, môžete pridať ručne. Priblížením uvidíte regióny, vediete si zoznam prianí miest, ktoré chcete ešte vidieť, a svoje čísla nájdete v sklenenom paneli dole.',
+    'Atlas ukazuje na mape sveta, kde ste cestovali: každá krajina, do ktorej vás zaviedla nejaká cesta, je vyfarbená a krajiny, ktoré ste navštívili skôr, než ste začali používať YOUYA, môžete pridať ručne. Priblížením uvidíte regióny, vediete si zoznam prianí miest, ktoré chcete ešte vidieť, a svoje čísla nájdete v sklenenom paneli dole.',
   'help.ctx.atlas.bullet.1':
     'Mapa: každá navštívená krajina má vlastnú stálu farbu, plánované krajiny majú prerušovaný obrys, krajiny zo zoznamu prianí šikmé šrafovanie a všetky ostatné sú sivé. Keď nad krajinu prejdete myšou, uvidíte jej cesty, miesta a prvú aj poslednú návštevu.',
   'help.ctx.atlas.bullet.2':
@@ -393,7 +393,7 @@ const help: TranslationStrings = {
   // mark-country
   'help.guide.mark-country.title': 'Označenie krajiny ako navštívenej',
   'help.guide.mark-country.goal':
-    'Pridajte krajinu, ktorú ste navštívili ešte pred používaním TREK, aby bola na mape aj vo vašom počte.',
+    'Pridajte krajinu, ktorú ste navštívili ešte pred používaním YOUYA, aby bola na mape aj vo vašom počte.',
   'help.guide.mark-country.step.1': 'Zadajte krajinu do vyhľadávacieho poľa v hornej časti mapy.',
   'help.guide.mark-country.step.2': 'Vyberte ju zo zoznamu. Mapa sa presunie ku krajine a otvorí sa jej okno.',
   'help.guide.mark-country.step.3': 'Vyberte „Označiť ako navštívené“.',
@@ -459,7 +459,7 @@ const help: TranslationStrings = {
   'help.guide.search-place.result':
     'Označí sa región a s ním aj krajina. Pri krajinách, ktoré v mapovom balíku nemajú údaje o regiónoch, sa označí priamo krajina.',
   'help.guide.search-place.tip.1':
-    'Miesta pochádzajú z rovnakého vyhľadávania ako inde v TREK, takže používajú poskytovateľa, ktorého nastavil váš správca.',
+    'Miesta pochádzajú z rovnakého vyhľadávania ako inde v YOUYA, takže používajú poskytovateľa, ktorého nastavil váš správca.',
   // bucket-country
   'help.guide.bucket-country.title': 'Pridanie krajiny do zoznamu prianí',
   'help.guide.bucket-country.goal':
@@ -495,7 +495,7 @@ const help: TranslationStrings = {
     'Kontinenty ukazujú navštívené krajiny podľa kontinentu. Antarktída sa v rade objaví, až keď ju navštívite. Potom nasleduje vaša séria (po sebe idúce roky s aspoň jednou cestou) a počet ciest, ktoré ste absolvovali tento rok.',
   'help.guide.stats.result': 'Čísla sa aktualizujú automaticky, ako plánujete cesty. Nemusíte tu nič udržiavať.',
   'help.guide.stats.tip.1':
-    'Mestá sa čítajú z textu adresy, nevyhľadávajú sa. TREK preskočí krajinu, PSČ a región a vezme názov pred nimi, takže „10178 Berlin“ sa počíta ako Berlin. Krátka adresa ako „Osteria Francescana, Italy“ nepridá žiadne mesto.',
+    'Mestá sa čítajú z textu adresy, nevyhľadávajú sa. YOUYA preskočí krajinu, PSČ a región a vezme názov pred nimi, takže „10178 Berlin“ sa počíta ako Berlin. Krátka adresa ako „Osteria Francescana, Italy“ nepridá žiadne mesto.',
   'help.guide.stats.tip.2':
     'Krajiny, ktoré ste označili ručne, sa započítajú do Krajín a kontinentov, ale nepridajú žiadne cesty, miesta ani dni.',
 
@@ -506,7 +506,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     'Keď je pripojený doplnok Dawarich, v spodnej časti mapy, naľavo od štatistík, sa objaví panel Dawarich s dvoma dlaždicami. Kliknite na „Krajín“.',
   'help.guide.dawarich-countries.step.2':
-    'Dialóg sa otvorí na karte Krajiny. Kliknite na Vyhľadať krajiny: TREK načíta krajiny a mestá, ktoré vaše záznamy pokrývajú za posledných 12 mesiacov, po jednom mesiaci, takže to môže chvíľu trvať. Každá krajina, ktorú váš Atlas ešte nemá, sa zobrazí s vlajkou, počtom miest a názvom prvého mesta. Každá krajina je predvolene zaškrtnutá. Kliknutím na riadok ju vynecháte.',
+    'Dialóg sa otvorí na karte Krajiny. Kliknite na Vyhľadať krajiny: YOUYA načíta krajiny a mestá, ktoré vaše záznamy pokrývajú za posledných 12 mesiacov, po jednom mesiaci, takže to môže chvíľu trvať. Každá krajina, ktorú váš Atlas ešte nemá, sa zobrazí s vlajkou, počtom miest a názvom prvého mesta. Každá krajina je predvolene zaškrtnutá. Kliknutím na riadok ju vynecháte.',
   'help.guide.dawarich-countries.step.3':
     'Potvrďte tlačidlom vpravo dole, ktoré pri piatich zaškrtnutých riadkoch znie Pridať 5 krajín. Dialóg uvedie, koľko krajín sa pridalo. Keď ho zavriete, mapa je už aktualizovaná.',
   'help.guide.dawarich-countries.result':
@@ -514,14 +514,14 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Krajiny, ktoré Atlas už zobrazuje ako navštívené, či už ručne, z cesty alebo z predchádzajúcej kontroly, sa vynechajú, takže vaše vlastné označenia sa nikdy nezmenia. Krajina, ktorú ste z Atlasu predtým odstránili, sa pridá znova, keď ju tu potvrdíte.',
   'help.guide.dawarich-countries.tip.2':
-    'Ak TREK nevie priradiť názov krajiny, zobrazí ho pod riadkami a nezahodí ho. Skontrolovať znova sa opýta Dawarich ešte raz. Poznámka pod zoznamom uvádza, že sa skontrolovalo posledných 12 mesiacov. Toto obdobie nemožno zmeniť.',
+    'Ak YOUYA nevie priradiť názov krajiny, zobrazí ho pod riadkami a nezahodí ho. Skontrolovať znova sa opýta Dawarich ešte raz. Poznámka pod zoznamom uvádza, že sa skontrolovalo posledných 12 mesiacov. Toto obdobie nemožno zmeniť.',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': 'Odškrtnutie prianí podľa vašich záznamov',
   'help.guide.dawarich-wishes.goal':
     'Zistite, ktoré miesta zo zoznamu prianí ste naozaj navštívili, a označte ich ako dosiahnuté aj s dátumom návštevy.',
   'help.guide.dawarich-wishes.step.1': 'V paneli Dawarich dole na mape, vľavo od štatistík, kliknite na Zoznam prianí.',
   'help.guide.dawarich-wishes.step.2':
-    'Dialóg sa otvorí na karte Zoznam prianí. Kliknite na Skontrolovať zoznam prianí: TREK prehľadá vaše záznamy a vezme každú položku so súradnicami. Splnené prianie sa zobrazí s informáciou, ako blízko ste sa dostali, ako dlho ste tam zostali a v ktorý deň, a je predvolene zaškrtnuté. Pri tom, ktoré ste už odškrtli, je napísané Už odškrtnuté. Pod zoznamom poznámka uvádza počet položiek bez súradníc a pravidlo: Prianie sa počíta ako splnené v okruhu 250 m a po 20 minútach na mieste.',
+    'Dialóg sa otvorí na karte Zoznam prianí. Kliknite na Skontrolovať zoznam prianí: YOUYA prehľadá vaše záznamy a vezme každú položku so súradnicami. Splnené prianie sa zobrazí s informáciou, ako blízko ste sa dostali, ako dlho ste tam zostali a v ktorý deň, a je predvolene zaškrtnuté. Pri tom, ktoré ste už odškrtli, je napísané Už odškrtnuté. Pod zoznamom poznámka uvádza počet položiek bez súradníc a pravidlo: Prianie sa počíta ako splnené v okruhu 250 m a po 20 minútach na mieste.',
   'help.guide.dawarich-wishes.step.3':
     'Potvrďte tlačidlom vpravo dole, na ktorom pri dvoch zaškrtnutých riadkoch stojí „Odškrtnúť 2“. Potom dialóg zatvorte a otvorte kartu „Zoznam prianí“ v paneli vedľa neho.',
   'help.guide.dawarich-wishes.result':
@@ -529,7 +529,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     'Prejazd okolo sa nepočíta: musíte byť blízko miesta a istý čas tam zostať. Ak vyhovuje viac pobytov, použije sa ten najdlhší. Prianie bez súradníc sa skontrolovať nedá, preto pridávajte miesta cez vyhľadávanie v Pridať miesto, nie len podľa názvu.',
   'help.guide.dawarich-wishes.tip.2':
-    'Jedna kontrola prejde najviac 50 položiek, najprv tie, ktoré ešte nie sú odškrtnuté. Ak ich je viac, TREK vám to oznámi. Prianie, ktoré už bolo odškrtnuté, si ponechá svoj dátum.',
+    'Jedna kontrola prejde najviac 50 položiek, najprv tie, ktoré ešte nie sú odškrtnuté. Ak ich je viac, YOUYA vám to oznámi. Prianie, ktoré už bolo odškrtnuté, si ponechá svoj dátum.',
   // ── Screen: collections ────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Zbierky',
   'help.ctx.collections.summary':
@@ -584,7 +584,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     'Miesta sa skopírujú do zoznamu s názvom, adresou, súradnicami, popisom a kategóriou. Cesta sa nezmení.',
   'help.guide.import-from-trip.tip.1':
-    'TREK duplikáty podľa názvu alebo súradníc automaticky preskočí, takže import môžete pokojne spustiť aj dvakrát.',
+    'YOUYA duplikáty podľa názvu alebo súradníc automaticky preskočí, takže import môžete pokojne spustiť aj dvakrát.',
   'help.guide.import-from-trip.tip.2':
     'V zozname miest v ceste môžete v režime výberu namiesto toho použiť Uložiť do zbierky a uložiť ručne vybranú skupinu miest.',
   // place-status
@@ -658,7 +658,7 @@ const help: TranslationStrings = {
     'Môžu to urobiť aj diváci zdieľaného zoznamu. Miesta sa zo zoznamu skopírujú a zoznam sa nezmení.',
   // share-list
   'help.guide.share-list.title': 'Zdieľanie zoznamu',
-  'help.guide.share-list.goal': 'Plánujte zoznam spolu s ďalšími ľuďmi na tomto TREK, v reálnom čase.',
+  'help.guide.share-list.goal': 'Plánujte zoznam spolu s ďalšími ľuďmi na tomto YOUYA, v reálnom čase.',
   'help.guide.share-list.step.1': 'V hlavičke svojho zoznamu kliknite na Zdieľať.',
   'help.guide.share-list.step.2': 'Vyberte používateľa a rolu: Divák, Editor alebo Správca.',
   'help.guide.share-list.step.3':
@@ -671,23 +671,23 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Export zoznamu do súboru',
   'help.guide.export-list.goal':
-    'Pošlite zoznam niekomu na inom serveri TREK, otvorte ho v mapovej aplikácii alebo si ho pozrite v Google My Maps.',
+    'Pošlite zoznam niekomu na inom serveri YOUYA, otvorte ho v mapovej aplikácii alebo si ho pozrite v Google My Maps.',
   'help.guide.export-list.step.1': 'V hlavičke zoznamu kliknite na „Exportovať“.',
   'help.guide.export-list.step.2':
-    'Vyberte Zoznam TREK, ak chcete zoznam použiť v inom TREK, aj so štítkami a stavom, GPX pre OsmAnd, Organic Maps, Garmin a ďalšie aplikácie, ktoré čítajú body trasy, alebo KML pre Google My Maps, aby ste miesta videli v Google Maps.',
+    'Vyberte Zoznam YOUYA, ak chcete zoznam použiť v inom YOUYA, aj so štítkami a stavom, GPX pre OsmAnd, Organic Maps, Garmin a ďalšie aplikácie, ktoré čítajú body trasy, alebo KML pre Google My Maps, aby ste miesta videli v Google Maps.',
   'help.guide.export-list.result': 'Súbor sa stiahne. Exportovať môže ktorýkoľvek člen zdieľaného zoznamu.',
   'help.guide.export-list.tip.1':
-    'Miesto bez súradníc nemôže byť bodom GPX ani špendlíkom KML. Vynechá sa a TREK vám oznámi, koľko takých miest bolo.',
+    'Miesto bez súradníc nemôže byť bodom GPX ani špendlíkom KML. Vynechá sa a YOUYA vám oznámi, koľko takých miest bolo.',
   'help.guide.export-list.tip.2':
-    'Hodnotenia, členovia a nahrané fotky sa zámerne neexportujú: patria k tejto inštancii TREK, nie k zoznamu.',
+    'Hodnotenia, členovia a nahrané fotky sa zámerne neexportujú: patria k tejto inštancii YOUYA, nie k zoznamu.',
   // import-file
   'help.guide.import-file.title': 'Import zoznamu zo súboru',
   'help.guide.import-file.goal':
-    'Importujte súbor so zoznamom TREK alebo súbor GPX ako nový zoznam alebo do existujúceho.',
+    'Importujte súbor so zoznamom YOUYA alebo súbor GPX ako nový zoznam alebo do existujúceho.',
   'help.guide.import-file.step.1':
     'V paneli zoznamov kliknite na tlačidlo importu so šípkou nahor vedľa „Nový zoznam“.',
   'help.guide.import-file.step.2':
-    'Vyberte súbor. Skôr než TREK niečo importuje, ukáže, čo súbor obsahuje: názov, počet miest a počet štítkov.',
+    'Vyberte súbor. Skôr než YOUYA niečo importuje, ukáže, čo súbor obsahuje: názov, počet miest a počet štítkov.',
   'help.guide.import-file.step.3':
     'Nechajte Nový zoznam a podľa potreby zmeňte názov, potom kliknite na Importovať. Alebo vyberte Pridať do zoznamu, aby sa miesta pridali do zoznamu, ktorý môžete upravovať, a kliknite na Pridať do zoznamu.',
   'help.guide.import-file.result':
@@ -695,7 +695,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     'Z GPX sa každý pomenovaný bod trasy stane miestom. Stopy sú čiary a vynechajú sa, pričom náhľad uvádza, koľko bodov to bolo.',
   'help.guide.import-file.tip.2':
-    'Súbor, ktorý nie je zoznamom TREK ani GPX, TREK odmietne a uvedie dôvod. Ak sa nedá prečítať jedno miesto, preskočí sa iba toto miesto, nie celý súbor.',
+    'Súbor, ktorý nie je zoznamom YOUYA ani GPX, YOUYA odmietne a uvedie dôvod. Ak sa nedá prečítať jedno miesto, preskočí sa iba toto miesto, nie celý súbor.',
   // edit-list
   'help.guide.edit-list.title': 'Úprava alebo vymazanie zoznamu',
   'help.guide.edit-list.goal':
@@ -905,7 +905,7 @@ const help: TranslationStrings = {
   'help.guide.link-trip.tip.2': 'Záznamy s dňom sa započítajú len raz, bez ohľadu na to, koľko ciest daný deň zahŕňa.',
   // share-public
   'help.guide.share-public.title': 'Verejné zdieľanie cestovného denníka',
-  'help.guide.share-public.goal': 'Dajte ľuďom bez účtu TREK odkaz, cez ktorý si denník môžu len prečítať.',
+  'help.guide.share-public.goal': 'Dajte ľuďom bez účtu YOUYA odkaz, cez ktorý si denník môžu len prečítať.',
   'help.guide.share-public.step.1':
     'Cez ⋯ v záhlaví otvorte „Nastavenia cestovného denníka“ a posuňte sa k časti „Verejné zdieľanie“.',
   'help.guide.share-public.step.2': 'Kliknite na „Vytvoriť odkaz na zdieľanie“.',
@@ -927,7 +927,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.result':
     'Denník sa zobrazí v zozname danej osoby a pri jej záznamoch bude jej meno. Prispievateľa odoberiete krížikom × vedľa neho.',
   'help.guide.contributors.tip.1':
-    'Prispievatelia sú pre ľudí na tejto inštancii TREK. Pre všetkých ostatných je tu verejný odkaz.',
+    'Prispievatelia sú pre ľudí na tejto inštancii YOUYA. Pre všetkých ostatných je tu verejný odkaz.',
   // studio
   'help.guide.studio.title': 'Rozloženie cestovného denníka ako fotoknihy',
   'help.guide.studio.goal': 'Premeňte denník na strany pripravené na tlač.',
@@ -965,7 +965,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ─────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Studio', // same-as-en
   'help.ctx.journey-studio.summary':
-    'TREK Studio rozloží denník do fotoknihy, ktorú môžete vytlačiť. Otvorí sa nad denníkom: panel a jeho sekcie sú vľavo, dvojstrana, na ktorej pracujete, uprostred a jej vlastnosti vpravo. Automatické rozloženie zostaví prvý návrh z vašich záznamov, motív dá knihe farby a písma a asistent s vami vie navrhovať strany. Potom môžete všetko presúvať, orezávať a prestylovať a každý krok sa dá vrátiť späť.',
+    'YOUYA Studio rozloží denník do fotoknihy, ktorú môžete vytlačiť. Otvorí sa nad denníkom: panel a jeho sekcie sú vľavo, dvojstrana, na ktorej pracujete, uprostred a jej vlastnosti vpravo. Automatické rozloženie zostaví prvý návrh z vašich záznamov, motív dá knihe farby a písma a asistent s vami vie navrhovať strany. Potom môžete všetko presúvať, orezávať a prestylovať a každý krok sa dá vrátiť späť.',
   'help.ctx.journey-studio.bullet.1':
     'Horná lišta: vľavo obálka a názov denníka. Vpravo kto ďalší je v knihe a či je uložená, formát strany, späť, znova a vložiť, Automatické rozloženie, asistent, pomocník, Exportovať a tlačidlo, ktoré zavrie Studio.',
   'help.ctx.journey-studio.bullet.2':
@@ -977,7 +977,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     'Kniha je rozložená ako tlačená kniha: obálka, jedna prvá strana oproti prázdnej vnútornej strane obálky, dvojstrany, jedna posledná strana a zadná obálka. Čísla strán sa počítajú od prvej strany a tlačia sa tak, ako ich vidíte.',
   'help.ctx.journey-studio.bullet.6':
-    'Navrhovať môže viac ľudí naraz: každý vidí kurzory ostatných s ich menami. Ak uložíte verziu, ktorú medzitým zmenil niekto iný, TREK zobrazí konflikt a jeho prácu neprepíše.',
+    'Navrhovať môže viac ľudí naraz: každý vidí kurzory ostatných s ich menami. Ak uložíte verziu, ktorú medzitým zmenil niekto iný, YOUYA zobrazí konflikt a jeho prácu neprepíše.',
   'help.ctx.journey-studio.bullet.7':
     'Motív: jeden vzhľad pre celú knihu, jej papier, atrament a tri akcentové farby, písma a motívy. Prvky prepojené s motívom ho nasledujú, keď ho zmeníte.',
   'help.ctx.journey-studio.bullet.8':
@@ -1055,7 +1055,7 @@ const help: TranslationStrings = {
     'Všetky prepojené farby a písma v knihe sa zmenia naraz a použitie motívu je jeden krok, ktorý sa dá vrátiť späť.',
   'help.guide.studio-content.tip.1': 'Vyhľadávacie pole v hornej časti panela „Obsah“ filtruje oba zoznamy.',
   'help.guide.studio-content.tip.2':
-    'Keď súbor z počítača pretiahnete na pracovnú plochu, TREK ho naraz nahrá aj umiestni.',
+    'Keď súbor z počítača pretiahnete na pracovnú plochu, YOUYA ho naraz nahrá aj umiestni.',
   // studio-elements
   'help.guide.studio-elements.title': 'Pridanie textu, tvarov, ikon a nálepiek',
   'help.guide.studio-elements.goal': 'Doplňte dvojstranu okrem fotiek a príbehov aj o ozdoby.',
@@ -1164,12 +1164,12 @@ const help: TranslationStrings = {
     'V druhej knihe otvorte Strany, kliknite na Importovať vedľa + Strana dole a vyberte súbor.',
   'help.guide.studio-spread-file.result':
     'Dvojstrana sa importuje aj s rámčekmi a štýlmi textu. Vložte do rámčekov fotky z nového denníka.',
-  'help.guide.studio-spread-file.tip.1': 'Ak súbor nie je návrhom dvojstrany, TREK ho odmietne a uvedie dôvod.',
+  'help.guide.studio-spread-file.tip.1': 'Ak súbor nie je návrhom dvojstrany, YOUYA ho odmietne a uvedie dôvod.',
 
   // ── Screen: settings (all tabs) ────────────────────────────────────────────
   'help.ctx.settings.title': 'Nastavenia',
   'help.ctx.settings.summary':
-    'Vaše osobné nastavenia, pre každú tému jedna karta v bočnom paneli vľavo. Väčšina prepínačov sa použije hneď po prepnutí. Formulár s tlačidlom Uložiť sa uloží, až keď kliknete na Uložiť. Nič z toho, čo tu zmeníte, nemení TREK nikomu inému.',
+    'Vaše osobné nastavenia, pre každú tému jedna karta v bočnom paneli vľavo. Väčšina prepínačov sa použije hneď po prepnutí. Formulár s tlačidlom Uložiť sa uloží, až keď kliknete na Uložiť. Nič z toho, čo tu zmeníte, nemení YOUYA nikomu inému.',
   'help.ctx.settings.bullet.1':
     'Bočný panel vľavo: Všeobecné, Vzhľad, Mapa, Oznámenia, Integrácie, Offline a Účet. Pluginy sa zobrazia, keď je aktívny nejaký plugin. O aplikácii sa zobrazí, pokiaľ ju prevádzkovateľ neskryl. Verzia je úplne dole.',
   'help.ctx.settings.bullet.2':
@@ -1180,7 +1180,7 @@ const help: TranslationStrings = {
     'Účet obsahuje váš profil, heslo, dvojfaktorové overenie, prístupové kľúče a možnosť zmazať účet.',
   'help.ctx.settings-display.title': 'Všeobecné',
   'help.ctx.settings-display.summary':
-    'S čím sa TREK otvára, aký jazyk a jednotky používa a ako sa správa mapa cesty a rezervácie. Každá zmena sa použije hneď.',
+    'S čím sa YOUYA otvára, aký jazyk a jednotky používa a ako sa správa mapa cesty a rezervácie. Každá zmena sa použije hneď.',
   'help.ctx.settings-display.bullet.1':
     'Spustenie: Úvodná stránka sa otvára na Prehľad alebo na Aktívna cesta. Pri Aktívna cesta vyberá Úvodná karta kartu, na ktorej sa táto cesta otvorí.',
   'help.ctx.settings-display.bullet.2':
@@ -1189,7 +1189,7 @@ const help: TranslationStrings = {
     'Cestovanie a mapa: „Otvárať miesta v“, „Dátum na začiatku nadpisov dní“, „Popisky trás rezervácií“, „Vždy zobrazovať trasy rezervácií“, „Kompaktné značky pre nenaplánované miesta“, „Objavovať miesta na mape“, „Skryť rezervačné kódy“ a „Optimalizovať trasu od ubytovania“.',
   'help.ctx.settings-appearance.title': 'Vzhľad',
   'help.ctx.settings-appearance.summary':
-    'Ako TREK vyzerá v tomto účte: svetlý alebo tmavý režim, farba akcentu, sklo a pohyb, veľkosť písma a to, ktoré widgety sa zobrazujú na prehľade. Všetko sa uplatní okamžite na každom zariadení, na ktorom sa prihlásite.',
+    'Ako YOUYA vyzerá v tomto účte: svetlý alebo tmavý režim, farba akcentu, sklo a pohyb, veľkosť písma a to, ktoré widgety sa zobrazujú na prehľade. Všetko sa uplatní okamžite na každom zariadení, na ktorom sa prihlásite.',
   'help.ctx.settings-appearance.bullet.1':
     'Motív: Farebný režim (Svetlé, Tmavý alebo Automatické), Farebná schéma a pri Vlastné váš vlastný akcent pre svetlý a tmavý režim s kontrolou kontrastu.',
   'help.ctx.settings-appearance.bullet.2':
@@ -1208,7 +1208,7 @@ const help: TranslationStrings = {
     'Iba pre Mapbox GL: „3D budovy a terén“, „Režim vysokej kvality“ a „Skryť body záujmu“. Nad tlačidlom „Uložiť nastavenia mapy“ je živý náhľad. Týmto tlačidlom voľbu uložíte.',
   'help.ctx.settings-notifications.title': 'Oznámenia',
   'help.ctx.settings-notifications.summary':
-    'Ako vás TREK kontaktuje mimo aplikácie. Navrchu tabuľka s jedným riadkom pre každú udalosť a jedným stĺpcom pre každý kanál určuje, čo sa kam posiela. Pod ňou sú karty pre webhook, ntfy, push v tomto zariadení a všetky kanály z doplnkov.',
+    'Ako vás YOUYA kontaktuje mimo aplikácie. Navrchu tabuľka s jedným riadkom pre každú udalosť a jedným stĺpcom pre každý kanál určuje, čo sa kam posiela. Pod ňou sú karty pre webhook, ntfy, push v tomto zariadení a všetky kanály z doplnkov.',
   'help.ctx.settings-notifications.bullet.1':
     'Oznámenia: každú udalosť zapnite alebo vypnite zvlášť pre každý kanál. Zámok znamená, že správca to vypol pre všetkých.',
   'help.ctx.settings-notifications.bullet.2':
@@ -1219,7 +1219,7 @@ const help: TranslationStrings = {
     'Push oznámenia v tomto zariadení: Zapnúť pre toto zariadenie platí iba pre tento prehliadač. Odoslať test pošle testovacie oznámenie. Kanál z doplnku ukazuje Nastaviť, kým nie je nastavený.',
   'help.ctx.settings-integrations.title': 'Integrácie',
   'help.ctx.settings-integrations.summary':
-    'Všetko, čo sa zvonku pripája k TREK: vaša vlastná adresa pre e-maily s rezerváciami, knižnice fotiek pre denník, AirTrail pre lety, Dawarich pre to, kde ste naozaj boli, wanderer pre trasy, API kľúče len na čítanie pre iný softvér a MCP pre AI klientov. Pripojenie k inej službe sa zobrazí, až keď ho správca zapne.',
+    'Všetko, čo sa zvonku pripája k YOUYA: vaša vlastná adresa pre e-maily s rezerváciami, knižnice fotiek pre denník, AirTrail pre lety, Dawarich pre to, kde ste naozaj boli, wanderer pre trasy, API kľúče len na čítanie pre iný softvér a MCP pre AI klientov. Pripojenie k inej službe sa zobrazí, až keď ho správca zapne.',
   'help.ctx.settings-integrations.bullet.1':
     'E-maily s rezerváciami, navrchu, keď má správca zapnutý import e-mailov: vaša preposielacia adresa s jej prepínačmi. Pod nimi Immich a Synology Photos, AirTrail, Dawarich a wanderer: každá karta má svoju adresu a kľúč, tlačidlá Uložiť a Otestovať pripojenie a odznak Pripojené alebo Nepripojené.',
   'help.ctx.settings-integrations.bullet.2':
@@ -1230,7 +1230,7 @@ const help: TranslationStrings = {
     'API tokeny: starší spôsob pripojenia k MCP, označený ako Zastarané. Použite radšej Klienti OAuth 2.1.',
   'help.ctx.settings-offline.title': 'Offline', // same-as-en
   'help.ctx.settings-offline.summary':
-    'Čo TREK ukladá v tomto zariadení, aby sa cesta otvorila aj bez pripojenia, a čo sa stane, keď je zmena urobená offline v konflikte so zmenou urobenou inde.',
+    'Čo YOUYA ukladá v tomto zariadení, aby sa cesta otvorila aj bez pripojenia, a čo sa stane, keď je zmena urobená offline v konflikte so zmenou urobenou inde.',
   'help.ctx.settings-offline.bullet.1':
     'Offline režim: „Vynútiť offline režim“ najprv všetko stiahne, potom pracuje iba z vyrovnávacej pamäte a vaše zmeny zaraďuje do frontu.',
   'help.ctx.settings-offline.bullet.2':
@@ -1241,20 +1241,20 @@ const help: TranslationStrings = {
     'Konflikty synchronizácie sa zobrazia len vtedy, keď sa dve zmeny dostanú do konfliktu, s možnosťami Moju verziu, Zachovať ich a Keď dôjde ku konfliktu. Offline vyrovnávacia pamäť uvádza počet ciest a čakajúcich alebo neúspešných zmien, s tlačidlami Skúsiť znova, Zahodiť a Vymazať vyrovnávaciu pamäť.',
   'help.ctx.settings-account.title': 'Účet',
   'help.ctx.settings-account.summary':
-    'Váš účet v tomto TREK a spôsob prihlásenia: profilový obrázok, používateľské meno a e-mail, heslo, dvojfaktorové overenie a prístupové kľúče. „Zmazať účet“ nájdete v päte karty „Účet“.',
+    'Váš účet v tomto YOUYA a spôsob prihlásenia: profilový obrázok, používateľské meno a e-mail, heslo, dvojfaktorové overenie a prístupové kľúče. „Zmazať účet“ nájdete v päte karty „Účet“.',
   'help.ctx.settings-account.bullet.1':
     'Účet: kliknutím na fotoaparát na obrázku nahráte nový obrázok a červeným košom ho odstránite. Používateľské meno a E-mail sa ukladajú tlačidlom Uložiť profil.',
   'help.ctx.settings-account.bullet.2':
-    'Zmeniť heslo: súčasné heslo, nové heslo dvakrát, pričom sa počas písania odškrtávajú pravidlá, a potom Aktualizovať heslo. Ak sa do tohto TREK prihlasuje iba cez SSO, karta sa nezobrazí.',
+    'Zmeniť heslo: súčasné heslo, nové heslo dvakrát, pričom sa počas písania odškrtávajú pravidlá, a potom Aktualizovať heslo. Ak sa do tohto YOUYA prihlasuje iba cez SSO, karta sa nezobrazí.',
   'help.ctx.settings-account.bullet.3':
     'Dvojfaktorové overenie (2FA) s autentifikačnou aplikáciou a záložnými kódmi. Prístupové kľúče na prihlásenie bez hesla.',
   'help.ctx.settings-account.bullet.4':
     'Zmazať účet je vľavo v päte karty Účet a pýta si potvrdenie. Jediný správca sa nemôže zmazať.',
   // language-region
   'help.guide.language-region.title': 'Nastavenie jazyka, jednotiek a meny',
-  'help.guide.language-region.goal': 'Používajte TREK vo svojom jazyku a s formátmi svojho regiónu.',
+  'help.guide.language-region.goal': 'Používajte YOUYA vo svojom jazyku a s formátmi svojho regiónu.',
   'help.guide.language-region.step.1':
-    'Pod Jazyk a región vyberte Jazyk zo zoznamu. Rýchlo ho nájdete písaním. TREK sa prepne okamžite, na každom zariadení, na ktorom ste prihlásený.',
+    'Pod Jazyk a región vyberte Jazyk zo zoznamu. Rýchlo ho nájdete písaním. YOUYA sa prepne okamžite, na každom zariadení, na ktorom ste prihlásený.',
   'help.guide.language-region.step.2':
     'Názvy miest určujú jazyk, v ktorom sa zobrazuje vyhľadávanie miest, návrhy a adresy. Rovnako ako aplikácia sa riadi jazykom rozhrania.',
   'help.guide.language-region.result':
@@ -1276,19 +1276,20 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.2':
     'Správca môže nastaviť predvolené hodnoty pre všetkých. Čo prepnete tu, platí len pre vás.',
   // startup
-  'help.guide.startup.title': 'Čo sa po spustení TREK otvorí',
+  'help.guide.startup.title': 'Čo sa po spustení YOUYA otvorí',
   'help.guide.startup.goal':
-    'Nechajte TREK otvárať sa na stránke, ktorú používate najčastejšie, a nie zakaždým na prehľade.',
+    'Nechajte YOUYA otvárať sa na stránke, ktorú používate najčastejšie, a nie zakaždým na prehľade.',
   'help.guide.startup.step.1':
     'Navrchu v časti Všeobecné nastavte pod Spustenie Úvodná stránka na Prehľad alebo Aktívna cesta.',
   'help.guide.startup.step.2':
     'Pri Aktívna cesta sa zobrazí Úvodná karta: vyberte kartu, na ktorej sa táto cesta otvorí.',
-  'help.guide.startup.result': 'Pri ďalšom otvorení sa TREK otvorí priamo na tejto stránke.',
+  'help.guide.startup.result': 'Pri ďalšom otvorení sa YOUYA otvorí priamo na tejto stránke.',
   'help.guide.startup.tip.1':
     'Aktívna cesta je cesta, ktorá prebieha dnes, alebo najbližšia nadchádzajúca. Je to tá istá cesta, ktorú prehľad zobrazuje navrchu.',
   // theme-scheme
   'help.guide.theme-scheme.title': 'Nastavenie motívu a farby zvýraznenia',
-  'help.guide.theme-scheme.goal': 'Nastavte TREK na svetlý, tmavý alebo podľa zariadenia, vo farbe, ktorá sa vám páči.',
+  'help.guide.theme-scheme.goal':
+    'Nastavte YOUYA na svetlý, tmavý alebo podľa zariadenia, vo farbe, ktorá sa vám páči.',
   'help.guide.theme-scheme.step.1':
     'Pod Motív nastavte Farebný režim na Svetlé, Tmavý alebo Automatické. Automatické sa riadi vaším zariadením.',
   'help.guide.theme-scheme.step.2':
@@ -1309,7 +1310,7 @@ const help: TranslationStrings = {
     'Veľkosť písma: posuvníkom „Všetko“ zmeníte celý text naraz, prípadne nastavte „Veľká“, „Stredná“, „Normálne“ a „Malá“ jednotlivo. Každá veľkosť má ukážku, takže výsledok vidíte hneď pri posúvaní.',
   'help.guide.readability.result': 'Zmena sa prejaví v celej aplikácii naraz, vrátane panelov mapy a denníka.',
   'help.guide.readability.tip.1':
-    'Niektoré časti TREK už používajú menej animácií, keď je vaše zariadenie nastavené na obmedzenie pohybu. Obmedziť pohyb obmedzí animácie aj v ostatných častiach.',
+    'Niektoré časti YOUYA už používajú menej animácií, keď je vaše zariadenie nastavené na obmedzenie pohybu. Obmedziť pohyb obmedzí animácie aj v ostatných častiach.',
   'help.guide.readability.tip.2':
     'Veľkosť písma sa uplatňuje cez typografické úrovne, takže sa nič neorezáva. Text, ktorý sa už nezmestí, sa zalomí.',
   // dashboard-widgets
@@ -1408,17 +1409,17 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.tip.1':
     'Najviac miesta zaberajú dlaždice mapy. Ak ich vypnete, uložia sa iba údaje ciest a dokumenty.',
   'help.guide.offline-prepare.tip.2':
-    'Pre najplynulejší offline štart si nainštalujte TREK z prehliadača ako aplikáciu.',
+    'Pre najplynulejší offline štart si nainštalujte YOUYA z prehliadača ako aplikáciu.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': 'Rozhodnutie, ktorá verzia sa pri konflikte synchronizácie zachová',
   'help.guide.offline-conflicts.goal':
-    'Vyberte, ako TREK vyrieši konflikt medzi zmenou urobenou offline a zmenou urobenou inde.',
+    'Vyberte, ako YOUYA vyrieši konflikt medzi zmenou urobenou offline a zmenou urobenou inde.',
   'help.guide.offline-conflicts.step.1':
     'Ak sa zmena, ktorú ste urobili offline, dostane do konfliktu s novšou zmenou, v hornej časti Offline sa zobrazí Konflikty synchronizácie. Pri každej zmene kliknite na Moju verziu alebo Zachovať ich.',
   'help.guide.offline-conflicts.step.2':
     'V tej istej karte určuje Keď dôjde ku konfliktu, čo sa stane nabudúce: Vždy sa ma opýtať, Vždy zachovať moju verziu alebo Vždy zachovať verziu zo servera.',
   'help.guide.offline-conflicts.result':
-    'Pri voľbe „Vždy sa ma opýtať“ zostáva konflikt v „Konflikty synchronizácie“, kým sa nerozhodnete. Pri ostatných dvoch možnostiach ho TREK vyrieši automaticky.',
+    'Pri voľbe „Vždy sa ma opýtať“ zostáva konflikt v „Konflikty synchronizácie“, kým sa nerozhodnete. Pri ostatných dvoch možnostiach ho YOUYA vyrieši automaticky.',
   'help.guide.offline-conflicts.tip.1':
     'Vymazať vyrovnávaciu pamäť odstráni iba kópiu v tomto zariadení. Na serveri sa nič nezmení.',
   // profile
@@ -1438,7 +1439,7 @@ const help: TranslationStrings = {
   'help.guide.password.result':
     'Nové heslo platí okamžite. Všetky ostatné zariadenia sa odhlásia, vaše API tokeny pre MCP sa vymažú a klienti OAuth sa musia prihlásiť znova. Toto zariadenie zostane prihlásené.',
   'help.guide.password.tip.1':
-    'Ak sa do tohto TREK prihlasuje iba cez SSO, heslo TREK neexistuje a karta „Zmeniť heslo“ tu nie je.',
+    'Ak sa do tohto YOUYA prihlasuje iba cez SSO, heslo YOUYA neexistuje a karta „Zmeniť heslo“ tu nie je.',
   // mfa
   'help.guide.mfa.title': 'Zapnutie dvojfaktorového overenia',
   'help.guide.mfa.goal': 'Chráňte účet kódom z autentifikačnej aplikácie.',
@@ -1470,15 +1471,15 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     'Váš účet sa vymaže spolu s cestami, miestami a súbormi, ktoré vlastníte. Cesty, ktoré vlastnia iní ľudia, zostanú zachované.',
   'help.guide.delete-account.tip.1':
-    'Ak ste jediný správca, TREK zobrazí „Zmazanie nie je možné“: najprv povýšte iného používateľa na správcu.',
+    'Ak ste jediný správca, YOUYA zobrazí „Zmazanie nie je možné“: najprv povýšte iného používateľa na správcu.',
   'help.guide.delete-account.tip.2': 'Nedá sa to vrátiť späť. Pred potvrdením exportujte, čo si chcete ponechať.',
 
   // ── Screen: admin (all tabs) ───────────────────────────────────────────────
   'help.ctx.admin.title': 'Správca',
   'help.ctx.admin.summary':
-    'Nastavenia celej inštancie TREK pre všetkých používateľov: kto sa smie prihlásiť a ako, čo je zapnuté, kde sa ukladajú súbory, ako server kontaktuje ľudí a ako sa zálohuje. Túto stránku vidia iba správcovia. Bočný panel zoskupuje karty pod Používatelia, Konfigurácia a Údržba a každá karta je samostatná obrazovka.',
+    'Nastavenia celej inštancie YOUYA pre všetkých používateľov: kto sa smie prihlásiť a ako, čo je zapnuté, kde sa ukladajú súbory, ako server kontaktuje ľudí a ako sa zálohuje. Túto stránku vidia iba správcovia. Bočný panel zoskupuje karty pod Používatelia, Konfigurácia a Údržba a každá karta je samostatná obrazovka.',
   'help.ctx.admin.bullet.1':
-    'Záhlavie vpravo ukazuje počet používateľov, ciest, miest a súborov. Pod ním sa zobrazí banner Dostupná aktualizácia, keď je dostupné novšie vydanie TREK.',
+    'Záhlavie vpravo ukazuje počet používateľov, ciest, miest a súborov. Pod ním sa zobrazí banner Dostupná aktualizácia, keď je dostupné novšie vydanie YOUYA.',
   'help.ctx.admin.bullet.2':
     'Používatelia a Predvolené: účty, pozývacie odkazy a oprávnenia, a nastavenia a mapa, s ktorými nový účet začína.',
   'help.ctx.admin.bullet.3':
@@ -1489,7 +1490,7 @@ const help: TranslationStrings = {
     'Úložisko, Zálohovanie, GitHub a Audit: kam idú nahrané súbory, zálohy na požiadanie aj plánované zálohy, história vydaní a záznam udalostí dôležitých pre bezpečnosť.',
   'help.ctx.admin-users.title': 'Používatelia',
   'help.ctx.admin-users.summary':
-    'Všetky účty v tomto TREK s rolou, e-mailom a časom poslednej aktivity, pozývacie odkazy, ktorými sa ľudia môžu zaregistrovať v uzavretej inštancii, a kto čo smie robiť v cestách.',
+    'Všetky účty v tomto YOUYA s rolou, e-mailom a časom poslednej aktivity, pozývacie odkazy, ktorými sa ľudia môžu zaregistrovať v uzavretej inštancii, a kto čo smie robiť v cestách.',
   'help.ctx.admin-users.bullet.1':
     'Tabuľka: používateľ, e-mail, rola, vytvorené a Naposledy aktívny, pri každom riadku s Upraviť používateľa a Odstrániť používateľa. Zelená bodka na avatare znamená, že je človek práve online. Váš vlastný riadok je označený (Vy).',
   'help.ctx.admin-users.bullet.2':
@@ -1511,7 +1512,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     'Šablóny balenia: pomenované zoznamy kategórií a položiek, z ktorých môže zoznam vecí na balenie v ceste vychádzať.',
   'help.ctx.admin-config.bullet.2':
-    'Kategórie: názov, ikona a farba kategórií používaných v celom TREK, od inšpektora miesta až po Zbierky. Každá sa upravuje v dialógu s náhľadom.',
+    'Kategórie: názov, ikona a farba kategórií používaných v celom YOUYA, od inšpektora miesta až po Zbierky. Každá sa upravuje v dialógu s náhľadom.',
   'help.ctx.admin-config.bullet.3':
     'Školské prázdniny: katalóg krajín a regiónov s obdobiami prázdnin, z ktorého si môže každý vyberať v Dovolenke (Vacay).',
   'help.ctx.admin-settings.title': 'Zabezpečenie a služby',
@@ -1522,12 +1523,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     'Prihlásenie prístupovým kľúčom: Relying Party ID (doména) a Povolené origins. Jednotné prihlásenie (OIDC): Zobrazované meno, URL vydavateľa (Issuer), voliteľná Discovery URL, ID klienta a Tajný kľúč klienta.',
   'help.ctx.admin-settings.bullet.3':
-    'Vyhľadávanie miest a trasovanie na karte Služby: TREK API, označené Odporúčaný predvolený zdroj, s Dnešný limit a Zdieľanie údajov o miestach, potom Poskytovateľ verejnej dopravy, Poskytovateľ vyhľadávania miest a Záznam vyhľadávania miest.',
+    'Vyhľadávanie miest a trasovanie na karte Služby: YOUYA API, označené Odporúčaný predvolený zdroj, s Dnešný limit a Zdieľanie údajov o miestach, potom Poskytovateľ verejnej dopravy, Poskytovateľ vyhľadávania miest a Záznam vyhľadávania miest.',
   'help.ctx.admin-settings.bullet.4':
     'API kľúče: Google Maps API kľúč s Testovať a Na čo sa kľúč môže používať, kľúč pre Unsplash a pre Amap a jedno Uložiť dole na karte. Povolené typy súborov pod nimi obmedzujú nahrávanie.',
   'help.ctx.admin-addons.title': 'Doplnky',
   'help.ctx.admin-addons.summary':
-    'Funkčné moduly TREK v troch kartách: Cesta pre karty cesty, Globálne pre sekcie v hlavnej navigácii a Integrácia pre externé služby. Každý doplnok má prepínač. Vypnuté znamená, že položka v navigácii, príslušné stránky aj API zmiznú pre všetkých.',
+    'Funkčné moduly YOUYA v troch kartách: Cesta pre karty cesty, Globálne pre sekcie v hlavnej navigácii a Integrácia pre externé služby. Každý doplnok má prepínač. Vypnuté znamená, že položka v navigácii, príslušné stránky aj API zmiznú pre všetkých.',
   'help.ctx.admin-addons.bullet.1':
     'Jeden riadok na doplnok s jeho prepínačom a v hlavičke každej karty počet jej zapnutých doplnkov. Informačná značka vedľa názvu hovorí, čo doplnok robí.',
   'help.ctx.admin-addons.bullet.2':
@@ -1536,7 +1537,7 @@ const help: TranslationStrings = {
     'Riadky s ozubeným kolieskom otvárajú dialóg nastavenia, napríklad Údaje o vodách pre vodákov pod Túry a Nastaviť import e-mailov pod Import e-mailov s rezerváciami. Živý stav letov je riadok karty Cesta.',
   'help.ctx.admin-plugins.title': 'Pluginy',
   'help.ctx.admin-plugins.summary':
-    'Pluginy tretích strán, ktoré bežia vo vlastnom procese vedľa TREK, každý s oprávneniami, o ktoré požiadal pri inštalácii. Nainštalujte ich z katalógu, nahrajte balík alebo počas vývoja pluginu pripojte priečinok.',
+    'Pluginy tretích strán, ktoré bežia vo vlastnom procese vedľa YOUYA, každý s oprávneniami, o ktoré požiadal pri inštalácii. Nainštalujte ich z katalógu, nahrajte balík alebo počas vývoja pluginu pripojte priečinok.',
   'help.ctx.admin-plugins.bullet.1':
     'Nainštalované a Objaviť, s Hľadať pluginy… a Filtrovať pre typ, stav a poradie. Každý riadok ukazuje verziu, k čomu môže plugin pristupovať, Skontrolované a Podpísané alebo Nepodpísané, prepínač a ponuku ⋯.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1553,7 +1554,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     'Kategórie: dokumenty ciest, fotky z cestovných denníkov, titulné fotky, profilové obrázky, obrázky miest, vyrovnávacie pamäte fotiek a zálohy, každá priradená k jednému úložisku, s Uložiť zmeny dole.',
   'help.ctx.admin-storage.bullet.4':
-    'Nepoužívané súbory: čo nočná kontrola našla a v TREK to už nič nepoužíva, s tlačidlom Skontrolovať teraz a prepínačom, ktorý takéto súbory vymaže, keď sú týždeň nepoužité.',
+    'Nepoužívané súbory: čo nočná kontrola našla a v YOUYA to už nič nepoužíva, s tlačidlom Skontrolovať teraz a prepínačom, ktorý takéto súbory vymaže, keď sú týždeň nepoužité.',
   'help.ctx.admin-notifications.title': 'Oznámenia',
   'help.ctx.admin-notifications.summary':
     'Kanály, ktoré inštancia ponúka používateľom, a tie, cez ktoré dostávate oznámenia vy ako administrátor. Používatelia si vlastné témy a URL nastavujú v „Nastaveniach“, vy rozhodujete, čo je k dispozícii, a nastavujete e-mail.',
@@ -1565,14 +1566,14 @@ const help: TranslationStrings = {
     'Upozornenia pre správcu, vpravo: Admin webhook a Admin Ntfy, každé s tlačidlom na test, a pod nimi, ktorý kanál posiela každú udalosť pre správcu (Nová verzia k dispozícii, Zlyhanie repliky úložiska, Vyžiadaný vodácky región).',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    'Všetky tokeny a OAuth relácie, ktoré majú AI klienti k tejto inštancii TREK, za všetkých používateľov. Ktorýkoľvek z nich môžete odvolať.',
+    'Všetky tokeny a OAuth relácie, ktoré majú AI klienti k tejto inštancii YOUYA, za všetkých používateľov. Ktorýkoľvek z nich môžete odvolať.',
   'help.ctx.admin-mcp-tokens.bullet.1':
     '„OAuth relácie“: klient, rozsahy, ktoré dostal, jeho vlastník a dátum, a ikona koša, ktorou reláciu odvoláte.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     'API tokeny: názov, vlastník, Vytvorené a Naposledy použité, s košom, ktorým token vymažete.',
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    'Čo je nové v TREK: história vydaní z GitHubu a či je dostupná novšia verzia, než akú máte. Samotná aktualizácia prebieha mimo aplikácie, na hostiteľovi.',
+    'Čo je nové v YOUYA: história vydaní z GitHubu a či je dostupná novšia verzia, než akú máte. Samotná aktualizácia prebieha mimo aplikácie, na hostiteľovi.',
   'help.ctx.admin-github.bullet.1':
     'História verzií vypisuje vydania ako časovú os s poznámkami. Najnovšie má označenie Najnovšia, predbežné majú Predbežná verzia a GitHub otvorí stránku vydaní.',
   'help.ctx.admin-github.bullet.2':
@@ -1643,7 +1644,7 @@ const help: TranslationStrings = {
     'Ikona koša vo vašom vlastnom riadku nefunguje: samého seba vymazať nemôžete. Musí to urobiť iný správca.',
   // permissions
   'help.guide.permissions.title': 'Určiť, kto môže čo robiť',
-  'help.guide.permissions.goal': 'Nastavte pre každú akciu, ktorá rola ju smie v tomto TREK vykonávať.',
+  'help.guide.permissions.goal': 'Nastavte pre každú akciu, ktorá rola ju smie v tomto YOUYA vykonávať.',
   'help.guide.permissions.step.1':
     'V časti Nastavenia oprávnení nájdite akciu v jej skupine, napríklad Mazať cesty v skupine Správa výletov, a vyberte, kto ju smie robiť: Všetci, Členovia výletu, Vlastník výletu alebo Iba administrátor. Zmenený riadok je označený ako upravené.',
   'help.guide.permissions.step.2':
@@ -1716,10 +1717,10 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     'Keď je Jednotné prihlásenie (OIDC) nastavené, nasledujú tri riadky SSO: Prihlásenie cez SSO, Automatické vytváranie účtov SSO, ktoré založí účet, keď sa niekto prvýkrát prihlási cez SSO, a Rovno na SSO.',
   'help.guide.auth-methods.step.3':
-    'Povoliť prihlásenie prístupovým kľúčom ponúka prístupové kľúče na prihlasovacej stránke. Zapnite Vyžadovať 2FA a každý, kto 2FA nemá, si ho bude musieť nastaviť v Nastaveniach, kým bude môcť TREK používať.',
+    'Povoliť prihlásenie prístupovým kľúčom ponúka prístupové kľúče na prihlasovacej stránke. Zapnite Vyžadovať 2FA a každý, kto 2FA nemá, si ho bude musieť nastaviť v Nastaveniach, kým bude môcť YOUYA používať.',
   'help.guide.auth-methods.result': 'Prihlasovacia stránka ponúkne presne tie spôsoby, ktoré ste nechali zapnuté.',
   'help.guide.auth-methods.tip.1':
-    'TREK nedovolí vypnúť poslednú metódu prihlásenia: jej prepínač zosivie a tooltip povie „At least one login method must remain enabled“.',
+    'YOUYA nedovolí vypnúť poslednú metódu prihlásenia: jej prepínač zosivie a tooltip povie „At least one login method must remain enabled“.',
   'help.guide.auth-methods.tip.2':
     'Ak je na serveri nastavené OIDC_ONLY, prepínače hesla sú zamknuté a poznámka na to upozorní.',
   'help.guide.auth-methods.tip.3':
@@ -1736,7 +1737,7 @@ const help: TranslationStrings = {
   'help.guide.oidc.result':
     'Na prihlasovacej stránke sa zobrazí tlačidlo SSO. So zapnutým „Automatickým vytváraním účtov SSO“ dostanú noví používatelia pri prvom prihlásení účet automaticky.',
   'help.guide.oidc.tip.1':
-    'URI presmerovania, ktoré váš poskytovateľ potrebuje, je adresa vášho TREK a za ňou cesta spätného volania OIDC z dokumentácie.',
+    'URI presmerovania, ktoré váš poskytovateľ potrebuje, je adresa vášho YOUYA a za ňou cesta spätného volania OIDC z dokumentácie.',
   'help.guide.oidc.tip.2':
     'Mapovanie claimov určuje, ktoré skupiny SSO sa stanú správcami. Pozrite si stránku OIDC v dokumentácii.',
   // instance-keys
@@ -1744,19 +1745,19 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     'Zapnite pre celú inštanciu fotky a hodnotenia z Google, titulné fotky z Unsplash a vyhľadávanie cez Amap.',
   'help.guide.instance-keys.step.1':
-    'Na karte Služby začína karta Vyhľadávanie miest a trasovanie s TREK API, označeným Odporúčaný predvolený zdroj. Vybavuje vyhľadávanie miest, adresy a trasovanie bez kľúča a Dnešný limit ukazuje, čo z dňa zostáva.',
+    'Na karte Služby začína karta Vyhľadávanie miest a trasovanie s YOUYA API, označeným Odporúčaný predvolený zdroj. Vybavuje vyhľadávanie miest, adresy a trasovanie bez kľúča a Dnešný limit ukazuje, čo z dňa zostáva.',
   'help.guide.instance-keys.step.2':
     'Pre fotky, hodnotenia a otváracie hodiny vložte pod API kľúče Google Maps API kľúč a kliknite na Testovať. Zobrazí sa Pripojené alebo Neplatný. Pod Na čo sa kľúč môže používať zapnite len to, čo chcete mať spoplatnené: Fotografie miest, Automatické dopĺňanie miest, Podrobnosti o mieste, Obohatenie miest a Hľadať len cez Google, a nastavte Denný limit volaní Google.',
   'help.guide.instance-keys.step.3':
     'Vložte Unsplash API kľúč pre vyhľadávanie titulných obrázkov a Amap (高德地图) API kľúč pre vyhľadávanie miest v pevninskej Číne, potom kliknite dole v karte na Uložiť.',
   'help.guide.instance-keys.result':
-    'Používatelia dostanú funkcie aj bez vlastných kľúčov. Bez kľúča Google beží vyhľadávanie cez TREK Places API a OpenStreetMap.',
+    'Používatelia dostanú funkcie aj bez vlastných kľúčov. Bez kľúča Google beží vyhľadávanie cez YOUYA Places API a OpenStreetMap.',
   'help.guide.instance-keys.tip.1':
-    'Ak má používateľ v „Nastaveniach“ vlastný kľúč, TREK preňho použije ten namiesto kľúča inštancie.',
+    'Ak má používateľ v „Nastaveniach“ vlastný kľúč, YOUYA preňho použije ten namiesto kľúča inštancie.',
   'help.guide.instance-keys.tip.2':
     'Kľúče môžu pochádzať aj z premenných prostredia. Tie sa tu zobrazujú len na čítanie.',
   'help.guide.instance-keys.tip.3':
-    'Denný limit volaní Google obmedzuje, koľko môže TREK za deň s týmto kľúčom minúť. Značka vedľa nadpisu počíta dnešné volania. Po dosiahnutí limitu používa vyhľadávanie do nasledujúceho dňa (UTC) OpenStreetMap.',
+    'Denný limit volaní Google obmedzuje, koľko môže YOUYA za deň s týmto kľúčom minúť. Značka vedľa nadpisu počíta dnešné volania. Po dosiahnutí limitu používa vyhľadávanie do nasledujúceho dňa (UTC) OpenStreetMap.',
   // places-transit
   'help.guide.places-transit.title': 'Vybrať poskytovateľov vyhľadávania a verejnej dopravy',
   'help.guide.places-transit.goal':
@@ -1764,11 +1765,11 @@ const help: TranslationStrings = {
   'help.guide.places-transit.step.1':
     'Na karte Služby vyberte v karte Vyhľadávanie miest a trasovanie pod Poskytovateľ verejnej dopravy: Transitous (zdarma), ktorý nepotrebuje kľúč a je najsilnejší v Európe, alebo Google, ktorý používa kľúč Google. Voľba sa uloží hneď.',
   'help.guide.places-transit.step.2':
-    'Pod Poskytovateľ vyhľadávania miest vyberte službu, ktorú sa TREK opýta, keď index TREK a OpenStreetMap nič nenájdu: Automaticky (Google, ak existuje kľúč, potom Amap), Google Places, Amap (高德地图) alebo OpenStreetMap.',
+    'Pod Poskytovateľ vyhľadávania miest vyberte službu, ktorú sa YOUYA opýta, keď index YOUYA a OpenStreetMap nič nenájdu: Automaticky (Google, ak existuje kľúč, potom Amap), Google Places, Amap (高德地图) alebo OpenStreetMap.',
   'help.guide.places-transit.result':
-    'Táto voľba platí pre každé vyhľadávacie pole a každú trasu verejnej dopravy v TREK.',
+    'Táto voľba platí pre každé vyhľadávacie pole a každú trasu verejnej dopravy v YOUYA.',
   'help.guide.places-transit.tip.1':
-    'Pri voľbe bez kľúča sa tu zobrazí upozornenie. Vyhľadávanie miest potom používa iba index TREK a OpenStreetMap a verejná doprava iba Transitous.',
+    'Pri voľbe bez kľúča sa tu zobrazí upozornenie. Vyhľadávanie miest potom používa iba index YOUYA a OpenStreetMap a verejná doprava iba Transitous.',
   'help.guide.places-transit.tip.2': 'Trasy verejnej dopravy od Google sa účtujú za každú požiadavku, Transitous nie.',
   // file-types
   'help.guide.file-types.title': 'Obmedzenie typov súborov',
@@ -1799,7 +1800,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     'Zapnite prepínač v riadku Nextcloud. Zobrazí sa správa „Doplnok aktualizovaný“ a vlastníci ciest odteraz nájdu na záložke „Súbory“ svojich ciest „Synchronizáciu dokumentov“, kde je Nextcloud v časti „Pripojiť poskytovateľa“.',
   'help.guide.document-providers.result':
-    'Úložisko je k dispozícii v každej ceste v tomto TREK. Nič sa nepripojí, kým ho nepripojí vlastník cesty.',
+    'Úložisko je k dispozícii v každej ceste v tomto YOUYA. Nič sa nepripojí, kým ho nepripojí vlastník cesty.',
   'help.guide.document-providers.tip.1':
     'Tu sa rozhoduje len o tom, či sa úložisko môže ponúkať. Adresa a prihlasovacie údaje patria k ceste a zadáva ich vlastník cesty v jej karte Súborov, nikdy nie v paneli správcu.',
   'help.guide.document-providers.tip.2':
@@ -1808,29 +1809,29 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     'Dajte každému preposielaciu adresu, aby sa potvrdenia rezervácií, ktoré pošle ďalej, stali rezerváciami v správnej ceste.',
   'help.guide.mail-import-setup.step.1':
-    'Na karte Doplnky zapnite v karte Integrácia Import e-mailov s rezerváciami. Každý v tomto TREK teraz dostane osobnú preposielaciu adresu.',
+    'Na karte Doplnky zapnite v karte Integrácia Import e-mailov s rezerváciami. Každý v tomto YOUYA teraz dostane osobnú preposielaciu adresu.',
   'help.guide.mail-import-setup.step.2': 'Kliknite na Nastaviť import e-mailov, riadok, ktorý sa zobrazí pod ním.',
   'help.guide.mail-import-setup.step.3':
-    'Pod Ako e-maily prichádzajú vyberte Schránka IMAP a zadajte Server, Port, Šifrovanie, Používateľ, Heslo a Priečinok. Pre poštovú službu, ktorá posiela každý e-mail do TREK, vyberte namiesto toho Webhook, alebo Iba nahrávanie na vyskúšanie bez schránky. Potom nastavte Šablóna adresy, teda preposielaciu adresu so zástupným znakom tam, kam príde kód každej osoby, a E-maily s AI na osobu a deň.',
+    'Pod Ako e-maily prichádzajú vyberte Schránka IMAP a zadajte Server, Port, Šifrovanie, Používateľ, Heslo a Priečinok. Pre poštovú službu, ktorá posiela každý e-mail do YOUYA, vyberte namiesto toho Webhook, alebo Iba nahrávanie na vyskúšanie bez schránky. Potom nastavte Šablóna adresy, teda preposielaciu adresu so zástupným znakom tam, kam príde kód každej osoby, a E-maily s AI na osobu a deň.',
   'help.guide.mail-import-setup.step.4':
-    'Kliknite na Uložiť a potom na Otestovať pripojenie. Zobrazí sa Pripojené alebo čo zlyhalo. Pod tým dialóg ukazuje, kedy TREK naposledy čítal poštu, a e-maily za posledných 24 hodín: Pridané automaticky, Čaká a Zlyhalo.',
+    'Kliknite na Uložiť a potom na Otestovať pripojenie. Zobrazí sa Pripojené alebo čo zlyhalo. Pod tým dialóg ukazuje, kedy YOUYA naposledy čítal poštu, a e-maily za posledných 24 hodín: Pridané automaticky, Čaká a Zlyhalo.',
   'help.guide.mail-import-setup.result':
     'Každý nájde svoju preposielaciu adresu v Nastavenia, Integrácie. Preposlané potvrdenie sa stane rezerváciou v správnej ceste, alebo tam čaká, kým sa naň jej vlastník pozrie.',
   'help.guide.mail-import-setup.tip.1':
-    'Dajte TREK vlastnú schránku, ktorá prijíma plus adresy (trek+…@vasa-domena), nie osobnú. Prečítané e-maily sa presunú do priečinka TREK/processed.',
+    'Dajte YOUYA vlastnú schránku, ktorá prijíma plus adresy (trek+…@vasa-domena), nie osobnú. Prečítané e-maily sa presunú do priečinka TREK/processed.',
   'help.guide.mail-import-setup.tip.2':
     'Premenné prostredia, ktoré začínajú MAIL_INGEST_, majú prednosť pred poľami v dialógu. Poštový server vo vašej vlastnej sieti potrebuje na serveri aj ALLOW_INTERNAL_NETWORK=true.',
   'help.guide.mail-import-setup.tip.3':
     'E-maily s AI na osobu a deň obmedzuje, koľko e-mailov bez strojovo čitateľných údajov o rezervácii prečíta AI pre jednu osobu za deň. Nad týmto limitom sa čítajú iba strojovo čitateľné údaje.',
   'help.guide.ai-setup.title': 'Nastavenie AI asistenta',
-  'help.guide.ai-setup.goal': 'Raz pripojte poskytovateľa AI, aby mohol každý na tomto TREK plánovať s asistentom.',
+  'help.guide.ai-setup.goal': 'Raz pripojte poskytovateľa AI, aby mohol každý na tomto YOUYA plánovať s asistentom.',
   'help.guide.ai-setup.step.1':
     'Na karte Doplnky nájdite v karte Integrácia dlaždicu AI a zapnite AI asistent. Analýza pomocou AI a MCP sú v tej istej dlaždici.',
   'help.guide.ai-setup.step.2': 'Kliknite na Nastaviť AI, riadok, ktorý sa zobrazí pod prepínačmi.',
   'help.guide.ai-setup.step.3':
     'Pod Kto platí vyberte, kto poskytuje pripojenie: Platím za všetkých, Platím ja, vlastné povolené alebo Každý používa vlastný účet. Riadok pod tým povie, čo váš výber znamená.',
   'help.guide.ai-setup.step.4':
-    'Pod Pripojenie pre všetkých vyberte Vložiť API kľúč a vložte kľúč od Anthropic, OpenAI, Gemini alebo OpenRouter. TREK uvedie poskytovateľa, ktorého rozpoznal. Kliknite na Pripojiť; TREK kľúč pred uložením overí u poskytovateľa.',
+    'Pod Pripojenie pre všetkých vyberte Vložiť API kľúč a vložte kľúč od Anthropic, OpenAI, Gemini alebo OpenRouter. YOUYA uvedie poskytovateľa, ktorého rozpoznal. Kliknite na Pripojiť; YOUYA kľúč pred uložením overí u poskytovateľa.',
   'help.guide.ai-setup.step.5':
     'Pripojenie sa zobrazí ako Pripojené. Vyberte Model, s ktorým budú všetci chatovať; v zozname sú len modely, ktoré vedia používať nástroje. Zmeniť a Odstrániť pripojenie sú pod ním.',
   'help.guide.ai-setup.step.6':
@@ -1846,15 +1847,15 @@ const help: TranslationStrings = {
     'Vyhľadávanie na webe funguje s ChatGPT, Anthropic a OpenRouter cez vlastné vyhľadávanie poskytovateľa a hľadané výrazy idú iba jemu.',
   'help.guide.paddle-water-data.title': 'Načítanie údajov o vodách pre vodácke túry',
   'help.guide.paddle-water-data.goal':
-    'Dajte vodáckym túram jazy, plavebné komory a pravidlá plavby v regióne a rozhodnite, či TREK načítava nové regióny sám.',
+    'Dajte vodáckym túram jazy, plavebné komory a pravidlá plavby v regióne a rozhodnite, či YOUYA načítava nové regióny sám.',
   'help.guide.paddle-water-data.step.1':
     'Na karte Doplnky, kým sú zapnuté Túry, kliknite na Údaje o vodách pre vodákov, posledný riadok pod Túry. Číslo vedľa neho počíta regióny alebo žiadosti, ktoré na vás čakajú.',
   'help.guide.paddle-water-data.step.2':
     'Pod Načítavať regióny automaticky vyberte Automaticky, Na žiadosť alebo Vypnuté. Automaticky načíta región, v ktorom niekto plánuje vodácku túru, až po Najväčší región načítavaný automaticky. Čokoľvek väčšie čaká pod Vyžiadané, kde Načítať región prečíta a Zamietnuť ho zahodí.',
   'help.guide.paddle-water-data.step.3':
-    'Pod Pridať región vyhľadajte v Geofabrik región, napríklad Oberpfalz, a kliknite na Pridať vedľa neho. TREK ho číta na pozadí. Keď je Pripravený, jeho riadok ukazuje objekty, dátum údajov a kilometre vody. Načítať znova ho obnoví a Odstrániť región ho vymaže.',
+    'Pod Pridať región vyhľadajte v Geofabrik región, napríklad Oberpfalz, a kliknite na Pridať vedľa neho. YOUYA ho číta na pozadí. Keď je Pripravený, jeho riadok ukazuje objekty, dátum údajov a kilometre vody. Načítať znova ho obnoví a Odstrániť región ho vymaže.',
   'help.guide.paddle-water-data.result':
-    'Vodácke túry v regióne ukazujú jeho prekážky a sledujú vodu a TREK načíta každý región znova raz za mesiac.',
+    'Vodácke túry v regióne ukazujú jeho prekážky a sledujú vodu a YOUYA načíta každý región znova raz za mesiac.',
   'help.guide.paddle-water-data.tip.1': 'Do Geofabrik ide len názov regiónu, nikdy miesto, ktoré niekto plánuje.',
   'help.guide.paddle-water-data.tip.2':
     'Čítanie regiónu trvá niekoľko minút a počas neho zaberá pamäť. Celá krajina potrebuje niekoľko gigabajtov dočasného miesta.',
@@ -1883,7 +1884,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'Pod Kategórie priraďte každý druh nahraných súborov, ako Dokumenty cesty, Fotky z cestovného denníka alebo Zálohy, k nejakému backendu.',
   'help.guide.storage-backends.step.3':
-    'Kliknite na „Uložiť zmeny“ dole v Kategórie. Ak kategória teraz smeruje inam, TREK sa opýta, či má „Presunúť existujúce objekty“ alebo „Iba smerovať nové zápisy“.',
+    'Kliknite na „Uložiť zmeny“ dole v Kategórie. Ak kategória teraz smeruje inam, YOUYA sa opýta, či má „Presunúť existujúce objekty“ alebo „Iba smerovať nové zápisy“.',
   'help.guide.storage-backends.result':
     'Nové nahrávky idú do pridelenej služby úložiska. Presunuté súbory sa poskytujú odtiaľ a súbory, ktoré ste sa rozhodli nepresúvať, zostanú tam, kde boli.',
   'help.guide.storage-backends.tip.1':
@@ -1933,7 +1934,7 @@ const help: TranslationStrings = {
     'Vypnutím doplnku MCP odpojíte všetkých klientov naraz a táto karta sa skryje, nič sa však nevymaže: po opätovnom zapnutí tokeny znova fungujú.',
   // release-history
   'help.guide.release-history.title': 'Kontrola novej verzie',
-  'help.guide.release-history.goal': 'Zistite, či je váš TREK aktuálny a čo prinesie ďalšia verzia.',
+  'help.guide.release-history.goal': 'Zistite, či je váš YOUYA aktuálny a čo prinesie ďalšia verzia.',
   'help.guide.release-history.step.1':
     'Ak existuje novšie vydanie, pod záhlavím stránky sa zobrazí Dostupná aktualizácia s verziou, ktorú používate. Zobraziť na GitHube otvorí vydanie a Ako aktualizovať ukáže príkazy pre Docker alebo návod na aktualizáciu pre iné inštalácie.',
   'help.guide.release-history.step.2':
@@ -1986,7 +1987,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     'Všetko o jednej ceste: plán s dňami, mapou a miestami a karty pre túry, dopravu, rezervácie, zoznamy, náklady, súbory, spoluprácu a prepojený denník. Každá z nich má pod touto obrazovkou vlastnú obrazovku pomoci.',
   'help.ctx.trip.bullet.1':
-    'Lišta kariet pod hornou lištou: „Plán“, „Túry“, „Doprava“, „Rezervácie“, „Zoznamy“, „Náklady“, „Súbory“, „Spolupráca“ a po prepojení denníka aj „Denník“. Ktoré karty vo vašom TREK sú, určujú doplnky a pluginy.',
+    'Lišta kariet pod hornou lištou: „Plán“, „Túry“, „Doprava“, „Rezervácie“, „Zoznamy“, „Náklady“, „Súbory“, „Spolupráca“ a po prepojení denníka aj „Denník“. Ktoré karty vo vašom YOUYA sú, určujú doplnky a pluginy.',
   'help.ctx.trip.bullet.2':
     'Plán má tri stĺpce: dni vľavo, mapa uprostred, miesta vpravo. S doplnkom Cesta autom začína stĺpec dní prepínačom Dni a Cesta autom, s doplnkom Túry začína stĺpec miest prepínačom Miesta a Túry. Rezervácie a doprava sú súčasťou plánu, pri zastávke aj medzi zastávkami. Karty ich vypisujú.',
   'help.ctx.trip.bullet.3':
@@ -1998,7 +1999,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.6': 'Šípka späť na paneli nástrojov dní vráti vaše posledné zmeny plánu, jednu po druhej.',
   // add-member
   'help.guide.add-member.title': 'Pridanie člena',
-  'help.guide.add-member.goal': 'Sprístupnite túto cestu niekomu, kto má účet TREK.',
+  'help.guide.add-member.goal': 'Sprístupnite túto cestu niekomu, kto má účet YOUYA.',
   'help.guide.add-member.step.1':
     'Kliknite na Nastavenia cesty, pilulku vedľa názvu cesty vľavo hore. Otvorí sa na Ľudia.',
   'help.guide.add-member.step.2': 'Pod Pozvať používateľa vyberte človeka z Vyberte používateľa… a kliknite na Pozvať.',
@@ -2007,7 +2008,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     'Člen vidí a upravuje cestu rovnako ako vy, v rámci úrovní, ktoré správca nastavil v Nastaveniach oprávnení.',
   'help.guide.add-member.tip.1':
-    'Kto v zozname chýba, ešte nemá účet v TREK. Pridajte ho ako hosťa alebo ho nechajte zaregistrovať sa cez odkaz na pozvanie.',
+    'Kto v zozname chýba, ešte nemá účet v YOUYA. Pridajte ho ako hosťa alebo ho nechajte zaregistrovať sa cez odkaz na pozvanie.',
   'help.guide.add-member.tip.2': 'Číslo vedľa „Prístup“ udáva počet ľudí v ceste. Hostia sú uvedení samostatne nižšie.',
   // trip-invite-link
   'help.guide.trip-invite-link.title': 'Pozvanie cez odkaz',
@@ -2015,7 +2016,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     'Kliknite na Nastavenia cesty vedľa názvu cesty a vľavo vyberte Zdieľanie. Pod Odkaz na pozvanie na cestu kliknite na Vytvoriť odkaz na pozvanie.',
   'help.guide.trip-invite-link.step.2':
-    'Kliknite na Kopírovať a pošlite odkaz. Každý, kto má účet TREK a odkaz otvorí, sa pripojí ako člen.',
+    'Kliknite na Kopírovať a pošlite odkaz. Každý, kto má účet YOUYA a odkaz otvorí, sa pripojí ako člen.',
   'help.guide.trip-invite-link.step.3':
     '„Vygenerovať znova“ nahradí odkaz novým a starý prestane fungovať. „Deaktivovať“ odkaz vypne.',
   'help.guide.trip-invite-link.result': 'Každý, kto odkaz otvorí, sa pripojí k ceste a zobrazí sa v časti Prístup.',
@@ -2025,7 +2026,7 @@ const help: TranslationStrings = {
     'Ak ste odkaz poslali do nesprávneho chatu, vygenerujte ho znova. Starý odkaz okamžite prestane fungovať.',
   // add-guest
   'help.guide.add-guest.title': 'Pridanie hosťa bez účtu',
-  'help.guide.add-guest.goal': 'Pridajte do cesty niekoho, kto TREK nepoužíva.',
+  'help.guide.add-guest.goal': 'Pridajte do cesty niekoho, kto YOUYA nepoužíva.',
   'help.guide.add-guest.step.1':
     'Kliknite na Nastavenia cesty vedľa názvu cesty. V Ľudia je časť Hostia posledná, pod Prístup.',
   'help.guide.add-guest.step.2': 'Zadajte meno do poľa Meno hosťa a kliknite na Pridať hosťa.',
@@ -2080,7 +2081,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     'Vrátiť späť sa týka plánu: pridávania, priraďovania, odstraňovania, preraďovania, presúvania a zamykania miest, vyprázdnenia dňa, optimalizácie trasy, mazania miest, zmien kategórií a importov.',
   'help.guide.undo-change.tip.2':
-    'Ďalším kliknutím sa vrátite ešte o krok späť: TREK si pamätá vašich posledných 30 zmien v tejto ceste, od najnovšej, kým cestu neopustíte.',
+    'Ďalším kliknutím sa vrátite ešte o krok späť: YOUYA si pamätá vašich posledných 30 zmien v tejto ceste, od najnovšej, kým cestu neopustíte.',
   'help.guide.trip-assistant.title': 'Plánovanie s asistentom',
   'help.guide.trip-assistant.goal':
     'Opýtajte sa asistenta na svoju cestu a nechajte ho pridať do plánu to, čo navrhne.',
@@ -2136,19 +2137,19 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     'Kliknite navrchu stĺpca miest na Pridať miesto/aktivitu (pri otvorenom dni na Nové miesto). Formulár sa otvorí s kurzorom vo vyhľadávaní.',
   'help.guide.create-place.step.2':
-    'Zadajte miesto do poľa Hľadať miesta… a vyberte výsledok. Vyplní sa názov v hlavičke dialógu, Adresa, Zemepisná šírka, Zemepisná dĺžka a Webová stránka a Podrobnosti miesta vľavo ukážu obrázky, otváracie hodiny a popis. Ak má váš TREK kľúč Google, „Not the right place? Search Google instead“ pod výsledkami spustí rovnaké hľadanie cez Google. Pri zapnutých Zbierky ponúkajú Uložené miesta vpravo rovnakým spôsobom miesta z vašich zoznamov.',
+    'Zadajte miesto do poľa Hľadať miesta… a vyberte výsledok. Vyplní sa názov v hlavičke dialógu, Adresa, Zemepisná šírka, Zemepisná dĺžka a Webová stránka a Podrobnosti miesta vľavo ukážu obrázky, otváracie hodiny a popis. Ak má váš YOUYA kľúč Google, „Not the right place? Search Google instead“ pod výsledkami spustí rovnaké hľadanie cez Google. Pri zapnutých Zbierky ponúkajú Uložené miesta vpravo rovnakým spôsobom miesta z vašich zoznamov.',
   'help.guide.create-place.step.3':
     'V „Podrobnosti miesta“ kliknite na obrázok pod „Vybrať obrázok“ a stane sa obrázkom miesta. „Použiť tento text“ skopíruje popis do formulára.',
   'help.guide.create-place.step.4':
     'Skontrolujte polia formulára. Názov v hlavičke dialógu je jediné povinné pole. Štítok Kategória pod ním vyberá jednu z kategórií cesty a + vedľa neho vytvorí novú. Adresa, Zemepisná šírka a Zemepisná dĺžka sa doplnia z vyhľadávania alebo ich zadáte sami. Pod Štítky kliknite na štítky, ktoré má miesto niesť. O mieste a Poznámky prepínajú textové pole medzi popisom a vašimi vlastnými poznámkami. Webová stránka berie odkaz, Priložiť pod Súbory pridá dokument a Telefón, E-mail a Pridať otváracie hodiny sú na údaje, ktoré vyhľadávanie nenašlo.',
   'help.guide.create-place.step.5':
-    'Kliknite na „Pridať“. Ak už v ceste je miesto s rovnakým názvom alebo na rovnakej polohe, TREK zobrazí upozornenie a tlačidlo sa zmení na „Aj tak pridať“.',
+    'Kliknite na „Pridať“. Ak už v ceste je miesto s rovnakým názvom alebo na rovnakej polohe, YOUYA zobrazí upozornenie a tlačidlo sa zmení na „Aj tak pridať“.',
   'help.guide.create-place.result':
     'Miesto je v zozname aj na mape, v skupine „Nezaradené“, kým ho nepridáte do niektorého dňa.',
   'help.guide.create-place.tip.1':
     'Náklady dole vo formulári, so zapnutým doplnkom Rozpočet, otvoria hneď po uložení editor Náklady pre výdavok miesta. Obrázok alebo PDF vložené do dialógu sa pripojí ako súbor pod Súbory.',
   'help.guide.create-place.tip.2':
-    'Výsledky vyhľadávania v každom TREK poskytuje index TREK a OpenStreetMap a Podrobnosti miesta sa automaticky vyplnia z Wikipédie, Wikivoyage a Wikimedia. TREK sa pýta Google len vtedy, keď oba zdroje nič nenájdu, a hodnotenia poskytuje iba Google.',
+    'Výsledky vyhľadávania v každom YOUYA poskytuje index YOUYA a OpenStreetMap a Podrobnosti miesta sa automaticky vyplnia z Wikipédie, Wikivoyage a Wikimedia. YOUYA sa pýta Google len vtedy, keď oba zdroje nič nenájdu, a hodnotenia poskytuje iba Google.',
   'help.guide.create-place.tip.3':
     'Miesto môžete vytvoriť aj na mape: kliknite pravým tlačidlom na bod a otvorí sa formulár s vyplnenými súradnicami a adresou.',
   // place-to-open-day
@@ -2241,7 +2242,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     'Špendlíky sú miestami cesty, v zozname aj na mape, pod Nezaradené, kým ich nedáte na deň.',
   'help.guide.import-places-file.tip.1':
-    'Príliš veľký súbor TREK odmietne a uvedie limit veľkosti. Exportujte ho znova bez fotiek alebo ho rozdeľte.',
+    'Príliš veľký súbor YOUYA odmietne a uvedie limit veľkosti. Exportujte ho znova bez fotiek alebo ho rozdeľte.',
   'help.guide.import-places-file.tip.2':
     'Import urobený cez Importovať súbor môžete vrátiť späť z panela nástrojov nad dňami.',
   // import-places-list
@@ -2257,7 +2258,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.tip.1':
     'Zoznam musí byť zdieľaný verejne. Z odkazu na súkromný zoznam sa nič neimportuje.',
   'help.guide.import-places-list.tip.2':
-    'Obohatiť miesta cez Google sa v dialógu zobrazí, ak má váš TREK kľúč Google: vyhľadá každé importované miesto a doplní fotky, adresu a podrobnosti.',
+    'Obohatiť miesta cez Google sa v dialógu zobrazí, ak má váš YOUYA kľúč Google: vyhľadá každé importované miesto a doplní fotky, adresu a podrobnosti.',
   'help.guide.sort-places.title': 'Zoradenie zoznamu miest',
   'help.guide.sort-places.goal':
     'Zoraďte zoznam podľa názvu, hodnotenia alebo podľa toho, čo pribudlo či sa zmenilo naposledy.',
@@ -2371,7 +2372,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Ak zastávku potiahnete na kartu iného dňa, presunie sa tam a z pôvodného dňa zmizne.',
   'help.guide.reorder-stops.step.4':
-    'Ak má zastávka pevný čas a presun by porušil poradie dňa, TREK sa opýta Odobrať čas?, pretože čas určuje polohu zastávky. Odobrať čas a presunúť čas odstráni a zastávku dá tam, kam ste ju pustili. Zrušiť nechá deň, ako bol.',
+    'Ak má zastávka pevný čas a presun by porušil poradie dňa, YOUYA sa opýta Odobrať čas?, pretože čas určuje polohu zastávky. Odobrať čas a presunúť čas odstráni a zastávku dá tam, kam ste ju pustili. Zrušiť nechá deň, ako bol.',
   'help.guide.reorder-stops.result': 'Trasa aj časy presunov sa hneď prispôsobia novému poradiu.',
   'help.guide.reorder-stops.tip.1':
     'Rezervácia s pevným časom zostáva na mieste, ktoré zodpovedá jej času. Ak ju v rámci dňa presuniete inam, vráti sa späť. Ak ju pretiahnete na kartu iného dňa, presunie sa do toho dňa.',
@@ -2390,7 +2391,7 @@ const help: TranslationStrings = {
     'Zastávky s časom si ponechajú svoje miesto v poradí a zastávky bez času sa zoradia okolo nich.',
   'help.guide.set-stop-times.tip.1': 'Čas patrí k zastávke v danom dni. To isté miesto môže mať v inom dni iný čas.',
   'help.guide.set-stop-times.tip.2':
-    'Ak chcete zastávku s časom presunúť ručne, potiahnite ju. TREK sa opýta Odobrať čas? a Odobrať čas a presunúť čas odoberie a zastávku presunie.',
+    'Ak chcete zastávku s časom presunúť ručne, potiahnite ju. YOUYA sa opýta Odobrať čas? a Odobrať čas a presunúť čas odoberie a zastávku presunie.',
   'help.guide.set-stop-times.tip.3':
     'Karta Len deň vedľa O mieste a Poznámky v tom istom formulári je na poznámku, ktorá platí len v tento deň, napríklad rezerváciu stola alebo číslo lístka.',
   // remove-from-day
@@ -2434,7 +2435,7 @@ const help: TranslationStrings = {
   // day-route
   'help.guide.day-route.title': 'Zobrazenie a optimalizácia trasy dňa',
   'help.guide.day-route.goal':
-    'Pozrite si trasu medzi zastávkami, vyberte spôsob cestovania a nechajte TREK zoradiť poradie.',
+    'Pozrite si trasu medzi zastávkami, vyberte spôsob cestovania a nechajte YOUYA zoradiť poradie.',
   'help.guide.day-route.step.1':
     'Otvorte deň a kliknite na Trasa v lište trasy pod jeho zastávkami: trasa medzi zastávkami sa nakreslí na mape a spojnice medzi zastávkami ukazujú čas a vzdialenosť každého úseku.',
   'help.guide.day-route.step.2':
@@ -2448,7 +2449,7 @@ const help: TranslationStrings = {
   'help.guide.day-route.result':
     'Deň je trasa s časmi. Celkové náklady a úseky sa aktualizujú pri každej zmene poradia.',
   'help.guide.day-route.tip.1':
-    'Trasy predvolene počíta OSRM. Správca môže v časti „Predvolené nastavenia používateľa“ nastaviť pre TREK iný smerovací nástroj.',
+    'Trasy predvolene počíta OSRM. Správca môže v časti „Predvolené nastavenia používateľa“ nastaviť pre YOUYA iný smerovací nástroj.',
   'help.guide.day-route.tip.2':
     'Úsek, pre ktorý sa nepodarilo nájsť trasu, nezobrazuje čas. Skontrolujte, či majú obe zastávky súradnice.',
   'help.guide.day-route.tip.3': 'Šípka späť vráti optimalizáciu.',
@@ -2525,7 +2526,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     'Riadok úplne dole: Pridať k dňu, kým je otvorený deň a miesto v ňom ešte nie je, potom Navigácia (alebo názov vašej mapovej aplikácie, keď ste ju vybrali v Nastavenia) a dve ikony, Otvoriť webovú stránku a Uložiť do zbierky. Vpravo tri bodky obsahujú Odobrať z dňa a Vymazať a Upraviť otvorí formulár miesta, kde zmeníte aj jeho obrázok.',
   'help.ctx.trip-place.bullet.6':
-    'Pri mieste vybranom z vyhľadávania vidíte, čo o ňom vie index TREK alebo OpenStreetMap: „Otvorené“ alebo „Uzavreté“ medzi štítkami hore so zeleným alebo červeným krúžkom okolo obrázka podľa miestneho času na danom mieste; telefónne číslo, tiež ako štítok; nižšie „Otváracie hodiny“ s dnešnými hodinami v riadku a po kliknutí s celým týždňom; a webovú stránku pod „Otvoriť webovú stránku“. Hodnotenie Google sa zobrazí iba pri mieste nájdenom cez Google, v TREK s kľúčom Google. Otváracie hodiny, telefónne číslo a e-mail, ktoré ste do formulára miesta zadali sami, nahradia vyhľadané údaje a určujú aj farbu krúžku.',
+    'Pri mieste vybranom z vyhľadávania vidíte, čo o ňom vie index YOUYA alebo OpenStreetMap: „Otvorené“ alebo „Uzavreté“ medzi štítkami hore so zeleným alebo červeným krúžkom okolo obrázka podľa miestneho času na danom mieste; telefónne číslo, tiež ako štítok; nižšie „Otváracie hodiny“ s dnešnými hodinami v riadku a po kliknutí s celým týždňom; a webovú stránku pod „Otvoriť webovú stránku“. Hodnotenie Google sa zobrazí iba pri mieste nájdenom cez Google, v YOUYA s kľúčom Google. Otváracie hodiny, telefónne číslo a e-mail, ktoré ste do formulára miesta zadali sami, nahradia vyhľadané údaje a určujú aj farbu krúžku.',
   // read-place
   'help.guide.read-place.title': 'Čo sa o mieste dozviete z karty',
   'help.guide.read-place.goal': 'Pozrite si na jednej karte všetko, čo cesta o mieste vie.',
@@ -2600,7 +2601,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     'Odobrať obrázok, na konci riadka pod dlaždicami, nechá miesto po kliknutí na Aktualizovať bez obrázka. Zrušiť ponechá starý.',
   'help.guide.place-image.tip.3':
-    'Ostatné dlaždice sú súčasný obrázok miesta, fotky k nemu pripojené a obrázky, ktoré pre neho TREK našiel, každý s uvedením autora. Obrázok môžu zmeniť len cestujúci, ktorí smú meniť miesta.',
+    'Ostatné dlaždice sú súčasný obrázok miesta, fotky k nemu pripojené a obrázky, ktoré pre neho YOUYA našiel, každý s uvedením autora. Obrázok môžu zmeniť len cestujúci, ktorí smú meniť miesta.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'Pridanie miesta do otvoreného dňa alebo jeho odobratie',
   'help.guide.place-day-assign.goal': 'Použite tlačidlo na karte namiesto ťahania riadka cez plánovač.',
@@ -2681,11 +2682,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     'V zozname sú mapové aplikácie vhodné pre toto miesto: Google Maps, Waze, Apple Maps, OpenStreetMap a CoMaps a na Androide aj „Iná mapová aplikácia“.',
   'help.guide.place-navigation.step.3':
-    'Kliknite na aplikáciu, ktorú používate. Kde sa dá, TREK do nej pošle samotné miesto, nielen jeho súradnice, takže dorazíte k správnemu vchodu.',
+    'Kliknite na aplikáciu, ktorú používate. Kde sa dá, YOUYA do nej pošle samotné miesto, nielen jeho súradnice, takže dorazíte k správnemu vchodu.',
   'help.guide.place-navigation.step.4':
     'Ikona vedľa, Otvoriť webovú stránku, otvorí na novej karte vlastnú webovú stránku miesta, s otváracími hodinami a lístkami.',
   'help.guide.place-navigation.result':
-    'Mapová aplikácia sa otvorí na mieste, webová stránka sa otvorí na novej karte a nič v ceste sa nezmení. Ak je TREK nainštalovaný ako aplikácia, namiesto novej karty sa otvorí mapová aplikácia.',
+    'Mapová aplikácia sa otvorí na mieste, webová stránka sa otvorí na novej karte a nič v ceste sa nezmení. Ak je YOUYA nainštalovaný ako aplikácia, namiesto novej karty sa otvorí mapová aplikácia.',
   'help.guide.place-navigation.tip.1':
     'Waze spustí navigáciu hneď. Ostatné aplikácie otvoria miesto a navigáciu spustíte ďalším ťuknutím.',
   'help.guide.place-navigation.tip.2':
@@ -2724,7 +2725,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.result':
     'Stopa je nakreslená vo farbe, ktorú ste vybrali: na karte, v jej riadku v stĺpci miest aj na mape.',
   'help.guide.place-track.tip.1':
-    'Tieto dve časti má iba miesto s trasou: miesto importované zo súboru GPX, KML alebo KMZ ešte pred zavedením Túr, alebo v inštancii TREK s vypnutými Túrami. Keď sú Túry zapnuté, nový súbor GPX sa stane túrou s vlastnou kartou.',
+    'Tieto dve časti má iba miesto s trasou: miesto importované zo súboru GPX, KML alebo KMZ ešte pred zavedením Túr, alebo v inštancii YOUYA s vypnutými Túrami. Keď sú Túry zapnuté, nový súbor GPX sa stane túrou s vlastnou kartou.',
   'help.guide.place-track.tip.2':
     'Stopa zaznamenaná s výškami ukazuje aj najvyšší a najnižší bod, metre stúpania a klesania a výškový profil prechádzky.',
   'help.guide.place-track.tip.3':
@@ -2914,7 +2915,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     'Rad ikon navrchu mapy slúži na hľadanie podľa kategórií: Reštaurácie, Kaviarne, Bary a nočný život, Ubytovanie, Pamiatky, Múzeá a kultúra, Príroda a parky, Aktivity, Pekárne a Potraviny. Kategórie z pluginov nasledujú za tenkým oddeľovačom. Názov ikony uvidíte, keď na ňu prejdete myšou.',
   'help.guide.map-nearby-places.step.2':
-    'Kliknite na kategóriu. TREK vyhľadá tento druh miest vo viditeľnej časti mapy a ku každému výsledku pridá špendlík vo farbe kategórie. Naraz môže byť zapnutá iba jedna kategória: kliknutím na inú ju nahradíte a kliknutím na aktívnu ju vypnete.',
+    'Kliknite na kategóriu. YOUYA vyhľadá tento druh miest vo viditeľnej časti mapy a ku každému výsledku pridá špendlík vo farbe kategórie. Naraz môže byť zapnutá iba jedna kategória: kliknutím na inú ju nahradíte a kliknutím na aktívnu ju vypnete.',
   'help.guide.map-nearby-places.step.3':
     'Keď posuniete mapu, pod riadkom sa zobrazí druhé tlačidlo: Hľadať v tejto oblasti spustí rovnaké hľadanie pre nový výrez. Samotný posun mapy nové hľadanie nespustí. Tak zostáva počet požiadaviek nízky.',
   'help.guide.map-nearby-places.step.4':
@@ -2922,13 +2923,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     'Skontrolujte, čo sa vyplnilo, a doplňte, čo vyhľadávanie vedieť nemohlo. Pilulka kategórie pod názvom je už nastavená, ak má cesta zodpovedajúcu kategóriu, napríklad reštaurácia pre reštauráciu. Inak ukazuje Bez kategórie, kým nejakú nevyberiete. Napíšte, o čom miesto je, pod O mieste a vlastné poznámky pod Poznámky.',
   'help.guide.map-nearby-places.step.6':
-    'Kliknite na Pridať. Ak je v ceste už miesto s rovnakým názvom alebo na tom istom mieste, TREK vás upozorní a tlačidlo sa zmení na Aj tak pridať.',
+    'Kliknite na Pridať. Ak je v ceste už miesto s rovnakým názvom alebo na tom istom mieste, YOUYA vás upozorní a tlačidlo sa zmení na Aj tak pridať.',
   'help.guide.map-nearby-places.result':
     'Miesto je v zozname miest a na mape ako jeden z vlastných špendlíkov cesty, v skupine „Nezaradené“, kým ho nepridáte do niektorého dňa. Špendlíky z vyhľadávania zostanú, kým kategóriu nevypnete.',
   'help.guide.map-nearby-places.tip.1':
     'Riadok sa skryje, ak je Objavovať miesta na mape vypnuté v Nastavenia > Všeobecné, pod Cestovanie a mapa.',
   'help.guide.map-nearby-places.tip.2':
-    'Výsledky pochádzajú z indexu TREK Places a z OpenStreetMap, takže je to jedna z mála vecí v pláne, na ktorú potrebujete pripojenie.',
+    'Výsledky pochádzajú z indexu YOUYA Places a z OpenStreetMap, takže je to jedna z mála vecí v pláne, na ktorú potrebujete pripojenie.',
   'help.guide.map-nearby-places.tip.3':
     'Hľadanie pokrýva len oblasť na obrazovke, preto sa priblížte na ulicu, ktorá vás zaujíma. Hľadanie v celom meste vráti len prvých šesťdesiat výsledkov, v nejasnom poradí.',
   // map-add-place
@@ -2937,7 +2938,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     'Kliknite pravým tlačidlom na miesto na mape. Otvorí sa formulár miesta s nadpisom Pridať miesto/aktivitu.',
   'help.guide.map-add-place.step.2':
-    'Zemepisná šírka a Zemepisná dĺžka sú už nastavené na tento bod. TREK súradnice vyhľadá a do Adresa doplní, čo tam nájde. Ak vyhľadávanie nájde aj názov, TREK doplní aj názov v hornej časti dialógu. Nič sa ešte neuložilo, takže opravte všetko, čo je nesprávne.',
+    'Zemepisná šírka a Zemepisná dĺžka sú už nastavené na tento bod. YOUYA súradnice vyhľadá a do Adresa doplní, čo tam nájde. Ak vyhľadávanie nájde aj názov, YOUYA doplní aj názov v hornej časti dialógu. Nič sa ešte neuložilo, takže opravte všetko, čo je nesprávne.',
   'help.guide.map-add-place.step.3':
     'Do poľa v hornej časti dialógu napíšte názov, podľa ktorého miesto spoznáte. Pod ním vyberte kategóriu zo štítka, na ktorom je Bez kategórie, kým nejakú nevyberiete. Potom doplňte ďalšie údaje pre plán: O mieste, Poznámky, Webová stránka.',
   'help.guide.map-add-place.step.4':
@@ -2953,7 +2954,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     'Prepínač základnej vrstvy je dolné z dvoch okrúhlych tlačidiel vľavo dole na mape, pod zámkom. Jeho ikona vždy ukazuje vrstvu, na ktorú prepne, a tooltip hovorí, ktorá to je: „Prepnúť na satelitné zobrazenie“. Kliknite naň.',
   'help.guide.map-satellite.step.2':
-    'Mapa teraz zobrazuje letecké snímky. Sú dosť podrobné na to, aby ste rozoznali jednotlivé budovy, a nepotrebujete na ne vlastný kľúč. Všetko, čo kreslí TREK, zostáva navrchu: špendlíky, trasa dňa, stopy aj trasy rezervácií.',
+    'Mapa teraz zobrazuje letecké snímky. Sú dosť podrobné na to, aby ste rozoznali jednotlivé budovy, a nepotrebujete na ne vlastný kľúč. Všetko, čo kreslí YOUYA, zostáva navrchu: špendlíky, trasa dňa, stopy aj trasy rezervácií.',
   'help.guide.map-satellite.step.3':
     'Na tlačidle je teraz „Prepnúť na mapové zobrazenie“. Kliknutím naň sa vrátite k mapovému zobrazeniu.',
   'help.guide.map-satellite.result': 'Mapa sa prekreslí a vybraná vrstva sa zapamätá vo vašom účte.',
@@ -3007,7 +3008,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Zobrazte na mape trasu, ktorú Dawarich zaznamenal v telefóne, ako prerušovanú čiaru vedľa plánovanej trasy, a pozrite si deň po dni, ako cesta naozaj prebehla.',
   'help.guide.map-dawarich-trail.step.1':
-    'Okrúhle tlačidlo Dawarich je vpravo dole na mape, pod „Zobraziť celú cestu“. Keď nad neho prejdete myšou, zobrazí sa „Zobraziť zaznamenanú trasu“. Kliknite naň. TREK si od vášho Dawarich vyžiada údaje za dátumy cesty a kým čaká na odpoveď, okolo tlačidla sa točí krúžok.',
+    'Okrúhle tlačidlo Dawarich je vpravo dole na mape, pod „Zobraziť celú cestu“. Keď nad neho prejdete myšou, zobrazí sa „Zobraziť zaznamenanú trasu“. Kliknite naň. YOUYA si od vášho Dawarich vyžiada údaje za dátumy cesty a kým čaká na odpoveď, okolo tlačidla sa točí krúžok.',
   'help.guide.map-dawarich-trail.step.2':
     'Zaznamenaná trasa sa zobrazí ako prerušovaná čiara, pre každý deň inou farbou, a je nakreslená pod plánovanou trasou, aby plán zostal čitateľný. Na tlačidle je teraz „Skryť zaznamenanú trasu“. Každý deň končí o polnoci miestneho času. Keď deň v stĺpci dní zbalíte, jeho prerušovaná čiara aj zastávky sa na mape skryjú.',
   'help.guide.map-dawarich-trail.step.3':
@@ -3015,9 +3016,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     'To, čo ste naplánovali, aj to, čo ste naozaj urobili, vidíte na mape spolu, ako prerušované a plné čiary. Karta nad tlačidlami stále uvádza plánované dni a ich vzdialenosti.',
   'help.guide.map-dawarich-trail.tip.1':
-    'Zapnutie alebo vypnutie sa ukladá pre každú cestu vo vašom účte, takže platí v každom prehliadači a na každom zariadení. Kým je trasa zapnutá, TREK sa Dawarichu pýta každé dve minúty, takže prebiehajúca cesta sa aktualizuje bez opätovného načítania stránky. Samotná trasa sa nikdy neukladá, preto nie je v databáze TREK, v zálohách ani offline.',
+    'Zapnutie alebo vypnutie sa ukladá pre každú cestu vo vašom účte, takže platí v každom prehliadači a na každom zariadení. Kým je trasa zapnutá, YOUYA sa Dawarichu pýta každé dve minúty, takže prebiehajúca cesta sa aktualizuje bez opätovného načítania stránky. Samotná trasa sa nikdy neukladá, preto nie je v databáze YOUYA, v zálohách ani offline.',
   'help.guide.map-dawarich-trail.tip.2':
-    'Popis tlačidla vám povie, prečo je mapa prázdna: Načítava sa zaznamenaná trasa… počas načítania, V týchto dňoch sa nič nezaznamenalo, Zaznamenanú trasu sa nepodarilo načítať, alebo Zaznamenaná trasa vyžaduje pripojenie, keď je TREK offline.',
+    'Popis tlačidla vám povie, prečo je mapa prázdna: Načítava sa zaznamenaná trasa… počas načítania, V týchto dňoch sa nič nezaznamenalo, Zaznamenanú trasu sa nepodarilo načítať, alebo Zaznamenaná trasa vyžaduje pripojenie, keď je YOUYA offline.',
   // map-compass
   'help.guide.map-compass.title': 'Otočenie mapy a opätovné nájdenie severu',
   'help.guide.map-compass.goal': 'Otočte mapu v smere, ktorým idete, a jedným kliknutím ju vráťte na sever.',
@@ -3034,7 +3035,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Doprava',
   'help.ctx.trip-transports.summary':
-    'Všetky spôsoby, ktorými sa presúvate medzi zastávkami: lety, vlaky, autobusy, autá, taxíky, bicykle, plavby, trajekty, lanovky a spojenia verejnej dopravy, ktoré TREK vyhľadá za vás. Karta ich vypisuje. Môžete ich vytvárať a prezerať aj v pláne a kreslia sa na mape.',
+    'Všetky spôsoby, ktorými sa presúvate medzi zastávkami: lety, vlaky, autobusy, autá, taxíky, bicykle, plavby, trajekty, lanovky a spojenia verejnej dopravy, ktoré YOUYA vyhľadá za vás. Karta ich vypisuje. Môžete ich vytvárať a prezerať aj v pláne a kreslia sa na mape.',
   'help.ctx.trip-transports.bullet.1':
     'Na tejto karte sú iba presuny. Ubytovanie, reštaurácie, podujatia a vstupenky sú na karte „Rezervácie“, aby sa nič nezobrazovalo dvakrát.',
   'help.ctx.trip-transports.bullet.2':
@@ -3092,7 +3093,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': 'Import letu z elektronickej letenky',
   'help.guide.import-transport-file.goal':
-    'Nechajte TREK načítať let, vlak alebo trajekt z lístka od dopravcu a pred uložením ho skontrolujte.',
+    'Nechajte YOUYA načítať let, vlak alebo trajekt z lístka od dopravcu a pred uložením ho skontrolujte.',
   'help.guide.import-transport-file.step.1':
     'Na lište karty Doprava kliknite na ikonu nahrávania pred Doprava, ktorej tooltip znie Importovať potvrdenia rezervácií. Otvorí sa dialóg s rovnakým názvom, taký istý ako na karte Rezervácie. Na prázdnej karte robí to isté Importovať zo súboru uprostred.',
   'help.guide.import-transport-file.step.2':
@@ -3112,11 +3113,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': 'Naplánovanie spojenia verejnou dopravou',
   'help.guide.plan-transit.goal':
-    'Nechajte TREK vyhľadať skutočné vlaky a autobusy medzi dvoma bodmi dňa a vybrané spojenie vložte do plánu.',
+    'Nechajte YOUYA vyhľadať skutočné vlaky a autobusy medzi dvoma bodmi dňa a vybrané spojenie vložte do plánu.',
   'help.guide.plan-transit.step.1':
     'V záhlaví dňa kliknite na + a vyberte Verejná doprava. Vyhľadávanie sa otvorí pre tento deň: deň je v záhlaví zobrazený ako pilulka a Ručne a Automaticky vedľa nej prepínajú medzi týmto vyhľadávaním a bežným formulárom.',
   'help.guide.plan-transit.step.2':
-    'Polia Od a Do berú zastávku alebo stanicu. Kým je pole ešte prázdne, TREK ponúkne ubytovanie dňa, stanice a letiská z rezervácií dňa a vlastné zastávky dňa. Keď napíšete dve písmená, hľadá namiesto toho v staniciach cestovného poriadku. Prehodiť medzi oboma poľami vymení Od a Do.',
+    'Polia Od a Do berú zastávku alebo stanicu. Kým je pole ešte prázdne, YOUYA ponúkne ubytovanie dňa, stanice a letiská z rezervácií dňa a vlastné zastávky dňa. Keď napíšete dve písmená, hľadá namiesto toho v staniciach cestovného poriadku. Prehodiť medzi oboma poľami vymení Od a Do.',
   'help.guide.plan-transit.step.3':
     'Odchod alebo Príchod s časom určuje, kedy chcete cestovať, a Najlepšie spojenie, Menej prestupov alebo Menej chôdze určuje, v akom poradí sa majú zobraziť výsledky.',
   'help.guide.plan-transit.step.4':
@@ -3229,7 +3230,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     'Let, ktorý už v ceste je s rovnakým číslom a dátumom, sa preskočí a správa uvedie, koľko letov sa preskočilo. Šípka späť na paneli nástrojov nad dňami vráti celý import.',
   'help.guide.airtrail-import.tip.2':
-    'Hlavným zdrojom údajov zostáva AirTrail. TREK načíta jeho zmeny pri otvorení cesty a každých pár minút na pozadí. Let vymazaný v AirTrail si v TREK ponechá kartu a jeho štítok sa zmení na Nesynchronizované. Úpravy urobené v TREK sa posielajú späť do AirTrail iba vtedy, keď je v časti Integrácie zapnuté Zapisovať zmeny späť do AirTrail.',
+    'Hlavným zdrojom údajov zostáva AirTrail. YOUYA načíta jeho zmeny pri otvorení cesty a každých pár minút na pozadí. Let vymazaný v AirTrail si v YOUYA ponechá kartu a jeho štítok sa zmení na Nesynchronizované. Úpravy urobené v YOUYA sa posielajú späť do AirTrail iba vtedy, keď je v časti Integrácie zapnuté Zapisovať zmeny späť do AirTrail.',
   'help.guide.airtrail-import.tip.3':
     'Spojenie s prestupom nie je jeden let z AirTrail, ktorý by sa dal synchronizovať, preto ide o jednorazový import: ponechá si modrý štítok a keď naň ukážete kurzorom, štítok to povie. To isté sa stane synchronizovanému letu, ku ktorému ručne pridáte zastávku.',
   // ── Screen: trip-bookings ─────────────────────────────────────────────────────────────
@@ -3239,7 +3240,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     'Ručná rezervácia na pravom konci lišty otvorí Nová rezervácia. Vytvára šesť druhov rezervácií: Ubytovanie, Reštaurácia, Udalosť, Prehliadka so sprievodcom, Parkovanie a Iné. Lety, vlaky a ostatná doprava sú v záložke Doprava a tu sa nikdy nezobrazia.',
   'help.ctx.trip-bookings.bullet.2':
-    'Ikona nahrávania pred Ručná rezervácia, Importovať potvrdenia rezervácií, nahrá potvrdenia, aby ich TREK vedel prečítať automaticky: EML, PDF, PKPass, HTML alebo TXT, najviac päť súborov po 10 MB, a fotky, ak AI model číta obrázky. Ikona sa zobrazí, iba ak ich server vie čítať. Tam, kde správca zapol import e-mailov, ten istý dialóg dáva ceste vlastnú adresu, na ktorú môžete preposielať e-maily s rezerváciami.',
+    'Ikona nahrávania pred Ručná rezervácia, Importovať potvrdenia rezervácií, nahrá potvrdenia, aby ich YOUYA vedel prečítať automaticky: EML, PDF, PKPass, HTML alebo TXT, najviac päť súborov po 10 MB, a fotky, ak AI model číta obrázky. Ikona sa zobrazí, iba ak ich server vie čítať. Tam, kde správca zapol import e-mailov, ten istý dialóg dáva ceste vlastnú adresu, na ktorú môžete preposielať e-maily s rezerváciami.',
   'help.ctx.trip-bookings.bullet.3':
     'Hľadať prehľadáva názvy, typy, miesta, poznámky, rezervačné kódy a cestujúcich. Filter, lievik vedľa neho, zúži kartu podľa Stav, podľa Typ s počtom pri každom a podľa Cestujúci, keď rezervácia uvádza ľudí. Číslo pri lieviku ukazuje, koľko filtrov je zapnutých.',
   'help.ctx.trip-bookings.bullet.4':
@@ -3304,7 +3305,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     'Hotel vyberte v časti „Ubytovanie“. Zoznam obsahuje miesta cesty bez importovaných stôp a túr. Po výbere sa jeho názov doplní do prázdneho názvu a adresa do poľa „Miesto / Adresa“.',
   'help.guide.booking-hotel.step.3':
-    'Nastavte Od a Do: prvú noc a ráno, keď odchádzate. Obe ponúkajú dni cesty s dátumami a TREK drží Do po Od.',
+    'Nastavte Od a Do: prvú noc a ráno, keď odchádzate. Obe ponúkajú dni cesty s dátumami a YOUYA drží Do po Od.',
   'help.guide.booking-hotel.step.4': 'Vyplňte Check-in, Check-in do a Check-out a Rezervačný kód z potvrdenia.',
   'help.guide.booking-hotel.step.5': 'Kliknite na „Pridať“.',
   'help.guide.booking-hotel.result':
@@ -3352,7 +3353,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.title': 'Uloženie poukazu k rezervácii',
   'help.guide.booking-files.goal': 'Priložte potvrdenie, lístok alebo permanentku k rezervácii, ku ktorej patrí.',
   'help.guide.booking-files.step.1':
-    'Otvorte rezerváciu ceruzkou na jej karte. Vedľa „Pripojiť“ sú „Súbory“, kliknite tam na „Priložiť súbor“. Pri existujúcej rezervácii sa dokument hneď nahrá a TREK zobrazí „Súbor bol nahraný“.',
+    'Otvorte rezerváciu ceruzkou na jej karte. Vedľa „Pripojiť“ sú „Súbory“, kliknite tam na „Priložiť súbor“. Pri existujúcej rezervácii sa dokument hneď nahrá a YOUYA zobrazí „Súbor bol nahraný“.',
   'help.guide.booking-files.step.2': 'Dokument je uvedený podľa názvu, s tlačidlom na otvorenie a X vedľa neho.',
   'help.guide.booking-files.step.3':
     'Prepojiť existujúci súbor ponúka dokumenty cesty, ktoré ešte nie sú pri tejto rezervácii. Vyberte jeden a priloží sa bez ďalšieho nahrávania.',
@@ -3408,7 +3409,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': 'Import rezervácie z potvrdenia',
   'help.guide.import-booking-file.goal':
-    'Nechajte TREK načítať rezerváciu z e-mailu alebo PDF od poskytovateľa, aby ste ju nemuseli prepisovať.',
+    'Nechajte YOUYA načítať rezerváciu z e-mailu alebo PDF od poskytovateľa, aby ste ju nemuseli prepisovať.',
   'help.guide.import-booking-file.step.1':
     'Kliknite na ikonu nahrávania na lište, Importovať potvrdenia rezervácií. Jej názov sa zobrazí, keď na ňu prejdete myšou. Otvorí sa rovnomenný dialóg.',
   'help.guide.import-booking-file.step.2':
@@ -3497,7 +3498,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     'Keď niekoho priradíte k zoznamu, dostane oznámenie o balení. Nemení to, kto vidí položky. To sa nastavuje v okne každej položky pod Viditeľné pre, alebo pre celý zoznam cez Zdieľanie celého zoznamu.',
   'help.guide.packing-categories.tip.3':
-    'Dva zoznamy môžu mať rovnaký názov. TREK ich interne rozlišuje, takže názvy zostanú tak, ako ste ich napísali.',
+    'Dva zoznamy môžu mať rovnaký názov. YOUYA ich interne rozlišuje, takže názvy zostanú tak, ako ste ich napísali.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Odškrtávanie vecí pri balení',
   'help.guide.check-off-packing.goal': 'Odškrtnite, čo už máte v taške, sledujte priebeh a zabalené položky odstráňte.',
@@ -3545,13 +3546,13 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.step.3':
     'Alebo načítajte riadky zo súboru cez Načítať CSV/TXT/MD vľavo dole v dialógu. Prijme súbor .csv, .txt alebo .md a nahradí všetko, čo je v poli.',
   'help.guide.import-packing-list.step.4':
-    'Vpravo dole kliknite na Importovať 3. Číslo na tlačidle udáva počet riadkov, ktorým TREK rozumel.',
+    'Vpravo dole kliknite na Importovať 3. Číslo na tlačidle udáva počet riadkov, ktorým YOUYA rozumel.',
   'help.guide.import-packing-list.result':
     'Z každého riadka sa stane položka v zozname, ktorý je uvedený v jeho prvom poli. Položky, ktoré už v zozname boli, sa nezmenia.',
   'help.guide.import-packing-list.tip.1':
     'Polia oddeľujú čiarky, bodkočiarky aj tabulátory a dvojité úvodzovky držia pole pokope, takže „Tričko, modré“ zostane jedným názvom. Riadok s jedinou hodnotou je len názov. Riadok bez vlastného zoznamu skončí v kategórii Ostatné. „3x“ pred názvom nastaví množstvo.',
   'help.guide.import-packing-list.tip.2':
-    'Ak cesta ešte nemá tašku uvedenú vo štvrtom poli, TREK ju vytvorí. „Importovať“ a „Použiť šablónu“ sú dva spôsoby, ako pridať hmotnosti a tašky mnohým položkám naraz.',
+    'Ak cesta ešte nemá tašku uvedenú vo štvrtom poli, YOUYA ju vytvorí. „Importovať“ a „Použiť šablónu“ sú dva spôsoby, ako pridať hmotnosti a tašky mnohým položkám naraz.',
   // export-packing-list
   'help.guide.export-packing-list.title': 'Tlač alebo export zoznamu vecí na balenie',
   'help.guide.export-packing-list.goal':
@@ -3771,11 +3772,11 @@ const help: TranslationStrings = {
     'Vlastné rozdelenie môžete zadať aj v percentách alebo v podieloch: malý prepínač vedľa nápovedy vyberá symbol meny, % alebo Podiely. V percentách musia podiely spolu dať 100 %, inak sa výdavok neuloží.',
   // expense-currency
   'help.guide.expense-currency.title': 'Zadanie výdavku v inej mene',
-  'help.guide.expense-currency.goal': 'Zadajte sumu z účtenky a TREK uloží výmenný kurz.',
+  'help.guide.expense-currency.goal': 'Zadajte sumu z účtenky a YOUYA uloží výmenný kurz.',
   'help.guide.expense-currency.step.1':
     'Otvorte Pridať výdavok. Hore v dialógu napíšte názov a do Celková suma zadajte sumu presne tak, ako je na bloku, nie prepočítanú.',
   'help.guide.expense-currency.step.2':
-    'Otvorte Mena vedľa sumy. Nový výdavok začína na mene samotnej cesty. Vyberte menu z účtenky: mena cesty a mena, v ktorej sa zobrazujú Náklady, sú navrchu a každý ďalší kód, ktorý TREK pozná, nájdete napísaním troch písmen.',
+    'Otvorte Mena vedľa sumy. Nový výdavok začína na mene samotnej cesty. Vyberte menu z účtenky: mena cesty a mena, v ktorej sa zobrazujú Náklady, sú navrchu a každý ďalší kód, ktorý YOUYA pozná, nájdete napísaním troch písmen.',
   'help.guide.expense-currency.step.3':
     'Pod poľami sa objaví rad štítkov: zadaná suma a jej aktuálna hodnota, označená ako „aktuálny kurz“. Je to len náhľad, nie hodnota, ktorá sa uloží.',
   'help.guide.expense-currency.step.4':
@@ -3990,13 +3991,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     'Všetky dokumenty cesty v jednom zozname: lístky, potvrdenia, preukazy a obrázky. Každý má poznámku, prepojenie na miesto alebo rezerváciu, ku ktorej patrí, a kôš, z ktorého ho môžete obnoviť.',
   'help.ctx.trip-files.bullet.1':
-    'Presuňte súbory sem, prerušované pole pod lištou, prijíma súbory, ktoré naň pustíte. Kliknutím naň otvoríte výber súboru. Pole ukazuje typy súborov, ktoré toto TREK prijíma, a limit na súbor (Max 50 MB, pokiaľ správca nenastavil iný).',
+    'Presuňte súbory sem, prerušované pole pod lištou, prijíma súbory, ktoré naň pustíte. Kliknutím naň otvoríte výber súboru. Pole ukazuje typy súborov, ktoré toto YOUYA prijíma, a limit na súbor (Max 50 MB, pokiaľ správca nenastavil iný).',
   'help.ctx.trip-files.bullet.2':
     'Na lište hore sú „Súbory“ a záložky filtrov „Všetky“, „PDF“, „Obrázky“ a „Dokumenty“, každá s počtom. Hneď ako súbor označíte hviezdičkou, za „Všetky“ pribudne záložka s hviezdičkou, a keď má niektorá poznámka prílohu, na konci pribudne záložka „Poznámky spolupráce“.',
   'help.ctx.trip-files.bullet.3':
     'V riadku je miniatúra alebo typ súboru, kto ho nahral, názov, poznámka pod ním, veľkosť a dátum a pre každé prepojenie jeden štítok: miesto, rezervácia alebo doprava podľa názvu (keď naň prejdete myšou, uvidíte „Denný plán“, „Rezervácia“ alebo „Doprava“) a „Z poznámok spolupráce“.',
   'help.ctx.trip-files.bullet.4':
-    'Na konci riadku je až päť ikon, každá s názvom po ukázaní myšou: Označiť hviezdičkou, Priradiť (ceruzka), Otvoriť, Stiahnuť a Vymazať. Vymazať sa nepýta: súbor ide do koša, odkiaľ ho môžete obnoviť. Offline fungujú poznámka, odkaz, hviezdička a kôš a odošlú sa, keď bude TREK znova online. Pripojenie vyžaduje len nahrávanie a odstránenie ďalšieho odkazu.',
+    'Na konci riadku je až päť ikon, každá s názvom po ukázaní myšou: Označiť hviezdičkou, Priradiť (ceruzka), Otvoriť, Stiahnuť a Vymazať. Vymazať sa nepýta: súbor ide do koša, odkiaľ ho môžete obnoviť. Offline fungujú poznámka, odkaz, hviezdička a kôš a odošlú sa, keď bude YOUYA znova online. Pripojenie vyžaduje len nahrávanie a odstránenie ďalšieho odkazu.',
   'help.ctx.trip-files.bullet.5':
     'Obrázok alebo video sa otvorí na celú obrazovku, s ovládaním šípkami a radom miniatúr. Každý iný dokument sa otvorí v dialógu s názvom navrchu a pod ním Otvoriť na novej karte a Stiahnuť. Karta do peňaženky sa stiahne hneď.',
   'help.ctx.trip-files.bullet.6':
@@ -4008,7 +4009,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     'Otvorte cestu a na lište kariet kliknite na Súbory. Sú tam uvedené dokumenty cesty a nad nimi pole na nahrávanie.',
   'help.guide.files-upload.step.2':
-    'Kliknite na Presuňte súbory sem a vyberte jeden alebo viac súborov. Nahrávajú sa jeden po druhom a počas toho pole ukazuje Nahráva sa.... Vnútri poľa, pod alebo kliknite pre výber, vidíte typy súborov, ktoré tento TREK prijíma, a maximálnu veľkosť súboru.',
+    'Kliknite na Presuňte súbory sem a vyberte jeden alebo viac súborov. Nahrávajú sa jeden po druhom a počas toho pole ukazuje Nahráva sa.... Vnútri poľa, pod alebo kliknite pre výber, vidíte typy súborov, ktoré tento YOUYA prijíma, a maximálnu veľkosť súboru.',
   'help.guide.files-upload.step.3':
     'Keď sa dokončí nahrávanie posledného súboru, automaticky sa preň otvorí „Priradiť súbor“ (ak má cesta nejaké miesta alebo rezervácie) s názvom súboru v hornej časti dialógu. Pole „Pridať poznámku...“ v časti „Poznámka“ pridá k súboru poznámku a zoznamy pod ním ho prepoja s miestom alebo rezerváciou. Dialóg zavriete krížikom × vpravo hore. Zatvorením nič nestratíte.',
   'help.guide.files-upload.step.4':
@@ -4019,7 +4020,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     'Klávesmi Ctrl+V pridáte do zoznamu obrázok zo schránky, takže snímku obrazovky rezervácie nemusíte najprv ukladať.',
   'help.guide.files-upload.tip.3':
-    'Na nahrávanie potrebujete právo nahrávať súbory; bez neho pole vôbec nie je. Typ, ktorý nie je v zozname, sa odmietne so správou a nič sa nenahrá. Súbor nad limit (50 MB, ak správca nenastavil inak) sa odmietne ešte pred odoslaním a správa limit uvedie. Nahrávanie vyžaduje aj pripojenie: offline to TREK oznámi a nič nenahrá.',
+    'Na nahrávanie potrebujete právo nahrávať súbory; bez neho pole vôbec nie je. Typ, ktorý nie je v zozname, sa odmietne so správou a nič sa nenahrá. Súbor nad limit (50 MB, ak správca nenastavil inak) sa odmietne ešte pred odoslaním a správa limit uvedie. Nahrávanie vyžaduje aj pripojenie: offline to YOUYA oznámi a nič nenahrá.',
   // files-link
   'help.guide.files-link.title': 'Prepojenie dokumentu s miestom alebo rezerváciou',
   'help.guide.files-link.goal':
@@ -4039,7 +4040,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     'Súbor môže mať naraz viac prepojení, takže to isté potvrdenie môže patriť k rezervácii hotela aj k miestu hotela súčasne.',
   'help.guide.files-link.tip.2':
-    'Opätovným kliknutím na označenú položku prepojenie odstránite, samotný súbor zostane. Offline sa poznámka a nové označenia uložia a odošlú, keď bude TREK znova online. Pripojenie vyžaduje iba odstránenie ďalšieho prepojenia.',
+    'Opätovným kliknutím na označenú položku prepojenie odstránite, samotný súbor zostane. Offline sa poznámka a nové označenia uložia a odošlú, keď bude YOUYA znova online. Pripojenie vyžaduje iba odstránenie ďalšieho prepojenia.',
   'help.guide.files-link.tip.3':
     'Funguje to aj naopak: dokument priložený k miestu alebo rezervácii nájdete aj v tomto zozname, s rovnakým štítkom v riadku.',
   'help.guide.files-link.tip.4':
@@ -4075,7 +4076,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     'Zoznam je vždy zoradený tak, že hviezdičkou označené súbory sú prvé, potom od najnovšieho, takže dnes nahraný dokument je nad dokumentom z minulého mesiaca.',
   // files-preview
-  'help.guide.files-preview.title': 'Prečítať dokument bez opustenia TREK',
+  'help.guide.files-preview.title': 'Prečítať dokument bez opustenia YOUYA',
   'help.guide.files-preview.goal':
     'Pozrite si lístok alebo obrázok hneď a keď ho potrebujete v zariadení, stiahnite si ho.',
   'help.guide.files-preview.step.1':
@@ -4111,7 +4112,7 @@ const help: TranslationStrings = {
     'Vyprázdniť kôš na lište vedľa ikony koša natrvalo vymaže všetko, čo je ešte v koši. Prehliadač sa predtým jedenkrát opýta na potvrdenie. Ikona koša prepne späť na súbory.',
   'help.guide.files-trash.result': 'Súbor je opäť v zozname na pôvodnom mieste.',
   'help.guide.files-trash.tip.1':
-    'Vymazať na riadku sa najprv nepýta. Preto je tu kôš: z TREK sa nič neodstráni, kým to nevymažete tu. Toto všetko funguje aj offline a odošle sa, keď bude TREK znova online.',
+    'Vymazať na riadku sa najprv nepýta. Preto je tu kôš: z YOUYA sa nič neodstráni, kým to nevymažete tu. Toto všetko funguje aj offline a odošle sa, keď bude YOUYA znova online.',
   'help.guide.files-trash.tip.2':
     'Na vymazanie a obnovenie súboru potrebujete oprávnenie mazať súbory. Člen bez neho nevidí v riadku „Vymazať“ ani tlačidlá v koši.',
   'help.guide.files-trash.tip.3': 'Súbor natrvalo vymazaný v koši sa už nedá obnoviť.',
@@ -4124,21 +4125,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     'Kliknite na svoje úložisko, tu Nextcloud. Otvorí sa menší dialóg pre pripojenie. Obsahuje názov úložiska a žiada prihlasovacie údaje, ktoré toto úložisko vyžaduje.',
   'help.guide.files-sync.step.3':
-    'Vyplňte „Adresa“ a prihlasovacie údaje úložiska: API token pre Paperless-ngx, API kľúč a „ID organizácie“ pre Papra, „Používateľské meno“ a „Heslo aplikácie“ pre Nextcloud, „Používateľské meno“ a „Token aplikácie“ pre OpenCloud a pre Synology Drive „Používateľské meno“, „Heslo“ a, ak ho účet vyžaduje, „Dvojfaktorový kód“. Všade, kde to úložisko umožňuje, použite heslo alebo token aplikácie, nikdy nie heslo k účtu. Nextcloud a Synology Drive majú aj nepovinný „Základný priečinok“, v ktorom TREK hľadá priečinky ciest, tu /Reisen. Možnosť „Prijať vlastnoručne podpísaný certifikát“ dole je len pre úložisko vo vašej vlastnej sieti s takýmto certifikátom.',
+    'Vyplňte „Adresa“ a prihlasovacie údaje úložiska: API token pre Paperless-ngx, API kľúč a „ID organizácie“ pre Papra, „Používateľské meno“ a „Heslo aplikácie“ pre Nextcloud, „Používateľské meno“ a „Token aplikácie“ pre OpenCloud a pre Synology Drive „Používateľské meno“, „Heslo“ a, ak ho účet vyžaduje, „Dvojfaktorový kód“. Všade, kde to úložisko umožňuje, použite heslo alebo token aplikácie, nikdy nie heslo k účtu. Nextcloud a Synology Drive majú aj nepovinný „Základný priečinok“, v ktorom YOUYA hľadá priečinky ciest, tu /Reisen. Možnosť „Prijať vlastnoručne podpísaný certifikát“ dole je len pre úložisko vo vašej vlastnej sieti s takýmto certifikátom.',
   'help.guide.files-sync.step.4':
-    'Kliknite na „Otestovať pripojenie“. TREK sa so zadanými údajmi pripojí k úložisku a v spodnej časti sa zobrazí „Spojenie funguje, prihlásený ako“ a meno účtu. Ak sú prihlasovacie údaje odmietnuté alebo adresa nie je dostupná, zobrazí sa tam to. V oboch prípadoch sa nič neuloží.',
+    'Kliknite na „Otestovať pripojenie“. YOUYA sa so zadanými údajmi pripojí k úložisku a v spodnej časti sa zobrazí „Spojenie funguje, prihlásený ako“ a meno účtu. Ak sú prihlasovacie údaje odmietnuté alebo adresa nie je dostupná, zobrazí sa tam to. V oboch prípadoch sa nič neuloží.',
   'help.guide.files-sync.step.5':
-    'Kliknite na Pripojiť. Pripojenie sa uloží k ceste a TREK sa opýta, kde v úložisku majú byť dokumenty cesty: v ktorom štítku, priečinku alebo priestore. Synchronizuje sa len to, čo je v ňom. Vytvoriť nové ho vytvorí po kliknutí na Vytvoriť, s názvom prevzatým z názvu cesty. Pod Alebo použite existujúce vidíte už existujúce. Kliknite na jedno, tu na priečinok Jeseň v Japonsku.',
+    'Kliknite na Pripojiť. Pripojenie sa uloží k ceste a YOUYA sa opýta, kde v úložisku majú byť dokumenty cesty: v ktorom štítku, priečinku alebo priestore. Synchronizuje sa len to, čo je v ňom. Vytvoriť nové ho vytvorí po kliknutí na Vytvoriť, s názvom prevzatým z názvu cesty. Pod Alebo použite existujúce vidíte už existujúce. Kliknite na jedno, tu na priečinok Jeseň v Japonsku.',
   'help.guide.files-sync.step.6':
-    'Dialóg sa otvorí znova: vaše úložisko je vľavo pod Táto cesta a jeho karta vpravo ukazuje, kam sa synchronizuje, kedy synchronizácia naposledy prebehla, a Synchronizovať teraz. Prvá synchronizácia sa spustí automaticky, Synchronizovať teraz ju spustí kedykoľvek. Po synchronizácii sa značka Zatiaľ nesynchronizované vedľa názvu zmení na zelenú bodku, ktorá po ukázaní na ňu ukáže Aktuálne. Ukazovateľ toku zobrazuje, koľko dokumentov má TREK a koľko úložisko, s dráhami Do úložiska a Z úložiska medzi nimi. Dialóg zavriete krížikom × vpravo hore.',
+    'Dialóg sa otvorí znova: vaše úložisko je vľavo pod Táto cesta a jeho karta vpravo ukazuje, kam sa synchronizuje, kedy synchronizácia naposledy prebehla, a Synchronizovať teraz. Prvá synchronizácia sa spustí automaticky, Synchronizovať teraz ju spustí kedykoľvek. Po synchronizácii sa značka Zatiaľ nesynchronizované vedľa názvu zmení na zelenú bodku, ktorá po ukázaní na ňu ukáže Aktuálne. Ukazovateľ toku zobrazuje, koľko dokumentov má YOUYA a koľko úložisko, s dráhami Do úložiska a Z úložiska medzi nimi. Dialóg zavriete krížikom × vpravo hore.',
   'help.guide.files-sync.result':
-    'Dokumenty, ktoré už v úložisku boli, sa zobrazia navrchu zoznamu ako nahrané pod vaším menom a každý dokument cesty je aj v úložisku, okrem dokumentov z „Poznámok spolupráce“. Odteraz TREK kontroluje úložisko na pozadí a zmeny v zozname sa kopírujú do úložiska.',
+    'Dokumenty, ktoré už v úložisku boli, sa zobrazia navrchu zoznamu ako nahrané pod vaším menom a každý dokument cesty je aj v úložisku, okrem dokumentov z „Poznámok spolupráce“. Odteraz YOUYA kontroluje úložisko na pozadí a zmeny v zozname sa kopírujú do úložiska.',
   'help.guide.files-sync.tip.1':
     'Cestu môže pripojiť iba jej vlastník alebo správca inštancie, pretože prihlasovacie údaje dávajú prístup k celému účtu v úložisku. Keď je cesta pripojená, každý člen vidí Synchronizácia dokumentov, môže ju otvoriť, prečítať si kartu a stlačiť Synchronizovať teraz.',
   'help.guide.files-sync.tip.2':
-    'Úložisko vo vašej vlastnej sieti vyžaduje na serveri TREK nastavenie ALLOW_INTERNAL_NETWORK=true a jeho adresa musí byť adresa počítača v sieti, nikdy nie localhost. Bez toho Otestovať pripojenie odpovie Táto adresa nie je povolená.',
+    'Úložisko vo vašej vlastnej sieti vyžaduje na serveri YOUYA nastavenie ALLOW_INTERNAL_NETWORK=true a jeho adresa musí byť adresa počítača v sieti, nikdy nie localhost. Bez toho Otestovať pripojenie odpovie Táto adresa nie je povolená.',
   'help.guide.files-sync.tip.3':
-    '„Odpojiť“, ikona vedľa „Synchronizovať teraz“, si raz vyžiada potvrdenie. Potom ukončí prepojenie a všetky dokumenty ponechá na oboch stranách. Ak štítok, priečinok alebo priestor prepojíte druhýkrát, TREK ho považuje za nový a znova z neho importuje všetko. Po odpojení preto prepojte prázdny, nie ten starý.',
+    '„Odpojiť“, ikona vedľa „Synchronizovať teraz“, si raz vyžiada potvrdenie. Potom ukončí prepojenie a všetky dokumenty ponechá na oboch stranách. Ak štítok, priečinok alebo priestor prepojíte druhýkrát, YOUYA ho považuje za nový a znova z neho importuje všetko. Po odpojení preto prepojte prázdny, nie ten starý.',
   // ── Screen: trip-collab ───────────────────────────────────────────────────────────────
   'help.ctx.trip-collab.title': 'Spolupráca',
   'help.ctx.trip-collab.summary':
@@ -4294,7 +4295,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     'Cez Priložiť obrázky môžete k jednej správe pridať až štyri obrázky. Môžete ich aj vložiť alebo pretiahnuť na pole.',
   'help.guide.trip-chat.tip.3':
-    'Pod správou s odkazom sa zobrazí karta s náhľadom, ktorú načíta váš vlastný TREK. Odkaz na niečo, k čomu máte prístup len vy, preto zostane obyčajným odkazom.',
+    'Pod správou s odkazom sa zobrazí karta s náhľadom, ktorú načíta váš vlastný YOUYA. Odkaz na niečo, k čomu máte prístup len vy, preto zostane obyčajným odkazom.',
   'help.guide.trip-chat.tip.4':
     'Chat má v „Doplnkoch“ vlastný prepínač pod „Spoluprácou“: administrátor ho môže vypnúť a poznámky, odkazy, ankety aj „Čo nás čaká“ ponechať zapnuté.',
 
@@ -4418,12 +4419,12 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.result':
     'Úsek teraz vedie po ceste, ktorú ste vybrali, a zmení sa aj vzdialenosť v bočnom stĺpci a časy príchodov po nej.',
   'help.guide.roadtrip-alternatives.tip.1':
-    'Keď vyberiete inú cestu, TREK ju najprv overí smerovačom cesty autom. Potom udrží úsek na tejto ceste s čo najmenším počtom priechodných bodov a nahradí všetky priechodné body, ktoré úsek už mal. Cesta, po ktorej smerovač ísť nevie, sa neuloží. Výber cesty samotného smerovača priechodné body opäť odstráni.',
+    'Keď vyberiete inú cestu, YOUYA ju najprv overí smerovačom cesty autom. Potom udrží úsek na tejto ceste s čo najmenším počtom priechodných bodov a nahradí všetky priechodné body, ktoré úsek už mal. Cesta, po ktorej smerovač ísť nevie, sa neuloží. Výber cesty samotného smerovača priechodné body opäť odstráni.',
   'help.guide.roadtrip-alternatives.tip.2':
     '„Bez diaľnice“, „Bez mýta“ a „Bez trajektu“ počíta druhý nástroj s vlastným modelom rýchlosti, preto ich časy nemožno porovnávať s ostatnými.',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': 'Nastavenie auta a limitov jazdy',
-  'help.guide.roadtrip-limits.goal': 'Povedzte TREK, akým vozidlom jazdíte a ako ďaleko chcete jazdiť bez prestávky.',
+  'help.guide.roadtrip-limits.goal': 'Povedzte YOUYA, akým vozidlom jazdíte a ako ďaleko chcete jazdiť bez prestávky.',
   'help.guide.roadtrip-limits.step.1':
     '„Nastavenie jazdy“ je pod vyhľadávaním v pravom stĺpci. Jeho štítky ukazujú, čo je nastavené. Kliknutím ho otvoríte.',
   'help.guide.roadtrip-limits.step.2':
@@ -4493,7 +4494,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     'Vyberte stopu. Pri každej je uvedená jej dĺžka a to, či vedie pozdĺž trasy tohto dňa, alebo ako ďaleko od nej je. Najbližšia stopa je prvá.',
   'help.guide.roadtrip-track.step.3':
-    'Kliknite na „Sledovať túto stopu“. TREK pridá prejazdné body tam, kde sa jazda od stopy najviac vzďaľuje, znova vypočíta trasu a niekoľkokrát to zopakuje.',
+    'Kliknite na „Sledovať túto stopu“. YOUYA pridá prejazdné body tam, kde sa jazda od stopy najviac vzďaľuje, znova vypočíta trasu a niekoľkokrát to zopakuje.',
   'help.guide.roadtrip-track.step.4':
     'Dialóg uvedie, koľko priechodných bodov bolo umiestnených a ako tesne sa jazda teraz drží stopy, prípadne že jazda stopu už sledovala. „Zahodiť priechodné body“ vľavo dole ich odstráni a trasa dňa sa naplánuje znova. Zatvorením dialógu stopu ponecháte.',
   'help.guide.roadtrip-track.result':
@@ -4543,30 +4544,30 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     'Vaše vlastné nastavenia pluginov, ktoré nainštaloval správca: kľúče a predvoľby, ktoré od vás jednotlivé pluginy žiadajú, a záznam o tom, čo pluginy urobili vo vašom mene. Karta sa zobrazuje, iba kým je aktívny nejaký plugin.',
   'help.ctx.settings-about.bullet.3':
-    'Cez Ko-fi, Buy Me a Coffee a Discord môžete TREK podporiť alebo sa porozprávať s ľuďmi, ktorí ho tvoria.',
+    'Cez Ko-fi, Buy Me a Coffee a Discord môžete YOUYA podporiť alebo sa porozprávať s ľuďmi, ktorí ho tvoria.',
   'help.guide.language-region.step.3':
     'Nastavte „Zobrazovaná mena“, alebo ponechajte „Mena cesty“, aby sa každá cesta zobrazovala vo svojej vlastnej mene. Potom vyberte „Jednotky teploty“, „Jednotky vzdialenosti“, „Formát času“, deň, ktorým „Týždeň začína“, a „Formát dátumu“.',
   'help.guide.travel-map-prefs.step.3':
     '„Objavovať miesta na mape“ zobrazí panel kategórií na hľadanie miest v okolí. „Skryť rezervačné kódy“ skryje potvrdzovacie čísla, kým na ne nenabehnete myšou alebo neťuknete. „Optimalizovať trasu od ubytovania“ začne aj ukončí deň vo vašom hoteli.',
   'help.guide.web-push-device.step.2':
     'V karte „Oznámenia“ hore určuje stĺpec Push, ktoré udalosti sa posielajú na vaše zariadenia.',
-  'help.guide.connect-airtrail.goal': 'Nechajte TREK importovať a synchronizovať lety z vášho vlastného AirTrail.',
-  'help.guide.connect-dawarich.goal': 'Nechajte TREK zistiť z vášho vlastného Dawarich, kde ste naozaj boli.',
+  'help.guide.connect-airtrail.goal': 'Nechajte YOUYA importovať a synchronizovať lety z vášho vlastného AirTrail.',
+  'help.guide.connect-dawarich.goal': 'Nechajte YOUYA zistiť z vášho vlastného Dawarich, kde ste naozaj boli.',
   'help.guide.tour-connect-wanderer.goal':
-    'Nechajte TREK načítať trasy z vášho vlastného wanderer, aby ste ich mohli importovať ako túry.',
+    'Nechajte YOUYA načítať trasy z vášho vlastného wanderer, aby ste ich mohli importovať ako túry.',
   'help.guide.tour-wanderer-watch.title': 'Upozornenie na zmeny vašich trás vo wanderer',
   'help.guide.plugin-settings.tip.2':
     'Kanál pluginu v časti „Oznámenia“ má tlačidlo „Nastaviť“, ktoré otvorí túto stránku.',
   'help.guide.default-user-settings.result':
     'Vaše voľby uvidia nové účty a všetci, ktorí tieto nastavenia nikdy nezmenili.',
   'help.guide.own-routing-engine.goal':
-    'Plánujte trasy dní, road tripov a túr cez vlastný server OSRM alebo Valhalla namiesto služieb TREK alebo verejných.',
+    'Plánujte trasy dní, road tripov a túr cez vlastný server OSRM alebo Valhalla namiesto služieb YOUYA alebo verejných.',
   'help.guide.admin-passkeys.tip.1':
-    'Ak TREK zatiaľ nevie určiť doménu, upozornenie pod prepínačom to povie a prístupové kľúče zostanú skryté, kým nenastavíte APP_URL alebo Relying Party ID.',
+    'Ak YOUYA zatiaľ nevie určiť doménu, upozornenie pod prepínačom to povie a prístupové kľúče zostanú skryté, kým nenastavíte APP_URL alebo Relying Party ID.',
   'help.guide.rotate-jwt-secret.step.1':
     'Na karte Zabezpečenie kliknite dole vpravo pod Nebezpečná zóna na Obnoviť pri položke Obnoviť tajný kľúč JWT.',
   'help.guide.storage-backends.tip.3':
-    'Cache fotiek si TREK vie stiahnuť znova, takže ich zrkadlenie zvyčajne len zaberá miesto.',
+    'Cache fotiek si YOUYA vie stiahnuť znova, takže ich zrkadlenie zvyčajne len zaberá miesto.',
   'help.guide.admin-channels.step.3':
     'Pod nimi v tej istej karte vyberte pri každej udalosti, cez ktoré kanály sa pošle: Nová verzia k dispozícii, Zlyhanie repliky úložiska a Vyžiadaný vodácky región. Každý prepínač sa uloží hneď.',
   'help.guide.notification-defaults.tip.1':
@@ -4624,13 +4625,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     'Otvorené údaje poznajú len polohu lietadla. Brána, terminál a pás na batožinu v nich nie sú, preto ich v prípade potreby doplňte do rezervácie sami. Meškania a čas príletu sú odhady vypočítané z polôh.',
   'help.guide.flight-live-status.tip.3':
-    'Na sledovanie letu TREK potrebuje číslo letu a obe letiská. Let, ktorého letecká spoločnosť lieta pod iným volacím znakom, alebo codeshare, sa nemusí nájsť. Rezervácia si potom ponechá obyčajné časy.',
+    'Na sledovanie letu YOUYA potrebuje číslo letu a obe letiská. Let, ktorého letecká spoločnosť lieta pod iným volacím znakom, alebo codeshare, sa nemusí nájsť. Rezervácia si potom ponechá obyčajné časy.',
   'help.guide.group-sort-bookings.step.2':
     'V časti „Zoskupiť podľa“ vyberte „Stav“, „Deň“, „Typ“ alebo „Bez zoskupenia“. Karta sa do týchto sekcií hneď roztriedi.',
   'help.guide.export-bookings-csv.result':
     'Prehliadač stiahne súbor pomenovaný podľa cesty a karty, napríklad autumn-in-japan-bookings.csv, s jedným riadkom za každú rezerváciu, ktorú karta zobrazovala.',
   'help.guide.arrange-packing-list.result':
-    'Zoznamy sú v poradí, do akého ste ich potiahli, a položky sú zoradené od A po Z, kým to nevypnete. TREK si vaše vlastné poradie stále pamätá.',
+    'Zoznamy sú v poradí, do akého ste ich potiahli, a položky sú zoradené od A po Z, kým to nevypnete. YOUYA si vaše vlastné poradie stále pamätá.',
   'help.guide.count-packed-pieces.step.2':
     'Do Počet napíšte, koľko kusov beriete, napríklad 5, alebo klikajte na plus, kým sa nezobrazí číslo.',
   'help.guide.expense-receipts.step.4':
@@ -4638,7 +4639,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     'Kto z cesty odišiel, má v „Zostatky“ a „Konečný rozpočet“ riadok dovtedy, kým mu niekto dlží peniaze alebo on dlží niekomu.',
   'help.guide.files-sync-settings.step.2':
-    'Lišta toku ukazuje TREK a vaše úložisko s dokumentmi, ktoré každé z nich obsahuje, a medzi nimi dva smery: „Do úložiska“ a „Z úložiska“. Kliknutím na „Do úložiska“ ho vypnete. Smer zosivie a v riadku pod ním je „Only coming in“. Ďalším kliknutím ho znova zapnete.',
+    'Lišta toku ukazuje YOUYA a vaše úložisko s dokumentmi, ktoré každé z nich obsahuje, a medzi nimi dva smery: „Do úložiska“ a „Z úložiska“. Kliknutím na „Do úložiska“ ho vypnete. Smer zosivie a v riadku pod ním je „Only coming in“. Ďalším kliknutím ho znova zapnete.',
   'help.guide.files-sync-settings.tip.4':
     'Nič z toho nemôže zmeniť nikto okrem vlastníka cesty alebo správcu. Ostatní členovia vidia lištu toku s riadkom ako „Documents move both ways“, ale bez „Nastavenia“.',
   'help.guide.manage-notes.step.2':
@@ -4649,7 +4650,7 @@ const help: TranslationStrings = {
     'Kôš odstráni iba kategóriu, ktorú nepoužíva žiadna poznámka. Kategória, ktorú poznámky ešte používajú, zostane v zozname, kým tieto poznámky nepresuniete do inej kategórie.',
   'help.guide.roadtrip-reorder.title': 'Zmena poradia zastávky alebo presun na iný deň',
   'help.guide.roadtrip-reorder.tip.3':
-    'Pri čase, ktorý ste pripli, sa TREK nepýta: lišta deň hneď prepočíta a označí každú zastávku, na ktorú sa už nedá dostať včas.',
+    'Pri čase, ktorý ste pripli, sa YOUYA nepýta: lišta deň hneď prepočíta a označí každú zastávku, na ktorú sa už nedá dostať včas.',
   'help.guide.roadtrip-overnight.step.3':
     'Hore v dialógu pridá „Nocľah“ prenocovanie a „Prestávka“ z miesta urobí zastávku na chvíľu. Hotel sa otvorí s voľbou „Nocľah“, kemp s voľbou „Prestávka“. Pri noci sa vyžaduje iba Check-in a aj ten môžete nechať prázdny.',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4663,7 +4664,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     'Hore „Importovať GPX alebo KML“ pridá súbory ako túry. Tlačidlo filtra pod ním (na začiatku „Všetky“ s počtom túr) zužuje zoznam podľa stavu, zdroja, limitu trasovania a typu.',
   'help.guide.tour-show-list.step.2':
-    'Každý riadok je jedna túra. Farebný pruh je jej čiara na mape a okrúhla dlaždica ukazuje limit trasovania (T1 až T6) pri túre naplánovanej v TREK alebo ikonu jej typu. Odznaky pod názvom ukazujú dni, na ktorých je, jej čas, vzdialenosť a stúpanie. Pri viacdňovej túre ukazuje mesiac s číslom, koľko má etáp.',
+    'Každý riadok je jedna túra. Farebný pruh je jej čiara na mape a okrúhla dlaždica ukazuje limit trasovania (T1 až T6) pri túre naplánovanej v YOUYA alebo ikonu jej typu. Odznaky pod názvom ukazujú dni, na ktorých je, jej čas, vzdialenosť a stúpanie. Pri viacdňovej túre ukazuje mesiac s číslom, koľko má etáp.',
   'help.guide.tour-add-to-day.title': 'Zaradenie túry na deň',
   'help.guide.tour-add-to-day.tip.2':
     'Ak cesta skončí skôr ako posledná etapa, voľba ukáže poslednú etapu, ktorá sa ešte zmestí, a etapy po nej zostanú bez dňa.',
@@ -4694,7 +4695,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.4':
     '„Zmeniť“ pod stopou vyberie iný záznam. „Odpojiť“ ju z túry odoberie a stopa zostane v ceste ako import.',
   'help.guide.tour-origin-check.step.3':
-    'Pri túre, ktorú ste nakreslili na karte „Túry“, je „Naplánované v TREK“ s dňom, keď bola vytvorená („Vytvorené“).',
+    'Pri túre, ktorú ste nakreslili na karte „Túry“, je „Naplánované v YOUYA“ s dňom, keď bola vytvorená („Vytvorené“).',
   'help.ctx.trip-tour-planner.bullet.2':
     'Ľavý panel je editor. Keď nie je nič otvorené, ponúka „Naplánovať novú túru“. Pri otvorenej túre ukazuje jej názov, typ, trasové body, karty pre jej typ a podrobnosti, dole s tlačidlami „Zahodiť“ a „Uložiť“.',
   'help.guide.tour-open-workspace.step.2':
@@ -4702,7 +4703,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.tip.3':
     'Ak otvoríte inú túru, kým má editor neuložené zmeny, najprv sa opýta: „Zahodiť zmeny“, alebo pokračovať v úpravách.',
   'help.guide.tour-draw-route.step.5':
-    'Klikajte na ďalšie miesta v poradí, v akom ich prejdete. Každé kliknutie pridá bod ako nový koniec a od dvoch bodov TREK naplánuje trasu po chodníkoch.',
+    'Klikajte na ďalšie miesta v poradí, v akom ich prejdete. Každé kliknutie pridá bod ako nový koniec a od dvoch bodov YOUYA naplánuje trasu po chodníkoch.',
   'help.guide.tour-type-profile.goal':
     'Vyberte typ túry a pri cyklotúre aj jej profil, aby trasa viedla po správnych cestách.',
   'help.guide.tour-edit-points.title': 'Presun, zmena poradia a odstránenie bodov',
@@ -4823,11 +4824,11 @@ const help: TranslationStrings = {
     'Pozrite si zjazdovky, bežecké trate a vleky okolo svojej lyžiarskej túry a čo znamenajú ich farby.',
   'help.guide.tour-ski-import.title': 'Import lyžiarskej stopy a určenie, čo to bolo',
   'help.guide.tour-ski-import.tip.1':
-    'Importovaná stopa zostane tak, ako bola zaznamenaná: TREK ju neprispôsobuje zjazdovkám a jej karta ukazuje „Čas na lyžiach“ ako „Nepočíta sa“.',
+    'Importovaná stopa zostane tak, ako bola zaznamenaná: YOUYA ju neprispôsobuje zjazdovkám a jej karta ukazuje „Čas na lyžiach“ ako „Nepočíta sa“.',
   'help.ctx.trip-tour-paddle.bullet.3':
     '„Ďalšie akcie“ pri bode obsahujú vodácke nástroje: naplánovať ďalší úsek po vode alebo ho nakresliť ručne, „Odtiaľto loď preniesť“ a „Plavebná komora v tomto bode“.',
   'help.guide.tour-paddle-setup.step.3':
-    'V časti „Loď“ vyberte „Kajak“, „Kanoe“, SUP alebo „Ostatné“. Podľa lode TREK navrhne rýchlosť.',
+    'V časti „Loď“ vyberte „Kajak“, „Kanoe“, SUP alebo „Ostatné“. Podľa lode YOUYA navrhne rýchlosť.',
   'help.guide.tour-paddle-setup.tip.4':
     '„Pádlovanie má riziká“, riadok dole v stĺpci, otvára „Bezpečnosť na vode“. Pred prvou túrou si to raz prečítajte.',
   'help.guide.tour-paddle-water-route.step.5':
@@ -4851,7 +4852,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.tip.2':
     '„Zahodiť“ odstráni značky, ktoré ste neuložili. Samotná zaznamenaná stopa sa nikdy neprekresľuje.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK čas jazdy na koni nepočíta. Ak ho chcete mať v dni, zadajte čas pod „Plánované“ v „Podrobnostiach“.',
+    'YOUYA čas jazdy na koni nepočíta. Ak ho chcete mať v dni, zadajte čas pod „Plánované“ v „Podrobnostiach“.',
   'help.guide.tour-horse-plan.step.5':
     'V časti „Sekcie“ vyberte úsek. Skontrolujte „Smer“, ktorým ním pôjdete, a čo pozdĺž neho uvádza „Prístup pre kone“.',
   'help.guide.tour-horse-plan.tip.5':
@@ -4893,7 +4894,7 @@ const help: TranslationStrings = {
   'help.guide.journey-map-layers.tip.1':
     'Prerušovaná farebná čiara je trasa GPX z cesty, teda súčasť plánu. Plná čiara je trasa zaznamenaná v daný deň.',
   'help.guide.journey-keep-route.tip.1':
-    'Kde sa záznam končí, končí aj čiara. TREK kreslí iba to, čo bolo zaznamenané.',
+    'Kde sa záznam končí, končí aj čiara. YOUYA kreslí iba to, čo bolo zaznamenané.',
   'help.guide.journey-day-stays.tip.1':
     'Riadok sa zobrazí iba ľuďom, ktorí smú denník upravovať a majú pripojený vlastný Dawarich, a to len v dňoch, kde sa ešte niečo musí rozhodnúť.',
   'help.guide.journey-take-over-day.step.4':
@@ -4906,20 +4907,20 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3':
     'Obnoviť predvolené pod kartami vráti celú kartu Vzhľad do pôvodného nastavenia.',
   'help.guide.web-push-device.result':
-    'Karta ukazuje Zapnuté pre toto zariadenie a udalosti zapnuté pod Push vám prídu, aj keď je TREK zatvorený.',
+    'Karta ukazuje Zapnuté pre toto zariadenie a udalosti zapnuté pod Push vám prídu, aj keď je YOUYA zatvorený.',
   'help.guide.connect-airtrail.step.1':
     'V časti Integrácie nájdite AirTrail a zadajte jeho URL inštancie a API kľúč. Kľúč vytvoríte v AirTrail v časti Nastavenia, Zabezpečenie. Ak kľúč vytvoríte v AirTrail 3.13 alebo novšom, potrebuje oprávnenie flight.read.own na čítanie. Na zápis zmien späť potrebuje aj flight.update.own, flight.passengers.manage.own, reference_data.read a profile.read.',
   'help.guide.connect-dawarich.step.1':
     'V časti Integrácie nájdite Dawarich a zadajte jeho Adresu inštancie a API kľúč z Dawarich z časti Účet, API kľúč.',
   'help.guide.tour-connect-wanderer.step.1':
     'V časti Integrácie nájdite wanderer a zadajte jeho URL inštancie a API token. Token vytvoríte vo wanderer v časti Nastavenia, Účet, API tokeny. Začína sa wanderer_key_.',
-  'help.guide.tour-wanderer-watch.goal': 'Nechajte TREK na pozadí sledovať zmeny v importovaných trasách.',
+  'help.guide.tour-wanderer-watch.goal': 'Nechajte YOUYA na pozadí sledovať zmeny v importovaných trasách.',
   'help.guide.mcp-oauth.tip.3': 'API tokeny stále fungujú, ale sú označené ako Zastarané. Prejdite na klienta OAuth.',
   'help.guide.offline-conflicts.tip.2': 'Voľba platí iba pre toto zariadenie.',
   'help.guide.default-user-settings.tip.1':
     'Vlastná voľba používateľa v Nastavenia má vždy prednosť. Tieto hodnoty platia pre všetkých, ktorí dané nastavenie nezmenili.',
   'help.guide.own-routing-engine.step.1':
-    'Na karte Predvolené rozhoduje karta Trasy o tom, kto trasy počíta. Pod Smerovacia služba vyberte Automaticky, Služby TREK, Verejná Valhalla (FOSSGIS) alebo Vlastná inštancia Valhalla. Voľba sa uloží hneď.',
+    'Na karte Predvolené rozhoduje karta Trasy o tom, kto trasy počíta. Pod Smerovacia služba vyberte Automaticky, Služby YOUYA, Verejná Valhalla (FOSSGIS) alebo Vlastná inštancia Valhalla. Voľba sa uloží hneď.',
   'help.guide.admin-passkeys.tip.2':
     'Ak neskôr zmeníte doménu, všetky prístupové kľúče, ktoré ľudia už pridali, prestanú fungovať.',
   'help.guide.instance-keys.tip.4': 'Kľúč Amap musí byť kľúč Web 服务 (webová služba), nie kľúč JS API.',
@@ -4937,7 +4938,7 @@ const help: TranslationStrings = {
     'Pri každom účastníkovi cesty vyberte Bez prístupu, Čítať alebo Upraviť. Všetci čítajú a Nikto nastavia všetkých naraz.',
   'help.guide.collapse-columns.tip.3': 'Ak je oddeľovač vybraný, môžete ho posúvať aj šípkami na klávesnici.',
   'help.guide.edit-place.tip.3':
-    'Ak kliknete mimo dialógu, zmeny sa nestratia: TREK sa najprv opýta „Zahodiť zmeny?“ a Pokračovať v úpravách vás vráti do formulára.',
+    'Ak kliknete mimo dialógu, zmeny sa nestratia: YOUYA sa najprv opýta „Zahodiť zmeny?“ a Pokračovať v úpravách vás vráti do formulára.',
   'help.guide.dawarich-stays.goal':
     'Pridajte miesta, kde Dawarich počas cesty zaznamenal vaše pobyty, po tom, čo každé skontrolujete.',
   'help.guide.leave-stop-off-route.step.1':
@@ -4984,7 +4985,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     'V lište je jazda karta vo farbe svojho typu, s cestovným poriadkom v stĺpci príchodu a s východiskom a cieľom pod názvom.',
   'help.guide.roadtrip-google-import.tip.1':
-    'TREK vypočíta medzi zastávkami vlastnú trasu, cestu z Google neskopíruje.',
+    'YOUYA vypočíta medzi zastávkami vlastnú trasu, cestu z Google neskopíruje.',
   'help.guide.roadtrip-hazards.result': 'Mapa ukazuje aktuálne upozornenia okolo vašej cesty a trasa sa nezmení.',
   'help.ctx.trip-tours.bullet.3':
     'Riadok: farebný pruh je čiara túry na mape, okrúhla dlaždica ukazuje obmedzenie trasovania (T1 až T6) alebo typ, malý odznak GPX alebo wanderer označuje import a odznaky uvádzajú dni, čas, vzdialenosť a stúpanie. Mesiac s číslom ukazuje počet etáp viacdňovej túry.',
@@ -4992,7 +4993,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.goal':
     'Naplánujte, kedy túru absolvujete, aby sa zobrazila v danom dni a jej čiara na mape.',
   'help.guide.tour-add-to-day.tip.3':
-    'Túru môžete pridať k dňu iba raz. Ak ju pustíte na deň, ktorý ju už obsahuje, TREK iba oznámi „Táto túra už je k tomuto dňu priradená.“',
+    'Túru môžete pridať k dňu iba raz. Ak ju pustíte na deň, ktorý ju už obsahuje, YOUYA iba oznámi „Táto túra už je k tomuto dňu priradená.“',
   'help.guide.tour-day-times.step.4':
     'Ak túra skončí po začiatku ďalšej položky dňa, upozorní vás na to poznámka pod riadkom, napríklad „Ends at 13:30, after Lunch at Gostner Schwaige starts at 12:30“. Nič sa nepresúva.',
   'help.guide.tour-remove-from-day.step.1':
@@ -5044,7 +5045,7 @@ const help: TranslationStrings = {
     'Pravý panel, Túry tejto cesty, vypisuje všetky túry cesty, nad zoznamom je filter a Rozsah cesty.',
   'help.guide.tour-open-workspace.result': 'Karta Túry: vľavo editor, vpravo túry cesty, medzi nimi mapa.',
   'help.guide.tour-draw-route.step.6':
-    'Pod Trasové body dostane každý bod riadok so svojím číslom, ktorý sa po načítaní názvu pomenuje podľa miesta. Kým TREK pracuje, malá bodka vedľa Nová túra ukazuje jeho stav.',
+    'Pod Trasové body dostane každý bod riadok so svojím číslom, ktorý sa po načítaní názvu pomenuje podľa miesta. Kým YOUYA pracuje, malá bodka vedľa Nová túra ukazuje jeho stav.',
   'help.guide.tour-type-profile.step.1':
     'Kliknite na Typ túry pod Názov túry. Ukazuje aktuálny typ a riadok o tom, ako sa plánuje.',
   'help.guide.tour-edit-points.goal': 'Zmeňte, kadiaľ túra vedie, presúvaním jej bodov na mape alebo v zozname.',
@@ -5066,7 +5067,7 @@ const help: TranslationStrings = {
     'Prehľad túry navrchu v Túry tejto cesty ukazuje Vzdialenosť, Stúpanie a Klesanie túry v editore, jej odhadovaný čas, prestávky a plánovaný súčet.',
   'help.guide.tour-list-manage.title': 'Správa túr v ceste',
   'help.guide.tour-list-manage.tip.2':
-    'Deň, ktorý túru už obsahuje, je v ponuke dňa sivý. Pri viacdňovej túre sa TREK opýta, či etapy začínajú v tomto dni, alebo či celá túra patrí do tohto dňa.',
+    'Deň, ktorý túru už obsahuje, je v ponuke dňa sivý. Pri viacdňovej túre sa YOUYA opýta, či etapy začínajú v tomto dni, alebo či celá túra patrí do tohto dňa.',
   'help.guide.tour-delete.tip.2': 'Ak ju chcete iba odobrať z dňa, použite namiesto toho Odobrať z dňa v ponuke dňa.',
   'help.guide.tour-saved-elsewhere.step.4':
     'Vyberte Uložiť ako novú túru, ak chcete zachovať obe verzie, Načítať novšiu, ak chcete načítať druhú verziu, alebo Prepísať, ak chcete druhú verziu nahradiť svojou.',
@@ -5090,7 +5091,7 @@ const help: TranslationStrings = {
     'Pozdĺž túry, karta v ľavom paneli, hľadá blízko trasy vyhliadky, vodu, chaty, jedlo a ďalšie a vypíše nálezy. Miesto zo zoznamu môžete pridať k túre ako zastávku.',
   'help.guide.tour-map-layers.tip.1':
     'Vybraná mapa zostane pre každú túru, ktorú otvoríte, kým stránku znova nenačítate. Túra, ktorej typ ju neponúka, sa otvorí na Mapa. Mapa na karte Plán a nastavenie v Nastavenia sa nemenia.',
-  'help.guide.tour-along-search.step.4': 'Kliknite na Hľadať pozdĺž túry. TREK iba hľadá, túra sa nezmení.',
+  'help.guide.tour-along-search.step.4': 'Kliknite na Hľadať pozdĺž túry. YOUYA iba hľadá, túra sa nezmení.',
   'help.guide.tour-along-add-stop.step.1':
     'Kliknite na miesto v zozname Pozdĺž túry alebo na jeho špendlík na mape. Jeho karta sa otvorí nad mapou: čo to je, ako ďaleko je od trasy a ako ďaleko po túre leží.',
   'help.guide.tour-3d-terrain.title': 'Zobrazenie túry v 3D',
@@ -5116,7 +5117,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     'Okruhy sa držia v rámci Maximálna náročnosť chodníka danej pešej túry. Štítok T na karte ukazuje, aká to je.',
   'help.guide.tour-hike-compare-ways.step.4':
-    'Kliknite na Použiť túto cestu. TREK cez smerovač overí, že trasa ňou naozaj vedie.',
+    'Kliknite na Použiť túto cestu. YOUYA cez smerovač overí, že trasa ňou naozaj vedie.',
   'help.guide.tour-ferrata-add.step.2':
     'Kliknite na feratu na mape, na jej prerušovanú čiaru alebo značku. Jej karta ukazuje názov, stupeň a dĺžku.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -5173,7 +5174,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Nová vodácka túra s loďou, vodou a rýchlosťou, pripravená na prvý bod na mape.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Tam, kde chýbajú údaje o vode, ich TREK buď automaticky stiahne pre región, alebo o ne požiada správcu, podľa nastavenia inštancie. Správca pridáva regióny v Údaje o vodách pre vodákov, riadku pod Túry na karte Doplnky v administrácii. Úsek vtedy ukazuje Načítavajú sa vodné dáta a naplánuje sa automaticky, keď údaje dorazia, zvyčajne do jednej až troch minút.',
+    'Tam, kde chýbajú údaje o vode, ich YOUYA buď automaticky stiahne pre región, alebo o ne požiada správcu, podľa nastavenia inštancie. Správca pridáva regióny v Údaje o vodách pre vodákov, riadku pod Túry na karte Doplnky v administrácii. Úsek vtedy ukazuje Načítavajú sa vodné dáta a naplánuje sa automaticky, keď údaje dorazia, zvyčajne do jednej až troch minút.',
   'help.guide.tour-paddle-portage.step.2':
     'Vyberte Odtiaľto loď preniesť. Úsek k ďalšiemu bodu sa zmení na prenášku, nakreslenú po súši.',
   'help.guide.tour-paddle-lock.title': 'Pridanie plavebnej komory a času čakania',
@@ -5243,9 +5244,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     'Push funguje pre každý prehliadač zvlášť: zopakujte postup na každom telefóne a počítači, na ktorom chcete dostávať oznámenia. Vypnúť pre toto zariadenie ho zastaví iba na tom zariadení.',
   'help.guide.connect-airtrail.step.2':
-    'Povoliť certifikáty podpísané sebou samým používajte iba pre dôveryhodnú inštanciu vo vlastnej sieti. Zapisovať zmeny späť do AirTrail je predvolene vypnuté, takže TREK iba číta. Zapnite to, ak chcete svoje úpravy posielať späť.',
+    'Povoliť certifikáty podpísané sebou samým používajte iba pre dôveryhodnú inštanciu vo vlastnej sieti. Zapisovať zmeny späť do AirTrail je predvolene vypnuté, takže YOUYA iba číta. Zapnite to, ak chcete svoje úpravy posielať späť.',
   'help.guide.connect-dawarich.step.2':
-    'Automaticky hľadať nové pobyty nechá TREK kontrolovať samo. Keď je vypnuté, TREK číta Dawarich, iba keď o to požiadate. Povoliť vlastnoručne podpísaný certifikát používajte iba pre inštanciu, ktorej váš server nedôveruje.',
+    'Automaticky hľadať nové pobyty nechá YOUYA kontrolovať samo. Keď je vypnuté, YOUYA číta Dawarich, iba keď o to požiadate. Povoliť vlastnoručne podpísaný certifikát používajte iba pre inštanciu, ktorej váš server nedôveruje.',
   'help.guide.tour-connect-wanderer.step.2':
     'Povoliť certifikát podpísaný sám sebou zapnite iba pre inštanciu vo vlastnej sieti.',
   'help.guide.tour-wanderer-watch.step.1':
@@ -5255,7 +5256,7 @@ const help: TranslationStrings = {
     'Zobrazovaná mena iba prepočítava sumy na zobrazenie. Sumy zadané v Náklady sa nemenia.',
   'help.guide.own-routing-engine.step.2': 'Pod Vlastný smerovací server zadajte adresu svojho servera OSRM.',
   'help.guide.own-routing-engine.step.3':
-    'Pod Vlastná inštancia Valhalla zadajte adresu svojej Valhalla a ako Smerovacia služba vyberte Vlastná inštancia Valhalla. Každé pole sa uloží, keď ho opustíte. Potom reštartujte server TREK a znova načítajte stránku.',
+    'Pod Vlastná inštancia Valhalla zadajte adresu svojej Valhalla a ako Smerovacia služba vyberte Vlastná inštancia Valhalla. Každé pole sa uloží, keď ho opustíte. Potom reštartujte server YOUYA a znova načítajte stránku.',
   'help.guide.admin-passkeys.tip.3':
     'Ak používateľ stratil zariadenie so svojimi prístupovými kľúčmi, odstránite ich cez Resetovať prístupové kľúče v Upraviť používateľa.',
   'help.guide.rotate-jwt-secret.result':
@@ -5270,7 +5271,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     'Prečítajte si žltú poznámku: uvádza, kto dostane denník ako prvý. Potom kliknite na Prepojiť denník.',
   'help.guide.dawarich-stays.step.1':
-    'Ak máte v Nastavenia, Integrácie pripojený Dawarich, nad zoznamom miest sa zobrazí Z Dawarichu. Jeho záhlavie uvádza, kedy TREK naposledy kontroloval a koľko pobytov čaká. Kliknutím otvoríte zoznam.',
+    'Ak máte v Nastavenia, Integrácie pripojený Dawarich, nad zoznamom miest sa zobrazí Z Dawarichu. Jeho záhlavie uvádza, kedy YOUYA naposledy kontroloval a koľko pobytov čaká. Kliknutím otvoríte zoznam.',
   'help.guide.leave-stop-off-route.step.2':
     'Vedľa názvu sa zobrazí odznak Mimo trasy. Zastávka zostane v dni aj na mape, ale trasa dňa a časy jej úsekov ju preskočia.',
   'help.guide.move-booking-day.result': 'Rezervácia patrí v pláne do nového dňa a jej čas sa nezmenil.',
@@ -5279,7 +5280,7 @@ const help: TranslationStrings = {
     'Otvorte miesto, ktoré má medzi Súbory fotku. Blok Súbory pri spodku karty ukazuje, koľko súborov miesto má.',
   'help.guide.place-own-hours.title': 'Oprava otváracích hodín, telefónu alebo e-mailu miesta',
   'help.guide.place-own-hours.tip.1':
-    'Hodiny, ktoré zadáte, nahradia tie, ktoré TREK vyhľadal, takže kaviareň so sezónnymi časmi ukazuje to, čo viete vy.',
+    'Hodiny, ktoré zadáte, nahradia tie, ktoré YOUYA vyhľadal, takže kaviareň so sezónnymi časmi ukazuje to, čo viete vy.',
   'help.guide.day-panel.tip.3':
     'Plánujete podľa kalendára? Zapnite Dátum na začiatku nadpisov dní v Nastavenia, pod Všeobecné, a záhlavie bude začínať dátumom, pod ním bude Deň 1 alebo názov dňa.',
   'help.guide.confirm-stay-booking.result': 'Rezervácia hotela je potvrdená, na karte pobytu aj na karte Rezervácie.',
@@ -5298,15 +5299,15 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2':
     'Stĺpce sú oddelené bodkočiarkami a Excel súbor otvorí so správne zobrazenou diakritikou.',
   'help.guide.arrange-packing-list.tip.2':
-    'TREK si A až Z pamätá v tomto prehliadači, takže sa zoznam otvorí zoradený aj nabudúce. Mení iba to, čo vidíte vy, nikdy nie poradie, ktoré vidia ostatní.',
+    'YOUYA si A až Z pamätá v tomto prehliadači, takže sa zoznam otvorí zoradený aj nabudúce. Mení iba to, čo vidíte vy, nikdy nie poradie, ktoré vidia ostatní.',
   'help.guide.count-packed-pieces.step.4':
     'Zatvorte okno. Kým je zabalená len časť kusov, riadok ukazuje počet, napríklad 3/5, a políčko má obrys vo farbe vášho akcentu. Keď počet dosiahne množstvo, položka sa odškrtne sama.',
   'help.guide.expense-receipts.result':
     'Účtenka sa uloží s výdavkom: štítok na jeho riadku ju otvorí a súbor je aj v Súbory cesty.',
   'help.guide.files-sync-settings.step.4':
-    'Pod Keď sa dokument odstráni vyberte, čo sa stane s kópiou na druhej strane. Zachovať obe kópie nechá kópiu v úložisku, kde je. Presunúť do koša ju presunie do koša úložiska, keď sa dokument v TREK vymaže.',
+    'Pod Keď sa dokument odstráni vyberte, čo sa stane s kópiou na druhej strane. Zachovať obe kópie nechá kópiu v úložisku, kde je. Presunúť do koša ju presunie do koša úložiska, keď sa dokument v YOUYA vymaže.',
   'help.ctx.trip-collab.bullet.7':
-    'Všetko tu vyžaduje pripojenie. Offline sa správa, poznámka, odkaz, anketa ani hlas neuloží a TREK ohlási „This needs a connection. Try again once TREK is back online.“ Členovia, ktorí nesmú upravovať Spolupráca, môžu všetko čítať, ale Nová poznámka, Pridať odkaz a Nová anketa pre nich nie sú a pole na správu je sivé.',
+    'Všetko tu vyžaduje pripojenie. Offline sa správa, poznámka, odkaz, anketa ani hlas neuloží a YOUYA ohlási „This needs a connection. Try again once YOUYA is back online.“ Členovia, ktorí nesmú upravovať Spolupráca, môžu všetko čítať, ale Nová poznámka, Pridať odkaz a Nová anketa pre nich nie sú a pole na správu je sivé.',
   'help.guide.manage-notes.step.4':
     'Upraviť otvorí dialóg poznámky s vyplnenými údajmi. Zmeňte, čo potrebujete, tu ešte jeden riadok pod Obsah, a kliknite na Uložiť.',
   'help.guide.note-categories.step.2':
@@ -5323,7 +5324,7 @@ const help: TranslationStrings = {
     'Štítok Check-in alebo Nástup ukazuje, dokedy vás jazda musí dostať na terminál: odchod sa nastaví o toľko skôr, než uvádza cestovný poriadok.',
   'help.guide.roadtrip-google-import.title': 'Import trasy z Google Maps',
   'help.guide.roadtrip-google-import.tip.2':
-    'Odkaz musí obsahovať aspoň dve zastávky, ktoré TREK vie umiestniť, a najviac 30.',
+    'Odkaz musí obsahovať aspoň dve zastávky, ktoré YOUYA vie umiestniť, a najviac 30.',
   'help.guide.roadtrip-hazards.tip.1':
     'Upozornenia nie sú uzávierky ciest: trasa sa kvôli nim nikdy nezmení a sú to aktuálne oznamy, nie predpoveď na vaše dátumy.',
   'help.ctx.trip-tours.bullet.4':
@@ -5447,7 +5448,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.3':
     'Odznaky to zhrnú: koľko trasy je Známe, Najvyšší známy stupeň na nej a oddelene Limit trasovania, s ktorým sa pešia túra plánovala.',
   'help.guide.tour-hike-round.goal':
-    'Nechajte TREK navrhnúť okruhy požadovanej dĺžky, ktoré začínajú v jednej zastávke pešej túry.',
+    'Nechajte YOUYA navrhnúť okruhy požadovanej dĺžky, ktoré začínajú v jednej zastávke pešej túry.',
   'help.guide.tour-hike-round.tip.2':
     'Prijímajú sa vzdialenosti od 1 do 60 km a ponúkajú sa okruhy, ktoré sa od vašej dĺžky líšia najviac o 20 %.',
   'help.guide.tour-hike-compare-ways.result':
@@ -5473,7 +5474,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     'Navštívené zastávky sú odškrtnuté, preskočené preškrtnuté a zostávajúci čas počíta iba to, čo je ešte pred vami.',
   'help.guide.tour-bike-profile.goal':
-    'Začnite cyklotúru a nechajte TREK vytýčiť trasu pre turistickú jazdu, cestný bicykel, gravel alebo MTB.',
+    'Začnite cyklotúru a nechajte YOUYA vytýčiť trasu pre turistickú jazdu, cestný bicykel, gravel alebo MTB.',
   'help.guide.tour-bike-profile.tip.1': 'Ak profil neskôr zmeníte, celá trasa sa naplánuje znova pre nový profil.',
   'help.guide.tour-bike-surfaces.step.2':
     'Odznak v záhlaví karty udáva podiel trasy, o ktorom je známe, že je nespevnený.',
@@ -5503,13 +5504,13 @@ const help: TranslationStrings = {
     'Na jazere určuje trasu Cez jazerá: Priamo je najkratšie, Pozdĺž brehu sa drží blízko brehu pre veterné dni.',
   'help.guide.tour-paddle-water-route.title': 'Naplánovanie úsekov na vode',
   'help.guide.tour-paddle-water-route.tip.2':
-    'Tam, kde trasa obchádza jaz s prenášaním lode alebo vedie cez plavebnú komoru, TREK nastaví vlastný bod, označený Nájdené. Ak ho presuniete alebo zmeníte, stane sa vaším vlastným bodom.',
+    'Tam, kde trasa obchádza jaz s prenášaním lode alebo vedie cez plavebnú komoru, YOUYA nastaví vlastný bod, označený Nájdené. Ak ho presuniete alebo zmeníte, stane sa vaším vlastným bodom.',
   'help.guide.tour-paddle-portage.step.3':
     'Pod bodom sa zobrazí karta Prenáška s jej dĺžkou a minútami navyše. Kliknutím ju otvoríte.',
   'help.guide.tour-paddle-lock.goal': 'Pridajte na túru plavebnú komoru a započítajte čakanie a prechod do jej času.',
   'help.guide.tour-paddle-lock.result': 'Plavebná komora je na túre so svojimi minútami a Odhad času ich pripočíta.',
   'help.guide.tour-paddle-time.tip.1':
-    'TREK začína so 4 km/h na vode, 2 km/h pri prenášaní a 10 minútami pri každej prenáške. Sú to východiskové hodnoty na úpravu, nie namerané údaje.',
+    'YOUYA začína so 4 km/h na vode, 2 km/h pri prenášaní a 10 minútami pri každej prenáške. Sú to východiskové hodnoty na úpravu, nie namerané údaje.',
   'help.guide.tour-paddle-wind.step.3':
     'Pruhy ukazujú hodiny dňa, nárazy sú za priemerným vetrom. Keď ukážete myšou na pruh, zobrazia sa čísla a smer pre danú hodinu.',
   'help.guide.tour-paddle-checklist.goal':
@@ -5580,7 +5581,7 @@ const help: TranslationStrings = {
     'Aktivita doplnkov dole vypisuje každú akciu, ktorú doplnok urobil vo vašom mene, od najnovšej, s tlačidlom Obnoviť.',
   'help.guide.language-region.tip.3':
     'Týždeň začína určuje prvý stĺpec každého výberu dátumu. Dovolenka (Vacay) má vlastné nastavenie.',
-  'help.guide.web-push-device.tip.2': 'Na iPhone a iPade najprv pridajte TREK na plochu a otvorte ho odtiaľ.',
+  'help.guide.web-push-device.tip.2': 'Na iPhone a iPade najprv pridajte YOUYA na plochu a otvorte ho odtiaľ.',
   'help.guide.connect-airtrail.step.3':
     'Kliknite na Uložiť a potom na Otestovať pripojenie. Zobrazí sa, koľko letov sa našlo, a odznak sa zmení na Pripojené.',
   'help.guide.connect-dawarich.step.3':
@@ -5588,7 +5589,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     'Kliknite na Uložiť a potom na Otestovať pripojenie. Zobrazí sa, koľko vašich trás môžete importovať, a odznak sa zmení na Pripojené.',
   'help.guide.tour-wanderer-watch.step.2':
-    'TREK najviac raz denne načíta krátky záznam každej importovanej trasy a v riadku sa zobrazí, kedy naposledy kontroloval. Ak sa trasa mohla zmeniť, dostanete oznámenie a započíta sa do Upozornenia. Kliknite na Upozornenia, uvidíte každú túru ako Možno zmenené, Zmenené alebo Nedá sa overiť a odtiaľ ju môžete otvoriť.',
+    'YOUYA najviac raz denne načíta krátky záznam každej importovanej trasy a v riadku sa zobrazí, kedy naposledy kontroloval. Ak sa trasa mohla zmeniť, dostanete oznámenie a započíta sa do Upozornenia. Kliknite na Upozornenia, uvidíte každú túru ako Možno zmenené, Zmenené alebo Nedá sa overiť a odtiaľ ju môžete otvoriť.',
   'help.guide.plugin-settings.goal': 'Zadajte doplnku vlastné kľúče a predvoľby a pozrite si, čo urobil vo vašom mene.',
   'help.guide.own-routing-engine.result': 'Trasy vo všetkých cestách sa počítajú na vašich serveroch.',
   'help.guide.admin-passkeys.title': 'Ponuka prihlásenia prístupovým kľúčom',
@@ -5607,7 +5608,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     'Na lište kariet cesty sa zobrazí karta Denník. Každý, komu ste dali Čítať alebo Upraviť, môže na tejto karte otvoriť denník s aktualizáciami naživo.',
   'help.guide.create-place.tip.4':
-    'Odkaz skopírovaný z Google Maps funguje aj vo vyhľadávaní: vložte ho, stlačte Enter a TREK z neho prečíta miesto. Keď má formulár pozíciu, Miesta v blízkosti tohto špendlíka, zameriavací kríž vedľa vyhľadávania, vypíše, čo je okolo.',
+    'Odkaz skopírovaný z Google Maps funguje aj vo vyhľadávaní: vložte ho, stlačte Enter a YOUYA z neho prečíta miesto. Keď má formulár pozíciu, Miesta v blízkosti tohto špendlíka, zameriavací kríž vedľa vyhľadávania, vypíše, čo je okolo.',
   'help.guide.dawarich-stays.step.2':
     'Pobyty sú zoskupené podľa dňa, každý s časom príchodu a odchodu. Ikona ukazovateľa označuje pobyt, pri ktorom si Dawarich nebol istý. Kliknite na Pridať ako miesto, špendlík vedľa pobytu.',
   'help.guide.leave-stop-off-route.step.3':
@@ -5633,7 +5634,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.4':
     'Kliknutím na názov jazdu premenujete bez otvorenia formulára. Premenovať sa otvorí s vyplneným názvom: napíšte nový a kliknite na Uložiť.',
   'help.guide.export-transports-csv.goal':
-    'Exportujte jazdy cesty z TREK ako súbor CSV, do tabuľky, pre cestovnú kanceláriu alebo na tlač.',
+    'Exportujte jazdy cesty z YOUYA ako súbor CSV, do tabuľky, pre cestovnú kanceláriu alebo na tlač.',
   'help.guide.group-sort-bookings.result':
     'Rezervácie sa zobrazia v sekciách a poradí, ktoré ste vybrali, a tento prehliadač si voľbu pamätá aj na ďalšiu návštevu.',
   'help.guide.booking-on-map.step.1':
@@ -5648,7 +5649,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     'V editore otvorí rovnaký náhľad aj kliknutie na názov uvedeného súboru. Esc potom zatvorí iba náhľad, nie výdavok.',
   'help.guide.files-sync-settings.step.5':
-    'Keď sa zmenili obe strany určuje, ktorá kópia sa ponechá, ak bol dokument upravený na oboch miestach: Opýtať sa, Ponechať kópiu z TREKu alebo Ponechať kópiu z úložiska. Synchronizovať automaticky nechá TREK kontrolovať zmeny na pozadí. Keď je vypnuté, karta ukazuje Pozastavené a synchronizáciu spustí iba Synchronizovať teraz. Každá zmena tu sa uloží okamžite.',
+    'Keď sa zmenili obe strany určuje, ktorá kópia sa ponechá, ak bol dokument upravený na oboch miestach: Opýtať sa, Ponechať kópiu z YOUYAu alebo Ponechať kópiu z úložiska. Synchronizovať automaticky nechá YOUYA kontrolovať zmeny na pozadí. Keď je vypnuté, karta ukazuje Pozastavené a synchronizáciu spustí iba Synchronizovať teraz. Každá zmena tu sa uloží okamžite.',
   'help.guide.manage-notes.step.5':
     'Vymazať sa najprv opýta, Vymazať poznámku?, pretože sa poznámka vymaže pre každého člena aj s jej súbormi. Potvrďte kliknutím na Vymazať.',
   'help.guide.note-categories.step.3':
@@ -5678,7 +5679,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     'Alebo kliknite na záhlavie dňa, aby sa deň otvoril, kliknite na túru v zozname a potom dole na jej karte na Odobrať z dňa.',
   'help.guide.tour-filter-list.step.3':
-    'Ak sú v zozname rôzne druhy, môžete ho ďalej zúžiť podľa Zdroj (TREK, Import GPX, wanderer), Limit trasy (T1 až T6) a Typ (Pešia túra, Cyklotúra a tak ďalej). Opätovným kliknutím na zaškrtnutú hodnotu ju zrušíte.',
+    'Ak sú v zozname rôzne druhy, môžete ho ďalej zúžiť podľa Zdroj (YOUYA, Import GPX, wanderer), Limit trasy (T1 až T6) a Typ (Pešia túra, Cyklotúra a tak ďalej). Opätovným kliknutím na zaškrtnutú hodnotu ju zrušíte.',
   'help.guide.tour-hide-on-map.step.1':
     'Ukážte na túru v zozname a kliknite na oko, ktoré sa zobrazí vpravo od jej riadka (Skryť na mape).',
   'help.guide.tour-import-plan-tab.step.1': 'Na karte Plán kliknite na Túry v prepínači navrchu pravého stĺpca.',
@@ -5697,7 +5698,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.tip.4':
     'Zbierka sa zobrazí, iba kým je zapnutý doplnok Zbierky. Zoznam, ktorý môžete iba čítať, sa vybrať nedá, a ak ešte nemáte žiadny zoznam, dialóg ponúka Otvoriť zbierky.',
   'help.guide.tour-packing-link.step.5':
-    'Kliknutím na Otvoriť zoznam vecí môžete veci odškrtávať. TREK prepne na kartu Zoznamy, na zoznam vecí.',
+    'Kliknutím na Otvoriť zoznam vecí môžete veci odškrtávať. YOUYA prepne na kartu Zoznamy, na zoznam vecí.',
   'help.guide.tour-files.step.2': 'Riadok pod tým ich teraz počíta a zoznam sa otvorí.',
   'help.guide.tour-activity-link.step.2':
     'Pod Uskutočnené vyberte deň, kedy ste túru absolvovali. Ak k žiadnemu dňu nepatrí, vyberte Bez dňa.',
@@ -5709,7 +5710,7 @@ const help: TranslationStrings = {
     'Hľadať miesto alebo adresu navrchu mapy posunie mapu. Štítok vľavo dole prepína medzi mapami, ktoré typ túry ponúka, ako Topo alebo Satelit, a obsahuje prepínače otvorenej túry, ako Pridávať body a 3D.',
   'help.guide.tour-open-workspace.step.5':
     'Hľadať miesto alebo adresu navrchu mapy posunie mapu na miesto, takže môžete začať tam, kde túra je.',
-  'help.guide.tour-draw-route.goal': 'Nastavte na mape body novej túry a nechajte TREK vypočítať trasu medzi nimi.',
+  'help.guide.tour-draw-route.goal': 'Nastavte na mape body novej túry a nechajte YOUYA vypočítať trasu medzi nimi.',
   'help.guide.tour-draw-route.tip.2':
     'Topo alebo Turistika v štítku mapy zobrazí cesty, vďaka čomu je jednoduchšie na ne kliknúť. Bod príliš ďaleko od akejkoľvek cesty, ktorú typ môže použiť, dostane namiesto trasy upozornenie.',
   'help.guide.tour-type-profile.step.3':
@@ -5841,11 +5842,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     'Rýchlosť pádlovania ukazuje návrh podľa lode sivou. Napíšte vlastnú rýchlosť a pole ukáže Vlastná rýchlosť. Odkaz pod ním, Použiť navrhovanú, vráti rýchlosť lode.',
   'help.guide.tour-paddle-water-route.goal':
-    'Nechajte TREK naplánovať úsek pozdĺž rieky alebo jazera a porozumejte poznámkam pri úseku, ktorý nevedel naplánovať.',
+    'Nechajte YOUYA naplánovať úsek pozdĺž rieky alebo jazera a porozumejte poznámkam pri úseku, ktorý nevedel naplánovať.',
   'help.guide.tour-paddle-water-route.tip.3':
     'Poznámky pod naplánovaným úsekom upozorňujú na Divokú vodu s jej stupňom, na Vodácky priepust alebo na Medzera v mapových údajoch preklenutú priamou čiarou.',
   'help.guide.tour-paddle-portage.step.4':
-    'Pod Trasa Sledovať cestu použije zmapovanú cestu a Priama čiara vedie priamo naprieč. TREK hľadá cestu sám a povie vám, keď neexistuje žiadna bez dlhej odbočky.',
+    'Pod Trasa Sledovať cestu použije zmapovanú cestu a Priama čiara vedie priamo naprieč. YOUYA hľadá cestu sám a povie vám, keď neexistuje žiadna bez dlhej odbočky.',
   'help.guide.tour-paddle-lock.step.1':
     'Ukážte na zastávku pri plavebnej komore a kliknite na Ďalšie akcie, tri bodky.',
   'help.guide.tour-paddle-time.title': 'Čítanie a úprava času vodáckej túry',
@@ -5855,7 +5856,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     'Uložte vodácku túru a potom v ľavom stĺpci nájdite Kontrolný zoznam. Odznak v jeho záhlaví zhŕňa, ako zoznam stojí.',
   'help.guide.tour-paddle-checklist.tip.4':
-    'Prekážky pochádzajú z údajov OpenStreetMap pre regióny, ktoré TREK má. Kde ich nemá, karta to uvedie a jazy, plavebné komory a prenášky si overíte sami.',
+    'Prekážky pochádzajú z údajov OpenStreetMap pre regióny, ktoré YOUYA má. Kde ich nemá, karta to uvedie a jazy, plavebné komory a prenášky si overíte sami.',
   'help.guide.tour-paddle-track-marks.step.4':
     'Kliknite na stopu v Túry tejto cesty. Ľavý stĺpec ju ukazuje tak, ako bola zaznamenaná, s kartou Prenášky a plavebné komory.',
   'help.ctx.trip-tour-horse.title': 'Vychádzky na koni',
@@ -5920,16 +5921,16 @@ const help: TranslationStrings = {
     'Kým prepojená cesta prebieha, pobyty každého dňa sú pripravené pri danom dni na „Prevziať deň“.',
   'help.ctx.settings-about.title': 'O aplikácii',
   'help.guide.web-push-device.tip.3':
-    'Push oznámenia fungujú iba vtedy, keď máte TREK otvorený cez HTTPS. Ak sú oznámenia zablokované, povoľte ich v nastaveniach prehliadača a skúste to znova.',
-  'help.guide.booking-mail-address.title': 'Preposielanie e-mailov s rezerváciami do TREK',
+    'Push oznámenia fungujú iba vtedy, keď máte YOUYA otvorený cez HTTPS. Ak sú oznámenia zablokované, povoľte ich v nastaveniach prehliadača a skúste to znova.',
+  'help.guide.booking-mail-address.title': 'Preposielanie e-mailov s rezerváciami do YOUYA',
   'help.guide.booking-mail-address.goal':
-    'Získajte vlastnú adresu pre potvrdenia rezervácií, aby TREK pridal každú rezerváciu do správnej cesty.',
+    'Získajte vlastnú adresu pre potvrdenia rezervácií, aby YOUYA pridal každú rezerváciu do správnej cesty.',
   'help.guide.booking-mail-address.step.1':
     'V Integrácie ukazujú E-maily s rezerváciami Tvoja adresa. Kliknite na tlačidlo kopírovania vedľa nej. Adresu si nechajte pre seba, ako heslo.',
   'help.guide.booking-mail-address.step.2':
     'Rezervačný e-mail na ňu prepošlite ručne, aj s prílohami, alebo podľa Preposielať automaticky nastavte pravidlo v Gmaile či Outlooku.',
   'help.guide.booking-mail-address.step.3':
-    'Importovať e-maily s rezerváciami import zapína alebo vypína. Čítať pomocou AI nechá AI čítať e-maily bez strojovo čitateľných údajov o rezervácii. Pridávať automaticky vloží rezerváciu, ktorou si je TREK istý, rovno do jej cesty.',
+    'Importovať e-maily s rezerváciami import zapína alebo vypína. Čítať pomocou AI nechá AI čítať e-maily bez strojovo čitateľných údajov o rezervácii. Pridávať automaticky vloží rezerváciu, ktorou si je YOUYA istý, rovno do jej cesty.',
   'help.guide.booking-mail-address.step.4':
     'Rezervácie čakajúce na schválenie otvoria e-maily, ktoré čakajú na vás, s číslom, ak nejaké sú. Nahrať súbor e-mailu načíta e-mail, ktorý ste uložili ako .eml.',
   'help.guide.booking-mail-address.result':
@@ -5937,7 +5938,7 @@ const help: TranslationStrings = {
   'help.guide.booking-mail-address.tip.1':
     'Tlačidlo vedľa kopírovania, Nová adresa, vám dá novú adresu. Kliknite naň dvakrát. Stará adresa prestane fungovať hneď, preto zmeňte aj pravidlá preposielania.',
   'help.guide.booking-mail-address.tip.2':
-    'Cesta môže mať vlastnú adresu, na karte Rezervácie pod Importovať potvrdenia rezervácií. Pri e-maile poslanom na ňu TREK nemusí hádať.',
+    'Cesta môže mať vlastnú adresu, na karte Rezervácie pod Importovať potvrdenia rezervácií. Pri e-maile poslanom na ňu YOUYA nemusí hádať.',
   'help.guide.booking-mail-address.tip.3':
     'Preposlané e-maily sa uchovávajú zašifrované najviac 30 dní. Karta sa zobrazí, až keď správca zapne import e-mailov.',
   'help.guide.connect-airtrail.result':
@@ -5947,7 +5948,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     'Odznak ukazuje „Pripojené“ a na karte „Túry“ v ceste môžete prehľadávať svoj wanderer a importovať z neho trasy.',
   'help.guide.tour-wanderer-watch.result':
-    'TREK kontroluje vaše importované trasy a upozorní vás, keď sa niektorá mohla zmeniť. Túra sa zmení iba vtedy, keď zmenu prijmete.',
+    'YOUYA kontroluje vaše importované trasy a upozorní vás, keď sa niektorá mohla zmeniť. Túra sa zmení iba vtedy, keď zmenu prijmete.',
   'help.guide.plugin-settings.step.1':
     'V bočnom paneli nastavení otvorte „Pluginy“. V časti „Nastavenia doplnkov“ má každý plugin, ktorý pre vás má nastavenia, vlastnú kartu: vyplňte jej polia a kliknite na „Uložiť“, alebo urobte voľby, ktoré ukazuje. Akcie na karte sa spustia až po potvrdení.',
   'help.guide.profile.step.3': 'Kliknite na „Uložiť profil“ vpravo v spodnej časti karty.',
@@ -5960,7 +5961,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Určite, ako budú mať všetci používatelia oznámenia nastavené na začiatku, a úplne zablokujte kanál pre určitú udalosť.',
   'help.ctx.notifications.summary':
-    'Všetky oznámenia, ktoré vám TREK zobrazil v aplikácii, od najnovších a zoskupené podľa dňa: rezervácia, ktorú niekto zmenil, nová správa v chate cesty, let, ktorý mešká, rezervácia z preposlaného e-mailu. Zvonček vpravo hore ukazuje desať najnovších, táto stránka všetky.',
+    'Všetky oznámenia, ktoré vám YOUYA zobrazil v aplikácii, od najnovších a zoskupené podľa dňa: rezervácia, ktorú niekto zmenil, nová správa v chate cesty, let, ktorý mešká, rezervácia z preposlaného e-mailu. Zvonček vpravo hore ukazuje desať najnovších, táto stránka všetky.',
   'help.guide.read-notifications.step.1':
     'Kliknite na zvonček vpravo hore. Červené číslo na ňom ukazuje počet neprečítaných oznámení.',
   'help.guide.filter-notifications.step.1': 'Kliknite na zvonček vpravo hore.',
@@ -6086,7 +6087,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     'Kliknutím na „GPX“ stiahnete uloženú túru ako súbor GPX: celú trasu aj s dostupnými výškami, pripravenú pre navigačnú aplikáciu alebo GPS zariadenie.',
   'help.guide.tour-copy-keep.step.1':
-    'Otvorte kartu túry a dole kliknite na „Kopírovať“. TREK vytvorí novú, samostatnú túru bez priradených dní a pôvodná zostane bez zmeny.',
+    'Otvorte kartu túry a dole kliknite na „Kopírovať“. YOUYA vytvorí novú, samostatnú túru bez priradených dní a pôvodná zostane bez zmeny.',
   'help.guide.tour-copy-keep.result':
     'V ceste máte druhú túru, ktorú môžete ľubovoľne upravovať, a zbierka má vlastnú kópiu pripravenú na pridanie do inej cesty.',
   'help.guide.tour-packing-link.tip.1':
@@ -6174,7 +6175,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Kliknite na „Povrch“ a uvidíte tú istú trasu podľa toho, po čom kráčate, od asfaltu po prírodný terén a skalu.',
   'help.guide.tour-hike-round.step.2':
-    'Nad mapou sa otvorí karta Okružná túra. Skontrolujte štart v poli Od a zadajte požadovanú Vzdialenosť. Štítok vedľa ukazuje dĺžky okruhov, ktoré TREK pre ňu ponúkne.',
+    'Nad mapou sa otvorí karta Okružná túra. Skontrolujte štart v poli Od a zadajte požadovanú Vzdialenosť. Štítok vedľa ukazuje dĺžky okruhov, ktoré YOUYA pre ňu ponúkne.',
   'help.guide.tour-hike-compare-ways.title': 'Porovnanie iných ciest pre úsek pešej túry',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Ak plánovač trás nepozná inú cestu, karta to oznámi. Ak plánovač nedokáže viesť trasu zvolenou cestou, úsek zostane bez zmeny a karta vás na to upozorní.',
@@ -6193,7 +6194,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     'Otváracie hodiny pochádzajú z OpenStreetMap alebo z miesta cesty, ku ktorému zastávka patrí, a štítok vedľa nich ukazuje, odkiaľ. Pred odchodom si ich overte.',
   'help.guide.tour-walk-google-import.step.4':
-    'Kliknite na „Načítať ako prechádzku“. TREK sám naplánuje peší presun medzi zastávkami. Prechádzku uložíte tlačidlom „Uložiť“.',
+    'Kliknite na „Načítať ako prechádzku“. YOUYA sám naplánuje peší presun medzi zastávkami. Prechádzku uložíte tlačidlom „Uložiť“.',
   'help.guide.tour-walk-check-off.step.2':
     'Posuňte sa k časti „Zastávky prechádzky“. Pri každej zastávke vidíte, ako dlho sa zdržíte, a ak má prechádzka čas začiatku, aj kedy prídete.',
   'help.ctx.trip-tour-bike.summary':
@@ -6209,7 +6210,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     'Naplánujte deň na zjazdovkách, bežkársky okruh, skialpinistickú túru alebo túru na snežniciach po zmapovaných zjazdovkách, vlekoch a trasách.',
   'help.guide.tour-ski-plan.tip.2':
-    'Informačná bodka vedľa „Disciplína“ vysvetľuje, ako TREK so skialpinistickými túrami pracuje. Nič v nej ani inde tu nehovorí o snehu, lavínach ani o tom, či sú zjazdovky, vleky a trasy otvorené.',
+    'Informačná bodka vedľa „Disciplína“ vysvetľuje, ako YOUYA so skialpinistickými túrami pracuje. Nič v nej ani inde tu nehovorí o snehu, lavínach ani o tom, či sú zjazdovky, vleky a trasy otvorené.',
   'help.guide.tour-ski-options.step.3':
     'V časti „Uprednostniť“ vyberte „Najrýchlejšie“, „Najviac lyžovania“ alebo „Najľahšia“. V časti „Tempo“ vyberte „Pohodové“, „Normálne“ alebo „Športové“: mení čas, ktorý plánovač počíta na každú zjazdovku.',
   'help.guide.tour-ski-fix-leg.goal':
@@ -6227,11 +6228,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     'Skontrolujte, či je zapnuté „Pridať bod“, a klikajte do mapy: najprv miesto nalodenia, potom body po ceste a nakoniec miesto vylodenia.',
   'help.guide.tour-paddle-water-route.step.1':
-    'Ručne nakreslený úsek má pod svojím bodom označenie „Nakreslené ručne, nevypočítané“ a svoju dĺžku. TREK ponechá čiaru presne tak, ako ste ju nakreslili.',
+    'Ručne nakreslený úsek má pod svojím bodom označenie „Nakreslené ručne, nevypočítané“ a svoju dĺžku. YOUYA ponechá čiaru presne tak, ako ste ju nakreslili.',
   'help.guide.tour-paddle-water-route.tip.4':
     'Kým nie je niektorý úsek naplánovaný, túru neuložíte. Najprv ho naplánujte po vode alebo nakreslite ručne.',
   'help.guide.tour-paddle-portage.step.5':
-    'Do poľa „Výstup a nástup“ zadajte, koľko minút potrebujete na vystúpenie, vyloženie a opätovné nalodenie. Ak pole necháte prázdne, TREK počíta s 10 minútami.',
+    'Do poľa „Výstup a nástup“ zadajte, koľko minút potrebujete na vystúpenie, vyloženie a opätovné nalodenie. Ak pole necháte prázdne, YOUYA počíta s 10 minútami.',
   'help.guide.tour-paddle-lock.step.2':
     'Vyberte „Plavebná komora v tomto bode“. Pod bodom sa objaví karta plavebnej komory s označením „Chýba čas“.',
   'help.guide.tour-paddle-time.goal':
@@ -6241,7 +6242,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     'Predpoveď je dostupná iba na najbližších 16 dní. Pri vzdialenejšom dni sa zobrazí, od ktorého dátumu bude k dispozícii. Pri dni v minulosti sa zobrazí, že už uplynul.',
   'help.guide.tour-paddle-checklist.step.2':
-    'Riadok pod ním ukazuje, aké aktuálne sú údaje: „Stav OSM“ pre OpenStreetMap, „Načítané“ pre čas, keď ich TREK načítal, a „Údaje o prekážkach“ tam, kde nepokrývajú celú trasu.',
+    'Riadok pod ním ukazuje, aké aktuálne sú údaje: „Stav OSM“ pre OpenStreetMap, „Načítané“ pre čas, keď ich YOUYA načítal, a „Údaje o prekážkach“ tam, kde nepokrývajú celú trasu.',
   'help.guide.tour-paddle-checklist.tip.5':
     'Kontrolný zoznam nie je bezpečnostné ani právne povolenie. Vaše rozhodnutie neruší zákaz ani súkromný pozemok zaznamenaný v OpenStreetMap.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -6279,7 +6280,7 @@ const help: TranslationStrings = {
     'Uložené túry: túry uložené z cesty sú prvé riadky zoznamu, s náročnosťou, typom, cestou, z ktorej pochádzajú, a mierami. Pridať do cesty z jednej vytvorí novú túru a ikona koša ju zo zoznamu odstráni.',
   'help.guide.move-to-list.title': 'Presun alebo duplikovanie miest do iného zoznamu',
   'help.guide.copy-to-trip.tip.2':
-    'Miesto, ktoré cesta už obsahuje, sa preskočí a TREK ukáže, koľko miest sa preskočilo.',
+    'Miesto, ktoré cesta už obsahuje, sa preskočí a YOUYA ukáže, koľko miest sa preskočilo.',
   'help.guide.accept-list-invite.tip.2':
     'Kliknutím na Zdieľané v hlavičke zoznamu zobrazíte jeho členov. Tam môžete kliknutím na Opustiť zoznam zoznam znova opustiť.',
   'help.guide.tour-collection-add-to-trip.goal':
@@ -6296,15 +6297,15 @@ const help: TranslationStrings = {
   'help.guide.journey-day-stays.goal': 'Premeňte pobyty zaznamenané v Dawarich na záznamy, jeden po druhom.',
   'help.guide.journey-take-over-day.goal':
     'Premeňte pobyty dňa na koncepty záznamov alebo na jednu správu o dni jediným krokom.',
-  'help.guide.journey-auto-prepare.title': 'Nechajte TREK pripraviť vaše zaznamenané dni',
+  'help.guide.journey-auto-prepare.title': 'Nechajte YOUYA pripraviť vaše zaznamenané dni',
   'help.guide.photo-location.title': 'Umiestnenie záznamov tam, kde boli nafotené ich fotky',
   'help.ctx.settings-about.summary':
-    'Čo je TREK, akú verziu tento server používa a kde nájdete projekt: dokumentáciu, kde nahlásiť chybu a ako projekt podporiť.',
+    'Čo je YOUYA, akú verziu tento server používa a kde nájdete projekt: dokumentáciu, kde nahlásiť chybu a ako projekt podporiť.',
   'help.guide.startup.tip.2': 'Úvodná karta, ktorá patrí vypnutému doplnku, sa namiesto toho otvorí na pláne.',
   'help.guide.web-push-device.title': 'Push oznámenia v tomto zariadení',
   'help.guide.connect-airtrail.tip.1': 'Karta sa zobrazí, iba kým má správca zapnutý doplnok AirTrail.',
   'help.guide.connect-dawarich.tip.1':
-    'TREK iba navrhuje záznamy, miesta a krajiny. Nič sa nepridá, kým to nepotvrdíte, a do Dawarich sa nič nezapisuje späť.',
+    'YOUYA iba navrhuje záznamy, miesta a krajiny. Nič sa nepridá, kým to nepotvrdíte, a do Dawarich sa nič nezapisuje späť.',
   'help.guide.tour-connect-wanderer.tip.1': 'Karta sa zobrazí, iba kým správca povoľuje wanderer pod Túry.',
   'help.guide.tour-wanderer-watch.tip.1':
     'Upozornenie túru nikdy nezmení. Čo sa naozaj zmenilo, ukáže kontrola zdroja túry.',
@@ -6319,7 +6320,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     'Nastavte každému účtu rozumné jednotky, farebný režim a menu bez toho, aby niekto musel otvoriť Nastavenia.',
   'help.guide.default-map.step.3':
-    'Každé pole sa uloží, keď ho opustíte. Odkaz obnoviť vedľa názvu poľa vráti predvolenú hodnotu TREK.',
+    'Každé pole sa uloží, keď ho opustíte. Odkaz obnoviť vedľa názvu poľa vráti predvolenú hodnotu YOUYA.',
   'help.guide.own-routing-engine.tip.2':
     'Ak je nastavený iba váš vlastný smerovací server a Smerovacia služba je na Automaticky, nepýta sa žiadna Valhalla. Odkaz obnoviť vedľa poľa ho znova vyprázdni.',
   'help.guide.admin-passkeys.step.1':
@@ -6327,7 +6328,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.4':
     'Zdravie navrchu vypisuje neúspešné zápisy na cieľ zrkadla. Ak sa zobrazuje Neboli zaznamenané žiadne zlyhania replík, všetko funguje.',
   'help.guide.channels-instance.tip.3':
-    'Web Push vyžaduje HTTPS. Na iPhone a iPade musia ľudia najprv pridať TREK na plochu.',
+    'Web Push vyžaduje HTTPS. Na iPhone a iPade musia ľudia najprv pridať YOUYA na plochu.',
   'help.guide.notification-defaults.step.1':
     'Na karte Oznámenia prejdite dole na Predvolené nastavenia pre používateľov. Každý riadok je udalosť, každý stĺpec kanál.',
   'help.ctx.notifications.bullet.1':
@@ -6375,28 +6376,28 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     'Ak chcete exportovať len časť karty, najprv ju zúžte cez Hľadať alebo Filter. Súbor obsahuje presne to, čo karta ukazuje.',
   'help.guide.import-booking-file.tip.4':
-    'Čítanie potvrdenia vyžaduje pripojenie. Offline Importovať na to upozorní a skúsite to znova, keď bude TREK opäť online.',
+    'Čítanie potvrdenia vyžaduje pripojenie. Offline Importovať na to upozorní a skúsite to znova, keď bude YOUYA opäť online.',
   'help.guide.forward-booking-mail.title': 'Preposlanie e-mailu s rezerváciou do cesty',
   'help.guide.forward-booking-mail.goal':
-    'Dajte ceste vlastnú adresu, pošlite na ňu potvrdenie a dokončite, čo TREK nevedel pridať sám.',
+    'Dajte ceste vlastnú adresu, pošlite na ňu potvrdenie a dokončite, čo YOUYA nevedel pridať sám.',
   'help.guide.forward-booking-mail.step.1':
     'Kliknite na ikonu nahrávania na lište, Importovať potvrdenia rezervácií. Pod poľom pre súbory obsahuje Alebo prepošli e-mailom vlastnú adresu cesty.',
   'help.guide.forward-booking-mail.step.2':
     'Kliknite na Vytvoriť adresu pre tento výlet. E-mail poslaný na ňu skončí v tejto ceste bez hádania.',
   'help.guide.forward-booking-mail.step.3':
-    'Adresa sa zobrazí s tlačidlom kopírovania vedľa nej. Skopírujte ju a potom na ňu prepošlite rezervačný e-mail zo svojho poštového programu, aj s prílohami, ručne alebo pravidlom. TREK ho prečíta do niekoľkých minút.',
+    'Adresa sa zobrazí s tlačidlom kopírovania vedľa nej. Skopírujte ju a potom na ňu prepošlite rezervačný e-mail zo svojho poštového programu, aj s prílohami, ručne alebo pravidlom. YOUYA ho prečíta do niekoľkých minút.',
   'help.guide.forward-booking-mail.step.4':
-    'Rezervácia, ktorou si je TREK istý, sa do cesty vloží sama. Všetko ostatné čaká na vás: otvorte ponuku pod svojím menom vpravo hore, kde číslo ukazuje čakajúce e-maily, a kliknite na Rezervácie čakajúce na schválenie.',
+    'Rezervácia, ktorou si je YOUYA istý, sa do cesty vloží sama. Všetko ostatné čaká na vás: otvorte ponuku pod svojím menom vpravo hore, kde číslo ukazuje čakajúce e-maily, a kliknite na Rezervácie čakajúce na schválenie.',
   'help.guide.forward-booking-mail.step.5':
-    'Každá položka ukazuje, čo TREK prečítal, prečo čaká a pre akú cestu prišla. Zobraziť e-mail ukáže samotný e-mail. Kliknite na Vyplniť ručne.',
+    'Každá položka ukazuje, čo YOUYA prečítal, prečo čaká a pre akú cestu prišla. Zobraziť e-mail ukáže samotný e-mail. Kliknite na Vyplniť ručne.',
   'help.guide.forward-booking-mail.step.6':
-    'V ceste sa otvorí Nová rezervácia s tým, čo e-mail obsahoval: predmet ako názov, typ, dátum a rezervačný kód, ktorý TREK našiel. Skontrolujte to, opravte, čo treba, a kliknite na Pridať.',
+    'V ceste sa otvorí Nová rezervácia s tým, čo e-mail obsahoval: predmet ako názov, typ, dátum a rezervačný kód, ktorý YOUYA našiel. Skontrolujte to, opravte, čo treba, a kliknite na Pridať.',
   'help.guide.forward-booking-mail.result':
     'Rezervácia je na karte Rezervácie ako každá iná a jej položka zmizla z Rezervácie čakajúce na schválenie.',
   'help.guide.forward-booking-mail.tip.1':
-    'Vaša vlastná adresa v Nastavenia, Integrácie, E-maily s rezerváciami funguje pre každú cestu: TREK vyberie cestu, ktorej dátumy a miesta k rezervácii pasujú. Adresa cesty toto hádanie preskočí.',
+    'Vaša vlastná adresa v Nastavenia, Integrácie, E-maily s rezerváciami funguje pre každú cestu: YOUYA vyberie cestu, ktorej dátumy a miesta k rezervácii pasujú. Adresa cesty toto hádanie preskočí.',
   'help.guide.forward-booking-mail.tip.2':
-    'So zapnutým Pridávať automaticky na tej karte sa rezervácia, ktorou si je TREK istý, vloží rovno do cesty a oznámenie o nej ponúka Vrátiť späť na 7 dní. Pri vypnutom každá rezervácia čaká v Rezervácie čakajúce na schválenie.',
+    'So zapnutým Pridávať automaticky na tej karte sa rezervácia, ktorou si je YOUYA istý, vloží rovno do cesty a oznámenie o nej ponúka Vrátiť späť na 7 dní. Pri vypnutom každá rezervácia čaká v Rezervácie čakajúce na schválenie.',
   'help.guide.forward-booking-mail.tip.3':
     'Položku môžete aj ponechať ako dokument cez Uložiť ako dokument, ktorý vloží e-mail alebo jeho prílohy do súborov cesty, alebo ju zahodiť cez Zahodiť.',
   'help.guide.forward-booking-mail.tip.4':
@@ -6430,7 +6431,7 @@ const help: TranslationStrings = {
     'Zastávky sú v poradí, ktoré ste nastavili, a vzdialenosť, čas jazdy a časy príchodu každého zmeneného dňa sa vypočítajú znova.',
   'help.guide.roadtrip-overnight.goal': 'Nájdite miesto na spanie na ceste a pridajte noc do jazdy ako rezerváciu.',
   'help.guide.roadtrip-overnight.tip.2':
-    'Ak zarezervovanú noc cez Upraviť v jej karte prepnete späť na Prestávka, TREK sa najprv opýta „Zrušiť nocľah?“. Zmeniť na prestávku odstráni noc spolu s jej rezerváciou a každým výdavkom, ktorý je s ňou prepojený, a zastávku v jazde ponechá.',
+    'Ak zarezervovanú noc cez Upraviť v jej karte prepnete späť na Prestávka, YOUYA sa najprv opýta „Zrušiť nocľah?“. Zmeniť na prestávku odstráni noc spolu s jej rezerváciou a každým výdavkom, ktorý je s ňou prepojený, a zastávku v jazde ponechá.',
   'help.guide.roadtrip-stop-fill.tip.2':
     'Ak vyberiete hodnotu, ktorú zastávka už má, zastávka sa vráti k vašej predvolenej hodnote.',
   'help.guide.roadtrip-bookings.tip.1':
@@ -6477,11 +6478,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     'Otvorte kartu túry. Plán a skutočnosť ukazuje Vzdialenosť, Stúpanie, Klesanie a Čas s prestávkami z plánu vedľa hodnôt zo stopy, aj s Rozdiel.',
   'help.guide.tour-origin-check.goal':
-    'Zistite, či bola túra nakreslená v TREK alebo importovaná, z ktorého súboru a či sa odvtedy zmenila.',
+    'Zistite, či bola túra nakreslená v YOUYA alebo importovaná, z ktorého súboru a či sa odvtedy zmenila.',
   'help.ctx.trip-tour-planner.title': 'Túry',
   'help.guide.tour-open-workspace.title': 'Orientácia na karte Túry',
   'help.guide.tour-open-workspace.step.7':
-    'Kliknite na túru v pravom paneli. Túra naplánovaná v TREK sa otvorí v editore. Importovaná stopa sa otvorí nezmenená, ako Túra z GPX, na prezeranie.',
+    'Kliknite na túru v pravom paneli. Túra naplánovaná v YOUYA sa otvorí v editore. Importovaná stopa sa otvorí nezmenená, ako Túra z GPX, na prezeranie.',
   'help.guide.tour-draw-route.step.2':
     'Do Hľadať miesto alebo adresu napíšte, kde túra začína, a vyberte výsledok. Mapa sa tam posunie.',
   'help.guide.tour-draw-route.tip.4':
@@ -6513,7 +6514,7 @@ const help: TranslationStrings = {
     'Stopa, ktorú cesta už obsahuje, je sivá s označením Už je v ceste a preskočí sa.',
   'help.guide.tour-view-import.step.3': 'Šípka vľavo hore, Späť na túry, ju znova zatvorí.',
   'help.guide.tour-plan-from-import.step.2':
-    'TREK vyberie zo stopy kontrolné body a vytýči trasu medzi nimi znova. Mapa kreslí import bodkovane a návrh plnou čiarou a karta porovnáva ich dĺžky, podiel Do 50 m od stopy a Najväčšia odchýlka.',
+    'YOUYA vyberie zo stopy kontrolné body a vytýči trasu medzi nimi znova. Mapa kreslí import bodkovane a návrh plnou čiarou a karta porovnáva ich dĺžky, podiel Do 50 m od stopy a Najväčšia odchýlka.',
   'help.guide.tour-restore-recorded.title': 'Návrat k zaznamenanej stope',
   'help.guide.tour-take-over.title': 'Prevzatie túry z inej cesty',
   'help.guide.tour-take-over.tip.1':
@@ -6603,7 +6604,7 @@ const help: TranslationStrings = {
     'Ak sa zjazdovky prestanú načítavať, prepínač ukáže výstražnú značku. Mapa aj vaša trasa naďalej fungujú.',
   'help.guide.tour-ski-import.step.4': 'Kliknite na Importovať 1 túru.',
   'help.ctx.trip-tour-paddle.summary':
-    'Túra na kajaku, kanoe alebo SUP po rieke alebo jazere. Uvádza loď a vodu, sleduje vodu tam, kde TREK má údaje, započítava prenášky a plavebné komory do svojho času a ukazuje vietor v deň, keď pádlujete, a čo je známe o prekážkach na ceste.',
+    'Túra na kajaku, kanoe alebo SUP po rieke alebo jazere. Uvádza loď a vodu, sleduje vodu tam, kde YOUYA má údaje, započítava prenášky a plavebné komory do svojho času a ukazuje vietor v deň, keď pádlujete, a čo je známe o prekážkach na ceste.',
   'help.guide.tour-paddle-setup.goal':
     'Začnite túru na kajaku, kanoe alebo SUP a zadajte, na čom pádlujete, na akej vode a ako rýchlo.',
   'help.guide.tour-paddle-setup.tip.1':
@@ -6611,7 +6612,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-water-route.step.2':
     'Ak chcete jeden úsek naplánovať po vode, ukážte na zastávku pred ním a kliknite na Ďalšie akcie, tri bodky.',
   'help.guide.tour-paddle-water-route.result':
-    'Každý úsek buď sleduje vodu, alebo je zámerne nakreslený ručne, a úsek, ktorý TREK nevedel naplánovať, uvádza prečo.',
+    'Každý úsek buď sleduje vodu, alebo je zámerne nakreslený ručne, a úsek, ktorý YOUYA nevedel naplánovať, uvádza prečo.',
   'help.guide.tour-paddle-portage.tip.1':
     'Ak chcete úsek predsa len preplávať, znova otvorte Ďalšie akcie pri bode a vyberte Tento úsek znova pádlovať. Úsek sa zmení späť na ručne nakreslený.',
   'help.guide.tour-paddle-lock.step.3': 'Kliknutím na kartu Plavebná komora ju otvoríte.',
@@ -6631,7 +6632,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     'Kliknite na pole Typ túry pod Názov túry a vyberte Vychádzka na koni. Karta Jazdecké trasy sa zobrazí pod Trasové body.',
   'help.guide.tour-horse-plan.tip.2':
-    'TREK pre vychádzku nevypočíta čas jazdy. Ak chcete mať v dni čas, zadajte ho pod Plánované v Podrobnosti.',
+    'YOUYA pre vychádzku nevypočíta čas jazdy. Ak chcete mať v dni čas, zadajte ho pod Plánované v Podrobnosti.',
   'help.guide.tour-horse-gap.step.3': 'Kliknite na Prevziať úsek. Kým prepínač nie je zapnutý, tlačidlo zostáva sivé.',
   'help.guide.tour-horse-recorded.step.1':
     'V Túry tejto cesty kliknite na Pridať túru (+), vyberte Importovať GPX alebo KML a zvoľte súbor so svojou vychádzkou.',
@@ -6647,7 +6648,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': 'Zapisovanie dní pre človeka, s ktorým plánujete',
   'help.guide.dissolve-fusion.title': 'Ukončenie spoločného plánovania',
   'help.guide.country-places.goal':
-    'Zobrazte si miesta, ktoré TREK započítal ku krajine, aby ste skontrolovali, čo ste tam robili, alebo našli miesto, ktoré TREK priradil k nesprávnej krajine.',
+    'Zobrazte si miesta, ktoré YOUYA započítal ku krajine, aby ste skontrolovali, čo ste tam robili, alebo našli miesto, ktoré YOUYA priradil k nesprávnej krajine.',
   'help.guide.regions.tip.3':
     'Pridať do zoznamu prianí (Bucket list) funguje aj pre región. Región sa zobrazí s rovnakým šrafovaním ako krajina vo vašom zozname prianí.',
   'help.guide.tour-activity-stats.step.2':
@@ -6677,11 +6678,11 @@ const help: TranslationStrings = {
   'help.guide.readability.tip.3':
     'Čitateľnosť je označená ako Experimentálne. Ak niečo vyzerá zle, kliknite dole na karte na Obnoviť predvolené a vrátite pôvodné nastavenia.',
   'help.guide.web-push-device.goal':
-    'Zobrazujte oznámenia z TREK na telefóne alebo počítači, aj keď je TREK zatvorený.',
+    'Zobrazujte oznámenia z YOUYA na telefóne alebo počítači, aj keď je YOUYA zatvorený.',
   'help.guide.connect-airtrail.tip.2':
     'Kľúč sa ukladá zašifrovaný a už sa nezobrazí. Bodky v poli znamenajú, že je nejaký uložený.',
   'help.guide.connect-dawarich.tip.2':
-    'Pod tlačidlami karta uvádza, kedy TREK naposledy kontroloval a čo vaša verzia Dawarich neponúka.',
+    'Pod tlačidlami karta uvádza, kedy YOUYA naposledy kontroloval a čo vaša verzia Dawarich neponúka.',
   'help.guide.tour-connect-wanderer.tip.2':
     'Inštancia na súkromnej adrese môže vyžadovať, aby správca povolil interné siete.',
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6689,13 +6690,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     'Plugin funguje podľa vašich nastavení a každá akcia, ktorú pre vás vykoná, je uvedená pod Aktivita doplnkov.',
   'help.ctx.admin-defaults.bullet.3':
-    'Odkaz obnoviť vedľa nastaveného poľa vráti predvolenú hodnotu TREK. Vlastné nastavenie používateľa má vždy prednosť pred týmito.',
+    'Odkaz obnoviť vedľa nastaveného poľa vráti predvolenú hodnotu YOUYA. Vlastné nastavenie používateľa má vždy prednosť pred týmito.',
   'help.ctx.admin-settings.bullet.5':
     'Nebezpečná zóna, na karte Zabezpečenie: Obnoviť tajný kľúč JWT odhlási všetkých používateľov, aj vás.',
   'help.guide.default-user-settings.step.1':
     'Pod Predvolené nastavenia používateľa vyberte Farebný režim (Svetlé, Tmavý alebo Automatické), Jednotky teploty, Jednotky vzdialenosti, Formát času, Týždeň začína, Formát dátumu, Zobrazovaná mena a či je Skryť rezervačné kódy zapnuté alebo vypnuté. Každá voľba sa uloží okamžite.',
   'help.guide.admin-passkeys.step.2':
-    'V karte Prihlásenie prístupovým kľúčom zadajte Relying Party ID (doména), napríklad trek.example.org, a Povolené origins, na ktorých je váš TREK dostupný, a kliknite na Uložiť. Ak necháte obe polia prázdne, použije sa APP_URL.',
+    'V karte Prihlásenie prístupovým kľúčom zadajte Relying Party ID (doména), napríklad trek.example.org, a Povolené origins, na ktorých je váš YOUYA dostupný, a kliknite na Uložiť. Ak necháte obe polia prázdne, použije sa APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Odhlásenie všetkých naraz',
   'help.guide.notification-defaults.step.2':
     'Kliknutím na bunku ju prepnete na ďalší stav: Zapnuté, Vypnuté, Blokované. Tooltip uvádza ďalší stav a každé kliknutie sa uloží okamžite.',
@@ -6710,21 +6711,21 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': 'Oznámenie zmizne zo zoznamu aj zo zvončeka.',
   'help.guide.booking-mail-notifications.title': 'Odpoveď na oznámenie o e-maile s rezerváciou',
   'help.guide.booking-mail-notifications.goal':
-    'Pozrite, čo sa stalo s e-mailami s rezerváciami, ktoré ste preposlali, a rozhodnite o tých, ktoré TREK nedokázal pridať sám.',
+    'Pozrite, čo sa stalo s e-mailami s rezerváciami, ktoré ste preposlali, a rozhodnite o tých, ktoré YOUYA nedokázal pridať sám.',
   'help.guide.booking-mail-notifications.step.1':
-    'Kliknite na zvonček vpravo hore. Keď preposlaný e-mail obsahuje rezervácie, ktoré TREK nevedel pridať sám, oznámi vám to tam.',
+    'Kliknite na zvonček vpravo hore. Keď preposlaný e-mail obsahuje rezervácie, ktoré YOUYA nevedel pridať sám, oznámi vám to tam.',
   'help.guide.booking-mail-notifications.step.2':
     'Preposlané rezervácie na kontrolu hovoria, koľko ich na vás čaká. Pod tým kliknite na Skontrolovať.',
   'help.guide.booking-mail-notifications.step.3':
-    'Rezervácie čakajúce na schválenie sa otvoria s každou čakajúcou položkou: čo TREK prečítal, prečo čaká a pre akú cestu prišla. Vyplniť ručne otvorí novú rezerváciu s tým, čo e-mail obsahoval, a kôš položku zahodí.',
+    'Rezervácie čakajúce na schválenie sa otvoria s každou čakajúcou položkou: čo YOUYA prečítal, prečo čaká a pre akú cestu prišla. Vyplniť ručne otvorí novú rezerváciu s tým, čo e-mail obsahoval, a kôš položku zahodí.',
   'help.guide.booking-mail-notifications.result':
     'Každá preposlaná rezervácia sa buď zaradí do svojej cesty, alebo počká na vaše rozhodnutie, a vždy viete, ktorá je ktorá.',
   'help.guide.booking-mail-notifications.tip.1':
-    'Rezervácia, ktorú TREK pridal sám, príde ako Rezervácia pridaná z e-mailu s tlačidlami Ponechať a Vrátiť späť. Vrátiť späť rezerváciu z cesty znova odoberie, Ponechať ju tam nechá.',
+    'Rezervácia, ktorú YOUYA pridal sám, príde ako Rezervácia pridaná z e-mailu s tlačidlami Ponechať a Vrátiť späť. Vrátiť späť rezerváciu z cesty znova odoberie, Ponechať ju tam nechá.',
   'help.guide.booking-mail-notifications.tip.2':
     'Ostatní ľudia na zdieľanej ceste sa o rezervácii z e-mailu tiež dozvedia, s tlačidlom Zobraziť výlet, ktoré otvorí jej kartu Rezervácie.',
   'help.guide.booking-mail-notifications.tip.3':
-    'Let, ktorý TREK sleduje naživo, posiela Let odletel, Let pristál a od 15 minút meškania Let mešká, každé s tlačidlom Zobraziť výlet. Idú ľuďom, ktorým je let priradený, alebo všetkým na ceste. Každé z nich vypnete v Nastavenia pod Oznámenia.',
+    'Let, ktorý YOUYA sleduje naživo, posiela Let odletel, Let pristál a od 15 minút meškania Let mešká, každé s tlačidlom Zobraziť výlet. Idú ľuďom, ktorým je let priradený, alebo všetkým na ceste. Každé z nich vypnete v Nastavenia pod Oznámenia.',
   'help.guide.notification-settings.result':
     'Nastavenia sa otvoria na Oznámenia, s prepínačom pre každú udalosť a kanál.',
   'help.guide.link-journal.goal':
@@ -6737,9 +6738,9 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     'Kliknite na Nastavenia cesty vedľa názvu cesty a vľavo vyberte Doplnky. Túto časť má len vlastník cesty.',
   'help.guide.trip-addons.step.2':
-    'Kliknite na prepínač doplnku, aby ste ho pre túto cestu zapli alebo vypli. Uvedené sú Zoznamy, Náklady, Dokumenty, Spolupráca, Cesta autom a Túry, pokiaľ ich váš TREK má.',
+    'Kliknite na prepínač doplnku, aby ste ho pre túto cestu zapli alebo vypli. Uvedené sú Zoznamy, Náklady, Dokumenty, Spolupráca, Cesta autom a Túry, pokiaľ ich váš YOUYA má.',
   'help.guide.trip-addons.step.3':
-    'Len tento výlet označuje doplnok, ktorý ste nastavili inak ako zvyšok TREK. Prepnite ho späť, aby opäť sledoval nastavenie správcu.',
+    'Len tento výlet označuje doplnok, ktorý ste nastavili inak ako zvyšok YOUYA. Prepnite ho späť, aby opäť sledoval nastavenie správcu.',
   'help.guide.trip-addons.result':
     'Cesta ukazuje doplnky, ktoré ste vybrali, pre všetkých na nej: karta alebo časť plánu sa objaví, alebo zmizne. Vaše ostatné cesty si ponechajú nastavenie správcu.',
   'help.guide.trip-addons.tip.1':
@@ -6747,7 +6748,7 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.tip.2':
     'Doplnok môžete pre jednu cestu zapnúť, aj keď ho správca pre všetkých ostatných vypol.',
   'help.guide.trip-addons.tip.3':
-    'Zmena prepínača vyžaduje pripojenie. Offline to TREK povie a prepínač nechá, ako bol.',
+    'Zmena prepínača vyžaduje pripojenie. Offline to YOUYA povie a prepínač nechá, ako bol.',
   'help.guide.edit-trip-settings.title': 'Úprava cesty z plánovača',
   'help.guide.edit-trip-settings.goal':
     'Zmeňte názov, dátumy, titulnú fotku alebo menu cesty bez toho, aby ste cestu opustili.',
@@ -6759,7 +6760,7 @@ const help: TranslationStrings = {
     'Kliknite na Aktualizovať. Nastavenia cesty sa zatvoria a cesta okamžite ukáže zmenu.',
   'help.guide.edit-trip-settings.result': 'Výlet zobrazuje nové údaje všade, pre všetkých jeho účastníkov.',
   'help.guide.edit-trip-settings.tip.1':
-    'Ak posuniete dátum začiatku, TREK sa najprv opýta, ako majú rezervácie nasledovať. Ak nové dátumy odoberú dni, na ktorých niečo je, TREK ich pred potvrdením vypíše.',
+    'Ak posuniete dátum začiatku, YOUYA sa najprv opýta, ako majú rezervácie nasledovať. Ak nové dátumy odoberú dni, na ktorých niečo je, YOUYA ich pred potvrdením vypíše.',
   'help.guide.edit-trip-settings.tip.2':
     'Ten istý formulár sa otvorí z Moje cesty ceruzkou na karte cesty. Upraviť cestu vidia len ľudia, ktorí smú cestu upravovať.',
   'help.guide.dawarich-stays.result':
@@ -6771,7 +6772,7 @@ const help: TranslationStrings = {
     'Presuňte dopravu alebo rezerváciu na iný deň priamo z plánu, bez otvárania jej formulára.',
   'help.guide.place-image-from-file.result': 'Fotka je obrázok miesta na karte, v stĺpci miest, v dni a na mape.',
   'help.guide.place-own-hours.step.3':
-    'Otváracie hodiny pod nimi zobrazujú týždeň, jeden riadok na deň. Ak TREK pre miesto našiel hodiny, sú už vyplnené. Ak nie, kliknite najprv na Pridať otváracie hodiny. Napíšte, kedy sa každý deň otvára a zatvára. Vpravo pri dni 24h označí, že je otvorené celý deň, a zatvorené dvere, že je zatvorené.',
+    'Otváracie hodiny pod nimi zobrazujú týždeň, jeden riadok na deň. Ak YOUYA pre miesto našiel hodiny, sú už vyplnené. Ak nie, kliknite najprv na Pridať otváracie hodiny. Napíšte, kedy sa každý deň otvára a zatvára. Vpravo pri dni 24h označí, že je otvorené celý deň, a zatvorené dvere, že je zatvorené.',
   'help.guide.add-accommodation.tip.5':
     'Stopy GPX a miesta z túr sa ako ubytovanie nikdy nenavrhujú, len bežné miesta cesty.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6803,7 +6804,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     'Rozhodnite, či sa dokumenty len importujú z vášho úložiska, len exportujú do neho, alebo oboje, a čo sa stane, keď sa dokument vymaže alebo zmení na oboch miestach.',
   'help.guide.files-sync-settings.tip.2':
-    'Pri Opýtať sa čaká dokument upravený na oboch miestach pod Vyžaduje pozornosť, pod kartou. Kliknite na „Resolve“ a vyberte Ponechať verziu z TREKu, Ponechať verziu poskytovateľa alebo Ponechať obe.',
+    'Pri Opýtať sa čaká dokument upravený na oboch miestach pod Vyžaduje pozornosť, pod kartou. Kliknite na „Resolve“ a vyberte Ponechať verziu z YOUYAu, Ponechať verziu poskytovateľa alebo Ponechať obe.',
   'help.guide.manage-notes.goal':
     'Otvorte poznámku celú, dôležitú nechajte navrchu a zastaranú opravte alebo odstráňte.',
   'help.guide.manage-notes.tip.2':
@@ -6920,7 +6921,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     'Otvorte túru v karte Túry a posuňte ľavý panel nadol na Pozdĺž túry, pod zastávky túry. Karta sa tam zobrazí, len čo má túra trasu.',
   'help.guide.tour-along-search.tip.3':
-    'Výsledky pochádzajú z OpenStreetMap a z indexu miest TREK, takže vyhľadávanie potrebuje pripojenie. Keď sa nič nenájde, „Widen to“ skúsi ďalšiu vzdialenosť. Keď je server vyťažený, Skúsiť znova odpočítava, kedy to môžete skúsiť znova.',
+    'Výsledky pochádzajú z OpenStreetMap a z indexu miest YOUYA, takže vyhľadávanie potrebuje pripojenie. Keď sa nič nenájde, „Widen to“ skúsi ďalšiu vzdialenosť. Keď je server vyťažený, Skúsiť znova odpočítava, kedy to môžete skúsiť znova.',
   'help.guide.tour-along-add-stop.tip.1':
     'Miesto sa stane zastávkou túry, nie miestom cesty, takže sa v zozname miest nezobrazí.',
   'help.guide.tour-3d-terrain.step.4':
@@ -6941,7 +6942,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     'Podrobnosti o ceste, pod trasovými bodmi, ukazujú stupeň SAC, povrch a typ cesty každého úseku z OpenStreetMap a podľa nich zafarbujú trasu na mape. Nič z toho túru nemení.',
   'help.guide.tour-hike-plan.step.4':
-    'Pridať bod je zapnuté od začiatku: kliknite na mapu tam, kde pešia túra začína a kde končí. Miesta cesty vedľa neho namiesto toho vyberie chatu alebo hotel cesty. Od dvoch bodov TREK vypočíta pešiu trasu.',
+    'Pridať bod je zapnuté od začiatku: kliknite na mapu tam, kde pešia túra začína a kde končí. Miesta cesty vedľa neho namiesto toho vyberie chatu alebo hotel cesty. Od dvoch bodov YOUYA vypočíta pešiu trasu.',
   'help.guide.tour-hike-trail-details.title': 'Zobrazenie stupňov, povrchov a typov ciest pozdĺž pešej túry',
   'help.guide.tour-hike-trail-details.tip.1':
     'Cesty, pre ktoré OpenStreetMap nemá hodnotu, sú uvedené pod Neznáma, a neznáma neznamená ľahká. Ak sa pri niektorých zobrazí Tentoraz sa nedalo zistiť, kliknite na Skúsiť znova.',
@@ -6973,7 +6974,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     'Prehľad túry vpravo ukazuje Čas jazdy, odhad smerovača pre profil vrátane stúpaní. Prestávky nie sú zahrnuté.',
   'help.guide.tour-bike-profile.step.4':
-    'Pod Trasové body kliknite na Miesta cesty a vyberte štart a cieľ, tu Hotel Alpenroyal a potom Hotel Greif. Môžete tiež skontrolovať, či je zapnuté Pridať bod, a kliknúť na mapu. Od dvoch bodov TREK vypočíta trasu.',
+    'Pod Trasové body kliknite na Miesta cesty a vyberte štart a cieľ, tu Hotel Alpenroyal a potom Hotel Greif. Môžete tiež skontrolovať, či je zapnuté Pridať bod, a kliknúť na mapu. Od dvoch bodov YOUYA vypočíta trasu.',
   'help.guide.tour-bike-profile.tip.5':
     'Ak správca povolí mapu CyclOSM, riadok vrstiev na mape ponúka pri otvorenej cyklotúre aj Bicykel. Ak sa prestane načítavať, prepnite na Mapa. Túra sa nezmení.',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -7000,7 +7001,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     'Mapa vodáckej túry ponúka Mapa a Satelit a ako prekrytie Plavebné znaky z OpenSeaMap.',
   'help.guide.tour-paddle-water-route.step.3':
-    'Vyberte Naplánovať ďalší úsek po vode. TREK naplánuje úsek pozdĺž rieky alebo jazera z tohto bodu k ďalšiemu.',
+    'Vyberte Naplánovať ďalší úsek po vode. YOUYA naplánuje úsek pozdĺž rieky alebo jazera z tohto bodu k ďalšiemu.',
   'help.guide.tour-paddle-portage.title': 'Prenesenie lode okolo prekážky',
   'help.guide.tour-paddle-portage.tip.2':
     'Pri poslednom bode sa Odtiaľto loď preniesť uplatní, až keď nastavíte ďalší bod. Riadok potom znie Odtiaľto prenášať a jeho krížik, Nakoniec neprenášať, to vráti späť.',
@@ -7094,7 +7095,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     'V karte AI asistent vyberte, ako sa pripojiť: Prihlásiť sa cez ChatGPT využije váš plán ChatGPT, Vložiť API kľúč prijme kľúč od Anthropic, OpenAI, Gemini alebo OpenRouter.',
   'help.guide.connect-ai.step.2':
-    'Vložte svoj kľúč. TREK uvedie poskytovateľa, ktorého rozpoznal, a povie, čo sa mu odošle. Kliknite na Pripojiť; TREK najprv overí kľúč u poskytovateľa.',
+    'Vložte svoj kľúč. YOUYA uvedie poskytovateľa, ktorého rozpoznal, a povie, čo sa mu odošle. Kliknite na Pripojiť; YOUYA najprv overí kľúč u poskytovateľa.',
   'help.guide.connect-ai.step.3':
     'Karta zobrazí Pripojené k a poskytovateľa. Vyberte Model, ktorý chcete, a kliknutím na Otvoriť asistenta začnete v aktuálnej alebo najbližšej ceste.',
   'help.guide.connect-ai.result': 'Asistent beží na vašom vlastnom účte, v každej ceste.',
@@ -7112,7 +7113,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     'Predvolené nastavenia pre používateľov, úplne dole: pre každú udalosť a kanál Zapnuté, Vypnuté alebo Blokované pre každého, kto to nezmenil.',
   'help.guide.default-user-settings.step.2':
-    'Pole, ktoré nastavíte, dostane vedľa názvu odkaz obnoviť, ktorý vráti vstavanú predvolenú hodnotu TREK.',
+    'Pole, ktoré nastavíte, dostane vedľa názvu odkaz obnoviť, ktorý vráti vstavanú predvolenú hodnotu YOUYA.',
   'help.guide.own-routing-engine.title': 'Použitie vlastných smerovacích serverov',
   'help.guide.admin-passkeys.result':
     'Prihlasovacia stránka ponúka Prihlásiť sa pomocou prístupového kľúča a ľudia môžu pridávať prístupové kľúče vo svojich nastaveniach.',
@@ -7134,7 +7135,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.step.1': 'Ukážte na riadok rezervácie v dni: úchyt vľavo naznačuje, že sa dá ťahať.',
   'help.guide.place-image-from-file.tip.1': 'Ponúkajú sa len súbory JPG, PNG, GIF a WebP, lístok v PDF nie.',
   'help.guide.place-own-hours.step.4':
-    'Tlačidlá vpravo od Otváracie hodiny: tlačidlo kopírovania dá každému dňu hodiny z pondelka a X vaše hodiny opäť odstráni. Ak TREK našiel vlastné hodiny, Prevziať z podrobností miesta ich vráti späť.',
+    'Tlačidlá vpravo od Otváracie hodiny: tlačidlo kopírovania dá každému dňu hodiny z pondelka a X vaše hodiny opäť odstráni. Ak YOUYA našiel vlastné hodiny, Prevziať z podrobností miesta ich vráti späť.',
   'help.guide.confirm-stay-booking.step.2':
     'Rezervácia sa otvorí nad plánom. Prvá pilulka v jej hlavičke ukazuje jej stav.',
   'help.ctx.trip-map.bullet.9':
@@ -7151,7 +7152,7 @@ const help: TranslationStrings = {
   'help.guide.group-sort-bookings.step.1':
     'V zobrazení Karty alebo Zoznam kliknite na Možnosti zobrazenia, posuvníky za tromi ikonami zobrazení.',
   'help.guide.create-booking.tip.4':
-    'Offline sa rezervácia uloží v tomto zariadení a po pripojení sa synchronizuje. Nové súbory vyžadujú pripojenie, preto ich odstráňte alebo uložte neskôr. Ak omylom kliknete mimo formulára alebo stlačíte Escape, TREK sa opýta Zahodiť zmeny?, skôr než sa stratí čokoľvek, čo ste napísali.',
+    'Offline sa rezervácia uloží v tomto zariadení a po pripojení sa synchronizuje. Nové súbory vyžadujú pripojenie, preto ich odstráňte alebo uložte neskôr. Ak omylom kliknete mimo formulára alebo stlačíte Escape, YOUYA sa opýta Zahodiť zmeny?, skôr než sa stratí čokoľvek, čo ste napísali.',
   'help.guide.booking-on-map.tip.2': 'Pobyt sa otvorí na svojej prvej noci.',
   'help.guide.export-bookings-csv.step.3':
     'Kliknite na Exportovať ako tabuľku (CSV), ikonu sťahovania za Možnosti zobrazenia.',
@@ -7163,7 +7164,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     'Na pravom konci lišty kliknite na Synchronizácia dokumentov. Ak je cesta prepojená, vpravo sa otvorí karta vášho úložiska. Ak máte viac úložísk, vľavo pod Táto cesta kliknite na to, ktoré chcete.',
   'help.guide.files-sync-settings.tip.3':
-    'Okamžité aktualizácie, odkaz s tlačidlom Kopírovať vedľa neho, sa zobrazujú len pri úložiskách, v ktorých sa TREK nevie automaticky prihlásiť na odber zmien. Vložte odkaz do úložiska a zmeny prídu hneď, nie až pri ďalšej kontrole.',
+    'Okamžité aktualizácie, odkaz s tlačidlom Kopírovať vedľa neho, sa zobrazujú len pri úložiskách, v ktorých sa YOUYA nevie automaticky prihlásiť na odber zmien. Vložte odkaz do úložiska a zmeny prídu hneď, nie až pri ďalšej kontrole.',
   'help.guide.manage-notes.step.1':
     'V záhlaví karty poznámky kliknite na tri bodky (Ďalšie možnosti). Ponuka obsahuje Rozbaliť, Pripnúť, Upraviť a Vymazať.',
   'help.guide.note-categories.title': 'Triedenie poznámok do kategórií',
@@ -7182,7 +7183,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     'Fotky miesta vyplnia obrazovku a šípky prechádzajú ďalšie, ktoré jeho zdroj pozná. Zatvorte ich a vrátite sa do dialógu, kde Zrušiť nechá zastávku, ako bola.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    'Obrázok je vlastný obrázok miesta, ten, ktorý ste nastavili vo formulári miesta. Bez neho TREK ukáže fotku, ktorú má pre miesto jeho zdroj, ak pochádza z Google alebo OpenStreetMap.',
+    'Obrázok je vlastný obrázok miesta, ten, ktorý ste nastavili vo formulári miesta. Bez neho YOUYA ukáže fotku, ktorú má pre miesto jeho zdroj, ak pochádza z Google alebo OpenStreetMap.',
   'help.guide.roadtrip-stop-photo.tip.2':
     'V telefóne ťuknite na zastávku na karte Cesta autom: jej list ukáže obrázok na celú šírku pod názvom a ťuknutie naň otvorí fotky.',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -7210,7 +7211,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     'Ak túru s etapami potiahnete na deň, malý dialóg sa opýta na to isté. Zrušiť nechá plán tak, ako bol.',
   'help.guide.tour-day-times.step.2':
-    'Nastavte Začiatok a Do nechajte prázdne. Riadok pod poľami uvádza koniec, ktorý TREK vypočíta: začiatok plus čas túry.',
+    'Nastavte Začiatok a Do nechajte prázdne. Riadok pod poľami uvádza koniec, ktorý YOUYA vypočíta: začiatok plus čas túry.',
   'help.guide.tour-remove-from-day.title': 'Odobratie túry z dňa',
   'help.guide.tour-filter-list.title': 'Filtrovanie zoznamu túr',
   'help.guide.tour-filter-list.tip.3':
@@ -7222,7 +7223,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     'Karta slúži na čítanie a na to, čo k túre patrí. Samotná trasa sa mení v karte Túry: otvorte ju a kliknite na túru pod Túry tejto cesty. Aj mazanie túry sa robí tam, nie tu.',
   'help.guide.tour-detail-read.step.6':
-    'Posuňte sa na Popis a Poznámky, potom na Pôvod: naplánované v TREK, súbor, z ktorého túra pochádza, alebo trasa z wanderer, spolu s dátumom.',
+    'Posuňte sa na Popis a Poznámky, potom na Pôvod: naplánované v YOUYA, súbor, z ktorého túra pochádza, alebo trasa z wanderer, spolu s dátumom.',
   'help.guide.tour-rename-colour.title': 'Premenovanie túry a zmena jej farby',
   'help.guide.tour-rename-colour.result':
     'Túra sa v celej ceste zobrazuje pod novým názvom a jej čiara je nakreslená vybranou farbou.',
@@ -7239,7 +7240,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     'Kliknutím na Porovnať na mape sa skutočná stopa nakreslí bodkovane vedľa plánu. Ukončiť porovnanie ju znova odstráni.',
   'help.guide.tour-origin-check.step.2':
-    'Importované uvádza deň importu. Tu uvádza aktuálny stav: Ako bolo importované, Upravené v TREK alebo Preplánované, zaznamenaná stopa zachovaná.',
+    'Importované uvádza deň importu. Tu uvádza aktuálny stav: Ako bolo importované, Upravené v YOUYA alebo Preplánované, zaznamenaná stopa zachovaná.',
   'help.ctx.trip-tour-planner.bullet.1':
     'Túry sú v lište kariet cesty hneď za Plán, kým je pre cestu zapnutý doplnok Túry. Vlastník cesty ho môže prepnúť v Doplnky v Nastaveniach cesty. Karta je dostupná na počítači a tablete. V telefóne sa túry zobrazujú a zaraďujú do dní z karty Plán, ale nekreslia sa.',
   'help.guide.tour-open-workspace.step.1':
@@ -7323,7 +7324,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.tip.2':
     'Stupeň vyšší, než je limit pešej túry, má vo svojom riadku odznak Nad limitom.',
   'help.guide.tour-hike-round.step.5':
-    'Kliknite na Vziať tento okruh a potom na Nahradiť, keď sa TREK opýta, či má nahradiť naplánovanú trasu.',
+    'Kliknite na Vziať tento okruh a potom na Nahradiť, keď sa YOUYA opýta, či má nahradiť naplánovanú trasu.',
   'help.guide.tour-hike-compare-ways.step.2':
     'Iné cesty pre tento úsek sa otvoria nad mapou s Aktuálna cesta a Cesta A, Cesta B a tak ďalej. Každá je na mape nakreslená svojou farbou a ak ukážete na riadok, jeho čiara sa zvýrazní.',
   'help.guide.tour-ferrata-add.goal': 'Nájdite ferraty v okolí svojej pešej túry a jednu z nich zaraďte do trasy.',
@@ -7379,13 +7380,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     'Pozdĺž túry pri vodáckej túre hľadá najprv Nástupné miesta, Požičovňa lodí a Pitná voda.',
   'help.guide.tour-paddle-water-route.step.4':
-    'Úsek, ktorý TREK nedokázal naplánovať, zčervenie a uvedie dôvod, napríklad že pre danú oblasť zatiaľ nie sú dáta o vode. Kliknutím na Nakresliť rovno ho zatiaľ nakreslíte ručne.',
+    'Úsek, ktorý YOUYA nedokázal naplánovať, zčervenie a uvedie dôvod, napríklad že pre danú oblasť zatiaľ nie sú dáta o vode. Kliknutím na Nakresliť rovno ho zatiaľ nakreslíte ručne.',
   'help.guide.tour-paddle-portage.goal':
     'Označte úsek, na ktorom loď prenášate, aby sa počítal ako súš, s časom na vystúpenie z lode a opätovný nástup.',
   'help.guide.tour-paddle-portage.tip.3':
     'Prenášanie sa počíta rýchlosťou 2 km/h, kým v karte Odhad času nenastavíte vlastnú Rýchlosť prenášania.',
   'help.guide.tour-paddle-lock.tip.1':
-    'TREK nepozná žiadne prevádzkové hodiny plavebných komôr. Časy sú len to, čo zadáte, preto si otváracie hodiny plavebnej komory skontrolujte sami.',
+    'YOUYA nepozná žiadne prevádzkové hodiny plavebných komôr. Časy sú len to, čo zadáte, preto si otváracie hodiny plavebnej komory skontrolujte sami.',
   'help.guide.tour-paddle-time.step.3':
     'Riadok Voda je vzdialenosť na vode pri vašej rýchlosti pádlovania. Rýchlosť zmeníte v poli Rýchlosť pádlovania navrchu stĺpca.',
   'help.guide.tour-paddle-wind.goal': 'Pozrite si predpovedaný vietor na začiatku túry v deň, keď ju pôjdete.',

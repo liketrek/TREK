@@ -1,6 +1,6 @@
 # Calendar Feeds
 
-Subscribe your calendar app to a trip, and it keeps up with every change you make in TREK instead of holding a copy from the day you imported it.
+Subscribe your calendar app to a trip, and it keeps up with every change you make in YOUYA instead of holding a copy from the day you imported it.
 
 > **Not the same as the ICS download.** **Download .ics** in the Export dialog saves a one-off `.ics` file that never changes after you import it. A calendar *feed* is a live address your calendar app fetches again on its own. Use the download for a frozen copy and a feed for something that follows your edits.
 
@@ -33,7 +33,7 @@ The all-trips feed merges every trip that qualifies into one calendar, sorted by
 ## Turning a feed on
 
 1. Open **Subscribe to calendar** (or **Subscribe to all trips**). Opening the dialog only reads the current state; it never creates a link on its own.
-2. Click **Enable calendar subscription** at the foot of the dialog. TREK creates a random token, and the dialog shows the ways to subscribe.
+2. Click **Enable calendar subscription** at the foot of the dialog. YOUYA creates a random token, and the dialog shows the ways to subscribe.
 3. Hand the feed to your calendar app with one of the buttons:
    - **Add to Google Calendar** opens Google's add-by-URL page with the feed filled in.
    - **Add to Apple Calendar / Outlook** is a `webcal://` link that your system passes to its default calendar app.
@@ -43,7 +43,7 @@ Above the buttons sits the **Day overview events** switch. It is on by default. 
 
 ![The Subscribe to calendar dialog once the feed is on: Add to Google Calendar, Add to Apple Calendar / Outlook and the manual links, with Regenerate and Turn off at its foot](assets/IcsSubscribe.png)
 
-The address is built from `APP_URL` when it is set; otherwise TREK uses the host you are browsing from. Behind a reverse proxy, set `APP_URL` so the link is one your calendar app can reach. See [Environment-Variables](Environment-Variables) and [Reverse-Proxy](Reverse-Proxy).
+The address is built from `APP_URL` when it is set; otherwise YOUYA uses the host you are browsing from. Behind a reverse proxy, set `APP_URL` so the link is one your calendar app can reach. See [Environment-Variables](Environment-Variables) and [Reverse-Proxy](Reverse-Proxy).
 
 ## The token, and who can read the feed
 

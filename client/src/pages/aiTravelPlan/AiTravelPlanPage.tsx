@@ -9,6 +9,7 @@ import TravelDraftSources from '../../components/AiTravelPlan/TravelDraftSources
 import TravelDraftTimeline from '../../components/AiTravelPlan/TravelDraftTimeline';
 import TravelDraftWarnings from '../../components/AiTravelPlan/TravelDraftWarnings';
 import type { DraftTravelMode } from '../../components/AiTravelPlan/draftNavigation';
+import Sprout from '../../components/Brand/Sprout';
 import PageShell from '../../components/Layout/PageShell';
 import TripShareDialog from '../../components/Trips/TripShareDialog';
 import { useAiTravelPlan } from './useAiTravelPlan';
@@ -121,13 +122,16 @@ export default function AiTravelPlanPage(): React.ReactElement {
     <PageShell background="var(--bg-secondary)">
       {/* pb clears the phone's floating dock, whose centre FAB otherwise sits on the form's submit button. */}
       <div className="mx-auto w-full max-w-5xl px-4 py-6 pb-[calc(var(--bottom-nav-h,0px)_+_24px)] sm:px-6 md:pb-10 lg:py-10">
-        <header className="mb-6">
-          <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-accent-subtle px-3 py-1 text-caption font-semibold text-accent-on">
-            <Sparkles size={13} />
-            {t('planner.ai.badge')}
+        <header className="mb-6 flex items-start gap-4">
+          <div className="min-w-0 flex-1">
+            <div className="mb-2 inline-flex items-center gap-2 rounded-full bg-accent-subtle px-3 py-1 text-caption font-semibold text-accent-on">
+              <Sparkles size={13} />
+              {t('planner.ai.badge')}
+            </div>
+            <h1 className="text-title font-bold text-content sm:text-title">{t('planner.ai.title')}</h1>
+            <p className="mt-2 max-w-2xl text-body leading-relaxed text-content-muted">{t('planner.ai.subtitle')}</p>
           </div>
-          <h1 className="text-title font-bold text-content sm:text-title">{t('planner.ai.title')}</h1>
-          <p className="mt-2 max-w-2xl text-body leading-relaxed text-content-muted">{t('planner.ai.subtitle')}</p>
+          <Sprout size={76} className="hidden shrink-0 sm:block" />
         </header>
 
         {vm.error && (

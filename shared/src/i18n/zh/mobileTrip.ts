@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': '驾驶数据',
   'mobileTrip.rtDesktopNote': '这些数据在桌面端设置。在桌面端还可以比较其他路线走法，并让某一天沿导入的轨迹行驶。',
   'mobileTrip.planOnDesktop': '请在电脑上规划',
-  'mobileTrip.rtDriveOnTwoPlaces': '一天里有了两个地点，TREK 就会算出这段车程。',
+  'mobileTrip.rtDriveOnTwoPlaces': '一天里有了两个地点，游芽就会算出这段车程。',
   'mobileTrip.toursEmptyBody': '已保存的游览会显示在这里，可添加到某一天。',
   'mobileTrip.toursCount': '{count} 个游览',
   'mobileTrip.rtSearchOffline': '需要联网：搜索会读取前方的路线。',

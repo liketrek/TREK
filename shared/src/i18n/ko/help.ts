@@ -7,7 +7,7 @@ const help: TranslationStrings = {
   'help.contents': '목차',
   'help.noResults': '일치하는 페이지가 없어요.',
   'help.errorTitle': '페이지를 불러오지 못했어요',
-  'help.errorBody': '도움말은 TREK 위키에서 불러와요. 연결 상태를 확인하고 다시 시도하세요.',
+  'help.errorBody': '도움말은 YOUYA 위키에서 불러와요. 연결 상태를 확인하고 다시 시도하세요.',
 
   // center
   'help.center.button': '이 화면 도움말',
@@ -69,13 +69,13 @@ const help: TranslationStrings = {
   'help.guide.create-trip.step.2':
     '여행 이름을 입력하세요. 필수 항목은 이것 하나뿐이고, 나머지는 나중에 추가해도 돼요.',
   'help.guide.create-trip.step.3':
-    '시작일과 종료일을 고르세요. TREK가 날짜마다 하루씩 만들어 줘서 바로 일정을 짤 수 있어요. 아직 날짜가 없나요? 둘 다 비워 두고 대신 ‘일수’를 입력하세요.',
+    '시작일과 종료일을 고르세요. YOUYA가 날짜마다 하루씩 만들어 줘서 바로 일정을 짤 수 있어요. 아직 날짜가 없나요? 둘 다 비워 두고 대신 ‘일수’를 입력하세요.',
   'help.guide.create-trip.step.4':
     '선택 사항: 커버 사진을 추가하세요. 직접 업로드하거나, 끌어다 놓거나 붙여 넣거나, Unsplash에서 여행지를 검색하세요.',
   'help.guide.create-trip.step.5': '‘새 여행 만들기’를 클릭하세요.',
   'help.guide.create-trip.result': '여행이 대시보드에 나타나요. 바로 다음 여행이면 상단의 탑승권에 표시돼요.',
   'help.guide.create-trip.tip.1':
-    '날짜는 나중에 바꿀 수 있어요. 이미 예약이 있으면 예약도 날짜에 맞춰 옮길지 TREK이 물어봐요.',
+    '날짜는 나중에 바꿀 수 있어요. 이미 예약이 있으면 예약도 날짜에 맞춰 옮길지 YOUYA이 물어봐요.',
   'help.guide.create-trip.tip.2': '여기서 고른 여행 통화로 모든 비용이 환산돼요. 여행지의 통화를 고르세요.',
 
   // edit-trip
@@ -138,7 +138,7 @@ const help: TranslationStrings = {
   'help.guide.calendar-feed.title': '캘린더에서 모든 여행 구독하기',
   'help.guide.calendar-feed.goal': '진행 중인 모든 여행의 날과 예약을 캘린더 앱에서 동기화된 상태로 봐요.',
   'help.guide.calendar-feed.step.1': '보기 전환 버튼 옆의 캘린더 아이콘을 클릭하세요.',
-  'help.guide.calendar-feed.step.2': '‘캘린더 구독 사용’을 클릭하세요. TREK가 비공개 피드 링크를 만들어요.',
+  'help.guide.calendar-feed.step.2': '‘캘린더 구독 사용’을 클릭하세요. YOUYA가 비공개 피드 링크를 만들어요.',
   'help.guide.calendar-feed.step.3':
     '‘Google 캘린더에 추가’나 ‘Apple 캘린더 / Outlook에 추가’를 클릭하세요. 다른 캘린더 앱이라면 ‘또는 링크를 직접 복사’를 열고 거기서 링크를 복사하세요.',
   'help.guide.calendar-feed.result':
@@ -300,7 +300,7 @@ const help: TranslationStrings = {
   'help.guide.carry-over.tip.1': '끄면 모든 이월 잔액이 0으로 돌아가요.',
   // invite
   'help.guide.invite.title': '다른 사람과 함께 계획하기',
-  'help.guide.invite.goal': '다른 TREK 사용자와 계획을 합쳐서 서로의 휴가를 한 달력에서 봐요.',
+  'help.guide.invite.goal': '다른 YOUYA 사용자와 계획을 합쳐서 서로의 휴가를 한 달력에서 봐요.',
   'help.guide.invite.step.1': '‘인원’ 카드에서 사람 아이콘을 클릭하세요.',
   'help.guide.invite.step.2': '사용자를 고르고 ‘초대 전송’을 클릭하세요.',
   'help.guide.invite.step.3':
@@ -325,7 +325,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ─────────────────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atlas',
   'help.ctx.atlas.summary':
-    'Atlas는 내가 여행한 곳을 세계 지도로 보여 줘요. 여행으로 다녀온 나라는 모두 색칠되고, TREK을 쓰기 전에 다녀온 나라는 직접 추가할 수 있어요. 확대하면 지역이 보이고, 아직 가 보고 싶은 곳은 버킷 리스트로 관리하며, 아래쪽 반투명 패널에서 내 통계를 볼 수 있어요.',
+    'Atlas는 내가 여행한 곳을 세계 지도로 보여 줘요. 여행으로 다녀온 나라는 모두 색칠되고, YOUYA을 쓰기 전에 다녀온 나라는 직접 추가할 수 있어요. 확대하면 지역이 보이고, 아직 가 보고 싶은 곳은 버킷 리스트로 관리하며, 아래쪽 반투명 패널에서 내 통계를 볼 수 있어요.',
   'help.ctx.atlas.bullet.1':
     '지도: 다녀온 국가는 국가마다 정해진 색으로, 예정된 국가는 점선 테두리로, 버킷 리스트 국가는 빗금으로, 나머지는 회색으로 보여요. 국가에 마우스를 올리면 여행, 장소, 첫 방문과 마지막 방문이 보여요.',
   'help.ctx.atlas.bullet.2':
@@ -340,7 +340,7 @@ const help: TranslationStrings = {
     'Dawarich: 애드온을 연결하면 통계 왼쪽 패널에서 기록을 바탕으로 위시리스트를 완료 처리하고 국가를 추가해요. 내가 확인한 뒤에만 반영돼요.',
   // mark-country
   'help.guide.mark-country.title': '나라를 방문함으로 표시하기',
-  'help.guide.mark-country.goal': 'TREK을 쓰기 전에 다녀온 나라를 추가해 지도와 집계에 포함해요.',
+  'help.guide.mark-country.goal': 'YOUYA을 쓰기 전에 다녀온 나라를 추가해 지도와 집계에 포함해요.',
   'help.guide.mark-country.step.1': '지도 위쪽 검색창에 나라 이름을 입력하세요.',
   'help.guide.mark-country.step.2': '목록에서 고르세요. 지도가 그 나라로 이동하고 팝업이 열려요.',
   'help.guide.mark-country.step.3': '‘방문으로 표시’를 고르세요.',
@@ -400,7 +400,7 @@ const help: TranslationStrings = {
     '그 지역에 “방문으로 표시”를 선택하거나, 아직 가 보지 않았다면 “버킷 리스트에 추가”를 선택하세요.',
   'help.guide.search-place.result':
     '지역이 표시되고 나라도 함께 표시돼요. 지도 데이터에 지역 정보가 없는 나라는 나라 자체가 표시돼요.',
-  'help.guide.search-place.tip.1': '장소는 TREK의 다른 화면과 같은 검색을 쓰므로 관리자가 설정한 제공자를 사용해요.',
+  'help.guide.search-place.tip.1': '장소는 YOUYA의 다른 화면과 같은 검색을 쓰므로 관리자가 설정한 제공자를 사용해요.',
   // bucket-country
   'help.guide.bucket-country.title': '나라를 버킷 리스트에 추가하기',
   'help.guide.bucket-country.goal': '다녀온 국가와 따로, 가고 싶은 국가 목록을 지도에 둬요.',
@@ -433,7 +433,7 @@ const help: TranslationStrings = {
     '대륙별로 다녀온 국가 수가 나와요. 남극은 다녀온 뒤에 줄에 나타나요. 이어서 연속 기록(여행이 한 번 이상 있었던 연속 연도 수)과 올해 다녀온 여행 수가 보여요.',
   'help.guide.stats.result': '여행을 계획하면 숫자가 자동으로 업데이트돼요. 여기서 따로 관리할 건 없어요.',
   'help.guide.stats.tip.1':
-    '도시는 따로 조회하지 않고 주소 텍스트에서 읽어요. TREK은 나라, 우편번호, 지역을 건너뛰고 그 앞의 이름을 가져와요. 그래서 “10178 Berlin”은 Berlin으로 세어요. “Osteria Francescana, Italy” 같은 짧은 주소는 도시가 하나도 추가되지 않아요.',
+    '도시는 따로 조회하지 않고 주소 텍스트에서 읽어요. YOUYA은 나라, 우편번호, 지역을 건너뛰고 그 앞의 이름을 가져와요. 그래서 “10178 Berlin”은 Berlin으로 세어요. “Osteria Francescana, Italy” 같은 짧은 주소는 도시가 하나도 추가되지 않아요.',
   'help.guide.stats.tip.2': '직접 표시한 나라는 “국가”와 대륙 수에는 집계되지만 여행, 장소, 일수는 늘지 않아요.',
   // dawarich-countries
   'help.guide.dawarich-countries.title': '기록에서 나라 추가하기',
@@ -441,7 +441,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     'Dawarich 애드온이 연결돼 있으면 지도 아래쪽 통계 왼쪽에 타일 두 개가 있는 Dawarich 패널이 나타나요. ‘국가’를 클릭하세요.',
   'help.guide.dawarich-countries.step.2':
-    '창이 ‘국가’ 탭으로 열려요. ‘국가 찾기’를 클릭하세요. TREK가 최근 12개월 기록에 있는 국가와 도시를 한 달씩 읽어서 조금 걸릴 수 있어요. 아직 Atlas에 없는 국가가 국기, 도시 수, 첫 도시 이름과 함께 나오고, 모두 기본으로 체크돼 있어요. 빼려면 줄을 클릭하세요.',
+    '창이 ‘국가’ 탭으로 열려요. ‘국가 찾기’를 클릭하세요. YOUYA가 최근 12개월 기록에 있는 국가와 도시를 한 달씩 읽어서 조금 걸릴 수 있어요. 아직 Atlas에 없는 국가가 국기, 도시 수, 첫 도시 이름과 함께 나오고, 모두 기본으로 체크돼 있어요. 빼려면 줄을 클릭하세요.',
   'help.guide.dawarich-countries.step.3':
     '오른쪽 아래 버튼으로 확인하세요. 다섯 행을 체크하면 버튼에 “국가 5곳 추가”라고 표시돼요. 대화 상자에 몇 곳이 추가됐는지 나오고, 대화 상자를 닫으면 지도는 이미 업데이트되어 있어요.',
   'help.guide.dawarich-countries.result':
@@ -449,13 +449,13 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Atlas에 이미 방문한 나라로 표시된 곳은 직접 표시했든, 여행에서 왔든, 이전 확인에서 왔든 제외돼요. 그래서 내가 한 표시는 바뀌지 않아요. 예전에 Atlas에서 지운 나라는 여기서 확인하면 다시 추가돼요.',
   'help.guide.dawarich-countries.tip.2':
-    'TREK이 나라 이름을 매칭하지 못하면 그 이름은 버리지 않고 행 아래에 표시돼요. “다시 확인”을 누르면 Dawarich에 다시 요청해요. 목록 아래 안내에 최근 12개월을 확인했다고 나와요. 이 기간은 바꿀 수 없어요.',
+    'YOUYA이 나라 이름을 매칭하지 못하면 그 이름은 버리지 않고 행 아래에 표시돼요. “다시 확인”을 누르면 Dawarich에 다시 요청해요. 목록 아래 안내에 최근 12개월을 확인했다고 나와요. 이 기간은 바꿀 수 없어요.',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': '기록으로 위시리스트 체크하기',
   'help.guide.dawarich-wishes.goal': '버킷 리스트 중 실제로 가 본 곳을 찾아서, 간 날짜와 함께 다녀옴으로 표시해요.',
   'help.guide.dawarich-wishes.step.1': '지도 아래쪽 통계 왼쪽의 Dawarich 패널에서 ‘위시리스트’를 클릭하세요.',
   'help.guide.dawarich-wishes.step.2':
-    '대화 상자가 “위시리스트” 탭으로 열려요. “위시리스트 확인”을 클릭하면 TREK이 좌표가 있는 모든 항목을 기준으로 기록을 살펴봐요. 도달한 위시는 얼마나 가까이 갔는지, 얼마나 머물렀는지, 어느 날이었는지와 함께 표시되고 기본으로 체크되어 있어요. 이미 완료 처리한 항목에는 “이미 완료 처리됨”이 표시돼요. 목록 아래 안내에는 좌표가 없는 항목 수와 함께 기준이 나와요: 250 m 이내에서 20분 이상 머무르면 도달한 것으로 봐요.',
+    '대화 상자가 “위시리스트” 탭으로 열려요. “위시리스트 확인”을 클릭하면 YOUYA이 좌표가 있는 모든 항목을 기준으로 기록을 살펴봐요. 도달한 위시는 얼마나 가까이 갔는지, 얼마나 머물렀는지, 어느 날이었는지와 함께 표시되고 기본으로 체크되어 있어요. 이미 완료 처리한 항목에는 “이미 완료 처리됨”이 표시돼요. 목록 아래 안내에는 좌표가 없는 항목 수와 함께 기준이 나와요: 250 m 이내에서 20분 이상 머무르면 도달한 것으로 봐요.',
   'help.guide.dawarich-wishes.step.3':
     '오른쪽 아래 버튼으로 확인하세요. 두 행을 체크하면 버튼에 “2개 완료 처리”라고 표시돼요. 그런 다음 대화 상자를 닫고 옆 패널의 “버킷 리스트” 탭을 여세요.',
   'help.guide.dawarich-wishes.result':
@@ -463,7 +463,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     '차로 지나간 건 포함되지 않아요. 장소 가까이에서 일정 시간 머물러야 해요. 조건을 채운 방문이 여러 번이면 가장 오래 머문 방문을 써요. 좌표가 없는 위시는 확인할 수 없으니, 이름만 넣지 말고 “장소 추가”의 검색으로 장소를 추가하세요.',
   'help.guide.dawarich-wishes.tip.2':
-    '한 번 확인할 때 최대 50개 항목을 보고, 아직 체크하지 않은 것부터 봐요. 더 있으면 TREK가 알려 줘요. 이미 체크한 항목은 원래 날짜를 그대로 유지해요.',
+    '한 번 확인할 때 최대 50개 항목을 보고, 아직 체크하지 않은 것부터 봐요. 더 있으면 YOUYA가 알려 줘요. 이미 체크한 항목은 원래 날짜를 그대로 유지해요.',
 
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': '컬렉션',
@@ -515,7 +515,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     '장소가 이름, 주소, 좌표, 설명, 카테고리와 함께 목록으로 복사돼요. 여행은 바뀌지 않아요.',
   'help.guide.import-from-trip.tip.1':
-    '이름이나 좌표가 같은 중복은 TREK가 자동으로 건너뛰어서, 두 번 가져와도 괜찮아요.',
+    '이름이나 좌표가 같은 중복은 YOUYA가 자동으로 건너뛰어서, 두 번 가져와도 괜찮아요.',
   'help.guide.import-from-trip.tip.2':
     '여행의 장소 목록에서는 선택 모드의 ‘컬렉션에 저장’으로 직접 고른 장소만 저장할 수도 있어요.',
   // place-status
@@ -583,7 +583,7 @@ const help: TranslationStrings = {
   'help.guide.copy-to-trip.tip.1': '공유 목록의 뷰어도 할 수 있어요. 목록의 장소를 복사할 뿐 목록은 바뀌지 않아요.',
   // share-list
   'help.guide.share-list.title': '목록 공유하기',
-  'help.guide.share-list.goal': '이 TREK의 다른 사람들과 실시간으로 목록을 함께 계획해요.',
+  'help.guide.share-list.goal': '이 YOUYA의 다른 사람들과 실시간으로 목록을 함께 계획해요.',
   'help.guide.share-list.step.1': '내 목록 헤더의 ‘공유’를 클릭하세요.',
   'help.guide.share-list.step.2': '사용자를 고르고 역할을 정하세요: “뷰어”, “편집자”, “관리자”.',
   'help.guide.share-list.step.3':
@@ -597,21 +597,21 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': '목록을 파일로 내보내기',
   'help.guide.export-list.goal':
-    '다른 TREK 서버를 쓰는 사람에게 목록을 주거나, 지도 앱에서 열거나, Google My Maps에서 봐요.',
+    '다른 YOUYA 서버를 쓰는 사람에게 목록을 주거나, 지도 앱에서 열거나, Google My Maps에서 봐요.',
   'help.guide.export-list.step.1': '목록 헤더의 ‘내보내기’를 클릭하세요.',
   'help.guide.export-list.step.2':
-    '다른 TREK에서 레이블과 상태까지 쓰려면 ‘TREK 목록’을, OsmAnd, Organic Maps, Garmin처럼 웨이포인트를 읽는 앱에서 쓰려면 GPX를, Google Maps에서 장소를 보려면 Google My Maps용 KML을 고르세요.',
+    '다른 YOUYA에서 레이블과 상태까지 쓰려면 ‘YOUYA 목록’을, OsmAnd, Organic Maps, Garmin처럼 웨이포인트를 읽는 앱에서 쓰려면 GPX를, Google Maps에서 장소를 보려면 Google My Maps용 KML을 고르세요.',
   'help.guide.export-list.result': '파일이 다운로드돼요. 공유 목록의 멤버라면 누구나 내보낼 수 있어요.',
   'help.guide.export-list.tip.1':
-    '좌표가 없는 장소는 GPX 웨이포인트나 KML 핀으로 만들 수 없어서 빠져요. 몇 개가 빠졌는지 TREK이 알려 줘요.',
+    '좌표가 없는 장소는 GPX 웨이포인트나 KML 핀으로 만들 수 없어서 빠져요. 몇 개가 빠졌는지 YOUYA이 알려 줘요.',
   'help.guide.export-list.tip.2':
-    '평점, 멤버, 업로드한 사진은 일부러 내보내지 않아요. 목록이 아니라 이 TREK에 속한 정보이기 때문이에요.',
+    '평점, 멤버, 업로드한 사진은 일부러 내보내지 않아요. 목록이 아니라 이 YOUYA에 속한 정보이기 때문이에요.',
   // import-file
   'help.guide.import-file.title': '파일에서 목록 가져오기',
-  'help.guide.import-file.goal': 'TREK 목록 파일이나 GPX 파일을 새 목록으로, 또는 기존 목록에 가져와요.',
+  'help.guide.import-file.goal': 'YOUYA 목록 파일이나 GPX 파일을 새 목록으로, 또는 기존 목록에 가져와요.',
   'help.guide.import-file.step.1': '목록 레일의 ‘새 목록’ 옆, 업로드 화살표가 있는 가져오기 버튼을 클릭하세요.',
   'help.guide.import-file.step.2':
-    '파일을 고르세요. 가져오기 전에 TREK가 파일 내용을 보여 줘요: 이름, 장소 수, 레이블 수.',
+    '파일을 고르세요. 가져오기 전에 YOUYA가 파일 내용을 보여 줘요: 이름, 장소 수, 레이블 수.',
   'help.guide.import-file.step.3':
     '‘새 목록’을 그대로 두고 원하면 이름을 바꾼 뒤 ‘가져오기’를 클릭하세요. 또는 ‘목록에 추가’를 골라 편집할 수 있는 목록에 장소를 넣고 ‘리스트에 추가’를 클릭하세요.',
   'help.guide.import-file.result':
@@ -619,7 +619,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     'GPX에서는 이름이 있는 웨이포인트가 모두 장소가 돼요. 트랙은 선이라서 제외되고, 그게 몇 개였는지 미리 보기에 나와요.',
   'help.guide.import-file.tip.2':
-    'TREK 목록도 GPX도 아닌 파일은 거부되고, TREK이 이유를 알려 줘요. 장소 하나를 읽을 수 없으면 파일 전체가 아니라 그 장소만 건너뛰어요.',
+    'YOUYA 목록도 GPX도 아닌 파일은 거부되고, YOUYA이 이유를 알려 줘요. 장소 하나를 읽을 수 없으면 파일 전체가 아니라 그 장소만 건너뛰어요.',
   // edit-list
   'help.guide.edit-list.title': '목록 편집하거나 삭제하기',
   'help.guide.edit-list.goal': '목록 이름, 색, 커버, 설명, 링크를 바꾸거나 목록을 삭제해요.',
@@ -819,7 +819,7 @@ const help: TranslationStrings = {
   'help.guide.link-trip.tip.2': '날짜가 있는 항목은 그날에 걸친 여행이 몇 개든 한 번만 집계돼요.',
   // share-public
   'help.guide.share-public.title': 'Journey 공개로 공유하기',
-  'help.guide.share-public.goal': 'TREK 계정이 없는 사람에게 읽기 전용 링크를 줘요.',
+  'help.guide.share-public.goal': 'YOUYA 계정이 없는 사람에게 읽기 전용 링크를 줘요.',
   'help.guide.share-public.step.1': '헤더의 ⋯로 ‘Journey 설정’을 열고 ‘공개 공유’까지 스크롤하세요.',
   'help.guide.share-public.step.2': '‘공유 링크 만들기’를 클릭하세요.',
   'help.guide.share-public.step.3':
@@ -837,7 +837,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.step.3': '‘뷰어’나 ‘편집자’를 고르고 ‘초대’를 클릭하세요.',
   'help.guide.contributors.result':
     '그 사람의 목록에 Journey가 나타나고, 그 사람이 쓴 항목에는 이름이 붙어요. 기여자를 빼려면 옆의 ×를 클릭하세요.',
-  'help.guide.contributors.tip.1': '기여자는 이 TREK를 쓰는 사람용이에요. 그 밖의 사람에게는 공개 링크가 있어요.',
+  'help.guide.contributors.tip.1': '기여자는 이 YOUYA를 쓰는 사람용이에요. 그 밖의 사람에게는 공개 링크가 있어요.',
   // studio
   'help.guide.studio.title': 'Journey를 포토북으로 만들기',
   'help.guide.studio.goal': '일기를 인쇄용 페이지로 만들어요.',
@@ -871,7 +871,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ────────────────────────────────────────────────────────────
   'help.ctx.journey-studio.title': '스튜디오',
   'help.ctx.journey-studio.summary':
-    'TREK Studio는 Journey를 인쇄할 수 있는 포토북으로 만들어 줘요. Journey 위에 열리며, 왼쪽에는 사이드바와 패널, 가운데에는 작업 중인 펼침면, 오른쪽에는 속성이 있어요. 자동 레이아웃은 기록으로 첫 초안을 만들고, 테마는 책에 색과 글꼴을 입히고, 어시스턴트는 페이지 디자인을 함께해요. 그 뒤에는 무엇이든 옮기고, 자르고, 스타일을 바꿀 수 있고, 모든 단계를 실행 취소할 수 있어요.',
+    'YOUYA Studio는 Journey를 인쇄할 수 있는 포토북으로 만들어 줘요. Journey 위에 열리며, 왼쪽에는 사이드바와 패널, 가운데에는 작업 중인 펼침면, 오른쪽에는 속성이 있어요. 자동 레이아웃은 기록으로 첫 초안을 만들고, 테마는 책에 색과 글꼴을 입히고, 어시스턴트는 페이지 디자인을 함께해요. 그 뒤에는 무엇이든 옮기고, 자르고, 스타일을 바꿀 수 있고, 모든 단계를 실행 취소할 수 있어요.',
   'help.ctx.journey-studio.bullet.1':
     '상단 바: 왼쪽에는 Journey의 표지와 이름이 있어요. 오른쪽에는 이 책에 함께 있는 사람과 저장 여부, 페이지 형식, 실행 취소, 다시 실행, 붙여넣기, 자동 레이아웃, 어시스턴트, 도움말, 내보내기, 그리고 스튜디오를 닫는 버튼이 있어요.',
   'help.ctx.journey-studio.bullet.2':
@@ -883,7 +883,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     '책은 인쇄된 책과 같은 구성이에요. 표지, 표지 안쪽 빈 면과 마주 보는 낱쪽 첫 페이지, 펼침면, 낱쪽 마지막 페이지, 뒤표지 순이에요. 쪽 번호는 첫 페이지부터 세고 보이는 그대로 인쇄돼요.',
   'help.ctx.journey-studio.bullet.6':
-    '여러 사람이 동시에 디자인할 수 있어요: 서로의 포인터가 이름과 함께 보여요. 다른 사람이 바꾼 버전에 저장하면 TREK가 그 작업을 덮어쓰지 않고 충돌로 알려 줘요.',
+    '여러 사람이 동시에 디자인할 수 있어요: 서로의 포인터가 이름과 함께 보여요. 다른 사람이 바꾼 버전에 저장하면 YOUYA가 그 작업을 덮어쓰지 않고 충돌로 알려 줘요.',
   'help.ctx.journey-studio.bullet.7':
     '테마: 책 전체의 모습을 하나로 맞춰요. 종이, 잉크, 강조색 세 가지, 글꼴, 모티프가 포함돼요. 테마에 연결된 요소는 테마를 바꾸면 함께 바뀌어요.',
   'help.ctx.journey-studio.bullet.8':
@@ -957,7 +957,7 @@ const help: TranslationStrings = {
     '책에서 연결된 색과 글꼴이 모두 한꺼번에 바뀌고, 테마 적용은 실행 취소 한 단계예요.',
   'help.guide.studio-content.tip.1': 'Content 위쪽 검색창으로 두 목록을 모두 걸러요.',
   'help.guide.studio-content.tip.2':
-    '컴퓨터 바탕화면에서 파일을 작업 공간에 끌어다 놓으면, TREK가 업로드와 배치를 한 번에 해요.',
+    '컴퓨터 바탕화면에서 파일을 작업 공간에 끌어다 놓으면, YOUYA가 업로드와 배치를 한 번에 해요.',
   // studio-elements
   'help.guide.studio-elements.title': '텍스트, 도형, 아이콘, 스티커 추가하기',
   'help.guide.studio-elements.goal': '사진과 이야기 외에 장식 요소로 펼침면을 꾸며요.',
@@ -1060,12 +1060,12 @@ const help: TranslationStrings = {
     '다른 책에서 ‘페이지’를 열고 맨 아래 ‘+ 페이지’ 옆의 ‘가져오기’를 클릭한 다음 파일을 고르세요.',
   'help.guide.studio-spread-file.result':
     '펼침면이 프레임과 글꼴 스타일과 함께 들어와요. 새 Journey의 사진을 프레임에 끌어다 놓으세요.',
-  'help.guide.studio-spread-file.tip.1': '펼침면 디자인 파일이 아니면 TREK가 거부하고 이유를 보여 줘요.',
+  'help.guide.studio-spread-file.tip.1': '펼침면 디자인 파일이 아니면 YOUYA가 거부하고 이유를 보여 줘요.',
 
   // ── Screen: settings (all tabs) ───────────────────────────────────────────────────────
   'help.ctx.settings.title': '설정',
   'help.ctx.settings.summary':
-    '내 개인 설정이에요. 왼쪽 사이드바에 주제별로 탭이 있어요. 대부분의 스위치는 바꾸는 즉시 적용되고, ‘저장’ 버튼이 있는 양식은 ‘저장’을 눌러야 저장돼요. 여기서 바꾼 내용은 다른 사람의 TREK에 영향을 주지 않아요.',
+    '내 개인 설정이에요. 왼쪽 사이드바에 주제별로 탭이 있어요. 대부분의 스위치는 바꾸는 즉시 적용되고, ‘저장’ 버튼이 있는 양식은 ‘저장’을 눌러야 저장돼요. 여기서 바꾼 내용은 다른 사람의 YOUYA에 영향을 주지 않아요.',
   'help.ctx.settings.bullet.1':
     '왼쪽 사이드바: ‘화면’, ‘모양’, ‘지도’, ‘알림’, ‘통합’, ‘오프라인’, ‘계정’. 플러그인이 활성화되면 ‘플러그인’이 생기고, 운영자가 숨기지 않았다면 ‘정보’도 있어요. 맨 아래에 버전이 보여요.',
   'help.ctx.settings.bullet.2':
@@ -1075,7 +1075,7 @@ const help: TranslationStrings = {
   'help.ctx.settings.bullet.4': '“계정”에서는 프로필, 비밀번호, 2단계 인증, 패스키를 관리하고 계정을 삭제할 수 있어요.',
   'help.ctx.settings-display.title': '화면',
   'help.ctx.settings-display.summary':
-    'TREK가 어떤 화면으로 시작할지, 어떤 언어와 단위를 쓸지, 여행 지도와 예약이 어떻게 동작할지 정해요. 바꾸면 바로 적용돼요.',
+    'YOUYA가 어떤 화면으로 시작할지, 어떤 언어와 단위를 쓸지, 여행 지도와 예약이 어떻게 동작할지 정해요. 바꾸면 바로 적용돼요.',
   'help.ctx.settings-display.bullet.1':
     '‘시작’: ‘시작 화면’을 ‘대시보드’나 ‘진행 중인 여행’으로 정해요. ‘진행 중인 여행’을 고르면 ‘시작 탭’에서 그 여행이 열릴 탭을 골라요.',
   'help.ctx.settings-display.bullet.2':
@@ -1084,7 +1084,7 @@ const help: TranslationStrings = {
     '여행 및 지도: ‘장소 열기 앱’, ‘날 제목에 날짜를 먼저 표시’, ‘예약 경로 레이블’, ‘예약 경로 항상 표시’, ‘계획되지 않은 장소를 작은 마커로 표시’, ‘지도에서 장소 탐색’, ‘예약 코드 흐리게’, ‘숙소 기준으로 경로 최적화’.',
   'help.ctx.settings-appearance.title': '모양',
   'help.ctx.settings-appearance.summary':
-    '이 계정에서 TREK이 보이는 방식이에요: 라이트 또는 다크, 강조색, 반투명 효과와 애니메이션, 글자 크기, 대시보드에 표시할 위젯. 모두 바로 적용되고 로그인하는 모든 기기에 반영돼요.',
+    '이 계정에서 YOUYA이 보이는 방식이에요: 라이트 또는 다크, 강조색, 반투명 효과와 애니메이션, 글자 크기, 대시보드에 표시할 위젯. 모두 바로 적용되고 로그인하는 모든 기기에 반영돼요.',
   'help.ctx.settings-appearance.bullet.1':
     '‘테마’: ‘색상 모드’(‘라이트’, ‘다크’, ‘자동’), 색상 스키마, 그리고 ‘직접 설정’에서는 라이트와 다크 모드용 강조 색을 대비 확인과 함께 정해요.',
   'help.ctx.settings-appearance.bullet.2':
@@ -1103,7 +1103,7 @@ const help: TranslationStrings = {
     'Mapbox GL 전용: ‘3D 건물 및 지형’, ‘고품질 모드’, ‘관심 지점 숨기기’. ‘지도 저장’ 위에 실시간 미리보기가 보이고, ‘지도 저장’으로 선택을 저장해요.',
   'help.ctx.settings-notifications.title': '알림',
   'help.ctx.settings-notifications.summary':
-    'TREK가 앱 밖에서 나에게 연락하는 방법이에요. 맨 위 표에서 이벤트별 줄과 채널별 열로 무엇을 어디로 보낼지 정해요. 그 아래에 웹훅, ntfy, 이 기기의 푸시, 플러그인 채널 카드가 있어요.',
+    'YOUYA가 앱 밖에서 나에게 연락하는 방법이에요. 맨 위 표에서 이벤트별 줄과 채널별 열로 무엇을 어디로 보낼지 정해요. 그 아래에 웹훅, ntfy, 이 기기의 푸시, 플러그인 채널 카드가 있어요.',
   'help.ctx.settings-notifications.bullet.1':
     '‘알림’: 채널마다 이벤트를 켜거나 꺼요. 자물쇠는 관리자가 그 항목을 모두에게 꺼 뒀다는 뜻이에요.',
   'help.ctx.settings-notifications.bullet.2':
@@ -1114,7 +1114,7 @@ const help: TranslationStrings = {
     '‘이 기기의 푸시 알림’: ‘이 기기에서 켜기’는 지금 쓰는 브라우저에만 적용되고, ‘테스트 전송’은 테스트 알림을 보내요. 플러그인 채널은 설정을 마칠 때까지 ‘설정하기’로 보여요.',
   'help.ctx.settings-integrations.title': '통합',
   'help.ctx.settings-integrations.summary':
-    '외부에서 TREK에 연결되는 모든 것이에요: 예약 메일용 내 주소, Journey용 사진 라이브러리, 항공편용 AirTrail, 실제로 다녀온 곳을 위한 Dawarich, 트레일용 wanderer, 다른 소프트웨어용 읽기 전용 API 키, AI 클라이언트용 MCP. 다른 서비스와의 연결은 관리자가 켜야 보여요.',
+    '외부에서 YOUYA에 연결되는 모든 것이에요: 예약 메일용 내 주소, Journey용 사진 라이브러리, 항공편용 AirTrail, 실제로 다녀온 곳을 위한 Dawarich, 트레일용 wanderer, 다른 소프트웨어용 읽기 전용 API 키, AI 클라이언트용 MCP. 다른 서비스와의 연결은 관리자가 켜야 보여요.',
   'help.ctx.settings-integrations.bullet.1':
     '‘예약 메일’: 관리자가 메일 가져오기를 켜면 맨 위에 나타나고, 내 전달 주소와 스위치가 있어요. 그 아래 Immich와 Synology Photos, AirTrail, Dawarich, wanderer는 카드마다 주소와 키, ‘저장’과 ‘연결 테스트’, ‘연결됨’ 또는 ‘연결되지 않음’ 배지가 있어요.',
   'help.ctx.settings-integrations.bullet.2':
@@ -1125,7 +1125,7 @@ const help: TranslationStrings = {
     '‘API 토큰’: MCP에 연결하는 예전 방식으로 ‘지원 중단 예정’으로 표시돼요. 대신 ‘OAuth 2.1 클라이언트’를 쓰세요.',
   'help.ctx.settings-offline.title': '오프라인',
   'help.ctx.settings-offline.summary':
-    '연결이 없어도 여행을 열 수 있도록 TREK이 이 기기에 저장하는 데이터, 그리고 오프라인에서 한 변경이 다른 곳의 변경과 충돌할 때 어떻게 되는지 알려 줘요.',
+    '연결이 없어도 여행을 열 수 있도록 YOUYA이 이 기기에 저장하는 데이터, 그리고 오프라인에서 한 변경이 다른 곳의 변경과 충돌할 때 어떻게 되는지 알려 줘요.',
   'help.ctx.settings-offline.bullet.1':
     '‘오프라인 모드’: ‘오프라인 모드 강제 사용’은 먼저 전부 내려받은 뒤 캐시로만 동작하고, 변경 사항은 대기열에 쌓아 둬요.',
   'help.ctx.settings-offline.bullet.2':
@@ -1136,20 +1136,20 @@ const help: TranslationStrings = {
     '‘동기화 충돌’은 두 변경이 충돌할 때만 나타나고, ‘내 버전’, ‘상대 버전 유지’, ‘충돌이 발생하면’이 있어요. ‘오프라인 캐시’는 여행 수와 대기 중이거나 실패한 변경 수를 보여 주고, ‘다시 시도’, ‘취소’, ‘캐시 지우기’가 있어요.',
   'help.ctx.settings-account.title': '계정',
   'help.ctx.settings-account.summary':
-    '이 TREK의 내 계정과 로그인 방법이에요. 프로필 사진, 사용자 이름과 이메일, 비밀번호, 2단계 인증, 패스키가 있어요. ‘계정 삭제’는 ‘계정’ 카드 하단에 있어요.',
+    '이 YOUYA의 내 계정과 로그인 방법이에요. 프로필 사진, 사용자 이름과 이메일, 비밀번호, 2단계 인증, 패스키가 있어요. ‘계정 삭제’는 ‘계정’ 카드 하단에 있어요.',
   'help.ctx.settings-account.bullet.1':
     '‘계정’: 사진의 카메라 아이콘을 클릭해 사진을 올리고, 빨간 휴지통으로 삭제해요. ‘사용자 이름’과 ‘이메일’은 ‘프로필 저장’으로 저장돼요.',
   'help.ctx.settings-account.bullet.2':
-    '‘비밀번호 변경’: 현재 비밀번호, 새 비밀번호 두 번(입력하는 동안 규칙이 하나씩 체크돼요), 그다음 ‘비밀번호 업데이트’. 이 TREK가 SSO로만 로그인하면 이 카드는 보이지 않아요.',
+    '‘비밀번호 변경’: 현재 비밀번호, 새 비밀번호 두 번(입력하는 동안 규칙이 하나씩 체크돼요), 그다음 ‘비밀번호 업데이트’. 이 YOUYA가 SSO로만 로그인하면 이 카드는 보이지 않아요.',
   'help.ctx.settings-account.bullet.3':
     '인증 앱과 백업 코드를 쓰는 “2단계 인증 (2FA)”, 비밀번호 없이 로그인하는 “패스키”.',
   'help.ctx.settings-account.bullet.4':
     '‘계정 삭제’는 ‘계정’ 카드 하단 왼쪽에 있고, 확인을 거쳐요. 관리자가 한 명뿐이면 자기 자신을 삭제할 수 없어요.',
   // language-region
   'help.guide.language-region.title': '언어, 단위, 통화 정하기',
-  'help.guide.language-region.goal': 'TREK을 내 언어와 내 지역의 표시 형식으로 사용해요.',
+  'help.guide.language-region.goal': 'YOUYA을 내 언어와 내 지역의 표시 형식으로 사용해요.',
   'help.guide.language-region.step.1':
-    '‘언어 및 지역’에서 목록에서 ‘언어’를 고르세요. 입력해서 빠르게 찾을 수도 있어요. 로그인한 모든 기기에서 TREK 언어가 바로 바뀌어요.',
+    '‘언어 및 지역’에서 목록에서 ‘언어’를 고르세요. 입력해서 빠르게 찾을 수도 있어요. 로그인한 모든 기기에서 YOUYA 언어가 바로 바뀌어요.',
   'help.guide.language-region.step.2':
     '‘장소 이름’은 장소 검색, 제안, 주소에 쓰일 언어를 정해요. ‘앱과 동일’은 화면 언어를 따라요.',
   'help.guide.language-region.result':
@@ -1168,16 +1168,16 @@ const help: TranslationStrings = {
     '이 설정은 여행별이 아니라 계정별이에요. 공유 여행의 멤버는 각자 자기 설정대로 봐요.',
   'help.guide.travel-map-prefs.tip.2': '관리자가 모두의 기본값을 정할 수 있지만, 여기서 바꾼 설정은 나에게 적용돼요.',
   // startup
-  'help.guide.startup.title': 'TREK 시작 화면 고르기',
-  'help.guide.startup.goal': '매번 대시보드가 아니라 가장 자주 쓰는 화면으로 TREK를 열어요.',
+  'help.guide.startup.title': 'YOUYA 시작 화면 고르기',
+  'help.guide.startup.goal': '매번 대시보드가 아니라 가장 자주 쓰는 화면으로 YOUYA를 열어요.',
   'help.guide.startup.step.1': '‘화면’ 맨 위 ‘시작’에서 ‘시작 화면’을 ‘대시보드’나 ‘진행 중인 여행’으로 정하세요.',
   'help.guide.startup.step.2': '‘진행 중인 여행’을 고르면 ‘시작 탭’이 나타나요. 그 여행이 열릴 탭을 고르세요.',
-  'help.guide.startup.result': '다음에 TREK를 열면 그 화면이 바로 열려요.',
+  'help.guide.startup.result': '다음에 YOUYA를 열면 그 화면이 바로 열려요.',
   'help.guide.startup.tip.1':
     '‘진행 중인 여행’은 오늘 진행 중이거나 다음에 다가오는 여행이에요. 대시보드 맨 위에 보이는 여행과 같아요.',
   // theme-scheme
   'help.guide.theme-scheme.title': '테마와 강조 색 정하기',
-  'help.guide.theme-scheme.goal': 'TREK를 라이트, 다크 또는 기기 설정에 맞추고, 원하는 색으로 꾸며요.',
+  'help.guide.theme-scheme.goal': 'YOUYA를 라이트, 다크 또는 기기 설정에 맞추고, 원하는 색으로 꾸며요.',
   'help.guide.theme-scheme.step.1':
     '‘테마’에서 ‘색상 모드’를 ‘라이트’, ‘다크’, ‘자동’ 중 하나로 정하세요. ‘자동’은 기기 설정을 따라요.',
   'help.guide.theme-scheme.step.2':
@@ -1198,7 +1198,7 @@ const help: TranslationStrings = {
     '‘글자 크기’: ‘전체’를 끌어 모든 글자 크기를 한 번에 바꾸거나, 크게, 중간, 보통, 작게를 하나씩 정하세요. 크기마다 예시가 보여서 끄는 동안 결과를 확인할 수 있어요.',
   'help.guide.readability.result': '지도 패널과 Journey를 포함해 앱 전체에 바로 적용돼요.',
   'help.guide.readability.tip.1':
-    '기기에서 동작 줄이기를 켜면 TREK 일부는 이미 애니메이션을 줄여요. ‘동작 줄이기’는 나머지 부분의 애니메이션도 줄여요.',
+    '기기에서 동작 줄이기를 켜면 YOUYA 일부는 이미 애니메이션을 줄여요. ‘동작 줄이기’는 나머지 부분의 애니메이션도 줄여요.',
   'help.guide.readability.tip.2':
     '글자 크기는 타이포그래피 단계에 따라 적용되므로 잘리는 부분이 없어요. 공간이 모자라면 줄이 바뀌어요.',
   // dashboard-widgets
@@ -1286,17 +1286,17 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.result':
     '인터넷 연결 없이도 여행이 열려요. 바꾼 내용은 대기열에 저장되고, 다시 온라인이 되면 전송돼요.',
   'help.guide.offline-prepare.tip.1': '지도 타일이 용량을 가장 많이 차지해요. 끄면 여행 데이터와 문서만 저장해요.',
-  'help.guide.offline-prepare.tip.2': '오프라인에서 가장 매끄럽게 시작하려면 브라우저에서 TREK를 앱으로 설치하세요.',
+  'help.guide.offline-prepare.tip.2': '오프라인에서 가장 매끄럽게 시작하려면 브라우저에서 YOUYA를 앱으로 설치하세요.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': '동기화 충돌 시 남길 버전 정하기',
   'help.guide.offline-conflicts.goal':
-    '오프라인에서 한 변경과 다른 곳에서 한 변경이 충돌할 때 TREK이 어떻게 처리할지 정해요.',
+    '오프라인에서 한 변경과 다른 곳에서 한 변경이 충돌할 때 YOUYA이 어떻게 처리할지 정해요.',
   'help.guide.offline-conflicts.step.1':
     '오프라인에서 바꾼 내용이 더 새로운 변경과 충돌하면 ‘오프라인’ 위쪽에 ‘동기화 충돌’이 나타나요. 변경마다 ‘내 버전’이나 ‘상대 버전 유지’를 클릭하세요.',
   'help.guide.offline-conflicts.step.2':
     '같은 카드의 ‘충돌이 발생하면’에서 다음부터 어떻게 할지 정해요: ‘매번 묻기’, ‘항상 내 버전 유지’, ‘항상 서버 버전 유지’.',
   'help.guide.offline-conflicts.result':
-    '‘매번 묻기’를 고르면 내가 선택할 때까지 충돌이 ‘동기화 충돌’에 남아 있어요. 나머지 두 옵션에서는 TREK가 자동으로 해결해요.',
+    '‘매번 묻기’를 고르면 내가 선택할 때까지 충돌이 ‘동기화 충돌’에 남아 있어요. 나머지 두 옵션에서는 YOUYA가 자동으로 해결해요.',
   'help.guide.offline-conflicts.tip.1':
     '“캐시 지우기”는 이 기기에 저장된 사본만 지워요. 서버의 데이터는 바뀌지 않아요.',
   // profile
@@ -1315,7 +1315,7 @@ const help: TranslationStrings = {
   'help.guide.password.step.2': '“비밀번호 업데이트”를 클릭하세요.',
   'help.guide.password.result':
     '새 비밀번호는 바로 적용돼요. 다른 모든 기기에서 로그아웃되고, MCP API 토큰이 삭제되며, OAuth 클라이언트는 다시 로그인해야 해요. 지금 쓰는 기기는 로그인 상태가 유지돼요.',
-  'help.guide.password.tip.1': '이 TREK가 SSO로만 로그인하면 TREK 비밀번호도, ‘비밀번호 변경’ 카드도 없어요.',
+  'help.guide.password.tip.1': '이 YOUYA가 SSO로만 로그인하면 YOUYA 비밀번호도, ‘비밀번호 변경’ 카드도 없어요.',
   // mfa
   'help.guide.mfa.title': '2단계 인증 켜기',
   'help.guide.mfa.goal': '인증 앱의 코드로 계정을 보호해요.',
@@ -1346,15 +1346,15 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     '계정과 함께 내가 소유한 여행, 장소, 파일이 삭제돼요. 다른 사람이 소유한 여행은 남아요.',
   'help.guide.delete-account.tip.1':
-    '관리자가 나 하나뿐이면 TREK에 ‘삭제 불가’가 표시돼요. 먼저 다른 사용자를 관리자로 지정하세요.',
+    '관리자가 나 하나뿐이면 YOUYA에 ‘삭제 불가’가 표시돼요. 먼저 다른 사용자를 관리자로 지정하세요.',
   'help.guide.delete-account.tip.2': '되돌릴 수 없어요. 확인하기 전에 남기고 싶은 데이터를 내보내세요.',
 
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': '관리자',
   'help.ctx.admin.summary':
-    'TREK 인스턴스 전체와 모든 사용자에 대한 설정이에요. 누가 어떻게 로그인할지, 어떤 기능을 켤지, 파일을 어디에 저장할지, 서버가 사람들에게 어떻게 연락할지, 어떻게 백업할지를 정해요. 이 페이지는 관리자에게만 보여요. 사이드바에서 탭이 ‘사용자’, ‘구성’, ‘유지 관리’로 묶여 있고, 탭마다 화면이 따로 있어요.',
+    'YOUYA 인스턴스 전체와 모든 사용자에 대한 설정이에요. 누가 어떻게 로그인할지, 어떤 기능을 켤지, 파일을 어디에 저장할지, 서버가 사람들에게 어떻게 연락할지, 어떻게 백업할지를 정해요. 이 페이지는 관리자에게만 보여요. 사이드바에서 탭이 ‘사용자’, ‘구성’, ‘유지 관리’로 묶여 있고, 탭마다 화면이 따로 있어요.',
   'help.ctx.admin.bullet.1':
-    '헤더 오른쪽에 사용자, 여행, 장소, 파일 수가 보여요. 더 새로운 TREK 버전이 나오면 그 아래에 ‘업데이트 가능’ 배너가 떠요.',
+    '헤더 오른쪽에 사용자, 여행, 장소, 파일 수가 보여요. 더 새로운 YOUYA 버전이 나오면 그 아래에 ‘업데이트 가능’ 배너가 떠요.',
   'help.ctx.admin.bullet.2': '‘사용자’와 ‘기본값’: 계정, 초대 링크, 권한, 그리고 새 계정의 시작 설정과 지도.',
   'help.ctx.admin.bullet.3':
     '‘보안’, ‘서비스’, ‘애드온’, ‘개인화’: 로그인, 패스키, 2FA, 싱글 사인온, 장소 검색, 경로 안내, API 키, 파일 형식, 옵션이 있는 기능 모듈, 짐 템플릿, 카테고리, 학교 방학.',
@@ -1364,7 +1364,7 @@ const help: TranslationStrings = {
     '‘스토리지’, ‘백업’, GitHub, ‘감사’: 업로드 저장 위치, 수동 백업과 예약 백업, 릴리스 내역, 보안 관련 이벤트 로그.',
   'help.ctx.admin-users.title': '사용자',
   'help.ctx.admin-users.summary':
-    '이 TREK의 모든 계정과 역할, 이메일, 마지막 활동 시각, 가입이 닫힌 인스턴스에서 가입하게 해 주는 초대 링크, 그리고 여행에서 누가 무엇을 할 수 있는지 관리해요.',
+    '이 YOUYA의 모든 계정과 역할, 이메일, 마지막 활동 시각, 가입이 닫힌 인스턴스에서 가입하게 해 주는 초대 링크, 그리고 여행에서 누가 무엇을 할 수 있는지 관리해요.',
   'help.ctx.admin-users.bullet.1':
     '표: 사용자, 이메일, 역할, 생성일, ‘마지막 활동’이 있고, 줄마다 ‘사용자 편집’과 ‘사용자 삭제’가 있어요. 아바타의 초록 점은 지금 접속 중이라는 뜻이고, 내 줄에는 ‘(나)’가 보여요.',
   'help.ctx.admin-users.bullet.2':
@@ -1386,7 +1386,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     '“짐 목록 템플릿”: 카테고리와 항목으로 구성된 이름 있는 목록으로, 여행의 짐 목록을 이걸로 시작할 수 있어요.',
   'help.ctx.admin-config.bullet.2':
-    '‘카테고리’: 장소 상세부터 컬렉션까지 TREK 전체에서 쓰는 카테고리의 이름, 아이콘, 색이에요. 미리보기가 있는 창에서 하나씩 편집해요.',
+    '‘카테고리’: 장소 상세부터 컬렉션까지 YOUYA 전체에서 쓰는 카테고리의 이름, 아이콘, 색이에요. 미리보기가 있는 창에서 하나씩 편집해요.',
   'help.ctx.admin-config.bullet.3': '학교 방학: 국가와 지역별 방학 기간 목록으로, 누구나 Vacay에서 고를 수 있어요.',
   'help.ctx.admin-settings.title': '보안과 서비스',
   'help.ctx.admin-settings.summary':
@@ -1396,12 +1396,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     '‘패스키 로그인’: ‘Relying Party ID (도메인)’와 ‘허용된 오리진’. ‘싱글 사인온 (OIDC)’: ‘표시 이름’, ‘발급자 URL’, 선택 항목인 Discovery URL, ‘클라이언트 ID’, ‘클라이언트 시크릿’.',
   'help.ctx.admin-settings.bullet.3':
-    '‘서비스’의 ‘장소 검색 및 경로 안내’: ‘권장 기본 소스’로 표시된 TREK API와 ‘오늘의 할당량’, ‘장소 정보 공유’, 그다음 ‘대중교통 제공자’, ‘장소 검색 제공자’, ‘장소 검색 기록’.',
+    '‘서비스’의 ‘장소 검색 및 경로 안내’: ‘권장 기본 소스’로 표시된 YOUYA API와 ‘오늘의 할당량’, ‘장소 정보 공유’, 그다음 ‘대중교통 제공자’, ‘장소 검색 제공자’, ‘장소 검색 기록’.',
   'help.ctx.admin-settings.bullet.4':
     '‘API 키’: ‘테스트’와 ‘키의 사용 범위’가 있는 ‘Google Maps API 키’, Unsplash 키, Amap 키, 그리고 카드 맨 아래의 ‘저장’ 버튼 하나. 그 아래 ‘허용된 파일 형식’은 업로드를 제한해요.',
   'help.ctx.admin-addons.title': '애드온',
   'help.ctx.admin-addons.summary':
-    'TREK의 기능 모듈이 세 카드에 있어요: 여행 탭을 위한 ‘여행’, 메인 메뉴의 섹션을 위한 ‘전역’, 외부 서비스를 위한 ‘통합’. 애드온마다 스위치가 있고, 끄면 모든 사용자에게서 메뉴 항목, 경로, API가 사라져요.',
+    'YOUYA의 기능 모듈이 세 카드에 있어요: 여행 탭을 위한 ‘여행’, 메인 메뉴의 섹션을 위한 ‘전역’, 외부 서비스를 위한 ‘통합’. 애드온마다 스위치가 있고, 끄면 모든 사용자에게서 메뉴 항목, 경로, API가 사라져요.',
   'help.ctx.admin-addons.bullet.1':
     '애드온마다 스위치가 있는 줄이 하나씩 있고, 각 카드 헤더에 켜져 있는 애드온 수가 나와요. 이름 옆의 정보 표시는 애드온이 무엇을 하는지 알려 줘요.',
   'help.ctx.admin-addons.bullet.2':
@@ -1410,7 +1410,7 @@ const help: TranslationStrings = {
     '톱니바퀴가 있는 줄은 설정 창을 열어요. 예를 들어 ‘투어’ 아래의 ‘패들 수역 데이터’나 ‘예약 메일 가져오기’ 아래의 ‘메일 가져오기 설정’이에요. ‘실시간 항공편 상태’는 ‘여행’ 카드의 한 줄이에요.',
   'help.ctx.admin-plugins.title': '플러그인',
   'help.ctx.admin-plugins.summary':
-    'TREK 옆에서 별도 프로세스로 실행되는 서드파티 플러그인이에요. 각 플러그인은 설치할 때 요청한 권한을 가져요. 카탈로그에서 설치하거나, 패키지를 업로드하거나, 플러그인을 개발하는 동안에는 폴더를 연결할 수 있어요.',
+    'YOUYA 옆에서 별도 프로세스로 실행되는 서드파티 플러그인이에요. 각 플러그인은 설치할 때 요청한 권한을 가져요. 카탈로그에서 설치하거나, 패키지를 업로드하거나, 플러그인을 개발하는 동안에는 폴더를 연결할 수 있어요.',
   'help.ctx.admin-plugins.bullet.1':
     '‘설치됨’과 ‘둘러보기’에 ‘플러그인 검색…’과 유형, 상태, 정렬용 ‘필터’가 있어요. 줄마다 버전, 플러그인이 접근할 수 있는 것, ‘검토됨’, ‘서명됨’ 또는 ‘서명 없음’, 스위치, ⋯ 메뉴가 보여요.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1427,7 +1427,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     '‘카테고리’: 여행 문서, Journey 사진, 커버, 프로필 사진, 장소 이미지, 사진 캐시, 백업을 각각 백엔드에 지정하고, 맨 아래 ‘변경 사항 저장’으로 저장해요.',
   'help.ctx.admin-storage.bullet.4':
-    '‘참조되지 않는 파일’: 매일 밤 검사해서 TREK이 더 이상 쓰지 않는 파일을 찾은 결과예요. ‘지금 확인’ 버튼과, 일주일 동안 쓰이지 않은 파일을 삭제하는 스위치가 있어요.',
+    '‘참조되지 않는 파일’: 매일 밤 검사해서 YOUYA이 더 이상 쓰지 않는 파일을 찾은 결과예요. ‘지금 확인’ 버튼과, 일주일 동안 쓰이지 않은 파일을 삭제하는 스위치가 있어요.',
   'help.ctx.admin-notifications.title': '알림',
   'help.ctx.admin-notifications.summary':
     '인스턴스가 사용자에게 제공하는 채널과 관리자인 내가 받는 채널이에요. 사용자는 ‘설정’에서 자기 토픽과 URL을 고르고, 관리자는 어떤 채널을 제공할지 정하고 이메일을 설정해요.',
@@ -1439,14 +1439,14 @@ const help: TranslationStrings = {
     '오른쪽의 ‘관리자 알림’: ‘관리자 웹훅’과 ‘관리자 Ntfy’에 각각 테스트 버튼이 있고, 그 아래에서 관리자 이벤트(‘새 버전 사용 가능’, ‘스토리지 복제본 오류’, ‘패들 지역 요청’)를 어느 채널로 보낼지 정해요.',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    '모든 사용자의 AI 클라이언트가 이 TREK에 대해 가진 토큰과 OAuth 세션을 모두 보여 줘요. 어느 것이든 취소할 수 있어요.',
+    '모든 사용자의 AI 클라이언트가 이 YOUYA에 대해 가진 토큰과 OAuth 세션을 모두 보여 줘요. 어느 것이든 취소할 수 있어요.',
   'help.ctx.admin-mcp-tokens.bullet.1':
     'OAuth 세션: 클라이언트, 허용된 스코프, 소유자, 날짜가 보이고 휴지통 아이콘으로 취소할 수 있어요.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     'API 토큰: 이름, 소유자, ‘생성일’, ‘마지막 사용’이 보이고 휴지통 아이콘으로 삭제해요.',
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    'TREK의 새 소식이에요: GitHub의 릴리스 내역과, 지금 버전보다 새 버전이 나왔는지 보여 줘요. 업데이트 자체는 앱이 아니라 호스트에서 해요.',
+    'YOUYA의 새 소식이에요: GitHub의 릴리스 내역과, 지금 버전보다 새 버전이 나왔는지 보여 줘요. 업데이트 자체는 앱이 아니라 호스트에서 해요.',
   'help.ctx.admin-github.bullet.1':
     '‘릴리스 히스토리’에 릴리스가 노트와 함께 타임라인으로 나와요. 가장 새 버전에는 ‘최신’이, 사전 릴리스에는 ‘사전 릴리스’가 붙고, GitHub 버튼으로 릴리스 페이지를 열어요.',
   'help.ctx.admin-github.bullet.2':
@@ -1513,7 +1513,7 @@ const help: TranslationStrings = {
     '내 줄의 휴지통 아이콘은 동작하지 않아요. 나 자신은 삭제할 수 없으니 다른 관리자가 해야 해요.',
   // permissions
   'help.guide.permissions.title': '누가 무엇을 할 수 있는지 정하기',
-  'help.guide.permissions.goal': '이 TREK에서 작업마다 어떤 역할이 할 수 있는지 정해요.',
+  'help.guide.permissions.goal': '이 YOUYA에서 작업마다 어떤 역할이 할 수 있는지 정해요.',
   'help.guide.permissions.step.1':
     '‘권한 설정’에서 ‘여행 관리’의 ‘여행 삭제’처럼 그룹 안의 작업을 찾아 누가 할 수 있는지 고르세요: ‘모든 사람’, ‘여행 멤버’, ‘여행 소유자’, ‘관리자만’. 바꾼 줄에는 ‘맞춤 설정됨’이 표시돼요.',
   'help.guide.permissions.step.2':
@@ -1579,7 +1579,7 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     '‘싱글 사인온 (OIDC)’을 설정하면 SSO 줄이 세 개 이어져요: ‘SSO 로그인’, 누군가 SSO로 처음 로그인할 때 계정을 만들어 주는 ‘SSO 자동 프로비저닝’, 그리고 ‘SSO로 바로 이동’.',
   'help.guide.auth-methods.step.3':
-    '‘패스키 로그인 활성화’는 로그인 페이지에서 패스키를 쓸 수 있게 해요. ‘2FA 요구’를 켜면 2FA가 없는 모든 사용자가 TREK을 쓰기 전에 ‘설정’에서 2FA를 설정해야 해요.',
+    '‘패스키 로그인 활성화’는 로그인 페이지에서 패스키를 쓸 수 있게 해요. ‘2FA 요구’를 켜면 2FA가 없는 모든 사용자가 YOUYA을 쓰기 전에 ‘설정’에서 2FA를 설정해야 해요.',
   'help.guide.auth-methods.result': '로그인 페이지에 켜 둔 방법만 나와요.',
   'help.guide.auth-methods.tip.1':
     '마지막 남은 로그인 방법은 끌 수 없어요. 스위치가 회색이 되고, 툴팁에 ‘최소 한 가지 로그인 방법은 켜져 있어야 합니다’라고 나와요.',
@@ -1597,34 +1597,35 @@ const help: TranslationStrings = {
     'SSO를 유일한 로그인 방법으로 만들려면 ‘비밀번호 로그인’을 끄세요. ‘SSO로 바로 이동’을 켜면 방문자가 바로 제공자로 이동해요. 끄면 SSO 버튼이 있는 로그인 페이지가 그대로 나와요.',
   'help.guide.oidc.result':
     '로그인 페이지에 SSO 버튼이 나타나요. “SSO 자동 프로비저닝”이 켜져 있으면 처음 로그인하는 사용자에게 계정이 자동으로 만들어져요.',
-  'help.guide.oidc.tip.1': '제공자에 입력할 리디렉션 URI는 내 TREK 주소 뒤에 문서에 나온 OIDC 콜백 경로를 붙인 거예요.',
+  'help.guide.oidc.tip.1':
+    '제공자에 입력할 리디렉션 URI는 내 YOUYA 주소 뒤에 문서에 나온 OIDC 콜백 경로를 붙인 거예요.',
   'help.guide.oidc.tip.2': '어떤 SSO 그룹이 관리자가 될지는 클레임 매핑으로 정해요. 문서의 OIDC 페이지를 참고하세요.',
   // instance-keys
   'help.guide.instance-keys.title': 'API 키 입력하기',
   'help.guide.instance-keys.goal': '인스턴스 전체에 Google 사진과 평점, Unsplash 커버, Amap 검색을 더해요.',
   'help.guide.instance-keys.step.1':
-    '‘서비스’ 탭의 ‘장소 검색 및 경로 안내’ 카드 맨 위에 ‘권장 기본 소스’로 표시된 TREK API가 있어요. 키 없이 장소 검색, 주소, 경로 안내를 처리하고, ‘오늘의 할당량’에 오늘 남은 양이 나와요.',
+    '‘서비스’ 탭의 ‘장소 검색 및 경로 안내’ 카드 맨 위에 ‘권장 기본 소스’로 표시된 YOUYA API가 있어요. 키 없이 장소 검색, 주소, 경로 안내를 처리하고, ‘오늘의 할당량’에 오늘 남은 양이 나와요.',
   'help.guide.instance-keys.step.2':
     '사진, 평점, 영업시간을 쓰려면 ‘API 키’ 아래에 ‘Google Maps API 키’를 붙여 넣고 ‘테스트’를 클릭하세요. ‘연결됨’이나 ‘유효하지 않음’이 나와요. ‘키의 사용 범위’에서 요금을 낼 기능만 켜세요: ‘장소 사진’, ‘장소 자동완성’, ‘장소 상세 정보’, ‘장소 정보 보강’, ‘Google로만 검색’, 그리고 ‘Google 호출 일일 한도’.',
   'help.guide.instance-keys.step.3':
     '커버 검색용 ‘Unsplash API 키’와 중국 본토 장소 검색용 ‘Amap(高德地图) API 키’를 붙여 넣고, 카드 아래쪽 ‘저장’을 클릭하세요.',
   'help.guide.instance-keys.result':
-    '사용자는 자기 키 없이도 기능을 쓸 수 있어요. Google 키가 없으면 검색은 TREK Places API와 OpenStreetMap으로 동작해요.',
+    '사용자는 자기 키 없이도 기능을 쓸 수 있어요. Google 키가 없으면 검색은 YOUYA Places API와 OpenStreetMap으로 동작해요.',
   'help.guide.instance-keys.tip.1':
     '사용자가 ‘설정’에 개인 키를 넣어 두면, 그 사용자에게는 인스턴스 키 대신 개인 키를 써요.',
   'help.guide.instance-keys.tip.2': '키는 환경 변수로도 설정할 수 있고, 그런 키는 여기서 읽기 전용으로 보여요.',
   'help.guide.instance-keys.tip.3':
-    '“Google 호출 일일 한도”로 TREK이 이 키로 하루에 쓸 수 있는 양을 제한해요. 제목 옆 배지에 오늘 호출 수가 표시돼요. 한도에 도달하면 다음 날(UTC)까지 검색에 OpenStreetMap이 사용돼요.',
+    '“Google 호출 일일 한도”로 YOUYA이 이 키로 하루에 쓸 수 있는 양을 제한해요. 제목 옆 배지에 오늘 호출 수가 표시돼요. 한도에 도달하면 다음 날(UTC)까지 검색에 OpenStreetMap이 사용돼요.',
   // places-transit
   'help.guide.places-transit.title': '검색 및 대중교통 제공자 고르기',
   'help.guide.places-transit.goal': '장소 검색과 대중교통 경로 요청을 처리할 서비스를 골라요.',
   'help.guide.places-transit.step.1':
     '‘서비스’ 탭의 ‘장소 검색 및 경로 안내’ 카드에서 ‘대중교통 제공자’를 고르세요. 키가 필요 없고 유럽에서 가장 강한 ‘Transitous (무료)’나, Google 키를 쓰는 Google이에요. 선택은 바로 저장돼요.',
   'help.guide.places-transit.step.2':
-    '‘장소 검색 제공자’에서 TREK 인덱스와 OpenStreetMap에 결과가 없을 때 물어볼 서비스를 고르세요: ‘자동’(키가 있으면 Google, 그다음 Amap), Google Places, ‘Amap(高德地图)’, OpenStreetMap.',
-  'help.guide.places-transit.result': 'TREK의 모든 검색창과 대중교통 경로에 이 설정이 쓰여요.',
+    '‘장소 검색 제공자’에서 YOUYA 인덱스와 OpenStreetMap에 결과가 없을 때 물어볼 서비스를 고르세요: ‘자동’(키가 있으면 Google, 그다음 Amap), Google Places, ‘Amap(高德地图)’, OpenStreetMap.',
+  'help.guide.places-transit.result': 'YOUYA의 모든 검색창과 대중교통 경로에 이 설정이 쓰여요.',
   'help.guide.places-transit.tip.1':
-    '키가 없는 선택지를 고르면 여기에 경고가 떠요. 그러면 장소 검색은 TREK 인덱스와 OpenStreetMap만, 대중교통은 Transitous만 써요.',
+    '키가 없는 선택지를 고르면 여기에 경고가 떠요. 그러면 장소 검색은 YOUYA 인덱스와 OpenStreetMap만, 대중교통은 Transitous만 써요.',
   'help.guide.places-transit.tip.2': 'Google 대중교통 경로는 요청마다 요금이 나가지만, Transitous는 무료예요.',
   // file-types
   'help.guide.file-types.title': '파일 형식 제한하기',
@@ -1666,7 +1667,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     '‘카테고리’에서 ‘여행 문서’, ‘Journey 사진’, ‘백업’ 같은 업로드 종류마다 백엔드를 지정하세요.',
   'help.guide.storage-backends.step.3':
-    '‘카테고리’ 맨 아래 ‘변경 사항 저장’을 클릭하세요. 카테고리가 다른 곳을 가리키게 되면 TREK이 ‘기존 객체 이동’을 할지 ‘새 쓰기만 전환’을 할지 물어봐요.',
+    '‘카테고리’ 맨 아래 ‘변경 사항 저장’을 클릭하세요. 카테고리가 다른 곳을 가리키게 되면 YOUYA이 ‘기존 객체 이동’을 할지 ‘새 쓰기만 전환’을 할지 물어봐요.',
   'help.guide.storage-backends.result':
     '새 업로드는 지정한 백엔드로 가요. 옮긴 파일은 거기서 제공되고, 옮기지 않기로 한 파일은 원래 자리에 있어요.',
   'help.guide.storage-backends.tip.1': '환경 변수로 설정한 백엔드는 표시만 되고 여기서 편집할 수 없어요.',
@@ -1710,7 +1711,7 @@ const help: TranslationStrings = {
     'MCP 애드온을 끄면 모든 클라이언트가 바로 멈추고 이 탭이 숨겨지지만, 삭제되는 건 없어요. 다시 켜면 토큰이 다시 동작해요.',
   // release-history
   'help.guide.release-history.title': '새 릴리스 확인하기',
-  'help.guide.release-history.goal': '내 TREK가 최신인지, 다음 버전에 무엇이 들어오는지 알아봐요.',
+  'help.guide.release-history.goal': '내 YOUYA가 최신인지, 다음 버전에 무엇이 들어오는지 알아봐요.',
   'help.guide.release-history.step.1':
     '새 릴리스가 나오면 페이지 헤더 아래에 현재 버전과 함께 ‘업데이트 가능’이 보여요. ‘GitHub에서 보기’로 릴리스를 열고, ‘업데이트 방법’에서 Docker 명령어나 다른 설치 방식용 업데이트 가이드를 볼 수 있어요.',
   'help.guide.release-history.step.2':
@@ -1761,7 +1762,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     'Nextcloud 줄의 스위치를 켜세요. ‘애드온이 업데이트되었습니다’ 메시지가 나오고, 이제 여행 소유자는 여행의 ‘파일’ 탭에서 ‘문서 동기화’를 찾을 수 있고, ‘저장소 연결’에 Nextcloud가 있어요.',
   'help.guide.document-providers.result':
-    '이 TREK의 모든 여행에서 그 저장소를 쓸 수 있어요. 여행 소유자가 연결하기 전까지는 아무것도 연결되지 않아요.',
+    '이 YOUYA의 모든 여행에서 그 저장소를 쓸 수 있어요. 여행 소유자가 연결하기 전까지는 아무것도 연결되지 않아요.',
   'help.guide.document-providers.tip.1':
     '여기서는 저장소를 제공할지 여부만 정해요. 주소와 인증 정보는 여행에 속하므로 여행 소유자가 그 여행의 “파일” 탭에서 입력해요. 관리자 패널에서는 입력하지 않아요.',
   'help.guide.document-providers.tip.2':
@@ -1770,30 +1771,30 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     '모두에게 전달 주소를 주어서, 전달한 예약 확인 메일이 알맞은 여행의 예약이 되게 해요.',
   'help.guide.mail-import-setup.step.1':
-    '‘애드온’ 탭의 ‘통합’ 카드에서 ‘예약 메일 가져오기’를 켜세요. 이 TREK을 쓰는 모든 사람이 개인 전달 주소를 받아요.',
+    '‘애드온’ 탭의 ‘통합’ 카드에서 ‘예약 메일 가져오기’를 켜세요. 이 YOUYA을 쓰는 모든 사람이 개인 전달 주소를 받아요.',
   'help.guide.mail-import-setup.step.2': '그 아래에 나타나는 ‘메일 가져오기 설정’ 줄을 클릭하세요.',
   'help.guide.mail-import-setup.step.3':
-    '‘메일 수신 방식’에서 ‘IMAP 메일함’을 고르고 ‘서버’, ‘포트’, ‘암호화’, ‘사용자’, ‘비밀번호’, ‘폴더’를 입력하세요. 메일 서비스가 메일마다 TREK에 보내 준다면 대신 ‘웹훅’을, 메일함 없이 시험만 하려면 ‘업로드만’을 고르세요. 그다음 사람마다 코드가 들어갈 자리가 있는 전달 주소인 ‘주소 템플릿’과 ‘1인당 하루 AI 메일 수’를 정하세요.',
+    '‘메일 수신 방식’에서 ‘IMAP 메일함’을 고르고 ‘서버’, ‘포트’, ‘암호화’, ‘사용자’, ‘비밀번호’, ‘폴더’를 입력하세요. 메일 서비스가 메일마다 YOUYA에 보내 준다면 대신 ‘웹훅’을, 메일함 없이 시험만 하려면 ‘업로드만’을 고르세요. 그다음 사람마다 코드가 들어갈 자리가 있는 전달 주소인 ‘주소 템플릿’과 ‘1인당 하루 AI 메일 수’를 정하세요.',
   'help.guide.mail-import-setup.step.4':
-    '‘저장’을 클릭한 다음 ‘연결 테스트’를 클릭하세요. ‘연결됨’이나 실패한 이유가 나와요. 아래에는 TREK이 메일을 마지막으로 읽은 시각과 지난 24시간의 메일이 ‘자동 추가’, ‘대기 중’, ‘실패’로 나뉘어 보여요.',
+    '‘저장’을 클릭한 다음 ‘연결 테스트’를 클릭하세요. ‘연결됨’이나 실패한 이유가 나와요. 아래에는 YOUYA이 메일을 마지막으로 읽은 시각과 지난 24시간의 메일이 ‘자동 추가’, ‘대기 중’, ‘실패’로 나뉘어 보여요.',
   'help.guide.mail-import-setup.result':
     '모두 ‘설정’의 ‘통합’에서 자기 전달 주소를 찾을 수 있어요. 전달한 확인 메일은 알맞은 여행의 예약이 되거나, 주인이 확인하도록 그곳에서 기다려요.',
   'help.guide.mail-import-setup.tip.1':
-    'TREK에는 개인 메일함이 아니라, 플러스 주소(trek+…@your-domain)를 받는 전용 메일함을 주세요. 읽은 메일은 TREK/processed 폴더로 옮겨져요.',
+    'YOUYA에는 개인 메일함이 아니라, 플러스 주소(trek+…@your-domain)를 받는 전용 메일함을 주세요. 읽은 메일은 TREK/processed 폴더로 옮겨져요.',
   'help.guide.mail-import-setup.tip.2':
     'MAIL_INGEST_로 시작하는 환경 변수는 창의 입력 칸보다 우선해요. 같은 네트워크 안의 메일 서버를 쓰려면 서버에 ALLOW_INTERNAL_NETWORK=true도 필요해요.',
   'help.guide.mail-import-setup.tip.3':
     '‘1인당 하루 AI 메일 수’는 기계가 읽을 수 있는 예약 데이터가 없는 메일을 AI가 한 사람에 대해 하루에 몇 통까지 읽을지 제한해요. 이 한도를 넘으면 기계가 읽을 수 있는 데이터만 읽어요.',
   'help.guide.ai-setup.title': 'AI 어시스턴트 설정하기',
   'help.guide.ai-setup.goal':
-    'AI 제공업체를 한 번만 연결하면 이 TREK의 모든 사람이 어시스턴트와 함께 일정을 짤 수 있어요.',
+    'AI 제공업체를 한 번만 연결하면 이 YOUYA의 모든 사람이 어시스턴트와 함께 일정을 짤 수 있어요.',
   'help.guide.ai-setup.step.1':
     '‘애드온’ 탭의 ‘통합’ 카드에서 AI 타일을 찾아 ‘AI 어시스턴트’를 켜세요. AI 분석과 MCP도 같은 타일에 있어요.',
   'help.guide.ai-setup.step.2': '스위치 아래에 나타나는 ‘AI 설정’ 줄을 클릭하세요.',
   'help.guide.ai-setup.step.3':
     '‘비용 부담’에서 누가 연결을 제공할지 고르세요. ‘내가 부담, 개인 연결 허용’, ‘모두의 비용을 내가 부담’, ‘각자 자신의 계정 사용’ 중에서 선택해요. 아래 설명에 선택한 항목의 의미가 나와요.',
   'help.guide.ai-setup.step.4':
-    '‘모두를 위한 연결’에서 ‘API 키 붙여넣기’를 고르고 Anthropic, OpenAI, Gemini, OpenRouter의 키를 붙여넣으세요. TREK가 감지한 제공업체 이름을 알려 줘요. ‘연결’을 클릭하면 저장하기 전에 TREK가 제공업체에 키를 확인해요.',
+    '‘모두를 위한 연결’에서 ‘API 키 붙여넣기’를 고르고 Anthropic, OpenAI, Gemini, OpenRouter의 키를 붙여넣으세요. YOUYA가 감지한 제공업체 이름을 알려 줘요. ‘연결’을 클릭하면 저장하기 전에 YOUYA가 제공업체에 키를 확인해요.',
   'help.guide.ai-setup.step.5':
     '연결이 ‘연결됨’으로 표시돼요. 모두가 채팅에 쓸 ‘모델’을 고르세요. 도구를 사용할 수 있는 모델만 목록에 나와요. 그 아래에 ‘변경’과 ‘연결 제거’가 있어요.',
   'help.guide.ai-setup.step.6':
@@ -1809,15 +1810,15 @@ const help: TranslationStrings = {
     '웹 검색은 ChatGPT, Anthropic, OpenRouter에서 제공업체의 자체 검색으로 작동하고, 검색 내용은 그 제공업체에만 전달돼요.',
   'help.guide.paddle-water-data.title': '패들 투어용 수역 데이터 불러오기',
   'help.guide.paddle-water-data.goal':
-    '패들 투어에 지역의 보, 갑문, 패들링 규칙을 알려 주고, TREK이 새 지역을 알아서 불러올지 정해요.',
+    '패들 투어에 지역의 보, 갑문, 패들링 규칙을 알려 주고, YOUYA이 새 지역을 알아서 불러올지 정해요.',
   'help.guide.paddle-water-data.step.1':
     '‘애드온’ 탭에서 ‘투어’가 켜져 있는 동안 ‘투어’ 아래 마지막 줄인 ‘패들 수역 데이터’를 클릭하세요. 옆의 숫자는 지역 수이거나 내 확인을 기다리는 요청 수예요.',
   'help.guide.paddle-water-data.step.2':
     '‘지역 자동으로 불러오기’에서 ‘자동’, ‘요청 시’, ‘끔’ 중에서 고르세요. ‘자동’은 누군가 패들 투어를 계획하는 지역을 ‘자동으로 불러오는 최대 지역’까지 불러오고, 그보다 큰 지역은 ‘요청됨’에서 기다려요. 거기서 ‘불러오기’는 읽어 오고 ‘거절’은 요청을 없애요.',
   'help.guide.paddle-water-data.step.3':
-    '‘지역 추가’에서 Geofabrik에서 Oberpfalz 같은 지역을 검색하고, 옆의 ‘추가’를 클릭하세요. TREK이 백그라운드에서 읽고, ‘준비됨’이 되면 줄에 객체 수, 데이터 날짜, 수로 길이(km)가 나와요. ‘다시 읽기’는 새로 고치고 ‘지역 삭제’는 지워요.',
+    '‘지역 추가’에서 Geofabrik에서 Oberpfalz 같은 지역을 검색하고, 옆의 ‘추가’를 클릭하세요. YOUYA이 백그라운드에서 읽고, ‘준비됨’이 되면 줄에 객체 수, 데이터 날짜, 수로 길이(km)가 나와요. ‘다시 읽기’는 새로 고치고 ‘지역 삭제’는 지워요.',
   'help.guide.paddle-water-data.result':
-    '지역 안의 패들 투어에 장애물이 표시되고 물길을 따라가요. TREK은 매달 한 번 모든 지역을 다시 읽어요.',
+    '지역 안의 패들 투어에 장애물이 표시되고 물길을 따라가요. YOUYA은 매달 한 번 모든 지역을 다시 읽어요.',
   'help.guide.paddle-water-data.tip.1':
     'Geofabrik에는 지역 이름만 전달되고, 누군가 계획한 장소는 절대 전달되지 않아요.',
   'help.guide.paddle-water-data.tip.2':
@@ -1830,7 +1831,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     '여행 하나의 모든 것이에요: 날, 지도, 장소가 있는 계획, 그리고 투어, 교통, 예약, 목록, 비용, 파일, 협업, 연결된 Journey 탭. 각각의 도움말은 이 화면 아래에 따로 있어요.',
   'help.ctx.trip.bullet.1':
-    '상단 바 아래의 탭 바: ‘계획’, ‘투어’, ‘교통’, ‘예약’, ‘목록’, ‘비용’, ‘파일’, ‘협업’, 그리고 Journey를 연결하면 ‘Journey’. 내 TREK에 어떤 탭이 있는지는 애드온과 플러그인에 따라 달라요.',
+    '상단 바 아래의 탭 바: ‘계획’, ‘투어’, ‘교통’, ‘예약’, ‘목록’, ‘비용’, ‘파일’, ‘협업’, 그리고 Journey를 연결하면 ‘Journey’. 내 YOUYA에 어떤 탭이 있는지는 애드온과 플러그인에 따라 달라요.',
   'help.ctx.trip.bullet.2':
     '‘계획’은 세 열로 되어 있어요: 왼쪽은 날, 가운데는 지도, 오른쪽은 장소. 로드트립 애드온을 쓰면 날 열 맨 위에 ‘일’과 ‘로드트립’ 전환 스위치가, 투어 애드온을 쓰면 장소 열 맨 위에 ‘장소’와 ‘투어’가 있어요. 예약과 교통은 계획의 일부로, 들를 곳에 붙거나 들를 곳 사이에 나오고, 각 탭에서 목록으로 볼 수 있어요.',
   'help.ctx.trip.bullet.3':
@@ -1842,7 +1843,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.6': '날 목록 도구 모음의 실행 취소 화살표로 최근 계획 변경을 하나씩 되돌려요.',
   // add-member
   'help.guide.add-member.title': '멤버 추가하기',
-  'help.guide.add-member.goal': 'TREK 계정이 있는 사람에게 이 여행에 접근할 권한을 줘요.',
+  'help.guide.add-member.goal': 'YOUYA 계정이 있는 사람에게 이 여행에 접근할 권한을 줘요.',
   'help.guide.add-member.step.1': '왼쪽 위 여행 이름 옆의 ‘여행 설정’ 버튼을 클릭하세요. ‘사람’ 화면으로 열려요.',
   'help.guide.add-member.step.2': '‘사용자 초대’에서 ‘사용자 선택…’으로 사람을 고르고 ‘초대’를 클릭하세요.',
   'help.guide.add-member.step.3':
@@ -1850,7 +1851,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     '멤버는 관리자가 “권한 설정”에서 정한 범위 안에서 나처럼 여행을 보고 편집할 수 있어요.',
   'help.guide.add-member.tip.1':
-    '목록에 없는 사람은 아직 TREK 계정이 없어요. 게스트로 추가하거나 초대 링크로 가입하게 하세요.',
+    '목록에 없는 사람은 아직 YOUYA 계정이 없어요. 게스트로 추가하거나 초대 링크로 가입하게 하세요.',
   'help.guide.add-member.tip.2': '‘접근’ 옆 숫자는 여행 인원 수예요. 게스트는 아래에 따로 나와요.',
   // trip-invite-link
   'help.guide.trip-invite-link.title': '링크로 초대하기',
@@ -1858,7 +1859,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     '여행 이름 옆의 ‘여행 설정’을 클릭하고 왼쪽에서 ‘공유’를 고르세요. ‘여행 초대 링크’에서 ‘초대 링크 만들기’를 클릭하세요.',
   'help.guide.trip-invite-link.step.2':
-    '“복사”를 클릭하고 링크를 보내세요. TREK 계정이 있는 사람이 링크를 열면 멤버로 참여해요.',
+    '“복사”를 클릭하고 링크를 보내세요. YOUYA 계정이 있는 사람이 링크를 열면 멤버로 참여해요.',
   'help.guide.trip-invite-link.step.3':
     '“다시 생성”을 누르면 링크가 새로 바뀌고 이전 링크는 더 이상 쓸 수 없어요. “비활성화”를 누르면 링크가 꺼져요.',
   'help.guide.trip-invite-link.result': '링크를 연 사람은 누구나 여행에 참여하고 “접근”에 표시돼요.',
@@ -1868,7 +1869,7 @@ const help: TranslationStrings = {
     '링크를 엉뚱한 채팅방에 보냈다면 다시 생성하세요. 이전 링크는 바로 동작을 멈춰요.',
   // add-guest
   'help.guide.add-guest.title': '계정 없는 게스트 추가하기',
-  'help.guide.add-guest.goal': 'TREK를 쓰지 않는 사람을 여행에 추가해요.',
+  'help.guide.add-guest.goal': 'YOUYA를 쓰지 않는 사람을 여행에 추가해요.',
   'help.guide.add-guest.step.1':
     '여행 이름 옆의 ‘여행 설정’을 클릭하세요. ‘사람’에서 ‘게스트’는 ‘접근’ 아래 마지막 부분에 있어요.',
   'help.guide.add-guest.step.2': '“게스트 이름”에 이름을 입력하고 “게스트 추가”를 클릭하세요.',
@@ -1922,7 +1923,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     '실행 취소는 계획에 적용돼요: 장소 추가, 배정, 삭제, 순서 변경, 이동, 고정, 날 비우기, 경로 최적화, 장소 삭제, 카테고리 변경, 가져오기.',
   'help.guide.undo-change.tip.2':
-    '다시 클릭하면 더 이전으로 돌아가요. TREK는 여행을 나갈 때까지 이 여행의 최근 변경 30개를 최신순으로 기억해요.',
+    '다시 클릭하면 더 이전으로 돌아가요. YOUYA는 여행을 나갈 때까지 이 여행의 최근 변경 30개를 최신순으로 기억해요.',
   'help.guide.trip-assistant.title': '어시스턴트와 일정 짜기',
   'help.guide.trip-assistant.goal': '어시스턴트에게 여행에 대해 물어보고, 추천받은 내용을 일정에 바로 추가해요.',
   'help.guide.trip-assistant.step.1':
@@ -1976,7 +1977,7 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     '장소 열 맨 위 ‘장소/활동 추가’(날이 열려 있으면 ‘새 장소’)를 클릭하세요. 검색창에 커서가 놓인 채 양식이 열려요.',
   'help.guide.create-place.step.2':
-    '‘장소 검색…’에 장소를 입력하고 결과를 고르세요. 창 위쪽의 이름, ‘주소’, ‘위도’, ‘경도’, ‘웹사이트’가 채워지고, 왼쪽 ‘장소 세부정보’에 사진, 영업시간, 설명이 보여요. Google 키가 있는 TREK에서는 결과 아래 ‘원하는 장소가 아닌가요? Google로 검색’으로 같은 검색을 Google에서 해요. 컬렉션이 켜져 있으면 오른쪽 ‘저장된 장소’에 내 목록의 장소도 같은 방식으로 나와요.',
+    '‘장소 검색…’에 장소를 입력하고 결과를 고르세요. 창 위쪽의 이름, ‘주소’, ‘위도’, ‘경도’, ‘웹사이트’가 채워지고, 왼쪽 ‘장소 세부정보’에 사진, 영업시간, 설명이 보여요. Google 키가 있는 YOUYA에서는 결과 아래 ‘원하는 장소가 아닌가요? Google로 검색’으로 같은 검색을 Google에서 해요. 컬렉션이 켜져 있으면 오른쪽 ‘저장된 장소’에 내 목록의 장소도 같은 방식으로 나와요.',
   'help.guide.create-place.step.3':
     '‘장소 세부정보’의 ‘사진 선택’ 아래에서 사진을 클릭하면 장소 이미지가 돼요. ‘이 텍스트 사용’을 누르면 설명이 양식에 복사돼요.',
   'help.guide.create-place.step.4':
@@ -1987,7 +1988,7 @@ const help: TranslationStrings = {
   'help.guide.create-place.tip.1':
     '예산 애드온이 켜져 있으면 양식 아래쪽 ‘비용’을 눌러, 저장하자마자 그 장소의 지출을 비용 편집기에서 입력할 수 있어요. 창에 붙여 넣은 이미지나 PDF는 ‘파일’에 파일로 첨부돼요.',
   'help.guide.create-place.tip.2':
-    '모든 TREK에서 검색 결과는 TREK 인덱스와 OpenStreetMap이 제공하고, ‘장소 세부정보’는 Wikipedia, Wikivoyage, Wikimedia에서 자동으로 채워져요. TREK는 둘 다 결과가 없을 때만 Google에 묻고, 평점은 Google만 제공해요.',
+    '모든 YOUYA에서 검색 결과는 YOUYA 인덱스와 OpenStreetMap이 제공하고, ‘장소 세부정보’는 Wikipedia, Wikivoyage, Wikimedia에서 자동으로 채워져요. YOUYA는 둘 다 결과가 없을 때만 Google에 묻고, 평점은 Google만 제공해요.',
   'help.guide.create-place.tip.3':
     '지도에서 장소를 만들 수도 있어요. 원하는 지점을 오른쪽 클릭하면 좌표와 주소가 채워진 양식이 열려요.',
   // place-to-open-day
@@ -2075,7 +2076,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     '핀이 여행의 장소가 되어 목록과 지도에 나타나고, 날에 넣기 전까지는 ‘미계획’에 있어요.',
   'help.guide.import-places-file.tip.1':
-    '파일이 너무 크면 거부되고 TREK이 크기 제한을 알려 줘요. 사진 없이 다시 내보내거나 파일을 나누세요.',
+    '파일이 너무 크면 거부되고 YOUYA이 크기 제한을 알려 줘요. 사진 없이 다시 내보내거나 파일을 나누세요.',
   'help.guide.import-places-file.tip.2': '‘파일 가져오기’로 한 가져오기는 날 위의 도구 모음에서 되돌릴 수 있어요.',
   // import-places-list
   'help.guide.import-places-list.title': '공유된 Google Maps 또는 Naver Maps 목록 가져오기',
@@ -2090,7 +2091,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.tip.1':
     '목록이 공개로 공유돼 있어야 해요. 비공개 목록 링크로는 아무것도 가져오지 않아요.',
   'help.guide.import-places-list.tip.2':
-    'TREK에 Google 키가 있으면 창에 ‘Google로 장소 정보 보강’이 나와요. 가져온 장소를 하나씩 찾아 사진, 주소, 상세 정보를 채워요.',
+    'YOUYA에 Google 키가 있으면 창에 ‘Google로 장소 정보 보강’이 나와요. 가져온 장소를 하나씩 찾아 사진, 주소, 상세 정보를 채워요.',
   'help.guide.sort-places.title': '장소 목록 정렬하기',
   'help.guide.sort-places.goal': '목록을 이름순, 평점순, 최근 추가나 수정 순으로 정렬해요.',
   'help.guide.sort-places.step.1':
@@ -2198,7 +2199,7 @@ const help: TranslationStrings = {
     '또는 마우스를 올린 들를 곳 오른쪽 끝의 화살표(‘위로 이동’, ‘아래로 이동’)를 쓰세요. 한 번 클릭할 때마다 한 칸씩 움직여요.',
   'help.guide.reorder-stops.step.3': '들를 곳을 다른 날 카드로 끌어다 놓으면 그날로 옮겨지고, 원래 날에서는 빠져요.',
   'help.guide.reorder-stops.step.4':
-    '시간이 정해진 들를 곳을 옮기면 그날 순서가 맞지 않게 될 때, 시간이 들를 곳의 위치를 정하기 때문에 TREK이 ‘시간을 제거할까요?’라고 물어요. ‘시간 제거 및 이동’을 누르면 시간이 지워지고 놓은 자리로 옮겨져요. ‘취소’를 누르면 그날이 그대로예요.',
+    '시간이 정해진 들를 곳을 옮기면 그날 순서가 맞지 않게 될 때, 시간이 들를 곳의 위치를 정하기 때문에 YOUYA이 ‘시간을 제거할까요?’라고 물어요. ‘시간 제거 및 이동’을 누르면 시간이 지워지고 놓은 자리로 옮겨져요. ‘취소’를 누르면 그날이 그대로예요.',
   'help.guide.reorder-stops.result': '경로와 이동 시간이 새 순서에 맞춰 바로 바뀌어요.',
   'help.guide.reorder-stops.tip.1':
     '시간이 정해진 예약은 그 시간 자리에 그대로 있어요. 그날 다른 곳에 놓으면 다시 돌아가고, 다른 날 카드로 끌어다 놓으면 그날로 옮겨져요.',
@@ -2217,7 +2218,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     '시간은 그날의 들를 곳에 속해요. 같은 장소라도 다른 날에는 다른 시간을 정할 수 있어요.',
   'help.guide.set-stop-times.tip.2':
-    '시간이 정해진 들를 곳을 직접 옮기려면 끌어서 놓으세요. TREK이 ‘시간을 제거할까요?’라고 묻고, ‘시간 제거 및 이동’을 클릭하면 시간이 지워지고 옮겨져요.',
+    '시간이 정해진 들를 곳을 직접 옮기려면 끌어서 놓으세요. YOUYA이 ‘시간을 제거할까요?’라고 묻고, ‘시간 제거 및 이동’을 클릭하면 시간이 지워지고 옮겨져요.',
   'help.guide.set-stop-times.tip.3':
     '같은 양식에서 ‘장소 소개’와 ‘메모’ 옆의 ‘…일차만’ 탭은 테이블 예약이나 티켓 번호처럼 그날에만 해당하는 메모를 적는 곳이에요.',
   // remove-from-day
@@ -2254,7 +2255,7 @@ const help: TranslationStrings = {
   'help.guide.day-note.tip.2': '메모는 날마다 따로예요. 여행 전체에 관한 메모는 협업에 남기세요.',
   // day-route
   'help.guide.day-route.title': '하루 경로 보고 최적화하기',
-  'help.guide.day-route.goal': '들를 곳 사이 경로를 보고, 이동 수단을 고르고, TREK가 순서를 정하게 해요.',
+  'help.guide.day-route.goal': '들를 곳 사이 경로를 보고, 이동 수단을 고르고, YOUYA가 순서를 정하게 해요.',
   'help.guide.day-route.step.1':
     '날을 열고 들를 곳 아래 경로 바에서 ‘경로’를 클릭하세요. 들를 곳 사이 경로가 지도에 그려지고, 연결선에 구간마다 시간과 거리가 보여요.',
   'help.guide.day-route.step.2':
@@ -2341,7 +2342,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     '맨 아래 줄: 날이 열려 있고 장소가 아직 그날에 없으면 ‘날에 추가’, 그다음 ‘내비게이션’(설정에서 지도 앱을 골랐다면 그 앱 이름), 그리고 아이콘 두 개 ‘웹사이트 열기’와 ‘컬렉션에 저장’. 오른쪽의 점 세 개에는 ‘날에서 제거’와 ‘삭제’가 있고, ‘편집’은 장소의 양식을 열어요. 사진도 거기서 바꿔요.',
   'help.ctx.trip-place.bullet.6':
-    '검색에서 고른 장소에는 TREK 인덱스나 OpenStreetMap에 있는 정보가 보여요. 위쪽 버튼에 영업 중 또는 영업 종료가 표시되고 사진 둘레에 초록색이나 빨간색 테두리가 생기는데, 장소의 현지 시간을 기준으로 해요. 전화번호도 버튼으로 나오고, 아래쪽 ‘영업 시간’에는 오늘 시간이 보이며 클릭하면 한 주 전체가 보여요. 웹사이트는 ‘웹사이트 열기’에 있어요. Google 평점은 Google 키가 있는 TREK에서 Google로 찾은 장소에만 보여요. 장소 양식에 직접 입력한 영업시간, 전화번호, 이메일은 조회된 정보 대신 쓰이고, 테두리 색도 그에 따라 정해져요.',
+    '검색에서 고른 장소에는 YOUYA 인덱스나 OpenStreetMap에 있는 정보가 보여요. 위쪽 버튼에 영업 중 또는 영업 종료가 표시되고 사진 둘레에 초록색이나 빨간색 테두리가 생기는데, 장소의 현지 시간을 기준으로 해요. 전화번호도 버튼으로 나오고, 아래쪽 ‘영업 시간’에는 오늘 시간이 보이며 클릭하면 한 주 전체가 보여요. 웹사이트는 ‘웹사이트 열기’에 있어요. Google 평점은 Google 키가 있는 YOUYA에서 Google로 찾은 장소에만 보여요. 장소 양식에 직접 입력한 영업시간, 전화번호, 이메일은 조회된 정보 대신 쓰이고, 테두리 색도 그에 따라 정해져요.',
   // read-place
   'help.guide.read-place.title': '장소 카드에 나오는 정보',
   'help.guide.read-place.goal': '여행에 있는 장소 정보를 카드 하나에서 모두 확인해요.',
@@ -2410,7 +2411,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     '타일 아래 줄 끝의 ‘이미지 제거’는 ‘업데이트’를 클릭하면 장소의 사진을 없애요. ‘취소’를 누르면 이전 사진이 그대로예요.',
   'help.guide.place-image.tip.3':
-    '나머지 타일은 장소의 현재 사진, 장소에 첨부된 사진, TREK이 찾은 사진이고, 각각 출처가 붙어요. 장소를 수정할 수 있는 여행자만 사진을 바꿀 수 있어요.',
+    '나머지 타일은 장소의 현재 사진, 장소에 첨부된 사진, YOUYA이 찾은 사진이고, 각각 출처가 붙어요. 장소를 수정할 수 있는 여행자만 사진을 바꿀 수 있어요.',
   // place-day-assign
   'help.guide.place-day-assign.title': '열린 일자에 장소 추가하거나 빼기',
   'help.guide.place-day-assign.goal': '행을 플래너 너머로 드래그하지 말고 카드의 버튼을 써요.',
@@ -2488,11 +2489,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     '목록에는 이 장소에 맞는 지도 앱이 나와요: Google Maps, Waze, Apple Maps, OpenStreetMap, CoMaps, 그리고 Android에서는 ‘다른 지도 앱’.',
   'help.guide.place-navigation.step.3':
-    '쓰는 앱을 클릭하세요. TREK는 가능하면 좌표만이 아니라 장소 자체를 앱에 넘겨서, 올바른 입구로 안내받을 수 있어요.',
+    '쓰는 앱을 클릭하세요. YOUYA는 가능하면 좌표만이 아니라 장소 자체를 앱에 넘겨서, 올바른 입구로 안내받을 수 있어요.',
   'help.guide.place-navigation.step.4':
     '옆의 아이콘 ‘웹사이트 열기’는 영업시간과 티켓을 볼 수 있는 장소의 웹사이트를 새 탭에서 열어요.',
   'help.guide.place-navigation.result':
-    '지도 앱에서 장소가 열리고, 웹사이트는 새 탭에서 열리며, 여행은 바뀌지 않아요. TREK를 앱으로 설치했다면 새 탭 대신 지도 앱이 열려요.',
+    '지도 앱에서 장소가 열리고, 웹사이트는 새 탭에서 열리며, 여행은 바뀌지 않아요. YOUYA를 앱으로 설치했다면 새 탭 대신 지도 앱이 열려요.',
   'help.guide.place-navigation.tip.1':
     'Waze는 바로 길 안내를 시작해요. 다른 앱은 장소를 열어 주니, 한 번 더 눌러야 길 안내가 시작돼요.',
   'help.guide.place-navigation.tip.2':
@@ -2525,7 +2526,7 @@ const help: TranslationStrings = {
     '왼쪽 점선 칸 ‘자동 색상’은 트랙을 기본 색으로 되돌려요. 오른쪽 스포이트를 누르면 시스템 색 선택 창이 열려 다른 색을 고를 수 있어요.',
   'help.guide.place-track.result': '트랙이 고른 색으로 카드, 장소 열의 해당 행, 지도에 그려져요.',
   'help.guide.place-track.tip.1':
-    '이 두 블록은 경로선이 있는 장소에만 있어요: 투어 기능이 생기기 전에 GPX, KML, KMZ 파일로 가져왔거나, 투어가 꺼진 TREK에서 가져온 장소예요. 투어가 켜져 있으면 새 GPX 파일은 투어가 되고, 투어 카드가 열려요.',
+    '이 두 블록은 경로선이 있는 장소에만 있어요: 투어 기능이 생기기 전에 GPX, KML, KMZ 파일로 가져왔거나, 투어가 꺼진 YOUYA에서 가져온 장소예요. 투어가 켜져 있으면 새 GPX 파일은 투어가 되고, 투어 카드가 열려요.',
   'help.guide.place-track.tip.2':
     '고도가 함께 기록된 트랙은 최고점과 최저점, 오르막과 내리막 미터, 코스의 고도 프로필도 보여 줘요.',
   'help.guide.place-track.tip.3':
@@ -2539,7 +2540,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     '여행의 모든 문서를 한 목록에서 관리해요: 티켓, 확인서, 패스, 사진. 문서마다 메모와 해당 장소나 예약으로 가는 연결이 있고, 휴지통에서 복원할 수 있어요.',
   'help.ctx.trip-files.bullet.1':
-    '바 아래 점선 상자 ‘여기에 파일을 놓으세요’에 파일을 끌어다 놓으면 올라가요. 클릭하면 파일 선택 창이 열려요. 상자에 이 TREK가 받는 파일 형식과 파일당 한도(관리자가 따로 정하지 않았다면 최대 50MB)가 보여요.',
+    '바 아래 점선 상자 ‘여기에 파일을 놓으세요’에 파일을 끌어다 놓으면 올라가요. 클릭하면 파일 선택 창이 열려요. 상자에 이 YOUYA가 받는 파일 형식과 파일당 한도(관리자가 따로 정하지 않았다면 최대 50MB)가 보여요.',
   'help.ctx.trip-files.bullet.2':
     '위쪽 바에 ‘파일’과 필터 탭 ‘전체’, ‘PDF’, ‘이미지’, ‘문서’가 개수와 함께 있어요. 즐겨찾기한 파일이 생기면 ‘전체’ 뒤에 별 탭이, 메모에 첨부가 생기면 맨 끝에 ‘Collab 메모’ 탭이 생겨요.',
   'help.ctx.trip-files.bullet.3':
@@ -2557,7 +2558,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     '여행을 열고 탭 바의 “파일”을 클릭하세요. 여행의 문서 목록이 나오고, 그 위에 업로드 상자가 있어요.',
   'help.guide.files-upload.step.2':
-    '‘여기에 파일을 놓으세요’를 클릭하고 파일을 하나 이상 고르세요. 차례로 올라가고, 진행 중에는 상자에 ‘업로드 중...’이 보여요. 상자 안 ‘또는 클릭하여 탐색’ 아래에 이 TREK가 받는 파일 형식과 파일당 최대 크기가 나와요.',
+    '‘여기에 파일을 놓으세요’를 클릭하고 파일을 하나 이상 고르세요. 차례로 올라가고, 진행 중에는 상자에 ‘업로드 중...’이 보여요. 상자 안 ‘또는 클릭하여 탐색’ 아래에 이 YOUYA가 받는 파일 형식과 파일당 최대 크기가 나와요.',
   'help.guide.files-upload.step.3':
     '마지막 파일이 다 올라가면(여행에 장소나 예약이 있다면) 그 파일의 ‘파일 배정’이 자동으로 열리고, 창 위쪽에 파일 이름이 보여요. ‘메모’ 아래 ‘메모 추가...’로 파일에 메모를 붙이고, 그 아래 목록에서 장소나 예약에 연결해요. 오른쪽 위 ×로 닫아도 아무것도 사라지지 않아요.',
   'help.guide.files-upload.step.4':
@@ -2568,7 +2569,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     'Ctrl+V를 누르면 클립보드의 사진이 목록에 추가돼요. 예약 화면 스크린숏을 따로 저장할 필요가 없어요.',
   'help.guide.files-upload.tip.3':
-    '업로드하려면 파일 업로드 권한이 필요해요. 권한이 없으면 상자 자체가 보이지 않아요. 목록에 없는 형식은 메시지와 함께 거부되고 아무것도 올라가지 않아요. 용량 한도(관리자가 따로 정하지 않았다면 50MB)를 넘는 파일은 전송 전에 거부되고, 메시지에 한도가 표시돼요. 업로드에는 인터넷 연결도 필요해요. 오프라인이면 TREK가 알려 주고 아무것도 올리지 않아요.',
+    '업로드하려면 파일 업로드 권한이 필요해요. 권한이 없으면 상자 자체가 보이지 않아요. 목록에 없는 형식은 메시지와 함께 거부되고 아무것도 올라가지 않아요. 용량 한도(관리자가 따로 정하지 않았다면 50MB)를 넘는 파일은 전송 전에 거부되고, 메시지에 한도가 표시돼요. 업로드에는 인터넷 연결도 필요해요. 오프라인이면 YOUYA가 알려 주고 아무것도 올리지 않아요.',
   // files-link
   'help.guide.files-link.title': '문서를 장소나 예약에 연결하기',
   'help.guide.files-link.goal': '이 목록에서뿐 아니라 해당 일자에서도 티켓을 쉽게 찾을 수 있게 해요.',
@@ -2619,7 +2620,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     '목록은 항상 즐겨찾기한 파일이 먼저, 그다음은 최신순으로 정렬돼요. 오늘 올린 문서가 지난달 문서보다 위에 나와요.',
   // files-preview
-  'help.guide.files-preview.title': 'TREK 안에서 문서 보기',
+  'help.guide.files-preview.title': 'YOUYA 안에서 문서 보기',
   'help.guide.files-preview.goal': '티켓이나 사진을 바로 보고, 필요하면 기기에 다운로드해요.',
   'help.guide.files-preview.step.1':
     '사진 이름이나 썸네일을 클릭하세요. 전체 화면으로 열리고, 왼쪽 위에 파일 이름과 몇 번째 사진인지 보여요. 동영상도 같은 방식으로 열리고 그 자리에서 재생돼요.',
@@ -2652,7 +2653,7 @@ const help: TranslationStrings = {
     '바에서 휴지통 아이콘 옆의 “휴지통 비우기”를 누르면 휴지통에 남은 모든 파일이 영구 삭제돼요. 삭제하기 전에 브라우저가 한 번 확인해요. 휴지통 아이콘을 누르면 다시 파일 목록으로 돌아가요.',
   'help.guide.files-trash.result': '파일이 원래 있던 자리로 목록에 돌아와요.',
   'help.guide.files-trash.tip.1':
-    '줄의 ‘삭제’는 먼저 묻지 않아요. 그래서 휴지통이 있어요. 여기서 삭제하기 전까지는 TREK에서 아무것도 지워지지 않아요. 모두 오프라인에서도 되고, 다시 온라인이 되면 전송돼요.',
+    '줄의 ‘삭제’는 먼저 묻지 않아요. 그래서 휴지통이 있어요. 여기서 삭제하기 전까지는 YOUYA에서 아무것도 지워지지 않아요. 모두 오프라인에서도 되고, 다시 온라인이 되면 전송돼요.',
   'help.guide.files-trash.tip.2':
     '파일을 삭제하고 복원하려면 파일 삭제 권한이 필요해요. 권한이 없는 멤버에게는 줄의 ‘삭제’도, 휴지통 안의 버튼도 보이지 않아요.',
   'help.guide.files-trash.tip.3': '휴지통에서 영구 삭제한 파일은 되돌릴 수 없어요.',
@@ -2665,21 +2666,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     '내 저장소를 클릭하세요. 여기서는 Nextcloud예요. 연결용 작은 대화 상자가 열리고, 저장소 이름과 함께 그 저장소에 필요한 로그인 정보를 물어봐요.',
   'help.guide.files-sync.step.3':
-    '‘주소’와 저장소별 로그인 정보를 채우세요: Paperless-ngx는 ‘API 토큰’, Papra는 ‘API 키’와 ‘조직 ID’, Nextcloud는 ‘사용자 이름’과 ‘앱 비밀번호’, OpenCloud는 ‘사용자 이름’과 ‘앱 토큰’, Synology Drive는 ‘사용자 이름’, ‘비밀번호’, 그리고 계정에서 요구하면 ‘2단계 인증 코드’. 저장소가 앱 비밀번호나 토큰을 지원하면 꼭 그걸 쓰고, 계정 비밀번호는 쓰지 마세요. Nextcloud와 Synology Drive는 TREK가 여행 폴더를 찾을 ‘기준 폴더’(선택, 여기서는 /Reisen)도 받아요. 맨 아래 ‘자체 서명 인증서 허용’은 그런 인증서를 쓰는 내 네트워크의 저장소에만 쓰세요.',
+    '‘주소’와 저장소별 로그인 정보를 채우세요: Paperless-ngx는 ‘API 토큰’, Papra는 ‘API 키’와 ‘조직 ID’, Nextcloud는 ‘사용자 이름’과 ‘앱 비밀번호’, OpenCloud는 ‘사용자 이름’과 ‘앱 토큰’, Synology Drive는 ‘사용자 이름’, ‘비밀번호’, 그리고 계정에서 요구하면 ‘2단계 인증 코드’. 저장소가 앱 비밀번호나 토큰을 지원하면 꼭 그걸 쓰고, 계정 비밀번호는 쓰지 마세요. Nextcloud와 Synology Drive는 YOUYA가 여행 폴더를 찾을 ‘기준 폴더’(선택, 여기서는 /Reisen)도 받아요. 맨 아래 ‘자체 서명 인증서 허용’은 그런 인증서를 쓰는 내 네트워크의 저장소에만 쓰세요.',
   'help.guide.files-sync.step.4':
-    '‘연결 테스트’를 클릭하세요. TREK가 입력한 정보로 저장소에 연결하고, 하단에 ‘연결됨, 다음 계정으로 로그인함’과 계정 이름이 보여요. 인증 정보가 거부되거나 주소에 연결할 수 없으면 대신 그 내용이 나와요. 어느 경우든 저장되는 건 없어요.',
+    '‘연결 테스트’를 클릭하세요. YOUYA가 입력한 정보로 저장소에 연결하고, 하단에 ‘연결됨, 다음 계정으로 로그인함’과 계정 이름이 보여요. 인증 정보가 거부되거나 주소에 연결할 수 없으면 대신 그 내용이 나와요. 어느 경우든 저장되는 건 없어요.',
   'help.guide.files-sync.step.5':
-    '‘연결’을 클릭하세요. 연결이 여행과 함께 저장되고, TREK가 저장소에서 여행 문서를 둘 곳(태그, 폴더, 스페이스)을 물어봐요. 그 안에 있는 것만 동기화돼요. ‘새로 만들기’를 고르고 ‘생성’을 누르면 여행 제목으로 이름 지은 새 위치가 만들어져요. ‘또는 이미 있는 것 사용하기’에 기존 위치가 나와요. 하나를 클릭하세요. 여기서는 Autumn in Japan 폴더예요.',
+    '‘연결’을 클릭하세요. 연결이 여행과 함께 저장되고, YOUYA가 저장소에서 여행 문서를 둘 곳(태그, 폴더, 스페이스)을 물어봐요. 그 안에 있는 것만 동기화돼요. ‘새로 만들기’를 고르고 ‘생성’을 누르면 여행 제목으로 이름 지은 새 위치가 만들어져요. ‘또는 이미 있는 것 사용하기’에 기존 위치가 나와요. 하나를 클릭하세요. 여기서는 Autumn in Japan 폴더예요.',
   'help.guide.files-sync.step.6':
-    '대화 상자가 다시 열려요. 왼쪽 “이 여행” 아래에 내 저장소가 있고, 오른쪽 카드에 동기화 위치, 마지막 실행 시각, “지금 동기화”가 나와요. 첫 동기화는 자동으로 시작되고, 언제든 “지금 동기화”를 클릭해 동기화할 수 있어요. 동기화가 끝나면 이름 옆의 “아직 동기화하지 않았습니다” 배지가 초록 점으로 바뀌고, 마우스를 올리면 “동기화됨”이 표시돼요. 흐름 막대에는 TREK과 저장소에 각각 문서가 몇 개 있는지 나오고, 그 사이에 “저장소로 내보내기”와 “저장소에서 가져오기” 레인이 있어요. 오른쪽 위의 ×로 대화 상자를 닫으세요.',
+    '대화 상자가 다시 열려요. 왼쪽 “이 여행” 아래에 내 저장소가 있고, 오른쪽 카드에 동기화 위치, 마지막 실행 시각, “지금 동기화”가 나와요. 첫 동기화는 자동으로 시작되고, 언제든 “지금 동기화”를 클릭해 동기화할 수 있어요. 동기화가 끝나면 이름 옆의 “아직 동기화하지 않았습니다” 배지가 초록 점으로 바뀌고, 마우스를 올리면 “동기화됨”이 표시돼요. 흐름 막대에는 YOUYA과 저장소에 각각 문서가 몇 개 있는지 나오고, 그 사이에 “저장소로 내보내기”와 “저장소에서 가져오기” 레인이 있어요. 오른쪽 위의 ×로 대화 상자를 닫으세요.',
   'help.guide.files-sync.result':
-    '저장소에 있던 문서가 내 이름으로 업로드되어 목록 맨 위에 나타나고, Collab 메모의 문서를 빼면 여행의 모든 문서가 저장소에도 들어가요. 이제부터 TREK이 백그라운드에서 저장소를 확인하고, 목록의 변경 사항을 저장소에 복사해요.',
+    '저장소에 있던 문서가 내 이름으로 업로드되어 목록 맨 위에 나타나고, Collab 메모의 문서를 빼면 여행의 모든 문서가 저장소에도 들어가요. 이제부터 YOUYA이 백그라운드에서 저장소를 확인하고, 목록의 변경 사항을 저장소에 복사해요.',
   'help.guide.files-sync.tip.1':
     '인증 정보로 저장소의 계정 전체에 접근할 수 있기 때문에, 여행을 연결할 수 있는 건 여행 소유자나 인스턴스 관리자뿐이에요. 연결된 뒤에는 모든 멤버에게 “문서 동기화”가 보이고, 열어서 카드를 보고 “지금 동기화”를 누를 수 있어요.',
   'help.guide.files-sync.tip.2':
-    '내부 네트워크에 있는 저장소를 쓰려면 TREK 서버에 ALLOW_INTERNAL_NETWORK=true를 설정해야 하고, 주소는 localhost가 아니라 네트워크상의 그 기기 주소여야 해요. 그렇지 않으면 “연결 테스트”에서 “허용되지 않는 주소입니다.”라고 나와요.',
+    '내부 네트워크에 있는 저장소를 쓰려면 YOUYA 서버에 ALLOW_INTERNAL_NETWORK=true를 설정해야 하고, 주소는 localhost가 아니라 네트워크상의 그 기기 주소여야 해요. 그렇지 않으면 “연결 테스트”에서 “허용되지 않는 주소입니다.”라고 나와요.',
   'help.guide.files-sync.tip.3':
-    '‘지금 동기화’ 옆 아이콘 ‘연결 해제’는 한 번 확인한 뒤 연결을 끊고, 양쪽 문서는 모두 남겨요. 같은 태그, 폴더, 스페이스를 다시 연결하면 TREK가 새것으로 보고 안의 모든 걸 다시 가져와요. 그러니 연결을 해제한 뒤에는 예전 것이 아니라 빈 것을 연결하세요.',
+    '‘지금 동기화’ 옆 아이콘 ‘연결 해제’는 한 번 확인한 뒤 연결을 끊고, 양쪽 문서는 모두 남겨요. 같은 태그, 폴더, 스페이스를 다시 연결하면 YOUYA가 새것으로 보고 안의 모든 걸 다시 가져와요. 그러니 연결을 해제한 뒤에는 예전 것이 아니라 빈 것을 연결하세요.',
 
   // ── Screen: trip-day-detail ───────────────────────────────────────────────────────────
   'help.ctx.trip-day-detail.title': '일별 상세',
@@ -2855,7 +2856,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     '지도 맨 위의 아이콘 줄이 카테고리 검색이에요: ‘음식점’, ‘카페’, ‘바 & 나이트라이프’, ‘숙박’, ‘명소’, ‘박물관 & 문화’, ‘자연 & 공원’, ‘액티비티’, ‘빵집’, ‘식료품점’. 플러그인이 추가한 카테고리는 얇은 구분선 뒤에 있어요. 아이콘에 마우스를 올리면 이름이 보여요.',
   'help.guide.map-nearby-places.step.2':
-    '카테고리를 클릭하세요. TREK이 지도에 보이는 범위에서 그 종류의 장소를 찾아 결과마다 카테고리 색 핀을 꽂아요. 한 번에 한 카테고리만 볼 수 있어요. 다른 카테고리를 누르면 바뀌고, 켜진 카테고리를 다시 누르면 꺼져요.',
+    '카테고리를 클릭하세요. YOUYA이 지도에 보이는 범위에서 그 종류의 장소를 찾아 결과마다 카테고리 색 핀을 꽂아요. 한 번에 한 카테고리만 볼 수 있어요. 다른 카테고리를 누르면 바뀌고, 켜진 카테고리를 다시 누르면 꺼져요.',
   'help.guide.map-nearby-places.step.3':
     '지도를 움직이면 줄 아래에 두 번째 버튼 “이 지역 검색”이 나타나고, 새 화면에서 같은 검색을 실행해요. 지도를 움직이기만 해서는 새로 검색하지 않아요. 요청 수를 줄이기 위해서예요.',
   'help.guide.map-nearby-places.step.4':
@@ -2863,13 +2864,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     '채워진 내용을 확인하고 검색으로 알 수 없는 내용을 더하세요. 여행에 맞는 카테고리가 있으면(예: 음식점이면 ‘레스토랑’) 이름 아래 ‘카테고리’ 버튼이 이미 정해져 있고, 없으면 고를 때까지 ‘카테고리 없음’이에요. ‘장소 소개’에 장소가 어떤 곳인지 쓰고, ‘메모’에 내 메모를 적으세요.',
   'help.guide.map-nearby-places.step.6':
-    '“추가”를 클릭하세요. 이름이 같거나 같은 위치의 장소가 이미 여행에 있으면 TREK이 알려 주고, 버튼이 “그래도 추가”로 바뀌어요.',
+    '“추가”를 클릭하세요. 이름이 같거나 같은 위치의 장소가 이미 여행에 있으면 YOUYA이 알려 주고, 버튼이 “그래도 추가”로 바뀌어요.',
   'help.guide.map-nearby-places.result':
     '장소가 장소 목록과 지도에 여행의 핀으로 들어가고, 날에 넣기 전까지 ‘미계획’에 있어요. 검색 핀은 카테고리를 끌 때까지 남아요.',
   'help.guide.map-nearby-places.tip.1':
     '‘설정’ > ‘화면’의 ‘여행 및 지도’에서 ‘지도에서 장소 탐색’을 끄면 이 줄이 숨겨져요.',
   'help.guide.map-nearby-places.tip.2':
-    '결과는 TREK Places 인덱스와 OpenStreetMap에서 가져와서, 계획에서 인터넷 연결이 필요한 몇 안 되는 기능이에요.',
+    '결과는 YOUYA Places 인덱스와 OpenStreetMap에서 가져와서, 계획에서 인터넷 연결이 필요한 몇 안 되는 기능이에요.',
   'help.guide.map-nearby-places.tip.3':
     '검색은 화면에 보이는 영역만 다루니, 궁금한 거리까지 확대하세요. 도시 전체를 검색하면 처음 60개 결과만 뚜렷한 순서 없이 나와요.',
   // map-add-place
@@ -2878,7 +2879,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     '지도에서 원하는 지점을 오른쪽 클릭하세요. “장소/활동 추가”라는 제목의 장소 양식이 열려요.',
   'help.guide.map-add-place.step.2':
-    '“위도”와 “경도”는 이미 그 지점으로 설정되어 있어요. TREK이 좌표로 찾아본 결과로 “주소”를 채우고, 이름도 찾으면 대화 상자 맨 위 이름까지 채워요. 아직 저장되지 않았으니 틀린 부분은 고치세요.',
+    '“위도”와 “경도”는 이미 그 지점으로 설정되어 있어요. YOUYA이 좌표로 찾아본 결과로 “주소”를 채우고, 이름도 찾으면 대화 상자 맨 위 이름까지 채워요. 아직 저장되지 않았으니 틀린 부분은 고치세요.',
   'help.guide.map-add-place.step.3':
     '창 위쪽 칸에 알아보기 쉬운 이름을 입력하세요. 그 아래 ‘카테고리’ 버튼에서 카테고리를 고르세요(고르기 전까지 ‘카테고리 없음’). 그다음 계획에 필요한 ‘장소 소개’, ‘메모’, ‘웹사이트’를 더하세요.',
   'help.guide.map-add-place.step.4':
@@ -2894,7 +2895,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     '배경 지도 전환 버튼은 지도 왼쪽 아래 둥근 버튼 두 개 중 아래쪽, 자물쇠 밑에 있어요. 아이콘은 항상 전환될 지도를 보여 주고, 툴팁에 ‘위성 보기로 전환’처럼 나와요. 클릭하세요.',
   'help.guide.map-satellite.step.2':
-    '이제 지도가 항공 사진으로 보여요. 건물 하나하나가 보일 만큼 자세하고, 따로 키가 필요 없어요. 핀, 그날 경로, 트랙, 예약 경로처럼 TREK가 그리는 건 모두 그 위에 그대로 보여요.',
+    '이제 지도가 항공 사진으로 보여요. 건물 하나하나가 보일 만큼 자세하고, 따로 키가 필요 없어요. 핀, 그날 경로, 트랙, 예약 경로처럼 YOUYA가 그리는 건 모두 그 위에 그대로 보여요.',
   'help.guide.map-satellite.step.3': '이제 버튼이 ‘지도 보기로 전환’이에요. 클릭하면 지도 보기로 돌아가요.',
   'help.guide.map-satellite.result': '지도가 다시 그려지고, 고른 레이어는 내 계정에 저장돼요.',
   'help.guide.map-satellite.tip.1':
@@ -2946,7 +2947,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Dawarich가 휴대폰으로 기록한 경로를 계획한 경로 옆에 점선으로 지도에 표시하고, 여행이 실제로 어떻게 진행됐는지 날마다 확인해요.',
   'help.guide.map-dawarich-trail.step.1':
-    '둥근 Dawarich 버튼은 지도 오른쪽 아래 ‘전체 여행 보기’ 밑에 있어요. 마우스를 올리면 ‘기록된 경로 표시’가 보여요. 클릭하세요. TREK가 Dawarich에 여행 기간의 데이터를 요청하고, 응답을 기다리는 동안 버튼 둘레에 링이 돌아요.',
+    '둥근 Dawarich 버튼은 지도 오른쪽 아래 ‘전체 여행 보기’ 밑에 있어요. 마우스를 올리면 ‘기록된 경로 표시’가 보여요. 클릭하세요. YOUYA가 Dawarich에 여행 기간의 데이터를 요청하고, 응답을 기다리는 동안 버튼 둘레에 링이 돌아요.',
   'help.guide.map-dawarich-trail.step.2':
     '기록된 경로가 날마다 다른 색 점선으로 보이고, 계획이 잘 보이도록 계획한 경로 아래에 그려져요. 버튼이 ‘기록된 경로 숨기기’로 바뀌어요. 하루는 현지 자정에 끝나요. 날 열에서 날을 접으면 그날 점선과 들를 곳이 지도에서 숨겨져요.',
   'help.guide.map-dawarich-trail.step.3':
@@ -2954,9 +2955,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     '계획한 경로와 실제로 이동한 경로가 점선과 실선으로 지도에 함께 표시돼요. 버튼 위 카드에는 여전히 계획한 일자와 거리가 나와요.',
   'help.guide.map-dawarich-trail.tip.1':
-    '켜고 끈 상태는 여행마다 계정에 저장되어 모든 브라우저와 기기에서 같아요. 경로가 켜져 있으면 TREK이 2분마다 Dawarich에서 다시 가져오므로 진행 중인 여행이 새로 고침 없이 업데이트돼요. 경로 자체는 저장되지 않아서 TREK 데이터베이스와 백업에 없고 오프라인에서도 볼 수 없어요.',
+    '켜고 끈 상태는 여행마다 계정에 저장되어 모든 브라우저와 기기에서 같아요. 경로가 켜져 있으면 YOUYA이 2분마다 Dawarich에서 다시 가져오므로 진행 중인 여행이 새로 고침 없이 업데이트돼요. 경로 자체는 저장되지 않아서 YOUYA 데이터베이스와 백업에 없고 오프라인에서도 볼 수 없어요.',
   'help.guide.map-dawarich-trail.tip.2':
-    '버튼의 라벨로 지도가 비어 있는 이유를 알 수 있어요: 불러오는 동안에는 “기록된 경로를 불러오는 중…”, 그 밖에 “해당 날짜에 기록된 내용이 없습니다”, “기록된 경로를 불러올 수 없습니다”, TREK이 오프라인이면 “기록된 경로를 보려면 연결이 필요합니다”.',
+    '버튼의 라벨로 지도가 비어 있는 이유를 알 수 있어요: 불러오는 동안에는 “기록된 경로를 불러오는 중…”, 그 밖에 “해당 날짜에 기록된 내용이 없습니다”, “기록된 경로를 불러올 수 없습니다”, YOUYA이 오프라인이면 “기록된 경로를 보려면 연결이 필요합니다”.',
   // map-compass
   'help.guide.map-compass.title': '지도 회전하고 북쪽 다시 맞추기',
   'help.guide.map-compass.goal': '가는 방향에 맞춰 지도를 돌리고, 클릭 한 번으로 다시 북쪽으로 돌려요.',
@@ -3119,7 +3120,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     '“이미지 첨부”로 메시지 하나에 사진을 최대 네 장까지 붙일 수 있어요. 입력란에 붙여 넣거나 드래그해서 놓아도 돼요.',
   'help.guide.trip-chat.tip.3':
-    '링크가 있는 메시지 아래에는 미리보기 카드가 붙어요. 내 TREK가 직접 가져오기 때문에, 나만 접근할 수 있는 링크는 일반 링크로 남아요.',
+    '링크가 있는 메시지 아래에는 미리보기 카드가 붙어요. 내 YOUYA가 직접 가져오기 때문에, 나만 접근할 수 있는 링크는 일반 링크로 남아요.',
   'help.guide.trip-chat.tip.4':
     '채팅은 ‘애드온’에서 협업 아래에 따로 스위치가 있어요. 관리자가 채팅만 끄고 메모, 링크, 투표, ‘다음 할 일’은 켜 둘 수 있어요.',
 
@@ -3159,7 +3160,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     '목록에 담당자를 지정하면 그 사람에게 짐 알림이 가요. 항목을 볼 수 있는 사람은 바뀌지 않아요. 그건 각 항목 창의 ‘공개 대상’이나, 목록 전체는 ‘목록 전체 공유’에서 정해요.',
   'help.guide.packing-categories.tip.3':
-    '두 목록의 이름이 같아도 돼요. TREK이 내부적으로 구분하므로 이름은 입력한 그대로 유지돼요.',
+    '두 목록의 이름이 같아도 돼요. YOUYA이 내부적으로 구분하므로 이름은 입력한 그대로 유지돼요.',
   // check-off-packing
   'help.guide.check-off-packing.title': '짐 싸면서 체크하기',
   'help.guide.check-off-packing.goal': '가방에 넣은 것을 표시하고, 진행 상황을 확인하고, 챙긴 항목을 정리해요.',
@@ -3202,13 +3203,14 @@ const help: TranslationStrings = {
     '한 줄에 항목 하나: 카테고리, 이름, 무게(g, 선택), 가방(선택), checked/unchecked(선택). 상자 안 회색 예시에 네 가지 형식이 모두 보이고, 왼쪽 숫자는 입력한 줄 수예요. Markdown 목록도 돼요: 제목이 목록 이름이 되고, "- [ ]"와 "- [x]"가 항목이 돼요.',
   'help.guide.import-packing-list.step.3':
     '또는 창 왼쪽 아래 ‘CSV/TXT/MD 불러오기’로 파일에서 줄을 불러오세요. .csv, .txt, .md 파일을 받고, 상자 안의 내용을 대체해요.',
-  'help.guide.import-packing-list.step.4': '오른쪽 아래의 “3개 가져오기”를 클릭하세요. 숫자는 TREK이 인식한 줄 수예요.',
+  'help.guide.import-packing-list.step.4':
+    '오른쪽 아래의 “3개 가져오기”를 클릭하세요. 숫자는 YOUYA이 인식한 줄 수예요.',
   'help.guide.import-packing-list.result':
     '줄마다 한 행이 되어 첫 번째 칸에 적힌 목록에 들어가요. 이미 있던 항목은 바뀌지 않아요.',
   'help.guide.import-packing-list.tip.1':
     '쉼표, 세미콜론, 탭으로 칸을 나누고, 큰따옴표로 묶으면 한 칸이 돼요. 그래서 "Shirt, blue"는 이름 하나로 들어가요. 값이 하나뿐인 줄은 이름만 있는 항목이에요. 목록이 지정되지 않은 줄은 ‘기타’에 들어가요. 이름 앞에 "3x"를 붙이면 수량이 정해져요.',
   'help.guide.import-packing-list.tip.2':
-    '네 번째 칸에 적은 가방이 여행에 아직 없으면 TREK가 만들어요. 여러 항목의 무게와 가방을 한 번에 넣는 방법은 ‘가져오기’와 ‘템플릿 적용’ 두 가지예요.',
+    '네 번째 칸에 적은 가방이 여행에 아직 없으면 YOUYA가 만들어요. 여러 항목의 무게와 가방을 한 번에 넣는 방법은 ‘가져오기’와 ‘템플릿 적용’ 두 가지예요.',
   // export-packing-list
   'help.guide.export-packing-list.title': '짐 목록 인쇄하거나 내보내기',
   'help.guide.export-packing-list.goal':
@@ -3343,7 +3345,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '바 오른쪽 끝의 ‘직접 예약’으로 ‘새 예약’을 열어요. 여섯 종류의 예약을 만들 수 있어요: ‘숙박’, ‘레스토랑’, ‘이벤트’, ‘가이드 투어’, ‘주차’, ‘기타’. 항공편, 기차 등 교통은 ‘교통’ 탭에 있고 여기에는 나오지 않아요.',
   'help.ctx.trip-bookings.bullet.2':
-    '‘직접 예약’ 앞의 업로드 아이콘 ‘예약 확인서 가져오기’로 확인서를 올리면 TREK이 자동으로 읽어요: EML, PDF, PKPass, HTML, TXT 파일을 각 10MB까지 최대 다섯 개, AI 모델이 이미지를 읽을 수 있으면 사진도 돼요. 서버가 읽을 수 있을 때만 이 아이콘이 보여요. 관리자가 메일 가져오기를 켜 두었다면 같은 창에서 이 여행의 전용 주소를 받아 예약 메일을 전달할 수 있어요.',
+    '‘직접 예약’ 앞의 업로드 아이콘 ‘예약 확인서 가져오기’로 확인서를 올리면 YOUYA이 자동으로 읽어요: EML, PDF, PKPass, HTML, TXT 파일을 각 10MB까지 최대 다섯 개, AI 모델이 이미지를 읽을 수 있으면 사진도 돼요. 서버가 읽을 수 있을 때만 이 아이콘이 보여요. 관리자가 메일 가져오기를 켜 두었다면 같은 창에서 이 여행의 전용 주소를 받아 예약 메일을 전달할 수 있어요.',
   'help.ctx.trip-bookings.bullet.3':
     '“검색”은 제목, 유형, 장소, 메모, 예약 코드, 동행자에서 찾아요. 옆의 깔때기 아이콘 “필터”로 “상태”, 개수가 함께 표시되는 “유형”, 그리고 예약에 사람이 지정되어 있으면 “동행자”로 탭을 좁힐 수 있어요. 깔때기 위 숫자는 켜져 있는 필터 수예요.',
   'help.ctx.trip-bookings.bullet.4':
@@ -3405,7 +3407,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     '‘숙박’에서 호텔을 고르세요. 목록에는 가져온 트랙과 투어를 뺀 여행 장소가 나와요. 하나를 고르면 제목이 비어 있을 때 이름이, ‘위치 / 주소’에 주소가 들어가요.',
   'help.guide.booking-hotel.step.3':
-    '‘부터’와 ‘까지’를 정하세요: 첫날 밤과 떠나는 날 아침이에요. 둘 다 여행 날짜를 보여 주고, TREK가 ‘까지’를 항상 ‘부터’ 뒤로 유지해요.',
+    '‘부터’와 ‘까지’를 정하세요: 첫날 밤과 떠나는 날 아침이에요. 둘 다 여행 날짜를 보여 주고, YOUYA가 ‘까지’를 항상 ‘부터’ 뒤로 유지해요.',
   'help.guide.booking-hotel.step.4': '“체크인”, “체크인 마감”, “체크아웃”과 확인 메일의 “예약 코드”를 입력하세요.',
   'help.guide.booking-hotel.step.5': '“추가”를 클릭하세요.',
   'help.guide.booking-hotel.result':
@@ -3503,7 +3505,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': '확인 메일에서 예약 가져오기',
   'help.guide.import-booking-file.goal':
-    '업체가 보낸 메일이나 PDF에서 TREK가 예약을 읽어 와서 다시 입력할 필요가 없어요.',
+    '업체가 보낸 메일이나 PDF에서 YOUYA가 예약을 읽어 와서 다시 입력할 필요가 없어요.',
   'help.guide.import-booking-file.step.1':
     '바의 업로드 아이콘 ‘예약 확인서 가져오기’를 클릭하세요. 마우스를 올리면 이름이 나와요. 같은 이름의 창이 열려요.',
   'help.guide.import-booking-file.step.2':
@@ -3637,11 +3639,11 @@ const help: TranslationStrings = {
     '직접 나누기는 퍼센트나 지분으로도 입력할 수 있어요: 안내 옆의 작은 스위치로 통화 기호, %, ‘지분’ 중에서 골라요. 퍼센트일 때는 지분의 합이 100 %가 돼야 지출이 저장돼요.',
   // expense-currency
   'help.guide.expense-currency.title': '다른 통화로 지출 입력하기',
-  'help.guide.expense-currency.goal': '영수증에 적힌 금액을 입력하면 TREK이 환율을 저장해요.',
+  'help.guide.expense-currency.goal': '영수증에 적힌 금액을 입력하면 YOUYA이 환율을 저장해요.',
   'help.guide.expense-currency.step.1':
     '“지출 추가”를 여세요. 대화 상자 맨 위에 이름을 입력하고, “총 금액”에는 환산한 금액이 아니라 영수증에 적힌 금액을 그대로 입력하세요.',
   'help.guide.expense-currency.step.2':
-    '금액 옆의 ‘통화’를 열세요. 새 지출은 여행 자체의 통화로 시작해요. 영수증의 통화를 고르세요. 여행의 통화와 ‘비용’이 보여 주는 통화가 맨 위에 있고, 세 글자를 입력해 TREK이 아는 다른 모든 통화 코드를 검색할 수 있어요.',
+    '금액 옆의 ‘통화’를 열세요. 새 지출은 여행 자체의 통화로 시작해요. 영수증의 통화를 고르세요. 여행의 통화와 ‘비용’이 보여 주는 통화가 맨 위에 있고, 세 글자를 입력해 YOUYA이 아는 다른 모든 통화 코드를 검색할 수 있어요.',
   'help.guide.expense-currency.step.3':
     '칸 아래에 배지 한 줄이 나타나요: 입력한 금액과 지금 가치가 ‘실시간 환율’ 표시와 함께 보여요. 미리보기일 뿐, 저장되는 값은 아니에요.',
   'help.guide.expense-currency.step.4':
@@ -3841,7 +3843,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': '교통',
   'help.ctx.trip-transports.summary':
-    '들를 곳 사이를 오가는 모든 이동이에요: 항공편, 기차, 버스, 차량, 택시, 자전거, 크루즈, 페리, 케이블카, 그리고 TREK가 찾아 주는 대중교통 연결. 이 탭에 목록으로 나와요. 계획에서도 만들고 볼 수 있고, 지도에도 그려져요.',
+    '들를 곳 사이를 오가는 모든 이동이에요: 항공편, 기차, 버스, 차량, 택시, 자전거, 크루즈, 페리, 케이블카, 그리고 YOUYA가 찾아 주는 대중교통 연결. 이 탭에 목록으로 나와요. 계획에서도 만들고 볼 수 있고, 지도에도 그려져요.',
   'help.ctx.trip-transports.bullet.1':
     '이 탭에는 이동만 나와요. 숙박, 식당, 이벤트, 티켓은 ‘예약’ 탭에 있어서 같은 항목이 두 번 나오지 않아요.',
   'help.ctx.trip-transports.bullet.2':
@@ -3897,7 +3899,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': '전자 항공권에서 항공편 가져오기',
   'help.guide.import-transport-file.goal':
-    '운송사가 보낸 티켓에서 TREK가 항공편, 기차, 페리를 읽어 오고, 저장 전에 확인해요.',
+    '운송사가 보낸 티켓에서 YOUYA가 항공편, 기차, 페리를 읽어 오고, 저장 전에 확인해요.',
   'help.guide.import-transport-file.step.1':
     '‘교통’ 탭 바에서 ‘교통’ 앞의 업로드 아이콘(툴팁 ‘예약 확인서 가져오기’)을 클릭하세요. ‘예약’ 탭에 있는 것과 같은 이름의 창이 열려요. 빈 탭에서는 가운데 ‘파일에서 가져오기’가 같은 기능이에요.',
   'help.guide.import-transport-file.step.2':
@@ -3916,11 +3918,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': '대중교통 연결 계획하기',
   'help.guide.plan-transit.goal':
-    'TREK가 하루 중 두 지점 사이의 실제 기차와 버스를 찾게 하고, 고른 것을 계획에 넣어요.',
+    'YOUYA가 하루 중 두 지점 사이의 실제 기차와 버스를 찾게 하고, 고른 것을 계획에 넣어요.',
   'help.guide.plan-transit.step.1':
     '날 헤더의 +를 클릭하고 ‘대중교통’을 고르세요. 그날 검색이 열려요: 헤더에 날이 버튼으로 보이고, 옆의 ‘직접’과 ‘자동’으로 이 검색과 일반 양식을 오가요.',
   'help.guide.plan-transit.step.2':
-    '출발지와 도착지에는 정류장이나 역을 넣어요. 칸이 비어 있으면 TREK가 그날 숙소, 그날 예약에 있는 역과 공항, 그날 들를 곳을 제안해요. 두 글자를 입력하면 대신 시간표의 역을 검색해요. 두 칸 사이의 교체 버튼으로 출발지와 도착지를 맞바꿔요.',
+    '출발지와 도착지에는 정류장이나 역을 넣어요. 칸이 비어 있으면 YOUYA가 그날 숙소, 그날 예약에 있는 역과 공항, 그날 들를 곳을 제안해요. 두 글자를 입력하면 대신 시간표의 역을 검색해요. 두 칸 사이의 교체 버튼으로 출발지와 도착지를 맞바꿔요.',
   'help.guide.plan-transit.step.3':
     '“출발 시각” 또는 “도착”과 시간으로 언제 이동할지 정하고, “최적 경로”, “환승 최소”, “도보 최소”로 결과 정렬 방식을 정하세요.',
   'help.guide.plan-transit.step.4':
@@ -4027,7 +4029,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     '번호와 날짜가 같은 항공편이 이미 여행에 있으면 건너뛰고, 몇 개를 건너뛰었는지 메시지로 알려 줘요. 일자 위 도구 모음의 실행 취소 화살표로 가져오기 전체를 되돌릴 수 있어요.',
   'help.guide.airtrail-import.tip.2':
-    '데이터의 기준은 계속 AirTrail이에요. TREK은 여행을 열 때와 백그라운드에서 몇 분마다 변경 사항을 읽어 와요. AirTrail에서 삭제한 항공편은 TREK에 카드가 남고 라벨이 “동기화되지 않음”으로 바뀌어요. TREK에서 수정한 내용은 “통합”에서 “변경 사항을 AirTrail에 다시 기록”이 켜져 있을 때만 AirTrail로 보내져요.',
+    '데이터의 기준은 계속 AirTrail이에요. YOUYA은 여행을 열 때와 백그라운드에서 몇 분마다 변경 사항을 읽어 와요. AirTrail에서 삭제한 항공편은 YOUYA에 카드가 남고 라벨이 “동기화되지 않음”으로 바뀌어요. YOUYA에서 수정한 내용은 “통합”에서 “변경 사항을 AirTrail에 다시 기록”이 켜져 있을 때만 AirTrail로 보내져요.',
   'help.guide.airtrail-import.tip.3':
     '합친 연결편은 동기화할 수 있는 하나의 AirTrail 항공편이 아니라서 한 번만 가져와요. 파란 배지가 그대로 있고, 배지에 마우스를 올리면 그렇게 안내해요. 동기화된 항공편에 경유지를 직접 추가해도 마찬가지예요.',
 
@@ -4144,12 +4146,12 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.step.4': '항목을 클릭하면 그 경로를 쓰고, ‘닫기’를 누르면 지금 경로를 그대로 둬요.',
   'help.guide.roadtrip-alternatives.result': '구간이 고른 도로를 쓰고, 옆 열의 거리와 그 뒤 도착 시간도 함께 바뀌어요.',
   'help.guide.roadtrip-alternatives.tip.1':
-    '다른 길을 고르면 TREK이 먼저 로드트립 라우터로 그 길을 확인해요. 그런 다음 필요한 만큼만 경유 지점을 넣어 구간을 그 길로 유지하고, 구간에 있던 경유 지점은 대체해요. 라우터가 따라갈 수 없는 길은 저장되지 않아요. 라우터가 제안한 기본 길을 고르면 경유 지점이 다시 사라져요.',
+    '다른 길을 고르면 YOUYA이 먼저 로드트립 라우터로 그 길을 확인해요. 그런 다음 필요한 만큼만 경유 지점을 넣어 구간을 그 길로 유지하고, 구간에 있던 경유 지점은 대체해요. 라우터가 따라갈 수 없는 길은 저장되지 않아요. 라우터가 제안한 기본 길을 고르면 경유 지점이 다시 사라져요.',
   'help.guide.roadtrip-alternatives.tip.2':
     '“고속도로 제외”, “통행료 없음”, “페리 없음”은 속도 모델이 다른 두 번째 엔진에서 계산하므로, 그 시간은 다른 경로와 비교할 수 없어요.',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': '차량과 운전 한도 설정하기',
-  'help.guide.roadtrip-limits.goal': '어떤 차를 타는지, 쉬지 않고 얼마나 운전할지 TREK에 알려 줘요.',
+  'help.guide.roadtrip-limits.goal': '어떤 차를 타는지, 쉬지 않고 얼마나 운전할지 YOUYA에 알려 줘요.',
   'help.guide.roadtrip-limits.step.1':
     '‘주행 설정’은 오른쪽 열 검색 아래에 있어요. 배지에 설정한 내용이 보이고, 클릭하면 열려요.',
   'help.guide.roadtrip-limits.step.2':
@@ -4214,7 +4216,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     '트랙을 고르세요. 트랙마다 길이와 함께 이날 경로를 따라가는지, 아니면 얼마나 떨어져 있는지 나와요. 가장 가까운 트랙이 먼저 나와요.',
   'help.guide.roadtrip-track.step.3':
-    '‘이 트랙 따라가기’를 클릭하세요. TREK가 주행이 트랙에서 가장 먼 곳에 경유 지점을 넣고 경로를 다시 계산하는 일을 여러 번 반복해요.',
+    '‘이 트랙 따라가기’를 클릭하세요. YOUYA가 주행이 트랙에서 가장 먼 곳에 경유 지점을 넣고 경로를 다시 계산하는 일을 여러 번 반복해요.',
   'help.guide.roadtrip-track.step.4':
     '창에 경유 지점을 몇 개 놓았는지, 주행이 이제 트랙에 얼마나 가깝게 붙는지 나와요. 이미 트랙을 따르고 있었다면 그렇게 알려 줘요. 왼쪽 아래 ‘경유 지점 제거’를 누르면 경유 지점이 사라지고 라우터가 그날을 다시 계획해요. 창을 닫아도 트랙은 남아요.',
   'help.guide.roadtrip-track.result':
@@ -4260,27 +4262,27 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     '관리자가 설치한 플러그인에 대한 내 설정이에요. 플러그인마다 요청하는 키와 환경설정, 플러그인이 나 대신 한 작업의 기록이 있어요. 이 탭은 활성화된 플러그인이 있을 때만 보여요.',
   'help.ctx.settings-about.bullet.3':
-    'Ko-fi, Buy Me a Coffee, Discord에서 TREK를 후원하거나 만드는 사람들과 이야기할 수 있어요.',
+    'Ko-fi, Buy Me a Coffee, Discord에서 YOUYA를 후원하거나 만드는 사람들과 이야기할 수 있어요.',
   'help.guide.language-region.step.3':
     '‘표시 통화’를 정하거나, 여행마다 그 여행의 통화로 보려면 ‘여행 통화’를 그대로 두세요. 그다음 ‘온도 단위’, ‘거리 단위’, ‘시간 형식’, ‘주 시작 요일’, ‘날짜 형식’을 고르세요.',
   'help.guide.travel-map-prefs.step.3':
     '‘지도에서 장소 탐색’을 켜면 주변 장소를 찾는 카테고리 버튼이 보여요. ‘예약 코드 흐리게’는 마우스를 올리거나 탭하기 전까지 예약 번호를 가려요. ‘숙소 기준으로 경로 최적화’는 하루를 호텔에서 시작하고 호텔에서 끝내요.',
   'help.guide.web-push-device.step.2': '맨 위 ‘알림’ 카드의 ‘푸시’ 열에서 어떤 이벤트를 내 기기로 보낼지 정해요.',
-  'help.guide.connect-airtrail.goal': 'TREK가 내 AirTrail의 항공편을 가져오고 동기화하게 해요.',
-  'help.guide.connect-dawarich.goal': 'TREK가 내 Dawarich에서 실제로 다녀온 곳을 읽어 오게 해요.',
-  'help.guide.tour-connect-wanderer.goal': 'TREK가 내 wanderer의 트레일을 읽어 와서 투어로 가져올 수 있게 해요.',
+  'help.guide.connect-airtrail.goal': 'YOUYA가 내 AirTrail의 항공편을 가져오고 동기화하게 해요.',
+  'help.guide.connect-dawarich.goal': 'YOUYA가 내 Dawarich에서 실제로 다녀온 곳을 읽어 오게 해요.',
+  'help.guide.tour-connect-wanderer.goal': 'YOUYA가 내 wanderer의 트레일을 읽어 와서 투어로 가져올 수 있게 해요.',
   'help.guide.tour-wanderer-watch.title': 'wanderer 트레일이 바뀌면 알림 받기',
   'help.guide.plugin-settings.tip.2': '‘알림’의 플러그인 채널에 있는 ‘설정하기’ 버튼을 누르면 이 페이지가 열려요.',
   'help.guide.default-user-settings.result':
     '새 계정과, 이 설정을 한 번도 바꾸지 않은 모든 사용자에게 내가 고른 값이 보여요.',
   'help.guide.own-routing-engine.goal':
-    'TREK 서비스나 공개 서버 대신 직접 운영하는 OSRM 또는 Valhalla 서버로 하루 일정, 로드트립, 투어의 경로를 계산해요.',
+    'YOUYA 서비스나 공개 서버 대신 직접 운영하는 OSRM 또는 Valhalla 서버로 하루 일정, 로드트립, 투어의 경로를 계산해요.',
   'help.guide.admin-passkeys.tip.1':
-    'TREK이 아직 도메인을 알 수 없으면 스위치 아래에 경고가 뜨고, APP_URL이나 Relying Party ID를 설정할 때까지 패스키가 숨겨져요.',
+    'YOUYA이 아직 도메인을 알 수 없으면 스위치 아래에 경고가 뜨고, APP_URL이나 Relying Party ID를 설정할 때까지 패스키가 숨겨져요.',
   'help.guide.rotate-jwt-secret.step.1':
     '‘보안’ 탭 오른쪽 아래의 ‘위험 구역’에서 ‘JWT 시크릿 교체’ 옆의 ‘교체’를 클릭하세요.',
   'help.guide.storage-backends.tip.3':
-    '사진 캐시는 TREK가 다시 내려받을 수 있어서, 미러링하면 대개 저장 공간만 낭비돼요.',
+    '사진 캐시는 YOUYA가 다시 내려받을 수 있어서, 미러링하면 대개 저장 공간만 낭비돼요.',
   'help.guide.admin-channels.step.3':
     '같은 카드 아래쪽에서 이벤트마다 어느 채널로 보낼지 고르세요: ‘새 버전 사용 가능’, ‘스토리지 복제본 오류’, ‘패들 지역 요청’. 스위치는 누르는 즉시 저장돼요.',
   'help.guide.notification-defaults.tip.1':
@@ -4336,13 +4338,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     '공개 데이터는 항공기의 위치만 알아요. 게이트, 터미널, 수하물 컨베이어는 들어 있지 않으니 필요하면 예약에 직접 적어 두세요. 지연과 도착 시간은 위치로 계산한 추정치예요.',
   'help.guide.flight-live-status.tip.3':
-    'TREK이 항공편을 추적하려면 편명과 두 공항이 필요해요. 항공사가 다른 콜사인으로 운항하거나 코드셰어인 항공편은 찾지 못할 수 있고, 그러면 예약에는 일반 시간만 남아요.',
+    'YOUYA이 항공편을 추적하려면 편명과 두 공항이 필요해요. 항공사가 다른 콜사인으로 운항하거나 코드셰어인 항공편은 찾지 못할 수 있고, 그러면 예약에는 일반 시간만 남아요.',
   'help.guide.group-sort-bookings.step.2':
     '‘그룹 기준’에서 ‘상태’, 날, ‘유형’, ‘그룹 없음’ 중 하나를 고르세요. 탭이 바로 그 구역별로 정렬돼요.',
   'help.guide.export-bookings-csv.result':
     '브라우저가 여행과 탭 이름을 딴 파일(예: autumn-in-japan-bookings.csv)을 내려받아요. 탭에 보이던 예약마다 한 줄씩 들어 있어요.',
   'help.guide.arrange-packing-list.result':
-    '목록은 끌어 놓은 순서대로 놓이고, 이 기능을 끌 때까지 항목은 가나다순으로 정렬돼요. 내가 정한 순서도 TREK가 그대로 저장해 둬요.',
+    '목록은 끌어 놓은 순서대로 놓이고, 이 기능을 끌 때까지 항목은 가나다순으로 정렬돼요. 내가 정한 순서도 YOUYA가 그대로 저장해 둬요.',
   'help.guide.count-packed-pieces.step.2':
     '‘수량’에 가져갈 개수(예: 5)를 입력하거나, 그 숫자가 될 때까지 더하기를 클릭하세요.',
   'help.guide.expense-receipts.step.4':
@@ -4350,7 +4352,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     '여행에서 나간 사람도 받을 돈이나 줄 돈이 남아 있는 동안은 ‘잔액’과 ‘최종 부담액’에 줄이 남아요.',
   'help.guide.files-sync-settings.step.2':
-    '흐름 바에는 TREK와 내 저장소가 각자 가진 문서와 함께 나오고, 그 사이에 ‘저장소로 내보내기’와 ‘저장소에서 가져오기’ 두 갈래가 있어요. ‘저장소로 내보내기’를 클릭하면 꺼져요. 그 갈래가 회색이 되고 아래 줄에 ‘들어오기만’이라고 보여요. 다시 클릭하면 켜져요.',
+    '흐름 바에는 YOUYA와 내 저장소가 각자 가진 문서와 함께 나오고, 그 사이에 ‘저장소로 내보내기’와 ‘저장소에서 가져오기’ 두 갈래가 있어요. ‘저장소로 내보내기’를 클릭하면 꺼져요. 그 갈래가 회색이 되고 아래 줄에 ‘들어오기만’이라고 보여요. 다시 클릭하면 켜져요.',
   'help.guide.files-sync-settings.tip.4':
     '이 설정은 여행 소유자나 관리자만 바꿀 수 있어요. 다른 멤버에게는 ‘문서가 양방향으로 이동’ 같은 문구가 있는 흐름 바만 보이고 ‘설정’은 없어요.',
   'help.guide.manage-notes.step.2':
@@ -4361,7 +4363,7 @@ const help: TranslationStrings = {
     '휴지통은 쓰는 메모가 없는 카테고리만 삭제해요. 메모가 남아 있는 카테고리는 그 메모를 다른 카테고리로 옮기기 전까지 목록에 남아요.',
   'help.guide.roadtrip-reorder.title': '들를 곳 순서 바꾸기, 다른 날로 옮기기',
   'help.guide.roadtrip-reorder.tip.3':
-    '고정한 시간이 있어도 TREK는 따로 묻지 않아요. 레일이 그날을 바로 다시 계산하고, 제시간에 갈 수 없게 된 곳을 표시해요.',
+    '고정한 시간이 있어도 YOUYA는 따로 묻지 않아요. 레일이 그날을 바로 다시 계산하고, 제시간에 갈 수 없게 된 곳을 표시해요.',
   'help.guide.roadtrip-overnight.step.3':
     '창 위쪽에서 ‘숙박’은 하룻밤 숙박을 추가하고, ‘휴식’은 잠시 머무는 곳으로 만들어요. 호텔은 ‘숙박’으로, 캠핑장은 ‘휴식’으로 열려요. 숙박은 ‘체크인’만 물어보고, 비워 둬도 돼요.',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4375,7 +4377,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     '위쪽의 ‘GPX 또는 KML 가져오기’로 파일을 투어로 가져와요. 그 아래 필터 버튼(처음에는 ‘전체’와 투어 수)으로 상태, 출처, 경로 난이도 한도, 유형별로 목록을 좁혀요.',
   'help.guide.tour-show-list.step.2':
-    '한 줄이 투어 하나예요. 색 막대는 지도의 선 색이고, 둥근 타일에는 TREK에서 계획한 하이킹의 난이도 한도(T1~T6)나 유형 아이콘이 보여요. 이름 아래 배지에는 들어간 날, 시간, 거리, 오르막이 나와요. 여러 날 투어에는 숫자가 붙은 달 아이콘으로 구간 수가 보여요.',
+    '한 줄이 투어 하나예요. 색 막대는 지도의 선 색이고, 둥근 타일에는 YOUYA에서 계획한 하이킹의 난이도 한도(T1~T6)나 유형 아이콘이 보여요. 이름 아래 배지에는 들어간 날, 시간, 거리, 오르막이 나와요. 여러 날 투어에는 숫자가 붙은 달 아이콘으로 구간 수가 보여요.',
   'help.guide.tour-add-to-day.title': '투어를 날에 넣기',
   'help.guide.tour-add-to-day.tip.2':
     '마지막 구간보다 여행이 먼저 끝나면, 옵션에 들어갈 수 있는 마지막 구간이 표시되고 그 뒤 구간은 날짜 없이 남아요.',
@@ -4404,7 +4406,7 @@ const help: TranslationStrings = {
     '투어를 계획하는 데 쓰지 않은 가져온 트랙만 연결할 수 있고, 트랙 하나는 투어 하나에만 연결돼요.',
   'help.guide.tour-activity-compare.step.4':
     '트랙 아래의 ‘변경’으로 다른 기록을 골라요. ‘연결 해제’는 투어에서 트랙을 떼어 내고, 트랙은 가져온 항목으로 여행에 남아요.',
-  'help.guide.tour-origin-check.step.3': '‘투어’ 탭에서 직접 그린 투어에는 ‘TREK에서 계획됨’과 ‘생성일’이 보여요.',
+  'help.guide.tour-origin-check.step.3': '‘투어’ 탭에서 직접 그린 투어에는 ‘YOUYA에서 계획됨’과 ‘생성일’이 보여요.',
   'help.ctx.trip-tour-planner.bullet.2':
     '왼쪽 레일이 편집기예요. 열린 투어가 없으면 ‘새 투어 계획’이 보여요. 투어를 열면 이름, 유형, 웨이포인트, 유형별 카드, 상세 정보가 나오고 아래쪽에 ‘취소’와 ‘저장’이 있어요.',
   'help.guide.tour-open-workspace.step.2':
@@ -4412,7 +4414,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.tip.3':
     '편집기에 저장하지 않은 변경이 있는데 다른 투어를 열면 먼저 물어봐요: ‘변경 사항 버리기’ 또는 계속 편집하기.',
   'help.guide.tour-draw-route.step.5':
-    '걸어갈 순서대로 다음 지점을 클릭하세요. 클릭할 때마다 그 지점이 새 끝점이 되고, 지점이 두 개가 되면 TREK가 길을 따라 경로를 계획해요.',
+    '걸어갈 순서대로 다음 지점을 클릭하세요. 클릭할 때마다 그 지점이 새 끝점이 되고, 지점이 두 개가 되면 YOUYA가 길을 따라 경로를 계획해요.',
   'help.guide.tour-type-profile.goal':
     '투어 유형을 고르고, 자전거 투어라면 프로필도 골라서 경로가 알맞은 길을 따르게 해요.',
   'help.guide.tour-edit-points.title': '지점 옮기기, 순서 바꾸기, 삭제하기',
@@ -4528,11 +4530,11 @@ const help: TranslationStrings = {
     '스키 투어 주변의 슬로프, 크로스컨트리 코스, 리프트와 그 색의 의미를 확인해요.',
   'help.guide.tour-ski-import.title': '스키 트랙을 가져와 종류 정하기',
   'help.guide.tour-ski-import.tip.1':
-    '가져온 트랙은 기록된 그대로 남아요. TREK는 슬로프에 맞추지 않고, 카드의 ‘스키 시간’은 ‘계산 안 함’으로 보여요.',
+    '가져온 트랙은 기록된 그대로 남아요. YOUYA는 슬로프에 맞추지 않고, 카드의 ‘스키 시간’은 ‘계산 안 함’으로 보여요.',
   'help.ctx.trip-tour-paddle.bullet.3':
     '지점의 ‘작업 더 보기’에 패들 도구가 있어요: 다음 구간을 물길로 계획하거나 손으로 그리기, ‘여기부터 육상 운반’, ‘이 지점에 갑문 추가’.',
   'help.guide.tour-paddle-setup.step.3':
-    '‘배’에서 ‘카약’, ‘카누’, SUP, ‘기타’ 중 하나를 고르세요. 배에 따라 TREK가 제안하는 속도가 달라져요.',
+    '‘배’에서 ‘카약’, ‘카누’, SUP, ‘기타’ 중 하나를 고르세요. 배에 따라 YOUYA가 제안하는 속도가 달라져요.',
   'help.guide.tour-paddle-setup.tip.4':
     '열 맨 아래 줄 ‘패들링에는 위험이 따릅니다’를 누르면 ‘수상 안전’이 열려요. 첫 투어 전에 한 번 읽어 보세요.',
   'help.guide.tour-paddle-water-route.step.5':
@@ -4554,7 +4556,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.tip.2':
     '‘취소’는 저장하지 않은 표시를 버려요. 기록된 트랙 자체는 다시 그려지지 않아요.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK는 승마 시간을 계산하지 않아요. 그날 일정에 시간을 넣고 싶다면 ‘상세 정보’의 ‘예정’에 입력하세요.',
+    'YOUYA는 승마 시간을 계산하지 않아요. 그날 일정에 시간을 넣고 싶다면 ‘상세 정보’의 ‘예정’에 입력하세요.',
   'help.guide.tour-horse-plan.step.5':
     '‘구간’에서 구간 하나를 고르세요. 그 구간을 달리는 ‘방향’과, 구간을 따라 ‘말 통행’이 어떻게 표시되는지 확인하세요.',
   'help.guide.tour-horse-plan.tip.5':
@@ -4591,7 +4593,7 @@ const help: TranslationStrings = {
   'help.guide.gallery-map.step.3':
     '‘타임라인’으로 돌아오면 오른쪽 지도가 스크롤을 따라 움직여요. 화면에 보이는 항목은 그날 색의 테두리로 표시돼요. 핀을 클릭하면 타임라인이 그 항목으로 스크롤돼요.',
   'help.guide.journey-map-layers.tip.1': '색 점선은 계획에 속한 여행의 GPX 경로이고, 실선은 그날 기록된 경로예요.',
-  'help.guide.journey-keep-route.tip.1': '기록이 끊긴 곳에서 선도 끊겨요. TREK는 기록된 부분만 그려요.',
+  'help.guide.journey-keep-route.tip.1': '기록이 끊긴 곳에서 선도 끊겨요. YOUYA는 기록된 부분만 그려요.',
   'help.guide.journey-day-stays.tip.1':
     '이 줄은 Journey를 편집할 수 있고 자기 Dawarich를 연결한 사람에게만, 그리고 아직 정할 것이 남은 날에만 보여요.',
   'help.guide.journey-take-over-day.step.4':
@@ -4603,21 +4605,21 @@ const help: TranslationStrings = {
     '‘플러그인 설정’: 그 아래에 입력이 필요한 플러그인마다 카드가 하나씩 있고, 입력 칸과 ‘저장’이 있어요. 비밀 값은 저장하고 나면 다시 보이지 않아요.',
   'help.guide.dashboard-widgets.step.3': '카드 아래의 ‘기본값으로 초기화’는 ‘모양’ 탭 전체를 처음 설정으로 되돌려요.',
   'help.guide.web-push-device.result':
-    '카드에 ‘이 기기에서 켜짐’이 보이고, ‘푸시’에서 켠 이벤트는 TREK를 닫아 둬도 알림이 와요.',
+    '카드에 ‘이 기기에서 켜짐’이 보이고, ‘푸시’에서 켠 이벤트는 YOUYA를 닫아 둬도 알림이 와요.',
   'help.guide.connect-airtrail.step.1':
     '‘통합’에서 AirTrail을 찾아 ‘인스턴스 URL’과 API 키를 입력하세요. 키는 AirTrail의 ‘Settings’, ‘Security’에서 만들어요. AirTrail 3.13 이상에서 키를 만드는 경우, 읽기에는 flight.read.own 범위가 필요합니다. 변경 사항을 다시 기록하려면 flight.update.own, flight.passengers.manage.own, reference_data.read, profile.read 범위도 필요합니다.',
   'help.guide.connect-dawarich.step.1':
     '‘통합’에서 Dawarich를 찾아 ‘인스턴스 주소’와 API 키를 입력하세요. API 키는 Dawarich의 ‘Account’, ‘API key’에 있어요.',
   'help.guide.tour-connect-wanderer.step.1':
     '‘통합’에서 wanderer를 찾아 ‘인스턴스 URL’과 API 토큰을 입력하세요. 토큰은 wanderer의 ‘Settings’, ‘Account’, ‘API tokens’에서 만들고, wanderer_key_로 시작해요.',
-  'help.guide.tour-wanderer-watch.goal': '가져온 트레일이 바뀌었는지 TREK가 백그라운드에서 확인하게 해요.',
+  'help.guide.tour-wanderer-watch.goal': '가져온 트레일이 바뀌었는지 YOUYA가 백그라운드에서 확인하게 해요.',
   'help.guide.mcp-oauth.tip.3':
     'API 토큰은 아직 동작하지만 ‘지원 중단 예정’으로 표시돼요. OAuth 클라이언트로 옮기세요.',
   'help.guide.offline-conflicts.tip.2': '이 선택은 이 기기에만 적용돼요.',
   'help.guide.default-user-settings.tip.1':
     '사용자가 ‘설정’에서 직접 고른 값이 항상 우선이에요. 여기 값은 그 설정을 바꾸지 않은 모든 사람에게 적용돼요.',
   'help.guide.own-routing-engine.step.1':
-    '‘기본값’ 탭의 ‘경로’ 카드가 누가 경로를 계산할지 정해요. ‘경로 서비스’에서 ‘자동’, ‘TREK 서비스’, ‘공개 Valhalla (FOSSGIS)’, ‘자체 Valhalla 인스턴스’ 중에서 고르세요. 선택은 바로 저장돼요.',
+    '‘기본값’ 탭의 ‘경로’ 카드가 누가 경로를 계산할지 정해요. ‘경로 서비스’에서 ‘자동’, ‘YOUYA 서비스’, ‘공개 Valhalla (FOSSGIS)’, ‘자체 Valhalla 인스턴스’ 중에서 고르세요. 선택은 바로 저장돼요.',
   'help.guide.admin-passkeys.tip.2': '나중에 도메인을 바꾸면 이미 등록된 패스키가 모두 동작하지 않아요.',
   'help.guide.instance-keys.tip.4': 'Amap 키는 JS API 키가 아니라 Web 服务(웹 서비스) 키여야 해요.',
   'help.guide.rotate-jwt-secret.step.2': '경고를 읽고 ‘교체 후 로그아웃’을 클릭하세요.',
@@ -4633,7 +4635,7 @@ const help: TranslationStrings = {
     '여행의 사람마다 ‘접근 불가’, ‘읽기’, ‘편집’ 중 하나를 고르세요. ‘모두 읽기’와 ‘없음’으로 한 번에 정할 수도 있어요.',
   'help.guide.collapse-columns.tip.3': '구분선에 포커스가 있으면 화살표 키로도 움직일 수 있어요.',
   'help.guide.edit-place.tip.3':
-    '창 바깥을 클릭해도 변경 사항은 사라지지 않아요. TREK가 먼저 ‘변경 사항을 버릴까요?’라고 묻고, ‘계속 편집’을 누르면 양식으로 돌아가요.',
+    '창 바깥을 클릭해도 변경 사항은 사라지지 않아요. YOUYA가 먼저 ‘변경 사항을 버릴까요?’라고 묻고, ‘계속 편집’을 누르면 양식으로 돌아가요.',
   'help.guide.dawarich-stays.goal': '여행 중 Dawarich가 기록한 머문 곳을 하나씩 확인한 뒤 장소로 추가해요.',
   'help.guide.leave-stop-off-route.step.1':
     '들를 곳을 오른쪽 클릭하거나 점 세 개를 클릭하고 ‘경로에서 제외’를 고르세요.',
@@ -4678,7 +4680,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     '레일에서 이동은 유형 색의 카드로 보이고, 도착 열에 시간표가, 제목 아래에 출발지와 도착지가 나와요.',
   'help.guide.roadtrip-google-import.tip.1':
-    'TREK는 들를 곳 사이 경로를 직접 계산해요. Google의 도로를 그대로 복사하지 않아요.',
+    'YOUYA는 들를 곳 사이 경로를 직접 계산해요. Google의 도로를 그대로 복사하지 않아요.',
   'help.guide.roadtrip-hazards.result': '지도에 여행 주변의 현재 경고가 보이고, 경로는 바뀌지 않아요.',
   'help.ctx.trip-tours.bullet.3':
     '한 줄에서 색 막대는 지도의 투어 선이고, 둥근 타일에는 난이도 한도(T1~T6)나 유형이 보여요. 작은 GPX나 wanderer 배지는 가져온 투어라는 뜻이고, 배지에 날짜, 시간, 거리, 오르막이 나와요. 숫자가 붙은 달 아이콘은 여러 날 투어의 구간 수예요.',
@@ -4735,7 +4737,7 @@ const help: TranslationStrings = {
     '오른쪽 레일 ‘이 여행의 투어’에 여행의 모든 투어가 나오고, 목록 위에 필터와 ‘여행 합계’가 있어요.',
   'help.guide.tour-open-workspace.result': '‘투어’ 탭: 왼쪽에 편집기, 오른쪽에 여행의 투어, 그 사이에 지도가 있어요.',
   'help.guide.tour-draw-route.step.6':
-    '‘웨이포인트’에 지점마다 번호가 붙은 줄이 생기고, 이름을 불러오면 장소 이름이 붙어요. TREK가 작업하는 동안 ‘새 투어’ 옆 작은 점으로 진행 상태를 보여 줘요.',
+    '‘웨이포인트’에 지점마다 번호가 붙은 줄이 생기고, 이름을 불러오면 장소 이름이 붙어요. YOUYA가 작업하는 동안 ‘새 투어’ 옆 작은 점으로 진행 상태를 보여 줘요.',
   'help.guide.tour-type-profile.step.1':
     '‘투어 이름’ 아래의 ‘투어 유형’을 클릭하세요. 현재 유형과 어떻게 계획되는지 한 줄 설명이 보여요.',
   'help.guide.tour-edit-points.goal': '지도나 목록에서 지점을 옮겨 투어가 지나는 곳을 바꿔요.',
@@ -4781,7 +4783,8 @@ const help: TranslationStrings = {
     '왼쪽 패널의 ‘투어 경로 주변’ 카드는 경로 가까이의 전망대, 물, 산장, 식당 등을 찾아 결과를 나열해요. 목록의 장소를 투어에 정차 지점으로 추가할 수 있어요.',
   'help.guide.tour-map-layers.tip.1':
     '고른 지도는 페이지를 새로 고치기 전까지 여는 모든 투어에 유지돼요. 그 지도를 지원하지 않는 유형의 투어는 ‘지도’로 열리고, ‘계획’ 탭의 지도와 ‘설정’의 값은 바뀌지 않아요.',
-  'help.guide.tour-along-search.step.4': '‘투어 경로 주변 검색’을 클릭하세요. TREK는 찾기만 하고 투어는 바꾸지 않아요.',
+  'help.guide.tour-along-search.step.4':
+    '‘투어 경로 주변 검색’을 클릭하세요. YOUYA는 찾기만 하고 투어는 바꾸지 않아요.',
   'help.guide.tour-along-add-stop.step.1':
     '‘투어 경로 주변’ 목록에서 장소를 클릭하거나 지도의 핀을 클릭하세요. 지도 위에 카드가 열리고 무엇인지, 경로에서 얼마나 떨어져 있는지, 투어의 어디쯤인지 보여요.',
   'help.guide.tour-3d-terrain.title': '투어를 3D로 보기',
@@ -4804,7 +4807,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     '순환 코스는 하이킹의 ‘탐방로 최대 난이도’를 넘지 않아요. 카드의 T 버튼에 그 난이도가 보여요.',
   'help.guide.tour-hike-compare-ways.step.4':
-    '‘이 길로 하기’를 클릭하세요. TREK가 라우터로 경로가 실제로 그 길을 따르는지 확인해요.',
+    '‘이 길로 하기’를 클릭하세요. YOUYA가 라우터로 경로가 실제로 그 길을 따르는지 확인해요.',
   'help.guide.tour-ferrata-add.step.2':
     '지도에서 비아 페라타의 점선이나 표지를 클릭하세요. 카드에 이름, 등급, 길이가 보여요.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -4858,7 +4861,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     '배, 수역, 속도가 정해진 새 패들 투어가 생겼어요. 이제 지도에 첫 지점을 찍으면 돼요.',
   'help.guide.tour-paddle-water-route.tip.1':
-    '수역 데이터가 없는 곳은 인스턴스 설정에 따라 TREK이 그 지역 데이터를 자동으로 내려받거나 관리자에게 요청해요. 관리자는 관리자 영역 ‘애드온’ 탭의 ‘투어’ 아래 ‘패들 수역 데이터’에서 지역을 추가해요. 그동안 구간에 ‘수역 데이터를 불러오는 중’이 보이고, 데이터가 들어오면 자동으로 계획돼요. 보통 1~3분 걸려요.',
+    '수역 데이터가 없는 곳은 인스턴스 설정에 따라 YOUYA이 그 지역 데이터를 자동으로 내려받거나 관리자에게 요청해요. 관리자는 관리자 영역 ‘애드온’ 탭의 ‘투어’ 아래 ‘패들 수역 데이터’에서 지역을 추가해요. 그동안 구간에 ‘수역 데이터를 불러오는 중’이 보이고, 데이터가 들어오면 자동으로 계획돼요. 보통 1~3분 걸려요.',
   'help.guide.tour-paddle-portage.step.2':
     '‘여기부터 육상 운반’을 고르세요. 다음 지점까지의 구간이 육지 위에 그려지는 육상 운반 구간이 돼요.',
   'help.guide.tour-paddle-lock.title': '갑문과 대기 시간 추가하기',
@@ -4924,9 +4927,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     '푸시는 브라우저마다 따로 동작해요. 알림을 받을 휴대폰과 컴퓨터마다 따로 켜세요. ‘이 기기에서 끄기’는 그 기기에서만 꺼요.',
   'help.guide.connect-airtrail.step.2':
-    '‘자체 서명 인증서 허용’은 내 네트워크에 있는 믿을 수 있는 인스턴스에만 쓰세요. ‘변경 사항을 AirTrail에 다시 기록’은 기본으로 꺼져 있어서 TREK는 읽기만 해요. 켜면 내가 편집한 내용을 AirTrail로 보내요.',
+    '‘자체 서명 인증서 허용’은 내 네트워크에 있는 믿을 수 있는 인스턴스에만 쓰세요. ‘변경 사항을 AirTrail에 다시 기록’은 기본으로 꺼져 있어서 YOUYA는 읽기만 해요. 켜면 내가 편집한 내용을 AirTrail로 보내요.',
   'help.guide.connect-dawarich.step.2':
-    '‘새 방문 기록을 자동으로 확인’을 켜면 TREK가 알아서 확인해요. 끄면 내가 요청할 때만 Dawarich를 읽어요. ‘자체 서명 인증서 허용’은 서버가 신뢰하지 않는 인스턴스에만 쓰세요.',
+    '‘새 방문 기록을 자동으로 확인’을 켜면 YOUYA가 알아서 확인해요. 끄면 내가 요청할 때만 Dawarich를 읽어요. ‘자체 서명 인증서 허용’은 서버가 신뢰하지 않는 인스턴스에만 쓰세요.',
   'help.guide.tour-connect-wanderer.step.2': '‘자체 서명 인증서 허용’은 내 네트워크에 있는 인스턴스일 때만 켜세요.',
   'help.guide.tour-wanderer-watch.step.1':
     'wanderer 카드에서 ‘내 트레일 변경 확인’을 켜세요. 먼저 연결이 저장돼 있어야 해요.',
@@ -4935,7 +4938,7 @@ const help: TranslationStrings = {
     '‘표시 통화’는 금액을 표시용으로만 환산해요. ‘비용’에 입력한 금액은 그대로예요.',
   'help.guide.own-routing-engine.step.2': '‘자체 경로 서버’에 OSRM 서버 주소를 입력하세요.',
   'help.guide.own-routing-engine.step.3':
-    '‘자체 Valhalla 인스턴스’에 Valhalla 서버 주소를 입력하고, ‘경로 서비스’에서 ‘자체 Valhalla 인스턴스’를 고르세요. 각 칸은 다른 곳을 누르면 저장돼요. 그다음 TREK 서버를 다시 시작하고 페이지를 새로 고치세요.',
+    '‘자체 Valhalla 인스턴스’에 Valhalla 서버 주소를 입력하고, ‘경로 서비스’에서 ‘자체 Valhalla 인스턴스’를 고르세요. 각 칸은 다른 곳을 누르면 저장돼요. 그다음 YOUYA 서버를 다시 시작하고 페이지를 새로 고치세요.',
   'help.guide.admin-passkeys.tip.3':
     '사용자가 패스키가 든 기기를 잃어버렸다면 ‘사용자 편집’의 ‘패스키 초기화’로 패스키를 삭제하세요.',
   'help.guide.rotate-jwt-secret.result': '새 서명 시크릿이 적용되고, 나를 포함한 모든 사용자가 다시 로그인해야 해요.',
@@ -4949,7 +4952,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     '노란 안내를 읽으세요. 처음으로 Journey에 접근하게 되는 사람이 나와요. 그다음 ‘저널 연결’을 클릭하세요.',
   'help.guide.dawarich-stays.step.1':
-    '‘설정’, ‘통합’에서 Dawarich를 연결하면 장소 목록 위에 ‘Dawarich에서’가 보여요. 헤더에 TREK가 마지막으로 확인한 시각과 대기 중인 방문 기록 수가 나와요. 클릭하면 목록이 열려요.',
+    '‘설정’, ‘통합’에서 Dawarich를 연결하면 장소 목록 위에 ‘Dawarich에서’가 보여요. 헤더에 YOUYA가 마지막으로 확인한 시각과 대기 중인 방문 기록 수가 나와요. 클릭하면 목록이 열려요.',
   'help.guide.leave-stop-off-route.step.2':
     '이름 옆에 ‘경로 외’ 배지가 생겨요. 들를 곳은 그날 일정과 지도에 남지만, 그날 경로와 구간 시간에서는 빠져요.',
   'help.guide.move-booking-day.result': '예약이 계획에서 새 날에 속하고, 시간은 그대로예요.',
@@ -4958,7 +4961,7 @@ const help: TranslationStrings = {
     '‘파일’에 사진이 있는 장소를 여세요. 카드 아래쪽 ‘파일’ 블록에 파일 수가 보여요.',
   'help.guide.place-own-hours.title': '장소의 영업시간, 전화번호, 이메일 고치기',
   'help.guide.place-own-hours.tip.1':
-    '직접 입력한 시간이 TREK가 찾은 시간 대신 쓰여서, 계절마다 시간이 다른 카페도 내가 아는 시간으로 보여요.',
+    '직접 입력한 시간이 YOUYA가 찾은 시간 대신 쓰여서, 계절마다 시간이 다른 카페도 내가 아는 시간으로 보여요.',
   'help.guide.day-panel.tip.3':
     '달력 기준으로 계획하나요? ‘설정’의 ‘화면’에서 ‘날 제목에 날짜를 먼저 표시’를 켜면 헤더에 날짜가 먼저 나오고, 그 아래에 ‘Day 1’이나 날 이름이 보여요.',
   'help.guide.confirm-stay-booking.result': '호텔 예약이 확정되고, 숙박 카드와 ‘예약’ 탭 양쪽에 반영돼요.',
@@ -4976,15 +4979,15 @@ const help: TranslationStrings = {
   'help.guide.booking-on-map.goal': '예약에서 계획과 지도의 해당 위치로 바로 이동해요.',
   'help.guide.export-bookings-csv.tip.2': '열은 세미콜론으로 구분되고, Excel에서 열어도 악센트 문자가 깨지지 않아요.',
   'help.guide.arrange-packing-list.tip.2':
-    'TREK는 이 브라우저에서 ‘가나다순’ 설정을 기억해서, 다음에도 정렬된 상태로 열려요. 내 화면만 바뀌고, 다른 사람이 보는 순서는 바뀌지 않아요.',
+    'YOUYA는 이 브라우저에서 ‘가나다순’ 설정을 기억해서, 다음에도 정렬된 상태로 열려요. 내 화면만 바뀌고, 다른 사람이 보는 순서는 바뀌지 않아요.',
   'help.guide.count-packed-pieces.step.4':
     '창을 닫으세요. 일부만 챙겼을 때는 줄에 3/5 같은 개수가 보이고, 체크박스에 강조 색 테두리가 생겨요. 개수가 수량에 도달하면 항목이 알아서 체크돼요.',
   'help.guide.expense-receipts.result':
     '영수증이 지출과 함께 저장돼요. 그 줄의 칩으로 열 수 있고, 파일은 여행의 ‘파일’에도 있어요.',
   'help.guide.files-sync-settings.step.4':
-    '‘문서가 삭제될 때’에서 반대쪽 사본을 어떻게 할지 고르세요. ‘양쪽 사본 유지’는 저장소의 사본을 그대로 둬요. ‘휴지통으로 이동’은 TREK에서 문서를 삭제하면 저장소의 휴지통으로 보내요.',
+    '‘문서가 삭제될 때’에서 반대쪽 사본을 어떻게 할지 고르세요. ‘양쪽 사본 유지’는 저장소의 사본을 그대로 둬요. ‘휴지통으로 이동’은 YOUYA에서 문서를 삭제하면 저장소의 휴지통으로 보내요.',
   'help.ctx.trip-collab.bullet.7':
-    '여기 있는 기능은 모두 인터넷 연결이 필요해요. 오프라인에서는 메시지, 메모, 링크, 투표, 투표 참여가 저장되지 않고, TREK가 ‘연결이 필요합니다. TREK가 다시 온라인이 되면 다시 시도하세요.’라고 알려 줘요. 협업을 편집할 수 없는 멤버도 모두 읽을 수는 있지만 ‘새 메모’, ‘링크 추가’, ‘새 투표’가 없고 메시지 입력창은 회색으로 비활성화돼요.',
+    '여기 있는 기능은 모두 인터넷 연결이 필요해요. 오프라인에서는 메시지, 메모, 링크, 투표, 투표 참여가 저장되지 않고, YOUYA가 ‘연결이 필요합니다. YOUYA가 다시 온라인이 되면 다시 시도하세요.’라고 알려 줘요. 협업을 편집할 수 없는 멤버도 모두 읽을 수는 있지만 ‘새 메모’, ‘링크 추가’, ‘새 투표’가 없고 메시지 입력창은 회색으로 비활성화돼요.',
   'help.guide.manage-notes.step.4':
     '‘편집’을 누르면 내용이 모두 채워진 메모 창이 열려요. 필요한 부분을 바꾸고(여기서는 ‘내용’ 아래에 한 줄 추가) ‘저장’을 클릭하세요.',
   'help.guide.note-categories.step.2':
@@ -5001,7 +5004,7 @@ const help: TranslationStrings = {
     '‘체크인’이나 ‘탑승’ 버튼은 언제까지 터미널에 도착해야 하는지 알려 줘요. 그만큼 시간표보다 일찍 출발하도록 잡혀요.',
   'help.guide.roadtrip-google-import.title': 'Google Maps에서 경로 가져오기',
   'help.guide.roadtrip-google-import.tip.2':
-    '링크에는 TREK가 위치를 찾을 수 있는 정차 지점이 최소 2개, 최대 30개 있어야 해요.',
+    '링크에는 YOUYA가 위치를 찾을 수 있는 정차 지점이 최소 2개, 최대 30개 있어야 해요.',
   'help.guide.roadtrip-hazards.tip.1':
     '경고는 도로 통제가 아니에요. 경고 때문에 경로가 바뀌지 않고, 내 여행 날짜의 예보가 아니라 현재 공지예요.',
   'help.ctx.trip-tours.bullet.4':
@@ -5115,7 +5118,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.3':
     '배지가 요약해 줘요: 경로 중 얼마나 ‘알려짐’인지, 그 위의 ‘알려진 최고’ 등급, 그리고 따로 표시되는, 하이킹을 계획할 때 쓴 ‘경로 탐색 한도’.',
   'help.guide.tour-hike-round.goal':
-    '하이킹의 정차 지점 하나에서 출발하는 원하는 길이의 순환 코스를 TREK가 제안하게 해요.',
+    '하이킹의 정차 지점 하나에서 출발하는 원하는 길이의 순환 코스를 YOUYA가 제안하게 해요.',
   'help.guide.tour-hike-round.tip.2': '1~60km 거리를 입력할 수 있고, 입력한 거리의 ±20% 이내 순환 코스를 제안해요.',
   'help.guide.tour-hike-compare-ways.result':
     '그 구간만 고른 길을 따르고 나머지 하이킹은 그대로예요. 지도 아래쪽 ‘길을 적용했습니다’에 ‘실행 취소’가 있어요.',
@@ -5139,7 +5142,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     '방문한 정차 지점은 체크되고, 건너뛴 곳에는 취소선이 그어지며, 남은 시간은 아직 남은 곳만 계산해요.',
   'help.guide.tour-bike-profile.goal':
-    '자전거 투어를 시작하고 TREK가 투어링, 로드, 그래블, MTB에 맞게 경로를 계산하게 해요.',
+    '자전거 투어를 시작하고 YOUYA가 투어링, 로드, 그래블, MTB에 맞게 경로를 계산하게 해요.',
   'help.guide.tour-bike-profile.tip.1': '나중에 프로필을 바꾸면 경로 전체를 새 프로필로 다시 계획해요.',
   'help.guide.tour-bike-surfaces.step.2': '카드 헤더의 배지에 비포장으로 확인된 구간의 비율이 나와요.',
   'help.guide.tour-bike-mtb-grades.title': '산악자전거 투어의 트레일 등급 확인하기',
@@ -5166,13 +5169,13 @@ const help: TranslationStrings = {
     '호수에서는 ‘호수 건너기’로 경로를 정해요: ‘곧장’은 가장 짧고, ‘물가 가까이’는 바람 부는 날을 위해 물가를 따라가요.',
   'help.guide.tour-paddle-water-route.title': '물길 구간 계획하기',
   'help.guide.tour-paddle-water-route.tip.2':
-    '경로가 보를 돌아 보트를 옮기거나 갑문을 지나는 곳에는 TREK가 직접 지점을 두고 ‘감지됨’으로 표시해요. 그 지점을 옮기거나 바꾸면 내 지점이 돼요.',
+    '경로가 보를 돌아 보트를 옮기거나 갑문을 지나는 곳에는 YOUYA가 직접 지점을 두고 ‘감지됨’으로 표시해요. 그 지점을 옮기거나 바꾸면 내 지점이 돼요.',
   'help.guide.tour-paddle-portage.step.3':
     '지점 아래에 길이와 추가 시간(분)이 담긴 ‘육상 운반’ 카드가 나타나요. 클릭하면 열려요.',
   'help.guide.tour-paddle-lock.goal': '투어에 갑문을 넣고 대기와 통과 시간을 투어 시간에 포함해요.',
   'help.guide.tour-paddle-lock.result': '갑문이 소요 시간과 함께 투어에 들어가고, ‘시간 추정’에 더해져요.',
   'help.guide.tour-paddle-time.tip.1':
-    'TREK는 물 위 4km/h, 운반 2km/h, 육상 운반마다 10분으로 시작해요. 조정할 시작 값일 뿐 측정값이 아니에요.',
+    'YOUYA는 물 위 4km/h, 운반 2km/h, 육상 운반마다 10분으로 시작해요. 조정할 시작 값일 뿐 측정값이 아니에요.',
   'help.guide.tour-paddle-wind.step.3':
     '막대는 하루의 시간대를 나타내고, 평균 바람 뒤에 돌풍이 보여요. 막대에 마우스를 올리면 그 시간의 수치와 방향이 나와요.',
   'help.guide.tour-paddle-checklist.goal':
@@ -5235,7 +5238,7 @@ const help: TranslationStrings = {
     '맨 아래 ‘플러그인 활동’에는 플러그인이 나 대신 한 모든 작업이 최신순으로 나오고, ‘새로 고침’이 있어요.',
   'help.guide.language-region.tip.3':
     '‘주 시작 요일’은 모든 날짜 선택기의 첫 열을 정해요. Vacay에는 따로 설정이 있어요.',
-  'help.guide.web-push-device.tip.2': 'iPhone과 iPad에서는 먼저 TREK를 홈 화면에 추가하고 거기서 여세요.',
+  'help.guide.web-push-device.tip.2': 'iPhone과 iPad에서는 먼저 YOUYA를 홈 화면에 추가하고 거기서 여세요.',
   'help.guide.connect-airtrail.step.3':
     '‘저장’을 클릭한 다음 ‘연결 테스트’를 클릭하세요. 찾은 항공편 수가 나오고 배지가 ‘연결됨’으로 바뀌어요.',
   'help.guide.connect-dawarich.step.3':
@@ -5243,7 +5246,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     '‘저장’을 클릭한 다음 ‘연결 테스트’를 클릭하세요. 가져올 수 있는 트레일 수가 나오고 배지가 ‘연결됨’으로 바뀌어요.',
   'help.guide.tour-wanderer-watch.step.2':
-    'TREK는 하루에 한 번까지 가져온 트레일마다 짧은 기록을 읽고, 줄에 마지막 확인 시각을 보여 줘요. 트레일이 바뀌었을 수 있으면 알림이 오고 ‘알림’에 개수가 더해져요. ‘알림’을 클릭하면 투어마다 ‘바뀌었을 수 있음’, ‘변경됨’, ‘확인 불가’로 보이고, 거기서 바로 열 수 있어요.',
+    'YOUYA는 하루에 한 번까지 가져온 트레일마다 짧은 기록을 읽고, 줄에 마지막 확인 시각을 보여 줘요. 트레일이 바뀌었을 수 있으면 알림이 오고 ‘알림’에 개수가 더해져요. ‘알림’을 클릭하면 투어마다 ‘바뀌었을 수 있음’, ‘변경됨’, ‘확인 불가’로 보이고, 거기서 바로 열 수 있어요.',
   'help.guide.plugin-settings.goal': '플러그인에 내 키와 환경설정을 입력하고, 플러그인이 나 대신 한 작업을 확인해요.',
   'help.guide.own-routing-engine.result': '모든 여행의 경로를 내 서버에서 계산해요.',
   'help.guide.admin-passkeys.title': '패스키 로그인 제공하기',
@@ -5260,7 +5263,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     '여행 탭 바에 Journey 탭이 생겨요. ‘읽기’나 ‘편집’ 권한을 준 모든 사람이 이 탭에서 Journey를 열 수 있고, 실시간으로 업데이트돼요.',
   'help.guide.create-place.tip.4':
-    'Google Maps에서 복사한 링크도 검색에 쓸 수 있어요. 붙여 넣고 Enter를 누르면 TREK가 링크에서 장소를 읽어요. 양식에 위치가 생기면 검색 옆 십자선 ‘이 핀 근처의 장소’로 주변 장소를 볼 수 있어요.',
+    'Google Maps에서 복사한 링크도 검색에 쓸 수 있어요. 붙여 넣고 Enter를 누르면 YOUYA가 링크에서 장소를 읽어요. 양식에 위치가 생기면 검색 옆 십자선 ‘이 핀 근처의 장소’로 주변 장소를 볼 수 있어요.',
   'help.guide.dawarich-stays.step.2':
     '방문 기록이 날짜별로 묶여 도착 시각과 떠난 시각이 보여요. 게이지 아이콘은 Dawarich가 확실하지 않은 기록이에요. 방문 기록 옆의 핀 ‘장소로 추가’를 클릭하세요.',
   'help.guide.leave-stop-off-route.step.3': '다시 경로에 넣으려면 같은 메뉴를 열고 ‘경로에 다시 추가’를 고르세요.',
@@ -5297,7 +5300,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     '편집기에서 목록의 파일 이름을 클릭해도 같은 미리보기가 열려요. 이때 Esc는 지출이 아니라 미리보기만 닫아요.',
   'help.guide.files-sync-settings.step.5':
-    '‘양쪽이 모두 바뀌었을 때’는 두 곳에서 문서를 편집했을 때 어느 사본을 남길지 정해요: ‘물어보기’, ‘TREK 사본 유지’, ‘저장소 사본 유지’. ‘자동으로 동기화’를 켜면 TREK가 백그라운드에서 변경을 확인해요. 끄면 카드에 ‘일시 중지됨’이 보이고 ‘지금 동기화’로만 동기화해요. 여기서 바꾼 내용은 바로 저장돼요.',
+    '‘양쪽이 모두 바뀌었을 때’는 두 곳에서 문서를 편집했을 때 어느 사본을 남길지 정해요: ‘물어보기’, ‘YOUYA 사본 유지’, ‘저장소 사본 유지’. ‘자동으로 동기화’를 켜면 YOUYA가 백그라운드에서 변경을 확인해요. 끄면 카드에 ‘일시 중지됨’이 보이고 ‘지금 동기화’로만 동기화해요. 여기서 바꾼 내용은 바로 저장돼요.',
   'help.guide.manage-notes.step.5':
     '‘삭제’는 먼저 ‘메모를 삭제할까요?’라고 물어요. 메모가 모든 멤버에게서 파일과 함께 삭제되기 때문이에요. ‘삭제’를 클릭해 확인하세요.',
   'help.guide.note-categories.step.3':
@@ -5326,7 +5329,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     '또는 날 헤더를 클릭해 날을 열고, 목록에서 투어를 클릭한 뒤 카드 아래쪽 ‘날에서 제거’를 클릭하세요.',
   'help.guide.tour-filter-list.step.3':
-    '목록에 여러 종류가 섞여 있으면 ‘출처’(TREK, ‘GPX 가져오기’, wanderer), ‘경로 한도’(T1~T6), ‘유형’(‘하이킹’, ‘자전거 투어’ 등)으로 더 좁힐 수 있어요. 체크한 값을 다시 클릭하면 해제돼요.',
+    '목록에 여러 종류가 섞여 있으면 ‘출처’(YOUYA, ‘GPX 가져오기’, wanderer), ‘경로 한도’(T1~T6), ‘유형’(‘하이킹’, ‘자전거 투어’ 등)으로 더 좁힐 수 있어요. 체크한 값을 다시 클릭하면 해제돼요.',
   'help.guide.tour-hide-on-map.step.1':
     '목록에서 투어를 가리키고 줄 오른쪽에 나타나는 눈 아이콘(‘지도에서 숨기기’)을 클릭하세요.',
   'help.guide.tour-import-plan-tab.step.1': '‘계획’ 탭 오른쪽 열 맨 위 전환 버튼에서 ‘투어’를 클릭하세요.',
@@ -5343,7 +5346,8 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.goal': '이 여행 안에서 투어를 변형해 만들거나, 다음 여행을 위해 내 컬렉션에 저장해요.',
   'help.guide.tour-copy-keep.tip.4':
     '‘컬렉션’은 컬렉션 애드온이 켜져 있을 때만 있어요. 읽기만 가능한 목록은 고를 수 없고, 목록이 아직 없으면 창에서 ‘컬렉션 열기’를 제안해요.',
-  'help.guide.tour-packing-link.step.5': '‘짐 목록 열기’를 클릭해 체크하세요. TREK가 ‘목록’ 탭의 짐 목록으로 이동해요.',
+  'help.guide.tour-packing-link.step.5':
+    '‘짐 목록 열기’를 클릭해 체크하세요. YOUYA가 ‘목록’ 탭의 짐 목록으로 이동해요.',
   'help.guide.tour-files.step.2': '그 아래 줄에 파일 수가 보이고 목록이 펼쳐져요.',
   'help.guide.tour-activity-link.step.2':
     '‘진행일’에서 실제로 다녀온 날을 확인하세요. 어느 날에도 속하지 않으면 ‘날짜 없음’을 고르세요.',
@@ -5355,7 +5359,7 @@ const help: TranslationStrings = {
     '지도 위쪽 ‘장소 또는 주소 검색’으로 지도를 옮겨요. 왼쪽 아래 버튼으로 투어 유형이 지원하는 ‘지형도’, ‘위성 사진’ 같은 지도를 바꾸고, 열린 투어의 ‘지점 찍기’, 3D 같은 스위치도 거기 있어요.',
   'help.guide.tour-open-workspace.step.5':
     '지도 위쪽 ‘장소 또는 주소 검색’으로 지도를 원하는 곳으로 옮겨서 투어 지역에서 시작할 수 있어요.',
-  'help.guide.tour-draw-route.goal': '지도에 새 투어의 지점을 찍고, TREK가 그 사이 경로를 계산하게 해요.',
+  'help.guide.tour-draw-route.goal': '지도에 새 투어의 지점을 찍고, YOUYA가 그 사이 경로를 계산하게 해요.',
   'help.guide.tour-draw-route.tip.2':
     '지도 버튼의 ‘지형도’나 ‘하이킹’을 쓰면 길이 보여서 클릭하기 쉬워요. 투어 유형이 쓸 수 있는 길에서 너무 먼 지점은 경로 대신 안내가 나와요.',
   'help.guide.tour-type-profile.step.3':
@@ -5478,11 +5482,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     '‘패들 속도’에는 배에 맞는 제안 값이 회색으로 보여요. 직접 입력하면 ‘내 속도’로 표시되고, 아래 링크 ‘제안값 사용’으로 배의 속도로 되돌려요.',
   'help.guide.tour-paddle-water-route.goal':
-    'TREK가 강이나 호수를 따라 구간을 계획하게 하고, 계획하지 못한 구간의 안내를 이해해요.',
+    'YOUYA가 강이나 호수를 따라 구간을 계획하게 하고, 계획하지 못한 구간의 안내를 이해해요.',
   'help.guide.tour-paddle-water-route.tip.3':
     '계획된 구간 아래 안내에는 급류와 그 등급, ‘카누 수로’, 직선으로 이은 ‘지도 데이터 공백’이 표시돼요.',
   'help.guide.tour-paddle-portage.step.4':
-    '‘경로’에서 ‘길 따라가기’는 지도에 있는 길을 따라가고, ‘직선’은 곧장 가로질러요. TREK가 알아서 길을 찾고, 크게 돌아가지 않고는 길이 없으면 알려 줘요.',
+    '‘경로’에서 ‘길 따라가기’는 지도에 있는 길을 따라가고, ‘직선’은 곧장 가로질러요. YOUYA가 알아서 길을 찾고, 크게 돌아가지 않고는 길이 없으면 알려 줘요.',
   'help.guide.tour-paddle-lock.step.1': '갑문이 있는 정차 지점을 가리키고 점 세 개 ‘작업 더 보기’를 클릭하세요.',
   'help.guide.tour-paddle-time.title': '패들 투어 시간 확인하고 조정하기',
   'help.guide.tour-paddle-time.tip.2': '물살과 바람은 추정에 포함되지 않아요.',
@@ -5491,7 +5495,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     '패들 투어를 저장한 뒤 왼쪽 열에서 ‘체크리스트’를 찾으세요. 헤더의 배지에 목록 진행 상황이 요약돼요.',
   'help.guide.tour-paddle-checklist.tip.4':
-    '장애물 정보는 TREK에 있는 지역의 OpenStreetMap 데이터에서 와요. 데이터가 없는 곳은 카드에 그렇게 나오니, 보, 갑문, 육상 운반 구간을 직접 확인하세요.',
+    '장애물 정보는 YOUYA에 있는 지역의 OpenStreetMap 데이터에서 와요. 데이터가 없는 곳은 카드에 그렇게 나오니, 보, 갑문, 육상 운반 구간을 직접 확인하세요.',
   'help.guide.tour-paddle-track-marks.step.4':
     '‘이 여행의 투어’에서 트랙을 클릭하세요. 왼쪽 열에 기록된 그대로 ‘육상 운반과 갑문’ 카드와 함께 보여요.',
   'help.ctx.trip-tour-horse.title': '승마 투어',
@@ -5550,16 +5554,16 @@ const help: TranslationStrings = {
     '연결된 여행이 진행되는 동안 날마다 방문 기록이 그날에 정리돼 ‘하루 가져오기’로 바로 쓸 수 있어요.',
   'help.ctx.settings-about.title': '정보',
   'help.guide.web-push-device.tip.3':
-    '푸시는 TREK를 HTTPS로 열어야 동작해요. 알림이 차단돼 있으면 브라우저 설정에서 허용한 뒤 다시 시도하세요.',
-  'help.guide.booking-mail-address.title': '예약 메일을 TREK으로 전달하기',
+    '푸시는 YOUYA를 HTTPS로 열어야 동작해요. 알림이 차단돼 있으면 브라우저 설정에서 허용한 뒤 다시 시도하세요.',
+  'help.guide.booking-mail-address.title': '예약 메일을 YOUYA으로 전달하기',
   'help.guide.booking-mail-address.goal':
-    '예약 확인 메일을 받을 내 주소를 만들면 TREK이 예약을 알맞은 여행에 추가해요.',
+    '예약 확인 메일을 받을 내 주소를 만들면 YOUYA이 예약을 알맞은 여행에 추가해요.',
   'help.guide.booking-mail-address.step.1':
     '‘통합’의 ‘예약 메일’에 ‘내 주소’가 보여요. 옆의 복사 버튼을 클릭하세요. 이 주소는 비밀번호처럼 나만 알고 있으세요.',
   'help.guide.booking-mail-address.step.2':
     '예약 메일을 첨부 파일까지 포함해 직접 이 주소로 전달하거나, ‘자동으로 전달하기’를 따라 Gmail이나 Outlook에서 규칙을 설정하세요.',
   'help.guide.booking-mail-address.step.3':
-    '‘예약 메일 가져오기’로 가져오기를 켜거나 꺼요. ‘AI로 읽기’는 기계가 읽을 수 있는 예약 데이터가 없는 메일도 AI가 읽게 해요. ‘자동으로 추가’는 TREK이 확실한 예약을 바로 해당 여행에 넣어요.',
+    '‘예약 메일 가져오기’로 가져오기를 켜거나 꺼요. ‘AI로 읽기’는 기계가 읽을 수 있는 예약 데이터가 없는 메일도 AI가 읽게 해요. ‘자동으로 추가’는 YOUYA이 확실한 예약을 바로 해당 여행에 넣어요.',
   'help.guide.booking-mail-address.step.4':
     '‘대기 중인 예약’은 확인을 기다리는 메일을 열고, 있으면 숫자가 붙어요. ‘메일 파일 업로드’는 .eml로 저장한 메일을 읽어요.',
   'help.guide.booking-mail-address.result':
@@ -5577,7 +5581,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     '배지에 ‘연결됨’이 보이고, 여행의 ‘투어’ 탭에서 내 wanderer를 검색해 트레일을 가져올 수 있어요.',
   'help.guide.tour-wanderer-watch.result':
-    'TREK가 가져온 트레일을 확인하다가 바뀌었을 수 있으면 알려 줘요. 투어는 내가 변경을 수락할 때만 바뀌어요.',
+    'YOUYA가 가져온 트레일을 확인하다가 바뀌었을 수 있으면 알려 줘요. 투어는 내가 변경을 수락할 때만 바뀌어요.',
   'help.guide.plugin-settings.step.1':
     '설정 사이드바에서 ‘플러그인’을 여세요. ‘플러그인 설정’ 아래에, 나에게 설정이 있는 플러그인마다 카드가 하나씩 있어요. 입력 칸을 채우고 ‘저장’을 클릭하거나, 카드에 나온 선택지를 고르세요. 카드의 작업은 확인하면 실행돼요.',
   'help.guide.profile.step.3': '카드 하단 오른쪽의 ‘프로필 저장’을 클릭하세요.',
@@ -5589,7 +5593,7 @@ const help: TranslationStrings = {
     '한 사람만 로그아웃시키려면 대신 ‘사용자 편집’에서 ‘새 비밀번호’를 지정하세요. 그 사람의 세션만 끝나요.',
   'help.guide.notification-defaults.goal': '모든 사용자의 알림 기본 상태를 정하고, 이벤트별로 채널을 완전히 차단해요.',
   'help.ctx.notifications.summary':
-    'TREK이 앱 안에서 보여 준 모든 알림이 최신순으로 날짜별로 묶여 있어요: 누군가 바꾼 예약, 여행 채팅의 새 메시지, 지연되는 항공편, 전달한 메일로 들어온 예약. 오른쪽 위 벨에는 최근 10개가, 이 페이지에는 전부가 보여요.',
+    'YOUYA이 앱 안에서 보여 준 모든 알림이 최신순으로 날짜별로 묶여 있어요: 누군가 바꾼 예약, 여행 채팅의 새 메시지, 지연되는 항공편, 전달한 메일로 들어온 예약. 오른쪽 위 벨에는 최근 10개가, 이 페이지에는 전부가 보여요.',
   'help.guide.read-notifications.step.1': '오른쪽 위 벨을 클릭하세요. 빨간 숫자는 아직 읽지 않은 알림 수예요.',
   'help.guide.filter-notifications.step.1': '오른쪽 위 벨을 클릭하세요.',
   'help.guide.mark-notifications-read.step.2':
@@ -5708,7 +5712,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     'GPX를 클릭하면 저장된 투어를 GPX 파일로 내려받아요: 고도 정보를 포함한 전체 경로라서 내비게이션 앱이나 GPS 기기에서 바로 쓸 수 있어요.',
   'help.guide.tour-copy-keep.step.1':
-    '투어 카드를 열고 아래쪽 ‘복사’를 클릭하세요. TREK가 날짜 없이 독립된 새 투어를 만들고, 원본은 그대로 남아요.',
+    '투어 카드를 열고 아래쪽 ‘복사’를 클릭하세요. YOUYA가 날짜 없이 독립된 새 투어를 만들고, 원본은 그대로 남아요.',
   'help.guide.tour-copy-keep.result':
     '여행에 마음대로 바꿀 수 있는 두 번째 투어가 생기고, 컬렉션에는 다른 여행에 추가할 수 있는 사본이 따로 저장돼요.',
   'help.guide.tour-packing-link.tip.1':
@@ -5790,7 +5794,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     '‘노면’을 클릭하면 같은 경로를 아스팔트부터 자연 노면과 바위까지 밟는 바닥 기준으로 볼 수 있어요.',
   'help.guide.tour-hike-round.step.2':
-    '지도 위에 ‘순환 하이킹’ 카드가 열려요. ‘출발’에서 출발점을 확인하고 원하는 ‘거리’를 입력하세요. 옆의 표시에 TREK이 제안할 수 있는 순환 길이가 보여요.',
+    '지도 위에 ‘순환 하이킹’ 카드가 열려요. ‘출발’에서 출발점을 확인하고 원하는 ‘거리’를 입력하세요. 옆의 표시에 YOUYA이 제안할 수 있는 순환 길이가 보여요.',
   'help.guide.tour-hike-compare-ways.title': '하이킹 한 구간의 다른 길 비교하기',
   'help.guide.tour-hike-compare-ways.tip.2':
     '라우터가 다른 길을 모르면 카드에 그렇게 나와요. 라우터가 고른 길을 따를 수 없으면 그 구간은 그대로이고, 카드에서 알려 줘요.',
@@ -5809,7 +5813,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     '영업시간은 OpenStreetMap이나 정차 지점과 연결된 여행 장소에서 가져오고, 옆의 표시에 어느 쪽인지 나와요. 가기 전에 확인하세요.',
   'help.guide.tour-walk-google-import.step.4':
-    '‘산책으로 불러오기’를 클릭하세요. 정차 지점 사이의 도보 경로는 TREK가 직접 계획해요. ‘저장’을 클릭해 산책을 저장하세요.',
+    '‘산책으로 불러오기’를 클릭하세요. 정차 지점 사이의 도보 경로는 YOUYA가 직접 계획해요. ‘저장’을 클릭해 산책을 저장하세요.',
   'help.guide.tour-walk-check-off.step.2':
     '‘산책 정류지’까지 스크롤하세요. 정차 지점마다 머무는 시간이, 시작 시간이 있으면 도착 시간도 보여요.',
   'help.ctx.trip-tour-bike.summary':
@@ -5825,7 +5829,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     '지도에 있는 슬로프, 리프트, 코스를 따라 슬로프에서의 하루, 크로스컨트리 순환 코스, 스키 투어, 스노슈 산책을 계획해요.',
   'help.guide.tour-ski-plan.tip.2':
-    '‘종목’ 옆 정보 점에 TREK가 스키 투어를 어떻게 다루는지 나와요. 거기에도, 여기 어디에도 눈, 눈사태, 슬로프와 리프트, 코스 운영 여부 정보는 없어요.',
+    '‘종목’ 옆 정보 점에 YOUYA가 스키 투어를 어떻게 다루는지 나와요. 거기에도, 여기 어디에도 눈, 눈사태, 슬로프와 리프트, 코스 운영 여부 정보는 없어요.',
   'help.guide.tour-ski-options.step.3':
     '‘우선’에서 ‘가장 빠름’, ‘가장 많이 타기’, ‘가장 쉬움’ 중 하나를 고르세요. ‘속도’에서는 ‘여유롭게’, ‘보통’, ‘스포티하게’ 중 하나를 고르세요. 라우터가 슬로프마다 잡는 시간이 달라져요.',
   'help.guide.tour-ski-fix-leg.goal': '빨간 구간을 클릭 한 번으로 계획하거나 직선으로 그려요.',
@@ -5842,11 +5846,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     '‘지점 추가’가 켜져 있는지 확인하고 지도를 클릭하세요: 먼저 물에 들어갈 곳, 그다음 중간 지점, 마지막으로 물에서 나올 곳.',
   'help.guide.tour-paddle-water-route.step.1':
-    '손으로 그린 구간은 지점 아래에 ‘손으로 그림, 경로 계산 안 됨’과 길이가 보여요. TREK는 그린 선을 그대로 유지해요.',
+    '손으로 그린 구간은 지점 아래에 ‘손으로 그림, 경로 계산 안 됨’과 길이가 보여요. YOUYA는 그린 선을 그대로 유지해요.',
   'help.guide.tour-paddle-water-route.tip.4':
     '계획되지 않은 구간이 있으면 저장할 수 없어요. 먼저 물길로 계획하거나 손으로 그리세요.',
   'help.guide.tour-paddle-portage.step.5':
-    '‘출수와 입수’에 물에서 나와 짐을 내리고 다시 띄우는 데 걸리는 시간(분)을 입력하세요. 비워 두면 TREK가 10분으로 계산해요.',
+    '‘출수와 입수’에 물에서 나와 짐을 내리고 다시 띄우는 데 걸리는 시간(분)을 입력하세요. 비워 두면 YOUYA가 10분으로 계산해요.',
   'help.guide.tour-paddle-lock.step.2':
     '‘이 지점에 갑문 추가’를 고르세요. 지점 아래에 ‘시간 미입력’이 표시된 갑문 카드가 나타나요.',
   'help.guide.tour-paddle-time.goal': '물 위, 운반, 갑문, 휴식 시간이 어떻게 합산되는지 보고 내 값을 정해요.',
@@ -5855,7 +5859,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     '예보는 앞으로 16일까지만 있어요. 더 먼 날은 언제부터 예보를 볼 수 있는지, 지난 날은 이미 지났다고 알려 줘요.',
   'help.guide.tour-paddle-checklist.step.2':
-    '그 아래 줄에 데이터가 얼마나 최신인지 나와요: OpenStreetMap 기준 날짜는 ‘OSM 기준일’, TREK가 읽은 시각은 ‘가져온 일시’, 경로 전체를 다루지 않는 곳은 ‘장애물 데이터’.',
+    '그 아래 줄에 데이터가 얼마나 최신인지 나와요: OpenStreetMap 기준 날짜는 ‘OSM 기준일’, YOUYA가 읽은 시각은 ‘가져온 일시’, 경로 전체를 다루지 않는 곳은 ‘장애물 데이터’.',
   'help.guide.tour-paddle-checklist.tip.5':
     '체크리스트는 안전이나 법적 허가가 아니에요. 내가 정한 결정으로 OpenStreetMap에 기록된 금지 구역이나 사유지가 풀리지는 않아요.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -5870,7 +5874,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-recorded.goal': 'GPS 기기나 앱으로 기록한 승마를 가져와 실제로 달린 그대로 남겨요.',
   'help.guide.tour-horse-recorded.tip.3': '파일을 ‘투어’ 탭 아무 곳에나 끌어다 놓아도 같은 미리보기가 열려요.',
   'help.guide.create-trip.tip.3':
-    '‘동행자’에서 이 TREK에 이미 계정이 있는 사람을 추가할 수 있어요. 여행이 만들어지면 바로 여행 멤버가 돼요.',
+    '‘동행자’에서 이 YOUYA에 이미 계정이 있는 사람을 추가할 수 있어요. 여행이 만들어지면 바로 여행 멤버가 돼요.',
   'help.guide.trip-reminder.step.1':
     '여행 카드의 연필을 클릭하세요. 새 여행이라면 ‘새 여행’ 양식에 같은 섹션이 있어요.',
   'help.guide.company-holidays.tip.2':
@@ -5888,7 +5892,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.7':
     '저장한 투어: 여행에서 저장한 투어는 목록 맨 앞에 난이도, 유형, 원래 여행, 측정값과 함께 나와요. ‘여행에 추가’로 그 투어에서 새 투어를 만들고, 휴지통 아이콘으로 목록에서 빼요.',
   'help.guide.move-to-list.title': '장소를 다른 목록으로 옮기거나 복제하기',
-  'help.guide.copy-to-trip.tip.2': '여행에 이미 있는 장소는 건너뛰고, 몇 개를 건너뛰었는지 TREK가 알려 줘요.',
+  'help.guide.copy-to-trip.tip.2': '여행에 이미 있는 장소는 건너뛰고, 몇 개를 건너뛰었는지 YOUYA가 알려 줘요.',
   'help.guide.accept-list-invite.tip.2':
     '목록 위쪽 ‘공유됨’을 클릭하면 멤버가 보여요. 거기서 ‘목록 나가기’로 다시 나갈 수 있어요.',
   'help.guide.tour-collection-add-to-trip.goal':
@@ -5902,15 +5906,15 @@ const help: TranslationStrings = {
   'help.guide.journey-keep-route.goal': 'Dawarich의 하루 실제 경로를 Journey 지도에 추가해서 남겨 둬요.',
   'help.guide.journey-day-stays.goal': 'Dawarich가 기록한 방문을 하나씩 항목으로 바꿔요.',
   'help.guide.journey-take-over-day.goal': '하루의 방문 기록을 한 번에 초안 항목이나 하루 기록 하나로 바꿔요.',
-  'help.guide.journey-auto-prepare.title': 'TREK가 기록된 날을 준비하게 하기',
+  'help.guide.journey-auto-prepare.title': 'YOUYA가 기록된 날을 준비하게 하기',
   'help.guide.photo-location.title': '사진을 찍은 곳에 항목 위치 지정하기',
   'help.ctx.settings-about.summary':
-    'TREK 소개, 이 서버의 버전, 프로젝트 관련 링크예요: 문서, 버그 신고 위치, 프로젝트 후원 방법.',
+    'YOUYA 소개, 이 서버의 버전, 프로젝트 관련 링크예요: 문서, 버그 신고 위치, 프로젝트 후원 방법.',
   'help.guide.startup.tip.2': '끈 애드온에 속한 시작 탭은 대신 계획이 열려요.',
   'help.guide.web-push-device.title': '이 기기에서 푸시 알림 받기',
   'help.guide.connect-airtrail.tip.1': '이 카드는 관리자가 AirTrail 애드온을 켜 뒀을 때만 보여요.',
   'help.guide.connect-dawarich.tip.1':
-    'TREK는 항목, 장소, 국가를 제안만 해요. 확인하기 전에는 아무것도 추가되지 않고, Dawarich에 기록하는 것도 없어요.',
+    'YOUYA는 항목, 장소, 국가를 제안만 해요. 확인하기 전에는 아무것도 추가되지 않고, Dawarich에 기록하는 것도 없어요.',
   'help.guide.tour-connect-wanderer.tip.1': '이 카드는 관리자가 ‘투어’에서 wanderer를 허용했을 때만 보여요.',
   'help.guide.tour-wanderer-watch.tip.1':
     '알림이 투어를 바꾸지는 않아요. 실제로 무엇이 바뀌었는지는 투어의 소스 확인에서 볼 수 있어요.',
@@ -5924,14 +5928,14 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     '아무도 ‘설정’을 열지 않아도 모든 계정에 알맞은 단위, 색상 모드, 통화를 정해 줘요.',
   'help.guide.default-map.step.3':
-    '각 칸은 다른 곳을 누르면 저장돼요. 칸 이름 옆의 초기화 링크로 TREK 기본값으로 되돌려요.',
+    '각 칸은 다른 곳을 누르면 저장돼요. 칸 이름 옆의 초기화 링크로 YOUYA 기본값으로 되돌려요.',
   'help.guide.own-routing-engine.tip.2':
     '자체 경로 서버만 설정하고 ‘경로 서비스’를 ‘자동’으로 두면 Valhalla에는 묻지 않아요. 칸 옆의 초기화 링크로 다시 비울 수 있어요.',
   'help.guide.admin-passkeys.step.1': '‘보안’ 탭의 ‘인증 방법’에서 ‘패스키 로그인 활성화’를 켜세요.',
   'help.guide.storage-backends.step.4':
     '맨 위 ‘건강’에 미러 대상에 쓰지 못한 기록이 나와요. ‘기록된 복제본 오류가 없습니다.’라고 나오면 모두 정상이에요.',
   'help.guide.channels-instance.tip.3':
-    '‘웹 푸시’는 HTTPS가 필요해요. iPhone과 iPad에서는 먼저 TREK를 홈 화면에 추가해야 해요.',
+    '‘웹 푸시’는 HTTPS가 필요해요. iPhone과 iPad에서는 먼저 YOUYA를 홈 화면에 추가해야 해요.',
   'help.guide.notification-defaults.step.1':
     '‘알림’ 탭 맨 아래 ‘사용자 기본값’까지 스크롤하세요. 줄은 이벤트, 열은 채널이에요.',
   'help.ctx.notifications.bullet.1':
@@ -5978,25 +5982,25 @@ const help: TranslationStrings = {
     '확인서를 읽으려면 인터넷 연결이 필요해요. 오프라인이면 가져오기에서 알려 주니, 다시 온라인이 되면 다시 시도하세요.',
   'help.guide.forward-booking-mail.title': '예약 메일을 여행으로 전달하기',
   'help.guide.forward-booking-mail.goal':
-    '여행에 전용 주소를 만들어 확인 메일을 전달하고, TREK이 알아서 추가하지 못한 것을 마무리해요.',
+    '여행에 전용 주소를 만들어 확인 메일을 전달하고, YOUYA이 알아서 추가하지 못한 것을 마무리해요.',
   'help.guide.forward-booking-mail.step.1':
     '바의 업로드 아이콘 ‘예약 확인서 가져오기’를 클릭하세요. 파일 상자 아래 ‘또는 메일로 전달’에 여행의 전용 주소가 있어요.',
   'help.guide.forward-booking-mail.step.2':
     '‘이 여행용 주소 만들기’를 클릭하세요. 이 주소로 보낸 메일은 추측 없이 이 여행에 들어가요.',
   'help.guide.forward-booking-mail.step.3':
-    '주소가 나타나고 옆에 복사 버튼이 있어요. 복사한 다음 메일 프로그램에서 예약 메일을 첨부 파일까지 포함해 이 주소로 직접, 또는 규칙으로 전달하세요. TREK이 몇 분 안에 읽어요.',
+    '주소가 나타나고 옆에 복사 버튼이 있어요. 복사한 다음 메일 프로그램에서 예약 메일을 첨부 파일까지 포함해 이 주소로 직접, 또는 규칙으로 전달하세요. YOUYA이 몇 분 안에 읽어요.',
   'help.guide.forward-booking-mail.step.4':
-    'TREK이 확실한 예약은 알아서 여행에 넣어요. 나머지는 내 확인을 기다려요. 오른쪽 위 내 이름 아래 메뉴를 열고(기다리는 메일 수가 숫자로 나와요) ‘대기 중인 예약’을 클릭하세요.',
+    'YOUYA이 확실한 예약은 알아서 여행에 넣어요. 나머지는 내 확인을 기다려요. 오른쪽 위 내 이름 아래 메뉴를 열고(기다리는 메일 수가 숫자로 나와요) ‘대기 중인 예약’을 클릭하세요.',
   'help.guide.forward-booking-mail.step.5':
-    '각 항목에 TREK이 읽은 내용, 기다리는 이유, 어느 여행에 들어온 것인지가 나와요. ‘메일 보기’는 메일 자체를 보여 줘요. ‘직접 입력’을 클릭하세요.',
+    '각 항목에 YOUYA이 읽은 내용, 기다리는 이유, 어느 여행에 들어온 것인지가 나와요. ‘메일 보기’는 메일 자체를 보여 줘요. ‘직접 입력’을 클릭하세요.',
   'help.guide.forward-booking-mail.step.6':
     '‘새 예약’이 메일에 있던 내용으로 여행에 열려요. 제목은 이름으로, 그리고 유형, 날짜, 찾은 예약 코드가 채워져요. 확인하고, 고칠 부분은 고친 다음 ‘추가’를 클릭하세요.',
   'help.guide.forward-booking-mail.result':
     '예약이 ‘예약’ 탭에 다른 예약처럼 나타나고, 그 항목은 ‘대기 중인 예약’에서 사라져요.',
   'help.guide.forward-booking-mail.tip.1':
-    '‘설정’, ‘통합’, ‘예약 메일’의 내 주소는 모든 여행에 쓸 수 있어요. TREK이 날짜와 장소가 예약과 맞는 여행을 골라요. 여행 전용 주소는 그 추측이 필요 없어요.',
+    '‘설정’, ‘통합’, ‘예약 메일’의 내 주소는 모든 여행에 쓸 수 있어요. YOUYA이 날짜와 장소가 예약과 맞는 여행을 골라요. 여행 전용 주소는 그 추측이 필요 없어요.',
   'help.guide.forward-booking-mail.tip.2':
-    '그 카드에서 ‘자동으로 추가’를 켜면 TREK이 확실한 예약을 바로 여행에 넣고, 알림에서 7일 동안 ‘실행 취소’를 쓸 수 있어요. 끄면 모든 예약이 ‘대기 중인 예약’에서 기다려요.',
+    '그 카드에서 ‘자동으로 추가’를 켜면 YOUYA이 확실한 예약을 바로 여행에 넣고, 알림에서 7일 동안 ‘실행 취소’를 쓸 수 있어요. 끄면 모든 예약이 ‘대기 중인 예약’에서 기다려요.',
   'help.guide.forward-booking-mail.tip.3':
     '항목은 ‘문서로 저장’으로 메일이나 첨부 파일을 여행 파일에 보관하거나, ‘삭제’로 없앨 수도 있어요.',
   'help.guide.forward-booking-mail.tip.4':
@@ -6072,11 +6076,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     '투어 카드를 여세요. ‘계획과 실제’에 계획의 ‘거리’, ‘누적 상승 고도’, ‘누적 하강 고도’, ‘휴식 포함 시간’이 트랙 값과 나란히, ‘차이’와 함께 보여요.',
   'help.guide.tour-origin-check.goal':
-    '투어를 TREK에서 그렸는지 가져왔는지, 어떤 파일에서 왔는지, 그 뒤 바뀌었는지 알아봐요.',
+    '투어를 YOUYA에서 그렸는지 가져왔는지, 어떤 파일에서 왔는지, 그 뒤 바뀌었는지 알아봐요.',
   'help.ctx.trip-tour-planner.title': '투어',
   'help.guide.tour-open-workspace.title': '‘투어’ 탭 둘러보기',
   'help.guide.tour-open-workspace.step.7':
-    '오른쪽 레일에서 투어를 클릭하세요. TREK에서 계획한 투어는 편집기에서 열리고, 가져온 트랙은 보기용 ‘GPX 투어’로 그대로 열려요.',
+    '오른쪽 레일에서 투어를 클릭하세요. YOUYA에서 계획한 투어는 편집기에서 열리고, 가져온 트랙은 보기용 ‘GPX 투어’로 그대로 열려요.',
   'help.guide.tour-draw-route.step.2':
     '‘장소 또는 주소 검색’에 투어 출발지를 입력하고 결과를 고르세요. 지도가 그곳으로 이동해요.',
   'help.guide.tour-draw-route.tip.4':
@@ -6106,7 +6110,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.3': '여행에 이미 있는 트랙은 ‘이미 여행에 있음’으로 회색 표시되고 건너뛰어요.',
   'help.guide.tour-view-import.step.3': '왼쪽 위 화살표 ‘투어 목록으로’로 다시 닫아요.',
   'help.guide.tour-plan-from-import.step.2':
-    'TREK가 트랙에서 기준점을 뽑아 경로를 다시 계산해요. 지도에 가져온 트랙은 점선, 제안 경로는 실선으로 보이고, 카드에서 두 길이, 트랙에서 50m 이내 비율, ‘최대 편차’를 비교해요.',
+    'YOUYA가 트랙에서 기준점을 뽑아 경로를 다시 계산해요. 지도에 가져온 트랙은 점선, 제안 경로는 실선으로 보이고, 카드에서 두 길이, 트랙에서 50m 이내 비율, ‘최대 편차’를 비교해요.',
   'help.guide.tour-restore-recorded.title': '기록된 트랙으로 되돌리기',
   'help.guide.tour-take-over.title': '다른 여행에서 투어 가져오기',
   'help.guide.tour-take-over.tip.1':
@@ -6189,7 +6193,7 @@ const help: TranslationStrings = {
     '슬로프를 더 불러오지 못하면 스위치에 경고 표시가 생겨요. 지도와 경로는 그대로 쓸 수 있어요.',
   'help.guide.tour-ski-import.step.4': '‘투어 1개 가져오기’를 클릭하세요.',
   'help.ctx.trip-tour-paddle.summary':
-    '강이나 호수에서 하는 카약, 카누, SUP 투어예요. 배와 수역을 정하고, TREK에 데이터가 있는 곳에서는 물길을 따르며, 육상 운반과 갑문을 시간에 넣고, 패들링하는 날의 바람과 경로 장애물 정보를 보여 줘요.',
+    '강이나 호수에서 하는 카약, 카누, SUP 투어예요. 배와 수역을 정하고, YOUYA에 데이터가 있는 곳에서는 물길을 따르며, 육상 운반과 갑문을 시간에 넣고, 패들링하는 날의 바람과 경로 장애물 정보를 보여 줘요.',
   'help.guide.tour-paddle-setup.goal':
     '카약, 카누, SUP 투어를 시작하고, 무엇을 타고 어떤 물에서 얼마나 빨리 갈지 정해요.',
   'help.guide.tour-paddle-setup.tip.1':
@@ -6197,7 +6201,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-water-route.step.2':
     '구간 하나를 물길로 계획하려면 그 앞 정차 지점을 가리키고 점 세 개 ‘작업 더 보기’를 클릭하세요.',
   'help.guide.tour-paddle-water-route.result':
-    '모든 구간이 물길을 따르거나 의도적으로 손으로 그려졌고, TREK가 계획하지 못한 구간에는 이유가 나와요.',
+    '모든 구간이 물길을 따르거나 의도적으로 손으로 그려졌고, YOUYA가 계획하지 못한 구간에는 이유가 나와요.',
   'help.guide.tour-paddle-portage.tip.1':
     '그래도 그 구간을 패들링하려면 지점의 ‘작업 더 보기’를 다시 열고 ‘이 구간 다시 패들링’을 고르세요. 다시 손으로 그린 구간이 돼요.',
   'help.guide.tour-paddle-lock.step.3': '갑문 카드를 클릭해 여세요.',
@@ -6215,7 +6219,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     '‘투어 이름’ 아래 ‘투어 유형’ 칸을 클릭하고 ‘승마 투어’를 고르세요. ‘웨이포인트’ 아래에 ‘승마 루트’ 카드가 생겨요.',
   'help.guide.tour-horse-plan.tip.2':
-    'TREK는 승마 시간을 계산하지 않아요. 그날 일정에 시간을 넣고 싶다면 ‘상세 정보’의 ‘예정’에 입력하세요.',
+    'YOUYA는 승마 시간을 계산하지 않아요. 그날 일정에 시간을 넣고 싶다면 ‘상세 정보’의 ‘예정’에 입력하세요.',
   'help.guide.tour-horse-gap.step.3':
     '‘구간 가져오기’를 클릭하세요. 스위치를 켜기 전에는 버튼이 회색으로 비활성화돼 있어요.',
   'help.guide.tour-horse-recorded.step.1':
@@ -6232,7 +6236,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': '함께 계획하는 사람의 휴가 기록하기',
   'help.guide.dissolve-fusion.title': '함께 계획하기 그만두기',
   'help.guide.country-places.goal':
-    'TREK가 국가로 집계한 장소를 보면서, 그곳에서 한 일을 확인하거나 엉뚱한 국가에 들어간 장소를 찾아요.',
+    'YOUYA가 국가로 집계한 장소를 보면서, 그곳에서 한 일을 확인하거나 엉뚱한 국가에 들어간 장소를 찾아요.',
   'help.guide.regions.tip.3':
     '‘버킷 리스트에 추가’는 지역에도 쓸 수 있어요. 버킷 리스트의 국가와 같은 빗금으로 표시돼요.',
   'help.guide.tour-activity-stats.step.2':
@@ -6259,11 +6263,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.1': '제목 옆에 이 서버의 버전이 보여요.',
   'help.guide.readability.tip.3':
     '가독성은 ‘실험적’ 기능이에요. 이상하게 보이면 탭 맨 아래 ‘기본값으로 초기화’를 클릭해 기본 설정으로 되돌리세요.',
-  'help.guide.web-push-device.goal': 'TREK를 닫아 둬도 휴대폰이나 컴퓨터에서 TREK 알림을 받아요.',
+  'help.guide.web-push-device.goal': 'YOUYA를 닫아 둬도 휴대폰이나 컴퓨터에서 YOUYA 알림을 받아요.',
   'help.guide.connect-airtrail.tip.2':
     '키는 암호화되어 저장되고 다시 보이지 않아요. 칸에 점이 보이면 저장된 키가 있다는 뜻이에요.',
   'help.guide.connect-dawarich.tip.2':
-    '버튼 아래에 TREK가 마지막으로 확인한 시각과 내 Dawarich 버전이 지원하지 않는 기능이 나와요.',
+    '버튼 아래에 YOUYA가 마지막으로 확인한 시각과 내 Dawarich 버전이 지원하지 않는 기능이 나와요.',
   'help.guide.tour-connect-wanderer.tip.2':
     '사설 주소에 있는 인스턴스라면 관리자가 내부 네트워크를 허용해야 할 수 있어요.',
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6271,13 +6275,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     '플러그인이 내 설정으로 동작하고, 나 대신 한 작업이 모두 ‘플러그인 활동’에 나와요.',
   'help.ctx.admin-defaults.bullet.3':
-    '설정한 칸 옆의 초기화 링크로 TREK 기본값으로 되돌려요. 사용자가 직접 정한 설정이 항상 우선이에요.',
+    '설정한 칸 옆의 초기화 링크로 YOUYA 기본값으로 되돌려요. 사용자가 직접 정한 설정이 항상 우선이에요.',
   'help.ctx.admin-settings.bullet.5':
     '‘보안’의 ‘위험 구역’: ‘JWT 시크릿 교체’는 나를 포함한 모든 사용자를 로그아웃시켜요.',
   'help.guide.default-user-settings.step.1':
     '‘기본 사용자 설정’에서 ‘색상 모드’(‘라이트’, ‘다크’, ‘자동’), ‘온도 단위’, ‘거리 단위’, ‘시간 형식’, ‘주 시작 요일’, ‘날짜 형식’, ‘표시 통화’를 고르고, ‘예약 코드 흐리게’를 켤지 끌지 정하세요. 고르는 즉시 저장돼요.',
   'help.guide.admin-passkeys.step.2':
-    '‘패스키 로그인’ 카드에서 trek.example.org 같은 ‘Relying Party ID (도메인)’와 TREK에 접속하는 주소인 ‘허용된 오리진’을 입력하고 ‘저장’을 클릭하세요. 둘 다 비워 두면 APP_URL을 써요.',
+    '‘패스키 로그인’ 카드에서 trek.example.org 같은 ‘Relying Party ID (도메인)’와 YOUYA에 접속하는 주소인 ‘허용된 오리진’을 입력하고 ‘저장’을 클릭하세요. 둘 다 비워 두면 APP_URL을 써요.',
   'help.guide.rotate-jwt-secret.title': '모두 한 번에 로그아웃시키기',
   'help.guide.notification-defaults.step.2':
     '칸을 클릭하면 다음 상태로 바뀌어요: 켜짐, ‘끔’, ‘차단’. 툴팁에 다음 상태가 나오고, 클릭할 때마다 바로 저장돼요.',
@@ -6292,21 +6296,21 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': '알림이 목록과 벨에서 사라져요.',
   'help.guide.booking-mail-notifications.title': '예약 메일 알림에 대응하기',
   'help.guide.booking-mail-notifications.goal':
-    '전달한 예약 메일이 어떻게 처리됐는지 확인하고, TREK이 알아서 추가하지 못한 것은 직접 결정해요.',
+    '전달한 예약 메일이 어떻게 처리됐는지 확인하고, YOUYA이 알아서 추가하지 못한 것은 직접 결정해요.',
   'help.guide.booking-mail-notifications.step.1':
-    '오른쪽 위의 벨을 클릭하세요. 전달한 메일에 TREK이 직접 추가하지 못한 예약이 있으면 여기서 알려 줘요.',
+    '오른쪽 위의 벨을 클릭하세요. 전달한 메일에 YOUYA이 직접 추가하지 못한 예약이 있으면 여기서 알려 줘요.',
   'help.guide.booking-mail-notifications.step.2':
     '‘검토할 전달된 예약’에 기다리는 개수가 나와요. 그 아래의 ‘확인’을 클릭하세요.',
   'help.guide.booking-mail-notifications.step.3':
-    '‘대기 중인 예약’이 기다리는 항목을 모두 보여 줘요. TREK이 읽은 내용, 기다리는 이유, 어느 여행에 들어온 것인지가 나와요. ‘직접 입력’은 메일에 있던 내용으로 새 예약을 열고, 휴지통은 항목을 삭제해요.',
+    '‘대기 중인 예약’이 기다리는 항목을 모두 보여 줘요. YOUYA이 읽은 내용, 기다리는 이유, 어느 여행에 들어온 것인지가 나와요. ‘직접 입력’은 메일에 있던 내용으로 새 예약을 열고, 휴지통은 항목을 삭제해요.',
   'help.guide.booking-mail-notifications.result':
     '전달한 예약은 모두 해당 여행에 바로 들어가거나 내 결정을 기다려요. 어느 쪽인지는 언제든 알 수 있어요.',
   'help.guide.booking-mail-notifications.tip.1':
-    'TREK이 직접 추가한 예약은 ‘유지’와 ‘실행 취소’가 있는 ‘메일에서 예약을 추가했습니다’ 알림으로 와요. ‘실행 취소’는 예약을 여행에서 다시 빼고, ‘유지’는 그대로 둬요.',
+    'YOUYA이 직접 추가한 예약은 ‘유지’와 ‘실행 취소’가 있는 ‘메일에서 예약을 추가했습니다’ 알림으로 와요. ‘실행 취소’는 예약을 여행에서 다시 빼고, ‘유지’는 그대로 둬요.',
   'help.guide.booking-mail-notifications.tip.2':
     '공유 여행의 다른 사람들도 메일로 들어온 예약을 알림으로 받고, ‘여행 보기’를 누르면 여행의 ‘예약’ 탭이 열려요.',
   'help.guide.booking-mail-notifications.tip.3':
-    'TREK이 실시간으로 추적하는 항공편은 ‘항공편 출발’, ‘항공편 착륙’, 15분 이상 늦으면 ‘항공편 지연’ 알림을 보내고, 각각 ‘여행 보기’가 붙어요. 항공편이 배정된 사람이나 여행의 모든 사람에게 가요. 어느 알림이든 ‘설정’의 ‘알림’에서 끌 수 있어요.',
+    'YOUYA이 실시간으로 추적하는 항공편은 ‘항공편 출발’, ‘항공편 착륙’, 15분 이상 늦으면 ‘항공편 지연’ 알림을 보내고, 각각 ‘여행 보기’가 붙어요. 항공편이 배정된 사람이나 여행의 모든 사람에게 가요. 어느 알림이든 ‘설정’의 ‘알림’에서 끌 수 있어요.',
   'help.guide.notification-settings.result': '‘설정’의 ‘알림’이 열리고, 이벤트와 채널마다 스위치가 있어요.',
   'help.guide.link-journal.goal': '내 Journey 하나를 고른 사람들에게 여행 안에서 보여 줘요.',
   'help.guide.link-journal.tip.3':
@@ -6316,16 +6320,16 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     '여행 이름 옆의 ‘여행 설정’을 클릭하고 왼쪽에서 ‘애드온’을 고르세요. 이 메뉴는 여행의 주인만 볼 수 있어요.',
   'help.guide.trip-addons.step.2':
-    '애드온의 스위치를 클릭해 이 여행에서 켜거나 꺼요. ‘목록’, ‘비용’, ‘문서’, ‘협업’, ‘로드트립’, ‘투어’가 나오는데, 내 TREK에 있는 것만 보여요.',
+    '애드온의 스위치를 클릭해 이 여행에서 켜거나 꺼요. ‘목록’, ‘비용’, ‘문서’, ‘협업’, ‘로드트립’, ‘투어’가 나오는데, 내 YOUYA에 있는 것만 보여요.',
   'help.guide.trip-addons.step.3':
-    '‘이 여행만’은 TREK의 나머지 설정과 다르게 정해 둔 애드온을 표시해요. 스위치를 되돌리면 다시 관리자의 설정을 따라요.',
+    '‘이 여행만’은 YOUYA의 나머지 설정과 다르게 정해 둔 애드온을 표시해요. 스위치를 되돌리면 다시 관리자의 설정을 따라요.',
   'help.guide.trip-addons.result':
     '여행에서 고른 애드온이 여행의 모든 사람에게 보여요. 탭이나 계획의 일부가 나타나거나 사라져요. 다른 여행은 관리자의 설정을 그대로 따라요.',
   'help.guide.trip-addons.tip.1':
     '애드온을 끄면 숨겨질 뿐 아무것도 삭제되지 않아요. 다시 켜면 모든 것이 그대로 돌아와요.',
   'help.guide.trip-addons.tip.2': '관리자가 다른 모든 여행에서 꺼 두었더라도 한 여행에서는 애드온을 켤 수 있어요.',
   'help.guide.trip-addons.tip.3':
-    '스위치를 바꾸려면 연결이 필요해요. 오프라인이면 TREK이 알려 주고 스위치는 그대로 둬요.',
+    '스위치를 바꾸려면 연결이 필요해요. 오프라인이면 YOUYA이 알려 주고 스위치는 그대로 둬요.',
   'help.guide.edit-trip-settings.title': '플래너에서 여행 편집하기',
   'help.guide.edit-trip-settings.goal': '여행 화면을 벗어나지 않고 제목, 날짜, 커버, 통화를 바꿔요.',
   'help.guide.edit-trip-settings.step.1': '여행 이름 옆의 ‘여행 설정’을 클릭하고 왼쪽에서 ‘여행 편집’을 고르세요.',
@@ -6334,7 +6338,7 @@ const help: TranslationStrings = {
     '‘업데이트’를 클릭하세요. ‘여행 설정’이 닫히고 여행에 변경 내용이 바로 반영돼요.',
   'help.guide.edit-trip-settings.result': '여행의 새 정보가 모든 곳에서 참여한 모두에게 표시됩니다.',
   'help.guide.edit-trip-settings.tip.1':
-    '시작일을 옮기면 TREK이 먼저 예약을 어떻게 따라 옮길지 물어봐요. 새 날짜 때문에 내용이 있는 날이 사라진다면, 확인하기 전에 그 날들을 목록으로 보여 줘요.',
+    '시작일을 옮기면 YOUYA이 먼저 예약을 어떻게 따라 옮길지 물어봐요. 새 날짜 때문에 내용이 있는 날이 사라진다면, 확인하기 전에 그 날들을 목록으로 보여 줘요.',
   'help.guide.edit-trip-settings.tip.2':
     '같은 양식은 ‘내 여행’에서 여행 카드의 연필로도 열려요. ‘여행 편집’은 여행을 편집할 수 있는 사람에게만 보여요.',
   'help.guide.dawarich-stays.result':
@@ -6345,7 +6349,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.goal': '양식을 열지 않고 계획에서 바로 교통이나 예약을 다른 날로 옮겨요.',
   'help.guide.place-image-from-file.result': '그 사진이 카드, 장소 열, 날, 지도에서 장소 사진으로 보여요.',
   'help.guide.place-own-hours.step.3':
-    '그 아래 ‘영업 시간’에 한 주가 요일마다 한 줄로 보여요. TREK이 영업시간을 찾았다면 이미 채워져 있고, 아니면 먼저 ‘영업시간 추가’를 클릭하세요. 요일마다 여는 시간과 닫는 시간을 입력하세요. 요일 오른쪽의 24h는 하루 종일 영업, 닫힌 문은 쉬는 날이에요.',
+    '그 아래 ‘영업 시간’에 한 주가 요일마다 한 줄로 보여요. YOUYA이 영업시간을 찾았다면 이미 채워져 있고, 아니면 먼저 ‘영업시간 추가’를 클릭하세요. 요일마다 여는 시간과 닫는 시간을 입력하세요. 요일 오른쪽의 24h는 하루 종일 영업, 닫힌 문은 쉬는 날이에요.',
   'help.guide.add-accommodation.tip.5': 'GPX 트랙과 투어 장소는 숙소로 나오지 않고, 여행의 일반 장소만 나와요.',
   'help.guide.confirm-stay-booking.step.1':
     '체크인하는 날을 여세요. 숙박 카드의 ‘예약’ 아래에 그날 밤의 호텔 예약이 ‘대기 중’ 또는 ‘확정됨’으로 보여요. 그 상자를 클릭하세요.',
@@ -6374,7 +6378,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     '문서를 저장소에서 가져오기만 할지, 내보내기만 할지, 양방향으로 할지, 그리고 문서를 삭제하거나 양쪽에서 바꿨을 때 어떻게 할지 정해요.',
   'help.guide.files-sync-settings.tip.2':
-    '‘물어보기’를 고르면 양쪽에서 편집한 문서는 카드 아래 ‘확인이 필요합니다’에서 기다려요. ‘해결’을 클릭하고 ‘TREK 버전 유지’, ‘저장소 버전 유지’, ‘둘 다 유지’ 중 하나를 고르세요.',
+    '‘물어보기’를 고르면 양쪽에서 편집한 문서는 카드 아래 ‘확인이 필요합니다’에서 기다려요. ‘해결’을 클릭하고 ‘YOUYA 버전 유지’, ‘저장소 버전 유지’, ‘둘 다 유지’ 중 하나를 고르세요.',
   'help.guide.manage-notes.goal': '메모를 전체로 열어 보고, 중요한 메모는 맨 위에 두고, 지난 내용은 고치거나 삭제해요.',
   'help.guide.manage-notes.tip.2':
     '편집 중 이미 첨부된 파일의 빨간 X를 누르면 ‘저장’을 누르기 전이라도 바로 삭제되고, 휴지통으로 가지 않아요. 메모의 모든 파일은 여행의 ‘파일’ 탭에도 보여요.',
@@ -6485,7 +6489,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     '‘투어’ 탭에서 투어를 열고, 왼쪽 패널을 정차 지점 아래 ‘투어 경로 주변’까지 스크롤하세요. 투어에 경로가 생기면 이 카드가 나와요.',
   'help.guide.tour-along-search.tip.3':
-    '결과는 OpenStreetMap과 TREK 장소 인덱스에서 가져와서 인터넷 연결이 필요해요. 아무것도 없으면 ‘넓히기’로 다음 거리까지 찾고, 서버가 바쁘면 ‘다시 시도’에 다시 시도할 수 있을 때까지 남은 시간이 보여요.',
+    '결과는 OpenStreetMap과 YOUYA 장소 인덱스에서 가져와서 인터넷 연결이 필요해요. 아무것도 없으면 ‘넓히기’로 다음 거리까지 찾고, 서버가 바쁘면 ‘다시 시도’에 다시 시도할 수 있을 때까지 남은 시간이 보여요.',
   'help.guide.tour-along-add-stop.tip.1':
     '그 장소는 여행 장소가 아니라 투어의 정차 지점이 돼서, 장소 목록에는 나오지 않아요.',
   'help.guide.tour-3d-terrain.step.4':
@@ -6505,7 +6509,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     '웨이포인트 아래 ‘길 정보’는 OpenStreetMap에서 구간마다 SAC 등급, 노면, 길 유형을 보여 주고, 그에 따라 지도의 경로에 색을 입혀요. 이 카드는 투어를 바꾸지 않아요.',
   'help.guide.tour-hike-plan.step.4':
-    '‘지점 추가’는 처음부터 켜져 있어요. 지도에서 하이킹 출발점과 도착점을 클릭하세요. 옆의 ‘여행 장소’로 여행의 산장이나 호텔을 고를 수도 있어요. 지점이 두 개가 되면 TREK가 걷는 경로를 계산해요.',
+    '‘지점 추가’는 처음부터 켜져 있어요. 지도에서 하이킹 출발점과 도착점을 클릭하세요. 옆의 ‘여행 장소’로 여행의 산장이나 호텔을 고를 수도 있어요. 지점이 두 개가 되면 YOUYA가 걷는 경로를 계산해요.',
   'help.guide.tour-hike-trail-details.title': '하이킹 경로의 등급, 노면, 길 유형 보기',
   'help.guide.tour-hike-trail-details.tip.1':
     'OpenStreetMap에 값이 없는 길은 ‘알 수 없음’에 나오는데, 알 수 없다고 쉬운 건 아니에요. 일부에 ‘이번에는 조회할 수 없었음’이 보이면 ‘다시 시도’를 클릭하세요.',
@@ -6534,7 +6538,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     '오른쪽 ‘투어 요약’에 ‘주행 시간’이 나와요. 오르막을 포함해 프로필에 맞춰 라우터가 계산한 추정 시간이고, 휴식은 빠져요.',
   'help.guide.tour-bike-profile.step.4':
-    '‘웨이포인트’에서 ‘여행 장소’를 클릭하고 출발지와 도착지를 고르세요. 여기서는 Hotel Alpenroyal, 그다음 Hotel Greif예요. ‘지점 추가’가 켜져 있는지 확인하고 지도를 클릭해도 돼요. 지점이 두 개가 되면 TREK가 경로를 계산해요.',
+    '‘웨이포인트’에서 ‘여행 장소’를 클릭하고 출발지와 도착지를 고르세요. 여기서는 Hotel Alpenroyal, 그다음 Hotel Greif예요. ‘지점 추가’가 켜져 있는지 확인하고 지도를 클릭해도 돼요. 지점이 두 개가 되면 YOUYA가 경로를 계산해요.',
   'help.guide.tour-bike-profile.tip.5':
     '관리자가 CyclOSM 지도를 허용하면 자전거 투어를 연 동안 지도 레이어 줄에 ‘자전거’도 생겨요. 불러오지 못하면 ‘지도’로 바꾸세요. 투어는 바뀌지 않아요.',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -6561,7 +6565,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     '패들 투어 지도는 ‘지도’와 ‘위성 사진’, 그리고 겹쳐 보는 OpenSeaMap ‘항로 표지’를 지원해요.',
   'help.guide.tour-paddle-water-route.step.3':
-    '‘다음 구간을 물 위로 계획’을 고르세요. TREK가 이 지점부터 다음 지점까지 강이나 호수를 따라 구간을 계획해요.',
+    '‘다음 구간을 물 위로 계획’을 고르세요. YOUYA가 이 지점부터 다음 지점까지 강이나 호수를 따라 구간을 계획해요.',
   'help.guide.tour-paddle-portage.title': '장애물을 보트를 들고 돌아가기',
   'help.guide.tour-paddle-portage.tip.2':
     '마지막 지점에서는 ‘여기부터 육상 운반’이 다음 지점을 찍을 때 적용돼요. 줄에 ‘여기서부터 운반’이 보이고, 옆의 X ‘운반 취소’로 되돌려요.',
@@ -6641,7 +6645,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     'AI 어시스턴트 카드에서 연결 방법을 고르세요. ‘ChatGPT로 로그인’은 내 ChatGPT 요금제를 쓰고, ‘API 키 붙여넣기’는 Anthropic, OpenAI, Gemini, OpenRouter의 키를 사용해요.',
   'help.guide.connect-ai.step.2':
-    '키를 붙여넣으세요. TREK가 감지한 제공업체 이름과 어떤 정보가 전달되는지 알려 줘요. ‘연결’을 클릭하면 TREK가 먼저 제공업체에 키를 확인해요.',
+    '키를 붙여넣으세요. YOUYA가 감지한 제공업체 이름과 어떤 정보가 전달되는지 알려 줘요. ‘연결’을 클릭하면 YOUYA가 먼저 제공업체에 키를 확인해요.',
   'help.guide.connect-ai.step.3':
     '카드에 ‘~에 연결됨’과 함께 제공업체 이름이 표시돼요. 원하는 ‘모델’을 고르고, ‘어시스턴트 열기’를 클릭해 지금 보고 있는 여행이나 다음 여행에서 시작하세요.',
   'help.guide.connect-ai.result': '어시스턴트가 내 계정으로 실행되고, 모든 여행에서 쓸 수 있어요.',
@@ -6659,7 +6663,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     '맨 아래 ‘사용자 기본값’: 이벤트와 채널마다, 직접 바꾸지 않은 모든 사람에게 켜짐, ‘끔’, ‘차단’을 정해요.',
   'help.guide.default-user-settings.step.2':
-    '설정한 칸 이름 옆에 초기화 링크가 생기고, 누르면 TREK 기본값으로 돌아가요.',
+    '설정한 칸 이름 옆에 초기화 링크가 생기고, 누르면 YOUYA 기본값으로 돌아가요.',
   'help.guide.own-routing-engine.title': '자체 경로 서버 쓰기',
   'help.guide.admin-passkeys.result':
     '로그인 페이지에 ‘패스키로 로그인’이 생기고, 사람들이 설정에서 패스키를 추가할 수 있어요.',
@@ -6681,7 +6685,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.step.1': '그날 예약 줄에 마우스를 올리세요. 왼쪽 손잡이가 보이면 끌 수 있다는 뜻이에요.',
   'help.guide.place-image-from-file.tip.1': 'JPG, PNG, GIF, WebP 파일만 고를 수 있고, PDF 티켓은 안 돼요.',
   'help.guide.place-own-hours.step.4':
-    '‘영업 시간’ 오른쪽 버튼: 복사 버튼은 모든 요일에 월요일 시간을 넣고, X는 내가 넣은 시간을 지워요. TREK가 찾은 시간이 있으면 ‘장소 정보에서 가져오기’로 그 시간을 되돌려요.',
+    '‘영업 시간’ 오른쪽 버튼: 복사 버튼은 모든 요일에 월요일 시간을 넣고, X는 내가 넣은 시간을 지워요. YOUYA가 찾은 시간이 있으면 ‘장소 정보에서 가져오기’로 그 시간을 되돌려요.',
   'help.guide.confirm-stay-booking.step.2': '계획 위에 예약이 열려요. 헤더의 첫 번째 버튼이 상태예요.',
   'help.ctx.trip-map.bullet.9':
     '여행의 모든 투어는 각자의 색 선으로 보이고, 시작 지점에 핀이 있어요. 선을 클릭하면 투어 카드가 열려요. 투어가 있는 날에는 그날 경로가 투어 시작점까지 가고 끝나는 곳에서 이어져요. ‘투어’ 목록에서 투어 옆 눈 아이콘 ‘지도에서 숨기기’로 내 지도에서 선을 빼요.',
@@ -6709,7 +6713,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     '바 오른쪽 끝의 ‘문서 동기화’를 클릭하세요. 여행이 연결돼 있으면 오른쪽에 내 저장소 카드가 열려요. 저장소가 둘 이상이면 왼쪽 ‘이 여행’에서 원하는 저장소를 클릭하세요.',
   'help.guide.files-sync-settings.tip.3':
-    '‘복사’ 버튼이 있는 링크 ‘즉시 업데이트’는 TREK가 자동으로 변경을 구독할 수 없는 저장소에만 있어요. 이 링크를 저장소에 붙여 넣으면 다음 확인 때가 아니라 바로 변경이 들어와요.',
+    '‘복사’ 버튼이 있는 링크 ‘즉시 업데이트’는 YOUYA가 자동으로 변경을 구독할 수 없는 저장소에만 있어요. 이 링크를 저장소에 붙여 넣으면 다음 확인 때가 아니라 바로 변경이 들어와요.',
   'help.guide.manage-notes.step.1':
     '메모 카드 헤더의 점 세 개(‘추가 옵션’)를 클릭하세요. 메뉴에 ‘펼치기’, ‘고정’, ‘편집’, ‘삭제’가 있어요.',
   'help.guide.note-categories.title': '메모를 카테고리로 나누기',
@@ -6726,7 +6730,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     '장소의 사진이 화면을 채우고, 화살표로 출처가 아는 다른 사진을 넘겨 볼 수 있어요. 닫으면 창으로 돌아가고, ‘취소’를 누르면 들를 곳은 그대로예요.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    '사진은 장소의 장소 양식에서 정한 그 장소의 이미지예요. 없으면 Google이나 OpenStreetMap에서 온 장소일 때 TREK이 출처가 가진 사진을 보여 줘요.',
+    '사진은 장소의 장소 양식에서 정한 그 장소의 이미지예요. 없으면 Google이나 OpenStreetMap에서 온 장소일 때 YOUYA이 출처가 가진 사진을 보여 줘요.',
   'help.guide.roadtrip-stop-photo.tip.2':
     '휴대폰에서는 ‘로드트립’ 탭에서 들를 곳을 탭하세요. 시트의 이름 아래에 사진이 가로 전체 폭으로 보이고, 사진을 탭하면 사진이 열려요.',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -6751,7 +6755,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     '구간이 있는 투어를 날로 끌어다 놓으면 작은 창에서 같은 것을 물어봐요. ‘취소’를 누르면 계획은 그대로예요.',
   'help.guide.tour-day-times.step.2':
-    '‘시작’을 정하고 ‘종료’는 비워 두세요. 칸 아래 줄에 TREK가 계산한 종료 시간(시작 시간 더하기 투어 시간)이 나와요.',
+    '‘시작’을 정하고 ‘종료’는 비워 두세요. 칸 아래 줄에 YOUYA가 계산한 종료 시간(시작 시간 더하기 투어 시간)이 나와요.',
   'help.guide.tour-remove-from-day.title': '날에서 투어 빼기',
   'help.guide.tour-filter-list.title': '투어 목록 거르기',
   'help.guide.tour-filter-list.tip.3':
@@ -6763,7 +6767,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     '이 카드는 투어 정보를 보고 관련 작업을 하는 곳이에요. 경로 자체는 ‘투어’ 탭에서 바꿔요: 탭을 열고 ‘이 여행의 투어’에서 투어를 클릭하세요. 투어 삭제도 여기가 아니라 거기서 해요.',
   'help.guide.tour-detail-read.step.6':
-    '더 스크롤하면 ‘설명’과 ‘메모’, 그다음 ‘출처’가 나와요: TREK에서 계획했는지, 어떤 파일에서 가져왔는지, 어떤 wanderer 트레일에서 왔는지가 날짜와 함께 보여요.',
+    '더 스크롤하면 ‘설명’과 ‘메모’, 그다음 ‘출처’가 나와요: YOUYA에서 계획했는지, 어떤 파일에서 가져왔는지, 어떤 wanderer 트레일에서 왔는지가 날짜와 함께 보여요.',
   'help.guide.tour-rename-colour.title': '투어 이름과 색 바꾸기',
   'help.guide.tour-rename-colour.result': '여행 곳곳에서 투어가 새 이름으로 보이고, 선은 고른 색으로 그려져요.',
   'help.guide.tour-take-along.tip.3':
@@ -6776,7 +6780,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     '‘지도에서 비교’를 클릭하면 실제 트랙이 계획 옆에 점선으로 그려져요. ‘비교 종료’로 다시 지워요.',
   'help.guide.tour-origin-check.step.2':
-    '‘가져옴’에 가져온 날짜가, ‘여기’에 현재 상태가 보여요: ‘가져온 그대로’, ‘TREK에서 편집함’, ‘다시 계획함, 기록된 트랙 보관’.',
+    '‘가져옴’에 가져온 날짜가, ‘여기’에 현재 상태가 보여요: ‘가져온 그대로’, ‘YOUYA에서 편집함’, ‘다시 계획함, 기록된 트랙 보관’.',
   'help.ctx.trip-tour-planner.bullet.1':
     '투어 애드온이 이 여행에서 켜져 있으면 여행 탭 바에서 ‘계획’ 바로 다음에 ‘투어’가 있어요. 여행의 주인은 ‘여행 설정’의 ‘애드온’에서 켜고 끌 수 있어요. 이 탭은 컴퓨터와 태블릿에 있고, 휴대폰에서는 ‘계획’ 탭에서 투어를 보고 날에 넣을 수 있지만 그릴 수는 없어요.',
   'help.guide.tour-open-workspace.step.1':
@@ -6910,13 +6914,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     '패들 투어에서 ‘투어 경로 주변’은 ‘입수 지점’, ‘보트 대여’, ‘식수’를 먼저 찾아요.',
   'help.guide.tour-paddle-water-route.step.4':
-    'TREK가 계획하지 못한 구간은 빨간색이 되고, 그 지역 수역 데이터가 아직 없다는 식으로 이유를 알려 줘요. 당장은 ‘직선으로 그리기’를 클릭해 손으로 그리세요.',
+    'YOUYA가 계획하지 못한 구간은 빨간색이 되고, 그 지역 수역 데이터가 아직 없다는 식으로 이유를 알려 줘요. 당장은 ‘직선으로 그리기’를 클릭해 손으로 그리세요.',
   'help.guide.tour-paddle-portage.goal':
     '보트를 들고 가는 구간을 표시해서 육지로 계산하고, 배에서 내렸다가 다시 타는 시간도 넣어요.',
   'help.guide.tour-paddle-portage.tip.3':
     '‘시간 추정’ 카드에서 ‘운반 속도’를 직접 정하기 전까지 운반은 2km/h로 계산해요.',
   'help.guide.tour-paddle-lock.tip.1':
-    'TREK는 갑문 운영 시간표를 몰라요. 시간은 내가 입력한 값일 뿐이니, 갑문 운영 시간은 직접 확인하세요.',
+    'YOUYA는 갑문 운영 시간표를 몰라요. 시간은 내가 입력한 값일 뿐이니, 갑문 운영 시간은 직접 확인하세요.',
   'help.guide.tour-paddle-time.step.3':
     '‘수역’ 줄은 물 위 거리를 ‘패들 속도’로 계산한 거예요. 속도는 열 맨 위 ‘패들 속도’ 칸에서 바꾸세요.',
   'help.guide.tour-paddle-wind.goal': '패들링하는 날 투어 출발 지점의 바람 예보를 확인해요.',

@@ -1,6 +1,6 @@
 # Real-Time Collaboration
 
-TREK keeps every trip in sync across all connected members without requiring a page refresh. A dedicated **Collab addon** adds a second layer on top of that sync: group chat, shared notes, shared links, polls, and a "What's Next" widget showing upcoming assigned places.
+YOUYA keeps every trip in sync across all connected members without requiring a page refresh. A dedicated **Collab addon** adds a second layer on top of that sync: group chat, shared notes, shared links, polls, and a "What's Next" widget showing upcoming assigned places.
 
 ![The Collab tab: chat, shared notes, links, polls and the What's Next widget side by side](assets/Collab.png)
 
@@ -48,7 +48,7 @@ The **Links** panel collects the web addresses a trip runs on: the booking porta
 
 ## Conflict handling
 
-TREK uses a **last-write-wins** model. Each mutation is applied on the server and the resulting canonical state is broadcast to all connected clients. If two members edit the same field at the same time, the change that reaches the server last is the one that sticks; all clients converge to that server-authoritative state.
+YOUYA uses a **last-write-wins** model. Each mutation is applied on the server and the resulting canonical state is broadcast to all connected clients. If two members edit the same field at the same time, the change that reaches the server last is the one that sticks; all clients converge to that server-authoritative state.
 
 On reconnect, any locally queued mutations are flushed to the server before the client re-fetches trip data, so offline changes are applied before the latest state is read back.
 

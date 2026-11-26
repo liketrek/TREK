@@ -23,7 +23,7 @@ const admin: TranslationStrings = {
   'admin.notifications.webhookPanel.title': 'Webhook',
   'admin.notifications.webPushPanel.title': 'Web Push',
   'admin.notifications.webPushPanel.hint':
-    'Lets users receive notifications on their phones and computers through the browser, even while TREK is closed. Needs HTTPS; on iPhone and iPad TREK has to be added to the Home Screen.',
+    'Lets users receive notifications on their phones and computers through the browser, even while YOUYA is closed. Needs HTTPS; on iPhone and iPad YOUYA has to be added to the Home Screen.',
   'admin.notifications.inappPanel.title': 'In-App',
   'admin.notifications.inappPanel.hint': 'In-app notifications are always active and cannot be disabled globally.',
   'admin.notifications.adminWebhookPanel.title': 'Admin Webhook',
@@ -150,13 +150,13 @@ const admin: TranslationStrings = {
   'admin.requireMfaHint': 'Users without 2FA must complete setup in Settings before using the app.',
   'admin.apiKeys': 'API Keys',
   'admin.apiKeysHint':
-    'Where place data comes from. The TREK index needs no key; the two providers below are optional.',
+    'Where place data comes from. The YOUYA index needs no key; the two providers below are optional.',
   'admin.trekApi.badgeDefault': 'Recommended default',
   'admin.googleCaveat.badge': 'Not recommended',
   'admin.googleCaveat.body':
-    'TREK is open source and we are not neutral here. Ratings and photos of ordinary businesses exist at this scale only at Google, and that is what a monopoly is. The field is here because there is no alternative, not because we recommend it. Every lookup then goes to Google.',
+    'YOUYA is open source and we are not neutral here. Ratings and photos of ordinary businesses exist at this scale only at Google, and that is what a monopoly is. The field is here because there is no alternative, not because we recommend it. Every lookup then goes to Google.',
   'admin.trekApi.tagline':
-    "TREK's own services: place search, address search and routing, without a Google key and without a key to enter. Every installation gets a fair daily allowance, and only the number of requests is counted.",
+    "YOUYA's own services: place search, address search and routing, without a Google key and without a key to enter. Every installation gets a fair daily allowance, and only the number of requests is counted.",
   'admin.trekApi.factPlaces': '73.6 million places worldwide',
   'admin.trekApi.factNoKey': 'No key to enter, fair daily allowance',
   'admin.trekApi.factOffline': 'Country packages work offline',
@@ -222,7 +222,7 @@ const admin: TranslationStrings = {
   'admin.mapsKey': 'Google Maps API Key',
   'admin.mapsKeyHint': 'Required for place search. Get at console.cloud.google.com',
   'admin.mapsKeyHintLong':
-    'Without a Google API key the recommended TREK API is used. With one, photos, ratings and opening hours can be loaded on top. Create a key at console.cloud.google.com.',
+    'Without a Google API key the recommended YOUYA API is used. With one, photos, ratings and opening hours can be loaded on top. Create a key at console.cloud.google.com.',
   'admin.recommended': 'Recommended',
   'admin.weatherKey': 'OpenWeatherMap API Key',
   'admin.weatherKeyHint': 'For weather data. Free at openweathermap.org',
@@ -234,13 +234,13 @@ const admin: TranslationStrings = {
   'admin.keyFromEnv': 'Set via {name}',
   'admin.placesProvider.title': 'Place search provider',
   'admin.placesProvider.subtitle':
-    "TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing: Automatic prefers Google where a key exists, then Amap.",
+    "YOUYA's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing: Automatic prefers Google where a key exists, then Amap.",
   'admin.placesProvider.auto': 'Automatic',
   'admin.placesProvider.google': 'Google Places',
   'admin.placesProvider.amap': 'Amap (高德地图)',
   'admin.placesProvider.openstreetmap': 'OpenStreetMap',
   'admin.placesProvider.missingKey':
-    'The selected provider has no API key configured, so place search is answered by the TREK index and OpenStreetMap alone.',
+    'The selected provider has no API key configured, so place search is answered by the YOUYA index and OpenStreetMap alone.',
   'admin.placesProvider.saved': 'Place search provider saved',
   'admin.validateKey': 'Test',
   'admin.keyValid': 'Connected',
@@ -274,14 +274,14 @@ const admin: TranslationStrings = {
     'Show pictures and a description while adding a place. Wikipedia and OpenStreetMap are always used; Google is added on top when Place Photos or Place Details are on.',
   'admin.placesGoogleOnly.title': 'Search with Google only',
   'admin.placesGoogleOnly.subtitle':
-    "Every search and every suggestion goes to Google Places. Off, TREK's own index and OpenStreetMap answer first and Google is only asked when they find nothing.",
+    "Every search and every suggestion goes to Google Places. Off, YOUYA's own index and OpenStreetMap answer first and Google is only asked when they find nothing.",
   'admin.placesGoogleOnly.missingKey':
-    "Needs a Google Maps API key. Without one, search runs on TREK's own index and OpenStreetMap whatever this switch says.",
+    "Needs a Google Maps API key. Without one, search runs on YOUYA's own index and OpenStreetMap whatever this switch says.",
   'admin.placesGoogleOnly.otherProvider':
     'Needs Google as the places provider. With Amap or OpenStreetMap picked, search never goes to Google whatever this switch says.',
   'admin.googleQuota.title': 'Daily limit for Google calls',
   'admin.googleQuota.subtitle':
-    'Once reached, TREK stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave it empty for no limit.',
+    'Once reached, YOUYA stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave it empty for no limit.',
   'admin.googleQuota.placeholder': 'No limit',
   'admin.googleQuota.usedToday': 'Today: {used}',
   'admin.googleQuota.usedOfLimit': 'Today: {used} of {limit}',
@@ -442,7 +442,7 @@ const admin: TranslationStrings = {
   'admin.plugins.sourceRepo': 'Source repository',
   'admin.plugins.reportIssue': 'Report an issue',
   'admin.plugins.homepage': 'Homepage',
-  'admin.plugins.requiresTrek': 'Requires TREK {version}+',
+  'admin.plugins.requiresTrek': 'Requires YOUYA {version}+',
   'admin.plugins.reviewedOn': 'Reviewed {date}',
   'admin.plugins.perm.db:own': 'Store its own data in an isolated database',
   'admin.plugins.perm.db:read:trips': 'Read trips the acting user can access',
@@ -500,7 +500,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.hook:photo-provider': 'Provide photos to Memories',
   'admin.plugins.perm.hook:calendar-source': 'Provide events to the calendar',
   'admin.plugins.perm.hook:place-detail-provider': 'Contribute extra details (reviews, ratings, links) to a place',
-  'admin.plugins.perm.hook:search-provider': "Answer place searches from its own index, beside TREK's own results",
+  'admin.plugins.perm.hook:search-provider': "Answer place searches from its own index, beside YOUYA's own results",
   'admin.plugins.perm.hook:poi-category-provider':
     'Add its own place categories to Explore places on the map; picking one sends the plugin the map area you are viewing',
   'admin.plugins.perm.hook:trip-warning-provider': 'Raise validation warnings on a trip (shown in the planner)',
@@ -521,7 +521,7 @@ const admin: TranslationStrings = {
   'admin.plugins.perm.mcp:tools':
     'Publish tools that an AI assistant can run on your behalf (it acts with the access you grant the plugin here, not with the assistant’s own)',
   'admin.plugins.perm.geolocation:read':
-    "Ask for your live position while one of its views is open (TREK reads it under this site's location permission, not the plugin's own)",
+    "Ask for your live position while one of its views is open (YOUYA reads it under this site's location permission, not the plugin's own)",
   'admin.plugins.perm.hook:pdf-section-provider': 'Append text sections to the trip PDF export',
   'admin.plugins.perm.hook:atlas-layer-provider':
     'Highlight countries on the Atlas world map (e.g. wishlists or travel advisories)',
@@ -548,26 +548,26 @@ const admin: TranslationStrings = {
   'admin.plugins.updateLater': 'Keep off for now',
   'admin.plugins.updateKeptOff': 'Update installed — left off until you approve the new permissions',
   'admin.plugins.reviewedMeaning':
-    '"Reviewed" means a TREK maintainer scanned this plugin for malware on each version — not for quality or whether it works. It is not a guarantee that a plugin is harmless.',
+    '"Reviewed" means a YOUYA maintainer scanned this plugin for malware on each version — not for quality or whether it works. It is not a guarantee that a plugin is harmless.',
   'admin.plugins.security.title': 'How plugins are contained — and the limits',
   'admin.plugins.security.isolationTitle': 'Every plugin runs boxed in',
   'admin.plugins.security.isolationBody':
-    "A plugin runs as its own locked-down process that can only read its own files. It cannot read your database, your login secret or your encryption key, cannot start other programs, and cannot write files anywhere. Its interface runs in a sealed browser frame that can't read your session cookie or touch the TREK page around it.",
+    "A plugin runs as its own locked-down process that can only read its own files. It cannot read your database, your login secret or your encryption key, cannot start other programs, and cannot write files anywhere. Its interface runs in a sealed browser frame that can't read your session cookie or touch the YOUYA page around it.",
   'admin.plugins.security.permsTitle': 'What the permissions mean',
   'admin.plugins.security.permsBody':
-    "The permissions shown before you install are a hard limit that TREK enforces while the plugin runs — it literally cannot do anything that isn't on the list. But they tell you what a plugin can do, not what it actually does. A plugin allowed to read your trips and reach a server can send your trips to that server, so read the permissions and the outbound hosts, not just the description.",
+    "The permissions shown before you install are a hard limit that YOUYA enforces while the plugin runs — it literally cannot do anything that isn't on the list. But they tell you what a plugin can do, not what it actually does. A plugin allowed to read your trips and reach a server can send your trips to that server, so read the permissions and the outbound hosts, not just the description.",
   'admin.plugins.security.limitsTitle': "What we can't promise",
   'admin.plugins.security.limitsBody':
-    "The isolation is a strong software boundary, not an absolute one. A plugin acts with exactly the rights you approve, so within those rights it can behave differently than its description suggests, and it can send data it legitimately holds to the hosts it declared. TREK does not read or judge what a plugin's code actually does.",
+    "The isolation is a strong software boundary, not an absolute one. A plugin acts with exactly the rights you approve, so within those rights it can behave differently than its description suggests, and it can send data it legitimately holds to the hosts it declared. YOUYA does not read or judge what a plugin's code actually does.",
   'admin.plugins.security.worstTitle': 'The worst case',
   'admin.plugins.security.worstBody':
     "A hostile plugin you turn on can misuse the data and connections you granted it — for example, leak the trips it is allowed to read. It cannot steal passwords, forge an admin login, run commands on your server, or reach data you didn't grant. The damage stays inside what you approved, and turning the plugin off stops it.",
   'admin.plugins.security.reviewedTitle': 'What "Reviewed" means',
   'admin.plugins.security.reviewedBody':
-    'A reviewed plugin was manually scanned for malware by a TREK maintainer on each version — checked for hostile code, not for whether it works well. It is not a promise that the plugin is harmless.',
+    'A reviewed plugin was manually scanned for malware by a YOUYA maintainer on each version — checked for hostile code, not for whether it works well. It is not a promise that the plugin is harmless.',
   'admin.plugins.security.signedTitle': 'What "Signed" means',
   'admin.plugins.security.signedBody':
-    'The checksum TREK verifies on every install proves the files are exactly what the registry vouches for. A signature proves something different: that they came from the author, signed with a key only they hold. A signed plugin has both. An unsigned one is not unsafe — it simply carries one guarantee fewer, and most plugins in the registry are unsigned today.',
+    'The checksum YOUYA verifies on every install proves the files are exactly what the registry vouches for. A signature proves something different: that they came from the author, signed with a key only they hold. A signed plugin has both. An unsigned one is not unsafe — it simply carries one guarantee fewer, and most plugins in the registry are unsigned today.',
   'admin.plugins.signed': 'Signed',
   'admin.plugins.signedHint': "Verified against the author's signing key when it was installed",
   'admin.plugins.unsigned': 'Unsigned',
@@ -582,20 +582,20 @@ const admin: TranslationStrings = {
   'admin.plugins.sig.invalidBody':
     "The files do not match the author's signature. They are not what the author signed — either they were corrupted, or they were tampered with. This cannot be overridden.",
   'admin.plugins.sig.missingBody':
-    'This plugin was signed when you installed it, but the new version ships no signature. TREK will not quietly accept the downgrade. This cannot be overridden.',
+    'This plugin was signed when you installed it, but the new version ships no signature. YOUYA will not quietly accept the downgrade. This cannot be overridden.',
   'admin.plugins.sig.incompleteBody':
     'The registry entry is half-signed: it declares an author key but the version carries no signature (or the reverse). That is a mistake on the plugin side. This cannot be overridden.',
   'admin.plugins.sig.pinnedKey': 'Key it was installed with',
   'admin.plugins.sig.newKey': 'Key it is offering now',
   'admin.plugins.sig.confirmOutOfBand':
-    'TREK cannot tell a legitimate key rotation apart from a takeover — both look identical from here. Confirm the new key with the author through a channel you already trust before you accept it. Once you do, the plugin is updated and the new key is remembered.',
+    'YOUYA cannot tell a legitimate key rotation apart from a takeover — both look identical from here. Confirm the new key with the author through a channel you already trust before you accept it. Once you do, the plugin is updated and the new key is remembered.',
   'admin.plugins.sig.retrustConfirm': 'Trust the new key & update',
   'admin.plugins.sig.cancel': 'Do not trust it',
   'admin.plugins.sig.consentUnsigned':
     'Nothing ties this version to its author — the files match the registry, but they carry no author signature.',
   'admin.plugins.security.trustTitle': 'The bottom line',
   'admin.plugins.security.trustBody':
-    'Installing a plugin is like installing any third-party app: only add code from authors you trust, and when in doubt, inspect it yourself first. TREK takes no responsibility for third-party plugins.',
+    'Installing a plugin is like installing any third-party app: only add code from authors you trust, and when in doubt, inspect it yourself first. YOUYA takes no responsibility for third-party plugins.',
   'admin.plugins.runtimeOn': 'Runtime on',
   'admin.plugins.tabDiscover': 'Discover',
   'admin.plugins.searchPlaceholder': 'Search plugins…',
@@ -612,12 +612,12 @@ const admin: TranslationStrings = {
   'admin.plugins.sortDownloads': 'Most downloads',
   'admin.plugins.updatesAvailable': '{count} updates available for your plugins.',
   'admin.plugins.updatesAvailable.one': '{count} update available for your plugins.',
-  'admin.plugins.newerNeedsTrek': 'v{version} available — needs TREK {range}',
+  'admin.plugins.newerNeedsTrek': 'v{version} available — needs YOUYA {range}',
   'admin.plugins.updateAll': 'Update all',
   'admin.plugins.versionsTitle': 'Versions',
   'admin.plugins.versionPickerTitle': 'Change version — {name}',
   'admin.plugins.versionSwitch': 'Switch to {version}',
-  'admin.plugins.versionNeedsTrek': 'needs TREK {range}',
+  'admin.plugins.versionNeedsTrek': 'needs YOUYA {range}',
   'admin.plugins.changeVersion': 'Change version…',
   'admin.plugins.noVersions': 'No published versions found in the registry.',
   'admin.plugins.downgradeTitle': 'Roll back this plugin?',
@@ -683,30 +683,30 @@ const admin: TranslationStrings = {
   'admin.plugins.dep.download': 'Download',
   'admin.plugins.dep.update': 'Update',
   'admin.plugins.dep.resolveHint': 'Downloads the latest compatible version, including its own dependencies.',
-  'admin.plugins.dep.trekIncompatible': 'Needs TREK {range} — this server runs {host}',
-  'admin.plugins.dep.trekUnknown': 'Does not say which TREK versions it supports',
+  'admin.plugins.dep.trekIncompatible': 'Needs YOUYA {range} — this server runs {host}',
+  'admin.plugins.dep.trekUnknown': 'Does not say which YOUYA versions it supports',
   'admin.plugins.installCompatible': 'Install {version}',
   'admin.plugins.installAnyway': 'Install anyway',
   'admin.plugins.rangeBypass.pill': 'Version checks off',
   'admin.plugins.rangeBypass.pillHint':
-    'TREK_PLUGINS_IGNORE_TREK_RANGE is set — plugins may install and run outside the TREK versions their authors declared',
-  'admin.plugins.rangeBypass.title': 'Outside its supported TREK versions',
-  'admin.plugins.rangeBypass.noticeTitle': 'Installed outside its supported TREK versions',
+    'TREK_PLUGINS_IGNORE_TREK_RANGE is set — plugins may install and run outside the YOUYA versions their authors declared',
+  'admin.plugins.rangeBypass.title': 'Outside its supported YOUYA versions',
+  'admin.plugins.rangeBypass.noticeTitle': 'Installed outside its supported YOUYA versions',
   'admin.plugins.rangeBypass.body':
-    '“{name}” declares support for TREK {range}, and this server runs {host}. TREK lets it through only because TREK_PLUGINS_IGNORE_TREK_RANGE is set. Its author has not updated the plugin’s version range for this TREK, so there is no guarantee it works — and in rare cases a mismatched plugin can corrupt TREK data. Continue only if you accept that risk.',
+    '“{name}” declares support for YOUYA {range}, and this server runs {host}. YOUYA lets it through only because TREK_PLUGINS_IGNORE_TREK_RANGE is set. Its author has not updated the plugin’s version range for this YOUYA, so there is no guarantee it works — and in rare cases a mismatched plugin can corrupt YOUYA data. Continue only if you accept that risk.',
   'admin.plugins.rangeBypass.bodyUnknown':
-    '“{name}” does not declare which TREK versions it supports; this server runs {host}. TREK lets it through only because TREK_PLUGINS_IGNORE_TREK_RANGE is set. Nothing says its author tested it on this TREK, so there is no guarantee it works — and in rare cases a mismatched plugin can corrupt TREK data. Continue only if you accept that risk.',
-  'admin.plugins.dep.trekBypassed': 'Outside its TREK range ({range}) — version checks off',
-  'admin.plugins.dep.trekBypassedUnknown': 'Declares no TREK range — version checks off',
-  'admin.plugins.rangeBypass.titleAdmin': 'Untested on this TREK',
+    '“{name}” does not declare which YOUYA versions it supports; this server runs {host}. YOUYA lets it through only because TREK_PLUGINS_IGNORE_TREK_RANGE is set. Nothing says its author tested it on this YOUYA, so there is no guarantee it works — and in rare cases a mismatched plugin can corrupt YOUYA data. Continue only if you accept that risk.',
+  'admin.plugins.dep.trekBypassed': 'Outside its YOUYA range ({range}) — version checks off',
+  'admin.plugins.dep.trekBypassedUnknown': 'Declares no YOUYA range — version checks off',
+  'admin.plugins.rangeBypass.titleAdmin': 'Untested on this YOUYA',
   'admin.plugins.rangeBypass.bodyAdmin':
-    '“{name}” supports TREK {range} according to its author, and this server runs {host}. The author has not confirmed it for this TREK yet, so it may not work, and in rare cases a plugin that does not fit can damage TREK data. You can still use it: your choice applies to this plugin in this version only, and TREK asks again after an update.',
+    '“{name}” supports YOUYA {range} according to its author, and this server runs {host}. The author has not confirmed it for this YOUYA yet, so it may not work, and in rare cases a plugin that does not fit can damage YOUYA data. You can still use it: your choice applies to this plugin in this version only, and YOUYA asks again after an update.',
   'admin.plugins.rangeBypass.bodyAdminUnknown':
-    '“{name}” does not say which TREK versions it supports, and this server runs {host}. Nothing says it was tested on this TREK, so it may not work, and in rare cases a plugin that does not fit can damage TREK data. You can still use it: your choice applies to this plugin in this version only, and TREK asks again after an update.',
-  'admin.plugins.dep.trekAccepted': 'Made for TREK {range}, running at your own risk',
-  'admin.plugins.dep.trekAcceptedUnknown': 'No TREK range declared, running at your own risk',
+    '“{name}” does not say which YOUYA versions it supports, and this server runs {host}. Nothing says it was tested on this YOUYA, so it may not work, and in rare cases a plugin that does not fit can damage YOUYA data. You can still use it: your choice applies to this plugin in this version only, and YOUYA asks again after an update.',
+  'admin.plugins.dep.trekAccepted': 'Made for YOUYA {range}, running at your own risk',
+  'admin.plugins.dep.trekAcceptedUnknown': 'No YOUYA range declared, running at your own risk',
   'admin.plugins.activateAnyway': 'Activate anyway',
-  'admin.plugins.untestedChip': 'Not confirmed for TREK {host} yet',
+  'admin.plugins.untestedChip': 'Not confirmed for YOUYA {host} yet',
   'admin.plugins.filters': 'Filter',
   'admin.plugins.security.short': 'How plugins are secured',
   'admin.plugins.accessTitle': 'What it can access',
@@ -719,7 +719,7 @@ const admin: TranslationStrings = {
   'admin.plugins.metaReviewed': 'Reviewed on',
   'admin.plugins.downloads': 'Downloads',
   'admin.addons.title': 'Addons',
-  'admin.addons.subtitle': 'Enable or disable features to customize your TREK experience.',
+  'admin.addons.subtitle': 'Enable or disable features to customize your YOUYA experience.',
   'admin.addons.catalog.packing.name': 'Lists',
   'admin.addons.catalog.packing.description': 'Packing lists and to-do tasks for your trips',
   'admin.addons.catalog.budget.name': 'Costs',
@@ -787,7 +787,7 @@ const admin: TranslationStrings = {
   'admin.weather.title': 'Weather Data',
   'admin.weather.badge': 'Since March 24, 2026',
   'admin.weather.description':
-    'TREK uses Open-Meteo as its weather data source. Open-Meteo is a free, open-source weather service — no API key required.',
+    'YOUYA uses Open-Meteo as its weather data source. Open-Meteo is a free, open-source weather service — no API key required.',
   'admin.weather.forecast': '16-day forecast',
   'admin.weather.forecastDesc': 'Previously 5 days (OpenWeatherMap)',
   'admin.weather.climate': 'Historical climate data',
@@ -847,15 +847,15 @@ const admin: TranslationStrings = {
   'admin.github.loading': 'Loading...',
   'admin.github.error': 'Failed to load releases',
   'admin.github.by': 'by',
-  'admin.github.support': 'Helps me keep building TREK',
-  'admin.github.supportMonthly': 'Support TREK every month',
+  'admin.github.support': 'Helps me keep building YOUYA',
+  'admin.github.supportMonthly': 'Support YOUYA every month',
   'admin.update.available': 'Update available',
-  'admin.update.text': 'TREK {version} is available. You are running {current}.',
+  'admin.update.text': 'YOUYA {version} is available. You are running {current}.',
   'admin.update.button': 'View on GitHub',
   'admin.update.install': 'Install Update',
   'admin.update.confirmTitle': 'Install Update?',
   'admin.update.confirmText':
-    'TREK will be updated from {current} to {version}. The server will restart automatically afterwards.',
+    'YOUYA will be updated from {current} to {version}. The server will restart automatically afterwards.',
   'admin.update.dataInfo': 'All your data (trips, users, API keys, uploads, Vacay, Atlas, budgets) will be preserved.',
   'admin.update.warning': 'The app will be briefly unavailable during the restart.',
   'admin.update.confirm': 'Update Now',
@@ -866,9 +866,9 @@ const admin: TranslationStrings = {
   'admin.update.backupLink': 'Go to Backup',
   'admin.update.howTo': 'How to Update',
   'admin.update.dockerText':
-    'Your TREK instance runs in Docker. To update to {version}, run the following commands on your server:',
+    'Your YOUYA instance runs in Docker. To update to {version}, run the following commands on your server:',
   'admin.update.nonDockerText':
-    'This TREK instance is not running in Docker. To update to {version}, re-run the install or update method you used — for example, on Proxmox Community Scripts run the update from the LXC console:',
+    'This YOUYA instance is not running in Docker. To update to {version}, re-run the install or update method you used — for example, on Proxmox Community Scripts run the update from the LXC console:',
   'admin.update.wikiLink': 'Open the update guide',
   'admin.update.reloadHint': 'Please reload the page in a few seconds.',
   'admin.tabs.permissions': 'Permissions',
@@ -933,7 +933,7 @@ const admin: TranslationStrings = {
   'admin.paddleRegions.catalogUnavailable': 'Geofabrik cannot be reached right now. Try again later.',
   'admin.paddleRegions.attribution':
     'Data © OpenStreetMap contributors (ODbL), regional extracts by Geofabrik. Read again on the 3rd of every month.',
-  'admin.paddleRegions.toast.added': 'Region added. TREK reads it in the background.',
+  'admin.paddleRegions.toast.added': 'Region added. YOUYA reads it in the background.',
   'admin.paddleRegions.toast.removed': 'Region removed',
   'admin.paddleRegions.phase.build': 'Building the water network',
   'admin.paddleRegions.network.km': '{km} km of water',
@@ -954,11 +954,11 @@ const admin: TranslationStrings = {
   'admin.paddleRegions.auto.mode.ask': 'On request',
   'admin.paddleRegions.auto.mode.off': 'Off',
   'admin.paddleRegions.auto.modeHint.auto':
-    "When someone plans a paddle tour where there is no water data yet, TREK loads the smallest matching region right away, up to the size limit and only a few a day. Anything larger waits here as a request. Only the region's name goes to Geofabrik, never the place.",
+    "When someone plans a paddle tour where there is no water data yet, YOUYA loads the smallest matching region right away, up to the size limit and only a few a day. Anything larger waits here as a request. Only the region's name goes to Geofabrik, never the place.",
   'admin.paddleRegions.auto.modeHint.ask':
     'Every new region waits here until an admin lets it through. When an admin plans, it loads right away.',
   'admin.paddleRegions.auto.modeHint.off':
-    'TREK loads nothing by itself and asks for nothing. Add regions here by hand.',
+    'YOUYA loads nothing by itself and asks for nothing. Add regions here by hand.',
   'admin.paddleRegions.auto.maxSize': 'Largest region loaded automatically',
   'admin.paddleRegions.auto.maxSizeHint':
     'Larger regions wait here as a request. Reading a region takes a few minutes and memory while it runs.',
@@ -971,7 +971,7 @@ const admin: TranslationStrings = {
   'admin.paddleRegions.requests.approve': 'Load',
   'admin.paddleRegions.requests.decline': 'Decline',
   'admin.paddleRegions.origin.auto': 'Automatic',
-  'admin.paddleRegions.origin.autoHint': 'TREK loaded this region by itself for a paddle tour planned there.',
+  'admin.paddleRegions.origin.autoHint': 'YOUYA loaded this region by itself for a paddle tour planned there.',
   'admin.mfa.reset': 'Reset 2FA',
   'admin.mfa.resetHint':
     'Switches off two-factor authentication for this user, for example after a lost phone. They are signed out everywhere and can set it up again after logging in with their password.',
@@ -1011,7 +1011,7 @@ const admin: TranslationStrings = {
   'admin.rotateJwt.button': 'Rotate',
   'admin.addons.ai.name': 'AI',
   'admin.addons.ai.description':
-    'One connection for the assistant and booking import. MCP lets other AI apps use TREK.',
+    'One connection for the assistant and booking import. MCP lets other AI apps use YOUYA.',
   'admin.addons.ai.setup': 'Set up AI',
   'admin.addons.ai.dialogSub': 'The connection the assistant and AI parsing share, and what each of them may do.',
   'admin.addons.ai.tab.connection': 'Connection',
@@ -1041,15 +1041,15 @@ const admin: TranslationStrings = {
   'admin.contribute.status.off': 'Off',
   'admin.contribute.status.unavailable': 'Not available',
   'admin.contribute.noteActive':
-    'What your users type about places reaches every TREK after a check. Thank you for helping.',
-  'admin.contribute.noteOff': 'Let what your users type about places improve the TREK Places API for everyone.',
+    'What your users type about places reaches every YOUYA after a check. Thank you for helping.',
+  'admin.contribute.noteOff': 'Let what your users type about places improve the YOUYA Places API for everyone.',
   'admin.contribute.ineligible.env_off': 'Switched off for this installation by TREK_PLACES_CONTRIBUTE.',
   'admin.contribute.ineligible.not_production': 'Only a production installation can share place details.',
   'admin.contribute.ineligible.demo': 'A demo installation does not share place details.',
-  'admin.contribute.ineligible.index_off': 'Sharing needs the TREK index as a place source.',
+  'admin.contribute.ineligible.index_off': 'Sharing needs the YOUYA index as a place source.',
   'admin.contribute.ineligible.custom_places_url':
     'This installation uses its own Places API, so there is nothing to share with.',
-  'admin.contribute.ineligible.services_off': 'The TREK services are switched off for this installation.',
+  'admin.contribute.ineligible.services_off': 'The YOUYA services are switched off for this installation.',
   'admin.contribute.ineligible.no_key': 'This installation has no services key yet. It is requested automatically.',
   'admin.contribute.pause.key_invalid': "Paused: the service did not accept this installation's key.",
   'admin.contribute.pause.key_refused':
@@ -1085,7 +1085,7 @@ const admin: TranslationStrings = {
   'admin.contribute.withdraw': 'Withdraw everything sent',
   'admin.contribute.withdrawTitle': 'Withdraw everything?',
   'admin.contribute.withdrawMessage':
-    'Every value this installation sent is removed from the TREK Places API, and waiting values are dropped. Places keep their details here.',
+    'Every value this installation sent is removed from the YOUYA Places API, and waiting values are dropped. Places keep their details here.',
   'admin.contribute.withdrawn': 'Withdrawn from the index: {total}',
   'admin.contribute.offTitle': 'Stop sharing?',
   'admin.contribute.offMessage':
@@ -1093,11 +1093,11 @@ const admin: TranslationStrings = {
   'admin.contribute.offConfirm': 'Stop sharing',
   'admin.contribute.refused.terms_outdated': 'The terms changed in the meantime. Please look at them again.',
   'admin.contribute.refused.no_field': 'Pick at least one field to share.',
-  'admin.contribute.prompt.title': 'Help every TREK know places better',
+  'admin.contribute.prompt.title': 'Help every YOUYA know places better',
   'admin.contribute.prompt.lead':
-    'When someone here adds a website, a phone number, opening hours or a description to a place, TREK can pass it on. After a check, every TREK installation shows it, and yours gets what others added in return.',
+    'When someone here adds a website, a phone number, opening hours or a description to a place, YOUYA can pass it on. After a check, every YOUYA installation shows it, and yours gets what others added in return.',
   'admin.contribute.prompt.why':
-    'The TREK Places API is free and needs no Google key because it is built from open data. Every detail you share makes it better for thousands of travellers. Thank you for being part of it.',
+    'The YOUYA Places API is free and needs no Google key because it is built from open data. Every detail you share makes it better for thousands of travellers. Thank you for being part of it.',
   'admin.contribute.prompt.whatLabel': 'What is shared',
   'admin.contribute.prompt.imageNote':
     'Photos are looked at by hand before anyone else sees them. You can change every switch later.',
@@ -1109,7 +1109,7 @@ const admin: TranslationStrings = {
   'admin.contribute.never.providers': 'Details filled in by Google or another provider',
   'admin.contribute.prompt.how':
     'Only what your users typed themselves, and only for places the index knows. No user, trip or account goes with it. The log shows every transmission, and you can switch off fields or withdraw everything at any time.',
-  'admin.contribute.prompt.past': 'Details your users typed since TREK 5.1 are shared as well, a few at a time.',
+  'admin.contribute.prompt.past': 'Details your users typed since YOUYA 5.1 are shared as well, a few at a time.',
   'admin.contribute.prompt.openRegistration':
     'Registration is open on this installation, so anyone with an account can type details. Every value is checked before it is published.',
   'admin.contribute.prompt.footnote': 'You decide this for the whole installation. Your users are not asked.',
@@ -1118,6 +1118,6 @@ const admin: TranslationStrings = {
   'admin.contribute.prompt.decline': 'No, thanks',
   'admin.contribute.prompt.thanks': 'Thank you. Place details are now shared.',
   'admin.servicesCard.title': 'Place search and routing',
-  'admin.servicesCard.hint': "TREK's own services, which provider answers search and transit, and the search log.",
+  'admin.servicesCard.hint': "YOUYA's own services, which provider answers search and transit, and the search log.",
 };
 export default admin;

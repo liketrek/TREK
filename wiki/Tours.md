@@ -1,6 +1,6 @@
 # Tours
 
-The **Tours** add-on plans routes inside a trip: hikes and runs, city walks, bike rides, ski days, paddle tours and horse rides, as single-day tours or over several days with stages. A tour has a line on the map, a distance, an ascent and a planned time, and goes on the trip's days like a place does. You can draw a tour in TREK, import a GPX, KML or KMZ file, take one over from another trip or a collection, or bring in a trail from wanderer.
+The **Tours** add-on plans routes inside a trip: hikes and runs, city walks, bike rides, ski days, paddle tours and horse rides, as single-day tours or over several days with stages. A tour has a line on the map, a distance, an ascent and a planned time, and goes on the trip's days like a place does. You can draw a tour in YOUYA, import a GPX, KML or KMZ file, take one over from another trip or a collection, or bring in a trail from wanderer.
 
 A tour you booked with a provider, such as a guided walk or a food tour, is a booking of the type **Guided tour** under **Bookings** (see [Reservations-and-Bookings](Reservations-and-Bookings)); the empty Tours tab says so too.
 
@@ -20,7 +20,7 @@ While the Tours add-on is on, the right column of the Plan tab has a switch at i
 Each row shows:
 
 - a coloured bar: the colour of the tour's line on the map,
-- a round tile: the routing limit (T1 to T6) of a hike planned in TREK, or the icon of the tour's type (bike, run, paddle, horse, ski); a small **GPX** or **wanderer** badge at its foot marks an import,
+- a round tile: the routing limit (T1 to T6) of a hike planned in YOUYA, or the icon of the tour's type (bike, run, paddle, horse, ski); a small **GPX** or **wanderer** badge at its foot marks an import,
 - the name, the description and a line of badges: the days the tour is on, its time, distance and ascent, a warning triangle when the imported heights or measures are incomplete, and a tick when a recorded track belongs to it,
 - for a multi-day tour, a moon with the number of its stages.
 
@@ -51,7 +51,7 @@ Putting a tour on a day needs the right to change the trip's days. Without it th
 
 In the days column, a tour is a row like any stop. Open **More options** (the three dots) on it and choose **Edit** to give it a **Start** and, if you like, an **End**.
 
-- With a start and no end, TREK works the end out: the start plus the tour's time. The form says so under the fields, and the row shows *start → end* with the worked-out end lighter.
+- With a start and no end, YOUYA works the end out: the start plus the tour's time. The form says so under the fields, and the row shows *start → end* with the worked-out end lighter.
 - `≈` marks an estimate, `≥` an end that is at least that late because a stay along the way has no time yet, and `+1` an end past midnight. Point at the end to see how it was worked out.
 - An end you type wins over the worked-out one.
 - A day that holds one stage of a multi-day tour gets no worked-out end, because the tour's time is that of the whole route.
@@ -73,7 +73,7 @@ The filter button under **Import GPX or KML** shows the status it filters by (**
 | Section | Values | Shown when |
 |---|---|---|
 | Status | All, Unplanned (on no day), Planned (on at least one day) | always |
-| Source | TREK, GPX import, wanderer | the list holds tours from two or more sources |
+| Source | YOUYA, GPX import, wanderer | the list holds tours from two or more sources |
 | Routing limit | T1 to T6 | the planned hikes differ in it |
 | Type | Hike, Bike tour, Run, Ski & winter, Paddle tour, City / sightseeing walk, Horse ride | the list mixes types |
 
@@ -173,10 +173,10 @@ Each linked track gets a **Plan and actual** table (Distance, Ascent, Descent, T
 
 **Origin** says where a tour came from:
 
-- **Source**: *planned in TREK*, *GPX import* (or *KML import*, *KMZ import*) with the file name, or *wanderer* with the instance's address and an **Open in wanderer** link.
+- **Source**: *planned in YOUYA*, *GPX import* (or *KML import*, *KMZ import*) with the file name, or *wanderer* with the instance's address and an **Open in wanderer** link.
 - **Taken over from**: the trip and tour a taken-over tour was copied from.
 - **Imported** or **Created**: the date.
-- **Here**: how the tour stands now against what came in: *As imported*, *Edited in TREK*, or *Planned over, recorded track kept*.
+- **Here**: how the tour stands now against what came in: *As imported*, *Edited in YOUYA*, or *Planned over, recorded track kept*.
 
 For a tour imported from wanderer, members who may edit see **Check source**. It asks wanderer whether the trail changed since the import and changes nothing in the trip. The answer is *Unchanged since the import*, *Changed on wanderer* with the parts that differ (Name, Description, Route), or why it cannot compare, for example *No wanderer connection*. **Import as new snapshot** brings a changed trail in as a new tour beside the old one, which keeps its days and notes. The wanderer connection is set up in Settings, under Integrations.
 
@@ -205,7 +205,7 @@ The maps the pill offers depend on the type of the open tour: **Map** and **Sate
 1. Move the map to where the tour starts, with **Search place or address** or by dragging it.
 2. Check that **Set points** is on. It is the same switch as **Add point** under **Waypoints**: on by default on the flat map, off by default in 3D, where every look around is a drag. While it is on, the pointer is a crosshair.
 3. Click the map in the order you walk. Every click adds the point as the new end of the tour and shows **Point set** at the foot of the map, with **Undo**.
-4. From two points on, TREK plans the route along the ways the tour's type uses. A small dot beside **New tour** says what it is doing: **Waiting to calculate**, **Calculating walking route…**, **Loading elevation…**. Once it has gone, the route is ready.
+4. From two points on, YOUYA plans the route along the ways the tour's type uses. A small dot beside **New tour** says what it is doing: **Waiting to calculate**, **Calculating walking route…**, **Loading elevation…**. Once it has gone, the route is ready.
 
 Points cannot be inserted between two others by a click on the map: a click always adds a new end. To bend the route between two points, click the drawn route (a shaping point, see below), or reorder the points afterwards.
 
@@ -276,7 +276,7 @@ The new stop stands for the place: its row says **Place of the trip** under the 
 | Field | Notes |
 |---|---|
 | **Description** | Up to 2,000 characters. |
-| **Website** | A web address; anything else is refused with **TREK cannot use that address.** |
+| **Website** | A web address; anything else is refused with **YOUYA cannot use that address.** |
 | **Maximum trail difficulty**, **Route choice** | A hike's only, see the hike reference. |
 | **Breaks** | Time added to the estimate. Not on a city walk, whose stays at the stops take its place. |
 | **Planned** | The total: estimate plus breaks. A time typed here overrides it and is marked **Manual override**. |
@@ -362,7 +362,7 @@ Nothing is worked out again: the line, the heights and the times are the file's.
 
 ## Planning an editable version of an import
 
-**Plan an editable version** turns an import into a tour with waypoints. TREK takes control points from the track, routes them again with the planner's own router and shows how close that comes before anything changes:
+**Plan an editable version** turns an import into a tour with waypoints. YOUYA takes control points from the track, routes them again with the planner's own router and shows how close that comes before anything changes:
 
 | In the card | What it says |
 |---|---|
@@ -407,7 +407,7 @@ The copy is independent: on no day yet, and later changes to either tour stay ap
 - Clicked, the trail draws on the map with what its GPX file measures (**From the GPX file**) and its description. **Open in wanderer** opens it on your instance.
 - **Import into trip** brings it in as a wanderer tour. For a trail already in the trip the button is **Open the tour**; for one that changed in wanderer since, **Import as new version** adds the new version beside the old one.
 
-The import is a snapshot: later changes in wanderer do not reach the tour. **Check source** in the tour's **Origin** asks wanderer whether the trail changed since, and the background check under **Settings → Integrations** can tell you when one may have. Without a connection the browser offers **Connect in settings**. The instance has to be reachable from the TREK server; one on a private network needs [internal network access](Internal-Network-Access).
+The import is a snapshot: later changes in wanderer do not reach the tour. **Check source** in the tour's **Origin** asks wanderer whether the trail changed since, and the background check under **Settings → Integrations** can tell you when one may have. Without a connection the browser offers **Connect in settings**. The instance has to be reachable from the YOUYA server; one on a private network needs [internal network access](Internal-Network-Access).
 
 ## Tour map: base maps
 
@@ -453,7 +453,7 @@ After the divider in the layer pill come the switches laid over the base map. Ea
 - **Within this distance of the route**: 250 m, 500 m (the default), 1 km or 2 km.
 - **Search along the tour** asks once. Searching changes nothing on the tour. The answer stays until the next search; after the route, the kinds or the distance change, **Search again** is highlighted and says the list was found for the route as it was.
 - Each place found shows its kind in its colour, its name and its distance from the route. A star marks one of the best known places there, and **In the tour** a place that is a stop already. The same places are pins on the map.
-- Click a row or a pin for the place's card over the map: its kind, the distance from the route and how far along the tour it lies, opening hours and website where the source has them, e-bike charging facts, and whether it came from OpenStreetMap or TREK's places index.
+- Click a row or a pin for the place's card over the map: its kind, the distance from the route and how far along the tour it lies, opening hours and website where the source has them, e-bike charging facts, and whether it came from OpenStreetMap or YOUYA's places index.
 - **Where it goes** picks the stretch the place joins: **Between** two stops, or **As the new end**, marked **Extends the tour**. The map shows the new way dashed before anything changes. A stretch that is a fixed line (a via ferrata, a portage) or drawn by hand cannot take a stop and says why.
 - **Add as a stop** takes the place into the tour as a stop, not as a place of the trip, and the route is planned again past it. The card then says how much distance and time the tour gained, with **Undo**. The change is part of the draft until you save the tour.
 
@@ -522,7 +522,7 @@ In the day plan, a stage reads as **Stage N** with its own distance and time, an
 
 ## Hikes
 
-A hike is a tour on foot that the router plans along paths, up to a trail difficulty you allow. Pick **Hike** under **Tour type** in the Tours tab, then set the stops: **Add point** is on from the start on the flat map, so each click on the map adds the next stop, and **Trip places** turns a hut, a hotel or any other place of the trip into a stop. From two stops on, TREK plans the walking route between them and works out distance, climb and descent from the heights along it.
+A hike is a tour on foot that the router plans along paths, up to a trail difficulty you allow. Pick **Hike** under **Tour type** in the Tours tab, then set the stops: **Add point** is on from the start on the flat map, so each click on the map adds the next stop, and **Trip places** turns a hut, a hotel or any other place of the trip into a stop. From two stops on, YOUYA plans the walking route between them and works out distance, climb and descent from the heights along it.
 
 The **Estimated walking time** follows the hiking signpost rule (DIN 33466): distance, climb and descent, without breaks. Breaks go into **Breaks** under **Details** and are added to the planned total. You can also type a planned total of your own; it is then marked **Manual override**.
 
@@ -539,7 +539,7 @@ Limits:
 |---|---|
 | T1, T2 | Marked paths, mountain paths. |
 | T3 | Demanding mountain paths. The editor shows a warning: such paths can be exposed and need sure feet and a head for heights. |
-| T4 to T6 | Alpine routes. The first time you pick one, TREK asks **Enable alpine routing?** The route may then cross exposed, unmarked or technically difficult terrain, and via ferratas. |
+| T4 to T6 | Alpine routes. The first time you pick one, YOUYA asks **Enable alpine routing?** The route may then cross exposed, unmarked or technically difficult terrain, and via ferratas. |
 
 The limit is a setting of the route search, stored with the tour. It is not a grade of the trail you walk; **Trail details** shows what OpenStreetMap actually records.
 
@@ -547,7 +547,7 @@ The limit is a setting of the route search, stored with the tour. It is not a gr
 
 ## Hike trail details
 
-**Trail details** appears below the waypoints of a hike that has a route, and in the view of an imported hike. Switch on **Show along the route** and TREK reads the ways under the line from OpenStreetMap once, then colours the route on the map by what you pick under **What to show**:
+**Trail details** appears below the waypoints of a hike that has a route, and in the view of an imported hike. Switch on **Show along the route** and YOUYA reads the ways under the line from OpenStreetMap once, then colours the route on the map by what you pick under **What to show**:
 
 - **SAC**: the hiking grade (`sac_scale`) of each stretch, T1 to T6.
 - **Surface**: asphalt, paving stones, gravel, natural ground, grass, rock and so on, in groups.
@@ -580,7 +580,7 @@ While a hike is open, **Via ferratas** in the row of map buttons at the bottom l
 
 A click on a via ferrata opens its card with the name, the grade (or Grade unknown), the length and a link to OpenStreetMap. **Add to tour** puts it on at the end of the route as a fixed leg on its own line: a point at the nearer end, the via ferrata itself, a point at the other end. The router then plans only the way to it and on from the top, and never walks round the climb. A via ferrata the route already climbs reads **Part of the tour**.
 
-Wherever the route climbs a via ferrata, whether you added it or the router took it with alpine routing on, TREK says so: a badge with the grade in **Tour summary**, a warning beside the editor's title, the leg named in **Waypoints**, its end points marked, and the stretch banded on the elevation profile. A via ferrata takes gear and experience; TREK does not judge whether it suits you.
+Wherever the route climbs a via ferrata, whether you added it or the router took it with alpine routing on, YOUYA says so: a badge with the grade in **Tour summary**, a warning beside the editor's title, the leg named in **Waypoints**, its end points marked, and the stretch banded on the elevation profile. A via ferrata takes gear and experience; YOUYA does not judge whether it suits you.
 
 ## Runs and pace
 
@@ -636,7 +636,7 @@ If the stays of some stops are not entered, the stays and the planned total read
 
 Click a result to open its card over the map. **Where it goes** says between which two stops it is planned in (or **As the new end**, which extends the walk), with a rough detour in a straight line. **Add as a stop** puts it into the walk and plans the route again; a notice then says how much longer and how much farther the walk gets, with **Undo**.
 
-A place taken in this way becomes a stop of the walk, not a place of the trip. Its opening hours come along with it when the source has them. The search needs a connection: it asks TREK's places index first and OpenStreetMap behind it, so a stretch can come back incomplete when those servers are busy.
+A place taken in this way becomes a stop of the walk, not a place of the trip. Its opening hours come along with it when the source has them. The search needs a connection: it asks YOUYA's places index first and OpenStreetMap behind it, so a stretch can come back incomplete when those servers are busy.
 
 ## City walk times and opening hours
 
@@ -657,7 +657,7 @@ Plan a walking route in Google Maps, share it, and in **Tours of this trip** cli
 - Both a `maps.app.goo.gl` short link and the long `google.com/maps/dir` address work. A short link is followed on the server and needs a connection; it is only followed while it stays on Google Maps.
 - Only a route planned **on foot** is read. A link for driving, cycling or transit, or one that does not say, is refused with a note to switch Google Maps to walking.
 - **Stops in the link** lists the stops in order. A stop the link gives no position is marked **No position in the link** and left out; nothing is looked up or guessed. A walk needs at least two stops with a position.
-- **Load as walk** opens a new, unsaved walk in the editor with the stops and their names. TREK plans the way on foot between them itself; the line drawn in Google Maps is not taken over. If the editor holds unsaved changes, the dialog warns that loading replaces them.
+- **Load as walk** opens a new, unsaved walk in the editor with the stops and their names. YOUYA plans the way on foot between them itself; the line drawn in Google Maps is not taken over. If the editor holds unsaved changes, the dialog warns that loading replaces them.
 
 Click **Save** to keep the walk. Until then it is a draft in this browser.
 
@@ -736,11 +736,11 @@ On the **MTB** profile the Surface and ways card also reads the trail grades alo
 - **Trail grade (mtb:scale)**: the share of the route from **S0, no particular difficulty** through **S1, small obstacles**, **S2, roots, steps, loose ground** and **S3, blocks, steep, tight bends** to **S4 and up, expert ground**, then **No grade in the data** and **Could not be asked this time**.
 - **Uphill grade (mtb:scale:uphill)**: shown only when some of the route carries an uphill grade.
 
-Click a grade row to light up those trails on the map, as with the surfaces. A way without a grade is unknown, not easy, and a grade says nothing about whether a trail suits you. TREK asks its own map data for the grades and falls back to the public Overpass service. When neither answers, the card says "The trail grades could not be read this time." with **Try again**. Grades are only read on the MTB profile; switch a tour to another profile and the grade sections go away.
+Click a grade row to light up those trails on the map, as with the surfaces. A way without a grade is unknown, not easy, and a grade says nothing about whether a trail suits you. YOUYA asks its own map data for the grades and falls back to the public Overpass service. When neither answers, the card says "The trail grades could not be read this time." with **Try again**. Grades are only read on the MTB profile; switch a tour to another profile and the grade sections go away.
 
 ## Ski and winter tours
 
-**Ski & winter** is the tour type for anything on snow: a day on the pistes, a cross-country loop, a ski tour, a snowshoe walk or a winter hike. You plan one on the **Tours** tab like any other tour (**Plan new tour**, then **Tour type** > **Ski & winter**), but its legs are laid by TREK's piste router instead of a walking or cycling router.
+**Ski & winter** is the tour type for anything on snow: a day on the pistes, a cross-country loop, a ski tour, a snowshoe walk or a winter hike. You plan one on the **Tours** tab like any other tour (**Plan new tour**, then **Tour type** > **Ski & winter**), but its legs are laid by YOUYA's piste router instead of a walking or cycling router.
 
 Every ski tour has a **Discipline**, and none is preselected: the tour cannot be saved until you pick one.
 
@@ -816,13 +816,13 @@ The layer is offered only for Ski & winter tours; hikes, bike tours and the othe
 
 A recorded ski day comes in through **Add tour** > **Import GPX or KML** on the Tours tab (or by dropping the file on the tab). In the **Import preview**, set **Import as** to **Ski & winter** and pick the **Discipline**, plus the **Technique** for Cross-country; the import stays disabled until the choice is complete.
 
-An imported ski track is kept exactly as recorded: TREK does not lay it on the pistes, and its **Ski track** card shows **Ski time** as **Not worked out**. **Change** on that card opens **Classify ski track**, where the discipline and technique can be corrected later. **Plan an editable version** in the **Editable version** card turns the track into a ski tour you can edit; its points are joined with straight lines.
+An imported ski track is kept exactly as recorded: YOUYA does not lay it on the pistes, and its **Ski track** card shows **Ski time** as **Not worked out**. **Change** on that card opens **Classify ski track**, where the discipline and technique can be corrected later. **Plan an editable version** in the **Editable version** card turns the track into a ski tour you can edit; its points are joined with straight lines.
 
 ## Ski data and its limits
 
-- The runs, lifts and trails come from OpenStreetMap, served to the piste router by the TREK Places server. Where the piste data does not reach, legs run straight between their points.
+- The runs, lifts and trails come from OpenStreetMap, served to the piste router by the YOUYA Places server. Where the piste data does not reach, legs run straight between their points.
 - An administrator can switch the **Piste router** off in **Admin** > **Addons**, with the Tours addon's settings. A ski tour then has its legs drawn straight.
-- Nothing in TREK says whether a run, lift or trail is open or groomed, how the snow is, or anything about avalanches. The colours, the times and the 3D gradients are taken from mapped data only.
+- Nothing in YOUYA says whether a run, lift or trail is open or groomed, how the snow is, or anything about avalanches. The colours, the times and the 3D gradients are taken from mapped data only.
 - The planner, the options and the Piste route card are on the Tours tab, which tablets and computers show. On a phone a ski tour can be read, not planned.
 
 ## Paddle tours
@@ -835,7 +835,7 @@ Paddle tours need the Tours addon. The Tours tab is not shown on phones; there a
 
 | Field | What it does |
 |---|---|
-| Boat | Kayak, Canoe, SUP or Other. It sets the speed TREK suggests. Required. |
+| Boat | Kayak, Canoe, SUP or Other. It sets the speed YOUYA suggests. Required. |
 | Water | River or Lake. Required: a paddle tour cannot be saved without boat and water. |
 | Across lakes | Shown for a lake, or when the route crosses one. Straight over takes the shortest line across open water; Near the shore keeps close to the bank, longer but with land never far, for windy days. |
 | Paddling speed | Empty means the boat's suggested speed applies; it shows in grey. A speed you type (0.5 to 20 km/h) is marked Own speed, and Use the suggested takes the suggestion again. Boat Other has no suggestion: without a speed, the time on the water stays open. |
@@ -846,15 +846,15 @@ Every point gets a role badge from its place in the tour: Put-in at the start, T
 
 ## Paddle legs on the water
 
-A leg without a line of its own is planned by TREK's water router along rivers, canals and across lakes, from the water data of the regions the server holds. A leg drawn by hand keeps the line you drew and shows Drawn by hand, not routed. More actions on a point switches the next leg between Plan the next leg on the water and Draw the next leg by hand; the waves button in the Waypoints header, Plan the legs drawn by hand on the water, does it for every drawn leg at once.
+A leg without a line of its own is planned by YOUYA's water router along rivers, canals and across lakes, from the water data of the regions the server holds. A leg drawn by hand keeps the line you drew and shows Drawn by hand, not routed. More actions on a point switches the next leg between Plan the next leg on the water and Draw the next leg by hand; the waves button in the Waypoints header, Plan the legs drawn by hand on the water, does it for every drawn leg at once.
 
-Where the router carries round a weir, dam or waterfall, or goes through a lock between two of your points, TREK sets points of its own there, marked Found. They count like the ones you set. Move or change one and it becomes yours. Notes under a planned leg flag Whitewater with its grade, a Boat chute, or a Gap in the map data bridged with a straight line.
+Where the router carries round a weir, dam or waterfall, or goes through a lock between two of your points, YOUYA sets points of its own there, marked Found. They count like the ones you set. Move or change one and it becomes yours. Notes under a planned leg flag Whitewater with its grade, a Boat chute, or a Gap in the map data bridged with a straight line.
 
-A leg the router cannot plan is drawn straight and red, and its row says why: the end is not on water TREK knows, there is no water data for the area, no way on the water joins the two points, or planning took too long. Draw straight keeps a straight line on purpose; Try again asks once more where that can help. While a leg is unplanned, the tour cannot be saved.
+A leg the router cannot plan is drawn straight and red, and its row says why: the end is not on water YOUYA knows, there is no water data for the area, no way on the water joins the two points, or planning took too long. Draw straight keeps a straight line on purpose; Try again asks once more where that can help. While a leg is unplanned, the tour cannot be saved.
 
 ## Paddle water data
 
-The water network comes from OpenStreetMap extracts by Geofabrik, one region at a time. When a leg ends where TREK has no data, the planner asks the server for that region straight away. What happens then is set by an admin under Admin, Add-ons, Paddle regions:
+The water network comes from OpenStreetMap extracts by Geofabrik, one region at a time. When a leg ends where YOUYA has no data, the planner asks the server for that region straight away. What happens then is set by an admin under Admin, Add-ons, Paddle regions:
 
 - loaded right away, within a size limit and a few regions a day. The leg shows Loading the water data with its progress (Downloading, Reading, Building the water network) and plans itself once the data is there, usually within one to three minutes;
 - requested, so an admin can let it through. The leg says the data has been requested;
@@ -870,7 +870,7 @@ The Portage card under the point shows the length and the extra minutes. Under R
 
 ## Paddle locks
 
-Lock at this point in More actions puts a lock at a point. Its card asks for Wait and Passage in minutes and says Time missing until both are in. TREK knows no lock schedules: the times are only what you enter. A portage that carries round a lock dims it (Carried round, the portage counts) and its minutes drop out. Remove the lock is in the open card and in More actions.
+Lock at this point in More actions puts a lock at a point. Its card asks for Wait and Passage in minutes and says Time missing until both are in. YOUYA knows no lock schedules: the times are only what you enter. A portage that carries round a lock dims it (Carried round, the portage counts) and its minutes drop out. Remove the lock is in the open card and in More actions.
 
 ## Paddle time estimate
 
@@ -884,23 +884,23 @@ The Time estimate card adds up the parts of the tour:
 | Locks | Wait plus Passage of every lock that is not carried round. |
 | Breaks | The breaks set under Details. |
 
-The strip above the rows shows the route with its water, portages and locks; obstacle marks on it can be clicked to find them on the map. The estimate says Incomplete while a part is unknown (no paddling speed, a lock without times) and names what is missing. With a planned total under Details, the card shows Your planned total and the difference. TREK starts with 4 km/h on the water, 2 km/h carrying and 10 minutes at each portage; these are starting values, not measurements. Current and wind are not in the estimate.
+The strip above the rows shows the route with its water, portages and locks; obstacle marks on it can be clicked to find them on the map. The estimate says Incomplete while a part is unknown (no paddling speed, a lock without times) and names what is missing. With a planned total under Details, the card shows Your planned total and the difference. YOUYA starts with 4 km/h on the water, 2 km/h carrying and 10 minutes at each portage; these are starting values, not measurements. Current and wind are not in the estimate.
 
 ## Paddle wind forecast
 
-The Wind card shows the forecast at the start of the tour for the day it is planned on: the direction it blows from, the strongest hourly Mean, the strongest Gusts, and a bar per hour with its own figures in the tooltip. The forecast comes from Open-Meteo through the TREK server and reaches 16 days ahead. A day further out says from when it comes, a past day that it has passed; a tour on no day, a day without a date or a tour without a start point say so. A tour on several days has a Day chip for each.
+The Wind card shows the forecast at the start of the tour for the day it is planned on: the direction it blows from, the strongest hourly Mean, the strongest Gusts, and a bar per hour with its own figures in the tooltip. The forecast comes from Open-Meteo through the YOUYA server and reaches 16 days ahead. A day further out says from when it comes, a past day that it has passed; a tour on no day, a day without a date or a tour without a start point say so. A tour on several days has a Day chip for each.
 
 On a windy day with a lake crossing, the card offers Plan near the shore, which switches Across lakes and plans the lakes along the bank. What wind means for paddling explains headwind, crosswind, open crossings and gusts. No figure is an all-clear.
 
 ## Paddle obstacle checklist
 
-A saved paddle tour has a Checklist: the weirs, dams, locks, waterfalls, rapids, hazards, put-ins, take-outs, slipways, portages and access rules on and near the route, from the OpenStreetMap data of the paddle regions TREK holds, in route order, with your own portages and locks marked Own. The badge in the header counts what is open, to check again, decided or under a ban; the line below says how current the data is (OSM as of, Fetched) and where it does not cover the route (Partial, No data, Cut short).
+A saved paddle tour has a Checklist: the weirs, dams, locks, waterfalls, rapids, hazards, put-ins, take-outs, slipways, portages and access rules on and near the route, from the OpenStreetMap data of the paddle regions YOUYA holds, in route order, with your own portages and locks marked Own. The badge in the header counts what is open, to check again, decided or under a ban; the line below says how current the data is (OSM as of, Fetched) and where it does not cover the route (Partial, No data, Cut short).
 
 For each obstacle you choose Paddle through, Carry round, Go round or Not affected, with an optional date on site and a note; Next moves to the next open entry. Carry round plans no portage by itself: Plan the portage selects the point to carry from. An entry decided before the route or the data changed is marked Check again, and one that left the data can be kept or removed; decisions that no longer apply wait under Earlier decisions. For SUP, the list advises checking a permitted portage at locks.
 
 Clicking an obstacle on the map opens its card: how far along the route it lies or that it is only near it, the paddling rules (Canoe, Boat, Access), facts such as Height, Width, Grade, Hours, Fee and Operator where they are mapped, and View in OpenStreetMap. On a put-in, slipway or take-out, Put in here and Take out here add a point at that spot.
 
-Where TREK holds no data for the area, the card says so. The data can have gaps, a decision does not lift a ban or private ground, and a checklist is no safety or legal clearance.
+Where YOUYA holds no data for the area, the card says so. The data can have gaps, a decision does not lift a ban or private ground, and a checklist is no safety or legal clearance.
 
 ## Recorded paddle tracks
 
@@ -908,15 +908,15 @@ A GPX, KML or KMZ track imported as a Paddle tour (Add tour, Import GPX or KML, 
 
 ## Paddle safety
 
-Paddling carries risks. Maps, route suggestions and notes can be incomplete or out of date. The row Paddling has risks at the foot of the editor and in the tour card opens Safety on the water. Before the tour, check the local conditions, the rules for using the water and the weather yourself; TREK supports the planning and does not replace your own judgement.
+Paddling carries risks. Maps, route suggestions and notes can be incomplete or out of date. The row Paddling has risks at the foot of the editor and in the tour card opens Safety on the water. Before the tour, check the local conditions, the rules for using the water and the weather yourself; YOUYA supports the planning and does not replace your own judgement.
 
 ## Horse ride: sections of horse routes
 
-A **Horse ride** is the one tour type TREK never routes. No router knows where a horse may go, so a ride is put together from what OpenStreetMap maps as signposted horse routes (`route=horse` relations), taken a section at a time, plus stretches you draw by hand.
+A **Horse ride** is the one tour type YOUYA never routes. No router knows where a horse may go, so a ride is put together from what OpenStreetMap maps as signposted horse routes (`route=horse` relations), taken a section at a time, plus stretches you draw by hand.
 
 **Starting a ride.** On the **Tours** tab, click **Plan new tour** and set **Tour type** to **Horse ride** (or open a saved ride under **Tours of this trip**). The name field suggests **Untitled ride** until you name it. The **Horse routes** card appears in the left column, below **Waypoints**. It is only there while a ride is being edited.
 
-**Finding routes.** Move the map to where you want to ride and click **Find in map view**. TREK asks for the routes in that view only when you click, never on every pan. Each route in the list shows its name, its length inside the view, how many sections it has and, where it carries on outside the view, **Goes on beyond the view**. What the card can say instead:
+**Finding routes.** Move the map to where you want to ride and click **Find in map view**. YOUYA asks for the routes in that view only when you click, never on every pan. Each route in the list shows its name, its length inside the view, how many sections it has and, where it carries on outside the view, **Goes on beyond the view**. What the card can say instead:
 
 | Message | What it means |
 |---|---|
@@ -930,7 +930,7 @@ Once the map has moved, the button reads **Search this view**.
 
 **Taking a section.** Click a route to open it. The dialog shows the route on a map with the ride so far, and **Open in OpenStreetMap** leads to the route itself. A route is cut into **Sections** where it ends, forks or meets itself, and you always take a section whole. For the section you pick:
 
-- **Direction**: **As mapped** or **Reversed**. TREK offers first the direction that starts nearer the end of your ride. Where the route is signposted one way only, it says **Signposted this way**, or warns that the section is signposted the other way.
+- **Direction**: **As mapped** or **Reversed**. YOUYA offers first the direction that starts nearer the end of your ride. Where the route is signposted one way only, it says **Signposted this way**, or warns that the section is signposted the other way.
 - **Riding access**: what the ways along the section are tagged with, one pill per value with the metres it covers (see below).
 - **Joining your ride**: **Starts your ride** on an empty ride, **Joins the end of your ride** when the section starts within 25 m of its last point, or a gap (see the next section).
 
@@ -957,7 +957,7 @@ A point you click on the map while **Add point** is on joins the ride the same w
 
 The section chips and the leg badges carry the same colour as a dot. These are tags, not permissions: they can be missing or out of date, and being on a signposted route does not mean you may ride it. The signs on site count.
 
-**Riding time.** TREK works out no riding time for a ride, because the pace is the horse's and the rider's. **Riding time** in **Tour summary** stays empty, with an info dot that says why. To have a time on the day plan, enter it under **Planned** in **Details**; it is kept as a manual value and is the time the day plan shows for the ride.
+**Riding time.** YOUYA works out no riding time for a ride, because the pace is the horse's and the rider's. **Riding time** in **Tour summary** stays empty, with an info dot that says why. To have a time on the day plan, enter it under **Planned** in **Details**; it is kept as a manual value and is the time the day plan shows for the ride.
 
 ## Horse ride: recorded rides
 

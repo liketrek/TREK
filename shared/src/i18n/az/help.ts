@@ -6,7 +6,7 @@ const help: TranslationStrings = {
   'help.contents': 'Mündəricat',
   'help.noResults': 'Uyğun səhifə tapılmadı.',
   'help.errorTitle': 'Bu səhifəni yükləmək alınmadı',
-  'help.errorBody': 'Kömək məzmunu TREK vikisindən yüklənir. İnternet bağlantınızı yoxlayıb yenidən cəhd edin.',
+  'help.errorBody': 'Kömək məzmunu YOUYA vikisindən yüklənir. İnternet bağlantınızı yoxlayıb yenidən cəhd edin.',
 
   // ── Help center (the contextual panel behind the ? in the navbar) ──────────
   'help.center.button': 'Bu ekran üzrə kömək',
@@ -73,14 +73,14 @@ const help: TranslationStrings = {
   'help.guide.create-trip.step.2':
     'Səyahətə ad verin. Doldurmalı olduğunuz yeganə sahə budur, qalan hər şeyi sonra əlavə edə bilərsiniz.',
   'help.guide.create-trip.step.3':
-    'Başlama və bitmə tarixini seçin. TREK hər tarix üçün bir gün yaradır ki, marşrutunuzu planlaşdırmağa başlaya biləsiniz. Hələ tarix yoxdur? Hər ikisini boş buraxın və əvəzinə «Günlərin sayı»nı daxil edin.',
+    'Başlama və bitmə tarixini seçin. YOUYA hər tarix üçün bir gün yaradır ki, marşrutunuzu planlaşdırmağa başlaya biləsiniz. Hələ tarix yoxdur? Hər ikisini boş buraxın və əvəzinə «Günlərin sayı»nı daxil edin.',
   'help.guide.create-trip.step.4':
     'İstəyə görə üz şəkli əlavə edin: öz şəklinizi yükləyin, sürükləyib atın və ya yapışdırın, ya da təyinat yeri üçün Unsplash-da axtarın.',
   'help.guide.create-trip.step.5': '«Yeni səyahət yarat» düyməsinə klikləyin.',
   'help.guide.create-trip.result':
     'Səyahət idarə panelində görünür. Növbəti səyahətinizdirsə, yuxarıdakı minik talonunda göstərilir.',
   'help.guide.create-trip.tip.1':
-    'Tarixləri sonra da dəyişə bilərsiniz. Artıq rezervasiyalar varsa, TREK onları da günlərlə birlikdə köçürmək istəyib-istəmədiyinizi soruşur.',
+    'Tarixləri sonra da dəyişə bilərsiniz. Artıq rezervasiyalar varsa, YOUYA onları da günlərlə birlikdə köçürmək istəyib-istəmədiyinizi soruşur.',
   'help.guide.create-trip.tip.2':
     'Burada seçdiyiniz səyahət valyutası bütün xərclərin çevrildiyi valyutadır. Getdiyiniz yerin valyutasını seçin.',
 
@@ -153,7 +153,7 @@ const help: TranslationStrings = {
     'Bütün aktiv səyahətlərin günlərini və rezervasiyalarını təqvim tətbiqinizdə həmişə sinxron şəkildə görün.',
   'help.guide.calendar-feed.step.1': 'Görünüş açarının yanındakı təqvim ikonuna klikləyin.',
   'help.guide.calendar-feed.step.2':
-    '«Təqvim abunəliyini aktivləşdir» düyməsinə klikləyin. TREK şəxsi təqvim linki yaradır.',
+    '«Təqvim abunəliyini aktivləşdir» düyməsinə klikləyin. YOUYA şəxsi təqvim linki yaradır.',
   'help.guide.calendar-feed.step.3':
     '«Google Təqvimə əlavə et» və ya «Apple Təqvimə / Outlook-a əlavə et» düyməsinə klikləyin. Başqa təqvim tətbiqi üçün «Və ya keçidi əllə kopyalayın» bölməsini açın və linki oradan kopyalayın.',
   'help.guide.calendar-feed.result':
@@ -357,7 +357,7 @@ const help: TranslationStrings = {
   // invite
   'help.guide.invite.title': 'Kiminləsə birgə planlaşdırmaq',
   'help.guide.invite.goal':
-    'Planınızı başqa bir TREK istifadəçisinin planı ilə birləşdirin ki, hər ikiniz istirahət günlərinizi eyni cədvəldə görəsiniz.',
+    'Planınızı başqa bir YOUYA istifadəçisinin planı ilə birləşdirin ki, hər ikiniz istirahət günlərinizi eyni cədvəldə görəsiniz.',
   'help.guide.invite.step.1': '«Nəfər» kartında insan işarəsinə klikləyin.',
   'help.guide.invite.step.2': 'İstifadəçini seçin və «Dəvət göndər» düyməsinə klikləyin.',
   'help.guide.invite.step.3':
@@ -388,7 +388,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ──────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atlas',
   'help.ctx.atlas.summary':
-    'Atlas harada olduğunuzu dünya xəritəsində göstərir: səyahətlə getdiyiniz hər ölkə rənglənir, TREK-dən əvvəl olduğunuz ölkələri isə əllə əlavə edə bilərsiniz. Regionları görmək üçün xəritəni yaxınlaşdırın, hələ görmək istədiyiniz yerlərin arzu siyahısını tutun və rəqəmlərinizi aşağıdakı şüşə paneldə izləyin.',
+    'Atlas harada olduğunuzu dünya xəritəsində göstərir: səyahətlə getdiyiniz hər ölkə rənglənir, YOUYA-dən əvvəl olduğunuz ölkələri isə əllə əlavə edə bilərsiniz. Regionları görmək üçün xəritəni yaxınlaşdırın, hələ görmək istədiyiniz yerlərin arzu siyahısını tutun və rəqəmlərinizi aşağıdakı şüşə paneldə izləyin.',
   'help.ctx.atlas.bullet.1':
     'Xəritə: ziyarət etdiyiniz hər ölkənin öz sabit rəngi var, planlaşdırılan ölkələr qırıq konturla, arzu siyahısındakı ölkələr diaqonal xətlərlə, qalan bütün ölkələr isə boz rəngdə göstərilir. Ölkənin səyahətlərini, məkanlarını, ilk və son ziyarətini görmək üçün kursoru onun üzərinə aparın.',
   'help.ctx.atlas.bullet.2':
@@ -404,7 +404,7 @@ const help: TranslationStrings = {
   // mark-country
   'help.guide.mark-country.title': 'Ölkəni ziyarət edilmiş kimi işarələyin',
   'help.guide.mark-country.goal':
-    'TREK-dən əvvəl getdiyiniz ölkəni əlavə edin ki, xəritə və sayınız onu da nəzərə alsın.',
+    'YOUYA-dən əvvəl getdiyiniz ölkəni əlavə edin ki, xəritə və sayınız onu da nəzərə alsın.',
   'help.guide.mark-country.step.1': 'Ölkənin adını xəritənin yuxarısındakı axtarış xanasına yazın.',
   'help.guide.mark-country.step.2': 'Onu siyahıdan seçin. Xəritə həmin ölkəyə keçir və onun üçün pəncərə açılır.',
   'help.guide.mark-country.step.3': '«Ziyarət edilib kimi işarələ» bəndini seçin.',
@@ -471,7 +471,7 @@ const help: TranslationStrings = {
   'help.guide.search-place.result':
     'Region qeyd olunur, onunla birlikdə ölkə də. Xəritə paketində region məlumatı olmayan ölkələrdə isə ölkənin özü qeyd olunur.',
   'help.guide.search-place.tip.1':
-    'Məkanlar TREK-in hər yerində işləyən eyni axtarışdan gəlir, yəni administratorunuzun qurduğu provayderdən istifadə edir.',
+    'Məkanlar YOUYA-in hər yerində işləyən eyni axtarışdan gəlir, yəni administratorunuzun qurduğu provayderdən istifadə edir.',
   // bucket-country
   'help.guide.bucket-country.title': 'Ölkəni arzu siyahısına əlavə edin',
   'help.guide.bucket-country.goal':
@@ -509,7 +509,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     'Səyahətlərinizi planlaşdırdıqca rəqəmlər avtomatik yenilənir. Burada heç nəyi əl ilə izləmək lazım deyil.',
   'help.guide.stats.tip.1':
-    'Şəhərlər ayrıca axtarılmır, ünvan mətnindən oxunur. TREK ölkəni, poçt indeksini və regionu atlayır və onlardan əvvəlki adı götürür, ona görə “10178 Berlin” Berlin sayılır. “Osteria Francescana, Italy” kimi qısa ünvan heç bir şəhər əlavə etmir.',
+    'Şəhərlər ayrıca axtarılmır, ünvan mətnindən oxunur. YOUYA ölkəni, poçt indeksini və regionu atlayır və onlardan əvvəlki adı götürür, ona görə “10178 Berlin” Berlin sayılır. “Osteria Francescana, Italy” kimi qısa ünvan heç bir şəhər əlavə etmir.',
   'help.guide.stats.tip.2':
     'Əl ilə işarələdiyiniz ölkələr «Ölkə» sayına və qitələrə daxil olur, amma səyahət, məkan və ya gün artırmır.',
 
@@ -520,7 +520,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     'Dawarich əlavəsi qoşulanda xəritənin aşağısında, statistikanın solunda iki xanalı Dawarich paneli görünür. «Ölkə» xanasına klikləyin.',
   'help.guide.dawarich-countries.step.2':
-    'Pəncərə «Ölkə» bölməsində açılır. «Ölkələri axtar» düyməsinə klikləyin: TREK qeydlərinizin son 12 ayda əhatə etdiyi ölkələri və şəhərləri ay-ay oxuyur, ona görə bu bir az vaxt ala bilər. Atlasınızda hələ olmayan hər ölkə bayrağı, şəhərlərin sayı və ilk şəhərin adı ilə siyahıda göstərilir. Hər ölkə əvvəlcədən işarələnib. Ölkəni çıxarmaq üçün onun sətrinə klikləyin.',
+    'Pəncərə «Ölkə» bölməsində açılır. «Ölkələri axtar» düyməsinə klikləyin: YOUYA qeydlərinizin son 12 ayda əhatə etdiyi ölkələri və şəhərləri ay-ay oxuyur, ona görə bu bir az vaxt ala bilər. Atlasınızda hələ olmayan hər ölkə bayrağı, şəhərlərin sayı və ilk şəhərin adı ilə siyahıda göstərilir. Hər ölkə əvvəlcədən işarələnib. Ölkəni çıxarmaq üçün onun sətrinə klikləyin.',
   'help.guide.dawarich-countries.step.3':
     'Sağ aşağıdakı düymə ilə təsdiqləyin: beş sətir seçiləndə onun üzərində «5 ölkə əlavə et» yazılır. Pəncərə neçə ölkənin əlavə olunduğunu bildirir. Onu bağlayanda xəritə artıq yenilənmiş olur.',
   'help.guide.dawarich-countries.result':
@@ -528,7 +528,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Atlasda artıq ziyarət edilmiş kimi görünən ölkələr (əl ilə, səyahət vasitəsilə və ya əvvəlki yoxlamada işarələnənlər) buraya düşmür, belə ki, öz işarələriniz heç vaxt dəyişmir. Əvvəllər Atlasdan sildiyiniz ölkəni burada təsdiqləsəniz, o yenidən əlavə olunur.',
   'help.guide.dawarich-countries.tip.2':
-    'TREK ölkə adını tanıya bilməsə, ad atılmır, sətirlərin altında göstərilir. «Yenidən yoxla» Dawarich-dən məlumatı bir daha soruşur. Siyahının altındakı qeyd son 12 ayın yoxlandığını bildirir. Bu müddəti dəyişmək olmur.',
+    'YOUYA ölkə adını tanıya bilməsə, ad atılmır, sətirlərin altında göstərilir. «Yenidən yoxla» Dawarich-dən məlumatı bir daha soruşur. Siyahının altındakı qeyd son 12 ayın yoxlandığını bildirir. Bu müddəti dəyişmək olmur.',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': 'Qeydlərinizə əsasən arzuları yerinə yetirilmiş kimi işarələmək',
   'help.guide.dawarich-wishes.goal':
@@ -536,7 +536,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.step.1':
     'Xəritənin aşağısındakı Dawarich panelində, statistikanın solunda «Arzular siyahısı» düyməsinə klikləyin.',
   'help.guide.dawarich-wishes.step.2':
-    'Pəncərə «Arzular siyahısı» bölməsində açılır. «Arzular siyahısını yoxla» düyməsinə klikləyin: TREK koordinatı olan hər qeyd üçün yazılarınızı yoxlayır. Çatdığınız arzu nə qədər yaxınlaşdığınız, nə qədər qaldığınız və hansı gün olduğu ilə siyahıda görünür və avtomatik seçilmiş olur. Artıq işarələdiyiniz arzunun yanında «Artıq tamamlandı kimi işarələnib» yazılır. Siyahının altındakı qeyd koordinatsız qeydlərin sayını və qaydanı göstərir: arzu 250 m məsafədə və yerində 20 dəqiqə qaldıqdan sonra çatılmış sayılır.',
+    'Pəncərə «Arzular siyahısı» bölməsində açılır. «Arzular siyahısını yoxla» düyməsinə klikləyin: YOUYA koordinatı olan hər qeyd üçün yazılarınızı yoxlayır. Çatdığınız arzu nə qədər yaxınlaşdığınız, nə qədər qaldığınız və hansı gün olduğu ilə siyahıda görünür və avtomatik seçilmiş olur. Artıq işarələdiyiniz arzunun yanında «Artıq tamamlandı kimi işarələnib» yazılır. Siyahının altındakı qeyd koordinatsız qeydlərin sayını və qaydanı göstərir: arzu 250 m məsafədə və yerində 20 dəqiqə qaldıqdan sonra çatılmış sayılır.',
   'help.guide.dawarich-wishes.step.3':
     'Sağ aşağıdakı düymə ilə təsdiqləyin: iki sətir seçiləndə onun üzərində «2 arzunu işarələ» yazılır. Sonra pəncərəni bağlayın və yanındakı paneldə «Arzular siyahısı» tabını açın.',
   'help.guide.dawarich-wishes.result':
@@ -544,7 +544,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     'Yanından ötüb keçmək sayılmır: məkana yaxın olmalı və orada bir müddət qalmalısınız. Uyğun gələn bir neçə qalma varsa, ən uzunu götürülür. Koordinatı olmayan arzunu yoxlamaq mümkün deyil, ona görə məkanları sadəcə adla yox, «Məkan əlavə et» bölməsindəki axtarışla əlavə edin.',
   'help.guide.dawarich-wishes.tip.2':
-    'Bir yoxlama ən çox 50 qeydə baxır, hələ işarələnməmişlərdən başlayaraq. Daha çox qeyd varsa, TREK bunu sizə bildirir. Artıq işarələnmiş arzu öz tarixini saxlayır.',
+    'Bir yoxlama ən çox 50 qeydə baxır, hələ işarələnməmişlərdən başlayaraq. Daha çox qeyd varsa, YOUYA bunu sizə bildirir. Artıq işarələnmiş arzu öz tarixini saxlayır.',
   // ── Screen: collections ────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Kolleksiyalar',
   'help.ctx.collections.summary':
@@ -601,7 +601,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     'Məkanlar adı, ünvanı, koordinatları, təsviri və kateqoriyası ilə siyahıya köçürülür. Səyahətin özü dəyişmir.',
   'help.guide.import-from-trip.tip.1':
-    'TREK adı və ya koordinatları eyni olan təkrarları avtomatik ötürür, ona görə iki dəfə idxal etmək təhlükəsizdir.',
+    'YOUYA adı və ya koordinatları eyni olan təkrarları avtomatik ötürür, ona görə iki dəfə idxal etmək təhlükəsizdir.',
   'help.guide.import-from-trip.tip.2':
     'Səyahətin məkan siyahısında seçim rejimi bunun əvəzinə əl ilə seçdiyiniz məkanlar üçün «Kolleksiyada yadda saxla» təklif edir.',
   // place-status
@@ -677,7 +677,7 @@ const help: TranslationStrings = {
     'Paylaşılan siyahının izləyiciləri də bunu edə bilər. Məkanlar siyahıdan kopyalanır, siyahının özü dəyişmir.',
   // share-list
   'help.guide.share-list.title': 'Siyahını kiminləsə paylaşmaq',
-  'help.guide.share-list.goal': 'Siyahını bu TREK-dəki digər istifadəçilərlə birlikdə, canlı rejimdə planlaşdırın.',
+  'help.guide.share-list.goal': 'Siyahını bu YOUYA-dəki digər istifadəçilərlə birlikdə, canlı rejimdə planlaşdırın.',
   'help.guide.share-list.step.1': 'Siyahınızın başlıq hissəsində «Paylaş» düyməsinə klikləyin.',
   'help.guide.share-list.step.2': 'İstifadəçini və rolu seçin: «İzləyici», «Redaktor» və ya «Administrator».',
   'help.guide.share-list.step.3':
@@ -691,23 +691,23 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Siyahını fayl kimi ixrac edin',
   'help.guide.export-list.goal':
-    'Siyahını başqa TREK serverindəki birinə verin, xəritə tətbiqində açın və ya Google My Maps-də görün.',
+    'Siyahını başqa YOUYA serverindəki birinə verin, xəritə tətbiqində açın və ya Google My Maps-də görün.',
   'help.guide.export-list.step.1': 'Siyahının üst hissəsində «İxrac et» düyməsini klikləyin.',
   'help.guide.export-list.step.2':
-    'Siyahını etiketləri və statusu ilə başqa bir TREK-də istifadə etmək üçün «TREK siyahısı», OsmAnd, Organic Maps, Garmin və yol nöqtələrini oxuyan digər tətbiqlər üçün GPX, məkanları Google Maps-də görmək üçün isə Google My Maps üçün KML seçin.',
+    'Siyahını etiketləri və statusu ilə başqa bir YOUYA-də istifadə etmək üçün «YOUYA siyahısı», OsmAnd, Organic Maps, Garmin və yol nöqtələrini oxuyan digər tətbiqlər üçün GPX, məkanları Google Maps-də görmək üçün isə Google My Maps üçün KML seçin.',
   'help.guide.export-list.result': 'Fayl endirilir. Paylaşılan siyahının istənilən üzvü onu ixrac edə bilər.',
   'help.guide.export-list.tip.1':
-    'Koordinatı olmayan məkan GPX yol nöqtəsi və ya KML sancağı ola bilməz. Belə məkanlar buraxılır və TREK onların sayını bildirir.',
+    'Koordinatı olmayan məkan GPX yol nöqtəsi və ya KML sancağı ola bilməz. Belə məkanlar buraxılır və YOUYA onların sayını bildirir.',
   'help.guide.export-list.tip.2':
-    'Reytinqlər, üzvlər və yüklədiyiniz fotolar qəsdən ixrac edilmir: onlar siyahıya yox, bu TREK-ə aiddir.',
+    'Reytinqlər, üzvlər və yüklədiyiniz fotolar qəsdən ixrac edilmir: onlar siyahıya yox, bu YOUYA-ə aiddir.',
   // import-file
   'help.guide.import-file.title': 'Fayldan siyahı idxal edin',
   'help.guide.import-file.goal':
-    'TREK siyahı faylını və ya GPX faylını yeni siyahı kimi və ya mövcud siyahıya idxal edin.',
+    'YOUYA siyahı faylını və ya GPX faylını yeni siyahı kimi və ya mövcud siyahıya idxal edin.',
   'help.guide.import-file.step.1':
     'Siyahılar panelində «Yeni siyahı» yanındakı yükləmə oxu olan idxal düyməsini klikləyin.',
   'help.guide.import-file.step.2':
-    'Faylı seçin. TREK idxal etməzdən əvvəl faylda nə olduğunu göstərir: adı, neçə məkan və neçə etiket.',
+    'Faylı seçin. YOUYA idxal etməzdən əvvəl faylda nə olduğunu göstərir: adı, neçə məkan və neçə etiket.',
   'help.guide.import-file.step.3':
     '«Yeni siyahı»nı saxlayın, istəsəniz adını dəyişin, sonra «İdxal et» düyməsinə klikləyin. Və ya yerləri redaktə edə bildiyiniz siyahıya qoymaq üçün «Siyahıya əlavə et» seçin və «Siyahıya əlavə et» düyməsinə klikləyin.',
   'help.guide.import-file.result':
@@ -715,7 +715,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     'GPX faylında adı olan hər yol nöqtəsi məkana çevrilir. Treklər xətt olduğu üçün buraxılır, önizləmə isə bunun neçə nöqtə olduğunu göstərir.',
   'help.guide.import-file.tip.2':
-    'Nə TREK siyahısı, nə də GPX olan fayl qəbul edilmir və TREK səbəbini göstərir. Hansısa məkan oxunmasa, bütün fayl yox, yalnız həmin məkan ötürülür.',
+    'Nə YOUYA siyahısı, nə də GPX olan fayl qəbul edilmir və YOUYA səbəbini göstərir. Hansısa məkan oxunmasa, bütün fayl yox, yalnız həmin məkan ötürülür.',
   // edit-list
   'help.guide.edit-list.title': 'Siyahını redaktə edin və ya silin',
   'help.guide.edit-list.goal':
@@ -940,7 +940,7 @@ const help: TranslationStrings = {
   'help.guide.link-trip.tip.2': 'Günü olan qeydlər, həmin günü neçə səyahət əhatə etsə də, yalnız bir dəfə sayılır.',
   // share-public
   'help.guide.share-public.title': 'Gündəliyi ictimai paylaşın',
-  'help.guide.share-public.goal': 'TREK hesabı olmayan insanlara yalnız oxumaq üçün link verin.',
+  'help.guide.share-public.goal': 'YOUYA hesabı olmayan insanlara yalnız oxumaq üçün link verin.',
   'help.guide.share-public.step.1':
     'Başlıqdakı ⋯ ilə «Səyahət gündəliyi tənzimləmələri»ni açın və «İctimai paylaşım» bölməsinə qədər sürüşdürün.',
   'help.guide.share-public.step.2': '«Paylaşım linki yarat» düyməsini klikləyin.',
@@ -961,7 +961,8 @@ const help: TranslationStrings = {
   'help.guide.contributors.step.3': '«İzləyici» və ya «Redaktor» seçin və «Dəvət et» düyməsinə klikləyin.',
   'help.guide.contributors.result':
     'Gündəlik onların siyahısında görünür, yazdıqları qeydlərdə isə adları göstərilir. İştirakçını çıxarmaq üçün yanındakı × işarəsinə klikləyin.',
-  'help.guide.contributors.tip.1': '«İştirakçılar» bu TREK-dəki insanlar üçündür. Qalan hər kəs üçün ictimai link var.',
+  'help.guide.contributors.tip.1':
+    '«İştirakçılar» bu YOUYA-dəki insanlar üçündür. Qalan hər kəs üçün ictimai link var.',
   // studio
   'help.guide.studio.title': 'Səyahət gündəliyini foto kitab kimi tərtib etmək',
   'help.guide.studio.goal': 'Gündəliyi çap üçün hazır səhifələrə çevirin.',
@@ -1004,7 +1005,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ─────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Studio', // same-as-en
   'help.ctx.journey-studio.summary':
-    'TREK Studio səyahəti çap edə biləcəyiniz foto kitab kimi tərtib edir. O, gündəliyin üzərində açılır: panel və onun bölmələri solda, üzərində işlədiyiniz açılım ortada, xüsusiyyətləri isə sağdadır. Avtomatik tərtibat qeydlərinizdən ilk layihəni qurur, mövzu kitaba rənglərini və şriftlərini verir, köməkçi isə səhifələri sizinlə birlikdə dizayn edə bilər. Bundan sonra hər şeyi köçürə, kəsə və yenidən üslublaşdıra bilərsiniz, hər addımı da geri ala bilərsiniz.',
+    'YOUYA Studio səyahəti çap edə biləcəyiniz foto kitab kimi tərtib edir. O, gündəliyin üzərində açılır: panel və onun bölmələri solda, üzərində işlədiyiniz açılım ortada, xüsusiyyətləri isə sağdadır. Avtomatik tərtibat qeydlərinizdən ilk layihəni qurur, mövzu kitaba rənglərini və şriftlərini verir, köməkçi isə səhifələri sizinlə birlikdə dizayn edə bilər. Bundan sonra hər şeyi köçürə, kəsə və yenidən üslublaşdıra bilərsiniz, hər addımı da geri ala bilərsiniz.',
   'help.ctx.journey-studio.bullet.1':
     'Yuxarı panel: solda səyahətin üz qabığı və adı. Sağda kitabda daha kimin olduğu və onun yadda saxlanıb-saxlanmadığı, səhifə formatı, geri al, təkrar et və yapışdır, Avtomatik tərtibat, köməkçi, kömək, İxrac et və Studio-nu bağlayan düymə.',
   'help.ctx.journey-studio.bullet.2':
@@ -1016,7 +1017,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     'Kitab çap olunmuş kitab kimi düzülür: üz qabığı, qabığın boş daxili üzünün qarşısında tək ilk səhifə, açılımlar, tək son səhifə və arxa qabıq. Səhifə nömrələri ilk səhifədən hesablanır və göstərildiyi kimi çap olunur.',
   'help.ctx.journey-studio.bullet.6':
-    'Bir neçə nəfər eyni anda dizayn edə bilər: hər kəs digərlərinin kursorlarını adları ilə görür. Başqasının dəyişdirdiyi versiyanı yadda saxlasanız, TREK onun işinin üzərinə yazmır, ziddiyyət göstərir.',
+    'Bir neçə nəfər eyni anda dizayn edə bilər: hər kəs digərlərinin kursorlarını adları ilə görür. Başqasının dəyişdirdiyi versiyanı yadda saxlasanız, YOUYA onun işinin üzərinə yazmır, ziddiyyət göstərir.',
   'help.ctx.journey-studio.bullet.7':
     'Mövzu: bütün kitab üçün bir görünüş, onun kağızı, mürəkkəbi və üç vurğu rəngi, şriftləri və motivləri. Mövzuya bağlı elementlər onu dəyişdiyiniz zaman ona uyğunlaşır.',
   'help.ctx.journey-studio.bullet.8':
@@ -1095,7 +1096,7 @@ const help: TranslationStrings = {
     'Kitabdakı bütün bağlı rənglər və şriftlər eyni anda dəyişir, mövzunun tətbiqi isə bir geri alma addımıdır.',
   'help.guide.studio-content.tip.1': '«Məzmun» bölməsinin yuxarısındakı axtarış sahəsi hər iki siyahını süzür.',
   'help.guide.studio-content.tip.2':
-    'Kompüterinizdən faylı iş masasına atdıqda TREK onu bir addımda yükləyir və yerləşdirir.',
+    'Kompüterinizdən faylı iş masasına atdıqda YOUYA onu bir addımda yükləyir və yerləşdirir.',
   // studio-elements
   'help.guide.studio-elements.title': 'Mətn, fiqur, ikon və stiker əlavə edin',
   'help.guide.studio-elements.goal': 'Açılıma fotolar və hekayələrdən əlavə bəzək elementləri qoyun.',
@@ -1205,12 +1206,12 @@ const help: TranslationStrings = {
     'Digər kitabda «Səhifələr» bölməsini açın, aşağıdakı «+ Səhifə»nin yanındakı «İdxal et» düyməsinə klikləyin və faylı seçin.',
   'help.guide.studio-spread-file.result':
     'Açılım çərçivələri və mətn üslubları ilə birlikdə idxal olunur. Yeni gündəliyin fotolarını çərçivələrə atın.',
-  'help.guide.studio-spread-file.tip.1': 'Fayl açılım dizaynı deyilsə, TREK onu qəbul etmir və səbəbini göstərir.',
+  'help.guide.studio-spread-file.tip.1': 'Fayl açılım dizaynı deyilsə, YOUYA onu qəbul etmir və səbəbini göstərir.',
 
   // ── Screen: settings (all tabs) ────────────────────────────────────────────
   'help.ctx.settings.title': 'Tənzimləmələr',
   'help.ctx.settings.summary':
-    'Şəxsi tənzimləmələriniz, soldakı yan paneldə hər mövzu üçün bir vərəq. Açarların çoxu dəyişdirilən kimi qüvvəyə minir. «Yadda saxla» düyməsi olan forma yalnız «Yadda saxla»ya kliklədikdə saxlanır. Buradakı heç nə başqaları üçün TREK-i dəyişmir.',
+    'Şəxsi tənzimləmələriniz, soldakı yan paneldə hər mövzu üçün bir vərəq. Açarların çoxu dəyişdirilən kimi qüvvəyə minir. «Yadda saxla» düyməsi olan forma yalnız «Yadda saxla»ya kliklədikdə saxlanır. Buradakı heç nə başqaları üçün YOUYA-i dəyişmir.',
   'help.ctx.settings.bullet.1':
     'Soldakı yan panel: «Ümumi», «Görünüş», «Xəritə», «Bildirişlər», «İnteqrasiyalar», «Oflayn» və «Hesab». «Plaginlər» aktiv plagin olduqda görünür. «Haqqında» operator onu gizlətməyibsə görünür. Versiya aşağıda göstərilir.',
   'help.ctx.settings.bullet.2':
@@ -1221,7 +1222,7 @@ const help: TranslationStrings = {
     '«Hesab» bölməsində profiliniz, parolunuz, iki mərhələli doğrulama, keçid açarları və hesabı silmək imkanı var.',
   'help.ctx.settings-display.title': 'Ümumi',
   'help.ctx.settings-display.summary':
-    'TREK-in hansı səhifə ilə açıldığı, hansı dil və vahidlərdən istifadə etdiyi, səyahət xəritəsinin və rezervasiyaların necə işlədiyi. Hər dəyişiklik dərhal tətbiq olunur.',
+    'YOUYA-in hansı səhifə ilə açıldığı, hansı dil və vahidlərdən istifadə etdiyi, səyahət xəritəsinin və rezervasiyaların necə işlədiyi. Hər dəyişiklik dərhal tətbiq olunur.',
   'help.ctx.settings-display.bullet.1':
     '«Başlanğıc»: «Başlanğıc səhifəsi» «İdarə paneli» və ya «Aktiv səyahət» ilə açılır; «Aktiv səyahət» seçildikdə «Başlanğıc tabı» həmin səyahətin hansı vərəqdə açılacağını təyin edir.',
   'help.ctx.settings-display.bullet.2':
@@ -1230,7 +1231,7 @@ const help: TranslationStrings = {
     '«Səyahət və xəritə»: «Yerləri açmaq üçün», «Gün başlıqlarında əvvəlcə tarix», «Rezervasiya marşrutu etiketləri», «Rezervasiya marşrutlarını həmişə göstər», «Planlaşdırılmamış məkanlar üçün kiçik nişanlar», «Xəritədə məkanları kəşf et», «Rezervasiya kodlarını bulanıqlaşdır» və «Marşrutu yaşayış yerindən başlayaraq optimallaşdır».',
   'help.ctx.settings-appearance.title': 'Görünüş',
   'help.ctx.settings-appearance.summary':
-    'TREK-in bu hesabda görünüşü: işıqlı və ya tünd rejim, vurğu rəngi, şüşə effekti və animasiya, mətn ölçüsü və idarə panelində hansı vidcetlərin görünəcəyi. Dəyişikliklər daxil olduğunuz bütün cihazlarda dərhal tətbiq olunur.',
+    'YOUYA-in bu hesabda görünüşü: işıqlı və ya tünd rejim, vurğu rəngi, şüşə effekti və animasiya, mətn ölçüsü və idarə panelində hansı vidcetlərin görünəcəyi. Dəyişikliklər daxil olduğunuz bütün cihazlarda dərhal tətbiq olunur.',
   'help.ctx.settings-appearance.bullet.1':
     '«Tema»: «Rəng rejimi» («İşıqlı», «Tünd» və ya «Avtomatik»), «Rəng sxemi», «Fərdi» seçildikdə isə kontrast yoxlaması ilə işıqlı və tünd rejim üçün öz vurğu rənginiz.',
   'help.ctx.settings-appearance.bullet.2':
@@ -1250,7 +1251,7 @@ const help: TranslationStrings = {
     'Yalnız Mapbox GL üçün: «3D binalar və relyef», «Yüksək keyfiyyət rejimi» və «Maraqlı məkanları gizlət». «Xəritəni yadda saxla» düyməsinin üstündə canlı önizləmə göstərilir. «Xəritəni yadda saxla» seçiminizi saxlayır.',
   'help.ctx.settings-notifications.title': 'Bildirişlər',
   'help.ctx.settings-notifications.summary':
-    'TREK-in tətbiqdən kənarda sizinlə necə əlaqə saxladığı. Yuxarıda hər hadisə üçün bir sətir və hər kanal üçün bir sütun olan cədvəl nəyin hara göndəriləcəyini təyin edir. Altında webhook, ntfy, bu cihazda push və plagin kanalları üçün kartlar var.',
+    'YOUYA-in tətbiqdən kənarda sizinlə necə əlaqə saxladığı. Yuxarıda hər hadisə üçün bir sətir və hər kanal üçün bir sütun olan cədvəl nəyin hara göndəriləcəyini təyin edir. Altında webhook, ntfy, bu cihazda push və plagin kanalları üçün kartlar var.',
   'help.ctx.settings-notifications.bullet.1':
     '«Bildirişlər»: hər hadisəni kanallar üzrə yandırın və ya söndürün. Kilid adminin onu hamı üçün söndürdüyünü bildirir.',
   'help.ctx.settings-notifications.bullet.2':
@@ -1261,7 +1262,7 @@ const help: TranslationStrings = {
     '«Bu cihazda push bildirişləri»: «Bu cihaz üçün aktiv et» yalnız bu brauzerə aiddir; «Test göndər» sınaq bildirişi göndərir. Plagin kanalı qurulana qədər «Konfiqurasiya et» göstərir.',
   'help.ctx.settings-integrations.title': 'İnteqrasiyalar',
   'help.ctx.settings-integrations.summary':
-    'TREK-ə kənardan qoşulan hər şey: rezervasiya məktubları üçün öz ünvanınız, gündəlik üçün foto kitabxanaları, uçuşlar üçün AirTrail, əslində getdiyiniz yerlər üçün Dawarich, cığırlar üçün wanderer, başqa proqramlar üçün yalnız oxuma API açarları və AI müştəriləri üçün MCP. Başqa xidmətə qoşulma yalnız admin onu aktiv etdikdən sonra görünür.',
+    'YOUYA-ə kənardan qoşulan hər şey: rezervasiya məktubları üçün öz ünvanınız, gündəlik üçün foto kitabxanaları, uçuşlar üçün AirTrail, əslində getdiyiniz yerlər üçün Dawarich, cığırlar üçün wanderer, başqa proqramlar üçün yalnız oxuma API açarları və AI müştəriləri üçün MCP. Başqa xidmətə qoşulma yalnız admin onu aktiv etdikdən sonra görünür.',
   'help.ctx.settings-integrations.bullet.1':
     '«Rezervasiya məktubları», admin məktub idxalını açdıqdan sonra yuxarıda: açarları ilə yönləndirmə ünvanınız. Onun altında Immich və Synology Photos, AirTrail, Dawarich və wanderer: hər kartda ünvan və açar, «Yadda saxla» və «Bağlantını yoxla», həmçinin «Qoşulub» və ya «Qoşulmayıb» nişanı var.',
   'help.ctx.settings-integrations.bullet.2':
@@ -1272,7 +1273,7 @@ const help: TranslationStrings = {
     '«API tokenləri»: MCP-yə qoşulmağın köhnə üsulu, «Köhnəlmiş» kimi işarələnib; bunun əvəzinə «OAuth 2.1 müştəriləri»ndən istifadə edin.',
   'help.ctx.settings-offline.title': 'Oflayn',
   'help.ctx.settings-offline.summary':
-    'Bağlantı olmadan da səyahəti aça bilmək üçün TREK-in bu cihazda nə saxladığı və oflayn etdiyiniz dəyişiklik başqa yerdə edilmiş dəyişikliklə toqquşanda nə baş verdiyi.',
+    'Bağlantı olmadan da səyahəti aça bilmək üçün YOUYA-in bu cihazda nə saxladığı və oflayn etdiyiniz dəyişiklik başqa yerdə edilmiş dəyişikliklə toqquşanda nə baş verdiyi.',
   'help.ctx.settings-offline.bullet.1':
     '«Oflayn rejim»: «Oflayn rejimi məcburi aktivləşdir» əvvəlcə hər şeyi yükləyir, sonra yalnız keşdən işləyir və dəyişikliklərinizi növbəyə qoyur.',
   'help.ctx.settings-offline.bullet.2':
@@ -1283,20 +1284,20 @@ const help: TranslationStrings = {
     '«Sinxronlaşdırma ziddiyyətləri» yalnız iki dəyişiklik ziddiyyət təşkil etdikdə, «Mənim versiyamı saxla», «Server versiyasını saxla» və «Ziddiyyət yarandıqda» ilə görünür. «Oflayn keş» səyahətləri, gözləyən və ya uğursuz dəyişiklikləri «Yenidən cəhd et», «İmtina et» və «Keşi təmizlə» ilə sayır.',
   'help.ctx.settings-account.title': 'Hesab',
   'help.ctx.settings-account.summary':
-    'Bu TREK-dəki hesabınız və necə daxil olduğunuz: profil şəkli, istifadəçi adı və e-poçt, parol, iki faktorlu doğrulama və keçid açarları. «Hesabı sil» düyməsi «Hesab» kartının aşağısındadır.',
+    'Bu YOUYA-dəki hesabınız və necə daxil olduğunuz: profil şəkli, istifadəçi adı və e-poçt, parol, iki faktorlu doğrulama və keçid açarları. «Hesabı sil» düyməsi «Hesab» kartının aşağısındadır.',
   'help.ctx.settings-account.bullet.1':
     '«Hesab»: şəkil yükləmək üçün şəkildəki kameraya, silmək üçün qırmızı zibil qutusuna klikləyin. «İstifadəçi adı» və «E-poçt» «Profili yadda saxla» ilə saxlanır.',
   'help.ctx.settings-account.bullet.2':
-    '«Parolu dəyiş»: cari parol, yeni parol iki dəfə (yazdıqca qaydalar işarələnir), sonra «Parolu yenilə». Bu TREK-ə yalnız SSO ilə daxil olunursa, bu kart göstərilmir.',
+    '«Parolu dəyiş»: cari parol, yeni parol iki dəfə (yazdıqca qaydalar işarələnir), sonra «Parolu yenilə». Bu YOUYA-ə yalnız SSO ilə daxil olunursa, bu kart göstərilmir.',
   'help.ctx.settings-account.bullet.3':
     'Autentifikator tətbiqi və ehtiyat kodlarla «İki mərhələli autentifikasiya (2FA)», parolsuz giriş üçün isə «Keçid açarları».',
   'help.ctx.settings-account.bullet.4':
     '«Hesabı sil» «Hesab» kartının aşağısında, solda yerləşir və təsdiq istəyir. Yeganə administrator özünü silə bilməz.',
   // language-region
   'help.guide.language-region.title': 'Dili, ölçü vahidlərini və valyutanı təyin etmək',
-  'help.guide.language-region.goal': 'TREK-dən öz dilinizdə və regionunuzun formatları ilə istifadə edin.',
+  'help.guide.language-region.goal': 'YOUYA-dən öz dilinizdə və regionunuzun formatları ilə istifadə edin.',
   'help.guide.language-region.step.1':
-    '«Dil və region» altında siyahıdan «Dil» seçin; tez tapmaq üçün yazın. TREK daxil olduğunuz bütün cihazlarda dərhal həmin dilə keçir.',
+    '«Dil və region» altında siyahıdan «Dil» seçin; tez tapmaq üçün yazın. YOUYA daxil olduğunuz bütün cihazlarda dərhal həmin dilə keçir.',
   'help.guide.language-region.step.2':
     '«Məkan adları» məkan axtarışının, təkliflərin və ünvanların dilini təyin edir; «Tətbiqlə eyni» interfeys dilini izləyir.',
   'help.guide.language-region.result':
@@ -1318,18 +1319,18 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.2':
     'Admin hamı üçün standart dəyərləri təyin edə bilər; burada dəyişdikləriniz isə yalnız sizə aiddir.',
   // startup
-  'help.guide.startup.title': 'TREK-in nə ilə açılacağını seçmək',
-  'help.guide.startup.goal': 'TREK hər dəfə idarə panelində deyil, ən çox istifadə etdiyiniz səhifədə açılsın.',
+  'help.guide.startup.title': 'YOUYA-in nə ilə açılacağını seçmək',
+  'help.guide.startup.goal': 'YOUYA hər dəfə idarə panelində deyil, ən çox istifadə etdiyiniz səhifədə açılsın.',
   'help.guide.startup.step.1':
     '«Ümumi» bölməsinin yuxarısında, «Başlanğıc» altında «Başlanğıc səhifəsi»ni «İdarə paneli» və ya «Aktiv səyahət» olaraq seçin.',
   'help.guide.startup.step.2':
     '«Aktiv səyahət» seçildikdə «Başlanğıc tabı» görünür: həmin səyahətin hansı vərəqdə açılacağını seçin.',
-  'help.guide.startup.result': 'Növbəti dəfə TREK-i açdıqda birbaşa həmin səhifə açılır.',
+  'help.guide.startup.result': 'Növbəti dəfə YOUYA-i açdıqda birbaşa həmin səhifə açılır.',
   'help.guide.startup.tip.1':
     '«Aktiv səyahət» bu gün davam edən və ya növbəti başlayacaq səyahətdir. Bu, idarə panelinin yuxarısında göstərilən səyahətin eynisidir.',
   // theme-scheme
   'help.guide.theme-scheme.title': 'Temanı və vurğu rəngini təyin etmək',
-  'help.guide.theme-scheme.goal': 'TREK-i istədiyiniz rəngdə işıqlı, tünd və ya cihazınıza uyğun edin.',
+  'help.guide.theme-scheme.goal': 'YOUYA-i istədiyiniz rəngdə işıqlı, tünd və ya cihazınıza uyğun edin.',
   'help.guide.theme-scheme.step.1':
     '«Tema» altında «Rəng rejimi»ni «İşıqlı», «Tünd» və ya «Avtomatik» edin. «Avtomatik» cihazınızın ayarını izləyir.',
   'help.guide.theme-scheme.step.2':
@@ -1351,7 +1352,7 @@ const help: TranslationStrings = {
   'help.guide.readability.result':
     'Dəyişiklik bütün tətbiqə, o cümlədən xəritə panellərinə və gündəliyə dərhal tətbiq olunur.',
   'help.guide.readability.tip.1':
-    'Cihazınızda hərəkətin azaldılması ayarı aktivdirsə, TREK-in bəzi hissələri artıq daha az animasiya istifadə edir. «Hərəkəti azalt» qalan hissələrdə də animasiyanı azaldır.',
+    'Cihazınızda hərəkətin azaldılması ayarı aktivdirsə, YOUYA-in bəzi hissələri artıq daha az animasiya istifadə edir. «Hərəkəti azalt» qalan hissələrdə də animasiyanı azaldır.',
   'help.guide.readability.tip.2':
     'Mətn ölçüsü tipoqrafiya səviyyələri ilə tətbiq olunur, ona görə heç nə kəsilmir: sığmayan mətn yeni sətrə keçir.',
   // dashboard-widgets
@@ -1453,17 +1454,17 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.tip.1':
     'Ən çox yeri xəritə plitələri tutur; yalnız səyahət məlumatlarını və sənədləri saxlamaq üçün onları söndürün.',
   'help.guide.offline-prepare.tip.2':
-    'Oflayn rejimdə ən rahat başlanğıc üçün TREK-i brauzerdən tətbiq kimi quraşdırın.',
+    'Oflayn rejimdə ən rahat başlanğıc üçün YOUYA-i brauzerdən tətbiq kimi quraşdırın.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': 'Sinxronlaşdırma ziddiyyətində hansı versiyanın qalacağını seçin',
   'help.guide.offline-conflicts.goal':
-    'Oflayn etdiyiniz dəyişiklik başqa yerdə edilmiş dəyişikliklə toqquşanda TREK-in bunu necə həll edəcəyini seçin.',
+    'Oflayn etdiyiniz dəyişiklik başqa yerdə edilmiş dəyişikliklə toqquşanda YOUYA-in bunu necə həll edəcəyini seçin.',
   'help.guide.offline-conflicts.step.1':
     'Oflayn etdiyiniz dəyişiklik daha yeni dəyişikliklə ziddiyyət təşkil etdikdə «Oflayn» bölməsinin yuxarısına yaxın «Sinxronlaşdırma ziddiyyətləri» görünür. Hər dəyişiklik üçün «Mənim versiyamı saxla» və ya «Server versiyasını saxla» düyməsinə klikləyin.',
   'help.guide.offline-conflicts.step.2':
     'Həmin kartda «Ziddiyyət yarandıqda» növbəti dəfə üçün qərar verir: «Hər dəfə məndən soruş», «Həmişə mənim versiyamı saxla» və ya «Həmişə server versiyasını saxla».',
   'help.guide.offline-conflicts.result':
-    '«Hər dəfə məndən soruş» seçildikdə ziddiyyət siz qərar verənə qədər «Sinxronlaşdırma ziddiyyətləri» bölməsində qalır. Digər iki seçimdə TREK onu avtomatik həll edir.',
+    '«Hər dəfə məndən soruş» seçildikdə ziddiyyət siz qərar verənə qədər «Sinxronlaşdırma ziddiyyətləri» bölməsində qalır. Digər iki seçimdə YOUYA onu avtomatik həll edir.',
   'help.guide.offline-conflicts.tip.1': '«Keşi təmizlə» yalnız bu cihazdakı nüsxəni silir. Serverdə heç nə dəyişmir.',
   // profile
   'help.guide.profile.title': 'Profilinizi dəyişin',
@@ -1482,7 +1483,7 @@ const help: TranslationStrings = {
   'help.guide.password.step.2': '«Parolu yenilə» düyməsinə klikləyin.',
   'help.guide.password.result':
     'Yeni parol dərhal qüvvəyə minir. Bütün digər cihazlar hesabdan çıxarılır, MCP API tokenləriniz silinir, OAuth müştəriləri yenidən daxil olmalıdır; bu cihaz isə daxil olmuş qalır.',
-  'help.guide.password.tip.1': 'Bu TREK-ə yalnız SSO ilə daxil olunursa, TREK parolu və «Parolu dəyiş» kartı yoxdur.',
+  'help.guide.password.tip.1': 'Bu YOUYA-ə yalnız SSO ilə daxil olunursa, YOUYA parolu və «Parolu dəyiş» kartı yoxdur.',
   // mfa
   'help.guide.mfa.title': 'İki faktorlu autentifikasiyanı aktivləşdirmək',
   'help.guide.mfa.goal': 'Hesabınızı autentifikator tətbiqindəki kodla qoruyun.',
@@ -1516,16 +1517,16 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     'Hesabınız sahibi olduğunuz səyahətlər, məkanlar və fayllarla birlikdə silinir. Başqalarının sahib olduğu səyahətlər qalır.',
   'help.guide.delete-account.tip.1':
-    'Yeganə administrator sizsinizsə, TREK «Silmək mümkün deyil» bildirir: əvvəlcə başqa istifadəçini admin edin.',
+    'Yeganə administrator sizsinizsə, YOUYA «Silmək mümkün deyil» bildirir: əvvəlcə başqa istifadəçini admin edin.',
   'help.guide.delete-account.tip.2':
     'Bunu geri qaytarmaq mümkün deyil. Təsdiqləməzdən əvvəl saxlamaq istədiklərinizi ixrac edin.',
 
   // ── Screen: admin (all tabs) ───────────────────────────────────────────────
   'help.ctx.admin.title': 'Administrator',
   'help.ctx.admin.summary':
-    'Bütün TREK instansiyası və bütün istifadəçilər üçün tənzimləmələr: kimin və necə daxil ola biləcəyi, nəyin aktiv olduğu, faylların harada saxlandığı, serverin insanlarla necə əlaqə saxladığı və ehtiyat nüsxələrin necə çıxarıldığı. Bu səhifəni yalnız adminlər görür. Yan panel vərəqləri «İstifadəçilər», «Konfiqurasiya» və «Texniki xidmət» altında qruplaşdırır, hər vərəq ayrıca ekrandır.',
+    'Bütün YOUYA instansiyası və bütün istifadəçilər üçün tənzimləmələr: kimin və necə daxil ola biləcəyi, nəyin aktiv olduğu, faylların harada saxlandığı, serverin insanlarla necə əlaqə saxladığı və ehtiyat nüsxələrin necə çıxarıldığı. Bu səhifəni yalnız adminlər görür. Yan panel vərəqləri «İstifadəçilər», «Konfiqurasiya» və «Texniki xidmət» altında qruplaşdırır, hər vərəq ayrıca ekrandır.',
   'help.ctx.admin.bullet.1':
-    'Başlığın sağında istifadəçilərin, səyahətlərin, məkanların və faylların sayı göstərilir. Altında TREK-in daha yeni buraxılışı olduqda «Yeniləmə mövcuddur» banneri görünür.',
+    'Başlığın sağında istifadəçilərin, səyahətlərin, məkanların və faylların sayı göstərilir. Altında YOUYA-in daha yeni buraxılışı olduqda «Yeniləmə mövcuddur» banneri görünür.',
   'help.ctx.admin.bullet.2':
     '«İstifadəçilər» və «Defoltlar»: hesablar, dəvət linkləri və icazələr, həmçinin yeni hesabın başlanğıc tənzimləmələri və xəritəsi.',
   'help.ctx.admin.bullet.3':
@@ -1536,7 +1537,7 @@ const help: TranslationStrings = {
     '«Saxlama», «Ehtiyat nüsxə», «GitHub» və «Audit»: yükləmələrin harada saxlandığı, istənilən an və plan üzrə çıxarılan ehtiyat nüsxələr, buraxılış tarixçəsi, həmçinin təhlükəsizlik baxımından vacib hadisələrin jurnalı.',
   'help.ctx.admin-users.title': 'İstifadəçilər',
   'help.ctx.admin-users.summary':
-    'Bu TREK-dəki bütün hesablar rolu, e-poçtu və son aktiv olduğu vaxtla, qapalı instansiyada qeydiyyata imkan verən dəvət linkləri, həmçinin səyahətlərdə kimin nə edə biləcəyi.',
+    'Bu YOUYA-dəki bütün hesablar rolu, e-poçtu və son aktiv olduğu vaxtla, qapalı instansiyada qeydiyyata imkan verən dəvət linkləri, həmçinin səyahətlərdə kimin nə edə biləcəyi.',
   'help.ctx.admin-users.bullet.1':
     'Cədvəl: istifadəçi, e-poçt, rol, yaradılma tarixi və «Son aktivlik», hər sətirdə «İstifadəçini redaktə et» və «İstifadəçini sil». Avatardakı yaşıl nöqtə şəxsin hazırda onlayn olduğunu bildirir; öz sətrinizdə «(Siz)» yazılır.',
   'help.ctx.admin-users.bullet.2':
@@ -1558,7 +1559,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     '«Baqaj şablonları»: səyahətin baqaj siyahısı üçün əsas ola biləcək, kateqoriya və elementlərdən ibarət adlı siyahılar.',
   'help.ctx.admin-config.bullet.2':
-    '«Kateqoriyalar»: məkan təfərrüatlarından «Kolleksiyalar»a qədər TREK-də istifadə olunan kateqoriyaların adı, işarəsi və rəngi, hər biri önizləməsi olan pəncərədə redaktə olunur.',
+    '«Kateqoriyalar»: məkan təfərrüatlarından «Kolleksiyalar»a qədər YOUYA-də istifadə olunan kateqoriyaların adı, işarəsi və rəngi, hər biri önizləməsi olan pəncərədə redaktə olunur.',
   'help.ctx.admin-config.bullet.3':
     '«Məktəb tətilləri»: tətil dövrləri ilə birlikdə ölkə və regionların kataloqu, hər kəs onları Vacay-də seçə bilər.',
   'help.ctx.admin-settings.title': 'Təhlükəsizlik və xidmətlər',
@@ -1569,12 +1570,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     '«Keçid açarı ilə giriş»: «Relying Party ID (domen)» və «İcazə verilən mənbələr». «Tək giriş (OIDC)»: «Göstərilən ad», «Təminatçı URL-si», istəyə görə Discovery URL, «Müştəri ID-si» və «Müştəri sirri».',
   'help.ctx.admin-settings.bullet.3':
-    '«Xidmətlər»də məkan axtarışı və marşrutlaşdırma: «Tövsiyə edilən standart» kimi işarələnmiş TREK API, «Bugünkü limit» və «Məkan məlumatlarını paylaşın» ilə, sonra «İctimai nəqliyyat provayderi», «Məkan axtarışı provayderi» və «Məkan axtarışı jurnalı».',
+    '«Xidmətlər»də məkan axtarışı və marşrutlaşdırma: «Tövsiyə edilən standart» kimi işarələnmiş YOUYA API, «Bugünkü limit» və «Məkan məlumatlarını paylaşın» ilə, sonra «İctimai nəqliyyat provayderi», «Məkan axtarışı provayderi» və «Məkan axtarışı jurnalı».',
   'help.ctx.admin-settings.bullet.4':
     '«API açarları»: «Google Maps API açarı» («Sına» və «Açarın hansı məqsədlərlə istifadə edilə biləcəyi» ilə), Unsplash və Amap açarları, kartın aşağısında isə bir «Yadda saxla» düyməsi. Onun altındakı «İcazə verilən fayl növləri» yükləmələri məhdudlaşdırır.',
   'help.ctx.admin-addons.title': 'Əlavələr',
   'help.ctx.admin-addons.summary':
-    'TREK-in funksiya modulları üç kartda: «Səyahət» səyahətin vərəqləri üçün, «Ümumi» əsas naviqasiyadakı bölmələr üçün və «İnteqrasiya» xarici xidmətlər üçün. Hər əlavənin açarı var; söndürülmüş olduqda menyu bəndi, səhifələr və API hamı üçün aradan qalxır.',
+    'YOUYA-in funksiya modulları üç kartda: «Səyahət» səyahətin vərəqləri üçün, «Ümumi» əsas naviqasiyadakı bölmələr üçün və «İnteqrasiya» xarici xidmətlər üçün. Hər əlavənin açarı var; söndürülmüş olduqda menyu bəndi, səhifələr və API hamı üçün aradan qalxır.',
   'help.ctx.admin-addons.bullet.1':
     'Hər əlavə üçün bir sətir və açarı, hər kartın başlığında isə əlavələrindən neçəsinin açıq olduğu. Adın yanındakı məlumat işarəsi əlavənin nə etdiyini deyir.',
   'help.ctx.admin-addons.bullet.2':
@@ -1583,7 +1584,7 @@ const help: TranslationStrings = {
     'Dişli çarxı olan sətirlər qurulum dialoqunu açır, məsələn «Turlar» altında «Avarçəkmə üçün su məlumatları» və «Rezervasiya məktublarının idxalı» altında «Məktub idxalını qur». Canlı uçuş statusu «Səyahət» kartının sətridir.',
   'help.ctx.admin-plugins.title': 'Plaginlər',
   'help.ctx.admin-plugins.summary':
-    'TREK-in yanında öz prosesində işləyən üçüncü tərəf plaginləri; hər biri quraşdırılarkən istədiyi icazələrlə işləyir. Kataloqdan quraşdırın, paket yükləyin və ya plagin hazırlayarkən qovluğu əlaqələndirin.',
+    'YOUYA-in yanında öz prosesində işləyən üçüncü tərəf plaginləri; hər biri quraşdırılarkən istədiyi icazələrlə işləyir. Kataloqdan quraşdırın, paket yükləyin və ya plagin hazırlayarkən qovluğu əlaqələndirin.',
   'help.ctx.admin-plugins.bullet.1':
     '«Quraşdırılıb» və «Kəşf et», «Plaginləri axtar…» və növ, vəziyyət və sıralama üçün «Filtr» ilə. Hər sətirdə versiya, plaginin nəyə giriş əldə edə biləcəyi, «Yoxlanılıb», «İmzalanıb» və ya «İmzalanmayıb», açar və ⋯ menyusu göstərilir.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1600,7 +1601,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     '«Kateqoriyalar»: səyahət sənədləri, gündəlik fotoları, üzlüklər, profil şəkilləri, məkan şəkilləri, foto keşləri və ehtiyat nüsxələr, hər biri bir saxlama sisteminə təyin edilir, aşağıda «Dəyişiklikləri yadda saxla» ilə.',
   'help.ctx.admin-storage.bullet.4':
-    'İstinad olunmayan fayllar: gecə yoxlamasının TREK-də artıq heç nəyin istifadə etmədiyini tapdığı fayllar, «İndi yoxla» düyməsi və bir həftə istifadə olunmayan belə faylları silən açar ilə.',
+    'İstinad olunmayan fayllar: gecə yoxlamasının YOUYA-də artıq heç nəyin istifadə etmədiyini tapdığı fayllar, «İndi yoxla» düyməsi və bir həftə istifadə olunmayan belə faylları silən açar ilə.',
   'help.ctx.admin-notifications.title': 'Bildirişlər',
   'help.ctx.admin-notifications.summary':
     'İnstansiyanın istifadəçilərinə təklif etdiyi kanallar və administrator kimi sizə gələn kanallar. İstifadəçilər öz mövzularını və URL-lərini «Tənzimləmələr» bölməsində seçir. Nəyin mövcud olduğunu isə siz müəyyən edirsiniz, e-poçtu da siz qurursunuz.',
@@ -1612,14 +1613,14 @@ const help: TranslationStrings = {
     '«Admin bildirişləri» sağda: hər birində sınaq düyməsi olan «Administrator webhook-u» və «Administrator Ntfy», onların altında isə hər admin hadisəsini hansı kanalın göndərdiyi («Yeni versiya əlçatandır», «Yaddaş replikasında xəta», «Avarçəkmə regionu sorğulanıb»).',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    'Süni intellekt müştərilərinin bu TREK-də bütün istifadəçilər üzrə sahib olduğu bütün tokenlər və OAuth sessiyaları. Onlardan istənilənini ləğv edə bilərsiniz.',
+    'Süni intellekt müştərilərinin bu YOUYA-də bütün istifadəçilər üzrə sahib olduğu bütün tokenlər və OAuth sessiyaları. Onlardan istənilənini ləğv edə bilərsiniz.',
   'help.ctx.admin-mcp-tokens.bullet.1':
     '«OAuth sessiyaları»: müştəri, ona verilmiş icazələr, sahibi və tarix, həmçinin sessiyanı ləğv edən zibil qutusu.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     '«API tokenləri»: ad, sahib, «Yaradılıb» və «Son istifadə», həmçinin tokeni silən zibil qutusu.',
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    'TREK-də nə yenilik var: GitHub-dan buraxılış tarixçəsi və sizinkindən daha yeni versiyanın olub olmadığı. Yeniləmənin özü tətbiqdən kənarda, hostda aparılır.',
+    'YOUYA-də nə yenilik var: GitHub-dan buraxılış tarixçəsi və sizinkindən daha yeni versiyanın olub olmadığı. Yeniləmənin özü tətbiqdən kənarda, hostda aparılır.',
   'help.ctx.admin-github.bullet.1':
     '«Buraxılış tarixçəsi» buraxılışları qeydləri ilə birlikdə zaman xətti kimi sadalayır. Ən yenisində «Ən son» etiketi, ilkin buraxılışlarda «İlkin buraxılış» yazılır, GitHub isə buraxılışlar səhifəsini açır.',
   'help.ctx.admin-github.bullet.2':
@@ -1692,7 +1693,7 @@ const help: TranslationStrings = {
     'Öz sətrinizdəki zibil qutusu işləmir: özünüzü silə bilməzsiniz. Bunu başqa admin etməlidir.',
   // permissions
   'help.guide.permissions.title': 'Kimin nə edə biləcəyini təyin edin',
-  'help.guide.permissions.goal': 'Bu TREK-də hər əməliyyatı hansı rolun edə biləcəyini ayrıca təyin edin.',
+  'help.guide.permissions.goal': 'Bu YOUYA-də hər əməliyyatı hansı rolun edə biləcəyini ayrıca təyin edin.',
   'help.guide.permissions.step.1':
     '«İcazə tənzimləmələri» altında əməliyyatı öz qrupunda tapın, məsələn, «Səyahət idarəetməsi» altında «Səyahətləri sil», və bunu kimin edə biləcəyini seçin: «Hər kəs», «Səyahət üzvləri», «Səyahətin sahibi» və ya «Yalnız administrator». Dəyişdirilmiş sətir «fərdiləşdirilib» kimi işarələnir.',
   'help.guide.permissions.step.2':
@@ -1765,10 +1766,10 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     '«Tək giriş (OIDC)» qurulandan sonra üç SSO sətri gəlir: «SSO ilə giriş», kimsə SSO ilə ilk dəfə daxil olanda onun üçün hesab açan «SSO ilə avtomatik hesab yaratma» və «Birbaşa SSO-ya keç».',
   'help.guide.auth-methods.step.3':
-    '«Keçid açarı ilə girişi aktivləşdir» giriş səhifəsində keçid açarlarını təklif edir. «2FA tələb et» açarını yandırın: 2FA qurmamış hər kəs TREK-dən istifadə etməzdən əvvəl onu «Tənzimləmələr» bölməsində qurmalı olacaq.',
+    '«Keçid açarı ilə girişi aktivləşdir» giriş səhifəsində keçid açarlarını təklif edir. «2FA tələb et» açarını yandırın: 2FA qurmamış hər kəs YOUYA-dən istifadə etməzdən əvvəl onu «Tənzimləmələr» bölməsində qurmalı olacaq.',
   'help.guide.auth-methods.result': 'Giriş səhifəsi məhz aktiv saxladığınız üsulları təklif edir.',
   'help.guide.auth-methods.tip.1':
-    'TREK son giriş üsulunu söndürməyə imkan vermir: onun açarı boz olur və ipucunda «At least one login method must remain enabled» yazılır.',
+    'YOUYA son giriş üsulunu söndürməyə imkan vermir: onun açarı boz olur və ipucunda «At least one login method must remain enabled» yazılır.',
   'help.guide.auth-methods.tip.2':
     'Serverdə OIDC_ONLY təyin edilibsə, parol açarları kilidlənir və bu barədə qeyd göstərilir.',
   'help.guide.auth-methods.tip.3':
@@ -1785,7 +1786,7 @@ const help: TranslationStrings = {
   'help.guide.oidc.result':
     'Giriş səhifəsində SSO düyməsi görünür; «SSO ilə avtomatik hesab yaratma» aktivdirsə, ilk dəfə daxil olan istifadəçiyə hesab avtomatik yaradılır.',
   'help.guide.oidc.tip.1':
-    'Provayderinizin tələb etdiyi yönləndirmə URI-si TREK ünvanınız və sənədlərdəki OIDC callback yolundan ibarətdir.',
+    'Provayderinizin tələb etdiyi yönləndirmə URI-si YOUYA ünvanınız və sənədlərdəki OIDC callback yolundan ibarətdir.',
   'help.guide.oidc.tip.2':
     'Claim uyğunlaşdırması hansı SSO qruplarının administrator olacağını müəyyən edir. Ətraflı məlumat sənədlərdəki OIDC səhifəsindədir.',
   // instance-keys
@@ -1793,19 +1794,19 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     'Bütün instansiya üçün Google fotoları və reytinqlərini, Unsplash üz şəkillərini və Amap axtarışını əlavə edin.',
   'help.guide.instance-keys.step.1':
-    '«Xidmətlər» vərəqində «Məkan axtarışı və marşrutlaşdırma» kartı «Tövsiyə edilən standart» kimi işarələnmiş TREK API ilə başlayır. O, məkan axtarışına, ünvanlara və marşrutlaşdırmaya açarsız cavab verir, «Bugünkü limit» isə günün nə qədərinin qaldığını göstərir.',
+    '«Xidmətlər» vərəqində «Məkan axtarışı və marşrutlaşdırma» kartı «Tövsiyə edilən standart» kimi işarələnmiş YOUYA API ilə başlayır. O, məkan axtarışına, ünvanlara və marşrutlaşdırmaya açarsız cavab verir, «Bugünkü limit» isə günün nə qədərinin qaldığını göstərir.',
   'help.guide.instance-keys.step.2':
     'Fotolar, reytinqlər və iş saatları üçün «API açarları» altında «Google Maps API açarı»nı yapışdırın və «Sına» düyməsinə klikləyin; nəticə «Qoşulub» və ya «Etibarsızdır» olur. «Açarın hansı məqsədlərlə istifadə edilə biləcəyi» altında yalnız ödəniş etmək istədiklərinizi yandırın: «Məkan fotoları», «Məkanın avtomatik tamamlanması», «Məkan məlumatları», «Məkan məlumatlarının zənginləşdirilməsi» və «Yalnız Google ilə axtar», həmçinin Google sorğuları üçün «Gündəlik hədd».',
   'help.guide.instance-keys.step.3':
     'Üz şəkli axtarışı üçün «Unsplash API açarı»nı və materik Çində məkan axtarışı üçün «Amap (高德地图) API açarı»nı yapışdırın, sonra kartın aşağısındakı «Yadda saxla» düyməsinə klikləyin.',
   'help.guide.instance-keys.result':
-    'İstifadəçilər öz açarları olmadan bu funksiyalardan istifadə edir. Google açarı olmadıqda axtarış TREK Places API və OpenStreetMap ilə işləyir.',
+    'İstifadəçilər öz açarları olmadan bu funksiyalardan istifadə edir. Google açarı olmadıqda axtarış YOUYA Places API və OpenStreetMap ilə işləyir.',
   'help.guide.instance-keys.tip.1':
-    'İstifadəçinin «Tənzimləmələr» bölməsində şəxsi açarı varsa, TREK həmin istifadəçi üçün instansiya açarı əvəzinə onu istifadə edir.',
+    'İstifadəçinin «Tənzimləmələr» bölməsində şəxsi açarı varsa, YOUYA həmin istifadəçi üçün instansiya açarı əvəzinə onu istifadə edir.',
   'help.guide.instance-keys.tip.2':
     'Açarlar mühit dəyişənlərindən də gələ bilər, belə açarlar burada yalnız oxumaq üçün göstərilir.',
   'help.guide.instance-keys.tip.3':
-    '«Google sorğuları üçün gündəlik limit» TREK-in bu açarla gündə nə qədər xərcləyə biləcəyini məhdudlaşdırır. Başlığın yanındakı nişan bugünkü sorğuları sayır. Limit dolduqda axtarışlar növbəti günə (UTC) qədər OpenStreetMap ilə işləyir.',
+    '«Google sorğuları üçün gündəlik limit» YOUYA-in bu açarla gündə nə qədər xərcləyə biləcəyini məhdudlaşdırır. Başlığın yanındakı nişan bugünkü sorğuları sayır. Limit dolduqda axtarışlar növbəti günə (UTC) qədər OpenStreetMap ilə işləyir.',
   // places-transit
   'help.guide.places-transit.title': 'Axtarış və ictimai nəqliyyat provayderlərini seçin',
   'help.guide.places-transit.goal':
@@ -1813,11 +1814,11 @@ const help: TranslationStrings = {
   'help.guide.places-transit.step.1':
     '«Xidmətlər» vərəqində «Məkan axtarışı və marşrutlaşdırma» kartında «İctimai nəqliyyat provayderi» altında seçin: açarsız işləyən və Avropada ən güclü olan «Transitous (pulsuz)» və ya Google açarından istifadə edən Google. Seçim dərhal yadda saxlanır.',
   'help.guide.places-transit.step.2':
-    '«Məkan axtarışı provayderi» altında TREK indeksi və OpenStreetMap heç nə tapmadıqda TREK-in hansı xidmətə müraciət edəcəyini seçin: «Avtomatik» (açar varsa Google, sonra Amap), Google Places, Amap (高德地图) və ya OpenStreetMap.',
+    '«Məkan axtarışı provayderi» altında YOUYA indeksi və OpenStreetMap heç nə tapmadıqda YOUYA-in hansı xidmətə müraciət edəcəyini seçin: «Avtomatik» (açar varsa Google, sonra Amap), Google Places, Amap (高德地图) və ya OpenStreetMap.',
   'help.guide.places-transit.result':
-    'TREK-dəki bütün axtarış xanaları və ictimai nəqliyyat marşrutları bu seçimdən istifadə edir.',
+    'YOUYA-dəki bütün axtarış xanaları və ictimai nəqliyyat marşrutları bu seçimdən istifadə edir.',
   'help.guide.places-transit.tip.1':
-    'Açarı olmayan seçimdə burada xəbərdarlıq göstərilir. Bu zaman məkan axtarışı yalnız TREK indeksindən və OpenStreetMap-dən, ictimai nəqliyyat isə yalnız Transitous-dan istifadə edir.',
+    'Açarı olmayan seçimdə burada xəbərdarlıq göstərilir. Bu zaman məkan axtarışı yalnız YOUYA indeksindən və OpenStreetMap-dən, ictimai nəqliyyat isə yalnız Transitous-dan istifadə edir.',
   'help.guide.places-transit.tip.2':
     'Google ictimai nəqliyyat marşrutları hər sorğu üçün ödənişlidir, Transitous üçün isə ödəniş alınmır.',
   // file-types
@@ -1850,7 +1851,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     'Nextcloud sətrindəki açarı yandırın. «Əlavə yeniləndi» mesajı çıxır və bundan sonra səyahət sahibləri öz səyahətlərinin «Fayl» tabında «Sənəd sinxronizasiyası» bölməsini, «Provayder qoş» altında isə Nextcloud-u tapırlar.',
   'help.guide.document-providers.result':
-    'Anbar bu TREK-dəki hər səyahətdə əlçatandır. Səyahət sahibi qoşmayanadək heç nə qoşulmur.',
+    'Anbar bu YOUYA-dəki hər səyahətdə əlçatandır. Səyahət sahibi qoşmayanadək heç nə qoşulmur.',
   'help.guide.document-providers.tip.1':
     'Burada yalnız saxlama xidmətinin təklif edilib-edilməyəcəyi həll olunur. Ünvan və giriş məlumatları səyahətə aiddir: onları administrator panelində yox, səyahətin «Fayl» bölməsində səyahətin sahibi daxil edir.',
   'help.guide.document-providers.tip.2':
@@ -1859,30 +1860,30 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     'Hər kəsə yönləndirmə ünvanı verin ki, yönləndirdikləri rezervasiya təsdiqləri düzgün səyahətdə rezervasiyaya çevrilsin.',
   'help.guide.mail-import-setup.step.1':
-    '«Əlavələr» tabında, «İnteqrasiya» kartında «Rezervasiya məktublarının idxalı»nı aktiv edin. İndi bu TREK-dəki hər kəs şəxsi yönləndirmə ünvanı alır.',
+    '«Əlavələr» tabında, «İnteqrasiya» kartında «Rezervasiya məktublarının idxalı»nı aktiv edin. İndi bu YOUYA-dəki hər kəs şəxsi yönləndirmə ünvanı alır.',
   'help.guide.mail-import-setup.step.2': 'Onun altında görünən «Məktub idxalını qur» sətrinə klikləyin.',
   'help.guide.mail-import-setup.step.3':
-    '«Məktub necə gəlir» altında «IMAP poçt qutusu»nu seçin və «Server», «Port», «Şifrələmə», «İstifadəçi», «Parol» və «Qovluq» daxil edin. Hər məktubu TREK-ə göndərən poçt xidməti üçün əvəzinə «Webhook», poçt qutusu olmadan sınamaq üçün «Yalnız yükləmə» seçin. Sonra «Ünvan şablonu»nu, hər kəsin kodunun gedəcəyi yerdə yer tutucusu olan yönləndirmə ünvanını və «Hər şəxs üçün gündə süni intellekt məktubları»nı təyin edin.',
+    '«Məktub necə gəlir» altında «IMAP poçt qutusu»nu seçin və «Server», «Port», «Şifrələmə», «İstifadəçi», «Parol» və «Qovluq» daxil edin. Hər məktubu YOUYA-ə göndərən poçt xidməti üçün əvəzinə «Webhook», poçt qutusu olmadan sınamaq üçün «Yalnız yükləmə» seçin. Sonra «Ünvan şablonu»nu, hər kəsin kodunun gedəcəyi yerdə yer tutucusu olan yönləndirmə ünvanını və «Hər şəxs üçün gündə süni intellekt məktubları»nı təyin edin.',
   'help.guide.mail-import-setup.step.4':
-    '«Yadda saxla»ya, sonra «Bağlantını yoxla»ya klikləyin; o, «Qoşulub» yazır və ya nəyin alınmadığını bildirir. Aşağıda dialoq TREK-in məktubu sonuncu dəfə nə vaxt oxuduğunu və son 24 saatın məktublarını göstərir: «Özbaşına əlavə edilib», «Gözləyir» və «Xəta».',
+    '«Yadda saxla»ya, sonra «Bağlantını yoxla»ya klikləyin; o, «Qoşulub» yazır və ya nəyin alınmadığını bildirir. Aşağıda dialoq YOUYA-in məktubu sonuncu dəfə nə vaxt oxuduğunu və son 24 saatın məktublarını göstərir: «Özbaşına əlavə edilib», «Gözləyir» və «Xəta».',
   'help.guide.mail-import-setup.result':
     'Hər kəs yönləndirmə ünvanını «Tənzimləmələr», «İnteqrasiyalar» bölməsində tapır. Yönləndirilən təsdiq düzgün səyahətdə rezervasiyaya çevrilir və ya sahibinin baxması üçün orada gözləyir.',
   'help.guide.mail-import-setup.tip.1':
-    'TREK-ə şəxsi qutu yox, plus ünvanları (trek+…@sizin-domen) qəbul edən öz poçt qutusunu verin. Oxunmuş məktublar TREK/processed qovluğuna keçir.',
+    'YOUYA-ə şəxsi qutu yox, plus ünvanları (trek+…@sizin-domen) qəbul edən öz poçt qutusunu verin. Oxunmuş məktublar TREK/processed qovluğuna keçir.',
   'help.guide.mail-import-setup.tip.2':
     'MAIL_INGEST_ ilə başlayan mühit dəyişənləri dialoqdakı sahələrdən üstündür. Öz şəbəkənizdəki poçt serveri üçün serverdə ayrıca ALLOW_INTERNAL_NETWORK=true də lazımdır.',
   'help.guide.mail-import-setup.tip.3':
     '«Hər şəxs üçün gündə süni intellekt məktubları» süni intellektin bir şəxs üçün gündə maşın oxuyan rezervasiya məlumatı olmayan neçə məktubu oxuya biləcəyini məhdudlaşdırır. Limiti aşanda yalnız maşın oxuyan məlumat oxunur.',
   'help.guide.ai-setup.title': 'Süni intellekt köməkçisini qurun',
   'help.guide.ai-setup.goal':
-    'Süni intellekt provayderini bir dəfə qoşun ki, bu TREK-dəki hər kəs köməkçi ilə planlaşdıra bilsin.',
+    'Süni intellekt provayderini bir dəfə qoşun ki, bu YOUYA-dəki hər kəs köməkçi ilə planlaşdıra bilsin.',
   'help.guide.ai-setup.step.1':
     '«Əlavələr» nişanında «İnteqrasiya» kartında süni intellekt kafelini tapın və «Süni intellekt köməkçisi»ni aktiv edin. «Süni intellektlə təhlil» və MCP də eyni kafeldədir.',
   'help.guide.ai-setup.step.2': 'Açarların altında görünən «Süni intellekti qur» sətrinə klikləyin.',
   'help.guide.ai-setup.step.3':
     '«Kim ödəyir» altında qoşulmanı kimin təmin edəcəyini seçin: «Mən ödəyirəm, şəxsi icazəlidir», «Hamı üçün mən ödəyirəm» və ya «Hər kəs öz hesabından istifadə edir». Aşağıdakı sətir seçiminizin nə demək olduğunu izah edir.',
   'help.guide.ai-setup.step.4':
-    '«Hamı üçün bağlantı» altında «API açarını yapışdır»ı seçin və Anthropic, OpenAI, Gemini və ya OpenRouter açarını yapışdırın. TREK aşkar etdiyi provayderin adını göstərir. «Qoş» düyməsinə klikləyin; TREK açarı saxlamazdan əvvəl provayderdə yoxlayır.',
+    '«Hamı üçün bağlantı» altında «API açarını yapışdır»ı seçin və Anthropic, OpenAI, Gemini və ya OpenRouter açarını yapışdırın. YOUYA aşkar etdiyi provayderin adını göstərir. «Qoş» düyməsinə klikləyin; YOUYA açarı saxlamazdan əvvəl provayderdə yoxlayır.',
   'help.guide.ai-setup.step.5':
     'Bağlantı «Qoşulub» kimi görünür. Hamının söhbət etdiyi «Model»i seçin; yalnız alətlərdən istifadə edə bilən modellər siyahıdadır. «Dəyiş» və «Bağlantını sil» onun altındadır.',
   'help.guide.ai-setup.step.6':
@@ -1899,15 +1900,15 @@ const help: TranslationStrings = {
     '«Veb axtarış» ChatGPT, Anthropic və OpenRouter ilə provayderin öz axtarışı vasitəsilə işləyir və axtarışlar yalnız həmin provayderə gedir.',
   'help.guide.paddle-water-data.title': 'Avarçəkmə turları üçün su məlumatlarını yükləyin',
   'help.guide.paddle-water-data.goal':
-    'Avarçəkmə turlarına regionun bəndlərini, şlüzlərini və avarçəkmə qaydalarını verin və TREK-in yeni regionları özü yükləyib-yükləməməsini müəyyən edin.',
+    'Avarçəkmə turlarına regionun bəndlərini, şlüzlərini və avarçəkmə qaydalarını verin və YOUYA-in yeni regionları özü yükləyib-yükləməməsini müəyyən edin.',
   'help.guide.paddle-water-data.step.1':
     '«Əlavələr» tabında «Turlar» aktiv olarkən «Turlar» altındakı sonuncu sətir olan «Avarçəkmə üçün su məlumatları»na klikləyin. Yanındakı rəqəm regionları və ya sizi gözləyən sorğuları sayır.',
   'help.guide.paddle-water-data.step.2':
     '«Regionları avtomatik yüklə» altında «Avtomatik», «Sorğu ilə» və ya «Söndür» seçin. «Avtomatik» kimsə avarçəkmə turu planlaşdıran regionu «Avtomatik yüklənən ən böyük region» həddinə qədər yükləyir; daha böyüyü «Sorğulanıb» altında gözləyir, orada «Yüklə» onu oxuyur, «Rədd et» isə atır.',
   'help.guide.paddle-water-data.step.3':
-    '«Region əlavə et» altında Geofabrik-də region axtarın, məsələn Oberpfalz, və yanındakı «Əlavə et»ə klikləyin. TREK onu arxa planda oxuyur; «Hazırdır» olandan sonra sətri obyektləri, məlumatın tarixini və suyun kilometrini göstərir. «Yenidən oxu» onu təzələyir, «Regionu sil» isə silir.',
+    '«Region əlavə et» altında Geofabrik-də region axtarın, məsələn Oberpfalz, və yanındakı «Əlavə et»ə klikləyin. YOUYA onu arxa planda oxuyur; «Hazırdır» olandan sonra sətri obyektləri, məlumatın tarixini və suyun kilometrini göstərir. «Yenidən oxu» onu təzələyir, «Regionu sil» isə silir.',
   'help.guide.paddle-water-data.result':
-    'Regionun daxilindəki avarçəkmə turları onun maneələrini göstərir və suyu izləyir, TREK isə hər regionu ayda bir dəfə yenidən oxuyur.',
+    'Regionun daxilindəki avarçəkmə turları onun maneələrini göstərir və suyu izləyir, YOUYA isə hər regionu ayda bir dəfə yenidən oxuyur.',
   'help.guide.paddle-water-data.tip.1':
     'Geofabrik-ə yalnız regionun adı gedir, heç vaxt kiminsə planlaşdırdığı məkan getmir.',
   'help.guide.paddle-water-data.tip.2':
@@ -1937,7 +1938,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     '«Kateqoriyalar» altında hər yükləmə növünü, məsələn, «Səyahət sənədləri», «Səyahət gündəliyinin fotoları» və ya «Ehtiyat nüsxələr»i bir saxlama sisteminə təyin edin.',
   'help.guide.storage-backends.step.3':
-    '«Kateqoriyalar»ın altındakı «Dəyişiklikləri yadda saxla» düyməsinə klikləyin. Kateqoriya indi başqa yerə yönəlirsə, TREK «Mövcud obyektləri köçür» və ya «Yalnız yeni yazmaları yönləndir» seçimini soruşur.',
+    '«Kateqoriyalar»ın altındakı «Dəyişiklikləri yadda saxla» düyməsinə klikləyin. Kateqoriya indi başqa yerə yönəlirsə, YOUYA «Mövcud obyektləri köçür» və ya «Yalnız yeni yazmaları yönləndir» seçimini soruşur.',
   'help.guide.storage-backends.result':
     'Yeni yükləmələr təyin edilmiş saxlama sisteminə gedir. Köçürülmüş fayllar oradan verilir, köçürməmək qərarına gəldikləriniz isə yerində qalır.',
   'help.guide.storage-backends.tip.1':
@@ -1987,7 +1988,8 @@ const help: TranslationStrings = {
     'MCP əlavəsini söndürmək bütün müştəriləri dərhal dayandırır və bu vərəqi gizlədir, amma heç nəyi silmir: əlavə yenidən yandırıldıqda tokenlər yenə işləyir.',
   // release-history
   'help.guide.release-history.title': 'Yeni versiyanı yoxlamaq',
-  'help.guide.release-history.goal': 'TREK-inizin aktual olub-olmadığını və növbəti versiyanın nə gətirdiyini öyrənin.',
+  'help.guide.release-history.goal':
+    'YOUYA-inizin aktual olub-olmadığını və növbəti versiyanın nə gətirdiyini öyrənin.',
   'help.guide.release-history.step.1':
     'Daha yeni buraxılış olduqda səhifə başlığının altında istifadə etdiyiniz versiya ilə birlikdə «Yeniləmə mövcuddur» görünür. «GitHub-da bax» buraxılışı açır, «Necə yeniləməli» isə Docker üçün əmrləri və ya digər quraşdırmalar üçün yeniləmə bələdçisini göstərir.',
   'help.guide.release-history.step.2':
@@ -2044,7 +2046,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     'Bir səyahət haqqında hər şey: günləri, xəritəsi və məkanları ilə plan, həmçinin turlar, nəqliyyat, rezervasiyalar, siyahılar, xərclər, fayllar, birgə iş və əlaqələndirilmiş gündəlik üçün vərəqlər. Onların hər birinin bunun altında öz kömək ekranı var.',
   'help.ctx.trip.bullet.1':
-    'Üst panelin altındakı vərəqlər: «Plan», «Turlar», «Nəqliyyat», «Rezervasiyalar», «Siyahılar», «Xərclər», «Fayl», «Collab» və gündəlik əlaqələndirildikdən sonra «Gündəlik». Sizin TREK-də hansı vərəqlərin olacağını əlavələr və plaginlər müəyyən edir.',
+    'Üst panelin altındakı vərəqlər: «Plan», «Turlar», «Nəqliyyat», «Rezervasiyalar», «Siyahılar», «Xərclər», «Fayl», «Collab» və gündəlik əlaqələndirildikdən sonra «Gündəlik». Sizin YOUYA-də hansı vərəqlərin olacağını əlavələr və plaginlər müəyyən edir.',
   'help.ctx.trip.bullet.2':
     '«Plan» üç sütundan ibarətdir: solda günlər, ortada xəritə, sağda məkanlar. Avtomobil səyahəti əlavəsi aktivdirsə, günlər sütunu «Gün» və «Avtomobil səyahəti» keçidi ilə, Turlar əlavəsi aktivdirsə, məkanlar sütunu «Məkan» və «Turlar» ilə başlayır. Rezervasiyalar və nəqliyyat planın bir hissəsidir, dayanacaqda və dayanacaqlar arasında göstərilir; vərəqlər onları siyahı halında göstərir.',
   'help.ctx.trip.bullet.3':
@@ -2057,7 +2059,7 @@ const help: TranslationStrings = {
     'Günlərin alətlər panelindəki geri qaytarma oxu plandakı son dəyişikliklərinizi bir-bir geri qaytarır.',
   // add-member
   'help.guide.add-member.title': 'Üzv əlavə edin',
-  'help.guide.add-member.goal': 'TREK hesabı olan birinə bu səyahətə giriş verin.',
+  'help.guide.add-member.goal': 'YOUYA hesabı olan birinə bu səyahətə giriş verin.',
   'help.guide.add-member.step.1':
     'Yuxarı solda səyahətin adının yanındakı «Səyahət parametrləri» düyməsinə klikləyin. O, «İnsanlar» bölməsində açılır.',
   'help.guide.add-member.step.2':
@@ -2067,7 +2069,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     'Üzv səyahəti sizin kimi görür və redaktə edir, administratorun «İcazə tənzimləmələri» bölməsində təyin etdiyi səviyyələr çərçivəsində.',
   'help.guide.add-member.tip.1':
-    'Siyahıda olmayan şəxsin hələ TREK hesabı yoxdur: onu qonaq kimi əlavə edin və ya dəvət linki ilə qeydiyyatdan keçməsini təklif edin.',
+    'Siyahıda olmayan şəxsin hələ YOUYA hesabı yoxdur: onu qonaq kimi əlavə edin və ya dəvət linki ilə qeydiyyatdan keçməsini təklif edin.',
   'help.guide.add-member.tip.2':
     '«Giriş icazəsi» yanındakı rəqəm səyahətdəki insanların sayını göstərir; qonaqlar aşağıda ayrıca sadalanır.',
   // trip-invite-link
@@ -2076,7 +2078,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     'Səyahətin adının yanındakı «Səyahət parametrləri» düyməsinə klikləyin və solda «Paylaşım» seçin. «Səyahət dəvət linki» altında «Dəvət linki yarat» düyməsinə klikləyin.',
   'help.guide.trip-invite-link.step.2':
-    '«Kopyala» düyməsinə klikləyib linki göndərin. TREK hesabı olan hər kəs linki açanda üzv kimi qoşulur.',
+    '«Kopyala» düyməsinə klikləyib linki göndərin. YOUYA hesabı olan hər kəs linki açanda üzv kimi qoşulur.',
   'help.guide.trip-invite-link.step.3':
     '«Yenidən yarat» linki yenisi ilə əvəz edir və köhnə link işləməz olur; «Deaktiv et» onu söndürür.',
   'help.guide.trip-invite-link.result': 'Linki açan hər kəs səyahətə qoşulur və «Giriş icazəsi» bölməsində görünür.',
@@ -2086,7 +2088,7 @@ const help: TranslationStrings = {
     'Linki səhv çata göndərmisinizsə, onu «Yenidən yarat» ilə yeniləyin: köhnə link dərhal işləməz olur.',
   // add-guest
   'help.guide.add-guest.title': 'Hesabı olmayan qonaq əlavə etmək',
-  'help.guide.add-guest.goal': 'TREK-dən istifadə etməyən birini səyahətə əlavə edin.',
+  'help.guide.add-guest.goal': 'YOUYA-dən istifadə etməyən birini səyahətə əlavə edin.',
   'help.guide.add-guest.step.1':
     'Səyahətin adının yanındakı «Səyahət parametrləri» düyməsinə klikləyin. «İnsanlar» bölməsində «Qonaqlar» ən sondadır, «Giriş icazəsi»nin altında.',
   'help.guide.add-guest.step.2': 'Adı «Qonağın adı» sahəsinə yazıb «Qonaq əlavə et» düyməsinə klikləyin.',
@@ -2146,7 +2148,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     '«Geri qaytar» planı əhatə edir: məkanları əlavə etmək, təyin etmək, çıxarmaq, sıralamaq, köçürmək və kilidləmək, günü təmizləmək, marşrutu optimallaşdırmaq, məkanları silmək, kateqoriya dəyişiklikləri və idxallar.',
   'help.guide.undo-change.tip.2':
-    'Daha geriyə getmək üçün yenə klikləyin: TREK siz səyahətdən çıxana qədər bu səyahətdəki son 30 dəyişikliyinizi, ən yenisi birinci olmaqla, saxlayır.',
+    'Daha geriyə getmək üçün yenə klikləyin: YOUYA siz səyahətdən çıxana qədər bu səyahətdəki son 30 dəyişikliyinizi, ən yenisi birinci olmaqla, saxlayır.',
   'help.guide.trip-assistant.title': 'Köməkçi ilə planlaşdırın',
   'help.guide.trip-assistant.goal':
     'Köməkçidən səyahətiniz haqqında soruşun və təklif etdiklərini plana əlavə etməsinə icazə verin.',
@@ -2202,19 +2204,19 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     'Məkanlar sütununun yuxarısındakı «Məkan/Fəaliyyət əlavə et» düyməsinə (gün açıq olduqda «Yeni məkan») klikləyin. Forma kursor axtarış sahəsində olmaqla açılır.',
   'help.guide.create-place.step.2':
-    'Məkanı «Məkanları axtarın…» sahəsinə yazın və nəticəni seçin. Pəncərənin yuxarısındakı ad, «Ünvan», «Enlik», «Uzunluq» və «Veb-sayt» doldurulur, soldakı «Məkan təfərrüatları» isə şəkilləri, iş saatlarını və təsviri göstərir. Google açarı olan TREK-də nəticələrin altındakı «Not the right place? Search Google instead» eyni axtarışı Google ilə aparır. Kolleksiyalar aktivdirsə, sağdakı «Saxlanılan məkanlar» siyahılarınızdakı yerləri eyni qaydada təklif edir.',
+    'Məkanı «Məkanları axtarın…» sahəsinə yazın və nəticəni seçin. Pəncərənin yuxarısındakı ad, «Ünvan», «Enlik», «Uzunluq» və «Veb-sayt» doldurulur, soldakı «Məkan təfərrüatları» isə şəkilləri, iş saatlarını və təsviri göstərir. Google açarı olan YOUYA-də nəticələrin altındakı «Not the right place? Search Google instead» eyni axtarışı Google ilə aparır. Kolleksiyalar aktivdirsə, sağdakı «Saxlanılan məkanlar» siyahılarınızdakı yerləri eyni qaydada təklif edir.',
   'help.guide.create-place.step.3':
     '«Məkan təfərrüatları» bölməsində «Şəkil seç» altındakı şəklə klikləyin ki, o, məkanın şəkli olsun. «Bu mətndən istifadə et» təsviri formaya köçürür.',
   'help.guide.create-place.step.4':
     'Formanın sahələrini yoxlayın. Pəncərənin yuxarısındakı ad yeganə məcburi sahədir. Onun altındakı «Kateqoriya» düyməsi səyahətin kateqoriyalarından birini seçir, yanındakı + isə yenisini yaradır. «Ünvan», «Enlik» və «Uzunluq» axtarışdan gəlir və ya onları özünüz yazırsınız. «Etiketlər» altında məkanın daşımalı olduğu etiketlərə klikləyin. «Yer haqqında» və «Qeydlər» mətn sahəsini təsvir ilə öz qeydləriniz arasında dəyişir. «Veb-sayt» linki saxlayır, «Fayllar» altındakı «Əlavə et» sənəd əlavə edir, «Telefon», «E-poçt» və «İş saatlarını əlavə et» isə axtarışın tapmadığı məlumatlar üçündür.',
   'help.guide.create-place.step.5':
-    '«Əlavə et» düyməsinə klikləyin. Səyahətdə eyni adlı və ya eyni yerdə olan məkan artıq varsa, TREK xəbərdarlıq göstərir və düymə «Yenə də əlavə et» olur.',
+    '«Əlavə et» düyməsinə klikləyin. Səyahətdə eyni adlı və ya eyni yerdə olan məkan artıq varsa, YOUYA xəbərdarlıq göstərir və düymə «Yenə də əlavə et» olur.',
   'help.guide.create-place.result':
     'Məkan siyahıda və xəritədə görünür, hansısa günə əlavə olunana qədər «Planlaşdırılmayıb» altında qalır.',
   'help.guide.create-place.tip.1':
     'Büdcə əlavəsi aktivdirsə, formanın aşağısındakı «Xərclər» yadda saxladıqdan dərhal sonra məkanın xərci üçün xərc redaktorunu açır. Pəncərəyə yapışdırılmış şəkil və ya PDF «Fayl» altında fayl kimi əlavə olunur.',
   'help.guide.create-place.tip.2':
-    'Hər TREK-də axtarış nəticələrini TREK indeksi və OpenStreetMap verir, «Məkan təfərrüatları» isə Wikipedia, Wikivoyage və Wikimedia-dan avtomatik doldurulur. TREK Google-a yalnız hər ikisi heç nə tapmadıqda müraciət edir və reytinqləri yalnız Google verir.',
+    'Hər YOUYA-də axtarış nəticələrini YOUYA indeksi və OpenStreetMap verir, «Məkan təfərrüatları» isə Wikipedia, Wikivoyage və Wikimedia-dan avtomatik doldurulur. YOUYA Google-a yalnız hər ikisi heç nə tapmadıqda müraciət edir və reytinqləri yalnız Google verir.',
   'help.guide.create-place.tip.3':
     'Məkanı xəritədə də yarada bilərsiniz: nöqtəyə sağ klikləyin, forma koordinat və ünvan doldurulmuş halda açılacaq.',
   // place-to-open-day
@@ -2309,7 +2311,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     'Sancaqlar səyahətin məkanlarıdır, siyahıda və xəritədə, onları günə qoyana qədər «Planlaşdırılmayıb» altında.',
   'help.guide.import-places-file.tip.1':
-    'Çox böyük fayl qəbul edilmir və TREK ölçü limitini göstərir; faylı fotolarsız yenidən ixrac edin və ya hissələrə bölün.',
+    'Çox böyük fayl qəbul edilmir və YOUYA ölçü limitini göstərir; faylı fotolarsız yenidən ixrac edin və ya hissələrə bölün.',
   'help.guide.import-places-file.tip.2':
     '«Faylı idxal et» ilə edilmiş idxalı günlərin üstündəki alətlər panelindən geri qaytarmaq olar.',
   // import-places-list
@@ -2325,7 +2327,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.tip.1':
     'Siyahı hamı üçün açıq paylaşılmalıdır. Şəxsi siyahının linki ilə heç nə idxal olunmur.',
   'help.guide.import-places-list.tip.2':
-    'TREK-inizdə Google açarı olduqda pəncərədə «Məkan məlumatlarını Google vasitəsilə tamamla» görünür: o, idxal edilən hər məkanı axtarır və fotoları, ünvanı və təfərrüatları doldurur.',
+    'YOUYA-inizdə Google açarı olduqda pəncərədə «Məkan məlumatlarını Google vasitəsilə tamamla» görünür: o, idxal edilən hər məkanı axtarır və fotoları, ünvanı və təfərrüatları doldurur.',
   'help.guide.sort-places.title': 'Məkanlar siyahısını sıralayın',
   'help.guide.sort-places.goal':
     'Siyahını ada, reytinqə və ya ən son nəyin əlavə edildiyinə, yaxud dəyişdirildiyinə görə sıralayın.',
@@ -2440,7 +2442,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Dayanacağı başqa günə köçürmək üçün onu həmin günün kartının üzərinə sürükləyin; o, köhnə gündən silinir.',
   'help.guide.reorder-stops.step.4':
-    'Dayanacağın sabit vaxtı varsa və köçürmə günün ardıcıllığını pozarsa, TREK «Vaxt silinsin?» deyə soruşur, çünki vaxt dayanacağın yerini müəyyən edir. «Vaxtı sil və daşı» vaxtı silir və dayanacağı buraxdığınız yerə qoyur. «Ləğv et» günü olduğu kimi saxlayır.',
+    'Dayanacağın sabit vaxtı varsa və köçürmə günün ardıcıllığını pozarsa, YOUYA «Vaxt silinsin?» deyə soruşur, çünki vaxt dayanacağın yerini müəyyən edir. «Vaxtı sil və daşı» vaxtı silir və dayanacağı buraxdığınız yerə qoyur. «Ləğv et» günü olduğu kimi saxlayır.',
   'help.guide.reorder-stops.result': 'Marşrut və yol vaxtları dərhal yeni sıraya uyğun yenilənir.',
   'help.guide.reorder-stops.tip.1':
     'Sabit vaxtı olan rezervasiya öz vaxtının mövqeyində qalır. Onu günün başqa yerinə atsanız, geri qayıdır. Başqa günün kartına sürükləsəniz, həmin günə köçür.',
@@ -2460,7 +2462,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'Vaxt həmin gündəki dayanacağa aiddir. Eyni məkanın başqa gündə başqa vaxtı ola bilər.',
   'help.guide.set-stop-times.tip.2':
-    'Vaxtı təyin olunmuş dayanacağı əl ilə köçürmək üçün onu sürüşdürün. TREK «Vaxt silinsin?» deyə soruşur, «Vaxtı sil və daşı» isə vaxtı götürür və dayanacağı köçürür.',
+    'Vaxtı təyin olunmuş dayanacağı əl ilə köçürmək üçün onu sürüşdürün. YOUYA «Vaxt silinsin?» deyə soruşur, «Vaxtı sil və daşı» isə vaxtı götürür və dayanacağı köçürür.',
   'help.guide.set-stop-times.tip.3':
     'Eyni formada «Yer haqqında» və «Qeydlər»in yanındakı «Yalnız … gün» vərəqi yalnız həmin günə aid qeyd üçündür, məsələn, masa rezervasiyası və ya bilet nömrəsi.',
   // remove-from-day
@@ -2503,7 +2505,7 @@ const help: TranslationStrings = {
   // day-route
   'help.guide.day-route.title': 'Günün marşrutunu göstərmək və optimallaşdırmaq',
   'help.guide.day-route.goal':
-    'Dayanacaqlar arasındakı marşrutu görün, necə hərəkət edəcəyinizi seçin və sıralamanı TREK-ə tapşırın.',
+    'Dayanacaqlar arasındakı marşrutu görün, necə hərəkət edəcəyinizi seçin və sıralamanı YOUYA-ə tapşırın.',
   'help.guide.day-route.step.1':
     'Günü açın və dayanacaqların altındakı marşrut panelində «Marşrut» düyməsinə klikləyin: dayanacaqlar arasındakı marşrut xəritədə çəkilir, aralarındakı birləşdiricilərdə isə hər hissənin vaxtı və məsafəsi göstərilir.',
   'help.guide.day-route.step.2':
@@ -2517,7 +2519,7 @@ const help: TranslationStrings = {
   'help.guide.day-route.result':
     'Gün vaxtları olan marşruta çevrilir. Sıra dəyişdikcə «Ümumi xərc» və hissələr yenilənir.',
   'help.guide.day-route.tip.1':
-    'Marşrutlar standart olaraq OSRM-dən gəlir; administrator «İstifadəçi standartları» bölməsində TREK üçün başqa marşrut mühərriki seçə bilər.',
+    'Marşrutlar standart olaraq OSRM-dən gəlir; administrator «İstifadəçi standartları» bölməsində YOUYA üçün başqa marşrut mühərriki seçə bilər.',
   'help.guide.day-route.tip.2':
     'Marşrutu qurulmayan hissədə vaxt göstərilmir. Hər iki dayanacağın koordinatlarının olduğunu yoxlayın.',
   'help.guide.day-route.tip.3': 'Geri ox optimallaşdırmanı ləğv edir.',
@@ -2595,7 +2597,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     'Aşağıdakı sətir: gün açıq olduqda və məkan hələ orada deyilsə «Günə əlavə et», sonra «Naviqasiya» (və ya «Tənzimləmələr»də seçmisinizsə, xəritə tətbiqinizin adı) və iki işarə, «Veb-saytı aç» və «Kolleksiyada yadda saxla». Sağda üç nöqtədə «Gündən çıxar» və «Sil» var, «Redaktə et» isə məkanın formasını açır, orada şəklini də dəyişirsiniz.',
   'help.ctx.trip-place.bullet.6':
-    'Axtarışdan seçdiyiniz məkanda TREK indeksinin və ya OpenStreetMap-in onun haqqında bildikləri göstərilir: yuxarıdakı nişanlar arasında məkanın yerli vaxtına görə «Açıq» və ya «Bağlanıb», şəklin ətrafında yaşıl və ya qırmızı halqa; telefon nömrəsi, o da nişan kimi; aşağıda «İş saatları», sətirdə bugünkü saatlar, klikləyəndə isə bütün həftə; veb-saytı isə «Veb-saytı aç» altında. Google reytinqi yalnız Google vasitəsilə tapılmış məkanda və Google açarı olan TREK-də görünür. Məkanın formasına özünüz yazdığınız iş saatları, telefon nömrəsi və e-poçt tapılmış məlumatları əvəz edir və halqanın rəngini də müəyyən edir.',
+    'Axtarışdan seçdiyiniz məkanda YOUYA indeksinin və ya OpenStreetMap-in onun haqqında bildikləri göstərilir: yuxarıdakı nişanlar arasında məkanın yerli vaxtına görə «Açıq» və ya «Bağlanıb», şəklin ətrafında yaşıl və ya qırmızı halqa; telefon nömrəsi, o da nişan kimi; aşağıda «İş saatları», sətirdə bugünkü saatlar, klikləyəndə isə bütün həftə; veb-saytı isə «Veb-saytı aç» altında. Google reytinqi yalnız Google vasitəsilə tapılmış məkanda və Google açarı olan YOUYA-də görünür. Məkanın formasına özünüz yazdığınız iş saatları, telefon nömrəsi və e-poçt tapılmış məlumatları əvəz edir və halqanın rəngini də müəyyən edir.',
   // read-place
   'help.guide.read-place.title': 'Kart məkan haqqında nə deyir',
   'help.guide.read-place.goal': 'Səyahətdə bir məkan haqqında olan bütün məlumatları bir kartda oxuyun.',
@@ -2672,7 +2674,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     'Lövhələrin altındakı sətrin sonundakı «Şəkli sil» «Yenilə»yə klikləyəndən sonra məkanı şəkilsiz qoyur. «Ləğv et» köhnəsini saxlayır.',
   'help.guide.place-image.tip.3':
-    'Digər lövhələr məkanın hazırkı şəkli, ona əlavə olunmuş fotolar və TREK-in onun üçün tapdığı şəkillərdir, hər biri öz müəllifi ilə. Şəkli yalnız məkanları dəyişmək hüququ olan səyahətçilər dəyişə bilər.',
+    'Digər lövhələr məkanın hazırkı şəkli, ona əlavə olunmuş fotolar və YOUYA-in onun üçün tapdığı şəkillərdir, hər biri öz müəllifi ilə. Şəkli yalnız məkanları dəyişmək hüququ olan səyahətçilər dəyişə bilər.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'Məkanı açıq günə əlavə etmək və ya oradan çıxarmaq',
   'help.guide.place-day-assign.goal': 'Sətri planlayıcı boyunca çəkmək əvəzinə kartdakı düymədən istifadə edin.',
@@ -2755,11 +2757,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     'Siyahıda bu məkana uyğun xəritə tətbiqləri var: Google Maps, Waze, Apple Maps, OpenStreetMap və CoMaps, Android-də isə əlavə olaraq «Başqa xəritə tətbiqi».',
   'help.guide.place-navigation.step.3':
-    'İstifadə etdiyiniz tətbiqə klikləyin. Mümkün olduqda TREK tətbiqə yalnız koordinatları deyil, məkanın özünü ötürür, belə ki, düz girişə gəlib çıxırsınız.',
+    'İstifadə etdiyiniz tətbiqə klikləyin. Mümkün olduqda YOUYA tətbiqə yalnız koordinatları deyil, məkanın özünü ötürür, belə ki, düz girişə gəlib çıxırsınız.',
   'help.guide.place-navigation.step.4':
     'Yanındakı işarə, «Veb-saytı aç», məkanın öz saytını iş saatları və biletləri ilə birlikdə yeni tabda açır.',
   'help.guide.place-navigation.result':
-    'Xəritə tətbiqi məkanda açılır, veb-sayt yeni tabda açılır, səyahətdə isə heç nə dəyişmir. TREK tətbiq kimi quraşdırılıbsa, yeni tab əvəzinə xəritə tətbiqi açılır.',
+    'Xəritə tətbiqi məkanda açılır, veb-sayt yeni tabda açılır, səyahətdə isə heç nə dəyişmir. YOUYA tətbiq kimi quraşdırılıbsa, yeni tab əvəzinə xəritə tətbiqi açılır.',
   'help.guide.place-navigation.tip.1':
     'Waze naviqasiyaya dərhal başlayır. Digər tətbiqlər məkanı açır, naviqasiyaya başlamaq üçün bir dəfə də toxunmalısınız.',
   'help.guide.place-navigation.tip.2':
@@ -2798,7 +2800,7 @@ const help: TranslationStrings = {
     'Soldakı qırıq xətli xana, «Avtomatik rəng», trekə yenidən standart rəngini qaytarır. Sağdakı pipet isə istənilən başqa rəng üçün sisteminizin rəng seçicisini açır.',
   'help.guide.place-track.result': 'Trek seçdiyiniz rənglə kartda, məkanlar sütunundakı sətrində və xəritədə çəkilir.',
   'help.guide.place-track.tip.1':
-    'Bu iki blok yalnız xətti olan məkanda olur: Turlar yaranmazdan əvvəl və ya Turlar söndürülmüş TREK-də GPX, KML və ya KMZ faylından idxal edilmiş məkan. Turlar aktiv olduqda yeni GPX faylı tura çevrilir və öz tur kartını açır.',
+    'Bu iki blok yalnız xətti olan məkanda olur: Turlar yaranmazdan əvvəl və ya Turlar söndürülmüş YOUYA-də GPX, KML və ya KMZ faylından idxal edilmiş məkan. Turlar aktiv olduqda yeni GPX faylı tura çevrilir və öz tur kartını açır.',
   'help.guide.place-track.tip.2':
     'Hündürlük məlumatı ilə yazılmış trek ən yüksək və ən aşağı nöqtəni, qalxış və enişin metrlərini və gəzintinin profilini də göstərir.',
   'help.guide.place-track.tip.3':
@@ -2990,7 +2992,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     'Xəritənin yuxarısındakı işarələr sırası kateqoriya axtarışıdır: «Restoranlar», «Kafelər», «Barlar və gecə həyatı», «Yaşayış yeri», «Görməli yerlər», «Muzeylər və mədəniyyət», «Təbiət və parklar», «Fəaliyyətlər», «Çörəkxanalar» və «Ərzaq mağazaları». Plaginin əlavə etdiyi kateqoriyalar nazik ayırıcıdan sonra gəlir; adını görmək üçün kursoru işarənin üzərinə gətirin.',
   'help.guide.map-nearby-places.step.2':
-    'Kateqoriyaya klikləyin. TREK xəritənin görünən hissəsində həmin növ məkanları axtarır və hər nəticə üçün kateqoriyanın rəngində pin qoyur. Eyni anda yalnız bir kateqoriya olur: başqasına klikləsəniz, onu əvəz edir, aktiv olana klikləsəniz, sönür.',
+    'Kateqoriyaya klikləyin. YOUYA xəritənin görünən hissəsində həmin növ məkanları axtarır və hər nəticə üçün kateqoriyanın rəngində pin qoyur. Eyni anda yalnız bir kateqoriya olur: başqasına klikləsəniz, onu əvəz edir, aktiv olana klikləsəniz, sönür.',
   'help.guide.map-nearby-places.step.3':
     'Xəritəni sürüşdürəndə sıranın altında ikinci düymə görünür: «Bu ərazidə axtar» eyni axtarışı yeni görünüş üçün aparır. Xəritəni sürüşdürmək özü-özlüyündə yeni axtarış başlatmır. Bu, sorğuların sayını az saxlayır.',
   'help.guide.map-nearby-places.step.4':
@@ -2998,13 +3000,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     'Nəyin doldurulduğunu yoxlayın və axtarışın bilə bilmədiklərini əlavə edin. Səyahətdə uyğun kateqoriya varsa, məsələn, restoran üçün restoran, adın altındakı kateqoriya düyməsi artıq təyin edilib; əks halda siz seçənə qədər onda «Kateqoriya yoxdur» yazılır. Məkanın nə haqqında olduğunu «Yer haqqında» altında, öz qeydlərinizi isə «Qeydlər» altında yazın.',
   'help.guide.map-nearby-places.step.6':
-    '«Əlavə et» düyməsinə klikləyin. Səyahətdə eyni adlı və ya eyni nöqtədə məkan artıq varsa, TREK bunu bildirir və düymə «Yenə də əlavə et» olur.',
+    '«Əlavə et» düyməsinə klikləyin. Səyahətdə eyni adlı və ya eyni nöqtədə məkan artıq varsa, YOUYA bunu bildirir və düymə «Yenə də əlavə et» olur.',
   'help.guide.map-nearby-places.result':
     'Məkan məkanlar siyahısında və xəritədə səyahətin öz pinlərindən biri kimi görünür; onu hansısa günə qoyana qədər «Planlaşdırılmayıb» altında qalır. Axtarış pinləri isə kateqoriyanı söndürənə qədər qalır.',
   'help.guide.map-nearby-places.tip.1':
     '«Tənzimləmələr» > «Ümumi» bölməsində, «Səyahət və xəritə» altında «Xəritədə məkanları kəşf et» söndürülübsə, sıra gizlənir.',
   'help.guide.map-nearby-places.tip.2':
-    'Nəticələr TREK Places indeksindən və OpenStreetMap-dən gəlir, ona görə bu, planda internet tələb edən azsaylı funksiyalardan biridir.',
+    'Nəticələr YOUYA Places indeksindən və OpenStreetMap-dən gəlir, ona görə bu, planda internet tələb edən azsaylı funksiyalardan biridir.',
   'help.guide.map-nearby-places.tip.3':
     'Axtarış yalnız ekranda görünən ərazini əhatə edir, ona görə maraqlandığınız küçəyə yaxınlaşın. Bütün şəhər üzrə axtarış yalnız ilk altmış nəticəni, heç bir aydın sıra olmadan qaytarır.',
   // map-add-place
@@ -3013,7 +3015,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     'Xəritədə istədiyiniz nöqtəyə sağ klikləyin. «Məkan/Fəaliyyət əlavə et» başlıqlı məkan forması açılır.',
   'help.guide.map-add-place.step.2':
-    '«Enlik» və «Uzunluq» artıq həmin nöqtəyə uyğun doldurulub. TREK koordinatları yoxlayır və orada tapdığı ünvanla «Ünvan» xanasını doldurur. Yoxlama ad da taparsa, TREK pəncərənin yuxarısındakı adı da doldurur. Hələ heç nə yadda saxlanmayıb, ona görə səhv olanı düzəldin.',
+    '«Enlik» və «Uzunluq» artıq həmin nöqtəyə uyğun doldurulub. YOUYA koordinatları yoxlayır və orada tapdığı ünvanla «Ünvan» xanasını doldurur. Yoxlama ad da taparsa, YOUYA pəncərənin yuxarısındakı adı da doldurur. Hələ heç nə yadda saxlanmayıb, ona görə səhv olanı düzəldin.',
   'help.guide.map-add-place.step.3':
     'Dialoqun yuxarısındakı sahəyə tanıyacağınız bir ad yazın. Onun altındakı nişandan kateqoriya seçin; seçənə qədər orada «Kateqoriya yoxdur» yazılır. Sonra plan üçün digər məlumatları əlavə edin: «Yer haqqında», «Qeydlər», «Veb-sayt».',
   'help.guide.map-add-place.step.4':
@@ -3030,7 +3032,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     'Əsas qat açarı xəritənin aşağı solundakı iki dairəvi düymədən aşağıdakıdır, kilidin altında. Onun işarəsi həmişə keçəcəyi qatı göstərir, ipucunda da bu yazılır: «Peyk görünüşünə keç». Ona klikləyin.',
   'help.guide.map-satellite.step.2':
-    'Xəritə indi peyk şəkillərini göstərir. Onlar ayrı-ayrı binaları görmək üçün kifayət qədər detallıdır və öz açarınız lazım deyil. TREK-in çəkdiyi hər şey üstdə qalır: pinlər, günün marşrutu, treklər və rezervasiya marşrutları.',
+    'Xəritə indi peyk şəkillərini göstərir. Onlar ayrı-ayrı binaları görmək üçün kifayət qədər detallıdır və öz açarınız lazım deyil. YOUYA-in çəkdiyi hər şey üstdə qalır: pinlər, günün marşrutu, treklər və rezervasiya marşrutları.',
   'help.guide.map-satellite.step.3':
     'Düymədə indi «Xəritə görünüşünə keç» yazılır. Xəritə görünüşünə qayıtmaq üçün ona klikləyin.',
   'help.guide.map-satellite.result': 'Xəritə yenidən çəkilir, seçdiyiniz qat isə hesabınızda yadda saxlanılır.',
@@ -3085,7 +3087,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Dawarich-in telefonunuzda qeydə aldığı yolu xəritədə planlaşdırdığınız marşrutun yanında qırıq xətlə göstərin və səyahətin gün-gün əslində necə keçdiyini görün.',
   'help.guide.map-dawarich-trail.step.1':
-    'Dairəvi Dawarich düyməsi xəritənin sağ aşağı hissəsində, «Bütün səyahəti göstər» düyməsinin altındadır. Kursoru üzərinə aparanda «Qeydə alınmış marşrutu göstər» yazısı görünür. Ona klikləyin. TREK səyahətin tarixləri üçün məlumatı Dawarich-dən sorğulayır və cavabı gözləyərkən düymənin ətrafında halqa fırlanır.',
+    'Dairəvi Dawarich düyməsi xəritənin sağ aşağı hissəsində, «Bütün səyahəti göstər» düyməsinin altındadır. Kursoru üzərinə aparanda «Qeydə alınmış marşrutu göstər» yazısı görünür. Ona klikləyin. YOUYA səyahətin tarixləri üçün məlumatı Dawarich-dən sorğulayır və cavabı gözləyərkən düymənin ətrafında halqa fırlanır.',
   'help.guide.map-dawarich-trail.step.2':
     'Qeydə alınmış marşrut hər gün üçün ayrı rəngdə qırıq xətt kimi görünür və plan oxunaqlı qalsın deyə planlaşdırılmış marşrutun altında çəkilir. Düymədə indi «Qeydə alınmış marşrutu gizlət» yazılır. Hər gün yerli vaxtla gecə yarısı bitir. Günlər sütununda günü yığsanız, onun qırıq xətti və dayanacaqları xəritədə gizlənir.',
   'help.guide.map-dawarich-trail.step.3':
@@ -3093,9 +3095,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     'Planlaşdırdığınız və əslində getdiyiniz yol xəritədə birlikdə göstərilir: qırıq və bütöv xətlərlə. Düymələrin üstündəki kart yenə də planlaşdırılmış günləri və məsafələrini göstərir.',
   'help.guide.map-dawarich-trail.tip.1':
-    'Yandırılıb-söndürülməsi hər səyahət üçün hesabınızda saxlanılır, ona görə bütün brauzerlərdə və cihazlarda eynidir. Marşrut yanılı olduqca TREK iki dəqiqədən bir Dawarich-dən yenidən məlumat alır, beləcə davam edən səyahət səhifəni yeniləmədən yenilənir. Marşrutun özü heç vaxt saxlanılmır: o, nə TREK-in verilənlər bazasında, nə ehtiyat nüsxələrdə var, nə də oflayn əlçatandır.',
+    'Yandırılıb-söndürülməsi hər səyahət üçün hesabınızda saxlanılır, ona görə bütün brauzerlərdə və cihazlarda eynidir. Marşrut yanılı olduqca YOUYA iki dəqiqədən bir Dawarich-dən yenidən məlumat alır, beləcə davam edən səyahət səhifəni yeniləmədən yenilənir. Marşrutun özü heç vaxt saxlanılmır: o, nə YOUYA-in verilənlər bazasında, nə ehtiyat nüsxələrdə var, nə də oflayn əlçatandır.',
   'help.guide.map-dawarich-trail.tip.2':
-    'Düymənin yazısı xəritənin niyə boş olduğunu bildirir: yüklənərkən «Qeydə alınmış marşrut yüklənir…», «Bu tarixlərdə heç nə qeydə alınmayıb», «Qeydə alınmış marşrutu yükləmək mümkün olmadı» və ya TREK oflayn olanda «Qeydə alınmış marşrut internet bağlantısı tələb edir».',
+    'Düymənin yazısı xəritənin niyə boş olduğunu bildirir: yüklənərkən «Qeydə alınmış marşrut yüklənir…», «Bu tarixlərdə heç nə qeydə alınmayıb», «Qeydə alınmış marşrutu yükləmək mümkün olmadı» və ya YOUYA oflayn olanda «Qeydə alınmış marşrut internet bağlantısı tələb edir».',
   // map-compass
   'help.guide.map-compass.title': 'Xəritəni fırladın və şimalı yenidən tapın',
   'help.guide.map-compass.goal': 'Xəritəni getdiyiniz istiqamətə çevirin və bir kliklə yenidən şimala qaytarın.',
@@ -3112,7 +3114,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Nəqliyyat',
   'help.ctx.trip-transports.summary':
-    'Dayanacaqlar arasında hərəkət etdiyiniz bütün yollar: uçuşlar, qatarlar, avtobuslar, avtomobillər, taksilər, velosipedlər, kruizlər, bərələr, kanat yolları və TREK-in sizin üçün tapdığı ictimai nəqliyyat əlaqələri. Vərəq onları sadalayır. Onları planda da yarada və baxa bilərsiniz, xəritədə də çəkilirlər.',
+    'Dayanacaqlar arasında hərəkət etdiyiniz bütün yollar: uçuşlar, qatarlar, avtobuslar, avtomobillər, taksilər, velosipedlər, kruizlər, bərələr, kanat yolları və YOUYA-in sizin üçün tapdığı ictimai nəqliyyat əlaqələri. Vərəq onları sadalayır. Onları planda da yarada və baxa bilərsiniz, xəritədə də çəkilirlər.',
   'help.ctx.trip-transports.bullet.1':
     'Vərəqdə yalnız gedişlər göstərilir. Yaşayış yeri, restoranlar, tədbirlər və biletlər «Rezervasiyalar» vərəqindədir, ona görə eyni qeyd heç vaxt iki dəfə görünmür.',
   'help.ctx.trip-transports.bullet.2':
@@ -3169,7 +3171,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': 'Reysi elektron biletdən idxal edin',
   'help.guide.import-transport-file.goal':
-    'Qoy TREK daşıyıcının göndərdiyi biletdən uçuşu, qatarı və ya bərəni oxusun, siz də yadda saxlamazdan əvvəl onu yoxlayın.',
+    'Qoy YOUYA daşıyıcının göndərdiyi biletdən uçuşu, qatarı və ya bərəni oxusun, siz də yadda saxlamazdan əvvəl onu yoxlayın.',
   'help.guide.import-transport-file.step.1':
     '«Nəqliyyat» vərəqinin panelində «Nəqliyyat» qarşısındakı yükləmə işarəsinə klikləyin, ipucunda «Rezervasiya təsdiqlərini idxal et» yazılır. Həmin adlı pəncərə açılır, «Rezervasiyalar» vərəqindəki ilə eyni. Boş vərəqdə ortadakı «Fayldan idxal et» eyni işi görür.',
   'help.guide.import-transport-file.step.2':
@@ -3189,11 +3191,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': 'İctimai nəqliyyat əlaqəsini planlaşdırmaq',
   'help.guide.plan-transit.goal':
-    'Qoy TREK günün iki nöqtəsi arasında real qatar və avtobusları tapsın, seçdiyinizi isə plana əlavə etsin.',
+    'Qoy YOUYA günün iki nöqtəsi arasında real qatar və avtobusları tapsın, seçdiyinizi isə plana əlavə etsin.',
   'help.guide.plan-transit.step.1':
     'Günün başlığındakı + düyməsinə klikləyin və «İctimai nəqliyyat» seçin. Axtarış həmin gün üçün açılır: gün başlıqda nişan kimi göstərilir, yanındakı «Əl ilə» və «Avtomatik» isə bu axtarışla adi forma arasında keçid edir.',
   'help.guide.plan-transit.step.2':
-    '«Kimdən» və «Hara» sahələrinə dayanacaq və ya stansiya yazılır. Sahə boş olduqca TREK günün yaşayış yerini, günün rezervasiyalarındakı stansiya və aeroportları və günün öz dayanacaqlarını təklif edir. İki hərf yazdıqda isə əvəzinə cədvəldəki stansiyalarda axtarır. İki sahə arasındakı «Yerlərini dəyiş» «Kimdən» və «Hara» sahələrinin yerini dəyişir.',
+    '«Kimdən» və «Hara» sahələrinə dayanacaq və ya stansiya yazılır. Sahə boş olduqca YOUYA günün yaşayış yerini, günün rezervasiyalarındakı stansiya və aeroportları və günün öz dayanacaqlarını təklif edir. İki hərf yazdıqda isə əvəzinə cədvəldəki stansiyalarda axtarır. İki sahə arasındakı «Yerlərini dəyiş» «Kimdən» və «Hara» sahələrinin yerini dəyişir.',
   'help.guide.plan-transit.step.3':
     'Vaxtla birlikdə «Yola düşmə» və ya «Çatma» nə vaxt getmək istədiyinizi, «Ən yaxşı marşrut», «Daha az dəyişmə» və ya «Daha az piyada yol» isə nəticələrin necə sıralanacağını müəyyən edir.',
   'help.guide.plan-transit.step.4':
@@ -3307,7 +3309,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     'Səyahətdə eyni nömrə və tarixlə artıq olan uçuş ötürülür və mesajda neçəsinin ötürüldüyü yazılır. Günlərin üstündəki alətlər panelində geri qaytarma oxu bütün idxalı geri alır.',
   'help.guide.airtrail-import.tip.2':
-    'Məlumatın əsas mənbəyi AirTrail olaraq qalır. TREK səyahəti açanda və arxa fonda bir neçə dəqiqədən bir onun dəyişikliklərini oxuyur. AirTrail-də silinmiş uçuşun kartı TREK-də qalır, nişanı isə «Sinxronlaşdırılmayıb» olur. TREK-də etdiyiniz dəyişikliklər yalnız «İnteqrasiyalar» altında «Dəyişiklikləri AirTrail-ə geri yaz» yandırılıbsa, AirTrail-ə göndərilir.',
+    'Məlumatın əsas mənbəyi AirTrail olaraq qalır. YOUYA səyahəti açanda və arxa fonda bir neçə dəqiqədən bir onun dəyişikliklərini oxuyur. AirTrail-də silinmiş uçuşun kartı YOUYA-də qalır, nişanı isə «Sinxronlaşdırılmayıb» olur. YOUYA-də etdiyiniz dəyişikliklər yalnız «İnteqrasiyalar» altında «Dəyişiklikləri AirTrail-ə geri yaz» yandırılıbsa, AirTrail-ə göndərilir.',
   'help.guide.airtrail-import.tip.3':
     'Birləşdirilmiş əlaqə sinxronlaşdırıla bilən tək AirTrail reysi deyil, ona görə bu, birdəfəlik idxaldır: mavi nişan qalır və kursoru onun üzərinə gətirəndə bu barədə məlumat görünür. Sinxronlaşdırılmış reysə əllə dayanacaq əlavə etdikdə də eyni şey baş verir.',
   // ── Screen: trip-bookings ─────────────────────────────────────────────────────────────
@@ -3317,7 +3319,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     'Panelin sağ ucundakı «Əl ilə rezervasiya et» «Yeni rezervasiya» pəncərəsini açır. Burada altı növ rezervasiya yaradılır: Yaşayış yeri, Restoran, Tədbir, Bələdçili tur, Parkinq və Digər. Uçuşlar, qatarlar və digər nəqliyyat «Nəqliyyat» bölməsindədir və burada heç vaxt görünmür.',
   'help.ctx.trip-bookings.bullet.2':
-    '«Əl ilə rezervasiya et» qarşısındakı yükləmə işarəsi, «Rezervasiya təsdiqlərini idxal et», təsdiqləri yükləyir ki, TREK onları avtomatik oxusun: EML, PDF, PKPass, HTML və ya TXT, ən çoxu 10 MB-lıq beş fayl, AI modeli şəkilləri oxuya bilirsə, fotolar da. Bu işarə yalnız server onları oxuya bildikdə görünür. Administrator məktub idxalını açıbsa, eyni pəncərə səyahətə rezervasiya məktublarını yönləndirmək üçün öz ünvanını verir.',
+    '«Əl ilə rezervasiya et» qarşısındakı yükləmə işarəsi, «Rezervasiya təsdiqlərini idxal et», təsdiqləri yükləyir ki, YOUYA onları avtomatik oxusun: EML, PDF, PKPass, HTML və ya TXT, ən çoxu 10 MB-lıq beş fayl, AI modeli şəkilləri oxuya bilirsə, fotolar da. Bu işarə yalnız server onları oxuya bildikdə görünür. Administrator məktub idxalını açıbsa, eyni pəncərə səyahətə rezervasiya məktublarını yönləndirmək üçün öz ünvanını verir.',
   'help.ctx.trip-bookings.bullet.3':
     'Axtarış başlıqlar, növlər, məkanlar, qeydlər, rezervasiya kodları və səyahətçilər üzrə aparılır. Yanındakı huni, «Filtrlə», bölməni «Vəziyyət» üzrə, hər biri üçün sayı göstərilən «Növ» üzrə və rezervasiyada adamlar qeyd olunduqdan sonra «Səyahətçilər» üzrə daraldır. Hunidəki rəqəm neçə filtrin aktiv olduğunu göstərir.',
   'help.ctx.trip-bookings.bullet.4':
@@ -3382,7 +3384,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     'Oteli «Yaşayış yeri» altında seçin. Siyahıda səyahətin məkanları var, idxal edilmiş izlər və turlar istisna olmaqla. Birini seçdikdə onun adı boş başlığa, ünvanı isə «Məkan / Ünvan» sahəsinə yazılır.',
   'help.guide.booking-hotel.step.3':
-    '«Kimdən» və «Kimə» sahələrini təyin edin: ilk gecə və yola düşdüyünüz səhər. Hər ikisində səyahət günləri tarixləri ilə təklif olunur və TREK «Kimə» tarixini həmişə «Kimdən» tarixindən sonra saxlayır.',
+    '«Kimdən» və «Kimə» sahələrini təyin edin: ilk gecə və yola düşdüyünüz səhər. Hər ikisində səyahət günləri tarixləri ilə təklif olunur və YOUYA «Kimə» tarixini həmişə «Kimdən» tarixindən sonra saxlayır.',
   'help.guide.booking-hotel.step.4':
     '«Giriş», «Son giriş vaxtı» və «Çıxış» sahələrini, həmçinin təsdiq məktubundakı «Rezervasiya kodu»nu doldurun.',
   'help.guide.booking-hotel.step.5': '«Əlavə et» düyməsinə klikləyin.',
@@ -3431,7 +3433,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.title': 'Vauçeri rezervasiya ilə birlikdə saxlayın',
   'help.guide.booking-files.goal': 'Təsdiqi, bileti və ya minik talonunu aid olduğu rezervasiyaya əlavə edin.',
   'help.guide.booking-files.step.1':
-    'Rezervasiyanı kartındakı qələmlə açın. «Fayl» bölməsi «Əlaqələndir» bölməsinin yanındadır, orada «Fayl əlavə et» düyməsini klikləyin. Artıq mövcud rezervasiyada sənəd dərhal yüklənir və TREK «Fayl yükləndi» bildirir.',
+    'Rezervasiyanı kartındakı qələmlə açın. «Fayl» bölməsi «Əlaqələndir» bölməsinin yanındadır, orada «Fayl əlavə et» düyməsini klikləyin. Artıq mövcud rezervasiyada sənəd dərhal yüklənir və YOUYA «Fayl yükləndi» bildirir.',
   'help.guide.booking-files.step.2': 'Sənəd adı ilə siyahıda göstərilir, yanında onu açmaq üçün düymə və X var.',
   'help.guide.booking-files.step.3':
     '«Mövcud faylı əlaqələndir» səyahətin bu rezervasiyaya hələ əlavə olunmamış sənədlərini təklif edir. Birini seçin, heç nə yenidən yüklənmədən əlavə olunacaq.',
@@ -3487,7 +3489,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': 'Rezervasiyanı təsdiq məktubundan idxal edin',
   'help.guide.import-booking-file.goal':
-    'Qoy TREK rezervasiyanı provayderin göndərdiyi e-poçtdan və ya PDF-dən oxusun, onu yenidən yazmalı olmayasınız.',
+    'Qoy YOUYA rezervasiyanı provayderin göndərdiyi e-poçtdan və ya PDF-dən oxusun, onu yenidən yazmalı olmayasınız.',
   'help.guide.import-booking-file.step.1':
     'Paneldəki yükləmə işarəsinə, yəni «Rezervasiya təsdiqlərini idxal et» düyməsinə klikləyin; onun adı kursoru üzərinə gətirəndə görünür. Eyni adlı pəncərə açılır.',
   'help.guide.import-booking-file.step.2':
@@ -3577,7 +3579,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     'Kimisə siyahıya təyin edəndə ona baqaj bildirişi gəlir. Bu, elementləri kimin görə biləcəyini dəyişmir. Bu, hər elementin pəncərəsində «Görə bilənlər» altında, bütün siyahı üçün isə «Bütün siyahı üçün paylaşım» ilə təyin olunur.',
   'help.guide.packing-categories.tip.3':
-    'İki siyahının adı eyni ola bilər. TREK onları daxildə ayrı saxlayır, ona görə adlar yazdığınız kimi qalır.',
+    'İki siyahının adı eyni ola bilər. YOUYA onları daxildə ayrı saxlayır, ona görə adlar yazdığınız kimi qalır.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Çamadan yığarkən əşyaları işarələmək',
   'help.guide.check-off-packing.goal':
@@ -3627,13 +3629,13 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.step.3':
     'Və ya sətirləri pəncərənin aşağı solundakı «CSV/TXT/MD yüklə» ilə fayldan yükləyin. O, .csv, .txt və ya .md faylı qəbul edir və xanadakı hər şeyi əvəz edir.',
   'help.guide.import-packing-list.step.4':
-    'Sağ aşağıdakı «3 elementi idxal et» düyməsinə klikləyin. Üzərindəki rəqəm TREK-in başa düşdüyü sətirlərin sayıdır.',
+    'Sağ aşağıdakı «3 elementi idxal et» düyməsinə klikləyin. Üzərindəki rəqəm YOUYA-in başa düşdüyü sətirlərin sayıdır.',
   'help.guide.import-packing-list.result':
     'Hər sətir birinci sahədə adı yazılan siyahıda ayrıca sətrə çevrilir. Əvvəldən olan elementlər dəyişmir.',
   'help.guide.import-packing-list.tip.1':
     'Vergül, nöqtəli vergül və tab sahələri ayırır, qoşa dırnaq isə sahəni bir yerdə saxlayır, ona görə «Köynək, mavi» tək ad kimi qalır. Tək dəyərli sətir sadəcə addır. Öz siyahısı olmayan sətir «Digər»ə düşür. Adın qarşısındakı «3x» miqdarı təyin edir.',
   'help.guide.import-packing-list.tip.2':
-    'Dördüncü sahədə adı yazılan çanta səyahətdə hələ yoxdursa, TREK onu yaradır. Çox elementə birdəfəlik çəki və çanta əlavə etməyin iki yolu var: «İdxal et» və «Şablonu tətbiq et».',
+    'Dördüncü sahədə adı yazılan çanta səyahətdə hələ yoxdursa, YOUYA onu yaradır. Çox elementə birdəfəlik çəki və çanta əlavə etməyin iki yolu var: «İdxal et» və «Şablonu tətbiq et».',
   // export-packing-list
   'help.guide.export-packing-list.title': 'Baqaj siyahısını çap edin və ya ixrac edin',
   'help.guide.export-packing-list.goal':
@@ -3856,11 +3858,11 @@ const help: TranslationStrings = {
     'Fərdi bölgünü faizlə və ya paylarla da daxil etmək olar: ipucunun yanındakı kiçik açar valyuta simvolunu, % və ya «Paylar» seçir. Faizdə xərcin yadda saxlanması üçün payların cəmi 100 % olmalıdır.',
   // expense-currency
   'help.guide.expense-currency.title': 'Xərci başqa valyutada daxil edin',
-  'help.guide.expense-currency.goal': 'Qəbzdəki məbləği yazın, məzənnəni isə TREK yadda saxlayır.',
+  'help.guide.expense-currency.goal': 'Qəbzdəki məbləği yazın, məzənnəni isə YOUYA yadda saxlayır.',
   'help.guide.expense-currency.step.1':
     '«Xərc əlavə et»i açın. Adı pəncərənin yuxarısına yazın, məbləği isə «Ümumi məbləğ» sahəsinə qəbzdə olduğu kimi daxil edin, çevrilmiş məbləği yox.',
   'help.guide.expense-currency.step.2':
-    'Məbləğin yanındakı «Valyuta» siyahısını açın; yeni xərc səyahətin öz valyutasından başlayır. Qəbzdəki valyutanı seçin: səyahətin valyutası və «Xərclər»in göstərildiyi valyuta yuxarıda durur, TREK-in tanıdığı qalan hər kodu isə üç hərfi yazmaqla axtara bilərsiniz.',
+    'Məbləğin yanındakı «Valyuta» siyahısını açın; yeni xərc səyahətin öz valyutasından başlayır. Qəbzdəki valyutanı seçin: səyahətin valyutası və «Xərclər»in göstərildiyi valyuta yuxarıda durur, YOUYA-in tanıdığı qalan hər kodu isə üç hərfi yazmaqla axtara bilərsiniz.',
   'help.guide.expense-currency.step.3':
     'Sahələrin altında nişanlar sırası görünür: yazdığınız məbləğ və onun hazırkı dəyəri, «cari məzənnə» qeydi ilə. Bu, sadəcə önizləmədir. Yadda saxlanılan dəyər bu deyil.',
   'help.guide.expense-currency.step.4':
@@ -4076,13 +4078,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     'Səyahətin bütün sənədləri bir siyahıda: biletlər, təsdiq məktubları, talonlar və şəkillər. Hər birinə qeyd yazmaq, onu aid olduğu məkana və ya rezervasiyaya bağlamaq olar, silinənləri isə zibil qutusundan bərpa etmək mümkündür.',
   'help.ctx.trip-files.bullet.1':
-    'Paneldən aşağıdakı qırıq xətli qutu, «Faylları buraya sürükləyib buraxın», üzərinə atdığınız faylları qəbul edir. Ona klik fayl seçicisini açır. Qutuda bu TREK-in qəbul etdiyi fayl növləri və hər fayl üçün limit (administrator başqa limit təyin etməyibsə, maksimum 50 MB) göstərilir.',
+    'Paneldən aşağıdakı qırıq xətli qutu, «Faylları buraya sürükləyib buraxın», üzərinə atdığınız faylları qəbul edir. Ona klik fayl seçicisini açır. Qutuda bu YOUYA-in qəbul etdiyi fayl növləri və hər fayl üçün limit (administrator başqa limit təyin etməyibsə, maksimum 50 MB) göstərilir.',
   'help.ctx.trip-files.bullet.2':
     'Yuxarıdakı paneldə «Fayl» və filtr tabları var: «Hamısı», «PDF-lər», «Şəkillər» və «Sənədlər», hər birinin yanında sayı. Hər hansı fayl ulduzlananda «Hamısı» tabından sonra ulduz tabı, qeydə əlavə qoşulanda isə sonda «Əməkdaşlıq qeydləri» tabı görünür.',
   'help.ctx.trip-files.bullet.3':
     'Sətirdə miniatür və ya faylın növü, faylı kimin yüklədiyi, adı, altındakı qeyd, ölçüsü və tarixi, həmçinin hər əlaqə üçün bir nişan göstərilir: adı ilə məkan, rezervasiya və ya nəqliyyat (kursoru üzərinə gətirsəniz, «Günlük plan», «Rezervasiya» və ya «Nəqliyyat» yazılır) və «Əməkdaşlıq qeydlərindən».',
   'help.ctx.trip-files.bullet.4':
-    'Sətrin sonunda beşə qədər işarə var, kursoru üzərinə gətirdikdə hər birinin adı görünür: «Ulduzla», «Təyin et» (qələm), «Açıq», «Endir» və «Sil». «Sil» soruşmur: fayl zibil qutusuna düşür, oradan onu bərpa edə bilərsiniz. Oflayn olduqda qeyd, əlaqə, ulduz və zibil qutusu yenə işləyir və TREK yenidən onlayn olduqda göndərilir; yalnız yükləmə və əlavə əlaqəni silmək üçün bağlantı lazımdır.',
+    'Sətrin sonunda beşə qədər işarə var, kursoru üzərinə gətirdikdə hər birinin adı görünür: «Ulduzla», «Təyin et» (qələm), «Açıq», «Endir» və «Sil». «Sil» soruşmur: fayl zibil qutusuna düşür, oradan onu bərpa edə bilərsiniz. Oflayn olduqda qeyd, əlaqə, ulduz və zibil qutusu yenə işləyir və YOUYA yenidən onlayn olduqda göndərilir; yalnız yükləmə və əlavə əlaqəni silmək üçün bağlantı lazımdır.',
   'help.ctx.trip-files.bullet.5':
     'Şəkil və ya video tam ekranda, ox düymələri və miniatür zolağı ilə açılır. Digər bütün sənədlər pəncərədə açılır: yuxarıda adı, altında isə «Yeni tabda aç» və «Endir». Wallet kartı dərhal endirilir.',
   'help.ctx.trip-files.bullet.6':
@@ -4094,7 +4096,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     'Səyahəti açın və bölmələr panelində «Fayllar» üzərinə klikləyin. Səyahətin sənədləri orada sıralanır, üstündə isə yükləmə sahəsi var.',
   'help.guide.files-upload.step.2':
-    '«Faylları buraya sürükləyib buraxın» sahəsinə klikləyin və bir və ya bir neçə fayl seçin. Onlar bir-birinin ardınca yüklənir, bu müddətdə qutuda «Yüklənir...» yazılır. Qutunun içində, «və ya seçmək üçün klikləyin» altında bu TREK-in qəbul etdiyi fayl növlərini və faylın maksimum ölçüsünü görürsünüz.',
+    '«Faylları buraya sürükləyib buraxın» sahəsinə klikləyin və bir və ya bir neçə fayl seçin. Onlar bir-birinin ardınca yüklənir, bu müddətdə qutuda «Yüklənir...» yazılır. Qutunun içində, «və ya seçmək üçün klikləyin» altında bu YOUYA-in qəbul etdiyi fayl növlərini və faylın maksimum ölçüsünü görürsünüz.',
   'help.guide.files-upload.step.3':
     'Son faylın yüklənməsi bitəndə onun üçün «Faylı təyin et» avtomatik açılır (səyahətdə məkan və ya rezervasiya varsa), dialoqun yuxarısında faylın adı olur. «Qeyd» altındakı «Qeyd əlavə edin...» sahəsi fayla qeyd əlavə edir, onun altındakı siyahılar isə faylı məkana və ya rezervasiyaya bağlayır. Dialoqu yuxarı sağdakı × ilə bağlayın; bağlasanız da heç nə itmir.',
   'help.guide.files-upload.step.4':
@@ -4106,7 +4108,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     'Mübadilə buferindəki şəkli siyahıya əlavə etmək üçün Ctrl+V basın; beləcə rezervasiyanın ekran görüntüsünü əvvəlcə ayrıca saxlamağa ehtiyac qalmır.',
   'help.guide.files-upload.tip.3':
-    'Yükləmək üçün fayl yükləmə hüququ lazımdır; bu hüquq olmadıqda qutu ümumiyyətlə görünmür. Siyahıda olmayan fayl növü mesajla rədd edilir və heç nə yüklənmir. Limiti aşan fayl (administrator başqa limit təyin etməyibsə, 50 MB) heç nə göndərilmədən rədd edilir və mesajda limit göstərilir. Yükləmək üçün internet bağlantısı da lazımdır: oflayn olduqda TREK bunu bildirir və heç nə yükləmir.',
+    'Yükləmək üçün fayl yükləmə hüququ lazımdır; bu hüquq olmadıqda qutu ümumiyyətlə görünmür. Siyahıda olmayan fayl növü mesajla rədd edilir və heç nə yüklənmir. Limiti aşan fayl (administrator başqa limit təyin etməyibsə, 50 MB) heç nə göndərilmədən rədd edilir və mesajda limit göstərilir. Yükləmək üçün internet bağlantısı da lazımdır: oflayn olduqda YOUYA bunu bildirir və heç nə yükləmir.',
   // files-link
   'help.guide.files-link.title': 'Sənədi məkana və ya rezervasiyaya bağlamaq',
   'help.guide.files-link.goal': 'Bileti təkcə bu siyahıdan yox, aid olduğu gündən də asan tapın.',
@@ -4125,7 +4127,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     'Faylı eyni anda bir neçə yerə bağlamaq olar, yəni eyni təsdiq məktubu həm otel rezervasiyasına, həm də otelin məkanına aid ola bilər.',
   'help.guide.files-link.tip.2':
-    'Həmin əlaqəni silmək üçün işarələnmiş bəndə yenidən klikləyin; faylın özü qalır. Oflayn olduqda qeyd və yeni işarələr saxlanır və TREK yenidən onlayn olduqda göndərilir; yalnız başqa əlaqəni silmək üçün bağlantı lazımdır.',
+    'Həmin əlaqəni silmək üçün işarələnmiş bəndə yenidən klikləyin; faylın özü qalır. Oflayn olduqda qeyd və yeni işarələr saxlanır və YOUYA yenidən onlayn olduqda göndərilir; yalnız başqa əlaqəni silmək üçün bağlantı lazımdır.',
   'help.guide.files-link.tip.3':
     'Əks istiqamətdə də işləyir: məkana və ya rezervasiyaya əlavə edilmiş sənəd də bu siyahıda, sətrində eyni nişanla görünür.',
   'help.guide.files-link.tip.4':
@@ -4162,7 +4164,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     'Siyahı həmişə əvvəlcə ulduzlu fayllara, sonra ən yenilərə görə sıralanır. Bu gün yüklənən sənəd keçən ayın sənədindən yuxarıda durur.',
   // files-preview
-  'help.guide.files-preview.title': 'Sənədi TREK-dən çıxmadan oxuyun',
+  'help.guide.files-preview.title': 'Sənədi YOUYA-dən çıxmadan oxuyun',
   'help.guide.files-preview.goal': 'Biletə və ya şəklə dərhal baxın, lazım olanda onu cihazınıza endirin.',
   'help.guide.files-preview.step.1':
     'Şəklin adına və ya miniatürünə klikləyin. O, tam ekranda açılır, yuxarı solda faylın adı və şəkillər arasında sırası göstərilir. Video da eyni qaydada açılır və orada oynadılır.',
@@ -4195,7 +4197,7 @@ const help: TranslationStrings = {
     'Paneldə zibil qutusu ikonunun yanındakı «Zibil qutusunu boşalt» zibil qutusunda qalan hər şeyi həmişəlik silir. Brauzer bundan əvvəl bir dəfə təsdiq istəyir. Zibil qutusu ikonu sizi yenidən fayllara qaytarır.',
   'help.guide.files-trash.result': 'Fayl siyahıda əvvəlki yerinə qayıdır.',
   'help.guide.files-trash.tip.1':
-    'Sətirdəki «Sil» əvvəlcə soruşmur. Zibil qutusu buna görə var: burada silməyənə qədər TREK-dən heç nə silinmir. Bunların hamısı oflayn da işləyir və TREK yenidən onlayn olduqda göndərilir.',
+    'Sətirdəki «Sil» əvvəlcə soruşmur. Zibil qutusu buna görə var: burada silməyənə qədər YOUYA-dən heç nə silinmir. Bunların hamısı oflayn da işləyir və YOUYA yenidən onlayn olduqda göndərilir.',
   'help.guide.files-trash.tip.2':
     'Faylı silmək və bərpa etmək üçün fayl silmə hüququ lazımdır. Bu hüququ olmayan üzv nə sətirdəki «Sil» düyməsini, nə də zibil qutusundakı düymələri görür.',
   'help.guide.files-trash.tip.3': 'Zibil qutusundan həmişəlik silinmiş faylı geri qaytarmaq olmur.',
@@ -4208,21 +4210,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     'Saxlama xidmətinizə, bu nümunədə Nextcloud-a klikləyin. Qoşulma üçün kiçik pəncərə açılır. Orada xidmətin adı yazılır və həmin xidmət üçün lazım olan giriş məlumatları soruşulur.',
   'help.guide.files-sync.step.3':
-    '«Ünvan» sahəsini və anbarın öz giriş məlumatlarını doldurun: Paperless-ngx üçün «API tokeni», Papra üçün «API açarı» və «Təşkilat ID-si», Nextcloud üçün «İstifadəçi adı» və «Tətbiq parolu», OpenCloud üçün «İstifadəçi adı» və «Tətbiq tokeni», Synology Drive üçün isə «İstifadəçi adı», «Parol» və hesab tələb edirsə, «İki faktorlu doğrulama kodu». Anbar tətbiq parolu və ya tokeni təklif edirsə, həmişə ondan istifadə edin, heç vaxt hesab parolunuzdan yox. Nextcloud və Synology Drive həmçinin istəyə bağlı «Əsas qovluq» qəbul edir; TREK səyahət qovluqlarını orada axtarır, bu nümunədə /Reisen. Aşağıdakı «Öz-özünə imzalanmış sertifikatı qəbul et» yalnız öz şəbəkənizdə belə sertifikatla işləyən anbar üçündür.',
+    '«Ünvan» sahəsini və anbarın öz giriş məlumatlarını doldurun: Paperless-ngx üçün «API tokeni», Papra üçün «API açarı» və «Təşkilat ID-si», Nextcloud üçün «İstifadəçi adı» və «Tətbiq parolu», OpenCloud üçün «İstifadəçi adı» və «Tətbiq tokeni», Synology Drive üçün isə «İstifadəçi adı», «Parol» və hesab tələb edirsə, «İki faktorlu doğrulama kodu». Anbar tətbiq parolu və ya tokeni təklif edirsə, həmişə ondan istifadə edin, heç vaxt hesab parolunuzdan yox. Nextcloud və Synology Drive həmçinin istəyə bağlı «Əsas qovluq» qəbul edir; YOUYA səyahət qovluqlarını orada axtarır, bu nümunədə /Reisen. Aşağıdakı «Öz-özünə imzalanmış sertifikatı qəbul et» yalnız öz şəbəkənizdə belə sertifikatla işləyən anbar üçündür.',
   'help.guide.files-sync.step.4':
-    '«Bağlantını yoxla» düyməsini klikləyin. TREK yazdığınız məlumatlarla yaddaşa qoşulur və alt hissədə əlaqənin qurulduğu, ardınca da hansı hesabla daxil olunduğu yazılır. Giriş məlumatları rədd edilsə və ya ünvana çatmaq mümkün olmasa, alt hissədə bu göstərilir. Hər iki halda heç nə yadda saxlanılmır.',
+    '«Bağlantını yoxla» düyməsini klikləyin. YOUYA yazdığınız məlumatlarla yaddaşa qoşulur və alt hissədə əlaqənin qurulduğu, ardınca da hansı hesabla daxil olunduğu yazılır. Giriş məlumatları rədd edilsə və ya ünvana çatmaq mümkün olmasa, alt hissədə bu göstərilir. Hər iki halda heç nə yadda saxlanılmır.',
   'help.guide.files-sync.step.5':
-    '«Qoşul» düyməsinə klikləyin. Bağlantı səyahətlə birlikdə yadda saxlanılır və TREK səyahətin sənədlərinin anbarda harada olmalı olduğunu soruşur: onları saxlayan etiket, qovluq və ya sahə. Yalnız oradakılar sinxronlaşdırılır. «Yenisini yarat» «Yarat» düyməsinə kliklədikdə səyahətin adından götürülmüş adla yenisini yaradır. «Və ya mövcud olanlardan istifadə et» altında mövcud olanları görürsünüz. Birinə klikləyin, burada «Yaponiyada payız» qovluğuna.',
+    '«Qoşul» düyməsinə klikləyin. Bağlantı səyahətlə birlikdə yadda saxlanılır və YOUYA səyahətin sənədlərinin anbarda harada olmalı olduğunu soruşur: onları saxlayan etiket, qovluq və ya sahə. Yalnız oradakılar sinxronlaşdırılır. «Yenisini yarat» «Yarat» düyməsinə kliklədikdə səyahətin adından götürülmüş adla yenisini yaradır. «Və ya mövcud olanlardan istifadə et» altında mövcud olanları görürsünüz. Birinə klikləyin, burada «Yaponiyada payız» qovluğuna.',
   'help.guide.files-sync.step.6':
-    'Pəncərə yenidən açılır: saxlama xidmətiniz solda «Bu səyahət» altında görünür, sağdakı kartında isə hara sinxronlaşdırdığı, axırıncı dəfə nə vaxt işlədiyi və «İndi sinxronlaşdır» göstərilir. İlk sinxronlaşdırma avtomatik başlayır, istədiyiniz vaxt yenisini başlatmaq üçün «İndi sinxronlaşdır» düyməsinə klikləyin. Sinxronlaşdırmadan sonra adın yanındakı «Hələ sinxronlaşdırılmayıb» nişanının yerində yaşıl nöqtə çıxır, üzərinə gələndə «Sinxronlaşdırılıb» yazılır. Axın zolağı TREK-də və xidmətdə neçə sənəd olduğunu göstərir, aralarında «Saxlama xidmətinə» və «Saxlama xidmətindən» istiqamətləri var. Pəncərəni sağ yuxarıdakı × ilə bağlayın.',
+    'Pəncərə yenidən açılır: saxlama xidmətiniz solda «Bu səyahət» altında görünür, sağdakı kartında isə hara sinxronlaşdırdığı, axırıncı dəfə nə vaxt işlədiyi və «İndi sinxronlaşdır» göstərilir. İlk sinxronlaşdırma avtomatik başlayır, istədiyiniz vaxt yenisini başlatmaq üçün «İndi sinxronlaşdır» düyməsinə klikləyin. Sinxronlaşdırmadan sonra adın yanındakı «Hələ sinxronlaşdırılmayıb» nişanının yerində yaşıl nöqtə çıxır, üzərinə gələndə «Sinxronlaşdırılıb» yazılır. Axın zolağı YOUYA-də və xidmətdə neçə sənəd olduğunu göstərir, aralarında «Saxlama xidmətinə» və «Saxlama xidmətindən» istiqamətləri var. Pəncərəni sağ yuxarıdakı × ilə bağlayın.',
   'help.guide.files-sync.result':
-    'Anbarda əvvəldən olan sənədlər siyahının yuxarısında sizin adınızla yüklənmiş kimi görünür, səyahətin bütün sənədləri isə, «Əməkdaşlıq qeydləri»ndəkilər istisna olmaqla, anbarda da olur. Bundan sonra TREK anbarı arxa fonda yoxlayır, siyahıdakı dəyişikliklər isə anbara köçürülür.',
+    'Anbarda əvvəldən olan sənədlər siyahının yuxarısında sizin adınızla yüklənmiş kimi görünür, səyahətin bütün sənədləri isə, «Əməkdaşlıq qeydləri»ndəkilər istisna olmaqla, anbarda da olur. Bundan sonra YOUYA anbarı arxa fonda yoxlayır, siyahıdakı dəyişikliklər isə anbara köçürülür.',
   'help.guide.files-sync.tip.1':
     'Səyahəti yalnız onun sahibi və ya instansiya administratoru qoşa bilər, çünki giriş məlumatları anbardakı bütün hesaba çıxış verir. Səyahət qoşulandan sonra hər üzv «Sənəd sinxronizasiyası»nı görür, onu aça, kartı oxuya və «İndi sinxronlaşdır» düyməsini basa bilər.',
   'help.guide.files-sync.tip.2':
-    'Öz şəbəkənizdəki saxlama xidməti üçün TREK serverində ALLOW_INTERNAL_NETWORK=true olmalıdır, xidmətin ünvanı isə localhost yox, cihazın şəbəkədəki ünvanı olmalıdır. Əks halda «Bağlantını yoxla» «Bu ünvana icazə verilmir.» cavabını verir.',
+    'Öz şəbəkənizdəki saxlama xidməti üçün YOUYA serverində ALLOW_INTERNAL_NETWORK=true olmalıdır, xidmətin ünvanı isə localhost yox, cihazın şəbəkədəki ünvanı olmalıdır. Əks halda «Bağlantını yoxla» «Bu ünvana icazə verilmir.» cavabını verir.',
   'help.guide.files-sync.tip.3':
-    '«İndi sinxronlaşdır» yanındakı ikon, «Bağlantını kəs», bir dəfə təsdiq istəyir. Sonra bağlantını bitirir və bütün sənədləri hər iki tərəfdə saxlayır. Etiketi, qovluğu və ya sahəni ikinci dəfə qoşsanız, TREK onu yeni kimi qəbul edir və içindəki hər şeyi yenidən idxal edir. Ona görə bağlantını kəsdikdən sonra köhnəsini yox, boş birini qoşun.',
+    '«İndi sinxronlaşdır» yanındakı ikon, «Bağlantını kəs», bir dəfə təsdiq istəyir. Sonra bağlantını bitirir və bütün sənədləri hər iki tərəfdə saxlayır. Etiketi, qovluğu və ya sahəni ikinci dəfə qoşsanız, YOUYA onu yeni kimi qəbul edir və içindəki hər şeyi yenidən idxal edir. Ona görə bağlantını kəsdikdən sonra köhnəsini yox, boş birini qoşun.',
   // ── Screen: trip-collab ───────────────────────────────────────────────────────────────
   'help.ctx.trip-collab.title': 'Collab', // same-as-en
   'help.ctx.trip-collab.summary':
@@ -4377,7 +4379,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     '«Şəkillər əlavə et» ilə bir mesaja dörd şəklə qədər əlavə edə bilərsiniz. Şəkilləri xanaya yapışdırmaq və ya sürüşdürüb atmaq da olar.',
   'help.guide.trip-chat.tip.3':
-    'Link olan mesajın altında öz TREK-inizin yüklədiyi önizləmə kartı görünür, ona görə yalnız sizin aça bildiyiniz ünvana aparan link adi link kimi qalır.',
+    'Link olan mesajın altında öz YOUYA-inizin yüklədiyi önizləmə kartı görünür, ona görə yalnız sizin aça bildiyiniz ünvana aparan link adi link kimi qalır.',
   'help.guide.trip-chat.tip.4':
     '«Çat»ın «Əlavələr» bölməsində, «Collab» altında öz açarı var: administrator onu söndürüb qeydləri, linkləri, sorğuları və «Növbədə nə var» bölməsini aktiv saxlaya bilər.',
 
@@ -4500,13 +4502,13 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.result':
     'Mərhələ artıq seçdiyiniz yolla gedir, yan sütundakı məsafə və sonrakı çatma vaxtları da dəyişir.',
   'help.guide.roadtrip-alternatives.tip.1':
-    'Başqa yol seçdikdə TREK onu əvvəlcə avtomobil səyahətinin marşrutlaşdırıcısı ilə yoxlayır. Sonra hissəni mümkün qədər az ara nöqtə ilə həmin yolda saxlayır və hissənin əvvəlki ara nöqtələrini əvəz edir. Marşrutlaşdırıcının izləyə bilmədiyi yol yadda saxlanılmır. Marşrutlaşdırıcının öz yolunu seçsəniz, ara nöqtələr yenidən silinir.',
+    'Başqa yol seçdikdə YOUYA onu əvvəlcə avtomobil səyahətinin marşrutlaşdırıcısı ilə yoxlayır. Sonra hissəni mümkün qədər az ara nöqtə ilə həmin yolda saxlayır və hissənin əvvəlki ara nöqtələrini əvəz edir. Marşrutlaşdırıcının izləyə bilmədiyi yol yadda saxlanılmır. Marşrutlaşdırıcının öz yolunu seçsəniz, ara nöqtələr yenidən silinir.',
   'help.guide.roadtrip-alternatives.tip.2':
     '«Avtomagistralsız», «Ödənişli yolsuz» və «Bərəsiz» öz sürət modeli olan ikinci mühərrikdən gəlir, ona görə onların vaxtlarını digərləri ilə müqayisə etmək olmaz.',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': 'Avtomobili və sürmə limitlərini təyin etmək',
   'help.guide.roadtrip-limits.goal':
-    'TREK-ə hansı nəqliyyat vasitəsi sürdüyünüzü və fasiləsiz nə qədər sürmək istədiyinizi bildirin.',
+    'YOUYA-ə hansı nəqliyyat vasitəsi sürdüyünüzü və fasiləsiz nə qədər sürmək istədiyinizi bildirin.',
   'help.guide.roadtrip-limits.step.1':
     '«Sürmə tənzimləmələri» sağ sütunda axtarışın altındadır. Onun nişanları nəyin təyin edildiyini göstərir; açmaq üçün ona klikləyin.',
   'help.guide.roadtrip-limits.step.2':
@@ -4576,7 +4578,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     'İz seçin. Hər birində uzunluğu və bu günün marşrutu ilə getdiyi və ya ondan nə qədər uzaq olduğu göstərilir. Ən yaxın iz birinci gəlir.',
   'help.guide.roadtrip-track.step.3':
-    '«Bu izi izlə» düyməsinə klikləyin. TREK marşrutun izdən ən çox uzaqlaşdığı yerlərə ara nöqtələr əlavə edir, marşrutu yenidən hesablayır və bunu bir neçə dəfə təkrarlayır.',
+    '«Bu izi izlə» düyməsinə klikləyin. YOUYA marşrutun izdən ən çox uzaqlaşdığı yerlərə ara nöqtələr əlavə edir, marşrutu yenidən hesablayır və bunu bir neçə dəfə təkrarlayır.',
   'help.guide.roadtrip-track.step.4':
     'Pəncərə neçə aralıq nöqtə qoyulduğunu və marşrutun indi izə nə qədər yaxın olduğunu, ya da marşrutun artıq izlə getdiyini bildirir. Aşağı soldakı «Aralıq nöqtələri sil» onları çıxarır və marşrutlaşdırıcı günü yenidən planlaşdırır. Pəncərəni bağlasanız, iz qalır.',
   'help.guide.roadtrip-track.result':
@@ -4627,30 +4629,30 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     'Adminin quraşdırdığı plaginlər üçün şəxsi tənzimləmələriniz: hər plaginin sizdən istədiyi açarlar və seçimlər, həmçinin plaginlərin sizin adınızdan etdiklərinin jurnalı. Bu vərəq yalnız aktiv plagin olduqda görünür.',
   'help.ctx.settings-about.bullet.3':
-    'Ko-fi, «Mənə qəhvə al» və Discord vasitəsilə TREK-i dəstəkləyə və ya onu hazırlayan insanlarla danışa bilərsiniz.',
+    'Ko-fi, «Mənə qəhvə al» və Discord vasitəsilə YOUYA-i dəstəkləyə və ya onu hazırlayan insanlarla danışa bilərsiniz.',
   'help.guide.language-region.step.3':
     '«Göstərilən valyuta»nı seçin və ya hər səyahəti öz valyutasında görmək üçün «Səyahət valyutası»nı saxlayın. Sonra «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı», həftənin hansı gündən başladığını və «Tarix formatı»nı seçin.',
   'help.guide.travel-map-prefs.step.3':
     '«Xəritədə məkanları kəşf et» yaxınlıqdakı məkanları tapmaq üçün kateqoriya düymələrini göstərir. «Rezervasiya kodlarını bulanıqlaşdır» təsdiq nömrələrini kursoru üzərinə gətirənə və ya toxunana qədər gizlədir. «Marşrutu yaşayış yerindən başlayaraq optimallaşdır» günü otelinizdə başladır və bitirir.',
   'help.guide.web-push-device.step.2':
     'Yuxarıdakı «Bildirişlər» kartında Push sütunu hansı hadisələrin cihazlarınıza göndəriləcəyini təyin edir.',
-  'help.guide.connect-airtrail.goal': 'TREK öz AirTrail serverinizdəki uçuşları idxal edib sinxronlaşdırsın.',
-  'help.guide.connect-dawarich.goal': 'TREK öz Dawarich serverinizdən əslində hara getdiyinizi oxusun.',
+  'help.guide.connect-airtrail.goal': 'YOUYA öz AirTrail serverinizdəki uçuşları idxal edib sinxronlaşdırsın.',
+  'help.guide.connect-dawarich.goal': 'YOUYA öz Dawarich serverinizdən əslində hara getdiyinizi oxusun.',
   'help.guide.tour-connect-wanderer.goal':
-    'TREK öz wanderer serverinizdəki cığırları oxusun ki, onları tur kimi idxal edə biləsiniz.',
+    'YOUYA öz wanderer serverinizdəki cığırları oxusun ki, onları tur kimi idxal edə biləsiniz.',
   'help.guide.tour-wanderer-watch.title': 'wanderer cığırlarınız dəyişəndə bildiriş almaq',
   'help.guide.plugin-settings.tip.2':
     '«Bildirişlər» altındakı plagin kanalının bu səhifəni açan «Konfiqurasiya et» düyməsi var.',
   'help.guide.default-user-settings.result':
     'Yeni hesablar və bu tənzimləmələri heç vaxt dəyişməmiş hər kəs sizin seçimlərinizi görür.',
   'help.guide.own-routing-engine.goal':
-    'Günlərin, avtomobil səyahətlərinin və turların marşrutlarını TREK xidmətləri və ya ictimai serverlər əvəzinə öz OSRM və ya Valhalla serverinizlə qurun.',
+    'Günlərin, avtomobil səyahətlərinin və turların marşrutlarını YOUYA xidmətləri və ya ictimai serverlər əvəzinə öz OSRM və ya Valhalla serverinizlə qurun.',
   'help.guide.admin-passkeys.tip.1':
-    'TREK hələ domeni müəyyən edə bilmirsə, açarın altında bu barədə xəbərdarlıq görünür və APP_URL və ya Relying Party ID təyin edənə qədər keçid açarları gizli qalır.',
+    'YOUYA hələ domeni müəyyən edə bilmirsə, açarın altında bu barədə xəbərdarlıq görünür və APP_URL və ya Relying Party ID təyin edənə qədər keçid açarları gizli qalır.',
   'help.guide.rotate-jwt-secret.step.1':
     '«Təhlükəsizlik» vərəqində aşağı sağdakı «Təhlükəli zona» bölməsində «JWT sirrini yenilə» yanındakı «Yenilə» düyməsinə klikləyin.',
   'help.guide.storage-backends.tip.3':
-    'TREK foto keşlərini yenidən yükləyə bilir, ona görə onları güzgüləmək adətən yaddaşı boş yerə tutur.',
+    'YOUYA foto keşlərini yenidən yükləyə bilir, ona görə onları güzgüləmək adətən yaddaşı boş yerə tutur.',
   'help.guide.admin-channels.step.3':
     'Onların altında, eyni kartda hər hadisə üçün onu hansı kanalların göndərəcəyini seçin: «Yeni versiya əlçatandır», «Yaddaş replikasında xəta» və «Avarçəkmə regionu sorğulanıb». Hər açar dərhal yadda saxlanır.',
   'help.guide.notification-defaults.tip.1':
@@ -4712,13 +4714,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     'Açıq məlumat yalnız təyyarənin harada olduğunu bilir. Qapı, terminal və baqaj lenti onun tərkibində yoxdur, lazımdırsa onları rezervasiyaya özünüz əlavə edin. Gecikmələr və enmə vaxtı mövqelərdən hesablanmış təxminlərdir.',
   'help.guide.flight-live-status.tip.3':
-    'Uçuşu izləmək üçün TREK-ə reys nömrəsi və hər iki hava limanı lazımdır. Aviaşirkətinin başqa çağırış işarəsi ilə uçduğu və ya kodşer uçuş tapılmaya bilər; onda rezervasiya sadə vaxtlarını saxlayır.',
+    'Uçuşu izləmək üçün YOUYA-ə reys nömrəsi və hər iki hava limanı lazımdır. Aviaşirkətinin başqa çağırış işarəsi ilə uçduğu və ya kodşer uçuş tapılmaya bilər; onda rezervasiya sadə vaxtlarını saxlayır.',
   'help.guide.group-sort-bookings.step.2':
     '«Qruplaşdır» altında «Vəziyyət», «Gün», «Növ» və ya «Qruplaşdırmadan» seçin. Vərəq dərhal həmin bölmələrə görə sıralanır.',
   'help.guide.export-bookings-csv.result':
     'Brauzeriniz səyahətin və vərəqin adını daşıyan fayl yükləyir, məsələn, autumn-in-japan-bookings.csv; vərəqdə göstərilən hər rezervasiya üçün bir sətir olur.',
   'help.guide.arrange-packing-list.result':
-    'Siyahılar sürüklədiyiniz ardıcıllıqdadır, elementlər isə siz bunu söndürənə qədər A-dan Z-yə sıralanır. TREK sizin öz sıranızı da yadda saxlayır.',
+    'Siyahılar sürüklədiyiniz ardıcıllıqdadır, elementlər isə siz bunu söndürənə qədər A-dan Z-yə sıralanır. YOUYA sizin öz sıranızı da yadda saxlayır.',
   'help.guide.count-packed-pieces.step.2':
     '«Say» sahəsinə neçə ədəd götürdüyünüzü yazın, məsələn, 5, və ya rəqəm görünənə qədər müsbətə klikləyin.',
   'help.guide.expense-receipts.step.4':
@@ -4726,7 +4728,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     'Səyahətdən ayrılmış şəxsin ona borc və ya onun borcu qaldıqca «Balanslar» və «Yekun büdcə» bölmələrində sətri qalır.',
   'help.guide.files-sync-settings.step.2':
-    'Axın panelində TREK və sizin saxlama xidmətiniz hər birindəki sənədlərlə, aralarında isə iki xətt göstərilir: «Saxlama xidmətinə» və «Saxlama xidmətindən». Söndürmək üçün «Saxlama xidmətinə» üzərinə klikləyin. Xətt boz olur və xətlərin altındakı sətirdə «Yalnız daxil olan» yazılır. Yenidən yandırmaq üçün yenə klikləyin.',
+    'Axın panelində YOUYA və sizin saxlama xidmətiniz hər birindəki sənədlərlə, aralarında isə iki xətt göstərilir: «Saxlama xidmətinə» və «Saxlama xidmətindən». Söndürmək üçün «Saxlama xidmətinə» üzərinə klikləyin. Xətt boz olur və xətlərin altındakı sətirdə «Yalnız daxil olan» yazılır. Yenidən yandırmaq üçün yenə klikləyin.',
   'help.guide.files-sync-settings.tip.4':
     'Bunların heç birini səyahətin sahibi və ya administratordan başqa kimsə dəyişə bilməz. Digər üzvlər axın panelini «Sənədlər hər iki istiqamətdə hərəkət edir» kimi bir sətirlə görür, amma «Tənzimləmələr» onlarda yoxdur.',
   'help.guide.manage-notes.step.2':
@@ -4737,7 +4739,7 @@ const help: TranslationStrings = {
     'Zibil qutusu yalnız heç bir qeydin istifadə etmədiyi kateqoriyanı silir. Qeydlərin hələ istifadə etdiyi kateqoriya həmin qeydləri başqa kateqoriyaya köçürənə qədər siyahıda qalır.',
   'help.guide.roadtrip-reorder.title': 'Dayanacağın yerini dəyişmək və ya onu başqa günə köçürmək',
   'help.guide.roadtrip-reorder.tip.3':
-    'Bərkitdiyiniz vaxt barədə TREK soruşmur: zolaq günü dərhal yenidən hesablayır və artıq vaxtında çatılması mümkün olmayan dayanacağı işarələyir.',
+    'Bərkitdiyiniz vaxt barədə YOUYA soruşmur: zolaq günü dərhal yenidən hesablayır və artıq vaxtında çatılması mümkün olmayan dayanacağı işarələyir.',
   'help.guide.roadtrip-overnight.step.3':
     'Pəncərənin yuxarısında «Gecələmə» gecələmə əlavə edir, «Fasilə» isə onu müəyyən müddətlik dayanacaq edir. Otel «Gecələmə», kempinq isə «Fasilə» ilə açılır. Gecələmə üçün yalnız «Giriş» vaxtı soruşulur, onu boş da buraxa bilərsiniz.',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4751,7 +4753,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     'Yuxarıdakı «GPX və ya KML idxal et» faylları tur kimi əlavə edir. Altındakı filtr düyməsi (əvvəlcə «Hamısı», turların sayı ilə) siyahını vəziyyətə, mənbəyə, marşrut limitinə və növə görə süzür.',
   'help.guide.tour-show-list.step.2':
-    'Hər sətir bir turdur. Rəngli zolaq onun xəritədəki xəttidir, dairəvi xana isə TREK-də planlaşdırılmış piyada gəzintisinin marşrut limitini (T1-dən T6-ya qədər) və ya növünün işarəsini göstərir. Adın altındakı nişanlar turun hansı günlərdə olduğunu, vaxtını, məsafəsini və qalxışını göstərir. Çoxgünlük turda rəqəmli ay neçə mərhələ olduğunu bildirir.',
+    'Hər sətir bir turdur. Rəngli zolaq onun xəritədəki xəttidir, dairəvi xana isə YOUYA-də planlaşdırılmış piyada gəzintisinin marşrut limitini (T1-dən T6-ya qədər) və ya növünün işarəsini göstərir. Adın altındakı nişanlar turun hansı günlərdə olduğunu, vaxtını, məsafəsini və qalxışını göstərir. Çoxgünlük turda rəqəmli ay neçə mərhələ olduğunu bildirir.',
   'help.guide.tour-add-to-day.title': 'Turu günə əlavə etmək',
   'help.guide.tour-add-to-day.tip.2':
     'Səyahət son mərhələdən əvvəl bitirsə, seçimdə sığan son mərhələ göstərilir, ondan sonrakı mərhələlər isə günsüz qalır.',
@@ -4782,7 +4784,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.4':
     'İzin altındakı «Dəyiş» başqa qeydi seçir. «Əlaqəni sil» onu turdan ayırır, iz isə idxal kimi səyahətdə qalır.',
   'help.guide.tour-origin-check.step.3':
-    '«Turlar» vərəqində çəkdiyiniz turda «TREK-də planlaşdırılıb» və «Yaradılıb» günü göstərilir.',
+    '«Turlar» vərəqində çəkdiyiniz turda «YOUYA-də planlaşdırılıb» və «Yaradılıb» günü göstərilir.',
   'help.ctx.trip-tour-planner.bullet.2':
     'Sol zolaq redaktordur. Heç nə açıq olmadıqda «Yeni tur planlaşdır» təklif edir. Açıq turda onun adı, növü, yol nöqtələri, növünə aid kartlar və təfərrüatları, aşağıda isə «İmtina et» və «Yadda saxla» göstərilir.',
   'help.guide.tour-open-workspace.step.2':
@@ -4790,7 +4792,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.tip.3':
     'Redaktorda yadda saxlanmamış dəyişikliklər olarkən başqa turu açsanız, əvvəlcə soruşulur: «Dəyişiklikləri ləğv et» və ya redaktəyə davam etmək.',
   'help.guide.tour-draw-route.step.5':
-    'Növbəti yerlərə gedəcəyiniz ardıcıllıqla klikləyin. Hər klik nöqtəni yeni son kimi əlavə edir, iki nöqtədən sonra isə TREK marşrutu yollar boyunca planlaşdırır.',
+    'Növbəti yerlərə gedəcəyiniz ardıcıllıqla klikləyin. Hər klik nöqtəni yeni son kimi əlavə edir, iki nöqtədən sonra isə YOUYA marşrutu yollar boyunca planlaşdırır.',
   'help.guide.tour-type-profile.goal':
     'Tur növünü, velosiped turu üçün isə profili seçin ki, marşrut düzgün yollarla getsin.',
   'help.guide.tour-edit-points.title': 'Nöqtələri köçürmək, sıralamaq və silmək',
@@ -4912,11 +4914,11 @@ const help: TranslationStrings = {
     'Xizək turunuzun ətrafındakı pistləri, xizək qaçışı yollarını və liftləri, həmçinin rənglərinin nə demək olduğunu görün.',
   'help.guide.tour-ski-import.title': 'Xizək izini idxal edib nə olduğunu göstərmək',
   'help.guide.tour-ski-import.tip.1':
-    'İdxal edilmiş iz qeydə alındığı kimi saxlanır: TREK onu pistlərə uyğunlaşdırmır və kartında «Xizək vaxtı» üçün «Hesablanmayıb» göstərilir.',
+    'İdxal edilmiş iz qeydə alındığı kimi saxlanır: YOUYA onu pistlərə uyğunlaşdırmır və kartında «Xizək vaxtı» üçün «Hesablanmayıb» göstərilir.',
   'help.ctx.trip-tour-paddle.bullet.3':
     'Nöqtədəki «Digər əməliyyatlar» menyusunda avarçəkmə alətləri var: növbəti hissəni suda planlaşdırmaq və ya əllə çəkmək, «Qayığı buradan daşı» və «Bu nöqtədə şlüz».',
   'help.guide.tour-paddle-setup.step.3':
-    '«Qayıq» altında «Kayak», «Kanoe», SUP və ya «Digər» seçin. TREK-in təklif etdiyi sürət qayıqdan asılıdır.',
+    '«Qayıq» altında «Kayak», «Kanoe», SUP və ya «Digər» seçin. YOUYA-in təklif etdiyi sürət qayıqdan asılıdır.',
   'help.guide.tour-paddle-setup.tip.4':
     'Sütunun aşağısındakı «Avarçəkmənin riskləri var» sətri «Suda təhlükəsizlik» bölməsini açır. İlk turunuzdan əvvəl onu bir dəfə oxuyun.',
   'help.guide.tour-paddle-water-route.step.5':
@@ -4939,7 +4941,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.tip.2':
     '«İmtina et» yadda saxlamadığınız işarələri silir. Qeydə alınmış izin özü heç vaxt yenidən çəkilmir.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK at sürmə vaxtını hesablamır. Gündə vaxt görmək istəyirsinizsə, onu «Ətraflı məlumat» bölməsində «Planlaşdırılıb» sahəsinə yazın.',
+    'YOUYA at sürmə vaxtını hesablamır. Gündə vaxt görmək istəyirsinizsə, onu «Ətraflı məlumat» bölməsində «Planlaşdırılıb» sahəsinə yazın.',
   'help.guide.tour-horse-plan.step.5':
     '«Bölmələr» altında bir bölmə seçin. Onu hansı «İstiqamət»də keçdiyinizi və boyunca «At üçün giriş» nə göstərdiyini yoxlayın.',
   'help.guide.tour-horse-plan.tip.5':
@@ -4982,7 +4984,7 @@ const help: TranslationStrings = {
   'help.guide.journey-map-layers.tip.1':
     'Qırıq xətli rəngli xətt səyahətin GPX marşrutudur, planın bir hissəsidir; bütöv xətt isə həmin gün qeydə alınmış marşrutdur.',
   'help.guide.journey-keep-route.tip.1':
-    'Qeyd harada dayanırsa, xətt də orada dayanır. TREK yalnız qeydə alınanı çəkir.',
+    'Qeyd harada dayanırsa, xətt də orada dayanır. YOUYA yalnız qeydə alınanı çəkir.',
   'help.guide.journey-day-stays.tip.1':
     'Bu sətir yalnız gündəliyi redaktə edə bilən və öz Dawarich hesabını qoşmuş şəxslərə, həm də yalnız hələ qərar verilməli bir şey qalan günlərdə görünür.',
   'help.guide.journey-take-over-day.step.4':
@@ -4995,21 +4997,21 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3':
     'Kartların altındakı «Standart dəyərlərə sıfırla» bütün «Görünüş» vərəqini ilkin tənzimləmələrə qaytarır.',
   'help.guide.web-push-device.result':
-    'Kartda «Bu cihaz üçün aktivdir» yazılır, Push altında yandırılmış hadisələr isə TREK bağlı olsa belə gəlir.',
+    'Kartda «Bu cihaz üçün aktivdir» yazılır, Push altında yandırılmış hadisələr isə YOUYA bağlı olsa belə gəlir.',
   'help.guide.connect-airtrail.step.1':
     '«İnteqrasiyalar» altında AirTrail-i tapın və «İnstansiya URL-i» ilə API açarını daxil edin. Açarı AirTrail-də «Settings», «Security» bölməsində yaradırsınız. Açarı AirTrail 3.13 və ya daha yeni versiyada yaratsanız, oxumaq üçün ona flight.read.own icazəsi lazımdır. Dəyişiklikləri geri yazmaq üçün həmçinin flight.update.own, flight.passengers.manage.own, reference_data.read və profile.read lazımdır.',
   'help.guide.connect-dawarich.step.1':
     '«İnteqrasiyalar» altında Dawarich-i tapın, «İnstansiya ünvanı»nı və Dawarich-də «Account», «API key» bölməsindəki API açarını daxil edin.',
   'help.guide.tour-connect-wanderer.step.1':
     '«İnteqrasiyalar» altında wanderer-i tapın və «İnstansiya URL-i» ilə API tokenini daxil edin. Tokeni wanderer-də «Settings», «Account», «API tokens» bölməsində yaradırsınız; o, wanderer_key_ ilə başlayır.',
-  'help.guide.tour-wanderer-watch.goal': 'TREK idxal etdiyiniz cığırlardakı dəyişiklikləri arxa planda yoxlasın.',
+  'help.guide.tour-wanderer-watch.goal': 'YOUYA idxal etdiyiniz cığırlardakı dəyişiklikləri arxa planda yoxlasın.',
   'help.guide.mcp-oauth.tip.3':
     '«API tokenləri» hələ də işləyir, amma «Köhnəlmiş» kimi işarələnib; OAuth müştərisinə keçin.',
   'help.guide.offline-conflicts.tip.2': 'Seçim yalnız bu cihaza aiddir.',
   'help.guide.default-user-settings.tip.1':
     'İstifadəçinin «Tənzimləmələr»də etdiyi öz seçimi həmişə üstündür; bu dəyərlər həmin tənzimləməni dəyişməmiş hər kəsə aiddir.',
   'help.guide.own-routing-engine.step.1':
-    '«Defoltlar» vərəqində «Marşrutlar» kartı marşrutları kimin hesablayacağını təyin edir. «Marşrut xidməti» altında «Avtomatik», «TREK xidmətləri», «İctimai Valhalla (FOSSGIS)» və ya «Öz Valhalla instansiyası» seçin. Seçim dərhal yadda saxlanır.',
+    '«Defoltlar» vərəqində «Marşrutlar» kartı marşrutları kimin hesablayacağını təyin edir. «Marşrut xidməti» altında «Avtomatik», «YOUYA xidmətləri», «İctimai Valhalla (FOSSGIS)» və ya «Öz Valhalla instansiyası» seçin. Seçim dərhal yadda saxlanır.',
   'help.guide.admin-passkeys.tip.2':
     'Domeni sonradan dəyişsəniz, istifadəçilərin artıq əlavə etdiyi bütün keçid açarları işləməz olur.',
   'help.guide.instance-keys.tip.4': 'Amap açarı JS API açarı deyil, Web 服务 (veb xidməti) açarı olmalıdır.',
@@ -5026,7 +5028,7 @@ const help: TranslationStrings = {
     'Səyahətin hər iştirakçısı üçün «Giriş yoxdur», «Oxumaq» və ya «Redaktə et» seçin. «Hamı oxuya bilər» və «Heç kim» hamısını birdəfəlik təyin edir.',
   'help.guide.collapse-columns.tip.3': 'Ayırıcı fokusda olduqda onu ox düymələri ilə də hərəkət etdirə bilərsiniz.',
   'help.guide.edit-place.tip.3':
-    'Pəncərənin kənarına klikləsəniz, dəyişiklikləriniz itmir: TREK əvvəlcə «Dəyişikliklər ləğv edilsin?» deyə soruşur, «Redaktəyə davam et» isə sizi formaya qaytarır.',
+    'Pəncərənin kənarına klikləsəniz, dəyişiklikləriniz itmir: YOUYA əvvəlcə «Dəyişikliklər ləğv edilsin?» deyə soruşur, «Redaktəyə davam et» isə sizi formaya qaytarır.',
   'help.guide.dawarich-stays.goal':
     'Dawarich-in səyahət zamanı qeydə aldığı dayanma yerlərini hər birini yoxladıqdan sonra əlavə edin.',
   'help.guide.leave-stop-off-route.step.1':
@@ -5075,7 +5077,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     'Zolaqda gediş öz növünün rəngində kartdır: cədvəli çatma sütununda, başlanğıc və son nöqtələri isə başlığın altında göstərilir.',
   'help.guide.roadtrip-google-import.tip.1':
-    'TREK dayanacaqlar arasında öz marşrutunu hesablayır; Google-un yolunu kopyalamır.',
+    'YOUYA dayanacaqlar arasında öz marşrutunu hesablayır; Google-un yolunu kopyalamır.',
   'help.guide.roadtrip-hazards.result':
     'Xəritə səyahətinizin ətrafındakı cari xəbərdarlıqları göstərir, marşrut isə dəyişmir.',
   'help.ctx.trip-tours.bullet.3':
@@ -5084,7 +5086,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.goal':
     'Turu nə vaxt keçəcəyinizi planlaşdırın ki, o, xəritədəki xətti ilə birlikdə həmin gündə görünsün.',
   'help.guide.tour-add-to-day.tip.3':
-    'Turu bir günə yalnız bir dəfə əlavə edə bilərsiniz. Onu artıq olduğu günə atsanız, TREK yalnız «Bu tur artıq həmin gündədir.» bildirir.',
+    'Turu bir günə yalnız bir dəfə əlavə edə bilərsiniz. Onu artıq olduğu günə atsanız, YOUYA yalnız «Bu tur artıq həmin gündədir.» bildirir.',
   'help.guide.tour-day-times.step.4':
     'Tur günün növbəti bəndi başlayandan sonra bitirsə, sətrin altındakı qeyd bunu bildirir, məsələn, «Ends at 13:30, after Lunch at Gostner Schwaige starts at 12:30». Heç nə köçürülmür.',
   'help.guide.tour-remove-from-day.step.1':
@@ -5140,7 +5142,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.result':
     '«Turlar» vərəqi: solda redaktor, sağda səyahətin turları, aralarında isə xəritə.',
   'help.guide.tour-draw-route.step.6':
-    '«Yol nöqtələri» altında hər nöqtə nömrəsi ilə bir sətir alır, ad yükləndikdən sonra isə yerin adı ilə adlanır. TREK işlədikcə «Yeni tur» yanındakı kiçik nöqtə vəziyyəti göstərir.',
+    '«Yol nöqtələri» altında hər nöqtə nömrəsi ilə bir sətir alır, ad yükləndikdən sonra isə yerin adı ilə adlanır. YOUYA işlədikcə «Yeni tur» yanındakı kiçik nöqtə vəziyyəti göstərir.',
   'help.guide.tour-type-profile.step.1':
     '«Turun adı» altındakı «Tur növü» düyməsinə klikləyin. Orada cari növ və onun necə planlaşdırıldığını izah edən bir sətir göstərilir.',
   'help.guide.tour-edit-points.goal': 'Nöqtələri xəritədə və ya siyahıda köçürməklə turun keçdiyi yeri dəyişin.',
@@ -5164,7 +5166,7 @@ const help: TranslationStrings = {
     '«Bu səyahətin turları»nın yuxarısındakı «Turun xülasəsi» redaktordakı turun «Məsafə», «Yüksəlmə» və «Enmə» göstəricilərini, təxmini vaxtını, fasilələri və planlaşdırılan ümumi vaxtı göstərir.',
   'help.guide.tour-list-manage.title': 'Səyahətin turlarını idarə etmək',
   'help.guide.tour-list-manage.tip.2':
-    'Turun artıq olduğu gün günlər menyusunda boz görünür. Çoxgünlük turda TREK mərhələlərin həmin gündən başlayacağını, yoxsa bütün turun həmin günə yerləşəcəyini soruşur.',
+    'Turun artıq olduğu gün günlər menyusunda boz görünür. Çoxgünlük turda YOUYA mərhələlərin həmin gündən başlayacağını, yoxsa bütün turun həmin günə yerləşəcəyini soruşur.',
   'help.guide.tour-delete.tip.2':
     'Turu sadəcə gündən çıxarmaq üçün bunun əvəzinə günün menyusundakı «Gündən çıxar» seçimindən istifadə edin.',
   'help.guide.tour-saved-elsewhere.step.4':
@@ -5189,7 +5191,7 @@ const help: TranslationStrings = {
     'Sol paneldəki «Tur boyunca» kartı marşrutun yaxınlığında seyr nöqtələri, su, daxmalar, yemək yerləri və başqa yerləri axtarır və nəticələri sadalayır. Siyahıdakı yeri tura dayanacaq kimi əlavə edə bilərsiniz.',
   'help.guide.tour-map-layers.tip.1':
     'Seçdiyiniz xəritə səhifəni yenidən yükləyənə qədər açdığınız bütün turlar üçün qalır. Növü həmin xəritəni təklif etməyən tur «Xəritə» üzərində açılır, «Plan» vərəqindəki xəritə və «Tənzimləmələr»dəki ayar isə dəyişmir.',
-  'help.guide.tour-along-search.step.4': '«Tur boyunca axtar» düyməsinə klikləyin. TREK yalnız axtarır: tur dəyişmir.',
+  'help.guide.tour-along-search.step.4': '«Tur boyunca axtar» düyməsinə klikləyin. YOUYA yalnız axtarır: tur dəyişmir.',
   'help.guide.tour-along-add-stop.step.1':
     '«Tur boyunca» siyahısında yerə və ya xəritədəki sancağına klikləyin. Kartı xəritənin üzərində açılır: nə olduğu, marşrutdan nə qədər uzaq olduğu və turun hansı məsafəsində yerləşdiyi.',
   'help.guide.tour-3d-terrain.title': 'Turu 3D görünüşdə görmək',
@@ -5215,7 +5217,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     'Dairəvi marşrutlar yürüşün «Maksimum cığır çətinliyi» daxilində qalır; kartdakı T nişanı bunun hansı olduğunu göstərir.',
   'help.guide.tour-hike-compare-ways.step.4':
-    '«Bu yolu seç» düyməsinə klikləyin. TREK marşrutun həqiqətən həmin yolla getdiyini marşrutlaşdırıcı ilə yoxlayır.',
+    '«Bu yolu seç» düyməsinə klikləyin. YOUYA marşrutun həqiqətən həmin yolla getdiyini marşrutlaşdırıcı ilə yoxlayır.',
   'help.guide.tour-ferrata-add.step.2':
     'Xəritədə via ferrata marşrutuna, onun qırıq xəttinə və ya işarəsinə klikləyin. Kartında adı, dərəcəsi və uzunluğu göstərilir.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -5272,7 +5274,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Qayığı, su növü və sürəti təyin edilmiş yeni avarçəkmə turu xəritədə ilk nöqtəsini gözləyir.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Su məlumatları olmayan yerdə TREK instansiyanın necə qurulmasından asılı olaraq onları bölgə üçün ya avtomatik yükləyir, ya da admindən istəyir. Admin regionları admin sahəsinin «Əlavələr» vərəqində «Turlar» altındakı sətir olan «Avarçəkmə üçün su məlumatları» bölməsində əlavə edir. Bu zaman hissədə su məlumatının yükləndiyi yazılır və məlumat gəldikdən sonra, adətən bir-üç dəqiqə ərzində, avtomatik planlaşdırılır.',
+    'Su məlumatları olmayan yerdə YOUYA instansiyanın necə qurulmasından asılı olaraq onları bölgə üçün ya avtomatik yükləyir, ya da admindən istəyir. Admin regionları admin sahəsinin «Əlavələr» vərəqində «Turlar» altındakı sətir olan «Avarçəkmə üçün su məlumatları» bölməsində əlavə edir. Bu zaman hissədə su məlumatının yükləndiyi yazılır və məlumat gəldikdən sonra, adətən bir-üç dəqiqə ərzində, avtomatik planlaşdırılır.',
   'help.guide.tour-paddle-portage.step.2':
     '«Qayığı buradan daşı» seçin. Növbəti nöqtəyə qədər olan hissə quruda çəkilmiş daşımaya çevrilir.',
   'help.guide.tour-paddle-lock.title': 'Şlüz və onun gözləmə vaxtını əlavə etmək',
@@ -5347,9 +5349,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     'Push hər brauzer üçün ayrıca işləyir: bildiriş almaq istədiyiniz hər telefon və kompüterdə bunu təkrarlayın. «Bu cihaz üçün deaktiv et» onu yalnız həmin cihazda dayandırır.',
   'help.guide.connect-airtrail.step.2':
-    '«Öz-özünə imzalanmış sertifikatlara icazə ver» yalnız öz şəbəkənizdəki etibarlı instansiya üçündür. «Dəyişiklikləri AirTrail-ə geri yaz» standart olaraq söndürülüb, yəni TREK yalnız oxuyur; redaktələrinizi geri göndərmək üçün onu yandırın.',
+    '«Öz-özünə imzalanmış sertifikatlara icazə ver» yalnız öz şəbəkənizdəki etibarlı instansiya üçündür. «Dəyişiklikləri AirTrail-ə geri yaz» standart olaraq söndürülüb, yəni YOUYA yalnız oxuyur; redaktələrinizi geri göndərmək üçün onu yandırın.',
   'help.guide.connect-dawarich.step.2':
-    '«Yeni dayanma qeydlərini avtomatik yoxla» TREK-ə özbaşına yoxlamağa imkan verir. Söndürülübsə, TREK Dawarich-i yalnız siz istədikdə oxuyur. «Öz-özünə imzalanmış sertifikata icazə ver» yalnız serverinizin etibar etmədiyi instansiya üçündür.',
+    '«Yeni dayanma qeydlərini avtomatik yoxla» YOUYA-ə özbaşına yoxlamağa imkan verir. Söndürülübsə, YOUYA Dawarich-i yalnız siz istədikdə oxuyur. «Öz-özünə imzalanmış sertifikata icazə ver» yalnız serverinizin etibar etmədiyi instansiya üçündür.',
   'help.guide.tour-connect-wanderer.step.2':
     '«Özü tərəfindən imzalanmış sertifikata icazə ver» açarını yalnız öz şəbəkənizdəki instansiya üçün yandırın.',
   'help.guide.tour-wanderer-watch.step.1':
@@ -5359,7 +5361,7 @@ const help: TranslationStrings = {
     '«Göstərilən valyuta» məbləğləri yalnız görüntü üçün çevirir. «Xərclər» bölməsində daxil edilmiş məbləğlər olduğu kimi qalır.',
   'help.guide.own-routing-engine.step.2': '«Şəxsi marşrut mühərriki» altında OSRM serverinizin ünvanını daxil edin.',
   'help.guide.own-routing-engine.step.3':
-    '«Şəxsi Valhalla instansiyası» altında Valhalla ünvanını daxil edin və «Marşrut xidməti» kimi «Öz Valhalla instansiyası» seçin. Hər sahə ondan çıxanda yadda saxlanır; sonra TREK serverini yenidən başladın və səhifəni yenidən yükləyin.',
+    '«Şəxsi Valhalla instansiyası» altında Valhalla ünvanını daxil edin və «Marşrut xidməti» kimi «Öz Valhalla instansiyası» seçin. Hər sahə ondan çıxanda yadda saxlanır; sonra YOUYA serverini yenidən başladın və səhifəni yenidən yükləyin.',
   'help.guide.admin-passkeys.tip.3':
     'İstifadəçi keçid açarları olan cihazı itiribsə, onları «İstifadəçini redaktə et» pəncərəsindəki «Keçid açarlarını sıfırla» ilə silin.',
   'help.guide.rotate-jwt-secret.result':
@@ -5375,7 +5377,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     'Sarı qeydi oxuyun: orada gündəliyə ilk dəfə kimin giriş əldə edəcəyi yazılır. Sonra «Gündəliyi bağla» düyməsinə klikləyin.',
   'help.guide.dawarich-stays.step.1':
-    '«Tənzimləmələr», «İnteqrasiyalar» bölməsində Dawarich qoşulubsa, məkanlar siyahısının üstündə «Dawarich-dən» görünür. Başlığında TREK-in son dəfə nə vaxt yoxladığı və neçə dayanmanın gözlədiyi yazılır. Siyahını açmaq üçün ona klikləyin.',
+    '«Tənzimləmələr», «İnteqrasiyalar» bölməsində Dawarich qoşulubsa, məkanlar siyahısının üstündə «Dawarich-dən» görünür. Başlığında YOUYA-in son dəfə nə vaxt yoxladığı və neçə dayanmanın gözlədiyi yazılır. Siyahını açmaq üçün ona klikləyin.',
   'help.guide.leave-stop-off-route.step.2':
     'Adın yanında «Marşrutdan kənar» nişanı görünür. Dayanacaq gündə və xəritədə qalır, amma günün marşrutu və hissə vaxtları onu nəzərə almır.',
   'help.guide.move-booking-day.result': 'Rezervasiya planda yeni günə aiddir, vaxtı isə dəyişməyib.',
@@ -5384,7 +5386,7 @@ const help: TranslationStrings = {
     '«Fayl» bölməsində foto olan məkanı açın. Kartın aşağısına yaxın «Fayl» bloku məkanın neçə faylı olduğunu göstərir.',
   'help.guide.place-own-hours.title': 'Məkanın iş saatlarını, telefonunu və ya e-poçtunu düzəltmək',
   'help.guide.place-own-hours.tip.1':
-    'Daxil etdiyiniz saatlar TREK-in tapdıqlarını əvəz edir, beləliklə, mövsümi iş saatları olan kafedə sizin bildiyiniz saatlar göstərilir.',
+    'Daxil etdiyiniz saatlar YOUYA-in tapdıqlarını əvəz edir, beləliklə, mövsümi iş saatları olan kafedə sizin bildiyiniz saatlar göstərilir.',
   'help.guide.day-panel.tip.3':
     'Təqvimə görə planlaşdırırsınız? «Tənzimləmələr»də, «Ümumi» altında «Gün başlıqlarında əvvəlcə tarix» açarını yandırın: başlıqda əvvəlcə tarix, altında isə «Gün 1» və ya günün adı göstərilir.',
   'help.guide.confirm-stay-booking.result':
@@ -5404,15 +5406,15 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2':
     'Sütunlar nöqtəli vergüllə ayrılır və Excel faylı xüsusi hərflər pozulmadan açır.',
   'help.guide.arrange-packing-list.tip.2':
-    'TREK «A-dan Z-yə» seçimini bu brauzerdə yadda saxlayır, ona görə siyahı növbəti dəfə də sıralanmış açılır. Bu, yalnız sizin gördüyünüzü dəyişir, başqalarının gördüyü sıranı heç vaxt dəyişmir.',
+    'YOUYA «A-dan Z-yə» seçimini bu brauzerdə yadda saxlayır, ona görə siyahı növbəti dəfə də sıralanmış açılır. Bu, yalnız sizin gördüyünüzü dəyişir, başqalarının gördüyü sıranı heç vaxt dəyişmir.',
   'help.guide.count-packed-pieces.step.4':
     'Pəncərəni bağlayın. Ədədlərin yalnız bir qismi yığıldıqda sətir 3/5 kimi sayı göstərir, qutu isə vurğu rənginizdə haşiyə alır. Say miqdara çatdıqda element özü işarələnir.',
   'help.guide.expense-receipts.result':
     'Qəbz xərclə birlikdə saxlanır: sətrindəki nişan onu açır, fayl isə həm də səyahətin «Fayl» bölməsindədir.',
   'help.guide.files-sync-settings.step.4':
-    '«Sənəd silindikdə» altında digər tərəfdəki nüsxəyə nə olacağını seçin. «Hər iki nüsxəni saxla» saxlama xidmətindəki nüsxəyə toxunmur. «Zibil qutusuna köçür» sənəd TREK-də silindikdə onu saxlama xidmətinin zibil qutusuna göndərir.',
+    '«Sənəd silindikdə» altında digər tərəfdəki nüsxəyə nə olacağını seçin. «Hər iki nüsxəni saxla» saxlama xidmətindəki nüsxəyə toxunmur. «Zibil qutusuna köçür» sənəd YOUYA-də silindikdə onu saxlama xidmətinin zibil qutusuna göndərir.',
   'help.ctx.trip-collab.bullet.7':
-    'Burada hər şey üçün internet bağlantısı lazımdır. Oflayn olduqda mesaj, qeyd, link, sorğu və ya səs saxlanmır və TREK «This needs a connection. Try again once TREK is back online.» bildirir. Collab-ı redaktə etmək hüququ olmayan üzvlər hər şeyi oxuya bilər, amma onlar üçün «Yeni qeyd», «Link əlavə et» və «Yeni sorğu» yoxdur, mesaj sahəsi isə boz görünür.',
+    'Burada hər şey üçün internet bağlantısı lazımdır. Oflayn olduqda mesaj, qeyd, link, sorğu və ya səs saxlanmır və YOUYA «This needs a connection. Try again once YOUYA is back online.» bildirir. Collab-ı redaktə etmək hüququ olmayan üzvlər hər şeyi oxuya bilər, amma onlar üçün «Yeni qeyd», «Link əlavə et» və «Yeni sorğu» yoxdur, mesaj sahəsi isə boz görünür.',
   'help.guide.manage-notes.step.4':
     '«Redaktə et» qeyd pəncərəsini bütün sahələri doldurulmuş halda açır. Lazım olanı dəyişin, burada «Məzmun» altına bir sətir əlavə edilib, və «Yadda saxla» düyməsinə klikləyin.',
   'help.guide.note-categories.step.2':
@@ -5429,7 +5431,7 @@ const help: TranslationStrings = {
     '«Giriş» və ya «Minmə» nişanı sizin terminala nə vaxta qədər çatmalı olduğunuzu göstərir: yola düşmə cədvəldəkindən həmin qədər əvvələ salınır.',
   'help.guide.roadtrip-google-import.title': 'Google Maps-dən marşrut idxal etmək',
   'help.guide.roadtrip-google-import.tip.2':
-    'Linkdə TREK-in xəritədə yerləşdirə biləcəyi ən azı iki, ən çoxu 30 dayanacaq olmalıdır.',
+    'Linkdə YOUYA-in xəritədə yerləşdirə biləcəyi ən azı iki, ən çoxu 30 dayanacaq olmalıdır.',
   'help.guide.roadtrip-hazards.tip.1':
     'Xəbərdarlıqlar yol bağlanması demək deyil: marşrut onlara görə heç vaxt dəyişmir və bunlar sizin tarixləriniz üçün proqnoz deyil, cari bildirişlərdir.',
   'help.ctx.trip-tours.bullet.4':
@@ -5551,7 +5553,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.3':
     'Nişanlar yekunu göstərir: marşrutun nə qədərinin «Məlum» olduğu, üzərindəki «Ən yüksək məlum» dərəcə və ayrıca yürüşün planlaşdırıldığı «Marşrut həddi».',
   'help.guide.tour-hike-round.goal':
-    'TREK yürüşün bir dayanacağından başlayan, istədiyiniz uzunluqda dairəvi marşrutlar təklif etsin.',
+    'YOUYA yürüşün bir dayanacağından başlayan, istədiyiniz uzunluqda dairəvi marşrutlar təklif etsin.',
   'help.guide.tour-hike-round.tip.2':
     '1 ilə 60 km arasında məsafələr qəbul olunur və sizin məsafənizdən 20 %-dən çox fərqlənməyən dairəvi marşrutlar təklif olunur.',
   'help.guide.tour-hike-compare-ways.result':
@@ -5578,7 +5580,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     'Ziyarət edilmiş dayanacaqlar işarələnib, buraxılanların üstündən xətt çəkilib, qalan vaxt isə yalnız hələ qarşıda olanları hesablayır.',
   'help.guide.tour-bike-profile.goal':
-    'Velosiped turuna başlayın və TREK marşrutu turinq, şosse, qravel və ya MTB üçün qursun.',
+    'Velosiped turuna başlayın və YOUYA marşrutu turinq, şosse, qravel və ya MTB üçün qursun.',
   'help.guide.tour-bike-profile.tip.1':
     'Profili sonradan dəyişsəniz, bütün marşrut yeni profil üçün yenidən planlaşdırılır.',
   'help.guide.tour-bike-surfaces.step.2':
@@ -5609,13 +5611,13 @@ const help: TranslationStrings = {
     'Göldə «Göllərdə» marşrutu müəyyən edir: «Düz keçid» ən qısasıdır, «Sahilə yaxın» isə küləkli günlər üçün sahilə yaxın gedir.',
   'help.guide.tour-paddle-water-route.title': 'Su üzərindəki hissələri planlaşdırmaq',
   'help.guide.tour-paddle-water-route.tip.2':
-    'Marşrut qayığı bəndin ətrafından daşıyırsa və ya şlüzdən keçirsə, TREK orada öz nöqtəsini qoyur və onu «Tapıldı» kimi işarələyir. Onu köçürsəniz və ya dəyişsəniz, o, sizin öz nöqtəniz olur.',
+    'Marşrut qayığı bəndin ətrafından daşıyırsa və ya şlüzdən keçirsə, YOUYA orada öz nöqtəsini qoyur və onu «Tapıldı» kimi işarələyir. Onu köçürsəniz və ya dəyişsəniz, o, sizin öz nöqtəniz olur.',
   'help.guide.tour-paddle-portage.step.3':
     'Nöqtənin altında uzunluğu və əlavə dəqiqələri ilə «Daşıma» kartı görünür. Açmaq üçün ona klikləyin.',
   'help.guide.tour-paddle-lock.goal': 'Tura şlüz əlavə edin və gözləmə ilə keçid vaxtını tur vaxtına daxil edin.',
   'help.guide.tour-paddle-lock.result': 'Şlüz dəqiqələri ilə birlikdə turdadır və «Vaxt təxmini» onları əlavə edir.',
   'help.guide.tour-paddle-time.tip.1':
-    'TREK suda 4 km/saat, daşımada 2 km/saat və hər daşımada 10 dəqiqə ilə başlayır. Bunlar ölçmə deyil, dəyişdirilməli başlanğıc dəyərlərdir.',
+    'YOUYA suda 4 km/saat, daşımada 2 km/saat və hər daşımada 10 dəqiqə ilə başlayır. Bunlar ölçmə deyil, dəyişdirilməli başlanğıc dəyərlərdir.',
   'help.guide.tour-paddle-wind.step.3':
     'Zolaqlar günün saatlarını göstərir, ani əsmələr orta küləyin arxasındadır. Həmin saatın göstəricilərini və istiqamətini görmək üçün kursoru zolağın üzərinə gətirin.',
   'help.guide.tour-paddle-checklist.goal':
@@ -5687,7 +5689,7 @@ const help: TranslationStrings = {
     'Aşağıdakı «Plagin fəaliyyəti» plaginlərin sizin adınızdan etdiyi bütün əməliyyatları ən yenisi birinci olmaqla sadalayır, «Yenilə» düyməsi ilə.',
   'help.guide.language-region.tip.3':
     '«Həftənin başlanğıcı» bütün tarix seçicilərinin ilk sütununu təyin edir; Vacay-in öz ayarı var.',
-  'help.guide.web-push-device.tip.2': 'iPhone və iPad-də əvvəlcə TREK-i Əsas ekrana əlavə edin və onu oradan açın.',
+  'help.guide.web-push-device.tip.2': 'iPhone və iPad-də əvvəlcə YOUYA-i Əsas ekrana əlavə edin və onu oradan açın.',
   'help.guide.connect-airtrail.step.3':
     '«Yadda saxla», sonra «Bağlantını yoxla» düyməsinə klikləyin. Neçə uçuş tapıldığı göstərilir və nişan «Qoşulub» olur.',
   'help.guide.connect-dawarich.step.3':
@@ -5695,7 +5697,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     '«Yadda saxla», sonra «Bağlantını yoxla» düyməsinə klikləyin. Cığırlarınızdan neçəsini idxal edə biləcəyiniz göstərilir və nişan «Qoşulub» olur.',
   'help.guide.tour-wanderer-watch.step.2':
-    'TREK gündə ən çoxu bir dəfə idxal etdiyiniz hər cığırın qısa qeydini oxuyur, sətirdə isə son yoxlama vaxtı göstərilir. Cığır dəyişmiş ola bilərsə, bildiriş alırsınız və «Xəbərdarlıqlar» onu sayır: hər turu «Dəyişmiş ola bilər», «Dəyişib» və ya «Yoxlanıla bilmir» kimi görmək və oradan açmaq üçün «Xəbərdarlıqlar»a klikləyin.',
+    'YOUYA gündə ən çoxu bir dəfə idxal etdiyiniz hər cığırın qısa qeydini oxuyur, sətirdə isə son yoxlama vaxtı göstərilir. Cığır dəyişmiş ola bilərsə, bildiriş alırsınız və «Xəbərdarlıqlar» onu sayır: hər turu «Dəyişmiş ola bilər», «Dəyişib» və ya «Yoxlanıla bilmir» kimi görmək və oradan açmaq üçün «Xəbərdarlıqlar»a klikləyin.',
   'help.guide.plugin-settings.goal':
     'Plaginə öz açarlarınızı və seçimlərinizi verin və sizin adınızdan nə etdiyini görün.',
   'help.guide.own-routing-engine.result': 'Bütün səyahətlərdə marşrutlar sizin serverlərinizdə hesablanır.',
@@ -5714,7 +5716,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     'Səyahətin vərəqlər panelində «Gündəlik» vərəqi görünür. «Oxumaq» və ya «Redaktə et» icazəsi verdiyiniz hər kəs gündəliyi həmin vərəqdə canlı yeniləmələrlə aça bilər.',
   'help.guide.create-place.tip.4':
-    'Google Maps-dən kopyalanmış link axtarışda da işləyir: yapışdırın, Enter basın, TREK məkanı linkdən oxuyur. Formada mövqe olduqdan sonra axtarışın yanındakı nişangah, «Bu nişanın yaxınlığındakı məkanlar», ətrafdakıları sadalayır.',
+    'Google Maps-dən kopyalanmış link axtarışda da işləyir: yapışdırın, Enter basın, YOUYA məkanı linkdən oxuyur. Formada mövqe olduqdan sonra axtarışın yanındakı nişangah, «Bu nişanın yaxınlığındakı məkanlar», ətrafdakıları sadalayır.',
   'help.guide.dawarich-stays.step.2':
     'Dayanmalar günlərə görə qruplaşdırılır, hər birində gəliş və ayrılma vaxtı göstərilir; göstərici işarəsi Dawarich-in əmin olmadığı dayanmanı bildirir. Dayanmanın yanındakı sancağa, «Məkan kimi əlavə et»ə klikləyin.',
   'help.guide.leave-stop-off-route.step.3':
@@ -5740,7 +5742,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.4':
     'Formanı açmadan gedişin adını dəyişmək üçün başlığa klikləyin. «Adını dəyiş» ad doldurulmuş halda açılır: yenisini yazın və «Yadda saxla» düyməsinə klikləyin.',
   'help.guide.export-transports-csv.goal':
-    'Səyahətin gedişlərini TREK-dən CSV faylı kimi ixrac edin: cədvəl, səyahət agenti və ya çap üçün.',
+    'Səyahətin gedişlərini YOUYA-dən CSV faylı kimi ixrac edin: cədvəl, səyahət agenti və ya çap üçün.',
   'help.guide.group-sort-bookings.result':
     'Rezervasiyalar seçdiyiniz bölmələrdə və ardıcıllıqla göstərilir, bu brauzer isə seçimi növbəti dəfə üçün yadda saxlayır.',
   'help.guide.booking-on-map.step.1':
@@ -5755,7 +5757,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     'Redaktorda siyahıdakı faylın adına klik eyni önizləməni açır. Bu halda Esc xərci deyil, yalnız önizləməni bağlayır.',
   'help.guide.files-sync-settings.step.5':
-    '«Hər iki tərəf dəyişdikdə» sənəd hər iki yerdə redaktə edildikdə hansı nüsxənin saxlanacağını təyin edir: «Məndən soruş», «TREK nüsxəsini saxla» və ya «Saxlama xidmətindəki nüsxəni saxla». «Avtomatik sinxronlaşdır» TREK-ə dəyişiklikləri arxa planda yoxlamağa imkan verir; söndürülübsə, kartda «Dayandırılıb» yazılır və sinxronizasiyanı yalnız «İndi sinxronlaşdır» işə salır. Burada hər dəyişiklik dərhal yadda saxlanır.',
+    '«Hər iki tərəf dəyişdikdə» sənəd hər iki yerdə redaktə edildikdə hansı nüsxənin saxlanacağını təyin edir: «Məndən soruş», «YOUYA nüsxəsini saxla» və ya «Saxlama xidmətindəki nüsxəni saxla». «Avtomatik sinxronlaşdır» YOUYA-ə dəyişiklikləri arxa planda yoxlamağa imkan verir; söndürülübsə, kartda «Dayandırılıb» yazılır və sinxronizasiyanı yalnız «İndi sinxronlaşdır» işə salır. Burada hər dəyişiklik dərhal yadda saxlanır.',
   'help.guide.manage-notes.step.5':
     '«Sil» əvvəlcə «Qeyd silinsin?» deyə soruşur, çünki qeyd faylları ilə birlikdə bütün üzvlər üçün silinir. Təsdiqləmək üçün «Sil» düyməsinə klikləyin.',
   'help.guide.note-categories.step.3':
@@ -5787,7 +5789,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     'Və ya günü açmaq üçün başlığına klikləyin, siyahıda tura klikləyin və kartın aşağısındakı «Gündən çıxar» düyməsinə klikləyin.',
   'help.guide.tour-filter-list.step.3':
-    'Siyahıda müxtəlif turlar varsa, «Mənbə» (TREK, «GPX idxalı», wanderer), «Marşrut həddi» (T1-dən T6-ya qədər) və «Növ» («Yürüş», «Velosiped turu» və s.) onu daha da daraldır. İşarələnmiş dəyəri götürmək üçün ona yenidən klikləyin.',
+    'Siyahıda müxtəlif turlar varsa, «Mənbə» (YOUYA, «GPX idxalı», wanderer), «Marşrut həddi» (T1-dən T6-ya qədər) və «Növ» («Yürüş», «Velosiped turu» və s.) onu daha da daraldır. İşarələnmiş dəyəri götürmək üçün ona yenidən klikləyin.',
   'help.guide.tour-hide-on-map.step.1':
     'Kursoru siyahıdakı turun üzərinə gətirin və sətrin sağında görünən gözə («Xəritədə gizlət») klikləyin.',
   'help.guide.tour-import-plan-tab.step.1':
@@ -5807,7 +5809,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.tip.4':
     '«Kolleksiya» yalnız Kolleksiyalar əlavəsi aktiv olduqda var. Yalnız oxuya bildiyiniz siyahını seçmək olmur, hələ siyahı yoxdursa, pəncərə «Kolleksiyaları aç» təklif edir.',
   'help.guide.tour-packing-link.step.5':
-    'Elementləri işarələmək üçün «Baqaj siyahısını aç» düyməsinə klikləyin. TREK «Siyahılar» vərəqinə, baqaj siyahısına keçir.',
+    'Elementləri işarələmək üçün «Baqaj siyahısını aç» düyməsinə klikləyin. YOUYA «Siyahılar» vərəqinə, baqaj siyahısına keçir.',
   'help.guide.tour-files.step.2': 'Altındakı sətir indi onları sayır və siyahı açılır.',
   'help.guide.tour-activity-link.step.2':
     '«Keçirildiyi gün» altında turu hansı gün keçdiyinizi yoxlayın. Heç bir günə aid deyilsə, «Gün yoxdur» seçin.',
@@ -5819,7 +5821,7 @@ const help: TranslationStrings = {
     'Xəritənin yuxarısındakı «Yer və ya ünvan axtar» xəritəni hərəkət etdirir. Aşağı soldakı panel turun növünün təklif etdiyi xəritələr, məsələn, Topo və ya «Peyk» arasında keçid edir və açıq turun «Nöqtə qoy» və 3D kimi açarlarını saxlayır.',
   'help.guide.tour-open-workspace.step.5':
     'Xəritənin yuxarısındakı «Yer və ya ünvan axtar» xəritəni bir yerə aparır ki, turun olduğu yerdən başlayasınız.',
-  'help.guide.tour-draw-route.goal': 'Yeni turun nöqtələrini xəritədə qoyun və TREK aralarındakı marşrutu hesablasın.',
+  'help.guide.tour-draw-route.goal': 'Yeni turun nöqtələrini xəritədə qoyun və YOUYA aralarındakı marşrutu hesablasın.',
   'help.guide.tour-draw-route.tip.2':
     'Xəritə panelində Topo və ya «Gəzinti» yolları göstərir, bu da onlardan birinə klikləməyi asanlaşdırır. Növün istifadə edə biləcəyi heç bir yoldan çox uzaq olan nöqtə üçün marşrut əvəzinə bildiriş göstərilir.',
   'help.guide.tour-type-profile.step.3':
@@ -5952,11 +5954,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     '«Avar sürəti» qayığa görə təklif olunan sürəti boz rəngdə göstərir. Öz sürətinizi yazdıqda sahədə «Öz sürətin» yazılır; altındakı «Use the suggested» linki yenidən qayığın sürətini götürür.',
   'help.guide.tour-paddle-water-route.goal':
-    'TREK hissəni çay və ya göl boyunca planlaşdırsın, planlaşdıra bilmədiyi hissədəki qeydləri isə başa düşün.',
+    'YOUYA hissəni çay və ya göl boyunca planlaşdırsın, planlaşdıra bilmədiyi hissədəki qeydləri isə başa düşün.',
   'help.guide.tour-paddle-water-route.tip.3':
     'Planlaşdırılmış hissənin altındakı qeydlər dərəcəsi ilə «Whitewater», «Qayıq keçidi» və ya düz xətlə birləşdirilmiş «Xəritə məlumatlarında boşluq» barədə xəbərdarlıq edir.',
   'help.guide.tour-paddle-portage.step.4':
-    '«Marşrut» altında «Yolu izlə» xəritədəki yoldan istifadə edir, «Düz xətt» isə birbaşa keçir. TREK yolu özü axtarır və uzun dolama olmadan yol olmadıqda bunu bildirir.',
+    '«Marşrut» altında «Yolu izlə» xəritədəki yoldan istifadə edir, «Düz xətt» isə birbaşa keçir. YOUYA yolu özü axtarır və uzun dolama olmadan yol olmadıqda bunu bildirir.',
   'help.guide.tour-paddle-lock.step.1':
     'Kursoru şlüzdəki dayanacağın üzərinə gətirin və üç nöqtəyə, «Digər əməliyyatlar»a klikləyin.',
   'help.guide.tour-paddle-time.title': 'Avarçəkmə turunun vaxtını oxumaq və tənzimləmək',
@@ -5966,7 +5968,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     'Avarçəkmə turunu yadda saxlayın, sonra sol sütunda «Yoxlama siyahısı»nı tapın. Başlığındakı nişan siyahının vəziyyətini ümumiləşdirir.',
   'help.guide.tour-paddle-checklist.tip.4':
-    'Maneələr TREK-də olan bölgələrin OpenStreetMap məlumatlarından gəlir. Məlumat yoxdursa, kart bunu bildirir və bəndləri, şlüzləri və daşımaları özünüz yoxlayırsınız.',
+    'Maneələr YOUYA-də olan bölgələrin OpenStreetMap məlumatlarından gəlir. Məlumat yoxdursa, kart bunu bildirir və bəndləri, şlüzləri və daşımaları özünüz yoxlayırsınız.',
   'help.guide.tour-paddle-track-marks.step.4':
     '«Bu səyahətin turları»nda izə klikləyin. Sol sütun onu qeydə alındığı kimi, «Daşımalar və şlüzlər» kartı ilə birlikdə göstərir.',
   'help.ctx.trip-tour-horse.title': 'At gəzintiləri',
@@ -6034,16 +6036,16 @@ const help: TranslationStrings = {
     'Əlaqələndirilmiş səyahət davam etdikcə hər günün dayanmaları həmin gündə sadalanır, «Günü köçür» üçün hazırdır.',
   'help.ctx.settings-about.title': 'Haqqında',
   'help.guide.web-push-device.tip.3':
-    'Push üçün TREK HTTPS ilə açılmalıdır. Bildirişlər bloklanıbsa, brauzer tənzimləmələrində onlara icazə verin və yenidən cəhd edin.',
-  'help.guide.booking-mail-address.title': 'Rezervasiya məktublarını TREK-ə yönləndirin',
+    'Push üçün YOUYA HTTPS ilə açılmalıdır. Bildirişlər bloklanıbsa, brauzer tənzimləmələrində onlara icazə verin və yenidən cəhd edin.',
+  'help.guide.booking-mail-address.title': 'Rezervasiya məktublarını YOUYA-ə yönləndirin',
   'help.guide.booking-mail-address.goal':
-    'Rezervasiya təsdiqləri üçün öz ünvanınızı alın ki, TREK hər rezervasiyanı düzgün səyahətə əlavə etsin.',
+    'Rezervasiya təsdiqləri üçün öz ünvanınızı alın ki, YOUYA hər rezervasiyanı düzgün səyahətə əlavə etsin.',
   'help.guide.booking-mail-address.step.1':
     '«İnteqrasiyalar» bölməsində «Rezervasiya məktubları» «Ünvanın» sahəsini göstərir. Yanındakı kopyalama düyməsinə klikləyin. Ünvanı parol kimi özünüzdə saxlayın.',
   'help.guide.booking-mail-address.step.2':
     'Rezervasiya məktubunu əlavələri ilə birlikdə ora əllə yönləndirin və ya Gmail və ya Outlook-da qayda qurmaq üçün «Avtomatik yönləndir» bölməsinə baxın.',
   'help.guide.booking-mail-address.step.3':
-    '«Rezervasiya məktublarını idxal et» idxalı açır və ya bağlayır. «Süni intellektlə oxu» süni intellektə maşın oxuyan rezervasiya məlumatı olmayan məktubları oxumağa imkan verir. «Özbaşına əlavə et» TREK-in əmin olduğu rezervasiyanı birbaşa səyahətinə qoyur.',
+    '«Rezervasiya məktublarını idxal et» idxalı açır və ya bağlayır. «Süni intellektlə oxu» süni intellektə maşın oxuyan rezervasiya məlumatı olmayan məktubları oxumağa imkan verir. «Özbaşına əlavə et» YOUYA-in əmin olduğu rezervasiyanı birbaşa səyahətinə qoyur.',
   'help.guide.booking-mail-address.step.4':
     '«Gözləyən rezervasiyalar» sizi gözləyən məktubları açır, varsa yanında rəqəmlə. «Məktub faylı yüklə» .eml kimi saxladığınız məktubu oxuyur.',
   'help.guide.booking-mail-address.result':
@@ -6061,7 +6063,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     'Nişanda «Qoşulub» yazılır, səyahətin «Turlar» vərəqi isə wanderer serverinizdə axtarış edib cığırları idxal edə bilər.',
   'help.guide.tour-wanderer-watch.result':
-    'TREK idxal etdiyiniz cığırları yoxlayır və biri dəyişmiş ola bilərsə, sizə xəbər verir. Tur yalnız siz dəyişikliyi qəbul etdikdə dəyişir.',
+    'YOUYA idxal etdiyiniz cığırları yoxlayır və biri dəyişmiş ola bilərsə, sizə xəbər verir. Tur yalnız siz dəyişikliyi qəbul etdikdə dəyişir.',
   'help.guide.plugin-settings.step.1':
     'Tənzimləmələrin yan panelində «Plaginlər»i açın. «Plagin tənzimləmələri» altında sizin üçün ayarları olan hər plaginin öz kartı var: sahələrini doldurub «Yadda saxla» düyməsinə klikləyin və ya göstərdiyi seçimləri edin. Kartdakı əməliyyatlar təsdiqinizdən sonra icra olunur.',
   'help.guide.profile.step.3': 'Kartın aşağı sağındakı «Profili yadda saxla» düyməsinə klikləyin.',
@@ -6074,7 +6076,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Hər istifadəçinin bildirişlərinin ilkin vəziyyətini təyin edin və hadisə üçün kanalı tamamilə bloklayın.',
   'help.ctx.notifications.summary':
-    'TREK-in tətbiq daxilində sizə göstərdiyi bütün bildirişlər, ən yenisi birinci və günlərə görə qruplaşdırılmış: kiminsə dəyişdiyi rezervasiya, səyahət çatında yeni mesaj, gecikən uçuş, yönləndirilən məktubdan gələn rezervasiya. Yuxarı sağdakı zəng son onunu, bu səhifə isə hamısını göstərir.',
+    'YOUYA-in tətbiq daxilində sizə göstərdiyi bütün bildirişlər, ən yenisi birinci və günlərə görə qruplaşdırılmış: kiminsə dəyişdiyi rezervasiya, səyahət çatında yeni mesaj, gecikən uçuş, yönləndirilən məktubdan gələn rezervasiya. Yuxarı sağdakı zəng son onunu, bu səhifə isə hamısını göstərir.',
   'help.guide.read-notifications.step.1':
     'Yuxarı sağdakı zəngə klikləyin. Üzərindəki qırmızı rəqəm hələ oxumadığınız bildirişləri sayır.',
   'help.guide.filter-notifications.step.1': 'Yuxarı sağdakı zəngə klikləyin.',
@@ -6201,7 +6203,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     'Saxlanmış turu GPX faylı kimi endirmək üçün GPX düyməsinə klikləyin: bütün marşrutu mövcud hündürlüklərlə birlikdə, naviqasiya tətbiqi və ya GPS cihazı üçün hazır.',
   'help.guide.tour-copy-keep.step.1':
-    'Turun kartını açın və aşağıdakı «Kopyala» düyməsinə klikləyin. TREK günləri olmayan yeni, müstəqil tur yaradır, orijinal isə olduğu kimi qalır.',
+    'Turun kartını açın və aşağıdakı «Kopyala» düyməsinə klikləyin. YOUYA günləri olmayan yeni, müstəqil tur yaradır, orijinal isə olduğu kimi qalır.',
   'help.guide.tour-copy-keep.result':
     'Səyahətdə sərbəst dəyişə biləcəyiniz ikinci tur var, kolleksiyada isə başqa səyahətə əlavə etməyə hazır öz nüsxəsi saxlanır.',
   'help.guide.tour-packing-link.tip.1':
@@ -6289,7 +6291,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Eyni marşrutu ayağınızın altındakı örtüyə görə, asfaltdan təbii torpaq və qayaya qədər görmək üçün «Səth» düyməsinə klikləyin.',
   'help.guide.tour-hike-round.step.2':
-    'Xəritənin üzərində «Dairəvi yürüş» kartı açılır. «Kimdən» altında başlanğıcı yoxlayın və istədiyiniz «Məsafə»ni yazın. Yanındakı nişan TREK-in onun üçün təklif edəcəyi dairələrin uzunluqlarını göstərir.',
+    'Xəritənin üzərində «Dairəvi yürüş» kartı açılır. «Kimdən» altında başlanğıcı yoxlayın və istədiyiniz «Məsafə»ni yazın. Yanındakı nişan YOUYA-in onun üçün təklif edəcəyi dairələrin uzunluqlarını göstərir.',
   'help.guide.tour-hike-compare-ways.title': 'Yürüşün bir hissəsi üçün başqa yolları müqayisə etmək',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Marşrutlaşdırıcı başqa yol bilmirsə, kart bunu bildirir. Marşrutlaşdırıcı seçdiyiniz yolla gedə bilmirsə, hissə olduğu kimi qalır və kart bunu sizə deyir.',
@@ -6308,7 +6310,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     'İş saatları OpenStreetMap-dən və ya dayanacağın aid olduğu səyahət yerindən gəlir, yanındakı nişan hansından gəldiyini göstərir. Getməzdən əvvəl onları yoxlayın.',
   'help.guide.tour-walk-google-import.step.4':
-    '«Gəzinti kimi yüklə» düyməsinə klikləyin. TREK dayanacaqlar arasındakı piyada yolu özü planlaşdırır. Gəzintini saxlamaq üçün «Yadda saxla» düyməsinə klikləyin.',
+    '«Gəzinti kimi yüklə» düyməsinə klikləyin. YOUYA dayanacaqlar arasındakı piyada yolu özü planlaşdırır. Gəzintini saxlamaq üçün «Yadda saxla» düyməsinə klikləyin.',
   'help.guide.tour-walk-check-off.step.2':
     '«Gəzintinin dayanacaqları»na qədər sürüşdürün. Hər dayanacaqda orada nə qədər qalacağınız, gəzintinin başlama vaxtı varsa, nə vaxt çatacağınız göstərilir.',
   'help.ctx.trip-tour-bike.summary':
@@ -6324,7 +6326,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     'Xəritədəki pistlər, liftlər və cığırlar boyunca pistlərdə bir gün, xizək qaçışı dairəsi, xizək turu və ya qar ayaqqabısı ilə gəzinti planlaşdırın.',
   'help.guide.tour-ski-plan.tip.2':
-    '«Növ» yanındakı məlumat nöqtəsi TREK-in xizək turları ilə nə etdiyini izah edir. Orada və ümumiyyətlə burada heç nə qar, uçqunlar və ya pistlərin, liftlərin və cığırların açıq olub olmadığı barədə məlumat vermir.',
+    '«Növ» yanındakı məlumat nöqtəsi YOUYA-in xizək turları ilə nə etdiyini izah edir. Orada və ümumiyyətlə burada heç nə qar, uçqunlar və ya pistlərin, liftlərin və cığırların açıq olub olmadığı barədə məlumat vermir.',
   'help.guide.tour-ski-options.step.3':
     '«Üstünlük ver» altında «Ən sürətli», «Ən çox xizək» və ya «Ən asan» seçin. «Temp» altında «Sakit», «Normal» və ya «İdmanlı» seçin: bu, marşrutlaşdırıcının hər pistə verdiyi vaxtı dəyişir.',
   'help.guide.tour-ski-fix-leg.goal': 'Qırmızı hissəni bir kliklə planlaşdırın və ya düz çəkin.',
@@ -6341,11 +6343,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     '«Nöqtə əlavə et» rejiminin aktiv olduğunu yoxlayın, sonra xəritəyə klikləyin: əvvəlcə suya düşdüyünüz yer, sonra yoldakı nöqtələr və sudan çıxdığınız yer.',
   'help.guide.tour-paddle-water-route.step.1':
-    'Əllə çəkilmiş hissədə nöqtənin altında uzunluğu ilə birlikdə «Əllə çəkilib, marşrutlaşdırılmayıb» yazılır. TREK onun xəttini çəkdiyiniz kimi saxlayır.',
+    'Əllə çəkilmiş hissədə nöqtənin altında uzunluğu ilə birlikdə «Əllə çəkilib, marşrutlaşdırılmayıb» yazılır. YOUYA onun xəttini çəkdiyiniz kimi saxlayır.',
   'help.guide.tour-paddle-water-route.tip.4':
     'Hissə planlaşdırılmayıbsa, yadda saxlamaq olmur. Əvvəlcə onu suda planlaşdırın və ya əllə çəkin.',
   'help.guide.tour-paddle-portage.step.5':
-    '«Çıxış və giriş» altında sudan çıxmaq, yükü boşaltmaq və yenidən suya düşmək üçün lazım olan dəqiqələri yazın. Boş buraxsanız, TREK 10 dəqiqə götürür.',
+    '«Çıxış və giriş» altında sudan çıxmaq, yükü boşaltmaq və yenidən suya düşmək üçün lazım olan dəqiqələri yazın. Boş buraxsanız, YOUYA 10 dəqiqə götürür.',
   'help.guide.tour-paddle-lock.step.2':
     '«Bu nöqtədə şlüz» seçin. Nöqtənin altında «Vaxt göstərilməyib» işarəli şlüz kartı görünür.',
   'help.guide.tour-paddle-time.goal':
@@ -6355,7 +6357,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     'Proqnoz yalnız növbəti 16 gün üçün var. Daha uzaq gün üçün proqnozun hansı tarixdən mövcud olacağı, keçmiş gün üçün isə günün keçdiyi bildirilir.',
   'help.guide.tour-paddle-checklist.step.2':
-    'Altındakı sətir məlumatların nə qədər təzə olduğunu göstərir: OpenStreetMap üçün «OSM tarixi», TREK-in onu oxuduğu vaxt üçün «Alınma tarixi», bütün marşrutu əhatə etmədikdə isə «Maneə məlumatları».',
+    'Altındakı sətir məlumatların nə qədər təzə olduğunu göstərir: OpenStreetMap üçün «OSM tarixi», YOUYA-in onu oxuduğu vaxt üçün «Alınma tarixi», bütün marşrutu əhatə etmədikdə isə «Maneə məlumatları».',
   'help.guide.tour-paddle-checklist.tip.5':
     'Yoxlama siyahısı təhlükəsizlik və ya hüquqi icazə deyil. Qərarınız OpenStreetMap-də qeydə alınmış qadağanı və ya şəxsi ərazini aradan qaldırmır.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -6394,7 +6396,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.7':
     'Saxlanmış turlar: səyahətdən saxladığınız turlar siyahının ilk sətirləridir, dərəcəsi, növü, gəldiyi səyahət və ölçüləri ilə. «Səfərə əlavə et» ondan yeni tur yaradır, zibil qutusu isə onu siyahıdan silir.',
   'help.guide.move-to-list.title': 'Məkanları başqa siyahıya köçürmək və ya kopyalamaq',
-  'help.guide.copy-to-trip.tip.2': 'Səyahətdə artıq olan məkan buraxılır və TREK neçəsinin buraxıldığını göstərir.',
+  'help.guide.copy-to-trip.tip.2': 'Səyahətdə artıq olan məkan buraxılır və YOUYA neçəsinin buraxıldığını göstərir.',
   'help.guide.accept-list-invite.tip.2':
     'Üzvlərini görmək üçün siyahının yuxarısındakı «Paylaşılan» düyməsinə klikləyin. Siyahıdan yenidən çıxmaq üçün orada «Siyahıdan ayrıl» düyməsinə klikləyin.',
   'help.guide.tour-collection-add-to-trip.goal':
@@ -6412,15 +6414,15 @@ const help: TranslationStrings = {
   'help.guide.journey-day-stays.goal': 'Dawarich-in qeydə aldığı dayanmaları bir-bir qeydlərə çevirin.',
   'help.guide.journey-take-over-day.goal':
     'Günün dayanmalarını bir addımda qaralama qeydlərə və ya bir gün hesabatına çevirin.',
-  'help.guide.journey-auto-prepare.title': 'TREK qeydə alınmış günlərinizi hazırlasın',
+  'help.guide.journey-auto-prepare.title': 'YOUYA qeydə alınmış günlərinizi hazırlasın',
   'help.guide.photo-location.title': 'Qeydləri fotolarının çəkildiyi yerə yerləşdirmək',
   'help.ctx.settings-about.summary':
-    'TREK nədir, bu server hansı versiyada işləyir və layihəni harada tapmaq olar: sənədlər, xətanı harada bildirmək və layihəni dəstəkləmək yolları.',
+    'YOUYA nədir, bu server hansı versiyada işləyir və layihəni harada tapmaq olar: sənədlər, xətanı harada bildirmək və layihəni dəstəkləmək yolları.',
   'help.guide.startup.tip.2': 'Söndürdüyünüz əlavəyə aid başlanğıc vərəqi əvəzinə planı açır.',
   'help.guide.web-push-device.title': 'Bu cihazda push bildirişləri almaq',
   'help.guide.connect-airtrail.tip.1': 'Kart yalnız admin AirTrail əlavəsini aktiv saxladıqca görünür.',
   'help.guide.connect-dawarich.tip.1':
-    'TREK yalnız qeyd, məkan və ölkə təklif edir; siz təsdiqləyənə qədər heç nə əlavə olunmur və Dawarich-ə heç nə geri yazılmır.',
+    'YOUYA yalnız qeyd, məkan və ölkə təklif edir; siz təsdiqləyənə qədər heç nə əlavə olunmur və Dawarich-ə heç nə geri yazılmır.',
   'help.guide.tour-connect-wanderer.tip.1': 'Kart yalnız admin «Turlar» altında wanderer-ə icazə verdikdə görünür.',
   'help.guide.tour-wanderer-watch.tip.1':
     'Xəbərdarlıq turu heç vaxt dəyişmir; nəyin həqiqətən dəyişdiyini turun mənbə yoxlaması göstərir.',
@@ -6435,7 +6437,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     'Heç kim «Tənzimləmələr»i açmadan hər hesaba uyğun vahidlər, rəng rejimi və valyuta verin.',
   'help.guide.default-map.step.3':
-    'Hər sahə ondan çıxdıqda yadda saxlanır. Sahənin adının yanındakı «sıfırla» linki TREK-in standart dəyərini bərpa edir.',
+    'Hər sahə ondan çıxdıqda yadda saxlanır. Sahənin adının yanındakı «sıfırla» linki YOUYA-in standart dəyərini bərpa edir.',
   'help.guide.own-routing-engine.tip.2':
     'Yalnız öz marşrut mühərriki təyin edildikdə və «Marşrut xidməti» «Avtomatik»də olduqda heç bir Valhalla-dan soruşulmur. Sahənin yanındakı «sıfırla» linki onu yenidən təmizləyir.',
   'help.guide.admin-passkeys.step.1':
@@ -6443,7 +6445,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.4':
     'Yuxarıdakı «Sağlamlıq» güzgü hədəfinə uğursuz yazmaları sadalayır. Orada «Heç bir replika xətası qeydə alınmayıb.» yazılırsa, hər şey işləyir.',
   'help.guide.channels-instance.tip.3':
-    'Web Push üçün HTTPS lazımdır. iPhone və iPad-də istifadəçilər əvvəlcə TREK-i Əsas ekrana əlavə edir.',
+    'Web Push üçün HTTPS lazımdır. iPhone və iPad-də istifadəçilər əvvəlcə YOUYA-i Əsas ekrana əlavə edir.',
   'help.guide.notification-defaults.step.1':
     '«Bildirişlər» vərəqində aşağıdakı «İstifadəçilər üçün ilkin dəyərlər» bölməsinə qədər sürüşdürün. Hər sətir bir hadisə, hər sütun bir kanaldır.',
   'help.ctx.notifications.bullet.1':
@@ -6490,28 +6492,28 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     'Vərəqin yalnız bir hissəsini ixrac etmək üçün əvvəlcə onu «Axtar» və ya «Filtrlə» ilə daraldın. Faylda tam vərəqin göstərdikləri olur.',
   'help.guide.import-booking-file.tip.4':
-    'Təsdiqi oxumaq üçün internet bağlantısı lazımdır. Oflayn olduqda «İdxal et» bunu bildirir, TREK yenidən onlayn olduqda təkrar cəhd edirsiniz.',
+    'Təsdiqi oxumaq üçün internet bağlantısı lazımdır. Oflayn olduqda «İdxal et» bunu bildirir, YOUYA yenidən onlayn olduqda təkrar cəhd edirsiniz.',
   'help.guide.forward-booking-mail.title': 'Rezervasiya məktubunu səyahətə yönləndirin',
   'help.guide.forward-booking-mail.goal':
-    'Səyahətə öz ünvanını verin, təsdiqi ora yönləndirin və TREK-in özbaşına əlavə edə bilmədiyini tamamlayın.',
+    'Səyahətə öz ünvanını verin, təsdiqi ora yönləndirin və YOUYA-in özbaşına əlavə edə bilmədiyini tamamlayın.',
   'help.guide.forward-booking-mail.step.1':
     'Zolaqdakı yükləmə işarəsinə, «Rezervasiya təsdiqlərini idxal et»ə klikləyin. Fayllar üçün qutunun altında «Və ya məktubla yönləndirin» səyahətin öz ünvanını saxlayır.',
   'help.guide.forward-booking-mail.step.2':
     '«Bu səyahət üçün ünvan yarat»a klikləyin. Ora göndərilən məktub təxmin etmədən bu səyahətə düşür.',
   'help.guide.forward-booking-mail.step.3':
-    'Ünvan yanında kopyalama düyməsi ilə görünür. Onu kopyalayın, sonra rezervasiya məktubunu poçt proqramınızdan əlavələri ilə birlikdə, əllə və ya qayda ilə ora yönləndirin. TREK onu bir neçə dəqiqə ərzində oxuyur.',
+    'Ünvan yanında kopyalama düyməsi ilə görünür. Onu kopyalayın, sonra rezervasiya məktubunu poçt proqramınızdan əlavələri ilə birlikdə, əllə və ya qayda ilə ora yönləndirin. YOUYA onu bir neçə dəqiqə ərzində oxuyur.',
   'help.guide.forward-booking-mail.step.4':
-    'TREK-in əmin olduğu rezervasiya səyahətə özü düşür. Qalan hər şey sizi gözləyir: yuxarı sağdakı adınızın altındakı menyunu açın, orada rəqəm gözləyən məktubları sayır, və «Gözləyən rezervasiyalar»a klikləyin.',
+    'YOUYA-in əmin olduğu rezervasiya səyahətə özü düşür. Qalan hər şey sizi gözləyir: yuxarı sağdakı adınızın altındakı menyunu açın, orada rəqəm gözləyən məktubları sayır, və «Gözləyən rezervasiyalar»a klikləyin.',
   'help.guide.forward-booking-mail.step.5':
-    'Hər qeyd TREK-in nə oxuduğunu, niyə gözlədiyini və hansı səyahət üçün gəldiyini göstərir. «Məktubu göstər» məktubun özünü göstərir. «Özün doldur»a klikləyin.',
+    'Hər qeyd YOUYA-in nə oxuduğunu, niyə gözlədiyini və hansı səyahət üçün gəldiyini göstərir. «Məktubu göstər» məktubun özünü göstərir. «Özün doldur»a klikləyin.',
   'help.guide.forward-booking-mail.step.6':
     '«Yeni rezervasiya» məktubun saxladığı məlumatla səyahətdə açılır: başlıq kimi mövzu, növ, tarix və tapılan rezervasiya kodu. Yoxlayın, düzəldilməli olanı düzəldin və «Əlavə et»ə klikləyin.',
   'help.guide.forward-booking-mail.result':
     'Rezervasiya «Rezervasiyalar» tabında digərləri kimi durur, qeydi isə «Gözləyən rezervasiyalar»dan çıxıb.',
   'help.guide.forward-booking-mail.tip.1':
-    '«Tənzimləmələr», «İnteqrasiyalar», «Rezervasiya məktubları» altındakı öz ünvanınız hər səyahət üçün işləyir: TREK tarixləri və məkanları rezervasiyaya uyğun gələn səyahəti seçir. Səyahətin öz ünvanı bu təxmini atlayır.',
+    '«Tənzimləmələr», «İnteqrasiyalar», «Rezervasiya məktubları» altındakı öz ünvanınız hər səyahət üçün işləyir: YOUYA tarixləri və məkanları rezervasiyaya uyğun gələn səyahəti seçir. Səyahətin öz ünvanı bu təxmini atlayır.',
   'help.guide.forward-booking-mail.tip.2':
-    'Həmin kartda «Özbaşına əlavə et» aktiv olanda TREK-in əmin olduğu rezervasiya birbaşa səyahətə düşür və bu barədə bildiriş 7 gün ərzində «Geri al» təklif edir. Söndürülübsə, hər rezervasiya «Gözləyən rezervasiyalar» altında gözləyir.',
+    'Həmin kartda «Özbaşına əlavə et» aktiv olanda YOUYA-in əmin olduğu rezervasiya birbaşa səyahətə düşür və bu barədə bildiriş 7 gün ərzində «Geri al» təklif edir. Söndürülübsə, hər rezervasiya «Gözləyən rezervasiyalar» altında gözləyir.',
   'help.guide.forward-booking-mail.tip.3':
     'Qeydi «Sənəd kimi saxla» ilə sənəd kimi də saxlamaq olar, bu, məktubu və ya onun əlavələrini səyahətin fayllarına qoyur, və ya «Sil» ilə atmaq olar.',
   'help.guide.forward-booking-mail.tip.4':
@@ -6593,11 +6595,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     'Turun kartını açın. «Plan və faktiki» planın «Məsafə», «Yüksəlmə», «Enmə» və «Fasilələrlə vaxt» göstəricilərini izinkilərlə yan-yana, «Fərq» ilə birlikdə göstərir.',
   'help.guide.tour-origin-check.goal':
-    'Turun TREK-də çəkildiyini, yoxsa idxal edildiyini, hansı fayldan gəldiyini və o vaxtdan dəyişib dəyişmədiyini öyrənin.',
+    'Turun YOUYA-də çəkildiyini, yoxsa idxal edildiyini, hansı fayldan gəldiyini və o vaxtdan dəyişib dəyişmədiyini öyrənin.',
   'help.ctx.trip-tour-planner.title': 'Turlar',
   'help.guide.tour-open-workspace.title': '«Turlar» vərəqində yolunuzu tapmaq',
   'help.guide.tour-open-workspace.step.7':
-    'Sağ zolaqda tura klikləyin. TREK-də planlaşdırılmış tur redaktorda açılır. İdxal edilmiş iz isə baxmaq üçün dəyişmədən, «GPX turu» kimi açılır.',
+    'Sağ zolaqda tura klikləyin. YOUYA-də planlaşdırılmış tur redaktorda açılır. İdxal edilmiş iz isə baxmaq üçün dəyişmədən, «GPX turu» kimi açılır.',
   'help.guide.tour-draw-route.step.2':
     'Turun başladığı yeri «Yer və ya ünvan axtar» sahəsinə yazın və nəticəni seçin. Xəritə ora keçir.',
   'help.guide.tour-draw-route.tip.4':
@@ -6628,7 +6630,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.3': 'Səyahətdə artıq olan iz «Artıq səyahətdədir» kimi boz görünür və buraxılır.',
   'help.guide.tour-view-import.step.3': 'Yuxarı soldakı ox, «Turlara qayıt», onu yenidən bağlayır.',
   'help.guide.tour-plan-from-import.step.2':
-    'TREK izdən nəzarət nöqtələri götürür və onları yenidən marşrutlaşdırır. Xəritə idxalı nöqtəli, təklifi isə bütöv xətlə çəkir, kart isə onların uzunluqlarını, izdən 50 m məsafədə qalan payı və «Ən böyük kənarlaşma»nı müqayisə edir.',
+    'YOUYA izdən nəzarət nöqtələri götürür və onları yenidən marşrutlaşdırır. Xəritə idxalı nöqtəli, təklifi isə bütöv xətlə çəkir, kart isə onların uzunluqlarını, izdən 50 m məsafədə qalan payı və «Ən böyük kənarlaşma»nı müqayisə edir.',
   'help.guide.tour-restore-recorded.title': 'Qeydə alınmış izə qayıtmaq',
   'help.guide.tour-take-over.title': 'Başqa səyahətdən tur götürmək',
   'help.guide.tour-take-over.tip.1':
@@ -6720,7 +6722,7 @@ const help: TranslationStrings = {
     'Pistlərin yüklənməsi dayanarsa, açarda xəbərdarlıq işarəsi görünür. Xəritə və marşrutunuz işləməyə davam edir.',
   'help.guide.tour-ski-import.step.4': '«1 tur idxal et» düyməsinə klikləyin.',
   'help.ctx.trip-tour-paddle.summary':
-    'Çayda və ya göldə kayak, kanoe və ya SUP turu. Onun qayığı və su növü göstərilir, TREK-də məlumat olan yerlərdə su boyunca gedir, daşımaları və şlüzləri vaxtına daxil edir, avar çəkdiyiniz gün küləyi və yoldakı maneələr barədə məlum olanları göstərir.',
+    'Çayda və ya göldə kayak, kanoe və ya SUP turu. Onun qayığı və su növü göstərilir, YOUYA-də məlumat olan yerlərdə su boyunca gedir, daşımaları və şlüzləri vaxtına daxil edir, avar çəkdiyiniz gün küləyi və yoldakı maneələr barədə məlum olanları göstərir.',
   'help.guide.tour-paddle-setup.goal':
     'Kayak, kanoe və ya SUP turuna başlayın və nə ilə, hansı suda və hansı sürətlə avar çəkdiyinizi göstərin.',
   'help.guide.tour-paddle-setup.tip.1':
@@ -6728,7 +6730,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-water-route.step.2':
     'Bir hissəni suda planlaşdırmaq üçün kursoru ondan əvvəlki dayanacağın üzərinə gətirin və üç nöqtəyə, «Digər əməliyyatlar»a klikləyin.',
   'help.guide.tour-paddle-water-route.result':
-    'Hər hissə ya su ilə gedir, ya da qəsdən əllə çəkilib, TREK-in planlaşdıra bilmədiyi hissədə isə səbəbi göstərilir.',
+    'Hər hissə ya su ilə gedir, ya da qəsdən əllə çəkilib, YOUYA-in planlaşdıra bilmədiyi hissədə isə səbəbi göstərilir.',
   'help.guide.tour-paddle-portage.tip.1':
     'Həmin parçanı yenə də avarla keçmək üçün nöqtədə «Digər əməliyyatlar»ı yenidən açın və «Bu hissəni yenidən avarla keç» seçin. O, yenidən əllə çəkilmiş hissəyə çevrilir.',
   'help.guide.tour-paddle-lock.step.3': 'Şlüz kartını açmaq üçün ona klikləyin.',
@@ -6747,7 +6749,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     '«Turun adı» altındakı «Tur növü» sahəsinə klikləyin və «At gəzintisi» seçin. «Yol nöqtələri» altında «Atçılıq marşrutları» kartı görünür.',
   'help.guide.tour-horse-plan.tip.2':
-    'TREK at gəzintisi üçün sürmə vaxtı hesablamır. Gündə vaxt görmək istəyirsinizsə, onu «Ətraflı məlumat»da «Planlaşdırılıb» sahəsinə yazın.',
+    'YOUYA at gəzintisi üçün sürmə vaxtı hesablamır. Gündə vaxt görmək istəyirsinizsə, onu «Ətraflı məlumat»da «Planlaşdırılıb» sahəsinə yazın.',
   'help.guide.tour-horse-gap.step.3': '«Hissəni götür» düyməsinə klikləyin. Açar yandırılmayana qədər düymə boz qalır.',
   'help.guide.tour-horse-recorded.step.1':
     '«Bu səyahətin turları»nda «Tur əlavə et» (+) düyməsinə klikləyin, «GPX və ya KML idxal et» seçin və gəzintinizin faylını seçin.',
@@ -6763,7 +6765,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': 'Birgə planlaşdırdığınız şəxs üçün gün qeyd etmək',
   'help.guide.dissolve-fusion.title': 'Birgə planlaşdırmanı dayandırmaq',
   'help.guide.country-places.goal':
-    'Orada nə etdiyinizi yoxlamaq və ya TREK-in səhv ölkəyə aid etdiyi məkanı tapmaq üçün TREK-in ölkə üzrə saydığı məkanları siyahı şəklində görün.',
+    'Orada nə etdiyinizi yoxlamaq və ya YOUYA-in səhv ölkəyə aid etdiyi məkanı tapmaq üçün YOUYA-in ölkə üzrə saydığı məkanları siyahı şəklində görün.',
   'help.guide.regions.tip.3':
     '«Arzular siyahısına əlavə et» region üçün də işləyir. Region arzular siyahınızdakı ölkə kimi eyni ştrixlə göstərilir.',
   'help.guide.tour-activity-stats.step.2':
@@ -6793,11 +6795,11 @@ const help: TranslationStrings = {
   'help.guide.readability.tip.3':
     '«Oxunaqlılıq» «Eksperimental» kimi işarələnib. Nəsə düzgün görünmürsə, standart ayarları bərpa etmək üçün vərəqin aşağısındakı «Standart dəyərlərə sıfırla» düyməsinə klikləyin.',
   'help.guide.web-push-device.goal':
-    'TREK bağlı olsa belə, onun bildirişlərini telefonunuzda və ya kompüterinizdə görün.',
+    'YOUYA bağlı olsa belə, onun bildirişlərini telefonunuzda və ya kompüterinizdə görün.',
   'help.guide.connect-airtrail.tip.2':
     'Açar şifrələnmiş saxlanır və bir daha göstərilmir; sahədəki nöqtələr açarın saxlandığını bildirir.',
   'help.guide.connect-dawarich.tip.2':
-    'Düymələrin altında kart TREK-in son dəfə nə vaxt yoxladığını və Dawarich versiyanızın nəyi dəstəkləmədiyini göstərir.',
+    'Düymələrin altında kart YOUYA-in son dəfə nə vaxt yoxladığını və Dawarich versiyanızın nəyi dəstəkləmədiyini göstərir.',
   'help.guide.tour-connect-wanderer.tip.2':
     'Şəxsi ünvandakı instansiya üçün adminin daxili şəbəkələrə icazə verməsi lazım ola bilər.',
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6805,13 +6807,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     'Plagin sizin ayarlarınızla işləyir, sizin üçün etdiyi hər əməliyyat isə «Plagin fəaliyyəti» altında sadalanır.',
   'help.ctx.admin-defaults.bullet.3':
-    'Təyin etdiyiniz sahənin yanındakı «sıfırla» linki TREK-in öz standart dəyərini bərpa edir. İstifadəçinin öz ayarı həmişə bunlardan üstündür.',
+    'Təyin etdiyiniz sahənin yanındakı «sıfırla» linki YOUYA-in öz standart dəyərini bərpa edir. İstifadəçinin öz ayarı həmişə bunlardan üstündür.',
   'help.ctx.admin-settings.bullet.5':
     '«Təhlükəsizlik»də «Təhlükəli zona»: «JWT sirrini yenilə» siz də daxil olmaqla bütün istifadəçiləri hesabdan çıxarır.',
   'help.guide.default-user-settings.step.1':
     '«Standart istifadəçi tənzimləmələri» altında «Rəng rejimi» («İşıqlı», «Tünd» və ya «Avtomatik»), «Temperatur vahidi», «Məsafə vahidi», «Vaxt formatı», «Həftənin başlanğıcı», «Tarix formatı», «Göstərilən valyuta» və «Rezervasiya kodlarını bulanıqlaşdır» seçiminin aktiv və ya deaktiv olmasını seçin. Hər seçim dərhal yadda saxlanır.',
   'help.guide.admin-passkeys.step.2':
-    '«Keçid açarı ilə giriş» kartında «Relying Party ID (domen)» (məsələn, trek.example.org) və TREK-inizin açıldığı «İcazə verilən mənbələr»i daxil edin, sonra «Yadda saxla» düyməsinə klikləyin. APP_URL istifadə etmək üçün hər ikisini boş buraxın.',
+    '«Keçid açarı ilə giriş» kartında «Relying Party ID (domen)» (məsələn, trek.example.org) və YOUYA-inizin açıldığı «İcazə verilən mənbələr»i daxil edin, sonra «Yadda saxla» düyməsinə klikləyin. APP_URL istifadə etmək üçün hər ikisini boş buraxın.',
   'help.guide.rotate-jwt-secret.title': 'Hamını birdəfəlik hesabdan çıxarmaq',
   'help.guide.notification-defaults.step.2':
     'Xananı növbəti vəziyyətə keçirmək üçün ona klikləyin: aktiv, «Söndürülüb», «Bloklanıb». İpucu növbəti vəziyyəti göstərir, hər klik dərhal yadda saxlanır.',
@@ -6826,21 +6828,21 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': 'Bildiriş siyahıdan və zəng işarəsindən silinib.',
   'help.guide.booking-mail-notifications.title': 'Rezervasiya məktubu barədə bildirişə cavab verin',
   'help.guide.booking-mail-notifications.goal':
-    'Yönləndirdiyiniz rezervasiya məktublarının aqibətini görün və TREK-in özbaşına əlavə edə bilmədiklərinə qərar verin.',
+    'Yönləndirdiyiniz rezervasiya məktublarının aqibətini görün və YOUYA-in özbaşına əlavə edə bilmədiklərinə qərar verin.',
   'help.guide.booking-mail-notifications.step.1':
-    'Yuxarı sağdakı zəngə klikləyin. Yönləndirilən məktubda TREK-in özü əlavə edə bilmədiyi rezervasiyalar olanda bunu orada bildirir.',
+    'Yuxarı sağdakı zəngə klikləyin. Yönləndirilən məktubda YOUYA-in özü əlavə edə bilmədiyi rezervasiyalar olanda bunu orada bildirir.',
   'help.guide.booking-mail-notifications.step.2':
     '«Yoxlanılacaq yönləndirilmiş rezervasiyalar» sizi neçəsinin gözlədiyini deyir. Onun altındakı «Yoxla»ya klikləyin.',
   'help.guide.booking-mail-notifications.step.3':
-    '«Gözləyən rezervasiyalar» gözləyən hər qeydlə açılır: TREK-in nə oxuduğu, niyə gözlədiyi və hansı səyahət üçün gəldiyi. «Özün doldur» məktubun saxladığı məlumatla yeni rezervasiya açır, zibil qutusu isə qeydi atır.',
+    '«Gözləyən rezervasiyalar» gözləyən hər qeydlə açılır: YOUYA-in nə oxuduğu, niyə gözlədiyi və hansı səyahət üçün gəldiyi. «Özün doldur» məktubun saxladığı məlumatla yeni rezervasiya açır, zibil qutusu isə qeydi atır.',
   'help.guide.booking-mail-notifications.result':
     'Yönləndirilən hər rezervasiya ya öz səyahətinə düşür, ya da sizin qərarınızı gözləyir, və hansının hansı olduğunu həmişə bilirsiniz.',
   'help.guide.booking-mail-notifications.tip.1':
-    'TREK-in özbaşına əlavə etdiyi rezervasiya «Rezervasiya məktubdan əlavə edildi» kimi, «Saxla» və «Geri al» ilə gəlir. «Geri al» rezervasiyanı yenidən səyahətdən çıxarır, «Saxla» isə orada saxlayır.',
+    'YOUYA-in özbaşına əlavə etdiyi rezervasiya «Rezervasiya məktubdan əlavə edildi» kimi, «Saxla» və «Geri al» ilə gəlir. «Geri al» rezervasiyanı yenidən səyahətdən çıxarır, «Saxla» isə orada saxlayır.',
   'help.guide.booking-mail-notifications.tip.2':
     'Paylaşılan səyahətdəki digər insanlar da məktubdan gələn rezervasiya barədə «Səyahətə bax» ilə xəbər tutur, bu da onun «Rezervasiyalar» tabını açır.',
   'help.guide.booking-mail-notifications.tip.3':
-    'TREK-in canlı izlədiyi uçuş «Reys havaya qalxdı», «Reys endi» və 15 dəqiqə gecikmədən etibarən «Reys gecikir» göndərir, hər biri «Səyahətə bax» ilə. Onlar uçuşun təyin olunduğu insanlara və ya səyahətdəki hər kəsə gedir. Hər hansı birini «Tənzimləmələr»də «Bildirişlər» altında söndürə bilərsiniz.',
+    'YOUYA-in canlı izlədiyi uçuş «Reys havaya qalxdı», «Reys endi» və 15 dəqiqə gecikmədən etibarən «Reys gecikir» göndərir, hər biri «Səyahətə bax» ilə. Onlar uçuşun təyin olunduğu insanlara və ya səyahətdəki hər kəsə gedir. Hər hansı birini «Tənzimləmələr»də «Bildirişlər» altında söndürə bilərsiniz.',
   'help.guide.notification-settings.result':
     '«Tənzimləmələr» «Bildirişlər» bölməsində açıqdır, hər hadisə və kanal üçün açar var.',
   'help.guide.link-journal.goal':
@@ -6853,9 +6855,9 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     'Səyahətin adının yanındakı «Səyahət parametrləri»nə klikləyin və solda «Əlavələr»i seçin. Bu sahə yalnız səyahətin sahibindədir.',
   'help.guide.trip-addons.step.2':
-    'Əlavəni bu səyahət üçün açmaq və ya bağlamaq üçün onun açarına klikləyin. TREK-də olduğu qədərilə «Siyahılar», «Xərclər», «Sənədlər», «Collab», «Avtomobil səyahəti» və «Turlar» sadalanır.',
+    'Əlavəni bu səyahət üçün açmaq və ya bağlamaq üçün onun açarına klikləyin. YOUYA-də olduğu qədərilə «Siyahılar», «Xərclər», «Sənədlər», «Collab», «Avtomobil səyahəti» və «Turlar» sadalanır.',
   'help.guide.trip-addons.step.3':
-    '«Yalnız bu səyahət» TREK-in qalan hissəsindən ayrı təyin etdiyiniz əlavəni qeyd edir. Yenidən adminin tənzimləməsini izləməsi üçün onu geri çevirin.',
+    '«Yalnız bu səyahət» YOUYA-in qalan hissəsindən ayrı təyin etdiyiniz əlavəni qeyd edir. Yenidən adminin tənzimləməsini izləməsi üçün onu geri çevirin.',
   'help.guide.trip-addons.result':
     'Səyahət seçdiyiniz əlavələri onun üzvlərinin hamısı üçün göstərir: tab və ya planın bir hissəsi görünür və ya yox olur. Digər səyahətləriniz adminin tənzimləməsini saxlayır.',
   'help.guide.trip-addons.tip.1':
@@ -6863,7 +6865,7 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.tip.2':
     'Admin əlavəni başqaları üçün söndürsə belə, onu bir səyahət üçün aktiv edə bilərsiniz.',
   'help.guide.trip-addons.tip.3':
-    'Açarı dəyişmək üçün bağlantı lazımdır. Oflayn olanda TREK bunu bildirir və açarı olduğu kimi saxlayır.',
+    'Açarı dəyişmək üçün bağlantı lazımdır. Oflayn olanda YOUYA bunu bildirir və açarı olduğu kimi saxlayır.',
   'help.guide.edit-trip-settings.title': 'Səyahəti planlayıcıdan redaktə edin',
   'help.guide.edit-trip-settings.goal':
     'Səyahətdən çıxmadan onun başlığını, tarixlərini, üzlüyünü və ya valyutasını dəyişin.',
@@ -6875,7 +6877,7 @@ const help: TranslationStrings = {
     '«Yenilə»yə klikləyin. «Səyahət parametrləri» bağlanır və səyahət dəyişikliyi dərhal göstərir.',
   'help.guide.edit-trip-settings.result': 'Səyahət yeni məlumatlarını hər yerdə, iştirak edən hər kəsə göstərir.',
   'help.guide.edit-trip-settings.tip.1':
-    'Başlama tarixini köçürsəniz, TREK əvvəl rezervasiyaların necə izləməli olduğunu soruşur. Yeni tarixlər üzərində nəsə olan günləri götürürsə, siz təsdiqləməzdən əvvəl həmin günləri sadalayır.',
+    'Başlama tarixini köçürsəniz, YOUYA əvvəl rezervasiyaların necə izləməli olduğunu soruşur. Yeni tarixlər üzərində nəsə olan günləri götürürsə, siz təsdiqləməzdən əvvəl həmin günləri sadalayır.',
   'help.guide.edit-trip-settings.tip.2':
     'Eyni forma «Səyahətlərim»dən səyahət kartındakı qələmlə də açılır. «Səyahəti redaktə et» yalnız səyahəti redaktə etməyə icazəsi olanlara görünür.',
   'help.guide.dawarich-stays.result':
@@ -6887,7 +6889,7 @@ const help: TranslationStrings = {
     'Nəqliyyatı və ya rezervasiyanı formasını açmadan birbaşa plandan başqa günə köçürün.',
   'help.guide.place-image-from-file.result': 'Foto kartda, məkanlar sütununda, gündə və xəritədə məkanın şəklidir.',
   'help.guide.place-own-hours.step.3':
-    'Onların altındakı «İş saatları» həftəni hər gün üçün bir sətirlə göstərir. TREK məkan üçün saat tapıbsa, onlar artıq doldurulub; əks halda əvvəlcə «İş saatlarını əlavə et» düyməsinə klikləyin. Hər günün açılış və bağlanış vaxtını yazın. Günün sağında 24h onu bütün gün açıq kimi, bağlı qapı isə bağlı kimi qeyd edir.',
+    'Onların altındakı «İş saatları» həftəni hər gün üçün bir sətirlə göstərir. YOUYA məkan üçün saat tapıbsa, onlar artıq doldurulub; əks halda əvvəlcə «İş saatlarını əlavə et» düyməsinə klikləyin. Hər günün açılış və bağlanış vaxtını yazın. Günün sağında 24h onu bütün gün açıq kimi, bağlı qapı isə bağlı kimi qeyd edir.',
   'help.guide.add-accommodation.tip.5':
     'GPX izləri və tur məkanları heç vaxt qalma yeri kimi təklif olunmur, yalnız səyahətin adi məkanları.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6920,7 +6922,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     'Sənədlərin yalnız saxlama xidmətinizdən idxal ediləcəyinə, yalnız ora ixrac ediləcəyinə və ya hər ikisinə, həmçinin sənəd silindikdə və ya hər iki yerdə dəyişdirildikdə nə olacağına qərar verin.',
   'help.guide.files-sync-settings.tip.2':
-    '«Məndən soruş» seçildikdə hər iki yerdə redaktə edilmiş sənəd kartın altındakı «Yoxlanılmalıdır» bölməsində gözləyir. «Resolve» düyməsinə klikləyin və «TREK versiyasını saxla», «Provayder versiyasını saxla» və ya «Hər ikisini saxla» seçin.',
+    '«Məndən soruş» seçildikdə hər iki yerdə redaktə edilmiş sənəd kartın altındakı «Yoxlanılmalıdır» bölməsində gözləyir. «Resolve» düyməsinə klikləyin və «YOUYA versiyasını saxla», «Provayder versiyasını saxla» və ya «Hər ikisini saxla» seçin.',
   'help.guide.manage-notes.goal': 'Qeydi tam açın, vacibini yuxarıda saxlayın, köhnəlmiş olanı düzəldin və ya silin.',
   'help.guide.manage-notes.tip.2':
     'Redaktə edərkən artıq əlavə edilmiş fayldakı qırmızı çarpaz onu «Yadda saxla»ya klikləməzdən əvvəl dərhal silir və fayl zibil qutusuna düşmür. Qeydin bütün faylları səyahətin «Fayl» vərəqində də görünür.',
@@ -7038,7 +7040,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     '«Turlar» vərəqində turu açın və sol paneli turun dayanacaqlarının altındakı «Tur boyunca» bölməsinə qədər sürüşdürün. Kart turun marşrutu olduqda görünür.',
   'help.guide.tour-along-search.tip.3':
-    'Nəticələr OpenStreetMap-dən və TREK-in məkan indeksindən gəlir, ona görə axtarış üçün internet bağlantısı lazımdır. Heç nə tapılmadıqda «Widen to» növbəti məsafəni yoxlayır; server məşğul olduqda «Yenidən cəhd et» yenidən cəhd edə bilənə qədər geri sayım göstərir.',
+    'Nəticələr OpenStreetMap-dən və YOUYA-in məkan indeksindən gəlir, ona görə axtarış üçün internet bağlantısı lazımdır. Heç nə tapılmadıqda «Widen to» növbəti məsafəni yoxlayır; server məşğul olduqda «Yenidən cəhd et» yenidən cəhd edə bilənə qədər geri sayım göstərir.',
   'help.guide.tour-along-add-stop.tip.1':
     'Yer səyahətin məkanı deyil, turun dayanacağı olur, ona görə məkanlar siyahısında görünmür.',
   'help.guide.tour-3d-terrain.step.4':
@@ -7059,7 +7061,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     'Yol nöqtələrinin altındakı «Cığır təfərrüatları» OpenStreetMap-dən hər hissənin SAC dərəcəsini, örtüyünü və yol növünü göstərir və xəritədə marşrutu onlara görə rəngləyir. Oradakı heç nə turu dəyişmir.',
   'help.guide.tour-hike-plan.step.4':
-    '«Nöqtə əlavə et» əvvəldən aktivdir: xəritədə yürüşün başladığı və bitdiyi yerə klikləyin. Yanındakı «Səfər yerləri» bunun əvəzinə səyahətdəki daxmanı və ya oteli seçir. İki nöqtədən sonra TREK piyada marşrutunu hesablayır.',
+    '«Nöqtə əlavə et» əvvəldən aktivdir: xəritədə yürüşün başladığı və bitdiyi yerə klikləyin. Yanındakı «Səfər yerləri» bunun əvəzinə səyahətdəki daxmanı və ya oteli seçir. İki nöqtədən sonra YOUYA piyada marşrutunu hesablayır.',
   'help.guide.tour-hike-trail-details.title': 'Yürüş boyunca dərəcələri, örtükləri və yol növlərini görmək',
   'help.guide.tour-hike-trail-details.tip.1':
     'OpenStreetMap-də dəyəri olmayan yollar «Naməlum» altında sadalanır, naməlum isə asan demək deyil. Bəzilərində «Bu dəfə soruşmaq mümkün olmadı» görünürsə, «Yenidən cəhd et» düyməsinə klikləyin.',
@@ -7091,7 +7093,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     'Sağdakı «Turun xülasəsi» «Sürüş vaxtı» göstərir: marşrutlaşdırıcının profil üçün qalxışlar daxil olmaqla təxmini vaxtı. Fasilələr daxil deyil.',
   'help.guide.tour-bike-profile.step.4':
-    '«Yol nöqtələri» altında «Səfər yerləri» düyməsinə klikləyin və başlanğıcı və sonu seçin, burada Hotel Alpenroyal, sonra Hotel Greif. «Nöqtə əlavə et»in aktiv olduğunu yoxlayıb xəritəyə də klikləyə bilərsiniz. İki nöqtədən sonra TREK marşrutu hesablayır.',
+    '«Yol nöqtələri» altında «Səfər yerləri» düyməsinə klikləyin və başlanğıcı və sonu seçin, burada Hotel Alpenroyal, sonra Hotel Greif. «Nöqtə əlavə et»in aktiv olduğunu yoxlayıb xəritəyə də klikləyə bilərsiniz. İki nöqtədən sonra YOUYA marşrutu hesablayır.',
   'help.guide.tour-bike-profile.tip.5':
     'Admin CyclOSM xəritəsinə icazə veribsə, velosiped turu açıq olduqda xəritədəki qatlar sırası «Velosiped» də təklif edir. Yüklənməsi dayanarsa, «Xəritə»yə keçin. Tur dəyişmir.',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -7121,7 +7123,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     'Avarçəkmə turunun xəritəsi «Xəritə» və «Peyk», üst qat kimi isə OpenSeaMap-dən «Dəniz nişanları» təklif edir.',
   'help.guide.tour-paddle-water-route.step.3':
-    '«Növbəti hissəni su ilə planlaşdır» seçin. TREK bu nöqtədən növbətiyə qədər hissəni çay və ya göl boyunca planlaşdırır.',
+    '«Növbəti hissəni su ilə planlaşdır» seçin. YOUYA bu nöqtədən növbətiyə qədər hissəni çay və ya göl boyunca planlaşdırır.',
   'help.guide.tour-paddle-portage.title': 'Qayığı maneənin ətrafından daşımaq',
   'help.guide.tour-paddle-portage.tip.2':
     'Son nöqtədə «Qayığı buradan daşı» növbəti nöqtəni qoyduqdan sonra tətbiq olunur. Sətirdə «Buradan daşıma» yazılır, onun çarpazı, «Daşımadan imtina et», isə bunu geri qaytarır.',
@@ -7219,7 +7221,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     '«Süni intellekt köməkçisi» kartında qoşulma üsulunu seçin: «ChatGPT ilə daxil ol» ChatGPT planınızdan istifadə edir, «API açarını yapışdır» isə Anthropic, OpenAI, Gemini və ya OpenRouter açarını qəbul edir.',
   'help.guide.connect-ai.step.2':
-    'Açarınızı yapışdırın. TREK aşkar etdiyi provayderin adını göstərir və ona nələrin göndərildiyini deyir. «Qoş» düyməsinə klikləyin; TREK əvvəlcə açarı provayderdə yoxlayır.',
+    'Açarınızı yapışdırın. YOUYA aşkar etdiyi provayderin adını göstərir və ona nələrin göndərildiyini deyir. «Qoş» düyməsinə klikləyin; YOUYA əvvəlcə açarı provayderdə yoxlayır.',
   'help.guide.connect-ai.step.3':
     'Kartda «Qoşulub» və provayderin adı görünür. İstədiyiniz «Model»i seçin və cari və ya növbəti səyahətinizdə başlamaq üçün «Köməkçini aç» düyməsinə klikləyin.',
   'help.guide.connect-ai.result': 'Köməkçi hər səyahətdə öz hesabınızda işləyir.',
@@ -7237,7 +7239,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     'Aşağıdakı «İstifadəçilər üçün ilkin dəyərlər»: dəyişməmiş hər kəs üçün hər hadisə və kanal üzrə aktiv, «Söndürülüb» və ya «Bloklanıb».',
   'help.guide.default-user-settings.step.2':
-    'Təyin etdiyiniz sahənin adının yanında «sıfırla» linki görünür; o, TREK-in daxili standart dəyərini bərpa edir.',
+    'Təyin etdiyiniz sahənin adının yanında «sıfırla» linki görünür; o, YOUYA-in daxili standart dəyərini bərpa edir.',
   'help.guide.own-routing-engine.title': 'Öz marşrut serverlərinizdən istifadə etmək',
   'help.guide.admin-passkeys.result':
     'Giriş səhifəsi «Passkey ilə daxil ol» təklif edir, istifadəçilər isə öz tənzimləmələrində keçid açarları əlavə edə bilər.',
@@ -7263,7 +7265,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.tip.1':
     'Yalnız JPG, PNG, GIF və WebP faylları təklif olunur; PDF bilet təklif olunmur.',
   'help.guide.place-own-hours.step.4':
-    '«İş saatları»nın sağındakı düymələr: kopyalama düyməsi bütün günlərə bazar ertəsinin saatlarını verir, X isə saatlarınızı yenidən silir. TREK öz saatlarını tapıbsa, «Yer təfərrüatlarından götür» onları geri qaytarır.',
+    '«İş saatları»nın sağındakı düymələr: kopyalama düyməsi bütün günlərə bazar ertəsinin saatlarını verir, X isə saatlarınızı yenidən silir. YOUYA öz saatlarını tapıbsa, «Yer təfərrüatlarından götür» onları geri qaytarır.',
   'help.guide.confirm-stay-booking.step.2':
     'Rezervasiya planın üzərində açılır. Başlığındakı ilk nişan onun vəziyyətini göstərir.',
   'help.ctx.trip-map.bullet.9':
@@ -7280,7 +7282,7 @@ const help: TranslationStrings = {
   'help.guide.group-sort-bookings.step.1':
     '«Kartlar» və ya «Siyahı» görünüşündə üç görünüş işarəsindən sonrakı sürüşdürücülərə, «Görünüş seçimləri»nə klikləyin.',
   'help.guide.create-booking.tip.4':
-    'Oflayn olduqda rezervasiya bu cihazda saxlanır və yenidən onlayn olduqda sinxronlaşır. Yeni fayllar üçün bağlantı lazımdır, ona görə onları silin və ya sonra yadda saxlayın. Təsadüfən formanın kənarına kliklədiyiniz və ya Escape basdığınız halda TREK yazdıqlarınız itməzdən əvvəl «Dəyişikliklər ləğv edilsin?» deyə soruşur.',
+    'Oflayn olduqda rezervasiya bu cihazda saxlanır və yenidən onlayn olduqda sinxronlaşır. Yeni fayllar üçün bağlantı lazımdır, ona görə onları silin və ya sonra yadda saxlayın. Təsadüfən formanın kənarına kliklədiyiniz və ya Escape basdığınız halda YOUYA yazdıqlarınız itməzdən əvvəl «Dəyişikliklər ləğv edilsin?» deyə soruşur.',
   'help.guide.booking-on-map.tip.2': 'Qalma ilk gecəsində açılır.',
   'help.guide.export-bookings-csv.step.3':
     '«Görünüş seçimləri»ndən sonrakı endirmə işarəsinə, «Cədvəl kimi ixrac et (CSV)»yə klikləyin.',
@@ -7292,7 +7294,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     'Panelin sağ ucundakı «Sənəd sinxronizasiyası» düyməsinə klikləyin. Səyahət bağlanıbsa, sağda saxlama xidmətinizin kartı açılır; birdən çox xidmət varsa, solda «Bu səyahət» altında istədiyinizə klikləyin.',
   'help.guide.files-sync-settings.tip.3':
-    'Yanında «Kopyala» olan link, «Ani yeniləmələr», yalnız TREK-in dəyişikliklərə avtomatik abunə ola bilmədiyi saxlama xidmətləri üçün var. Linki saxlama xidmətinə yapışdırın, dəyişikliklər növbəti yoxlamanı gözləmədən dərhal gələcək.',
+    'Yanında «Kopyala» olan link, «Ani yeniləmələr», yalnız YOUYA-in dəyişikliklərə avtomatik abunə ola bilmədiyi saxlama xidmətləri üçün var. Linki saxlama xidmətinə yapışdırın, dəyişikliklər növbəti yoxlamanı gözləmədən dərhal gələcək.',
   'help.guide.manage-notes.step.1':
     'Qeyd kartının başlığındakı üç nöqtəyə («Daha çox seçim») klikləyin. Menyuda «Genişləndir», «Bərkit», «Redaktə et» və «Sil» var.',
   'help.guide.note-categories.title': 'Qeydləri kateqoriyalara bölmək',
@@ -7312,7 +7314,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     'Məkanın fotoları ekranı doldurur, oxlar mənbəyinin bildiyi digərlərini gəzir. Dialoqa qayıtmaq üçün onları bağlayın, orada «Ləğv et» dayanacağı olduğu kimi saxlayır.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    'Şəkil məkanın öz təsviridir, məkan formasında təyin etdiyiniz şəkil. Olmasa, TREK məkan Google və ya OpenStreetMap-dən gəlibsə, mənbəyinin onun üçün saxladığı fotonu göstərir.',
+    'Şəkil məkanın öz təsviridir, məkan formasında təyin etdiyiniz şəkil. Olmasa, YOUYA məkan Google və ya OpenStreetMap-dən gəlibsə, mənbəyinin onun üçün saxladığı fotonu göstərir.',
   'help.guide.roadtrip-stop-photo.tip.2':
     'Telefonda «Avtomobil səyahəti» tabında dayanacağa toxunun: onun vərəqi şəkli adın altında tam enində göstərir, ona toxunmaq fotoları açır.',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -7339,7 +7341,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     'Mərhələli turu günə sürüklədikdə eyni sual kiçik pəncərədə verilir. «Ləğv et» planı olduğu kimi saxlayır.',
   'help.guide.tour-day-times.step.2':
-    '«Başlanğıc» təyin edin, «Son»u boş buraxın. Sahələrin altındakı sətir TREK-in hesabladığı bitmə vaxtını göstərir: başlanğıc üstəgəl turun müddəti.',
+    '«Başlanğıc» təyin edin, «Son»u boş buraxın. Sahələrin altındakı sətir YOUYA-in hesabladığı bitmə vaxtını göstərir: başlanğıc üstəgəl turun müddəti.',
   'help.guide.tour-remove-from-day.title': 'Turu gündən çıxarmaq',
   'help.guide.tour-filter-list.title': 'Turlar siyahısını süzmək',
   'help.guide.tour-filter-list.tip.3':
@@ -7351,7 +7353,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     'Kart oxumaq və turla bağlı olanlar üçündür. Marşrutun özü «Turlar» vərəqində dəyişdirilir: onu açın və «Bu səyahətin turları» altında tura klikləyin. Tur da burada deyil, orada silinir.',
   'help.guide.tour-detail-read.step.6':
-    '«Təsvir» və «Qeydlər», sonra «Mənşə» üçün sürüşdürməyə davam edin: TREK-də planlaşdırılıb, idxal edildiyi fayl və ya gəldiyi wanderer cığırı, tarixi ilə.',
+    '«Təsvir» və «Qeydlər», sonra «Mənşə» üçün sürüşdürməyə davam edin: YOUYA-də planlaşdırılıb, idxal edildiyi fayl və ya gəldiyi wanderer cığırı, tarixi ilə.',
   'help.guide.tour-rename-colour.title': 'Turun adını və rəngini dəyişmək',
   'help.guide.tour-rename-colour.result':
     'Tur səyahətin hər yerində yeni adı ilə görünür, xətti isə seçdiyiniz rəngdə çəkilir.',
@@ -7369,7 +7371,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     'Faktiki izi planın yanında nöqtəli xətlə çəkmək üçün «Xəritədə müqayisə et» düyməsinə klikləyin. «Müqayisəni bitir» onu yenidən götürür.',
   'help.guide.tour-origin-check.step.2':
-    '«İdxal edilib» idxal edildiyi günü göstərir. «Burada» onun cari vəziyyətini göstərir: «İdxal edildiyi kimi», «TREK-də redaktə edilib» və ya «Yenidən planlaşdırılıb, yazılmış iz saxlanılıb».',
+    '«İdxal edilib» idxal edildiyi günü göstərir. «Burada» onun cari vəziyyətini göstərir: «İdxal edildiyi kimi», «YOUYA-də redaktə edilib» və ya «Yenidən planlaşdırılıb, yazılmış iz saxlanılıb».',
   'help.ctx.trip-tour-planner.bullet.1':
     'Turlar əlavəsi səyahət üçün aktiv olduqca «Turlar» səyahətin vərəqlər panelində «Plan»dan dərhal sonra yerləşir; səyahətin sahibi onu «Səyahət parametrləri»ndə «Əlavələr» altında dəyişə bilər. Vərəq kompüterdə və planşetdə var; telefonda isə turlara baxılır və «Plan» vərəqindən günlərə əlavə edilir, amma çəkilmir.',
   'help.guide.tour-open-workspace.step.1':
@@ -7510,13 +7512,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     'Avarçəkmə turunda «Tur boyunca» əvvəlcə «Suya buraxılma yerləri», «Qayıq icarəsi» və «İçməli su» axtarır.',
   'help.guide.tour-paddle-water-route.step.4':
-    'TREK-in planlaşdıra bilmədiyi hissə qırmızı olur və səbəbini bildirir, məsələn, ərazi üçün hələ su məlumatı yoxdur. Hələlik onu əllə çəkmək üçün «Düz çək» düyməsinə klikləyin.',
+    'YOUYA-in planlaşdıra bilmədiyi hissə qırmızı olur və səbəbini bildirir, məsələn, ərazi üçün hələ su məlumatı yoxdur. Hələlik onu əllə çəkmək üçün «Düz çək» düyməsinə klikləyin.',
   'help.guide.tour-paddle-portage.goal':
     'Qayığı daşıdığınız hissəni işarələyin ki, o, quru kimi sayılsın və qayıqdan çıxıb yenidən minmək üçün vaxt əlavə olunsun.',
   'help.guide.tour-paddle-portage.tip.3':
     '«Vaxt təxmini» kartında öz «Daşıma sürəti»nizi təyin edənə qədər daşıma 2 km/saat ilə hesablanır.',
   'help.guide.tour-paddle-lock.tip.1':
-    'TREK şlüzlərin iş cədvəllərini bilmir. Vaxtlar yalnız sizin daxil etdiklərinizdir, ona görə şlüzün iş saatlarını özünüz yoxlayın.',
+    'YOUYA şlüzlərin iş cədvəllərini bilmir. Vaxtlar yalnız sizin daxil etdiklərinizdir, ona görə şlüzün iş saatlarını özünüz yoxlayın.',
   'help.guide.tour-paddle-time.step.3':
     '«Su» sətri sizin «Avar sürəti» ilə suda keçilən məsafədir. Sürəti sütunun yuxarısındakı «Avar sürəti» sahəsində dəyişin.',
   'help.guide.tour-paddle-wind.goal': 'Avar çəkdiyiniz gün turun başlanğıcında proqnozlaşdırılan küləyi görün.',

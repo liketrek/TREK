@@ -39,7 +39,7 @@ Click the trash icon on a category row and confirm in the dialog (**Delete categ
 
 ## Category picked automatically
 
-When a user adds a place from the search or from a map POI, TREK picks the matching category for them. It reads what the result says it is (Google types, the OpenStreetMap tag or the TREK Places category), such as hotel, restaurant, cafe or bar, museum, shop, station, beach, park or sports, and looks for a category of that kind. Because categories are named freely, a category is recognised by words in its name first (for example "Hotel", "Accommodation", "Restaurant", "Cafe", "Museum", "Shopping", "Transport", "Beach", "Nature", "Activity") and then by its icon. When nothing matches, the field stays empty. Naming categories plainly, or giving them the obvious icon, makes the guess work.
+When a user adds a place from the search or from a map POI, YOUYA picks the matching category for them. It reads what the result says it is (Google types, the OpenStreetMap tag or the YOUYA Places category), such as hotel, restaurant, cafe or bar, museum, shop, station, beach, park or sports, and looks for a category of that kind. Because categories are named freely, a category is recognised by words in its name first (for example "Hotel", "Accommodation", "Restaurant", "Cafe", "Museum", "Shopping", "Transport", "Beach", "Nature", "Activity") and then by its icon. When nothing matches, the field stays empty. Naming categories plainly, or giving them the obvious icon, makes the guess work.
 
 ## List ordering
 

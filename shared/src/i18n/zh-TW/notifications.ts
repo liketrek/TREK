@@ -30,7 +30,7 @@ const notifications: TranslationStrings = {
   'notifications.test.tripText': '行程"{trip}"的測試通知。',
   'notifications.countLabel': '則通知',
   'notifications.versionAvailable.title': '有可用更新',
-  'notifications.versionAvailable.text': 'TREK {version} 現已推出。',
+  'notifications.versionAvailable.text': '游芽{version} 現已推出。',
   'notifications.versionAvailable.button': '查看詳情',
   'notifications.deleteAllConfirmTitle': '刪除所有通知？',
   'notifications.deleteAllConfirmText': '所有通知將被永久刪除，且無法復原。',

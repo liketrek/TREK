@@ -1,6 +1,6 @@
 # Contributing
 
-Thanks for your interest in contributing to TREK! Here are the guidelines for submitting pull requests.
+Thanks for your interest in contributing to YOUYA! Here are the guidelines for submitting pull requests.
 
 ## Before You Start
 

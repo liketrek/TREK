@@ -96,7 +96,7 @@ export default function MAdminAddonManager({ bagTrackingEnabled, onToggleBagTrac
         {/* One run of text with the wordmark inside it, so a line break falls between words and never around the logo. */}
         <p className="mt-[2px] font-geist text-[length:calc(10px*var(--fs-scale-caption,1))] leading-relaxed text-m-muted">
           {t('admin.addons.subtitleBefore')}{' '}
-          <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" className="inline h-[9px] w-auto align-baseline opacity-70" />{' '}
+          <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="YOUYA" className="inline h-[9px] w-auto align-baseline opacity-70" />{' '}
           {t('admin.addons.subtitleAfter')}
         </p>
       </MAdminCard>

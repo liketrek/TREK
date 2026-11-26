@@ -6,7 +6,7 @@ const help: TranslationStrings = {
   'help.contents': '目录',
   'help.noResults': '没有匹配的页面。',
   'help.errorTitle': '无法加载此页面',
-  'help.errorBody': '帮助内容来自 TREK wiki。请检查网络连接后重试。',
+  'help.errorBody': '帮助内容来自游芽 wiki。请检查网络连接后重试。',
 
   // center
   'help.center.button': '此页面的帮助',
@@ -67,12 +67,12 @@ const help: TranslationStrings = {
   'help.guide.create-trip.step.1': '点击“新建旅行”。旅行列表末尾的卡片和右下角的按钮作用相同。',
   'help.guide.create-trip.step.2': '给旅行起个名字。这是唯一必填的内容，其余都可以以后再补。',
   'help.guide.create-trip.step.3':
-    '选择开始和结束日期。TREK 会为每个日期创建一天，你就可以开始安排行程了。还没有日期？两个都留空，改为输入“天数”。',
+    '选择开始和结束日期。游芽会为每个日期创建一天，你就可以开始安排行程了。还没有日期？两个都留空，改为输入“天数”。',
   'help.guide.create-trip.step.4':
     '可选：添加封面照片。可以上传自己的照片，拖入或粘贴一张，也可以在 Unsplash 上搜索目的地的图片。',
   'help.guide.create-trip.step.5': '点击“创建新旅行”。',
   'help.guide.create-trip.result': '旅行会出现在仪表盘上。如果它是你的下一次旅行，会显示在顶部的登机牌里。',
-  'help.guide.create-trip.tip.1': '日期以后还能修改。如果已经有预订，TREK 会问你是否让预订跟着日期一起移动。',
+  'help.guide.create-trip.tip.1': '日期以后还能修改。如果已经有预订，游芽会问你是否让预订跟着日期一起移动。',
   'help.guide.create-trip.tip.2': '你在这里选择的旅行货币，是所有费用换算时使用的货币。建议选择目的地的货币。',
 
   // edit-trip
@@ -132,7 +132,7 @@ const help: TranslationStrings = {
   'help.guide.calendar-feed.title': '在日历中订阅所有旅行',
   'help.guide.calendar-feed.goal': '在日历应用中查看所有进行中旅行的日程和预订，并保持同步。',
   'help.guide.calendar-feed.step.1': '点击视图切换按钮旁边的日历图标。',
-  'help.guide.calendar-feed.step.2': '点击“启用日历订阅”。TREK 会创建一个私有的订阅链接。',
+  'help.guide.calendar-feed.step.2': '点击“启用日历订阅”。游芽会创建一个私有的订阅链接。',
   'help.guide.calendar-feed.step.3':
     '点击“添加到 Google 日历”或“添加到 Apple 日历 / Outlook”。其他日历应用请展开“或手动复制链接”，从那里复制链接。',
   'help.guide.calendar-feed.result':
@@ -283,7 +283,7 @@ const help: TranslationStrings = {
   'help.guide.carry-over.tip.1': '关闭后，所有结转余额都会归零。',
   // invite
   'help.guide.invite.title': '和别人一起规划',
-  'help.guide.invite.goal': '把你的计划与另一位 TREK 用户的计划合并，这样你们在同一张网格里就能看到彼此的休假。',
+  'help.guide.invite.goal': '把你的计划与另一位游芽用户的计划合并，这样你们在同一张网格里就能看到彼此的休假。',
   'help.guide.invite.step.1': '点击“人数”卡片中的人形图标。',
   'help.guide.invite.step.2': '选择用户并点击“发送邀请”。',
   'help.guide.invite.step.3':
@@ -305,7 +305,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ─────────────────────────────────────────────────────────────────────
   'help.ctx.atlas.title': '足迹',
   'help.ctx.atlas.summary':
-    '足迹用世界地图展示你去过的地方：旅行去过的每个国家都会被上色，在使用 TREK 之前去过的国家可以手动添加。放大可以查看地区，还可以建立心愿单，记下想去的地方，并在底部的玻璃面板中查看你的统计数字。',
+    '足迹用世界地图展示你去过的地方：旅行去过的每个国家都会被上色，在使用游芽之前去过的国家可以手动添加。放大可以查看地区，还可以建立心愿单，记下想去的地方，并在底部的玻璃面板中查看你的统计数字。',
   'help.ctx.atlas.bullet.1':
     '地图：去过的国家各有固定的专属颜色，计划前往的国家是虚线轮廓，心愿清单上的国家是斜线填充，其余国家为灰色。鼠标悬停在某个国家上，可以看到相关的旅行、地点，以及首次和最近一次到访。',
   'help.ctx.atlas.bullet.2':
@@ -320,7 +320,7 @@ const help: TranslationStrings = {
     'Dawarich：连接该扩展后，统计左侧会出现一个面板，可以根据你的记录勾掉心愿并添加国家。只有在你确认后才会执行。',
   // mark-country
   'help.guide.mark-country.title': '把国家标记为已访问',
-  'help.guide.mark-country.goal': '添加一个你在使用 TREK 之前去过的国家，让地图和统计数字也把它算进去。',
+  'help.guide.mark-country.goal': '添加一个你在使用游芽之前去过的国家，让地图和统计数字也把它算进去。',
   'help.guide.mark-country.step.1': '在地图顶部的搜索框中输入国家名称。',
   'help.guide.mark-country.step.2': '从列表中选择它。地图会移动到该国，并弹出该国的弹窗。',
   'help.guide.mark-country.step.3': '选择“标记为已访问”。',
@@ -376,7 +376,7 @@ const help: TranslationStrings = {
   'help.guide.search-place.step.3': '为该地区选择“标记为已访问”；如果你还没去过，就选择“添加到心愿单”。',
   'help.guide.search-place.result':
     '该地区会被标记，所属国家也一并标记。如果地图数据包里没有某个国家的地区数据，则改为标记这个国家本身。',
-  'help.guide.search-place.tip.1': '地点使用与 TREK 其他位置相同的搜索，所以用的是管理员设置的服务商。',
+  'help.guide.search-place.tip.1': '地点使用与游芽其他位置相同的搜索，所以用的是管理员设置的服务商。',
   // bucket-country
   'help.guide.bucket-country.title': '把国家加入心愿单',
   'help.guide.bucket-country.goal': '在地图上建一份想去的国家心愿清单，与去过的国家分开。',
@@ -408,7 +408,7 @@ const help: TranslationStrings = {
     '各大洲显示每个大洲已访问的国家数。去过南极洲后，它才会出现在这一行。再往后是你的连续纪录（至少有一次旅行的连续年数）和你今年的旅行次数。',
   'help.guide.stats.result': '数字会随着你规划旅行自动更新，这里不需要你维护任何内容。',
   'help.guide.stats.tip.1':
-    '城市是从地址文字中读取的，并不会再去查询。TREK 会跳过国家、邮政编码和地区，取它们前面的名称，所以“10178 Berlin”会算作 Berlin。像“Osteria Francescana, Italy”这样的简短地址，则完全不会添加城市。',
+    '城市是从地址文字中读取的，并不会再去查询。游芽会跳过国家、邮政编码和地区，取它们前面的名称，所以“10178 Berlin”会算作 Berlin。像“Osteria Francescana, Italy”这样的简短地址，则完全不会添加城市。',
   'help.guide.stats.tip.2': '手动标记的国家会计入“国家”和各大洲的统计，但不会增加旅行、地点或天数。',
   // dawarich-countries
   'help.guide.dawarich-countries.title': '根据你的记录添加国家',
@@ -416,7 +416,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     '连接 Dawarich 扩展后，地图底部、统计信息的左侧会出现一个带两块磁贴的 Dawarich 面板。点击“国家”。',
   'help.guide.dawarich-countries.step.2':
-    '对话框会在“国家”标签页打开。点击“查找国家”：TREK 会逐月读取你的记录在最近 12 个月里覆盖的国家和城市，所以可能需要等一会儿。你的足迹里还没有的每个国家都会列出来，附带国旗、城市数量和第一个城市的名称。每个国家默认都是勾选的，点击某一行即可排除它。',
+    '对话框会在“国家”标签页打开。点击“查找国家”：游芽会逐月读取你的记录在最近 12 个月里覆盖的国家和城市，所以可能需要等一会儿。你的足迹里还没有的每个国家都会列出来，附带国旗、城市数量和第一个城市的名称。每个国家默认都是勾选的，点击某一行即可排除它。',
   'help.guide.dawarich-countries.step.3':
     '点击右下角的按钮确认，勾选了五行时按钮上写着“添加 5 个国家”。对话框会告诉你添加了多少个。关闭对话框时，地图已经更新好了。',
   'help.guide.dawarich-countries.result':
@@ -424,13 +424,13 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     '足迹中已经显示为去过的国家会被排除在外，无论是手动标记的、来自某次旅行的，还是来自之前某次核对的，所以你自己的标记不会被改动。你之前从足迹中移除的国家，在这里确认后会重新加入。',
   'help.guide.dawarich-countries.tip.2':
-    '如果 TREK 无法匹配某个国家名称，这个名称会列在各行下方，而不会被丢弃。“再查一次”会重新向 Dawarich 查询。列表下方的备注说明检查的是最近 12 个月，这个时间范围不能修改。',
+    '如果游芽无法匹配某个国家名称，这个名称会列在各行下方，而不会被丢弃。“再查一次”会重新向 Dawarich 查询。列表下方的备注说明检查的是最近 12 个月，这个时间范围不能修改。',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': '根据你的记录勾掉心愿',
   'help.guide.dawarich-wishes.goal': '找出心愿清单上你实际已经到过的地点，并按到达的日期标记为已到达。',
   'help.guide.dawarich-wishes.step.1': '在地图底部、统计信息左侧的 Dawarich 面板中，点击“心愿单”。',
   'help.guide.dawarich-wishes.step.2':
-    '对话框会在“心愿单”标签页打开。点击“核对愿望清单”：TREK 会在你的记录里查找每一条带坐标的条目。你已经到过的心愿会列出来，显示你离得有多近、停留了多久以及日期，并且默认勾选。已经勾掉的会显示“已勾掉”。列表下方的备注会统计没有坐标的条目，并写明规则：“在 250 米范围内停留 20 分钟后，才算实现心愿。”',
+    '对话框会在“心愿单”标签页打开。点击“核对愿望清单”：游芽会在你的记录里查找每一条带坐标的条目。你已经到过的心愿会列出来，显示你离得有多近、停留了多久以及日期，并且默认勾选。已经勾掉的会显示“已勾掉”。列表下方的备注会统计没有坐标的条目，并写明规则：“在 250 米范围内停留 20 分钟后，才算实现心愿。”',
   'help.guide.dawarich-wishes.step.3':
     '点击右下角的按钮确认，勾选两行时按钮上写着“勾掉 2 项”。然后关闭对话框，打开旁边面板的“心愿单”标签页。',
   'help.guide.dawarich-wishes.result':
@@ -438,7 +438,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     '路过不算：你必须离那个地方很近，并且停留一段时间。如果有多次停留都符合条件，则采用最长的一次。没有坐标的心愿无法核对，所以请通过“添加地点”中的搜索来添加地点，而不要只输入名称。',
   'help.guide.dawarich-wishes.tip.2':
-    '每次核对最多查看 50 条，先看还没勾掉的。条目更多时，TREK 会提示你。已经勾掉的心愿会保留它自己的日期。',
+    '每次核对最多查看 50 条，先看还没勾掉的。条目更多时，游芽会提示你。已经勾掉的心愿会保留它自己的日期。',
 
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': '收藏',
@@ -485,7 +485,7 @@ const help: TranslationStrings = {
     '勾选你想要的地点。列表中已有的地点会置灰。没有安排到旅行任何一天的地点默认选中；如果每个地点都已安排到某天，则默认选中所有新地点。“仅新增”会隐藏列表中已有的地点。',
   'help.guide.import-from-trip.step.4': '点击“导入”。按钮上始终会写明即将添加的数量。',
   'help.guide.import-from-trip.result': '地点会连同名称、地址、坐标、描述和分类一起复制到列表中。旅行本身不会改变。',
-  'help.guide.import-from-trip.tip.1': 'TREK 会自动跳过名称或坐标相同的重复地点，所以重复导入也没关系。',
+  'help.guide.import-from-trip.tip.1': '游芽会自动跳过名称或坐标相同的重复地点，所以重复导入也没关系。',
   'help.guide.import-from-trip.tip.2': '在旅行的地点列表中，选择模式下有“保存到收藏”，可以只保存手动挑选的一组地点。',
   // place-status
   'help.guide.place-status.title': '设置地点的状态',
@@ -546,7 +546,7 @@ const help: TranslationStrings = {
   'help.guide.copy-to-trip.tip.1': '共享列表的查看者也可以这样操作。这只是从列表中复制地点，不会改动列表本身。',
   // share-list
   'help.guide.share-list.title': '与他人共享列表',
-  'help.guide.share-list.goal': '与这台 TREK 上的其他人实时共同规划一个列表。',
+  'help.guide.share-list.goal': '与这台游芽上的其他人实时共同规划一个列表。',
   'help.guide.share-list.step.1': '点击你的列表顶部区域的“共享”。',
   'help.guide.share-list.step.2': '选择用户和角色：“查看者”“编辑者”或“管理员”。',
   'help.guide.share-list.step.3': '点击“发送邀请”。在对方于列表侧栏或通知中接受邀请之前，该成员显示为待处理。',
@@ -557,20 +557,19 @@ const help: TranslationStrings = {
   'help.guide.share-list.tip.2': '只有所有者可以邀请和移除成员；成员可以自己退出共享列表。',
   // export-list
   'help.guide.export-list.title': '把列表导出为文件',
-  'help.guide.export-list.goal': '把列表发给使用另一台 TREK 服务器的人，在地图应用中打开，或在 Google My Maps 中查看。',
+  'help.guide.export-list.goal': '把列表发给使用另一台游芽服务器的人，在地图应用中打开，或在 Google My Maps 中查看。',
   'help.guide.export-list.step.1': '点击列表顶部区域的“导出”。',
   'help.guide.export-list.step.2':
-    '选“TREK 列表”，可在另一台 TREK 中使用，并保留标签和状态；选 GPX，适用于 OsmAnd、Organic Maps、Garmin 以及其他能读取航点的应用；或选 KML，用于 Google My Maps，在 Google 地图中查看这些地点。',
+    '选“游芽列表”，可在另一台游芽中使用，并保留标签和状态；选 GPX，适用于 OsmAnd、Organic Maps、Garmin 以及其他能读取航点的应用；或选 KML，用于 Google My Maps，在 Google 地图中查看这些地点。',
   'help.guide.export-list.result': '文件会开始下载。共享列表的任何成员都可以导出。',
-  'help.guide.export-list.tip.1': '没有坐标的地点无法成为 GPX 航点或 KML 图钉，会被略过，TREK 会告诉你略过了多少个。',
+  'help.guide.export-list.tip.1': '没有坐标的地点无法成为 GPX 航点或 KML 图钉，会被略过，游芽会告诉你略过了多少个。',
   'help.guide.export-list.tip.2':
-    '评分、成员和上传的照片不会导出，这是有意为之：它们属于当前这个 TREK，而不属于列表本身。',
+    '评分、成员和上传的照片不会导出，这是有意为之：它们属于当前这个游芽，而不属于列表本身。',
   // import-file
   'help.guide.import-file.title': '从文件导入列表',
-  'help.guide.import-file.goal': '导入 TREK 列表文件或 GPX 文件，可以作为新列表，也可以并入已有列表。',
+  'help.guide.import-file.goal': '导入游芽列表文件或 GPX 文件，可以作为新列表，也可以并入已有列表。',
   'help.guide.import-file.step.1': '点击列表栏中“新建列表”旁边带上传箭头的导入按钮。',
-  'help.guide.import-file.step.2':
-    '选择文件。TREK 在导入任何内容之前，会先显示文件里有什么：名称、地点数量和标签数量。',
+  'help.guide.import-file.step.2': '选择文件。游芽在导入任何内容之前，会先显示文件里有什么：名称、地点数量和标签数量。',
   'help.guide.import-file.step.3':
     '保留“新建列表”，需要的话修改名称，然后点击“导入”。也可以选择“添加到列表”，把地点放进你可以编辑的列表，再点击“添加到列表”。',
   'help.guide.import-file.result':
@@ -578,7 +577,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     '从 GPX 导入时，每个有名称的航点都会成为一个地点；轨迹是线条，会被略过，预览中会说明略过了多少个点。',
   'help.guide.import-file.tip.2':
-    '既不是 TREK 列表也不是 GPX 的文件会被拒绝，TREK 会告诉你原因。如果个别地点无法读取，只会跳过该地点，不会影响整个文件。',
+    '既不是游芽列表也不是 GPX 的文件会被拒绝，游芽会告诉你原因。如果个别地点无法读取，只会跳过该地点，不会影响整个文件。',
   // edit-list
   'help.guide.edit-list.title': '编辑或删除列表',
   'help.guide.edit-list.goal': '修改列表的名称、颜色、封面、描述或链接，或删除列表。',
@@ -765,7 +764,7 @@ const help: TranslationStrings = {
   'help.guide.link-trip.tip.2': '有日期的日志只计一次，不管有多少次旅行包含那一天。',
   // share-public
   'help.guide.share-public.title': '公开分享旅程',
-  'help.guide.share-public.goal': '给没有 TREK 账号的人一个只读链接。',
+  'help.guide.share-public.goal': '给没有游芽账号的人一个只读链接。',
   'help.guide.share-public.step.1': '点击顶部的 ⋯ 打开“旅程设置”，滚动到“公开分享”。',
   'help.guide.share-public.step.2': '点击“创建分享链接”。',
   'help.guide.share-public.step.3':
@@ -783,7 +782,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.step.3': '选择“查看者”或“编辑者”，然后点击“邀请”。',
   'help.guide.contributors.result':
     '这段旅程会出现在对方的列表中，他们写的日志会显示他们的名字。要移除贡献者，点击其名字旁边的 ×。',
-  'help.guide.contributors.tip.1': '“贡献者”只适用于这台 TREK 上的用户。其他人请用公开链接。',
+  'help.guide.contributors.tip.1': '“贡献者”只适用于这台游芽上的用户。其他人请用公开链接。',
   // studio
   'help.guide.studio.title': '把旅程排成一本相册',
   'help.guide.studio.goal': '把旅程日志变成可以打印的页面。',
@@ -815,7 +814,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ────────────────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Studio',
   'help.ctx.journey-studio.summary':
-    'TREK Studio 把旅程排成可以打印的相册。它在日志上方打开：左侧是侧栏和面板，中间是你正在处理的跨页，右侧是它的属性。自动排版根据你的条目生成第一版草稿，主题给书配上颜色和字体，助手可以和你一起设计页面。之后你可以移动、裁剪、重新设置任何内容的样式，每一步都能撤销。',
+    '游芽 Studio 把旅程排成可以打印的相册。它在日志上方打开：左侧是侧栏和面板，中间是你正在处理的跨页，右侧是它的属性。自动排版根据你的条目生成第一版草稿，主题给书配上颜色和字体，助手可以和你一起设计页面。之后你可以移动、裁剪、重新设置任何内容的样式，每一步都能撤销。',
   'help.ctx.journey-studio.bullet.1':
     '顶栏：左侧是旅程的封面和名称。右侧依次是还有谁在这本书里以及是否已保存、页面尺寸、撤销、重做、粘贴、自动排版、助手、帮助、导出，以及关闭 Studio 的按钮。',
   'help.ctx.journey-studio.bullet.2':
@@ -827,7 +826,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     '这本书的排布和印刷的书一样：封面、与封面内页空白面相对的单独第一页、各个跨页、单独的最后一页和封底。页码从第一页开始计数，按显示的样子印出。',
   'help.ctx.journey-studio.bullet.6':
-    '多人可以同时设计：每个人都能看到其他人带名字的指针。如果你保存的版本已被别人修改过，TREK 会提示冲突，而不是覆盖对方的成果。',
+    '多人可以同时设计：每个人都能看到其他人带名字的指针。如果你保存的版本已被别人修改过，游芽会提示冲突，而不是覆盖对方的成果。',
   'help.ctx.journey-studio.bullet.7':
     '主题：整本书统一的外观，包括纸张、墨色、三种强调色、字体和装饰图案。与主题关联的元素会在你更换主题时跟着变化。',
   'help.ctx.journey-studio.bullet.8':
@@ -893,7 +892,7 @@ const help: TranslationStrings = {
   'help.guide.studio-theme.tip.2': '从照片取色会根据旅程的图片生成一套配色。',
   'help.guide.studio-theme.result': '书中所有已关联的颜色和字体会同时改变，应用主题是一个可撤销的步骤。',
   'help.guide.studio-content.tip.1': '“内容”顶部的搜索框会同时筛选两个列表。',
-  'help.guide.studio-content.tip.2': '把桌面上的文件拖到工作台上时，TREK 会一步完成上传和放置。',
+  'help.guide.studio-content.tip.2': '把桌面上的文件拖到工作台上时，游芽会一步完成上传和放置。',
   // studio-elements
   'help.guide.studio-elements.title': '添加文字、形状、图标和贴纸',
   'help.guide.studio-elements.goal': '除了照片和文字故事，再为跨页添加一些装饰。',
@@ -982,22 +981,22 @@ const help: TranslationStrings = {
     '跨页在工作区中打开后，点击缩放条右端的“下载此跨页”。文件中只包含设计，不包含照片。',
   'help.guide.studio-spread-file.step.2': '在另一本书中打开“页面”，点击底部“+ 页面”旁边的“导入”，然后选择该文件。',
   'help.guide.studio-spread-file.result': '跨页会连同相框和文字样式一起导入。把新旅程的照片放进这些相框里即可。',
-  'help.guide.studio-spread-file.tip.1': '如果文件不是跨页设计，TREK 会拒绝导入并说明原因。',
+  'help.guide.studio-spread-file.tip.1': '如果文件不是跨页设计，游芽会拒绝导入并说明原因。',
 
   // ── Screen: settings (all tabs) ───────────────────────────────────────────────────────
   'help.ctx.settings.title': '设置',
   'help.ctx.settings.summary':
-    '你的个人设置，左侧边栏里每个主题一个标签页。大多数开关一拨动就会生效，带“保存”按钮的表单则要点击“保存”才会保存。这里的任何设置都不会影响其他人的 TREK。',
+    '你的个人设置，左侧边栏里每个主题一个标签页。大多数开关一拨动就会生效，带“保存”按钮的表单则要点击“保存”才会保存。这里的任何设置都不会影响其他人的游芽。',
   'help.ctx.settings.bullet.1':
     '左侧边栏：显示、外观、地图、通知、集成、离线和账户。有插件启用后会出现“插件”。只要运营者没有隐藏，就会有“关于”。版本号显示在底部。',
   'help.ctx.settings.bullet.2':
-    '先打开的是“显示”。其中有 TREK 启动时打开的内容、语言、地点名称的语言、单位、时间格式、日期格式、每周起始日和显示货币，以及行程地图的行为。“外观”包含主题、颜色、可读性、文字大小和仪表盘组件。',
+    '先打开的是“显示”。其中有游芽启动时打开的内容、语言、地点名称的语言、单位、时间格式、日期格式、每周起始日和显示货币，以及行程地图的行为。“外观”包含主题、颜色、可读性、文字大小和仪表盘组件。',
   'help.ctx.settings.bullet.3':
     '“地图”设置地图引擎及其样式；“通知”设置哪些事件发送到哪个渠道；“集成”存放你的预订邮件地址，用于连接照片库、AirTrail、Dawarich 和 wanderer，也包含 API 密钥和 MCP；“离线”设置这台设备保存哪些内容。',
   'help.ctx.settings.bullet.4': '“账户”包含你的个人资料、密码、双因素认证、通行密钥，以及删除账号的选项。',
   'help.ctx.settings-display.title': '显示',
   'help.ctx.settings-display.summary':
-    'TREK 启动时打开什么、使用的语言和单位，以及行程地图和预订的行为。每次修改都会立即生效。',
+    '游芽启动时打开什么、使用的语言和单位，以及行程地图和预订的行为。每次修改都会立即生效。',
   'help.ctx.settings-display.bullet.1':
     '“启动”：“启动页面”可选择打开“仪表盘”或“进行中的旅行”；选择“进行中的旅行”后，“启动标签页”决定该旅行默认打开哪个标签页。',
   'help.ctx.settings-display.bullet.2':
@@ -1006,7 +1005,7 @@ const help: TranslationStrings = {
     '旅行与地图：打开地点方式、每日标题中日期在前、预订路线标签、始终显示预订路线、未规划地点使用紧凑标记、在地图上探索地点、隐藏预订编号和从住宿地优化路线。',
   'help.ctx.settings-appearance.title': '外观',
   'help.ctx.settings-appearance.summary':
-    'TREK 在这个账户上的外观：浅色或深色、强调色、玻璃效果和动态效果、文字大小，以及仪表盘显示哪些组件。所有设置即时生效，并同步到你登录的每台设备。',
+    '游芽在这个账户上的外观：浅色或深色、强调色、玻璃效果和动态效果、文字大小，以及仪表盘显示哪些组件。所有设置即时生效，并同步到你登录的每台设备。',
   'help.ctx.settings-appearance.bullet.1':
     '主题：“颜色模式”（浅色、深色或自动）、“配色方案”，选择“自定义”后还可以分别为浅色和深色模式设置自己的强调色，并有对比度检查。',
   'help.ctx.settings-appearance.bullet.2':
@@ -1024,7 +1023,7 @@ const help: TranslationStrings = {
     '仅限 Mapbox GL：“3D 建筑和地形”、“高画质模式”和“隐藏兴趣点”。“保存地图”上方有实时预览，点击“保存地图”才会保存你的选择。',
   'help.ctx.settings-notifications.title': '通知',
   'help.ctx.settings-notifications.summary':
-    'TREK 在应用之外如何联系你。顶部的表格每个事件一行、每个渠道一列，决定什么内容发到哪里。下面是 webhook、ntfy、本设备推送以及各插件渠道的卡片。',
+    '游芽在应用之外如何联系你。顶部的表格每个事件一行、每个渠道一列，决定什么内容发到哪里。下面是 webhook、ntfy、本设备推送以及各插件渠道的卡片。',
   'help.ctx.settings-notifications.bullet.1': '“通知”：按渠道开启或关闭每个事件。锁表示管理员已为所有人关闭该事件。',
   'help.ctx.settings-notifications.bullet.2': 'Webhook URL：Discord、Slack 或自定义的 webhook，带有“测试”和“保存”。',
   'help.ctx.settings-notifications.bullet.3':
@@ -1033,7 +1032,7 @@ const help: TranslationStrings = {
     '此设备上的推送通知：“为此设备开启”只对当前浏览器有效；“发送测试”会发一条测试通知。插件渠道在配置好之前会显示“去配置”。',
   'help.ctx.settings-integrations.title': '集成',
   'help.ctx.settings-integrations.summary':
-    '所有从外部连接到 TREK 的内容：用于预订确认的专属地址、用于旅程日志的照片库、用于航班的 AirTrail、用于查看实际行踪的 Dawarich、用于路线的 wanderer、供其他软件使用的只读 API 密钥，以及供 AI 客户端使用的 MCP。与其他服务的连接，只有在管理员启用后才会显示。',
+    '所有从外部连接到游芽的内容：用于预订确认的专属地址、用于旅程日志的照片库、用于航班的 AirTrail、用于查看实际行踪的 Dawarich、用于路线的 wanderer、供其他软件使用的只读 API 密钥，以及供 AI 客户端使用的 MCP。与其他服务的连接，只有在管理员启用后才会显示。',
   'help.ctx.settings-integrations.bullet.1':
     '“预订邮件”：管理员开启邮件导入后显示在最上方，包含你的转发地址和各个开关。其下是 Immich 和 Synology Photos、AirTrail、Dawarich 和 wanderer：每张卡片都有地址和密钥、“保存”和“测试连接”，以及“已连接”或“未连接”徽章。',
   'help.ctx.settings-integrations.bullet.2':
@@ -1043,7 +1042,7 @@ const help: TranslationStrings = {
   'help.ctx.settings-integrations.bullet.4': '“API 令牌”：连接 MCP 的旧方式，标有“已弃用”，请改用“OAuth 2.1 客户端”。',
   'help.ctx.settings-offline.title': '离线',
   'help.ctx.settings-offline.summary':
-    'TREK 会在这台设备上保存哪些内容，让旅行在没有网络时也能打开；以及离线时的修改与别处的修改发生冲突时会怎么处理。',
+    '游芽会在这台设备上保存哪些内容，让旅行在没有网络时也能打开；以及离线时的修改与别处的修改发生冲突时会怎么处理。',
   'help.ctx.settings-offline.bullet.1':
     '离线模式：“强制离线模式”会先下载所有内容，之后只使用缓存工作，并把你的更改排入队列。',
   'help.ctx.settings-offline.bullet.2':
@@ -1054,19 +1053,19 @@ const help: TranslationStrings = {
     '“同步冲突”只在有两处更改冲突时才会出现，带有“用我的”“保留对方的”和“发生冲突时”。“离线缓存”统计旅行以及待处理或失败的更改，带有“重试”“放弃”和“清除缓存”。',
   'help.ctx.settings-account.title': '账户',
   'help.ctx.settings-account.summary':
-    '你在这个 TREK 上的账户和登录方式：头像、用户名和邮箱、密码、双因素身份验证和通行密钥。“删除账户”在“账户”卡片的底部。',
+    '你在这个游芽上的账户和登录方式：头像、用户名和邮箱、密码、双因素身份验证和通行密钥。“删除账户”在“账户”卡片的底部。',
   'help.ctx.settings-account.bullet.1':
     '“账户”：点击头像上的相机图标上传图片，点红色垃圾桶移除。“用户名”和“邮箱”通过“保存资料”保存。',
   'help.ctx.settings-account.bullet.2':
-    '“修改密码”：当前密码、两次输入的新密码（输入时会逐条勾选密码规则），然后点击“更新密码”。如果这个 TREK 只能通过 SSO 登录，就没有这张卡片。',
+    '“修改密码”：当前密码、两次输入的新密码（输入时会逐条勾选密码规则），然后点击“更新密码”。如果这个游芽只能通过 SSO 登录，就没有这张卡片。',
   'help.ctx.settings-account.bullet.3':
     '使用身份验证器应用和备用代码的“双因素认证 (2FA)”，以及无需密码即可登录的“通行密钥”。',
   'help.ctx.settings-account.bullet.4': '“删除账户”位于“账户”卡片页脚的左侧，需要确认。唯一的管理员不能删除自己。',
   // language-region
   'help.guide.language-region.title': '设置语言、单位和货币',
-  'help.guide.language-region.goal': '用你的语言和所在地区的格式使用 TREK。',
+  'help.guide.language-region.goal': '用你的语言和所在地区的格式使用游芽。',
   'help.guide.language-region.step.1':
-    '在“语言与地区”下，从列表中选择“语言”；输入文字可以快速找到。TREK 会立即切换，你登录的每台设备上都会生效。',
+    '在“语言与地区”下，从列表中选择“语言”；输入文字可以快速找到。游芽会立即切换，你登录的每台设备上都会生效。',
   'help.guide.language-region.step.2': '“地点名称”设置地点搜索、建议和地址所使用的语言，选“与应用相同”则跟随界面语言。',
   'help.guide.language-region.result':
     '日期、距离和金额会按你习惯的格式显示。在“费用”中，金额只是用你的显示货币来显示，录入的金额不会变。',
@@ -1083,16 +1082,16 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.1': '这些设置按账户保存，而不是按旅行保存。共享旅行的每位成员看到的是各自的选择。',
   'help.guide.travel-map-prefs.tip.2': '管理员可以为所有人设置默认值；你在这里的设置只对你自己生效。',
   // startup
-  'help.guide.startup.title': '选择 TREK 启动时打开的页面',
-  'help.guide.startup.goal': '让 TREK 直接打开你最常用的页面，而不是每次都先进仪表盘。',
+  'help.guide.startup.title': '选择游芽启动时打开的页面',
+  'help.guide.startup.goal': '让游芽直接打开你最常用的页面，而不是每次都先进仪表盘。',
   'help.guide.startup.step.1': '在“显示”顶部的“启动”下，把“启动页面”设为“仪表盘”或“进行中的旅行”。',
   'help.guide.startup.step.2': '选择“进行中的旅行”后，会出现“启动标签页”：选择该旅行默认打开哪个标签页。',
-  'help.guide.startup.result': '下次打开 TREK 时，会直接进入那个页面。',
+  'help.guide.startup.result': '下次打开游芽时，会直接进入那个页面。',
   'help.guide.startup.tip.1':
     '“进行中的旅行”指今天正在进行的旅行，或最近要开始的下一个旅行，与仪表盘顶部显示的旅行相同。',
   // theme-scheme
   'help.guide.theme-scheme.title': '设置主题和强调色',
-  'help.guide.theme-scheme.goal': '让 TREK 使用浅色、深色或跟随设备，并选择你喜欢的颜色。',
+  'help.guide.theme-scheme.goal': '让游芽使用浅色、深色或跟随设备，并选择你喜欢的颜色。',
   'help.guide.theme-scheme.step.1': '在“主题”下，把“颜色模式”设为“浅色”“深色”或“自动”。“自动”会跟随你的设备。',
   'help.guide.theme-scheme.step.2': '选择一个“配色方案”：默认、高对比度、靛蓝、蓝绿、玫瑰、琥珀、紫罗兰或自定义。',
   'help.guide.theme-scheme.step.3':
@@ -1109,7 +1108,7 @@ const help: TranslationStrings = {
     '文字大小：拖动“全部”可一次缩放所有文字，也可以分别设置大、中、普通和小。每个大小都有示例，拖动时就能看到效果。',
   'help.guide.readability.result': '更改会立即应用到整个应用，包括地图面板和日志。',
   'help.guide.readability.tip.1':
-    '当设备已设为减少动态效果时，TREK 的部分内容本来就会减少动画。“减少动态效果”会减少其余部分的动画。',
+    '当设备已设为减少动态效果时，游芽的部分内容本来就会减少动画。“减少动态效果”会减少其余部分的动画。',
   'help.guide.readability.tip.2': '文字大小通过排版层级来应用，所以内容不会被截断；放不下的文字会自动换行。',
   // dashboard-widgets
   'help.guide.dashboard-widgets.title': '选择仪表盘组件',
@@ -1188,16 +1187,16 @@ const help: TranslationStrings = {
     '“强制离线模式”会再下载一次，然后只在这台设备上工作，这样你出发前就能检查一切是否齐全。',
   'help.guide.offline-prepare.result': '旅行在没有网络时也能打开。你所做的更改会先存入队列，重新联网后自动发送。',
   'help.guide.offline-prepare.tip.1': '地图瓦片占用空间最多，关闭后可以只保留旅行数据和文档。',
-  'help.guide.offline-prepare.tip.2': '在浏览器中把 TREK 安装为应用，离线启动最顺畅。',
+  'help.guide.offline-prepare.tip.2': '在浏览器中把游芽安装为应用，离线启动最顺畅。',
   // offline-conflicts
   'help.guide.offline-conflicts.title': '同步冲突时决定保留哪个版本',
-  'help.guide.offline-conflicts.goal': '选择离线修改与别处修改发生冲突时，TREK 如何解决。',
+  'help.guide.offline-conflicts.goal': '选择离线修改与别处修改发生冲突时，游芽如何解决。',
   'help.guide.offline-conflicts.step.1':
     '如果你离线时做的更改与较新的更改冲突，“离线”页面靠近顶部的位置会出现“同步冲突”。对每处更改，点击“用我的”或“保留对方的”。',
   'help.guide.offline-conflicts.step.2':
     '在同一张卡片中，“发生冲突时”决定以后怎么处理：“每次询问我”“始终保留我的版本”或“始终保留服务器版本”。',
   'help.guide.offline-conflicts.result':
-    '选择“每次询问我”时，冲突会留在“同步冲突”中，等你决定；选择另外两项时，TREK 会自动解决冲突。',
+    '选择“每次询问我”时，冲突会留在“同步冲突”中，等你决定；选择另外两项时，游芽会自动解决冲突。',
   'help.guide.offline-conflicts.tip.1': '“清除缓存”只会删除这台设备上的副本，服务器上的内容不受影响。',
   // profile
   'help.guide.profile.title': '修改个人资料',
@@ -1215,7 +1214,7 @@ const help: TranslationStrings = {
   'help.guide.password.step.2': '点击“更新密码”。',
   'help.guide.password.result':
     '新密码立即生效。其他所有设备都会退出登录，你的 MCP API 令牌会被删除，OAuth 客户端需要重新登录，当前设备保持登录。',
-  'help.guide.password.tip.1': '如果这个 TREK 只能通过 SSO 登录，就没有 TREK 密码，也没有“修改密码”卡片。',
+  'help.guide.password.tip.1': '如果这个游芽只能通过 SSO 登录，就没有游芽密码，也没有“修改密码”卡片。',
   // mfa
   'help.guide.mfa.title': '开启双因素认证',
   'help.guide.mfa.goal': '用身份验证器应用生成的验证码保护你的账户。',
@@ -1244,15 +1243,15 @@ const help: TranslationStrings = {
   'help.guide.delete-account.step.1': '在“账户”卡片中，点击页脚左侧的“删除账户”，然后点击“永久删除”。',
   'help.guide.delete-account.result':
     '你的账户会被删除，你名下的旅行、地点和文件也会一并删除。其他人拥有的旅行仍会保留。',
-  'help.guide.delete-account.tip.1': '如果你是唯一的管理员，TREK 会提示“无法删除”：请先把另一位用户提升为管理员。',
+  'help.guide.delete-account.tip.1': '如果你是唯一的管理员，游芽会提示“无法删除”：请先把另一位用户提升为管理员。',
   'help.guide.delete-account.tip.2': '删除后无法恢复。确认之前，请先导出你想保留的内容。',
 
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': '管理员',
   'help.ctx.admin.summary':
-    '整个 TREK 实例对所有用户生效的设置：谁可以登录、如何登录，启用了什么，文件存放在哪里，服务器如何联系用户，以及如何备份。只有管理员能看到这个页面。侧边栏把标签页分在“用户”“配置”和“维护”下，每个标签页是独立的一屏。',
+    '整个游芽实例对所有用户生效的设置：谁可以登录、如何登录，启用了什么，文件存放在哪里，服务器如何联系用户，以及如何备份。只有管理员能看到这个页面。侧边栏把标签页分在“用户”“配置”和“维护”下，每个标签页是独立的一屏。',
   'help.ctx.admin.bullet.1':
-    '标题右侧统计用户、旅行、地点和文件的数量。其下方，当有更新的 TREK 版本发布时，会出现“有可用更新”横幅。',
+    '标题右侧统计用户、旅行、地点和文件的数量。其下方，当有更新的游芽版本发布时，会出现“有可用更新”横幅。',
   'help.ctx.admin.bullet.2': '“用户”和“默认值”：账户、邀请链接和权限，以及新账户初始使用的设置和地图。',
   'help.ctx.admin.bullet.3':
     '“安全”“服务”“扩展”和“个性化”：登录、通行密钥、2FA 和单点登录；地点搜索、路径规划、API 密钥和文件类型；功能模块及其选项；行李模板、分类和学校假期。',
@@ -1262,7 +1261,7 @@ const help: TranslationStrings = {
     '“存储”“备份”“GitHub”和“审计”：上传文件的存放位置、手动和定时备份、版本历史，以及安全相关事件的日志。',
   'help.ctx.admin-users.title': '用户',
   'help.ctx.admin-users.summary':
-    '此 TREK 上的所有账户，显示角色、邮箱和最后活跃时间，还有让人们在封闭实例上注册的邀请链接，以及谁能在旅行中做什么。',
+    '此游芽上的所有账户，显示角色、邮箱和最后活跃时间，还有让人们在封闭实例上注册的邀请链接，以及谁能在旅行中做什么。',
   'help.ctx.admin-users.bullet.1':
     '表格：用户、邮箱、角色、创建时间和“最后活动”，每行带有“编辑用户”和“删除用户”。头像上的绿点表示此人当前在线，你自己的那一行标有“（你）”。',
   'help.ctx.admin-users.bullet.2': '“用户”卡片右上角的“创建用户”可以手动添加账户，密码由你告诉对方。',
@@ -1282,7 +1281,7 @@ const help: TranslationStrings = {
     '实例上所有旅行共用的设置：行李模板、地点和收藏所用的分类集合，以及“假期”使用的学校假期目录。',
   'help.ctx.admin-config.bullet.1': '“打包模板”：有名称的分类和物品清单，旅行的行李清单可以以它为起点。',
   'help.ctx.admin-config.bullet.2':
-    '分类：TREK 中各处使用的分类的名称、图标和颜色，从地点检查器到“收藏”都会用到，每个分类都在带预览的对话框中编辑。',
+    '分类：游芽中各处使用的分类的名称、图标和颜色，从地点检查器到“收藏”都会用到，每个分类都在带预览的对话框中编辑。',
   'help.ctx.admin-config.bullet.3': '“学校假期”：国家和地区及其假期时段的目录，所有人都可以在“假期”中选用。',
   'help.ctx.admin-settings.title': '安全与服务',
   'help.ctx.admin-settings.summary':
@@ -1292,12 +1291,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     '“通行密钥登录”：“Relying Party ID（域名）”和“允许的来源”。“单点登录 (OIDC)”：“显示名称”、“颁发者 URL”、可选的“Discovery URL（可选）”、“客户端 ID”和“客户端密钥”。',
   'help.ctx.admin-settings.bullet.3':
-    '“服务”标签页上的地点搜索和路径规划：标有“推荐的默认来源”的 TREK API，带有“今日额度”和“分享地点详情”，然后是“公共交通数据源”“地点搜索源”和“地点搜索记录”。',
+    '“服务”标签页上的地点搜索和路径规划：标有“推荐的默认来源”的游芽 API，带有“今日额度”和“分享地点详情”，然后是“公共交通数据源”“地点搜索源”和“地点搜索记录”。',
   'help.ctx.admin-settings.bullet.4':
     '“API 密钥”：Google Maps API 密钥（带“测试”和“该密钥的用途”）、Unsplash 密钥和高德地图密钥，卡片底部有一个“保存”。其下的“允许的文件类型”用来限制上传。',
   'help.ctx.admin-addons.title': '扩展',
   'help.ctx.admin-addons.summary':
-    'TREK 的功能模块，分在三张卡片里：“旅行”对应旅行的标签页，“全局”对应主导航中的各个部分，“集成”对应外部服务。每个扩展都有一个开关；关闭后，导航入口、路由和 API 对所有人都会被移除。',
+    '游芽的功能模块，分在三张卡片里：“旅行”对应旅行的标签页，“全局”对应主导航中的各个部分，“集成”对应外部服务。每个扩展都有一个开关；关闭后，导航入口、路由和 API 对所有人都会被移除。',
   'help.ctx.admin-addons.bullet.1':
     '每个扩展一行，带有开关，每张卡片的标题处显示其中有多少个扩展已开启。名称旁边的信息标记说明该扩展的作用。',
   'help.ctx.admin-addons.bullet.2':
@@ -1306,7 +1305,7 @@ const help: TranslationStrings = {
     '带齿轮的行会打开设置对话框，例如“游览”下的“划桨水域数据”和“预订邮件导入”下的“设置邮件导入”。“实时航班状态”是“旅行”卡片中的一行。',
   'help.ctx.admin-plugins.title': '插件',
   'help.ctx.admin-plugins.summary':
-    '第三方插件，在 TREK 旁边以独立进程运行，每个插件只拥有安装时申请的权限。你可以从目录安装、上传安装包，或者在开发插件时关联一个文件夹。',
+    '第三方插件，在游芽旁边以独立进程运行，每个插件只拥有安装时申请的权限。你可以从目录安装、上传安装包，或者在开发插件时关联一个文件夹。',
   'help.ctx.admin-plugins.bullet.1':
     '“已安装”和“发现”，带有“搜索插件…”以及用于类型、状态和排序的“筛选”。每行显示版本、插件可访问的内容、“已审核”、“已签名”或“未签名”、一个开关和一个 ⋯ 菜单。',
   'help.ctx.admin-plugins.bullet.2':
@@ -1321,7 +1320,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     '分类：行程文档、旅程照片、封面、头像、地点图片、照片缓存和备份，每一项都分配给一个后端，底部有“保存更改”。',
   'help.ctx.admin-storage.bullet.4':
-    '“未被引用的文件”：夜间检查发现的、TREK 里不再有任何地方使用的文件，带有“立即检查”，以及一个开关，用来删除闲置满一周的这类文件。',
+    '“未被引用的文件”：夜间检查发现的、游芽里不再有任何地方使用的文件，带有“立即检查”，以及一个开关，用来删除闲置满一周的这类文件。',
   'help.ctx.admin-notifications.title': '通知',
   'help.ctx.admin-notifications.summary':
     '这里是实例向用户提供的通知渠道，以及你作为管理员接收通知的渠道。用户在“设置”里选择自己的主题和 URL；你决定提供哪些渠道，并配置邮件。',
@@ -1332,12 +1331,12 @@ const help: TranslationStrings = {
     '右侧的“管理员通知”：“管理员 Webhook”和“管理员 Ntfy”各有一个测试按钮，下方决定每个管理员事件（“有新版本可用”“存储副本故障”“划桨区域申请”）由哪些渠道发送。',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    'AI 客户端在这个 TREK 上持有的所有令牌和 OAuth 会话，涵盖所有用户。你可以撤销其中任何一个。',
+    'AI 客户端在这个游芽上持有的所有令牌和 OAuth 会话，涵盖所有用户。你可以撤销其中任何一个。',
   'help.ctx.admin-mcp-tokens.bullet.1': '“OAuth 会话”：客户端、获得的权限范围、所有者和日期，垃圾桶图标可撤销该会话。',
   'help.ctx.admin-mcp-tokens.bullet.2': '“API 令牌”：名称、所有者、“创建时间”和“最后使用”，垃圾桶图标可删除它。',
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    'TREK 的新动态：来自 GitHub 的发布历史，以及是否有比你当前版本更新的版本。更新本身在应用之外，由主机来完成。',
+    '游芽的新动态：来自 GitHub 的发布历史，以及是否有比你当前版本更新的版本。更新本身在应用之外，由主机来完成。',
   'help.ctx.admin-github.bullet.1':
     '“版本历史”以时间线列出各个版本及其说明。最新的版本带有“最新”标记，预发布版本显示“预发布”，GitHub 按钮会打开发布页面。',
   'help.ctx.admin-github.bullet.2':
@@ -1398,7 +1397,7 @@ const help: TranslationStrings = {
   'help.guide.delete-user.tip.2': '你自己那一行的垃圾桶图标不起作用：你不能删除自己，必须由另一位管理员来删。',
   // permissions
   'help.guide.permissions.title': '设置谁可以做什么',
-  'help.guide.permissions.goal': '按具体操作设置，在这个 TREK 上允许哪个角色执行。',
+  'help.guide.permissions.goal': '按具体操作设置，在这个游芽上允许哪个角色执行。',
   'help.guide.permissions.step.1':
     '在“权限设置”下，找到所在分组里的操作，例如“旅行管理”下的“删除行程”，然后选择谁可以执行：“所有人”“旅行成员”“旅行所有者”或“仅管理员”。修改过的行会标为“已自定义”。',
   'help.guide.permissions.step.2': '点击卡片右上角的“保存”。“恢复默认”会把每一行恢复为内置级别，之后同样要点击“保存”。',
@@ -1457,10 +1456,10 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     '设置好“单点登录 (OIDC)”后，会出现三个 SSO 行：“SSO 登录”、“SSO 自动创建账户”（在某人首次通过 SSO 登录时为其创建账户）和“直接跳转到 SSO”。',
   'help.guide.auth-methods.step.3':
-    '“启用通行密钥登录”会在登录页面提供通行密钥。打开“要求 2FA”后，所有没设置 2FA 的人必须先在“设置”中完成设置，才能使用 TREK。',
+    '“启用通行密钥登录”会在登录页面提供通行密钥。打开“要求 2FA”后，所有没设置 2FA 的人必须先在“设置”中完成设置，才能使用游芽。',
   'help.guide.auth-methods.result': '登录页面只会提供你保持开启的登录方式。',
   'help.guide.auth-methods.tip.1':
-    'TREK 不允许你关掉最后一种登录方式：它的开关会变灰，提示显示“至少要保留一种登录方式”。',
+    '游芽不允许你关掉最后一种登录方式：它的开关会变灰，提示显示“至少要保留一种登录方式”。',
   'help.guide.auth-methods.tip.2': '如果服务器上设置了 OIDC_ONLY，密码开关会被锁定，并有提示说明。',
   'help.guide.auth-methods.tip.3':
     '“直接跳转到 SSO”只在“密码登录”关闭时才有意义：开启时，访客会立刻前往你的身份提供商；关闭时，他们会先看到带有 SSO 按钮的登录页面。',
@@ -1474,33 +1473,33 @@ const help: TranslationStrings = {
   'help.guide.oidc.step.3':
     '要让 SSO 成为唯一的登录方式，请关闭“密码登录”。开启“直接跳转到 SSO”后，访客会直接前往你的提供商；关闭它则保留带有 SSO 按钮的登录页面。',
   'help.guide.oidc.result': '登录页面会显示 SSO 按钮；开启“SSO 自动创建账户”后，首次登录的用户会自动获得账户。',
-  'help.guide.oidc.tip.1': '服务商需要的重定向 URI，是你的 TREK 地址加上文档中给出的 OIDC 回调路径。',
+  'help.guide.oidc.tip.1': '服务商需要的重定向 URI，是你的游芽地址加上文档中给出的 OIDC 回调路径。',
   'help.guide.oidc.tip.2': '声明映射决定哪些 SSO 群组会成为管理员，详见文档中的 OIDC 页面。',
   // instance-keys
   'help.guide.instance-keys.title': '填写 API 密钥',
   'help.guide.instance-keys.goal': '为整个实例启用 Google 照片和评分、Unsplash 封面以及高德地图搜索。',
   'help.guide.instance-keys.step.1':
-    '在“服务”标签页中，“地点搜索和路径规划”卡片以 TREK API 开头，标有“推荐的默认来源”。它无需密钥就能处理地点搜索、地址和路径规划，“今日额度”显示当天还剩多少。',
+    '在“服务”标签页中，“地点搜索和路径规划”卡片以游芽 API 开头，标有“推荐的默认来源”。它无需密钥就能处理地点搜索、地址和路径规划，“今日额度”显示当天还剩多少。',
   'help.guide.instance-keys.step.2':
     '要使用照片、评分和营业时间，在“API 密钥”下粘贴 Google Maps API 密钥并点击“测试”，会显示“已连接”或“无效”。在“该密钥的用途”下，只开启你愿意计费的项目：“地点照片”“地点自动补全”“地点详情”“地点信息补充”和“仅使用 Google 搜索”，另外还可以设置“Google 调用每日上限”。',
   'help.guide.instance-keys.step.3':
     '粘贴用于封面搜索的“Unsplash API 密钥”，以及用于中国大陆地点搜索的“高德地图 API Key”，然后点击卡片底部的“保存”。',
   'help.guide.instance-keys.result':
-    '用户不用自己配置密钥就能使用这些功能。没有 Google 密钥时，搜索会使用 TREK Places API 和 OpenStreetMap。',
-  'help.guide.instance-keys.tip.1': '如果用户在“设置”里有自己的密钥，TREK 对该用户会优先使用个人密钥，而不是实例密钥。',
+    '用户不用自己配置密钥就能使用这些功能。没有 Google 密钥时，搜索会使用游芽 Places API 和 OpenStreetMap。',
+  'help.guide.instance-keys.tip.1': '如果用户在“设置”里有自己的密钥，游芽对该用户会优先使用个人密钥，而不是实例密钥。',
   'help.guide.instance-keys.tip.2': '密钥也可以来自环境变量，这类密钥在这里显示为只读。',
   'help.guide.instance-keys.tip.3':
-    '“Google 调用每日上限”限制 TREK 每天最多能在这个密钥上使用多少，标题旁的徽章统计今天已经调用了多少次。达到上限后，搜索会改用 OpenStreetMap，直到第二天（UTC）。',
+    '“Google 调用每日上限”限制游芽每天最多能在这个密钥上使用多少，标题旁的徽章统计今天已经调用了多少次。达到上限后，搜索会改用 OpenStreetMap，直到第二天（UTC）。',
   // places-transit
   'help.guide.places-transit.title': '选择搜索和公共交通服务商',
   'help.guide.places-transit.goal': '选择由哪个服务来处理地点搜索和公共交通路线请求。',
   'help.guide.places-transit.step.1':
     '在“服务”标签页的“地点搜索和路径规划”卡片中，在“公共交通数据源”下选择：“Transitous（免费）”，无需密钥，在欧洲覆盖最好；或选择 Google，它使用 Google 密钥。选择会立即保存。',
   'help.guide.places-transit.step.2':
-    '在“地点搜索源”下，选择当 TREK 索引和 OpenStreetMap 都找不到时去问哪个服务：“自动”（有密钥时用 Google，然后用高德地图）、Google Places、高德地图或 OpenStreetMap。',
-  'help.guide.places-transit.result': 'TREK 中的所有搜索框和所有公共交通路线都会使用这个选择。',
+    '在“地点搜索源”下，选择当游芽索引和 OpenStreetMap 都找不到时去问哪个服务：“自动”（有密钥时用 Google，然后用高德地图）、Google Places、高德地图或 OpenStreetMap。',
+  'help.guide.places-transit.result': '游芽中的所有搜索框和所有公共交通路线都会使用这个选择。',
   'help.guide.places-transit.tip.1':
-    '缺少密钥的选项会在此显示警告。此时地点搜索只使用 TREK 索引和 OpenStreetMap，公共交通只使用 Transitous。',
+    '缺少密钥的选项会在此显示警告。此时地点搜索只使用游芽索引和 OpenStreetMap，公共交通只使用 Transitous。',
   'help.guide.places-transit.tip.2': 'Google 公共交通路线按请求计费，Transitous 不收费。',
   // file-types
   'help.guide.file-types.title': '限制文件类型',
@@ -1540,7 +1539,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     '在“分类”下，把每一类上传内容，例如“行程文档”“旅程照片”或“备份”，分配给一个后端。',
   'help.guide.storage-backends.step.3':
-    '点击“分类”底部的“保存更改”。如果某个分类现在指向了别处，TREK 会询问是“移动现有对象”还是“仅路由新写入”。',
+    '点击“分类”底部的“保存更改”。如果某个分类现在指向了别处，游芽会询问是“移动现有对象”还是“仅路由新写入”。',
   'help.guide.storage-backends.result':
     '新上传的文件会进入分配的后端。已移动的文件从新后端读取，你选择不移动的文件则留在原处。',
   'help.guide.storage-backends.tip.1': '通过环境变量配置的存储后端会显示出来，但不能在这里编辑。',
@@ -1581,7 +1580,7 @@ const help: TranslationStrings = {
     '关闭 MCP 扩展会立刻让所有客户端停止工作并隐藏此标签页，但不会删除任何内容，重新开启后令牌即可再次使用。',
   // release-history
   'help.guide.release-history.title': '检查是否有新版本',
-  'help.guide.release-history.goal': '了解你的 TREK 是否是最新版本，以及下一个版本会带来什么。',
+  'help.guide.release-history.goal': '了解你的游芽是否是最新版本，以及下一个版本会带来什么。',
   'help.guide.release-history.step.1':
     '有更新的版本发布时，页面标题下方会出现“有可用更新”，并带有你当前运行的版本。点击“在 GitHub 查看”会打开该版本，“如何更新”则显示 Docker 的命令，其他安装方式显示更新指南。',
   'help.guide.release-history.step.2':
@@ -1628,7 +1627,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     '打开 Nextcloud 那一行的开关。提示会显示“扩展已更新”，之后旅行所有者就能在旅行的“文件”标签页里看到“文档同步”，并在“连接文档服务”下找到 Nextcloud。',
   'help.guide.document-providers.result':
-    '这台 TREK 上的每次旅行都可以使用该存储服务。在旅行所有者连接它之前，不会连接任何内容。',
+    '这台游芽上的每次旅行都可以使用该存储服务。在旅行所有者连接它之前，不会连接任何内容。',
   'help.guide.document-providers.tip.1':
     '这里只决定是否可以提供某个存储服务。地址和凭据属于具体的旅行，由旅行所有者在旅行的“文件”标签页中填写，绝不会在管理面板里填写。',
   'help.guide.document-providers.tip.2':
@@ -1636,29 +1635,29 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.title': '设置预订邮件导入',
   'help.guide.mail-import-setup.goal': '给每个人一个转发地址，让他们转发的预订确认邮件变成正确旅行中的预订。',
   'help.guide.mail-import-setup.step.1':
-    '在“扩展”标签页的“集成”卡片中，打开“预订邮件导入”。这个 TREK 上的每个人都会得到一个专属转发地址。',
+    '在“扩展”标签页的“集成”卡片中，打开“预订邮件导入”。这个游芽上的每个人都会得到一个专属转发地址。',
   'help.guide.mail-import-setup.step.2': '点击其下出现的“设置邮件导入”行。',
   'help.guide.mail-import-setup.step.3':
-    '在“邮件送达方式”下选择“IMAP 邮箱”，填写“服务器”“端口”“加密”“用户”“密码”和“文件夹”。如果邮件服务会把每封邮件推送给 TREK，请改选“Webhook”；只想试用而没有邮箱，则选“仅上传”。然后设置“地址模板”（转发地址，其中留一个占位符，用来放每个人的代码）以及“每人每天的 AI 邮件数”。',
+    '在“邮件送达方式”下选择“IMAP 邮箱”，填写“服务器”“端口”“加密”“用户”“密码”和“文件夹”。如果邮件服务会把每封邮件推送给游芽，请改选“Webhook”；只想试用而没有邮箱，则选“仅上传”。然后设置“地址模板”（转发地址，其中留一个占位符，用来放每个人的代码）以及“每人每天的 AI 邮件数”。',
   'help.guide.mail-import-setup.step.4':
-    '点击“保存”，再点击“测试连接”；它会显示“已连接”或失败的原因。在下方，对话框会显示 TREK 上次读取邮件的时间，以及最近 24 小时的邮件：“自动添加”“等待中”和“失败”。',
+    '点击“保存”，再点击“测试连接”；它会显示“已连接”或失败的原因。在下方，对话框会显示游芽上次读取邮件的时间，以及最近 24 小时的邮件：“自动添加”“等待中”和“失败”。',
   'help.guide.mail-import-setup.result':
     '每个人都能在“设置”的“集成”中找到自己的转发地址。转发的确认邮件会变成正确旅行中的预订，或者留在那里等它的主人查看。',
   'help.guide.mail-import-setup.tip.1':
-    '给 TREK 一个专用邮箱，支持加号地址（trek+…@your-domain），不要用个人邮箱。读过的邮件会移到文件夹 TREK/processed。',
+    '给游芽一个专用邮箱，支持加号地址（trek+…@your-domain），不要用个人邮箱。读过的邮件会移到文件夹 TREK/processed。',
   'help.guide.mail-import-setup.tip.2':
     '以 MAIL_INGEST_ 开头的环境变量优先于对话框里的字段。位于你自己内网中的邮件服务器，还需要在服务器上设置 ALLOW_INTERNAL_NETWORK=true。',
   'help.guide.mail-import-setup.tip.3':
     '“每人每天的 AI 邮件数”限制 AI 每天为一个人读取多少封没有机器可读预订数据的邮件。超出后，只读取机器可读的数据。',
   'help.guide.ai-setup.title': '设置 AI 助手',
-  'help.guide.ai-setup.goal': '只需连接一次 AI 服务商，这台 TREK 上的所有人都能用助手来规划旅行。',
+  'help.guide.ai-setup.goal': '只需连接一次 AI 服务商，这台游芽上的所有人都能用助手来规划旅行。',
   'help.guide.ai-setup.step.1':
     '在“扩展”标签页的“集成”卡片中找到 AI 图块，打开“AI 助手”开关。“AI 解析”和 MCP 也在同一个图块里。',
   'help.guide.ai-setup.step.2': '点击开关下方出现的“设置 AI”。',
   'help.guide.ai-setup.step.3':
     '在“由谁付费”下选择由谁提供连接：“我付费，也允许自带”“我为所有人付费”或“每个人使用自己的账号”。下方的说明会告诉你这个选择意味着什么。',
   'help.guide.ai-setup.step.4':
-    '在“所有人共用的连接”下选择“粘贴 API 密钥”，然后粘贴 Anthropic、OpenAI、Gemini 或 OpenRouter 的密钥。TREK 会显示识别出的服务商。点击“连接”，TREK 会先向服务商验证密钥，再保存。',
+    '在“所有人共用的连接”下选择“粘贴 API 密钥”，然后粘贴 Anthropic、OpenAI、Gemini 或 OpenRouter 的密钥。游芽会显示识别出的服务商。点击“连接”，游芽会先向服务商验证密钥，再保存。',
   'help.guide.ai-setup.step.5':
     '连接会显示为“已连接”。选择所有人聊天时使用的“模型”，列表中只有能使用工具的模型。“更改”和“移除连接”在它的下方。',
   'help.guide.ai-setup.step.6':
@@ -1673,15 +1672,15 @@ const help: TranslationStrings = {
   'help.guide.ai-setup.tip.4':
     '网页搜索支持 ChatGPT、Anthropic 和 OpenRouter，使用服务商自带的搜索，搜索内容只会发送给该服务商。',
   'help.guide.paddle-water-data.title': '为划桨路线加载水域数据',
-  'help.guide.paddle-water-data.goal': '给划桨路线提供某个区域的堰、船闸和划行规则，并决定 TREK 是否自动加载新区域。',
+  'help.guide.paddle-water-data.goal': '给划桨路线提供某个区域的堰、船闸和划行规则，并决定游芽是否自动加载新区域。',
   'help.guide.paddle-water-data.step.1':
     '在“扩展”标签页中，“游览”开启时，点击“游览”下的最后一行“划桨水域数据”。旁边的数字是区域数量，或是等你处理的申请数量。',
   'help.guide.paddle-water-data.step.2':
     '在“自动加载区域”下选择“自动”“按申请”或“关闭”。“自动”会加载有人规划划桨路线的区域，最大不超过“自动加载的最大区域”；更大的区域会等在“已申请”下，点“加载”读取，点“拒绝”则放弃。',
   'help.guide.paddle-water-data.step.3':
-    '在“添加区域”下，在 Geofabrik 中搜索区域，例如 Oberpfalz，然后点击旁边的“添加”。TREK 会在后台读取它；变为“就绪”后，它的行会显示对象数量、数据日期和水道的公里数。“重新读取”会刷新，“移除区域”会删除它。',
+    '在“添加区域”下，在 Geofabrik 中搜索区域，例如 Oberpfalz，然后点击旁边的“添加”。游芽会在后台读取它；变为“就绪”后，它的行会显示对象数量、数据日期和水道的公里数。“重新读取”会刷新，“移除区域”会删除它。',
   'help.guide.paddle-water-data.result':
-    '区域内的划桨路线会显示其中的障碍物并沿着水道走，TREK 每月会重新读取一次所有区域。',
+    '区域内的划桨路线会显示其中的障碍物并沿着水道走，游芽每月会重新读取一次所有区域。',
   'help.guide.paddle-water-data.tip.1': '发给 Geofabrik 的只有区域名称，绝不会包含任何人规划的地点。',
   'help.guide.paddle-water-data.tip.2': '读取一个区域需要几分钟，运行期间会占用内存，整个国家则需要几 GB 的临时空间。',
   'help.guide.paddle-water-data.tip.3':
@@ -1692,7 +1691,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     '关于一个旅行的一切：带有日期、地图和地点的计划，以及路线、交通、预订、列表、费用、文件、协作和关联旅程日志的各个标签页。每一项在本页之后都有各自的帮助页面。',
   'help.ctx.trip.bullet.1':
-    '顶部栏下方的标签栏：计划、游览、交通、预订、列表、费用、文件、协作，关联旅程日志后还有旅程日志。你的 TREK 上有哪些标签页，取决于扩展和插件。',
+    '顶部栏下方的标签栏：计划、游览、交通、预订、列表、费用、文件、协作，关联旅程日志后还有旅程日志。你的游芽上有哪些标签页，取决于扩展和插件。',
   'help.ctx.trip.bullet.2':
     '“计划”分为三栏：左侧是日期，中间是地图，右侧是地点。启用公路旅行扩展后，日期栏顶部有“天”和“公路旅行”开关；启用游览扩展后，地点栏顶部有“地点”和“游览”。预订和交通是计划的一部分，出现在站点处和站点之间；标签页会把它们列出来。',
   'help.ctx.trip.bullet.3':
@@ -1704,21 +1703,21 @@ const help: TranslationStrings = {
   'help.ctx.trip.bullet.6': '日期工具栏中的撤销箭头可以逐步撤销你最近对计划所做的更改。',
   // add-member
   'help.guide.add-member.title': '添加成员',
-  'help.guide.add-member.goal': '让已有 TREK 账户的人可以访问这次旅行。',
+  'help.guide.add-member.goal': '让已有游芽账户的人可以访问这次旅行。',
   'help.guide.add-member.step.1': '点击“旅行设置”，即左上角旅行名称旁边的标签，它会直接打开“成员”页面。',
   'help.guide.add-member.step.2': '在“邀请用户”下，从“选择用户…”中选出此人，点击“邀请”。',
   'help.guide.add-member.step.3':
     '这位成员现在出现在“访问权限”下。“所有者”徽章标出所有者。行末的“移除访问权限”在你确认后会移除该成员。',
   'help.guide.add-member.result': '成员可以像你一样查看和编辑这个旅行，具体范围取决于管理员在“权限设置”中设定的级别。',
   'help.guide.add-member.tip.1':
-    '列表中找不到的人，说明还没有 TREK 账户。你可以把他们添加为访客，或者让他们通过邀请链接注册。',
+    '列表中找不到的人，说明还没有游芽账户。你可以把他们添加为访客，或者让他们通过邀请链接注册。',
   'help.guide.add-member.tip.2': '“访问权限”旁边的数字统计的是旅行中的人数；访客在下方单独列出。',
   // trip-invite-link
   'help.guide.trip-invite-link.title': '通过链接邀请',
   'help.guide.trip-invite-link.goal': '让别人自己加入旅行。',
   'help.guide.trip-invite-link.step.1':
     '点击旅行名称旁的“旅行设置”，在左侧选择“分享中”。在“行程邀请链接”下，点击“创建邀请链接”。',
-  'help.guide.trip-invite-link.step.2': '点击“复制”并发送链接。任何拥有 TREK 账号的人打开链接，就会以成员身份加入。',
+  'help.guide.trip-invite-link.step.2': '点击“复制”并发送链接。任何拥有游芽账号的人打开链接，就会以成员身份加入。',
   'help.guide.trip-invite-link.step.3': '“重新生成”会替换链接，旧链接随即失效；“停用”会关闭链接。',
   'help.guide.trip-invite-link.result': '任何人打开链接即可加入旅行，并显示在“访问权限”下。',
   'help.guide.trip-invite-link.tip.1':
@@ -1726,7 +1725,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.tip.2': '如果链接发错了聊天，就重新生成：旧链接会立即失效。',
   // add-guest
   'help.guide.add-guest.title': '添加没有账号的访客',
-  'help.guide.add-guest.goal': '把不使用 TREK 的人也加入旅行。',
+  'help.guide.add-guest.goal': '把不使用游芽的人也加入旅行。',
   'help.guide.add-guest.step.1': '点击旅行名称旁的“旅行设置”。在“成员”页面，“访客”是最后一部分，位于“访问权限”下方。',
   'help.guide.add-guest.step.2': '在“访客姓名”中输入名字，点击“添加访客”。',
   'help.guide.add-guest.result': '访客可以被分配到费用、行李物品和任务，但不能登录。',
@@ -1774,7 +1773,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     '撤销涵盖整个计划：添加、分配、移除、重新排序、移动和锁定地点，清空某一天，优化路线，删除地点，分类变更和导入。',
   'help.guide.undo-change.tip.2':
-    '再次点击可继续往前回退：TREK 会保留你在此旅行中最近的 30 次更改，最新的在前，直到你离开该旅行。',
+    '再次点击可继续往前回退：游芽会保留你在此旅行中最近的 30 次更改，最新的在前，直到你离开该旅行。',
   'help.guide.trip-assistant.title': '用助手规划旅行',
   'help.guide.trip-assistant.goal': '向助手询问你的旅行，并让它把建议的内容直接加进行程。',
   'help.guide.trip-assistant.step.1': '点击规划页右下角带有星光图标的圆形按钮。助手会在地图上方以小窗口打开。',
@@ -1825,18 +1824,18 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     '点击地点栏顶部的“添加地点/活动”（打开某一天时是“新地点”）。表单打开后，光标会停在搜索框里。',
   'help.guide.create-place.step.2':
-    '在“搜索地点…”中输入地点并选择一个结果。对话框顶部的名称、“地址”、“纬度”、“经度”和“网站”会自动填入，左侧的“地点详情”显示图片、营业时间和描述。在配置了 Google 密钥的 TREK 上，结果下方的“不是这个地点？改用 Google 搜索”会通过 Google 重新搜索。开启“收藏”后，右侧的“已保存的地点”会以同样的方式提供你列表中的地点。',
+    '在“搜索地点…”中输入地点并选择一个结果。对话框顶部的名称、“地址”、“纬度”、“经度”和“网站”会自动填入，左侧的“地点详情”显示图片、营业时间和描述。在配置了 Google 密钥的游芽上，结果下方的“不是这个地点？改用 Google 搜索”会通过 Google 重新搜索。开启“收藏”后，右侧的“已保存的地点”会以同样的方式提供你列表中的地点。',
   'help.guide.create-place.step.3':
     '在“地点详情”中，点击“选择图片”下的一张图片，把它设为该地点的图片。“使用此文本”会把描述复制到表单中。',
   'help.guide.create-place.step.4':
     '检查表单中的字段。对话框顶部的名称是唯一必填项。名称下方的“分类”标签用来选择旅行中的一个分类，旁边的 + 可以新建分类。“地址”“纬度”和“经度”来自搜索，也可以手动输入。在“标签”下，点击地点应带有的标签。“关于地点”和“笔记”用来在描述和你自己的笔记之间切换文本框。“网站”填链接，“文件”下的“附加”可以添加文档，“电话”“电子邮件”和“添加营业时间”用来补充搜索没有找到的信息。',
   'help.guide.create-place.step.5':
-    '点击“添加”。如果旅行中已经有同名或同一位置的地点，TREK 会显示警告，按钮也会变成“仍然添加”。',
+    '点击“添加”。如果旅行中已经有同名或同一位置的地点，游芽会显示警告，按钮也会变成“仍然添加”。',
   'help.guide.create-place.result': '地点会出现在列表和地图上，在放到某一天之前，它位于“未规划”下。',
   'help.guide.create-place.tip.1':
     '启用预算扩展后，表单底部的“费用”会在保存后立即打开费用编辑器，用来录入该地点的支出。粘贴到对话框里的图片或 PDF，会像“文件”下的文件一样被附加。',
   'help.guide.create-place.tip.2':
-    '每台 TREK 上的搜索结果都来自 TREK 索引和 OpenStreetMap，“地点详情”则自动从 Wikipedia、Wikivoyage 和 Wikimedia 获取。只有这两者都查不到时，TREK 才会去问 Google，而且评分只有 Google 才提供。',
+    '每台游芽上的搜索结果都来自游芽索引和 OpenStreetMap，“地点详情”则自动从 Wikipedia、Wikivoyage 和 Wikimedia 获取。只有这两者都查不到时，游芽才会去问 Google，而且评分只有 Google 才提供。',
   'help.guide.create-place.tip.3': '也可以直接在地图上创建地点：右键点击那个位置，表单会打开，并已填好坐标和地址。',
   // place-to-open-day
   'help.guide.place-to-open-day.title': '把地点直接加到当前打开的那一天',
@@ -1916,8 +1915,7 @@ const help: TranslationStrings = {
     '点击“导入”。会有消息说明导入了多少个地点。对于 KML 或 KMZ 文件，对话框会保持打开，并显示已创建和已跳过内容的摘要。',
   'help.guide.import-places-file.result':
     '这些图钉成为旅行的地点，显示在列表和地图上，在你把它们放到某一天之前，位于“未规划”下。',
-  'help.guide.import-places-file.tip.1':
-    '文件太大会被拒绝，TREK 会显示大小上限。请去掉照片后重新导出，或者把文件拆开。',
+  'help.guide.import-places-file.tip.1': '文件太大会被拒绝，游芽会显示大小上限。请去掉照片后重新导出，或者把文件拆开。',
   'help.guide.import-places-file.tip.2': '在“导入文件”中完成的导入，可以在天数上方的工具栏中撤销。',
   // import-places-list
   'help.guide.import-places-list.title': '导入共享的 Google Maps 或 Naver Maps 列表',
@@ -1929,7 +1927,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.result': '列表中的每个地点都已加入旅行，名称与列表中一致；旅行中已有的地点会被跳过。',
   'help.guide.import-places-list.tip.1': '列表必须公开共享；私有列表的链接什么也导入不了。',
   'help.guide.import-places-list.tip.2':
-    '如果你的 TREK 配置了 Google 密钥，对话框中会出现“通过 Google 丰富地点信息”：它会逐个查找导入的地点，补全照片、地址和详情。',
+    '如果你的游芽配置了 Google 密钥，对话框中会出现“通过 Google 丰富地点信息”：它会逐个查找导入的地点，补全照片、地址和详情。',
   'help.guide.sort-places.title': '为地点列表排序',
   'help.guide.sort-places.goal': '按名称、评分，或按最近添加或修改的时间给列表排序。',
   'help.guide.sort-places.step.1':
@@ -2031,7 +2029,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.2': '或者使用鼠标悬停时站点右端的箭头（“上移”“下移”）：每点一次移动一步。',
   'help.guide.reorder-stops.step.3': '把停留点拖到另一天的卡片上，就能移到那一天，它会从原来那天移除。',
   'help.guide.reorder-stops.step.4':
-    '如果某个站点固定了时间，而移动会打乱当天的顺序，TREK 会询问“移除时间？”，因为时间决定了该站点的位置。点“移除时间并移动”会去掉时间，并把站点放到你放下的位置；点“取消”则保持当天原样。',
+    '如果某个站点固定了时间，而移动会打乱当天的顺序，游芽会询问“移除时间？”，因为时间决定了该站点的位置。点“移除时间并移动”会去掉时间，并把站点放到你放下的位置；点“取消”则保持当天原样。',
   'help.guide.reorder-stops.result': '路线和行程时间会立即按新的顺序更新。',
   'help.guide.reorder-stops.tip.1':
     '固定了时间的预订会停在由其时间决定的位置，把它放到当天的其他位置，它会弹回原处。把它拖到另一天的卡片上，则会移到那一天。',
@@ -2048,7 +2046,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.result': '设了时间的停留点保持原来的位置，没设时间的停留点围绕它们排序。',
   'help.guide.set-stop-times.tip.1': '时间属于这一天的这个停留点；同一个地点在另一天可以设不同的时间。',
   'help.guide.set-stop-times.tip.2':
-    '要手动移动有时间的停留点，直接拖动它。TREK 会询问“移除时间？”，点击“移除时间并移动”会去掉时间并移动它。',
+    '要手动移动有时间的停留点，直接拖动它。游芽会询问“移除时间？”，点击“移除时间并移动”会去掉时间并移动它。',
   'help.guide.set-stop-times.tip.3':
     '同一个表单里，“关于地点”和“笔记”旁边的“仅第 N 天”标签页，适合记录只与这一天有关的备注，比如订位或票号。',
   // remove-from-day
@@ -2083,7 +2081,7 @@ const help: TranslationStrings = {
   'help.guide.day-note.tip.2': '备注是按天记录的。整个旅行的备注请写在“协作”里。',
   // day-route
   'help.guide.day-route.title': '显示并优化当天的路线',
-  'help.guide.day-route.goal': '查看停留点之间的路线，选择出行方式，并让 TREK 来排好顺序。',
+  'help.guide.day-route.goal': '查看停留点之间的路线，选择出行方式，并让游芽来排好顺序。',
   'help.guide.day-route.step.1':
     '打开某一天，点击站点下方路线栏中的“路线”：站点之间的路径会画在地图上，站点之间的连接线显示每一段的时间和距离。',
   'help.guide.day-route.step.2':
@@ -2095,7 +2093,7 @@ const help: TranslationStrings = {
   'help.guide.day-route.step.5':
     '“在 Google Maps 中打开”或“在 CoMaps 中打开”会把整天的路线在该应用中打开，方便沿途导航，CoMaps 还会沿用当天的出行方式。',
   'help.guide.day-route.result': '这一天成为一条带时间的路线，顺序变化时，“总费用”和各路段会随之更新。',
-  'help.guide.day-route.tip.1': '路线默认由 OSRM 提供；管理员可以在“用户默认设置”中让 TREK 改用其他路线引擎。',
+  'help.guide.day-route.tip.1': '路线默认由 OSRM 提供；管理员可以在“用户默认设置”中让游芽改用其他路线引擎。',
   'help.guide.day-route.tip.2': '无法规划路线的路段不会显示用时。请检查两个停靠点是否都有坐标。',
   'help.guide.day-route.tip.3': '点击撤销箭头可以撤销一次优化。',
   // manage-days
@@ -2166,7 +2164,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     '底部一行：打开某一天且地点尚不在其中时显示“添加到当天”，然后是“导航”（在“设置”中选好地图应用后，显示该应用的名称），以及两个图标“打开网站”和“保存到收藏”。右侧，三个点里有“从当天移除”和“删除”，“编辑”会打开地点的表单，你也可以在那里更换图片。',
   'help.ctx.trip-place.bullet.6':
-    '从搜索结果中选的地点会显示 TREK 索引或 OpenStreetMap 已知的信息：顶部标签中的“营业中”或“已关闭”，图片周围有绿色或红色圆环，依据地点当地时间判断；电话号码，同样是标签；更下方的“营业时间”，行内显示今天的时间，点击后展开整周；还有“打开网站”下的网站。Google 的评分只会出现在通过 Google 找到的地点上，且需要 TREK 配置了 Google 密钥。你自己在地点表单里填的营业时间、电话和电子邮件会取代查到的内容，也决定圆环的颜色。',
+    '从搜索结果中选的地点会显示游芽索引或 OpenStreetMap 已知的信息：顶部标签中的“营业中”或“已关闭”，图片周围有绿色或红色圆环，依据地点当地时间判断；电话号码，同样是标签；更下方的“营业时间”，行内显示今天的时间，点击后展开整周；还有“打开网站”下的网站。Google 的评分只会出现在通过 Google 找到的地点上，且需要游芽配置了 Google 密钥。你自己在地点表单里填的营业时间、电话和电子邮件会取代查到的内容，也决定圆环的颜色。',
   // read-place
   'help.guide.read-place.title': '地点卡片上有哪些信息',
   'help.guide.read-place.goal': '在一张卡片里看到旅行中关于某个地点的全部信息。',
@@ -2229,7 +2227,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     '图块下方一行末尾的“移除图片”，在你点击“更新”后会让地点没有图片。点击“取消”则保留原来的图片。',
   'help.guide.place-image.tip.3':
-    '其他图块是地点当前的图片、附加在它上面的照片，以及 TREK 为它找到的图片，每张都带有署名。只有有权修改地点的旅伴才能更换图片。',
+    '其他图块是地点当前的图片、附加在它上面的照片，以及游芽为它找到的图片，每张都带有署名。只有有权修改地点的旅伴才能更换图片。',
   // place-day-assign
   'help.guide.place-day-assign.title': '把地点加到当前打开的那一天，或将其移除',
   'help.guide.place-day-assign.goal': '直接用卡片上的按钮操作，不用把行拖过整个规划器。',
@@ -2300,10 +2298,10 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     '列表中是适合该地点的地图应用：Google 地图、Waze、Apple 地图、OpenStreetMap 和 CoMaps，在 Android 上还有“其他地图应用”。',
   'help.guide.place-navigation.step.3':
-    '点击你常用的那个。只要可行，TREK 会把地点本身而不只是坐标交给该应用，这样你就能直接到达正确的入口。',
+    '点击你常用的那个。只要可行，游芽会把地点本身而不只是坐标交给该应用，这样你就能直接到达正确的入口。',
   'help.guide.place-navigation.step.4': '旁边的图标“打开网站”会在新标签页中打开地点自己的网站，那里有营业时间和门票。',
   'help.guide.place-navigation.result':
-    '地图应用会定位到该地点，网站在新标签页中打开，旅行中的内容不会有任何改变。如果 TREK 已安装为应用，则由地图应用打开，而不是新标签页。',
+    '地图应用会定位到该地点，网站在新标签页中打开，旅行中的内容不会有任何改变。如果游芽已安装为应用，则由地图应用打开，而不是新标签页。',
   'help.guide.place-navigation.tip.1': 'Waze 会立即开始导航。其他应用只会打开这个地点，需要你再点一下才会开始导航。',
   'help.guide.place-navigation.tip.2':
     '具体提供哪些应用，取决于地点和你的设备：Android 上没有 Apple 地图，高德地图只对中国境内的地点提供，Waze、Apple 地图和 CoMaps 需要地点有坐标。“其他地图应用”会把地点交给你 Android 手机上的任意地图应用。',
@@ -2334,7 +2332,7 @@ const help: TranslationStrings = {
     '左边的虚线格“自动颜色”会让轨迹恢复默认颜色。右边的吸管会打开系统取色器，用来选择其他任何颜色。',
   'help.guide.place-track.result': '轨迹会用你选的颜色绘制，卡片里、地点栏中它的那一行以及地图上都是如此。',
   'help.guide.place-track.tip.1':
-    '只有带路径的地点才有这两个区块：即在“游览”功能出现之前从 GPX、KML 或 KMZ 文件导入的地点，或在关闭了“游览”的 TREK 上导入的地点。“游览”开启时，新的 GPX 文件会变成一条路线，并打开它自己的路线卡片。',
+    '只有带路径的地点才有这两个区块：即在“游览”功能出现之前从 GPX、KML 或 KMZ 文件导入的地点，或在关闭了“游览”的游芽上导入的地点。“游览”开启时，新的 GPX 文件会变成一条路线，并打开它自己的路线卡片。',
   'help.guide.place-track.tip.2':
     '如果轨迹记录了海拔，还会显示最高点和最低点、累计上升和下降的米数，以及这段步行的海拔剖面图。',
   'help.guide.place-track.tip.3': '导入时，每条轨迹都会分配到各自的颜色，所以两段步行路线不会用同一种颜色。',
@@ -2347,13 +2345,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     '旅行的所有文档都在同一个列表里：车票、确认单、通行证和图片。每份文档都可以写备注，可以关联到所属的地点或预订，还有回收站，可以随时恢复。',
   'help.ctx.trip-files.bullet.1':
-    '“将文件拖放到此处”是栏下方的虚线框，可以接收拖入的文件，点击它则打开文件选择器。框内会显示此 TREK 接受的文件类型和单个文件的大小上限（最大 50 MB，除非管理员另行设置）。',
+    '“将文件拖放到此处”是栏下方的虚线框，可以接收拖入的文件，点击它则打开文件选择器。框内会显示此游芽接受的文件类型和单个文件的大小上限（最大 50 MB，除非管理员另行设置）。',
   'help.ctx.trip-files.bullet.2':
     '顶部栏里有“文件”和筛选标签“全部”“PDF”“图片”“文档”，每个标签后面都带有数量。只要有文件被收藏，“全部”之后就会出现星标标签；只要有笔记带了附件，末尾就会出现“协作笔记”标签。',
   'help.ctx.trip-files.bullet.3':
     '每一行显示缩略图或文件类型、上传者、名称、名称下方的备注、大小和日期，以及每个关联一个徽章：用名称显示的地点、预订或交通（指向它会显示“日程计划”“预订”或“交通”），以及“来自协作笔记”。',
   'help.ctx.trip-files.bullet.4':
-    '每一行末尾最多有五个图标，鼠标指向时会显示名称：“收藏”“分配”（铅笔）、“打开”“下载”和“删除”。“删除”不会再询问，文件会进入回收站，可以找回。离线时，笔记、链接、星标和回收站仍可使用，等 TREK 重新联网后会自动发送，只有上传文件和取消另一个链接需要联网。',
+    '每一行末尾最多有五个图标，鼠标指向时会显示名称：“收藏”“分配”（铅笔）、“打开”“下载”和“删除”。“删除”不会再询问，文件会进入回收站，可以找回。离线时，笔记、链接、星标和回收站仍可使用，等游芽重新联网后会自动发送，只有上传文件和取消另一个链接需要联网。',
   'help.ctx.trip-files.bullet.5':
     '图片或视频以全屏打开，可用方向键切换，下方有一排缩略图。其他文档在对话框中打开，顶部是名称，下面是“在新标签页中打开”和“下载”。钱包通行证则直接下载。',
   'help.ctx.trip-files.bullet.6':
@@ -2363,7 +2361,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.goal': '把车票、确认单或照片从下载文件夹上传到旅行中，旅行里的每个人都能打开。',
   'help.guide.files-upload.step.1': '打开旅行，点击标签栏中的“文件”。旅行的文档列在这里，上方是上传框。',
   'help.guide.files-upload.step.2':
-    '点击“将文件拖放到此处”，选择一个或多个文件。文件会依次上传，上传期间框内显示“上传中...”。框内“或点击浏览”的下方，会列出此 TREK 接受的文件类型和单个文件的大小上限。',
+    '点击“将文件拖放到此处”，选择一个或多个文件。文件会依次上传，上传期间框内显示“上传中...”。框内“或点击浏览”的下方，会列出此游芽接受的文件类型和单个文件的大小上限。',
   'help.guide.files-upload.step.3':
     '最后一个文件上传完成后，（如果旅行中有地点或预订）会自动为它打开“分配文件”，对话框顶部是文件名。“备注”下的“添加备注...”可以给文件加一条说明，下方的列表用来把文件关联到某个地点或预订。点击右上角的 × 关闭，关闭不会丢失任何内容。',
   'help.guide.files-upload.step.4':
@@ -2372,7 +2370,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.1': '也可以直接把文件从桌面拖到这个框里。文件悬停在上方时，框会高亮显示。',
   'help.guide.files-upload.tip.2': '按 Ctrl+V 可以把剪贴板中的图片直接添加到列表，所以预订的截图不用先保存成文件。',
   'help.guide.files-upload.tip.3':
-    '上传需要有上传文件的权限，没有权限时根本不会出现上传框。不在允许列表中的类型会被拒绝并给出提示，不会上传任何文件。超过大小限制的文件（50 MB，除非管理员另行设置）在发送前就会被拒绝，提示里会写明限制。上传还需要联网：离线时 TREK 会告知，并且不会上传任何文件。',
+    '上传需要有上传文件的权限，没有权限时根本不会出现上传框。不在允许列表中的类型会被拒绝并给出提示，不会上传任何文件。超过大小限制的文件（50 MB，除非管理员另行设置）在发送前就会被拒绝，提示里会写明限制。上传还需要联网：离线时游芽会告知，并且不会上传任何文件。',
   // files-link
   'help.guide.files-link.title': '把文档关联到地点或预订',
   'help.guide.files-link.goal': '让车票不只是在这个列表里，也能从它所属的那一天找到。',
@@ -2388,7 +2386,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     '一个文件可以同时有多个关联，所以同一份确认单可以既属于酒店的预订，又属于酒店这个地点。',
   'help.guide.files-link.tip.2':
-    '再点一次已勾选的条目，就会取消这个关联，文件本身保留。离线时，笔记和新的勾选会先保存，TREK 重新联网后再发送；只有取消另一种关联才需要联网。',
+    '再点一次已勾选的条目，就会取消这个关联，文件本身保留。离线时，笔记和新的勾选会先保存，游芽重新联网后再发送；只有取消另一种关联才需要联网。',
   'help.guide.files-link.tip.3': '反过来也一样：附在某个地点或预订上的文档也会出现在这个列表中，行上带有同样的徽章。',
   'help.guide.files-link.tip.4':
     '如果旅行的所有者为这次旅行关闭了“文档”（“旅行设置”，“附加组件”），“文件”标签页会消失，但关联到预订、地点或支出的文档会继续留在它们那里，并且仍然可以打开。重新开启后，标签页会再次显示所有文件。',
@@ -2419,7 +2417,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     '列表始终按收藏的在前、然后最新的在前排序，所以今天上传的文档会排在上个月的文档之上。',
   // files-preview
-  'help.guide.files-preview.title': '不离开 TREK 就能查看文档',
+  'help.guide.files-preview.title': '不离开游芽就能查看文档',
   'help.guide.files-preview.goal': '直接查看车票或图片，需要时再下载到你的设备上。',
   'help.guide.files-preview.step.1':
     '点击图片的名称或缩略图。它会全屏打开，左上角显示文件名及其在这些图片中的位置。视频也以同样的方式打开，并在那里播放。',
@@ -2450,7 +2448,7 @@ const help: TranslationStrings = {
     '工具栏里回收站图标旁边的“清空回收站”，会永久删除回收站里剩下的所有文件。操作前浏览器会请你确认一次。再次点击回收站图标即可切换回文件列表。',
   'help.guide.files-trash.result': '文件会回到列表中原来的位置。',
   'help.guide.files-trash.tip.1':
-    '一行上的“删除”不会先询问，这正是有回收站的原因：在你从回收站中删除之前，没有任何内容会真正离开 TREK。这一切在离线时同样可用，并在 TREK 重新联网后同步。',
+    '一行上的“删除”不会先询问，这正是有回收站的原因：在你从回收站中删除之前，没有任何内容会真正离开游芽。这一切在离线时同样可用，并在游芽重新联网后同步。',
   'help.guide.files-trash.tip.2':
     '删除和恢复文件需要有删除文件的权限。没有这项权限的成员，既看不到行上的“删除”，也看不到回收站里的按钮。',
   'help.guide.files-trash.tip.3': '在回收站中被永久删除的文件无法恢复。',
@@ -2463,21 +2461,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     '点击你的存储，这里以 Nextcloud 为例。会打开一个较小的连接对话框，标题是存储的名称，并要求填写该存储所需的登录信息。',
   'help.guide.files-sync.step.3':
-    '填写“地址”和该存储服务自己的登录信息：Paperless-ngx 需要“API 令牌”，Papra 需要“API 密钥”和“组织 ID”，Nextcloud 需要“用户名”和“应用密码”，OpenCloud 需要“用户名”和“应用令牌”，Synology Drive 需要“用户名”“密码”，如果账号要求，还要填“两步验证码”。只要存储服务提供应用密码或令牌，就请使用它们，千万不要用你的账号密码。Nextcloud 和 Synology Drive 还有一个选填的“基础文件夹”，TREK 会在其中查找旅行文件夹，这里填 /Reisen。底部的“接受自签名证书”只适用于你自己网络中使用此类证书的存储服务。',
+    '填写“地址”和该存储服务自己的登录信息：Paperless-ngx 需要“API 令牌”，Papra 需要“API 密钥”和“组织 ID”，Nextcloud 需要“用户名”和“应用密码”，OpenCloud 需要“用户名”和“应用令牌”，Synology Drive 需要“用户名”“密码”，如果账号要求，还要填“两步验证码”。只要存储服务提供应用密码或令牌，就请使用它们，千万不要用你的账号密码。Nextcloud 和 Synology Drive 还有一个选填的“基础文件夹”，游芽会在其中查找旅行文件夹，这里填 /Reisen。底部的“接受自签名证书”只适用于你自己网络中使用此类证书的存储服务。',
   'help.guide.files-sync.step.4':
-    '点击“测试连接”。TREK 会用你填写的信息连接该存储服务，页脚会显示“已连接，登录身份为”和账号名。如果凭据被拒绝或地址无法访问，页脚会显示相应的提示。两种情况下都不会保存任何内容。',
+    '点击“测试连接”。游芽会用你填写的信息连接该存储服务，页脚会显示“已连接，登录身份为”和账号名。如果凭据被拒绝或地址无法访问，页脚会显示相应的提示。两种情况下都不会保存任何内容。',
   'help.guide.files-sync.step.5':
-    '点击“连接”。连接会随旅行一起保存，TREK 会询问旅行的文档应放在存储服务中的什么位置：存放这些文档的标签、文件夹或空间。只有其中的内容会被同步。点击“创建”时，“新建一个”会创建一个新的，名称取自旅行标题。“或使用已有的”下会列出现有的，点击其中一个，这里选的是文件夹 Autumn in Japan。',
+    '点击“连接”。连接会随旅行一起保存，游芽会询问旅行的文档应放在存储服务中的什么位置：存放这些文档的标签、文件夹或空间。只有其中的内容会被同步。点击“创建”时，“新建一个”会创建一个新的，名称取自旅行标题。“或使用已有的”下会列出现有的，点击其中一个，这里选的是文件夹 Autumn in Japan。',
   'help.guide.files-sync.step.6':
-    '对话框重新打开：你的存储在左侧“当前行程”下列出，右侧的卡片显示它同步到哪里、上次运行时间和“立即同步”。第一次同步会自动开始，点击“立即同步”可以随时再同步一次。同步完成后，名称旁边的“尚未同步”徽章会变成绿点，鼠标悬停时显示“已同步”。流向条显示 TREK 和存储各有多少份文档，中间是“发往文档服务”和“来自文档服务”两条通道。点击右上角的 × 关闭对话框。',
+    '对话框重新打开：你的存储在左侧“当前行程”下列出，右侧的卡片显示它同步到哪里、上次运行时间和“立即同步”。第一次同步会自动开始，点击“立即同步”可以随时再同步一次。同步完成后，名称旁边的“尚未同步”徽章会变成绿点，鼠标悬停时显示“已同步”。流向条显示游芽和存储各有多少份文档，中间是“发往文档服务”和“来自文档服务”两条通道。点击右上角的 × 关闭对话框。',
   'help.guide.files-sync.result':
-    '存储中原有的文档会出现在列表顶部，以你的名义上传；旅行中的每份文档也会进入存储，但来自“协作笔记”的文档除外。此后 TREK 会在后台检查存储，列表中的更改会同步到存储。',
+    '存储中原有的文档会出现在列表顶部，以你的名义上传；旅行中的每份文档也会进入存储，但来自“协作笔记”的文档除外。此后游芽会在后台检查存储，列表中的更改会同步到存储。',
   'help.guide.files-sync.tip.1':
     '只有旅行的所有者或实例管理员可以连接旅行，因为凭据可以访问存储中的整个账户。旅行连接之后，每位成员都能看到“文档同步”，可以打开它、查看卡片并点击“立即同步”。',
   'help.guide.files-sync.tip.2':
-    '位于你自己网络内的存储，需要在 TREK 服务器上设置 ALLOW_INTERNAL_NETWORK=true，并且地址必须是那台机器在网络中的地址，不能是 localhost。否则“测试连接”会提示“不允许使用该地址。”',
+    '位于你自己网络内的存储，需要在游芽服务器上设置 ALLOW_INTERNAL_NETWORK=true，并且地址必须是那台机器在网络中的地址，不能是 localhost。否则“测试连接”会提示“不允许使用该地址。”',
   'help.guide.files-sync.tip.3':
-    '点击“立即同步”旁边的图标“断开连接”时只会确认一次，然后结束连接，两边的所有文档都会保留。如果你再次连接同一个标签、文件夹或空间，TREK 会把它当作新的，并把里面的内容全部重新导入一遍。所以“断开连接”之后，请连接一个空的，不要再连原来那个。',
+    '点击“立即同步”旁边的图标“断开连接”时只会确认一次，然后结束连接，两边的所有文档都会保留。如果你再次连接同一个标签、文件夹或空间，游芽会把它当作新的，并把里面的内容全部重新导入一遍。所以“断开连接”之后，请连接一个空的，不要再连原来那个。',
 
   // ── Screen: trip-day-detail ───────────────────────────────────────────────────────────
   'help.ctx.trip-day-detail.title': '日程详情',
@@ -2645,7 +2643,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     '地图顶部的一排图标是分类搜索：餐厅、咖啡馆、酒吧与夜生活、住宿、景点、博物馆与文化、自然与公园、活动、面包店和杂货店。插件添加的分类排在细分隔线之后，把鼠标悬停在图标上可查看名称。',
   'help.guide.map-nearby-places.step.2':
-    '点击一个分类。TREK 会在地图当前可见的范围内搜索这类地点，并为每个结果放一枚该分类颜色的图钉。一次只能选一个分类：点击另一个会替换当前的，再次点击已选中的则会关闭。',
+    '点击一个分类。游芽会在地图当前可见的范围内搜索这类地点，并为每个结果放一枚该分类颜色的图钉。一次只能选一个分类：点击另一个会替换当前的，再次点击已选中的则会关闭。',
   'help.guide.map-nearby-places.step.3':
     '移动地图后，这一排下方会出现第二个按钮：“搜索此区域”，它会在新的视野范围内重新执行同样的搜索。单纯移动地图不会自动发起新的搜索，这样可以减少请求次数。',
   'help.guide.map-nearby-places.step.4':
@@ -2653,13 +2651,12 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     '核对它填好的内容，再补充搜索无法得知的信息。如果旅行里有匹配的分类（例如餐厅对应餐厅），名称下的分类标签已经设好，否则显示“无分类”，直到你选一个。在“关于地点”下写下这个地点是什么，在“笔记”下写下你自己的笔记。',
   'help.guide.map-nearby-places.step.6':
-    '点击“添加”。如果旅行中已经有同名或位于同一位置的地点，TREK 会提示你，按钮也会变成“仍然添加”。',
+    '点击“添加”。如果旅行中已经有同名或位于同一位置的地点，游芽会提示你，按钮也会变成“仍然添加”。',
   'help.guide.map-nearby-places.result':
     '这个地点会出现在地点列表和地图上，成为旅行自己的图钉，在你把它排进某一天之前，都放在“未规划”下。搜索图钉会一直保留，直到你关闭该分类。',
   'help.guide.map-nearby-places.tip.1':
     '如果在“设置 > 显示”的“旅行与地图”下关闭了“在地图上探索地点”，这一排图标就不会显示。',
-  'help.guide.map-nearby-places.tip.2':
-    '结果来自 TREK 地点索引和 OpenStreetMap，所以这是计划中少数需要联网的功能之一。',
+  'help.guide.map-nearby-places.tip.2': '结果来自游芽地点索引和 OpenStreetMap，所以这是计划中少数需要联网的功能之一。',
   'help.guide.map-nearby-places.tip.3':
     '搜索只覆盖屏幕上显示的区域，所以请放大到你感兴趣的那条街。对整座城市搜索时，只会返回前六十个结果，而且顺序没有明确规律。',
   // map-add-place
@@ -2667,7 +2664,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.goal': '不用先搜索，直接把地点放在地图上你想要的位置。',
   'help.guide.map-add-place.step.1': '在地图上的目标位置点击右键。地点表单会打开，标题为“添加地点/活动”。',
   'help.guide.map-add-place.step.2':
-    '“纬度”和“经度”已经设为该位置。TREK 会查询这组坐标，并用查到的内容填写“地址”。如果查到了名称，也会填入对话框顶部的名称。目前还没有保存任何内容，所以有不对的地方可以直接修改。',
+    '“纬度”和“经度”已经设为该位置。游芽会查询这组坐标，并用查到的内容填写“地址”。如果查到了名称，也会填入对话框顶部的名称。目前还没有保存任何内容，所以有不对的地方可以直接修改。',
   'help.guide.map-add-place.step.3':
     '在对话框顶部的输入框里输入一个你能认出的名称。再从下方的标签里选一个分类，选择前它显示“无分类”。然后补充计划需要的其他信息：“关于地点”“笔记”“网站”。',
   'help.guide.map-add-place.step.4':
@@ -2682,7 +2679,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     '底图切换开关是地图左下角两个圆形按钮中靠下的那个，在锁的下面。它的图标始终显示点击后会切换到的图层，悬停提示会写明：“切换到卫星视图”。点击它。',
   'help.guide.map-satellite.step.2':
-    '地图现在显示航拍影像，清晰到能看出单栋建筑，而且不需要你自己的密钥。TREK 绘制的内容都会显示在影像上方：图钉、当天的路线、轨迹和预订路线。',
+    '地图现在显示航拍影像，清晰到能看出单栋建筑，而且不需要你自己的密钥。游芽绘制的内容都会显示在影像上方：图钉、当天的路线、轨迹和预订路线。',
   'help.guide.map-satellite.step.3': '按钮现在显示“切换到地图视图”。点击它即可回到地图视图。',
   'help.guide.map-satellite.result': '地图会重新绘制，你选的图层也会记在你的账号上。',
   'help.guide.map-satellite.tip.1':
@@ -2730,7 +2727,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     '在地图上以虚线显示 Dawarich 在你手机上记录的路线，放在你计划的路线旁边，一天一天地查看这次旅行实际是怎么走的。',
   'help.guide.map-dawarich-trail.step.1':
-    '圆形的 Dawarich 按钮在地图右下角、“显示整个行程”的下方。鼠标悬停时，它会显示“显示记录的路线”。点击它。TREK 会向你的 Dawarich 请求这次旅行日期范围内的数据，等待回复期间，按钮周围会有一圈转动的光环。',
+    '圆形的 Dawarich 按钮在地图右下角、“显示整个行程”的下方。鼠标悬停时，它会显示“显示记录的路线”。点击它。游芽会向你的 Dawarich 请求这次旅行日期范围内的数据，等待回复期间，按钮周围会有一圈转动的光环。',
   'help.guide.map-dawarich-trail.step.2':
     '记录的路线以虚线显示，每天一种颜色，画在计划路线下方，这样计划仍然清晰可读。按钮现在显示“隐藏记录的路线”。每一天以当地时间的午夜结束。在天数栏里收起某一天后，它的虚线和停留点也会从地图上隐藏。',
   'help.guide.map-dawarich-trail.step.3':
@@ -2738,9 +2735,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     '你的计划和实际行程会一起显示在地图上，虚线表示实际记录，实线表示计划。按钮上方的卡片仍然列出计划中的日子及其距离。',
   'help.guide.map-dawarich-trail.tip.1':
-    '开关状态按旅行保存在你的账户中，所以在每个浏览器和每台设备上都一样。路线开启期间，TREK 每两分钟向 Dawarich 重新请求一次，所以进行中的旅行无需刷新页面就能更新。路线本身不会被保存，因此不在 TREK 的数据库里，不在备份里，离线时也无法使用。',
+    '开关状态按旅行保存在你的账户中，所以在每个浏览器和每台设备上都一样。路线开启期间，游芽每两分钟向 Dawarich 重新请求一次，所以进行中的旅行无需刷新页面就能更新。路线本身不会被保存，因此不在游芽的数据库里，不在备份里，离线时也无法使用。',
   'help.guide.map-dawarich-trail.tip.2':
-    '按钮上的文字会告诉你地图为什么是空的：加载时显示“正在加载记录的路线…”，其他情况是“这些日期没有任何记录”或“无法加载记录的路线”，TREK 处于离线状态时则是“查看记录的路线需要网络连接”。',
+    '按钮上的文字会告诉你地图为什么是空的：加载时显示“正在加载记录的路线…”，其他情况是“这些日期没有任何记录”或“无法加载记录的路线”，游芽处于离线状态时则是“查看记录的路线需要网络连接”。',
   // map-compass
   'help.guide.map-compass.title': '旋转地图并重新找到正北',
   'help.guide.map-compass.goal': '把地图旋转到你前进的方向，再点一下就能转回正北。',
@@ -2889,7 +2886,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     '通过“附加图片”，一条消息最多可以添加四张图片。你也可以直接粘贴图片，或把图片拖到输入框里。',
   'help.guide.trip-chat.tip.3':
-    '带链接的消息下方会显示预览卡片，由你自己的 TREK 获取，所以只有你能访问的链接仍然只是普通链接。',
+    '带链接的消息下方会显示预览卡片，由你自己的游芽获取，所以只有你能访问的链接仍然只是普通链接。',
   'help.guide.trip-chat.tip.4':
     '“聊天”在“扩展”中、“协作”下方有自己的开关：管理员可以关闭它，同时保留笔记、链接、投票和“下一项”。',
 
@@ -2928,7 +2925,7 @@ const help: TranslationStrings = {
     '清单是靠物品存在的。删除最后一个物品后，这一行会变成空行，让清单保留原来的位置和颜色；再删除这一行，清单就被删除了。',
   'help.guide.packing-categories.tip.2':
     '把某人分配到一份清单后，他会收到一条行李通知。这不会改变谁能看到这些物品，那由每个物品窗口中的“可见范围”决定，或用“整个清单的共享”对整个清单设置。',
-  'help.guide.packing-categories.tip.3': '两份清单可以重名。TREK 在内部会区分它们，所以名称会保持你输入的样子。',
+  'help.guide.packing-categories.tip.3': '两份清单可以重名。游芽在内部会区分它们，所以名称会保持你输入的样子。',
   // check-off-packing
   'help.guide.check-off-packing.title': '边打包边打勾',
   'help.guide.check-off-packing.goal': '标记已装进包里的物品，查看进度，并清除已打包的物品。',
@@ -2969,13 +2966,13 @@ const help: TranslationStrings = {
     '每行一个物品：类别、名称、重量（克，可选）、行李（可选）、checked/unchecked（可选）。输入框里的灰色示例展示了全部四种格式，左边缘的数字会统计你输入的行数。也可以使用 Markdown 列表：标题作为清单名称，“- [ ]”和“- [x]”会变成物品。',
   'help.guide.import-packing-list.step.3':
     '也可以用对话框左下角的“加载 CSV/TXT/MD”从文件中载入这些行。它接受 .csv、.txt 或 .md 文件，并会替换输入框里已有的内容。',
-  'help.guide.import-packing-list.step.4': '点击右下角的“导入 3”，上面的数字是 TREK 识别出的行数。',
+  'help.guide.import-packing-list.step.4': '点击右下角的“导入 3”，上面的数字是游芽识别出的行数。',
   'help.guide.import-packing-list.result':
     '每一行都会变成一个物品，放进它第一个字段所指定的清单中。已有的物品不会改变。',
   'help.guide.import-packing-list.tip.1':
     '逗号、分号和制表符都可以分隔字段，双引号可以把一个字段括在一起，所以“Shirt, blue”仍然是一个名称。只有一个值的行就只是名称，没有指定清单的行会归入“其他”，名称前面的 "3x" 表示数量。',
   'help.guide.import-packing-list.tip.2':
-    '如果旅行中还没有第四个字段里写的那个包，TREK 会自动创建。“导入”和“应用模板”是一次为多件物品添加重量和包的两种方式。',
+    '如果旅行中还没有第四个字段里写的那个包，游芽会自动创建。“导入”和“应用模板”是一次为多件物品添加重量和包的两种方式。',
   // export-packing-list
   'help.guide.export-packing-list.title': '打印或导出行李清单',
   'help.guide.export-packing-list.goal': '打印清单、存为 PDF，或导出成文件，供其他应用或下次旅行使用。',
@@ -3097,7 +3094,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '栏右端的“手动添加”会打开“新建预订”。可以创建六种预订：“住宿”“餐厅”“活动”“导览游”“停车”和“其他”。航班、火车和其他交通都在“交通”标签页，不会出现在这里。',
   'help.ctx.trip-bookings.bullet.2':
-    '“手动添加”前面的上传图标即“导入预订确认”，会上传确认文件，让 TREK 自动读取：EML、PDF、PKPass、HTML 或 TXT，最多五个文件，每个不超过 10 MB；如果 AI 模型能读取图片，还支持照片。只有服务器能读取这些文件时，才会显示这个图标。管理员开启邮件导入后，同一个对话框还会给旅行一个专属地址，用来转发预订邮件。',
+    '“手动添加”前面的上传图标即“导入预订确认”，会上传确认文件，让游芽自动读取：EML、PDF、PKPass、HTML 或 TXT，最多五个文件，每个不超过 10 MB；如果 AI 模型能读取图片，还支持照片。只有服务器能读取这些文件时，才会显示这个图标。管理员开启邮件导入后，同一个对话框还会给旅行一个专属地址，用来转发预订邮件。',
   'help.ctx.trip-bookings.bullet.3':
     '“搜索”会查找标题、类型、地点、备注、预订码和出行人。旁边的漏斗“筛选”可以按“状态”、按“类型”（每种类型带有数量），以及在有预订指定了人员之后按“出行人”缩小这个标签页的范围。漏斗上的数字表示已开启的筛选数量。',
   'help.ctx.trip-bookings.bullet.4':
@@ -3156,14 +3153,14 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     '在“住宿”下选择酒店。列表里是旅行的地点，不含导入的轨迹和游览路线。选中后，如果标题为空，会填入酒店名称，并把酒店地址填入“地点 / 地址”。',
   'help.guide.booking-hotel.step.3':
-    '设置“从”和“到”：第一晚，以及离开的早晨。两者都会列出旅行的各天及其日期，TREK 会保证“到”晚于“从”。',
+    '设置“从”和“到”：第一晚，以及离开的早晨。两者都会列出旅行的各天及其日期，游芽会保证“到”晚于“从”。',
   'help.guide.booking-hotel.step.4': '填写“入住”“入住截止”和“退房”，以及确认单上的“预订码”。',
   'help.guide.booking-hotel.step.5': '点击“添加”。',
   'help.guide.booking-hotel.result':
     '卡片在“日期”下显示住宿的日期范围，以及入住和退房时间和地址。这次住宿现在也会出现在计划中对应的那几天里。',
   'help.guide.booking-hotel.tip.1':
     '“住宿”是唯一没有“日期”和“开始时间”的类型。它的日期是“从”和“到”，选择的是旅行中的天数，而不是日历日期。',
-  'help.guide.booking-hotel.tip.2': '也可以不填“住宿”，直接输入地址：TREK 会查找这个地点、创建它并在地图上标出。',
+  'help.guide.booking-hotel.tip.2': '也可以不填“住宿”，直接输入地址：游芽会查找这个地点、创建它并在地图上标出。',
   'help.guide.booking-hotel.tip.3': '删除这条预订时，它在日程计划中的住宿晚数也会一并移除。',
   // link-booking
   'help.guide.link-booking.title': '把预订关联到计划',
@@ -3199,7 +3196,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.title': '把凭证和预订放在一起',
   'help.guide.booking-files.goal': '把确认单、票或通行证附到它所属的预订上。',
   'help.guide.booking-files.step.1':
-    '点击卡片上的铅笔打开这条预订。“文件”在“链接”旁边，点击其中的“附加文件”。对于已存在的预订，文档会立即上传，TREK 会显示“文件已上传”。',
+    '点击卡片上的铅笔打开这条预订。“文件”在“链接”旁边，点击其中的“附加文件”。对于已存在的预订，文档会立即上传，游芽会显示“文件已上传”。',
   'help.guide.booking-files.step.2': '文档按名称列出，带有一个打开按钮，旁边还有一个 X。',
   'help.guide.booking-files.step.3':
     '“关联已有文件”列出这次旅行中还没有关联到这条预订的文档。选中一个，它就会被附加，无需再次上传。',
@@ -3248,7 +3245,7 @@ const help: TranslationStrings = {
     '如果没有任何内容符合筛选条件，标签页会显示“没有符合这些筛选条件的内容”，正下方是“重置筛选”。',
   // import-booking-file
   'help.guide.import-booking-file.title': '从确认单导入预订',
-  'help.guide.import-booking-file.goal': '让 TREK 从服务商发来的邮件或 PDF 中读取预订信息，省得你再手动输入。',
+  'help.guide.import-booking-file.goal': '让游芽从服务商发来的邮件或 PDF 中读取预订信息，省得你再手动输入。',
   'help.guide.import-booking-file.step.1':
     '点击工具栏里的上传图标“导入预订确认”，指向它时会显示名称。同名的对话框随即打开。',
   'help.guide.import-booking-file.step.2':
@@ -3375,11 +3372,11 @@ const help: TranslationStrings = {
     '自定义分摊也可以按百分比或按份数输入：提示文字旁的小切换器可选货币符号、% 或“份数”。按百分比时，各份额合计必须正好是 100 %，支出才能保存。',
   // expense-currency
   'help.guide.expense-currency.title': '用另一种货币录入支出',
-  'help.guide.expense-currency.goal': '按收据上的货币填写金额，汇率由 TREK 帮你保存。',
+  'help.guide.expense-currency.goal': '按收据上的货币填写金额，汇率由游芽帮你保存。',
   'help.guide.expense-currency.step.1':
     '打开“添加支出”。在对话框顶部输入名称，并在“总金额”中按收据上的原样填写金额，不要填换算后的金额。',
   'help.guide.expense-currency.step.2':
-    '打开金额旁边的“货币”；新支出默认使用旅行本身的货币。选择收据上的货币：旅行的货币和“费用”所显示的货币排在顶部，输入三个字母即可搜索 TREK 支持的其他所有代码。',
+    '打开金额旁边的“货币”；新支出默认使用旅行本身的货币。选择收据上的货币：旅行的货币和“费用”所显示的货币排在顶部，输入三个字母即可搜索游芽支持的其他所有代码。',
   'help.guide.expense-currency.step.3':
     '字段下方会出现一排徽章：你输入的金额及其当前价值，标有“实时汇率”。这只是预览，不是最终保存的数值。',
   'help.guide.expense-currency.step.4': '点击对话框底部的“添加支出”。汇率会在此刻固定：这笔支出保留你录入当天的价值。',
@@ -3559,7 +3556,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': '交通',
   'help.ctx.trip-transports.summary':
-    '你在各个站点之间使用的所有交通方式：航班、火车、公交、汽车、出租车、自行车、邮轮、渡轮、缆车，以及 TREK 为你查询的公共交通换乘方案。该标签页以列表形式显示它们；你也可以在计划中创建和查看它们，它们还会画在地图上。',
+    '你在各个站点之间使用的所有交通方式：航班、火车、公交、汽车、出租车、自行车、邮轮、渡轮、缆车，以及游芽为你查询的公共交通换乘方案。该标签页以列表形式显示它们；你也可以在计划中创建和查看它们，它们还会画在地图上。',
   'help.ctx.trip-transports.bullet.1':
     '此标签页只显示交通。住宿、餐厅、活动和票券在“预订”标签页中，这样同一条目不会出现两次。',
   'help.ctx.trip-transports.bullet.2':
@@ -3614,7 +3611,7 @@ const help: TranslationStrings = {
     '表单的第一块“出行人”用来指定谁乘坐这段交通。当旅行有多位成员，并且有交通指定了某个人之后，这个标签页的“筛选”里也会出现“出行人”，可以只看某一个人的交通。',
   // import-transport-file
   'help.guide.import-transport-file.title': '从电子票导入航班',
-  'help.guide.import-transport-file.goal': '让 TREK 从承运方发来的票据中读取航班、火车或渡轮信息，保存前再由你核对。',
+  'help.guide.import-transport-file.goal': '让游芽从承运方发来的票据中读取航班、火车或渡轮信息，保存前再由你核对。',
   'help.guide.import-transport-file.step.1':
     '在“交通”标签页的工具栏中，点击“交通”前面的上传图标，其提示文字是“导入预订确认”。同名对话框随即打开，与“预订”标签页中的相同。标签页为空时，中间的“从文件导入”作用一样。',
   'help.guide.import-transport-file.step.2':
@@ -3632,11 +3629,11 @@ const help: TranslationStrings = {
     '机场按代码定位。如果某个车站或港口无法定位，它的名称会以琥珀色显示在右下角的导入卡片上。请在点击“添加”之前，先在“路线”下手动选好，否则这段交通不会显示在地图上。',
   // plan-transit
   'help.guide.plan-transit.title': '规划公共交通换乘',
-  'help.guide.plan-transit.goal': '让 TREK 查出某一天两个地点之间真实的火车和公交，并把你选中的那一趟放进计划。',
+  'help.guide.plan-transit.goal': '让游芽查出某一天两个地点之间真实的火车和公交，并把你选中的那一趟放进计划。',
   'help.guide.plan-transit.step.1':
     '点击这一天标题里的 +，选择“公共交通”。搜索会针对这一天打开：这一天以标签形式显示在标题中，旁边的“手动”和“自动”用来在这个搜索和常规表单之间切换。',
   'help.guide.plan-transit.step.2':
-    '“从”和“到”可以填站点或车站。输入框还是空的时候，TREK 会推荐当天的住宿、当天预订的车站和机场，以及当天自己的站点；输入两个字母后，则改为搜索时刻表中的车站。两个输入框之间的“交换”可以对调“从”和“到”。',
+    '“从”和“到”可以填站点或车站。输入框还是空的时候，游芽会推荐当天的住宿、当天预订的车站和机场，以及当天自己的站点；输入两个字母后，则改为搜索时刻表中的车站。两个输入框之间的“交换”可以对调“从”和“到”。',
   'help.guide.plan-transit.step.3':
     '“出发”或“到达”加上时间，表示你想什么时候出行；“最佳路线”“减少换乘”或“减少步行”决定结果的排序方式。',
   'help.guide.plan-transit.step.4':
@@ -3739,7 +3736,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     '旅行中已有相同航班号和日期的航班会被跳过，并提示跳过了多少个。天数上方工具栏里的撤销箭头可以撤销整次导入。',
   'help.guide.airtrail-import.tip.2':
-    '数据仍以 AirTrail 为准。TREK 会在你打开旅行时读取它的更改，并在后台每隔几分钟读取一次。在 AirTrail 中删除的航班，卡片会保留在 TREK 中，标签变为“未同步”。只有在“集成”中开启“将更改写回 AirTrail”后，你在 TREK 中的修改才会回传给 AirTrail。',
+    '数据仍以 AirTrail 为准。游芽会在你打开旅行时读取它的更改，并在后台每隔几分钟读取一次。在 AirTrail 中删除的航班，卡片会保留在游芽中，标签变为“未同步”。只有在“集成”中开启“将更改写回 AirTrail”后，你在游芽中的修改才会回传给 AirTrail。',
   'help.guide.airtrail-import.tip.3':
     '合并的联程不是 AirTrail 中可同步的单个航班，所以只能一次性导入：它会保留蓝色标签，鼠标悬停在标签上时会有说明。已同步的航班如果你手动加了经停，也会变成这样。',
 
@@ -3848,12 +3845,12 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.step.4': '点击某一项就改走那条路线，点击“关闭”则保留当前路线。',
   'help.guide.roadtrip-alternatives.result': '这一段现在走你选的路，侧栏里的距离和之后的到达时间也会随之变化。',
   'help.guide.roadtrip-alternatives.tip.1':
-    '选择另一条路时，TREK 会先用公路旅行的路线引擎检查它，然后用尽可能少的途经点把这一段固定在这条路上，并替换这一段原有的途经点。路线引擎无法行驶的道路不会被保存。选回路线引擎自己的那条路，则会再次去掉这些途经点。',
+    '选择另一条路时，游芽会先用公路旅行的路线引擎检查它，然后用尽可能少的途经点把这一段固定在这条路上，并替换这一段原有的途经点。路线引擎无法行驶的道路不会被保存。选回路线引擎自己的那条路，则会再次去掉这些途经点。',
   'help.guide.roadtrip-alternatives.tip.2':
     '“不走高速”“免收费”和“不乘轮渡”来自另一个路线引擎，它有自己的速度模型，所以这几项的用时不能和其他路线直接比较。',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': '设置车辆和驾驶限制',
-  'help.guide.roadtrip-limits.goal': '告诉 TREK 你开什么车，以及你希望一次最多连续开多远。',
+  'help.guide.roadtrip-limits.goal': '告诉游芽你开什么车，以及你希望一次最多连续开多远。',
   'help.guide.roadtrip-limits.step.1': '“驾驶设置”位于右栏搜索框的下方。它的徽章显示已设置的内容，点击即可展开。',
   'help.guide.roadtrip-limits.step.2':
     '在“驾驶”下，“单次最长驾驶”和“每天驾驶”以分钟为单位。留空表示“关闭”，不会标出任何提醒。',
@@ -3915,7 +3912,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     '选择一条轨迹。每条轨迹都会显示它的长度，以及它是否沿着这一天的路线，或者离这一天的路线有多远。最近的轨迹排在最前面。',
   'help.guide.roadtrip-track.step.3':
-    '点击“沿此轨迹行驶”。TREK 会在行驶路线偏离轨迹最远的位置添加途经点，并重新计算路线，如此重复几次。',
+    '点击“沿此轨迹行驶”。游芽会在行驶路线偏离轨迹最远的位置添加途经点，并重新计算路线，如此重复几次。',
   'help.guide.roadtrip-track.step.4':
     '对话框会告诉你放置了多少个途经点、行车路线现在与轨迹的贴合程度，或说明行车路线本来就沿着轨迹。左下角的“放弃途经点”会移除它们，路径规划器会重新规划当天。关闭对话框会保留轨迹。',
   'help.guide.roadtrip-track.result':
@@ -3957,24 +3954,24 @@ const help: TranslationStrings = {
   'help.guide.link-trip.tip.3': '如果你在尚未关联的旅行的某一天写条目，编辑器会直接在条目里提供“关联旅行”。',
   'help.ctx.settings-plugins.summary':
     '管理员安装的插件的个人设置：每个插件向你索取的密钥和偏好，以及插件以你的名义执行操作的记录。只有在有插件启用时才会显示此标签页。',
-  'help.ctx.settings-about.bullet.3': 'Ko-fi、Buy Me a Coffee 和 Discord 是你支持 TREK 或联系开发团队的地方。',
+  'help.ctx.settings-about.bullet.3': 'Ko-fi、Buy Me a Coffee 和 Discord 是你支持游芽或联系开发团队的地方。',
   'help.guide.language-region.step.3':
     '设置“显示货币”，或保留“行程货币”，让每个旅行按自己的货币显示。然后选择“温度单位”“距离单位”“时间格式”“每周开始于”星期几以及“日期格式”。',
   'help.guide.travel-map-prefs.step.3':
     '“在地图上探索地点”会显示用于查找附近地点的分类标签。“隐藏预订编号”会隐藏确认编号，悬停或点按后才显示。“从住宿地优化路线”让每天从酒店出发并回到酒店。',
   'help.guide.web-push-device.step.2': '在顶部的“通知”卡片中，“推送”一列决定哪些事件会发送到你的设备。',
-  'help.guide.connect-airtrail.goal': '让 TREK 导入并同步你自己 AirTrail 里的航班。',
-  'help.guide.connect-dawarich.goal': '让 TREK 从你自己的 Dawarich 读取你实际去过的地方。',
-  'help.guide.tour-connect-wanderer.goal': '让 TREK 读取你自己 wanderer 里的路线，这样就能把它们导入为游览路线。',
+  'help.guide.connect-airtrail.goal': '让游芽导入并同步你自己 AirTrail 里的航班。',
+  'help.guide.connect-dawarich.goal': '让游芽从你自己的 Dawarich 读取你实际去过的地方。',
+  'help.guide.tour-connect-wanderer.goal': '让游芽读取你自己 wanderer 里的路线，这样就能把它们导入为游览路线。',
   'help.guide.tour-wanderer-watch.title': 'wanderer 路线有变化时收到通知',
   'help.guide.plugin-settings.tip.2': '“通知”下的插件渠道有一个“去配置”按钮，点击就会打开这个页面。',
   'help.guide.default-user-settings.result': '新账户，以及从未改过这些设置的所有人，都会使用你选的设置。',
   'help.guide.own-routing-engine.goal':
-    '让每日路线、公路旅行和游览路线改走你自己运行的 OSRM 或 Valhalla 服务器，而不是 TREK 服务或公共服务器。',
+    '让每日路线、公路旅行和游览路线改走你自己运行的 OSRM 或 Valhalla 服务器，而不是游芽服务或公共服务器。',
   'help.guide.admin-passkeys.tip.1':
-    '如果 TREK 还无法确定域名，开关下方会显示警告，在你设置 APP_URL 或 Relying Party ID 之前，通行密钥会一直隐藏。',
+    '如果游芽还无法确定域名，开关下方会显示警告，在你设置 APP_URL 或 Relying Party ID 之前，通行密钥会一直隐藏。',
   'help.guide.rotate-jwt-secret.step.1': '在“安全”标签页右下角的“危险区域”中，点击“轮换 JWT 密钥”旁边的“轮换”。',
-  'help.guide.storage-backends.tip.3': 'TREK 可以重新下载照片缓存，所以镜像它们通常是浪费存储空间。',
+  'help.guide.storage-backends.tip.3': '游芽可以重新下载照片缓存，所以镜像它们通常是浪费存储空间。',
   'help.guide.admin-channels.step.3':
     '在同一张卡片的下方，为每个事件选择由哪些渠道发送：“有新版本可用”“存储副本故障”和“划桨区域申请”。每个开关都会立即保存。',
   'help.guide.notification-defaults.tip.1': '“关闭”是默认值，每位用户仍可自行开启；“封锁”则对所有人关闭。',
@@ -4025,19 +4022,19 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     '开放数据只知道飞机在哪里。登机口、航站楼和行李转盘不在其中，如有需要请自行添加到预订里。延误和到达时间是根据位置推算的估计值。',
   'help.guide.flight-live-status.tip.3':
-    'TREK 需要航班号和两个机场才能跟踪航班。如果航空公司使用另一个呼号飞行，或者是代码共享航班，可能找不到；这时它的预订只保留普通的时间。',
+    '游芽需要航班号和两个机场才能跟踪航班。如果航空公司使用另一个呼号飞行，或者是代码共享航班，可能找不到；这时它的预订只保留普通的时间。',
   'help.guide.group-sort-bookings.step.2':
     '在“分组依据”下选择“状态”“日期”“类型”或“不分组”。标签页会立即按这些分区重新整理。',
   'help.guide.export-bookings-csv.result':
     '浏览器会下载一个以旅行和标签页命名的文件，例如 autumn-in-japan-bookings.csv，标签页显示的每个预订各占一行。',
   'help.guide.arrange-packing-list.result':
-    '清单按你拖动后的顺序排列，物品按名称排序，直到你关闭排序为止。TREK 仍会保存你自己的顺序。',
+    '清单按你拖动后的顺序排列，物品按名称排序，直到你关闭排序为止。游芽仍会保存你自己的顺序。',
   'help.guide.count-packed-pieces.step.2': '在“数量”中输入要带的数量，例如 5，或点击加号直到显示该数字。',
   'help.guide.expense-receipts.step.4':
     '回到账本，这一行的名称旁边有“收据”标签，有多张时括号里显示数量。点击它即可打开收据。',
   'help.guide.final-budget.tip.3': '已离开旅行的人，只要还有款项没有结清，就会在“余额”和“最终花费”中保留一行。',
   'help.guide.files-sync-settings.step.2':
-    '流程栏显示 TREK 和你的文档服务，以及各自的文档，两者之间有两条通道：“发往文档服务”和“来自文档服务”。点击“发往文档服务”可以关闭它，该通道会变灰，通道下方的文字变为“仅接收”。再点一次即可重新开启。',
+    '流程栏显示游芽和你的文档服务，以及各自的文档，两者之间有两条通道：“发往文档服务”和“来自文档服务”。点击“发往文档服务”可以关闭它，该通道会变灰，通道下方的文字变为“仅接收”。再点一次即可重新开启。',
   'help.guide.files-sync-settings.tip.4':
     '只有旅行所有者或管理员可以更改这些设置。其他成员能看到流程栏和类似“文档双向同步”的提示，但没有“设置”。',
   'help.guide.manage-notes.step.2':
@@ -4047,7 +4044,7 @@ const help: TranslationStrings = {
     '垃圾桶只能移除没有笔记使用的分类。仍有笔记在用的分类会留在列表中，直到你把这些笔记移到其他分类。',
   'help.guide.roadtrip-reorder.title': '调整站点顺序，或把它移到另一天',
   'help.guide.roadtrip-reorder.tip.3':
-    '对于你固定的时间，TREK 不会再询问：导轨会立即重新计算当天，并标出已经来不及到达的站点。',
+    '对于你固定的时间，游芽不会再询问：导轨会立即重新计算当天，并标出已经来不及到达的站点。',
   'help.guide.roadtrip-overnight.step.3':
     '在对话框顶部，“过夜”添加一晚住宿，“停留”则是在此停留一段时间。酒店默认是“过夜”，露营地默认是“停留”。“过夜”只要求填写“入住”，也可以留空。',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4060,7 +4057,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     '顶部的“导入 GPX 或 KML”会把文件导入为游览路线。其下方的筛选按钮（起初是“全部”，带路线数量）可按状态、来源、路线限制和类型缩小列表。',
   'help.guide.tour-show-list.step.2':
-    '每一行是一条路线。彩色条是它在地图上的线路，圆形图块显示在 TREK 中规划的徒步的路线限制（T1 到 T6），或其类型图标。名称下方的徽章显示它所在的日期、用时、距离和爬升。多日路线上带数字的月亮图标表示有几个阶段。',
+    '每一行是一条路线。彩色条是它在地图上的线路，圆形图块显示在游芽中规划的徒步的路线限制（T1 到 T6），或其类型图标。名称下方的徽章显示它所在的日期、用时、距离和爬升。多日路线上带数字的月亮图标表示有几个阶段。',
   'help.guide.tour-add-to-day.title': '把路线安排到某一天',
   'help.guide.tour-add-to-day.tip.2':
     '如果旅行在最后一个阶段之前就结束了，选项会显示能排得下的最后一个阶段，之后的阶段仍不安排日期。',
@@ -4087,7 +4084,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-link.tip.2': '只能关联没有被用来规划路线的导入轨迹，而且每条轨迹只能关联到一条路线。',
   'help.guide.tour-activity-compare.step.4':
     '轨迹下方的“更换”可以选另一条录制的轨迹。“取消关联”会把它从路线上移开，这条轨迹仍作为导入内容留在旅行中。',
-  'help.guide.tour-origin-check.step.3': '你在“游览”标签页中画的路线会显示“在 TREK 中规划”，以及“创建时间”所在的日期。',
+  'help.guide.tour-origin-check.step.3': '你在“游览”标签页中画的路线会显示“在游芽中规划”，以及“创建时间”所在的日期。',
   'help.ctx.trip-tour-planner.bullet.2':
     '左侧导轨就是编辑器。没有打开任何路线时，它提供“规划新游览路线”。打开一条路线后，会显示名称、类型、路点、该类型的卡片和详情，底部有“放弃”和“保存”。',
   'help.guide.tour-open-workspace.step.2':
@@ -4095,7 +4092,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.tip.3':
     '编辑器里有未保存的更改时再打开另一条路线，会先询问：“放弃更改”，还是继续编辑。',
   'help.guide.tour-draw-route.step.5':
-    '按行走顺序依次点击接下来的地点。每次点击都会把该点加为新的终点，从两个点起，TREK 会沿着小路规划路线。',
+    '按行走顺序依次点击接下来的地点。每次点击都会把该点加为新的终点，从两个点起，游芽会沿着小路规划路线。',
   'help.guide.tour-type-profile.goal': '选择路线类型，骑行路线还要选择配置，让路线走合适的道路。',
   'help.guide.tour-edit-points.title': '移动、重新排序和移除点',
   'help.guide.tour-edit-points.tip.1':
@@ -4200,11 +4197,10 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-pistes-layer.goal': '查看滑雪路线周围的雪道、越野滑雪道和缆车，以及它们的颜色代表什么。',
   'help.guide.tour-ski-import.title': '导入滑雪轨迹并说明它是什么',
   'help.guide.tour-ski-import.tip.1':
-    '导入的轨迹会保持录制时的样子：TREK 不会把它贴合到雪道上，它的卡片里“滑雪用时”显示为“未计算”。',
+    '导入的轨迹会保持录制时的样子：游芽不会把它贴合到雪道上，它的卡片里“滑雪用时”显示为“未计算”。',
   'help.ctx.trip-tour-paddle.bullet.3':
     '点上的“更多操作”包含划桨工具：规划水上的下一段或手动绘制、“从这里开始陆上搬运”，以及“此处有船闸”。',
-  'help.guide.tour-paddle-setup.step.3':
-    '在“船”下选择“皮划艇”“加拿大式独木舟”、SUP 或“其他”。船型决定 TREK 建议的速度。',
+  'help.guide.tour-paddle-setup.step.3': '在“船”下选择“皮划艇”“加拿大式独木舟”、SUP 或“其他”。船型决定游芽建议的速度。',
   'help.guide.tour-paddle-setup.tip.4': '栏底部的“划桨有风险”一行会打开“水上安全”。第一次规划路线前请读一遍。',
   'help.guide.tour-paddle-water-route.step.5':
     '要一次规划所有手动绘制的路段，点击“路点”标题中的波浪图标“沿水路规划手绘的路段”。',
@@ -4223,7 +4219,7 @@ const help: TranslationStrings = {
     '在“游览”标签页中，点击右侧栏的“添加行程”，选择“导入 GPX 或 KML”并选取文件。',
   'help.guide.tour-paddle-track-marks.tip.2': '“放弃”会丢弃你尚未保存的标记。录制的轨迹本身不会被重新绘制。',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK 不会计算骑行时间。如果想在当天显示时间，请在“详情”的“计划于”下输入一个时间。',
+    '游芽不会计算骑行时间。如果想在当天显示时间，请在“详情”的“计划于”下输入一个时间。',
   'help.guide.tour-horse-plan.step.5': '在“路段”下选择一个路段。查看你骑行的“方向”，以及沿途的“马匹通行”是什么情况。',
   'help.guide.tour-horse-plan.tip.5':
     '骑马路线上的任何内容都不做路径规划：点击画出的线不会添加塑形点，路段两端的点保持在路线原来的位置。',
@@ -4258,7 +4254,7 @@ const help: TranslationStrings = {
   'help.guide.gallery-map.step.3':
     '回到“时间线”，右侧的地图会随你滚动而变化：当前可见的条目会以当天的颜色圈出。点击图钉，时间线会滚动到对应的条目。',
   'help.guide.journey-map-layers.tip.1': '彩色虚线是旅行的 GPX 路线，属于计划的一部分；实线是当天录制的路线。',
-  'help.guide.journey-keep-route.tip.1': '录制在哪里停止，线条就在哪里结束。TREK 只画录制下来的部分。',
+  'help.guide.journey-keep-route.tip.1': '录制在哪里停止，线条就在哪里结束。游芽只画录制下来的部分。',
   'help.guide.journey-day-stays.tip.1':
     '只有可以编辑日志、并连接了自己 Dawarich 的人才会看到这一行，而且只会出现在仍有待决定内容的日子。',
   'help.guide.journey-take-over-day.step.4':
@@ -4269,19 +4265,19 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.bullet.1':
     '“插件设置”：其下方是每个需要你填写内容的插件各一张卡片，带有字段和“保存”。密钥字段保存后不会再显示。',
   'help.guide.dashboard-widgets.step.3': '卡片下方的“恢复默认”会把整个“外观”标签页恢复为初始设置。',
-  'help.guide.web-push-device.result': '卡片显示“已为此设备开启”，在“推送”下开启的事件，即使 TREK 没有打开也会送达。',
+  'help.guide.web-push-device.result': '卡片显示“已为此设备开启”，在“推送”下开启的事件，即使游芽没有打开也会送达。',
   'help.guide.connect-airtrail.step.1':
     '在“集成”下找到 AirTrail，输入它的“实例 URL”和一个 API 密钥。密钥在 AirTrail 的“设置”、“安全”中创建。若在 AirTrail 3.13 或更高版本中创建密钥，读取需要范围 flight.read.own。若要将更改写回，还需要 flight.update.own、flight.passengers.manage.own、reference_data.read 和 profile.read。',
   'help.guide.connect-dawarich.step.1':
     '在“集成”下找到 Dawarich，输入它的“实例地址”，以及在 Dawarich 的“账户”、“API 密钥”中获取的 API 密钥。',
   'help.guide.tour-connect-wanderer.step.1':
     '在“集成”下找到 wanderer，输入它的“实例 URL”和一个 API 令牌。令牌在 wanderer 的“设置”、“账户”、“API 令牌”中创建，以 wanderer_key_ 开头。',
-  'help.guide.tour-wanderer-watch.goal': '让 TREK 在后台检查你导入的路线有没有变化。',
+  'help.guide.tour-wanderer-watch.goal': '让游芽在后台检查你导入的路线有没有变化。',
   'help.guide.mcp-oauth.tip.3': '“API 令牌”仍然可用，但被标记为“已弃用”，请改用 OAuth 客户端。',
   'help.guide.offline-conflicts.tip.2': '这个选择只对这台设备有效。',
   'help.guide.default-user-settings.tip.1': '用户在“设置”中自己的选择始终优先；这些默认值适用于所有没改过该设置的人。',
   'help.guide.own-routing-engine.step.1':
-    '在“默认值”标签页中，“路线服务”卡片决定由谁来计算路线。在“路线服务”下选择“自动”“TREK 服务”“公共 Valhalla（FOSSGIS）”或“自建 Valhalla 实例”。选择会立即保存。',
+    '在“默认值”标签页中，“路线服务”卡片决定由谁来计算路线。在“路线服务”下选择“自动”“游芽服务”“公共 Valhalla（FOSSGIS）”或“自建 Valhalla 实例”。选择会立即保存。',
   'help.guide.admin-passkeys.tip.2': '如果之后更改了域名，用户已添加的所有通行密钥都会失效。',
   'help.guide.instance-keys.tip.4': '高德地图的密钥必须是 Web 服务 (web service) 密钥，不能是 JS API 密钥。',
   'help.guide.rotate-jwt-secret.step.2': '阅读警告，然后点击“轮换并退出登录”。',
@@ -4297,7 +4293,7 @@ const help: TranslationStrings = {
     '为旅行中的每个人选择“无权限”“阅读”或“编辑”。“全部可读”和“无人”可以一次性全部设置。',
   'help.guide.collapse-columns.tip.3': '分隔条获得焦点后，也可以用方向键移动它。',
   'help.guide.edit-place.tip.3':
-    '如果点到了对话框外面，你的修改也不会丢：TREK 会先问“放弃更改？”，点“继续编辑”就回到表单。',
+    '如果点到了对话框外面，你的修改也不会丢：游芽会先问“放弃更改？”，点“继续编辑”就回到表单。',
   'help.guide.dawarich-stays.goal': '把 Dawarich 记录到的你在旅行期间的停留地点逐一核对后，添加为地点。',
   'help.guide.leave-stop-off-route.step.1': '右键点击该站点，或点击它的三个点，选择“从路线中排除”。',
   'help.guide.move-booking-day.step.3': '这一行现在出现在新的日期，保持它自己的时间。如果时间也要改，请打开这个预订。',
@@ -4337,14 +4333,14 @@ const help: TranslationStrings = {
     '在“加到”下选择 50 到 100。按钮下方的一行会告诉你，加到这个量之后能从这里开多远。',
   'help.guide.roadtrip-bookings.step.2':
     '在导轨里，这段行程是一张按其类型着色的卡片，到达栏里显示时刻表，标题下方是它的起点和终点。',
-  'help.guide.roadtrip-google-import.tip.1': 'TREK 会自己计算站点之间的路线，不会照搬 Google 的道路。',
+  'help.guide.roadtrip-google-import.tip.1': '游芽会自己计算站点之间的路线，不会照搬 Google 的道路。',
   'help.guide.roadtrip-hazards.result': '地图上会显示你旅行沿线的当前警告，路线本身不会变。',
   'help.ctx.trip-tours.bullet.3':
     '每一行：彩色条是路线在地图上的线，圆形图块显示路线限制（T1 到 T6）或类型，小小的 GPX 或 wanderer 徽章表示这是导入的，其他徽章给出日期、用时、距离和爬升。带数字的月亮图标表示多日路线的阶段数。',
   'help.guide.tour-show-list.step.3': '点击一行。路线的卡片会在地图上方打开。',
   'help.guide.tour-add-to-day.goal': '规划哪天走哪条路线，让它出现在当天的计划里，并在地图上显示线路。',
   'help.guide.tour-add-to-day.tip.3':
-    '一条路线在同一天只能添加一次。如果把它拖到已经有它的那一天，TREK 只会提示“此游览路线已在那一天。”',
+    '一条路线在同一天只能添加一次。如果把它拖到已经有它的那一天，游芽只会提示“此游览路线已在那一天。”',
   'help.guide.tour-day-times.step.4':
     '如果路线在当天下一项开始之后才结束，该行下方会有一行提示，例如“13:30 结束，晚于 12:30 开始的 Lunch at Gostner Schwaige”。不会移动任何内容。',
   'help.guide.tour-remove-from-day.step.1': '在日期栏中，指向这条路线所在的行，点击“更多选项”，选择“从当天移除”。',
@@ -4390,7 +4386,7 @@ const help: TranslationStrings = {
     '右侧导轨“本次旅行的游览活动”列出旅行的每条路线，列表上方有筛选和“行程汇总”。',
   'help.guide.tour-open-workspace.result': '“游览”标签页：左侧是编辑器，右侧是旅行的路线，中间是地图。',
   'help.guide.tour-draw-route.step.6':
-    '在“路点”下，每个点都有一行，带有编号，地名加载完成后会以地名命名。TREK 处理时，“新游览路线”旁的小圆点会显示当前状态。',
+    '在“路点”下，每个点都有一行，带有编号，地名加载完成后会以地名命名。游芽处理时，“新游览路线”旁的小圆点会显示当前状态。',
   'help.guide.tour-type-profile.step.1':
     '点击“游览名称”下的“路线类型”。它会显示当前类型，以及一行说明这类路线是如何规划的。',
   'help.guide.tour-edit-points.goal': '在地图上或列表中移动路线的点，改变路线的走向。',
@@ -4408,7 +4404,7 @@ const help: TranslationStrings = {
     '“本次旅行的游览活动”顶部的“游览概览”给出编辑器中那条路线的距离、“累计爬升”和“累计下降”，以及估算用时、休息和计划总用时。',
   'help.guide.tour-list-manage.title': '管理旅行中的路线',
   'help.guide.tour-list-manage.tip.2':
-    '已经有这条路线的日期，在日期菜单中会变灰。对于多日路线，TREK 会问你是从那一天起安排各个阶段，还是把整条路线放在那一天。',
+    '已经有这条路线的日期，在日期菜单中会变灰。对于多日路线，游芽会问你是从那一天起安排各个阶段，还是把整条路线放在那一天。',
   'help.guide.tour-delete.tip.2': '如果只想把它从某一天移走，请改用该天菜单中的“从当天移除”。',
   'help.guide.tour-saved-elsewhere.step.4':
     '选择“另存为新路线”可以两个版本都保留，“加载较新版本”会改用另一个版本，“覆盖”则用你的版本替换另一个版本。',
@@ -4429,7 +4425,7 @@ const help: TranslationStrings = {
     '左侧面板中的“沿途”卡片会搜索路线附近的观景点、水源、山屋、餐饮等，并列出结果。列表中的地点可以作为站点加入路线。',
   'help.guide.tour-map-layers.tip.1':
     '你选的地图会对你之后打开的每条路线保持有效，直到刷新页面。类型不支持该地图的路线会用“地图”打开，“计划”标签页中的地图和“设置”里的设定都不变。',
-  'help.guide.tour-along-search.step.4': '点击“沿途搜索”。TREK 只是查找，路线本身不会有任何改动。',
+  'help.guide.tour-along-search.step.4': '点击“沿途搜索”。游芽只是查找，路线本身不会有任何改动。',
   'help.guide.tour-along-add-stop.step.1':
     '点击“沿途”列表中的一个地点，或地图上它的图钉。它的卡片会在地图上方打开：它是什么、离路线多远，以及位于路线的多远处。',
   'help.guide.tour-3d-terrain.title': '以 3D 查看路线',
@@ -4449,7 +4445,7 @@ const help: TranslationStrings = {
     '选择要显示的内容：表示徒步等级的 SAC、“路面”或“道路类型”。地图上的路线使用与列表相同的颜色。',
   'help.guide.tour-hike-round.title': '寻找大约指定长度的环线徒步',
   'help.guide.tour-hike-round.tip.1': '环线不会超出这条徒步路线的“步道最高难度”；卡片中的 T 标签会显示是哪一级。',
-  'help.guide.tour-hike-compare-ways.step.4': '点击“采用这条道路”。TREK 会用路径规划器核实路线确实沿着这条路走。',
+  'help.guide.tour-hike-compare-ways.step.4': '点击“采用这条道路”。游芽会用路径规划器核实路线确实沿着这条路走。',
   'help.guide.tour-ferrata-add.step.2':
     '在地图上点击一条飞拉达，点它的虚线或标志牌都可以。卡片会显示名称、难度和长度。',
   'help.guide.tour-ferrata-add.tip.4':
@@ -4496,7 +4492,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.4': '在“水域”下选择“河流”或“湖泊”。船和水域类型都选好之前，无法保存路线。',
   'help.guide.tour-paddle-setup.result': '一条新的划桨路线，已设好船、水域和速度，可以在地图上添加第一个点了。',
   'help.guide.tour-paddle-water-route.tip.1':
-    '水域数据缺失时，TREK 会根据实例的配置，自动下载该区域的数据，或向管理员申请。管理员在管理区域“扩展”标签页上“游览”下的“划桨水域数据”一行中添加区域。这一段随后会显示“正在加载水域数据”，数据就绪后自动规划，通常在一到三分钟内。',
+    '水域数据缺失时，游芽会根据实例的配置，自动下载该区域的数据，或向管理员申请。管理员在管理区域“扩展”标签页上“游览”下的“划桨水域数据”一行中添加区域。这一段随后会显示“正在加载水域数据”，数据就绪后自动规划，通常在一到三分钟内。',
   'help.guide.tour-paddle-portage.step.2': '选择“从这里开始陆上搬运”。到下一个点的这一段会变成陆上搬运，画在陆地上。',
   'help.guide.tour-paddle-lock.title': '添加船闸及其等待时间',
   'help.guide.tour-paddle-lock.tip.3': '“移除船闸”位于打开的卡片底部，也在“更多操作”中。',
@@ -4553,16 +4549,16 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     '推送按浏览器生效：想收到通知的每部手机和每台电脑都要各做一遍。“为此设备关闭”只会停止这台设备上的推送。',
   'help.guide.connect-airtrail.step.2':
-    '“允许自签名证书”仅适用于你自己网络中可信的实例。“将更改写回 AirTrail”默认关闭，所以 TREK 只读取；打开后，你的修改会同步回 AirTrail。',
+    '“允许自签名证书”仅适用于你自己网络中可信的实例。“将更改写回 AirTrail”默认关闭，所以游芽只读取；打开后，你的修改会同步回 AirTrail。',
   'help.guide.connect-dawarich.step.2':
-    '“自动检查新的停留记录”让 TREK 自动检查；关闭时，只有在你要求时才会读取 Dawarich。“允许自签名证书”仅适用于你的服务器不信任的实例。',
+    '“自动检查新的停留记录”让游芽自动检查；关闭时，只有在你要求时才会读取 Dawarich。“允许自签名证书”仅适用于你的服务器不信任的实例。',
   'help.guide.tour-connect-wanderer.step.2': '只有实例在你自己的网络中时，才打开“允许自签名证书”。',
   'help.guide.tour-wanderer-watch.step.1': '在 wanderer 卡片中，打开“检查我的路线是否有变化”。需要先保存好连接。',
   'help.guide.plugin-settings.title': '为自己设置插件',
   'help.guide.default-user-settings.tip.2': '“显示货币”只是换算后显示金额，在“费用”中录入的金额保持不变。',
   'help.guide.own-routing-engine.step.2': '在“自建路径规划服务”下，输入你的 OSRM 服务器地址。',
   'help.guide.own-routing-engine.step.3':
-    '在“自建 Valhalla 实例”下，输入你的 Valhalla 地址，并把“路线服务”选为“自建 Valhalla 实例”。每个字段在你离开时自动保存；然后重启 TREK 服务器并刷新页面。',
+    '在“自建 Valhalla 实例”下，输入你的 Valhalla 地址，并把“路线服务”选为“自建 Valhalla 实例”。每个字段在你离开时自动保存；然后重启游芽服务器并刷新页面。',
   'help.guide.admin-passkeys.tip.3': '如果用户丢失了保存通行密钥的设备，可以在“编辑用户”中用“重置通行密钥”把它们移除。',
   'help.guide.rotate-jwt-secret.result': '新的签名密钥已生效，包括你在内的所有用户都必须重新登录。',
   'help.guide.read-notifications.title': '阅读你的通知',
@@ -4573,7 +4569,7 @@ const help: TranslationStrings = {
   'help.guide.public-link.tip.3': '把鼠标移到某个选项上，可以看到它会隐藏什么内容。',
   'help.guide.link-journal.step.4': '阅读黄色提示：它会写明谁将第一次获得这本日志。然后点击“关联日志”。',
   'help.guide.dawarich-stays.step.1':
-    '在“设置”的“集成”中连接 Dawarich 后，地点列表顶部会出现“来自 Dawarich”。它的标题说明 TREK 上次检查的时间以及有多少停留记录在等待。点击它即可打开列表。',
+    '在“设置”的“集成”中连接 Dawarich 后，地点列表顶部会出现“来自 Dawarich”。它的标题说明游芽上次检查的时间以及有多少停留记录在等待。点击它即可打开列表。',
   'help.guide.leave-stop-off-route.step.2':
     '名称旁会出现“不在路线内”徽章。该站点仍留在当天和地图上，但当天的路线及各段时间会跳过它。',
   'help.guide.move-booking-day.result': '在计划中，这个预订属于新的那一天，时间保持不变。',
@@ -4582,7 +4578,7 @@ const help: TranslationStrings = {
     '打开一个“文件”中有照片的地点。卡片底部附近的“文件”区块会显示该地点有多少个文件。',
   'help.guide.place-own-hours.title': '更正地点的营业时间、电话或电子邮件',
   'help.guide.place-own-hours.tip.1':
-    '你输入的时间会取代 TREK 查到的时间，所以有季节性营业时间的咖啡馆，也能显示你知道的实际情况。',
+    '你输入的时间会取代游芽查到的时间，所以有季节性营业时间的咖啡馆，也能显示你知道的实际情况。',
   'help.guide.day-panel.tip.3':
     '想按日历来规划？在“设置”的“显示”下打开“每日标题中日期在前”，标题就会以日期开头，下方是“第 1 天”或该天的名称。',
   'help.guide.confirm-stay-booking.result': '酒店预订已确认，住宿卡片和“预订”标签页上都是如此。',
@@ -4598,14 +4594,14 @@ const help: TranslationStrings = {
   'help.guide.booking-on-map.goal': '从预订直接跳到它在计划和地图上的地点。',
   'help.guide.export-bookings-csv.tip.2': '各列用分号分隔，用 Excel 打开文件时重音符号不会乱码。',
   'help.guide.arrange-packing-list.tip.2':
-    'TREK 会在这个浏览器里记住“按名称”，所以下次打开时清单同样是排好序的。它只改变你看到的顺序，不会改变其他人看到的顺序。',
+    '游芽会在这个浏览器里记住“按名称”，所以下次打开时清单同样是排好序的。它只改变你看到的顺序，不会改变其他人看到的顺序。',
   'help.guide.count-packed-pieces.step.4':
     '关闭窗口。只打包了一部分时，这一行显示计数，如 3/5，勾选框带有你的强调色轮廓。计数达到数量后，该物品会自动勾选。',
   'help.guide.expense-receipts.result': '收据随支出一起保存：点击该行上的标签即可打开，文件也在旅行的“文件”中。',
   'help.guide.files-sync-settings.step.4':
-    '在“当文档被删除时”下，选择另一侧的副本如何处理。“两份副本都保留”会让文档服务中的副本留在原处。“移入回收站”则会在你于 TREK 中删除文档时，把它送到文档服务的回收站。',
+    '在“当文档被删除时”下，选择另一侧的副本如何处理。“两份副本都保留”会让文档服务中的副本留在原处。“移入回收站”则会在你于游芽中删除文档时，把它送到文档服务的回收站。',
   'help.ctx.trip-collab.bullet.7':
-    '这里的一切操作都需要联网。离线时，消息、笔记、链接、投票或表决都不会保存，TREK 会提示“此操作需要网络连接”。TREK 重新联网后请再试一次。无权编辑“协作”的成员可以阅读所有内容，但看不到“新建笔记”“添加链接”和“新建投票”，消息框也是灰色的。',
+    '这里的一切操作都需要联网。离线时，消息、笔记、链接、投票或表决都不会保存，游芽会提示“此操作需要网络连接”。游芽重新联网后请再试一次。无权编辑“协作”的成员可以阅读所有内容，但看不到“新建笔记”“添加链接”和“新建投票”，消息框也是灰色的。',
   'help.guide.manage-notes.step.4':
     '“编辑”会打开已填好所有内容的笔记对话框。修改你需要的内容，这里是在“内容”下再加一行，然后点击“保存”。',
   'help.guide.note-categories.step.2':
@@ -4618,7 +4614,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.3':
     '“入住”或“上车”标签说明行车最迟要在什么时候把你送到枢纽：出发时间会比时刻表提前那么久。',
   'help.guide.roadtrip-google-import.title': '从 Google 地图导入路线',
-  'help.guide.roadtrip-google-import.tip.2': '链接里至少要有两个 TREK 能定位的站点，最多 30 个。',
+  'help.guide.roadtrip-google-import.tip.2': '链接里至少要有两个游芽能定位的站点，最多 30 个。',
   'help.guide.roadtrip-hazards.tip.1':
     '警告不是封路信息：路线绝不会因警告而改变，而且它们是当前的通告，不是针对你出行日期的预报。',
   'help.ctx.trip-tours.bullet.4':
@@ -4718,8 +4714,8 @@ const help: TranslationStrings = {
     '新的徒步从 T2（“山地徒步”）开始。选择 T3 会出现警告，说明这类小路可能比较暴露，需要脚步稳健且不恐高。',
   'help.guide.tour-hike-trail-details.step.3':
     '徽章做出汇总：路线有多少是“已知”的、其上的“已知最高”等级，以及单独列出的、规划这次徒步时用的“路线规划上限”。',
-  'help.guide.tour-hike-round.goal': '让 TREK 从徒步的某个站点出发，推荐符合你想要长度的环线。',
-  'help.guide.tour-hike-round.tip.2': '可输入 1 到 60 公里的距离，TREK 会提供与你输入的距离相差 20 % 以内的环线。',
+  'help.guide.tour-hike-round.goal': '让游芽从徒步的某个站点出发，推荐符合你想要长度的环线。',
+  'help.guide.tour-hike-round.tip.2': '可输入 1 到 60 公里的距离，游芽会提供与你输入的距离相差 20 % 以内的环线。',
   'help.guide.tour-hike-compare-ways.result':
     '只有那一段会改走你选的道路，徒步的其余部分保持原样。地图底部的“已采用道路”带有“撤销”。',
   'help.guide.tour-ferrata-add.step.3': '点击“加入行程”。飞拉达会作为单独的一段加在路线末尾，两端各有一个点。',
@@ -4737,7 +4733,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-google-import.step.2': '把链接粘贴到“步行路线的链接”下，然后点击“读取链接”。',
   'help.guide.tour-walk-check-off.goal': '在当天把站点标为已去过或已跳过，并查看还剩多少路要走。',
   'help.guide.tour-walk-check-off.result': '已去过的站点被勾选，已跳过的带删除线，剩余时间只计算还没走的部分。',
-  'help.guide.tour-bike-profile.goal': '开始一次骑行，让 TREK 按旅行、公路、砂石路或山地来规划路径。',
+  'help.guide.tour-bike-profile.goal': '开始一次骑行，让游芽按旅行、公路、砂石路或山地来规划路径。',
   'help.guide.tour-bike-profile.tip.1': '之后更改配置，会按新的配置重新规划整条路线。',
   'help.guide.tour-bike-surfaces.step.2': '卡片标题中的徽章显示路线中已知为未铺装路面的占比。',
   'help.guide.tour-bike-mtb-grades.title': '查看山地骑行路线的步道难度',
@@ -4759,12 +4755,12 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.5': '在湖泊上，“穿越湖泊”决定走法：“直线穿越”最短，“沿岸”则在刮风的日子靠近岸边。',
   'help.guide.tour-paddle-water-route.title': '规划水上路段',
   'help.guide.tour-paddle-water-route.tip.2':
-    '路线在绕过堰坝或穿过船闸的地方，TREK 会自己设一个点，标为“已识别”。如果你移动或修改它，它就变成你自己的点。',
+    '路线在绕过堰坝或穿过船闸的地方，游芽会自己设一个点，标为“已识别”。如果你移动或修改它，它就变成你自己的点。',
   'help.guide.tour-paddle-portage.step.3': '点下方会出现“陆上搬运”卡片，显示其长度和额外增加的分钟数。点击它即可打开。',
   'help.guide.tour-paddle-lock.goal': '在路线上加入船闸，并把等待和通过的时间计入用时。',
   'help.guide.tour-paddle-lock.result': '船闸及其分钟数已加入路线，“用时估算”会把它们算进去。',
   'help.guide.tour-paddle-time.tip.1':
-    'TREK 的起始值是水上 4 km/h、搬运 2 km/h，每处陆上搬运 10 分钟。这些只是可以调整的起始值，不是实测值。',
+    '游芽的起始值是水上 4 km/h、搬运 2 km/h，每处陆上搬运 10 分钟。这些只是可以调整的起始值，不是实测值。',
   'help.guide.tour-paddle-wind.step.3':
     '柱状图显示一天中的各个小时，阵风叠在平均风速后面。把鼠标移到某根柱子上，可以看到该小时的数值和风向。',
   'help.guide.tour-paddle-checklist.goal': '了解已保存路线上的堰坝、船闸和通行规则的已知情况，并决定在每一处怎么做。',
@@ -4818,14 +4814,14 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.bullet.3':
     '底部的“插件活动”按最新在前的顺序，列出插件以你的名义执行的每个操作，并带有“刷新”。',
   'help.guide.language-region.tip.3': '“每周开始于”决定所有日期选择器的第一列；“假期”有自己的设置。',
-  'help.guide.web-push-device.tip.2': '在 iPhone 和 iPad 上，请先把 TREK 添加到主屏幕，再从主屏幕打开。',
+  'help.guide.web-push-device.tip.2': '在 iPhone 和 iPad 上，请先把游芽添加到主屏幕，再从主屏幕打开。',
   'help.guide.connect-airtrail.step.3': '点击“保存”，再点击“测试连接”。它会告诉你找到了多少个航班，徽章变为“已连接”。',
   'help.guide.connect-dawarich.step.3':
     '点击“保存”，再点击“测试连接”：它会统计最近 30 天的停留记录。连接后，“立即检查”会马上检查，右侧的“断开连接”用来结束连接。',
   'help.guide.tour-connect-wanderer.step.3':
     '点击“保存”，再点击“测试连接”。它会告诉你有多少条路线可以导入，徽章变为“已连接”。',
   'help.guide.tour-wanderer-watch.step.2':
-    'TREK 每天最多读取一次你导入的每条路线的简短记录，该行会显示上次检查的时间。某条路线可能有变化时，你会收到通知，“提示”里也会计入：点击“提示”，可以看到每条路线显示为“可能已变化”“已变化”或“无法检查”，并从那里打开它。',
+    '游芽每天最多读取一次你导入的每条路线的简短记录，该行会显示上次检查的时间。某条路线可能有变化时，你会收到通知，“提示”里也会计入：点击“提示”，可以看到每条路线显示为“可能已变化”“已变化”或“无法检查”，并从那里打开它。',
   'help.guide.plugin-settings.goal': '给插件配置你自己的密钥和偏好，并查看它以你的名义做了什么。',
   'help.guide.own-routing-engine.result': '每个旅行中的路线都由你自己的服务器计算。',
   'help.guide.admin-passkeys.title': '提供通行密钥登录',
@@ -4842,7 +4838,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     '旅行的标签栏中会出现“旅程日志”标签页，你授予“阅读”或“编辑”权限的每个人都能在那里打开日志，并看到实时更新。',
   'help.guide.create-place.tip.4':
-    '从 Google 地图复制的链接在搜索里同样有效：粘贴后按回车键，TREK 会从中读取地点。表单有了位置之后，搜索旁边的准星图标，即“此标记附近的地点”，会列出周围的地点。',
+    '从 Google 地图复制的链接在搜索里同样有效：粘贴后按回车键，游芽会从中读取地点。表单有了位置之后，搜索旁边的准星图标，即“此标记附近的地点”，会列出周围的地点。',
   'help.guide.dawarich-stays.step.2':
     '停留记录按日期分组，每条显示你何时到达和离开；仪表图标表示 Dawarich 不太确定的停留。点击“添加为地点”，即停留记录旁的图钉图标。',
   'help.guide.leave-stop-off-route.step.3': '要让它重新参与路线，打开同一个菜单，选择“重新加入路线”。',
@@ -4864,7 +4860,7 @@ const help: TranslationStrings = {
   'help.guide.car-stops.step.6': '点击“添加”。',
   'help.guide.transport-details.step.4':
     '点击标题，可以直接重命名这段交通，不用打开表单。“重命名”打开时已经填好了当前名称：输入新名称并点击“保存”。',
-  'help.guide.export-transports-csv.goal': '把旅行中的交通从 TREK 导出为 CSV 文件，用于电子表格、旅行社或打印。',
+  'help.guide.export-transports-csv.goal': '把旅行中的交通从游芽导出为 CSV 文件，用于电子表格、旅行社或打印。',
   'help.guide.group-sort-bookings.result': '预订按你选的分区和顺序排列，这个浏览器会记住你的选择，下次访问时沿用。',
   'help.guide.booking-on-map.step.1':
     '点击一张有地点的预订卡片，地点在“地点 / 活动”下关联，住宿则在“住宿”下关联。它的详情随即打开。',
@@ -4877,7 +4873,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     '在编辑器里，点击已列出文件的名称，会打开同样的预览。此时按 Esc 键只会关闭预览，不会关闭这笔支出。',
   'help.guide.files-sync-settings.step.5':
-    '“当两边都有改动时”决定同一份文档在两边都被编辑过时保留哪个副本：“询问我”“保留 TREK 的副本”或“保留存储端的副本”。“自动同步”让 TREK 在后台检查变化；关闭时，卡片显示“已暂停”，只有点“立即同步”才会同步。这里的每项改动都会立即保存。',
+    '“当两边都有改动时”决定同一份文档在两边都被编辑过时保留哪个副本：“询问我”“保留游芽的副本”或“保留存储端的副本”。“自动同步”让游芽在后台检查变化；关闭时，卡片显示“已暂停”，只有点“立即同步”才会同步。这里的每项改动都会立即保存。',
   'help.guide.manage-notes.step.5':
     '“删除”会先询问“删除备注？”，因为这条笔记会对所有成员删除，它的文件也会一并删除。点击“删除”确认。',
   'help.guide.note-categories.step.3': '点击分类的名称即可重命名。输入新名称并按回车键；按 Esc 键则保留旧名称。',
@@ -4903,7 +4899,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     '或者点击当天的标题打开这一天，点击列表中的路线，再点击其卡片底部的“从当天移除”。',
   'help.guide.tour-filter-list.step.3':
-    '列表里混有多种情况时，“来源”（TREK、GPX 导入、wanderer）、“路线上限”（T1 到 T6）和“类型”（“徒步”“骑行”等）可以进一步缩小范围。再点一次已勾选的值即可清除。',
+    '列表里混有多种情况时，“来源”（游芽、GPX 导入、wanderer）、“路线上限”（T1 到 T6）和“类型”（“徒步”“骑行”等）可以进一步缩小范围。再点一次已勾选的值即可清除。',
   'help.guide.tour-hide-on-map.step.1': '指向列表中的路线，点击其行右侧出现的眼睛图标（“在地图上隐藏”）。',
   'help.guide.tour-import-plan-tab.step.1': '在“计划”标签页中，点击右栏顶部开关里的“游览”。',
   'help.ctx.trip-tour-detail.bullet.1':
@@ -4918,7 +4914,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.goal': '在这个旅行中做一个路线的变体，或把它保存到你的某个收藏里，留给以后的旅行使用。',
   'help.guide.tour-copy-keep.tip.4':
     '只有收藏扩展开启时才有“收藏”。你只有阅读权限的列表无法选择；还没有任何列表时，对话框会提供“打开收藏”。',
-  'help.guide.tour-packing-link.step.5': '点击“打开行李清单”来勾选物品。TREK 会切换到“列表”标签页中的行李清单。',
+  'help.guide.tour-packing-link.step.5': '点击“打开行李清单”来勾选物品。游芽会切换到“列表”标签页中的行李清单。',
   'help.guide.tour-files.step.2': '它下面的一行现在会统计这些文件，列表随之展开。',
   'help.guide.tour-activity-link.step.2': '在“完成于”下，勾选你走这条路线的那一天。如果不属于任何一天，选“无日期”。',
   'help.guide.tour-activity-compare.title': '对比计划和你实际走的情况',
@@ -4928,7 +4924,7 @@ const help: TranslationStrings = {
     '地图顶部的“搜索地点或地址”用来移动地图。左下角的标签可以在该路线类型提供的地图之间切换，例如“地形图”或“卫星影像”，也包含打开的路线的开关，例如“放置点”和 3D。',
   'help.guide.tour-open-workspace.step.5':
     '地图顶部的“搜索地点或地址”会把地图移到某个地点，这样你就可以从路线所在的地方开始。',
-  'help.guide.tour-draw-route.goal': '在地图上设置新路线的各个点，让 TREK 计算它们之间的路径。',
+  'help.guide.tour-draw-route.goal': '在地图上设置新路线的各个点，让游芽计算它们之间的路径。',
   'help.guide.tour-draw-route.tip.2':
     '地图标签中的“地形图”或“徒步”会显示小路，这样更容易点到其中一条。如果某个点离该类型可用的道路太远，会出现提示，而不是路线。',
   'help.guide.tour-type-profile.step.3':
@@ -5031,11 +5027,11 @@ const help: TranslationStrings = {
     '左栏底部的“划桨有风险”一行会打开“水上安全”。地图提供“地图”和“卫星影像”，并可叠加“航标”。',
   'help.guide.tour-paddle-setup.step.6':
     '“划桨速度”以灰色显示船型的建议值。输入你自己的速度后，字段会显示“自定速度”；其下的链接“使用建议值”会重新采用船型的速度。',
-  'help.guide.tour-paddle-water-route.goal': '让 TREK 沿河流或湖泊规划路段，并看懂无法规划的路段给出的提示。',
+  'help.guide.tour-paddle-water-route.goal': '让游芽沿河流或湖泊规划路段，并看懂无法规划的路段给出的提示。',
   'help.guide.tour-paddle-water-route.tip.3':
     '已规划路段下的备注会标出急流及其等级、“皮划艇通道”，或用直线衔接的“地图数据缺口”。',
   'help.guide.tour-paddle-portage.step.4':
-    '在“路线”下，“沿道路”沿着地图上标注的道路搬运，“直线”则直接穿过去。TREK 会自己寻找路径，如果没有不需要长距离绕行的路径，会告诉你。',
+    '在“路线”下，“沿道路”沿着地图上标注的道路搬运，“直线”则直接穿过去。游芽会自己寻找路径，如果没有不需要长距离绕行的路径，会告诉你。',
   'help.guide.tour-paddle-lock.step.1': '指向船闸所在的站点，点击“更多操作”，也就是三个点。',
   'help.guide.tour-paddle-time.title': '查看并调整划桨游的用时',
   'help.guide.tour-paddle-time.tip.2': '水流和风不计入估算。',
@@ -5043,7 +5039,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     '保存划桨游，然后在左栏找到“检查清单”。它标题中的徽章汇总了清单的完成进度。',
   'help.guide.tour-paddle-checklist.tip.4':
-    '障碍信息来自 TREK 所持有区域的 OpenStreetMap 数据。没有数据的地方，卡片会说明，你需要自己核查堰坝、船闸和陆上搬运。',
+    '障碍信息来自游芽所持有区域的 OpenStreetMap 数据。没有数据的地方，卡片会说明，你需要自己核查堰坝、船闸和陆上搬运。',
   'help.guide.tour-paddle-track-marks.step.4':
     '点击“本次旅行的游览活动”中的这条轨迹。左栏会按录制时的样子显示它，并带有“陆上搬运与船闸”卡片。',
   'help.ctx.trip-tour-horse.title': '骑马游',
@@ -5096,15 +5092,15 @@ const help: TranslationStrings = {
     '这一天会为每条停留记录或每个合并后的组生成一份草稿，或生成一份当日记述，这些停留记录不再显示为待处理。',
   'help.guide.journey-auto-prepare.result': '关联的旅行进行期间，每天的停留记录会列在当天，随时可以“导入当天”。',
   'help.ctx.settings-about.title': '关于',
-  'help.guide.web-push-device.tip.3': '推送需要通过 HTTPS 打开 TREK。如果通知被屏蔽，请在浏览器设置中允许后再试。',
-  'help.guide.booking-mail-address.title': '把预订邮件转发给 TREK',
-  'help.guide.booking-mail-address.goal': '获得专属的预订确认邮箱地址，让 TREK 把每个预订添加到正确的旅行中。',
+  'help.guide.web-push-device.tip.3': '推送需要通过 HTTPS 打开游芽。如果通知被屏蔽，请在浏览器设置中允许后再试。',
+  'help.guide.booking-mail-address.title': '把预订邮件转发给游芽',
+  'help.guide.booking-mail-address.goal': '获得专属的预订确认邮箱地址，让游芽把每个预订添加到正确的旅行中。',
   'help.guide.booking-mail-address.step.1':
     '在“集成”下，“预订邮件”显示“你的地址”。点击旁边的复制按钮。请像保管密码一样保管这个地址。',
   'help.guide.booking-mail-address.step.2':
     '手动把预订邮件（包括附件）转发到该地址，或者按“自动转发”的说明，在 Gmail 或 Outlook 中设置一条规则。',
   'help.guide.booking-mail-address.step.3':
-    '“导入预订邮件”开启或关闭导入。“用 AI 读取”让 AI 读取没有机器可读预订数据的邮件。“自动添加”会把 TREK 有把握的预订直接放进对应的旅行。',
+    '“导入预订邮件”开启或关闭导入。“用 AI 读取”让 AI 读取没有机器可读预订数据的邮件。“自动添加”会把游芽有把握的预订直接放进对应的旅行。',
   'help.guide.booking-mail-address.step.4':
     '“待处理的预订”会打开等你处理的邮件，有待处理项时会显示数字。“上传邮件文件”读取你保存为 .eml 的邮件。',
   'help.guide.booking-mail-address.result':
@@ -5119,7 +5115,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     '徽章显示“已连接”，旅行的“游览”标签页就能搜索你的 wanderer 并导入其中的路线。',
   'help.guide.tour-wanderer-watch.result':
-    'TREK 会检查你导入的路线，在其中某条可能有变化时通知你。只有你接受变更，路线才会改变。',
+    '游芽会检查你导入的路线，在其中某条可能有变化时通知你。只有你接受变更，路线才会改变。',
   'help.guide.plugin-settings.step.1':
     '在设置侧边栏中打开“插件”。“插件设置”下，每个为你提供设置的插件都有一张自己的卡片：填写字段并点击“保存”，或做出它显示的选择。卡片上的操作在你确认后执行。',
   'help.guide.profile.step.3': '点击卡片底部右侧的“保存资料”。',
@@ -5130,7 +5126,7 @@ const help: TranslationStrings = {
     '如果只想让某一个人退出登录，请在“编辑用户”中给他设置“新密码”，这只会终止他的会话。',
   'help.guide.notification-defaults.goal': '决定所有用户的通知初始状态，并针对某个事件彻底屏蔽一个渠道。',
   'help.ctx.notifications.summary':
-    'TREK 在应用内向你显示的所有通知，最新的在前，并按天分组：别人修改的预订、旅行聊天中的新消息、航班延误、来自转发邮件的预订。右上角的铃铛显示最新的十条，此页面显示全部。',
+    '游芽在应用内向你显示的所有通知，最新的在前，并按天分组：别人修改的预订、旅行聊天中的新消息、航班延误、来自转发邮件的预订。右上角的铃铛显示最新的十条，此页面显示全部。',
   'help.guide.read-notifications.step.1': '点击右上角的铃铛。铃铛上的红色数字是你尚未阅读的通知数量。',
   'help.guide.filter-notifications.step.1': '点击右上角的铃铛。',
   'help.guide.mark-notifications-read.step.2': '点击顶部的“全部标为已读”，一次把所有通知标为已读。',
@@ -5232,7 +5228,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     '点击“GPX”，把已保存的路线下载为 GPX 文件：包含完整路线和已有的海拔数据，可直接用于导航应用或 GPS 设备。',
   'help.guide.tour-copy-keep.step.1':
-    '打开路线的卡片，点击底部的“复制”。TREK 会创建一条新的、独立的、不带日期的路线，原路线保持不变。',
+    '打开路线的卡片，点击底部的“复制”。游芽会创建一条新的、独立的、不带日期的路线，原路线保持不变。',
   'help.guide.tour-copy-keep.result':
     '旅行里多了一条可以随意修改的路线，收藏里保留着它自己的副本，随时可以添加到另一个旅行。',
   'help.guide.tour-packing-link.tip.1':
@@ -5309,7 +5305,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     '点击“路面”，可以按所走的路面来查看同一条路线，从柏油路到自然地面和岩石。',
   'help.guide.tour-hike-round.step.2':
-    '“环线徒步”卡片会在地图上方打开。在“从”下核对起点，并输入想要的“距离”。旁边的标签显示 TREK 会为它提供的环线长度。',
+    '“环线徒步”卡片会在地图上方打开。在“从”下核对起点，并输入想要的“距离”。旁边的标签显示游芽会为它提供的环线长度。',
   'help.guide.tour-hike-compare-ways.title': '比较徒步某一路段的其他走法',
   'help.guide.tour-hike-compare-ways.tip.2':
     '如果路径规划器找不到其他路，卡片会说明。如果它无法沿用你选的路，该路段保持原样，卡片也会告诉你。',
@@ -5328,7 +5324,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     '营业时间来自 OpenStreetMap，或来自站点所对应的行程地点，旁边的标签会说明是哪一种。出发前请核实。',
   'help.guide.tour-walk-google-import.step.4':
-    '点击“作为漫步载入”。TREK 会自己规划站点之间的步行路线。点击“保存”保留这条漫步。',
+    '点击“作为漫步载入”。游芽会自己规划站点之间的步行路线。点击“保存”保留这条漫步。',
   'help.guide.tour-walk-check-off.step.2':
     '滚动到“漫步站点”。每个站点都显示停留多久，如果漫步设置了开始时间，还会显示你几点到达。',
   'help.ctx.trip-tour-bike.summary':
@@ -5344,7 +5340,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     '沿着地图上标注的雪道、缆车和步道，规划一天的雪道滑行、一圈越野滑雪、一次滑雪登山或一次雪鞋徒步。',
   'help.guide.tour-ski-plan.tip.2':
-    '“项目”旁的信息圆点说明 TREK 如何处理滑雪路线。其中和这里的任何地方都不涉及积雪、雪崩，也不说明雪道、缆车和步道是否开放。',
+    '“项目”旁的信息圆点说明游芽如何处理滑雪路线。其中和这里的任何地方都不涉及积雪、雪崩，也不说明雪道、缆车和步道是否开放。',
   'help.guide.tour-ski-options.step.3':
     '在“优先”下，选择“最快”“滑得最多”或“最轻松”。在“节奏”下，选择“悠闲”“普通”或“运动”，这会改变路径规划器给每条雪道估算的用时。',
   'help.guide.tour-ski-fix-leg.goal': '一键规划红色路段，或直接画成直线。',
@@ -5358,7 +5354,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.title': '规划划桨游',
   'help.guide.tour-paddle-setup.step.7': '确认“添加地点”已开启，然后点击地图：先点下水点，再点途中的各个点和上岸点。',
   'help.guide.tour-paddle-water-route.step.1':
-    '手动绘制的路段会在其点下方显示“手动绘制，未规划”及其长度。TREK 会保持你画的线条不变。',
+    '手动绘制的路段会在其点下方显示“手动绘制，未规划”及其长度。游芽会保持你画的线条不变。',
   'help.guide.tour-paddle-water-route.tip.4': '有路段未规划时无法保存。请先沿水路规划它，或手动绘制。',
   'help.guide.tour-paddle-portage.step.5':
     '在“上岸与下水”下，输入你上岸、卸货和重新下水所需的分钟数。留空则按 10 分钟计算。',
@@ -5369,7 +5365,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     '只有未来 16 天有预报。更远的日期会说明从哪天起有预报，过去的日期则说明该日已经过去。',
   'help.guide.tour-paddle-checklist.step.2':
-    '下方的一行说明数据有多新：“OSM 数据截至”指 OpenStreetMap，“获取时间”指 TREK 读取数据的时间，“障碍物数据”则表示数据没有覆盖整条路线的情况。',
+    '下方的一行说明数据有多新：“OSM 数据截至”指 OpenStreetMap，“获取时间”指游芽读取数据的时间，“障碍物数据”则表示数据没有覆盖整条路线的情况。',
   'help.guide.tour-paddle-checklist.tip.5':
     '检查清单不代表安全或法律上的许可。你的决定不会解除 OpenStreetMap 中记录的禁令或私有土地限制。',
   'help.guide.tour-paddle-track-marks.step.5': '点击“陆上搬运”，然后在线条上点击你上岸的位置和重新下水的位置。',
@@ -5397,7 +5393,7 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.7':
     '保存的路线：从旅行中保存的路线排在列表最前面，显示难度、类型、来源旅行和各项测量数据。“添加到行程”会据此创建一条新路线，垃圾桶图标则把它从列表中移除。',
   'help.guide.move-to-list.title': '把地点移动或复制到另一个列表',
-  'help.guide.copy-to-trip.tip.2': '旅行中已有的地点会被跳过，TREK 会告诉你跳过了多少个。',
+  'help.guide.copy-to-trip.tip.2': '旅行中已有的地点会被跳过，游芽会告诉你跳过了多少个。',
   'help.guide.accept-list-invite.tip.2': '点击列表顶部的“已共享”可查看成员，在那里点击“退出列表”即可离开该列表。',
   'help.guide.tour-collection-add-to-trip.goal': '把列表中保存的路线变成你某个旅行里的新路线，可以带路点，也可以不带。',
   'help.guide.tour-collection-add-to-trip.result':
@@ -5408,15 +5404,15 @@ const help: TranslationStrings = {
   'help.guide.journey-keep-route.goal': '把某一天来自 Dawarich 的真实路线加到旅程地图上并保留下来。',
   'help.guide.journey-day-stays.goal': '把 Dawarich 记录的停留记录逐条变成条目。',
   'help.guide.journey-take-over-day.goal': '一步把某一天的停留记录变成草稿条目，或一份当日记述。',
-  'help.guide.journey-auto-prepare.title': '让 TREK 提前整理你记录的日子',
+  'help.guide.journey-auto-prepare.title': '让游芽提前整理你记录的日子',
   'help.guide.photo-location.title': '按照片的拍摄地点定位条目',
   'help.ctx.settings-about.summary':
-    'TREK 是什么、这台服务器运行的版本，以及在哪里找到这个项目：文档、报告错误的地方和支持项目的方式。',
+    '游芽是什么、这台服务器运行的版本，以及在哪里找到这个项目：文档、报告错误的地方和支持项目的方式。',
   'help.guide.startup.tip.2': '如果起始标签页属于你已关闭的扩展，则会改为打开“计划”。',
   'help.guide.web-push-device.title': '在本设备上接收推送通知',
   'help.guide.connect-airtrail.tip.1': '只有管理员开启了 AirTrail 扩展，才会出现这张卡片。',
   'help.guide.connect-dawarich.tip.1':
-    'TREK 只会给出条目、地点和国家的建议，你确认之前不会添加任何内容，也不会往 Dawarich 写回任何内容。',
+    '游芽只会给出条目、地点和国家的建议，你确认之前不会添加任何内容，也不会往 Dawarich 写回任何内容。',
   'help.guide.tour-connect-wanderer.tip.1': '只有管理员在“游览”下允许了 wanderer，才会出现这张卡片。',
   'help.guide.tour-wanderer-watch.tip.1': '提示不会改动任何路线，路线的来源检查会显示究竟改了什么。',
   'help.guide.api-keys.tip.3':
@@ -5426,13 +5422,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.step.2': '“插件活动”按时间从新到旧列出插件代你执行的所有操作，点击“刷新”可加载最新记录。',
   'help.ctx.admin-github.bullet.3': '关于：Ko-fi、Buy Me a Coffee、Discord、“报告错误”、“功能建议”和 Wiki。',
   'help.guide.default-user-settings.goal': '为每个账号预设合理的单位、颜色模式和货币，无需用户自己打开“设置”。',
-  'help.guide.default-map.step.3': '每个字段在你离开它时自动保存。字段名称旁的重置链接会恢复 TREK 的默认值。',
+  'help.guide.default-map.step.3': '每个字段在你离开它时自动保存。字段名称旁的重置链接会恢复游芽的默认值。',
   'help.guide.own-routing-engine.tip.2':
     '只设置了你自己的路径规划服务，且“路线服务”为“自动”时，不会去请求 Valhalla。字段旁的重置链接可再次清空它。',
   'help.guide.admin-passkeys.step.1': '在“安全”标签页的“登录方式”下，打开“启用通行密钥登录”。',
   'help.guide.storage-backends.step.4':
     '顶部的“健康”会列出写入镜像目标失败的记录。如果显示“未记录任何副本故障”，说明一切正常。',
-  'help.guide.channels-instance.tip.3': 'Web 推送需要 HTTPS。在 iPhone 和 iPad 上，用户要先把 TREK 添加到主屏幕。',
+  'help.guide.channels-instance.tip.3': 'Web 推送需要 HTTPS。在 iPhone 和 iPad 上，用户要先把游芽添加到主屏幕。',
   'help.guide.notification-defaults.step.1':
     '在“通知”标签页中，滚动到底部的“用户默认值”。每一行是一个事件，每一列是一个渠道。',
   'help.ctx.notifications.bullet.1':
@@ -5474,26 +5470,26 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     '如果只想导出标签页的一部分，请先用“搜索”或“筛选”缩小范围。文件内容就是标签页当前显示的内容。',
   'help.guide.import-booking-file.tip.4':
-    '读取确认文件需要联网。离线时，“导入”会提示这一点，等 TREK 重新联网后再试即可。',
+    '读取确认文件需要联网。离线时，“导入”会提示这一点，等游芽重新联网后再试即可。',
   'help.guide.forward-booking-mail.title': '把预订邮件转发到旅行',
-  'help.guide.forward-booking-mail.goal': '给旅行一个专属地址，把确认邮件转发过去，并完成 TREK 无法自动添加的部分。',
+  'help.guide.forward-booking-mail.goal': '给旅行一个专属地址，把确认邮件转发过去，并完成游芽无法自动添加的部分。',
   'help.guide.forward-booking-mail.step.1':
     '点击栏中的上传图标“导入预订确认”。在文件框下方，“或通过邮件转发”里是旅行专属的地址。',
   'help.guide.forward-booking-mail.step.2': '点击“为此旅行创建地址”。发到这个地址的邮件会直接进入这个旅行，无需猜测。',
   'help.guide.forward-booking-mail.step.3':
-    '地址出现后，旁边有复制按钮。复制它，然后在你的邮件程序中把预订邮件（包括附件）转发过去，可以手动，也可以用规则。TREK 会在几分钟内读取。',
+    '地址出现后，旁边有复制按钮。复制它，然后在你的邮件程序中把预订邮件（包括附件）转发过去，可以手动，也可以用规则。游芽会在几分钟内读取。',
   'help.guide.forward-booking-mail.step.4':
-    'TREK 有把握的预订会自动加入旅行。其余的会等你处理：打开右上角你名字下的菜单（数字表示等待处理的邮件数量），点击“待处理的预订”。',
+    '游芽有把握的预订会自动加入旅行。其余的会等你处理：打开右上角你名字下的菜单（数字表示等待处理的邮件数量），点击“待处理的预订”。',
   'help.guide.forward-booking-mail.step.5':
-    '每个条目会显示 TREK 读到的内容、它在等待的原因，以及它对应的旅行。“查看邮件”显示邮件本身。点击“自己填写”。',
+    '每个条目会显示游芽读到的内容、它在等待的原因，以及它对应的旅行。“查看邮件”显示邮件本身。点击“自己填写”。',
   'help.guide.forward-booking-mail.step.6':
     '“新建预订”会在旅行中打开，带有邮件里的内容：主题作为标题，以及找到的类型、日期和预订码。检查一下，改正需要改的地方，然后点击“添加”。',
   'help.guide.forward-booking-mail.result':
     '预订和其他预订一样出现在“预订”标签页，它的条目也从“待处理的预订”中消失了。',
   'help.guide.forward-booking-mail.tip.1':
-    '你自己的地址（在“设置”的“集成”的“预订邮件”下）适用于每个旅行：TREK 会选出日期和地点与预订相符的旅行。旅行专属地址则省去这一猜测。',
+    '你自己的地址（在“设置”的“集成”的“预订邮件”下）适用于每个旅行：游芽会选出日期和地点与预订相符的旅行。旅行专属地址则省去这一猜测。',
   'help.guide.forward-booking-mail.tip.2':
-    '在这张卡片中开启“自动添加”后，TREK 有把握的预订会直接进入旅行，相应通知提供 7 天内的“撤销”。关闭时，每个预订都会等在“待处理的预订”下。',
+    '在这张卡片中开启“自动添加”后，游芽有把握的预订会直接进入旅行，相应通知提供 7 天内的“撤销”。关闭时，每个预订都会等在“待处理的预订”下。',
   'help.guide.forward-booking-mail.tip.3':
     '条目也可以用“保存为文档”保留为文档，这会把邮件或附件放进旅行的文件中，也可以用“丢弃”扔掉。',
   'help.guide.forward-booking-mail.tip.4':
@@ -5560,12 +5556,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-link.step.4': '在“实际”下核对它测得的数据，然后点击“关联”。',
   'help.guide.tour-activity-compare.step.1':
     '打开路线的卡片。“计划与实际”把计划的距离、累计爬升、累计下降和含休息时间，与轨迹的对应数值并排列出，并给出“差值”。',
-  'help.guide.tour-origin-check.goal':
-    '查明一条路线是在 TREK 中绘制的还是导入的、来自哪个文件，以及之后有没有被修改过。',
+  'help.guide.tour-origin-check.goal': '查明一条路线是在游芽中绘制的还是导入的、来自哪个文件，以及之后有没有被修改过。',
   'help.ctx.trip-tour-planner.title': '游览',
   'help.guide.tour-open-workspace.title': '熟悉“游览”标签页',
   'help.guide.tour-open-workspace.step.7':
-    '点击右侧栏中的一条路线。在 TREK 中规划的路线会在编辑器中打开，导入的轨迹则保持原样，以“GPX 游览路线”的形式打开，仅供查看。',
+    '点击右侧栏中的一条路线。在游芽中规划的路线会在编辑器中打开，导入的轨迹则保持原样，以“GPX 游览路线”的形式打开，仅供查看。',
   'help.guide.tour-draw-route.step.2': '在“搜索地点或地址”中输入路线的起点并选择结果，地图会移到那里。',
   'help.guide.tour-draw-route.tip.4':
     '未保存的草稿会保留。再次打开旅行的“游览”标签页，草稿会恢复，并标有“已恢复未保存的草稿”。',
@@ -5591,7 +5586,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.3': '旅行中已有的轨迹会显示为灰色的“已在行程中”，并被跳过。',
   'help.guide.tour-view-import.step.3': '点击左上角的箭头“返回游览列表”，可再次关闭它。',
   'help.guide.tour-plan-from-import.step.2':
-    'TREK 会从轨迹中取出控制点并重新规划路线。地图用虚线画出导入的轨迹，用实线画出建议的路线，卡片则对比两者的长度、“在轨迹 50 米内”的占比以及“最大偏差”。',
+    '游芽会从轨迹中取出控制点并重新规划路线。地图用虚线画出导入的轨迹，用实线画出建议的路线，卡片则对比两者的长度、“在轨迹 50 米内”的占比以及“最大偏差”。',
   'help.guide.tour-restore-recorded.title': '回到录制的轨迹',
   'help.guide.tour-take-over.title': '从其他旅行引入路线',
   'help.guide.tour-take-over.tip.1':
@@ -5667,12 +5662,12 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-pistes-layer.tip.2': '如果雪道加载失败，开关上会出现警告标记。地图和你的路线仍可正常使用。',
   'help.guide.tour-ski-import.step.4': '点击“导入 1 条路线”。',
   'help.ctx.trip-tour-paddle.summary':
-    '河流或湖泊上的皮划艇、独木舟或 SUP 路线。它会写明船型和水域，在 TREK 有数据的地方沿水路前进，把陆上搬运和船闸计入用时，并显示你划行当天的风，以及沿途障碍物的已知情况。',
+    '河流或湖泊上的皮划艇、独木舟或 SUP 路线。它会写明船型和水域，在游芽有数据的地方沿水路前进，把陆上搬运和船闸计入用时，并显示你划行当天的风，以及沿途障碍物的已知情况。',
   'help.guide.tour-paddle-setup.goal': '创建一条皮划艇、独木舟或 SUP 路线，并设定划什么船、在什么水域、速度多快。',
   'help.guide.tour-paddle-setup.tip.1': '“船”设为“其他”时没有建议速度。请自己输入一个，否则水上用时会一直为空。',
   'help.guide.tour-paddle-water-route.step.2': '想让某一段沿水路规划，请指向它前面的站点，点击“更多操作”，即三个点。',
   'help.guide.tour-paddle-water-route.result':
-    '每一段要么沿着水路，要么是你有意手动绘制的，TREK 无法规划的路段会说明原因。',
+    '每一段要么沿着水路，要么是你有意手动绘制的，游芽无法规划的路段会说明原因。',
   'help.guide.tour-paddle-portage.tip.1':
     '如果想改回划行这一段，再次打开该点的“更多操作”，选择“这一段改回划行”。它会变回手动绘制的路段。',
   'help.guide.tour-paddle-lock.step.3': '点击船闸卡片将它展开。',
@@ -5689,7 +5684,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     '点击“游览名称”下的“路线类型”字段，选择“骑马游”。“骑马路线”卡片会出现在“路点”下方。',
   'help.guide.tour-horse-plan.tip.2':
-    'TREK 不会为骑行估算用时。如果想在当天显示时间，请在“详情”的“计划中”下自己填一个。',
+    '游芽不会为骑行估算用时。如果想在当天显示时间，请在“详情”的“计划中”下自己填一个。',
   'help.guide.tour-horse-gap.step.3': '点击“采用路段”。开关没打开之前，按钮保持灰色。',
   'help.guide.tour-horse-recorded.step.1':
     '在“本次旅行的游览活动”中，点击“添加行程”（+），选择“导入 GPX 或 KML”，然后选取你骑行的文件。',
@@ -5704,7 +5699,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': '为一起规划的人登记休假',
   'help.guide.dissolve-fusion.title': '停止共同规划',
   'help.guide.country-places.goal':
-    '列出 TREK 为某个国家计入的地点，方便你核对在那里去过哪些地方，或找出被归到错误国家的地点。',
+    '列出游芽为某个国家计入的地点，方便你核对在那里去过哪些地方，或找出被归到错误国家的地点。',
   'help.guide.regions.tip.3': '“添加到心愿单”对地区同样适用。该地区会显示与心愿单中的国家相同的斜线填充。',
   'help.guide.tour-activity-stats.step.2':
     '用左侧的两个标签选择时间段和类型。“时间段”提供“全部时间”“今年”“最近 12 个月”，以及你有路线的每个往年。“类型”可以把数据缩小到某一种路线，或选“全部类型”。',
@@ -5729,21 +5724,20 @@ const help: TranslationStrings = {
   'help.guide.photo-location.goal': '不用为每个条目逐个搜索地点，就能把条目放到地图上。',
   'help.ctx.settings-about.bullet.1': '此服务器运行的版本显示在标题旁边。',
   'help.guide.readability.tip.3': '“可读性”标有“实验性”。如果显示效果不对，点击标签页底部的“恢复默认”即可还原。',
-  'help.guide.web-push-device.goal': '即使 TREK 已关闭，也能在手机或电脑上收到 TREK 的通知。',
+  'help.guide.web-push-device.goal': '即使游芽已关闭，也能在手机或电脑上收到游芽的通知。',
   'help.guide.connect-airtrail.tip.2': '密钥以加密方式存储，之后不会再显示。字段中出现圆点，说明已经保存了密钥。',
-  'help.guide.connect-dawarich.tip.2':
-    '按钮下方，卡片会说明 TREK 上次检查的时间，以及你的 Dawarich 版本不支持哪些功能。',
+  'help.guide.connect-dawarich.tip.2': '按钮下方，卡片会说明游芽上次检查的时间，以及你的 Dawarich 版本不支持哪些功能。',
   'help.guide.tour-connect-wanderer.tip.2': '位于私有地址的实例，可能需要管理员允许访问内部网络。',
   'help.guide.tour-wanderer-watch.tip.2':
     '“暂停至”表示 wanderer 没有响应，“令牌被拒绝”表示令牌需要通过连接测试，或需要换一个新令牌。',
   'help.guide.plugin-settings.result': '插件会按你的设置运行，它代你执行的每个操作都会列在“插件活动”下。',
   'help.ctx.admin-defaults.bullet.3':
-    '你设置过的字段旁边有重置链接，可恢复 TREK 自己的默认值。用户自己的设置始终优先于这些默认值。',
+    '你设置过的字段旁边有重置链接，可恢复游芽自己的默认值。用户自己的设置始终优先于这些默认值。',
   'help.ctx.admin-settings.bullet.5': '“安全”标签页上的“危险区域”：“轮换 JWT 密钥”会让所有用户退出登录，包括你自己。',
   'help.guide.default-user-settings.step.1':
     '在“用户默认设置”下，选择“颜色模式”（浅色、深色或自动）、“温度单位”“距离单位”“时间格式”“每周开始于”“日期格式”“显示货币”，并设定“隐藏预订编号”是开还是关。每个选择都会立即保存。',
   'help.guide.admin-passkeys.step.2':
-    '在“通行密钥登录”卡片中，填写“Relying Party ID（域名）”，例如 trek.example.org，再填写访问你的 TREK 所用的“允许的来源”，然后点击“保存”。两项都留空则使用 APP_URL。',
+    '在“通行密钥登录”卡片中，填写“Relying Party ID（域名）”，例如 trek.example.org，再填写访问你的游芽所用的“允许的来源”，然后点击“保存”。两项都留空则使用 APP_URL。',
   'help.guide.rotate-jwt-secret.title': '让所有人一次性退出登录',
   'help.guide.notification-defaults.step.2':
     '点击单元格，切换到下一个状态：开启、关闭、封锁。提示会写出下一个状态，每次点击都会立即保存。',
@@ -5756,20 +5750,20 @@ const help: TranslationStrings = {
     '标为已读只会去掉粗体、圆点和未读数量。通知会一直留在列表中，直到你删除它，同一位置的“标为未读”（信封）会让它重新变成新通知。',
   'help.guide.delete-notifications.result': '该通知已从列表和铃铛中消失。',
   'help.guide.booking-mail-notifications.title': '处理预订邮件的通知',
-  'help.guide.booking-mail-notifications.goal': '查看你转发的预订邮件结果如何，并对 TREK 无法自动添加的预订做出决定。',
+  'help.guide.booking-mail-notifications.goal': '查看你转发的预订邮件结果如何，并对游芽无法自动添加的预订做出决定。',
   'help.guide.booking-mail-notifications.step.1':
-    '点击右上角的铃铛。如果转发的邮件里有 TREK 无法自行添加的预订，会在那里通知你。',
+    '点击右上角的铃铛。如果转发的邮件里有游芽无法自行添加的预订，会在那里通知你。',
   'help.guide.booking-mail-notifications.step.2': '“待审核的转发预订”会告诉你有多少在等你处理。点击它下面的“查看”。',
   'help.guide.booking-mail-notifications.step.3':
-    '“待处理的预订”会打开，列出每个等待处理的条目：TREK 读到的内容、它在等待的原因，以及它对应的旅行。“自己填写”会用邮件里的内容新建一个预订，垃圾桶则丢弃这个条目。',
+    '“待处理的预订”会打开，列出每个等待处理的条目：游芽读到的内容、它在等待的原因，以及它对应的旅行。“自己填写”会用邮件里的内容新建一个预订，垃圾桶则丢弃这个条目。',
   'help.guide.booking-mail-notifications.result':
     '每封转发的预订邮件，要么自动归入对应的旅行，要么等你来决定，而且你总能知道是哪一种。',
   'help.guide.booking-mail-notifications.tip.1':
-    'TREK 自动添加的预订会以“已从邮件添加预订”的形式通知你，带有“保留”和“撤销”。“撤销”会把预订再从旅行中移除，“保留”则让它留在那里。',
+    '游芽自动添加的预订会以“已从邮件添加预订”的形式通知你，带有“保留”和“撤销”。“撤销”会把预订再从旅行中移除，“保留”则让它留在那里。',
   'help.guide.booking-mail-notifications.tip.2':
     '共享旅行中的其他人，也会收到来自邮件的预订通知，带有“查看旅行”，它会打开旅行的“预订”标签页。',
   'help.guide.booking-mail-notifications.tip.3':
-    'TREK 实时跟踪的航班会发出“航班已起飞”“航班已降落”，以及延误 15 分钟起的“航班延误”，每条都带有“查看旅行”。它们会发给该航班所指派的人，或旅行中的所有人。你可以在“设置”的“通知”下关闭其中任何一种。',
+    '游芽实时跟踪的航班会发出“航班已起飞”“航班已降落”，以及延误 15 分钟起的“航班延误”，每条都带有“查看旅行”。它们会发给该航班所指派的人，或旅行中的所有人。你可以在“设置”的“通知”下关闭其中任何一种。',
   'help.guide.notification-settings.result': '“设置”已打开“通知”，每个事件和渠道各有一个开关。',
   'help.guide.link-journal.goal': '在旅行内向你选定的人展示你的某本旅程日志。',
   'help.guide.link-journal.tip.3':
@@ -5778,14 +5772,14 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.goal': '只为一个旅行开启或关闭“费用”或“公路旅行”之类的功能。',
   'help.guide.trip-addons.step.1': '点击旅行名称旁边的“旅行设置”，在左侧选择“附加组件”。只有旅行的所有者才有这个区域。',
   'help.guide.trip-addons.step.2':
-    '点击某个附加组件的开关，即可为此旅行开启或关闭它。列出的有“列表”“费用”“文档”“协作”“公路旅行”和“游览”，以你的 TREK 所具备的为准。',
+    '点击某个附加组件的开关，即可为此旅行开启或关闭它。列出的有“列表”“费用”“文档”“协作”“公路旅行”和“游览”，以你的游芽所具备的为准。',
   'help.guide.trip-addons.step.3':
-    '“仅此旅行”标记出你与 TREK 其余部分设置不同的附加组件。把它切换回去，就会重新跟随管理员的设置。',
+    '“仅此旅行”标记出你与游芽其余部分设置不同的附加组件。把它切换回去，就会重新跟随管理员的设置。',
   'help.guide.trip-addons.result':
     '旅行会为其中的所有人显示你选择的附加组件：某个标签页或计划中的某个部分会出现或消失。你的其他旅行保持管理员的设置。',
   'help.guide.trip-addons.tip.1': '关闭附加组件只是把它隐藏，不会删除任何内容。再次开启，一切都回到原来的位置。',
   'help.guide.trip-addons.tip.2': '即使管理员对其他人关闭了某个附加组件，你也可以只为一个旅行开启它。',
-  'help.guide.trip-addons.tip.3': '更改开关需要网络连接。离线时 TREK 会告知，并让开关保持原样。',
+  'help.guide.trip-addons.tip.3': '更改开关需要网络连接。离线时游芽会告知，并让开关保持原样。',
   'help.guide.edit-trip-settings.title': '在计划页中编辑旅行',
   'help.guide.edit-trip-settings.goal': '不离开旅行，就能修改标题、日期、封面或货币。',
   'help.guide.edit-trip-settings.step.1': '点击旅行名称旁边的“旅行设置”，在左侧选择“编辑旅行”。',
@@ -5793,7 +5787,7 @@ const help: TranslationStrings = {
   'help.guide.edit-trip-settings.step.3': '点击“更新”。“旅行设置”会关闭，旅行立即显示更改。',
   'help.guide.edit-trip-settings.result': '行程的新信息会在各处显示，所有参与者都能看到。',
   'help.guide.edit-trip-settings.tip.1':
-    '如果你移动了开始日期，TREK 会先询问预订该如何跟着变动。如果新日期会去掉已有内容的日期，它会在你确认之前列出这些日期。',
+    '如果你移动了开始日期，游芽会先询问预订该如何跟着变动。如果新日期会去掉已有内容的日期，它会在你确认之前列出这些日期。',
   'help.guide.edit-trip-settings.tip.2':
     '同一个表单也可以从“我的旅行”中，通过旅行卡片上的铅笔图标打开。“编辑旅行”只对有权编辑旅行的人显示。',
   'help.guide.dawarich-stays.result':
@@ -5803,7 +5797,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.goal': '直接在计划里把交通或预订移到另一天，无需打开表单。',
   'help.guide.place-image-from-file.result': '这张照片会成为地点的图片，显示在卡片、地点栏、当天计划和地图上。',
   'help.guide.place-own-hours.step.3':
-    '下方的“营业时间”显示一周，每天一行。如果 TREK 已找到该地点的营业时间，会自动填好，否则请先点击“添加营业时间”。填写每天的开门和关门时间。在每天的右侧，“24h”表示全天营业，关门图标表示已关闭。',
+    '下方的“营业时间”显示一周，每天一行。如果游芽已找到该地点的营业时间，会自动填好，否则请先点击“添加营业时间”。填写每天的开门和关门时间。在每天的右侧，“24h”表示全天营业，关门图标表示已关闭。',
   'help.guide.add-accommodation.tip.5': 'GPX 轨迹和路线地点永远不会作为住宿候选，只会提供旅行中的普通地点。',
   'help.guide.confirm-stay-booking.step.1':
     '打开你入住的那一天。在住宿卡片的“预订”下，可以看到这一晚的酒店预订，标有“待确认”或“已确认”。点击那个框。',
@@ -5830,7 +5824,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     '决定文档是只从你的文档服务导入、只导出到它，还是双向同步，以及文档被删除或在两处都被修改时如何处理。',
   'help.guide.files-sync-settings.tip.2':
-    '选择“询问我”后，在两处都被编辑过的文档会出现在卡片下方的“需要查看”中。点击“解决”，然后选择“保留 TREK 版本”“保留文档服务的版本”或“两份都保留”。',
+    '选择“询问我”后，在两处都被编辑过的文档会出现在卡片下方的“需要查看”中。点击“解决”，然后选择“保留游芽版本”“保留文档服务的版本”或“两份都保留”。',
   'help.guide.manage-notes.goal': '完整打开一条笔记，把重要的置顶，并修改或删除过时的内容。',
   'help.guide.manage-notes.tip.2':
     '编辑时，已附加文件上的红色叉号会在你点击“保存”之前就立即删除该文件，而且不会进入回收站。笔记的每个文件也都会出现在旅行的“文件”标签页中。',
@@ -5927,7 +5921,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     '在“游览”标签页中打开一条路线，把左侧面板向下滚动到路线站点下方的“沿途”。路线有了线路之后，才会出现这张卡片。',
   'help.guide.tour-along-search.tip.3':
-    '结果来自 OpenStreetMap 和 TREK 的地点索引，所以搜索需要联网。什么都没找到时，“扩大到”会尝试下一个距离。服务器繁忙时，“重试”会显示倒计时，倒计时结束后才能再试。',
+    '结果来自 OpenStreetMap 和游芽的地点索引，所以搜索需要联网。什么都没找到时，“扩大到”会尝试下一个距离。服务器繁忙时，“重试”会显示倒计时，倒计时结束后才能再试。',
   'help.guide.tour-along-add-stop.tip.1': '该地点会成为路线的一个站点，而不是旅行的地点，所以不会出现在地点列表中。',
   'help.guide.tour-3d-terrain.step.4': '拖动“地形晕渲”滑块，可以把山丘最多放大到三倍高，在平缓的地形上很有用。',
   'help.guide.tour-3d-flyover.step.1':
@@ -5945,7 +5939,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     '路点下方的“路径详情”会从 OpenStreetMap 读取每一段的 SAC 等级、路面和道路类型，并据此在地图上给路线着色。其中的任何内容都不会改变路线。',
   'help.guide.tour-hike-plan.step.4':
-    '“添加地点”一开始就是开启的：在地图上点击徒步的起点和终点。旁边的“行程地点”则改为选取旅行中的山屋或酒店。有了两个点之后，TREK 就会算出步行路线。',
+    '“添加地点”一开始就是开启的：在地图上点击徒步的起点和终点。旁边的“行程地点”则改为选取旅行中的山屋或酒店。有了两个点之后，游芽就会算出步行路线。',
   'help.guide.tour-hike-trail-details.title': '查看徒步沿途的等级、路面和道路类型',
   'help.guide.tour-hike-trail-details.tip.1':
     'OpenStreetMap 里没有数值的道路会列在“未知”下，未知并不代表好走。如果有些道路显示“本次无法查询”，请点击“重试”。',
@@ -5972,7 +5966,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     '右侧的“游览概览”给出“骑行时间”，这是路径规划器按所选配置并计入爬升算出的预估时间，不包含休息。',
   'help.guide.tour-bike-profile.step.4':
-    '在“路点”下，点击“行程地点”，选取起点和终点，这里先选 Hotel Alpenroyal，再选 Hotel Greif。也可以确认“添加地点”已开启，然后直接点击地图。有了两个点之后，TREK 就会算出路线。',
+    '在“路点”下，点击“行程地点”，选取起点和终点，这里先选 Hotel Alpenroyal，再选 Hotel Greif。也可以确认“添加地点”已开启，然后直接点击地图。有了两个点之后，游芽就会算出路线。',
   'help.guide.tour-bike-profile.tip.5':
     '如果管理员允许使用 CyclOSM 地图，打开骑行路线时，地图上的图层栏还会提供“骑行”。如果它不再加载，请切换回“地图”，路线不会受影响。',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -5998,7 +5992,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.1': '在“游览”标签页中，点击左栏顶部的“规划新游览路线”。',
   'help.guide.tour-paddle-setup.tip.2': '划桨游的地图提供“地图”和“卫星影像”，还可以叠加来自 OpenSeaMap 的“航标”。',
   'help.guide.tour-paddle-water-route.step.3':
-    '选择“沿水路规划下一段”。TREK 会沿河流或湖泊规划从这个点到下一个点的路段。',
+    '选择“沿水路规划下一段”。游芽会沿河流或湖泊规划从这个点到下一个点的路段。',
   'help.guide.tour-paddle-portage.title': '绕过障碍搬运船只',
   'help.guide.tour-paddle-portage.tip.2':
     '在最后一个点上，“从这里开始陆上搬运”要等你设置了下一个点才会生效。该行会显示“从这里开始搬运”，点它的叉号“不再搬运”即可撤销。',
@@ -6071,7 +6065,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     '在“AI 助手”卡片中选择连接方式：“使用 ChatGPT 登录”会用到你的 ChatGPT 套餐，“粘贴 API 密钥”则使用 Anthropic、OpenAI、Gemini 或 OpenRouter 的密钥。',
   'help.guide.connect-ai.step.2':
-    '粘贴你的密钥。TREK 会显示识别出的服务商，并说明哪些内容会发送给它。点击“连接”，TREK 会先向服务商验证这个密钥。',
+    '粘贴你的密钥。游芽会显示识别出的服务商，并说明哪些内容会发送给它。点击“连接”，游芽会先向服务商验证这个密钥。',
   'help.guide.connect-ai.step.3':
     '卡片会显示“已连接到”以及服务商名称。选择你想用的“模型”，再点击“打开助手”，即可在当前或下一个旅行中开始使用。',
   'help.guide.connect-ai.result': '助手会使用你自己的账号，在每个旅行中都可以使用。',
@@ -6088,7 +6082,7 @@ const help: TranslationStrings = {
     '服务器一直拒绝的更改会显示在“离线缓存”的“失败的更改”下：点击“重试”会再发送一次，点击“放弃”则保留服务器的版本。',
   'help.ctx.admin-notifications.bullet.4':
     '底部的“用户默认值”：针对每个事件和渠道，为尚未自行更改的所有人设为“开启”“关闭”或“封锁”。',
-  'help.guide.default-user-settings.step.2': '你设置过的字段，名称旁边会出现重置链接，点击即可恢复 TREK 的内置默认值。',
+  'help.guide.default-user-settings.step.2': '你设置过的字段，名称旁边会出现重置链接，点击即可恢复游芽的内置默认值。',
   'help.guide.own-routing-engine.title': '使用你自己的路径规划服务器',
   'help.guide.admin-passkeys.result': '登录页面会出现“使用通行密钥登录”，用户可以在自己的设置中添加通行密钥。',
   'help.guide.rotate-jwt-secret.goal': '怀疑密钥泄露后，让所有会话立即失效。',
@@ -6107,7 +6101,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.step.1': '把鼠标悬停在当天的预订行上，行左侧出现的手柄表示可以拖动。',
   'help.guide.place-image-from-file.tip.1': '只提供 JPG、PNG、GIF 和 WebP 文件，PDF 票据不在其中。',
   'help.guide.place-own-hours.step.4':
-    '“营业时间”右侧的按钮：复制按钮会把周一的时间应用到每一天，X 则再次移除你填写的时间。如果 TREK 自己找到了营业时间，点击“从地点详情获取”可以把它们找回来。',
+    '“营业时间”右侧的按钮：复制按钮会把周一的时间应用到每一天，X 则再次移除你填写的时间。如果游芽自己找到了营业时间，点击“从地点详情获取”可以把它们找回来。',
   'help.guide.confirm-stay-booking.step.2': '预订会在计划上方打开。标题栏中的第一个标签显示它的状态。',
   'help.ctx.trip-map.bullet.9':
     '旅行中的每条路线都是一条带自己颜色的线，起点处有一个图钉。点击线条可打开这条路线的卡片。在安排了路线的那一天，当天的路线会通向这条路线的起点，并从它的终点继续。“游览”列表中路线旁边的眼睛图标，即“在地图上隐藏”，可以把它的线条从你的地图上隐藏。',
@@ -6121,7 +6115,7 @@ const help: TranslationStrings = {
   'help.guide.export-transports-csv.tip.1': '只有标签页里至少有一段行程时，工具栏中才有这个图标。',
   'help.guide.group-sort-bookings.step.1': '在“卡片”或“列表”视图中，点击“视图选项”，即三个视图图标后面的滑块图标。',
   'help.guide.create-booking.tip.4':
-    '离线时，预订会保存在本设备上，重新联网后自动同步。新文件需要联网，所以请先移除它们，或稍后再保存。如果误点了表单外部，或按了 Esc 键，TREK 会先询问“放弃更改？”，不会直接丢掉你输入的内容。',
+    '离线时，预订会保存在本设备上，重新联网后自动同步。新文件需要联网，所以请先移除它们，或稍后再保存。如果误点了表单外部，或按了 Esc 键，游芽会先询问“放弃更改？”，不会直接丢掉你输入的内容。',
   'help.guide.booking-on-map.tip.2': '住宿会定位到它的第一晚。',
   'help.guide.export-bookings-csv.step.3': '点击“导出为电子表格 (CSV)”，即“视图选项”后面的下载图标。',
   'help.guide.arrange-packing-list.step.3':
@@ -6131,7 +6125,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     '点击工具栏最右端的“文档同步”。旅行已绑定时，你的文档服务卡片会在右侧打开。有多个文档服务时，点击左侧“当前行程”下你想用的那一个。',
   'help.guide.files-sync-settings.tip.3':
-    '“即时更新”（一个链接，旁边是“复制”）只出现在 TREK 无法自动订阅变更的文档服务上。把链接粘贴到文档服务中，变更就会立即送达，而不用等到下一次检查。',
+    '“即时更新”（一个链接，旁边是“复制”）只出现在游芽无法自动订阅变更的文档服务上。把链接粘贴到文档服务中，变更就会立即送达，而不用等到下一次检查。',
   'help.guide.manage-notes.step.1': '点击笔记卡片标题栏中的三个点（“更多选项”）。菜单里有“展开”“置顶”“编辑”和“删除”。',
   'help.guide.note-categories.title': '把笔记分到不同分类',
   'help.guide.note-categories.result': '笔记会使用新的名称和颜色，“笔记”卡片只显示你选中的分类。',
@@ -6147,7 +6141,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     '地点的照片占满屏幕，箭头可以翻看其来源中的其他照片。关闭它们就回到对话框，点击“取消”会让停靠点保持原样。',
   'help.guide.roadtrip-stop-photo.tip.1':
-    '图片是地点自己的图片，也就是你在地点表单中设置的那张。没有的话，如果地点来自 Google 或 OpenStreetMap，TREK 会显示其来源提供的照片。',
+    '图片是地点自己的图片，也就是你在地点表单中设置的那张。没有的话，如果地点来自 Google 或 OpenStreetMap，游芽会显示其来源提供的照片。',
   'help.guide.roadtrip-stop-photo.tip.2':
     '在手机上，点按“公路旅行”标签页中的停靠点：它的面板会在名称下方以整个宽度显示图片，点按图片就能打开照片。',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -6168,7 +6162,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     '把带阶段的路线拖到某一天上，会在一个小对话框中询问同样的问题。点击“取消”则让计划保持原样。',
   'help.guide.tour-day-times.step.2':
-    '设置“开始”，“结束”留空。字段下方的一行会说明 TREK 推算出的结束时间：开始时间加上路线的用时。',
+    '设置“开始”，“结束”留空。字段下方的一行会说明游芽推算出的结束时间：开始时间加上路线的用时。',
   'help.guide.tour-remove-from-day.title': '把路线从某一天移除',
   'help.guide.tour-filter-list.title': '筛选路线列表',
   'help.guide.tour-filter-list.tip.3':
@@ -6180,7 +6174,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     '这张卡片用来阅读，以及处理与路线相关的事项。路线本身要在“游览”标签页中修改：打开它，点击“本次旅行的游览活动”下的路线。删除路线也在那里进行，不在这里。',
   'help.guide.tour-detail-read.step.6':
-    '继续向下滚动，依次是“描述”和“笔记”，然后是“来源”：在 TREK 中规划、导入时的文件，或来自的 wanderer 路线，并带有日期。',
+    '继续向下滚动，依次是“描述”和“笔记”，然后是“来源”：在游芽中规划、导入时的文件，或来自的 wanderer 路线，并带有日期。',
   'help.guide.tour-rename-colour.title': '重命名路线并更改颜色',
   'help.guide.tour-rename-colour.result': '路线在旅行的各处都显示新名称，线条也用你选的颜色绘制。',
   'help.guide.tour-take-along.tip.3': '文件来自服务器，所以需要联网。离线创建的路线要等同步之后才能下载。',
@@ -6192,7 +6186,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     '点击“在地图上比较”，把实际轨迹以点线画在计划旁边。点击“结束比较”可再次移除。',
   'help.guide.tour-origin-check.step.2':
-    '“已导入”显示导入的日期。“此处”显示它现在的状态：“与导入时相同”“已在 TREK 中编辑”，或“已重新规划，记录的轨迹已保留”。',
+    '“已导入”显示导入的日期。“此处”显示它现在的状态：“与导入时相同”“已在游芽中编辑”，或“已重新规划，记录的轨迹已保留”。',
   'help.ctx.trip-tour-planner.bullet.1':
     '开启“游览”扩展时，“游览”位于旅行标签栏中“计划”之后；旅行的所有者可以在“旅行设置”的“附加组件”中开关它。电脑和平板上有这个标签页，手机上则可以在“计划”标签页查看路线并安排到某一天，但不能绘制。',
   'help.guide.tour-open-workspace.step.1': '点击旅行标签栏中“计划”之后的“游览”。地图占满屏幕，两侧各有一个侧栏。',
@@ -6305,11 +6299,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.2': '打开“路线类型”，选择“划桨游”，即“水上，皮划艇、独木舟或桨板”。',
   'help.guide.tour-paddle-setup.tip.3': '划桨游的“沿途”会优先查找“下水点”“租船”和“饮用水”。',
   'help.guide.tour-paddle-water-route.step.4':
-    'TREK 无法规划的路段会变红并说明原因，例如该区域还没有水域数据。点击“画直线”可以先手动画出它。',
+    '游芽无法规划的路段会变红并说明原因，例如该区域还没有水域数据。点击“画直线”可以先手动画出它。',
   'help.guide.tour-paddle-portage.goal': '标记你需要搬运船只的一段，让它按陆地计算，并计入上岸和重新下水的时间。',
   'help.guide.tour-paddle-portage.tip.3': '在你于“用时估算”卡片中设置自己的“搬运速度”之前，搬运按 2 km/h 计算。',
   'help.guide.tour-paddle-lock.tip.1':
-    'TREK 不知道船闸的运行时间表。时间只是你输入的数值，所以请自己核实船闸的开放时间。',
+    '游芽不知道船闸的运行时间表。时间只是你输入的数值，所以请自己核实船闸的开放时间。',
   'help.guide.tour-paddle-time.step.3':
     '“水上”一行是按你的“划桨速度”算出的水上距离。要改速度，请在栏顶部的“划桨速度”字段中修改。',
   'help.guide.tour-paddle-wind.goal': '查看你划桨当天路线起点的风速预报。',

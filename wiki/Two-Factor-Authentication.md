@@ -4,7 +4,7 @@
 
 ## What it is
 
-TREK supports Time-based One-Time Password (TOTP) two-factor authentication, compatible with Google Authenticator, Authy, 1Password, and any standard TOTP app. When 2FA is active, you enter a 6-digit code (or a backup code) after your password on each login.
+YOUYA supports Time-based One-Time Password (TOTP) two-factor authentication, compatible with Google Authenticator, Authy, 1Password, and any standard TOTP app. When 2FA is active, you enter a 6-digit code (or a backup code) after your password on each login.
 
 ## Setting up 2FA
 
@@ -18,7 +18,7 @@ Go to **Settings → Account**, find the **Two-factor authentication (2FA)** car
 
 ## Logging in with 2FA
 
-After entering your email and password, TREK shows a second prompt for your TOTP code. You have **5 minutes** to complete this second step before the intermediate session token expires. Enter either:
+After entering your email and password, YOUYA shows a second prompt for your TOTP code. You have **5 minutes** to complete this second step before the intermediate session token expires. Enter either:
 
 - The current 6-digit code from your authenticator app, or
 - One of your backup codes (format `XXXX-XXXX`). Each backup code can only be used once.
@@ -40,7 +40,7 @@ An admin can require 2FA for all users. Before enabling this setting the admin m
 
 If the setting is active and your account has neither 2FA nor a passkey, any API request after login returns a 403 error and the client redirects you to **Settings → Account** with a prompt to complete 2FA setup. The 2FA card also carries a notice that your administrator requires it. You cannot use the app until setup is complete. See [Admin-Permissions](Admin-Permissions).
 
-A user-verified **passkey** satisfies this policy the way a TOTP authenticator does: with at least one passkey on your account the API stops blocking you and you never need an authenticator app. That holds even if an admin later turns passkey login off again: an existing passkey keeps satisfying the policy. Real-time sync is the one exception: the WebSocket handshake accepts only TOTP, so a passkey-only account under this policy can use TREK normally but never receives live updates from other members. Nothing tells you; the client simply keeps retrying the connection.
+A user-verified **passkey** satisfies this policy the way a TOTP authenticator does: with at least one passkey on your account the API stops blocking you and you never need an authenticator app. That holds even if an admin later turns passkey login off again: an existing passkey keeps satisfying the policy. Real-time sync is the one exception: the WebSocket handshake accepts only TOTP, so a passkey-only account under this policy can use YOUYA normally but never receives live updates from other members. Nothing tells you; the client simply keeps retrying the connection.
 
 Whether enrolling a passkey is a way *out* of the lockout depends on the instance. Passkey login is off by default (see [Passkeys](Passkeys)); where an admin has turned it on, the enrolment endpoints stay reachable while the rest of the API is blocked, so you can add a passkey from **Settings → Account** instead of setting up an authenticator app. Where it is off, TOTP setup is the only way to unblock yourself, or ask an admin to reset your 2FA.
 
@@ -48,7 +48,7 @@ Whether enrolling a passkey is a way *out* of the lockout depends on the instanc
 
 ## Rate limits
 
-TREK enforces IP-based rate limits to protect against brute-force attacks:
+YOUYA enforces IP-based rate limits to protect against brute-force attacks:
 
 | Endpoint | Limit |
 |---|---|

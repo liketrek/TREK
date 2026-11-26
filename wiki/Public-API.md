@@ -1,8 +1,8 @@
 # Public API
 
-A small, versioned, read-only surface that lets other software read your trips — built for integrations like location trackers, journalling tools and home automation, where something outside TREK wants to know what you planned.
+A small, versioned, read-only surface that lets other software read your trips — built for integrations like location trackers, journalling tools and home automation, where something outside YOUYA wants to know what you planned.
 
-> **Not the same as the internal API.** TREK's own frontend talks to a few hundred endpoints under `/api/…`. Those answer a session cookie, carry no version and change whenever the client changes — they are not a contract, and anything built on them will break. The public API is the opposite promise: a handful of endpoints under `/api/v1/`, authenticated with a key you mint yourself, that will not change shape without a new version number.
+> **Not the same as the internal API.** YOUYA's own frontend talks to a few hundred endpoints under `/api/…`. Those answer a session cookie, carry no version and change whenever the client changes — they are not a contract, and anything built on them will break. The public API is the opposite promise: a handful of endpoints under `/api/v1/`, authenticated with a key you mint yourself, that will not change shape without a new version number.
 
 ## What it can do
 
@@ -20,7 +20,7 @@ It cannot write anything. An integration that reads your itinerary needs no abil
 1. Open **Settings → Integrations** in the desktop layout. The tab is always there and needs no addon: an API key works with MCP and every other integration switched off. The phone layout has no API Keys section yet, so create the key on a wider screen.
 2. Under **API Keys**, click **Create key** and give it a name you will recognise later (the name is only for you — "Dawarich", "home assistant", "laptop script")
 3. Choose **what the key may read.** Everything is selected by default. Anything you switch off is refused for that key.
-4. **Copy the key immediately.** It is shown once. TREK stores only a hash of it, so it cannot be shown again — if you lose it, delete the key and make a new one.
+4. **Copy the key immediately.** It is shown once. YOUYA stores only a hash of it, so it cannot be shown again — if you lose it, delete the key and make a new one.
 
 Keys look like `trek_` followed by 48 characters. You can hold ten at a time.
 
@@ -173,7 +173,7 @@ Places the caller wants to reach, with no trip attached. Its own endpoint becaus
 }
 ```
 
-`target_date` is an aspiration, not a booking. Entries are returned whether or not the Atlas addon is switched on: the addon governs whether TREK shows the feature, not whether the rows exist, and an endpoint whose answers change when an unrelated toggle moves is one nobody can build on.
+`target_date` is an aspiration, not a booking. Entries are returned whether or not the Atlas addon is switched on: the addon governs whether YOUYA shows the feature, not whether the rows exist, and an endpoint whose answers change when an unrelated toggle moves is one nobody can build on.
 
 ### `GET /api/v1/stats`
 
@@ -205,7 +205,7 @@ Totals for a dashboard. Built for widgets like Homepage's `customapi`, which ren
 }
 ```
 
-These are the same figures TREK's own dashboard shows, computed from the same source — a widget cannot disagree with the passport card next to it. In particular `total_countries` follows TREK's notion of *visited*: countries reached only by a flight or train count, layovers do not, and countries hidden by hand in Atlas stay hidden.
+These are the same figures YOUYA's own dashboard shows, computed from the same source — a widget cannot disagree with the passport card next to it. In particular `total_countries` follows YOUYA's notion of *visited*: countries reached only by a flight or train count, layovers do not, and countries hidden by hand in Atlas stay hidden.
 
 `last_trip` is the most recent trip that has **started** — a trip booked for next year is not one you have been on — and is `null` when every trip is still ahead. `country` is the country most of its places sit in, and is the head of `countries`, which lists them all for a trip that crossed a border. Both are empty or `null` for a trip whose places were never geocoded.
 
@@ -214,7 +214,7 @@ These are the same figures TREK's own dashboard shows, computed from the same so
 A Homepage widget then needs no scripting:
 
 ```yaml
-- TREK:
+- YOUYA:
     icon: mdi-map-marker-path
     widget:
       type: customapi
@@ -236,7 +236,7 @@ A Homepage widget then needs no scripting:
 
 ## Notes for integrators
 
-**Join on dates, not ids.** Every day carries an ISO `date`, and accommodations carry a resolved date range rather than internal day ids. If your software keeps its own notion of a trip, the date is the one thing both sides can agree on. TREK's internal ids are not in the payload at all, by design — they would tie you to storage details that are free to change.
+**Join on dates, not ids.** Every day carries an ISO `date`, and accommodations carry a resolved date range rather than internal day ids. If your software keeps its own notion of a trip, the date is the one thing both sides can agree on. YOUYA's internal ids are not in the payload at all, by design — they would tie you to storage details that are free to change.
 
 **One request, not many.** Rather than separate endpoints per section, `?include=` lets you fetch exactly what you need in a single call. Fetching a trip four times for four sections would burn your rate budget for no benefit.
 
@@ -254,14 +254,14 @@ A Homepage widget then needs no scripting:
 | `404` | no such trip, or not one of yours |
 | `429` | rate limit exceeded |
 
-**Which TREK is running.** To check the running version, for example against the latest GitHub release, call `GET /api/auth/app-config`. It needs no key and no login, and the `version` field holds the running version (such as `5.0.0`). It is not part of `/api/v1`, so it follows the app's own release rather than the promise below.
+**Which YOUYA is running.** To check the running version, for example against the latest GitHub release, call `GET /api/auth/app-config`. It needs no key and no login, and the `version` field holds the running version (such as `5.0.0`). It is not part of `/api/v1`, so it follows the app's own release rather than the promise below.
 
 **Versioning.** `/api/v1` may gain fields; it will not lose them or change their types. A breaking change ships as `/api/v2` and both run side by side for a transition period. Write your client to ignore fields it does not know.
 
 ## What is not here yet
 
 - **Writing.** Read-only. A key that can only read is a very different thing to hand to third-party software, and every integration asking for this surface so far wants to read.
-- **Incremental sync.** There is no `?since=` filter, because TREK cannot yet answer it truthfully — child records carry no modification timestamp, so a filter on `updated_at` would silently hide trips whose itinerary changed. Fetch the list and compare.
+- **Incremental sync.** There is no `?since=` filter, because YOUYA cannot yet answer it truthfully — child records carry no modification timestamp, so a filter on `updated_at` would silently hide trips whose itinerary changed. Fetch the list and compare.
 - **Webhooks.** Nothing pushes; poll at a sensible interval.
 
 If you are building something and one of these blocks you, open a discussion — the surface is meant to grow around real integrations rather than ahead of them.

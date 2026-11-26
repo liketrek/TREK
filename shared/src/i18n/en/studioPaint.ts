@@ -1,6 +1,6 @@
 import type { TranslationStrings } from '../types';
 
-/** TREK Studio: paint, gradients, patterns and the page background. */
+/** YOUYA Studio: paint, gradients, patterns and the page background. */
 const studioPaint: TranslationStrings = {
   'journey.studio.paint.kind': 'Fill type',
   'journey.studio.paint.none': 'None',

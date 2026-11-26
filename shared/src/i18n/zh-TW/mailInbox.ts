@@ -4,7 +4,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.title': '待處理的預訂',
   'mailInbox.pendingCount': '有 {count} 筆預訂等你處理',
   'mailInbox.empty': '沒有待處理的內容',
-  'mailInbox.emptyHint': 'TREK 無法自動加入的預訂會顯示在這裡，並附上每一筆可以怎麼處理。',
+  'mailInbox.emptyHint': '游芽無法自動加入的預訂會顯示在這裡，並附上每一筆可以怎麼處理。',
   'mailInbox.untitled': '預訂郵件',
   'mailInbox.showMail': '查看郵件',
   'mailInbox.backToList': '返回清單',
@@ -63,10 +63,10 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.renewConfirm': '再點一次：舊地址將失效',
   'mailInbox.settings.renewed': '你的新地址已就緒',
   'mailInbox.settings.saveError': '無法儲存',
-  'mailInbox.settings.addressHint': '把預訂確認郵件轉寄到此地址，TREK 會把它們加入正確的旅行中。請像密碼一樣妥善保管。',
+  'mailInbox.settings.addressHint': '把預訂確認郵件轉寄到此地址，游芽會把它們加入正確的旅行中。請像密碼一樣妥善保管。',
   'mailInbox.settings.howTo': '自動轉寄',
   'mailInbox.settings.howToGmail':
-    'Gmail：設定，轉寄和 POP/IMAP，新增轉寄地址。Gmail 會寄出一組驗證碼，它會顯示在「待處理的預訂」中。接著為預訂寄件者新增一個篩選器，轉寄到 TREK。',
+    'Gmail：設定，轉寄和 POP/IMAP，新增轉寄地址。Gmail 會寄出一組驗證碼，它會顯示在「待處理的預訂」中。接著為預訂寄件者新增一個篩選器，轉寄到游芽。',
   'mailInbox.settings.howToOutlook':
     'Outlook：設定，郵件，規則，新增一條轉寄預訂郵件的規則。部分工作帳戶會禁止自動轉寄，此時請手動轉寄。',
   'mailInbox.settings.howToManual': '手動：轉寄任何預訂郵件，包括附件。',
@@ -77,7 +77,7 @@ const mailInbox: TranslationStrings = {
   'mailInbox.settings.aiUnavailable':
     '需要 {addon} 外掛程式和由管理員設定的 AI 連線。在此之前，只會讀取含有機器可讀訂位資料的郵件。',
   'mailInbox.settings.autoAdd': '自動加入',
-  'mailInbox.settings.autoAddHint': 'TREK 有把握的預訂會直接加入旅行，7 天內可以復原。關閉後，每筆預訂都會等你確認。',
+  'mailInbox.settings.autoAddHint': '游芽有把握的預訂會直接加入旅行，7 天內可以復原。關閉後，每筆預訂都會等你確認。',
   'mailInbox.settings.upload': '上傳郵件檔案',
   'mailInbox.settings.uploaded': '已收到郵件，正在讀取',
   'mailInbox.settings.uploadDuplicate': '這封郵件已經匯入過了',

@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const demo: TranslationStrings = {
   // The welcome dialog a demo instance opens with (components/Demo/DemoWelcome).
   'demo.welcome.eyebrow': 'Live demo',
-  'demo.welcome.title': 'Welcome to TREK',
+  'demo.welcome.title': 'Welcome to YOUYA',
   'demo.welcome.tagline':
     'The travel planner you share: plan together on the map in real time, from the first idea to the photo book after the trip.',
   'demo.welcome.resetTitle': 'Everything resets every hour',
@@ -17,7 +17,7 @@ const demo: TranslationStrings = {
   'demo.feature.tours.title': 'Tours and hikes',
   'demo.feature.tours.body':
     'Plan a hike along the trail network and follow it over 3D terrain with its elevation profile.',
-  'demo.feature.studio.title': 'Photo books in TREK Studio',
+  'demo.feature.studio.title': 'Photo books in YOUYA Studio',
   'demo.feature.studio.body': 'Turn a journey into a designed photo book, page by page.',
   'demo.feature.collab.title': 'Plan together live',
   'demo.feature.collab.body':
@@ -31,7 +31,7 @@ const demo: TranslationStrings = {
   'demo.feature.collections.title': 'Collections',
   'demo.feature.collections.body': 'Save places across trips in lists of your own and copy them into any plan.',
   'demo.feature.offline.title': 'Works offline',
-  'demo.feature.offline.body': 'Install TREK as an app and keep your plans, maps and lists without a connection.',
+  'demo.feature.offline.body': 'Install YOUYA as an app and keep your plans, maps and lists without a connection.',
   'demo.welcome.limitsTitle': 'Not part of the demo',
   'demo.limit.uploads': 'Uploading photos, documents and covers',
   'demo.limit.account': 'Changing the account, its password or 2FA',
@@ -50,7 +50,7 @@ const demo: TranslationStrings = {
   // The photo credits, the welcome dialog's second view (components/Demo/DemoCredits).
   'demo.credits.title': 'Photo credits',
   'demo.credits.intro':
-    'The photos in this demo come from Wikimedia Commons, each under the license named with it. That license applies to the photo only, not to TREK or the rest of the demo.',
+    'The photos in this demo come from Wikimedia Commons, each under the license named with it. That license applies to the photo only, not to YOUYA or the rest of the demo.',
   'demo.credits.by': 'by {author}',
   'demo.credits.publicDomain': 'Public domain',
   'demo.credits.back': 'Back',

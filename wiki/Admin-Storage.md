@@ -1,6 +1,6 @@
 # Admin: Storage
 
-The **Storage** tab (Admin Panel > Configuration > Storage) controls where TREK stores each
+The **Storage** tab (Admin Panel > Configuration > Storage) controls where YOUYA stores each
 kind of content: which storage backends exist, which content category writes
 to which backend, and whether writes are replicated to additional backends.
 
@@ -72,7 +72,7 @@ you save.
 
 ## Categories
 
-Every kind of content TREK stores belongs to one of eight categories, each
+Every kind of content YOUYA stores belongs to one of eight categories, each
 assigned to exactly one backend:
 
 | Category | Id | What it stores |
@@ -83,7 +83,7 @@ assigned to exactly one backend:
 | Profile pictures | `avatars` | User account profile pictures |
 | Place images | `places` | Images attached to places and collection places, uploaded or imported |
 | Google photo cache | `photos-google` | Cached copies of Google Places photos, re-fetchable, safe to lose |
-| TREK photo cache | `photos-trek` | Cached photos from the TREK photo service used by Memories, re-fetchable, safe to lose |
+| YOUYA photo cache | `photos-trek` | Cached photos from the YOUYA photo service used by Memories, re-fetchable, safe to lose |
 | Backups | `backups` | Server backup archives created by the Backup panel or schedule |
 
 Reassigning a category changes where **new** objects go. If the category
@@ -95,7 +95,7 @@ served from wherever they already are. Replicating the Google photo cache or
 Place images is flagged as not recommended; both hold content that is
 re-fetchable or provider-derived.
 
-The legacy `/uploads/photos` directory written by older TREK versions is not
+The legacy `/uploads/photos` directory written by older YOUYA versions is not
 a category: its files are still served and included in backups, but nothing
 writes there anymore and it cannot be reassigned.
 
@@ -129,10 +129,10 @@ includes the legacy photo library.
 
 Uploaded files can outlive what used them. When you delete or replace
 something that shows a file (a trip or list cover, a place image, a journal
-photo, an avatar, a trip file), TREK deletes that file about a day later,
+photo, an avatar, a trip file), YOUYA deletes that file about a day later,
 unless something still shows it by then: a copied trip, a journey that took
 over the trip cover, a saved place in a list, or the old value written back by
-an undo. The day is the longest any undo in TREK can bring a file back (a
+an undo. The day is the longest any undo in YOUYA can bring a file back (a
 change the assistant proposed can still be applied for 24 hours). This runs
 whether or not deletion is switched on below, as deleting always did, with the
 same checks the nightly cleanup makes. A file whose category stays skipped
@@ -148,13 +148,13 @@ this for every journey they own. Deleting a whole trip releases only its
 cover: the trip's files and its places' images are left to the nightly
 cleanup below. Journal photos of a journey deleted before your instance ran a
 version with this behaviour are the exception: their photo entries were kept,
-so TREK still counts those files as used and neither the release nor the
+so YOUYA still counts those files as used and neither the release nor the
 nightly check removes them.
 
 Whatever is left over after that (files of deleted trips and users, files
 from before this check existed) is found by a check every night at 04:05
 server time. It looks at the covers, place images, avatars, trip files and journal
-photos for files that nothing in TREK names any more, and the **Unreferenced
+photos for files that nothing in YOUYA names any more, and the **Unreferenced
 files** section shows what it found:
 
 - **Can be freed**: unused on every check for at least a week, so the nightly
@@ -178,7 +178,7 @@ went per category.
 When more than a fifth of a category's files look unused, the check marks it
 and deletes nothing there until you confirm it with **Confirm** next to the
 category. You confirm the number shown: if a newer check found a clearly
-different number in the meantime, TREK asks you to look again first. A
+different number in the meantime, YOUYA asks you to look again first. A
 confirmation covers that number plus half as much again (at least a hundred
 more files), so the few files a busy instance leaves behind while the backlog
 drains do not undo it, and it lasts two weeks. Once the category is back under
@@ -187,10 +187,10 @@ long-running instance with many old leftovers usually needs this once.
 
 A category is skipped for that night, with the reason shown next to it, when:
 
-- not every part of TREK could be asked about it;
+- not every part of YOUYA could be asked about it;
 - its files share a location with another category's;
-- another TREK installation keeps its files in the same place (see below), or
-  TREK could not leave its own mark there;
+- another YOUYA installation keeps its files in the same place (see below), or
+  YOUYA could not leave its own mark there;
 - listing it or asking about it failed. What the earlier nights found stays,
   so one failure does not restart anyone's week;
 - deleting failed on the storage backend: the check then stops deleting in
@@ -208,15 +208,15 @@ Backups leave these files out. If you moved an installation and a stale
 `trek-owner-<id>` of its old self remains, delete that one file to let the
 check work there again.
 
-TREK versions from before this check write no such file, so an installation
-cannot tell that an older TREK shares its bucket or folder. Keep deletion off
-on a location you share with an older TREK, or upgrade both first.
+YOUYA versions from before this check write no such file, so an installation
+cannot tell that an older YOUYA shares its bucket or folder. Keep deletion off
+on a location you share with an older YOUYA, or upgrade both first.
 
 **Which installation this is** lives in the file `.trek-install-id` in the
 data folder (next to `travel.db`), made on the first start. Backups never
 contain it and no restore writes it. When the database names another
 installation than that file, or none (a backup or a database file from
-another installation), TREK switches deletion off and forgets what earlier
+another installation), YOUYA switches deletion off and forgets what earlier
 checks found, what you confirmed and what was waiting to be deleted, before
 anything else runs. Every restore does the same, also of a backup of this
 installation: one in the admin panel right after it, one with
@@ -224,7 +224,7 @@ installation: one in the admin panel right after it, one with
 `.trek-reclaim-reset` in the data folder until this is done, so a restart
 after a restore that failed half way does it as well; backups never contain
 that file either. A database file of this installation that you put in place
-by hand while TREK was stopped is not told apart: use a restore for that.
+by hand while YOUYA was stopped is not told apart: use a restore for that.
 Switch deletion on again once you have looked at the next report. A copy of the whole data folder carries the file with it and looks
 like the same installation: give a clone its own data folder, or delete
 `.trek-install-id` in the copy before its first start. If the file is lost or

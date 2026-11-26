@@ -4,14 +4,14 @@
 
 ## What OIDC gives you
 
-OpenID Connect (OIDC) lets users log in with an existing identity provider (Google, Authentik, Keycloak, or any OIDC-compatible IdP) instead of a local email/password. On first SSO login, a TREK account is created automatically using the email from the provider.
+OpenID Connect (OIDC) lets users log in with an existing identity provider (Google, Authentik, Keycloak, or any OIDC-compatible IdP) instead of a local email/password. On first SSO login, a YOUYA account is created automatically using the email from the provider.
 
 ## User flow
 
 1. Click **"Sign in with SSO"** on the login page.
 2. You are redirected to your identity provider's login page.
 3. Authenticate and grant consent.
-4. The provider redirects back to TREK at `GET /api/auth/oidc/callback`. If this is your first login, an account is created automatically (subject to registration settings).
+4. The provider redirects back to YOUYA at `GET /api/auth/oidc/callback`. If this is your first login, an account is created automatically (subject to registration settings).
 5. The server issues a short-lived one-time code and redirects your browser to `/login?oidc_code=<code>`. The frontend immediately exchanges that code at `GET /api/auth/oidc/exchange?code=<code>` to obtain the session: the exchange sets the `trek_session` cookie and answers `{ "success": true }`. The same body still carries the session JWT as `token` for API clients; that field is deprecated and will be removed in a future major version.
    The code is only half of what the exchange needs: the callback also sets a one-minute `HttpOnly` cookie (`trek_oidc_exchange`) holding a secret that never appears in a URL, and the exchange requires both. A code copied out of the address bar, out of history, or out of a proxy log is therefore worthless in any other browser, and it is spent by the first attempt to redeem it whether that attempt succeeds or not. If your reverse proxy strips cookies on the way back from the identity provider, SSO login will fail here with `Invalid or expired code`.
 6. Your `trek_session` cookie is set and you land on the dashboard.
@@ -36,7 +36,7 @@ Set the following environment variables before starting the server:
 
 | Variable | Required | Description |
 |---|---|---|
-| `APP_URL` | Yes | Base URL of your TREK instance (e.g. `https://trek.example.com`). Used to build the redirect URI. **Env var only, not configurable via the admin panel.** If it is unset, TREK falls back to the first `ALLOWED_ORIGINS` entry, and only if that one is missing or unparseable to `http://localhost:{PORT}`, which produces a redirect URI your IdP will reject. A scheme-less `ALLOWED_ORIGINS=trek.example.com` does not parse, so it ends up on localhost too. A set but unparseable `APP_URL` does not fall back: the server refuses to start with `Invalid environment configuration` naming `APP_URL`. |
+| `APP_URL` | Yes | Base URL of your YOUYA instance (e.g. `https://trek.example.com`). Used to build the redirect URI. **Env var only, not configurable via the admin panel.** If it is unset, YOUYA falls back to the first `ALLOWED_ORIGINS` entry, and only if that one is missing or unparseable to `http://localhost:{PORT}`, which produces a redirect URI your IdP will reject. A scheme-less `ALLOWED_ORIGINS=trek.example.com` does not parse, so it ends up on localhost too. A set but unparseable `APP_URL` does not fall back: the server refuses to start with `Invalid environment configuration` naming `APP_URL`. |
 | `OIDC_ISSUER` | Yes | Issuer URL of your identity provider. Must use HTTPS in production. |
 | `OIDC_CLIENT_ID` | Yes | OAuth 2.0 client ID registered with your IdP. |
 | `OIDC_CLIENT_SECRET` | Yes | OAuth 2.0 client secret. |
@@ -55,15 +55,15 @@ For example: `https://trek.example.com/api/auth/oidc/callback`
 |---|---|
 | `OIDC_DISPLAY_NAME` | Label shown on the SSO button. Defaults to `SSO`. |
 | `OIDC_ONLY` | Set to `true` to disable local password login and password registration. SSO login and SSO registration remain governed by their own toggles. This is an environment-variable-only setting and cannot be toggled at runtime via the admin panel. |
-| `OIDC_ADMIN_CLAIM` | OIDC claim to inspect for admin role mapping. Defaults to `groups`. The claim value may be an array or a plain string. The claim only reaches TREK if one of the scopes in `OIDC_SCOPE` carries it (see *Admin role mapping* below). **Env var only, not configurable via the admin panel.** |
+| `OIDC_ADMIN_CLAIM` | OIDC claim to inspect for admin role mapping. Defaults to `groups`. The claim value may be an array or a plain string. The claim only reaches YOUYA if one of the scopes in `OIDC_SCOPE` carries it (see *Admin role mapping* below). **Env var only, not configurable via the admin panel.** |
 | `OIDC_ADMIN_VALUE` | Value that must be present in `OIDC_ADMIN_CLAIM` to grant the admin role. If unset, claim-based role mapping is disabled. When set, the role is re-evaluated on every login. **Env var only, not configurable via the admin panel.** |
-| `OIDC_USERNAME_CLAIM` | Claim the username of a new account is built from. Defaults to `name`, then `preferred_username`, then the part of the email before the `@`. Set it to `preferred_username` for providers like Pocket ID whose `name` is the full "Jane Doe". Only read when the account is created, so a username changed later in TREK stays; when the provider leaves the claim empty, the default order applies. **Env var only, not configurable via the admin panel.** |
+| `OIDC_USERNAME_CLAIM` | Claim the username of a new account is built from. Defaults to `name`, then `preferred_username`, then the part of the email before the `@`. Set it to `preferred_username` for providers like Pocket ID whose `name` is the full "Jane Doe". Only read when the account is created, so a username changed later in YOUYA stays; when the provider leaves the claim empty, the default order applies. **Env var only, not configurable via the admin panel.** |
 | `OIDC_SCOPE` | Overrides the default scope list sent to the provider. Defaults to `openid email profile`. Ensure `openid` and `email` are always included, plus whichever scope carries your `OIDC_ADMIN_CLAIM`. **Env var only, not configurable via the admin panel.** |
 | `OIDC_DISCOVERY_URL` | Full URL to the OIDC discovery document. Use this for providers with non-standard discovery paths (e.g. Authentik tenants). If unset, discovery is attempted at `<OIDC_ISSUER>/.well-known/openid-configuration`. The discovery document is cached for 1 hour. |
 
 ## Admin role mapping
 
-TREK requests exactly the scopes listed in `OIDC_SCOPE` and nothing else, and a provider only emits a claim when a requested scope carries it. So a claim that is not covered by `OIDC_SCOPE` never arrives, and a claim that never arrives can never grant the admin role, no matter how `OIDC_ADMIN_CLAIM` is spelled.
+YOUYA requests exactly the scopes listed in `OIDC_SCOPE` and nothing else, and a provider only emits a claim when a requested scope carries it. So a claim that is not covered by `OIDC_SCOPE` never arrives, and a claim that never arrives can never grant the admin role, no matter how `OIDC_ADMIN_CLAIM` is spelled.
 
 Authentik is the usual example: `groups` rides the default `profile` scope, so it works out of the box, while `entitlements` has a scope of its own. Mapping admins onto an entitlement therefore takes all three variables:
 
@@ -75,13 +75,13 @@ OIDC_SCOPE=openid email profile entitlements
 
 Keycloak (group and role mappers carry their own "Add to userinfo" switch) and Entra ID (optional claims) behave the same way: whatever the claim is called, check that its scope is requested.
 
-If the configured claim is missing from the userinfo response entirely, TREK leaves the stored role untouched (a claim that never arrived is not a statement that somebody is no longer an admin) and writes one line to the server log naming the claim it looked for and the claims it did receive. Read that line first when role mapping does not do what you expect. A claim that *does* arrive without `OIDC_ADMIN_VALUE` in it still demotes on the next login; that is how the mapping takes admin away. Every role change it makes is recorded in the admin audit log.
+If the configured claim is missing from the userinfo response entirely, YOUYA leaves the stored role untouched (a claim that never arrived is not a statement that somebody is no longer an admin) and writes one line to the server log naming the claim it looked for and the claims it did receive. Read that line first when role mapping does not do what you expect. A claim that *does* arrive without `OIDC_ADMIN_VALUE` in it still demotes on the next login; that is how the mapping takes admin away. Every role change it makes is recorded in the admin audit log.
 
 ### Taking admin away
 
-Some providers omit a claim instead of sending it empty. Okta emits a filtered `groups` claim only when the filter matches at least one group, and Entra ID leaves `groups` out for a user who is in no group at all. **On those providers, removing somebody from the admin group does not demote them in TREK.** Their next login carries no claim, and no claim means no verdict, so the account keeps `admin` for as long as it exists. Take the role away in TREK as well, in **Admin → Users** ([Admin-Users-and-Invites](Admin-Users-and-Invites)); the IdP side alone is not enough.
+Some providers omit a claim instead of sending it empty. Okta emits a filtered `groups` claim only when the filter matches at least one group, and Entra ID leaves `groups` out for a user who is in no group at all. **On those providers, removing somebody from the admin group does not demote them in YOUYA.** Their next login carries no claim, and no claim means no verdict, so the account keeps `admin` for as long as it exists. Take the role away in YOUYA as well, in **Admin → Users** ([Admin-Users-and-Invites](Admin-Users-and-Invites)); the IdP side alone is not enough.
 
-TREK writes a warning to the server log on **every** login where this happens, naming the account, so `docker logs trek | grep OIDC` lists the users it affects:
+YOUYA writes a warning to the server log on **every** login where this happens, naming the account, so `docker logs trek | grep OIDC` lists the users it affects:
 
 ```
 [OIDC] User 7 (alex) is stored as an admin and the configured OIDC_ADMIN_CLAIM "groups" was not in their userinfo response, so the admin role is kept. …
@@ -91,7 +91,7 @@ A provider that sends the claim as an empty list instead of dropping it is not a
 
 ## New-user registration via SSO
 
-When an SSO login matches an existing TREK account by OIDC subject (`sub`), that account is used directly. When it matches only by **email**, the OIDC identity is linked to that account only if the provider asserts `email_verified` for it; if the claim is missing or false the login is rejected with an `email_not_verified` error, so an unverified address can never take over a local account. Make sure your IdP includes `email_verified` in the userinfo response; it is part of the `email` scope. If no matching account exists, TREK attempts to create one. The outcome depends on the following:
+When an SSO login matches an existing YOUYA account by OIDC subject (`sub`), that account is used directly. When it matches only by **email**, the OIDC identity is linked to that account only if the provider asserts `email_verified` for it; if the claim is missing or false the login is rejected with an `email_not_verified` error, so an unverified address can never take over a local account. Make sure your IdP includes `email_verified` in the userinfo response; it is part of the `email` scope. If no matching account exists, YOUYA attempts to create one. The outcome depends on the following:
 
 - **First user ever**: always created as admin, no invite required.
 - **Open SSO registration enabled** (**SSO Auto-Provisioning** in **Admin → Settings**, card **Authentication Methods**; setting `oidc_registration`): account is created as a regular user.
@@ -100,7 +100,7 @@ When an SSO login matches an existing TREK account by OIDC subject (`sub`), that
 
 ### How an existing account gets linked
 
-An SSO login that finds no account by its subject falls back to the email address. It links the TREK account with that address only when all of these hold:
+An SSO login that finds no account by its subject falls back to the email address. It links the YOUYA account with that address only when all of these hold:
 
 - **The provider confirms the address.** `email_verified` has to be true, otherwise the login ends with `email_not_verified`.
 - **The address did not come from the account itself.** An address typed into the signup form or changed under **Settings** proves nothing about who owns it, so a login with that address ends with `email_link_blocked` and the user sees a message to ask the admin. Addresses an admin entered (an account created in **Admin → Users**, or an email changed there), the first account of the instance and accounts the provider created are linked as before.

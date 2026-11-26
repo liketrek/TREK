@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const demo: TranslationStrings = {
   // The welcome dialog a demo instance opens with (components/Demo/DemoWelcome).
   'demo.welcome.eyebrow': '在线演示',
-  'demo.welcome.title': '欢迎使用 TREK',
+  'demo.welcome.title': '欢迎使用游芽',
   'demo.welcome.tagline': '可以共享的旅行规划工具：在地图上实时一起规划，从最初的想法到旅行之后的照片书。',
   'demo.welcome.resetTitle': '每小时一切都会重置',
   'demo.welcome.resetBody': '随意浏览、编辑和创建。每到整点，演示都会恢复到初始状态，留给下一位访客。',
@@ -13,7 +13,7 @@ const demo: TranslationStrings = {
   'demo.feature.planner.body': '地图上的日程、地点和路线，以及航班、酒店、餐厅、预订和共同费用。',
   'demo.feature.tours.title': '路线与徒步',
   'demo.feature.tours.body': '在步道网络上规划徒步路线，并在带海拔剖面的 3D 地形上跟随。',
-  'demo.feature.studio.title': 'TREK Studio 照片书',
+  'demo.feature.studio.title': '游芽 Studio 照片书',
   'demo.feature.studio.body': '把一段旅程一页一页做成精心设计的照片书。',
   'demo.feature.collab.title': '实时一起规划',
   'demo.feature.collab.body': '旅行中的每个人都能即时看到每处变化，还有聊天、笔记和投票。',
@@ -26,7 +26,7 @@ const demo: TranslationStrings = {
   'demo.feature.collections.title': '收藏夹',
   'demo.feature.collections.body': '把不同旅行中的地点保存到自己的列表，并复制到任何计划中。',
   'demo.feature.offline.title': '离线可用',
-  'demo.feature.offline.body': '把 TREK 安装为应用，没有网络也能使用计划、地图和清单。',
+  'demo.feature.offline.body': '把游芽安装为应用，没有网络也能使用计划、地图和清单。',
   'demo.welcome.limitsTitle': '演示中不提供',
   'demo.limit.uploads': '上传照片、文档和封面',
   'demo.limit.account': '更改账户、密码或 2FA',
@@ -45,7 +45,7 @@ const demo: TranslationStrings = {
   // The photo credits, the welcome dialog's second view (components/Demo/DemoCredits).
   'demo.credits.title': '图片来源',
   'demo.credits.intro':
-    '本演示中的照片来自 Wikimedia Commons，每张照片都采用其旁边注明的许可协议。该许可仅适用于照片本身，不适用于 TREK 或演示的其他部分。',
+    '本演示中的照片来自 Wikimedia Commons，每张照片都采用其旁边注明的许可协议。该许可仅适用于照片本身，不适用于游芽或演示的其他部分。',
   'demo.credits.by': '摄影：{author}',
   'demo.credits.publicDomain': '公有领域',
   'demo.credits.back': '返回',

@@ -13,16 +13,16 @@ const docsync: TranslationStrings = {
   'docsync.newFolderPlaceholder': '新文件夹名称',
   'docsync.syncNow': '立即同步',
   'docsync.unlink': '断开连接',
-  'docsync.confirmUnlink': '文档会保留在 TREK 和文档服务中，消失的只是两者之间的配对。',
+  'docsync.confirmUnlink': '文档会保留在游芽和文档服务中，消失的只是两者之间的配对。',
   'docsync.syncEnabled': '自动同步',
   'docsync.deletePolicy': '当文档被删除时',
   'docsync.deleteUnlink': '两份副本都保留',
   'docsync.deleteTrash': '移入回收站',
   'docsync.conflictPolicy': '当两边都有改动时',
   'docsync.onConflict.manual': '询问我',
-  'docsync.onConflict.trek_wins': '保留 TREK 的副本',
+  'docsync.onConflict.trek_wins': '保留游芽的副本',
   'docsync.onConflict.provider_wins': '保留存储端的副本',
-  'docsync.webhookHint': '把此 URL 粘贴到你的文档服务中，变更就会立即送达。不设置时，TREK 会定时检查。',
+  'docsync.webhookHint': '把此 URL 粘贴到你的文档服务中，变更就会立即送达。不设置时，游芽会定时检查。',
 
   // 连接表单的字段。这些键与 document_provider_fields 表的 `label` 列一一对应，
   // 该列存的是键的后缀，而不是文字本身。
@@ -44,7 +44,7 @@ const docsync: TranslationStrings = {
   'docsync.hintNextcloudLogin': '你的 Nextcloud 登录名，不是邮箱地址。',
   'docsync.hintNextcloudAppPassword': '设置 → 安全 → 创建新的应用密码。切勿使用账户密码。',
   'docsync.hintOpenCloudToken': '在 OpenCloud 的应用令牌中创建。',
-  'docsync.hintBasePath': 'TREK 查找行程文件夹的位置。默认为 /TREK。',
+  'docsync.hintBasePath': '游芽查找行程文件夹的位置。默认为 /TREK。',
   'docsync.hintSynologyUrl': '请包含端口，例如 https://nas.example.com:5001',
   'docsync.hintSynologyUser': '最好使用只能访问此共享文件夹的专用 DSM 账户。',
   'docsync.hintSynologyOtp': '仅在账户启用了两步验证时需要，且只需一次。',
@@ -64,13 +64,13 @@ const docsync: TranslationStrings = {
   'docsync.state.too_large': '文件过大',
   'docsync.state.error': '错误',
   'docsync.state.remote_missing': '文档服务中不存在',
-  'docsync.state.local_deleted': '已在 TREK 中删除',
+  'docsync.state.local_deleted': '已在游芽中删除',
   'docsync.state.scope_drift': '已移出该文件夹',
 
   'docsync.conflict.resolve': '处理 {count} 个',
 
   'docsync.conflict.title': '两份副本都有改动',
-  'docsync.conflict.keepTrek': '保留 TREK 版本',
+  'docsync.conflict.keepTrek': '保留游芽版本',
   'docsync.conflict.keepProvider': '保留文档服务的版本',
   'docsync.conflict.keepBoth': '两份都保留',
 
@@ -82,7 +82,7 @@ const docsync: TranslationStrings = {
   'docsync.error.forbidden': '此账户没有执行该操作的权限。',
   'docsync.error.not_found': '在文档服务中未找到。',
   'docsync.error.scope_missing': '已连接的文件夹不再存在。',
-  'docsync.error.rate_limited': '文档服务正在限制请求频率。TREK 稍后会重试。',
+  'docsync.error.rate_limited': '文档服务正在限制请求频率。游芽稍后会重试。',
   'docsync.error.too_large': '该文件超出了文档服务允许的大小。',
   'docsync.error.unsupported_type': '文档服务不接受此文件类型。',
   'docsync.error.quota_exceeded': '文档服务的存储空间已满。',
@@ -101,8 +101,8 @@ const docsync: TranslationStrings = {
   'docsync.card.pickFolder': '已连接，请选择文件夹',
 
   'docsync.empty.title': '尚未连接任何服务',
-  'docsync.empty.hintOwner': '在左侧挑一个文档服务。TREK 自己也留有一份副本，所以即使它不在了也不会丢东西。',
-  'docsync.empty.hintMember': '这由行程所有者来设置。无论如何，文档都会保留在 TREK 中。',
+  'docsync.empty.hintOwner': '在左侧挑一个文档服务。游芽自己也留有一份副本，所以即使它不在了也不会丢东西。',
+  'docsync.empty.hintMember': '这由行程所有者来设置。无论如何，文档都会保留在游芽中。',
 
   // 每个产品各自的归档方式。在连接之前就显示出来，因为下一屏问的正是这些。
   'docsync.model.paperless': '按标签归档',
@@ -112,7 +112,7 @@ const docsync: TranslationStrings = {
   'docsync.model.synologydrive': '归档到 NAS 上的文件夹',
 
   // ── 流向条 ────────────────────────────────────────────────────────────────
-  'docsync.flow.trek': 'TREK',
+  'docsync.flow.trek': '游芽',
   'docsync.flow.toProvider': '发往文档服务',
   'docsync.flow.toTrek': '来自文档服务',
   'docsync.flow.documents': '文档',
@@ -141,15 +141,15 @@ const docsync: TranslationStrings = {
   'docsync.connect.testing': '正在尝试连接',
   'docsync.connect.okAs': '已连接，登录身份为 {account}',
   'docsync.connect.insecureHint': '适用于自有网络中使用自签名证书的实例。',
-  'docsync.connect.about.paperless': 'TREK 会用专属标签归档此行程，绝不碰你归档库里的其他内容。',
-  'docsync.connect.about.papra': '选择此行程所属的组织。TREK 会在其中用专属标签归档。',
+  'docsync.connect.about.paperless': '游芽会用专属标签归档此行程，绝不碰你归档库里的其他内容。',
+  'docsync.connect.about.papra': '选择此行程所属的组织。游芽会在其中用专属标签归档。',
   'docsync.connect.about.nextcloud': '请使用应用密码，而不是账户密码：它不受两步验证影响，也可以单独吊销。',
-  'docsync.connect.about.opencloud': 'TREK 会为此行程单独获得一个空间，与其他内容互不相干。',
+  'docsync.connect.about.opencloud': '游芽会为此行程单独获得一个空间，与其他内容互不相干。',
   'docsync.connect.about.synologydrive': '最好使用只能访问此行程所用共享文件夹的 DSM 账户。',
 
   // ── 选择存放位置 ──────────────────────────────────────────────────────────
   'docsync.scope.title': '此行程应存放在 {provider} 的什么位置？',
-  'docsync.scope.intro': '只有这里的内容会被同步。文档服务中的其他内容都不会进入 TREK。',
+  'docsync.scope.intro': '只有这里的内容会被同步。文档服务中的其他内容都不会进入游芽。',
   'docsync.scope.createTitle': '新建一个',
   'docsync.scope.createAction': '创建',
   'docsync.scope.pickTitle': '或使用已有的',
@@ -159,7 +159,7 @@ const docsync: TranslationStrings = {
   // ── 需要人来决定的事 ──────────────────────────────────────────────────────
   'docsync.issues.title': '需要查看',
   'docsync.issues.conflict': '两边都有改动。请选择保留哪一份。',
-  'docsync.issues.remote_missing': '已从文档服务中消失。TREK 中的副本仍在。',
+  'docsync.issues.remote_missing': '已从文档服务中消失。游芽中的副本仍在。',
   'docsync.issues.rejected_type': '这里不允许此文件类型。',
   'docsync.issues.too_large': '超出大小上限。',
   'docsync.issues.error': '传输未能完成。',
@@ -168,11 +168,11 @@ const docsync: TranslationStrings = {
   'docsync.error.provider_disabled': '已暂停：管理员已关闭此文档服务。重新启用后将继续同步。',
   'docsync.binding.reconnect': '重新连接',
   'docsync.connection.title': '连接',
-  'docsync.connection.hint': 'TREK 用于此存储的地址和登录信息。',
+  'docsync.connection.hint': '游芽用于此存储的地址和登录信息。',
   'docsync.connection.edit': '编辑连接',
   'docsync.connection.remove': '移除连接',
   'docsync.connection.confirmRemove':
-    'TREK 会忘记此存储的地址和登录信息，此行程经由它的所有同步都会停止。文档仍保留在 TREK 和存储中。',
+    '游芽会忘记此存储的地址和登录信息，此行程经由它的所有同步都会停止。文档仍保留在游芽和存储中。',
 };
 
 export default docsync;

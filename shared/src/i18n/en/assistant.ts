@@ -252,7 +252,7 @@ const assistant: TranslationStrings = {
   'assistant.admin.retentionDays': '{count} days',
   'assistant.admin.retentionDays.one': '{count} day',
   'assistant.admin.retentionForever': 'Forever',
-  'assistant.mobile.tile': 'Ask TREK',
+  'assistant.mobile.tile': 'Ask YOUYA',
   'assistant.mobile.tileHint': 'Plan with the assistant',
   'assistant.mobile.backToChat': 'Back to chat',
   'assistant.step.nearbyAt': 'Searching near {place}',
@@ -478,7 +478,7 @@ const assistant: TranslationStrings = {
   'assistant.attach.found.one': 'I found {count} booking in {name}. Add it below if it looks right.',
   'assistant.attach.none': 'I could not find a booking in {name}.',
   'assistant.attach.why.aiNotConfigured':
-    'AI reading is not set up for imports here, so only TREK’s own reader looked at it.',
+    'AI reading is not set up for imports here, so only YOUYA’s own reader looked at it.',
   'assistant.attach.why.aiFailed': 'The AI reader could not read it.',
   'assistant.attach.why.noText': 'It holds no readable text, so it is most likely a scan.',
   'assistant.attach.why.nothingFound': 'Nothing in it reads like a booking.',

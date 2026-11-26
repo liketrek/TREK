@@ -84,8 +84,7 @@ const system_notice: TranslationStrings = {
     'ทุกฟีเจอร์ ทุกอัปเดต สำหรับทุกคน ไม่มีระดับแบบเสียเงิน ไม่มีการสมัครสมาชิก ไม่มีเงื่อนไขแอบแฝง',
   'system_notice.release_notes.note_body_after':
     'แล้วพวกคุณก็มา ไม่นานก็นับเป็นพัน ทั้งดาว รายงานบั๊ก คำแปลเป็นภาษาที่ผมพูดไม่ได้ และ pull request จากคนที่ผมไม่เคยพบ ผมยังเปิดดูรีโพซิทอรีเป็นอย่างแรกทุกเช้า และยังรู้สึกไม่จริงนักอยู่ดี',
-  'system_notice.release_notes.note_closing':
-    'ขอบคุณที่อยู่ตรงนี้ Maurice',
+  'system_notice.release_notes.note_closing': 'ขอบคุณที่อยู่ตรงนี้ Maurice',
   'system_notice.release_notes.support_label': 'เกิดขึ้นได้เพราะคุณ',
   'system_notice.release_notes.support_lead': 'TREK อยู่ได้ด้วยเงินบริจาคเท่านั้น',
   'system_notice.release_notes.support_text':

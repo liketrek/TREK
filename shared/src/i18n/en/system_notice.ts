@@ -3,7 +3,7 @@ import type { TranslationStrings } from '../types';
 const system_notice: TranslationStrings = {
   'system_notice.v3_photos.title': 'Photos have moved in 3.0',
   'system_notice.v3_photos.body':
-    '**Photos** in the Trip Planner have been removed. Your photos are safe — TREK never modified your Immich or Synology library.\n\nPhotos now live in the **Journey** addon. Journey is optional — if it is not yet available, ask your admin to enable it under Admin → Addons.',
+    '**Photos** in the Trip Planner have been removed. Your photos are safe — YOUYA never modified your Immich or Synology library.\n\nPhotos now live in the **Journey** addon. Journey is optional — if it is not yet available, ask your admin to enable it under Admin → Addons.',
   'system_notice.v3_journey.title': 'Meet Journey — travel journal',
   'system_notice.v3_journey.body':
     'Document your trips as rich travel stories with timelines, photo galleries, and interactive maps.',
@@ -27,24 +27,24 @@ const system_notice: TranslationStrings = {
   'system_notice.v3_mcp.highlight_tools': 'Expanded toolset & prompts',
   'system_notice.v3_thankyou.title': 'A personal note from me',
   'system_notice.v3_thankyou.body':
-    "Before you go — I want to take a moment.\n\nTREK started as a side project I built for my own trips. I never imagined it would grow into something that 4,000 of you now trust to plan your adventures. Every star, every issue, every feature request — I read them all, and they keep me going through late nights between a full-time job and university.\n\nI want you to know: TREK will always be open source, always self-hosted, always yours. No tracking, no subscriptions, no strings attached. Just a tool built by someone who loves traveling as much as you do.\n\nSpecial thanks to [jubnl](https://github.com/jubnl) — you have become an incredible collaborator. So much of what makes 3.0 great carries your fingerprints. Thank you for believing in this project when it was still rough around the edges.\n\nAnd to every single one of you who filed a bug, translated a string, shared TREK with a friend, or simply used it to plan a trip — **thank you**. You are the reason this exists.\n\nHere's to many more adventures together.\n\n— Maurice\n\n---\n\n[Join the community on Discord](https://discord.gg/7Q6M6jDwzf)\n\nIf TREK makes your travels better, a [small coffee](https://ko-fi.com/mauriceboe) always keeps the lights on.",
+    "Before you go — I want to take a moment.\n\nYOUYA started as a side project I built for my own trips. I never imagined it would grow into something that 4,000 of you now trust to plan your adventures. Every star, every issue, every feature request — I read them all, and they keep me going through late nights between a full-time job and university.\n\nI want you to know: YOUYA will always be open source, always self-hosted, always yours. No tracking, no subscriptions, no strings attached. Just a tool built by someone who loves traveling as much as you do.\n\nSpecial thanks to [jubnl](https://github.com/jubnl) — you have become an incredible collaborator. So much of what makes 3.0 great carries your fingerprints. Thank you for believing in this project when it was still rough around the edges.\n\nAnd to every single one of you who filed a bug, translated a string, shared YOUYA with a friend, or simply used it to plan a trip — **thank you**. You are the reason this exists.\n\nHere's to many more adventures together.\n\n— Maurice\n\n---\n\n[Join the community on Discord](https://discord.gg/7Q6M6jDwzf)\n\nIf YOUYA makes your travels better, a [small coffee](https://ko-fi.com/mauriceboe) always keeps the lights on.",
   'system_notice.v3014_whitespace_collision.title': 'Action required: user account conflict',
   'system_notice.v3014_whitespace_collision.body':
     'The 3.0.14 upgrade detected one or more username or email collisions caused by leading/trailing whitespace in stored accounts. Affected accounts were renamed automatically. Check the server logs for lines starting with **[migration] WHITESPACE COLLISION** to identify which accounts need review.',
-  'system_notice.welcome_v1.title': 'Welcome to TREK',
+  'system_notice.welcome_v1.title': 'Welcome to YOUYA',
   'system_notice.welcome_v1.body':
     'Your all-in-one travel planner. Build itineraries, share trips with friends, and stay organized — online or offline.',
   'system_notice.welcome_v1.cta_label': 'Plan a trip',
-  'system_notice.welcome_v1.hero_alt': 'A scenic travel destination with TREK planning UI overlay',
+  'system_notice.welcome_v1.hero_alt': 'A scenic travel destination with YOUYA planning UI overlay',
   'system_notice.welcome_v1.highlight_plan': 'Day-by-day itineraries for any trip',
   'system_notice.welcome_v1.highlight_share': 'Collaborate with travel partners',
   'system_notice.welcome_v1.highlight_offline': 'Works offline on mobile',
   'system_notice.dev_test_modal.title': '[Dev] Test notice',
   'system_notice.dev_test_modal.body': 'This is a dev-only test notice.',
   // Thank-you + support the project (shown once per install and once per upgrade)
-  'system_notice.thank_you_support.title': 'Thank you for using TREK',
+  'system_notice.thank_you_support.title': 'Thank you for using YOUYA',
   'system_notice.thank_you_support.body':
-    "A quick thank-you for installing TREK — it genuinely means a lot.\n\nI'm a solo developer and I build TREK in my spare time. It started as a little tool just for my own trips, and I'm honestly blown away by the support and interest from the community since then. TREK is made with a lot of heart on my side — but also thanks to the many amazing external contributors who've helped shape it.\n\n**TREK is open source and completely free — and it will stay that way forever. No paid tiers, no subscriptions, no catch. I promise.**\n\nIf TREK is useful to you and you'd like to support its development, a small coffee genuinely helps me keep building — no pressure at all, but every cup keeps the late nights going.\n\nThank you for being here.\n\n— Maurice",
+    "A quick thank-you for installing YOUYA — it genuinely means a lot.\n\nI'm a solo developer and I build YOUYA in my spare time. It started as a little tool just for my own trips, and I'm honestly blown away by the support and interest from the community since then. YOUYA is made with a lot of heart on my side — but also thanks to the many amazing external contributors who've helped shape it.\n\n**YOUYA is open source and completely free — and it will stay that way forever. No paid tiers, no subscriptions, no catch. I promise.**\n\nIf YOUYA is useful to you and you'd like to support its development, a small coffee genuinely helps me keep building — no pressure at all, but every cup keeps the late nights going.\n\nThank you for being here.\n\n— Maurice",
   'system_notice.thank_you_support.highlight_opensource': '100% open source on GitHub',
   'system_notice.thank_you_support.highlight_free': 'Free forever — never any paid tiers',
   'system_notice.thank_you_support.highlight_community': 'Built together with the community',
@@ -53,19 +53,17 @@ const system_notice: TranslationStrings = {
   'system_notice.thank_you_support.cta_patreon': 'Monthly on Patreon',
   // The release modal. One stable set of keys: each big release swaps the copy in place.
   'system_notice.release_notes.eyebrow': 'Update installed',
-  'system_notice.release_notes.headline':
-    'Less typing, more travelling.',
+  'system_notice.release_notes.headline': 'Less typing, more travelling.',
   'system_notice.release_notes.intro':
-    'Booking mails you forward land in your trip, TREK follows your flights live, and the trip PDF is all new. TREK now runs on PostgreSQL too.',
+    'Booking mails you forward land in your trip, YOUYA follows your flights live, and the trip PDF is all new. YOUYA now runs on PostgreSQL too.',
   'system_notice.release_notes.features_label': 'The headliners',
   'system_notice.release_notes.features_aside': 'Far from everything',
-  'system_notice.release_notes.feature_mail_title':
-    'Booking mails land in your trip',
+  'system_notice.release_notes.feature_mail_title': 'Booking mails land in your trip',
   'system_notice.release_notes.feature_mail_body':
-    'Forward a confirmation to your personal address and TREK finds your trip, checks it and adds the booking with its document.',
+    'Forward a confirmation to your personal address and YOUYA finds your trip, checks it and adds the booking with its document.',
   'system_notice.release_notes.feature_flight_title': 'Live flight status, for free',
   'system_notice.release_notes.feature_flight_body':
-    'TREK follows each of your flights on its day: state, delay, both airports and a map with the aircraft, with no API key.',
+    'YOUYA follows each of your flights on its day: state, delay, both airports and a map with the aircraft, with no API key.',
   'system_notice.release_notes.feature_pdf_title': 'A new trip PDF',
   'system_notice.release_notes.feature_pdf_body':
     'A cover with your route, every day as a timeline and all your bookings with their codes, ready to print or share.',
@@ -73,23 +71,20 @@ const system_notice: TranslationStrings = {
     'Plus PostgreSQL, addons per trip, tags on places, more ways to keep costs and a long list of smaller changes.',
   'system_notice.release_notes.notes_label': 'Release notes',
   'system_notice.release_notes.note_eyebrow': 'A note from the maintainer',
-  'system_notice.release_notes.note_title': 'You are the reason I keep building TREK.',
+  'system_notice.release_notes.note_title': 'You are the reason I keep building YOUYA.',
   'system_notice.release_notes.note_body':
-    'TREK started as a small tool for my own trips, built after work. Almost everything you use today came together late at night, on weekends or on trains, next to a full-time job, and I often wondered whether anyone would ever open it.',
+    'YOUYA started as a small tool for my own trips, built after work. Almost everything you use today came together late at night, on weekends or on trains, next to a full-time job, and I often wondered whether anyone would ever open it.',
   'system_notice.release_notes.promise_label': 'The promise',
-  'system_notice.release_notes.promise_lead': 'TREK stays free, forever.',
+  'system_notice.release_notes.promise_lead': 'YOUYA stays free, forever.',
   'system_notice.release_notes.promise_text':
     'Every feature, every update, for everyone. No paid tiers, no subscriptions, no catch.',
   'system_notice.release_notes.note_body_after':
     "Then you came, soon by the thousands: with stars, bug reports, translations into languages I don't speak and pull requests from people I've never met. I still check the repository first thing every morning, and it still doesn't quite feel real.",
-  'system_notice.release_notes.note_closing':
-    'Thank you for being here. Maurice',
-  'system_notice.release_notes.support_label':
-    'Made possible by you',
-  'system_notice.release_notes.support_lead':
-    'TREK only exists thanks to donations.',
+  'system_notice.release_notes.note_closing': 'Thank you for being here. Maurice',
+  'system_notice.release_notes.support_label': 'Made possible by you',
+  'system_notice.release_notes.support_lead': 'YOUYA only exists thanks to donations.',
   'system_notice.release_notes.support_text':
-    'They pay for the servers and give me the time to keep building it. Even one coffee helps keep TREK free for everyone.',
+    'They pay for the servers and give me the time to keep building it. Even one coffee helps keep YOUYA free for everyone.',
   'system_notice.release_notes.cta_bmc': 'Buy me a coffee',
   'system_notice.release_notes.cta_kofi': 'Support on Ko-fi',
   'system_notice.release_notes.cta_patreon': 'Monthly on Patreon',

@@ -110,7 +110,7 @@ export default function MUserMenu({ open, onClose }: MUserMenuProps): React.Reac
           <div className="mx-2 my-1 h-px bg-[color:var(--m-rowbr)]" />
           <div className="flex justify-center pb-1 pt-[6px]">
             <span className="inline-flex items-center gap-[5px] rounded-full bg-[color:var(--m-ic)] px-3 py-1 font-geist text-caption font-bold text-m-muted">
-              <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="TREK" className="h-[10px] opacity-50" />
+              <img src={dark ? '/text-light.svg' : '/text-dark.svg'} alt="YOUYA" className="h-[10px] opacity-50" />
               v{appVersion}
             </span>
           </div>

@@ -2,14 +2,14 @@ import type { TranslationStrings } from '../types';
 
 const login: TranslationStrings = {
   'login.error': '登录失败，请检查你的凭据。',
-  'login.tagline': '你的旅行。\n你的计划。',
-  'login.description': '通过互动地图、预算管理和实时同步，协同规划旅行。',
+  'login.tagline': '好玩的旅行，\n从一个念头开始。',
+  'login.description': '告诉游芽想去哪、想怎么玩，AI 帮你把想法变成一段真正好玩的旅程。',
   'login.title': '登录',
   'login.subtitle': '欢迎回来',
   'login.signingIn': '登录中…',
   'login.signIn': '登录',
   'login.createAdmin': '创建管理员账户',
-  'login.createAdminHint': '为 TREK 设置第一个管理员账户。',
+  'login.createAdminHint': '为游芽设置第一个管理员账户。',
   'login.setNewPassword': '设置新密码',
   'login.setNewPasswordHint': '您必须更改密码才能继续。',
   'login.createAccount': '创建账户',
@@ -72,7 +72,7 @@ const login: TranslationStrings = {
   'login.passkey.failed': '通行密钥登录失败，请重试。',
   'login.insecureCookie.title': 'HTTP 下无法保持登录',
   'login.insecureCookie.body':
-    '你正在通过普通 HTTP 连接，浏览器会丢弃 TREK 的安全会话 Cookie，导致下一次请求报错“Access token required”。修复方式：改用 HTTPS；如果是家庭实验室环境，可设置 COOKIE_SECURE=false。',
+    '你正在通过普通 HTTP 连接，浏览器会丢弃游芽的安全会话 Cookie，导致下一次请求报错“Access token required”。修复方式：改用 HTTPS；如果是家庭实验室环境，可设置 COOKIE_SECURE=false。',
   'login.insecureCookie.link': '打开故障排查指南',
 };
 export default login;

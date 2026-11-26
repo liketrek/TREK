@@ -19,12 +19,12 @@ const wanderer: TranslationStrings = {
   'wanderer.saved': '已儲存 wanderer 連線',
   'wanderer.disconnected': '已移除 wanderer 連線',
   'wanderer.loadFailed': '無法載入 wanderer 連線',
-  'wanderer.privateIp': '這個位址位於私人網路中。如果 TREK 無法連上，需要管理員允許內部網路。',
+  'wanderer.privateIp': '這個位址位於私人網路中。如果游芽無法連上，需要管理員允許內部網路。',
   'wanderer.error.disabled': '管理員尚未為遊程啟用 wanderer。',
   'wanderer.error.not_connected': '尚未連結 wanderer。',
   'wanderer.error.invalid_url': '這個位址不是有效的 wanderer URL。',
   'wanderer.error.blocked_address':
-    'TREK 不得連上這個位址。若是你自己網路中的執行個體，管理員需要設定 ALLOW_INTERNAL_NETWORK=true。',
+    '游芽不得連上這個位址。若是你自己網路中的執行個體，管理員需要設定 ALLOW_INTERNAL_NETWORK=true。',
   'wanderer.error.unreachable': '無法連上 wanderer。請檢查位址，並確認執行個體正在運作。',
   'wanderer.error.tls': '無法驗證執行個體的憑證。若是自我簽署憑證，請在下方允許。',
   'wanderer.error.unauthorized': 'wanderer 不接受這個 API 權杖。它可能已被撤銷或已過期。',
@@ -33,7 +33,7 @@ const wanderer: TranslationStrings = {
   'wanderer.error.not_own_trail': '只能匯入你自己的 wanderer 步道。',
   'wanderer.error.invalid_response': '這個回應並非來自 wanderer。請確認位址指向 wanderer 本身。',
   'wanderer.error.no_author':
-    'wanderer 已回應，但沒有為此 API 權杖所屬的帳號列出任何步道作者，因此 TREK 無法判斷哪些步道是你的。',
+    'wanderer 已回應，但沒有為此 API 權杖所屬的帳號列出任何步道作者，因此游芽無法判斷哪些步道是你的。',
   'wanderer.error.too_large': '步道檔案超過 10 MB。',
   'wanderer.error.server_error': 'wanderer 回應了錯誤。請稍後再試。',
   'wanderer.error.offline': '你目前離線。只能在連線時搜尋 wanderer。',

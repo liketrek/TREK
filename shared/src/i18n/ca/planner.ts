@@ -151,7 +151,8 @@ const planner: TranslationStrings = {
   'planner.ai.lodgingSampleDistance': 'A {distance} de l’àncora',
   'planner.ai.ideasCta': 'No saps on anar? Obtén idees de destinacions',
   'planner.ai.ideasLoading': 'Triant destinacions…',
-  'planner.ai.ideasEmpty': 'Encara no hi ha cap destinació que coincideixi. Prova un pressupost més alt o menys interessos.',
+  'planner.ai.ideasEmpty':
+    'Encara no hi ha cap destinació que coincideixi. Prova un pressupost més alt o menys interessos.',
   'planner.ai.ideasFailed': 'Les idees de destinacions no estan disponibles ara. Torna-ho a provar més tard.',
   'planner.ai.ideasPick': 'Utilitza aquesta destinació',
   'planner.ai.modeNew': 'Viatge nou',

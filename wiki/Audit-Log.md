@@ -1,6 +1,6 @@
 # Audit Log
 
-The audit log records significant actions taken on your TREK instance. Use it to monitor logins, admin changes, and integration configuration.
+The audit log records significant actions taken on your YOUYA instance. Use it to monitor logins, admin changes, and integration configuration.
 
 ## Where to find it
 
@@ -195,7 +195,7 @@ The panel loads 100 entries at a time. Click **Load more** at the bottom to fetc
 
 The client IP is the one Express resolves after applying `TRUST_PROXY`, not whatever the `X-Forwarded-For` header happens to say. That distinction matters: the header is written by the caller, and an audit row an attacker can address to someone else's IP is worse than no row at all.
 
-`TRUST_PROXY` is **the number of proxy hops in front of TREK**, and it has to be accurate. With `TRUST_PROXY=1` (the default) TREK trusts exactly one hop, so a request that passed through two proxies is recorded as coming from the *outer* one; the Cloudflare edge in the example below, not nginx and not the real client. If your setup is Cloudflare in front of nginx in front of TREK, set `TRUST_PROXY=2`. Set it to `0` to trust nothing and always record the socket address.
+`TRUST_PROXY` is **the number of proxy hops in front of YOUYA**, and it has to be accurate. With `TRUST_PROXY=1` (the default) YOUYA trusts exactly one hop, so a request that passed through two proxies is recorded as coming from the *outer* one; the Cloudflare edge in the example below, not nginx and not the real client. If your setup is Cloudflare in front of nginx in front of YOUYA, set `TRUST_PROXY=2`. Set it to `0` to trust nothing and always record the socket address.
 
 See [Environment-Variables](Environment-Variables).
 
@@ -213,7 +213,7 @@ Audit entries in the database are never automatically deleted. They accumulate a
 
 ## Plugin capability audit
 
-Separate from the instance audit log above, TREK keeps a dedicated **hash-chained capability audit** for installed plugins. Every host-mediated action a plugin takes (core-data reads, WebSocket broadcasts, notifications, AI calls, cross-plugin calls) is recorded at the point the plugin cannot reach, together with the acting user (bound by the host, never supplied by the plugin), the resource touched, and the outcome.
+Separate from the instance audit log above, YOUYA keeps a dedicated **hash-chained capability audit** for installed plugins. Every host-mediated action a plugin takes (core-data reads, WebSocket broadcasts, notifications, AI calls, cross-plugin calls) is recorded at the point the plugin cannot reach, together with the acting user (bound by the host, never supplied by the plugin), the resource touched, and the outcome.
 
 Each plugin's entries form a per-plugin hash chain (`hash = sha256(previous_hash + row)`), so the log is tamper-evident: any altered or removed entry breaks the chain. Older rows are pruned per plugin once the row cap is reached (default 20,000 rows/plugin, tunable via `TREK_PLUGIN_AUDIT_MAX_ROWS`; `0` disables pruning). Pruning keeps the retained window verifiable.
 

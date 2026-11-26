@@ -2,7 +2,7 @@
 
 ## Self-service reset (Forgot password?)
 
-TREK supports email-based self-service password reset. On the login page, click the **"Forgot password?"** link to go to `/forgot-password`. Enter your email address and submit; if the address matches a local account, a reset link is sent to that inbox. The page always shows the same confirmation message regardless of whether the email was found, to prevent account enumeration.
+YOUYA supports email-based self-service password reset. On the login page, click the **"Forgot password?"** link to go to `/forgot-password`. Enter your email address and submit; if the address matches a local account, a reset link is sent to that inbox. The page always shows the same confirmation message regardless of whether the email was found, to prevent account enumeration.
 
 ![Reset your password card with a Back to sign in link, an email field and a Send reset link button, plus a warning that SMTP is unconfigured so the reset link is written to the server console](assets/PasswordReset.png)
 
@@ -45,7 +45,7 @@ If the admin has globally disabled password login, no reset link is ever issued.
 
 An admin can set a new password for any user directly from the admin panel (**Admin → Users**, edit the user). Leaving the **New Password** field empty keeps the current password; entering one saves it immediately, no email is required. Setting a password this way also ends every session of the account and bumps its `password_version`, which signs the user out everywhere; separately, it deletes all of their MCP tokens and revokes their OAuth tokens.
 
-There is no **"Force password change on next login"** option in the Admin Panel. That prompt is raised only for the admin account TREK seeds on first boot and for accounts restored with the `reset-admin.js` recovery script (see [Troubleshooting](Troubleshooting)). An admin-set password neither raises the flag nor clears it, so a user who already carries it is still asked to choose their own password at the next sign-in.
+There is no **"Force password change on next login"** option in the Admin Panel. That prompt is raised only for the admin account YOUYA seeds on first boot and for accounts restored with the `reset-admin.js` recovery script (see [Troubleshooting](Troubleshooting)). An admin-set password neither raises the flag nor clears it, so a user who already carries it is still asked to choose their own password at the next sign-in.
 
 See [Admin-Users-and-Invites](Admin-Users-and-Invites) for step-by-step instructions.
 

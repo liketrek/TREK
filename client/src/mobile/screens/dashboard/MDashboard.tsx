@@ -232,7 +232,7 @@ export default function MDashboard(): React.ReactElement {
           type="button"
           // The page itself is the scroller since #1809, no inner container to walk up to.
           onClick={() => { window.scrollTo({ top: 0, behavior: 'smooth' }) }}
-          aria-label="TREK"
+          aria-label="YOUYA"
           className="flex flex-none items-center gap-[7px]"
         >
           <span className="flex h-[38px] w-[38px] items-center justify-center rounded-[11px] bg-[#101013]">{/* theme-lint-disable — brand tile stays black in both themes */}

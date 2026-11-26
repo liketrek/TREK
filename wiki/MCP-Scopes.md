@@ -1,6 +1,6 @@
 # MCP Scopes
 
-OAuth scopes control exactly which data your AI client can read or write in TREK. You select scopes during the OAuth consent screen or when pre-creating an OAuth client. You can revoke access at any time by deleting the OAuth client or token, or revoking the session, under **Settings → Integrations → MCP Configuration**.
+OAuth scopes control exactly which data your AI client can read or write in YOUYA. You select scopes during the OAuth consent screen or when pre-creating an OAuth client. You can revoke access at any time by deleting the OAuth client or token, or revoking the session, under **Settings → Integrations → MCP Configuration**.
 
 ![OAuth consent screen](assets/OAuthConsentDCR.png)
 
@@ -8,7 +8,7 @@ OAuth scopes control exactly which data your AI client can read or write in TREK
 
 ## All scopes
 
-TREK defines 35 scopes across 17 groups.
+YOUYA defines 35 scopes across 17 groups.
 
 | Group | Scope | Permission |
 |---|---|---|

@@ -80,8 +80,7 @@ const system_notice: TranslationStrings = {
     'Her özellik, her güncelleme, herkes için. Ücretli paket yok, abonelik yok, gizli şart yok.',
   'system_notice.release_notes.note_body_after':
     "Sonra siz geldiniz, kısa sürede binlerce kişi: yıldızlarla, hata bildirimleriyle, konuşmadığım dillere çevirilerle ve hiç tanımadığım insanların pull request'leriyle. Hâlâ her sabah ilk iş depoya bakıyorum ve hâlâ tam gerçek gibi gelmiyor.",
-  'system_notice.release_notes.note_closing':
-    'Burada olduğun için teşekkür ederim. Maurice',
+  'system_notice.release_notes.note_closing': 'Burada olduğun için teşekkür ederim. Maurice',
   'system_notice.release_notes.support_label': 'Sizin sayenizde',
   'system_notice.release_notes.support_lead': 'TREK yalnızca bağışlar sayesinde var.',
   'system_notice.release_notes.support_text':

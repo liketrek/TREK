@@ -1,22 +1,22 @@
 # Native Apps
 
-**TREK Travel Planner** is the TREK app for iPhone, iPad and Android, from the App Store and Google Play. It is a client for your TREK server: it asks for the server's address once and then shows the TREK interface that server delivers, in the version the server runs, with the same data, the same accounts and the same settings as in the browser. On the home screen it is called **TREK**.
+**YOUYA Travel Planner** is the YOUYA app for iPhone, iPad and Android, from the App Store and Google Play. It is a client for your YOUYA server: it asks for the server's address once and then shows the YOUYA interface that server delivers, in the version the server runs, with the same data, the same accounts and the same settings as in the browser. On the home screen it is called **YOUYA**.
 
-The browser keeps working as before, and installing TREK from the browser as a web app is still possible; see [Offline-Mode-and-PWA](Offline-Mode-and-PWA). The app adds what a browser cannot do well on a phone: signing in with single sign-on and passkeys, the system share sheet for exports, haptics, and on iOS a start without network.
+The browser keeps working as before, and installing YOUYA from the browser as a web app is still possible; see [Offline-Mode-and-PWA](Offline-Mode-and-PWA). The app adds what a browser cannot do well on a phone: signing in with single sign-on and passkeys, the system share sheet for exports, haptics, and on iOS a start without network.
 
 ## Connecting to a server
 
-On first start the app shows its address screen. Enter the address you open TREK at in the browser, for example `trek.example.com` or `192.168.1.10:3001`. Without a scheme the app tries https first and then plain http.
+On first start the app shows its address screen. Enter the address you open YOUYA at in the browser, for example `trek.example.com` or `192.168.1.10:3001`. Without a scheme the app tries https first and then plain http.
 
-The app checks that the address answers as a TREK server that knows the apps, and then loads it. If it does not, it says why:
+The app checks that the address answers as a YOUYA server that knows the apps, and then loads it. If it does not, it says why:
 
 - **No server answered**: the address is wrong, the server is down, or the phone cannot reach it (see the network section below).
-- **Not TREK**: something answered, but not a TREK server.
-- **Too old**: a TREK server from before the apps. Update it to a current release.
-- **A sign-in page protects this server**: a proxy of your own stands in front of TREK. See the next section.
-- **This server asks for a client certificate**: the proxy in front of TREK uses mutual TLS. See [Client certificates (mTLS)](#client-certificates-mtls).
+- **Not YOUYA**: something answered, but not a YOUYA server.
+- **Too old**: a YOUYA server from before the apps. Update it to a current release.
+- **A sign-in page protects this server**: a proxy of your own stands in front of YOUYA. See the next section.
+- **This server asks for a client certificate**: the proxy in front of YOUYA uses mutual TLS. See [Client certificates (mTLS)](#client-certificates-mtls).
 
-No server yet? **Try the demo** connects to the public demo at demo.liketrek.com, which everybody shares and which is reset every hour. **What is a TREK server?** leads to the project page, which explains how to run your own.
+No server yet? **Try the demo** connects to the public demo at demo.liketrek.com, which everybody shares and which is reset every hour. **What is a YOUYA server?** leads to the project page, which explains how to run your own.
 
 To switch servers later, open **Settings → Account** in the app: the **Server** card names the server and has **Change server**, which returns to the address screen. The sign-in screen has the same link at the bottom.
 
@@ -24,7 +24,7 @@ To switch servers later, open **Settings → Account** in the app: the **Server*
 
 A password works inside the app as in the browser, and **Remember me** is on by default, so the app does not ask again after the phone closed it.
 
-Single sign-on and passkeys cannot run inside the app's web view: identity providers refuse embedded browsers, and a passkey belongs to your server's domain, which the app cannot be tied to for every server. So the app opens your server's sign-in in the system browser instead. Sign in there as usual, tap **Open the TREK app**, and the app continues signed in. The browser hands over a one-time code that only the app that asked for it can redeem, valid for a minute. The server records the sign-in as a login from the native app.
+Single sign-on and passkeys cannot run inside the app's web view: identity providers refuse embedded browsers, and a passkey belongs to your server's domain, which the app cannot be tied to for every server. So the app opens your server's sign-in in the system browser instead. Sign in there as usual, tap **Open the YOUYA app**, and the app continues signed in. The browser hands over a one-time code that only the app that asked for it can redeem, valid for a minute. The server records the sign-in as a login from the native app.
 
 Passkeys are managed in the browser for the same reason: the **Passkeys** card is hidden in the app.
 
@@ -34,17 +34,17 @@ The app keeps the trips you choose offline the same way the browser does, includ
 
 ## Behind a sign-in proxy
 
-Many servers sit behind a proxy that asks for its own sign-in before anything reaches TREK: Cloudflare Access, Pangolin, authentik, Authelia, OAuth2 Proxy, or a password prompt (Basic Auth) in nginx, Caddy or Traefik. The app recognises these when you enter the address and names the one it found.
+Many servers sit behind a proxy that asks for its own sign-in before anything reaches YOUYA: Cloudflare Access, Pangolin, authentik, Authelia, OAuth2 Proxy, or a password prompt (Basic Auth) in nginx, Caddy or Traefik. The app recognises these when you enter the address and names the one it found.
 
-**Sign in inside the app.** For a proxy with a sign-in page, the address screen offers **Sign in to …**. The app then opens your server, and the proxy's sign-in page shows inside the app, as it would in a browser. Sign in there once; the proxy's session stays with the app and every request carries it, so TREK loads behind it. Only the sign-in host the app saw while checking the address may open inside the app; every other site still opens in the system browser, and the proxy's page has no access to the app. When the proxy's session runs out, its sign-in page shows again on the next start.
+**Sign in inside the app.** For a proxy with a sign-in page, the address screen offers **Sign in to …**. The app then opens your server, and the proxy's sign-in page shows inside the app, as it would in a browser. Sign in there once; the proxy's session stays with the app and every request carries it, so YOUYA loads behind it. Only the sign-in host the app saw while checking the address may open inside the app; every other site still opens in the system browser, and the proxy's page has no access to the app. When the proxy's session runs out, its sign-in page shows again on the next start.
 
 What cannot work inside an app:
 
 - **Sign in with Google** (or another provider that refuses embedded browsers) on the proxy's page. Google blocks sign-ins inside apps.
 - **A password prompt** (Basic Auth). The app cannot answer it.
-- **Header or service-token rules only**, without a sign-in page. The app cannot add headers to the requests the TREK interface makes.
+- **Header or service-token rules only**, without a sign-in page. The app cannot add headers to the requests the YOUYA interface makes.
 
-For those, let TREK through the proxy instead: a bypass rule for TREK's address in Cloudflare Access, Pangolin, authentik or Authelia, or the password prompt removed for TREK. TREK's own sign-in still protects it. With Cloudflare Access, enrolling the phone in Cloudflare WARP also lets the app through. To keep TREK closed to everyone but your own devices without a sign-in page, use a client certificate instead.
+For those, let YOUYA through the proxy instead: a bypass rule for YOUYA's address in Cloudflare Access, Pangolin, authentik or Authelia, or the password prompt removed for YOUYA. YOUYA's own sign-in still protects it. With Cloudflare Access, enrolling the phone in Cloudflare WARP also lets the app through. To keep YOUYA closed to everyone but your own devices without a sign-in page, use a client certificate instead.
 
 ## Client certificates (mTLS)
 
@@ -71,7 +71,7 @@ Copy `phone.p12` to the phone and add it in the app. Give every device its own c
 
 ### Cloudflare
 
-1. **SSL/TLS → Client Certificates → Create Certificate**, and under **Hosts** add TREK's hostname.
+1. **SSL/TLS → Client Certificates → Create Certificate**, and under **Hosts** add YOUYA's hostname.
 2. A WAF custom rule that blocks requests to that hostname when `cf.tls_client_auth.cert_verified` is false.
 3. Cloudflare shows the certificate and its private key as PEM. Save them as `phone.pem` and `phone.key` and make the file for the app with `openssl pkcs12 -export -inkey phone.key -in phone.pem -out phone.p12`.
 
@@ -96,7 +96,7 @@ trek.example.com {
 }
 ```
 
-In Traefik, a TLS option with `clientAuth.caFiles` and `clientAuthType: RequireAndVerifyClientCert`, attached to TREK's router.
+In Traefik, a TLS option with `clientAuth.caFiles` and `clientAuthType: RequireAndVerifyClientCert`, attached to YOUYA's router.
 
 A browser on your computer needs the same certificate, imported into the browser or the system keychain; it asks which one to use on the first visit.
 
@@ -110,7 +110,7 @@ Exports, attachments and backup codes open in the system share sheet, from where
 
 ## Privacy
 
-The app sends what you enter to your TREK server and nowhere else; the makers of TREK receive nothing. Map tiles come from the map provider your server is set up with. The privacy policy is at https://liketrek.com/privacy and is linked from the address screen and from **Settings → Account**. How to delete an account: https://liketrek.com/delete-account.
+The app sends what you enter to your YOUYA server and nowhere else; the makers of YOUYA receive nothing. Map tiles come from the map provider your server is set up with. The privacy policy is at https://liketrek.com/privacy and is linked from the address screen and from **Settings → Account**. How to delete an account: https://liketrek.com/delete-account.
 
 The app hides the donation links (Ko-fi, Buy Me a Coffee) that the browser shows, because the store rules allow no outside payment links in an app.
 

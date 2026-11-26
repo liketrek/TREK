@@ -206,7 +206,7 @@ const places: TranslationStrings = {
   'places.refresh.pill': 'New place details',
   'places.refresh.title': 'Update place details',
   'places.refresh.intro':
-    'TREK knows newer details for this place. Pick what to take over; the rest stays as it is. Save the place afterwards.',
+    'YOUYA knows newer details for this place. Pick what to take over; the rest stays as it is. Save the place afterwards.',
   'places.refresh.apply': 'Take over',
   'places.refresh.replaces': 'Replaces what is saved now',
   'places.refresh.empty': 'empty',

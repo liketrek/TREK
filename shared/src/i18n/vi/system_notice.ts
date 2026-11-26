@@ -85,8 +85,7 @@ const system_notice: TranslationStrings = {
     'Mọi tính năng, mọi bản cập nhật, cho tất cả mọi người. Không tầng trả phí, không đăng ký, không ràng buộc.',
   'system_notice.release_notes.note_body_after':
     'Rồi các bạn đến, chẳng mấy chốc đã hàng nghìn người: với những ngôi sao, báo cáo lỗi, bản dịch sang ngôn ngữ tôi không biết và pull request từ những người tôi chưa từng gặp. Sáng nào tôi cũng kiểm tra kho mã đầu tiên, và cảm giác vẫn chưa hoàn toàn thật.',
-  'system_notice.release_notes.note_closing':
-    'Cảm ơn bạn đã ở đây. Maurice',
+  'system_notice.release_notes.note_closing': 'Cảm ơn bạn đã ở đây. Maurice',
   'system_notice.release_notes.support_label': 'Nhờ có bạn',
   'system_notice.release_notes.support_lead': 'TREK chỉ tồn tại nhờ quyên góp.',
   'system_notice.release_notes.support_text':

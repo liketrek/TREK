@@ -1,6 +1,6 @@
-# TREK Studio
+# YOUYA Studio
 
-TREK Studio turns a [journey](Journey-Journal) into a photo book you can print. It lays the journey's entries, photos and route out as pages, lets you change every one of them, and makes a print ready PDF at the end. A book belongs to its journey: the photos, words, places and figures it shows come from there, and several people can design it at the same time.
+YOUYA Studio turns a [journey](Journey-Journal) into a photo book you can print. It lays the journey's entries, photos and route out as pages, lets you change every one of them, and makes a print ready PDF at the end. A book belongs to its journey: the photos, words, places and figures it shows come from there, and several people can design it at the same time.
 
 ## Opening Studio
 
@@ -63,7 +63,7 @@ An element that auto layout tied to a journal entry follows that entry, so a cor
 
 **Designed pages** come first: pages laid out by a designer, 48 for the cover and the other single pages and 60 double spreads, in twelve styles (**Spine band**, **Poster**, **Cut-out**, **Postcard**, **Grid and badge**, **Minimal**, **Stamps**, **Riso**, **Editorial**, **Vintage poster**, **Night film** and **Field notes**). Each card shows the page you are on as the click would lay it, with its own photos and words and in the book's theme. The **Style** chips narrow the set to one look. What a design has no room for stays with the page.
 
-![TREK Studio with the Layouts panel open on a spread of the Japan book: the Style chips and designed page cards drawn with the spread's own photos, the spread on the workbench and the page properties on the right](assets/StudioLayouts.png)
+![YOUYA Studio with the Layouts panel open on a spread of the Japan book: the Style chips and designed page cards drawn with the spread's own photos, the spread on the workbench and the page properties on the right](assets/StudioLayouts.png)
 
 Below come **My layouts** and the **Built in** ones: thirteen spread layouts (**Hero and story**, **Four up**, **Strip and text**, **Mosaic** and more) and five for the cover and back.
 

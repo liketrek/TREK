@@ -1,6 +1,6 @@
 # MCP Tools and Resources
 
-TREK exposes **tools** (read and write actions) and **resources** (read-only `trek://` URIs). Tools are registered per-session based on OAuth scopes and enabled addons.
+YOUYA exposes **tools** (read and write actions) and **resources** (read-only `trek://` URIs). Tools are registered per-session based on OAuth scopes and enabled addons.
 
 Every built-in tool checks its arguments against its published schema before anything runs. An argument the tool does not declare (a misspelt field such as `stopType` for `stop_type`) is refused with `Unrecognized key`, so the AI sees the mistake and can retry rather than reporting a change that never happened. Plugin-contributed tools follow the schema their manifest declares.
 
@@ -41,7 +41,7 @@ Requires `trips:read` or `trips:write` scope.
 | `add_trip_member` | Add a user to a trip by username or email. Owner only. |
 | `remove_trip_member` | Remove a collaborator from a trip. Owner only. |
 | `leave_trip` | Leave a trip you were invited to, giving up your own access. Use this rather than `remove_trip_member` when the user means themselves. The owner cannot leave their own trip. Requires `trips:write`. |
-| `create_trip_guest` | Add a travelling companion who has no TREK account. Assignable to budget splits, packing and day participants; never signs in, never emailed. Owner only. |
+| `create_trip_guest` | Add a travelling companion who has no YOUYA account. Assignable to budget splits, packing and day participants; never signs in, never emailed. Owner only. |
 | `rename_trip_guest` | Rename a guest on a trip. Owner only. |
 | `delete_trip_guest` | Delete a guest and hand their share of each expense to the others in its split. Refused while the guest paid for an expense or is part of a recorded payment. Owner only. |
 | `get_trip_addons` | The trip addons of one trip (lists, costs, files, collab, road trip, tours) and whether each applies to it: `enabled` is what applies here, `instanceEnabled` the instance setting, `overridden` whether the trip owner chose it. An addon that is off for a trip has its tools refused for that trip. |
@@ -71,7 +71,7 @@ Requires `places:read` or `places:write` scope.
 | `create_category` | Add a category to the instance-wide palette, with name, hex colour and emoji icon. Every trip on the instance sees it, so prefer an existing one from `list_categories`. Admin only; a non-admin gets `Admin access required`. Requires `places:write`. |
 | `update_category` | Rename a category or change its colour or icon. Every place already carrying it follows the change. Admin only. Requires `places:write`. |
 | `delete_category` | Remove a category from the palette. Places keep their data but lose the category, across every trip. Admin only. Requires `places:write`. |
-| `search_place` | Search for a place by name or address, the way the full search in the app does: TREK's own place index and OpenStreetMap together, and Google or Amap only when both are empty. Returns `osm_id` (and `google_place_id` / `google_ftid` when Google answered) for use in `create_place`. Takes an optional `locationBias` to rank results around the trip's destination, and an optional `provider: 'google'` that sends this one search to Google Places alone, the same as the **Search Google instead** line under a result list in the app; it is ignored unless Google holds the keyed slot: an instance without a Google key, or one whose admin picked Amap or OpenStreetMap as the places provider, answers from the index and OpenStreetMap as usual. With the admin switch **Search with Google only** on (see [Places-and-Search](Places-and-Search#with-a-google-maps-api-key)), every call goes to Google whatever is passed, and the index and OpenStreetMap are never asked, so no result carries an `osm_id`. |
+| `search_place` | Search for a place by name or address, the way the full search in the app does: YOUYA's own place index and OpenStreetMap together, and Google or Amap only when both are empty. Returns `osm_id` (and `google_place_id` / `google_ftid` when Google answered) for use in `create_place`. Takes an optional `locationBias` to rank results around the trip's destination, and an optional `provider: 'google'` that sends this one search to Google Places alone, the same as the **Search Google instead** line under a result list in the app; it is ignored unless Google holds the keyed slot: an instance without a Google key, or one whose admin picked Amap or OpenStreetMap as the places provider, answers from the index and OpenStreetMap as usual. With the admin switch **Search with Google only** on (see [Places-and-Search](Places-and-Search#with-a-google-maps-api-key)), every call goes to Google whatever is passed, and the index and OpenStreetMap are never asked, so no result carries an `osm_id`. |
 | `search_places_via_plugins` | Search the place indexes installed plugins provide, alongside `search_place` rather than instead of it. Results have the shape `search_place` returns plus a `rating` and the `pluginId` that found them; only these results can carry a rating. Empty when no plugin offers a search index. Requires `places:read`. |
 
 ### Day Planning
@@ -199,8 +199,8 @@ A trip's tags are the ones the app shows and filters by; see [Tags-and-Categorie
 | `get_place_details` | `geo:read` | Fetch detailed information (hours, photos, ratings) about a place by its Google Place ID. |
 | `reverse_geocode` | `geo:read` | Get a human-readable address for given coordinates. |
 | `resolve_maps_url` | `geo:read` | Resolve a Google Maps or Amap (高德地图) share URL to coordinates and place name. |
-| `search_pois` | `geo:read` | List places of one or more categories inside a map rectangle, the MCP side of the category buttons on the trip map. Answers from TREK's place index where it can and from OpenStreetMap (Overpass) otherwise, names the source of each result, and never calls Google. |
-| `search_nearby_places` | `geo:read` | List named places of any kind around a coordinate, nearest first, each with its distance in metres. Takes `lat`, `lng`, an optional `radius` (50 to 5000 m, default 500), `limit` (up to 20) and `lang`. Answers from TREK's place index first, from Google Places only when the instance has a key and the index found nothing, and from OpenStreetMap otherwise. Answers are cached for 30 minutes. |
+| `search_pois` | `geo:read` | List places of one or more categories inside a map rectangle, the MCP side of the category buttons on the trip map. Answers from YOUYA's place index where it can and from OpenStreetMap (Overpass) otherwise, names the source of each result, and never calls Google. |
+| `search_nearby_places` | `geo:read` | List named places of any kind around a coordinate, nearest first, each with its distance in metres. Takes `lat`, `lng`, an optional `radius` (50 to 5000 m, default 500), `limit` (up to 20) and `lang`. Answers from YOUYA's place index first, from Google Places only when the instance has a key and the index found nothing, and from OpenStreetMap otherwise. Answers are cached for 30 minutes. |
 | `list_plugin_poi_categories` | `geo:read` | List the extra categories installed plugins add to the category buttons on the trip map (trailheads, EV chargers, step-free places, drinking water, campsites and the like), each with the `pluginId` and category `id` that `search_plugin_pois` takes and its label in the requested `lang`. Empty when no plugin adds categories, which is the normal case. |
 | `search_plugin_pois` | `geo:read` | List the places of one plugin category inside a map rectangle, the MCP side of a plugin's category button. Takes `pluginId`, `category`, a `bbox` (narrowed to a centred 0.5 degree window when larger, reported as `clamped`) and an optional `lang`. Results have the `search_pois` shape plus the answering `pluginId`, a `rating` where the plugin has one and up to six `details` rows (label and value) only that plugin knows. An unknown category or a failing plugin is an error result. Never calls Google. |
 | `search_airports` | `geo:read` | Search for airports by name, city, or IATA code. Returns IATA code, name, city, country, timezone. |
@@ -282,7 +282,7 @@ Accepting an invite has no tool on purpose: joining somebody's trip is a human a
 
 ### Booking mail import
 
-The bookings read from mails the user forwarded to TREK ([Booking mail import](Booking-Mail-Import)). Requires
+The bookings read from mails the user forwarded to YOUYA ([Booking mail import](Booking-Mail-Import)). Requires
 `reservations:read`, or `reservations:write` to act on an entry; the import must be switched on for the instance. No
 tool reads or makes a forwarding address, since an address carries its secret token.
 
@@ -316,7 +316,7 @@ Photo bytes are never returned: those are image URLs the app renders.
 
 | Tool | Description |
 |---|---|
-| `list_help_topics` | List the bundled help pages. Answers "how do I do X in TREK?" without guessing. |
+| `list_help_topics` | List the bundled help pages. Answers "how do I do X in YOUYA?" without guessing. |
 | `search_help` | Full-text search across the bundled help pages, the same search the in-app help uses. Returns the best-matching pages with the section heading and a snippet; follow up with `get_help_page`. |
 | `get_help_page` | Read one help page. |
 | `list_addons` | Which addons and collaboration features this instance has enabled. Worth calling when a tool you expected is not in the list: an addon that is off removes its tools exactly the way a missing scope does. |

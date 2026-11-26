@@ -1,6 +1,6 @@
 # Install: Portainer
 
-Install TREK on Portainer using a Stack (Docker Compose).
+Install YOUYA on Portainer using a Stack (Docker Compose).
 
 ## Prerequisite
 
@@ -26,9 +26,9 @@ Portainer must be installed and connected to your Docker environment. Use **Stac
 
 ## Check That It Runs
 
-Open **Containers** in Portainer. After the first 15 seconds or so the `trek` container shows a green **healthy** status, because the compose file defines a healthcheck that polls `/api/health` and follows a changed `PORT`. While it still says `starting`, TREK is booting or migrating its database.
+Open **Containers** in Portainer. After the first 15 seconds or so the `trek` container shows a green **healthy** status, because the compose file defines a healthcheck that polls `/api/health` and follows a changed `PORT`. While it still says `starting`, YOUYA is booting or migrating its database.
 
-Then open `http://<host>:3000`. On the very first start TREK creates an admin account. Without `ADMIN_EMAIL` and `ADMIN_PASSWORD` (both are needed, and they only apply on that first start) it uses `admin@trek.local` with a random password. Find the password in the container's log: **Containers → trek → Logs**. See [Quick-Start](Quick-Start).
+Then open `http://<host>:3000`. On the very first start YOUYA creates an admin account. Without `ADMIN_EMAIL` and `ADMIN_PASSWORD` (both are needed, and they only apply on that first start) it uses `admin@trek.local` with a random password. Find the password in the container's log: **Containers → trek → Logs**. See [Quick-Start](Quick-Start).
 
 ## Compose Content
 
@@ -74,7 +74,7 @@ How you update depends on the tag you chose:
 
 ![Edit stack page with an arrow pointing to the Update the stack button](assets/portainer-update-stack.png)
 
-When the new container starts, TREK first copies the database to `data/pre-migrate-<schema>-<time>.db`, so you can go back to the previous image if an update does not suit you. See [Updating](Updating).
+When the new container starts, YOUYA first copies the database to `data/pre-migrate-<schema>-<time>.db`, so you can go back to the previous image if an update does not suit you. See [Updating](Updating).
 
 > Back up your data before any update. Go to **Admin Panel → Backup** or copy your `./data` and `./uploads` directories. See [Backups](Backups).
 

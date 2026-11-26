@@ -1,6 +1,6 @@
-# TREK Wiki
+# YOUYA Wiki
 
-TREK is a self-hosted, real-time collaborative travel planner licensed under AGPL-3.0.
+YOUYA is a self-hosted, real-time collaborative travel planner licensed under AGPL-3.0.
 
 ![The My Trips dashboard: the Up next Spotlight card, the four stat tiles and the widget column with Currency, Collections, Timezones and Upcoming reservations](assets/Dashboard.png)
 
@@ -9,7 +9,7 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 ### Planning
 - **Drag & Drop Planner**: organize places into day plans with reordering and cross-day moves
 - **Interactive Map**: Leaflet map with photo markers, clustering, route visualization, customizable tile sources, category buttons (plugins can add their own) and a lock that keeps the view where it is
-- **Place Search**: TREK's own place index and OpenStreetMap, asked together, with no API key and no quota; Google or Amap answer only where both come up empty (see [TREK Places API](TREK-Places-API))
+- **Place Search**: YOUYA's own place index and OpenStreetMap, asked together, with no API key and no quota; Google or Amap answer only where both come up empty (see [YOUYA Places API](TREK-Places-API))
 - **Day Notes**: notes between a day's stops, each with a title, Markdown text, an icon and a colour
 - **Route Optimization**: auto-optimize place order, draw the day for driving, walking or cycling, leave single stops out of the route, and hand the day to Google Maps or CoMaps (see [Route Optimization](Route-Optimization))
 - **Weather Forecasts**: 16-day forecasts via Open-Meteo (no API key required), historical climate averages as fallback
@@ -31,21 +31,21 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 - **Two-Factor Authentication**: TOTP-based 2FA with QR code setup
 - **Passkeys** _(admin-enabled)_: passwordless WebAuthn sign-in with Touch ID, Windows Hello, Android screen lock, or a hardware key; owning one also satisfies the require-2FA policy (see [Passkeys](Passkeys))
 - **Public Share Links**: share a read-only view of any trip, in full, as **Travel & stays only** or **Without photos** (see [Public Share Links](Public-Share-Links))
-- **Notifications**: an inbox with a tile per kind and a list cut into days, plus email, webhook and ntfy, and Web Push to a phone or computer even while TREK is closed (see [Notifications](Notifications))
+- **Notifications**: an inbox with a tile per kind and a list cut into days, plus email, webhook and ntfy, and Web Push to a phone or computer even while YOUYA is closed (see [Notifications](Notifications))
 
 ### Addons _(admin-toggleable)_
 - **Lists**: packing lists and to-dos with templates, member assignments, optional bag tracking
 - **Costs**: expense tracker with category breakdown, splits, multi-currency
 - **Documents**: file manager for trips, places, and reservations
 - **Collab**: group chat, shared notes, polls, day-by-day attendance
-- **Tours**: hikes, city walks, bike, ski, paddle and horse tours with a route, drawn in TREK or imported from GPX, KML or KMZ, as single-day tours or with stages over several days; a **Tours** tab in the planner on the desktop (see [Tours](Tours))
+- **Tours**: hikes, city walks, bike, ski, paddle and horse tours with a route, drawn in YOUYA or imported from GPX, KML or KMZ, as single-day tours or with stages over several days; a **Tours** tab in the planner on the desktop (see [Tours](Tours))
 - **Road trip**: plan a trip as one continuous drive, with search along the route, driving limits, daily travel times and avoidance of toll roads, motorways and ferries (see [Road Trip](Road-Trip))
 - **Vacay**: personal vacation day planner with calendar view, public holidays, company holidays (also as half days), and carry-over tracking
 - **Atlas**: interactive world map with visited countries and regions, bucket list (countries or regions), travel stats, continent breakdown
 - **Collections**: a personal place library that saves places across trips into named lists, copies them into any trip, and shares them with per-member roles (see [Collections](Collections))
-- **Journey**: magazine-style travel journal with entries, drafts, photos (via Immich/Synology Photos) shown on the journey's map when geotagged, and moods; a journey can be linked to a trip and laid out as a printable photo book in TREK Studio (see [Journey Journal](Journey-Journal))
+- **Journey**: magazine-style travel journal with entries, drafts, photos (via Immich/Synology Photos) shown on the journey's map when geotagged, and moods; a journey can be linked to a trip and laid out as a printable photo book in YOUYA Studio (see [Journey Journal](Journey-Journal))
 - **Naver List Import**: import places from shared Naver Maps lists
-- **MCP**: expose TREK to AI assistants via the Model Context Protocol (OAuth 2.1)
+- **MCP**: expose YOUYA to AI assistants via the Model Context Protocol (OAuth 2.1)
 - **AirTrail**: sync flights from your self-hosted AirTrail instance into trips
 - **Dawarich**: read the stays and routes your self-hosted Dawarich instance recorded, offered as suggestions you confirm; nothing is written back (see [Dawarich](Dawarich))
 - **AI Assistant**: a chat inside the trip that reads the plan and proposes changes you confirm, using your own AI connection (off by default)
@@ -67,8 +67,8 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 - **Pre-built Prompts**: `trip-summary`, `packing-list`, and `budget-overview` context loaders
 
 ### Help
-- **Help Center**: the `?` in the navbar opens guides for the screen you are on, with a picture of every step and search across guides and the wiki, in every language TREK speaks (see [Help Center](Help-Center))
-- **In-App Help**: the whole wiki, bundled with your install and read inside TREK at `/help` (see [In-App Help](In-App-Help))
+- **Help Center**: the `?` in the navbar opens guides for the screen you are on, with a picture of every step and search across guides and the wiki, in every language YOUYA speaks (see [Help Center](Help-Center))
+- **In-App Help**: the whole wiki, bundled with your install and read inside YOUYA at `/help` (see [In-App Help](In-App-Help))
 
 ### Admin
 - User management, invite links, packing templates, global categories
@@ -76,7 +76,7 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 - Notification defaults: each event and channel on, off or blocked for every user (see [Notifications](Notifications))
 - System notices for onboarding and announcements, including a release notes notice every user sees once after each update (see [Admin-GitHub-Releases](Admin-GitHub-Releases#release-notes-notice))
 
-> **Admin:** Most configuration lives in the Admin Panel. On first boot TREK seeds an admin account automatically: credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` if set, otherwise a random password is printed to the container log.
+> **Admin:** Most configuration lives in the Admin Panel. On first boot YOUYA seeds an admin account automatically: credentials come from `ADMIN_EMAIL` / `ADMIN_PASSWORD` if set, otherwise a random password is printed to the container log.
 
 ## Get Started
 
@@ -86,10 +86,10 @@ TREK is a self-hosted, real-time collaborative travel planner licensed under AGP
 | [My Trips Dashboard](My-Trips-Dashboard) | Start planning your first trip |
 | [Trip Settings](Trip-Settings) | People, sharing links and the linked journal of a trip |
 | [Notifications Inbox](Notifications-Inbox) | The bell and the inbox page |
-| [TREK on a Phone](Mobile-App) | The phone layout, its bottom bar and what stays on the desktop |
+| [YOUYA on a Phone](Mobile-App) | The phone layout, its bottom bar and what stays on the desktop |
 | [AI Assistant](AI-Assistant) | A chat in the trip that suggests changes you confirm |
 | [AI Connections](AI-Connections) | Connect the AI provider the assistant and AI Parsing run on |
-| [TREK Studio](TREK-Studio) | Lay a journey out as a printable photo book |
+| [YOUYA Studio](TREK-Studio) | Lay a journey out as a printable photo book |
 | [wanderer](Wanderer) | Import trails from your own wanderer instance as tours |
 | [Help Center](Help-Center) | The `?` in the navbar: guides for the screen you are on |
 | [Admin Panel](Admin-Panel-Overview) | Configure your instance |

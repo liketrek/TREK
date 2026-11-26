@@ -35,8 +35,8 @@ export function SharedTopBar({ title, locale, langOpen, onLangOpenChange }: TopB
   return (
     <header className="border-b border-edge-faint bg-surface-elevated">
       <div className={`${PAGE_WIDTH} flex h-14 items-center gap-3`}>
-        <img src="/icons/icon-dark.svg" alt="TREK" className="sm:hidden" style={{ height: 22, width: 22 }} />
-        <img src="/logo-dark.svg" alt="TREK" className="hidden sm:block" style={{ height: 26 }} />
+        <img src="/icons/icon-dark.svg" alt="YOUYA" className="sm:hidden" style={{ height: 22, width: 22 }} />
+        <img src="/logo-dark.svg" alt="YOUYA" className="hidden sm:block" style={{ height: 26 }} />
         <span className="hidden text-content-faint sm:inline">/</span>
         <span className="hidden min-w-0 truncate font-medium text-content-muted sm:inline" style={fs(14, 'body')}>{title}</span>
         <div className="ms-auto flex flex-none items-center gap-2">
@@ -153,10 +153,10 @@ export function SharedFooter() {
     <footer className="mt-14 border-t border-edge-faint bg-surface-card">
       <div className={`${PAGE_WIDTH} flex flex-col items-center gap-4 py-8 text-center sm:flex-row sm:justify-between sm:text-start`}>
         <div className="flex items-center gap-3">
-          <img src="/icons/icon.svg" alt="TREK" width="34" height="34" className="rounded-[10px] shadow-sm" />
+          <img src="/icons/icon.svg" alt="YOUYA" width="34" height="34" className="rounded-[10px] shadow-sm" />
           <div>
             <div className="text-content-muted" style={fs(13, 'body')}>
-              {t('shared.sharedVia')} <strong className="text-content">TREK</strong>
+              {t('shared.sharedVia')} <strong className="text-content">YOUYA</strong>
             </div>
             <div className="text-content-faint" style={fs(12, 'body')}>{t('shared.footerTagline')}</div>
           </div>

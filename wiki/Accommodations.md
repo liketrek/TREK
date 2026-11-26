@@ -19,7 +19,7 @@ There are three ways to create a stay:
 2. Under **Select accommodation**, click the place you will sleep at. The list holds the trip's places (imported tracks aside), and the category filter beside the heading narrows it. The picked place becomes the dialog's title, with its address under it. Until you pick one, the title reads *Select accommodation* and **Save** stays greyed out.
 3. Under **Apply to days**, set **Start** (the check-in day) and **End** (the check-out day). **All** stretches the stay over the whole trip. The head band shows the range as a pill (for example *Day 2 → Day 5*) and the number of nights beside a moon.
 4. Optionally fill in **Check-in** (the earliest time you can check in), **Until** (the latest time the front desk accepts check-in), **Check-out** and the **Confirmation** code.
-5. Click **Save**. TREK creates the stay and its Accommodation booking together.
+5. Click **Save**. YOUYA creates the stay and its Accommodation booking together.
 
 If the trip has no places yet, the list says *Add places to your trip first*: add the hotel as a place (see [Places and Search](Places-and-Search#adding-a-place)) and come back.
 

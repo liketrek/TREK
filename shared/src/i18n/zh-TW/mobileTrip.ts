@@ -50,7 +50,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.rtInfoTitle': '駕駛數據',
   'mobileTrip.rtDesktopNote': '這些數據在電腦上設定，在那裡也可以比較其他路線，以及讓某一天沿匯入的軌跡行駛。',
   'mobileTrip.planOnDesktop': '請在電腦上規劃',
-  'mobileTrip.rtDriveOnTwoPlaces': '當一天有兩個地點時，TREK 就會算出車程。',
+  'mobileTrip.rtDriveOnTwoPlaces': '當一天有兩個地點時，游芽就會算出車程。',
   'mobileTrip.toursEmptyBody': '已儲存的遊程會顯示在這裡，可加入某一天。',
   'mobileTrip.toursCount': '{count} 個遊程',
   'mobileTrip.rtSearchOffline': '需要連線：搜尋會讀取前方的路線。',

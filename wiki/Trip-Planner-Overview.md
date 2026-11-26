@@ -76,7 +76,7 @@ The detail shows status, type and day, the booking code with a copy button, the 
 
 Every dialog of a trip shares one frame. The head band carries an icon tile, a small line that says what the dialog does (for example **Edit Place** or **Add accommodation**), the name, and pills for facts such as the status, the type or the category. In the dialogs for a place, a booking, a transport or a note, the name is a field: you type it straight into the band. **Cancel** and the save button sit in the footer. **Escape** or the **X** in the head band closes the dialog without saving.
 
-When a dialog opens, the focus moves inside it (on a desktop into its first field), and **Tab** stays inside until it closes. In the dialogs for a place, a booking and a transport, a stray click beside the dialog or **Escape** no longer throws away what you typed: once something has changed, TREK asks *Discard your changes?* with **Keep editing** and **Discard**.
+When a dialog opens, the focus moves inside it (on a desktop into its first field), and **Tab** stays inside until it closes. In the dialogs for a place, a booking and a transport, a stray click beside the dialog or **Escape** no longer throws away what you typed: once something has changed, YOUYA asks *Discard your changes?* with **Keep editing** and **Discard**.
 
 ## Undo
 
@@ -103,7 +103,7 @@ In the Road trip view, **Edit** on a stop on the way or on a booked night opens 
 
 ## Mobile layout
 
-On screens narrower than 768 px, TREK does not squeeze the three columns together. It opens a dedicated trip screen instead: a rail of day chips under the top bar, a switch between the day plan and a full-screen map, and a dock at the bottom for the other tabs. While a trip is running, today's chip is marked, and a button beside the rail (*Jump to today*) scrolls back to it, in the plan and on the map. Reopening a trip selects a day again instead of showing an empty plan.
+On screens narrower than 768 px, YOUYA does not squeeze the three columns together. It opens a dedicated trip screen instead: a rail of day chips under the top bar, a switch between the day plan and a full-screen map, and a dock at the bottom for the other tabs. While a trip is running, today's chip is marked, and a button beside the rail (*Jump to today*) scrolls back to it, in the plan and on the map. Reopening a trip selects a day again instead of showing an empty plan.
 
 ## Splash screen
 

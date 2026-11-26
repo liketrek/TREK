@@ -1,6 +1,6 @@
 # Updating
 
-How to update TREK to a newer version without losing data.
+How to update YOUYA to a newer version without losing data.
 
 ## Before You Update
 
@@ -28,7 +28,7 @@ docker compose pull && docker compose up -d
 
 This pulls the newest matching image and recreates the container with your existing volumes. Your data is untouched.
 
-On Postgres with `docker-compose.postgres.yml`, these commands use that file only when `.env` holds `COMPOSE_FILE=docker-compose.postgres.yml`, as [Install: Docker Compose](Install-Docker-Compose#running-on-postgres) sets it up. Otherwise add `-f docker-compose.postgres.yml` to each of them: without it they read `docker-compose.yml` and start TREK on the SQLite file.
+On Postgres with `docker-compose.postgres.yml`, these commands use that file only when `.env` holds `COMPOSE_FILE=docker-compose.postgres.yml`, as [Install: Docker Compose](Install-Docker-Compose#running-on-postgres) sets it up. Otherwise add `-f docker-compose.postgres.yml` to each of them: without it they read `docker-compose.yml` and start YOUYA on the SQLite file.
 
 **Pinned full-version tag:**
 
@@ -40,7 +40,7 @@ docker compose up -d
 
 ## Docker Run
 
-If you started TREK with `docker run`, pull the new image and replace the container:
+If you started YOUYA with `docker run`, pull the new image and replace the container:
 
 ```bash
 docker pull mauriceboe/trek
@@ -82,17 +82,17 @@ See [Install-Helm](Install-Helm) for the full installation walkthrough and value
 
 ## Database Migrations
 
-TREK runs any pending database migrations automatically at startup. No manual migration steps are required after pulling a new image.
+YOUYA runs any pending database migrations automatically at startup. No manual migration steps are required after pulling a new image.
 
-Migrations only go forward, so going back to an older image means going back to a copy of the database from before the update. Images from 5.0 on refuse to start on a database a newer TREK has migrated. Images from 4.3.x and earlier do not check this: they start on the newer database without a warning, so restore the copy before you start one of them.
+Migrations only go forward, so going back to an older image means going back to a copy of the database from before the update. Images from 5.0 on refuse to start on a database a newer YOUYA has migrated. Images from 4.3.x and earlier do not check this: they start on the newer database without a warning, so restore the copy before you start one of them.
 
-TREK takes that copy itself. Right before a startup applies pending migrations, it writes the database to `data/pre-migrate-<schema>-<time>.db` (next to `travel.db`, or next to the file `TREK_DB_FILE` names) and logs the path. On PostgreSQL it writes a `.pgdump` file instead; see [Rolling back a Postgres update](#rolling-back-a-postgres-update). `<schema>` names what the copy holds: `legacy-244` for a 4.3.3 install, or the last migration's number for a newer one. The newest three are kept (`TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP`). A restart with nothing to migrate and a brand-new install take no copy.
+YOUYA takes that copy itself. Right before a startup applies pending migrations, it writes the database to `data/pre-migrate-<schema>-<time>.db` (next to `travel.db`, or next to the file `TREK_DB_FILE` names) and logs the path. On PostgreSQL it writes a `.pgdump` file instead; see [Rolling back a Postgres update](#rolling-back-a-postgres-update). `<schema>` names what the copy holds: `legacy-244` for a 4.3.3 install, or the last migration's number for a newer one. The newest three are kept (`TREK_DB_PRE_MIGRATE_SNAPSHOT_KEEP`). A restart with nothing to migrate and a brand-new install take no copy.
 
-If the copy cannot be written (the disk is full, or the data directory is read-only), TREK does not migrate and refuses to start, with a message naming the path. Free some space and start again. If you cannot, and you have a backup of your own, `TREK_DB_PRE_MIGRATE_SNAPSHOT=false` starts without the copy.
+If the copy cannot be written (the disk is full, or the data directory is read-only), YOUYA does not migrate and refuses to start, with a message naming the path. Free some space and start again. If you cannot, and you have a backup of your own, `TREK_DB_PRE_MIGRATE_SNAPSHOT=false` starts without the copy.
 
 To go back to the previous image after an update:
 
-1. Stop TREK.
+1. Stop YOUYA.
 2. Copy the `pre-migrate-…db` file over `data/travel.db` and delete `data/travel.db-wal` and `data/travel.db-shm`.
 3. Start the previous image.
 
@@ -100,20 +100,20 @@ An image from 5.0 on that refuses a newer database names the copy it can run, if
 
 ### Rolling back a Postgres update
 
-On a [PostgreSQL database](Database-Postgres) the copy TREK takes before a migration is `data/pre-migrate-<schema>-<time>.pgdump`, a `pg_dump` custom-format file, and the procedure is different from the SQLite one above. The copy holds the database only. Anything written after it was taken is lost when you roll back, and the uploads are not affected.
+On a [PostgreSQL database](Database-Postgres) the copy YOUYA takes before a migration is `data/pre-migrate-<schema>-<time>.pgdump`, a `pg_dump` custom-format file, and the procedure is different from the SQLite one above. The copy holds the database only. Anything written after it was taken is lost when you roll back, and the uploads are not affected.
 
-The copy cannot be loaded over the migrated schema: it recreates TREK's tables, its `nocase` collation, its trigger functions and its sequences, and every one of them still exists. Dropping only the tables is not enough, because the functions, the collation and the sequences a table does not own stay behind, and the load then stops at the first one that already exists. So the steps below clear the whole schema and load the copy in one transaction, the way TREK's own restore does: a load that fails leaves the database as it was.
+The copy cannot be loaded over the migrated schema: it recreates YOUYA's tables, its `nocase` collation, its trigger functions and its sequences, and every one of them still exists. Dropping only the tables is not enough, because the functions, the collation and the sequences a table does not own stay behind, and the load then stops at the first one that already exists. So the steps below clear the whole schema and load the copy in one transaction, the way YOUYA's own restore does: a load that fails leaves the database as it was.
 
-1. Stop TREK.
-2. Turn the copy into a SQL script, with client tools of a version that carries the CVE-2025-8714 fix (18.0, 17.6, 16.10, 15.14 or 14.19 at least) and that is at least as new as the server. Name the schema TREK's tables are in, normally `public`:
+1. Stop YOUYA.
+2. Turn the copy into a SQL script, with client tools of a version that carries the CVE-2025-8714 fix (18.0, 17.6, 16.10, 15.14 or 14.19 at least) and that is at least as new as the server. Name the schema YOUYA's tables are in, normally `public`:
 
    ```bash
    pg_restore --no-owner --no-privileges --schema=public --file=restore.sql data/pre-migrate-<schema>-<time>.pgdump
    ```
 
-   `pg_restore` 17 and later write `SET transaction_timeout = 0;` near the top of the script, a setting PostgreSQL 14, 15 and 16 do not know. On such a server, delete that line from `restore.sql` before step 4; TREK's own restore leaves it out the same way.
+   `pg_restore` 17 and later write `SET transaction_timeout = 0;` near the top of the script, a setting PostgreSQL 14, 15 and 16 do not know. On such a server, delete that line from `restore.sql` before step 4; YOUYA's own restore leaves it out the same way.
 
-3. Save this block as `clear-schema.sql`. It drops every table, view, sequence, function, collation and type in the current schema, which is what TREK's restore runs before it loads a backup:
+3. Save this block as `clear-schema.sql`. It drops every table, view, sequence, function, collation and type in the current schema, which is what YOUYA's restore runs before it loads a backup:
 
    ```sql
    DO $clear$
@@ -153,7 +153,7 @@ The copy cannot be loaded over the migrated schema: it recreates TREK's tables, 
    $clear$;
    ```
 
-4. Clear the schema and load the script in one transaction, connected as TREK's own role (the URL in `TREK_DB_URL`):
+4. Clear the schema and load the script in one transaction, connected as YOUYA's own role (the URL in `TREK_DB_URL`):
 
    ```bash
    psql "postgres://user@host:5432/trek?sslmode=require" --no-psqlrc --single-transaction --set=ON_ERROR_STOP=1 --file=clear-schema.sql --file=restore.sql
@@ -162,13 +162,13 @@ The copy cannot be loaded over the migrated schema: it recreates TREK's tables, 
    Put the password in the `PGPASSWORD` environment variable rather than in the URL, which keeps it out of the command line. Delete `restore.sql` afterwards: it holds the whole database in plain text.
 5. Start the previous image with the same `TREK_DB_URL`.
 
-Loading the copy with `pg_restore -d` into a database you dropped and created again does not work: the copy holds TREK's schema by name, so `pg_restore` creates `public` again, stops at `schema "public" already exists` and rolls the whole load back. Use the steps above, which clear the schema instead of the database.
+Loading the copy with `pg_restore -d` into a database you dropped and created again does not work: the copy holds YOUYA's schema by name, so `pg_restore` creates `public` again, stops at `schema "public" already exists` and rolls the whole load back. Use the steps above, which clear the schema instead of the database.
 
-A TREK image without PostgreSQL support cannot read this database at all. It would start on a new SQLite file instead. An image from 5.0 on that refuses a newer database names the copy it can run, if one is in the data directory.
+A YOUYA image without PostgreSQL support cannot read this database at all. It would start on a new SQLite file instead. An image from 5.0 on that refuses a newer database names the copy it can run, if one is in the data directory.
 
 ## After the Update
 
-The first time a user opens TREK on the desktop after an update, a notice headed **Update installed** opens on top of the app: three cards with the headline features of that release, a note from the maintainer, a **Release notes** link to the full notes on GitHub, and links for supporting the project. Every user sees it once per version. Closing it keeps it closed on that version, and the next update brings it back, a patch release included. The phone does not show it.
+The first time a user opens YOUYA on the desktop after an update, a notice headed **Update installed** opens on top of the app: three cards with the headline features of that release, a note from the maintainer, a **Release notes** link to the full notes on GitHub, and links for supporting the project. Every user sees it once per version. Closing it keeps it closed on that version, and the next update brings it back, a patch release included. The phone does not show it.
 
 The full notes for every version are also in the admin panel under the **GitHub** tab. See [Admin-GitHub-Releases](Admin-GitHub-Releases).
 
@@ -176,7 +176,7 @@ The full notes for every version are also in the admin panel under the **GitHub*
 
 A few defaults change with 4.3.0. None of them needs a manual step, but they are worth knowing before you pull the image:
 
-- **Place search asks a new service.** Suggestions, the full search, the category buttons, import geocoding, offline downloads and the Road trip search now ask the TREK Places API at `https://places.liketrek.com`, so your server makes outbound requests to that host. Set `TREK_PLACES_ENABLED=false` to keep searching the way it did before, or `TREK_PLACES_URL` to point at a copy you run yourself. [TREK-Places-API](TREK-Places-API) lists what is sent.
+- **Place search asks a new service.** Suggestions, the full search, the category buttons, import geocoding, offline downloads and the Road trip search now ask the YOUYA Places API at `https://places.liketrek.com`, so your server makes outbound requests to that host. Set `TREK_PLACES_ENABLED=false` to keep searching the way it did before, or `TREK_PLACES_URL` to point at a copy you run yourself. [YOUYA-Places-API](TREK-Places-API) lists what is sent.
 - **New variables.** `NOMINATIM_URL` points every geocoding call at a Nominatim of your own, `ALLOW_LINK_LOCAL_IPS` lets a rootless Podman container reach its host gateway, and `AMAP_API_KEY`, `AMAP_API_SECRET` and `AMAP_API_BASE` put Amap into place search for mainland China. All of them are optional. See [Environment-Variables](Environment-Variables).
 - **`OVERPASS_TIMEOUT_MS` now defaults to `25000`** instead of `12000`. If you set a lower value by hand, remove it: the query gives Overpass 20 seconds of work, and a shorter timeout hangs up on answers that were still coming.
 - **SSO sessions on an OIDC-only instance last 30 days.** The login page sends `remember=1` on that path, so the session gets the `SESSION_DURATION_REMEMBER` lifetime (default `30d`) instead of `SESSION_DURATION` (default `24h`). Lower `SESSION_DURATION_REMEMBER` if that is too long. With password login on, the SSO button follows the Remember-me switch instead. See [OIDC-SSO](OIDC-SSO).
@@ -192,34 +192,34 @@ Two things change with 4.3.1. Neither needs a manual step on Docker, but they ar
 
 ## Upgrading to 5.0
 
-5.0 is a large release. Apart from the point below about the Places API, updating needs no manual step on any install method: migrations run at startup, and TREK copies the database first (see [Database Migrations](#database-migrations)).
+5.0 is a large release. Apart from the point below about the Places API, updating needs no manual step on any install method: migrations run at startup, and YOUYA copies the database first (see [Database Migrations](#database-migrations)).
 
 - **A new look, and a phone interface of its own.** Dialogs are redesigned and the phone gets its own screens instead of a squeezed desktop layout. Open apps switch over after **Reload page** (see [Open apps after an update](#open-apps-after-an-update)).
-- **New features.** Tours, TREK Studio for journeys, the AI Assistant addon, notifications in an inbox, trip settings and a Help Center inside the app. The addons are switched on or off under **Admin → Addons**; see [Addons-Overview](Addons-Overview) and [Help-Center](Help-Center).
+- **New features.** Tours, YOUYA Studio for journeys, the AI Assistant addon, notifications in an inbox, trip settings and a Help Center inside the app. The addons are switched on or off under **Admin → Addons**; see [Addons-Overview](Addons-Overview) and [Help-Center](Help-Center).
 - **AI assistant secrets are encrypted** with your `ENCRYPTION_KEY` like the other stored secrets, and the connections need no action on update. A key rotation covers them; see [Encryption-Key-Rotation](Encryption-Key-Rotation).
-- **Web Push needs no VAPID setup.** TREK generates its key pair on first start and keeps it in the database. See [Environment-Variables](Environment-Variables#web-push).
+- **Web Push needs no VAPID setup.** YOUYA generates its key pair on first start and keeps it in the database. See [Environment-Variables](Environment-Variables#web-push).
 - **Remove any `APP_VERSION` override.** The version now comes from the image itself. A leftover `APP_VERSION=` line in your compose file, `.env` or Portainer stack only gets in the way.
-- **Tours asks the TREK Places API first.** The grades, surfaces and kinds of way under a planned tour and the horse routes around the map are read from `https://places.liketrek.com`, and the Overpass mirrors are asked only when it has no answer. An `OVERPASS_URL` pointed at an internal Overpass therefore no longer keeps these lookups inside your network: set `TREK_PLACES_ENABLED=false`, or point `TREK_PLACES_URL` at a copy you run yourself. [TREK-Places-API](TREK-Places-API#what-leaves-your-instance) lists what is sent.
+- **Tours asks the YOUYA Places API first.** The grades, surfaces and kinds of way under a planned tour and the horse routes around the map are read from `https://places.liketrek.com`, and the Overpass mirrors are asked only when it has no answer. An `OVERPASS_URL` pointed at an internal Overpass therefore no longer keeps these lookups inside your network: set `TREK_PLACES_ENABLED=false`, or point `TREK_PLACES_URL` at a copy you run yourself. [YOUYA-Places-API](TREK-Places-API#what-leaves-your-instance) lists what is sent.
 
 ## Moving to PostgreSQL
 
-An update never switches the database. To move an existing SQLite install to PostgreSQL, update first and let TREK start once on SQLite, then follow [Database: Postgres: Moving an existing install to Postgres](Database-Postgres#moving-an-existing-install-to-postgres). The move copies the database only; the uploads stay where they are. Setting `TREK_DB_URL` alone, without the move, is refused while `data/travel.db` holds your data, so an update cannot leave you on an empty instance by accident.
+An update never switches the database. To move an existing SQLite install to PostgreSQL, update first and let YOUYA start once on SQLite, then follow [Database: Postgres: Moving an existing install to Postgres](Database-Postgres#moving-an-existing-install-to-postgres). The move copies the database only; the uploads stay where they are. Setting `TREK_DB_URL` alone, without the move, is refused while `data/travel.db` holds your data, so an update cannot leave you on an empty instance by accident.
 
 ## Encryption Key Note
 
-If you are upgrading from a version that predates the dedicated `ENCRYPTION_KEY` (i.e. you have no `ENCRYPTION_KEY` environment variable set), TREK automatically falls back to `./data/.jwt_secret` on startup and immediately promotes it to `./data/.encryption_key`. No manual steps are required — the transition is handled at first boot after the upgrade.
+If you are upgrading from a version that predates the dedicated `ENCRYPTION_KEY` (i.e. you have no `ENCRYPTION_KEY` environment variable set), YOUYA automatically falls back to `./data/.jwt_secret` on startup and immediately promotes it to `./data/.encryption_key`. No manual steps are required — the transition is handled at first boot after the upgrade.
 
 If you want to rotate to a new key at any point (not required for a normal update), see [Encryption-Key-Rotation](Encryption-Key-Rotation) for the full procedure.
 
 ## Proxmox VE (LXC)
 
-If you installed TREK via the [Proxmox VE Community Scripts](https://community-scripts.org/scripts/trek), run the following command inside the **LXC container** and select **Update** when prompted:
+If you installed YOUYA via the [Proxmox VE Community Scripts](https://community-scripts.org/scripts/trek), run the following command inside the **LXC container** and select **Update** when prompted:
 
 ```bash
 bash -c "$(curl -fsSL https://raw.githubusercontent.com/community-scripts/ProxmoxVE/main/ct/trek.sh)"
 ```
 
-> **Tip:** Always check the [community-scripts TREK page](https://community-scripts.org/scripts/trek) to confirm the latest command before running.
+> **Tip:** Always check the [community-scripts YOUYA page](https://community-scripts.org/scripts/trek) to confirm the latest command before running.
 
 The script stops the service, backs up your data and uploads, applies the new release, restores the backup, and restarts. No manual steps required.
 
@@ -232,7 +232,7 @@ journalctl -u trek -n 50
 
 ## Portainer
 
-Open the **Stacks** list, click the TREK stack, then click **Redeploy**.
+Open the **Stacks** list, click the YOUYA stack, then click **Redeploy**.
 
 **`latest`, major-version or minor-version tag**: enable the **Re-pull image and redeploy** switch before confirming. Portainer pulls the newest matching image and recreates the container.
 
@@ -244,17 +244,17 @@ Open the **Stacks** list, click the TREK stack, then click **Redeploy**.
 
 ![Edit stack page with an arrow pointing to the Update the stack button](assets/portainer-update-stack.png)
 
-Portainer's **Recreate** on a single container keeps that container's environment, which on images before 5.0 included the previous release's `APP_VERSION`. TREK then kept reporting the old version and open apps did not switch to the new interface. Images from 5.0 on take the version from a file inside the image, so a recreated container reports the image it actually runs.
+Portainer's **Recreate** on a single container keeps that container's environment, which on images before 5.0 included the previous release's `APP_VERSION`. YOUYA then kept reporting the old version and open apps did not switch to the new interface. Images from 5.0 on take the version from a file inside the image, so a recreated container reports the image it actually runs.
 
 See [Install-Portainer](Install-Portainer) for the full installation walkthrough.
 
 ## Unraid
 
-In the Unraid Docker tab, click the TREK container and select **Update**. Unraid will pull the latest image and restart with the same volumes.
+In the Unraid Docker tab, click the YOUYA container and select **Update**. Unraid will pull the latest image and restart with the same volumes.
 
 ## TrueNAS SCALE
 
-Back up your data and uploads, then update TREK from **Apps → Installed Applications** when an update is available. TrueNAS catalog updates may arrive separately from TREK releases. See [Install-TrueNAS-SCALE](Install-TrueNAS-SCALE) and [Database Migrations](#database-migrations) for storage and rollback guidance.
+Back up your data and uploads, then update YOUYA from **Apps → Installed Applications** when an update is available. TrueNAS catalog updates may arrive separately from YOUYA releases. See [Install-TrueNAS-SCALE](Install-TrueNAS-SCALE) and [Database Migrations](#database-migrations) for storage and rollback guidance.
 
 ## Open apps after an update
 

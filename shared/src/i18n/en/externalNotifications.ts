@@ -3,10 +3,10 @@ import { pluralForm } from '../plural';
 
 const en: NotificationLocale = {
   email: {
-    footer: 'You received this because you have notifications enabled in TREK.',
+    footer: 'You received this because you have notifications enabled in YOUYA.',
     manage: 'Manage preferences in Settings',
     madeWith: 'Made with',
-    openTrek: 'Open TREK',
+    openTrek: 'Open YOUYA',
   },
   events: {
     trip_invite: (p) => ({
@@ -39,15 +39,15 @@ const en: NotificationLocale = {
     }),
     vacay_invite: (p) => ({
       title: 'Vacay Fusion Invite',
-      body: `${p.actor} invited you to fuse vacation plans. Open TREK to accept or decline.`,
+      body: `${p.actor} invited you to fuse vacation plans. Open YOUYA to accept or decline.`,
     }),
     vacay_share: (p) => ({
       title: 'Vacay Calendar Shared',
-      body: `${p.actor} shared their vacation calendar with you. Open TREK to view it.`,
+      body: `${p.actor} shared their vacation calendar with you. Open YOUYA to view it.`,
     }),
     collection_invite: (p) => ({
       title: 'Collection invite',
-      body: `${p.actor} invited you to share a collection. Open TREK to accept or decline.`,
+      body: `${p.actor} invited you to share a collection. Open YOUYA to accept or decline.`,
     }),
     photos_shared: (p) => ({
       title: pluralForm(p.count, 'en', { one: `${p.count} photo shared`, other: `${p.count} photos shared` }),
@@ -65,8 +65,8 @@ const en: NotificationLocale = {
       body: `${p.actor} assigned you to the "${p.category}" packing category in "${p.trip}".`,
     }),
     version_available: (p) => ({
-      title: 'New TREK version available',
-      body: `TREK ${p.version} is now available. Visit the admin panel to update.`,
+      title: 'New YOUYA version available',
+      body: `YOUYA ${p.version} is now available. Visit the admin panel to update.`,
     }),
     replica_failure: (p) => ({
       title: 'Storage replica failure',
@@ -101,22 +101,22 @@ const en: NotificationLocale = {
       body:
         p.role === 'traveller'
           ? `${p.actor} added "${p.booking}" to "${p.trip}" from a forwarded mail.`
-          : `"${p.booking}" from your forwarded mail was added to "${p.trip}". You can undo it in TREK for 7 days.`,
+          : `"${p.booking}" from your forwarded mail was added to "${p.trip}". You can undo it in YOUYA for 7 days.`,
     }),
     mail_booking_pending: (p) => ({
       title: 'Forwarded bookings to review',
-      body: `Forwarded bookings waiting for you in TREK: ${p.count}. Each one says why it was not added on its own.`,
+      body: `Forwarded bookings waiting for you in YOUYA: ${p.count}. Each one says why it was not added on its own.`,
     }),
     mail_ingest_paused: () => ({
       title: 'Mail import paused',
-      body: 'TREK does not take in forwarded booking mails for now, so hold off forwarding them. Your addresses stay and work again once the import is back, and bookings already added stay in your trips.',
+      body: 'YOUYA does not take in forwarded booking mails for now, so hold off forwarding them. Your addresses stay and work again once the import is back, and bookings already added stay in your trips.',
     }),
     plugin_notification: (p) => ({ title: p.title ?? '', body: p.body ?? '' }),
   },
   passwordReset: {
     subject: 'Reset your password',
     greeting: 'Hi',
-    body: 'We received a request to reset the password for your TREK account. Click the button below to set a new password.',
+    body: 'We received a request to reset the password for your YOUYA account. Click the button below to set a new password.',
     ctaIntro: 'Reset password',
     expiry: 'This link expires in 60 minutes.',
     ignore: "If you didn't request this, you can safely ignore this email — your password won't change.",

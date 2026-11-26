@@ -78,9 +78,9 @@ const common: TranslationStrings = {
   'common.errorRetry': 'Try again',
   'common.errorReload': 'Reload page',
   'common.errorUpdateTitle': 'A new version is available',
-  'common.errorUpdateBody': 'TREK was updated while this tab was open. Reload to get the new version.',
+  'common.errorUpdateBody': 'YOUYA was updated while this tab was open. Reload to get the new version.',
   'common.errorPluginTitle': 'This plugin could not be shown',
-  'common.needsConnection': 'This needs a connection. Try again once TREK is back online.',
+  'common.needsConnection': 'This needs a connection. Try again once YOUYA is back online.',
   'common.errorDetails': 'Details',
   'common.share': 'Share',
 };

@@ -1,6 +1,6 @@
 # Admin: Addons
 
-The **Addons** tab (in the **Configuration** group of the admin side navigation) lets you enable or disable optional features for the entire TREK instance. Toggling an addon affects all users immediately: disabling one hides its UI elements and blocks its API routes instance-wide.
+The **Addons** tab (in the **Configuration** group of the admin side navigation) lets you enable or disable optional features for the entire YOUYA instance. Toggling an addon affects all users immediately: disabling one hides its UI elements and blocks its API routes instance-wide.
 
 ![Addon overview](assets/Addons-Overview.png)
 
@@ -18,7 +18,7 @@ Below the head card the addons are grouped in one card per type. From extra-wide
 
 Trip addons add per-trip feature panels. Your switch here is the default for every trip; a trip's owner can turn a trip addon on or off for their own trip under **Trip settings → Addons**, and that choice wins for that trip only. See [Trip-Settings](Trip-Settings#addons).
 
-The trip addons are: **Lists**, **Costs**, **Documents**, **Collab** and **Tours** (all enabled by default), and **Road trip** (disabled by default). The exact list is determined by what is registered in your TREK database.
+The trip addons are: **Lists**, **Costs**, **Documents**, **Collab** and **Tours** (all enabled by default), and **Road trip** (disabled by default). The exact list is determined by what is registered in your YOUYA database.
 
 **Sub-toggles on trip addons:**
 
@@ -33,11 +33,11 @@ The trip addons are: **Lists**, **Costs**, **Documents**, **Collab** and **Tours
 
 Each sub-toggle can be disabled independently while the parent addon remains enabled.
 
-**Road trip** plans a trip as one continuous drive: search along the route, driving limits, daily travel times, via points and avoidance of toll roads, motorways and ferries. **Disabled by default.** It needs no key: routing runs on the Valhalla of the TREK services, with the public OSRM servers for a day it cannot answer (the public OSRM and Valhalla servers on an installation without the TREK services), until you set your own under **User Defaults** (**Own routing engine**, **Own Valhalla instance**, restart required). See [Road-Trip](Road-Trip).
+**Road trip** plans a trip as one continuous drive: search along the route, driving limits, daily travel times, via points and avoidance of toll roads, motorways and ferries. **Disabled by default.** It needs no key: routing runs on the Valhalla of the YOUYA services, with the public OSRM servers for a day it cannot answer (the public OSRM and Valhalla servers on an installation without the YOUYA services), until you set your own under **User Defaults** (**Own routing engine**, **Own Valhalla instance**, restart required). See [Road-Trip](Road-Trip).
 
 **Tours** plans hikes, bike rides, ski tours, paddle tours (kayak, canoe, SUP) and other tours as tours of their own and adds them to the days of a trip. **Enabled by default.** Underneath its tile are four switches that decide which outside services Tours may use:
 
-- **wanderer**: lets users connect their own wanderer instance and import its trails. Each user can also switch on a background check of the trails they imported (Settings, Integrations, wanderer): TREK then reads the small record of each such trail at most once a day, never its GPX, and leaves a notification when the trail may have changed. It never changes a tour; taking a change in stays the user's own check and confirmed reimport. Switching wanderer off here stops those checks too.
+- **wanderer**: lets users connect their own wanderer instance and import its trails. Each user can also switch on a background check of the trails they imported (Settings, Integrations, wanderer): YOUYA then reads the small record of each such trail at most once a day, never its GPX, and leaves a notification when the trail may have changed. It never changes a tour; taking a change in stays the user's own check and confirmed reimport. Switching wanderer off here stops those checks too.
 - **Hiking map (OpenHikingMap)**: offers OpenHikingMap as a base map in the tour planner. It is free for non-commercial installs up to 500,000 tiles a month; a commercial or larger install needs an agreement with openmaps.fr first.
 - **Cycling map (CyclOSM)**: offers CyclOSM as a base map for bike tours. OpenStreetMap France serves it for moderate use; a heavy or commercial install switches it off or reaches an agreement with the operator first.
 - **Piste router**: plans ski tours along runs, lifts and trails on the piste data of the Places server. Switched off, the legs of a ski tour are drawn straight.
@@ -46,27 +46,27 @@ Each of these changes is recorded in the [Audit-Log](Audit-Log).
 
 #### Paddle water data
 
-While **Tours** is on, a **Paddle water data** card appears under the addons. It holds the regions TREK knows weirs, dams, locks, rapids, put-ins, take-outs, portage ways and paddling rules for. TREK reads them from OpenStreetMap, from the regional extracts Geofabrik publishes, with a reader of its own; no other service is asked.
+While **Tours** is on, a **Paddle water data** card appears under the addons. It holds the regions YOUYA knows weirs, dams, locks, rapids, put-ins, take-outs, portage ways and paddling rules for. YOUYA reads them from OpenStreetMap, from the regional extracts Geofabrik publishes, with a reader of its own; no other service is asked.
 
 1. Search the card for a region, for example *Oberpfalz*. Each hit shows the regions it lies in, so two places of one name tell apart.
-2. Click **Add**. TREK downloads the extract in the background, reads the paddle objects out of it, builds the region's water network from the same read and deletes the file. The card shows the download, the reading and the building with their progress, without reloading the page. A large region takes a few minutes; regions are read one after another.
-3. Once the region is **Ready**, the card shows how many objects it holds, the date its data is current to and how many kilometres of water its network holds (lakes, mapped and assumed portages, locks and bridged gaps in its tooltip). A region read with an older TREK shows **No water network** until it is read again.
+2. Click **Add**. YOUYA downloads the extract in the background, reads the paddle objects out of it, builds the region's water network from the same read and deletes the file. The card shows the download, the reading and the building with their progress, without reloading the page. A large region takes a few minutes; regions are read one after another.
+3. Once the region is **Ready**, the card shows how many objects it holds, the date its data is current to and how many kilometres of water its network holds (lakes, mapped and assumed portages, locks and bridged gaps in its tooltip). A region read with an older YOUYA shows **No water network** until it is read again.
 
 **Load regions automatically.** The card also decides what happens when someone plans a paddle tour where no water data exists yet:
 
-- **Automatic** (the default): TREK loads the smallest matching region right away, up to **Largest region loaded automatically** (500 MB unless you change it) and at most five regions a day. Anything larger, or anything past the daily limit, waits in a **Requested** list. Only the region's name goes to Geofabrik, never the place.
+- **Automatic** (the default): YOUYA loads the smallest matching region right away, up to **Largest region loaded automatically** (500 MB unless you change it) and at most five regions a day. Anything larger, or anything past the daily limit, waits in a **Requested** list. Only the region's name goes to Geofabrik, never the place.
 - **On request**: every new region waits in the **Requested** list until an admin lets it through. When an admin plans the tour, the region loads right away.
-- **Off**: TREK loads nothing by itself and asks for nothing; add regions by hand.
+- **Off**: YOUYA loads nothing by itself and asks for nothing; add regions by hand.
 
-Each entry in **Requested** shows who asked and why it waits (**On request**, **Too large** or **Daily limit**). **Load** reads the region, **Decline** removes the request. Admins get a **Paddle region requested** notification when a request arrives, see [Admin-Notifications](Admin-Notifications). Regions TREK loaded by itself are tagged **Automatic**.
+Each entry in **Requested** shows who asked and why it waits (**On request**, **Too large** or **Daily limit**). **Load** reads the region, **Decline** removes the request. Admins get a **Paddle region requested** notification when a request arrives, see [Admin-Notifications](Admin-Notifications). Regions YOUYA loaded by itself are tagged **Automatic**.
 
-Paddle tours inside a region show its obstacles on the planner map, each with a card that says how it stands to the route, what paddling rule its tags give and how current the data is. Outside every region a paddle tour says that no obstacle data is known there; TREK never shows the water as free of obstacles.
+Paddle tours inside a region show its obstacles on the planner map, each with a card that says how it stands to the route, what paddling rule its tags give and how current the data is. Outside every region a paddle tour says that no obstacle data is known there; YOUYA never shows the water as free of obstacles.
 
-**Routing on the water.** Inside a region the planner plans a paddle tour along rivers and canals and across lakes, the way it routes a hike on paths: set the put-in and the take-out, and the route follows the water. Where a weir, dam or waterfall bars the way it carries round it, on a mapped portage way where there is one and on a short straight carry where there is none, and it goes through open locks. A click on the route sets a shaping point that steers it, for example to one side of an island. Lakes are crossed straight over or near the shore, as each tour chooses; on a windy day the wind card suggests the shore. A leg TREK cannot plan, because a point lies off the water or between two regions, stays a straight red line until it is moved or drawn by hand on purpose. The router runs in a thread of the server itself; no other service is asked. Each region's network is a file in the data folder (a large region takes a few megabytes) and is built again with every read.
+**Routing on the water.** Inside a region the planner plans a paddle tour along rivers and canals and across lakes, the way it routes a hike on paths: set the put-in and the take-out, and the route follows the water. Where a weir, dam or waterfall bars the way it carries round it, on a mapped portage way where there is one and on a short straight carry where there is none, and it goes through open locks. A click on the route sets a shaping point that steers it, for example to one side of an island. Lakes are crossed straight over or near the shore, as each tour chooses; on a windy day the wind card suggests the shore. A leg YOUYA cannot plan, because a point lies off the water or between two regions, stays a straight red line until it is moved or drawn by hand on purpose. The router runs in a thread of the server itself; no other service is asked. Each region's network is a file in the data folder (a large region takes a few megabytes) and is built again with every read.
 
 **Monthly refresh.** Every region with data is read again on the 3rd of every month at 04:20 (server time); **Read again** does it at once. A read that fails keeps the data read before and shows the reason. A restart during a read queues it again. **Remove region** deletes a region and its objects after a confirmation.
 
-**Data and licence.** The objects are OpenStreetMap data, © OpenStreetMap contributors, under the Open Database License (ODbL); TREK shows the attribution next to them. A record in the data is no check on site: weirs, locks and rules change, and the data can have gaps. The download needs outbound access to Geofabrik's server and, while a region is read, room for its extract in the data folder's temporary space (a whole country takes a few gigabytes).
+**Data and licence.** The objects are OpenStreetMap data, © OpenStreetMap contributors, under the Open Database License (ODbL); YOUYA shows the attribution next to them. A record in the data is no check on site: weirs, locks and rules change, and the data can have gaps. The download needs outbound access to Geofabrik's server and, while a region is read, room for its extract in the data folder's temporary space (a whole country takes a few gigabytes).
 
 ### Global addons
 
@@ -83,7 +83,7 @@ Global addons add features that are not tied to a single trip. The default globa
 
 ### Integration addons
 
-Integration addons connect TREK to external services. Most of them need additional configuration (API keys, URLs) once enabled, but not in the admin **Settings** tab: each one has its own place.
+Integration addons connect YOUYA to external services. Most of them need additional configuration (API keys, URLs) once enabled, but not in the admin **Settings** tab: each one has its own place.
 
 - The **Naver List Import** addon imports the places of a shared Naver Maps list into a trip. **Enabled by default.** It needs no key.
 - The **AirTrail** addon syncs flights from a self-hosted AirTrail instance. **Disabled by default.** The toggle here is the instance-wide switch only; each user connects their own instance (URL + API key) in **Settings → Integrations**.
@@ -92,11 +92,11 @@ Integration addons connect TREK to external services. Most of them need addition
 
 #### The AI tile
 
-**MCP**, **AI Parsing** and the **AI Assistant** do not have a tile each. They are one tile named **AI** at the head of the **Integration** card ("One connection for the assistant and booking import. MCP lets other AI apps use TREK."), with a pill that counts how many of the three are on and one switch row for each. All three are **disabled by default**.
+**MCP**, **AI Parsing** and the **AI Assistant** do not have a tile each. They are one tile named **AI** at the head of the **Integration** card ("One connection for the assistant and booking import. MCP lets other AI apps use YOUYA."), with a pill that counts how many of the three are on and one switch row for each. All three are **disabled by default**.
 
 - **AI Assistant**: a chat in the trip that reads the plan and proposes changes you confirm.
 - **AI Parsing**: the LLM fallback for booking imports KItinerary cannot read. See [AI-Booking-Import](AI-Booking-Import) and [Budget-Tracking](Budget-Tracking#scanning-a-receipt).
-- **MCP**: lets other AI apps use TREK through the Model Context Protocol. It requires `APP_URL` to be set in your environment. While it is on, the **MCP Access** tab appears in the Admin Panel. See [MCP-Overview](MCP-Overview) for full details.
+- **MCP**: lets other AI apps use YOUYA through the Model Context Protocol. It requires `APP_URL` to be set in your environment. While it is on, the **MCP Access** tab appears in the Admin Panel. See [MCP-Overview](MCP-Overview) for full details.
 
 Below the switches, **Set up AI** opens a dialog for the connection and limits. The button appears while the AI Assistant or AI Parsing is on; every change in the dialog saves at once. It has up to three tabs, and a tab only shows while its addon is on:
 
@@ -120,8 +120,8 @@ Some addons require credentials or environment variables before they are functio
 - **Journey**: works without any external integration. To embed photos from Immich or Synology Photos, enable the corresponding photo-provider toggle listed under Journey, then configure credentials per-user in **Settings → Integrations**. See [Photo-Providers](Photo-Providers).
 - **MCP**: requires `APP_URL` to be set so OAuth redirect URIs resolve correctly.
 - **AI Assistant** and **AI Parsing**: need a connection, either one shared for everyone under **Set up AI** or one per person in **Settings → Integrations**.
-- **Road trip**: works out of the box on the TREK services' Valhalla and the public routing servers. To use your own OSRM or Valhalla, set **Own routing engine** or **Own Valhalla instance** under **Admin → User Defaults**, then restart the server and reload the page. See [Road-Trip](Road-Trip#routing-engines).
-- **Tours**: hikes need nothing more. For the obstacles on paddle tours, add the regions you paddle in under **Paddle water data** (see above), or let TREK load them.
+- **Road trip**: works out of the box on the YOUYA services' Valhalla and the public routing servers. To use your own OSRM or Valhalla, set **Own routing engine** or **Own Valhalla instance** under **Admin → User Defaults**, then restart the server and reload the page. See [Road-Trip](Road-Trip#routing-engines).
+- **Tours**: hikes need nothing more. For the obstacles on paddle tours, add the regions you paddle in under **Paddle water data** (see above), or let YOUYA load them.
 
 ## On a phone
 

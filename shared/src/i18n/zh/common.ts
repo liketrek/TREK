@@ -76,9 +76,9 @@ const common: TranslationStrings = {
   'common.errorRetry': '重试',
   'common.errorReload': '重新加载页面',
   'common.errorUpdateTitle': '有新版本可用',
-  'common.errorUpdateBody': '此标签页打开期间 TREK 已更新。请重新加载以获取新版本。',
+  'common.errorUpdateBody': '此标签页打开期间游芽已更新。请重新加载以获取新版本。',
   'common.errorPluginTitle': '无法显示此插件',
-  'common.needsConnection': '此操作需要网络连接。请在 TREK 恢复联网后重试。',
+  'common.needsConnection': '此操作需要网络连接。请在游芽恢复联网后重试。',
   'common.errorDetails': '详细信息',
   'common.share': '分享',
 };

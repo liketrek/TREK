@@ -6,7 +6,7 @@ const help: TranslationStrings = {
   'help.contents': 'Nội dung',
   'help.noResults': 'Không có trang nào phù hợp.',
   'help.errorTitle': 'Không tải được trang này',
-  'help.errorBody': 'Nội dung trợ giúp được lấy từ wiki của TREK. Hãy kiểm tra kết nối và thử lại.',
+  'help.errorBody': 'Nội dung trợ giúp được lấy từ wiki của YOUYA. Hãy kiểm tra kết nối và thử lại.',
 
   // center
   'help.center.button': 'Trợ giúp cho màn hình này',
@@ -69,14 +69,14 @@ const help: TranslationStrings = {
   'help.guide.create-trip.step.2':
     'Đặt tên cho chuyến đi. Đây là trường duy nhất bạn cần điền; mọi thứ khác có thể thêm sau.',
   'help.guide.create-trip.step.3':
-    'Chọn ngày bắt đầu và ngày kết thúc. TREK tạo mỗi ngày một ngày trong kế hoạch, để bạn bắt đầu lên lịch trình. Chưa có ngày? Để trống cả hai và nhập “Số ngày”.',
+    'Chọn ngày bắt đầu và ngày kết thúc. YOUYA tạo mỗi ngày một ngày trong kế hoạch, để bạn bắt đầu lên lịch trình. Chưa có ngày? Để trống cả hai và nhập “Số ngày”.',
   'help.guide.create-trip.step.4':
     'Không bắt buộc: thêm ảnh bìa. Bạn có thể tải ảnh của mình lên, kéo hoặc dán ảnh vào, hoặc tìm ảnh theo điểm đến trên Unsplash.',
   'help.guide.create-trip.step.5': 'Nhấn “Tạo chuyến đi mới”.',
   'help.guide.create-trip.result':
     'Chuyến đi xuất hiện trên bảng điều khiển. Nếu là chuyến đi tiếp theo của bạn, nó sẽ hiện trong thẻ lên máy bay ở trên cùng.',
   'help.guide.create-trip.tip.1':
-    'Bạn có thể đổi ngày sau. Nếu chuyến đi đã có đặt chỗ, TREK sẽ hỏi bạn có muốn dời các đặt chỗ theo các ngày không.',
+    'Bạn có thể đổi ngày sau. Nếu chuyến đi đã có đặt chỗ, YOUYA sẽ hỏi bạn có muốn dời các đặt chỗ theo các ngày không.',
   'help.guide.create-trip.tip.2':
     'Tiền tệ chuyến đi bạn chọn ở đây là đơn vị mà mọi chi phí được quy đổi về. Hãy chọn tiền tệ của điểm đến.',
 
@@ -89,7 +89,7 @@ const help: TranslationStrings = {
   'help.guide.edit-trip.step.3': 'Nhấn “Cập nhật”.',
   'help.guide.edit-trip.result': 'Thẻ cập nhật ngay, với mọi thành viên của chuyến đi.',
   'help.guide.edit-trip.tip.1':
-    'Khi dời ngày bắt đầu của chuyến đi đã có đặt chỗ, TREK sẽ hỏi có dời cả các đặt chỗ theo không. Khi rút ngắn chuyến đi, TREK liệt kê các ngày sẽ bị xóa và những gì đã lên kế hoạch trong đó. Chuyến đi chỉ được lưu sau khi bạn bấm “Bỏ ngày và lưu”.',
+    'Khi dời ngày bắt đầu của chuyến đi đã có đặt chỗ, YOUYA sẽ hỏi có dời cả các đặt chỗ theo không. Khi rút ngắn chuyến đi, YOUYA liệt kê các ngày sẽ bị xóa và những gì đã lên kế hoạch trong đó. Chuyến đi chỉ được lưu sau khi bạn bấm “Bỏ ngày và lưu”.',
 
   // cover-image
   'help.guide.cover-image.title': 'Đặt ảnh bìa',
@@ -144,7 +144,7 @@ const help: TranslationStrings = {
   'help.guide.calendar-feed.goal':
     'Xem ngày và đặt chỗ của mọi chuyến đi đang hoạt động trong ứng dụng lịch, luôn được đồng bộ.',
   'help.guide.calendar-feed.step.1': 'Nhấn biểu tượng lịch cạnh nút chuyển chế độ xem.',
-  'help.guide.calendar-feed.step.2': 'Nhấp “Bật đăng ký lịch”. TREK tạo một liên kết nguồn cấp riêng tư.',
+  'help.guide.calendar-feed.step.2': 'Nhấp “Bật đăng ký lịch”. YOUYA tạo một liên kết nguồn cấp riêng tư.',
   'help.guide.calendar-feed.step.3':
     'Bấm “Thêm vào Google Calendar” hoặc “Thêm vào Lịch Apple / Outlook”. Với ứng dụng lịch khác, mở “Hoặc sao chép liên kết thủ công” và sao chép liên kết ở đó.',
   'help.guide.calendar-feed.result':
@@ -325,7 +325,7 @@ const help: TranslationStrings = {
   // invite
   'help.guide.invite.title': 'Cùng lên kế hoạch với ai đó',
   'help.guide.invite.goal':
-    'Hợp nhất kế hoạch của bạn với kế hoạch của một người dùng TREK khác để cả hai cùng thấy ngày nghỉ trong một lưới.',
+    'Hợp nhất kế hoạch của bạn với kế hoạch của một người dùng YOUYA khác để cả hai cùng thấy ngày nghỉ trong một lưới.',
   'help.guide.invite.step.1': 'Nhấp biểu tượng hình người trong thẻ “Người”.',
   'help.guide.invite.step.2': 'Chọn người dùng và nhấp “Gửi lời mời”.',
   'help.guide.invite.step.3':
@@ -351,7 +351,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ─────────────────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atlas',
   'help.ctx.atlas.summary':
-    'Atlas cho bạn xem mình đã đi những đâu trên bản đồ thế giới: mọi quốc gia mà một chuyến đi đã đưa bạn đến đều được tô màu, và bạn có thể tự thêm những nước đã đến trước khi dùng TREK. Phóng to để xem các khu vực, lập danh sách nhóm những nơi bạn vẫn muốn đến, và xem các con số của mình trong bảng kính ở dưới cùng.',
+    'Atlas cho bạn xem mình đã đi những đâu trên bản đồ thế giới: mọi quốc gia mà một chuyến đi đã đưa bạn đến đều được tô màu, và bạn có thể tự thêm những nước đã đến trước khi dùng YOUYA. Phóng to để xem các khu vực, lập danh sách nhóm những nơi bạn vẫn muốn đến, và xem các con số của mình trong bảng kính ở dưới cùng.',
   'help.ctx.atlas.bullet.1':
     'Bản đồ: mỗi quốc gia đã ghé thăm có một màu riêng cố định, quốc gia đã lên kế hoạch có viền nét đứt, quốc gia trong danh sách ước muốn có các đường chéo, còn lại là màu xám. Rê chuột lên một quốc gia để xem chuyến đi, địa điểm, lần đến đầu tiên và lần gần nhất.',
   'help.ctx.atlas.bullet.2':
@@ -367,7 +367,7 @@ const help: TranslationStrings = {
   // mark-country
   'help.guide.mark-country.title': 'Đánh dấu một quốc gia là đã ghé thăm',
   'help.guide.mark-country.goal':
-    'Thêm một quốc gia bạn đã đến trước khi dùng TREK, để bản đồ và số lượng thống kê của bạn tính cả quốc gia đó.',
+    'Thêm một quốc gia bạn đã đến trước khi dùng YOUYA, để bản đồ và số lượng thống kê của bạn tính cả quốc gia đó.',
   'help.guide.mark-country.step.1': 'Gõ tên quốc gia vào ô tìm kiếm ở phía trên bản đồ.',
   'help.guide.mark-country.step.2':
     'Chọn quốc gia đó trong danh sách. Bản đồ di chuyển tới quốc gia và một cửa sổ bật lên mở ra cho quốc gia đó.',
@@ -432,9 +432,9 @@ const help: TranslationStrings = {
   'help.guide.search-place.step.3':
     'Chọn “Đánh dấu là đã ghé thăm” cho khu vực đó, hoặc “Thêm vào danh sách nhóm” nếu bạn chưa đến đó.',
   'help.guide.search-place.result':
-    'Khu vực được đánh dấu, quốc gia cũng vậy. Với quốc gia không có dữ liệu khu vực trong gói bản đồ, TREK sẽ đánh dấu chính quốc gia đó.',
+    'Khu vực được đánh dấu, quốc gia cũng vậy. Với quốc gia không có dữ liệu khu vực trong gói bản đồ, YOUYA sẽ đánh dấu chính quốc gia đó.',
   'help.guide.search-place.tip.1':
-    'Địa điểm được tìm bằng cùng công cụ tìm kiếm như ở mọi nơi khác trong TREK, nên dùng nhà cung cấp mà quản trị viên của bạn đã thiết lập.',
+    'Địa điểm được tìm bằng cùng công cụ tìm kiếm như ở mọi nơi khác trong YOUYA, nên dùng nhà cung cấp mà quản trị viên của bạn đã thiết lập.',
   // bucket-country
   'help.guide.bucket-country.title': 'Đưa một quốc gia vào danh sách nhóm',
   'help.guide.bucket-country.goal':
@@ -472,7 +472,7 @@ const help: TranslationStrings = {
   'help.guide.stats.result':
     'Các con số tự cập nhật khi bạn lên kế hoạch cho các chuyến đi. Bạn không cần duy trì gì ở đây.',
   'help.guide.stats.tip.1':
-    'Thành phố được đọc từ phần chữ của địa chỉ chứ không tra cứu. TREK bỏ qua quốc gia, mã bưu chính và khu vực, rồi lấy tên đứng trước chúng, nên “10178 Berlin” được tính là Berlin. Một địa chỉ ngắn như “Osteria Francescana, Italy” hoàn toàn không thêm thành phố nào.',
+    'Thành phố được đọc từ phần chữ của địa chỉ chứ không tra cứu. YOUYA bỏ qua quốc gia, mã bưu chính và khu vực, rồi lấy tên đứng trước chúng, nên “10178 Berlin” được tính là Berlin. Một địa chỉ ngắn như “Osteria Francescana, Italy” hoàn toàn không thêm thành phố nào.',
   'help.guide.stats.tip.2':
     'Quốc gia bạn tự đánh dấu được tính vào “Quốc gia” và các châu lục, nhưng không thêm chuyến đi, địa điểm hay ngày nào.',
   // dawarich-countries
@@ -482,7 +482,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     'Khi tiện ích Dawarich đã kết nối, một bảng Dawarich với hai ô sẽ hiện ở cuối bản đồ, bên trái phần thống kê. Nhấn “Quốc gia”.',
   'help.guide.dawarich-countries.step.2':
-    'Hộp thoại mở ở tab “Quốc gia”. Nhấn “Tìm quốc gia”: TREK đọc các quốc gia và thành phố mà dữ liệu ghi lại của bạn bao phủ trong 12 tháng gần nhất, từng tháng một, nên có thể mất chút thời gian. Mỗi quốc gia mà Atlas của bạn chưa có được liệt kê kèm lá cờ, số thành phố và tên thành phố đầu tiên. Mỗi quốc gia được đánh dấu sẵn. Nhấn vào một hàng để loại quốc gia đó ra.',
+    'Hộp thoại mở ở tab “Quốc gia”. Nhấn “Tìm quốc gia”: YOUYA đọc các quốc gia và thành phố mà dữ liệu ghi lại của bạn bao phủ trong 12 tháng gần nhất, từng tháng một, nên có thể mất chút thời gian. Mỗi quốc gia mà Atlas của bạn chưa có được liệt kê kèm lá cờ, số thành phố và tên thành phố đầu tiên. Mỗi quốc gia được đánh dấu sẵn. Nhấn vào một hàng để loại quốc gia đó ra.',
   'help.guide.dawarich-countries.step.3':
     'Xác nhận bằng nút ở góc dưới bên phải, nút này hiện “Thêm 5 quốc gia” khi năm hàng được tích. Hộp thoại cho biết đã thêm bao nhiêu quốc gia. Khi bạn đóng hộp thoại, bản đồ đã được cập nhật.',
   'help.guide.dawarich-countries.result':
@@ -490,7 +490,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Những quốc gia mà Atlas đã hiện là đã đến, dù do bạn tự đánh dấu, từ một chuyến đi hay từ lần kiểm tra trước, sẽ được bỏ qua, nên các dấu của riêng bạn không bao giờ thay đổi. Quốc gia mà trước đây bạn đã xóa khỏi Atlas sẽ được thêm lại khi bạn xác nhận ở đây.',
   'help.guide.dawarich-countries.tip.2':
-    'Nếu TREK không khớp được tên một quốc gia, tên đó sẽ được liệt kê bên dưới các hàng chứ không bị bỏ đi. “Kiểm tra lại” sẽ hỏi lại Dawarich. Ghi chú dưới danh sách cho biết đã kiểm tra 12 tháng gần nhất. Bạn không đổi được khoảng thời gian này.',
+    'Nếu YOUYA không khớp được tên một quốc gia, tên đó sẽ được liệt kê bên dưới các hàng chứ không bị bỏ đi. “Kiểm tra lại” sẽ hỏi lại Dawarich. Ghi chú dưới danh sách cho biết đã kiểm tra 12 tháng gần nhất. Bạn không đổi được khoảng thời gian này.',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': 'Đánh dấu hoàn thành các điều ước từ dữ liệu ghi lại',
   'help.guide.dawarich-wishes.goal':
@@ -498,15 +498,15 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.step.1':
     'Trong bảng Dawarich ở cuối bản đồ, bên trái phần thống kê, nhấn “Danh sách điều ước”.',
   'help.guide.dawarich-wishes.step.2':
-    'Hộp thoại mở ở tab “Danh sách điều ước”. Nhấn “Kiểm tra danh sách mong muốn”: TREK dò trong dữ liệu ghi lại của bạn mọi mục có tọa độ. Điều ước bạn đã đạt được liệt kê kèm khoảng cách gần nhất bạn đến được, thời gian bạn ở lại và ngày hôm đó, và được tích sẵn. Mục bạn đã đánh dấu hoàn thành từ trước hiện “Đã đánh dấu hoàn thành”. Dưới danh sách, một ghi chú đếm các mục không có tọa độ và nêu quy tắc: “Một điều ước được tính là đã đạt khi trong vòng 250 m và sau 20 phút tại chỗ.”',
+    'Hộp thoại mở ở tab “Danh sách điều ước”. Nhấn “Kiểm tra danh sách mong muốn”: YOUYA dò trong dữ liệu ghi lại của bạn mọi mục có tọa độ. Điều ước bạn đã đạt được liệt kê kèm khoảng cách gần nhất bạn đến được, thời gian bạn ở lại và ngày hôm đó, và được tích sẵn. Mục bạn đã đánh dấu hoàn thành từ trước hiện “Đã đánh dấu hoàn thành”. Dưới danh sách, một ghi chú đếm các mục không có tọa độ và nêu quy tắc: “Một điều ước được tính là đã đạt khi trong vòng 250 m và sau 20 phút tại chỗ.”',
   'help.guide.dawarich-wishes.step.3':
     'Xác nhận bằng nút ở góc dưới bên phải, nút này hiện “Đánh dấu 2 mục” khi có hai hàng được chọn. Sau đó đóng hộp thoại và mở tab “Danh sách nhóm” của bảng bên cạnh.',
   'help.guide.dawarich-wishes.result':
     'Mỗi điều ước có một dấu tích xanh lá kèm ngày lưu trú, không phải ngày hôm nay. Chú giải của dấu ghi “Được đánh dấu từ các bản ghi Dawarich của bạn”. Bấm vào ngày để hoàn tác.',
   'help.guide.dawarich-wishes.tip.1':
-    'Chỉ đi ngang qua thì không được tính: bạn phải ở gần địa điểm và ở lại đó một thời gian. Nếu có nhiều lần lưu lại đủ điều kiện, TREK dùng lần dài nhất. Điều ước không có tọa độ thì không kiểm tra được, nên hãy thêm địa điểm qua ô tìm kiếm trong “Thêm địa điểm” chứ đừng chỉ nhập tên.',
+    'Chỉ đi ngang qua thì không được tính: bạn phải ở gần địa điểm và ở lại đó một thời gian. Nếu có nhiều lần lưu lại đủ điều kiện, YOUYA dùng lần dài nhất. Điều ước không có tọa độ thì không kiểm tra được, nên hãy thêm địa điểm qua ô tìm kiếm trong “Thêm địa điểm” chứ đừng chỉ nhập tên.',
   'help.guide.dawarich-wishes.tip.2':
-    'Mỗi lần kiểm tra xem tối đa 50 mục, bắt đầu từ những mục chưa đánh dấu hoàn thành. Nếu còn nhiều hơn, TREK sẽ báo cho bạn. Điều ước đã được đánh dấu hoàn thành từ trước vẫn giữ nguyên ngày của nó.',
+    'Mỗi lần kiểm tra xem tối đa 50 mục, bắt đầu từ những mục chưa đánh dấu hoàn thành. Nếu còn nhiều hơn, YOUYA sẽ báo cho bạn. Điều ước đã được đánh dấu hoàn thành từ trước vẫn giữ nguyên ngày của nó.',
 
   // ── Screen: collections ───────────────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Bộ sưu tập',
@@ -563,7 +563,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     'Các địa điểm được sao chép vào danh sách cùng tên, địa chỉ, tọa độ, mô tả và danh mục. Chuyến đi không thay đổi.',
   'help.guide.import-from-trip.tip.1':
-    'TREK tự bỏ qua các địa điểm trùng tên hoặc trùng tọa độ, nên nhập hai lần cũng không sao.',
+    'YOUYA tự bỏ qua các địa điểm trùng tên hoặc trùng tọa độ, nên nhập hai lần cũng không sao.',
   'help.guide.import-from-trip.tip.2':
     'Trong danh sách địa điểm của một chuyến đi, chế độ chọn có “Lưu vào Bộ sưu tập” để lưu một nhóm địa điểm do bạn tự chọn.',
   // place-status
@@ -640,7 +640,7 @@ const help: TranslationStrings = {
   // share-list
   'help.guide.share-list.title': 'Chia sẻ danh sách với người khác',
   'help.guide.share-list.goal':
-    'Cùng lên kế hoạch cho một danh sách với những người khác trên TREK này, theo thời gian thực.',
+    'Cùng lên kế hoạch cho một danh sách với những người khác trên YOUYA này, theo thời gian thực.',
   'help.guide.share-list.step.1': 'Nhấn “Chia sẻ” ở phần đầu danh sách của bạn.',
   'help.guide.share-list.step.2': 'Chọn người dùng và một vai trò: “Người xem”, “Người sửa” hoặc “Quản trị”.',
   'help.guide.share-list.step.3':
@@ -654,23 +654,23 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Xuất danh sách ra tập tin',
   'help.guide.export-list.goal':
-    'Gửi danh sách cho người dùng một máy chủ TREK khác, mở nó trong ứng dụng bản đồ hoặc xem nó trong Google My Maps.',
+    'Gửi danh sách cho người dùng một máy chủ YOUYA khác, mở nó trong ứng dụng bản đồ hoặc xem nó trong Google My Maps.',
   'help.guide.export-list.step.1': 'Nhấn “Xuất” ở phần đầu danh sách.',
   'help.guide.export-list.step.2':
-    'Chọn “Danh sách TREK” để dùng danh sách trong một TREK khác, kèm nhãn và trạng thái, GPX cho OsmAnd, Organic Maps, thiết bị Garmin và các ứng dụng khác đọc được waypoint, hoặc KML cho Google My Maps, để xem các địa điểm trong Google Maps.',
+    'Chọn “Danh sách YOUYA” để dùng danh sách trong một YOUYA khác, kèm nhãn và trạng thái, GPX cho OsmAnd, Organic Maps, thiết bị Garmin và các ứng dụng khác đọc được waypoint, hoặc KML cho Google My Maps, để xem các địa điểm trong Google Maps.',
   'help.guide.export-list.result':
     'Tập tin được tải xuống. Bất kỳ thành viên nào của danh sách được chia sẻ cũng có thể xuất danh sách.',
   'help.guide.export-list.tip.1':
-    'Địa điểm không có tọa độ không thể thành waypoint GPX hay ghim KML; nó bị bỏ qua và TREK cho bạn biết có bao nhiêu địa điểm như vậy.',
+    'Địa điểm không có tọa độ không thể thành waypoint GPX hay ghim KML; nó bị bỏ qua và YOUYA cho bạn biết có bao nhiêu địa điểm như vậy.',
   'help.guide.export-list.tip.2':
-    'Đánh giá, thành viên và ảnh đã tải lên không được xuất, và đây là chủ ý: chúng thuộc về TREK này, không thuộc về danh sách.',
+    'Đánh giá, thành viên và ảnh đã tải lên không được xuất, và đây là chủ ý: chúng thuộc về YOUYA này, không thuộc về danh sách.',
   // import-file
   'help.guide.import-file.title': 'Nhập danh sách từ tập tin',
   'help.guide.import-file.goal':
-    'Nhập tệp danh sách TREK hoặc tệp GPX, thành danh sách mới hoặc vào một danh sách có sẵn.',
+    'Nhập tệp danh sách YOUYA hoặc tệp GPX, thành danh sách mới hoặc vào một danh sách có sẵn.',
   'help.guide.import-file.step.1': 'Nhấn nút nhập có mũi tên tải lên, cạnh “Danh sách mới” trong thanh danh sách.',
   'help.guide.import-file.step.2':
-    'Chọn tệp. Trước khi nhập bất cứ gì, TREK cho bạn xem nội dung tệp: tên, số địa điểm và số nhãn.',
+    'Chọn tệp. Trước khi nhập bất cứ gì, YOUYA cho bạn xem nội dung tệp: tên, số địa điểm và số nhãn.',
   'help.guide.import-file.step.3':
     'Giữ “Danh sách mới” và đổi tên nếu muốn, rồi bấm “Nhập”. Hoặc chọn “Thêm vào danh sách” để đưa địa điểm vào một danh sách bạn sửa được, rồi bấm “Thêm vào danh sách”.',
   'help.guide.import-file.result':
@@ -678,7 +678,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     'Với tệp GPX, mỗi waypoint có tên trở thành một địa điểm; track là các đường nên bị bỏ qua, và bản xem trước cho biết có bao nhiêu điểm như vậy.',
   'help.guide.import-file.tip.2':
-    'Tập tin không phải là danh sách TREK hay GPX sẽ bị từ chối, và TREK cho bạn biết lý do. Nếu một địa điểm không đọc được, chỉ địa điểm đó bị bỏ qua, không phải cả tập tin.',
+    'Tập tin không phải là danh sách YOUYA hay GPX sẽ bị từ chối, và YOUYA cho bạn biết lý do. Nếu một địa điểm không đọc được, chỉ địa điểm đó bị bỏ qua, không phải cả tập tin.',
   // edit-list
   'help.guide.edit-list.title': 'Sửa hoặc xóa danh sách',
   'help.guide.edit-list.goal': 'Đổi tên, màu, ảnh bìa, mô tả hoặc liên kết của danh sách, hoặc xóa danh sách.',
@@ -894,7 +894,7 @@ const help: TranslationStrings = {
     'Bài viết có ngày chỉ được tính một lần, dù có bao nhiêu chuyến đi cùng bao phủ ngày đó.',
   // share-public
   'help.guide.share-public.title': 'Chia sẻ hành trình công khai',
-  'help.guide.share-public.goal': 'Gửi liên kết chỉ đọc cho những người không có tài khoản TREK.',
+  'help.guide.share-public.goal': 'Gửi liên kết chỉ đọc cho những người không có tài khoản YOUYA.',
   'help.guide.share-public.step.1': 'Mở “Cài đặt hành trình” bằng ⋯ ở đầu trang rồi cuộn xuống “Chia sẻ công khai”.',
   'help.guide.share-public.step.2': 'Nhấn “Tạo liên kết chia sẻ”.',
   'help.guide.share-public.step.3':
@@ -913,7 +913,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.result':
     'Hành trình xuất hiện trong danh sách của họ và các bài họ viết mang tên họ. Để gỡ một người đóng góp, nhấn dấu × cạnh tên họ.',
   'help.guide.contributors.tip.1':
-    '“Người đóng góp” dành cho những người dùng chung TREK này. Với những người còn lại, hãy dùng liên kết công khai.',
+    '“Người đóng góp” dành cho những người dùng chung YOUYA này. Với những người còn lại, hãy dùng liên kết công khai.',
   // studio
   'help.guide.studio.title': 'Dàn trang hành trình thành sách ảnh',
   'help.guide.studio.goal': 'Biến nhật ký thành các trang có thể in.',
@@ -951,7 +951,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ────────────────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Studio', // same-as-en
   'help.ctx.journey-studio.summary':
-    'TREK Studio dàn trang một hành trình thành cuốn sách ảnh để bạn in ra. Studio mở phía trên nhật ký: thanh bên và các bảng của nó ở bên trái, trang đôi bạn đang làm ở giữa, còn thuộc tính ở bên phải. Bố cục tự động dựng bản nháp đầu tiên từ các bài viết của bạn, chủ đề cho sách màu sắc và phông chữ, và trợ lý có thể cùng bạn thiết kế các trang. Sau đó, bạn có thể di chuyển, cắt xén và đổi phong cách mọi thứ, và hoàn tác từng bước.',
+    'YOUYA Studio dàn trang một hành trình thành cuốn sách ảnh để bạn in ra. Studio mở phía trên nhật ký: thanh bên và các bảng của nó ở bên trái, trang đôi bạn đang làm ở giữa, còn thuộc tính ở bên phải. Bố cục tự động dựng bản nháp đầu tiên từ các bài viết của bạn, chủ đề cho sách màu sắc và phông chữ, và trợ lý có thể cùng bạn thiết kế các trang. Sau đó, bạn có thể di chuyển, cắt xén và đổi phong cách mọi thứ, và hoàn tác từng bước.',
   'help.ctx.journey-studio.bullet.1':
     'Thanh trên cùng: bìa và tên hành trình ở bên trái. Bên phải là những ai khác đang ở trong sách và sách đã được lưu chưa, khổ trang, hoàn tác, làm lại và dán, Bố cục tự động, trợ lý, trợ giúp, Xuất và nút đóng Studio.',
   'help.ctx.journey-studio.bullet.2':
@@ -963,7 +963,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     'Cuốn sách được dàn trang như sách in: bìa, một trang đầu đơn lẻ đối diện mặt trong trống của bìa, các trang đôi, một trang cuối đơn lẻ và bìa sau. Số trang được đếm từ trang đầu và in đúng như hiển thị.',
   'help.ctx.journey-studio.bullet.6':
-    'Nhiều người có thể thiết kế cùng lúc: ai cũng thấy con trỏ của người khác kèm tên. Nếu bạn lưu một phiên bản mà người khác đã thay đổi, TREK sẽ báo xung đột thay vì ghi đè công việc của họ.',
+    'Nhiều người có thể thiết kế cùng lúc: ai cũng thấy con trỏ của người khác kèm tên. Nếu bạn lưu một phiên bản mà người khác đã thay đổi, YOUYA sẽ báo xung đột thay vì ghi đè công việc của họ.',
   'help.ctx.journey-studio.bullet.7':
     'Chủ đề: một diện mạo cho cả cuốn sách, gồm giấy, mực và ba màu nhấn, phông chữ và họa tiết. Các thành phần liên kết với chủ đề sẽ đổi theo khi bạn thay chủ đề.',
   'help.ctx.journey-studio.bullet.8':
@@ -1042,7 +1042,7 @@ const help: TranslationStrings = {
     'Mọi màu và phông chữ được liên kết trong sách thay đổi cùng lúc, và việc áp dụng chủ đề là một bước hoàn tác.',
   'help.guide.studio-content.tip.1': 'Ô tìm kiếm ở đầu “Content” lọc cả hai danh sách.',
   'help.guide.studio-content.tip.2':
-    'Khi bạn thả một tệp từ màn hình nền máy tính vào vùng làm việc, TREK tải lên và đặt nó vào chỉ trong một bước.',
+    'Khi bạn thả một tệp từ màn hình nền máy tính vào vùng làm việc, YOUYA tải lên và đặt nó vào chỉ trong một bước.',
   // studio-elements
   'help.guide.studio-elements.title': 'Thêm văn bản, hình khối, icon và nhãn dán',
   'help.guide.studio-elements.goal': 'Trang trí trang đôi, ngoài ảnh và câu chuyện.',
@@ -1153,12 +1153,12 @@ const help: TranslationStrings = {
     'Trong cuốn sách kia, mở “Trang” và bấm “Nhập” cạnh “+ Trang” ở dưới cùng, rồi chọn tập tin.',
   'help.guide.studio-spread-file.result':
     'Trang đôi được nhập cùng các khung và kiểu chữ của nó. Hãy thả ảnh của hành trình mới vào các khung.',
-  'help.guide.studio-spread-file.tip.1': 'Nếu tệp không phải thiết kế trang đôi, TREK sẽ từ chối và cho biết lý do.',
+  'help.guide.studio-spread-file.tip.1': 'Nếu tệp không phải thiết kế trang đôi, YOUYA sẽ từ chối và cho biết lý do.',
 
   // ── Screen: settings (all tabs) ───────────────────────────────────────────────────────
   'help.ctx.settings.title': 'Cài đặt',
   'help.ctx.settings.summary':
-    'Cài đặt cá nhân của bạn, mỗi chủ đề một tab ở thanh bên trái. Hầu hết công tắc có hiệu lực ngay khi bạn gạt. Biểu mẫu có nút “Lưu” thì chỉ lưu khi bạn bấm “Lưu”. Không thiết lập nào ở đây ảnh hưởng đến TREK của người khác.',
+    'Cài đặt cá nhân của bạn, mỗi chủ đề một tab ở thanh bên trái. Hầu hết công tắc có hiệu lực ngay khi bạn gạt. Biểu mẫu có nút “Lưu” thì chỉ lưu khi bạn bấm “Lưu”. Không thiết lập nào ở đây ảnh hưởng đến YOUYA của người khác.',
   'help.ctx.settings.bullet.1':
     'Thanh bên trái: “Hiển thị”, “Giao diện”, “Bản đồ”, “Thông báo”, “Tích hợp”, “Ngoại tuyến” và “Tài khoản”. “Plugin” xuất hiện khi có plugin đang hoạt động. “Về” xuất hiện trừ khi người vận hành đã ẩn nó. Phiên bản hiện ở dưới cùng.',
   'help.ctx.settings.bullet.2':
@@ -1169,7 +1169,7 @@ const help: TranslationStrings = {
     '“Tài khoản” gồm hồ sơ, mật khẩu, xác thực hai yếu tố, passkey và tùy chọn xóa tài khoản của bạn.',
   'help.ctx.settings-display.title': 'Hiển thị',
   'help.ctx.settings-display.summary':
-    'TREK mở ra với gì, ngôn ngữ và đơn vị nó dùng, và cách bản đồ chuyến đi cùng đặt chỗ hoạt động. Mọi thay đổi có hiệu lực ngay.',
+    'YOUYA mở ra với gì, ngôn ngữ và đơn vị nó dùng, và cách bản đồ chuyến đi cùng đặt chỗ hoạt động. Mọi thay đổi có hiệu lực ngay.',
   'help.ctx.settings-display.bullet.1':
     '“Khởi động”: “Trang khởi động” mở ở “Bảng điều khiển” hoặc “Chuyến đi đang diễn ra”; với “Chuyến đi đang diễn ra”, “Tab khởi động” chọn tab mà chuyến đó mở ra.',
   'help.ctx.settings-display.bullet.2':
@@ -1178,7 +1178,7 @@ const help: TranslationStrings = {
     'Du lịch & bản đồ: “Mở địa điểm bằng”, “Hiện ngày tháng trước trong tiêu đề ngày”, “Nhãn lộ trình đặt chỗ”, “Luôn hiển thị tuyến đường đặt chỗ”, “Điểm đánh dấu gọn cho địa điểm chưa lên kế hoạch”, “Khám phá các địa điểm trên bản đồ”, “Mã đặt chỗ mờ” và “Tối ưu hóa tuyến đường từ chỗ ở”.',
   'help.ctx.settings-appearance.title': 'Giao diện',
   'help.ctx.settings-appearance.summary':
-    'TREK trông thế nào trên tài khoản này: sáng hay tối, màu nhấn, hiệu ứng kính và chuyển động, cỡ chữ, và những tiện ích nào hiện trên bảng điều khiển. Mọi thay đổi áp dụng ngay, trên mọi thiết bị bạn đăng nhập.',
+    'YOUYA trông thế nào trên tài khoản này: sáng hay tối, màu nhấn, hiệu ứng kính và chuyển động, cỡ chữ, và những tiện ích nào hiện trên bảng điều khiển. Mọi thay đổi áp dụng ngay, trên mọi thiết bị bạn đăng nhập.',
   'help.ctx.settings-appearance.bullet.1':
     'Chủ đề: “Chế độ màu” (Sáng, Tối hoặc Tự động), “Bảng màu”, và với “Tùy chỉnh” là màu nhấn riêng của bạn cho chế độ sáng và tối, có kiểm tra độ tương phản.',
   'help.ctx.settings-appearance.bullet.2':
@@ -1197,7 +1197,7 @@ const help: TranslationStrings = {
     'Chỉ có ở Mapbox GL: “Tòa nhà & địa hình 3D”, “Chế độ chất lượng cao” và “Ẩn điểm tham quan”. Bản xem trước trực tiếp nằm phía trên “Lưu bản đồ”. Bấm “Lưu bản đồ” để lưu lựa chọn của bạn.',
   'help.ctx.settings-notifications.title': 'Thông báo',
   'help.ctx.settings-notifications.summary':
-    'Cách TREK liên lạc với bạn bên ngoài ứng dụng. Ở trên cùng là một bảng, mỗi sự kiện một hàng và mỗi kênh một cột, quyết định thông báo nào được gửi qua đâu. Bên dưới là các thẻ cho webhook, ntfy, thông báo đẩy trên thiết bị này và các kênh do plugin thêm.',
+    'Cách YOUYA liên lạc với bạn bên ngoài ứng dụng. Ở trên cùng là một bảng, mỗi sự kiện một hàng và mỗi kênh một cột, quyết định thông báo nào được gửi qua đâu. Bên dưới là các thẻ cho webhook, ntfy, thông báo đẩy trên thiết bị này và các kênh do plugin thêm.',
   'help.ctx.settings-notifications.bullet.1':
     'Thông báo: bật hoặc tắt từng sự kiện theo từng kênh. Ổ khóa nghĩa là quản trị viên đã tắt sự kiện đó cho mọi người.',
   'help.ctx.settings-notifications.bullet.2':
@@ -1208,7 +1208,7 @@ const help: TranslationStrings = {
     '“Thông báo đẩy trên thiết bị này”: “Bật cho thiết bị này” chỉ áp dụng cho trình duyệt này; “Gửi thử” gửi một thông báo thử. Kênh plugin hiện “Cấu hình” cho đến khi được thiết lập.',
   'help.ctx.settings-integrations.title': 'Tích hợp',
   'help.ctx.settings-integrations.summary':
-    'Mọi thứ kết nối với TREK từ bên ngoài: địa chỉ riêng để nhận email đặt chỗ, thư viện ảnh cho nhật ký, AirTrail cho chuyến bay, Dawarich cho những nơi bạn thực sự đã đến, wanderer cho các tuyến đường mòn, khóa API chỉ đọc cho phần mềm khác, và MCP cho các ứng dụng AI. Kết nối với một dịch vụ khác chỉ hiện sau khi quản trị viên bật nó.',
+    'Mọi thứ kết nối với YOUYA từ bên ngoài: địa chỉ riêng để nhận email đặt chỗ, thư viện ảnh cho nhật ký, AirTrail cho chuyến bay, Dawarich cho những nơi bạn thực sự đã đến, wanderer cho các tuyến đường mòn, khóa API chỉ đọc cho phần mềm khác, và MCP cho các ứng dụng AI. Kết nối với một dịch vụ khác chỉ hiện sau khi quản trị viên bật nó.',
   'help.ctx.settings-integrations.bullet.1':
     '“Email đặt chỗ”, ở trên cùng khi quản trị viên đã bật tính năng nhập email: địa chỉ chuyển tiếp của bạn cùng các công tắc của nó. Bên dưới là Immich và Synology Photos, AirTrail, Dawarich và wanderer: mỗi thẻ có địa chỉ và khóa, “Lưu” và “Kiểm tra kết nối”, cùng huy hiệu “Đã kết nối” hoặc “Chưa kết nối”.',
   'help.ctx.settings-integrations.bullet.2':
@@ -1219,7 +1219,7 @@ const help: TranslationStrings = {
     '“API Mã thông báo”: cách kết nối MCP cũ, đánh dấu “Không còn được khuyến nghị”; hãy dùng “OAuth 2.1 Khách hàng” thay thế.',
   'help.ctx.settings-offline.title': 'Ngoại tuyến',
   'help.ctx.settings-offline.summary':
-    'Những gì TREK lưu trên thiết bị này để chuyến đi vẫn mở được khi không có kết nối, và điều gì xảy ra khi một thay đổi thực hiện ngoại tuyến xung đột với thay đổi thực hiện ở nơi khác.',
+    'Những gì YOUYA lưu trên thiết bị này để chuyến đi vẫn mở được khi không có kết nối, và điều gì xảy ra khi một thay đổi thực hiện ngoại tuyến xung đột với thay đổi thực hiện ở nơi khác.',
   'help.ctx.settings-offline.bullet.1':
     'Chế độ ngoại tuyến: “Bắt buộc chế độ ngoại tuyến” sẽ tải mọi thứ về trước, sau đó chỉ chạy từ bộ nhớ đệm và xếp hàng các thay đổi của bạn.',
   'help.ctx.settings-offline.bullet.2':
@@ -1230,20 +1230,20 @@ const help: TranslationStrings = {
     '“Xung đột đồng bộ hóa” chỉ xuất hiện khi có hai thay đổi xung đột, kèm “Bản của tôi”, “Giữ của máy chủ” và “Khi xảy ra xung đột”. “Bộ nhớ đệm ngoại tuyến” đếm số chuyến đi và các thay đổi đang chờ hoặc thất bại, kèm “Thử lại”, “Bỏ” và “Xóa bộ nhớ đệm”.',
   'help.ctx.settings-account.title': 'Tài khoản',
   'help.ctx.settings-account.summary':
-    'Tài khoản của bạn trên TREK này và cách đăng nhập: ảnh đại diện, tên đăng nhập và email, mật khẩu, xác thực hai yếu tố và passkey. “Xóa tài khoản” nằm ở chân thẻ “Tài khoản”.',
+    'Tài khoản của bạn trên YOUYA này và cách đăng nhập: ảnh đại diện, tên đăng nhập và email, mật khẩu, xác thực hai yếu tố và passkey. “Xóa tài khoản” nằm ở chân thẻ “Tài khoản”.',
   'help.ctx.settings-account.bullet.1':
     '“Tài khoản”: nhấp vào máy ảnh trên ảnh đại diện để tải ảnh lên, và thùng rác đỏ để xóa. “Tên đăng nhập” và Email được lưu bằng “Lưu hồ sơ”.',
   'help.ctx.settings-account.bullet.2':
-    '“Thay đổi mật khẩu”: nhập mật khẩu hiện tại, mật khẩu mới hai lần với các quy tắc được tích dần khi bạn gõ, rồi “Cập nhật mật khẩu”. Nếu TREK này chỉ đăng nhập qua SSO, thẻ này sẽ không hiện.',
+    '“Thay đổi mật khẩu”: nhập mật khẩu hiện tại, mật khẩu mới hai lần với các quy tắc được tích dần khi bạn gõ, rồi “Cập nhật mật khẩu”. Nếu YOUYA này chỉ đăng nhập qua SSO, thẻ này sẽ không hiện.',
   'help.ctx.settings-account.bullet.3':
     '“Xác thực hai yếu tố (2FA)” bằng ứng dụng xác thực và mã dự phòng; “Mật mã” để đăng nhập mà không cần mật khẩu.',
   'help.ctx.settings-account.bullet.4':
     '“Xóa tài khoản” nằm ở bên trái chân thẻ “Tài khoản” và yêu cầu xác nhận. Quản trị viên duy nhất không thể tự xóa mình.',
   // language-region
   'help.guide.language-region.title': 'Đặt ngôn ngữ, đơn vị và tiền tệ',
-  'help.guide.language-region.goal': 'Dùng TREK bằng ngôn ngữ của bạn và theo định dạng của vùng bạn ở.',
+  'help.guide.language-region.goal': 'Dùng YOUYA bằng ngôn ngữ của bạn và theo định dạng của vùng bạn ở.',
   'help.guide.language-region.step.1':
-    'Ở “Ngôn ngữ & khu vực”, chọn một “Ngôn ngữ” trong danh sách; gõ để tìm nhanh một ngôn ngữ. TREK đổi ngay, trên mọi thiết bị bạn đăng nhập.',
+    'Ở “Ngôn ngữ & khu vực”, chọn một “Ngôn ngữ” trong danh sách; gõ để tìm nhanh một ngôn ngữ. YOUYA đổi ngay, trên mọi thiết bị bạn đăng nhập.',
   'help.guide.language-region.step.2':
     '“Tên địa điểm” đặt ngôn ngữ mà tìm kiếm địa điểm, gợi ý và địa chỉ sử dụng; “Giống ứng dụng” theo ngôn ngữ giao diện.',
   'help.guide.language-region.result':
@@ -1266,17 +1266,17 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.2':
     'Quản trị viên có thể đặt mặc định cho mọi người; những gì bạn bật ở đây chỉ áp dụng cho riêng bạn.',
   // startup
-  'help.guide.startup.title': 'Chọn màn hình TREK mở đầu tiên',
-  'help.guide.startup.goal': 'Mở TREK ngay ở trang bạn dùng nhiều nhất, thay vì lúc nào cũng vào bảng điều khiển.',
+  'help.guide.startup.title': 'Chọn màn hình YOUYA mở đầu tiên',
+  'help.guide.startup.goal': 'Mở YOUYA ngay ở trang bạn dùng nhiều nhất, thay vì lúc nào cũng vào bảng điều khiển.',
   'help.guide.startup.step.1':
     'Ở đầu tab “Hiển thị”, trong “Khởi động”, đặt “Trang khởi động” là “Bảng điều khiển” hoặc “Chuyến đi đang diễn ra”.',
   'help.guide.startup.step.2': 'Với “Chuyến đi đang diễn ra”, “Tab khởi động” xuất hiện: chọn tab mà chuyến đó mở ra.',
-  'help.guide.startup.result': 'Lần sau bạn mở TREK, nó mở thẳng trang đó.',
+  'help.guide.startup.result': 'Lần sau bạn mở YOUYA, nó mở thẳng trang đó.',
   'help.guide.startup.tip.1':
     '“Chuyến đi đang diễn ra” là chuyến đi đang chạy hôm nay, hoặc chuyến sắp tới gần nhất. Đó cũng là chuyến đi được hiện ở đầu trang tổng quan.',
   // theme-scheme
   'help.guide.theme-scheme.title': 'Đặt giao diện và màu nhấn',
-  'help.guide.theme-scheme.goal': 'Chọn TREK sáng, tối hoặc theo thiết bị, với màu bạn thích.',
+  'help.guide.theme-scheme.goal': 'Chọn YOUYA sáng, tối hoặc theo thiết bị, với màu bạn thích.',
   'help.guide.theme-scheme.step.1':
     'Trong “Chủ đề”, đặt “Chế độ màu” là “Sáng”, “Tối” hoặc “Tự động”. “Tự động” theo thiết bị của bạn.',
   'help.guide.theme-scheme.step.2':
@@ -1297,7 +1297,7 @@ const help: TranslationStrings = {
     'Cỡ chữ: kéo thanh “Tất cả” để chỉnh mọi cỡ chữ cùng lúc, hoặc đặt riêng từng cỡ “Lớn”, “Vừa”, “Bình thường” và “Nhỏ”. Mỗi cỡ có một đoạn mẫu, nên bạn thấy kết quả ngay khi kéo.',
   'help.guide.readability.result': 'Thay đổi áp dụng ngay cho toàn bộ ứng dụng, kể cả các bảng bản đồ và nhật ký.',
   'help.guide.readability.tip.1':
-    'Một số phần của TREK đã tự giảm hiệu ứng khi thiết bị của bạn được đặt ở chế độ giảm chuyển động. “Giảm chuyển động” giảm hiệu ứng ở các phần còn lại.',
+    'Một số phần của YOUYA đã tự giảm hiệu ứng khi thiết bị của bạn được đặt ở chế độ giảm chuyển động. “Giảm chuyển động” giảm hiệu ứng ở các phần còn lại.',
   'help.guide.readability.tip.2':
     'Cỡ chữ được áp dụng qua các cấp kiểu chữ, nên không có gì bị cắt; nếu cỡ chữ không còn vừa, chữ sẽ xuống dòng.',
   // dashboard-widgets
@@ -1395,17 +1395,17 @@ const help: TranslationStrings = {
     'Các chuyến đi mở được khi không có kết nối. Thay đổi bạn thực hiện được lưu vào hàng đợi và gửi đi khi bạn có mạng trở lại.',
   'help.guide.offline-prepare.tip.1':
     'Ô bản đồ chiếm nhiều dung lượng nhất; hãy tắt chúng nếu chỉ muốn giữ dữ liệu chuyến đi và tài liệu.',
-  'help.guide.offline-prepare.tip.2': 'Hãy cài TREK thành ứng dụng từ trình duyệt để khởi động ngoại tuyến mượt nhất.',
+  'help.guide.offline-prepare.tip.2': 'Hãy cài YOUYA thành ứng dụng từ trình duyệt để khởi động ngoại tuyến mượt nhất.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': 'Chọn giữ phiên bản nào khi xung đột đồng bộ',
   'help.guide.offline-conflicts.goal':
-    'Chọn cách TREK xử lý khi một thay đổi thực hiện ngoại tuyến xung đột với thay đổi thực hiện ở nơi khác.',
+    'Chọn cách YOUYA xử lý khi một thay đổi thực hiện ngoại tuyến xung đột với thay đổi thực hiện ở nơi khác.',
   'help.guide.offline-conflicts.step.1':
     'Khi một thay đổi bạn thực hiện lúc ngoại tuyến xung đột với một thay đổi mới hơn, “Xung đột đồng bộ hóa” xuất hiện gần đầu mục “Ngoại tuyến”. Với mỗi thay đổi, bấm “Bản của tôi” hoặc “Giữ của máy chủ”.',
   'help.guide.offline-conflicts.step.2':
     'Trong cùng thẻ, “Khi xảy ra xung đột” quyết định cách xử lý cho lần sau: “Hỏi tôi mỗi lần”, “Luôn giữ phiên bản của tôi” hoặc “Luôn giữ phiên bản của máy chủ”.',
   'help.guide.offline-conflicts.result':
-    'Với “Hỏi tôi mỗi lần”, xung đột sẽ nằm trong “Xung đột đồng bộ hóa” cho đến khi bạn chọn. Với hai lựa chọn còn lại, TREK tự giải quyết.',
+    'Với “Hỏi tôi mỗi lần”, xung đột sẽ nằm trong “Xung đột đồng bộ hóa” cho đến khi bạn chọn. Với hai lựa chọn còn lại, YOUYA tự giải quyết.',
   'help.guide.offline-conflicts.tip.1':
     '“Xóa bộ nhớ đệm” chỉ xóa bản sao trên thiết bị này. Máy chủ không thay đổi gì.',
   // profile
@@ -1426,7 +1426,7 @@ const help: TranslationStrings = {
   'help.guide.password.result':
     'Mật khẩu mới có hiệu lực ngay. Mọi thiết bị khác bị đăng xuất, các token API MCP của bạn bị xóa và các ứng dụng khách OAuth phải đăng nhập lại; thiết bị này vẫn giữ đăng nhập.',
   'help.guide.password.tip.1':
-    'Nếu TREK này chỉ đăng nhập qua SSO, sẽ không có mật khẩu TREK và không có thẻ “Thay đổi mật khẩu”.',
+    'Nếu YOUYA này chỉ đăng nhập qua SSO, sẽ không có mật khẩu YOUYA và không có thẻ “Thay đổi mật khẩu”.',
   // mfa
   'help.guide.mfa.title': 'Bật xác thực hai yếu tố',
   'help.guide.mfa.goal': 'Bảo vệ tài khoản bằng mã từ ứng dụng xác thực.',
@@ -1458,15 +1458,15 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     'Tài khoản của bạn bị xóa, cùng các chuyến đi, địa điểm và tệp mà bạn sở hữu. Các chuyến đi do người khác sở hữu vẫn được giữ.',
   'help.guide.delete-account.tip.1':
-    'Nếu bạn là quản trị viên duy nhất, TREK hiện “Không thể xóa”: hãy nâng một người dùng khác lên làm quản trị viên trước.',
+    'Nếu bạn là quản trị viên duy nhất, YOUYA hiện “Không thể xóa”: hãy nâng một người dùng khác lên làm quản trị viên trước.',
   'help.guide.delete-account.tip.2': 'Không thể hoàn tác. Hãy xuất những gì bạn muốn giữ trước khi xác nhận.',
 
   // ── Screen: admin (all tabs) ──────────────────────────────────────────────────────────
   'help.ctx.admin.title': 'Quản trị',
   'help.ctx.admin.summary':
-    'Cài đặt cho toàn bộ máy chủ TREK, áp dụng cho mọi người dùng: ai được đăng nhập và đăng nhập thế nào, những gì được bật, tệp lưu ở đâu, máy chủ liên lạc với mọi người ra sao và sao lưu thế nào. Chỉ quản trị viên thấy trang này. Thanh bên nhóm các tab thành “Người dùng”, “Cấu hình” và “Bảo trì”, và mỗi tab là một màn hình riêng.',
+    'Cài đặt cho toàn bộ máy chủ YOUYA, áp dụng cho mọi người dùng: ai được đăng nhập và đăng nhập thế nào, những gì được bật, tệp lưu ở đâu, máy chủ liên lạc với mọi người ra sao và sao lưu thế nào. Chỉ quản trị viên thấy trang này. Thanh bên nhóm các tab thành “Người dùng”, “Cấu hình” và “Bảo trì”, và mỗi tab là một màn hình riêng.',
   'help.ctx.admin.bullet.1':
-    'Thanh đầu đếm người dùng, chuyến đi, địa điểm và tệp ở bên phải. Bên dưới, biểu ngữ “Có bản cập nhật” xuất hiện khi có bản TREK mới hơn.',
+    'Thanh đầu đếm người dùng, chuyến đi, địa điểm và tệp ở bên phải. Bên dưới, biểu ngữ “Có bản cập nhật” xuất hiện khi có bản YOUYA mới hơn.',
   'help.ctx.admin.bullet.2':
     '“Người dùng” và “Mặc định”: tài khoản, liên kết mời và quyền, cùng cài đặt và bản đồ mà tài khoản mới bắt đầu với.',
   'help.ctx.admin.bullet.3':
@@ -1477,7 +1477,7 @@ const help: TranslationStrings = {
     '“Lưu trữ”, “Sao lưu”, GitHub và “Lịch sử”: nơi lưu các tệp tải lên, sao lưu theo yêu cầu và theo lịch, lịch sử phát hành, cùng nhật ký các sự kiện liên quan đến bảo mật.',
   'help.ctx.admin-users.title': 'Người dùng',
   'help.ctx.admin-users.summary':
-    'Mọi tài khoản trên TREK này, kèm vai trò, email và lần hoạt động gần nhất, các liên kết mời cho phép người khác đăng ký trên hệ thống đóng, và ai được làm gì trong các chuyến đi.',
+    'Mọi tài khoản trên YOUYA này, kèm vai trò, email và lần hoạt động gần nhất, các liên kết mời cho phép người khác đăng ký trên hệ thống đóng, và ai được làm gì trong các chuyến đi.',
   'help.ctx.admin-users.bullet.1':
     'Bảng: người dùng, email, vai trò, ngày tạo và “Hoạt động lần cuối”, với “Chỉnh sửa người dùng” và “Xóa người dùng” trên mỗi hàng. Chấm xanh lá trên ảnh đại diện nghĩa là người đó đang trực tuyến; hàng của chính bạn ghi “(Bạn)”.',
   'help.ctx.admin-users.bullet.2':
@@ -1499,7 +1499,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     '“Mẫu đóng gói”: các danh sách có tên gồm danh mục và món đồ, để danh sách đóng gói của một chuyến đi có thể bắt đầu từ đó.',
   'help.ctx.admin-config.bullet.2':
-    '“Thể loại”: tên, biểu tượng và màu của các danh mục dùng khắp TREK, từ bảng chi tiết địa điểm đến “Bộ sưu tập”, mỗi danh mục được sửa trong một hộp thoại có xem trước.',
+    '“Thể loại”: tên, biểu tượng và màu của các danh mục dùng khắp YOUYA, từ bảng chi tiết địa điểm đến “Bộ sưu tập”, mỗi danh mục được sửa trong một hộp thoại có xem trước.',
   'help.ctx.admin-config.bullet.3':
     '“Kỳ nghỉ học”: danh mục các quốc gia và vùng cùng kỳ nghỉ của họ, mọi người có thể chọn trong “Kỳ nghỉ”.',
   'help.ctx.admin-settings.title': 'Bảo mật và Dịch vụ',
@@ -1510,12 +1510,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     '“Đăng nhập bằng mật mã”: “Đảng dựa vào ID (miền)” và “Nguồn gốc được phép”. “Đăng nhập một lần (OIDC)”: “Tên hiển thị”, “Nhà phát hành URL”, “Discovery URL” tùy chọn, “Khách hàng ID” và “Bí mật khách hàng”.',
   'help.ctx.admin-settings.bullet.3':
-    'Tìm kiếm địa điểm và định tuyến, ở tab “Dịch vụ”: TREK API, được đánh dấu “Nguồn mặc định khuyến nghị”, với “Hạn mức hôm nay” và “Chia sẻ chi tiết địa điểm”, rồi “Nhà cung cấp giao thông công cộng”, “Nhà cung cấp tìm kiếm địa điểm” và “Nhật ký tìm kiếm địa điểm”.',
+    'Tìm kiếm địa điểm và định tuyến, ở tab “Dịch vụ”: YOUYA API, được đánh dấu “Nguồn mặc định khuyến nghị”, với “Hạn mức hôm nay” và “Chia sẻ chi tiết địa điểm”, rồi “Nhà cung cấp giao thông công cộng”, “Nhà cung cấp tìm kiếm địa điểm” và “Nhật ký tìm kiếm địa điểm”.',
   'help.ctx.admin-settings.bullet.4':
     '“API Key”: Google Maps API Key kèm “Kiểm tra” và “Khóa được dùng vào việc gì”, khóa Unsplash và khóa Amap, cùng một nút lưu ở cuối thẻ. “Các loại tệp được phép”, bên dưới, giới hạn tệp tải lên.',
   'help.ctx.admin-addons.title': 'Tiện ích bổ sung',
   'help.ctx.admin-addons.summary':
-    'Các mô-đun tính năng của TREK trong ba thẻ: “Chuyến đi” cho các tab của một chuyến đi, “Toàn cầu” cho các mục trong thanh điều hướng chính, và “Tích hợp” cho các dịch vụ bên ngoài. Mỗi tiện ích bổ sung có một công tắc; tắt nghĩa là mục điều hướng, các tuyến và API bị gỡ khỏi hệ thống với tất cả mọi người.',
+    'Các mô-đun tính năng của YOUYA trong ba thẻ: “Chuyến đi” cho các tab của một chuyến đi, “Toàn cầu” cho các mục trong thanh điều hướng chính, và “Tích hợp” cho các dịch vụ bên ngoài. Mỗi tiện ích bổ sung có một công tắc; tắt nghĩa là mục điều hướng, các tuyến và API bị gỡ khỏi hệ thống với tất cả mọi người.',
   'help.ctx.admin-addons.bullet.1':
     'Mỗi tiện ích bổ sung có một hàng với công tắc của nó, và ở đầu mỗi thẻ cho biết có bao nhiêu tiện ích đang bật. Dấu thông tin cạnh tên cho biết tiện ích đó làm gì.',
   'help.ctx.admin-addons.bullet.2':
@@ -1524,7 +1524,7 @@ const help: TranslationStrings = {
     'Các hàng có biểu tượng bánh răng mở hộp thoại thiết lập, chẳng hạn “Dữ liệu mặt nước cho chèo thuyền” dưới “Chuyến tham quan” và “Thiết lập nhập email” dưới “Nhập email đặt chỗ”. “Trạng thái chuyến bay trực tiếp” là một hàng của thẻ “Chuyến đi”.',
   'help.ctx.admin-plugins.title': 'Plugin',
   'help.ctx.admin-plugins.summary':
-    'Các plugin bên thứ ba chạy trong tiến trình riêng bên cạnh TREK, mỗi plugin với những quyền nó yêu cầu khi cài. Bạn có thể cài từ danh mục, tải lên một gói, hoặc liên kết một thư mục khi đang phát triển plugin.',
+    'Các plugin bên thứ ba chạy trong tiến trình riêng bên cạnh YOUYA, mỗi plugin với những quyền nó yêu cầu khi cài. Bạn có thể cài từ danh mục, tải lên một gói, hoặc liên kết một thư mục khi đang phát triển plugin.',
   'help.ctx.admin-plugins.bullet.1':
     '“Đã cài đặt” và “Khám phá”, với “Tìm kiếm plugin…” và “Lọc” theo loại, trạng thái và thứ tự. Mỗi hàng hiện phiên bản, những gì plugin được truy cập, “Đã kiểm duyệt”, “Đã ký” hoặc “Chưa ký”, một công tắc và menu ⋯.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1541,7 +1541,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     'Thể loại: tài liệu chuyến đi, ảnh hành trình, ảnh bìa, ảnh hồ sơ, ảnh địa điểm, bộ nhớ đệm ảnh và bản sao lưu, mỗi loại được gán cho một backend, với “Lưu thay đổi” ở cuối.',
   'help.ctx.admin-storage.bullet.4':
-    '“Tệp không còn được tham chiếu”: những tệp mà lần kiểm tra ban đêm thấy không còn được TREK sử dụng, kèm nút “Kiểm tra ngay” và một công tắc xóa các tệp này sau khi chúng không được dùng trong một tuần.',
+    '“Tệp không còn được tham chiếu”: những tệp mà lần kiểm tra ban đêm thấy không còn được YOUYA sử dụng, kèm nút “Kiểm tra ngay” và một công tắc xóa các tệp này sau khi chúng không được dùng trong một tuần.',
   'help.ctx.admin-notifications.title': 'Thông báo',
   'help.ctx.admin-notifications.summary':
     'Các kênh mà hệ thống cung cấp cho người dùng, và các kênh bạn nhận với tư cách quản trị viên. Người dùng tự chọn chủ đề và URL của mình trong “Cài đặt”; bạn quyết định có những kênh nào và cấu hình email.',
@@ -1553,14 +1553,14 @@ const help: TranslationStrings = {
     '“Cảnh báo quản trị”, ở bên phải: “Webhook quản trị viên” và “Quản trị viên Ntfy”, mỗi nơi có một nút thử, và bên dưới là kênh nào gửi từng sự kiện quản trị (“Đã có phiên bản mới”, “Lỗi bản sao lưu trữ”, “Có yêu cầu vùng chèo thuyền”).',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    'Mọi mã thông báo và phiên OAuth mà các ứng dụng AI đang có với TREK này, của tất cả người dùng. Bạn có thể thu hồi bất kỳ mã nào.',
+    'Mọi mã thông báo và phiên OAuth mà các ứng dụng AI đang có với YOUYA này, của tất cả người dùng. Bạn có thể thu hồi bất kỳ mã nào.',
   'help.ctx.admin-mcp-tokens.bullet.1':
     '“OAuth Phiên”: máy khách, các phạm vi quyền đã cấp, chủ sở hữu và ngày, kèm biểu tượng thùng rác để thu hồi.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     '“API Mã thông báo”: tên, chủ sở hữu, “Tạo” và “Được sử dụng lần cuối”, kèm thùng rác để xóa.',
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    'Có gì mới trong TREK: lịch sử phát hành từ GitHub, và có phiên bản nào mới hơn của bạn hay không. Việc cập nhật diễn ra bên ngoài ứng dụng, trên máy chủ.',
+    'Có gì mới trong YOUYA: lịch sử phát hành từ GitHub, và có phiên bản nào mới hơn của bạn hay không. Việc cập nhật diễn ra bên ngoài ứng dụng, trên máy chủ.',
   'help.ctx.admin-github.bullet.1':
     '“Lịch sử phát hành” liệt kê các bản phát hành thành dòng thời gian kèm ghi chú. Bản mới nhất có nhãn “Mới nhất”, bản thử nghiệm ghi “Phát hành trước”, và GitHub mở trang các bản phát hành.',
   'help.ctx.admin-github.bullet.2':
@@ -1633,7 +1633,7 @@ const help: TranslationStrings = {
     'Biểu tượng thùng rác trên hàng của chính bạn không dùng được: bạn không thể tự xóa mình. Phải nhờ quản trị viên khác làm.',
   // permissions
   'help.guide.permissions.title': 'Quyết định ai được làm gì',
-  'help.guide.permissions.goal': 'Đặt vai trò nào được phép thực hiện từng thao tác trên TREK này.',
+  'help.guide.permissions.goal': 'Đặt vai trò nào được phép thực hiện từng thao tác trên YOUYA này.',
   'help.guide.permissions.step.1':
     'Trong “Cài đặt quyền”, tìm hành động trong nhóm của nó, chẳng hạn “Xóa chuyến đi” trong “Quản lý chuyến đi”, rồi chọn ai được làm: “Mọi người”, “Thành viên”, “Người tạo” hoặc “Chỉ quản trị viên”. Hàng đã đổi được đánh dấu “tùy chỉnh”.',
   'help.guide.permissions.step.2':
@@ -1664,7 +1664,7 @@ const help: TranslationStrings = {
   'help.guide.packing-templates.step.2':
     'Bấm vào tên mẫu để mở, rồi bấm “Thêm danh mục”. Dấu + ở đầu mỗi danh mục thêm món đồ, và một món chỉ cần có tên.',
   'help.guide.packing-templates.step.3':
-    'Mọi thứ được lưu ngay khi bạn thao tác. Biểu tượng bút chì đổi tên mẫu, danh mục hoặc món đồ. Biểu tượng thùng rác xóa món đồ ngay lập tức. Với mẫu hoặc danh mục, TREK hỏi trước, vì mọi thứ bên trong cũng bị xóa.',
+    'Mọi thứ được lưu ngay khi bạn thao tác. Biểu tượng bút chì đổi tên mẫu, danh mục hoặc món đồ. Biểu tượng thùng rác xóa món đồ ngay lập tức. Với mẫu hoặc danh mục, YOUYA hỏi trước, vì mọi thứ bên trong cũng bị xóa.',
   'help.guide.packing-templates.result':
     'Mẫu xuất hiện trong danh sách đóng gói của mọi chuyến đi; khi áp dụng, các món đồ được sao chép, nên mỗi chuyến đi có thể thoải mái chỉnh sửa.',
   'help.guide.packing-templates.tip.1':
@@ -1706,10 +1706,10 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     'Khi “Đăng nhập một lần (OIDC)” đã được thiết lập, ba hàng SSO xuất hiện: “SSO Đăng nhập”, “SSO Tự động cấp phép”, tạo tài khoản ngay lần đầu ai đó đăng nhập qua SSO, và “Chuyển thẳng đến SSO”.',
   'help.guide.auth-methods.step.3':
-    '“Kích hoạt đăng nhập bằng mật mã” cho phép dùng passkey trên trang đăng nhập. Bật “Yêu cầu 2FA” để buộc mọi người chưa có 2FA phải thiết lập trong “Cài đặt” trước khi dùng TREK.',
+    '“Kích hoạt đăng nhập bằng mật mã” cho phép dùng passkey trên trang đăng nhập. Bật “Yêu cầu 2FA” để buộc mọi người chưa có 2FA phải thiết lập trong “Cài đặt” trước khi dùng YOUYA.',
   'help.guide.auth-methods.result': 'Trang đăng nhập chỉ hiển thị đúng những phương thức bạn để bật.',
   'help.guide.auth-methods.tip.1':
-    'TREK không cho phép tắt phương thức đăng nhập cuối cùng: công tắc của nó chuyển xám, và chú thích ghi “At least one login method must remain enabled”.',
+    'YOUYA không cho phép tắt phương thức đăng nhập cuối cùng: công tắc của nó chuyển xám, và chú thích ghi “At least one login method must remain enabled”.',
   'help.guide.auth-methods.tip.2': 'Khi máy chủ đặt OIDC_ONLY, các công tắc mật khẩu bị khóa và có ghi chú cho biết.',
   'help.guide.auth-methods.tip.3':
     '“Chuyển thẳng đến SSO” chỉ có tác dụng khi “Mật khẩu Đăng nhập” đang tắt: khi bật, khách truy cập được chuyển ngay đến nhà cung cấp danh tính của bạn; khi tắt, họ thấy trang đăng nhập với nút SSO trước.',
@@ -1725,37 +1725,37 @@ const help: TranslationStrings = {
   'help.guide.oidc.result':
     'Trang đăng nhập hiện nút SSO; khi bật “SSO Tự động cấp phép”, người dùng lần đầu đăng nhập sẽ tự động có tài khoản.',
   'help.guide.oidc.tip.1':
-    'URI chuyển hướng mà nhà cung cấp của bạn cần là địa chỉ TREK của bạn cộng với đường dẫn callback OIDC trong tài liệu.',
+    'URI chuyển hướng mà nhà cung cấp của bạn cần là địa chỉ YOUYA của bạn cộng với đường dẫn callback OIDC trong tài liệu.',
   'help.guide.oidc.tip.2':
     'Ánh xạ claim quyết định nhóm SSO nào trở thành quản trị viên; xem trang OIDC trong tài liệu.',
   // instance-keys
   'help.guide.instance-keys.title': 'Nhập các khóa API',
   'help.guide.instance-keys.goal': 'Thêm ảnh và đánh giá từ Google, ảnh bìa Unsplash và tìm kiếm Amap cho cả hệ thống.',
   'help.guide.instance-keys.step.1':
-    'Ở tab “Dịch vụ”, thẻ tìm kiếm địa điểm và định tuyến bắt đầu bằng TREK API, được đánh dấu “Nguồn mặc định khuyến nghị”. Nó xử lý tìm kiếm địa điểm, địa chỉ và định tuyến mà không cần khóa, và “Hạn mức hôm nay” cho biết còn lại bao nhiêu trong ngày.',
+    'Ở tab “Dịch vụ”, thẻ tìm kiếm địa điểm và định tuyến bắt đầu bằng YOUYA API, được đánh dấu “Nguồn mặc định khuyến nghị”. Nó xử lý tìm kiếm địa điểm, địa chỉ và định tuyến mà không cần khóa, và “Hạn mức hôm nay” cho biết còn lại bao nhiêu trong ngày.',
   'help.guide.instance-keys.step.2':
     'Cho ảnh, đánh giá và giờ mở cửa, dán Google Maps API Key vào “API Key” và bấm “Kiểm tra”; kết quả là “Đã kết nối” hoặc “Không hợp lệ”. Trong “Khóa được dùng vào việc gì”, chỉ bật những gì bạn sẵn sàng trả phí: “Đặt ảnh”, “Đặt Tự động hoàn thành”, “Chi tiết địa điểm”, “Làm giàu địa điểm” và “Chỉ tìm bằng Google”, cùng “Giới hạn lượt gọi Google mỗi ngày”.',
   'help.guide.instance-keys.step.3':
     'Dán “Khóa API Unsplash” để tìm ảnh bìa và “Khóa API Amap (高德地图)” để tìm địa điểm ở Trung Quốc đại lục, rồi bấm “Lưu” ở cuối thẻ.',
   'help.guide.instance-keys.result':
-    'Người dùng dùng được các tính năng mà không cần khóa riêng. Nếu không có khóa Google, tìm kiếm chạy bằng TREK Places API và OpenStreetMap.',
+    'Người dùng dùng được các tính năng mà không cần khóa riêng. Nếu không có khóa Google, tìm kiếm chạy bằng YOUYA Places API và OpenStreetMap.',
   'help.guide.instance-keys.tip.1':
-    'Khi người dùng có khóa cá nhân trong “Cài đặt”, TREK dùng khóa đó thay cho khóa chung của hệ thống với người dùng ấy.',
+    'Khi người dùng có khóa cá nhân trong “Cài đặt”, YOUYA dùng khóa đó thay cho khóa chung của hệ thống với người dùng ấy.',
   'help.guide.instance-keys.tip.2':
     'Khóa cũng có thể lấy từ biến môi trường; những khóa đó hiển thị ở đây ở dạng chỉ đọc.',
   'help.guide.instance-keys.tip.3':
-    '“Giới hạn lượt gọi Google mỗi ngày” giới hạn mức TREK được dùng khóa mỗi ngày; huy hiệu cạnh tiêu đề đếm số lượt gọi hôm nay. Khi đạt giới hạn, tìm kiếm dùng OpenStreetMap cho đến ngày hôm sau (UTC).',
+    '“Giới hạn lượt gọi Google mỗi ngày” giới hạn mức YOUYA được dùng khóa mỗi ngày; huy hiệu cạnh tiêu đề đếm số lượt gọi hôm nay. Khi đạt giới hạn, tìm kiếm dùng OpenStreetMap cho đến ngày hôm sau (UTC).',
   // places-transit
   'help.guide.places-transit.title': 'Chọn nhà cung cấp tìm kiếm và giao thông công cộng',
   'help.guide.places-transit.goal': 'Chọn dịch vụ xử lý việc tìm địa điểm và yêu cầu tuyến giao thông công cộng.',
   'help.guide.places-transit.step.1':
     'Ở tab “Dịch vụ”, trong thẻ tìm kiếm địa điểm và định tuyến, chọn ở “Nhà cung cấp giao thông công cộng”: “Transitous (miễn phí)”, không cần khóa và mạnh nhất ở châu Âu, hoặc Google, dùng khóa Google. Lựa chọn lưu ngay.',
   'help.guide.places-transit.step.2':
-    'Trong “Nhà cung cấp tìm kiếm địa điểm”, chọn dịch vụ TREK hỏi khi chỉ mục TREK và OpenStreetMap không tìm thấy gì: “Tự động” (Google nếu có khóa, rồi Amap), Google Places, Amap (高德地图) hoặc OpenStreetMap.',
+    'Trong “Nhà cung cấp tìm kiếm địa điểm”, chọn dịch vụ YOUYA hỏi khi chỉ mục YOUYA và OpenStreetMap không tìm thấy gì: “Tự động” (Google nếu có khóa, rồi Amap), Google Places, Amap (高德地图) hoặc OpenStreetMap.',
   'help.guide.places-transit.result':
-    'Mọi ô tìm kiếm và mọi tuyến giao thông công cộng trong TREK đều dùng lựa chọn này.',
+    'Mọi ô tìm kiếm và mọi tuyến giao thông công cộng trong YOUYA đều dùng lựa chọn này.',
   'help.guide.places-transit.tip.1':
-    'Nếu một lựa chọn thiếu khóa, ở đây sẽ hiện cảnh báo. Khi đó tìm kiếm địa điểm chỉ dùng chỉ mục của TREK và OpenStreetMap, còn giao thông công cộng chỉ dùng Transitous.',
+    'Nếu một lựa chọn thiếu khóa, ở đây sẽ hiện cảnh báo. Khi đó tìm kiếm địa điểm chỉ dùng chỉ mục của YOUYA và OpenStreetMap, còn giao thông công cộng chỉ dùng Transitous.',
   'help.guide.places-transit.tip.2':
     'Tuyến phương tiện công cộng của Google tính phí theo từng yêu cầu; Transitous thì không.',
   // file-types
@@ -1801,7 +1801,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'Trong “Thể loại”, gán từng loại tệp tải lên, chẳng hạn “Tài liệu chuyến đi”, “Ảnh hành trình” hoặc “Bản sao lưu”, cho một backend.',
   'help.guide.storage-backends.step.3':
-    'Bấm “Lưu thay đổi” ở cuối “Thể loại”. Nếu có danh mục giờ trỏ sang nơi khác, TREK sẽ hỏi bạn chọn “Di chuyển các đối tượng hiện có” hay “Chỉ định tuyến các ghi mới”.',
+    'Bấm “Lưu thay đổi” ở cuối “Thể loại”. Nếu có danh mục giờ trỏ sang nơi khác, YOUYA sẽ hỏi bạn chọn “Di chuyển các đối tượng hiện có” hay “Chỉ định tuyến các ghi mới”.',
   'help.guide.storage-backends.result':
     'Các tệp tải lên mới đi vào backend được gán. Tệp đã chuyển được phục vụ từ đó, còn tệp bạn chọn không chuyển vẫn ở nguyên chỗ cũ.',
   'help.guide.storage-backends.tip.1':
@@ -1852,7 +1852,7 @@ const help: TranslationStrings = {
     'Tắt tiện ích bổ sung MCP sẽ dừng mọi ứng dụng khách cùng lúc và ẩn tab này, nhưng không xóa gì cả: các token hoạt động lại khi bạn bật lại.',
   // release-history
   'help.guide.release-history.title': 'Kiểm tra bản phát hành mới',
-  'help.guide.release-history.goal': 'Biết TREK của bạn đã là bản mới nhất chưa và phiên bản tiếp theo có gì.',
+  'help.guide.release-history.goal': 'Biết YOUYA của bạn đã là bản mới nhất chưa và phiên bản tiếp theo có gì.',
   'help.guide.release-history.step.1':
     'Khi có bản phát hành mới hơn, “Có bản cập nhật” hiện dưới đầu trang cùng phiên bản bạn đang chạy. “Xem trên GitHub” mở bản phát hành, còn “Cách cập nhật” hiện các lệnh cho Docker hoặc hướng dẫn cập nhật với các cách cài khác.',
   'help.guide.release-history.step.2':
@@ -1908,7 +1908,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     'Bật công tắc ở hàng Nextcloud. Thông báo hiện “Đã cập nhật tiện ích bổ sung”, và từ giờ chủ chuyến đi sẽ thấy “Đồng bộ tài liệu” trong tab “Tập tin” của chuyến đi, với Nextcloud dưới “Kết nối nhà cung cấp”.',
   'help.guide.document-providers.result':
-    'Kho lưu trữ có sẵn trên mọi chuyến đi của TREK này. Chưa có gì được kết nối cho đến khi chủ chuyến đi kết nối.',
+    'Kho lưu trữ có sẵn trên mọi chuyến đi của YOUYA này. Chưa có gì được kết nối cho đến khi chủ chuyến đi kết nối.',
   'help.guide.document-providers.tip.1':
     'Ở đây chỉ quyết định kho có được phép cung cấp hay không. Địa chỉ và thông tin đăng nhập thuộc về từng chuyến đi và do chủ chuyến đi nhập trong tab “Tập tin” của chuyến đó, không bao giờ nhập trong bảng quản trị.',
   'help.guide.document-providers.tip.2':
@@ -1917,30 +1917,30 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     'Cấp cho mỗi người một địa chỉ chuyển tiếp, để các xác nhận đặt chỗ họ chuyển tiếp trở thành đặt chỗ trong đúng chuyến đi.',
   'help.guide.mail-import-setup.step.1':
-    'Ở tab “Tiện ích bổ sung”, trong thẻ “Tích hợp”, bật “Nhập email đặt chỗ”. Mọi người trên TREK này giờ có một địa chỉ chuyển tiếp riêng.',
+    'Ở tab “Tiện ích bổ sung”, trong thẻ “Tích hợp”, bật “Nhập email đặt chỗ”. Mọi người trên YOUYA này giờ có một địa chỉ chuyển tiếp riêng.',
   'help.guide.mail-import-setup.step.2': 'Nhấn “Thiết lập nhập email”, hàng xuất hiện bên dưới đó.',
   'help.guide.mail-import-setup.step.3':
-    'Trong “Cách email đến”, chọn “Hộp thư IMAP” và nhập “Máy chủ”, “Cổng”, “Mã hóa”, “Người dùng”, “Mật khẩu” và “Thư mục”. Hãy chọn Webhook nếu dùng dịch vụ email gửi từng email đến TREK, hoặc “Chỉ tải lên” để thử mà không cần hộp thư. Sau đó đặt “Mẫu địa chỉ”, tức địa chỉ chuyển tiếp với một chỗ giữ chỗ cho mã của từng người, và “Số email AI mỗi người mỗi ngày”.',
+    'Trong “Cách email đến”, chọn “Hộp thư IMAP” và nhập “Máy chủ”, “Cổng”, “Mã hóa”, “Người dùng”, “Mật khẩu” và “Thư mục”. Hãy chọn Webhook nếu dùng dịch vụ email gửi từng email đến YOUYA, hoặc “Chỉ tải lên” để thử mà không cần hộp thư. Sau đó đặt “Mẫu địa chỉ”, tức địa chỉ chuyển tiếp với một chỗ giữ chỗ cho mã của từng người, và “Số email AI mỗi người mỗi ngày”.',
   'help.guide.mail-import-setup.step.4':
-    'Nhấn “Lưu”, rồi “Kiểm tra kết nối”; hệ thống sẽ báo “Đã kết nối” hoặc lỗi gặp phải. Bên dưới, hộp thoại cho biết lần cuối TREK đọc email và các email trong 24 giờ qua: “Tự động thêm”, “Đang chờ” và “Thất bại”.',
+    'Nhấn “Lưu”, rồi “Kiểm tra kết nối”; hệ thống sẽ báo “Đã kết nối” hoặc lỗi gặp phải. Bên dưới, hộp thoại cho biết lần cuối YOUYA đọc email và các email trong 24 giờ qua: “Tự động thêm”, “Đang chờ” và “Thất bại”.',
   'help.guide.mail-import-setup.result':
     'Mỗi người tìm thấy địa chỉ chuyển tiếp của mình trong “Cài đặt”, “Tích hợp”. Một xác nhận được chuyển tiếp sẽ trở thành đặt chỗ trong đúng chuyến đi, hoặc nằm đó chờ chủ nhân xem xét.',
   'help.guide.mail-import-setup.tip.1':
-    'Hãy dành cho TREK một hộp thư riêng chấp nhận địa chỉ dạng cộng (trek+…@your-domain), đừng dùng hộp thư cá nhân. Email đã đọc được chuyển sang thư mục TREK/processed.',
+    'Hãy dành cho YOUYA một hộp thư riêng chấp nhận địa chỉ dạng cộng (trek+…@your-domain), đừng dùng hộp thư cá nhân. Email đã đọc được chuyển sang thư mục TREK/processed.',
   'help.guide.mail-import-setup.tip.2':
     'Các biến môi trường bắt đầu bằng MAIL_INGEST_ được ưu tiên hơn các trường trong hộp thoại. Một máy chủ email trong mạng riêng của bạn còn cần ALLOW_INTERNAL_NETWORK=true trên máy chủ.',
   'help.guide.mail-import-setup.tip.3':
     '“Số email AI mỗi người mỗi ngày” giới hạn số email không có dữ liệu đặt chỗ dạng máy đọc được mà AI đọc cho một người mỗi ngày. Vượt mức đó, chỉ dữ liệu máy đọc được là được đọc.',
   'help.guide.ai-setup.title': 'Thiết lập trợ lý AI',
   'help.guide.ai-setup.goal':
-    'Kết nối nhà cung cấp AI một lần, để mọi người trên TREK này đều có thể lên kế hoạch cùng trợ lý.',
+    'Kết nối nhà cung cấp AI một lần, để mọi người trên YOUYA này đều có thể lên kế hoạch cùng trợ lý.',
   'help.guide.ai-setup.step.1':
     'Ở tab “Tiện ích bổ sung”, trong thẻ “Tích hợp”, tìm ô AI và bật “Trợ lý AI”. “Phân tích bằng AI” và MCP cũng nằm trong cùng ô này.',
   'help.guide.ai-setup.step.2': 'Nhấn “Thiết lập AI”, dòng xuất hiện bên dưới các nút bật.',
   'help.guide.ai-setup.step.3':
     'Trong “Ai trả tiền”, chọn ai cung cấp kết nối: “Tôi trả, cho phép dùng riêng”, “Tôi trả cho mọi người” hoặc “Mỗi người dùng tài khoản riêng”. Dòng bên dưới giải thích lựa chọn của bạn có nghĩa là gì.',
   'help.guide.ai-setup.step.4':
-    'Trong “Kết nối cho mọi người”, chọn “Dán khóa API” và dán khóa từ Anthropic, OpenAI, Gemini hoặc OpenRouter. TREK sẽ cho biết nhà cung cấp mà nó nhận diện được. Nhấn “Kết nối”; TREK kiểm tra khóa với nhà cung cấp trước khi lưu.',
+    'Trong “Kết nối cho mọi người”, chọn “Dán khóa API” và dán khóa từ Anthropic, OpenAI, Gemini hoặc OpenRouter. YOUYA sẽ cho biết nhà cung cấp mà nó nhận diện được. Nhấn “Kết nối”; YOUYA kiểm tra khóa với nhà cung cấp trước khi lưu.',
   'help.guide.ai-setup.step.5':
     'Kết nối hiện “Đã kết nối”. Chọn “Mô hình” mà mọi người sẽ trò chuyện cùng; chỉ liệt kê các mô hình có thể dùng công cụ. “Thay đổi” và “Gỡ kết nối” nằm ngay bên dưới.',
   'help.guide.ai-setup.step.6':
@@ -1957,15 +1957,15 @@ const help: TranslationStrings = {
     '“Tìm kiếm trên web” hoạt động với ChatGPT, Anthropic và OpenRouter, qua công cụ tìm kiếm của chính nhà cung cấp, và các lượt tìm chỉ được gửi đến nhà cung cấp đó.',
   'help.guide.paddle-water-data.title': 'Tải dữ liệu mặt nước cho các chuyến chèo thuyền',
   'help.guide.paddle-water-data.goal':
-    'Cung cấp cho các chuyến chèo thuyền các đập, âu thuyền và quy định chèo thuyền của một vùng, và quyết định TREK có tự tải các vùng mới hay không.',
+    'Cung cấp cho các chuyến chèo thuyền các đập, âu thuyền và quy định chèo thuyền của một vùng, và quyết định YOUYA có tự tải các vùng mới hay không.',
   'help.guide.paddle-water-data.step.1':
     'Ở tab “Tiện ích bổ sung”, khi “Chuyến tham quan” đang bật, nhấn “Dữ liệu mặt nước cho chèo thuyền”, hàng cuối dưới “Chuyến tham quan”. Con số bên cạnh đếm các vùng, hoặc các yêu cầu đang chờ bạn.',
   'help.guide.paddle-water-data.step.2':
     'Trong “Tự động tải vùng”, chọn “Tự động”, “Theo yêu cầu” hoặc “Tắt”. “Tự động” sẽ tải vùng nơi có người lên kế hoạch chèo thuyền, tối đa đến “Vùng lớn nhất được tải tự động”; vùng lớn hơn sẽ chờ trong “Được yêu cầu”, nơi “Tải” sẽ đọc dữ liệu và “Từ chối” sẽ bỏ yêu cầu.',
   'help.guide.paddle-water-data.step.3':
-    'Trong “Thêm vùng”, tìm một vùng trên Geofabrik, ví dụ Oberpfalz, rồi nhấn “Thêm” bên cạnh. TREK đọc dữ liệu ở chế độ nền; khi chuyển sang “Sẵn sàng”, hàng của vùng đó hiển thị các đối tượng, ngày của dữ liệu và số ki-lô-mét mặt nước. “Đọc lại” làm mới dữ liệu, còn “Xóa vùng” xóa vùng đó.',
+    'Trong “Thêm vùng”, tìm một vùng trên Geofabrik, ví dụ Oberpfalz, rồi nhấn “Thêm” bên cạnh. YOUYA đọc dữ liệu ở chế độ nền; khi chuyển sang “Sẵn sàng”, hàng của vùng đó hiển thị các đối tượng, ngày của dữ liệu và số ki-lô-mét mặt nước. “Đọc lại” làm mới dữ liệu, còn “Xóa vùng” xóa vùng đó.',
   'help.guide.paddle-water-data.result':
-    'Các chuyến chèo thuyền trong vùng hiển thị chướng ngại vật và đi theo dòng nước, và TREK đọc lại mọi vùng mỗi tháng một lần.',
+    'Các chuyến chèo thuyền trong vùng hiển thị chướng ngại vật và đi theo dòng nước, và YOUYA đọc lại mọi vùng mỗi tháng một lần.',
   'help.guide.paddle-water-data.tip.1':
     'Chỉ tên vùng được gửi đến Geofabrik, không bao giờ gửi địa điểm mà ai đó lên kế hoạch.',
   'help.guide.paddle-water-data.tip.2':
@@ -1978,7 +1978,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     'Mọi thứ về một chuyến đi: kế hoạch với các ngày, bản đồ và địa điểm, cùng các tab cho chuyến tham quan, di chuyển, đặt chỗ, danh sách, chi phí, tệp, cộng tác và nhật ký đã liên kết. Mỗi mục có màn hình trợ giúp riêng bên dưới màn hình này.',
   'help.ctx.trip.bullet.1':
-    'Thanh tab dưới thanh trên cùng: “Kế hoạch”, “Chuyến tham quan”, “Di chuyển”, “Đặt chỗ”, “Danh sách”, “Chi phí”, “Tập tin”, “Cộng tác” và, khi đã liên kết nhật ký, “Nhật ký”. Tiện ích bổ sung và plugin quyết định TREK của bạn có những tab nào.',
+    'Thanh tab dưới thanh trên cùng: “Kế hoạch”, “Chuyến tham quan”, “Di chuyển”, “Đặt chỗ”, “Danh sách”, “Chi phí”, “Tập tin”, “Cộng tác” và, khi đã liên kết nhật ký, “Nhật ký”. Tiện ích bổ sung và plugin quyết định YOUYA của bạn có những tab nào.',
   'help.ctx.trip.bullet.2':
     '“Kế hoạch” có ba cột: các ngày ở bên trái, bản đồ ở giữa, các địa điểm ở bên phải. Với tiện ích bổ sung “Chuyến đi đường bộ”, cột ngày bắt đầu bằng công tắc “Ngày” và “Chuyến đi đường bộ”; với tiện ích bổ sung “Chuyến tham quan”, cột địa điểm bắt đầu bằng “Địa điểm” và “Chuyến tham quan”. Đặt chỗ và phương tiện là một phần của kế hoạch, tại điểm dừng và giữa các điểm dừng; các tab liệt kê chúng.',
   'help.ctx.trip.bullet.3':
@@ -1991,7 +1991,7 @@ const help: TranslationStrings = {
     'Mũi tên hoàn tác trên thanh công cụ của các ngày sẽ hoàn tác các thay đổi gần đây của bạn đối với kế hoạch, từng thay đổi một.',
   // add-member
   'help.guide.add-member.title': 'Thêm thành viên',
-  'help.guide.add-member.goal': 'Cho một người đã có tài khoản TREK quyền truy cập chuyến đi này.',
+  'help.guide.add-member.goal': 'Cho một người đã có tài khoản YOUYA quyền truy cập chuyến đi này.',
   'help.guide.add-member.step.1':
     'Bấm “Cài đặt chuyến đi”, nút bên cạnh tên chuyến đi ở góc trên bên trái. Nó mở ở mục “Mọi người”.',
   'help.guide.add-member.step.2': 'Ở “Mời người dùng”, chọn người từ “Chọn người dùng…” và bấm “Mời”.',
@@ -2000,7 +2000,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     'Thành viên có thể xem và sửa chuyến đi như bạn, trong các mức mà quản trị viên đã đặt ở “Cài đặt quyền”.',
   'help.guide.add-member.tip.1':
-    'Ai không có trong danh sách là chưa có tài khoản TREK: hãy thêm họ làm khách, hoặc để họ đăng ký qua liên kết mời.',
+    'Ai không có trong danh sách là chưa có tài khoản YOUYA: hãy thêm họ làm khách, hoặc để họ đăng ký qua liên kết mời.',
   'help.guide.add-member.tip.2':
     'Con số cạnh “Truy cập” là số người trong chuyến đi; khách được liệt kê riêng ở bên dưới.',
   // trip-invite-link
@@ -2009,7 +2009,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     'Nhấp “Cài đặt chuyến đi” bên cạnh tên chuyến đi và chọn “Chia sẻ” ở bên trái. Trong “Liên kết mời tham gia chuyến đi”, nhấp “Tạo liên kết mời”.',
   'help.guide.trip-invite-link.step.2':
-    'Nhấn “Sao chép” và gửi liên kết. Ai có tài khoản TREK mở liên kết sẽ tham gia với tư cách thành viên.',
+    'Nhấn “Sao chép” và gửi liên kết. Ai có tài khoản YOUYA mở liên kết sẽ tham gia với tư cách thành viên.',
   'help.guide.trip-invite-link.step.3':
     '“Tạo lại” sẽ thay liên kết, và liên kết cũ ngừng hoạt động; “Vô hiệu hóa” sẽ tắt liên kết.',
   'help.guide.trip-invite-link.result': 'Ai mở liên kết sẽ tham gia chuyến đi và được liệt kê trong “Truy cập”.',
@@ -2019,7 +2019,7 @@ const help: TranslationStrings = {
     'Nếu lỡ gửi liên kết nhầm cuộc trò chuyện, hãy nhấn “Tạo lại”: liên kết cũ ngừng hoạt động ngay lập tức.',
   // add-guest
   'help.guide.add-guest.title': 'Thêm khách không có tài khoản',
-  'help.guide.add-guest.goal': 'Thêm vào chuyến đi một người không dùng TREK.',
+  'help.guide.add-guest.goal': 'Thêm vào chuyến đi một người không dùng YOUYA.',
   'help.guide.add-guest.step.1':
     'Nhấp “Cài đặt chuyến đi” bên cạnh tên chuyến đi. Ở “Mọi người”, “Khách” là phần cuối, dưới “Truy cập”.',
   'help.guide.add-guest.step.2': 'Gõ tên vào “Tên khách” và nhấn “Thêm khách”.',
@@ -2076,7 +2076,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     '“Hoàn tác” áp dụng cho kế hoạch: thêm, gán, xóa, sắp xếp lại, di chuyển và khóa địa điểm, xóa trống ngày, tối ưu tuyến đường, xóa địa điểm, đổi danh mục và nhập.',
   'help.guide.undo-change.tip.2':
-    'Bấm tiếp để lùi xa hơn: TREK giữ 30 thay đổi gần nhất của bạn trên chuyến đi này, mới nhất ở trước, cho đến khi bạn rời khỏi chuyến đi.',
+    'Bấm tiếp để lùi xa hơn: YOUYA giữ 30 thay đổi gần nhất của bạn trên chuyến đi này, mới nhất ở trước, cho đến khi bạn rời khỏi chuyến đi.',
   'help.guide.trip-assistant.title': 'Lên kế hoạch cùng trợ lý',
   'help.guide.trip-assistant.goal': 'Hỏi trợ lý về chuyến đi của bạn và để nó thêm những gì nó gợi ý vào kế hoạch.',
   'help.guide.trip-assistant.step.1':
@@ -2132,19 +2132,19 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     'Bấm “Thêm địa điểm/Hoạt động” ở đầu cột địa điểm (“Địa điểm mới” khi một ngày đang mở). Biểu mẫu mở ra với con trỏ nằm sẵn trong ô tìm kiếm.',
   'help.guide.create-place.step.2':
-    'Nhập địa điểm vào “Tìm địa điểm…” và chọn một kết quả. Tên ở đầu hộp thoại, “Địa chỉ”, “Vĩ độ”, “Kinh độ” và “Trang web” được điền sẵn, và “Chi tiết địa điểm” ở bên trái hiện ảnh, giờ mở cửa và mô tả. Trên TREK có khóa Google, “Not the right place? Search Google instead” dưới các kết quả chạy cùng tìm kiếm đó qua Google. Khi bật Bộ sưu tập, “Địa điểm đã lưu” ở bên phải đưa ra các địa điểm trong danh sách của bạn theo cách tương tự.',
+    'Nhập địa điểm vào “Tìm địa điểm…” và chọn một kết quả. Tên ở đầu hộp thoại, “Địa chỉ”, “Vĩ độ”, “Kinh độ” và “Trang web” được điền sẵn, và “Chi tiết địa điểm” ở bên trái hiện ảnh, giờ mở cửa và mô tả. Trên YOUYA có khóa Google, “Not the right place? Search Google instead” dưới các kết quả chạy cùng tìm kiếm đó qua Google. Khi bật Bộ sưu tập, “Địa điểm đã lưu” ở bên phải đưa ra các địa điểm trong danh sách của bạn theo cách tương tự.',
   'help.guide.create-place.step.3':
     'Trong “Chi tiết địa điểm”, nhấp vào một hình dưới “Chọn một hình ảnh” để đặt làm ảnh của địa điểm. “Dùng văn bản này” chép phần mô tả vào biểu mẫu.',
   'help.guide.create-place.step.4':
     'Kiểm tra các trường của biểu mẫu. Tên ở đầu hộp thoại là trường bắt buộc duy nhất. Nút “Loại” bên dưới chọn một trong các danh mục của chuyến đi, và dấu + bên cạnh tạo danh mục mới. “Địa chỉ”, “Vĩ độ” và “Kinh độ” lấy từ kết quả tìm kiếm hoặc bạn tự gõ. Trong “Thẻ”, bấm các thẻ mà địa điểm cần có. “Về địa điểm” và “Ghi chú” chuyển ô văn bản giữa phần mô tả và ghi chú riêng của bạn. “Trang web” nhận liên kết, “Đính kèm” dưới “Tệp” thêm tài liệu, còn “Điện thoại”, Email và “Thêm giờ mở cửa” dùng cho thông tin mà tìm kiếm không tìm thấy.',
   'help.guide.create-place.step.5':
-    'Nhấn “Thêm”. Nếu chuyến đi đã có địa điểm cùng tên hoặc cùng vị trí, TREK sẽ hiện cảnh báo và nút đổi thành “Vẫn thêm”.',
+    'Nhấn “Thêm”. Nếu chuyến đi đã có địa điểm cùng tên hoặc cùng vị trí, YOUYA sẽ hiện cảnh báo và nút đổi thành “Vẫn thêm”.',
   'help.guide.create-place.result':
     'Địa điểm nằm trong danh sách và trên bản đồ, dưới “Không có kế hoạch” cho đến khi được xếp vào một ngày.',
   'help.guide.create-place.tip.1':
     'Khi tiện ích bổ sung Ngân sách đang bật, “Chi phí” ở cuối biểu mẫu mở trình chỉnh sửa chi phí cho khoản chi của địa điểm ngay sau khi lưu. Ảnh hoặc PDF dán vào hộp thoại sẽ được đính kèm như một tệp trong “Tập tin”.',
   'help.guide.create-place.tip.2':
-    'Chỉ mục TREK và OpenStreetMap cung cấp kết quả tìm kiếm trên mọi TREK, còn “Chi tiết địa điểm” được tự động điền từ Wikipedia, Wikivoyage và Wikimedia. TREK chỉ hỏi Google khi cả hai đều không có kết quả, và chỉ Google mới có đánh giá.',
+    'Chỉ mục YOUYA và OpenStreetMap cung cấp kết quả tìm kiếm trên mọi YOUYA, còn “Chi tiết địa điểm” được tự động điền từ Wikipedia, Wikivoyage và Wikimedia. YOUYA chỉ hỏi Google khi cả hai đều không có kết quả, và chỉ Google mới có đánh giá.',
   'help.guide.create-place.tip.3':
     'Bạn cũng có thể tạo địa điểm ngay trên bản đồ: nhấn chuột phải vào vị trí, và biểu mẫu mở ra với tọa độ và địa chỉ đã điền sẵn.',
   // place-to-open-day
@@ -2237,7 +2237,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     'Các ghim là địa điểm của chuyến đi, nằm trong danh sách và trên bản đồ, ở mục “Không có kế hoạch” cho đến khi bạn đặt chúng vào một ngày.',
   'help.guide.import-places-file.tip.1':
-    'Tập tin quá lớn sẽ bị từ chối, và TREK cho bạn biết giới hạn dung lượng; hãy xuất lại mà không kèm ảnh, hoặc chia nhỏ tập tin.',
+    'Tập tin quá lớn sẽ bị từ chối, và YOUYA cho bạn biết giới hạn dung lượng; hãy xuất lại mà không kèm ảnh, hoặc chia nhỏ tập tin.',
   'help.guide.import-places-file.tip.2':
     'Một lần nhập qua “Nhập tập tin” có thể hoàn tác từ thanh công cụ phía trên các ngày.',
   // import-places-list
@@ -2253,7 +2253,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.tip.1':
     'Danh sách phải được chia sẻ công khai; liên kết của danh sách riêng tư sẽ không nhập được gì.',
   'help.guide.import-places-list.tip.2':
-    '“Làm phong phú các địa điểm thông qua Google” xuất hiện trong hộp thoại khi TREK của bạn có khóa Google: tính năng này tra từng địa điểm đã nhập và điền ảnh, địa chỉ và chi tiết.',
+    '“Làm phong phú các địa điểm thông qua Google” xuất hiện trong hộp thoại khi YOUYA của bạn có khóa Google: tính năng này tra từng địa điểm đã nhập và điền ảnh, địa chỉ và chi tiết.',
   'help.guide.sort-places.title': 'Sắp xếp danh sách địa điểm',
   'help.guide.sort-places.goal':
     'Sắp xếp danh sách theo tên, theo đánh giá, hoặc theo thời điểm thêm hay thay đổi gần nhất.',
@@ -2368,7 +2368,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Kéo điểm dừng sang thẻ của ngày khác để chuyển nó sang đó; điểm dừng sẽ bị gỡ khỏi ngày cũ.',
   'help.guide.reorder-stops.step.4':
-    'Nếu điểm dừng có giờ cố định và việc di chuyển làm hỏng thứ tự trong ngày, TREK hỏi “Xóa thời gian?”, vì giờ quyết định vị trí của điểm dừng. “Xóa thời gian và di chuyển” xóa giờ và đặt điểm dừng vào chỗ bạn thả. “Hủy” giữ ngày như cũ.',
+    'Nếu điểm dừng có giờ cố định và việc di chuyển làm hỏng thứ tự trong ngày, YOUYA hỏi “Xóa thời gian?”, vì giờ quyết định vị trí của điểm dừng. “Xóa thời gian và di chuyển” xóa giờ và đặt điểm dừng vào chỗ bạn thả. “Hủy” giữ ngày như cũ.',
   'help.guide.reorder-stops.result': 'Lộ trình và thời gian di chuyển cập nhật ngay theo thứ tự mới.',
   'help.guide.reorder-stops.tip.1':
     'Đặt chỗ có giờ cố định luôn nằm đúng vị trí theo giờ của nó. Nếu bạn thả nó sang chỗ khác trong cùng ngày, nó sẽ tự quay về. Nếu bạn kéo nó sang thẻ của ngày khác, nó sẽ chuyển sang ngày đó.',
@@ -2388,7 +2388,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'Giờ gắn với điểm dừng trong ngày đó; cùng địa điểm đó ở ngày khác có thể có giờ khác.',
   'help.guide.set-stop-times.tip.2':
-    'Để tự di chuyển một điểm dừng đã có giờ, hãy kéo nó. TREK hỏi “Xóa thời gian?”, và “Xóa thời gian và di chuyển” sẽ bỏ giờ rồi di chuyển điểm dừng.',
+    'Để tự di chuyển một điểm dừng đã có giờ, hãy kéo nó. YOUYA hỏi “Xóa thời gian?”, và “Xóa thời gian và di chuyển” sẽ bỏ giờ rồi di chuyển điểm dừng.',
   'help.guide.set-stop-times.tip.3':
     'Tab “Chỉ ngày” cạnh “Về địa điểm” và “Ghi chú”, trong cùng biểu mẫu, dành cho ghi chú chỉ áp dụng cho ngày này, chẳng hạn bàn đã đặt hoặc số vé.',
   // remove-from-day
@@ -2430,7 +2430,7 @@ const help: TranslationStrings = {
   'help.guide.day-note.tip.2': 'Ghi chú được lưu theo từng ngày. Ghi chú cho cả chuyến đi hãy đặt trong “Cộng tác”.',
   // day-route
   'help.guide.day-route.title': 'Hiện và tối ưu lộ trình của ngày',
-  'help.guide.day-route.goal': 'Xem lộ trình giữa các điểm dừng, chọn cách di chuyển và để TREK sắp xếp thứ tự.',
+  'help.guide.day-route.goal': 'Xem lộ trình giữa các điểm dừng, chọn cách di chuyển và để YOUYA sắp xếp thứ tự.',
   'help.guide.day-route.step.1':
     'Mở ngày và nhấp “Chỉ đường” trong thanh tuyến đường dưới các điểm dừng: tuyến đường giữa các điểm dừng được vẽ trên bản đồ, và các đường nối giữa các điểm dừng hiện thời gian và khoảng cách của từng chặng.',
   'help.guide.day-route.step.2':
@@ -2444,7 +2444,7 @@ const help: TranslationStrings = {
   'help.guide.day-route.result':
     'Ngày trở thành một lộ trình có thời gian; “Tổng chi phí” và các chặng cập nhật khi thứ tự thay đổi.',
   'help.guide.day-route.tip.1':
-    'Lộ trình mặc định lấy từ OSRM; quản trị viên có thể đặt TREK dùng công cụ định tuyến khác trong “Mặc định của người dùng”.',
+    'Lộ trình mặc định lấy từ OSRM; quản trị viên có thể đặt YOUYA dùng công cụ định tuyến khác trong “Mặc định của người dùng”.',
   'help.guide.day-route.tip.2':
     'Chặng nào không tính được lộ trình thì không hiện thời gian. Hãy kiểm tra xem cả hai điểm dừng đã có tọa độ chưa.',
   'help.guide.day-route.tip.3': 'Mũi tên hoàn tác sẽ hoàn tác một lần tối ưu hóa.',
@@ -2521,7 +2521,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     'Hàng ở cuối: “Thêm vào ngày” khi một ngày đang mở và địa điểm chưa nằm trong đó, rồi “Điều hướng” (hoặc tên ứng dụng bản đồ của bạn, sau khi chọn trong “Cài đặt”), và hai biểu tượng, “Mở trang web” và “Lưu vào Bộ sưu tập”. Ở bên phải, ba chấm có “Xóa khỏi ngày” và “Xóa”, còn “Chỉnh sửa” mở biểu mẫu của địa điểm, nơi bạn cũng đổi được ảnh của nó.',
   'help.ctx.trip-place.bullet.6':
-    'Địa điểm bạn chọn từ tìm kiếm hiện những gì chỉ mục TREK hoặc OpenStreetMap biết về nó: “Mở” hoặc “Đã đóng” trong các nút ở đầu thẻ, với vòng xanh hoặc đỏ quanh ảnh, tính theo giờ địa phương của địa điểm; số điện thoại, cũng là một nút; “Giờ mở cửa” ở phía dưới, hàng hiện giờ của hôm nay và nhấp vào để xem cả tuần; và trang web của nó dưới “Mở trang web”. Đánh giá của Google chỉ hiện với địa điểm tìm qua Google, trên TREK có khóa Google. Giờ mở cửa, số điện thoại và email do bạn tự nhập vào biểu mẫu của địa điểm sẽ thay cho dữ liệu tra cứu, và cũng quyết định màu của vòng.',
+    'Địa điểm bạn chọn từ tìm kiếm hiện những gì chỉ mục YOUYA hoặc OpenStreetMap biết về nó: “Mở” hoặc “Đã đóng” trong các nút ở đầu thẻ, với vòng xanh hoặc đỏ quanh ảnh, tính theo giờ địa phương của địa điểm; số điện thoại, cũng là một nút; “Giờ mở cửa” ở phía dưới, hàng hiện giờ của hôm nay và nhấp vào để xem cả tuần; và trang web của nó dưới “Mở trang web”. Đánh giá của Google chỉ hiện với địa điểm tìm qua Google, trên YOUYA có khóa Google. Giờ mở cửa, số điện thoại và email do bạn tự nhập vào biểu mẫu của địa điểm sẽ thay cho dữ liệu tra cứu, và cũng quyết định màu của vòng.',
   // read-place
   'help.guide.read-place.title': 'Thẻ cho bạn biết gì về một địa điểm',
   'help.guide.read-place.goal': 'Xem mọi thứ chuyến đi biết về một địa điểm, gói trong một thẻ.',
@@ -2544,7 +2544,7 @@ const help: TranslationStrings = {
   'help.guide.read-place.tip.2':
     'Nếu có quyền sửa địa điểm, nhấp đúp vào tên để đổi tên mà không cần mở biểu mẫu. Nhấn Enter để lưu, Escape để hủy thay đổi.',
   'help.guide.read-place.tip.3':
-    'Địa điểm nhập tay chỉ có những thông tin nhập trong biểu mẫu. Bấm “Chỉnh sửa” và tự điền “Điện thoại”, “Email” và giờ mở cửa, hoặc chọn địa điểm từ các gợi ý trong “Tìm địa điểm…” rồi bấm “Cập nhật” để TREK tra cứu giúp. Đánh giá của Google cần có khóa Google.',
+    'Địa điểm nhập tay chỉ có những thông tin nhập trong biểu mẫu. Bấm “Chỉnh sửa” và tự điền “Điện thoại”, “Email” và giờ mở cửa, hoặc chọn địa điểm từ các gợi ý trong “Tìm địa điểm…” rồi bấm “Cập nhật” để YOUYA tra cứu giúp. Đánh giá của Google cần có khóa Google.',
   'help.guide.fold-place-card.title': 'Thu gọn thẻ cho đỡ vướng',
   'help.guide.fold-place-card.goal': 'Giữ một địa điểm đang được chọn trong khi bạn xem bản đồ xung quanh.',
   'help.guide.fold-place-card.step.1':
@@ -2597,7 +2597,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     '“Xóa ảnh”, ở cuối dòng bên dưới các ô, để địa điểm không có ảnh sau khi bạn bấm “Cập nhật”. “Hủy” giữ ảnh cũ.',
   'help.guide.place-image.tip.3':
-    'Các ô còn lại là ảnh hiện tại của địa điểm, các ảnh đính kèm với nó và các ảnh TREK tìm được cho nó, mỗi ảnh kèm ghi công. Chỉ những người đi cùng có quyền sửa địa điểm mới đổi được ảnh.',
+    'Các ô còn lại là ảnh hiện tại của địa điểm, các ảnh đính kèm với nó và các ảnh YOUYA tìm được cho nó, mỗi ảnh kèm ghi công. Chỉ những người đi cùng có quyền sửa địa điểm mới đổi được ảnh.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'Thêm địa điểm vào ngày đang mở, hoặc bỏ ra',
   'help.guide.place-day-assign.goal': 'Dùng nút trên thẻ thay vì kéo hàng qua trình lập kế hoạch.',
@@ -2681,11 +2681,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     'Danh sách gồm các ứng dụng bản đồ phù hợp với địa điểm này: Google Maps, Waze, Apple Maps, OpenStreetMap và CoMaps, thêm “Ứng dụng bản đồ khác” trên Android.',
   'help.guide.place-navigation.step.3':
-    'Nhấn vào ứng dụng bạn dùng. Khi có thể, TREK gửi chính địa điểm đó sang ứng dụng chứ không chỉ tọa độ, nên bạn đến đúng lối vào.',
+    'Nhấn vào ứng dụng bạn dùng. Khi có thể, YOUYA gửi chính địa điểm đó sang ứng dụng chứ không chỉ tọa độ, nên bạn đến đúng lối vào.',
   'help.guide.place-navigation.step.4':
     'Biểu tượng bên cạnh, “Mở trang web”, mở trang web riêng của địa điểm, có giờ mở cửa và vé, trong một tab mới.',
   'help.guide.place-navigation.result':
-    'Ứng dụng bản đồ mở tại địa điểm, trang web mở trong một tab mới, và không có gì trong chuyến đi bị thay đổi. Nếu TREK được cài như một ứng dụng, ứng dụng bản đồ sẽ mở thay cho tab mới.',
+    'Ứng dụng bản đồ mở tại địa điểm, trang web mở trong một tab mới, và không có gì trong chuyến đi bị thay đổi. Nếu YOUYA được cài như một ứng dụng, ứng dụng bản đồ sẽ mở thay cho tab mới.',
   'help.guide.place-navigation.tip.1':
     'Waze bắt đầu dẫn đường ngay. Các ứng dụng khác mở địa điểm, và bạn chạm thêm một lần nữa để bắt đầu dẫn đường.',
   'help.guide.place-navigation.tip.2':
@@ -2724,7 +2724,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.result':
     'Đường đi được vẽ bằng màu bạn đã chọn, trên thẻ, trên hàng của nó trong cột địa điểm và trên bản đồ.',
   'help.guide.place-track.tip.1':
-    'Chỉ địa điểm có đường đi mới có hai khối này: địa điểm nhập từ tệp GPX, KML hoặc KMZ trước khi có Chuyến tham quan, hoặc trên TREK đã tắt Chuyến tham quan. Khi Chuyến tham quan đang bật, tệp GPX mới sẽ trở thành một chuyến tham quan và mở thẻ chuyến tham quan riêng.',
+    'Chỉ địa điểm có đường đi mới có hai khối này: địa điểm nhập từ tệp GPX, KML hoặc KMZ trước khi có Chuyến tham quan, hoặc trên YOUYA đã tắt Chuyến tham quan. Khi Chuyến tham quan đang bật, tệp GPX mới sẽ trở thành một chuyến tham quan và mở thẻ chuyến tham quan riêng.',
   'help.guide.place-track.tip.2':
     'Lộ trình được ghi kèm độ cao còn hiện điểm cao nhất và thấp nhất, số mét lên và xuống, cùng biểu đồ độ cao của chuyến đi bộ.',
   'help.guide.place-track.tip.3':
@@ -2738,13 +2738,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     'Mọi tài liệu của chuyến đi trong một danh sách: vé, bản xác nhận, thẻ và hình ảnh. Mỗi tài liệu có một ghi chú, một liên kết tới địa điểm hoặc đặt chỗ mà nó thuộc về, và một thùng rác để bạn khôi phục lại.',
   'help.ctx.trip-files.bullet.1':
-    '“Thả tập tin ở đây”, khung nét đứt dưới thanh công cụ, nhận các tệp bạn thả vào. Bấm vào khung để mở bộ chọn tệp. Khung cho biết các loại tệp TREK này chấp nhận và giới hạn dung lượng mỗi tệp (tối đa 50 MB, trừ khi quản trị viên đặt giá trị khác).',
+    '“Thả tập tin ở đây”, khung nét đứt dưới thanh công cụ, nhận các tệp bạn thả vào. Bấm vào khung để mở bộ chọn tệp. Khung cho biết các loại tệp YOUYA này chấp nhận và giới hạn dung lượng mỗi tệp (tối đa 50 MB, trừ khi quản trị viên đặt giá trị khác).',
   'help.ctx.trip-files.bullet.2':
     'Thanh phía trên có “Tập tin” và các tab lọc “Tất cả”, “PDF”, “Hình ảnh” và “Tài liệu”, mỗi tab kèm số đếm. Tab ngôi sao hiện sau “Tất cả” ngay khi có tập tin được gắn sao, và tab “Ghi chú cộng tác” hiện ở cuối ngay khi một ghi chú có tệp đính kèm.',
   'help.ctx.trip-files.bullet.3':
     'Mỗi hàng hiện hình thu nhỏ hoặc loại tập tin, người tải lên, tên, ghi chú bên dưới, kích thước và ngày, cùng một huy hiệu cho mỗi liên kết: địa điểm, đặt chỗ hoặc phương tiện theo tên của nó (trỏ vào để thấy “Kế hoạch ngày”, “Đặt chỗ” hoặc “Chuyên chở”), và “Từ ghi chú cộng tác”.',
   'help.ctx.trip-files.bullet.4':
-    'Ở cuối mỗi hàng có tối đa năm biểu tượng, mỗi biểu tượng hiện tên khi bạn rê chuột lên: “Ngôi sao”, “Giao phó” (biểu tượng bút chì), “Mở”, “Tải xuống” và “Xóa bỏ”. Nút xóa không hỏi lại: tệp chuyển vào thùng rác, nơi bạn khôi phục được. Khi ngoại tuyến, ghi chú, liên kết, ngôi sao và thùng rác vẫn dùng được và sẽ được gửi khi TREK có mạng trở lại; chỉ tải lên và gỡ thêm một liên kết là cần có kết nối.',
+    'Ở cuối mỗi hàng có tối đa năm biểu tượng, mỗi biểu tượng hiện tên khi bạn rê chuột lên: “Ngôi sao”, “Giao phó” (biểu tượng bút chì), “Mở”, “Tải xuống” và “Xóa bỏ”. Nút xóa không hỏi lại: tệp chuyển vào thùng rác, nơi bạn khôi phục được. Khi ngoại tuyến, ghi chú, liên kết, ngôi sao và thùng rác vẫn dùng được và sẽ được gửi khi YOUYA có mạng trở lại; chỉ tải lên và gỡ thêm một liên kết là cần có kết nối.',
   'help.ctx.trip-files.bullet.5':
     'Ảnh hoặc video mở toàn màn hình, kèm phím mũi tên và một hàng hình thu nhỏ. Mọi tài liệu khác mở trong hộp thoại có tên ở trên cùng, với “Mở trong tab mới” và “Tải xuống” bên dưới. Thẻ ví (wallet pass) được tải xuống ngay.',
   'help.ctx.trip-files.bullet.6':
@@ -2756,7 +2756,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     'Mở chuyến đi và bấm “Tập tin” trên thanh tab. Tài liệu của chuyến đi được liệt kê ở đó, với ô tải lên phía trên.',
   'help.guide.files-upload.step.2':
-    'Bấm “Thả tập tin ở đây” và chọn một hoặc nhiều tệp. Các tệp được tải lên lần lượt và khung hiện “Đang tải lên...” trong lúc chạy. Bên trong khung, bên dưới “hoặc bấm vào để duyệt”, bạn thấy các loại tệp TREK này chấp nhận và dung lượng tối đa của mỗi tệp.',
+    'Bấm “Thả tập tin ở đây” và chọn một hoặc nhiều tệp. Các tệp được tải lên lần lượt và khung hiện “Đang tải lên...” trong lúc chạy. Bên trong khung, bên dưới “hoặc bấm vào để duyệt”, bạn thấy các loại tệp YOUYA này chấp nhận và dung lượng tối đa của mỗi tệp.',
   'help.guide.files-upload.step.3':
     'Khi tập tin cuối cùng tải lên xong, “Gán tập tin” tự mở cho tập tin đó (nếu chuyến đi có địa điểm hoặc đặt chỗ), với tên tập tin ở đầu hộp thoại. Ô “Thêm ghi chú...” dưới “Ghi chú” thêm ghi chú cho tập tin, còn các danh sách bên dưới liên kết tập tin với một địa điểm hoặc đặt chỗ. Đóng hộp thoại bằng dấu × ở góc trên bên phải; đóng lại không làm mất gì.',
   'help.guide.files-upload.step.4':
@@ -2768,7 +2768,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     'Nhấn Ctrl+V để thêm ảnh từ bộ nhớ tạm vào danh sách, nên bạn không cần lưu ảnh chụp màn hình đặt chỗ trước.',
   'help.guide.files-upload.tip.3':
-    'Tải lên cần có quyền tải tệp; nếu không có, khung tải lên sẽ không xuất hiện. Loại tệp không có trong danh sách sẽ bị từ chối kèm thông báo và không có gì được tải lên. Tệp vượt giới hạn (50 MB, trừ khi quản trị viên đặt mức khác) bị từ chối trước khi gửi đi, và thông báo nêu rõ giới hạn. Tải lên cũng cần có kết nối: khi ngoại tuyến, TREK báo như vậy và không tải gì lên.',
+    'Tải lên cần có quyền tải tệp; nếu không có, khung tải lên sẽ không xuất hiện. Loại tệp không có trong danh sách sẽ bị từ chối kèm thông báo và không có gì được tải lên. Tệp vượt giới hạn (50 MB, trừ khi quản trị viên đặt mức khác) bị từ chối trước khi gửi đi, và thông báo nêu rõ giới hạn. Tải lên cũng cần có kết nối: khi ngoại tuyến, YOUYA báo như vậy và không tải gì lên.',
   // files-link
   'help.guide.files-link.title': 'Liên kết tài liệu với địa điểm hoặc đặt chỗ',
   'help.guide.files-link.goal': 'Giúp tìm vé dễ dàng từ ngày mà nó thuộc về, không chỉ từ danh sách này.',
@@ -2787,7 +2787,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     'Một tập tin có thể có nhiều liên kết cùng lúc, nên cùng một bản xác nhận có thể đồng thời thuộc về đặt chỗ khách sạn và địa điểm khách sạn.',
   'help.guide.files-link.tip.2':
-    'Nhấp lại vào mục đã đánh dấu để bỏ liên kết đó; tệp vẫn còn. Khi ngoại tuyến, ghi chú và các dấu mới được lưu và gửi đi khi TREK trực tuyến lại; chỉ việc gỡ một liên kết khác mới cần có kết nối.',
+    'Nhấp lại vào mục đã đánh dấu để bỏ liên kết đó; tệp vẫn còn. Khi ngoại tuyến, ghi chú và các dấu mới được lưu và gửi đi khi YOUYA trực tuyến lại; chỉ việc gỡ một liên kết khác mới cần có kết nối.',
   'help.guide.files-link.tip.3':
     'Chiều ngược lại cũng được: tài liệu đính kèm vào một địa điểm hoặc đặt chỗ cũng nằm trong danh sách này, với cùng huy hiệu trên hàng của nó.',
   'help.guide.files-link.tip.4':
@@ -2823,7 +2823,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     'Danh sách luôn xếp tập tin gắn sao trước, rồi mới nhất trước, nên tài liệu tải lên hôm nay nằm trên tài liệu từ tháng trước.',
   // files-preview
-  'help.guide.files-preview.title': 'Đọc tài liệu mà không rời khỏi TREK',
+  'help.guide.files-preview.title': 'Đọc tài liệu mà không rời khỏi YOUYA',
   'help.guide.files-preview.goal': 'Xem ngay một tấm vé hoặc một ảnh, và tải về thiết bị khi bạn cần.',
   'help.guide.files-preview.step.1':
     'Nhấp vào tên hoặc hình thu nhỏ của một ảnh. Ảnh mở toàn màn hình, với tên tệp và vị trí của nó trong số các ảnh ở góc trên bên trái. Video mở theo cách tương tự và phát ngay tại đó.',
@@ -2858,7 +2858,7 @@ const help: TranslationStrings = {
     '“Dọn sạch thùng rác”, trên thanh cạnh biểu tượng thùng rác, xóa vĩnh viễn mọi thứ còn trong thùng rác. Trình duyệt hỏi xác nhận một lần trước khi xóa. Biểu tượng thùng rác chuyển trở lại danh sách tập tin.',
   'help.guide.files-trash.result': 'Tập tin trở lại danh sách đúng vị trí cũ.',
   'help.guide.files-trash.tip.1':
-    '“Xóa” trên một hàng không hỏi trước. Vì vậy mới có thùng rác: không có gì bị xóa khỏi TREK cho đến khi bạn xóa tại đây. Tất cả đều dùng được cả khi ngoại tuyến, và được gửi đi khi TREK trực tuyến lại.',
+    '“Xóa” trên một hàng không hỏi trước. Vì vậy mới có thùng rác: không có gì bị xóa khỏi YOUYA cho đến khi bạn xóa tại đây. Tất cả đều dùng được cả khi ngoại tuyến, và được gửi đi khi YOUYA trực tuyến lại.',
   'help.guide.files-trash.tip.2':
     'Xóa và khôi phục tập tin cần quyền xóa tập tin. Thành viên không có quyền này sẽ không thấy “Xóa bỏ” trên hàng, cũng không thấy các nút trong thùng rác.',
   'help.guide.files-trash.tip.3': 'Tập tin đã bị xóa vĩnh viễn trong thùng rác thì không khôi phục được.',
@@ -2871,21 +2871,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     'Bấm vào kho của bạn, ở đây là Nextcloud. Một hộp thoại nhỏ hơn mở ra cho kết nối. Hộp thoại có tên kho và yêu cầu thông tin đăng nhập mà kho đó cần.',
   'help.guide.files-sync.step.3':
-    'Điền “Địa chỉ” và thông tin đăng nhập riêng của kho: “Mã thông báo API” cho Paperless-ngx, “Khóa API” và “ID tổ chức” cho Papra, “Tên đăng nhập” và “Mật khẩu ứng dụng” cho Nextcloud, “Tên đăng nhập” và “Mã thông báo ứng dụng” cho OpenCloud, còn với Synology Drive là “Tên đăng nhập”, “Mật khẩu” và, nếu tài khoản yêu cầu, “Mã xác thực hai yếu tố”. Hãy dùng mật khẩu ứng dụng hoặc mã thông báo ở bất cứ kho nào có hỗ trợ, đừng bao giờ dùng mật khẩu tài khoản của bạn. Nextcloud và Synology Drive còn có “Thư mục gốc” tùy chọn, nơi TREK tìm các thư mục chuyến đi, ở đây là /Reisen. “Chấp nhận chứng chỉ tự ký” ở dưới cùng chỉ dành cho kho nằm trong mạng riêng của bạn và dùng loại chứng chỉ đó.',
+    'Điền “Địa chỉ” và thông tin đăng nhập riêng của kho: “Mã thông báo API” cho Paperless-ngx, “Khóa API” và “ID tổ chức” cho Papra, “Tên đăng nhập” và “Mật khẩu ứng dụng” cho Nextcloud, “Tên đăng nhập” và “Mã thông báo ứng dụng” cho OpenCloud, còn với Synology Drive là “Tên đăng nhập”, “Mật khẩu” và, nếu tài khoản yêu cầu, “Mã xác thực hai yếu tố”. Hãy dùng mật khẩu ứng dụng hoặc mã thông báo ở bất cứ kho nào có hỗ trợ, đừng bao giờ dùng mật khẩu tài khoản của bạn. Nextcloud và Synology Drive còn có “Thư mục gốc” tùy chọn, nơi YOUYA tìm các thư mục chuyến đi, ở đây là /Reisen. “Chấp nhận chứng chỉ tự ký” ở dưới cùng chỉ dành cho kho nằm trong mạng riêng của bạn và dùng loại chứng chỉ đó.',
   'help.guide.files-sync.step.4':
-    'Nhấn “Kiểm tra kết nối”. TREK kết nối tới kho bằng những gì bạn đã nhập, và phần chân hiện “Đã kết nối, đăng nhập với tư cách” kèm tên tài khoản. Nếu thông tin đăng nhập bị từ chối hoặc không truy cập được địa chỉ, phần chân sẽ hiện thông báo tương ứng. Trong cả hai trường hợp, chưa có gì được lưu.',
+    'Nhấn “Kiểm tra kết nối”. YOUYA kết nối tới kho bằng những gì bạn đã nhập, và phần chân hiện “Đã kết nối, đăng nhập với tư cách” kèm tên tài khoản. Nếu thông tin đăng nhập bị từ chối hoặc không truy cập được địa chỉ, phần chân sẽ hiện thông báo tương ứng. Trong cả hai trường hợp, chưa có gì được lưu.',
   'help.guide.files-sync.step.5':
-    'Nhấn “Kết nối”. Kết nối được lưu cùng chuyến đi, và TREK hỏi tài liệu của chuyến đi nên nằm ở đâu trong kho: thẻ, thư mục hoặc không gian chứa chúng. Chỉ những gì nằm trong đó được đồng bộ. “Tạo mục mới” tạo mục khi bạn nhấn “Tạo”, với tên lấy từ tiêu đề chuyến đi. Dưới “Hoặc dùng mục bạn đã có”, bạn thấy các mục sẵn có. Nhấn vào một mục, ở đây là thư mục Autumn in Japan.',
+    'Nhấn “Kết nối”. Kết nối được lưu cùng chuyến đi, và YOUYA hỏi tài liệu của chuyến đi nên nằm ở đâu trong kho: thẻ, thư mục hoặc không gian chứa chúng. Chỉ những gì nằm trong đó được đồng bộ. “Tạo mục mới” tạo mục khi bạn nhấn “Tạo”, với tên lấy từ tiêu đề chuyến đi. Dưới “Hoặc dùng mục bạn đã có”, bạn thấy các mục sẵn có. Nhấn vào một mục, ở đây là thư mục Autumn in Japan.',
   'help.guide.files-sync.step.6':
-    'Hộp thoại mở lại: kho của bạn nằm dưới “Chuyến đi này” ở bên trái, và thẻ của nó ở bên phải cho biết nơi đồng bộ tới, lần chạy gần nhất và “Đồng bộ ngay”. Lần đồng bộ đầu tiên tự bắt đầu; nhấn “Đồng bộ ngay” để chạy đồng bộ bất cứ lúc nào. Sau khi đồng bộ, huy hiệu “Chưa đồng bộ” cạnh tên đổi thành chấm xanh lá, hiện “Đã đồng bộ” khi bạn trỏ vào. Thanh luồng cho biết TREK và kho mỗi bên có bao nhiêu tài liệu, với các làn “Gửi ra kho” và “Nhận từ kho” ở giữa. Đóng hộp thoại bằng dấu × ở góc trên bên phải.',
+    'Hộp thoại mở lại: kho của bạn nằm dưới “Chuyến đi này” ở bên trái, và thẻ của nó ở bên phải cho biết nơi đồng bộ tới, lần chạy gần nhất và “Đồng bộ ngay”. Lần đồng bộ đầu tiên tự bắt đầu; nhấn “Đồng bộ ngay” để chạy đồng bộ bất cứ lúc nào. Sau khi đồng bộ, huy hiệu “Chưa đồng bộ” cạnh tên đổi thành chấm xanh lá, hiện “Đã đồng bộ” khi bạn trỏ vào. Thanh luồng cho biết YOUYA và kho mỗi bên có bao nhiêu tài liệu, với các làn “Gửi ra kho” và “Nhận từ kho” ở giữa. Đóng hộp thoại bằng dấu × ở góc trên bên phải.',
   'help.guide.files-sync.result':
-    'Các tài liệu đã có sẵn trong kho hiện ở đầu danh sách, được tải lên dưới tên bạn, và mọi tài liệu của chuyến đi cũng nằm trong kho, trừ các tài liệu từ “Ghi chú cộng tác”. Từ giờ, TREK kiểm tra kho ở chế độ nền, và các thay đổi trong danh sách được sao chép sang kho.',
+    'Các tài liệu đã có sẵn trong kho hiện ở đầu danh sách, được tải lên dưới tên bạn, và mọi tài liệu của chuyến đi cũng nằm trong kho, trừ các tài liệu từ “Ghi chú cộng tác”. Từ giờ, YOUYA kiểm tra kho ở chế độ nền, và các thay đổi trong danh sách được sao chép sang kho.',
   'help.guide.files-sync.tip.1':
     'Chỉ chủ chuyến đi hoặc quản trị viên hệ thống mới kết nối được một chuyến đi, vì thông tin đăng nhập cho phép truy cập toàn bộ tài khoản trên kho. Khi chuyến đi đã kết nối, mọi thành viên đều thấy “Đồng bộ tài liệu” và có thể mở, đọc thẻ và bấm “Đồng bộ ngay”.',
   'help.guide.files-sync.tip.2':
-    'Kho nằm trong mạng riêng của bạn cần ALLOW_INTERNAL_NETWORK=true trên máy chủ TREK, và địa chỉ của nó phải là địa chỉ của máy trong mạng, không bao giờ là localhost. Nếu không, “Kiểm tra kết nối” sẽ trả lời “Địa chỉ đó không được phép.”',
+    'Kho nằm trong mạng riêng của bạn cần ALLOW_INTERNAL_NETWORK=true trên máy chủ YOUYA, và địa chỉ của nó phải là địa chỉ của máy trong mạng, không bao giờ là localhost. Nếu không, “Kiểm tra kết nối” sẽ trả lời “Địa chỉ đó không được phép.”',
   'help.guide.files-sync.tip.3':
-    '“Ngắt kết nối”, biểu tượng cạnh “Đồng bộ ngay”, chỉ hỏi xác nhận một lần. Sau đó nó chấm dứt kết nối và giữ nguyên mọi tài liệu ở cả hai phía. Nếu bạn kết nối lại một thẻ, thư mục hay không gian lần thứ hai, TREK sẽ coi nó là mới và nhập lại toàn bộ nội dung. Vì vậy sau khi “Ngắt kết nối”, hãy kết nối một mục trống, đừng dùng lại mục cũ.',
+    '“Ngắt kết nối”, biểu tượng cạnh “Đồng bộ ngay”, chỉ hỏi xác nhận một lần. Sau đó nó chấm dứt kết nối và giữ nguyên mọi tài liệu ở cả hai phía. Nếu bạn kết nối lại một thẻ, thư mục hay không gian lần thứ hai, YOUYA sẽ coi nó là mới và nhập lại toàn bộ nội dung. Vì vậy sau khi “Ngắt kết nối”, hãy kết nối một mục trống, đừng dùng lại mục cũ.',
 
   // ── Screen: trip-day-detail ───────────────────────────────────────────────────────────
   'help.ctx.trip-day-detail.title': 'Chi tiết ngày',
@@ -3072,7 +3072,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     'Hàng biểu tượng ở đầu bản đồ là tìm kiếm theo danh mục: Nhà hàng, Quán cà phê, Quán bar & cuộc sống về đêm, Chỗ ở, Điểm tham quan, Bảo tàng & văn hóa, Thiên nhiên & công viên, Các hoạt động, Tiệm bánh và Cửa hàng tạp hóa. Danh mục do plugin thêm nằm sau một vạch chia mỏng; rê chuột lên biểu tượng để xem tên.',
   'help.guide.map-nearby-places.step.2':
-    'Bấm một danh mục. TREK tìm loại địa điểm đó trong phần bản đồ đang hiển thị và đặt một ghim theo màu của danh mục cho mỗi kết quả. Mỗi lần chỉ một danh mục: bấm danh mục khác sẽ thay thế, và bấm lại danh mục đang bật sẽ tắt nó.',
+    'Bấm một danh mục. YOUYA tìm loại địa điểm đó trong phần bản đồ đang hiển thị và đặt một ghim theo màu của danh mục cho mỗi kết quả. Mỗi lần chỉ một danh mục: bấm danh mục khác sẽ thay thế, và bấm lại danh mục đang bật sẽ tắt nó.',
   'help.guide.map-nearby-places.step.3':
     'Khi bạn di chuyển bản đồ, một nút thứ hai hiện dưới hàng đó: “Tìm kiếm khu vực này” chạy lại đúng lần tìm kiếm đó cho vùng nhìn mới. Chỉ di chuyển bản đồ thì không tự tìm lại, để số lượt yêu cầu luôn ở mức thấp.',
   'help.guide.map-nearby-places.step.4':
@@ -3080,13 +3080,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     'Xem lại những gì đã được điền và bổ sung những gì tìm kiếm không thể biết. Nhãn danh mục dưới tên đã được đặt sẵn khi chuyến đi có danh mục phù hợp, ví dụ nhà hàng cho một nhà hàng; nếu không, nhãn ghi “Không có danh mục” cho đến khi bạn chọn. Viết địa điểm này nói về điều gì trong “Về địa điểm”, và ghi chú của riêng bạn trong “Ghi chú”.',
   'help.guide.map-nearby-places.step.6':
-    'Bấm “Thêm”. Nếu chuyến đi đã có địa điểm cùng tên hoặc cùng vị trí, TREK sẽ báo, và nút đổi thành “Vẫn thêm”.',
+    'Bấm “Thêm”. Nếu chuyến đi đã có địa điểm cùng tên hoặc cùng vị trí, YOUYA sẽ báo, và nút đổi thành “Vẫn thêm”.',
   'help.guide.map-nearby-places.result':
     'Địa điểm xuất hiện trong danh sách địa điểm và trên bản đồ như một ghim của chính chuyến đi, nằm dưới “Không có kế hoạch” cho đến khi bạn xếp nó vào một ngày. Các ghim tìm kiếm vẫn còn cho đến khi bạn tắt danh mục.',
   'help.guide.map-nearby-places.tip.1':
     'Hàng này bị ẩn khi “Khám phá các địa điểm trên bản đồ” đang tắt trong Cài đặt > Hiển thị, ở mục “Du lịch & bản đồ”.',
   'help.guide.map-nearby-places.tip.2':
-    'Kết quả đến từ chỉ mục địa điểm của TREK và từ OpenStreetMap, nên đây là một trong số ít tính năng của kế hoạch cần có kết nối mạng.',
+    'Kết quả đến từ chỉ mục địa điểm của YOUYA và từ OpenStreetMap, nên đây là một trong số ít tính năng của kế hoạch cần có kết nối mạng.',
   'help.guide.map-nearby-places.tip.3':
     'Mỗi lần tìm chỉ bao phủ khu vực đang hiện trên màn hình, nên hãy phóng to đến con phố bạn quan tâm. Tìm trên cả một thành phố chỉ trả về sáu mươi kết quả đầu tiên, không theo thứ tự rõ ràng.',
   // map-add-place
@@ -3095,7 +3095,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     'Nhấp chuột phải vào vị trí bạn muốn trên bản đồ. Biểu mẫu địa điểm mở ra với tiêu đề “Thêm địa điểm/Hoạt động”.',
   'help.guide.map-add-place.step.2':
-    '“Vĩ độ” và “Kinh độ” đã được đặt sẵn theo điểm đó. TREK tra tọa độ và điền “Địa chỉ” từ những gì tìm thấy ở đó. Nếu tra cứu ra được tên, TREK cũng điền tên ở đầu hộp thoại. Chưa có gì được lưu, nên hãy sửa bất cứ chỗ nào sai.',
+    '“Vĩ độ” và “Kinh độ” đã được đặt sẵn theo điểm đó. YOUYA tra tọa độ và điền “Địa chỉ” từ những gì tìm thấy ở đó. Nếu tra cứu ra được tên, YOUYA cũng điền tên ở đầu hộp thoại. Chưa có gì được lưu, nên hãy sửa bất cứ chỗ nào sai.',
   'help.guide.map-add-place.step.3':
     'Gõ một tên dễ nhớ vào ô ở đầu hộp thoại. Chọn danh mục ở nhãn bên dưới, nhãn này hiện “Không có danh mục” cho đến khi bạn chọn. Sau đó thêm các thông tin khác cho kế hoạch: “Về địa điểm”, “Ghi chú”, “Trang web”.',
   'help.guide.map-add-place.step.4':
@@ -3112,7 +3112,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     'Công tắc lớp nền là nút tròn phía dưới trong hai nút tròn ở góc dưới bên trái bản đồ, nằm dưới nút khóa. Biểu tượng của nó luôn hiện lớp mà nó sẽ chuyển tới, và chú thích cho biết: “Chuyển sang chế độ xem vệ tinh”. Nhấp vào nút này.',
   'help.guide.map-satellite.step.2':
-    'Bản đồ giờ hiển thị ảnh chụp từ trên cao, đủ chi tiết để thấy từng tòa nhà, và bạn không cần khóa riêng. Mọi thứ TREK vẽ vẫn nằm phía trên: các ghim, lộ trình của ngày, các đường đi đã ghi và lộ trình đặt chỗ.',
+    'Bản đồ giờ hiển thị ảnh chụp từ trên cao, đủ chi tiết để thấy từng tòa nhà, và bạn không cần khóa riêng. Mọi thứ YOUYA vẽ vẫn nằm phía trên: các ghim, lộ trình của ngày, các đường đi đã ghi và lộ trình đặt chỗ.',
   'help.guide.map-satellite.step.3':
     'Nút giờ hiện “Chuyển sang chế độ xem bản đồ”. Nhấn vào đó để quay lại chế độ xem bản đồ.',
   'help.guide.map-satellite.result': 'Bản đồ được vẽ lại, và lớp bạn đã chọn được nhớ theo tài khoản.',
@@ -3167,7 +3167,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Hiện trên bản đồ lộ trình Dawarich đã ghi trên điện thoại của bạn, dưới dạng nét đứt cạnh lộ trình đã lên kế hoạch, và xem từng ngày chuyến đi thực sự diễn ra thế nào.',
   'help.guide.map-dawarich-trail.step.1':
-    'Nút Dawarich tròn nằm ở góc dưới bên phải bản đồ, bên dưới “Hiện toàn bộ chuyến đi”. Khi rê chuột lên, nút hiện “Hiện lộ trình đã ghi”. Hãy nhấn vào đó. TREK sẽ lấy dữ liệu theo ngày của chuyến đi từ Dawarich của bạn, và một vòng tròn xoay quanh nút trong lúc chờ phản hồi.',
+    'Nút Dawarich tròn nằm ở góc dưới bên phải bản đồ, bên dưới “Hiện toàn bộ chuyến đi”. Khi rê chuột lên, nút hiện “Hiện lộ trình đã ghi”. Hãy nhấn vào đó. YOUYA sẽ lấy dữ liệu theo ngày của chuyến đi từ Dawarich của bạn, và một vòng tròn xoay quanh nút trong lúc chờ phản hồi.',
   'help.guide.map-dawarich-trail.step.2':
     'Lộ trình đã ghi hiện thành một đường nét đứt, mỗi ngày một màu, vẽ bên dưới lộ trình đã lên kế hoạch để kế hoạch vẫn dễ đọc. Nút giờ hiện “Ẩn lộ trình đã ghi”. Mỗi ngày kết thúc vào nửa đêm theo giờ địa phương. Khi bạn thu gọn một ngày trong cột các ngày, đường nét đứt và các điểm dừng của ngày đó sẽ ẩn khỏi bản đồ.',
   'help.guide.map-dawarich-trail.step.3':
@@ -3175,9 +3175,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     'Những gì bạn đã lên kế hoạch và những gì bạn thực sự đã làm cùng hiện trên bản đồ, bằng nét đứt và nét liền. Thẻ phía trên các nút vẫn liệt kê các ngày đã lên kế hoạch và quãng đường của chúng.',
   'help.guide.map-dawarich-trail.tip.1':
-    'Trạng thái bật hoặc tắt được lưu theo từng chuyến đi trong tài khoản của bạn, nên giống nhau trên mọi trình duyệt và mọi thiết bị. Khi lộ trình đang bật, TREK hỏi lại Dawarich mỗi hai phút, nên chuyến đi đang diễn ra tự cập nhật mà không cần tải lại trang. Bản thân lộ trình không bao giờ được lưu: nó không nằm trong cơ sở dữ liệu của TREK, không có trong bản sao lưu và không dùng được khi ngoại tuyến.',
+    'Trạng thái bật hoặc tắt được lưu theo từng chuyến đi trong tài khoản của bạn, nên giống nhau trên mọi trình duyệt và mọi thiết bị. Khi lộ trình đang bật, YOUYA hỏi lại Dawarich mỗi hai phút, nên chuyến đi đang diễn ra tự cập nhật mà không cần tải lại trang. Bản thân lộ trình không bao giờ được lưu: nó không nằm trong cơ sở dữ liệu của YOUYA, không có trong bản sao lưu và không dùng được khi ngoại tuyến.',
   'help.guide.map-dawarich-trail.tip.2':
-    'Nhãn của nút cho biết vì sao bản đồ trống: “Đang tải lộ trình đã ghi…” trong lúc đang tải, “Không có gì được ghi lại trong những ngày này”, “Không tải được lộ trình đã ghi”, hoặc “Lộ trình đã ghi cần có kết nối” khi TREK đang ngoại tuyến.',
+    'Nhãn của nút cho biết vì sao bản đồ trống: “Đang tải lộ trình đã ghi…” trong lúc đang tải, “Không có gì được ghi lại trong những ngày này”, “Không tải được lộ trình đã ghi”, hoặc “Lộ trình đã ghi cần có kết nối” khi YOUYA đang ngoại tuyến.',
   // map-compass
   'help.guide.map-compass.title': 'Xoay bản đồ và tìm lại hướng bắc',
   'help.guide.map-compass.goal': 'Xoay bản đồ theo hướng bạn đang đi, và đưa về hướng bắc chỉ với một lần nhấn.',
@@ -3349,7 +3349,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     'Với “Đính kèm ảnh”, bạn thêm được tối đa bốn ảnh vào một tin nhắn. Bạn cũng có thể dán ảnh hoặc thả ảnh vào ô nhập.',
   'help.guide.trip-chat.tip.3':
-    'Tin nhắn có liên kết sẽ có thẻ xem trước bên dưới, do chính TREK của bạn lấy về, nên liên kết đến nơi chỉ mình bạn truy cập được vẫn chỉ là một liên kết thường.',
+    'Tin nhắn có liên kết sẽ có thẻ xem trước bên dưới, do chính YOUYA của bạn lấy về, nên liên kết đến nơi chỉ mình bạn truy cập được vẫn chỉ là một liên kết thường.',
   'help.guide.trip-chat.tip.4':
     '“Trò chuyện” có công tắc riêng trong “Tiện ích bổ sung”, nằm dưới “Cộng tác”: quản trị viên có thể tắt trò chuyện mà vẫn giữ bật “Ghi chú”, “Liên kết”, các cuộc thăm dò và “Tiếp theo”.',
 
@@ -3390,7 +3390,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     'Khi bạn giao một danh sách cho ai đó, họ nhận được thông báo đóng gói. Việc này không đổi ai được xem các món. Điều đó được đặt trong cửa sổ của từng món ở mục “Ai thấy được”, hoặc cho cả danh sách bằng “Chia sẻ cho cả danh sách”.',
   'help.guide.packing-categories.tip.3':
-    'Hai danh sách có thể trùng tên. TREK phân biệt chúng ở bên trong, nên các tên vẫn giữ nguyên như bạn đã gõ.',
+    'Hai danh sách có thể trùng tên. YOUYA phân biệt chúng ở bên trong, nên các tên vẫn giữ nguyên như bạn đã gõ.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Đánh dấu từng món khi xếp đồ',
   'help.guide.check-off-packing.goal': 'Đánh dấu những gì đã bỏ vào túi, theo dõi tiến độ và xóa các món đã đóng gói.',
@@ -3439,13 +3439,13 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.step.3':
     'Hoặc tải các dòng từ một tệp bằng “Tải CSV/TXT/MD”, ở góc dưới bên trái hộp thoại. Nút này nhận tệp .csv, .txt hoặc .md và thay thế mọi thứ đang có trong ô.',
   'help.guide.import-packing-list.step.4':
-    'Nhấn “Nhập 3” ở góc dưới bên phải; con số trên nút là số dòng TREK hiểu được.',
+    'Nhấn “Nhập 3” ở góc dưới bên phải; con số trên nút là số dòng YOUYA hiểu được.',
   'help.guide.import-packing-list.result':
     'Mỗi dòng trở thành một hàng, nằm trong danh sách có tên ở trường đầu tiên của dòng. Các mục đã có từ trước không thay đổi.',
   'help.guide.import-packing-list.tip.1':
     'Dấu phẩy, dấu chấm phẩy và dấu tab đều tách các trường, còn dấu nháy kép giữ một trường nguyên vẹn, nên "Shirt, blue" vẫn là một tên. Dòng chỉ có một giá trị thì đó là tên. Dòng không có danh sách riêng sẽ vào “Khác”. "3x" đứng trước tên sẽ đặt số lượng.',
   'help.guide.import-packing-list.tip.2':
-    'Nếu chuyến đi chưa có túi được nêu ở trường thứ tư, TREK sẽ tạo túi đó. “Nhập” và “Áp dụng mẫu” là hai cách để thêm cân nặng và túi cho nhiều món cùng lúc.',
+    'Nếu chuyến đi chưa có túi được nêu ở trường thứ tư, YOUYA sẽ tạo túi đó. “Nhập” và “Áp dụng mẫu” là hai cách để thêm cân nặng và túi cho nhiều món cùng lúc.',
   // export-packing-list
   'help.guide.export-packing-list.title': 'In hoặc xuất danh sách đóng gói',
   'help.guide.export-packing-list.goal':
@@ -3586,7 +3586,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     '“Thêm đặt chỗ” ở đầu bên phải của thanh mở “Đặt chỗ mới”. Nút này tạo sáu loại đặt chỗ: “Chỗ ở”, “Nhà hàng”, “Sự kiện”, “Tour có hướng dẫn viên”, “Bãi đỗ xe” và “Khác”. Chuyến bay, tàu hỏa và các phương tiện khác nằm ở tab “Di chuyển” và không bao giờ hiện ở đây.',
   'help.ctx.trip-bookings.bullet.2':
-    'Biểu tượng tải lên trước “Thêm đặt chỗ”, “Nhập xác nhận đặt chỗ”, tải xác nhận lên để TREK tự đọc: EML, PDF, PKPass, HTML hoặc TXT, tối đa năm tệp, mỗi tệp 10 MB, và cả ảnh nếu mô hình AI đọc được ảnh. Biểu tượng chỉ có khi máy chủ đọc được chúng. Khi quản trị viên đã bật tính năng nhập email, cùng hộp thoại đó cấp cho chuyến đi một địa chỉ riêng để chuyển tiếp email đặt chỗ đến.',
+    'Biểu tượng tải lên trước “Thêm đặt chỗ”, “Nhập xác nhận đặt chỗ”, tải xác nhận lên để YOUYA tự đọc: EML, PDF, PKPass, HTML hoặc TXT, tối đa năm tệp, mỗi tệp 10 MB, và cả ảnh nếu mô hình AI đọc được ảnh. Biểu tượng chỉ có khi máy chủ đọc được chúng. Khi quản trị viên đã bật tính năng nhập email, cùng hộp thoại đó cấp cho chuyến đi một địa chỉ riêng để chuyển tiếp email đặt chỗ đến.',
   'help.ctx.trip-bookings.bullet.3':
     '“Tìm kiếm” tìm trong tiêu đề, loại, địa điểm, ghi chú, mã đặt chỗ và người đi. “Lọc”, biểu tượng cái phễu bên cạnh, thu hẹp tab theo “Trạng thái”, theo “Loại” kèm số đếm cho từng loại, và theo “Người đi” khi có đặt chỗ nêu tên người. Con số trên cái phễu cho biết có bao nhiêu bộ lọc đang bật.',
   'help.ctx.trip-bookings.bullet.4':
@@ -3650,7 +3650,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     'Chọn khách sạn trong “Chỗ ở”. Danh sách gồm các địa điểm của chuyến đi, không có lộ trình và chuyến tham quan đã nhập. Khi bạn chọn một nơi, tên của nó được điền vào ô tiêu đề đang trống và địa chỉ vào “Vị trí / Địa chỉ”.',
   'help.guide.booking-hotel.step.3':
-    'Đặt “Từ” và “Đến”: đêm đầu tiên và buổi sáng bạn rời đi. Cả hai đều liệt kê các ngày của chuyến đi kèm ngày tháng, và TREK luôn giữ “Đến” sau “Từ”.',
+    'Đặt “Từ” và “Đến”: đêm đầu tiên và buổi sáng bạn rời đi. Cả hai đều liệt kê các ngày của chuyến đi kèm ngày tháng, và YOUYA luôn giữ “Đến” sau “Từ”.',
   'help.guide.booking-hotel.step.4':
     'Điền “Nhận phòng”, “Nhận phòng cho đến khi” và “Trả phòng”, cùng “Mã đặt chỗ” từ bản xác nhận.',
   'help.guide.booking-hotel.step.5': 'Bấm “Thêm”.',
@@ -3659,7 +3659,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.tip.1':
     '“Chỗ ở” là loại duy nhất không có “Ngày” và “Thời gian bắt đầu”. Ngày của nó là “Từ” và “Đến”, và bạn chọn các ngày của chuyến đi chứ không phải ngày trên lịch.',
   'help.guide.booking-hotel.tip.2':
-    'Để trống “Chỗ ở” và gõ địa chỉ vào: TREK sẽ tra cứu, tạo địa điểm và ghim lên bản đồ cho bạn.',
+    'Để trống “Chỗ ở” và gõ địa chỉ vào: YOUYA sẽ tra cứu, tạo địa điểm và ghim lên bản đồ cho bạn.',
   'help.guide.booking-hotel.tip.3': 'Khi bạn xóa đặt chỗ, các đêm của nó cũng bị gỡ khỏi kế hoạch ngày.',
   // link-booking
   'help.guide.link-booking.title': 'Liên kết đặt chỗ với kế hoạch',
@@ -3697,7 +3697,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.title': 'Giữ phiếu cùng với đặt chỗ',
   'help.guide.booking-files.goal': 'Đính kèm xác nhận, vé hoặc thẻ vào đúng đặt chỗ của nó.',
   'help.guide.booking-files.step.1':
-    'Mở đặt chỗ bằng biểu tượng bút chì trên thẻ. “Tập tin” nằm cạnh “Liên kết”; nhấn “Đính kèm tập tin” ở đó. Với đặt chỗ đã có sẵn, tài liệu được tải lên ngay và TREK hiện “Tệp đã được tải lên”.',
+    'Mở đặt chỗ bằng biểu tượng bút chì trên thẻ. “Tập tin” nằm cạnh “Liên kết”; nhấn “Đính kèm tập tin” ở đó. Với đặt chỗ đã có sẵn, tài liệu được tải lên ngay và YOUYA hiện “Tệp đã được tải lên”.',
   'help.guide.booking-files.step.2': 'Tài liệu được liệt kê theo tên, kèm một nút để mở và một dấu X bên cạnh.',
   'help.guide.booking-files.step.3':
     '“Liên kết tập tin hiện có” liệt kê các tài liệu của chuyến đi chưa gắn với đặt chỗ này. Chọn một tài liệu và nó được đính kèm mà không phải tải lên lại.',
@@ -3752,7 +3752,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': 'Nhập đặt chỗ từ bản xác nhận',
   'help.guide.import-booking-file.goal':
-    'Để TREK đọc đặt chỗ từ email hoặc tệp PDF nhà cung cấp đã gửi, bạn khỏi phải gõ lại.',
+    'Để YOUYA đọc đặt chỗ từ email hoặc tệp PDF nhà cung cấp đã gửi, bạn khỏi phải gõ lại.',
   'help.guide.import-booking-file.step.1':
     'Nhấn biểu tượng tải lên trên thanh, “Nhập xác nhận đặt chỗ”; tên này hiện ra khi bạn trỏ vào. Hộp thoại cùng tên sẽ mở.',
   'help.guide.import-booking-file.step.2':
@@ -3889,11 +3889,11 @@ const help: TranslationStrings = {
     'Cách chia tùy chỉnh cũng có thể nhập theo phần trăm hoặc theo phần: công tắc nhỏ bên cạnh gợi ý chọn ký hiệu tiền tệ, % hoặc “Phần”. Với phần trăm, tổng các phần phải bằng 100% thì khoản chi mới lưu được.',
   // expense-currency
   'help.guide.expense-currency.title': 'Nhập khoản chi bằng loại tiền khác',
-  'help.guide.expense-currency.goal': 'Nhập số tiền ghi trên biên lai, và TREK sẽ lưu tỷ giá.',
+  'help.guide.expense-currency.goal': 'Nhập số tiền ghi trên biên lai, và YOUYA sẽ lưu tỷ giá.',
   'help.guide.expense-currency.step.1':
     'Mở “Thêm chi phí”. Gõ tên ở đầu hộp thoại và nhập số tiền vào “Tổng số tiền” đúng như trên biên lai, không phải số tiền đã quy đổi.',
   'help.guide.expense-currency.step.2':
-    'Mở “Tiền tệ” cạnh số tiền; một khoản chi mới bắt đầu bằng tiền tệ của chính chuyến đi. Hãy chọn loại tiền trên biên lai: tiền tệ của chuyến đi và loại tiền mà “Chi phí” đang hiển thị nằm ở đầu danh sách, và bạn có thể tìm mọi mã khác mà TREK biết bằng cách gõ ba chữ cái.',
+    'Mở “Tiền tệ” cạnh số tiền; một khoản chi mới bắt đầu bằng tiền tệ của chính chuyến đi. Hãy chọn loại tiền trên biên lai: tiền tệ của chuyến đi và loại tiền mà “Chi phí” đang hiển thị nằm ở đầu danh sách, và bạn có thể tìm mọi mã khác mà YOUYA biết bằng cách gõ ba chữ cái.',
   'help.guide.expense-currency.step.3':
     'Một hàng huy hiệu hiện ra dưới các ô: số tiền bạn đã nhập và giá trị hiện tại của nó, đánh dấu “tỷ lệ trực tiếp”. Đây chỉ là bản xem trước, không phải giá trị được lưu.',
   'help.guide.expense-currency.step.4':
@@ -4108,7 +4108,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Di chuyển',
   'help.ctx.trip-transports.summary':
-    'Mọi cách bạn di chuyển giữa các điểm dừng: chuyến bay, tàu hỏa, xe buýt, ô tô, taxi, xe đạp, du thuyền, phà, cáp treo và các tuyến giao thông công cộng TREK tra cứu giúp bạn. Tab liệt kê chúng. Bạn cũng tạo và xem chúng trên kế hoạch, và chúng được vẽ trên bản đồ.',
+    'Mọi cách bạn di chuyển giữa các điểm dừng: chuyến bay, tàu hỏa, xe buýt, ô tô, taxi, xe đạp, du thuyền, phà, cáp treo và các tuyến giao thông công cộng YOUYA tra cứu giúp bạn. Tab liệt kê chúng. Bạn cũng tạo và xem chúng trên kế hoạch, và chúng được vẽ trên bản đồ.',
   'help.ctx.trip-transports.bullet.1':
     'Tab này chỉ hiện các chuyến di chuyển. Chỗ ở, nhà hàng, sự kiện và vé nằm ở tab “Đặt chỗ”, nên cùng một mục không bao giờ xuất hiện hai lần.',
   'help.ctx.trip-transports.bullet.2':
@@ -4166,7 +4166,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': 'Nhập chuyến bay từ vé điện tử',
   'help.guide.import-transport-file.goal':
-    'Để TREK đọc chuyến bay, chuyến tàu hoặc chuyến phà từ vé do hãng vận chuyển gửi, và bạn kiểm tra lại trước khi lưu.',
+    'Để YOUYA đọc chuyến bay, chuyến tàu hoặc chuyến phà từ vé do hãng vận chuyển gửi, và bạn kiểm tra lại trước khi lưu.',
   'help.guide.import-transport-file.step.1':
     'Trên thanh của tab “Di chuyển”, bấm biểu tượng tải lên đứng trước “Phương tiện”, chú thích ghi “Nhập xác nhận đặt chỗ”. Hộp thoại cùng tên mở ra, giống hộp thoại của tab “Đặt chỗ”. Trên tab trống, “Nhập từ tập tin” ở giữa cũng làm việc này.',
   'help.guide.import-transport-file.step.2':
@@ -4185,11 +4185,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': 'Lên kế hoạch một tuyến phương tiện công cộng',
   'help.guide.plan-transit.goal':
-    'Để TREK tra các chuyến tàu và xe buýt thật giữa hai điểm trong một ngày, rồi đưa chuyến bạn chọn vào kế hoạch.',
+    'Để YOUYA tra các chuyến tàu và xe buýt thật giữa hai điểm trong một ngày, rồi đưa chuyến bạn chọn vào kế hoạch.',
   'help.guide.plan-transit.step.1':
     'Nhấn dấu + ở tiêu đề của ngày và chọn “Giao thông công cộng”. Tìm kiếm mở ra cho ngày đó: ngày hiện dưới dạng nhãn viên thuốc ở tiêu đề, và “Thủ công” cùng “Tự động” bên cạnh chuyển giữa tìm kiếm này và biểu mẫu thông thường.',
   'help.guide.plan-transit.step.2':
-    '“Từ” và “Đến” nhận một điểm dừng hoặc một nhà ga. Khi ô còn trống, TREK gợi ý chỗ ở của ngày, các nhà ga và sân bay trong đặt chỗ của ngày và các điểm dừng của chính ngày đó. Khi bạn gõ hai chữ cái, TREK tìm trong các nhà ga của lịch trình. “Đổi chiều” hoán đổi “Từ” và “Đến”.',
+    '“Từ” và “Đến” nhận một điểm dừng hoặc một nhà ga. Khi ô còn trống, YOUYA gợi ý chỗ ở của ngày, các nhà ga và sân bay trong đặt chỗ của ngày và các điểm dừng của chính ngày đó. Khi bạn gõ hai chữ cái, YOUYA tìm trong các nhà ga của lịch trình. “Đổi chiều” hoán đổi “Từ” và “Đến”.',
   'help.guide.plan-transit.step.3':
     '“Khởi hành” hoặc “Đến nơi” kèm giờ cho biết bạn muốn đi lúc nào, còn “Tuyến tốt nhất”, “Ít chuyển tuyến hơn” hoặc “Ít đi bộ hơn” cho biết kết quả được sắp xếp theo tiêu chí nào.',
   'help.guide.plan-transit.step.4':
@@ -4301,7 +4301,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     'Chuyến bay đã có trong chuyến đi với cùng số hiệu và ngày sẽ bị bỏ qua, và một thông báo cho biết đã bỏ qua bao nhiêu chuyến. Mũi tên hoàn tác trên thanh công cụ phía trên các ngày sẽ hoàn tác toàn bộ lần nhập.',
   'help.guide.airtrail-import.tip.2':
-    'AirTrail vẫn là nguồn dữ liệu chính. TREK đọc các thay đổi từ AirTrail khi bạn mở chuyến đi và cứ vài phút một lần ở chế độ nền. Chuyến bay bị xóa trong AirTrail vẫn giữ thẻ trong TREK, và nhãn của nó đổi thành “Chưa được đồng bộ hóa”. Các chỉnh sửa trong TREK chỉ được gửi ngược lại AirTrail khi bật “Viết các thay đổi trở lại AirTrail” trong “Tích hợp”.',
+    'AirTrail vẫn là nguồn dữ liệu chính. YOUYA đọc các thay đổi từ AirTrail khi bạn mở chuyến đi và cứ vài phút một lần ở chế độ nền. Chuyến bay bị xóa trong AirTrail vẫn giữ thẻ trong YOUYA, và nhãn của nó đổi thành “Chưa được đồng bộ hóa”. Các chỉnh sửa trong YOUYA chỉ được gửi ngược lại AirTrail khi bật “Viết các thay đổi trở lại AirTrail” trong “Tích hợp”.',
   'help.guide.airtrail-import.tip.3':
     'Một tuyến nối ghép không phải là một chuyến bay AirTrail đơn lẻ để đồng bộ, nên chỉ nhập một lần: nó giữ nhãn màu xanh dương, và khi bạn di chuột lên nhãn, bạn sẽ thấy giải thích. Điều tương tự xảy ra với chuyến bay đã đồng bộ khi bạn tự thêm một điểm dừng vào đó.',
 
@@ -4423,12 +4423,12 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.result':
     'Chặng giờ đi theo con đường bạn đã chọn, và quãng đường trong cột bên cạnh cùng giờ đến sau đó cũng thay đổi theo.',
   'help.guide.roadtrip-alternatives.tip.1':
-    'Khi bạn chọn một con đường khác, TREK trước tiên kiểm tra nó bằng bộ định tuyến của chuyến đi đường bộ. Sau đó TREK giữ chặng trên con đường đó với số điểm trung gian ít nhất có thể, và thay các điểm trung gian chặng đã có. Con đường mà bộ định tuyến không đi theo được thì không được lưu. Chọn chính con đường của bộ định tuyến sẽ xóa các điểm trung gian đi.',
+    'Khi bạn chọn một con đường khác, YOUYA trước tiên kiểm tra nó bằng bộ định tuyến của chuyến đi đường bộ. Sau đó YOUYA giữ chặng trên con đường đó với số điểm trung gian ít nhất có thể, và thay các điểm trung gian chặng đã có. Con đường mà bộ định tuyến không đi theo được thì không được lưu. Chọn chính con đường của bộ định tuyến sẽ xóa các điểm trung gian đi.',
   'help.guide.roadtrip-alternatives.tip.2':
     '“Không đi cao tốc”, “Không thu phí” và “Không phà” đến từ một công cụ thứ hai có mô hình tốc độ riêng, nên không thể so sánh thời gian của chúng với các lựa chọn còn lại.',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': 'Đặt xe và các giới hạn lái xe',
-  'help.guide.roadtrip-limits.goal': 'Cho TREK biết bạn lái xe loại nào và muốn lái bao xa mà không nghỉ.',
+  'help.guide.roadtrip-limits.goal': 'Cho YOUYA biết bạn lái xe loại nào và muốn lái bao xa mà không nghỉ.',
   'help.guide.roadtrip-limits.step.1':
     '“Cài đặt lái xe” nằm dưới ô tìm kiếm ở cột bên phải. Các huy hiệu của nó cho biết những gì đã đặt; nhấn vào để mở.',
   'help.guide.roadtrip-limits.step.2':
@@ -4478,7 +4478,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-refuel.step.2':
     'Biểu tượng trạm xăng nhấp nháy ở cuối dải, hoặc tia sét với xe điện, chính là nút bấm: “Tìm trạm xăng”, hoặc “Tìm trạm sạc”. Nó tìm dọc con đường trước điểm đó và hiện “Đang tìm dọc tuyến đường…” trong khi tìm.',
   'help.guide.roadtrip-refuel.step.3':
-    'TREK hiện tối đa ba trạm, mỗi trạm kèm khoảng cách tới lộ trình và quãng đường bạn còn đi được.',
+    'YOUYA hiện tối đa ba trạm, mỗi trạm kèm khoảng cách tới lộ trình và quãng đường bạn còn đi được.',
   'help.guide.roadtrip-refuel.step.4':
     'Dấu cộng trên một gợi ý thêm nó làm điểm đổ xăng. “Thêm làm điểm dừng” mở ra với loại và thời gian đã điền sẵn, và “Thêm” đặt nó vào chặng đúng tại điểm lộ trình thực sự đi qua.',
   'help.guide.roadtrip-refuel.result':
@@ -4497,7 +4497,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     'Chọn một tuyến. Mỗi tuyến hiện độ dài, và cho biết nó đi theo lộ trình của ngày này hay cách xa bao nhiêu. Tuyến gần nhất đứng đầu.',
   'help.guide.roadtrip-track.step.3':
-    'Nhấn “Đi theo tuyến này”. TREK thêm các điểm trung gian ở nơi lộ trình lệch xa tuyến nhất rồi tính lại đường đi, và lặp lại vài lần.',
+    'Nhấn “Đi theo tuyến này”. YOUYA thêm các điểm trung gian ở nơi lộ trình lệch xa tuyến nhất rồi tính lại đường đi, và lặp lại vài lần.',
   'help.guide.roadtrip-track.step.4':
     'Hộp thoại cho biết đã đặt bao nhiêu điểm đi qua và chuyến lái xe giờ bám sát lộ trình đến mức nào, hoặc cho biết chuyến lái xe đã bám theo lộ trình sẵn rồi. “Bỏ điểm đi qua”, ở dưới cùng bên trái, gỡ các điểm đó và bộ dẫn đường lập lại ngày. Đóng hộp thoại vẫn giữ lộ trình.',
   'help.guide.roadtrip-track.result':
@@ -4545,29 +4545,29 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     'Cài đặt riêng của bạn cho các plugin mà quản trị viên đã cài: các khóa và tùy chọn mỗi plugin cần ở bạn, cùng nhật ký những việc plugin đã làm thay bạn. Tab này chỉ hiện khi có plugin đang hoạt động.',
   'help.ctx.settings-about.bullet.3':
-    'Ko-fi, “Mua cho tôi một ly cà phê” và Discord là nơi bạn có thể ủng hộ TREK hoặc trò chuyện với những người làm ra nó.',
+    'Ko-fi, “Mua cho tôi một ly cà phê” và Discord là nơi bạn có thể ủng hộ YOUYA hoặc trò chuyện với những người làm ra nó.',
   'help.guide.language-region.step.3':
     'Chọn “Tiền tệ hiển thị”, hoặc giữ “Tiền tệ của chuyến đi” để xem mỗi chuyến đi theo tiền tệ riêng. Sau đó chọn “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian”, ngày “Tuần bắt đầu vào” và “Định dạng ngày”.',
   'help.guide.travel-map-prefs.step.3':
     '“Khám phá các địa điểm trên bản đồ” hiện nút danh mục để tìm địa điểm lân cận. “Mã đặt chỗ mờ” ẩn mã xác nhận cho đến khi bạn rê chuột hoặc chạm vào. “Tối ưu hóa tuyến đường từ chỗ ở” bắt đầu và kết thúc một ngày tại khách sạn của bạn.',
   'help.guide.web-push-device.step.2':
     'Trong thẻ “Thông báo” ở trên cùng, cột “Thông báo đẩy” chọn sự kiện nào được gửi đến thiết bị của bạn.',
-  'help.guide.connect-airtrail.goal': 'Để TREK nhập và đồng bộ các chuyến bay từ AirTrail của chính bạn.',
-  'help.guide.connect-dawarich.goal': 'Để TREK đọc những nơi bạn thực sự đã đến, từ Dawarich của chính bạn.',
+  'help.guide.connect-airtrail.goal': 'Để YOUYA nhập và đồng bộ các chuyến bay từ AirTrail của chính bạn.',
+  'help.guide.connect-dawarich.goal': 'Để YOUYA đọc những nơi bạn thực sự đã đến, từ Dawarich của chính bạn.',
   'help.guide.tour-connect-wanderer.goal':
-    'Để TREK đọc các tuyến đường mòn từ wanderer của chính bạn, rồi bạn nhập chúng thành chuyến tham quan.',
+    'Để YOUYA đọc các tuyến đường mòn từ wanderer của chính bạn, rồi bạn nhập chúng thành chuyến tham quan.',
   'help.guide.tour-wanderer-watch.title': 'Nhận thông báo khi tuyến wanderer của bạn thay đổi',
   'help.guide.plugin-settings.tip.2': 'Kênh plugin trong “Thông báo” có nút “Cấu hình” để mở trang này.',
   'help.guide.default-user-settings.result':
     'Tài khoản mới, và mọi người chưa từng đổi các cài đặt này, sẽ thấy lựa chọn của bạn.',
   'help.guide.own-routing-engine.goal':
-    'Dẫn đường cho các ngày, chuyến đi đường bộ và chuyến tham quan qua máy chủ OSRM hoặc Valhalla do bạn tự chạy, thay vì dịch vụ của TREK hay máy chủ công khai.',
+    'Dẫn đường cho các ngày, chuyến đi đường bộ và chuyến tham quan qua máy chủ OSRM hoặc Valhalla do bạn tự chạy, thay vì dịch vụ của YOUYA hay máy chủ công khai.',
   'help.guide.admin-passkeys.tip.1':
-    'Nếu TREK chưa xác định được tên miền, một cảnh báo dưới công tắc sẽ báo điều đó, và passkey vẫn bị ẩn cho đến khi bạn đặt APP_URL hoặc Relying Party ID.',
+    'Nếu YOUYA chưa xác định được tên miền, một cảnh báo dưới công tắc sẽ báo điều đó, và passkey vẫn bị ẩn cho đến khi bạn đặt APP_URL hoặc Relying Party ID.',
   'help.guide.rotate-jwt-secret.step.1':
     'Ở tab “Bảo mật”, trong “Vùng nguy hiểm” ở góc dưới bên phải, nhấp “Xoay” bên cạnh “Xoay vòng khóa bí mật JWT”.',
   'help.guide.storage-backends.tip.3':
-    'TREK có thể tải lại bộ nhớ đệm ảnh, nên sao chép song song chúng thường chỉ tốn dung lượng.',
+    'YOUYA có thể tải lại bộ nhớ đệm ảnh, nên sao chép song song chúng thường chỉ tốn dung lượng.',
   'help.guide.admin-channels.step.3':
     'Bên dưới, trong cùng thẻ, chọn kênh nào gửi từng sự kiện: “Đã có phiên bản mới”, “Lỗi bản sao lưu trữ” và “Có yêu cầu vùng chèo thuyền”. Mỗi công tắc lưu ngay.',
   'help.guide.notification-defaults.tip.1':
@@ -4629,13 +4629,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     'Dữ liệu mở chỉ biết máy bay đang ở đâu. Cổng, nhà ga và băng chuyền hành lý không nằm trong đó, nên hãy tự thêm vào đặt chỗ nếu bạn cần. Độ trễ và giờ đến là ước tính từ vị trí máy bay.',
   'help.guide.flight-live-status.tip.3':
-    'TREK cần số hiệu chuyến bay và cả hai sân bay để theo dõi một chuyến bay. Chuyến bay của hãng bay dưới mã gọi khác, hoặc chuyến bay liên danh, có thể không tìm thấy; khi đó đặt chỗ của nó chỉ giữ giờ thông thường.',
+    'YOUYA cần số hiệu chuyến bay và cả hai sân bay để theo dõi một chuyến bay. Chuyến bay của hãng bay dưới mã gọi khác, hoặc chuyến bay liên danh, có thể không tìm thấy; khi đó đặt chỗ của nó chỉ giữ giờ thông thường.',
   'help.guide.group-sort-bookings.step.2':
     'Trong “Nhóm theo”, chọn “Trạng thái”, “Ngày”, “Loại” hoặc “Không nhóm”. Tab tự sắp xếp thành các phần đó ngay lập tức.',
   'help.guide.export-bookings-csv.result':
     'Trình duyệt tải xuống một tệp đặt tên theo chuyến đi và tab, ví dụ autumn-in-japan-bookings.csv, mỗi đặt chỗ mà tab đang hiện là một hàng.',
   'help.guide.arrange-packing-list.result':
-    'Các danh sách nằm theo thứ tự bạn đã kéo, còn các món được sắp theo “A đến Z” cho đến khi bạn tắt. TREK vẫn lưu thứ tự riêng của bạn.',
+    'Các danh sách nằm theo thứ tự bạn đã kéo, còn các món được sắp theo “A đến Z” cho đến khi bạn tắt. YOUYA vẫn lưu thứ tự riêng của bạn.',
   'help.guide.count-packed-pieces.step.2':
     'Trong “SL”, nhập số bạn mang theo, ví dụ 5, hoặc nhấn nút cộng cho đến khi hiện đúng số đó.',
   'help.guide.expense-receipts.step.4':
@@ -4643,7 +4643,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     'Người đã rời chuyến đi vẫn có một hàng trong “Số dư” và “Ngân sách cuối cùng” chừng nào còn khoản tiền chưa thanh toán giữa họ và người khác.',
   'help.guide.files-sync-settings.step.2':
-    'Thanh luồng hiện TREK và kho của bạn cùng số tài liệu mỗi bên giữ, và hai làn ở giữa: “Gửi ra kho” và “Nhận từ kho”. Nhấp “Gửi ra kho” để tắt. Làn này mờ đi và dòng dưới các làn ghi “Chỉ nhận vào”. Nhấp lại để bật.',
+    'Thanh luồng hiện YOUYA và kho của bạn cùng số tài liệu mỗi bên giữ, và hai làn ở giữa: “Gửi ra kho” và “Nhận từ kho”. Nhấp “Gửi ra kho” để tắt. Làn này mờ đi và dòng dưới các làn ghi “Chỉ nhận vào”. Nhấp lại để bật.',
   'help.guide.files-sync-settings.tip.4':
     'Chỉ chủ sở hữu chuyến đi hoặc quản trị viên mới đổi được các mục này. Các thành viên khác thấy thanh luồng với dòng như “Tài liệu di chuyển hai chiều”, nhưng không có “Cài đặt”.',
   'help.guide.manage-notes.step.2':
@@ -4654,7 +4654,7 @@ const help: TranslationStrings = {
     'Thùng rác chỉ xóa được danh mục không có ghi chú nào dùng. Danh mục vẫn còn ghi chú sẽ ở lại trong danh sách cho đến khi bạn chuyển các ghi chú đó sang danh mục khác.',
   'help.guide.roadtrip-reorder.title': 'Sắp xếp lại một điểm dừng hoặc chuyển sang ngày khác',
   'help.guide.roadtrip-reorder.tip.3':
-    'TREK không hỏi về giờ bạn đã ghim: thanh lộ trình tính lại ngày đó ngay và đánh dấu mọi điểm dừng không còn kịp đến nữa.',
+    'YOUYA không hỏi về giờ bạn đã ghim: thanh lộ trình tính lại ngày đó ngay và đánh dấu mọi điểm dừng không còn kịp đến nữa.',
   'help.guide.roadtrip-overnight.step.3':
     'Ở đầu hộp thoại, “Qua đêm” thêm một đêm lưu trú còn “Nghỉ” biến nó thành điểm dừng trong một lúc. Khách sạn mở với “Qua đêm”, khu cắm trại mở với “Nghỉ”. Một đêm chỉ cần “Nhận phòng”, bạn có thể để trống.',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4668,7 +4668,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     'Ở trên cùng, “Nhập GPX hoặc KML” đưa tệp vào dưới dạng chuyến tham quan. Nút lọc bên dưới (ban đầu là “Tất cả”, kèm số chuyến) thu hẹp danh sách theo trạng thái, nguồn, giới hạn dẫn đường và loại.',
   'help.guide.tour-show-list.step.2':
-    'Mỗi hàng là một chuyến tham quan. Thanh màu là đường của nó trên bản đồ, còn ô tròn hiện giới hạn dẫn đường (T1 đến T6) của chuyến đi bộ đường dài lên kế hoạch trong TREK, hoặc biểu tượng loại của chuyến. Các huy hiệu dưới tên cho biết các ngày chuyến nằm trong, thời gian, quãng đường và độ cao leo. Với chuyến nhiều ngày, mặt trăng kèm số cho biết chuyến có bao nhiêu chặng.',
+    'Mỗi hàng là một chuyến tham quan. Thanh màu là đường của nó trên bản đồ, còn ô tròn hiện giới hạn dẫn đường (T1 đến T6) của chuyến đi bộ đường dài lên kế hoạch trong YOUYA, hoặc biểu tượng loại của chuyến. Các huy hiệu dưới tên cho biết các ngày chuyến nằm trong, thời gian, quãng đường và độ cao leo. Với chuyến nhiều ngày, mặt trăng kèm số cho biết chuyến có bao nhiêu chặng.',
   'help.guide.tour-add-to-day.title': 'Đặt một chuyến tham quan vào một ngày',
   'help.guide.tour-add-to-day.tip.2':
     'Khi chuyến đi kết thúc trước chặng cuối, lựa chọn hiện chặng cuối còn vừa, và các chặng sau đó vẫn chưa có ngày.',
@@ -4689,7 +4689,7 @@ const help: TranslationStrings = {
     'Đặt cho chuyến tham quan một cái tên dễ nhận ra và một màu đường dễ thấy trên bản đồ.',
   'help.guide.tour-take-along.title': 'Tải chuyến tham quan về điện thoại hoặc GPS',
   'help.guide.tour-take-along.tip.4':
-    'Trong tab “Chuyến tham quan”, nút tải xuống tương tự nằm ở đầu cột bên trái. Khi chuyến tham quan có thay đổi chưa lưu, TREK sẽ yêu cầu bạn lưu trước khi tải.',
+    'Trong tab “Chuyến tham quan”, nút tải xuống tương tự nằm ở đầu cột bên trái. Khi chuyến tham quan có thay đổi chưa lưu, YOUYA sẽ yêu cầu bạn lưu trước khi tải.',
   'help.guide.tour-copy-keep.tip.1':
     'Cả hai đều là bản sao: thay đổi sau này của chuyến tham quan không ảnh hưởng đến bản sao, cũng không ảnh hưởng đến bản bạn đã lưu trong bộ sưu tập.',
   'help.guide.tour-packing-link.step.2':
@@ -4701,15 +4701,15 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.4':
     '“Đổi” ở dưới vệt hành trình để chọn bản ghi khác. “Hủy liên kết” gỡ bản ghi khỏi chuyến tham quan, còn vệt hành trình vẫn nằm trong chuyến đi dưới dạng bản nhập.',
   'help.guide.tour-origin-check.step.3':
-    'Chuyến tham quan bạn vẽ trong tab “Chuyến tham quan” ghi “lên kế hoạch trong TREK”, cùng ngày nó được “Tạo”.',
+    'Chuyến tham quan bạn vẽ trong tab “Chuyến tham quan” ghi “lên kế hoạch trong YOUYA”, cùng ngày nó được “Tạo”.',
   'help.ctx.trip-tour-planner.bullet.2':
     'Thanh bên trái là trình chỉnh sửa. Khi chưa mở gì, nó có “Lên kế hoạch tham quan mới”. Khi mở một chuyến tham quan, nó hiện tên, loại, các điểm tham chiếu, các thẻ theo loại và chi tiết, với “Bỏ” và “Lưu” ở dưới cùng.',
   'help.guide.tour-open-workspace.step.2':
     'Thanh bên trái là trình chỉnh sửa. Khi chưa mở chuyến tham quan nào, nó có “Lên kế hoạch tham quan mới” để bắt đầu một chuyến tham quan trên bản đồ.',
   'help.guide.tour-open-workspace.tip.3':
-    'Nếu bạn mở chuyến tham quan khác khi trình chỉnh sửa còn thay đổi chưa lưu, TREK sẽ hỏi trước: “Bỏ thay đổi”, hoặc tiếp tục chỉnh sửa.',
+    'Nếu bạn mở chuyến tham quan khác khi trình chỉnh sửa còn thay đổi chưa lưu, YOUYA sẽ hỏi trước: “Bỏ thay đổi”, hoặc tiếp tục chỉnh sửa.',
   'help.guide.tour-draw-route.step.5':
-    'Nhấp vào các điểm tiếp theo theo thứ tự bạn đi. Mỗi lần nhấp thêm điểm đó làm điểm cuối mới, và từ hai điểm trở đi TREK lập tuyến đường theo các đường mòn.',
+    'Nhấp vào các điểm tiếp theo theo thứ tự bạn đi. Mỗi lần nhấp thêm điểm đó làm điểm cuối mới, và từ hai điểm trở đi YOUYA lập tuyến đường theo các đường mòn.',
   'help.guide.tour-type-profile.goal':
     'Chọn loại chuyến, và với chuyến đạp xe thì chọn cả cấu hình, để tuyến đường đi theo đúng loại đường.',
   'help.guide.tour-edit-points.title': 'Di chuyển, sắp xếp lại và xóa điểm',
@@ -4834,11 +4834,11 @@ const help: TranslationStrings = {
     'Xem đường trượt, đường trượt băng đồng và cáp treo quanh chuyến trượt tuyết của bạn, và ý nghĩa màu sắc của chúng.',
   'help.guide.tour-ski-import.title': 'Nhập vệt trượt tuyết và cho biết đó là gì',
   'help.guide.tour-ski-import.tip.1':
-    'Vệt đã nhập được giữ nguyên như khi ghi: TREK không khớp nó với đường trượt, và thẻ của nó hiện “Thời gian trượt” là “Không tính”.',
+    'Vệt đã nhập được giữ nguyên như khi ghi: YOUYA không khớp nó với đường trượt, và thẻ của nó hiện “Thời gian trượt” là “Không tính”.',
   'help.ctx.trip-tour-paddle.bullet.3':
     '“Thêm thao tác” trên một điểm chứa các công cụ chèo thuyền: lập chặng tiếp theo trên mặt nước hoặc vẽ tay, “Khiêng thuyền từ đây” và “Âu thuyền tại điểm này”.',
   'help.guide.tour-paddle-setup.step.3':
-    'Trong “Thuyền”, chọn “Thuyền kayak”, “Xuồng canoe”, SUP hoặc “Khác”. Loại thuyền quyết định tốc độ TREK gợi ý.',
+    'Trong “Thuyền”, chọn “Thuyền kayak”, “Xuồng canoe”, SUP hoặc “Khác”. Loại thuyền quyết định tốc độ YOUYA gợi ý.',
   'help.guide.tour-paddle-setup.tip.4':
     '“Chèo có rủi ro”, hàng ở cuối cột, mở “An toàn trên mặt nước”. Hãy đọc một lần trước chuyến đầu tiên.',
   'help.guide.tour-paddle-water-route.step.5':
@@ -4860,7 +4860,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.tip.2':
     '“Bỏ” xóa các dấu bạn chưa lưu. Vệt hành trình đã ghi không bao giờ bị vẽ lại.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK không tính thời gian cưỡi ngựa. Nếu muốn có giờ trong ngày, hãy nhập thời gian dưới “Dự kiến” trong “Chi tiết”.',
+    'YOUYA không tính thời gian cưỡi ngựa. Nếu muốn có giờ trong ngày, hãy nhập thời gian dưới “Dự kiến” trong “Chi tiết”.',
   'help.guide.tour-horse-plan.step.5':
     'Chọn một đoạn dưới “Các chặng”. Kiểm tra “Hướng” bạn đi và “Quyền đi ngựa” ghi gì dọc đoạn đó.',
   'help.guide.tour-horse-plan.tip.5':
@@ -4900,7 +4900,7 @@ const help: TranslationStrings = {
     'Quay lại “Dòng thời gian”, bản đồ bên phải chạy theo khi bạn cuộn: bài viết bạn đang thấy có vòng tròn theo màu của ngày. Nhấp vào một ghim để cuộn dòng thời gian tới bài viết của nó.',
   'help.guide.journey-map-layers.tip.1':
     'Đường nét đứt có màu là lộ trình GPX của chuyến đi, thuộc về kế hoạch; đường liền là lộ trình đã ghi trong ngày đó.',
-  'help.guide.journey-keep-route.tip.1': 'Đường dừng ở đâu thì bản ghi dừng ở đó. TREK chỉ vẽ phần đã ghi.',
+  'help.guide.journey-keep-route.tip.1': 'Đường dừng ở đâu thì bản ghi dừng ở đó. YOUYA chỉ vẽ phần đã ghi.',
   'help.guide.journey-day-stays.tip.1':
     'Hàng này chỉ hiện với người được phép chỉnh sửa nhật ký và đã kết nối Dawarich của riêng mình, và chỉ trong những ngày còn việc cần quyết định.',
   'help.guide.journey-take-over-day.step.4':
@@ -4913,21 +4913,21 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3':
     '“Đặt lại về mặc định”, bên dưới các thẻ, đưa cả tab “Giao diện” về cài đặt ban đầu.',
   'help.guide.web-push-device.result':
-    'Thẻ hiện “Đã bật cho thiết bị này”, và các sự kiện bật trong “Thông báo đẩy” sẽ đến ngay cả khi TREK đã đóng.',
+    'Thẻ hiện “Đã bật cho thiết bị này”, và các sự kiện bật trong “Thông báo đẩy” sẽ đến ngay cả khi YOUYA đã đóng.',
   'help.guide.connect-airtrail.step.1':
     'Trong “Tích hợp”, tìm AirTrail và nhập “Ví dụ URL” cùng một khóa API. Bạn tạo khóa trong AirTrail ở “Cài đặt”, “Bảo mật”. Nếu bạn tạo khóa trong AirTrail 3.13 trở lên, khóa cần phạm vi flight.read.own để đọc. Để ghi các thay đổi trở lại, khóa cũng cần flight.update.own, flight.passengers.manage.own, reference_data.read và profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Trong “Tích hợp”, tìm Dawarich và nhập “Địa chỉ phiên bản” cùng khóa API từ Dawarich ở “Tài khoản”, “Khóa API”.',
   'help.guide.tour-connect-wanderer.step.1':
     'Trong “Tích hợp”, tìm wanderer và nhập “Ví dụ URL” cùng một API token. Bạn tạo token trong wanderer ở “Cài đặt”, “Tài khoản”, “API tokens”; token bắt đầu bằng wanderer_key_.',
-  'help.guide.tour-wanderer-watch.goal': 'Để TREK tự theo dõi ngầm những thay đổi của các tuyến bạn đã nhập.',
+  'help.guide.tour-wanderer-watch.goal': 'Để YOUYA tự theo dõi ngầm những thay đổi của các tuyến bạn đã nhập.',
   'help.guide.mcp-oauth.tip.3':
     '“API Mã thông báo” vẫn dùng được nhưng được đánh dấu “Không còn được khuyến nghị”; hãy chuyển sang máy khách OAuth.',
   'help.guide.offline-conflicts.tip.2': 'Lựa chọn này chỉ áp dụng cho thiết bị này.',
   'help.guide.default-user-settings.tip.1':
     'Lựa chọn riêng của người dùng trong “Cài đặt” luôn được ưu tiên; những mặc định này áp dụng cho mọi người chưa đổi cài đặt đó.',
   'help.guide.own-routing-engine.step.1':
-    'Ở tab “Mặc định”, thẻ “Định tuyến” quyết định ai tính toán các tuyến đường. Trong “Dịch vụ định tuyến”, chọn “Tự động”, “Dịch vụ TREK”, “Valhalla công cộng (FOSSGIS)” hoặc “Máy chủ Valhalla riêng”. Lựa chọn được lưu ngay.',
+    'Ở tab “Mặc định”, thẻ “Định tuyến” quyết định ai tính toán các tuyến đường. Trong “Dịch vụ định tuyến”, chọn “Tự động”, “Dịch vụ YOUYA”, “Valhalla công cộng (FOSSGIS)” hoặc “Máy chủ Valhalla riêng”. Lựa chọn được lưu ngay.',
   'help.guide.admin-passkeys.tip.2':
     'Nếu sau này bạn đổi tên miền, mọi passkey mà mọi người đã thêm sẽ ngừng hoạt động.',
   'help.guide.instance-keys.tip.4': 'Khóa Amap phải là khóa Web 服务 (dịch vụ web), không phải khóa JS API.',
@@ -4946,7 +4946,7 @@ const help: TranslationStrings = {
     'Với từng người trong chuyến đi, chọn “Không có quyền”, “Đọc” hoặc “Chỉnh sửa”. “Mọi người đều đọc” và “Không ai” đặt tất cả cùng lúc.',
   'help.guide.collapse-columns.tip.3': 'Khi thanh chia đang được chọn, bạn cũng có thể di chuyển nó bằng phím mũi tên.',
   'help.guide.edit-place.tip.3':
-    'Nếu bạn nhấp ra ngoài hộp thoại, thay đổi của bạn không bị mất: TREK sẽ hỏi “Bỏ các thay đổi?” trước, và “Tiếp tục chỉnh sửa” đưa bạn về biểu mẫu.',
+    'Nếu bạn nhấp ra ngoài hộp thoại, thay đổi của bạn không bị mất: YOUYA sẽ hỏi “Bỏ các thay đổi?” trước, và “Tiếp tục chỉnh sửa” đưa bạn về biểu mẫu.',
   'help.guide.dawarich-stays.goal':
     'Thêm những nơi Dawarich đã ghi nhận bạn lưu trú trong chuyến đi, sau khi bạn kiểm tra từng nơi.',
   'help.guide.leave-stop-off-route.step.1':
@@ -4995,7 +4995,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     'Trong thanh lộ trình, chuyến đi là một thẻ mang màu theo loại, với lịch trình ở cột giờ đến và điểm đầu, điểm cuối dưới tiêu đề.',
   'help.guide.roadtrip-google-import.tip.1':
-    'TREK tự tính tuyến đường giữa các điểm dừng; nó không sao chép con đường của Google.',
+    'YOUYA tự tính tuyến đường giữa các điểm dừng; nó không sao chép con đường của Google.',
   'help.guide.roadtrip-hazards.result':
     'Bản đồ hiện các cảnh báo hiện tại quanh chuyến đi của bạn, và tuyến đường không thay đổi.',
   'help.ctx.trip-tours.bullet.3':
@@ -5004,7 +5004,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.goal':
     'Lên kế hoạch thời điểm bạn đi một chuyến tham quan, để nó hiện trong ngày cùng đường của nó trên bản đồ.',
   'help.guide.tour-add-to-day.tip.3':
-    'Mỗi chuyến tham quan chỉ thêm vào một ngày được một lần. Nếu bạn thả nó vào ngày đã có nó, TREK chỉ hiện “Chuyến tham quan này đã có trong ngày đó.”',
+    'Mỗi chuyến tham quan chỉ thêm vào một ngày được một lần. Nếu bạn thả nó vào ngày đã có nó, YOUYA chỉ hiện “Chuyến tham quan này đã có trong ngày đó.”',
   'help.guide.tour-day-times.step.4':
     'Nếu chuyến tham quan kết thúc sau khi mục tiếp theo của ngày đã bắt đầu, một ghi chú dưới hàng sẽ báo, chẳng hạn “Ends at 13:30, after Lunch at Gostner Schwaige starts at 12:30”. Không có gì bị dời.',
   'help.guide.tour-remove-from-day.step.1':
@@ -5062,7 +5062,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.result':
     'Tab “Chuyến tham quan”: trình chỉnh sửa ở bên trái, các chuyến tham quan của chuyến đi ở bên phải, bản đồ ở giữa.',
   'help.guide.tour-draw-route.step.6':
-    'Trong “Điểm tham chiếu”, mỗi điểm có một hàng kèm số thứ tự, được đặt tên theo địa điểm khi tên đã tải xong. Khi TREK đang xử lý, một chấm nhỏ bên cạnh “Chuyến tham quan mới” cho biết trạng thái.',
+    'Trong “Điểm tham chiếu”, mỗi điểm có một hàng kèm số thứ tự, được đặt tên theo địa điểm khi tên đã tải xong. Khi YOUYA đang xử lý, một chấm nhỏ bên cạnh “Chuyến tham quan mới” cho biết trạng thái.',
   'help.guide.tour-type-profile.step.1':
     'Nhấp “Loại chuyến” dưới “Tên chuyến tham quan”. Nó hiện loại hiện tại kèm một dòng nói cách lập kế hoạch.',
   'help.guide.tour-edit-points.goal':
@@ -5086,7 +5086,7 @@ const help: TranslationStrings = {
     '“Tóm tắt chuyến tham quan” ở đầu “Các chuyến tham quan của chuyến đi này” cho biết “Khoảng cách”, “Tổng độ cao leo lên” và “Tổng độ cao đi xuống” của chuyến đang ở trình chỉnh sửa, cùng thời gian ước tính, thời gian nghỉ và tổng dự kiến.',
   'help.guide.tour-list-manage.title': 'Quản lý các chuyến tham quan của chuyến đi',
   'help.guide.tour-list-manage.tip.2':
-    'Ngày đã có chuyến tham quan sẽ bị làm mờ trong menu ngày. Với chuyến tham quan nhiều ngày, TREK hỏi các chặng bắt đầu từ ngày đó hay cả chuyến đặt vào ngày đó.',
+    'Ngày đã có chuyến tham quan sẽ bị làm mờ trong menu ngày. Với chuyến tham quan nhiều ngày, YOUYA hỏi các chặng bắt đầu từ ngày đó hay cả chuyến đặt vào ngày đó.',
   'help.guide.tour-delete.tip.2': 'Nếu chỉ muốn bỏ khỏi một ngày, hãy dùng “Xóa khỏi ngày” trong menu của ngày.',
   'help.guide.tour-saved-elsewhere.step.4':
     'Chọn “Lưu thành chuyến đi bộ mới” để giữ cả hai, “Tải bản mới hơn” để tải phiên bản kia, hoặc “Ghi đè” để thay phiên bản kia bằng phiên bản của bạn.',
@@ -5110,7 +5110,7 @@ const help: TranslationStrings = {
   'help.guide.tour-map-layers.tip.1':
     'Bản đồ bạn chọn được giữ cho mọi chuyến tham quan bạn mở cho đến khi tải lại trang. Chuyến tham quan có loại không hỗ trợ bản đồ đó sẽ mở trên “Bản đồ”, còn bản đồ trong tab “Kế hoạch” và cài đặt trong “Cài đặt” không đổi.',
   'help.guide.tour-along-search.step.4':
-    'Nhấp “Tìm dọc chuyến đi”. TREK chỉ tìm kiếm: chuyến tham quan không thay đổi.',
+    'Nhấp “Tìm dọc chuyến đi”. YOUYA chỉ tìm kiếm: chuyến tham quan không thay đổi.',
   'help.guide.tour-along-add-stop.step.1':
     'Nhấp vào một địa điểm trong danh sách “Dọc chuyến đi”, hoặc ghim của nó trên bản đồ. Thẻ của nó mở ra phủ trên bản đồ: nó là gì, cách tuyến đường bao xa và nằm ở đâu dọc chuyến tham quan.',
   'help.guide.tour-3d-terrain.title': 'Xem chuyến tham quan ở dạng 3D',
@@ -5135,7 +5135,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     'Các vòng nằm trong “Độ khó tối đa của đường mòn” của chuyến đi bộ; nút T trên thẻ cho biết mức nào.',
   'help.guide.tour-hike-compare-ways.step.4':
-    'Nhấp “Dùng lối đi này”. TREK kiểm tra với bộ dẫn đường rằng tuyến đường thật sự đi theo lối đó.',
+    'Nhấp “Dùng lối đi này”. YOUYA kiểm tra với bộ dẫn đường rằng tuyến đường thật sự đi theo lối đó.',
   'help.guide.tour-ferrata-add.step.2':
     'Nhấp vào một tuyến via ferrata trên bản đồ, ở đường nét đứt hoặc biển báo của nó. Thẻ hiện tên, cấp độ và độ dài.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -5192,7 +5192,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Một chuyến chèo thuyền mới với thuyền, mặt nước và tốc độ của nó, sẵn sàng cho điểm đầu tiên trên bản đồ.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Nếu thiếu dữ liệu mặt nước, TREK hoặc tự tải xuống cho khu vực, hoặc nhờ quản trị viên cung cấp, tùy cách thiết lập máy chủ. Quản trị viên thêm khu vực trong “Dữ liệu mặt nước cho chèo thuyền”, một hàng dưới “Chuyến tham quan” ở tab “Tiện ích bổ sung” của khu vực quản trị. Khi đó chặng hiện “Đang tải dữ liệu nước” và được lập tự động khi có dữ liệu, thường trong vòng một đến ba phút.',
+    'Nếu thiếu dữ liệu mặt nước, YOUYA hoặc tự tải xuống cho khu vực, hoặc nhờ quản trị viên cung cấp, tùy cách thiết lập máy chủ. Quản trị viên thêm khu vực trong “Dữ liệu mặt nước cho chèo thuyền”, một hàng dưới “Chuyến tham quan” ở tab “Tiện ích bổ sung” của khu vực quản trị. Khi đó chặng hiện “Đang tải dữ liệu nước” và được lập tự động khi có dữ liệu, thường trong vòng một đến ba phút.',
   'help.guide.tour-paddle-portage.step.2':
     'Chọn “Khiêng thuyền từ đây”. Đoạn tới điểm tiếp theo trở thành đoạn khiêng thuyền, vẽ trên đất liền.',
   'help.guide.tour-paddle-lock.title': 'Thêm âu thuyền và thời gian chờ',
@@ -5265,9 +5265,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     'Thông báo đẩy hoạt động theo từng trình duyệt: hãy lặp lại trên mọi điện thoại và máy tính bạn muốn nhận thông báo. “Tắt cho thiết bị này” chỉ dừng trên thiết bị đó.',
   'help.guide.connect-airtrail.step.2':
-    '“Cho phép chứng chỉ tự ký” chỉ dành cho máy chủ đáng tin trong mạng của bạn. “Viết các thay đổi trở lại AirTrail” tắt theo mặc định, nên TREK chỉ đọc; bật nó để gửi các chỉnh sửa của bạn về lại.',
+    '“Cho phép chứng chỉ tự ký” chỉ dành cho máy chủ đáng tin trong mạng của bạn. “Viết các thay đổi trở lại AirTrail” tắt theo mặc định, nên YOUYA chỉ đọc; bật nó để gửi các chỉnh sửa của bạn về lại.',
   'help.guide.connect-dawarich.step.2':
-    '“Tự động kiểm tra điểm lưu trú mới” để TREK tự kiểm tra. Khi tắt, TREK chỉ đọc Dawarich khi bạn yêu cầu. “Cho phép chứng chỉ tự ký” chỉ dành cho máy chủ mà máy chủ của bạn không tin cậy.',
+    '“Tự động kiểm tra điểm lưu trú mới” để YOUYA tự kiểm tra. Khi tắt, YOUYA chỉ đọc Dawarich khi bạn yêu cầu. “Cho phép chứng chỉ tự ký” chỉ dành cho máy chủ mà máy chủ của bạn không tin cậy.',
   'help.guide.tour-connect-wanderer.step.2': 'Chỉ bật “Cho phép chứng chỉ tự ký” với máy chủ trong mạng của bạn.',
   'help.guide.tour-wanderer-watch.step.1':
     'Trong thẻ wanderer, bật “Kiểm tra thay đổi của các tuyến của tôi”. Cần có kết nối đã lưu trước.',
@@ -5276,7 +5276,7 @@ const help: TranslationStrings = {
     '“Tiền tệ hiển thị” chỉ quy đổi số tiền để hiển thị. Số tiền đã nhập trong “Chi phí” vẫn giữ nguyên.',
   'help.guide.own-routing-engine.step.2': 'Trong “Máy chủ định tuyến riêng”, nhập địa chỉ máy chủ OSRM của bạn.',
   'help.guide.own-routing-engine.step.3':
-    'Trong “Máy chủ Valhalla riêng”, nhập địa chỉ Valhalla của bạn và chọn “Máy chủ Valhalla riêng” làm “Dịch vụ định tuyến”. Mỗi trường tự lưu khi bạn rời khỏi nó; sau đó hãy khởi động lại máy chủ TREK và tải lại trang.',
+    'Trong “Máy chủ Valhalla riêng”, nhập địa chỉ Valhalla của bạn và chọn “Máy chủ Valhalla riêng” làm “Dịch vụ định tuyến”. Mỗi trường tự lưu khi bạn rời khỏi nó; sau đó hãy khởi động lại máy chủ YOUYA và tải lại trang.',
   'help.guide.admin-passkeys.tip.3':
     'Nếu người dùng làm mất thiết bị chứa passkey, hãy xóa passkey bằng “Đặt lại mật khẩu” trong “Chỉnh sửa người dùng”.',
   'help.guide.rotate-jwt-secret.result':
@@ -5291,7 +5291,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     'Đọc ghi chú màu vàng: nó nêu ai sẽ nhận nhật ký lần đầu. Sau đó nhấp “Liên kết nhật ký”.',
   'help.guide.dawarich-stays.step.1':
-    'Khi đã kết nối Dawarich trong “Cài đặt”, “Tích hợp”, mục “Từ Dawarich” hiện phía trên danh sách địa điểm. Tiêu đề của nó cho biết lần kiểm tra gần nhất của TREK và có bao nhiêu điểm lưu trú đang chờ. Nhấp vào để mở danh sách.',
+    'Khi đã kết nối Dawarich trong “Cài đặt”, “Tích hợp”, mục “Từ Dawarich” hiện phía trên danh sách địa điểm. Tiêu đề của nó cho biết lần kiểm tra gần nhất của YOUYA và có bao nhiêu điểm lưu trú đang chờ. Nhấp vào để mở danh sách.',
   'help.guide.leave-stop-off-route.step.2':
     'Huy hiệu “Ngoài lộ trình” hiện bên cạnh tên. Điểm dừng vẫn nằm trong ngày và trên bản đồ, nhưng tuyến đường của ngày và thời gian các chặng sẽ bỏ qua nó.',
   'help.guide.move-booking-day.result': 'Đặt chỗ thuộc về ngày mới trong kế hoạch, giờ giữ nguyên.',
@@ -5300,7 +5300,7 @@ const help: TranslationStrings = {
     'Mở một địa điểm có ảnh trong “Tập tin”. Khối “Tập tin” gần cuối thẻ cho biết địa điểm có bao nhiêu tệp.',
   'help.guide.place-own-hours.title': 'Sửa giờ mở cửa, số điện thoại hoặc email của địa điểm',
   'help.guide.place-own-hours.tip.1':
-    'Giờ bạn nhập sẽ thay cho giờ TREK đã tra cứu, nên quán cà phê có giờ theo mùa sẽ hiện đúng những gì bạn biết.',
+    'Giờ bạn nhập sẽ thay cho giờ YOUYA đã tra cứu, nên quán cà phê có giờ theo mùa sẽ hiện đúng những gì bạn biết.',
   'help.guide.day-panel.tip.3':
     'Lên kế hoạch theo lịch? Bật “Hiện ngày tháng trước trong tiêu đề ngày” trong “Cài đặt”, mục “Hiển thị”, và tiêu đề sẽ hiện ngày tháng trước, với “Ngày 1” hoặc tên của ngày bên dưới.',
   'help.guide.confirm-stay-booking.result':
@@ -5320,15 +5320,15 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2':
     'Các cột được phân tách bằng dấu chấm phẩy, và Excel mở tệp mà vẫn giữ nguyên dấu.',
   'help.guide.arrange-packing-list.tip.2':
-    'TREK nhớ “A đến Z” trong trình duyệt này, nên lần sau danh sách cũng mở ở dạng đã sắp xếp. Nó chỉ đổi những gì bạn thấy, không bao giờ đổi thứ tự những người khác thấy.',
+    'YOUYA nhớ “A đến Z” trong trình duyệt này, nên lần sau danh sách cũng mở ở dạng đã sắp xếp. Nó chỉ đổi những gì bạn thấy, không bao giờ đổi thứ tự những người khác thấy.',
   'help.guide.count-packed-pieces.step.4':
     'Đóng cửa sổ. Khi mới đóng gói một phần số món, hàng hiện số đếm, chẳng hạn 3/5, và ô đánh dấu có viền màu nhấn của bạn. Khi số đếm đạt đủ số lượng, món đồ tự được đánh dấu.',
   'help.guide.expense-receipts.result':
     'Hóa đơn được lưu cùng khoản chi: nhãn trên hàng của nó mở hóa đơn, và tệp cũng nằm trong “Tập tin” của chuyến đi.',
   'help.guide.files-sync-settings.step.4':
-    'Trong “Khi một tài liệu bị xóa”, chọn điều xảy ra với bản sao ở phía bên kia. “Giữ cả hai bản” để nguyên bản sao trong kho. “Chuyển vào thùng rác” đưa bản sao vào thùng rác của kho khi tài liệu bị xóa trong TREK.',
+    'Trong “Khi một tài liệu bị xóa”, chọn điều xảy ra với bản sao ở phía bên kia. “Giữ cả hai bản” để nguyên bản sao trong kho. “Chuyển vào thùng rác” đưa bản sao vào thùng rác của kho khi tài liệu bị xóa trong YOUYA.',
   'help.ctx.trip-collab.bullet.7':
-    'Mọi thứ ở đây đều cần kết nối. Khi ngoại tuyến, tin nhắn, ghi chú, liên kết, cuộc thăm dò hay phiếu bầu sẽ không được lưu, và TREK báo “This needs a connection. Try again once TREK is back online”. Thành viên không được phép chỉnh sửa “Cộng tác” vẫn đọc được mọi thứ, nhưng không có “Ghi chú mới”, “Thêm liên kết” và “Cuộc thăm dò mới”, và ô nhập tin nhắn bị mờ.',
+    'Mọi thứ ở đây đều cần kết nối. Khi ngoại tuyến, tin nhắn, ghi chú, liên kết, cuộc thăm dò hay phiếu bầu sẽ không được lưu, và YOUYA báo “This needs a connection. Try again once YOUYA is back online”. Thành viên không được phép chỉnh sửa “Cộng tác” vẫn đọc được mọi thứ, nhưng không có “Ghi chú mới”, “Thêm liên kết” và “Cuộc thăm dò mới”, và ô nhập tin nhắn bị mờ.',
   'help.guide.manage-notes.step.4':
     '“Chỉnh sửa” mở hộp thoại ghi chú với mọi thứ đã điền sẵn. Đổi những gì bạn cần, ở đây là thêm một dòng trong “Nội dung”, rồi nhấp “Lưu”.',
   'help.guide.note-categories.step.2':
@@ -5344,7 +5344,7 @@ const help: TranslationStrings = {
     'Nút “Nhận phòng” hoặc “Lên tàu” cho biết chuyến lái xe phải đưa bạn đến bến chậm nhất lúc nào: giờ xuất phát được đặt sớm hơn lịch trình đúng khoảng đó.',
   'help.guide.roadtrip-google-import.title': 'Nhập tuyến đường từ Google Maps',
   'help.guide.roadtrip-google-import.tip.2':
-    'Liên kết cần ít nhất hai điểm dừng mà TREK xác định được vị trí, và nhiều nhất 30.',
+    'Liên kết cần ít nhất hai điểm dừng mà YOUYA xác định được vị trí, và nhiều nhất 30.',
   'help.guide.roadtrip-hazards.tip.1':
     'Cảnh báo không phải lệnh cấm đường: tuyến đường không bao giờ đổi vì chúng, và chúng là thông báo hiện tại, không phải dự báo cho ngày của bạn.',
   'help.ctx.trip-tours.bullet.4':
@@ -5471,7 +5471,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.3':
     'Các huy hiệu tóm tắt: bao nhiêu phần tuyến đường “Đã biết”, cấp độ “Cao nhất đã biết” trên đó và, hiện riêng, “Giới hạn lộ trình” mà chuyến đi bộ được lập theo.',
   'help.guide.tour-hike-round.goal':
-    'Để TREK gợi ý các vòng đi có độ dài bạn muốn, xuất phát từ một điểm dừng của chuyến đi bộ.',
+    'Để YOUYA gợi ý các vòng đi có độ dài bạn muốn, xuất phát từ một điểm dừng của chuyến đi bộ.',
   'help.guide.tour-hike-round.tip.2':
     'Chấp nhận khoảng cách từ 1 đến 60 km, và gợi ý các vòng nằm trong 20 % so với độ dài bạn nhập.',
   'help.guide.tour-hike-compare-ways.result':
@@ -5497,7 +5497,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     'Điểm dừng đã đến được đánh dấu, điểm bỏ qua bị gạch ngang, và thời gian còn lại chỉ tính phần phía trước.',
   'help.guide.tour-bike-profile.goal':
-    'Bắt đầu một chuyến đạp xe và để TREK dẫn đường cho kiểu đi du lịch, đường nhựa, đường sỏi hoặc MTB.',
+    'Bắt đầu một chuyến đạp xe và để YOUYA dẫn đường cho kiểu đi du lịch, đường nhựa, đường sỏi hoặc MTB.',
   'help.guide.tour-bike-profile.tip.1': 'Đổi cấu hình sau này sẽ lập lại toàn bộ tuyến đường theo cấu hình mới.',
   'help.guide.tour-bike-surfaces.step.2':
     'Huy hiệu ở thanh đầu của thẻ cho biết tỷ lệ tuyến đường được biết là chưa trải nhựa.',
@@ -5525,7 +5525,7 @@ const help: TranslationStrings = {
     'Trên hồ, “Qua hồ” đặt cách đi: “Đi thẳng” là ngắn nhất, “Gần bờ” bám sát bờ cho ngày có gió.',
   'help.guide.tour-paddle-water-route.title': 'Lập các chặng trên mặt nước',
   'help.guide.tour-paddle-water-route.tip.2':
-    'Nơi tuyến đường khiêng thuyền vòng qua đập hoặc đi qua âu thuyền, TREK tự đặt điểm riêng ở đó, đánh dấu “Đã tìm thấy”. Nếu bạn di chuyển hoặc sửa nó, nó trở thành điểm của riêng bạn.',
+    'Nơi tuyến đường khiêng thuyền vòng qua đập hoặc đi qua âu thuyền, YOUYA tự đặt điểm riêng ở đó, đánh dấu “Đã tìm thấy”. Nếu bạn di chuyển hoặc sửa nó, nó trở thành điểm của riêng bạn.',
   'help.guide.tour-paddle-portage.step.3':
     'Thẻ “Khiêng thuyền” hiện dưới điểm, kèm độ dài và số phút phát sinh. Nhấp vào để mở.',
   'help.guide.tour-paddle-lock.goal':
@@ -5533,7 +5533,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-lock.result':
     'Âu thuyền nằm trên chuyến tham quan cùng số phút của nó, và “Ước tính thời gian” cộng chúng vào.',
   'help.guide.tour-paddle-time.tip.1':
-    'TREK bắt đầu với 4 km/h trên mặt nước, 2 km/h khi khiêng thuyền và 10 phút ở mỗi đoạn khiêng. Đây là giá trị khởi đầu để bạn điều chỉnh, không phải số đo thực tế.',
+    'YOUYA bắt đầu với 4 km/h trên mặt nước, 2 km/h khi khiêng thuyền và 10 phút ở mỗi đoạn khiêng. Đây là giá trị khởi đầu để bạn điều chỉnh, không phải số đo thực tế.',
   'help.guide.tour-paddle-wind.step.3':
     'Các thanh hiện các giờ trong ngày, với gió giật nằm sau gió trung bình. Rê chuột vào một thanh để xem số liệu và hướng gió của giờ đó.',
   'help.guide.tour-paddle-checklist.goal':
@@ -5602,7 +5602,7 @@ const help: TranslationStrings = {
     '“Hoạt động của plugin” ở cuối liệt kê mọi hành động plugin đã làm thay bạn, mới nhất lên đầu, kèm “Làm mới”.',
   'help.guide.language-region.tip.3':
     '“Tuần bắt đầu vào” đặt cột đầu tiên của mọi bộ chọn ngày; “Kỳ nghỉ” có cài đặt riêng.',
-  'help.guide.web-push-device.tip.2': 'Trên iPhone và iPad, hãy thêm TREK vào Màn hình chính trước rồi mở từ đó.',
+  'help.guide.web-push-device.tip.2': 'Trên iPhone và iPad, hãy thêm YOUYA vào Màn hình chính trước rồi mở từ đó.',
   'help.guide.connect-airtrail.step.3':
     'Nhấp “Lưu”, rồi “Kiểm tra kết nối”. Nó cho biết tìm thấy bao nhiêu chuyến bay, và huy hiệu chuyển thành “Đã kết nối”.',
   'help.guide.connect-dawarich.step.3':
@@ -5610,7 +5610,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     'Nhấp “Lưu”, rồi “Kiểm tra kết nối”. Nó cho biết bạn nhập được bao nhiêu tuyến đường mòn, và huy hiệu chuyển thành “Đã kết nối”.',
   'help.guide.tour-wanderer-watch.step.2':
-    'Tối đa một lần mỗi ngày, TREK đọc bản ghi ngắn của từng tuyến bạn đã nhập, và hàng hiện lần kiểm tra gần nhất. Khi một tuyến có thể đã thay đổi, bạn nhận thông báo và “Gợi ý” đếm nó: nhấp “Gợi ý” để xem từng chuyến tham quan ở trạng thái “Có thể đã thay đổi”, “Đã thay đổi” hoặc “Không kiểm tra được”, rồi mở từ đó.',
+    'Tối đa một lần mỗi ngày, YOUYA đọc bản ghi ngắn của từng tuyến bạn đã nhập, và hàng hiện lần kiểm tra gần nhất. Khi một tuyến có thể đã thay đổi, bạn nhận thông báo và “Gợi ý” đếm nó: nhấp “Gợi ý” để xem từng chuyến tham quan ở trạng thái “Có thể đã thay đổi”, “Đã thay đổi” hoặc “Không kiểm tra được”, rồi mở từ đó.',
   'help.guide.plugin-settings.goal': 'Đặt khóa và tùy chọn riêng cho một plugin, và xem nó đã làm gì thay bạn.',
   'help.guide.own-routing-engine.result': 'Tuyến đường trong mọi chuyến đi được tính trên máy chủ của bạn.',
   'help.guide.admin-passkeys.title': 'Cho phép đăng nhập bằng passkey',
@@ -5628,7 +5628,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     'Tab “Nhật ký” xuất hiện trên thanh tab của chuyến đi. Mọi người bạn đã cho “Đọc” hoặc “Chỉnh sửa” đều mở được nhật ký trong tab đó, với cập nhật trực tiếp.',
   'help.guide.create-place.tip.4':
-    'Liên kết sao chép từ Google Maps cũng dùng được trong ô tìm kiếm: dán vào, nhấn Enter, và TREK đọc địa điểm từ đó. Khi biểu mẫu đã có vị trí, “Địa điểm gần ghim này”, biểu tượng chữ thập cạnh ô tìm kiếm, liệt kê những gì ở xung quanh.',
+    'Liên kết sao chép từ Google Maps cũng dùng được trong ô tìm kiếm: dán vào, nhấn Enter, và YOUYA đọc địa điểm từ đó. Khi biểu mẫu đã có vị trí, “Địa điểm gần ghim này”, biểu tượng chữ thập cạnh ô tìm kiếm, liệt kê những gì ở xung quanh.',
   'help.guide.dawarich-stays.step.2':
     'Các điểm lưu trú được nhóm theo ngày, mỗi điểm kèm giờ bạn đến và đi; biểu tượng đồng hồ đo đánh dấu điểm lưu trú mà Dawarich không chắc chắn. Nhấp “Thêm làm địa điểm”, biểu tượng ghim cạnh điểm lưu trú.',
   'help.guide.leave-stop-off-route.step.3':
@@ -5653,7 +5653,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.4':
     'Nhấp vào tiêu đề để đổi tên chuyến mà không mở biểu mẫu. “Đổi tên” mở ra với tên đã điền sẵn: gõ tên mới và nhấp “Lưu”.',
   'help.guide.export-transports-csv.goal':
-    'Xuất các chuyến di chuyển của chuyến đi từ TREK thành tệp CSV, để dùng trong bảng tính, gửi đại lý du lịch hoặc in ra.',
+    'Xuất các chuyến di chuyển của chuyến đi từ YOUYA thành tệp CSV, để dùng trong bảng tính, gửi đại lý du lịch hoặc in ra.',
   'help.guide.group-sort-bookings.result':
     'Các đặt chỗ hiện theo các phần và thứ tự bạn đã chọn, và trình duyệt này nhớ lựa chọn cho lần sau.',
   'help.guide.booking-on-map.step.1':
@@ -5668,7 +5668,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     'Trong trình chỉnh sửa, nhấp vào tên một tệp trong danh sách cũng mở cùng bản xem trước. Khi đó Esc chỉ đóng bản xem trước, không đóng khoản chi.',
   'help.guide.files-sync-settings.step.5':
-    '“Khi cả hai bên đều thay đổi” quyết định giữ bản nào khi một tài liệu được sửa ở cả hai nơi: “Hỏi tôi”, “Giữ bản của TREK” hoặc “Giữ bản của kho”. “Tự động đồng bộ” để TREK kiểm tra thay đổi ngầm; khi tắt, thẻ ghi “Đã tạm dừng” và chỉ “Đồng bộ ngay” mới chạy đồng bộ. Mọi thay đổi ở đây được lưu ngay.',
+    '“Khi cả hai bên đều thay đổi” quyết định giữ bản nào khi một tài liệu được sửa ở cả hai nơi: “Hỏi tôi”, “Giữ bản của YOUYA” hoặc “Giữ bản của kho”. “Tự động đồng bộ” để YOUYA kiểm tra thay đổi ngầm; khi tắt, thẻ ghi “Đã tạm dừng” và chỉ “Đồng bộ ngay” mới chạy đồng bộ. Mọi thay đổi ở đây được lưu ngay.',
   'help.guide.manage-notes.step.5':
     '“Xóa” hỏi trước, “Xóa ghi chú?”, vì ghi chú bị xóa với mọi thành viên, cùng các tệp của nó. Nhấp “Xóa” để xác nhận.',
   'help.guide.note-categories.step.3':
@@ -5699,7 +5699,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     'Hoặc nhấp vào tiêu đề của ngày để mở ngày, nhấp vào chuyến tham quan trong danh sách, rồi nhấp “Xóa khỏi ngày” ở chân thẻ của nó.',
   'help.guide.tour-filter-list.step.3':
-    'Khi danh sách trộn lẫn, “Nguồn” (TREK, nhập từ GPX, wanderer), “Giới hạn lộ trình” (T1 đến T6) và “Loại” (“Đi bộ đường dài”, “Chuyến đạp xe” và các loại khác) thu hẹp thêm. Nhấp lại vào giá trị đã đánh dấu để bỏ.',
+    'Khi danh sách trộn lẫn, “Nguồn” (YOUYA, nhập từ GPX, wanderer), “Giới hạn lộ trình” (T1 đến T6) và “Loại” (“Đi bộ đường dài”, “Chuyến đạp xe” và các loại khác) thu hẹp thêm. Nhấp lại vào giá trị đã đánh dấu để bỏ.',
   'help.guide.tour-hide-on-map.step.1':
     'Trỏ vào một chuyến tham quan trong danh sách và nhấp con mắt hiện ra ở bên phải hàng của nó (“Ẩn trên bản đồ”).',
   'help.guide.tour-import-plan-tab.step.1':
@@ -5719,7 +5719,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.tip.4':
     '“Bộ sưu tập” chỉ có khi tiện ích bổ sung Bộ sưu tập đang bật. Danh sách bạn chỉ được đọc thì không chọn được, và khi chưa có danh sách nào, hộp thoại có “Mở bộ sưu tập”.',
   'help.guide.tour-packing-link.step.5':
-    'Nhấp “Mở danh sách đóng gói” để đánh dấu từng món. TREK chuyển sang tab “Danh sách”, đúng danh sách đóng gói.',
+    'Nhấp “Mở danh sách đóng gói” để đánh dấu từng món. YOUYA chuyển sang tab “Danh sách”, đúng danh sách đóng gói.',
   'help.guide.tour-files.step.2': 'Hàng bên dưới giờ đếm số tệp, và danh sách mở ra.',
   'help.guide.tour-activity-link.step.2':
     'Trong “Thực hiện vào”, chọn ngày bạn đã đi. Chọn “Không có ngày” nếu nó không thuộc ngày nào.',
@@ -5732,7 +5732,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.step.5':
     '“Tìm địa điểm hoặc địa chỉ” ở đầu bản đồ dời bản đồ đến một nơi, để bạn bắt đầu từ chỗ chuyến tham quan diễn ra.',
   'help.guide.tour-draw-route.goal':
-    'Đặt các điểm của một chuyến tham quan mới trên bản đồ và để TREK tính tuyến đường giữa chúng.',
+    'Đặt các điểm của một chuyến tham quan mới trên bản đồ và để YOUYA tính tuyến đường giữa chúng.',
   'help.guide.tour-draw-route.tip.2':
     '“Địa hình” hoặc “Đi bộ đường dài” trong nút của bản đồ hiện các đường mòn, giúp nhấp vào một đường dễ hơn. Điểm quá xa mọi đường mà loại chuyến dùng được sẽ nhận một thông báo thay vì tuyến đường.',
   'help.guide.tour-type-profile.step.3':
@@ -5807,7 +5807,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-plan.step.1':
     'Nhấp “Lên kế hoạch tham quan mới” ở đầu cột bên trái. Trình chỉnh sửa mở ra với tên “Chuyến tham quan mới”.',
   'help.guide.tour-hike-plan.tip.2':
-    'Từ T4 trở lên, trước tiên TREK hỏi “Bật tính tuyến đường núi cao?” Chỉ xác nhận nếu tuyến đường được phép đi qua địa hình hiểm trở hoặc không có biển chỉ dẫn; câu hỏi chỉ xuất hiện một lần trong mỗi phiên chỉnh sửa.',
+    'Từ T4 trở lên, trước tiên YOUYA hỏi “Bật tính tuyến đường núi cao?” Chỉ xác nhận nếu tuyến đường được phép đi qua địa hình hiểm trở hoặc không có biển chỉ dẫn; câu hỏi chỉ xuất hiện một lần trong mỗi phiên chỉnh sửa.',
   'help.guide.tour-hike-trail-details.step.4':
     'Nhấp vào một cấp độ trong danh sách để chỉ vẽ những đoạn đó trên bản đồ. Nhấp lại để hiện toàn bộ tuyến đường.',
   'help.guide.tour-hike-round.step.1':
@@ -5867,11 +5867,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     '“Tốc độ chèo” hiện gợi ý của thuyền bằng màu xám. Gõ tốc độ của riêng bạn và trường ghi “Tốc độ của bạn”; liên kết bên dưới, “Use the suggested”, đưa về tốc độ của thuyền.',
   'help.guide.tour-paddle-water-route.goal':
-    'Để TREK lập một chặng dọc sông hoặc hồ, và hiểu các ghi chú trên chặng mà nó không lập được.',
+    'Để YOUYA lập một chặng dọc sông hoặc hồ, và hiểu các ghi chú trên chặng mà nó không lập được.',
   'help.guide.tour-paddle-water-route.tip.3':
     'Ghi chú dưới chặng đã lập cảnh báo thác ghềnh (Whitewater) kèm cấp độ, “Lối cho thuyền”, hoặc “Khoảng trống trong dữ liệu bản đồ” được nối bằng đường thẳng.',
   'help.guide.tour-paddle-portage.step.4':
-    'Trong “Chỉ đường”, “Đi theo đường mòn” dùng một đường đã vẽ trên bản đồ và “Đường thẳng” đi thẳng qua. TREK tự tìm đường mòn và báo khi không có đường nào mà không phải đi vòng xa.',
+    'Trong “Chỉ đường”, “Đi theo đường mòn” dùng một đường đã vẽ trên bản đồ và “Đường thẳng” đi thẳng qua. YOUYA tự tìm đường mòn và báo khi không có đường nào mà không phải đi vòng xa.',
   'help.guide.tour-paddle-lock.step.1': 'Trỏ vào điểm dừng tại âu thuyền và nhấp “Thêm thao tác”, tức ba chấm.',
   'help.guide.tour-paddle-time.title': 'Đọc và chỉnh thời gian của chuyến chèo thuyền',
   'help.guide.tour-paddle-time.tip.2': 'Dòng nước và gió không nằm trong ước tính.',
@@ -5880,7 +5880,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     'Lưu chuyến chèo thuyền, rồi tìm “Danh sách kiểm tra” ở cột bên trái. Huy hiệu ở thanh đầu tóm tắt danh sách đang ở đâu.',
   'help.guide.tour-paddle-checklist.tip.4':
-    'Chướng ngại lấy từ dữ liệu OpenStreetMap của các vùng TREK đang giữ. Nơi không có dữ liệu, thẻ sẽ báo, và bạn tự kiểm tra đập, âu thuyền và đoạn khiêng thuyền.',
+    'Chướng ngại lấy từ dữ liệu OpenStreetMap của các vùng YOUYA đang giữ. Nơi không có dữ liệu, thẻ sẽ báo, và bạn tự kiểm tra đập, âu thuyền và đoạn khiêng thuyền.',
   'help.guide.tour-paddle-track-marks.step.4':
     'Nhấp vào vệt hành trình trong “Các chuyến tham quan của chuyến đi này”. Cột bên trái hiện nó đúng như khi ghi, với thẻ “Đoạn khiêng thuyền và âu thuyền”.',
   'help.ctx.trip-tour-horse.title': 'Cưỡi ngựa',
@@ -5950,16 +5950,16 @@ const help: TranslationStrings = {
     'Khi chuyến đi được liên kết đang diễn ra, các điểm lưu trú của mỗi ngày được liệt kê ở ngày đó, sẵn sàng để “Nhập ngày”.',
   'help.ctx.settings-about.title': 'Về',
   'help.guide.web-push-device.tip.3':
-    'Thông báo đẩy yêu cầu mở TREK qua HTTPS. Nếu thông báo đang bị chặn, hãy cho phép trong cài đặt trình duyệt rồi thử lại.',
-  'help.guide.booking-mail-address.title': 'Chuyển tiếp email đặt chỗ đến TREK',
+    'Thông báo đẩy yêu cầu mở YOUYA qua HTTPS. Nếu thông báo đang bị chặn, hãy cho phép trong cài đặt trình duyệt rồi thử lại.',
+  'help.guide.booking-mail-address.title': 'Chuyển tiếp email đặt chỗ đến YOUYA',
   'help.guide.booking-mail-address.goal':
-    'Có một địa chỉ riêng để nhận xác nhận đặt chỗ, để TREK thêm từng đặt chỗ vào đúng chuyến đi.',
+    'Có một địa chỉ riêng để nhận xác nhận đặt chỗ, để YOUYA thêm từng đặt chỗ vào đúng chuyến đi.',
   'help.guide.booking-mail-address.step.1':
     'Trong “Tích hợp”, mục “Email đặt chỗ” hiển thị “Địa chỉ của bạn”. Nhấn nút sao chép bên cạnh. Hãy giữ kín địa chỉ này như một mật khẩu.',
   'help.guide.booking-mail-address.step.2':
     'Chuyển tiếp email đặt chỗ đến địa chỉ đó bằng tay, kèm cả tệp đính kèm, hoặc làm theo “Chuyển tiếp tự động” để tạo quy tắc trong Gmail hoặc Outlook.',
   'help.guide.booking-mail-address.step.3':
-    '“Nhập email đặt chỗ” bật hoặc tắt việc nhập. “Đọc bằng AI” cho AI đọc những email không có dữ liệu đặt chỗ dạng máy đọc được. “Tự động thêm” đưa thẳng vào chuyến đi những đặt chỗ mà TREK chắc chắn.',
+    '“Nhập email đặt chỗ” bật hoặc tắt việc nhập. “Đọc bằng AI” cho AI đọc những email không có dữ liệu đặt chỗ dạng máy đọc được. “Tự động thêm” đưa thẳng vào chuyến đi những đặt chỗ mà YOUYA chắc chắn.',
   'help.guide.booking-mail-address.step.4':
     '“Đặt chỗ đang chờ” mở các email đang chờ bạn xử lý, kèm một con số khi có email. “Tải lên tệp email” đọc một email bạn đã lưu dưới dạng .eml.',
   'help.guide.booking-mail-address.result':
@@ -5967,7 +5967,7 @@ const help: TranslationStrings = {
   'help.guide.booking-mail-address.tip.1':
     'Nút cạnh nút sao chép, “Địa chỉ mới”, sẽ cấp cho bạn một địa chỉ mới. Bạn phải nhấn hai lần; địa chỉ cũ ngừng hoạt động ngay, nên hãy đổi cả các quy tắc chuyển tiếp của bạn.',
   'help.guide.booking-mail-address.tip.2':
-    'Một chuyến đi có thể có địa chỉ riêng, nằm trong tab “Đặt chỗ” ở mục “Nhập xác nhận đặt chỗ”. Email gửi tới địa chỉ đó không cần TREK đoán chuyến đi nào.',
+    'Một chuyến đi có thể có địa chỉ riêng, nằm trong tab “Đặt chỗ” ở mục “Nhập xác nhận đặt chỗ”. Email gửi tới địa chỉ đó không cần YOUYA đoán chuyến đi nào.',
   'help.guide.booking-mail-address.tip.3':
     'Email được chuyển tiếp được lưu mã hóa tối đa 30 ngày. Thẻ này chỉ xuất hiện khi quản trị viên đã bật tính năng nhập email.',
   'help.guide.connect-airtrail.result':
@@ -5977,7 +5977,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     'Huy hiệu hiện “Đã kết nối”, và tab “Chuyến tham quan” của chuyến đi có thể tìm trong wanderer của bạn và nhập các tuyến đường mòn từ đó.',
   'help.guide.tour-wanderer-watch.result':
-    'TREK theo dõi các tuyến đường mòn bạn đã nhập và báo khi có tuyến có thể đã thay đổi. Chuyến tham quan chỉ thay đổi khi bạn chấp nhận thay đổi đó.',
+    'YOUYA theo dõi các tuyến đường mòn bạn đã nhập và báo khi có tuyến có thể đã thay đổi. Chuyến tham quan chỉ thay đổi khi bạn chấp nhận thay đổi đó.',
   'help.guide.plugin-settings.step.1':
     'Mở “Plugin” trong thanh bên của phần cài đặt. Dưới “Cài đặt plugin”, mỗi plugin có cài đặt dành cho bạn đều có một thẻ riêng: điền vào các trường của nó rồi bấm “Lưu”, hoặc chọn các lựa chọn mà nó hiện. Các hành động trên thẻ chỉ chạy sau khi bạn xác nhận.',
   'help.guide.profile.step.3': 'Bấm “Lưu hồ sơ” ở bên phải chân thẻ.',
@@ -5990,7 +5990,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Quyết định thông báo của mọi người dùng ban đầu ra sao, và chặn hẳn một kênh với một sự kiện nào đó.',
   'help.ctx.notifications.summary':
-    'Mọi thông báo TREK đã hiện cho bạn trong ứng dụng, mới nhất ở trên và nhóm theo ngày: một đặt chỗ ai đó vừa sửa, tin nhắn mới trong trò chuyện của chuyến đi, một chuyến bay bị trễ, một đặt chỗ từ email được chuyển tiếp. Biểu tượng chuông ở góc trên bên phải hiện mười thông báo mới nhất, còn trang này hiện tất cả.',
+    'Mọi thông báo YOUYA đã hiện cho bạn trong ứng dụng, mới nhất ở trên và nhóm theo ngày: một đặt chỗ ai đó vừa sửa, tin nhắn mới trong trò chuyện của chuyến đi, một chuyến bay bị trễ, một đặt chỗ từ email được chuyển tiếp. Biểu tượng chuông ở góc trên bên phải hiện mười thông báo mới nhất, còn trang này hiện tất cả.',
   'help.guide.read-notifications.step.1':
     'Bấm vào biểu tượng chuông ở góc trên bên phải. Con số màu đỏ trên chuông là số thông báo bạn chưa đọc.',
   'help.guide.filter-notifications.step.1': 'Bấm vào biểu tượng chuông ở góc trên bên phải.',
@@ -6118,7 +6118,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     'Bấm “GPX” để tải chuyến tham quan đã lưu về dưới dạng tệp GPX: toàn bộ tuyến đường kèm độ cao, sẵn sàng cho ứng dụng điều hướng hoặc thiết bị GPS.',
   'help.guide.tour-copy-keep.step.1':
-    'Mở thẻ của chuyến tham quan và bấm “Sao chép” ở cuối thẻ. TREK tạo một chuyến tham quan mới, độc lập, không kèm các ngày, còn bản gốc giữ nguyên.',
+    'Mở thẻ của chuyến tham quan và bấm “Sao chép” ở cuối thẻ. YOUYA tạo một chuyến tham quan mới, độc lập, không kèm các ngày, còn bản gốc giữ nguyên.',
   'help.guide.tour-copy-keep.result':
     'Chuyến đi có thêm một chuyến tham quan thứ hai để bạn thoải mái chỉnh sửa, và bộ sưu tập giữ bản sao riêng, sẵn sàng thêm vào chuyến đi khác.',
   'help.guide.tour-packing-link.tip.1':
@@ -6206,7 +6206,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Bấm “Mặt đường” để xem cùng tuyến đường đó theo loại mặt đường bạn đi, từ nhựa đường đến đất tự nhiên và đá.',
   'help.guide.tour-hike-round.step.2':
-    'Thẻ “Đi bộ đường vòng” mở ra trên bản đồ. Kiểm tra điểm xuất phát ở “Từ” và nhập “Khoảng cách” bạn muốn. Nhãn bên cạnh cho biết độ dài của các tuyến vòng mà TREK sẽ đề xuất.',
+    'Thẻ “Đi bộ đường vòng” mở ra trên bản đồ. Kiểm tra điểm xuất phát ở “Từ” và nhập “Khoảng cách” bạn muốn. Nhãn bên cạnh cho biết độ dài của các tuyến vòng mà YOUYA sẽ đề xuất.',
   'help.guide.tour-hike-compare-ways.title': 'So sánh các lối đi khác cho một đoạn của chuyến đi bộ',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Khi bộ định tuyến không biết lối nào khác, thẻ sẽ báo như vậy. Khi bộ định tuyến không đi theo được lối bạn chọn, đoạn đó giữ nguyên và thẻ sẽ báo cho bạn.',
@@ -6225,7 +6225,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     'Giờ mở cửa lấy từ OpenStreetMap hoặc từ địa điểm của chuyến đi mà điểm dừng thuộc về, và nhãn bên cạnh cho biết nguồn nào. Hãy kiểm tra lại trước khi đi.',
   'help.guide.tour-walk-google-import.step.4':
-    'Bấm “Tải thành lộ trình đi bộ”. TREK tự lập đường đi bộ giữa các điểm dừng. Bấm “Lưu” để giữ chuyến đi bộ.',
+    'Bấm “Tải thành lộ trình đi bộ”. YOUYA tự lập đường đi bộ giữa các điểm dừng. Bấm “Lưu” để giữ chuyến đi bộ.',
   'help.guide.tour-walk-check-off.step.2':
     'Cuộn tới “Các điểm dừng”. Mỗi điểm dừng cho biết bạn ở lại bao lâu và, nếu chuyến đi bộ có giờ bắt đầu, bạn sẽ đến lúc nào.',
   'help.ctx.trip-tour-bike.summary':
@@ -6241,7 +6241,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     'Lên kế hoạch cho một ngày trên đường trượt, một vòng trượt băng đồng, một chuyến trượt tuyết leo núi hoặc một buổi đi giày tuyết, dọc theo các đường trượt, cáp treo và đường mòn đã được vẽ trên bản đồ.',
   'help.guide.tour-ski-plan.tip.2':
-    'Chấm thông tin bên cạnh “Bộ môn” cho biết TREK làm gì với chuyến trượt tuyết. Trong đó, cũng như ở bất cứ đâu ở đây, không có thông tin nào về tuyết, tuyết lở hay việc các đường trượt, cáp treo và đường mòn có đang mở hay không.',
+    'Chấm thông tin bên cạnh “Bộ môn” cho biết YOUYA làm gì với chuyến trượt tuyết. Trong đó, cũng như ở bất cứ đâu ở đây, không có thông tin nào về tuyết, tuyết lở hay việc các đường trượt, cáp treo và đường mòn có đang mở hay không.',
   'help.guide.tour-ski-options.step.3':
     'Ở “Ưu tiên”, chọn “Nhanh nhất”, “Trượt nhiều nhất” hoặc “Dễ nhất”. Ở “Nhịp độ”, chọn “Thong thả”, “Bình thường” hoặc “Thể thao”: lựa chọn này đổi thời gian mà bộ định tuyến tính cho mỗi đường trượt.',
   'help.guide.tour-ski-fix-leg.goal': 'Lập một chặng màu đỏ chỉ bằng một cú bấm, hoặc vẽ thẳng chặng đó.',
@@ -6258,11 +6258,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     'Kiểm tra “Thêm điểm” đang bật, rồi bấm lên bản đồ: trước hết là điểm hạ thuyền, sau đó là các điểm trên đường đi và điểm lên bờ.',
   'help.guide.tour-paddle-water-route.step.1':
-    'Chặng vẽ tay hiện dòng “Vẽ tay, không định tuyến” dưới điểm của nó, kèm chiều dài. TREK giữ nguyên đường đúng như bạn vẽ.',
+    'Chặng vẽ tay hiện dòng “Vẽ tay, không định tuyến” dưới điểm của nó, kèm chiều dài. YOUYA giữ nguyên đường đúng như bạn vẽ.',
   'help.guide.tour-paddle-water-route.tip.4':
     'Bạn không lưu được khi còn một chặng chưa được lập. Hãy lập nó trên mặt nước hoặc vẽ tay trước.',
   'help.guide.tour-paddle-portage.step.5':
-    'Ở “Lên bờ, xuống lại”, nhập số phút bạn cần để lên bờ, dỡ đồ và hạ thuyền xuống lại. Nếu để trống, TREK tính 10 phút.',
+    'Ở “Lên bờ, xuống lại”, nhập số phút bạn cần để lên bờ, dỡ đồ và hạ thuyền xuống lại. Nếu để trống, YOUYA tính 10 phút.',
   'help.guide.tour-paddle-lock.step.2':
     'Chọn “Âu thuyền tại điểm này”. Một thẻ “Âu thuyền” xuất hiện dưới điểm, kèm nhãn “Thiếu thời gian”.',
   'help.guide.tour-paddle-time.goal':
@@ -6272,7 +6272,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     'Chỉ có dự báo cho 16 ngày tới. Với ngày xa hơn, thẻ cho biết từ ngày nào có dự báo. Với ngày đã qua, thẻ báo ngày đó đã qua.',
   'help.guide.tour-paddle-checklist.step.2':
-    'Dòng bên dưới cho biết dữ liệu mới đến đâu: “OSM tính đến” cho OpenStreetMap, “Đã tải” cho lúc TREK đọc dữ liệu, và “Dữ liệu chướng ngại vật” ở những đoạn không phủ hết tuyến đường.',
+    'Dòng bên dưới cho biết dữ liệu mới đến đâu: “OSM tính đến” cho OpenStreetMap, “Đã tải” cho lúc YOUYA đọc dữ liệu, và “Dữ liệu chướng ngại vật” ở những đoạn không phủ hết tuyến đường.',
   'help.guide.tour-paddle-checklist.tip.5':
     'Danh sách kiểm tra không phải là sự chấp thuận về an toàn hay pháp lý. Quyết định của bạn không gỡ bỏ được lệnh cấm hay đất tư nhân đã được ghi trong OpenStreetMap.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -6290,7 +6290,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-recorded.tip.3':
     'Bạn cũng có thể thả tệp vào bất cứ đâu trên tab “Chuyến tham quan” để mở cùng bản xem trước.',
   'help.guide.create-trip.tip.3':
-    'Ở mục “Bạn đồng hành”, bạn có thể thêm những người đã có tài khoản trên TREK. Họ trở thành thành viên của chuyến đi ngay khi chuyến đi được tạo.',
+    'Ở mục “Bạn đồng hành”, bạn có thể thêm những người đã có tài khoản trên YOUYA. Họ trở thành thành viên của chuyến đi ngay khi chuyến đi được tạo.',
   'help.guide.trip-reminder.step.1':
     'Bấm biểu tượng bút chì trên thẻ của chuyến đi. Với chuyến đi mới, biểu mẫu “Chuyến đi mới” cũng có mục này.',
   'help.guide.company-holidays.tip.2':
@@ -6311,7 +6311,7 @@ const help: TranslationStrings = {
     'Chuyến tham quan đã giữ: các chuyến tham quan bạn giữ từ một chuyến đi nằm ở những hàng đầu tiên của danh sách, kèm cấp độ, loại, chuyến đi gốc và các số đo. “Thêm vào chuyến đi” tạo một chuyến tham quan mới từ chuyến đã giữ, còn biểu tượng thùng rác gỡ nó khỏi danh sách.',
   'help.guide.move-to-list.title': 'Chuyển hoặc nhân bản địa điểm sang danh sách khác',
   'help.guide.copy-to-trip.tip.2':
-    'Địa điểm nào chuyến đi đã có thì được bỏ qua, và TREK cho biết có bao nhiêu địa điểm bị bỏ qua.',
+    'Địa điểm nào chuyến đi đã có thì được bỏ qua, và YOUYA cho biết có bao nhiêu địa điểm bị bỏ qua.',
   'help.guide.accept-list-invite.tip.2':
     'Bấm “Được chia sẻ” ở đầu danh sách để xem các thành viên. Cũng ở đó, bấm “Rời khỏi danh sách” để rời khỏi danh sách.',
   'help.guide.tour-collection-add-to-trip.goal':
@@ -6329,16 +6329,16 @@ const help: TranslationStrings = {
   'help.guide.journey-day-stays.goal': 'Biến các điểm lưu trú mà Dawarich đã ghi thành bài viết, từng điểm một.',
   'help.guide.journey-take-over-day.goal':
     'Biến các điểm lưu trú của một ngày thành các bản nháp, hoặc thành một báo cáo ngày, chỉ trong một bước.',
-  'help.guide.journey-auto-prepare.title': 'Để TREK chuẩn bị sẵn các ngày bạn đã ghi',
+  'help.guide.journey-auto-prepare.title': 'Để YOUYA chuẩn bị sẵn các ngày bạn đã ghi',
   'help.guide.photo-location.title': 'Đặt bài viết tại nơi chụp ảnh',
   'help.ctx.settings-about.summary':
-    'TREK là gì, phiên bản máy chủ này đang chạy và nơi tìm dự án: tài liệu, nơi báo lỗi và các cách ủng hộ dự án.',
+    'YOUYA là gì, phiên bản máy chủ này đang chạy và nơi tìm dự án: tài liệu, nơi báo lỗi và các cách ủng hộ dự án.',
   'help.guide.startup.tip.2':
-    'Nếu tab khởi động thuộc về một tiện ích bổ sung bạn đã tắt, TREK sẽ mở kế hoạch thay vào đó.',
+    'Nếu tab khởi động thuộc về một tiện ích bổ sung bạn đã tắt, YOUYA sẽ mở kế hoạch thay vào đó.',
   'help.guide.web-push-device.title': 'Nhận thông báo đẩy trên thiết bị này',
   'help.guide.connect-airtrail.tip.1': 'Thẻ này chỉ xuất hiện khi quản trị viên đang bật tiện ích bổ sung AirTrail.',
   'help.guide.connect-dawarich.tip.1':
-    'TREK chỉ gợi ý bài viết, địa điểm và quốc gia. Không có gì được thêm cho đến khi bạn xác nhận, và không có gì được ghi ngược lại vào Dawarich.',
+    'YOUYA chỉ gợi ý bài viết, địa điểm và quốc gia. Không có gì được thêm cho đến khi bạn xác nhận, và không có gì được ghi ngược lại vào Dawarich.',
   'help.guide.tour-connect-wanderer.tip.1':
     'Thẻ này chỉ xuất hiện khi quản trị viên cho phép wanderer trong mục Chuyến tham quan.',
   'help.guide.tour-wanderer-watch.tip.1':
@@ -6354,7 +6354,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     'Đặt sẵn đơn vị, chế độ màu và tiền tệ hợp lý cho mọi tài khoản, không cần ai phải mở “Cài đặt”.',
   'help.guide.default-map.step.3':
-    'Mỗi trường được lưu khi bạn rời khỏi trường đó. Liên kết “cài lại” cạnh tên trường khôi phục giá trị mặc định của TREK.',
+    'Mỗi trường được lưu khi bạn rời khỏi trường đó. Liên kết “cài lại” cạnh tên trường khôi phục giá trị mặc định của YOUYA.',
   'help.guide.own-routing-engine.tip.2':
     'Nếu bạn chỉ đặt máy chủ định tuyến riêng và “Dịch vụ định tuyến” để ở “Tự động”, sẽ không có Valhalla nào được hỏi. Liên kết “cài lại” cạnh trường sẽ xóa giá trị đó.',
   'help.guide.admin-passkeys.step.1':
@@ -6362,7 +6362,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.4':
     'Mục “Sức khỏe” ở trên cùng liệt kê các lần ghi thất bại vào đích sao lưu phản chiếu. Nếu hiện “Không có lỗi bản sao nào được ghi nhận”, mọi thứ đang hoạt động bình thường.',
   'help.guide.channels-instance.tip.3':
-    'Web Push cần HTTPS. Trên iPhone và iPad, người dùng phải thêm TREK vào Màn hình chính trước.',
+    'Web Push cần HTTPS. Trên iPhone và iPad, người dùng phải thêm YOUYA vào Màn hình chính trước.',
   'help.guide.notification-defaults.step.1':
     'Ở tab “Thông báo”, cuộn xuống “Mặc định cho người dùng” ở dưới cùng. Mỗi hàng là một sự kiện, mỗi cột là một kênh.',
   'help.ctx.notifications.bullet.1':
@@ -6410,28 +6410,28 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     'Nếu chỉ muốn xuất một phần của tab, hãy thu hẹp trước bằng “Tìm kiếm” hoặc “Lọc”. Tệp chứa đúng những gì tab đang hiển thị.',
   'help.guide.import-booking-file.tip.4':
-    'Đọc xác nhận cần có kết nối mạng. Khi ngoại tuyến, “Nhập” sẽ báo như vậy, và bạn thử lại khi TREK có mạng trở lại.',
+    'Đọc xác nhận cần có kết nối mạng. Khi ngoại tuyến, “Nhập” sẽ báo như vậy, và bạn thử lại khi YOUYA có mạng trở lại.',
   'help.guide.forward-booking-mail.title': 'Chuyển tiếp email đặt chỗ vào chuyến đi',
   'help.guide.forward-booking-mail.goal':
-    'Cấp cho chuyến đi một địa chỉ riêng, chuyển tiếp xác nhận đến đó, và hoàn tất những gì TREK không tự thêm được.',
+    'Cấp cho chuyến đi một địa chỉ riêng, chuyển tiếp xác nhận đến đó, và hoàn tất những gì YOUYA không tự thêm được.',
   'help.guide.forward-booking-mail.step.1':
     'Nhấn biểu tượng tải lên trên thanh, “Nhập xác nhận đặt chỗ”. Bên dưới khung thả tệp, “Hoặc chuyển tiếp qua email” hiển thị địa chỉ riêng của chuyến đi.',
   'help.guide.forward-booking-mail.step.2':
     'Nhấn “Tạo địa chỉ cho chuyến đi này”. Email gửi đến địa chỉ này sẽ vào chuyến đi mà không cần đoán.',
   'help.guide.forward-booking-mail.step.3':
-    'Địa chỉ xuất hiện cùng một nút sao chép bên cạnh. Hãy sao chép, rồi chuyển tiếp email đặt chỗ đến đó từ chương trình email của bạn, kèm cả tệp đính kèm, bằng tay hoặc bằng một quy tắc. TREK sẽ đọc email trong vài phút.',
+    'Địa chỉ xuất hiện cùng một nút sao chép bên cạnh. Hãy sao chép, rồi chuyển tiếp email đặt chỗ đến đó từ chương trình email của bạn, kèm cả tệp đính kèm, bằng tay hoặc bằng một quy tắc. YOUYA sẽ đọc email trong vài phút.',
   'help.guide.forward-booking-mail.step.4':
-    'Đặt chỗ nào TREK chắc chắn sẽ tự vào chuyến đi. Những cái còn lại chờ bạn: mở menu dưới tên bạn ở góc trên bên phải, nơi một con số đếm các email đang chờ, rồi nhấn “Đặt chỗ đang chờ”.',
+    'Đặt chỗ nào YOUYA chắc chắn sẽ tự vào chuyến đi. Những cái còn lại chờ bạn: mở menu dưới tên bạn ở góc trên bên phải, nơi một con số đếm các email đang chờ, rồi nhấn “Đặt chỗ đang chờ”.',
   'help.guide.forward-booking-mail.step.5':
-    'Mỗi mục hiển thị những gì TREK đã đọc được, vì sao nó phải chờ và chuyến đi nó thuộc về. “Xem email” hiển thị chính email đó. Nhấn “Tự điền”.',
+    'Mỗi mục hiển thị những gì YOUYA đã đọc được, vì sao nó phải chờ và chuyến đi nó thuộc về. “Xem email” hiển thị chính email đó. Nhấn “Tự điền”.',
   'help.guide.forward-booking-mail.step.6':
     '“Đặt chỗ mới” mở ra trong chuyến đi với nội dung có trong email: tiêu đề làm tên, loại, ngày và mã đặt chỗ tìm được. Hãy kiểm tra, sửa chỗ cần sửa và nhấn “Thêm”.',
   'help.guide.forward-booking-mail.result':
     'Đặt chỗ nằm trong tab “Đặt chỗ” như mọi đặt chỗ khác, và mục của nó đã rời khỏi “Đặt chỗ đang chờ”.',
   'help.guide.forward-booking-mail.tip.1':
-    'Địa chỉ của chính bạn, trong “Cài đặt”, “Tích hợp”, “Email đặt chỗ”, dùng được cho mọi chuyến đi: TREK chọn chuyến đi có ngày và địa điểm khớp với đặt chỗ. Địa chỉ của một chuyến đi bỏ qua bước đoán đó.',
+    'Địa chỉ của chính bạn, trong “Cài đặt”, “Tích hợp”, “Email đặt chỗ”, dùng được cho mọi chuyến đi: YOUYA chọn chuyến đi có ngày và địa điểm khớp với đặt chỗ. Địa chỉ của một chuyến đi bỏ qua bước đoán đó.',
   'help.guide.forward-booking-mail.tip.2':
-    'Khi “Tự động thêm” bật trong thẻ đó, đặt chỗ nào TREK chắc chắn sẽ vào thẳng chuyến đi, và thông báo về nó cho phép “Hoàn tác” trong 7 ngày. Khi tắt, mọi đặt chỗ đều chờ trong “Đặt chỗ đang chờ”.',
+    'Khi “Tự động thêm” bật trong thẻ đó, đặt chỗ nào YOUYA chắc chắn sẽ vào thẳng chuyến đi, và thông báo về nó cho phép “Hoàn tác” trong 7 ngày. Khi tắt, mọi đặt chỗ đều chờ trong “Đặt chỗ đang chờ”.',
   'help.guide.forward-booking-mail.tip.3':
     'Một mục cũng có thể được giữ lại thành tài liệu bằng “Lưu làm tài liệu”, thao tác này đưa email hoặc tệp đính kèm vào các tệp của chuyến đi, hoặc bỏ đi bằng “Bỏ”.',
   'help.guide.forward-booking-mail.tip.4':
@@ -6465,7 +6465,7 @@ const help: TranslationStrings = {
     'Các điểm dừng nằm theo đúng thứ tự bạn đặt, và quãng đường, thời gian lái xe cùng giờ đến của mọi ngày bạn đã thay đổi được tính lại.',
   'help.guide.roadtrip-overnight.goal': 'Tìm chỗ ngủ trên đường và thêm đêm nghỉ vào chuyến lái xe dưới dạng đặt chỗ.',
   'help.guide.roadtrip-overnight.tip.2':
-    'Khi chuyển một đêm đã đặt về “Nghỉ”, từ “Chỉnh sửa” trong thẻ của nó, TREK sẽ hỏi “Bỏ đêm nghỉ này?” trước. “Chuyển thành điểm nghỉ” xóa đêm nghỉ cùng đặt chỗ và mọi khoản chi gắn với nó, nhưng vẫn giữ điểm dừng trên chuyến lái xe.',
+    'Khi chuyển một đêm đã đặt về “Nghỉ”, từ “Chỉnh sửa” trong thẻ của nó, YOUYA sẽ hỏi “Bỏ đêm nghỉ này?” trước. “Chuyển thành điểm nghỉ” xóa đêm nghỉ cùng đặt chỗ và mọi khoản chi gắn với nó, nhưng vẫn giữ điểm dừng trên chuyến lái xe.',
   'help.guide.roadtrip-stop-fill.tip.2':
     'Nếu bạn chọn đúng giá trị mà điểm dừng đang có, điểm dừng sẽ quay về giá trị mặc định của bạn.',
   'help.guide.roadtrip-bookings.tip.1':
@@ -6512,11 +6512,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     'Mở thẻ của chuyến tham quan. “Kế hoạch và thực tế” hiện “Khoảng cách”, “Tổng độ cao leo lên”, “Tổng độ cao đi xuống” và “Thời gian kể cả nghỉ” của kế hoạch cạnh số liệu của lộ trình, kèm “Chênh lệch”.',
   'help.guide.tour-origin-check.goal':
-    'Biết chuyến tham quan được vẽ trong TREK hay nhập vào, từ tệp nào, và từ đó đến nay có bị thay đổi hay không.',
+    'Biết chuyến tham quan được vẽ trong YOUYA hay nhập vào, từ tệp nào, và từ đó đến nay có bị thay đổi hay không.',
   'help.ctx.trip-tour-planner.title': 'Chuyến tham quan',
   'help.guide.tour-open-workspace.title': 'Làm quen với tab Chuyến tham quan',
   'help.guide.tour-open-workspace.step.7':
-    'Bấm vào một chuyến tham quan ở thanh bên phải. Chuyến tham quan được lên kế hoạch trong TREK sẽ mở trong trình chỉnh sửa. Lộ trình nhập vào mở nguyên trạng, dưới dạng “Chuyến tham quan GPX”, chỉ để xem.',
+    'Bấm vào một chuyến tham quan ở thanh bên phải. Chuyến tham quan được lên kế hoạch trong YOUYA sẽ mở trong trình chỉnh sửa. Lộ trình nhập vào mở nguyên trạng, dưới dạng “Chuyến tham quan GPX”, chỉ để xem.',
   'help.guide.tour-draw-route.step.2':
     'Nhập nơi chuyến tham quan bắt đầu vào “Tìm địa điểm hoặc địa chỉ” và chọn kết quả. Bản đồ sẽ di chuyển tới đó.',
   'help.guide.tour-draw-route.tip.4':
@@ -6551,7 +6551,7 @@ const help: TranslationStrings = {
     'Lộ trình mà chuyến đi đã có sẽ bị làm mờ với nhãn “Đã có trong chuyến đi” và được bỏ qua.',
   'help.guide.tour-view-import.step.3': '“Về danh sách chuyến tham quan”, mũi tên ở góc trên bên trái, sẽ đóng lại.',
   'help.guide.tour-plan-from-import.step.2':
-    'TREK lấy các điểm kiểm soát từ lộ trình và định tuyến lại. Bản đồ vẽ lộ trình nhập bằng nét chấm và đề xuất bằng nét liền, còn thẻ so sánh độ dài của hai bên, tỷ lệ “Within 50 m of the track” và “Độ lệch lớn nhất”.',
+    'YOUYA lấy các điểm kiểm soát từ lộ trình và định tuyến lại. Bản đồ vẽ lộ trình nhập bằng nét chấm và đề xuất bằng nét liền, còn thẻ so sánh độ dài của hai bên, tỷ lệ “Within 50 m of the track” và “Độ lệch lớn nhất”.',
   'help.guide.tour-restore-recorded.title': 'Quay lại lộ trình đã ghi',
   'help.guide.tour-take-over.title': 'Lấy một chuyến tham quan từ chuyến đi khác',
   'help.guide.tour-take-over.tip.1':
@@ -6642,15 +6642,15 @@ const help: TranslationStrings = {
     'Nếu đường trượt ngừng tải, công tắc sẽ hiện dấu cảnh báo. Bản đồ và lộ trình của bạn vẫn dùng được.',
   'help.guide.tour-ski-import.step.4': 'Bấm “Import 1 tour”.',
   'help.ctx.trip-tour-paddle.summary':
-    'Chuyến chèo kayak, canoe hoặc SUP trên sông hay hồ. Chuyến này có tên thuyền và loại nước, đi theo mặt nước ở nơi TREK có dữ liệu, tính cả việc khiên thuyền và qua âu thuyền vào thời gian, và cho biết gió vào ngày bạn chèo cùng những gì đã biết về chướng ngại trên đường.',
+    'Chuyến chèo kayak, canoe hoặc SUP trên sông hay hồ. Chuyến này có tên thuyền và loại nước, đi theo mặt nước ở nơi YOUYA có dữ liệu, tính cả việc khiên thuyền và qua âu thuyền vào thời gian, và cho biết gió vào ngày bạn chèo cùng những gì đã biết về chướng ngại trên đường.',
   'help.guide.tour-paddle-setup.goal':
     'Bắt đầu một chuyến chèo kayak, canoe hoặc SUP và cho biết bạn chèo gì, trên mặt nước nào và nhanh cỡ nào.',
   'help.guide.tour-paddle-setup.tip.1':
-    'Khi “Thuyền” đặt là “Khác”, TREK không gợi ý tốc độ. Hãy nhập một tốc độ, nếu không thời gian trên nước sẽ để trống.',
+    'Khi “Thuyền” đặt là “Khác”, YOUYA không gợi ý tốc độ. Hãy nhập một tốc độ, nếu không thời gian trên nước sẽ để trống.',
   'help.guide.tour-paddle-water-route.step.2':
     'Muốn lập một chặng theo mặt nước, rê chuột vào điểm dừng phía trước chặng đó và bấm “Thêm thao tác”, tức ba chấm.',
   'help.guide.tour-paddle-water-route.result':
-    'Mỗi chặng hoặc đi theo mặt nước, hoặc được vẽ tay có chủ ý, và chặng nào TREK không lập được sẽ nói rõ lý do.',
+    'Mỗi chặng hoặc đi theo mặt nước, hoặc được vẽ tay có chủ ý, và chặng nào YOUYA không lập được sẽ nói rõ lý do.',
   'help.guide.tour-paddle-portage.tip.1':
     'Nếu cuối cùng vẫn muốn chèo đoạn đó, hãy mở lại “Thêm thao tác” trên điểm và chọn “Đổi đoạn này về chèo”. Đoạn đó sẽ trở lại thành chặng vẽ tay.',
   'help.guide.tour-paddle-lock.step.3': 'Bấm vào thẻ “Âu thuyền” để mở.',
@@ -6669,7 +6669,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     'Bấm vào trường “Loại chuyến” dưới “Tên chuyến tham quan” và chọn “Chuyến cưỡi ngựa”. Thẻ “Tuyến cưỡi ngựa” xuất hiện bên dưới “Điểm tham chiếu”.',
   'help.guide.tour-horse-plan.tip.2':
-    'TREK không tính thời gian cưỡi ngựa. Nếu muốn có giờ trong ngày, hãy nhập thời gian ở “Đã lên kế hoạch” trong “Chi tiết”.',
+    'YOUYA không tính thời gian cưỡi ngựa. Nếu muốn có giờ trong ngày, hãy nhập thời gian ở “Đã lên kế hoạch” trong “Chi tiết”.',
   'help.guide.tour-horse-gap.step.3': 'Bấm “Lấy đoạn”. Khi công tắc chưa bật, nút vẫn bị mờ.',
   'help.guide.tour-horse-recorded.step.1':
     'Trong “Các chuyến tham quan của chuyến đi này”, bấm “Thêm chuyến đi” (dấu +), chọn “Nhập GPX hoặc KML” và chọn tệp chuyến cưỡi của bạn.',
@@ -6684,7 +6684,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': 'Ghi ngày nghỉ cho người bạn lên kế hoạch cùng',
   'help.guide.dissolve-fusion.title': 'Ngừng lên kế hoạch chung',
   'help.guide.country-places.goal':
-    'Liệt kê các địa điểm TREK tính cho một quốc gia, để xem lại bạn đã làm gì ở đó hoặc tìm địa điểm bị TREK gán nhầm quốc gia.',
+    'Liệt kê các địa điểm YOUYA tính cho một quốc gia, để xem lại bạn đã làm gì ở đó hoặc tìm địa điểm bị YOUYA gán nhầm quốc gia.',
   'help.guide.regions.tip.3':
     '“Thêm vào danh sách nhóm” cũng dùng được cho một vùng. Vùng đó hiện với cùng kiểu gạch chéo như một quốc gia trong danh sách nhóm của bạn.',
   'help.guide.tour-activity-stats.step.2':
@@ -6714,11 +6714,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.1': 'Phiên bản mà máy chủ này đang chạy hiện cạnh tiêu đề.',
   'help.guide.readability.tip.3':
     '“Khả năng đọc” đang ở dạng thực nghiệm. Nếu có gì trông lạ, bấm “Đặt lại về mặc định” ở cuối tab để khôi phục cài đặt mặc định.',
-  'help.guide.web-push-device.goal': 'Xem thông báo của TREK trên điện thoại hoặc máy tính, kể cả khi TREK đã đóng.',
+  'help.guide.web-push-device.goal': 'Xem thông báo của YOUYA trên điện thoại hoặc máy tính, kể cả khi YOUYA đã đóng.',
   'help.guide.connect-airtrail.tip.2':
     'Khóa được lưu mã hóa và không bao giờ hiện lại; các dấu chấm trong trường nghĩa là đã có khóa được lưu.',
   'help.guide.connect-dawarich.tip.2':
-    'Bên dưới các nút, thẻ cho biết lần kiểm tra gần nhất của TREK và những gì phiên bản Dawarich của bạn không hỗ trợ.',
+    'Bên dưới các nút, thẻ cho biết lần kiểm tra gần nhất của YOUYA và những gì phiên bản Dawarich của bạn không hỗ trợ.',
   'help.guide.tour-connect-wanderer.tip.2':
     'Nếu máy chủ nằm ở địa chỉ nội bộ, có thể cần quản trị viên cho phép mạng nội bộ.',
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6726,13 +6726,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     'Plugin chạy theo thiết lập của bạn, và mọi hành động nó thực hiện thay bạn đều được liệt kê trong “Hoạt động của plugin”.',
   'help.ctx.admin-defaults.bullet.3':
-    'Liên kết “cài lại” cạnh trường bạn đã đặt sẽ khôi phục giá trị mặc định của TREK. Cài đặt riêng của người dùng luôn được ưu tiên hơn các giá trị này.',
+    'Liên kết “cài lại” cạnh trường bạn đã đặt sẽ khôi phục giá trị mặc định của YOUYA. Cài đặt riêng của người dùng luôn được ưu tiên hơn các giá trị này.',
   'help.ctx.admin-settings.bullet.5':
     '“Vùng nguy hiểm”, ở tab “Bảo mật”: “Xoay vòng khóa bí mật JWT” đăng xuất tất cả người dùng, kể cả bạn.',
   'help.guide.default-user-settings.step.1':
     'Ở “Cài đặt người dùng mặc định”, chọn “Chế độ màu” (Sáng, Tối hoặc Tự động), “Đơn vị nhiệt độ”, “Đơn vị khoảng cách”, “Định dạng thời gian”, “Tuần bắt đầu vào”, “Định dạng ngày”, “Tiền tệ hiển thị” và chọn bật hay tắt “Mã đặt chỗ mờ”. Mỗi lựa chọn được lưu ngay.',
   'help.guide.admin-passkeys.step.2':
-    'Trong thẻ “Đăng nhập bằng mật mã”, nhập “Đảng dựa vào ID (miền)” (miền của TREK), ví dụ trek.example.org, và “Nguồn gốc được phép” là địa chỉ bạn truy cập TREK, rồi bấm “Lưu”. Để trống cả hai nếu muốn dùng APP_URL.',
+    'Trong thẻ “Đăng nhập bằng mật mã”, nhập “Đảng dựa vào ID (miền)” (miền của YOUYA), ví dụ trek.example.org, và “Nguồn gốc được phép” là địa chỉ bạn truy cập YOUYA, rồi bấm “Lưu”. Để trống cả hai nếu muốn dùng APP_URL.',
   'help.guide.rotate-jwt-secret.title': 'Đăng xuất tất cả mọi người cùng lúc',
   'help.guide.notification-defaults.step.2':
     'Bấm vào một ô để chuyển sang trạng thái kế tiếp: Bật, Tắt, Chặn. Chú thích cho biết trạng thái kế tiếp, và mỗi lần bấm được lưu ngay.',
@@ -6747,21 +6747,21 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': 'Thông báo bị gỡ khỏi danh sách và khỏi biểu tượng chuông.',
   'help.guide.booking-mail-notifications.title': 'Trả lời thông báo về một email đặt chỗ',
   'help.guide.booking-mail-notifications.goal':
-    'Xem điều gì đã xảy ra với các email đặt chỗ bạn chuyển tiếp, và quyết định những email TREK không tự thêm được.',
+    'Xem điều gì đã xảy ra với các email đặt chỗ bạn chuyển tiếp, và quyết định những email YOUYA không tự thêm được.',
   'help.guide.booking-mail-notifications.step.1':
-    'Nhấn chuông ở góc trên bên phải. Khi một email được chuyển tiếp chứa đặt chỗ mà TREK không tự thêm được, thông báo sẽ hiện ở đó.',
+    'Nhấn chuông ở góc trên bên phải. Khi một email được chuyển tiếp chứa đặt chỗ mà YOUYA không tự thêm được, thông báo sẽ hiện ở đó.',
   'help.guide.booking-mail-notifications.step.2':
     '“Đặt chỗ chuyển tiếp cần xem xét” cho biết có bao nhiêu mục đang chờ bạn. Nhấn “Xem xét” bên dưới.',
   'help.guide.booking-mail-notifications.step.3':
-    '“Đặt chỗ đang chờ” mở ra với từng mục đang chờ: TREK đã đọc được gì, vì sao mục đó phải chờ và chuyến đi nó thuộc về. “Tự điền” mở một đặt chỗ mới với nội dung có trong email, còn biểu tượng thùng rác sẽ bỏ mục đó.',
+    '“Đặt chỗ đang chờ” mở ra với từng mục đang chờ: YOUYA đã đọc được gì, vì sao mục đó phải chờ và chuyến đi nó thuộc về. “Tự điền” mở một đặt chỗ mới với nội dung có trong email, còn biểu tượng thùng rác sẽ bỏ mục đó.',
   'help.guide.booking-mail-notifications.result':
     'Mỗi đặt chỗ được chuyển tiếp hoặc được đưa vào chuyến đi, hoặc chờ bạn quyết định, và bạn luôn biết đặt chỗ nào đang ở trạng thái nào.',
   'help.guide.booking-mail-notifications.tip.1':
-    'Một đặt chỗ TREK tự thêm sẽ hiện là “Đã thêm đặt chỗ từ email”, kèm “Giữ” và “Hoàn tác”. “Hoàn tác” gỡ đặt chỗ khỏi chuyến đi, “Giữ” để nó ở lại.',
+    'Một đặt chỗ YOUYA tự thêm sẽ hiện là “Đã thêm đặt chỗ từ email”, kèm “Giữ” và “Hoàn tác”. “Hoàn tác” gỡ đặt chỗ khỏi chuyến đi, “Giữ” để nó ở lại.',
   'help.guide.booking-mail-notifications.tip.2':
     'Những người khác trong chuyến đi chung cũng nhận được thông báo về đặt chỗ từ email, kèm “Xem chuyến đi”, nút này mở tab “Đặt chỗ” của chuyến đi.',
   'help.guide.booking-mail-notifications.tip.3':
-    'Một chuyến bay TREK theo dõi trực tiếp sẽ gửi “Chuyến bay đã cất cánh”, “Chuyến bay đã hạ cánh” và, khi trễ từ 15 phút, “Chuyến bay bị trễ”, mỗi thông báo kèm “Xem chuyến đi”. Chúng được gửi đến những người được gán cho chuyến bay, hoặc đến tất cả mọi người trong chuyến đi. Bạn có thể tắt từng loại trong “Cài đặt”, mục “Thông báo”.',
+    'Một chuyến bay YOUYA theo dõi trực tiếp sẽ gửi “Chuyến bay đã cất cánh”, “Chuyến bay đã hạ cánh” và, khi trễ từ 15 phút, “Chuyến bay bị trễ”, mỗi thông báo kèm “Xem chuyến đi”. Chúng được gửi đến những người được gán cho chuyến bay, hoặc đến tất cả mọi người trong chuyến đi. Bạn có thể tắt từng loại trong “Cài đặt”, mục “Thông báo”.',
   'help.guide.notification-settings.result':
     '“Cài đặt” mở ở mục “Thông báo”, với một công tắc cho mỗi sự kiện và kênh.',
   'help.guide.link-journal.goal': 'Hiện một nhật ký Hành trình của bạn ngay trong chuyến đi, cho những người bạn chọn.',
@@ -6773,16 +6773,16 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     'Nhấn “Cài đặt chuyến đi” bên cạnh tên chuyến đi và chọn “Tiện ích bổ sung” ở bên trái. Chỉ chủ chuyến đi mới có khu vực này.',
   'help.guide.trip-addons.step.2':
-    'Nhấn công tắc của một tiện ích để bật hoặc tắt nó cho chuyến đi này. Danh sách gồm “Danh sách”, “Chi phí”, “Tài liệu”, “Cộng tác”, “Chuyến đi đường bộ” và “Chuyến tham quan”, tùy TREK của bạn có những tiện ích nào.',
+    'Nhấn công tắc của một tiện ích để bật hoặc tắt nó cho chuyến đi này. Danh sách gồm “Danh sách”, “Chi phí”, “Tài liệu”, “Cộng tác”, “Chuyến đi đường bộ” và “Chuyến tham quan”, tùy YOUYA của bạn có những tiện ích nào.',
   'help.guide.trip-addons.step.3':
-    '“Chỉ chuyến đi này” đánh dấu một tiện ích bạn đã đặt khác với phần còn lại của TREK. Hãy bật lại về mặc định để nó theo cài đặt của quản trị viên.',
+    '“Chỉ chuyến đi này” đánh dấu một tiện ích bạn đã đặt khác với phần còn lại của YOUYA. Hãy bật lại về mặc định để nó theo cài đặt của quản trị viên.',
   'help.guide.trip-addons.result':
     'Chuyến đi hiển thị các tiện ích bạn đã chọn, cho tất cả mọi người trong chuyến đi: một tab hoặc một phần của kế hoạch xuất hiện hoặc biến mất. Các chuyến đi khác của bạn vẫn theo cài đặt của quản trị viên.',
   'help.guide.trip-addons.tip.1': 'Tắt một tiện ích chỉ ẩn nó và không xóa gì cả. Bật lại và mọi thứ trở về như cũ.',
   'help.guide.trip-addons.tip.2':
     'Bạn có thể bật một tiện ích cho một chuyến đi ngay cả khi quản trị viên đã tắt nó với mọi người khác.',
   'help.guide.trip-addons.tip.3':
-    'Đổi công tắc cần có kết nối. Khi ngoại tuyến, TREK sẽ báo và giữ nguyên công tắc như cũ.',
+    'Đổi công tắc cần có kết nối. Khi ngoại tuyến, YOUYA sẽ báo và giữ nguyên công tắc như cũ.',
   'help.guide.edit-trip-settings.title': 'Chỉnh sửa chuyến đi từ trình lập kế hoạch',
   'help.guide.edit-trip-settings.goal':
     'Đổi tiêu đề, ngày, ảnh bìa hoặc tiền tệ của chuyến đi mà không cần rời khỏi chuyến đi.',
@@ -6794,7 +6794,7 @@ const help: TranslationStrings = {
     'Nhấn “Cập nhật”. “Cài đặt chuyến đi” đóng lại, và chuyến đi hiển thị thay đổi ngay lập tức.',
   'help.guide.edit-trip-settings.result': 'Chuyến đi hiển thị thông tin mới ở mọi nơi, cho tất cả mọi người tham gia.',
   'help.guide.edit-trip-settings.tip.1':
-    'Nếu bạn dời ngày bắt đầu, TREK sẽ hỏi trước xem các đặt chỗ nên đi theo thế nào. Nếu ngày mới làm mất những ngày đang có nội dung, TREK sẽ liệt kê các ngày đó trước khi bạn xác nhận.',
+    'Nếu bạn dời ngày bắt đầu, YOUYA sẽ hỏi trước xem các đặt chỗ nên đi theo thế nào. Nếu ngày mới làm mất những ngày đang có nội dung, YOUYA sẽ liệt kê các ngày đó trước khi bạn xác nhận.',
   'help.guide.edit-trip-settings.tip.2':
     'Biểu mẫu này cũng mở được từ “Chuyến đi” bằng biểu tượng bút chì trên thẻ chuyến đi. “Chỉnh sửa chuyến đi” chỉ hiện với những người được phép chỉnh sửa chuyến đi.',
   'help.guide.dawarich-stays.result':
@@ -6807,7 +6807,7 @@ const help: TranslationStrings = {
   'help.guide.place-image-from-file.result':
     'Ảnh trở thành ảnh của địa điểm trên thẻ, trong cột địa điểm, trong ngày và trên bản đồ.',
   'help.guide.place-own-hours.step.3':
-    '“Giờ mở cửa” bên dưới hiện cả tuần, mỗi ngày một hàng. Nếu TREK đã tìm được giờ của địa điểm thì chúng đã được điền sẵn; nếu không, bấm “Thêm giờ mở cửa” trước. Nhập giờ mở và đóng của từng ngày. Ở bên phải mỗi ngày, “24h” đánh dấu ngày đó mở cửa cả ngày và cánh cửa đóng đánh dấu ngày đó đóng cửa.',
+    '“Giờ mở cửa” bên dưới hiện cả tuần, mỗi ngày một hàng. Nếu YOUYA đã tìm được giờ của địa điểm thì chúng đã được điền sẵn; nếu không, bấm “Thêm giờ mở cửa” trước. Nhập giờ mở và đóng của từng ngày. Ở bên phải mỗi ngày, “24h” đánh dấu ngày đó mở cửa cả ngày và cánh cửa đóng đánh dấu ngày đó đóng cửa.',
   'help.guide.add-accommodation.tip.5':
     'Các lộ trình GPX và địa điểm của chuyến tham quan không bao giờ được đưa ra làm nơi lưu trú, chỉ có các địa điểm thông thường của chuyến đi.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6840,7 +6840,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     'Quyết định tài liệu chỉ được nhập từ kho của bạn, chỉ được xuất sang kho đó, hay cả hai, và điều gì xảy ra khi một tài liệu bị xóa hoặc sửa ở cả hai nơi.',
   'help.guide.files-sync-settings.tip.2':
-    'Với “Hỏi tôi”, tài liệu bị sửa ở cả hai nơi sẽ chờ trong “Cần xem lại”, bên dưới thẻ. Bấm “Giải quyết” và chọn “Giữ bản TREK”, “Giữ bản của nhà cung cấp” hoặc “Giữ cả hai”.',
+    'Với “Hỏi tôi”, tài liệu bị sửa ở cả hai nơi sẽ chờ trong “Cần xem lại”, bên dưới thẻ. Bấm “Giải quyết” và chọn “Giữ bản YOUYA”, “Giữ bản của nhà cung cấp” hoặc “Giữ cả hai”.',
   'help.guide.manage-notes.goal':
     'Mở một ghi chú đầy đủ, ghim ghi chú quan trọng lên đầu, và sửa hoặc xóa những gì đã lỗi thời.',
   'help.guide.manage-notes.tip.2':
@@ -6961,7 +6961,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     'Mở một chuyến tham quan ở tab “Chuyến tham quan” và cuộn bảng bên trái xuống “Dọc chuyến đi”, dưới các điểm dừng của chuyến. Thẻ này có khi chuyến tham quan đã có lộ trình.',
   'help.guide.tour-along-search.tip.3':
-    'Kết quả đến từ OpenStreetMap và chỉ mục địa điểm của TREK, nên việc tìm kiếm cần có kết nối. Khi không tìm thấy gì, “Widen to” thử khoảng cách kế tiếp; khi máy chủ đang bận, “Thử lại” hiện đồng hồ đếm ngược cho đến khi bạn thử lại được.',
+    'Kết quả đến từ OpenStreetMap và chỉ mục địa điểm của YOUYA, nên việc tìm kiếm cần có kết nối. Khi không tìm thấy gì, “Widen to” thử khoảng cách kế tiếp; khi máy chủ đang bận, “Thử lại” hiện đồng hồ đếm ngược cho đến khi bạn thử lại được.',
   'help.guide.tour-along-add-stop.tip.1':
     'Địa điểm trở thành điểm dừng của chuyến tham quan, không phải địa điểm của chuyến đi, nên nó không hiện trong danh sách địa điểm.',
   'help.guide.tour-3d-terrain.step.4':
@@ -6982,7 +6982,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     '“Chi tiết đường mòn”, bên dưới các điểm tham chiếu, hiện cấp độ SAC, mặt đường và loại đường của từng đoạn từ OpenStreetMap, và tô màu lộ trình trên bản đồ theo đó. Không mục nào trong đó làm đổi chuyến tham quan.',
   'help.guide.tour-hike-plan.step.4':
-    '“Thêm điểm” được bật sẵn từ đầu: bấm lên bản đồ ở nơi chuyến đi bộ bắt đầu và kết thúc. “Địa điểm chuyến đi” bên cạnh cho chọn một nhà nghỉ trên núi hoặc khách sạn của chuyến đi. Từ hai điểm trở lên, TREK tính lộ trình đi bộ.',
+    '“Thêm điểm” được bật sẵn từ đầu: bấm lên bản đồ ở nơi chuyến đi bộ bắt đầu và kết thúc. “Địa điểm chuyến đi” bên cạnh cho chọn một nhà nghỉ trên núi hoặc khách sạn của chuyến đi. Từ hai điểm trở lên, YOUYA tính lộ trình đi bộ.',
   'help.guide.tour-hike-trail-details.title': 'Xem cấp độ, mặt đường và loại đường dọc chuyến đi bộ',
   'help.guide.tour-hike-trail-details.tip.1':
     'Những đường không có giá trị trong OpenStreetMap được liệt kê dưới “Không rõ”, và không rõ không có nghĩa là dễ. Nếu một số đoạn hiện “Lần này không truy vấn được”, hãy bấm “Thử lại”.',
@@ -7013,7 +7013,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     '“Tóm tắt chuyến tham quan” bên phải cho “Thời gian đạp xe”, tức ước tính của bộ định tuyến cho hồ sơ đó, đã gồm các đoạn leo. Thời gian nghỉ không được tính.',
   'help.guide.tour-bike-profile.step.4':
-    'Ở “Điểm tham chiếu”, bấm “Địa điểm chuyến đi” và chọn điểm bắt đầu và kết thúc, ở đây là Hotel Alpenroyal rồi Hotel Greif. Bạn cũng có thể kiểm tra “Thêm điểm” đang bật và bấm lên bản đồ. Từ hai điểm trở lên, TREK tính lộ trình.',
+    'Ở “Điểm tham chiếu”, bấm “Địa điểm chuyến đi” và chọn điểm bắt đầu và kết thúc, ở đây là Hotel Alpenroyal rồi Hotel Greif. Bạn cũng có thể kiểm tra “Thêm điểm” đang bật và bấm lên bản đồ. Từ hai điểm trở lên, YOUYA tính lộ trình.',
   'help.guide.tour-bike-profile.tip.5':
     'Nếu quản trị viên cho phép bản đồ CyclOSM, hàng lớp trên bản đồ cũng có “Xe đạp” khi một chuyến đạp xe đang mở. Nếu lớp này ngừng tải, hãy chuyển sang “Bản đồ”. Chuyến tham quan không thay đổi.',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -7042,7 +7042,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     'Bản đồ của chuyến chèo thuyền có “Bản đồ” và “Vệ tinh”, cùng lớp phủ “Báo hiệu hàng hải” từ OpenSeaMap.',
   'help.guide.tour-paddle-water-route.step.3':
-    'Chọn “Lập chặng tiếp theo trên mặt nước”. TREK lập chặng đi theo sông hoặc hồ từ điểm này tới điểm kế tiếp.',
+    'Chọn “Lập chặng tiếp theo trên mặt nước”. YOUYA lập chặng đi theo sông hoặc hồ từ điểm này tới điểm kế tiếp.',
   'help.guide.tour-paddle-portage.title': 'Khiêng thuyền vòng qua chướng ngại',
   'help.guide.tour-paddle-portage.tip.2':
     'Ở điểm cuối cùng, “Khiêng thuyền từ đây” có hiệu lực sau khi bạn đặt điểm kế tiếp. Hàng sẽ ghi “Khiêng thuyền từ đây”, và dấu chéo của nó, “Thôi không khiêng”, hoàn tác việc đó.',
@@ -7063,7 +7063,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.3':
     'Trong thẻ “Tuyến cưỡi ngựa”, bấm “Tìm trong khung bản đồ”. Mọi tuyến cưỡi ngựa có biển chỉ dẫn trong khung nhìn được liệt kê ở đó kèm độ dài.',
   'help.guide.tour-horse-plan.tip.3':
-    'Đã di chuyển bản đồ sau khi tìm? Nút sẽ ghi “Tìm trong khung này”. Nếu khung nhìn quá lớn, TREK sẽ yêu cầu bạn phóng to trước.',
+    'Đã di chuyển bản đồ sau khi tìm? Nút sẽ ghi “Tìm trong khung này”. Nếu khung nhìn quá lớn, YOUYA sẽ yêu cầu bạn phóng to trước.',
   'help.guide.tour-horse-gap.step.4':
     'Trong thẻ “Điểm tham chiếu”, đoạn nối hiện “Thủ công, chưa kiểm tra” kèm độ dài. Rê chuột lên để đọc lý do.',
   'help.guide.tour-horse-recorded.step.2':
@@ -7135,7 +7135,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     'Trong thẻ “Trợ lý AI”, chọn cách kết nối: “Đăng nhập bằng ChatGPT” dùng gói ChatGPT của bạn, “Dán khóa API” dùng khóa từ Anthropic, OpenAI, Gemini hoặc OpenRouter.',
   'help.guide.connect-ai.step.2':
-    'Dán khóa của bạn vào. TREK sẽ cho biết nhà cung cấp mà nó nhận diện được và những gì sẽ được gửi đến đó. Nhấn “Kết nối”; TREK sẽ kiểm tra khóa với nhà cung cấp trước.',
+    'Dán khóa của bạn vào. YOUYA sẽ cho biết nhà cung cấp mà nó nhận diện được và những gì sẽ được gửi đến đó. Nhấn “Kết nối”; YOUYA sẽ kiểm tra khóa với nhà cung cấp trước.',
   'help.guide.connect-ai.step.3':
     'Thẻ hiện “Đã kết nối với” kèm tên nhà cung cấp. Chọn “Mô hình” bạn muốn, rồi nhấn “Mở trợ lý” để bắt đầu trong chuyến đi hiện tại hoặc chuyến đi kế tiếp của bạn.',
   'help.guide.connect-ai.result': 'Trợ lý chạy trên tài khoản của chính bạn, trong mọi chuyến đi.',
@@ -7154,7 +7154,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     '“Mặc định cho người dùng”, ở dưới cùng: với mỗi sự kiện và kênh, “Bật”, “Tắt” hoặc “Chặn” cho tất cả những ai chưa đổi.',
   'help.guide.default-user-settings.step.2':
-    'Trường bạn đã đặt sẽ có liên kết “cài lại” cạnh tên; liên kết này khôi phục giá trị mặc định có sẵn của TREK.',
+    'Trường bạn đã đặt sẽ có liên kết “cài lại” cạnh tên; liên kết này khôi phục giá trị mặc định có sẵn của YOUYA.',
   'help.guide.own-routing-engine.title': 'Dùng máy chủ định tuyến của riêng bạn',
   'help.guide.admin-passkeys.result':
     'Trang đăng nhập có “Đăng nhập bằng mật mã”, và mọi người có thể thêm passkey trong cài đặt của họ.',
@@ -7177,7 +7177,7 @@ const help: TranslationStrings = {
     'Rê chuột lên hàng đặt chỗ trong ngày: tay nắm ở bên trái cho thấy hàng này kéo được.',
   'help.guide.place-image-from-file.tip.1': 'Chỉ các tệp JPG, PNG, GIF và WebP được đưa ra; vé PDF thì không.',
   'help.guide.place-own-hours.step.4':
-    'Các nút ở bên phải “Giờ mở cửa”: nút sao chép áp dụng giờ của thứ Hai cho mọi ngày, còn dấu X xóa giờ của bạn. Nếu TREK đã tìm được giờ riêng, “Lấy từ thông tin địa điểm” đưa chúng trở lại.',
+    'Các nút ở bên phải “Giờ mở cửa”: nút sao chép áp dụng giờ của thứ Hai cho mọi ngày, còn dấu X xóa giờ của bạn. Nếu YOUYA đã tìm được giờ riêng, “Lấy từ thông tin địa điểm” đưa chúng trở lại.',
   'help.guide.confirm-stay-booking.step.2':
     'Đặt chỗ mở ra phía trên kế hoạch. Nhãn đầu tiên ở phần đầu cho biết trạng thái của nó.',
   'help.ctx.trip-map.bullet.9':
@@ -7194,7 +7194,7 @@ const help: TranslationStrings = {
   'help.guide.group-sort-bookings.step.1':
     'Ở “Thẻ” hoặc “Danh sách”, bấm “Tùy chọn hiển thị”, biểu tượng thanh trượt sau ba biểu tượng chế độ xem.',
   'help.guide.create-booking.tip.4':
-    'Khi ngoại tuyến, đặt chỗ được lưu trên thiết bị này và đồng bộ khi bạn có mạng trở lại. Tệp mới cần có kết nối, nên hãy gỡ chúng hoặc lưu sau. Nếu bạn lỡ bấm ra ngoài biểu mẫu hoặc nhấn Escape, TREK sẽ hỏi “Bỏ các thay đổi?” trước khi bất cứ thứ gì bạn đã nhập bị mất.',
+    'Khi ngoại tuyến, đặt chỗ được lưu trên thiết bị này và đồng bộ khi bạn có mạng trở lại. Tệp mới cần có kết nối, nên hãy gỡ chúng hoặc lưu sau. Nếu bạn lỡ bấm ra ngoài biểu mẫu hoặc nhấn Escape, YOUYA sẽ hỏi “Bỏ các thay đổi?” trước khi bất cứ thứ gì bạn đã nhập bị mất.',
   'help.guide.booking-on-map.tip.2': 'Kỳ lưu trú mở ở đêm đầu tiên.',
   'help.guide.export-bookings-csv.step.3':
     'Bấm “Xuất dưới dạng bảng tính (CSV)”, biểu tượng tải xuống sau “Tùy chọn hiển thị”.',
@@ -7206,7 +7206,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     'Bấm “Đồng bộ tài liệu” ở đầu bên phải của thanh. Khi chuyến đi đã gắn với một kho, thẻ của kho đó mở ở bên phải; nếu có nhiều kho, bấm kho bạn muốn ở “Chuyến đi này” bên trái.',
   'help.guide.files-sync-settings.tip.3':
-    '“Cập nhật tức thì”, một liên kết với “Sao chép” bên cạnh, chỉ có với những kho mà TREK không thể tự động đăng ký nhận thay đổi. Dán liên kết vào kho và các thay đổi sẽ đến ngay thay vì đợi lần kiểm tra tiếp theo.',
+    '“Cập nhật tức thì”, một liên kết với “Sao chép” bên cạnh, chỉ có với những kho mà YOUYA không thể tự động đăng ký nhận thay đổi. Dán liên kết vào kho và các thay đổi sẽ đến ngay thay vì đợi lần kiểm tra tiếp theo.',
   'help.guide.manage-notes.step.1':
     'Bấm ba chấm ở phần đầu thẻ ghi chú (“Tùy chọn khác”). Menu có “Mở rộng”, “Ghim”, “Chỉnh sửa” và “Xóa bỏ”.',
   'help.guide.note-categories.title': 'Phân loại ghi chú thành các danh mục',
@@ -7225,7 +7225,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     'Ảnh của địa điểm phủ kín màn hình, và các mũi tên chuyển qua những ảnh khác mà nguồn của nó có. Hãy đóng ảnh để quay lại hộp thoại, nơi “Hủy” giữ nguyên điểm dừng như cũ.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    'Ảnh này là ảnh riêng của địa điểm, ảnh bạn đặt trong biểu mẫu địa điểm. Nếu không có, TREK hiển thị ảnh mà nguồn của nó có cho địa điểm đó, nếu nó đến từ Google hoặc OpenStreetMap.',
+    'Ảnh này là ảnh riêng của địa điểm, ảnh bạn đặt trong biểu mẫu địa điểm. Nếu không có, YOUYA hiển thị ảnh mà nguồn của nó có cho địa điểm đó, nếu nó đến từ Google hoặc OpenStreetMap.',
   'help.guide.roadtrip-stop-photo.tip.2':
     'Trên điện thoại, chạm vào một điểm dừng trong tab “Chuyến đi đường bộ”: bảng của nó hiển thị ảnh trải rộng hết chiều ngang dưới tên, và chạm vào ảnh sẽ mở các ảnh.',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -7252,7 +7252,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     'Kéo chuyến tham quan có các chặng vào một ngày cũng hỏi như vậy trong một hộp thoại nhỏ. “Hủy” giữ kế hoạch như cũ.',
   'help.guide.tour-day-times.step.2':
-    'Đặt “Bắt đầu” và để trống “Kết thúc”. Dòng bên dưới các trường cho biết giờ kết thúc mà TREK tính ra: giờ bắt đầu cộng thời gian của chuyến tham quan.',
+    'Đặt “Bắt đầu” và để trống “Kết thúc”. Dòng bên dưới các trường cho biết giờ kết thúc mà YOUYA tính ra: giờ bắt đầu cộng thời gian của chuyến tham quan.',
   'help.guide.tour-remove-from-day.title': 'Gỡ chuyến tham quan khỏi một ngày',
   'help.guide.tour-filter-list.title': 'Lọc danh sách chuyến tham quan',
   'help.guide.tour-filter-list.tip.3':
@@ -7264,7 +7264,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     'Thẻ này dùng để đọc và để xem những gì đi kèm một chuyến tham quan. Lộ trình được sửa ở tab “Chuyến tham quan”: mở tab đó và bấm vào chuyến tham quan trong “Các chuyến tham quan của chuyến đi này”. Chuyến tham quan cũng được xóa ở đó, không phải ở đây.',
   'help.guide.tour-detail-read.step.6':
-    'Cuộn tiếp để xem “Mô tả” và “Ghi chú”, rồi “Nguồn gốc”: lên kế hoạch trong TREK, tệp đã nhập, hoặc tuyến wanderer mà nó đến từ đó, kèm ngày.',
+    'Cuộn tiếp để xem “Mô tả” và “Ghi chú”, rồi “Nguồn gốc”: lên kế hoạch trong YOUYA, tệp đã nhập, hoặc tuyến wanderer mà nó đến từ đó, kèm ngày.',
   'help.guide.tour-rename-colour.title': 'Đổi tên và đổi màu chuyến tham quan',
   'help.guide.tour-rename-colour.result':
     'Chuyến tham quan hiện tên mới ở mọi nơi trong chuyến đi, và đường của nó được vẽ bằng màu bạn đã chọn.',
@@ -7281,7 +7281,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     'Bấm “Compare on map” để vẽ lộ trình thực tế bằng nét chấm cạnh kế hoạch. “End comparison” gỡ nó đi.',
   'help.guide.tour-origin-check.step.2':
-    '“Đã nhập” hiện ngày nhập. “Tại đây” hiện trạng thái hiện tại: “Như khi nhập”, “Đã sửa trong TREK” hoặc “Đã lên kế hoạch lại, giữ vết đã ghi”.',
+    '“Đã nhập” hiện ngày nhập. “Tại đây” hiện trạng thái hiện tại: “Như khi nhập”, “Đã sửa trong YOUYA” hoặc “Đã lên kế hoạch lại, giữ vết đã ghi”.',
   'help.ctx.trip-tour-planner.bullet.1':
     '“Chuyến tham quan” nằm trên thanh tab của chuyến đi, ngay sau “Kế hoạch”, khi tiện ích Chuyến tham quan đang bật cho chuyến đi; chủ chuyến đi có thể bật hoặc tắt nó trong “Tiện ích bổ sung” của “Cài đặt chuyến đi”. Tab có trên máy tính và máy tính bảng; trên điện thoại, bạn xem chuyến tham quan và đặt vào các ngày từ tab “Kế hoạch”, nhưng không vẽ được.',
   'help.guide.tour-open-workspace.step.1':
@@ -7423,13 +7423,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     'Với chuyến chèo thuyền, “Dọc chuyến đi” tìm “Điểm hạ thủy”, “Cho thuê thuyền” và “Nước uống” trước tiên.',
   'help.guide.tour-paddle-water-route.step.4':
-    'Chặng mà TREK không lập được chuyển sang màu đỏ và nêu lý do, ví dụ chưa có dữ liệu mặt nước cho khu vực. Bấm “Vẽ thẳng” để tạm thời vẽ tay.',
+    'Chặng mà YOUYA không lập được chuyển sang màu đỏ và nêu lý do, ví dụ chưa có dữ liệu mặt nước cho khu vực. Bấm “Vẽ thẳng” để tạm thời vẽ tay.',
   'help.guide.tour-paddle-portage.goal':
     'Đánh dấu đoạn bạn khiêng thuyền, để nó được tính là đường bộ, kèm thời gian rời thuyền và xuống thuyền lại.',
   'help.guide.tour-paddle-portage.tip.3':
     'Việc khiêng thuyền được tính ở tốc độ 2 km/h cho đến khi bạn đặt “Tốc độ khiêng” riêng trong thẻ “Ước tính thời gian”.',
   'help.guide.tour-paddle-lock.tip.1':
-    'TREK không biết lịch hoạt động của âu thuyền. Các mốc giờ chỉ là những gì bạn nhập, nên hãy tự kiểm tra giờ hoạt động của âu thuyền.',
+    'YOUYA không biết lịch hoạt động của âu thuyền. Các mốc giờ chỉ là những gì bạn nhập, nên hãy tự kiểm tra giờ hoạt động của âu thuyền.',
   'help.guide.tour-paddle-time.step.3':
     'Hàng “Mặt nước” là quãng đường trên nước tính theo “Tốc độ chèo” của bạn. Đổi tốc độ ở trường “Tốc độ chèo” ở đầu cột.',
   'help.guide.tour-paddle-wind.goal': 'Xem dự báo gió tại điểm bắt đầu của chuyến tham quan vào ngày bạn chèo.',

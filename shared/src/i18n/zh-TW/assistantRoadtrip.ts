@@ -64,7 +64,7 @@ const assistantRoadtrip: TranslationStrings = {
   'assistant.card.roadtrip.dayRoute.unresolved': '有 {count} 個停靠點無法定位',
   'assistant.card.roadtrip.dayRoute.after': '{name} 之後',
   'assistant.card.roadtrip.dayRoute.follows': '沿 {name} 行駛',
-  'assistant.card.roadtrip.dayRoute.sketch': '目前為直線；套用變更後 TREK 會計算實際道路。',
+  'assistant.card.roadtrip.dayRoute.sketch': '目前為直線；套用變更後游芽會計算實際道路。',
   'assistant.card.roadtrip.dayEnd.at': '當天在 {name} 結束',
   'assistant.card.roadtrip.dayEnd.along': '當天在 {name} 之後行程的 {percent} % 處結束',
   'assistant.card.roadtrip.dayEnd.auto': '當天重新自動結束',

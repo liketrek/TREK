@@ -81,8 +81,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text': 'كل ميزة، وكل تحديث، للجميع. لا باقات مدفوعة، لا اشتراكات، لا شروط خفية.',
   'system_notice.release_notes.note_body_after':
     'ثم جئتم، وسرعان ما صرتم بالآلاف: بنجوم وتقارير أخطاء وترجمات إلى لغات لا أتحدثها وطلبات دمج من أشخاص لم ألتقِ بهم قط. ما زلت أتفقد المستودع أول شيء كل صباح، وما زال الأمر لا يبدو حقيقيًا تمامًا.',
-  'system_notice.release_notes.note_closing':
-    'شكرًا لوجودك هنا. Maurice',
+  'system_notice.release_notes.note_closing': 'شكرًا لوجودك هنا. Maurice',
   'system_notice.release_notes.support_label': 'بفضلك أنت',
   'system_notice.release_notes.support_lead': 'TREK موجود بفضل التبرعات فقط.',
   'system_notice.release_notes.support_text':

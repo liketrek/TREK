@@ -84,8 +84,7 @@ const system_notice: TranslationStrings = {
     'Elke functie, elke update, voor iedereen. Geen betaalde versies, geen abonnementen, geen addertjes.',
   'system_notice.release_notes.note_body_after':
     'Toen kwamen jullie, al snel bij duizenden: met sterren, bugmeldingen, vertalingen in talen die ik niet spreek en pull requests van mensen die ik nooit heb ontmoet. Ik check elke ochtend nog steeds als eerste de repository, en het voelt nog steeds niet helemaal echt.',
-  'system_notice.release_notes.note_closing':
-    'Bedankt dat je er bent. Maurice',
+  'system_notice.release_notes.note_closing': 'Bedankt dat je er bent. Maurice',
   'system_notice.release_notes.support_label': 'Mogelijk dankzij jou',
   'system_notice.release_notes.support_lead': 'TREK bestaat alleen dankzij donaties.',
   'system_notice.release_notes.support_text':

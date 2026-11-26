@@ -1,8 +1,8 @@
 # Login and Registration
 
-![TREK login page: the animated world map panel with the tagline "Your Trips. Your Plan." on the left and the Sign In card on the right with email and password fields, a Remember me switch, a Forgot password? link and a Register link](assets/Registration.png)
+![YOUYA login page: the animated world map panel with the tagline "Your Trips. Your Plan." on the left and the Sign In card on the right with email and password fields, a Remember me switch, a Forgot password? link and a Register link](assets/Registration.png)
 
-On a wide screen (1024 pixels and up) the left side of the page shows an animated dot map of the world on which routes light up between cities, with the tagline **Your Trips. Your Plan.** and a short description. The sign in card sits on the right. On narrower screens the panel is hidden and the card is shown under the TREK logo.
+On a wide screen (1024 pixels and up) the left side of the page shows an animated dot map of the world on which routes light up between cities, with the tagline **Your Trips. Your Plan.** and a short description. The sign in card sits on the right. On narrower screens the panel is hidden and the card is shown under the YOUYA logo.
 
 ## Signing in
 
@@ -21,13 +21,13 @@ The **Remember me** switch below the password field decides how long the session
 - **Off** (the default): a browser-session cookie with no `maxAge`, cleared when you close the browser, backed by a token valid for `SESSION_DURATION` (default `24h`).
 - **On**: a persistent cookie matching a token valid for `SESSION_DURATION_REMEMBER` (default `30d`), so the session survives browser restarts.
 
-Both durations are configurable per instance, see [Environment-Variables](Environment-Variables). Your choice is carried through the MFA step, through a password change, and through SSO sign-in. While you keep using TREK the cookie is silently re-issued once the token is past half its lifetime, with the same Remember me semantics, so an active session never expires mid-use. Only cookie sessions are renewed this way; API and MCP clients authenticating with a bearer token are not.
+Both durations are configurable per instance, see [Environment-Variables](Environment-Variables). Your choice is carried through the MFA step, through a password change, and through SSO sign-in. While you keep using YOUYA the cookie is silently re-issued once the token is past half its lifetime, with the same Remember me semantics, so an active session never expires mid-use. Only cookie sessions are renewed this way; API and MCP clients authenticating with a bearer token are not.
 
 Sign-ins that never pass through this switch (registration, the demo button and passkey sign-in) get the historical default instead: a persistent cookie lasting `SESSION_DURATION`.
 
 ### Forced password change
 
-Some accounts are flagged as needing a new password: the admin account TREK seeds on first boot always is, and so is an account restored with the `reset-admin.js` recovery script (see [Troubleshooting](Troubleshooting)). For those accounts a **Set new password** form is shown immediately after a successful login (or after the MFA step). The session cookie has already been issued at that point; the app simply keeps you on the form until the new password is saved, and saving it re-issues the cookie and signs your other sessions out.
+Some accounts are flagged as needing a new password: the admin account YOUYA seeds on first boot always is, and so is an account restored with the `reset-admin.js` recovery script (see [Troubleshooting](Troubleshooting)). For those accounts a **Set new password** form is shown immediately after a successful login (or after the MFA step). The session cookie has already been issued at that point; the app simply keeps you on the form until the new password is saved, and saving it re-issues the cookie and signs your other sessions out.
 
 There is no control in the Admin Panel that flags an existing account. An admin-set password (see [Admin-Users-and-Invites](Admin-Users-and-Invites)) neither raises the flag nor clears it, so a user who already carries it is still asked to choose their own password at the next sign-in.
 
@@ -43,7 +43,7 @@ The Register form appears under one of these conditions:
 
 - **Open registration**: the admin has enabled password registration for the instance (`password_registration` setting).
 - **Valid invite link**: you visited `/register?invite=TOKEN` with a valid token (see below).
-- **No accounts at all**: nobody has signed up yet; the registration form is shown automatically and the first account created becomes an admin. On a normal install this never happens, because TREK seeds an admin on first boot (see [First run](#first-run) below).
+- **No accounts at all**: nobody has signed up yet; the registration form is shown automatically and the first account created becomes an admin. On a normal install this never happens, because YOUYA seeds an admin on first boot (see [First run](#first-run) below).
 
 Registration fields: **username**, **email**, and **password**.
 
@@ -75,13 +75,13 @@ If the token is invalid, expired, or exhausted, an error is shown.
 
 ## First run
 
-On a normal install TREK seeds an admin account on first boot, before anyone can register, so the login page opens in Sign In mode and the Register link is hidden. The credentials depend on how you start the container:
+On a normal install YOUYA seeds an admin account on first boot, before anyone can register, so the login page opens in Sign In mode and the Register link is hidden. The credentials depend on how you start the container:
 
 - With **both** `ADMIN_EMAIL` and `ADMIN_PASSWORD` set, those values are used.
 - With only one of the two set, both are ignored (a warning is logged) and the generated credentials below are used instead.
 - Otherwise the account is `admin@trek.local`, username `admin`, with a randomly generated password printed to the container log; run `docker logs trek` to retrieve it.
 
-If no user exists at all, the page opens on a **Create Admin Account** form instead: "Set up the first admin account for TREK." The account created there is the admin.
+If no user exists at all, the page opens on a **Create Admin Account** form instead: "Set up the first admin account for YOUYA." The account created there is the admin.
 
 The seeded admin is flagged as requiring a password change, so you are forced to set a new password on first sign-in. Until that happens the Register link stays hidden even though password registration is enabled by default; once the password is changed the link appears normally.
 
@@ -91,7 +91,7 @@ See [Quick-Start](Quick-Start) for the full first-boot walkthrough.
 
 ## Sign-in over plain HTTP
 
-If you reach TREK over plain HTTP, the browser drops the secure session cookie and the next request fails with "Access token required". After such a sign-in the page shows a warning, **Login won't stick over HTTP**, with an **Open the Troubleshooting guide** link. Use HTTPS, or for a home lab set `COOKIE_SECURE=false`. See [Troubleshooting](Troubleshooting).
+If you reach YOUYA over plain HTTP, the browser drops the secure session cookie and the next request fails with "Access token required". After such a sign-in the page shows a warning, **Login won't stick over HTTP**, with an **Open the Troubleshooting guide** link. Use HTTPS, or for a home lab set `COOKIE_SECURE=false`. See [Troubleshooting](Troubleshooting).
 
 ## Rate limiting
 

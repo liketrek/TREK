@@ -77,8 +77,7 @@ const system_notice: TranslationStrings = {
   'system_notice.release_notes.promise_text': 'כל תכונה, כל עדכון, לכולם. בלי מסלולים בתשלום, בלי מנויים, בלי מלכודות.',
   'system_notice.release_notes.note_body_after':
     'ואז הגעתם אתם, ותוך זמן קצר כבר באלפים: עם כוכבים, דיווחי באגים, תרגומים לשפות שאני לא מדבר ובקשות משיכה מאנשים שמעולם לא פגשתי. אני עדיין בודק את המאגר דבר ראשון כל בוקר, וזה עדיין לא לגמרי מרגיש אמיתי.',
-  'system_notice.release_notes.note_closing':
-    'תודה שאתם כאן. Maurice',
+  'system_notice.release_notes.note_closing': 'תודה שאתם כאן. Maurice',
   'system_notice.release_notes.support_label': 'בזכותכם',
   'system_notice.release_notes.support_lead': 'TREK קיים רק בזכות תרומות.',
   'system_notice.release_notes.support_text':

@@ -50,9 +50,9 @@ Every image carries the standard `org.opencontainers.image.*` labels (title, ver
 
 ## First Start
 
-On the very first start with an empty database TREK creates an admin account. Without `ADMIN_EMAIL` and `ADMIN_PASSWORD` (both are needed, and they only apply on that first start) it uses `admin@trek.local` with a random password that is printed to the container log, so run `docker logs trek` and sign in with it. See [Quick-Start](Quick-Start).
+On the very first start with an empty database YOUYA creates an admin account. Without `ADMIN_EMAIL` and `ADMIN_PASSWORD` (both are needed, and they only apply on that first start) it uses `admin@trek.local` with a random password that is printed to the container log, so run `docker logs trek` and sign in with it. See [Quick-Start](Quick-Start).
 
-When you start a newer image, TREK first copies the database to `data/pre-migrate-<schema>-<time>.db` before it applies any migration, so you can go back to the previous image if needed. See [Updating](Updating).
+When you start a newer image, YOUYA first copies the database to `data/pre-migrate-<schema>-<time>.db` before it applies any migration, so you can go back to the previous image if needed. See [Updating](Updating).
 
 The in-app Help pages come from the image itself (`/app/wiki`), so they always match the version you run. You do not need to set `TREK_WIKI_DIR`.
 

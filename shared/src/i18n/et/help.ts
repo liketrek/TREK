@@ -6,7 +6,7 @@ const help: TranslationStrings = {
   'help.contents': 'Sisukord',
   'help.noResults': 'Sobivaid lehti ei leitud.',
   'help.errorTitle': 'Lehte ei õnnestunud laadida',
-  'help.errorBody': 'Abiteave laaditakse TREKi vikist. Kontrolli ühendust ja proovi uuesti.',
+  'help.errorBody': 'Abiteave laaditakse YOUYAi vikist. Kontrolli ühendust ja proovi uuesti.',
 
   // ── Help center (the contextual panel behind the ? in the navbar) ──────────
   'help.center.button': 'Abi selle vaate kohta',
@@ -72,14 +72,14 @@ const help: TranslationStrings = {
     'Klõpsa „Uus reis“. Sama teevad ka sinu reiside lõpus olev kaart ja paremas alanurgas olev nupp.',
   'help.guide.create-trip.step.2': 'Anna reisile nimi. See on ainus kohustuslik väli, kõik muu saad lisada hiljem.',
   'help.guide.create-trip.step.3':
-    'Vali algus- ja lõppkuupäev. TREK loob iga kuupäeva jaoks ühe päeva, nii et saad kohe reisiplaani koostama hakata. Kuupäevi veel pole? Jäta mõlemad tühjaks ja sisesta hoopis „Päevade arv“.',
+    'Vali algus- ja lõppkuupäev. YOUYA loob iga kuupäeva jaoks ühe päeva, nii et saad kohe reisiplaani koostama hakata. Kuupäevi veel pole? Jäta mõlemad tühjaks ja sisesta hoopis „Päevade arv“.',
   'help.guide.create-trip.step.4':
     'Valikuline: lisa kaanefoto. Laadi üles oma foto, lohista või kleebi see või otsi Unsplashist sihtkoha järgi.',
   'help.guide.create-trip.step.5': 'Klõpsa „Loo uus reis“.',
   'help.guide.create-trip.result':
     'Reis ilmub sinu ülevaatesse. Kui see on sinu järgmine reis, on see näha ülemisel pardakaardil.',
   'help.guide.create-trip.tip.1':
-    'Kuupäevi saab hiljem muuta. Kui broneeringud on juba olemas, küsib TREK, kas need nihutada koos päevadega.',
+    'Kuupäevi saab hiljem muuta. Kui broneeringud on juba olemas, küsib YOUYA, kas need nihutada koos päevadega.',
   'help.guide.create-trip.tip.2': 'Siin valitud reisi valuutasse arvestatakse ümber kõik kulud. Vali sihtkoha valuuta.',
 
   // edit-trip
@@ -146,7 +146,7 @@ const help: TranslationStrings = {
   'help.guide.calendar-feed.goal':
     'Näe kõigi aktiivsete reiside päevi ja broneeringuid oma kalendrirakenduses, alati ajakohasena.',
   'help.guide.calendar-feed.step.1': 'Klõpsa vaatelüliti kõrval oleval kalendriikoonil.',
-  'help.guide.calendar-feed.step.2': 'Klõpsa „Lülita kalendri tellimus sisse“. TREK loob privaatse kalendrivoo lingi.',
+  'help.guide.calendar-feed.step.2': 'Klõpsa „Lülita kalendri tellimus sisse“. YOUYA loob privaatse kalendrivoo lingi.',
   'help.guide.calendar-feed.step.3':
     'Klõpsa „Lisa Google’i kalendrisse“ või „Lisa Apple’i kalendrisse / Outlooki“. Muu kalendrirakenduse jaoks ava „Või kopeeri link käsitsi“ ja kopeeri link sealt.',
   'help.guide.calendar-feed.result':
@@ -345,7 +345,7 @@ const help: TranslationStrings = {
   // invite
   'help.guide.invite.title': 'Planeeri koos kellegagi',
   'help.guide.invite.goal':
-    'Ühenda oma plaan teise TREKi kasutaja plaaniga, et näeksite mõlema vabu päevi ühes ruudustikus.',
+    'Ühenda oma plaan teise YOUYAi kasutaja plaaniga, et näeksite mõlema vabu päevi ühes ruudustikus.',
   'help.guide.invite.step.1': 'Klõpsa kaardil „Inimesi“ inimese ikoonil.',
   'help.guide.invite.step.2': 'Vali kasutaja ja klõpsa „Saada kutse“.',
   'help.guide.invite.step.3':
@@ -373,7 +373,7 @@ const help: TranslationStrings = {
   // ── Screen: atlas ──────────────────────────────────────────────────────────
   'help.ctx.atlas.title': 'Atlas',
   'help.ctx.atlas.summary':
-    'Atlas näitab maailmakaardil, kus oled reisinud: iga riik, kuhu mõni reis sind on viinud, on värviga täidetud, ja riigid, mida külastasid enne TREKi kasutamist, saad lisada käsitsi. Suumi piirkondade nägemiseks sisse, pea soovinimekirja kohtadest, mida veel näha tahad, ja vaata oma numbreid allosas olevalt klaaspaneelilt.',
+    'Atlas näitab maailmakaardil, kus oled reisinud: iga riik, kuhu mõni reis sind on viinud, on värviga täidetud, ja riigid, mida külastasid enne YOUYAi kasutamist, saad lisada käsitsi. Suumi piirkondade nägemiseks sisse, pea soovinimekirja kohtadest, mida veel näha tahad, ja vaata oma numbreid allosas olevalt klaaspaneelilt.',
   'help.ctx.atlas.bullet.1':
     'Kaart: igal külastatud riigil on oma püsiv värv, plaanitud riikidel on katkendlik piirjoon, soovinimekirja riikidel diagonaalne viirutus ja kõik teised riigid on hallid. Vii kursor riigile, et näha selle reise, kohti ning esimest ja viimast külastust.',
   'help.ctx.atlas.bullet.2':
@@ -389,7 +389,7 @@ const help: TranslationStrings = {
   // mark-country
   'help.guide.mark-country.title': 'Märgi riik külastatuks',
   'help.guide.mark-country.goal':
-    'Lisa riik, kus käisid enne TREKi kasutamist, et see oleks kaardil ja sinu riikide arvus.',
+    'Lisa riik, kus käisid enne YOUYAi kasutamist, et see oleks kaardil ja sinu riikide arvus.',
   'help.guide.mark-country.step.1': 'Kirjuta riigi nimi kaardi ülaosas olevasse otsingukasti.',
   'help.guide.mark-country.step.2': 'Vali riik loendist. Kaart liigub selle riigini ja avaneb riigi hüpikaken.',
   'help.guide.mark-country.step.3': 'Vali „Märgi külastatuks“.',
@@ -455,7 +455,7 @@ const help: TranslationStrings = {
   'help.guide.search-place.result':
     'Märgitakse piirkond ja ka riik. Riikide puhul, mille kohta kaardipaketis piirkonnaandmeid pole, märgitakse hoopis riik ise.',
   'help.guide.search-place.tip.1':
-    'Kohad tulevad samast otsingust nagu mujal TREKis, seega kasutatakse teenusepakkujat, mille administraator on seadistanud.',
+    'Kohad tulevad samast otsingust nagu mujal YOUYAis, seega kasutatakse teenusepakkujat, mille administraator on seadistanud.',
   // bucket-country
   'help.guide.bucket-country.title': 'Lisa riik soovinimekirja',
   'help.guide.bucket-country.goal': 'Pea kaardil riikide soovinimekirja, mis on eraldi külastatud riikidest.',
@@ -491,7 +491,7 @@ const help: TranslationStrings = {
     'Maailmajagude juures on külastatud riikide arv iga maailmajao kohta. Antarktika ilmub ritta pärast seda, kui oled seal käinud. Edasi tulevad sinu seeria (järjestikused aastad, kus on olnud vähemalt üks reis) ja selle aasta reiside arv.',
   'help.guide.stats.result': 'Numbrid uuenevad reiside planeerimise käigus automaatselt. Siin ei pea midagi haldama.',
   'help.guide.stats.tip.1':
-    'Linnad loetakse aadressi tekstist, neid ei otsita eraldi üles. TREK jätab riigi, postiindeksi ja piirkonna vahele ning võtab nende ees oleva nime, nii et „10178 Berlin“ loetakse Berliiniks. Lühike aadress nagu „Osteria Francescana, Italy“ ei lisa linna üldse.',
+    'Linnad loetakse aadressi tekstist, neid ei otsita eraldi üles. YOUYA jätab riigi, postiindeksi ja piirkonna vahele ning võtab nende ees oleva nime, nii et „10178 Berlin“ loetakse Berliiniks. Lühike aadress nagu „Osteria Francescana, Italy“ ei lisa linna üldse.',
   'help.guide.stats.tip.2':
     'Käsitsi märgitud riigid lähevad arvesse jaotises „Riigid“ ja maailmajagude all, kuid ei lisa reise, kohti ega päevi.',
 
@@ -502,7 +502,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.step.1':
     'Kui Dawarichi lisamoodul on ühendatud, ilmub kaardi alaossa statistikast vasakule Dawarichi paneel kahe paaniga. Klõpsa „Riigid“.',
   'help.guide.dawarich-countries.step.2':
-    'Aken avaneb vahekaardil „Riigid“. Klõpsa „Otsi riike“: TREK loeb kuu kaupa läbi riigid ja linnad, mida sinu salvestused viimase 12 kuu jooksul hõlmavad, nii et see võib veidi aega võtta. Iga riik, mida sinu Atlases veel pole, on loendis koos lipu, linnade arvu ja esimese linna nimega. Kõik riigid on vaikimisi linnukesega märgitud. Klõpsa real, et see välja jätta.',
+    'Aken avaneb vahekaardil „Riigid“. Klõpsa „Otsi riike“: YOUYA loeb kuu kaupa läbi riigid ja linnad, mida sinu salvestused viimase 12 kuu jooksul hõlmavad, nii et see võib veidi aega võtta. Iga riik, mida sinu Atlases veel pole, on loendis koos lipu, linnade arvu ja esimese linna nimega. Kõik riigid on vaikimisi linnukesega märgitud. Klõpsa real, et see välja jätta.',
   'help.guide.dawarich-countries.step.3':
     'Kinnita paremas allnurgas oleva nupuga, millel on viie märgitud rea korral kirjas „Lisa 5 riiki“. Aknas on näha, mitu riiki lisati. Kui akna sulged, on kaart juba uuendatud.',
   'help.guide.dawarich-countries.result':
@@ -510,7 +510,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-countries.tip.1':
     'Riigid, mida Atlas juba külastatuna näitab, olgu käsitsi märgituna, reisi põhjal või varasema kontrolli järgi, jäetakse välja, nii et sinu enda märgised ei muutu kunagi. Riik, mille oled Atlasest varem eemaldanud, lisatakse uuesti, kui selle siin kinnitad.',
   'help.guide.dawarich-countries.tip.2':
-    'Kui TREK ei suuda riigi nime sobitada, kuvatakse nimi ridade all ja seda ei jäeta välja. „Kontrolli uuesti“ küsib Dawarichilt uuesti. Loendi all olev märkus ütleb, et kontrolliti viimast 12 kuud. Seda ajavahemikku ei saa muuta.',
+    'Kui YOUYA ei suuda riigi nime sobitada, kuvatakse nimi ridade all ja seda ei jäeta välja. „Kontrolli uuesti“ küsib Dawarichilt uuesti. Loendi all olev märkus ütleb, et kontrolliti viimast 12 kuud. Seda ajavahemikku ei saa muuta.',
   // dawarich-wishes
   'help.guide.dawarich-wishes.title': 'Soovide täidetuks märkimine salvestuste põhjal',
   'help.guide.dawarich-wishes.goal':
@@ -518,7 +518,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.step.1':
     'Klõpsa kaardi alaosas statistikast vasakul olevas Dawarichi paneelis „Soovinimekiri“.',
   'help.guide.dawarich-wishes.step.2':
-    'Aken avaneb vahekaardil „Soovinimekiri“. Klõpsa „Kontrolli soovinimekirja“: TREK otsib sinu salvestustest läbi kõik koordinaatidega kirjed. Soov, milleni jõudsid, on loendis koos sellega, kui lähedale jõudsid, kui kaua seal olid ja mis päeval, ning see on vaikimisi linnukesega märgitud. Juba täidetud soovi juures on kirjas „Juba täidetuks märgitud“. Loendi all olev märkus loeb kokku koordinaatideta kirjed ja näitab ka reeglit: soov loetakse täidetuks 250 m raadiuses ja pärast 20 minutit kohapeal.',
+    'Aken avaneb vahekaardil „Soovinimekiri“. Klõpsa „Kontrolli soovinimekirja“: YOUYA otsib sinu salvestustest läbi kõik koordinaatidega kirjed. Soov, milleni jõudsid, on loendis koos sellega, kui lähedale jõudsid, kui kaua seal olid ja mis päeval, ning see on vaikimisi linnukesega märgitud. Juba täidetud soovi juures on kirjas „Juba täidetuks märgitud“. Loendi all olev märkus loeb kokku koordinaatideta kirjed ja näitab ka reeglit: soov loetakse täidetuks 250 m raadiuses ja pärast 20 minutit kohapeal.',
   'help.guide.dawarich-wishes.step.3':
     'Kinnita paremas allnurgas oleva nupuga, millel on kahe märgitud rea korral kirjas „Märgi 2 täidetuks“. Seejärel sulge aken ja ava selle kõrval paneeli vahekaart „Soovinimekiri“.',
   'help.guide.dawarich-wishes.result':
@@ -526,7 +526,7 @@ const help: TranslationStrings = {
   'help.guide.dawarich-wishes.tip.1':
     'Möödasõit ei lähe arvesse: pead olema kohale lähedal ja viibima seal mõnda aega. Kui sobib mitu viibimist, kasutatakse pikimat. Koordinaatideta soovi ei saa kontrollida, seega lisa kohad „Lisa koht“ otsingu kaudu, mitte ainult nime järgi.',
   'help.guide.dawarich-wishes.tip.2':
-    'Üks kontroll vaatab läbi kuni 50 kirjet, alustades nendest, mis pole veel täidetuks märgitud. Kui neid on rohkem, annab TREK sellest teada. Juba täidetuks märgitud soov säilitab oma kuupäeva.',
+    'Üks kontroll vaatab läbi kuni 50 kirjet, alustades nendest, mis pole veel täidetuks märgitud. Kui neid on rohkem, annab YOUYA sellest teada. Juba täidetuks märgitud soov säilitab oma kuupäeva.',
   // ── Screen: collections ────────────────────────────────────────────────────
   'help.ctx.collections.title': 'Kogumikud',
   'help.ctx.collections.summary':
@@ -582,7 +582,7 @@ const help: TranslationStrings = {
   'help.guide.import-from-trip.result':
     'Kohad kopeeritakse nimekirja koos nime, aadressi, koordinaatide, kirjelduse ja kategooriaga. Reis ise ei muutu.',
   'help.guide.import-from-trip.tip.1':
-    'TREK jätab nime või koordinaatide järgi tuvastatud duplikaadid automaatselt vahele, nii et kaks korda importimine on ohutu.',
+    'YOUYA jätab nime või koordinaatide järgi tuvastatud duplikaadid automaatselt vahele, nii et kaks korda importimine on ohutu.',
   'help.guide.import-from-trip.tip.2':
     'Reisi kohtade loendis pakub valikurežiim hoopis nuppu „Salvesta kogumikku“ käsitsi valitud kohtade jaoks.',
   // place-status
@@ -654,7 +654,7 @@ const help: TranslationStrings = {
     'Seda saavad teha ka jagatud nimekirja vaatajad. Kohad kopeeritakse nimekirjast ja nimekiri ise ei muutu.',
   // share-list
   'help.guide.share-list.title': 'Nimekirja jagamine',
-  'help.guide.share-list.goal': 'Planeeri nimekirja reaalajas koos teiste selle TREKi kasutajatega.',
+  'help.guide.share-list.goal': 'Planeeri nimekirja reaalajas koos teiste selle YOUYAi kasutajatega.',
   'help.guide.share-list.step.1': 'Klõpsa oma nimekirja päises „Jaga“.',
   'help.guide.share-list.step.2': 'Vali kasutaja ja roll: „Vaataja“, „Muutja“ või „Administraator“.',
   'help.guide.share-list.step.3':
@@ -668,23 +668,23 @@ const help: TranslationStrings = {
   // export-list
   'help.guide.export-list.title': 'Ekspordi nimekiri failina',
   'help.guide.export-list.goal':
-    'Anna nimekiri kellelegi teises TREKi serveris, ava see kaardirakenduses või vaata seda Google My Mapsis.',
+    'Anna nimekiri kellelegi teises YOUYAi serveris, ava see kaardirakenduses või vaata seda Google My Mapsis.',
   'help.guide.export-list.step.1': 'Klõpsa nimekirja päises „Ekspordi“.',
   'help.guide.export-list.step.2':
-    'Vali „TREKi nimekiri“, kui tahad nimekirja kasutada teises TREKis koos siltide ja olekuga, GPX OsmAndi, Organic Mapsi, Garmini ja muude teekonnapunkte lugevate rakenduste jaoks või KML Google My Mapsi jaoks, et näha kohti Google Mapsis.',
+    'Vali „YOUYAi nimekiri“, kui tahad nimekirja kasutada teises YOUYAis koos siltide ja olekuga, GPX OsmAndi, Organic Mapsi, Garmini ja muude teekonnapunkte lugevate rakenduste jaoks või KML Google My Mapsi jaoks, et näha kohti Google Mapsis.',
   'help.guide.export-list.result': 'Fail laaditakse alla. Jagatud nimekirja võib eksportida iga liige.',
   'help.guide.export-list.tip.1':
-    'Koordinaatideta kohast ei saa GPX-teekonnapunkti ega KML-nööpnõela. See jäetakse välja ja TREK ütleb, mitu sellist oli.',
+    'Koordinaatideta kohast ei saa GPX-teekonnapunkti ega KML-nööpnõela. See jäetakse välja ja YOUYA ütleb, mitu sellist oli.',
   'help.guide.export-list.tip.2':
-    'Hinnanguid, liikmeid ja üles laaditud fotosid meelega ei ekspordita: need kuuluvad sellele TREKile, mitte nimekirjale.',
+    'Hinnanguid, liikmeid ja üles laaditud fotosid meelega ei ekspordita: need kuuluvad sellele YOUYAile, mitte nimekirjale.',
   // import-file
   'help.guide.import-file.title': 'Impordi nimekiri failist',
   'help.guide.import-file.goal':
-    'Impordi TREKi nimekirja fail või GPX-fail uue nimekirjana või olemasolevasse nimekirja.',
+    'Impordi YOUYAi nimekirja fail või GPX-fail uue nimekirjana või olemasolevasse nimekirja.',
   'help.guide.import-file.step.1':
     'Klõpsa nimekirjade ribal nupu „Uus nimekiri“ kõrval olevat üleslaadimisnoolega impordinuppu.',
   'help.guide.import-file.step.2':
-    'Vali fail. Enne importimist näitab TREK, mis failis on: nimi, kohtade arv ja siltide arv.',
+    'Vali fail. Enne importimist näitab YOUYA, mis failis on: nimi, kohtade arv ja siltide arv.',
   'help.guide.import-file.step.3':
     'Jäta valik „Uus nimekiri“ ja muuda soovi korral nime, seejärel klõpsa „Impordi“. Või vali „Lisa nimekirja“, et lisada kohad nimekirja, mida saad muuta, ja klõpsa „Lisa nimekirja“.',
   'help.guide.import-file.result':
@@ -692,7 +692,7 @@ const help: TranslationStrings = {
   'help.guide.import-file.tip.1':
     'GPX-failist saab igast nimega teekonnapunktist koht. Rajad on jooned ja need jäetakse välja, eelvaade näitab, mitu punkti see oli.',
   'help.guide.import-file.tip.2':
-    'Fail, mis pole TREKi nimekiri ega GPX, lükatakse tagasi ja TREK näitab põhjust. Kui ühte kohta ei õnnestu lugeda, jäetakse vahele ainult see koht, mitte kogu fail.',
+    'Fail, mis pole YOUYAi nimekiri ega GPX, lükatakse tagasi ja YOUYA näitab põhjust. Kui ühte kohta ei õnnestu lugeda, jäetakse vahele ainult see koht, mitte kogu fail.',
   // edit-list
   'help.guide.edit-list.title': 'Muuda või kustuta nimekiri',
   'help.guide.edit-list.goal': 'Muuda nimekirja nime, värvi, kaanepilti, kirjeldust või linke või eemalda nimekiri.',
@@ -904,7 +904,7 @@ const help: TranslationStrings = {
     'Päevaga sissekandeid arvestatakse ainult üks kord, olenemata sellest, mitu reisi seda päeva hõlmab.',
   // share-public
   'help.guide.share-public.title': 'Jaga reisilugu avalikult',
-  'help.guide.share-public.goal': 'Anna TREKi kontota inimestele ainult lugemiseks mõeldud link.',
+  'help.guide.share-public.goal': 'Anna YOUYAi kontota inimestele ainult lugemiseks mõeldud link.',
   'help.guide.share-public.step.1': 'Ava päises ⋯ kaudu „Reisiloo seaded“ ja keri jaotiseni „Avalik jagamine“.',
   'help.guide.share-public.step.2': 'Klõpsa „Loo jagamislink“.',
   'help.guide.share-public.step.3':
@@ -922,7 +922,7 @@ const help: TranslationStrings = {
   'help.guide.contributors.step.3': 'Vali „Vaataja“ või „Muutja“ ja klõpsa „Kutsu“.',
   'help.guide.contributors.result':
     'Reisilugu ilmub nende loendisse ja nende sissekannetel on nende nimi. Kaasautori eemaldamiseks klõpsa tema kõrval oleval ×.',
-  'help.guide.contributors.tip.1': 'Kaasautorid on selle TREKi kasutajad. Kõigile teistele on avalik link.',
+  'help.guide.contributors.tip.1': 'Kaasautorid on selle YOUYAi kasutajad. Kõigile teistele on avalik link.',
   // studio
   'help.guide.studio.title': 'Kujunda reisilugu fotoraamatuks',
   'help.guide.studio.goal': 'Muuda reisipäevik trükitavateks lehtedeks.',
@@ -960,7 +960,7 @@ const help: TranslationStrings = {
   // ── Screen: journey-studio ─────────────────────────────────────────────────
   'help.ctx.journey-studio.title': 'Stuudio',
   'help.ctx.journey-studio.summary':
-    'TREK Studio paigutab reisi trükitavaks fotoraamatuks. See avaneb päeviku peal: külgriba paneelidega on vasakul, töötatav lehepaar keskel ja selle omadused paremal. Automaatne paigutus koostab sinu kirjetest esimese kavandi, teema annab raamatule värvid ja kirjatüübid ning assistent oskab lehti sinuga koos kujundada. Pärast seda saad kõike liigutada, kärpida ja ümber kujundada ning iga sammu tagasi võtta.',
+    'YOUYA Studio paigutab reisi trükitavaks fotoraamatuks. See avaneb päeviku peal: külgriba paneelidega on vasakul, töötatav lehepaar keskel ja selle omadused paremal. Automaatne paigutus koostab sinu kirjetest esimese kavandi, teema annab raamatule värvid ja kirjatüübid ning assistent oskab lehti sinuga koos kujundada. Pärast seda saad kõike liigutada, kärpida ja ümber kujundada ning iga sammu tagasi võtta.',
   'help.ctx.journey-studio.bullet.1':
     'Ülariba: vasakul reisiloo kaas ja nimi. Paremal on näha, kes veel raamatus osaleb ja kas see on salvestatud, lehe formaat, tagasivõtmine, uuesti tegemine ja kleebi, Automaatne paigutus, assistent, abi, Eksport ning nupp, mis sulgeb Stuudio.',
   'help.ctx.journey-studio.bullet.2':
@@ -972,7 +972,7 @@ const help: TranslationStrings = {
   'help.ctx.journey-studio.bullet.5':
     'Raamat on paigutatud nagu trükitud raamat: kaas, üksik esimene lehekülg tühja kaanesisu vastas, lehepaarid, üksik viimane lehekülg ja tagakaas. Leheküljenumbrid loetakse esimesest leheküljest ja trükitakse nii, nagu need on näidatud.',
   'help.ctx.journey-studio.bullet.6':
-    'Kujundada saab mitu inimest korraga: igaüks näeb teiste kursoreid koos nimedega. Kui salvestad versiooni, mida keegi teine on vahepeal muutnud, näitab TREK konflikti ega kirjuta tema tööd üle.',
+    'Kujundada saab mitu inimest korraga: igaüks näeb teiste kursoreid koos nimedega. Kui salvestad versiooni, mida keegi teine on vahepeal muutnud, näitab YOUYA konflikti ega kirjuta tema tööd üle.',
   'help.ctx.journey-studio.bullet.7':
     'Teema: üks ilme kogu raamatule, selle paber, tint ja kolm rõhuvärvi, kirjatüübid ja motiivid. Teemaga seotud elemendid järgivad seda, kui sa teemat muudad.',
   'help.ctx.journey-studio.bullet.8':
@@ -1052,7 +1052,7 @@ const help: TranslationStrings = {
     'Kõik seotud värvid ja kirjatüübid raamatus muutuvad korraga ning teema rakendamine on üks tagasivõtmise samm.',
   'help.guide.studio-content.tip.1': 'Jaotise „Sisu“ ülaosas olev otsinguväli filtreerib mõlemat loendit.',
   'help.guide.studio-content.tip.2':
-    'Kui lohistad faili arvutist tööpinnale, laadib TREK selle üles ja paigutab ühe sammuga.',
+    'Kui lohistad faili arvutist tööpinnale, laadib YOUYA selle üles ja paigutab ühe sammuga.',
   // studio-elements
   'help.guide.studio-elements.title': 'Lisa tekst, kujundid, ikoonid ja kleebised',
   'help.guide.studio-elements.goal': 'Kaunista lehepaari lisaks fotodele ja lugudele.',
@@ -1159,12 +1159,12 @@ const help: TranslationStrings = {
   'help.guide.studio-spread-file.result':
     'Lehepaar imporditakse koos raamide ja tekstistiilidega. Lohista uue reisiloo fotod raamidesse.',
   'help.guide.studio-spread-file.tip.1':
-    'Kui fail pole lehepaari kujundus, lükkab TREK selle tagasi ja näitab põhjust.',
+    'Kui fail pole lehepaari kujundus, lükkab YOUYA selle tagasi ja näitab põhjust.',
 
   // ── Screen: settings (all tabs) ────────────────────────────────────────────
   'help.ctx.settings.title': 'Seaded',
   'help.ctx.settings.summary':
-    'Sinu isiklikud seaded, iga teema jaoks vasakul külgribal oma vaheleht. Enamik lüliteid rakendub kohe. Nupuga „Salvesta“ vorm salvestub alles siis, kui klõpsad „Salvesta“. Miski siin ei muuda TREKi teiste jaoks.',
+    'Sinu isiklikud seaded, iga teema jaoks vasakul külgribal oma vaheleht. Enamik lüliteid rakendub kohe. Nupuga „Salvesta“ vorm salvestub alles siis, kui klõpsad „Salvesta“. Miski siin ei muuda YOUYAi teiste jaoks.',
   'help.ctx.settings.bullet.1':
     'Vasakul olev külgriba: „Üldine“, „Välimus“, „Kaart“, „Teavitused“, „Integratsioonid“, „Võrguühenduseta“ ja „Konto“. „Pluginad“ ilmub, kui mõni plugin on aktiivne. „Teave“ on näha, kui haldaja pole seda peitnud. Versioon on näidatud allosas.',
   'help.ctx.settings.bullet.2':
@@ -1175,7 +1175,7 @@ const help: TranslationStrings = {
     'Jaotises „Konto“ on sinu profiil, parool, kaheastmeline autentimine, pääsuvõtmed ja konto kustutamise võimalus.',
   'help.ctx.settings-display.title': 'Üldine',
   'help.ctx.settings-display.summary':
-    'Millega TREK avaneb, millist keelt ja ühikuid see kasutab ning kuidas reisikaart ja broneeringud käituvad. Iga muudatus rakendub kohe.',
+    'Millega YOUYA avaneb, millist keelt ja ühikuid see kasutab ning kuidas reisikaart ja broneeringud käituvad. Iga muudatus rakendub kohe.',
   'help.ctx.settings-display.bullet.1':
     '„Käivitamine“: „Avaleht“ avab „Ülevaate“ või „Aktiivse reisi“; valikuga „Aktiivne reis“ määrab „Avatav vahekaart“, milline vaheleht reisil avaneb.',
   'help.ctx.settings-display.bullet.2':
@@ -1184,7 +1184,7 @@ const help: TranslationStrings = {
     '„Reisimine ja kaart“: „Ava kohad rakenduses“, „Kuupäev päevapealkirjades eespool“, „Broneeringute marsruutide sildid“, „Näita alati broneeringute marsruute“, „Kompaktsed tähised planeerimata kohtadele“, „Avasta kaardil kohti“, „Hägusta broneerimiskoodid“ ja „Optimeeri marsruut majutuskohast“.',
   'help.ctx.settings-appearance.title': 'Välimus',
   'help.ctx.settings-appearance.summary':
-    'Kuidas TREK selle konto puhul välja näeb: hele või tume, aktsentvärv, klaasefekt ja animatsioonid, teksti suurus ning millised vidinad on töölaual. Kõik muudatused rakenduvad kohe igas seadmes, kuhu sisse logid.',
+    'Kuidas YOUYA selle konto puhul välja näeb: hele või tume, aktsentvärv, klaasefekt ja animatsioonid, teksti suurus ning millised vidinad on töölaual. Kõik muudatused rakenduvad kohe igas seadmes, kuhu sisse logid.',
   'help.ctx.settings-appearance.bullet.1':
     '„Teema“: „Värvirežiim“ („Hele“, „Tume“ või „Automaatne“), „Värviskeem“ ning valikuga „Kohandatud“ sinu enda rõhuvärv heleda ja tumeda režiimi jaoks koos kontrastikontrolliga.',
   'help.ctx.settings-appearance.bullet.2':
@@ -1203,7 +1203,7 @@ const help: TranslationStrings = {
     'Ainult Mapbox GL: „3D-hooned ja maastik“, „Kõrge kvaliteediga režiim“ ja „Peida huvipunktid“. Nupu „Salvesta kaart“ kohal on reaalajas eelvaade. „Salvesta kaart“ salvestab sinu valiku.',
   'help.ctx.settings-notifications.title': 'Teavitused',
   'help.ctx.settings-notifications.summary':
-    'Kuidas TREK võtab sinuga ühendust väljaspool rakendust. Ülal olev tabel, kus iga sündmuse kohta on rida ja iga kanali kohta veerg, määrab, mis kuhu saadetakse. Selle all on kaardid veebihaagi, ntfy, selle seadme tõuketeavituste ja pluginate kanalite jaoks.',
+    'Kuidas YOUYA võtab sinuga ühendust väljaspool rakendust. Ülal olev tabel, kus iga sündmuse kohta on rida ja iga kanali kohta veerg, määrab, mis kuhu saadetakse. Selle all on kaardid veebihaagi, ntfy, selle seadme tõuketeavituste ja pluginate kanalite jaoks.',
   'help.ctx.settings-notifications.bullet.1':
     '„Teavitused“: lülita iga sündmus kanali kaupa sisse või välja. Lukk tähendab, et administraator on selle kõigi jaoks välja lülitanud.',
   'help.ctx.settings-notifications.bullet.2':
@@ -1214,7 +1214,7 @@ const help: TranslationStrings = {
     '„Tõuketeavitused selles seadmes“: „Lülita selles seadmes sisse“ kehtib ainult selle brauseri kohta; „Saada test“ saadab testteavituse. Plugina kanalil on nupp „Seadista“, kuni see on seadistatud.',
   'help.ctx.settings-integrations.title': 'Integratsioonid',
   'help.ctx.settings-integrations.summary':
-    'Kõik, mis ühendub TREKiga väljastpoolt: sinu enda aadress broneeringukirjade jaoks, fototeegid päeviku jaoks, AirTrail lendude jaoks, Dawarich selle jaoks, kus sa tegelikult käisid, wanderer radade jaoks, ainult lugemisõigusega API-võtmed muude programmide jaoks ja MCP tehisintellekti klientide jaoks. Ühendus teise teenusega on näha alles siis, kui administraator on selle sisse lülitanud.',
+    'Kõik, mis ühendub YOUYAiga väljastpoolt: sinu enda aadress broneeringukirjade jaoks, fototeegid päeviku jaoks, AirTrail lendude jaoks, Dawarich selle jaoks, kus sa tegelikult käisid, wanderer radade jaoks, ainult lugemisõigusega API-võtmed muude programmide jaoks ja MCP tehisintellekti klientide jaoks. Ühendus teise teenusega on näha alles siis, kui administraator on selle sisse lülitanud.',
   'help.ctx.settings-integrations.bullet.1':
     '„Broneeringukirjad“ on ülal, kui administraator on kirjade impordi sisse lülitanud: sinu edasisuunamisaadress koos lülititega. Selle all on Immich ja Synology Photos, AirTrail, Dawarich ja wanderer: igal kaardil on aadress ja võti, „Salvesta“ ja „Testi ühendust“ ning märk „Ühendatud“ või „Ühendamata“.',
   'help.ctx.settings-integrations.bullet.2':
@@ -1225,7 +1225,7 @@ const help: TranslationStrings = {
     '„API-pääsutõendid“: vana viis MCP-ga ühendamiseks, märgisega „Aegunud“; kasuta selle asemel „OAuth 2.1 kliente“.',
   'help.ctx.settings-offline.title': 'Võrguühenduseta',
   'help.ctx.settings-offline.summary':
-    'Mida TREK selles seadmes hoiab, et reis avaneks ka ilma ühenduseta, ja mis juhtub, kui võrguta tehtud muudatus läheb vastuollu mujal tehtud muudatusega.',
+    'Mida YOUYA selles seadmes hoiab, et reis avaneks ka ilma ühenduseta, ja mis juhtub, kui võrguta tehtud muudatus läheb vastuollu mujal tehtud muudatusega.',
   'help.ctx.settings-offline.bullet.1':
     '„Võrguühenduseta režiim“: „Sunni võrguühenduseta režiim“ laadib kõigepealt kõik alla, töötab seejärel ainult vahemälust ja paneb sinu muudatused järjekorda.',
   'help.ctx.settings-offline.bullet.2':
@@ -1236,20 +1236,20 @@ const help: TranslationStrings = {
     '„Sünkroonimiskonfliktid“ ilmub ainult siis, kui kaks muudatust on vastuolus, koos valikutega „Säilita minu oma“, „Säilita serveri oma“ ja „Konflikti korral“. „Võrguühenduseta vahemälu“ loendab reisid ning ootel või ebaõnnestunud muudatused, nuppudega „Proovi uuesti“, „Loobu“ ja „Tühjenda vahemälu“.',
   'help.ctx.settings-account.title': 'Konto',
   'help.ctx.settings-account.summary':
-    'Sinu konto selles TREKis ja see, kuidas sisse logid: profiilipilt, kasutajanimi ja e-post, parool, kaheastmeline autentimine ja pääsuvõtmed. „Kustuta konto“ asub kaardi „Konto“ jaluses.',
+    'Sinu konto selles YOUYAis ja see, kuidas sisse logid: profiilipilt, kasutajanimi ja e-post, parool, kaheastmeline autentimine ja pääsuvõtmed. „Kustuta konto“ asub kaardi „Konto“ jaluses.',
   'help.ctx.settings-account.bullet.1':
     '„Konto“: klõpsa pildil kaameral, et pilt üles laadida, ja punasel prügikastil, et see eemaldada. „Kasutajanimi“ ja „E-post“ salvestatakse nupuga „Salvesta profiil“.',
   'help.ctx.settings-account.bullet.2':
-    '„Muuda parooli“: praegune parool, uus parool kaks korda, kusjuures reeglid märgitakse kirjutamise ajal täidetuks, seejärel „Uuenda parooli“. Kui selles TREKis logitakse sisse ainult SSO kaudu, seda kaarti ei näidata.',
+    '„Muuda parooli“: praegune parool, uus parool kaks korda, kusjuures reeglid märgitakse kirjutamise ajal täidetuks, seejärel „Uuenda parooli“. Kui selles YOUYAis logitakse sisse ainult SSO kaudu, seda kaarti ei näidata.',
   'help.ctx.settings-account.bullet.3':
     'Kaheastmeline autentimine (2FA) autentimisrakenduse ja varukoodidega. „Pääsuvõtmed“ paroolita sisselogimiseks.',
   'help.ctx.settings-account.bullet.4':
     '„Kustuta konto“ asub kaardi „Konto“ jaluse vasakus servas ja küsib kinnitust. Ainus administraator ei saa ennast kustutada.',
   // language-region
   'help.guide.language-region.title': 'Määra keel, ühikud ja valuuta',
-  'help.guide.language-region.goal': 'Kasuta TREKi oma keeles ja oma piirkonna vormingutega.',
+  'help.guide.language-region.goal': 'Kasuta YOUYAi oma keeles ja oma piirkonna vormingutega.',
   'help.guide.language-region.step.1':
-    'Vali jaotises „Keel ja piirkond“ loendist „Keel“; kiireks leidmiseks hakka kirjutama. TREK vahetab keele kohe kõigis seadmetes, kuhu sisse logid.',
+    'Vali jaotises „Keel ja piirkond“ loendist „Keel“; kiireks leidmiseks hakka kirjutama. YOUYA vahetab keele kohe kõigis seadmetes, kuhu sisse logid.',
   'help.guide.language-region.step.2':
     '„Kohtade nimed“ määrab keele, mida kohaotsing, soovitused ja aadressid kasutavad; „Sama mis rakendusel“ järgib liidese keelt.',
   'help.guide.language-region.result':
@@ -1269,18 +1269,18 @@ const help: TranslationStrings = {
   'help.guide.travel-map-prefs.tip.2':
     'Administraator saab määrata vaikeväärtused kõigile; see, mida siin muudad, kehtib sinu kohta.',
   // startup
-  'help.guide.startup.title': 'TREKi avalehe valimine',
-  'help.guide.startup.goal': 'Ava TREK lehel, mida kõige rohkem kasutad, mitte iga kord ülevaatel.',
+  'help.guide.startup.title': 'YOUYAi avalehe valimine',
+  'help.guide.startup.goal': 'Ava YOUYA lehel, mida kõige rohkem kasutad, mitte iga kord ülevaatel.',
   'help.guide.startup.step.1':
     'Vahelehe „Üldine“ ülaosas, jaotises „Käivitamine“, määra „Avaleht“ väärtusele „Ülevaade“ või „Aktiivne reis“.',
   'help.guide.startup.step.2': 'Valikuga „Aktiivne reis“ ilmub „Avatav vahekaart“: vali vaheleht, millel reis avaneb.',
-  'help.guide.startup.result': 'Järgmisel korral avab TREK kohe selle lehe.',
+  'help.guide.startup.result': 'Järgmisel korral avab YOUYA kohe selle lehe.',
   'help.guide.startup.tip.1':
     '„Aktiivne reis“ on reis, mis toimub täna, või järgmine tulev reis. See on sama reis, mida ülevaade näitab ülaosas.',
   // theme-scheme
   'help.guide.theme-scheme.title': 'Teema ja rõhuvärvi määramine',
   'help.guide.theme-scheme.goal':
-    'Tee TREK heledaks või tumedaks või lase tal järgida seadet, just sulle meeldivas värvis.',
+    'Tee YOUYA heledaks või tumedaks või lase tal järgida seadet, just sulle meeldivas värvis.',
   'help.guide.theme-scheme.step.1':
     'Määra jaotises „Teema“ „Värvirežiim“ väärtusele „Hele“, „Tume“ või „Automaatne“. „Automaatne“ järgib sinu seadet.',
   'help.guide.theme-scheme.step.2':
@@ -1301,7 +1301,7 @@ const help: TranslationStrings = {
     '„Teksti suurus“: lohista „Kõik“, et muuta kogu teksti suurust korraga, või määra „Suur“, „Keskmine“, „Tavaline“ ja „Väike“ eraldi. Iga suuruse juures on näidis, nii et näed tulemust lohistamise ajal.',
   'help.guide.readability.result': 'Muudatus kehtib korraga kogu rakenduses, ka kaardipaneelidel ja reisipäevikus.',
   'help.guide.readability.tip.1':
-    'Mõni TREKi osa kasutab juba vähem animatsiooni, kui sinu seade on seadistatud liikumist vähendama. „Vähenda liikumist“ vähendab animatsiooni ka ülejäänud osades.',
+    'Mõni YOUYAi osa kasutab juba vähem animatsiooni, kui sinu seade on seadistatud liikumist vähendama. „Vähenda liikumist“ vähendab animatsiooni ka ülejäänud osades.',
   'help.guide.readability.tip.2':
     'Teksti suurust rakendatakse kirjataseme kaupa, nii et midagi ei lõigata ära. Tekst, mis enam ei mahu, murdub uuele reale.',
   // dashboard-widgets
@@ -1399,17 +1399,17 @@ const help: TranslationStrings = {
   'help.guide.offline-prepare.tip.1':
     'Kõige rohkem ruumi võtavad kaardipaanid; lülita need välja, et hoida ainult reisiandmeid ja dokumente.',
   'help.guide.offline-prepare.tip.2':
-    'Kõige sujuvamaks käivitamiseks ilma võrguta paigalda TREK brauserist rakendusena.',
+    'Kõige sujuvamaks käivitamiseks ilma võrguta paigalda YOUYA brauserist rakendusena.',
   // offline-conflicts
   'help.guide.offline-conflicts.title': 'Otsusta sünkroonimiskonflikti korral, milline versioon jääb',
   'help.guide.offline-conflicts.goal':
-    'Vali, kuidas TREK lahendab konflikti võrguta tehtud muudatuse ja mujal tehtud muudatuse vahel.',
+    'Vali, kuidas YOUYA lahendab konflikti võrguta tehtud muudatuse ja mujal tehtud muudatuse vahel.',
   'help.guide.offline-conflicts.step.1':
     'Kui võrguühenduseta tehtud muudatus on vastuolus uuemaga, ilmub jaotise „Võrguühenduseta“ ülaossa „Sünkroonimiskonfliktid“. Klõpsa iga muudatuse juures „Säilita minu oma“ või „Säilita serveri oma“.',
   'help.guide.offline-conflicts.step.2':
     'Samal kaardil määrab „Konflikti korral“, mis juhtub järgmisel korral: „Küsi iga kord“, „Säilita alati minu versioon“ või „Säilita alati serveri versioon“.',
   'help.guide.offline-conflicts.result':
-    'Valikuga „Küsi iga kord“ jääb konflikt jaotisse „Sünkroonimiskonfliktid“, kuni teed valiku. Kahe teise valiku puhul lahendab TREK selle automaatselt.',
+    'Valikuga „Küsi iga kord“ jääb konflikt jaotisse „Sünkroonimiskonfliktid“, kuni teed valiku. Kahe teise valiku puhul lahendab YOUYA selle automaatselt.',
   'help.guide.offline-conflicts.tip.1':
     '„Tühjenda vahemälu“ eemaldab ainult selles seadmes oleva koopia. Serveris ei muutu midagi.',
   // profile
@@ -1429,7 +1429,7 @@ const help: TranslationStrings = {
   'help.guide.password.result':
     'Uus parool kehtib kohe. Kõik teised seadmed logitakse välja, sinu MCP API-tõendid kustutatakse ja OAuth-kliendid peavad uuesti sisse logima; see seade jääb sisselogituks.',
   'help.guide.password.tip.1':
-    'Kui selles TREKis logitakse sisse ainult SSO kaudu, pole TREKi parooli ega kaarti „Muuda parooli“.',
+    'Kui selles YOUYAis logitakse sisse ainult SSO kaudu, pole YOUYAi parooli ega kaarti „Muuda parooli“.',
   // mfa
   'help.guide.mfa.title': 'Lülita sisse kaheastmeline autentimine',
   'help.guide.mfa.goal': 'Kaitse kontot autentimisrakenduse koodiga.',
@@ -1461,16 +1461,16 @@ const help: TranslationStrings = {
   'help.guide.delete-account.result':
     'Sinu konto kustutatakse koos sulle kuuluvate reiside, kohtade ja failidega. Teistele kuuluvad reisid jäävad alles.',
   'help.guide.delete-account.tip.1':
-    'Kui oled ainus administraator, näitab TREK teadet „Kustutamine pole võimalik“: määra enne mõni teine kasutaja administraatoriks.',
+    'Kui oled ainus administraator, näitab YOUYA teadet „Kustutamine pole võimalik“: määra enne mõni teine kasutaja administraatoriks.',
   'help.guide.delete-account.tip.2':
     'Seda ei saa tagasi võtta. Ekspordi enne kinnitamist kõik, mida tahad alles hoida.',
 
   // ── Screen: admin (all tabs) ───────────────────────────────────────────────
   'help.ctx.admin.title': 'Administraator',
   'help.ctx.admin.summary':
-    'Kogu TREKi serveri seaded kõigile kasutajatele: kes ja kuidas tohib sisse logida, mis on sisse lülitatud, kus failid asuvad, kuidas server inimestega ühendust võtab ja kuidas seda varundatakse. Seda lehte näevad ainult administraatorid. Külgribal on vahelehed rühmitatud jaotistesse „Kasutajad“, „Seadistus“ ja „Hooldus“ ning iga vaheleht on eraldi ekraan.',
+    'Kogu YOUYAi serveri seaded kõigile kasutajatele: kes ja kuidas tohib sisse logida, mis on sisse lülitatud, kus failid asuvad, kuidas server inimestega ühendust võtab ja kuidas seda varundatakse. Seda lehte näevad ainult administraatorid. Külgribal on vahelehed rühmitatud jaotistesse „Kasutajad“, „Seadistus“ ja „Hooldus“ ning iga vaheleht on eraldi ekraan.',
   'help.ctx.admin.bullet.1':
-    'Päise paremas servas on kasutajate, reiside, kohtade ja failide arv. Selle all ilmub bänner „Uuendus saadaval“, kui TREKist on uuem versioon saadaval.',
+    'Päise paremas servas on kasutajate, reiside, kohtade ja failide arv. Selle all ilmub bänner „Uuendus saadaval“, kui YOUYAist on uuem versioon saadaval.',
   'help.ctx.admin.bullet.2':
     '„Kasutajad“ ja „Vaikeväärtused“: kontod, kutselingid ja õigused ning seaded ja kaart, millega uus konto alustab.',
   'help.ctx.admin.bullet.3':
@@ -1481,7 +1481,7 @@ const help: TranslationStrings = {
     '„Salvestusruum“, „Varundamine“, „GitHub“ ja „Audit“: kus üleslaadimised asuvad, käsitsi ja ajakava järgi tehtavad varukoopiad, versioonide ajalugu ning turvalisuse seisukohalt oluliste sündmuste logi.',
   'help.ctx.admin-users.title': 'Kasutajad',
   'help.ctx.admin-users.summary':
-    'Kõik selle TREKi kontod koos rolli, e-posti ja viimase aktiivsusega, kutselingid, millega saab suletud serveris registreeruda, ning see, kes mida reisidel teha tohib.',
+    'Kõik selle YOUYAi kontod koos rolli, e-posti ja viimase aktiivsusega, kutselingid, millega saab suletud serveris registreeruda, ning see, kes mida reisidel teha tohib.',
   'help.ctx.admin-users.bullet.1':
     'Tabel: kasutaja, e-post, roll, loomisaeg ja „Viimati aktiivne“ ning igal real „Muuda kasutajat“ ja „Kustuta kasutaja“. Roheline täpp avataril tähendab, et inimene on praegu võrgus; sinu enda real on „(Sina)“.',
   'help.ctx.admin-users.bullet.2':
@@ -1503,7 +1503,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-config.bullet.1':
     '„Pakkimismallid“: nimega kategooriate ja esemete loendid, millest reisi pakkimisnimekiri saab alustada.',
   'help.ctx.admin-config.bullet.2':
-    '„Kategooriad“: kogu TREKis, koha inspektorist kogumikeni kasutatavate kategooriate nimi, ikoon ja värv, igaüht muudetakse eelvaatega dialoogis.',
+    '„Kategooriad“: kogu YOUYAis, koha inspektorist kogumikeni kasutatavate kategooriate nimi, ikoon ja värv, igaüht muudetakse eelvaatega dialoogis.',
   'help.ctx.admin-config.bullet.3':
     'Koolivaheajad: riikide ja piirkondade kataloog koos nende vaheaegadega, mida kõik saavad Vacays valida.',
   'help.ctx.admin-settings.title': 'Turvalisus ja teenused',
@@ -1514,12 +1514,12 @@ const help: TranslationStrings = {
   'help.ctx.admin-settings.bullet.2':
     '„Pääsuvõtmega sisselogimine“: „Teenuseosutaja ID (domeen)“ ja „Lubatud päritolud“. „Ühekordne sisselogimine (OIDC)“: „Kuvatav nimi“, „Väljastaja URL“, valikuline „Discovery URL“, „Kliendi ID“ ja „Kliendi saladus“.',
   'help.ctx.admin-settings.bullet.3':
-    'Kohtade otsing ja marsruutimine vahelehel „Teenused“: TREK API, märgitud „Soovitatav vaikevalik“, koos väljadega „Tänane kvoot“ ja „Jaga kohtade andmeid“, seejärel „Ühistranspordi teenusepakkuja“, „Kohaotsingu teenusepakkuja“ ja „Kohaotsingu logi“.',
+    'Kohtade otsing ja marsruutimine vahelehel „Teenused“: YOUYA API, märgitud „Soovitatav vaikevalik“, koos väljadega „Tänane kvoot“ ja „Jaga kohtade andmeid“, seejärel „Ühistranspordi teenusepakkuja“, „Kohaotsingu teenusepakkuja“ ja „Kohaotsingu logi“.',
   'help.ctx.admin-settings.bullet.4':
     '„API-võtmed“: „Google Mapsi API-võti“ koos nuppudega „Testi“ ja „Milleks võtit tohib kasutada“, Unsplashi ja Amapi võti ning kaardi allosas üks ühine „Salvesta“. Selle all piirab „Lubatud failitüübid“ üleslaadimisi.',
   'help.ctx.admin-addons.title': 'Lisamoodulid',
   'help.ctx.admin-addons.summary':
-    'TREKi funktsioonimoodulid kolmel kaardil: „Reis“ reisi vahelehtede jaoks, „Üldine“ põhinavigatsiooni jaotiste jaoks ja „Integratsioon“ väliste teenuste jaoks. Igal lisamoodulil on lüliti; väljas tähendab, et navigeerimiskirje, marsruudid ja API eemaldatakse kõigi jaoks.',
+    'YOUYAi funktsioonimoodulid kolmel kaardil: „Reis“ reisi vahelehtede jaoks, „Üldine“ põhinavigatsiooni jaotiste jaoks ja „Integratsioon“ väliste teenuste jaoks. Igal lisamoodulil on lüliti; väljas tähendab, et navigeerimiskirje, marsruudid ja API eemaldatakse kõigi jaoks.',
   'help.ctx.admin-addons.bullet.1':
     'Iga lisamooduli kohta üks rida koos lülitiga ja iga kaardi päises see, mitu selle lisamoodulit on sees. Nime kõrval olev infomärk ütleb, mida lisamoodul teeb.',
   'help.ctx.admin-addons.bullet.2':
@@ -1528,7 +1528,7 @@ const help: TranslationStrings = {
     'Hammasrattaga read avavad seadistusdialoogi, näiteks „Aerutamise veeandmed“ jaotise „Retked“ all ja „Seadista kirjade import“ jaotise „Broneeringukirjade import“ all. „Lennu otsestaatus“ on kaardi „Reis“ rida.',
   'help.ctx.admin-plugins.title': 'Pluginad',
   'help.ctx.admin-plugins.summary':
-    'Kolmanda osapoole pluginad, mis töötavad TREKi kõrval omaette protsessis, igaüks nende õigustega, mida see paigaldamisel küsis. Paigalda kataloogist, laadi üles pakett või lingi plugina arendamise ajaks kaust.',
+    'Kolmanda osapoole pluginad, mis töötavad YOUYAi kõrval omaette protsessis, igaüks nende õigustega, mida see paigaldamisel küsis. Paigalda kataloogist, laadi üles pakett või lingi plugina arendamise ajaks kaust.',
   'help.ctx.admin-plugins.bullet.1':
     '„Paigaldatud“ ja „Avasta“ koos väljaga „Otsi pluginaid…“ ja nupuga „Filtreeri“ tüübi, oleku ja järjestuse jaoks. Igal real on versioon, see, millele plugin juurde pääseb, „Üle vaadatud“ ning „Allkirjastatud“ või „Allkirjastamata“, lüliti ja ⋯-menüü.',
   'help.ctx.admin-plugins.bullet.2':
@@ -1545,7 +1545,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-storage.bullet.3':
     '„Kategooriad“: reisidokumendid, reisiloo fotod, kaanepildid, profiilipildid, kohtade pildid, fotode vahemälud ja varukoopiad, igaüks määratud mõnele taustsüsteemile, all „Salvesta muudatused“.',
   'help.ctx.admin-storage.bullet.4':
-    '„Viiteta failid“: mida öine kontroll leidis ja mida TREKis enam miski ei kasuta, koos nupuga „Kontrolli kohe“ ja lülitiga, mis kustutab sellised failid, kui need on olnud nädal kasutamata.',
+    '„Viiteta failid“: mida öine kontroll leidis ja mida YOUYAis enam miski ei kasuta, koos nupuga „Kontrolli kohe“ ja lülitiga, mis kustutab sellised failid, kui need on olnud nädal kasutamata.',
   'help.ctx.admin-notifications.title': 'Teavitused',
   'help.ctx.admin-notifications.summary':
     'Kanalid, mida instants oma kasutajatele pakub, ja need, mida saad sina administraatorina. Kasutajad valivad oma teemad ja URL-id jaotises „Seaded“, sina otsustad, mis on üldse saadaval, ja seadistad e-posti.',
@@ -1557,14 +1557,14 @@ const help: TranslationStrings = {
     '„Halduri teavitused“ paremal: „Administraatori veebihaak“ ja „Administraatori ntfy“, igaühel oma testinupp, ning nende all, milline kanal saadab iga halduri sündmuse („Uus versioon saadaval“, „Salvestuskoopia tõrge“, „Aerutamispiirkonda taotleti“).',
   'help.ctx.admin-mcp-tokens.title': 'MCP',
   'help.ctx.admin-mcp-tokens.summary':
-    'Kõik pääsutõendid ja OAuth-seansid, mis AI-klientidel selles TREKis on, kõigi kasutajate peale kokku. Neist igaühe saad tühistada.',
+    'Kõik pääsutõendid ja OAuth-seansid, mis AI-klientidel selles YOUYAis on, kõigi kasutajate peale kokku. Neist igaühe saad tühistada.',
   'help.ctx.admin-mcp-tokens.bullet.1':
     'OAuth-seansid: klient, talle antud õigused, omanik ja kuupäev ning prügikastiikoon, millega seansi tühistad.',
   'help.ctx.admin-mcp-tokens.bullet.2':
     'API-pääsutõendid: nimi, omanik, „Loodud“ ja „Viimati kasutatud“ ning prügikast, millega tõendi kustutad.',
   'help.ctx.admin-github.title': 'GitHub',
   'help.ctx.admin-github.summary':
-    'Mis on TREKis uut: GitHubist pärit versioonide ajalugu ja see, kas sinu omast uuem versioon on saadaval. Uuendamine ise toimub väljaspool rakendust, serveris.',
+    'Mis on YOUYAis uut: GitHubist pärit versioonide ajalugu ja see, kas sinu omast uuem versioon on saadaval. Uuendamine ise toimub väljaspool rakendust, serveris.',
   'help.ctx.admin-github.bullet.1':
     '„Versiooniajalugu“ näitab versioone ajajoonena koos märkmetega. Uusimal on silt „Uusim“, eelväljalasetel „Eelväljalase“ ja GitHub avab väljalasete lehe.',
   'help.ctx.admin-github.bullet.2':
@@ -1634,7 +1634,7 @@ const help: TranslationStrings = {
     'Sinu enda real prügikastiikoon ei tööta: iseennast kustutada ei saa. Seda peab tegema mõni teine administraator.',
   // permissions
   'help.guide.permissions.title': 'Otsusta, kes mida tohib teha',
-  'help.guide.permissions.goal': 'Määra iga toimingu puhul, milline roll tohib seda selles TREKis teha.',
+  'help.guide.permissions.goal': 'Määra iga toimingu puhul, milline roll tohib seda selles YOUYAis teha.',
   'help.guide.permissions.step.1':
     'Leia jaotises „Õiguste seaded“ toiming selle rühmast, näiteks „Reiside kustutamine“ rühmas „Reiside haldus“, ja vali, kes tohib seda teha: „Kõik“, „Reisi liikmed“, „Reisi omanik“ või „Ainult administraator“. Muudetud rida on märgitud kui „kohandatud“.',
   'help.guide.permissions.step.2':
@@ -1708,10 +1708,10 @@ const help: TranslationStrings = {
   'help.guide.auth-methods.step.2':
     'Kui „Ühekordne sisselogimine (OIDC)“ on seadistatud, järgnevad kolm SSO rida: „SSO-ga sisselogimine“, „SSO kontode automaatne loomine“, mis teeb konto, kui keegi logib esimest korda SSO kaudu sisse, ja „Otse SSO-sse“.',
   'help.guide.auth-methods.step.3':
-    '„Luba pääsuvõtmega sisselogimine“ pakub pääsuvõtmeid sisselogimislehel. Lülita sisse „Nõua 2FA-d“, et kõik, kellel 2FA puudub, peaksid selle enne TREKi kasutamist seadetes seadistama.',
+    '„Luba pääsuvõtmega sisselogimine“ pakub pääsuvõtmeid sisselogimislehel. Lülita sisse „Nõua 2FA-d“, et kõik, kellel 2FA puudub, peaksid selle enne YOUYAi kasutamist seadetes seadistama.',
   'help.guide.auth-methods.result': 'Sisselogimislehel on täpselt need viisid, mille sisse jätsid.',
   'help.guide.auth-methods.tip.1':
-    'TREK ei lase viimast sisselogimisviisi välja lülitada: selle lüliti muutub halliks ja vihje ütleb, et vähemalt üks sisselogimisviis peab jääma sisse lülitatuks.',
+    'YOUYA ei lase viimast sisselogimisviisi välja lülitada: selle lüliti muutub halliks ja vihje ütleb, et vähemalt üks sisselogimisviis peab jääma sisse lülitatuks.',
   'help.guide.auth-methods.tip.2':
     'Kui serveris on määratud OIDC_ONLY, on parooli lülitid lukus ja märkus annab sellest teada.',
   'help.guide.auth-methods.tip.3':
@@ -1728,7 +1728,7 @@ const help: TranslationStrings = {
   'help.guide.oidc.result':
     'Sisselogimislehel on SSO nupp. Kui „SSO kontode automaatne loomine“ on sisse lülitatud, saavad esmakordsed kasutajad konto automaatselt.',
   'help.guide.oidc.tip.1':
-    'Teenusepakkuja vajatav ümbersuunamise URI on sinu TREKi aadress, millele järgneb dokumentatsioonis toodud OIDC tagasikutse tee.',
+    'Teenusepakkuja vajatav ümbersuunamise URI on sinu YOUYAi aadress, millele järgneb dokumentatsioonis toodud OIDC tagasikutse tee.',
   'help.guide.oidc.tip.2':
     'Väidete vastendus määrab, millistest SSO gruppidest saavad administraatorid. Vaata dokumentatsioonist OIDC lehte.',
   // instance-keys
@@ -1736,18 +1736,18 @@ const help: TranslationStrings = {
   'help.guide.instance-keys.goal':
     "Lisa kogu serverile Google'i fotod ja hinnangud, Unsplashi kaanepildid ja Amapi otsing.",
   'help.guide.instance-keys.step.1':
-    'Kaardi „Kohtade otsing ja marsruutimine“ vahelehel „Teenused“ alguses on TREK API, märgitud „Soovitatav vaikevalik“. See vastab kohaotsingule, aadressidele ja marsruutimisele ilma võtmeta ning „Tänane kvoot“ näitab, kui palju päevast on järel.',
+    'Kaardi „Kohtade otsing ja marsruutimine“ vahelehel „Teenused“ alguses on YOUYA API, märgitud „Soovitatav vaikevalik“. See vastab kohaotsingule, aadressidele ja marsruutimisele ilma võtmeta ning „Tänane kvoot“ näitab, kui palju päevast on järel.',
   'help.guide.instance-keys.step.2':
     "Fotode, hinnangute ja lahtiolekuaegade jaoks kleebi jaotisesse „API-võtmed“ „Google Mapsi API-võti“ ja klõpsa „Testi“; tulemus on „Ühendatud“ või „Vigane“. Jaotises „Milleks võtit tohib kasutada“ lülita sisse ainult see, mille eest oled valmis maksma: „Kohtade fotod“, „Koha automaattäide“, „Koha üksikasjad“, „Kohaandmete täiendamine“ ja „Otsi ainult Google'iga“ ning lisaks „Google'i päringute päevapiirang“.",
   'help.guide.instance-keys.step.3':
     'Kleebi kaanepiltide otsinguks „Unsplashi API-võti“ ja mandri-Hiina kohaotsinguks „Amapi (高德地图) API-võti“, seejärel klõpsa kaardi allosas „Salvesta“.',
   'help.guide.instance-keys.result':
-    "Kasutajad saavad funktsioone kasutada ilma oma võtmeteta. Ilma Google'i võtmeta kasutab otsing TREK Places API-t ja OpenStreetMapi.",
+    "Kasutajad saavad funktsioone kasutada ilma oma võtmeteta. Ilma Google'i võtmeta kasutab otsing YOUYA Places API-t ja OpenStreetMapi.",
   'help.guide.instance-keys.tip.1':
-    'Kui kasutajal on jaotises „Seaded“ isiklik võti, kasutab TREK selle kasutaja puhul instantsi võtme asemel seda.',
+    'Kui kasutajal on jaotises „Seaded“ isiklik võti, kasutab YOUYA selle kasutaja puhul instantsi võtme asemel seda.',
   'help.guide.instance-keys.tip.2': 'Võtmed võivad tulla ka keskkonnamuutujatest, need on siin kirjutuskaitstud.',
   'help.guide.instance-keys.tip.3':
-    "„Google'i päringute päevapiirang“ piirab, kui palju TREK tohib võtmega päevas kulutada. Pealkirja kõrval olev märk loeb tänaseid päringuid. Kui piirang on täis, kasutavad otsingud järgmise päevani (UTC) OpenStreetMapi.",
+    "„Google'i päringute päevapiirang“ piirab, kui palju YOUYA tohib võtmega päevas kulutada. Pealkirja kõrval olev märk loeb tänaseid päringuid. Kui piirang on täis, kasutavad otsingud järgmise päevani (UTC) OpenStreetMapi.",
   // places-transit
   'help.guide.places-transit.title': 'Vali otsingu ja ühistranspordi teenusepakkujad',
   'help.guide.places-transit.goal':
@@ -1755,10 +1755,10 @@ const help: TranslationStrings = {
   'help.guide.places-transit.step.1':
     "Vali vahelehel „Teenused“ kaardil „Kohtade otsing ja marsruutimine“ jaotises „Ühistranspordi teenusepakkuja“ „Transitous (tasuta)“, mis ei vaja võtit ja on tugevaim Euroopas, või Google, mis kasutab Google'i võtit. Valik salvestub kohe.",
   'help.guide.places-transit.step.2':
-    'Vali jaotises „Kohaotsingu teenusepakkuja“, millist teenust TREK kasutab, kui TREKi register ja OpenStreetMap midagi ei leia: „Automaatne“ (Google, kui võti on olemas, seejärel Amap), Google Places, Amap (高德地图) või OpenStreetMap.',
-  'help.guide.places-transit.result': 'Iga otsingukast ja iga ühistranspordi marsruut TREKis kasutab seda valikut.',
+    'Vali jaotises „Kohaotsingu teenusepakkuja“, millist teenust YOUYA kasutab, kui YOUYAi register ja OpenStreetMap midagi ei leia: „Automaatne“ (Google, kui võti on olemas, seejärel Amap), Google Places, Amap (高德地图) või OpenStreetMap.',
+  'help.guide.places-transit.result': 'Iga otsingukast ja iga ühistranspordi marsruut YOUYAis kasutab seda valikut.',
   'help.guide.places-transit.tip.1':
-    'Kui valikul pole võtit, näed siin hoiatust. Kohaotsing kasutab siis ainult TREKi registrit ja OpenStreetMapi ning ühistransport ainult Transitousi.',
+    'Kui valikul pole võtit, näed siin hoiatust. Kohaotsing kasutab siis ainult YOUYAi registrit ja OpenStreetMapi ning ühistransport ainult Transitousi.',
   'help.guide.places-transit.tip.2':
     "Google'i ühistranspordimarsruutide eest makstakse iga päringu eest; Transitousi eest mitte.",
   // file-types
@@ -1791,7 +1791,7 @@ const help: TranslationStrings = {
   'help.guide.document-providers.step.2':
     'Lülita Nextcloudi real lüliti sisse. Ilmub teade „Lisamoodul uuendatud“ ja edaspidi leiavad reisi omanikud oma reiside vahekaardilt „Failid“ funktsiooni „Dokumentide sünkroonimine“, kus Nextcloud on jaotises „Ühenda teenus“.',
   'help.guide.document-providers.result':
-    'Hoidla on saadaval selle TREKi igal reisil. Midagi ei ühendata enne, kui reisi omanik selle ühendab.',
+    'Hoidla on saadaval selle YOUYAi igal reisil. Midagi ei ühendata enne, kui reisi omanik selle ühendab.',
   'help.guide.document-providers.tip.1':
     'Siin otsustatakse ainult, kas hoidlat tohib pakkuda. Aadress ja kasutajaandmed kuuluvad reisile ja reisi omanik sisestab need reisi vahekaardil „Failid“, mitte kunagi halduspaneelis.',
   'help.guide.document-providers.tip.2':
@@ -1800,30 +1800,30 @@ const help: TranslationStrings = {
   'help.guide.mail-import-setup.goal':
     'Anna kõigile edasisuunamisaadress, et nende edastatud broneeringukinnitustest saaksid broneeringud õigetes reisides.',
   'help.guide.mail-import-setup.step.1':
-    'Lülita vahelehel „Lisamoodulid“ kaardil „Integratsioon“ sisse „Broneeringukirjade import“. Igaüks selles TREKis saab nüüd isikliku edasisuunamisaadressi.',
+    'Lülita vahelehel „Lisamoodulid“ kaardil „Integratsioon“ sisse „Broneeringukirjade import“. Igaüks selles YOUYAis saab nüüd isikliku edasisuunamisaadressi.',
   'help.guide.mail-import-setup.step.2': 'Klõpsa selle all ilmuvat rida „Seadista kirjade import“.',
   'help.guide.mail-import-setup.step.3':
-    'Vali jaotises „Kuidas kiri saabub“ „IMAP-postkast“ ja sisesta „Server“, „Port“, „Krüpteerimine“, „Kasutaja“, „Parool“ ja „Kaust“. Vali hoopis „Veebihaak“ meiliteenuse jaoks, mis postitab iga kirja TREKi, või „Ainult üleslaadimine“, et proovida ilma postkastita. Seejärel määra „Aadressi mall“, see on edasisuunamisaadress, kus on kohatäide iga inimese koodi jaoks, ning „Tehisintellekti kirju inimese kohta päevas“.',
+    'Vali jaotises „Kuidas kiri saabub“ „IMAP-postkast“ ja sisesta „Server“, „Port“, „Krüpteerimine“, „Kasutaja“, „Parool“ ja „Kaust“. Vali hoopis „Veebihaak“ meiliteenuse jaoks, mis postitab iga kirja YOUYAi, või „Ainult üleslaadimine“, et proovida ilma postkastita. Seejärel määra „Aadressi mall“, see on edasisuunamisaadress, kus on kohatäide iga inimese koodi jaoks, ning „Tehisintellekti kirju inimese kohta päevas“.',
   'help.guide.mail-import-setup.step.4':
-    'Klõpsa „Salvesta“, seejärel „Testi ühendust“; see ütleb „Ühendatud“ või mis ebaõnnestus. All näitab dialoog, millal TREK kirju viimati luges, ja viimase 24 tunni kirju: „Ise lisatud“, „Ootel“ ja „Ebaõnnestus“.',
+    'Klõpsa „Salvesta“, seejärel „Testi ühendust“; see ütleb „Ühendatud“ või mis ebaõnnestus. All näitab dialoog, millal YOUYA kirju viimati luges, ja viimase 24 tunni kirju: „Ise lisatud“, „Ootel“ ja „Ebaõnnestus“.',
   'help.guide.mail-import-setup.result':
     'Igaüks leiab oma edasisuunamisaadressi jaotisest „Seaded“, „Liidestused“. Edastatud kinnitusest saab broneering õiges reisis või see ootab seal omaniku ülevaatamist.',
   'help.guide.mail-import-setup.tip.1':
-    'Anna TREKile oma postkast, mis võtab plussaadresse (trek+…@sinu-domeen), mitte isiklik postkast. Loetud kirjad liiguvad kausta TREK/processed.',
+    'Anna YOUYAile oma postkast, mis võtab plussaadresse (trek+…@sinu-domeen), mitte isiklik postkast. Loetud kirjad liiguvad kausta TREK/processed.',
   'help.guide.mail-import-setup.tip.2':
     'Keskkonnamuutujad, mis algavad MAIL_INGEST_, on olulisemad kui dialoogi väljad. Oma võrgus olev meiliserver vajab serveris ka ALLOW_INTERNAL_NETWORK=true.',
   'help.guide.mail-import-setup.tip.3':
     '„Tehisintellekti kirju inimese kohta päevas“ piirab, mitu masinloetavate broneeringuandmeteta kirja tehisintellekt ühe inimese jaoks päevas loeb. Sellest üle loetakse ainult masinloetavaid andmeid.',
   'help.guide.ai-setup.title': 'Seadista tehisintellekti assistent',
   'help.guide.ai-setup.goal':
-    'Ühenda tehisintellekti teenusepakkuja üks kord, et kõik selle TREKi kasutajad saaksid assistendiga planeerida.',
+    'Ühenda tehisintellekti teenusepakkuja üks kord, et kõik selle YOUYAi kasutajad saaksid assistendiga planeerida.',
   'help.guide.ai-setup.step.1':
     'Leia vahekaardil „Lisamoodulid“ kaardil „Integratsioon“ tehisintellekti ruut ja lülita sisse „Tehisintellekti assistent“. „Tehisintellektiga parsimine“ ja MCP asuvad samas ruudus.',
   'help.guide.ai-setup.step.2': 'Klõpsa „Seadista TI“, see rida ilmub lülitite alla.',
   'help.guide.ai-setup.step.3':
     'Vali jaotises „Kes maksab“, kes ühenduse annab: „Mina maksan, oma lubatud“, „Mina maksan kõigi eest“ või „Igaüks kasutab oma kontot“. Allolev rida selgitab, mida sinu valik tähendab.',
   'help.guide.ai-setup.step.4':
-    'Vali jaotises „Ühendus kõigile“ „Kleebi API-võti“ ja kleebi võti Anthropicult, OpenAI-lt, Geminilt või OpenRouterilt. TREK nimetab tuvastatud teenusepakkuja. Klõpsa „Ühenda“; TREK kontrollib võtit teenusepakkuja juures enne salvestamist.',
+    'Vali jaotises „Ühendus kõigile“ „Kleebi API-võti“ ja kleebi võti Anthropicult, OpenAI-lt, Geminilt või OpenRouterilt. YOUYA nimetab tuvastatud teenusepakkuja. Klõpsa „Ühenda“; YOUYA kontrollib võtit teenusepakkuja juures enne salvestamist.',
   'help.guide.ai-setup.step.5':
     'Ühendus on nähtav kui „Ühendatud“. Vali „Mudel“, millega kõik vestlevad; loendis on ainult mudelid, mis oskavad tööriistu kasutada. Selle all on „Muuda“ ja „Eemalda ühendus“.',
   'help.guide.ai-setup.step.6':
@@ -1839,15 +1839,15 @@ const help: TranslationStrings = {
     'Veebiotsing töötab ChatGPT, Anthropicu ja OpenRouteriga teenusepakkuja enda otsingu kaudu ning otsingud lähevad ainult sellele teenusepakkujale.',
   'help.guide.paddle-water-data.title': 'Laadi aerutamisretkede veeandmed',
   'help.guide.paddle-water-data.goal':
-    'Anna aerutamisretkedele piirkonna paisud, lüüsid ja aerutamisreeglid ning otsusta, kas TREK laadib uusi piirkondi ise.',
+    'Anna aerutamisretkedele piirkonna paisud, lüüsid ja aerutamisreeglid ning otsusta, kas YOUYA laadib uusi piirkondi ise.',
   'help.guide.paddle-water-data.step.1':
     'Klõpsa vahelehel „Lisamoodulid“, kui „Retked“ on sees, „Aerutamise veeandmed“, mis on viimane rida jaotise „Retked“ all. Selle kõrval olev arv loeb piirkondi või sind ootavaid taotlusi.',
   'help.guide.paddle-water-data.step.2':
     'Vali jaotises „Laadi piirkonnad automaatselt“ „Automaatne“, „Taotluse peale“ või „Väljas“. „Automaatne“ laadib piirkonna, kus keegi aerutamisretke planeerib, kuni „Suurima automaatselt laaditava piirkonnani“; suurem ootab jaotises „Taotletud“, kus „Laadi“ loeb selle sisse ja „Lükka tagasi“ jätab selle kõrvale.',
   'help.guide.paddle-water-data.step.3':
-    'Otsi jaotises „Lisa piirkond“ Geofabrikist piirkonda, näiteks Oberpfalz, ja klõpsa selle kõrval „Lisa“. TREK loeb selle taustal; kui see on „Valmis“, näitab selle rida objekte, andmete kuupäeva ja vee kilomeetreid. „Loe uuesti“ värskendab seda ja „Eemalda piirkond“ kustutab selle.',
+    'Otsi jaotises „Lisa piirkond“ Geofabrikist piirkonda, näiteks Oberpfalz, ja klõpsa selle kõrval „Lisa“. YOUYA loeb selle taustal; kui see on „Valmis“, näitab selle rida objekte, andmete kuupäeva ja vee kilomeetreid. „Loe uuesti“ värskendab seda ja „Eemalda piirkond“ kustutab selle.',
   'help.guide.paddle-water-data.result':
-    'Piirkonna sees olevad aerutamisretked näitavad selle takistusi ja järgivad vett ning TREK loeb iga piirkonna uuesti kord kuus.',
+    'Piirkonna sees olevad aerutamisretked näitavad selle takistusi ja järgivad vett ning YOUYA loeb iga piirkonna uuesti kord kuus.',
   'help.guide.paddle-water-data.tip.1':
     'Geofabrikile läheb ainult piirkonna nimi, mitte kunagi koht, mida keegi planeerib.',
   'help.guide.paddle-water-data.tip.2':
@@ -1878,7 +1878,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.2':
     'Määra jaotises „Kategooriad“ iga üleslaadimise liik, näiteks „Reisidokumendid“, „Reisiloo fotod“ või „Varukoopiad“, mõnele taustsüsteemile.',
   'help.guide.storage-backends.step.3':
-    'Klõpsa jaotise „Kategooriad“ allosas „Salvesta muudatused“. Kui mõni kategooria osutab nüüd mujale, küsib TREK, kas „Teisalda olemasolevad objektid“ või „Suuna ainult uued kirjutused“.',
+    'Klõpsa jaotise „Kategooriad“ allosas „Salvesta muudatused“. Kui mõni kategooria osutab nüüd mujale, küsib YOUYA, kas „Teisalda olemasolevad objektid“ või „Suuna ainult uued kirjutused“.',
   'help.guide.storage-backends.result':
     'Uued üleslaadimised lähevad määratud taustsüsteemi. Teisaldatud failid pakutakse sealt ja see, mida otsustasid mitte teisaldada, jääb oma kohale.',
   'help.guide.storage-backends.tip.1':
@@ -1928,7 +1928,7 @@ const help: TranslationStrings = {
     'MCP lisamooduli väljalülitamine peatab kohe kõik kliendid ja peidab selle vahelehe, kuid ei kustuta midagi: tõendid hakkavad uuesti tööle, kui lisamoodul on jälle sees.',
   // release-history
   'help.guide.release-history.title': 'Kontrolli, kas on uus versioon',
-  'help.guide.release-history.goal': 'Tea, kas sinu TREK on ajakohane ja mida järgmine versioon toob.',
+  'help.guide.release-history.goal': 'Tea, kas sinu YOUYA on ajakohane ja mida järgmine versioon toob.',
   'help.guide.release-history.step.1':
     'Kui uuem versioon on olemas, on lehe päise all „Uuendus saadaval“ koos sinu kasutatava versiooniga. „Vaata GitHubis“ avab versiooni ja „Kuidas uuendada“ näitab Dockeri käske või muude paigalduste uuendamisjuhendit.',
   'help.guide.release-history.step.2':
@@ -1982,7 +1982,7 @@ const help: TranslationStrings = {
   'help.ctx.trip.summary':
     'Kõik ühe reisi kohta: plaan koos päevade, kaardi ja kohtadega ning vahelehed retkede, transpordi, broneeringute, nimekirjade, kulude, failide, koostöö ja seotud päeviku jaoks. Igal neist on allpool oma abileht.',
   'help.ctx.trip.bullet.1':
-    'Ülariba all olev vahelehtede riba: „Plaan“, „Retked“, „Transport“, „Broneeringud“, „Nimekirjad“, „Kulud“, „Failid“, „Koostöö“ ja pärast päeviku sidumist ka „Päevik“. Millised vahelehed sinu TREKis on, sõltub lisamoodulitest ja pluginatest.',
+    'Ülariba all olev vahelehtede riba: „Plaan“, „Retked“, „Transport“, „Broneeringud“, „Nimekirjad“, „Kulud“, „Failid“, „Koostöö“ ja pärast päeviku sidumist ka „Päevik“. Millised vahelehed sinu YOUYAis on, sõltub lisamoodulitest ja pluginatest.',
   'help.ctx.trip.bullet.2':
     '„Plaan“ koosneb kolmest veerust: vasakul päevad, keskel kaart, paremal kohad. Lisamooduliga „Autoreis“ algab päevade veerg lülitiga „Päevad“ ja „Autoreis“, lisamooduliga „Retked“ algab kohtade veerg lülitiga „Kohad“ ja „Retked“. Broneeringud ja transport on plaani osa, peatuse juures ja peatuste vahel; vahelehtedel on need loetletud.',
   'help.ctx.trip.bullet.3':
@@ -1995,7 +1995,7 @@ const help: TranslationStrings = {
     'Päevade tööriistaribal olev tagasivõtmise nool tühistab sinu viimased plaanimuudatused ükshaaval.',
   // add-member
   'help.guide.add-member.title': 'Lisa liige',
-  'help.guide.add-member.goal': 'Anna TREKi kontoga inimesele juurdepääs sellele reisile.',
+  'help.guide.add-member.goal': 'Anna YOUYAi kontoga inimesele juurdepääs sellele reisile.',
   'help.guide.add-member.step.1':
     'Klõpsa ülal vasakul reisi nime kõrval oleval sildil „Reisi seaded“. See avaneb vahelehel „Inimesed“.',
   'help.guide.add-member.step.2': 'Vali jaotises „Kutsu kasutaja“ inimene väljalt „Vali kasutaja…“ ja klõpsa „Kutsu“.',
@@ -2004,7 +2004,7 @@ const help: TranslationStrings = {
   'help.guide.add-member.result':
     'Liige näeb ja muudab reisi samamoodi nagu sina, piirides, mille administraator on määranud jaotises „Õiguste seaded“.',
   'help.guide.add-member.tip.1':
-    'Kui kedagi loendis pole, pole tal veel TREKi kontot: lisa ta külalisena või lase tal kutselingi kaudu registreeruda.',
+    'Kui kedagi loendis pole, pole tal veel YOUYAi kontot: lisa ta külalisena või lase tal kutselingi kaudu registreeruda.',
   'help.guide.add-member.tip.2':
     '„Juurdepääs“ kõrval olev arv näitab reisil olevate inimeste arvu; külalised on loetletud eraldi allpool.',
   // trip-invite-link
@@ -2013,7 +2013,7 @@ const help: TranslationStrings = {
   'help.guide.trip-invite-link.step.1':
     'Klõpsa reisi nime kõrval „Reisi seaded“ ja vali vasakul „Jagamine“. Klõpsa jaotises „Reisi kutselink“ nuppu „Loo kutselink“.',
   'help.guide.trip-invite-link.step.2':
-    'Klõpsa „Kopeeri“ ja saada link. Igaüks, kellel on TREKi konto ja kes lingi avab, liitub liikmena.',
+    'Klõpsa „Kopeeri“ ja saada link. Igaüks, kellel on YOUYAi konto ja kes lingi avab, liitub liikmena.',
   'help.guide.trip-invite-link.step.3':
     '„Loo uuesti“ asendab lingi ja vana link lakkab töötamast. „Keela“ lülitab lingi välja.',
   'help.guide.trip-invite-link.result': 'Igaüks, kes lingi avab, liitub reisiga ja kuvatakse jaotises „Juurdepääs“.',
@@ -2023,7 +2023,7 @@ const help: TranslationStrings = {
     'Kui saatsid lingi valesse vestlusesse, loo see uuesti („Loo uuesti“): vana link lakkab kohe töötamast.',
   // add-guest
   'help.guide.add-guest.title': 'Lisa külaline, kellel pole kontot',
-  'help.guide.add-guest.goal': 'Lisa reisile keegi, kes TREKi ei kasuta.',
+  'help.guide.add-guest.goal': 'Lisa reisile keegi, kes YOUYAi ei kasuta.',
   'help.guide.add-guest.step.1':
     'Klõpsa reisi nime kõrval „Reisi seaded“. Vahelehel „Inimesed“ on „Külalised“ viimane osa, jaotise „Juurdepääs“ all.',
   'help.guide.add-guest.step.2': 'Kirjuta nimi väljale „Külalise nimi“ ja klõpsa „Lisa külaline“.',
@@ -2079,7 +2079,7 @@ const help: TranslationStrings = {
   'help.guide.undo-change.tip.1':
     '„Võta tagasi“ hõlmab plaani: kohtade lisamist, määramist, eemaldamist, ümberjärjestamist, teisaldamist ja lukustamist, päeva tühjendamist, marsruudi optimeerimist, kohtade kustutamist, kategooriate muutmist ja importimist.',
   'help.guide.undo-change.tip.2':
-    'Klõpsa uuesti, et minna kaugemale tagasi: TREK hoiab sinu viimast 30 muudatust sellel reisil, uusimad eespool, kuni reisilt lahkud.',
+    'Klõpsa uuesti, et minna kaugemale tagasi: YOUYA hoiab sinu viimast 30 muudatust sellel reisil, uusimad eespool, kuni reisilt lahkud.',
   'help.guide.trip-assistant.title': 'Planeeri assistendiga',
   'help.guide.trip-assistant.goal': 'Küsi assistendilt oma reisi kohta ja lase tal pakutu plaani lisada.',
   'help.guide.trip-assistant.step.1':
@@ -2134,19 +2134,19 @@ const help: TranslationStrings = {
   'help.guide.create-place.step.1':
     'Klõpsa kohtade veeru ülaosas „Lisa koht või tegevus“ („Uus koht“, kui päev on avatud). Vorm avaneb ja kursor on otsinguväljal.',
   'help.guide.create-place.step.2':
-    "Kirjuta koha nimi väljale „Otsi kohti…“ ja vali tulemus. Dialoogi ülaosas olev nimi, „Aadress“, „Laiuskraad“, „Pikkuskraad“ ja „Veebisait“ täituvad ning vasakul olev „Koha üksikasjad“ näitab pilte, lahtiolekuaegu ja kirjeldust. Google'i võtmega TREKis saad tulemuste all oleva lingiga otsida sama koha hoopis Google'i kaudu, kui see polnud õige. Kui „Kogumikud“ on sees, pakub paremal olev „Salvestatud kohad“ samamoodi sinu nimekirjade kohti.",
+    "Kirjuta koha nimi väljale „Otsi kohti…“ ja vali tulemus. Dialoogi ülaosas olev nimi, „Aadress“, „Laiuskraad“, „Pikkuskraad“ ja „Veebisait“ täituvad ning vasakul olev „Koha üksikasjad“ näitab pilte, lahtiolekuaegu ja kirjeldust. Google'i võtmega YOUYAis saad tulemuste all oleva lingiga otsida sama koha hoopis Google'i kaudu, kui see polnud õige. Kui „Kogumikud“ on sees, pakub paremal olev „Salvestatud kohad“ samamoodi sinu nimekirjade kohti.",
   'help.guide.create-place.step.3':
     'Klõpsa jaotises „Koha üksikasjad“ rubriigi „Vali pilt“ all pildil, et teha sellest koha pilt. „Kasuta seda teksti“ kopeerib kirjelduse vormi.',
   'help.guide.create-place.step.4':
     'Kontrolli vormi välju. Ainus kohustuslik väli on nimi dialoogi ülaosas. Selle all oleva kategooriasildiga valid ühe reisi kategooriatest ja kõrval oleva +-iga lood uue. „Aadress“, „Laiuskraad“ ja „Pikkuskraad“ tulevad otsingust või sisestad need ise. Jaotises „Sildid“ klõpsa silte, mis kohal peaksid olema. „Kohast“ ja „Märkmed“ vahetavad tekstivälja kirjelduse ja sinu enda märkmete vahel. „Veebisait“ on lingi jaoks, jaotise „Failid“ all olev „Lisa“ lisab dokumendi ning „Telefon“, „E-post“ ja „Lisa lahtiolekuajad“ on andmete jaoks, mida otsing ei leidnud.',
   'help.guide.create-place.step.5':
-    'Klõpsa „Lisa“. Kui reisil on juba sama nime või asukohaga koht, näitab TREK hoiatust ja nupul on nüüd kirjas „Lisa siiski“.',
+    'Klõpsa „Lisa“. Kui reisil on juba sama nime või asukohaga koht, näitab YOUYA hoiatust ja nupul on nüüd kirjas „Lisa siiski“.',
   'help.guide.create-place.result':
     'Koht on loendis ja kaardil jaotises „Planeerimata“, kuni see mõnele päevale pannakse.',
   'help.guide.create-place.tip.1':
     'Kui lisamoodul „Eelarve“ on sees, avab vormi allosas olev „Kulud“ kohe pärast salvestamist kulude redaktori koha kulu jaoks. Dialoogi kleebitud pilt või PDF lisatakse failina jaotisse „Failid“.',
   'help.guide.create-place.tip.2':
-    "Igas TREKis annavad otsingutulemused TREKi indeks ja OpenStreetMap ning „Koha üksikasjad“ täidetakse automaatselt Wikipediast, Wikivoyage'ist ja Wikimediast. Google'i poole pöördub TREK ainult siis, kui mõlemad ei leia midagi, ja hinnanguid annab ainult Google.",
+    "Igas YOUYAis annavad otsingutulemused YOUYAi indeks ja OpenStreetMap ning „Koha üksikasjad“ täidetakse automaatselt Wikipediast, Wikivoyage'ist ja Wikimediast. Google'i poole pöördub YOUYA ainult siis, kui mõlemad ei leia midagi, ja hinnanguid annab ainult Google.",
   'help.guide.create-place.tip.3':
     'Koha saad luua ka kaardil: paremklõpsa sobival kohal ja avaneb vorm, kus koordinaadid ja aadress on juba täidetud.',
   // place-to-open-day
@@ -2240,7 +2240,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-file.result':
     'Nööpnõelad on reisi kohad loendis ja kaardil, jaotises „Planeerimata“, kuni paned need päevale.',
   'help.guide.import-places-file.tip.1':
-    'Liiga suur fail lükatakse tagasi ja TREK näitab suuruspiirangut. Ekspordi fail uuesti ilma fotodeta või jaga see osadeks.',
+    'Liiga suur fail lükatakse tagasi ja YOUYA näitab suuruspiirangut. Ekspordi fail uuesti ilma fotodeta või jaga see osadeks.',
   'help.guide.import-places-file.tip.2':
     'Valikuga „Impordi fail“ tehtud importi saab tagasi võtta päevade kohal olevalt tööriistaribalt.',
   // import-places-list
@@ -2256,7 +2256,7 @@ const help: TranslationStrings = {
   'help.guide.import-places-list.tip.1':
     'Nimekiri peab olema avalikult jagatud. Privaatse nimekirja lingiga ei impordita midagi.',
   'help.guide.import-places-list.tip.2':
-    "„Täienda kohtade andmeid Google'i kaudu“ ilmub aknasse, kui sinu TREKil on Google'i võti: see otsib üles iga imporditud koha ja lisab fotod, aadressi ja üksikasjad.",
+    "„Täienda kohtade andmeid Google'i kaudu“ ilmub aknasse, kui sinu YOUYAil on Google'i võti: see otsib üles iga imporditud koha ja lisab fotod, aadressi ja üksikasjad.",
   'help.guide.sort-places.title': 'Sordi kohtade loend',
   'help.guide.sort-places.goal': 'Sordi loend nime, hinnangu või viimati lisatu või muudetu järgi.',
   'help.guide.sort-places.step.1':
@@ -2368,7 +2368,7 @@ const help: TranslationStrings = {
   'help.guide.reorder-stops.step.3':
     'Lohista peatus teise päeva kaardile, et see sinna viia; vanalt päevalt see eemaldatakse.',
   'help.guide.reorder-stops.step.4':
-    'Kui peatusel on kindel kellaaeg ja teisaldamine rikuks päeva järjekorra, küsib TREK „Kas eemaldada kellaaeg?“, sest kellaaeg määrab peatuse asukoha. „Eemalda kellaaeg ja teisalda“ eemaldab kellaaja ja paneb peatuse sinna, kuhu selle viskasid. „Tühista“ jätab päeva endiseks.',
+    'Kui peatusel on kindel kellaaeg ja teisaldamine rikuks päeva järjekorra, küsib YOUYA „Kas eemaldada kellaaeg?“, sest kellaaeg määrab peatuse asukoha. „Eemalda kellaaeg ja teisalda“ eemaldab kellaaja ja paneb peatuse sinna, kuhu selle viskasid. „Tühista“ jätab päeva endiseks.',
   'help.guide.reorder-stops.result': 'Marsruut ja sõiduajad uuenevad kohe uue järjekorra järgi.',
   'help.guide.reorder-stops.tip.1':
     'Kindla kellaajaga broneering jääb oma kellaajale vastavasse kohta. Kui lohistad selle oma päeva sees mujale, liigub see tagasi. Kui lohistad selle teisele päevakaardile, liigub see sellele päevale.',
@@ -2388,7 +2388,7 @@ const help: TranslationStrings = {
   'help.guide.set-stop-times.tip.1':
     'Kellaaeg kuulub selle päeva peatusele. Samal kohal võib teisel päeval olla teine kellaaeg.',
   'help.guide.set-stop-times.tip.2':
-    'Kellaajaga peatuse käsitsi liigutamiseks lohista seda. TREK küsib „Kas eemaldada kellaaeg?“ ja „Eemalda kellaaeg ja teisalda“ võtab kellaaja ära ning liigutab peatuse.',
+    'Kellaajaga peatuse käsitsi liigutamiseks lohista seda. YOUYA küsib „Kas eemaldada kellaaeg?“ ja „Eemalda kellaaeg ja teisalda“ võtab kellaaja ära ning liigutab peatuse.',
   'help.guide.set-stop-times.tip.3':
     'Samas vormis olev vaheleht „Ainult päev“ vahelehtede „Kohast“ ja „Märkmed“ kõrval on märke jaoks, mis kehtib ainult sellel päeval, näiteks laua broneering või piletinumber.',
   // remove-from-day
@@ -2430,7 +2430,7 @@ const help: TranslationStrings = {
   // day-route
   'help.guide.day-route.title': 'Näita ja optimeeri päeva marsruuti',
   'help.guide.day-route.goal':
-    'Vaata peatustevahelist marsruuti, vali liikumisviis ja lase TREKil järjekord paika panna.',
+    'Vaata peatustevahelist marsruuti, vali liikumisviis ja lase YOUYAil järjekord paika panna.',
   'help.guide.day-route.step.1':
     'Ava päev ja klõpsa peatuste all olevas marsruudiribal „Marsruut“: peatustevaheline marsruut joonistatakse kaardile ja peatuste vahelised ühendused näitavad iga lõigu aega ja pikkust.',
   'help.guide.day-route.step.2':
@@ -2443,7 +2443,7 @@ const help: TranslationStrings = {
     '„Ava Google Mapsis“ või „Ava CoMapsis“ avab kogu päeva marsruudina selles rakenduses, et teel navigeerida; CoMaps kasutab ka päeva liikumisviisi.',
   'help.guide.day-route.result': 'Päev on aegadega marsruut. „Kogukulu“ ja teelõigud uuenevad järjekorra muutudes.',
   'help.guide.day-route.tip.1':
-    'Marsruudid tulevad vaikimisi OSRM-ist. Administraator saab jaotises „Kasutaja vaikevalikud“ määrata TREKile teise marsruutimismootori.',
+    'Marsruudid tulevad vaikimisi OSRM-ist. Administraator saab jaotises „Kasutaja vaikevalikud“ määrata YOUYAile teise marsruutimismootori.',
   'help.guide.day-route.tip.2':
     'Lõigul, mille marsruuti ei õnnestunud arvutada, aega ei kuvata. Kontrolli, kas mõlemal peatusel on koordinaadid.',
   'help.guide.day-route.tip.3': 'Tagasivõtmise nool tühistab optimeerimise.',
@@ -2519,7 +2519,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-place.bullet.5':
     'All olev rida: „Lisa päevale“, kui päev on avatud ja kohta sellel veel pole, seejärel „Navigeerimine“ (või sinu kaardirakenduse nimi, kui oled selle jaotises „Seaded“ valinud) ja kaks ikooni, „Ava veebisait“ ja „Salvesta kogumikku“. Paremal on kolmes punktis „Eemalda päevast“ ja „Kustuta“ ning „Muuda“ avab koha vormi, kus saad muuta ka selle pilti.',
   'help.ctx.trip-place.bullet.6':
-    "Otsingust valitud koha juures on näha, mida TREKi register või OpenStreetMap selle kohta teab: ülal siltide hulgas „Avatud“ või „Suletud“ koos rohelise või punase rõngaga pildi ümber, koha kohaliku aja järgi; telefoninumber, samuti sildina; allpool „Lahtiolekuajad“, kus real on tänased ajad ja klõpsuga kogu nädal; ning veebisait nupu „Ava veebisait“ all. Google'i hinnang on näha ainult Google'i kaudu leitud kohal TREKis, millel on Google'i võti. Lahtiolekuajad, telefoninumber ja e-post, mille ise koha vormi sisestasid, asendavad otsitud andmed ja määravad ka rõnga värvi.",
+    "Otsingust valitud koha juures on näha, mida YOUYAi register või OpenStreetMap selle kohta teab: ülal siltide hulgas „Avatud“ või „Suletud“ koos rohelise või punase rõngaga pildi ümber, koha kohaliku aja järgi; telefoninumber, samuti sildina; allpool „Lahtiolekuajad“, kus real on tänased ajad ja klõpsuga kogu nädal; ning veebisait nupu „Ava veebisait“ all. Google'i hinnang on näha ainult Google'i kaudu leitud kohal YOUYAis, millel on Google'i võti. Lahtiolekuajad, telefoninumber ja e-post, mille ise koha vormi sisestasid, asendavad otsitud andmed ja määravad ka rõnga värvi.",
   // read-place
   'help.guide.read-place.title': 'Mida kaart koha kohta ütleb',
   'help.guide.read-place.goal': 'Vaata ühelt kaardilt kõike, mida reis ühe koha kohta teab.',
@@ -2593,7 +2593,7 @@ const help: TranslationStrings = {
   'help.guide.place-image.tip.2':
     '„Eemalda pilt“ paanide all oleva rea lõpus jätab koha pildita, kui klõpsad „Uuenda“. „Tühista“ jätab vana alles.',
   'help.guide.place-image.tip.3':
-    'Teised paanid on koha praegune pilt, sellele lisatud fotod ja pildid, mille TREK sellele leidis, igaühel oma autoriviide. Pilti saavad muuta ainult reisijad, kes tohivad kohti muuta.',
+    'Teised paanid on koha praegune pilt, sellele lisatud fotod ja pildid, mille YOUYA sellele leidis, igaühel oma autoriviide. Pilti saavad muuta ainult reisijad, kes tohivad kohti muuta.',
   // place-day-assign
   'help.guide.place-day-assign.title': 'Lisa koht avatud päevale või eemalda see',
   'help.guide.place-day-assign.goal': 'Kasuta kaardil olevat nuppu, selle asemel et rida üle planeerija lohistada.',
@@ -2674,11 +2674,11 @@ const help: TranslationStrings = {
   'help.guide.place-navigation.step.2':
     'Loendis on sellele kohale sobivad kaardirakendused: Google Maps, Waze, Apple Maps, OpenStreetMap ja CoMaps ning Androidis lisaks „Muu kaardirakendus“.',
   'help.guide.place-navigation.step.3':
-    'Klõpsa sellel, mida kasutad. Võimaluse korral saadab TREK rakendusse koha enda, mitte ainult selle koordinaadid, nii et jõuad õige sissepääsu juurde.',
+    'Klõpsa sellel, mida kasutad. Võimaluse korral saadab YOUYA rakendusse koha enda, mitte ainult selle koordinaadid, nii et jõuad õige sissepääsu juurde.',
   'help.guide.place-navigation.step.4':
     'Selle kõrval olev ikoon „Ava veebisait“ avab uuel vahekaardil koha enda veebisaidi koos lahtiolekuaegade ja piletitega.',
   'help.guide.place-navigation.result':
-    'Kaardirakendus avab koha, veebisait avaneb uuel vahekaardil ja reisis ei muutu midagi. Kui TREK on paigaldatud rakendusena, avaneb uue vahekaardi asemel kaardirakendus.',
+    'Kaardirakendus avab koha, veebisait avaneb uuel vahekaardil ja reisis ei muutu midagi. Kui YOUYA on paigaldatud rakendusena, avaneb uue vahekaardi asemel kaardirakendus.',
   'help.guide.place-navigation.tip.1':
     'Waze alustab navigeerimist kohe. Teised rakendused avavad koha ja navigeerimise alustamiseks tuleb veel korra puudutada.',
   'help.guide.place-navigation.tip.2':
@@ -2717,7 +2717,7 @@ const help: TranslationStrings = {
   'help.guide.place-track.result':
     'Rada joonistatakse sinu valitud värviga infokaardil, oma real kohtade veerus ja kaardil.',
   'help.guide.place-track.tip.1':
-    'Need kaks plokki on ainult kohal, millel on teekond: kohal, mis imporditi GPX-, KML- või KMZ-failist enne retkede tulekut või TREKis, kus „Retked“ on välja lülitatud. Kui „Retked“ on sees, saab uuest GPX-failist retk, millel on oma retkekaart.',
+    'Need kaks plokki on ainult kohal, millel on teekond: kohal, mis imporditi GPX-, KML- või KMZ-failist enne retkede tulekut või YOUYAis, kus „Retked“ on välja lülitatud. Kui „Retked“ on sees, saab uuest GPX-failist retk, millel on oma retkekaart.',
   'help.guide.place-track.tip.2':
     'Kõrgusandmetega salvestatud raja puhul on näha ka kõrgeim ja madalaim punkt, tõusu- ja laskumismeetrid ning matka profiil.',
   'help.guide.place-track.tip.3':
@@ -2907,7 +2907,7 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.1':
     'Kaardi ülaosas olev ikoonirida on kategooriaotsing: „Restoranid“, „Kohvikud“, „Baarid ja ööelu“, „Majutus“, „Vaatamisväärsused“, „Muuseumid ja kultuur“, „Loodus ja pargid“, „Tegevused“, „Pagarid“ ja „Toidukaubad“. Pluginate lisatud kategooriad on õhukese eraldaja järel; nime nägemiseks vii kursor ikoonile.',
   'help.guide.map-nearby-places.step.2':
-    'Klõpsa kategoorial. TREK otsib kaardi nähtavast osast seda tüüpi kohti ja paneb iga tulemuse kohta kategooria värvi nööpnõela. Korraga saab olla ainult üks kategooria: teisel klõpsamine asendab selle ja aktiivsel klõpsamine lülitab selle välja.',
+    'Klõpsa kategoorial. YOUYA otsib kaardi nähtavast osast seda tüüpi kohti ja paneb iga tulemuse kohta kategooria värvi nööpnõela. Korraga saab olla ainult üks kategooria: teisel klõpsamine asendab selle ja aktiivsel klõpsamine lülitab selle välja.',
   'help.guide.map-nearby-places.step.3':
     'Kaarti liigutades ilmub rea alla teine nupp: „Otsi sellest piirkonnast“ teeb sama otsingu uues vaates. Kaardi liigutamine ise uut otsingut ei alusta, nii jääb päringuid vähe.',
   'help.guide.map-nearby-places.step.4':
@@ -2915,13 +2915,13 @@ const help: TranslationStrings = {
   'help.guide.map-nearby-places.step.5':
     'Kontrolli täidetud andmeid ja lisa see, mida otsing ei saanud teada. Nime all olev kategooriasilt on juba määratud, kui reisil on sobiv kategooria, näiteks restoran restorani jaoks; muidu on sellel kirjas „Kategooriata“, kuni valid kategooria. Kirjuta jaotisesse „Kohast“, mis koht see on, ja oma märkmed jaotisesse „Märkmed“.',
   'help.guide.map-nearby-places.step.6':
-    'Klõpsa „Lisa“. Kui sama nimega või samas kohas asuv koht on reisis juba olemas, annab TREK sellest teada ja nupu tekst muutub: „Lisa siiski“.',
+    'Klõpsa „Lisa“. Kui sama nimega või samas kohas asuv koht on reisis juba olemas, annab YOUYA sellest teada ja nupu tekst muutub: „Lisa siiski“.',
   'help.guide.map-nearby-places.result':
     'Koht on kohtade loendis ja kaardil ühena reisi enda nööpnõeltest, jaotises „Planeerimata“, kuni paned selle mõnele päevale. Otsingu nööpnõelad jäävad alles, kuni lülitad kategooria välja.',
   'help.guide.map-nearby-places.tip.1':
     'Rida on peidetud, kui jaotises „Seaded“ > „Üldine“ alajaotises „Reisimine ja kaart“ on „Avasta kaardil kohti“ välja lülitatud.',
   'help.guide.map-nearby-places.tip.2':
-    'Tulemused tulevad TREK Placesi indeksist ja OpenStreetMapist, seega on see üks väheseid asju plaanis, mis vajab ühendust.',
+    'Tulemused tulevad YOUYA Placesi indeksist ja OpenStreetMapist, seega on see üks väheseid asju plaanis, mis vajab ühendust.',
   'help.guide.map-nearby-places.tip.3':
     'Otsing hõlmab ainult ekraanil olevat ala, nii et suumi sisse tänavani, mis sind huvitab. Kogu linna otsing annab ainult esimesed kuuskümmend tulemust, ilma kindla järjekorrata.',
   // map-add-place
@@ -2930,7 +2930,7 @@ const help: TranslationStrings = {
   'help.guide.map-add-place.step.1':
     'Tee kaardil soovitud kohas paremklõps. Avaneb kohavorm pealkirjaga „Lisa koht või tegevus“.',
   'help.guide.map-add-place.step.2':
-    '„Laiuskraad“ ja „Pikkuskraad“ on juba selle punkti järgi määratud. TREK otsib koordinaatide järgi ja täidab välja „Aadress“ sellega, mis sealt leitakse. Kui otsing leiab ka nime, täidab TREK akna ülaosas ka nime. Midagi pole veel salvestatud, nii et paranda, mis on valesti.',
+    '„Laiuskraad“ ja „Pikkuskraad“ on juba selle punkti järgi määratud. YOUYA otsib koordinaatide järgi ja täidab välja „Aadress“ sellega, mis sealt leitakse. Kui otsing leiab ka nime, täidab YOUYA akna ülaosas ka nime. Midagi pole veel salvestatud, nii et paranda, mis on valesti.',
   'help.guide.map-add-place.step.3':
     'Kirjuta dialoogi ülaosas olevale väljale nimi, mille ära tunned. Vali selle all olevalt sildilt kategooria; kuni valid, on seal kirjas „Kategooriata“. Seejärel lisa muud plaani jaoks vajalikud andmed: „Kohast“, „Märkmed“, „Veebisait“.',
   'help.guide.map-add-place.step.4':
@@ -2947,7 +2947,7 @@ const help: TranslationStrings = {
   'help.guide.map-satellite.step.1':
     'Aluskihi lüliti on kaardi all vasakul olevast kahest ümmargusest nupust alumine, luku all. Selle ikoon näitab alati kihti, millele see lülitab, ja vihje ütleb, millele: „Lülitu satelliidivaatele“. Klõpsa sellel.',
   'help.guide.map-satellite.step.2':
-    'Kaardil on nüüd aerofotod. Need on nii detailsed, et näha on üksikuid hooneid, ja oma võtit pole vaja. Kõik, mida TREK joonistab, jääb peale: nööpnõelad, päeva marsruut, rajad ja broneeringute marsruudid.',
+    'Kaardil on nüüd aerofotod. Need on nii detailsed, et näha on üksikuid hooneid, ja oma võtit pole vaja. Kõik, mida YOUYA joonistab, jääb peale: nööpnõelad, päeva marsruut, rajad ja broneeringute marsruudid.',
   'help.guide.map-satellite.step.3':
     'Nupul on nüüd kirjas „Lülitu kaardivaatele“. Klõpsa sellel, et kaardivaatesse tagasi minna.',
   'help.guide.map-satellite.result': 'Kaart joonistatakse uuesti ja valitud kiht jäetakse sinu kontole meelde.',
@@ -3002,7 +3002,7 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.goal':
     'Näita kaardil teekonda, mille Dawarich sinu telefonis salvestas, katkendjoonena planeeritud marsruudi kõrval, ja vaata päev päeva haaval, kuidas reis tegelikult kulges.',
   'help.guide.map-dawarich-trail.step.1':
-    'Ümmargune Dawarichi nupp on kaardi paremas alanurgas nupu „Näita kogu reisi“ all. Kui viid kursori sellele, on kirjas „Näita salvestatud teekonda“. Klõpsa sellel. TREK küsib sinu Dawarichilt reisi kuupäevade andmeid ja vastust oodates keerleb nupu ümber rõngas.',
+    'Ümmargune Dawarichi nupp on kaardi paremas alanurgas nupu „Näita kogu reisi“ all. Kui viid kursori sellele, on kirjas „Näita salvestatud teekonda“. Klõpsa sellel. YOUYA küsib sinu Dawarichilt reisi kuupäevade andmeid ja vastust oodates keerleb nupu ümber rõngas.',
   'help.guide.map-dawarich-trail.step.2':
     'Salvestatud teekond ilmub katkendjoonena, iga päev ise värvi, ja see joonistatakse planeeritud marsruudi alla, et plaan jääks loetavaks. Nupul on nüüd kirjas „Peida salvestatud teekond“. Iga päev lõpeb kohaliku aja järgi keskööl. Kui ahendad päeva päevade veerus, peidetakse kaardil selle katkendjoon ja peatused.',
   'help.guide.map-dawarich-trail.step.3':
@@ -3010,9 +3010,9 @@ const help: TranslationStrings = {
   'help.guide.map-dawarich-trail.result':
     'Kaardil on koos näha, mida planeerisid ja mida tegelikult tegid, katkend- ja pidevjoonena. Nuppude kohal olev infokaart loetleb endiselt planeeritud päevad ja nende vahemaad.',
   'help.guide.map-dawarich-trail.tip.1':
-    'Sisse- või väljalülitus salvestatakse iga reisi kohta sinu kontole, nii et see on igas brauseris ja seadmes sama. Kui teekond on sisse lülitatud, küsib TREK Dawarichilt iga kahe minuti järel uuesti, nii et käimasolev reis uueneb lehte uuesti laadimata. Teekonda ennast ei salvestata kunagi, seega pole seda TREKi andmebaasis ega varukoopiates ja see pole võrguta saadaval.',
+    'Sisse- või väljalülitus salvestatakse iga reisi kohta sinu kontole, nii et see on igas brauseris ja seadmes sama. Kui teekond on sisse lülitatud, küsib YOUYA Dawarichilt iga kahe minuti järel uuesti, nii et käimasolev reis uueneb lehte uuesti laadimata. Teekonda ennast ei salvestata kunagi, seega pole seda YOUYAi andmebaasis ega varukoopiates ja see pole võrguta saadaval.',
   'help.guide.map-dawarich-trail.tip.2':
-    'Nupu silt ütleb, miks kaart on tühi: laadimise ajal „Salvestatud teekonna laadimine…“, siis „Nendel kuupäevadel pole midagi salvestatud“, „Salvestatud teekonda ei saanud laadida“ või, kui TREK on võrguühenduseta, „Salvestatud teekonna laadimine vajab ühendust“.',
+    'Nupu silt ütleb, miks kaart on tühi: laadimise ajal „Salvestatud teekonna laadimine…“, siis „Nendel kuupäevadel pole midagi salvestatud“, „Salvestatud teekonda ei saanud laadida“ või, kui YOUYA on võrguühenduseta, „Salvestatud teekonna laadimine vajab ühendust“.',
   // map-compass
   'help.guide.map-compass.title': 'Pööra kaarti ja leia jälle põhjasuund',
   'help.guide.map-compass.goal': 'Pööra kaart liikumissuunda ja too see ühe klõpsuga tagasi põhja suunda.',
@@ -3029,7 +3029,7 @@ const help: TranslationStrings = {
   // ── Screen: trip-transports ───────────────────────────────────────────────────────────
   'help.ctx.trip-transports.title': 'Transport',
   'help.ctx.trip-transports.summary':
-    'Kõik viisid, kuidas peatuste vahel liigud: lennud, rongid, bussid, autod, taksod, jalgrattad, kruiisid, praamid, köisraudteed ja ühistranspordi ühendused, mille TREK sinu eest otsib. Vahelehel on need loetletud. Neid saab luua ja vaadata ka plaanis ning need on kaardil näha.',
+    'Kõik viisid, kuidas peatuste vahel liigud: lennud, rongid, bussid, autod, taksod, jalgrattad, kruiisid, praamid, köisraudteed ja ühistranspordi ühendused, mille YOUYA sinu eest otsib. Vahelehel on need loetletud. Neid saab luua ja vaadata ka plaanis ning need on kaardil näha.',
   'help.ctx.trip-transports.bullet.1':
     'Vahelehel on ainult sõidud. Majutus, restoranid, üritused ja piletid on vahelehel „Broneeringud“, nii et sama kirje ei ole kunagi kahes kohas.',
   'help.ctx.trip-transports.bullet.2':
@@ -3086,7 +3086,7 @@ const help: TranslationStrings = {
   // import-transport-file
   'help.guide.import-transport-file.title': 'Impordi lend e-piletist',
   'help.guide.import-transport-file.goal':
-    'Lase TREKil lugeda lend, rong või praam vedaja saadetud piletilt ja kontrolli seda enne salvestamist.',
+    'Lase YOUYAil lugeda lend, rong või praam vedaja saadetud piletilt ja kontrolli seda enne salvestamist.',
   'help.guide.import-transport-file.step.1':
     'Klõpsa vahelehe „Transport“ ribal nupu „Transport“ ees oleval üleslaadimisikoonil, mille vihje on „Impordi broneeringukinnitused“. Avaneb samanimeline dialoog, sama mis vahelehel „Broneeringud“. Tühjal vahelehel teeb sama keskel olev „Impordi failist“.',
   'help.guide.import-transport-file.step.2':
@@ -3105,11 +3105,11 @@ const help: TranslationStrings = {
   // plan-transit
   'help.guide.plan-transit.title': 'Ühistranspordiühenduse planeerimine',
   'help.guide.plan-transit.goal':
-    'Lase TREKil leida päeva kahe punkti vahel tegelikud rongid ja bussid ning lisa valitud ühendus plaani.',
+    'Lase YOUYAil leida päeva kahe punkti vahel tegelikud rongid ja bussid ning lisa valitud ühendus plaani.',
   'help.guide.plan-transit.step.1':
     'Klõpsa päeva päises +-märgil ja vali „Ühistransport“. Otsing avaneb selle päeva jaoks: päev on päises näha ümara märgisena ja selle kõrval olevad „Käsitsi“ ja „Automaatne“ lülitavad selle otsingu ja tavalise vormi vahel.',
   'help.guide.plan-transit.step.2':
-    '„Lähtekoht“ ja „Sihtkoht“ võtavad vastu peatuse või jaama. Kui väli on veel tühi, pakub TREK päeva majutust, päeva broneeringute jaamu ja lennujaamu ning päeva enda peatusi. Kui kirjutad kaks tähte, otsitakse hoopis sõiduplaani jaamu. Väljade vahel olev „Vaheta“ vahetab lähte- ja sihtkoha.',
+    '„Lähtekoht“ ja „Sihtkoht“ võtavad vastu peatuse või jaama. Kui väli on veel tühi, pakub YOUYA päeva majutust, päeva broneeringute jaamu ja lennujaamu ning päeva enda peatusi. Kui kirjutad kaks tähte, otsitakse hoopis sõiduplaani jaamu. Väljade vahel olev „Vaheta“ vahetab lähte- ja sihtkoha.',
   'help.guide.plan-transit.step.3':
     '„Väljumine“ või „Saabumine“ koos kellaajaga ütleb, millal tahad sõita, ning „Parim marsruut“, „Vähem ümberistumisi“ või „Vähem kõndimist“ määrab, kuidas tulemused järjestatakse.',
   'help.guide.plan-transit.step.4':
@@ -3221,7 +3221,7 @@ const help: TranslationStrings = {
   'help.guide.airtrail-import.tip.1':
     'Lend, mis on reisil juba sama numbri ja kuupäevaga, jäetakse vahele ja teade ütleb, mitu jäeti vahele. Päevade kohal tööriistaribal olev tagasivõtmise nool tühistab kogu impordi.',
   'help.guide.airtrail-import.tip.2':
-    'Andmete peamiseks allikaks jääb AirTrail. TREK loeb selle muudatusi reisi avamisel ja taustal iga paari minuti järel. AirTrailis kustutatud lennu kaart jääb TREKi alles ja selle sildiks saab „Sünkroonimata“. TREKis tehtud muudatused saadetakse AirTraili tagasi ainult siis, kui jaotises „Integratsioonid“ on sisse lülitatud „Kirjuta muudatused AirTraili tagasi“.',
+    'Andmete peamiseks allikaks jääb AirTrail. YOUYA loeb selle muudatusi reisi avamisel ja taustal iga paari minuti järel. AirTrailis kustutatud lennu kaart jääb YOUYAi alles ja selle sildiks saab „Sünkroonimata“. YOUYAis tehtud muudatused saadetakse AirTraili tagasi ainult siis, kui jaotises „Integratsioonid“ on sisse lülitatud „Kirjuta muudatused AirTraili tagasi“.',
   'help.guide.airtrail-import.tip.3':
     'Ühendatud ühenduslend ei ole üks AirTraili lend, mida saaks sünkroonida, seega imporditakse see ühekordselt: sinine kiip jääb alles ja kui viid kursori kiibi kohale, öeldakse seda ka seal. Sama juhtub sünkroonitud lennuga, kui lisad sellele käsitsi peatuse.',
   // ── Screen: trip-bookings ─────────────────────────────────────────────────────────────
@@ -3231,7 +3231,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-bookings.bullet.1':
     'Riba paremas otsas olev „Käsitsi broneering“ avab akna „Uus broneering“. Sellega saab luua kuut tüüpi broneeringuid: „Majutus“, „Restoran“, „Üritus“, „Giidiga ekskursioon“, „Parkimine“ ja „Muu“. Lennud, rongid ja muu transport on vahekaardil „Transport“ ega ilmu kunagi siia.',
   'help.ctx.trip-bookings.bullet.2':
-    'Nupu „Käsitsi broneering“ ees olev üleslaadimisikoon „Impordi broneeringukinnitused“ laadib kinnitused üles, et TREK saaks need automaatselt läbi lugeda: EML, PDF, PKPass, HTML või TXT, kuni viis faili, igaüks kuni 10 MB, ning fotod, kui tehisintellekti mudel oskab pilte lugeda. Ikoon on olemas ainult siis, kui server oskab neid lugeda. Kui administraator on kirjade impordi sisse lülitanud, annab sama dialoog reisile oma aadressi, kuhu broneeringukirju edasi saata.',
+    'Nupu „Käsitsi broneering“ ees olev üleslaadimisikoon „Impordi broneeringukinnitused“ laadib kinnitused üles, et YOUYA saaks need automaatselt läbi lugeda: EML, PDF, PKPass, HTML või TXT, kuni viis faili, igaüks kuni 10 MB, ning fotod, kui tehisintellekti mudel oskab pilte lugeda. Ikoon on olemas ainult siis, kui server oskab neid lugeda. Kui administraator on kirjade impordi sisse lülitanud, annab sama dialoog reisile oma aadressi, kuhu broneeringukirju edasi saata.',
   'help.ctx.trip-bookings.bullet.3':
     'Otsing otsib pealkirjadest, tüüpidest, kohtadest, märkmetest, broneerimiskoodidest ja reisijatest. Selle kõrval olev lehter „Filtreeri“ kitsendab vahekaarti „Oleku“ ja „Tüübi“ järgi (iga tüübi juures on arv) ning, kui mõnes broneeringus on inimesed nimetatud, ka „Reisijate“ järgi. Lehtril olev arv näitab, mitu filtrit on sisse lülitatud.',
   'help.ctx.trip-bookings.bullet.4':
@@ -3295,7 +3295,7 @@ const help: TranslationStrings = {
   'help.guide.booking-hotel.step.2':
     'Vali hotell jaotises „Majutus“. Loendis on reisi kohad, ilma imporditud radade ja retkedeta. Kui valid koha, läheb selle nimi tühja pealkirja ja aadress väljale „Asukoht / aadress“.',
   'help.guide.booking-hotel.step.3':
-    'Määra „Alates“ ja „Kuni“: esimene öö ja hommik, mil lahkud. Mõlemas saab valida reisi päevi koos kuupäevadega ja TREK hoolitseb, et „Kuni“ oleks pärast „Alates“.',
+    'Määra „Alates“ ja „Kuni“: esimene öö ja hommik, mil lahkud. Mõlemas saab valida reisi päevi koos kuupäevadega ja YOUYA hoolitseb, et „Kuni“ oleks pärast „Alates“.',
   'help.guide.booking-hotel.step.4':
     'Täida väljad „Sisseregistreerimine“, „Sisseregistreerimine kuni“ ja „Väljaregistreerimine“ ning kinnituselt „Broneerimiskood“.',
   'help.guide.booking-hotel.step.5': 'Klõpsa „Lisa“.',
@@ -3344,7 +3344,7 @@ const help: TranslationStrings = {
   'help.guide.booking-files.title': 'Hoia vautšer broneeringu juures',
   'help.guide.booking-files.goal': 'Lisa kinnitus, pilet või pääsmik broneeringule, millega see on seotud.',
   'help.guide.booking-files.step.1':
-    'Ava broneering selle kaardil oleva pliiatsiga. „Failid“ on „Lingi“ kõrval, klõpsa seal „Lisa fail“. Olemasoleva broneeringu puhul laaditakse dokument kohe üles ja TREK näitab teadet „Fail üles laaditud“.',
+    'Ava broneering selle kaardil oleva pliiatsiga. „Failid“ on „Lingi“ kõrval, klõpsa seal „Lisa fail“. Olemasoleva broneeringu puhul laaditakse dokument kohe üles ja YOUYA näitab teadet „Fail üles laaditud“.',
   'help.guide.booking-files.step.2': 'Dokument on loendis oma nimega, selle juures on avamisnupp ja kõrval X.',
   'help.guide.booking-files.step.3':
     '„Seo olemasolev fail“ pakub reisi dokumente, mis pole veel selle broneeringu juures. Vali üks ja see lisatakse ilma uuesti üles laadimata.',
@@ -3400,7 +3400,7 @@ const help: TranslationStrings = {
   // import-booking-file
   'help.guide.import-booking-file.title': 'Impordi broneering kinnitusest',
   'help.guide.import-booking-file.goal':
-    'Lase TREKil lugeda broneering teenusepakkuja saadetud e-kirjast või PDF-ist, et sa ei peaks seda uuesti sisestama.',
+    'Lase YOUYAil lugeda broneering teenusepakkuja saadetud e-kirjast või PDF-ist, et sa ei peaks seda uuesti sisestama.',
   'help.guide.import-booking-file.step.1':
     'Klõpsa ribal üleslaadimisikooni „Impordi broneeringukinnitused“. Nimi ilmub, kui viid kursori ikoonile. Avaneb samanimeline aken.',
   'help.guide.import-booking-file.step.2':
@@ -3489,7 +3489,7 @@ const help: TranslationStrings = {
   'help.guide.packing-categories.tip.2':
     'Kui määrad kellegi nimekirjale, saab ta pakkimisteavituse. See ei muuda, kes esemeid näeb. Seda määratakse iga eseme aknas jaotises „Nähtav“ või kogu nimekirja jaoks valikuga „Kogu nimekirja jagamine“.',
   'help.guide.packing-categories.tip.3':
-    'Kahel nimekirjal võib olla sama nimi. TREK hoiab neid sisemiselt lahus, nii et nimed jäävad täpselt selliseks, nagu need kirjutasid.',
+    'Kahel nimekirjal võib olla sama nimi. YOUYA hoiab neid sisemiselt lahus, nii et nimed jäävad täpselt selliseks, nagu need kirjutasid.',
   // check-off-packing
   'help.guide.check-off-packing.title': 'Asjade ärämärkimine pakkimise ajal',
   'help.guide.check-off-packing.goal': 'Märgi, mis on kotis, jälgi edenemist ja eemalda pakitud esemed.',
@@ -3537,13 +3537,13 @@ const help: TranslationStrings = {
   'help.guide.import-packing-list.step.3':
     'Või laadi read failist akna vasakus allnurgas oleva nupuga „Laadi CSV/TXT/MD“. See võtab vastu .csv-, .txt- või .md-faili ja asendab kogu kasti sisu.',
   'help.guide.import-packing-list.step.4':
-    'Klõpsa paremas allnurgas „Impordi 3“. Nupul olev number näitab, mitu rida TREK ära tundis.',
+    'Klõpsa paremas allnurgas „Impordi 3“. Nupul olev number näitab, mitu rida YOUYA ära tundis.',
   'help.guide.import-packing-list.result':
     'Igast reast saab kirje nimekirjas, mille nimi on rea esimesel väljal. Olemasolevad esemed ei muutu.',
   'help.guide.import-packing-list.tip.1':
     'Välju eraldavad nii komad, semikoolonid kui ka tabulaatorid ning jutumärgid hoiavad välja koos, nii et "Särk, sinine" jääb üheks nimeks. Ühe väärtusega rida on lihtsalt nimi. Rida, millel pole oma nimekirja, läheb nimekirja „Muu“. "3x" nime ees määrab koguse.',
   'help.guide.import-packing-list.tip.2':
-    'Kui reisil pole veel neljandal väljal nimetatud kotti, loob TREK selle. Import ja „Rakenda mall“ on kaks viisi, kuidas lisada kaalud ja kotid korraga paljudele esemetele.',
+    'Kui reisil pole veel neljandal väljal nimetatud kotti, loob YOUYA selle. Import ja „Rakenda mall“ on kaks viisi, kuidas lisada kaalud ja kotid korraga paljudele esemetele.',
   // export-packing-list
   'help.guide.export-packing-list.title': 'Prindi või ekspordi pakkimisnimekiri',
   'help.guide.export-packing-list.goal':
@@ -3762,11 +3762,11 @@ const help: TranslationStrings = {
     'Kohandatud jaotuse saab sisestada ka protsentides või osades: vihje kõrval olev väike lüliti valib valuutasümboli, % või „Osad“. Protsentides peavad osad enne kulu salvestamist kokku andma 100 %.',
   // expense-currency
   'help.guide.expense-currency.title': 'Sisesta kulu teises valuutas',
-  'help.guide.expense-currency.goal': 'Sisesta kviitungil olev summa ja TREK salvestab vahetuskursi.',
+  'help.guide.expense-currency.goal': 'Sisesta kviitungil olev summa ja YOUYA salvestab vahetuskursi.',
   'help.guide.expense-currency.step.1':
     'Ava „Lisa kulu“. Kirjuta nimi akna ülaossa ja sisesta väljale „Kogusumma“ summa täpselt nii, nagu see on tšekil, mitte ümberarvestatud summat.',
   'help.guide.expense-currency.step.2':
-    'Ava summa kõrval „Valuuta“; uus kulu algab reisi enda valuutas. Vali kviitungi valuuta: reisi valuuta ja see, milles „Kulud“ on näidatud, on ülaosas ning kõiki teisi TREKile teadaolevaid koode saad otsida, kirjutades kolm tähte.',
+    'Ava summa kõrval „Valuuta“; uus kulu algab reisi enda valuutas. Vali kviitungi valuuta: reisi valuuta ja see, milles „Kulud“ on näidatud, on ülaosas ning kõiki teisi YOUYAile teadaolevaid koode saad otsida, kirjutades kolm tähte.',
   'help.guide.expense-currency.step.3':
     'Väljade alla ilmub märkide rida: sinu sisestatud summa ja selle praegune väärtus märgisega „hetkekurss“. See on ainult eelvaade, mitte salvestatav väärtus.',
   'help.guide.expense-currency.step.4':
@@ -3979,13 +3979,13 @@ const help: TranslationStrings = {
   'help.ctx.trip-files.summary':
     'Kõik reisi dokumendid ühes loendis: piletid, kinnitused, pääsmed ja pildid. Igal neist on märkus, seos koha või broneeringuga, mille juurde see kuulub, ja prügikast, kust saad selle taastada.',
   'help.ctx.trip-files.bullet.1':
-    'Riba all olev katkendliku joonega kast „Lohista failid siia“ võtab vastu sinna lohistatud failid. Klõps sellel avab failivalija. Kastis on näha selle TREKi lubatud failitüübid ja ühe faili piirang (kuni 50 MB, kui administraator pole muud määranud).',
+    'Riba all olev katkendliku joonega kast „Lohista failid siia“ võtab vastu sinna lohistatud failid. Klõps sellel avab failivalija. Kastis on näha selle YOUYAi lubatud failitüübid ja ühe faili piirang (kuni 50 MB, kui administraator pole muud määranud).',
   'help.ctx.trip-files.bullet.2':
     'Ülal oleval ribal on „Failid“ ja filtrivahekaardid „Kõik“, „PDF-id“, „Pildid“ ja „Dokumendid“, igaühel oma arv. Kui mõnel failil on tärn, ilmub „Kõik“ järele tärniga vahekaart, ja kui mõnel märkmel on manus, ilmub lõppu vahekaart „Ühismärkmed“.',
   'help.ctx.trip-files.bullet.3':
     'Real on pisipilt või failitüüp, üleslaadija, nimi, selle all märkus, suurus ja kuupäev ning iga seose kohta üks märk: koht, broneering või transport oma nimega (kursorit peale viies näed „Päevaplaan“, „Broneering“ või „Transport“) ja „Ühismärkmetest“.',
   'help.ctx.trip-files.bullet.4':
-    'Rea lõpus on kuni viis ikooni, mille nimi on näha, kui viid kursori neile: „Lisa tärn“, „Määra“ (pliiats), „Ava“, „Laadi alla“ ja „Kustuta“. „Kustuta“ ei küsi kinnitust: fail läheb prügikasti, kust saad selle taastada. Võrguühenduseta töötavad märkus, link, tärn ja prügikast endiselt ning muudatused saadetakse, kui TREK on taas võrgus; ainult üleslaadimiseks ja mõne muu seose eemaldamiseks on vaja ühendust.',
+    'Rea lõpus on kuni viis ikooni, mille nimi on näha, kui viid kursori neile: „Lisa tärn“, „Määra“ (pliiats), „Ava“, „Laadi alla“ ja „Kustuta“. „Kustuta“ ei küsi kinnitust: fail läheb prügikasti, kust saad selle taastada. Võrguühenduseta töötavad märkus, link, tärn ja prügikast endiselt ning muudatused saadetakse, kui YOUYA on taas võrgus; ainult üleslaadimiseks ja mõne muu seose eemaldamiseks on vaja ühendust.',
   'help.ctx.trip-files.bullet.5':
     'Pilt või video avaneb täisekraanil, kus saad liikuda nooleklahvidega ja all on pisipiltide rida. Kõik muud dokumendid avanevad aknas, mille ülaosas on nimi ja selle all „Ava uuel vahekaardil“ ja „Laadi alla“. Rahakoti pääse laaditakse kohe alla.',
   'help.ctx.trip-files.bullet.6':
@@ -3997,7 +3997,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.step.1':
     'Ava reis ja klõpsa vahekaardiribal „Failid“. Seal on reisi dokumendid ja nende kohal üleslaadimiskast.',
   'help.guide.files-upload.step.2':
-    'Klõpsa „Lohista failid siia“ ja vali üks või mitu faili. Need laaditakse üles üksteise järel ja üleslaadimise ajal on kastis kirjas „Üleslaadimine...“. Kastis rea „või klõpsa sirvimiseks“ all on näha selle TREKi lubatud failitüübid ja ühe faili suurim maht.',
+    'Klõpsa „Lohista failid siia“ ja vali üks või mitu faili. Need laaditakse üles üksteise järel ja üleslaadimise ajal on kastis kirjas „Üleslaadimine...“. Kastis rea „või klõpsa sirvimiseks“ all on näha selle YOUYAi lubatud failitüübid ja ühe faili suurim maht.',
   'help.guide.files-upload.step.3':
     'Kui viimane fail on üles laaditud, avaneb selle jaoks automaatselt „Määra fail“ (kui reisil on kohti või broneeringuid), dialoogi ülaosas faili nimi. Jaotises „Märkus“ olev „Lisa märkus...“ lisab failile märkuse ja allolevad loendid seovad selle koha või broneeringuga. Sulge see paremas ülanurgas oleva ×-iga; sulgemisel ei lähe midagi kaduma.',
   'help.guide.files-upload.step.4':
@@ -4009,7 +4009,7 @@ const help: TranslationStrings = {
   'help.guide.files-upload.tip.2':
     'Vajuta Ctrl+V, et lisada lõikelaual olev pilt loendisse, nii et broneeringu ekraanipilti ei pea enne salvestama.',
   'help.guide.files-upload.tip.3':
-    'Üleslaadimiseks on vaja failide üleslaadimise õigust; ilma selleta kasti üldse pole. Loendist puuduva tüübi korral näidatakse teadet ja midagi ei laadita üles. Piirangust suurem fail (50 MB, kui administraator pole muud määranud) lükatakse tagasi enne, kui midagi saadetakse, ja teade nimetab piirangu. Üleslaadimiseks on vaja ka ühendust: võrguühenduseta annab TREK sellest teada ega laadi midagi üles.',
+    'Üleslaadimiseks on vaja failide üleslaadimise õigust; ilma selleta kasti üldse pole. Loendist puuduva tüübi korral näidatakse teadet ja midagi ei laadita üles. Piirangust suurem fail (50 MB, kui administraator pole muud määranud) lükatakse tagasi enne, kui midagi saadetakse, ja teade nimetab piirangu. Üleslaadimiseks on vaja ka ühendust: võrguühenduseta annab YOUYA sellest teada ega laadi midagi üles.',
   // files-link
   'help.guide.files-link.title': 'Seo dokument koha või broneeringuga',
   'help.guide.files-link.goal':
@@ -4029,7 +4029,7 @@ const help: TranslationStrings = {
   'help.guide.files-link.tip.1':
     'Failil võib olla korraga mitu seost, nii et sama kinnitus võib samal ajal kuuluda nii hotelli broneeringu kui ka hotelli koha juurde.',
   'help.guide.files-link.tip.2':
-    'Kui klõpsad märgitud kirjel uuesti, eemaldatakse see seos; fail ise jääb alles. Võrguühenduseta salvestatakse märkus ja uued märked ning saadetakse, kui TREK on taas võrgus; ainult mõne muu seose eemaldamiseks on vaja ühendust.',
+    'Kui klõpsad märgitud kirjel uuesti, eemaldatakse see seos; fail ise jääb alles. Võrguühenduseta salvestatakse märkus ja uued märked ning saadetakse, kui YOUYA on taas võrgus; ainult mõne muu seose eemaldamiseks on vaja ühendust.',
   'help.guide.files-link.tip.3':
     'See töötab ka vastupidi: kohale või broneeringule lisatud dokument on samuti selles loendis ja selle real on sama märk.',
   'help.guide.files-link.tip.4':
@@ -4065,7 +4065,7 @@ const help: TranslationStrings = {
   'help.guide.files-filter.tip.2':
     'Loendis on alati eespool tärniga failid ja seejärel uusimad, nii et täna üles laaditud dokument on eelmise kuu omast eespool.',
   // files-preview
-  'help.guide.files-preview.title': 'Loe dokumenti TREKist lahkumata',
+  'help.guide.files-preview.title': 'Loe dokumenti YOUYAist lahkumata',
   'help.guide.files-preview.goal': 'Vaata piletit või pilti kohe ja laadi see oma seadmesse, kui seda seal vajad.',
   'help.guide.files-preview.step.1':
     'Klõpsa pildi nimel või pisipildil. See avaneb täisekraanil ning üleval vasakul on faili nimi ja selle järjekorranumber piltide hulgas. Video avaneb samamoodi ja mängib seal.',
@@ -4099,7 +4099,7 @@ const help: TranslationStrings = {
     '„Tühjenda prügikast“, mis on ribal prügikasti ikooni kõrval, kustutab jäädavalt kõik, mis prügikastis veel on. Brauser küsib enne seda ühe korra kinnitust. Prügikasti ikoon viib tagasi failide juurde.',
   'help.guide.files-trash.result': 'Fail on loendis tagasi samas kohas, kus see enne oli.',
   'help.guide.files-trash.tip.1':
-    'Real olev „Kustuta“ ei küsi kinnitust. Seepärast ongi prügikast: TREKist ei eemaldata midagi enne, kui kustutad selle siit. Kõik see töötab ka võrguühenduseta ja saadetakse, kui TREK on taas võrgus.',
+    'Real olev „Kustuta“ ei küsi kinnitust. Seepärast ongi prügikast: YOUYAist ei eemaldata midagi enne, kui kustutad selle siit. Kõik see töötab ka võrguühenduseta ja saadetakse, kui YOUYA on taas võrgus.',
   'help.guide.files-trash.tip.2':
     'Faili kustutamiseks ja taastamiseks on vaja failide kustutamise õigust. Ilma selleta ei näe liige real nuppu „Kustuta“ ega prügikastis olevaid nuppe.',
   'help.guide.files-trash.tip.3': 'Prügikastist jäädavalt kustutatud faili ei saa tagasi tuua.',
@@ -4112,21 +4112,21 @@ const help: TranslationStrings = {
   'help.guide.files-sync.step.2':
     'Klõpsa oma hoidlal, siin Nextcloud. Avaneb väiksem ühenduse aken hoidla nimega, mis küsib selle hoidla sisselogimisandmeid.',
   'help.guide.files-sync.step.3':
-    "Täida „Aadress“ ja salvestusteenuse enda sisselogimisandmed: Paperless-ngx jaoks „API-pääse“, Papra jaoks „API-võti“ ja „Organisatsiooni ID“, Nextcloudi jaoks „Kasutajanimi“ ja „Rakenduse parool“, OpenCloudi jaoks „Kasutajanimi“ ja „Rakenduse pääse“ ning Synology Drive'i jaoks „Kasutajanimi“, „Parool“ ja, kui konto seda nõuab, „Kaheastmelise autentimise kood“. Kasuta alati rakenduse parooli või pääset, kui teenus seda pakub, mitte kunagi oma konto parooli. Nextcloud ja Synology Drive võtavad vastu ka valikulise „Baaskausta“, kust TREK reisikaustu otsib, siin /Reisen. All olev „Luba iseallkirjastatud sertifikaat“ on mõeldud ainult sinu enda võrgus olevale teenusele, millel on selline sertifikaat.",
+    "Täida „Aadress“ ja salvestusteenuse enda sisselogimisandmed: Paperless-ngx jaoks „API-pääse“, Papra jaoks „API-võti“ ja „Organisatsiooni ID“, Nextcloudi jaoks „Kasutajanimi“ ja „Rakenduse parool“, OpenCloudi jaoks „Kasutajanimi“ ja „Rakenduse pääse“ ning Synology Drive'i jaoks „Kasutajanimi“, „Parool“ ja, kui konto seda nõuab, „Kaheastmelise autentimise kood“. Kasuta alati rakenduse parooli või pääset, kui teenus seda pakub, mitte kunagi oma konto parooli. Nextcloud ja Synology Drive võtavad vastu ka valikulise „Baaskausta“, kust YOUYA reisikaustu otsib, siin /Reisen. All olev „Luba iseallkirjastatud sertifikaat“ on mõeldud ainult sinu enda võrgus olevale teenusele, millel on selline sertifikaat.",
   'help.guide.files-sync.step.4':
-    'Klõpsa „Testi ühendust“. TREK ühendub sisestatud andmetega hoidlaga ja jaluses on kirjas „Ühendatud, sisse logitud kasutajana“ ning konto nimi. Kui kasutajaandmed lükatakse tagasi või aadressile ei pääse ligi, näitab jalus hoopis seda. Mõlemal juhul ei salvestata midagi.',
+    'Klõpsa „Testi ühendust“. YOUYA ühendub sisestatud andmetega hoidlaga ja jaluses on kirjas „Ühendatud, sisse logitud kasutajana“ ning konto nimi. Kui kasutajaandmed lükatakse tagasi või aadressile ei pääse ligi, näitab jalus hoopis seda. Mõlemal juhul ei salvestata midagi.',
   'help.guide.files-sync.step.5':
-    'Klõpsa „Ühenda“. Ühendus salvestatakse reisi juurde ja TREK küsib, kus hoidlas peaksid reisi dokumendid olema: silt, kaust või ruum, kus need asuvad. Sünkroonitakse ainult seal olev sisu. „Loo uus“ loob selle, kui klõpsad „Loo“, ja nimeks võetakse reisi pealkiri. Jaotises „Või kasuta olemasolevat“ on olemasolevad. Klõpsa ühel, siin kaustal „Sügis Jaapanis“.',
+    'Klõpsa „Ühenda“. Ühendus salvestatakse reisi juurde ja YOUYA küsib, kus hoidlas peaksid reisi dokumendid olema: silt, kaust või ruum, kus need asuvad. Sünkroonitakse ainult seal olev sisu. „Loo uus“ loob selle, kui klõpsad „Loo“, ja nimeks võetakse reisi pealkiri. Jaotises „Või kasuta olemasolevat“ on olemasolevad. Klõpsa ühel, siin kaustal „Sügis Jaapanis“.',
   'help.guide.files-sync.step.6':
-    'Aken avaneb uuesti: sinu hoidla on vasakul jaotises „See reis“ ja paremal oleval kaardil on näha, kuhu see sünkroonib, millal see viimati käis, ja nupp „Sünkrooni kohe“. Esimene sünkroonimine algab automaatselt. Klõpsa „Sünkrooni kohe“, et sünkroonida igal ajal. Pärast sünkroonimist asendub nime kõrval olev märk „Veel sünkroonimata“ rohelise täpiga, millele kursorit viies on kirjas „Sünkroonis“. Vooriba näitab, mitu dokumenti on TREKis ja mitu hoidlas, nende vahel rajad „Salvestusteenusesse“ ja „Salvestusteenusest“. Sulge aken paremas ülanurgas oleva ×-ga.',
+    'Aken avaneb uuesti: sinu hoidla on vasakul jaotises „See reis“ ja paremal oleval kaardil on näha, kuhu see sünkroonib, millal see viimati käis, ja nupp „Sünkrooni kohe“. Esimene sünkroonimine algab automaatselt. Klõpsa „Sünkrooni kohe“, et sünkroonida igal ajal. Pärast sünkroonimist asendub nime kõrval olev märk „Veel sünkroonimata“ rohelise täpiga, millele kursorit viies on kirjas „Sünkroonis“. Vooriba näitab, mitu dokumenti on YOUYAis ja mitu hoidlas, nende vahel rajad „Salvestusteenusesse“ ja „Salvestusteenusest“. Sulge aken paremas ülanurgas oleva ×-ga.',
   'help.guide.files-sync.result':
-    'Hoidlas juba olnud dokumendid ilmuvad loendi algusse, üles laaditud sinu nimel, ja kõik reisi dokumendid on ka hoidlas, välja arvatud „Ühismärkmetest“ pärit dokumendid. Edaspidi kontrollib TREK hoidlat taustal ja loendi muudatused kopeeritakse hoidlasse.',
+    'Hoidlas juba olnud dokumendid ilmuvad loendi algusse, üles laaditud sinu nimel, ja kõik reisi dokumendid on ka hoidlas, välja arvatud „Ühismärkmetest“ pärit dokumendid. Edaspidi kontrollib YOUYA hoidlat taustal ja loendi muudatused kopeeritakse hoidlasse.',
   'help.guide.files-sync.tip.1':
     'Reisi saab ühendada ainult reisi omanik või instantsi administraator, sest kasutajaandmed annavad ligipääsu kogu hoidla kontole. Kui reis on ühendatud, näeb iga liige nuppu „Dokumentide sünkroonimine“ ning saab selle avada, kaarti lugeda ja vajutada „Sünkrooni kohe“.',
   'help.guide.files-sync.tip.2':
-    'Sinu oma võrgus olev hoidla vajab TREKi serveris seadet ALLOW_INTERNAL_NETWORK=true ja selle aadress peab olema masina aadress võrgus, mitte kunagi localhost. Muidu vastab „Testi ühendust“ teatega „See aadress pole lubatud.“',
+    'Sinu oma võrgus olev hoidla vajab YOUYAi serveris seadet ALLOW_INTERNAL_NETWORK=true ja selle aadress peab olema masina aadress võrgus, mitte kunagi localhost. Muidu vastab „Testi ühendust“ teatega „See aadress pole lubatud.“',
   'help.guide.files-sync.tip.3':
-    'Nupu „Sünkrooni kohe“ kõrval olev ikoon „Katkesta ühendus“ küsib üks kord kinnitust. Seejärel lõpetab see ühenduse ja jätab kõik dokumendid mõlemale poole alles. Kui ühendad sama sildi, kausta või ruumi teist korda, käsitleb TREK seda uuena ja impordib kõik uuesti. Seega ühenda pärast ühenduse katkestamist tühi, mitte vana.',
+    'Nupu „Sünkrooni kohe“ kõrval olev ikoon „Katkesta ühendus“ küsib üks kord kinnitust. Seejärel lõpetab see ühenduse ja jätab kõik dokumendid mõlemale poole alles. Kui ühendad sama sildi, kausta või ruumi teist korda, käsitleb YOUYA seda uuena ja impordib kõik uuesti. Seega ühenda pärast ühenduse katkestamist tühi, mitte vana.',
   // ── Screen: trip-collab ───────────────────────────────────────────────────────────────
   'help.ctx.trip-collab.title': 'Koostöö',
   'help.ctx.trip-collab.summary':
@@ -4283,7 +4283,7 @@ const help: TranslationStrings = {
   'help.guide.trip-chat.tip.2':
     '„Lisa pildid“ abil saad ühele sõnumile lisada kuni neli pilti. Neid saab ka kasti kleepida või sinna lohistada.',
   'help.guide.trip-chat.tip.3':
-    'Lingiga sõnumi alla ilmub eelvaatekaart, mille laadib sinu enda TREK, nii et link millelegi, kuhu ainult sina ligi pääsed, jääb tavaliseks lingiks.',
+    'Lingiga sõnumi alla ilmub eelvaatekaart, mille laadib sinu enda YOUYA, nii et link millelegi, kuhu ainult sina ligi pääsed, jääb tavaliseks lingiks.',
   'help.guide.trip-chat.tip.4':
     'Vestlusel on jaotises „Lisamoodulid“ oma lüliti, „Koostöö“ all: administraator saab vestluse välja lülitada ja jätta märkmed, lingid, küsitlused ning „Järgmisena“ sisse.',
 
@@ -4403,12 +4403,12 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-alternatives.result':
     'Teelõik kasutab nüüd valitud teed ning muutuvad ka vahemaa külgveerus ja sellele järgnevad saabumisajad.',
   'help.guide.roadtrip-alternatives.tip.1':
-    'Kui valid teise tee, kontrollib TREK seda kõigepealt autoreisi marsruutijaga. Seejärel hoiab ta teelõiku sellel teel nii väheste vahepunktidega kui vaja ja asendab lõigu senised vahepunktid. Teed, mida marsruutija ei suuda järgida, ei salvestata. Kui valid marsruutija enda tee, eemaldatakse vahepunktid uuesti.',
+    'Kui valid teise tee, kontrollib YOUYA seda kõigepealt autoreisi marsruutijaga. Seejärel hoiab ta teelõiku sellel teel nii väheste vahepunktidega kui vaja ja asendab lõigu senised vahepunktid. Teed, mida marsruutija ei suuda järgida, ei salvestata. Kui valid marsruutija enda tee, eemaldatakse vahepunktid uuesti.',
   'help.guide.roadtrip-alternatives.tip.2':
     '„Kiirteeta“, „Teemaksudeta“ ja „Praamita“ tulevad teiselt mootorilt, millel on oma kiirusmudel, seega ei saa nende aegu teistega võrrelda.',
   // roadtrip-limits
   'help.guide.roadtrip-limits.title': 'Määra auto ja sõidupiirangud',
-  'help.guide.roadtrip-limits.goal': 'Ütle TREKile, millise sõidukiga sõidad ja kui kaugele tahad ilma pausita sõita.',
+  'help.guide.roadtrip-limits.goal': 'Ütle YOUYAile, millise sõidukiga sõidad ja kui kaugele tahad ilma pausita sõita.',
   'help.guide.roadtrip-limits.step.1':
     '„Sõiduseaded“ on paremas veerus otsingu all. Selle märgid näitavad, mis on määratud; avamiseks klõpsa sellel.',
   'help.guide.roadtrip-limits.step.2':
@@ -4475,7 +4475,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-track.step.2':
     'Vali rada. Iga raja juures on selle pikkus ja see, kas rada järgib selle päeva marsruuti või kui kaugel see on. Lähim rada on esimene.',
   'help.guide.roadtrip-track.step.3':
-    'Klõpsa „Järgi seda rada“. TREK lisab vahepunktid sinna, kus sõit on rajast kõige kaugemal, arvutab marsruudi uuesti ja kordab seda mitu korda.',
+    'Klõpsa „Järgi seda rada“. YOUYA lisab vahepunktid sinna, kus sõit on rajast kõige kaugemal, arvutab marsruudi uuesti ja kordab seda mitu korda.',
   'help.guide.roadtrip-track.step.4':
     'Dialoog näitab, mitu vahepunkti lisati ja kui lähedal rajale sõit nüüd püsib, või et sõit järgis rada juba varem. All vasakul olev „Eemalda vahepunktid“ eemaldab need ja marsruudiplaneerija planeerib päeva uuesti. Dialoogi sulgemisel jääb rada alles.',
   'help.guide.roadtrip-track.result':
@@ -4525,30 +4525,30 @@ const help: TranslationStrings = {
   'help.ctx.settings-plugins.summary':
     'Sinu isiklikud seaded administraatori paigaldatud pluginatele: võtmed ja eelistused, mida iga plugin küsib, ning logi sellest, mida pluginad sinu nimel tegid. Vaheleht on näha ainult siis, kui mõni plugin on aktiivne.',
   'help.ctx.settings-about.bullet.3':
-    'Ko-fi, „Osta mulle kohv“ ja Discordi kaudu saad TREKi toetada või selle tegijatega suhelda.',
+    'Ko-fi, „Osta mulle kohv“ ja Discordi kaudu saad YOUYAi toetada või selle tegijatega suhelda.',
   'help.guide.language-region.step.3':
     'Määra „Kuvamisvaluuta“ või jäta „Reisi valuuta“, et näha iga reisi tema enda valuutas. Seejärel vali „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“, „Nädala alguspäev“ ja „Kuupäevavorming“.',
   'help.guide.travel-map-prefs.step.3':
     '„Avasta kaardil kohti“ näitab kategooriasilti lähedal asuvate kohtade leidmiseks. „Hägusta broneerimiskoodid“ peidab kinnitusnumbrid, kuni viid kursori nende kohale või puudutad neid. „Optimeeri marsruut majutuskohast“ alustab ja lõpetab päeva sinu hotellis.',
   'help.guide.web-push-device.step.2':
     'Ülal kaardil „Teavitused“ määrab veerg „Tõuketeavitus“, millised sündmused sinu seadmetesse saadetakse.',
-  'help.guide.connect-airtrail.goal': 'Lase TREKil importida ja sünkroonida lende sinu enda AirTrailist.',
-  'help.guide.connect-dawarich.goal': 'Lase TREKil lugeda sinu enda Dawarichist, kus sa tegelikult käisid.',
+  'help.guide.connect-airtrail.goal': 'Lase YOUYAil importida ja sünkroonida lende sinu enda AirTrailist.',
+  'help.guide.connect-dawarich.goal': 'Lase YOUYAil lugeda sinu enda Dawarichist, kus sa tegelikult käisid.',
   'help.guide.tour-connect-wanderer.goal':
-    'Lase TREKil lugeda sinu enda wandereri radu, et saaksid need retkedena importida.',
+    'Lase YOUYAil lugeda sinu enda wandereri radu, et saaksid need retkedena importida.',
   'help.guide.tour-wanderer-watch.title': 'Teavitus, kui sinu wandereri rajad muutuvad',
   'help.guide.plugin-settings.tip.2':
     'Jaotise „Teavitused“ all oleval plugina kanalil on nupp „Seadista“, mis avab selle lehe.',
   'help.guide.default-user-settings.result':
     'Uued kontod ja kõik, kes pole neid seadeid kunagi muutnud, näevad sinu valikuid.',
   'help.guide.own-routing-engine.goal':
-    'Arvuta päevade, autoreiside ja retkede marsruudid TREKi teenuste või avalike serverite asemel oma OSRM- või Valhalla-serveriga.',
+    'Arvuta päevade, autoreiside ja retkede marsruudid YOUYAi teenuste või avalike serverite asemel oma OSRM- või Valhalla-serveriga.',
   'help.guide.admin-passkeys.tip.1':
-    'Kui TREK ei suuda veel domeeni tuvastada, annab lüliti all olev hoiatus sellest teada ja pääsuvõtmed jäävad peidetuks, kuni määrad APP_URL-i või „Teenuseosutaja ID“.',
+    'Kui YOUYA ei suuda veel domeeni tuvastada, annab lüliti all olev hoiatus sellest teada ja pääsuvõtmed jäävad peidetuks, kuni määrad APP_URL-i või „Teenuseosutaja ID“.',
   'help.guide.rotate-jwt-secret.step.1':
     'Klõpsa vahelehe „Turvalisus“ paremas allosas jaotises „Ohutsoon“ rea „Roteeri JWT saladus“ kõrval nuppu „Vaheta“.',
   'help.guide.storage-backends.tip.3':
-    'TREK saab fotode vahemälu uuesti alla laadida, nii et selle peegeldamine raiskab tavaliselt salvestusruumi.',
+    'YOUYA saab fotode vahemälu uuesti alla laadida, nii et selle peegeldamine raiskab tavaliselt salvestusruumi.',
   'help.guide.admin-channels.step.3':
     'Allpool samal kaardil vali iga sündmuse jaoks kanalid, mis selle saadavad: „Uus versioon saadaval“, „Salvestuskoopia tõrge“ ja „Aerutamispiirkonda taotleti“. Iga lüliti salvestub kohe.',
   'help.guide.notification-defaults.tip.1':
@@ -4609,13 +4609,13 @@ const help: TranslationStrings = {
   'help.guide.flight-live-status.tip.2':
     'Avatud andmed teavad ainult, kus lennuk on. Värav, terminal ja pagasilint ei kuulu nende hulka, nii et lisa need vajadusel ise broneeringule. Hilinemised ja saabumisaeg on asukohtade põhjal arvutatud hinnangud.',
   'help.guide.flight-live-status.tip.3':
-    'TREK vajab lennu jälgimiseks lennunumbrit ja mõlemat lennujaama. Lendu, mille lennufirma lendab teise kutsungiga, või koodijagamisega lendu ei pruugita leida; selle broneering jääb siis lihtsate kellaaegadega.',
+    'YOUYA vajab lennu jälgimiseks lennunumbrit ja mõlemat lennujaama. Lendu, mille lennufirma lendab teise kutsungiga, või koodijagamisega lendu ei pruugita leida; selle broneering jääb siis lihtsate kellaaegadega.',
   'help.guide.group-sort-bookings.step.2':
     'Vali jaotises „Rühmita“ „Olek“, „Päev“, „Tüüp“ või „Ära rühmita“. Vaheleht jaguneb kohe vastavateks jaotisteks.',
   'help.guide.export-bookings-csv.result':
     'Brauser laadib alla faili, mille nimi koosneb reisi ja vahelehe nimest, näiteks autumn-in-japan-bookings.csv, ja milles on rida iga vahelehel näidatud broneeringu kohta.',
   'help.guide.arrange-packing-list.result':
-    'Nimekirjad on selles järjekorras, kuhu need lohistasid, ja esemed on järjestatud A kuni Ü, kuni selle välja lülitad. TREK salvestab siiski ka sinu enda järjekorra.',
+    'Nimekirjad on selles järjekorras, kuhu need lohistasid, ja esemed on järjestatud A kuni Ü, kuni selle välja lülitad. YOUYA salvestab siiski ka sinu enda järjekorra.',
   'help.guide.count-packed-pieces.step.2':
     'Sisesta väljale „Kogus“, mitu võtad, näiteks 5, või klõpsa plussil, kuni see näitab seda arvu.',
   'help.guide.expense-receipts.step.4':
@@ -4623,7 +4623,7 @@ const help: TranslationStrings = {
   'help.guide.final-budget.tip.3':
     'Reisilt lahkunud inimene jääb jaotistesse „Saldod“ ja „Lõplik eelarve“ seni, kuni tal on veel raha saada või maksta.',
   'help.guide.files-sync-settings.step.2':
-    'Vooriba näitab TREKi ja sinu salvestusteenust koos dokumentidega, mis kummaski on, ning nende vahel kahte rada: „Salvestusteenusesse“ ja „Salvestusteenusest“. Klõpsa „Salvestusteenusesse“, et see välja lülitada. Rada muutub halliks ja radade all on kirjas „Ainult sissetulev“. Klõpsa uuesti, et see taas sisse lülitada.',
+    'Vooriba näitab YOUYAi ja sinu salvestusteenust koos dokumentidega, mis kummaski on, ning nende vahel kahte rada: „Salvestusteenusesse“ ja „Salvestusteenusest“. Klõpsa „Salvestusteenusesse“, et see välja lülitada. Rada muutub halliks ja radade all on kirjas „Ainult sissetulev“. Klõpsa uuesti, et see taas sisse lülitada.',
   'help.guide.files-sync-settings.tip.4':
     'Seda kõike saab muuta ainult reisi omanik või administraator. Teised liikmed näevad vooriba koos reaga, näiteks „Dokumendid liiguvad mõlemas suunas“, kuid mitte nuppu „Seaded“.',
   'help.guide.manage-notes.step.2':
@@ -4634,7 +4634,7 @@ const help: TranslationStrings = {
     'Prügikast eemaldab ainult kategooria, mida ükski märge ei kasuta. Kasutusel olev kategooria jääb loendisse, kuni oled need märkmed teise kategooriasse teisaldanud.',
   'help.guide.roadtrip-reorder.title': 'Peatuse ümberjärjestamine või teisele päevale viimine',
   'help.guide.roadtrip-reorder.tip.3':
-    'Kinnitatud kellaaja kohta TREK ei küsi: riba arvutab päeva kohe ümber ja märgib iga peatuse, kuhu enam õigeks ajaks ei jõua.',
+    'Kinnitatud kellaaja kohta YOUYA ei küsi: riba arvutab päeva kohe ümber ja märgib iga peatuse, kuhu enam õigeks ajaks ei jõua.',
   'help.guide.roadtrip-overnight.step.3':
     'Dialoogi ülaosas lisab „Ööbimine“ öö ja „Paus“ teeb sellest mõneks ajaks peatuse. Hotelli puhul avaneb „Ööbimine“, laagriplatsi puhul „Paus“. Ööbimise puhul küsitakse ainult „Sisseregistreerimine“ aega, mille võid ka tühjaks jätta.',
   'help.guide.roadtrip-stop-fill.step.1':
@@ -4648,7 +4648,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tours.bullet.2':
     'Ülal olev „Impordi GPX või KML“ toob failid retkedena sisse. Selle all olev filtrinupp (alguses „Kõik“ koos retkede arvuga) kitsendab loendit oleku, allika, marsruudipiirangu ja tüübi järgi.',
   'help.guide.tour-show-list.step.2':
-    'Iga rida on üks retk. Värviline riba on retke joon kaardil ja ümmargune ruut näitab TREKis planeeritud matka marsruudipiirangut (T1 kuni T6) või retke tüübi ikooni. Nime all olevad märgid näitavad päevi, millel retk on, selle aega, vahemaad ja tõusu. Mitmepäevase retke puhul näitab numbriga kuu, mitu etappi sellel on.',
+    'Iga rida on üks retk. Värviline riba on retke joon kaardil ja ümmargune ruut näitab YOUYAis planeeritud matka marsruudipiirangut (T1 kuni T6) või retke tüübi ikooni. Nime all olevad märgid näitavad päevi, millel retk on, selle aega, vahemaad ja tõusu. Mitmepäevase retke puhul näitab numbriga kuu, mitu etappi sellel on.',
   'help.guide.tour-add-to-day.title': 'Retke panemine päevale',
   'help.guide.tour-add-to-day.tip.2':
     'Kui reis lõpeb enne viimast etappi, näitab valik viimast etappi, mis veel mahub, ja sellele järgnevad etapid jäävad päevata.',
@@ -4678,7 +4678,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.4':
     'Raja all olev „Muuda“ valib teise salvestuse. „Eemalda seos“ eemaldab selle retkelt ja rada jääb reisi impordina alles.',
   'help.guide.tour-origin-check.step.3':
-    'Vahelehel „Retked“ joonistatud retke juures on kirjas „Planeeritud rakenduses TREK“ ja väljal „Loodud“ loomise päev.',
+    'Vahelehel „Retked“ joonistatud retke juures on kirjas „Planeeritud rakenduses YOUYA“ ja väljal „Loodud“ loomise päev.',
   'help.ctx.trip-tour-planner.bullet.2':
     'Vasak riba on redaktor. Kui midagi pole avatud, pakub see „Planeeri uus retk“. Avatud retke puhul on näha selle nimi, tüüp, teekonnapunktid, tüübile omased kaardid ja üksikasjad ning all nupud „Loobu“ ja „Salvesta“.',
   'help.guide.tour-open-workspace.step.2':
@@ -4686,7 +4686,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.tip.3':
     'Kui avad teise retke ajal, mil redaktoris on salvestamata muudatusi, küsitakse enne: „Loobu muudatustest“ või jätka muutmist.',
   'help.guide.tour-draw-route.step.5':
-    'Klõpsa järgmistel kohtadel selles järjekorras, nagu neid läbid. Iga klõps lisab punkti uueks lõpuks ja alates kahest punktist planeerib TREK marsruudi mööda radu.',
+    'Klõpsa järgmistel kohtadel selles järjekorras, nagu neid läbid. Iga klõps lisab punkti uueks lõpuks ja alates kahest punktist planeerib YOUYA marsruudi mööda radu.',
   'help.guide.tour-type-profile.goal':
     'Vali retke tüüp ja rattaretke puhul ka profiil, et marsruut kulgeks õigeid teid pidi.',
   'help.guide.tour-edit-points.title': 'Punktide liigutamine, ümberjärjestamine ja eemaldamine',
@@ -4806,11 +4806,11 @@ const help: TranslationStrings = {
     'Vaata oma suusaretke ümbruse nõlvu, suusaradu ja tõstukeid ning seda, mida nende värvid tähendavad.',
   'help.guide.tour-ski-import.title': 'Impordi suusarada ja ütle, mis see oli',
   'help.guide.tour-ski-import.tip.1':
-    'Imporditud rada jääb nii, nagu see salvestati: TREK ei sobita seda nõlvadega ja selle kaardil on „Suusaaeg“ väärtusega „Arvutamata“.',
+    'Imporditud rada jääb nii, nagu see salvestati: YOUYA ei sobita seda nõlvadega ja selle kaardil on „Suusaaeg“ väärtusega „Arvutamata“.',
   'help.ctx.trip-tour-paddle.bullet.3':
     'Punkti menüüs „Rohkem toiminguid“ on aerutamise tööriistad: planeeri järgmine lõik vett mööda või joonista see käsitsi, „Siit alates kanna paati“ ja „Lüüs selles punktis“.',
   'help.guide.tour-paddle-setup.step.3':
-    'Vali jaotises „Paat“ „Süst“, „Kanuu“, „SUP“ või „Muu“. Paadi järgi pakub TREK välja kiiruse.',
+    'Vali jaotises „Paat“ „Süst“, „Kanuu“, „SUP“ või „Muu“. Paadi järgi pakub YOUYA välja kiiruse.',
   'help.guide.tour-paddle-setup.tip.4':
     'Veeru allosas olev rida „Aerutamisel on riske“ avab lehe „Ohutus vee peal“. Loe see enne esimest retke korra läbi.',
   'help.guide.tour-paddle-water-route.step.5':
@@ -4833,7 +4833,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-track-marks.tip.2':
     '„Loobu“ eemaldab salvestamata märgid. Salvestatud rada ennast ei joonistata kunagi ümber.',
   'help.ctx.trip-tour-horse.bullet.4':
-    'TREK ei arvuta ratsutamisaega. Kui tahad, et aeg oleks päeval näha, sisesta see jaotises „Üksikasjad“ väljale „Plaanis“.',
+    'YOUYA ei arvuta ratsutamisaega. Kui tahad, et aeg oleks päeval näha, sisesta see jaotises „Üksikasjad“ väljale „Plaanis“.',
   'help.guide.tour-horse-plan.step.5':
     'Vali jaotises „Jaotised“ lõik. Kontrolli, millises suunas („Suund“) seda ratsutad ja mida näitab selle ulatuses „Ligipääs hobusega“.',
   'help.guide.tour-horse-plan.tip.5':
@@ -4875,7 +4875,7 @@ const help: TranslationStrings = {
   'help.guide.journey-map-layers.tip.1':
     'Värviline katkendjoon on reisi GPX-marsruut, osa plaanist; pidev joon on sel päeval salvestatud marsruut.',
   'help.guide.journey-keep-route.tip.1':
-    'Kus salvestus lõpeb, lõpeb ka joon. TREK joonistab ainult seda, mis salvestati.',
+    'Kus salvestus lõpeb, lõpeb ka joon. YOUYA joonistab ainult seda, mis salvestati.',
   'help.guide.journey-day-stays.tip.1':
     'Rida on näha ainult neile, kes tohivad päevikut muuta ja kellel on oma Dawarich ühendatud, ning ainult päevadel, kus on veel midagi otsustada.',
   'help.guide.journey-take-over-day.step.4':
@@ -4888,21 +4888,21 @@ const help: TranslationStrings = {
   'help.guide.dashboard-widgets.step.3':
     'Kaartide all olev „Taasta vaikeseaded“ lähtestab kogu vahelehe „Välimus“ algseadetele.',
   'help.guide.web-push-device.result':
-    'Kaardil on kirjas „Selles seadmes sisse lülitatud“ ja jaotises „Tõuketeavitus“ sisse lülitatud sündmused jõuavad sinuni ka siis, kui TREK on suletud.',
+    'Kaardil on kirjas „Selles seadmes sisse lülitatud“ ja jaotises „Tõuketeavitus“ sisse lülitatud sündmused jõuavad sinuni ka siis, kui YOUYA on suletud.',
   'help.guide.connect-airtrail.step.1':
     'Leia jaotisest „Integratsioonid“ AirTrail ja sisesta selle „Serveri URL“ ja API-võti. Võtme lood AirTrailis jaotises „Settings“, „Security“. Kui lood võtme AirTraili versioonis 3.13 või uuemas, vajab see lugemiseks õigust flight.read.own. Muudatuste tagasi kirjutamiseks vajab see ka õigusi flight.update.own, flight.passengers.manage.own, reference_data.read ja profile.read.',
   'help.guide.connect-dawarich.step.1':
     'Leia jaotisest „Integratsioonid“ Dawarich ja sisesta selle „Serveri aadress“ ning API-võti, mille leiad Dawarichis jaotisest „Account“, „API key“.',
   'help.guide.tour-connect-wanderer.step.1':
     'Leia jaotisest „Integratsioonid“ wanderer ja sisesta selle „Serveri URL“ ja API-pääse. Pääsme lood wandereris jaotises „Settings“, „Account“, „API tokens“; see algab tekstiga wanderer_key_.',
-  'help.guide.tour-wanderer-watch.goal': 'Lase TREKil taustal jälgida, kas imporditud radades on muudatusi.',
+  'help.guide.tour-wanderer-watch.goal': 'Lase YOUYAil taustal jälgida, kas imporditud radades on muudatusi.',
   'help.guide.mcp-oauth.tip.3':
     'API-pääsutõendid töötavad endiselt, kuid on märgitud kui „Aegunud“; mine üle OAuth-kliendile.',
   'help.guide.offline-conflicts.tip.2': 'Valik kehtib ainult selles seadmes.',
   'help.guide.default-user-settings.tip.1':
     'Kasutaja enda valik jaotises „Seaded“ on alati ülimuslik; need vaikeväärtused kehtivad kõigile, kes pole seda seadet muutnud.',
   'help.guide.own-routing-engine.step.1':
-    'Marsruute arvutab vahelehel „Vaikeväärtused“ kaart „Marsruudid“. Vali jaotises „Marsruutimisteenus“ „Automaatne“, „TREKi teenused“, „Avalik Valhalla (FOSSGIS)“ või „Oma Valhalla server“. Valik salvestub kohe.',
+    'Marsruute arvutab vahelehel „Vaikeväärtused“ kaart „Marsruudid“. Vali jaotises „Marsruutimisteenus“ „Automaatne“, „YOUYAi teenused“, „Avalik Valhalla (FOSSGIS)“ või „Oma Valhalla server“. Valik salvestub kohe.',
   'help.guide.admin-passkeys.tip.2': 'Kui muudad hiljem domeeni, lakkavad kõik juba lisatud pääsuvõtmed töötamast.',
   'help.guide.instance-keys.tip.4': 'Amapi võti peab olema Web 服务 (veebiteenuse) võti, mitte JS API võti.',
   'help.guide.rotate-jwt-secret.step.2': 'Loe hoiatust ja klõpsa „Roteeri ja logi välja“.',
@@ -4919,7 +4919,7 @@ const help: TranslationStrings = {
     'Vali iga reisil osaleja jaoks „Ligipääs puudub“, „Lugemine“ või „Muuda“. „Kõik saavad lugeda“ ja „Mitte keegi“ määravad kõigile korraga.',
   'help.guide.collapse-columns.tip.3': 'Kui eraldajal on fookus, saad seda liigutada ka nooleklahvidega.',
   'help.guide.edit-place.tip.3':
-    'Kui klõpsad dialoogist väljaspool, ei lähe muudatused kaduma: TREK küsib enne „Kas loobuda muudatustest?“ ja „Jätka muutmist“ viib sind vormi tagasi.',
+    'Kui klõpsad dialoogist väljaspool, ei lähe muudatused kaduma: YOUYA küsib enne „Kas loobuda muudatustest?“ ja „Jätka muutmist“ viib sind vormi tagasi.',
   'help.guide.dawarich-stays.goal':
     'Lisa pärast kontrollimist kohad, kus Dawarich salvestas sinu peatumised reisi ajal.',
   'help.guide.leave-stop-off-route.step.1':
@@ -4967,14 +4967,14 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-bookings.step.2':
     'Ribal on sõit tüübi värvi kaart, sõiduplaan on saabumisveerus ning algus- ja lõpp-punkt pealkirja all.',
   'help.guide.roadtrip-google-import.tip.1':
-    "TREK arvutab peatuste vahel oma marsruudi; Google'i teekonda see ei kopeeri.",
+    "YOUYA arvutab peatuste vahel oma marsruudi; Google'i teekonda see ei kopeeri.",
   'help.guide.roadtrip-hazards.result': 'Kaardil on näha sinu reisi ümbruse kehtivad hoiatused ja marsruut ei muutu.',
   'help.ctx.trip-tours.bullet.3':
     'Rida: värviline riba on retke joon kaardil, ümmargune ruut näitab marsruudipiirangut (T1 kuni T6) või tüüpi, väike GPX- või wandereri märk tähistab importi ning märgid näitavad päevi, aega, vahemaad ja tõusu. Numbriga kuu näitab mitmepäevase retke etappide arvu.',
   'help.guide.tour-show-list.step.3': 'Klõpsa real. Retke kaart avaneb kaardi peal.',
   'help.guide.tour-add-to-day.goal': 'Planeeri, millal retke teed, et see oleks päevas ja selle joon kaardil.',
   'help.guide.tour-add-to-day.tip.3':
-    'Retke saab päevale lisada ainult ühe korra. Kui lohistad selle päevale, kus see juba on, näitab TREK ainult teadet „See retk on sellel päeval juba olemas.“',
+    'Retke saab päevale lisada ainult ühe korra. Kui lohistad selle päevale, kus see juba on, näitab YOUYA ainult teadet „See retk on sellel päeval juba olemas.“',
   'help.guide.tour-day-times.step.4':
     'Kui retk lõpeb pärast päeva järgmise punkti algust, annab rea all olev märkus sellest teada, näiteks „Lõpeb 13:30, kuid Lunch at Gostner Schwaige algab 12:30“. Midagi ei liigutata.',
   'help.guide.tour-remove-from-day.step.1':
@@ -5029,7 +5029,7 @@ const help: TranslationStrings = {
   'help.guide.tour-open-workspace.result':
     'Vaheleht „Retked“: vasakul redaktor, paremal reisi retked, nende vahel kaart.',
   'help.guide.tour-draw-route.step.6':
-    'Jaotises „Teekonnapunktid“ saab iga punkt numbriga rea, mis nimetatakse koha järgi, kui nimi on laaditud. Kuni TREK töötab, näitab väike täpp „Uus retk“ kõrval selle olekut.',
+    'Jaotises „Teekonnapunktid“ saab iga punkt numbriga rea, mis nimetatakse koha järgi, kui nimi on laaditud. Kuni YOUYA töötab, näitab väike täpp „Uus retk“ kõrval selle olekut.',
   'help.guide.tour-type-profile.step.1':
     'Klõpsa välja „Retke nimi“ all „Matka tüüp“. Seal on näha praegune tüüp ja rida selle kohta, kuidas seda planeeritakse.',
   'help.guide.tour-edit-points.goal': 'Muuda retke kulgu, liigutades selle punkte kaardil või loendis.',
@@ -5053,7 +5053,7 @@ const help: TranslationStrings = {
     'Jaotise „Selle reisi retked“ ülaosas olev „Retke kokkuvõte“ näitab redaktoris oleva retke „Vahemaa“, „Tõus“ ja „Laskumine“, hinnangulist aega, pause ja planeeritud koguaega.',
   'help.guide.tour-list-manage.title': 'Reisi retkede haldamine',
   'help.guide.tour-list-manage.tip.2':
-    'Päev, kus retk juba on, on päevamenüüs hall. Mitmepäevase retke puhul küsib TREK, kas selle etapid algavad sellest päevast või läheb kogu retk sellele päevale.',
+    'Päev, kus retk juba on, on päevamenüüs hall. Mitmepäevase retke puhul küsib YOUYA, kas selle etapid algavad sellest päevast või läheb kogu retk sellele päevale.',
   'help.guide.tour-delete.tip.2':
     'Kui tahad retke ainult päevast eemaldada, kasuta selle asemel päeva menüüs „Eemalda päevast“.',
   'help.guide.tour-saved-elsewhere.step.4':
@@ -5078,7 +5078,7 @@ const help: TranslationStrings = {
     'Vasaku paneeli kaart „Matka ääres“ otsib marsruudi lähedalt vaatepunkte, vett, onne, söögikohti ja muud ning loetleb tulemused. Loendist saad koha lisada retkele peatusena.',
   'help.guide.tour-map-layers.tip.1':
     'Valitud kaart jääb kehtima kõigile avatavatele retkedele, kuni lehe uuesti laadid. Retk, mille tüüp seda kaarti ei paku, avaneb kaardil „Kaart“ ning vahelehe „Plaan“ kaart ja jaotises „Seaded“ olev seade ei muutu.',
-  'help.guide.tour-along-search.step.4': 'Klõpsa „Otsi matka äärest“. TREK ainult otsib: retk ei muutu.',
+  'help.guide.tour-along-search.step.4': 'Klõpsa „Otsi matka äärest“. YOUYA ainult otsib: retk ei muutu.',
   'help.guide.tour-along-add-stop.step.1':
     'Klõpsa kohal loendis „Matka ääres“ või selle nööpnõelal kaardil. Koha kaart avaneb kaardi peal: mis see on, kui kaugel see marsruudist on ja kui kaugel retke algusest see asub.',
   'help.guide.tour-3d-terrain.title': 'Retke vaatamine 3D-s',
@@ -5104,7 +5104,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-round.tip.1':
     'Ringid jäävad matka „Raja suurim raskusaste“ piiresse; kaardil olev T-silt näitab, milline see on.',
   'help.guide.tour-hike-compare-ways.step.4':
-    'Klõpsa „Vali see tee“. TREK kontrollib marsruudiplaneerijaga, et marsruut seda teed tõesti järgib.',
+    'Klõpsa „Vali see tee“. YOUYA kontrollib marsruudiplaneerijaga, et marsruut seda teed tõesti järgib.',
   'help.guide.tour-ferrata-add.step.2':
     'Klõpsa kaardil via ferratal, selle katkendjoonel või sildil. Selle kaardil on nimi, raskusaste ja pikkus.',
   'help.guide.tour-ferrata-add.tip.4':
@@ -5161,7 +5161,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.result':
     'Uus aerutamisretk koos paadi, veekogu ja kiirusega, valmis esimese punkti lisamiseks kaardile.',
   'help.guide.tour-paddle-water-route.tip.1':
-    'Kui veeandmed puuduvad, laadib TREK need piirkonna jaoks automaatselt alla või küsib neid administraatorilt, olenevalt serveri seadistusest. Administraator lisab piirkondi jaotises „Aerutamise veeandmed“, mis on rida jaotise „Retked“ all halduse vahelehel „Lisamoodulid“. Lõigul on siis kirjas, et veeandmeid laaditakse, ja see planeeritakse automaatselt, kui andmed on olemas, tavaliselt ühe kuni kolme minuti jooksul.',
+    'Kui veeandmed puuduvad, laadib YOUYA need piirkonna jaoks automaatselt alla või küsib neid administraatorilt, olenevalt serveri seadistusest. Administraator lisab piirkondi jaotises „Aerutamise veeandmed“, mis on rida jaotise „Retked“ all halduse vahelehel „Lisamoodulid“. Lõigul on siis kirjas, et veeandmeid laaditakse, ja see planeeritakse automaatselt, kui andmed on olemas, tavaliselt ühe kuni kolme minuti jooksul.',
   'help.guide.tour-paddle-portage.step.2':
     'Vali „Siit alates kanna paati“. Lõik järgmise punktini muutub ülekandeks, mis on joonistatud maismaale.',
   'help.guide.tour-paddle-lock.title': 'Lüüsi ja selle ooteaja lisamine',
@@ -5234,9 +5234,9 @@ const help: TranslationStrings = {
   'help.guide.web-push-device.tip.1':
     'Tõuketeavitused töötavad brauseri kaupa: korda seda igas telefonis ja arvutis, kus tahad teavitusi saada. „Lülita selles seadmes välja“ peatab need ainult selles seadmes.',
   'help.guide.connect-airtrail.step.2':
-    '„Luba iseallkirjastatud sertifikaadid“ on mõeldud ainult usaldusväärsele serverile sinu enda võrgus. „Kirjuta muudatused AirTraili tagasi“ on vaikimisi väljas, nii et TREK ainult loeb; lülita see sisse, et saata oma muudatused tagasi.',
+    '„Luba iseallkirjastatud sertifikaadid“ on mõeldud ainult usaldusväärsele serverile sinu enda võrgus. „Kirjuta muudatused AirTraili tagasi“ on vaikimisi väljas, nii et YOUYA ainult loeb; lülita see sisse, et saata oma muudatused tagasi.',
   'help.guide.connect-dawarich.step.2':
-    '„Kontrolli uusi peatumisi automaatselt“ laseb TREKil ise kontrollida. Kui see on väljas, loeb TREK Dawarichi ainult siis, kui seda palud. „Luba iseallkirjastatud sertifikaat“ on mõeldud ainult serverile, mida sinu server ei usalda.',
+    '„Kontrolli uusi peatumisi automaatselt“ laseb YOUYAil ise kontrollida. Kui see on väljas, loeb YOUYA Dawarichi ainult siis, kui seda palud. „Luba iseallkirjastatud sertifikaat“ on mõeldud ainult serverile, mida sinu server ei usalda.',
   'help.guide.tour-connect-wanderer.step.2':
     'Lülita „Luba iseallkirjastatud sertifikaat“ sisse ainult siis, kui server on sinu enda võrgus.',
   'help.guide.tour-wanderer-watch.step.1':
@@ -5246,7 +5246,7 @@ const help: TranslationStrings = {
     '„Kuvamisvaluuta“ teisendab summasid ainult vaatamiseks. Jaotises „Kulud“ sisestatud summad jäävad samaks.',
   'help.guide.own-routing-engine.step.2': 'Sisesta jaotises „Oma marsruutimootor“ oma OSRM-serveri aadress.',
   'help.guide.own-routing-engine.step.3':
-    'Sisesta jaotises „Oma Valhalla server“ oma Valhalla aadress ja vali „Marsruutimisteenus“ väärtuseks „Oma Valhalla server“. Iga väli salvestub, kui sellelt lahkud; seejärel taaskäivita TREKi server ja laadi leht uuesti.',
+    'Sisesta jaotises „Oma Valhalla server“ oma Valhalla aadress ja vali „Marsruutimisteenus“ väärtuseks „Oma Valhalla server“. Iga väli salvestub, kui sellelt lahkud; seejärel taaskäivita YOUYAi server ja laadi leht uuesti.',
   'help.guide.admin-passkeys.tip.3':
     'Kui kasutaja kaotas seadme, kus olid tema pääsuvõtmed, eemalda pääsuvõtmed dialoogis „Muuda kasutajat“ nupuga „Lähtesta pääsuvõtmed“.',
   'help.guide.rotate-jwt-secret.result':
@@ -5262,7 +5262,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.step.4':
     'Loe kollast märkust: see nimetab, kes saab päeviku esimest korda. Seejärel klõpsa „Seo päevik“.',
   'help.guide.dawarich-stays.step.1':
-    'Kui Dawarich on jaotises „Seaded“, „Integratsioonid“ ühendatud, on kohtade loendi kohal „Dawarichist“. Selle päis näitab, millal TREK viimati kontrollis ja mitu peatumist on ootel. Klõpsa sellel, et loend avada.',
+    'Kui Dawarich on jaotises „Seaded“, „Integratsioonid“ ühendatud, on kohtade loendi kohal „Dawarichist“. Selle päis näitab, millal YOUYA viimati kontrollis ja mitu peatumist on ootel. Klõpsa sellel, et loend avada.',
   'help.guide.leave-stop-off-route.step.2':
     'Nime kõrvale ilmub märk „Marsruudist väljas“. Peatus jääb päeva ja kaardile, kuid päeva marsruut ja lõikude ajad jätavad selle vahele.',
   'help.guide.move-booking-day.result': 'Broneering kuulub plaanis uuele päevale ja selle kellaaeg ei muutu.',
@@ -5271,7 +5271,7 @@ const help: TranslationStrings = {
     'Ava koht, mille failide („Failid“) hulgas on foto. Kaardi alaosa lähedal olev plokk „Failid“ näitab, mitu faili kohal on.',
   'help.guide.place-own-hours.title': 'Koha lahtiolekuaegade, telefoni või e-posti parandamine',
   'help.guide.place-own-hours.tip.1':
-    'Sinu sisestatud ajad asendavad TREKi leitud ajad, nii et hooajaliste aegadega kohvik näitab seda, mida sina tead.',
+    'Sinu sisestatud ajad asendavad YOUYAi leitud ajad, nii et hooajaliste aegadega kohvik näitab seda, mida sina tead.',
   'help.guide.day-panel.tip.3':
     'Planeerid kalendri järgi? Lülita jaotises „Seaded“, „Üldine“ sisse „Kuupäev päevapealkirjades eespool“ ja päises on esimesena kuupäev, selle all „Päev 1“ või päeva nimi.',
   'help.guide.confirm-stay-booking.result':
@@ -5291,15 +5291,15 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.tip.2':
     'Veerud on eraldatud semikoolonitega ja Excel avab faili nii, et täpitähed jäävad terveks.',
   'help.guide.arrange-packing-list.tip.2':
-    'TREK jätab „A kuni Ü“ selles brauseris meelde, nii et nimekiri avaneb ka järgmisel korral sorteerituna. See muudab ainult seda, mida sina näed, mitte järjekorda, mida näevad teised.',
+    'YOUYA jätab „A kuni Ü“ selles brauseris meelde, nii et nimekiri avaneb ka järgmisel korral sorteerituna. See muudab ainult seda, mida sina näed, mitte järjekorda, mida näevad teised.',
   'help.guide.count-packed-pieces.step.4':
     'Sulge aken. Kuni ainult osa tükke on pakitud, näitab rida arvu, näiteks 3/5, ja ruudul on sinu rõhuvärvis ääris. Kui arv jõuab koguseni, märgitakse ese ise.',
   'help.guide.expense-receipts.result':
     'Kviitung on salvestatud koos kuluga: kulu real olev silt avab selle ja fail on ka reisi jaotises „Failid“.',
   'help.guide.files-sync-settings.step.4':
-    'Vali jaotises „Dokumendi kustutamisel“, mis juhtub teisel pool oleva koopiaga. „Säilita mõlemad koopiad“ jätab salvestusteenuse koopia alles. „Teisalda prügikasti“ saadab selle salvestusteenuse prügikasti, kui dokument TREKis kustutatakse.',
+    'Vali jaotises „Dokumendi kustutamisel“, mis juhtub teisel pool oleva koopiaga. „Säilita mõlemad koopiad“ jätab salvestusteenuse koopia alles. „Teisalda prügikasti“ saadab selle salvestusteenuse prügikasti, kui dokument YOUYAis kustutatakse.',
   'help.ctx.trip-collab.bullet.7':
-    'Kõik siin nõuab ühendust. Võrguühenduseta ei salvestata sõnumit, märget, linki, küsitlust ega häält ning TREK teatab, et selleks on vaja ühendust ja tuleb uuesti proovida, kui TREK on taas võrgus. Liikmed, kes ei tohi „Koostööd“ muuta, saavad kõike lugeda, kuid neil pole nuppe „Uus märge“, „Lisa link“ ja „Uus küsitlus“ ning sõnumikast on hall.',
+    'Kõik siin nõuab ühendust. Võrguühenduseta ei salvestata sõnumit, märget, linki, küsitlust ega häält ning YOUYA teatab, et selleks on vaja ühendust ja tuleb uuesti proovida, kui YOUYA on taas võrgus. Liikmed, kes ei tohi „Koostööd“ muuta, saavad kõike lugeda, kuid neil pole nuppe „Uus märge“, „Lisa link“ ja „Uus küsitlus“ ning sõnumikast on hall.',
   'help.guide.manage-notes.step.4':
     '„Muuda“ avab märkme dialoogi, kus kõik on juba täidetud. Muuda, mida vaja, siin üks rida juurde väljale „Sisu“, ja klõpsa „Salvesta“.',
   'help.guide.note-categories.step.2':
@@ -5316,7 +5316,7 @@ const help: TranslationStrings = {
     'Silt „Sisseregistreerimine“ või „Pardaleminek“ näitab, mis ajaks pead terminali jõudma: väljasõit määratakse sõiduplaanist just nii palju varasemaks.',
   'help.guide.roadtrip-google-import.title': 'Marsruudi importimine Google Mapsist',
   'help.guide.roadtrip-google-import.tip.2':
-    'Lingis peab olema vähemalt kaks peatust, mille TREK suudab kaardile paigutada, ja kõige rohkem 30.',
+    'Lingis peab olema vähemalt kaks peatust, mille YOUYA suudab kaardile paigutada, ja kõige rohkem 30.',
   'help.guide.roadtrip-hazards.tip.1':
     'Hoiatused ei ole teede sulgemised: marsruut ei muutu nende tõttu kunagi ja need on kehtivad teated, mitte prognoos sinu reisikuupäevadeks.',
   'help.ctx.trip-tours.bullet.4':
@@ -5436,7 +5436,8 @@ const help: TranslationStrings = {
     'Uue matka tase on alguses T2 („Mägimatkamine“). T3 juures on hoiatus, et sellised rajad võivad olla järsakuäärsed ning nõuavad kindlat jalga ja kõrgusekartuse puudumist.',
   'help.guide.tour-hike-trail-details.step.3':
     'Märgid võtavad selle kokku: kui suur osa marsruudist on „Teada“, „Kõrgeim teadaolev“ raskusaste ja eraldi „Marsruudi piir“, millega matk planeeriti.',
-  'help.guide.tour-hike-round.goal': 'Lase TREKil pakkuda soovitud pikkusega ringe, mis algavad matka ühest peatusest.',
+  'help.guide.tour-hike-round.goal':
+    'Lase YOUYAil pakkuda soovitud pikkusega ringe, mis algavad matka ühest peatusest.',
   'help.guide.tour-hike-round.tip.2':
     'Lubatud on vahemaad 1 kuni 60 km ja pakutakse ringe, mis erinevad sinu soovitud pikkusest kuni 20 %.',
   'help.guide.tour-hike-compare-ways.result':
@@ -5461,7 +5462,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-check-off.result':
     'Külastatud peatused on linnukesega, vahele jäetud läbi kriipsutatud ja allesjäänud aeg arvestab ainult seda, mis on veel ees.',
   'help.guide.tour-bike-profile.goal':
-    'Alusta rattaretke ja lase TREKil arvutada marsruut matkarattale, maanteerattale, kruusarattale või MTB-le.',
+    'Alusta rattaretke ja lase YOUYAil arvutada marsruut matkarattale, maanteerattale, kruusarattale või MTB-le.',
   'help.guide.tour-bike-profile.tip.1':
     'Kui muudad hiljem profiili, planeeritakse kogu marsruut uue profiili järgi uuesti.',
   'help.guide.tour-bike-surfaces.step.2':
@@ -5491,13 +5492,13 @@ const help: TranslationStrings = {
     'Järvel määrab marsruudi „Üle järvede“: „Otse üle“ on lühim, „Kalda lähedal“ püsib tuulistel päevadel kalda lähedal.',
   'help.guide.tour-paddle-water-route.title': 'Lõikude planeerimine vee peal',
   'help.guide.tour-paddle-water-route.tip.2':
-    'Kus marsruut kannab paati ümber paisu või läbib lüüsi, lisab TREK sinna oma punkti märkega „Leitud“. Kui seda liigutad või muudad, saab sellest sinu enda punkt.',
+    'Kus marsruut kannab paati ümber paisu või läbib lüüsi, lisab YOUYA sinna oma punkti märkega „Leitud“. Kui seda liigutad või muudad, saab sellest sinu enda punkt.',
   'help.guide.tour-paddle-portage.step.3':
     'Punkti alla ilmub kaart „Ülekanne“ koos pikkuse ja lisaminutitega. Klõpsa sellel, et see avada.',
   'help.guide.tour-paddle-lock.goal': 'Lisa retkele lüüs ja arvesta selle ooteaeg ja läbimine retke aja hulka.',
   'help.guide.tour-paddle-lock.result': 'Lüüs on retkel koos minutitega ja „Ajahinnang“ arvestab need sisse.',
   'help.guide.tour-paddle-time.tip.1':
-    'TREK alustab väärtustega 4 km/h vee peal, 2 km/h kandmisel ja 10 minutit iga ülekande juures. Need on algväärtused kohandamiseks, mitte mõõtmistulemused.',
+    'YOUYA alustab väärtustega 4 km/h vee peal, 2 km/h kandmisel ja 10 minutit iga ülekande juures. Need on algväärtused kohandamiseks, mitte mõõtmistulemused.',
   'help.guide.tour-paddle-wind.step.3':
     'Tulbad näitavad päeva tunde, puhangud keskmise tuule taga. Vii kursor tulbale, et näha selle tunni näitajaid ja suunda.',
   'help.guide.tour-paddle-checklist.goal':
@@ -5567,7 +5568,7 @@ const help: TranslationStrings = {
     'All olev „Pluginate tegevus“ loetleb kõik toimingud, mida pluginad sinu nimel tegid, uusimad eespool, koos nupuga „Värskenda“.',
   'help.guide.language-region.tip.3':
     '„Nädala alguspäev“ määrab iga kuupäevavalija esimese veeru; Vacays on selleks eraldi seade.',
-  'help.guide.web-push-device.tip.2': "iPhone'is ja iPadis lisa TREK kõigepealt avaekraanile ja ava see sealt.",
+  'help.guide.web-push-device.tip.2': "iPhone'is ja iPadis lisa YOUYA kõigepealt avaekraanile ja ava see sealt.",
   'help.guide.connect-airtrail.step.3':
     'Klõpsa „Salvesta“, seejärel „Testi ühendust“. See näitab, mitu lendu leiti, ja märk muutub olekuks „Ühendatud“.',
   'help.guide.connect-dawarich.step.3':
@@ -5575,7 +5576,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.step.3':
     'Klõpsa „Salvesta“, seejärel „Testi ühendust“. See näitab, mitu sinu rada saab importida, ja märk muutub olekuks „Ühendatud“.',
   'help.guide.tour-wanderer-watch.step.2':
-    'Kõige rohkem kord päevas loeb TREK iga imporditud raja lühikirjet ja real on näha, millal viimati kontrolliti. Kui rada võib olla muutunud, saad teavituse ja „Vihjed“ loendab selle: klõpsa „Vihjed“, et näha iga retke olekuga „Võib olla muutunud“, „Muudetud“ või „Ei saa kontrollida“, ja ava see sealt.',
+    'Kõige rohkem kord päevas loeb YOUYA iga imporditud raja lühikirjet ja real on näha, millal viimati kontrolliti. Kui rada võib olla muutunud, saad teavituse ja „Vihjed“ loendab selle: klõpsa „Vihjed“, et näha iga retke olekuga „Võib olla muutunud“, „Muudetud“ või „Ei saa kontrollida“, ja ava see sealt.',
   'help.guide.plugin-settings.goal': 'Anna pluginale oma võtmed ja eelistused ning vaata, mida see sinu nimel tegi.',
   'help.guide.own-routing-engine.result': 'Kõigi reiside marsruudid arvutatakse sinu serverites.',
   'help.guide.admin-passkeys.title': 'Pääsuvõtmega sisselogimise pakkumine',
@@ -5593,7 +5594,7 @@ const help: TranslationStrings = {
   'help.guide.link-journal.result':
     'Reisi vahelehtede ribale ilmub vaheleht „Päevik“. Kõik, kellele andsid õiguse „Lugemine“ või „Muuda“, saavad päevikut sellel vahelehel avada ja näevad muudatusi reaalajas.',
   'help.guide.create-place.tip.4':
-    'Ka Google Mapsist kopeeritud link töötab otsingus: kleebi see, vajuta Enter ja TREK loeb koha lingist. Kui vormil on asukoht, näitab otsingu kõrval olev sihik „Kohad selle nõela lähedal“, mis on ümberringi.',
+    'Ka Google Mapsist kopeeritud link töötab otsingus: kleebi see, vajuta Enter ja YOUYA loeb koha lingist. Kui vormil on asukoht, näitab otsingu kõrval olev sihik „Kohad selle nõela lähedal“, mis on ümberringi.',
   'help.guide.dawarich-stays.step.2':
     'Peatumised on rühmitatud päevade kaupa, igaühe juures saabumis- ja lahkumisaeg; mõõdikuikoon tähistab peatumist, mille puhul Dawarich polnud kindel. Klõpsa peatumise kõrval oleval nööpnõelal „Lisa kohana“.',
   'help.guide.leave-stop-off-route.step.3':
@@ -5619,7 +5620,7 @@ const help: TranslationStrings = {
   'help.guide.transport-details.step.4':
     'Klõpsa pealkirjal, et sõit ümber nimetada ilma vormi avamata. „Nimeta ümber“ avaneb, nimi on juba täidetud: kirjuta uus nimi ja klõpsa „Salvesta“.',
   'help.guide.export-transports-csv.goal':
-    'Ekspordi reisi sõidud TREKist CSV-failina, et kasutada neid tabelis, saata reisibüroole või välja printida.',
+    'Ekspordi reisi sõidud YOUYAist CSV-failina, et kasutada neid tabelis, saata reisibüroole või välja printida.',
   'help.guide.group-sort-bookings.result':
     'Broneeringud on valitud jaotistes ja järjekorras ning see brauser jätab valiku järgmiseks korraks meelde.',
   'help.guide.booking-on-map.step.1':
@@ -5634,7 +5635,7 @@ const help: TranslationStrings = {
   'help.guide.expense-receipts.tip.1':
     'Redaktoris avab loetletud faili nimel klõpsamine sama eelvaate. Esc sulgeb siis ainult eelvaate, mitte kulu.',
   'help.guide.files-sync-settings.step.5':
-    '„Kui mõlemad pooled on muutunud“ määrab, milline koopia jääb alles, kui dokumenti muudeti mõlemas kohas: „Küsi minult“, „Säilita TREKi koopia“ või „Säilita salvestusteenuse koopia“. „Sünkrooni automaatselt“ laseb TREKil muudatusi taustal kontrollida; kui see on väljas, on kaardil kirjas „Peatatud“ ja sünkroonib ainult „Sünkrooni kohe“. Iga muudatus siin salvestub kohe.',
+    '„Kui mõlemad pooled on muutunud“ määrab, milline koopia jääb alles, kui dokumenti muudeti mõlemas kohas: „Küsi minult“, „Säilita YOUYAi koopia“ või „Säilita salvestusteenuse koopia“. „Sünkrooni automaatselt“ laseb YOUYAil muudatusi taustal kontrollida; kui see on väljas, on kaardil kirjas „Peatatud“ ja sünkroonib ainult „Sünkrooni kohe“. Iga muudatus siin salvestub kohe.',
   'help.guide.manage-notes.step.5':
     '„Kustuta“ küsib enne „Kas kustutada märge?“, sest märge kustutatakse kõigi liikmete jaoks koos failidega. Kinnitamiseks klõpsa „Kustuta“.',
   'help.guide.note-categories.step.3':
@@ -5663,7 +5664,7 @@ const help: TranslationStrings = {
   'help.guide.tour-remove-from-day.step.3':
     'Või klõpsa päeva päisel, et päev avada, klõpsa loendis retkel ja klõpsa selle kaardi allosas „Eemalda päevast“.',
   'help.guide.tour-filter-list.step.3':
-    'Kui loendis on segamini eri retki, kitsendavad seda veelgi „Allikas“ (TREK, „GPX-import“, wanderer), „Marsruudi piir“ (T1 kuni T6) ja „Tüüp“ („Matk“, „Rattaretk“ jne). Klõpsa märgitud väärtusel uuesti, et see tühistada.',
+    'Kui loendis on segamini eri retki, kitsendavad seda veelgi „Allikas“ (YOUYA, „GPX-import“, wanderer), „Marsruudi piir“ (T1 kuni T6) ja „Tüüp“ („Matk“, „Rattaretk“ jne). Klõpsa märgitud väärtusel uuesti, et see tühistada.',
   'help.guide.tour-hide-on-map.step.1':
     'Vii kursor loendis retkele ja klõpsa rea paremale ilmuval silmal („Peida kaardil“).',
   'help.guide.tour-import-plan-tab.step.1': 'Klõpsa vahelehel „Plaan“ parema veeru ülaosas oleval lülitil „Retked“.',
@@ -5682,7 +5683,7 @@ const help: TranslationStrings = {
   'help.guide.tour-copy-keep.tip.4':
     '„Kogumik“ on saadaval ainult siis, kui lisamoodul „Kogumikud“ on sees. Nimekirja, mida tohid ainult lugeda, ei saa valida, ja kui nimekirja veel pole, pakub dialoog „Ava kogumikud“.',
   'help.guide.tour-packing-link.step.5':
-    'Klõpsa „Ava pakkimisnimekiri“, et asju ära märkida. TREK avab vahelehe „Nimekirjad“ pakkimisnimekirjaga.',
+    'Klõpsa „Ava pakkimisnimekiri“, et asju ära märkida. YOUYA avab vahelehe „Nimekirjad“ pakkimisnimekirjaga.',
   'help.guide.tour-files.step.2': 'Selle all olev rida näitab nüüd failide arvu ja loend avaneb.',
   'help.guide.tour-activity-link.step.2':
     'Kontrolli jaotises „Läbitud“ päeva, mil retke tegid. Kui see ei kuulu ühelegi päevale, vali „Päevata“.',
@@ -5694,7 +5695,7 @@ const help: TranslationStrings = {
     'Kaardi ülaosas olev „Otsi kohta või aadressi“ liigutab kaarti. All vasakul olev silt vahetab retke tüübi pakutavate kaartide vahel, näiteks „Topo“ või „Satelliit“, ja sisaldab avatud retke lüliteid, näiteks „Lisa punkte“ ja 3D.',
   'help.guide.tour-open-workspace.step.5':
     'Kaardi ülaosas olev „Otsi kohta või aadressi“ viib kaardi soovitud kohta, nii et saad alustada seal, kus retk on.',
-  'help.guide.tour-draw-route.goal': 'Pane uue retke punktid kaardile ja lase TREKil nendevaheline marsruut arvutada.',
+  'help.guide.tour-draw-route.goal': 'Pane uue retke punktid kaardile ja lase YOUYAil nendevaheline marsruut arvutada.',
   'help.guide.tour-draw-route.tip.2':
     'Kaardi sildil olev „Topo“ või „Matkamine“ näitab radu, nii et neile on lihtsam klõpsata. Kui punkt on liiga kaugel igast teest, mida retke tüüp saab kasutada, näed marsruudi asemel teadet.',
   'help.guide.tour-type-profile.step.3':
@@ -5825,11 +5826,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.6':
     '„Aerutamiskiirus“ näitab paadi järgi soovitatud kiirust hallina. Kui sisestad oma kiiruse, on väljal kirjas „Oma kiirus“; selle all olev link „Kasuta soovitatut“ võtab jälle paadi kiiruse.',
   'help.guide.tour-paddle-water-route.goal':
-    'Lase TREKil planeerida lõik mööda jõge või järve ja mõista märkusi lõigul, mida ei õnnestunud planeerida.',
+    'Lase YOUYAil planeerida lõik mööda jõge või järve ja mõista märkusi lõigul, mida ei õnnestunud planeerida.',
   'help.guide.tour-paddle-water-route.tip.3':
     'Planeeritud lõigu all olevad märkused tähistavad kärestikku koos raskusastmega, paadirenni („Paadirenn“) või kaardiandmete lünka („Lünk kaardiandmetes“), mis on ületatud sirgjoonega.',
   'help.guide.tour-paddle-portage.step.4':
-    'Jaotises „Marsruut“ kasutab „Järgi rada“ kaardistatud teed ja „Sirge joon“ läheb otse. TREK otsib raja ise ja annab teada, kui seda ilma pika ümbersõiduta pole.',
+    'Jaotises „Marsruut“ kasutab „Järgi rada“ kaardistatud teed ja „Sirge joon“ läheb otse. YOUYA otsib raja ise ja annab teada, kui seda ilma pika ümbersõiduta pole.',
   'help.guide.tour-paddle-lock.step.1':
     'Vii kursor lüüsi juures olevale peatusele ja klõpsa „Rohkem toiminguid“ (kolm täppi).',
   'help.guide.tour-paddle-time.title': 'Aerutamisretke aja lugemine ja kohandamine',
@@ -5839,7 +5840,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-checklist.step.1':
     'Salvesta aerutamisretk, seejärel leia vasakust veerust „Kontrollnimekiri“. Selle päises olev märk võtab kokku nimekirja seisu.',
   'help.guide.tour-paddle-checklist.tip.4':
-    'Takistused pärinevad TREKis olevate piirkondade OpenStreetMapi andmetest. Kui andmeid pole, annab kaart sellest teada ja pead paisud, lüüsid ja ülekanded ise üle kontrollima.',
+    'Takistused pärinevad YOUYAis olevate piirkondade OpenStreetMapi andmetest. Kui andmeid pole, annab kaart sellest teada ja pead paisud, lüüsid ja ülekanded ise üle kontrollima.',
   'help.guide.tour-paddle-track-marks.step.4':
     'Klõpsa rajal jaotises „Selle reisi retked“. Vasakus veerus on see näha nii, nagu see salvestati, koos kaardiga „Ülekanded ja lüüsid“.',
   'help.ctx.trip-tour-horse.title': 'Ratsamatkad',
@@ -5903,16 +5904,16 @@ const help: TranslationStrings = {
     'Seotud reisi ajal on iga päeva peatumised selle päeva juures valmis valiku „Võta päev üle“ jaoks.',
   'help.ctx.settings-about.title': 'Teave',
   'help.guide.web-push-device.tip.3':
-    'Tõuketeavitused töötavad ainult siis, kui TREK on avatud HTTPS-i kaudu. Kui teavitused on blokeeritud, luba need brauseri seadetes ja proovi uuesti.',
-  'help.guide.booking-mail-address.title': 'Edasta broneeringukirjad TREKi',
+    'Tõuketeavitused töötavad ainult siis, kui YOUYA on avatud HTTPS-i kaudu. Kui teavitused on blokeeritud, luba need brauseri seadetes ja proovi uuesti.',
+  'help.guide.booking-mail-address.title': 'Edasta broneeringukirjad YOUYAi',
   'help.guide.booking-mail-address.goal':
-    'Hangi oma aadress broneeringukinnituste jaoks, et TREK lisaks iga broneeringu õigele reisile.',
+    'Hangi oma aadress broneeringukinnituste jaoks, et YOUYA lisaks iga broneeringu õigele reisile.',
   'help.guide.booking-mail-address.step.1':
     'Jaotises „Liidestused“ näitab „Broneeringukirjad“ rida „Sinu aadress“. Klõpsa selle kõrval olevat kopeerimisnuppu. Hoia aadress enda teada nagu parooli.',
   'help.guide.booking-mail-address.step.2':
     'Edasta broneeringukiri sellele aadressile käsitsi koos manustega või järgi valikut „Edasta automaatselt“, et seadistada reegel Gmailis või Outlookis.',
   'help.guide.booking-mail-address.step.3':
-    '„Impordi broneeringukirjad“ lülitab impordi sisse või välja. „Loe tehisintellektiga“ laseb tehisintellektil lugeda kirju, milles pole masinloetavaid broneeringuandmeid. „Lisa ise“ paneb broneeringu, milles TREK on kindel, otse reisi.',
+    '„Impordi broneeringukirjad“ lülitab impordi sisse või välja. „Loe tehisintellektiga“ laseb tehisintellektil lugeda kirju, milles pole masinloetavaid broneeringuandmeid. „Lisa ise“ paneb broneeringu, milles YOUYA on kindel, otse reisi.',
   'help.guide.booking-mail-address.step.4':
     '„Ootel broneeringud“ avab kirjad, mis sind ootavad, ja näitab arvu, kui neid on. „Laadi üles kirjafail“ loeb kirja, mille salvestasid .eml-failina.',
   'help.guide.booking-mail-address.result':
@@ -5930,7 +5931,7 @@ const help: TranslationStrings = {
   'help.guide.tour-connect-wanderer.result':
     'Märgil on „Ühendatud“ ja reisi vahelehel „Retked“ saab sinu wandereris otsida ja sealt radu importida.',
   'help.guide.tour-wanderer-watch.result':
-    'TREK kontrollib sinu imporditud radu ja annab teada, kui mõni võib olla muutunud. Retk muutub ainult siis, kui muudatuse vastu võtad.',
+    'YOUYA kontrollib sinu imporditud radu ja annab teada, kui mõni võib olla muutunud. Retk muutub ainult siis, kui muudatuse vastu võtad.',
   'help.guide.plugin-settings.step.1':
     'Ava seadete külgribal „Pluginad“. Jaotise „Pluginate seaded“ all on igal pluginal, millel on sinu jaoks seadeid, oma kaart: täida selle väljad ja klõpsa „Salvesta“ või tee valikud, mida see näitab. Kaardil olevad toimingud käivituvad pärast kinnitust.',
   'help.guide.profile.step.3': 'Klõpsa kaardi jaluse paremas servas „Salvesta profiil“.',
@@ -5943,7 +5944,7 @@ const help: TranslationStrings = {
   'help.guide.notification-defaults.goal':
     'Määra, millised on kõigi kasutajate teavituste algseaded, ja blokeeri sündmuse jaoks kanal täielikult.',
   'help.ctx.notifications.summary':
-    'Kõik teavitused, mida TREK on sulle rakenduses näidanud, uusimad eespool ja päevade kaupa rühmitatud: keegi muutis broneeringut, reisivestlusse tuli uus sõnum, lend hilineb, edastatud kirjast tuli broneering. Paremal üleval olev kellaikoon näitab kümmet uusimat, see leht näitab kõiki.',
+    'Kõik teavitused, mida YOUYA on sulle rakenduses näidanud, uusimad eespool ja päevade kaupa rühmitatud: keegi muutis broneeringut, reisivestlusse tuli uus sõnum, lend hilineb, edastatud kirjast tuli broneering. Paremal üleval olev kellaikoon näitab kümmet uusimat, see leht näitab kõiki.',
   'help.guide.read-notifications.step.1':
     'Klõpsa paremal üleval kellaikoonil. Sellel olev punane number näitab lugemata teavituste arvu.',
   'help.guide.filter-notifications.step.1': 'Klõpsa paremal üleval kellaikoonil.',
@@ -6072,7 +6073,7 @@ const help: TranslationStrings = {
   'help.guide.tour-take-along.step.3':
     'Klõpsa „GPX“, et laadida salvestatud retk alla GPX-failina: kogu marsruut koos olemasolevate kõrgustega, valmis navigatsioonirakenduse või GPS-seadme jaoks.',
   'help.guide.tour-copy-keep.step.1':
-    'Ava retke kaart ja klõpsa all „Kopeeri“. TREK loob uue, sõltumatu retke ilma päevadeta ja algne retk jääb samaks.',
+    'Ava retke kaart ja klõpsa all „Kopeeri“. YOUYA loob uue, sõltumatu retke ilma päevadeta ja algne retk jääb samaks.',
   'help.guide.tour-copy-keep.result':
     'Reisil on teine retk, mida saad vabalt muuta, ja kogumikus on oma koopia, mille saab lisada teisele reisile.',
   'help.guide.tour-packing-link.tip.1':
@@ -6158,7 +6159,7 @@ const help: TranslationStrings = {
   'help.guide.tour-hike-trail-details.step.5':
     'Klõpsa „Kate“, et näha sama marsruuti selle järgi, millel kõnnid, asfaldist pinnase ja kaljuni.',
   'help.guide.tour-hike-round.step.2':
-    'Kaardi peal avaneb kaart „Ringmatk“. Kontrolli väljal „Alguspunkt“ alguskohta ja sisesta soovitud „Vahemaa“. Selle kõrval olev silt näitab ringide pikkusi, mida TREK selle jaoks pakub.',
+    'Kaardi peal avaneb kaart „Ringmatk“. Kontrolli väljal „Alguspunkt“ alguskohta ja sisesta soovitud „Vahemaa“. Selle kõrval olev silt näitab ringide pikkusi, mida YOUYA selle jaoks pakub.',
   'help.guide.tour-hike-compare-ways.title': 'Matka ühe lõigu muude teede võrdlemine',
   'help.guide.tour-hike-compare-ways.tip.2':
     'Kui marsruudiplaneerija ei tea muud teed, annab kaart sellest teada. Kui marsruudiplaneerija ei suuda valitud teed järgida, jääb lõik samaks ja kaart ütleb seda.',
@@ -6177,7 +6178,7 @@ const help: TranslationStrings = {
   'help.guide.tour-walk-day-times.tip.3':
     'Lahtiolekuajad tulevad OpenStreetMapist või reisi kohast, millega peatus on seotud, ja nende kõrval olev silt näitab allikat. Kontrolli neid enne minekut.',
   'help.guide.tour-walk-google-import.step.4':
-    'Klõpsa „Laadi jalutuskäiguna“. TREK planeerib peatuste vahelise jalgtee ise. Jalutuskäigu salvestamiseks klõpsa „Salvesta“.',
+    'Klõpsa „Laadi jalutuskäiguna“. YOUYA planeerib peatuste vahelise jalgtee ise. Jalutuskäigu salvestamiseks klõpsa „Salvesta“.',
   'help.guide.tour-walk-check-off.step.2':
     'Keri jaotiseni „Jalutuse peatused“. Iga peatuse juures on viibimisaeg ja, kui jalutuskäigul on algusaeg, saabumisaeg.',
   'help.ctx.trip-tour-bike.summary':
@@ -6193,7 +6194,7 @@ const help: TranslationStrings = {
   'help.guide.tour-ski-plan.goal':
     'Planeeri päev nõlvadel, murdmaasuusaring, suusamatk või räätsamatk mööda kaardistatud nõlvu, tõstukeid ja radu.',
   'help.guide.tour-ski-plan.tip.2':
-    '„Ala“ kõrval olev infotäpp selgitab, mida TREK suusaretkedega teeb. Seal ega mujal siin ei öelda midagi lume, laviinide ega selle kohta, kas nõlvad, tõstukid ja rajad on avatud.',
+    '„Ala“ kõrval olev infotäpp selgitab, mida YOUYA suusaretkedega teeb. Seal ega mujal siin ei öelda midagi lume, laviinide ega selle kohta, kas nõlvad, tõstukid ja rajad on avatud.',
   'help.guide.tour-ski-options.step.3':
     'Vali jaotises „Eelista“ „Kiireim“, „Kõige rohkem suusatamist“ või „Lihtsaim“. Vali jaotises „Tempo“ „Rahulik“, „Tavaline“ või „Sportlik“: see muudab aega, mille marsruudiplaneerija igale nõlvale arvestab.',
   'help.guide.tour-ski-fix-leg.goal': 'Lase punane lõik ühe klõpsuga planeerida või joonista see sirgjoonena.',
@@ -6210,11 +6211,11 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.step.7':
     'Kontrolli, et „Lisa punkt“ on sees, seejärel klõpsa kaardil: kõigepealt vettelaskmiskoht, siis vahepealsed punktid ja lõpuks veest väljumise koht.',
   'help.guide.tour-paddle-water-route.step.1':
-    'Käsitsi joonistatud lõigu punkti all on kirjas „Käsitsi joonistatud, marsruutimata“ koos lõigu pikkusega. TREK jätab joone selliseks, nagu selle joonistasid.',
+    'Käsitsi joonistatud lõigu punkti all on kirjas „Käsitsi joonistatud, marsruutimata“ koos lõigu pikkusega. YOUYA jätab joone selliseks, nagu selle joonistasid.',
   'help.guide.tour-paddle-water-route.tip.4':
     'Kui mõni lõik pole planeeritud, ei saa salvestada. Planeeri see enne vett mööda või joonista käsitsi.',
   'help.guide.tour-paddle-portage.step.5':
-    'Sisesta jaotises „Välja ja vette“ minutid, mida vajad paadist väljumiseks, mahalaadimiseks ja tagasi vette laskmiseks. Kui jätad selle tühjaks, arvestab TREK 10 minutit.',
+    'Sisesta jaotises „Välja ja vette“ minutid, mida vajad paadist väljumiseks, mahalaadimiseks ja tagasi vette laskmiseks. Kui jätad selle tühjaks, arvestab YOUYA 10 minutit.',
   'help.guide.tour-paddle-lock.step.2':
     'Vali „Lüüs selles punktis“. Punkti alla ilmub kaart „Lüüs“ märkega „Aeg puudub“.',
   'help.guide.tour-paddle-time.goal':
@@ -6224,7 +6225,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-wind.tip.1':
     'Prognoos on olemas ainult järgmiseks 16 päevaks. Kaugema päeva puhul on kirjas, mis kuupäevast prognoos on saadaval. Möödunud päeva puhul on kirjas, et päev on möödas.',
   'help.guide.tour-paddle-checklist.step.2':
-    'Selle all olev rida näitab, kui värsked on andmed: „OSM seisuga“ OpenStreetMapi kohta, „Laaditud“ selle kohta, millal TREK need luges, ja „Takistuste andmed“, kui need ei kata kogu marsruuti.',
+    'Selle all olev rida näitab, kui värsked on andmed: „OSM seisuga“ OpenStreetMapi kohta, „Laaditud“ selle kohta, millal YOUYA need luges, ja „Takistuste andmed“, kui need ei kata kogu marsruuti.',
   'help.guide.tour-paddle-checklist.tip.5':
     'Kontrollnimekiri ei ole ohutus- ega õiguslik heakskiit. Sinu otsus ei tühista OpenStreetMapis märgitud keeldu ega eramaad.',
   'help.guide.tour-paddle-track-marks.step.5':
@@ -6263,7 +6264,8 @@ const help: TranslationStrings = {
   'help.ctx.collections.bullet.7':
     'Salvestatud retked: reisist salvestatud retked on nimekirja esimesed read koos raskusastme, tüübi, päritolureisi ja mõõtmetega. „Lisa reisile“ loob neist uue retke ja prügikastiikoon eemaldab selle nimekirjast.',
   'help.guide.move-to-list.title': 'Kohtade teisaldamine või kopeerimine teise nimekirja',
-  'help.guide.copy-to-trip.tip.2': 'Koht, mis reisil juba on, jäetakse vahele ja TREK näitab, mitu kohta vahele jäeti.',
+  'help.guide.copy-to-trip.tip.2':
+    'Koht, mis reisil juba on, jäetakse vahele ja YOUYA näitab, mitu kohta vahele jäeti.',
   'help.guide.accept-list-invite.tip.2':
     'Klõpsa nimekirja ülaosas „Jagatud“, et näha liikmeid. Seal saad nupuga „Lahku nimekirjast“ nimekirjast lahkuda.',
   'help.guide.tour-collection-add-to-trip.goal':
@@ -6281,16 +6283,16 @@ const help: TranslationStrings = {
   'help.guide.journey-day-stays.goal': 'Tee Dawarichi salvestatud peatumistest ükshaaval sissekanded.',
   'help.guide.journey-take-over-day.goal':
     'Tee ühe sammuga päeva peatumistest mustandsissekanded või üks päevaülevaade.',
-  'help.guide.journey-auto-prepare.title': 'Salvestatud päevade ettevalmistamine TREKi poolt',
+  'help.guide.journey-auto-prepare.title': 'Salvestatud päevade ettevalmistamine YOUYAi poolt',
   'help.guide.photo-location.title': 'Sissekannete paigutamine fotode tegemise kohta',
   'help.ctx.settings-about.summary':
-    'Mis on TREK, milline versioon selles serveris töötab ja kust leiad projekti: dokumentatsiooni, vigadest teatamise koha ja projekti toetamise võimalused.',
+    'Mis on YOUYA, milline versioon selles serveris töötab ja kust leiad projekti: dokumentatsiooni, vigadest teatamise koha ja projekti toetamise võimalused.',
   'help.guide.startup.tip.2': 'Kui avatav vahekaart kuulub välja lülitatud lisamoodulile, avaneb selle asemel plaan.',
   'help.guide.web-push-device.title': 'Tõuketeavitused selles seadmes',
   'help.guide.connect-airtrail.tip.1':
     'Kaart on näha ainult siis, kui administraator on lisamooduli AirTrail sisse lülitanud.',
   'help.guide.connect-dawarich.tip.1':
-    'TREK ainult soovitab sissekandeid, kohti ja riike; midagi ei lisata enne sinu kinnitust ja Dawarichi ei kirjutata midagi tagasi.',
+    'YOUYA ainult soovitab sissekandeid, kohti ja riike; midagi ei lisata enne sinu kinnitust ja Dawarichi ei kirjutata midagi tagasi.',
   'help.guide.tour-connect-wanderer.tip.1':
     'Kaart on näha ainult siis, kui administraator lubab jaotises „Retked“ wandereri.',
   'help.guide.tour-wanderer-watch.tip.1':
@@ -6306,7 +6308,7 @@ const help: TranslationStrings = {
   'help.guide.default-user-settings.goal':
     'Anna igale kontole mõistlikud ühikud, värvirežiim ja valuuta, ilma et keegi peaks seadeid avama.',
   'help.guide.default-map.step.3':
-    'Iga väli salvestub, kui sellelt lahkud. Välja nime kõrval olev lähtestuslink taastab TREKi vaikeväärtuse.',
+    'Iga väli salvestub, kui sellelt lahkud. Välja nime kõrval olev lähtestuslink taastab YOUYAi vaikeväärtuse.',
   'help.guide.own-routing-engine.tip.2':
     'Kui on määratud ainult sinu oma marsruutimootor ja „Marsruutimisteenus“ on „Automaatne“, ei küsita ühtegi Valhallat. Välja kõrval olev lähtestuslink tühjendab selle uuesti.',
   'help.guide.admin-passkeys.step.1':
@@ -6314,7 +6316,7 @@ const help: TranslationStrings = {
   'help.guide.storage-backends.step.4':
     'Ülal olev „Tervis“ loetleb ebaõnnestunud kirjutamised peegelsihtkohta. Kui seal on kirjas „Koopiate tõrkeid pole registreeritud.“, töötab kõik.',
   'help.guide.channels-instance.tip.3':
-    "„Veebitõuketeavitused“ vajavad HTTPS-i. iPhone'is ja iPadis peavad kasutajad kõigepealt lisama TREKi avaekraanile.",
+    "„Veebitõuketeavitused“ vajavad HTTPS-i. iPhone'is ja iPadis peavad kasutajad kõigepealt lisama YOUYAi avaekraanile.",
   'help.guide.notification-defaults.step.1':
     'Keri vahelehel „Teavitused“ alla jaotiseni „Kasutajate vaikeväärtused“. Iga rida on sündmus, iga veerg kanal.',
   'help.ctx.notifications.bullet.1':
@@ -6359,28 +6361,28 @@ const help: TranslationStrings = {
   'help.guide.export-bookings-csv.step.1':
     'Kui tahad eksportida ainult osa vahelehest, kitsenda seda enne „Otsi“ või „Filter“ abil. Failis on täpselt see, mida vaheleht näitab.',
   'help.guide.import-booking-file.tip.4':
-    'Kinnituse lugemiseks on vaja ühendust. Võrguühenduseta annab „Impordi“ sellest teada ja saad uuesti proovida, kui TREK on taas võrgus.',
+    'Kinnituse lugemiseks on vaja ühendust. Võrguühenduseta annab „Impordi“ sellest teada ja saad uuesti proovida, kui YOUYA on taas võrgus.',
   'help.guide.forward-booking-mail.title': 'Edasta broneeringukiri reisile',
   'help.guide.forward-booking-mail.goal':
-    'Anna reisile oma aadress, edasta kinnitus sellele ja lõpeta see, mida TREK ise lisada ei saanud.',
+    'Anna reisile oma aadress, edasta kinnitus sellele ja lõpeta see, mida YOUYA ise lisada ei saanud.',
   'help.guide.forward-booking-mail.step.1':
     'Klõpsa ribal üleslaadimisikooni „Impordi broneeringukinnitused“. Failikasti all hoiab „Või edasta e-kirjaga“ reisi enda aadressi.',
   'help.guide.forward-booking-mail.step.2':
     'Klõpsa „Loo sellele reisile aadress“. Sellele saadetud kiri jõuab sellesse reisi ilma oletamiseta.',
   'help.guide.forward-booking-mail.step.3':
-    'Aadress ilmub koos kopeerimisnupuga selle kõrval. Kopeeri see, siis edasta broneeringukiri sellele oma meiliprogrammist, koos manustega, käsitsi või reegli abil. TREK loeb selle mõne minuti jooksul.',
+    'Aadress ilmub koos kopeerimisnupuga selle kõrval. Kopeeri see, siis edasta broneeringukiri sellele oma meiliprogrammist, koos manustega, käsitsi või reegli abil. YOUYA loeb selle mõne minuti jooksul.',
   'help.guide.forward-booking-mail.step.4':
-    'Broneering, milles TREK on kindel, läheb reisi ise. Kõik muu ootab sind: ava paremas ülanurgas oma nime all olev menüü, kus arv näitab ootavaid kirju, ja klõpsa „Ootel broneeringud“.',
+    'Broneering, milles YOUYA on kindel, läheb reisi ise. Kõik muu ootab sind: ava paremas ülanurgas oma nime all olev menüü, kus arv näitab ootavaid kirju, ja klõpsa „Ootel broneeringud“.',
   'help.guide.forward-booking-mail.step.5':
-    'Iga kirje näitab, mida TREK luges, miks see ootab ja millise reisi jaoks see tuli. „Näita kirja“ näitab kirja ennast. Klõpsa „Täida ise“.',
+    'Iga kirje näitab, mida YOUYA luges, miks see ootab ja millise reisi jaoks see tuli. „Näita kirja“ näitab kirja ennast. Klõpsa „Täida ise“.',
   'help.guide.forward-booking-mail.step.6':
     '„Uus broneering“ avaneb reisis kirjas olnud andmetega: teema pealkirjana, tüüp, kuupäev ja leitud broneerimiskood. Kontrolli, paranda, mis vaja, ja klõpsa „Lisa“.',
   'help.guide.forward-booking-mail.result':
     'Broneering on vahelehel „Broneeringud“ nagu iga teine ja selle kirje on jaotisest „Ootel broneeringud“ kadunud.',
   'help.guide.forward-booking-mail.tip.1':
-    'Sinu enda aadress, jaotises „Seaded“, „Liidestused“, „Broneeringukirjad“, töötab iga reisi jaoks: TREK valib reisi, mille kuupäevad ja kohad broneeringuga sobivad. Reisi aadress jätab selle oletamise vahele.',
+    'Sinu enda aadress, jaotises „Seaded“, „Liidestused“, „Broneeringukirjad“, töötab iga reisi jaoks: YOUYA valib reisi, mille kuupäevad ja kohad broneeringuga sobivad. Reisi aadress jätab selle oletamise vahele.',
   'help.guide.forward-booking-mail.tip.2':
-    'Kui kaardil on „Lisa ise“ sees, läheb broneering, milles TREK on kindel, otse reisi ning selle teavitus pakub 7 päeva jooksul valikut „Võta tagasi“. Väljas ootavad kõik broneeringud jaotises „Ootel broneeringud“.',
+    'Kui kaardil on „Lisa ise“ sees, läheb broneering, milles YOUYA on kindel, otse reisi ning selle teavitus pakub 7 päeva jooksul valikut „Võta tagasi“. Väljas ootavad kõik broneeringud jaotises „Ootel broneeringud“.',
   'help.guide.forward-booking-mail.tip.3':
     'Kirje võib ka dokumendina alles jätta valikuga „Salvesta dokumendina“, mis paneb kirja või selle manused reisi failidesse, või kõrvale heita valikuga „Kustuta“.',
   'help.guide.forward-booking-mail.tip.4':
@@ -6456,11 +6458,11 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.1':
     'Ava retke kaart. „Plaan ja tegelik“ näitab plaani „Vahemaa“, „Tõus“, „Laskumine“ ja „Aeg koos pausidega“ raja väärtuste kõrval koos väärtusega „Erinevus“.',
   'help.guide.tour-origin-check.goal':
-    'Uuri, kas retk joonistati TREKis või imporditi, millisest failist ja kas seda on hiljem muudetud.',
+    'Uuri, kas retk joonistati YOUYAis või imporditi, millisest failist ja kas seda on hiljem muudetud.',
   'help.ctx.trip-tour-planner.title': 'Retked',
   'help.guide.tour-open-workspace.title': 'Vahelehel „Retked“ orienteerumine',
   'help.guide.tour-open-workspace.step.7':
-    'Klõpsa paremal ribal retkel. TREKis planeeritud retk avaneb redaktoris. Imporditud rada avaneb muutmata kujul GPX-retkena, vaatamiseks.',
+    'Klõpsa paremal ribal retkel. YOUYAis planeeritud retk avaneb redaktoris. Imporditud rada avaneb muutmata kujul GPX-retkena, vaatamiseks.',
   'help.guide.tour-draw-route.step.2':
     'Kirjuta väljale „Otsi kohta või aadressi“ retke alguskoht ja vali tulemus. Kaart liigub sinna.',
   'help.guide.tour-draw-route.tip.4':
@@ -6492,7 +6494,7 @@ const help: TranslationStrings = {
   'help.guide.tour-import-gpx.tip.3': 'Rada, mis reisil juba on, on hall märkega „Juba reisil“ ja jäetakse vahele.',
   'help.guide.tour-view-import.step.3': 'Üleval vasakul olev nool „Tagasi retkede juurde“ sulgeb selle.',
   'help.guide.tour-plan-from-import.step.2':
-    'TREK võtab rajast kontrollpunktid ja arvutab nende vahel marsruudi uuesti. Kaardil on import punktiirjoonena ja soovitus pideva joonena ning kaart võrdleb nende pikkusi, kuni 50 m kaugusel rajast oleva osa osakaalu ja väärtust „Suurim kõrvalekalle“.',
+    'YOUYA võtab rajast kontrollpunktid ja arvutab nende vahel marsruudi uuesti. Kaardil on import punktiirjoonena ja soovitus pideva joonena ning kaart võrdleb nende pikkusi, kuni 50 m kaugusel rajast oleva osa osakaalu ja väärtust „Suurim kõrvalekalle“.',
   'help.guide.tour-restore-recorded.title': 'Salvestatud raja juurde naasmine',
   'help.guide.tour-take-over.title': 'Retke ülevõtmine teiselt reisilt',
   'help.guide.tour-take-over.tip.1':
@@ -6581,7 +6583,7 @@ const help: TranslationStrings = {
     'Kui nõlvade laadimine katkeb, on lülitil hoiatusmärk. Kaart ja sinu marsruut töötavad endiselt.',
   'help.guide.tour-ski-import.step.4': 'Klõpsa „Impordi 1 retk“.',
   'help.ctx.trip-tour-paddle.summary':
-    'Süsti-, kanuu- või SUP-retk jõel või järvel. Sellel on määratud paat ja veekogu, see järgib vett, kus TREKil on andmeid, arvestab ülekanded ja lüüsid aja sisse ning näitab aerutamispäeva tuult ja seda, mis on teada teel olevate takistuste kohta.',
+    'Süsti-, kanuu- või SUP-retk jõel või järvel. Sellel on määratud paat ja veekogu, see järgib vett, kus YOUYAil on andmeid, arvestab ülekanded ja lüüsid aja sisse ning näitab aerutamispäeva tuult ja seda, mis on teada teel olevate takistuste kohta.',
   'help.guide.tour-paddle-setup.goal':
     'Alusta süsti-, kanuu- või SUP-retke ja määra, millega, millisel veekogul ja kui kiiresti aerutad.',
   'help.guide.tour-paddle-setup.tip.1':
@@ -6589,7 +6591,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-water-route.step.2':
     'Kui tahad, et üks lõik planeeritaks vett mööda, vii kursor sellele eelnevale peatusele ja klõpsa „Rohkem toiminguid“ (kolm täppi).',
   'help.guide.tour-paddle-water-route.result':
-    'Iga lõik järgib vett või on teadlikult käsitsi joonistatud ning lõik, mida TREK ei suutnud planeerida, näitab põhjust.',
+    'Iga lõik järgib vett või on teadlikult käsitsi joonistatud ning lõik, mida YOUYA ei suutnud planeerida, näitab põhjust.',
   'help.guide.tour-paddle-portage.tip.1':
     'Kui tahad lõigu siiski läbi aerutada, ava punktil uuesti „Rohkem toiminguid“ ja vali „Aeruta see lõik jälle“. Sellest saab jälle käsitsi joonistatud lõik.',
   'help.guide.tour-paddle-lock.step.3': 'Klõpsa kaardil „Lüüs“, et see avada.',
@@ -6607,7 +6609,7 @@ const help: TranslationStrings = {
   'help.guide.tour-horse-plan.step.2':
     'Klõpsa välja „Retke nimi“ all väljal „Matka tüüp“ ja vali „Ratsamatk“. Jaotise „Teekonnapunktid“ alla ilmub kaart „Ratsarajad“.',
   'help.guide.tour-horse-plan.tip.2':
-    'TREK ei arvuta ratsamatkale ratsutamisaega. Kui tahad, et päeval oleks aeg, sisesta see jaotises „Üksikasjad“ väljale „Plaanis“.',
+    'YOUYA ei arvuta ratsamatkale ratsutamisaega. Kui tahad, et päeval oleks aeg, sisesta see jaotises „Üksikasjad“ väljale „Plaanis“.',
   'help.guide.tour-horse-gap.step.3': 'Klõpsa „Võta lõik üle“. Kuni lüliti pole sees, on nupp hall.',
   'help.guide.tour-horse-recorded.step.1':
     'Klõpsa jaotises „Selle reisi retked“ „Lisa matk“ (+), vali „Impordi GPX või KML“ ja vali oma ratsamatka fail.',
@@ -6623,7 +6625,7 @@ const help: TranslationStrings = {
   'help.guide.log-for-partner.title': 'Päevade märkimine kaasplaneerija eest',
   'help.guide.dissolve-fusion.title': 'Ühise planeerimise lõpetamine',
   'help.guide.country-places.goal':
-    'Vaata kohti, mida TREK riigi alla arvestab, et kontrollida, mida sa seal tegid, või leida koht, mille TREK on vale riigi alla pannud.',
+    'Vaata kohti, mida YOUYA riigi alla arvestab, et kontrollida, mida sa seal tegid, või leida koht, mille YOUYA on vale riigi alla pannud.',
   'help.guide.regions.tip.3':
     '„Lisa soovinimekirja“ töötab ka piirkonna puhul. Piirkond on näidatud sama viirutusega nagu soovinimekirjas olev riik.',
   'help.guide.tour-activity-stats.step.2':
@@ -6652,11 +6654,11 @@ const help: TranslationStrings = {
   'help.ctx.settings-about.bullet.1': 'Selles serveris töötav versioon on näidatud pealkirja kõrval.',
   'help.guide.readability.tip.3':
     '„Loetavus“ on märgitud kui „Eksperimentaalne“. Kui midagi näeb vale välja, klõpsa vahelehe allosas „Taasta vaikeseaded“, et vaikeseaded taastada.',
-  'help.guide.web-push-device.goal': 'Saa TREKi teavitusi oma telefonis või arvutis ka siis, kui TREK on suletud.',
+  'help.guide.web-push-device.goal': 'Saa YOUYAi teavitusi oma telefonis või arvutis ka siis, kui YOUYA on suletud.',
   'help.guide.connect-airtrail.tip.2':
     'Võti salvestatakse krüpteeritult ja seda ei näidata enam kunagi; täpid väljal tähendavad, et võti on salvestatud.',
   'help.guide.connect-dawarich.tip.2':
-    'Nuppude all näitab kaart, millal TREK viimati kontrollis ja mida sinu Dawarichi versioon ei paku.',
+    'Nuppude all näitab kaart, millal YOUYA viimati kontrollis ja mida sinu Dawarichi versioon ei paku.',
   'help.guide.tour-connect-wanderer.tip.2':
     'Privaatsel aadressil oleva serveri jaoks võib administraator pidada sisevõrgud lubama.',
   'help.guide.tour-wanderer-watch.tip.2':
@@ -6664,13 +6666,13 @@ const help: TranslationStrings = {
   'help.guide.plugin-settings.result':
     'Plugin töötab sinu seadetega ja iga toiming, mille see sinu eest teeb, on loetletud jaotises „Pluginate tegevus“.',
   'help.ctx.admin-defaults.bullet.3':
-    'Määratud välja kõrval olev lähtestuslink taastab TREKi vaikeväärtuse. Kasutaja enda seade on alati nende ees ülimuslik.',
+    'Määratud välja kõrval olev lähtestuslink taastab YOUYAi vaikeväärtuse. Kasutaja enda seade on alati nende ees ülimuslik.',
   'help.ctx.admin-settings.bullet.5':
     '„Ohutsoon“ vahelehel „Turvalisus“: „Roteeri JWT saladus“ logib välja kõik kasutajad, ka sinu.',
   'help.guide.default-user-settings.step.1':
     'Vali jaotises „Kasutajate vaikeseaded“ „Värvirežiim“ („Hele“, „Tume“ või „Automaatne“), „Temperatuuriühik“, „Vahemaaühik“, „Ajavorming“, „Nädala alguspäev“, „Kuupäevavorming“, „Kuvamisvaluuta“ ja see, kas „Hägusta broneerimiskoodid“ on sees või „Väljas“. Iga valik salvestub kohe.',
   'help.guide.admin-passkeys.step.2':
-    'Sisesta kaardil „Pääsuvõtmega sisselogimine“ „Teenuseosutaja ID (domeen)“, näiteks trek.example.org, ja „Lubatud päritolud“, mille kaudu sinu TREK on kättesaadav, seejärel klõpsa „Salvesta“. Jäta mõlemad tühjaks, et kasutada APP_URL-i.',
+    'Sisesta kaardil „Pääsuvõtmega sisselogimine“ „Teenuseosutaja ID (domeen)“, näiteks trek.example.org, ja „Lubatud päritolud“, mille kaudu sinu YOUYA on kättesaadav, seejärel klõpsa „Salvesta“. Jäta mõlemad tühjaks, et kasutada APP_URL-i.',
   'help.guide.rotate-jwt-secret.title': 'Kõigi korraga väljalogimine',
   'help.guide.notification-defaults.step.2':
     'Klõpsa lahtril, et lülitada see järgmisse olekusse: sees, „Väljas“, „Blokeeritud“. Vihje näitab järgmist olekut ja iga klõps salvestub kohe.',
@@ -6685,21 +6687,21 @@ const help: TranslationStrings = {
   'help.guide.delete-notifications.result': 'Teavitus eemaldatakse loendist ja kellaikooni alt.',
   'help.guide.booking-mail-notifications.title': 'Vasta broneeringukirja teavitusele',
   'help.guide.booking-mail-notifications.goal':
-    'Vaata, mis said sinu edastatud broneeringukirjadest, ja otsusta need, mida TREK ise lisada ei saanud.',
+    'Vaata, mis said sinu edastatud broneeringukirjadest, ja otsusta need, mida YOUYA ise lisada ei saanud.',
   'help.guide.booking-mail-notifications.step.1':
-    'Klõpsa paremas ülanurgas kellaikooni. Kui edastatud kiri sisaldab broneeringuid, mida TREK ise lisada ei saanud, annab ta sellest seal teada.',
+    'Klõpsa paremas ülanurgas kellaikooni. Kui edastatud kiri sisaldab broneeringuid, mida YOUYA ise lisada ei saanud, annab ta sellest seal teada.',
   'help.guide.booking-mail-notifications.step.2':
     '„Ülevaatamist ootavad edastatud broneeringud“ ütleb, kui palju sind ootab. Klõpsa selle all „Vaata üle“.',
   'help.guide.booking-mail-notifications.step.3':
-    '„Ootel broneeringud“ avaneb iga ootava kirjega: mida TREK luges, miks see ootab ja millise reisi jaoks see tuli. „Täida ise“ avab uue broneeringu kirjas olnud andmetega ja prügikast loobub kirjest.',
+    '„Ootel broneeringud“ avaneb iga ootava kirjega: mida YOUYA luges, miks see ootab ja millise reisi jaoks see tuli. „Täida ise“ avab uue broneeringu kirjas olnud andmetega ja prügikast loobub kirjest.',
   'help.guide.booking-mail-notifications.result':
     'Iga edastatud broneering jõuab kas reisi või ootab sinu otsust ning sa tead alati, kumb neist.',
   'help.guide.booking-mail-notifications.tip.1':
-    'Broneering, mille TREK ise lisas, tuleb teavitusena „Broneering lisati kirjast“ nuppudega „Jäta alles“ ja „Võta tagasi“. „Võta tagasi“ võtab broneeringu reisist uuesti välja, „Jäta alles“ jätab selle sinna.',
+    'Broneering, mille YOUYA ise lisas, tuleb teavitusena „Broneering lisati kirjast“ nuppudega „Jäta alles“ ja „Võta tagasi“. „Võta tagasi“ võtab broneeringu reisist uuesti välja, „Jäta alles“ jätab selle sinna.',
   'help.guide.booking-mail-notifications.tip.2':
     'Ka jagatud reisi teised inimesed saavad kirjast tulnud broneeringust teada, koos nupuga „Vaata reisi“, mis avab reisi vahelehe „Broneeringud“.',
   'help.guide.booking-mail-notifications.tip.3':
-    'Lend, mida TREK jälgib reaalajas, saadab teavitused „Lend tõusis õhku“, „Lend maandus“ ja alates 15 minuti pikkusest hilinemisest „Lend hilineb“, igaüks nupuga „Vaata reisi“. Need lähevad inimestele, kellele lend on määratud, või kõigile reisil. Lülita need välja jaotises „Seaded“, „Teavitused“.',
+    'Lend, mida YOUYA jälgib reaalajas, saadab teavitused „Lend tõusis õhku“, „Lend maandus“ ja alates 15 minuti pikkusest hilinemisest „Lend hilineb“, igaüks nupuga „Vaata reisi“. Need lähevad inimestele, kellele lend on määratud, või kõigile reisil. Lülita need välja jaotises „Seaded“, „Teavitused“.',
   'help.guide.notification-settings.result':
     '„Seaded“ on avatud jaotises „Teavitused“, kus on lüliti iga sündmuse ja kanali jaoks.',
   'help.guide.link-journal.goal': 'Näita ühte oma reisilugude päevikut reisi sees valitud inimestele.',
@@ -6711,9 +6713,9 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.step.1':
     'Klõpsa reisi nime kõrval „Reisi seaded“ ja vali vasakult „Lisamoodulid“. Seda ala näeb ainult reisi omanik.',
   'help.guide.trip-addons.step.2':
-    'Klõpsa lisamooduli lülitil, et see selle reisi jaoks sisse või välja lülitada. Loetletud on „Nimekirjad“, „Kulud“, „Dokumendid“, „Koostöö“, „Autoreis“ ja „Retked“, niipalju kui sinu TREKis neid on.',
+    'Klõpsa lisamooduli lülitil, et see selle reisi jaoks sisse või välja lülitada. Loetletud on „Nimekirjad“, „Kulud“, „Dokumendid“, „Koostöö“, „Autoreis“ ja „Retked“, niipalju kui sinu YOUYAis neid on.',
   'help.guide.trip-addons.step.3':
-    '„Ainult see reis“ tähistab lisamoodulit, mille oled TREKi muust osast eraldi seadnud. Lülita see tagasi, et jälle järgida administraatori seadet.',
+    '„Ainult see reis“ tähistab lisamoodulit, mille oled YOUYAi muust osast eraldi seadnud. Lülita see tagasi, et jälle järgida administraatori seadet.',
   'help.guide.trip-addons.result':
     'Reis näitab sinu valitud lisamooduleid kõigile selle liikmetele: vaheleht või osa plaanist ilmub või kaob. Sinu teised reisid järgivad edasi administraatori seadet.',
   'help.guide.trip-addons.tip.1':
@@ -6721,7 +6723,7 @@ const help: TranslationStrings = {
   'help.guide.trip-addons.tip.2':
     'Lisamooduli saad ühe reisi jaoks sisse lülitada ka siis, kui administraator on selle kõigi teiste jaoks välja lülitanud.',
   'help.guide.trip-addons.tip.3':
-    'Lüliti muutmiseks on vaja ühendust. Võrguühenduseta ütleb TREK seda ja jätab lüliti endiseks.',
+    'Lüliti muutmiseks on vaja ühendust. Võrguühenduseta ütleb YOUYA seda ja jätab lüliti endiseks.',
   'help.guide.edit-trip-settings.title': 'Muuda reisi planeerijast',
   'help.guide.edit-trip-settings.goal': 'Muuda reisi pealkirja, kuupäevi, kaant või valuutat reisist lahkumata.',
   'help.guide.edit-trip-settings.step.1': 'Klõpsa reisi nime kõrval „Reisi seaded“ ja vali vasakult „Muuda reisi“.',
@@ -6730,7 +6732,7 @@ const help: TranslationStrings = {
   'help.guide.edit-trip-settings.step.3': 'Klõpsa „Uuenda“. „Reisi seaded“ sulgub ja reis näitab muudatust kohe.',
   'help.guide.edit-trip-settings.result': 'Reis näitab uusi andmeid kõikjal, kõigile osalejatele.',
   'help.guide.edit-trip-settings.tip.1':
-    'Kui nihutad algkuupäeva, küsib TREK kõigepealt, kuidas broneeringud peaksid järgnema. Kui uued kuupäevad võtavad ära päevad, kus midagi on, loetleb ta need päevad enne kinnitamist.',
+    'Kui nihutad algkuupäeva, küsib YOUYA kõigepealt, kuidas broneeringud peaksid järgnema. Kui uued kuupäevad võtavad ära päevad, kus midagi on, loetleb ta need päevad enne kinnitamist.',
   'help.guide.edit-trip-settings.tip.2':
     'Sama vorm avaneb lehelt „Minu reisid“ reisikaardi pliiatsiga. „Muuda reisi“ on näha ainult inimestele, kes tohivad reisi muuta.',
   'help.guide.dawarich-stays.result':
@@ -6741,7 +6743,7 @@ const help: TranslationStrings = {
   'help.guide.move-booking-day.goal': 'Vii transport või broneering otse plaanist teisele päevale, ilma vormi avamata.',
   'help.guide.place-image-from-file.result': 'Foto on koha pilt kaardil, kohtade veerus, päevas ja kaardil.',
   'help.guide.place-own-hours.step.3':
-    'Nende all olev „Lahtiolekuajad“ näitab nädalat, iga päeva kohta üks rida. Kui TREK leidis kohale ajad, on need juba täidetud; muidu klõpsa kõigepealt „Lisa lahtiolekuajad“. Sisesta iga päeva avamis- ja sulgemisaeg. Päeva paremas servas märgib „24h“ selle terve päeva avatuks ja suletud uks suletuks.',
+    'Nende all olev „Lahtiolekuajad“ näitab nädalat, iga päeva kohta üks rida. Kui YOUYA leidis kohale ajad, on need juba täidetud; muidu klõpsa kõigepealt „Lisa lahtiolekuajad“. Sisesta iga päeva avamis- ja sulgemisaeg. Päeva paremas servas märgib „24h“ selle terve päeva avatuks ja suletud uks suletuks.',
   'help.guide.add-accommodation.tip.5':
     'GPX-radu ja retkede kohti ei pakuta kunagi ööbimiskohaks, ainult reisi tavalisi kohti.',
   'help.guide.confirm-stay-booking.step.1':
@@ -6774,7 +6776,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.goal':
     'Otsusta, kas dokumente ainult imporditakse sinu salvestusteenusest, ainult eksporditakse sinna või mõlemat, ning mis juhtub, kui dokument kustutatakse või seda muudetakse mõlemas kohas.',
   'help.guide.files-sync-settings.tip.2':
-    'Valikuga „Küsi minult“ ootab mõlemas kohas muudetud dokument kaardi all jaotises „Vajab ülevaatamist“. Klõpsa „Lahenda“ ja vali „Säilita TREKi versioon“, „Säilita teenusepakkuja versioon“ või „Säilita mõlemad“.',
+    'Valikuga „Küsi minult“ ootab mõlemas kohas muudetud dokument kaardi all jaotises „Vajab ülevaatamist“. Klõpsa „Lahenda“ ja vali „Säilita YOUYAi versioon“, „Säilita teenusepakkuja versioon“ või „Säilita mõlemad“.',
   'help.guide.manage-notes.goal':
     'Ava märge täielikult, hoia oluline märge ülal ning paranda või eemalda aegunud teave.',
   'help.guide.manage-notes.tip.2':
@@ -6891,7 +6893,7 @@ const help: TranslationStrings = {
   'help.guide.tour-along-search.step.1':
     'Ava retk vahelehel „Retked“ ja keri vasakus paneelis retke peatuste all olevani „Matka ääres“. Kaart on olemas, kui retkel on marsruut.',
   'help.guide.tour-along-search.tip.3':
-    'Tulemused tulevad OpenStreetMapist ja TREKi kohtade registrist, nii et otsing vajab ühendust. Kui midagi ei leita, proovib „Laienda“ järgmist vahemaad; kui server on hõivatud, näitab „Proovi uuesti“ loendurit, kuni saad uuesti proovida.',
+    'Tulemused tulevad OpenStreetMapist ja YOUYAi kohtade registrist, nii et otsing vajab ühendust. Kui midagi ei leita, proovib „Laienda“ järgmist vahemaad; kui server on hõivatud, näitab „Proovi uuesti“ loendurit, kuni saad uuesti proovida.',
   'help.guide.tour-along-add-stop.tip.1':
     'Kohast saab retke peatus, mitte reisi koht, nii et seda kohtade loendis pole.',
   'help.guide.tour-3d-terrain.step.4':
@@ -6912,7 +6914,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-hike.bullet.4':
     'Teekonnapunktide all olev „Raja üksikasjad“ näitab OpenStreetMapi andmete põhjal iga lõigu SAC-raskusastet, katet ja teetüüpi ning värvib marsruudi kaardil nende järgi. Miski siin ei muuda retke.',
   'help.guide.tour-hike-plan.step.4':
-    '„Lisa punkt“ on kohe alguses sees: klõpsa kaardil matka alguse ja lõpu kohal. Selle kõrval olev „Reisi kohad“ valib hoopis reisi onni või hotelli. Alates kahest punktist arvutab TREK matkamarsruudi.',
+    '„Lisa punkt“ on kohe alguses sees: klõpsa kaardil matka alguse ja lõpu kohal. Selle kõrval olev „Reisi kohad“ valib hoopis reisi onni või hotelli. Alates kahest punktist arvutab YOUYA matkamarsruudi.',
   'help.guide.tour-hike-trail-details.title': 'Matka raskusastmete, katete ja teetüüpide vaatamine',
   'help.guide.tour-hike-trail-details.tip.1':
     'Teed, millel OpenStreetMapis väärtust pole, on loetletud jaotises „Teadmata“, ja teadmata ei tähenda lihtsat. Kui mõne juures on „Seekord ei õnnestunud küsida“, klõpsa „Proovi uuesti“.',
@@ -6944,7 +6946,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-bike.bullet.2':
     'Paremal olev „Retke kokkuvõte“ näitab väärtust „Sõiduaeg“, marsruudiplaneerija hinnangut selle profiili jaoks koos tõusudega. Pause selles pole.',
   'help.guide.tour-bike-profile.step.4':
-    'Klõpsa jaotises „Teekonnapunktid“ „Reisi kohad“ ja vali algus ja lõpp, siin Hotel Alpenroyal ja seejärel Hotel Greif. Võid ka kontrollida, et „Lisa punkt“ on sees, ja klõpsata kaardil. Alates kahest punktist arvutab TREK marsruudi.',
+    'Klõpsa jaotises „Teekonnapunktid“ „Reisi kohad“ ja vali algus ja lõpp, siin Hotel Alpenroyal ja seejärel Hotel Greif. Võid ka kontrollida, et „Lisa punkt“ on sees, ja klõpsata kaardil. Alates kahest punktist arvutab YOUYA marsruudi.',
   'help.guide.tour-bike-profile.tip.5':
     'Kui administraator lubab CyclOSM-i kaardi, pakub kaardi kihirida rattaretke avamisel ka valikut „Jalgratas“. Kui see lakkab laadimast, lülitu valikule „Kaart“. Retk ei muutu.',
   'help.guide.tour-bike-surfaces.tip.1':
@@ -6972,7 +6974,7 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.2':
     'Aerutamisretke kaart pakub vaateid „Kaart“ ja „Satelliit“ ning kattekihina OpenSeaMapi „Navigatsioonimärgid“.',
   'help.guide.tour-paddle-water-route.step.3':
-    'Vali „Planeeri järgmine lõik vett mööda“. TREK planeerib lõigu mööda jõge või järve sellest punktist järgmiseni.',
+    'Vali „Planeeri järgmine lõik vett mööda“. YOUYA planeerib lõigu mööda jõge või järve sellest punktist järgmiseni.',
   'help.guide.tour-paddle-portage.title': 'Paadi kandmine ümber takistuse',
   'help.guide.tour-paddle-portage.tip.2':
     'Viimasel punktil rakendub „Siit alates kanna paati“ siis, kui lisad järgmise punkti. Real on kirjas „Siit alates kanda“ ja selle rist „Siiski mitte kanda“ tühistab selle.',
@@ -7064,7 +7066,7 @@ const help: TranslationStrings = {
   'help.guide.connect-ai.step.1':
     'Vali kaardil „Tehisintellekti assistent“ ühendamise viis: „Logi sisse ChatGPT-ga“ kasutab sinu ChatGPT paketti, „Kleebi API-võti“ võtab võtme Anthropicult, OpenAI-lt, Geminilt või OpenRouterilt.',
   'help.guide.connect-ai.step.2':
-    'Kleebi oma võti. TREK nimetab tuvastatud teenusepakkuja ja ütleb, mis temale saadetakse. Klõpsa „Ühenda“; TREK kontrollib võtit enne teenusepakkuja juures.',
+    'Kleebi oma võti. YOUYA nimetab tuvastatud teenusepakkuja ja ütleb, mis temale saadetakse. Klõpsa „Ühenda“; YOUYA kontrollib võtit enne teenusepakkuja juures.',
   'help.guide.connect-ai.step.3':
     'Kaardil seisab „Ühendatud“ ja teenusepakkuja nimi. Vali soovitud „Mudel“ ja klõpsa „Ava assistent“, et alustada praeguses või järgmises reisis.',
   'help.guide.connect-ai.result': 'Assistent töötab sinu enda kontol, igas reisis.',
@@ -7083,7 +7085,7 @@ const help: TranslationStrings = {
   'help.ctx.admin-notifications.bullet.4':
     'All olev „Kasutajate vaikeväärtused“: iga sündmuse ja kanali kohta sees, „Väljas“ või „Blokeeritud“ kõigile, kes pole seda muutnud.',
   'help.guide.default-user-settings.step.2':
-    'Määratud välja nime kõrvale ilmub lähtestuslink; see taastab TREKi sisseehitatud vaikeväärtuse.',
+    'Määratud välja nime kõrvale ilmub lähtestuslink; see taastab YOUYAi sisseehitatud vaikeväärtuse.',
   'help.guide.own-routing-engine.title': 'Oma marsruutimisserverite kasutamine',
   'help.guide.admin-passkeys.result':
     'Sisselogimislehel on valik „Logi sisse pääsuvõtmega“ ja inimesed saavad oma seadetes pääsuvõtmeid lisada.',
@@ -7107,7 +7109,7 @@ const help: TranslationStrings = {
     'Vii kursor päevas broneeringu reale: vasakul olev pide näitab, et seda saab lohistada.',
   'help.guide.place-image-from-file.tip.1': 'Pakutakse ainult JPG-, PNG-, GIF- ja WebP-faile; PDF-piletit mitte.',
   'help.guide.place-own-hours.step.4':
-    '„Lahtiolekuaegade“ paremal olevad nupud: kopeerimisnupp annab kõigile päevadele esmaspäeva ajad ja X eemaldab sinu ajad. Kui TREK on ise ajad leidnud, toob „Võta üle koha andmetest“ need tagasi.',
+    '„Lahtiolekuaegade“ paremal olevad nupud: kopeerimisnupp annab kõigile päevadele esmaspäeva ajad ja X eemaldab sinu ajad. Kui YOUYA on ise ajad leidnud, toob „Võta üle koha andmetest“ need tagasi.',
   'help.guide.confirm-stay-booking.step.2': 'Broneering avaneb plaani peal. Selle päise esimene silt näitab olekut.',
   'help.ctx.trip-map.bullet.9':
     'Iga reisi retk on oma värvi joon, mille alguspunktis on nööpnõel. Klõpsa joonel, et avada retke kaart. Päeval, kus on retk, viib päeva marsruut retke alguspunkti ja jätkub sealt, kus retk lõpeb. Retkede loendis retke kõrval olev silm „Peida kaardil“ eemaldab selle joone sinu kaardilt.',
@@ -7123,7 +7125,7 @@ const help: TranslationStrings = {
   'help.guide.group-sort-bookings.step.1':
     'Klõpsa vaates „Kaardid“ või „Loend“ kolme vaateikooni järel olevatel liuguritel „Vaate valikud“.',
   'help.guide.create-booking.tip.4':
-    'Võrguühenduseta salvestatakse broneering selles seadmes ja sünkroonitakse, kui oled taas võrgus. Uute failide jaoks on vaja ühendust, nii et eemalda need või salvesta hiljem. Kui klõpsad kogemata vormist väljaspool või vajutad Escape, küsib TREK enne sisestatu kaotamist „Kas loobuda muudatustest?“.',
+    'Võrguühenduseta salvestatakse broneering selles seadmes ja sünkroonitakse, kui oled taas võrgus. Uute failide jaoks on vaja ühendust, nii et eemalda need või salvesta hiljem. Kui klõpsad kogemata vormist väljaspool või vajutad Escape, küsib YOUYA enne sisestatu kaotamist „Kas loobuda muudatustest?“.',
   'help.guide.booking-on-map.tip.2': 'Majutus avaneb selle esimesel ööl.',
   'help.guide.export-bookings-csv.step.3':
     'Klõpsa „Ekspordi tabelina (CSV)“, „Vaate valikute“ järel olevat allalaadimisikooni.',
@@ -7135,7 +7137,7 @@ const help: TranslationStrings = {
   'help.guide.files-sync-settings.step.1':
     'Klõpsa riba paremas otsas „Dokumentide sünkroonimine“. Kui reis on seotud, avaneb paremal sinu salvestusteenuse kaart; kui teenuseid on mitu, klõpsa vasakul jaotises „See reis“ soovitud teenusel.',
   'help.guide.files-sync-settings.tip.3':
-    '„Kohesed uuendused“, link koos kopeerimisnupuga, on olemas ainult nende salvestusteenuste puhul, kus TREK ei saa muudatusi automaatselt jälgida. Kleebi link salvestusteenusesse ja muudatused jõuavad kohe, mitte järgmise kontrolli ajal.',
+    '„Kohesed uuendused“, link koos kopeerimisnupuga, on olemas ainult nende salvestusteenuste puhul, kus YOUYA ei saa muudatusi automaatselt jälgida. Kleebi link salvestusteenusesse ja muudatused jõuavad kohe, mitte järgmise kontrolli ajal.',
   'help.guide.manage-notes.step.1':
     'Klõpsa märkme kaardi päises kolmel täpil („Veel valikuid“). Menüüs on „Laienda“, „Kinnita“, „Muuda“ ja „Kustuta“.',
   'help.guide.note-categories.title': 'Märkmete jaotamine kategooriatesse',
@@ -7153,7 +7155,7 @@ const help: TranslationStrings = {
   'help.guide.roadtrip-stop-photo.result':
     'Koha fotod täidavad ekraani ja nooled viivad läbi teiste, mida selle allikas teab. Sulge need, et naasta dialoogi, kus „Tühista“ jätab peatuse endiseks.',
   'help.guide.roadtrip-stop-photo.tip.1':
-    "Pilt on koha enda pilt, see, mille määrasid koha vormis. Ilma selleta näitab TREK fotot, mis selle allikal kohast on, kui koht pärineb Google'ist või OpenStreetMapist.",
+    "Pilt on koha enda pilt, see, mille määrasid koha vormis. Ilma selleta näitab YOUYA fotot, mis selle allikal kohast on, kui koht pärineb Google'ist või OpenStreetMapist.",
   'help.guide.roadtrip-stop-photo.tip.2':
     'Telefonis puuduta vahelehel „Autoreis“ peatust: selle leht näitab pilti kogu laiuses nime all ja sellele puudutades avanevad fotod.',
   'help.guide.roadtrip-stop-photo.tip.3':
@@ -7179,7 +7181,7 @@ const help: TranslationStrings = {
   'help.guide.tour-add-to-day.tip.1':
     'Etappidega retke lohistamisel päevale küsitakse sama väikeses dialoogis. „Tühista“ jätab plaani endiseks.',
   'help.guide.tour-day-times.step.2':
-    'Määra „Algus“ ja jäta „Lõpp“ tühjaks. Väljade all olev rida näitab TREKi arvutatud lõppu: algus pluss retke aeg.',
+    'Määra „Algus“ ja jäta „Lõpp“ tühjaks. Väljade all olev rida näitab YOUYAi arvutatud lõppu: algus pluss retke aeg.',
   'help.guide.tour-remove-from-day.title': 'Retke eemaldamine päevast',
   'help.guide.tour-filter-list.title': 'Retkede loendi filtreerimine',
   'help.guide.tour-filter-list.tip.3':
@@ -7191,7 +7193,7 @@ const help: TranslationStrings = {
   'help.ctx.trip-tour-detail.bullet.5':
     'Kaart on lugemiseks ja retkega seotud asjade jaoks. Marsruuti ennast muudetakse vahelehel „Retked“: ava see ja klõpsa retkel jaotises „Selle reisi retked“. Ka retke kustutatakse seal, mitte siin.',
   'help.guide.tour-detail-read.step.6':
-    'Keri edasi jaotisteni „Kirjeldus“ ja „Märkmed“, seejärel „Päritolu“: „Planeeritud rakenduses TREK“, fail, millest see imporditi, või wandereri rada, millest see pärineb, koos kuupäevaga.',
+    'Keri edasi jaotisteni „Kirjeldus“ ja „Märkmed“, seejärel „Päritolu“: „Planeeritud rakenduses YOUYA“, fail, millest see imporditi, või wandereri rada, millest see pärineb, koos kuupäevaga.',
   'help.guide.tour-rename-colour.title': 'Retke ümbernimetamine ja värvi muutmine',
   'help.guide.tour-rename-colour.result': 'Retk on kogu reisis uue nimega ja selle joon on valitud värvis.',
   'help.guide.tour-take-along.tip.3':
@@ -7208,7 +7210,7 @@ const help: TranslationStrings = {
   'help.guide.tour-activity-compare.step.3':
     'Klõpsa „Võrdle kaardil“, et joonistada tegelik rada plaani kõrvale punktiirjoonena. „Lõpeta võrdlus“ eemaldab selle uuesti.',
   'help.guide.tour-origin-check.step.2':
-    '„Imporditud“ näitab importimise päeva. „Siin“ näitab praegust seisu: „Nagu imporditud“, „Muudetud TREKis“ või „Ümber planeeritud, salvestatud rada alles“.',
+    '„Imporditud“ näitab importimise päeva. „Siin“ näitab praegust seisu: „Nagu imporditud“, „Muudetud YOUYAis“ või „Ümber planeeritud, salvestatud rada alles“.',
   'help.ctx.trip-tour-planner.bullet.1':
     'Kui lisamoodul „Retked“ on reisi jaoks sees, on „Retked“ reisi vahelehtede ribal kohe pärast „Plaani“; reisi omanik saab selle sisse või välja lülitada jaotises „Reisi seaded“, „Lisamoodulid“. Vaheleht on olemas arvutis ja tahvelarvutis; telefonis saab retki vaadata ja päevadele panna vahelehel „Plaan“, kuid mitte joonistada.',
   'help.guide.tour-open-workspace.step.1':
@@ -7344,13 +7346,13 @@ const help: TranslationStrings = {
   'help.guide.tour-paddle-setup.tip.3':
     'Aerutamisretkel otsib „Matka ääres“ kõigepealt „Vettelaskmiskohad“, „Paadilaenutus“ ja „Joogivesi“.',
   'help.guide.tour-paddle-water-route.step.4':
-    'Lõik, mida TREK ei suutnud planeerida, muutub punaseks ja näitab põhjust, näiteks et piirkonna kohta pole veel veeandmeid. Klõpsa „Joonista sirgelt“, et see esialgu käsitsi joonistada.',
+    'Lõik, mida YOUYA ei suutnud planeerida, muutub punaseks ja näitab põhjust, näiteks et piirkonna kohta pole veel veeandmeid. Klõpsa „Joonista sirgelt“, et see esialgu käsitsi joonistada.',
   'help.guide.tour-paddle-portage.goal':
     'Märgi lõik, kus paati kannad, nii et seda arvestatakse maismaana koos paadist väljumise ja tagasi vette mineku ajaga.',
   'help.guide.tour-paddle-portage.tip.3':
     'Kandmist arvestatakse kiirusega 2 km/h, kuni määrad kaardil „Ajahinnang“ oma „Kandmiskiirus“.',
   'help.guide.tour-paddle-lock.tip.1':
-    'TREK ei tea lüüside sõiduplaane. Ajad on ainult need, mille sisestad, nii et kontrolli lüüsi tööaegu ise.',
+    'YOUYA ei tea lüüside sõiduplaane. Ajad on ainult need, mille sisestad, nii et kontrolli lüüsi tööaegu ise.',
   'help.guide.tour-paddle-time.step.3':
     'Rida „Vee peal“ on vee peal läbitav vahemaa sinu aerutamiskiirusega. Muuda kiirust veeru ülaosas väljal „Aerutamiskiirus“.',
   'help.guide.tour-paddle-wind.goal': 'Vaata aerutamispäeval retke alguspunkti tuuleprognoosi.',

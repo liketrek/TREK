@@ -1,6 +1,6 @@
 # PDF Export
 
-TREK turns a trip into a printable **Trip Plan PDF**: a cover, a map of the whole route, and a page for every day. The document is built in your browser and saved through the browser's own print dialog; the server does no PDF work. Journey entries have their own designer for printing, **TREK Studio** (see [below](#journey-photo-books)).
+YOUYA turns a trip into a printable **Trip Plan PDF**: a cover, a map of the whole route, and a page for every day. The document is built in your browser and saved through the browser's own print dialog; the server does no PDF work. Journey entries have their own designer for printing, **YOUYA Studio** (see [below](#journey-photo-books)).
 
 ---
 
@@ -62,13 +62,13 @@ Under the header:
   - **Notes**: the icon, the text and the time, if set
   - **Bookings**: the type icon, the title, the time, the notes of a transport (unless **Transport notes** is off), the details that fit the type (airline, flight number and route for a flight; train number, platform and seat for a train; party size for a restaurant; the venue for an event; the operator for a tour), the location and the booking code
 
-Place photos go into the document at thumbnail size, so a trip with hundreds of places still saves to a small file. A photo linked from another website keeps its original size, because the browser does not let TREK shrink it.
+Place photos go into the document at thumbnail size, so a trip with hundreds of places still saves to a small file. A photo linked from another website keeps its original size, because the browser does not let YOUYA shrink it.
 
 ![A day page in the PDF preview: the dark day header with date and cost, the check-in at the hotel, the flight with its notes, a day note, and a place whose Markdown description prints with bold text, italics and a list](assets/PDFPreviewDay.png)
 
 ### Footer
 
-Every printed page carries a small "made with TREK" logo at the bottom.
+Every printed page carries a small "made with YOUYA" logo at the bottom.
 
 ### Font
 
@@ -76,7 +76,7 @@ Poppins, loaded from Google Fonts while the document renders.
 
 ### Plugin sections
 
-Installed plugins can add sections of their own to the Trip Plan PDF through the `pdfSectionProvider` hook. A plugin returns plain text (a title, paragraphs, and an optional simple table with headers and rows) and TREK escapes it and lays it out. These sections are text only and come on top of the plan: a plugin never draws into the document, and one that fails or is too slow simply adds nothing.
+Installed plugins can add sections of their own to the Trip Plan PDF through the `pdfSectionProvider` hook. A plugin returns plain text (a title, paragraphs, and an optional simple table with headers and rows) and YOUYA escapes it and lays it out. These sections are text only and come on top of the plan: a plugin never draws into the document, and one that fails or is too slow simply adds nothing.
 
 > **Plugins:** needs the `hook:pdf-section-provider` permission. See [Plugin-Development](Plugin-Development) for the hook contract.
 
@@ -84,14 +84,14 @@ Installed plugins can add sections of their own to the Trip Plan PDF through the
 
 ## Journey photo books
 
-The Travel Journal has no fixed PDF template. Open a journey and click **Studio** in the journal header (the book icon in the top bar on phones) to open **TREK Studio**, the photo book designer. See [Journey-Journal](Journey-Journal#trek-studio).
+The Travel Journal has no fixed PDF template. Open a journey and click **Studio** in the journal header (the book icon in the top bar on phones) to open **YOUYA Studio**, the photo book designer. See [Journey-Journal](Journey-Journal#youya-studio).
 
 Studio lays the journey out as spreads you can edit, rather than a fixed page template: five page presets (210 mm and 300 mm square, A4 landscape, A4 portrait, A5 landscape) or a custom size between 60 and 500 mm.
 
 - **Layouts**: the **Layouts** panel starts with **Designed pages**, whole covers and spreads set in the book's theme and drawn with the page's own photos and words. **My layouts** and the built in layouts follow below them. A click lays the page out on a design, and what it has no room for stays with the page. The **Style** chips narrow the designs to one look, such as Poster, Postcard, Riso, Editorial, Vintage poster, Night film or Field notes, and **All** shows them all.
 - **Themes**: the **Theme** panel picks a look for the whole book from seventeen, among them Poster pop, Riviera, Minimal serif, Tropical, Nordic, Alpine, Magazine and Midnight. Colours and type that follow the theme change with it, everything else stays as it is.
 - **Typefaces**: **Change typeface** opens a searchable picker grouped as Sans serif, Serif, Elegant display, Condensed and poster, Heavy and retro, Script and handwriting and Monospace, with the weights each one offers. **Used in this book** lists what the book already uses.
-- **Assistant**: with the AI assistant addon on, the assistant can design pages and the book together with you, see [Journey-Journal](Journey-Journal#trek-studio).
+- **Assistant**: with the AI assistant addon on, the assistant can design pages and the book together with you, see [Journey-Journal](Journey-Journal#youya-studio).
 
 Printing works the same way as for the Trip Plan PDF, through the browser's print dialog, so nothing is rendered on the server. A browser writes no TrimBox or BleedBox, so the sheets can carry crop marks for a print shop instead. **Single pages** or **Spreads**, and crop marks on or off, are chosen in Studio's export panel.
 
@@ -109,4 +109,4 @@ The Trip Plan PDF and Studio's print view work the same way: the HTML document i
 - [Day-Plans-and-Notes](Day-Plans-and-Notes)
 - [Journey-Journal](Journey-Journal)
 - [Trip-Planner-Overview](Trip-Planner-Overview)
-- [TREK-Studio](TREK-Studio)
+- [YOUYA-Studio](TREK-Studio)

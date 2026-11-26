@@ -20,6 +20,7 @@ import NativeServerLink from './login/NativeServerLink';
 import MfaCodeStep from './login/MfaCodeStep';
 import { LANGUAGE_CORNER_CLASS } from './login/languageCorner';
 import PasswordChecklist from '../components/shared/PasswordChecklist';
+import Sprout from '../components/Brand/Sprout';
 
 /** Fixed so the sky does not reshuffle on every render. */
 const STARFIELD = [
@@ -133,7 +134,7 @@ export default function LoginPage(): React.ReactElement {
         <div className="takeoff-aurora takeoff-aurora-b" />
 
         <div className="takeoff-mark">
-          <img src="/logo-light.svg" alt="TREK" style={{ height: 'clamp(58px, 5.2vw, 84px)' }} />
+          <img src="/logo-light.svg" alt="YOUYA" style={{ height: 'clamp(58px, 5.2vw, 84px)' }} />
           <p
             style={{
               margin: '12px 0 0',
@@ -173,12 +174,12 @@ export default function LoginPage(): React.ReactElement {
           }
           .takeoff-aurora-a {
             width: 46vw; height: 46vw; top: -8%; left: 4%;
-            background: radial-gradient(circle, rgba(79,70,229,0.55) 0%, rgba(79,70,229,0) 70%);
+            background: radial-gradient(circle, rgba(255,152,88,0.5) 0%, rgba(255,152,88,0) 70%);
             animation: takeoffGlow 2600ms ease-out forwards;
           }
           .takeoff-aurora-b {
             width: 38vw; height: 38vw; bottom: -10%; right: 6%;
-            background: radial-gradient(circle, rgba(6,182,212,0.4) 0%, rgba(6,182,212,0) 72%);
+            background: radial-gradient(circle, rgba(114,205,167,0.42) 0%, rgba(114,205,167,0) 72%);
             animation: takeoffGlow 2600ms ease-out 220ms forwards;
           }
           @keyframes takeoffGlow {
@@ -382,13 +383,12 @@ export default function LoginPage(): React.ReactElement {
         {/* No max-width: the tagline stays on one line, so the block is allowed to
             use the whole panel rather than wrapping inside it. */}
         <div style={{ position: 'relative', zIndex: 1, maxWidth: '100%', textAlign: 'center' }}>
-          {/* Logo. The soft dark halo is what separates it from the dot map behind —
-              wide and low-opacity rather than a hard drop shadow, so it reads as the
-              map dimming around the mark instead of an outline. */}
+          {/* The soft dark halo separates the logo from the dot map behind it. */}
+          <Sprout size={64} className="mx-auto mb-2 block" />
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 12 }}>
             <img
               src="/logo-light.svg"
-              alt="TREK"
+              alt="YOUYA"
               style={{
                 height: 'clamp(58px, 5.2vw, 84px)',
                 filter: 'drop-shadow(0 2px 10px rgba(4,8,20,0.55)) drop-shadow(0 0 34px rgba(4,8,20,0.45))',
@@ -438,7 +438,7 @@ export default function LoginPage(): React.ReactElement {
           alignItems: 'center',
           justifyContent: 'center',
           padding: '32px 24px',
-          background: '#f9fafb',
+          background: '#FFF9F2',
         }}
       >
         <div style={{ width: '100%', maxWidth: 400 }}>
@@ -448,7 +448,7 @@ export default function LoginPage(): React.ReactElement {
             className="mobile-logo"
           >
             <style>{`@media(min-width:1024px){.mobile-logo{display:none!important}}`}</style>
-            <img src="/logo-dark.svg" alt="TREK" style={{ height: 48 }} />
+            <img src="/logo-dark.svg" alt="YOUYA" style={{ height: 48 }} />
             <p
               style={{
                 margin: 0,
@@ -1240,17 +1240,17 @@ export default function LoginPage(): React.ReactElement {
         }
         .login-aurora-a {
           width: 620px; height: 620px; top: -12%; left: -14%;
-          background: radial-gradient(circle, rgba(79,70,229,0.55) 0%, rgba(79,70,229,0) 68%);
+          background: radial-gradient(circle, rgba(255,152,88,0.5) 0%, rgba(255,152,88,0) 68%);
           animation: auroraA 34s ease-in-out infinite;
         }
         .login-aurora-b {
           width: 520px; height: 520px; bottom: -16%; right: -10%;
-          background: radial-gradient(circle, rgba(6,182,212,0.4) 0%, rgba(6,182,212,0) 70%);
+          background: radial-gradient(circle, rgba(114,205,167,0.42) 0%, rgba(114,205,167,0) 70%);
           animation: auroraB 44s ease-in-out infinite;
         }
         .login-aurora-c {
           width: 460px; height: 460px; top: 42%; left: 34%;
-          background: radial-gradient(circle, rgba(168,85,247,0.32) 0%, rgba(168,85,247,0) 72%);
+          background: radial-gradient(circle, rgba(255,245,233,0.22) 0%, rgba(255,245,233,0) 72%);
           animation: auroraC 52s ease-in-out infinite;
         }
         @keyframes auroraA {

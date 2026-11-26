@@ -17,7 +17,7 @@ const notifications: TranslationStrings = {
   'notifications.synologySessionCleared.text':
     'Your server or account changed — go to Settings to test your connection again.',
   'notifications.versionAvailable.title': 'Update Available',
-  'notifications.versionAvailable.text': 'TREK {version} is now available.',
+  'notifications.versionAvailable.text': 'YOUYA {version} is now available.',
   'notifications.versionAvailable.button': 'View Details',
   'notifications.test.title': 'Test notification from {actor}',
   'notifications.test.text': 'This is a simple test notification.',

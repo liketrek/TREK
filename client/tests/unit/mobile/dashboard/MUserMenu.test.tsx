@@ -112,7 +112,7 @@ describe('MUserMenu', () => {
     render(<MUserMenu open onClose={() => {}} />);
 
     expect(screen.getByText('v5.0.0')).toBeInTheDocument();
-    expect(screen.getByAltText('TREK')).toBeInTheDocument();
+    expect(screen.getByAltText('YOUYA')).toBeInTheDocument();
   });
 
   it('FE-MOB-MENU-010: renders no version footer while the version is unknown', () => {

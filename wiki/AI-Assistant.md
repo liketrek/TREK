@@ -1,6 +1,6 @@
 # AI Assistant
 
-The assistant is a chat inside TREK that knows your trip. Ask it what is still open, let it plan a day, find somewhere to eat near the hotel or turn a booking confirmation into a booking. It reads your plan the way you see it and answers in words, cards and places on the map. **Nothing in your trip changes until you confirm it**: every change the assistant wants to make arrives as a card with **Apply** and **Discard**, and an applied change can be undone.
+The assistant is a chat inside YOUYA that knows your trip. Ask it what is still open, let it plan a day, find somewhere to eat near the hotel or turn a booking confirmation into a booking. It reads your plan the way you see it and answers in words, cards and places on the map. **Nothing in your trip changes until you confirm it**: every change the assistant wants to make arrives as a card with **Apply** and **Discard**, and an applied change can be undone.
 
 The assistant runs on an AI model from a provider you or your administrator connect, such as Anthropic, OpenAI, Gemini, OpenRouter, a ChatGPT plan, or a model server of your own. Setting that up is explained in [AI-Connections](AI-Connections).
 
@@ -12,14 +12,14 @@ The assistant runs on an AI model from a provider you or your administrator conn
 |---|---|---|
 | In a trip | That trip: its days, places, bookings, transports, costs, lists, tours, road trip and collab | Everything you may change in the trip yourself, after you confirm |
 | Outside a trip (the home chat) | All your trips at once, plus your Atlas, Vacay and journals | Nothing. It reads, compares and answers, and hands you over to a trip's own chat |
-| In [TREK Studio](TREK-Studio#the-book-assistant) | One journey and its photo book | The book's pages, layouts and theme, after you confirm |
+| In [YOUYA Studio](TREK-Studio#the-book-assistant) | One journey and its photo book | The book's pages, layouts and theme, after you confirm |
 
 The assistant appears only once a connection you can use is set up. Until then there is no button for it, so nobody is shown a feature they cannot use.
 
 ## Opening it
 
 - **On the desktop**, the **Assistant** button in the navigation bar opens and closes it, and in the trip planner a round button floats at the bottom of the screen. **Ctrl+K** (**⌘K** on a Mac) does the same anywhere, except while a dialog is open.
-- **On a phone**, a trip's **More** sheet starts with **Ask TREK** (*Plan with the assistant*), and outside a trip **Assistant** leads the **More** list of the bottom bar. The dashboard has an assistant button at the top as well. See [Mobile-App](Mobile-App).
+- **On a phone**, a trip's **More** sheet starts with **Ask YOUYA** (*Plan with the assistant*), and outside a trip **Assistant** leads the **More** list of the bottom bar. The dashboard has an assistant button at the top as well. See [Mobile-App](Mobile-App).
 - **From the planner**, a right click on a place offers **Find an alternative** and **Restaurant nearby**, and one on a day offers **Plan this day** and **Plan for rain**. The place details have an **Ask** button. Each of these opens the chat with that place or day as its subject and sends the question straight away.
 
 On the desktop the assistant is a window floating over the app. Drag it by its head, resize it from any edge or corner, and let go near a corner to make it settle there. A double click on the head switches between a compact and a large window, and **Alt+arrow keys** move it (**Alt+Shift+arrow keys** resize it). The window remembers where it was. Closing it only hides it: an answer still being written carries on, and the round button breathes until it is done. **Escape** first stops an answer, then closes the window.
@@ -54,17 +54,17 @@ When the assistant wants to change something, it does not do it. It shows a **Su
 
 While a card is waiting, the chat asks you to **Apply or discard the changes above first** before it goes on. A suggestion nobody decides on expires after 24 hours and then reads **No longer available**.
 
-**Undo** on an applied card takes the change back again, and **Undo all** takes back the whole card. Undo is offered for 15 minutes. When someone changed the same thing in the meantime, TREK does not overwrite their work: the row reads *Changed in the meantime. Please adjust it by hand.*
+**Undo** on an applied card takes the change back again, and **Undo all** takes back the whole card. Undo is offered for 15 minutes. When someone changed the same thing in the meantime, YOUYA does not overwrite their work: the row reads *Changed in the meantime. Please adjust it by hand.*
 
 On a trip you can only view, the assistant still answers questions, but it says so and suggests no changes.
 
 ## What the answers show
 
-Besides text, an answer can carry cards that work like the rest of TREK:
+Besides text, an answer can carry cards that work like the rest of YOUYA:
 
 - **Places found**: the places the assistant found, with **Add to trip**, **On map**, opening hours (**Open now** or **Closed**) and the distance from the previous stop. A place already planned reads **Already in your trip**. On a tour, **Add to tour** puts one in as a stop.
 - **Weather** for the days the question is about, with the chance of rain.
-- Cards for days, bookings, costs, packing items, to-dos, tours, journal entries and photo book pages, each with a way to open the item in TREK.
+- Cards for days, bookings, costs, packing items, to-dos, tours, journal entries and photo book pages, each with a way to open the item in YOUYA.
 - With **Map follows the assistant** on, the trip map moves to where the assistant searches and suggests places.
 - With **Estimate costs** on, a suggested restaurant or ticket comes with an estimated expense for the budget, as a card you confirm.
 
@@ -74,7 +74,7 @@ Both switches are in **Settings → Integrations** under the AI connection, see 
 
 **Attach a booking** under the chat field, or a file dropped on the chat, hands the assistant a booking confirmation, an email, a PDF, an image or a wallet pass of up to 10 MB.
 
-- TREK's own booking reader looks at it first, the same one [AI-Booking-Import](AI-Booking-Import) uses. The bookings it finds come back as cards to add.
+- YOUYA's own booking reader looks at it first, the same one [AI-Booking-Import](AI-Booking-Import) uses. The bookings it finds come back as cards to add.
 - When it finds none, the chat says why and offers what to do next: **Keep it in Files**, **Create a booking from it**, **Attach it to a booking or an expense** or **What is in the file?**
 - The file's contents go to the AI provider only after you confirm a card, **Let the assistant read the file**, which names where it is sent. Keeping the file in the trip's Files is a card too.
 - Route files (GPX and similar) can become a tour, see [Tours](Tours).
@@ -107,14 +107,14 @@ Chats are deleted after the number of days the administrator chose (90 by defaul
 
 | Feature | What it is |
 |---|---|
-| AI Assistant (this page) | A chat inside TREK that suggests changes you confirm |
-| [AI-Booking-Import](AI-Booking-Import) | Reads booking files that TREK's own reader cannot. It can share the assistant's connection |
-| [MCP](MCP-Overview) | Lets an AI app outside TREK, such as Claude or Cursor, work with your trips |
+| AI Assistant (this page) | A chat inside YOUYA that suggests changes you confirm |
+| [AI-Booking-Import](AI-Booking-Import) | Reads booking files that YOUYA's own reader cannot. It can share the assistant's connection |
+| [MCP](MCP-Overview) | Lets an AI app outside YOUYA, such as Claude or Cursor, work with your trips |
 
 ## See also
 
 - [AI-Connections](AI-Connections)
-- [TREK-Studio](TREK-Studio#the-book-assistant)
+- [YOUYA-Studio](TREK-Studio#the-book-assistant)
 - [Mobile-App](Mobile-App)
 - [Admin-Addons](Admin-Addons)
 - [MCP-Overview](MCP-Overview)

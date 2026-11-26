@@ -1,10 +1,10 @@
 # Dawarich
 
-[Dawarich](https://dawarich.app) is a self-hosted location history tracker, a Google Timeline replacement you run yourself. It knows where you actually were. TREK knows what you planned and why. This addon lets TREK read your Dawarich instance and offer what it finds.
+[Dawarich](https://dawarich.app) is a self-hosted location history tracker, a Google Timeline replacement you run yourself. It knows where you actually were. YOUYA knows what you planned and why. This addon lets YOUYA read your Dawarich instance and offer what it finds.
 
-The split is deliberate and it does not move: **Dawarich records, TREK plans and interprets.** TREK never starts a tracker of its own, never writes anything into Dawarich, and never keeps a copy of your recorded route. Everything it finds arrives as a **suggestion** that only you can see, and nothing reaches a trip, a journal or your Atlas until you confirm it. A background check must not edit a trip three other people are planning.
+The split is deliberate and it does not move: **Dawarich records, YOUYA plans and interprets.** YOUYA never starts a tracker of its own, never writes anything into Dawarich, and never keeps a copy of your recorded route. Everything it finds arrives as a **suggestion** that only you can see, and nothing reaches a trip, a journal or your Atlas until you confirm it. A background check must not edit a trip three other people are planning.
 
-> **Admin:** Enable the **Dawarich** addon in **Admin → Addons**. It is listed under **Integration** and is off by default. The toggle is the instance-wide switch only: each user connects their own instance in **Settings → Integrations**. A Dawarich on your local network also needs `ALLOW_INTERNAL_NETWORK=true` on the TREK server. See [Admin-Addons](Admin-Addons) and [Internal-Network-Access](Internal-Network-Access).
+> **Admin:** Enable the **Dawarich** addon in **Admin → Addons**. It is listed under **Integration** and is off by default. The toggle is the instance-wide switch only: each user connects their own instance in **Settings → Integrations**. A Dawarich on your local network also needs `ALLOW_INTERNAL_NETWORK=true` on the YOUYA server. See [Admin-Addons](Admin-Addons) and [Internal-Network-Access](Internal-Network-Access).
 
 ## What it does
 
@@ -17,19 +17,19 @@ The split is deliberate and it does not move: **Dawarich records, TREK plans and
 ## Setting it up
 
 1. In Dawarich, open **Account** and copy your **API key**.
-2. In TREK, open **Settings → Integrations**. The **Dawarich** card appears there once the addon is on, on the desktop and on the phone.
+2. In YOUYA, open **Settings → Integrations**. The **Dawarich** card appears there once the addon is on, on the desktop and on the phone.
 3. Enter the **Instance address**, for example `https://dawarich.example.com`, and paste the **API key**.
-4. Press **Test connection**. On success TREK says how many stays it found in the last 30 days, shows the Dawarich version, and lists anything your version does not offer.
+4. Press **Test connection**. On success YOUYA says how many stays it found in the last 30 days, shows the Dawarich version, and lists anything your version does not offer.
 5. Press **Save**.
 
 | Field | Notes |
 |---|---|
-| Instance address | The address of Dawarich itself. TREK adds `/api/v1` on its own, and strips a trailing `/api` or `/api/v1` if you pasted one. |
+| Instance address | The address of Dawarich itself. YOUYA adds `/api/v1` on its own, and strips a trailing `/api` or `/api/v1` if you pasted one. |
 | API key | Stored encrypted and never shown again. Leave it blank to keep the key already stored. |
-| Check for new stays automatically | On by default. Off means TREK only reads Dawarich when you ask it to. |
-| Allow self-signed certificate | Only needed if your instance uses a certificate your TREK server does not trust, which is common on a LAN. |
+| Check for new stays automatically | On by default. Off means YOUYA only reads Dawarich when you ask it to. |
+| Allow self-signed certificate | Only needed if your instance uses a certificate your YOUYA server does not trust, which is common on a LAN. |
 
-Once connected, the card shows **Connected**, a **Check now** button, a **Disconnect** button, when TREK last checked, and the reason when the last check did not fully succeed.
+Once connected, the card shows **Connected**, a **Check now** button, a **Disconnect** button, when YOUYA last checked, and the reason when the last check did not fully succeed.
 
 Each person connects their own Dawarich. Your stays and your recorded route are visible to you alone, on a trip you share with others too. A place you create from a stay is an ordinary place, which everyone on the trip sees.
 
@@ -43,13 +43,13 @@ Each person connects their own Dawarich. Your stays and your recorded route are 
 
 ### Private addresses and certificates
 
-> **A private address** (`192.168.…`, `10.…`) is accepted with a warning, and the save is recorded in the [Audit-Log](Audit-Log) as `dawarich.private_ip_configured`. TREK reaches Dawarich through the same strict guard as Immich and AirTrail, so the server needs `ALLOW_INTERNAL_NETWORK=true` to reach a LAN instance.
+> **A private address** (`192.168.…`, `10.…`) is accepted with a warning, and the save is recorded in the [Audit-Log](Audit-Log) as `dawarich.private_ip_configured`. YOUYA reaches Dawarich through the same strict guard as Immich and AirTrail, so the server needs `ALLOW_INTERNAL_NETWORK=true` to reach a LAN instance.
 >
-> **A self-signed certificate** needs **Allow self-signed certificate**. The switch only relaxes the certificate check. An address TREK cannot resolve at all is still refused with *TREK cannot use that address.*
+> **A self-signed certificate** needs **Allow self-signed certificate**. The switch only relaxes the certificate check. An address YOUYA cannot resolve at all is still refused with *YOUYA cannot use that address.*
 
-## How TREK checks for stays
+## How YOUYA checks for stays
 
-With **Check for new stays automatically** on, TREK asks Dawarich for new stays every fifteen minutes. **Check now** on the card does the same at once and reports how many new stays it found. Pressing it while a check is already running answers *A check is already running* instead of asking Dawarich twice.
+With **Check for new stays automatically** on, YOUYA asks Dawarich for new stays every fifteen minutes. **Check now** on the card does the same at once and reports how many new stays it found. Pressing it while a check is already running answers *A check is already running* instead of asking Dawarich twice.
 
 A check covers the dates of your trips, not your whole history:
 
@@ -65,7 +65,7 @@ The addon switch is read on every run, so turning the addon off stops the checks
 
 ## Reviewing stays in the trip planner
 
-**From Dawarich** sits at the top of the trip's **Places** panel, and at the top of the places list on a phone. It starts collapsed; its header says when TREK last checked and shows how many stays are waiting. Until you connect an instance it reads *Connect Dawarich in Settings to see your stays here.*
+**From Dawarich** sits at the top of the trip's **Places** panel, and at the top of the places list on a phone. It starts collapsed; its header says when YOUYA last checked and shows how many stays are waiting. Until you connect an instance it reads *Connect Dawarich in Settings to see your stays here.*
 
 Opened, it lists the stays of this trip grouped by day, with each stay's name and its arrival and departure times. A gauge mark flags a stay Dawarich's own detector was unsure about. Each row has two actions:
 
@@ -103,14 +103,14 @@ Delete the place or the journal entry a stay produced, and the stay returns to t
 
 ## When Dawarich changes its mind
 
-Dawarich can rename a stay, move it, or delete it after you have already acted on it. TREK notices on its next check and marks the stay in the **already dealt with** list:
+Dawarich can rename a stay, move it, or delete it after you have already acted on it. YOUYA notices on its next check and marks the stay in the **already dealt with** list:
 
 | Mark | Meaning |
 |---|---|
 | **Changed in Dawarich** | An accepted stay's recording changed since you accepted it. |
 | **Gone from Dawarich** | An accepted or dismissed stay no longer exists in Dawarich. |
 
-Both come with the sentence *What you wrote in TREK is untouched*, and that is all TREK does. The place or entry you made is never rewritten or deleted because a detector ran again; that would be the integration overwriting your journal, not a feature.
+Both come with the sentence *What you wrote in YOUYA is untouched*, and that is all YOUYA does. The place or entry you made is never rewritten or deleted because a detector ran again; that would be the integration overwriting your journal, not a feature.
 
 ## The recorded route on the map
 
@@ -120,11 +120,11 @@ The Dawarich button on the trip map switches the recorded route on and off. On t
 
 - The route is drawn dashed, one colour per day, underneath the planned route so the plan stays readable. Days are cut at local midnight, not at midnight UTC, so an evening walk stays on the evening it happened.
 - On or off is remembered per trip on your account, so it is the same in every browser and on every device.
-- While it is on, TREK fetches the route for the trip's dates and refreshes it every two minutes, so a trip in progress catches up without a reload.
+- While it is on, YOUYA fetches the route for the trip's dates and refreshes it every two minutes, so a trip in progress catches up without a reload.
 - Collapsing a day in the day plan, or in the road trip sidebar, takes that day's route off the map together with its places.
 - The button's label says why a map has no line: *Loading the recorded route…*, *Nothing was recorded on these dates*, *The recorded route could not be loaded*, or *The recorded route needs a connection*.
 
-The route is drawn, never applied: TREK does not correct your plan from it.
+The route is drawn, never applied: YOUYA does not correct your plan from it.
 
 ### On a journal map
 
@@ -132,11 +132,11 @@ A journal draws the same route on its own map, from the first to the last date o
 
 ### Nothing is stored, unless you keep a day
 
-The route is read from Dawarich when a map asks for it and then discarded. TREK's server holds it in memory for one minute, so panning and toggling do not ask your instance again, and forgets it on a restart or when you change the connection. No position is written to TREK's database, so the route is not in backups and is not available offline.
+The route is read from Dawarich when a map asks for it and then discarded. YOUYA's server holds it in memory for one minute, so panning and toggling do not ask your instance again, and forgets it on a restart or when you change the connection. No position is written to YOUYA's database, so the route is not in backups and is not available offline.
 
 The one exception is asked for: in a journal you can keep the route of one day on purpose, after a preview you confirm. That day is thinned the same way, keeps the gaps and modes of the recording, and belongs to the journal from then on, so it stays drawn when the connection is gone. See [Keeping a recorded day](Journey-Journal#keeping-a-recorded-day).
 
-TREK prefers the tracks Dawarich has already generated, which arrive split into segments with a travel mode. On an instance that has not generated tracks yet, it falls back to the raw points and thins them to 600 per day, so a month-long trip stays drawable.
+YOUYA prefers the tracks Dawarich has already generated, which arrive split into segments with a travel mode. On an instance that has not generated tracks yet, it falls back to the raw points and thins them to 600 per day, so a month-long trip stays drawable.
 
 ## Bucket list and Atlas
 
@@ -160,10 +160,10 @@ Background checks help here too: a stay of at least 20 minutes within 250 m of a
 **Look for countries** reads the countries and cities your recordings cover in the last 12 months.
 
 - Countries already marked visited in your Atlas, by hand or from an earlier check, are left out, so a mark you set by hand is never relabelled. The rest are listed with their flag and their cities, and start selected.
-- Country names TREK cannot match to a country are listed underneath rather than dropped.
+- Country names YOUYA cannot match to a country are listed underneath rather than dropped.
 - **Add _n_ countries** marks them visited, recorded as coming from Dawarich. A country you removed from your Atlas earlier comes back when you confirm it here.
 
-TREK asks Dawarich for the year in 30-day pieces, one after another, because Dawarich computes this answer on the spot and a whole year at once can take longer than a request may.
+YOUYA asks Dawarich for the year in 30-day pieces, one after another, because Dawarich computes this answer on the spot and a whole year at once can take longer than a request may.
 
 ## MCP tools
 
@@ -190,14 +190,14 @@ With the [MCP](MCP-Overview) addon on as well, an assistant can review your stay
 
 The same rules apply as in the browser: nothing is added until a tool is called, and the permissions for adding a place are checked the same way. See [MCP-Addon-Tools](MCP-Addon-Tools) and [MCP-Scopes](MCP-Scopes).
 
-## What TREK keeps, and what it never does
+## What YOUYA keeps, and what it never does
 
-TREK keeps:
+YOUYA keeps:
 
 - **your connection**: the address, the encrypted key, the two switches, when it last checked and how that went, and which parts of your instance answered
 - **the stays it offered you**: name, coordinates, arrival and departure, length, Dawarich's confidence, the country, and what you did with each. They belong to you and nobody else sees them.
 
-TREK never:
+YOUYA never:
 
 - **writes to Dawarich.** Every request it makes is a read.
 - **stores your route or raw positions.** They stay in Dawarich.
@@ -206,13 +206,13 @@ TREK never:
 
 ## The other direction
 
-Dawarich can read your TREK trips through the [Public API](Public-API): a versioned, read-only surface with a key you mint yourself and can narrow to just the sections you want it to see (see [What a key may read](Public-API#what-a-key-may-read)). Nothing is written back to TREK either.
+Dawarich can read your YOUYA trips through the [Public API](Public-API): a versioned, read-only surface with a key you mint yourself and can narrow to just the sections you want it to see (see [What a key may read](Public-API#what-a-key-may-read)). Nothing is written back to YOUYA either.
 
 ## Which Dawarich versions work
 
-TREK asks your instance what it offers when you test the connection, and again after every successful check, so a Dawarich upgrade is picked up without reconnecting. A feature your version does not offer is switched off rather than broken, and the connection card names it: *This Dawarich version does not offer: …*. The integration was checked against Dawarich 1.14.4.
+YOUYA asks your instance what it offers when you test the connection, and again after every successful check, so a Dawarich upgrade is picked up without reconnecting. A feature your version does not offer is switched off rather than broken, and the connection card names it: *This Dawarich version does not offer: …*. The integration was checked against Dawarich 1.14.4.
 
-What TREK reads, when the instance offers it:
+What YOUYA reads, when the instance offers it:
 
 | Endpoint | Used for |
 |---|---|
@@ -223,28 +223,28 @@ What TREK reads, when the instance offers it:
 | `GET /api/v1/locations` | checking your bucket list |
 | `GET /api/v1/countries/visited_cities` | the Atlas countries |
 
-Two details worth knowing, because they shape what TREK can promise:
+Two details worth knowing, because they shape what YOUYA can promise:
 
-- **A Dawarich visit carries no "last changed" timestamp.** TREK detects a change by comparing the fields it shows, which is why it can tell you a stay changed but not exactly what.
-- **Deleting a visit removes it from the API rather than marking it deleted.** TREK notices by re-reading the whole date range, which is why a check reads the trip's dates rather than only what is new.
+- **A Dawarich visit carries no "last changed" timestamp.** YOUYA detects a change by comparing the fields it shows, which is why it can tell you a stay changed but not exactly what.
+- **Deleting a visit removes it from the API rather than marking it deleted.** YOUYA notices by re-reading the whole date range, which is why a check reads the trip's dates rather than only what is new.
 
-Each request to Dawarich gives up after 15 seconds, and TREK reads at most 8 MB from one answer.
+Each request to Dawarich gives up after 15 seconds, and YOUYA reads at most 8 MB from one answer.
 
 ## Troubleshooting
 
 | What you see | What it usually means |
 |---|---|
 | No Dawarich card in **Settings → Integrations** | The addon is off. An admin enables it in **Admin → Addons**. |
-| *TREK could not reach that address.* | Wrong address, the instance is down, or your TREK server has no route to it. A LAN instance also needs `ALLOW_INTERNAL_NETWORK=true`, and a self-signed certificate needs **Allow self-signed certificate**. **Test connection** adds the underlying reason in brackets. |
-| *TREK cannot use that address.* | The address is malformed or does not resolve, so **Save** refused it. |
+| *YOUYA could not reach that address.* | Wrong address, the instance is down, or your YOUYA server has no route to it. A LAN instance also needs `ALLOW_INTERNAL_NETWORK=true`, and a self-signed certificate needs **Allow self-signed certificate**. **Test connection** adds the underlying reason in brackets. |
+| *YOUYA cannot use that address.* | The address is malformed or does not resolve, so **Save** refused it. |
 | *Dawarich rejected the API key.* | The key was regenerated, or belongs to a different instance. |
 | *That API key is not allowed to read this.* | Dawarich refused the request for this key. |
 | *That address answered with something that is not Dawarich.* | Usually a reverse proxy or a login portal answering instead. Enter the Dawarich address itself, reachable without a separate login. It also appears when one answer is larger than 8 MB. |
 | *This Dawarich version does not have that endpoint.* | An older instance. Everything else keeps working; the connection card lists what is missing. |
-| *Dawarich asked TREK to slow down. Try again shortly.* | Dawarich is rate limiting. Wait and press **Check now** again. |
+| *Dawarich asked YOUYA to slow down. Try again shortly.* | Dawarich is rate limiting. Wait and press **Check now** again. |
 | *some trips could not be read* | Part of a check succeeded and part did not. Press **Check now**; if it persists, read the reason on the connection card. |
 | **Not connected** after changing the address | The host changed, so the key was cleared. Type it in again. |
-| Connected, but no stays | TREK only reads stays inside the dates of your trips, and only the ones Dawarich's visit detection produced. Check that the stays show up in Dawarich itself for those dates. |
+| Connected, but no stays | YOUYA only reads stays inside the dates of your trips, and only the ones Dawarich's visit detection produced. Check that the stays show up in Dawarich itself for those dates. |
 | *Nothing was recorded on these dates* | Dawarich has no points or tracks for the trip's dates, or the trip has no dates. |
 
 ## See also

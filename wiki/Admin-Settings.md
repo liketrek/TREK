@@ -2,7 +2,7 @@
 
 The **Settings** tab (in the **Configuration** group of the admin side navigation, `/admin?tab=settings`) holds the instance-wide switches for signing in, uploads and place data. On a wide screen the cards sit in two columns: access and identity on the left (**Authentication Methods**, **Passkey login**, **Require two-factor authentication (2FA)**, **Single Sign-On (OIDC)**), files and place data on the right (**Allowed File Types**, **API Keys**). The **Danger Zone** runs across the full width at the bottom. On a narrow screen the same cards stack in that order.
 
-![Admin Settings tab: Authentication Methods, Passkey login and Require two-factor authentication in the left column, Allowed File Types and API Keys with the TREK Places API marked Recommended default in the right column](assets/AdminSettings.png)
+![Admin Settings tab: Authentication Methods, Passkey login and Require two-factor authentication in the left column, Allowed File Types and API Keys with the YOUYA Places API marked Recommended default in the right column](assets/AdminSettings.png)
 
 Switches save as soon as you flip them. Text fields save with the card's own **Save** button. The phone admin has the same cards in its **Settings** section.
 
@@ -50,7 +50,7 @@ Allow login via external providers like Google, Apple, Authentik or Keycloak.
 |-------|-------|
 | **Display Name** | The name on the SSO button. Without one, the button reads **SSO**. |
 | **Issuer URL** | The OpenID Connect issuer URL of the provider, for example `https://accounts.google.com`. |
-| **Discovery URL** (optional) | Overrides the discovery URL TREK builds from the issuer (`<issuer>/.well-known/openid-configuration`). Needed for providers like Authentik, where the endpoint lives elsewhere. |
+| **Discovery URL** (optional) | Overrides the discovery URL YOUYA builds from the issuer (`<issuer>/.well-known/openid-configuration`). Needed for providers like Authentik, where the endpoint lives elsewhere. |
 | **Client ID** | From your provider. |
 | **Client Secret** | From your provider. Once saved it shows as `••••••••`; leaving the field empty on a later save keeps the stored secret. |
 
@@ -71,15 +71,15 @@ See [Documents-and-Files](Documents-and-Files).
 
 ## Place search and routing
 
-TREK's own services, which provider answers search and transit, and the Place Search Log. Everything in this card is saved as soon as it is changed.
+YOUYA's own services, which provider answers search and transit, and the Place Search Log. Everything in this card is saved as soon as it is changed.
 
-### TREK Places API
+### YOUYA Places API
 
-The first block, marked **Recommended default**. It is TREK's own place index: search without a Google key, without a quota and without anyone counting your lookups. There is nothing to configure here. The fold **What is in it** lists the fields a result carries (**Included**), what it does not have (**Not included**: ratings and photos of ordinary businesses) and its **Sources** (Overture Maps Foundation, OpenStreetMap, Wikivoyage, Wikimedia). See [TREK-Places-API](TREK-Places-API).
+The first block, marked **Recommended default**. It is YOUYA's own place index: search without a Google key, without a quota and without anyone counting your lookups. There is nothing to configure here. The fold **What is in it** lists the fields a result carries (**Included**), what it does not have (**Not included**: ratings and photos of ordinary businesses) and its **Sources** (Overture Maps Foundation, OpenStreetMap, Wikivoyage, Wikimedia). See [YOUYA-Places-API](TREK-Places-API).
 
 #### Share place details
 
-Inside the TREK Places API block. One switch turns sharing on for the whole installation, one per field (website, phone, e-mail, opening hours, description, photo) chooses what goes along. The figures show the values accepted in the last 30 days, the ones waiting to be sent and the day of the last accepted one. The fold **Transmission log** lists every value sent with its result, and **Withdraw everything sent** takes all of it back out of the index. The first visit of an admin opens a dialog that asks once; nothing is sent before **Agree and share**. See [Sharing place details](TREK-Places-API#sharing-place-details).
+Inside the YOUYA Places API block. One switch turns sharing on for the whole installation, one per field (website, phone, e-mail, opening hours, description, photo) chooses what goes along. The figures show the values accepted in the last 30 days, the ones waiting to be sent and the day of the last accepted one. The fold **Transmission log** lists every value sent with its result, and **Withdraw everything sent** takes all of it back out of the index. The first visit of an admin opens a dialog that asks once; nothing is sent before **Agree and share**. See [Sharing place details](TREK-Places-API#sharing-place-details).
 
 ### Transit Provider
 
@@ -94,18 +94,18 @@ When the picked service finds no connection, the search asks the other one befor
 
 ### Place search provider
 
-TREK's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing:
+YOUYA's own index and OpenStreetMap answer every search. This picks who else is asked when they find nothing:
 
 - **Automatic** (default): prefers Google where a key exists, then Amap.
 - **Google Places**
 - **Amap (高德地图)**
 - **OpenStreetMap**
 
-The choice saves at once. If the selected provider has no API key, a warning says that place search is answered by the TREK index and OpenStreetMap alone. See [Places-and-Search](Places-and-Search).
+The choice saves at once. If the selected provider has no API key, a warning says that place search is answered by the YOUYA index and OpenStreetMap alone. See [Places-and-Search](Places-and-Search).
 
 ### Place Search Log
 
-One switch, **off by default**. When it is on, TREK records which search result was picked, so a different place index can be measured against real searches later: the search text, the picked place's name and rounded coordinates, and where it stood in the result list. No user is stored with it, and nothing leaves the instance. Rows are deleted after 180 days, also while the switch is off. An admin can read the log through `GET /api/place-shadow/summary` and `GET /api/place-shadow/export`, and delete it with `DELETE /api/place-shadow`.
+One switch, **off by default**. When it is on, YOUYA records which search result was picked, so a different place index can be measured against real searches later: the search text, the picked place's name and rounded coordinates, and where it stood in the result list. No user is stored with it, and nothing leaves the instance. Rows are deleted after 180 days, also while the switch is off. An admin can read the log through `GET /api/place-shadow/summary` and `GET /api/place-shadow/export`, and delete it with `DELETE /api/place-shadow`.
 
 ## API Keys
 
@@ -113,7 +113,7 @@ The keys of the optional providers: Google Maps, Unsplash and Amap. None of them
 
 ### Google Maps API Key
 
-Optional. Without a Google key the TREK API is used. With one, photos, ratings and opening hours can be loaded on top, and every such lookup goes to Google. Create a key at console.cloud.google.com.
+Optional. Without a Google key the YOUYA API is used. With one, photos, ratings and opening hours can be loaded on top, and every such lookup goes to Google. Create a key at console.cloud.google.com.
 
 Next to the field, **Test** checks the key and shows **Connected** or **Invalid** under it. The eye icon shows or hides the key.
 
@@ -125,12 +125,12 @@ Below the field, the fold **What the key may be used for** shows how many of its
 | **Place Autocomplete** | Use Google for search suggestions. | On |
 | **Place Details** | Fetch hours, rating and website from Google. | On |
 | **Place Enrichment** | Show pictures and a description while adding a place. Wikipedia and OpenStreetMap are always used; Google is added on top when **Place Photos** or **Place Details** is on. | On |
-| **Search with Google only** | Every search and every suggestion goes to Google Places. Off, TREK's own index and OpenStreetMap answer first and Google is only asked when they find nothing. | Off |
+| **Search with Google only** | Every search and every suggestion goes to Google Places. Off, YOUYA's own index and OpenStreetMap answer first and Google is only asked when they find nothing. | Off |
 | **Daily limit for Google calls** | See below. | No limit |
 
 Switch the first four off to save API quota. **Search with Google only** needs a Google key and Google as the place search provider; when either is missing, its subtitle says that search will not go to Google whatever the switch says.
 
-**Daily limit for Google calls**: once the limit is reached, TREK stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave the field empty for no limit. A pill beside the name shows today's usage, **Today: 120** or **Today: 120 of 500**, and turns amber with **Limit reached (120), Google paused until tomorrow** once the day is used up. A **Save** button appears only while the number differs from the stored one; **Enter** saves as well.
+**Daily limit for Google calls**: once the limit is reached, YOUYA stops calling Google until the next day (UTC) and searches with OpenStreetMap instead. Leave the field empty for no limit. A pill beside the name shows today's usage, **Today: 120** or **Today: 120 of 500**, and turns amber with **Limit reached (120), Google paused until tomorrow** once the day is used up. A **Save** button appears only while the number differs from the stored one; **Enter** saves as well.
 
 ### Unsplash API Key
 
@@ -160,7 +160,7 @@ Rotating the JWT secret does not touch the encryption key that protects stored A
 - [OIDC-SSO](OIDC-SSO): single sign-on setup
 - [Passkeys](Passkeys): passkeys from the user's side
 - [Two-Factor-Authentication](Two-Factor-Authentication): 2FA and the enforced setup
-- [TREK-Places-API](TREK-Places-API): TREK's own place index
+- [YOUYA-Places-API](TREK-Places-API): YOUYA's own place index
 - [Places-and-Search](Places-and-Search): how place search uses these providers
 - [Environment-Variables](Environment-Variables): variables that override these fields
 - [Encryption-Key-Rotation](Encryption-Key-Rotation): rotating the encryption key

@@ -208,7 +208,7 @@ const budget: TranslationStrings = {
   'costs.viewReceipt': '查看收据',
   'costs.receiptLeftBehind': '保存失败，但已上传的 {count} 张收据仍然保留。请在“文件”标签页中删除。',
   'costs.receiptsNeedConnection': '上传收据需要网络连接。移除新收据即可离线保存这笔支出，或在恢复联网后再保存。',
-  'costs.paymentQueued': '你当前处于离线状态。付款已保存，TREK 恢复联网后就会显示。',
+  'costs.paymentQueued': '你当前处于离线状态。付款已保存，游芽恢复联网后就会显示。',
   'costs.confirm.deleteBodyReceipts': '“{name}”将被永久删除。其收据文件仍保留在“文件”中。',
 };
 export default budget;

@@ -1,6 +1,6 @@
 # Tags and Categories
 
-TREK has three ways to label a place:
+YOUYA has three ways to label a place:
 
 - **Global Place Categories**: admin-managed, shared across every user on the instance (e.g. `Restaurant`, `Museum`). A place has one category, and it decides the marker.
 - **Trip Tags**: extra labels a trip owns (e.g. `Monument`, `Activity`, `Old Town`). A place can carry any number of them, everybody on the trip sees the same ones, and the places list filters by them.
@@ -49,7 +49,7 @@ A trip tag belongs to the **trip**, not to the person who made it. That is what 
 - Whoever may edit the trip's places (the permission **Add / edit / delete places**, `place_edit`, see [Admin-Permissions](Admin-Permissions)) can add a tag, rename it, recolour it and delete it. Nobody needs to be the one who created it. The app adds tags from the place form; renaming and deleting go through the API and MCP for now.
 - The tags go with the trip: deleting the trip deletes them, and a copy of the trip gets its own copies, on the same places.
 - Deleting a tag takes it off every place that carried it.
-- TREK keeps who added a tag, so an account that is deleted takes the tags it added with it, like the notes it wrote.
+- YOUYA keeps who added a tag, so an account that is deleted takes the tags it added with it, like the notes it wrote.
 
 A change to the tags reaches the other members while they have the trip open: the pickers, the pills on the places and the filter follow without a reload.
 
