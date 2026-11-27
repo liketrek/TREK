@@ -21,7 +21,7 @@
     "@typescript-eslint/no-require-imports": 25,
     "@typescript-eslint/no-unsafe-function-type": 7,
     "@typescript-eslint/no-unused-vars": 87,
-    "no-await-in-loop": 451,
+    "no-await-in-loop": 450,
     "no-console": 18,
     "no-empty": 2,
     "no-useless-escape": 1,
