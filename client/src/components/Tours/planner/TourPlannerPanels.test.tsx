@@ -12,7 +12,7 @@ import type { Day } from '../../../types'
 import { toggleTourPlacing } from '../../../store/tourPlaceToolStore'
 import { publishTourFerrataCrossings } from '../../../store/tourFerrataCrossingStore'
 import { TourPlannerRail, TourPlannerToursRail } from './TourPlannerPanels'
-import { hikePlannerDefaults } from '../../../../tests/helpers/tourPlannerStub'
+import { hikePlannerDefaults, mockTourEditorLayout } from '../../../../tests/helpers/tourPlannerStub'
 import { tourRepo } from '../../../repo/tourRepo'
 import { useTripStore } from '../../../store/tripStore'
 import type { TourStage } from '../stages/tourStages'
@@ -131,6 +131,12 @@ beforeEach(() => {
   resetAllStores()
   seedStore(useSettingsStore, { settings: { distance_unit: 'metric' } })
 })
+
+function openDifficulty() {
+  const trigger = screen.getByRole('button', { name: 'Maximum trail difficulty' })
+  mockTourEditorLayout(trigger.parentElement ?? trigger)
+  fireEvent.click(trigger)
+}
 
 describe('TourPlannerToursRail', () => {
   it('MDT-02: a multi-day tour unfolds its stages in the list, a day tour has nothing to unfold', async () => {
@@ -702,6 +708,7 @@ describe('TourPlannerRail', () => {
     render(<TourPlannerRail planner={controller} />)
 
     expect(screen.getByLabelText('Tour name')).toBeDisabled()
+    expect(screen.getByTestId('tour-type-select')).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Maximum trail difficulty' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled()
     expect(screen.getByRole('button', { name: 'Back to Tours' })).toBeDisabled()
@@ -765,7 +772,7 @@ describe('TourPlannerRail', () => {
     const controller = planner({ mode: { type: 'new-draft' }, setMaxHikingDifficulty: setDifficulty, acknowledgeAlpine: acknowledge })
     const { unmount } = render(<TourPlannerRail planner={controller} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Maximum trail difficulty' }))
+    openDifficulty()
     fireEvent.click(screen.getByRole('button', { name: /T4: Alpine hiking/ }))
     expect(screen.getByRole('heading', { name: 'Enable alpine routing?' })).toBeInTheDocument()
     fireEvent.click(screen.getByRole('button', { name: 'Enable alpine routing' }))
@@ -775,7 +782,7 @@ describe('TourPlannerRail', () => {
 
     // The planner remembers the answer, so a rail that mounts anew does not ask again.
     render(<TourPlannerRail planner={planner({ mode: { type: 'new-draft' }, setMaxHikingDifficulty: setDifficulty, alpineAcknowledged: true })} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Maximum trail difficulty' }))
+    openDifficulty()
     fireEvent.click(screen.getByRole('button', { name: /T5: Demanding alpine hiking/ }))
     expect(screen.queryByRole('heading', { name: 'Enable alpine routing?' })).not.toBeInTheDocument()
     expect(setDifficulty).toHaveBeenLastCalledWith(5)
@@ -785,7 +792,7 @@ describe('TourPlannerRail', () => {
     const setDifficulty = vi.fn()
     render(<TourPlannerRail planner={planner({ mode: { type: 'new-draft' }, setMaxHikingDifficulty: setDifficulty })} />)
 
-    fireEvent.click(screen.getByRole('button', { name: 'Maximum trail difficulty' }))
+    openDifficulty()
     fireEvent.click(screen.getByRole('button', { name: /T4: Alpine hiking/ }))
     fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
     expect(setDifficulty).not.toHaveBeenCalled()
@@ -802,7 +809,7 @@ describe('TourPlannerRail', () => {
       })} />
     }
     render(<StatefulDifficultyRail />)
-    fireEvent.click(screen.getByRole('button', { name: 'Maximum trail difficulty' }))
+    openDifficulty()
 
     for (const label of [
       'T1: Hiking',
@@ -816,6 +823,22 @@ describe('TourPlannerRail', () => {
     fireEvent.click(screen.getByRole('button', { name: 'T3: Demanding mountain hiking' }))
     expect(setDifficulty).toHaveBeenCalledWith(3)
     expect(screen.getAllByRole('status').some(el => /T3 routes may include exposed/.test(el.textContent ?? ''))).toBe(true)
+  })
+
+  it('dismisses an open tour type list when saving locks the editor', () => {
+    const controller = planner({ mode: { type: 'new-draft' } })
+    const { rerender } = render(<TourPlannerRail planner={controller} />)
+    const trigger = screen.getByTestId('tour-type-select')
+    mockTourEditorLayout(trigger)
+    fireEvent.click(trigger)
+    expect(screen.getByRole('group', { name: 'Tour type' })).toBeInTheDocument()
+
+    rerender(<TourPlannerRail planner={{ ...controller, isSaving: true }} />)
+    expect(trigger).toBeDisabled()
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
+    expect(screen.queryByTestId('tour-type-option-hike')).not.toBeInTheDocument()
+    rerender(<TourPlannerRail planner={controller} />)
+    expect(trigger).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('TOUR-PLANNER-RAIL-009: neutral shows only the Plan new entry and new-draft guidance hides after the first waypoint', () => {

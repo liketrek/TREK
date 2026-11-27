@@ -161,12 +161,15 @@ export function PopoverListPanel({ list, label, className = '', children }: {
   className?: string
   children: ReactNode
 }) {
-  const { open, box, menuRef, listId, onListKey } = list
+  const { open, box, bounded, menuRef, listId, onListKey } = list
   if (!open || !box) return null
   return createPortal(
     <div ref={menuRef} id={listId} role="group" aria-label={label} onKeyDown={onListKey}
-      className={`fixed z-[var(--z-toast)] overflow-y-auto ${className}`}
-      style={{ ...POPOVER, top: box.top, bottom: box.bottom, left: box.left, maxHeight: box.maxHeight }}>
+      className={`fixed z-[var(--z-toast)] overflow-y-auto ${bounded ? 'overflow-x-hidden overscroll-contain [overflow-wrap:anywhere] [&>button]:shrink-0' : ''} ${className}`}
+      style={{
+        ...POPOVER, top: box.top, bottom: box.bottom, left: box.left, width: box.width || undefined, maxHeight: box.maxHeight,
+        minWidth: bounded ? 0 : undefined,
+      }}>
       {children}
     </div>,
     document.body,

@@ -47,7 +47,10 @@ export function TourTypeSelect<T extends ImportableTourType = PlannableTourType>
   const { t } = useTranslation();
   const valueId = useId();
   const offered: readonly ImportableTourType[] = types ?? PLANNER_TOUR_TYPES;
-  const list = usePopoverList(offered.indexOf(value), { estimatedHeight: 50 * offered.length + 20 });
+  const list = usePopoverList(offered.indexOf(value), {
+    estimatedHeight: 50 * offered.length + 20,
+    disabled,
+  });
   const { open, toggle, triggerRef, listId } = list;
   const label = t('tours.planner.tourType');
   const pick = (type: T) => {

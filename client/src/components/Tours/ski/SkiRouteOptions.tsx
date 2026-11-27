@@ -47,6 +47,7 @@ interface SkiRouteOptionsProps {
   discipline: SkiDiscipline;
   options: SkiRouteOptionsInput | null | undefined;
   onChange: (patch: Partial<SkiRouteOptionsInput>) => void;
+  locked?: boolean;
 }
 
 /** One switch of the piste router on its own row, its label beside it. */
@@ -102,7 +103,7 @@ function LiftClasses({ avoided, onChange }: { avoided: SkiLiftClass[]; onChange:
  * weigh most for a downhill skier, groomed and lit trails for cross-country,
  * the lifts for anyone who rides them. Every change plans the tour again.
  */
-export function SkiRouteOptions({ discipline, options, onChange }: SkiRouteOptionsProps) {
+export function SkiRouteOptions({ discipline, options, onChange, locked }: SkiRouteOptionsProps) {
   const { t } = useTranslation();
   const read = new Set(skiOptionsReadBy(discipline));
   const current: Options = { ...DEFAULT_SKI_ROUTE_OPTIONS, ...options };
@@ -119,6 +120,7 @@ export function SkiRouteOptions({ discipline, options, onChange }: SkiRouteOptio
           <CustomSelect
             id="tour-planner-ski-difficulty"
             ariaLabel={t('tours.ski.options.maxDifficulty')}
+            disabled={locked}
             size="sm"
             value={current.max_difficulty}
             onChange={(value) => onChange({ max_difficulty: value as SkiDifficulty })}

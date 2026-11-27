@@ -1,9 +1,10 @@
 import React, { useState, useRef, useEffect, useId } from 'react'
 import { createPortal } from 'react-dom'
 import { ChevronDown, Check } from 'lucide-react'
-import { useAnchoredPosition, scrollAnchorIntoView } from '../../hooks/useAnchoredPosition'
+import { scrollAnchorIntoView } from '../../hooks/useAnchoredPosition'
 import { useTranslation } from '../../i18n'
 import { selectionHaptic } from '../../native/haptics'
+import { useAnchoredPopover } from './useAnchoredPopover'
 
 interface SelectOption {
   // Callers use both string keys and numeric ids (e.g. day/place ids) as values, and
@@ -85,7 +86,6 @@ export default function CustomSelect({
   menuFit = 'anchor',
   id,
 }: CustomSelectProps) {
-  const [open, setOpen] = useState(false)
   const [search, setSearch] = useState('')
   const ref = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -97,23 +97,24 @@ export default function CustomSelect({
 
   // Follows the trigger while the sheet scrolls and while the on-screen keyboard
   // resizes the viewport, instead of freezing at the rect measured on open (#1999).
-  const anchored = useAnchoredPosition(ref, open)
+  const { open, bounded, box: anchored, setOpen } = useAnchoredPopover(ref, { disabled })
+  const menuOpen = open && (!bounded || !!anchored)
 
   useEffect(() => {
-    if (!open || !searchable || !searchRef.current) return
+    if (!menuOpen || !searchable || !searchRef.current) return
     if (!keyboardDirection.current) searchRef.current.focus()
     // Focusing raises the keyboard on a phone; scroll the trigger up so the list
     // it just opened is not left underneath it (#2000).
     scrollAnchorIntoView(ref.current)
-  }, [open, searchable])
+  }, [menuOpen, searchable])
 
   useEffect(() => {
-    if (!open || !keyboardDirection.current) return
+    if (!menuOpen || !keyboardDirection.current) return
     const buttons = dropRef.current?.querySelectorAll<HTMLButtonElement>('button')
     const direction = keyboardDirection.current
     keyboardDirection.current = null
     if (buttons?.length) buttons[direction === 'last' ? buttons.length - 1 : 0].focus()
-  }, [open])
+  }, [menuOpen])
 
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
@@ -123,7 +124,7 @@ export default function CustomSelect({
     }
     if (open) document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
-  }, [open])
+  }, [open, setOpen])
 
   const selected = options.find(o => sameValue(value, o.value))
   const filtered = searchable && search
@@ -152,6 +153,8 @@ export default function CustomSelect({
     : options
 
   const sm = size === 'sm'
+  const availableOptionsHeight = (anchored?.maxHeight ?? 220) - (searchable ? 38 : 0)
+  const optionsHeight = bounded ? Math.max(0, availableOptionsHeight - 2) : Math.max(96, availableOptionsHeight)
 
   const closeMenu = () => {
     setOpen(false)
@@ -223,7 +226,7 @@ export default function CustomSelect({
       </button>
 
       {/* Dropdown */}
-      {open && createPortal(
+      {menuOpen && createPortal(
         <div ref={dropRef} id={menuId} role="group" aria-label={ariaLabel || selected?.label || placeholder || undefined} onKeyDown={handleKeyDown} style={{
           position: 'fixed',
           ...(anchored
@@ -233,7 +236,7 @@ export default function CustomSelect({
                 // Never narrower than the trigger, and never past the right-hand edge of
                 // the window. The cap is read at render time rather than measured, and
                 // that is enough: every reason the anchor moved already re-renders this.
-                ...(menuFit === 'content'
+                ...(!bounded && menuFit === 'content'
                   ? {
                       minWidth: anchored.width,
                       width: 'max-content',
@@ -251,6 +254,7 @@ export default function CustomSelect({
           boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
           overflow: 'hidden',
           animation: 'trek-menu-enter 200ms cubic-bezier(0.23, 1, 0.32, 1)',
+          overflowWrap: bounded ? 'anywhere' : undefined,
           transformOrigin: anchored?.flipped ? 'bottom center' : 'top center',
           willChange: 'transform, opacity',
         }}>
@@ -277,7 +281,7 @@ export default function CustomSelect({
           {/* Options — capped at whatever the viewport still shows, so a list opened
               beside an on-screen keyboard shrinks instead of hiding under it (#2000). */}
           <div style={{
-            maxHeight: Math.min(220, Math.max(96, (anchored?.maxHeight ?? 220) - (searchable ? 38 : 0))),
+            maxHeight: Math.min(220, optionsHeight),
             overflowY: 'auto',
             // The panel is portaled to document.body and positioned fixed, so its
             // scroll chain runs to the viewport rather than to the sheet it looks

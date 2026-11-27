@@ -12,6 +12,7 @@ import { useRailHeadProps } from './railHead'
 import EmptyState from '../../shared/EmptyState'
 import { useToast } from '../../shared/Toast'
 import { Tooltip } from '../../shared/Tooltip'
+import { PopoverBoundary } from '../../shared/useAnchoredPopover'
 import { BOX } from '../../Planner/bookings/bookingParts'
 import { BarButton, SoftPill } from '../../Planner/planParts'
 import TourListRow from '../TourListRow'
@@ -335,6 +336,7 @@ export function TourPlannerRail({ planner,
   const { t } = useTranslation()
   const [confirmDiscard, setConfirmDiscard] = useState(false)
   const [pendingDifficulty, setPendingDifficulty] = useState<1 | 2 | 3 | 4 | 5 | 6 | null>(null)
+  const editorScrollRef = useRef<HTMLDivElement>(null)
   const isSaving = planner.isSaving
   // Nothing in the editor changes while the viewer may not edit or a save is in flight.
   const locked = !canEdit || isSaving
@@ -389,44 +391,46 @@ export function TourPlannerRail({ planner,
           </BarButton>
         </div>
 
-        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-3.5">
-          <TourRemoteChangeNotice planner={planner} />
-          <WalkImportDraftNotice planner={planner} />
-          <WalkRoutePendingNotice planner={planner} />
-          <TourNameField planner={planner} locked={locked} />
+        <div ref={editorScrollRef} data-testid="tour-planner-editor-scroll" className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-3 py-3.5">
+          <PopoverBoundary value={editorScrollRef}>
+            <TourRemoteChangeNotice planner={planner} />
+            <WalkImportDraftNotice planner={planner} />
+            <WalkRoutePendingNotice planner={planner} />
+            <TourNameField planner={planner} locked={locked} />
 
-          <TourTypeFields planner={planner} locked={locked} />
+            <TourTypeFields planner={planner} locked={locked} />
 
-          <TourStageModeField planner={planner} locked={locked} />
+            <TourStageModeField planner={planner} locked={locked} />
 
-          {recordedTrack?.available && <RecordedTrackCard recordedTrack={recordedTrack} disabled={isSaving} />}
+            {recordedTrack?.available && <RecordedTrackCard recordedTrack={recordedTrack} disabled={isSaving} />}
 
-          <UnreachableNotice planner={planner} />
-          <WalkFerryNotice planner={planner} />
+            <UnreachableNotice planner={planner} />
+            <WalkFerryNotice planner={planner} />
 
-          <TourStageLossNotice planner={planner} />
-          <TourStageDayNotice planner={planner} />
+            <TourStageLossNotice planner={planner} />
+            <TourStageDayNotice planner={planner} />
 
-          <TourWaypointList planner={planner} canEdit={canEdit} isSaving={isSaving} tourPlaceIds={tourPlaceIds} />
+            <TourWaypointList planner={planner} canEdit={canEdit} isSaving={isSaving} tourPlaceIds={tourPlaceIds} />
 
-          <BikeWaysCard planner={planner} />
+            <BikeWaysCard planner={planner} />
 
-          <RunWaysCard planner={planner} />
+            <RunWaysCard planner={planner} />
 
-          <HorseRoutesCard planner={planner} />
+            <HorseRoutesCard planner={planner} />
 
-          <SkiPlannerSummary planner={planner} />
+            <SkiPlannerSummary planner={planner} />
 
-          {planner.tourType === 'hike' && (
-            <HikeWaysCard tripId={planner.tripId} route={planner.route} routeCurrent={planner.routeCurrent}
-              routingLimit={planner.maxHikingDifficulty} />
-          )}
+            {planner.tourType === 'hike' && (
+              <HikeWaysCard tripId={planner.tripId} route={planner.route} routeCurrent={planner.routeCurrent}
+                routingLimit={planner.maxHikingDifficulty} />
+            )}
 
-          <TourPoiSearchCard planner={planner} />
+            <TourPoiSearchCard planner={planner} />
 
-          <PaddleEditorCards planner={planner} locked={locked} checklist={paddleChecklist} />
+            <PaddleEditorCards planner={planner} locked={locked} checklist={paddleChecklist} />
 
-          <TourDetailsSection planner={planner} locked={locked} onDifficultyChange={changeDifficulty} />
+            <TourDetailsSection planner={planner} locked={locked} onDifficultyChange={changeDifficulty} />
+          </PopoverBoundary>
         </div>
 
         <TourEditorRailFooter planner={planner} canEdit={canEdit} locked={locked} isSavedEdit={isSavedEdit} onDiscard={requestClose} />

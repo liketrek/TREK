@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useState } from 'react'
 
 export interface AnchoredBox {
   /** Distance from the viewport top, when the panel hangs below the trigger. */
@@ -22,7 +22,37 @@ interface AnchoredOptions {
   padding?: number
   /** Adopt the trigger's width (selects) instead of measuring only its position. */
   matchWidth?: boolean
+  /** Keep the panel inside a scroll area and dismiss it when the anchor leaves. */
+  boundary?: {
+    ref: React.RefObject<HTMLElement | null>
+    onAnchorHidden: () => void
+  }
 }
+
+function viewportBounds() {
+  // visualViewport excludes the area covered by an on-screen keyboard.
+  const viewport = window.visualViewport
+  const top = viewport?.offsetTop ?? 0
+  const left = viewport?.offsetLeft ?? 0
+  return { top, left, bottom: top + (viewport?.height ?? window.innerHeight), right: left + (viewport?.width ?? window.innerWidth) }
+}
+
+function anchorLimits(anchor: DOMRect, boundaryRef?: React.RefObject<HTMLElement | null>) {
+  const viewport = viewportBounds()
+  const rect = boundaryRef?.current?.getBoundingClientRect()
+  if (!rect) return { top: viewport.top, bottom: viewport.bottom, left: anchor.left, width: anchor.width, bounded: false }
+  const left = Math.max(anchor.left, rect.left, viewport.left)
+  return {
+    top: Math.max(viewport.top, rect.top),
+    bottom: Math.min(viewport.bottom, rect.bottom),
+    left,
+    width: Math.min(anchor.right, rect.right, viewport.right) - left,
+    bounded: true,
+  }
+}
+
+/** Below this much room, the list would barely display its own border and padding. */
+const MIN_BOUNDED_HEIGHT = 24
 
 /** How much the viewport must shrink before we treat it as an on-screen keyboard. */
 const KEYBOARD_THRESHOLD = 120
@@ -47,37 +77,35 @@ const KEYBOARD_THRESHOLD = 120
 export function useAnchoredPosition(
   anchorRef: React.RefObject<HTMLElement | null>,
   open: boolean,
-  { estimatedHeight = 220, offset = 4, padding = 8, matchWidth = true }: AnchoredOptions = {},
+  { estimatedHeight = 220, offset = 4, padding = 8, matchWidth = true, boundary }: AnchoredOptions = {},
 ): AnchoredBox | null {
   const [box, setBox] = useState<AnchoredBox | null>(null)
-  // Read in the measure callback so it stays stable across renders.
-  const optsRef = useRef({ estimatedHeight, offset, padding, matchWidth })
-  optsRef.current = { estimatedHeight, offset, padding, matchWidth }
+  const boundaryRef = boundary?.ref
+  const onAnchorHidden = boundary?.onAnchorHidden
 
   const measure = useCallback(() => {
     const el = anchorRef.current
     if (!el) return
-    const { estimatedHeight: wanted, offset: gap, padding: pad, matchWidth: match } = optsRef.current
     const r = el.getBoundingClientRect()
-    // visualViewport is the part still visible next to an open keyboard; its
-    // offsetTop is how far the browser scrolled the layout viewport up to keep
-    // the focused field in sight, which shifts where "the bottom" really is.
-    const vv = typeof window !== 'undefined' ? window.visualViewport : null
-    const viewTop = typeof vv?.offsetTop === 'number' ? vv.offsetTop : 0
-    const viewHeight = typeof vv?.height === 'number' ? vv.height : window.innerHeight
-    const viewBottom = viewTop + viewHeight
-
-    const spaceBelow = viewBottom - r.bottom - gap - pad
-    const spaceAbove = r.top - viewTop - gap - pad
+    const limits = anchorLimits(r, boundaryRef)
+    const spaceBelow = limits.bottom - r.bottom - offset - padding
+    const spaceAbove = r.top - limits.top - offset - padding
     // Only flip when below genuinely cannot hold the panel and above is roomier,
     // which keeps the familiar downward direction in the ordinary case.
-    const flipped = spaceBelow < Math.min(wanted, 160) && spaceAbove > spaceBelow
-    const maxHeight = Math.max(96, Math.floor(flipped ? spaceAbove : spaceBelow))
+    const flipped = spaceBelow < Math.min(estimatedHeight, 160) && spaceAbove > spaceBelow
+    const availableHeight = Math.floor(flipped ? spaceAbove : spaceBelow)
+    if (limits.bounded && (r.bottom <= limits.top || r.top >= limits.bottom || limits.width <= 0 || availableHeight < MIN_BOUNDED_HEIGHT)) {
+      setBox(null)
+      onAnchorHidden?.()
+      return
+    }
+    const maxHeight = limits.bounded ? availableHeight : Math.max(96, availableHeight)
+    const { left } = limits
+    const width = matchWidth ? limits.width : 0
 
     const next: AnchoredBox = flipped
-      ? { bottom: Math.round(window.innerHeight - r.top + gap), left: r.left, width: r.width, maxHeight, flipped }
-      : { top: Math.round(r.bottom + gap), left: r.left, width: r.width, maxHeight, flipped }
-    if (!match) next.width = 0
+      ? { bottom: Math.round(window.innerHeight - r.top + offset), left, width, maxHeight, flipped }
+      : { top: Math.round(r.bottom + offset), left, width, maxHeight, flipped }
 
     setBox(prev =>
       prev
@@ -87,7 +115,7 @@ export function useAnchoredPosition(
         ? prev
         : next,
     )
-  }, [anchorRef])
+  }, [anchorRef, boundaryRef, estimatedHeight, matchWidth, offset, onAnchorHidden, padding])
 
   // Measure before paint so the panel never shows up at a stale spot first.
   useLayoutEffect(() => {
@@ -110,6 +138,8 @@ export function useAnchoredPosition(
     // The trigger can change size on its own (a select whose label grows).
     const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(measure) : null
     if (el && ro) ro.observe(el)
+    const boundaryEl = boundaryRef?.current
+    if (boundaryEl && ro) ro.observe(boundaryEl)
     return () => {
       window.removeEventListener('scroll', measure, true)
       window.removeEventListener('resize', measure)
@@ -117,7 +147,7 @@ export function useAnchoredPosition(
       vv?.removeEventListener('scroll', measure)
       ro?.disconnect()
     }
-  }, [open, measure, anchorRef])
+  }, [open, measure, anchorRef, boundaryRef])
 
   return box
 }

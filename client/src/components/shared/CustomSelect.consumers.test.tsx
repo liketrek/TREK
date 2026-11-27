@@ -8,7 +8,7 @@ import type { TourPlannerController } from '../Tours/planner/useTourPlanner'
 import ToursSidebar from '../Tours/ToursSidebar'
 import type { Day } from '../../types'
 import CustomSelect from './CustomSelect'
-import { hikePlannerDefaults } from '../../../tests/helpers/tourPlannerStub'
+import { hikePlannerDefaults, mockTourEditorLayout } from '../../../tests/helpers/tourPlannerStub'
 
 vi.mock('../../repo/tourRepo', () => ({ tourRepo: {} }))
 vi.mock('../../store/settingsStore', () => ({
@@ -57,6 +57,7 @@ describe('CustomSelect consumer contracts', () => {
     expect(screen.getByLabelText('Maximum trail difficulty')).toBe(trigger)
     expect(trigger).toHaveAttribute('id', 'tour-planner-difficulty')
     expect(document.querySelectorAll('[id="tour-planner-difficulty"]')).toHaveLength(1)
+    mockTourEditorLayout(trigger.parentElement ?? trigger)
     await user.click(trigger)
     const menu = within(document.getElementById(trigger.getAttribute('aria-controls')!)!)
     for (const difficulty of [1, 2, 3, 4, 5, 6]) {

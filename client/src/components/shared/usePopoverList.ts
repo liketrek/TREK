@@ -1,5 +1,5 @@
-import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent as ReactKeyboardEvent } from 'react';
-import { useAnchoredPosition } from '../../hooks/useAnchoredPosition';
+import { useEffect, useId, useLayoutEffect, useRef, type KeyboardEvent as ReactKeyboardEvent } from 'react';
+import { useAnchoredPopover } from './useAnchoredPopover';
 
 const itemsOf = (list: HTMLElement | null) => Array.from(list?.querySelectorAll('button') ?? []);
 
@@ -13,38 +13,41 @@ const EDGE = 8;
  * it and goes on from the button; a click beside it closes it. The caller draws
  * the button and the list and hands `currentIndex`, the choice held now.
  */
-export function usePopoverList(currentIndex: number, options: { estimatedHeight?: number } = {}) {
-  const [open, setOpen] = useState(false);
+export function usePopoverList(currentIndex: number, { estimatedHeight = 320, disabled }: {
+  estimatedHeight?: number;
+  disabled?: boolean;
+} = {}) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const startAt = useRef(0);
   const listId = useId();
-  const box = useAnchoredPosition(triggerRef, open, {
+  const { open, box, bounded, setOpen } = useAnchoredPopover(triggerRef, {
     matchWidth: false,
-    estimatedHeight: options.estimatedHeight ?? 320,
+    estimatedHeight,
+    disabled,
   });
   const listShown = open && !!box;
 
   const toggle = () => {
     if (!open) startAt.current = Math.max(0, currentIndex);
-    setOpen((o) => !o);
+    setOpen((value) => !value);
   };
 
   useEffect(() => {
-    if (listShown) itemsOf(menuRef.current)[startAt.current]?.focus({ preventScroll: true });
-  }, [listShown]);
+    if (listShown) itemsOf(menuRef.current)[startAt.current]?.focus({ preventScroll: !bounded });
+  }, [listShown, bounded]);
 
   // The list opens from its button's start; one wider than the room beside a button near the
   // window's side moves back inside, as far as it must, before it is painted.
   useLayoutEffect(() => {
     const menu = menuRef.current;
-    if (!listShown || !menu) return;
+    if (!listShown || !menu || bounded) return;
     menu.style.translate = '';
     const rect = menu.getBoundingClientRect();
     let shift = Math.min(0, window.innerWidth - EDGE - rect.right);
     if (rect.left + shift < EDGE) shift = EDGE - rect.left;
     if (shift) menu.style.translate = `${Math.round(shift)}px 0`;
-  }, [listShown, box]);
+  }, [listShown, box, bounded]);
 
   useEffect(() => {
     if (!open) return;
@@ -66,7 +69,7 @@ export function usePopoverList(currentIndex: number, options: { estimatedHeight?
       document.removeEventListener('mousedown', onDown);
       document.removeEventListener('keydown', onKey, true);
     };
-  }, [open]);
+  }, [open, setOpen]);
 
   /** Closes the list after a choice and hands the focus back to the button. */
   const close = () => {
@@ -94,5 +97,5 @@ export function usePopoverList(currentIndex: number, options: { estimatedHeight?
     items[next]?.focus();
   };
 
-  return { open, box, toggle, close, onListKey, triggerRef, menuRef, listId };
+  return { open, box, bounded, toggle, close, onListKey, triggerRef, menuRef, listId };
 }

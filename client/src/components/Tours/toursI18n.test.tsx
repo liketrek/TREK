@@ -11,7 +11,7 @@ import { analyzeRouteGeometry } from '../../utils/routeGeometry'
 import TourListRow from './TourListRow'
 import { TourPlannerRail, TourPlannerToursRail } from './planner/TourPlannerPanels'
 import type { TourPlannerController } from './planner/useTourPlanner'
-import { hikePlannerDefaults } from '../../../tests/helpers/tourPlannerStub'
+import { hikePlannerDefaults, mockTourEditorLayout } from '../../../tests/helpers/tourPlannerStub'
 
 vi.mock('../../../../server/src/config', () => { throw new Error('Config initialization is forbidden in client tests') })
 vi.mock('../../../../server/src/db/database', () => { throw new Error('Legacy database imports are forbidden in client tests') })
@@ -151,7 +151,9 @@ describe('Tours English and German copy', () => {
     }
     rerender(<TourPlannerRail planner={planner({ mode: { type: 'new-draft' }, status: 'ready', error: 'save' })} />)
     expect(screen.getByLabelText(toursText(de, 'tours.planner.status.saveFailed'))).toBeInTheDocument()
-    fireEvent.click(screen.getByRole('button', { name: toursText(de, 'tours.planner.maxDifficulty') }))
+    const difficulty = screen.getByRole('button', { name: toursText(de, 'tours.planner.maxDifficulty') })
+    mockTourEditorLayout(difficulty.parentElement ?? difficulty)
+    fireEvent.click(difficulty)
     fireEvent.click(screen.getByRole('button', { name: toursText(de, 'tours.planner.difficulty.t4') }))
     expect(screen.getByRole('heading', { name: toursText(de, 'tours.planner.difficulty.alpineTitle') })).toBeInTheDocument()
     expect(screen.getByText(toursText(de, 'tours.planner.difficulty.alpineBody'))).toBeInTheDocument()

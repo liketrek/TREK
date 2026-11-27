@@ -1,5 +1,13 @@
 import { vi } from 'vitest';
 
+/** Supply the editor geometry that jsdom cannot measure. */
+export function mockTourEditorLayout(anchor: HTMLElement) {
+  const scrollArea = anchor.closest('[data-testid="tour-planner-editor-scroll"]');
+  if (!scrollArea) throw new Error('Expected a dropdown anchor inside the tour editor');
+  vi.spyOn(scrollArea, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 20, 300, 400));
+  vi.spyOn(anchor, 'getBoundingClientRect').mockReturnValue(new DOMRect(12, 100, 276, 40));
+}
+
 /**
  * What a stubbed tour planner needs beyond the fields a test sets: a hike, no
  * boat, no loop and the route tools as spies. Spread first, so a test's own

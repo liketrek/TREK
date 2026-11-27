@@ -111,7 +111,7 @@ function BikeProfileField({ planner }: { planner: TourPlannerController }) {
  * discipline and, for cross-country, the technique, then what the piste router
  * is asked for. A short line says how its legs are laid.
  */
-function SkiFields({ planner }: { planner: TourPlannerController }) {
+function SkiFields({ planner, locked }: TourTypeFieldsProps) {
   const { t } = useTranslation();
   const { choice } = planner.ski;
   return (
@@ -121,7 +121,7 @@ function SkiFields({ planner }: { planner: TourPlannerController }) {
         {t('tours.ski.plannedHint')}
       </span>
       {choice.discipline !== null && (
-        <SkiRouteOptions discipline={choice.discipline} options={choice.options} onChange={planner.ski.setOption} />
+        <SkiRouteOptions discipline={choice.discipline} options={choice.options} onChange={planner.ski.setOption} locked={locked} />
       )}
     </div>
   );
@@ -157,7 +157,7 @@ export function TourTypeFields({ planner, locked }: TourTypeFieldsProps) {
 
       {planner.isRun && <RunFields planner={planner} locked={locked} />}
 
-      {planner.isSki && <SkiFields planner={planner} />}
+      {planner.isSki && <SkiFields planner={planner} locked={locked} />}
 
       {planner.isPaddle && (
         <div data-testid="tour-planner-paddle-fields" className="flex min-w-0 flex-col gap-3">
