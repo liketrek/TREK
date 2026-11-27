@@ -95,7 +95,8 @@ describe('AppLogin', () => {
   });
 
   it('FE-LOGIN-APP-002: signs in with email and password, with the fields password managers fill', () => {
-    const login = buildLogin();
+    // Filled, as the hook would hold them: the form refuses to submit with its required fields empty.
+    const login = buildLogin({ email: 'old@example.com', password: 'old' });
     render(<AppLogin login={login} />);
 
     expect(screen.getByRole('heading', { name: 'Sign In' })).toBeInTheDocument();
