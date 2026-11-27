@@ -146,6 +146,21 @@ const socketId = new WeakMap<TrekWebSocket, number>();
 const socketSession = new WeakMap<TrekWebSocket, string>();
 
 /**
+ * Sessions whose sockets were just closed, by the time it happened. A ws token
+ * minted under one of them shortly before lives on for its 30 seconds and
+ * would open a socket no later close reaches, so the handshake refuses it. An
+ * ended session cannot mint a new token, so a minute covers every one left.
+ */
+const closedSessions = new Map<string, number>();
+const CLOSED_SESSION_MEMORY_MS = 60_000;
+
+/** Whether the sockets of `sessionId` were closed within the last minute. */
+export function sessionClosed(sessionId: string, now = Date.now()): boolean {
+  for (const [id, at] of closedSessions) if (now - at >= CLOSED_SESSION_MEMORY_MS) closedSessions.delete(id);
+  return closedSessions.has(sessionId);
+}
+
+/**
  * A monotonic integer, NOT a uuid.
  *
  * The client echoes it back as the X-Socket-Id header and `broadcast` excludes
@@ -398,6 +413,7 @@ export async function recheckJourneyAccess(journeyId?: number): Promise<void> {
  * them; a client whose session still holds connects again and joins what it may.
  */
 export function closeSockets(code: number, reason: string, userId?: number, sessionId?: string): void {
+  if (sessionId !== undefined) closedSessions.set(sessionId, Date.now());
   const rooms = roomsSlot.get();
   for (const ws of openSockets()) {
     if (userId != null && socketUser.get(ws)?.id !== userId) continue;

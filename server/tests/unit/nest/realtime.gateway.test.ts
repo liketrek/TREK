@@ -324,6 +324,20 @@ describe('RealtimeGateway heartbeat', () => {
     expect(b.closedWith).toBeNull();
     setServer(null);
   });
+
+  it('WSGW-024: a token minted under a session that was just closed opens no socket, one of another session does', async () => {
+    setServer({ clients: new Set() } as never);
+    closeSockets(4001, 'Session ended', 3, 'sess-ended');
+
+    consumeWithMeta.mockReturnValue({ userId: 3, pv: 2, session: 'sess-ended' });
+    const { ws: late } = await connect('/ws?token=late');
+    consumeWithMeta.mockReturnValue({ userId: 3, pv: 2, session: 'sess-live' });
+    const { ws: live } = await connect('/ws?token=live');
+
+    expect(late.closedWith).toEqual([4001, 'Invalid or expired token']);
+    expect(live.closedWith).toBeNull();
+    setServer(null);
+  });
 });
 
 describe('ws-state fan-out', () => {

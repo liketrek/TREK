@@ -18,6 +18,7 @@ import {
   roomAccessSlot,
   RoomRegistry,
   roomsSlot,
+  sessionClosed,
   socketIdOf,
   userOf,
   type RoomAccess,
@@ -164,6 +165,11 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       const mfaOk = user.mfa_enabled === 1 || user.mfa_enabled === true;
       if (requireMfa && !mfaOk) {
         socket.close(4403, 'MFA required');
+        return;
+      }
+
+      if (consumed.session && sessionClosed(consumed.session)) {
+        socket.close(4001, 'Invalid or expired token');
         return;
       }
 
