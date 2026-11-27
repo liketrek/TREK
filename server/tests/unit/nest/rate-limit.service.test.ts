@@ -25,6 +25,19 @@ describe('RateLimitService', () => {
     expect(await s.check('login', '1.2.3.4', 5, WINDOW, now)).toBe(false);
   });
 
+  it('exhausted answers whether the key is spent without counting an attempt', async () => {
+    const s = new RateLimitService();
+    const now = Date.now();
+    expect(await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now)).toBe(false);
+    for (let i = 0; i < 5; i++) await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now);
+    expect(bucketSize(s, 'logout')).toBe(0);
+    await s.check('logout', '1.2.3.4', 2, WINDOW, now);
+    expect(await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now)).toBe(false);
+    await s.check('logout', '1.2.3.4', 2, WINDOW, now);
+    expect(await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now)).toBe(true);
+    expect(await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now + WINDOW)).toBe(false);
+  });
+
   it('starts a fresh window once the old one elapsed', async () => {
     const s = new RateLimitService();
     const now = Date.now();

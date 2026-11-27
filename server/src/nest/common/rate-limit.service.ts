@@ -18,6 +18,14 @@ export class RateLimitService {
     return this.store.hit(bucket, key, max, windowMs, now);
   }
 
+  /**
+   * True when the key already used up `max` in this window, without counting
+   * the request; for a route that counts only the attempts it refuses.
+   */
+  exhausted(bucket: string, key: string, max: number, windowMs: number, now: number): Promise<boolean> {
+    return this.store.exhausted(bucket, key, max, windowMs, now);
+  }
+
   /** Test helper: clear a bucket (mirrors the legacy exported maps used for resets). */
   reset(bucket?: string): Promise<void> {
     return this.store.reset(bucket);

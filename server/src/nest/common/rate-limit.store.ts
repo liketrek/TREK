@@ -15,6 +15,8 @@ export abstract class RateLimitStore {
    * answers 429), true otherwise.
    */
   abstract hit(bucket: string, key: string, max: number, windowMs: number, now: number): Promise<boolean>;
+  /** Whether `key` has already used `max` attempts in the current window, without counting one. */
+  abstract exhausted(bucket: string, key: string, max: number, windowMs: number, now: number): Promise<boolean>;
   /** Clear one bucket, or every bucket. */
   abstract reset(bucket?: string): Promise<void>;
 }
@@ -43,6 +45,11 @@ export class InMemoryRateLimitStore extends RateLimitStore {
 
   hit(bucket: string, key: string, max: number, windowMs: number, now: number): Promise<boolean> {
     return Promise.resolve(this.count(bucket, key, max, windowMs, now));
+  }
+
+  exhausted(bucket: string, key: string, max: number, windowMs: number, now: number): Promise<boolean> {
+    const record = this.buckets.get(bucket)?.get(key);
+    return Promise.resolve(!!record && record.count >= max && now - record.first < windowMs);
   }
 
   reset(bucket?: string): Promise<void> {

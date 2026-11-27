@@ -22,8 +22,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const logout = vi.fn();
 const check = vi.fn();
+const exhausted = vi.fn();
 const service = { logout } as unknown as OidcBackchannelService;
-const rl = { check } as unknown as RateLimitService;
+const rl = { check, exhausted } as unknown as RateLimitService;
 const controller = () => new OidcBackchannelController(service, rl);
 
 function makeRes() {
@@ -53,6 +54,7 @@ async function refused(call: Promise<unknown>): Promise<{ status: number; body: 
 beforeEach(() => {
   vi.clearAllMocks();
   check.mockResolvedValue(true);
+  exhausted.mockResolvedValue(false);
   logout.mockResolvedValue(undefined);
 });
 
@@ -104,21 +106,47 @@ describe('OidcBackchannelController POST /api/auth/oidc/backchannel-logout', () 
   });
 
   it('BCL-CTL-005: past the flood limit the answer is 429, before the body is read', async () => {
-    check.mockResolvedValue(false);
+    exhausted.mockResolvedValue(true);
     const res = makeRes();
     expect(await refused(controller().logout(req({ logout_token: 'a.b.c' }), res))).toEqual({
       status: 429,
       body: { error: 'too_many_requests', error_description: 'Too many requests. Please try again later.' },
     });
-    expect(check).toHaveBeenCalledWith(
+    expect(exhausted).toHaveBeenCalledWith(
       'oidc_backchannel',
       '198.51.100.7',
       BACKCHANNEL_LOGOUT_RATE_LIMIT,
       60_000,
       expect.any(Number),
     );
+    expect(check).not.toHaveBeenCalled();
     expect(logout).not.toHaveBeenCalled();
     expect(res.headers['cache-control']).toBe('no-store');
+  });
+
+  it('BCL-CTL-007: only refused tokens count toward the limit, so a bulk logout of valid tokens is never throttled', async () => {
+    for (let i = 0; i < BACKCHANNEL_LOGOUT_RATE_LIMIT + 5; i++) {
+      await controller().logout(req({ logout_token: 'a.b.c' }), makeRes());
+    }
+    expect(check).not.toHaveBeenCalled();
+
+    expect((await refused(controller().logout(req({}), makeRes()))).status).toBe(400);
+    logout.mockRejectedValue(new DomainError(400, 'invalid_request'));
+    expect((await refused(controller().logout(req({ logout_token: 'x.y.z' }), makeRes()))).status).toBe(400);
+    expect(check).toHaveBeenCalledTimes(2);
+    expect(check).toHaveBeenLastCalledWith(
+      'oidc_backchannel',
+      '198.51.100.7',
+      BACKCHANNEL_LOGOUT_RATE_LIMIT,
+      60_000,
+      expect.any(Number),
+    );
+  });
+
+  it('BCL-CTL-008: a failure that is not a refused token is passed on without counting', async () => {
+    logout.mockRejectedValue(new Error('database down'));
+    await expect(controller().logout(req({ logout_token: 'a.b.c' }), makeRes())).rejects.toThrow('database down');
+    expect(check).not.toHaveBeenCalled();
   });
 
   it('BCL-CTL-006: the route is a public POST that answers 200 under the OIDC prefix', () => {

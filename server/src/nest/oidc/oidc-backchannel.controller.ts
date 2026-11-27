@@ -14,11 +14,11 @@ import {
 import type { Request, Response } from 'express';
 
 /**
- * Requests one address may send in a minute. An identity provider sends one
- * request per signed-out session, and an admin ending every session of a realm
- * sends a burst of them from one address, so the limit sits far above any real
- * logout traffic and only caps a flood of tokens that each cost a signature
- * check.
+ * Refused requests one address may send in a minute. An identity provider
+ * sends one request per signed-out session, and an admin ending every session
+ * of a realm sends a burst of them from one address, so only the requests that
+ * fail count: a validly signed logout is never throttled, and the limit caps a
+ * flood of tokens that each cost a signature check.
  */
 export const BACKCHANNEL_LOGOUT_RATE_LIMIT = 600;
 const RATE_WINDOW_MS = 60_000;
@@ -36,7 +36,7 @@ const RATE_WINDOW_MS = 60_000;
  * `Cache-Control: no-store`: 200 when the token was valid (also when it named
  * no account or session here), 400 `{"error":"invalid_request"}` for a missing
  * or invalid token and while OIDC is not configured (the login answers 400 for
- * that too). A 429 past the flood limit. Never a 500 for a bad token.
+ * that too). A 429 once an address had too many refused. Never a 500 for a bad token.
  *
  * The body is form-encoded, which the global `urlencodedParser` reads for this
  * path as for every other. It is checked against the shared contract with
@@ -58,27 +58,27 @@ export class OidcBackchannelController {
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response): Promise<OidcBackchannelLogoutResponse> {
     res.set('Cache-Control', 'no-store');
     res.set('Pragma', 'no-cache');
-    if (
-      !(await this.rl.check(
-        'oidc_backchannel',
-        req.ip || 'unknown',
-        BACKCHANNEL_LOGOUT_RATE_LIMIT,
-        RATE_WINDOW_MS,
-        Date.now(),
-      ))
-    ) {
+    const key = req.ip || 'unknown';
+    if (await this.rl.exhausted('oidc_backchannel', key, BACKCHANNEL_LOGOUT_RATE_LIMIT, RATE_WINDOW_MS, Date.now())) {
       throw new DomainError(429, 'too_many_requests', {
         details: { error_description: 'Too many requests. Please try again later.' },
       });
     }
-    const body = oidcBackchannelLogoutRequestSchema.safeParse(req.body);
-    if (!body.success) {
-      throw new DomainError(400, 'invalid_request', {
-        code: 'missing_logout_token',
-        details: { error_description: 'The logout_token parameter is missing or malformed.' },
-      });
+    try {
+      const body = oidcBackchannelLogoutRequestSchema.safeParse(req.body);
+      if (!body.success) {
+        throw new DomainError(400, 'invalid_request', {
+          code: 'missing_logout_token',
+          details: { error_description: 'The logout_token parameter is missing or malformed.' },
+        });
+      }
+      await this.backchannel.logout(body.data.logout_token, getClientIp(req) ?? null);
+      return {};
+    } catch (err) {
+      if (err instanceof DomainError && err.getStatus() === 400) {
+        await this.rl.check('oidc_backchannel', key, BACKCHANNEL_LOGOUT_RATE_LIMIT, RATE_WINDOW_MS, Date.now());
+      }
+      throw err;
     }
-    await this.backchannel.logout(body.data.logout_token, getClientIp(req) ?? null);
-    return {};
   }
 }
