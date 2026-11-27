@@ -195,11 +195,12 @@ export class TokenService {
   // Ephemeral tokens
   // -------------------------------------------------------------------------
 
-  async createWsToken(userId: number): Promise<{ token?: string }> {
+  async createWsToken(userId: number, sessionId?: string): Promise<{ token?: string }> {
     // Bind the ws-token to the user's current password_version so a token minted
-    // before a password reset is rejected on connect (defence-in-depth session gate).
+    // before a password reset is rejected on connect (defence-in-depth session gate),
+    // and to the session asking for it, so ending that session closes the socket.
     const pv = (await this.users.getPasswordVersion(userId)) ?? 0;
-    const token = this.ephemeral.create(userId, 'ws', { pv });
+    const token = this.ephemeral.create(userId, 'ws', { pv, session: sessionId });
     if (!token) throw new DomainError(503, 'Service unavailable');
     return { token };
   }

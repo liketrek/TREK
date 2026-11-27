@@ -18,11 +18,15 @@ interface TokenEntry {
    * treat as version 0 — mirroring the JWT `pv` claim semantics.
    */
   pv?: number;
+  /** The session the token was minted under, so a socket can be closed with it. */
+  session?: string;
 }
 
 export interface EphemeralTokenMeta {
   /** Bind the token to the user's current password_version (session gate). */
   pv?: number;
+  /** The session (`user_sessions.id`) of the request that minted the token. */
+  session?: string;
 }
 
 const store = new Map<string, TokenEntry>();
@@ -31,7 +35,7 @@ export function createEphemeralToken(userId: number, purpose: string, meta?: Eph
   if (store.size >= MAX_STORE_SIZE) return null;
   const token = crypto.randomBytes(32).toString('hex');
   const ttl = TTL[purpose] ?? 60_000;
-  store.set(token, { userId, purpose, expiresAt: Date.now() + ttl, pv: meta?.pv });
+  store.set(token, { userId, purpose, expiresAt: Date.now() + ttl, pv: meta?.pv, session: meta?.session });
   return token;
 }
 
@@ -46,14 +50,18 @@ export function consumeEphemeralToken(token: string, purpose: string): number | 
 /**
  * Like `consumeEphemeralToken`, but also returns the `password_version` the
  * token was minted with. Used by the WebSocket handshake so a token issued
- * before a password change can be rejected even within its short TTL.
+ * before a password change can be rejected even within its short TTL, and
+ * so the socket knows the session it belongs to.
  */
-export function consumeEphemeralTokenWithMeta(token: string, purpose: string): { userId: number; pv?: number } | null {
+export function consumeEphemeralTokenWithMeta(
+  token: string,
+  purpose: string,
+): { userId: number; pv?: number; session?: string } | null {
   const entry = store.get(token);
   if (!entry) return null;
   store.delete(token);
   if (entry.purpose !== purpose || Date.now() > entry.expiresAt) return null;
-  return { userId: entry.userId, pv: entry.pv };
+  return { userId: entry.userId, pv: entry.pv, session: entry.session };
 }
 
 let cleanupInterval: ReturnType<typeof setInterval> | null = null;

@@ -1,5 +1,5 @@
 /**
- * WSREV-001 to WSREV-012: a socket is let into a room with one access check,
+ * WSREV-001 to WSREV-017: a socket is let into a room with one access check,
  * so the writes that end access ask the sockets already in again
  * (recheckTripAccess, recheckJourneyAccess), and the sockets of a user whose
  * sessions ended, or of every user once the database was replaced, are
@@ -54,9 +54,9 @@ let rooms: InMemoryRoomRegistry;
 let clients: Set<FakeSocket>;
 
 /** A socket of the user, open and registered, as the handshake leaves it. */
-function open(userId: number): FakeSocket {
+function open(userId: number, sessionId?: string): FakeSocket {
   const ws = socket();
-  registerSocket(ws, { id: userId, username: `u${userId}` } as User);
+  registerSocket(ws, { id: userId, username: `u${userId}` } as User, sessionId);
   clients.add(ws);
   return ws;
 }
@@ -217,6 +217,22 @@ describe('closeSockets', () => {
     expect(rooms.members(5)).toBeUndefined();
     expect(bookPeers(9).map((p) => p.userId)).toEqual([2]);
     expect(theirs.sent).toContainEqual(expect.objectContaining({ type: 'journey:book:peers' }));
+  });
+
+  it('WSREV-017: one ended session closes its own sockets and those of no known session, never another device', async () => {
+    const ended = open(1, 'sess-a');
+    const otherDevice = open(1, 'sess-b');
+    const unknown = open(1);
+    const theirs = open(2, 'sess-a');
+    rooms.join(otherDevice, 5);
+
+    new RealtimeService().closeSessionSockets(1, 'sess-a', 'Session ended');
+
+    expect(ended.closedWith).toEqual([4001, 'Session ended']);
+    expect(unknown.closedWith).toEqual([4001, 'Session ended']);
+    expect(otherDevice.closedWith).toBeNull();
+    expect(theirs.closedWith).toBeNull();
+    expect(rooms.members(5)?.has(otherDevice)).toBe(true);
   });
 
   it('WSREV-012: without a user closes every socket, which a replaced database asks for', async () => {

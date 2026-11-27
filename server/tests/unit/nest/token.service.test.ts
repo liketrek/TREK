@@ -365,6 +365,13 @@ describe('ephemeral tokens', () => {
     expect(createEphemeralToken).toHaveBeenCalledWith(99999, 'ws', { pv: 0 });
   });
 
+  it('TOKEN-021: createWsToken carries the session it was asked under, so the socket can close with it', async () => {
+    const { user } = createUser(testDb);
+    vi.mocked(createEphemeralToken).mockReturnValueOnce('ws-tok');
+    await asLegacyResult(svc.createWsToken(user.id, 'sess-1'));
+    expect(createEphemeralToken).toHaveBeenCalledWith(user.id, 'ws', { pv: 0, session: 'sess-1' });
+  });
+
   it('TOKEN-008: createWsToken reports 503 when the store refuses', async () => {
     const { user } = createUser(testDb);
     vi.mocked(createEphemeralToken).mockReturnValueOnce(null as unknown as string);

@@ -210,7 +210,7 @@ export class SessionsService {
   /** End one of the user's sessions. False when the user has no active session by that id. */
   async revoke(userId: number, sessionId: string): Promise<boolean> {
     const revoked = await this.sessions.revokeForUser(sessionId, userId, dbNow());
-    if (revoked) this.realtime.closeUserSockets(userId, 'Session ended');
+    if (revoked) this.realtime.closeSessionSockets(userId, sessionId, 'Session ended');
     return revoked;
   }
 

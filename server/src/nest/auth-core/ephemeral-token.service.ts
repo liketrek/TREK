@@ -52,11 +52,11 @@ export class EphemeralTokenService implements OnModuleInit, OnModuleDestroy {
   }
 
   /**
-   * The same, plus the password_version the token was minted with. Only the ws
-   * handshake needs it, for the session gate that rejects a token minted before
-   * a password change.
+   * The same, plus the password_version and the session the token was minted
+   * with. Only the ws handshake needs them, for the session gate that rejects a
+   * token minted before a password change and to close the socket with its session.
    */
-  consumeWithMeta(token: string, purpose: string): { userId: number; pv?: number } | null {
+  consumeWithMeta(token: string, purpose: string): { userId: number; pv?: number; session?: string } | null {
     return consumeEphemeralTokenWithMeta(token, purpose);
   }
 }

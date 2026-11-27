@@ -142,6 +142,8 @@ export const roomsSlot = new ProcessStoreSlot<RoomRegistry>(processRooms);
 
 const socketUser = new WeakMap<TrekWebSocket, User>();
 const socketId = new WeakMap<TrekWebSocket, number>();
+/** The session (`user_sessions.id`) the socket's ws token was minted under, where the request that minted it had one. */
+const socketSession = new WeakMap<TrekWebSocket, string>();
 
 /**
  * A monotonic integer, NOT a uuid.
@@ -164,10 +166,11 @@ export function getServer(): WebSocketServer | null {
   return wss;
 }
 
-export function registerSocket(ws: TrekWebSocket, user: User): number {
+export function registerSocket(ws: TrekWebSocket, user: User, sessionId?: string): number {
   const sid = nextSocketId++;
   socketId.set(ws, sid);
   socketUser.set(ws, user);
+  if (sessionId !== undefined) socketSession.set(ws, sessionId);
   roomsSlot.get().register(ws);
   return sid;
 }
@@ -389,14 +392,16 @@ export async function recheckJourneyAccess(journeyId?: number): Promise<void> {
 /**
  * Ends sockets that may not go on as they were opened: every socket of an
  * account whose sessions ended or that was deleted, or every socket at all
- * once the database was replaced. They leave their rooms at once, before the
- * close handshake, so nothing more reaches them; a client whose session still
- * holds connects again and joins what it may.
+ * once the database was replaced. With `sessionId`, only the account's sockets
+ * opened under that session, and those whose session is not known. They leave
+ * their rooms at once, before the close handshake, so nothing more reaches
+ * them; a client whose session still holds connects again and joins what it may.
  */
-export function closeSockets(code: number, reason: string, userId?: number): void {
+export function closeSockets(code: number, reason: string, userId?: number, sessionId?: string): void {
   const rooms = roomsSlot.get();
   for (const ws of openSockets()) {
     if (userId != null && socketUser.get(ws)?.id !== userId) continue;
+    if (sessionId !== undefined && (socketSession.get(ws) ?? sessionId) !== sessionId) continue;
     rooms.leaveAll(ws);
     for (const id of rooms.leaveAllBooks(ws)) announceBookPeers(id);
     ws.close(code, reason);

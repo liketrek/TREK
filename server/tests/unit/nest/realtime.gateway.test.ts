@@ -13,6 +13,7 @@ import {
   joinBook,
   leaveBook,
   broadcastToUser,
+  closeSockets,
   getOnlineUserIds,
   joinRoom,
   registerSocket,
@@ -308,6 +309,20 @@ describe('RealtimeGateway heartbeat', () => {
     ws.isAlive = false;
     pong![1]();
     expect(ws.isAlive).toBe(true);
+  });
+
+  it('WSGW-023: the socket keeps the session its token was minted under, so it closes with that session only', async () => {
+    consumeWithMeta.mockReturnValue({ userId: 3, pv: 2, session: 'sess-a' });
+    const { ws: a } = await connect('/ws?token=x');
+    consumeWithMeta.mockReturnValue({ userId: 3, pv: 2, session: 'sess-b' });
+    const { ws: b } = await connect('/ws?token=y');
+    setServer({ clients: new Set([a, b]) } as never);
+
+    closeSockets(4001, 'Session ended', 3, 'sess-a');
+
+    expect(a.closedWith).toEqual([4001, 'Session ended']);
+    expect(b.closedWith).toBeNull();
+    setServer(null);
   });
 });
 

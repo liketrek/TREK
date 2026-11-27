@@ -152,4 +152,13 @@ export class RealtimeService {
   closeUserSockets(userId: number, reason: string): void {
     closeSockets(4001, reason, userId);
   }
+
+  /**
+   * The same for one ended session: only the sockets opened under it, so the
+   * account's other devices stay connected. A socket whose session is not
+   * known is closed with it.
+   */
+  closeSessionSockets(userId: number, sessionId: string, reason: string): void {
+    closeSockets(4001, reason, userId, sessionId);
+  }
 }

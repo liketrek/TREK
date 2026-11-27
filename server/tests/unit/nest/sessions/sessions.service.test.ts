@@ -299,22 +299,27 @@ describe('SessionsService list and revoke', () => {
     expect(await svc.revokeAll(user.id)).toBe(1);
   });
 
-  it('SESS-019: ending sessions ends the user’s open sockets too, and nothing when no session ended', async () => {
-    const close = vi.spyOn(RealtimeService.prototype, 'closeUserSockets').mockImplementation(() => undefined);
+  it('SESS-019: ending sessions ends their open sockets too, and nothing when no session ended', async () => {
+    const closeAll = vi.spyOn(RealtimeService.prototype, 'closeUserSockets').mockImplementation(() => undefined);
+    const closeOne = vi.spyOn(RealtimeService.prototype, 'closeSessionSockets').mockImplementation(() => undefined);
     const { user } = createUser(testDb);
     const a = claimsOf(await svc.issue({ id: user.id, pv: 0 }));
     const b = claimsOf(await svc.issue({ id: user.id, pv: 0 }));
 
+    // One session ended: only its sockets, the other device stays connected.
     expect(await svc.revoke(user.id, a.jti)).toBe(true);
-    expect(close).toHaveBeenLastCalledWith(user.id, 'Session ended');
+    expect(closeOne).toHaveBeenLastCalledWith(user.id, a.jti, 'Session ended');
+    expect(closeAll).not.toHaveBeenCalled();
     expect(await svc.revokeAll(user.id)).toBe(1);
-    expect(close).toHaveBeenCalledTimes(2);
+    expect(closeAll).toHaveBeenLastCalledWith(user.id, 'Session ended');
 
     // Nothing left to end: the sockets stay.
     expect(await svc.revoke(user.id, b.jti)).toBe(false);
     expect(await svc.revokeAll(user.id)).toBe(0);
-    expect(close).toHaveBeenCalledTimes(2);
-    close.mockRestore();
+    expect(closeOne).toHaveBeenCalledTimes(1);
+    expect(closeAll).toHaveBeenCalledTimes(1);
+    closeAll.mockRestore();
+    closeOne.mockRestore();
   });
 
   it('SESS-010: endSession ends the session a token names, and nothing for an untracked or missing token', async () => {

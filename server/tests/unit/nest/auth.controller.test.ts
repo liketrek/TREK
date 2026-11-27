@@ -529,7 +529,7 @@ describe('AuthController (authenticated)', () => {
     for (let i = 0; i < 120; i++) await s.check('ws_token', String(user.id), 120, 15 * 60 * 1000, now);
     expect(
       await thrownAsync(() =>
-        ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user),
+        ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user, req),
       ),
     ).toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
     // The login bucket is untouched: an exhausted socket loop must not lock the account out.
@@ -551,15 +551,17 @@ describe('AuthController (authenticated)', () => {
     // Both users sit behind the same NAT address, and the first one burns its
     // whole ceiling.
     for (let i = 0; i < 120; i++) {
-      await ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user);
+      await ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user, req);
     }
     expect(
       await thrownAsync(() =>
-        ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user),
+        ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user, req),
       ),
     ).toEqual({ status: 429, body: { error: 'Too many attempts. Please try again later.' } });
 
-    expect(await ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws2' }) }).wsToken(other)).toEqual({
+    expect(
+      await ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws2' }) }).wsToken(other, req),
+    ).toEqual({
       token: 'ws2',
     });
     expect(
@@ -944,12 +946,25 @@ describe('AuthController (authenticated)', () => {
   it('ws-token maps error, else returns the token', async () => {
     expect(
       await thrownAsync(() =>
-        ac(asvc({}), rl(), { createWsToken: vi.fn().mockRejectedValue(new DomainError(503, 'down')) }).wsToken(user),
+        ac(asvc({}), rl(), { createWsToken: vi.fn().mockRejectedValue(new DomainError(503, 'down')) }).wsToken(
+          user,
+          req,
+        ),
       ),
     ).toEqual({ status: 503, body: { error: 'down' } });
-    expect(await ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user)).toEqual(
-      { token: 'ws' },
-    );
+    expect(
+      await ac(asvc({}), rl(), { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user, req),
+    ).toEqual({ token: 'ws' });
+  });
+
+  it('ws-token is minted under the session of the request, so ending that session closes its socket', async () => {
+    const createWsToken = vi.fn().mockReturnValue({ token: 'ws' });
+    const ctl = ac(asvc({}), rl(), { createWsToken });
+    await ctl.wsToken(user, req);
+    expect(createWsToken).toHaveBeenLastCalledWith(1, undefined);
+    const tracked = jwt.sign({ id: 1, pv: 0 }, JWT_SECRET, { algorithm: 'HS256', jwtid: 'sid-ws' });
+    await ctl.wsToken(user, { ip: '9.9.9.9', headers: {}, cookies: { trek_session: tracked } } as unknown as Request);
+    expect(createWsToken).toHaveBeenLastCalledWith(1, 'sid-ws');
   });
 
   it('avatar saves when not in demo mode (env present but email is not a demo email)', async () => {

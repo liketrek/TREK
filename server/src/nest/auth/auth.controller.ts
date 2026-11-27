@@ -368,14 +368,14 @@ export class AuthController {
 
   @Post('ws-token')
   @HttpCode(200)
-  async wsToken(@CurrentUser() user: User) {
+  async wsToken(@CurrentUser() user: User, @Req() req: Request) {
     // Own bucket, not 'login': a client that reconnects its socket in a loop
     // must not be able to lock itself out of signing in. The ceiling is far
     // above any real client, which mints one token per socket connect, but it
     // stops a single account from filling the process-wide ephemeral store and
     // 503-ing every other user's ws and download tokens.
     await this.limitUser('ws_token', user.id, 120);
-    const result = await this.tokens.createWsToken(user.id);
+    const result = await this.tokens.createWsToken(user.id, currentSessionId(req));
     return { token: result.token };
   }
 

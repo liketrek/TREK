@@ -168,7 +168,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
       }
 
       socket.isAlive = true;
-      const sid = registerSocket(socket, user as User);
+      const sid = registerSocket(socket, user as User, consumed.session);
       // The version lets a client that stayed open across a deploy notice it
       // runs the previous build: a deploy restarts the server, so every open
       // client reconnects and reads this again.
