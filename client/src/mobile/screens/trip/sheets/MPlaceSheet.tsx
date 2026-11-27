@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
   Bookmark, ChevronRight, ExternalLink, Map as MapIcon, MapPinOff, Navigation, Paperclip,
@@ -220,8 +220,28 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                     </span>
                   )}
                 </div>
+                {/* A tap on the address opens directions, as the navigation button does:
+                    on the road the address is what the eye lands on. */}
                 {place.address && (
-                  <div className="mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted"><bdi>{place.address}</bdi></div>
+                  <div
+                    className={`mt-[2px] font-geist text-[0.6875rem] leading-[1.4] text-m-muted${navTargets.length > 0 ? ' cursor-pointer underline decoration-dotted underline-offset-2' : ''}`}
+                    {...(navTargets.length > 0
+                      ? {
+                          role: 'button',
+                          tabIndex: 0,
+                          'aria-label': `${navTargets.length === 1 ? navigationTargetLabel(navTargets[0], t) : t('inspector.navigation')}: ${place.address}`,
+                          onClick: openDirections,
+                          onKeyDown: (e: KeyboardEvent) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              openDirections()
+                            }
+                          },
+                        }
+                      : {})}
+                  >
+                    <bdi>{place.address}</bdi>
+                  </div>
                 )}
                 {/* A typed address that never got coordinates: no marker, and the sheet says why (#2837). */}
                 {addressWithoutCoordinates(place) && (

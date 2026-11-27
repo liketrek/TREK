@@ -1,4 +1,5 @@
-import { MapPin } from 'lucide-react'
+import { MapPin, Navigation } from 'lucide-react'
+import { useState } from 'react'
 import MDancingTrek from '../../../components/MDancingTrek'
 import { RES_ICONS } from '../../../../components/Planner/DayPlanSidebar.constants'
 import { formatTime, formatPriceText } from '../../../../utils/formatters'
@@ -13,6 +14,8 @@ import { useReservationListFilter } from '../../../../components/Planner/booking
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
 import { orderedEndpoints, seatCells } from '../../../../utils/flightLegs'
 import { filesFor } from '../../../../utils/reservationFiles'
+import { getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
+import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
 
 /**
  * Tab 2 — Buchungen. Real `planner.reservations` filtered to the non-transport
@@ -176,16 +179,15 @@ function BookingCard({ res, planner, canEdit, compact, onView }: {
             )}
 
             <TravelerAvatars travelers={res.travelers || []} label={t('reservations.travelers.label')} />
-
-            {res.location && (
-              <div className="mt-2 flex items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px]">
-                <MapPin size={12} strokeWidth={2} className="flex-none text-m-muted" />
-                <span dir="auto" className="truncate text-[0.71875rem] font-semibold text-m-ink">{res.location}</span>
-              </div>
-            )}
-
-            <CardNotes notes={res.notes} />
           </button>
+
+          <CardLocation location={res.location} />
+
+          {res.notes?.trim() && (
+            <button type="button" onClick={onView} className="block w-full text-start">
+              <CardNotes notes={res.notes} />
+            </button>
+          )}
 
           <CardFiles files={files} card={card} t={t} />
         </div>
@@ -194,5 +196,42 @@ function BookingCard({ res, planner, canEdit, compact, onView }: {
 
       <CardDeleteSheet title={res.title} card={card} t={t} />
     </div>
+  )
+}
+
+/**
+ * Where the booking is (the hotel, the rental desk): a tap opens directions to
+ * it, as the address of a place does, in the traveller's map app or with the
+ * same choice of apps.
+ */
+function CardLocation({ location }: { location: string | null | undefined }) {
+  const { t } = useTranslation()
+  const [anchor, setAnchor] = useState<HTMLButtonElement | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
+  const text = location?.trim()
+  if (!text) return null
+  const targets = getNavigationTargets({ name: text, address: text, lat: null, lng: null, google_place_id: null, google_ftid: null })
+  const openDirections = () => {
+    if (targets.length === 1) openNavigationTarget(targets[0])
+    else if (targets.length > 1) setMenuOpen(true)
+  }
+  return (
+    <>
+      <button
+        ref={setAnchor}
+        type="button"
+        onClick={openDirections}
+        disabled={targets.length === 0}
+        aria-label={`${t('inspector.navigation')}: ${text}`}
+        className="mt-2 flex w-full items-center gap-[6px] rounded-[10px] border border-[color:var(--m-rowbr)] bg-m-card px-[10px] py-[7px] text-start"
+      >
+        <MapPin size={12} strokeWidth={2} className="flex-none text-m-muted" />
+        <span dir="auto" className="min-w-0 flex-1 truncate text-[0.71875rem] font-semibold text-m-ink">{text}</span>
+        {targets.length > 0 && <Navigation size={12} strokeWidth={2} aria-hidden="true" className="flex-none text-m-muted" />}
+      </button>
+      {menuOpen && (
+        <NavigationMenu targets={targets} anchor={anchor} onClose={() => setMenuOpen(false)} title={t('inspector.openWith')} />
+      )}
+    </>
   )
 }
