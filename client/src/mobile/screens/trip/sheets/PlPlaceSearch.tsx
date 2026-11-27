@@ -103,13 +103,15 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onSuggest
   })
 
   // A map link shared to the app (#2582) is looked up as soon as the sheet opens,
-  // as if it had been pasted and searched.
-  const runInitial = useEffectEvent(() => {
-    void handleSearch()
+  // as if it had been pasted and searched. The sheet may be open already, its
+  // field holding something else, so the link itself is what is searched.
+  const runInitial = useEffectEvent((link: string) => {
+    setQuery(link)
+    void handleSearch(undefined, link)
     onInitialQueryRun?.()
   })
   useEffect(() => {
-    if (initialQuery) runInitial()
+    if (initialQuery) runInitial(initialQuery)
   }, [initialQuery])
 
   return (

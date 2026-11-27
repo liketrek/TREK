@@ -268,11 +268,12 @@ export function usePlaceSearch({
   const pickPlace = (place: MapsPlace, pick?: PlaceSearchPick) =>
     take(place, pick, sourceLabel(place, pick?.mode === 'search' ? searchSource : ''));
 
-  const runSearch = async (provider?: 'google') => {
+  const runSearch = async (provider?: 'google', text?: string) => {
     // The retry sends the query the list came from, not the field: the list
     // stays on screen while the field is edited or cleared, and the line under
-    // it promises the same query.
-    const trimmed = provider ? (searchMetaRef.current?.query ?? '') : query.trim();
+    // it promises the same query. A link shared into an open sheet is searched
+    // as given, before the field shows it.
+    const trimmed = provider ? (searchMetaRef.current?.query ?? '') : (text ?? query).trim();
     if (!trimmed) return;
     if (sheet) {
       setSuggestions([]);

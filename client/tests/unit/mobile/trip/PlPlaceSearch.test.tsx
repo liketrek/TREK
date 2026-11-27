@@ -271,6 +271,29 @@ describe('PlPlaceSearch', () => {
     expect(autocompleteBodies).toHaveLength(0)
   })
 
+  it('FE-MOB-PLSRCH-010b: a link shared while the sheet is open is resolved, whatever the field held', async () => {
+    const resolved: string[] = []
+    server.use(
+      recordAutocomplete(),
+      recordSearch(),
+      http.post('/api/maps/resolve-url', async ({ request }) => {
+        resolved.push(((await request.json()) as { url: string }).url)
+        return HttpResponse.json({ lat: 48.86, lng: 2.33, name: 'Louvre', address: 'Paris' })
+      }),
+    )
+    const { input, onPick, planner, rerender, onSuggestionName, onResolvingChange } = setup()
+    fireEvent.change(input, { target: { value: 'cafe' } })
+    const onInitialQueryRun = vi.fn()
+    rerender(
+      <PlPlaceSearch planner={planner} onPick={onPick} onSuggestionName={onSuggestionName} onResolvingChange={onResolvingChange} initialQuery="https://maps.app.goo.gl/abc" onInitialQueryRun={onInitialQueryRun} />,
+    )
+
+    await waitFor(() => expect(onPick).toHaveBeenCalledWith(expect.objectContaining({ name: 'Louvre', lat: '48.86', lng: '2.33' })))
+    expect(resolved).toEqual(['https://maps.app.goo.gl/abc'])
+    expect(searchBodies).toHaveLength(0)
+    expect(onInitialQueryRun).toHaveBeenCalledTimes(1)
+  })
+
   it('FE-MOB-PLSRCH-011: falls through to the text search when the URL carries no coordinates', async () => {
     server.use(
       http.post('/api/maps/resolve-url', () => HttpResponse.json({ lat: null, lng: null })),
