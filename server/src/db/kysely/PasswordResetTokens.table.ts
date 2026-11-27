@@ -10,4 +10,5 @@ export interface PasswordResetTokensTable {
   consumed_at: InsertOptional<string | null>;
   created_at: InsertOptional<string | null>;
   created_ip: InsertOptional<string | null>;
+  email: InsertOptional<string | null>;
 }

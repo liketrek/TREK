@@ -66,6 +66,7 @@ describe('PasswordResetTokensRepository', () => {
         token_hash: tokenHash,
         expires_at: expiresAt,
         created_ip: '1.2.3.4',
+        email: 'owner@example.com',
       });
 
       const row = await findRow(t, PasswordResetTokens, { token_hash: tokenHash });
@@ -75,13 +76,20 @@ describe('PasswordResetTokensRepository', () => {
         expires_at: expiresAt,
         consumed_at: null,
         created_ip: '1.2.3.4',
+        email: 'owner@example.com',
       });
     });
 
     it('PWDRESETREPO-002: writes a NULL created_ip', async () => {
       const { user } = createUser(testDb);
       const tokenHash = hash('no-ip-token');
-      await tokens.insertToken({ user_id: user.id, token_hash: tokenHash, expires_at: dbNow(), created_ip: null });
+      await tokens.insertToken({
+        user_id: user.id,
+        token_hash: tokenHash,
+        expires_at: dbNow(),
+        created_ip: null,
+        email: user.email,
+      });
 
       const row = await findRow(t, PasswordResetTokens, { token_hash: tokenHash });
       expect(row?.created_ip).toBeNull();
@@ -96,7 +104,21 @@ describe('PasswordResetTokensRepository', () => {
 
       const found = await tokens.findByTokenHash(tokenHash);
 
-      expect(found).toEqual({ id, user_id: user.id, expires_at: expect.any(String), consumed_at: null });
+      expect(found).toEqual({ id, user_id: user.id, expires_at: expect.any(String), consumed_at: null, email: null });
+    });
+
+    it('PWDRESETREPO-003b: carries the address the link was issued for', async () => {
+      const { user } = createUser(testDb);
+      const tokenHash = hash('bound-to-address');
+      await tokens.insertToken({
+        user_id: user.id,
+        token_hash: tokenHash,
+        expires_at: dbNow(),
+        created_ip: null,
+        email: 'bound@example.com',
+      });
+
+      expect((await tokens.findByTokenHash(tokenHash))?.email).toBe('bound@example.com');
     });
 
     it('PWDRESETREPO-004: a consumed token is still found (consumed_at is checked by the caller, not filtered here)', async () => {

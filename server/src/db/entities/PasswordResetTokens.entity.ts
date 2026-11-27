@@ -13,6 +13,7 @@ export class PasswordResetTokens {
   consumed_at?: string | null;
   created_at?: string | null;
   created_ip?: string | null;
+  email?: string | null;
 }
 
 export const PasswordResetTokensSchema = defineEntity({
@@ -28,5 +29,6 @@ export const PasswordResetTokensSchema = defineEntity({
     consumed_at: p.type(DbTimestampType).nullable(),
     created_at: p.type(DbTimestampType).nullable().defaultRaw(`CURRENT_TIMESTAMP`),
     created_ip: p.text().nullable(),
+    email: p.text().nullable(),
   },
 });

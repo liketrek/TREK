@@ -987,11 +987,22 @@ export class AuthService {
     const token_hash = hashResetToken(raw);
     const expires_at = dbNow(new Date(Date.now() + PASSWORD_RESET_TTL_MS));
     // Invalidate any prior unconsumed tokens for this user and issue the new one
-    // together, so there is always exactly one live reset link in flight.
-    await this.uow.transactional(async () => {
+    // together, so there is always exactly one live reset link in flight. The
+    // address is read again here: one changed since the lookup gets no link.
+    const issued = await this.uow.transactional(async () => {
+      const current = await this.usersRepo.getEmail(user.id);
+      if (current === null || current.toLowerCase() !== user.email.toLowerCase()) return false;
       await this.passwordResetTokens.consumeAllLiveForUser(user.id);
-      await this.passwordResetTokens.insertToken({ user_id: user.id, token_hash, expires_at, created_ip: createdIp });
+      await this.passwordResetTokens.insertToken({
+        user_id: user.id,
+        token_hash,
+        expires_at,
+        created_ip: createdIp,
+        email: user.email,
+      });
+      return true;
     });
+    if (!issued) return { tokenForDelivery: null, userId: null, userEmail: null, reason: 'no_user' };
 
     return { tokenForDelivery: raw, userId: user.id, userEmail: user.email, reason: 'issued' };
   }
@@ -1028,6 +1039,10 @@ export class AuthService {
     const user = await this.usersRepo.findResetTarget(row.user_id);
 
     if (!user) throw new DomainError(400, 'Invalid or expired reset link');
+    // A link mailed to an address the account no longer has is dead.
+    if (row.email !== null && row.email.toLowerCase() !== user.email.toLowerCase()) {
+      throw new DomainError(400, 'Invalid or expired reset link');
+    }
 
     // MFA gate. If enabled, require a valid TOTP or backup code.
     const mfaOn = user.mfa_enabled === 1;

@@ -1444,6 +1444,52 @@ describe('resetPassword', () => {
     await svc.requestPasswordReset(user.email, null);
     expect((await svc.requestPasswordReset(user.email, null)).reason).toBe('throttled_per_email');
   });
+
+  it('AUTH-DB-085b: an address changed while the request runs gets no link', async () => {
+    const { user } = createUser(testDb);
+    const usersRepo = await createTestUsersRepo(testDb);
+    const original = usersRepo.findForPasswordReset.bind(usersRepo);
+    const lookupSpy = vi.spyOn(usersRepo, 'findForPasswordReset').mockImplementationOnce(async (email) => {
+      const found = await original(email);
+      await updateRows(orm, Users, { id: user.id }, { email: 'moved@example.com' });
+      return found;
+    });
+    try {
+      const result = await svc.requestPasswordReset(user.email, null);
+      expect(result).toEqual({ tokenForDelivery: null, userId: null, userEmail: null, reason: 'no_user' });
+    } finally {
+      lookupSpy.mockRestore();
+    }
+    expect(await countRows(orm, PasswordResetTokens, { user: user.id })).toBe(0);
+  });
+
+  it('AUTH-DB-085c: a link stops working once the account has moved to another address', async () => {
+    const { user } = createUser(testDb);
+    const issued = await svc.requestPasswordReset(user.email, null);
+    expect((await findRow(orm, PasswordResetTokens, { user: user.id })).email).toBe(user.email);
+    await updateRows(orm, Users, { id: user.id }, { email: 'moved@example.com' });
+
+    expect(
+      await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })),
+    ).toEqual({ error: 'Invalid or expired reset link', status: 400 });
+    expect((await readUser(orm, user.id)).password_version).toBe(0);
+  });
+
+  it('AUTH-DB-085d: a change of case only, or a link from before links knew their address, still resets', async () => {
+    const { user } = createUser(testDb);
+    const issued = await svc.requestPasswordReset(user.email, null);
+    await updateRows(orm, Users, { id: user.id }, { email: user.email.toUpperCase() });
+    expect(
+      await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })),
+    ).toEqual({ success: true, userId: user.id });
+
+    const { user: older } = createUser(testDb);
+    const legacy = await svc.requestPasswordReset(older.email, null);
+    await updateRows(orm, PasswordResetTokens, { user: older.id }, { email: null });
+    expect(
+      await asLegacyResult(svc.resetPassword({ token: legacy.tokenForDelivery!, new_password: 'Fresh123!' })),
+    ).toEqual({ success: true, userId: older.id });
+  });
 });
 
 // ---------------------------------------------------------------------------

@@ -13,6 +13,7 @@ export interface PasswordResetTokenRow {
   consumed_at: string | null;
   created_at: string | null;
   created_ip: string | null;
+  email: string | null;
 }
 
 const _passwordResetTokenRowKeys: AssertRowKeys<PasswordResetTokenRow, PasswordResetTokens> = true;
@@ -23,6 +24,7 @@ export interface NewPasswordResetTokenRow {
   token_hash: string;
   expires_at: DbTimestamp;
   created_ip: string | null;
+  email: string;
 }
 
 /** `AuthService.resetPassword`'s lookup (AU39). */
@@ -31,6 +33,7 @@ export interface PasswordResetTokenLookup {
   user_id: number;
   expires_at: string;
   consumed_at: string | null;
+  email: string | null;
 }
 
 /**
@@ -78,6 +81,7 @@ export class PasswordResetTokensRepository extends TrekRepository<PasswordResetT
       token_hash: row.token_hash,
       expires_at: row.expires_at,
       created_ip: row.created_ip,
+      email: row.email,
     });
   }
 
@@ -101,9 +105,18 @@ export class PasswordResetTokensRepository extends TrekRepository<PasswordResetT
    * query.
    */
   async findByTokenHash(hash: string): Promise<PasswordResetTokenLookup | null> {
-    const row = await this.findOne({ token_hash: hash }, { fields: ['id', 'user', 'expires_at', 'consumed_at'] });
+    const row = await this.findOne(
+      { token_hash: hash },
+      { fields: ['id', 'user', 'expires_at', 'consumed_at', 'email'] },
+    );
     return row
-      ? { id: row.id, user_id: row.user.id, expires_at: row.expires_at, consumed_at: row.consumed_at ?? null }
+      ? {
+          id: row.id,
+          user_id: row.user.id,
+          expires_at: row.expires_at,
+          consumed_at: row.consumed_at ?? null,
+          email: row.email ?? null,
+        }
       : null;
   }
 
