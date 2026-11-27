@@ -128,6 +128,8 @@ big5_to_euc_tw
 big5_to_mic
 big5_to_utf8
 binary_upgrade_add_sub_rel_state
+binary_upgrade_check_logical_slot_pending_wal
+binary_upgrade_create_conflict_detection_slot
 binary_upgrade_create_empty_extension
 binary_upgrade_logical_slot_has_caught_up
 binary_upgrade_replorigin_advance
@@ -335,6 +337,9 @@ btint8sortsupport
 btnamecmp
 btnamesortsupport
 btnametextcmp
+btoid8cmp
+btoid8skipsupport
+btoid8sortsupport
 btoidcmp
 btoidskipsupport
 btoidsortsupport
@@ -618,6 +623,7 @@ eqjoinsel
 eqsel
 erf
 erfc
+error_on_null
 euc_cn_to_mic
 euc_cn_to_utf8
 euc_jis_2004_to_shift_jis_2004
@@ -861,6 +867,8 @@ hashmacaddrextended
 hashname
 hashnameextended
 hashoid
+hashoid8
+hashoid8extended
 hashoidextended
 hashoidvector
 hashoidvectorextended
@@ -1462,6 +1470,7 @@ multirange_intersect_agg_transfn
 multirange_le
 multirange_lt
 multirange_minus
+multirange_minus_multi
 multirange_ne
 multirange_out
 multirange_overlaps_multirange
@@ -1600,6 +1609,19 @@ numrange_subdiff
 obj_description
 octet_length
 oid
+oid8
+oid8eq
+oid8ge
+oid8gt
+oid8in
+oid8larger
+oid8le
+oid8lt
+oid8ne
+oid8out
+oid8recv
+oid8send
+oid8smaller
 oideq
 oidge
 oidgt
@@ -1685,6 +1707,7 @@ pg_blocking_pids
 pg_cancel_backend
 pg_char_to_encoding
 pg_clear_attribute_stats
+pg_clear_extended_stats
 pg_clear_relation_stats
 pg_client_encoding
 pg_collation_actual_version
@@ -1742,6 +1765,7 @@ pg_get_aios
 pg_get_backend_memory_contexts
 pg_get_catalog_foreign_keys
 pg_get_constraintdef
+pg_get_dsm_registry_allocations
 pg_get_expr
 pg_get_function_arg_default
 pg_get_function_arguments
@@ -1753,9 +1777,11 @@ pg_get_indexdef
 pg_get_keywords
 pg_get_loaded_modules
 pg_get_multixact_members
+pg_get_multixact_stats
 pg_get_object_address
 pg_get_partition_constraintdef
 pg_get_partkeydef
+pg_get_publication_sequences
 pg_get_publication_tables
 pg_get_replica_identity_index
 pg_get_replication_slots
@@ -1885,6 +1911,7 @@ pg_replication_origin_xact_reset
 pg_replication_origin_xact_setup
 pg_replication_slot_advance
 pg_restore_attribute_stats
+pg_restore_extended_stats
 pg_restore_relation_stats
 pg_rotate_logfile
 pg_rotate_logfile_old
@@ -1917,6 +1944,7 @@ pg_stat_get_analyze_count
 pg_stat_get_archiver
 pg_stat_get_autoanalyze_count
 pg_stat_get_autovacuum_count
+pg_stat_get_autovacuum_scores
 pg_stat_get_backend_activity
 pg_stat_get_backend_activity_start
 pg_stat_get_backend_client_addr
@@ -1993,6 +2021,7 @@ pg_stat_get_db_xact_rollback
 pg_stat_get_dead_tuples
 pg_stat_get_function_calls
 pg_stat_get_function_self_time
+pg_stat_get_function_stat_reset_time
 pg_stat_get_function_total_time
 pg_stat_get_ins_since_vacuum
 pg_stat_get_io
@@ -2002,13 +2031,16 @@ pg_stat_get_last_autovacuum_time
 pg_stat_get_last_vacuum_time
 pg_stat_get_lastscan
 pg_stat_get_live_tuples
+pg_stat_get_lock
 pg_stat_get_mod_since_analyze
 pg_stat_get_numscans
 pg_stat_get_progress_info
+pg_stat_get_recovery
 pg_stat_get_recovery_prefetch
 pg_stat_get_replication_slot
 pg_stat_get_slru
 pg_stat_get_snapshot_timestamp
+pg_stat_get_stat_reset_time
 pg_stat_get_subscription
 pg_stat_get_subscription_stats
 pg_stat_get_total_analyze_time
@@ -2189,6 +2221,7 @@ range_le
 range_lt
 range_merge
 range_minus
+range_minus_multi
 range_ne
 range_out
 range_overlaps
@@ -2237,6 +2270,10 @@ regconfigin
 regconfigout
 regconfigrecv
 regconfigsend
+regdatabasein
+regdatabaseout
+regdatabaserecv
+regdatabasesend
 regdictionaryin
 regdictionaryout
 regdictionaryrecv
@@ -2440,6 +2477,8 @@ textregexne
 textsend
 thesaurus_init
 thesaurus_lexize
+tid_block
+tid_offset
 tideq
 tidge
 tidgt
@@ -2582,6 +2621,7 @@ to_number
 to_oct
 to_regclass
 to_regcollation
+to_regdatabase
 to_regnamespace
 to_regoper
 to_regoperator
@@ -2700,6 +2740,7 @@ utf8_to_shift_jis_2004
 utf8_to_sjis
 utf8_to_uhc
 utf8_to_win
+uuid
 uuid_cmp
 uuid_eq
 uuid_extract_timestamp

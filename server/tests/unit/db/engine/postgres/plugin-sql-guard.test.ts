@@ -268,6 +268,11 @@ describe('plugin SQL guard', () => {
     ["select 'english'::regconfig", /"regconfig" may not be named/],
     ["select 'simple'::regdictionary", /"regdictionary" may not be named/],
     ["select '{public.users}'::_regclass", /"_regclass" may not be named/],
+    // PostgreSQL 19's regdatabase looks a database of the cluster up by its name.
+    ["select 'postgres'::regdatabase::oid", /"regdatabase" may not be named/],
+    ["select cast('other_app' as regdatabase)", /"regdatabase" may not be named/],
+    ["select '{postgres}'::_regdatabase", /"_regdatabase" may not be named/],
+    ["select to_regdatabase('other_app')", /"to_regdatabase" may not be named/],
     ["select 'x'::pg_catalog.regtype", /"pg_catalog" may not be named/],
     ["select has_table_privilege('public.users', 'select')", /"has_table_privilege" may not be named/],
     ["select currtid2('public.users', '(0,1)')", /"currtid2" may not be named/],
