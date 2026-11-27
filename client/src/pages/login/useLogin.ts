@@ -351,10 +351,10 @@ export function useLogin() {
         if (!signedIn) return
         await loadUser({ silent: true })
         setShowTakeoff(true)
-        void loadSettings()
-        setTimeout(() => {
+        toastHaptic('success')
+        void handOverToApp(loadSettings(), () => {
           void navigate(redirectTarget)
-        }, 2600)
+        })
       })
       .catch(() => setError(t('native.login.failed')))
   }, [nativeApp, loadUser, loadSettings, navigate, redirectTarget, t])

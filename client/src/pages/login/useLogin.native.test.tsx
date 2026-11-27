@@ -58,6 +58,7 @@ beforeEach(() => {
   vi.mocked(signInThroughBrowser).mockReset();
   vi.mocked(resumeBrowserSignIn).mockReset().mockResolvedValue(false);
   vi.mocked(startAuthentication).mockReset();
+  vi.mocked(toastHaptic).mockClear();
   loadUser.mockClear();
   useAuthStore.setState({ loadUser });
   Object.defineProperty(window, 'location', {
@@ -72,6 +73,7 @@ afterEach(() => {
   if (realLanguages) Object.defineProperty(window.navigator, 'languages', realLanguages);
   else delete (window.navigator as { languages?: readonly string[] }).languages;
   localStorage.removeItem('app_language');
+  document.documentElement.removeAttribute('data-app-handover');
   Object.defineProperty(window, 'location', { configurable: true, writable: true, value: realLocation });
 });
 
@@ -186,5 +188,6 @@ describe('useLogin in the native app', () => {
     await waitFor(() => expect(result.current.showTakeoff).toBe(true));
     expect(toastHaptic).toHaveBeenCalledWith('success');
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/'), { timeout: 2500 });
+    expect(document.documentElement.hasAttribute('data-app-handover')).toBe(true);
   });
 });
