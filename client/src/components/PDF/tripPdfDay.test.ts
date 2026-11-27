@@ -50,6 +50,7 @@ function context(over: Partial<PdfDayContext> = {}): PdfDayContext {
     placesById: new Map([[fullPlace.id, fullPlace]]),
     photoOf: () => null,
     markdown: (text) => `<p>${text}</p>`,
+    markdownHtml: (text) => `<p>${text}</p>`,
     ...over,
   };
 }
@@ -169,7 +170,7 @@ describe('noteItem', () => {
       icon: 'Ticket',
       color: '#2563eb',
     } as DayNote;
-    const tinted = parse(noteItem(note));
+    const tinted = parse(noteItem(note, context()));
     expect(tinted.querySelector('.note-card')?.className).toBe('note-card note-tinted');
     expect(tinted.querySelector('.note-card')?.getAttribute('style')).toBe('--note:#2563eb');
     expect(texts(tinted, '.note-text')).toEqual(['Buy <tickets>']);
@@ -177,7 +178,7 @@ describe('noteItem', () => {
     expect(texts(tinted, '.note-time')).toEqual(['08:00']);
     expect(tinted.querySelector('.tl-start')).toBeNull();
 
-    const plain = parse(noteItem({ ...note, color: 'not-a-colour', time: null } as DayNote));
+    const plain = parse(noteItem({ ...note, color: 'not-a-colour', time: null } as DayNote, context()));
     expect(plain.querySelector('.note-card')?.className).toBe('note-card');
     expect(plain.querySelector('.note-time')).toBeNull();
   });

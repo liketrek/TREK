@@ -30,8 +30,10 @@ export interface PdfDayContext {
   placesById: ReadonlyMap<number, Place>;
   /** The picture to print for a place, already shrunk where it could be; null for none. */
   photoOf: (place: Assignment['place']) => string | null;
-  /** A place's description or notes as sanitized markdown. */
+  /** A place's description or notes as sanitized markdown, laid out as an info row. */
   markdown: (text: string) => string;
+  /** A note's markdown as sanitized HTML, for a card that brings its own box. */
+  markdownHtml: (text: string) => string;
 }
 
 const NEUTRAL = '#6b6b75';
@@ -214,7 +216,7 @@ export function bookingItem(r: PdfBooking, day: Day, ctx: PdfDayContext, flags: 
       ${bookingLines(r, tr).map(bookingLineHtml).join('')}
       ${location ? `<div class="note-time">${escHtml(location)}</div>` : ''}
       ${extras.length ? `<div class="note-extra">${extras.join('')}</div>` : ''}
-      ${note ? `<div class="note-time transport-note">${escHtml(note)}</div>` : ''}
+      ${note ? `<div class="note-time transport-note md">${ctx.markdownHtml(note)}</div>` : ''}
     </div>
   </div>`;
   return item('booking', timeColumn(start, end), bookingIcon(r.type, 11), card, `--kind:${tint}`);
@@ -226,15 +228,16 @@ export function bookingItem(r: PdfBooking, day: Day, ctx: PdfDayContext, flags: 
  * A day note. A coloured note carries its colour as the rule along its edge and its
  * icon (#1629), not as a fill: a tint costs ink and reads as grey on a mono printer.
  */
-export function noteItem(note: DayNote): string {
+export function noteItem(note: DayNote, ctx: PdfDayContext): string {
   const colour = note.color ? hexColour(note.color, '') : '';
   // A note's `time` is the free line the day plan prints under its text, not a clock,
-  // so it stays in the card and the time column stays empty.
+  // so it stays in the card and the time column stays empty. The planner renders it as
+  // markdown, so the card does too (#3236).
   const subtitle = typeof note.time === 'string' ? note.time.trim() : '';
   const card = `<div class="note-card${colour ? ' note-tinted' : ''}"${colour ? ` style="--note:${colour}"` : ''}>
     <span class="note-icon">${noteIcon(note.icon)}</span>
     <div class="note-body"><div class="note-text">${escHtml(note.text)}</div>${
-      subtitle ? `<div class="note-time">${escHtml(subtitle)}</div>` : ''
+      subtitle ? `<div class="note-time md">${ctx.markdownHtml(subtitle)}</div>` : ''
     }</div>
   </div>`;
   return item('note', timeColumn('', ''), '', card);

@@ -245,6 +245,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
       return url ? thumbs.get(url) ?? url : null
     },
     markdown: text => markdown.row(text),
+    markdownHtml: text => markdown.html(text),
   }
 
   /*
@@ -303,7 +304,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
       ? `<div class="empty-day">${escHtml(tr('dayplan.emptyDay'))}</div>`
       : `<ol class="timeline">${merged.map(item => {
           if (item.type === 'transport') return bookingItem(item.data as PdfBooking, day, ctx, flags)
-          if (item.type === 'note') return noteItem(item.data as DayNote)
+          if (item.type === 'note') return noteItem(item.data as DayNote, ctx)
           const a = item.data as Assignment
           if (!a.place) return ''
           number++
@@ -316,7 +317,7 @@ export async function downloadTripPDF({ trip, days, places, assignments: allStor
       cost: dayCost(day.id) || null,
     }, ctx)
     const strip = photoStrip((stripPhotos.get(day.id) || []).map(p => ({ ...p, url: stripCopies.get(p.url) ?? p.url })))
-    const intro = day.notes && day.notes.trim() ? `<div class="day-intro">${escHtml(day.notes.trim())}</div>` : ''
+    const intro = day.notes && day.notes.trim() ? `<div class="day-intro md">${markdown.html(day.notes.trim())}</div>` : ''
     const stays = staysBlock(staysForDay(day, days, accommodationList), day, ctx)
 
     // A real <table> so the browser repeats the <thead> day header at the top of

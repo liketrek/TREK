@@ -1,15 +1,22 @@
 import { createMarkdownHtml } from '../shared/markdownHtml';
 
 /**
- * A place's description and notes are markdown in the app, so the export
- * renders them the same way instead of printing the raw syntax (#2692): one
- * info row per text, the HTML from the app's own sanitized pipeline.
+ * Place descriptions and notes, day notes, booking notes and the day intro are
+ * markdown in the app, so the export renders them the same way instead of
+ * printing the raw syntax (#2692, #3236), the HTML from the app's own sanitized
+ * pipeline. `row` lays a place's text out as an info row, `html` is the bare
+ * markup for a card that brings its own box.
  */
-export function createPdfMarkdown(): { row: (text: string) => string; dispose: () => void } {
+export function createPdfMarkdown(): {
+  row: (text: string) => string;
+  html: (text: string) => string;
+  dispose: () => void;
+} {
   const markdown = createMarkdownHtml();
   return {
     row: (text) =>
       `<div class="info-row"><span class="info-spacer"></span><div class="info-text muted md">${markdown.html(text)}</div></div>`,
+    html: markdown.html,
     dispose: markdown.dispose,
   };
 }
@@ -17,6 +24,7 @@ export function createPdfMarkdown(): { row: (text: string) => string; dispose: (
 /** The markdown's own spacing, lists, tables and links at the export's small size. */
 export const PDF_MARKDOWN_CSS = `
   .info-text.md { min-width: 0; overflow-wrap: anywhere; }
+  .note-time.md, .day-intro.md { white-space: normal; }
   .md > :first-child { margin-top: 0; }
   .md > :last-child { margin-bottom: 0; }
   .md p, .md ul, .md ol, .md table, .md blockquote, .md pre { margin: 0 0 4px; }

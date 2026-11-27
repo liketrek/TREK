@@ -463,6 +463,31 @@ describe('downloadTripPDF', () => {
     expect(html).not.toContain('<script>alert(1)</script>')
   })
 
+  // #3236: day notes, transport notes and the day intro are markdown in the planner too.
+  it('FE-COMP-TRIPPDF-016m: renders markdown in day notes, transport notes and the day intro, sanitized', async () => {
+    const md = {
+      ...richArgs,
+      days: [{ ...dayWithPlaces, notes: '**Intro** day\n\n- museum\n- lunch' }],
+      dayNotes: [{ ...dayNote, time: '*Bring* water\n___\n<script>alert(1)</script>' }],
+      reservations: [{ ...transportReservation, notes: 'Seat **14A**\n1. check in\n2. board' }],
+    }
+    await downloadTripPDF(md)
+    const html = getIframe()?.srcdoc ?? ''
+    const doc = new DOMParser().parseFromString(html, 'text/html')
+    const intro = doc.querySelector('.day-intro')!
+    expect(intro.querySelector('strong')?.textContent).toBe('Intro')
+    expect([...intro.querySelectorAll('li')].map(li => li.textContent)).toEqual(['museum', 'lunch'])
+    const noteLine = doc.querySelector('.tl-note .note-time')!
+    expect(noteLine.querySelector('em')?.textContent).toBe('Bring')
+    expect(noteLine.querySelector('hr')).not.toBeNull()
+    expect(noteLine.querySelector('script')).toBeNull()
+    expect(noteLine.textContent).toContain('<script>alert(1)</script>')
+    const transportNote = doc.querySelector('.transport-note')!
+    expect(transportNote.querySelector('strong')?.textContent).toBe('14A')
+    expect([...transportNote.querySelectorAll('ol li')].map(li => li.textContent)).toEqual(['check in', 'board'])
+    expect(html).not.toContain('**')
+  })
+
   it('FE-COMP-TRIPPDF-016b: formats price chip and totals in the trip currency, not EUR', async () => {
     const usdArgs = {
       ...richArgs,
@@ -1464,7 +1489,8 @@ describe('downloadTripPDF — transport notes', () => {
     await downloadTripPDF({ ...richArgs, reservations: [{ ...withNote, notes: 'Gate <b>B12</b>' }] })
     const html = getIframe()!.srcdoc
 
-    expect(html).toContain('<div class="note-time transport-note">Gate &lt;b&gt;B12&lt;/b&gt;</div>')
+    // Markdown like the planner (#3236), raw HTML still printed as text.
+    expect(html).toContain('<div class="note-time transport-note md"><p><bdi>Gate &lt;b&gt;B12&lt;/b&gt;</bdi></p></div>')
     expect(html).not.toContain('pdf-no-transport-notes"')
     expect(notesToggle()!.getAttribute('aria-checked')).toBe('true')
   })
@@ -1472,7 +1498,7 @@ describe('downloadTripPDF — transport notes', () => {
   it('FE-PDF-TNOTES-002: without any transport note there is nothing to switch', async () => {
     await downloadTripPDF(richArgs)
 
-    expect(getIframe()!.srcdoc).not.toContain('class="note-time transport-note"')
+    expect(getIframe()!.srcdoc).not.toContain('class="note-time transport-note')
     expect(notesToggle()).toBeNull()
     // The page break switch is still there on its own.
     expect(document.querySelector('#pdf-daybreak-toggle')).not.toBeNull()
