@@ -50,6 +50,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Изменить обложку',
   'collections.description': 'Описание',
   'collections.descriptionPlaceholder': 'Добавьте описание…',
+  'collections.notes': 'Заметки',
+  'collections.notesPlaceholder': 'Ваши заметки…',
   'collections.links': 'Ссылки',
   'collections.linkLabel': 'Название',
   'collections.addLink': 'Добавить ссылку',

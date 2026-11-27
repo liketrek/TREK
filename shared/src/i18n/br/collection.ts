@@ -36,6 +36,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Alterar capa',
   'collections.description': 'Descrição',
   'collections.descriptionPlaceholder': 'Adicione uma descrição…',
+  'collections.notes': 'Notas',
+  'collections.notesPlaceholder': 'Suas anotações…',
   'collections.links': 'Links', // same-as-en
   'collections.linkLabel': 'Rótulo',
   'collections.addLink': 'Adicionar link',

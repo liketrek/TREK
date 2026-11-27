@@ -43,6 +43,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Zmeniť obálku',
   'collections.description': 'Popis',
   'collections.descriptionPlaceholder': 'Pridajte popis…',
+  'collections.notes': 'Poznámky',
+  'collections.notesPlaceholder': 'Vlastné poznámky…',
   'collections.links': 'Odkazy',
   'collections.linkLabel': 'Popisok',
   'collections.addLink': 'Pridať odkaz',

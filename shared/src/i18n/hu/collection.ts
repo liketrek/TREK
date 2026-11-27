@@ -36,6 +36,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Borító módosítása',
   'collections.description': 'Leírás',
   'collections.descriptionPlaceholder': 'Adjon hozzá leírást…',
+  'collections.notes': 'Jegyzetek',
+  'collections.notesPlaceholder': 'Saját jegyzetek…',
   'collections.links': 'Hivatkozások',
   'collections.linkLabel': 'Címke',
   'collections.addLink': 'Hivatkozás hozzáadása',

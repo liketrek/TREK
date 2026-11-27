@@ -29,6 +29,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': '更換封面',
   'collections.description': '描述',
   'collections.descriptionPlaceholder': '新增描述…',
+  'collections.notes': '備註',
+  'collections.notesPlaceholder': '你的備註…',
   'collections.links': '連結',
   'collections.linkLabel': '標籤',
   'collections.addLink': '新增連結',

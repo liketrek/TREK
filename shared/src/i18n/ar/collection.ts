@@ -64,6 +64,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'تغيير الغلاف',
   'collections.description': 'الوصف',
   'collections.descriptionPlaceholder': 'أضف وصفًا…',
+  'collections.notes': 'ملاحظات',
+  'collections.notesPlaceholder': 'ملاحظاتك الخاصة…',
   'collections.links': 'روابط',
   'collections.linkLabel': 'التسمية',
   'collections.addLink': 'إضافة رابط',

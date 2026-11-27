@@ -29,6 +29,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Đổi ảnh bìa',
   'collections.description': 'Mô tả',
   'collections.descriptionPlaceholder': 'Thêm mô tả…',
+  'collections.notes': 'Ghi chú',
+  'collections.notesPlaceholder': 'Ghi chú của bạn…',
   'collections.links': 'Liên kết',
   'collections.linkLabel': 'Nhãn',
   'collections.addLink': 'Thêm liên kết',

@@ -32,7 +32,7 @@ interface CollectionPlaceDetailProps {
   anchorRect?: { left: number; width: number } | null
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; lat?: number | null; lng?: number | null; address?: string | null }) => Promise<void>
+  onSave: (patch: { name?: string; description?: string | null; notes?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; lat?: number | null; lng?: number | null; address?: string | null }) => Promise<void>
   /** Upload a custom cover image (#1136); enables the cover change/remove controls. */
   onUploadImage?: (file: File) => Promise<void>
   onCopyToTrip: () => void
@@ -74,7 +74,7 @@ export default function CollectionPlaceDetail({
   const navigationTargets = getNavigationTargets(place)
   const descRef = useRef<HTMLTextAreaElement>(null)
   const {
-    editing, setEditing, name, setName, categoryId, setCategoryId, description, setDescription, links, setLinks, setLink,
+    editing, setEditing, name, setName, categoryId, setCategoryId, description, setDescription, notes, setNotes, links, setLinks, setLink,
     labelIds, toggleLabel, address, setAddress, lat, setLat, lng, setLng, saving, imgBusy, cover: banner, assignedLabels,
     handleImagePick: handleCoverPick, handleImageRemove, cancelEdit: resetForm, save,
   } = useCollectionPlaceForm({ place, labels, onSave, onUploadImage, t, normalizeLinkUrl, withCoordinates: true })
@@ -226,6 +226,11 @@ export default function CollectionPlaceDetail({
               <MarkdownToolbar textareaRef={descRef} onUpdate={setDescription} />
               <textarea ref={descRef} value={description} onChange={e => setDescription(e.target.value)} rows={4} placeholder={t('collections.descriptionPlaceholder')} className="col-detail-textarea" />
             </div>
+            {/* Notes: the traveller's own, apart from the description (#3168) */}
+            <div className="col-detail-field">
+              <div className="col-detail-label">{t('collections.notes')}</div>
+              <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={3} placeholder={t('collections.notesPlaceholder')} className="col-detail-textarea" />
+            </div>
             {/* Links */}
             <div className="col-detail-field">
               <div className="col-detail-label">{t('collections.links')}</div>
@@ -246,6 +251,12 @@ export default function CollectionPlaceDetail({
             {place.description && (
               <div className="col-detail-md collab-note-md">
                 <Markdown remarkPlugins={[remarkGfm, remarkBreaks]} components={markdownLinkComponents}>{place.description}</Markdown>
+              </div>
+            )}
+            {place.notes?.trim() && (
+              <div className="col-detail-field">
+                <div className="col-detail-label">{t('collections.notes')}</div>
+                <p className="m-0 whitespace-pre-wrap text-body text-content-muted [overflow-wrap:anywhere]">{place.notes}</p>
               </div>
             )}
             {place.links && place.links.length > 0 && (

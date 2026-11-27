@@ -36,6 +36,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Byt omslag',
   'collections.description': 'Beskrivning',
   'collections.descriptionPlaceholder': 'Lägg till en beskrivning…',
+  'collections.notes': 'Anteckningar',
+  'collections.notesPlaceholder': 'Egna anteckningar…',
   'collections.links': 'Länkar',
   'collections.linkLabel': 'Etikett',
   'collections.addLink': 'Lägg till länk',

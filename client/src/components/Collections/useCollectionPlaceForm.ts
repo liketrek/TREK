@@ -12,6 +12,7 @@ import { cleanListLinks } from './useListEditor';
 export interface CollectionPlacePatch {
   name?: string;
   description?: string | null;
+  notes?: string | null;
   links?: CollectionLink[];
   category_id?: number | null;
   label_ids?: number[];
@@ -84,6 +85,8 @@ export function useCollectionPlaceForm({
   const [name, setName] = useState(shown?.name ?? '');
   const [categoryId, setCategoryId] = useState<number | null>(shown?.category_id ?? null);
   const [description, setDescription] = useState(shown?.description ?? '');
+  // The traveller's own notes on the place (#3168), apart from its description.
+  const [notes, setNotes] = useState(shown?.notes ?? '');
   const [links, setLinks] = useState<CollectionLink[]>(shown?.links ?? []);
   const [labelIds, setLabelIds] = useState<number[]>(shown?.label_ids ?? []);
   const [address, setAddress] = useState(shown?.address ?? '');
@@ -101,6 +104,7 @@ export function useCollectionPlaceForm({
     setName(p.name);
     setCategoryId(p.category_id ?? null);
     setDescription(p.description ?? '');
+    setNotes(p.notes ?? '');
     setLinks(p.links ?? []);
     setLabelIds(p.label_ids ?? []);
     setAddress(p.address ?? '');
@@ -189,6 +193,7 @@ export function useCollectionPlaceForm({
     const base = {
       name: name.trim() || shown.name,
       description: description.trim() || null,
+      notes: notes.trim() || null,
       links: cleanListLinks(links, normalizeLinkUrl),
       category_id: categoryId,
       label_ids: labelIds,
@@ -215,6 +220,8 @@ export function useCollectionPlaceForm({
     setCategoryId,
     description,
     setDescription,
+    notes,
+    setNotes,
     links,
     setLinks,
     setLink,

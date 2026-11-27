@@ -36,6 +36,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Αλλαγή εξωφύλλου',
   'collections.description': 'Περιγραφή',
   'collections.descriptionPlaceholder': 'Προσθέστε μια περιγραφή…',
+  'collections.notes': 'Σημειώσεις',
+  'collections.notesPlaceholder': 'Οι σημειώσεις σας…',
   'collections.links': 'Σύνδεσμοι',
   'collections.linkLabel': 'Ετικέτα',
   'collections.addLink': 'Προσθήκη συνδέσμου',

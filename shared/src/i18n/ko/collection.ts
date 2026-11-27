@@ -29,6 +29,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': '커버 변경',
   'collections.description': '설명',
   'collections.descriptionPlaceholder': '설명 추가…',
+  'collections.notes': '메모',
+  'collections.notesPlaceholder': '나만의 메모…',
   'collections.links': '링크',
   'collections.linkLabel': '레이블',
   'collections.addLink': '링크 추가',

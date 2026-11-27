@@ -36,6 +36,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Üzlüyü dəyiş',
   'collections.description': 'Təsvir',
   'collections.descriptionPlaceholder': 'Təsvir əlavə edin…',
+  'collections.notes': 'Qeydlər',
+  'collections.notesPlaceholder': 'Öz qeydləriniz…',
   'collections.links': 'Linklər',
   'collections.linkLabel': 'Etiket',
   'collections.addLink': 'Link əlavə et',

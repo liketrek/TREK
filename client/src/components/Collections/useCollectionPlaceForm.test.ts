@@ -176,6 +176,7 @@ describe('useCollectionPlaceForm', () => {
     expect(detail.props.onSave).toHaveBeenCalledWith({
       name: 'Louvre',
       description: 'Museum',
+      notes: null,
       links: [{ label: 'Map', url: 'https://maps.example' }],
       category_id: 3,
       label_ids: [11],
@@ -192,11 +193,31 @@ describe('useCollectionPlaceForm', () => {
     expect(sheet.props.onSave).toHaveBeenCalledWith({
       name: 'Louvre',
       description: 'Museum',
+      notes: null,
       links: [{ label: 'Site', url: 'https://louvre.example' }],
       category_id: 3,
       label_ids: [10],
       address: 'Rue de Rivoli',
     });
+  });
+
+  it('FE-COMP-COLPLACEHOOK-014: seeds, edits and saves the own notes on a saved place (#3168)', async () => {
+    const sheet = setup({ place: place({ notes: 'Book a week ahead' }) });
+    expect(sheet.result.current.notes).toBe('Book a week ahead');
+    act(() => {
+      sheet.result.current.setEditing(true);
+      sheet.result.current.setNotes('  Closed on Tuesdays  ');
+    });
+    await act(async () => {
+      await sheet.result.current.save();
+    });
+    expect(sheet.props.onSave).toHaveBeenCalledWith(expect.objectContaining({ notes: 'Closed on Tuesdays' }));
+
+    act(() => sheet.result.current.setNotes('   '));
+    await act(async () => {
+      await sheet.result.current.save();
+    });
+    expect(sheet.props.onSave).toHaveBeenLastCalledWith(expect.objectContaining({ notes: null }));
   });
 
   it('FE-COMP-COLPLACEHOOK-010: a failed save stays in edit mode and toasts', async () => {

@@ -29,6 +29,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'カバーを変更',
   'collections.description': '説明',
   'collections.descriptionPlaceholder': '説明を追加…',
+  'collections.notes': 'メモ',
+  'collections.notesPlaceholder': '自分用のメモ…',
   'collections.links': 'リンク',
   'collections.linkLabel': 'ラベル',
   'collections.addLink': 'リンクを追加',

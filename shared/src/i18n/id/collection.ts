@@ -29,6 +29,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Ubah sampul',
   'collections.description': 'Deskripsi',
   'collections.descriptionPlaceholder': 'Tambahkan deskripsi…',
+  'collections.notes': 'Catatan',
+  'collections.notesPlaceholder': 'Catatan Anda…',
   'collections.links': 'Tautan',
   'collections.linkLabel': 'Label', // same-as-en
   'collections.addLink': 'Tambah tautan',

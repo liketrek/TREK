@@ -35,7 +35,7 @@ interface MCollPlaceSheetProps {
   labels: CollectionLabel[]
   onClose: () => void
   onSetStatus: (status: CollectionStatus) => void
-  onSave: (patch: { name?: string; description?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; address?: string | null }) => Promise<void>
+  onSave: (patch: { name?: string; description?: string | null; notes?: string | null; links?: CollectionLink[]; category_id?: number | null; label_ids?: number[]; image_url?: string | null; address?: string | null }) => Promise<void>
   onUploadImage?: (file: File) => Promise<void>
   onCopyToTrip: () => void
   onRemove: () => void
@@ -57,7 +57,7 @@ export default function MCollPlaceSheet({
   const [navOpen, setNavOpen] = useState(false)
   const navBtnRef = useRef<HTMLButtonElement | null>(null)
   const {
-    shown: held, editing, setEditing, name, setName, address, setAddress, categoryId, setCategoryId, description, setDescription,
+    shown: held, editing, setEditing, name, setName, address, setAddress, categoryId, setCategoryId, description, setDescription, notes, setNotes,
     links, setLinks, labelIds, toggleLabel, saving, imgBusy, cover, assignedLabels, handleImagePick, handleImageRemove, cancelEdit, save,
   } = useCollectionPlaceForm({
     place, labels, onSave, onUploadImage, t, normalizeLinkUrl, holdLastPlace: true, dropPhotoOnPlaceUpdate: true,
@@ -195,6 +195,8 @@ export default function MCollPlaceSheet({
                 )}
                 <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.description').toUpperCase()}</Eyebrow>
                 <textarea rows={4} value={description} onChange={e => setDescription(e.target.value)} placeholder={t('collections.descriptionPlaceholder')} className={TEXTAREA_CLS} />
+                <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.notes').toUpperCase()}</Eyebrow>
+                <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} placeholder={t('collections.notesPlaceholder')} className={TEXTAREA_CLS} />
                 <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.links').toUpperCase()}</Eyebrow>
                 <MCollLinksEditor links={links} onChange={setLinks} t={t} />
                 <div className="mt-4 flex items-center gap-2">
@@ -227,6 +229,15 @@ export default function MCollPlaceSheet({
                   <div className="collab-note-md mt-3 font-geist text-[0.78125rem] leading-[1.55] text-m-ink">
                     <Markdown remarkPlugins={[remarkGfm, remarkBreaks]}>{held.description}</Markdown>
                   </div>
+                )}
+                {/* The traveller's own notes (#3168), the way the place sheet of a trip shows them. */}
+                {held.notes?.trim() && (
+                  <>
+                    <Eyebrow className="mb-[6px] mt-[14px]">{t('collections.notes').toUpperCase()}</Eyebrow>
+                    <p className="m-0 whitespace-pre-wrap rounded-[14px] bg-m-card px-[13px] py-[10px] font-geist text-caption leading-[1.55] text-m-muted [overflow-wrap:anywhere]">
+                      {held.notes}
+                    </p>
+                  </>
                 )}
                 {held.links && held.links.length > 0 && (
                   <div className="mt-3 flex flex-wrap gap-[6px]">

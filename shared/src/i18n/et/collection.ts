@@ -36,6 +36,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'Muuda kaanepilti',
   'collections.description': 'Kirjeldus',
   'collections.descriptionPlaceholder': 'Lisa kirjeldus…',
+  'collections.notes': 'Märkmed',
+  'collections.notesPlaceholder': 'Sinu märkmed…',
   'collections.links': 'Lingid',
   'collections.linkLabel': 'Nimetus',
   'collections.addLink': 'Lisa link',

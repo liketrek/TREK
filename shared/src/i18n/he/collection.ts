@@ -43,6 +43,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'החלפת שער',
   'collections.description': 'תיאור',
   'collections.descriptionPlaceholder': 'הוספת תיאור…',
+  'collections.notes': 'הערות',
+  'collections.notesPlaceholder': 'ההערות שלך…',
   'collections.links': 'קישורים',
   'collections.linkLabel': 'תווית',
   'collections.addLink': 'הוספת קישור',

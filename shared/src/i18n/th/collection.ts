@@ -29,6 +29,8 @@ const collection: TranslationStrings = {
   'collections.changeCover': 'เปลี่ยนปก',
   'collections.description': 'คำอธิบาย',
   'collections.descriptionPlaceholder': 'เพิ่มคำอธิบาย...',
+  'collections.notes': 'บันทึก',
+  'collections.notesPlaceholder': 'บันทึกของคุณ…',
   'collections.links': 'ลิงก์',
   'collections.linkLabel': 'ป้ายกำกับ',
   'collections.addLink': 'เพิ่มลิงก์',
