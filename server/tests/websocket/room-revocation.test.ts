@@ -52,9 +52,13 @@ interface Frame {
 class Client {
   readonly frames: Frame[] = [];
   closeCode: number | null = null;
+  private readonly arrived = new Set<() => void>();
 
   constructor(private readonly ws: WebSocket) {
-    ws.on('message', (data) => this.frames.push(JSON.parse(data.toString()) as Frame));
+    ws.on('message', (data) => {
+      this.frames.push(JSON.parse(data.toString()) as Frame);
+      for (const notify of this.arrived) notify();
+    });
     ws.on('close', (code) => {
       this.closeCode = code;
     });
@@ -64,14 +68,22 @@ class Client {
     this.ws.send(JSON.stringify(message));
   }
 
-  async waitFor(match: (frame: Frame) => boolean, timeoutMs = 3000): Promise<Frame> {
-    const end = Date.now() + timeoutMs;
-    for (;;) {
-      const found = this.frames.find(match);
-      if (found) return found;
-      if (Date.now() > end) throw new Error(`no matching frame, got ${this.frames.map((f) => f.type).join(', ')}`);
-      await new Promise((resolve) => setTimeout(resolve, 20));
-    }
+  waitFor(match: (frame: Frame) => boolean, timeoutMs = 3000): Promise<Frame> {
+    return new Promise((resolve, reject) => {
+      const look = () => {
+        const found = this.frames.find(match);
+        if (!found) return;
+        this.arrived.delete(look);
+        clearTimeout(timer);
+        resolve(found);
+      };
+      const timer = setTimeout(() => {
+        this.arrived.delete(look);
+        reject(new Error(`no matching frame, got ${this.frames.map((f) => f.type).join(', ')}`));
+      }, timeoutMs);
+      this.arrived.add(look);
+      look();
+    });
   }
 
   close(): void {
@@ -130,20 +142,18 @@ describe('a removed trip member', () => {
     await addTripMember(orm(), trip.id, leaves.id, owner.id);
 
     const sockets = await Promise.all([connect(owner.id), connect(stays.id)]);
-    for (const s of sockets) {
-      s.send({ type: 'join', tripId: trip.id });
-      await s.waitFor((f) => f.type === 'joined');
-    }
+    for (const s of sockets) s.send({ type: 'join', tripId: trip.id });
+    await Promise.all(sockets.map((s) => s.waitFor((f) => f.type === 'joined')));
 
     // The member leaves on their own; the others are not asked to go.
     const left = await request(server)
       .delete(`/api/trips/${trip.id}/members/${leaves.id}`)
       .set('Cookie', authCookie(leaves.id));
     expect(left.status).toBe(200);
-    for (const s of sockets) await s.waitFor((f) => f.type === 'member:removed');
+    await Promise.all(sockets.map((s) => s.waitFor((f) => f.type === 'member:removed')));
 
     realtime().broadcast(trip.id, 'place:created', { place: { id: 2, name: 'STILL-SHARED' } });
-    for (const s of sockets) await s.waitFor((f) => f.type === 'place:created');
+    await Promise.all(sockets.map((s) => s.waitFor((f) => f.type === 'place:created')));
     for (const s of sockets) s.close();
   });
 
@@ -214,10 +224,8 @@ describe('a removed journey contributor', () => {
 
     const ownerSocket = await connect(owner.id);
     const staysSocket = await connect(stays.id);
-    for (const s of [ownerSocket, staysSocket]) {
-      s.send({ type: 'book:join', journeyId: journey.id });
-      await s.waitFor((f) => f.type === 'book:joined');
-    }
+    for (const s of [ownerSocket, staysSocket]) s.send({ type: 'book:join', journeyId: journey.id });
+    await Promise.all([ownerSocket, staysSocket].map((s) => s.waitFor((f) => f.type === 'book:joined')));
 
     const res = await request(server)
       .delete(`/api/journeys/${journey.id}/contributors/${removed.id}`)
