@@ -87,9 +87,9 @@ describe('PhotoLightbox', () => {
 
   it('FE-COMP-LIGHTBOX-007: does not render when photos array is empty', () => {
     const onClose = vi.fn();
-    const { container } = render(<PhotoLightbox photos={[]} onClose={onClose} />);
+    render(<PhotoLightbox photos={[]} onClose={onClose} />);
     // Component returns null when photo is undefined (empty array, index 0 is undefined)
-    expect(container.querySelector('img')).not.toBeInTheDocument();
+    expect(document.querySelector('img')).not.toBeInTheDocument();
   });
 
   it('FE-COMP-LIGHTBOX-008: calls onClose when close button clicked', () => {
@@ -100,10 +100,10 @@ describe('PhotoLightbox', () => {
   });
 
   it('FE-COMP-LIGHTBOX-009: opens at the requested start index', () => {
-    const { container } = render(<PhotoLightbox photos={samplePhotos} startIndex={2} onClose={vi.fn()} />);
+    render(<PhotoLightbox photos={samplePhotos} startIndex={2} onClose={vi.fn()} />);
     expect(screen.getByText('3 / 3')).toBeInTheDocument();
     // The third photo has no caption, so its img is presentational.
-    expect(container.querySelector('img')).toHaveAttribute('src', '/photos/3.jpg');
+    expect(document.querySelector('img')).toHaveAttribute('src', '/photos/3.jpg');
   });
 
   it('FE-COMP-LIGHTBOX-010: only offers the arrows that lead somewhere', () => {
@@ -162,8 +162,8 @@ describe('PhotoLightbox', () => {
   });
 
   it('FE-COMP-LIGHTBOX-015: swipes horizontally to move between photos', () => {
-    const { container } = render(<PhotoLightbox photos={samplePhotos} startIndex={1} onClose={vi.fn()} />);
-    const surface = container.firstElementChild as HTMLElement;
+    render(<PhotoLightbox photos={samplePhotos} startIndex={1} onClose={vi.fn()} />);
+    const surface = screen.getByRole('dialog');
 
     fireEvent.touchStart(surface, { touches: [{ clientX: 200, clientY: 200 }] });
     fireEvent.touchEnd(surface, { changedTouches: [{ clientX: 100, clientY: 210 }] });
@@ -176,8 +176,8 @@ describe('PhotoLightbox', () => {
 
   it('FE-COMP-LIGHTBOX-016: swipes down to close', () => {
     const onClose = vi.fn();
-    const { container } = render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
-    const surface = container.firstElementChild as HTMLElement;
+    render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
+    const surface = screen.getByRole('dialog');
 
     fireEvent.touchStart(surface, { touches: [{ clientX: 200, clientY: 100 }] });
     fireEvent.touchEnd(surface, { changedTouches: [{ clientX: 210, clientY: 300 }] });
@@ -187,8 +187,8 @@ describe('PhotoLightbox', () => {
 
   it('FE-COMP-LIGHTBOX-017: ignores a touch end without a matching touch start', () => {
     const onClose = vi.fn();
-    const { container } = render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
-    const surface = container.firstElementChild as HTMLElement;
+    render(<PhotoLightbox photos={samplePhotos} onClose={onClose} />);
+    const surface = screen.getByRole('dialog');
 
     fireEvent.touchEnd(surface, { changedTouches: [{ clientX: 210, clientY: 300 }] });
 
@@ -294,8 +294,8 @@ describe('PhotoLightbox', () => {
     });
 
     it('FE-COMP-LIGHTBOX-026: a swipe to the right turns to the next photo', () => {
-      const { container } = render(<PhotoLightbox photos={samplePhotos} startIndex={1} onClose={vi.fn()} />);
-      const surface = container.firstElementChild as HTMLElement;
+      render(<PhotoLightbox photos={samplePhotos} startIndex={1} onClose={vi.fn()} />);
+      const surface = screen.getByRole('dialog');
 
       fireEvent.touchStart(surface, { touches: [{ clientX: 100, clientY: 200 }] });
       fireEvent.touchEnd(surface, { changedTouches: [{ clientX: 200, clientY: 210 }] });

@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { createPortal } from 'react-dom'
 import { ChevronLeft, ChevronRight, Loader2, X, ZoomIn, ZoomOut } from 'lucide-react'
 import VideoPlayer from './VideoPlayerLazy'
 import { usePhotoZoom } from './usePhotoZoom'
 import { Tooltip } from '../shared/Tooltip'
 import { isRtlLanguage, useTranslation } from '../../i18n'
+import { lockBodyScroll } from '../../utils/bodyScrollLock'
 
 interface LightboxPhoto {
   id: string
@@ -34,9 +36,21 @@ interface Props {
 /** The round glass buttons of the top bar. */
 const ROUND_BTN: React.CSSProperties = {
   background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
-  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-  color: '#fff', cursor: 'pointer',
+  width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+  color: '#fff', cursor: 'pointer', flex: 'none',
 }
+
+/** Close is the one every visitor needs: a little stronger than the rest. */
+const CLOSE_BTN: React.CSSProperties = { ...ROUND_BTN, background: 'rgba(255,255,255,0.18)' }
+
+/**
+ * The device's insets, from whichever source reports them: env() in a browser,
+ * the values Capacitor's SystemBars writes on Android, the ones the iOS app
+ * measures itself. The viewer is portalled to <body>, outside the phone shell
+ * that defines its own --m-safe-* tokens, so it reads the sources directly.
+ */
+const SAFE = (side: 'top' | 'bottom' | 'left' | 'right') =>
+  `max(env(safe-area-inset-${side}, 0px), var(--safe-area-inset-${side}, 0px), var(--trek-native-safe-${side}, 0px))`
 
 export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }: Props) {
   const [idx, setIdx] = useState(startIndex)
@@ -51,7 +65,11 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
   useEffect(() => {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null
     dialogRef.current?.focus()
-    return () => opener?.focus()
+    const unlock = lockBodyScroll()
+    return () => {
+      unlock()
+      opener?.focus()
+    }
   }, [])
 
   const photo = photos[idx]
@@ -111,7 +129,9 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
 
   if (!photo) return null
 
-  return (
+  // Portalled to <body>: inside a transformed sheet or pane, `fixed` would be
+  // relative to that box and the viewer would open as a small window in it.
+  return createPortal(
     <div
       ref={dialogRef}
       role="dialog"
@@ -120,26 +140,27 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
       tabIndex={-1}
       style={{
         outline: 'none',
-        position: 'fixed', inset: 0, zIndex: 10000,
+        position: 'fixed', inset: 0, zIndex: 'var(--z-modal)',
         background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)',
         display: 'flex', flexDirection: 'column',
-        paddingBottom: 'var(--bottom-nav-h)',
+        paddingBottom: SAFE('bottom'),
+        paddingInlineStart: SAFE('left'),
+        paddingInlineEnd: SAFE('right'),
       }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
     >
-      {/* Photo area — centered with nav overlays */}
-      <div
-        className="group/lightbox"
-        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden' }}
-      >
-        {/* Top bar */}
-        <div style={{ position: 'absolute', top: 0, insetInline: 0, zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px 20px' }}>
-          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500 }}>
-            {idx + 1} / {photos.length}
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Top bar: its own row below the status bar and a notch, so the close
+          button is always there to tap and never sits over the photo. */}
+      <div style={{
+        flex: 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12,
+        paddingBlock: `calc(${SAFE('top')} + 10px) 10px`, paddingInline: 16,
+      }}>
+        <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: 'calc(13px * var(--fs-scale-body, 1))', fontWeight: 500, fontVariantNumeric: 'tabular-nums' }}>
+          {idx + 1} / {photos.length}
+        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {isImage && (
             <>
               <Tooltip label={t('journey.lightbox.zoomOut')}>
@@ -162,16 +183,17 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
               </Tooltip>
             </>
           )}
-          <button type="button" onClick={onClose} aria-label={t('common.close')} style={{
-            background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: '50%',
-            width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
-            color: '#fff', cursor: 'pointer',
-          }}>
-            <X size={18} />
+          <button type="button" onClick={onClose} aria-label={t('common.close')} style={CLOSE_BTN}>
+            <X size={20} />
           </button>
-          </div>
         </div>
+      </div>
 
+      {/* Photo area: what is left below the bar, with the page arrows over it. */}
+      <div
+        className="group/lightbox"
+        style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', overflow: 'hidden', padding: '0 8px 8px' }}
+      >
         {/* Prev button — visible on hover (desktop), always visible (mobile) */}
         {hasPrev && (
           <button type="button" onClick={prev} aria-label={t('journey.lightbox.previous')} className="flex sm:opacity-0 sm:group-hover/lightbox:opacity-100 focus-visible:opacity-100 transition-opacity" style={{
@@ -200,7 +222,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
             onError={() => setLoadedId(photo.id)}
             {...zoom.mouse}
             style={{
-              maxWidth: '92vw', maxHeight: '92vh',
+              maxWidth: '100%', maxHeight: '100%',
               objectFit: 'contain', borderRadius: 4,
               animation: 'fadeIn 0.15s ease',
               userSelect: 'none',
@@ -212,7 +234,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
         {loading && (
           <div data-testid="lightbox-loading" aria-hidden="true" style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none' }}>
             {photo.thumbSrc && (
-              <img src={photo.thumbSrc} alt="" draggable={false} style={{ width: '92vw', height: '92vh', objectFit: 'contain', borderRadius: 4 }} />
+              <img src={photo.thumbSrc} alt="" draggable={false} style={{ width: '100%', height: '100%', objectFit: 'contain', borderRadius: 4 }} />
             )}
             <span style={{ ...ROUND_BTN, position: 'absolute', cursor: 'default' }}>
               <Loader2 size={18} className="animate-spin" />
@@ -252,6 +274,7 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
           </div>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

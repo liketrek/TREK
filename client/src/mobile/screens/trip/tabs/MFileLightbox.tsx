@@ -45,13 +45,19 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
       // tap-to-dismiss. Escape / arrow keys and the header buttons are the
       // keyboard equivalents, wired up in useMediaLightbox.
       role="presentation"
-      className="m-root fixed inset-0 z-[65] flex flex-col bg-black/[.92]"
+      className="m-root fixed inset-0 z-[65] flex flex-col bg-black/[.92] pb-[env(safe-area-inset-bottom,0px)]"
       onClick={onClose}
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
       {/* Header */}
-      <div role="presentation" className="flex flex-none items-center justify-between px-4 py-[10px]" onClick={e => e.stopPropagation()}>
+      {/* Below the status bar and a notch, and clear of a side inset in landscape,
+          so the close button is always there to tap. */}
+      <div
+        role="presentation"
+        className="flex flex-none items-center justify-between gap-2 pb-[10px] pe-[calc(var(--m-safe-r)+12px)] ps-[calc(var(--m-safe-l)+16px)] pt-[calc(var(--m-safe-t)+10px)]"
+        onClick={e => e.stopPropagation()}
+      >
         <span className="min-w-0 flex-1 truncate font-geist text-[0.75rem] text-white/70">
           {file.original_name}
           <span className="ms-2 text-white/40">{index + 1} / {files.length}</span>
@@ -73,8 +79,13 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
           >
             <Download size={16} strokeWidth={2} />
           </button>
-          <button type="button" onClick={onClose} aria-label={t('common.close')} className="flex h-8 w-8 items-center justify-center text-white/70">
-            <X size={18} strokeWidth={2.2} />
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={t('common.close')}
+            className="ms-1 flex h-10 w-10 items-center justify-center rounded-full bg-[var(--m-viewer-btn)] text-[var(--m-viewer-ink)]"
+          >
+            <X size={20} strokeWidth={2.2} />
           </button>
         </div>
       </div>
