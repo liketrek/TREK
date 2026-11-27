@@ -1,10 +1,13 @@
-import type { TourListItem, TourVisitStatus } from '@trek/shared';
-import { Check, CheckCheck, Info, Redo2, SkipForward, Undo2 } from 'lucide-react';
+import type { Place, TourListItem, TourVisitStatus } from '@trek/shared';
+import { Check, CheckCheck, ChevronDown, ExternalLink, Info, MapPin, Redo2, SkipForward, Undo2 } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from '../../../i18n';
 import { useTourVisitStore } from '../../../store/tourVisitStore';
 import type { Assignment, AssignmentsMap, Day } from '../../../types';
+import { safeHttpUrl } from '../../../utils/safeUrl';
 import { SoftPill } from '../../Planner/planParts';
 import { DialogSection, fs } from '../../shared/DialogShell';
+import MarkdownText from '../../shared/MarkdownText';
 import { useToast } from '../../shared/Toast';
 import { stationMarkNote, stationRingClass } from '../planner/stationMarks';
 import { StationPills, StationShield } from '../planner/stationParts';
@@ -83,23 +86,62 @@ function StatusActions({
  * trip place it stands for), stay, the day's arrival and opening hours, and
  * what can be marked.
  */
+/** What a station's linked place has to tell (#3205): its description, address and website. */
+function placeDetailsOf(place: Place | null | undefined) {
+  if (!place) return null;
+  const description = place.description?.trim() || '';
+  const address = place.address?.trim() || '';
+  const website = safeHttpUrl(place.website);
+  return description || address || website ? { description, address, website } : null;
+}
+
+/** The linked place's details, opened under its station without leaving the walk. */
+function StationDetails({ details }: { details: NonNullable<ReturnType<typeof placeDetailsOf>> }) {
+  const { t } = useTranslation();
+  return (
+    <span className="flex flex-col gap-1 text-content-secondary" style={fs(11.5, 'body')}>
+      {details.description && <MarkdownText className="leading-[1.5]">{details.description}</MarkdownText>}
+      {details.address && (
+        <span className="flex items-start gap-1">
+          <MapPin size={11} strokeWidth={2.2} aria-hidden="true" className="mt-[2px] flex-none text-content-faint" />
+          <bdi className="min-w-0 [overflow-wrap:anywhere]">{details.address}</bdi>
+        </span>
+      )}
+      {details.website && (
+        <a
+          href={details.website}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 self-start font-semibold text-content underline-offset-2 hover:underline"
+        >
+          <ExternalLink size={11} strokeWidth={2.2} aria-hidden="true" />
+          {t('inspector.website')}
+        </a>
+      )}
+    </span>
+  );
+}
+
 function StationRow({
   station,
   index,
   status,
-  placeName,
+  place,
   schedule,
   onMark,
 }: {
   station: TourPlannerWaypoint;
   index: number;
   status: TourVisitStatus | undefined;
-  placeName: string | undefined;
+  place: Place | null;
   schedule: StationSchedule | undefined;
   onMark: ((status: TourVisitStatus | 'planned') => void) | null;
 }) {
   const { t } = useTranslation();
-  const name = station.name ?? placeName ?? t('tours.walk.stationNumbered', { number: index + 1 });
+  const [open, setOpen] = useState(false);
+  const details = placeDetailsOf(place);
+  const name = station.name ?? place?.name ?? t('tours.walk.stationNumbered', { number: index + 1 });
+  const nameClass = `truncate font-semibold text-content ${status === 'skipped' ? 'line-through' : ''}`;
   return (
     <li
       data-testid="walk-station"
@@ -121,13 +163,31 @@ function StationRow({
         {station.protected && <StationShield />}
       </span>
       <span className="flex min-w-0 flex-1 flex-col gap-1">
-        <span
-          className={`truncate font-semibold text-content ${status === 'skipped' ? 'line-through' : ''}`}
-          style={fs(12.5, 'body')}
-        >
-          {name}
-        </span>
+        {details ? (
+          // A station that has more to tell opens it in place (#3205).
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            aria-expanded={open}
+            className="flex min-w-0 items-center gap-1 self-start text-start"
+          >
+            <span className={nameClass} style={fs(12.5, 'body')}>
+              {name}
+            </span>
+            <ChevronDown
+              size={13}
+              strokeWidth={2.2}
+              aria-hidden="true"
+              className={`flex-none text-content-faint transition-transform ${open ? 'rotate-180' : ''}`}
+            />
+          </button>
+        ) : (
+          <span className={nameClass} style={fs(12.5, 'body')}>
+            {name}
+          </span>
+        )}
         <StationPills point={station} />
+        {open && details && <StationDetails details={details} />}
         <StationScheduleLine schedule={schedule} name={name} />
         {status && (
           <span className="text-content-faint" style={fs(11, 'body')}>
@@ -252,7 +312,7 @@ export function WalkStationsCard({
               station={station}
               index={index}
               status={station.key ? visits?.[station.key] : undefined}
-              placeName={placeOf(station)?.name}
+              place={placeOf(station)}
               schedule={schedule.byStation.get(station.id)}
               onMark={marking === 'ready' && station.key ? (next) => onMark(station.key ?? '', next) : null}
             />

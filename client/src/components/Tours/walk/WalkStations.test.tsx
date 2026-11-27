@@ -284,6 +284,43 @@ describe('WalkStationsCard', () => {
     expect(within(cafe).queryByText(/Open/)).not.toBeInTheDocument();
   });
 
+  it('opens what the linked place has to tell under its stop, and leaves a stop without it as it is (#3205)', async () => {
+    seedStore(useTripStore, {
+      places: [
+        buildPlace({
+          id: 77,
+          name: 'Lenbachhaus',
+          description: 'Blue Rider collection',
+          address: 'Luisenstrasse 33',
+          website: 'https://lenbachhaus.de',
+        }),
+      ],
+    });
+    vi.mocked(tourRepo.detail).mockImplementation(() =>
+      detail([
+        { lat: 48, lng: 11, role: 'start', sequence: 0, key: 'stop-01', linked_place_id: 77, stay_minutes: 60 },
+        { lat: 48.002, lng: 11, role: 'end', sequence: 1, key: 'stop-02', name: 'Cafe', stay_minutes: 0 },
+      ])
+    );
+    card();
+
+    const museum = await rowOf('Lenbachhaus');
+    const toggle = within(museum).getByRole('button', { name: /Lenbachhaus/ });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(within(museum).queryByText('Blue Rider collection')).not.toBeInTheDocument();
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute('aria-expanded', 'true');
+    expect(within(museum).getByText('Blue Rider collection')).toBeInTheDocument();
+    expect(within(museum).getByText('Luisenstrasse 33')).toBeInTheDocument();
+    expect(within(museum).getByRole('link', { name: 'Open Website' })).toHaveAttribute(
+      'href',
+      'https://lenbachhaus.de'
+    );
+
+    const cafe = await rowOf('Cafe');
+    expect(within(cafe).queryByRole('button', { name: /Cafe/ })).not.toBeInTheDocument();
+  });
+
   it('shows the times in the 12 hour format where the user chose it', async () => {
     seedStore(useSettingsStore, { settings: { time_format: '12h' } });
     card(onMonday());
