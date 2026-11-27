@@ -654,13 +654,18 @@ function calendarDaysAhead(day: string, now: Date): number {
 
 /**
  * The forecast counts its range from the place's own date, which trails UTC's in
- * the Americas for part of the day, so its last day can still be refused there.
+ * the Americas for part of the day, so its last day can still be refused there,
+ * and runs ahead of it east of UTC, where it still answers the day after.
  */
 function isOutsideForecastRange(status: number, reason: string | undefined): boolean {
   return status === 400 && /out of allowed range/i.test(reason ?? '');
 }
 
-/** Last year's day standing in for a trip day the forecast does not reach. */
+/**
+ * Last year's day standing in for a trip day the forecast does not reach. A day
+ * at the forecast's edge comes within its reach in hours, so it keeps the
+ * forecast's TTL.
+ */
 async function detailedClimate(
   lat: string,
   lng: string,
@@ -668,6 +673,7 @@ async function detailedClimate(
   now: Date,
   descriptions: Record<number, string>,
   ck: string,
+  ttlMs: number,
 ): Promise<WeatherResult> {
   let refYear = targetDate.getFullYear() - 1;
   // Archive API only has data up to yesterday — go back further if needed
@@ -677,7 +683,7 @@ async function detailedClimate(
 
   const climate = await detailedFromArchive(lat, lng, refDateStr, 'climate', descriptions);
   if (!climate) return { temp: 0, main: '', description: '', type: '', error: 'no_forecast' };
-  setCache(ck, climate, TTL_CLIMATE_MS);
+  setCache(ck, climate, ttlMs);
   return climate;
 }
 
@@ -693,9 +699,9 @@ async function _getDetailedWeatherImpl(lat: string, lng: string, date: string, l
   const dateStr = targetDate.toISOString().slice(0, 10);
   const descriptions = lang === 'de' ? WMO_DESCRIPTION_DE : WMO_DESCRIPTION_EN;
 
-  // Climate path: past the forecast's last day, last year's day stands in for the trip's.
-  if (calendarDaysAhead(dateStr, now) > FORECAST_LAST_DAY) {
-    return detailedClimate(lat, lng, targetDate, now, descriptions, ck);
+  // Climate path: past the last day the forecast answers anywhere, last year's day stands in for the trip's.
+  if (calendarDaysAhead(dateStr, now) > FORECAST_LAST_DAY + 1) {
+    return detailedClimate(lat, lng, targetDate, now, descriptions, ck, TTL_CLIMATE_MS);
   }
 
   // Past day: the forecast API answers nulls once a date is a couple of months
@@ -721,7 +727,7 @@ async function _getDetailedWeatherImpl(lat: string, lng: string, date: string, l
 
   if (!response.ok || data.error) {
     if (isOutsideForecastRange(response.status, data.reason)) {
-      return detailedClimate(lat, lng, targetDate, now, descriptions, ck);
+      return detailedClimate(lat, lng, targetDate, now, descriptions, ck, TTL_FORECAST_MS);
     }
     throw new ApiError(response.status || 500, data.reason || 'Open-Meteo API error');
   }

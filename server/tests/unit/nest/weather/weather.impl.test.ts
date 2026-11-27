@@ -1295,8 +1295,41 @@ describe('getDetailedWeather at the edge of the forecast range', () => {
     expect(result.type).toBe('climate');
     expect(result.temp_max).toBe(8);
     const asked = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
-    expect(asked.some((u) => u.includes(FORECAST))).toBe(false);
     expect(asked.some((u) => u.includes(`${ARCHIVE}`) && u.includes('start_date=2025-12-11'))).toBe(true);
+  });
+
+  it('WEATHER-HORIZON-001b: a day past what the forecast answers anywhere does not ask it', async () => {
+    vi.setSystemTime(new Date('2026-11-25T13:00:00Z'));
+    openMeteo('2026-12-10');
+
+    const result = await getDetailedWeather('47.13', '11.33', '2026-12-12', 'en');
+
+    expect(result.type).toBe('climate');
+    const asked = vi.mocked(fetch).mock.calls.map(([u]) => String(u));
+    expect(asked.some((u) => u.includes(FORECAST))).toBe(false);
+  });
+
+  it('WEATHER-HORIZON-001c: a place whose local date is already ahead of UTC gets the forecast for the day 16 UTC days out', async () => {
+    // 17:00 UTC is 02:00 the next day in Tokyo, so Open-Meteo's range there
+    // ends a day later than UTC's today + 15.
+    vi.setSystemTime(new Date('2026-11-25T17:00:00Z'));
+    openMeteo('2026-12-11');
+
+    const result = await getDetailedWeather('35.68', '139.69', '2026-12-11', 'en');
+
+    expect(result.type).toBe('forecast');
+    expect(result.temp_max).toBe(10);
+  });
+
+  it('WEATHER-HORIZON-001d: climate given on a refusal at the edge is asked for again within hours', async () => {
+    vi.setSystemTime(new Date('2026-11-25T13:00:00Z'));
+    openMeteo('2026-12-10');
+    expect((await getDetailedWeather('47.14', '11.34', '2026-12-11', 'en')).type).toBe('climate');
+
+    vi.setSystemTime(new Date('2026-11-26T01:00:00Z'));
+    openMeteo('2026-12-11');
+
+    expect((await getDetailedWeather('47.14', '11.34', '2026-12-11', 'en')).type).toBe('forecast');
   });
 
   it('WEATHER-HORIZON-002: the day 15 days out keeps its forecast, late in the UTC day too', async () => {
