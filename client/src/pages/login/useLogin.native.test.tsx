@@ -1,4 +1,4 @@
-// FE-LOGIN-NATIVE-001 to FE-LOGIN-NATIVE-011: useLogin inside the iOS/Android app
+// FE-LOGIN-NATIVE-001 to FE-LOGIN-NATIVE-012: useLogin inside the iOS/Android app
 import { startAuthentication } from '@simplewebauthn/browser';
 import { http, HttpResponse } from 'msw';
 import React from 'react';
@@ -166,8 +166,7 @@ describe('useLogin in the native app', () => {
     expect(result.current.showTakeoff).toBe(false);
   });
 
-  it('FE-LOGIN-NATIVE-009: speaks the device language, over a language once picked on this page', async () => {
-    localStorage.setItem('app_language', 'fr');
+  it('FE-LOGIN-NATIVE-009: speaks the device language when no language was chosen', async () => {
     deviceLanguages(['de-DE', 'en-US']);
     renderLogin();
     await waitFor(() => expect(useSettingsStore.getState().settings.language).toBe('de'));
@@ -189,5 +188,14 @@ describe('useLogin in the native app', () => {
     expect(toastHaptic).toHaveBeenCalledWith('success');
     await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/'), { timeout: 2500 });
     expect(document.documentElement.hasAttribute('data-app-handover')).toBe(true);
+  });
+
+  it('FE-LOGIN-NATIVE-012: keeps a language once picked on this page over the device language', async () => {
+    localStorage.setItem('app_language', 'fr');
+    useSettingsStore.setState((state) => ({ settings: { ...state.settings, language: 'fr' } }));
+    deviceLanguages(['de-DE', 'en-US']);
+    const { result } = renderLogin();
+    await waitFor(() => expect(result.current.appConfig).not.toBeNull());
+    expect(useSettingsStore.getState().settings.language).toBe('fr');
   });
 });

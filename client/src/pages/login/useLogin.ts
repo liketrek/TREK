@@ -300,16 +300,16 @@ export function useLogin() {
   // 2. Browser/OS language (navigator.languages)
   // 3. Server default (DEFAULT_LANGUAGE env var)
   // 4. 'en' → hardcoded fallback already in store
-  // Inside the iOS and Android app the sign-in screen has no language menu: it
-  // speaks the device's language, as the address screen before it does, and
-  // English where TREK has no translation for it. The account's own language
-  // takes over once signed in.
+  // Inside the iOS and Android app the sign-in screen has no language menu: unless
+  // a language was chosen before, it speaks the device's language, as the address
+  // screen before it does, and English where TREK has no translation for it. The
+  // account's own language takes over once signed in.
   useEffect(() => {
+    if (hasStoredLanguage()) return
     if (nativeApp) {
       setLanguageTransient(detectBrowserLanguage() ?? 'en')
       return
     }
-    if (hasStoredLanguage()) return
 
     const detected = detectBrowserLanguage()
     if (detected) {
