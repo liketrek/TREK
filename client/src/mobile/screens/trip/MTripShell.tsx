@@ -481,7 +481,10 @@ export default function MTripShell({
     return () => clearTimeout(timer)
   }, [boxKey, frameDayId])
 
-  const openSheet = (id: string, payload?: unknown) => setSheet({ id, payload })
+  const openSheet = (id: string, payload?: unknown) => {
+    if (id === 'day' && trTab === 'plan') planner.hideOverview()
+    setSheet({ id, payload })
+  }
   const closeSheet = () => setSheet(null)
 
   // A hardware keyboard: ⌘1 to ⌘9 for the trip's sections in rail order, ⌥← and

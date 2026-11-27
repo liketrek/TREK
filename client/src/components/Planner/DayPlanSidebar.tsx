@@ -104,6 +104,7 @@ export interface DayPlanSidebarProps {
   categories: Category[]
   assignments: AssignmentsMap
   selectedDayId: number | null
+  openSelectedDayDetail?: boolean
   selectedPlaceId: number | null
   selectedAssignmentId: number | null
   onSelectDay: (dayId: number | null, skipFit?: boolean) => void
@@ -1480,12 +1481,11 @@ const DayPlanSidebar = React.memo(function DayPlanSidebar(props: DayPlanSidebarP
       <div className={`scroll-container flex flex-col gap-2 p-2${hasDragged ? '' : ' trek-stagger'}`} style={{ flex: 1, overflowY: 'auto', minHeight: 0 }} ref={scrollContainerRef} onScroll={(e) => onScrollTopChange?.((e.currentTarget as HTMLElement).scrollTop)}>
         {days.map((day, index) => {
           const isSelected = selectedDayId === day.id
-          // Shared by the click and the key handler so the two can never drift
-          // apart — pressing Enter on the row has to toggle, not just select.
-          // Named for the selection, not the expand/collapse `toggleDay` above.
+          // An already-selected day can reopen its details from the overview.
           const toggleDaySelection = () => {
-            if (isSelected) { onSelectDay(null); if (onDayDetail) onDayDetail(null) }
-            else { onSelectDay(day.id); if (onDayDetail) onDayDetail(day) }
+            const dayToOpen = isSelected && !props.openSelectedDayDetail ? null : day
+            onSelectDay(dayToOpen?.id ?? null)
+            onDayDetail?.(dayToOpen)
           }
           const isExpanded = expandedDays.has(day.id)
           const da = getDayAssignments(day.id)

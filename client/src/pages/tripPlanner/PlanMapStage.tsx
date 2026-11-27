@@ -1,8 +1,8 @@
-import type { Dispatch, ReactElement, SetStateAction } from 'react'
+import type { Dispatch, ReactElement, Ref, SetStateAction } from 'react'
 import { createPortal } from 'react-dom'
 import { MapViewAuto as MapView } from '../../components/Map/MapViewAuto'
 import { MapCompassPill, type CompassMap } from '../../components/Map/MapCompassPill'
-import { TripRouteOverviewPill, TripRouteOverviewPanel } from '../../components/Map/TripRouteOverview'
+import { TripRouteOverviewPill, TripRouteOverviewPanel, TRIP_OVERVIEW_INSET } from '../../components/Map/TripRouteOverview'
 import { DawarichTrailPill } from '../../components/Map/DawarichTrailPill'
 import PoiCategoryPill from '../../components/Map/PoiCategoryPill'
 import ActivityCompareLegend from '../../components/Tours/activity/ActivityCompareLegend'
@@ -42,6 +42,7 @@ interface StagePageLocals {
   rightPanelPx: number
   mapInsetLeft: number
   mapInsetRight: number
+  overviewCardRef?: Ref<HTMLDivElement>
   glMap: CompassMap | null
   setGlMap: Dispatch<SetStateAction<CompassMap | null>>
   poiPillEnabled: boolean
@@ -74,7 +75,7 @@ export function PlanMapStage({
   overviewActive, tripOverview, overviewShown, toggleOverview,
   dawarichEnabled, dawarichTrail, dawarichHiddenDates, dawarichTrailShown, toggleDawarichTrail,
   mobileSidebarOpen, showPlaceForm, showMembersModal, showReservationModal,
-  poi, tourMap, leftPanelPx, rightPanelPx, mapInsetLeft, mapInsetRight,
+  poi, tourMap, leftPanelPx, rightPanelPx, mapInsetLeft, mapInsetRight, overviewCardRef,
   glMap, setGlMap, poiPillEnabled, mapPois, distanceUnit, inspectorHeight = 0,
 }: Readonly<PlanMapStageProps>): ReactElement {
   // ACT-02: a tour compared with its actual track lays the track into the day's lines, dotted.
@@ -181,13 +182,14 @@ export function PlanMapStage({
           renderers: the locate button that lives there is phone-only. */}
       {(!roadtripActive || dawarichEnabled) && (
         <div className="hidden md:flex" style={{
-          position: 'absolute', bottom: 18, right: mapInsetRight + 14, zIndex: 26, // rtl-lint-disable: measured from the right panel's inset
+          position: 'absolute', bottom: 18, right: mapInsetRight + TRIP_OVERVIEW_INSET, zIndex: 26, // rtl-lint-disable: measured from the right panel's inset
           pointerEvents: 'none', flexDirection: 'column', alignItems: 'flex-end', gap: 8,
         }}>
           {compared.legend && <ActivityCompareLegend legend={compared.legend} />}
           {!roadtripActive && overviewActive && (
             <TripRouteOverviewPanel
               overview={tripOverview}
+              cardRef={overviewCardRef}
               unit={distanceUnit}
               selectedDayId={selectedDayId}
               onSelectDay={handleSelectDay}

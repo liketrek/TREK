@@ -1,3 +1,4 @@
+import type { Ref } from 'react'
 import { AlertTriangle, Route } from 'lucide-react'
 import { useTranslation } from '../../i18n'
 import { MapTogglePill } from './MapTogglePill'
@@ -5,6 +6,9 @@ import { routeModeIcon } from '../Planner/routeModes'
 import { routeDistanceLabel } from './tripRouteLabels'
 import type { TripRouteOverview as Overview } from './useTripRouteOverview'
 import type { DistanceUnit } from '../../types'
+
+export const TRIP_OVERVIEW_MAX_WIDTH = 320
+export const TRIP_OVERVIEW_INSET = 14
 
 /**
  * Toggle for the whole-trip route overview (#1736). Same frosted shell as the other
@@ -29,13 +33,14 @@ export function TripRouteOverviewPill({ active, onToggle }: { active: boolean; o
  * One component for both shells: the phone and the desktop place it differently but the
  * rows are the same rows, and a second copy of them is a second thing to keep in step.
  */
-export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelectDay, maxWidth = 320 }: {
+export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelectDay, maxWidth = TRIP_OVERVIEW_MAX_WIDTH, cardRef }: {
   overview: Overview
   unit: DistanceUnit
   selectedDayId?: number | null
   onSelectDay?: (dayId: number) => void
   /** How wide the card may grow before day names start to ellipsize. */
   maxWidth?: number
+  cardRef?: Ref<HTMLDivElement>
 }) {
   const { t } = useTranslation()
   if (!overview.days.length) return null
@@ -45,6 +50,7 @@ export function TripRouteOverviewPanel({ overview, unit, selectedDayId, onSelect
 
   return (
     <div
+      ref={cardRef}
       data-testid="trip-overview-panel"
       style={{
         pointerEvents: 'auto', borderRadius: 14, overflow: 'hidden',

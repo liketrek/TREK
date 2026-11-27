@@ -19,7 +19,7 @@
   "src/mobile/screens/admin/MAdminPluginsPanel.tsx": 1503,
   "src/pages/JourneyDetailPage.test.tsx": 3886,
   "src/pages/LoginPage.tsx": 1294,
-  "src/pages/TripPlannerPage.tsx": 1128,
+  "src/pages/TripPlannerPage.tsx": 1127,
   "src/pages/atlas/useAtlas.ts": 1207,
   "src/pages/tripPlanner/useTripPlanner.roadtrip.test.tsx": 3518,
   "src/pages/tripPlanner/useTripPlanner.test.tsx": 3267,

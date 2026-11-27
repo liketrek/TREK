@@ -807,7 +807,7 @@ describe('MTripShell', () => {
       expect(planner.handleSelectDay).toHaveBeenLastCalledWith(11, true)
     })
 
-    it('FE-MOB-SHELL-051: the active chip still opens the day sheet on the map', () => {
+    it('FE-MOB-SHELL-051: the active chip opens the day sheet and hides the trip overview', () => {
       const { planner } = renderShell()
       enterMap()
       vi.mocked(planner.handleSelectDay).mockClear()
@@ -815,6 +815,7 @@ describe('MTripShell', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Sat 2' }))
 
       expect(shellApi.sheet).toEqual({ id: 'day', payload: { dayId: 11 } })
+      expect(planner.hideOverview).toHaveBeenCalledOnce()
       expect(planner.handleSelectDay).not.toHaveBeenCalled()
     })
   })

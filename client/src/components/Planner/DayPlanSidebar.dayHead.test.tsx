@@ -158,6 +158,18 @@ function dayHeader(title: string) {
 }
 
 describe('DayPlanSidebar day header', () => {
+  it('opens the selected day details while the whole-trip overview is active', async () => {
+    const user = userEvent.setup();
+    const day = buildDay({ id: 10, date: '2025-06-01', title: 'My Day' });
+    const props = makeDefaultProps({ days: [day], selectedDayId: day.id });
+    render(<DayPlanSidebar {...props} openSelectedDayDetail />);
+
+    await user.click(screen.getByText('My Day'));
+
+    expect(props.onSelectDay).toHaveBeenCalledWith(day.id);
+    expect(props.onDayDetail).toHaveBeenCalledWith(day);
+  });
+
   it('FE-PLANNER-DAYPLAN-176: a transfer day lists the check-out hotel before the check-in one', async () => {
     const user = userEvent.setup();
     const days = [

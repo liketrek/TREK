@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useId, type ReactNode } from 'react'
+import React, { useEffect, useRef, useId, type ReactNode, type Ref } from 'react'
 import { X, CloudRain, Wind, Droplets, Sunrise, Sunset, Hotel, Calendar, MapPin, LogIn, LogOut, Pencil, ChevronsDown, ChevronsUp, ArrowRight, Check, Moon, type LucideIcon } from 'lucide-react'
 import type { WeatherResult } from '@trek/shared'
 import { usePluginViewContributions, PluginCardFooter } from '../Plugins/PluginContributions'
@@ -53,6 +53,8 @@ interface DayDetailPanelProps {
   onAccommodationChange: () => void
   leftWidth?: number
   rightWidth?: number
+  rightGap?: number
+  panelRef?: Ref<HTMLDivElement>
   collapsed?: boolean
   onToggleCollapse?: () => void
   mobile?: boolean
@@ -73,7 +75,7 @@ interface DayDetailPanelProps {
  * head band that folds the card away, then the weather, the bookings of the
  * day and where the night is spent, each under its own label.
  */
-export default function DayDetailPanel({ day, days, places, categories = [], tripId, assignments, reservations = [], lat, lng, onClose, onAccommodationChange, leftWidth = 0, rightWidth = 0, collapsed: collapsedProp = false, onToggleCollapse, mobile = false, onUpdateDayTitle, weatherPlaceName = null, openStayPicker = false, onStayPickerOpened, onOpenBooking }: DayDetailPanelProps) {
+export default function DayDetailPanel({ day, days, places, categories = [], tripId, assignments, reservations = [], lat, lng, onClose, onAccommodationChange, leftWidth = 0, rightWidth = 0, rightGap, panelRef, collapsed: collapsedProp = false, onToggleCollapse, mobile = false, onUpdateDayTitle, weatherPlaceName = null, openStayPicker = false, onStayPickerOpened, onOpenBooking }: DayDetailPanelProps) {
   const { t, language } = useTranslation()
   const can = useCanDo()
   const toast = useToast()
@@ -184,10 +186,10 @@ export default function DayDetailPanel({ day, days, places, categories = [], tri
     setShowHotelPicker('edit')
   }
   const removeAccommodation = (acc: Accommodation) => { handleRemoveAccommodation(acc).catch(showError) }
-  const mapCard = centredMapCard(leftWidth, rightWidth, { extent: '100vw', clearPill: !mobile })
+  const mapCard = centredMapCard(leftWidth, rightWidth, { extent: '100vw', clearPill: !mobile, rightGap })
 
   return (
-    <div className="fixed z-50" style={{ bottom: 'calc(var(--bottom-nav-h) + 20px)', left: mapCard.centre, transform: 'translateX(-50%)', width: mapCard.width, ...(mobile ? { zIndex: 10000 } : null), fontFamily: 'var(--font-system)' }}>
+    <div ref={panelRef} className="fixed z-50" style={{ bottom: 'calc(var(--bottom-nav-h) + 20px)', left: mapCard.centre, transform: 'translateX(-50%)', width: mapCard.width, ...(mobile ? { zIndex: 10000 } : null), fontFamily: 'var(--font-system)' }}>
       <div ref={cardRef}
         className="flex flex-col overflow-hidden rounded-[20px] border border-edge-faint bg-surface-elevated shadow-popover backdrop-blur-[40px] backdrop-saturate-[1.8]"
         style={{ maxHeight: collapsed ? 'none' : '60vh' }}>

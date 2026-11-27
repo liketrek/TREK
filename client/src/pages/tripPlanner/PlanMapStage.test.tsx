@@ -18,7 +18,8 @@ const stub = vi.hoisted(() => (name: string, testId: string) => (props: Record<s
 vi.mock('../../components/Map/MapViewAuto', () => ({ MapViewAuto: stub('map', 'map-view') }))
 vi.mock('../../components/Map/MapCompassPill', () => ({ MapCompassPill: stub('compass', 'compass-pill') }))
 vi.mock('../../components/Map/PoiCategoryPill', () => ({ default: stub('poiPill', 'poi-pill') }))
-vi.mock('../../components/Map/TripRouteOverview', () => ({
+vi.mock('../../components/Map/TripRouteOverview', async (importOriginal) => ({
+  ...await importOriginal<typeof import('../../components/Map/TripRouteOverview')>(),
   TripRouteOverviewPill: stub('overviewPill', 'overview-pill'),
   TripRouteOverviewPanel: stub('overviewPanel', 'overview-panel'),
 }))

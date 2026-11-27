@@ -35,4 +35,12 @@ describe('centredMapCard', () => {
     expect(resolve(box.width, 1920)).toBe(800);
     expect(resolve(box.centre, 1920)).toBe(960);
   });
+
+  it('keeps the whole-trip toggle reachable beside the day card', () => {
+    const box = centredMapCard(350, 310, { clearPill: true, rightGap: 74 });
+    const width = resolve(box.width, 1280);
+    const centre = resolve(box.centre, 1280);
+    expect(centre - width / 2).toBeGreaterThanOrEqual(350 + 62);
+    expect(centre + width / 2).toBeLessThanOrEqual(1280 - 310 - 74);
+  });
 });

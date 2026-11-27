@@ -116,6 +116,7 @@ export function buildPlanner(overrides: Partial<TripPlanner> = {}): TripPlanner 
 
     showDayDetail: false,
     setShowDayDetail: vi.fn(),
+    hideOverview: vi.fn(),
     dayDetailCollapsed: false,
     setDayDetailCollapsed: vi.fn(),
     showPlaceForm: false,

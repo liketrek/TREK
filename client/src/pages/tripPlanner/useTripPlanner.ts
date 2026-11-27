@@ -300,7 +300,7 @@ export function useTripPlanner() {
     if (activeTab === 'dateien' && (!files || files.length === 0)) tripActions.loadFiles?.(tripId)
   }, [tripId])
   const {
-    leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
+    leftWidth, rightWidth, viewportWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrow: narrowPanels,
     startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing, resizeMin, resizeMaxLeft, resizeMaxRight,
   } = useResizablePanels()
@@ -321,7 +321,7 @@ export function useTripPlanner() {
     previousToursModeRef.current = toursMode
     if (enteredToursMode) setSelectedPlaceId(null)
   }, [toursEnabled, toursMode, setSelectedPlaceId])
-  const [dayDetail, setShowDayDetail] = useState<Day | null>(null)
+  const [dayDetail, setDayDetail] = useState<Day | null>(null)
   // A day deleted while its panel is open, here or by a fellow traveller, takes
   // the panel along instead of leaving it on a day that is gone.
   const showDayDetail = dayDetail && days.some(d => d.id === dayDetail.id) ? dayDetail : null
@@ -336,7 +336,7 @@ export function useTripPlanner() {
     else if (!selectedPlaceId && stashedDayDetailRef.current) {
       const stashed = stashedDayDetailRef.current
       stashedDayDetailRef.current = null
-      if (days.some(d => d.id === stashed.id)) setShowDayDetail(stashed)
+      if (days.some(d => d.id === stashed.id)) setDayDetail(stashed)
     }
   }, [showDayDetail, selectedPlaceId, days])
   // The day's "+" can ask for a new stay: the details panel opens on that day and
@@ -370,9 +370,22 @@ export function useTripPlanner() {
   } = plannerDialogs
   const {
     mapLocked, toggleMapLocked, mapLockedRef, isMobileRef, fitKey, setFitKey,
-    overviewShown, toggleOverview, dawarichTrailShown, toggleDawarichTrail, dawarichTrail,
+    overviewShown, toggleOverview: toggleMapOverview, dawarichTrailShown, toggleDawarichTrail, dawarichTrail,
     routeShown, setRouteShown, autoShowRoute, transitRoutesShown, routeProfile, setRouteProfile,
   } = usePlannerMapView({ tripId, trip, places, selectedDayId, isMobile })
+  // Road trip mode draws its own overview.
+  const overviewActive = overviewShown && !roadtripMode
+  const hideOverview = useCallback(() => {
+    if (overviewActive) toggleMapOverview()
+  }, [overviewActive, toggleMapOverview])
+  const setShowDayDetail = useCallback((day: Day | null) => {
+    stashedDayDetailRef.current = null
+    setDayDetail(day)
+  }, [])
+  const toggleOverview = useCallback(() => {
+    if (!overviewShown) stashedDayDetailRef.current = null
+    toggleMapOverview()
+  }, [overviewShown, toggleMapOverview])
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<'left' | 'right' | null>(null)
   const mobilePlanScrollTopRef = useRef<number>(0)
   const mobilePlacesScrollTopRef = useRef<number>(0)
@@ -477,9 +490,6 @@ export function useTripPlanner() {
   // MDT-02: where the stages of the multi-day tours run, so a day holding one routes to and draws that stage.
   const tourStageStops = useMemo(() => tourStageStopsByPlace(tours), [tours])
   const { route, routeWalking, routeSegments, routeVias, routeInfo, setRoute, setRouteInfo, updateRouteForDay } = useRouteCalculation({ assignments: assistantView.assignments, roadtripVias: roadtripVias.byDay, tourStageStops }, selectedDayId, routeShown, routeProfile, tripAccommodations)
-  // Road trip mode already draws the whole trip its own way, so the overview stands
-  // down there rather than drawing a second set of lines over it.
-  const overviewActive = overviewShown && !roadtripMode
   const overviewVias = useMemo(() => ({ storedAssignments, viasByDay: roadtripVias.byDay }), [storedAssignments, roadtripVias.byDay])
   const tripOverview = useTripRouteOverview(tripId, days, assignments, reservations, tripAccommodations, routeProfile, overviewActive, places, overviewVias, tourStageStops)
 
@@ -513,7 +523,7 @@ export function useTripPlanner() {
     } else {
       setSelectedPlaceId(placeId)
     }
-    if (placeId) { if (showDayDetailRef.current) stashedDayDetailRef.current = showDayDetailRef.current; setShowDayDetail(null); setLeftCollapsed(false); setRightCollapsed(false) }
+    if (placeId) { if (showDayDetailRef.current) stashedDayDetailRef.current = showDayDetailRef.current; setDayDetail(null); setLeftCollapsed(false); setRightCollapsed(false) }
   }, [selectAssignment, setSelectedPlaceId])
 
   const handleMarkerClick = useCallback((placeId?: number) => {
@@ -624,7 +634,7 @@ export function useTripPlanner() {
   // lost its day or its stops. Its panel closes, and undo steps that would act
   // on it are dropped rather than left to fail.
   const afterDayDeleted = useCallback((dayId: number) => {
-    setShowDayDetail(open => (open?.id === dayId ? null : open))
+    setDayDetail(open => (open?.id === dayId ? null : open))
     forgetDay(dayId)
     loadAccommodations()
     updateRouteForDay(useTripStore.getState().selectedDayId)
@@ -735,12 +745,12 @@ export function useTripPlanner() {
     pushUndo, undo, canUndo, lastActionLabel, handleUndo,
     enabledAddons, collabFeatures, journalId: journal.openJournalId, tripAccommodations, setTripAccommodations,
     roadtripMode, toggleRoadtripMode, roadtripActive, roadtripFeedActive, roadtripRoutes, roadtripLineColors, roadtripMapLines, roadtripMapPlaces, collapsedRoadtripDays, toggleRoadtripDay, roadtripCorridor,
-    overviewShown, toggleOverview, overviewActive, tripOverview,
+    overviewShown, toggleOverview, hideOverview, overviewActive, tripOverview,
     dawarichTrailShown, toggleDawarichTrail, dawarichTrail, dawarichHiddenDates, dawarichEnabled: !!enabledAddons.dawarich,
     followTrack, roadtripViaCounts,
     allowedFileTypes, tripMembers, setTripMembers, refreshMembers, loadAccommodations,
     TRANSPORT_TYPES, TRIP_TABS, activeTab, setActiveTab, handleTabChange, tabLink,
-    leftWidth, rightWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
+    leftWidth, rightWidth, viewportWidth, leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrowPanels,
     startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing, resizeMin, resizeMaxLeft, resizeMaxRight,
     selectedPlaceId, selectedAssignmentId, setSelectedPlaceId, selectAssignment,

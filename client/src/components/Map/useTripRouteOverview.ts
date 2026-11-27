@@ -49,7 +49,7 @@ export function useTripRouteOverview(
   vias?: TripRouteVias,
   /** MDT-02: where the stages of the trip's multi-day tours run, so a day holding one draws that stage. */
   tourStageStops?: TourStageStops,
-): TripRouteOverview {
+) {
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
   const toursEnabled = useTripAddonEnabled(tripId, 'tours')
   // Leg text is formatted at compute time, so a km↔mi switch has to re-run (#1300).
@@ -131,5 +131,6 @@ export function useTripRouteOverview(
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [planKey, tripId, distanceUnit])
 
-  return result
+  const hasPlannedRoute = plan.length > 0
+  return useMemo(() => ({ ...result, hasPlannedRoute }), [result, hasPlannedRoute])
 }

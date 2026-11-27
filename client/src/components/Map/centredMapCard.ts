@@ -18,6 +18,7 @@ const PILL_CLEARANCE = MAP_LAYER_SWITCHER_INSET + MAP_ROUND_CONTROL_SIZE + 8;
  * it and gives up the few pixels it needs, a wide map keeps it exactly centred.
  * The phone shows these cards as sheets with no pill beside them, so it leaves
  * `clearPill` off.
+ * `rightGap` reserves room for a map control on the other edge.
  *
  * `extent` is what the card is placed in: '100%' of the map, or '100vw' for the
  * fixed day panel.
@@ -29,13 +30,21 @@ const PILL_CLEARANCE = MAP_LAYER_SWITCHER_INSET + MAP_ROUND_CONTROL_SIZE + 8;
 export function centredMapCard(
   leftWidth: number,
   rightWidth: number,
-  { extent = '100%', clearPill = false }: { extent?: string; clearPill?: boolean } = {}
+  {
+    extent = '100%',
+    clearPill = false,
+    rightGap = EDGE_GAP,
+  }: { extent?: string; clearPill?: boolean; rightGap?: number } = {}
 ): { centre: string; width: string } {
   const free = `(${extent} - ${leftWidth}px - ${rightWidth}px)`;
   const centre = `calc(${leftWidth}px + ${free} / 2)`;
-  if (!clearPill) return { centre, width: `min(800px, calc(${free} - ${2 * EDGE_GAP}px))` };
-  const width = `min(800px, calc(${free} - ${PILL_CLEARANCE + EDGE_GAP}px))`;
-  return { width, centre: `max(${centre}, calc(${leftWidth}px + ${PILL_CLEARANCE}px + ${width} / 2))` };
+  const leftGap = clearPill ? PILL_CLEARANCE : EDGE_GAP;
+  const width = `min(800px, calc(${free} - ${leftGap + rightGap}px))`;
+  const centreClearingLeft = `max(${centre}, calc(${leftWidth}px + ${leftGap}px + ${width} / 2))`;
+  if (rightGap === EDGE_GAP) return { width, centre: clearPill ? centreClearingLeft : centre };
+
+  const maxCentre = `calc(${extent} - ${rightWidth + rightGap}px - ${width} / 2)`;
+  return { width, centre: `min(${centreClearingLeft}, ${maxCentre})` };
 }
 
 /** How a card that floats over the map is placed there, read by `centredMapCard`. */

@@ -16,6 +16,7 @@ import { useAssistantEntityLinks } from './useAssistantEntityLinks'
 import { useMapLocationSearch } from './useMapLocationSearch'
 import { usePlannerFocusPoints } from './usePlannerFocusPoints'
 import { useTripPlanner } from './useTripPlanner'
+import { useTripMapCards } from './useTripMapCards'
 import { useTourWorkspace } from './useTourWorkspace'
 import { useTourOverview } from './useTourOverview'
 import { mapFocusKeyOf, offeredWaysOf, paddleLineOf } from './tourMapFocus'
@@ -44,6 +45,7 @@ export function useTripPlannerPageOf(planner: ReturnType<typeof useTripPlanner>)
 
   const canPlaceEdit = can('place_edit', trip)
   const canDayEdit = can('day_edit', trip)
+  const planMap = useTripMapCards(planner)
   const workspace = useTourWorkspace(planner, canPlaceEdit, canDayEdit)
   const { tourPlanner, viewImportedTour, tourGpxImport, wandererBrowser, tourConversion, recordedTrack, trackPaddlePlan, paddleChecklist, skiClassification, tourDetailActions } =
     workspace
@@ -173,6 +175,7 @@ export function useTripPlannerPageOf(planner: ReturnType<typeof useTripPlanner>)
       captureViewport,
     },
     locationSearch,
+    planMap,
     // The day plan's tours: which places are tours, their planned times and where their stages run (MDT-02).
     dayPlanTours: { tourPlaceIds: planner.tourPlaceIds, plannedTourDurations, tourStageStops: planner.tourStageStops },
     placeForm: { close: closePlaceForm, ...placeFormContext(planner.editingPlace, planner.assignments, tours) },

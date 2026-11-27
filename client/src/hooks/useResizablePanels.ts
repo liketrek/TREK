@@ -146,6 +146,7 @@ export function useResizablePanels() {
     // dragged on a big screen comes back untouched once there is room for it again.
     leftWidth: shownLeft,
     rightWidth: shownRight,
+    viewportWidth,
     leftCollapsed, rightCollapsed, setLeftCollapsed, setRightCollapsed,
     leftHidden, rightHidden, toggleLeft, toggleRight, narrow,
     startResizeLeft, startResizeRight, nudgeLeft, nudgeRight, resizing,
