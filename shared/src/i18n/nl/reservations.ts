@@ -200,6 +200,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Kosten',
   'reservations.createExpense': 'Kostenpost aanmaken',
   'reservations.createExpenseHint': 'Boeking opslaan en daarna de Onkosteneditor openen.',
+  'reservations.importedExpenseHint': 'Wordt bij het opslaan van de boeking aan de onkosten toegevoegd.',
   'reservations.linkedExpense': 'Gekoppelde kostenpost',
   'reservations.removeExpense': 'Kostenpost verwijderen',
   'reservations.linkedExpenses': 'Gekoppelde kostenposten',

@@ -192,6 +192,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': '費用',
   'reservations.createExpense': '支出を作成',
   'reservations.createExpenseHint': '予約を保存してから費用エディタを開きます。',
+  'reservations.importedExpenseHint': '予約を保存すると費用に追加されます。',
   'reservations.linkedExpense': 'リンク済みの支出',
   'reservations.removeExpense': '支出を削除',
   'reservations.linkedExpenses': 'リンク済みの支出',

@@ -212,6 +212,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Koszty',
   'reservations.createExpense': 'Utwórz wydatek',
   'reservations.createExpenseHint': 'Zapisuje rezerwację i otwiera edytor kosztów.',
+  'reservations.importedExpenseHint': 'Zostanie dodany do kosztów po zapisaniu rezerwacji.',
   'reservations.linkedExpense': 'Powiązany wydatek',
   'reservations.removeExpense': 'Usuń wydatek',
   'reservations.linkedExpenses': 'Powiązane wydatki',

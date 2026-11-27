@@ -202,6 +202,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Κόστη',
   'reservations.createExpense': 'Δημιουργία εξόδου',
   'reservations.createExpenseHint': 'Αποθηκεύει την κράτηση και ανοίγει τον επεξεργαστή εξόδων.',
+  'reservations.importedExpenseHint': 'Προστίθεται στα έξοδα όταν αποθηκεύσετε την κράτηση.',
   'reservations.linkedExpense': 'Συνδεδεμένο έξοδο',
   'reservations.removeExpense': 'Αφαίρεση εξόδου',
   'reservations.linkedExpenses': 'Συνδεδεμένα έξοδα',

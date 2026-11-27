@@ -219,6 +219,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'التكاليف',
   'reservations.createExpense': 'إنشاء مصروف',
   'reservations.createExpenseHint': 'يحفظ الحجز ثم يفتح محرر التكاليف.',
+  'reservations.importedExpenseHint': 'تُضاف إلى التكاليف عند حفظ الحجز.',
   'reservations.linkedExpense': 'مصروف مرتبط',
   'reservations.removeExpense': 'إزالة المصروف',
   'reservations.linkedExpenses': 'المصروفات المرتبطة',

@@ -191,6 +191,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'ค่าใช้จ่าย',
   'reservations.createExpense': 'สร้างรายจ่าย',
   'reservations.createExpenseHint': 'บันทึกการจอง จากนั้นเปิดตัวแก้ไขต้นทุน',
+  'reservations.importedExpenseHint': 'จะเพิ่มลงในต้นทุนเมื่อคุณบันทึกการจอง',
   'reservations.linkedExpense': 'ค่าใช้จ่ายที่เชื่อมโยง',
   'reservations.removeExpense': 'ลบค่าใช้จ่าย',
   'reservations.linkedExpenses': 'รายการค่าใช้จ่ายที่เชื่อมโยง',

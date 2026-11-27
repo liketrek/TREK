@@ -202,6 +202,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Kulud',
   'reservations.createExpense': 'Loo kulu',
   'reservations.createExpenseHint': 'Salvestab broneeringu ja avab seejärel kulude muutmise vaate.',
+  'reservations.importedExpenseHint': 'Lisatakse kuludesse, kui broneeringu salvestad.',
   'reservations.linkedExpense': 'Seotud kulu',
   'reservations.removeExpense': 'Eemalda kulu',
   'reservations.linkedExpenses': 'Seotud kulud',

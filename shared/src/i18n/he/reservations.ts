@@ -202,6 +202,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'הוצאות',
   'reservations.createExpense': 'יצירת הוצאה',
   'reservations.createExpenseHint': 'שומר את ההזמנה ואז פותח את עורך ההוצאות.',
+  'reservations.importedExpenseHint': 'נוסף להוצאות כשתשמור את ההזמנה.',
   'reservations.linkedExpense': 'הוצאה מקושרת',
   'reservations.removeExpense': 'הסרת הוצאה',
   'reservations.linkedExpenses': 'הוצאות מקושרות',

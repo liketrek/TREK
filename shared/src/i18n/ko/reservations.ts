@@ -191,6 +191,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': '비용',
   'reservations.createExpense': '지출 만들기',
   'reservations.createExpenseHint': '예약을 저장한 뒤 비용 편집기를 엽니다.',
+  'reservations.importedExpenseHint': '예약을 저장하면 비용에 추가됩니다.',
   'reservations.linkedExpense': '연결된 지출',
   'reservations.removeExpense': '지출 삭제',
   'reservations.linkedExpenses': '연결된 지출',

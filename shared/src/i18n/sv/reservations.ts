@@ -199,6 +199,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Kostnader',
   'reservations.createExpense': 'Skapa utgift',
   'reservations.createExpenseHint': 'Sparar bokningen och öppnar sedan kostnadsredigeraren.',
+  'reservations.importedExpenseHint': 'Läggs till i kostnaderna när du sparar bokningen.',
   'reservations.linkedExpense': 'Relaterade kostnader',
   'reservations.removeExpense': 'Ta bort utgiften',
   'reservations.linkedExpenses': 'Länkade utgifter',

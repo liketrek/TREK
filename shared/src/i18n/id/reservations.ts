@@ -192,6 +192,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Biaya',
   'reservations.createExpense': 'Buat pengeluaran',
   'reservations.createExpenseHint': 'Menyimpan pemesanan, lalu membuka editor biaya.',
+  'reservations.importedExpenseHint': 'Ditambahkan ke biaya saat Anda menyimpan pemesanan.',
   'reservations.linkedExpense': 'Pengeluaran tertaut',
   'reservations.removeExpense': 'Hapus pengeluaran',
   'reservations.linkedExpenses': 'Pengeluaran tertaut',

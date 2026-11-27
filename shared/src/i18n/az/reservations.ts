@@ -232,6 +232,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Xərclər',
   'reservations.createExpense': 'Xərc yarat',
   'reservations.createExpenseHint': 'Rezervasiyanı yadda saxlayır, sonra Xərclər redaktorunu açır.',
+  'reservations.importedExpenseHint': 'Rezervasiyanı yadda saxladıqda Xərclərə əlavə olunur.',
   'reservations.linkedExpense': 'Əlaqəli xərc',
   'reservations.removeExpense': 'Xərci sil',
   'reservations.linkedExpenses': 'Əlaqəli xərclər',

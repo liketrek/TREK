@@ -204,6 +204,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Kosten',
   'reservations.createExpense': 'Ausgabe erstellen',
   'reservations.createExpenseHint': 'Speichert die Buchung und öffnet dann den Kosten-Editor.',
+  'reservations.importedExpenseHint': 'Wird beim Speichern der Buchung zu den Kosten hinzugefügt.',
   'reservations.linkedExpense': 'Verknüpfte Ausgabe',
   'reservations.removeExpense': 'Ausgabe entfernen',
   'reservations.linkedExpenses': 'Verknüpfte Ausgaben',

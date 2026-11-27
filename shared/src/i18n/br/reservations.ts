@@ -198,6 +198,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Custos',
   'reservations.createExpense': 'Criar despesa',
   'reservations.createExpenseHint': 'Salva a reserva e depois abre o editor de despesas.',
+  'reservations.importedExpenseHint': 'Adicionada às despesas quando você salvar a reserva.',
   'reservations.linkedExpense': 'Despesa vinculada',
   'reservations.removeExpense': 'Remover despesa',
   'reservations.linkedExpenses': 'Despesas vinculadas',

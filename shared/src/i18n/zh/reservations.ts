@@ -187,6 +187,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': '费用',
   'reservations.createExpense': '创建支出',
   'reservations.createExpenseHint': '先保存预订，然后打开费用编辑器。',
+  'reservations.importedExpenseHint': '保存预订时会添加到费用中。',
   'reservations.linkedExpense': '关联支出',
   'reservations.removeExpense': '移除关联支出',
   'reservations.linkedExpenses': '已关联支出',

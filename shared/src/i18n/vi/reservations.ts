@@ -195,6 +195,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Chi phí',
   'reservations.createExpense': 'Tạo chi phí',
   'reservations.createExpenseHint': 'Lưu đặt chỗ, sau đó mở trình chỉnh sửa Chi phí.',
+  'reservations.importedExpenseHint': 'Được thêm vào Chi phí khi bạn lưu đặt chỗ.',
   'reservations.linkedExpense': 'Chi phí liên kết',
   'reservations.removeExpense': 'Xóa chi phí',
   'reservations.linkedExpenses': 'Các chi phí liên kết',

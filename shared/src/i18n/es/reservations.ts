@@ -200,6 +200,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Costes',
   'reservations.createExpense': 'Crear gasto',
   'reservations.createExpenseHint': 'Guarda la reserva y luego abre el editor de gastos.',
+  'reservations.importedExpenseHint': 'Se añade a los gastos al guardar la reserva.',
   'reservations.linkedExpense': 'Gasto vinculado',
   'reservations.removeExpense': 'Quitar gasto',
   'reservations.linkedExpenses': 'Gastos vinculados',

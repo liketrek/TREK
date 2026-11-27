@@ -204,6 +204,9 @@ describe('BookingCostsSection', () => {
     expect(screen.getByText('Transport')).toBeInTheDocument();
     expect(screen.getByText(money(99, 'CHF'))).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Create expense/ })).not.toBeInTheDocument();
+    // The save adds the cost itself and opens no editor, so the preview says that (#3237).
+    expect(screen.getByText('Added to Costs when you save the booking.')).toBeInTheDocument();
+    expect(screen.queryByText('Saves the booking, then opens the Costs editor.')).not.toBeInTheDocument();
   });
 
   it('FE-PLANNER-COSTSEC-016: an amount without a currency is in the trip currency, whatever the display currency (#2525)', () => {

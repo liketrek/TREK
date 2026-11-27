@@ -209,6 +209,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Náklady',
   'reservations.createExpense': 'Vytvoriť výdavok',
   'reservations.createExpenseHint': 'Uloží rezerváciu a potom otvorí editor nákladov.',
+  'reservations.importedExpenseHint': 'Pridá sa do nákladov, keď rezerváciu uložíte.',
   'reservations.linkedExpense': 'Prepojený výdavok',
   'reservations.removeExpense': 'Odstrániť výdavok',
   'reservations.linkedExpenses': 'Prepojené výdavky',

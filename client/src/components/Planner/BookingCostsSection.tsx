@@ -29,7 +29,7 @@ export function BookingCostsSection({ reservationId, placeId = null, hintKey = '
   reservationId: number | null
   /** Set instead of reservationId when the block sits in the place form (#1298). */
   placeId?: number | null
-  /** What gets saved before the editor opens — "the booking" or "the place". */
+  /** The create button's hint: what gets saved before the editor opens, "the booking" or "the place". */
   hintKey?: string
   /** A cost parsed from an import that will be linked on save — previewed before the booking exists. */
   pendingExpense?: { total_price: number; currency?: string | null; category: string } | null
@@ -76,6 +76,8 @@ export function BookingCostsSection({ reservationId, placeId = null, hintKey = '
   }
 
   // Import review (booking not saved yet): preview the parsed cost that will be linked on save.
+  // The save adds it itself and opens no editor, so the line under it says so, not the
+  // create button's hint (#3237).
   if (linked.length === 0 && pendingExpense && pendingExpense.total_price > 0) {
     const meta = catMeta(pendingExpense.category)
     const Icon = meta.Icon
@@ -86,7 +88,7 @@ export function BookingCostsSection({ reservationId, placeId = null, hintKey = '
           <span style={{ width: 26, height: 26, borderRadius: 7, display: 'grid', placeItems: 'center', background: meta.color + '22', color: meta.color, flexShrink: 0 }}><Icon size={14} /></span>
           <div style={{ flex: 1, minWidth: 0 }}>
             <div className="text-content" style={{ ...fs(14, 'body'), fontWeight: 600 }}>{t(meta.labelKey)}</div>
-            <div className="text-content-faint" style={fs(12, 'body')}>{t(hintKey)}</div>
+            <div className="text-content-faint" style={fs(12, 'body')}>{t('reservations.importedExpenseHint')}</div>
           </div>
           <span className="text-content" style={{ ...fs(14, 'body'), fontWeight: 700, flexShrink: 0 }}>{formatMoney(pendingExpense.total_price, ownCurrency(pendingExpense.currency), locale)}</span>
         </div>

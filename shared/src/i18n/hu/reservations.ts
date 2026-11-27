@@ -202,6 +202,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Költségek',
   'reservations.createExpense': 'Költség létrehozása',
   'reservations.createExpenseHint': 'Menti a foglalást, majd megnyitja a költségszerkesztőt.',
+  'reservations.importedExpenseHint': 'A foglalás mentésekor bekerül a költségek közé.',
   'reservations.linkedExpense': 'Kapcsolt költség',
   'reservations.removeExpense': 'Költség eltávolítása',
   'reservations.linkedExpenses': 'Kapcsolt költségek',

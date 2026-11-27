@@ -203,6 +203,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Coûts',
   'reservations.createExpense': 'Créer une dépense',
   'reservations.createExpenseHint': 'Enregistre la réservation, puis ouvre l’éditeur de dépenses.',
+  'reservations.importedExpenseHint': 'Ajoutée aux dépenses à l’enregistrement de la réservation.',
   'reservations.linkedExpense': 'Dépense liée',
   'reservations.removeExpense': 'Retirer la dépense',
   'reservations.linkedExpenses': 'Dépenses liées',

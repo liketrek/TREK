@@ -210,6 +210,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Расходы',
   'reservations.createExpense': 'Создать расход',
   'reservations.createExpenseHint': 'Сохраняет бронирование и открывает редактор расходов.',
+  'reservations.importedExpenseHint': 'Добавится в расходы при сохранении бронирования.',
   'reservations.linkedExpense': 'Привязанный расход',
   'reservations.removeExpense': 'Убрать расход',
   'reservations.linkedExpenses': 'Привязанные расходы',

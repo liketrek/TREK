@@ -199,6 +199,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Maliyetler',
   'reservations.createExpense': 'Harcama oluştur',
   'reservations.createExpenseHint': 'Rezervasyonu kaydeder, sonra masraf düzenleyicisini açar.',
+  'reservations.importedExpenseHint': 'Rezervasyonu kaydettiğinizde masraflara eklenir.',
   'reservations.linkedExpense': 'Bağlı harcama',
   'reservations.removeExpense': 'Harcamayı kaldır',
   'reservations.linkedExpenses': 'Bağlı harcamalar',

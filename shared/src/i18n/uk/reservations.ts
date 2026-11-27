@@ -210,6 +210,7 @@ const reservations: TranslationStrings = {
   'reservations.costsLabel': 'Витрати',
   'reservations.createExpense': 'Створити витрату',
   'reservations.createExpenseHint': 'Зберігає бронювання й відкриває редактор витрат.',
+  'reservations.importedExpenseHint': 'Додається до витрат, коли ви зберігаєте бронювання.',
   'reservations.linkedExpense': 'Прив’язана витрата',
   'reservations.removeExpense': 'Прибрати витрату',
   'reservations.linkedExpenses': 'Прив’язані витрати',
