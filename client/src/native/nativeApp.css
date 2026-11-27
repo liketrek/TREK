@@ -81,3 +81,50 @@ html[data-touch-input]
   --tw-ring-offset-shadow: 0 0 #0000;
   --tw-ring-shadow: 0 0 #0000;
 }
+
+/* The handover from the app's address screen to this server's UI
+   (native/appBoot.ts): the waiting states stand on that screen's colour, with
+   its spinner, which fades in only once the wait is long enough to notice. */
+html[data-app-boot] .app-boot {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: #fffaf5;
+}
+html[data-app-boot] .app-boot span {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2.5px solid #6b5f57;
+  border-top-color: transparent;
+  animation:
+    trek-boot-spin 0.8s linear infinite,
+    trek-image-in 0.3s ease-out 0.6s both;
+}
+@keyframes trek-boot-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Signed in from the app's sign-in screen: the app rises in on the page
+   colour instead of cutting in (native/appBoot.ts endAppBoot). */
+html[data-app-enter] #root {
+  animation: trek-app-enter 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes trek-app-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-app-enter] #root {
+    animation-duration: 0.01s;
+  }
+}

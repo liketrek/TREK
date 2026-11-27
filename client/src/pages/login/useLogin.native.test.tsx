@@ -1,4 +1,4 @@
-// FE-LOGIN-NATIVE-001 to FE-LOGIN-NATIVE-008: useLogin inside the iOS/Android app
+// FE-LOGIN-NATIVE-001 to FE-LOGIN-NATIVE-011: useLogin inside the iOS/Android app
 import { startAuthentication } from '@simplewebauthn/browser';
 import { http, HttpResponse } from 'msw';
 import React from 'react';
@@ -11,7 +11,9 @@ import { act, renderHook, waitFor } from '../../../tests/helpers/render';
 import { resetAllStores } from '../../../tests/helpers/store';
 import { TranslationProvider } from '../../i18n/TranslationContext';
 import { BrowserSignInCancelled, resumeBrowserSignIn, signInThroughBrowser } from '../../native/browserSignIn';
+import { toastHaptic } from '../../native/haptics';
 import { useAuthStore } from '../../store/authStore';
+import { useSettingsStore } from '../../store/settingsStore';
 import { markSignedOut, wasSignedOut } from '../../utils/signedOut';
 import { useLogin } from './useLogin';
 
@@ -23,12 +25,18 @@ vi.mock('react-router', async () => {
 });
 vi.mock('@simplewebauthn/browser', () => ({ startAuthentication: vi.fn() }));
 vi.mock('../../native/platform', () => ({ isNativeApp: () => true }));
+vi.mock('../../native/haptics', () => ({ toastHaptic: vi.fn() }));
 vi.mock('../../native/browserSignIn', async () => {
   const actual = await vi.importActual<typeof import('../../native/browserSignIn')>('../../native/browserSignIn');
   return { ...actual, signInThroughBrowser: vi.fn(), resumeBrowserSignIn: vi.fn() };
 });
 
 const realLocation = window.location;
+const realLanguages = Object.getOwnPropertyDescriptor(window.navigator, 'languages');
+
+function deviceLanguages(languages: string[]) {
+  Object.defineProperty(window.navigator, 'languages', { configurable: true, get: () => languages });
+}
 const loadUser = vi.fn(async () => {});
 
 function renderLogin() {
@@ -61,6 +69,9 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  if (realLanguages) Object.defineProperty(window.navigator, 'languages', realLanguages);
+  else delete (window.navigator as { languages?: readonly string[] }).languages;
+  localStorage.removeItem('app_language');
   Object.defineProperty(window, 'location', { configurable: true, writable: true, value: realLocation });
 });
 
@@ -151,5 +162,29 @@ describe('useLogin in the native app', () => {
 
     await waitFor(() => expect(result.current.error).toBe('Signing in did not work. Please try again.'));
     expect(result.current.showTakeoff).toBe(false);
+  });
+
+  it('FE-LOGIN-NATIVE-009: speaks the device language, over a language once picked on this page', async () => {
+    localStorage.setItem('app_language', 'fr');
+    deviceLanguages(['de-DE', 'en-US']);
+    renderLogin();
+    await waitFor(() => expect(useSettingsStore.getState().settings.language).toBe('de'));
+  });
+
+  it('FE-LOGIN-NATIVE-010: falls back to English on a device language TREK has no translation for', async () => {
+    deviceLanguages(['pt-PT']);
+    useSettingsStore.setState((state) => ({ settings: { ...state.settings, language: 'fr' } }));
+    renderLogin();
+    await waitFor(() => expect(useSettingsStore.getState().settings.language).toBe('en'));
+  });
+
+  it('FE-LOGIN-NATIVE-011: opens the app after signing in without the takeoff, with the success tap', async () => {
+    vi.mocked(resumeBrowserSignIn).mockResolvedValue(true);
+    mockNavigate.mockClear();
+    const { result } = renderLogin();
+
+    await waitFor(() => expect(result.current.showTakeoff).toBe(true));
+    expect(toastHaptic).toHaveBeenCalledWith('success');
+    await waitFor(() => expect(mockNavigate).toHaveBeenCalledWith('/'), { timeout: 2500 });
   });
 });

@@ -16,7 +16,7 @@ import ToggleSwitch from '../components/Settings/ToggleSwitch';
 import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { IDP_LOGIN_URL, useLogin } from './login/useLogin';
 import LoginWorld from './login/LoginWorld';
-import NativeServerLink from './login/NativeServerLink';
+import AppLogin from './login/AppLogin';
 import MfaCodeStep from './login/MfaCodeStep';
 import { LANGUAGE_CORNER_CLASS } from './login/languageCorner';
 import PasswordChecklist from '../components/shared/PasswordChecklist';
@@ -44,8 +44,10 @@ const STARFIELD = [
 export default function LoginPage(): React.ReactElement {
   const { t, language } = useTranslation();
   // Page = wiring container: the whole auth surface lives in the useLogin hook.
+  const login = useLogin();
   const {
     navigate,
+    nativeApp,
     mode,
     setMode,
     username,
@@ -87,7 +89,7 @@ export default function LoginPage(): React.ReactElement {
     idpSlow,
     idpName,
     handleDemoLogin, handleSubmit, handlePasskeyLogin, handleSsoClick,
-  } = useLogin();
+  } = login;
 
   const oidcButtonShown = !!(appConfig?.oidc_configured && appConfig?.oidc_login && !oidcOnly);
   const passkeyAvailable = !!(
@@ -115,7 +117,7 @@ export default function LoginPage(): React.ReactElement {
     transition: 'border-color 0.15s',
   };
 
-  if (showTakeoff) {
+  if (showTakeoff && !nativeApp) {
     return (
       <div
         className="takeoff-overlay"
@@ -226,6 +228,10 @@ export default function LoginPage(): React.ReactElement {
       </div>
     );
   }
+
+  // Inside the iOS and Android app: the screen that continues the app's own
+  // address screen, on the same hook. The browser keeps the page below.
+  if (nativeApp) return <AppLogin login={login} />;
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', fontFamily: 'var(--font-system)', position: 'relative' }}>
@@ -1222,7 +1228,6 @@ export default function LoginPage(): React.ReactElement {
               {t('login.demoHint')}
             </button>
           )}
-          <NativeServerLink />
         </div>
       </div>
 

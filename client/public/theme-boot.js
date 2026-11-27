@@ -12,6 +12,16 @@
 (function () {
   try {
     var raw = localStorage.getItem('trek_appearance');
+    // Inside the iOS and Android app, before anyone signed in on this server
+    // from here: the page carries on the address screen's colour until the
+    // sign-in screen is up (native/appBoot.ts), instead of flashing white.
+    // The app's bridge is in place before this script runs.
+    var w = window;
+    var inApp = !!(w.androidBridge || (w.webkit && w.webkit.messageHandlers && w.webkit.messageHandlers.bridge));
+    if (inApp && !raw) {
+      document.documentElement.setAttribute('data-app-boot', '');
+      document.documentElement.style.backgroundColor = '#fffaf5';
+    }
     if (!raw) return;
     var s = JSON.parse(raw);
     if (!s || s.v !== 1) return;

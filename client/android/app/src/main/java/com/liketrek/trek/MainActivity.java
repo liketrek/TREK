@@ -26,6 +26,9 @@ public class MainActivity extends BridgeActivity {
     /** The share sheet (share/ShareActivity.kt) left an item for the import. */
     public static final String ACTION_SHARE_HANDOFF = "com.liketrek.trek.SHARE_HANDOFF";
 
+    /** The page colour of the address screen (native-shell/shell.css --page). */
+    private static final int SHELL_PAGE = 0xFFFFFAF5;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         registerPlugin(TrekShellPlugin.class);
@@ -57,6 +60,15 @@ public class MainActivity extends BridgeActivity {
         // and Chrome honours that, but the WebView draws the stretch on its root
         // scroller natively. It scales the whole view, top bar and bottom dock included.
         bridge.getWebView().setOverScrollMode(View.OVER_SCROLL_NEVER);
+        // The address screen, and the step from it to the server just picked:
+        // the warm ground of the first screens behind everything, so the
+        // restart and the page's first frames do not flash white. The window's
+        // colour is also what an older WebView shows under the status bar,
+        // where it lays the page out between the bars (native/appBoot.ts).
+        if (!onServer || restarting) {
+            getWindow().getDecorView().setBackgroundColor(SHELL_PAGE);
+            bridge.getWebView().setBackgroundColor(SHELL_PAGE);
+        }
         // Set before any WebView callback can run: they are posted to this thread.
         if (onServer) {
             bridge.setWebViewClient(

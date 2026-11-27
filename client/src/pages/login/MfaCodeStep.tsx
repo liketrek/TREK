@@ -11,6 +11,35 @@ interface MfaCodeStepProps {
   onBack: () => void;
 }
 
+/**
+ * The one-time code field, for this step and the app's sign-in screen alike.
+ * Text, not numeric: backup codes carry letters. The hints are set here rather
+ * than left to native/keyboardFields.ts, because autoFocus gives the field
+ * focus before any touch could prepare it.
+ */
+export function mfaCodeInputProps(
+  code: string,
+  onCode: (code: string) => void,
+  placeholder: string
+): React.InputHTMLAttributes<HTMLInputElement> {
+  return {
+    type: 'text',
+    id: 'totp',
+    name: 'totp',
+    inputMode: 'text',
+    autoComplete: 'one-time-code',
+    autoCapitalize: 'characters',
+    autoCorrect: 'off',
+    spellCheck: false,
+    enterKeyHint: 'go',
+    value: code,
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => onCode(e.target.value.toUpperCase().slice(0, 24)),
+    placeholder,
+    required: true,
+    autoFocus: true,
+  };
+}
+
 /** The login's second step: the one-time or backup code, and the way back. */
 export default function MfaCodeStep({ email, code, onCode, inputStyle, onBack }: MfaCodeStepProps) {
   const { t } = useTranslation();
@@ -53,23 +82,7 @@ export default function MfaCodeStep({ email, code, onCode, inputStyle, onBack }:
           }}
         />
         <input
-          type="text"
-          id="totp"
-          name="totp"
-          // Text, not numeric: backup codes carry letters. The hints are set here
-          // rather than left to native/keyboardFields.ts, because autoFocus gives
-          // the field focus before any touch could prepare it.
-          inputMode="text"
-          autoComplete="one-time-code"
-          autoCapitalize="characters"
-          autoCorrect="off"
-          spellCheck={false}
-          enterKeyHint="go"
-          value={code}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => onCode(e.target.value.toUpperCase().slice(0, 24))}
-          placeholder={t('login.mfaPlaceholder')}
-          required
-          autoFocus
+          {...mfaCodeInputProps(code, onCode, t('login.mfaPlaceholder'))}
           style={inputStyle}
           onFocus={(e: React.FocusEvent<HTMLInputElement>) => (e.target.style.borderColor = '#111827')}
           onBlur={(e: React.FocusEvent<HTMLInputElement>) => (e.target.style.borderColor = '#e5e7eb')}

@@ -1,0 +1,652 @@
+/*
+ * The sign-in screen inside the iOS and Android app (AppLogin.tsx). It is the
+ * next screen after the app's own address screen (native-shell/), so it wears
+ * that screen's look: the same landscape on top, the same glass card with the
+ * server on it, the same type, fields and buttons on the same warm page. The
+ * values mirror native-shell/shell.css; keep the two in step.
+ *
+ * Light on purpose, like the screens before it: the user's appearance is not
+ * known before signing in. The tokens the shared controls read (ToggleSwitch,
+ * PasswordChecklist) are pinned to the light values inside the screen, so a
+ * dark scheme left on the device does not reach into it.
+ *
+ * Every side is a logical one, so Arabic mirrors the layout on its own.
+ */
+
+/*
+ * The text face of the address screen, from the same files it bundles. Loaded
+ * only once a letter of the range is on this screen; Cyrillic and the scripts
+ * it does not cover fall back to the app's own face.
+ */
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../../../native-shell/fonts/plus-jakarta-sans-latin-500.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../../../native-shell/fonts/plus-jakarta-sans-latin-600.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../../native-shell/fonts/plus-jakarta-sans-latin-700.woff2') format('woff2');
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../../../native-shell/fonts/plus-jakarta-sans-latin-ext-500.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../../../native-shell/fonts/plus-jakarta-sans-latin-ext-600.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Plus Jakarta Sans';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../../../native-shell/fonts/plus-jakarta-sans-latin-ext-700.woff2') format('woff2');
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F,
+    U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+
+.app-login {
+  --al-page: #fffaf5;
+  --al-ink: #1f1a17;
+  --al-text: #6b5f57;
+  --al-muted: #8a7b6f;
+  --al-faint: #b9ab9e;
+  --al-line: #efe4d8;
+  --al-line-soft: #f3ebe1;
+  --al-sand: #f6efe6;
+  --al-dark: #111827;
+  --al-good: #1d7a46;
+  --al-bad: #b42318;
+  --al-bad-soft: #fbeeec;
+  --al-bad-ink: #8f2a1d;
+  --al-warn-soft: #fdf3e2;
+  --al-warn-ink: #8a5a12;
+  --al-sea: #cfe3ef;
+  --al-text-face: 'Plus Jakarta Sans', var(--font-system);
+  --al-display: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --al-safe-top: max(env(safe-area-inset-top, 0px), var(--safe-area-inset-top, 0px), var(--trek-native-safe-top, 0px));
+  --al-safe-bottom: max(
+    env(safe-area-inset-bottom, 0px),
+    var(--safe-area-inset-bottom, 0px),
+    var(--trek-native-safe-bottom, 0px)
+  );
+  --al-safe-start: max(
+    env(safe-area-inset-left, 0px),
+    var(--safe-area-inset-left, 0px),
+    var(--trek-native-safe-left, 0px)
+  );
+  --al-safe-end: max(
+    env(safe-area-inset-right, 0px),
+    var(--safe-area-inset-right, 0px),
+    var(--trek-native-safe-right, 0px)
+  );
+
+  /* What the shared controls inside read. */
+  --accent: var(--al-dark);
+  --accent-text: #fff;
+  --text-primary: var(--al-ink);
+  --border-primary: #e6dccf;
+  --bg-card: #fff;
+
+  position: fixed;
+  inset: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: none;
+  scrollbar-width: none;
+  display: flex;
+  flex-direction: column;
+  background: var(--al-page);
+  color: var(--al-ink);
+  color-scheme: light;
+  font-family: var(--al-text-face);
+  -webkit-tap-highlight-color: transparent;
+  animation: al-in 0.42s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+.app-login::-webkit-scrollbar {
+  display: none;
+}
+.app-login *,
+.app-login *::before,
+.app-login *::after {
+  box-sizing: border-box;
+}
+@keyframes al-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* ── The landscape and the server card on it ── */
+.al-hero {
+  position: relative;
+  flex: none;
+  overflow: hidden;
+  height: min(272px, 33svh);
+  min-height: 200px;
+  margin-bottom: -1px;
+  background: var(--al-sea);
+}
+.al-hero .scenery {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  animation: al-in 0.6s ease-out both;
+}
+/* The status bar's clock and icons stay readable on the sea. */
+.al-hero::before {
+  content: '';
+  position: absolute;
+  z-index: 1;
+  inset-inline: 0;
+  top: 0;
+  height: calc(var(--al-safe-top) + 36px);
+  background: linear-gradient(180deg, rgba(8, 24, 40, 0.28), rgba(8, 24, 40, 0));
+  pointer-events: none;
+}
+.al-hero::after {
+  content: '';
+  position: absolute;
+  inset-inline: 0;
+  bottom: -2px;
+  height: 110px;
+  background: linear-gradient(180deg, rgba(255, 250, 245, 0) 0%, rgba(255, 250, 245, 0.8) 55%, #fffaf5 82%);
+  pointer-events: none;
+}
+.al-logo {
+  position: absolute;
+  z-index: 2;
+  top: calc(var(--al-safe-top) + 10px);
+  inset-inline-start: calc(24px + var(--al-safe-start));
+  height: 40px;
+  filter: drop-shadow(0 1px 6px rgba(7, 40, 70, 0.45));
+}
+.al-card {
+  position: absolute;
+  z-index: 2;
+  inset-inline: calc(20px + var(--al-safe-start)) calc(20px + var(--al-safe-end));
+  bottom: 44px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-block: 12px 13px;
+  padding-inline: 16px 12px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.8);
+  -webkit-backdrop-filter: blur(16px) saturate(1.5);
+  backdrop-filter: blur(16px) saturate(1.5);
+  box-shadow:
+    0 18px 36px -18px rgba(17, 24, 39, 0.55),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+.al-card-text {
+  flex: 1;
+  min-width: 0;
+}
+.al-card small {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--al-good);
+}
+.al-host {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+  min-width: 0;
+  font-family: var(--al-display);
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--al-dark);
+}
+.al-host svg {
+  flex: none;
+}
+.al-host span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.al-change {
+  flex: none;
+  min-height: 36px;
+  padding: 0 13px;
+  border: 0;
+  border-radius: 11px;
+  background: #fff;
+  color: var(--al-dark);
+  font: 700 13.5px var(--al-text-face);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+/* ── The content ── */
+.al-body {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding-block: 6px calc(28px + var(--al-safe-bottom));
+  padding-inline: calc(24px + var(--al-safe-start)) calc(24px + var(--al-safe-end));
+}
+.al-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.al-title {
+  margin: 0;
+  font-family: var(--al-display);
+  font-size: calc(28px * var(--fs-scale-title, 1));
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.12;
+  text-wrap: balance;
+}
+.al-sub {
+  margin: 4px 0 6px;
+  font-size: calc(15px * var(--fs-scale-body, 1));
+  line-height: 1.5;
+  color: var(--al-text);
+}
+
+/* A field on a white card: the label above, the input below it. */
+.al-fld {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 16px 11px;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0 0 0 1px var(--al-line);
+  cursor: text;
+  transition: box-shadow 0.2s;
+}
+.al-fld:focus-within {
+  box-shadow: 0 0 0 2px var(--al-dark);
+}
+.al-lab {
+  font-size: calc(12px * var(--fs-scale-body, 1));
+  font-weight: 700;
+  color: var(--al-muted);
+}
+.al-fld-wrap {
+  position: relative;
+}
+.al-fld-wrap.with-after .al-fld input {
+  padding-inline-end: 40px;
+}
+.al-after {
+  position: absolute;
+  inset-inline-end: 8px;
+  bottom: 4px;
+}
+.al-fld input {
+  flex: 1;
+  min-width: 0;
+  width: 100%;
+  border: 0;
+  outline: none;
+  background: transparent;
+  padding: 0;
+  /* 16 px or more, or iOS zooms into the field on focus. */
+  font: 600 16px var(--al-text-face);
+  color: var(--al-ink);
+}
+.al-fld input::placeholder {
+  color: var(--al-faint);
+  font-weight: 500;
+}
+.al-eye {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--al-muted);
+  cursor: pointer;
+}
+.al-check {
+  margin-top: -4px;
+}
+
+.al-options {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 44px;
+}
+.al-remember {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  font-size: calc(14px * var(--fs-scale-body, 1));
+  font-weight: 600;
+  color: var(--al-text);
+  cursor: pointer;
+  user-select: none;
+}
+.al-forgot {
+  align-self: center;
+  min-height: 44px;
+  margin-top: 6px;
+  padding: 0 8px;
+  border: 0;
+  background: none;
+  color: var(--al-text);
+  font: 600 calc(14px * var(--fs-scale-body, 1)) var(--al-text-face);
+  cursor: pointer;
+}
+
+/* ── Buttons ── */
+.al-cta,
+.al-cta2 {
+  width: 100%;
+  border: 0;
+  border-radius: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  text-decoration: none;
+  transition:
+    transform 0.15s,
+    opacity 0.15s;
+}
+.al-cta {
+  min-height: 56px;
+  margin-top: 4px;
+  background: var(--al-dark);
+  color: #fff;
+  font: 700 calc(17px * var(--fs-scale-body, 1)) var(--al-text-face);
+  box-shadow: 0 14px 28px -14px rgba(17, 24, 39, 0.55);
+}
+.al-cta2 {
+  min-height: 52px;
+  background: #fff;
+  color: var(--al-dark);
+  font: 700 calc(16px * var(--fs-scale-body, 1)) var(--al-text-face);
+  box-shadow: 0 0 0 1.5px var(--al-line);
+}
+.al-cta:active,
+.al-cta2:active {
+  transform: scale(0.985);
+}
+.al-cta:disabled,
+.al-cta2:disabled {
+  opacity: 0.7;
+  cursor: default;
+}
+.al-demo {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  color: #451a03;
+  box-shadow: 0 10px 24px -14px rgba(217, 119, 6, 0.7);
+}
+.al-spin {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: al-spin 0.8s linear infinite;
+}
+@keyframes al-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.al-or {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 10px 0 2px;
+  font-size: calc(13px * var(--fs-scale-body, 1));
+  font-weight: 600;
+  color: var(--al-faint);
+}
+.al-or::before,
+.al-or::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--al-line);
+}
+.al-alt {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.al-switch {
+  margin: 16px 0 0;
+  text-align: center;
+  font-size: calc(14px * var(--fs-scale-body, 1));
+  color: var(--al-muted);
+}
+.al-switch button {
+  min-height: 44px;
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: var(--al-ink);
+  font: 700 calc(14px * var(--fs-scale-body, 1)) var(--al-text-face);
+  cursor: pointer;
+}
+
+/* ── Messages ── */
+.al-notice {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--al-bad-soft);
+  color: var(--al-bad-ink);
+  font-size: calc(13.5px * var(--fs-scale-body, 1));
+  font-weight: 600;
+  line-height: 1.45;
+}
+.al-notice svg {
+  flex: none;
+  margin-top: 1px;
+}
+.al-notice.warn {
+  background: var(--al-warn-soft);
+  color: var(--al-warn-ink);
+}
+.al-notice b {
+  display: block;
+  margin-bottom: 2px;
+}
+.al-notice a {
+  display: inline-block;
+  margin-top: 4px;
+  color: inherit;
+  font-weight: 700;
+}
+.al-hint {
+  margin: 0;
+  font-size: calc(12.5px * var(--fs-scale-body, 1));
+  line-height: 1.5;
+  color: var(--al-muted);
+}
+.al-back {
+  align-self: flex-start;
+  min-height: 40px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--al-text);
+  font: 600 calc(14px * var(--fs-scale-body, 1)) var(--al-text-face);
+  cursor: pointer;
+}
+
+/* Waiting: on the way to the sign-in provider, or for the server's settings. */
+.al-wait {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 180px;
+  padding-bottom: 40px;
+  text-align: center;
+  color: var(--al-text);
+}
+.al-wait .al-spin {
+  width: 24px;
+  height: 24px;
+  border-width: 2.5px;
+}
+.al-wait p {
+  margin: 0;
+  font-size: calc(16px * var(--fs-scale-body, 1));
+  font-weight: 600;
+  color: var(--al-ink);
+}
+.al-wait a {
+  font-size: calc(14px * var(--fs-scale-body, 1));
+  color: var(--al-text);
+}
+
+.app-login :focus-visible {
+  outline: 2px solid var(--al-dark);
+  outline-offset: 2px;
+}
+
+/*
+ * An iPad, an unfolded phone, a phone on its side: the landscape fills one side
+ * and the form stands in a column of its own beside it, as on the address screen.
+ */
+@media (min-width: 900px), (orientation: landscape) and (max-height: 500px) {
+  .app-login {
+    flex-direction: row;
+    overflow: hidden;
+  }
+  .al-hero {
+    flex: 1 1 auto;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
+  }
+  .al-hero::after {
+    display: none;
+  }
+  .al-card {
+    inset-inline: calc(32px + var(--al-safe-start)) auto;
+    width: min(420px, calc(100% - 64px));
+    bottom: 40px;
+  }
+  .al-logo {
+    top: calc(var(--al-safe-top) + 24px);
+    inset-inline-start: calc(32px + var(--al-safe-start));
+    height: 46px;
+  }
+  .al-body {
+    flex: none;
+    width: 460px;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    justify-content: center;
+    padding-block: calc(var(--al-safe-top) + 32px) calc(32px + var(--al-safe-bottom));
+    padding-inline: 32px calc(32px + var(--al-safe-end));
+    background: var(--al-page);
+    box-shadow: -1px 0 0 rgba(31, 26, 23, 0.06);
+  }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  .al-body {
+    width: min(420px, 52vw);
+    justify-content: flex-start;
+    padding-top: calc(var(--al-safe-top) + 20px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-login,
+  .app-login * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .al-spin {
+    animation: al-spin 1.6s linear infinite !important;
+  }
+}
+
+/* Signed in: the screen steps back into the page colour, and the app rises in
+   from it (native/appBoot.ts handOverToApp). */
+.app-login.al-leaving .al-body {
+  animation: al-leave-body 0.34s cubic-bezier(0.4, 0, 1, 1) both;
+}
+.app-login.al-leaving .al-hero {
+  animation: al-leave-hero 0.42s ease-in both;
+}
+@keyframes al-leave-body {
+  to {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+@keyframes al-leave-hero {
+  to {
+    opacity: 0;
+  }
+}

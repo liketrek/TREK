@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, ReactNode, Suspense } from 'react'
+import React, { useEffect, useLayoutEffect, useState, useRef, ReactNode, Suspense } from 'react'
 import { Routes, Route, Navigate, useLocation, useNavigationType } from 'react-router'
 import { useAuthStore } from './store/authStore'
 import { useSettingsStore } from './store/settingsStore'
@@ -17,6 +17,8 @@ import BackgroundTasksWidget from './components/BackgroundTasks/BackgroundTasksW
 import MobileShell from './mobile/MobileShell'
 import MRouteFallback from './mobile/components/MRouteFallback'
 import ErrorBoundary from './components/shared/ErrorBoundary'
+import AppBootScreen from './components/shared/AppBootScreen'
+import { endAppBoot, isAppBoot } from './native/appBoot'
 import { lazyWithRetry } from './utils/lazyWithRetry'
 import { reconcileAppVersion } from './utils/versionHandover'
 import { useServerVersionStore } from './store/serverVersionStore'
@@ -113,6 +115,7 @@ function ProtectedRoute({ children, adminRequired = false, addonId }: ProtectedR
   const isPhone = useIsPhone()
 
   if (isLoading) {
+    if (isAppBoot()) return <AppBootScreen />
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="flex flex-col items-center gap-3">
@@ -286,6 +289,7 @@ function RootRedirect() {
   }, [isLoading, isAuthenticated, settingsLoaded, settingsGaveUp, settings, target])
 
   if (isLoading || (isAuthenticated && !target)) {
+    if (isAppBoot()) return <AppBootScreen />
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-50">
         <div className="w-10 h-10 border-4 border-slate-200 border-t-slate-900 rounded-full animate-spin"></div>
@@ -306,6 +310,7 @@ function RouteFallback() {
   // on a phone the desktop spinner on bg-surface would be a foreign white sheet
   // in front of the mobile screen.
   const isPhone = useIsPhone()
+  if (isAppBoot()) return <AppBootScreen />
   if (isPhone) return <MRouteFallback />
   return (
     <div className="min-h-screen flex items-center justify-center bg-surface">
@@ -397,6 +402,12 @@ export default function App() {
 
   const location = useLocation()
   const isSharedPage = location.pathname.startsWith('/shared/')
+
+  // Inside the app: the handover from its address screen ends once a signed-in
+  // screen is up, before it paints, so it can rise in (native/appBoot.ts).
+  useLayoutEffect(() => {
+    if (isAuthenticated && location.pathname !== '/' && location.pathname !== '/login') endAppBoot()
+  }, [isAuthenticated, location.pathname])
 
   useEffect(() => {
     const run = () =>

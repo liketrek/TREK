@@ -5,6 +5,7 @@ import { SplashScreen } from '@capacitor/splash-screen';
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { PASSWORD_MIN_LENGTH, passwordProblem, passwordRuleStates } from '../../shared/src/auth/password-policy';
 import logoWhite from '../public/logo-light.svg'; // #fff wordmark, for the landscape
+import { pageUnderStatusBar } from '../src/native/appBoot';
 import { AUTH_GATE_NAMES, canSignInInApp, type AuthGate } from '../src/native/authGate';
 import { opensSoon, refundedBeforeOpening } from '../src/native/cloudOrders';
 import { fakeIapClient, getIapClient, productIdFor, type Purchase } from '../src/native/iap';
@@ -1705,7 +1706,9 @@ function showUnreachable(server: string, cert?: ClientCertDemand, failure?: stri
  */
 async function paintStatusBar(): Promise<void> {
   try {
-    await StatusBar.setStyle({ style: Style.Dark });
+    // Below the bar on an older Android WebView the page stops, and the bar
+    // stands on the window's light colour instead: dark icons there.
+    await StatusBar.setStyle({ style: pageUnderStatusBar() ? Style.Dark : Style.Light });
     if (wideLayout.matches) await StatusBar.hide();
     else await StatusBar.show();
   } catch {

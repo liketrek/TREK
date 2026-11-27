@@ -1,10 +1,9 @@
-// FE-SETTINGS-NATIVE-SERVER-001 to FE-SETTINGS-NATIVE-SERVER-008
+// FE-SETTINGS-NATIVE-SERVER-001 to FE-SETTINGS-NATIVE-SERVER-006
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '../../../tests/helpers/render';
 import MSettingsServer from '../../mobile/screens/settings/MSettingsServer';
 import { nativeServerHost } from '../../native/platform';
 import { TrekShell } from '../../native/trekShell';
-import NativeServerLink from '../../pages/login/NativeServerLink';
 import NativeServerSection from './NativeServerSection';
 
 vi.mock('../../native/platform', () => ({ nativeServerHost: vi.fn() }));
@@ -38,20 +37,5 @@ describe.each([
     const link = screen.getByRole('link', { name: 'Privacy policy' });
     expect(link).toHaveAttribute('href', 'https://liketrek.com/privacy?app=1');
     expect(link).toHaveAttribute('target', '_blank');
-  });
-});
-
-describe('the sign-in screen link', () => {
-  it('renders nothing in a browser', () => {
-    vi.mocked(nativeServerHost).mockReturnValue(null);
-    const { container } = render(<NativeServerLink />);
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('leads back to the address screen in the app', () => {
-    vi.mocked(nativeServerHost).mockReturnValue('trek.example.com');
-    render(<NativeServerLink />);
-    fireEvent.click(screen.getByRole('button', { name: 'Change server' }));
-    expect(TrekShell.resetServer).toHaveBeenCalled();
   });
 });

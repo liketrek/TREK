@@ -9,6 +9,8 @@ import { authApi, configApi } from '../../api/client'
 import { getApiErrorMessage } from '../../types'
 import { START_DESTINATION_ROUTE } from '../../utils/startDestination'
 import { passwordErrorKey } from '../../utils/passwordError'
+import { handOverToApp } from '../../native/appBoot'
+import { toastHaptic } from '../../native/haptics'
 import { isNativeApp } from '../../native/platform'
 import {
   BrowserSignInCancelled,
@@ -164,6 +166,13 @@ export function useLogin() {
    */
   const takeOff = (): void => {
     setShowTakeoff(true)
+    if (nativeApp) {
+      // The app has no takeoff: the sign-in screen steps back and the app rises in
+      // as soon as the settings are there (native/appBoot.ts).
+      toastHaptic('success')
+      void handOverToApp(loadSettings(), () => navigate(redirectTarget))
+      return
+    }
     loadSettings()
     setTimeout(() => navigate(redirectTarget), 2600)
   }
@@ -289,7 +298,15 @@ export function useLogin() {
   // 2. Browser/OS language (navigator.languages)
   // 3. Server default (DEFAULT_LANGUAGE env var)
   // 4. 'en' → hardcoded fallback already in store
+  // Inside the iOS and Android app the sign-in screen has no language menu: it
+  // speaks the device's language, as the address screen before it does, and
+  // English where TREK has no translation for it. The account's own language
+  // takes over once signed in.
   useEffect(() => {
+    if (nativeApp) {
+      setLanguageTransient(detectBrowserLanguage() ?? 'en')
+      return
+    }
     if (hasStoredLanguage()) return
 
     const detected = detectBrowserLanguage()
@@ -301,7 +318,7 @@ export function useLogin() {
     configApi.getPublicConfig()
       .then(({ defaultLanguage }) => { if (defaultLanguage) setLanguageTransient(defaultLanguage) })
       .catch((err) => console.warn('Failed to fetch default language config:', err))
-  }, [setLanguageTransient])
+  }, [setLanguageTransient, nativeApp])
 
   useEffect(() => {
     if (!langDropdownOpen) return
@@ -457,7 +474,7 @@ export function useLogin() {
   const oidcOnly = !appConfig?.password_login && appConfig?.oidc_login && appConfig?.oidc_configured
 
   return {
-    navigate,
+    navigate, nativeApp,
     mode, setMode,
     username, setUsername, email, setEmail, password, setPassword, rememberMe, setRememberMe, showPassword, setShowPassword,
     isLoading, error, setError, insecureCookie, appConfig, inviteToken,
