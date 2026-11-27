@@ -474,15 +474,20 @@ describe('downloadTripPDF', () => {
     await downloadTripPDF(md)
     const html = getIframe()?.srcdoc ?? ''
     const doc = new DOMParser().parseFromString(html, 'text/html')
-    const intro = doc.querySelector('.day-intro')!
+    const card = (selector: string) => {
+      const found = doc.querySelector(selector)
+      if (!found) throw new Error(`${selector} is not in the export`)
+      return found
+    }
+    const intro = card('.day-intro')
     expect(intro.querySelector('strong')?.textContent).toBe('Intro')
     expect([...intro.querySelectorAll('li')].map(li => li.textContent)).toEqual(['museum', 'lunch'])
-    const noteLine = doc.querySelector('.tl-note .note-time')!
+    const noteLine = card('.tl-note .note-time')
     expect(noteLine.querySelector('em')?.textContent).toBe('Bring')
     expect(noteLine.querySelector('hr')).not.toBeNull()
     expect(noteLine.querySelector('script')).toBeNull()
     expect(noteLine.textContent).toContain('<script>alert(1)</script>')
-    const transportNote = doc.querySelector('.transport-note')!
+    const transportNote = card('.transport-note')
     expect(transportNote.querySelector('strong')?.textContent).toBe('14A')
     expect([...transportNote.querySelectorAll('ol li')].map(li => li.textContent)).toEqual(['check in', 'board'])
     expect(html).not.toContain('**')
