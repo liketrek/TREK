@@ -41,7 +41,7 @@ function revoke(ids: string[], at: string) {
 async function add(
   id: string,
   userId: number,
-  overrides: { created_at?: string; expires_at?: string; user_agent?: string | null } = {},
+  overrides: { created_at?: string; expires_at?: string; user_agent?: string | null; oidc_sid?: string | null } = {},
 ) {
   await sessions.insertSession({
     id,
@@ -49,6 +49,7 @@ async function add(
     created_at: overrides.created_at ?? EARLIER,
     expires_at: overrides.expires_at ?? LATER,
     user_agent: overrides.user_agent ?? null,
+    ...(overrides.oidc_sid !== undefined ? { oidc_sid: overrides.oidc_sid } : {}),
   });
 }
 
@@ -64,6 +65,7 @@ describe('UserSessionsRepository', () => {
       expires_at: LATER,
       revoked_at: null,
       user_agent: 'Firefox',
+      oidc_sid: null,
     });
   });
 
@@ -189,6 +191,7 @@ describe('UserSessionsRepository', () => {
         last_seen_at: EARLIER,
         expires_at: LATER,
         user_agent: 'A',
+        oidc_sid: null,
       },
       {
         id: 'b1',
@@ -198,6 +201,7 @@ describe('UserSessionsRepository', () => {
         last_seen_at: EARLIER,
         expires_at: LATER,
         user_agent: null,
+        oidc_sid: null,
       },
     ]);
     expect(await sessions.listActiveToCarry(LATER)).toEqual([]);
@@ -226,6 +230,7 @@ describe('UserSessionsRepository', () => {
       expires_at: LATER,
       revoked_at: null,
       user_agent: 'Kept',
+      oidc_sid: null,
     });
     // The swapped-in file's own row wins, ended or not.
     expect(await row('present')).toEqual(expect.objectContaining({ revoked_at: EARLIER }));
@@ -272,6 +277,7 @@ describe('UserSessionsRepository', () => {
       expires_at: LATER,
       revoked_at: NOW,
       user_agent: 'First',
+      oidc_sid: null,
     });
   });
   it('SESSREPO-014: lastSeenByUser gives each account its newest last_seen_at, revoked rows included', async () => {
@@ -287,5 +293,63 @@ describe('UserSessionsRepository', () => {
     expect(seen.get(user.id)).toBe(NOW);
     expect(seen.get(other.id)).toBe(EARLIER);
     expect(seen.has(idle.id)).toBe(false);
+  });
+
+  it('SESSREPO-015: insertSession keeps the provider session id of an SSO sign-in', async () => {
+    const { user } = createUser(testDb);
+    await add('sso', user.id, { oidc_sid: 'op-session-1' });
+    await add('password', user.id);
+    expect(await row('sso')).toEqual(expect.objectContaining({ oidc_sid: 'op-session-1' }));
+    expect(await row('password')).toEqual(expect.objectContaining({ oidc_sid: null }));
+  });
+
+  it('SESSREPO-016: revokeByOidcSid ends the active sessions carrying that sid at that issuer only', async () => {
+    const ISSUER = 'https://idp.example.test';
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const { user: elsewhere } = createUser(testDb);
+    await updateRows(t, Users, { id: { $in: [user.id, other.id] } }, { oidc_issuer: ISSUER });
+    await updateRows(t, Users, { id: elsewhere.id }, { oidc_issuer: 'https://old-idp.example.test' });
+    await add('mine', user.id, { oidc_sid: 'sid-a' });
+    await add('mine-too', user.id, { oidc_sid: 'sid-a' });
+    await add('other-sid', user.id, { oidc_sid: 'sid-b' });
+    await add('no-sid', user.id);
+    await add('theirs', other.id, { oidc_sid: 'sid-a' });
+    await add('old-provider', elsewhere.id, { oidc_sid: 'sid-a' });
+    await add('ended', user.id, { oidc_sid: 'sid-a' });
+    await revoke(['ended'], EARLIER);
+    t.clear();
+
+    // Scoped to one account: only its sessions with that sid end.
+    expect(await sessions.revokeByOidcSid('sid-a', ISSUER, NOW, user.id)).toEqual([user.id, user.id]);
+    expect(await row('mine')).toEqual(expect.objectContaining({ revoked_at: NOW }));
+    expect(await row('mine-too')).toEqual(expect.objectContaining({ revoked_at: NOW }));
+    expect(await row('other-sid')).toEqual(expect.objectContaining({ revoked_at: null }));
+    expect(await row('no-sid')).toEqual(expect.objectContaining({ revoked_at: null }));
+    expect(await row('theirs')).toEqual(expect.objectContaining({ revoked_at: null }));
+    // An ended row keeps the time it ended.
+    expect(await row('ended')).toEqual(expect.objectContaining({ revoked_at: EARLIER }));
+
+    // Without an account the sid is matched across the issuer's accounts, never another issuer's.
+    expect(await sessions.revokeByOidcSid('sid-a', ISSUER, NOW)).toEqual([other.id]);
+    expect(await row('old-provider')).toEqual(expect.objectContaining({ revoked_at: null }));
+    expect(await sessions.revokeByOidcSid('sid-a', ISSUER, NOW)).toEqual([]);
+  });
+
+  it('SESSREPO-017: findActiveOidcSid answers the sid of an active session of that user only', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    await add('sso', user.id, { oidc_sid: 'op-session-1' });
+    await add('password', user.id);
+    await add('expired', user.id, { oidc_sid: 'op-session-1', expires_at: NOW });
+    await add('revoked', user.id, { oidc_sid: 'op-session-1' });
+    await revoke(['revoked'], EARLIER);
+
+    expect(await sessions.findActiveOidcSid('sso', user.id, NOW)).toEqual({ oidc_sid: 'op-session-1' });
+    expect(await sessions.findActiveOidcSid('password', user.id, NOW)).toEqual({ oidc_sid: null });
+    expect(await sessions.findActiveOidcSid('sso', other.id, NOW)).toBeNull();
+    expect(await sessions.findActiveOidcSid('expired', user.id, NOW)).toBeNull();
+    expect(await sessions.findActiveOidcSid('revoked', user.id, NOW)).toBeNull();
+    expect(await sessions.findActiveOidcSid('missing', user.id, NOW)).toBeNull();
   });
 });

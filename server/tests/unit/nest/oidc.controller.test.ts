@@ -614,6 +614,27 @@ describe('OidcController /callback', () => {
       expect(createAuthCode).toHaveBeenCalledWith('jwt', remember);
     }
   });
+
+  it.each([
+    { sid: 'op-session-1', client: { userAgent: null, oidcSid: 'op-session-1' } },
+    { sid: '', client: { userAgent: null } },
+    { sid: 42, client: { userAgent: null } },
+  ])(
+    "keeps the id_token's sid on the session it issues, for back-channel logout; an empty or non-string sid is left out (sid $sid)",
+    async ({ sid, client }) => {
+      const generateToken = vi.fn().mockReturnValue('jwt');
+      await ctl(
+        svc({
+          exchangeCodeForToken: vi.fn().mockResolvedValue({ _ok: true, access_token: 'at', id_token: 'it' }),
+          verifyIdToken: vi.fn().mockResolvedValue({ ok: true, claims: { sub: 'u1', sid } }),
+          getUserInfo: vi.fn().mockResolvedValue({ email: 'a@b.c', sub: 'u1' }),
+          findOrCreateUser: vi.fn().mockReturnValue({ user: { id: 1 } }),
+          generateToken,
+        }),
+      ).callback('c', 's', undefined, reqCb('s'), makeRes());
+      expect(generateToken).toHaveBeenCalledWith({ id: 1 }, undefined, client);
+    },
+  );
 });
 
 describe('OidcController /exchange', () => {

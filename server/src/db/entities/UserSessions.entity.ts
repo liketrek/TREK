@@ -13,6 +13,7 @@ export class UserSessions {
   expires_at!: string;
   revoked_at?: string | null;
   user_agent?: string | null;
+  oidc_sid?: string | null;
 }
 
 export const UserSessionsSchema = defineEntity({
@@ -27,5 +28,6 @@ export const UserSessionsSchema = defineEntity({
     expires_at: p.type(DbTimestampType).index('idx_user_sessions_expires'),
     revoked_at: p.type(DbTimestampType).nullable(),
     user_agent: p.text().nullable(),
+    oidc_sid: p.text().nullable().index('idx_user_sessions_oidc_sid'),
   },
 });

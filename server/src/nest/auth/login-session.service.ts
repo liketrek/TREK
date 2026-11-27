@@ -1,6 +1,5 @@
 import { Users } from '../../db/entities/Users.entity';
 import type { UsersRepository } from '../../db/repositories/Users.repository';
-import { dbNow } from '../../db/types/db-timestamp.type';
 import { UnitOfWork } from '../database/unit-of-work';
 import { SessionsService, type SessionClient } from '../sessions/sessions.service';
 import { AuthService } from './auth.service';
@@ -39,16 +38,26 @@ export class LoginSessionService {
    * longer stands: the account is gone, the password changed since, or that
    * session ended (a sign-out, a revocation, a password reset). A credential
    * the account took back cannot mint a new one this way.
+   *
+   * The new session keeps the identity provider's `sid` of the one it comes
+   * from, so a back-channel logout of that provider session ends both.
    */
   async signIn(origin: SessionOrigin, remember: boolean | undefined, client?: SessionClient): Promise<string | null> {
     return this.uow.transactional(async () => {
       const passwordVersion = await this.users.getPasswordVersion(origin.userId);
       if (passwordVersion === null || passwordVersion !== origin.passwordVersion) return null;
-      if (origin.sessionId !== null && !(await this.sessions.findActive(origin.sessionId, origin.userId, dbNow()))) {
-        return null;
+      let oidcSid: string | null = null;
+      if (origin.sessionId !== null) {
+        const from = await this.sessions.findActiveOrigin(origin.sessionId, origin.userId);
+        if (!from) return null;
+        oidcSid = from.oidcSid;
       }
       await this.users.touchLastLogin(origin.userId);
-      return this.auth.generateToken({ id: origin.userId, password_version: passwordVersion }, remember, client);
+      return this.auth.generateToken(
+        { id: origin.userId, password_version: passwordVersion },
+        remember,
+        oidcSid !== null ? { ...client, oidcSid } : client,
+      );
     });
   }
 }

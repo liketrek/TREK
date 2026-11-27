@@ -39,6 +39,7 @@ const ACTION_LABELS: Record<string, string> = {
   'admin.places_contribute_withdraw': 'withdrew the place details this installation shared',
   'immich.private_ip_configured': 'configured Immich with private IP',
   'oidc.role_change': 'role changed by OIDC claim mapping',
+  'oidc.backchannel_logout': 'signed out by the identity provider',
 };
 
 /**

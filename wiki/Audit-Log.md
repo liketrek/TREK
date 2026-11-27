@@ -57,6 +57,7 @@ Logging out writes no row, and neither do the sessions a password change, a rese
 | Action key | Description |
 |---|---|
 | `oidc.role_change` | An SSO login changed a user's role through the OIDC claim mapping (`from`, `to` and the claim **name** in details, never the claim's value) |
+| `oidc.backchannel_logout` | The identity provider signed a user out through [back-channel logout](OIDC-SSO#back-channel-logout) (`scope` is `session` when one provider session ended, `all` when every session of the account did; `revoked` = how many ended) |
 
 ### Trips
 

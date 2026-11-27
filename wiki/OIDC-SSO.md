@@ -136,6 +136,37 @@ When password login and password registration are both off, through `OIDC_ONLY` 
 
 > **Note:** The admin panel prevents you from disabling all login methods simultaneously. At least one method (password or SSO) must remain active. Similarly, you cannot remove the OIDC configuration from the admin panel while password login is disabled.
 
+## Back-channel logout
+
+When a user signs out at the identity provider, or an admin ends their session there, the provider can tell TREK to end the matching TREK sessions too. TREK supports [OpenID Connect Back-Channel Logout 1.0](https://openid.net/specs/openid-connect-backchannel-1_0.html). Nothing needs to be switched on in TREK: enter this URL as the client's back-channel logout URL in the provider and it takes effect.
+
+```
+<APP_URL>/api/auth/oidc/backchannel-logout
+```
+
+For example: `https://trek.example.com/api/auth/oidc/backchannel-logout`
+
+Where the field lives:
+
+| Provider | Setting |
+|---|---|
+| Authentik | **Applications → Providers**, edit the OAuth2/OpenID provider of TREK: enter the URL as **Logout URI** and set **Logout Method** to back-channel |
+| Keycloak | **Clients**, open the TREK client, **Settings → Logout settings**: enter the URL as **Backchannel logout URL** and keep **Backchannel logout session required** on, so the token names the session |
+| Pocket ID | **OIDC Clients**, edit the TREK client: enter the URL in the back-channel logout field where your version has one. A version without such a field sends no logout tokens |
+
+The provider must be able to reach TREK at that address, server to server. Field names differ between provider versions; look for "back-channel" or "backchannel" logout in the client settings.
+
+What ends:
+
+- A logout token naming the provider's session (`sid`) ends the TREK sessions that were signed in through that provider session, the mobile app sessions handed off from such a browser sign-in included, and no other. TREK keeps the `sid` of the id_token on the session the SSO sign-in creates, and an app signed in from that browser session gets the same `sid`. Sessions signed in before this was available, or with a provider that sends no `sid`, carry none, and only a logout of the whole account reaches them.
+- A logout token naming only the subject (`sub`) ends every TREK session of that account, password and passkey sign-ins included, as a password change does.
+
+With Keycloak and **Backchannel logout session required** on, signing a user out from the Keycloak admin console ends all of their Keycloak sessions but sends TREK a single logout token naming one of them, so TREK ends only the sessions of that one. To have such a sign-out end every TREK session of the user, turn the setting off: Keycloak then names only the user, and every logout there, a single browser's sign-out included, ends all of the user's TREK sessions.
+
+TREK checks every logout token as the specification requires: the signature against the provider's published keys (the same keys and issuer as the login, the custom discovery URL included), the client id in the audience, an issue time no older than five minutes (one minute of clock difference is allowed either way), the back-channel logout event, no `nonce`, and a `jti` not seen before. A valid token answers `200`, also when it names no account or session in TREK; an invalid or missing token answers `400` with `{"error":"invalid_request"}`, and the server log names the reason (`[OIDC] Back-channel logout token refused: <reason>`). More than 600 logout requests a minute from one address answer `429` with `{"error":"too_many_requests"}`; providers retry them. An encrypted logout token is not supported. Each sign-out is recorded in the [Audit-Log](Audit-Log) as `oidc.backchannel_logout`.
+
+Signing out of TREK itself does not sign you out at the identity provider.
+
 ---
 
 **See also:** [Login-and-Registration](Login-and-Registration), [Environment-Variables](Environment-Variables)

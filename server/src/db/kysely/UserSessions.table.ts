@@ -10,4 +10,5 @@ export interface UserSessionsTable {
   expires_at: string;
   revoked_at: InsertOptional<string | null>;
   user_agent: InsertOptional<string | null>;
+  oidc_sid: InsertOptional<string | null>;
 }

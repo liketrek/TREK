@@ -28,3 +28,36 @@ export const oidcExchangeQuerySchema = z.object({
   code: z.string(),
 });
 export type OidcExchangeQuery = z.infer<typeof oidcExchangeQuerySchema>;
+
+/**
+ * The longest logout token accepted. A signed logout token holds a handful of
+ * short claims and is well under 2 KB; the cap only keeps a stranger's body
+ * from reaching the JWT parser at the size of the global body limit.
+ */
+export const OIDC_LOGOUT_TOKEN_MAX_LENGTH = 16_384;
+
+/**
+ * POST /api/auth/oidc/backchannel-logout, OpenID Connect Back-Channel Logout 1.0
+ * section 2.5: the identity provider posts an `application/x-www-form-urlencoded`
+ * body with one parameter, the signed `logout_token`. Everything else in the body
+ * is ignored, as the spec leaves room for nothing else.
+ */
+export const oidcBackchannelLogoutRequestSchema = z.object({
+  logout_token: z.string().min(1).max(OIDC_LOGOUT_TOKEN_MAX_LENGTH),
+});
+export type OidcBackchannelLogoutRequest = z.infer<typeof oidcBackchannelLogoutRequestSchema>;
+
+/**
+ * The 200 answer (section 2.8). The spec asks for no body; the route answers an
+ * empty JSON object, also when no account or session matched the token, so the
+ * provider cannot tell which subjects have a TREK account.
+ */
+export const oidcBackchannelLogoutResponseSchema = z.object({});
+export type OidcBackchannelLogoutResponse = z.infer<typeof oidcBackchannelLogoutResponseSchema>;
+
+/** The 400 answer (section 2.8) for a missing or invalid logout token. */
+export const oidcBackchannelLogoutErrorSchema = z.object({
+  error: z.literal('invalid_request'),
+  error_description: z.string(),
+});
+export type OidcBackchannelLogoutError = z.infer<typeof oidcBackchannelLogoutErrorSchema>;

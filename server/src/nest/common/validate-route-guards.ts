@@ -155,6 +155,9 @@ export const PUBLIC_ROUTE_ALLOW_LIST: string[] = [
   'OauthPublicController.revoke',
   'OauthPublicController.token',
   'OauthPublicController.userinfo',
+  // OpenID Connect Back-Channel Logout: the identity provider posts here server
+  // to server, so no session exists; the signed logout token is the credential.
+  'OidcBackchannelController.logout',
   // The OIDC handshake, before a TREK session exists.
   'OidcController.callback',
   'OidcController.exchange',

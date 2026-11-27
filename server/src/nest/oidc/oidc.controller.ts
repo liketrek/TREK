@@ -8,9 +8,9 @@ import { JwtAuthGuard } from '../auth-core/jwt-auth.guard';
 import { Public } from '../auth-core/public.decorator';
 import { cookieOptions } from '../common/cookie';
 import { ManagedForbidden } from '../common/managed';
-import { sessionClientFrom } from '../sessions/sessions.service';
+import { sessionClientFrom, type SessionClient } from '../sessions/sessions.service';
 import { AdminOidcUpdateDto } from './oidc.dto';
-import { OidcService, OIDC_STATE_TTL_MS, OIDC_AUTH_CODE_TTL_MS } from './oidc.service';
+import { expectedOidcIssuer, OidcService, OIDC_STATE_TTL_MS, OIDC_AUTH_CODE_TTL_MS } from './oidc.service';
 import { Body, Controller, Get, HttpException, Put, Query, Req, Res, UseGuards } from '@nestjs/common';
 import { oidcLoginQuerySchema } from '@trek/shared';
 
@@ -150,9 +150,8 @@ export class OidcController {
         tokenData.id_token,
         doc,
         config.clientId,
-        // Same trim as oidc.service.ts, and the same reason for the lookbehind — this one
-        // runs over an issuer read out of a fetched discovery document.
-        (doc.issuer ?? '').replace(/(?<!\/)\/+$/, '') || config.issuer,
+        // The issuer the back-channel logout accepts too.
+        expectedOidcIssuer(doc, config),
       );
       if (idVerify.ok !== true) {
         const reason = 'error' in idVerify ? idVerify.error : 'unknown';
@@ -216,7 +215,14 @@ export class OidcController {
       // Pass the flag through untouched: `undefined` must reach the token as
       // "absent", not `false`, or the sliding renewal would later downgrade the
       // default persistent cookie to a browser-session one (remember-me, #1927).
-      const jwtToken = await this.oidc.generateToken(result.user, pending.remember, sessionClientFrom(req));
+      // The provider's session id goes on the TREK session, so a back-channel
+      // logout naming it ends this session and no other (oidc-backchannel.service.ts).
+      const sid = idVerify.claims.sid;
+      const client: SessionClient =
+        typeof sid === 'string' && sid.length > 0
+          ? { ...sessionClientFrom(req), oidcSid: sid }
+          : sessionClientFrom(req);
+      const jwtToken = await this.oidc.generateToken(result.user, pending.remember, client);
       const { code: authCode, binding } = await this.oidc.createAuthCode(jwtToken, pending.remember);
       // Bind the code to THIS browser, the way the state cookie binds the callback.
       // The code rides home in a URL, so it is readable from history, from a

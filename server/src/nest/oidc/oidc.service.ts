@@ -163,6 +163,18 @@ function base64UrlDecode(input: string): Buffer {
   return Buffer.from(padded, 'base64');
 }
 
+/**
+ * The issuer a provider-signed token must name: the discovery document's
+ * (trailing slashes trimmed), which with a custom discovery URL may differ from
+ * the configured one, else the configured issuer. The login callback and the
+ * back-channel logout both read it from here, so both accept the same issuer.
+ * The lookbehind pins the trim to the start of the slash run, as in
+ * getOidcConfig: this runs over an issuer read out of a fetched document.
+ */
+export function expectedOidcIssuer(doc: OidcDiscoveryDoc, config: Pick<OidcConfig, 'issuer'>): string {
+  return (doc.issuer ?? '').replace(/(?<!\/)\/+$/, '') || config.issuer;
+}
+
 // Sanitize the OIDC `picture` claim before we store it as the avatar. Only https
 // URLs are usable: the app's CSP allows https image sources but not http, and we
 // render the value directly. Non-strings, non-https and oversized values (e.g. a
@@ -573,16 +585,42 @@ export class OidcService implements OnModuleDestroy {
     clientId: string,
     expectedIssuer: string,
   ): Promise<{ ok: true; claims: Record<string, unknown> } | { ok: false; error: string }> {
+    const verified = await this.verifyProviderJwt(idToken, doc, clientId, expectedIssuer);
+    return verified.ok ? { ok: true, claims: verified.claims } : verified;
+  }
+
+  /**
+   * The verification every JWT the provider signs goes through: the id_token
+   * at login and the logout token of a back-channel logout. The signature is
+   * checked against the provider's JWKS with the algorithm the header names,
+   * which must be one of the asymmetric ones (never `none`, never an HMAC the
+   * client secret could forge), then the audience, `exp` and `nbf`, then the
+   * issuer. Answers the header too, so a caller can check its `typ`.
+   *
+   * `clockToleranceSec` widens the `exp`/`nbf` checks for a token that travels
+   * between two hosts' clocks; the login leaves it at zero, as it always was.
+   */
+  async verifyProviderJwt(
+    token: string,
+    doc: OidcDiscoveryDoc,
+    clientId: string,
+    expectedIssuer: string,
+    clockToleranceSec = 0,
+  ): Promise<
+    | { ok: true; claims: Record<string, unknown>; header: { kid?: string; alg?: string; typ?: unknown } }
+    | { ok: false; error: string }
+  > {
     if (!doc.jwks_uri) return { ok: false, error: 'no_jwks_uri' };
-    const parts = idToken.split('.');
+    const parts = token.split('.');
     if (parts.length !== 3) return { ok: false, error: 'malformed_token' };
 
-    let header: { kid?: string; alg?: string };
+    let header: { kid?: string; alg?: string; typ?: unknown };
     try {
       header = JSON.parse(base64UrlDecode(parts[0]!).toString('utf8'));
     } catch {
       return { ok: false, error: 'bad_header' };
     }
+    if (!isRecord(header)) return { ok: false, error: 'bad_header' };
 
     const alg = header.alg;
     if (!alg || !/^(RS256|RS384|RS512|ES256|ES384|ES512|PS256|PS384|PS512)$/.test(alg)) {
@@ -615,9 +653,10 @@ export class OidcService implements OnModuleDestroy {
 
     let claims: Record<string, unknown>;
     try {
-      const verified = jwt.verify(idToken, publicKey, {
+      const verified = jwt.verify(token, publicKey, {
         algorithms: [alg as jwt.Algorithm],
         audience: clientId,
+        ...(clockToleranceSec > 0 ? { clockTolerance: clockToleranceSec } : {}),
       });
       claims = typeof verified === 'string' ? {} : (verified as Record<string, unknown>);
     } catch (err) {
@@ -632,7 +671,7 @@ export class OidcService implements OnModuleDestroy {
       return { ok: false, error: `signature_or_claim_mismatch: jwt issuer invalid. expected: ${expectedIssuer}` };
     }
 
-    return { ok: true, claims };
+    return { ok: true, claims, header };
   }
 
   // -------------------------------------------------------------------------

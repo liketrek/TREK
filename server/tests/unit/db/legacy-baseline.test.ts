@@ -117,6 +117,7 @@ const UNNUMBERED = [
   'Migration20200101046480_an_address_changed_after_an_admin_made_the_account',
   'Migration20200101046490_a_trip_can_switch_its_own_addons',
   'Migration20200101046500_an_address_moved_before_an_admin_saved_the_account',
+  'Migration20200101046510_a_session_knows_its_provider_session',
 ];
 // The last step the positional runner ever had; planLegacyBaseline refuses a
 // schema_version past it.

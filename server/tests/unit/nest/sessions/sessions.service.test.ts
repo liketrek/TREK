@@ -92,6 +92,7 @@ describe('SessionsService.issue', () => {
       expires_at: textOf(claims.exp),
       revoked_at: null,
       user_agent: 'Firefox/130',
+      oidc_sid: null,
     });
   });
 
@@ -347,6 +348,19 @@ describe('SessionsService list and revoke', () => {
 });
 
 describe('SessionsService as the session check', () => {
+  it('SESS-017: findActiveOrigin answers the provider sid a session was signed in with, null once it ended', async () => {
+    const { user } = createUser(testDb);
+    const { user: other } = createUser(testDb);
+    const sso = claimsOf(await svc.issue({ id: user.id, pv: 0 }, undefined, { oidcSid: 'op-session-1' }));
+    const password = claimsOf(await svc.issue({ id: user.id, pv: 0 }));
+
+    expect(await svc.findActiveOrigin(sso.jti, user.id)).toEqual({ oidcSid: 'op-session-1' });
+    expect(await svc.findActiveOrigin(password.jti, user.id)).toEqual({ oidcSid: null });
+    expect(await svc.findActiveOrigin(sso.jti, other.id)).toBeNull();
+    await svc.revoke(user.id, sso.jti);
+    expect(await svc.findActiveOrigin(sso.jti, user.id)).toBeNull();
+  });
+
   it('SESS-016: answers findActive and touchLastSeen for verifyJwtAndLoadUser', async () => {
     const { user } = createUser(testDb);
     const live = claimsOf(await svc.issue({ id: user.id, pv: 0 }));

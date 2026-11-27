@@ -14,10 +14,19 @@ import jwt from 'jsonwebtoken';
 /** The longest User-Agent kept, the same cap a Web Push device's gets. */
 export const USER_AGENT_MAX_LENGTH = 256;
 
-/** What the issuing request tells about the device a session belongs to. */
+/** What the issuing request tells about the device a session belongs to, and where it signed in. */
 export interface SessionClient {
   userAgent?: string | null;
+  /**
+   * The `sid` claim of the verified id_token an SSO sign-in was made with: the
+   * identity provider's session, which a back-channel logout names to end it.
+   * Absent for every other way in.
+   */
+  oidcSid?: string | null;
 }
+
+/** The longest provider session id kept. Real ones are a UUID or a short opaque string. */
+export const OIDC_SID_MAX_LENGTH = 255;
 
 /** The claims a session token is renewed from (decoded by the caller after a guard verified it). */
 export interface RenewableSessionClaims {
@@ -96,6 +105,7 @@ export class SessionsService {
       created_at: dbNow(new Date(iat * 1000)),
       expires_at: dbNow(new Date(exp * 1000)),
       user_agent: clipUserAgent(client.userAgent),
+      oidc_sid: usableSid(client.oidcSid),
     });
     return token;
   }
@@ -162,6 +172,17 @@ export class SessionsService {
   }
 
   /**
+   * The active session a new one is minted from (the native app hand-off),
+   * with the identity provider's `sid` it was signed in under, null for a
+   * sign-in without one. Null when that session is revoked, expired, gone or
+   * another user's.
+   */
+  async findActiveOrigin(id: string, userId: number): Promise<{ oidcSid: string | null } | null> {
+    const row = await this.sessions.findActiveOidcSid(id, userId, dbNow());
+    return row ? { oidcSid: row.oidc_sid } : null;
+  }
+
+  /**
    * Refresh when a session was last used; the same check calls it at most
    * every few minutes.
    *
@@ -214,6 +235,16 @@ export class SessionsService {
   }
 
   /**
+   * A back-channel logout that names the identity provider's session: end the
+   * active sessions signed in with that `sid` at `issuer`, of the account
+   * `userId` only when the logout token also named its subject. Answers the
+   * owner of every session it ended, one entry per session.
+   */
+  async revokeByOidcSid(sid: string, issuer: string, userId?: number): Promise<number[]> {
+    return this.sessions.revokeByOidcSid(sid, issuer, dbNow(), userId);
+  }
+
+  /**
    * Remove the expired rows. A revoked row is kept until it expires too, so
    * a session derived from a token from before tracking cannot come back
    * (see `renewUntracked`).
@@ -245,6 +276,11 @@ function expiryOf(token: string): number | undefined {
   const decoded = jwt.decode(token);
   const exp = decoded !== null && typeof decoded === 'object' ? (decoded as { exp?: unknown }).exp : undefined;
   return typeof exp === 'number' ? exp : undefined;
+}
+
+/** A provider session id worth keeping: a non-empty string within the cap, else nothing. */
+function usableSid(sid: string | null | undefined): string | null {
+  return typeof sid === 'string' && sid.length > 0 && sid.length <= OIDC_SID_MAX_LENGTH ? sid : null;
 }
 
 function clipUserAgent(agent: string | null | undefined): string | null {

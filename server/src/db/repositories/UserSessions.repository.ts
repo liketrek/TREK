@@ -13,12 +13,13 @@ export interface UserSessionRow {
   expires_at: string;
   revoked_at: string | null;
   user_agent: string | null;
+  oidc_sid: string | null;
 }
 
 const _userSessionRowKeys: AssertRowKeys<UserSessionRow, UserSessions> = true;
 
-/** What a session list shows: the row without its owner, who is the caller. */
-export type UserSessionListRow = Omit<UserSessionRow, 'user_id' | 'revoked_at'>;
+/** What a session list shows: the row without its owner, who is the caller, and without the provider's session id. */
+export type UserSessionListRow = Omit<UserSessionRow, 'user_id' | 'revoked_at' | 'oidc_sid'>;
 
 /**
  * An active session read before a database file swap, with the email its
@@ -35,6 +36,8 @@ export interface NewUserSessionRow {
   created_at: string;
   expires_at: string;
   user_agent: string | null;
+  /** The `sid` claim of the id_token an SSO sign-in was made with; left out for every other way in. */
+  oidc_sid?: string | null;
 }
 
 /**
@@ -45,7 +48,10 @@ export interface NewUserSessionRow {
  * a test can pin a clock for.
  */
 export class UserSessionsRepository extends TrekRepository<UserSessions> {
-  /** `INSERT INTO user_sessions (id, user_id, created_at, last_seen_at, expires_at, user_agent) VALUES (?, ?, ?, ?, ?, ?)`. */
+  /**
+   * `INSERT INTO user_sessions (id, user_id, created_at, last_seen_at, expires_at, user_agent, oidc_sid)
+   *  VALUES (?, ?, ?, ?, ?, ?, ?)`.
+   */
   async insertSession(row: NewUserSessionRow): Promise<void> {
     await this.insert({
       id: row.id,
@@ -54,6 +60,7 @@ export class UserSessionsRepository extends TrekRepository<UserSessions> {
       last_seen_at: row.created_at,
       expires_at: row.expires_at,
       user_agent: row.user_agent,
+      oidc_sid: row.oidc_sid ?? null,
     });
   }
 
@@ -90,6 +97,20 @@ export class UserSessionsRepository extends TrekRepository<UserSessions> {
       { fields: ['id', 'last_seen_at'] },
     );
     return row ? { id: row.id, last_seen_at: row.last_seen_at } : null;
+  }
+
+  /**
+   * The same match as `findActive`, answering the provider session the row was
+   * signed in with: `SELECT oidc_sid FROM user_sessions WHERE id = ? AND user_id = ?
+   *  AND revoked_at IS NULL AND expires_at > ?`. A session minted from this one
+   * carries that `sid` on, so a back-channel logout naming it ends both.
+   */
+  async findActiveOidcSid(id: string, userId: number, now: string): Promise<{ oidc_sid: string | null } | null> {
+    const row = await this.findOne(
+      { id, user: userId, revoked_at: null, expires_at: { $gt: now } },
+      { fields: ['id', 'oidc_sid'] },
+    );
+    return row ? { oidc_sid: row.oidc_sid ?? null } : null;
   }
 
   /** `UPDATE user_sessions SET last_seen_at = ? WHERE id = ?`. */
@@ -156,6 +177,27 @@ export class UserSessionsRepository extends TrekRepository<UserSessions> {
   }
 
   /**
+   * A back-channel logout naming the provider's session:
+   * `UPDATE user_sessions SET revoked_at = ? WHERE oidc_sid = ? AND revoked_at IS NULL
+   *  AND user_id IN (SELECT id FROM users WHERE oidc_issuer = ?) [AND user_id = ?]
+   *  RETURNING user_id`. Only accounts linked to that issuer match, and with
+   * `userId` only that account. Answers the owner of every session it ended,
+   * one entry per session.
+   */
+  async revokeByOidcSid(sid: string, issuer: string, now: string, userId?: number): Promise<number[]> {
+    const db = this.kysely<Pick<DB, 'user_sessions' | 'users'>>();
+    let update = db
+      .updateTable('user_sessions')
+      .set({ revoked_at: now })
+      .where('oidc_sid', '=', sid)
+      .where('revoked_at', 'is', null)
+      .where('user_id', 'in', db.selectFrom('users').select('id').where('oidc_issuer', '=', issuer));
+    if (userId !== undefined) update = update.where('user_id', '=', userId);
+    const rows = await update.returning('user_id').execute();
+    return rows.map((row) => Number(row.user_id));
+  }
+
+  /**
    * `SELECT user_id, MAX(last_seen_at) FROM user_sessions GROUP BY user_id`: when
    * each account last made an authenticated request, over every row the nightly
    * purge has kept, revoked ones included (the activity still happened).
@@ -191,6 +233,7 @@ export class UserSessionsRepository extends TrekRepository<UserSessions> {
         last_seen_at: row.last_seen_at,
         expires_at: row.expires_at,
         user_agent: row.user_agent ?? null,
+        oidc_sid: row.oidc_sid ?? null,
       });
     }
     return carried;
@@ -219,6 +262,7 @@ export class UserSessionsRepository extends TrekRepository<UserSessions> {
         expires_at: row.expires_at,
         revoked_at: null,
         user_agent: row.user_agent,
+        oidc_sid: row.oidc_sid,
       })),
       { onConflictFields: ['id'], onConflictAction: 'ignore' },
     );
