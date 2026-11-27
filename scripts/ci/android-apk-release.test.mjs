@@ -31,7 +31,8 @@ describe('android-apk-release', () => {
     assert.equal(isReleaseRun('push', 'refs/tags/v5.2.2'), true);
     assert.equal(isReleaseRun('push', 'refs/tags/v5.2.2-tf.1'), false);
     assert.equal(isReleaseRun('push', 'refs/heads/dev'), false);
-    assert.equal(isReleaseRun('workflow_dispatch', 'refs/tags/v5.2.2'), false);
+    assert.equal(isReleaseRun('workflow_dispatch', 'refs/tags/v5.2.2'), true);
+    assert.equal(isReleaseRun('workflow_dispatch', 'refs/tags/v5.2.2-tf.1'), false);
     assert.equal(isReleaseRun('workflow_dispatch', 'refs/heads/dev'), false);
     assert.equal(isReleaseRun('push', undefined), false);
   });

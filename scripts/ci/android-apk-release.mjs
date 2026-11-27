@@ -55,9 +55,12 @@ export function mayPublish(appMinimum, released) {
   return released >= appMinimum;
 }
 
-/** Whether the run was started by pushing a release tag, not a prerelease tag or by hand. */
+/**
+ * Whether the run builds a release tag: pushed, or started by hand on that tag
+ * to publish an APK held back at the release. Never a prerelease tag or a branch.
+ */
 export function isReleaseRun(eventName, ref) {
-  return eventName === 'push' && /^refs\/tags\/v\d+\.\d+\.\d+$/.test(ref ?? '');
+  return ['push', 'workflow_dispatch'].includes(eventName) && /^refs\/tags\/v\d+\.\d+\.\d+$/.test(ref ?? '');
 }
 
 function guard(releasedFeatures) {
