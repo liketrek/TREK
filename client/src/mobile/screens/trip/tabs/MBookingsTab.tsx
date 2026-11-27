@@ -36,6 +36,7 @@ export default function MBookingsTab({ planner, shell }: MTabScreenProps) {
   const sections = [
     { id: 'confirmed', label: t('reservations.confirmed'), rows: groups.confirmed },
     { id: 'pending', label: t('reservations.pending'), rows: groups.pending },
+    { id: 'past', label: t('reservations.past'), rows: groups.past },
   ].filter(s => s.rows.length > 0)
 
   return (

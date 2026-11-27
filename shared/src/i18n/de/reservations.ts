@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     'Tipp: Buchungen werden am besten direkt über einen angelegten Ort erstellt, um sie mit dem Tagesplan zu verknüpfen.',
   'reservations.confirmed': 'Bestätigt',
   'reservations.pending': 'Ausstehend',
+  'reservations.past': 'Vergangen',
   'reservations.summary': '{confirmed} bestätigt, {pending} ausstehend',
   'reservations.showFiles': 'Dateien anzeigen',
   'reservations.editTitle': 'Reservierung bearbeiten',

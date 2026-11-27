@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     'Tip: Reserveringen kun je het beste direct vanuit een plaats aanmaken om ze te koppelen aan je dagplan.',
   'reservations.confirmed': 'Bevestigd',
   'reservations.pending': 'In behandeling',
+  'reservations.past': 'Voorbij',
   'reservations.summary': '{confirmed} bevestigd, {pending} in behandeling',
   'reservations.showFiles': 'Bestanden tonen',
   'reservations.editTitle': 'Reservering bewerken',

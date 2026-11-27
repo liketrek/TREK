@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': '팁: 예약은 일별 계획과 연결하기 위해 장소에서 직접 만드는 것이 가장 좋습니다.',
   'reservations.confirmed': '확정됨',
   'reservations.pending': '대기 중',
+  'reservations.past': '지난 일정',
   'reservations.summary': '{confirmed}개 확정, {pending}개 대기 중',
   'reservations.showFiles': '파일 보기',
   'reservations.editTitle': '예약 편집',

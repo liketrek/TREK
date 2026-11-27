@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     'Tips: Reservasi paling baik dibuat langsung dari sebuah tempat agar terhubung dengan rencana harianmu.',
   'reservations.confirmed': 'Dikonfirmasi',
   'reservations.pending': 'Tertunda',
+  'reservations.past': 'Sudah lewat',
   'reservations.summary': '{confirmed} dikonfirmasi, {pending} tertunda',
   'reservations.showFiles': 'Tampilkan File',
   'reservations.editTitle': 'Edit Reservasi',

@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': 'Tip: Rezervace je nejlepší vytvářet přímo z místa – propojí se tak s denním plánem.',
   'reservations.confirmed': 'Potvrzeno',
   'reservations.pending': 'Čeká na potvrzení',
+  'reservations.past': 'Proběhlé',
   'reservations.summary': '{confirmed} potvrzených, {pending} čekajících',
   'reservations.showFiles': 'Zobrazit soubory',
   'reservations.editTitle': 'Upravit rezervaci',

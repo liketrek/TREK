@@ -11,6 +11,7 @@ const reservations: TranslationStrings = {
 
   'reservations.confirmed': 'Təsdiqlənib',
   'reservations.pending': 'Gözləyir',
+  'reservations.past': 'Keçmiş',
   'reservations.summary': '{confirmed} təsdiqlənib, {pending} gözləyir',
   'reservations.showFiles': 'Faylları göstər',
 

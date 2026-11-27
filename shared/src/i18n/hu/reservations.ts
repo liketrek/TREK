@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     'Tipp: A foglalásokat legjobb közvetlenül egy helyről létrehozni, hogy összekapcsolódjon a napi tervvel.',
   'reservations.confirmed': 'Megerősítve',
   'reservations.pending': 'Függőben',
+  'reservations.past': 'Korábbiak',
   'reservations.summary': '{confirmed} megerősítve, {pending} függőben',
   'reservations.showFiles': 'Fájlok megjelenítése',
   'reservations.editTitle': 'Foglalás szerkesztése',

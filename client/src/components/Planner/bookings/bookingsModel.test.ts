@@ -15,6 +15,7 @@ import {
   displayTitle,
   groupReservations,
   groupTransports,
+  hasPassed,
   onTravelers,
   parseMeta,
   phaseOf,
@@ -393,5 +394,32 @@ describe('onTravelers and the shared type colours', () => {
     expect(groups.pending.map(r => r.id)).toEqual([4]);
     expect(groups.transit.map(r => r.id)).toEqual([1]);
     expect(sortReservations([later, transit, open, sooner], days, 'date', 'asc', label).map(r => r.id)).toEqual([1, 3, 2, 4]);
+  });
+
+  it('FE-PLANNER-BKMODEL-044: hasPassed reads the end, else the start, in local wall-clock time', () => {
+    const now = new Date(2025, 5, 2, 12, 0);
+    expect(hasPassed(buildReservation({ reservation_time: '2025-06-02T11:00' }), now)).toBe(true);
+    expect(hasPassed(buildReservation({ reservation_time: '2025-06-02T13:00' }), now)).toBe(false);
+    // The end counts: a flight that left in the morning and lands this afternoon is not over.
+    expect(hasPassed(buildReservation({ reservation_time: '2025-06-02T08:00', reservation_end_time: '2025-06-02T15:00' }), now)).toBe(false);
+    // An end time without a date is on the start's day.
+    expect(hasPassed(buildReservation({ reservation_time: '2025-06-02T08:00', reservation_end_time: '11:30' }), now)).toBe(true);
+    // A date without a time lasts until the day is over.
+    expect(hasPassed(buildReservation({ reservation_time: '2025-06-02' }), now)).toBe(false);
+    expect(hasPassed(buildReservation({ reservation_time: '2025-06-01' }), now)).toBe(true);
+    // Without any date nothing says it is over.
+    expect(hasPassed(buildReservation({ reservation_time: null, day_id: null }), now)).toBe(false);
+  });
+
+  it('FE-PLANNER-BKMODEL-045: groupTransports moves what is over into past, latest first, only when given the time', () => {
+    const early = buildReservation({ id: 1, type: 'train', status: 'confirmed', reservation_time: '2025-06-01T09:00' });
+    const lastNight = buildReservation({ id: 2, type: 'transit', status: 'pending', reservation_time: '2025-06-01T21:00' });
+    const ahead = buildReservation({ id: 3, type: 'bus', status: 'confirmed', reservation_time: '2025-06-03T09:00' });
+    const now = new Date(2025, 5, 2, 12, 0);
+    const groups = groupTransports([ahead, early, lastNight], days, now);
+    expect(groups.confirmed.map(r => r.id)).toEqual([3]);
+    expect(groups.transit).toEqual([]);
+    expect(groups.past.map(r => r.id)).toEqual([2, 1]);
+    expect(groupTransports([ahead, early, lastNight], days).past).toEqual([]);
   });
 });

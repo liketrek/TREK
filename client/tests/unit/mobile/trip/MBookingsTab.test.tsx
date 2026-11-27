@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import MBookingsTab from '../../../../src/mobile/screens/trip/tabs/MBookingsTab'
 import type { MTripShellApi, TripPlanner } from '../../../../src/mobile/screens/trip/MTripShell'
 import { openFile } from '../../../../src/utils/fileDownload'
@@ -109,6 +109,11 @@ describe('MBookingsTab', () => {
   beforeEach(() => {
     vi.mocked(openFile).mockClear()
     seedStore(usePluginStore, { plugins: [] })
+    // The day before the trip, so no booking here counts as past (#3156).
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 3, 30, 12, 0) })
+  })
+  afterEach(() => {
+    vi.useRealTimers()
   })
 
   it('FE-MOB-BKTAB-001: keeps only the non-transport reservations, split by status', () => {

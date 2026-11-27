@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': 'เคล็ดลับ: ควรสร้างการจองโดยตรงจากสถานที่เพื่อเชื่อมโยงกับแผนรายวันของคุณ',
   'reservations.confirmed': 'ยืนยันแล้ว',
   'reservations.pending': 'รอดำเนินการ',
+  'reservations.past': 'ที่ผ่านมา',
   'reservations.summary': '{confirmed} ยืนยันแล้ว {pending} รอดำเนินการ',
   'reservations.showFiles': 'แสดงไฟล์',
   'reservations.editTitle': 'แก้ไขการจอง',

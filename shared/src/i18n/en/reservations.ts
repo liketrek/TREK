@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': 'Tip: Reservations are best created directly from a place to link them with your day plan.',
   'reservations.confirmed': 'Confirmed',
   'reservations.pending': 'Pending',
+  'reservations.past': 'Past',
   'reservations.summary': '{confirmed} confirmed, {pending} pending',
   'reservations.showFiles': 'Show Files',
   'reservations.editTitle': 'Edit Reservation',

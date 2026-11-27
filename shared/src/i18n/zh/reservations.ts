@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': '提示：建议从地点直接创建预订，以便与日程计划关联。',
   'reservations.confirmed': '已确认',
   'reservations.pending': '待确认',
+  'reservations.past': '已过去',
   'reservations.summary': '{confirmed} 已确认，{pending} 待确认',
   'reservations.showFiles': '查看文件',
   'reservations.editTitle': '编辑预订',

@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     'Συμβουλή: Οι κρατήσεις δημιουργούνται καλύτερα απευθείας από ένα μέρος για να συνδεθούν με το ημερήσιο πλάνο σας.',
   'reservations.confirmed': 'Επιβεβαιωμένο',
   'reservations.pending': 'Εκκρεμές',
+  'reservations.past': 'Παρελθόν',
   'reservations.summary': '{confirmed} επιβεβαιωμένες, {pending} εκκρεμείς',
   'reservations.showFiles': 'Εμφάνιση Αρχείων',
   'reservations.editTitle': 'Επεξεργασία Κράτησης',

@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': 'Vihje: broneeringuid on kõige parem luua otse koha juurest, et siduda need päevaplaaniga.',
   'reservations.confirmed': 'Kinnitatud',
   'reservations.pending': 'Ootel',
+  'reservations.past': 'Möödunud',
   'reservations.summary': '{confirmed} kinnitatud, {pending} ootel',
   'reservations.showFiles': 'Näita faile',
   'reservations.editTitle': 'Muuda broneeringut',

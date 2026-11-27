@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     'Mẹo: Tốt nhất bạn nên tạo đặt chỗ trực tiếp từ một nơi để liên kết chúng với kế hoạch trong ngày của bạn.',
   'reservations.confirmed': 'Đã xác nhận',
   'reservations.pending': 'Chưa giải quyết',
+  'reservations.past': 'Đã qua',
   'reservations.summary': '{confirmed} đã xác nhận, {pending} đang chờ xử lý',
   'reservations.showFiles': 'Hiển thị tệp',
   'reservations.editTitle': 'Chỉnh sửa đặt chỗ',

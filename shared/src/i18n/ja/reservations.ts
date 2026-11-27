@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': 'ヒント：予約は場所から直接作成すると、日別計画に紐づけやすくなります。',
   'reservations.confirmed': '確定',
   'reservations.pending': '保留',
+  'reservations.past': '過去',
   'reservations.summary': '確定 {confirmed}件、保留 {pending}件',
   'reservations.showFiles': 'ファイルを表示',
   'reservations.editTitle': '予約を編集',

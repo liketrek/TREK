@@ -1,7 +1,7 @@
-// FE-PLANNER-RESLISTFILTER-001 to -004: the traveller filter and folded sections
+// FE-PLANNER-RESLISTFILTER-001 to -005: the traveller filter and folded sections
 // of the phone's bookings and transports tabs.
 import { act, renderHook } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { buildDay, buildReservation } from '../../../../tests/helpers/factories';
 import type { Reservation } from '../../../types';
@@ -24,6 +24,14 @@ const bob = buildReservation({
 const ride = buildReservation({ id: 12, type: 'transit', status: 'confirmed', reservation_time: '2026-03-01T07:00' });
 const ALL = [ann, bob, ride];
 
+// The day before the trip: every booking above is still ahead.
+beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'], now: new Date(2026, 1, 28, 12, 0) });
+});
+afterEach(() => {
+  vi.useRealTimers();
+});
+
 describe('useReservationListFilter', () => {
   it('FE-PLANNER-RESLISTFILTER-001: without a filter every booking lands in its status section', () => {
     const { result } = renderHook(() => useReservationListFilter(ALL, days, 2));
@@ -37,7 +45,7 @@ describe('useReservationListFilter', () => {
     const { result } = renderHook(() => useReservationListFilter(ALL, days, 2));
     act(() => result.current.toggleTravelerFilter(2));
     expect([...result.current.travelerFilter]).toEqual([2]);
-    expect(result.current.groups).toEqual({ confirmed: [], pending: [bob], transit: [] });
+    expect(result.current.groups).toEqual({ confirmed: [], pending: [bob], transit: [], past: [] });
 
     act(() => result.current.toggleTravelerFilter(1));
     expect(result.current.groups.confirmed.map((r) => r.id)).toEqual([10]);
@@ -58,9 +66,24 @@ describe('useReservationListFilter', () => {
   it('FE-PLANNER-RESLISTFILTER-004: a section folds and unfolds on its own', () => {
     const { result } = renderHook(() => useReservationListFilter(ALL, days, 2));
     act(() => result.current.toggleSection('pending'));
-    expect(result.current.collapsed).toEqual({ pending: true });
+    expect(result.current.collapsed).toEqual({ pending: true, past: true });
     act(() => result.current.toggleSection('confirmed'));
     act(() => result.current.toggleSection('pending'));
-    expect(result.current.collapsed).toEqual({ pending: false, confirmed: true });
+    expect(result.current.collapsed).toEqual({ pending: false, confirmed: true, past: true });
+  });
+
+  it('FE-PLANNER-RESLISTFILTER-005: what is over goes to Past, folded while something is ahead and open once all is over', () => {
+    vi.setSystemTime(new Date(2026, 2, 1, 12, 0));
+    const midTrip = renderHook(() => useReservationListFilter(ALL, days, 2)).result;
+    expect(midTrip.current.groups.past.map((r) => r.id)).toEqual([11, 12]);
+    expect(midTrip.current.groups.confirmed.map((r) => r.id)).toEqual([10]);
+    expect(midTrip.current.collapsed.past).toBe(true);
+    act(() => midTrip.current.toggleSection('past'));
+    expect(midTrip.current.collapsed.past).toBe(false);
+
+    vi.setSystemTime(new Date(2026, 2, 3, 12, 0));
+    const afterTrip = renderHook(() => useReservationListFilter(ALL, days, 2)).result;
+    expect(afterTrip.current.groups.past.map((r) => r.id)).toEqual([10, 11, 12]);
+    expect(afterTrip.current.collapsed.past).toBe(false);
   });
 });

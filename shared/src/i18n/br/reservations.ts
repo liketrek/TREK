@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': 'Dica: o ideal é criar reservas a partir de um lugar para vinculá-las ao plano do dia.',
   'reservations.confirmed': 'Confirmada',
   'reservations.pending': 'Pendente',
+  'reservations.past': 'Anteriores',
   'reservations.summary': '{confirmed} confirmada(s), {pending} pendente(s)',
   'reservations.showFiles': 'Mostrar arquivos',
   'reservations.editTitle': 'Editar reserva',

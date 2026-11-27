@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     "Consell: és millor crear les reserves directament des d'un lloc per vincular-les amb el pla del dia.",
   'reservations.confirmed': 'Confirmada',
   'reservations.pending': 'Pendent',
+  'reservations.past': 'Passades',
   'reservations.summary': '{confirmed} confirmades, {pending} pendents',
   'reservations.showFiles': 'Mostra els fitxers',
   'reservations.editTitle': 'Edita la reserva',

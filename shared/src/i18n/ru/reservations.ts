@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': 'Совет: бронирования лучше создавать прямо из места, чтобы связать их с планом дня.',
   'reservations.confirmed': 'Подтверждено',
   'reservations.pending': 'Ожидание',
+  'reservations.past': 'Прошедшие',
   'reservations.summary': '{confirmed} подтв., {pending} ожид.',
   'reservations.showFiles': 'Показать файлы',
   'reservations.editTitle': 'Редактировать бронирование',

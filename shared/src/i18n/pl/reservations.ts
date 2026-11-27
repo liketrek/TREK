@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     'Wskazówka: Rezerwacje najlepiej tworzyć bezpośrednio z miejsca, aby powiązać je z planem dnia.',
   'reservations.confirmed': 'Potwierdzona',
   'reservations.pending': 'Oczekująca',
+  'reservations.past': 'Minione',
   'reservations.summary': '{confirmed} potwierdzonych, {pending} oczekujących',
   'reservations.showFiles': 'Pokaż pliki',
   'reservations.editTitle': 'Edytuj rezerwację',

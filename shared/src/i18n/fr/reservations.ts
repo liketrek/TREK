@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     'Conseil : les réservations sont mieux créées directement depuis un lieu pour les lier à votre plan du jour.',
   'reservations.confirmed': 'Confirmée',
   'reservations.pending': 'En attente',
+  'reservations.past': 'Passées',
   'reservations.summary': '{confirmed} confirmées, {pending} en attente',
   'reservations.showFiles': 'Afficher les fichiers',
   'reservations.editTitle': 'Modifier la réservation',

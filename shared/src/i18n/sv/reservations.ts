@@ -10,6 +10,7 @@ const reservations: TranslationStrings = {
     'Tips: Det är bäst att göra bokningar direkt från en plats för att koppla dem till din dagsplan.',
   'reservations.confirmed': 'Bekräftat',
   'reservations.pending': 'Väntar på beslut',
+  'reservations.past': 'Passerade',
   'reservations.summary': '{confirmed} bekräftat, {pending} väntar på beslut',
   'reservations.showFiles': 'Visa filer',
   'reservations.editTitle': 'Redigera reservation',

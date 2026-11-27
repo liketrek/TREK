@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': 'טיפ: עדיף ליצור הזמנות ישירות ממקום כדי לקשר אותן לתוכנית היומית.',
   'reservations.confirmed': 'מאושר',
   'reservations.pending': 'ממתין',
+  'reservations.past': 'שעברו',
   'reservations.summary': '{confirmed} מאושרות, {pending} ממתינות',
   'reservations.showFiles': 'הצגת קבצים',
   'reservations.editTitle': 'עריכת הזמנה',

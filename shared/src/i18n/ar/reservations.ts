@@ -9,6 +9,7 @@ const reservations: TranslationStrings = {
   'reservations.placeHint': 'نصيحة: يُفضل إنشاء الحجوزات مباشرة من مكان لربطها بخطة اليوم.',
   'reservations.confirmed': 'مؤكد',
   'reservations.pending': 'قيد الانتظار',
+  'reservations.past': 'السابقة',
   'reservations.summary': '{confirmed} مؤكدة، {pending} قيد الانتظار',
   'reservations.showFiles': 'عرض الملفات',
   'reservations.editTitle': 'تعديل الحجز',

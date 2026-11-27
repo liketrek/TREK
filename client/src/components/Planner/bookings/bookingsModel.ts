@@ -252,21 +252,45 @@ export interface StatusGroups {
   confirmed: Reservation[]
   pending: Reservation[]
   transit: Reservation[]
+  /** What is over already (#3156), latest first; empty unless the caller passes the time. */
+  past: Reservation[]
 }
 
 /**
- * The phone tabs' three sections, each in date order: confirmed and pending, and
+ * Whether a booking is over: its end, or its start where it has none, lies
+ * before `now`. The times are local wall-clock values, as everywhere a booking
+ * is read. An end time without a date is on the start's day, and a date
+ * without a time counts until that day is over. A booking without any date
+ * (one only placed on a day) is never treated as over.
+ */
+export function hasPassed(r: Reservation, now: Date): boolean {
+  const start = splitReservationDateTime(r.reservation_time)
+  const end = r.reservation_end_time ? splitReservationDateTime(r.reservation_end_time) : null
+  const date = end?.date ?? start.date
+  if (!date) return false
+  const time = end && (end.date || end.time) ? end.time : start.time
+  const [y, m, d] = date.split('-').map(Number)
+  const [hh, mm] = time ? time.split(':').map(Number) : [23, 59]
+  return new Date(y, m - 1, d, hh, mm) < now
+}
+
+/**
+ * The phone tabs' sections, each in date order: confirmed and pending, and
  * transit (automated public transport, #1065) on its own whatever its status.
  * A booking type never matches `transit`, so the split fits the bookings tab too.
+ * Given the time, what is over leaves those and stands in `past` (#3156).
  */
-export function groupTransports(list: Reservation[], days: Day[]): StatusGroups {
+export function groupTransports(list: Reservation[], days: Day[], now?: Date): StatusGroups {
   const sorted = sortReservations(list, days, 'date', 'asc', () => '')
-  const transit = sorted.filter(r => r.type === 'transit')
-  const nonTransit = sorted.filter(r => r.type !== 'transit')
+  const isPast = (r: Reservation) => !!now && hasPassed(r, now)
+  const current = sorted.filter(r => !isPast(r))
+  const transit = current.filter(r => r.type === 'transit')
+  const nonTransit = current.filter(r => r.type !== 'transit')
   return {
     confirmed: nonTransit.filter(r => r.status === 'confirmed'),
     pending: nonTransit.filter(r => r.status !== 'confirmed'),
     transit,
+    past: sorted.filter(isPast).reverse(),
   }
 }
 

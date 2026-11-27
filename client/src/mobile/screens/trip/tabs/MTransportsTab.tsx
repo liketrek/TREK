@@ -34,6 +34,7 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
     { id: 'confirmed', label: t('reservations.confirmed'), rows: groups.confirmed },
     { id: 'pending', label: t('reservations.pending'), rows: groups.pending },
     { id: 'transit', label: t('reservations.type.transit'), rows: groups.transit },
+    { id: 'past', label: t('reservations.past'), rows: groups.past },
   ].filter(s => s.rows.length > 0)
 
   return (
