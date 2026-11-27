@@ -62,7 +62,8 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   } = usePlaceFileUpload(place && !isTourPlace ? place.id : null, fd => planner.tripActions.addFile(planner.tripId, fd), planner.toast)
   const [dayPickerOpen, setDayPickerOpen] = useState(false)
   // A day of this place picked to move from (#2583): the day list then moves it there instead of adding it.
-  const [moving, setMoving] = useState<{ assignment: Assignment; fromDayId: number } | null>(null)
+  // Only the ids are kept, so a stop a collaborator moved or removed meanwhile is read as it is now.
+  const [movingIds, setMovingIds] = useState<{ placeId: number; assignmentId: number } | null>(null)
   const [participantPickerOpen, setParticipantPickerOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const navBtnRef = useRef<HTMLButtonElement>(null)
@@ -72,7 +73,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     planner.setSelectedPlaceId(null)
     setFilesExpanded(false)
     setDayPickerOpen(false)
-    setMoving(null)
+    setMovingIds(null)
     setParticipantPickerOpen(false)
     setColorPickerOpen(false)
   }
@@ -94,13 +95,18 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     return rows
   }, [place, planner.days, planner.assignments])
 
+  const moving = movingIds && movingIds.placeId === place?.id
+    ? placeAssignments.find(r => r.assignment.id === movingIds.assignmentId) ?? null
+    : null
+  if (movingIds && !moving) setMovingIds(null)
+
   const unassignedDays = planner.days.filter(d => !placeAssignments.some(r => r.day.id === d.id))
   const dayLabel = (d: Day) => d.title || t('planner.dayN', { n: (d.day_number ?? planner.days.indexOf(d) + 1) || '?' })
   // Lands where its time belongs on the new day, as a move on the desktop does;
   // without a time it goes to the end.
-  const moveToDay = ({ assignment, fromDayId }: { assignment: Assignment; fromDayId: number }, toDayId: number) => {
+  const moveToDay = ({ assignment, day }: { assignment: Assignment; day: Day }, toDayId: number) => {
     const slot = timedSlot(planner.storedAssignments[String(toDayId)] || [], planner.tripAccommodations, assignment.place?.place_time) ?? undefined
-    planner.handleMoveToDay(assignment.id, fromDayId, toDayId, slot)
+    planner.handleMoveToDay(assignment.id, day.id, toDayId, slot)
       .catch((err: unknown) => planner.toast.error(err instanceof Error ? err.message : t('common.unknownError')))
   }
 
@@ -364,7 +370,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                     // and notes, where removing and adding it again would lose them.
                     <button
                       type="button"
-                      onClick={() => { setDayPickerOpen(false); setMoving(m => (m?.assignment.id === assignment.id ? null : { assignment, fromDayId: day.id })) }}
+                      onClick={() => { setDayPickerOpen(false); setMovingIds(moving?.assignment.id === assignment.id ? null : { placeId: place.id, assignmentId: assignment.id }) }}
                       aria-label={t('mobileTrip.moveToDay')}
                       aria-expanded={moving?.assignment.id === assignment.id}
                       className="flex items-center gap-1"
@@ -400,7 +406,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
               {canEditDays && unassignedDays.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => { setMoving(null); setDayPickerOpen(v => !v) }}
+                  onClick={() => { setMovingIds(null); setDayPickerOpen(v => !v) }}
                   aria-label={t('inspector.addToDay')}
                   aria-expanded={dayPickerOpen}
                   className="flex h-[26px] w-[26px] items-center justify-center rounded-full border-[1.5px] border-dashed border-[color:var(--m-faint)] text-m-muted"
@@ -420,7 +426,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                       if (moving) moveToDay(moving, d.id)
                       else planner.handleAssignToDay(place.id, d.id)
                       setDayPickerOpen(false)
-                      setMoving(null)
+                      setMovingIds(null)
                     }}
                     className="flex w-full items-center gap-2 rounded-[10px] px-[10px] py-[9px] text-start text-[0.78125rem] font-semibold"
                   >

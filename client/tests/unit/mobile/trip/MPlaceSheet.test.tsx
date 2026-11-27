@@ -13,7 +13,7 @@ import type { Assignment, Category, Day, Place, TripFile, TripMember } from '../
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLSH-001 to FE-MOB-PLSH-036
+// FE-MOB-PLSH-001 to FE-MOB-PLSH-037
 
 vi.mock('../../../../src/utils/fileDownload', () => ({ openFile: vi.fn() }))
 // The gallery says "no pictures" through the shared toast, the sheet's own writes through planner.toast.
@@ -285,6 +285,24 @@ describe('MPlaceSheet', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Move to another day' }))
     fireEvent.click(screen.getByText('Day 3'))
     expect(handleMoveToDay).toHaveBeenCalledWith(11, 2, 3, 2)
+  })
+
+  it('FE-MOB-PLSH-037: the move list follows a stop a collaborator moved meanwhile, and closes when it is gone', () => {
+    const handleMoveToDay = vi.fn().mockResolvedValue(undefined)
+    const planner = makePlanner({ handleMoveToDay, tripAccommodations: [] })
+    const { rerender } = renderSheet(planner)
+    fireEvent.click(screen.getByRole('button', { name: 'Move to another day' }))
+    const moved = { ...planner, assignments: { '3': [dayAssignment(11, 3)] }, storedAssignments: { '3': [dayAssignment(11, 3)] } } as unknown as TripPlanner
+    rerender(<MPlaceSheet planner={moved} shell={makeShell()} />)
+    expect(screen.getByRole('button', { name: 'Move to another day' })).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByText('Old Town'))
+    expect(handleMoveToDay).toHaveBeenCalledWith(11, 3, 2, undefined)
+
+    fireEvent.click(screen.getByRole('button', { name: 'Move to another day' }))
+    const removed = { ...moved, assignments: {}, storedAssignments: {} } as unknown as TripPlanner
+    rerender(<MPlaceSheet planner={removed} shell={makeShell()} />)
+    rerender(<MPlaceSheet planner={moved} shell={makeShell()} />)
+    expect(screen.getByRole('button', { name: 'Move to another day' })).toHaveAttribute('aria-expanded', 'false')
   })
 
   it('FE-MOB-PLSH-011: treats an assignment without participants as everyone joined', async () => {
