@@ -260,15 +260,19 @@ export interface StatusGroups {
  * Whether a booking is over: its end, or its start where it has none, lies
  * before `now`. The times are local wall-clock values, as everywhere a booking
  * is read. An end time without a date is on the start's day, and a date
- * without a time counts until that day is over. A booking without any date
- * (one only placed on a day) is never treated as over.
+ * without a time counts until that day is over. A booking that carries no date
+ * of its own takes them from bookingDates, so a hotel ends on its stay's last
+ * day and a day-linked transport on its day. Without any date it is never over.
  */
-export function hasPassed(r: Reservation, now: Date): boolean {
+export function hasPassed(r: Reservation, now: Date, days: Day[] = []): boolean {
   const start = splitReservationDateTime(r.reservation_time)
   const end = r.reservation_end_time ? splitReservationDateTime(r.reservation_end_time) : null
-  const date = end?.date ?? start.date
+  const own = end?.date || start.date
+  const linked = own ? null : bookingDates(r, days)
+  const endDate = own ? end?.date : linked?.end
+  const date = endDate || (own ? start.date : linked?.start)
   if (!date) return false
-  const time = end && (end.date || end.time) ? end.time : start.time
+  const time = endDate || end?.time ? (end?.time ?? null) : start.time
   const [y, m, d] = date.split('-').map(Number)
   const [hh, mm] = time ? time.split(':').map(Number) : [23, 59]
   return new Date(y, m - 1, d, hh, mm) < now
@@ -282,7 +286,7 @@ export function hasPassed(r: Reservation, now: Date): boolean {
  */
 export function groupTransports(list: Reservation[], days: Day[], now?: Date): StatusGroups {
   const sorted = sortReservations(list, days, 'date', 'asc', () => '')
-  const isPast = (r: Reservation) => !!now && hasPassed(r, now)
+  const isPast = (r: Reservation) => !!now && hasPassed(r, now, days)
   const current = sorted.filter(r => !isPast(r))
   const transit = current.filter(r => r.type === 'transit')
   const nonTransit = current.filter(r => r.type !== 'transit')

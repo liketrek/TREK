@@ -422,4 +422,21 @@ describe('onTravelers and the shared type colours', () => {
     expect(groups.past.map(r => r.id)).toEqual([2, 1]);
     expect(groupTransports([ahead, early, lastNight], days).past).toEqual([]);
   });
+
+  it('FE-PLANNER-BKMODEL-046: hasPassed takes the linked days when a booking carries no date of its own', () => {
+    const now = new Date(2025, 5, 3, 12, 0);
+    const hotel = buildReservation({ id: 1, type: 'hotel', status: 'confirmed', reservation_time: null, reservation_end_time: null, accommodation_start_day_id: 501, accommodation_end_day_id: 502 });
+    const stillThere = buildReservation({ id: 2, type: 'hotel', status: 'confirmed', reservation_time: null, reservation_end_time: null, accommodation_start_day_id: 502, accommodation_end_day_id: 503 });
+    const train = buildReservation({ id: 3, type: 'train', status: 'confirmed', reservation_time: '09:00', reservation_end_time: '11:00', day_id: 503 });
+    const lateTrain = buildReservation({ id: 4, type: 'train', status: 'confirmed', reservation_time: '13:00', day_id: 503 });
+    const overnight = buildReservation({ id: 5, type: 'bus', status: 'confirmed', reservation_time: '22:00', reservation_end_time: '06:00', day_id: 502, end_day_id: 503 });
+    expect(hasPassed(hotel, now, days)).toBe(true);
+    expect(hasPassed(stillThere, now, days)).toBe(false);
+    expect(hasPassed(train, now, days)).toBe(true);
+    expect(hasPassed(lateTrain, now, days)).toBe(false);
+    expect(hasPassed(overnight, now, days)).toBe(true);
+    const groups = groupTransports([hotel, stillThere, train, lateTrain, overnight], days, now);
+    expect(groups.past.map(r => r.id)).toEqual([3, 5, 1]);
+    expect(groups.confirmed.map(r => r.id)).toEqual([2, 4]);
+  });
 });
