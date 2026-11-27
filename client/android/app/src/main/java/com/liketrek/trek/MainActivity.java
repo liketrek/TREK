@@ -2,6 +2,7 @@ package com.liketrek.trek;
 
 import android.content.Intent;
 import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
@@ -71,7 +72,9 @@ public class MainActivity extends BridgeActivity {
         // where it lays the page out between the bars (native/appBoot.ts).
         if (!onServer || restarting) {
             Drawable windowBackground = getWindow().getDecorView().getBackground();
-            getWindow().getDecorView().setBackgroundColor(SHELL_PAGE);
+            // A new drawable: setBackgroundColor would recolour the theme's own one,
+            // and the restore below would hand the window the warm ground back.
+            getWindow().getDecorView().setBackground(new ColorDrawable(SHELL_PAGE));
             bridge.getWebView().setBackgroundColor(SHELL_PAGE);
             // Once the server's page is up, the window is the one a normal launch
             // has, so the status bar of an older WebView follows the system again.
