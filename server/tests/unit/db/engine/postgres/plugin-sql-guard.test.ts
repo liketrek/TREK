@@ -104,6 +104,8 @@ describe('plugin SQL guard', () => {
     'CREATE TYPE span AS RANGE (subtype = float8)',
     'CREATE TABLE index (x int)',
     'CREATE INDEX ON notes (body)',
+    // PostgreSQL 19 added a uuid() conversion to the catalog; a uuid column and the cast still pass.
+    'SELECT t.uuid FROM items t WHERE t.uuid = uuid($1)',
   ])('lets through %s', (sql) => {
     expect(() => check(sql)).not.toThrow();
   });

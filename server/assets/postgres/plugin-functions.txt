@@ -180,6 +180,7 @@ time
 timestamp
 timestamptz
 timetz
+uuid
 varbit
 varchar
 
