@@ -19,11 +19,12 @@ export class RateLimitService {
   }
 
   /**
-   * True when the key already used up `max` in this window, without counting
-   * the request; for a route that counts only the attempts it refuses.
+   * Give back an attempt `check` counted, for a route that only holds the
+   * requests it refuses against the limit. Counting at the door and giving back
+   * afterwards keeps concurrent requests capped while they are still running.
    */
-  exhausted(bucket: string, key: string, max: number, windowMs: number, now: number): Promise<boolean> {
-    return this.store.exhausted(bucket, key, max, windowMs, now);
+  release(bucket: string, key: string, windowMs: number, now: number): Promise<void> {
+    return this.store.release(bucket, key, windowMs, now);
   }
 
   /** Test helper: clear a bucket (mirrors the legacy exported maps used for resets). */

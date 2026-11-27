@@ -59,11 +59,12 @@ export class OidcBackchannelController {
     res.set('Cache-Control', 'no-store');
     res.set('Pragma', 'no-cache');
     const key = req.ip || 'unknown';
-    if (await this.rl.exhausted('oidc_backchannel', key, BACKCHANNEL_LOGOUT_RATE_LIMIT, RATE_WINDOW_MS, Date.now())) {
+    if (!(await this.rl.check('oidc_backchannel', key, BACKCHANNEL_LOGOUT_RATE_LIMIT, RATE_WINDOW_MS, Date.now()))) {
       throw new DomainError(429, 'too_many_requests', {
         details: { error_description: 'Too many requests. Please try again later.' },
       });
     }
+    let refused = false;
     try {
       const body = oidcBackchannelLogoutRequestSchema.safeParse(req.body);
       if (!body.success) {
@@ -75,10 +76,10 @@ export class OidcBackchannelController {
       await this.backchannel.logout(body.data.logout_token, getClientIp(req) ?? null);
       return {};
     } catch (err) {
-      if (err instanceof DomainError && err.getStatus() === 400) {
-        await this.rl.check('oidc_backchannel', key, BACKCHANNEL_LOGOUT_RATE_LIMIT, RATE_WINDOW_MS, Date.now());
-      }
+      refused = err instanceof DomainError && err.getStatus() === 400;
       throw err;
+    } finally {
+      if (!refused) await this.rl.release('oidc_backchannel', key, RATE_WINDOW_MS, Date.now());
     }
   }
 }

@@ -25,17 +25,18 @@ describe('RateLimitService', () => {
     expect(await s.check('login', '1.2.3.4', 5, WINDOW, now)).toBe(false);
   });
 
-  it('exhausted answers whether the key is spent without counting an attempt', async () => {
+  it('release gives back a counted attempt, so only the kept ones reach the limit', async () => {
     const s = new RateLimitService();
     const now = Date.now();
-    expect(await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now)).toBe(false);
-    for (let i = 0; i < 5; i++) await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now);
-    expect(bucketSize(s, 'logout')).toBe(0);
-    await s.check('logout', '1.2.3.4', 2, WINDOW, now);
-    expect(await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now)).toBe(false);
-    await s.check('logout', '1.2.3.4', 2, WINDOW, now);
-    expect(await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now)).toBe(true);
-    expect(await s.exhausted('logout', '1.2.3.4', 2, WINDOW, now + WINDOW)).toBe(false);
+    for (let i = 0; i < 5; i++) {
+      expect(await s.check('logout', '1.2.3.4', 2, WINDOW, now)).toBe(true);
+      await s.release('logout', '1.2.3.4', WINDOW, now);
+    }
+    expect(await s.check('logout', '1.2.3.4', 2, WINDOW, now)).toBe(true);
+    expect(await s.check('logout', '1.2.3.4', 2, WINDOW, now)).toBe(true);
+    expect(await s.check('logout', '1.2.3.4', 2, WINDOW, now)).toBe(false);
+    await s.release('nobody', '9.9.9.9', WINDOW, now);
+    expect(bucketSize(s, 'nobody')).toBe(0);
   });
 
   it('starts a fresh window once the old one elapsed', async () => {
