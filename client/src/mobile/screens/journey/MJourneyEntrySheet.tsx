@@ -1,5 +1,7 @@
 import { useRef, useState, type CSSProperties } from 'react'
 import { Briefcase, Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play, NotebookPen, Pencil } from 'lucide-react'
+import { useIsTouch } from '../../../hooks/useIsTouch'
+import { useTouchDragBridge } from '../../../hooks/useTouchDragBridge'
 import { useSettingsStore } from '../../../store/settingsStore'
 import { formatClockTime } from '../../../utils/formatters'
 import MSheet from '../../components/MSheet'
@@ -103,7 +105,7 @@ export default function MJourneyEntrySheet({
     locationName, locationLat, locationQuery, locationResults, showLocationResults, setShowLocationResults,
     locating, locationError, mood, setMood, weather, setWeather, statsExcluded, setStatsExcluded, tripSuggestion,
     isDraft, setIsDraft, pros, setPros, cons, setCons, tags, setTags, tagInput, setTagInput, saving, uploadProgress,
-    photos, photoOrder, pendingFiles, setPendingFiles, pendingPreviews, setPendingProviderGroups,
+    photos, photoOrder, canReorder, pendingFiles, setPendingFiles, pendingPreviews, setPendingProviderGroups,
     showGalleryPick, setShowGalleryPick, isDirty, availableGalleryPhotos, queuedProviderPhotos, providerAssetIds,
     contextLocation, offersStatsToggle, addVerdictRow, verdictRowRef, addTag, handleSave, handleFileChange,
     pickGalleryPhoto, removePhoto, searchLocation, pickLocation, handleUseCurrentLocation,
@@ -111,6 +113,11 @@ export default function MJourneyEntrySheet({
     entry, journeyId: entry.journey_id, trips, galleryPhotos, onSave, onUploadPhotos, onAddProviderPhotos, onDone,
     readOnly, quickCapture, withTags: true, inlineLocateError: true,
   })
+  // A long press picks a photo up and a drag sets its place (#2851), on the
+  // touch bridge the plan's rows use: a finger never starts an HTML5 drag.
+  const sortable = canReorder && !readOnly
+  const isTouch = useIsTouch()
+  useTouchDragBridge(isTouch && sortable)
   const [showExternal, setShowExternal] = useState(false)
   const [externalProvider, setExternalProvider] = useState<string | null>(null)
   const [captureOnly, setCaptureOnly] = useState(quickCapture)
@@ -374,9 +381,15 @@ export default function MJourneyEntrySheet({
         )}
 
         {(photos.length > 0 || pendingFiles.length > 0) && (
-          <div className="mt-[10px] flex flex-wrap gap-2">
+          <div className="mt-[10px] flex flex-wrap gap-2" data-touch-drag={sortable ? '' : undefined}>
             {photos.map((p, idx) => (
-              <div key={p.id} className="relative h-16 w-16 overflow-hidden rounded-[13px]">
+              <div
+                key={p.id}
+                {...(sortable ? photoOrder.dragProps(idx) : {})}
+                className={`relative h-16 w-16 overflow-hidden rounded-[13px] transition-opacity ${
+                  photoOrder.dragIndex === idx ? 'opacity-40' : ''
+                } ${photoOrder.overIndex === idx && photoOrder.dragIndex !== idx ? 'ring-2 ring-[color:var(--m-act)]' : ''}`}
+              >
                 {posterlessVideo(p) ? (
                   <ClipTile />
                 ) : (

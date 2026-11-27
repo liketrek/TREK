@@ -978,7 +978,7 @@ describe('MJourneyEntrySheet read-only', () => {
   });
 });
 
-// FE-MOB-JENTRY-060 to FE-MOB-JENTRY-061: an editor reading an entry (#3007).
+// FE-MOB-JENTRY-060 to FE-MOB-JENTRY-062: an editor reading an entry (#3007), sorting its photos (#2851).
 
 describe('MJourneyEntrySheet reading view', () => {
   it('FE-MOB-JENTRY-060: reads as the entry, with its date and time on top and the way into the editor', async () => {
@@ -1007,6 +1007,17 @@ describe('MJourneyEntrySheet reading view', () => {
 
     await user.click(screen.getByRole('button', { name: 'Edit' }));
     expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-JENTRY-062: the photos of a saved entry can be dragged into order, a reader cannot move them (#2851)', () => {
+    const entry = buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] });
+    const { container, unmount } = mountSheet(entry);
+    expect(container.querySelector('[data-touch-drag]')).not.toBeNull();
+    expect(container.querySelectorAll('[draggable="true"]').length).toBeGreaterThanOrEqual(2);
+    unmount();
+
+    const read = mountSheet(entry, { readOnly: true });
+    expect(read.container.querySelector('[data-touch-drag]')).toBeNull();
   });
 
   it('FE-MOB-JENTRY-061: a viewer without the editor keeps the locked sheet it always had', () => {
