@@ -588,6 +588,20 @@ describe('booking change cards', () => {
     expect(appliedCardOf('import_booking', { args: {}, result: 'Not added.', preview })).toBeNull();
   });
 
+  // #3238: a booking the file calls confirmed is saved confirmed, and the card says so.
+  it('ASTBOOK-016s: a booking the file calls confirmed is drawn confirmed, one it says nothing about without a status', () => {
+    const flight = {
+      type: 'flight',
+      title: 'Kuala Lumpur to Bangkok',
+      reservation_time: '2026-06-03T08:15',
+      source: { fileName: 'airasia.eml', index: 0 },
+    };
+    const confirmed = changeCard('import_booking', { ...flight, metadata: { reservationStatus: 'confirmed' } });
+    expect(first(parsed(confirmed.card))).toMatchObject({ status: 'confirmed' });
+    const silent = changeCard('import_booking', flight);
+    expect(first(parsed(silent.card))).toMatchObject({ status: null });
+  });
+
   it('ASTBOOK-018: an applied flight from a file keeps its route, times and price, and can show it on the map', () => {
     const args = {
       type: 'flight',

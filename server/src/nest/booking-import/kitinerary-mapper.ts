@@ -21,6 +21,7 @@ import {
   haversineMetres,
   LEG_RESERVATION_TYPES,
   normalizeLocalDateTime,
+  readReservationStatus,
   splitLocalDateTime,
   sumMinor,
   toMinor,
@@ -730,9 +731,14 @@ function segmentDetail(r: KiReservation): {
   };
 }
 
-/** Merge a node's seat/class/platform/price into its item's metadata. The item's own metadata wins. */
+/**
+ * Merge a node's seat/class/platform/price and the status the document states
+ * into its item's metadata. The item's own metadata wins. The status is the one
+ * the mail import and the review form read (#3238), written as TREK's word.
+ */
 function applyCommonMeta(item: ParsedBookingItem, r: KiReservation): ParsedBookingItem {
-  const detail = segmentDetail(r);
+  const status = readReservationStatus(r.reservationStatus);
+  const detail = { ...segmentDetail(r), ...(status ? { reservationStatus: status } : {}) };
   if (Object.keys(detail).length) item.metadata = { ...detail, ...(item.metadata ?? {}) };
   return item;
 }

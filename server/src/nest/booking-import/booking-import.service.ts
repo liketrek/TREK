@@ -24,7 +24,7 @@ import type { ParsedBookingItem, KiReservation } from './kitinerary.types';
 import { UniqueConstraintViolationException } from '@mikro-orm/core';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
-import { normalizePlaceWebsite, typeToCostCategory } from '@trek/shared';
+import { importedReservationStatus, normalizePlaceWebsite, typeToCostCategory } from '@trek/shared';
 import type {
   BookingImportPreviewItem,
   BookingImportPreviewResponse,
@@ -520,6 +520,8 @@ export class BookingImportService {
           tripId,
           {
             ...reservationData,
+            // Confirmed when the document said so (#3238), like the mail import and the review form.
+            status: importedReservationStatus(item.metadata),
             ...origin,
             place_id: placeId,
             create_accommodation: createAccommodation && { ...createAccommodation, place_id: placeId },

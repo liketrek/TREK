@@ -143,6 +143,11 @@ export const KI_RESERVATION_JSON_SCHEMA = {
         properties: {
           '@type': { type: 'string', enum: [...KI_RESERVATION_TYPES] },
           reservationNumber: { type: 'string' },
+          // What the document says about the booking (#3238); left out when it says nothing.
+          reservationStatus: {
+            type: 'string',
+            enum: ['ReservationConfirmed', 'ReservationPending', 'ReservationCancelled'],
+          },
           // Hotel check-in/out, car pickup/dropoff, event/restaurant start/end —
           // plain ISO 8601 strings (no KDE QDateTime wrapper).
           checkinTime: { type: 'string' },

@@ -4,7 +4,7 @@ import { rowsOf } from '../undo-snapshot';
 import { bookingCard, bookingItemOf, changedBetween } from './booking-item';
 import { idOf, rowOfReservation, rowOfStay, scopeOfCard, type BookingRow, type StaySource } from './booking-row';
 import { bookingRowOf, dateOf, stayRowOf } from './booking-trip';
-import type { BookingCard, CardMoney, TrekCard } from '@trek/shared';
+import { importedReservationStatus, type BookingCard, type CardMoney, type TrekCard } from '@trek/shared';
 
 /**
  * The cards of held booking writes: what will be saved, drawn from the
@@ -261,16 +261,19 @@ export function importedBookingCard(ctx: PreviewContext, args: ToolArgs): TrekCa
   const stay = recordOf(args._accommodation);
   const venue = recordOf(args._venue);
   const isStay = args.type === 'hotel' || args._accommodation !== undefined;
+  const meta = recordOf(args.metadata);
   const row: BookingRow = {
     ...blankRow(ctx.card.tripId),
     type: isStay ? 'hotel' : args.type,
     title: args.title,
+    // Saved confirmed when the file said so (#3238); a booking it says nothing about shows no status.
+    status: importedReservationStatus(meta) === 'confirmed' ? 'confirmed' : null,
     needsReview: args.needs_review === true,
     confirmation: args.confirmation_number,
     reservationTime: args.reservation_time,
     reservationEndTime: args.reservation_end_time,
     location: args.location ?? venue.name,
-    meta: recordOf(args.metadata),
+    meta,
     endpoints: rowsOf(args.endpoints),
     point: { lat: venue.lat, lng: venue.lng },
     stay: isStay

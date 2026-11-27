@@ -147,6 +147,8 @@ export interface KiReservation {
   platform?: string;
   price?: number | string;
   priceCurrency?: string;
+  /** schema.org's ReservationConfirmed, ReservationCancelled and the like, bare or as a URL. */
+  reservationStatus?: string;
   [key: string]: unknown;
 }
 

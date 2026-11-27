@@ -1,4 +1,4 @@
-import type { BookingImportPreviewItem, Reservation, ReservationEndpoint } from '@trek/shared'
+import { importedReservationStatus, type BookingImportPreviewItem, type Reservation, type ReservationEndpoint } from '@trek/shared'
 
 /**
  * A pre-fill draft for the reservation/transport edit modals built from a parsed
@@ -29,7 +29,8 @@ export function parsedItemToDraft(item: BookingImportPreviewItem): BookingReview
   return {
     type: item.type,
     title: item.title,
-    status: 'pending',
+    // Confirmed when the document said so, pending otherwise (#3238).
+    status: importedReservationStatus(item.metadata),
     reservation_time: item.reservation_time ?? null,
     reservation_end_time: item.reservation_end_time ?? null,
     location: item.location ?? item._venue?.address ?? item._venue?.name ?? null,

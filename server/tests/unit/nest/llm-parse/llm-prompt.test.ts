@@ -27,6 +27,17 @@ describe('llm-prompt', () => {
     expect(prompt).toContain('never repeat it on each leg');
   });
 
+  // #3238: a schema-constrained provider fills declared properties only, so the status is declared too.
+  it('asks for the booking status the document states and declares it', () => {
+    const prompt = buildSystemPrompt();
+    expect(prompt).toContain('"reservationStatus"');
+    expect(item.properties.reservationStatus).toEqual({
+      type: 'string',
+      enum: ['ReservationConfirmed', 'ReservationPending', 'ReservationCancelled'],
+    });
+    expect(item.required).not.toContain('reservationStatus');
+  });
+
   it('instructs JSON-only output wrapped in reservations', () => {
     const prompt = buildSystemPrompt();
     expect(prompt).toMatch(/"reservations"/);

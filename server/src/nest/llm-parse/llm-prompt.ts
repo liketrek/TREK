@@ -12,6 +12,7 @@ export function reservationShapeRules(): string[] {
     'Each reservation is a schema.org JSON-LD object whose "@type" is one of:',
     KI_RESERVATION_TYPES.map((t) => `  - ${t}`).join('\n'),
     'Put the booking/confirmation code in "reservationNumber" on each reservation.',
+    'When the document states the booking status, put it in "reservationStatus" on each reservation: "ReservationConfirmed", "ReservationPending" or "ReservationCancelled". Leave it out when the document does not say.',
     'All dates/times are plain ISO 8601 local strings, e.g. "2026-06-11T10:00:00" (no timezone wrapper objects).',
     'IMPORTANT: nest the type-specific fields INSIDE a "reservationFor" object — do NOT place them at the top level of the reservation.',
     'Populate "reservationFor" with the type-specific fields:',

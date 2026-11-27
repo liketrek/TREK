@@ -450,6 +450,28 @@ describe('BookingImportService.confirm writes the booking with its cost', () => 
     source: { fileName: 'ticket.pdf', index: 0 },
   };
 
+  // #3238: the status the document states goes on the booking; a booking it says nothing about stays pending.
+  it('BOOKING-IMPORT-TX-STATUS: writes a confirmed booking as confirmed and anything else as pending', async () => {
+    const { svc, reservations } = makeConfirm();
+
+    await svc.confirm(
+      '5',
+      1,
+      [{ ...priced, metadata: { ...priced.metadata, reservationStatus: 'confirmed' } } as never],
+      'sock',
+    );
+    await svc.confirm(
+      '5',
+      1,
+      [{ ...priced, metadata: { ...priced.metadata, reservationStatus: 'cancelled' } } as never],
+      'sock',
+    );
+    await svc.confirm('5', 1, [priced as never], 'sock');
+
+    const statuses = reservations.createWithCostInTx.mock.calls.map((call) => (call as unknown[])[1]);
+    expect(statuses.map((data) => (data as { status?: string }).status)).toEqual(['confirmed', 'pending', 'pending']);
+  });
+
   it('BOOKING-IMPORT-TX-001: freezes the rate first, writes booking and cost in one call, announces the cost after the booking', async () => {
     const { svc, reservations, order, costEvents } = makeConfirm();
 

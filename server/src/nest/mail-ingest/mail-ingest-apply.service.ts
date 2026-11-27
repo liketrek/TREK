@@ -20,6 +20,7 @@ import { parsePriceMinor } from './mail-money';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import {
+  importedReservationStatus,
   normalizePlaceWebsite,
   typeToCostCategory,
   type BookingImportPreviewItem,
@@ -285,7 +286,7 @@ export class MailIngestApplyService {
     return {
       title: fields.title,
       type: fields.type,
-      status: statusOf(item),
+      status: importedReservationStatus(item.metadata),
       reservation_time: fields.reservation_time ?? undefined,
       reservation_end_time: fields.reservation_end_time ?? undefined,
       location: fields.location ?? undefined,
@@ -354,12 +355,6 @@ interface RemovedBooking {
   accommodationIds: string[];
   budgetItemIds: number[];
   placeIds: number[];
-}
-
-/** The status a booking is written with: confirmed when the mail said so, pending otherwise. */
-function statusOf(item: BookingImportPreviewItem): string {
-  const status = item.metadata?.reservationStatus;
-  return typeof status === 'string' && /confirm/i.test(status) ? 'confirmed' : 'pending';
 }
 
 /** A hotel's stay: its days by check-in and check-out date, its times of day alone. */

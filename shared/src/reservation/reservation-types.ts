@@ -135,3 +135,31 @@ export function isTransportReservationType(type: string | null | undefined): boo
 /** The statuses a reservation can be in. A row without one reads as `pending`. */
 export const RESERVATION_STATUSES = ['pending', 'confirmed', 'cancelled'] as const;
 export type ReservationStatus = (typeof RESERVATION_STATUSES)[number];
+
+/**
+ * The status a booking document states, as TREK writes it: schema.org's
+ * `ReservationConfirmed` (bare or as a schema.org URL) or a plain `confirmed`
+ * is confirmed, a cancellation is cancelled, a booking held or pending is
+ * pending. Anything else says nothing, so the caller keeps its own default.
+ */
+export function readReservationStatus(value: unknown): ReservationStatus | undefined {
+  if (typeof value !== 'string') return undefined;
+  const word = value
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\/schema\.org\//, '')
+    .replace(/^reservation/, '');
+  if (word === 'confirmed') return 'confirmed';
+  if (word === 'cancelled' || word === 'canceled') return 'cancelled';
+  if (word === 'pending' || word === 'hold') return 'pending';
+  return undefined;
+}
+
+/**
+ * The status an imported booking is saved with (#3238): confirmed when the
+ * document said so, pending otherwise. A cancellation is no status to add a
+ * booking with, so it stays pending here; the mail import refuses it before.
+ */
+export function importedReservationStatus(metadata: Record<string, unknown> | null | undefined): ReservationStatus {
+  return readReservationStatus(metadata?.reservationStatus) === 'confirmed' ? 'confirmed' : 'pending';
+}

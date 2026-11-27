@@ -10,7 +10,9 @@ import {
   ROADTRIP_RESERVATION_TYPES,
   TRANSPORT_RESERVATION_TYPES,
   TRAVEL_RESERVATION_TYPES,
+  importedReservationStatus,
   isTransportReservationType,
+  readReservationStatus,
   reservationTypeInfo,
 } from './reservation-types';
 import { reservationSchema, reservationStatusSchema, reservationTypeSchema } from './reservation.schema';
@@ -106,5 +108,32 @@ describe('reservation response type and status', () => {
   it('still parses a row whose type is outside the catalog', () => {
     const row = { id: 1, trip_id: 2, title: 'Old row', status: 'pending', type: 'balloon' };
     expect(reservationSchema.parse(row)).toMatchObject({ type: 'balloon' });
+  });
+});
+
+// #3238: the status a booking document states, and the one an import saves.
+describe('readReservationStatus / importedReservationStatus', () => {
+  it('reads schema.org and plain spellings, and nothing else', () => {
+    expect(readReservationStatus('http://schema.org/ReservationConfirmed')).toBe('confirmed');
+    expect(readReservationStatus('https://schema.org/ReservationConfirmed')).toBe('confirmed');
+    expect(readReservationStatus(' ReservationConfirmed ')).toBe('confirmed');
+    expect(readReservationStatus('Confirmed')).toBe('confirmed');
+    expect(readReservationStatus('http://schema.org/ReservationCancelled')).toBe('cancelled');
+    expect(readReservationStatus('canceled')).toBe('cancelled');
+    expect(readReservationStatus('ReservationHold')).toBe('pending');
+    expect(readReservationStatus('ReservationPending')).toBe('pending');
+    expect(readReservationStatus('unconfirmed')).toBeUndefined();
+    expect(readReservationStatus('')).toBeUndefined();
+    expect(readReservationStatus(null)).toBeUndefined();
+    expect(readReservationStatus(1)).toBeUndefined();
+  });
+
+  it('saves an import confirmed only when the document said so', () => {
+    expect(importedReservationStatus({ reservationStatus: 'confirmed' })).toBe('confirmed');
+    expect(importedReservationStatus({ reservationStatus: 'ReservationConfirmed' })).toBe('confirmed');
+    expect(importedReservationStatus({ reservationStatus: 'cancelled' })).toBe('pending');
+    expect(importedReservationStatus({})).toBe('pending');
+    expect(importedReservationStatus(null)).toBe('pending');
+    expect(importedReservationStatus(undefined)).toBe('pending');
   });
 });

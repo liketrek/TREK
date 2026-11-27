@@ -680,3 +680,53 @@ describe('kitinerary mapper: the seat on each leg of a connecting flight', () =>
     expect(legsMeta[1]).toMatchObject({ seat: '40A' });
   });
 });
+
+// #3238: a booking the document calls confirmed is imported as confirmed.
+describe('kitinerary mapper: the reservation status the document states', () => {
+  it('carries a confirmed status, however schema.org spells it, on a flight, a connecting flight and a train', () => {
+    const one = { ...flight('CE9P8V', SFO, JFK, '2026-06-11T10:00:00', '2026-06-11T18:30:00', '450') };
+    const spelled = [
+      'http://schema.org/ReservationConfirmed',
+      'https://schema.org/ReservationConfirmed',
+      'ReservationConfirmed',
+      'confirmed',
+    ];
+    for (const reservationStatus of spelled) {
+      const { items } = mapReservations(legs({ ...one, reservationStatus } as never), 'test.json');
+      expect(items[0].metadata).toMatchObject({ reservationStatus: 'confirmed' });
+    }
+    const first = {
+      ...flight('ABC123', FRA, BER, '2026-06-11T10:00:00', '2026-06-11T12:00:00', 'LH 100'),
+      reservationStatus: 'ReservationConfirmed',
+    };
+    const second = {
+      ...flight('ABC123', BER, HND, '2026-06-11T14:30:00', '2026-06-11T23:30:00', 'LH 200'),
+      reservationStatus: 'ReservationConfirmed',
+    };
+    const { items: grouped } = mapReservations(legs(first as never, second as never), 'test.json');
+    expect(grouped).toHaveLength(1);
+    expect(grouped[0].metadata).toMatchObject({ reservationStatus: 'confirmed' });
+    const rail = train('BAOLAU1', KLU, VIL, '2026-07-04T06:12:00', '2026-07-04T06:30:00', 'SE1', {
+      reservationStatus: 'http://schema.org/ReservationConfirmed',
+    });
+    const { items: trains } = mapReservations([rail] as unknown as KiReservation[], 'baolau.pdf');
+    expect(trains[0].metadata).toMatchObject({ reservationStatus: 'confirmed' });
+  });
+
+  it('reads a cancellation and a pending booking, and leaves an unknown or missing status out', () => {
+    const base = flight('CE9P8V', SFO, JFK, '2026-06-11T10:00:00', '2026-06-11T18:30:00', '450');
+    const statusOf = (reservationStatus?: unknown) =>
+      mapReservations(
+        legs({ ...base, ...(reservationStatus === undefined ? {} : { reservationStatus }) } as never),
+        'test.json',
+      ).items[0].metadata?.reservationStatus;
+    expect(statusOf('http://schema.org/ReservationCancelled')).toBe('cancelled');
+    expect(statusOf('canceled')).toBe('cancelled');
+    expect(statusOf('ReservationPending')).toBe('pending');
+    expect(statusOf('ReservationHold')).toBe('pending');
+    expect(statusOf('unconfirmed')).toBeUndefined();
+    expect(statusOf('Gibberish')).toBeUndefined();
+    expect(statusOf(42)).toBeUndefined();
+    expect(statusOf()).toBeUndefined();
+  });
+});
