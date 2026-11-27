@@ -18,20 +18,18 @@ function bucketSize(service: RateLimitService, bucket: string): number {
 }
 
 describe('RateLimitService', () => {
-  it('allows up to max attempts in a window, then refuses', async () => {
+  it('allows up to max attempts in a window, then refuses, counting only the attempts not given back', async () => {
     const s = new RateLimitService();
     const now = Date.now();
     for (let i = 0; i < 5; i++) expect(await s.check('login', '1.2.3.4', 5, WINDOW, now)).toBe(true);
     expect(await s.check('login', '1.2.3.4', 5, WINDOW, now)).toBe(false);
-  });
 
-  it('release gives back a counted attempt, so only the kept ones reach the limit', async () => {
-    const s = new RateLimitService();
-    const now = Date.now();
-    for (let i = 0; i < 5; i++) {
+    // release gives back a counted attempt, so only the kept ones reach the limit
+    await Array.from({ length: 5 }).reduce<Promise<void>>(async (previous) => {
+      await previous;
       expect(await s.check('logout', '1.2.3.4', 2, WINDOW, now)).toBe(true);
       await s.release('logout', '1.2.3.4', WINDOW, now);
-    }
+    }, Promise.resolve());
     expect(await s.check('logout', '1.2.3.4', 2, WINDOW, now)).toBe(true);
     expect(await s.check('logout', '1.2.3.4', 2, WINDOW, now)).toBe(true);
     expect(await s.check('logout', '1.2.3.4', 2, WINDOW, now)).toBe(false);

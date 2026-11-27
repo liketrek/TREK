@@ -170,10 +170,11 @@ describe('the tools one step offers', () => {
     const steps = await within(tripSession(), async (session) => {
       const port = attachedPort(session, ATTACHED_TURN);
       const counts: Array<{ group: string; offered: number }> = [];
-      for (const group of GROUPS) {
+      await GROUPS.reduce(async (previous, group) => {
+        await previous;
         await session.call('use_addon_tools', { groups: [group] });
         counts.push({ group, offered: port.specs().length });
-      }
+      }, Promise.resolve());
       await session.call('use_addon_tools', { groups: GROUPS });
       counts.push({ group: 'all', offered: port.specs().length });
       return counts;

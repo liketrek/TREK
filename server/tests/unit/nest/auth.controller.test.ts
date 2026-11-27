@@ -550,9 +550,11 @@ describe('AuthController (authenticated)', () => {
     const other = { ...user, id: 2 } as User;
     // Both users sit behind the same NAT address, and the first one burns its
     // whole ceiling.
-    for (let i = 0; i < 120; i++) {
-      await ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user, req);
-    }
+    await Promise.all(
+      Array.from({ length: 120 }, () =>
+        ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user, req),
+      ),
+    );
     expect(
       await thrownAsync(() =>
         ac(asvc({}), s, { createWsToken: vi.fn().mockReturnValue({ token: 'ws' }) }).wsToken(user, req),

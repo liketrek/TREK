@@ -1470,7 +1470,7 @@ describe('resetPassword', () => {
     await updateRows(orm, Users, { id: user.id }, { email: 'moved@example.com' });
 
     expect(
-      await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })),
+      await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery ?? '', new_password: 'Fresh123!' })),
     ).toEqual({ error: 'Invalid or expired reset link', status: 400 });
     expect((await readUser(orm, user.id)).password_version).toBe(0);
   });
@@ -1480,14 +1480,14 @@ describe('resetPassword', () => {
     const issued = await svc.requestPasswordReset(user.email, null);
     await updateRows(orm, Users, { id: user.id }, { email: user.email.toUpperCase() });
     expect(
-      await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery!, new_password: 'Fresh123!' })),
+      await asLegacyResult(svc.resetPassword({ token: issued.tokenForDelivery ?? '', new_password: 'Fresh123!' })),
     ).toEqual({ success: true, userId: user.id });
 
     const { user: older } = createUser(testDb);
     const legacy = await svc.requestPasswordReset(older.email, null);
     await updateRows(orm, PasswordResetTokens, { user: older.id }, { email: null });
     expect(
-      await asLegacyResult(svc.resetPassword({ token: legacy.tokenForDelivery!, new_password: 'Fresh123!' })),
+      await asLegacyResult(svc.resetPassword({ token: legacy.tokenForDelivery ?? '', new_password: 'Fresh123!' })),
     ).toEqual({ success: true, userId: older.id });
   });
 });

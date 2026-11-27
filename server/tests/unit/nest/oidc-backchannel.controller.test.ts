@@ -126,9 +126,7 @@ describe('OidcBackchannelController POST /api/auth/oidc/backchannel-logout', () 
 
   it('BCL-CTL-007: every request is counted at the door, and a valid logout gives its attempt back', async () => {
     const n = BACKCHANNEL_LOGOUT_RATE_LIMIT + 5;
-    for (let i = 0; i < n; i++) {
-      await controller().logout(req({ logout_token: 'a.b.c' }), makeRes());
-    }
+    await Promise.all(Array.from({ length: n }, () => controller().logout(req({ logout_token: 'a.b.c' }), makeRes())));
     expect(check).toHaveBeenCalledTimes(n);
     expect(release).toHaveBeenCalledTimes(n);
     expect(release).toHaveBeenLastCalledWith('oidc_backchannel', '198.51.100.7', 60_000, expect.any(Number));
