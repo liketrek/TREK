@@ -9,6 +9,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.allDays': 'Všechny dny',
   'mobileTrip.today': 'Dnes',
   'mobileTrip.assignedDays': 'Přiřazené dny',
+  'mobileTrip.moveToDay': 'Přesunout na jiný den',
   'mobileTrip.assignmentNotes': 'Poznámky ke dni',
   'mobileTrip.bookingsEmpty': 'Zatím žádné rezervace',
   'mobileTrip.collabFeatureDisabled': 'Tato funkce je pro tento výlet vypnuta',

@@ -9,6 +9,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.allDays': 'Wszystkie dni',
   'mobileTrip.today': 'Dziś',
   'mobileTrip.assignedDays': 'Przypisane dni',
+  'mobileTrip.moveToDay': 'Przenieś na inny dzień',
   'mobileTrip.assignmentNotes': 'Notatki dla dnia',
   'mobileTrip.bookingsEmpty': 'Brak rezerwacji',
   'mobileTrip.collabFeatureDisabled': 'Ta funkcja jest wyłączona dla tej podróży',

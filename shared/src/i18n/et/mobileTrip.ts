@@ -9,6 +9,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.allDays': 'Kõik päevad',
   'mobileTrip.today': 'Täna',
   'mobileTrip.assignedDays': 'Määratud päevad',
+  'mobileTrip.moveToDay': 'Teisele päevale',
   'mobileTrip.assignmentNotes': 'Päevapõhised märkmed',
   'mobileTrip.bookingsEmpty': 'Broneeringuid veel pole',
   'mobileTrip.collabFeatureDisabled': 'See funktsioon on selle reisi jaoks keelatud',

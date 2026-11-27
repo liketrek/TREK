@@ -9,6 +9,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.allDays': 'すべての日',
   'mobileTrip.today': '今日',
   'mobileTrip.assignedDays': '割り当てられた日',
+  'mobileTrip.moveToDay': '別の日に移動',
   'mobileTrip.assignmentNotes': '日別メモ',
   'mobileTrip.bookingsEmpty': '予約はまだありません',
   'mobileTrip.collabFeatureDisabled': 'この機能はこの旅行では無効になっています',

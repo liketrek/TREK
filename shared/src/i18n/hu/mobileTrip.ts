@@ -9,6 +9,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.allDays': 'Minden nap',
   'mobileTrip.today': 'Ma',
   'mobileTrip.assignedDays': 'Hozzárendelt napok',
+  'mobileTrip.moveToDay': 'Áthelyezés másik napra',
   'mobileTrip.assignmentNotes': 'Napra szóló jegyzetek',
   'mobileTrip.bookingsEmpty': 'Még nincsenek foglalások',
   'mobileTrip.collabFeatureDisabled': 'Ez a funkció ki van kapcsolva ennél az utazásnál',

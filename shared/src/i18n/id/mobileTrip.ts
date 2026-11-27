@@ -9,6 +9,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.allDays': 'Semua Hari',
   'mobileTrip.today': 'Hari ini',
   'mobileTrip.assignedDays': 'Hari yang ditetapkan',
+  'mobileTrip.moveToDay': 'Pindahkan ke hari lain',
   'mobileTrip.assignmentNotes': 'Catatan khusus hari',
   'mobileTrip.bookingsEmpty': 'Belum ada reservasi',
   'mobileTrip.collabFeatureDisabled': 'Fitur ini dinonaktifkan untuk perjalanan ini',

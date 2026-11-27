@@ -257,6 +257,19 @@ describe('MPlaceSheet', () => {
     expect(screen.queryByText('May 1')).not.toBeInTheDocument()
   })
 
+  it('FE-MOB-PLSH-035: moves the stop to another day from its day chip instead of adding it there (#2583)', () => {
+    const handleMoveToDay = vi.fn().mockResolvedValue(undefined)
+    const { planner } = renderSheet(makePlanner({ handleMoveToDay, tripAccommodations: [] }))
+    const move = screen.getByRole('button', { name: 'Move to another day' })
+    fireEvent.click(move)
+    expect(move).toHaveAttribute('aria-expanded', 'true')
+    fireEvent.click(screen.getByText('Day 3'))
+    // From day 2 to day 3; without a time the stop goes to the end of the new day.
+    expect(handleMoveToDay).toHaveBeenCalledWith(11, 2, 3, undefined)
+    expect(planner.handleAssignToDay).not.toHaveBeenCalled()
+    expect(screen.queryByText('May 1')).not.toBeInTheDocument()
+  })
+
   it('FE-MOB-PLSH-011: treats an assignment without participants as everyone joined', async () => {
     vi.spyOn(assignmentsApi, 'setParticipants').mockResolvedValue({ participants: [{ user_id: 2, username: 'bob' }] })
     renderSheet()

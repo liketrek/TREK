@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
 import DawarichIcon from '../../../../components/shared/DawarichIcon'
 import {
-  Bookmark, ChevronRight, ExternalLink, Map as MapIcon, MapPinOff, Navigation, Paperclip,
+  ArrowLeftRight, Bookmark, ChevronRight, ExternalLink, Map as MapIcon, MapPinOff, Navigation, Paperclip,
   Pencil, Phone, Plus, Route, RouteOff, Sparkles, Trash2, Upload, X,
 } from 'lucide-react'
 import MSheet from '../../../components/MSheet'
@@ -26,7 +26,7 @@ import { filesForPlace } from '../../../../utils/placeFiles'
 import { navigationTargetLabel, getNavigationTargets, openNavigationTarget } from '../../../../components/Planner/placeNavigation'
 import { addressWithoutCoordinates } from '../../../../components/Planner/placeCoordinates'
 import { NavigationMenu } from '../../../../components/shared/NavigationMenu'
-import { getPlaceBookings } from '../../../../utils/dayMerge'
+import { getPlaceBookings, timedSlot } from '../../../../utils/dayMerge'
 import type { Assignment, Day, Reservation, TripMember } from '../../../../types'
 import PlacePhotoGallery from '../../../../components/Planner/PlacePhotoGallery'
 import { ActionCircle, Eyebrow, INNER_CLS } from './MTripSheetUi'
@@ -61,6 +61,8 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     uploading, filesExpanded, setFilesExpanded, fileInputRef, handleUpload,
   } = usePlaceFileUpload(place && !isTourPlace ? place.id : null, fd => planner.tripActions.addFile(planner.tripId, fd), planner.toast)
   const [dayPickerOpen, setDayPickerOpen] = useState(false)
+  // A day of this place picked to move from (#2583): the day list then moves it there instead of adding it.
+  const [moving, setMoving] = useState<{ assignment: Assignment; fromDayId: number } | null>(null)
   const [participantPickerOpen, setParticipantPickerOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const navBtnRef = useRef<HTMLButtonElement>(null)
@@ -70,6 +72,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
     planner.setSelectedPlaceId(null)
     setFilesExpanded(false)
     setDayPickerOpen(false)
+    setMoving(null)
     setParticipantPickerOpen(false)
     setColorPickerOpen(false)
   }
@@ -92,6 +95,14 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   }, [place, planner.days, planner.assignments])
 
   const unassignedDays = planner.days.filter(d => !placeAssignments.some(r => r.day.id === d.id))
+  const dayLabel = (d: Day) => d.title || t('planner.dayN', { n: (d.day_number ?? planner.days.indexOf(d) + 1) || '?' })
+  // Lands where its time belongs on the new day, as a move on the desktop does;
+  // without a time it goes to the end.
+  const moveToDay = ({ assignment, fromDayId }: { assignment: Assignment; fromDayId: number }, toDayId: number) => {
+    const slot = timedSlot(planner.assignments[String(toDayId)] || [], planner.tripAccommodations, assignment.place?.place_time) ?? undefined
+    planner.handleMoveToDay(assignment.id, fromDayId, toDayId, slot)
+      .catch((err: unknown) => planner.toast.error(err instanceof Error ? err.message : t('common.unknownError')))
+  }
 
   // Participants belong to the assignment in the selected day (desktop parity).
   const dayAssignments = planner.selectedDayId ? (planner.assignments[String(planner.selectedDayId)] || []) : []
@@ -348,7 +359,20 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                   key={assignment.id}
                   className={`flex items-center gap-1 rounded-full py-1 ps-[10px] text-[0.75rem] font-semibold ${INNER_CLS} ${canEditDays ? 'pe-1' : 'pe-[10px]'}`}
                 >
-                  {day.title || t('planner.dayN', { n: (day.day_number ?? planner.days.indexOf(day) + 1) || '?' })}
+                  {canEditDays && unassignedDays.length > 0 ? (
+                    // The day itself moves the stop to another one, keeping its time
+                    // and notes, where removing and adding it again would lose them.
+                    <button
+                      type="button"
+                      onClick={() => { setDayPickerOpen(false); setMoving(m => (m?.assignment.id === assignment.id ? null : { assignment, fromDayId: day.id })) }}
+                      aria-label={t('mobileTrip.moveToDay')}
+                      aria-expanded={moving?.assignment.id === assignment.id}
+                      className="flex items-center gap-1"
+                    >
+                      {dayLabel(day)}
+                      <ArrowLeftRight size={10} strokeWidth={2.4} aria-hidden="true" className="text-m-muted" />
+                    </button>
+                  ) : dayLabel(day)}
                   {canEditDays && !isTourPlace && place.lat != null && place.lng != null && (
                     // In or out of that day's route (#2532); the icon says which it is.
                     <button
@@ -376,7 +400,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
               {canEditDays && unassignedDays.length > 0 && (
                 <button
                   type="button"
-                  onClick={() => setDayPickerOpen(v => !v)}
+                  onClick={() => { setMoving(null); setDayPickerOpen(v => !v) }}
                   aria-label={t('inspector.addToDay')}
                   aria-expanded={dayPickerOpen}
                   className="flex h-[26px] w-[26px] items-center justify-center rounded-full border-[1.5px] border-dashed border-[color:var(--m-faint)] text-m-muted"
@@ -385,18 +409,22 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
                 </button>
               )}
             </div>
-            {dayPickerOpen && (
+            {(dayPickerOpen || moving) && (
               <div className="mt-[6px] max-h-[180px] overflow-y-auto rounded-[14px] border border-[color:var(--m-rowbr)] bg-[color:var(--m-sheetop)] p-[6px]">
+                {moving && <Eyebrow className="px-[10px] pb-1 pt-[6px] uppercase">{t('mobileTrip.moveToDay')}</Eyebrow>}
                 {unassignedDays.map(d => (
                   <button
                     key={d.id}
                     type="button"
-                    onClick={() => { planner.handleAssignToDay(place.id, d.id); setDayPickerOpen(false) }}
+                    onClick={() => {
+                      if (moving) moveToDay(moving, d.id)
+                      else planner.handleAssignToDay(place.id, d.id)
+                      setDayPickerOpen(false)
+                      setMoving(null)
+                    }}
                     className="flex w-full items-center gap-2 rounded-[10px] px-[10px] py-[9px] text-start text-[0.78125rem] font-semibold"
                   >
-                    <span className="min-w-0 flex-1 truncate">
-                      {d.title || t('planner.dayN', { n: (d.day_number ?? planner.days.indexOf(d) + 1) || '?' })}
-                    </span>
+                    <span className="min-w-0 flex-1 truncate">{dayLabel(d)}</span>
                     {d.date && (
                       <span className="flex-none font-geist text-[0.65625rem] text-m-faint">
                         {new Date(`${d.date.slice(0, 10)}T00:00:00Z`).toLocaleDateString(planner.language, { day: 'numeric', month: 'short', timeZone: 'UTC' })}

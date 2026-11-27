@@ -9,6 +9,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.allDays': 'Όλες οι Ημέρες',
   'mobileTrip.today': 'Σήμερα',
   'mobileTrip.assignedDays': 'Ανατεθειμένες ημέρες',
+  'mobileTrip.moveToDay': 'Μετακίνηση σε άλλη ημέρα',
   'mobileTrip.assignmentNotes': 'Σημειώσεις ημέρας',
   'mobileTrip.bookingsEmpty': 'Δεν υπάρχουν κρατήσεις ακόμη',
   'mobileTrip.collabFeatureDisabled': 'Αυτή η λειτουργία είναι απενεργοποιημένη για αυτό το ταξίδι',

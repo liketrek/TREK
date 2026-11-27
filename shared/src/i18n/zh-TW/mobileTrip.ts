@@ -9,6 +9,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.allDays': '所有天',
   'mobileTrip.today': '今天',
   'mobileTrip.assignedDays': '已分配的天數',
+  'mobileTrip.moveToDay': '移到另一天',
   'mobileTrip.assignmentNotes': '按天備註',
   'mobileTrip.bookingsEmpty': '暫無預訂',
   'mobileTrip.collabFeatureDisabled': '此功能已針對本次行程停用',

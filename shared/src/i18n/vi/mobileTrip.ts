@@ -9,6 +9,7 @@ const mobileTrip: TranslationStrings = {
   'mobileTrip.allDays': 'Tất cả các ngày',
   'mobileTrip.today': 'Hôm nay',
   'mobileTrip.assignedDays': 'Ngày được gán',
+  'mobileTrip.moveToDay': 'Chuyển sang ngày khác',
   'mobileTrip.assignmentNotes': 'Ghi chú theo ngày',
   'mobileTrip.bookingsEmpty': 'Chưa có đặt chỗ nào',
   'mobileTrip.collabFeatureDisabled': 'Tính năng này bị tắt cho chuyến đi này',
