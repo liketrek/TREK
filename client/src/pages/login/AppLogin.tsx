@@ -363,7 +363,7 @@ function OtherWays({ login }: { login: Login }) {
           onClick={login.handleSsoClick}
         >
           <Shield size={18} aria-hidden="true" />
-          {t('login.oidcSignIn', { name: config?.oidc_display_name })}
+          {t('login.oidcSignIn', { name: config?.oidc_display_name || 'SSO' })}
         </a>
       )}
       {passkey && (
