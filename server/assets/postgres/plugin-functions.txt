@@ -184,6 +184,13 @@ uuid
 varbit
 varchar
 
+# Values new in PostgreSQL 19 that read only their argument: a check that raises on NULL,
+# and the block and offset of a tuple id a plugin builds itself (the ctid column stays
+# refused). Listed so a plugin column of the same name keeps working on every server.
+error_on_null
+tid_block
+tid_offset
+
 # JSON.
 array_to_json
 json_agg

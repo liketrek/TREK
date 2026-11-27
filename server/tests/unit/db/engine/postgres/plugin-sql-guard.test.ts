@@ -106,6 +106,8 @@ describe('plugin SQL guard', () => {
     'CREATE INDEX ON notes (body)',
     // PostgreSQL 19 added a uuid() conversion to the catalog; a uuid column and the cast still pass.
     'SELECT t.uuid FROM items t WHERE t.uuid = uuid($1)',
+    // So did error_on_null, tid_block, tid_offset and oid8; a plugin column of that name still passes.
+    'SELECT s.error_on_null, s.tid_block, s.tid_offset, s.oid8 FROM settings s',
   ])('lets through %s', (sql) => {
     expect(() => check(sql)).not.toThrow();
   });
