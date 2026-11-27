@@ -204,6 +204,8 @@ describe('MCollPlaceSheet', () => {
       ],
       category_id: 3,
       label_ids: [11, 12],
+      // No notes on this place, and none written (#3168).
+      notes: null,
     }))
     // Back to the read view.
     await waitFor(() => expect(screen.getByRole('button', { name: 'Edit' })).toBeInTheDocument())

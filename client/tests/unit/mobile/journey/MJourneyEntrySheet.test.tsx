@@ -1011,13 +1011,14 @@ describe('MJourneyEntrySheet reading view', () => {
 
   it('FE-MOB-JENTRY-062: the photos of a saved entry can be dragged into order, a reader cannot move them (#2851)', () => {
     const entry = buildEntry({ id: 5, photos: [buildPhoto(100), buildPhoto(101)] });
-    const { container, unmount } = mountSheet(entry);
-    expect(container.querySelector('[data-touch-drag]')).not.toBeNull();
-    expect(container.querySelectorAll('[draggable="true"]').length).toBeGreaterThanOrEqual(2);
+    // The sheet is portalled to the body, so the rendered container holds none of it.
+    const { unmount } = mountSheet(entry);
+    expect(document.querySelector('[data-touch-drag]')).not.toBeNull();
+    expect(document.querySelectorAll('[draggable="true"]').length).toBeGreaterThanOrEqual(2);
     unmount();
 
-    const read = mountSheet(entry, { readOnly: true });
-    expect(read.container.querySelector('[data-touch-drag]')).toBeNull();
+    mountSheet(entry, { readOnly: true });
+    expect(document.querySelector('[data-touch-drag]')).toBeNull();
   });
 
   it('FE-MOB-JENTRY-061: a viewer without the editor keeps the locked sheet it always had', () => {

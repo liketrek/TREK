@@ -8,7 +8,7 @@ import { CardGrid, Field, ReservationPluginSlots, SectionHeader, StatusDot, TabS
 import { STATUS_COLOR, type MTabScreenProps } from './tabModel'
 import { cardWhen, parseTransportMeta } from './transportsModel'
 import { TRANSPORT_TYPE_COLOR } from '../../../../components/Planner/bookings/bookingsModel'
-import { useReservationListFilter } from '../../../../components/Planner/bookings/useReservationListFilter'
+import { listSections, useReservationListFilter } from '../../../../components/Planner/bookings/useReservationListFilter'
 import { useReservationCard } from '../../../../components/Planner/bookings/useReservationCard'
 import { orderedEndpoints, seatCells } from '../../../../utils/flightLegs'
 import { filesFor } from '../../../../utils/reservationFiles'
@@ -30,12 +30,7 @@ export default function MTransportsTab({ planner, shell }: MTabScreenProps) {
   } = useReservationListFilter(allTransports, days, planner.tripMembers.length)
   const canEdit = planner.can('day_edit', planner.trip)
 
-  const sections = [
-    { id: 'confirmed', label: t('reservations.confirmed'), rows: groups.confirmed },
-    { id: 'pending', label: t('reservations.pending'), rows: groups.pending },
-    { id: 'transit', label: t('reservations.type.transit'), rows: groups.transit },
-    { id: 'past', label: t('reservations.past'), rows: groups.past },
-  ].filter(s => s.rows.length > 0)
+  const sections = listSections(groups, t)
 
   return (
     <TabScroller wide="full">

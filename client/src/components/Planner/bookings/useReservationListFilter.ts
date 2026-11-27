@@ -1,7 +1,20 @@
 import { useState } from 'react';
 
 import type { Day, Reservation } from '../../../types';
-import { groupTransports, onTravelers } from './bookingsModel';
+import { groupTransports, onTravelers, type StatusGroups } from './bookingsModel';
+
+/**
+ * The status sections both tabs list, in their order, leaving out the empty ones.
+ * Bookings never fill `transit`, so that section only ever shows among transports.
+ */
+export function listSections(groups: StatusGroups, t: (key: string) => string) {
+  return [
+    { id: 'confirmed', label: t('reservations.confirmed'), rows: groups.confirmed },
+    { id: 'pending', label: t('reservations.pending'), rows: groups.pending },
+    { id: 'transit', label: t('reservations.type.transit'), rows: groups.transit },
+    { id: 'past', label: t('reservations.past'), rows: groups.past },
+  ].filter((s) => s.rows.length > 0);
+}
 
 /**
  * The traveller filter and the folded sections of the phone's bookings and
