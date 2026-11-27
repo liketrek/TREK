@@ -317,8 +317,8 @@ async function valhallaOrOsrmDay(
   const plain = (await storedRoute(keys.plain)) ?? await osrmWithLegs(waypoints, keys.coords, profile, signal)
   cacheRoute(keys.plain, plain)
   const drawn = withFallbackNoted(plain, avoiding)
-  // A day left before Valhalla answered was never refused by it.
-  if (standInKey && !signal?.aborted) keepStandIn(standInKey, drawn)
+  // A day left before Valhalla answered, or never put to it, was not refused by it.
+  if (standInKey && asking && !signal?.aborted) keepStandIn(standInKey, drawn)
   return drawn
 }
 

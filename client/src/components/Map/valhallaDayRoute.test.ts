@@ -314,6 +314,21 @@ describe('the route cache keeps the engine apart', () => {
 });
 
 describe('the route cache while the relay rests', () => {
+  it('VDAY-CACHE-006: a day drawn by OSRM while the relay rested is asked again as soon as it is back', async () => {
+    let up = false;
+    const traffic = listen((body) => (up ? answered(body) : HttpResponse.json({ error: 'down' }, { status: 503 })));
+    await calculateRouteWithLegs(freshDay(2), { profile: 'driving' });
+    const points = freshDay(3);
+    expect((await calculateRouteWithLegs(points, { profile: 'driving' })).engine).toBe('osrm');
+    expect(traffic.relay).toHaveLength(1);
+
+    up = true;
+    resetValhallaTurns();
+    const routed = await calculateRouteWithLegs(points, { profile: 'driving' });
+    expect([routed.distance, routed.engine]).toEqual([4000, 'valhalla']);
+    expect(traffic.relay).toHaveLength(2);
+  });
+
   it('VDAY-CACHE-003: a day kept from Valhalla is still found while the relay rests, as it is offline', async () => {
     const points = freshDay(3);
     let up = true;
