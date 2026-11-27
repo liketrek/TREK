@@ -50,7 +50,7 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
   const navigate = useNavigate()
   const toast = useToast()
   const { t, locale } = useTranslation()
-  const { current, loading, notFound, loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto } = useJourneyStore()
+  const { current, loading, notFound, loadJourney, refreshJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto } = useJourneyStore()
   const mapRef = useRef<JourneyMapHandle>(null)
   const fullMapRef = useRef<JourneyMapHandle>(null)
   /** The gallery hands its file picker up here, so the hero button can open it. */
@@ -341,7 +341,7 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
 
   // Provider photos from the gallery picker and from the entry editor, the same
   // way on desktop and phone (#1587).
-  const providerPhotos = useProviderPhotoAdds(() => { void loadJourney(Number(id)) })
+  const providerPhotos = useProviderPhotoAdds(() => { void refreshJourney(Number(id)) })
 
   const restoreSuggestions = useCallback(async () => {
     if (!current) return
@@ -539,7 +539,7 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
     recordingPrep, recordings, canTakeOverRecording, recordingNeedsConnection, mapTracks, mapLayers, entryTitleOf,
     dayImport, dayImportDates,
   } = useJourneyDetailLayers({
-    journey: current, loaded: journeyLoaded, canEditEntries, loadJourney, dawarich, dawarichByDate, dawarichTrail,
+    journey: current, loaded: journeyLoaded, canEditEntries, loadJourney: refreshJourney, dawarich, dawarichByDate, dawarichTrail,
     tripDates, sidebarMapItems, photoCount: mapPhotos.length, showTripTracks,
   })
 
@@ -592,7 +592,8 @@ export function useJourneyDetail({ journeyId, embedded = false }: JourneyDetailO
     recordings, canTakeOverRecording, recordingNeedsConnection, dayImport, dayImportDates, recordingPrep,
     mapPhotos, openMapPhotos,
     feedEdge, scrollFeedTo,
-    loadJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
+    // The views reload after their own changes; such a read never rejects.
+    loadJourney: refreshJourney, updateEntry, deleteEntry, reorderEntries, uploadPhotos, deletePhoto,
     addPickedProviderPhotos: providerPhotos.addPickedPhotos,
     addEntryProviderPhotos: providerPhotos.addEntryPhotos,
     // A planned place picked on the map that nothing was written about yet: write it up.

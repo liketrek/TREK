@@ -191,6 +191,11 @@ interface JourneyState {
 
   loadJourneys: () => Promise<void>
   loadJourney: (id: number) => Promise<void>
+  /**
+   * Reads the journal again after a change the server already took, or when an
+   * event says it changed. Never rejects: it answers whether the read landed.
+   */
+  refreshJourney: (id: number) => Promise<boolean>
   createJourney: (data: { title: string; subtitle?: string; trip_ids?: number[] }) => Promise<Journey>
   updateJourney: (id: number, data: Record<string, unknown>) => Promise<void>
   deleteJourney: (id: number) => Promise<void>
@@ -275,6 +280,14 @@ export const useJourneyStore = create<JourneyState>((set, get) => ({
       if (cold) set({ loading: false })
     }
   },
+
+  refreshJourney: (id) =>
+    // A failed read keeps the journal as shown: a 404 has become `notFound` in
+    // loadJourney, anything else is read again with the next change or event.
+    get().loadJourney(id).then(
+      () => true,
+      () => false,
+    ),
 
   createJourney: async (data) => {
     const journey = await journeyApi.create(data)

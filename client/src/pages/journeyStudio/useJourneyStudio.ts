@@ -63,7 +63,7 @@ export function useJourneyStudio() {
   const location = useLocation()
   const { t, locale } = useTranslation()
   const isMobile = useIsMobile()
-  const { current, loading, loadJourney } = useJourneyStore()
+  const { current, loading, refreshJourney } = useJourneyStore()
 
   const doc = useStudioStore(s => s.doc)
   const loadDoc = useStudioStore(s => s.load)
@@ -211,8 +211,8 @@ export function useJourneyStudio() {
 
   useEffect(() => {
     if (!Number.isFinite(journeyId)) return
-    if (!current || current.id !== journeyId) void loadJourney(journeyId)
-  }, [journeyId, current, loadJourney])
+    if (!current || current.id !== journeyId) void refreshJourney(journeyId)
+  }, [journeyId, current, refreshJourney])
 
   // Lay the book out once, from the journey. After that it is an ordinary
   // document and this must not run again, or it would throw away the user's
@@ -672,7 +672,7 @@ export function useJourneyStudio() {
    * the new ones the way it shows an upload.
    */
   const photoProviders = useConnectedPhotoProviders(canEdit)
-  const providerAdds = useProviderPhotoAdds(() => { void loadJourney(journeyId) })
+  const providerAdds = useProviderPhotoAdds(() => { void refreshJourney(journeyId) })
   const [providerPick, setProviderPick] = useState<{ provider: string; entryId: number | null } | null>(null)
   const pickAnswer = useRef<((photoIds: number[]) => void) | null>(null)
   const answerPick = (photoIds: number[]) => {

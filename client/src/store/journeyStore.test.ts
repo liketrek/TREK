@@ -152,6 +152,19 @@ describe('journeyStore', () => {
     expect(useJourneyStore.getState().notFound).toBe(true);
   });
 
+  it('FE-STORE-JOURNEY-022: refreshJourney answers whether the read landed and never rejects', async () => {
+    const detail = buildJourneyDetail({ id: 5 });
+    server.use(http.get('/api/journeys/5', () => HttpResponse.json(detail)));
+    await expect(useJourneyStore.getState().refreshJourney(5)).resolves.toBe(true);
+    expect(useJourneyStore.getState().current?.id).toBe(5);
+
+    // A failed read keeps the journal as shown instead of throwing into a view callback.
+    server.use(http.get('/api/journeys/5', () => HttpResponse.json({ error: 'down' }, { status: 500 })));
+    await expect(useJourneyStore.getState().refreshJourney(5)).resolves.toBe(false);
+    expect(useJourneyStore.getState().current?.id).toBe(5);
+    expect(useJourneyStore.getState().notFound).toBe(false);
+  });
+
   // ── createJourney ────────────────────────────────────────────────────────
 
   it('FE-STORE-JOURNEY-005: createJourney adds to store and returns journey', async () => {
