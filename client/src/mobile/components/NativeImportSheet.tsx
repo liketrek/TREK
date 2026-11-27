@@ -7,11 +7,14 @@
  * (Collaboration, Links), or read as a booking. A bare link, whose page the phone
  * could not read, can only be kept; with Collaboration off, a page can only be read.
  * Collaboration counts per trip: a link goes only to a trip that has it on.
+ * A map link (Google Maps, Amap) can also become a place of the
+ * trip (#2582): the trip's new place sheet opens and looks the link up.
  */
-import { ChevronRight, FileText, Link2, ScanText } from 'lucide-react';
+import { ChevronRight, FileText, Link2, MapPin, ScanText } from 'lucide-react';
 import React, { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router';
 import { useShallow } from 'zustand/react/shallow';
+import { isMapUrl } from '../../components/Planner/PlaceFormModal.helpers';
 import { useToast } from '../../components/shared/Toast';
 import { useTranslation } from '../../i18n';
 import { saveSharedLink, useSharedImportStore, type SharedLink } from '../../native/sharedFiles';
@@ -31,11 +34,15 @@ interface TripRow {
   end_date?: string | null;
 }
 
-type LinkChoice = 'link' | 'booking';
+type LinkChoice = 'link' | 'booking' | 'place';
 
-/** What to offer for a shared link: the links when Collaboration is on, the import when there is a page to read. */
-function linkChoicesOf(file: File, collabOn: boolean): LinkChoice[] {
+/**
+ * What to offer for a shared link: a place first when it points at a map, the links
+ * when Collaboration is on, the import when there is a page to read.
+ */
+function linkChoicesOf(file: File, collabOn: boolean, url: string): LinkChoice[] {
   const choices: LinkChoice[] = [];
+  if (isMapUrl(url)) choices.push('place');
   if (collabOn) choices.push('link');
   if (file.type !== 'text/uri-list') choices.push('booking');
   return choices;
@@ -54,19 +61,22 @@ interface StageInput {
 
 /** Where the sheet stands for the shared item: what it asks, and what a tap on a trip does. */
 function stageOf({ file, link, collabOn, picked, presetFailed, settled }: StageInput) {
-  if (!file || !link) return { choice: 'booking' as LinkChoice | null, asking: false, nowhere: false, showTrips: true };
-  if (!settled) return { choice: null, asking: false, nowhere: false, showTrips: false };
-  const choices = linkChoicesOf(file, collabOn);
+  const none: LinkChoice[] = [];
+  if (!file || !link)
+    return { choice: 'booking' as LinkChoice | null, asking: false, nowhere: false, choices: none, showTrips: true };
+  if (!settled) return { choice: null, asking: false, nowhere: false, choices: none, showTrips: false };
+  const choices = linkChoicesOf(file, collabOn, link.url);
   const choice = picked ?? (choices.length === 1 ? choices[0] : null);
   const asking = choice == null && choices.length > 1;
   const nowhere = choices.length === 0;
   // While the share sheet's trip takes the link there is nothing to choose.
   const presetTakes = link.presetTripId != null && choice === 'link' && !presetFailed;
-  return { choice, asking, nowhere, showTrips: !asking && !nowhere && !presetTakes };
+  return { choice, asking, nowhere, choices, showTrips: !asking && !nowhere && !presetTakes };
 }
 
 function sheetTitle(t: (key: string) => string, asking: boolean, choice: LinkChoice | null): string {
   if (asking) return t('native.share.linkTitle');
+  if (choice === 'place') return t('native.share.placeTrip');
   return choice === 'link' ? t('native.share.linkTrip') : t('native.share.title');
 }
 
@@ -151,6 +161,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
   const tripId = useSharedImportStore((s) => s.tripId);
   const link = useSharedImportStore((s) => s.link);
   const chooseTrip = useSharedImportStore((s) => s.chooseTrip);
+  const choosePlaceTrip = useSharedImportStore((s) => s.choosePlaceTrip);
   const setFile = useSharedImportStore((s) => s.setFile);
   const instanceCollab = useAddonStore((s) => s.isEnabled('collab'));
   const open = !!file && tripId == null;
@@ -164,7 +175,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
   // The save in flight, kept off the state: it guards a second tap, it is not shown.
   const savingRef = useRef<File | null>(null);
   const picked = pick && pick.file === file ? pick.choice : null;
-  const { choice, asking, nowhere, showTrips } = stageOf({
+  const { choice, asking, nowhere, choices, showTrips } = stageOf({
     file,
     link,
     collabOn,
@@ -198,17 +209,28 @@ export default function NativeImportSheet(): React.ReactElement | null {
     );
   };
 
+  // The trip's new place sheet takes the map link from here (MTripShell, MPlaceEditSheet).
+  const addPlace = (id: number) => {
+    choosePlaceTrip(id);
+    void navigate(`/trips/${id}`);
+  };
+
   // The trip the share sheet picked, used as soon as it is clear what the link is for.
   const preset = link?.presetTripId ?? null;
   const applyPreset = useEffectEvent((id: number, use: LinkChoice) => {
     if (use === 'booking') chooseTrip(id);
+    else if (use === 'place') addPlace(id);
     else if (failedFile !== file) saveLink(id);
   });
   useEffect(() => {
     if (preset != null && choice != null && file) applyPreset(preset, choice);
   }, [preset, choice, file]);
 
-  const pickTrip = (id: number) => (choice === 'link' ? saveLink(id) : chooseTrip(id));
+  const pickTrip = (id: number) => {
+    if (choice === 'link') saveLink(id);
+    else if (choice === 'place') addPlace(id);
+    else chooseTrip(id);
+  };
 
   return (
     <MSheet open={open} onClose={() => setFile(null)} variant="bottom" ariaLabel={t('native.share.title')}>
@@ -222,7 +244,7 @@ export default function NativeImportSheet(): React.ReactElement | null {
             closeLabel={t('common.close')}
           />
         </div>
-        {asking && file && <LinkQuestion onPick={(use) => setPick({ file, choice: use })} />}
+        {asking && file && <LinkQuestion choices={choices} onPick={(use) => setPick({ file, choice: use })} />}
         {nowhere && (
           <p className="px-1 text-[length:calc(12px*var(--fs-scale-body,1))] text-m-muted">
             {t('native.share.linkUnsupported')}
@@ -234,22 +256,40 @@ export default function NativeImportSheet(): React.ReactElement | null {
   );
 }
 
-function LinkQuestion({ onPick }: { onPick: (choice: LinkChoice) => void }): React.ReactElement {
+function LinkQuestion({
+  choices,
+  onPick,
+}: {
+  choices: LinkChoice[];
+  onPick: (choice: LinkChoice) => void;
+}): React.ReactElement {
   const { t } = useTranslation();
   return (
     <div className="flex flex-col gap-2">
-      <ChoiceRow
-        icon={<Link2 size={17} strokeWidth={2} />}
-        label={t('native.share.saveLink')}
-        hint={t('native.share.saveLinkHint')}
-        onClick={() => onPick('link')}
-      />
-      <ChoiceRow
-        icon={<ScanText size={17} strokeWidth={2} />}
-        label={t('native.share.readBooking')}
-        hint={t('native.share.readBookingHint')}
-        onClick={() => onPick('booking')}
-      />
+      {choices.includes('place') && (
+        <ChoiceRow
+          icon={<MapPin size={17} strokeWidth={2} />}
+          label={t('native.share.addPlace')}
+          hint={t('native.share.addPlaceHint')}
+          onClick={() => onPick('place')}
+        />
+      )}
+      {choices.includes('link') && (
+        <ChoiceRow
+          icon={<Link2 size={17} strokeWidth={2} />}
+          label={t('native.share.saveLink')}
+          hint={t('native.share.saveLinkHint')}
+          onClick={() => onPick('link')}
+        />
+      )}
+      {choices.includes('booking') && (
+        <ChoiceRow
+          icon={<ScanText size={17} strokeWidth={2} />}
+          label={t('native.share.readBooking')}
+          hint={t('native.share.readBookingHint')}
+          onClick={() => onPick('booking')}
+        />
+      )}
     </div>
   );
 }

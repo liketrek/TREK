@@ -22,7 +22,7 @@ beforeEach(() => {
   // A second spyOn returns the first spy with its calls; start every test clean.
   vi.restoreAllMocks();
   navigate.mockReset();
-  useSharedImportStore.setState({ file: null, tripId: null, link: null });
+  useSharedImportStore.setState({ file: null, tripId: null, link: null, placeLink: null });
   useAddonStore.setState({ addons: [{ id: 'collab', enabled: true }] as never, loaded: true });
   useTripAddonsStore.setState({ trips: {} });
   // Every trip follows the instance switch unless a test says otherwise; answered at once, so no read outlives its test.
@@ -215,6 +215,35 @@ describe('NativeImportSheet', () => {
     await act(async () => answer());
     expect(screen.getByRole('button', { name: /Japan/ })).toBeInTheDocument();
     expect(saveSharedLink).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers a shared map link as a place first, and hands it to the trip picked (#2582)', async () => {
+    const maps = {
+      url: 'https://www.google.com/maps/place/Time+Out+Market',
+      title: 'Time Out Market',
+      presetTripId: null,
+    };
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(page(), maps));
+    const choices = await screen.findAllByRole('button', {
+      name: /Add it as a place|Save to the trip's links|Read a booking/,
+    });
+    expect(choices[0]).toHaveAccessibleName(/Add it as a place/);
+
+    fireEvent.click(choices[0]);
+    expect(screen.getByText('Add the place to which trip?')).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole('button', { name: /Japan/ }));
+    expect(useSharedImportStore.getState().placeLink).toEqual({ tripId: 2, url: maps.url });
+    expect(useSharedImportStore.getState().file).toBeNull();
+    expect(navigate).toHaveBeenCalledWith('/trips/2');
+    expect(saveSharedLink).not.toHaveBeenCalled();
+  });
+
+  it('offers no place for a link that is not a map', async () => {
+    render(<NativeImportSheet />);
+    act(() => useSharedImportStore.getState().setFile(page(), link()));
+    await screen.findByText('What should TREK do with this link?');
+    expect(screen.queryByRole('button', { name: /Add it as a place/ })).not.toBeInTheDocument();
   });
 
   it('stays closed with nothing shared', () => {

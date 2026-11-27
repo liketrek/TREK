@@ -60,6 +60,8 @@ export interface PlaceSearchOptions {
    * search ends the billing session, and a pick clears the typed-ahead list too.
    */
   variant: 'dialog' | 'sheet';
+  /** What the field starts with, such as a map link shared to the app (#2582). */
+  initialQuery?: string;
   /** Where the trip is happening: autocomplete is biased to the box, the full search to its centre. */
   locationBias: LocationBiasBox | undefined;
   t: ReturnType<typeof useTranslation>['t'];
@@ -101,6 +103,7 @@ export function usePlaceSearch({
   onMapLink,
   onCoordinates,
   onResolvingChange,
+  initialQuery,
 }: PlaceSearchOptions) {
   const sheet = variant === 'sheet';
   // Place names in the language the user picked for them, the app's otherwise (#1799).
@@ -110,7 +113,7 @@ export function usePlaceSearch({
   // The same hint autocomplete gets, as a point instead of a box.
   const biasPoint = pointFromBox(locationBias);
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery ?? '');
   const [results, setResults] = useState<MapsSearchRow[]>([]);
   /** What answered the last full search. Only a fallback: a merged list carries the source per place. */
   const [searchSource, setSearchSource] = useState('');

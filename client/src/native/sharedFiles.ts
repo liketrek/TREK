@@ -22,13 +22,25 @@ export interface SharedLink {
   presetTripId: number | null;
 }
 
+/** A shared map link on its way to a trip's new place (#2582). */
+export interface SharedPlaceLink {
+  tripId: number;
+  url: string;
+}
+
 interface SharedImportState {
   file: File | null;
   /** The trip whose booking import takes the file; the planner of that trip takes it from here. */
   tripId: number | null;
   link: SharedLink | null;
+  /** A map link picked to become a place: the trip's new place sheet looks it up. */
+  placeLink: SharedPlaceLink | null;
   setFile: (file: File | null, link?: SharedLink | null) => void;
   chooseTrip: (tripId: number) => void;
+  /** The shared link goes to this trip as a place; the sheet's queue is done with it. */
+  choosePlaceTrip: (tripId: number) => void;
+  /** The trip's place sheet took the link up. */
+  clearPlaceLink: () => void;
   /** The booking import took the file: the queue is empty again. */
   take: () => File | null;
 }
@@ -37,8 +49,14 @@ export const useSharedImportStore = create<SharedImportState>((set, get) => ({
   file: null,
   tripId: null,
   link: null,
+  placeLink: null,
   setFile: (file, link = null) => set({ file, tripId: null, link: file ? link : null }),
   chooseTrip: (tripId) => set({ tripId }),
+  choosePlaceTrip: (tripId) => {
+    const { link } = get();
+    set({ file: null, tripId: null, link: null, placeLink: link ? { tripId, url: link.url } : null });
+  },
+  clearPlaceLink: () => set({ placeLink: null }),
   take: () => {
     const { file } = get();
     set({ file: null, tripId: null, link: null });

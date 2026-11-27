@@ -1,4 +1,5 @@
 import { Loader2, RotateCcw, Search } from 'lucide-react'
+import { useEffect, useEffectEvent } from 'react'
 import { offersGoogleRetry } from '../../../../utils/placeSource'
 import { usePlaceSearch, type MapsPlace } from '../../../../components/Planner/usePlaceSearch'
 import { FIELD_CLS } from './PlSheetChrome'
@@ -48,6 +49,10 @@ interface PlPlaceSearchProps {
   onSuggestionName: (name: string) => void
   /** True while a suggestion's details are being resolved (name spinner). */
   onResolvingChange?: (resolving: boolean) => void
+  /** A query the field starts with and runs once, such as a shared map link (#2582). */
+  initialQuery?: string
+  /** The starting query was sent, so whoever held it can let it go. */
+  onInitialQueryRun?: () => void
 }
 
 function placeToPick(place: MapsPlace): PlSearchPick {
@@ -73,7 +78,7 @@ function placeToPick(place: MapsPlace): PlSearchPick {
  * detection — the mobile counterpart of PlaceFormModal's search block, on the
  * same search logic (usePlaceSearch).
  */
-export default function PlPlaceSearch({ planner, locationBias, onPick, onSuggestionName, onResolvingChange }: PlPlaceSearchProps) {
+export default function PlPlaceSearch({ planner, locationBias, onPick, onSuggestionName, onResolvingChange, initialQuery, onInitialQueryRun }: PlPlaceSearchProps) {
   const { t, toast } = planner
   const {
     query, setQuery, results, suggestions, setSuggestions, acSource, searchSource, searching, googleAnswers,
@@ -94,7 +99,18 @@ export default function PlPlaceSearch({ planner, locationBias, onPick, onSuggest
     }),
     onCoordinates: (lat, lng) => onPick({ lat, lng }),
     onResolvingChange,
+    initialQuery,
   })
+
+  // A map link shared to the app (#2582) is looked up as soon as the sheet opens,
+  // as if it had been pasted and searched.
+  const runInitial = useEffectEvent(() => {
+    void handleSearch()
+    onInitialQueryRun?.()
+  })
+  useEffect(() => {
+    if (initialQuery) runInitial()
+  }, [initialQuery])
 
   return (
     <div className="relative">

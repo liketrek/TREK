@@ -324,6 +324,17 @@ export default function MTripShell({
     setBookingImportKind('bookings')
     setShowBookingImport(true)
   }, [sharedTripId, tripId, setBookingImportKind, setShowBookingImport])
+  // A map link shared to TREK and this trip picked for it (#2582): the new place
+  // sheet opens, and its search looks the link up (MPlaceEditSheet).
+  const sharedPlaceTripId = useSharedImportStore(s => s.placeLink?.tripId ?? null)
+  const { setEditingPlace, setEditingAssignmentId, setPrefillCoords, setShowPlaceForm } = planner
+  useEffect(() => {
+    if (sharedPlaceTripId == null || sharedPlaceTripId !== Number(tripId)) return
+    setEditingPlace(null)
+    setEditingAssignmentId(null)
+    setPrefillCoords(null)
+    setShowPlaceForm(true)
+  }, [sharedPlaceTripId, tripId, setEditingPlace, setEditingAssignmentId, setPrefillCoords, setShowPlaceForm])
   // The day strip says when it runs on past an edge (a long trip, a narrow pane).
   const dayFade = useEdgeFade(dayRail)
   const dayPill = useActivePill(dayRail, '[aria-current="true"]', `${railDayId}:${days.map(d => d.id).join(',')}:${language}`)

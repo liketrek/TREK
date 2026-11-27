@@ -34,6 +34,7 @@ import { usePlaceImageField } from '../../../../components/Planner/usePlaceImage
 import { useTranslation } from '../../../../i18n'
 import { useAuthStore } from '../../../../store/authStore'
 import { useSettingsStore } from '../../../../store/settingsStore'
+import { useSharedImportStore } from '../../../../native/sharedFiles'
 import type { Assignment, AssignmentsMap, Place } from '../../../../types'
 import type { TripPlanner } from '../MTripShell'
 import { useLocationBias } from '../../../../hooks/useLocationBias'
@@ -103,6 +104,9 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
   const tagField = usePlaceTags({ tripId: planner.tripId, place: sheetPlace, tags: form.tags, setForm, t, toast })
 
   const placesEnrichEnabled = useAuthStore(s => s.placesEnrichEnabled)
+  // A map link shared to TREK for this trip (#2582): a new place starts from it.
+  const sharedPlaceUrl = useSharedImportStore(s => (s.placeLink?.tripId === planner.tripId ? s.placeLink.url : null))
+  const clearSharedPlace = useSharedImportStore(s => s.clearPlaceLink)
   const { language, locale } = useTranslation()
   const timeFormat = useSettingsStore(s => s.settings.time_format) || '24h'
 
@@ -266,6 +270,8 @@ export default function MPlaceEditSheet({ planner, onOpenExpense }: MPlaceEditSh
           onPick={applyPick}
           onSuggestionName={name => setForm(prev => ({ ...prev, name }))}
           onResolvingChange={setResolvingPick}
+          initialQuery={!sheetPlace && sharedPlaceUrl ? sharedPlaceUrl : undefined}
+          onInitialQueryRun={clearSharedPlace}
         />
 
         {placesEnrichEnabled && (
