@@ -14,6 +14,7 @@ import { ProcessStoreSlot } from '../../../src/nest/common/process-store-slot';
 import { RateLimitModule } from '../../../src/nest/common/rate-limit.module';
 import { RateLimitService } from '../../../src/nest/common/rate-limit.service';
 import { InMemoryRateLimitStore, RateLimitStore } from '../../../src/nest/common/rate-limit.store';
+import type { DatabaseLifecycle } from '../../../src/nest/database/database-lifecycle.service';
 import { OauthModule } from '../../../src/nest/oauth/oauth.module';
 import {
   InMemoryPendingCodeStore,
@@ -313,7 +314,7 @@ describe('the WebSocket rooms', () => {
     const bookMembers = vi.spyOn(fake, 'bookMembers');
     const send = vi.fn();
     const live = { readyState: 1, send } as unknown as TrekWebSocket;
-    const gatewayModule = new RealtimeGatewayModule(fake);
+    const gatewayModule = new RealtimeGatewayModule(fake, { onReopened: vi.fn() } as unknown as DatabaseLifecycle);
     try {
       expect(roomsSlot.get()).toBe(fake);
       fake.register(live);

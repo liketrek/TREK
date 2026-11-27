@@ -207,10 +207,16 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     // so this guard is defence in depth, not the only fix. toRowId, not
     // Number(): '0x1' or '1e0' joined trip 1's room.
     const tripId = toRowId(message.tripId);
-    if (tripId === null || !(await this.trips.findAccessible(tripId, user.id))) {
+    if (tripId === null || !(await this.access.trip(tripId, user.id))) {
       return { type: 'error', message: 'Access denied' };
     }
     this.rooms.join(socket, tripId);
+    // Asked once more from inside the room: a removal that committed while the
+    // first answer was on its way asked the room before this socket was in it.
+    if (!(await this.access.trip(tripId, user.id))) {
+      this.rooms.leave(socket, tripId);
+      return { type: 'error', message: 'Access denied' };
+    }
     return { type: 'joined', tripId };
   }
 
@@ -231,11 +237,16 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     if (!user || !message?.journeyId) return undefined;
 
     const journeyId = toRowId(message.journeyId);
-    if (journeyId === null || !(await this.journeys.canAccessJourney(journeyId, user.id))) {
+    if (journeyId === null || !(await this.access.book(journeyId, user.id))) {
       return { type: 'error', message: 'Access denied' };
     }
 
     this.rooms.joinBook(socket, journeyId);
+    // Asked once more from inside the book, for the same reason as a trip join.
+    if (!(await this.access.book(journeyId, user.id))) {
+      this.rooms.leaveBook(socket, journeyId);
+      return { type: 'error', message: 'Access denied' };
+    }
     this.announcePeers(journeyId);
     return { type: 'book:joined', journeyId };
   }

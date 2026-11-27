@@ -1607,14 +1607,11 @@ export class JourneyDomainService {
     if (!(await this.isOwner(journeyId, userId))) return false;
     // Read first, so the one taken off hears it too and leaves the journey.
     const audience = await this.journeysRepo.listRecipientUserIds(journeyId);
-    // JG119 — R5: the owner-protection guard stays INSIDE the repository's
-    // own statement (`deleteNonOwner`'s `role != 'owner'` condition, Task
-    // 1's build), never split into a find-then-conditional-delete.
+    // JG119 R5: the owner guard stays inside `deleteNonOwner`'s own statement, never a find-then-delete.
     const removed = await this.contributorsRepo.deleteNonOwner(journeyId, targetUserId);
     // The owner, or someone who was never on the journey, leaves nothing to announce.
     if (removed > 0) {
       await this.broadcastJourneyEvent(journeyId, 'journey:contributor:changed', { targetUserId, role: null }, undefined, audience);
-      // An open book trusts the sockets that joined it; the one taken off may still see it through a trip.
       await this.realtime.recheckJourneyAccess(journeyId);
     }
     return true;

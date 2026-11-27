@@ -1,7 +1,7 @@
 import {
   broadcast,
   broadcastToUser,
-  closeUserSockets,
+  closeSockets,
   getOnlineUserIds,
   recheckJourneyAccess,
   recheckTripAccess,
@@ -130,12 +130,11 @@ export class RealtimeService {
   /**
    * A socket is let into a trip room once and then trusted, so a write that
    * ends somebody's access to a trip asks the sockets already in again, once
-   * it is committed and its own event went out: one user's sockets in one
-   * trip (a member removed), everybody in a trip (a trip deleted), or every
-   * trip room a user is in. Open books are asked again with it, since a book
-   * can be open through a trip's journal.
+   * it is committed and its own event went out: one user's sockets (a member
+   * removed) or everybody's (a trip deleted). Open books are asked again with
+   * it, since a book can be open through a trip's journal.
    */
-  recheckTripAccess(scope: { tripId?: number; userId?: number }): Promise<void> {
+  recheckTripAccess(scope: { tripId: number; userId?: number }): Promise<void> {
     return recheckTripAccess(scope);
   }
 
@@ -144,8 +143,13 @@ export class RealtimeService {
     return recheckJourneyAccess(journeyId);
   }
 
-  /** Ends every socket of an account that was deleted. */
-  closeUserSockets(userId: number): void {
-    closeUserSockets(userId);
+  /**
+   * Ends every socket of an account whose sessions ended or that was deleted.
+   * A socket outlives the session it was opened with, so a stolen one would
+   * otherwise keep hearing every room; a device whose session still holds
+   * connects again on its own.
+   */
+  closeUserSockets(userId: number, reason: string): void {
+    closeSockets(4001, reason, userId);
   }
 }

@@ -220,7 +220,7 @@ export class UserCleanupService {
     // A socket is trusted after its joins, so an account that is gone has its
     // sockets ended, and the books it shared through a trip's journal are
     // asked again for everybody else.
-    this.realtime.closeUserSockets(userId);
+    this.realtime.closeUserSockets(userId, 'Account deleted');
     await this.realtime.recheckJourneyAccess();
   }
 }

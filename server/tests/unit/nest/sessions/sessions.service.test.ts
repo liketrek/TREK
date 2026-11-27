@@ -2,6 +2,7 @@ import { JWT_SECRET, SESSION_DURATION_REMEMBER_SECONDS, SESSION_DURATION_SECONDS
 import { UserSessions } from '../../../../src/db/entities/UserSessions.entity';
 import { Users } from '../../../../src/db/entities/Users.entity';
 import { verifyJwtAndLoadUser } from '../../../../src/nest/auth-core/jwt-verify';
+import { RealtimeService } from '../../../../src/nest/realtime/realtime.service';
 import {
   SessionsService,
   USER_AGENT_MAX_LENGTH,
@@ -295,6 +296,24 @@ describe('SessionsService list and revoke', () => {
     expect((await rowOf(a.jti))?.revoked_at).not.toBeNull();
     expect((await rowOf(c.jti))?.revoked_at).not.toBeNull();
     expect(await svc.revokeAll(user.id)).toBe(1);
+  });
+
+  it('SESS-019: ending sessions ends the user’s open sockets too, and nothing when no session ended', async () => {
+    const close = vi.spyOn(RealtimeService.prototype, 'closeUserSockets').mockImplementation(() => undefined);
+    const { user } = createUser(testDb);
+    const a = claimsOf(await svc.issue({ id: user.id, pv: 0 }));
+    const b = claimsOf(await svc.issue({ id: user.id, pv: 0 }));
+
+    expect(await svc.revoke(user.id, a.jti)).toBe(true);
+    expect(close).toHaveBeenLastCalledWith(user.id, 'Session ended');
+    expect(await svc.revokeAll(user.id)).toBe(1);
+    expect(close).toHaveBeenCalledTimes(2);
+
+    // Nothing left to end: the sockets stay.
+    expect(await svc.revoke(user.id, b.jti)).toBe(false);
+    expect(await svc.revokeAll(user.id)).toBe(0);
+    expect(close).toHaveBeenCalledTimes(2);
+    close.mockRestore();
   });
 
   it('SESS-010: endSession ends the session a token names, and nothing for an untracked or missing token', async () => {

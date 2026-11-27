@@ -59,8 +59,6 @@ export abstract class RoomRegistry {
   abstract leaveBook(ws: TrekWebSocket, journeyId: number): void;
   /** Every book this socket had open, left in one go. */
   abstract leaveAllBooks(ws: TrekWebSocket): number[];
-  /** The trip rooms this socket is in. */
-  abstract tripsOf(ws: TrekWebSocket): number[];
   /** The books this socket has open. */
   abstract booksOf(ws: TrekWebSocket): number[];
   /** The sockets looking at a book; undefined when nobody is. */
@@ -129,10 +127,6 @@ export class InMemoryRoomRegistry extends RoomRegistry {
 
   bookMembers(journeyId: number): ReadonlySet<TrekWebSocket> | undefined {
     return this.bookRooms.get(journeyId);
-  }
-
-  tripsOf(ws: TrekWebSocket): number[] {
-    return [...(this.socketRooms.get(ws) ?? [])];
   }
 
   booksOf(ws: TrekWebSocket): number[] {
@@ -331,38 +325,45 @@ async function stillAllowed(check: () => Promise<boolean>): Promise<boolean> {
   }
 }
 
-function userSockets(userId: number): TrekWebSocket[] {
-  if (!wss) return [];
-  return [...wss.clients].map((ws) => ws as TrekWebSocket).filter((ws) => socketUser.get(ws)?.id === userId);
+/** Every socket that is open in this process. */
+function openSockets(): TrekWebSocket[] {
+  return wss ? [...wss.clients].map((ws) => ws as TrekWebSocket) : [];
+}
+
+/** The rooms a socket stays in only as long as its user may: one check per room it holds. */
+async function keepAllowed(
+  checks: Array<{ ws: TrekWebSocket; id: number }>,
+  ask: (id: number, userId: number) => Promise<boolean>,
+  leave: (ws: TrekWebSocket, id: number) => void,
+): Promise<Set<number>> {
+  const allowed = await Promise.all(
+    checks.map(({ ws, id }) => {
+      const user = socketUser.get(ws);
+      return user ? stillAllowed(() => ask(id, user.id)) : false;
+    }),
+  );
+  const left = new Set<number>();
+  checks.forEach(({ ws, id }, i) => {
+    if (allowed[i]) return;
+    leave(ws, id);
+    left.add(id);
+  });
+  return left;
 }
 
 /**
- * Asks again whether the sockets in a trip room may stay there, for one
- * user's sockets or, without one, for everybody in the room; and with only a
- * user, for every trip room that user's sockets are in. Every open book is
- * asked again after it, since a book can be open through a trip's journal.
+ * Asks again whether the sockets in a trip room may stay there, one user's
+ * or, without one, everybody's. Every open book is asked again after it,
+ * since a book can be open through a trip's journal.
  */
-export async function recheckTripAccess(scope: { tripId?: number; userId?: number }): Promise<void> {
+export async function recheckTripAccess(scope: { tripId: number; userId?: number }): Promise<void> {
   const access = roomAccessSlot.get();
   if (!access) return;
   const rooms = roomsSlot.get();
-  const checks: Array<{ ws: TrekWebSocket; tripId: number }> = [];
-  if (scope.tripId != null) {
-    for (const ws of rooms.members(scope.tripId) ?? []) {
-      if (scope.userId == null || socketUser.get(ws)?.id === scope.userId) checks.push({ ws, tripId: scope.tripId });
-    }
-  } else if (scope.userId != null) {
-    for (const ws of userSockets(scope.userId)) for (const tripId of rooms.tripsOf(ws)) checks.push({ ws, tripId });
-  }
-  const allowed = await Promise.all(
-    checks.map(({ ws, tripId }) => {
-      const user = socketUser.get(ws);
-      return user ? stillAllowed(() => access.trip(tripId, user.id)) : false;
-    }),
-  );
-  checks.forEach(({ ws, tripId }, i) => {
-    if (!allowed[i]) rooms.leave(ws, tripId);
-  });
+  const checks = [...(rooms.members(scope.tripId) ?? [])]
+    .filter((ws) => scope.userId == null || socketUser.get(ws)?.id === scope.userId)
+    .map((ws) => ({ ws, id: scope.tripId }));
+  await keepAllowed(checks, access.trip, (ws, id) => rooms.leave(ws, id));
   await recheckJourneyAccess();
 }
 
@@ -379,40 +380,25 @@ export async function recheckJourneyAccess(journeyId?: number): Promise<void> {
   const access = roomAccessSlot.get();
   if (!access) return;
   const rooms = roomsSlot.get();
-  const checks: Array<{ ws: TrekWebSocket; journeyId: number }> = [];
-  const books = journeyId != null ? [journeyId] : openBooks();
-  for (const id of books) for (const ws of rooms.bookMembers(id) ?? []) checks.push({ ws, journeyId: id });
-  const allowed = await Promise.all(
-    checks.map(({ ws, journeyId: id }) => {
-      const user = socketUser.get(ws);
-      return user ? stillAllowed(() => access.book(id, user.id)) : false;
-    }),
-  );
-  const changed = new Set<number>();
-  checks.forEach(({ ws, journeyId: id }, i) => {
-    if (allowed[i]) return;
-    rooms.leaveBook(ws, id);
-    changed.add(id);
-  });
-  for (const id of changed) announceBookPeers(id);
-}
-
-function openBooks(): number[] {
-  if (!wss) return [];
-  const books = new Set<number>();
-  for (const ws of wss.clients) for (const id of roomsSlot.get().booksOf(ws as TrekWebSocket)) books.add(id);
-  return [...books];
+  const books = journeyId != null ? [journeyId] : [...new Set(openSockets().flatMap((ws) => rooms.booksOf(ws)))];
+  const checks = books.flatMap((id) => [...(rooms.bookMembers(id) ?? [])].map((ws) => ({ ws, id })));
+  const left = await keepAllowed(checks, access.book, (ws, id) => rooms.leaveBook(ws, id));
+  for (const id of left) announceBookPeers(id);
 }
 
 /**
- * Ends every socket of an account that no longer exists. It leaves its rooms
- * at once, before the close handshake, so nothing more reaches it.
+ * Ends sockets that may not go on as they were opened: every socket of an
+ * account whose sessions ended or that was deleted, or every socket at all
+ * once the database was replaced. They leave their rooms at once, before the
+ * close handshake, so nothing more reaches them; a client whose session still
+ * holds connects again and joins what it may.
  */
-export function closeUserSockets(userId: number): void {
+export function closeSockets(code: number, reason: string, userId?: number): void {
   const rooms = roomsSlot.get();
-  for (const ws of userSockets(userId)) {
+  for (const ws of openSockets()) {
+    if (userId != null && socketUser.get(ws)?.id !== userId) continue;
     rooms.leaveAll(ws);
-    for (const journeyId of rooms.leaveAllBooks(ws)) announceBookPeers(journeyId);
-    ws.close(4001, 'Account deleted');
+    for (const id of rooms.leaveAllBooks(ws)) announceBookPeers(id);
+    ws.close(code, reason);
   }
 }

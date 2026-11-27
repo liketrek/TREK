@@ -2,6 +2,7 @@ import { JWT_SECRET, SESSION_DURATION_SECONDS, SESSION_DURATION_REMEMBER_SECONDS
 import { UserSessions } from '../../db/entities/UserSessions.entity';
 import type { UserSessionsRepository } from '../../db/repositories/UserSessions.repository';
 import { dbNow } from '../../db/types';
+import { RealtimeService } from '../realtime/realtime.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
 import type { UserSession } from '@trek/shared';
@@ -67,7 +68,13 @@ export function sessionClientFrom(req: Pick<Request, 'headers'>): SessionClient 
  */
 @Injectable()
 export class SessionsService {
-  constructor(@InjectRepository(UserSessions) private readonly sessions: UserSessionsRepository) {}
+  constructor(
+    @InjectRepository(UserSessions) private readonly sessions: UserSessionsRepository,
+    // An open WebSocket outlives the session it was opened with; ending the
+    // session ends the user's sockets too. The facade only reaches the process
+    // wide socket registry, so a hand-built service can take its own.
+    private readonly realtime: RealtimeService = new RealtimeService(),
+  ) {}
 
   /**
    * Mint a session token for the user and record its session.
@@ -181,7 +188,9 @@ export class SessionsService {
 
   /** End one of the user's sessions. False when the user has no active session by that id. */
   async revoke(userId: number, sessionId: string): Promise<boolean> {
-    return this.sessions.revokeForUser(sessionId, userId, dbNow());
+    const revoked = await this.sessions.revokeForUser(sessionId, userId, dbNow());
+    if (revoked) this.realtime.closeUserSockets(userId, 'Session ended');
+    return revoked;
   }
 
   /**
@@ -199,7 +208,9 @@ export class SessionsService {
    * password change revokes the sessions with the password write).
    */
   async revokeAll(userId: number, exceptId?: string): Promise<number> {
-    return this.sessions.revokeAllForUser(userId, dbNow(), exceptId);
+    const revoked = await this.sessions.revokeAllForUser(userId, dbNow(), exceptId);
+    if (revoked > 0) this.realtime.closeUserSockets(userId, 'Session ended');
+    return revoked;
   }
 
   /**
