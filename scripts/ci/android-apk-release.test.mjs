@@ -1,4 +1,4 @@
-import { appMinimumApi, mayPublish, serverApi, universalDownloadId } from './android-apk-release.mjs';
+import { appMinimumApi, isReleaseRun, mayPublish, serverApi, universalDownloadId } from './android-apk-release.mjs';
 
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -25,6 +25,15 @@ describe('android-apk-release', () => {
     assert.equal(mayPublish(3, 3), true);
     assert.equal(mayPublish(3, 4), true);
     assert.equal(mayPublish(4, 3), false);
+  });
+
+  it('publishes only for a pushed release tag', () => {
+    assert.equal(isReleaseRun('push', 'refs/tags/v5.2.2'), true);
+    assert.equal(isReleaseRun('push', 'refs/tags/v5.2.2-tf.1'), false);
+    assert.equal(isReleaseRun('push', 'refs/heads/dev'), false);
+    assert.equal(isReleaseRun('workflow_dispatch', 'refs/tags/v5.2.2'), false);
+    assert.equal(isReleaseRun('workflow_dispatch', 'refs/heads/dev'), false);
+    assert.equal(isReleaseRun('push', undefined), false);
   });
 
   it('finds the universal APK in a generatedApks answer, and nothing in one without it', () => {

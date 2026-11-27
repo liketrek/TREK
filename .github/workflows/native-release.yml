@@ -107,8 +107,9 @@ jobs:
 
       # The same build for installs outside Google Play: the universal APK Google
       # Play makes of this bundle, signed with the Play app signing key, published
-      # to liketrek/trek-android for Obtainium (wiki/Native-Apps.md). Held back
-      # while the app needs a server version that is not released yet.
+      # to liketrek/trek-android for Obtainium (wiki/Native-Apps.md). Only for a
+      # release tag, and held back while the app needs a server version that is
+      # not released yet.
       - name: Whether the latest server release serves this build
         id: released
         env:

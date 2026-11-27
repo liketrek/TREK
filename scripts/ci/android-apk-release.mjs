@@ -15,8 +15,9 @@
 //     be cut from dev before the server it needs is released. It may go out
 //     once the latest server release answers a nativeApi at least that high
 //     (its server/src/nest/health/features.controller.ts, which the workflow
-//     writes out with git show). Prints publish=true or publish=false, for
-//     $GITHUB_OUTPUT.
+//     writes out with git show). Only a release tag goes out (vX.Y.Z, pushed):
+//     a prerelease tag or a run started by hand is a testing build. Prints
+//     publish=true or publish=false, for $GITHUB_OUTPUT.
 //
 //   download <service account json> <package> <version code> <out.apk>
 //     Asks the Play Developer API for the universal APK of that version code,
@@ -54,7 +55,17 @@ export function mayPublish(appMinimum, released) {
   return released >= appMinimum;
 }
 
+/** Whether the run was started by pushing a release tag, not a prerelease tag or by hand. */
+export function isReleaseRun(eventName, ref) {
+  return eventName === 'push' && /^refs\/tags\/v\d+\.\d+\.\d+$/.test(ref ?? '');
+}
+
 function guard(releasedFeatures) {
+  if (!isReleaseRun(process.env.GITHUB_EVENT_NAME, process.env.GITHUB_REF)) {
+    console.error(`${process.env.GITHUB_REF} is not a release tag: hold back`);
+    console.log('publish=false');
+    return;
+  }
   const appMinimum = appMinimumApi(readFileSync(APP_MIN_FILE, 'utf8'));
   const released = serverApi(readFileSync(releasedFeatures, 'utf8'));
   const publish = mayPublish(appMinimum, released);
