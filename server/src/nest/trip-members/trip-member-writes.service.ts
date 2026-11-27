@@ -54,6 +54,9 @@ export class TripMemberWritesService {
   async removeMember(tripId: number, targetUserId: number, writer: TripWriter): Promise<void> {
     await this.roster.removeMember(tripId, targetUserId, writer.userId);
     writer.events.emit('member:removed', { userId: targetUserId });
+    // After the event, which tells the one taken off to leave: their sockets
+    // already in the trip's room must not keep hearing it.
+    await this.realtime.recheckTripAccess({ tripId, userId: targetUserId });
   }
 
   /** A companion without an account. No invitation: a guest has no inbox. */

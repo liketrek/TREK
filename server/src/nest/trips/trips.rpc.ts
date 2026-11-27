@@ -240,6 +240,7 @@ export class TripsRpc {
     if (ownerId !== null && ownerId === targetUserId) throw new ForbiddenResource('cannot remove the trip owner');
     await this.roster.removeMember(tripId, targetUserId, actor);
     this.realtime.broadcast(tripId, 'member:removed', { userId: targetUserId });
+    await this.realtime.recheckTripAccess({ tripId, userId: targetUserId });
     return { removed: true };
   }
 }

@@ -135,7 +135,13 @@ export function build(
   const permissions = {
     checkPermission: vi.fn((a: string) => (opts.allow ? opts.allow(a) : true)),
   } as unknown as PermissionsService;
-  const realtime = { broadcast: vi.fn() } as unknown as RealtimeService & { broadcast: ReturnType<typeof vi.fn> };
+  const realtime = {
+    broadcast: vi.fn(),
+    recheckTripAccess: vi.fn(async () => undefined),
+  } as unknown as RealtimeService & {
+    broadcast: ReturnType<typeof vi.fn>;
+    recheckTripAccess: ReturnType<typeof vi.fn>;
+  };
   const guards = new PluginGuards(
     db,
     permissions,
@@ -429,6 +435,8 @@ describe('TripsRpc membership', () => {
     expect((await f.host().dispatch(req('trips.removeMember', { tripId: 1, userId: 7 }), 42)).ok).toBe(true);
     expect(f.roster.removeMember).toHaveBeenCalledWith(1, 7, 42);
     expect(f.realtime.broadcast).toHaveBeenCalledWith(1, 'member:removed', { userId: 7 });
+    // The removed member's sockets already in the room are asked again.
+    expect(f.realtime.recheckTripAccess).toHaveBeenCalledWith({ tripId: 1, userId: 7 });
   });
 
   it('TRIPS-RPC-018 without member_manage nothing changes', async () => {

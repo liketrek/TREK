@@ -170,6 +170,8 @@ export class TripJournalLinkService {
       await this.links.replaceMembers(tripId, allowed, now);
     });
     this.realtime.broadcast(tripId, 'trip:journal:changed', {}, socketId);
+    // Whoever the link let into a book and no longer does leaves it.
+    await this.realtime.recheckJourneyAccess();
     return this.get(tripId, actor);
   }
 
@@ -191,6 +193,8 @@ export class TripJournalLinkService {
       await this.links.replaceMembers(tripId, allowed, Date.now());
     });
     this.realtime.broadcast(tripId, 'trip:journal:changed', {}, socketId);
+    // Whoever the link let into a book and no longer does leaves it.
+    await this.realtime.recheckJourneyAccess();
     return this.get(tripId, actor);
   }
 
@@ -204,6 +208,8 @@ export class TripJournalLinkService {
     }
     await this.links.deleteForTrip(tripId);
     this.realtime.broadcast(tripId, 'trip:journal:changed', {}, socketId);
+    // Whoever the link let into a book and no longer does leaves it.
+    await this.realtime.recheckJourneyAccess();
     return this.get(tripId, actor);
   }
 }

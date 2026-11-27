@@ -1,4 +1,11 @@
-import { broadcast, broadcastToUser, getOnlineUserIds } from './ws-state';
+import {
+  broadcast,
+  broadcastToUser,
+  closeUserSockets,
+  getOnlineUserIds,
+  recheckJourneyAccess,
+  recheckTripAccess,
+} from './ws-state';
 import { Injectable } from '@nestjs/common';
 import type { TrekWsPayload, TrekWsPluginEventName, TrekWsTripEventName, TrekWsUserEventName } from '@trek/shared';
 
@@ -118,5 +125,27 @@ export class RealtimeService {
    */
   getOnlineUserIds(): Set<number> {
     return getOnlineUserIds();
+  }
+
+  /**
+   * A socket is let into a trip room once and then trusted, so a write that
+   * ends somebody's access to a trip asks the sockets already in again, once
+   * it is committed and its own event went out: one user's sockets in one
+   * trip (a member removed), everybody in a trip (a trip deleted), or every
+   * trip room a user is in. Open books are asked again with it, since a book
+   * can be open through a trip's journal.
+   */
+  recheckTripAccess(scope: { tripId?: number; userId?: number }): Promise<void> {
+    return recheckTripAccess(scope);
+  }
+
+  /** The same for the people looking at a book (#1973), one book or, without one, every open book. */
+  recheckJourneyAccess(journeyId?: number): Promise<void> {
+    return recheckJourneyAccess(journeyId);
+  }
+
+  /** Ends every socket of an account that was deleted. */
+  closeUserSockets(userId: number): void {
+    closeUserSockets(userId);
   }
 }

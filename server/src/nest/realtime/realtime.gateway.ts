@@ -11,13 +11,16 @@ import { toRowId } from '../common/row-id';
 import { TripAccessService } from '../trip-membership/trip-access.service';
 import { JOURNEY_ACCESS, type JourneyAccess } from './journey-access.types';
 import {
+  announceBookPeers,
   bookPeers,
   broadcastToBook,
   registerSocket,
+  roomAccessSlot,
   RoomRegistry,
   roomsSlot,
   socketIdOf,
   userOf,
+  type RoomAccess,
   type TrekWebSocket,
 } from './ws-state';
 import { InjectRepository } from '@mikro-orm/nestjs';
@@ -80,7 +83,16 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
     // RealtimeGatewayModule also installs for the broadcast functions in
     // ws-state.ts; a hand-built gateway takes the installed one.
     private readonly rooms: RoomRegistry = roomsSlot.get(),
-  ) {}
+  ) {
+    // The checks a write that ends access asks again (RealtimeService.recheckTripAccess),
+    // the same ones a join runs below.
+    roomAccessSlot.install(this.access);
+  }
+
+  private readonly access: RoomAccess = {
+    trip: async (tripId, userId) => !!(await this.trips.findAccessible(tripId, userId)),
+    book: async (journeyId, userId) => !!(await this.journeys.canAccessJourney(journeyId, userId)),
+  };
 
   afterInit(server: WebSocketServer): void {
     this.heartbeat = setInterval(() => {
@@ -97,6 +109,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
   onModuleDestroy(): void {
     if (this.heartbeat) clearInterval(this.heartbeat);
     this.heartbeat = null;
+    roomAccessSlot.release(this.access);
   }
 
   /**
@@ -287,7 +300,7 @@ export class RealtimeGateway implements OnGatewayInit, OnGatewayConnection, OnGa
 
   /** The whole list, to everyone in the book including whoever just changed it. */
   private announcePeers(journeyId: number): void {
-    broadcastToBook(journeyId, { type: 'journey:book:peers', peers: bookPeers(journeyId) });
+    announceBookPeers(journeyId);
   }
 
   @SubscribeMessage('leave')

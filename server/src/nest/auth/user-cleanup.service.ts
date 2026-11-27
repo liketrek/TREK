@@ -28,6 +28,7 @@ import { BudgetService } from '../budget/budget.service';
 import { UnitOfWork } from '../database/unit-of-work';
 import { pluginsDataRoot } from '../plugins/paths';
 import { enqueueHookUserDataErasures } from '../plugins/user-erasure-enqueue';
+import { RealtimeService } from '../realtime/realtime.service';
 import { StorageReleaseService } from '../storage/storage-release.service';
 import { InjectRepository } from '@mikro-orm/nestjs';
 import { Injectable } from '@nestjs/common';
@@ -75,6 +76,9 @@ export class UserCleanupService {
     @InjectRepository(PluginUserErasureQueue)
     private readonly pluginUserErasureQueueRepo: PluginUserErasureQueueRepository,
     private readonly release: StorageReleaseService,
+    // The sockets of the deleted account; the facade only reaches the process
+    // wide socket registry, so a hand-built service can take its own.
+    private readonly realtime: RealtimeService = new RealtimeService(),
   ) {}
 
   /**
@@ -213,5 +217,10 @@ export class UserCleanupService {
     await this.release.releaseValues([avatar], { bare: 'avatars' });
     const photoFiles = photos.flatMap((photo) => [photo.file_path, photo.thumbnail_path]);
     await this.release.releaseValues(photoFiles, { bare: 'journey' });
+    // A socket is trusted after its joins, so an account that is gone has its
+    // sockets ended, and the books it shared through a trip's journal are
+    // asked again for everybody else.
+    this.realtime.closeUserSockets(userId);
+    await this.realtime.recheckJourneyAccess();
   }
 }

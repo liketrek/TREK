@@ -74,6 +74,7 @@ export class TripWritesService {
     const cover = ((await this.trips.getRaw(tripId)) as { cover_image?: string | null } | undefined)?.cover_image;
     const info = await this.trips.remove(tripId, writer.userId, writer.role);
     writer.events.emit('trip:deleted', { id: info.tripId });
+    await this.realtime.recheckTripAccess({ tripId: info.tripId });
     await this.release.releaseValues([cover]);
     return info;
   }

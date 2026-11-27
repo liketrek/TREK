@@ -59,6 +59,10 @@ export abstract class RoomRegistry {
   abstract leaveBook(ws: TrekWebSocket, journeyId: number): void;
   /** Every book this socket had open, left in one go. */
   abstract leaveAllBooks(ws: TrekWebSocket): number[];
+  /** The trip rooms this socket is in. */
+  abstract tripsOf(ws: TrekWebSocket): number[];
+  /** The books this socket has open. */
+  abstract booksOf(ws: TrekWebSocket): number[];
   /** The sockets looking at a book; undefined when nobody is. */
   abstract bookMembers(journeyId: number): ReadonlySet<TrekWebSocket> | undefined;
 }
@@ -125,6 +129,14 @@ export class InMemoryRoomRegistry extends RoomRegistry {
 
   bookMembers(journeyId: number): ReadonlySet<TrekWebSocket> | undefined {
     return this.bookRooms.get(journeyId);
+  }
+
+  tripsOf(ws: TrekWebSocket): number[] {
+    return [...(this.socketRooms.get(ws) ?? [])];
+  }
+
+  booksOf(ws: TrekWebSocket): number[] {
+    return [...(this.socketBooks.get(ws) ?? [])];
   }
 }
 
@@ -289,4 +301,118 @@ export function getOnlineUserIds(): Set<number> {
     if (user) ids.add(user.id);
   }
   return ids;
+}
+
+/**
+ * Who may be in a room, asked again after a join. The gateway installs the
+ * same checks its joins run (RealtimeGateway), so a second look gives the
+ * answer the first one would give now.
+ */
+export interface RoomAccess {
+  trip(tripId: number, userId: number): Promise<boolean>;
+  book(journeyId: number, userId: number): Promise<boolean>;
+}
+
+/** Without a gateway no socket ever joined a room, so there is nothing to ask. */
+export const roomAccessSlot = new ProcessStoreSlot<RoomAccess | null>(null);
+
+/**
+ * A room is entered with one access check and then trusted, so when access
+ * ends the sockets that are already in have to be asked again (the trip
+ * member removed, the contributor taken off a journey). An answer that cannot
+ * be had counts as no access: the socket can join again, a leak cannot be
+ * taken back.
+ */
+async function stillAllowed(check: () => Promise<boolean>): Promise<boolean> {
+  try {
+    return await check();
+  } catch {
+    return false;
+  }
+}
+
+function userSockets(userId: number): TrekWebSocket[] {
+  if (!wss) return [];
+  return [...wss.clients].map((ws) => ws as TrekWebSocket).filter((ws) => socketUser.get(ws)?.id === userId);
+}
+
+/**
+ * Asks again whether the sockets in a trip room may stay there, for one
+ * user's sockets or, without one, for everybody in the room; and with only a
+ * user, for every trip room that user's sockets are in. Every open book is
+ * asked again after it, since a book can be open through a trip's journal.
+ */
+export async function recheckTripAccess(scope: { tripId?: number; userId?: number }): Promise<void> {
+  const access = roomAccessSlot.get();
+  if (!access) return;
+  const rooms = roomsSlot.get();
+  const checks: Array<{ ws: TrekWebSocket; tripId: number }> = [];
+  if (scope.tripId != null) {
+    for (const ws of rooms.members(scope.tripId) ?? []) {
+      if (scope.userId == null || socketUser.get(ws)?.id === scope.userId) checks.push({ ws, tripId: scope.tripId });
+    }
+  } else if (scope.userId != null) {
+    for (const ws of userSockets(scope.userId)) for (const tripId of rooms.tripsOf(ws)) checks.push({ ws, tripId });
+  }
+  const allowed = await Promise.all(
+    checks.map(({ ws, tripId }) => {
+      const user = socketUser.get(ws);
+      return user ? stillAllowed(() => access.trip(tripId, user.id)) : false;
+    }),
+  );
+  checks.forEach(({ ws, tripId }, i) => {
+    if (!allowed[i]) rooms.leave(ws, tripId);
+  });
+  await recheckJourneyAccess();
+}
+
+/** Tells the people still looking at a book who is there now. */
+export function announceBookPeers(journeyId: number): void {
+  broadcastToBook(journeyId, { type: 'journey:book:peers', peers: bookPeers(journeyId) });
+}
+
+/**
+ * Asks again whether the sockets looking at a book may stay, for one book or,
+ * without one, for every open book. A book that loses somebody tells the rest.
+ */
+export async function recheckJourneyAccess(journeyId?: number): Promise<void> {
+  const access = roomAccessSlot.get();
+  if (!access) return;
+  const rooms = roomsSlot.get();
+  const checks: Array<{ ws: TrekWebSocket; journeyId: number }> = [];
+  const books = journeyId != null ? [journeyId] : openBooks();
+  for (const id of books) for (const ws of rooms.bookMembers(id) ?? []) checks.push({ ws, journeyId: id });
+  const allowed = await Promise.all(
+    checks.map(({ ws, journeyId: id }) => {
+      const user = socketUser.get(ws);
+      return user ? stillAllowed(() => access.book(id, user.id)) : false;
+    }),
+  );
+  const changed = new Set<number>();
+  checks.forEach(({ ws, journeyId: id }, i) => {
+    if (allowed[i]) return;
+    rooms.leaveBook(ws, id);
+    changed.add(id);
+  });
+  for (const id of changed) announceBookPeers(id);
+}
+
+function openBooks(): number[] {
+  if (!wss) return [];
+  const books = new Set<number>();
+  for (const ws of wss.clients) for (const id of roomsSlot.get().booksOf(ws as TrekWebSocket)) books.add(id);
+  return [...books];
+}
+
+/**
+ * Ends every socket of an account that no longer exists. It leaves its rooms
+ * at once, before the close handshake, so nothing more reaches it.
+ */
+export function closeUserSockets(userId: number): void {
+  const rooms = roomsSlot.get();
+  for (const ws of userSockets(userId)) {
+    rooms.leaveAll(ws);
+    for (const journeyId of rooms.leaveAllBooks(ws)) announceBookPeers(journeyId);
+    ws.close(4001, 'Account deleted');
+  }
 }

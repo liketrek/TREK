@@ -370,6 +370,7 @@ export class JourneyDomainService {
     const photoFiles = photos.flatMap((photo) => [photo.file_path, photo.thumbnail_path]);
     await this.release.releaseValues(photoFiles, { bare: 'journey' });
     await this.broadcastJourneyEvent(journeyId, 'journey:deleted', {}, sid, audience);
+    await this.realtime.recheckJourneyAccess(journeyId);
     return true;
   }
 
@@ -1613,6 +1614,8 @@ export class JourneyDomainService {
     // The owner, or someone who was never on the journey, leaves nothing to announce.
     if (removed > 0) {
       await this.broadcastJourneyEvent(journeyId, 'journey:contributor:changed', { targetUserId, role: null }, undefined, audience);
+      // An open book trusts the sockets that joined it; the one taken off may still see it through a trip.
+      await this.realtime.recheckJourneyAccess(journeyId);
     }
     return true;
   }
