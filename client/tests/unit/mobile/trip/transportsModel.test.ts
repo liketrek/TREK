@@ -140,8 +140,8 @@ describe('transportsModel — groupTransports', () => {
     expect(groups.transit.map(r => r.id)).toEqual([5, 4]);
   });
 
-  it('FE-MOB-TRPM-013: an empty list yields three empty groups', () => {
-    expect(groupTransports([], days)).toEqual({ confirmed: [], pending: [], transit: [] });
+  it('FE-MOB-TRPM-013: an empty list yields four empty groups', () => {
+    expect(groupTransports([], days)).toEqual({ confirmed: [], pending: [], transit: [], past: [] });
     expect(groupTransports([res({ id: 1, reservation_time: '2026-07-01T08:00' })], []).confirmed).toHaveLength(1);
   });
 
