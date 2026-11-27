@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { isServiceStopType } from '../../components/Roadtrip/roadtripModel'
+import { stopNumbersOfDay } from '../../components/Planner/stopNumbers'
 import { useTourMapVisibility } from '../../components/Tours/useTourMapVisibility'
 import { useSettingsStore } from '../../store/settingsStore'
 import { useTripStore, type TripStoreState } from '../../store/tripStore'
@@ -106,21 +106,18 @@ export function useMapPlaces(options: MapPlacesOptions) {
     if (placesFilter === 'tracks' && !hasTracks) setPlacesFilter('all')
   }, [placesFilter, hasTracks, setPlacesFilter])
 
-  // Build placeId → order-number map from the selected day's assignments. A service
-  // stop is passed over rather than counted: the map draws it without a badge and the
-  // rail gives it no number, so a number spent on it left the pin after a fuel stop
-  // wearing "3" where the rail said "2".
+  // Build placeId → order-number map from the selected day's assignments, through the
+  // count the plan's rows read too (stopNumbersOfDay), so a pin and its row agree.
   const dayOrderMap = useMemo(() => {
     if (!selectedDayId) return {}
     const da = assignments[String(selectedDayId)] || []
-    const sorted = [...da].sort((a, b) => a.order_index - b.order_index)
+    const numbers = stopNumbersOfDay(da)
     const map = {}
-    let counted = 0
-    sorted.forEach(a => {
-      if (!a.place?.id || isServiceStopType(a.place.stop_type)) return
-      counted += 1
+    ;[...da].sort((a, b) => a.order_index - b.order_index).forEach(a => {
+      const n = numbers.get(a.id)
+      if (n === undefined || !a.place?.id) return
       if (!map[a.place.id]) map[a.place.id] = []
-      map[a.place.id].push(counted)
+      map[a.place.id].push(n)
     })
     return map
   }, [selectedDayId, assignments])

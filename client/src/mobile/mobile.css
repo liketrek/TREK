@@ -925,3 +925,23 @@ html:has(.m-shell) ::-webkit-scrollbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* A stop's number in the plan, as its pin on the map carries it (#2584):
+   at the foot of its picture, on the trailing side. */
+.m-root .m-stop-num {
+  position: absolute;
+  inset-inline-end: -4px;
+  bottom: -3px;
+  display: grid;
+  place-items: center;
+  min-width: 16px;
+  height: 16px;
+  padding-inline: 4px;
+  border-radius: 999px;
+  background: var(--m-act);
+  color: var(--m-actfg);
+  box-shadow: 0 0 0 1.5px var(--m-bg);
+  font: 700 0.5625rem/1 'Geist Sans', Poppins, system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  pointer-events: none;
+}

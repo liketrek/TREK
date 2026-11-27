@@ -129,8 +129,10 @@ const ROW_CODE = 'flex-none whitespace-nowrap font-geist text-[0.71875rem] text-
 
 // ── b3) Place row ────────────────────────────────────────────────────────────
 
-export function PlaceRow({ assignment, fullPlace, tour, linkedReservations, chrome, reorder, drag, onOpen, onEdit, onRemove, overrun }: {
+export function PlaceRow({ assignment, stopNumber, fullPlace, tour, linkedReservations, chrome, reorder, drag, onOpen, onEdit, onRemove, overrun }: {
   assignment: Assignment
+  /** Its number on the map (#2584); none for a service stop. */
+  stopNumber?: number
   fullPlace: Place | undefined
   tour?: TourListItem
   /** TIME-02: the day's next timed item this tour runs into, or null. */
@@ -182,6 +184,7 @@ export function PlaceRow({ assignment, fullPlace, tour, linkedReservations, chro
       className={`flex cursor-pointer items-center gap-2.5 py-1.5 ${dragClass(drag)}`}
     >
       {!chrome.editing && (
+        <span className="relative flex-none">
         <AvatarRing className="shadow-[0_3px_8px_-3px_rgba(0,0,0,.4)]">
           {tour ? <TourDayRowIcon type={tour.tour_type} /> : <PlaceAvatar
             place={fullPlace ?? {
@@ -197,6 +200,8 @@ export function PlaceRow({ assignment, fullPlace, tour, linkedReservations, chro
             category={place?.category ? { color: place.category.color ?? undefined, icon: place.category.icon ?? undefined } : null}
           />}
         </AvatarRing>
+        {stopNumber != null && <span className="m-stop-num" aria-hidden="true">{stopNumber}</span>}
+        </span>
       )}
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">

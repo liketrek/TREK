@@ -1,9 +1,10 @@
-import { useEffect, useState, type MouseEvent } from 'react'
+import { useEffect, useMemo, useState, type MouseEvent } from 'react'
 import { ArrowRight, BedDouble, CalendarDays, CalendarRange, ChevronRight, LogIn, LogOut, Map as MapIcon, MapPin, Pencil, PencilLine, Route, Ticket, TrainFront, Undo2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useContextMenu, ContextMenu } from '../../../../components/shared/ContextMenu'
 import MarkdownText from '../../../../components/shared/MarkdownText'
 import { fmtTransitDuration } from '../../../../components/Planner/transitDisplay'
+import { stopNumbersOfDay } from '../../../../components/Planner/stopNumbers'
 import { legModeMenuItems, transitOnlyMenuItems } from '../../../../components/Planner/useLegModeActions'
 import { formatTime } from '../../../../utils/formatters'
 import { useMPlanTimeline, type MPlanTimelineController } from './useMPlanTimeline'
@@ -197,6 +198,9 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
   }
 
   const chrome = { editing, t, language: tl.language, timeFormat: tl.timeFormat }
+  // The numbers the map's pins carry, beside each stop (#2584).
+  const dayAssignments = planner.assignments[String(pageDayId)]
+  const stopNumbers = useMemo(() => stopNumbersOfDay(dayAssignments || []), [dayAssignments])
   const [cardScroll, setCardScroll] = useState<HTMLDivElement | null>(null)
   const cardFade = useEdgeFade(cardScroll, 'y')
 
@@ -273,6 +277,7 @@ function PlanDayPage({ planner, shell, dayId: pageDayId, active, editing, legMen
                 <Fragment key={row.key}>
                   <PlaceRow
                     assignment={row.assignment}
+                    stopNumber={stopNumbers.get(row.assignment.id)}
                     tour={planner.toursEnabled ? planner.tours.find(tour => tour.place_id === row.assignment.place_id) : undefined}
                     fullPlace={tl.fullPlaceOf(row.assignment)}
                     linkedReservations={row.linkedReservations}
