@@ -150,7 +150,7 @@ async function revokedAt(id: string): Promise<string | null | undefined> {
 /** The reason validateLogoutToken gives for a token. */
 async function reasonFor(token: string, config: OidcConfig = CONFIG): Promise<string> {
   const check = await service().validateLogoutToken(token, config);
-  return check.valid ? 'valid' : check.reason;
+  return 'reason' in check ? check.reason : 'valid';
 }
 
 describe('OidcBackchannelService.validateLogoutToken: section 2.6, one refusal per check', () => {
