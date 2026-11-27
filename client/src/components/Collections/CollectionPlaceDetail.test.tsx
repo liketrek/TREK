@@ -339,6 +339,8 @@ describe('CollectionPlaceDetail', () => {
       address: 'Somewhere',
       lat: 52.5,
       lng: 13.4,
+      // No notes on this place, and none written (#3168).
+      notes: null,
     });
     // Back in read mode.
     expect(await screen.findByRole('button', { name: 'Edit' })).toBeInTheDocument();

@@ -23,7 +23,7 @@ export interface SharedLink {
 }
 
 /** A shared map link on its way to a trip's new place (#2582). */
-export interface SharedPlaceLink {
+interface SharedPlaceLink {
   tripId: number;
   url: string;
 }
