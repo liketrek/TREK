@@ -9,7 +9,7 @@ import { pickDockTabs } from './dockTabs'
 import MBadge from '../../components/MBadge'
 import MIconBtn from '../../components/MIconBtn'
 import { useActivePill } from '../../components/useActivePill'
-import { useSharedImportStore } from '../../../native/sharedFiles'
+import { useSharedIntoTrip } from '../../../native/useSharedIntoTrip'
 import MPlanTimeline from './plan/MPlanTimeline'
 import MMapArea from './map/MMapArea'
 import MPlacesBrowser from './places/MPlacesBrowser'
@@ -316,25 +316,11 @@ export default function MTripShell({
     })
   }, [railDayId, days, dayRail])
   // The active day's pill glides to the next chip rather than jumping there.
-  // A booking document shared to TREK, and this trip picked for it: open the import.
-  const sharedTripId = useSharedImportStore(s => s.tripId)
-  const { setBookingImportKind, setShowBookingImport } = planner
-  useEffect(() => {
-    if (sharedTripId == null || sharedTripId !== Number(tripId)) return
-    setBookingImportKind('bookings')
-    setShowBookingImport(true)
-  }, [sharedTripId, tripId, setBookingImportKind, setShowBookingImport])
-  // A map link shared to TREK and this trip picked for it (#2582): the new place
-  // sheet opens, and its search looks the link up (MPlaceEditSheet).
-  const sharedPlaceTripId = useSharedImportStore(s => s.placeLink?.tripId ?? null)
-  const { setEditingPlace, setEditingAssignmentId, setPrefillCoords, setShowPlaceForm } = planner
-  useEffect(() => {
-    if (sharedPlaceTripId == null || sharedPlaceTripId !== Number(tripId)) return
-    setEditingPlace(null)
-    setEditingAssignmentId(null)
-    setPrefillCoords(null)
-    setShowPlaceForm(true)
-  }, [sharedPlaceTripId, tripId, setEditingPlace, setEditingAssignmentId, setPrefillCoords, setShowPlaceForm])
+  // Something shared to TREK and sent to this trip: the booking import, or a new place (#2582).
+  useSharedIntoTrip(Number(tripId), {
+    bookingImport: () => { planner.setBookingImportKind('bookings'); planner.setShowBookingImport(true) },
+    newPlace: () => { planner.setEditingPlace(null); planner.setEditingAssignmentId(null); planner.setPrefillCoords(null); planner.setShowPlaceForm(true) },
+  })
   // The day strip says when it runs on past an edge (a long trip, a narrow pane).
   const dayFade = useEdgeFade(dayRail)
   const dayPill = useActivePill(dayRail, '[aria-current="true"]', `${railDayId}:${days.map(d => d.id).join(',')}:${language}`)
