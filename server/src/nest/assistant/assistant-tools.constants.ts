@@ -25,6 +25,9 @@ export const MAX_CARDS_PER_STEP = 12;
  */
 export const MAX_OFFERED_TOOLS = 128;
 
+/** Tools a trip turn may offer beside its session's own (read_attached_file, keep_attached_file), which loading groups leaves room for. */
+export const TURN_ADDED_TOOLS = 2;
+
 /** What a tool answer may cost the conversation, as JSON text, after it was cut down to its structure. */
 export const MAX_TOOL_OUTPUT_CHARS = 40_000;
 

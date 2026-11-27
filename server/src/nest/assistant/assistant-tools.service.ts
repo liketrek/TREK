@@ -44,6 +44,7 @@ import {
   PINNED_ARG,
   PREVIEW_BOOK_PAGE_TOOL,
   REMEMBER_TOOL,
+  TURN_ADDED_TOOLS,
 } from './assistant-tools.constants';
 import type { ToolCards } from './cards/card-types';
 import {
@@ -476,8 +477,9 @@ ${hint}`,
 
   /**
    * Loads groups as the ones used last, then unloads the ones used longest
-   * ago until the step offers no more than MAX_OFFERED_TOOLS. Groups asked for
-   * together that do not fit even alone are left out from the last one asked.
+   * ago until the step, with the tools its turn adds, offers no more than
+   * MAX_OFFERED_TOOLS. Groups asked for together that do not fit even alone
+   * are left out from the last one asked.
    */
   private use(groups: readonly string[]): { unloaded: string[]; refused: string[] } {
     for (const group of groups) {
@@ -490,7 +492,7 @@ ${hint}`,
       this.loaded.delete(group);
       this.unoffered.delete(group);
     };
-    while (this.offeredSpecs().length > MAX_OFFERED_TOOLS) {
+    while (this.offeredSpecs().length > MAX_OFFERED_TOOLS - TURN_ADDED_TOOLS) {
       const oldest = [...this.loaded].find((group) => !groups.includes(group));
       if (oldest) {
         drop(oldest);

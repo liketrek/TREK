@@ -5,6 +5,8 @@
  * offered 130 in its first step).
  */
 import { ADDON_IDS } from '../../../../src/addons';
+import type { AssistantAttachmentSummary } from '../../../../src/db/repositories/AssistantAttachments.repository';
+import { attachedPort } from '../../../../src/nest/assistant/assistant-attachment-tools';
 import { ASSISTANT_TOOL_GROUPS } from '../../../../src/nest/assistant/assistant-tool-offer';
 import { MAX_OFFERED_TOOLS } from '../../../../src/nest/assistant/assistant-tools.constants';
 import {
@@ -55,6 +57,14 @@ async function within<T>(
 }
 
 const names = (session: AssistantToolSession) => session.specs().map((spec) => spec.name);
+
+/** A turn with a readable attached file in a trip that keeps files, so both attachment tools come on top. */
+const ATTACHED_TURN = {
+  attached: [{ id: 'att-1', text_status: 'ok' } as AssistantAttachmentSummary],
+  sentTo: 'model',
+  keeps: true,
+  read: () => Promise.resolve({ ok: true, value: '' }),
+};
 
 interface LoadAnswer {
   loaded: string[];
@@ -154,6 +164,21 @@ describe('the tools one step offers', () => {
       expect(before, 'home').toBeLessThanOrEqual(MAX_OFFERED_TOOLS);
       expect(after, group).toBeLessThanOrEqual(MAX_OFFERED_TOOLS);
     }
+  });
+
+  it('ASTCAP-005b: a trip turn with an attached file stays within the limit whatever the model loads', async () => {
+    const steps = await within(tripSession(), async (session) => {
+      const port = attachedPort(session, ATTACHED_TURN);
+      const counts: Array<{ group: string; offered: number }> = [];
+      for (const group of GROUPS) {
+        await session.call('use_addon_tools', { groups: [group] });
+        counts.push({ group, offered: port.specs().length });
+      }
+      await session.call('use_addon_tools', { groups: GROUPS });
+      counts.push({ group: 'all', offered: port.specs().length });
+      return counts;
+    });
+    for (const { group, offered } of steps) expect(offered, group).toBeLessThanOrEqual(MAX_OFFERED_TOOLS);
   });
 
   it('ASTCAP-006: a journey chat offers no more than the limit on either of its pages', async () => {
