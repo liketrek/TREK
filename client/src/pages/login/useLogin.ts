@@ -170,7 +170,9 @@ export function useLogin() {
       // The app has no takeoff: the sign-in screen steps back and the app rises in
       // as soon as the settings are there (native/appBoot.ts).
       toastHaptic('success')
-      void handOverToApp(loadSettings(), () => navigate(redirectTarget))
+      void handOverToApp(loadSettings(), () => {
+        void navigate(redirectTarget)
+      })
       return
     }
     loadSettings()

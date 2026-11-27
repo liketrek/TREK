@@ -5,9 +5,10 @@ import { useNativeServer } from '../../components/Settings/useNativeServer';
 import PasswordChecklist from '../../components/shared/PasswordChecklist';
 import { useTranslation } from '../../i18n';
 import { lightStatusBarIcons } from '../../native/appBoot';
+import { reportNativeFailure } from '../../native/reportFailure';
 import './appLogin.css';
 import { heading as headingOf, oidcLoginHref, oidcOnlyHref, submitLabel, type LoginStep } from './loginModel';
-import { mfaCodeInputProps } from './MfaCodeStep';
+import { mfaCodeInputProps } from './mfaCodeInput';
 import { IDP_LOGIN_URL, type useLogin } from './useLogin';
 
 type Login = ReturnType<typeof useLogin>;
@@ -75,7 +76,8 @@ function AppLoginHero() {
       .then(({ startScenery, cameraForPlan }) => {
         if (!cancelled) startScenery(box, { frame: 320, camera: cameraForPlan(1), haze: false });
       })
-      .catch((err: unknown) => console.warn('Landscape unavailable:', err));
+      // Without the landscape the box keeps its plain sea colour.
+      .catch(reportNativeFailure);
     return () => {
       cancelled = true;
       box.querySelector('canvas.scenery')?.remove();
@@ -168,7 +170,7 @@ function Credentials({ login }: { login: Login }) {
   const onAccount = !(login.mode === 'login' && login.mfaStep) && !login.passwordChangeStep;
   return (
     <>
-      <form className="al-form" onSubmit={login.handleSubmit}>
+      <form className="al-form" onSubmit={(e) => void login.handleSubmit(e)}>
         <h1 className="al-title">{heading.title}</h1>
         {/* The plain sign-in needs no line under its heading; the other steps say what they ask for. */}
         {!heading.plain && <p className="al-sub">{heading.subtitle}</p>}
@@ -184,7 +186,7 @@ function Credentials({ login }: { login: Login }) {
       <OtherWays login={login} />
       <ModeSwitch login={login} />
       {login.mode === 'login' && onAccount && (
-        <button type="button" className="al-forgot" onClick={() => login.navigate('/forgot-password')}>
+        <button type="button" className="al-forgot" onClick={() => void login.navigate('/forgot-password')}>
           {t('login.forgotPassword')}
         </button>
       )}
@@ -340,44 +342,62 @@ function LoginOptions({ login }: { login: Login }) {
   );
 }
 
+/** Which of the ways in besides the password this server offers on this step. */
+function otherWaysOf(login: Login): { sso: boolean; passkey: boolean; demo: boolean } {
+  const config = login.appConfig;
+  const onFirstStep = login.mode === 'login' && !login.mfaStep && !login.passwordChangeStep;
+  return {
+    sso: !!(config?.oidc_configured && config.oidc_login && !login.oidcOnly),
+    passkey: !!(config?.passkey_login && config.passkey_configured && onFirstStep),
+    demo: !!config?.demo_mode,
+  };
+}
+
 /** SSO, a passkey and the demo: the ways in besides the password. */
 function OtherWays({ login }: { login: Login }) {
   const { t } = useTranslation();
-  const config = login.appConfig;
-  const sso = !!(config?.oidc_configured && config?.oidc_login && !login.oidcOnly);
-  const passkey = !!(
-    config?.passkey_login &&
-    config?.passkey_configured &&
-    login.mode === 'login' &&
-    !login.mfaStep &&
-    !login.passwordChangeStep
-  );
-  if (!sso && !passkey && !config?.demo_mode) return null;
+  const ways = otherWaysOf(login);
+  if (!ways.sso && !ways.passkey && !ways.demo) return null;
   return (
     <div className="al-alt">
-      {(sso || passkey) && <div className="al-or">{t('common.or')}</div>}
-      {sso && (
-        <a
+      {(ways.sso || ways.passkey) && <div className="al-or">{t('common.or')}</div>}
+      {ways.sso && <SsoButton login={login} />}
+      {ways.passkey && (
+        <button
+          type="button"
           className="al-cta2"
-          href={oidcLoginHref(login.inviteToken, login.mode, login.rememberMe)}
-          onClick={login.handleSsoClick}
+          onClick={() => void login.handlePasskeyLogin()}
+          disabled={login.isLoading}
         >
-          <Shield size={18} aria-hidden="true" />
-          {t('login.oidcSignIn', { name: config?.oidc_display_name || 'SSO' })}
-        </a>
-      )}
-      {passkey && (
-        <button type="button" className="al-cta2" onClick={login.handlePasskeyLogin} disabled={login.isLoading}>
           <Fingerprint size={18} aria-hidden="true" />
           {t('login.passkey.signIn')}
         </button>
       )}
-      {config?.demo_mode && (
-        <button type="button" className="al-cta al-demo" onClick={login.handleDemoLogin} disabled={login.isLoading}>
+      {ways.demo && (
+        <button
+          type="button"
+          className="al-cta al-demo"
+          onClick={() => void login.handleDemoLogin()}
+          disabled={login.isLoading}
+        >
           {t('login.demoHint')}
         </button>
       )}
     </div>
+  );
+}
+
+function SsoButton({ login }: { login: Login }) {
+  const { t } = useTranslation();
+  return (
+    <a
+      className="al-cta2"
+      href={oidcLoginHref(login.inviteToken, login.mode, login.rememberMe)}
+      onClick={login.handleSsoClick}
+    >
+      <Shield size={18} aria-hidden="true" />
+      {t('login.oidcSignIn', { name: login.appConfig?.oidc_display_name || 'SSO' })}
+    </a>
   );
 }
 

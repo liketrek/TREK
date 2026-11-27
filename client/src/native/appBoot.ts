@@ -42,10 +42,8 @@ const wait = (ms: number): Promise<void> => new Promise((resolve) => window.setT
  * the app, which rises in once its first screen is there (endAppBoot).
  */
 export function handOverToApp(settings: Promise<unknown>, go: () => void): Promise<void> {
-  const ready = Promise.race([settings, wait(SETTINGS_WAIT_MS)]).then(
-    () => undefined,
-    (err: unknown) => console.warn('Settings not ready for the handover:', err)
-  );
+  // allSettled: settings that fail to load must not hold the app back either.
+  const ready = Promise.race([Promise.allSettled([settings]), wait(SETTINGS_WAIT_MS)]);
   return Promise.all([ready, wait(LEAVE_MS)]).then(() => {
     document.documentElement.setAttribute(HANDOVER, '');
     go();

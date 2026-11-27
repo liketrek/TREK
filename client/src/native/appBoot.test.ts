@@ -72,7 +72,6 @@ describe('appBoot', () => {
 
   it('FE-NATIVE-APPBOOT-004: does not wait for settings that never come, nor stop on ones that fail', async () => {
     vi.useFakeTimers();
-    vi.spyOn(console, 'warn').mockImplementation(() => {});
     const hanging = vi.fn();
     void handOverToApp(new Promise(() => {}), hanging);
     await vi.advanceTimersByTimeAsync(1600);
