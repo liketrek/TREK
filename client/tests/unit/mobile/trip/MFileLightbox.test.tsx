@@ -5,7 +5,7 @@ import { downloadFile, openFile } from '../../../../src/utils/fileDownload'
 import type { TranslationFn, TripFile } from '../../../../src/types'
 import { fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-FLBOX-001 to FE-MOB-FLBOX-017
+// FE-MOB-FLBOX-001 to FE-MOB-FLBOX-018
 
 vi.mock('../../../../src/api/authUrl', () => ({
   getAuthUrl: vi.fn(async (url: string) => `${url}?token=t1`),
@@ -229,5 +229,12 @@ describe('MFileLightbox', () => {
     await waitFor(() =>
       expect(screen.getByAltText('castle.png')).toHaveAttribute('src', '/api/trips/1/files/2/download?token=t1'),
     )
+  })
+
+  it('FE-MOB-FLBOX-018: right to left, the header keeps each side inset on its own screen side', () => {
+    renderBox(0)
+    const header = screen.getByText('beach.jpg').closest('[role="presentation"]') as HTMLElement
+    expect(header.className).toContain('rtl:ps-[calc(var(--m-safe-r)+16px)]')
+    expect(header.className).toContain('rtl:pe-[calc(var(--m-safe-l)+12px)]')
   })
 })

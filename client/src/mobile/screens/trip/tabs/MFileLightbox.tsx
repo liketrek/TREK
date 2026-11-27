@@ -52,10 +52,11 @@ export default function MFileLightbox({ files, index, onIndexChange, onClose, t 
     >
       {/* Header */}
       {/* Below the status bar and a notch, and clear of a side inset in landscape,
-          so the close button is always there to tap. */}
+          so the close button is always there to tap. The insets are the screen's
+          sides, so right to left takes them the other way round. */}
       <div
         role="presentation"
-        className="flex flex-none items-center justify-between gap-2 pb-[10px] pe-[calc(var(--m-safe-r)+12px)] ps-[calc(var(--m-safe-l)+16px)] pt-[calc(var(--m-safe-t)+10px)]"
+        className="flex flex-none items-center justify-between gap-2 pb-[10px] pe-[calc(var(--m-safe-r)+12px)] ps-[calc(var(--m-safe-l)+16px)] pt-[calc(var(--m-safe-t)+10px)] rtl:pe-[calc(var(--m-safe-l)+12px)] rtl:ps-[calc(var(--m-safe-r)+16px)]"
         onClick={e => e.stopPropagation()}
       >
         <span className="min-w-0 flex-1 truncate font-geist text-[0.75rem] text-white/70">

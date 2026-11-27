@@ -1,4 +1,4 @@
-// FE-COMP-LIGHTBOX-001 to FE-COMP-LIGHTBOX-029
+// FE-COMP-LIGHTBOX-001 to FE-COMP-LIGHTBOX-030
 
 // Plyr needs a real media pipeline, so the player is stubbed here.
 vi.mock('./VideoPlayer', () => ({
@@ -304,6 +304,13 @@ describe('PhotoLightbox', () => {
       fireEvent.touchStart(surface, { touches: [{ clientX: 200, clientY: 200 }] });
       fireEvent.touchEnd(surface, { changedTouches: [{ clientX: 100, clientY: 210 }] });
       expect(screen.getByText('2 / 3')).toBeInTheDocument();
+    });
+
+    it('FE-COMP-LIGHTBOX-030: the left inset of the screen stays on the left, where the close button now sits', () => {
+      render(<PhotoLightbox photos={samplePhotos} onClose={vi.fn()} />);
+      const style = screen.getByRole('dialog').style;
+      expect(style.paddingInlineEnd).toContain('safe-area-inset-left');
+      expect(style.paddingInlineStart).toContain('safe-area-inset-right');
     });
   });
 

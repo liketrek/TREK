@@ -144,8 +144,9 @@ export default function PhotoLightbox({ photos, startIndex = 0, onClose, label }
         background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(20px)',
         display: 'flex', flexDirection: 'column',
         paddingBottom: SAFE('bottom'),
-        paddingInlineStart: SAFE('left'),
-        paddingInlineEnd: SAFE('right'),
+        // The insets belong to the screen's sides, which right to left swaps.
+        paddingInlineStart: SAFE(rtl ? 'right' : 'left'),
+        paddingInlineEnd: SAFE(rtl ? 'left' : 'right'),
       }}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
