@@ -1,4 +1,4 @@
-// FE-MOB-JDET-001 to FE-MOB-JDET-052
+// FE-MOB-JDET-001 to FE-MOB-JDET-055
 import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
 import { setSizeClass } from '../../../helpers/sizeClass';
 import { render, screen, fireEvent, waitFor, act } from '../../../helpers/render';
@@ -508,6 +508,22 @@ describe('MJourneyDetail', () => {
     (sheet.onDelete as () => void)();
     expect(hook.setEditingEntry).toHaveBeenCalledWith(null);
     expect(hook.setDeleteTarget).toHaveBeenCalledWith(entry);
+  });
+
+  it('FE-MOB-JDET-054: an editor opens an existing entry to read it, and the pencil turns it into the editor (#3007)', () => {
+    setup({ editingEntry: buildEntry({ id: 4 }) });
+    expect(screen.getByTestId('entry-sheet')).toHaveAttribute('data-readonly', 'true');
+    expect(mocks.captured.entrySheet.onMoveEarlier).toBeUndefined();
+
+    act(() => (mocks.captured.entrySheet.onEdit as () => void)());
+    expect(screen.getByTestId('entry-sheet')).toHaveAttribute('data-readonly', 'false');
+    expect(mocks.captured.entrySheet.onEdit).toBeUndefined();
+  });
+
+  it('FE-MOB-JDET-055: a new entry and a suggestion open in the editor straight away', () => {
+    setup({ editingEntry: buildEntry({ id: 0 }) });
+    expect(screen.getByTestId('entry-sheet')).toHaveAttribute('data-readonly', 'false');
+    expect(mocks.captured.entrySheet.onEdit).toBeUndefined();
   });
 
   it('FE-MOB-JDET-023: a read-only viewer gets the sheet without a delete action', () => {

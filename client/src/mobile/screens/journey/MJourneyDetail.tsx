@@ -138,6 +138,13 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
     [current?.entries, hideSkeletons],
   )
 
+  // An existing entry opens to be read, also for those who may edit it (#3007);
+  // the pencil in its sheet switches to the editor. New entries and suggestions
+  // open in the editor straight away.
+  const [editEntryId, setEditEntryId] = useState<number | null>(null)
+  const readingEntry = !!editingEntry && canEditEntries && editingEntry.id !== 0
+    && editingEntry.type !== 'skeleton' && editEntryId !== editingEntry.id
+
   const {
     mapRef, carouselRef, cardRefs, activeIndex, focusIndex, setActiveIndex, scrubberDays,
     syncMapToCard, handleMarkerClick, handleCardTap, openEntryById, jumpToDay,
@@ -698,7 +705,8 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           entry={editingEntry}
           galleryPhotos={gallery}
           quickCapture={editingEntry.id === 0}
-          readOnly={!canEditEntries}
+          readOnly={!canEditEntries || readingEntry}
+          onEdit={readingEntry ? () => setEditEntryId(editingEntry.id) : undefined}
           showVerdict={current.show_verdict !== 0}
           showMood={current.show_mood !== 0}
           showWeather={current.show_weather !== 0}
@@ -706,12 +714,12 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
           trips={current.trips}
           photoProviders={availableProviders}
           onMoveEarlier={
-            canEditEntries && editingEntry.id !== 0 && editingEntry.type !== 'skeleton' && dayNeighbours(editingEntry).canMoveUp
+            canEditEntries && !readingEntry && editingEntry.id !== 0 && editingEntry.type !== 'skeleton' && dayNeighbours(editingEntry).canMoveUp
               ? () => { void moveWithinDay(editingEntry, -1) }
               : undefined
           }
           onMoveLater={
-            canEditEntries && editingEntry.id !== 0 && editingEntry.type !== 'skeleton' && dayNeighbours(editingEntry).canMoveDown
+            canEditEntries && !readingEntry && editingEntry.id !== 0 && editingEntry.type !== 'skeleton' && dayNeighbours(editingEntry).canMoveDown
               ? () => { void moveWithinDay(editingEntry, 1) }
               : undefined
           }
@@ -720,7 +728,7 @@ export default function MJourneyDetail({ journeyId, embedded = false }: JourneyD
               ? () => { setEditingEntry(null); void dismissSuggestion(editingEntry) }
               : undefined
           }
-          onClose={() => setEditingEntry(null)}
+          onClose={() => { setEditingEntry(null); setEditEntryId(null) }}
           onSave={async (data, existingEntryId) => {
             // existingEntryId is what the sheet already persisted in an earlier
             // save attempt — without it a retry would create a second entry.

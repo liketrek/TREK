@@ -252,6 +252,7 @@ interface MountOptions {
   upload?: UploadFn;
   strict?: boolean;
   photoProviders?: { id: string; name: string }[];
+  onEdit?: () => void;
 }
 
 const defaultUpload: UploadFn = async (_entryId, files, cbs) => {
@@ -272,6 +273,7 @@ function mountSheet(sheetEntry: JourneyEntry, opts: MountOptions = {}) {
       galleryPhotos={opts.galleryPhotos ?? []}
       quickCapture={opts.quickCapture ?? false}
       readOnly={opts.readOnly ?? false}
+      onEdit={opts.onEdit}
       userId={42}
       trips={[]}
       photoProviders={opts.photoProviders}
@@ -973,6 +975,44 @@ describe('MJourneyEntrySheet read-only', () => {
     expect(confirmSpy).not.toHaveBeenCalled();
     expect(onClose).toHaveBeenCalledTimes(1);
     confirmSpy.mockRestore();
+  });
+});
+
+// FE-MOB-JENTRY-060 to FE-MOB-JENTRY-061: an editor reading an entry (#3007).
+
+describe('MJourneyEntrySheet reading view', () => {
+  it('FE-MOB-JENTRY-060: reads as the entry, with its date and time on top and the way into the editor', async () => {
+    const onEdit = vi.fn();
+    const user = userEvent.setup();
+    mountSheet(buildEntry({
+      id: 5,
+      title: 'Roman holiday',
+      entry_date: '2026-04-16',
+      entry_time: '10:30',
+      location_name: 'Rome',
+      mood: 'good',
+      stats_excluded: false,
+      location_lat: 41.9,
+      location_lng: 12.5,
+    }), { readOnly: true, onEdit });
+
+    expect(screen.getByText(/10:30/)).toBeInTheDocument();
+    expect(screen.queryByText('Date')).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Leave out of the route' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('switch', { name: 'Draft' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Good' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Neutral' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Weather')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Close' })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    expect(onEdit).toHaveBeenCalledTimes(1);
+  });
+
+  it('FE-MOB-JENTRY-061: a viewer without the editor keeps the locked sheet it always had', () => {
+    mountSheet(buildEntry({ id: 5, mood: 'good' }), { readOnly: true });
+    expect(screen.queryByRole('button', { name: 'Edit' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Neutral' })).toBeDisabled();
   });
 });
 

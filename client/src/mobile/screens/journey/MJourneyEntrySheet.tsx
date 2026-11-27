@@ -1,5 +1,7 @@
 import { useRef, useState, type CSSProperties } from 'react'
-import { Briefcase, Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play, NotebookPen } from 'lucide-react'
+import { Briefcase, Camera, Plus, Image, Images, X, MapPin, Locate, Trash2, CheckCircle2, MinusCircle, ChevronUp, ChevronDown, EyeOff, Play, NotebookPen, Pencil } from 'lucide-react'
+import { useSettingsStore } from '../../../store/settingsStore'
+import { formatClockTime } from '../../../utils/formatters'
 import MSheet from '../../components/MSheet'
 import MIconBtn from '../../components/MIconBtn'
 import MToggle from '../../components/MToggle'
@@ -48,6 +50,11 @@ interface MJourneyEntrySheetProps {
   galleryPhotos: GalleryPhoto[]
   quickCapture?: boolean
   readOnly?: boolean
+  /**
+   * Given to an editor reading an entry (#3007): the sheet opens as the read view
+   * and a pencil in its header switches to the editor, without closing it.
+   */
+  onEdit?: () => void
   userId?: number
   trips?: JourneyTrip[]
   /**
@@ -87,10 +94,10 @@ interface MJourneyEntrySheetProps {
  */
 export default function MJourneyEntrySheet({
   entry, galleryPhotos, quickCapture = false, readOnly = false, userId = 0, trips = [], photoProviders: providers = NO_PROVIDERS,
-  showVerdict = true, showMood = true, showWeather = true, onMoveEarlier, onMoveLater, onDismiss,
+  showVerdict = true, showMood = true, showWeather = true, onEdit, onMoveEarlier, onMoveLater, onDismiss,
   onClose, onSave, onUploadPhotos, onAddProviderPhotos, onDelete, onDone,
 }: MJourneyEntrySheetProps) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
   const {
     title, setTitle, story, setStory, entryDate, setEntryDate, entryTime, setEntryTime,
     locationName, locationLat, locationQuery, locationResults, showLocationResults, setShowLocationResults,
@@ -121,6 +128,20 @@ export default function MJourneyEntrySheet({
     onClose()
   }
 
+  // An editor reading the entry: the read view, with the way into the editor.
+  const reading = readOnly && !!onEdit
+  const is12h = useSettingsStore(s => s.settings.time_format === '12h')
+  // Read, the date and time head the entry instead of standing in locked fields.
+  const readingWhen = reading && entryDate
+    ? [
+        new Date(`${entryDate}T00:00:00Z`).toLocaleDateString(language, { weekday: 'short', day: 'numeric', month: 'long', timeZone: 'UTC' }),
+        entryTime ? formatClockTime(entryTime, is12h) : '',
+      ].filter(Boolean).join(', ')
+    : ''
+  const heading = entry.id === 0
+    ? t('journey.detail.newEntry')
+    : readingWhen || t('journey.detail.editEntry')
+
   const eyebrow = 'font-geist text-[0.625rem] font-bold uppercase tracking-[.09em] text-m-faint'
   const fieldShell = 'rounded-xl border border-[color:var(--m-rowbr)] bg-[color:var(--m-ic)]'
 
@@ -130,7 +151,7 @@ export default function MJourneyEntrySheet({
       onClose={handleClose}
       variant="card"
       form
-      ariaLabel={entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}
+      ariaLabel={heading}
     >
       {/* FormSheetHeader's shape, with the move buttons between the title and the close. */}
       <div className="m-fs-head flex flex-none items-center gap-3 px-[18px] pb-2 pt-4">
@@ -138,8 +159,13 @@ export default function MJourneyEntrySheet({
           <NotebookPen size={19} strokeWidth={1.8} />
         </span>
         <span className="line-clamp-2 min-w-0 flex-1 break-words text-[1.0625rem] font-bold leading-tight">
-          {entry.id === 0 ? t('journey.detail.newEntry') : t('journey.detail.editEntry')}
+          {heading}
         </span>
+        {reading && (
+          <MIconBtn variant="neutral" size={34} onClick={onEdit} ariaLabel={t('common.edit')} className="me-1">
+            <Pencil size={15} strokeWidth={2.2} />
+          </MIconBtn>
+        )}
         {(onMoveEarlier || onMoveLater) && (
           <span className="me-1 flex items-center gap-1">
             <MIconBtn variant="neutral" size={34} onClick={() => onMoveEarlier?.()} disabled={!onMoveEarlier} ariaLabel={t('dayplan.moveUp')}>
@@ -514,7 +540,7 @@ export default function MJourneyEntrySheet({
 
         {/* Date + Time. Split in the date's favour: a localized date needs the
             room ("10. Sept. 2026"), a clock never does. */}
-        <div className="mt-3 grid grid-cols-[minmax(0,1fr)_104px] gap-2">
+        {!reading && <div className="mt-3 grid grid-cols-[minmax(0,1fr)_104px] gap-2">
           <div className="min-w-0">
             <div className={`${eyebrow} mb-[5px]`}>{t('journey.editor.date')}</div>
             {/* TREK's own picker, like the time field beside it: a native
@@ -529,9 +555,9 @@ export default function MJourneyEntrySheet({
                 brings its own shell, so fieldShell goes with the input. */}
             <CustomTimePicker value={entryTime} onChange={setEntryTime} disabled={readOnly} />
           </div>
-        </div>
+        </div>}
 
-        {tripSuggestion.trip && (
+        {!reading && tripSuggestion.trip && (
           <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
             <Briefcase size={15} strokeWidth={2} className="flex-none text-m-muted" />
             <div className="min-w-0 flex-1">
@@ -545,7 +571,13 @@ export default function MJourneyEntrySheet({
           </div>
         )}
 
-        {/* Location */}
+        {/* Location: read, a line under the story rather than a locked field. */}
+        {reading ? (locationName && (
+          <div className="mt-3 flex items-center gap-2 text-body font-semibold text-m-ink">
+            <MapPin size={14} strokeWidth={2.2} className="flex-none text-m-muted" />
+            <bdi className="min-w-0 [overflow-wrap:anywhere]">{locationName}</bdi>
+          </div>
+        )) : (
         <div className="relative mt-3">
           <div className={`${eyebrow} mb-[5px]`}>{t('journey.editor.location')}</div>
           <div className={`flex items-center gap-2 px-3 py-[10px] ${fieldShell}`}>
@@ -594,11 +626,13 @@ export default function MJourneyEntrySheet({
           {locating && <div className="mt-[5px] font-geist text-[0.65625rem] text-m-muted">{t('common.loading')}</div>}
           {locationError && <div className="mt-[5px] font-geist text-[0.65625rem] text-[color:var(--m-st-danger)]">{locationError}</div>}
         </div>
+        )}
 
         {/* Off the route: the same switch the desktop editor and the Studio
             travel panel offer (#2064). Read-only keeps it visible but locked,
             like the date and the mood above and below it. */}
-        {offersStatsToggle && (
+        {/* Settings of the entry, not its content: an editor reading it does not need them locked in view. */}
+        {offersStatsToggle && !reading && (
           <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
             <div className="min-w-0 flex-1">
               <div className="text-[0.75rem] font-semibold text-m-ink">{t('journey.editor.statsExcluded')}</div>
@@ -609,19 +643,22 @@ export default function MJourneyEntrySheet({
         )}
 
         {/* Kept among the contributors until it is ready (#696). */}
-        <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
-          <div className="min-w-0 flex-1">
-            <div className="text-[0.75rem] font-semibold text-m-ink">{t('journey.editor.draft')}</div>
-            <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">{t('journey.editor.draftHint')}</div>
+        {!reading && (
+          <div className={`mt-3 flex items-center gap-3 px-3 py-[10px] ${fieldShell}`}>
+            <div className="min-w-0 flex-1">
+              <div className="text-[0.75rem] font-semibold text-m-ink">{t('journey.editor.draft')}</div>
+              <div className="mt-[2px] font-geist text-[0.65625rem] leading-[1.4] text-m-muted">{t('journey.editor.draftHint')}</div>
+            </div>
+            <MToggle checked={isDraft} onChange={setIsDraft} disabled={readOnly} ariaLabel={t('journey.editor.draft')} />
           </div>
-          <MToggle checked={isDraft} onChange={setIsDraft} disabled={readOnly} ariaLabel={t('journey.editor.draft')} />
-        </div>
+        )}
 
         {/* Mood */}
-        {showMood && !captureOnly && <>
+        {/* Read, only what was chosen shows, and nothing when nothing was. */}
+        {showMood && !captureOnly && (!reading || MOBILE_MOODS.some(m => m.id === mood)) && <>
           <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.mood')}</div>
           <div className="flex flex-wrap gap-[6px]">
-            {MOBILE_MOODS.map(m => {
+            {(reading ? MOBILE_MOODS.filter(m => m.id === mood) : MOBILE_MOODS).map(m => {
               const active = mood === m.id
               return (
                 <button
@@ -644,10 +681,10 @@ export default function MJourneyEntrySheet({
         </>}
 
         {/* Weather */}
-        {showWeather && <>
+        {showWeather && (!reading || MOBILE_WEATHERS.some(w => w.id === weather)) && <>
         <div className={`${eyebrow} mb-[6px] mt-3`}>{t('journey.editor.weather')}</div>
         <div className="flex flex-wrap gap-[6px]">
-          {MOBILE_WEATHERS.map(w => {
+          {(reading ? MOBILE_WEATHERS.filter(w => w.id === weather) : MOBILE_WEATHERS).map(w => {
             const active = weather === w.id
             return (
               <button
@@ -746,7 +783,7 @@ export default function MJourneyEntrySheet({
           onClick={handleClose}
           className={`${SHEET_SECONDARY} ms-auto`}
         >
-          {t('common.cancel')}
+          {t(reading ? 'common.close' : 'common.cancel')}
         </button>
         {!readOnly && (
           <button
