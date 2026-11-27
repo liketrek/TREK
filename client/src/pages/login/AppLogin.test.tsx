@@ -9,6 +9,12 @@ import AppLogin from './AppLogin';
 import type { useLogin } from './useLogin';
 
 type Login = ReturnType<typeof useLogin>;
+type LoginConfig = NonNullable<Login['appConfig']>;
+
+/** The sign-in page's own config shape, on top of the shared factory's. */
+function appConfigOf(overrides: Partial<LoginConfig> = {}): LoginConfig {
+  return { ...buildAppConfig({ has_users: true }), setup_complete: true, ...overrides } as LoginConfig;
+}
 
 vi.mock('../../native/platform', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../../native/platform')>()),
@@ -38,7 +44,7 @@ function buildLogin(overrides: Partial<Login> = {}): Login {
     error: '',
     setError: vi.fn(),
     insecureCookie: false,
-    appConfig: buildAppConfig({ has_users: true }),
+    appConfig: appConfigOf(),
     inviteToken: '',
     langDropdownOpen: false,
     setLangDropdownOpen: vi.fn(),
@@ -127,7 +133,7 @@ describe('AppLogin', () => {
   it('FE-LOGIN-APP-004: offers SSO beside the password, carrying the remember-me choice', () => {
     const login = buildLogin({
       rememberMe: false,
-      appConfig: buildAppConfig({
+      appConfig: appConfigOf({
         has_users: true,
         oidc_configured: true,
         oidc_login: true,
@@ -148,7 +154,7 @@ describe('AppLogin', () => {
         login={buildLogin({
           oidcOnly: true,
           inviteToken: 'abc',
-          appConfig: buildAppConfig({ has_users: true, oidc_display_name: 'Authentik' }),
+          appConfig: appConfigOf({ has_users: true, oidc_display_name: 'Authentik' }),
         })}
       />
     );
@@ -161,7 +167,7 @@ describe('AppLogin', () => {
 
   it('FE-LOGIN-APP-006: offers a passkey where the server allows one', () => {
     const login = buildLogin({
-      appConfig: buildAppConfig({ has_users: true, passkey_login: true, passkey_configured: true }),
+      appConfig: appConfigOf({ has_users: true, passkey_login: true, passkey_configured: true }),
     });
     render(<AppLogin login={login} />);
     fireEvent.click(screen.getByRole('button', { name: 'Sign in with a passkey' }));
