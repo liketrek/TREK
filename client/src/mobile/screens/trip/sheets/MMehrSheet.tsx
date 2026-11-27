@@ -1,6 +1,7 @@
-import { ChevronRight, FileDown, Settings, Settings2, Sparkles } from 'lucide-react'
+import { ChevronRight, CloudDownload, FileDown, Settings, Settings2, Sparkles } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useState } from 'react'
+import { useNavigate } from 'react-router'
 import MSheet from '../../../components/MSheet'
 import { edgeFadeClass, useEdgeFade } from '../../../components/useEdgeFade'
 import type { MTripSheetsProps } from '../MTripShell'
@@ -9,6 +10,8 @@ import { useIsWide } from '../../../../hooks/sizeClass'
 import { useTranslation } from '../../../../i18n'
 import { useAssistantAsk } from '../../../../components/Assistant/useAssistantAsk'
 import { useAssistantHints } from '../../../../components/Assistant/useAssistantHints'
+import { useTripOfflineStatus, type TripOfflineState } from '../../../../components/Settings/useTripOfflineStatus'
+import { useSettingsStore } from '../../../../store/settingsStore'
 
 /** Demo tile tints per legacy tab id; plugins share the files neutral. */
 const TILE_COLORS: Record<string, string> = {
@@ -27,9 +30,25 @@ const TILE_COLORS: Record<string, string> = {
  * transparent scrim. Grid of the trip sections that did not fit the dock
  * (files/collab/plugins, with short stats) plus the share/export/settings rows.
  */
+/** The offline line under the trip's own menu entry (#1580): saved as of when, or why not. */
+function offlineLine(state: TripOfflineState | null, t: (key: string, params?: Record<string, string>) => string, language: string, is12h: boolean): string | undefined {
+  if (!state) return undefined
+  if (state.kind === 'off') return t('mobileTrip.offlineOff')
+  if (state.kind === 'pending') return t('mobileTrip.offlineNotSaved')
+  const at = new Date(state.at)
+  const today = new Date().toDateString() === at.toDateString()
+  const time = today
+    ? at.toLocaleTimeString(language, { hour: 'numeric', minute: '2-digit', hour12: is12h })
+    : at.toLocaleDateString(language, { day: 'numeric', month: 'short' })
+  return t('mobileTrip.offlineSaved', { time })
+}
+
 export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
-  const { t } = useTranslation()
+  const { t, language } = useTranslation()
+  const navigate = useNavigate()
   const open = shell.sheet?.id === 'mehr'
+  const offline = useTripOfflineStatus(planner.trip, open)
+  const is12h = useSettingsStore(s => s.settings.time_format === '12h')
   const canEditTrip = planner.can('trip_edit', planner.trip)
   const assistant = useAssistantAsk(planner.tripId)
   // Warnings not shown yet turn the tile's line into a count; the dock gets no dot.
@@ -61,9 +80,20 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
     shell.setTrTab(id)
   }
 
-  const actions: { id: string; icon: LucideIcon; label: string; go: () => void }[] = [
+  const actions: { id: string; icon: LucideIcon; label: string; sub?: string; go: () => void }[] = [
     { id: 'members', icon: Settings2, label: t('trip.settings.title'), go: () => shell.openSheet('members') },
     { id: 'export', icon: FileDown, label: t('mobileTrip.export'), go: () => shell.openSheet('export') },
+    // Whether this trip is on the device, without a trip to the settings to find out (#1580).
+    {
+      id: 'offline',
+      icon: CloudDownload,
+      label: t('settings.tabs.offline'),
+      sub: offlineLine(offline, t, language, is12h),
+      go: () => {
+        shell.closeSheet()
+        void navigate('/settings?tab=offline')
+      },
+    },
     ...(canEditTrip
       ? [{ id: 'tripedit', icon: Settings, label: t('dashboard.editTrip'), go: () => shell.openSheet('tripedit') }]
       : []),
@@ -139,7 +169,10 @@ export default function MMehrSheet({ planner, shell }: MTripSheetsProps) {
               <div className="flex h-[34px] w-[34px] flex-none items-center justify-center rounded-[10px] bg-[color:var(--m-ic)]">
                 <action.icon size={17} strokeWidth={1.9} />
               </div>
-              <span className="min-w-0 flex-1 truncate text-[0.875rem] font-semibold">{action.label}</span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[0.875rem] font-semibold">{action.label}</span>
+                {action.sub && <span className="block truncate text-caption text-m-muted">{action.sub}</span>}
+              </span>
               <ChevronRight size={16} strokeWidth={2} className="flex-none text-m-faint" />
             </button>
           ))}
