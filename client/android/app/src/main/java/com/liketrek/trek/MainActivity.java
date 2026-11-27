@@ -1,6 +1,8 @@
 package com.liketrek.trek;
 
 import android.content.Intent;
+import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.TypedValue;
@@ -11,11 +13,13 @@ import android.view.Menu;
 import android.view.View;
 import android.view.ViewGroup;
 import android.webkit.CookieManager;
+import android.webkit.WebView;
 import android.widget.Button;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.WebViewListener;
 import com.liketrek.trek.screen.TrekKeyCommands;
 import com.liketrek.trek.tiles.TrekTileStore;
 import com.liketrek.trek.widget.TrekWidgetUpdater;
@@ -66,8 +70,24 @@ public class MainActivity extends BridgeActivity {
         // colour is also what an older WebView shows under the status bar,
         // where it lays the page out between the bars (native/appBoot.ts).
         if (!onServer || restarting) {
+            Drawable windowBackground = getWindow().getDecorView().getBackground();
             getWindow().getDecorView().setBackgroundColor(SHELL_PAGE);
             bridge.getWebView().setBackgroundColor(SHELL_PAGE);
+            // Once the server's page is up, the window is the one a normal launch
+            // has, so the status bar of an older WebView follows the system again.
+            if (onServer) {
+                bridge.addWebViewListener(new WebViewListener() {
+                    private boolean restored;
+
+                    @Override
+                    public void onPageLoaded(WebView webView) {
+                        if (restored) return;
+                        restored = true;
+                        getWindow().getDecorView().setBackground(windowBackground);
+                        webView.setBackgroundColor(Color.WHITE);
+                    }
+                });
+            }
         }
         // Set before any WebView callback can run: they are posted to this thread.
         if (onServer) {
