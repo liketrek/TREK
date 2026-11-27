@@ -99,7 +99,7 @@ export default function MPlaceSheet({ planner, shell }: MTripSheetsProps) {
   // Lands where its time belongs on the new day, as a move on the desktop does;
   // without a time it goes to the end.
   const moveToDay = ({ assignment, fromDayId }: { assignment: Assignment; fromDayId: number }, toDayId: number) => {
-    const slot = timedSlot(planner.assignments[String(toDayId)] || [], planner.tripAccommodations, assignment.place?.place_time) ?? undefined
+    const slot = timedSlot(planner.storedAssignments[String(toDayId)] || [], planner.tripAccommodations, assignment.place?.place_time) ?? undefined
     planner.handleMoveToDay(assignment.id, fromDayId, toDayId, slot)
       .catch((err: unknown) => planner.toast.error(err instanceof Error ? err.message : t('common.unknownError')))
   }

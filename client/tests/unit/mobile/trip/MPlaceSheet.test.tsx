@@ -13,7 +13,7 @@ import type { Assignment, Category, Day, Place, TripFile, TripMember } from '../
 import { resetAllStores, seedStore } from '../../../helpers/store'
 import { act, fireEvent, render, screen, waitFor } from '../../../helpers/render'
 
-// FE-MOB-PLSH-001 to FE-MOB-PLSH-033
+// FE-MOB-PLSH-001 to FE-MOB-PLSH-036
 
 vi.mock('../../../../src/utils/fileDownload', () => ({ openFile: vi.fn() }))
 // The gallery says "no pictures" through the shared toast, the sheet's own writes through planner.toast.
@@ -95,6 +95,7 @@ function makePlanner(overrides: Record<string, unknown> = {}) {
     days: DAYS,
     categories: CATEGORIES,
     assignments: { '2': [dayAssignment(11, 2)] },
+    storedAssignments: { '2': [dayAssignment(11, 2)] },
     files: FILES,
     canUploadFiles: true,
     selectedPlace: PLACE,
@@ -268,6 +269,22 @@ describe('MPlaceSheet', () => {
     expect(handleMoveToDay).toHaveBeenCalledWith(11, 2, 3, undefined)
     expect(planner.handleAssignToDay).not.toHaveBeenCalled()
     expect(screen.queryByText('May 1')).not.toBeInTheDocument()
+  })
+
+  it('FE-MOB-PLSH-036: a timed stop moved to another day takes its slot among the stored rows, hidden ones included', () => {
+    const handleMoveToDay = vi.fn().mockResolvedValue(undefined)
+    const timed = { ...dayAssignment(11, 2), place: { ...dayAssignment(11, 2).place, place_time: '10:00' } } as Assignment
+    const lodging = { id: 30, day_id: 3, place_id: 300, order_index: 0, accommodation_id: 7, place: { id: 300, name: 'Hotel' } } as unknown as Assignment
+    const early = { id: 31, day_id: 3, place_id: 301, order_index: 1, place: { id: 301, name: 'Cafe', place_time: '09:00' } } as unknown as Assignment
+    renderSheet(makePlanner({
+      handleMoveToDay,
+      tripAccommodations: [{ id: 7, check_in: null }],
+      assignments: { '2': [timed], '3': [early] },
+      storedAssignments: { '2': [timed], '3': [lodging, early] },
+    }))
+    fireEvent.click(screen.getByRole('button', { name: 'Move to another day' }))
+    fireEvent.click(screen.getByText('Day 3'))
+    expect(handleMoveToDay).toHaveBeenCalledWith(11, 2, 3, 2)
   })
 
   it('FE-MOB-PLSH-011: treats an assignment without participants as everyone joined', async () => {
