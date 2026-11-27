@@ -1,5 +1,7 @@
 import { StatusBar, Style } from '@capacitor/status-bar';
 import { isNativeAndroid, isNativeApp } from './platform';
+import { reportNativeFailure } from './reportFailure';
+import { isUnimplemented } from './trekShell';
 
 /**
  * The handover from the app's address screen to this server's UI.
@@ -98,9 +100,16 @@ const ANDROID_WEBVIEW_UNDER_BARS = 140;
  */
 export function lightStatusBarIcons(): () => void {
   if (!isNativeApp() || !pageUnderStatusBar()) return () => undefined;
-  void StatusBar.setStyle({ style: Style.Dark });
+  setStatusBarStyle(Style.Dark);
   return () => {
     const dark = document.documentElement.classList.contains('dark');
-    void StatusBar.setStyle({ style: dark ? Style.Dark : Style.Light });
+    setStatusBarStyle(dark ? Style.Dark : Style.Light);
   };
+}
+
+/** Where there is no status bar to style (a build without the plugin) nothing is wrong. */
+function setStatusBarStyle(style: Style): void {
+  StatusBar.setStyle({ style }).catch((err: unknown) => {
+    if (!isUnimplemented(err)) reportNativeFailure(err);
+  });
 }
