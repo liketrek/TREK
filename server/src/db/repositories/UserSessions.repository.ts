@@ -180,11 +180,15 @@ export class UserSessionsRepository extends TrekRepository<UserSessions> {
    * A back-channel logout naming the provider's session:
    * `UPDATE user_sessions SET revoked_at = ? WHERE oidc_sid = ? AND revoked_at IS NULL
    *  AND user_id IN (SELECT id FROM users WHERE oidc_issuer = ?) [AND user_id = ?]
-   *  RETURNING user_id`. Only accounts linked to that issuer match, and with
-   * `userId` only that account. Answers the owner of every session it ended,
-   * one entry per session.
+   *  RETURNING id, user_id`. Only accounts linked to that issuer match, and with
+   * `userId` only that account. Answers every session it ended with its owner.
    */
-  async revokeByOidcSid(sid: string, issuer: string, now: string, userId?: number): Promise<number[]> {
+  async revokeByOidcSid(
+    sid: string,
+    issuer: string,
+    now: string,
+    userId?: number,
+  ): Promise<Array<{ id: string; userId: number }>> {
     const db = this.kysely<Pick<DB, 'user_sessions' | 'users'>>();
     let update = db
       .updateTable('user_sessions')
@@ -193,8 +197,8 @@ export class UserSessionsRepository extends TrekRepository<UserSessions> {
       .where('revoked_at', 'is', null)
       .where('user_id', 'in', db.selectFrom('users').select('id').where('oidc_issuer', '=', issuer));
     if (userId !== undefined) update = update.where('user_id', '=', userId);
-    const rows = await update.returning('user_id').execute();
-    return rows.map((row) => Number(row.user_id));
+    const rows = await update.returning(['id', 'user_id']).execute();
+    return rows.map((row) => ({ id: String(row.id), userId: Number(row.user_id) }));
   }
 
   /**

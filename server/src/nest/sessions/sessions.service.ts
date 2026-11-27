@@ -237,11 +237,14 @@ export class SessionsService {
   /**
    * A back-channel logout that names the identity provider's session: end the
    * active sessions signed in with that `sid` at `issuer`, of the account
-   * `userId` only when the logout token also named its subject. Answers the
-   * owner of every session it ended, one entry per session.
+   * `userId` only when the logout token also named its subject, and close
+   * their sockets. Answers the owner of every session it ended, one entry per
+   * session.
    */
   async revokeByOidcSid(sid: string, issuer: string, userId?: number): Promise<number[]> {
-    return this.sessions.revokeByOidcSid(sid, issuer, dbNow(), userId);
+    const revoked = await this.sessions.revokeByOidcSid(sid, issuer, dbNow(), userId);
+    for (const session of revoked) this.realtime.closeSessionSockets(session.userId, session.id, 'Session ended');
+    return revoked.map((session) => session.userId);
   }
 
   /**

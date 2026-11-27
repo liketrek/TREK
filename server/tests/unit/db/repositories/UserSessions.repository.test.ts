@@ -321,7 +321,11 @@ describe('UserSessionsRepository', () => {
     t.clear();
 
     // Scoped to one account: only its sessions with that sid end.
-    expect(await sessions.revokeByOidcSid('sid-a', ISSUER, NOW, user.id)).toEqual([user.id, user.id]);
+    const ended = await sessions.revokeByOidcSid('sid-a', ISSUER, NOW, user.id);
+    expect(ended.sort((a, b) => a.id.localeCompare(b.id))).toEqual([
+      { id: 'mine', userId: user.id },
+      { id: 'mine-too', userId: user.id },
+    ]);
     expect(await row('mine')).toEqual(expect.objectContaining({ revoked_at: NOW }));
     expect(await row('mine-too')).toEqual(expect.objectContaining({ revoked_at: NOW }));
     expect(await row('other-sid')).toEqual(expect.objectContaining({ revoked_at: null }));
@@ -331,7 +335,7 @@ describe('UserSessionsRepository', () => {
     expect(await row('ended')).toEqual(expect.objectContaining({ revoked_at: EARLIER }));
 
     // Without an account the sid is matched across the issuer's accounts, never another issuer's.
-    expect(await sessions.revokeByOidcSid('sid-a', ISSUER, NOW)).toEqual([other.id]);
+    expect(await sessions.revokeByOidcSid('sid-a', ISSUER, NOW)).toEqual([{ id: 'theirs', userId: other.id }]);
     expect(await row('old-provider')).toEqual(expect.objectContaining({ revoked_at: null }));
     expect(await sessions.revokeByOidcSid('sid-a', ISSUER, NOW)).toEqual([]);
   });

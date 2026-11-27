@@ -11,7 +11,7 @@ import {
 } from '../../../../src/nest/sessions/sessions.service';
 import { createSnapshotTestDb } from '../../../helpers/db-mock';
 import { createUser } from '../../../helpers/factories';
-import { countRows, findRow, findRows } from '../../../helpers/factories/rows';
+import { countRows, findRow, findRows, updateRows } from '../../../helpers/factories/rows';
 import { resetTestDb } from '../../../helpers/test-db';
 import { createTestOrm, type TestOrm } from '../../../helpers/test-orm';
 import { userSessionIdSchema } from '@trek/shared';
@@ -320,6 +320,24 @@ describe('SessionsService list and revoke', () => {
     expect(closeAll).toHaveBeenCalledTimes(1);
     closeAll.mockRestore();
     closeOne.mockRestore();
+  });
+
+  it('SESS-021: a back-channel logout by sid closes the sockets of every session it ended', async () => {
+    const close = vi.spyOn(RealtimeService.prototype, 'closeSessionSockets').mockImplementation(() => undefined);
+    const ISSUER = 'https://idp.example.test';
+    const { user } = createUser(testDb);
+    await updateRows(t, Users, { id: user.id }, { oidc_issuer: ISSUER });
+    const sso = claimsOf(await svc.issue({ id: user.id, pv: 0 }, undefined, { oidcSid: 'op-1' }));
+    const other = claimsOf(await svc.issue({ id: user.id, pv: 0 }, undefined, { oidcSid: 'op-2' }));
+
+    expect(await svc.revokeByOidcSid('op-1', ISSUER)).toEqual([user.id]);
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(close).toHaveBeenLastCalledWith(user.id, sso.jti, 'Session ended');
+    expect(close).not.toHaveBeenCalledWith(user.id, other.jti, expect.anything());
+
+    expect(await svc.revokeByOidcSid('op-1', ISSUER, user.id)).toEqual([]);
+    expect(close).toHaveBeenCalledTimes(1);
+    close.mockRestore();
   });
 
   it('SESS-010: endSession ends the session a token names, and nothing for an untracked or missing token', async () => {

@@ -72,9 +72,9 @@ const nonEmptyString = (v: unknown): v is string => typeof v === 'string' && v.l
  * session that does not exist is not an error: the provider gets the same 200
  * either way, so the route never tells which subjects have an account here.
  *
- * Sessions are not announced over the websocket when they end, on any path
- * (`SessionsService.revokeAll` callers included): the next request of a
- * signed-out browser is refused by the session check, and so is this one's.
+ * The websockets of an ended session are closed with it, on both paths (by
+ * `SessionsService.revokeByOidcSid` and `revokeAll`), so a signed-out tab stops
+ * hearing its rooms at once; its next request is refused by the session check.
  *
  * Unlike the login, this works while SSO login is switched off: sessions made
  * before the switch still came from the provider, and it may still end them.
