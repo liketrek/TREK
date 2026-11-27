@@ -825,7 +825,7 @@ describe('TourPlannerRail', () => {
     expect(screen.getAllByRole('status').some(el => /T3 routes may include exposed/.test(el.textContent ?? ''))).toBe(true)
   })
 
-  it('dismisses an open tour type list when saving locks the editor', () => {
+  it('TOUR-PLANNER-RAIL-024: an open tour type list closes when saving locks the editor', () => {
     const controller = planner({ mode: { type: 'new-draft' } })
     const { rerender } = render(<TourPlannerRail planner={controller} />)
     const trigger = screen.getByTestId('tour-type-select')

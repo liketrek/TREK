@@ -13,10 +13,16 @@ const EDGE = 8;
  * it and goes on from the button; a click beside it closes it. The caller draws
  * the button and the list and hands `currentIndex`, the choice held now.
  */
-export function usePopoverList(currentIndex: number, { estimatedHeight = 320, disabled }: {
-  estimatedHeight?: number;
-  disabled?: boolean;
-} = {}) {
+export function usePopoverList(
+  currentIndex: number,
+  {
+    estimatedHeight = 320,
+    disabled,
+  }: {
+    estimatedHeight?: number;
+    disabled?: boolean;
+  } = {}
+) {
   const triggerRef = useRef<HTMLButtonElement>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const startAt = useRef(0);

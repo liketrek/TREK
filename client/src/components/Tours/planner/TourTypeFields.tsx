@@ -121,7 +121,12 @@ function SkiFields({ planner, locked }: TourTypeFieldsProps) {
         {t('tours.ski.plannedHint')}
       </span>
       {choice.discipline !== null && (
-        <SkiRouteOptions discipline={choice.discipline} options={choice.options} onChange={planner.ski.setOption} locked={locked} />
+        <SkiRouteOptions
+          discipline={choice.discipline}
+          options={choice.options}
+          onChange={planner.ski.setOption}
+          locked={locked}
+        />
       )}
     </div>
   );

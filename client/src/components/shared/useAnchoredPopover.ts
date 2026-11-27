@@ -4,13 +4,18 @@ import { useAnchoredPosition } from '../../hooks/useAnchoredPosition';
 /** The scrolling content that contains a panel's dropdown triggers. */
 export const PopoverBoundary = createContext<RefObject<HTMLElement | null> | null>(null);
 
-export function useAnchoredPopover(anchorRef: RefObject<HTMLElement | null>, {
-  disabled = false, estimatedHeight, matchWidth = true,
-}: {
-  disabled?: boolean;
-  estimatedHeight?: number;
-  matchWidth?: boolean;
-}) {
+export function useAnchoredPopover(
+  anchorRef: RefObject<HTMLElement | null>,
+  {
+    disabled = false,
+    estimatedHeight,
+    matchWidth = true,
+  }: {
+    disabled?: boolean;
+    estimatedHeight?: number;
+    matchWidth?: boolean;
+  }
+) {
   const boundaryRef = use(PopoverBoundary);
   const bounded = !!boundaryRef;
   const unavailable = bounded && disabled;
