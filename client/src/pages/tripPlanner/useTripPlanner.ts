@@ -370,22 +370,27 @@ export function useTripPlanner() {
   } = plannerDialogs
   const {
     mapLocked, toggleMapLocked, mapLockedRef, isMobileRef, fitKey, setFitKey,
-    overviewShown, toggleOverview: toggleMapOverview, dawarichTrailShown, toggleDawarichTrail, dawarichTrail,
+    overviewShown: overviewRemembered, toggleOverview: toggleMapOverview, dawarichTrailShown, toggleDawarichTrail, dawarichTrail,
     routeShown, setRouteShown, autoShowRoute, transitRoutesShown, routeProfile, setRouteProfile,
   } = usePlannerMapView({ tripId, trip, places, selectedDayId, isMobile })
+  // Making room for the day details puts the overview away for this visit only:
+  // the switch the account remembers stays on, and the pill brings it back.
+  const [overviewSetAsideFor, setOverviewSetAsideFor] = useState<number | null>(null)
+  const overviewShown = overviewRemembered && overviewSetAsideFor !== tripId
   // Road trip mode draws its own overview.
   const overviewActive = overviewShown && !roadtripMode
   const hideOverview = useCallback(() => {
-    if (overviewActive) toggleMapOverview()
-  }, [overviewActive, toggleMapOverview])
+    if (overviewActive) setOverviewSetAsideFor(tripId)
+  }, [overviewActive, tripId])
   const setShowDayDetail = useCallback((day: Day | null) => {
     stashedDayDetailRef.current = null
     setDayDetail(day)
   }, [])
   const toggleOverview = useCallback(() => {
     if (!overviewShown) stashedDayDetailRef.current = null
-    toggleMapOverview()
-  }, [overviewShown, toggleMapOverview])
+    if (overviewRemembered && !overviewShown) setOverviewSetAsideFor(null)
+    else toggleMapOverview()
+  }, [overviewShown, overviewRemembered, toggleMapOverview])
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState<'left' | 'right' | null>(null)
   const mobilePlanScrollTopRef = useRef<number>(0)
   const mobilePlacesScrollTopRef = useRef<number>(0)

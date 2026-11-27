@@ -115,4 +115,27 @@ describe('useTripPlanner: showing the whole trip', () => {
     });
     expect(result.current.overviewActive).toBe(false);
   });
+
+  it('puts the overview away for this visit only, the remembered switch stays on and the pill brings it back', async () => {
+    const { result } = await renderPlanner({ selectedDayId: day.id });
+    const remembered = () => useSettingsStore.getState().settings.planner_trip_views?.['42']?.overview;
+
+    act(() => {
+      result.current.toggleOverview();
+    });
+    expect(remembered()).toBe(true);
+    act(() => {
+      result.current.hideOverview();
+    });
+    expect(result.current.overviewShown).toBe(false);
+    expect(result.current.overviewActive).toBe(false);
+    expect(remembered()).toBe(true);
+
+    act(() => {
+      result.current.toggleOverview();
+    });
+    expect(result.current.overviewShown).toBe(true);
+    expect(result.current.overviewActive).toBe(true);
+    expect(remembered()).toBe(true);
+  });
 });

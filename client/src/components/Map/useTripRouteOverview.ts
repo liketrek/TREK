@@ -17,6 +17,9 @@ export interface TripRouteOverview extends TripRouteSummary {
   loading: boolean
 }
 
+/** The overview as the planner reads it: also whether the trip has any stop to route at all. */
+type PlannedTripRouteOverview = TripRouteOverview & { hasPlannedRoute: boolean }
+
 const EMPTY: TripRouteOverview = { ...summariseTripRoute([]), loading: false }
 const EMPTY_PLACES: Place[] = []
 
@@ -49,7 +52,7 @@ export function useTripRouteOverview(
   vias?: TripRouteVias,
   /** MDT-02: where the stages of the trip's multi-day tours run, so a day holding one draws that stage. */
   tourStageStops?: TourStageStops,
-) {
+): PlannedTripRouteOverview {
   const optimizeFromAccommodation = useSettingsStore(s => s.settings.optimize_from_accommodation)
   const toursEnabled = useTripAddonEnabled(tripId, 'tours')
   // Leg text is formatted at compute time, so a km↔mi switch has to re-run (#1300).
