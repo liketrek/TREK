@@ -11,24 +11,34 @@ export interface LoginStep {
   hasUsers: boolean;
 }
 
-/** The heading and the line under it, as translation keys. */
-export function headingKeys(step: LoginStep): { title: string; subtitle: string } {
-  if (step.passwordChangeStep) return { title: 'login.setNewPassword', subtitle: 'login.setNewPasswordHint' };
-  if (step.mode === 'login' && step.mfaStep) return { title: 'login.mfaTitle', subtitle: 'login.mfaSubtitle' };
+type Translate = (key: string) => string;
+
+/**
+ * The heading and the line under it. `plain` is the plain sign-in, whose line
+ * the app's screen leaves out. Translated here, with the keys written out, so
+ * the i18n key check sees every one of them.
+ */
+export function heading(step: LoginStep, t: Translate): { title: string; subtitle: string; plain: boolean } {
+  if (step.passwordChangeStep) {
+    return { title: t('login.setNewPassword'), subtitle: t('login.setNewPasswordHint'), plain: false };
+  }
+  if (step.mode === 'login' && step.mfaStep) {
+    return { title: t('login.mfaTitle'), subtitle: t('login.mfaSubtitle'), plain: false };
+  }
   if (step.mode === 'register') {
     return step.hasUsers
-      ? { title: 'login.createAccount', subtitle: 'login.createAccountHint' }
-      : { title: 'login.createAdmin', subtitle: 'login.createAdminHint' };
+      ? { title: t('login.createAccount'), subtitle: t('login.createAccountHint'), plain: false }
+      : { title: t('login.createAdmin'), subtitle: t('login.createAdminHint'), plain: false };
   }
-  return { title: 'login.title', subtitle: 'login.subtitle' };
+  return { title: t('login.title'), subtitle: t('login.subtitle'), plain: true };
 }
 
-/** The submit button's label, as a translation key; another while the request runs. */
-export function submitKey(step: LoginStep, loading: boolean): string {
-  if (step.passwordChangeStep) return 'settings.updatePassword';
-  if (step.mode === 'register') return loading ? 'login.creating' : 'login.createAccount';
-  if (step.mfaStep) return 'login.mfaVerify';
-  return loading ? 'login.signingIn' : 'login.signIn';
+/** The submit button's label; another while the request runs. */
+export function submitLabel(step: LoginStep, loading: boolean, t: Translate): string {
+  if (step.passwordChangeStep) return t('settings.updatePassword');
+  if (step.mode === 'register') return loading ? t('login.creating') : t('login.createAccount');
+  if (step.mfaStep) return t('login.mfaVerify');
+  return loading ? t('login.signingIn') : t('login.signIn');
 }
 
 /**

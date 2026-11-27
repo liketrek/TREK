@@ -1,6 +1,9 @@
 // FE-LOGIN-MODEL-001 to FE-LOGIN-MODEL-004
 import { describe, expect, it } from 'vitest';
-import { headingKeys, oidcLoginHref, oidcOnlyHref, submitKey, type LoginStep } from './loginModel';
+import { heading, oidcLoginHref, oidcOnlyHref, submitLabel, type LoginStep } from './loginModel';
+
+/** Returns the key itself, so the assertions read the keys. */
+const t = (key: string) => key;
 
 const step = (overrides: Partial<LoginStep> = {}): LoginStep => ({
   mode: 'login',
@@ -12,20 +15,20 @@ const step = (overrides: Partial<LoginStep> = {}): LoginStep => ({
 
 describe('loginModel', () => {
   it('FE-LOGIN-MODEL-001: names each step of the sign-in', () => {
-    expect(headingKeys(step())).toEqual({ title: 'login.title', subtitle: 'login.subtitle' });
-    expect(headingKeys(step({ mfaStep: true })).title).toBe('login.mfaTitle');
-    expect(headingKeys(step({ passwordChangeStep: true, mfaStep: true })).title).toBe('login.setNewPassword');
-    expect(headingKeys(step({ mode: 'register' })).title).toBe('login.createAccount');
-    expect(headingKeys(step({ mode: 'register', hasUsers: false })).title).toBe('login.createAdmin');
+    expect(heading(step(), t)).toEqual({ title: 'login.title', subtitle: 'login.subtitle', plain: true });
+    expect(heading(step({ mfaStep: true }), t).title).toBe('login.mfaTitle');
+    expect(heading(step({ passwordChangeStep: true, mfaStep: true }), t).title).toBe('login.setNewPassword');
+    expect(heading(step({ mode: 'register' }), t).title).toBe('login.createAccount');
+    expect(heading(step({ mode: 'register', hasUsers: false }), t).title).toBe('login.createAdmin');
   });
 
   it('FE-LOGIN-MODEL-002: labels the submit button for the step and while it runs', () => {
-    expect(submitKey(step(), false)).toBe('login.signIn');
-    expect(submitKey(step(), true)).toBe('login.signingIn');
-    expect(submitKey(step({ mfaStep: true }), true)).toBe('login.mfaVerify');
-    expect(submitKey(step({ mode: 'register' }), false)).toBe('login.createAccount');
-    expect(submitKey(step({ mode: 'register' }), true)).toBe('login.creating');
-    expect(submitKey(step({ passwordChangeStep: true }), true)).toBe('settings.updatePassword');
+    expect(submitLabel(step(), false, t)).toBe('login.signIn');
+    expect(submitLabel(step(), true, t)).toBe('login.signingIn');
+    expect(submitLabel(step({ mfaStep: true }), true, t)).toBe('login.mfaVerify');
+    expect(submitLabel(step({ mode: 'register' }), false, t)).toBe('login.createAccount');
+    expect(submitLabel(step({ mode: 'register' }), true, t)).toBe('login.creating');
+    expect(submitLabel(step({ passwordChangeStep: true }), true, t)).toBe('settings.updatePassword');
   });
 
   it('FE-LOGIN-MODEL-003: carries the invite and the remember-me choice to SSO, only when signing in', () => {

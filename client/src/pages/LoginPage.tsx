@@ -17,6 +17,7 @@ import { SUPPORTED_LANGUAGES, useTranslation } from '../i18n';
 import { IDP_LOGIN_URL, useLogin } from './login/useLogin';
 import LoginWorld from './login/LoginWorld';
 import AppLogin from './login/AppLogin';
+import { heading as headingOf, submitLabel } from './login/loginModel';
 import MfaCodeStep from './login/MfaCodeStep';
 import { LANGUAGE_CORNER_CLASS } from './login/languageCorner';
 import PasswordChecklist from '../components/shared/PasswordChecklist';
@@ -91,6 +92,8 @@ export default function LoginPage(): React.ReactElement {
     handleDemoLogin, handleSubmit, handlePasskeyLogin, handleSsoClick,
   } = login;
 
+  const step = { mode, mfaStep, passwordChangeStep, hasUsers: !!appConfig?.has_users };
+  const heading = headingOf(step, t);
   const oidcButtonShown = !!(appConfig?.oidc_configured && appConfig?.oidc_login && !oidcOnly);
   const passkeyAvailable = !!(
     appConfig?.passkey_login &&
@@ -229,8 +232,7 @@ export default function LoginPage(): React.ReactElement {
     );
   }
 
-  // Inside the iOS and Android app: the screen that continues the app's own
-  // address screen, on the same hook. The browser keeps the page below.
+  // In the app: the screen continuing its address screen (login/AppLogin.tsx).
   if (nativeApp) return <AppLogin login={login} />;
 
   return (
@@ -582,26 +584,10 @@ export default function LoginPage(): React.ReactElement {
                     color: '#111827',
                   }}
                 >
-                  {passwordChangeStep
-                    ? t('login.setNewPassword')
-                    : mode === 'login' && mfaStep
-                      ? t('login.mfaTitle')
-                      : mode === 'register'
-                        ? !appConfig?.has_users
-                          ? t('login.createAdmin')
-                          : t('login.createAccount')
-                        : t('login.title')}
+                  {heading.title}
                 </h2>
                 <p style={{ margin: '0 0 28px', fontSize: 'calc(13.5px * var(--fs-scale-body, 1))', color: '#9ca3af' }}>
-                  {passwordChangeStep
-                    ? t('login.setNewPasswordHint')
-                    : mode === 'login' && mfaStep
-                      ? t('login.mfaSubtitle')
-                      : mode === 'register'
-                        ? !appConfig?.has_users
-                          ? t('login.createAdminHint')
-                          : t('login.createAccountHint')
-                        : t('login.subtitle')}
+                  {heading.subtitle}
                 </p>
 
                 <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -1020,24 +1006,12 @@ export default function LoginPage(): React.ReactElement {
                             animation: 'spin 0.7s linear infinite',
                           }}
                         />
-                        {passwordChangeStep
-                          ? t('settings.updatePassword')
-                          : mode === 'register'
-                            ? t('login.creating')
-                            : mode === 'login' && mfaStep
-                              ? t('login.mfaVerify')
-                              : t('login.signingIn')}
+                        {submitLabel(step, true, t)}
                       </>
                     ) : (
                       <>
                         <Plane size={16} />
-                        {passwordChangeStep
-                          ? t('settings.updatePassword')
-                          : mode === 'register'
-                            ? t('login.createAccount')
-                            : mode === 'login' && mfaStep
-                              ? t('login.mfaVerify')
-                              : t('login.signIn')}
+                        {submitLabel(step, false, t)}
                       </>
                     )}
                   </button>

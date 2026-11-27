@@ -6,7 +6,7 @@ import PasswordChecklist from '../../components/shared/PasswordChecklist';
 import { useTranslation } from '../../i18n';
 import { lightStatusBarIcons } from '../../native/appBoot';
 import './appLogin.css';
-import { headingKeys, oidcLoginHref, oidcOnlyHref, submitKey, type LoginStep } from './loginModel';
+import { heading as headingOf, oidcLoginHref, oidcOnlyHref, submitLabel, type LoginStep } from './loginModel';
 import { mfaCodeInputProps } from './MfaCodeStep';
 import { IDP_LOGIN_URL, type useLogin } from './useLogin';
 
@@ -163,22 +163,22 @@ function stepOf(login: Login): LoginStep {
 function Credentials({ login }: { login: Login }) {
   const { t } = useTranslation();
   const step = stepOf(login);
-  const heading = headingKeys(step);
+  const heading = headingOf(step, t);
   const onMfa = login.mode === 'login' && login.mfaStep && !login.passwordChangeStep;
   const onAccount = !(login.mode === 'login' && login.mfaStep) && !login.passwordChangeStep;
   return (
     <>
       <form className="al-form" onSubmit={login.handleSubmit}>
-        <h1 className="al-title">{t(heading.title)}</h1>
+        <h1 className="al-title">{heading.title}</h1>
         {/* The plain sign-in needs no line under its heading; the other steps say what they ask for. */}
-        {heading.subtitle !== 'login.subtitle' && <p className="al-sub">{t(heading.subtitle)}</p>}
+        {!heading.plain && <p className="al-sub">{heading.subtitle}</p>}
         <Notices login={login} />
         {login.passwordChangeStep && <NewPassword login={login} />}
         {onMfa && <MfaCode login={login} />}
         {onAccount && <Account login={login} />}
         <button type="submit" className="al-cta" disabled={login.isLoading}>
           {login.isLoading && <span className="al-spin" aria-hidden="true" />}
-          {t(submitKey(step, login.isLoading))}
+          {submitLabel(step, login.isLoading, t)}
         </button>
       </form>
       <OtherWays login={login} />
