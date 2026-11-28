@@ -1468,7 +1468,7 @@ jobs:
           path: plugin-sdk/coverage/
 
       - name: Scan
-        uses: SonarSource/sonarqube-scan-action@59202af334b4ba7b5db01b701b8e79f8b3bef0f4 # v8.5.0
+        uses: SonarSource/sonarqube-scan-action@70bad232163b09d998ea0707ee80c0ec80798c16 # v8.5.1
         env:
           # SonarQube Cloud is the scan action's default host, so no
           # SONAR_HOST_URL — the token is a sonarcloud.io token for the
