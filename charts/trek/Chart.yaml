@@ -2,4 +2,7 @@ apiVersion: v2
 name: trek
 version: 5.2.2
 description: Minimal Helm chart for TREK app
+home: https://github.com/liketrek/TREK
+sources:
+  - https://github.com/liketrek/TREK
 appVersion: "5.2.2"
