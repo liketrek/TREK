@@ -53,6 +53,7 @@ import { DEMO_EMAIL_PRIMARY, DEMO_PASS, isDemoEmail } from '../common/demo';
 import { avatarUrl } from '../common/avatarUrl';
 import { TripMembershipService } from '../trip-membership/trip-membership.service';
 import { WebauthnConfigService } from './webauthn-config.service';
+import { resetThrottledPerEmail } from './password-reset-throttle';
 import { setAuthCookie, clearAuthCookie } from '../common/cookie';
 import { MailerService } from '../notifications/mailer/mailer.service';
 import { AllowedFileTypesService } from '../files/allowed-file-types.service';
@@ -118,19 +119,6 @@ export interface PasswordResetRequestOutcome {
   userEmail: string | null;
   reason: 'issued' | 'no_user' | 'oidc_only' | 'throttled_per_email' | 'password_login_disabled';
 }
-
-// Per-email throttle (defence-in-depth on top of the per-IP limiter).
-// Module-scoped + import-time interval on purpose (legacy parity, shared
-// between bridge and container instances — atlas-geo interval precedent).
-const perEmailResetAttempts = new Map<string, { count: number; first: number }>();
-const PASSWORD_RESET_PER_EMAIL_WINDOW_MS = 15 * 60 * 1000;
-const PASSWORD_RESET_PER_EMAIL_MAX = 3;
-setInterval(() => {
-  const now = Date.now();
-  for (const [key, record] of perEmailResetAttempts) {
-    if (now - record.first >= PASSWORD_RESET_PER_EMAIL_WINDOW_MS) perEmailResetAttempts.delete(key);
-  }
-}, 5 * 60 * 1000).unref?.();
 
 export interface ResetPasswordOutcome {
   status?: number;
@@ -951,16 +939,8 @@ export class AuthService {
 
     // Per-email throttle. We check this BEFORE the DB lookup so the timing
     // is identical regardless of whether the account exists.
-    const throttleKey = email || '__noemail__';
-    const now = Date.now();
-    const record = perEmailResetAttempts.get(throttleKey);
-    if (record && record.count >= PASSWORD_RESET_PER_EMAIL_MAX && now - record.first < PASSWORD_RESET_PER_EMAIL_WINDOW_MS) {
+    if (resetThrottledPerEmail(email || '__noemail__', Date.now())) {
       return { tokenForDelivery: null, userId: null, userEmail: null, reason: 'throttled_per_email' };
-    }
-    if (!record || now - record.first >= PASSWORD_RESET_PER_EMAIL_WINDOW_MS) {
-      perEmailResetAttempts.set(throttleKey, { count: 1, first: now });
-    } else {
-      record.count++;
     }
 
     if (!looksLikeEmail) {

@@ -6,7 +6,7 @@
   "src/db/repositories/Trips.repository.ts": 1120,
   "src/db/repositories/Users.repository.ts": 1421,
   "src/nest/atlas/atlas.service.ts": 1166,
-  "src/nest/auth/auth.service.ts": 1132,
+  "src/nest/auth/auth.service.ts": 1126,
   "src/nest/budget/budget.service.ts": 1607,
   "src/nest/collections/collections.service.ts": 1414,
   "src/nest/doc-sync/doc-sync.service.ts": 1060,
