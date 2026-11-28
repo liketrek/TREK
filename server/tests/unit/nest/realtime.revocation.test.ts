@@ -1,5 +1,5 @@
 /**
- * WSREV-001 to WSREV-017: a socket is let into a room with one access check,
+ * WSREV-001 to WSREV-018: a socket is let into a room with one access check,
  * so the writes that end access ask the sockets already in again
  * (recheckTripAccess, recheckJourneyAccess), and the sockets of a user whose
  * sessions ended, or of every user once the database was replaced, are
@@ -21,6 +21,7 @@ import {
   registerSocket,
   roomAccessSlot,
   roomsSlot,
+  sessionClosed,
   setServer,
   type RoomAccess,
   type TrekWebSocket,
@@ -217,6 +218,14 @@ describe('closeSockets', () => {
     expect(rooms.members(5)).toBeUndefined();
     expect(bookPeers(9).map((p) => p.userId)).toEqual([2]);
     expect(theirs.sent).toContainEqual(expect.objectContaining({ type: 'journey:book:peers' }));
+  });
+
+  it('WSREV-018: a session whose sockets were closed is remembered for a minute, then forgotten', () => {
+    const now = Date.now();
+    closeSockets(4001, 'Session ended', 1, 'sess-gone');
+    expect(sessionClosed('sess-gone', now)).toBe(true);
+    expect(sessionClosed('sess-never', now)).toBe(false);
+    expect(sessionClosed('sess-gone', now + 60_000)).toBe(false);
   });
 
   it('WSREV-017: one ended session closes its own sockets and those of no known session, never another device', async () => {
