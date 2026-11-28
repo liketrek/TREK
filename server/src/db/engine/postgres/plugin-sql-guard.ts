@@ -235,6 +235,8 @@ const NAME_LOOKUP_TYPES = [
   'regnamespace',
   'regrole',
   'regcollation',
+  // New in PostgreSQL 19: looks a database of the cluster up by its name.
+  'regdatabase',
 ];
 
 /**

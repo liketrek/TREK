@@ -104,6 +104,10 @@ describe('plugin SQL guard', () => {
     'CREATE TYPE span AS RANGE (subtype = float8)',
     'CREATE TABLE index (x int)',
     'CREATE INDEX ON notes (body)',
+    // PostgreSQL 19 added a uuid() conversion to the catalog; a uuid column and the cast still pass.
+    'SELECT t.uuid FROM items t WHERE t.uuid = uuid($1)',
+    // So did error_on_null, tid_block, tid_offset and oid8; a plugin column of that name still passes.
+    'SELECT s.error_on_null, s.tid_block, s.tid_offset, s.oid8 FROM settings s',
   ])('lets through %s', (sql) => {
     expect(() => check(sql)).not.toThrow();
   });
@@ -268,6 +272,11 @@ describe('plugin SQL guard', () => {
     ["select 'english'::regconfig", /"regconfig" may not be named/],
     ["select 'simple'::regdictionary", /"regdictionary" may not be named/],
     ["select '{public.users}'::_regclass", /"_regclass" may not be named/],
+    // PostgreSQL 19's regdatabase looks a database of the cluster up by its name.
+    ["select 'postgres'::regdatabase::oid", /"regdatabase" may not be named/],
+    ["select cast('other_app' as regdatabase)", /"regdatabase" may not be named/],
+    ["select '{postgres}'::_regdatabase", /"_regdatabase" may not be named/],
+    ["select to_regdatabase('other_app')", /"to_regdatabase" may not be named/],
     ["select 'x'::pg_catalog.regtype", /"pg_catalog" may not be named/],
     ["select has_table_privilege('public.users', 'select')", /"has_table_privilege" may not be named/],
     ["select currtid2('public.users', '(0,1)')", /"currtid2" may not be named/],

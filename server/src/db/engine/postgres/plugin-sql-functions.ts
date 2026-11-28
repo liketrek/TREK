@@ -38,7 +38,7 @@ import path from 'node:path';
  *
  * Which names are functions of `pg_catalog` is read from
  * `assets/postgres/catalog-functions.txt`: every function name of every
- * supported major (14 to 18; the boot refuses any other server). The Postgres
+ * supported major (14 to 19; the boot refuses any other server). The Postgres
  * lane compares it with `pg_proc` on the server it runs on and fails on a
  * name missing there (PGPLUG-021), so a new major cannot add a function a
  * plugin may call without someone deciding whether it belongs here.
@@ -72,13 +72,13 @@ export const SESSION_KEYWORDS: ReadonlySet<string> = new Set([
  * returns a single value (`FROM unnest(...) u`, `FROM generate_series(...)
  * g`) or a parameter (`$1.f`), that value is the argument. None of these
  * reads anything called that way: `version` takes no argument, so the
- * notation never calls it, and `money`, `name`, `oid` and `xml` only
+ * notation never calls it, and `money`, `name`, `oid`, `oid8` and `xml` only
  * convert their argument to the type of that name. Every other refused name
  * is refused after a dot too. `xid` is not here: `u.xid` casts `u` to the
  * transaction id type, whose `age()` reads the server's transaction counter.
  * PGPLUG-021 holds each name here to that on the lane's server.
  */
-export const COLUMN_NAMES: ReadonlySet<string> = new Set(['money', 'name', 'oid', 'version', 'xml']);
+export const COLUMN_NAMES: ReadonlySet<string> = new Set(['money', 'name', 'oid', 'oid8', 'version', 'xml']);
 
 /** The function names of `pg_catalog` on every supported major, one per line, sorted. */
 export const CATALOG_FUNCTIONS_FILE = path.join(

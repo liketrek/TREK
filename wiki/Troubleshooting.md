@@ -672,23 +672,23 @@ See [Notifications](Notifications#web-push) for the details.
 
 ## Postgres: "pg_dump was not found" when backing up or restoring
 
-**Cause:** The backup, restore or pre-migration copy runs `pg_dump`, `pg_restore` or `psql` by its absolute path. None of them is in the directories TREK searches (`/usr/lib/postgresql/18` down to `14`, `/usr/local/bin`, `/usr/bin`), and `PATH` is not searched.
+**Cause:** The backup, restore or pre-migration copy runs `pg_dump`, `pg_restore` or `psql` by its absolute path. None of them is in the directories TREK searches (`/usr/lib/postgresql/19` down to `14`, `/usr/local/bin`, `/usr/bin`), and `PATH` is not searched.
 
-**Fix:** Install the `postgresql-client` package, or set `TREK_DB_PG_BIN_DIR` to the directory that holds the three tools. The Docker image already includes the version 18 client. See [Database-Postgres](Database-Postgres#where-the-client-tools-are-found).
+**Fix:** Install the `postgresql-client` package, or set `TREK_DB_PG_BIN_DIR` to the directory that holds the three tools. The Docker image already includes the version 19 client in `/usr/lib/postgresql/19/bin`; it keeps `/usr/lib/postgresql/18/bin` as a link to it, so a `TREK_DB_PG_BIN_DIR` copied from an older `.env.example` still works. On your own image, unset the variable or point it at the directory the installed client uses. See [Database-Postgres](Database-Postgres#where-the-client-tools-are-found).
 
 ---
 
 ## Postgres: a backup or restore fails with "server version mismatch" or a version error
 
-**Cause:** Three different problems produce messages about versions. A client tool works with servers up to its own major version, so TREK refuses a backup or restore with tools older than the server (`pg_dump is version 17, older than the PostgreSQL 18 server`). A restore also refuses a `pg_restore` or `psql` older than 18.0, 17.6, 16.10, 15.14 or 14.19, because those versions cannot restore a dump safely (CVE-2025-8714). And a client older than 16 cannot use the system's certificate authorities, so with `sslmode` set and no `sslrootcert` it is refused too. Each error names the version it found.
+**Cause:** Three different problems produce messages about versions. A client tool works with servers up to its own major version, so TREK refuses a backup or restore with tools older than the server (`pg_dump is version 18, older than the PostgreSQL 19 server`). A restore also refuses a `pg_restore` or `psql` older than 18.0, 17.6, 16.10, 15.14 or 14.19, because those versions cannot restore a dump safely (CVE-2025-8714). And a client older than 16 cannot use the system's certificate authorities, so with `sslmode` set and no `sslrootcert` it is refused too. Each error names the version it found.
 
-**Fix:** Use the Docker image's tools, which are version 18 and work with every supported server (14 to 18), or point `TREK_DB_PG_BIN_DIR` at client tools at least as new as the server. For the certificate message, add `sslrootcert=<CA file>` to `TREK_DB_URL` or use newer tools.
+**Fix:** Use the Docker image's tools, which are version 19 and work with every supported server (14 to 19), or point `TREK_DB_PG_BIN_DIR` at client tools at least as new as the server. For the certificate message, add `sslrootcert=<CA file>` to `TREK_DB_URL` or use newer tools.
 
 ---
 
 ## Postgres: TREK refuses to start because of the server version
 
-**Cause:** TREK supports PostgreSQL 14 to 18 and refuses any other server before it writes anything (`the Postgres server is version 19; TREK supports PostgreSQL 14 to 18`).
+**Cause:** TREK supports PostgreSQL 14 to 19 and refuses any other server before it writes anything (`the Postgres server is version 20; TREK supports PostgreSQL 14 to 19`).
 
 **Fix:** Run TREK on a server of a supported version. A newer major is supported once a TREK release ships client tools for it.
 

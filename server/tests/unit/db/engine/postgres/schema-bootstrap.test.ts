@@ -239,17 +239,17 @@ describe('bootstrapPostgresSchema', () => {
 
   it.each([
     { id: 'PGBOOT-020a', version: '130016', major: 13 },
-    { id: 'PGBOOT-020b', version: '190000', major: 19 },
-  ])('$id: a server outside 14 to 18 is refused before anything is read or written', async ({ version, major }) => {
+    { id: 'PGBOOT-020b', version: '200000', major: 20 },
+  ])('$id: a server outside 14 to 19 is refused before anything is read or written', async ({ version, major }) => {
     const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2], tables: [], server: { version } });
     await expect(bootstrapPostgresSchema(orm, deps())).rejects.toThrow(
-      `Refusing to boot: the Postgres server is version ${major}; TREK supports PostgreSQL 14 to 18.`,
+      `Refusing to boot: the Postgres server is version ${major}; TREK supports PostgreSQL 14 to 19.`,
     );
     expect(db.sql).toEqual([]);
     expect(db.ensureTable).not.toHaveBeenCalled();
   });
 
-  it.each(['140019', '180001'])(
+  it.each(['140019', '190001'])(
     'PGBOOT-021: the oldest and the newest supported servers boot (%s)',
     async (version) => {
       const { orm, db } = fakeOrm({ executed: [], pending: [M1, M2], tables: [], server: { version } });

@@ -59,6 +59,21 @@ describe('pg-tools', () => {
     expect(resolvePgTool('psql', bin)).toBeNull();
   });
 
+  it('PGTOOLS-024: without a configured directory, the newest supported major is looked in first, then the older ones', () => {
+    const access = vi.spyOn(fs, 'accessSync').mockImplementation(() => {
+      throw new Error('not installed');
+    });
+    try {
+      expect(resolvePgTool('pg_dump', undefined)).toBeNull();
+      const looked = access.mock.calls.map(([candidate]) => String(candidate));
+      expect(looked.slice(0, 6)).toEqual(
+        [19, 18, 17, 16, 15, 14].map((major) => path.join(`/usr/lib/postgresql/${major}/bin`, 'pg_dump')),
+      );
+    } finally {
+      access.mockRestore();
+    }
+  });
+
   it('PGTOOLS-002: the connection goes in the libpq environment, the password decoded and never an argument', () => {
     expect(pgConnectionEnv(URL_WITH_SECRET)).toEqual({
       PGHOST: 'db.example',

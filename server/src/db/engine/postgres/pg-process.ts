@@ -14,12 +14,13 @@ export type PgTool = 'pg_dump' | 'pg_restore' | 'psql';
 
 /**
  * Where the client tools are looked for when `TREK_DB_PG_BIN_DIR` is unset:
- * Debian's versioned directories newest first (the Docker image installs 18),
+ * Debian's versioned directories newest first (the Docker image installs 19),
  * then the usual prefixes. Newest first because a client dumps and restores
  * every server up to its own major version and refuses a newer one. Never
  * PATH: a binary is run by its absolute path.
  */
 const DEFAULT_BIN_DIRS = [
+  '/usr/lib/postgresql/19/bin',
   '/usr/lib/postgresql/18/bin',
   '/usr/lib/postgresql/17/bin',
   '/usr/lib/postgresql/16/bin',

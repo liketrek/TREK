@@ -8,8 +8,8 @@ import { run } from './pg-process';
  * psql then refuses every meta-command until the matching `\unrestrict`.
  *
  * RESTRICT_SINCE holds, per major, the first minor that carries the fix, for
- * every major TREK supports (14 to 18; 18 has it from 18.0). Every major after
- * the last one listed has it from its first release.
+ * the majors TREK supports from 14 to 18 (18 has it from 18.0). Every major after
+ * the last one listed (19 and later) has it from its first release.
  */
 const RESTRICT_SINCE: Readonly<Partial<Record<number, number>>> = { 14: 19, 15: 14, 16: 10, 17: 6, 18: 0 };
 const LAST_MAJOR_WITHOUT_IT = Math.max(...Object.keys(RESTRICT_SINCE).map(Number));
@@ -46,6 +46,6 @@ export async function refuseToolsWithoutRestrict(binDir: string | undefined): Pr
   if (stale < 0) return;
   throw new Error(
     `${tools[stale]} is too old to restore safely (${versions[stale].trim()}): it must be at least ${minimumVersionsText()} ` +
-      '(the Docker image has 18). Upgrade the PostgreSQL client tools or point TREK_DB_PG_BIN_DIR at newer ones.',
+      '(the Docker image has 19). Upgrade the PostgreSQL client tools or point TREK_DB_PG_BIN_DIR at newer ones.',
   );
 }

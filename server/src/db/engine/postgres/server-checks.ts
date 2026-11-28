@@ -8,7 +8,7 @@ import { REFUSAL } from '../../legacy-baseline';
  */
 
 /** The PostgreSQL majors TREK supports and CI runs: the oldest and the newest. */
-const SUPPORTED_SERVER_MAJORS = { oldest: 14, newest: 18 } as const;
+const SUPPORTED_SERVER_MAJORS = { oldest: 14, newest: 19 } as const;
 
 /**
  * The `pg_catalog` functions that read, list or write files on the database
