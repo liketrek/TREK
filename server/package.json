@@ -155,6 +155,6 @@
     "supertest": "^7.3.1",
     "typescript-eslint": "^8.73.0",
     "unplugin-swc": "^1.6.0",
-    "vitest": "^4.1.11"
+    "vitest": "^5.1.2"
   }
 }
